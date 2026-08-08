@@ -75,6 +75,14 @@ The other two GitHub repos are kept untouched as reference, not deleted:
   `admin, manager, bd, operations, viewer, team_member`. `access_allowlist` decides who
   gets auto-approved on signup. `app_role()` is the function every access rule calls.
 
+## Testing
+
+Always verify UI work by actually driving the app, not by reading the code. `scripts/qa/`
+runs `index.html` in a headless browser against a local stand-in for Supabase. Sign in as
+**`test@directksa.com`** / `Dq7nTest-2026-Riyadh` (admin, created 2026-08-08 and kept
+deliberately for this). Screenshot the pages and look at them — several real defects on
+Today and Leads were invisible in the code and obvious on screen.
+
 ## Rules for editing index.html
 
 - **Never call `window.supabase.createClient` again in a new layer.** The app had five
