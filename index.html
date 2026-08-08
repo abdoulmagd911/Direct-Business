@@ -8770,6 +8770,7 @@ function finLoad(cb){
     try{if(current==='finance')render();}catch(_){}
   });
 }
+try{window.FIN=FIN;window.finLoad=finLoad;}catch(_){}  // expose for the Customer-360 finance snapshot (v29)
 function live(){ return (FIN.rows||[]).filter(function(r){return !r.deleted_at;}); }
 function verified(){return live().filter(function(r){return r.integrity_status==='verified_paid';});}
 
@@ -8796,6 +8797,33 @@ function rOverview(){
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
     return '<div class="card" style="padding:14px 16px"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===6?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===6?'':money(c[1])+' SAR')+'">'+(i===6?c[1]:moneyS(c[1]))+(i===6?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+'</div></div>';
   }).join('')+'</div>';
+  // ---- Collections & AR aging (DSO · % overdue · aging buckets) — from all live invoices, no name matching ----
+  var _fl=function(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;};
+  var LV=live().filter(function(r){return FIN.f.quarter==='all'||r.quarter===FIN.f.quarter;});
+  var arOut=0,arOver=0,billed=0,ag={b030:0,b3160:0,b6190:0,b90:0},_now=Date.now();
+  LV.forEach(function(r){
+    billed+=+r.total_incl_vat_sar||0;
+    var out=+r.amount_remaining_sar||0; if(out<=0)return;
+    arOut+=out;
+    var due=r.collection_due_date?new Date(r.collection_due_date).getTime():0; if(due&&due<_now)arOver+=out;
+    var invd=r.invoice_date?new Date(r.invoice_date).getTime():_now; var d=Math.floor((_now-invd)/86400000);
+    if(d<=30)ag.b030+=out;else if(d<=60)ag.b3160+=out;else if(d<=90)ag.b6190+=out;else ag.b90+=out;
+  });
+  var _dates=LV.map(function(r){return r.invoice_date;}).filter(Boolean).sort();
+  var _span=_dates.length?Math.max(30,Math.round((new Date(_dates[_dates.length-1]).getTime()-new Date(_dates[0]).getTime())/86400000)):180;
+  var dso=billed>0?Math.round(arOut/billed*_span):0, pctOver=arOut>0?Math.round(arOver/arOut*100):0;
+  var _mini=function(lbl,val,col){return '<div style="flex:1;min-width:110px"><div style="font-size:11px;color:var(--muted)">'+lbl+'</div><div style="font-size:19px;font-weight:800;color:'+col+'">'+val+'</div></div>';};
+  var _agc=function(lbl,val){return '<div style="flex:1;min-width:90px;background:#F9FAFB;border-radius:8px;padding:8px 10px"><div style="font-size:10.5px;color:var(--muted)">'+lbl+'</div><div style="font-weight:800;font-size:14px">'+moneyS(val)+' <span style="font-size:9px;font-weight:400">SAR</span></div></div>';};
+  h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 4px">'+_fl('Collections & AR aging','التحصيل وتقادم الذمم')+'</h3>'+
+     '<div class="ch-sub" style="margin-bottom:12px">'+_fl('How long money takes to collect, the overdue share, and how the outstanding ages.','مدة تحصيل الأموال، ونسبة المتأخر، وكيف تتقادم المبالغ المستحقة.')+'</div>'+
+     '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:'+(arOut>0?'14px':'0')+'">'+
+       _mini(_fl('DSO (days to collect)','مدة التحصيل (أيام)'),dso,'#175CD3')+
+       _mini(_fl('% overdue','٪ المتأخر'),pctOver+'%',pctOver>0?'#D92D20':'#0F6E56')+
+       _mini(_fl('Outstanding (AR)','إجمالي المستحق'),moneyS(arOut)+' SAR',arOut>0?'#D92D20':'#667085')+
+     '</div>'+
+     (arOut>0?('<div style="display:flex;gap:8px;flex-wrap:wrap">'+_agc(_fl('0–30 days','0–30 يوم'),ag.b030)+_agc(_fl('31–60 days','31–60 يوم'),ag.b3160)+_agc(_fl('61–90 days','61–90 يوم'),ag.b6190)+_agc(_fl('90+ days','90+ يوم'),ag.b90)+'</div>')
+       :('<div style="font-size:12px;color:#0F6E56">✓ '+_fl('No outstanding receivables in this period.','لا توجد مستحقات في هذه الفترة.')+'</div>'))+
+     '</div>';
   var MO=['January','February','March','April','May','June','July','August','September','October','November','December'];
   var by={};V.forEach(function(r){var k=r.month||'?';by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;by[k].p+=+r.profit_sar;});
   var mos=MO.filter(function(m){return by[m];});var mx=Math.max.apply(null,mos.map(function(m){return by[m].r;}).concat([1]));
@@ -9602,6 +9630,64 @@ console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:70
   if(typeof render==='function'){ var _r28=render; window.render=function(){ var o=_r28.apply(this,arguments); tidySettings(); setTimeout(tidySettings,120); return o; }; }
   tidySettings();
 }catch(e){ if(window.console)console.warn('[v28] init',e); }})();
+</script>
+<script>
+/* v29 — Customer 360: show a client's/lead's finance snapshot on their detail page,
+   and link out to the Finance ledger. SAFETY: finance invoices key to a client only by
+   NAME (client_group), so this matches ONLY on an exact normalised name — it errs toward
+   showing NOTHING rather than the wrong company's money. Additive card, reversible. */
+(function(){try{
+  var fl=function(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;};
+  function norm(s){return String(s==null?'':s).toLowerCase().replace(/[\s\-_.,&()]+/g,' ').replace(/\b(co|company|ltd|llc|est|group|est\.)\b/g,'').replace(/\s+/g,' ').trim();}
+  function mS(n){n=Number(n)||0;if(Math.abs(n)>=1e6)return (n/1e6).toFixed(2)+'M';if(Math.abs(n)>=1e3)return (n/1e3).toFixed(1)+'K';return n.toFixed(0);}
+  function injectFinance(){
+    try{
+      if(typeof current==='undefined'||(current!=='leads'&&current!=='clients'))return;
+      if(typeof openLead==='undefined'||!openLead)return;
+      if(typeof leadDetailView!=='undefined'&&leadDetailView!=='detail')return;
+      var view=document.getElementById('view'); if(!view)return;
+      var head=view.querySelector('.detail-head'); if(!head)return;
+      if(view.querySelector('.v29-fin'))return; // already injected this render
+      var biz=(typeof getLead==='function')?getLead(openLead):null; if(!biz||!biz.name)return;
+      // finance data loads async; kick it off once, re-render when ready
+      var FIN=window.FIN, finLoad=window.finLoad;
+      if(!FIN)return;
+      if(FIN.rows==null){ if(!FIN.loading && typeof finLoad==='function'){ finLoad(function(){ try{if(typeof render==='function')render();}catch(_){}}); } return; }
+      var target=norm(biz.name); if(!target)return;
+      var rows=FIN.rows.filter(function(r){ if(r.deleted_at)return false; return norm(r.client_group)===target || norm(r.customer_raw_name)===target; });
+      if(!rows.length)return; // no exact match -> show nothing (never a wrong match)
+      var billed=0,rec=0,out=0,cg=rows[0].client_group||biz.name,last='';
+      rows.forEach(function(r){ billed+=+r.total_incl_vat_sar||0; rec+=+r.amount_received_sar||0; out+=+r.amount_remaining_sar||0; if((r.invoice_date||'')>last)last=r.invoice_date||''; });
+      var card=document.createElement('div');
+      card.className='card v29-fin';
+      card.style.cssText='margin:0 0 14px';
+      var mini=function(lbl,val,col){return '<div style="flex:1;min-width:100px"><div style="font-size:11px;color:var(--muted)">'+lbl+'</div><div style="font-size:18px;font-weight:800;color:'+(col||'#1C1E2B')+'">'+val+'</div></div>';};
+      card.innerHTML='<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap">'+
+          '<h3 style="margin:0">💰 '+fl('Finance','المالية')+'</h3>'+
+          '<button class="btn sm" onclick="try{current=\'finance\';FIN.tab=\'ledger\';FIN.f.client='+JSON.stringify(cg)+';render();}catch(e){}">'+fl('Open in Finance ledger ↗','افتح في سجل المالية ↗')+'</button></div>'+
+        '<div class="ch-sub" style="margin:2px 0 12px">'+fl('Matched to '+rows.length+' invoice'+(rows.length>1?'s':'')+' by company name — verify the name matches before relying on it.','مطابَقة بـ '+rows.length+' فاتورة حسب اسم الشركة — تأكد من تطابق الاسم قبل الاعتماد عليه.')+'</div>'+
+        '<div style="display:flex;gap:18px;flex-wrap:wrap">'+
+          mini(fl('Lifetime billed','إجمالي الفوترة'),mS(billed)+' SAR','#175CD3')+
+          mini(fl('Received','المُحصّل'),mS(rec)+' SAR','#0F6E56')+
+          mini(fl('Outstanding','المستحق'),mS(out)+' SAR',out>0?'#D92D20':'#667085')+
+          mini(fl('Invoices','عدد الفواتير'),String(rows.length))+
+          mini(fl('Last invoice','آخر فاتورة'),last||'—')+
+        '</div>';
+      head.insertAdjacentElement('afterend',card);
+      // reconcile the stale "Key facts" numbers (which read a legacy b.totalSAR field) with the
+      // real finance figures, so the page never shows two different "Lifetime billed" values.
+      var facts=view.querySelectorAll('.fact');
+      for(var fi=0;fi<facts.length;fi++){ var kk=facts[fi].querySelector('.k'), vv=facts[fi].querySelector('.v'); if(!kk||!vv)continue;
+        var kt=(kk.textContent||'').trim();
+        if(kt==='Lifetime billed'||kt==='إجمالي الفوترة'){ vv.textContent=mS(billed)+' SAR'; }
+        else if(kt==='Invoices'||kt==='عدد الفواتير'){ vv.textContent=String(rows.length); }
+      }
+    }catch(e){ if(window.console)console.warn('[v29] fin snapshot',e); }
+  }
+  window.v29InjectFinance=injectFinance;
+  if(typeof render==='function'){ var _r29=render; window.render=function(){ var o=_r29.apply(this,arguments); injectFinance(); return o; }; }
+  injectFinance();
+}catch(e){ if(window.console)console.warn('[v29] init',e); }})();
 </script>
 
 </body>
