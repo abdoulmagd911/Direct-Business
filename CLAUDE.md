@@ -75,6 +75,63 @@ The other two GitHub repos are kept untouched as reference, not deleted:
   `admin, manager, bd, operations, viewer, team_member`. `access_allowlist` decides who
   gets auto-approved on signup. `app_role()` is the function every access rule calls.
 
+## Start here — the three documents that carry everything
+
+1. **`docs/BACKLOG.md`** — everything parked, why, and what finishing it looks like.
+   Read at the start of a session, update at the end.
+2. **`docs/DIRECT_MASTER_BRIEF.md`** — the business: strategy, the full sales workflow
+   phase by phase, locked decisions, open questions.
+3. **`docs/ROLES_AND_ACCESS.md`** — who can do what, read from the live database.
+
+## What this session can and cannot reach
+
+Verified by testing, 2026-08-08 — do not re-litigate, and do not promise what is blocked.
+
+| | |
+|---|---|
+| **Google Drive** | ✅ Works. Connected to `aboelmagd@directksa.com`. Search by title, content, type, folder, date. Reads Docs, Sheets, Slides, PDF, Word, Excel, PNG/JPEG. **Best way to hand over files.** |
+| **Web search** | ✅ Works. Returns summaries and links. |
+| **Opening a URL** | ❌ Blocked for every domain, including his own sites. Cannot read a page's content. **Ask for a screenshot instead** — images read perfectly. |
+| **File uploads in chat** | ✅ Works. PDF, Word, Excel, images, CSV. |
+| **His `Q:\` drive** | ❌ Never reachable. It is on his locked-down work laptop. Anything needed must go to Drive first. |
+| **The live app in a browser** | ❌ Cannot reach `directksab2b.com` or `*.supabase.co` from the sandbox. Use `scripts/qa/` with the local stand-in, or ask for screenshots. |
+
+### Google Drive folder IDs worth keeping
+
+- Invoice exports (5466…5507): `1F24YUsinyAAz9ntvNaSgJbTfd-8W3P20`
+- Lead working files (contact-form staging, call sheets): `1G2JAtDs9z-m3M4rJncrnKy_NClDvgUou`
+- `TravelAgencies_MASTER.xlsx` lives in: `1cj5eHEHKZbRPWwV6_1kCPZBYikZDhOw6`
+- Business/finance reports: `1CM_-xzFSNEQKokX6K016nMJoTGNmwpzz`
+
+## The links
+
+| What | Where |
+|---|---|
+| The internal B2B app (this repo) | https://www.directksab2b.com · https://direct-business.vercel.app |
+| Events hub | https://www.directksab2b.com/events |
+| Public company website | https://directksa.com/ar/ |
+| Corporate B2B site (**not launched yet**) | https://corporate.directksa.com/en/dashboard |
+| Direct Payment — owns all real money | https://payments.directksa.com |
+| Vercel project | https://vercel.com/abdoulmagd911s-projects/direct-business |
+| Supabase | project `direct-business`, ref `vkxoeeoauexyfpzqufqd` |
+| Mobile app | "Direct | دايركت" on Google Play and the App Store |
+
+## How the data actually works
+
+- **Leads and clients are the same table** (`businesses`). `is_client` flags which — and the
+  app reads **both** the column and `raw->>'isClient'`, so changing one without the other
+  leaves records half-converted. Change both.
+- **A lead's screen stage is not its database stage.** `C2S` converts database → screen,
+  `S2C` converts back, and `stageToApp` keeps a record's original wording when it maps to
+  the same database stage. That is why 740 leads read "New" and 202 read "Prospect" while
+  both are database stage `new`. Check real values before changing any stage filter.
+- **Seven funnels**, each with its own bilingual field template in `funnels.field_template`,
+  and per-lead answers in `businesses.funnel_details`.
+- **Invoices here are a mirror, never the source.** Real invoices are minted in Direct
+  Payment. This app may hold a draft and push it — nothing more.
+- **Individuals are not leads.** Some past invoices are private people; they belong in
+  finance reporting as individual bookings, not in the pipeline.
+
 ## Open work: docs/BACKLOG.md
 
 Everything deliberately parked lives there — roles, users, ownership, Arabic, the Drive

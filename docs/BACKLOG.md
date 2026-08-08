@@ -171,6 +171,22 @@ shows only one funnel.
 Before loading the remaining invoice companies, decide: does a lead need a **list** of
 sources rather than one funnel? This affects the whole consolidation job.
 
+## 11d · Page-by-page content audit — not started
+
+Abdulrahman has flagged jargon and sentences that do not make sense on some pages, and wants
+every element checked for whether it belongs or is leftover noise. Already spotted:
+
+- "▸ From Direct (read-only)" is a section heading that behaves like a clickable button.
+- The **Open in Direct** column on Leads is empty on every row.
+- "Has app" appears as a bare button on several pages with no explanation.
+- Finance "Top 10 clients" lists 11 rows; its pager hides behind the "Saved to cloud" toast.
+- Today's tiles reference features that may no longer exist (Commercial Credit Pool, view
+  presets) — confirm each is still wanted.
+
+Method: walk each page with `scripts/qa/`, screenshot it, and list every heading, column,
+button and helper sentence with a keep / reword / remove call. Needs Abdulrahman's judgement
+on business wording — do not delete copy unilaterally.
+
 ## 12 · Small things
 
 - Delete leftover test edge functions **`hi`** and **`gstest`**.
