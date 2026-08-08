@@ -200,7 +200,7 @@ input.cell:focus,textarea.cell:focus{border-color:var(--orange);background:#fff;
 .x:hover{background:var(--red-bg)}
 .iconbtn{width:34px;height:34px;border-radius:10px;border:1px solid var(--line-2);background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted)}
 .iconbtn:hover{color:var(--txt);border-color:#cfd3e0}
-.menu-btn{display:none}a.v21-skip-link,a.v25-skip,#v25SkipLink{position:absolute!important;left:-9999px;top:0;z-index:9999}a.v21-skip-link:focus,a.v25-skip:focus,#v25SkipLink:focus{left:10px;top:10px;background:#fff;color:#1C1E2B;padding:8px 14px;border-radius:9px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.menu-btn{display:none}a.v21-skip-link,a.v25-skip,#v25SkipLink{position:absolute!important;left:auto;top:-9999px;z-index:9999}a.v21-skip-link:focus,a.v25-skip:focus,#v25SkipLink:focus{left:10px;top:10px;background:#fff;color:#1C1E2B;padding:8px 14px;border-radius:9px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .scrim{display:none}
 @media(max-width:860px){
   .side{position:fixed;left:0;top:0;z-index:50;transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 18px 50px rgba(0,0,0,.45);width:80vw;max-width:300px}
@@ -1733,7 +1733,7 @@ const I18N={en:{dashboard:'Dashboard',leads:'Leads',clients:'Clients',bookings:'
 let LANG=localStorage.getItem('dbLang')||'en';
 function T(k){return (I18N[LANG]&&I18N[LANG][k])||I18N.en[k]||k;}
 function toggleLang(){LANG=LANG==='en'?'ar':'en';localStorage.setItem('dbLang',LANG);render();}
-function applyLang(){document.documentElement.lang=LANG;document.documentElement.dir='ltr';document.documentElement.setAttribute('data-lang',LANG);}
+function applyLang(){document.documentElement.lang=LANG;document.documentElement.dir=(LANG==='ar'?'rtl':'ltr');document.documentElement.setAttribute('data-lang',LANG);}
 function renderTopExtras(){const t=document.querySelector('.tools');if(!t)return;if(document.getElementById('langBtn'))return;const b=document.createElement('button');b.id='langBtn';b.className='btn sm';b.innerHTML='🌐 <span id="langLab">'+T('language')+'</span>';b.onclick=toggleLang;t.insertBefore(b,t.firstChild);}
 /* ----- ZATCA Phase 2 helpers ----- */
 const AGENCY={name_en:'Direct Business KSA',name_ar:'دايركت أعمال',vat:'302166089700003',iban:'SA0380000000608010167519',bank:'Saudi National Bank',iataWakeel:'71238285',iata:'71238285',legalEn:'AL MOSAFER AL MOBASHER TRAVEL & TOURISM',tradeName:'Direct Travel / DirectKSA',address:'Huda District, Jeddah St, Bldg 6409, PO Box 3743, Riyadh 12321, Saudi Arabia',website:'www.directksa.com',phone:'+966 508 434 126',amadeusOffice:'RUHS2234B',amadeusWS:'WSMSMTBS',accreditations:'IATA PAX 71238285 (2024/25/26), Amadeus production, PCI-DSS, Bank Guarantee 750K SAR, DUNS',awards:'World Travel Award x3 (2023-25), Great Place to Work x3, ICEF, English UK, British Council',cr:'1010611219',unifiedNo:'7007824068',capital:'3,000,000 SAR',ceo:'Mohammed Sulaiman Aldhali',duns:'561806614',zakatId:'3114792808',tradeLicense:'73103226',amadeusPin:'9051063',org:'NMC-SAUDI'};
@@ -2513,7 +2513,7 @@ const _v21OrigArAgingTotals=typeof arAgingTotals==='function'?arAgingTotals:null
 function v21PerfHintCard(){return `<div class="card"><h3>⚡ Performance</h3><div class="ch-sub">Add <code>?perf=1</code> to the URL for a live overlay (TTFP, last render, avg, DOM size). Aggregates are memoized; cache invalidates on every save. Heavy lists virtualize at >200 rows.</div><div class="fact"><span class="k">TTFP</span><span class="v">${V21_PERF.firstRender.toFixed(0)} ms</span></div><div class="fact"><span class="k">Last render</span><span class="v">${V21_PERF.lastRender.toFixed(0)} ms</span></div><div class="fact"><span class="k">Renders this session</span><span class="v">${V21_PERF.renderCount}</span></div></div>`;}
 /* ===== Sub-pass 4 — accessibility WCAG 2.1 AA ===== */
 (function injectV21A11y(){const s=document.createElement('style');s.id='v21a11y';s.textContent=`
-.v21-skip-link{position:absolute;left:-9999px;top:8px;background:#1C1E2B;color:#fff;padding:8px 14px;border-radius:8px;font-weight:700;z-index:200;text-decoration:none}
+.v21-skip-link{position:absolute;left:auto;top:-9999px;background:#1C1E2B;color:#fff;padding:8px 14px;border-radius:8px;font-weight:700;z-index:200;text-decoration:none}
 .v21-skip-link:focus{left:8px;outline:3px solid #F47A1F;outline-offset:2px}
 *:focus-visible{outline:3px solid #F47A1F;outline-offset:2px;border-radius:6px}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid #F47A1F;outline-offset:2px}
@@ -3340,7 +3340,11 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
         activity:['النشاط والتدقيق','كل تعديل، من قام به ومتى — بمصدر موحد'],
         archive:['الأرشيف','العناصر المؤرشفة (الحذف الناعم) — قابلة للاستعادة'],
         sync:['المزامنة والتكاملات','مصدر الحقيقة · حل التعارضات · المزامنة الصاعدة والهابطة'],
-        settings:['الإعدادات','اللغة · النسخ الاحتياطي · حالة الذهاب للإنتاج · مجموعات الاختبار']
+        settings:['الإعدادات','اللغة · النسخ الاحتياطي · حالة الذهاب للإنتاج · مجموعات الاختبار'],
+        sopsla:['الإجراءات ومستويات الخدمة','إجراءات العمل ومعايير مستوى الخدمة'],
+        reports:['التقارير','أهداف 2026 · الإنجازات · تقدّم المؤشرات · منشئ التقارير'],
+        finance:['المالية','سجل الفواتير الرئيسي · منشئ التقارير · بيانات النصف الأول 2026 المدققة'],
+        events:['الفعاليات','رادار فعاليات السعودية — تقويم فرص المبيعات والشراكات']
       };
       window.__V25_TITLES_AR=TITLES_AR;
     }
@@ -3534,7 +3538,7 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
       st.id='v25css';
       st.textContent=
       /* Skip link */
-      ".v25-skip{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:1000;background:var(--ink);color:#fff;padding:8px 14px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none}"+
+      ".v25-skip{position:absolute;left:auto;top:-9999px;width:1px;height:1px;overflow:hidden;z-index:1000;background:var(--ink);color:#fff;padding:8px 14px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none}"+
       ".v25-skip:focus{left:14px;top:14px;width:auto;height:auto;outline:3px solid var(--orange);outline-offset:2px}"+
 
       /* Focus-visible — restore keyboard focus rings */
@@ -9424,6 +9428,68 @@ console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:70
 #view .hero.v26-kpi-grid .chip .v{color:#1C1E2B}
 #view .hero.v26-kpi-grid .chip .l{color:#7C8194}
 </style>
+<script>
+/* v27 — Arabic column-header + stat-label translation.
+   Safe by construction: runs ONLY in Arabic, matches WHOLE strings (no fragment
+   corruption like the old verb relabeler), and only touches <th> headers and
+   .kl stat labels — never table-body values. Self-contained, try/catch, reversible. */
+(function(){try{
+  var V27_AR={
+    // ---- table column headers ----
+    'Account manager':'مدير الحساب','Airline':'شركة الطيران','Airlines':'شركات الطيران',
+    'Area':'المنطقة','Authority':'صلاحية الإصدار','Availability source':'مصدر التوفر',
+    'Booking':'الحجز','Business':'المنشأة','Channels':'القنوات','City':'المدينة',
+    'Client':'العميل','Client since':'عميل منذ','Contacts':'جهات الاتصال','Coupons':'الكوبونات',
+    'Date':'التاريخ','Date · Hijri':'التاريخ · هجري','Dates':'التواريخ','Dunning':'التحصيل',
+    'Event':'الفعالية','Fare+tax':'الأجرة + الضريبة','Flags':'مؤشرات','Funnel':'المسار',
+    'Inv':'فواتير','Invoice #':'رقم الفاتورة','KSA BSP':'BSP السعودية','Last activity':'آخر نشاط',
+    'Margin':'الهامش','Next action':'الإجراء التالي','Next review':'المراجعة القادمة','Notes':'ملاحظات',
+    'Open in Direct':'افتح في Direct','Opportunity':'الفرصة','Owner':'المسؤول',
+    'PNR · e-ticket':'PNR · التذكرة','Pax':'المسافرون','Portal':'البوابة','Pri':'الأولوية',
+    'Profit':'الربح','Provider':'المورّد','Provider · Source':'المورّد · المصدر',
+    'QC':'الجودة','Ref':'المرجع','Ref · PNR':'المرجع · PNR','Refund to':'الاسترداد إلى',
+    'Revenue':'الإيرادات','Route · RBD':'المسار · RBD','Sale':'البيع','Stage':'المرحلة',
+    'Status':'الحالة','Status · FOP':'الحالة · الدفع','Stock':'رمز التذاكر','Subject':'الموضوع',
+    'Subtotal':'المجموع الفرعي','TTL':'مهلة','Tickets':'التذاكر','Tier':'الفئة','Total':'الإجمالي',
+    'Type':'النوع','VAT':'الضريبة','Valid':'صالح حتى','Venue':'المكان','Vertical':'القطاع',
+    'Void':'الإبطال','Won (SAR)':'المكسوب (ريال)',
+    // ---- stat-tile labels (.kl) ----
+    'Billed inc. VAT':'المفوتر شامل الضريبة','Paid':'مدفوع','Outstanding':'المستحق',
+    'ZATCA cleared':'معتمد من هيئة الزكاة','Cost':'التكلفة','Received':'المُحصّل',
+    'Wallet (excluded)':'المحفظة (مستثناة)','Invoices':'الفواتير'
+  };
+  var ARROWS=/[▲▼↑↓\s]+$/; // trailing sort arrows / whitespace
+  function tr(el,txt){ // replace the leading text of el, preserving any child (e.g. arrow span)
+    if(el.children.length===0){ return true; }
+    var tn=null,i; for(i=0;i<el.childNodes.length;i++){ if(el.childNodes[i].nodeType===3 && el.childNodes[i].textContent.trim()){ tn=el.childNodes[i]; break; } }
+    if(tn){ tn.textContent=txt; return false; }
+    return null;
+  }
+  function v27ArHeaders(){
+    try{
+      if(typeof LANG==='undefined'||LANG!=='ar')return;
+      var view=document.getElementById('view'); if(!view)return;
+      var ths=view.querySelectorAll('th');
+      for(var i=0;i<ths.length;i++){ var th=ths[i];
+        if(th.getAttribute('data-v27'))continue;
+        if(th.querySelector('input,select'))continue; // skip control/checkbox headers
+        var full=(th.textContent||'').trim(); if(!full)continue;
+        var base=full.replace(ARROWS,''); var tail=full.slice(base.length);
+        if(V27_AR[base]){ if(th.children.length===0){ th.textContent=V27_AR[base]+tail; } else { tr(th,V27_AR[base]); } th.setAttribute('data-v27','1'); }
+      }
+      var kls=view.querySelectorAll('.kl');
+      for(var j=0;j<kls.length;j++){ var el=kls[j];
+        if(el.getAttribute('data-v27')||el.children.length)continue;
+        var t=(el.textContent||'').trim();
+        if(V27_AR[t]){ el.textContent=V27_AR[t]; el.setAttribute('data-v27','1'); }
+      }
+    }catch(e){ if(window.console)console.warn('[v27] ar-headers',e); }
+  }
+  window.v27ArHeaders=v27ArHeaders;
+  if(typeof render==='function'){ var _r27=render; window.render=function(){ var out=_r27.apply(this,arguments); v27ArHeaders(); setTimeout(v27ArHeaders,80); return out; }; }
+  v27ArHeaders();
+}catch(e){ if(window.console)console.warn('[v27] init',e); }})();
+</script>
 
 </body>
 </html>
