@@ -76,6 +76,35 @@ harness, screenshot for your approval, then live.
 
 ---
 
+## Progress — what has shipped
+
+- **Step 1 — Clients ↔ Finance (Customer 360 core):** ✅ shipped. Client detail now shows a finance
+  snapshot (lifetime billed / paid / outstanding + AR aging), keyed to the client by exact name.
+- **Step 2 — DSO + % overdue + aging:** ✅ shipped. Finance overview now leads with the two
+  collections numbers plus an aging read.
+- **Step 3 — Client health signal:** ✅ shipped. A calm, explainable badge (Good / Watch / At risk /
+  New) on every client, from real activity + review governance. Red is reserved for a genuine
+  problem (overdue account review, or contact that has actually happened and gone stale 90+ days);
+  a client with no history logged yet reads **New**, not a false "At risk". Sortable, and the
+  Clients **"At risk"** chip now filters to exactly those clients.
+- **Step 4 — Lead prioritisation:** ✅ shipped. A **Priority** column on Leads surfaces the existing
+  lead score as Hot / Warm / Cool / Cold; click the header to sort and work the hottest first.
+- **Step 5 — Conversion strip on Leads:** ✅ shipped. New-this-month, in-pipeline, conversion %,
+  and average time-to-win across the top of the Leads list.
+
+## Declutter done alongside (2026-08-08)
+
+Removed dead weight from Leads / Clients / Finance so the signal stands out:
+- Removed the **"Open in Direct"** column from both Leads and Clients (a link column nobody worked from).
+- Scoped the **"Has app"** filter to Leads only (it belongs to the Service-Integration-Partners funnel).
+- Removed the **"Active"** client chip — it matched nothing and duplicated "All clients".
+- Fixed the **"At risk"** client chip so it actually filters (was matching zero rows).
+- Fixed the **Export** dropdown so its items return to English when you switch the app back from Arabic.
+Meaningful controls were kept: the category chips (Anchor / Convert / Re-engage) are real business
+segmentation, not clutter, so they stayed.
+
+---
+
 ## What I need from you to start
 
 "Enhance and link" is yours to steer. My recommendation is to **start with step 1 (link Clients ↔
