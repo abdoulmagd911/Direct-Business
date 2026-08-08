@@ -9456,34 +9456,67 @@ console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:70
     // ---- stat-tile labels (.kl) ----
     'Billed inc. VAT':'المفوتر شامل الضريبة','Paid':'مدفوع','Outstanding':'المستحق',
     'ZATCA cleared':'معتمد من هيئة الزكاة','Cost':'التكلفة','Received':'المُحصّل',
-    'Wallet (excluded)':'المحفظة (مستثناة)','Invoices':'الفواتير'
+    'Wallet (excluded)':'المحفظة (مستثناة)','Invoices':'الفواتير',
+    'Open':'مفتوحة','Used':'مستخدمة','Refunded':'مستردة','ADM-flagged':'مُعلَّمة ADM',
+    // ---- KPI / stat tile labels ----
+    'TTL ≤ 48h':'مهلة ≤ 48 ساعة','Overdue inv.':'فواتير متأخرة','In dunning':'قيد التحصيل',
+    'Low-margin offers':'عروض هامش منخفض','My queue (7d)':'قائمتي (7 أيام)',
+    'Total clients':'إجمالي العملاء','Key accounts':'حسابات رئيسية','Total won (SAR)':'إجمالي المكسوب (ريال)',
+    'Reviews overdue':'مراجعات متأخرة','Open requests':'طلبات مفتوحة','SLA overdue':'تأخّر مستوى الخدمة',
+    'Awaiting client':'بانتظار العميل','Pipeline value':'قيمة خط الأنابيب','Booked margin':'هامش المحجوز',
+    'Delivered / closed':'مُسلّم / مغلق',
+    // ---- filter + action buttons ----
+    'Table':'جدول','Dashboard':'لوحة','By stage':'حسب المرحلة','By category':'حسب الفئة','By funnel':'حسب المسار',
+    '↓ Export CSV':'↓ تصدير CSV','⚠ Needs attention':'⚠ بحاجة إلى انتباه','✓ Hide closed':'✓ إخفاء المغلقة',
+    'Has app':'له تطبيق','Edit':'تعديل','Del':'حذف','‹ Prev':'‹ السابق','Next ›':'التالي ›',
+    '← Leads pipeline':'← مسار العملاء المحتملين','All clients':'كل العملاء','Aggregators':'مجمّعات',
+    'All tiers':'كل الفئات','All managers':'كل المدراء','Overdue':'متأخر','Unpaid':'غير مدفوع',
+    '+ New business':'+ عمل جديد','+ New offer':'+ عرض جديد','+ New airline':'+ شركة طيران جديدة',
+    '+ New provider':'+ مورّد جديد','+ New SOP':'+ إجراء جديد','+ New request':'+ طلب جديد',
+    '+ Booking':'+ حجز','+ Invoice':'+ فاتورة','+ Add event':'+ إضافة فعالية',
+    'Share view-only link':'مشاركة رابط للعرض فقط','Projects board':'لوحة المشاريع',
+    'Backup now':'انسخ الآن','Backup now to destination':'انسخ الآن','＋ Log achievement':'＋ تسجيل إنجاز',
+    // ---- top-bar controls ----
+    'Access':'الصلاحيات','Team':'الفريق','Sign out':'تسجيل الخروج','Export':'تصدير','▾ Export':'▾ تصدير',
+    'Export ▾':'تصدير ▾','Share (view-only)':'مشاركة (عرض فقط)'
   };
   var ARROWS=/[▲▼↑↓\s]+$/; // trailing sort arrows / whitespace
-  function tr(el,txt){ // replace the leading text of el, preserving any child (e.g. arrow span)
-    if(el.children.length===0){ return true; }
+  function replaceLeadText(el,val){ // set text but keep child nodes (icon / arrow span)
+    if(el.children.length===0){ el.textContent=val; return; }
     var tn=null,i; for(i=0;i<el.childNodes.length;i++){ if(el.childNodes[i].nodeType===3 && el.childNodes[i].textContent.trim()){ tn=el.childNodes[i]; break; } }
-    if(tn){ tn.textContent=txt; return false; }
-    return null;
+    if(tn) tn.textContent=val; else el.textContent=val;
+  }
+  function setText(el,val){ // translate, remembering the English original for restore
+    if(!el.hasAttribute('data-v27en')) el.setAttribute('data-v27en', el.textContent);
+    replaceLeadText(el,val); el.setAttribute('data-v27','1');
+  }
+  function scopeTranslate(scope){
+    if(!scope)return;
+    var ths=scope.querySelectorAll('th'),i;
+    for(i=0;i<ths.length;i++){ var th=ths[i];
+      if(th.getAttribute('data-v27')||th.querySelector('input,select'))continue;
+      var full=(th.textContent||'').trim(); if(!full)continue;
+      var base=full.replace(ARROWS,''), tail=full.slice(base.length);
+      if(V27_AR[base]){ if(!th.hasAttribute('data-v27en'))th.setAttribute('data-v27en',th.textContent); replaceLeadText(th, th.children.length===0?(V27_AR[base]+tail):V27_AR[base]); th.setAttribute('data-v27','1'); }
+    }
+    var els=scope.querySelectorAll('.kl,.l,button,a.btn'),j;
+    for(j=0;j<els.length;j++){ var el=els[j];
+      if(el.getAttribute('data-v27')||el.querySelector('input,select,textarea'))continue;
+      var t=(el.textContent||'').trim(); if(!t)continue;
+      if(V27_AR[t]) setText(el,V27_AR[t]);
+    }
   }
   function v27ArHeaders(){
     try{
-      if(typeof LANG==='undefined'||LANG!=='ar')return;
-      var view=document.getElementById('view'); if(!view)return;
-      var ths=view.querySelectorAll('th');
-      for(var i=0;i<ths.length;i++){ var th=ths[i];
-        if(th.getAttribute('data-v27'))continue;
-        if(th.querySelector('input,select'))continue; // skip control/checkbox headers
-        var full=(th.textContent||'').trim(); if(!full)continue;
-        var base=full.replace(ARROWS,''); var tail=full.slice(base.length);
-        if(V27_AR[base]){ if(th.children.length===0){ th.textContent=V27_AR[base]+tail; } else { tr(th,V27_AR[base]); } th.setAttribute('data-v27','1'); }
+      if(typeof LANG==='undefined')return;
+      if(LANG!=='ar'){ // restore any surviving translated element (e.g. persistent top bar) to English
+        var stale=document.querySelectorAll('[data-v27en]');
+        for(var s=0;s<stale.length;s++){ stale[s].textContent=stale[s].getAttribute('data-v27en'); stale[s].removeAttribute('data-v27en'); stale[s].removeAttribute('data-v27'); }
+        return;
       }
-      var kls=view.querySelectorAll('.kl');
-      for(var j=0;j<kls.length;j++){ var el=kls[j];
-        if(el.getAttribute('data-v27')||el.children.length)continue;
-        var t=(el.textContent||'').trim();
-        if(V27_AR[t]){ el.textContent=V27_AR[t]; el.setAttribute('data-v27','1'); }
-      }
-    }catch(e){ if(window.console)console.warn('[v27] ar-headers',e); }
+      scopeTranslate(document.getElementById('view'));
+      scopeTranslate(document.querySelector('.top'));
+    }catch(e){ if(window.console)console.warn('[v27] ar-translate',e); }
   }
   window.v27ArHeaders=v27ArHeaders;
   if(typeof render==='function'){ var _r27=render; window.render=function(){ var out=_r27.apply(this,arguments); v27ArHeaders(); setTimeout(v27ArHeaders,80); return out; }; }
