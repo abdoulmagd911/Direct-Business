@@ -9478,8 +9478,44 @@ console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:70
     'Backup now':'انسخ الآن','Backup now to destination':'انسخ الآن','＋ Log achievement':'＋ تسجيل إنجاز',
     // ---- top-bar controls ----
     'Access':'الصلاحيات','Team':'الفريق','Sign out':'تسجيل الخروج','Export':'تصدير','▾ Export':'▾ تصدير',
-    'Export ▾':'تصدير ▾','Share (view-only)':'مشاركة (عرض فقط)'
+    'Export ▾':'تصدير ▾','Share (view-only)':'مشاركة (عرض فقط)',
+    // ---- in-page page headings (the ? help button is preserved) ----
+    'Leads':'العملاء المحتملون','Clients':'العملاء','Offers':'العروض','Bookings':'الحجوزات',
+    'Invoices':'الفواتير','Tickets':'التذاكر','Settings':'الإعدادات','Providers GDS':'الموردون و GDS',
+    'Provider verdicts':'تقييمات الموردين','Monthly revenue & profit':'الإيرادات والأرباح الشهرية',
+    'Top clients by revenue':'أعلى العملاء إيراداً','★ Extended procedures':'★ إجراءات موسّعة',
+    'SOP Library':'مكتبة الإجراءات','Service Levels':'مستويات الخدمة','Desk procedures (Saudi base · elevated)':'إجراءات المكتب (المعيار السعودي · مُرفَّع)',
+    // ---- funnel / count chips + dropdowns ----
+    'Default':'افتراضي','Old Customers':'عملاء سابقون','Conferences':'مؤتمرات',
+    'All':'الكل','All funnels':'كل المسارات','All stages':'كل المراحل','All managers':'كل المدراء',
+    'All tiers':'كل الفئات','Key':'رئيسي','Standard':'قياسي','Unassigned':'غير معيّن',
+    '10 / page':'10 / صفحة','20 / page':'20 / صفحة','50 / page':'50 / صفحة','100 / page':'100 / صفحة','Show all':'عرض الكل',
+    // ---- lead category chips ----
+    'Anchor':'مرتكز','Convert':'للتحويل','Re-engage':'إعادة تفعيل','Dormant':'خامل','Vendor':'مورّد','Partner':'شريك',
+    // ---- events filters ----
+    'All verticals':'كل القطاعات','Travel':'سفر','Tech':'تقنية','Study':'دراسة',
+    'Other':'أخرى','All statuses':'كل الحالات','Confirmed':'مؤكدة','Needs check':'بحاجة لتحقق','Stale':'قديمة','No date':'بدون تاريخ',
+    'All opportunities':'كل الفرص','Sales prospect':'فرصة مبيعات','Partner / competitor':'شريك / منافس',
+    // ---- finance / reports tabs ----
+    'Overview':'نظرة عامة','Ledger':'السجل','Report Builder':'منشئ التقارير','Import':'استيراد',
+    'All (H1 2026)':'الكل (النصف الأول 2026)','Achievements':'الإنجازات','Objectives & KPIs':'الأهداف والمؤشرات',
+    // ---- Today section headings (with emoji) ----
+    'Today':'اليوم','💰 Commercial Credit Pool':'💰 مجمع الائتمان التجاري',
+    '⏰ TTL expiring (next 48h)':'⏰ مهل تنتهي (خلال 48 ساعة)','💸 Overdue invoices (>30 days)':'💸 فواتير متأخرة (> 30 يوم)',
+    '📞 Dunning sequence active':'📞 تسلسل تحصيل نشط','📉 Low-margin offers / approvals':'📉 عروض هامش منخفض / موافقات',
+    '📌 My queue (next 7 days)':'📌 قائمتي (خلال 7 أيام)',
+    // ---- lead source / funnel names ----
+    'Contact form':'نموذج تواصل','Tender':'مناقصة','Referral':'إحالة','Invoice history':'سجل الفواتير',
+    'Service Integration Partners':'شركاء تكامل الخدمات','Outreach':'تواصل مباشر','Inbound':'وارد','Website Form':'نموذج الموقع',
+    // ---- Settings (the real cards that remain after the dev tidy) ----
+    'Admin & history':'الإدارة والسجل','Activity & Audit':'النشاط والتدقيق','Company profile — printables':'ملف الشركة — للطباعة',
+    'Tender one-pager':'صفحة المناقصة','About Direct Travel (one-pager)':'عن Direct Travel','Edit cap…':'تعديل السقف…',
+    '👤 View preset':'👤 نمط العرض','🎯 Commercial':'🎯 تجاري','💰 Finance':'💰 المالية','📊 CFO':'📊 المدير المالي',
+    '🌐 Everything':'🌐 الكل','📈 B2B snapshot':'📈 لقطة B2B'
   };
+  // Stage badge words — translated ONLY inside .statusbadge / stage pills, to avoid
+  // colliding with the same words used elsewhere (headers, chips, filters).
+  var STAGE_AR={'New':'جديد','Prospect':'مرتقب','Contacted':'تم التواصل','Qualified':'مؤهل','Proposal':'عرض مقدم','Negotiation':'تفاوض','Won':'مكسوب','Lost':'مفقود','Client':'عميل','On hold':'مُعلّق','In discussion':'قيد النقاش'};
   var ARROWS=/[▲▼↑↓\s]+$/; // trailing sort arrows / whitespace
   function replaceLeadText(el,val){ // set text but keep child nodes (icon / arrow span)
     if(el.children.length===0){ el.textContent=val; return; }
@@ -9490,21 +9526,31 @@ console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:70
     if(!el.hasAttribute('data-v27en')) el.setAttribute('data-v27en', el.textContent);
     replaceLeadText(el,val); el.setAttribute('data-v27','1');
   }
+  var TRAIL=/\s*(?:[·▾▸►?▲▼↑↓]\s*)+\d*\s*$/; // trailing "· 60", " ?", " ▲", "▾ 0"
+  function translateDecorated(el,dict){
+    var full=(el.textContent||'').trim(); if(!full)return;
+    if(dict[full]!==undefined){ setText(el,dict[full]); return; }
+    var base=full.replace(TRAIL,'').trim();
+    if(base && base!==full && dict[base]!==undefined){
+      if(!el.hasAttribute('data-v27en'))el.setAttribute('data-v27en',el.textContent);
+      if(el.children.length===0){ var idx=full.indexOf(base); el.textContent=dict[base]+(idx>=0?full.slice(idx+base.length):''); }
+      else replaceLeadText(el,dict[base]);
+      el.setAttribute('data-v27','1');
+    }
+  }
   function scopeTranslate(scope){
     if(!scope)return;
-    var ths=scope.querySelectorAll('th'),i;
-    for(i=0;i<ths.length;i++){ var th=ths[i];
-      if(th.getAttribute('data-v27')||th.querySelector('input,select'))continue;
-      var full=(th.textContent||'').trim(); if(!full)continue;
-      var base=full.replace(ARROWS,''), tail=full.slice(base.length);
-      if(V27_AR[base]){ if(!th.hasAttribute('data-v27en'))th.setAttribute('data-v27en',th.textContent); replaceLeadText(th, th.children.length===0?(V27_AR[base]+tail):V27_AR[base]); th.setAttribute('data-v27','1'); }
-    }
+    var heads=scope.querySelectorAll('th,h2,h3'),i;
+    for(i=0;i<heads.length;i++){ var hd=heads[i]; if(hd.getAttribute('data-v27')||hd.querySelector('input,select'))continue; translateDecorated(hd,V27_AR); }
     var els=scope.querySelectorAll('.kl,.l,button,a.btn'),j;
-    for(j=0;j<els.length;j++){ var el=els[j];
-      if(el.getAttribute('data-v27')||el.querySelector('input,select,textarea'))continue;
-      var t=(el.textContent||'').trim(); if(!t)continue;
-      if(V27_AR[t]) setText(el,V27_AR[t]);
-    }
+    for(j=0;j<els.length;j++){ var el=els[j]; if(el.getAttribute('data-v27')||el.querySelector('input,select,textarea'))continue; translateDecorated(el,V27_AR); }
+    // dropdown options: main dict, then stage words (safe — options are filter values, not data)
+    var opts=scope.querySelectorAll('option'),o;
+    for(o=0;o<opts.length;o++){ var op=opts[o]; if(op.getAttribute('data-v27'))continue; var ot=(op.textContent||'').trim(); if(!ot)continue;
+      if(V27_AR[ot]!==undefined) setText(op,V27_AR[ot]); else if(STAGE_AR[ot]!==undefined) setText(op,STAGE_AR[ot]); }
+    // stage badges (row pills) — isolated stage dictionary
+    var bd=scope.querySelectorAll('.statusbadge,.stage-badge,.lead-stage'),k;
+    for(k=0;k<bd.length;k++){ var pill=bd[k]; if(pill.getAttribute('data-v27'))continue; var pt=(pill.textContent||'').trim(); if(STAGE_AR[pt]!==undefined) setText(pill,STAGE_AR[pt]); }
   }
   function v27ArHeaders(){
     try{
@@ -9522,6 +9568,40 @@ console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:70
   if(typeof render==='function'){ var _r27=render; window.render=function(){ var out=_r27.apply(this,arguments); v27ArHeaders(); setTimeout(v27ArHeaders,80); return out; }; }
   v27ArHeaders();
 }catch(e){ if(window.console)console.warn('[v27] init',e); }})();
+</script>
+<script>
+/* v28 — Tidy the Settings page for employees.
+   The Settings page had accumulated developer/QA scaffolding (test-suite runners,
+   "wipe test data", "reset for go-live", build version numbers, a reconcile step
+   that points at a developer's local drive). None of that belongs in front of a
+   Direct employee, and the destructive-looking buttons are alarming. This hides
+   those cards and cleans the version number off the title — without touching the
+   fragile layered Settings render. Self-contained, reversible (display only). */
+(function(){try{
+  // headings whose whole CARD is developer/QA-only and should not face employees
+  var HIDE=['Developer / test harness','Performance','Accessibility audit','Internationalization',
+            'Print + PDF','reconcile with Ahmed','Workflow + go-live','Scenario sweep'];
+  function tidySettings(){
+    try{
+      if(typeof current==='undefined'||current!=='settings')return;
+      var view=document.getElementById('view'); if(!view)return;
+      var heads=view.querySelectorAll('.card h3, .card h4'),i;
+      for(i=0;i<heads.length;i++){ var h=heads[i]; var t=(h.textContent||'').trim();
+        for(var k=0;k<HIDE.length;k++){ if(t.indexOf(HIDE[k])>=0){ var card=h.closest? h.closest('.card') : null; if(card){ card.style.display='none'; card.setAttribute('data-v28hidden','1'); } break; } }
+      }
+      // rename version-labelled cards that are kept (drop the "v24 -" / build wording)
+      for(i=0;i<heads.length;i++){ var h2=heads[i]; var t2=(h2.textContent||'').trim();
+        if(/^v\d+\s*-\s*Backup destination/i.test(t2)){ h2.textContent=(typeof LANG!=='undefined'&&LANG==='ar')?'وجهة النسخ الاحتياطي':'Backup destination'; }
+      }
+      // strip build version off the page title ("Settings · v21" -> "Settings"/"الإعدادات")
+      var vt=document.getElementById('vTitle');
+      if(vt){ var tx=vt.textContent||''; if(/·\s*v\d+/i.test(tx)) vt.textContent=tx.replace(/\s*·\s*v\d+.*$/i,'').trim(); }
+    }catch(e){ if(window.console)console.warn('[v28] tidy',e); }
+  }
+  window.v28TidySettings=tidySettings;
+  if(typeof render==='function'){ var _r28=render; window.render=function(){ var o=_r28.apply(this,arguments); tidySettings(); setTimeout(tidySettings,120); return o; }; }
+  tidySettings();
+}catch(e){ if(window.console)console.warn('[v28] init',e); }})();
 </script>
 
 </body>
