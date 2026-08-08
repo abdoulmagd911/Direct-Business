@@ -31,6 +31,30 @@ I've only marked 🐞 **Broken** where the text is objectively wrong (typos a fi
 created, columns that are empty on every row). Those I can fix on your say-so without needing
 your judgement. Everything ✏️ **Reword** is a suggestion you can accept, change, or reject.
 
+## ✅ Already fixed in this branch (2026-08-08)
+
+You said "go ahead", so the objectively-broken, no-judgement-needed items are **done and
+verified in the running app** (driven in the browser, 0 errors, both languages):
+
+1. **The self-rewriting text (the "landmine") — fixed at the source.** The two relabelers now
+   only match **whole words**, so `Issued / Voided / Refunded` are no longer eaten into
+   `Push to sourced / Mark for void in sourceed / Request refund → Direct Paymented`. The
+   Tickets tabs now read **All · Issued · Voided · Refunded** — matching the Arabic. This also
+   stops the pattern from re-mangling future wording fixes. *(§20)*
+2. **Invoices heading** `AR aging — AR aging buckets` → **`AR aging`** (the doubling is gone).
+3. **Finance heading** `Top 10 clients by revenue` → **`Top clients by revenue`** (no longer
+   claims "10" while a stray pager shows 11).
+4. **Reports heading** now reads **`Objective progress — average of each objective's KPI
+   progress`** (was a run-on).
+
+**One thing I deliberately did NOT touch — and a correction to my first read below:** the
+`Open in Direct` column is **not** dead code. It builds click-through links into
+**Direct Payment** (Tel / Mail) from each record's phone/email IDs; it only shows a dash `-`
+because lead records don't carry those IDs yet. Deleting it would remove a real (if currently
+empty) integration, so I left it. The honest fix is to **rename the header** to say what it
+does (e.g. `Direct Payment`) rather than remove it — that's a wording call for you. The
+empty `Today · <date>` card and everything in Parts A–C are also untouched, pending your calls.
+
 **The single biggest structural finding is at the bottom (§18): the app rewrites its own
 button text after every screen draw, and that machinery is what produces most of the broken
 wording.** Fixing that one thing fixes several pages at once.
@@ -127,9 +151,11 @@ Legend as above. "Title" = the big heading on the page. "Sub" = the grey line un
   ownership gap (backlog item 7); the warning is doing its job.
 - **Columns:** `Business · Stage · Funnel · Last activity · Next action · Owner ·
   Open in Direct`
-  - `Open in Direct` — 🐞 **Broken / dead column.** It is a dash `-` on **every** row because
-    no per-lead Direct link exists. **Remove the column** until it's wired (on Bookings/
-    Invoices/Tickets the same idea *is* a working link — see §14–16).
+  - `Open in Direct` — ✏️ **Reword header (not dead — corrected).** It shows a dash `-` on
+    every row today, but it is **not** empty by mistake: it builds Tel/Mail click-throughs
+    into **Direct Payment** from each record's phone/email IDs, which lead records don't carry
+    yet. So don't delete it — **rename the header to `Direct Payment`** (or hide the column
+    until the IDs are populated). Left untouched in this pass.
   - Others — ✅ Keep.
 - **Stage chips:** `All · New · Prospect · Contacted · Qualified · Proposal · Won · Lost`
   - 🐞 **Two chips mean one stage.** `New` and `Prospect` are both database stage `new`
@@ -154,7 +180,9 @@ Legend as above. "Title" = the big heading on the page. "Sub" = the grey line un
 - **Stat chips** `Total clients · Key accounts · Total won (SAR) · Reviews overdue` — ✅ Keep.
 - **Columns:** `Client ▲ · Account manager · Area · Tier · Client since · Won (SAR) ·
   Channels · Next review · Open in Direct`
-  - `Open in Direct` — 🐞 **Broken / dead column** (dash on every row). Remove until wired.
+  - `Open in Direct` — ✏️ **Reword header (not dead — corrected).** Same as Leads (§7): it's a
+    Direct Payment link column that's empty only because the phone/email IDs aren't on the
+    records yet. Rename to `Direct Payment` rather than remove. Left untouched in this pass.
   - `Tier` — ✏️ optional: spell out A/B if that's what it holds, or tooltip it.
   - Others — ✅ Keep.
 - **`← Leads pipeline` button** — ✅ Keep (nice cross-link).
@@ -399,12 +427,13 @@ mystery wording.
 Ranked by "cost to the team today" vs effort, per the house rules (fix what's actually
 broken before what's theoretically untidy).
 
-1. **Fix the self-rewriting text (§20)** — un-breaks the Tickets tabs and stops future
-   re-breakage. Highest leverage, one place. *(Safe — I can do this on your OK.)*
-2. **Remove the two dead `Open in Direct` columns** on Leads & Clients (dash on every row).
-   *(Safe.)*
-3. **Fix the small broken bits:** the doubled `AR aging` heading, the `Objective progress`
-   run-on, the empty `Today · <date>` card, the `Top 10` that shows 11. *(Safe.)*
+1. ✅ **DONE — Fix the self-rewriting text (§20).** Un-broke the Tickets tabs and stopped
+   future re-breakage. Highest leverage, one place.
+2. ✅ **DONE — the small broken bits:** doubled `AR aging` heading, the `Objective progress`
+   run-on, the `Top 10` that shows 11. *(The empty `Today · <date>` card was left — it may be
+   a layout container, not just dead; needs a closer look before removing.)*
+3. **Rename the `Open in Direct` header** on Leads & Clients (it's a real Direct Payment link
+   column, empty only for now — see §7/§8, correction). *(Your wording call.)*
 4. **De-jargon the labels you approve** from Parts A–B (`Has app`, `dunning`, `TTL`, `Del`,
    `Pri`, `Stock`, the read-only "+create" contradiction). *(Needs your yes/no per item.)*
 5. **Consolidate the duplicated Leads filters** (chips + dropdowns doing the same job).
@@ -412,5 +441,5 @@ broken before what's theoretically untidy).
 7. **The Arabic pass (Part C / backlog 8)** — RTL + finish translation. Biggest job, biggest
    payoff for an Arabic-first team, best done on its own.
 
-Items 1–3 are objective bug-fixes I can make immediately once you say go. Items 4–7 are your
-wording and product calls — that's what this document is for.
+Items 1–2 are already fixed and verified in the app. Items 3–7 are your wording and product
+calls — that's what this document is for.
