@@ -203,21 +203,38 @@ Other flagged pairs: `b_imp_133`/`b_imp_60` (Alnoorwings / Al Noor Wings) and
 **Database integrity is otherwise clean** — 0 orphaned contacts, 0 orphaned activities,
 0 broken funnel links, 0 duplicate ids, 0 nameless records.
 
-## 11d · Page-by-page content audit — not started
+## 11d · Page-by-page content audit — **DONE 2026-08-08 → `docs/CONTENT_AUDIT.md`**
 
-Abdulrahman has flagged jargon and sentences that do not make sense on some pages, and wants
-every element checked for whether it belongs or is leftover noise. Already spotted:
+The full audit is written up in **`docs/CONTENT_AUDIT.md`**. All 15 pages were driven with
+`scripts/qa/` in English **and** Arabic, signed in as the QA admin, and every heading, column,
+button and helper sentence was captured from the live screen with a keep / reword / remove
+call. Nothing was changed — it is a review list for Abdulrahman, because most items are
+business-wording calls (per the "do not delete copy unilaterally" rule).
 
-- "▸ From Direct (read-only)" is a section heading that behaves like a clickable button.
-- The **Open in Direct** column on Leads is empty on every row.
-- "Has app" appears as a bare button on several pages with no explanation.
-- Finance "Top 10 clients" lists 11 rows; its pager hides behind the "Saved to cloud" toast.
-- Today's tiles reference features that may no longer exist (Commercial Credit Pool, view
-  presets) — confirm each is still wanted.
+Confirmed live, with root causes found:
 
-Method: walk each page with `scripts/qa/`, screenshot it, and list every heading, column,
-button and helper sentence with a keep / reword / remove call. Needs Abdulrahman's judgement
-on business wording — do not delete copy unilaterally.
+- **The Tickets filter tabs are objectively broken** — `Push to sourced`,
+  `Mark for void in sourceed`, `Request refund → Direct Paymented`. They should be
+  `Issued / Voided / Refunded` (Arabic already shows these correctly). Cause: two run-time
+  relabelers (`v21RelabelVerbs` + a second "plain-English" pass) find-and-replace button text
+  on **fragments** after every render, so `Issued`→`Push to source`+`d`, etc. This is the
+  `CLAUDE.md` "layered find-replace" pattern, and it re-mangles any wording fix unless the
+  relabelers are made whole-word / retired. **This is the #1 fix.**
+- `Open in Direct` column is a dash on every row on Leads **and** Clients (dead column).
+- `Has app` is a filter ("show only companies with an app"), mislabelled and over-injected —
+  it even appears on SOPs and Operations where it means nothing.
+- `▸ From Direct (read-only)` is a **working** collapsible nav group (Bookings/Invoices/
+  Tickets live inside it) — it just looks like a dead label.
+- Finance "Top 10 clients" really does show 11 rows; the "Saved to cloud" toast sits on the pager.
+- Doubled/garbled headings: `AR aging — AR aging buckets` (Invoices),
+  `Objective progress avg of each objective's KPI progress` (Reports); empty `Today · <date>` card.
+- **Arabic** is a half-translation with a left-to-right layout (page headings, most column
+  headers, and the whole Events + Finance pages stay English; `dir` is hard-coded `ltr`).
+  This is backlog item 8 and the audit's Part C expands it.
+
+Audit ends with a suggested order of work: bug-fixes first (§20 relabeler, dead columns,
+broken headings — all safe to do on Abdulrahman's OK), then the de-jargon / consolidation
+items that need his wording calls, then the Arabic pass.
 
 ## 12 · Small things
 
