@@ -2200,7 +2200,7 @@ const recents=(DB.recents||[]).map(r=>({r:r,m:recentLabel(r)})).filter(x=>x.m);
 function card(opts){const{cls,ic,ti,meta,v,click}=opts;return `<div class="v19-today-card ${cls||''}" onclick="${click}"><div class="ic" style="background:rgba(255,255,255,.65)">${ic}</div><div class="body"><div class="ti">${esc(ti)}</div><div class="meta">${meta}</div></div>${v?`<div class="v">${esc(v)}</div>`:''}</div>`;}
 function emptyCard(msg){return `<div class="v19-today-card empty">✓ ${esc(msg)}</div>`;}
 const totalAttention=ttlSoon.length+overdue.length+dunnNow.length+lowOffers.length+queueMine.length+qcMiss.length;
-v.innerHTML=`<div class="hero"><h2>Today · ${esc(fmtDate(now))} <span style="font-size:13px;font-weight:500;color:#9DD9C0;margin-left:8px">${esc(fmtHijri(new Date().toISOString().slice(0,10)))}</span></h2><p>${totalAttention?totalAttention+' items need your attention. One scroll, one click to act.':'Inbox-zero ✓ — nothing urgent. Use this calm to call top accounts or build offers.'}</p><div class="chips" style="margin-top:14px"><div class="chip"><div class="v">${ttlSoon.length}</div><div class="l">TTL ≤ 48h</div></div><div class="chip"><div class="v" style="color:#FFB07F">${overdue.length}</div><div class="l">Overdue inv.</div></div><div class="chip"><div class="v">${dunnNow.length}</div><div class="l">In dunning</div></div><div class="chip"><div class="v">${lowOffers.length}</div><div class="l">Low-margin offers</div></div><div class="chip"><div class="v">${queueMine.length}</div><div class="l">My queue (7d)</div></div></div></div>
+v.innerHTML=`<div class="hero"><h2>Today · ${esc(fmtDate(now))} <span style="font-size:13px;font-weight:500;color:#9DD9C0;margin-left:8px">${esc(fmtHijri(new Date().toISOString().slice(0,10)))}</span></h2><p>${totalAttention?totalAttention+' items need your attention. One scroll, one click to act.':'Inbox-zero ✓ — nothing urgent. Use this calm to call top accounts or build offers.'}</p><div class="chips" style="margin-top:14px"><div class="chip"><div class="v">${ttlSoon.length}</div><div class="l">TTL ≤ 48h</div></div><div class="chip"><div class="v" style="color:#B54708">${overdue.length}</div><div class="l">Overdue inv.</div></div><div class="chip"><div class="v">${dunnNow.length}</div><div class="l">In dunning</div></div><div class="chip"><div class="v">${lowOffers.length}</div><div class="l">Low-margin offers</div></div><div class="chip"><div class="v">${queueMine.length}</div><div class="l">My queue (7d)</div></div></div></div>
 <div class="v19-qc-bar"><div class="v19-qc" onclick="ingestModal('invoice','',null)"><div class="ic">🧾</div><div><div class="lab">New invoice</div><div class="sub">Press N here</div></div></div><div class="v19-qc" onclick="ingestModal('booking','',null)"><div class="ic">🧳</div><div><div class="lab">New booking</div><div class="sub">Drop PDF or fill form</div></div></div><div class="v19-qc" onclick="(function(){current='offers';newOffer();render();})()"><div class="ic">📄</div><div><div class="lab">New offer</div><div class="sub">Build a quote</div></div></div><div class="v19-qc" onclick="openPalette()"><div class="ic">⌘</div><div><div class="lab">Search / commands</div><div class="sub">Ctrl/⌘+K — fuzzy find anything</div></div></div></div>
 ${recents.length?`<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin:14px 2px 6px">Recently visited</div><div class="v19-recents">${recents.map(x=>`<span class="rc" onclick="jumpRecent('${x.r.kind}','${x.r.id}')"><span class="ic">${x.m.i}</span>${esc(x.m.n)}</span>`).join('')}</div></div>`:''}
 <div class="v19-today-group"><h3>⏰ TTL expiring (next 48h)</h3>${ttlSoon.length?ttlSoon.slice(0,8).map(b=>{const hrs=Math.round((new Date(b.ttl).getTime()-now)/3600000);const cls=hrs<0?'red':hrs<24?'red':'amber';return card({cls,ic:'⏰',ti:b.ref+' · '+(bkAirlines(b).join(', ')||'—'),meta:leadName(b.leadId)+' · PNR '+(b.pnr||'—'),v:hrs<0?'EXPIRED':(hrs+'h'),click:`openBookingFn('${b.id}')`});}).join(''):emptyCard('No TTL pressure today.')}</div>
@@ -9387,6 +9387,31 @@ console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:70
   console.info('%c[v46] real signed-in identity + hover-card cleanup','color:#F47A1F;font-weight:700');
 }catch(e){console.warn('v46 layer failed',e);}})();
 </script>
+
+
+<style>
+/* ===== v47: make the Today hero row readable =====
+   .hero was designed as a dark navy banner with white text (.hero{color:#fff}). A later
+   layer adds .v26-kpi-grid, whose rule .v26-kpi-grid>*{background:#fff} turns its panels
+   white - but the white text stayed. Result: the first panel read as an empty box and
+   most KPI numbers were invisible white-on-white, and the decorative orange glow meant
+   for the dark banner washed across the chips.
+   Only applies when the hero is in grid mode; the dark banner elsewhere is untouched. */
+#view .hero.v26-kpi-grid{
+  background:#fff;
+  color:#1C1E2B;
+  border:1px solid #EEE8DE;
+  box-shadow:0 1px 2px rgba(28,30,43,.05),0 4px 16px rgba(28,30,43,.06);
+}
+#view .hero.v26-kpi-grid::after{display:none}
+#view .hero.v26-kpi-grid > *{color:#1C1E2B}
+#view .hero.v26-kpi-grid h2{color:#1C1E2B}
+#view .hero.v26-kpi-grid p{color:#55596A}
+#view .hero.v26-kpi-grid .chips{background:#fff}
+#view .hero.v26-kpi-grid .chip{background:#FAF8F4;border:1px solid #EEE8DE;backdrop-filter:none}
+#view .hero.v26-kpi-grid .chip .v{color:#1C1E2B}
+#view .hero.v26-kpi-grid .chip .l{color:#7C8194}
+</style>
 
 </body>
 </html>

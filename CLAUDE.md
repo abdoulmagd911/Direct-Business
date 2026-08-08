@@ -113,5 +113,11 @@ Today and Leads were invisible in the code and obvious on screen.
   the dead ends.
 - **Ownership is free text.** `assigned_to` / `account_manager` are plain names, not links
   to real users — so "show me only my leads" can't be built until that's fixed.
+- **The Leads stage filters miss almost every lead.** The chips read
+  *New / Qualifying / Proposing / Won / Lost*, but `businesses.stage` holds
+  `new, contacted, in_discussion, proposal, won, lost`. Only Won and Lost line up. In the
+  live data that is 973 of 1013 leads sitting at stage `new` while the "New" chip counts
+  zero. Two vocabularies; `STATUS_TO_STAGE` maps some of it but not the filters. Verified
+  in a browser sweep and against the live table. **This is the next thing to fix.**
 - `business@directksa.com` is listed as an admin in `access_allowlist` but has no login
   yet. Abdulrahman's other address, `aboelmagd@directksa.com`, is a working admin.
