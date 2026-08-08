@@ -75,6 +75,17 @@ The other two GitHub repos are kept untouched as reference, not deleted:
   `admin, manager, bd, operations, viewer, team_member`. `access_allowlist` decides who
   gets auto-approved on signup. `app_role()` is the function every access rule calls.
 
+## Open work: docs/BACKLOG.md
+
+Everything deliberately parked lives there — roles, users, ownership, Arabic, the Drive
+consolidation, the travel-agencies project, client re-verification. **Read it at the start
+of every session and update it at the end.** Abdulrahman asked to be reminded of these; the
+file is the reminder, so surface anything relevant rather than waiting to be asked.
+
+**Clients were reset on 2026-08-08** — all 32 went back to leads for re-verification because
+the data was four months stale. Nothing deleted: `businesses_snapshot_20260808` (1,035 rows)
+and `contacts_snapshot_20260808` (335 rows) hold the full prior state, admin/manager only.
+
 ## Read this first: docs/DIRECT_MASTER_BRIEF.md
 
 A 140 KB brief Abdulrahman assembled from months of earlier sessions — the business, the
