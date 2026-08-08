@@ -18,23 +18,17 @@ Live at **[directksab2b.com](https://www.directksab2b.com/)**.
 Both pages talk to the same Supabase project (`vkxoeeoauexyfpzqufqd`) using the **publishable**
 key only — no secret keys are stored in this repo.
 
-## ⚠️ Deploys are NOT automatic yet
+## Deploys are automatic
 
-**Pushing to this repo does not currently update the website.** The Vercel project
-`direct-business` is not connected to any GitHub repo — every deploy so far has been a manual
-upload. That connection has not been made yet.
+**Pushing to this repo updates the website.** The Vercel project `direct-business` is connected
+to this repo as of 2026-08-08 and deploys every push to production automatically.
 
-To turn it on (one time, needs Abdulrahman's login):
+Verified on the first push: commit `39dafaa` triggered a build on its own, and
+`directksab2b.com` came back byte-for-byte identical to the `index.html` in this repo.
 
-> Vercel → project **direct-business** → **Settings → Git → Connect Git Repository** →
-> pick `abdoulmagd911/Direct-Business`
+## How deploys work
 
-Once connected, the loop below becomes true. Until then, treat this repo as the safe
-source of truth and deploy by hand.
-
-## How deploys will work (after the connection above)
-
-1. A change lands on the main branch.
+1. A change lands on the production branch (currently `claude/new-session-9fhlp1`).
 2. Vercel sees the push and builds automatically.
 3. `directksab2b.com` updates within about 30 seconds.
 4. To roll back: Vercel → *Deployments* → *Promote to Production* on any older green build,

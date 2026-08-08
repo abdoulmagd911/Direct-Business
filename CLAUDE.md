@@ -32,10 +32,25 @@ This repo is now the consolidated home: `index.html` (the app), `events/index.ht
 (KSA Events Hub), `vercel.json`, `docs/`, `scripts/`. The `index.html` here was verified
 byte-for-byte identical (SHA-256) to what directksab2b.com was serving on 2026-08-08.
 
-**The website deploys are not wired to this repo yet.** The Vercel project `direct-business`
-(team `abdoulmagd911s-projects`, domains `directksab2b.com` + `direct-business.vercel.app`) has
-no Git connection — all 20 deploys to date were manual uploads. Connecting it is a one-time
-click in Vercel → Settings → Git that only Abdulrahman can do.
+**Deploys are automatic as of 2026-08-08.** The Vercel project `direct-business` (team
+`abdoulmagd911s-projects`, domains `directksab2b.com` + `direct-business.vercel.app`) is now
+connected to this repo. Push → Vercel builds → live in ~30s. Verified working: commit
+`39dafaa` deployed itself and `directksab2b.com` was confirmed byte-identical to `index.html`.
+Production branch is currently **`claude/new-session-9fhlp1`** (the repo had no `main` when
+Vercel connected). Rolling back = revert the commit, or Vercel → Deployments → Promote.
+
+### ⛔ Do NOT run the old deploy scripts
+
+These edge functions patch `site/v37/index.html` in Supabase Storage by find-and-replace:
+`promote-v41`, `promote-v42-finance`, `patch-v42-attention-fix`, `verify-v42`.
+
+**That path is now dead.** The website is served from this repo, not from Storage. Running any
+of them changes a file nobody reads, produces no visible effect, and looks exactly like a
+mysterious failure — this is the pattern that caused months of dead ends. To change the app,
+edit `index.html` here and push. The functions should be deleted from the Supabase dashboard
+when convenient; they are kept only as history.
+
+`v30-import-businesses` is the same shape (one-shot importer) and should not be re-run either.
 
 The other two GitHub repos are kept untouched as reference, not deleted:
 - `abdoulmagd911/direct` (private) — 1 commit, 2026-08-08. Its `index.html` is identical to

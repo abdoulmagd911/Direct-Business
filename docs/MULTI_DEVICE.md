@@ -1,10 +1,10 @@
 # Multi-device working model
 
-> **Status check (2026-08-08):** this document describes the intended workflow. One part of it
-> is not true yet — **Vercel is not connected to this GitHub repo**, so pushing here does *not*
-> auto-deploy. See the "Deploys are NOT automatic yet" section in `README.md`. Everything else
-> below (pull → edit → push, conflict handling) works today. Once the Vercel connection is
-> made, this file becomes accurate as written.
+> **Status check (2026-08-08):** this document is now accurate. Vercel is connected to this
+> repo and auto-deploys every push — verified live. Two corrections to the text below: the
+> production branch is currently `claude/new-session-9fhlp1`, not `main`; and the old
+> "promote/patch" edge functions that rewrote the app in Supabase Storage must **not** be used
+> any more — see the ⛔ section in `CLAUDE.md`.
 
 Abdulrahman works from multiple devices — laptop, tablet, phone, sometimes a travel machine. Any Claude session on any device can edit the app safely, provided everyone follows one loop:
 
