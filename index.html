@@ -5744,7 +5744,6 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
         {label:'Contacted',count:null,filter:'Contacted'},
         {label:'Qualified',count:null,filter:'Qualified'},
         {label:'Proposal',count:null,filter:'Proposal'},
-        {label:'Negotiation',count:null,filter:'Negotiation'},
         {label:'Won',count:null,filter:'Won'},
         {label:'Lost',count:null,filter:'Lost'}
       ],
@@ -5754,7 +5753,6 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
         {label:'تم التواصل',count:null,filter:'Contacted'},
         {label:'مؤهل',count:null,filter:'Qualified'},
         {label:'عرض مقدم',count:null,filter:'Proposal'},
-        {label:'تفاوض',count:null,filter:'Negotiation'},
         {label:'مكسوب',count:null,filter:'Won'},
         {label:'مفقود',count:null,filter:'Lost'}
       ]
@@ -7128,7 +7126,9 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
 
   /* ===== v32 row-based lead storage: each lead saves individually to the businesses table ===== */
   var FUNNELS=[], FBYID={}, FBYKEY={}, SNAP={}, ROWID={};
-  var S2C={'Prospect':'new','New':'new','Contacted':'contacted','Qualified':'in_discussion','Negotiation':'in_discussion','Proposal':'proposal','Won':'won','Lost':'lost'};
+  /* Every display stage must map back to a database stage. A missing key here silently
+     saves the lead as 'new' - that is how On hold used to be lost on save. */
+  var S2C={'Prospect':'new','New':'new','Contacted':'contacted','Qualified':'in_discussion','Negotiation':'in_discussion','Proposal':'proposal','Won':'won','Lost':'lost','On hold':'on_hold'};
   var C2S={'new':'Prospect','contacted':'Contacted','in_discussion':'Qualified','proposal':'Proposal','won':'Won','lost':'Lost','on_hold':'Prospect'};
   function stageToApp(canon, prev){ if(prev && S2C[prev]===canon) return prev; return C2S[canon]||'Prospect'; }
   function rowToApp(r){
