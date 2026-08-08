@@ -771,7 +771,7 @@ function renderDash(v){
   const fmax=B.length||1;
   v.innerHTML=`
   <div class="hero">
-    <h2>Welcome back, Abdelrahman</h2>
+    <h2>Welcome back, ${(typeof me==='function'?me():'').split(' ')[0]||'team'}</h2>
     <p>Every business you've ever billed — clients, warm conversion targets, study-abroad commission vendors and the businesses hidden in B2C invoices — in one pipeline, ready to work.</p>
     <div class="chips">
       <div class="chip"><div class="v">${B.length}</div><div class="l">Businesses</div></div>
@@ -1426,7 +1426,7 @@ function drawOffers(q){q=(q||'').toLowerCase();const tb=document.getElementById(
 }
 function openOfferFn(id){openOffer=id;render();window.scrollTo(0,0);}
 function closeOffer(){openOffer=null;render();}
-function newOffer(){const o={id:uid('o'),ref:'DB-'+Date.now().toString().slice(-6),date:new Date().toISOString().slice(0,10),client:'',subject:'',airline:'',route:'',flight:'',cls:'',currency:'SAR',ticketPrice:'',partnerFees:'',serviceFees:'',vat:'',dip:'',total:'',changesBefore:'',changesAfter:'Not permitted',cancelBefore:'',cancelAfter:'Non-Refundable',noShow:'',baggage:'1 piece 23 Kg',lastIssue:'',minStay:'-',maxStay:'-',cheapest:'Yes',remarks:'',addFees:'Partner contractual refund & reissue fees apply. Original handling fees are non-refundable.',status:'Draft',version:1,validUntil:'',ttl:'',linkedLeadId:'',policyStatus:'Not checked',policyReason:'',approvalStatus:'Not required',paxAdt:1,paxChd:0,paxInf:0,cost:'',commission:'',winLoseReason:'',options:[],owner:'Abdelrahman'};(DB.offers=DB.offers||[]).push(o);save();openOffer=o.id;render();}
+function newOffer(){const o={id:uid('o'),ref:'DB-'+Date.now().toString().slice(-6),date:new Date().toISOString().slice(0,10),client:'',subject:'',airline:'',route:'',flight:'',cls:'',currency:'SAR',ticketPrice:'',partnerFees:'',serviceFees:'',vat:'',dip:'',total:'',changesBefore:'',changesAfter:'Not permitted',cancelBefore:'',cancelAfter:'Non-Refundable',noShow:'',baggage:'1 piece 23 Kg',lastIssue:'',minStay:'-',maxStay:'-',cheapest:'Yes',remarks:'',addFees:'Partner contractual refund & reissue fees apply. Original handling fees are non-refundable.',status:'Draft',version:1,validUntil:'',ttl:'',linkedLeadId:'',policyStatus:'Not checked',policyReason:'',approvalStatus:'Not required',paxAdt:1,paxChd:0,paxInf:0,cost:'',commission:'',winLoseReason:'',options:[],owner:(typeof me==='function'?me():'')};(DB.offers=DB.offers||[]).push(o);save();openOffer=o.id;render();}
 function curOffer(){return (DB.offers||[]).find(x=>x.id===openOffer);}
 function o_set(k,val){const o=curOffer();if(!o)return;o[k]=val;save();const d=document.getElementById('offerDoc');if(d)d.innerHTML=offerHTML(o);}
 function o_calc(){const o=curOffer();if(!o)return;const num=s=>parseFloat(String(s).replace(/[^0-9.]/g,''))||0;o.total=String(num(o.ticketPrice)+num(o.partnerFees)+num(o.serviceFees)+num(o.vat)+num(o.dip));save();offerEditor(document.getElementById('view'),o.id);}
@@ -2224,7 +2224,7 @@ const _v18EditBooking=editBooking;
 editBooking=function(id){_v18EditBooking(id);setTimeout(()=>{const mb=document.querySelector('#modal .mb');if(!mb)return;const fields=mb.querySelectorAll('.field, .grid2');const advLabels=['RBD','Fare basis','Validity','FFN','E-ticket status','EMD type','Refund penalty','Change penalty','ADM linked','ADM ID','Endorsements','Booking source','Queue assignee','Queue due','TTL','Form of payment'];const toMove=[];fields.forEach(f=>{const txt=f.textContent;if(advLabels.some(k=>txt.indexOf(k)>=0))toMove.push(f);});if(!toMove.length)return;const det=document.createElement('details');det.className='v19-disclose';det.innerHTML='<summary>Booking technicals ▸ <span style="color:var(--muted);font-weight:500;font-size:11px">RBD · fare basis · FFN · TTL · FOP · ADM · fare rules · queue</span></summary><div class="ds-body"></div>';const body=det.querySelector('.ds-body');toMove[0].parentNode.insertBefore(det,toMove[0]);toMove.forEach(f=>body.appendChild(f));},20);};
 
 /* ----- v19 quick-create CTAs on detail pages ----- */
-function offerFromLead(leadId){const b=getLead(leadId);if(!b)return;const before=(DB.offers||[]).length;if(typeof newOffer==='function')newOffer();let o=DB.offers[DB.offers.length-1];if(!o||(DB.offers||[]).length<=before){o={id:uid('o'),ref:'DB-'+Date.now().toString().slice(-6),date:new Date().toISOString().slice(0,10),client:'',subject:'',status:'Draft',version:1,validUntil:'',ttl:'',linkedLeadId:'',options:[],owner:'Abdelrahman',files:[]};DB.offers.push(o);}o.linkedLeadId=leadId;o.client=b.name;o.subject=o.subject||('New offer for '+b.name);o.owner=o.owner||'Abdelrahman';openOffer=o.id;current='offers';silentSave(save);pushRecent('offer',o.id);logAudit('offer',o.id,'create-from-lead',b.name);render();toast('Offer created from '+b.name);}
+function offerFromLead(leadId){const b=getLead(leadId);if(!b)return;const before=(DB.offers||[]).length;if(typeof newOffer==='function')newOffer();let o=DB.offers[DB.offers.length-1];if(!o||(DB.offers||[]).length<=before){o={id:uid('o'),ref:'DB-'+Date.now().toString().slice(-6),date:new Date().toISOString().slice(0,10),client:'',subject:'',status:'Draft',version:1,validUntil:'',ttl:'',linkedLeadId:'',options:[],owner:'Abdelrahman',files:[]};DB.offers.push(o);}o.linkedLeadId=leadId;o.client=b.name;o.subject=o.subject||('New offer for '+b.name);o.owner=o.owner||(typeof me==='function'?me():'');openOffer=o.id;current='offers';silentSave(save);pushRecent('offer',o.id);logAudit('offer',o.id,'create-from-lead',b.name);render();toast('Offer created from '+b.name);}
 function bookingFromOffer(offerId){const o=(DB.offers||[]).find(x=>x.id===offerId);if(!o)return;const fareTotal=onum(o.total)||(o.options&&o.options[0]?(onum(o.options[0].base)+onum(o.options[0].taxes)+onum(o.options[0].anc)+onum(o.options[0].fee)+(o.options[0].items||[]).reduce((s,it)=>s+onum(it.price),0)):0);const bk={id:uid('bk'),ref:'BK-'+Date.now().toString().slice(-4),leadId:o.linkedLeadId||'',offerId:offerId,provider:o.options&&o.options[0]?o.options[0].provider:'',bookingSource:'Offer → Booking',status:'Confirmed',date:new Date().toISOString().slice(0,10),tickets:[{pnr:'',eticket:'',pax:'',route:o.route||'',cls:o.cls||'',rbd:o.cls||'',fareBasis:'',validity:'1Y',ffn:'',status:'OPEN',emdType:'—',fare:onum(o.ticketPrice)||fareTotal,taxes:onum(o.vat)||0,airline:o.airline||'',fareRules:{refundPenalty:o.cancelBefore||'',changePenalty:o.changesBefore||'',noShow:o.noShow||''},reissueChain:{parent:'',children:[],fareDiff:0},autoRefund:false,admFlag:false,admId:'',fraudScore:0,mileage:'',conjunction:false,linkedTickets:[],coupons:[{n:1,status:'OPEN',validity:'1Y'}]}],hotels:(o.options&&o.options[0]?(o.options[0].items||[]).filter(it=>it.type==='Hotel').map(it=>({vendor:'',name:it.detail,nights:'',cost:onum(it.price)})):[]),visas:(o.options&&o.options[0]?(o.options[0].items||[]).filter(it=>it.type==='Visa').map(it=>({vendor:'',country:it.detail,pax:1,cost:onum(it.price)})):[]),transfers:[],extras:[],totalCost:Math.round(fareTotal*0.85),totalSale:fareTotal,invoiceId:'',files:[],notes:'Auto-created from offer '+(o.ref||''),pnr:'',recordLocator:'',ttl:'',queueAssignee:'Abdelrahman',queueDueBy:'',ssr:[],fop:'BSP',endorsements:'NON-END / NON-REF',qc:{},paxProfiles:[]};DB.bookings.push(bk);logAudit('booking',bk.id,'create-from-offer',o.ref||'');silentSave(save);openBooking=bk.id;current='bookings';pushRecent('booking',bk.id);render();toast('Booking created from offer');}
 function ticketFromBooking(bkId){const b=getBooking(bkId);if(!b)return;const last=(b.tickets||[]).slice(-1)[0]||{};const seed={pnr:b.pnr||'',eticket:'',pax:'',route:last.route||'',cls:last.cls||'Y',rbd:last.cls||'Y',fareBasis:'',validity:'1Y',ffn:'',status:'OPEN',emdType:'—',fare:0,taxes:0,airline:last.airline||recentAirlineFor(b.leadId)||'',fareRules:{refundPenalty:'',changePenalty:'',noShow:''},reissueChain:{parent:'',children:[],fareDiff:0},autoRefund:false,admFlag:false,admId:'',fraudScore:0,mileage:'',conjunction:false,linkedTickets:[],coupons:[{n:1,status:'OPEN',validity:'1Y'}]};b.tickets=b.tickets||[];b.tickets.push(seed);logAudit('booking',bkId,'add-ticket','airline='+seed.airline);silentSave(save);render();toast('Ticket added (auto-defaults from booking)');}
 function markInvoicePaid(invId){const i=getInvoice(invId);if(!i)return;const amt=v18InvTotals(i).total;i.payments=i.payments||[];i.payments.push({date:new Date().toISOString().slice(0,10),amount:amt,method:i.payments.length?'Bank transfer':'BSP',ref:'Quick-paid '+Date.now().toString(36).toUpperCase()});i.status='Paid';if((i.dunningStage||'None')!=='None'){i.dunningStage='None';i.collectionsLog=i.collectionsLog||[];i.collectionsLog.push({ts:Date.now(),stage:'Resolved (paid)',by:'Abdelrahman'});}logAudit('invoice',invId,'mark-paid',moneyShort(amt)+' SAR');silentSave(save);render();toast('Invoice marked paid · '+moneyShort(amt)+' SAR');}
@@ -3800,7 +3800,7 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
 
   /* ===== Track B: Nav restructure (≤8 primary + read-only mirror + ▾ More) ===== */
   // Primary nav order (8 items + new Projects = 9, will fold)
-  var V25_PRIMARY=['today','leads','clients','offers','airlines','vendors','sopsla','ops','reports','settings'];
+  var V25_PRIMARY=['today','leads','clients','offers','events','airlines','vendors','sopsla','ops','reports','settings'];
   var V25_READONLY=['bookings','invoices','tickets'];
   var V25_MORE=[];
   // Ensure VIEWS has settings + projects
@@ -4050,11 +4050,11 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
 
   /* ===== Track D.2: View presets — Commercial / Finance / CFO / Everything / B2B ===== */
   var V25_PRESETS={
-    commercial:{label:'Commercial',ic:'🎯',nav:['today','leads','clients','projects','offers','airlines','vendors','sync','settings'],todoKpis:['leads','clients','offers','margin'],sections:{showPool:true,showAR:false,showAging:false}},
-    finance:{label:'Finance',ic:'💰',nav:['today','clients','projects','sync','settings','bookings','invoices','tickets'],todoKpis:['pool','outstanding','aging','received'],sections:{showPool:true,showAR:true,showAging:true,featurePool:true}},
-    cfo:{label:'CFO',ic:'📊',nav:['today','clients','projects','sync','settings'],todoKpis:['pool','aging','received','headroom'],sections:{showPool:true,showAR:true,showAging:true,featurePool:true,hideReceived:false}},
+    commercial:{label:'Commercial',ic:'🎯',nav:['today','leads','clients','projects','offers','events','airlines','vendors','sync','settings'],todoKpis:['leads','clients','offers','margin'],sections:{showPool:true,showAR:false,showAging:false}},
+    finance:{label:'Finance',ic:'💰',nav:['today','clients','projects','events','sync','settings','bookings','invoices','tickets'],todoKpis:['pool','outstanding','aging','received'],sections:{showPool:true,showAR:true,showAging:true,featurePool:true}},
+    cfo:{label:'CFO',ic:'📊',nav:['today','clients','projects','events','sync','settings'],todoKpis:['pool','aging','received','headroom'],sections:{showPool:true,showAR:true,showAging:true,featurePool:true,hideReceived:false}},
     everything:{label:'Everything',ic:'🌐',nav:null,todoKpis:null,sections:{showPool:true,showAR:true,showAging:true}},
-    b2b:{label:'B2B snapshot',ic:'📈',nav:['today','clients','projects','sync'],todoKpis:['revenue','clients','projects'],sections:{showPool:false,showAR:false}}
+    b2b:{label:'B2B snapshot',ic:'📈',nav:['today','clients','projects','events','sync'],todoKpis:['revenue','clients','projects'],sections:{showPool:false,showAR:false}}
   };
   window.V25_PRESETS=V25_PRESETS;
 
@@ -7574,38 +7574,6 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
 </script>
 
 <script>
-/* QA-fix: Arabic labels for section headings + main Leads controls. Additive and Arabic-only:
-   swaps matching text nodes (never innerHTML), so event handlers, layout and English mode are
-   untouched. Re-applied after every render and on language change. */
-(function(){try{
-  var MAP={
-    'Leads':'العملاء المحتملون','Clients':'العملاء','Today':'اليوم','Offer Builder':'منشئ العروض',
-    'Events':'الفعاليات','Airlines':'شركات الطيران','Providers & GDS':'الموردون و GDS',
-    'SOPs & SLAs':'الإجراءات ومستويات الخدمة','Operations':'العمليات','Dashboard':'لوحة المعلومات',
-    'Reports':'التقارير','Archive':'الأرشيف','Bookings':'الحجوزات','Invoices':'الفواتير','Tickets':'التذاكر',
-    '+ New business':'＋ جهة جديدة','New business':'جهة جديدة','Hide closed':'إخفاء المغلقة',
-    'Show closed':'إظهار المغلقة','Needs attention':'يحتاج انتباه','Has app':'لديه تطبيق',
-    'All funnels':'كل القنوات','All stages':'كل المراحل'
-  };
-  function isAr(){return document.documentElement.getAttribute('data-lang')==='ar';}
-  function swap(){ if(!isAr()) return;
-    try{
-      var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null),n,hits=[];
-      while(n=w.nextNode()){ var t=(n.nodeValue||'').trim(); if(t && MAP.hasOwnProperty(t)) hits.push(n); }
-      hits.forEach(function(x){ var t=(x.nodeValue||'').trim(); x.nodeValue=x.nodeValue.replace(t,MAP[t]); });
-      document.querySelectorAll('option').forEach(function(o){ var t=(o.textContent||'').trim(); if(MAP.hasOwnProperty(t)) o.textContent=MAP[t]; });
-    }catch(_){}
-  }
-  var iv=setInterval(function(){ if(typeof render==='function'){ clearInterval(iv);
-    try{ var _r=render; render=function(){ var o=_r.apply(this,arguments); setTimeout(swap,0); return o; }; }catch(_){}
-    swap();
-  } },200);
-  try{ new MutationObserver(swap).observe(document.documentElement,{attributes:true,attributeFilter:['data-lang']}); }catch(_){}
-  setTimeout(swap,1200); setTimeout(swap,2600);
-}catch(e){console.warn('ar-labels',e);}})();
-</script>
-
-<script>
 /* Page-size selector + pagination on every data table (10/20/50/100/All, default 20, remembered per browser) */
 (function(){try{
   var KEY='db_pageSize';
@@ -7843,13 +7811,6 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
 
   var pop=null;
   function hidePop(){if(pop){pop.remove();pop=null;}}
-  /* QA-fix: the row hover-preview was orphaned on <body> when a row click re-rendered the
-     table (mouseleave never fired), leaving it stuck over the lead-detail action buttons.
-     Dismiss it on click, scroll, resize and back/forward — it re-shows on next row hover. */
-  document.addEventListener('click',hidePop,true);
-  window.addEventListener('scroll',hidePop,true);
-  window.addEventListener('resize',hidePop,true);
-  window.addEventListener('popstate',hidePop);
   var _dt=window.drawTable;
   window.drawTable=function(){
     _dt();
@@ -7962,5 +7923,1111 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
 })();
 </script>
 
+<script>
+/* ===== v38 layer: Events tab + view-only share links (additive, safe) ===== */
+(function(){try{
+var SUPA_URL='https://vkxoeeoauexyfpzqufqd.supabase.co';
+var SUPA_KEY='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
+var sb2=null;
+function client(){ if(!sb2&&window.supabase){try{sb2=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(_){}} return sb2; }
+function esc2(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ---------- detect share-view URL: /s/<token> or /s/<token>/<section> ---------- */
+var SHARE=(function(){var m=String(location.pathname||'').match(/^\/s\/([A-Za-z0-9\-]{16,})(?:\/([a-z]+))?/);return m?{token:m[1],sec:m[2]||'dashboard'}:null;})();
+window.__isShareView=!!SHARE;
+
+/* ================= EVENTS TAB ================= */
+var EV_STATUS={confirmed:['Confirmed','#dff5e1','#1e7a34'],needs_verification:['Needs check','#fff3d6','#8b5b1f'],stale:['Stale','#fddede','#a3242c'],outside_window:['Outside window','#e9e9e9','#666'],outside_ksa:['Outside KSA','#e0e6f7','#3a4f9e'],no_date:['No date','#eee','#888']};
+var EV_VERT={Travel:['#e0eef4','#1f6f8b'],Tech:['#f3e0ec','#8b3a62'],Study:['#e8f2dd','#4a7c1f'],Other:['#f2ead2','#8a6d3b']};
+var evFilter={vertical:'all',status:'all',q:'',opp:'all'};
+var evLoaded=false, evLoading=false;
+
+try{
+  if(typeof TITLES==='object')TITLES.events=['Events','KSA events radar — sales & partnership opportunities calendar'];
+  if(typeof VIEWS!=='undefined'&&VIEWS.push&&!VIEWS.some(function(v){return v.id==='events';})){
+    var ic='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+    var ix=VIEWS.findIndex(function(v){return v.id==='offers';});
+    VIEWS.splice(ix>=0?ix+1:VIEWS.length,0,{id:'events',label:'Events',ic:ic,primary:true});
+  }
+}catch(e){console.warn('v38 nav',e);}
+
+function loadEvents(cb){
+  if(evLoading)return; evLoading=true;
+  var c=client(); if(!c){evLoading=false;return;}
+  c.from('ksa_events').select('*').order('start_date',{ascending:true,nullsFirst:false}).then(function(r){
+    evLoading=false;
+    if(r.error){console.warn('events load',r.error);DB.ksaEvents=DB.ksaEvents||[];}
+    else DB.ksaEvents=r.data||[];
+    evLoaded=true; if(cb)cb();
+    try{if(current==='events')render();}catch(_){}
+  });
+}
+
+function evPill(txt,bg,fg){return '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:'+bg+';color:'+fg+';white-space:nowrap">'+esc2(txt)+'</span>';}
+function evDate(e){
+  if(!e.start_date)return '<span style="color:var(--muted)">—</span>';
+  var s=e.start_date,en=e.end_date;
+  var f=function(d){try{return new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});}catch(_){return d;}};
+  return '<span style="white-space:nowrap;font-weight:600">'+f(s)+(en&&en!==s?' – '+f(en):'')+' '+String(s).slice(0,4)+'</span>';
+}
+function canEditEvents(){ return !window.__isShareView && window.__userTier && window.__userTier!=='viewer'; }
+
+window.renderEvents=function(v){
+  if(!evLoaded){ v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">Loading events…</div>'; loadEvents(); return; }
+  var E=(DB.ksaEvents||[]);
+  var list=E.filter(function(e){
+    if(evFilter.vertical!=='all'&&e.vertical!==evFilter.vertical)return false;
+    if(evFilter.status!=='all'&&e.status!==evFilter.status)return false;
+    if(evFilter.opp==='sales'&&!e.opportunity_sales)return false;
+    if(evFilter.opp==='partner'&&!e.opportunity_partner)return false;
+    if(evFilter.q){var q=evFilter.q.toLowerCase();if(((e.name_en||'')+' '+(e.name_ar||'')+' '+(e.city||'')+' '+(e.venue||'')+' '+(e.organiser||'')).toLowerCase().indexOf(q)<0)return false;}
+    return true;
+  });
+  var kpiConfirmed=E.filter(function(e){return e.status==='confirmed';}).length;
+  var kpiSales=E.filter(function(e){return e.opportunity_sales;}).length;
+  var kpiPartner=E.filter(function(e){return e.opportunity_partner;}).length;
+  var h='';
+  h+='<div class="card" style="margin-bottom:12px;display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding:14px 18px">';
+  h+='<div><div style="font-size:22px;font-weight:800">'+E.length+'</div><div style="font-size:11px;color:var(--muted)">Total events</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:#1e7a34">'+kpiConfirmed+'</div><div style="font-size:11px;color:var(--muted)">Confirmed</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:#1a5c9e">'+kpiSales+'</div><div style="font-size:11px;color:var(--muted)">Sales prospects</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:#a35216">'+kpiPartner+'</div><div style="font-size:11px;color:var(--muted)">Partner / competitor</div></div>';
+  h+='<div style="margin-left:auto;display:flex;gap:8px">';
+  if(canEditEvents())h+='<button class="btn pri sm" onclick="evOpenModal()">+ Add event</button>';
+  if(!window.__isShareView)h+='<button class="btn ghost sm" onclick="shareCurrentView()">Share view-only link</button>';
+  h+='</div></div>';
+  h+='<div class="card" style="margin-bottom:12px;padding:12px 16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:13px">';
+  h+='<select id="evF_v" style="padding:7px 9px;border:1px solid var(--line,#e6e8ec);border-radius:8px;font:inherit"><option value="all">All verticals</option>'+Object.keys(EV_VERT).map(function(k){return '<option '+(evFilter.vertical===k?'selected':'')+'>'+k+'</option>';}).join('')+'</select>';
+  h+='<select id="evF_s" style="padding:7px 9px;border:1px solid var(--line,#e6e8ec);border-radius:8px;font:inherit"><option value="all">All statuses</option>'+Object.keys(EV_STATUS).map(function(k){return '<option value="'+k+'" '+(evFilter.status===k?'selected':'')+'>'+EV_STATUS[k][0]+'</option>';}).join('')+'</select>';
+  h+='<select id="evF_o" style="padding:7px 9px;border:1px solid var(--line,#e6e8ec);border-radius:8px;font:inherit"><option value="all" '+(evFilter.opp==='all'?'selected':'')+'>All opportunities</option><option value="sales" '+(evFilter.opp==='sales'?'selected':'')+'>Sales prospect</option><option value="partner" '+(evFilter.opp==='partner'?'selected':'')+'>Partner / competitor</option></select>';
+  h+='<input id="evF_q" placeholder="Search name, city, venue…" value="'+esc2(evFilter.q)+'" style="padding:7px 10px;border:1px solid var(--line,#e6e8ec);border-radius:8px;font:inherit;min-width:200px">';
+  h+='<span style="margin-left:auto;color:var(--muted);font-size:12px">'+list.length+' of '+E.length+' shown</span></div>';
+  h+='<div class="card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>';
+  ['Event','Vertical','Status','Dates','City','Venue','Opportunity','Pri','Notes',''].forEach(function(c2){h+='<th style="text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-bottom:1px solid var(--line,#e6e8ec);white-space:nowrap">'+c2+'</th>';});
+  h+='</tr></thead><tbody>';
+  if(!list.length)h+='<tr><td colspan="10" style="padding:40px;text-align:center;color:var(--muted)">No events match these filters.</td></tr>';
+  list.forEach(function(e){
+    var vt=EV_VERT[e.vertical]||EV_VERT.Other, stt=EV_STATUS[e.status]||EV_STATUS.no_date;
+    h+='<tr style="border-bottom:1px solid var(--line,#eef0f5)">';
+    h+='<td style="padding:9px 10px;min-width:180px"><div style="font-weight:600">'+esc2(e.name_en)+'</div>'+(e.name_ar?'<div style="font-size:11px;color:var(--muted);direction:rtl;text-align:right">'+esc2(e.name_ar)+'</div>':'')+(e.link?'<a href="'+esc2(e.link)+'" target="_blank" rel="noopener" style="font-size:11px">Website ↗</a>':'')+'</td>';
+    h+='<td style="padding:9px 10px">'+evPill(e.vertical,vt[0],vt[1])+'</td>';
+    h+='<td style="padding:9px 10px">'+evPill(stt[0],stt[1],stt[2])+'</td>';
+    h+='<td style="padding:9px 10px">'+evDate(e)+'</td>';
+    h+='<td style="padding:9px 10px;white-space:nowrap">'+esc2(e.city||'—')+'</td>';
+    h+='<td style="padding:9px 10px;max-width:160px">'+esc2(e.venue||'—')+'</td>';
+    h+='<td style="padding:9px 10px;white-space:nowrap">'+(e.opportunity_sales?evPill('Sales','#dceeff','#1a5c9e')+' ':'')+(e.opportunity_partner?evPill('Partner','#ffe6d5','#a35216'):'')+((!e.opportunity_sales&&!e.opportunity_partner)?'—':'')+'</td>';
+    h+='<td style="padding:9px 10px;text-align:center;font-weight:700">'+(e.priority||'—')+'</td>';
+    h+='<td style="padding:9px 10px;max-width:240px;font-size:11.5px;color:var(--muted)">'+esc2(e.notes||'')+'</td>';
+    h+='<td style="padding:9px 10px;white-space:nowrap">'+(canEditEvents()?'<button class="btn ghost sm" onclick="evOpenModal(\''+e.id+'\')">Edit</button> <button class="btn ghost sm" style="color:#a3242c" onclick="evDelete(\''+e.id+'\')">Del</button>':'')+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  v.innerHTML=h;
+  var b1=document.getElementById('evF_v');if(b1)b1.onchange=function(){evFilter.vertical=this.value;render();};
+  var b2=document.getElementById('evF_s');if(b2)b2.onchange=function(){evFilter.status=this.value;render();};
+  var b3=document.getElementById('evF_o');if(b3)b3.onchange=function(){evFilter.opp=this.value;render();};
+  var b4=document.getElementById('evF_q');if(b4)b4.oninput=function(){evFilter.q=this.value;render();var x=document.getElementById('evF_q');if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length);}};
+};
+
+window.evDelete=function(id){
+  if(!canEditEvents())return;
+  var e=(DB.ksaEvents||[]).find(function(x){return x.id===id;});
+  if(!e)return;
+  if(!confirm('Delete "'+(e.name_en||'this event')+'"? This removes it for the whole team.'))return;
+  client().from('ksa_events').delete().eq('id',id).then(function(r){
+    if(r.error){alert('Could not delete: '+r.error.message);return;}
+    DB.ksaEvents=DB.ksaEvents.filter(function(x){return x.id!==id;});render();
+  });
+};
+
+window.evOpenModal=function(id){
+  if(!canEditEvents())return;
+  var e=(DB.ksaEvents||[]).find(function(x){return x.id===id;})||{vertical:'Travel',status:'needs_verification',priority:3,opportunity_sales:false,opportunity_partner:false};
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:999999;background:rgba(20,22,32,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+  function fld(lab,inner){return '<div style="margin-bottom:10px"><label style="font-size:11.5px;font-weight:700;color:#55596A;display:block;margin-bottom:3px">'+lab+'</label>'+inner+'</div>';}
+  var inp='style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #E3DCCF;border-radius:8px;font:inherit;font-size:13px"';
+  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:22px" onclick="event.stopPropagation()">'+
+    '<div style="font-size:16px;font-weight:800;margin-bottom:14px">'+(id?'Edit event':'Add event')+'</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px">'+
+    fld('Name (English) *','<input id="em_ne" '+inp+' value="'+esc2(e.name_en||'')+'">')+
+    fld('Name (Arabic)','<input id="em_na" dir="rtl" '+inp+' value="'+esc2(e.name_ar||'')+'">')+
+    fld('Vertical','<select id="em_v" '+inp+'>'+Object.keys(EV_VERT).map(function(k){return '<option '+(e.vertical===k?'selected':'')+'>'+k+'</option>';}).join('')+'</select>')+
+    fld('Status','<select id="em_s" '+inp+'>'+Object.keys(EV_STATUS).map(function(k){return '<option value="'+k+'" '+(e.status===k?'selected':'')+'>'+EV_STATUS[k][0]+'</option>';}).join('')+'</select>')+
+    fld('Start date','<input id="em_sd" type="date" '+inp+' value="'+esc2(e.start_date||'')+'">')+
+    fld('End date','<input id="em_ed" type="date" '+inp+' value="'+esc2(e.end_date||'')+'">')+
+    fld('City','<input id="em_c" '+inp+' value="'+esc2(e.city||'')+'">')+
+    fld('Venue','<input id="em_ve" '+inp+' value="'+esc2(e.venue||'')+'">')+
+    fld('Organiser','<input id="em_o" '+inp+' value="'+esc2(e.organiser||'')+'">')+
+    fld('Website link','<input id="em_l" '+inp+' value="'+esc2(e.link||'')+'">')+
+    fld('Priority (1 = top)','<select id="em_p" '+inp+'>'+[1,2,3,4,5].map(function(n){return '<option '+(e.priority===n?'selected':'')+'>'+n+'</option>';}).join('')+'</select>')+
+    fld('Opportunity','<div style="display:flex;gap:14px;padding-top:6px;font-size:13px"><label><input type="checkbox" id="em_os" '+(e.opportunity_sales?'checked':'')+'> Sales</label><label><input type="checkbox" id="em_op" '+(e.opportunity_partner?'checked':'')+'> Partner</label></div>')+
+    '</div>'+
+    fld('Notes','<textarea id="em_n" rows="3" '+inp+'>'+esc2(e.notes||'')+'</textarea>')+
+    '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px"><button class="btn ghost sm" id="em_x">Cancel</button><button class="btn pri sm" id="em_ok">'+(id?'Save changes':'Add event')+'</button></div></div>';
+  ov.onclick=function(){ov.remove();};
+  document.body.appendChild(ov);
+  document.getElementById('em_x').onclick=function(){ov.remove();};
+  document.getElementById('em_ok').onclick=function(){
+    var g=function(i){var x=document.getElementById(i);return x?x.value.trim():'';};
+    if(!g('em_ne')){alert('The English name is required.');return;}
+    var row={name_en:g('em_ne'),name_ar:g('em_na')||null,vertical:g('em_v'),status:g('em_s'),start_date:g('em_sd')||null,end_date:g('em_ed')||null,city:g('em_c')||null,venue:g('em_ve')||null,organiser:g('em_o')||null,link:g('em_l')||null,priority:Number(g('em_p'))||3,opportunity_sales:document.getElementById('em_os').checked,opportunity_partner:document.getElementById('em_op').checked,notes:g('em_n')||null,updated_at:new Date().toISOString()};
+    var q=id?client().from('ksa_events').update(row).eq('id',id):client().from('ksa_events').insert(row);
+    q.then(function(r){
+      if(r.error){alert('Could not save: '+r.error.message);return;}
+      ov.remove(); evLoaded=false; loadEvents();
+    });
+  };
+};
+
+/* hook render for events view */
+try{
+  var _r0=window.render;
+  window.render=function(){
+    var o=_r0.apply(this,arguments);
+    try{ if(current==='events'){var v=document.getElementById('view');if(v)renderEvents(v);} }catch(e){console.warn('v38 events render',e);}
+    return o;
+  };
+}catch(e){console.warn('v38 hook',e);}
+
+/* /events route on boot */
+try{ if(!SHARE&&/^\/events\/?$/.test(location.pathname)){ setTimeout(function(){try{current='events';render();}catch(_){}},600);} }catch(_){}
+
+/* ================= VIEW-ONLY SHARE LINKS ================= */
+window.shareCurrentView=function(){
+  var c=client(); if(!c)return;
+  c.auth.getSession().then(function(s){
+    if(!(s&&s.data&&s.data.session)){alert('Sign in first to create a share link.');return;}
+    var sec=(typeof current!=='undefined'&&current)?current:'dashboard';
+    c.from('share_links').insert({scope:'all',created_by:s.data.session.user.id}).select('token').single().then(function(r){
+      if(r.error){alert('Could not create link: '+r.error.message);return;}
+      var base=/^https?:/.test(location.origin)&&location.host.indexOf('directksab2b.com')>=0?location.origin:'https://www.directksab2b.com';
+      var url=base+'/s/'+r.data.token+'/'+sec;
+      var done=function(){alert('View-only link copied!\n\nAnyone with this link can SEE this workspace but cannot change anything. To edit, they must sign in.\n\n'+url);};
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(done,done);else done();
+    });
+  });
+};
+
+/* add a Share button next to the sign-out button for logged-in users */
+if(!SHARE){ (function addShare(n){
+  try{
+    var tools=document.querySelector('.tools');
+    if(!tools){ if((n||0)<30)setTimeout(function(){addShare((n||0)+1);},400); return; }
+    if(!document.getElementById('cl_share')){
+      var b=document.createElement('button'); b.id='cl_share'; b.className='btn sm ghost'; b.textContent='Share (view-only)'; b.style.fontWeight='700';
+      b.onclick=function(){shareCurrentView();};
+      tools.appendChild(b);
+    }
+    if(window.render&&!window.render.__shareBtn){var _r=window.render;window.render=function(){var o=_r.apply(this,arguments);try{var t=document.querySelector('.tools');if(t&&!document.getElementById('cl_share'))addShare(0);}catch(_){}return o;};window.render.__shareBtn=true;}
+  }catch(_){}
+})(0); }
+
+/* ---------- share-view boot: load data via edge function, no login ---------- */
+if(SHARE){
+  /* keep the login overlay from ever showing */
+  var killOv=setInterval(function(){
+    try{ document.querySelectorAll('body > div').forEach(function(d){ if(d.style&&String(d.style.zIndex)==='2147483000')d.remove(); }); }catch(_){}
+  },250);
+  setTimeout(function(){clearInterval(killOv);
+    setInterval(function(){try{document.querySelectorAll('body > div').forEach(function(d){if(d.style&&String(d.style.zIndex)==='2147483000')d.remove();});}catch(_){}},2000);
+  },15000);
+
+  /* view-only styling: hide edit controls, add banner */
+  document.addEventListener('DOMContentLoaded',function(){
+    try{
+      document.body.setAttribute('data-share','1');
+      var st=document.createElement('style');
+      st.textContent='body[data-share="1"] .btn.pri,body[data-share="1"] .btn.danger,body[data-share="1"] #cl_share,body[data-share="1"] #cl_signout{display:none!important}'+
+        'body[data-share="1"] input,body[data-share="1"] textarea{pointer-events:none;background:#fafafa}'+
+        'body[data-share="1"] #v38banner{display:flex!important}';
+      document.head.appendChild(st);
+      var bn=document.createElement('div');
+      bn.id='v38banner';
+      bn.style.cssText='position:fixed;top:0;left:0;right:0;z-index:2147481000;background:#1C1E2B;color:#fff;font:12.5px Cairo,Inter,system-ui,Arial;padding:8px 16px;display:flex;align-items:center;gap:10px;justify-content:center';
+      bn.innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:#F79009;display:inline-block"></span><span>View-only shared link — you can look, but nothing can be changed.&nbsp;&nbsp;<span dir="rtl">رابط للعرض فقط — لا يمكن تعديل أي شيء.</span>&nbsp;<a href="/" style="color:#FF9A4D;font-weight:700;text-decoration:none">Sign in to edit · تسجيل الدخول للتعديل</a></span>';
+      document.body.appendChild(bn);
+      document.body.style.paddingTop='36px';
+    }catch(_){}
+  });
+
+  /* neutralise all persistence in share mode (server also blocks writes) */
+  var lock=setInterval(function(){try{ if(typeof save==='function'){window.save=function(){};} }catch(_){}},500);
+  setTimeout(function(){clearInterval(lock);},20000);
+
+  function shareRowToApp(r,FBYID){
+    var base=(r.raw&&typeof r.raw==='object')?r.raw:{};
+    var o={};for(var k in base)o[k]=base[k];
+    o.id=r.legacy_id||r.id;
+    if(r.name)o.name=r.name; if(r.name_ar!=null)o.nameAr=r.name_ar;
+    if(r.source!=null)o.source=r.source; if(r.status)o.status=r.status;
+    if(r.category!=null)o.category=r.category; if(r.website!=null)o.website=r.website;
+    if(r.notes)o.notes=r.notes;
+    o.isClient=(r.is_client===true)||base.isClient===true;
+    var C2S={'new':'Prospect','contacted':'Contacted','in_discussion':'Qualified','proposal':'Proposal','won':'Won','lost':'Lost','on_hold':'Prospect'};
+    o.stage=C2S[r.stage]||base.stage||'Prospect';
+    var f=FBYID[r.funnel_id]; o.funnelKey=f?f.key:null; o.funnelName=f?f.name_en:null;
+    o.funnelDetails=r.funnel_details||{};
+    o.nextActionDate=r.next_action_date||null; o.nextActionNote=r.next_action_note||null;
+    return o;
+  }
+
+  function bootShare(n){
+    if(typeof DB==='undefined'||typeof render!=='function'){ if((n||0)<80)setTimeout(function(){bootShare((n||0)+1);},250); return; }
+    fetch(SUPA_URL+'/rest/v1/rpc/share_view',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},body:JSON.stringify({p_token:SHARE.token})})
+    .then(function(res){return res.json();})
+    .then(function(j){
+      if(!j||!j.ok){ document.body.innerHTML='<div style="max-width:460px;margin:110px auto;text-align:center;font-family:Cairo,Inter,system-ui,Arial;color:#1C1E2B"><h2 style="color:#F47A1F">Direct Business</h2><p style="font-size:14.5px;line-height:1.7">This share link is not valid any more.<br>Ask the person who sent it for a fresh link.</p></div>'; return; }
+      try{
+        var d=j.data||{};
+        Object.keys(d.blob||{}).forEach(function(k){ if(k!=='businesses'){try{DB[k]=d.blob[k];}catch(_){}}});
+        var FBYID={};(d.funnels||[]).forEach(function(f){FBYID[f.id]=f;});
+        window.__FUNNELS=d.funnels||[];
+        DB.businesses=(d.businesses||[]).map(function(r){return shareRowToApp(r,FBYID);});
+        DB.ksaEvents=d.events||[]; evLoaded=true;
+        var sec=SHARE.sec;
+        var ok=['dashboard','leads','clients','bookings','invoices','tickets','offers','airlines','vendors','sops','slas','sopsla','ops','reports','events','today'];
+        current=(ok.indexOf(sec)>=0)?(sec==='today'?'dashboard':sec):'dashboard';
+        render();
+      }catch(e){console.warn('share boot',e);}
+    })
+    .catch(function(e){ console.warn('share fetch',e); });
+  }
+  bootShare(0);
+}
+
+console.info('%c[v38 events + share links] loaded','color:#F47A1F;font-weight:700');
+}catch(e){console.warn('v38 layer failed',e);}})();
+</script>
+
+<script>
+/* ===== v38b: show/hide password eye on all password fields ===== */
+(function(){try{
+var EYE='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+var EYEOFF='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="m1 1 22 22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>';
+function addEye(inp){
+  if(!inp||inp.__eye)return; inp.__eye=1;
+  var wrap=document.createElement('div');
+  wrap.style.cssText='position:relative;display:block';
+  inp.parentNode.insertBefore(wrap,inp); wrap.appendChild(inp);
+  var pr=inp.style.paddingRight; inp.style.paddingRight='44px';
+  var b=document.createElement('button'); b.type='button'; b.innerHTML=EYE;
+  b.setAttribute('aria-label','Show password'); b.title='Show password';
+  b.style.cssText='position:absolute;right:9px;top:50%;transform:translateY(-50%);border:0;background:none;cursor:pointer;padding:4px;color:#7C8194;display:flex;align-items:center';
+  b.onclick=function(ev){ev.preventDefault();ev.stopPropagation();
+    if(inp.type==='password'){inp.type='text';b.innerHTML=EYEOFF;b.title='Hide password';}
+    else{inp.type='password';b.innerHTML=EYE;b.title='Show password';}
+    inp.focus();
+  };
+  wrap.appendChild(b);
+  /* keep vertical centering right even though the input has its own margins */
+  var cs=window.getComputedStyle(inp);
+  wrap.style.margin=cs.marginTop+' '+cs.marginRight+' '+cs.marginBottom+' '+cs.marginLeft;
+  inp.style.margin='0';
+}
+setInterval(function(){
+  try{ document.querySelectorAll('input[type=password]').forEach(addEye); }catch(_){}
+},700);
+console.info('%c[v38b password eye] loaded','color:#F47A1F;font-weight:700');
+}catch(e){console.warn('v38b failed',e);}})();
+</script>
+
+<script>
+/* ===== v38c: sidebar shows the real signed-in person, not hardcoded name ===== */
+(function(){try{
+function upd(){try{
+  var nm=(typeof me==='function'?me():'')||'';
+  if(!nm)return;
+  var foot=document.querySelector('.foot'); if(!foot)return;
+  var b=foot.querySelector('b'); if(b&&b.textContent!==nm)b.textContent=nm;
+  var av=foot.querySelector('.av'); if(av)av.textContent=(nm[0]||'D').toUpperCase();
+}catch(_){}}
+setInterval(upd,1200); upd();
+}catch(e){console.warn('v38c failed',e);}})();
+</script>
+<script>
+/* ===== v39 layer: leads guard rails + Arabic coverage for v38 features ===== */
+(function(){try{
+
+/* ---------- 1. Arabic translations for everything v38 added ---------- */
+try{
+  if(typeof I18N==='object'){
+    I18N.en.events='Events'; I18N.ar.events='الفعاليات';
+  }
+  if(typeof V21_STRINGS_AR==='object'){
+    V21_STRINGS_AR['Events']='الفعاليات';
+    V21_STRINGS_AR['Share (view-only)']='مشاركة (عرض فقط)';
+    V21_STRINGS_AR['+ Add event']='+ إضافة فعالية';
+    V21_STRINGS_AR['Share view-only link']='مشاركة رابط للعرض فقط';
+  }
+}catch(_){}
+
+function isAr(){try{return (typeof LANG!=='undefined'&&LANG==='ar')||document.documentElement.getAttribute('data-lang')==='ar';}catch(_){return false;}}
+
+/* ---------- 2. Duplicate guard: warn when a just-added lead matches an existing one ---------- */
+var seenIds=null;
+function normDom(u){return String(u||'').toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0].trim();}
+function leadEmails(b){try{return (b.contacts||[]).map(function(c){return String(c.email||'').toLowerCase();}).filter(Boolean);}catch(_){return [];}}
+function checkNewLeads(){
+  try{
+    var B=(DB&&DB.businesses)||[]; if(!B.length)return;
+    if(seenIds===null){ seenIds={}; B.forEach(function(b){seenIds[b.id]=1;}); return; }
+    var fresh=B.filter(function(b){return !seenIds[b.id];});
+    B.forEach(function(b){seenIds[b.id]=1;});
+    fresh.forEach(function(nb){
+      var nd=normDom(nb.website), nn=String(nb.name||'').trim().toLowerCase(), ne=leadEmails(nb);
+      var hit=B.find(function(b){
+        if(b.id===nb.id)return false;
+        if(nn && String(b.name||'').trim().toLowerCase()===nn) return true;
+        if(nd && normDom(b.website)===nd) return true;
+        if(ne.length){ var be=leadEmails(b); if(be.some(function(e){return ne.indexOf(e)>=0;})) return true; }
+        return false;
+      });
+      if(hit){
+        var msg=isAr()
+          ? 'تنبيه تكرار: "'+(nb.name||'')+'" يشبه سجلاً موجوداً: "'+(hit.name||'')+'".\nراجع السجلين وادمجهما إن كانا نفس الجهة.'
+          : 'Duplicate warning: "'+(nb.name||'')+'" looks like an existing record: "'+(hit.name||'')+'".\nReview both and merge them if they are the same company.';
+        try{ if(typeof toast==='function') toast(msg); }catch(_){}
+        try{ alert(msg); }catch(_){}
+      }
+    });
+  }catch(_){}
+}
+try{
+  if(typeof window.save==='function'&&!window.save.__v39dupe){
+    var _s=window.save; window.save=function(){var r=_s.apply(this,arguments); try{checkNewLeads();}catch(_){} return r;};
+    window.save.__v39dupe=true;
+  }
+  setTimeout(checkNewLeads,3000); /* prime the seen-list after cloud load */
+  setInterval(checkNewLeads,4000);
+}catch(_){}
+
+/* ---------- 3. Attention strip on Leads: unassigned + stale ---------- */
+var STALE_DAYS=14;
+function attention(){
+  var B=(DB&&DB.businesses)||[];
+  var unassigned=[], stale=[];
+  var now=Date.now(), cut=now-STALE_DAYS*864e5;
+  B.forEach(function(b){
+    if(b.isVendor)return;
+    var worked=b.stage&&b.stage!=='new'&&b.stage!=='Prospect';
+    var owner=(b.assignedTo||b.accountManager||'').trim();
+    if(worked&&!owner)unassigned.push(b);
+    if(worked&&b.stage!=='Won'&&b.stage!=='Lost'){
+      var last=b.lastContact||0;
+      try{(b.activities||[]).forEach(function(a){if(a.date>last)last=a.date;});}catch(_){}
+      if(last&&last<cut)stale.push(b);
+    }
+  });
+  return {unassigned:unassigned,stale:stale};
+}
+function injectStrip(){
+  try{
+    if(typeof current==='undefined'||current!=='leads')return;
+    if(window.__isShareView)return;
+    var v=document.getElementById('view'); if(!v)return;
+    var old=document.getElementById('v39strip'); if(old)old.remove();
+    var a=attention();
+    if(!a.unassigned.length&&!a.stale.length)return;
+    var ar=isAr();
+    var parts=[];
+    if(a.unassigned.length)parts.push(ar?('<b>'+a.unassigned.length+'</b> فرصة قيد العمل بدون مسؤول'):('<b>'+a.unassigned.length+'</b> worked lead'+(a.unassigned.length>1?'s':'')+' with no owner'));
+    if(a.stale.length)parts.push(ar?('<b>'+a.stale.length+'</b> بدون أي حركة منذ أكثر من '+STALE_DAYS+' يوماً'):('<b>'+a.stale.length+'</b> with no movement for '+STALE_DAYS+'+ days'));
+    var names=a.unassigned.concat(a.stale).slice(0,8).map(function(b){return (b.name||'').replace(/</g,'&lt;');}).join(' · ');
+    var strip=document.createElement('div');
+    strip.id='v39strip';
+    strip.style.cssText='background:#FFF6E8;border:1px solid #F2C185;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#7A4B12;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center'+(ar?';direction:rtl':'');
+    strip.innerHTML='<span style="font-size:15px">⚠️</span> '+parts.join(' · ')
+      +' <span style="color:#A8783D;font-size:11.5px">'+(ar?'أمثلة: ':'e.g. ')+names+'</span>';
+    v.insertBefore(strip, v.firstChild);
+  }catch(_){}
+}
+try{
+  var _r=window.render;
+  window.render=function(){var o=_r.apply(this,arguments); try{injectStrip();}catch(_){} return o;};
+}catch(_){}
+
+console.info('%c[v39 guard rails] loaded','color:#F47A1F;font-weight:700');
+}catch(e){console.warn('v39 layer failed',e);}})();
+</script>
+
+<script>
+/* ===== v40 layer: full lead lifecycle — quick touches, comments, on-hold, client handover ===== */
+(function(){try{
+function isAr(){try{return (typeof LANG!=='undefined'&&LANG==='ar')||document.documentElement.getAttribute('data-lang')==='ar';}catch(_){return false;}}
+function canEdit(){return !window.__isShareView && window.__userTier!=='viewer';}
+function esc4(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function meName(){try{return (typeof me==='function'?me():'')||'Team';}catch(_){return 'Team';}}
+
+/* ---------- 1. Quick-touch logging: one tap per channel, with due date ---------- */
+window.v40Touch=function(id,type){
+  var b=getLead(id); if(!b||!canEdit())return;
+  var ar=isAr();
+  openModal((ar?'تسجيل ':'Log ')+type+' — '+esc4(b.name),
+    '<div class="field"><label>'+(ar?'ماذا حدث؟':'What happened?')+'</label><textarea id="t_note" rows="3"></textarea></div>'+
+    '<div class="grid2"><div class="field"><label>'+(ar?'الإجراء التالي':'Next action')+'</label><input id="t_next" value="'+esc4(b.nextAction||'')+'"></div>'+
+    '<div class="field"><label>'+(ar?'موعده':'Due date')+'</label><input id="t_due" type="date" value="'+esc4(b.dueDate||'')+'"></div></div>',
+    function(){
+      b.activities=b.activities||[];
+      b.activities.push({date:Date.now(),type:type,status:'',note:val('t_note'),by:meName()});
+      b.lastContact=Date.now();
+      var nx=val('t_next'); if(nx)b.nextAction=nx;
+      var du=val('t_due'); if(du)b.dueDate=du;
+      save();render();
+    });
+};
+
+/* ---------- 2. Comments thread ---------- */
+window.v40AddComment=function(id){
+  var b=getLead(id); if(!b||!canEdit())return;
+  var inp=document.getElementById('v40cmt'); if(!inp||!inp.value.trim())return;
+  b.comments=b.comments||[];
+  b.comments.push({ts:Date.now(),by:meName(),text:inp.value.trim()});
+  save();render();
+};
+
+/* ---------- 3. On hold / resume ---------- */
+window.v40Hold=function(id){
+  var b=getLead(id); if(!b||!canEdit())return;
+  var ar=isAr();
+  if(b.onHold){
+    if(!confirm(ar?'استئناف العمل على هذه الفرصة؟':'Resume working this lead?'))return;
+    b.activities=b.activities||[];
+    b.activities.push({date:Date.now(),type:ar?'استئناف':'Resumed',status:'',note:'',by:meName()});
+    b.onHold=null; save();render(); return;
+  }
+  openModal((ar?'إيقاف مؤقت — ':'Put on hold — ')+esc4(b.name),
+    '<div class="field"><label>'+(ar?'السبب':'Reason')+'</label><input id="h_reason"></div>'+
+    '<div class="field"><label>'+(ar?'تاريخ المتابعة':'Resume / follow-up date')+'</label><input id="h_until" type="date"></div>',
+    function(){
+      b.onHold={reason:val('h_reason'),until:val('h_until'),ts:Date.now(),by:meName()};
+      b.activities=b.activities||[];
+      b.activities.push({date:Date.now(),type:isAr()?'إيقاف مؤقت':'On hold',status:'',note:val('h_reason')+(val('h_until')?(' → '+val('h_until')):''),by:meName()});
+      save();render();
+    });
+};
+
+/* clearing hold automatically when the stage moves */
+try{ if(typeof setLeadStage==='function'&&!window.__v40stage){
+  var _sls=setLeadStage;
+  window.setLeadStage=function(id,s){ try{var b=getLead(id); if(b&&b.onHold)b.onHold=null;}catch(_){}
+    return _sls.apply(this,arguments); };
+  window.__v40stage=true;
+}}catch(_){}
+
+/* ---------- 4. Won → client handover ---------- */
+try{ if(typeof convertToClient==='function'&&!window.__v40conv){
+  var _cv=convertToClient;
+  window.convertToClient=function(id){
+    var before=(getLead(id)||{}).isClient;
+    _cv.apply(this,arguments);
+    try{
+      var b=getLead(id);
+      if(b&&b.isClient&&!before){
+        var ar=isAr();
+        openModal((ar?'تسليم العميل الجديد — ':'New client handover — ')+esc4(b.name),
+          '<div class="ch-sub">'+(ar?'أكمل بيانات العميل حتى يكون جاهزاً في صفحة العملاء.':'Complete the client card so it is ready in the Clients page.')+'</div>'+
+          '<div class="grid2"><div class="field"><label>'+(ar?'مدير الحساب':'Account manager')+'</label><input id="c_am" value="'+esc4(b.accountManager||b.assignedTo||meName())+'"></div>'+
+          '<div class="field"><label>'+(ar?'شروط الدفع':'Payment terms')+'</label><input id="c_pt" value="'+esc4(b.paymentTerms||'')+'" placeholder="Pre-paid / Post-paid / Credit"></div></div>'+
+          '<div class="field"><label>'+(ar?'نطاق التعاقد':'Contract scope')+'</label><input id="c_sc" value="'+esc4(b.contractScope||'')+'" placeholder="Air, hotel, visa, transfer…"></div>'+
+          '<div class="field"><label>'+(ar?'سبب الفوز':'Win reason')+'</label><input id="c_wr" value="'+esc4(b.winReason||'')+'"></div>',
+          function(){
+            b.accountManager=val('c_am'); b.paymentTerms=val('c_pt');
+            b.contractScope=val('c_sc'); b.winReason=val('c_wr');
+            b.activities=b.activities||[];
+            b.activities.push({date:Date.now(),type:isAr()?'تسليم عميل':'Client handover',status:'',note:(b.accountManager?('AM: '+b.accountManager):''),by:meName()});
+            save();render();
+          });
+      }
+    }catch(_){}
+  };
+  window.__v40conv=true;
+}}catch(_){}
+
+/* ---------- 5. inject the new panels into the lead detail screen ---------- */
+function inject(){
+  try{
+    if(typeof current==='undefined'||current!=='leads')return;
+    if(typeof openLead==='undefined'||!openLead)return;
+    if(document.getElementById('v40panels'))return;
+    var b=getLead(openLead); if(!b)return;
+    var grid=document.querySelector('#view .detail-grid'); if(!grid)return;
+    var left=grid.firstElementChild; if(!left)return;
+    var ar=isAr(), ce=canEdit();
+    var wrap=document.createElement('div'); wrap.id='v40panels';
+
+    /* quick-touch bar */
+    if(ce){
+      var qt=document.createElement('div'); qt.className='card'; qt.style.marginTop='14px';
+      qt.innerHTML='<h3>'+(ar?'تسجيل تواصل سريع':'Quick touch')+'</h3><div class="ch-sub">'+(ar?'سجّل بضغطة: ماذا حدث وما الخطوة التالية.':'One tap: what happened + the next step.')+'</div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+
+        [['📞',(ar?'مكالمة':'Call')],['💬','WhatsApp'],['✉️',(ar?'بريد':'Email')],['🤝',(ar?'اجتماع':'Meeting')],['📝',(ar?'ملاحظة':'Note')]].map(function(t){
+          return '<button class="btn sm" onclick="v40Touch(\''+b.id+'\',\''+t[1]+'\')">'+t[0]+' '+t[1]+'</button>';
+        }).join('')+
+        '<button class="btn sm" style="border-color:#F79009;color:#B54708" onclick="v40Hold(\''+b.id+'\')">'+(b.onHold?(ar?'▶ استئناف':'▶ Resume'):(ar?'⏸ إيقاف مؤقت':'⏸ Put on hold'))+'</button>'+
+        '</div>'+
+        (b.onHold?'<div style="margin-top:9px;background:#FFF6E8;border:1px solid #F2C185;border-radius:8px;padding:8px 11px;font-size:12px;color:#7A4B12">⏸ '+(ar?'موقوفة مؤقتاً':'On hold')+(b.onHold.reason?': '+esc4(b.onHold.reason):'')+(b.onHold.until?' · '+(ar?'متابعة':'resume')+' '+esc4(b.onHold.until):'')+' · '+esc4(b.onHold.by||'')+'</div>':'');
+      wrap.appendChild(qt);
+    }
+
+    /* comments thread */
+    var cm=document.createElement('div'); cm.className='card'; cm.style.marginTop='14px';
+    var list=(b.comments||[]).slice().sort(function(x,y){return y.ts-x.ts;});
+    cm.innerHTML='<h3>'+(ar?'التعليقات':'Comments')+'</h3><div class="ch-sub">'+(ar?'نقاش الفريق حول هذه الفرصة — منفصل عن سجل العمل الرسمي.':'Team discussion on this lead — separate from the formal work log.')+'</div>'+
+      (list.length?list.map(function(c){
+        return '<div style="border-top:1px solid #eef0f5;padding:8px 0"><div style="font-size:11px;color:var(--muted)">'+esc4(c.by||'')+' · '+(typeof fmtDate==='function'?fmtDate(c.ts):new Date(c.ts).toLocaleString())+'</div><div style="font-size:13px;white-space:pre-wrap">'+esc4(c.text)+'</div></div>';
+      }).join(''):'<div class="empty">'+(ar?'لا توجد تعليقات بعد.':'No comments yet.')+'</div>')+
+      (ce?'<div style="display:flex;gap:6px;margin-top:10px"><input id="v40cmt" placeholder="'+(ar?'اكتب تعليقاً…':'Write a comment…')+'" style="flex:1;padding:8px 10px;border:1px solid var(--line-2,#e3dccf);border-radius:9px;font:inherit;font-size:13px"><button class="btn pri sm" onclick="v40AddComment(\''+b.id+'\')">'+(ar?'إضافة':'Add')+'</button></div>':'');
+    wrap.appendChild(cm);
+    left.appendChild(wrap);
+
+    var cmtInp=document.getElementById('v40cmt');
+    if(cmtInp)cmtInp.addEventListener('keydown',function(e){if(e.key==='Enter')v40AddComment(b.id);});
+  }catch(e){console.warn('v40 inject',e);}
+}
+try{ var _r=window.render; window.render=function(){var o=_r.apply(this,arguments); try{inject();}catch(_){} return o;}; }catch(_){}
+setInterval(inject,1500);
+
+/* ---------- 6. overdue holds join the attention logic ---------- */
+function holdStrip(){
+  try{
+    if(typeof current==='undefined'||current!=='leads'||window.__isShareView)return;
+    var v=document.getElementById('view'); if(!v)return;
+    var old=document.getElementById('v40holds'); if(old)old.remove();
+    var today=new Date().toISOString().slice(0,10);
+    var due=((DB&&DB.businesses)||[]).filter(function(b){return b.onHold&&b.onHold.until&&b.onHold.until<=today;});
+    if(!due.length)return;
+    var ar=isAr();
+    var d=document.createElement('div'); d.id='v40holds';
+    d.style.cssText='background:#FDECEC;border:1px solid #E8A0A0;border-radius:10px;padding:9px 14px;margin-bottom:12px;font-size:12.5px;color:#8A2020'+(ar?';direction:rtl':'');
+    d.innerHTML='⏰ '+(ar?('<b>'+due.length+'</b> فرصة موقوفة حان موعد متابعتها: '):('<b>'+due.length+'</b> on-hold lead'+(due.length>1?'s':'')+' due for follow-up: '))+due.slice(0,6).map(function(b){return esc4(b.name);}).join(' · ');
+    var strip=document.getElementById('v39strip');
+    if(strip)strip.parentNode.insertBefore(d,strip.nextSibling); else v.insertBefore(d,v.firstChild);
+  }catch(_){}
+}
+setInterval(holdStrip,2500);
+
+console.info('%c[v40 lead lifecycle] loaded','color:#F47A1F;font-weight:700');
+}catch(e){console.warn('v40 layer failed',e);}})();
+</script>
+
+<script>
+/* ===== v41 layer: per-user page access + contact/POC/link amendments + language polish ===== */
+(function(){try{
+var SUPA_URL='https://vkxoeeoauexyfpzqufqd.supabase.co';
+var SUPA_KEY='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
+var sb3=null;
+function client(){ if(!sb3&&window.supabase){try{sb3=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(_){}} return sb3; }
+function isAr(){try{return (typeof LANG!=='undefined'&&LANG==='ar')||document.documentElement.getAttribute('data-lang')==='ar';}catch(_){return false;}}
+function canEdit(){return !window.__isShareView && window.__userTier!=='viewer';}
+function E(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+var PAGES=[['today','Today','اليوم'],['leads','Leads','العملاء المحتملون'],['clients','Clients','العملاء'],['offers','Offer Builder','منشئ العروض'],['events','Events','الفعاليات'],['projects','Projects','المشاريع'],['reports','Reports','التقارير'],['airlines','Airlines','شركات الطيران'],['vendors','Providers & GDS','الموردون'],['sopsla','SOPs & SLAs','الإجراءات والمستويات'],['ops','Operations','العمليات'],['bookings','Bookings','الحجوزات'],['invoices','Invoices','الفواتير'],['tickets','Tickets','التذاكر'],['sync','Sync & Integrations','المزامنة'],['settings','Settings','الإعدادات']];
+
+/* ---------- 1. enforce my allowed pages ---------- */
+var myPages=null; /* null = everything */
+function applyGate(){
+  try{
+    if(window.__isShareView)return;
+    if(!myPages)return;
+    var allow={}; myPages.forEach(function(p){allow[p]=1;}); allow['today']=1;
+    /* hide nav buttons for pages I can't open */
+    document.querySelectorAll('#nav button').forEach(function(btn){
+      var label=(btn.textContent||'').trim().toLowerCase();
+      var pg=PAGES.find(function(p){return label.indexOf(p[1].toLowerCase())>=0||label.indexOf(p[2])>=0;});
+      if(pg&&!allow[pg[0]])btn.style.display='none';
+    });
+    /* bounce if I'm on a page I can't open */
+    if(typeof current!=='undefined'&&!allow[current]&&PAGES.some(function(p){return p[0]===current;})){
+      current='today'; try{render();}catch(_){}
+    }
+  }catch(_){}
+}
+function loadMyPages(){
+  var c=client(); if(!c)return;
+  c.auth.getSession().then(function(s){
+    if(!(s&&s.data&&s.data.session))return;
+    c.from('app_users').select('allowed_pages').eq('id',s.data.session.user.id).maybeSingle().then(function(r){
+      if(r.data&&Array.isArray(r.data.allowed_pages)&&r.data.allowed_pages.length){ myPages=r.data.allowed_pages; }
+      applyGate();
+    });
+  });
+}
+setTimeout(loadMyPages,4000);
+setInterval(applyGate,2000);
+
+/* ---------- 2. Access manager (admins): who sees which pages ---------- */
+window.v41Access=function(){
+  var c=client(); if(!c)return;
+  var ar=isAr();
+  c.from('app_users').select('id,full_name,email,role,active,allowed_pages').then(function(r){
+    if(r.error||!r.data){alert(ar?'هذه الشاشة للمسؤولين فقط.':'This screen is for admins only.');return;}
+    var users=r.data;
+    var ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;z-index:999998;background:rgba(20,22,32,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+    var rows=users.map(function(u,i){
+      var nm=E((u.full_name||'').trim()||u.email.split('@')[0]);
+      var all=!Array.isArray(u.allowed_pages)||!u.allowed_pages.length;
+      var chips=PAGES.map(function(p){
+        var on=all||u.allowed_pages.indexOf(p[0])>=0;
+        return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;background:'+(on?'#FFF3EC':'#f2f2f2')+';border:1px solid '+(on?'#F2C185':'#e3e3e3')+';border-radius:8px;padding:3px 8px;margin:2px;cursor:pointer"><input type="checkbox" data-u="'+i+'" data-p="'+p[0]+'" '+(on?'checked':'')+'> '+(ar?p[2]:p[1])+'</label>';
+      }).join('');
+      return '<div style="border-top:1px solid #EEE8DE;padding:12px 0"><div style="font-weight:800;font-size:13.5px">'+nm+' <span style="font-weight:400;color:#7C8194;font-size:11.5px">'+E(u.email)+' · '+E(u.role||'')+(u.active===false?' · OFF':'')+'</span></div><div style="margin-top:6px">'+chips+'</div><div style="margin-top:6px"><button class="btn sm" data-save="'+i+'">'+(ar?'حفظ صلاحيات هذا المستخدم':'Save this user\'s access')+'</button> <button class="btn ghost sm" data-all="'+i+'">'+(ar?'كل الصفحات':'Everything')+'</button></div></div>';
+    }).join('');
+    ov.innerHTML='<div style="background:#FBF8F4;border-radius:16px;max-width:760px;width:100%;max-height:88vh;overflow:auto;padding:24px" '+(ar?'dir="rtl"':'')+'>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:17px;font-weight:800">'+(ar?'مستويات الوصول — من يرى ماذا':'Access levels — who sees what')+'</div><button class="btn ghost sm" id="v41x">✕</button></div>'+
+      '<div class="ch-sub" style="margin:6px 0 4px">'+(ar?'حدد الصفحات المسموحة لكل زميل. "كل الصفحات" = صلاحية كاملة (المسؤولون).':'Tick the pages each colleague may open. "Everything" = full access (admins).')+'</div>'+rows+'</div>';
+    ov.onclick=function(e){if(e.target===ov)ov.remove();};
+    document.body.appendChild(ov);
+    document.getElementById('v41x').onclick=function(){ov.remove();};
+    ov.querySelectorAll('[data-save]').forEach(function(btn){
+      btn.onclick=function(){
+        var i=+btn.getAttribute('data-save'), u=users[i];
+        var picked=[].slice.call(ov.querySelectorAll('input[data-u="'+i+'"]:checked')).map(function(x){return x.getAttribute('data-p');});
+        var payload=(picked.length>=PAGES.length)?null:picked; /* everything = null */
+        c.from('app_users').update({allowed_pages:payload}).eq('id',u.id).then(function(r2){
+          if(r2.error){alert((ar?'تعذر الحفظ: ':'Could not save: ')+r2.error.message);return;}
+          btn.textContent=ar?'تم الحفظ ✓':'Saved ✓'; setTimeout(function(){btn.textContent=ar?'حفظ صلاحيات هذا المستخدم':'Save this user\'s access';},1500);
+        });
+      };
+    });
+    ov.querySelectorAll('[data-all]').forEach(function(btn){
+      btn.onclick=function(){var i=+btn.getAttribute('data-all');ov.querySelectorAll('input[data-u="'+i+'"]').forEach(function(x){x.checked=true;});};
+    });
+  });
+};
+/* Access button next to Team for admins */
+(function addAccessBtn(n){
+  try{
+    if(window.__isShareView)return;
+    var tools=document.querySelector('.tools');
+    if(!tools){ if((n||0)<40)setTimeout(function(){addAccessBtn((n||0)+1);},500); return; }
+    if(window.__userTier!=='admin'){ if((n||0)<40)setTimeout(function(){addAccessBtn((n||0)+1);},700); return; }
+    if(!document.getElementById('v41acc')){
+      var b=document.createElement('button'); b.id='v41acc'; b.className='btn sm ghost'; b.style.fontWeight='700';
+      b.textContent=isAr()?'الصلاحيات':'Access'; b.onclick=function(){v41Access();};
+      tools.appendChild(b);
+    }
+  }catch(_){}
+})(0);
+
+/* ---------- 3. amendments: add contact / POC / links on the lead card ---------- */
+window.v41AddContact=function(id){
+  var b=getLead(id); if(!b||!canEdit())return; var ar=isAr();
+  openModal((ar?'إضافة جهة اتصال — ':'Add contact — ')+E(b.name),
+    '<div class="grid2"><div class="field"><label>'+(ar?'الاسم':'Name')+'</label><input id="nc_n"></div>'+
+    '<div class="field"><label>'+(ar?'الصفة / الدور':'Role / title')+'</label><input id="nc_r" placeholder="'+(ar?'مثال: مدير المشتريات':'e.g. Procurement manager')+'"></div></div>'+
+    '<div class="grid2"><div class="field"><label>'+(ar?'البريد':'Email')+'</label><input id="nc_e"></div>'+
+    '<div class="field"><label>'+(ar?'الجوال':'Phone')+'</label><input id="nc_p"></div></div>',
+    function(){
+      var em=val('nc_e').trim().toLowerCase();
+      b.contacts=b.contacts||[];
+      if(em&&b.contacts.some(function(c){return String(c.email||'').toLowerCase()===em;})){alert(ar?'هذا البريد موجود بالفعل على هذه البطاقة.':'This email is already on this card.');return;}
+      var nm=val('nc_n')+(val('nc_r')?' — '+val('nc_r'):'');
+      b.contacts.push({name:nm,email:val('nc_e'),phone:val('nc_p')});
+      save();render();
+    });
+};
+window.v41AddLink=function(id){
+  var b=getLead(id); if(!b||!canEdit())return; var ar=isAr();
+  openModal((ar?'إضافة رابط — ':'Add link — ')+E(b.name),
+    '<div class="grid2"><div class="field"><label>'+(ar?'الوصف':'Label')+'</label><input id="nl_l" placeholder="'+(ar?'لينكدإن / السجل التجاري / عرضنا…':'LinkedIn / CR / our proposal…')+'"></div>'+
+    '<div class="field"><label>'+(ar?'الرابط':'URL')+'</label><input id="nl_u" placeholder="https://…"></div></div>',
+    function(){
+      var u=val('nl_u').trim(); if(!u)return;
+      if(!/^https?:\/\//i.test(u))u='https://'+u;
+      b.links=b.links||[]; b.links.push({label:val('nl_l')||u.replace(/^https?:\/\//,'').split('/')[0],url:u});
+      save();render();
+    });
+};
+function injectAmend(){
+  try{
+    if(typeof current==='undefined'||current!=='leads')return;
+    if(typeof openLead==='undefined'||!openLead)return;
+    if(document.getElementById('v41amend'))return;
+    var b=getLead(openLead); if(!b)return;
+    var cards=document.querySelectorAll('#view .card h3');
+    var target=null;
+    cards.forEach(function(h){ if(/Contacts|جهات/.test(h.textContent))target=h.parentNode; });
+    if(!target)return;
+    var ar=isAr();
+    var d=document.createElement('div'); d.id='v41amend'; d.style.cssText='margin-top:10px;display:flex;gap:6px;flex-wrap:wrap';
+    if(canEdit())d.innerHTML='<button class="btn sm" onclick="v41AddContact(\''+b.id+'\')">＋ '+(ar?'جهة اتصال':'Contact / POC')+'</button>'+
+      '<button class="btn sm" onclick="v41AddLink(\''+b.id+'\')">🔗 '+(ar?'رابط':'Link')+'</button>';
+    var links=(b.links||[]);
+    if(links.length){
+      var lw=document.createElement('div'); lw.style.cssText='margin-top:8px;display:flex;gap:5px;flex-wrap:wrap;width:100%';
+      lw.innerHTML=links.map(function(l){return '<a class="tag" style="background:#2E90FA14;color:#2E90FA;text-decoration:none" target="_blank" rel="noopener" href="'+E(l.url)+'">🔗 '+E(l.label)+'</a>';}).join('');
+      d.appendChild(lw);
+    }
+    target.appendChild(d);
+  }catch(_){}
+}
+setInterval(injectAmend,1200);
+
+/* ---------- 4. language polish: translate the Events editor when Arabic is on ---------- */
+var EVAR={'Name (English) *':'الاسم (إنجليزي) *','Name (Arabic)':'الاسم (عربي)','Vertical':'المجال','Status':'الحالة','Start date':'تاريخ البداية','End date':'تاريخ النهاية','City':'المدينة','Venue':'المكان','Organiser':'المنظم','Website link':'رابط الموقع','Priority (1 = top)':'الأولوية (1 = الأعلى)','Opportunity':'نوع الفرصة','Notes':'ملاحظات','Cancel':'إلغاء','Save changes':'حفظ التغييرات','Add event':'إضافة فعالية','Edit event':'تعديل فعالية'};
+setInterval(function(){
+  try{
+    if(!isAr())return;
+    document.querySelectorAll('div[style*="z-index: 999999"] label, div[style*="z-index:999999"] label').forEach(function(l){
+      var t=l.firstChild&&l.firstChild.nodeType===3?l.firstChild.textContent.trim():l.textContent.trim();
+      if(EVAR[t]){ if(l.firstChild&&l.firstChild.nodeType===3)l.firstChild.textContent=EVAR[t]; else l.textContent=EVAR[t]; }
+    });
+    document.querySelectorAll('div[style*="z-index: 999999"] button, div[style*="z-index:999999"] button').forEach(function(bt){
+      var t=bt.textContent.trim(); if(EVAR[t])bt.textContent=EVAR[t];
+    });
+  }catch(_){}
+},800);
+
+console.info('%c[v41 access + amendments] loaded','color:#F47A1F;font-weight:700');
+}catch(e){console.warn('v41 layer failed',e);}})();
+</script>
+
+<script>
+/* ===== v42 layer: FINANCE — master invoice ledger + report builder + import (additive, safe) ===== */
+(function(){try{
+var SUPA_URL='https://vkxoeeoauexyfpzqufqd.supabase.co';
+var SUPA_KEY='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
+var sbF=null;
+function fc(){ if(!sbF&&window.supabase){try{sbF=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(_){}} return sbF; }
+function escF(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function isArF(){try{return typeof isAr==='function'?isAr():false;}catch(_){return false;}}
+function money(n){n=Number(n)||0;return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function moneyS(n){n=Number(n)||0;if(Math.abs(n)>=1e6)return (n/1e6).toFixed(2)+'M';if(Math.abs(n)>=1e3)return (n/1e3).toFixed(1)+'K';return n.toFixed(0);}
+function canFinEdit(){return !window.__isShareView && (window.__userTier==='admin'||window.__userTier==='manager');}
+function canFinView(){return !window.__isShareView;}
+
+var FIN={tab:'overview',rows:null,loading:false,showDeleted:false,
+  f:{q:'',quarter:'all',month:'all',service:'all',client:'all',status:'verified_paid'},
+  rb:{g1:'client_group',g2:'',metrics:{revenue_sar:true,cost_sar:true,profit_sar:true},verifiedOnly:true,quarter:'all'}};
+
+try{
+  if(typeof TITLES==='object')TITLES.finance=['Finance','Master invoice ledger \u00b7 report builder \u00b7 audited H1 2026 data'];
+  if(typeof I18N==='object'){I18N.en&&(I18N.en.finance='Finance');I18N.ar&&(I18N.ar.finance='\u0627\u0644\u0645\u0627\u0644\u064a\u0629');}
+  if(typeof V21_STRINGS_AR==='object'){V21_STRINGS_AR['Finance']='\u0627\u0644\u0645\u0627\u0644\u064a\u0629';V21_STRINGS_AR['Report Builder']='\u0645\u0646\u0634\u0626 \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631';V21_STRINGS_AR['Ledger']='\u0627\u0644\u0633\u062c\u0644';V21_STRINGS_AR['Overview']='\u0646\u0638\u0631\u0629 \u0639\u0627\u0645\u0629';V21_STRINGS_AR['Import']='\u0627\u0633\u062a\u064a\u0631\u0627\u062f';}
+  if(typeof VIEWS!=='undefined'&&VIEWS.push&&!VIEWS.some(function(v){return v.id==='finance';})){
+    var ic='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
+    var ix=VIEWS.findIndex(function(v){return v.id==='events';});
+    VIEWS.splice(ix>=0?ix+1:VIEWS.length,0,{id:'finance',label:'Finance',ic:ic,primary:true});
+  }
+}catch(e){console.warn('v42 nav',e);}
+
+function finLoad(cb){
+  if(FIN.loading)return; FIN.loading=true;
+  var c=fc(); if(!c){FIN.loading=false;return;}
+  c.from('finance_invoices').select('*').order('invoice_date',{ascending:false}).limit(10000).then(function(r){
+    FIN.loading=false;
+    if(r.error){console.warn('finance load',r.error);FIN.rows=[];FIN.loadErr=r.error.message;}
+    else {FIN.rows=r.data||[];FIN.loadErr=null;}
+    if(cb)cb();
+    try{if(current==='finance')render();}catch(_){}
+  });
+}
+function live(){ return (FIN.rows||[]).filter(function(r){return !r.deleted_at;}); }
+function verified(){return live().filter(function(r){return r.integrity_status==='verified_paid';});}
+
+function badge(t,bg,fg){return '<span style="display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700;background:'+bg+';color:'+fg+'">'+escF(t)+'</span>';}
+function uniq(arr){return Array.from(new Set(arr)).filter(Boolean).sort();}
+function opts(list,sel,allLabel){var h='<option value="all">'+escF(allLabel)+'</option>';list.forEach(function(x){h+='<option value="'+escF(x)+'" '+(sel===x?'selected':'')+'>'+escF(x)+'</option>';});return h;}
+var SS='padding:7px 9px;border:1px solid var(--line,#e6e8ec);border-radius:8px;font:inherit;background:#fff';
+
+function finTabs(){
+  var tabs=[['overview',isArF()?'\u0646\u0638\u0631\u0629 \u0639\u0627\u0645\u0629':'Overview'],['ledger',isArF()?'\u0627\u0644\u0633\u062c\u0644':'Ledger'],['reports',isArF()?'\u0645\u0646\u0634\u0626 \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631':'Report Builder']];
+  if(canFinEdit())tabs.push(['import',isArF()?'\u0627\u0633\u062a\u064a\u0631\u0627\u062f':'Import']);
+  return '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'+tabs.map(function(t){
+    return '<button class="btn sm '+(FIN.tab===t[0]?'pri':'ghost')+'" onclick="finGo(\''+t[0]+'\')">'+t[1]+'</button>';
+  }).join('')+'<span style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">'+(FIN.rows?FIN.rows.length+' invoices \u00b7 data through '+(live().length?live().map(function(r){return r.invoice_date;}).sort().slice(-1)[0]:'\u2014'):'')+'</span></div>';
+}
+window.finGo=function(t){FIN.tab=t;render();};
+
+function rOverview(){
+  var V=verified().filter(function(r){return FIN.f.quarter==='all'||r.quarter===FIN.f.quarter;});
+  var rev=0,cost=0,prof=0,rec=0,rem=0,wal=0;
+  V.forEach(function(r){rev+=+r.revenue_sar;cost+=+r.cost_sar;prof+=+r.profit_sar;rec+=+r.amount_received_sar;rem+=+r.amount_remaining_sar;wal+=+r.wallet_portion_sar;});
+  var h='<div class="card" style="padding:12px 16px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="font-size:13px">'+(isArF()?'\u0627\u0644\u0641\u062a\u0631\u0629':'Period')+':</b><select style="'+SS+'" onchange="finQ(this.value)">'+opts(uniq(live().map(function(r){return r.quarter;})),FIN.f.quarter,isArF()?'\u0627\u0644\u0643\u0644 (H1 2026)':'All (H1 2026)')+'</select><span style="font-size:11px;color:var(--muted)">'+(isArF()?'\u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u062a\u0634\u0645\u0644 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629 \u0641\u0642\u0637':'Totals count verified-paid invoices only \u00b7 wallet top-ups excluded from revenue by definition')+'</span></div>';
+  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3'],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a':'Outstanding',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0645\u062d\u0641\u0638\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f)':'Wallet (excluded)',wal,'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',V.length,'#1C1E2B']];
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
+    return '<div class="card" style="padding:14px 16px"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===6?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===6?'':money(c[1])+' SAR')+'">'+(i===6?c[1]:moneyS(c[1]))+(i===6?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+'</div></div>';
+  }).join('')+'</div>';
+  var MO=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var by={};V.forEach(function(r){var k=r.month||'?';by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;by[k].p+=+r.profit_sar;});
+  var mos=MO.filter(function(m){return by[m];});var mx=Math.max.apply(null,mos.map(function(m){return by[m].r;}).concat([1]));
+  h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 12px">'+(isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a \u0648\u0627\u0644\u0631\u0628\u062d \u0634\u0647\u0631\u064a\u064b\u0627':'Monthly revenue & profit')+'</h3><div style="display:flex;gap:14px;align-items:flex-end;height:150px">'+mos.map(function(m){
+    var hR=Math.round(by[m].r/mx*120),hP=Math.round(by[m].p/mx*120);
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="display:flex;gap:3px;align-items:flex-end;height:124px"><div title="Revenue '+money(by[m].r)+'" style="width:22px;height:'+Math.max(hR,2)+'px;background:#0F6E56;border-radius:4px 4px 0 0"></div><div title="Profit '+money(by[m].p)+'" style="width:22px;height:'+Math.max(hP,2)+'px;background:#175CD3;border-radius:4px 4px 0 0"></div></div><div style="font-size:10px;color:var(--muted)">'+m.slice(0,3)+'</div><div style="font-size:9.5px;font-weight:700">'+moneyS(by[m].r)+'</div></div>';
+  }).join('')+'</div><div style="font-size:10px;color:var(--muted);margin-top:8px"><span style="color:#0F6E56">\u25a0</span> '+(isArF()?'\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue')+' &nbsp;<span style="color:#175CD3">\u25a0</span> '+(isArF()?'\u0631\u0628\u062d':'Profit')+'</div></div>';
+  var byC={};V.forEach(function(r){var k=r.client_group;byC[k]=byC[k]||{r:0,p:0,n:0};byC[k].r+=+r.revenue_sar;byC[k].p+=+r.profit_sar;byC[k].n++;});
+  var top=Object.keys(byC).sort(function(a,b){return byC[b].r-byC[a].r;}).slice(0,10);
+  h+='<div class="card" style="padding:16px"><h3 style="margin:0 0 10px">'+(isArF()?'\u0623\u0639\u0644\u0649 10 \u0639\u0645\u0644\u0627\u0621':'Top 10 clients by revenue')+'</h3><table style="width:100%;font-size:12.5px;border-collapse:collapse"><tr style="color:var(--muted);text-align:left"><th style="padding:4px">'+(isArF()?'\u0627\u0644\u0639\u0645\u064a\u0644':'Client')+'</th><th style="padding:4px;text-align:right">'+(isArF()?'\u0641\u0648\u0627\u062a\u064a\u0631':'Inv')+'</th><th style="padding:4px;text-align:right">'+(isArF()?'\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue')+'</th><th style="padding:4px;text-align:right">'+(isArF()?'\u0631\u0628\u062d':'Profit')+'</th></tr>'+top.map(function(k){
+    return '<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finClient(\''+escF(k).replace(/'/g,"\\'")+'\')"><td style="padding:6px 4px;font-weight:600">'+escF(k)+'</td><td style="padding:6px 4px;text-align:right">'+byC[k].n+'</td><td style="padding:6px 4px;text-align:right;font-weight:700">'+money(byC[k].r)+'</td><td style="padding:6px 4px;text-align:right;color:#175CD3">'+money(byC[k].p)+'</td></tr>';
+  }).join('')+'</table></div>';
+  return h;
+}
+window.finQ=function(v){FIN.f.quarter=v;render();};
+window.finClient=function(c){FIN.tab='ledger';FIN.f.client=c;render();};
+
+function rLedger(){
+  var L=(FIN.showDeleted?(FIN.rows||[]).filter(function(r){return r.deleted_at;}):live()).filter(function(r){
+    var f=FIN.f;
+    if(f.quarter!=='all'&&r.quarter!==f.quarter)return false;
+    if(f.month!=='all'&&r.month!==f.month)return false;
+    if(f.service!=='all'&&r.service_type!==f.service)return false;
+    if(f.client!=='all'&&r.client_group!==f.client)return false;
+    if(f.status!=='all'&&r.integrity_status!==f.status)return false;
+    if(f.q){var q=f.q.toLowerCase();if(((r.client_group||'')+' '+(r.customer_raw_name||'')+' '+(r.invoice_no||'')+' '+(r.zatca_dpin||'')+' '+(r.products||'')).toLowerCase().indexOf(q)<0)return false;}
+    return true;
+  });
+  var tr=0,tp=0;L.forEach(function(r){tr+=+r.revenue_sar;tp+=+r.profit_sar;});
+  var h='<div class="card" style="padding:12px 16px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px">';
+  h+='<input placeholder="'+(isArF()?'\u0628\u062d\u062b\u2026':'Search client / invoice # / DPIN\u2026')+'" value="'+escF(FIN.f.q)+'" style="'+SS+';min-width:200px" oninput="finF(\'q\',this.value)">';
+  h+='<select style="'+SS+'" onchange="finF(\'quarter\',this.value)">'+opts(uniq(live().map(function(r){return r.quarter;})),FIN.f.quarter,'All quarters')+'</select>';
+  h+='<select style="'+SS+'" onchange="finF(\'month\',this.value)">'+opts(['January','February','March','April','May','June','July','August','September','October','November','December'].filter(function(m){return live().some(function(r){return r.month===m;});}),FIN.f.month,'All months')+'</select>';
+  h+='<select style="'+SS+'" onchange="finF(\'service\',this.value)">'+opts(uniq(live().map(function(r){return r.service_type;})),FIN.f.service,'All services')+'</select>';
+  h+='<select style="'+SS+';max-width:220px" onchange="finF(\'client\',this.value)">'+opts(uniq(live().map(function(r){return r.client_group;})),FIN.f.client,'All clients')+'</select>';
+  h+='<select style="'+SS+'" onchange="finF(\'status\',this.value)"><option value="verified_paid" '+(FIN.f.status==='verified_paid'?'selected':'')+'>Verified paid</option><option value="all" '+(FIN.f.status==='all'?'selected':'')+'>All statuses</option><option value="excluded" '+(FIN.f.status==='excluded'?'selected':'')+'>Excluded</option><option value="credit_note" '+(FIN.f.status==='credit_note'?'selected':'')+'>Credit notes</option></select>';
+  if(canFinEdit())h+='<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" '+(FIN.showDeleted?'checked':'')+' onchange="FIN.showDeleted=this.checked;render()">'+(isArF()?'\u0627\u0644\u0645\u062d\u0630\u0648\u0641 \u0645\u0624\u062e\u0631\u064b\u0627':'Recently deleted')+'</label>';
+  h+='<span style="margin-left:auto;font-size:12px"><b>'+L.length+'</b> rows \u00b7 rev <b>'+money(tr)+'</b> \u00b7 profit <b>'+money(tp)+'</b></span></div>';
+  h+='<div class="card" style="padding:0;overflow:auto;max-height:65vh"><table style="width:100%;font-size:12px;border-collapse:collapse;min-width:980px"><thead><tr style="position:sticky;top:0;background:#F8F7F4;color:var(--muted);text-align:left;z-index:2"><th style="padding:8px">Date</th><th style="padding:8px">Invoice #</th><th style="padding:8px">Tax inv (DPIN)</th><th style="padding:8px">Client</th><th style="padding:8px">Service</th><th style="padding:8px;text-align:right">Total</th><th style="padding:8px;text-align:right">Revenue</th><th style="padding:8px;text-align:right">Cost</th><th style="padding:8px;text-align:right">Profit</th><th style="padding:8px">Flags</th></tr></thead><tbody>';
+  var LCAP=500; var Lshow=L.slice(0,LCAP);
+  Lshow.forEach(function(r,i){
+    var flags='';
+    if(!r.zatca_dpin)flags+=badge('no tax inv','#fff3d6','#8b5b1f')+' ';
+    if(+r.cost_sar===0&&+r.revenue_sar>0)flags+=badge('no cost recorded','#e0e6f7','#3a4f9e')+' ';
+    if(+r.wallet_portion_sar>0)flags+=badge('wallet','#e9e9e9','#555')+' ';
+    if(r.deleted_at)flags+=badge('deleted','#fddede','#a3242c');
+    h+='<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finRow(\''+r.id+'\')"><td style="padding:7px 8px;white-space:nowrap">'+escF(r.invoice_date)+'</td><td style="padding:7px 8px">'+escF(r.invoice_no)+'</td><td style="padding:7px 8px">'+escF(r.zatca_dpin||'\u2014')+'</td><td style="padding:7px 8px;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escF(r.customer_raw_name||'')+'">'+escF(r.client_group)+'</td><td style="padding:7px 8px">'+escF(r.service_type||'')+'</td><td style="padding:7px 8px;text-align:right">'+money(r.total_incl_vat_sar)+'</td><td style="padding:7px 8px;text-align:right;font-weight:700">'+money(r.revenue_sar)+'</td><td style="padding:7px 8px;text-align:right">'+money(r.cost_sar)+'</td><td style="padding:7px 8px;text-align:right;color:#175CD3">'+money(r.profit_sar)+'</td><td style="padding:7px 8px">'+flags+'</td></tr>';
+  });
+  if(!L.length)h+='<tr><td colspan="10" style="padding:30px;text-align:center;color:var(--muted)">No invoices match.</td></tr>';
+  if(L.length>LCAP)h+='<tr><td colspan="10" style="padding:12px;text-align:center;color:var(--muted);font-size:12px">Showing first '+LCAP+' of '+L.length+' rows — narrow the filters or use the Report Builder for totals.</td></tr>';
+  h+='</tbody></table></div>';
+  return h;
+}
+window.finF=function(k,v){FIN.f[k]=v;render();};
+window.finRow=function(id){
+  var r=(FIN.rows||[]).find(function(x){return x.id===id;});if(!r)return;
+  var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(20,20,30,.45);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px';
+  var rows=[['Invoice #',r.invoice_no],['ZATCA tax invoice',r.zatca_dpin||'\u2014 (see notes)'],['Client (group)',r.client_group],['Name on invoice',r.customer_raw_name],['Date',r.invoice_date+' \u00b7 '+r.month+' \u00b7 '+r.quarter],['Products',r.products],['Service type',r.service_type],['Total incl. VAT',money(r.total_incl_vat_sar)+' SAR'],['Wallet portion',money(r.wallet_portion_sar)+' SAR'],['Revenue',money(r.revenue_sar)+' SAR'],['Cost',money(r.cost_sar)+' SAR'],['Profit',money(r.profit_sar)+' SAR'],['Received',money(r.amount_received_sar)+' SAR'],['Outstanding',money(r.amount_remaining_sar)+' SAR'],['Integrity status',r.integrity_status],['Source batch',r.source_batch||'\u2014'],['Notes',r.notes||'\u2014']];
+  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:620px;width:100%;max-height:85vh;overflow:auto;padding:22px"><div style="display:flex;align-items:center;margin-bottom:12px"><h3 style="margin:0">Invoice '+escF(r.invoice_no)+'</h3><div style="margin-left:auto;display:flex;gap:6px">'+(canFinEdit()&&!r.deleted_at?'<button class="btn ghost sm" style="color:#D92D20" onclick="finDel(\''+r.id+'\')">Delete (soft)</button>':'')+(canFinEdit()&&r.deleted_at?'<button class="btn ghost sm" onclick="finRestore(\''+r.id+'\')">Restore</button>':'')+'<button class="btn sm" onclick="finCloseModal()">Close</button></div></div>'+rows.map(function(x){return '<div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid #f0efe9;font-size:13px"><div style="min-width:150px;color:var(--muted)">'+escF(x[0])+'</div><div style="font-weight:600;word-break:break-word">'+escF(x[1]==null?'\u2014':x[1])+'</div></div>';}).join('')+'</div>';
+  ov.id='finModal';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  document.body.appendChild(ov);
+};
+window.finCloseModal=function(){var m=document.getElementById('finModal');if(m)m.remove();};
+window.finDel=function(id){
+  if(!canFinEdit())return;
+  if(!confirm('Soft-delete this invoice? It disappears from all totals but stays recoverable under "Recently deleted".'))return;
+  fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('id',id).then(function(r){
+    if(r.error){alert('Could not delete: '+r.error.message);return;}
+    finCloseModal(); FIN.rows=null;finLoad();
+  });
+};
+window.finRestore=function(id){
+  fc().from('finance_invoices').update({deleted_at:null}).eq('id',id).then(function(r){
+    if(r.error){alert('Could not restore: '+r.error.message);return;}
+    finCloseModal(); FIN.rows=null;finLoad();
+  });
+};
+
+var DIMS={client_group:'Client',month:'Month',quarter:'Quarter',service_type:'Service type',record_type:'Record type'};
+var METS={revenue_sar:'Revenue',cost_sar:'Cost',profit_sar:'Profit',amount_received_sar:'Received',amount_remaining_sar:'Outstanding',_count:'Invoice count'};
+var MOI={January:1,February:2,March:3,April:4,May:5,June:6,July:7,August:8,September:9,October:10,November:11,December:12};
+function rReports(){
+  var rb=FIN.rb;
+  var base=(rb.verifiedOnly?verified():live()).filter(function(r){return rb.quarter==='all'||r.quarter===rb.quarter;});
+  var h='<div class="card" style="padding:14px 16px;margin-bottom:12px;font-size:13px">';
+  h+='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center"><b>'+(isArF()?'\u062a\u062c\u0645\u064a\u0639 \u062d\u0633\u0628':'Group by')+':</b>';
+  h+='<select style="'+SS+'" onchange="finRB(\'g1\',this.value)">'+Object.keys(DIMS).map(function(k){return '<option value="'+k+'" '+(rb.g1===k?'selected':'')+'>'+DIMS[k]+'</option>';}).join('')+'</select>';
+  h+='<span style="color:var(--muted)">'+(isArF()?'\u062b\u0645':'then')+'</span><select style="'+SS+'" onchange="finRB(\'g2\',this.value)"><option value="">\u2014 none \u2014</option>'+Object.keys(DIMS).map(function(k){return k===rb.g1?'':'<option value="'+k+'" '+(rb.g2===k?'selected':'')+'>'+DIMS[k]+'</option>';}).join('')+'</select>';
+  h+='<select style="'+SS+'" onchange="finRB(\'quarter\',this.value)">'+opts(uniq(live().map(function(r){return r.quarter;})),rb.quarter,'All periods')+'</select>';
+  h+='<label style="display:flex;gap:4px;align-items:center;cursor:pointer;font-size:12px"><input type="checkbox" '+(rb.verifiedOnly?'checked':'')+' onchange="finRB(\'verifiedOnly\',this.checked)"> '+(isArF()?'\u0627\u0644\u0645\u062f\u0642\u0642 \u0641\u0642\u0637':'Verified-paid only')+'</label></div>';
+  h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;align-items:center"><b>'+(isArF()?'\u0627\u0644\u0642\u064a\u0645':'Metrics')+':</b>'+Object.keys(METS).map(function(k){
+    return '<label style="display:flex;gap:4px;align-items:center;cursor:pointer;font-size:12px"><input type="checkbox" '+(rb.metrics[k]?'checked':'')+' onchange="finRBM(\''+k+'\',this.checked)"> '+METS[k]+'</label>';
+  }).join('')+'<button class="btn pri sm" style="margin-left:auto" onclick="finCSV()">\u2b07 Export CSV</button></div></div>';
+  var mets=Object.keys(rb.metrics).filter(function(k){return rb.metrics[k];});
+  if(!mets.length)mets=['revenue_sar'];
+  var g={};
+  base.forEach(function(r){
+    var k1=r[rb.g1]||'\u2014',k2=rb.g2?(r[rb.g2]||'\u2014'):null;
+    g[k1]=g[k1]||{__sub:{},__tot:{}};
+    if(k2){var s=g[k1].__sub[k2]=g[k1].__sub[k2]||{};mets.forEach(function(m){s[m]=(s[m]||0)+(m==='_count'?1:+r[m]);});}
+    mets.forEach(function(m){g[k1].__tot[m]=(g[k1].__tot[m]||0)+(m==='_count'?1:+r[m]);});
+  });
+  var keys=Object.keys(g);
+  if(rb.g1==='month')keys.sort(function(a,b){return (MOI[a]||99)-(MOI[b]||99);});
+  else if(rb.g1==='quarter')keys.sort();
+  else keys.sort(function(a,b){return (g[b].__tot[mets[0]]||0)-(g[a].__tot[mets[0]]||0);});
+  var grand={};
+  keys.forEach(function(k){mets.forEach(function(m){grand[m]=(grand[m]||0)+(g[k].__tot[m]||0);});});
+  FIN._lastReport={g1:rb.g1,g2:rb.g2,mets:mets,keys:keys,g:g,grand:grand};
+  var h2='<div class="card" style="padding:0;overflow:auto;max-height:60vh"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:600px"><thead><tr style="position:sticky;top:0;background:#F8F7F4;z-index:2;text-align:left;color:var(--muted)"><th style="padding:8px">'+DIMS[rb.g1]+(rb.g2?' \u203a '+DIMS[rb.g2]:'')+'</th>'+mets.map(function(m){return '<th style="padding:8px;text-align:right">'+METS[m]+'</th>';}).join('')+'</tr></thead><tbody>';
+  keys.forEach(function(k){
+    h2+='<tr style="border-top:1px solid var(--line,#eee);background:'+(rb.g2?'#FBFAF7':'#fff')+'"><td style="padding:7px 8px;font-weight:700">'+escF(k)+'</td>'+mets.map(function(m){return '<td style="padding:7px 8px;text-align:right;font-weight:700">'+(m==='_count'?g[k].__tot[m]:money(g[k].__tot[m]))+'</td>';}).join('')+'</tr>';
+    if(rb.g2){
+      var subs=Object.keys(g[k].__sub);
+      if(rb.g2==='month')subs.sort(function(a,b){return (MOI[a]||99)-(MOI[b]||99);});else subs.sort();
+      subs.forEach(function(s){
+        h2+='<tr style="border-top:1px solid #f4f2ec"><td style="padding:5px 8px 5px 26px;color:var(--muted)">'+escF(s)+'</td>'+mets.map(function(m){return '<td style="padding:5px 8px;text-align:right">'+(m==='_count'?(g[k].__sub[s][m]||0):money(g[k].__sub[s][m]||0))+'</td>';}).join('')+'</tr>';
+      });
+    }
+  });
+  h2+='<tr style="border-top:2px solid #1C1E2B;background:#F3F1EA"><td style="padding:9px 8px;font-weight:800">TOTAL</td>'+mets.map(function(m){return '<td style="padding:9px 8px;text-align:right;font-weight:800">'+(m==='_count'?grand[m]:money(grand[m]))+'</td>';}).join('')+'</tr></tbody></table></div>';
+  return h+h2;
+}
+window.finRB=function(k,v){FIN.rb[k]=v;if(k==='g1'&&FIN.rb.g2===v)FIN.rb.g2='';render();};
+window.finRBM=function(k,v){FIN.rb.metrics[k]=v;render();};
+window.finCSV=function(){
+  var R=FIN._lastReport;if(!R)return;
+  var out=[[DIMS[R.g1]+(R.g2?' / '+DIMS[R.g2]:'')].concat(R.mets.map(function(m){return METS[m];}))];
+  R.keys.forEach(function(k){
+    out.push([k].concat(R.mets.map(function(m){return R.g[k].__tot[m]||0;})));
+    if(R.g2)Object.keys(R.g[k].__sub).forEach(function(s){out.push(['  '+k+' \u203a '+s].concat(R.mets.map(function(m){return R.g[k].__sub[s][m]||0;})));});
+  });
+  out.push(['TOTAL'].concat(R.mets.map(function(m){return R.grand[m]||0;})));
+  var csv='\ufeff'+out.map(function(r){return r.map(function(c){c=String(c);return (c.indexOf(',')>=0||c.indexOf('"')>=0)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',');}).join('\r\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='Direct-Finance-Report-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+};
+
+function rImport(){
+  if(!canFinEdit())return '<div class="card" style="padding:30px;text-align:center;color:var(--muted)">Import is restricted to admins and managers.</div>';
+  var h='<div class="card" style="padding:18px;max-width:860px">';
+  h+='<h3 style="margin:0 0 8px">Import invoices (CSV)</h3>';
+  h+='<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:12px">Expected columns (exact header):<br><code style="font-size:11px;background:#F3F1EA;padding:3px 6px;border-radius:6px;display:inline-block;margin-top:4px">client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes</code><br>Checks before anything is written: duplicate invoice numbers are skipped (never overwritten) \u00b7 revenue/profit are recomputed and mismatches flagged \u00b7 dates checked against the stated quarter \u00b7 negative or credit rows become credit notes \u00b7 you confirm a preview first.</div>';
+  h+='<input type="file" id="finFile" accept=".csv" style="font-size:13px"> <button class="btn pri sm" onclick="finParse()">Check file</button>';
+  h+='<div id="finImpOut" style="margin-top:14px"></div></div>';
+  return h;
+}
+function csvParse(text){
+  text=text.replace(/^\ufeff/,'');
+  var rows=[],row=[],cur='',inQ=false;
+  for(var i=0;i<text.length;i++){
+    var ch=text[i];
+    if(inQ){ if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else inQ=false; } else cur+=ch; }
+    else if(ch==='"')inQ=true;
+    else if(ch===','){row.push(cur);cur='';}
+    else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&text[i+1]==='\n')i++; row.push(cur);cur=''; if(row.length>1||row[0]!=='')rows.push(row); row=[]; }
+    else cur+=ch;
+  }
+  if(cur!==''||row.length){row.push(cur);if(row.length>1||row[0]!=='')rows.push(row);}
+  return rows;
+}
+var QM={Q1:[1,3],Q2:[4,6],Q3:[7,9],Q4:[10,12]};
+window.finParse=function(){
+  var f=document.getElementById('finFile').files[0];
+  if(!f){alert('Choose a CSV file first.');return;}
+  var rd=new FileReader();
+  rd.onload=function(){
+    var rows=csvParse(String(rd.result));
+    var HDR='client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes'.split(',');
+    var hdr=rows[0]||[];
+    if(hdr.join(',').trim()!==HDR.join(',')){document.getElementById('finImpOut').innerHTML='<div style="color:#D92D20;font-size:13px">Header does not match the expected format. Found:<br><code style="font-size:11px">'+escF(hdr.join(','))+'</code></div>';return;}
+    var existing={};(FIN.rows||[]).forEach(function(r){existing[r.invoice_no]=1;});
+    var seen={},ok=[],dups=[],flagged=[];
+    rows.slice(1).forEach(function(c,idx){
+      if(c.length<9)return;
+      var o={};HDR.forEach(function(k,i){o[k]=(c[i]||'').trim();});
+      if(!o.invoice_no)return;
+      var line=idx+2, probs=[];
+      if(existing[o.invoice_no]||seen[o.invoice_no]){dups.push({line:line,no:o.invoice_no});return;}
+      seen[o.invoice_no]=1;
+      var numF=function(s){s=String(s==null?'':s).replace(/[,\s\u00a0]/g,'');var n=parseFloat(s);return isFinite(n)?n:0;};var tot=numF(o.total_incl_vat_sar),wal=numF(o.wallet_portion_sar),rev=numF(o.revenue_sar),cost=numF(o.cost_sar),prof=numF(o.profit_sar);
+      if(Math.abs((tot-wal)-rev)>0.01)probs.push('revenue != total-wallet ('+money(tot-wal)+' expected)');
+      if(Math.abs((rev-cost)-prof)>0.01)probs.push('profit != revenue-cost ('+money(rev-cost)+' expected)');
+      o.quarter=String(o.quarter||'').trim().toUpperCase();var d=new Date(o.invoice_date+'T00:00:00'),qr=QM[o.quarter];
+      if(isNaN(d.getTime()))probs.push('bad date');
+      else if(qr&&((d.getMonth()+1)<qr[0]||(d.getMonth()+1)>qr[1]))probs.push('date outside stated quarter');
+      var st=o.integrity_status||'verified_paid';
+      if(tot<0||/credit/i.test(o.products))st='credit_note';
+      if(probs.length){flagged.push({line:line,no:o.invoice_no,probs:probs});return;}
+      ok.push({invoice_no:o.invoice_no,zatca_dpin:o.zatca_dpin||null,client_group:o.client_group,customer_raw_name:o.customer_raw_name||null,invoice_date:o.invoice_date,month:o.month,quarter:o.quarter,products:o.products||null,service_type:svcType(o.products),record_type:'b2b',total_incl_vat_sar:tot,wallet_portion_sar:wal,revenue_sar:rev,cost_sar:cost,profit_sar:prof,amount_received_sar:st==='verified_paid'?tot:0,amount_remaining_sar:0,integrity_status:st,notes:o.notes||null,source_batch:'import '+new Date().toISOString().slice(0,10)});
+    });
+    var trev=0,tcost=0,tprof=0;ok.forEach(function(r){trev+=r.revenue_sar;tcost+=r.cost_sar;tprof+=r.profit_sar;});
+    FIN._pending=ok;
+    var h='<div style="font-size:13px;line-height:1.8"><b>Preview \u2014 nothing written yet:</b><br>\u2705 Ready to import: <b>'+ok.length+'</b> rows \u00b7 revenue '+money(trev)+' \u00b7 cost '+money(tcost)+' \u00b7 profit '+money(tprof)+'<br>';
+    if(dups.length)h+='\u23ed Skipped duplicates (already in the ledger): <b>'+dups.length+'</b> \u2014 '+dups.slice(0,8).map(function(d){return d.no;}).join(', ')+(dups.length>8?'\u2026':'')+'<br>';
+    if(flagged.length)h+='\u26a0 Flagged for review (NOT imported): <b>'+flagged.length+'</b><br>'+flagged.slice(0,10).map(function(fl){return '<span style="font-size:11.5px;color:#8b5b1f">line '+fl.line+' \u00b7 '+escF(fl.no)+' \u2014 '+escF(fl.probs.join('; '))+'</span>';}).join('<br>')+(flagged.length>10?'<br>\u2026':'')+'<br>';
+    h+=(ok.length?'<button class="btn pri sm" style="margin-top:8px" onclick="finCommit()">Confirm import of '+ok.length+' rows</button>':'')+'</div>';
+    document.getElementById('finImpOut').innerHTML=h;
+  };
+  rd.readAsText(f,'utf-8');
+};
+function svcType(p){
+  p=String(p||'');
+  if(p.indexOf('+')>=0)return 'Mixed';
+  var m=[['Direct Flights','Flights'],['Direct Hotels','Hotels'],['Direct Visa','Visas'],['Direct Course','Courses'],['Direct Wallet','Wallet top-up'],['Techtic','Support Services']];
+  for(var i=0;i<m.length;i++)if(p.toLowerCase().indexOf(m[i][0].toLowerCase())>=0)return m[i][1];
+  return 'Other';
+}
+window.finCommit=function(){
+  var P=FIN._pending||[];if(!P.length)return;
+  document.getElementById('finImpOut').innerHTML='<div style="font-size:13px">Importing '+P.length+' rows\u2026</div>';
+  var c=fc(),i=0,errs=[];
+  function next(){
+    if(i>=P.length){
+      document.getElementById('finImpOut').innerHTML='<div style="font-size:13px;color:#0F6E56"><b>Done.</b> Imported '+(P.length-errs.length*50<0?0:P.length)+' rows'+(errs.length?' with errors: <span style="color:#D92D20">'+escF(errs.slice(0,5).join('; '))+'</span>':'')+'.</div>';
+      FIN.rows=null;FIN._pending=null;finLoad();
+      return;
+    }
+    var batch=P.slice(i,i+50);i+=50;
+    c.from('finance_invoices').insert(batch).then(function(r){
+      if(r.error)errs.push(r.error.message);
+      next();
+    });
+  }
+  next();
+};
+
+window.renderFinance=function(v){
+  if(!canFinView()){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">Finance is not available in shared view-only links.</div>';return;}
+  if(!FIN.rows){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">Loading the finance ledger\u2026</div>';finLoad();return;}
+  if(FIN.loadErr){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:#D92D20">Could not load: '+escF(FIN.loadErr)+'<br><span style="font-size:12px;color:var(--muted)">Make sure you are signed in.</span></div>';return;}
+  var body=FIN.tab==='ledger'?rLedger():FIN.tab==='reports'?rReports():FIN.tab==='import'?rImport():rOverview();
+  v.innerHTML=finTabs()+body;
+};
+
+try{
+  var _rF=window.render;
+  window.render=function(){
+    var o=_rF.apply(this,arguments);
+    try{ if(current==='finance'){var v=document.getElementById('view');if(v)renderFinance(v);} }catch(e){console.warn('v42 finance render',e);}
+    return o;
+  };
+}catch(e){console.warn('v42 hook',e);}
+
+try{ if(!window.__isShareView&&/^\/finance\/?$/.test(location.pathname)){ setTimeout(function(){try{current='finance';render();}catch(_){}},600);} }catch(_){}
+
+console.info('%c[v42 finance ledger] loaded','color:#F47A1F;font-weight:700');
+}catch(e){console.warn('v42 layer failed',e);}})();
+</script>
+
+
+<script>
+/* ===== v43: per-session identity — offers/activities stamp the real signed-in person ===== */
+(function(){try{
+var SUPA_URL='https://vkxoeeoauexyfpzqufqd.supabase.co';
+var SUPA_KEY='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
+var sbN=null;
+function nc(){ if(!sbN&&window.supabase){try{sbN=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(_){}} return sbN; }
+function fetchMe(){
+  var c=nc(); if(!c)return;
+  c.auth.getSession().then(function(s){
+    var u=s&&s.data&&s.data.session&&s.data.session.user; if(!u)return;
+    c.from('app_users').select('full_name').eq('id',u.id).maybeSingle().then(function(r){
+      var nm=(r.data&&(r.data.full_name||'').trim())||(u.email||'').split('@')[0];
+      if(nm)window.__userName=nm;
+    });
+  });
+}
+/* me() now prefers THIS session's signed-in person; the shared-blob name is only a fallback */
+var _oldMe=window.me;
+window.me=function(){
+  if(window.__userName)return window.__userName;
+  try{var v=_oldMe?_oldMe():'';return v||'';}catch(_){return '';}
+};
+fetchMe(); setTimeout(fetchMe,2500); setTimeout(fetchMe,7000);
+try{document.addEventListener('visibilitychange',function(){if(!document.hidden)fetchMe();});}catch(_){}
+console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:700');
+}catch(e){console.warn('v43 failed',e);}})();
+</script>
 </body>
 </html>
