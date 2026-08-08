@@ -151,6 +151,26 @@ words means touching `LEAD_STAGES`, `LSTAGE_COLOR`, `STAGE_PROB`, `STATUS_TO_STA
 
 ---
 
+## 11b · Two words for one stage — normalise when convenient
+
+Live data carries **740 leads reading "New"** and **202 reading "Prospect"**. Both are
+database stage `new`. `stageToApp` keeps a record's original wording when it maps to the
+same database stage, so both survive. Both now have a chip, so nothing is hidden — but two
+chips meaning the same thing is confusing.
+
+Fix when convenient: set `raw->>'stage'` to one word across those 942 records, then drop the
+spare chip. Reversible via `businesses_snapshot_20260808`. Low risk, cosmetic, not urgent.
+
+## 11c · A company can arrive through more than one door
+
+`funnel_id` holds a single funnel, but Bayswater was reached by outreach **and** has invoice
+history. On 2026-08-08 the invoice record was merged into the outreach record and the
+duplicate archived — the invoice fields now sit in the same `funnel_details`, but the record
+shows only one funnel.
+
+Before loading the remaining invoice companies, decide: does a lead need a **list** of
+sources rather than one funnel? This affects the whole consolidation job.
+
 ## 12 · Small things
 
 - Delete leftover test edge functions **`hi`** and **`gstest`**.
