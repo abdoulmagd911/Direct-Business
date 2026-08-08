@@ -112,9 +112,33 @@ template in English and Arabic:
 | Inbound | 60 | Original message · Received on · Service requested · Replied? · Channel |
 | Website Form — B2B | 42 | Original form message · Inquiry type · Service requested · Submitted on · Region · City · Original sheet stage · Sheet notes |
 
+**The invoice-mined leads are NOT lost.** Google Drive folder
+`1F24YUsinyAAz9ntvNaSgJbTfd-8W3P20` holds ~18 spreadsheets named by customer number
+(5466 … 5507). Each is a Direct Payment export for one B2B customer: company name,
+business email, business phone, DPIN invoice numbers, dates, amounts, VAT, payment status,
+branch and salesman. That is a ready-made source for the invoice funnel — companies that
+have already paid Direct, with the amounts. Related staging files sit in folder
+`1G2JAtDs9z-m3M4rJncrnKy_NClDvgUou`: CONTACT-FORM-B2B-STAGING.csv,
+CONTACT-FORM-CLASSIFIED.csv, CONTACT-FORM-MERGE-PLAN.csv, VENDORS-FROM-CONTACT-FORM.csv,
+CALL-SHEET-WEBSITE-FORM-LEADS.xlsx, CALLING-LIST-TOP50.csv. The master registry is
+`TravelAgencies_MASTER.xlsx` (693 KB) and live form submissions are in the
+"Contacts Submissions" Google Sheet.
+
 Known gaps against what Abdulrahman has described: there is **no funnel for leads mined from
 old invoices**, nothing yet distinguishes the new corporate site (corporate.directksa.com)
 from the main site forms, and only 483 of 1,013 leads have any funnel-specific data filled in.
+
+## Brand (from the `direct-brand` skill)
+
+Orange `#F06820`, service-table header `#F87020`, cover gradient `#E54525 → #F26721`, gold
+`#FBAE16`, ink `#303848`, muted `#6B7480`, hairline `#E6E8EC`, wash `#F6F7F9`, wash-orange
+`#FFF3EC`, logo-mark orange `#FF6C00`, slate `#323E49`. English = Proxima Nova Alt,
+Arabic = 29LT Zarid Slab. Founded 2016, Riyadh, 200+ specialists. Voice: "Global supplier
+power. Saudi service. One partner."
+
+Two mismatches worth knowing: the app uses `#F47A1F` as its orange, not the brand `#F06820`
+(the events page does use the brand value); and **the brand says Arabic is always RTL**,
+while `applyLang()` hardcodes `document.documentElement.dir='ltr'`.
 
 ## Testing
 

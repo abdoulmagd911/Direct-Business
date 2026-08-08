@@ -5732,19 +5732,29 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
       /* Hide everything above .board behind Insights, but keep the toolbar and .board itself */
       demoteSelectors:['.v26-kpi-grid','#leadoverview','#leadsum','.kpis','.kpi','.grid-2','.legend-bar','.note','.aging-grid'],
       keepSelectors:['.board','.toolbar','.tbl-wrap','.empty'],
+      /* These filters must match the stage names the app actually produces. A lead's
+         stage comes from the database through C2S: new->Prospect, contacted->Contacted,
+         in_discussion->Qualified, proposal->Proposal, won->Won, lost->Lost. The old
+         chips filtered on 'New', 'Qualifying' and 'Proposing', which C2S never emits,
+         so three of the six chips could never match a single lead - and with 973 of
+         1013 live leads sitting at 'new', that hid almost the whole database. */
       chipsEn:[
         {label:'All',count:null,filter:'all',active:true},
-        {label:'New',count:null,filter:'New'},
-        {label:'Qualifying',count:null,filter:'Qualifying'},
-        {label:'Proposing',count:null,filter:'Proposing'},
+        {label:'Prospect',count:null,filter:'Prospect'},
+        {label:'Contacted',count:null,filter:'Contacted'},
+        {label:'Qualified',count:null,filter:'Qualified'},
+        {label:'Proposal',count:null,filter:'Proposal'},
+        {label:'Negotiation',count:null,filter:'Negotiation'},
         {label:'Won',count:null,filter:'Won'},
         {label:'Lost',count:null,filter:'Lost'}
       ],
       chipsAr:[
         {label:'الكل',count:null,filter:'all',active:true},
-        {label:'جديد',count:null,filter:'New'},
-        {label:'تأهيل',count:null,filter:'Qualifying'},
-        {label:'عرض',count:null,filter:'Proposing'},
+        {label:'مرتقب',count:null,filter:'Prospect'},
+        {label:'تم التواصل',count:null,filter:'Contacted'},
+        {label:'مؤهل',count:null,filter:'Qualified'},
+        {label:'عرض مقدم',count:null,filter:'Proposal'},
+        {label:'تفاوض',count:null,filter:'Negotiation'},
         {label:'مكسوب',count:null,filter:'Won'},
         {label:'مفقود',count:null,filter:'Lost'}
       ]
