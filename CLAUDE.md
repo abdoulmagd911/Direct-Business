@@ -75,6 +75,19 @@ The other two GitHub repos are kept untouched as reference, not deleted:
   `admin, manager, bd, operations, viewer, team_member`. `access_allowlist` decides who
   gets auto-approved on signup. `app_role()` is the function every access rule calls.
 
+## Rules for editing index.html
+
+- **Never call `window.supabase.createClient` again in a new layer.** The app had five
+  clients, which fought over refresh-token rotation and silently signed people out. A
+  `v44a` block near the Supabase `<script src>` memoises `createClient`, so every call now
+  returns the same client. Just call it and you get the shared one.
+- **New pages need a nav entry.** Adding a `current==='x'` render branch is not enough —
+  `buildNav()` builds from `VIEWS`, and the v25.2 layer rebuilds it again. The `v44b` block
+  at the end of the file shows the safe pattern: inject the button and re-inject after
+  every `render()`. This is how the finance ledger sat live-but-unreachable for two days.
+- Layers are appended at the end of the file as self-contained `<script>` blocks wrapped in
+  `try/catch`. Follow that pattern; don't restructure the middle of the file.
+
 ## Known structural issues (context, not a to-do list)
 
 - **Two sources of truth.** Data lives both in the `app_state` JSON blob and in real
