@@ -124,6 +124,27 @@ CALL-SHEET-WEBSITE-FORM-LEADS.xlsx, CALLING-LIST-TOP50.csv. The master registry 
 `TravelAgencies_MASTER.xlsx` (693 KB) and live form submissions are in the
 "Contacts Submissions" Google Sheet.
 
+### Past Invoices funnel — built 2026-08-08, load unfinished
+
+Funnel `past_invoices` ("Past Invoices" / «فواتير سابقة»), 11 fields, sort_order 7. Two
+companies loaded so far as a proven pattern; **14 of the ~18 source files still to do.**
+
+Rules learned from reading the source files — apply them to the rest:
+
+1. **Not every file is a company.** `5468` is ABDULLAH ALHAYAN on a personal Gmail — an
+   individual, B2C, not a B2B lead. Judge by the *customer name* (شركة / Co / Ltd / LLC /
+   school / institute), not the email.
+2. **A company can have a personal email on file.** `5504` is a large contracting group
+   whose only contact address is a Gmail. Per the no-cross-company-smuggling rule, do not
+   attach it as the company email — set `needs_manual_confirmation` and say why.
+3. **Unpaid drafts are the best re-approach reason.** `5504` drafted 30,850 SAR of flights
+   and never completed. That is a warmer opening than a cold call.
+4. Each file may hold many invoices for one customer — sum them for lifetime billed, count
+   them, and take the newest date and DPIN.
+
+Loaded: `inv_5466` Bayswater (10 invoices, ~49,290 SAR, study abroad) and `inv_5504`
+Al-Qahtani/Sinopec (1 draft invoice, 30,850 SAR, flights).
+
 Known gaps against what Abdulrahman has described: there is **no funnel for leads mined from
 old invoices**, nothing yet distinguishes the new corporate site (corporate.directksa.com)
 from the main site forms, and only 483 of 1,013 leads have any funnel-specific data filled in.
