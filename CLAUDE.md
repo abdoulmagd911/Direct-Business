@@ -28,8 +28,19 @@ Arabic + English. Used by employees only.
 
 ## Where everything actually lives
 
-There is **no application code in this git repo yet** — this is the first commit.
-The live system is entirely inside Supabase.
+This repo is now the consolidated home: `index.html` (the app), `events/index.html`
+(KSA Events Hub), `vercel.json`, `docs/`, `scripts/`. The `index.html` here was verified
+byte-for-byte identical (SHA-256) to what directksab2b.com was serving on 2026-08-08.
+
+**The website deploys are not wired to this repo yet.** The Vercel project `direct-business`
+(team `abdoulmagd911s-projects`, domains `directksab2b.com` + `direct-business.vercel.app`) has
+no Git connection — all 20 deploys to date were manual uploads. Connecting it is a one-time
+click in Vercel → Settings → Git that only Abdulrahman can do.
+
+The other two GitHub repos are kept untouched as reference, not deleted:
+- `abdoulmagd911/direct` (private) — 1 commit, 2026-08-08. Its `index.html` is identical to
+  the one now in this repo.
+- `abdoulmagd911/ksa-events-hub` (public) — 2 commits, 2026-07-27. Its page is now in `events/`.
 
 **Supabase project:** `direct-business` — ref `vkxoeeoauexyfpzqufqd` (eu-central-1)
 (A second project, `directksa-performance` / `byhxnmafaumersoaiybq`, also exists.)
