@@ -87,12 +87,19 @@ The other two GitHub repos are kept untouched as reference, not deleted:
   every `render()`. This is how the finance ledger sat live-but-unreachable for two days.
 - Layers are appended at the end of the file as self-contained `<script>` blocks wrapped in
   `try/catch`. Follow that pattern; don't restructure the middle of the file.
+- **Saving is partial now.** The `v45` block turns each `save_state` call into a
+  `save_state_patch` call carrying only the top-level sections whose contents changed since
+  the tab loaded, so two people working on different sections no longer overwrite each
+  other. If you add a new top-level key to `DB`, it is picked up automatically. Don't
+  reintroduce a full-blob write.
 
 ## Known structural issues (context, not a to-do list)
 
-- **Two sources of truth.** Data lives both in the `app_state` JSON blob and in real
-  tables like `businesses`. `save_state()` still has a legacy path that can overwrite the
-  blob. Likely cause of edits that silently revert.
+- **One JSON row still holds most entities.** `businesses` is a real table (safe, saved
+  row by row). Bookings, invoices, offers, requests, projects and settings all still live
+  in the single `app_state` row. Since 2026-08-08 saves are per-section, so different
+  people editing different sections is safe — but two people editing the *same* section at
+  the same moment still ends in last-write-wins. Moving those into real tables is the fix.
 - **No version control on the app.** Changes are made by find-and-replace scripts against
   the live HTML, with manual backup copies as the only undo. This is the main source of
   the dead ends.

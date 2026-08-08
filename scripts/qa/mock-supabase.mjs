@@ -38,6 +38,7 @@ const TABLES={
   requests:[...Array(4)].map((_,i)=>({id:'r'+i,legacy_id:'R'+i,title:'Request '+i,business_id:'b'+i,client_name:'Test Company '+i,stage:'open',owner:'QA',priority:'high',supplier:'Provider 1',pnr:'ABC12'+i,cost:900,sell:1100,sla_due:'2026-08-20T00:00:00Z',created_at:'2026-08-01T00:00:00Z',raw:{}})),
   offers:[], external_refs:[], master_db_companies:[], generated_documents:[], app_state_history:[], app_state_bak:[], access_allowlist:[], share_links:[]
 };
+const RPCLOG=[];
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
 export function start(port){
  return http.createServer((req,res)=>{
@@ -48,7 +49,17 @@ export function start(port){
   if(path==='/auth/v1/user') return send(res,200,SESSION.user);
   if(path==='/auth/v1/logout') return send(res,204,'');
   if(path.startsWith('/auth/v1/recover')) return send(res,200,{});
-  if(path.startsWith('/rest/v1/rpc/')) return send(res,200,{});
+  if(path==='/__rpclog') return send(res,200,RPCLOG);
+  if(path.startsWith('/rest/v1/rpc/')){
+    let body='';
+    req.on('data',c=>body+=c);
+    return req.on('end',()=>{
+      let parsed=null; try{parsed=JSON.parse(body||'{}');}catch(_){}
+      const fn=path.replace('/rest/v1/rpc/','');
+      RPCLOG.push({fn, keys: parsed?Object.keys(parsed.patch||parsed.payload||{}):[], arg: parsed?Object.keys(parsed):[]});
+      send(res,200,{});
+    });
+  }
   if(path.startsWith('/rest/v1/')){
     const t=path.replace('/rest/v1/','').split('?')[0];
     let rows=TABLES[t]||[];
