@@ -7046,6 +7046,35 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
 try{render();}catch(e){console.error('Init render failed',e);document.body.innerHTML='<div style="max-width:520px;margin:80px auto;font-family:sans-serif;text-align:center;padding:24px;color:#1C1E2B"><h2 style="color:#F47A1F;margin:0 0 8px">Direct Business</h2><p style="color:#444">The saved data could not be loaded. Reset to the seeded data to recover — your saved file is unchanged.</p><button onclick="try{localStorage.removeItem(KEY);}catch(_){}finally{location.reload();}" style="background:#F47A1F;color:#fff;border:0;padding:12px 22px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Reset &amp; reload</button></div>';}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+/* ===== v44a: one Supabase client for the whole page =====
+   The app used to create five separate Supabase clients. They all share the same
+   browser storage, and each one runs its own token-refresh timer. Refresh tokens are
+   single-use, so whichever client refreshed second got a revoked token and silently
+   signed the user out - the "you are logged out again after a refresh" bug.
+   Memoising createClient means every layer now shares one client and one refresh timer. */
+(function(){
+  function patch(){
+    var S=window.supabase;
+    if(!S||!S.createClient||S.__directSingleton) return !!(S&&S.__directSingleton);
+    var real=S.createClient, one=null;
+    S.createClient=function(url,key,opts){
+      if(one) return one;
+      var o=opts||{};
+      o.auth=Object.assign({persistSession:true,autoRefreshToken:true,detectSessionInUrl:true},o.auth||{});
+      one=real(url,key,o);
+      return one;
+    };
+    S.__directSingleton=true;
+    return true;
+  }
+  if(!patch()){
+    var t=setInterval(function(){ if(patch()) clearInterval(t); },50);
+    setTimeout(function(){ clearInterval(t); },15000);
+  }
+})();
+</script>
 <script>
 /* ===== Direct Business cloud layer: login + shared cloud data (additive, safe) ===== */
 (function(){
@@ -9029,5 +9058,70 @@ try{document.addEventListener('visibilitychange',function(){if(!document.hidden)
 console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:700');
 }catch(e){console.warn('v43 failed',e);}})();
 </script>
+
+<script>
+/* ===== v44b: Finance nav entry + sign-in watchdog ===== */
+(function(){try{
+
+  /* --- 1. Finance had no way in ---------------------------------------------
+     The v42 finance ledger renders when current==='finance', but nothing ever set
+     that except typing /finance in the address bar. This adds the missing button.
+     It re-injects after every render so the other nav layers cannot drop it.      */
+  var IC_FIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
+  function finLabel(){ try{ return (typeof LANG!=='undefined'&&LANG==='ar')?'\u0627\u0644\u0645\u0627\u0644\u064a\u0629':'Finance'; }catch(_){ return 'Finance'; } }
+  function injectFinanceNav(){
+    var nav=document.getElementById('nav'); if(!nav) return;
+    var existing=document.getElementById('v44FinBtn');
+    var isOn=false; try{ isOn=(current==='finance'); }catch(_){}
+    if(existing){ existing.className=isOn?'active':''; return; }
+    if(!nav.querySelector('button')) return;
+    var b=document.createElement('button');
+    b.id='v44FinBtn';
+    b.innerHTML=IC_FIN+'<span>'+finLabel()+'</span>';
+    b.className=isOn?'active':'';
+    b.onclick=function(){
+      try{ current='finance'; }catch(_){}
+      try{ render(); }catch(_){}
+      try{ window.scrollTo(0,0); }catch(_){}
+      try{ closeSide(); }catch(_){}
+    };
+    nav.appendChild(b);
+  }
+  try{
+    var _r=window.render;
+    if(typeof _r==='function'){
+      window.render=function(){ var o=_r.apply(this,arguments); try{injectFinanceNav();}catch(e){console.warn('v44 nav',e);} return o; };
+    }
+  }catch(e){console.warn('v44 render hook',e);}
+  var tries=0;
+  var nt=setInterval(function(){ tries++; try{injectFinanceNav();}catch(_){} if(tries>40||document.getElementById('v44FinBtn')) clearInterval(nt); },250);
+
+  /* --- 2. The sign-in card could hang on "Working..." forever -----------------
+     handleSession() turns the busy flag on, then loads every lead plus the workspace
+     blob. Those queries have no catch and no timeout, so one dropped request left the
+     card spinning with no error and no way out except a manual reload.              */
+  var busySince=null;
+  setInterval(function(){
+    var x=document.getElementById('cl_busy');
+    var showing=!!(x&&x.style.display!=='none'&&document.body.contains(x));
+    if(!showing){ busySince=null; return; }
+    if(busySince===null){ busySince=Date.now(); return; }
+    if(Date.now()-busySince<30000) return;
+    busySince=null;
+    x.style.display='none';
+    var e=document.getElementById('cl_err');
+    if(e){
+      e.style.display='block';
+      e.innerHTML='This is taking longer than usual - the connection may have dropped. '+
+                  '<a href="#" id="v44Retry" style="text-decoration:underline">Reload and try again</a>.';
+      var r=document.getElementById('v44Retry');
+      if(r) r.onclick=function(ev){ ev.preventDefault(); location.reload(); };
+    }
+  },2000);
+
+  console.info('%c[v44] finance nav + sign-in watchdog loaded','color:#F47A1F;font-weight:700');
+}catch(e){console.warn('v44 layer failed',e);}})();
+</script>
+
 </body>
 </html>
