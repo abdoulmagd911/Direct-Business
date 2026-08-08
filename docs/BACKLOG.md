@@ -171,6 +171,38 @@ shows only one funnel.
 Before loading the remaining invoice companies, decide: does a lead need a **list** of
 sources rather than one funnel? This affects the whole consolidation job.
 
+## 1b · ⚠️ The invoice-mining work has been started twice, and duplicated itself
+
+Found 2026-08-08 by a full-database duplicate sweep. **Eleven records carry
+`source = 'Invoice history'`, in two clusters that overlap:**
+
+| Earlier attempt (Outreach & Network funnel) | Later attempt (Past Invoices funnel) |
+|---|---|
+| `b_bta` Booking & Ticket Agency | `inv_aug06_bta` Booking and Ticket Agency |
+| `b_maaden` Maaden — Saudi Arabian Mining | `inv_aug06_maaden` Ma'aden — Saudi Arabian Mining Co. |
+| `b_qahtani` Abdel Hadi Al-Qahtani & Sons | `inv_aug06_qahtani` + `inv_5504` |
+| `b_kayan`, `b_maaal`, `b_takamol`, `b_ultimates` | |
+
+A session on **2026-08-06** loaded invoice leads without checking what was already there, and
+on **2026-08-08** this session did the same again. Bayswater duplicated the same way and has
+been merged.
+
+**Do not load the remaining 14 invoice files until a matching step exists.** Loading them
+blind would produce a third layer of duplicates.
+
+**And do not merge on name similarity.** `b_imp_95` "Al Qahtanitravelbureau" and `b_wf_47`
+"Al-Qahtani Pipe Coating Industries" share a family name and are **different companies**.
+The locked rule stands: CR number, then verified root domain, then exact normalised name,
+then phone prefix. All duplicate candidates are flagged with
+`needs_manual_confirmation` and a reason naming the other records, so they surface on the
+Needs Attention list rather than being merged silently.
+
+Other flagged pairs: `b_imp_133`/`b_imp_60` (Alnoorwings / Al Noor Wings) and
+`b_imp_244`/`b_imp_245` (Elite Holidays / Eliteholidays).
+
+**Database integrity is otherwise clean** — 0 orphaned contacts, 0 orphaned activities,
+0 broken funnel links, 0 duplicate ids, 0 nameless records.
+
 ## 11d · Page-by-page content audit — not started
 
 Abdulrahman has flagged jargon and sentences that do not make sense on some pages, and wants
