@@ -75,6 +75,47 @@ The other two GitHub repos are kept untouched as reference, not deleted:
   `admin, manager, bd, operations, viewer, team_member`. `access_allowlist` decides who
   gets auto-approved on signup. `app_role()` is the function every access rule calls.
 
+## Read this first: docs/DIRECT_MASTER_BRIEF.md
+
+A 140 KB brief Abdulrahman assembled from months of earlier sessions — the business, the
+three-phase vertical strategy, the full sales workflow phase by phase, roles, reports,
+locked decisions and open questions. Read the sections you need before proposing anything;
+most "new" ideas are already decided in there.
+
+Things it settles that matter constantly:
+- **Stages are locked**: `new, contacted, in_discussion, proposal, won, lost, on_hold`,
+  enforced by a database check constraint. Old names survive in `stage_legacy`. Any screen
+  showing different words (New/Qualifying/Proposing) is the bug, not the data.
+- **This app is not a system of record.** Direct Payment (payments.directksa.com) owns all
+  money, invoices, ZATCA, refunds and settlement. This app mirrors and coordinates; it may
+  hold an invoice *draft* and push it, nothing more. Every real-money button must name the
+  system it calls into.
+- **Won auto-converts to client** — trigger sets `is_client` and `converted_date`.
+- **No cross-company data smuggling**: every email/phone/website/address on a lead must
+  attach to the same company by a stable key (CR number > verified root domain > exact
+  normalised name > phone prefix). Mismatches get flagged, never silently merged.
+- Subagents are banned (credits burned, June 2026). Don't spawn them.
+- Abdulrahman's work laptop is locked down — Q drive only, no shell, no installs. His
+  primary account is business@directksa.com; a.hassan@directksa.net is his Team-Member view.
+
+## The lead funnels (live, already built)
+
+Six funnels exist and 1,010 of 1,013 leads are assigned to one. Each carries its own field
+template in English and Arabic:
+
+| Funnel | Leads | Funnel-specific fields |
+|---|---|---|
+| Travel Trade | 522 | MoT licence · Licence status · IATA · City/branches · Competitor or partner · Partnership angle · Master registry link |
+| Partners & Tenders | 245 | Partner type · Has mobile app · API/partner program · Tender value · Tender deadline · Tender status |
+| Website Form — Entities | 78 | How we identified them · Official website/phone/email · Region · City · Form received on · Research status |
+| Outreach & Network | 63 | Where we found them · Event · Event date · Booth/meeting · Who knows them · Planned approach |
+| Inbound | 60 | Original message · Received on · Service requested · Replied? · Channel |
+| Website Form — B2B | 42 | Original form message · Inquiry type · Service requested · Submitted on · Region · City · Original sheet stage · Sheet notes |
+
+Known gaps against what Abdulrahman has described: there is **no funnel for leads mined from
+old invoices**, nothing yet distinguishes the new corporate site (corporate.directksa.com)
+from the main site forms, and only 483 of 1,013 leads have any funnel-specific data filled in.
+
 ## Testing
 
 Always verify UI work by actually driving the app, not by reading the code. `scripts/qa/`
