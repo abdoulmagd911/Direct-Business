@@ -8667,7 +8667,7 @@ function isAr(){try{return (typeof LANG!=='undefined'&&LANG==='ar')||document.do
 function canEdit(){return !window.__isShareView && window.__userTier!=='viewer';}
 function E(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-var PAGES=[['today','Today','اليوم'],['leads','Leads','العملاء المحتملون'],['clients','Clients','العملاء'],['offers','Offer Builder','منشئ العروض'],['events','Events','الفعاليات'],['projects','Projects','المشاريع'],['reports','Reports','التقارير'],['airlines','Airlines','شركات الطيران'],['vendors','Providers & GDS','الموردون'],['sopsla','SOPs & SLAs','الإجراءات والمستويات'],['ops','Operations','العمليات'],['bookings','Bookings','الحجوزات'],['invoices','Invoices','الفواتير'],['tickets','Tickets','التذاكر'],['sync','Sync & Integrations','المزامنة'],['settings','Settings','الإعدادات']];
+var PAGES=window.PAGES=[['today','Today','اليوم'],['leads','Leads','العملاء المحتملون'],['clients','Clients','العملاء'],['finance','Finance','المالية'],['offers','Offer Builder','منشئ العروض'],['events','Events','الفعاليات'],['projects','Projects','المشاريع'],['reports','Reports','التقارير'],['airlines','Airlines','شركات الطيران'],['vendors','Providers & GDS','الموردون'],['sopsla','SOPs & SLAs','الإجراءات والمستويات'],['ops','Operations','العمليات'],['bookings','Bookings','الحجوزات'],['invoices','Invoices','الفواتير'],['tickets','Tickets','التذاكر'],['sync','Sync & Integrations','المزامنة'],['settings','Settings','الإعدادات']];
 
 /* ---------- 1. enforce my allowed pages ---------- */
 var myPages=null; /* null = everything */
@@ -8700,6 +8700,8 @@ function loadMyPages(){
 }
 setTimeout(loadMyPages,4000);
 setInterval(applyGate,2000);
+/* expose for the Team & Access page (v48) and for tests */
+try{ window.applyGate=applyGate; window.__setMyPages=function(p){ myPages=(p===undefined?myPages:p); applyGate(); }; }catch(_){}
 
 /* ---------- 2. Access manager (admins): who sees which pages ---------- */
 window.v41Access=function(){
@@ -10145,6 +10147,160 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
 .card .ch-sub{ display:none !important; }                   /* grey helper lines under card headings */
 #cl_dash{ display:none !important; }                        /* old Clients KPI strip that rendered as broken full-width bars (duplicate of the clean summary card) */
 </style>
+
+<script>
+/* ===== v48 — Team & Access: one simple page to manage who can sign in and what they see =====
+   Consolidates the old separate "Team" (create/reset/activate) and "Access" (per-page) tools into
+   ONE panel: add a teammate, set their role, toggle active, choose exactly which pages they open,
+   and reset a password. Reuses the existing admin-users function + app_users.allowed_pages, so no
+   new backend. Reachable from a Settings card (works on phone) and the top-bar Team/Access buttons. */
+(function(){try{
+  var SUPA_URL='https://vkxoeeoauexyfpzqufqd.supabase.co';
+  var SUPA_KEY='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
+  var RL={admin:['Admin — full control','مسؤول — تحكم كامل'],manager:['Manager','مدير'],bd:['Business development','تطوير الأعمال'],operations:['Operations','العمليات'],team_member:['Team member','عضو فريق'],viewer:['Read only','قراءة فقط']};
+  function ar(){try{return (typeof isAr==='function')?isAr():(document.documentElement.getAttribute('data-lang')==='ar');}catch(_){return false;}}
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function cl(){ try{ if(!window.__sb48 && window.supabase){ window.__sb48=window.supabase.createClient(SUPA_URL,SUPA_KEY); } }catch(_){ } return window.__sb48||null; }
+  function call(p){ return (window.__callAdmin?window.__callAdmin(p):Promise.resolve({error:'Admin tools not ready — reload and try again.'})); }
+  function pages(){
+    // Make Finance gateable (it was missing from the shared PAGES list used for enforcement).
+    try{ if(window.PAGES && Array.isArray(window.PAGES) && !window.PAGES.some(function(p){return p[0]==='finance';})){
+      var ci=-1; window.PAGES.forEach(function(p,i){ if(p[0]==='clients')ci=i; });
+      window.PAGES.splice(ci>=0?ci+1:window.PAGES.length,0,['finance','Finance','المالية']);
+    }}catch(_){}
+    return (window.PAGES&&Array.isArray(window.PAGES))?window.PAGES:[['today','Today','اليوم'],['leads','Leads','العملاء المحتملون'],['clients','Clients','العملاء'],['finance','Finance','المالية']];
+  }
+
+  window.v48Users=function(){
+    pages();
+    var A=ar();
+    var old=document.getElementById('v48ov'); if(old)old.remove();
+    var ov=document.createElement('div'); ov.id='v48ov';
+    ov.style.cssText='position:fixed;inset:0;z-index:2147481600;background:rgba(20,22,35,.55);display:flex;align-items:flex-start;justify-content:center;padding:26px 14px;overflow:auto';
+    var box=document.createElement('div');
+    box.style.cssText='background:#fff;border-radius:16px;max-width:840px;width:100%;padding:20px 22px;font-family:inherit;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)'+(A?';direction:rtl':'');
+    box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
+      '<div style="font-size:18px;font-weight:800">'+(A?'الفريق والصلاحيات':'Team & Access')+'</div>'+
+      '<button id="v48x" class="btn ghost sm">'+(A?'إغلاق':'Close')+'</button></div>'+
+      '<div style="background:var(--wash-orange,#FFF3EC);border:1px solid #F2C185;border-radius:12px;padding:13px 15px;margin-bottom:16px">'+
+        '<div style="font-weight:800;font-size:13px;margin-bottom:9px">'+(A?'إضافة زميل':'Add a teammate')+'</div>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+          '<input id="v48n" placeholder="'+(A?'الاسم الكامل':'Full name')+'" style="flex:1;min-width:140px;padding:9px 11px;border:1px solid var(--line-2,#DADDE3);border-radius:9px;font:inherit;font-size:16px">'+
+          '<input id="v48e" placeholder="name@directksa.com" inputmode="email" autocapitalize="none" style="flex:1.3;min-width:180px;padding:9px 11px;border:1px solid var(--line-2,#DADDE3);border-radius:9px;font:inherit;font-size:16px">'+
+          '<select id="v48r" style="padding:9px 11px;border:1px solid var(--line-2,#DADDE3);border-radius:9px;font:inherit;font-size:14px">'+Object.keys(RL).map(function(k){return '<option value="'+k+'"'+(k==='team_member'?' selected':'')+'>'+(A?RL[k][1]:RL[k][0])+'</option>';}).join('')+'</select>'+
+          '<button id="v48create" class="btn pri sm">'+(A?'إنشاء':'Create')+'</button>'+
+        '</div><div id="v48res" style="display:none;margin-top:10px"></div>'+
+      '</div>'+
+      '<div id="v48list" style="font-size:13px;color:var(--muted,#6B7480)">'+(A?'جارٍ التحميل…':'Loading…')+'</div>';
+    ov.appendChild(box); document.body.appendChild(ov);
+    ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+    document.getElementById('v48x').onclick=function(){ov.remove();};
+    document.getElementById('v48create').onclick=addUser;
+    load();
+
+    function addUser(){
+      var n=(document.getElementById('v48n').value||'').trim();
+      var e=(document.getElementById('v48e').value||'').trim().toLowerCase();
+      var r=document.getElementById('v48r').value;
+      if(!e||e.indexOf('@')<0){ alert(A?'أدخل بريدًا صحيحًا.':'Enter a valid email address.'); return; }
+      var btn=document.getElementById('v48create'); btn.disabled=true; btn.textContent=A?'جارٍ…':'Creating…';
+      call({action:'create',email:e,full_name:n,role:r}).then(function(res){
+        btn.disabled=false; btn.textContent=A?'إنشاء':'Create';
+        if(res.error){ alert(res.error); return; }
+        document.getElementById('v48n').value=''; document.getElementById('v48e').value='';
+        showTemp(res.email,res.temp_password); load();
+      }).catch(function(x){ btn.disabled=false; btn.textContent=A?'إنشاء':'Create'; alert(String(x&&x.message||x)); });
+    }
+    function showTemp(email,pw){
+      var r=document.getElementById('v48res'); if(!r)return; r.style.display='block';
+      r.innerHTML='<div style="background:#E7F8EF;border:1px solid #16B36455;border-radius:10px;padding:11px 13px;font-size:12.5px;color:#0B4229">'+
+        '<b>'+(A?'تم إنشاء الحساب':'Account created')+'</b> — '+(A?'أرسل هذا للزميل على واتساب:':'send these to them on WhatsApp:')+
+        '<div style="background:#fff;border:1px dashed #C9C2B4;border-radius:8px;padding:9px 11px;margin-top:7px;font-family:monospace;user-select:all;color:#1C1E2B">'+
+        (A?'الرابط':'Link')+': '+esc(location.origin)+'<br>'+(A?'البريد':'Email')+': '+esc(email)+'<br>'+(A?'كلمة مرور مؤقتة':'Temporary password')+': <b>'+esc(pw)+'</b></div>'+
+        '<div style="color:#6B7480;margin-top:6px">'+(A?'تظهر مرة واحدة. سيختار كلمته الخاصة عند أول دخول.':'Shown once. They choose their own password on first sign-in.')+'</div></div>';
+    }
+    function load(){
+      var lb=document.getElementById('v48list'); if(!lb)return;
+      call({action:'list'}).then(function(res){
+        if(res.error){ lb.textContent=res.error; return; }
+        var users=res.users||[];
+        var c=cl();
+        var apP=c?c.from('app_users').select('id,allowed_pages').then(function(r){var m={};(r.data||[]).forEach(function(u){m[u.id]=u.allowed_pages;});return m;}):Promise.resolve({});
+        apP.then(function(apMap){ draw(users,apMap); }).catch(function(){ draw(users,{}); });
+      });
+    }
+    function draw(users,apMap){
+      var lb=document.getElementById('v48list'); if(!lb)return;
+      var PG=pages();
+      lb.style.color='var(--txt,#303848)';
+      lb.innerHTML=users.map(function(u,i){
+        var nm=esc((u.full_name||'').trim()||u.email.split('@')[0]);
+        var ap=apMap[u.id]; var all=!Array.isArray(ap)||!ap.length;
+        var chips=PG.map(function(p){
+          var on=all||ap.indexOf(p[0])>=0;
+          return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;background:'+(on?'var(--wash-orange,#FFF3EC)':'#f2f3f5')+';border:1px solid '+(on?'#F2C185':'#e3e3e3')+';border-radius:8px;padding:3px 8px;margin:2px 4px 2px 0;cursor:pointer"><input type="checkbox" data-u="'+i+'" data-p="'+p[0]+'"'+(on?' checked':'')+'> '+esc(A?p[2]:p[1])+'</label>';
+        }).join('');
+        var roleSel='<select data-role="'+u.id+'" style="padding:6px 9px;border:1px solid var(--line-2,#DADDE3);border-radius:8px;font:inherit;font-size:12px;background:#fff">'+Object.keys(RL).map(function(k){return '<option value="'+k+'"'+(u.role===k?' selected':'')+'>'+(A?RL[k][1]:RL[k][0])+'</option>';}).join('')+'</select>';
+        return '<div style="border-top:1px solid var(--line,#E6E8EC);padding:13px 0">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'+
+            '<div class="v48-nm"><b style="font-size:13.5px">'+nm+'</b> <span style="color:var(--muted,#6B7480);font-size:11.5px">'+esc(u.email)+'</span>'+(u.must_change_password?' <span style="font-size:10.5px;color:#B54708;font-weight:700">'+(A?'مؤقتة':'temp pw')+'</span>':'')+(u.active===false?' <span style="font-size:10.5px;color:#B54708;font-weight:700">'+(A?'موقوف':'off')+'</span>':'')+'</div>'+
+            '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+roleSel+
+              '<button class="btn ghost sm" data-tog="'+u.id+'" data-act="'+(u.active?'0':'1')+'">'+(u.active?(A?'إيقاف':'Switch off'):(A?'تفعيل':'Switch on'))+'</button>'+
+              '<button class="btn ghost sm" data-rst="'+u.id+'">'+(A?'كلمة مرور جديدة':'Reset password')+'</button>'+
+            '</div></div>'+
+          '<div style="margin-top:8px;font-size:12px;color:var(--muted,#6B7480)">'+(A?'الصفحات التي يفتحها:':'Pages they can open:')+'</div>'+
+          '<div style="margin-top:4px">'+chips+'</div>'+
+          '<div style="margin-top:7px"><button class="btn sm" data-save="'+u.id+'" data-i="'+i+'">'+(A?'حفظ الصفحات':'Save pages')+'</button> '+
+            '<button class="btn ghost sm" data-all="'+i+'">'+(A?'كل الصفحات':'All pages')+'</button> '+
+            '<button class="btn ghost sm" data-none="'+i+'">'+(A?'مسح الكل':'Clear all')+'</button></div>'+
+        '</div>';
+      }).join('') || (A?'لا يوجد مستخدمون بعد.':'No users yet.');
+      wire(users);
+    }
+    function wire(users){
+      var lb=document.getElementById('v48list');
+      lb.querySelectorAll('[data-role]').forEach(function(sel){ sel.onchange=function(){ call({action:'set_role',id:sel.getAttribute('data-role'),role:sel.value}).then(function(r){ if(r.error){alert(r.error);load();} }); }; });
+      lb.querySelectorAll('[data-tog]').forEach(function(b){ b.onclick=function(){ call({action:'set_active',id:b.getAttribute('data-tog'),active:b.getAttribute('data-act')==='1'}).then(function(r){ if(r.error){alert(r.error);return;} load(); }); }; });
+      lb.querySelectorAll('[data-rst]').forEach(function(b){ b.onclick=function(){ if(!confirm(A?'إعطاء هذا الشخص كلمة مرور مؤقتة جديدة؟':'Give this person a new temporary password?'))return; b.disabled=true; call({action:'reset_password',id:b.getAttribute('data-rst')}).then(function(r){ b.disabled=false; if(r.error){alert(r.error);return;} var wrap=b.closest('div').parentNode.parentNode; var sp=wrap?wrap.querySelector('.v48-nm span'):null; showTemp(sp?sp.textContent:'',r.temp_password); }); }; });
+      lb.querySelectorAll('[data-all]').forEach(function(b){ b.onclick=function(){ var i=b.getAttribute('data-all'); lb.querySelectorAll('input[data-u="'+i+'"]').forEach(function(x){x.checked=true;}); }; });
+      lb.querySelectorAll('[data-none]').forEach(function(b){ b.onclick=function(){ var i=b.getAttribute('data-none'); lb.querySelectorAll('input[data-u="'+i+'"]').forEach(function(x){x.checked=false;}); }; });
+      lb.querySelectorAll('[data-save]').forEach(function(b){ b.onclick=function(){
+        var id=b.getAttribute('data-save'), i=b.getAttribute('data-i');
+        var picked=[].slice.call(lb.querySelectorAll('input[data-u="'+i+'"]:checked')).map(function(x){return x.getAttribute('data-p');});
+        if(picked.indexOf('today')<0)picked.unshift('today'); /* Today is always allowed */
+        var payload=(picked.length>=pages().length)?null:picked; /* all ticked = full access */
+        var c=cl(); if(!c){alert('Not ready');return;}
+        c.from('app_users').update({allowed_pages:payload}).eq('id',id).then(function(r){ if(r.error){alert(r.error);return;} b.textContent=A?'تم ✓':'Saved ✓'; setTimeout(function(){b.textContent=A?'حفظ الصفحات':'Save pages';},1500); });
+      }; });
+    }
+  };
+
+  /* Settings entry card (admins only) — the discoverable, phone-friendly way in */
+  function addSettingsCard(){
+    try{
+      if(typeof current==='undefined'||current!=='settings')return;
+      if(window.__userTier && window.__userTier!=='admin')return;
+      var v=document.getElementById('view'); if(!v||v.querySelector('.v48-card'))return;
+      var A=ar();
+      var card=document.createElement('div'); card.className='card v48-card'; card.style.cssText='border:1px solid #F2C185';
+      card.innerHTML='<h3>'+(A?'👥 الفريق والصلاحيات':'👥 Team & Access')+'</h3>'+
+        '<div style="font-size:13px;color:var(--muted,#6B7480);margin:2px 0 12px">'+(A?'أنشئ حسابات الفريق، عيّن دور كل شخص، وحدد الصفحات التي يمكنه فتحها (مثلاً: المالية فقط، أو العملاء المحتملون والعملاء).':'Create team accounts, set each person’s role, and choose which pages they can open (e.g. Finance only, or Leads + Clients).')+'</div>'+
+        '<button class="btn pri" onclick="v48Users()">'+(A?'فتح الفريق والصلاحيات':'Open Team & Access')+'</button>';
+      v.insertBefore(card, v.firstChild);
+    }catch(_){}
+  }
+  try{ if(typeof render==='function'){ var _r=render; render=function(){ var o=_r.apply(this,arguments); try{setTimeout(addSettingsCard,60);}catch(_){}; return o; }; } }catch(_){}
+  setTimeout(addSettingsCard,1200); setTimeout(addSettingsCard,3000);
+
+  /* Repoint the existing top-bar Team + Access buttons to the one consolidated page */
+  setInterval(function(){ try{
+    var t=document.getElementById('cl_team'); if(t&&!t.__v48){ t.__v48=1; t.onclick=function(){v48Users();}; }
+    var a=document.getElementById('v41acc'); if(a&&!a.__v48){ a.__v48=1; a.onclick=function(){v48Users();}; }
+  }catch(_){} }, 1500);
+
+  console.info('%c[v48] Team & Access page loaded','color:#F06820;font-weight:700');
+}catch(e){if(window.console)console.warn('[v48] init',e);}})();
+</script>
 
 </body>
 </html>
