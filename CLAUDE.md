@@ -75,13 +75,17 @@ The other two GitHub repos are kept untouched as reference, not deleted:
   `admin, manager, bd, operations, viewer, team_member`. `access_allowlist` decides who
   gets auto-approved on signup. `app_role()` is the function every access rule calls.
 
-## Start here — the three documents that carry everything
+## Start here — the documents that carry everything
 
 1. **`docs/BACKLOG.md`** — everything parked, why, and what finishing it looks like.
    Read at the start of a session, update at the end.
 2. **`docs/DIRECT_MASTER_BRIEF.md`** — the business: strategy, the full sales workflow
    phase by phase, locked decisions, open questions.
 3. **`docs/ROLES_AND_ACCESS.md`** — who can do what, read from the live database.
+4. **`docs/DIRECT_SYSTEMS_MAP.md`** — Direct's three real systems (Direct Payments hub, the
+   corporate B2B booking portal, the Executive CRM) vs. our app, the B2B money model
+   (service → transaction → tax invoice; service fee = income), the link key (Direct client
+   ID), and each system's design language. Read before touching Clients or Finance.
 
 ## What this session can and cannot reach
 
