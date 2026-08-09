@@ -2226,7 +2226,7 @@ ${recents.length?`<div><div style="font-size:11px;color:var(--muted);text-transf
 <div class="v19-today-group"><h3>📉 Low-margin offers / approvals</h3>${lowOffers.length?lowOffers.slice(0,6).map(o=>card({cls:'amber',ic:'📉',ti:(o.ref||'Offer')+' · '+(o.subject||''),meta:(o.client||leadName(o.linkedLeadId))+' · approval: '+(o.approvalStatus||'—'),v:'',click:`openOffer='${o.id}';current='offers';pushRecent('offer','${o.id}');render()`})).join(''):emptyCard('All offers clear margin.')}</div>
 <div class="v19-today-group"><h3>📌 My queue (next 7 days)</h3>${queueMine.length?queueMine.slice(0,6).map(b=>card({cls:'blue',ic:'📌',ti:b.ref+' · '+(bkAirlines(b).join(', ')||'—'),meta:leadName(b.leadId)+' · due '+b.queueDueBy,v:'',click:`openBookingFn('${b.id}')`})).join(''):emptyCard('Queue clear.')}</div>
 ${qcMiss.length?`<div class="v19-today-group"><h3>✅ QC checklist incomplete</h3>${qcMiss.map(b=>{const qc=qcScore(b);return card({cls:qc.pct>=60?'amber':'red',ic:'✅',ti:b.ref+' · QC '+qc.done+'/'+qc.total,meta:leadName(b.leadId)+' · ticketed but quality gate open',v:qc.pct+'%',click:`openBookingFn('${b.id}')`});}).join('')}</div>`:''}
-<div style="text-align:center;padding:14px 0;color:var(--muted);font-size:11.5px">Press <kbd style="background:#eef0f5;padding:2px 7px;border-radius:5px;font-family:ui-monospace,Consolas,monospace">?</kbd> for the keyboard shortcuts cheat sheet · <kbd style="background:#eef0f5;padding:2px 7px;border-radius:5px;font-family:ui-monospace,Consolas,monospace">Ctrl/⌘+K</kbd> for the command palette</div>`;}
+`;}
 /* hook today into the dispatcher */
 const _origRender=render;render=function(){buildNav();const v=document.getElementById("view");document.getElementById("vTitle").textContent=TITLES[current]?TITLES[current][0]:current;document.getElementById("vSub").textContent=TITLES[current]?TITLES[current][1]:'';if(typeof applyLang==='function')applyLang();if(typeof renderTopExtras==='function')renderTopExtras();const map={today:renderToday,dashboard:renderDash,leads:renderLeads,clients:renderClients,bookings:renderBookings,invoices:renderInvoices,tickets:renderTickets,airlines:(vv)=>renderSuppliers(vv,'air'),vendors:(vv)=>renderSuppliers(vv,'prov'),sops:renderSops,slas:renderSlas,sopsla:renderSopSla,reports:(typeof renderReports==="function"?renderReports:renderDash),ops:(vv)=>{renderOps(vv);vv.insertAdjacentHTML("afterbegin","<div style=\"margin-bottom:12px\"><button class=\"btn ghost sm\" onclick=\"gotoProjects()\">Projects board</button></div>");},offers:renderOffers,activity:(typeof renderActivity==='function'?renderActivity:renderDash),archive:(typeof renderArchive==='function'?renderArchive:renderDash)};(map[current]||renderToday)(v);if(typeof v19WireExtras==='function')v19WireExtras();};
 /* topbar ⌘K + ? buttons */
@@ -10125,6 +10125,25 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
   /* wide tables keep scrolling inside their own box instead of stretching the page */
   #board,.tbl-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; }
 }
+</style>
+
+<style id="v47-declutter">
+/* v47 — declutter. The team already knows what each page is, so strip the explanatory chrome
+   that only added visual noise on phone and desktop alike:
+   - the descriptive subtitle under each page title ("People or companies that might book with us")
+   - the little orange "?" help circles next to titles
+   - the "⚠ N worked leads with no owner · e.g. Company · Company…" attention banner
+   - the small grey helper lines under card headings
+   Titles, data, filters, tags and the working buttons all stay. This is presentation-only and
+   fully reversible: delete this block to bring every description back. Longer explanations will
+   live in a separate blueprint document instead of cluttering the working screens. */
+#v39strip{ display:none !important; }                       /* no-owner / stale banner + example names */
+#v26TipBtn{ display:none !important; }                      /* "?" circle in the top-bar title */
+#vSub{ display:none !important; }                           /* top-bar page subtitle */
+.v26_3-section-head .sub{ display:none !important; }        /* content page subtitle */
+.v26_3-section-head .help-dot{ display:none !important; }   /* "?" circle by the content heading */
+.card .ch-sub{ display:none !important; }                   /* grey helper lines under card headings */
+#cl_dash{ display:none !important; }                        /* old Clients KPI strip that rendered as broken full-width bars (duplicate of the clean summary card) */
 </style>
 
 </body>
