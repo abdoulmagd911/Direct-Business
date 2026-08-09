@@ -9825,6 +9825,55 @@ console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:70
   console.info('%c[v32] Finance income-by-service loaded','color:#0F6E56;font-weight:700');
 }catch(e){if(window.console)console.warn('[v32] init',e);}})();
 </script>
+<script>
+/* v33 — Leads · service-fit map (the all-in-one angle).
+   Captures, per Direct service, whether the lead buys it elsewhere / already with Direct /
+   not a fit — so "buys elsewhere" becomes the consolidation pitch. Stored on the record as
+   b.serviceFit and persisted via the businesses raw JSON (rowToApp copies raw fields back). */
+(function(){try{
+  if(!window.renderLeadDetail) return;
+  var CORE=[['flights','✈','Flights','الطيران'],['hotels','🏨','Hotels','الفنادق'],['visa','🛂','Visa / e-Visa','التأشيرات'],['transfers','🚐','Transfers','التنقلات'],['carrental','🔑','Car rental','تأجير السيارات'],['insurance','🛡','Insurance','التأمين'],['tours','🗺','Activities / tours','الأنشطة والجولات'],['mice','🎤','MICE / events','الفعاليات'],['packages','🧳','Packages','الباقات']];
+  var GROWTH=[['idl','🪪','Intl driving licence','رخصة القيادة الدولية'],['chauffeur','🚘','Chauffeur','سائق خاص'],['esim','📶','eSIM / roaming','شريحة eSIM'],['training','🎓','Training','التدريب'],['support','🛎','Support','الدعم']];
+  var ALL=CORE.concat(GROWTH);
+  var STATES={unknown:{l:['—','—'],c:'#9AA1B6',bg:'#EEF0F5'},elsewhere:{l:['Buys elsewhere','من غيرنا'],c:'#B54708',bg:'#FEF3E2'},direct:{l:['With Direct','مع دايركت'],c:'#0F6E56',bg:'#E7F8EF'},na:{l:['Not a fit','غير مطلوبة'],c:'#98A2B3',bg:'#F2F4F7'}};
+  var ORDER=['unknown','elsewhere','direct','na'];
+  function fl(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;}
+  window.v33CycleFit=function(id,key){try{var b=getLead(id);if(!b)return;b.serviceFit=b.serviceFit||{};var cur=b.serviceFit[key]||'unknown';b.serviceFit[key]=ORDER[(ORDER.indexOf(cur)+1)%ORDER.length];if(typeof silentSave==='function')silentSave(save);else save();window.v33Redraw(id);}catch(e){}};
+  function rowHtml(id,fit,s){var st=STATES[(fit&&fit[s[0]])||'unknown'];
+    return '<button type="button" onclick="v33CycleFit(\''+id+'\',\''+s[0]+'\')" style="display:flex;align-items:center;gap:8px;width:100%;text-align:start;border:1px solid var(--line-2,#e6e8ec);background:#fff;border-radius:9px;padding:7px 10px;cursor:pointer;font:inherit">'+
+      '<span style="font-size:14px;width:18px;text-align:center">'+s[1]+'</span>'+
+      '<span style="flex:1;font-size:12.5px;font-weight:600">'+fl(s[2],s[3])+'</span>'+
+      '<span style="font-size:10.5px;font-weight:700;color:'+st.c+';background:'+st.bg+';padding:2px 8px;border-radius:999px;white-space:nowrap">'+fl(st.l[0],st.l[1])+'</span></button>';
+  }
+  function cardHtml(id){
+    var b=(typeof getLead==='function')?getLead(id):null; if(!b) return '';
+    var fit=b.serviceFit||{};
+    var opp=ALL.filter(function(s){return fit[s[0]]==='elsewhere';}).length;
+    var grp=function(title,arr){return '<div style="font-size:10.5px;font-family:ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px">'+title+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+arr.map(function(s){return rowHtml(id,fit,s);}).join('')+'</div>';};
+    return '<div class="card v33-fit"><h3 style="margin:0 0 2px">'+fl('Service fit — the all-in-one angle','ملاءمة الخدمات — زاوية الحل المتكامل')+'</h3>'+
+      '<div class="ch-sub" style="margin-bottom:2px">'+fl('Tap a service: buys it elsewhere, already with Direct, or not a fit. What they buy elsewhere is what we pitch.','اضغط الخدمة: يشتريها من غيرنا، أو معنا، أو غير مطلوبة. ما يشترونه من غيرنا هو ما نعرضه عليهم.')+'</div>'+
+      (opp?'<div style="margin:8px 0 0;font-size:12.5px;color:#B54708;font-weight:700">🎯 '+fl(opp+' service'+(opp===1?'':'s')+' bought elsewhere — Direct could win '+(opp===1?'it':'these')+'.',opp+' خدمة يشترونها من غيرنا — فرصة لدايركت لكسبها.')+'</div>':'')+
+      grp(fl('Core — Direct bills today','أساسية — تفوترها دايركت اليوم'),CORE)+
+      grp(fl('Growth — opportunity','نمو — فرصة'),GROWTH)+
+    '</div>';
+  }
+  window.v33Redraw=function(id){var c=document.querySelector('#view .v33-fit');if(c)c.outerHTML=cardHtml(id);};
+  var _rld=window.renderLeadDetail;
+  window.renderLeadDetail=function(v,id){
+    _rld.apply(this,arguments);
+    setTimeout(function(){try{
+      if(typeof current!=='undefined'&&current!=='leads')return;
+      var view=document.getElementById('view'); if(!view||view.querySelector('.v33-fit'))return;
+      if(!getLead(id))return;
+      var grid=view.querySelector('.detail-grid'); if(!grid)return;
+      var col=grid.children[0]||grid;
+      var wrap=document.createElement('div'); wrap.innerHTML=cardHtml(id);
+      if(wrap.firstChild){ var after=col.children[1]||null; col.insertBefore(wrap.firstChild, after); } // 2nd card — prominent, not buried
+    }catch(e){if(window.console)console.warn('[v33] fit',e);}},50);
+  };
+  console.info('%c[v33] leads service-fit map loaded','color:#B54708;font-weight:700');
+}catch(e){if(window.console)console.warn('[v33] init',e);}})();
+</script>
 
 </body>
 </html>
