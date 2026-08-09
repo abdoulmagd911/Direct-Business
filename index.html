@@ -5833,9 +5833,15 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
   /* ===== 5. Compute live chip counts where possible ===== */
   var v26_3LeadCount=function(filter){
     try{
-      var B=(DB&&DB.businesses)||[];
-      if(filter==='all')return B.length;
-      return B.filter(function(b){return (b.stage||'')===filter || (b.status||'')===filter || (b.leadStage||'')===filter;}).length;
+      /* Count LEADS only (clients live on their own page), by the same screen stage
+         the table filters on — so the badge matches what clicking the chip shows. */
+      var B=((DB&&DB.businesses)||[]).filter(function(b){return !b.isClient;});
+      var st=function(b){return (typeof leadStage==='function')?leadStage(b):(b.stage||'');};
+      if(filter==='all'){
+        if(typeof leadFilter!=='undefined'&&leadFilter.hideClosed){B=B.filter(function(b){var s=st(b);return s!=='Won'&&s!=='Lost';});}
+        return B.length;
+      }
+      return B.filter(function(b){return st(b)===filter;}).length;
     }catch(_){return null;}
   };
   var v26_3ProjectCount=function(filter){
@@ -5897,7 +5903,9 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
         chipsEl.className='v26_3-chips';
         chipsArr.forEach(function(c){
           var btn=document.createElement('button');
-          btn.className='v26_3-chip'+(c.active?' active':'');
+          var _act=c.active;
+          if(sec==='leads'&&typeof leadFilter!=='undefined'){_act=(c.filter==='all')?(!leadFilter.stage||leadFilter.stage==='all'):(leadFilter.stage===c.filter);}
+          btn.className='v26_3-chip'+(_act?' active':'');
           btn.setAttribute('data-filter',c.filter);
           var count=null;
           if(sec==='leads')count=v26_3LeadCount(c.filter);
@@ -5965,12 +5973,17 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
       var view=document.getElementById('view');
       if(!view)return;
       if(sec==='leads'){
-        view.querySelectorAll('.lead').forEach(function(card){
-          if(filter==='all'){card.style.display='';return;}
-          /* Look for stage badge / pip / tag */
-          var t=(card.textContent||'').toLowerCase();
-          card.style.display=t.indexOf(filter.toLowerCase())>=0?'':'none';
-        });
+        /* Drive the REAL lead filter pipeline (matchLead + hide-closed + pagination),
+           not dead .lead cards. The leads list renders as a table, so hiding .lead
+           cards did nothing — the stage chips highlighted but filtered nothing. */
+        try{
+          if(typeof leadFilter!=='undefined'){
+            leadFilter.stage=(filter==='all')?'all':filter;
+            var _sg=document.getElementById('stgsel'); if(_sg)_sg.value=leadFilter.stage; // keep the dropdown in sync
+            if(typeof drawLeads==='function')drawLeads();
+            else if(typeof drawTable==='function')drawTable();
+          }
+        }catch(e){if(window.console)console.warn('[v26.3] lead stage filter',e);}
         return;
       }
       if(sec==='projects'){
