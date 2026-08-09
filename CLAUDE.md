@@ -147,6 +147,19 @@ file is the reminder, so surface anything relevant rather than waiting to be ask
 the data was four months stale. Nothing deleted: `businesses_snapshot_20260808` (1,035 rows)
 and `contacts_snapshot_20260808` (335 rows) hold the full prior state, admin/manager only.
 
+**Re-verification, batch 1 — 2026-08-09.** Moved the 6 companies Direct has actually invoiced
+back to clients (`is_client=true` + `raw.isClient='true'` + `stage='won'` + `converted_date`):
+Takamol for Business Services (~10.9M SAR billed), Booking and Ticket Agency, Directorate of
+Public Security, Maaal, الوسائل الوقائية للسلامة, المطاحن الأولى. So the app now has 6 active
+clients again. Backup before the change: `businesses_snapshot_20260809_clientmove` (1,035 rows).
+Undo = copy `is_client/stage/converted_date/raw` back from that snapshot by id. The other ~27
+pre-reset "clients" stayed leads on purpose — they're duplicates (Ma'aden ×2, Riyadh Chamber ×3,
+Booking &/and, Abdel Hadi ×2), study-abroad schools (Kaplan, ELC Chester, New College), or have
+no invoice to prove the relationship. Big-name leads (SAMA, NEOM, Alshaya, alfanar, Kemya/SABIC,
+Savvy Games, Webook) are **not** clients in the data (no invoices, never flagged) — do not move
+them without Abdulrahman confirming. 68 leads still carry a `total_sar` amount with no matched
+invoice — a soft signal, not proof; a possible next batch to review with him.
+
 ## Read this first: docs/DIRECT_MASTER_BRIEF.md
 
 A 140 KB brief Abdulrahman assembled from months of earlier sessions — the business, the
