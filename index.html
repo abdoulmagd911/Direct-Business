@@ -10016,6 +10016,23 @@ console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:70
   console.info('%c[v37] leads filter declutter loaded','color:#16B364;font-weight:700');
 }catch(e){if(window.console)console.warn('[v37] init',e);}})();
 </script>
+<script>
+/* v38 — small declutter: retire redundant/niche controls (reversible CSS hide).
+   • #sip_hasapp — the "Has app" filter is niche (Service-Integration-Partners funnel only)
+     yet sat on the main Leads toolbar for everyone. Hidden; the funnel strip already scopes
+     to that audience.
+   • [data-v26_2-chain] — the "🪜 Chain of command" button (v26.2) duplicates the v24 header
+     "Chain of command" button (.v24ChainBtn); both open the same editor. Keep one.
+   Nothing deleted — remove this block to restore both. */
+(function(){try{
+  if(!document.getElementById('v38css')){
+    var st=document.createElement('style'); st.id='v38css';
+    st.textContent='#sip_hasapp,[data-v26_2-chain]{display:none!important}';
+    (document.head||document.documentElement).appendChild(st);
+  }
+  console.info('%c[v38] toolbar + detail dedupe loaded','color:#16B364;font-weight:700');
+}catch(e){if(window.console)console.warn('[v38] init',e);}})();
+</script>
 
 </body>
 </html>
