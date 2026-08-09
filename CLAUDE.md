@@ -1,9 +1,9 @@
 # Direct Business — working notes for Claude
 
 > **2026-08-09 — read `docs/HANDOFF_2026-08-09.md` first.** It has the full current state:
-> live data (969 leads / 45 clients), the client moves made + how to undo them, and the
-> **#1 open item**: 201 leads are scraped `BNPL / Fintech merchant directory` retail brands
-> (Samsung, IKEA, Amazon…) — junk, awaiting the user's OK to archive.
+> live data now **768 leads / 45 clients**, the client moves + how to undo them. The 201
+> scraped `BNPL / Fintech merchant directory` retail brands (Samsung, IKEA, Amazon…) were
+> **archived out of Leads on the user's OK** (backup `businesses_snapshot_20260809_bnpl_archive`).
 > **Critical:** the QA harness serves FAKE data — verify UI against real Supabase rows or a
 > screenshot, never the mock alone (that gap wasted a sub-session).
 
