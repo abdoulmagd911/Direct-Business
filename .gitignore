@@ -1,0 +1,2 @@
+# local test-harness symlink to /tmp/node_modules
+node_modules

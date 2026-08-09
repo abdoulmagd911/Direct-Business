@@ -1003,12 +1003,27 @@ function renderLeadDetail(v,id){
 }
 
 function convertToClient(id){const b=getLead(id);if(!b)return;if(!b.accountManager&&b.assignedTo)b.accountManager=b.assignedTo;if(!confirm("Mark “"+b.name+"” as a won client? It moves into your Clients book of business."))return;b.isClient=true;b.status="Won";b.convertedDate=Date.now();b.lastContact=Date.now();b.activities=b.activities||[];b.activities.push({date:Date.now(),type:"Won",status:"Won",note:"Converted from lead to client",by:(typeof me==="function"?me():"Abdelrahman")});save();render();}
+// Client health — one scannable status from engagement + review governance.
+// Red is reserved for a real problem (overdue review, or contact that HAS happened but has gone stale).
+// A client with no logged history yet is "New", not "At risk" — we don't manufacture alarms from empty data.
+function clientHealth(b){
+  var today=new Date().toISOString().slice(0,10);
+  var la=(b.activities||[]).slice().sort((x,y)=>(y.date||0)-(x.date||0))[0];
+  var last=b.lastContact||(la&&la.date)||0;           // canonical last-touch, ms; 0 = never
+  var daysAct=last?Math.floor((Date.now()-last)/864e5):null;
+  var reviewOverdue=b.nextReview&&b.nextReview<=today;
+  if(reviewOverdue)return {l:'At risk',c:'#D92D20',why:'Account review overdue'};
+  if(daysAct===null)return {l:'New',c:'#6B7480',why:'No activity logged yet'};
+  if(daysAct>90)return {l:'At risk',c:'#D92D20',why:'No contact in 90+ days'};
+  if(daysAct>45)return {l:'Watch',c:'#F79009',why:'No contact in 45+ days'};
+  return {l:'Good',c:'#16B364',why:'Active and up to date'};
+}
 function renderClients(v){
   let cl=DB.businesses.filter(b=>b.isClient);
   if(clFilter.q){const q=clFilter.q.toLowerCase();cl=cl.filter(b=>((b.name||"")+" "+(b.nameAr||"")+" "+((b.contacts||[]).map(c=>String(c.email||"")+String(c.phone||"")).join(" "))).toLowerCase().includes(q));}
   if(clFilter.owner!=="all")cl=cl.filter(b=>(b.accountManager||b.assignedTo||"")===clFilter.owner);
   if(clFilter.tier!=="all")cl=cl.filter(b=>(b.tier||"Standard")===clFilter.tier);
-  const sv=(b,k)=>k==="am"?String(b.accountManager||b.assignedTo||"").toLowerCase():k==="tier"?String(b.tier||"Standard"):k==="review"?(b.nextReview||"9999-99"):String(b.name||"").toLowerCase();
+  const sv=(b,k)=>k==="am"?String(b.accountManager||b.assignedTo||"").toLowerCase():k==="tier"?String(b.tier||"Standard"):k==="review"?(b.nextReview||"9999-99"):k==="health"?({"At risk":0,Watch:1,New:2,Good:3}[clientHealth(b).l]):String(b.name||"").toLowerCase();
   cl=cl.slice().sort((a,b)=>{const va=sv(a,clSort.k),vb=sv(b,clSort.k);return va<vb?-1*clSort.dir:va>vb?1*clSort.dir:0;});
   const total=cl.reduce((s,b)=>s+(b.totalSAR||0),0);
   const won=DB.businesses.filter(b=>!b.isClient&&leadStatus(b)==="Won").length;
@@ -1026,8 +1041,8 @@ function renderClients(v){
     <select onchange="clFilter.owner=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All managers</option>${team.map(t=>`<option value="${t}" ${clFilter.owner===t?"selected":""}>${t}</option>`).join("")}</select>
     <select onchange="clFilter.tier=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All tiers</option><option ${clFilter.tier==="Key"?"selected":""}>Key</option><option ${clFilter.tier==="Standard"?"selected":""}>Standard</option></select>
   </div>
-  <div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th style="cursor:pointer" onclick="clSortBy('name')">Client${clArrow('name')}</th><th style="cursor:pointer" onclick="clSortBy('am')">Account manager${clArrow('am')}</th><th>Area</th><th style="cursor:pointer" onclick="clSortBy('tier')">Tier${clArrow('tier')}</th><th>Client since</th><th>Won (SAR)</th><th>Channels</th><th style="cursor:pointer" onclick="clSortBy('review')">Next review${clArrow('review')}</th><th>Open in Direct</th><th></th></tr></thead><tbody>
-  ${cl.map(b=>{const am=b.accountManager||b.assignedTo;const overdue=b.nextReview&&b.nextReview<=today;const la=(b.activities||[]).slice().sort((x,y)=>(y.date||0)-(x.date||0))[0];const since=b.convertedDate||b.convertDate||'';const wonV=b.totalSAR||b.dealValue||0;return `<tr style="cursor:pointer" onclick="openLead='${b.id}';current='leads';render()"><td><b>${window.nmMain?esc(nmMain(b)):esc(b.name)}</b>${window.nmSubHTML?nmSubHTML(b):''}${la?`<div style="font-size:11px;color:#0F6E56;margin-top:2px">↪ ${esc(String((la.type||'Activity')+(la.note?': '+la.note:'')).slice(0,46))}</div>`:''}</td><td>${am?esc(am):'<span class="tag" style="background:#F0453A14;color:#D92D20">Unassigned</span>'}</td><td style="color:var(--muted);font-size:12px">${b.area?esc(b.area):'<span style="color:#C9C2B6">—</span>'}</td><td>${(b.tier==="Key")?'<span class="tag" style="background:#A9781A1a;color:#A9781A;font-weight:800">KEY</span>':'<span class="tag" style="background:#EEF0F5;color:#5b6178">Standard</span>'}</td><td style="white-space:nowrap;color:var(--muted);font-size:12px">${since?esc(typeof since==='number'?new Date(since).toISOString().slice(0,10):String(since)):'<span style="color:#C9C2B6">—</span>'}</td><td style="white-space:nowrap;font-weight:800;color:var(--ink)">${wonV?(moneyShort(wonV)):'<span style="color:#C9C2B6;font-weight:400">—</span>'}</td><td style="color:var(--muted);font-size:11.5px">${(b.channels||[]).length?b.channels.map(esc).join(", "):'-'}</td><td style="white-space:nowrap;${overdue?'color:#D92D20;font-weight:700':'color:var(--muted)'}">${b.nextReview?esc(b.nextReview):'-'}</td><td style="white-space:nowrap">${pdCellLinks(b)}</td><td><button class="btn ghost sm" style="padding:1px 7px;font-size:10.5px" onclick="event.stopPropagation();leadQuickEdit('${b.id}')">Edit</button></td></tr>`;}).join("")||'<tr><td colspan="10" class="empty">No clients match.</td></tr>'}
+  <div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th style="cursor:pointer" onclick="clSortBy('name')">Client${clArrow('name')}</th><th style="cursor:pointer" onclick="clSortBy('am')">Account manager${clArrow('am')}</th><th>Area</th><th style="cursor:pointer" onclick="clSortBy('tier')">Tier${clArrow('tier')}</th><th>Client since</th><th>Won (SAR)</th><th>Channels</th><th style="cursor:pointer" onclick="clSortBy('review')">Next review${clArrow('review')}</th><th style="cursor:pointer" onclick="clSortBy('health')" title="Client health — Good / Watch / At risk. Click to surface at-risk clients.">Health${clArrow('health')}</th><th></th></tr></thead><tbody>
+  ${cl.map(b=>{const am=b.accountManager||b.assignedTo;const overdue=b.nextReview&&b.nextReview<=today;const la=(b.activities||[]).slice().sort((x,y)=>(y.date||0)-(x.date||0))[0];const since=b.convertedDate||b.convertDate||'';const wonV=b.totalSAR||b.dealValue||0;const _h=clientHealth(b);return `<tr data-health="${_h.l}" style="cursor:pointer" onclick="openLead='${b.id}';current='leads';render()"><td><b>${window.nmMain?esc(nmMain(b)):esc(b.name)}</b>${window.nmSubHTML?nmSubHTML(b):''}${la?`<div style="font-size:11px;color:#0F6E56;margin-top:2px">↪ ${esc(String((la.type||'Activity')+(la.note?': '+la.note:'')).slice(0,46))}</div>`:''}</td><td>${am?esc(am):'<span class="tag" style="background:#F0453A14;color:#D92D20">Unassigned</span>'}</td><td style="color:var(--muted);font-size:12px">${b.area?esc(b.area):'<span style="color:#C9C2B6">—</span>'}</td><td>${(b.tier==="Key")?'<span class="tag" style="background:#A9781A1a;color:#A9781A;font-weight:800">KEY</span>':'<span class="tag" style="background:#EEF0F5;color:#5b6178">Standard</span>'}</td><td style="white-space:nowrap;color:var(--muted);font-size:12px">${since?esc(typeof since==='number'?new Date(since).toISOString().slice(0,10):String(since)):'<span style="color:#C9C2B6">—</span>'}</td><td style="white-space:nowrap;font-weight:800;color:var(--ink)">${wonV?(moneyShort(wonV)):'<span style="color:#C9C2B6;font-weight:400">—</span>'}</td><td style="color:var(--muted);font-size:11.5px">${(b.channels||[]).length?b.channels.map(esc).join(", "):'-'}</td><td style="white-space:nowrap;${overdue?'color:#D92D20;font-weight:700':'color:var(--muted)'}">${b.nextReview?esc(b.nextReview):'-'}</td>${(function(){var h=_h;return '<td><span class="tag" style="background:'+h.c+'1a;color:'+h.c+';font-weight:700" title="'+h.why+'">'+h.l+'</span></td>';})()}<td><button class="btn ghost sm" style="padding:1px 7px;font-size:10.5px" onclick="event.stopPropagation();leadQuickEdit('${b.id}')">Edit</button></td></tr>`;}).join("")||'<tr><td colspan="10" class="empty">No clients match.</td></tr>'}
   </tbody></table></div></div>`;
   const cq=document.getElementById("clq");if(cq){cq.onchange=e=>{clFilter.q=e.target.value;render();};}
 }
@@ -5765,8 +5780,8 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
     },
     clients:{
       demoteSelectors:['.v26-kpi-grid','.kpis','.grid-2','.legend-bar'],
-      chipsEn:[{label:'All clients',filter:'all',active:true},{label:'Active',filter:'Active'},{label:'At risk',filter:'AtRisk'}],
-      chipsAr:[{label:'الكل',filter:'all',active:true},{label:'نشط',filter:'Active'},{label:'في خطر',filter:'AtRisk'}]
+      chipsEn:[{label:'All clients',filter:'all',active:true},{label:'At risk',filter:'AtRisk'}],
+      chipsAr:[{label:'الكل',filter:'all',active:true},{label:'في خطر',filter:'AtRisk'}]
     },
     projects:{
       demoteSelectors:['.hero','.kpis','.chips'],
@@ -5963,6 +5978,13 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
           if(filter==='all'){card.style.display='';return;}
           var t=(card.textContent||'');
           card.style.display=t.indexOf(filter)>=0?'':'none';
+        });
+        return;
+      }
+      if(sec==='clients'&&filter==='AtRisk'){
+        /* Robust: match the client-health badge by data attribute, not visible text */
+        view.querySelectorAll('tbody tr').forEach(function(tr){
+          tr.style.display=(tr.getAttribute('data-health')==='At risk')?'':'none';
         });
         return;
       }
@@ -6549,7 +6571,7 @@ window.rptPpt=function(){
     var raw=(el.textContent||'').trim();var arrow='';var k=raw;
     if(/ [▲▼]$/.test(raw)){arrow=raw.slice(-2);k=raw.slice(0,-2).trim();}
     var D=(typeof V21_STRINGS_AR!=='undefined'&&V21_STRINGS_AR)||I18N.ar||{};
-    if(k&&D[k])el.textContent=D[k]+arrow;
+    if(k&&D[k]){if(!el.hasAttribute('data-v27en'))el.setAttribute('data-v27en',el.textContent);el.textContent=D[k]+arrow;}
    });
   }
  }catch(e){}return out;};
@@ -6739,7 +6761,7 @@ window.rptPpt=function(){
  window.leadSort={k:"value",dir:-1};
  window.leadSortBy=function(k){if(leadSort.k===k)leadSort.dir*=-1;else{leadSort.k=k;leadSort.dir=(k==="last"||k==="value")?-1:1;}drawLeads();};
  window.leadArrow=function(k){return leadSort.k===k?(leadSort.dir>0?" \u25B2":" \u25BC"):"";};
- window.leadSortVal=function(b,k){switch(k){case "name":return String(b.name||"").toLowerCase();case "stage":return LEAD_STAGES.indexOf(leadStage(b));case "funnel":return String(b.source||"").toLowerCase();case "last":return b.lastContact||0;case "owner":return String(b.assignedTo||b.owner||"").toLowerCase();default:return b.totalSAR||0;}};
+ window.leadSortVal=function(b,k){switch(k){case "name":return String(b.name||"").toLowerCase();case "stage":return LEAD_STAGES.indexOf(leadStage(b));case "funnel":return String(b.source||"").toLowerCase();case "last":return b.lastContact||0;case "owner":return String(b.assignedTo||b.owner||"").toLowerCase();case "score":return leadScore(b);default:return b.totalSAR||0;}};
  console.info("%c[v29.4] helpers + website/corp-flag migration loaded","color:#2E90FA;font-weight:700");
 }catch(e){console.warn("[v29.4] fail",e);}})();
 /* v29.5 ownership + quick edit: team list (editable), lead quick-edit modal, account manager / key-account fields */
@@ -6930,7 +6952,8 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
     '<th style="cursor:pointer" onclick="leadSortBy(\'stage\')">Stage'+leadArrow('stage')+'</th>'+
     '<th style="cursor:pointer" onclick="leadSortBy(\'funnel\')">Funnel'+leadArrow('funnel')+'</th>'+
     '<th style="cursor:pointer" onclick="leadSortBy(\'last\')">Last activity'+leadArrow('last')+'</th>'+
-    '<th>Next action</th><th style="cursor:pointer" onclick="leadSortBy(\'owner\')">Owner'+leadArrow('owner')+'</th><th>Open in Direct</th></tr>';
+    '<th>Next action</th><th style="cursor:pointer" onclick="leadSortBy(\'owner\')">Owner'+leadArrow('owner')+'</th>'+
+    '<th style="cursor:pointer" onclick="leadSortBy(\'score\')" title="How hot this lead is (Hot / Warm / Cool / Cold). Click to sort — work the hottest first.">Priority'+leadArrow('score')+'</th></tr>';
   var rows=list.map(function(b){
     var sg=leadStage(b);var stale=b.lastContact&&(Date.now()-b.lastContact>1209600000)&&sg!=='Won'&&sg!=='Lost';
     var sc=(SOURCE_COLOR[b.source]||'#9AA1B6');
@@ -6942,7 +6965,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
      '<td style="color:var(--muted);white-space:nowrap">'+(b.lastContact?fmtAgo(b.lastContact):'—')+'</td>'+
      '<td style="color:var(--muted);max-width:170px;white-space:normal">'+esc(b.nextAction||'—')+'</td>'+
      '<td style="color:var(--muted)">'+((b.assignedTo||b.owner)?esc(b.assignedTo||b.owner):'<span class="tag" style="background:#F0453A14;color:#D92D20">Unassigned</span>')+'</td>'+
-     '<td style="white-space:nowrap">'+pdCellLinks(b)+'</td></tr>';
+     '<td>'+(function(){var _s=leadScore(b),_sb=scoreBand(_s);return '<span class="tag" style="background:'+_sb.c+'1a;color:'+_sb.c+';font-weight:700" title="Lead score '+_s+'/100">'+_sb.l+'</span>';})()+'</td></tr>';
   }).join('')||'<tr><td colspan="8" class="empty">No businesses match this view.</td></tr>';
   board.innerHTML=ctrl+'<div class="card" style="padding:0"><div class="tbl-wrap"><table><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div></div>';
  };
@@ -7703,6 +7726,7 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
     }
   }catch(_){}}
   function filterChip(){try{
+    if(typeof current==='undefined'||current!=='leads')return; // Has-app filter belongs to the SIP leads funnel, not Clients/Offers/Airlines
     var tb=document.querySelector('.toolbar'); if(!tb||document.getElementById('sip_hasapp'))return;
     var btn=document.createElement('button'); btn.id='sip_hasapp'; btn.type='button'; btn.textContent='Has app';
     btn.style.cssText='padding:7px 12px;font-size:12.5px;border-radius:9px;border:1px solid var(--line-2,#e3ddd2);background:'+(hasAppOnly?'#0EA5E9':'#fff')+';color:'+(hasAppOnly?'#fff':'inherit')+';cursor:pointer';
@@ -9688,6 +9712,46 @@ console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:70
   if(typeof render==='function'){ var _r29=render; window.render=function(){ var o=_r29.apply(this,arguments); injectFinance(); return o; }; }
   injectFinance();
 }catch(e){ if(window.console)console.warn('[v29] init',e); }})();
+</script>
+<script>
+/* v31 — Leads pipeline conversion strip. A small stat row at the top of the Leads LIST:
+   new this month, in pipeline, conversion rate, avg time to win. Aggregate, additive, reversible. */
+(function(){try{
+  var fl=function(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;};
+  function created(b){return b.created_at||b.createdAt||b.created||'';}
+  function stripHtml(){
+    var all=(typeof DB!=='undefined'&&DB.businesses)||[]; if(!all.length)return '';
+    var stg=function(b){return (typeof leadStage==='function')?leadStage(b):(b.stage||'');};
+    var month=new Date().toISOString().slice(0,7);
+    var newThis=all.filter(function(b){return String(created(b)).slice(0,7)===month;}).length;
+    var won=all.filter(function(b){return stg(b)==='Won'||b.isClient;});
+    var lost=all.filter(function(b){return stg(b)==='Lost';}).length;
+    var decided=won.length+lost, conv=decided>0?Math.round(won.length/decided*100):0;
+    var active=all.filter(function(b){var s=stg(b);return s!=='Won'&&s!=='Lost'&&!b.isClient;}).length;
+    var wt=won.map(function(b){var c=created(b),cv=b.convertedDate||b.convertDate;if(!c||!cv)return null;var d=(new Date(cv).getTime()-new Date(c).getTime())/864e5;return (isFinite(d)&&d>=0)?d:null;}).filter(function(x){return x!=null;});
+    var avg=wt.length?Math.round(wt.reduce(function(a,x){return a+x;},0)/wt.length):null;
+    var tile=function(v,l,c){return '<div style="flex:1;min-width:118px"><div style="font-size:20px;font-weight:800;color:'+(c||'#1C1E2B')+'">'+v+'</div><div style="font-size:11px;color:var(--muted)">'+l+'</div></div>';};
+    return '<div class="card v31-conv" style="display:flex;gap:18px;flex-wrap:wrap;padding:14px 18px;margin-bottom:14px">'+
+      tile(newThis,fl('New this month','جديد هذا الشهر'),'#175CD3')+
+      tile(active,fl('In pipeline','قيد المتابعة'),'#7A5AF8')+
+      tile(conv+'%',fl('Conversion rate','نسبة التحويل'),conv>=30?'#16B364':'#F79009')+
+      tile(avg==null?'—':(avg+' '+fl('days','يوم')),fl('Avg time to win','متوسط وقت الكسب'),'#0F6E56')+
+    '</div>';
+  }
+  function inject(){
+    try{
+      if(typeof current==='undefined'||current!=='leads')return;
+      if(typeof openLead!=='undefined'&&openLead)return; // list view only, not the lead detail
+      var view=document.getElementById('view'); if(!view||view.querySelector('.v31-conv'))return;
+      var html=stripHtml(); if(!html)return;
+      var wrap=document.createElement('div'); wrap.innerHTML=html;
+      if(wrap.firstChild) view.insertBefore(wrap.firstChild,view.firstChild);
+    }catch(e){ if(window.console)console.warn('[v31] conv strip',e); }
+  }
+  window.v31Conv=inject;
+  if(typeof render==='function'){ var _r31=render; window.render=function(){ var o=_r31.apply(this,arguments); inject(); return o; }; }
+  inject();
+}catch(e){ if(window.console)console.warn('[v31] init',e); }})();
 </script>
 
 </body>
