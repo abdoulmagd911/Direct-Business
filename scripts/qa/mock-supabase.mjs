@@ -67,8 +67,11 @@ export function start(port){
     const single=(req.headers.accept||'').includes('vnd.pgrst.object');
     return send(res,200, single?(rows[0]||null):rows, {'Content-Range':'0-'+Math.max(rows.length-1,0)+'/'+rows.length});
   }
-  let f=path==='/'||path==='/ops'?'/index.html':path;
-  try{ const body=fs.readFileSync(APP+f); res.writeHead(200,{'Content-Type':f.endsWith('.html')?'text/html; charset=utf-8':'text/plain'}); res.end(body); }
-  catch(e){ res.writeHead(404); res.end('nf'); }
+  // Serve a real file if it exists; otherwise fall back to index.html (mirrors the vercel.json
+  // SPA rewrite) so deep paths like /leads or /clients and browser reloads work as in production.
+  let f=path==='/'?'/index.html':path; let body=null;
+  try{ body=fs.readFileSync(APP+f); }
+  catch(_){ try{ body=fs.readFileSync(APP+'/index.html'); f='/index.html'; }catch(e){ res.writeHead(404); return res.end('nf'); } }
+  res.writeHead(200,{'Content-Type':f.endsWith('.html')?'text/html; charset=utf-8':(f.endsWith('.js')?'application/javascript':'text/plain')}); res.end(body);
  }).listen(port);
 }

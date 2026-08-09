@@ -7140,26 +7140,38 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
   // ---- full-screen login overlay (covers the app until signed in) ----
   var ov=el('div','position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#1C1E2B,#2A2D3E 60%,#3C4050);font-family:Cairo,Inter,system-ui,Arial,sans-serif');
   var card=el('div','width:380px;max-width:92vw;background:#FBF8F4;border-radius:20px;box-shadow:0 30px 80px -20px rgba(0,0,0,.6);padding:30px 28px;');
-  card.innerHTML=
+  var loginHTML=
     '<div style="text-align:center;margin-bottom:6px"><img id="cl_logo" alt="Direct" style="display:none;max-width:180px;max-height:58px;margin:0 auto 12px"><div style="font-size:22px;font-weight:800;color:#1C1E2B;letter-spacing:-.02em">'+(typeof brandName==='function'?brandName():'Direct Business')+'</div>'+
     '<div style="font-size:12px;color:#7C8194;direction:rtl">دايركت أعمال</div></div>'+
     '<div style="font-size:12.5px;color:#7C8194;text-align:center;margin:10px 0 18px">Sign in to your team workspace</div>'+
     '<div id="cl_err" style="display:none;background:#F0453A14;color:#D92D20;font-size:12.5px;padding:9px 12px;border-radius:10px;margin-bottom:12px"></div>'+
     '<label style="font-size:12px;font-weight:700;color:#55596A">Email</label>'+
-    '<input id="cl_email" aria-label="Email address" type="email" autocomplete="username" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
+    '<input id="cl_email" aria-label="Email address" type="email" autocomplete="username" inputmode="email" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:16px">'+
     '<label style="font-size:12px;font-weight:700;color:#55596A">Password</label>'+
-    '<input id="cl_pw" aria-label="Password" type="password" autocomplete="current-password" style="width:100%;box-sizing:border-box;margin:5px 0 6px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
+    '<input id="cl_pw" aria-label="Password" type="password" autocomplete="current-password" style="width:100%;box-sizing:border-box;margin:5px 0 6px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:16px">'+
     '<div style="text-align:right;margin:0 0 12px"><span id="cl_forgot" style="color:#F06820;font-size:12px;font-weight:700;cursor:pointer">Forgot password?</span></div>'+
     '<button id="cl_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#F06820,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer;box-shadow:0 10px 22px -7px rgba(240,104,32,.5)">Sign in</button>'+
     '<div style="text-align:center;margin-top:14px;font-size:12px;color:#9AA1B6;line-height:1.6">Accounts are created by your admin.<br>Need access? Ask Abdulrahman.</div>'+
     '<div id="cl_busy" style="display:none;text-align:center;margin-top:12px;font-size:12px;color:#7C8194">Working...</div>';
+  // Boot splash: shown while we quietly check for an existing session, so a signed-in
+  // person who reloads never sees the login form flash before the app appears.
+  var splashHTML='<div style="text-align:center;padding:18px 6px 8px">'+
+    '<img id="cl_logo" alt="Direct" style="display:none;max-width:180px;max-height:58px;margin:0 auto 14px">'+
+    '<div style="font-size:22px;font-weight:800;color:#1C1E2B;letter-spacing:-.02em">'+(typeof brandName==='function'?brandName():'Direct Business')+'</div>'+
+    '<div style="font-size:12px;color:#7C8194;direction:rtl;margin-top:2px">دايركت أعمال</div>'+
+    '<div style="width:26px;height:26px;border:3px solid #EADFCE;border-top-color:#F06820;border-radius:50%;margin:24px auto 12px;animation:clspin .8s linear infinite"></div>'+
+    '<div style="font-size:12.5px;color:#7C8194">Loading your workspace…</div></div>';
+  try{if(!document.getElementById('cl_boot_css')){var _bs=document.createElement('style');_bs.id='cl_boot_css';_bs.textContent='@keyframes clspin{to{transform:rotate(360deg)}}';(document.head||document.documentElement).appendChild(_bs);}}catch(_){}
+  card.innerHTML=splashHTML;
   ov.appendChild(card);
   function showOverlay(){ if(!document.body.contains(ov)) document.body.appendChild(ov); }
   function hideOverlay(){ if(document.body.contains(ov)) ov.remove(); }
   function err(m){var e=document.getElementById('cl_err');if(e){e.style.display='block';e.textContent=m;}}
   function busy(b){var x=document.getElementById('cl_busy');if(x)x.style.display=b?'block':'none';var g=document.getElementById('cl_go');if(g)g.disabled=b;}
-  var mode='in';
-  // attach overlay as early as possible
+  var mode='in', formShown=false;
+  // Swap the splash for the real login form — only when we actually need a sign-in.
+  function showLoginForm(){ if(formShown)return; card.innerHTML=loginHTML; formShown=true; try{setLogo(0);}catch(_){}; try{wireForm();}catch(_){} }
+  // attach overlay as early as possible (as a neutral splash, not the login form)
   if(document.body) showOverlay(); else document.addEventListener('DOMContentLoaded',showOverlay);
 
   // ---- tiny sync status pill ----
@@ -7231,8 +7243,12 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
     if(!window.supabase){ setTimeout(start,150); return; }
     sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
     setLogo(0);
-    wireForm();
-    sb.auth.getSession().then(function(r){ handleSession(r.data.session); });
+    var settled=false;
+    sb.auth.getSession().then(function(r){ settled=true; handleSession(r.data.session); })
+      .catch(function(){ settled=true; showLoginForm(); });
+    // Safety net: if the session check stalls (bad network), fall back to the login form
+    // after a few seconds so nobody is ever stuck staring at the splash.
+    setTimeout(function(){ if(!settled && !formShown){ showLoginForm(); } }, 6000);
     sb.auth.onAuthStateChange(function(_e,s){
       if(s&&s.user){me=s.user;}
       if(_e==='PASSWORD_RECOVERY'){ showRecovery(); }
@@ -7311,7 +7327,7 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
   }
 
   function handleSession(session){
-    if(!session){ showOverlay(); return; }
+    if(!session){ showLoginForm(); showOverlay(); return; }
     me=session.user;
     // v32: leads load row-by-row from the businesses table (single source of truth).
     // The app_state blob only carries the rest (settings, airlines, requests, ...).
@@ -7613,22 +7629,62 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
 </script>
 
 <script>
-/* Clean URL routing: each section/record gets a real path (no # and no query); refresh, back & forward keep your place */
+/* Clean URL routing + filter memory: each section/record gets a real path (no # and no query);
+   refresh, back & forward keep your place. The active filters and sub-tabs on Leads/Clients are
+   recorded in history too, so pressing Back first UNDOES the last filter you applied and keeps you
+   on the page, instead of ejecting you out to whatever section you were on before. */
 (function(){try{
   var VALID=['today','dashboard','leads','clients','airlines','vendors','providers','sops','slas','sopsla','reports','ops','operations','offers','activity','archive','bookings','invoices','tickets'];
   // capture the address the page opened at (accept clean path, or migrate an old #/hash); ignore any ?v= cache param
   var boot=(function(){var h=String(location.hash||'');if(h.indexOf('#/')===0)return h.slice(1);return String(location.pathname||'/');})();
-  var ready=false, lastPath=null;
+  var ready=false, lastPath=null, restoring=false;
   function parse(path){var m=String(path||'').match(/^\/([a-zA-Z]+)(?:\/(lead|offer|invoice)\/([^\/?#]+))?/);return m?{sec:m[1],dk:m[2],dv:m[3]}:null;}
   function curSafe(){try{return current;}catch(_){return undefined;}}
   function leadSafe(){try{return (typeof openLead!=='undefined')?openLead:'';}catch(_){return '';}}
   function buildPath(){var c=curSafe();if(typeof c==='undefined')return null;var p='/'+c;try{if(typeof openLead!=='undefined'&&openLead)p+='/lead/'+openLead;else if(typeof openOffer!=='undefined'&&openOffer)p+='/offer/'+openOffer;else if(typeof openInvoice!=='undefined'&&openInvoice)p+='/invoice/'+openInvoice;}catch(_){}return p;}
-  function writeURL(){if(!ready)return;try{var p=buildPath();if(!p)return;if(location.pathname===p&&!location.hash)return;if(lastPath===null)history.replaceState(null,'',p);else history.pushState(null,'',p);lastPath=p;}catch(_){}}
+  // ---- the sub-state that Back should step through, per section (search text is left out on purpose,
+  //      so Back never has to walk back through every keystroke) ----
+  function snapFilters(){try{var c=curSafe();
+    if(c==='leads'){var lf=(typeof leadFilter!=='undefined')?leadFilter:{};
+      return JSON.stringify({s:lf.stage||'all',c:lf.cat||'all',h:!!lf.hideClosed,a:!!lf.attention,
+        ft:(typeof window.__funnelTab!=='undefined'?window.__funnelTab:'all'),
+        na:(typeof window.__needsAttn!=='undefined'?!!window.__needsAttn:false)});}
+    if(c==='clients'){var cf=(typeof window.clFilter!=='undefined')?window.clFilter:{};
+      return JSON.stringify({o:cf.owner||'all',t:cf.tier||'all'});}
+  }catch(_){}return '';}
+  function restoreFilters(fs){if(!fs)return;try{var o=JSON.parse(fs),c=curSafe();
+    if(c==='leads'&&typeof leadFilter!=='undefined'){
+      leadFilter.stage=o.s||'all';leadFilter.cat=o.c||'all';leadFilter.hideClosed=!!o.h;leadFilter.attention=!!o.a;
+      window.__funnelTab=o.ft||'all';window.__needsAttn=!!o.na;
+    }else if(c==='clients'&&typeof window.clFilter!=='undefined'){
+      window.clFilter.owner=o.o||'all';window.clFilter.tier=o.t||'all';
+    }
+  }catch(_){}}
+  function writeURL(){if(!ready||restoring)return;try{var p=buildPath();if(!p)return;var f=snapFilters();
+    var st=history.state||{};var samePath=(location.pathname===p&&!location.hash);
+    if(lastPath!==null&&samePath&&st.f===f)return; // nothing meaningful changed → no new history entry
+    var entry={p:p,f:f};
+    if(lastPath===null)history.replaceState(entry,'',p);else history.pushState(entry,'',p);
+    lastPath=p;
+  }catch(_){}}
   function applyRoute(r){if(!r)return false;if(VALID.indexOf(r.sec)<0&&!r.dk)return false;try{if(r.dk==='lead'&&r.dv){current='leads';openLead=r.dv;}else if(r.dk==='offer'&&r.dv){current='offers';openOffer=r.dv;}else if(r.dk==='invoice'&&r.dv){current='invoices';openInvoice=r.dv;}else{if(VALID.indexOf(r.sec)>=0)current=r.sec;try{openLead='';}catch(_){}}}catch(_){return false;}return true;}
-  function restoreBoot(){var r=parse(boot);if(applyRoute(r)){try{if(typeof render==='function')render();}catch(_){}}ready=true;lastPath=buildPath();try{if(lastPath)history.replaceState(null,'',lastPath);}catch(_){}}
-  function wrap(){try{if(typeof render==='function'&&!render.__pathWrap){var _r=render;render=function(){var o=_r.apply(this,arguments);writeURL();return o;};render.__pathWrap=true;}}catch(_){}}
+  function restoreBoot(){var r=parse(boot);if(applyRoute(r)){try{if(typeof render==='function')render();}catch(_){}}ready=true;lastPath=buildPath();try{if(lastPath)history.replaceState({p:lastPath,f:snapFilters()},'',lastPath);}catch(_){}}
+  // wrap render AND the filter re-draws (renderLeads/drawLeads) so a filter change records history too
+  function wrapFn(name){try{var f=window[name];if(typeof f==='function'&&!f.__pathWrap){var _f=f;window[name]=function(){var o=_f.apply(this,arguments);writeURL();return o;};window[name].__pathWrap=true;}}catch(_){}}
+  function wrap(){wrapFn('render');wrapFn('renderLeads');wrapFn('drawLeads');}
   var tries=0;var iv=setInterval(function(){tries++;var ok=false;try{ok=(typeof render==='function'&&typeof DB!=='undefined');}catch(_){ok=false;}if(ok){wrap();clearInterval(iv);restoreBoot();}else if(tries>75){clearInterval(iv);wrap();restoreBoot();}},200);
-  window.addEventListener('popstate',function(){if(!ready)return;var r=parse(location.pathname);if(!r)return;var changed=r.sec!==curSafe()||(r.dk==='lead'&&r.dv!==leadSafe())||(!r.dk&&leadSafe());if(changed&&applyRoute(r)){lastPath=buildPath();try{if(typeof render==='function')render();}catch(_){}}});
+  window.addEventListener('popstate',function(e){if(!ready)return;var r=parse(location.pathname);if(!r)return;
+    var st=(e&&e.state)||history.state||{};
+    var secChanged=r.sec!==curSafe()||(r.dk==='lead'&&r.dv!==leadSafe())||(!r.dk&&leadSafe());
+    restoring=true;
+    try{
+      if(secChanged)applyRoute(r);
+      restoreFilters(st.f);        // put the filters/sub-tabs back to how they were at this history point
+      lastPath=buildPath();
+      if(typeof render==='function')render();
+    }catch(_){}
+    restoring=false;
+  });
 }catch(e){console.warn('router',e);}})();
 </script>
 
@@ -10039,6 +10095,37 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
   console.info('%c[v39] detail-card tidy loaded','color:#9AA1B6;font-weight:700');
 }catch(e){if(window.console)console.warn('[v39] init',e);}})();
 </script>
+
+<style id="v46-mobile">
+/* v46 — mobile hardening. On a phone the top bar packed the page title plus every tool button
+   into one non-wrapping row, so the buttons spilled off the right edge and dragged the whole
+   page sideways — it rendered zoomed-out and shifted ("the page is off"). Fix: on small screens
+   let the tools drop onto their own full-width row instead of overflowing, and hide the buttons
+   that only make sense on a computer (export, ⌘K shortcut, help, "view as…", share links).
+   Desktop is untouched, and every hidden tool is still fully available on a computer. */
+@media(max-width:640px){
+  /* Several older layers each restyle this top bar (one forces the tools to width:100%, another
+     adds margin-left:auto, a third tries a column layout) and together they left it spilling off
+     the right edge — which zoomed the whole page out. These !important rules settle it: a simple
+     wrapping row, tools sized to their content, and the desktop-only + admin buttons hidden on
+     phones (all still available on a computer). Result: nothing exceeds the screen width. */
+  .top{ display:flex !important; flex-direction:row !important; flex-wrap:wrap !important;
+        align-items:center !important; gap:8px !important; }
+  .top .tools{ width:auto !important; max-width:100% !important; margin-left:auto !important;
+               flex-wrap:wrap !important; justify-content:flex-end !important; gap:6px !important; }
+  .top .exp-wrap,
+  .top #kBtn,
+  .top #hBtn,
+  .top #v25PresetBtn,
+  .top #cl_share,
+  .top #cl_team,
+  .top #v41acc{ display:none !important; }
+  #vTitle{ font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .wrap{ max-width:100%; }
+  /* wide tables keep scrolling inside their own box instead of stretching the page */
+  #board,.tbl-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; }
+}
+</style>
 
 </body>
 </html>
