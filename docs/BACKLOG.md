@@ -3,7 +3,19 @@
 Living list. Every session should read this and update it. Nothing here is forgotten,
 it is *parked*, and each item says why and what "done" looks like.
 
-Last reviewed: **2026-08-08**
+Last reviewed: **2026-08-09**
+
+### Shipped 2026-08-09 (live)
+- **Declutter of Leads / Clients / Finance** — removed the dead "Open in Direct" columns,
+  scoped the "Has app" filter to Leads, removed the empty "Active" client chip, fixed the
+  "At risk" client chip (was matching nothing), and fixed the Export dropdown so its items
+  return to English when the app is switched back from Arabic.
+- **Client health** badge (Good / Watch / At risk / New), **lead Priority** column
+  (Hot/Warm/Cool/Cold, sortable), and a **leads Conversion strip** (new this month, in
+  pipeline, conversion %, avg time to win).
+- **Leads stage chips now actually filter** the table (they used to highlight but do nothing),
+  with truthful leads-only counts. This closes the "next thing to fix" that was in the
+  known-issues list.
 
 ---
 

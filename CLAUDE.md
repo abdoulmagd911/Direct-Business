@@ -267,11 +267,15 @@ Today and Leads were invisible in the code and obvious on screen.
   the dead ends.
 - **Ownership is free text.** `assigned_to` / `account_manager` are plain names, not links
   to real users — so "show me only my leads" can't be built until that's fixed.
-- **The Leads stage filters miss almost every lead.** The chips read
-  *New / Qualifying / Proposing / Won / Lost*, but `businesses.stage` holds
-  `new, contacted, in_discussion, proposal, won, lost`. Only Won and Lost line up. In the
-  live data that is 973 of 1013 leads sitting at stage `new` while the "New" chip counts
-  zero. Two vocabularies; `STATUS_TO_STAGE` maps some of it but not the filters. Verified
-  in a browser sweep and against the live table. **This is the next thing to fix.**
+- ~~**The Leads stage filters miss almost every lead.**~~ **FIXED 2026-08-09.** Two
+  separate problems were resolved. (1) The chip vocabulary was expanded to match the real
+  data — chips now read All / New / Prospect / Contacted / Qualified / Proposal / Won / Lost
+  (the app converts DB `new`→screen `Prospect`/`New`, `in_discussion`→`Qualified`, etc. via
+  `C2S`/`stageToApp`), and the counts are computed from the live records. (2) The chips were
+  *also* a no-op: clicking one highlighted it but filtered nothing, because the handler hid
+  `.lead` card elements while the Leads list renders as a **table**. They now drive the real
+  pipeline (`leadFilter.stage` + `drawLeads()` → `matchLead`), the counts reflect leads only,
+  and the active chip + the "All stages" dropdown stay in sync. Verified in the harness (each
+  chip filters to exactly its stage; badge count == rows shown; EN+AR clean).
 - `business@directksa.com` is listed as an admin in `access_allowlist` but has no login
   yet. Abdulrahman's other address, `aboelmagd@directksa.com`, is a working admin.
