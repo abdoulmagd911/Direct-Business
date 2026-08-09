@@ -258,6 +258,20 @@ Today and Leads were invisible in the code and obvious on screen.
   the tab loaded, so two people working on different sections no longer overwrite each
   other. If you add a new top-level key to `DB`, it is picked up automatically. Don't
   reintroduce a full-blob write.
+- **The lead/client-detail cards are built by injection layers, not the base render.** The
+  detail page is enhanced after render by a stack of `try/catch` blocks at the end of the
+  file, each wrapping `renderLeadDetail`/`render` and injecting one card with a `setTimeout`
+  and a `view.querySelector('.vNN-…')` guard so it renders exactly once. The current stack:
+  `v33` service-fit map (leads **and** clients), `v34` Direct-link banner (clients only),
+  `v35` suggested-next-step nudge (active leads only), `v36` "profile managed in Direct" note
+  (clients only). If you add another, copy that pattern and gate on `b.isClient` correctly.
+- **The client onboarding form is deliberately collapsed (v36).** The full local onboarding
+  editor (`v22OpenClientOnboarding`) duplicates Direct's client master (CR/VAT/IBAN, pricing
+  scheme, credit line, documents) — the duplication trap. `v36` **hides** the loud
+  "🏛 KSA onboarding" button and shows a "managed in Direct ↗" note instead. This is a
+  reversible hide, **not** a delete: the function is untouched and still reachable via the
+  note's quiet "local form" link and the "Edit client profile (full form)" button. Don't
+  "fix" the hidden button — it's intentional.
 
 ## Known structural issues (context, not a to-do list)
 
