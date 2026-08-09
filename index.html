@@ -9985,6 +9985,37 @@ console.info('%c[v43 per-session identity] loaded','color:#F47A1F;font-weight:70
   console.info('%c[v36] client profile managed-in-Direct note loaded','color:#9AA1B6;font-weight:700');
 }catch(e){if(window.console)console.warn('[v36] init',e);}})();
 </script>
+<script>
+/* v37 — Leads declutter: retire the redundant / stale-vocabulary filter controls.
+   The Leads page filters the same things three ways. The live, correct controls are the
+   stage chips (v26.3 → leadFilter.stage) and the funnel strip (v33 → funnelKey, real funnel
+   names + counts). The base toolbar's "All stages" (#stgsel) and "All funnels" (#fnsel)
+   dropdowns duplicate them with STALE vocabulary (old source names, "Client"/"Negotiation"),
+   and the base "Needs attention" button duplicates the funnel strip's counted one.
+   HIDE, don't delete — fully reversible: remove this block and the controls return.
+   Their populate/sync code is all guarded (if(fns)/if(sgs)/if(_sg)), so hiding is safe. */
+(function(){try{
+  if(!document.getElementById('v37css')){
+    var st=document.createElement('style'); st.id='v37css';
+    st.textContent='#fnsel,#stgsel{display:none!important}';
+    (document.head||document.documentElement).appendChild(st);
+  }
+  // the base "Needs attention" toggle (onclick attribute references leadFilter.attention);
+  // the v33 strip's counted "Needs attention · N" uses an .onclick property, so it is untouched.
+  function hideDupAttention(){try{
+    if(typeof current==='undefined'||current!=='leads')return;
+    if(typeof openLead!=='undefined'&&openLead)return;
+    var view=document.getElementById('view'); if(!view)return;
+    view.querySelectorAll('button').forEach(function(b){
+      var oc=(b.getAttribute&&b.getAttribute('onclick'))||'';
+      if(/leadFilter\.attention/.test(oc)) b.style.display='none';
+    });
+  }catch(e){}}
+  try{ var _dt=window.drawTable; if(typeof _dt==='function'){window.drawTable=function(){var x=_dt.apply(this,arguments);setTimeout(hideDupAttention,20);return x;};} }catch(_){}
+  try{ var _r=window.render; if(typeof _r==='function'){window.render=function(){var x=_r.apply(this,arguments);setTimeout(hideDupAttention,120);return x;};} }catch(_){}
+  console.info('%c[v37] leads filter declutter loaded','color:#16B364;font-weight:700');
+}catch(e){if(window.console)console.warn('[v37] init',e);}})();
+</script>
 
 </body>
 </html>
