@@ -1,5 +1,12 @@
 # Direct Business — working notes for Claude
 
+> **2026-08-09 — read `docs/HANDOFF_2026-08-09.md` first.** It has the full current state:
+> live data (969 leads / 45 clients), the client moves made + how to undo them, and the
+> **#1 open item**: 201 leads are scraped `BNPL / Fintech merchant directory` retail brands
+> (Samsung, IKEA, Amazon…) — junk, awaiting the user's OK to archive.
+> **Critical:** the QA harness serves FAKE data — verify UI against real Supabase rows or a
+> screenshot, never the mock alone (that gap wasted a sub-session).
+
 ## Standing rules (set by Abdulrahman, 2026-08-08)
 
 1. **Abdulrahman is not a developer.** No jargon. Explain things the way you'd explain
@@ -159,6 +166,14 @@ no invoice to prove the relationship. Big-name leads (SAMA, NEOM, Alshaya, alfan
 Savvy Games, Webook) are **not** clients in the data (no invoices, never flagged) — do not move
 them without Abdulrahman confirming. 68 leads still carry a `total_sar` amount with no matched
 invoice — a soft signal, not proof; a possible next batch to review with him.
+
+**Re-verification, batch 2 — 2026-08-09.** Moved **39** more companies from the `Old Customers`
++ `Invoice history` import (his Direct-Payments customer/invoice export) that carry real billing
+(`total_sar>0`) → clients. Backup: `businesses_snapshot_20260809_clientmove2` (1,035 rows). Now
+**969 leads / 45 clients** live. The remaining ~29 leads-with-an-amount are tender values or deal
+estimates (tenders, suppliers like Amadeus/Booking.com, individuals) — left as leads on purpose.
+The corporate-portal `Companies.html` export he shared is **test data** (that portal isn't
+launched); the real client master is still only in Direct Payments. See `docs/HANDOFF_2026-08-09.md`.
 
 ## Read this first: docs/DIRECT_MASTER_BRIEF.md
 
