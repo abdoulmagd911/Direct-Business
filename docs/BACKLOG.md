@@ -22,9 +22,10 @@ Order of work (per page: polish visuals → verify EN+AR in the harness → scre
 for approval → deploy → delete the old layers that page no longer needs):
 1. **Leads** — list is healthy after the 08-10 fixes; remaining: real SVG icons,
    priority-score tuning (new leads all read Cold), detail-card layout pass.
-2. **Clients** — empty columns read dead (Area/Channels/Next review all dashes,
-   every tier Standard); decide with the owner which columns earn their place;
-   detail card shares the Leads header work.
+2. **Clients** — column decision MADE (owner said "you decide", 2026-08-10):
+   kept Next review (drives the review reminders) + Tier; dropped the always-empty
+   Area and Channels columns from the list (the fields stay on the edit form).
+   Remaining: detail card shares the Leads header work.
 3. **Finance** — numbers verified 08-10; remaining: visual pass + link every row
    back to the client; keep the not-the-money-system boundary visible.
 4. **Settings/Team & Access** — emoji stripped + legacy free-text team editor
