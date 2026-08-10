@@ -7183,6 +7183,9 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
 
   /* ===== v32 row-based lead storage: each lead saves individually to the businesses table ===== */
   var FUNNELS=[], FBYID={}, FBYKEY={}, SNAP={}, ROWID={};
+  /* app record id (legacy_id||uuid) → real businesses.id (uuid). Exposed so the finance link
+     (keyed by the uuid) can be resolved from a client card whose id is the legacy id. */
+  try{ window.__ROWID=ROWID; window.__bizUuid=function(appId){ try{ return (window.__ROWID&&window.__ROWID[appId])||appId; }catch(_){ return appId; } }; }catch(_){}
   /* Every display stage must map back to a database stage. A missing key here silently
      saves the lead as 'new' - that is how On hold used to be lost on save. */
   var S2C={'Prospect':'new','New':'new','Contacted':'contacted','Qualified':'in_discussion','Negotiation':'in_discussion','Proposal':'proposal','Won':'won','Lost':'lost','On hold':'on_hold'};
@@ -8867,11 +8870,22 @@ function finLoad(cb){
   if(FIN.loading)return; FIN.loading=true;
   var c=fc(); if(!c){FIN.loading=false;return;}
   c.from('finance_invoices').select('*').order('invoice_date',{ascending:false}).limit(10000).then(function(r){
-    FIN.loading=false;
     if(r.error){console.warn('finance load',r.error);FIN.rows=[];FIN.loadErr=r.error.message;}
     else {FIN.rows=r.data||[];FIN.loadErr=null;}
-    if(cb)cb();
-    try{if(current==='finance')render();}catch(_){}
+    // Load the client↔finance links (one row per finance client_group → a real client, or
+    // is_client=false for individuals). This is the join key so a client's money reflects by
+    // ID, not by fuzzy name. Small table; build lookup maps once loaded.
+    c.from('finance_client_links').select('*').then(function(lr){
+      FIN.loading=false;
+      FIN.links=(lr&&!lr.error&&lr.data)?lr.data:[];
+      FIN.linkByGroup={}; FIN.groupsByBiz={};
+      FIN.links.forEach(function(l){
+        FIN.linkByGroup[l.client_group]=l;
+        if(l.business_id){ (FIN.groupsByBiz[l.business_id]=FIN.groupsByBiz[l.business_id]||[]).push(l.client_group); }
+      });
+      if(cb)cb();
+      try{if(current==='finance')render();}catch(_){}
+    });
   });
 }
 try{window.FIN=FIN;window.finLoad=finLoad;}catch(_){}  // expose for the Customer-360 finance snapshot (v29)
@@ -9758,9 +9772,20 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
       var FIN=window.FIN, finLoad=window.finLoad;
       if(!FIN)return;
       if(FIN.rows==null){ if(!FIN.loading && typeof finLoad==='function'){ finLoad(function(){ try{if(typeof render==='function')render();}catch(_){}}); } return; }
-      var target=norm(biz.name); if(!target)return;
-      var rows=FIN.rows.filter(function(r){ if(r.deleted_at)return false; return norm(r.client_group)===target || norm(r.customer_raw_name)===target; });
-      if(!rows.length)return; // no exact match -> show nothing (never a wrong match)
+      // Prefer the confirmed client↔finance link (join by business id); fall back to exact name
+      // only when this client has no link row yet — never guesses a wrong company's money.
+      var bizUuid=(window.__bizUuid?window.__bizUuid(biz.id):biz.id);
+      var linkedGroups=(window.FIN&&FIN.groupsByBiz&&bizUuid)?FIN.groupsByBiz[bizUuid]:null;
+      var rows, matchedByLink=false;
+      if(linkedGroups&&linkedGroups.length){
+        var gset={}; linkedGroups.forEach(function(g){gset[g]=1;});
+        rows=FIN.rows.filter(function(r){ return !r.deleted_at && gset[r.client_group]; });
+        matchedByLink=true;
+      } else {
+        var target=norm(biz.name); if(!target)return;
+        rows=FIN.rows.filter(function(r){ if(r.deleted_at)return false; return norm(r.client_group)===target || norm(r.customer_raw_name)===target; });
+      }
+      if(!rows.length)return; // nothing linked or matched -> show nothing (never a wrong match)
       var billed=0,rec=0,out=0,cg=rows[0].client_group||biz.name,last='';
       rows.forEach(function(r){ billed+=+r.total_incl_vat_sar||0; rec+=+r.amount_received_sar||0; out+=+r.amount_remaining_sar||0; if((r.invoice_date||'')>last)last=r.invoice_date||''; });
       var card=document.createElement('div');
@@ -9770,7 +9795,9 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
       card.innerHTML='<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap">'+
           '<h3 style="margin:0">💰 '+fl('Finance','المالية')+'</h3>'+
           '<button class="btn sm" onclick="try{current=\'finance\';FIN.tab=\'ledger\';FIN.f.client='+JSON.stringify(cg).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+';render();}catch(e){}">'+fl('Open in Finance ledger ↗','افتح في سجل المالية ↗')+'</button></div>'+
-        '<div class="ch-sub" style="margin:2px 0 12px">'+fl('Matched to '+rows.length+' invoice'+(rows.length>1?'s':'')+' by company name — verify the name matches before relying on it.','مطابَقة بـ '+rows.length+' فاتورة حسب اسم الشركة — تأكد من تطابق الاسم قبل الاعتماد عليه.')+'</div>'+
+        '<div class="ch-sub" style="margin:2px 0 12px">'+(matchedByLink
+            ? fl('Linked to Direct finance · '+rows.length+' invoice'+(rows.length>1?'s':''),'مرتبطة بمالية دايركت · '+rows.length+' فاتورة')
+            : fl('Matched to '+rows.length+' invoice'+(rows.length>1?'s':'')+' by name — not linked yet; confirm in the finance map.','مطابَقة بـ '+rows.length+' فاتورة حسب الاسم — غير مرتبطة بعد؛ أكّدها في خريطة المالية.'))+'</div>'+
         '<div style="display:flex;gap:18px;flex-wrap:wrap">'+
           mini(fl('Lifetime billed','إجمالي الفوترة'),mS(billed)+' SAR','#175CD3')+
           mini(fl('Received','المُحصّل'),mS(rec)+' SAR','#0F6E56')+
