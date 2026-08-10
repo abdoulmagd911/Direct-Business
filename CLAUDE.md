@@ -257,9 +257,12 @@ Orange `#F06820`, service-table header `#F87020`, cover gradient `#E54525 → #F
 Arabic = 29LT Zarid Slab. Founded 2016, Riyadh, 200+ specialists. Voice: "Global supplier
 power. Saudi service. One partner."
 
-Two mismatches worth knowing: the app uses `#F47A1F` as its orange, not the brand `#F06820`
-(the events page does use the brand value); and **the brand says Arabic is always RTL**,
-while `applyLang()` hardcodes `document.documentElement.dir='ltr'`.
+**Full identity is now consolidated in `docs/DIRECT_IDENTITY.md`** (built 2026-08-10 from a
+Drive sweep of the official 2026 profile + logo kit + real proposals). Read it before any
+Direct-branded design. The old `#F47A1F` app-orange mismatch is **fixed** — the app now uses the
+brand `#F06820` (97×). Note `#fc8004` is the *Direct Payments* admin theme, not the company
+brand. (Historical: the brand said Arabic is always RTL while an early `applyLang()` hardcoded
+`dir='ltr'`; the app has since been flipped to RTL in Arabic.)
 
 ## Testing
 
