@@ -5459,7 +5459,7 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
         {label:V26_DAILY_LABELS.language,sub:lang==='ar'?'بدّل بين EN و AR':'Switch between EN and AR',onClick:function(){if(typeof toggleLang==='function')toggleLang();}},
         {label:V26_DAILY_LABELS.viewAs,sub:lang==='ar'?'غيّر نمط العرض':'Change preset',onClick:function(){var b=document.getElementById('v25PresetBtn');if(b)b.click();}},
         {label:V26_DAILY_LABELS.pool,sub:lang==='ar'?'حرّر السقف وراجع التاريخ':'Edit cap, see history',onClick:function(){if(typeof v25OpenPoolSettings==='function')v25OpenPoolSettings();}},
-        {label:V26_DAILY_LABELS.company,sub:lang==='ar'?'الرقم التجاري، الضريبي، IBAN، Wakeel':'CR, VAT, IBAN, Wakeel',onClick:function(){if(typeof editBusiness==='function'){var me=(DB.businesses||[]).find(function(b){return b.id==='b_directbusiness'||b.isSelf;});if(me)editBusiness(me.id);}}},
+        {label:V26_DAILY_LABELS.company,sub:lang==='ar'?'الرقم التجاري، الضريبي، IBAN، Wakeel':'CR, VAT, IBAN, Wakeel',onClick:function(){if(typeof editBusiness==='function'){var me=(DB.businesses||[]).find(function(b){return b.id==='b_directbusiness'||b.isSelf;});if(me){editBusiness(me.id);return;}}var cs=Array.prototype.slice.call(document.querySelectorAll('#view .card'));var c=null;for(var i=0;i<cs.length;i++){if(/printables|للطباعة/.test(cs[i].textContent||'')){c=cs[i];break;}}if(c){c.scrollIntoView({behavior:'smooth',block:'center'});c.style.outline='2px solid #FF6B00';setTimeout(function(){c.style.outline='';},1600);}}},
         {label:V26_DAILY_LABELS.chain,sub:lang==='ar'?'من يوافق على ماذا':'Who approves what',onClick:function(){var m=(lang==='ar'?'تتم إدارة قواعد التسلسل داخل ملف كل عميل (افتح العميل ثم «التسلسل الإداري»).':'Chain-of-command lives inside each client (open a client → Chain of command).');if(typeof toast==='function')toast(m);else alert(m);}},
         {label:V26_DAILY_LABELS.team,sub:lang==='ar'?'الأعضاء، الأدوار، الصلاحيات':'Members, roles, page access',onClick:function(){if(typeof window.v48Users==='function')window.v48Users();else if(typeof toast==='function')toast('Team & Access');}}
       ];
@@ -7303,7 +7303,7 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
 
   // ---- tiny sync status pill ----
   var pill=el('div','position:fixed;right:14px;bottom:14px;z-index:2147482000;background:#1C1E2B;color:#fff;font:12px Cairo,Inter,system-ui,Arial;padding:7px 12px;border-radius:999px;box-shadow:0 8px 20px -6px rgba(0,0,0,.4);display:none;align-items:center;gap:7px');
-  function setPill(t,c){pill.innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:'+(c||'#16B364')+';display:inline-block"></span>'+t;pill.style.display='inline-flex';}
+  var pillTimer;function setPill(t,c){pill.innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:'+(c||'#16B364')+';display:inline-block"></span>'+t;pill.style.display='inline-flex';clearTimeout(pillTimer);if((c||'#16B364')!=='#D92D20')pillTimer=setTimeout(function(){pill.style.display='none';},2500);}
 
   function setLogo(n){try{var lg=document.querySelector('img.logo, .brand img, .side img');var ci=document.getElementById('cl_logo');if(ci&&lg&&lg.src){ci.src=lg.src;ci.style.display='block';return;}}catch(_){}if((n||0)<20)setTimeout(function(){setLogo((n||0)+1);},250);}
 
@@ -7784,7 +7784,7 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
    recorded in history too, so pressing Back first UNDOES the last filter you applied and keeps you
    on the page, instead of ejecting you out to whatever section you were on before. */
 (function(){try{
-  var VALID=['today','dashboard','leads','clients','airlines','vendors','providers','sops','slas','sopsla','reports','ops','operations','offers','activity','archive','bookings','invoices','tickets'];
+  var VALID=['today','dashboard','leads','clients','airlines','vendors','providers','sops','slas','sopsla','reports','ops','operations','offers','activity','archive','bookings','invoices','tickets','finance','settings','events','sync','projects'];
   // capture the address the page opened at (accept clean path, or migrate an old #/hash); ignore any ?v= cache param
   var boot=(function(){var h=String(location.hash||'');if(h.indexOf('#/')===0)return h.slice(1);return String(location.pathname||'/');})();
   var ready=false, lastPath=null, restoring=false;
@@ -7948,7 +7948,7 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
   }catch(_){}}
   function filterChip(){try{
     if(typeof current==='undefined'||current!=='leads')return; // Has-app filter belongs to the SIP leads funnel, not Clients/Offers/Airlines
-    var tb=document.querySelector('.toolbar'); if(!tb||document.getElementById('sip_hasapp'))return;
+    return; /* Has app pill retired 2026-08-10 (owner) — SIP-funnel filter, restore when that funnel is worked */
     var btn=document.createElement('button'); btn.id='sip_hasapp'; btn.type='button'; btn.textContent='Has app';
     btn.style.cssText='padding:7px 12px;font-size:12.5px;border-radius:9px;border:1px solid var(--line-2,#e3ddd2);background:'+(hasAppOnly?'#0EA5E9':'#fff')+';color:'+(hasAppOnly?'#fff':'inherit')+';cursor:pointer';
     btn.onclick=function(){hasAppOnly=!hasAppOnly;btn.style.background=hasAppOnly?'#0EA5E9':'#fff';btn.style.color=hasAppOnly?'#fff':'inherit';badges();};
