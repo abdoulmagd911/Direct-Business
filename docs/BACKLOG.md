@@ -5,6 +5,47 @@ it is *parked*, and each item says why and what "done" looks like.
 
 Last reviewed: **2026-08-10**
 
+## 0 · THE GO-LIVE PLAN (owner-directed, 2026-08-10) — read before anything else
+
+Abdulrahman's direction: **the product is four pages — Leads, Clients, Finance,
+Settings (Team & Access)** — plus whatever connects them. Rebuild/polish them one
+at a time to the corporate-admin product design, keep them connected (a change on
+one reflects on the others), bulletproof each, get his screenshot yes/no, THEN move
+on. Everything else (Events, Airlines, SOPs, Reference pages) waits. Current data is
+assumption/test data for exercising scenarios; it will be reset to zero before real
+data goes in. Mix Direct's own way (client-centered: onboarding, policies,
+travelers, dedicated advisor — see the B2B Feedback sheet + Enterprise Brief in
+Drive) with how the leaders (Egencia/Navan/TravelPerk-class) keep one job per
+screen with zero noise.
+
+Order of work (per page: polish visuals → verify EN+AR in the harness → screenshot
+for approval → deploy → delete the old layers that page no longer needs):
+1. **Leads** — list is healthy after the 08-10 fixes; remaining: real SVG icons,
+   priority-score tuning (new leads all read Cold), detail-card layout pass.
+2. **Clients** — empty columns read dead (Area/Channels/Next review all dashes,
+   every tier Standard); decide with the owner which columns earn their place;
+   detail card shares the Leads header work.
+3. **Finance** — numbers verified 08-10; remaining: visual pass + link every row
+   back to the client; keep the not-the-money-system boundary visible.
+4. **Settings/Team & Access** — emoji stripped + legacy free-text team editor
+   retired 08-10; remaining: merge the duplicated Settings heading blocks.
+Then: **code lightening by deletion** — after each page is rebuilt, delete the
+patch layers it made obsolete (never delete first). Finally: move requests/offers/
+projects out of the app_state blob into real tables (ends last-write-wins).
+
+### Shipped 2026-08-10 (continued) — declutter round
+- Nav: 16 flat items → 8 working pages + collapsed **Reference** group (auto-opens
+  on its pages) + the existing From-Direct group. EN+AR.
+- **Offer Builder → Proposals** everywhere users see it (nav, title, Team & Access).
+- Today hero de-jargoned (Tickets due soon / Being chased / Low-profit offers /
+  'Nothing urgent right now'); AR keys updated. ⌘K and ? chips hidden.
+- Emoji stripped from the four pages' chrome at SOURCE (record-header CTAs, HQ/Map
+  line, Finance strip heading, Link-finance button, Chain of command, all Settings
+  tiles, Team & Access heading). 'Create offer' button now reads **Create proposal**.
+- Settings: legacy free-text "Team (lead owners)" editor retired — owners come from
+  real users via Team & Access (v56).
+
+
 ### Shipped 2026-08-10 — four screenshot-verified defects fixed (live)
 - **Finance "Income by service line" told a false story** — it showed the service fee as
   the *entire* gross billed and 100% margin on every row, contradicting the Profit tile

@@ -2357,7 +2357,7 @@ function markInvoicePaid(invId){const i=getInvoice(invId);if(!i)return;const amt
 function v19WireExtras(){const view=document.getElementById('view');if(!view)return;// log recent on detail open
   if(openLead)pushRecent('lead',openLead);if(openBooking)pushRecent('booking',openBooking);if(openInvoice)pushRecent('invoice',openInvoice);if(openOffer)pushRecent('offer',openOffer);if(openSup)pushRecent(supKind==='air'?'airline':'provider',openSup);
   // Lead detail — add "Create offer" + "Create booking" buttons
-  if(current==='leads'&&openLead){const head=view.querySelector('.detail-head');if(head&&!head.querySelector('.v19LeadCTA')){const div=document.createElement('div');div.className='v19LeadCTA';div.style.cssText='display:flex;gap:6px;flex-wrap:wrap';div.innerHTML=`<button class="btn pri sm" onclick="offerFromLead('${openLead}')">📄 Create offer</button><button class="btn sm" onclick="(function(){current='bookings';ingestModal('booking','',null);setTimeout(()=>{const sel=document.querySelector('#modal #ig_client');if(sel)sel.value='${openLead}';},50);})()">🧳 New booking</button>`;head.appendChild(div);}}
+  if(current==='leads'&&openLead){const head=view.querySelector('.detail-head');if(head&&!head.querySelector('.v19LeadCTA')){const div=document.createElement('div');div.className='v19LeadCTA';div.style.cssText='display:flex;gap:6px;flex-wrap:wrap';div.innerHTML=`<button class="btn pri sm" onclick="offerFromLead('${openLead}')">Create proposal</button><button class="btn sm" onclick="(function(){current='bookings';ingestModal('booking','',null);setTimeout(()=>{const sel=document.querySelector('#modal #ig_client');if(sel)sel.value='${openLead}';},50);})()">New booking</button>`;head.appendChild(div);}}
   // Booking detail — add "Issue ticket" + "Generate invoice" + "Mark paid"
   if(current==='bookings'&&openBooking){const head=view.querySelector('.detail-head');if(head&&!head.querySelector('.v19BkCTA')){const b=getBooking(openBooking);if(b){const inv=(DB.invoices||[]).find(x=>x.id===b.invoiceId);const div=document.createElement('div');div.className='v19BkCTA';div.style.cssText='display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-top:10px';div.innerHTML=`<button class="btn pri sm" onclick="ticketFromBooking('${openBooking}')">🎫 Issue ticket</button>`+(inv?`<button class="btn sm" onclick="openInvoice='${inv.id}';current='invoices';render()">🧾 ${esc(inv.number)}</button>`:`<button class="btn sm" onclick="invoiceFromBooking('${openBooking}')">🧾 Generate invoice</button>`);head.appendChild(div);}}}
   // Offer detail — add "Convert to booking"
@@ -4122,7 +4122,7 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
     var html=''+
       '<div class="card v25-pool-card" style="background:linear-gradient(135deg,#FFF7EE,#FFFCF7);border:1px solid #FBD9B8">'+
       '  <div class="card-head" style="align-items:center">'+
-      '    <div><h3 style="display:flex;align-items:center;gap:8px">💰 Commercial Credit Pool '+
+      '    <div><h3 style="display:flex;align-items:center;gap:8px">Commercial Credit Pool '+
       (opts.compact?'':'<span style="font-size:11px;color:var(--muted);font-weight:600">Calendar month</span>')+'</h3>'+
       '    <div class="ch-sub">Cap '+v25Money(p.cap)+' · headroom '+v25Money(p.headroom)+'</div></div>'+
       '    <button class="btn sm ghost" onclick="v25OpenPoolSettings()" title="Edit cap">⚙️</button>'+
@@ -4769,7 +4769,7 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
       var presetLabel=(V25_PRESETS[preset]||{}).label||preset;
       var tplStatus=v25TemplateStatus();
       var html='<div class="card v25-settings-pool" style="margin-bottom:14px">'+
-        '<h3>💰 Commercial Credit Pool</h3>'+
+        '<h3>Commercial Credit Pool</h3>'+
         '<div class="ch-sub">Cap currently <b>'+v25Money(cap)+'</b>. Calendar (Gregorian) month is the billing period. Over-limit is informational only and logged to audit.</div>'+
         '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" onclick="v25OpenPoolSettings()">Edit cap…</button>'+
         '<button class="btn ghost sm" onclick="v25ShowPoolHistory()">History</button></div></div>'+
@@ -5428,13 +5428,13 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
 
   /* ===== S7: Settings — Daily vs Advanced split ===== */
   var V26_DAILY_LABELS={
-    language:{en:'🌐 Language',ar:'🌐 اللغة'},
+    language:{en:'Language',ar:'اللغة'},
     backup:{en:'💾 Backup & Restore',ar:'💾 نسخ احتياطي واستعادة'},
-    chain:{en:'🪜 Chain-of-command rules',ar:'🪜 قواعد التسلسل الإداري'},
-    team:{en:'👥 Team members + roles',ar:'👥 أعضاء الفريق والأدوار'},
-    company:{en:'🏢 Company profile',ar:'🏢 ملف الشركة'},
-    viewAs:{en:'🎨 View as',ar:'🎨 اعرض كـ'},
-    pool:{en:'💰 Commercial Credit Pool',ar:'💰 سقف الائتمان التجاري'}
+    chain:{en:'Chain-of-command rules',ar:'قواعد التسلسل الإداري'},
+    team:{en:'Team members + roles',ar:'أعضاء الفريق والأدوار'},
+    company:{en:'Company profile',ar:'ملف الشركة'},
+    viewAs:{en:'View as',ar:'اعرض كـ'},
+    pool:{en:'Commercial Credit Pool',ar:'سقف الائتمان التجاري'}
   };
   var V26_ADV_LABELS={
     workflow:{en:'🧪 Run workflow tests',ar:'🧪 تشغيل اختبارات الأعمال'},
@@ -5702,7 +5702,7 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
       chainBtn.className='btn sm';
       chainBtn.setAttribute('data-v26_2-chain','1');
       var lang=v26_2GetLang();
-      chainBtn.textContent=lang==='ar'?'🪜 التسلسل الإداري':'🪜 Chain of command';
+      chainBtn.textContent=lang==='ar'?'التسلسل الإداري':'Chain of command';
       chainBtn.title=lang==='ar'?'تحرير المخوّلين وصلاحيات الاعتماد':'Edit authorities and approval chain';
       chainBtn.onclick=function(){window.v24OpenChainOfCommand(openLead);};
       anchor.parentNode.insertBefore(chainBtn,anchor.nextSibling);
@@ -6916,7 +6916,7 @@ window.rptPpt=function(){
  window.teamList=function(){return (DB.settings&&DB.settings.team&&DB.settings.team.length)?DB.settings.team:(typeof TEAM!=="undefined"?TEAM:[]);};
  window.tmAdd=function(){var i=document.getElementById("tmNew");if(!i||!i.value.trim())return;DB.settings=DB.settings||{};DB.settings.team=teamList().slice();if(DB.settings.team.indexOf(i.value.trim())<0)DB.settings.team.push(i.value.trim());save();render();};
  window.tmDel=function(n){DB.settings=DB.settings||{};DB.settings.team=teamList().filter(function(x){return x!==n;});save();render();};
- window.v295TeamCard=function(){return '<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">Team (lead owners / account managers)</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+teamList().map(function(x){return '<span class="tag" style="background:#EEF0F5;color:#3a4054">'+esc(x)+' <a style="color:#D92D20;cursor:pointer;font-weight:800" onclick="tmDel(\''+esc(x)+'\')">x</a></span>';}).join("")+'<input id="tmNew" placeholder="Add member" style="border:1px solid var(--line-2);border-radius:8px;padding:5px 9px;font:inherit;font-size:12px;width:130px"><button class="btn sm" onclick="tmAdd()">Add</button></div></div>';};
+ window.v295TeamCard=function(){return '';/* retired: owners now come from real users via Team & Access */ return '<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">Team (lead owners / account managers)</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+teamList().map(function(x){return '<span class="tag" style="background:#EEF0F5;color:#3a4054">'+esc(x)+' <a style="color:#D92D20;cursor:pointer;font-weight:800" onclick="tmDel(\''+esc(x)+'\')">x</a></span>';}).join("")+'<input id="tmNew" placeholder="Add member" style="border:1px solid var(--line-2);border-radius:8px;padding:5px 9px;font:inherit;font-size:12px;width:130px"><button class="btn sm" onclick="tmAdd()">Add</button></div></div>';};
  window.leadQuickEdit=function(id){
   var b=getLead(id);if(!b)return;
   var sel=function(opts,cur,fid){return '<select id="'+fid+'">'+opts.map(function(o){var v=Array.isArray(o)?o[0]:o,l=Array.isArray(o)?o[1]:o;return '<option value="'+v+'" '+(cur===v?"selected":"")+'>'+l+'</option>';}).join("")+'</select>';};
@@ -8024,7 +8024,7 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
     var c=city(b), riy=isRiyadh(b);
     var line=document.createElement('div'); line.className='mapsLine';
     line.style.cssText='display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap;font-size:13px';
-    line.innerHTML='<span style="color:#475467">🏢 HQ: '+(c?c.slice(0,60).replace(/[<>&]/g,''):'not set')+'</span>'+(riy?'<span style="background:#16B364;color:#fff;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">Riyadh</span>':'')+'<a href="'+mapsUrl(b)+'" target="_blank" rel="noopener" class="btn ghost sm" style="text-decoration:none">📍 Open in Google Maps</a>';
+    line.innerHTML='<span style="color:#475467">HQ: '+(c?c.slice(0,60).replace(/[<>&]/g,''):'not set')+'</span>'+(riy?'<span style="background:#16B364;color:#fff;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">Riyadh</span>':'')+'<a href="'+mapsUrl(b)+'" target="_blank" rel="noopener" class="btn ghost sm" style="text-decoration:none">Map ↗</a>';
     head.appendChild(line);
   }catch(e){} }
   if(window.render && !window.render.__mapsWrap){ var _r=window.render; window.render=function(){var o=_r.apply(this,arguments); setTimeout(inject,0); return o;}; window.render.__mapsWrap=true; }
@@ -9926,7 +9926,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
     'Overview':'نظرة عامة','Ledger':'السجل','Report Builder':'منشئ التقارير','Import':'استيراد',
     'All (H1 2026)':'الكل (النصف الأول 2026)','Achievements':'الإنجازات','Objectives & KPIs':'الأهداف والمؤشرات',
     // ---- Today section headings (with emoji) ----
-    'Today':'اليوم','💰 Commercial Credit Pool':'💰 مجمع الائتمان التجاري',
+    'Today':'اليوم','Commercial Credit Pool':'مجمع الائتمان التجاري',
     '⏰ TTL expiring (next 48h)':'⏰ مهل تنتهي (خلال 48 ساعة)','💸 Overdue invoices (>30 days)':'💸 فواتير متأخرة (> 30 يوم)',
     '📞 Dunning sequence active':'📞 تسلسل تحصيل نشط','📉 Low-margin offers / approvals':'📉 عروض هامش منخفض / موافقات',
     '📌 My queue (next 7 days)':'📌 قائمتي (خلال 7 أيام)',
@@ -10075,7 +10075,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
       card.style.cssText='margin:0 0 14px';
       var mini=function(lbl,val,col){return '<div style="flex:1;min-width:100px"><div style="font-size:11px;color:var(--muted)">'+lbl+'</div><div style="font-size:18px;font-weight:800;color:'+(col||'#1C1E2B')+'">'+val+'</div></div>';};
       card.innerHTML='<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap">'+
-          '<h3 style="margin:0">💰 '+fl('Finance','المالية')+'</h3>'+
+          '<h3 style="margin:0">'+fl('Finance','المالية')+'</h3>'+
           '<button class="btn sm" onclick="try{current=\'finance\';FIN.tab=\'ledger\';FIN.f.client='+JSON.stringify(cg).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+';render();}catch(e){}">'+fl('Open in Finance ledger ↗','افتح في سجل المالية ↗')+'</button></div>'+
         '<div class="ch-sub" style="margin:2px 0 12px">'+(matchedByLink
             ? fl('Linked to Direct finance · '+rows.length+' invoice'+(rows.length>1?'s':''),'مرتبطة بمالية دايركت · '+rows.length+' فاتورة')
@@ -10596,7 +10596,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
       var v=document.getElementById('view'); if(!v||v.querySelector('.v48-card'))return;
       var A=ar();
       var card=document.createElement('div'); card.className='card v48-card'; card.style.cssText='border:1px solid #F2C185';
-      card.innerHTML='<h3>'+(A?'👥 الفريق والصلاحيات':'👥 Team & Access')+'</h3>'+
+      card.innerHTML='<h3>'+(A?'الفريق والصلاحيات':'Team & Access')+'</h3>'+
         '<div style="font-size:13px;color:var(--muted,#6B7480);margin:2px 0 12px">'+(A?'أنشئ حسابات الفريق، عيّن دور كل شخص، وحدد الصفحات التي يمكنه فتحها (مثلاً: المالية فقط، أو العملاء المحتملون والعملاء).':'Create team accounts, set each person’s role, and choose which pages they can open (e.g. Finance only, or Leads + Clients).')+'</div>'+
         '<button class="btn pri" onclick="v48Users()">'+(A?'فتح الفريق والصلاحيات':'Open Team & Access')+'</button>';
       v.insertBefore(card, v.firstChild);
@@ -10860,7 +10860,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
       if(!canEdit())return;
       var view=document.getElementById('view'); if(!view||document.getElementById('v53btn'))return;
       var b=document.createElement('button'); b.id='v53btn'; b.className='btn sm'; b.style.cssText='margin:0 0 10px';
-      b.textContent=(isAr()?'🔗 ربط المالية بالعملاء':'🔗 Link finance to clients');
+      b.textContent=(isAr()?'ربط المالية بالعملاء':'Link finance to clients');
       b.onclick=function(){ finLinkMap(); };
       view.insertBefore(b, view.firstChild);
     }catch(_){}
