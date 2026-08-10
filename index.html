@@ -1004,7 +1004,7 @@ function renderLeadDetail(v,id){
   </div>`;
 }
 
-function convertToClient(id){const b=getLead(id);if(!b)return;if(!b.accountManager&&b.assignedTo)b.accountManager=b.assignedTo;if(!confirm("Mark “"+b.name+"” as a won client? It moves into your Clients book of business."))return;b.isClient=true;b.status="Won";b.convertedDate=Date.now();b.lastContact=Date.now();b.activities=b.activities||[];b.activities.push({date:Date.now(),type:"Won",status:"Won",note:"Converted from lead to client",by:(typeof me==="function"?me():"Abdelrahman")});save();render();}
+function convertToClient(id){const b=getLead(id);if(!b)return;if(!b.accountManager&&b.assignedTo)b.accountManager=b.assignedTo;var _ar=(typeof LANG!=='undefined'&&LANG==='ar');if(!confirm(_ar?("اعتماد «"+b.name+"» كعميل رابح؟ سينتقل إلى قائمة عملائك."):("Mark “"+b.name+"” as a won client? It moves into your Clients book of business.")))return;b.isClient=true;b.status="Won";b.convertedDate=Date.now();b.lastContact=Date.now();b.activities=b.activities||[];b.activities.push({date:Date.now(),type:"Won",status:"Won",note:"Converted from lead to client",by:(typeof me==="function"?me():"Abdelrahman")});save();render();}
 // Client health — one scannable status from engagement + review governance.
 // Red is reserved for a real problem (overdue review, or contact that HAS happened but has gone stale).
 // A client with no logged history yet is "New", not "At risk" — we don't manufacture alarms from empty data.
@@ -9065,11 +9065,12 @@ window.finCSV=function(){
 };
 
 function rImport(){
-  if(!canFinEdit())return '<div class="card" style="padding:30px;text-align:center;color:var(--muted)">Import is restricted to admins and managers.</div>';
+  var _fl=function(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;};
+  if(!canFinEdit())return '<div class="card" style="padding:30px;text-align:center;color:var(--muted)">'+_fl('Import is restricted to admins and managers.','الاستيراد متاح للمدراء والمسؤولين فقط.')+'</div>';
   var h='<div class="card" style="padding:18px;max-width:860px">';
-  h+='<h3 style="margin:0 0 8px">Import invoices (CSV)</h3>';
+  h+='<h3 style="margin:0 0 8px">'+_fl('Import invoices (CSV)','استيراد الفواتير (CSV)')+'</h3>';
   h+='<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:12px">Expected columns (exact header):<br><code style="font-size:11px;background:#F3F1EA;padding:3px 6px;border-radius:6px;display:inline-block;margin-top:4px">client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes</code><br>Checks before anything is written: duplicate invoice numbers are skipped (never overwritten) \u00b7 revenue/profit are recomputed and mismatches flagged \u00b7 dates checked against the stated quarter \u00b7 negative or credit rows become credit notes \u00b7 you confirm a preview first.</div>';
-  h+='<input type="file" id="finFile" accept=".csv" style="font-size:13px"> <button class="btn pri sm" onclick="finParse()">Check file</button>';
+  h+='<input type="file" id="finFile" accept=".csv" style="font-size:13px"> <button class="btn pri sm" onclick="finParse()">'+_fl('Check file','فحص الملف')+'</button>';
   h+='<div id="finImpOut" style="margin-top:14px"></div></div>';
   return h;
 }
@@ -9090,7 +9091,7 @@ function csvParse(text){
 var QM={Q1:[1,3],Q2:[4,6],Q3:[7,9],Q4:[10,12]};
 window.finParse=function(){
   var f=document.getElementById('finFile').files[0];
-  if(!f){alert('Choose a CSV file first.');return;}
+  if(!f){var _ar=(typeof LANG!=='undefined'&&LANG==='ar');var _m=_ar?'اختر ملف CSV أولاً.':'Choose a CSV file first.';if(typeof toast==='function')toast(_m);else alert(_m);return;}
   var rd=new FileReader();
   rd.onload=function(){
     var rows=csvParse(String(rd.result));
@@ -9766,7 +9767,7 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
       var mini=function(lbl,val,col){return '<div style="flex:1;min-width:100px"><div style="font-size:11px;color:var(--muted)">'+lbl+'</div><div style="font-size:18px;font-weight:800;color:'+(col||'#1C1E2B')+'">'+val+'</div></div>';};
       card.innerHTML='<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap">'+
           '<h3 style="margin:0">💰 '+fl('Finance','المالية')+'</h3>'+
-          '<button class="btn sm" onclick="try{current=\'finance\';FIN.tab=\'ledger\';FIN.f.client='+JSON.stringify(cg)+';render();}catch(e){}">'+fl('Open in Finance ledger ↗','افتح في سجل المالية ↗')+'</button></div>'+
+          '<button class="btn sm" onclick="try{current=\'finance\';FIN.tab=\'ledger\';FIN.f.client='+JSON.stringify(cg).replace(/"/g,'&quot;')+';render();}catch(e){}">'+fl('Open in Finance ledger ↗','افتح في سجل المالية ↗')+'</button></div>'+
         '<div class="ch-sub" style="margin:2px 0 12px">'+fl('Matched to '+rows.length+' invoice'+(rows.length>1?'s':'')+' by company name — verify the name matches before relying on it.','مطابَقة بـ '+rows.length+' فاتورة حسب اسم الشركة — تأكد من تطابق الاسم قبل الاعتماد عليه.')+'</div>'+
         '<div style="display:flex;gap:18px;flex-wrap:wrap">'+
           mini(fl('Lifetime billed','إجمالي الفوترة'),mS(billed)+' SAR','#175CD3')+
@@ -10301,6 +10302,88 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
 
   console.info('%c[v48] Team & Access page loaded','color:#F06820;font-weight:700');
 }catch(e){if(window.console)console.warn('[v48] init',e);}})();
+
+/* ===== v50 — Settings final tidy: drop dev/audit leftovers, finish the Arabic ===== */
+/* The clean "Daily use" tiles + "Advanced" drawer sit at the top (built by v26). A few older
+   cards are injected LATER by other layers and leak in below them — two are pure developer /
+   audit read-outs with nothing the team uses, and in Arabic several cards still show English.
+   This pass runs after those late cards settle: it hides the two dead cards and translates the
+   remaining English labels so Arabic Settings reads all-Arabic. Reversible — it only sets
+   display / textContent and never touches data. */
+(function(){try{
+  function isArNow(){try{return (typeof LANG!=='undefined'&&LANG==='ar');}catch(_){return false;}}
+  /* Cards removed entirely — "Security & integrity" is a ZATCA/audit read-out (a developer
+     check, not a team tool), and "Generator templates" only holds a re-learn button that already
+     lives under Advanced plus a dev "show tokens" button. The actual proposal generators stay. */
+  var DROP=['Security & integrity','Generator templates'];
+  /* Exact English → Arabic for labels that stayed English in Arabic mode. */
+  var ARMAP={
+    'Generators':'المولّدات',
+    'Backup & restore':'النسخ الاحتياطي والاستعادة',
+    'Connections':'الاتصالات',
+    'Archive':'الأرشيف',
+    'Add':'إضافة',
+    'History':'السجل',
+    'Service-Fee proposal':'عرض رسوم الخدمة',
+    'Project proposal':'عرض المشروع',
+    'Export JSON':'تصدير JSON',
+    'Import JSON':'استيراد JSON',
+    'Browse snapshots':'تصفّح النسخ',
+    'Save destination':'حفظ الوجهة',
+    'Backup now':'انسخ الآن',
+    'Last auto-snapshot':'آخر نسخة تلقائية',
+    'Incremental snapshots':'النسخ التزايدية',
+    'Daily snapshots':'النسخ اليومية',
+    'Tagged restore points':'نقاط الاستعادة الموسومة',
+    'Team (lead owners / account managers)':'الفريق (مسؤولو العملاء المحتملين / مديرو الحسابات)',
+    'DESTINATION':'الوجهة',
+    'Destination':'الوجهة',
+    'Last 5 backup log entries:':'آخر 5 مدخلات في سجل النسخ:',
+    'Note about browser limits':'ملاحظة حول حدود المتصفح',
+    'Your browser Downloads folder':'مجلد التنزيلات في المتصفح',
+    'Auto-log to backup log at cycle close + reset-for-go-live':'تسجيل النسخ الاحتياطية تلقائيًا'
+  };
+  var PH={'Add member':'أضف عضوًا'};
+  function apply(){
+    try{
+      if(typeof current==='undefined'||current!=='settings')return;
+      var view=document.getElementById('view'); if(!view)return;
+      /* 1) hide the dead dev/audit cards */
+      view.querySelectorAll('.card').forEach(function(c){
+        var h=c.querySelector('h3,h2'); var t=h?(h.textContent||''):'';
+        for(var i=0;i<DROP.length;i++){ if(t.indexOf(DROP[i])>=0){ c.style.display='none'; return; } }
+      });
+      /* 2) finish the Arabic — walk TEXT nodes only, so we translate the visible words without
+         ever touching an icon span, checkbox, or the file input inside "Import JSON". Keep any
+         leading emoji/arrow prefix and the original spacing. The clean top block
+         (#v26SettingsOrg) is already Arabic, so skip it. */
+      if(!isArNow())return;
+      var walker=document.createTreeWalker(view,NodeFilter.SHOW_TEXT,null);
+      var nodes=[],n; while(n=walker.nextNode()){ nodes.push(n); }
+      nodes.forEach(function(node){
+        try{
+          var pe=node.parentElement; if(!pe)return;
+          if(pe.closest('#v26SettingsOrg'))return;
+          var m=(node.nodeValue||'').match(/^(\s*)([\s\S]*?)(\s*)$/); if(!m)return;
+          var lead=m[1],core=m[2],trail=m[3]; if(!core)return;
+          var pre=(core.match(/^[^A-Za-z0-9]*/)||[''])[0];
+          var key=core.slice(pre.length).trim();
+          if(ARMAP[key]!=null){ node.nodeValue=lead+pre+ARMAP[key]+trail; }
+        }catch(_){}
+      });
+      /* placeholders (attributes, not text nodes) */
+      view.querySelectorAll('input[placeholder]').forEach(function(inp){
+        if(inp.closest('#v26SettingsOrg'))return;
+        var p=(inp.getAttribute('placeholder')||'').trim();
+        if(PH[p]!=null)inp.setAttribute('placeholder',PH[p]);
+      });
+    }catch(_){}
+  }
+  try{ if(typeof render==='function'){ var _r=render; render=function(){ var o=_r.apply(this,arguments); try{[200,700,1600].forEach(function(d){setTimeout(apply,d);});}catch(_){}; return o; }; } }catch(_){}
+  [300,1200,3000].forEach(function(d){setTimeout(apply,d);});
+  setInterval(apply,2500);
+  console.info('%c[v50] Settings tidy loaded','color:#F06820;font-weight:700');
+}catch(e){if(window.console)console.warn('[v50] init',e);}})();
 </script>
 
 </body>
