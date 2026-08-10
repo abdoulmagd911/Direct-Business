@@ -6328,10 +6328,10 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
     if(cur==='settings'&&!v.querySelector('.dt-about-btns')){
       var s=document.createElement('div');s.className='dt-about-btns card';s.style.cssText='margin-bottom:12px;border-left:3px solid #FF6B00';
       s.innerHTML='<h3>Company profile — printables</h3><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="btn pri" onclick="directAboutPage()">About Direct Travel (one-pager)</button><button class="btn" onclick="directTenderPage()">Tender one-pager</button></div>';
-      v.insertBefore(s,v.firstChild);
+      (function(){var _h=v.querySelector('.v26_3-chips')||v.querySelector('.v26_3-section-head');if(_h)v.insertBefore(s,_h.nextSibling);else v.insertBefore(s,v.firstChild);})();
     }
     if(cur==='offers'&&!v.querySelector('.dt-awards')){
-      var a=document.createElement('div');a.className='dt-awards';a.innerHTML=awardsStrip();v.insertBefore(a,v.firstChild);
+      var a=document.createElement('div');a.className='dt-awards';a.innerHTML=awardsStrip();(function(){var _h=v.querySelector('.v26_3-chips')||v.querySelector('.v26_3-section-head');if(_h)v.insertBefore(a,_h.nextSibling);else v.insertBefore(a,v.firstChild);})();
     }
   }catch(e){}return out;};
   console.info('%c[v26.6] provider verdicts + profile spreads loaded','color:#FF6B00;font-weight:700');
@@ -6391,7 +6391,7 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
     if(cur==='settings'&&!v.querySelector('.dt-admin-links')){
       var s=document.createElement('div');s.className='dt-admin-links card';s.style.cssText='margin-bottom:12px;border-left:3px solid #7C8194';
       s.innerHTML='<h3>Admin & history</h3><div class="ch-sub" style="color:#7C8194;font-size:12px;margin-bottom:6px">Audit trail and archived records</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="current=\'activity\';render();window.scrollTo(0,0);">Activity & Audit</button><button class="btn" onclick="current=\'archive\';render();window.scrollTo(0,0);">Archive</button><button class="btn" onclick="current=\'sync\';render();window.scrollTo(0,0);">Connections</button></div>'+(typeof v295TeamCard==="function"?v295TeamCard():"")+'';
-      v.insertBefore(s,v.firstChild);
+      (function(){var _h=v.querySelector('.v26_3-chips')||v.querySelector('.v26_3-section-head');if(_h)v.insertBefore(s,_h.nextSibling);else v.insertBefore(s,v.firstChild);})();
     }
     if(cur==='bookings'&&typeof openBooking!=='undefined'&&openBooking){
       v.querySelectorAll('.card').forEach(function(c){var h=c.querySelector('h3');if(h){var t=(h.textContent||'').toLowerCase();if(NOISE.some(function(n){return t.indexOf(n)>-1;}))c.style.display='none';}});
