@@ -1042,6 +1042,7 @@ function renderClients(v){
   <div class="toolbar">
     <div class="search-wrap">${IC.search}<input id="clq" placeholder="Search clients..." value="${esc(clFilter.q)}"></div>
     <select onchange="clFilter.owner=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All managers</option>${team.map(t=>`<option value="${t}" ${clFilter.owner===t?"selected":""}>${t}</option>`).join("")}</select>
+    <button class="btn sm ${clFilter.owner===(window.meName?meName():"")&&clFilter.owner!=="all"?"pri":"ghost"}" onclick="clToggleMine()">👤 ${(typeof LANG!=="undefined"&&LANG==="ar")?"خاص بي":"Mine"}</button>
     <select onchange="clFilter.tier=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All tiers</option><option ${clFilter.tier==="Key"?"selected":""}>Key</option><option ${clFilter.tier==="Standard"?"selected":""}>Standard</option></select>
   </div>
   <div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th style="cursor:pointer" onclick="clSortBy('name')">Client${clArrow('name')}</th><th style="cursor:pointer" onclick="clSortBy('am')">Account manager${clArrow('am')}</th><th>Area</th><th style="cursor:pointer" onclick="clSortBy('tier')">Tier${clArrow('tier')}</th><th>Client since</th><th>Won (SAR)</th><th>Channels</th><th style="cursor:pointer" onclick="clSortBy('review')">Next review${clArrow('review')}</th><th style="cursor:pointer" onclick="clSortBy('health')" title="Client health — Good / Watch / At risk. Click to surface at-risk clients.">Health${clArrow('health')}</th><th></th></tr></thead><tbody>
@@ -1055,7 +1056,7 @@ function logActivity(id){const b=getLead(id);if(!b)return;
 }
 
 function editBusiness(id){
-  const isNew=!id;const b=id?JSON.parse(JSON.stringify(getLead(id))):{id:uid("b"),name:"",nameAr:"",segment:"",category:"Convert",source:"Direct outreach",assignedTo:"",channels:[],isClient:false,isVendor:false,totalSAR:0,invoices:0,contacts:[],notes:"",owner:"",services:"",nextAction:""};
+  const isNew=!id;const b=id?JSON.parse(JSON.stringify(getLead(id))):{id:uid("b"),name:"",nameAr:"",segment:"",category:"Convert",source:"Direct outreach",assignedTo:(window.meName?meName():""),channels:[],isClient:false,isVendor:false,totalSAR:0,invoices:0,contacts:[],notes:"",owner:"",services:"",nextAction:""};
   openModal(isNew?"New business":esc(b.name),`
     <div class="grid2"><div class="field"><label>Business name (canonical)</label><input id="f_name" value="${esc(b.name)}"></div><div class="field"><label>Arabic name</label><input id="f_ar" value="${esc(b.nameAr||"")}" dir="rtl"></div></div>
     <div class="grid2"><div class="field"><label>Segment</label><input id="f_seg" value="${esc(b.segment||"")}" placeholder="Government / Study-abroad school…"></div><div class="field"><label>Category</label><select id="f_cat">${CATEGORIES.map(c=>`<option ${b.category===c?"selected":""}>${c}</option>`).join("")}</select></div></div>
@@ -1435,16 +1436,16 @@ function renderOffers(v){
   if(openOffer)return offerEditor(v,openOffer);
   v.innerHTML=`
   ${dropZone('offer')}
-  <div class="toolbar"><div class="search-wrap">${IC.search}<input id="oq" placeholder="${(typeof LANG!=='undefined'&&LANG==='ar')?'بحث في العروض…':'Search proposals…'}" oninput="drawOffers(this.value)"></div><div style="flex:1"></div><button class="btn pri" onclick="newOffer()">${(typeof LANG!=='undefined'&&LANG==='ar')?'+ عرض جديد':'+ New proposal'}</button></div>
+  <div class="toolbar"><div class="search-wrap">${IC.search}<input id="oq" placeholder="${(typeof LANG!=='undefined'&&LANG==='ar')?'بحث في العروض…':'Search proposals…'}" oninput="drawOffers(this.value)"></div><div style="flex:1"></div><button class="btn sm ${window.offerMine?'pri':'ghost'}" onclick="window.offerMine=!window.offerMine;drawOffers(document.getElementById('oq')?document.getElementById('oq').value:'')">👤 ${(typeof LANG!=='undefined'&&LANG==='ar')?'خاص بي':'Mine'}</button><button class="btn pri" onclick="newOffer()">${(typeof LANG!=='undefined'&&LANG==='ar')?'+ عرض جديد':'+ New proposal'}</button></div>
   <div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th>Ref</th><th>${(typeof LANG!=='undefined'&&LANG==='ar')?'النوع':'Type'}</th><th>Status</th><th>Client</th><th>Subject</th><th>${(typeof LANG!=='undefined'&&LANG==='ar')?'القيمة':'Value'}</th><th>Valid</th><th></th></tr></thead><tbody id="otb"></tbody></table></div></div>`;
   drawOffers("");
 }
-function drawOffers(q){q=(q||'').toLowerCase();const ar=(typeof LANG!=='undefined'&&LANG==='ar');const tb=document.getElementById('otb');if(!tb)return;const O=(DB.offers||[]).filter(o=>!q||((o.ref||'')+' '+(o.client||'')+' '+(o.subject||'')+' '+(o.proposalType||'')+' '+(o.airline||'')).toLowerCase().includes(q));
+function drawOffers(q){q=(q||'').toLowerCase();const ar=(typeof LANG!=='undefined'&&LANG==='ar');const tb=document.getElementById('otb');if(!tb)return;const _meO=(window.meName?meName():'');const O=(DB.offers||[]).filter(o=>(!q||((o.ref||'')+' '+(o.client||'')+' '+(o.subject||'')+' '+(o.proposalType||'')+' '+(o.airline||'')).toLowerCase().includes(q))&&(!window.offerMine||((o.owner||'')===_meO)));
   tb.innerHTML=O.map(o=>{const ptype=ar?(PROPOSAL_TYPES_AR[o.proposalType]||o.proposalType||'—'):(o.proposalType||'—');return `<tr style="cursor:pointer" onclick="openOfferFn('${o.id}')"><td><b>${esc(o.ref||'—')}</b>${o.docUrl?' 📎':''}${o.promotedToProject?' 🏗':''}</td><td><span class="tag" style="background:#EEF0F5;color:#4B5563">${esc(ptype)}</span></td><td>${offerStatusBadge(o)}</td><td>${esc(o.client||'—')}</td><td style="color:var(--muted)">${esc(o.subject||'')}</td><td style="font-weight:700;white-space:nowrap">${esc(o.value||o.total||'')} ${esc(o.currency||'SAR')}</td><td style="color:var(--muted);white-space:nowrap">${o.validUntil?`<span style="color:${offerExpiry(o).color}">${offerExpiry(o).label}</span>`:esc(o.date||'')}</td><td style="text-align:right"><span class="chiplink">${ar?'فتح ›':'Open ›'}</span></td></tr>`;}).join('')||`<tr><td colspan="8" class="empty">${ar?'لا توجد عروض بعد — اضغط «عرض جديد».':'No proposals yet — click “New proposal”.'}</td></tr>`;
 }
 function openOfferFn(id){openOffer=id;render();window.scrollTo(0,0);}
 function closeOffer(){openOffer=null;render();}
-function newOffer(){const o={id:uid('o'),ref:'DB-'+Date.now().toString().slice(-6),date:new Date().toISOString().slice(0,10),client:'',subject:'',airline:'',route:'',flight:'',cls:'',currency:'SAR',ticketPrice:'',partnerFees:'',serviceFees:'',vat:'',dip:'',total:'',changesBefore:'',changesAfter:'Not permitted',cancelBefore:'',cancelAfter:'Non-Refundable',noShow:'',baggage:'1 piece 23 Kg',lastIssue:'',minStay:'-',maxStay:'-',cheapest:'Yes',remarks:'',addFees:'Partner contractual refund & reissue fees apply. Original handling fees are non-refundable.',status:'Draft',version:1,validUntil:'',ttl:'',linkedLeadId:'',policyStatus:'Not checked',policyReason:'',approvalStatus:'Not required',paxAdt:1,paxChd:0,paxInf:0,cost:'',commission:'',winLoseReason:'',options:[],owner:(typeof me==='function'?me():''),
+function newOffer(){const o={id:uid('o'),ref:'DB-'+Date.now().toString().slice(-6),date:new Date().toISOString().slice(0,10),client:'',subject:'',airline:'',route:'',flight:'',cls:'',currency:'SAR',ticketPrice:'',partnerFees:'',serviceFees:'',vat:'',dip:'',total:'',changesBefore:'',changesAfter:'Not permitted',cancelBefore:'',cancelAfter:'Non-Refundable',noShow:'',baggage:'1 piece 23 Kg',lastIssue:'',minStay:'-',maxStay:'-',cheapest:'Yes',remarks:'',addFees:'Partner contractual refund & reissue fees apply. Original handling fees are non-refundable.',status:'Draft',version:1,validUntil:'',ttl:'',linkedLeadId:'',policyStatus:'Not checked',policyReason:'',approvalStatus:'Not required',paxAdt:1,paxChd:0,paxInf:0,cost:'',commission:'',winLoseReason:'',options:[],owner:(window.meName?meName():(typeof me==='function'?me():'')),
   /* full-proposal fields */ proposalType:'Price offer',docUrl:'',scope:'',value:'',promotedToProject:false};(DB.offers=DB.offers||[]).push(o);save();openOffer=o.id;render();}
 /* Proposal types Direct actually uses (from the real Drive proposals folder). */
 const PROPOSAL_TYPES=['Price offer','Technical proposal','Financial bid','Business solution','Training','Tender','Travel — flights','Other'];
@@ -6962,6 +6963,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
  // one filtered+refined+sorted list used by BOTH the table and Export
  window.leadTableList=function(){
   var list=DB.businesses.filter(matchLead);
+  if(leadFilter.mine){var _meN=(window.meName?meName():'');list=list.filter(function(b){return (b.assignedTo||b.owner||'')===_meN;});}
   if(leadFilter.hideClosed&&(leadFilter.stage==='all'||!leadFilter.stage))list=list.filter(function(b){var s=leadStage(b);return s!=='Won'&&s!=='Lost';});
   if(leadFilter.attention)list=list.filter(function(b){return !(b.contacts||[]).length||!b.source;});
   return list.slice().sort(function(a,b){var va=leadSortVal(a,leadSort.k),vb=leadSortVal(b,leadSort.k);return va<vb?-1*leadSort.dir:va>vb?1*leadSort.dir:0;});
@@ -6982,6 +6984,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
   var ctrl='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'+
     '<button class="btn sm '+(leadFilter.hideClosed?'pri':'ghost')+'" onclick="leadFilter.hideClosed=!leadFilter.hideClosed;drawLeads()">'+(leadFilter.hideClosed?'✓ ':'')+'Hide closed</button>'+
     '<button class="btn sm '+(leadFilter.attention?'pri':'ghost')+'" onclick="leadFilter.attention=!leadFilter.attention;drawLeads()">⚠ Needs attention</button>'+
+    '<button class="btn sm '+(leadFilter.mine?'pri':'ghost')+'" onclick="leadFilter.mine=!leadFilter.mine;drawLeads()">'+(leadFilter.mine?'✓ ':'')+'👤 '+((typeof LANG!=="undefined"&&LANG==="ar")?"خاص بي":"Mine")+'</button>'+
     (sel?('<span style="flex:1"></span><span class="tag" style="background:#7A5AF81a;color:#7A5AF8;font-weight:700">'+sel+' selected</span>'+
       '<select onchange="leadBulkAssign(this.value);this.value=\'\'" style="'+selStyle+'"><option value="">Assign to…</option>'+team.map(function(t){return '<option>'+esc(t)+'</option>';}).join('')+'</select>'+
       '<select onchange="leadBulkStage(this.value);this.value=\'\'" style="'+selStyle+'"><option value="">Set stage…</option>'+LEAD_STAGES.map(function(s){return '<option value="'+s+'">'+(s==='Won'?'Client':s)+'</option>';}).join('')+'</select>'+
@@ -10795,6 +10798,54 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
   [300,900].forEach(function(d){setTimeout(inject,d);});
   console.info('%c[v55] client proposals loaded','color:#F06820;font-weight:700');
 }catch(e){if(window.console)console.warn('[v55] init',e);}})();
+</script>
+
+<script>
+/* v56 — Ownership: real users own leads/clients/proposals.
+      • team dropdowns are fed from the live app_users list (via the team_directory view),
+        not free text, so every "assigned to / account manager / owner" offers real people.
+      • one-click "Mine" on Leads, Clients and Proposals (owner === the signed-in user).
+      me() already resolves to the signed-in user's display name (full name, or email prefix). */
+(function(){try{
+  if(typeof leadFilter!=='undefined' && leadFilter.mine===undefined) leadFilter.mine=false;
+  if(window.offerMine===undefined) window.offerMine=false;
+
+  // Reliable "who am I" display name. The global `me` is the auth session object after login,
+  // so we read the resolved display name the app already stores (set by fetchRole / setMe).
+  window.meName=function(){ try{ if(typeof DB!=='undefined'&&DB.settings&&DB.settings.currentUser) return DB.settings.currentUser; if(typeof me==='function') return me(); }catch(_){ } return ''; };
+
+  // Clients "Mine": toggle the existing owner filter between me and everyone.
+  window.clToggleMine=function(){ try{ var m=(window.meName?meName():''); if(typeof clFilter==='undefined')return; clFilter.owner=(clFilter.owner===m?'all':m); if(typeof render==='function')render(); }catch(_){} };
+
+  // Prefer the real team roster (loaded below) over the free-text fallback list.
+  var _prevTeamList=window.teamList;
+  window.teamList=function(){
+    if(window.__TEAM && window.__TEAM.length) return window.__TEAM;
+    if(typeof _prevTeamList==='function') return _prevTeamList();
+    return (typeof DB!=='undefined'&&DB.settings&&DB.settings.team&&DB.settings.team.length)?DB.settings.team:(typeof TEAM!=='undefined'?TEAM:[]);
+  };
+
+  // Load the live roster from the team_directory view (readable by every signed-in user).
+  function _c56(){ try{ if(!window.__sb56 && window.supabase && window.supabase.createClient){ window.__sb56=window.supabase.createClient(SUPA_URL,SUPA_KEY);} }catch(_){ } return window.__sb56||null; }
+  var _tries=0, _done=false;
+  function loadTeam(){
+    if(_done) return; _tries++;
+    var c=_c56(); if(!c){ if(_tries<10) return; return; }
+    c.auth.getSession().then(function(s){
+      var u=s&&s.data&&s.data.session&&s.data.session.user; if(!u){ return; }
+      c.from('team_directory').select('id,email,full_name,role,active').then(function(r){
+        if(r.error||!r.data){ _done=true; return; }  // no view (e.g. harness) → keep fallback
+        var seen={}, names=[];
+        r.data.forEach(function(x){ if(x.active===false) return; var n=String(x.full_name||'').trim()|| String(x.email||'').split('@')[0]; if(n && !seen[n]){ seen[n]=1; names.push(n); } });
+        window.__TEAMU=r.data;
+        if(names.length){ window.__TEAM=names.sort(function(a,b){return a.localeCompare(b);}); _done=true; if(typeof render==='function') render(); }
+      }).catch(function(){});
+    }).catch(function(){});
+  }
+  var _iv=setInterval(function(){ if(_done||_tries>=10){ clearInterval(_iv); return; } loadTeam(); }, 1500);
+  setTimeout(loadTeam, 700);
+  console.info('%c[v56] ownership (real team + Mine) loaded','color:#F06820;font-weight:700');
+}catch(e){if(window.console)console.warn('[v56] init',e);}})();
 </script>
 
 </body>
