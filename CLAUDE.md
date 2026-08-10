@@ -1,9 +1,13 @@
 # Direct Business — working notes for Claude
 
-> **2026-08-09 — read `docs/HANDOFF_2026-08-09.md` first.** It has the full current state:
-> live data now **768 leads / 45 clients**, the client moves + how to undo them. The 201
-> scraped `BNPL / Fintech merchant directory` retail brands (Samsung, IKEA, Amazon…) were
-> **archived out of Leads on the user's OK** (backup `businesses_snapshot_20260809_bnpl_archive`).
+> **2026-08-10 — READ `docs/HANDOFF_2026-08-10.md` FIRST.** It is the single fresh-start briefing:
+> current live state, everything shipped, the design correction, the landmines, and open loops.
+> Then read this file and `docs/DIRECT_IDENTITY.md`. (`docs/HANDOFF_2026-08-09.md` is the detailed
+> chronological log.)
+>
+> Quick current state: data is **assumption/test data** — **4 leads / 6 clients** (Direct IDs
+> 101–106), 12 finance service-lines, 3 proposals; real data is in backups (`*_prewipe_20260810`).
+> The app has been **re-skinned to Direct's real product UI** (cream `#FBF5F0` + `#ff6b00`).
 > **Critical:** the QA harness serves FAKE data — verify UI against real Supabase rows or a
 > screenshot, never the mock alone (that gap wasted a sub-session).
 
