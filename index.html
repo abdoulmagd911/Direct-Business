@@ -5317,7 +5317,7 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
     wipe:{en:'🗑 Wipe local data',ar:'🗑 مسح البيانات المحلية'},
     tour:{en:'↩ Replay welcome tour',ar:'↩ إعادة تشغيل جولة الترحيب'},
     exportState:{en:'📦 Export full state JSON',ar:'📦 تصدير الحالة الكاملة'},
-    relearn:{en:'🔄 Re-learn templates from folder',ar:'🔄 إعادة تعلم القوالب من المجلد'},
+    relearn:{en:'🔄 Refresh proposal templates',ar:'🔄 تحديث قوالب العروض'},
     clearTest:{en:'🧹 Clear test data — keep templates',ar:'🧹 مسح بيانات الاختبار — مع الإبقاء على القوالب'}
   };
   var v26L=function(o){var l=v26GetLang();return o[l]||o.en;};
@@ -5339,7 +5339,6 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
       // Create simple cards for each Daily action
       var dailyCards=[
         {label:V26_DAILY_LABELS.language,sub:lang==='ar'?'بدّل بين EN و AR':'Switch between EN and AR',onClick:function(){if(typeof toggleLang==='function')toggleLang();}},
-        {label:V26_DAILY_LABELS.backup,sub:lang==='ar'?'حفظ واستعادة الحالة':'Save and restore state',onClick:function(){if(typeof exportData==='function')exportData();}},
         {label:V26_DAILY_LABELS.viewAs,sub:lang==='ar'?'غيّر نمط العرض':'Change preset',onClick:function(){var b=document.getElementById('v25PresetBtn');if(b)b.click();}},
         {label:V26_DAILY_LABELS.pool,sub:lang==='ar'?'حرّر السقف وراجع التاريخ':'Edit cap, see history',onClick:function(){if(typeof v25OpenPoolSettings==='function')v25OpenPoolSettings();}},
         {label:V26_DAILY_LABELS.company,sub:lang==='ar'?'الرقم التجاري، الضريبي، IBAN، Wakeel':'CR, VAT, IBAN, Wakeel',onClick:function(){if(typeof editBusiness==='function'){var me=(DB.businesses||[]).find(function(b){return b.id==='b_directbusiness'||b.isSelf;});if(me)editBusiness(me.id);}}},
@@ -5369,12 +5368,12 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
       var advGrid=document.createElement('div');
       advGrid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px';
       /* v49: dropped the developer test-runners (Run workflow/scenario tests, Security checks)
-         and the destructive "Clear test data" from this section — they were build-time scaffolding,
-         not tools for the team, and "Run scenario tests" even wrote test rows into the live data.
-         Kept only the two genuinely useful admin utilities. */
+         and the destructive "Clear test data".
+         v51: dropped "Export full state JSON" too — code/data safety is handled by the platform
+         (GitHub + Vercel + Supabase auto-save), so a manual JSON export is not a team tool.
+         Only the proposal-template refresh remains — a real business action. */
       var advCards=[
-        {label:V26_ADV_LABELS.exportState,run:function(){if(typeof exportData==='function')exportData();}},
-        {label:V26_ADV_LABELS.relearn,run:function(){if(typeof v25TemplateLearn==='function'){v25TemplateLearn();var m=(lang==='ar'?'تم تحديث القوالب':'Templates refreshed.');if(typeof toast==='function')toast(m);else alert(m);}}}
+        {label:V26_ADV_LABELS.relearn,run:function(){if(typeof v25TemplateLearn==='function'){v25TemplateLearn();var m=(lang==='ar'?'تم تحديث قوالب العروض':'Proposal templates refreshed.');if(typeof toast==='function')toast(m);else alert(m);}}}
       ];
       advCards.forEach(function(c){
         var btn=document.createElement('button');
@@ -10363,10 +10362,16 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
     try{
       if(typeof current==='undefined'||current!=='settings')return;
       var view=document.getElementById('view'); if(!view)return;
-      /* 1) hide the dead dev/audit cards */
+      /* 1) hide the dead dev/audit cards (by heading) */
       view.querySelectorAll('.card').forEach(function(c){
         var h=c.querySelector('h3,h2'); var t=h?(h.textContent||''):'';
         for(var i=0;i<DROP.length;i++){ if(t.indexOf(DROP[i])>=0){ c.style.display='none'; return; } }
+      });
+      /* 1b) remove the manual backup apparatus (by stable id/class, language-independent).
+         Code + data safety is handled by the platform (GitHub + Vercel + Supabase auto-save),
+         so Export/Import JSON, snapshots and "backup destination" are not team tools. */
+      ['#v21SettingsBackup','.v24BkCard'].forEach(function(sel){
+        view.querySelectorAll(sel).forEach(function(c){ var card=c.closest('.card')||c; card.style.display='none'; });
       });
       /* 2) finish the Arabic — walk TEXT nodes only, so we translate the visible words without
          ever touching an icon span, checkbox, or the file input inside "Import JSON". Keep any
