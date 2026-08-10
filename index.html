@@ -10404,6 +10404,50 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
   setInterval(apply,2500);
   console.info('%c[v50] Settings tidy loaded','color:#F06820;font-weight:700');
 }catch(e){if(window.console)console.warn('[v50] init',e);}})();
+
+/* ===== v51 — brand character: Today hero band + top-bar accent line ===== */
+(function(){try{
+  function isAr(){try{return (typeof LANG!=='undefined'&&LANG==='ar');}catch(_){return false;}}
+  if(!document.getElementById('v51-style')){
+    var st=document.createElement('style'); st.id='v51-style';
+    st.textContent=
+      /* remove ALL manual-backup UI everywhere (Today banner + Settings cards) — the platform
+         (GitHub + Vercel + Supabase) owns code/data safety, so this isn't a team tool */
+      '.v24BkBanner,.v24BkCard,#v21SettingsBackup{display:none!important}'+
+      /* a thin Direct-gradient signature under the top bar, on every page */
+      '.top{position:relative}'+
+      '.top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:linear-gradient(90deg,#E54525,#F26721 55%,#FBAE16);z-index:2}'+
+      /* the Today welcome hero */
+      '.v51-hero{background:linear-gradient(120deg,#E54525,#F26721 58%,#F79009);border-radius:18px;padding:20px 24px;margin:0 0 18px;color:#fff;box-shadow:0 14px 34px -14px rgba(229,69,37,.55);display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;position:relative;overflow:hidden}'+
+      '.v51-hero::before{content:"";position:absolute;inset:auto -50px -80px auto;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.10)}'+
+      '.v51-hero>div{position:relative;z-index:1}'+
+      '.v51-hero .hl{font-size:22px;font-weight:800;letter-spacing:-.02em}'+
+      '.v51-hero .hs{font-size:12px;font-weight:800;opacity:.96;margin-top:6px;letter-spacing:.05em;text-transform:uppercase}'+
+      '.v51-hero .hd{text-align:right}'+
+      'html[dir=rtl] .v51-hero .hd,body[dir=rtl] .v51-hero .hd{text-align:left}';
+    document.head.appendChild(st);
+  }
+  function heroHTML(){
+    var ar=isAr();
+    var dateStr=''; try{ dateStr=new Date().toLocaleDateString(ar?'ar':'en-GB',{weekday:'long',day:'numeric',month:'short',year:'numeric',calendar:'gregory'}); }catch(_){ try{dateStr=new Date().toISOString().slice(0,10);}catch(__){} }
+    var promise=ar?'قوة موردين عالمية · خدمة سعودية · شريك واحد':'Global supplier power. Saudi service. One partner.';
+    var sub=ar?'دايركت أعمال — مساحة عمل الفريق':'Direct Business — team workspace';
+    return '<div style="max-width:72%"><div class="hl" style="font-size:20px;line-height:1.32">'+promise+'</div><div class="hs">'+sub+'</div></div>'+
+      '<div class="hd"><div style="font-size:14px;font-weight:800">'+dateStr+'</div></div>';
+  }
+  function inject(){
+    try{
+      if(typeof current==='undefined'||current!=='today')return;
+      var v=document.getElementById('view'); if(!v)return;
+      if(v.querySelector('.v51-hero'))return;
+      var d=document.createElement('div'); d.className='v51-hero'; d.innerHTML=heroHTML();
+      v.insertBefore(d,v.firstChild);
+    }catch(_){}
+  }
+  try{ if(typeof render==='function'){ var _r=render; render=function(){ var o=_r.apply(this,arguments); try{setTimeout(inject,50);}catch(_){}; return o; }; } }catch(_){}
+  [200,900,2500].forEach(function(d){setTimeout(inject,d);});
+  console.info('%c[v51] brand hero + accent loaded','color:#F06820;font-weight:700');
+}catch(e){if(window.console)console.warn('[v51] init',e);}})();
 </script>
 
 </body>
