@@ -10312,10 +10312,22 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
    display / textContent and never touches data. */
 (function(){try{
   function isArNow(){try{return (typeof LANG!=='undefined'&&LANG==='ar');}catch(_){return false;}}
-  /* Cards removed entirely — "Security & integrity" is a ZATCA/audit read-out (a developer
-     check, not a team tool), and "Generator templates" only holds a re-learn button that already
-     lives under Advanced plus a dev "show tokens" button. The actual proposal generators stay. */
-  var DROP=['Security & integrity','Generator templates'];
+  /* Cards removed entirely — all are build-time scaffolding left over from earlier versions of
+     the app, none of them tools the team uses:
+       · "Security & integrity"  — a ZATCA/XSS/PII audit read-out (a developer check)
+       · "Generator templates"   — a re-learn button (already under Advanced) + a dev "show tokens"
+       · "Performance"           — a dev performance-hint overlay
+       · "Accessibility audit"   — a WCAG dev audit
+       · "Internationalization"  — dev translation-coverage stats
+       · "Developer / test"      — the "Run a day" / "Wipe test records" harness
+       · "Print + PDF"           — developer notes about a print helper
+       · "reconcile with Ahmed"  — a one-off import note referencing a Q:\ spreadsheet
+       · "Workflow + go-live"    — the v22 end-to-end test suite + "reset for go-live"
+       · "Scenario sweep"        — the v23 reissue/refund/ancillaries test runner
+     The real proposal Generators, Backup & restore, and the company one-pagers all stay. */
+  var DROP=['Security & integrity','Generator templates','Performance','Accessibility audit',
+            'Internationalization','Developer / test','Print + PDF','reconcile with Ahmed',
+            'Workflow + go-live','Scenario sweep'];
   /* Exact English → Arabic for labels that stayed English in Arabic mode. */
   var ARMAP={
     'Generators':'المولّدات',
