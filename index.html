@@ -8850,6 +8850,9 @@ function money(n){n=Number(n)||0;return n.toLocaleString('en-US',{minimumFractio
 function moneyS(n){n=Number(n)||0;if(Math.abs(n)>=1e6)return (n/1e6).toFixed(2)+'M';if(Math.abs(n)>=1e3)return (n/1e3).toFixed(1)+'K';return n.toFixed(0);}
 function canFinEdit(){return !window.__isShareView && (window.__userTier==='admin'||window.__userTier==='manager');}
 function canFinView(){return !window.__isShareView;}
+/* expose the finance client + permission checks so later layers (e.g. the finance↔client
+   mapping in v53) can reach them from their own script block */
+try{ window.fc=fc; window.canFinEdit=canFinEdit; window.canFinView=canFinView; }catch(_){}
 
 var FIN={tab:'overview',rows:null,loading:false,showDeleted:false,
   f:{q:'',quarter:'all',month:'all',service:'all',client:'all',status:'verified_paid'},
@@ -9797,7 +9800,7 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
           '<button class="btn sm" onclick="try{current=\'finance\';FIN.tab=\'ledger\';FIN.f.client='+JSON.stringify(cg).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+';render();}catch(e){}">'+fl('Open in Finance ledger ↗','افتح في سجل المالية ↗')+'</button></div>'+
         '<div class="ch-sub" style="margin:2px 0 12px">'+(matchedByLink
             ? fl('Linked to Direct finance · '+rows.length+' invoice'+(rows.length>1?'s':''),'مرتبطة بمالية دايركت · '+rows.length+' فاتورة')
-            : fl('Matched to '+rows.length+' invoice'+(rows.length>1?'s':'')+' by name — not linked yet; confirm in the finance map.','مطابَقة بـ '+rows.length+' فاتورة حسب الاسم — غير مرتبطة بعد؛ أكّدها في خريطة المالية.'))+'</div>'+
+            : (fl('Matched to '+rows.length+' invoice'+(rows.length>1?'s':'')+' by name — not linked yet; ','مطابَقة بـ '+rows.length+' فاتورة حسب الاسم — غير مرتبطة بعد؛ ')+'<span style="color:#F06820;cursor:pointer;font-weight:700" onclick="try{finLinkMap()}catch(e){}">'+fl('link it now.','اربطها الآن.')+'</span>'))+'</div>'+
         '<div style="display:flex;gap:18px;flex-wrap:wrap">'+
           mini(fl('Lifetime billed','إجمالي الفوترة'),mS(billed)+' SAR','#175CD3')+
           mini(fl('Received','المُحصّل'),mS(rec)+' SAR','#0F6E56')+
@@ -10508,6 +10511,85 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
   [300,1200].forEach(function(d){setTimeout(tagTitle,d);});
   console.info('%c[v52] page-title + stat accents loaded','color:#F06820;font-weight:700');
 }catch(e){if(window.console)console.warn('[v52] init',e);}})();
+
+/* ===== v53 — Finance ↔ client mapping: map each invoice group to the real client ===== */
+(function(){try{
+  function isAr(){ try{return (typeof LANG!=='undefined'&&LANG==='ar');}catch(_){return false;} }
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function money(n){ n=Number(n)||0; if(Math.abs(n)>=1e6)return (n/1e6).toFixed(2)+'M'; if(Math.abs(n)>=1e3)return (n/1e3).toFixed(0)+'K'; return n.toFixed(0); }
+  function client(){ try{ if(window.fc)return window.fc(); return (typeof fc==='function')?fc():null; }catch(_){ return null; } }
+  function canEdit(){ try{ if(window.canFinEdit)return window.canFinEdit(); return (window.__userTier==='admin'||window.__userTier==='manager'); }catch(_){ return false; } }
+
+  window.finLinkMap=function(){
+    var A=isAr(); var FIN=window.FIN||{};
+    if(FIN.rows==null){ if(typeof finLoad==='function')finLoad(function(){finLinkMap();}); return; }
+    var byG={}; (FIN.rows||[]).forEach(function(r){ if(r.deleted_at)return; var g=r.client_group||'(blank)'; byG[g]=byG[g]||{rev:0,inv:0}; byG[g].rev+=+r.revenue_sar||0; byG[g].inv++; });
+    var groups=Object.keys(byG).sort(function(a,b){return byG[b].rev-byG[a].rev;});
+    var linkByGroup=FIN.linkByGroup||{};
+    var clients=((typeof DB!=='undefined'&&DB.businesses)||[]).filter(function(b){return b.isClient;}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+    var editable=canEdit();
+
+    var old=document.getElementById('v53ov'); if(old)old.remove();
+    var ov=document.createElement('div'); ov.id='v53ov';
+    ov.style.cssText='position:fixed;inset:0;z-index:2147482000;background:rgba(20,22,43,.45);display:flex;align-items:flex-start;justify-content:center;padding:26px 12px;overflow:auto';
+    var box=document.createElement('div'); box.style.cssText='background:#fff;border-radius:16px;max-width:760px;width:100%;padding:20px 22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)'; ov.appendChild(box);
+    var head=document.createElement('div'); head.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:4px';
+    head.innerHTML='<h3 style="margin:0">'+(A?'ربط المالية بالعملاء':'Link finance to clients')+'</h3>';
+    var xBtn=document.createElement('button'); xBtn.className='btn ghost sm'; xBtn.textContent=(A?'إغلاق':'Close'); head.appendChild(xBtn); box.appendChild(head);
+    var sub=document.createElement('div'); sub.style.cssText='font-size:12.5px;color:#6B7480;margin-bottom:12px';
+    sub.textContent=(A?'اختر العميل لكل مجموعة فواتير حتى تنعكس أموالها على بطاقته. ⚠ = غير مرتبطة بعد.':'Pick the client for each invoice group so its money reflects on that client. ⚠ = not linked yet.');
+    box.appendChild(sub);
+    if(!editable){ var ro=document.createElement('div'); ro.style.cssText='font-size:12px;color:#a8650a;background:#FEF3E2;border-radius:9px;padding:8px 11px;margin-bottom:10px'; ro.textContent=(A?'العرض فقط — الربط للمدراء والمسؤولين.':'View only — mapping is for admins and managers.'); box.appendChild(ro); }
+
+    groups.forEach(function(g){
+      var l=linkByGroup[g]||{}; var curBiz=l.business_id||''; var indiv=(l.is_client===false);
+      var curAppId=''; if(curBiz){ for(var i=0;i<clients.length;i++){ var uu=(window.__bizUuid?window.__bizUuid(clients[i].id):clients[i].id); if(uu===curBiz){curAppId=clients[i].id;break;} } }
+      var row=document.createElement('div'); row.style.cssText='display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #EEF0F3';
+      var info=document.createElement('div'); info.style.cssText='flex:1;min-width:0';
+      info.innerHTML='<div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(g)+'</div><div style="font-size:11px;color:#7C8194">'+money(byG[g].rev)+' SAR · '+byG[g].inv+' '+(A?'فاتورة':'inv')+'</div>';
+      var stat=document.createElement('span'); stat.style.cssText='width:16px;text-align:center;font-size:13px'; stat.textContent=curAppId?'✓':(indiv?'—':'⚠');
+      var sel=document.createElement('select'); sel.style.cssText='flex:1.2;min-width:180px;padding:7px 9px;border:1px solid #DADDE3;border-radius:9px;font:inherit;font-size:13px'; sel.disabled=!editable;
+      var o0=document.createElement('option'); o0.value=''; o0.textContent=(A?'— غير مرتبطة —':'— unmapped —'); sel.appendChild(o0);
+      var oi=document.createElement('option'); oi.value='__indiv__'; oi.textContent=(A?'أفراد / ليس عميلاً':'Individuals / not a client'); if(indiv)oi.selected=true; sel.appendChild(oi);
+      clients.forEach(function(c){ var o=document.createElement('option'); o.value=c.id; o.textContent=c.name||'(unnamed)'; if(c.id===curAppId)o.selected=true; sel.appendChild(o); });
+      sel.onchange=function(){
+        var val=sel.value; var payload={client_group:g, updated_at:new Date().toISOString()};
+        if(val==='__indiv__'){ payload.business_id=null; payload.is_client=false; payload.confirmed_by=(window.__userName||'app'); payload.confirmed_at=new Date().toISOString(); }
+        else if(val===''){ payload.business_id=null; payload.is_client=true; payload.confirmed_by=null; payload.confirmed_at=null; }
+        else { payload.business_id=(window.__bizUuid?window.__bizUuid(val):val); payload.is_client=true; payload.confirmed_by=(window.__userName||'app'); payload.confirmed_at=new Date().toISOString(); }
+        var c=client(); stat.textContent='…';
+        if(!c){ stat.textContent='⚠'; return; }
+        c.from('finance_client_links').upsert(payload,{onConflict:'client_group'}).then(function(r){
+          if(r&&r.error){ stat.textContent='⚠'; if(typeof toast==='function')toast(A?'تعذّر الحفظ':'Save failed'); return; }
+          FIN.linkByGroup=FIN.linkByGroup||{}; FIN.linkByGroup[g]=payload;
+          FIN.groupsByBiz={}; Object.keys(FIN.linkByGroup).forEach(function(k){var L=FIN.linkByGroup[k]; if(L.business_id){(FIN.groupsByBiz[L.business_id]=FIN.groupsByBiz[L.business_id]||[]).push(k);}});
+          stat.textContent=(val==='__indiv__')?'—':(val===''?'⚠':'✓');
+        });
+      };
+      row.appendChild(info); row.appendChild(stat); row.appendChild(sel); box.appendChild(row);
+    });
+
+    document.body.appendChild(ov);
+    function close(){ ov.remove(); try{ FIN.rows=null; if(typeof finLoad==='function')finLoad(function(){ if(typeof render==='function')render(); }); }catch(_){} }
+    xBtn.onclick=close; ov.addEventListener('click',function(e){ if(e.target===ov)close(); });
+  };
+
+  /* entry button on the Finance page (admin/manager) */
+  function injectFinBtn(){
+    try{
+      if(typeof current==='undefined'||current!=='finance')return;
+      if(!canEdit())return;
+      var view=document.getElementById('view'); if(!view||document.getElementById('v53btn'))return;
+      var b=document.createElement('button'); b.id='v53btn'; b.className='btn sm'; b.style.cssText='margin:0 0 10px';
+      b.textContent=(isAr()?'🔗 ربط المالية بالعملاء':'🔗 Link finance to clients');
+      b.onclick=function(){ finLinkMap(); };
+      view.insertBefore(b, view.firstChild);
+    }catch(_){}
+  }
+  try{ if(typeof render==='function'){ var _r=render; render=function(){ var o=_r.apply(this,arguments); try{[120,700].forEach(function(d){setTimeout(injectFinBtn,d);});}catch(_){}; return o; }; } }catch(_){}
+  [500,1500].forEach(function(d){setTimeout(injectFinBtn,d);});
+  console.info('%c[v53] finance↔client mapping loaded','color:#F06820;font-weight:700');
+}catch(e){if(window.console)console.warn('[v53] init',e);}})();
 </script>
 
 </body>
