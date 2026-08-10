@@ -2337,7 +2337,7 @@ ${qcMiss.length?`<div class="v19-today-group"><h3>✅ QC checklist incomplete</h
 /* hook today into the dispatcher */
 const _origRender=render;render=function(){buildNav();const v=document.getElementById("view");document.getElementById("vTitle").textContent=TITLES[current]?TITLES[current][0]:current;document.getElementById("vSub").textContent=TITLES[current]?TITLES[current][1]:'';if(typeof applyLang==='function')applyLang();if(typeof renderTopExtras==='function')renderTopExtras();const map={today:renderToday,dashboard:renderDash,leads:renderLeads,clients:renderClients,bookings:renderBookings,invoices:renderInvoices,tickets:renderTickets,airlines:(vv)=>renderSuppliers(vv,'air'),vendors:(vv)=>renderSuppliers(vv,'prov'),sops:renderSops,slas:renderSlas,sopsla:renderSopSla,reports:(typeof renderReports==="function"?renderReports:renderDash),ops:(vv)=>{renderOps(vv);vv.insertAdjacentHTML("afterbegin","<div style=\"margin-bottom:12px\"><button class=\"btn ghost sm\" onclick=\"gotoProjects()\">Projects board</button></div>");},offers:renderOffers,activity:(typeof renderActivity==='function'?renderActivity:renderDash),archive:(typeof renderArchive==='function'?renderArchive:renderDash)};(map[current]||renderToday)(v);if(typeof v19WireExtras==='function')v19WireExtras();};
 /* topbar ⌘K + ? buttons */
-function renderTopExtras19(){const t=document.querySelector('.tools');if(!t)return;if(!document.getElementById('langBtn'))renderTopExtras();if(document.getElementById('kBtn'))return;const k=document.createElement('button');k.id='kBtn';k.className='v19-kbd-btn';k.title='Search & commands (Ctrl/⌘+K)';k.innerHTML='⌘ <kbd>K</kbd>';k.onclick=openPalette;t.insertBefore(k,t.firstChild);const h=document.createElement('button');h.id='hBtn';h.className='v19-kbd-btn';h.title='Keyboard shortcuts (?)';h.innerHTML='<kbd>?</kbd>';h.onclick=()=>document.getElementById('v19help').classList.add('show');t.insertBefore(h,k);}
+function renderTopExtras19(){const t=document.querySelector('.tools');if(!t)return;if(!document.getElementById('langBtn'))renderTopExtras();/* kBtn/hBtn chrome deleted 2026-08-10 — shortcuts still work */}
 const _origRTE=renderTopExtras;renderTopExtras=function(){_origRTE();renderTopExtras19();};
 /* ----- v19 progressive disclosure — wrap editInvoice / editBooking ----- */
 const _v18EditInvoice=editInvoice;
@@ -6916,7 +6916,7 @@ window.rptPpt=function(){
  window.teamList=function(){return (DB.settings&&DB.settings.team&&DB.settings.team.length)?DB.settings.team:(typeof TEAM!=="undefined"?TEAM:[]);};
  window.tmAdd=function(){var i=document.getElementById("tmNew");if(!i||!i.value.trim())return;DB.settings=DB.settings||{};DB.settings.team=teamList().slice();if(DB.settings.team.indexOf(i.value.trim())<0)DB.settings.team.push(i.value.trim());save();render();};
  window.tmDel=function(n){DB.settings=DB.settings||{};DB.settings.team=teamList().filter(function(x){return x!==n;});save();render();};
- window.v295TeamCard=function(){return '';/* retired: owners now come from real users via Team & Access */ return '<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">Team (lead owners / account managers)</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+teamList().map(function(x){return '<span class="tag" style="background:#EEF0F5;color:#3a4054">'+esc(x)+' <a style="color:#D92D20;cursor:pointer;font-weight:800" onclick="tmDel(\''+esc(x)+'\')">x</a></span>';}).join("")+'<input id="tmNew" placeholder="Add member" style="border:1px solid var(--line-2);border-radius:8px;padding:5px 9px;font:inherit;font-size:12px;width:130px"><button class="btn sm" onclick="tmAdd()">Add</button></div></div>';};
+ window.v295TeamCard=function(){return '';};/* retired: owners come from real users via Team & Access */
  window.leadQuickEdit=function(id){
   var b=getLead(id);if(!b)return;
   var sel=function(opts,cur,fid){return '<select id="'+fid+'">'+opts.map(function(o){var v=Array.isArray(o)?o[0]:o,l=Array.isArray(o)?o[1]:o;return '<option value="'+v+'" '+(cur===v?"selected":"")+'>'+l+'</option>';}).join("")+'</select>';};
@@ -11051,9 +11051,6 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
 .detail-head>div:nth-child(2){flex:1 1 260px;min-width:240px}
 .detail-head>.v19LeadCTA{flex:0 0 auto}
 .detail-head>.mapsLine{flex-basis:100%;justify-content:flex-end;color:var(--muted);font-size:12px;gap:10px}
-/* Top-bar declutter: the ⌘K / ? chips are developer chrome — the shortcuts
-   themselves still work, only the buttons are hidden. */
-#kBtn,#hBtn{display:none!important}
 #reqboard.board{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(296px,1fr))!important;gap:16px!important}
 #reqboard .col{display:block!important;background:#EFF1F6!important;border:1px solid var(--line)!important;border-radius:16px!important;padding:12px!important}
 #reqboard .reqcard{display:block!important}
