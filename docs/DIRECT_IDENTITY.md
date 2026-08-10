@@ -20,6 +20,37 @@ supplier power, Saudi service.
 
 ---
 
+## 1.5 · TWO design languages — read this (corrected 2026-08-10)
+
+Direct has **two** distinct looks, and they must not be conflated (an earlier version of this doc
+did — it only captured the first):
+
+**A · Marketing / print brand** — for the **company profile and proposals**. Rich: orange→red
+**gradient covers**, Proxima Nova / 29LT Zarid Slab, the signature service-fee table. Orange `#F06820`.
+Use for the proposal generator and any printed/sales collateral.
+
+**B · Product UI design system** — for the **actual B2B web apps** (corporate-admin.directksa.com,
+Direct Payments) and therefore for **this internal tool**. Verified from the real product's own
+stylesheet (saved in Drive: the corporate-admin build export, `entry.D0EoajyX.css` +
+`admin/dashboard` component CSS, folder `1BTTxQY_0Gi0X7wfkXwFfJ477URTcQ_s5`):
+
+| Token | Value | Note |
+|---|---|---|
+| **Primary orange** | `#ff6b00` | confirmed (dirty-dot, pills, unread dot). Brighter than the print `#F06820`; ≈ logo-mark `#FF6C00` |
+| Page background | **warm cream** ≈ `#FBF5F0` | NOT white/cool-gray — this is the biggest visual tell |
+| Surface / cards | white, rounded ~14–18px, soft shadow | |
+| Hairline / borders | `#e7e7e7` | |
+| Hover / active tint | light peach (`--p-primary-100`) | active nav = peach pill + orange text/icon |
+| Sidebar | white, **280px** (80px collapsed), grouped UPPERCASE labels | RTL flips the border side |
+| Filter pills | `#f5f5f5` bg / `#d0d0d0` border / fully round; active = orange | |
+| KPI cards | white with a **left orange accent border** | |
+| Icon tiles | peach bg, orange glyph | |
+| Money | new **Saudi Riyal** symbol | |
+| Framework / feel | **PrimeVue (Aura)** — flat orange buttons, rounded selects, clean UI sans | print fonts are NOT used in the app |
+
+**Rule of thumb:** the **app** should feel like corporate-admin (cream + `#ff6b00` + PrimeVue calm);
+**proposals** keep the marketing gradient brand. This internal tool is being re-skinned to match B.
+
 ## 2 · Brand tokens (apply to every output)
 
 ### Colors — reconciled and confirmed
