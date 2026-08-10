@@ -3,7 +3,26 @@
 Living list. Every session should read this and update it. Nothing here is forgotten,
 it is *parked*, and each item says why and what "done" looks like.
 
-Last reviewed: **2026-08-09**
+Last reviewed: **2026-08-10**
+
+### Shipped 2026-08-10 — four screenshot-verified defects fixed (live)
+- **Finance "Income by service line" told a false story** — it showed the service fee as
+  the *entire* gross billed and 100% margin on every row, contradicting the Profit tile
+  above it. Fee now = revenue − cost (Flights 43.0K / 7%, all-services 68.5K = the Profit
+  tile exactly).
+- **The record detail header painted buttons over the company name.** Injected button
+  groups (Create offer / New booking, HQ / Maps) crushed the flexible name column to 0px.
+  The row now wraps and the name column keeps a real minimum width (`v58` style block).
+- **The Operations kanban collapsed into 150px columns with cards spilling across them.**
+  Cause: the v26 "KPI grid" heuristic (any div with 4+ numbers becomes a stat grid) was
+  stamping the board, its columns and its cards. The board, tables and timelines are now
+  excluded — and the same guard stops the v26.3 Insights drawer from hiding the Leads
+  table as an "aggregate block".
+- **The Leads list ignored its own data** — every row showed "—" for Last activity and
+  Next action. `rowToApp` now derives `lastContact` from the newest logged activity and
+  maps `created_at`/`converted_date`; the Next-action cell falls back to the follow-up
+  date; the conversion rate is now won ÷ all leads (was won ÷ decided = a meaningless
+  100%). Strip verified: 10 new this month · 4 in pipeline · 60% · 9 days.
 
 ### Shipped 2026-08-09 (live)
 - **Declutter of Leads / Clients / Finance** — removed the dead "Open in Direct" columns,

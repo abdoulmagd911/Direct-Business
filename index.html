@@ -5517,6 +5517,12 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
       var allDivs=view.querySelectorAll('div:not(.v26-kpi-grid):not(.card):not(.lead):not(.kpi):not(.kpis):not(.chip)');
       allDivs.forEach(function(d){
         if(d.dataset.v26KpiProcessed)return;
+        // Never grid-ify the kanban board, its columns/cards, tables or timelines —
+        // their card text is full of numbers and false-matches the KPI heuristic.
+        if(d.closest&&d.closest('.board,.col,.reqcard,.lead,.tbl-wrap,table,.timeline,.detail-head,#board,#reqboard'))return;
+        // …and never a container that WRAPS a table/board: turning it into a grid
+        // (or letting v26.3 demote it as an "aggregate block") hides real records.
+        if(d.querySelector&&d.querySelector('table,.board,.tbl-wrap,.col'))return;
         if(d.children.length>0&&d.children.length<2)return;
         var txt=(d.textContent||'').replace(/\s+/g,' ').trim();
         if(txt.length<40||txt.length>800)return;
@@ -7085,7 +7091,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
      '<td><span class="statusbadge" style="background:'+LSTAGE_COLOR[sg]+'1a;color:'+LSTAGE_COLOR[sg]+';cursor:pointer" onclick="openLeadFn(\''+b.id+'\')" title="Open the lead to change stage"><span class="dot" style="background:'+LSTAGE_COLOR[sg]+'"></span>'+(sg==='Won'?'Client':sg)+'</span></td>'+
      '<td>'+(function(){var fn=(typeof LANG!=='undefined'&&LANG==='ar'&&b.funnelNameAr)?b.funnelNameAr:b.funnelName;return fn?'<span class="tag" style="background:#EEF0F5;color:#4B5563">'+esc(fn)+'</span>':(b.source?'<span class="tag" style="background:'+sc+'1a;color:'+sc+'">'+esc(b.source)+'</span>':'-');})()+'</td>'+
      '<td style="color:var(--muted);white-space:nowrap">'+(b.lastContact?fmtAgo(b.lastContact):'—')+'</td>'+
-     '<td style="color:var(--muted);max-width:170px;white-space:normal">'+esc(b.nextAction||'—')+'</td>'+
+     '<td style="color:var(--muted);max-width:170px;white-space:normal">'+(function(){var t=b.nextAction||b.nextActionNote||'';var d=b.nextActionDate?String(b.nextActionDate).slice(0,10):'';if(!t&&!d)return '—';var od=d&&d<new Date().toISOString().slice(0,10);return esc(t||((typeof LANG!=='undefined'&&LANG==='ar')?'متابعة':'Follow up'))+(d?' <span style="white-space:nowrap;color:'+(od?'#D92D20':'var(--muted)')+'">· '+d+'</span>':'');})()+'</td>'+
      '<td style="color:var(--muted)">'+((b.assignedTo||b.owner)?esc(b.assignedTo||b.owner):'<span class="tag" style="background:#F0453A14;color:#D92D20">Unassigned</span>')+'</td>'+
      '<td>'+(function(){var _s=leadScore(b),_sb=scoreBand(_s);return '<span class="tag" style="background:'+_sb.c+'1a;color:'+_sb.c+';font-weight:700" title="Lead score '+_s+'/100">'+_sb.l+'</span>';})()+'</td></tr>';
   }).join('')||'<tr><td colspan="8" class="empty">No businesses match this view.</td></tr>';
@@ -7316,6 +7322,14 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
     o.funnelDetails=r.funnel_details||{};
     o.nextActionDate=r.next_action_date||o.nextAction||null;
     o.nextActionNote=r.next_action_note||null;
+    // Map the record's own dates onto the app object (the strip + score read these).
+    if(r.created_at&&!o.createdAt)o.createdAt=r.created_at;
+    if(r.converted_date&&!o.convertedDate)o.convertedDate=r.converted_date;
+    // Last touch: if the raw blob never stored lastContact, take the newest logged activity.
+    if(!o.lastContact&&o.activities&&o.activities.length){
+      var _mx=0;o.activities.forEach(function(a){var d=(typeof a.date==='number')?a.date:Date.parse(a.date)||0;if(d>_mx)_mx=d;});
+      if(_mx)o.lastContact=_mx;
+    }
     // Direct client ID — the link key to Direct Payments. Real column wins over any raw copy.
     if(r.direct_client_id!=null&&r.direct_client_id!=='')o.directClientId=String(r.direct_client_id);
     return o;
@@ -10081,7 +10095,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
     var newThis=all.filter(function(b){return String(created(b)).slice(0,7)===month;}).length;
     var won=all.filter(function(b){return stg(b)==='Won'||b.isClient;});
     var lost=all.filter(function(b){return stg(b)==='Lost';}).length;
-    var decided=won.length+lost, conv=decided>0?Math.round(won.length/decided*100):0;
+    var conv=all.length>0?Math.round(won.length/all.length*100):0; // won out of ALL leads, the standard rate
     var active=all.filter(function(b){var s=stg(b);return s!=='Won'&&s!=='Lost'&&!b.isClient;}).length;
     var wt=won.map(function(b){var c=created(b),cv=b.convertedDate||b.convertDate;if(!c||!cv)return null;var d=(new Date(cv).getTime()-new Date(c).getTime())/864e5;return (isFinite(d)&&d>=0)?d:null;}).filter(function(x){return x!=null;});
     var avg=wt.length?Math.round(wt.reduce(function(a,x){return a+x;},0)/wt.length):null;
@@ -10142,20 +10156,20 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
         '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px"><thead><tr>'+
         th(fl('Service','الخدمة'))+th(fl('Gross billed','الإجمالي'),1)+th(fl('Cost','التكلفة'),1)+th(fl('Service fee (income)','رسوم الخدمة (دخل)'),1)+th(fl('Margin %','هامش %'),1)+th(fl('Inv','فواتير'),1)+'</tr></thead><tbody>';
       keys.forEach(function(k){
-        var b=by[k], mg=b.gross>0?Math.round(b.rev/b.gross*100):0, flag=(b.cost===0&&b.gross>1000);
+        var b=by[k], fee=b.rev-b.cost, mg=b.rev>0?Math.round(fee/b.rev*100):0, flag=(b.cost===0&&b.gross>1000);
         h+='<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" data-svc="'+esc(k)+'" onclick="v32DrillService(this.getAttribute(\'data-svc\'))" title="'+fl('Open the invoices for this service','افتح فواتير هذه الخدمة')+'">'+
           '<td style="padding:7px 8px;font-weight:600">'+esc(window.svcLabel?window.svcLabel(k):k)+(flag?' <span style="color:#B54708;font-size:11px" title="'+fl('Cost is 0 — invoice(s) still need a cost / service-fee split','التكلفة صفر — تحتاج فصل التكلفة عن الرسوم')+'">⚠</span>':'')+'</td>'+
           '<td style="padding:7px 8px;text-align:right;font-variant-numeric:tabular-nums">'+mS(b.gross)+'</td>'+
           '<td style="padding:7px 8px;text-align:right;color:#B54708;font-variant-numeric:tabular-nums">'+mS(b.cost)+'</td>'+
-          '<td style="padding:7px 8px;text-align:right;font-weight:700;color:#0F6E56;font-variant-numeric:tabular-nums">'+mS(b.rev)+'</td>'+
+          '<td style="padding:7px 8px;text-align:right;font-weight:700;color:#0F6E56;font-variant-numeric:tabular-nums">'+mS(fee)+'</td>'+
           '<td style="padding:7px 8px;text-align:right;font-variant-numeric:tabular-nums">'+mg+'%</td>'+
           '<td style="padding:7px 8px;text-align:right;color:var(--muted)">'+b.n+'</td></tr>';
       });
       h+='<tr style="border-top:2px solid var(--line,#ddd);font-weight:800"><td style="padding:8px">'+fl('All services','كل الخدمات')+'</td>'+
         '<td style="padding:8px;text-align:right;font-variant-numeric:tabular-nums">'+mS(tot.gross)+'</td>'+
         '<td style="padding:8px;text-align:right;color:#B54708;font-variant-numeric:tabular-nums">'+mS(tot.cost)+'</td>'+
-        '<td style="padding:8px;text-align:right;color:#0F6E56;font-variant-numeric:tabular-nums">'+mS(tot.rev)+'</td>'+
-        '<td style="padding:8px;text-align:right;font-variant-numeric:tabular-nums">'+(tot.gross>0?Math.round(tot.rev/tot.gross*100):0)+'%</td>'+
+        '<td style="padding:8px;text-align:right;color:#0F6E56;font-variant-numeric:tabular-nums">'+mS(tot.rev-tot.cost)+'</td>'+
+        '<td style="padding:8px;text-align:right;font-variant-numeric:tabular-nums">'+(tot.rev>0?Math.round((tot.rev-tot.cost)/tot.rev*100):0)+'%</td>'+
         '<td style="padding:8px;text-align:right">'+tot.n+'</td></tr>';
       h+='</tbody></table></div>';
       var card=document.createElement('div'); card.className='card v32-svc'; card.style.cssText='padding:16px;margin-bottom:14px'; card.innerHTML=h;
@@ -11002,6 +11016,22 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
   console.info('%c[v57] Your day (Today) loaded','color:#FF6B00;font-weight:700');
 }catch(e){if(window.console)console.warn('[v57] init',e);}})();
 </script>
+
+<style>
+/* v58 — layout repairs (screenshot-verified defects).
+   1) The record detail header: later layers inject extra button groups (Create offer /
+      New booking, HQ / Maps) into a non-wrapping flex row, which crushed the flexible
+      name column to 0px width and painted everything on top of the company name.
+      Let the row wrap and guarantee the name column a real minimum width.
+   2) The Operations kanban: belt-and-braces alongside the v26 heuristic exclusion —
+      the board keeps its own grid regardless of any KPI-grid class stamped on it. */
+.detail-head{flex-wrap:wrap;row-gap:10px}
+.detail-head>div:nth-child(2){flex:1 1 260px;min-width:240px}
+.detail-head>.v19LeadCTA,.detail-head>.mapsLine{flex:0 0 auto}
+#reqboard.board{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(296px,1fr))!important;gap:16px!important}
+#reqboard .col{display:block!important;background:#EFF1F6!important;border:1px solid var(--line)!important;border-radius:16px!important;padding:12px!important}
+#reqboard .reqcard{display:block!important}
+</style>
 
 </body>
 </html>
