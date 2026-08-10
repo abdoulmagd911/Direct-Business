@@ -1435,16 +1435,26 @@ function renderOffers(v){
   if(openOffer)return offerEditor(v,openOffer);
   v.innerHTML=`
   ${dropZone('offer')}
-  <div class="toolbar"><div class="search-wrap">${IC.search}<input id="oq" placeholder="Search offers…" oninput="drawOffers(this.value)"></div><div style="flex:1"></div><button class="btn pri" onclick="newOffer()">+ New offer</button></div>
-  <div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th>Ref</th><th>Status</th><th>Client</th><th>Subject</th><th>Airline</th><th>Total</th><th>Valid</th><th></th></tr></thead><tbody id="otb"></tbody></table></div></div>`;
+  <div class="toolbar"><div class="search-wrap">${IC.search}<input id="oq" placeholder="${(typeof LANG!=='undefined'&&LANG==='ar')?'بحث في العروض…':'Search proposals…'}" oninput="drawOffers(this.value)"></div><div style="flex:1"></div><button class="btn pri" onclick="newOffer()">${(typeof LANG!=='undefined'&&LANG==='ar')?'+ عرض جديد':'+ New proposal'}</button></div>
+  <div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th>Ref</th><th>${(typeof LANG!=='undefined'&&LANG==='ar')?'النوع':'Type'}</th><th>Status</th><th>Client</th><th>Subject</th><th>${(typeof LANG!=='undefined'&&LANG==='ar')?'القيمة':'Value'}</th><th>Valid</th><th></th></tr></thead><tbody id="otb"></tbody></table></div></div>`;
   drawOffers("");
 }
-function drawOffers(q){q=(q||'').toLowerCase();const tb=document.getElementById('otb');if(!tb)return;const O=(DB.offers||[]).filter(o=>!q||((o.ref||'')+' '+(o.client||'')+' '+(o.subject||'')+' '+(o.airline||'')).toLowerCase().includes(q));
-  tb.innerHTML=O.map(o=>`<tr style="cursor:pointer" onclick="openOfferFn('${o.id}')"><td><b>${esc(o.ref||'—')}</b></td><td>${offerStatusBadge(o)}</td><td>${esc(o.client||'—')}</td><td style="color:var(--muted)">${esc(o.subject||'')}</td><td>${esc(o.airline||'')}</td><td style="font-weight:700;white-space:nowrap">${esc(o.total||'')} ${esc(o.currency||'')}</td><td style="color:var(--muted);white-space:nowrap">${o.validUntil?`<span style="color:${offerExpiry(o).color}">${offerExpiry(o).label}</span>`:esc(o.date||'')}</td><td style="text-align:right"><span class="chiplink">Open ›</span></td></tr>`).join('')||'<tr><td colspan="8" class="empty">No offers yet — click “New offer”.</td></tr>';
+function drawOffers(q){q=(q||'').toLowerCase();const ar=(typeof LANG!=='undefined'&&LANG==='ar');const tb=document.getElementById('otb');if(!tb)return;const O=(DB.offers||[]).filter(o=>!q||((o.ref||'')+' '+(o.client||'')+' '+(o.subject||'')+' '+(o.proposalType||'')+' '+(o.airline||'')).toLowerCase().includes(q));
+  tb.innerHTML=O.map(o=>{const ptype=ar?(PROPOSAL_TYPES_AR[o.proposalType]||o.proposalType||'—'):(o.proposalType||'—');return `<tr style="cursor:pointer" onclick="openOfferFn('${o.id}')"><td><b>${esc(o.ref||'—')}</b>${o.docUrl?' 📎':''}${o.promotedToProject?' 🏗':''}</td><td><span class="tag" style="background:#EEF0F5;color:#4B5563">${esc(ptype)}</span></td><td>${offerStatusBadge(o)}</td><td>${esc(o.client||'—')}</td><td style="color:var(--muted)">${esc(o.subject||'')}</td><td style="font-weight:700;white-space:nowrap">${esc(o.value||o.total||'')} ${esc(o.currency||'SAR')}</td><td style="color:var(--muted);white-space:nowrap">${o.validUntil?`<span style="color:${offerExpiry(o).color}">${offerExpiry(o).label}</span>`:esc(o.date||'')}</td><td style="text-align:right"><span class="chiplink">${ar?'فتح ›':'Open ›'}</span></td></tr>`;}).join('')||`<tr><td colspan="8" class="empty">${ar?'لا توجد عروض بعد — اضغط «عرض جديد».':'No proposals yet — click “New proposal”.'}</td></tr>`;
 }
 function openOfferFn(id){openOffer=id;render();window.scrollTo(0,0);}
 function closeOffer(){openOffer=null;render();}
-function newOffer(){const o={id:uid('o'),ref:'DB-'+Date.now().toString().slice(-6),date:new Date().toISOString().slice(0,10),client:'',subject:'',airline:'',route:'',flight:'',cls:'',currency:'SAR',ticketPrice:'',partnerFees:'',serviceFees:'',vat:'',dip:'',total:'',changesBefore:'',changesAfter:'Not permitted',cancelBefore:'',cancelAfter:'Non-Refundable',noShow:'',baggage:'1 piece 23 Kg',lastIssue:'',minStay:'-',maxStay:'-',cheapest:'Yes',remarks:'',addFees:'Partner contractual refund & reissue fees apply. Original handling fees are non-refundable.',status:'Draft',version:1,validUntil:'',ttl:'',linkedLeadId:'',policyStatus:'Not checked',policyReason:'',approvalStatus:'Not required',paxAdt:1,paxChd:0,paxInf:0,cost:'',commission:'',winLoseReason:'',options:[],owner:(typeof me==='function'?me():'')};(DB.offers=DB.offers||[]).push(o);save();openOffer=o.id;render();}
+function newOffer(){const o={id:uid('o'),ref:'DB-'+Date.now().toString().slice(-6),date:new Date().toISOString().slice(0,10),client:'',subject:'',airline:'',route:'',flight:'',cls:'',currency:'SAR',ticketPrice:'',partnerFees:'',serviceFees:'',vat:'',dip:'',total:'',changesBefore:'',changesAfter:'Not permitted',cancelBefore:'',cancelAfter:'Non-Refundable',noShow:'',baggage:'1 piece 23 Kg',lastIssue:'',minStay:'-',maxStay:'-',cheapest:'Yes',remarks:'',addFees:'Partner contractual refund & reissue fees apply. Original handling fees are non-refundable.',status:'Draft',version:1,validUntil:'',ttl:'',linkedLeadId:'',policyStatus:'Not checked',policyReason:'',approvalStatus:'Not required',paxAdt:1,paxChd:0,paxInf:0,cost:'',commission:'',winLoseReason:'',options:[],owner:(typeof me==='function'?me():''),
+  /* full-proposal fields */ proposalType:'Price offer',docUrl:'',scope:'',value:'',promotedToProject:false};(DB.offers=DB.offers||[]).push(o);save();openOffer=o.id;render();}
+/* Proposal types Direct actually uses (from the real Drive proposals folder). */
+const PROPOSAL_TYPES=['Price offer','Technical proposal','Financial bid','Business solution','Training','Tender','Travel — flights','Other'];
+const PROPOSAL_TYPES_AR={'Price offer':'عرض سعر','Technical proposal':'عرض فني','Financial bid':'عرض مالي','Business solution':'حل أعمال','Training':'تدريب','Tender':'مناقصة','Travel — flights':'سفر — طيران','Other':'أخرى'};
+function o_setClient(id){const o=curOffer();if(!o)return;o.linkedLeadId=id;var b=(DB.businesses||[]).find(x=>x.id===id);o.client=b?b.name:o.client;save();offerEditor(document.getElementById('view'),o.id);}
+function o_promoteProject(id){const o=(DB.offers||[]).find(x=>x.id===id);if(!o)return;if(o.promotedToProject){if(typeof toast==='function')toast('Already a project');return;}
+  const _ar=(typeof LANG!=='undefined'&&LANG==='ar');
+  if(!confirm(_ar?('تحويل هذا العرض إلى مشروع؟'):('Promote this proposal to a project?')))return;
+  DB.projects=DB.projects||[];DB.projects.push({id:uid('prj'),name:o.subject||o.ref||'Project',nameAr:'',client:o.client||'',linkedClientId:o.linkedLeadId||'',value:o.value||o.total||'',status:'Active',fromOfferId:o.id,owner:o.owner||'',createdAt:Date.now(),notes:o.scope||''});
+  o.promotedToProject=true;save();offerEditor(document.getElementById('view'),o.id);if(typeof toast==='function')toast(_ar?'تم إنشاء مشروع':'Project created');}
 function curOffer(){return (DB.offers||[]).find(x=>x.id===openOffer);}
 function o_set(k,val){const o=curOffer();if(!o)return;o[k]=val;save();const d=document.getElementById('offerDoc');if(d)d.innerHTML=offerHTML(o);}
 function o_calc(){const o=curOffer();if(!o)return;const num=s=>parseFloat(String(s).replace(/[^0-9.]/g,''))||0;o.total=String(num(o.ticketPrice)+num(o.partnerFees)+num(o.serviceFees)+num(o.vat)+num(o.dip));save();offerEditor(document.getElementById('view'),o.id);}
@@ -1452,9 +1462,26 @@ function logoSrc(){const i=document.querySelector('.brand .logo');return i?i.src
 function offerEditor(v,id){
   const o=(DB.offers||[]).find(x=>x.id===id);if(!o){openOffer=null;return renderOffers(v);}
   const F=(k,lab,ph)=>`<div class="field"><label>${lab}</label><input id="of_${k}" value="${esc(o[k]||'')}" ${ph?('placeholder="'+ph+'"'):''} oninput="o_set('${k}',this.value)"></div>`;
+  const _par=(typeof LANG!=='undefined'&&LANG==='ar');const _pl=(en,ar)=>_par?ar:en;
+  const _clients=(DB.businesses||[]).filter(b=>b.isClient);
+  const proposalHead=`<div class="card" style="padding:14px 16px;margin-bottom:12px;border-inline-start:3px solid #F06820">
+     <h3 style="margin:0 0 10px">${_pl('Proposal','العرض / المقترح')}</h3>
+     <div class="grid2">
+       <div class="field"><label>${_pl('Type','النوع')}</label><select onchange="o_set('proposalType',this.value)">${PROPOSAL_TYPES.map(t=>`<option value="${t}" ${o.proposalType===t?'selected':''}>${_par?(PROPOSAL_TYPES_AR[t]||t):t}</option>`).join('')}</select></div>
+       <div class="field"><label>${_pl('Client','العميل')}</label><select onchange="o_setClient(this.value)"><option value="">${_pl('— pick a client —','— اختر عميلاً —')}</option>${_clients.map(b=>`<option value="${esc(b.id)}" ${o.linkedLeadId===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>
+     </div>
+     <div class="grid2">
+       <div class="field"><label>${_pl('Value (SAR)','القيمة (ريال)')}</label><input value="${esc(o.value||o.total||'')}" oninput="o_set('value',this.value)"></div>
+       <div class="field"><label>${_pl('Valid until','صالح حتى')}</label><input type="date" value="${esc(o.validUntil||'')}" oninput="o_set('validUntil',this.value)"></div>
+     </div>
+     <div class="field"><label>${_pl('Scope / summary','النطاق / الملخص')}</label><textarea rows="2" oninput="o_set('scope',this.value)">${esc(o.scope||'')}</textarea></div>
+     <div class="field"><label>${_pl('Document link (the actual proposal file)','رابط المستند (ملف العرض الفعلي)')}</label><input value="${esc(o.docUrl||'')}" oninput="o_set('docUrl',this.value)" placeholder="https://drive.google.com/…">${o.docUrl?` <a href="${esc(o.docUrl)}" target="_blank" rel="noopener" class="chiplink">${_pl('Open ↗','فتح ↗')}</a>`:''}</div>
+     <div style="display:flex;gap:8px;align-items:center;margin-top:8px">${o.promotedToProject?`<span class="tag" style="background:#E7F8EF;color:#0F6E56">✓ ${_pl('Promoted to project','حُوّل إلى مشروع')}</span>`:`<button class="btn sm" onclick="o_promoteProject('${o.id}')">↗ ${_pl('Promote to project','تحويل إلى مشروع')}</button>`}</div>
+   </div>`;
   v.innerHTML=`<button class="btn ghost sm" onclick="closeOffer()">← Offers</button>
+  ${proposalHead}
   <div class="offer-wrap">
-   <div class="offer-form card"><h3>Quote details</h3>
+   <div class="offer-form card"><h3>${_pl('Quote details (travel)','تفاصيل عرض السفر')}</h3>
      <div class="grid2">${F('ref','Ref #')}${F('date','Date')}</div>
      <div class="grid2">${F('client','Client')}${F('owner','Counselor')}</div>
      <div style="margin:-4px 0 8px"><select onchange="o_loadClient(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--line-2);border-radius:9px;font:inherit;font-size:12.5px"><option value="">↧ Load a corporate client's negotiated deal & pricing…</option>${DB.businesses.filter(x=>x.isClient||((x.pricing||[]).length)||((x.airlineDeals||[]).length)).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('')}</select></div>
@@ -10726,6 +10753,48 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
   [500,1500].forEach(function(d){setTimeout(injectFinBtn,d);});
   console.info('%c[v53] finance↔client mapping loaded','color:#F06820;font-weight:700');
 }catch(e){if(window.console)console.warn('[v53] init',e);}})();
+</script>
+
+<script>
+/* v55 — Proposals on the client/lead detail (Customer-360): a client's proposals from the
+   Offer Builder (offers whose linkedLeadId is this record). Self-contained inject layer. */
+(function(){try{
+  function A(){return (typeof LANG!=='undefined'&&LANG==='ar');}
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function inject(){
+    try{
+      if(typeof current==='undefined'||current!=='leads')return;
+      if(typeof openLead==='undefined'||!openLead)return;
+      var view=document.getElementById('view'); if(!view)return;
+      if(view.querySelector('.v55-proposals'))return;
+      var offers=((typeof DB!=='undefined'&&DB.offers)||[]).filter(function(o){return o.linkedLeadId===openLead;});
+      var ar=A();
+      var rows=offers.map(function(o){
+        var t=ar?((window.PROPOSAL_TYPES_AR&&PROPOSAL_TYPES_AR[o.proposalType])||o.proposalType||'—'):(o.proposalType||'—');
+        return '<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #f0efe9;font-size:12.5px">'+
+          '<span class="tag" style="background:#EEF0F5;color:#4B5563">'+esc(t)+'</span>'+
+          '<a onclick="openOffer=\''+o.id+'\';current=\'offers\';render()" style="cursor:pointer;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(o.subject||o.ref||'')+'</a>'+
+          '<span style="color:var(--muted);white-space:nowrap">'+esc(o.value||o.total||'')+' SAR</span>'+
+          (o.docUrl?' <a href="'+esc(o.docUrl)+'" target="_blank" rel="noopener" title="'+(ar?'المستند':'Document')+'">📎</a>':'')+
+          (o.promotedToProject?' <span title="'+(ar?'مشروع':'Project')+'">🏗</span>':'')+
+        '</div>';
+      }).join('')||'<div style="color:var(--muted);font-size:12px;padding:6px 0">'+(ar?'لا توجد عروض بعد':'No proposals yet')+'</div>';
+      var card=document.createElement('div'); card.className='card v55-proposals'; card.style.cssText='padding:14px 16px;margin-top:12px';
+      card.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><b style="font-size:14px">'+(ar?'العروض والمقترحات':'Proposals')+' ('+offers.length+')</b><span style="flex:1"></span><button class="btn ghost sm" onclick="v55NewProposal(\''+openLead+'\')">＋ '+(ar?'عرض جديد':'New proposal')+'</button></div>'+rows;
+      view.appendChild(card);
+    }catch(_){}
+  }
+  window.v55NewProposal=function(clientId){try{
+    if(typeof newOffer!=='function')return;
+    newOffer(); var arr=(DB.offers||[]); var o=arr[arr.length-1];
+    if(o){ o.linkedLeadId=clientId; var b=(DB.businesses||[]).find(function(x){return x.id===clientId;}); if(b)o.client=b.name; }
+    if(typeof current!=='undefined'){ current='offers'; } if(o){ openOffer=o.id; }
+    if(typeof save==='function')save(); if(typeof render==='function')render();
+  }catch(_){}};
+  try{ if(typeof render==='function'){ var _r=render; render=function(){ var o=_r.apply(this,arguments); try{[80,400].forEach(function(d){setTimeout(inject,d);});}catch(_){}; return o; }; } }catch(_){}
+  [300,900].forEach(function(d){setTimeout(inject,d);});
+  console.info('%c[v55] client proposals loaded','color:#F06820;font-weight:700');
+}catch(e){if(window.console)console.warn('[v55] init',e);}})();
 </script>
 
 </body>
