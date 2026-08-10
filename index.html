@@ -746,12 +746,12 @@ const AVA=["#FF6B00","#2E90FA","#16B364","#7A5AF8","#15B8A6","#F79009","#EC4899"
 function avaColor(id){let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))%AVA.length;return AVA[h];}
 
 /* ================= NAV ================= */
-const VIEWS=[{id:"today",label:"Today",ic:IC.dash,primary:true},{id:"leads",label:"Leads",ic:IC.leads,primary:true},{id:"clients",label:"Clients",ic:IC.leads,primary:true},{id:"bookings",label:"Bookings",ic:IC.ops,primary:false},{id:"invoices",label:"Invoices",ic:IC.vend,primary:false},{id:"tickets",label:"Tickets",ic:IC.sop,primary:false},{id:"offers",label:"Offer Builder",ic:IC.sop,primary:true},{id:"airlines",label:"Airlines",ic:IC.ops,primary:false},{id:"vendors",label:"Providers & GDS",ic:IC.vend,primary:false},{id:"sopsla",label:"SOPs & SLAs",ic:IC.sop,primary:true},{id:"sops",label:"SOP Library",ic:IC.sop,primary:false},{id:"slas",label:"Service Levels",ic:IC.sla,primary:false},{id:"ops",label:"Operations",ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>',primary:false},{id:"reports",label:"Reports",ic:IC.sop,primary:true}];
+const VIEWS=[{id:"today",label:"Today",ic:IC.dash,primary:true},{id:"leads",label:"Leads",ic:IC.leads,primary:true},{id:"clients",label:"Clients",ic:IC.leads,primary:true},{id:"bookings",label:"Bookings",ic:IC.ops,primary:false},{id:"invoices",label:"Invoices",ic:IC.vend,primary:false},{id:"tickets",label:"Tickets",ic:IC.sop,primary:false},{id:"offers",label:"Proposals",ic:IC.sop,primary:true},{id:"airlines",label:"Airlines",ic:IC.ops,primary:false},{id:"vendors",label:"Providers & GDS",ic:IC.vend,primary:false},{id:"sopsla",label:"SOPs & SLAs",ic:IC.sop,primary:true},{id:"sops",label:"SOP Library",ic:IC.sop,primary:false},{id:"slas",label:"Service Levels",ic:IC.sla,primary:false},{id:"ops",label:"Operations",ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>',primary:false},{id:"reports",label:"Reports",ic:IC.sop,primary:true}];
 let current="today";
 function toggleSide(){const s=document.querySelector(".side"),sc=document.getElementById("scrim");if(!s)return;const open=s.classList.toggle("open");if(sc)sc.classList.toggle("show",open);}
 function closeSide(){const s=document.querySelector(".side"),sc=document.getElementById("scrim");if(s)s.classList.remove("open");if(sc)sc.classList.remove("show");}
 function buildNav(){const n=document.getElementById("nav");n.innerHTML="";VIEWS.forEach(v=>{const b=document.createElement("button");b.innerHTML=v.ic+"<span>"+v.label+"</span>";b.className=v.id===current?"active":"";b.onclick=()=>{current=v.id;openLead=null;openSup=null;openOffer=null;openBooking=null;openInvoice=null;supView="detail";leadDetailView="detail";render();window.scrollTo(0,0);closeSide();};n.appendChild(b);});}
-const TITLES={reports:["Reports","Objectives 2026 - achievements - KPI progress - report generator"],sopsla:["SOPs & SLAs","Procedures and service-level standards"],dashboard:["Dashboard","Your commercial command center"],leads:["Leads","Funnels · one business · many contacts · assignable pipeline"],clients:["Clients","Won accounts — your managed book of business"],bookings:["Bookings","Every fulfilment — tickets, hotels, visas, transfers · linked to client, offer & invoice"],invoices:["Invoices","Billing — line items linked to bookings & tickets"],tickets:["Tickets","Ticket register — every PNR / e-ticket across all bookings"],airlines:["Airlines","Carrier accounts — sourcing, portals, ADMs & contacts"],vendors:["Providers & GDS","Suppliers — sourcing, logins, ADMs, process & contacts"],sops:["SOP Library","Saudi-market procedures, elevated to global standard"],slas:["Service Levels","Direct Business vs the market vs the industry whales"],ops:["Operations","Request intake → fulfilment → handover"],offers:["Offer Builder","Turn request details into a Direct-branded quote for email / WhatsApp"]};
+const TITLES={reports:["Reports","Objectives 2026 - achievements - KPI progress - report generator"],sopsla:["SOPs & SLAs","Procedures and service-level standards"],dashboard:["Dashboard","Your commercial command center"],leads:["Leads","Funnels · one business · many contacts · assignable pipeline"],clients:["Clients","Won accounts — your managed book of business"],bookings:["Bookings","Every fulfilment — tickets, hotels, visas, transfers · linked to client, offer & invoice"],invoices:["Invoices","Billing — line items linked to bookings & tickets"],tickets:["Tickets","Ticket register — every PNR / e-ticket across all bookings"],airlines:["Airlines","Carrier accounts — sourcing, portals, ADMs & contacts"],vendors:["Providers & GDS","Suppliers — sourcing, logins, ADMs, process & contacts"],sops:["SOP Library","Saudi-market procedures, elevated to global standard"],slas:["Service Levels","Direct Business vs the market vs the industry whales"],ops:["Operations","Request intake → fulfilment → handover"],offers:["Proposals","Every proposal — price offers, tenders, technical bids — linked to its client"]};
 
 /* ================= CHARTS (inline SVG) ================= */
 function donut(segs){const tot=segs.reduce((s,x)=>s+x.v,0)||1;let a=-Math.PI/2;const R=52,r=34,cx=64,cy=64;let p="";segs.forEach(s=>{const ang=s.v/tot*Math.PI*2;const a2=a+ang;const x1=cx+R*Math.cos(a),y1=cy+R*Math.sin(a),x2=cx+R*Math.cos(a2),y2=cy+R*Math.sin(a2);const xi2=cx+r*Math.cos(a2),yi2=cy+r*Math.sin(a2),xi1=cx+r*Math.cos(a);const yi1=cy+r*Math.sin(a);const lg=ang>Math.PI?1:0;p+=`<path d="M${x1} ${y1} A${R} ${R} 0 ${lg} 1 ${x2} ${y2} L${xi2} ${yi2} A${r} ${r} 0 ${lg} 0 ${xi1} ${yi1} Z" fill="${s.c}"/>`;a=a2;});return `<svg viewBox="0 0 128 128" width="128" height="128">${p}<text x="64" y="60" text-anchor="middle" font-size="20" font-weight="800" fill="#13151E">${tot}</text><text x="64" y="76" text-anchor="middle" font-size="9" fill="#7A8198" letter-spacing="1">TOTAL</text></svg>`;}
@@ -2324,7 +2324,7 @@ const recents=(DB.recents||[]).map(r=>({r:r,m:recentLabel(r)})).filter(x=>x.m);
 function card(opts){const{cls,ic,ti,meta,v,click}=opts;return `<div class="v19-today-card ${cls||''}" onclick="${click}"><div class="ic" style="background:rgba(255,255,255,.65)">${ic}</div><div class="body"><div class="ti">${esc(ti)}</div><div class="meta">${meta}</div></div>${v?`<div class="v">${esc(v)}</div>`:''}</div>`;}
 function emptyCard(msg){return `<div class="v19-today-card empty">✓ ${esc(msg)}</div>`;}
 const totalAttention=ttlSoon.length+overdue.length+dunnNow.length+lowOffers.length+queueMine.length+qcMiss.length;
-v.innerHTML=`<div class="hero"><h2>Today · ${esc(fmtDate(now))} <span style="font-size:13px;font-weight:500;color:#9DD9C0;margin-left:8px">${esc(fmtHijri(new Date().toISOString().slice(0,10)))}</span></h2><p>${totalAttention?totalAttention+' items need your attention. One scroll, one click to act.':'Inbox-zero ✓ — nothing urgent. Use this calm to call top accounts or build offers.'}</p><div class="chips" style="margin-top:14px"><div class="chip"><div class="v">${ttlSoon.length}</div><div class="l">TTL ≤ 48h</div></div><div class="chip"><div class="v" style="color:#B54708">${overdue.length}</div><div class="l">Overdue inv.</div></div><div class="chip"><div class="v">${dunnNow.length}</div><div class="l">In dunning</div></div><div class="chip"><div class="v">${lowOffers.length}</div><div class="l">Low-margin offers</div></div><div class="chip"><div class="v">${queueMine.length}</div><div class="l">My queue (7d)</div></div></div></div>
+v.innerHTML=`<div class="hero"><h2>Today · ${esc(fmtDate(now))} <span style="font-size:13px;font-weight:500;color:#9DD9C0;margin-left:8px">${esc(fmtHijri(new Date().toISOString().slice(0,10)))}</span></h2><p>${totalAttention?totalAttention+' items need your attention.':'Nothing urgent right now — all clear.'}</p><div class="chips" style="margin-top:14px"><div class="chip"><div class="v">${ttlSoon.length}</div><div class="l">Tickets due soon</div></div><div class="chip"><div class="v" style="color:#B54708">${overdue.length}</div><div class="l">Overdue invoices</div></div><div class="chip"><div class="v">${dunnNow.length}</div><div class="l">Being chased</div></div><div class="chip"><div class="v">${lowOffers.length}</div><div class="l">Low-profit offers</div></div><div class="chip"><div class="v">${queueMine.length}</div><div class="l">My queue</div></div></div></div>
 <div class="v19-qc-bar"><div class="v19-qc" onclick="ingestModal('invoice','',null)"><div class="ic">🧾</div><div><div class="lab">New invoice</div><div class="sub">Press N here</div></div></div><div class="v19-qc" onclick="ingestModal('booking','',null)"><div class="ic">🧳</div><div><div class="lab">New booking</div><div class="sub">Drop PDF or fill form</div></div></div><div class="v19-qc" onclick="(function(){current='offers';newOffer();render();})()"><div class="ic">📄</div><div><div class="lab">New offer</div><div class="sub">Build a quote</div></div></div><div class="v19-qc" onclick="openPalette()"><div class="ic">⌘</div><div><div class="lab">Search / commands</div><div class="sub">Ctrl/⌘+K — fuzzy find anything</div></div></div></div>
 ${recents.length?`<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin:14px 2px 6px">Recently visited</div><div class="v19-recents">${recents.map(x=>`<span class="rc" onclick="jumpRecent('${x.r.kind}','${x.r.id}')"><span class="ic">${x.m.i}</span>${esc(x.m.n)}</span>`).join('')}</div></div>`:''}
 <div class="v19-today-group"><h3>⏰ TTL expiring (next 48h)</h3>${ttlSoon.length?ttlSoon.slice(0,8).map(b=>{const hrs=Math.round((new Date(b.ttl).getTime()-now)/3600000);const cls=hrs<0?'red':hrs<24?'red':'amber';return card({cls,ic:'⏰',ti:b.ref+' · '+(bkAirlines(b).join(', ')||'—'),meta:leadName(b.leadId)+' · PNR '+(b.pnr||'—'),v:hrs<0?'EXPIRED':(hrs+'h'),click:`openBookingFn('${b.id}')`});}).join(''):emptyCard('No TTL pressure today.')}</div>
@@ -2788,7 +2788,7 @@ function v21WipeTestRecords(){['businesses','offers','bookings','invoices','refu
 // Extended EN→AR map covering every user-facing label not already in I18N
 const V21_STRINGS_AR={'Reports':'التقارير','Generate Report':'إنشاء تقرير','Achievements':'الإنجازات','Objectives & KPIs':'الأهداف ومؤشرات الأداء','Overview':'نظرة عامة','Achievements logged':'الإنجازات المسجلة','This month':'هذا الشهر','KPIs with data':'مؤشرات لديها بيانات','Avg progress to 2026 targets':'متوسط التقدم نحو أهداف 2026','Objective progress':'تقدم الأهداف','Recent achievements':'أحدث الإنجازات','CSV - summary':'CSV — ملخص','CSV - full details':'CSV — كل التفاصيل','Excel - summary':'Excel — ملخص','Excel - full details':'Excel — كل التفاصيل','Full backup (JSON)':'نسخة احتياطية كاملة (JSON)',
   // Nav + section labels
-  'Today':'اليوم','Leads':'العملاء المحتملون','Clients':'العملاء','Bookings':'الحجوزات','Invoices':'الفواتير','Tickets':'التذاكر','Offer Builder':'منشئ العروض','Dashboard':'لوحة التحكم','Airlines':'شركات الطيران','Providers & GDS':'الموردون و GDS','SOP Library':'مكتبة الإجراءات','Service Levels':'مستويات الخدمة','Operations':'العمليات','Activity & Audit':'النشاط والتدقيق','Archive':'الأرشيف','Sync & Integrations':'المزامنة والتكاملات','More':'المزيد',
+  'Today':'اليوم','Leads':'العملاء المحتملون','Clients':'العملاء','Bookings':'الحجوزات','Invoices':'الفواتير','Tickets':'التذاكر','Offer Builder':'منشئ العروض','Proposals':'العروض المقدمة','Reference':'المكتبة والمراجع','Every proposal — price offers, tenders, technical bids — linked to its client':'كل العروض — عروض أسعار ومناقصات وعروض فنية — مرتبطة بعملائها','Dashboard':'لوحة التحكم','Airlines':'شركات الطيران','Providers & GDS':'الموردون و GDS','SOP Library':'مكتبة الإجراءات','Service Levels':'مستويات الخدمة','Operations':'العمليات','Activity & Audit':'النشاط والتدقيق','Archive':'الأرشيف','Sync & Integrations':'المزامنة والتكاملات','More':'المزيد',
   // Common actions / labels
   'Save':'حفظ','Save changes':'حفظ التغييرات','Cancel':'إلغاء','Edit':'تعديل','Delete':'حذف','Archive':'أرشفة','Restore':'استعادة','Open':'فتح','Close':'إغلاق','Create':'إنشاء','New':'جديد','Search':'بحث','Filter':'تصفية','Export':'تصدير','Import':'استيراد','Print':'طباعة','Save as PDF':'حفظ كملف PDF','Send':'إرسال','Mark as':'تعليم كـ','Mark for follow-up':'علّم للمتابعة','Track':'تتبع','Assign':'تعيين','Note':'ملاحظة','Draft':'مسودة','Push to source':'دفع إلى المصدر','Sync from source':'مزامنة من المصدر','Open in source':'فتح في المصدر','Confirm':'تأكيد','Yes':'نعم','No':'لا','Add':'إضافة','Remove':'حذف','Apply':'تطبيق','Reset':'إعادة تعيين','View':'عرض','Total':'الإجمالي','Subtotal':'المجموع الفرعي','Amount':'المبلغ','Date':'التاريخ','Status':'الحالة','Type':'النوع','Notes':'ملاحظات','Settings':'الإعدادات','Back':'رجوع',
   // Today tab
@@ -3928,7 +3928,11 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
 
   /* ===== Track B: Nav restructure (≤8 primary + read-only mirror + ▾ More) ===== */
   // Primary nav order (8 items + new Projects = 9, will fold)
-  var V25_PRIMARY=['today','leads','clients','offers','events','airlines','vendors','sopsla','ops','reports','settings'];
+  var V25_PRIMARY=['today','leads','clients','offers','ops','reports','settings'];
+  // Reference/library pages — real content, but not daily-driver pages. Grouped and
+  // collapsed so the working nav matches the go-live focus (Today/Leads/Clients/
+  // Proposals/Operations/Finance/Reports/Settings), like the leaders' 6-8 item navs.
+  var V25_REFERENCE=['events','airlines','vendors','sopsla'];
   var V25_READONLY=['bookings','invoices','tickets'];
   var V25_MORE=[];
   // Ensure VIEWS has settings + projects
@@ -3990,6 +3994,23 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
         var v=VIEWS.find(function(x){return x.id===id;});
         if(v)nav.appendChild(wireBtn(v));
       });
+      // REFERENCE group (collapsible; opens automatically when you're on one of its pages)
+      var CHV_R0=String.fromCharCode(0x25B8),CHV_D0=String.fromCharCode(0x25BE);
+      var refOpen=localStorage.getItem('v25_navRefOpen')==='true'||V25_REFERENCE.indexOf(current)>=0;
+      var refLbl=function(){return (typeof T==='function')?T('Reference'):'Reference';};
+      var refTog=document.createElement('button');
+      refTog.className='v25-more-tog';
+      refTog.style.cssText='background:transparent;border:0;color:#7E859E;padding:10px 14px;cursor:pointer;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;width:100%;text-align:left;margin-top:10px;font-family:inherit;display:flex;align-items:center;gap:6px';
+      refTog.innerHTML=(refOpen?CHV_D0:CHV_R0)+' '+refLbl();
+      var refWrap=document.createElement('div');
+      refWrap.style.display=refOpen?'flex':'none';refWrap.style.flexDirection='column';refWrap.style.gap='3px';
+      refTog.onclick=function(){var o=refWrap.style.display!=='none';refWrap.style.display=o?'none':'flex';refTog.innerHTML=(!o?CHV_D0:CHV_R0)+' '+refLbl();localStorage.setItem('v25_navRefOpen',!o);};
+      nav.appendChild(refTog);
+      V25_REFERENCE.forEach(function(id){
+        var v=VIEWS.find(function(x){return x.id===id;});
+        if(v){var b=wireBtn(v);b.style.opacity='.85';b.style.fontSize='12.5px';refWrap.appendChild(b);}
+      });
+      nav.appendChild(refWrap);
       // READ-ONLY MIRROR group (collapsible, collapsed by default)
       var CHV_R=String.fromCharCode(0x25B8),CHV_D=String.fromCharCode(0x25BE);
       var roOpen=localStorage.getItem('v25_navRoOpen')==='true';
@@ -8820,7 +8841,7 @@ function isAr(){try{return (typeof LANG!=='undefined'&&LANG==='ar')||document.do
 function canEdit(){return !window.__isShareView && window.__userTier!=='viewer';}
 function E(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-var PAGES=window.PAGES=[['today','Today','اليوم'],['leads','Leads','العملاء المحتملون'],['clients','Clients','العملاء'],['finance','Finance','المالية'],['offers','Offer Builder','منشئ العروض'],['events','Events','الفعاليات'],['projects','Projects','المشاريع'],['reports','Reports','التقارير'],['airlines','Airlines','شركات الطيران'],['vendors','Providers & GDS','الموردون'],['sopsla','SOPs & SLAs','الإجراءات والمستويات'],['ops','Operations','العمليات'],['bookings','Bookings','الحجوزات'],['invoices','Invoices','الفواتير'],['tickets','Tickets','التذاكر'],['sync','Sync & Integrations','المزامنة'],['settings','Settings','الإعدادات']];
+var PAGES=window.PAGES=[['today','Today','اليوم'],['leads','Leads','العملاء المحتملون'],['clients','Clients','العملاء'],['finance','Finance','المالية'],['offers','Proposals','العروض المقدمة'],['events','Events','الفعاليات'],['projects','Projects','المشاريع'],['reports','Reports','التقارير'],['airlines','Airlines','شركات الطيران'],['vendors','Providers & GDS','الموردون'],['sopsla','SOPs & SLAs','الإجراءات والمستويات'],['ops','Operations','العمليات'],['bookings','Bookings','الحجوزات'],['invoices','Invoices','الفواتير'],['tickets','Tickets','التذاكر'],['sync','Sync & Integrations','المزامنة'],['settings','Settings','الإعدادات']];
 
 /* ---------- 1. enforce my allowed pages ---------- */
 var myPages=null; /* null = everything */
@@ -9864,8 +9885,8 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
     'Wallet (excluded)':'المحفظة (مستثناة)','Invoices':'الفواتير',
     'Open':'مفتوحة','Used':'مستخدمة','Refunded':'مستردة','ADM-flagged':'مُعلَّمة ADM',
     // ---- KPI / stat tile labels ----
-    'TTL ≤ 48h':'مهلة ≤ 48 ساعة','Overdue inv.':'فواتير متأخرة','In dunning':'قيد التحصيل',
-    'Low-margin offers':'عروض هامش منخفض','My queue (7d)':'قائمتي (7 أيام)',
+    'Tickets due soon':'تذاكر يقترب موعد إصدارها','Nothing urgent right now — all clear.':'لا شيء عاجل الآن — كل شيء على ما يرام.','Overdue invoices':'فواتير متأخرة','Being chased':'قيد التحصيل',
+    'Low-profit offers':'عروض ربح منخفض','My queue':'قائمتي',
     'Total clients':'إجمالي العملاء','Key accounts':'حسابات رئيسية','Total won (SAR)':'إجمالي المكسوب (ريال)',
     'Reviews overdue':'مراجعات متأخرة','Open requests':'طلبات مفتوحة','SLA overdue':'تأخّر مستوى الخدمة',
     'Awaiting client':'بانتظار العميل','Pipeline value':'قيمة خط الأنابيب','Booked margin':'هامش المحجوز',
@@ -11028,6 +11049,9 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
 .detail-head{flex-wrap:wrap;row-gap:10px}
 .detail-head>div:nth-child(2){flex:1 1 260px;min-width:240px}
 .detail-head>.v19LeadCTA,.detail-head>.mapsLine{flex:0 0 auto}
+/* Top-bar declutter: the ⌘K / ? chips are developer chrome — the shortcuts
+   themselves still work, only the buttons are hidden. */
+#kBtn,#hBtn{display:none!important}
 #reqboard.board{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(296px,1fr))!important;gap:16px!important}
 #reqboard .col{display:block!important;background:#EFF1F6!important;border:1px solid var(--line)!important;border-radius:16px!important;padding:12px!important}
 #reqboard .reqcard{display:block!important}
