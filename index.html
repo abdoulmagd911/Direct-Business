@@ -9767,7 +9767,7 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
       var mini=function(lbl,val,col){return '<div style="flex:1;min-width:100px"><div style="font-size:11px;color:var(--muted)">'+lbl+'</div><div style="font-size:18px;font-weight:800;color:'+(col||'#1C1E2B')+'">'+val+'</div></div>';};
       card.innerHTML='<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap">'+
           '<h3 style="margin:0">💰 '+fl('Finance','المالية')+'</h3>'+
-          '<button class="btn sm" onclick="try{current=\'finance\';FIN.tab=\'ledger\';FIN.f.client='+JSON.stringify(cg).replace(/"/g,'&quot;')+';render();}catch(e){}">'+fl('Open in Finance ledger ↗','افتح في سجل المالية ↗')+'</button></div>'+
+          '<button class="btn sm" onclick="try{current=\'finance\';FIN.tab=\'ledger\';FIN.f.client='+JSON.stringify(cg).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+';render();}catch(e){}">'+fl('Open in Finance ledger ↗','افتح في سجل المالية ↗')+'</button></div>'+
         '<div class="ch-sub" style="margin:2px 0 12px">'+fl('Matched to '+rows.length+' invoice'+(rows.length>1?'s':'')+' by company name — verify the name matches before relying on it.','مطابَقة بـ '+rows.length+' فاتورة حسب اسم الشركة — تأكد من تطابق الاسم قبل الاعتماد عليه.')+'</div>'+
         '<div style="display:flex;gap:18px;flex-wrap:wrap">'+
           mini(fl('Lifetime billed','إجمالي الفوترة'),mS(billed)+' SAR','#175CD3')+
