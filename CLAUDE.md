@@ -1,5 +1,15 @@
 # Direct Business — working notes for Claude
 
+> **2026-08-10 — READ `docs/HANDOFF_2026-08-10.md` FIRST.** It is the single fresh-start
+> briefing: current live state, everything shipped through 2026-08-10, the two-design-languages
+> correction, the landmines, and open loops. (`docs/HANDOFF_2026-08-09.md` is the detailed
+> chronological log; `docs/DIRECT_IDENTITY.md` is the brand/product design system.)
+>
+> ⚠️ **This branch (`main`) is not the live code.** The deployed app is on the Vercel
+> production branch `claude/new-session-9fhlp1`, ~41 commits ahead of `main` (product-UI
+> re-skin, proposals, ownership, Team & Access, assumption data 4 leads / 6 clients). Several
+> sections below describe the older state — trust the handoff first.
+
 ## Standing rules (set by Abdulrahman, 2026-08-08)
 
 1. **Abdulrahman is not a developer.** No jargon. Explain things the way you'd explain
