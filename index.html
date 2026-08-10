@@ -7225,6 +7225,15 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
       direct_client_id:(o.directClientId!=null&&String(o.directClientId).trim()!=='')?String(o.directClientId).trim():null,
       raw:o
     };
+    // Persist the client handover fields to real columns too (not just raw), so a lead
+    // converted in-app writes the same shape my SQL seed does and external reads can use them.
+    if(o.legalName!=null&&o.legalName!=='')row.legal_name=o.legalName;
+    var _crv=o.crVat||o.vatNumber||o.crNumber; if(_crv)row.cr_vat=String(_crv);
+    if(o.customerType||o.entityType)row.entity_type=o.customerType||o.entityType;
+    if(o.paymentTerms!=null&&o.paymentTerms!=='')row.payment_terms=o.paymentTerms;
+    if(o.creditLimit!=null&&o.creditLimit!=='')row.credit_limit=Number(o.creditLimit)||0;
+    if(o.contractScope!=null&&o.contractScope!=='')row.contract_scope=o.contractScope;
+    if(o.isClient===true&&o.convertedDate){try{row.converted_date=new Date(o.convertedDate).toISOString().slice(0,10);}catch(_){}}
     if(o.funnelKey&&FBYKEY[o.funnelKey])row.funnel_id=FBYKEY[o.funnelKey].id;
     if(ROWID[o.id])row.id=ROWID[o.id];
     return row;
@@ -8575,21 +8584,34 @@ try{ if(typeof convertToClient==='function'&&!window.__v40conv){
       var b=getLead(id);
       if(b&&b.isClient&&!before){
         var ar=isAr();
+        var _selHtml=function(id,cur,opts){return '<select id="'+id+'"><option value=""></option>'+opts.map(function(t){return '<option value="'+esc4(t[0])+'"'+(cur===t[0]?' selected':'')+'>'+esc4(ar?t[1]:t[0])+'</option>';}).join('')+'</select>';};
+        var CT=[['Government','جهة حكومية'],['Semi Government','شبه حكومية'],['Big Company','شركة كبيرة'],['Medium Company','شركة متوسطة'],['Small Company','شركة صغيرة'],['Listed Company','شركة مدرجة'],['PIF company','شركة تابعة لصندوق الاستثمارات'],['Travel Partner','شريك سفر'],['Individual','فرد']];
+        var PM=[['Pre-paid','مسبق الدفع'],['Post-paid','آجل'],['Tender','مناقصة']];
+        var BC=[['Manual','يدوي'],['Monthly','شهري'],['Weekly','أسبوعي'],['N/A','غير محدد']];
+        var AGR=[['Active','سارية'],['Draft','مسودة'],['Pending','قيد الإعداد'],['None','لا يوجد']];
         openModal((ar?'تسليم العميل الجديد — ':'New client handover — ')+esc4(b.name),
-          '<div class="ch-sub">'+(ar?'أكمل بيانات العميل حتى يكون جاهزاً في صفحة العملاء.':'Complete the client card so it is ready in the Clients page.')+'</div>'+
-          '<div class="field"><label>'+(ar?'معرّف العميل في دايركت':'Direct client ID')+' <span style="color:var(--muted);font-weight:400;font-size:11px">'+(ar?'— من نظام دايركت، يربط الفواتير والمالية':'— from Direct, links invoices & finance')+'</span></label><input id="c_did" value="'+esc4(b.directClientId||'')+'" placeholder="'+(ar?'مثال: 95':'e.g. 95')+'"></div>'+
-          '<div class="grid2"><div class="field"><label>'+(ar?'مدير الحساب':'Account manager')+'</label><input id="c_am" value="'+esc4(b.accountManager||b.assignedTo||meName())+'"></div>'+
-          '<div class="field"><label>'+(ar?'شروط الدفع':'Payment terms')+'</label><input id="c_pt" value="'+esc4(b.paymentTerms||'')+'" placeholder="Pre-paid / Post-paid / Credit"></div></div>'+
-          '<div class="grid2"><div class="field"><label>'+(ar?'حالة الاتفاقية':'Agreement status')+'</label><input id="c_agr" value="'+esc4(b.agreementStatus||'')+'" placeholder="Active / Draft / Pending"></div>'+
-          '<div class="field"><label>'+(ar?'جهة الاتصال الرئيسية':'Point of contact')+'</label><input id="c_poc" value="'+esc4(b.pocName||'')+'" placeholder="'+(ar?'الاسم · الصفة':'Name · role')+'"></div></div>'+
-          '<div class="field"><label>'+(ar?'نطاق التعاقد':'Contract scope')+'</label><input id="c_sc" value="'+esc4(b.contractScope||'')+'" placeholder="Air, hotel, visa, transfer…"></div>'+
+          '<div class="ch-sub">'+(ar?'أكمل البيانات المطلوبة لإنشاء العميل في نظام دايركت.':'Complete the data Direct needs to create this client.')+'</div>'+
+          '<div class="field"><label>'+(ar?'معرّف العميل في دايركت':'Direct client ID')+' <span style="color:var(--muted);font-weight:400;font-size:11px">'+(ar?'— يربط الفواتير والمالية':'— links invoices & finance')+'</span></label><input id="c_did" value="'+esc4(b.directClientId||'')+'" placeholder="'+(ar?'مثال: 95':'e.g. 95')+'"></div>'+
+          '<div class="grid2"><div class="field"><label>'+(ar?'الاسم النظامي':'Legal name')+'</label><input id="c_ln" value="'+esc4(b.legalName||b.name||'')+'"></div>'+
+          '<div class="field"><label>'+(ar?'نوع العميل':'Customer type')+'</label>'+_selHtml('c_ct',(b.customerType||b.entityType||''),CT)+'</div></div>'+
+          '<div class="grid2"><div class="field"><label>'+(ar?'طريقة الدفع':'Payment mode')+'</label>'+_selHtml('c_pm',(b.paymentMode||''),PM)+'</div>'+
+          '<div class="field"><label>'+(ar?'دورة الفوترة':'Billing cycle')+'</label>'+_selHtml('c_bc',(b.billingCycle||''),BC)+'</div></div>'+
+          '<div class="grid2"><div class="field"><label>'+(ar?'السجل التجاري / الرقم الضريبي':'CR / VAT')+'</label><input id="c_crv" value="'+esc4(b.crVat||b.vatNumber||'')+'"></div>'+
+          '<div class="field"><label>'+(ar?'حد الائتمان (ريال)':'Credit limit (SAR)')+'</label><input id="c_cl" type="number" value="'+esc4(b.creditLimit!=null?b.creditLimit:'')+'"></div></div>'+
+          '<div class="grid2"><div class="field"><label>'+(ar?'حالة الاتفاقية':'Agreement status')+'</label>'+_selHtml('c_agr',(b.agreementStatus||''),AGR)+'</div>'+
+          '<div class="field"><label>'+(ar?'مدير الحساب':'Account manager')+'</label><input id="c_am" value="'+esc4(b.accountManager||b.assignedTo||meName())+'"></div></div>'+
+          '<div class="grid2"><div class="field"><label>'+(ar?'جهة الاتصال الرئيسية':'Point of contact')+'</label><input id="c_poc" value="'+esc4(b.pocName||'')+'" placeholder="'+(ar?'الاسم · الصفة':'Name · role')+'"></div>'+
+          '<div class="field"><label>'+(ar?'نطاق التعاقد':'Contract scope')+'</label><input id="c_sc" value="'+esc4(b.contractScope||'')+'" placeholder="'+(ar?'طيران، فنادق، تأشيرات…':'Air, hotel, visa…')+'"></div></div>'+
           '<div class="field"><label>'+(ar?'سبب الفوز':'Win reason')+'</label><input id="c_wr" value="'+esc4(b.winReason||'')+'"></div>',
           function(){
-            b.accountManager=val('c_am'); b.paymentTerms=val('c_pt');
-            b.contractScope=val('c_sc'); b.winReason=val('c_wr');
-            b.directClientId=(val('c_did')||'').trim(); b.agreementStatus=val('c_agr'); b.pocName=val('c_poc');
+            b.directClientId=(val('c_did')||'').trim(); b.legalName=val('c_ln'); b.customerType=val('c_ct');
+            b.paymentMode=val('c_pm'); b.billingCycle=val('c_bc');
+            b.paymentTerms=[val('c_pm'),val('c_bc')].filter(Boolean).join(' · ');
+            b.crVat=val('c_crv'); var _cl=val('c_cl'); b.creditLimit=(_cl===''||_cl==null)?null:Number(_cl);
+            b.agreementStatus=val('c_agr'); b.accountManager=val('c_am');
+            b.pocName=val('c_poc'); b.contractScope=val('c_sc'); b.winReason=val('c_wr');
             b.activities=b.activities||[];
-            b.activities.push({date:Date.now(),type:isAr()?'تسليم عميل':'Client handover',status:'',note:(b.accountManager?('AM: '+b.accountManager):''),by:meName()});
+            b.activities.push({date:Date.now(),type:isAr()?'تسليم عميل':'Client handover',status:'',note:(b.directClientId?('Direct #'+b.directClientId):(b.accountManager?('AM: '+b.accountManager):'')),by:meName()});
             save();render();
           });
       }
@@ -8935,6 +8957,23 @@ function finCanon(clientGroup){
 }
 try{window.finCanon=finCanon;window.clearFinCanon=clearFinCanon;}catch(_){}
 
+/* --- Service catalogue (EN → AR) -----------------------------------------------------
+   One bilingual map for every service Direct bills, so finance reports, the ledger filter
+   and the by-service card all show the service name in the current language. Keys match the
+   `service_type` stored on invoices; unknown values fall through to their own text. */
+var SVC_CATALOG=[
+  ['Flights','الطيران'],['Hotels','الفنادق'],['Visa','التأشيرات'],['Visas','التأشيرات'],
+  ['Transfers','التنقلات'],['Transport','التنقلات'],['Car rental','تأجير السيارات'],
+  ['Insurance','التأمين'],['Activities / tours','الأنشطة والجولات'],['Tours','الأنشطة والجولات'],
+  ['MICE / events','الفعاليات والمؤتمرات'],['Events','الفعاليات والمؤتمرات'],['Packages','الباقات'],
+  ['Umrah','العمرة'],['Hajj','الحج'],['Courses','الدورات'],['Training','التدريب'],
+  ['Wallet top-up','شحن المحفظة'],['Support Services','خدمات الدعم'],['eSIM','شرائح eSIM'],
+  ['Mixed','خدمات متعددة'],['Other','أخرى'],['(unspecified)','غير محدد']
+];
+var SVC_AR={}; SVC_CATALOG.forEach(function(p){SVC_AR[p[0]]=p[1];});
+function svcLabel(k){ k=(k==null||k==='')?'(unspecified)':String(k); return isArF()?(SVC_AR[k]||k):k; }
+try{ window.SVC_CATALOG=SVC_CATALOG; window.svcLabel=svcLabel; }catch(_){}
+
 function badge(t,bg,fg){return '<span style="display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700;background:'+bg+';color:'+fg+'">'+escF(t)+'</span>';}
 function uniq(arr){return Array.from(new Set(arr)).filter(Boolean).sort();}
 function opts(list,sel,allLabel){var h='<option value="all">'+escF(allLabel)+'</option>';list.forEach(function(x){h+='<option value="'+escF(x)+'" '+(sel===x?'selected':'')+'>'+escF(x)+'</option>';});return h;}
@@ -9023,25 +9062,26 @@ function rLedger(){
     h+='<span style="display:inline-flex;align-items:center;gap:6px;background:#FFF3EC;color:#9a4413;border:1px solid #F5C9A8;border-radius:9px;padding:5px 8px;font-size:12px;font-weight:600">'+(isArF()?'\u0627\u0644\u0639\u0645\u064a\u0644':'Client')+': '+escF(FIN.f.clientName||'')+' <span style="cursor:pointer;font-weight:800" title="'+(isArF()?'\u0625\u0632\u0627\u0644\u0629':'Clear')+'" onclick="finClientClear()">\u2715</span></span>';
   }
   h+='<input placeholder="'+(isArF()?'\u0628\u062d\u062b\u2026':'Search client / invoice # / DPIN\u2026')+'" value="'+escF(FIN.f.q)+'" style="'+SS+';min-width:200px" oninput="finF(\'q\',this.value)">';
-  h+='<select style="'+SS+'" onchange="finF(\'quarter\',this.value)">'+opts(uniq(live().map(function(r){return r.quarter;})),FIN.f.quarter,'All quarters')+'</select>';
-  h+='<select style="'+SS+'" onchange="finF(\'month\',this.value)">'+opts(['January','February','March','April','May','June','July','August','September','October','November','December'].filter(function(m){return live().some(function(r){return r.month===m;});}),FIN.f.month,'All months')+'</select>';
-  h+='<select style="'+SS+'" onchange="finF(\'service\',this.value)">'+opts(uniq(live().map(function(r){return r.service_type;})),FIN.f.service,'All services')+'</select>';
-  h+='<select style="'+SS+';max-width:220px" onchange="finF(\'client\',this.value)">'+opts(uniq(live().map(function(r){return r.client_group;})),FIN.f.client,'All clients')+'</select>';
-  h+='<select style="'+SS+'" onchange="finF(\'status\',this.value)"><option value="verified_paid" '+(FIN.f.status==='verified_paid'?'selected':'')+'>Verified paid</option><option value="all" '+(FIN.f.status==='all'?'selected':'')+'>All statuses</option><option value="excluded" '+(FIN.f.status==='excluded'?'selected':'')+'>Excluded</option><option value="credit_note" '+(FIN.f.status==='credit_note'?'selected':'')+'>Credit notes</option></select>';
+  h+='<select style="'+SS+'" onchange="finF(\'quarter\',this.value)">'+opts(uniq(live().map(function(r){return r.quarter;})),FIN.f.quarter,isArF()?'\u0643\u0644 \u0627\u0644\u0623\u0631\u0628\u0627\u0639':'All quarters')+'</select>';
+  h+='<select style="'+SS+'" onchange="finF(\'month\',this.value)">'+opts(['January','February','March','April','May','June','July','August','September','October','November','December'].filter(function(m){return live().some(function(r){return r.month===m;});}),FIN.f.month,isArF()?'\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631':'All months')+'</select>';
+  h+='<select style="'+SS+'" onchange="finF(\'service\',this.value)"><option value="all">'+(isArF()?'\u0643\u0644 \u0627\u0644\u062e\u062f\u0645\u0627\u062a':'All services')+'</option>'+uniq(live().map(function(r){return r.service_type;})).map(function(x){return '<option value="'+escF(x)+'" '+(FIN.f.service===x?'selected':'')+'>'+escF(svcLabel(x))+'</option>';}).join('')+'</select>';
+  h+='<select style="'+SS+';max-width:220px" onchange="finF(\'client\',this.value)">'+opts(uniq(live().map(function(r){return r.client_group;})),FIN.f.client,isArF()?'\u0643\u0644 \u0627\u0644\u0639\u0645\u0644\u0627\u0621':'All clients')+'</select>';
+  h+='<select style="'+SS+'" onchange="finF(\'status\',this.value)"><option value="verified_paid" '+(FIN.f.status==='verified_paid'?'selected':'')+'>'+(isArF()?'\u0645\u062f\u0642\u0642 \u0645\u062f\u0641\u0648\u0639':'Verified paid')+'</option><option value="all" '+(FIN.f.status==='all'?'selected':'')+'>'+(isArF()?'\u0643\u0644 \u0627\u0644\u062d\u0627\u0644\u0627\u062a':'All statuses')+'</option><option value="excluded" '+(FIN.f.status==='excluded'?'selected':'')+'>'+(isArF()?'\u0645\u0633\u062a\u0628\u0639\u062f':'Excluded')+'</option><option value="credit_note" '+(FIN.f.status==='credit_note'?'selected':'')+'>'+(isArF()?'\u0625\u0634\u0639\u0627\u0631\u0627\u062a \u062f\u0627\u0626\u0646\u0629':'Credit notes')+'</option></select>';
   if(canFinEdit())h+='<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" '+(FIN.showDeleted?'checked':'')+' onchange="FIN.showDeleted=this.checked;render()">'+(isArF()?'\u0627\u0644\u0645\u062d\u0630\u0648\u0641 \u0645\u0624\u062e\u0631\u064b\u0627':'Recently deleted')+'</label>';
-  h+='<span style="margin-left:auto;font-size:12px"><b>'+L.length+'</b> rows \u00b7 rev <b>'+money(tr)+'</b> \u00b7 profit <b>'+money(tp)+'</b></span></div>';
-  h+='<div class="card" style="padding:0;overflow:auto;max-height:65vh"><table style="width:100%;font-size:12px;border-collapse:collapse;min-width:980px"><thead><tr style="position:sticky;top:0;background:#F8F7F4;color:var(--muted);text-align:left;z-index:2"><th style="padding:8px">Date</th><th style="padding:8px">Invoice #</th><th style="padding:8px">Tax inv (DPIN)</th><th style="padding:8px">Client</th><th style="padding:8px">Service</th><th style="padding:8px;text-align:right">Total</th><th style="padding:8px;text-align:right">Revenue</th><th style="padding:8px;text-align:right">Cost</th><th style="padding:8px;text-align:right">Profit</th><th style="padding:8px">Flags</th></tr></thead><tbody>';
+  h+='<span style="margin-left:auto;font-size:12px">'+(isArF()?('<b>'+L.length+'</b> \u0635\u0641 \u00b7 \u0625\u064a\u0631\u0627\u062f <b>'+money(tr)+'</b> \u00b7 \u0631\u0628\u062d <b>'+money(tp)+'</b>'):('<b>'+L.length+'</b> rows \u00b7 rev <b>'+money(tr)+'</b> \u00b7 profit <b>'+money(tp)+'</b>'))+'</span></div>';
+  var _lh=function(en,ar){return isArF()?ar:en;};
+  h+='<div class="card" style="padding:0;overflow:auto;max-height:65vh"><table style="width:100%;font-size:12px;border-collapse:collapse;min-width:980px"><thead><tr style="position:sticky;top:0;background:#F8F7F4;color:var(--muted);text-align:'+(isArF()?'right':'left')+';z-index:2"><th style="padding:8px">'+_lh('Date','التاريخ')+'</th><th style="padding:8px">'+_lh('Invoice #','رقم الفاتورة')+'</th><th style="padding:8px">'+_lh('Tax inv (DPIN)','الفاتورة الضريبية')+'</th><th style="padding:8px">'+_lh('Client','العميل')+'</th><th style="padding:8px">'+_lh('Service','الخدمة')+'</th><th style="padding:8px;text-align:right">'+_lh('Total','الإجمالي')+'</th><th style="padding:8px;text-align:right">'+_lh('Revenue','الإيراد')+'</th><th style="padding:8px;text-align:right">'+_lh('Cost','التكلفة')+'</th><th style="padding:8px;text-align:right">'+_lh('Profit','الربح')+'</th><th style="padding:8px">'+_lh('Flags','ملاحظات')+'</th></tr></thead><tbody>';
   var LCAP=500; var Lshow=L.slice(0,LCAP);
   Lshow.forEach(function(r,i){
     var flags='';
-    if(!r.zatca_dpin)flags+=badge('no tax inv','#fff3d6','#8b5b1f')+' ';
-    if(+r.cost_sar===0&&+r.revenue_sar>0)flags+=badge('no cost recorded','#e0e6f7','#3a4f9e')+' ';
-    if(+r.wallet_portion_sar>0)flags+=badge('wallet','#e9e9e9','#555')+' ';
-    if(r.deleted_at)flags+=badge('deleted','#fddede','#a3242c');
-    h+='<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finRow(\''+r.id+'\')"><td style="padding:7px 8px;white-space:nowrap">'+escF(r.invoice_date)+'</td><td style="padding:7px 8px">'+escF(r.invoice_no)+'</td><td style="padding:7px 8px">'+escF(r.zatca_dpin||'\u2014')+'</td><td style="padding:7px 8px;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escF(r.customer_raw_name||'')+'">'+escF(r.client_group)+'</td><td style="padding:7px 8px">'+escF(r.service_type||'')+'</td><td style="padding:7px 8px;text-align:right">'+money(r.total_incl_vat_sar)+'</td><td style="padding:7px 8px;text-align:right;font-weight:700">'+money(r.revenue_sar)+'</td><td style="padding:7px 8px;text-align:right">'+money(r.cost_sar)+'</td><td style="padding:7px 8px;text-align:right;color:#175CD3">'+money(r.profit_sar)+'</td><td style="padding:7px 8px">'+flags+'</td></tr>';
+    if(!r.zatca_dpin)flags+=badge(_lh('no tax inv','لا فاتورة ضريبية'),'#fff3d6','#8b5b1f')+' ';
+    if(+r.cost_sar===0&&+r.revenue_sar>0)flags+=badge(_lh('no cost recorded','بدون تكلفة'),'#e0e6f7','#3a4f9e')+' ';
+    if(+r.wallet_portion_sar>0)flags+=badge(_lh('wallet','محفظة'),'#e9e9e9','#555')+' ';
+    if(r.deleted_at)flags+=badge(_lh('deleted','محذوف'),'#fddede','#a3242c');
+    h+='<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finRow(\''+r.id+'\')"><td style="padding:7px 8px;white-space:nowrap">'+escF(r.invoice_date)+'</td><td style="padding:7px 8px">'+escF(r.invoice_no)+'</td><td style="padding:7px 8px">'+escF(r.zatca_dpin||'\u2014')+'</td><td style="padding:7px 8px;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escF(r.customer_raw_name||'')+'">'+escF(r.client_group)+'</td><td style="padding:7px 8px">'+escF(svcLabel(r.service_type))+'</td><td style="padding:7px 8px;text-align:right">'+money(r.total_incl_vat_sar)+'</td><td style="padding:7px 8px;text-align:right;font-weight:700">'+money(r.revenue_sar)+'</td><td style="padding:7px 8px;text-align:right">'+money(r.cost_sar)+'</td><td style="padding:7px 8px;text-align:right;color:#175CD3">'+money(r.profit_sar)+'</td><td style="padding:7px 8px">'+flags+'</td></tr>';
   });
-  if(!L.length)h+='<tr><td colspan="10" style="padding:30px;text-align:center;color:var(--muted)">No invoices match.</td></tr>';
-  if(L.length>LCAP)h+='<tr><td colspan="10" style="padding:12px;text-align:center;color:var(--muted);font-size:12px">Showing first '+LCAP+' of '+L.length+' rows — narrow the filters or use the Report Builder for totals.</td></tr>';
+  if(!L.length)h+='<tr><td colspan="10" style="padding:30px;text-align:center;color:var(--muted)">'+_lh('No invoices match.','لا توجد فواتير مطابقة.')+'</td></tr>';
+  if(L.length>LCAP)h+='<tr><td colspan="10" style="padding:12px;text-align:center;color:var(--muted);font-size:12px">'+_lh('Showing first '+LCAP+' of '+L.length+' rows — narrow the filters or use the Report Builder for totals.','عرض أول '+LCAP+' من '+L.length+' صف — ضيّق الفلاتر أو استخدم منشئ التقارير للإجماليات.')+'</td></tr>';
   h+='</tbody></table></div>';
   return h;
 }
@@ -9075,7 +9115,7 @@ window.finRestore=function(id){
 var DIMS={__client:'Client (linked)',client_group:'Invoice group (raw)',month:'Month',quarter:'Quarter',service_type:'Service type',record_type:'Record type'};
 var DIMS_AR={__client:'العميل (المرتبط)',client_group:'مجموعة الفواتير (كما وردت)',month:'الشهر',quarter:'الربع',service_type:'نوع الخدمة',record_type:'نوع السجل'};
 function dimLbl(k){return isArF()?(DIMS_AR[k]||DIMS[k]):DIMS[k];}
-function dimVal(r,dim){return dim==='__client'?finCanon(r.client_group).name:(r[dim]||'—');}
+function dimVal(r,dim){return dim==='__client'?finCanon(r.client_group).name:dim==='service_type'?svcLabel(r.service_type):(r[dim]||'—');}
 var METS={revenue_sar:'Revenue',cost_sar:'Cost',profit_sar:'Profit',amount_received_sar:'Received',amount_remaining_sar:'Outstanding',_count:'Invoice count'};
 var METS_AR={revenue_sar:'الإيرادات',cost_sar:'التكلفة',profit_sar:'الربح',amount_received_sar:'المحصّل',amount_remaining_sar:'المتبقي',_count:'عدد الفواتير'};
 function metLbl(k){return isArF()?(METS_AR[k]||METS[k]):METS[k];}
@@ -9963,7 +10003,7 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
       keys.forEach(function(k){
         var b=by[k], mg=b.gross>0?Math.round(b.rev/b.gross*100):0, flag=(b.cost===0&&b.gross>1000);
         h+='<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" data-svc="'+esc(k)+'" onclick="v32DrillService(this.getAttribute(\'data-svc\'))" title="'+fl('Open the invoices for this service','افتح فواتير هذه الخدمة')+'">'+
-          '<td style="padding:7px 8px;font-weight:600">'+esc(k)+(flag?' <span style="color:#B54708;font-size:11px" title="'+fl('Cost is 0 — invoice(s) still need a cost / service-fee split','التكلفة صفر — تحتاج فصل التكلفة عن الرسوم')+'">⚠</span>':'')+'</td>'+
+          '<td style="padding:7px 8px;font-weight:600">'+esc(window.svcLabel?window.svcLabel(k):k)+(flag?' <span style="color:#B54708;font-size:11px" title="'+fl('Cost is 0 — invoice(s) still need a cost / service-fee split','التكلفة صفر — تحتاج فصل التكلفة عن الرسوم')+'">⚠</span>':'')+'</td>'+
           '<td style="padding:7px 8px;text-align:right;font-variant-numeric:tabular-nums">'+mS(b.gross)+'</td>'+
           '<td style="padding:7px 8px;text-align:right;color:#B54708;font-variant-numeric:tabular-nums">'+mS(b.cost)+'</td>'+
           '<td style="padding:7px 8px;text-align:right;font-weight:700;color:#0F6E56;font-variant-numeric:tabular-nums">'+mS(b.rev)+'</td>'+
@@ -9993,7 +10033,7 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
    b.serviceFit and persisted via the businesses raw JSON (rowToApp copies raw fields back). */
 (function(){try{
   if(!window.renderLeadDetail) return;
-  var CORE=[['flights','✈','Flights','الطيران'],['hotels','🏨','Hotels','الفنادق'],['visa','🛂','Visa / e-Visa','التأشيرات'],['transfers','🚐','Transfers','التنقلات'],['carrental','🔑','Car rental','تأجير السيارات'],['insurance','🛡','Insurance','التأمين'],['tours','🗺','Activities / tours','الأنشطة والجولات'],['mice','🎤','MICE / events','الفعاليات'],['packages','🧳','Packages','الباقات']];
+  var CORE=[['flights','✈','Flights','الطيران'],['hotels','🏨','Hotels','الفنادق'],['visa','🛂','Visa / e-Visa','التأشيرات'],['umrah','🕋','Umrah / Hajj','العمرة والحج'],['transfers','🚐','Transfers','التنقلات'],['carrental','🔑','Car rental','تأجير السيارات'],['insurance','🛡','Insurance','التأمين'],['tours','🗺','Activities / tours','الأنشطة والجولات'],['mice','🎤','MICE / events','الفعاليات'],['packages','🧳','Packages','الباقات']];
   var GROWTH=[['idl','🪪','Intl driving licence','رخصة القيادة الدولية'],['chauffeur','🚘','Chauffeur','سائق خاص'],['esim','📶','eSIM / roaming','شريحة eSIM'],['training','🎓','Training','التدريب'],['support','🛎','Support','الدعم']];
   var ALL=CORE.concat(GROWTH);
   var STATES={unknown:{l:['—','—'],c:'#9AA1B6',bg:'#EEF0F5'},elsewhere:{l:['Buys elsewhere','من غيرنا'],c:'#B54708',bg:'#FEF3E2'},direct:{l:['With Direct','مع دايركت'],c:'#0F6E56',bg:'#E7F8EF'},na:{l:['Not a fit','غير مطلوبة'],c:'#98A2B3',bg:'#F2F4F7'}};
