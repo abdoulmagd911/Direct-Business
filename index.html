@@ -8984,7 +8984,7 @@ function finTabs(){
   if(canFinEdit())tabs.push(['import',isArF()?'\u0627\u0633\u062a\u064a\u0631\u0627\u062f':'Import']);
   return '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'+tabs.map(function(t){
     return '<button class="btn sm '+(FIN.tab===t[0]?'pri':'ghost')+'" onclick="finGo(\''+t[0]+'\')">'+t[1]+'</button>';
-  }).join('')+'<span style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">'+(FIN.rows?(isArF()?(FIN.rows.length+' \u0641\u0627\u062a\u0648\u0631\u0629 \u00b7 \u062d\u062a\u0649 '+(live().length?live().map(function(r){return r.invoice_date;}).sort().slice(-1)[0]:'\u2014')):(FIN.rows.length+' invoices \u00b7 data through '+(live().length?live().map(function(r){return r.invoice_date;}).sort().slice(-1)[0]:'\u2014'))):'')+'</span></div>';
+  }).join('')+'<span style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">'+(FIN.rows?(function(){var _ic=new Set(live().map(function(r){return r.invoice_no;})).size;var _d=(live().length?live().map(function(r){return r.invoice_date;}).sort().slice(-1)[0]:'\u2014');return isArF()?(_ic+' \u0641\u0627\u062a\u0648\u0631\u0629 \u00b7 \u062d\u062a\u0649 '+_d):(_ic+' invoices \u00b7 data through '+_d);})():'')+'</span></div>';
 }
 window.finGo=function(t){FIN.tab=t;render();};
 
@@ -8993,8 +8993,9 @@ function rOverview(){
   var V=verified().filter(function(r){return FIN.f.quarter==='all'||r.quarter===FIN.f.quarter;});
   var rev=0,cost=0,prof=0,rec=0,rem=0,wal=0;
   V.forEach(function(r){rev+=+r.revenue_sar;cost+=+r.cost_sar;prof+=+r.profit_sar;rec+=+r.amount_received_sar;rem+=+r.amount_remaining_sar;wal+=+r.wallet_portion_sar;});
+  var invCount=new Set(V.map(function(r){return r.invoice_no;})).size; // distinct invoices, not service lines
   var h='<div class="card" style="padding:12px 16px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="font-size:13px">'+(isArF()?'\u0627\u0644\u0641\u062a\u0631\u0629':'Period')+':</b><select style="'+SS+'" onchange="finQ(this.value)">'+opts(uniq(live().map(function(r){return r.quarter;})),FIN.f.quarter,isArF()?'\u0627\u0644\u0643\u0644 (H1 2026)':'All (H1 2026)')+'</select><span style="font-size:11px;color:var(--muted)">'+(isArF()?'\u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u062a\u0634\u0645\u0644 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629 \u0641\u0642\u0637':'Totals count verified-paid invoices only \u00b7 wallet top-ups excluded from revenue by definition')+'</span></div>';
-  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3'],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a':'Outstanding',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0645\u062d\u0641\u0638\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f)':'Wallet (excluded)',wal,'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',V.length,'#1C1E2B']];
+  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3'],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a':'Outstanding',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0645\u062d\u0641\u0638\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f)':'Wallet (excluded)',wal,'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',invCount,'#1C1E2B']];
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
     return '<div class="card" style="padding:14px 16px"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===6?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===6?'':money(c[1])+' SAR')+'">'+(i===6?c[1]:moneyS(c[1]))+(i===6?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+'</div></div>';
   }).join('')+'</div>';
@@ -9089,12 +9090,41 @@ window.finF=function(k,v){FIN.f[k]=v;if(k==='client'){FIN.f.clientKey=null;FIN.f
 window.finClientClear=function(){FIN.f.clientKey=null;FIN.f.clientName='';render();};
 window.finRow=function(id){
   var r=(FIN.rows||[]).find(function(x){return x.id===id;});if(!r)return;
-  var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(20,20,30,.45);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px';
-  var rows=[['Invoice #',r.invoice_no],['ZATCA tax invoice',r.zatca_dpin||'\u2014 (see notes)'],['Client (group)',r.client_group],['Name on invoice',r.customer_raw_name],['Date',r.invoice_date+' \u00b7 '+r.month+' \u00b7 '+r.quarter],['Products',r.products],['Service type',r.service_type],['Total incl. VAT',money(r.total_incl_vat_sar)+' SAR'],['Wallet portion',money(r.wallet_portion_sar)+' SAR'],['Revenue',money(r.revenue_sar)+' SAR'],['Cost',money(r.cost_sar)+' SAR'],['Profit',money(r.profit_sar)+' SAR'],['Received',money(r.amount_received_sar)+' SAR'],['Outstanding',money(r.amount_remaining_sar)+' SAR'],['Integrity status',r.integrity_status],['Source batch',r.source_batch||'\u2014'],['Notes',r.notes||'\u2014']];
-  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:620px;width:100%;max-height:85vh;overflow:auto;padding:22px"><div style="display:flex;align-items:center;margin-bottom:12px"><h3 style="margin:0">Invoice '+escF(r.invoice_no)+'</h3><div style="margin-left:auto;display:flex;gap:6px">'+(canFinEdit()&&!r.deleted_at?'<button class="btn ghost sm" style="color:#D92D20" onclick="finDel(\''+r.id+'\')">Delete (soft)</button>':'')+(canFinEdit()&&r.deleted_at?'<button class="btn ghost sm" onclick="finRestore(\''+r.id+'\')">Restore</button>':'')+'<button class="btn sm" onclick="finCloseModal()">Close</button></div></div>'+rows.map(function(x){return '<div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid #f0efe9;font-size:13px"><div style="min-width:150px;color:var(--muted)">'+escF(x[0])+'</div><div style="font-weight:600;word-break:break-word">'+escF(x[1]==null?'\u2014':x[1])+'</div></div>';}).join('')+'</div>';
+  var ar=isArF(), _f=function(en,a){return ar?a:en;};
+  // The invoice = every line sharing this invoice number (same deleted state as the one clicked).
+  var delState=!!r.deleted_at;
+  var lines=(FIN.rows||[]).filter(function(x){return x.invoice_no===r.invoice_no && (!!x.deleted_at)===delState;})
+                          .sort(function(a,b){return (a.line_no||1)-(b.line_no||1);});
+  var t={tot:0,cost:0,rev:0,prof:0,rec:0,rem:0,wal:0};
+  lines.forEach(function(x){t.tot+=+x.total_incl_vat_sar||0;t.cost+=+x.cost_sar||0;t.rev+=+x.revenue_sar||0;t.prof+=+x.profit_sar||0;t.rec+=+x.amount_received_sar||0;t.rem+=+x.amount_remaining_sar||0;t.wal+=+x.wallet_portion_sar||0;});
+  var meta=[[_f('Client','\u0627\u0644\u0639\u0645\u064a\u0644'),r.client_group],[_f('Name on invoice','\u0627\u0644\u0627\u0633\u0645 \u0639\u0644\u0649 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629'),r.customer_raw_name],[_f('ZATCA tax invoice','\u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u064a\u0629 (\u0632\u0627\u062a\u0643\u0627)'),r.zatca_dpin||_f('\u2014 (see notes)','\u2014 (\u0627\u0646\u0638\u0631 \u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a)')],[_f('Date','\u0627\u0644\u062a\u0627\u0631\u064a\u062e'),r.invoice_date+' \u00b7 '+r.month+' \u00b7 '+r.quarter],[_f('Received','\u0627\u0644\u0645\u062d\u0635\u0651\u0644'),money(t.rec)+' SAR'],[_f('Outstanding','\u0627\u0644\u0645\u062a\u0628\u0642\u064a'),money(t.rem)+' SAR'],[_f('Status','\u0627\u0644\u062d\u0627\u0644\u0629'),r.integrity_status],[_f('Notes','\u0645\u0644\u0627\u062d\u0638\u0627\u062a'),r.notes||'\u2014']];
+  var th=function(x,rt){return '<th style="padding:6px 8px;text-align:'+(rt?'right':(ar?'right':'left'))+';color:var(--muted);font-size:11px;font-weight:600">'+x+'</th>';};
+  var lineTbl='<div style="overflow-x:auto;margin:6px 0 12px"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>'+th(_f('Service','\u0627\u0644\u062e\u062f\u0645\u0629'))+th(_f('Description','\u0627\u0644\u0648\u0635\u0641'))+th(_f('Total','\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a'),1)+th(_f('Cost','\u0627\u0644\u062a\u0643\u0644\u0641\u0629'),1)+th(_f('Service fee','\u0631\u0633\u0648\u0645 \u0627\u0644\u062e\u062f\u0645\u0629'),1)+'</tr></thead><tbody>'+
+    lines.map(function(x){return '<tr style="border-top:1px solid #f0efe9"><td style="padding:6px 8px;font-weight:600">'+escF(svcLabel(x.service_type))+'</td><td style="padding:6px 8px;color:var(--muted)">'+escF(x.products||'\u2014')+'</td><td style="padding:6px 8px;text-align:right">'+money(x.total_incl_vat_sar)+'</td><td style="padding:6px 8px;text-align:right;color:#B54708">'+money(x.cost_sar)+'</td><td style="padding:6px 8px;text-align:right;font-weight:700;color:#0F6E56">'+money(x.profit_sar)+'</td></tr>';}).join('')+
+    '<tr style="border-top:2px solid #1C1E2B;background:#F3F1EA;font-weight:800"><td style="padding:7px 8px" colspan="2">'+_f('Invoice total','\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629')+' \u00b7 '+lines.length+' '+_f('service(s)','\u062e\u062f\u0645\u0629')+'</td><td style="padding:7px 8px;text-align:right">'+money(t.tot)+'</td><td style="padding:7px 8px;text-align:right;color:#B54708">'+money(t.cost)+'</td><td style="padding:7px 8px;text-align:right;color:#0F6E56">'+money(t.prof)+'</td></tr>'+
+    '</tbody></table></div>';
+  var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(20,20,30,.45);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px';ov.dir=ar?'rtl':'ltr';
+  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:660px;width:100%;max-height:85vh;overflow:auto;padding:22px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h3 style="margin:0">'+_f('Invoice','\u0641\u0627\u062a\u0648\u0631\u0629')+' '+escF(r.invoice_no)+'</h3><div style="margin-'+(ar?'right':'left')+':auto;display:flex;gap:6px">'+(canFinEdit()&&!delState?'<button class="btn ghost sm" style="color:#D92D20" onclick="finDelInv(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Delete invoice','\u062d\u0630\u0641 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629')+'</button>':'')+(canFinEdit()&&delState?'<button class="btn ghost sm" onclick="finRestoreInv(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Restore','\u0627\u0633\u062a\u0631\u062c\u0627\u0639')+'</button>':'')+'<button class="btn sm" onclick="finCloseModal()">'+_f('Close','\u0625\u063a\u0644\u0627\u0642')+'</button></div></div>'+
+    lineTbl+
+    meta.map(function(x){return '<div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid #f0efe9;font-size:13px"><div style="min-width:150px;color:var(--muted)">'+escF(x[0])+'</div><div style="font-weight:600;word-break:break-word">'+escF(x[1]==null?'\u2014':x[1])+'</div></div>';}).join('')+'</div>';
   ov.id='finModal';
   ov.onclick=function(e){if(e.target===ov)ov.remove();};
   document.body.appendChild(ov);
+};
+window.finDelInv=function(invNo){
+  if(!canFinEdit())return;
+  var ar=isArF();
+  if(!confirm(ar?('\u062d\u0630\u0641 \u0643\u0644 \u0628\u0646\u0648\u062f \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 '+invNo+'\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639.'):('Soft-delete all lines of invoice '+invNo+'? It disappears from totals but stays recoverable.')))return;
+  fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('invoice_no',invNo).is('deleted_at',null).then(function(r){
+    if(r.error){alert('Could not delete: '+r.error.message);return;}
+    finCloseModal(); FIN.rows=null;finLoad();
+  });
+};
+window.finRestoreInv=function(invNo){
+  fc().from('finance_invoices').update({deleted_at:null}).eq('invoice_no',invNo).not('deleted_at','is',null).then(function(r){
+    if(r.error){alert('Could not restore: '+r.error.message);return;}
+    finCloseModal(); FIN.rows=null;finLoad();
+  });
 };
 window.finCloseModal=function(){var m=document.getElementById('finModal');if(m)m.remove();};
 window.finDel=function(id){
@@ -9116,8 +9146,8 @@ var DIMS={__client:'Client (linked)',client_group:'Invoice group (raw)',month:'M
 var DIMS_AR={__client:'العميل (المرتبط)',client_group:'مجموعة الفواتير (كما وردت)',month:'الشهر',quarter:'الربع',service_type:'نوع الخدمة',record_type:'نوع السجل'};
 function dimLbl(k){return isArF()?(DIMS_AR[k]||DIMS[k]):DIMS[k];}
 function dimVal(r,dim){return dim==='__client'?finCanon(r.client_group).name:dim==='service_type'?svcLabel(r.service_type):(r[dim]||'—');}
-var METS={revenue_sar:'Revenue',cost_sar:'Cost',profit_sar:'Profit',amount_received_sar:'Received',amount_remaining_sar:'Outstanding',_count:'Invoice count'};
-var METS_AR={revenue_sar:'الإيرادات',cost_sar:'التكلفة',profit_sar:'الربح',amount_received_sar:'المحصّل',amount_remaining_sar:'المتبقي',_count:'عدد الفواتير'};
+var METS={revenue_sar:'Revenue',cost_sar:'Cost',profit_sar:'Profit',amount_received_sar:'Received',amount_remaining_sar:'Outstanding',_count:'Service lines'};
+var METS_AR={revenue_sar:'الإيرادات',cost_sar:'التكلفة',profit_sar:'الربح',amount_received_sar:'المحصّل',amount_remaining_sar:'المتبقي',_count:'عدد البنود'};
 function metLbl(k){return isArF()?(METS_AR[k]||METS[k]):METS[k];}
 var MOI={January:1,February:2,March:3,April:4,May:5,June:6,July:7,August:8,September:9,October:10,November:11,December:12};
 function rReports(){
@@ -9990,11 +10020,11 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
       var by={};
       rows.forEach(function(r){
         var k=r.service_type||fl('(unspecified)','(غير محدد)');
-        var b=by[k]=by[k]||{gross:0,cost:0,rev:0,n:0};
-        b.gross+=+r.total_incl_vat_sar||0; b.cost+=+r.cost_sar||0; b.rev+=+r.revenue_sar||0; b.n++;
+        var b=by[k]=by[k]||{gross:0,cost:0,rev:0,n:0,_inv:{}};
+        b.gross+=+r.total_incl_vat_sar||0; b.cost+=+r.cost_sar||0; b.rev+=+r.revenue_sar||0; b._inv[r.invoice_no]=1; b.n=Object.keys(b._inv).length;
       });
       var keys=Object.keys(by).sort(function(a,b){return by[b].rev-by[a].rev;});
-      var tot={gross:0,cost:0,rev:0,n:0}; keys.forEach(function(k){tot.gross+=by[k].gross;tot.cost+=by[k].cost;tot.rev+=by[k].rev;tot.n+=by[k].n;});
+      var tot={gross:0,cost:0,rev:0,n:0}; keys.forEach(function(k){tot.gross+=by[k].gross;tot.cost+=by[k].cost;tot.rev+=by[k].rev;}); tot.n=new Set(rows.map(function(r){return r.invoice_no;})).size;
       var th=function(t,r){return '<th style="padding:6px 8px;text-align:'+(r?'right':'left')+';color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap">'+t+'</th>';};
       var h='<h3 style="margin:0 0 3px">'+fl('Income by service line','الدخل حسب نوع الخدمة')+'</h3>'+
         '<div class="ch-sub" style="margin-bottom:10px">'+fl('Service fee = Direct’s income (the taxable part). Gross billed = cost + service fee. Tap a service to see the invoices behind it.','رسوم الخدمة = دخل دايركت (الجزء الخاضع للضريبة). الإجمالي = التكلفة + رسوم الخدمة. اضغط الخدمة لرؤية فواتيرها.')+'</div>'+
