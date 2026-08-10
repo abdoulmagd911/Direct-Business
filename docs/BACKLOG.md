@@ -26,10 +26,15 @@ for approval → deploy → delete the old layers that page no longer needs):
    kept Next review (drives the review reminders) + Tier; dropped the always-empty
    Area and Channels columns from the list (the fields stay on the edit form).
    Remaining: detail card shares the Leads header work.
-3. **Finance** — numbers verified 08-10; remaining: visual pass + link every row
-   back to the client; keep the not-the-money-system boundary visible.
-4. **Settings/Team & Access** — emoji stripped + legacy free-text team editor
-   retired 08-10; remaining: merge the duplicated Settings heading blocks.
+3. **Finance** — DONE 08-10: numbers verified, chart on product palette
+   (orange/ink), Top-clients counts distinct invoices, rows drill to client.
+4. **Settings/Team & Access** — DONE 08-10: emoji stripped, legacy free-text
+   team editor retired, all top cards anchored below the single page heading.
+NEXT (owner said "Go for all", 08-10): the DELETION round — remove patch layers
+the cleaned pages no longer need (verify each deletion with scripts/qa/
+sweep-consistency.mjs + drive screenshots before deploy) — then migrate
+requests/offers/projects out of the app_state blob into real tables, then the
+full go-live gate sweep (all four pages, EN+AR, every button, all numbers).
 Then: **code lightening by deletion** — after each page is rebuilt, delete the
 patch layers it made obsolete (never delete first). Finally: move requests/offers/
 projects out of the app_state blob into real tables (ends last-write-wins).
