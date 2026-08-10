@@ -10068,8 +10068,9 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
         rows=FIN.rows.filter(function(r){ if(r.deleted_at)return false; return norm(r.client_group)===target || norm(r.customer_raw_name)===target; });
       }
       if(!rows.length)return; // nothing linked or matched -> show nothing (never a wrong match)
-      var billed=0,rec=0,out=0,cg=rows[0].client_group||biz.name,last='';
-      rows.forEach(function(r){ billed+=+r.total_incl_vat_sar||0; rec+=+r.amount_received_sar||0; out+=+r.amount_remaining_sar||0; if((r.invoice_date||'')>last)last=r.invoice_date||''; });
+      var billed=0,rec=0,out=0,cg=rows[0].client_group||biz.name,last='',_inv={};
+      rows.forEach(function(r){ billed+=+r.total_incl_vat_sar||0; rec+=+r.amount_received_sar||0; out+=+r.amount_remaining_sar||0; _inv[r.invoice_no||('row'+Math.random())]=1; if((r.invoice_date||'')>last)last=r.invoice_date||''; });
+      var nInv=Object.keys(_inv).length;
       var card=document.createElement('div');
       card.className='card v29-fin';
       card.style.cssText='margin:0 0 14px';
@@ -10078,13 +10079,13 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
           '<h3 style="margin:0">'+fl('Finance','المالية')+'</h3>'+
           '<button class="btn sm" onclick="try{current=\'finance\';FIN.tab=\'ledger\';FIN.f.client='+JSON.stringify(cg).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+';render();}catch(e){}">'+fl('Open in Finance ledger ↗','افتح في سجل المالية ↗')+'</button></div>'+
         '<div class="ch-sub" style="margin:2px 0 12px">'+(matchedByLink
-            ? fl('Linked to Direct finance · '+rows.length+' invoice'+(rows.length>1?'s':''),'مرتبطة بمالية دايركت · '+rows.length+' فاتورة')
-            : (fl('Matched to '+rows.length+' invoice'+(rows.length>1?'s':'')+' by name — not linked yet; ','مطابَقة بـ '+rows.length+' فاتورة حسب الاسم — غير مرتبطة بعد؛ ')+'<span style="color:#FF6B00;cursor:pointer;font-weight:700" onclick="try{finLinkMap()}catch(e){}">'+fl('link it now.','اربطها الآن.')+'</span>'))+'</div>'+
+            ? fl('Linked to Direct finance · '+nInv+' invoice'+(nInv>1?'s':''),'مرتبطة بمالية دايركت · '+nInv+' فاتورة')
+            : (fl('Matched to '+nInv+' invoice'+(nInv>1?'s':'')+' by name — not linked yet; ','مطابَقة بـ '+nInv+' فاتورة حسب الاسم — غير مرتبطة بعد؛ ')+'<span style="color:#FF6B00;cursor:pointer;font-weight:700" onclick="try{finLinkMap()}catch(e){}">'+fl('link it now.','اربطها الآن.')+'</span>'))+'</div>'+
         '<div style="display:flex;gap:18px;flex-wrap:wrap">'+
           mini(fl('Lifetime billed','إجمالي الفوترة'),mS(billed)+' SAR','#175CD3')+
           mini(fl('Received','المُحصّل'),mS(rec)+' SAR','#0F6E56')+
           mini(fl('Outstanding','المستحق'),mS(out)+' SAR',out>0?'#D92D20':'#667085')+
-          mini(fl('Invoices','عدد الفواتير'),String(rows.length))+
+          mini(fl('Invoices','عدد الفواتير'),String(nInv))+
           mini(fl('Last invoice','آخر فاتورة'),last||'—')+
         '</div>';
       head.insertAdjacentElement('afterend',card);
@@ -10094,7 +10095,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
       for(var fi=0;fi<facts.length;fi++){ var kk=facts[fi].querySelector('.k'), vv=facts[fi].querySelector('.v'); if(!kk||!vv)continue;
         var kt=(kk.textContent||'').trim();
         if(kt==='Lifetime billed'||kt==='إجمالي الفوترة'){ vv.textContent=mS(billed)+' SAR'; }
-        else if(kt==='Invoices'||kt==='عدد الفواتير'){ vv.textContent=String(rows.length); }
+        else if(kt==='Invoices'||kt==='عدد الفواتير'){ vv.textContent=String(nInv); }
       }
     }catch(e){ if(window.console)console.warn('[v29] fin snapshot',e); }
   }
