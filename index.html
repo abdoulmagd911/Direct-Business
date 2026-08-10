@@ -10600,7 +10600,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
       card.innerHTML='<h3>'+(A?'الفريق والصلاحيات':'Team & Access')+'</h3>'+
         '<div style="font-size:13px;color:var(--muted,#6B7480);margin:2px 0 12px">'+(A?'أنشئ حسابات الفريق، عيّن دور كل شخص، وحدد الصفحات التي يمكنه فتحها (مثلاً: المالية فقط، أو العملاء المحتملون والعملاء).':'Create team accounts, set each person’s role, and choose which pages they can open (e.g. Finance only, or Leads + Clients).')+'</div>'+
         '<button class="btn pri" onclick="v48Users()">'+(A?'فتح الفريق والصلاحيات':'Open Team & Access')+'</button>';
-      v.insertBefore(card, v.firstChild);
+      var _sh=v.querySelector('.v26_3-chips')||v.querySelector('.v26_3-section-head');if(_sh)v.insertBefore(card,_sh.nextSibling);else v.insertBefore(card, v.firstChild);
     }catch(_){}
   }
   try{ if(typeof render==='function'){ var _r=render; render=function(){ var o=_r.apply(this,arguments); try{setTimeout(addSettingsCard,60);}catch(_){}; return o; }; } }catch(_){}
@@ -11030,7 +11030,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
     var v=document.getElementById('view'); if(!v) return;
     if(v.querySelector('.v57-yourday')) return;
     var card=buildYourDay(); if(!card) return;
-    v.insertBefore(card, v.firstChild);
+    var _sh=v.querySelector('.v26_3-chips')||v.querySelector('.v26_3-section-head');if(_sh)v.insertBefore(card,_sh.nextSibling);else v.insertBefore(card, v.firstChild);
   }catch(_){} }
 
   if(window.render && !window.render.__v57){ var _r=window.render; window.render=function(){ var o=_r.apply(this,arguments); setTimeout(inject,60); return o; }; window.render.__v57=true; }
