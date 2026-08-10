@@ -9811,7 +9811,7 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
     var active=all.filter(function(b){var s=stg(b);return s!=='Won'&&s!=='Lost'&&!b.isClient;}).length;
     var wt=won.map(function(b){var c=created(b),cv=b.convertedDate||b.convertDate;if(!c||!cv)return null;var d=(new Date(cv).getTime()-new Date(c).getTime())/864e5;return (isFinite(d)&&d>=0)?d:null;}).filter(function(x){return x!=null;});
     var avg=wt.length?Math.round(wt.reduce(function(a,x){return a+x;},0)/wt.length):null;
-    var tile=function(v,l,c){return '<div style="flex:1;min-width:118px"><div style="font-size:20px;font-weight:800;color:'+(c||'#1C1E2B')+'">'+v+'</div><div style="font-size:11px;color:var(--muted)">'+l+'</div></div>';};
+    var tile=function(v,l,c){return '<div style="flex:1;min-width:118px;border-inline-start:3px solid #F06820;padding-inline-start:12px"><div style="font-size:20px;font-weight:800;color:'+(c||'#1C1E2B')+'">'+v+'</div><div style="font-size:11px;color:var(--muted)">'+l+'</div></div>';};
     return '<div class="card v31-conv" style="display:flex;gap:18px;flex-wrap:wrap;padding:14px 18px;margin-bottom:14px">'+
       tile(newThis,fl('New this month','جديد هذا الشهر'),'#175CD3')+
       tile(active,fl('In pipeline','قيد المتابعة'),'#7A5AF8')+
@@ -10448,6 +10448,39 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
   [200,900,2500].forEach(function(d){setTimeout(inject,d);});
   console.info('%c[v51] brand hero + accent loaded','color:#F06820;font-weight:700');
 }catch(e){if(window.console)console.warn('[v51] init',e);}})();
+
+/* ===== v52 — brand character (round 2): page-title accent + stat-card accent ===== */
+(function(){try{
+  if(!document.getElementById('v52-style')){
+    var st=document.createElement('style'); st.id='v52-style';
+    st.textContent=
+      /* a short Direct-gradient rule under the main page title */
+      '.v52-h{position:relative;padding-bottom:11px!important}'+
+      '.v52-h::after{content:"";position:absolute;left:0;bottom:0;width:46px;height:4px;border-radius:3px;background:linear-gradient(90deg,#F06820,#FBAE16)}'+
+      'html[dir=rtl] .v52-h::after,body[dir=rtl] .v52-h::after{left:auto;right:0}'+
+      /* matching Direct left-accent on KPI cards (Operations etc.), so every stat row is on-brand */
+      '#view .kpi{border-inline-start:3px solid #F06820}'+
+      /* subtle brand top-rule on content stat cards that carry a value (not filter chips / top-bar pills) */
+      '#view .chip:has(.v){border-top:2px solid rgba(240,104,32,.6)}';
+    document.head.appendChild(st);
+  }
+  function tagTitle(){
+    try{
+      var v=document.getElementById('view'); if(!v)return;
+      var h2s=v.querySelectorAll('h2'), picked=null;
+      for(var i=0;i<h2s.length;i++){ var h=h2s[i];
+        if(h.closest('.card')||h.closest('.v51-hero')) continue;
+        if(h.offsetParent===null) continue;
+        picked=h; break;
+      }
+      v.querySelectorAll('.v52-h').forEach(function(x){ if(x!==picked)x.classList.remove('v52-h'); });
+      if(picked)picked.classList.add('v52-h');
+    }catch(_){}
+  }
+  try{ if(typeof render==='function'){ var _r=render; render=function(){ var o=_r.apply(this,arguments); try{[60,500,1500].forEach(function(d){setTimeout(tagTitle,d);});}catch(_){}; return o; }; } }catch(_){}
+  [300,1200].forEach(function(d){setTimeout(tagTitle,d);});
+  console.info('%c[v52] page-title + stat accents loaded','color:#F06820;font-weight:700');
+}catch(e){if(window.console)console.warn('[v52] init',e);}})();
 </script>
 
 </body>
