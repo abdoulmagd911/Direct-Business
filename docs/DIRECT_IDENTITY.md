@@ -175,8 +175,9 @@ may push a draft — nothing more. Every real-money action names the system it c
 - **Two client IDs, one truth:** the corporate portal export was **test data**; the real client
   master is still only in **Direct Payments**. Linking the app's Direct client ID to the real
   Payments ID is still the open reconciliation. (Noted in HANDOFF_2026-08-09.)
-- **Proposal document design** is deliberately a **later** pass — foundation (this doc + tokens)
-  is now in place; the branded proposal template is the next build.
+- **Proposal document design**: a **v1 branded generator** now ships (the proposal editor's
+  "Generate branded proposal" → `o_genProposal`, built on this identity). Refining the document's
+  design/layout (and richer per-type templates) is the deliberate next pass.
 - **Public sites can't be read from here** (`directksa.com`, `corporate.*`, `payments.*` are
   blocked from the sandbox). Their content is captured via the profile + this doc; refresh from a
   screenshot or Drive export when they change.
