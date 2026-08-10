@@ -5342,8 +5342,8 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
         {label:V26_DAILY_LABELS.viewAs,sub:lang==='ar'?'غيّر نمط العرض':'Change preset',onClick:function(){var b=document.getElementById('v25PresetBtn');if(b)b.click();}},
         {label:V26_DAILY_LABELS.pool,sub:lang==='ar'?'حرّر السقف وراجع التاريخ':'Edit cap, see history',onClick:function(){if(typeof v25OpenPoolSettings==='function')v25OpenPoolSettings();}},
         {label:V26_DAILY_LABELS.company,sub:lang==='ar'?'الرقم التجاري، الضريبي، IBAN، Wakeel':'CR, VAT, IBAN, Wakeel',onClick:function(){if(typeof editBusiness==='function'){var me=(DB.businesses||[]).find(function(b){return b.id==='b_directbusiness'||b.isSelf;});if(me)editBusiness(me.id);}}},
-        {label:V26_DAILY_LABELS.chain,sub:lang==='ar'?'من يوافق على ماذا':'Who approves what',onClick:function(){alert(lang==='ar'?'تتم إدارة قواعد التسلسل في ملف العميل (انقر على العميل > التسلسل الإداري).':'Chain-of-command lives inside each client (Open client > Chain of command).');}},
-        {label:V26_DAILY_LABELS.team,sub:lang==='ar'?'الأعضاء، الأدوار، التعيينات':'Members, roles, assignments',onClick:function(){alert(lang==='ar'?'تتم إدارة صلاحيات الفريق من قِبل المسؤول (Admin): يسجّل العضو الجديد ثم يحدّد المسؤول مستوى صلاحيته.':'Team access is managed by your Admin: new people sign up, then the Admin sets each person\'s permission level.');}}
+        {label:V26_DAILY_LABELS.chain,sub:lang==='ar'?'من يوافق على ماذا':'Who approves what',onClick:function(){var m=(lang==='ar'?'تتم إدارة قواعد التسلسل داخل ملف كل عميل (افتح العميل ثم «التسلسل الإداري»).':'Chain-of-command lives inside each client (open a client → Chain of command).');if(typeof toast==='function')toast(m);else alert(m);}},
+        {label:V26_DAILY_LABELS.team,sub:lang==='ar'?'الأعضاء، الأدوار، الصلاحيات':'Members, roles, page access',onClick:function(){if(typeof window.v48Users==='function')window.v48Users();else if(typeof toast==='function')toast('Team & Access');}}
       ];
       dailyCards.forEach(function(card){
         var btn=document.createElement('button');
@@ -5367,14 +5367,13 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
       details.appendChild(summary);
       var advGrid=document.createElement('div');
       advGrid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px';
+      /* v49: dropped the developer test-runners (Run workflow/scenario tests, Security checks)
+         and the destructive "Clear test data" from this section — they were build-time scaffolding,
+         not tools for the team, and "Run scenario tests" even wrote test rows into the live data.
+         Kept only the two genuinely useful admin utilities. */
       var advCards=[
-        {label:V26_ADV_LABELS.workflow,run:function(){if(typeof v22WorkflowSuite==='function'){var r=v22WorkflowSuite();alert(r.pass+'/'+r.total+' passed in '+r.duration+'ms');}}},
-        {label:V26_ADV_LABELS.scenario,run:function(){if(typeof v23ScenarioSuite==='function'){var r=v23ScenarioSuite();alert(r.results.length+'/'+r.total+' scenarios');}}},
-        {label:V26_ADV_LABELS.sec,run:function(){if(typeof v21A11yAudit==='function'){var a=v21A11yAudit();var h=v21VerifyHashChain();alert('A11y violations: '+a.violations.length+'\nHash chain issues: '+h.issues.length);}}},
-        
         {label:V26_ADV_LABELS.exportState,run:function(){if(typeof exportData==='function')exportData();}},
-        {label:V26_ADV_LABELS.relearn,run:function(){if(typeof v25TemplateLearn==='function'){v25TemplateLearn();alert(lang==='ar'?'تم تحديث القوالب':'Templates refreshed.');}}},
-        {label:V26_ADV_LABELS.clearTest,run:function(){v26FriendlyConfirm('reset',function(){if(typeof resetData==='function')resetData();});}}
+        {label:V26_ADV_LABELS.relearn,run:function(){if(typeof v25TemplateLearn==='function'){v25TemplateLearn();var m=(lang==='ar'?'تم تحديث القوالب':'Templates refreshed.');if(typeof toast==='function')toast(m);else alert(m);}}}
       ];
       advCards.forEach(function(c){
         var btn=document.createElement('button');
@@ -5392,7 +5391,7 @@ window.v24ChainQuickCheck=v24ChainQuickCheck;
       view.querySelectorAll('button').forEach(function(b){
         if(b.closest('#v26SettingsOrg'))return;
         var t=(b.textContent||'').trim();
-        if(/Run workflow|Run scenario|workflow suite|scenario suite|Reset for go-live|Hash-chain integrity|XSS audit/i.test(t)){
+        if(/Run workflow|Run scenario|workflow suite|scenario suite|Reset for go-live|Hash-chain integrity|XSS audit|Run business tests|Security checks|Performance overlay|Tag current state|Enable idle lock|Wipe local data|Wipe test records|Run a day/i.test(t)){
           b.style.display='none';
         }
       });
@@ -8238,13 +8237,14 @@ try{ if(!SHARE&&/^\/events\/?$/.test(location.pathname)){ setTimeout(function(){
 window.shareCurrentView=function(){
   var c=client(); if(!c)return;
   c.auth.getSession().then(function(s){
-    if(!(s&&s.data&&s.data.session)){alert('Sign in first to create a share link.');return;}
+    var TT=function(m){try{if(typeof toast==='function'){toast(m);return;}}catch(_){}alert(m);};
+    if(!(s&&s.data&&s.data.session)){TT('Sign in first to create a share link.');return;}
     var sec=(typeof current!=='undefined'&&current)?current:'dashboard';
     c.from('share_links').insert({scope:'all',created_by:s.data.session.user.id}).select('token').single().then(function(r){
-      if(r.error){alert('Could not create link: '+r.error.message);return;}
+      if(r.error){TT('Could not create link: '+r.error.message);return;}
       var base=/^https?:/.test(location.origin)&&location.host.indexOf('directksab2b.com')>=0?location.origin:'https://www.directksab2b.com';
       var url=base+'/s/'+r.data.token+'/'+sec;
-      var done=function(){alert('View-only link copied!\n\nAnyone with this link can SEE this workspace but cannot change anything. To edit, they must sign in.\n\n'+url);};
+      var done=function(){TT('View-only link copied to clipboard — anyone with it can view (not edit) this workspace.');};
       if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(done,done);else done();
     });
   });
@@ -8429,7 +8429,7 @@ function checkNewLeads(){
           ? 'تنبيه تكرار: "'+(nb.name||'')+'" يشبه سجلاً موجوداً: "'+(hit.name||'')+'".\nراجع السجلين وادمجهما إن كانا نفس الجهة.'
           : 'Duplicate warning: "'+(nb.name||'')+'" looks like an existing record: "'+(hit.name||'')+'".\nReview both and merge them if they are the same company.';
         try{ if(typeof toast==='function') toast(msg); }catch(_){}
-        try{ alert(msg); }catch(_){}
+        /* v49: no blocking alert() — a quiet toast is enough; a duplicate is not an emergency */
       }
     });
   }catch(_){}
@@ -8439,8 +8439,9 @@ try{
     var _s=window.save; window.save=function(){var r=_s.apply(this,arguments); try{checkNewLeads();}catch(_){} return r;};
     window.save.__v39dupe=true;
   }
-  setTimeout(checkNewLeads,3000); /* prime the seen-list after cloud load */
-  setInterval(checkNewLeads,4000);
+  setTimeout(checkNewLeads,6000); /* prime the seen-list once, after the paginated cloud load settles */
+  /* v49: no 4s interval — it re-fired on every load batch and every test run, spamming warnings.
+     The duplicate check now runs only after an actual save (the wrapper above). */
 }catch(_){}
 
 /* ---------- 3. Attention strip on Leads: unassigned + stale ---------- */
