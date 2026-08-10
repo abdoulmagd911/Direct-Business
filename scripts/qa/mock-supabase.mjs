@@ -13,7 +13,7 @@ const biz=[...Array(60)].map((_,i)=>({id:'b'+i,legacy_id:'L'+i,name:'Test Compan
   account_manager:'QA Test Account',tier:i%2?'A':'B',entity_type:'LLC',legal_name:'Test Company '+i+' LLC',cr_vat:'30012345678'+i,
   payment_terms:'Net 30',credit_limit:50000,contract_start:'2026-01-01',contract_end:'2026-12-31',contract_scope:'Air + Hotel',
   contract_sla:'24h',next_review:'2026-09-01',total_sar:12000+i*37,website:'https://example.com',corp_email_flag:'yes',
-  is_client:i%4===0,converted_date:i%4===0?'2026-03-01':null,channels:[],prefs:{},airline_deals:[],pricing:[],notes:'Seed row',
+  is_client:i%4===0,converted_date:i%4===0?'2026-03-01':null,direct_client_id:i===0?'95':null,channels:[],prefs:{},airline_deals:[],pricing:[],notes:'Seed row',
   created_at:'2026-06-0'+((i%9)+1)+'T10:00:00Z',updated_at:'2026-08-01T10:00:00Z',raw:{},verification_source:'manual',
   needs_manual_confirmation:i%11===0,confirmation_reason:i%11===0?'No website found':null,confirmed_by:null,confirmed_at:null,
   scrub_run_id:null,funnel_id:null,funnel_details:{},stage_legacy:null,next_action_date:'2026-08-20',next_action_note:'Follow up',

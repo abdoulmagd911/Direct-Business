@@ -7208,6 +7208,8 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
     o.funnelDetails=r.funnel_details||{};
     o.nextActionDate=r.next_action_date||o.nextAction||null;
     o.nextActionNote=r.next_action_note||null;
+    // Direct client ID — the link key to Direct Payments. Real column wins over any raw copy.
+    if(r.direct_client_id!=null&&r.direct_client_id!=='')o.directClientId=String(r.direct_client_id);
     return o;
   }
   function appToRow(o){
@@ -7220,6 +7222,7 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
       funnel_details:o.funnelDetails||{},
       next_action_date:o.nextActionDate||null,
       next_action_note:o.nextActionNote||null,
+      direct_client_id:(o.directClientId!=null&&String(o.directClientId).trim()!=='')?String(o.directClientId).trim():null,
       raw:o
     };
     if(o.funnelKey&&FBYKEY[o.funnelKey])row.funnel_id=FBYKEY[o.funnelKey].id;
