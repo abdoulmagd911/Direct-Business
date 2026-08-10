@@ -992,7 +992,7 @@ function renderLeadDetail(v,id){
         <div class="fact"><span class="k">Lifetime billed</span><span class="v">${money(b.totalSAR)}</span></div>
         <div class="fact"><span class="k">Invoices</span><span class="v">${b.invoices||0}</span></div>
         <div class="fact"><span class="k">Category</span><span class="v">${b.category}</span></div>
-        <div class="fact"><span class="k">Funnel</span><span class="v">${b.source?`<span class="tag" style="background:${SOURCE_COLOR[b.source]}1a;color:${SOURCE_COLOR[b.source]}">${esc(b.source)}</span>`:"—"}</span></div>
+        <div class="fact"><span class="k">Funnel</span><span class="v">${(()=>{const fn=(typeof LANG!=='undefined'&&LANG==='ar'&&b.funnelNameAr)?b.funnelNameAr:b.funnelName;return fn?`<span class="tag" style="background:#EEF0F5;color:#4B5563">${esc(fn)}</span>`:(b.source?`<span class="tag" style="background:${SOURCE_COLOR[b.source]}1a;color:${SOURCE_COLOR[b.source]}">${esc(b.source)}</span>`:"—");})()}</span></div>
         <div class="fact"><span class="k">Assigned to</span><span class="v">${esc(b.assignedTo||b.owner||"Unassigned")}</span></div>
         <div class="fact"><span class="k">Channels</span><span class="v">${(b.channels||[]).length?b.channels.map(esc).join(", "):"—"}</span></div>
         <div class="fact"><span class="k">Last contact</span><span class="v">${b.lastContact?fmtDate(b.lastContact):"—"}</span></div>
@@ -6975,7 +6975,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
      '<td onclick="event.stopPropagation()"><input type="checkbox" class="lchk" '+(leadSel.has(b.id)?'checked':'')+' onclick="leadSelToggle(\''+b.id+'\',this.checked)"></td>'+
      '<td style="cursor:pointer" onclick="openLeadFn(\''+b.id+'\')"><b>'+(window.nmMain?esc(nmMain(b)):esc(b.name))+'</b>'+(window.nmSubHTML?nmSubHTML(b):'')+' <button class="btn ghost sm" style="padding:1px 7px;font-size:10.5px" onclick="event.stopPropagation();leadQuickEdit(\''+b.id+'\')">Edit</button> '+(b.b2c?'<span class="tag b2c">B2C</span>':'')+(b.isClient?'<span class="tag client">Client</span>':'')+(b.corpEmailFlag?'<span class="tag" style="background:#F0453A14;color:#D92D20" title="Individual using a company email - check">Corp email</span>':'')+'<div style="font-size:11px;color:var(--muted)">'+esc(b.segment||'')+'</div></td>'+
      '<td><span class="statusbadge" style="background:'+LSTAGE_COLOR[sg]+'1a;color:'+LSTAGE_COLOR[sg]+';cursor:pointer" onclick="openLeadFn(\''+b.id+'\')" title="Open the lead to change stage"><span class="dot" style="background:'+LSTAGE_COLOR[sg]+'"></span>'+(sg==='Won'?'Client':sg)+'</span></td>'+
-     '<td>'+(b.source?'<span class="tag" style="background:'+sc+'1a;color:'+sc+'">'+esc(b.source)+'</span>':'-')+'</td>'+
+     '<td>'+(function(){var fn=(typeof LANG!=='undefined'&&LANG==='ar'&&b.funnelNameAr)?b.funnelNameAr:b.funnelName;return fn?'<span class="tag" style="background:#EEF0F5;color:#4B5563">'+esc(fn)+'</span>':(b.source?'<span class="tag" style="background:'+sc+'1a;color:'+sc+'">'+esc(b.source)+'</span>':'-');})()+'</td>'+
      '<td style="color:var(--muted);white-space:nowrap">'+(b.lastContact?fmtAgo(b.lastContact):'—')+'</td>'+
      '<td style="color:var(--muted);max-width:170px;white-space:normal">'+esc(b.nextAction||'—')+'</td>'+
      '<td style="color:var(--muted)">'+((b.assignedTo||b.owner)?esc(b.assignedTo||b.owner):'<span class="tag" style="background:#F0453A14;color:#D92D20">Unassigned</span>')+'</td>'+
@@ -7204,7 +7204,7 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
     if(r.notes!=null&&r.notes!=='')o.notes=r.notes;
     o.isClient=(r.is_client===true)||base.isClient===true;
     o.stage=stageToApp(r.stage, base.stage);
-    var f=FBYID[r.funnel_id]; o.funnelKey=f?f.key:null; o.funnelName=f?f.name_en:null;
+    var f=FBYID[r.funnel_id]; o.funnelKey=f?f.key:null; o.funnelName=f?f.name_en:null; o.funnelNameAr=f?f.name_ar:null;
     o.funnelDetails=r.funnel_details||{};
     o.nextActionDate=r.next_action_date||o.nextAction||null;
     o.nextActionNote=r.next_action_note||null;
@@ -8324,7 +8324,7 @@ if(SHARE){
     o.isClient=(r.is_client===true)||base.isClient===true;
     var C2S={'new':'Prospect','contacted':'Contacted','in_discussion':'Qualified','proposal':'Proposal','won':'Won','lost':'Lost','on_hold':'Prospect'};
     o.stage=C2S[r.stage]||base.stage||'Prospect';
-    var f=FBYID[r.funnel_id]; o.funnelKey=f?f.key:null; o.funnelName=f?f.name_en:null;
+    var f=FBYID[r.funnel_id]; o.funnelKey=f?f.key:null; o.funnelName=f?f.name_en:null; o.funnelNameAr=f?f.name_ar:null;
     o.funnelDetails=r.funnel_details||{};
     o.nextActionDate=r.next_action_date||null; o.nextActionNote=r.next_action_note||null;
     return o;
@@ -9728,7 +9728,7 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
     'Inv':'فواتير','Invoice #':'رقم الفاتورة','KSA BSP':'BSP السعودية','Last activity':'آخر نشاط',
     'Margin':'الهامش','Next action':'الإجراء التالي','Next review':'المراجعة القادمة','Notes':'ملاحظات',
     'Open in Direct':'افتح في Direct','Opportunity':'الفرصة','Owner':'المسؤول',
-    'PNR · e-ticket':'PNR · التذكرة','Pax':'المسافرون','Portal':'البوابة','Pri':'الأولوية',
+    'PNR · e-ticket':'PNR · التذكرة','Pax':'المسافرون','Portal':'البوابة','Pri':'الأولوية','Priority':'الأولوية',
     'Profit':'الربح','Provider':'المورّد','Provider · Source':'المورّد · المصدر',
     'QC':'الجودة','Ref':'المرجع','Ref · PNR':'المرجع · PNR','Refund to':'الاسترداد إلى',
     'Revenue':'الإيرادات','Route · RBD':'المسار · RBD','Sale':'البيع','Stage':'المرحلة',
@@ -9790,6 +9790,9 @@ console.info('%c[v43 per-session identity] loaded','color:#F06820;font-weight:70
     // ---- lead source / funnel names ----
     'Contact form':'نموذج تواصل','Tender':'مناقصة','Referral':'إحالة','Invoice history':'سجل الفواتير',
     'Service Integration Partners':'شركاء تكامل الخدمات','Outreach':'تواصل مباشر','Inbound':'وارد','Website Form':'نموذج الموقع',
+    // the seven real funnels (names shown in the Funnel column, chips + "All funnels" dropdown)
+    'Travel Trade':'وكالات السفر','Partners & Tenders':'شركاء ومناقصات','Website Form — B2B':'نموذج الموقع — أعمال',
+    'Website Form — Entities':'نموذج الموقع — جهات','Outreach & Network':'تواصل وعلاقات','Past Invoices':'فواتير سابقة',
     // ---- Settings (the real cards that remain after the dev tidy) ----
     'Admin & history':'الإدارة والسجل','Activity & Audit':'النشاط والتدقيق','Company profile — printables':'ملف الشركة — للطباعة',
     'Tender one-pager':'صفحة المناقصة','About Direct Travel (one-pager)':'عن Direct Travel','Edit cap…':'تعديل السقف…',
