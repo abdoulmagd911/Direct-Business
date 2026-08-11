@@ -1057,6 +1057,7 @@ function editBusiness(id){
   openModal(isNew?"New business":esc(b.name),`
     <div class="grid2"><div class="field"><label>Business name (canonical)</label><input id="f_name" value="${esc(b.name)}"></div><div class="field"><label>Arabic name</label><input id="f_ar" value="${esc(b.nameAr||"")}" dir="rtl"></div></div>
     <div class="grid2"><div class="field"><label>Segment</label><input id="f_seg" value="${esc(b.segment||"")}" placeholder="Government / Study-abroad school…"></div><div class="field"><label>Category</label><select id="f_cat">${CATEGORIES.map(c=>`<option ${b.category===c?"selected":""}>${c}</option>`).join("")}</select></div></div>
+    <div class="field"><label>Funnel — where this lead came from</label><select id="f_funnel"><option value="">${(typeof LANG!=="undefined"&&LANG==="ar")?"— بدون قناة —":"— no funnel —"}</option>${(window.__funnelDefs||[]).map(f=>`<option value="${f.key}" ${b.funnelKey===f.key?"selected":""}>${(typeof LANG!=="undefined"&&LANG==="ar")?(f.name_ar||f.name_en):f.name_en}</option>`).join("")}</select></div>
     
     <div class="grid2"><div class="field"><label>Funnel / source</label><select id="f_source" onchange="(function(v){var w=document.getElementById('f_sub_wrap');if(w)w.style.display=(v==='Travel Agencies')?'':'none';})(this.value)">${(typeof funnelList==='function'?funnelList():SOURCES).map(s=>`<option ${(b.source||"")===s?"selected":""}>${s}</option>`).join("")}</select></div><div class="field"><label>Assigned to (who works it)</label><select id="f_assign"><option value="">— Unassigned —</option>${teamList().map(t=>`<option ${(b.assignedTo||"")===t?"selected":""}>${t}</option>`).join("")}</select></div></div>
     <div class="grid2" id="f_sub_wrap" style="display:${(b.source==='Travel Agencies')?'':'none'}"><div class="field"><label>Agency subtype</label><select id="f_sub"><option value="">— General —</option>${((DB.settings&&DB.settings.funnelSubs&&DB.settings.funnelSubs['Travel Agencies'])||[]).map(s=>`<option ${(b.sourceSub||'')===s?'selected':''}>${s}</option>`).join('')}</select></div></div>
@@ -1068,7 +1069,7 @@ function editBusiness(id){
     
     <div class="field"><label>Contacts (same business, multiple people)</label><div id="contacts"></div><button class="btn sm" onclick="addContactRow()">+ Add contact</button></div>
     <div class="field"><label>Notes</label><textarea id="f_notes" rows="2">${esc(b.notes||"")}</textarea></div>
-  `,()=>{b.name=val("f_name");b.nameAr=val("f_ar");b.segment=val("f_seg");b.area=val("f_area");b.category=val("f_cat");b.services=val("f_serv");b.nextAction=val("f_next");b.source=val("f_source");b.sourceSub=(val("f_source")==='Travel Agencies'?val("f_sub"):'');b.assignedTo=val("f_assign")||(window.meName?meName():"")||(typeof me==="function"?me():"");b.stage=val("f_stage");b.status=val("f_stage");b.dueDate=val("f_due");if(b.stage==="Won")b.isClient=true;b.channels=[...document.querySelectorAll(".f_ch:checked")].map(e=>e.value);b.isClient=val("f_client")==="yes";b.isVendor=val("f_vendor")==="yes";b.notes=val("f_notes");b.contacts=readContacts();if(!b.name.trim()){alert("Business name required.");return false;}const i=DB.businesses.findIndex(x=>x.id===b.id);if(i>=0)DB.businesses[i]=b;else DB.businesses.push(b);save();render();},isNew?null:()=>{if(confirm("Delete this business?")){DB.businesses=DB.businesses.filter(x=>x.id!==id);openLead=null;save();render();}});
+  `,()=>{b.name=val("f_name");b.nameAr=val("f_ar");b.segment=val("f_seg");b.area=val("f_area");b.category=val("f_cat");b.services=val("f_serv");b.nextAction=val("f_next");b.source=val("f_source");b.sourceSub=(val("f_source")==='Travel Agencies'?val("f_sub"):'');b.assignedTo=val("f_assign")||(window.meName?meName():"")||(typeof me==="function"?me():"");const _fk=val("f_funnel");b.funnelKey=_fk||null;const _fd=(window.__funnelDefs||[]).find(f=>f.key===_fk);b.funnelName=_fd?_fd.name_en:null;b.funnelNameAr=_fd?_fd.name_ar:null;b.stage=val("f_stage");b.status=val("f_stage");b.dueDate=val("f_due");if(b.stage==="Won")b.isClient=true;b.channels=[...document.querySelectorAll(".f_ch:checked")].map(e=>e.value);b.isClient=val("f_client")==="yes";b.isVendor=val("f_vendor")==="yes";b.notes=val("f_notes");b.contacts=readContacts();if(!b.name.trim()){alert("Business name required.");return false;}const i=DB.businesses.findIndex(x=>x.id===b.id);if(i>=0)DB.businesses[i]=b;else DB.businesses.push(b);save();render();},isNew?null:()=>{if(confirm("Delete this business?")){DB.businesses=DB.businesses.filter(x=>x.id!==id);openLead=null;save();render();}});
   window._contacts=(b.contacts||[]).slice();drawContacts();
 }
 function drawContacts(){const c=document.getElementById("contacts");if(!c)return;c.innerHTML=(window._contacts||[]).map((ct,i)=>`<div class="contact"><input placeholder="Name" value="${esc(ct.name||"")}" oninput="window._contacts[${i}].name=this.value"><input placeholder="Email" value="${esc(ct.email||"")}" oninput="window._contacts[${i}].email=this.value"><input placeholder="Phone" value="${esc(ct.phone||"")}" oninput="window._contacts[${i}].phone=this.value"><span class="x" onclick="window._contacts.splice(${i},1);drawContacts()">✕</span></div>`).join("");}
@@ -7204,23 +7205,26 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
  window.leadQuickEdit=function(id,preset){
   var b=getLead(id);if(!b)return;preset=preset||{};
   var curOwner=preset.owner||b.assignedTo||'';
-  var curFunnel=preset.funnel||b.source||'';
+  var curFunnel=preset.funnel||b.funnelKey||'';
   var opt=function(v,l,cur){return '<option value="'+esc(v)+'" '+(String(cur)===String(v)?'selected':'')+'>'+esc(l)+'</option>';};
   var stageSel='<select id="qe_stage">'+LEAD_STAGES.map(function(s){return opt(s,(s==='Won'?'Client':s),leadStage(b));}).join('')+'</select>';
   var team=(typeof teamList==='function'?teamList():[]);
-  var ownerSel='<select id="qe_owner" onchange="if(this.value===\'__add__\')qeAddOwner(\''+b.id+'\')">'+opt('','Unassigned',curOwner)+team.map(function(t){return opt(t,t,curOwner);}).join('')+'<option value="__add__">+ Add new person...</option></select>';
-  var funnelSel='<select id="qe_funnel" onchange="if(this.value===\'__add__\')qeAddFunnel(\''+b.id+'\')">'+opt('','(no funnel)',curFunnel)+funnelList().map(function(f){return opt(f,f,curFunnel);}).join('')+'<option value="__add__">+ Add new funnel...</option></select>';
-  var extra=b.isClient?('<div class="grid2"><div class="field"><label>Account manager</label><select id="qe_am">'+opt('','Unassigned',b.accountManager||'')+team.map(function(t){return opt(t,t,b.accountManager||'');}).join('')+'</select></div><div class="field"><label>Account tier</label><select id="qe_tier">'+opt('Standard','Standard',b.tier||'Standard')+opt('Key','Key account',b.tier||'Standard')+'</select></div></div><div class="field"><label>Next account review</label><input type="date" id="qe_review" value="'+esc(b.nextReview||'')+'"></div>'):'';
+  var _team=team.slice(); if(curOwner&&_team.indexOf(curOwner)<0)_team.unshift(curOwner);
+  var ownerSel='<select id="qe_owner" onchange="if(this.value===\'__add__\')qeAddOwner(\''+b.id+'\')">'+opt('','Unassigned',curOwner)+_team.map(function(t){return opt(t,t,curOwner);}).join('')+'<option value="__add__">+ Add new person...</option></select>';
+  var funnelSel='<select id="qe_funnel">'+opt('',((typeof LANG!=='undefined'&&LANG==='ar')?'— بدون قناة —':'— no funnel —'),curFunnel)+((window.__funnelDefs||[]).map(function(f){return opt(f.key,((typeof LANG!=='undefined'&&LANG==='ar')?(f.name_ar||f.name_en):f.name_en),curFunnel);}).join(''))+'</select>';
+  var extra=b.isClient?('<div class="grid2"><div class="field"><label>Account manager</label><select id="qe_am">'+opt('','Unassigned',b.accountManager||'')+(function(){var _t=team.slice();var _am=b.accountManager||'';if(_am&&_t.indexOf(_am)<0)_t.unshift(_am);return _t;})().map(function(t){return opt(t,t,b.accountManager||'');}).join('')+'</select></div><div class="field"><label>Account tier</label><select id="qe_tier">'+opt('Standard','Standard',b.tier||'Standard')+opt('Key','Key account',b.tier||'Standard')+'</select></div></div><div class="field"><label>Next account review</label><input type="date" id="qe_review" value="'+esc(b.nextReview||'')+'"></div>'):'';
   openModal('Quick edit - '+esc(b.name),
    '<div class="grid2"><div class="field"><label>Stage</label>'+stageSel+'</div><div class="field"><label>Assigned to</label>'+ownerSel+'</div></div>'+
-   '<div class="field"><label>Funnel</label>'+funnelSel+'</div>'+
+   '<div class="field"><label>'+((typeof LANG!=='undefined'&&LANG==='ar')?'القناة (المصدر)':'Funnel')+'</label>'+funnelSel+'</div>'+
    '<div class="field"><label>Next action</label><input id="qe_next" value="'+esc(b.nextAction||'')+'"></div>'+
    extra+
    '<div class="field"><label>Quick note (optional - logs an activity)</label><textarea id="qe_note" rows="2"></textarea></div>',
    function(){
-    var ns=val('qe_stage');b.stage=ns;b.status=ns;if(ns==='Won')b.isClient=true;
+    var ns=val('qe_stage');
+    try{if(ns==='Lost'&&leadStage(b)!=='Lost'&&typeof captureLostReason==='function')captureLostReason(b);}catch(_){}
+    b.stage=ns;b.status=ns;if(ns==='Won')b.isClient=true;
     var ov=val('qe_owner');if(ov!=='__add__')b.assignedTo=ov;
-    var fv=val('qe_funnel');if(fv!=='__add__')b.source=fv;
+    var fv=val('qe_funnel');b.funnelKey=fv||null;var _fd=(window.__funnelDefs||[]).find(function(f){return f.key===fv;});b.funnelName=_fd?_fd.name_en:null;b.funnelNameAr=_fd?_fd.name_ar:null;
     b.nextAction=val('qe_next');
     if(document.getElementById('qe_am')){b.accountManager=val('qe_am');b.tier=val('qe_tier');b.nextReview=val('qe_review');}
     var note=val('qe_note');
@@ -7457,7 +7461,7 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
   }
   function loadRows(cb){
     sb.from('funnels').select('*').then(function(fr){
-      FUNNELS=(fr.data||[]); FBYID={}; FBYKEY={};
+      FUNNELS=(fr.data||[]); FBYID={}; FBYKEY={}; try{window.__funnelDefs=FUNNELS;}catch(_){}
       FUNNELS.forEach(function(f){FBYID[f.id]=f;FBYKEY[f.key]=f;});
       window.__FUNNELS=FUNNELS;
       var all=[];
@@ -9435,6 +9439,18 @@ function rLedger(){
 window.finF=function(k,v){FIN.f[k]=v;if(k==='client'){FIN.f.clientKey=null;FIN.f.clientName='';}render();};
 window.finClientClear=function(){FIN.f.clientKey=null;FIN.f.clientName='';render();};
 /* Strategic & quality teams: jump from a project invoice to the proposal behind it. */
+window.finSetOrigin=function(invNo){try{
+  var o=(document.getElementById('fin_origin')||{}).value||'booking';
+  var p=((document.getElementById('fin_pref')||{}).value||'').trim();
+  var c=fc(); if(!c)return;
+  c.from('finance_invoices').update({origin:o,proposal_ref:p||null}).eq('invoice_no',invNo).is('deleted_at',null).then(function(r){
+    if(r.error){alert((isArF()?'تعذر الحفظ: ':'Could not save: ')+r.error.message);return;}
+    (FIN.rows||[]).forEach(function(x){ if(x.invoice_no===invNo&&!x.deleted_at){ x.origin=o; x.proposal_ref=p||null; } });
+    var m=document.getElementById('finModal'); if(m)m.remove();
+    if(typeof toast==='function')toast(isArF()?'تم الحفظ':'Saved');
+    render();
+  }).catch(function(){});
+}catch(e){if(window.console)console.warn('finSetOrigin',e);}};
 window.finOpenProposal=function(ref){try{
   var o=(DB.offers||[]).find(function(x){return (x.ref||'')===ref;});
   var m=document.getElementById('finModal'); if(m)m.remove();
@@ -9459,7 +9475,11 @@ window.finRow=function(id){
   var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(20,20,30,.45);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px';ov.dir=ar?'rtl':'ltr';
   ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:660px;width:100%;max-height:85vh;overflow:auto;padding:22px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h3 style="margin:0">'+_f('Invoice','\u0641\u0627\u062a\u0648\u0631\u0629')+' '+escF(r.invoice_no)+'</h3><div style="margin-'+(ar?'right':'left')+':auto;display:flex;gap:6px">'+(canFinEdit()&&!delState?'<button class="btn ghost sm" style="color:#D92D20" onclick="finDelInv(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Delete invoice','\u062d\u0630\u0641 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629')+'</button>':'')+(canFinEdit()&&delState?'<button class="btn ghost sm" onclick="finRestoreInv(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Restore','\u0627\u0633\u062a\u0631\u062c\u0627\u0639')+'</button>':'')+(r.proposal_ref?('<button class="btn ghost sm" onclick="finOpenProposal(\''+escF(r.proposal_ref).replace(/\x27/g,"\\\x27")+'\')">'+_f('Open proposal','فتح العرض')+'</button>'):'')+'<button class="btn sm" onclick="finCloseModal()">'+_f('Close','\u0625\u063a\u0644\u0627\u0642')+'</button></div></div>'+
     lineTbl+
-    meta.map(function(x){return '<div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid #f0efe9;font-size:13px"><div style="min-width:150px;color:var(--muted)">'+escF(x[0])+'</div><div style="font-weight:600;word-break:break-word">'+escF(x[1]==null?'\u2014':x[1])+'</div></div>';}).join('')+'</div>';
+    meta.map(function(x){return '<div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid #f0efe9;font-size:13px"><div style="min-width:150px;color:var(--muted)">'+escF(x[0])+'</div><div style="font-weight:600;word-break:break-word">'+escF(x[1]==null?'\u2014':x[1])+'</div></div>';}).join('')+
+    (canFinEdit()&&!delState?('<div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;border-top:1px solid #f0efe9;padding-top:10px"><b style="font-size:12.5px">'+_f('This invoice is:','هذه الفاتورة:')+'</b>'+
+      '<select id="fin_origin" style="padding:6px 8px;border:1px solid var(--line-2,#e6e8ec);border-radius:8px;font:inherit;font-size:12.5px"><option value="booking" '+((r.origin||'booking')==='booking'?'selected':'')+'>'+_f('Normal booking','حجز عادي')+'</option><option value="project" '+(r.origin==='project'?'selected':'')+'>'+_f('Project (with a proposal)','مشروع (بعرض)')+'</option></select>'+
+      '<input id="fin_pref" value="'+escF(r.proposal_ref||'')+'" placeholder="'+_f('Proposal ref — e.g. DB-500101','مرجع العرض')+'" style="padding:6px 8px;border:1px solid var(--line-2,#e6e8ec);border-radius:8px;font:inherit;font-size:12.5px;min-width:170px">'+
+      '<button class="btn sm" onclick="finSetOrigin(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Save','حفظ')+'</button></div>'):'')+'</div>';
   ov.id='finModal';
   ov.onclick=function(e){if(e.target===ov)ov.remove();};
   document.body.appendChild(ov);
@@ -10508,6 +10528,23 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
 (function(){try{
   if(!window.renderLeadDetail) return;
   function fl(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;}
+  /* One real company = several Direct Payments accounts (Prepaid/Postpaid/Tender).
+     Edit them as one line: "101 Prepaid, 102 Postpaid, 103 Tender". */
+  window.v34EditAccounts=function(id){try{
+    var b=getLead(id); if(!b)return;
+    var cur=(b.billingAccounts&&b.billingAccounts.length)?b.billingAccounts.map(function(a){return a.id+(a.mode?(' '+a.mode):'');}).join(', '):(b.directClientId||'');
+    var v=prompt(fl('Billing accounts in Direct Payments — one per company registration, format: 101 Prepaid, 102 Postpaid, 103 Tender','حسابات الفوترة في مدفوعات دايركت — مثال: 101 Prepaid, 102 Postpaid'),cur);
+    if(v===null)return;
+    var MODES={prepaid:'Prepaid',postpaid:'Postpaid',tender:'Tender'};
+    var list=String(v).split(',').map(function(s){return s.trim();}).filter(Boolean).map(function(s){
+      var m=s.match(/^(\S+)\s*(\S*)$/)||[]; var mode=MODES[String(m[2]||'').toLowerCase()]||'';
+      return {id:String(m[1]||s),mode:mode};
+    });
+    b.billingAccounts=list;
+    if(list.length&&!b.directClientId)b.directClientId=list[0].id;
+    if(typeof silentSave==='function')silentSave(save);else save();
+    if(typeof render==='function')render();
+  }catch(e){if(window.console)console.warn('v34EditAccounts',e);}};
   window.v34AddDirectId=function(id){try{var b=getLead(id);if(!b)return;var v=prompt(fl('Direct client ID (from Direct Payments):','معرّف العميل في نظام دايركت:'),b.directClientId||'');if(v===null)return;b.directClientId=String(v).trim();if(typeof silentSave==='function')silentSave(save);else save();if(typeof render==='function')render();}catch(e){}};
   var _rld=window.renderLeadDetail;
   window.renderLeadDetail=function(v,id){
@@ -10530,6 +10567,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
         el.innerHTML='<span style="font-size:15px">🔗</span><span style="font-weight:700;color:#0F6E56">'+fl('Linked to Direct','مرتبط بدايركت')+'</span>'+
           '<span style="color:var(--muted);font-size:12.5px">'+fl(accts.length>1?'billing accounts':'client','حسابات الفوترة')+'</span> '+acctHtml+'<span style="flex:1"></span>'+
           '<a class="chiplink" href="'+(typeof pdLink==='function'?pdLink(b):'#')+'" target="_blank" rel="noopener">'+fl('Open in Direct Payments ↗','افتح في مدفوعات دايركت ↗')+'</a>'+
+          ' <button class="btn ghost sm" onclick="v34EditAccounts(\''+id+'\')">'+fl('Billing accounts','حسابات الفوترة')+'</button>'+
           ' <button class="btn ghost sm" onclick="v34AddDirectId(\''+id+'\')">'+fl('Edit','تعديل')+'</button>';
       } else {
         el.innerHTML='<span style="font-size:15px">⚠️</span><span style="font-weight:700;color:#B54708">'+fl('Not linked to Direct yet','غير مرتبط بدايركت بعد')+'</span>'+

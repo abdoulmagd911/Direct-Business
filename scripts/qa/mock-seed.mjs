@@ -63,6 +63,7 @@ TABLES.app_projects=[{"id": "prj_bright", "data": {"id": "prj_bright", "name": "
 TABLES.app_bookings=(BLOB.bookings||[]).map(r=>({id:r.id,data:r}));
 TABLES.app_invoices=(BLOB.invoices||[]).map(r=>({id:r.id,data:r}));
 TABLES.app_settings=[{id:'main',data:(BLOB.settings||{})}];
+TABLES.team_directory=TABLES.app_users.filter(u=>u.active).map(u=>({id:u.id,full_name:u.full_name,email:u.email,role:u.role,title:null}));
 const RPCLOG=[];
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
 export function start(port){
@@ -70,7 +71,15 @@ export function start(port){
   const u=url.parse(req.url,true); const path=u.pathname;
   if(req.method==='OPTIONS') return send(res,204,'');
   if(path==='/__lib') { res.writeHead(200,{'Content-Type':'application/javascript'}); return res.end(fs.readFileSync(UMD)); }
-  if(path.startsWith('/auth/v1/token')) return send(res,200,SESSION);
+  if(path.startsWith('/auth/v1/token')){ let b=''; req.on('data',d=>b+=d); req.on('end',()=>{ try{
+    const p=JSON.parse(b||'{}');
+    if(p.grant_type==='password'||u.query.grant_type==='password'||b.includes('password')){
+      if(p.email==='test@directksa.com'&&p.password==='Dq7nTest-2026-Riyadh') return send(res,200,SESSION);
+      if(p.refresh_token||b.includes('refresh_token')) return send(res,200,SESSION);
+      return send(res,400,{error:'invalid_grant',error_description:'Invalid login credentials',msg:'Invalid login credentials'});
+    }
+    return send(res,200,SESSION);
+  }catch(_){ return send(res,200,SESSION); } }); return; }
   if(path==='/auth/v1/user') return send(res,200,SESSION.user);
   if(path==='/auth/v1/logout') return send(res,204,'');
   if(path.startsWith('/auth/v1/recover')) return send(res,200,{});
@@ -105,9 +114,18 @@ export function start(port){
     let rows=TABLES[t]||[];
     if(req.method==='POST'){ let b=''; req.on('data',d=>b+=d); req.on('end',()=>{ try{
       const parsed=JSON.parse(b||'[]'); const list=Array.isArray(parsed)?parsed:[parsed];
-      const key=(list[0]&&('id' in list[0]))?'id':'year';
-      list.forEach(row=>{ const arr=(TABLES[t]=TABLES[t]||[]); const i=arr.findIndex(r=>String(r[key])===String(row[key])); if(i>=0)arr[i]={...arr[i],...row}; else arr.push(row); });
+      const key=(t==='finance_targets')?'year':'id';
+      list.forEach(row=>{ const arr=(TABLES[t]=TABLES[t]||[]);
+        if(key==='id'&&row.id==null){ row.id='gen-'+Math.random().toString(36).slice(2,10)+arr.length; arr.push(row); return; }
+        const i=arr.findIndex(r=>String(r[key])===String(row[key])); if(i>=0)arr[i]={...arr[i],...row}; else arr.push(row); });
     }catch(_){} send(res,201,[]); }); return; }
+    if(req.method==='PATCH'){ let b=''; req.on('data',d=>b+=d); req.on('end',()=>{ try{
+      const patch=JSON.parse(b||'{}'); let list=TABLES[t]||[];
+      Object.keys(u.query||{}).forEach(k=>{ if(k==='select')return; let val=u.query[k]; if(Array.isArray(val))val=val[0];
+        const m=String(val||'').match(/^eq\.(.*)$/); if(m) list=list.filter(r=>String(r[k])===m[1]);
+        if(String(val)==='is.null') list=list.filter(r=>r[k]==null); });
+      list.forEach(r=>Object.assign(r,patch));
+    }catch(_){} send(res,204,[]); }); return; }
     if(req.method!=='GET') return send(res,201,[]);
     // apply simple eq filters from the query string (e.g. id=eq.<uuid>) like real PostgREST,
     // so .eq(...).maybeSingle() returns exactly the matching row (not row[0] of the whole table).
