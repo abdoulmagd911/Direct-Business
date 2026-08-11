@@ -83,6 +83,30 @@ Then: **code lightening by deletion** — after each page is rebuilt, delete the
 patch layers it made obsolete (never delete first). Finally: move requests/offers/
 projects out of the app_state blob into real tables (ends last-write-wins).
 
+### Shipped 2026-08-11 — Finance: periods, invoice origin, executive-dashboard design (193a3a3)
+Owner: finance is stored/read monthly, quarterly, half-yearly, annually; the Finance page
+is an UPGRADE of his real "Direct-B2B-Executive-Dashboard.html" (Drive, lead-files folder
+— orange header, KPI cards with status chips فعلي/مؤكد/متوقع + colored top borders,
+orange section accents, dark-slate tables with % pills, quarter chips, Excel export);
+each invoice is either a normal BOOKING or part of a full PROJECT with a real proposal —
+strategic & quality teams request the proposal behind an invoice.
+Shipped: (1) period bar on Finance Overview (year · All/Q1–Q4/H1/H2 · month) driving
+KPIs, income-by-service, collections, monthly chart, top clients — all derived live,
+hand-verified (All 3.12M / Q1 2.23M / Q3 886.0K / H1=Q1 2.23M / Aug 516.0K exact);
+(2) finance_invoices.origin + proposal_ref (migration invoice_origin_and_proposal_ref),
+ledger origin filter + project/ref chips, invoice modal shows Origin/Proposal with an
+Open-proposal jump to the Proposals page; test data tagged (Rawabi→DB-500101 project,
+Falcon DP-2006→DB-500102 project, Bright→booking w/ price-offer DB-500103);
+(3) design pass to the executive-dashboard language (finh accent headings + period
+sublabels, KPI top borders, dark table headers, margin pills, dark totals row).
+Landmine hit & fixed: injected code called the _lh helper before its var line → ledger
+rendered blank (silent catch in the v42 wrapper) — moved helper to top of rLedger.
+Mocks updated (scratchpad + scripts/qa) with origin/proposal_ref.
+LATER (recorded, not done): the exec dashboard's B2B/Tenders deal-tracking tabs and
+plan-vs-actual (متوقع/مؤكد targets vs actuals) are NOT in the app yet — candidate next
+phase: a "targets" table (year, service, target_sar) to light up expected-vs-actual on
+the same period bar; Excel export per period from the Report Builder.
+
 ### Shipped 2026-08-11 — proposals learned from the real thing (live, commit 7b618ba)
 Read Direct's actual tender offer from Drive ("techincal offer final 1.pdf", the
 Human Rights Commission agreement, folder 1pG4Sgp8Jo7zUqNz5DuMFDkW6X18XBcqR). Its real
