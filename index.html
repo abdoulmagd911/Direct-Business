@@ -559,7 +559,8 @@ const LEAD_STAGES=["Prospect","Contacted","Qualified","Proposal","Negotiation","
 const LSTAGE_COLOR={Prospect:"#9AA1B6",Contacted:"#2E90FA",Qualified:"#7A5AF8",Proposal:"#F79009",Negotiation:"#FF6B00",Won:"#16B364",Lost:"#F0453A"};
 const STATUS_TO_STAGE={New:"Prospect","To contact":"Prospect",Contacted:"Contacted","In discussion":"Qualified","Proposal sent":"Proposal",Won:"Won",Lost:"Lost","On hold":"Qualified"};
 function leadStage(b){return b.stage||(b.isClient?"Won":(STATUS_TO_STAGE[b.status]||"Prospect"));}
-function setLeadStage(id,s){const b=getLead(id);if(!b)return;b.stage=s;b.status=s;b.activities=b.activities||[];b.activities.push({date:Date.now(),type:"Stage change",status:s,note:"",by:(typeof me==="function"?me():"Abdelrahman")});b.lastContact=Date.now();if(s==="Won")b.isClient=true;save();render();}
+window.captureLostReason=function(b){try{var ar=(typeof LANG!=='undefined'&&LANG==='ar');var r=prompt(ar?('لماذا خسرنا «'+b.name+'»؟ (سبب مختصر — يُحفظ للتعلم منه)'):('Why did we lose "'+b.name+'"? (short reason — kept so we learn from it)'),b.lostReason||'');if(r!=null&&String(r).trim()!==''){b.lostReason=String(r).trim();b.activities=b.activities||[];b.activities.push({date:Date.now(),type:'Lost',status:'Lost',note:'Lost — '+b.lostReason,by:(window.meName?meName():'Team')});}}catch(_){}};
+function setLeadStage(id,s){const b=getLead(id);if(!b)return;if(s==='Lost')captureLostReason(b);b.stage=s;b.status=s;b.activities=b.activities||[];b.activities.push({date:Date.now(),type:"Stage change",status:s,note:"",by:(typeof me==="function"?me():"Abdelrahman")});b.lastContact=Date.now();if(s==="Won")b.isClient=true;save();render();}
 const DIRECT_LINK={Anchor:{l:"Key client",c:"#16B364"},Convert:{l:"Warm conversion",c:"#FF6B00"},"Re-engage":{l:"Re-engage",c:"#2E90FA"},Dormant:{l:"Dormant",c:"#9AA1B6"},Vendor:{l:"Commission vendor",c:"#7A5AF8"},Partner:{l:"Partner / supplier",c:"#15B8A6"}};
 function directLink(b){if(b.isClient)return{l:"Client",c:"#16B364"};if(b.b2c)return{l:"B2C-hidden",c:"#7A5AF8"};return DIRECT_LINK[b.category]||{l:b.category||"—",c:"#9AA1B6"};}
 function directLinkTag(b){const d=directLink(b);return `<span class="tag" style="background:${d.c}1a;color:${d.c}">${esc(d.l)}</span>`;}
@@ -983,6 +984,7 @@ function renderLeadDetail(v,id){
         <div class="fact"><span class="k">Lifetime billed</span><span class="v">${money(b.totalSAR)}</span></div>
         <div class="fact"><span class="k">Invoices</span><span class="v">${b.invoices||0}</span></div>
         <div class="fact"><span class="k">Category</span><span class="v">${b.category}</span></div>
+        ${b.lostReason?`<div class="fact"><span class="k" style="color:#D92D20">Why we lost it</span><span class="v" style="color:#D92D20;font-weight:600">${esc(b.lostReason)}</span></div>`:""}
         <div class="fact"><span class="k">Funnel</span><span class="v">${(()=>{const fn=(typeof LANG!=='undefined'&&LANG==='ar'&&b.funnelNameAr)?b.funnelNameAr:b.funnelName;return fn?`<span class="tag" style="background:#EEF0F5;color:#4B5563">${esc(fn)}</span>`:(b.source?`<span class="tag" style="background:${SOURCE_COLOR[b.source]}1a;color:${SOURCE_COLOR[b.source]}">${esc(b.source)}</span>`:"—");})()}</span></div>
         <div class="fact"><span class="k">Assigned to</span><span class="v">${esc(b.assignedTo||b.owner||"Unassigned")}</span></div>
         <div class="fact"><span class="k">Channels</span><span class="v">${(b.channels||[]).length?b.channels.map(esc).join(", "):"—"}</span></div>
@@ -6922,6 +6924,7 @@ window.rptPpt=function(){
    function(){
     var ns=val("qe_stage");b.stage=ns;b.status=ns;if(ns==="Won")b.isClient=true;
     b.assignedTo=val("qe_owner");b.nextAction=val("qe_next");
+    try{if(val("qe_stage")==="Lost"&&leadStage(b)!=="Lost")captureLostReason(b);}catch(_){}
     if(document.getElementById("qe_am")){b.accountManager=val("qe_am");b.tier=val("qe_tier");b.nextReview=val("qe_review");}
     var note=val("qe_note");
     if(note){b.activities=b.activities||[];b.activities.push({date:Date.now(),type:"Note",status:"",note:note,by:(typeof me==="function"?me():(b.assignedTo||"Team"))});b.lastContact=Date.now();}
@@ -7334,6 +7337,7 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
     o.funnelDetails=r.funnel_details||{};
     o.nextActionDate=r.next_action_date||o.nextAction||null;
     o.nextActionNote=r.next_action_note||null;
+    if(r.lost_reason&&!o.lostReason)o.lostReason=r.lost_reason;
     // Map the record's own dates onto the app object (the strip + score read these).
     if(r.created_at&&!o.createdAt)o.createdAt=r.created_at;
     if(r.converted_date&&!o.convertedDate)o.convertedDate=r.converted_date;
@@ -7356,6 +7360,7 @@ try{render();}catch(e){console.error('Init render failed',e);document.body.inner
       funnel_details:o.funnelDetails||{},
       next_action_date:o.nextActionDate||null,
       next_action_note:o.nextActionNote||null,
+      lost_reason:(o.lostReason&&String(o.lostReason).trim())||null,
       direct_client_id:(o.directClientId!=null&&String(o.directClientId).trim()!=='')?String(o.directClientId).trim():null,
       raw:o
     };

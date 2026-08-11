@@ -47,6 +47,18 @@ for approval → deploy → delete the old layers that page no longer needs):
    the row), derive every summary live from them, never store report numbers by hand;
    quality/integrity findings get recorded per issue like the audit's Methodology
    sheet. Report Builder + income card already follow this.
+   LOST-LEAD LEARNING LOOP (owner, 08-10): moving a record to Lost now PROMPTS for
+   the reason (bilingual), stores it in lost_reason + logs a Lost activity, and the
+   record card shows "Why we lost it" in red; lost leads stay findable under the
+   Lost chip. LIVE TEST DATA now: 11 clients / 7 leads / 15 invoices / 4.59M SAR
+   incl. tender-in-proposal (Riyadh Chamber), supplier-partner (Amadeus), lost
+   agency with comeback note (Elite Holidays), partial payment with 40K outstanding
+   (Benchmark) — undo via source_batch='lifecycle rehearsal' + legacy_id lc_*.
+   NOTE: the QA mocks mirror only part of this richer live set — next session may
+   re-sync scripts/qa/mock-seed.mjs if screen-accurate counts matter.
+   FINDING (worker-path UI test): a lead created via "+ New business" gets NO
+   default owner in the harness (assignedTo empty) — check on live login whether
+   meName() resolves at creation time; if not, default owner to creator.
 4. **Settings/Team & Access** — DONE 08-10: emoji stripped, legacy free-text
    team editor retired, all top cards anchored below the single page heading.
 DONE 08-10: the blob→tables MIGRATION — app_requests/app_offers/app_projects
