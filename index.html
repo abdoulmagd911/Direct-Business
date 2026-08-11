@@ -661,7 +661,7 @@ const PROV_CAPS=["Book","Reissue","Refund","EMD","Seats","Bags","Split PNR"];
 const PROV_API=["Healthy","Degraded","Down","—"];
 const SETTLEMENTS=["—","BSP","Direct","Virtual card","Wallet","Mixed"];
 const PROV_ADD=[{name:"Travelfusion",type:"Aggregator / LCC API"},{name:"Duffel",type:"NDC aggregator"},{name:"Babylon",type:"NDC aggregator"},{name:"Trip.com",type:"OTA / API"},{name:"Kiwi",type:"Aggregator / virtual interlining"}];
-function leadScore(b){if(b.scoreOverride!=null&&b.scoreOverride!=="")return +b.scoreOverride;let fit=({Anchor:30,Convert:25,"Re-engage":18,Partner:20,Vendor:15,Dormant:8}[b.category]||12);if(b.isClient)fit=30;const stIdx=LEAD_STAGES.indexOf(leadStage(b));let intent=Math.max(0,stIdx)*7;if(leadStage(b)==="Lost")intent=0;const acts=(b.activities||[]).length;let eng=Math.min(20,acts*3);const days=b.lastContact?(Date.now()-b.lastContact)/864e5:999;if(days>30)eng=Math.max(0,eng-8);const val=Math.min(20,Math.round((b.dealValue||b.totalSAR||0)/50000));return Math.max(0,Math.min(100,fit+intent+eng+val));}
+function leadScore(b){if(b.scoreOverride!=null&&b.scoreOverride!=="")return +b.scoreOverride;let fit=({Anchor:30,Convert:25,"Re-engage":18,Partner:20,Vendor:15,Dormant:8}[b.category]||15);if(b.isClient)fit=30;const _fk=b.funnelKey||"";if(_fk==="past_invoices"||_fk==="inbound"||_fk==="website_form_b2b"||_fk==="website_form_entity")fit+=10;const stIdx=LEAD_STAGES.indexOf(leadStage(b));let intent=Math.max(0,stIdx)*7;if(b.nextAction||b.nextActionDate)intent+=5;if(leadStage(b)==="Lost")intent=0;const acts=(b.activities||[]).length;let eng=Math.min(20,acts*3);const days=b.lastContact?(Date.now()-b.lastContact)/864e5:999;if(days>30)eng=Math.max(0,eng-8);const val=Math.min(20,Math.round((b.dealValue||b.totalSAR||0)/50000));return Math.max(0,Math.min(100,fit+intent+eng+val));}
 function scoreBand(s){return s>=70?{l:"Hot",c:"#F0453A"}:s>=45?{l:"Warm",c:"#FF6B00"}:s>=25?{l:"Cool",c:"#2E90FA"}:{l:"Cold",c:"#9AA1B6"};}
 function daysSince(ms){return ms?Math.floor((Date.now()-ms)/864e5):null;}
 function leadRisks(b){const r=[];const open=leadStage(b)!=="Won"&&leadStage(b)!=="Lost";if(open&&(b.contacts||[]).length<=1)r.push("Single-threaded");if(open&&!b.champion)r.push("No champion");const ds=daysSince(b.lastContact);if(open&&ds!=null&&ds>14)r.push("Stalled "+ds+"d");if(open&&!b.execSponsor)r.push("No exec sponsor");return r;}
@@ -873,7 +873,11 @@ function renderLeads(v){
   [["stage","By stage"],["category","By category"],["source","By funnel"]].forEach(([k,lab])=>{const b=document.createElement("button");b.textContent=lab;b.className=leadGroup===k?"on":"";b.onclick=()=>{leadGroup=k;renderLeads(v);};g.appendChild(b);});
   const seg=document.getElementById("catseg");
   [["all","All"]].concat(CATEGORIES.map(c=>[c,c])).forEach(([k,lab])=>{const b=document.createElement("button");b.textContent=lab;b.className=leadFilter.cat===k?"on":"";b.onclick=()=>{leadFilter.cat=k;renderLeads(v);};seg.appendChild(b);});
-  const fns=document.getElementById("fnsel");if(fns){fns.innerHTML='<option value="all">All funnels</option>'+(typeof funnelList==='function'?funnelList():SOURCES).map(s=>'<option value="'+s+'" '+(leadFilter.funnel===s?"selected":"")+'>'+s+'</option>').join("");fns.onchange=e=>{leadFilter.funnel=e.target.value;drawLeads();};}const sgs=document.getElementById("stgsel");if(sgs){sgs.innerHTML='<option value="all">All stages</option>'+LEAD_STAGES.map(s=>'<option value="'+s+'" '+(leadFilter.stage===s?"selected":"")+'>'+(s==="Won"?"Client":s)+'</option>').join("");sgs.onchange=e=>{leadFilter.stage=e.target.value;drawLeads();};}document.getElementById("lq").oninput=e=>{leadFilter.q=e.target.value;drawLeads();};
+  const fns=document.getElementById("fnsel");if(fns){
+    const _ar=(typeof LANG!=='undefined'&&LANG==='ar');
+    const _fm={};(DB.businesses||[]).forEach(b=>{const k=b.funnelKey||b.source;if(k&&!_fm[k])_fm[k]=_ar?(b.funnelNameAr||b.funnelName||k):(b.funnelName||k);});
+    fns.innerHTML='<option value="all">'+(_ar?'كل القنوات':'All funnels')+'</option>'+Object.keys(_fm).map(k=>'<option value="'+esc(k)+'" '+(leadFilter.funnel===k?"selected":"")+'>'+esc(_fm[k])+'</option>').join("");
+    fns.onchange=e=>{leadFilter.funnel=e.target.value;drawLeads();};}const sgs=document.getElementById("stgsel");if(sgs){sgs.innerHTML='<option value="all">All stages</option>'+LEAD_STAGES.map(s=>'<option value="'+s+'" '+(leadFilter.stage===s?"selected":"")+'>'+(s==="Won"?"Client":s)+'</option>').join("");sgs.onchange=e=>{leadFilter.stage=e.target.value;drawLeads();};}document.getElementById("lq").oninput=e=>{leadFilter.q=e.target.value;drawLeads();};
   drawLeads();
 }
 function drawLeads(){var sum=document.getElementById("leadsum");if(leadView==='dash'){if(sum)sum.innerHTML="";drawLeadsDash();}else{renderLeadSummary();drawTable();}}
@@ -884,7 +888,7 @@ const B=DB.businesses.filter(matchLead);
 const open=B.filter(b=>{const s=leadStage(b);return s!=="Won"&&s!=="Lost";});
 const fmax=Math.max(1,...LEAD_STAGES.map(s=>B.filter(b=>leadStage(b)===s).length));
 const byStage=LEAD_STAGES.map(s=>({s,n:B.filter(b=>leadStage(b)===s).length,c:LSTAGE_COLOR[s]}));
-const srcCount={};B.forEach(b=>{const k=b.source||"Other";srcCount[k]=(srcCount[k]||0)+1;});
+const srcCount={};B.forEach(b=>{const _arF=(typeof LANG!=="undefined"&&LANG==="ar");const k=(_arF?(b.funnelNameAr||b.funnelName):b.funnelName)||b.source||"Other";srcCount[k]=(srcCount[k]||0)+1;});
 const bySource=Object.entries(srcCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
 const ownerCount={};B.forEach(b=>{const o=b.assignedTo||b.owner||"Unassigned";ownerCount[o]=(ownerCount[o]||0)+1;});
 const byOwner=Object.entries(ownerCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
@@ -904,7 +908,7 @@ function renderLeadSummary(){
   el.innerHTML=`<div class="card" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:13px 18px;margin-bottom:14px"><div><div style="font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">In view</div><div style="font-size:17px;font-weight:800;letter-spacing:-.02em">${list.length} businesses · ${moneyShort(val)} SAR billed</div></div><div style="flex:1;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end">${byStage.map(x=>`<span class="statusbadge" style="background:${LSTAGE_COLOR[x.s]}1a;color:${LSTAGE_COLOR[x.s]}"><span class="dot" style="background:${LSTAGE_COLOR[x.s]}"></span>${x.s} ${x.n}</span>`).join("")}</div></div>`;
 }
 /* base drawTable deleted 2026-08-10 — superseded by the v30 window.drawTable override (bulk-select + priority table) */
-function matchLead(b){if(leadFilter.stage&&leadFilter.stage!=="all"&&leadStage(b)!==leadFilter.stage)return false;if(leadFilter.funnel&&leadFilter.funnel!=="all"&&(b.source||"")!==leadFilter.funnel)return false;const q=leadFilter.q.toLowerCase().trim();if(leadGroup==="category"&&leadFilter.cat!=="all"&&b.category!==leadFilter.cat)return false;if(!q)return true;const hay=(b.name+" "+(b.nameAr||"")+" "+(b.segment||"")+" "+(b.source||"")+" "+(b.assignedTo||"")+" "+(b.notes||"")+" "+(b.contacts||[]).map(c=>c.name+c.email+c.phone).join(" ")).toLowerCase();return hay.includes(q);}
+function matchLead(b){if(leadFilter.stage&&leadFilter.stage!=="all"&&leadStage(b)!==leadFilter.stage)return false;if(leadFilter.funnel&&leadFilter.funnel!=="all"&&(b.funnelKey||b.source||"")!==leadFilter.funnel)return false;const q=leadFilter.q.toLowerCase().trim();if(leadGroup==="category"&&leadFilter.cat!=="all"&&b.category!==leadFilter.cat)return false;if(!q)return true;const hay=(b.name+" "+(b.nameAr||"")+" "+(b.segment||"")+" "+(b.source||"")+" "+(b.assignedTo||"")+" "+(b.notes||"")+" "+(b.contacts||[]).map(c=>c.name+c.email+c.phone).join(" ")).toLowerCase();return hay.includes(q);}
 
 
 function leadDashboard(v,id){
@@ -1034,14 +1038,14 @@ function renderClients(v){
     <div style="flex:1"></div><button class="btn sm ghost" onclick="current='leads';render()">&larr; Leads pipeline</button></div>
   <div class="toolbar">
     <div class="search-wrap">${IC.search}<input id="clq" placeholder="Search clients..." value="${esc(clFilter.q)}"></div>
-    <select onchange="clFilter.owner=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All managers</option>${team.map(t=>`<option value="${t}" ${clFilter.owner===t?"selected":""}>${t}</option>`).join("")}</select>
+    <select onchange="clFilter.owner=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All managers</option>${[...new Set(DB.businesses.filter(b=>b.isClient).map(b=>b.accountManager||b.assignedTo).filter(Boolean))].sort().map(t=>`<option value="${t}" ${clFilter.owner===t?"selected":""}>${t}</option>`).join("")}</select>
     <button class="btn sm ${clFilter.owner===(window.meName?meName():"")&&clFilter.owner!=="all"?"pri":"ghost"}" onclick="clToggleMine()">👤 ${(typeof LANG!=="undefined"&&LANG==="ar")?"خاص بي":"Mine"}</button>
     <select onchange="clFilter.tier=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All tiers</option><option ${clFilter.tier==="Key"?"selected":""}>Key</option><option ${clFilter.tier==="Standard"?"selected":""}>Standard</option></select>
   </div>
   <div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th style="cursor:pointer" onclick="clSortBy('name')">Client${clArrow('name')}</th><th style="cursor:pointer" onclick="clSortBy('am')">Account manager${clArrow('am')}</th><th style="cursor:pointer" onclick="clSortBy('tier')">Tier${clArrow('tier')}</th><th>Client since</th><th>Deal value (SAR)</th><th style="cursor:pointer" onclick="clSortBy('review')">Next review${clArrow('review')}</th><th style="cursor:pointer" onclick="clSortBy('health')" title="Client health — Good / Watch / At risk. Click to surface at-risk clients.">Health${clArrow('health')}</th><th></th></tr></thead><tbody>
   ${cl.map(b=>{const am=b.accountManager||b.assignedTo;const overdue=b.nextReview&&b.nextReview<=today;const la=(b.activities||[]).slice().sort((x,y)=>(y.date||0)-(x.date||0))[0];const since=b.convertedDate||b.convertDate||'';const wonV=b.totalSAR||b.dealValue||0;const _h=clientHealth(b);return `<tr data-health="${_h.l}" style="cursor:pointer" onclick="openLead='${b.id}';current='leads';render()"><td><b>${window.nmMain?esc(nmMain(b)):esc(b.name)}</b>${window.nmSubHTML?nmSubHTML(b):''}${la?`<div style="font-size:11px;color:#0F6E56;margin-top:2px">↪ ${esc(String((la.type||'Activity')+(la.note?': '+la.note:'')).slice(0,46))}</div>`:''}</td><td>${am?esc(am):'<span class="tag" style="background:#F0453A14;color:#D92D20">Unassigned</span>'}</td><td>${(b.tier==="Key")?'<span class="tag" style="background:#A9781A1a;color:#A9781A;font-weight:800">KEY</span>':'<span class="tag" style="background:#EEF0F5;color:#5b6178">Standard</span>'}</td><td style="white-space:nowrap;color:var(--muted);font-size:12px">${since?esc(typeof since==='number'?new Date(since).toISOString().slice(0,10):String(since)):'<span style="color:#C9C2B6">—</span>'}</td><td style="white-space:nowrap;font-weight:800;color:var(--ink)">${wonV?(moneyShort(wonV)):'<span style="color:#C9C2B6;font-weight:400">—</span>'}</td><td style="white-space:nowrap;${overdue?'color:#D92D20;font-weight:700':'color:var(--muted)'}">${b.nextReview?esc(b.nextReview):'-'}</td>${(function(){var h=_h;return '<td><span class="tag" style="background:'+h.c+'1a;color:'+h.c+';font-weight:700" title="'+h.why+'">'+h.l+'</span></td>';})()}<td><button class="btn ghost sm" style="padding:1px 7px;font-size:10.5px" onclick="event.stopPropagation();leadQuickEdit('${b.id}')">Edit</button></td></tr>`;}).join("")||'<tr><td colspan="8" class="empty">No clients match.</td></tr>'}
   </tbody></table></div></div>`;
-  const cq=document.getElementById("clq");if(cq){cq.onchange=e=>{clFilter.q=e.target.value;render();};}
+  const cq=document.getElementById("clq");if(cq){cq.oninput=e=>{clFilter.q=e.target.value;render();const n=document.getElementById("clq");if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length);}catch(_){}}};}
 }
 function logActivity(id){const b=getLead(id);if(!b)return;
   openModal("Log activity — "+esc(b.name),`<div class="grid2"><div class="field"><label>Type</label><select id="a_type">${ACT_TYPES.map(t=>`<option>${t}</option>`).join("")}</select></div><div class="field"><label>Move stage to</label><select id="a_status"><option value="">— keep ${esc(leadStage(b))} —</option>${LEAD_STAGES.map(s=>`<option>${s}</option>`).join("")}</select></div></div><div class="field"><label>What happened?</label><textarea id="a_note" rows="3" placeholder="e.g. Called Mr. Nasser — interested in corporate flights, sending proposal Sunday"></textarea></div><div class="field"><label>Next action (optional)</label><input id="a_next" value="${esc(b.nextAction||"")}"></div>`,
@@ -1064,7 +1068,7 @@ function editBusiness(id){
     
     <div class="field"><label>Contacts (same business, multiple people)</label><div id="contacts"></div><button class="btn sm" onclick="addContactRow()">+ Add contact</button></div>
     <div class="field"><label>Notes</label><textarea id="f_notes" rows="2">${esc(b.notes||"")}</textarea></div>
-  `,()=>{b.name=val("f_name");b.nameAr=val("f_ar");b.segment=val("f_seg");b.area=val("f_area");b.category=val("f_cat");b.services=val("f_serv");b.nextAction=val("f_next");b.source=val("f_source");b.sourceSub=(val("f_source")==='Travel Agencies'?val("f_sub"):'');b.assignedTo=val("f_assign");b.stage=val("f_stage");b.status=val("f_stage");b.dueDate=val("f_due");if(b.stage==="Won")b.isClient=true;b.channels=[...document.querySelectorAll(".f_ch:checked")].map(e=>e.value);b.isClient=val("f_client")==="yes";b.isVendor=val("f_vendor")==="yes";b.notes=val("f_notes");b.contacts=readContacts();if(!b.name.trim()){alert("Business name required.");return false;}const i=DB.businesses.findIndex(x=>x.id===b.id);if(i>=0)DB.businesses[i]=b;else DB.businesses.push(b);save();render();},isNew?null:()=>{if(confirm("Delete this business?")){DB.businesses=DB.businesses.filter(x=>x.id!==id);openLead=null;save();render();}});
+  `,()=>{b.name=val("f_name");b.nameAr=val("f_ar");b.segment=val("f_seg");b.area=val("f_area");b.category=val("f_cat");b.services=val("f_serv");b.nextAction=val("f_next");b.source=val("f_source");b.sourceSub=(val("f_source")==='Travel Agencies'?val("f_sub"):'');b.assignedTo=val("f_assign")||(window.meName?meName():"")||(typeof me==="function"?me():"");b.stage=val("f_stage");b.status=val("f_stage");b.dueDate=val("f_due");if(b.stage==="Won")b.isClient=true;b.channels=[...document.querySelectorAll(".f_ch:checked")].map(e=>e.value);b.isClient=val("f_client")==="yes";b.isVendor=val("f_vendor")==="yes";b.notes=val("f_notes");b.contacts=readContacts();if(!b.name.trim()){alert("Business name required.");return false;}const i=DB.businesses.findIndex(x=>x.id===b.id);if(i>=0)DB.businesses[i]=b;else DB.businesses.push(b);save();render();},isNew?null:()=>{if(confirm("Delete this business?")){DB.businesses=DB.businesses.filter(x=>x.id!==id);openLead=null;save();render();}});
   window._contacts=(b.contacts||[]).slice();drawContacts();
 }
 function drawContacts(){const c=document.getElementById("contacts");if(!c)return;c.innerHTML=(window._contacts||[]).map((ct,i)=>`<div class="contact"><input placeholder="Name" value="${esc(ct.name||"")}" oninput="window._contacts[${i}].name=this.value"><input placeholder="Email" value="${esc(ct.email||"")}" oninput="window._contacts[${i}].email=this.value"><input placeholder="Phone" value="${esc(ct.phone||"")}" oninput="window._contacts[${i}].phone=this.value"><span class="x" onclick="window._contacts.splice(${i},1);drawContacts()">✕</span></div>`).join("");}
@@ -11295,8 +11299,9 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
 </style>
 
 <script>
-/* v59 — requests / proposals / projects move OUT of the app_state blob into real tables
-   (app_requests / app_offers / app_projects), created + seeded 2026-08-10.
+/* v59 — requests / proposals / projects / bookings / invoices / settings move OUT of the
+   app_state blob into real tables (app_requests / app_offers / app_projects, and since
+   2026-08-11 app_bookings / app_invoices / app_settings — the LAST blob sections).
    Strategy: TABLE-READ, DUAL-WRITE.
    - Load: once signed in, fetch the three tables and replace DB.requests / DB.offers /
      DB.projects with the table contents (one row per record, data = the exact JSON the
@@ -11308,7 +11313,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
      copy too, so rolling back = delete this layer; nothing else changes.
    Backup of the pre-migration blob: app_state_backup_20260810_premigration. */
 (function(){try{
-  var T={requests:'app_requests',offers:'app_offers',projects:'app_projects'};
+  var T={requests:'app_requests',offers:'app_offers',projects:'app_projects',bookings:'app_bookings',invoices:'app_invoices'};
   var SNAP=null; // id -> JSON string, per section; null until first successful table read
   function cli(){ try{ if(!window.__sb59 && window.supabase && window.supabase.createClient){ window.__sb59=window.supabase.createClient(); } }catch(_){ } return window.__sb59||null; } /* v44a memoisation returns the app's shared client */
   function who(){ try{ return (window.meName&&meName())||(DB.settings&&DB.settings.currentUser)||''; }catch(_){ return ''; } }
@@ -11321,22 +11326,23 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
     c.auth.getSession().then(function(s){
       var u=s&&s.data&&s.data.session&&s.data.session.user;
       if(!u){ if(_tries<20) setTimeout(loadOps,1500); return; }
-      Promise.all([ c.from(T.requests).select('id,data'), c.from(T.offers).select('id,data'), c.from(T.projects).select('id,data') ]).then(function(rs){
+      var KEYS=Object.keys(T);
+      Promise.all(KEYS.map(function(k){return c.from(T[k]).select('id,data');}).concat([c.from('app_settings').select('id,data').eq('id','main')])).then(function(rs){
         if(rs.some(function(r){return r.error||!r.data;})) { return; } // tables unreachable → keep blob copy
         _loaded=true;
         var apply=function(){
-          DB.requests=rs[0].data.map(function(r){return r.data;});
-          DB.offers  =rs[1].data.map(function(r){return r.data;});
-          DB.projects=rs[2].data.map(function(r){return r.data;});
+          KEYS.forEach(function(k,i){ DB[k]=rs[i].data.map(function(r){return r.data;}); });
+          var st=rs[KEYS.length].data[0];
+          if(st&&st.data){ DB.settings=DB.settings||{}; Object.keys(st.data).forEach(function(k){ DB.settings[k]=st.data[k]; }); }
           window.__v59ref=DB.requests;
-          SNAP={requests:snapOf(DB.requests),offers:snapOf(DB.offers),projects:snapOf(DB.projects)};
+          SNAP={}; KEYS.forEach(function(k){ SNAP[k]=snapOf(DB[k]); }); SNAP.__settings=JSON.stringify(DB.settings||{});
           try{ if(typeof render==='function') render(); }catch(_){ }
         };
         apply();
         // The workspace blob loader may finish AFTER us and put the blob copy back —
         // re-assert the table copy until the app settles (identity check, ~20s window).
         var _re=0, _iv=setInterval(function(){ _re++; if(DB.requests!==window.__v59ref){ apply(); } if(_re>13) clearInterval(_iv); },1500);
-        console.info('%c[v59] requests/proposals/projects loaded from tables ('+rs[0].data.length+'/'+rs[1].data.length+'/'+rs[2].data.length+')','color:#0F6E56;font-weight:700');
+        console.info('%c[v59] blob sections loaded from tables ('+KEYS.map(function(k,i){return k+':'+rs[i].data.length;}).join(' ')+' settings:'+(rs[KEYS.length].data.length?'yes':'no')+')','color:#0F6E56;font-weight:700');
       }).catch(function(){});
     }).catch(function(){});
   }
@@ -11353,6 +11359,12 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
       if(dels.length) c.from(T[sec]).delete().in('id',dels).then(function(r){ if(!r.error) dels.forEach(function(id){ delete prev[id]; }); }).catch(function(){});
       SNAP[sec]=prev;
     });
+    try{
+      var sj=JSON.stringify(DB.settings||{});
+      if(SNAP.__settings!==undefined && sj!==SNAP.__settings){
+        c.from('app_settings').upsert({id:'main',data:JSON.parse(sj),updated_at:new Date().toISOString(),updated_by:who()},{onConflict:'id'}).then(function(r){ if(!r.error) SNAP.__settings=sj; }).catch(function(){});
+      }
+    }catch(_){ }
   }
   function queueSync(){ clearTimeout(_syncT); _syncT=setTimeout(syncOps,500); }
   function wrapSave(){ try{ var f=window.save; if(typeof f==='function'&&!f.__v59){ window.save=function(){ var o=f.apply(this,arguments); queueSync(); return o; }; window.save.__v59=true; } }catch(_){ } }
