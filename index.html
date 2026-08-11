@@ -9102,6 +9102,10 @@ var SVC_CATALOG=[
   ['MICE / events','الفعاليات والمؤتمرات'],['Events','الفعاليات والمؤتمرات'],['Packages','الباقات'],
   ['Umrah','العمرة'],['Hajj','الحج'],['Courses','الدورات'],['Training','التدريب'],
   ['Wallet top-up','شحن المحفظة'],['Support Services','خدمات الدعم'],['eSIM','شرائح eSIM'],
+  ['Study abroad','الدراسة بالخارج'],['Furnished apartments','الشقق المفروشة'],
+  ['Translation','ترجمة الوثائق'],['Intl driving permit','رخصة القيادة الدولية'],
+  ['VIP meet & assist','استقبال كبار الشخصيات'],['Event halls','قاعات الاجتماعات والفعاليات'],
+  ['Shipping','الشحن البريدي'],['Chauffeur','سائق خاص'],
   ['Mixed','خدمات متعددة'],['Other','أخرى'],['(unspecified)','غير محدد']
 ];
 var SVC_AR={}; SVC_CATALOG.forEach(function(p){SVC_AR[p[0]]=p[1];});
@@ -10201,8 +10205,8 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
    b.serviceFit and persisted via the businesses raw JSON (rowToApp copies raw fields back). */
 (function(){try{
   if(!window.renderLeadDetail) return;
-  var CORE=[['flights','✈','Flights','الطيران'],['hotels','🏨','Hotels','الفنادق'],['visa','🛂','Visa / e-Visa','التأشيرات'],['umrah','🕋','Umrah / Hajj','العمرة والحج'],['transfers','🚐','Transfers','التنقلات'],['carrental','🔑','Car rental','تأجير السيارات'],['insurance','🛡','Insurance','التأمين'],['tours','🗺','Activities / tours','الأنشطة والجولات'],['mice','🎤','MICE / events','الفعاليات'],['packages','🧳','Packages','الباقات']];
-  var GROWTH=[['idl','🪪','Intl driving licence','رخصة القيادة الدولية'],['chauffeur','🚘','Chauffeur','سائق خاص'],['esim','📶','eSIM / roaming','شريحة eSIM'],['training','🎓','Training','التدريب'],['support','🛎','Support','الدعم']];
+  var CORE=[['flights','✈','Flights','الطيران'],['hotels','🏨','Hotels','الفنادق'],['visa','🛂','Visa / e-Visa','التأشيرات'],['umrah','🕋','Umrah / Hajj','العمرة والحج'],['transfers','🚐','Transfers','التنقلات'],['carrental','🔑','Car rental','تأجير السيارات'],['insurance','🛡','Insurance','التأمين'],['tours','🗺','Activities / tours','الأنشطة والجولات'],['mice','🎤','MICE / events','الفعاليات'],['packages','🧳','Packages','الباقات'],['study','🎓','Study abroad','الدراسة بالخارج']];
+  var GROWTH=[['idl','🪪','Intl driving licence','رخصة القيادة الدولية'],['chauffeur','🚘','Chauffeur','سائق خاص'],['esim','📶','eSIM / roaming','شريحة eSIM'],['training','📚','Training','التدريب'],['vip','⭐','VIP meet & assist','استقبال كبار الشخصيات'],['translation','📄','Translation','ترجمة الوثائق'],['shipping','📦','Shipping','الشحن البريدي'],['halls','🏛','Event halls','قاعات الفعاليات'],['support','🛎','Support','الدعم']];
   var ALL=CORE.concat(GROWTH);
   var STATES={unknown:{l:['—','—'],c:'#9AA1B6',bg:'#EEF0F5'},elsewhere:{l:['Buys elsewhere','من غيرنا'],c:'#B54708',bg:'#FEF3E2'},direct:{l:['With Direct','مع دايركت'],c:'#0F6E56',bg:'#E7F8EF'},na:{l:['Not a fit','غير مطلوبة'],c:'#98A2B3',bg:'#F2F4F7'}};
   var ORDER=['unknown','elsewhere','direct','na'];

@@ -28,6 +28,14 @@ for approval → deploy → delete the old layers that page no longer needs):
    Remaining: detail card shares the Leads header work.
 3. **Finance** — DONE 08-10: numbers verified, chart on product palette
    (orange/ink), Top-clients counts distinct invoices, rows drill to client.
+   SERVICE COVERAGE (owner, 08-10): catalogue extended to Direct's FULL official
+   service list (Study abroad, Furnished apartments, Translation, Intl driving
+   permit, VIP meet & assist, Event halls, Shipping, Chauffeur — all with Arabic);
+   service-fit map gained Study abroad (core) + VIP/Translation/Shipping/Halls;
+   proven end-to-end with test invoice DP-2006 (Falcon Events: Packages + Study
+   abroad + Transport, 47K, linked). Undo: DELETE FROM finance_invoices WHERE
+   invoice_no='DP-2006'. Finance tables are data-driven — any billed service
+   appears automatically.
 4. **Settings/Team & Access** — DONE 08-10: emoji stripped, legacy free-text
    team editor retired, all top cards anchored below the single page heading.
 DONE 08-10: the blob→tables MIGRATION — app_requests/app_offers/app_projects
