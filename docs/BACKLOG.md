@@ -83,6 +83,32 @@ Then: **code lightening by deletion** — after each page is rebuilt, delete the
 patch layers it made obsolete (never delete first). Finally: move requests/offers/
 projects out of the app_state blob into real tables (ends last-write-wins).
 
+### Shipped 2026-08-11 — proposals learned from the real thing (live, commit 7b618ba)
+Read Direct's actual tender offer from Drive ("techincal offer final 1.pdf", the
+Human Rights Commission agreement, folder 1pG4Sgp8Jo7zUqNz5DuMFDkW6X18XBcqR). Its real
+skeleton: About Direct → work plan → numbered scope of services (each with process
+steps) → 4-phase timeline → past work (Ma'aden 2M / Al-Hilal 1.5M / SFDA 500K /
+Takamol 4M / Riyadh Club 1M) → team → quantities table without prices; the separate
+FINANCIAL offer prices the same table and defines every payment as
+**contracted service fee + cost of the requested service** (رسوم الخدمة التعاقدية +
+تكلفة الخدمة المطلوبة) on a monthly schedule.
+Applied to the app, kept SIMPLE per the owner:
+- Generate-branded-proposal now renders the Scope box as the signature numbered
+  services table (# / Service · الخدمة, brand-orange #F87020 header) — one line in
+  the Scope box = one row. Single-paragraph scopes still render as prose.
+- New "How we start · كيف نبدأ" 4-step strip from the real work plan (sign → needs
+  analysis + dedicated advisor 1–2 days → free digital platform 1–3 weeks → ongoing
+  24/7 service).
+- The money note now states the real fee model verbatim, EN+AR.
+- Verified in the harness by capturing the print popup: 6 rows, 4 steps, EN+AR fee
+  model, 0 page errors; consistency sweep 8/8.
+STILL OPEN in this phase: pull the company-profile numbers straight from
+"Direct Profile En (1).pdf" (1bEvl31z2CpKkRDi5u9sSzOsUL4ZQzQJH) to refresh the
+About-Direct stats (branches/seats now 530 seats, 28-person 24/7 centre, Cairo op
+centre, partners list); optional past-work section (the five references above) as
+an opt-in toggle for tender-type proposals — keep default simple; owner screenshot
+yes/no on the new document.
+
 ### Shipped 2026-08-10 (continued) — declutter round
 - Nav: 16 flat items → 8 working pages + collapsed **Reference** group (auto-opens
   on its pages) + the existing From-Direct group. EN+AR.
