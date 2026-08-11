@@ -83,6 +83,29 @@ Then: **code lightening by deletion** — after each page is rebuilt, delete the
 patch layers it made obsolete (never delete first). Finally: move requests/offers/
 projects out of the app_state blob into real tables (ends last-write-wins).
 
+### Shipped 2026-08-11 — Finance round 2 (10b25ac): plan-vs-actual · credit · items · CSV · numbers-first
+Owner feedback on round 1 (phone screenshots): main views must show ACTUAL NUMBERS —
+cost, profit, total revenue — not percentages, and no invoice-count column; the
+percentages belong INSIDE each client. Nothing thrown away, view changed. Done: Top
+clients = Client/Revenue/Cost/Profit; income-by-service dropped Margin%+Inv; client
+card strip gained Cost/Profit/Margin%/Credit held. Rule to keep: MAIN VIEW = numbers,
+DETAIL VIEW = percentages & counts.
+Coverage check of the exec dashboard's OTHER tabs (Finance 26 / B2B / Tenders,
+screenshots taken): Remaining Credit → built (finance_client_links.credit_balance_sar,
+KPI card 'Client credit (held)', test: Takamol 250K + MDD 60K = 310K); uncollected
+money → already covered (Outstanding KPI + Collections & AR aging); plan-vs-actual
+(متوقع/مؤكد/فعلي) → built (finance_targets table seeded with the REAL 2026 plan:
+13.2M expected / 11.3M confirmed; strip with attainment bar; pro-rated for part
+periods with label; admin Set-targets button); B2B deals list & Tenders table → the
+app's Leads/funnels + proposals ARE the upgrade of those (not duplicated); Excel →
+CSV export of the filtered ledger (UTF-8 BOM for Arabic).
+Invoice items (owner: each invoice has different items): finance_invoices.items jsonb
+({d,q,u} per item under a service line), shown in the invoice card; DP-2006 seeded.
+Mobile: monthly chart wrapped in its own scroll — page no longer scrolls sideways
+(verified at 390px).
+All harness-verified (probe-finance.mjs covers periods math, plan strip, credit card,
+clean tables, CSV rows, items, proposal jump, client-card percentages); sweeps green.
+
 ### Shipped 2026-08-11 — Finance: periods, invoice origin, executive-dashboard design (193a3a3)
 Owner: finance is stored/read monthly, quarterly, half-yearly, annually; the Finance page
 is an UPGRADE of his real "Direct-B2B-Executive-Dashboard.html" (Drive, lead-files folder
