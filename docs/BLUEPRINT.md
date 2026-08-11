@@ -55,7 +55,10 @@ storage unit: contacts, comments, work log, finance strip (billed/received/outst
 cost/profit/margin%/credit inside the card), billing accounts modeled (one company =
 several Direct Payments IDs: Prepaid/Postpaid/Tender chips), jump-bar on long cards.
 **Waiting on data, not code:** client re-verification (all were reset to leads 08-08);
-Drive consolidation.
+Drive consolidation. **Communication capture (owner asked, 2026-08-11):** the Log-activity
+box is now a paste-in capture (Call/WhatsApp/Email/Meeting/Teams-Zoom-Meet types, big
+paste box) — the team pastes the conversation and it joins the company's story. A full
+automatic inbox integration is a separate future project, NOT in current scope.
 **Done means:** one card per real company holding everything the team knows about it.
 
 ## Phase 3 — Finance ✅
@@ -72,8 +75,9 @@ number traceable to invoices. *True today; verified by hand-computed sums.*
 ## Phase 4 — Settings / Team & Access ✅
 Real users with roles (admin/manager/bd/operations/viewer/team_member), access allowlist,
 legacy free-text team editor retired, tiles cleaned.
-**Still open (needs owner's go-ahead):** create the `business@directksa.com` admin login;
-link free-text owners (`assigned_to`) to real users so "my leads" can be built.
+**Owner decision 2026-08-11:** the `business@directksa.com` login AND linking owners to
+real accounts are POSTPONED to Phase 8 — they happen together with the team logins,
+right before real data goes in. Do not raise them before then.
 
 ## Phase 5 — Proposals 🟠
 Paged branded document matching the real tender offers (cover with white logo → contents →
@@ -107,6 +111,8 @@ happens once before go-live.
 ## Phase 8 — Reset & go-live ⏳ (last)
 Wipe the test data to zero (backups exist and are locked) · load real data from Drive
 (invoice-funnel files 5466–5507, TravelAgencies_MASTER, contact-form sheets) · create real
-team logins · final gate sweep: all four pages + Proposals, every button, EN+AR, all
-numbers agreeing.
+team logins **including business@directksa.com (admin)** · link free-text owners to the
+real accounts (enables "my leads", per-person targets) · **browser push reminders —
+REMIND THE OWNER about this here, he parked it deliberately** · final gate sweep: all
+four pages + Proposals, every button, EN+AR, all numbers agreeing.
 **Done means:** the team works in it daily and trusts the numbers.

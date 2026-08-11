@@ -566,7 +566,7 @@ function directLink(b){if(b.isClient)return{l:"Client",c:"#16B364"};if(b.b2c)ret
 function directLinkTag(b){const d=directLink(b);return `<span class="tag" style="background:${d.c}1a;color:${d.c}">${esc(d.l)}</span>`;}
 const STAGES=["New","Quoting","Awaiting client","Booked","Ticketed","Delivered","Closed"];
 const STAGE_COLOR={New:"#9AA1B6",Quoting:"#F79009","Awaiting client":"#2E90FA",Booked:"#7A5AF8",Ticketed:"#15B8A6",Delivered:"#16B364",Closed:"#82868B"};
-const ACT_TYPES=["Call","WhatsApp","Email","Meeting","Proposal","Note"];
+const ACT_TYPES=["Call","WhatsApp","Email","Meeting","Teams / Zoom / Meet","Proposal","Note"];
 /* ----- Funnels (lead source) + team ----- */
 const SOURCES=["Old Customers","Individuals from B2B","Conferences","Contact form","Tender","Direct outreach","Referral","Invoice history"];
 const SOURCE_COLOR={"Old Customers":"#A9781A","Individuals from B2B":"#7A5AF8","Conferences":"#FF6B00","Contact form":"#2E90FA","Tender":"#15B8A6","Direct outreach":"#16B364","Referral":"#EC4899","Invoice history":"#9AA1B6"};
@@ -1048,7 +1048,7 @@ function renderClients(v){
   const cq=document.getElementById("clq");if(cq){cq.oninput=e=>{clFilter.q=e.target.value;render();const n=document.getElementById("clq");if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length);}catch(_){}}};}
 }
 function logActivity(id){const b=getLead(id);if(!b)return;
-  openModal("Log activity — "+esc(b.name),`<div class="grid2"><div class="field"><label>Type</label><select id="a_type">${ACT_TYPES.map(t=>`<option>${t}</option>`).join("")}</select></div><div class="field"><label>Move stage to</label><select id="a_status"><option value="">— keep ${esc(leadStage(b))} —</option>${LEAD_STAGES.map(s=>`<option>${s}</option>`).join("")}</select></div></div><div class="field"><label>What happened?</label><textarea id="a_note" rows="3" placeholder="e.g. Called Mr. Nasser — interested in corporate flights, sending proposal Sunday"></textarea></div><div class="field"><label>Next action (optional)</label><input id="a_next" value="${esc(b.nextAction||"")}"></div>`,
+  openModal("Log activity — "+esc(b.name),`<div class="grid2"><div class="field"><label>Type</label><select id="a_type">${ACT_TYPES.map(t=>`<option>${t}</option>`).join("")}</select></div><div class="field"><label>Move stage to</label><select id="a_status"><option value="">— keep ${esc(leadStage(b))} —</option>${LEAD_STAGES.map(s=>`<option>${s}</option>`).join("")}</select></div></div><div class="field"><label>What happened? — paste the email, WhatsApp messages or meeting notes; they become part of this company’s story</label><textarea id="a_note" rows="7" placeholder="Paste the conversation or write a summary — e.g. Called Mr. Nasser — interested in corporate flights, sending proposal Sunday"></textarea></div><div class="field"><label>Next action (optional)</label><input id="a_next" value="${esc(b.nextAction||"")}"></div>`,
   ()=>{const ns=val("a_status");b.activities=b.activities||[];b.activities.push({date:Date.now(),type:val("a_type"),status:ns||"",note:val("a_note"),by:(typeof me==="function"?me():"Abdelrahman")});if(ns){b.stage=ns;b.status=ns;if(ns==="Won")b.isClient=true;}b.lastContact=Date.now();b.nextAction=val("a_next");save();render();});
 }
 
