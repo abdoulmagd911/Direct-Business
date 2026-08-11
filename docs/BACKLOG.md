@@ -83,6 +83,29 @@ Then: **code lightening by deletion** — after each page is rebuilt, delete the
 patch layers it made obsolete (never delete first). Finally: move requests/offers/
 projects out of the app_state blob into real tables (ends last-write-wins).
 
+### Shipped 2026-08-11 — five-lead lifecycle rehearsal (892e4b0): 51/51 by hand
+Owner: create five test leads, drive EVERYTHING by hand, screenshots, fix what's broken.
+Done as a permanent test (scripts/qa/probe-lifecycle5.mjs, 23 screenshots reviewed):
+login (bad+good) · 5 leads via the real modal (funnel+contact each) · funnel tabs/attention/
+both exports · card deep-dive (Teams/Email paste-log, comment, contact add+remove, quick
+edit, funnel-details Edit dialog) · proposal linked · Won→client · Lost+reason · Direct ID
+· billing accounts (907 Prepaid/908 Postpaid) · pasted agreement · AM ≠ owner + Key + review
+· CSV invoice import (DPIN + missing-tax flag) · finance link · 220.0K on the client card ·
+August rollup 736.0K exact · invoice→proposal option + jump · proposals library 📎 ·
+refresh/back/forward/sign-out/sign-in. REAL BUGS CAUGHT & FIXED: (1) Lost via quick edit
+never asked the reason (hook was on a dead dialog); (2) quick edit silently CLEARED the
+owner when not in the roster — current assignee now always an option; (3) NO UI existed to
+assign a funnel — added to both edit dialogs, saving the real funnel key. ADDED (per prior
+owner asks): billing-accounts editor on the client strip; invoice booking/project + proposal
+ref editor in the invoice card. Mock hardened to real-backend behavior (password enforced,
+insert generates ids, PATCH applied, team_directory served).
+TO DISCUSS WITH THE OWNER (new ideas, not built):
+1. Proposals as a real file library — upload the PDF into the app itself (not a Drive link)
+   so the library holds the actual documents. Needs Supabase Storage; medium effort.
+2. Import CSV could accept origin/proposal_ref columns so project invoices arrive pre-linked.
+3. On Won, offer a small 'complete the client record' step (Direct ID + billing accounts +
+   agreement paste) instead of the silent conversion.
+
 ### Shipped 2026-08-11 — the buttons round + blob migration COMPLETE (da0842f)
 Owner: "all the buttons for filtration and sorting and funnels are messed up — every
 single view." ROOT CAUSE OF THE BLIND SPOT: the QA mock ran on poorer data than live,
