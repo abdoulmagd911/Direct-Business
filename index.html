@@ -9114,15 +9114,13 @@ var SVC_AR={}; SVC_CATALOG.forEach(function(p){SVC_AR[p[0]]=p[1];});
    expandable to the exact services inside — pattern from Direct's own reports
    ("Direct Support (Flight modification)"). Unlisted services fall into Support & extras. */
 var SVC_GROUPS={
-  'Air':{ar:'الطيران',svcs:['Flights']},
-  'Stay':{ar:'الإقامة',svcs:['Hotels','Furnished apartments']},
-  'Ground transport':{ar:'النقل البري',svcs:['Transport','Transfers','Car rental','Chauffeur']},
-  'Visas & documents':{ar:'التأشيرات والوثائق',svcs:['Visa','Visas','Translation','Intl driving permit']},
-  'Religious travel':{ar:'العمرة والحج',svcs:['Umrah','Hajj']},
-  'Packages & tours':{ar:'الباقات والجولات',svcs:['Packages','Tours','Activities / tours']},
-  'Corporate & events':{ar:'الشركات والفعاليات',svcs:['MICE / events','Events','Event halls']},
-  'Education':{ar:'التعليم والدراسة',svcs:['Study abroad','Courses','Training']},
-  'Support & extras':{ar:'الدعم والخدمات المساندة',svcs:['Support Services','eSIM','Insurance','Shipping','VIP meet & assist','Wallet top-up','Mixed','Other','(unspecified)']}
+  'Flights':{ar:'الطيران',svcs:['Flights']},
+  'Hotels':{ar:'الفنادق',svcs:['Hotels','Furnished apartments','Event halls']},
+  'Visas':{ar:'التأشيرات',svcs:['Visa','Visas','Translation','Intl driving permit']},
+  'Transfers':{ar:'التنقلات',svcs:['Transport','Transfers','Car rental','Chauffeur']},
+  'Study abroad':{ar:'الدراسة بالخارج',svcs:['Study abroad','Courses','Training']},
+  'Packages':{ar:'الباقات',svcs:['Packages','Tours','Activities / tours','MICE / events','Events','Umrah','Hajj']},
+  'Other services':{ar:'خدمات أخرى',svcs:['Support Services','eSIM','Insurance','Shipping','VIP meet & assist','Wallet top-up','Mixed','Other','(unspecified)']}
 };
 var SVC2GRP={}; Object.keys(SVC_GROUPS).forEach(function(g){SVC_GROUPS[g].svcs.forEach(function(k){SVC2GRP[k]=g;});});
 try{ window.SVC_GROUPS=SVC_GROUPS; window.SVC2GRP=SVC2GRP; }catch(_){}
@@ -10185,7 +10183,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
       var keys=Object.keys(by).sort(function(a,b){return by[b].rev-by[a].rev;});
       // Roll services up into families (brief view); each family expands to its services.
       var GB={}; keys.forEach(function(k){
-        var g=(window.SVC2GRP&&SVC2GRP[k])||'Support & extras';
+        var g=(window.SVC2GRP&&SVC2GRP[k])||'Other services';
         var gb=GB[g]=GB[g]||{gross:0,cost:0,rev:0,_inv:{},children:[]};
         gb.gross+=by[k].gross; gb.cost+=by[k].cost; gb.rev+=by[k].rev; gb.children.push(k);
         Object.keys(by[k]._inv).forEach(function(i){gb._inv[i]=1;});
