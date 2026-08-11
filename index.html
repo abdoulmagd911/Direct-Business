@@ -1468,7 +1468,7 @@ function offerEditor(v,id){
        <div class="field"><label>${_pl('Value (SAR)','القيمة (ريال)')}</label><input value="${esc(o.value||o.total||'')}" oninput="o_set('value',this.value)"></div>
        <div class="field"><label>${_pl('Valid until','صالح حتى')}</label><input type="date" value="${esc(o.validUntil||'')}" oninput="o_set('validUntil',this.value)"></div>
      </div>
-     <div class="field"><label>${_pl('Scope / summary','النطاق / الملخص')}</label><textarea rows="2" oninput="o_set('scope',this.value)">${esc(o.scope||'')}</textarea></div>
+     <div class="field"><label>${_pl('Scope — one service per line (each line becomes a numbered row in the proposal)','النطاق — خدمة في كل سطر (كل سطر يصبح بندًا مرقّمًا في العرض)')}</label><textarea rows="4" oninput="o_set('scope',this.value)">${esc(o.scope||'')}</textarea></div>
      <div class="field"><label>${_pl('Document link (the actual proposal file)','رابط المستند (ملف العرض الفعلي)')}</label><input value="${esc(o.docUrl||'')}" oninput="o_set('docUrl',this.value)" placeholder="https://drive.google.com/…">${o.docUrl?` <a href="${esc(o.docUrl)}" target="_blank" rel="noopener" class="chiplink">${_pl('Open ↗','فتح ↗')}</a>`:''}</div>
      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="btn sm pri" onclick="o_genProposal('${o.id}')">🖨 ${_pl('Generate branded proposal','إنشاء عرض بهوية دايركت')}</button>${o.promotedToProject?`<span class="tag" style="background:#E7F8EF;color:#0F6E56">✓ ${_pl('Promoted to project','حُوّل إلى مشروع')}</span>`:`<button class="btn sm" onclick="o_promoteProject('${o.id}')">↗ ${_pl('Promote to project','تحويل إلى مشروع')}</button>`}</div>
    </div>`;
@@ -1581,6 +1581,11 @@ function o_genProposal(id){
   function row(k,ka,v){return v?('<tr><td class="k">'+esc(k)+'<span class="ka">'+esc(ka)+'</span></td><td class="v">'+esc(v)+'</td></tr>'):'';}
   var stats=[['2016','Founded · التأسيس'],['5','Branches · فروع'],['700K+','Visas issued · تأشيرات'],['2M+','App downloads · تحميلات'],['450+','Airline deals · اتفاقيات طيران']];
   var whys=[['One accountable partner','شريك واحد مسؤول'],['Global supplier power, Saudi service','قوة موردين عالمية وخدمة سعودية'],['Transparent service-fee pricing','تسعير شفاف برسوم خدمة'],['Dedicated advisor · digital platform · 24/7','مستشار مخصص · منصة رقمية · دعم على مدار الساعة']];
+  /* Scope lines become the signature numbered services table (the shape of Direct's real
+     tender offers: جدول الكميات). One line in the Scope box = one service row. */
+  var scopeLines=String(scope||'').split(/\n+/).map(function(s){return s.replace(/^\s*(?:[-•*]|\d+[.)])\s*/,'').trim();}).filter(Boolean);
+  /* How we start — condensed from the real technical offer's work plan & timeline. */
+  var steps=[['Sign the agreement','توقيع الاتفاقية','Day 0','اليوم 0'],['Needs analysis + your dedicated travel advisor','تحليل الاحتياجات وتجهيز مستشار السفر المخصص','1–2 days','1–2 يوم'],['Free digital platform activated & linked','تفعيل المنصة الرقمية المجانية وربطها','1–3 weeks','1–3 أسابيع'],['Ongoing service & follow-up, 24/7','خدمة ومتابعة مستمرة على مدار الساعة','Life of contract','طوال مدة العقد']];
   var doc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc((typeEn+' — '+client))+'</title><style>'
    +'*{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",Inter,system-ui,Arial,sans-serif;color:'+COL.ink+';background:#fff;line-height:1.5}'
    +'.wrap{max-width:900px;margin:0 auto}'
@@ -1601,6 +1606,15 @@ function o_genProposal(id){
    +'table.commercial td.k{color:'+COL.muted+';width:52%}table.commercial td.k .ka{display:block;font-size:11px;color:#aeb4c0}'
    +'table.commercial td.v{font-weight:700}'
    +'.val{font-size:26px;font-weight:800;color:'+COL.orange+'}'
+   +'table.svc{width:100%;border-collapse:collapse;border:1px solid '+COL.hair+';border-radius:10px;overflow:hidden}'
+   +'table.svc thead th{background:#F87020;color:#fff;text-align:left;font-size:12px;padding:10px 14px;font-weight:700}'
+   +'table.svc td{padding:10px 14px;border-top:1px solid '+COL.hair+';font-size:13px}'
+   +'table.svc td.n{color:'+COL.orange+';font-weight:800;width:36px}'
+   +'.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}'
+   +'.step{background:'+COL.wash+';border-radius:10px;padding:12px 13px;font-size:12.5px;font-weight:600}'
+   +'.step b{display:block;font-size:18px;color:'+COL.orange+';margin-bottom:4px}'
+   +'.step span{display:block;font-size:11px;color:'+COL.muted+';font-weight:400;margin-top:3px}'
+   +'.step .when{margin-top:6px;font-size:10.5px;color:'+COL.gold+';font-weight:800;letter-spacing:.03em;text-transform:uppercase}'
    +'.why{display:grid;grid-template-columns:1fr 1fr;gap:10px}'
    +'.why div{background:'+COL.wash+';border-inline-start:3px solid '+COL.orange+';border-radius:8px;padding:11px 14px;font-size:13px;font-weight:600}'
    +'.why div span{display:block;font-size:12px;color:'+COL.muted+';font-weight:400;margin-top:2px}'
@@ -1620,7 +1634,10 @@ function o_genProposal(id){
    +'<div class="meta"><div>Date · التاريخ<br><b>'+esc(today)+'</b></div>'+(ref?('<div>Ref · المرجع<br><b>'+esc(ref)+'</b></div>'):'')+(valid?('<div>Valid until · صالح حتى<br><b>'+esc(valid)+'</b></div>'):'')+'</div></div>'
    +'<div class="sec"><h2>About Direct · عن دايركت</h2><div class="stats">'+stats.map(function(s){return '<div class="stat"><b>'+esc(s[0])+'</b><span>'+esc(s[1])+'</span></div>';}).join('')+'</div>'
    +'<p style="font-size:13px;color:'+COL.muted+';margin:12px 2px 0">A Saudi travel &amp; tourism partner (est. 2016, Riyadh) delivering flights, hotels, visas, study abroad, corporate travel and ground services through one digital platform with a dedicated advisor. Awarded World Travel Award — Best Travel &amp; Tourism Company in KSA, ICEF-accredited, Great Place to Work.</p></div>'
-   +(scope?('<div class="sec"><h2>Scope · النطاق</h2><div class="scope">'+esc(scope)+'</div></div>'):'')
+   +(scopeLines.length>1
+      ?('<div class="sec"><h2>Scope of services · نطاق الخدمات</h2><table class="svc"><thead><tr><th>#</th><th>Service · الخدمة</th></tr></thead><tbody>'+scopeLines.map(function(s,i){return '<tr><td class="n">'+(i+1)+'</td><td>'+esc(s)+'</td></tr>';}).join('')+'</tbody></table></div>')
+      :(scope?('<div class="sec"><h2>Scope · النطاق</h2><div class="scope">'+esc(scope)+'</div></div>'):''))
+   +'<div class="sec"><h2>How we start · كيف نبدأ</h2><div class="steps">'+steps.map(function(s,i){return '<div class="step"><b>'+(i+1)+'</b>'+esc(s[0])+'<span>'+esc(s[1])+'</span><div class="when">'+esc(s[2])+' · '+esc(s[3])+'</div></div>';}).join('')+'</div></div>'
    +'<div class="sec"><h2>Commercial summary · الملخص التجاري</h2>'
    +(val?('<div class="val">'+esc(val)+' '+esc(cur)+'</div>'):'')
    +'<table class="commercial" style="margin-top:'+(val?'12px':'0')+'"><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody>'
@@ -1630,7 +1647,7 @@ function o_genProposal(id){
    +row('Valid until','صالح حتى',valid)
    +row('Reference','المرجع',ref)
    +'</tbody></table>'
-   +'<div class="note">This is a commercial proposal — not a tax invoice. Fees are a transparent service fee on top of supplier cost, excluding VAT unless stated. Tax invoices are issued through Direct Payments.<br>هذا عرض تجاري وليس فاتورة ضريبية. الرسوم هي رسوم خدمة شفافة تُضاف إلى تكلفة المورد. تصدر الفواتير الضريبية عبر دايركت للمدفوعات.</div></div>'
+   +'<div class="note">This is a commercial proposal — not a tax invoice. Each payment = Direct’s contracted service fee + the cost of the requested service, excluding VAT unless stated. Tax invoices are issued through Direct Payments.<br>هذا عرض تجاري وليس فاتورة ضريبية. كل دفعة = رسوم الخدمة التعاقدية + تكلفة الخدمة المطلوبة، غير شاملة الضريبة ما لم يُذكر. تصدر الفواتير الضريبية عبر دايركت للمدفوعات.</div></div>'
    +'<div class="sec"><h2>Why Direct · لماذا دايركت</h2><div class="why">'+whys.map(function(w){return '<div>'+esc(w[0])+'<span>'+esc(w[1])+'</span></div>';}).join('')+'</div></div>'
    +'<div class="close"><div class="tg">One accountable partner. · شريك واحد مسؤول.</div><div class="c">directksa.com'+(AG&&AG.vat?(' · VAT '+esc(AG.vat)):'')+(AG&&AG.iban?(' · IBAN '+esc(AG.iban)):'')+'</div></div>'
    +'</div></body></html>';
