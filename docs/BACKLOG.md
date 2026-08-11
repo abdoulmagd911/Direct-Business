@@ -30,7 +30,12 @@ for approval → deploy → delete the old layers that page no longer needs):
    (orange/ink), Top-clients counts distinct invoices, rows drill to client.
 4. **Settings/Team & Access** — DONE 08-10: emoji stripped, legacy free-text
    team editor retired, all top cards anchored below the single page heading.
-NEXT (owner said "Go for all", 08-10): the DELETION round — remove patch layers
+DONE 08-10: the blob→tables MIGRATION — app_requests/app_offers/app_projects
+created + seeded (4/3/1), RLS mirrors app_state; app layer v59 reads the tables
+on load and dual-writes row-by-row after each save (blob keeps its copy =
+rollback is deleting the layer; backup app_state_backup_20260810_premigration).
+Same-section concurrent edits are now safe per RECORD on these three sections.
+Still in the deletion round: the DELETION round — remove patch layers
 the cleaned pages no longer need (verify each deletion with scripts/qa/
 sweep-consistency.mjs + drive screenshots before deploy) — then migrate
 requests/offers/projects out of the app_state blob into real tables, then the

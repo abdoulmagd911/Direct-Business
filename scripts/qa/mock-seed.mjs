@@ -55,6 +55,10 @@ const TABLES={
   // company — so the canonical-client rollup (both groups collapse into one client row) is tested.
   finance_client_links:SEED_LINKS
 };
+// v59 operational tables: served from the blob copies (mirrors the real app_requests/app_offers/app_projects)
+TABLES.app_requests=(BLOB.requests||[]).map(r=>({id:r.id,data:r}));
+TABLES.app_offers=(BLOB.offers||[]).map(r=>({id:r.id,data:r}));
+TABLES.app_projects=(BLOB.projects||[]).map(r=>({id:r.id,data:r}));
 const RPCLOG=[];
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
 export function start(port){
