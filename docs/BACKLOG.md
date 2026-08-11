@@ -36,6 +36,17 @@ for approval → deploy → delete the old layers that page no longer needs):
    abroad + Transport, 47K, linked). Undo: DELETE FROM finance_invoices WHERE
    invoice_no='DP-2006'. Finance tables are data-driven — any billed service
    appears automatically.
+   SERVICE FAMILIES + REPORT STORAGE (owner, 08-10, after the Drive report sweep):
+   income-by-service now rolls up into FAMILIES (Air/Stay/Ground/Visas&docs/Religious/
+   Packages&tours/Corporate&events/Education/Support&extras — SVC_GROUPS, EN+AR),
+   brief by default, each expandable to its exact services; paginator excluded from
+   this rollup. finance_invoices gained branch / salesman / project_tag / discount_sar
+   (nullable) so the real Payments exports import losslessly. THE STORAGE DOCTRINE
+   (from Q1Q2_2026_B2B_Audit + DirectVisa promo report + the owner's card sheet):
+   store RAW rows once (one row per transaction/line, paid-status + integrity flags on
+   the row), derive every summary live from them, never store report numbers by hand;
+   quality/integrity findings get recorded per issue like the audit's Methodology
+   sheet. Report Builder + income card already follow this.
 4. **Settings/Team & Access** — DONE 08-10: emoji stripped, legacy free-text
    team editor retired, all top cards anchored below the single page heading.
 DONE 08-10: the blob→tables MIGRATION — app_requests/app_offers/app_projects
