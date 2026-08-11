@@ -102,12 +102,24 @@ Applied to the app, kept SIMPLE per the owner:
 - The money note now states the real fee model verbatim, EN+AR.
 - Verified in the harness by capturing the print popup: 6 rows, 4 steps, EN+AR fee
   model, 0 page errors; consistency sweep 8/8.
-STILL OPEN in this phase: pull the company-profile numbers straight from
-"Direct Profile En (1).pdf" (1bEvl31z2CpKkRDi5u9sSzOsUL4ZQzQJH) to refresh the
-About-Direct stats (branches/seats now 530 seats, 28-person 24/7 centre, Cairo op
-centre, partners list); optional past-work section (the five references above) as
-an opt-in toggle for tender-type proposals — keep default simple; owner screenshot
-yes/no on the new document.
+OWNER FEEDBACK (08-11): the first version looked like a summary card, not the real
+proposal — "our proposals have a front page, a last page, the proposal in between,
+and a logo"; also: don't confuse PROFILE (who Direct is — brochure, no client) with
+PROPOSAL (for one client: cover → contents → about → plan → scope → commercial →
+closing) with PRICE OFFER (the small quotation — the app's quote print covers that).
+REBUILT same day (commit 57eef58): the generated proposal is now a true paged A4
+document — gradient cover with the WHITE logo (derived from the app's real logo
+asset via CSS filter; aspect-stretch flex bug found and fixed), contents page
+(يشمل هذا العرض الآتي), about page with stat band (numbers verified against
+"Direct Profile En"), signature services table page (# / Service · الخدمة /
+Fee · الرسوم — "Service | 25" syntax fills the fee; technical proposals point to
+the separate financial offer), work-plan + commercial page, gradient closing page
+with contacts. RTL in Arabic. Print = exactly 6 A4 pages (verified headlessly).
+Brand orange in the document corrected to #F06820 per the direct-brand skill.
+STILL OPEN in this phase: owner screenshot yes/no on the paged document; optional
+past-work page (Ma'aden 2M / Al-Hilal 1.5M / SFDA 500K / Takamol 4M / Riyadh Club
+1M) as an opt-in for tender-type proposals; embed licensed brand fonts is NOT
+possible in the public repo — document uses font-family references with fallbacks.
 
 ### Shipped 2026-08-10 (continued) — declutter round
 - Nav: 16 flat items → 8 working pages + collapsed **Reference** group (auto-opens
