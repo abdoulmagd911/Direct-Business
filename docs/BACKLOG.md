@@ -83,6 +83,30 @@ Then: **code lightening by deletion** — after each page is rebuilt, delete the
 patch layers it made obsolete (never delete first). Finally: move requests/offers/
 projects out of the app_state blob into real tables (ends last-write-wins).
 
+### Shipped 2026-08-11 — the buttons round + blob migration COMPLETE (da0842f)
+Owner: "all the buttons for filtration and sorting and funnels are messed up — every
+single view." ROOT CAUSE OF THE BLIND SPOT: the QA mock ran on poorer data than live,
+so sweeps stayed green while live broke. FIXED STRUCTURALLY: mock seeds are now
+REGENERATED FROM THE LIVE DATABASE (same 18 businesses / 25 invoice lines / 7 funnels /
+contacts / offers), the mock stores POST upserts, and a permanent every-control probe
+(45 checks: every stage chip, stage/funnel dropdown, search, every sort header on
+Leads+Clients, every Finance ledger filter) runs 0-defect. Real fixes: funnel dropdown
+(legacy source list matching nothing → real funnels by key, bilingual), dashboard
+funnel card names, clients search as-you-type with focus kept, clients manager filter
+(free-text team list with zero matches → actual owners), tier/review test-data variety
+(2 Key clients, 4 review dates incl. overdue) so sorts visibly reorder.
+RULE FOR EVERY FUTURE SESSION: when live data changes shape, re-sync the mock from
+live FIRST — a green sweep on stale seeds proves nothing.
+LEADS FINALIZE: leadScore tuned (came-to-us funnels start warmer; next action = intent;
+fair base for unknown categories) — new leads no longer all read Cold; leads saved
+without an owner get stamped with the signed-in person.
+BLOB MIGRATION DONE: app_bookings/app_invoices/app_settings created + seeded, v59
+extended to table-read + dual-write ALL SIX blob sections (settings = merged single
+document). Same-section concurrent edits are now safe per record everywhere the team
+types. Rollback stays: delete the v59 layer; blob still dual-carries.
+Owner also said: proposals still get more work later (paused); do NOT bring up the
+go-live path for now.
+
 ### Shipped 2026-08-11 — tall views split (3c45ea4)
 Owner: "DO THAT AND ENHANCE ANY SIMILAR TALL OR COMPLICATED VIEWS."
 1. Finance Overview → TWO tabs: **Performance** (period bar · KPIs · income-by-service ·

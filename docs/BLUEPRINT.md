@@ -42,9 +42,10 @@ List with real stage chips that filter (fixed 08-09), derived last-activity/next
 correct conversion math, funnels with per-funnel depth (card leads with funnel-specific
 detail), lost-lead learning loop (Lost prompts for the reason, kept & searchable), jump-bar
 on long cards.
-**Still open:** real SVG icons; priority-score tuning (new leads all read Cold); default
-owner when a lead is created (check live `meName()`); funnel-specific data filled for only
-483 of 1,013 leads (data task, post-reset).
+**Done 2026-08-11:** priority score tuned (came-to-us funnels start warmer, next action
+counts, fair base) — no more all-Cold; missing owner on save stamped with the signed-in
+person; funnel dropdown fixed to real funnels. **Still open:** real SVG icons (cosmetic);
+funnel-specific data filled for only 483 of 1,013 leads (data task, post-reset).
 **Done means:** a bd user can add, work, and close a lead start-to-finish with no dead
 control and no English leftovers in Arabic.
 
@@ -90,9 +91,12 @@ Real tables with RLS everywhere the app writes: businesses, contacts, finance_in
 app_requests/app_offers/app_projects (dual-write, blob fallback). Security advisor run
 2026-08-11: **fixed same day** — 15 snapshot/backup tables locked behind admin/manager-only
 access, signed-out execution of the workspace-save function revoked.
-**Still open:** move bookings, invoices (drafts), settings out of the `app_state` blob into
-real tables (ends last-write-wins for those sections); minor advisor warnings noted
-(function search_path, team_directory definer view — intentional); ownership → real user ids.
+**Done 2026-08-11:** bookings, draft invoices and settings moved to real tables
+(app_bookings / app_invoices / app_settings) — the blob is now fully mirrored, nothing
+the team types lives only in it. **Still open:** minor advisor warnings (function
+search_path, team_directory definer view — intentional); ownership → real user ids.
+**Testing rule added:** the QA mock is regenerated from the live database whenever live
+data changes shape — green sweeps on stale seeds proved nothing (the buttons lesson).
 **Done means:** nothing the team types lives only in one shared JSON blob.
 
 ## Phase 7 — Arabic pass (closing gate of every phase)
