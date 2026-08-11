@@ -1488,13 +1488,13 @@ function offerEditor(v,id){
      <div class="grid2">${F('dip','DIP')}${F('total','Total')}</div>
      <div style="margin-top:6px;display:flex;gap:8px;align-items:center"><button class="btn sm" onclick="o_calc()">∑ Auto-total</button><label style="font-size:12px;color:var(--muted)">Currency</label><select onchange="o_set('currency',this.value);offerEditor(document.getElementById('view'),'${o.id}')" style="padding:6px 8px;border:1px solid var(--line-2);border-radius:8px;font:inherit"><option ${o.currency==='SAR'?'selected':''}>SAR</option><option ${o.currency==='USD'?'selected':''}>USD</option><option ${o.currency==='EGP'?'selected':''}>EGP</option></select></div>
      <div style="margin-top:8px;padding:9px 11px;background:#f6f3ee;border-radius:9px;font-size:12.5px">🔒 <b>Agency only:</b> Cost <input value="${esc(o.cost||'')}" oninput="o_set('cost',this.value);document.getElementById('mgn').textContent=(onum(curOffer().total)-onum(this.value)).toLocaleString()+' '+(curOffer().currency||'')" style="width:78px;border:1px solid var(--line-2);border-radius:6px;padding:3px 6px;font:inherit"> · Commission <input value="${esc(o.commission||'')}" oninput="o_set('commission',this.value)" style="width:78px;border:1px solid var(--line-2);border-radius:6px;padding:3px 6px;font:inherit"> · <b>Margin: <span id="mgn" style="color:${offerMargin(o)>=0?'#16B364':'#F0453A'}">${offerMargin(o).toLocaleString()} ${esc(o.currency||'')}</span></b>${offerFreebieCost(o)?` · 🎁 freebies cost ${offerFreebieCost(o).toLocaleString()} · <b>net ${(offerMargin(o)-offerFreebieCost(o)).toLocaleString()}</b>`:''}</div>
-     <h3 style="margin-top:14px">Fare options (side-by-side comparison)</h3>
+     <details ${(window.__ofO=window.__ofO||{}).opt?'open':''} ontoggle="__ofO.opt=this.open"><summary style="cursor:pointer;font-weight:800;font-size:14px;margin-top:14px;color:var(--ink)">Fare options — compare 2–3 fares (${(o.options||[]).length})</summary>
      <div class="ch-sub">Add 2–3 fare families / sources to compare — they appear in the client quote with NDC/EDIFACT badges.</div>
      <div id="optList">${(o.options||[]).map((op,i)=>`<div class="card" style="padding:10px;margin:8px 0;background:#faf9f6"><div class="grid2"><div class="field"><label>Label</label><input value="${esc(op.label||'')}" oninput="o_setOption(${i},'label',this.value)"></div><div class="field"><label>Provider / source</label><input value="${esc(op.provider||'')}" oninput="o_setOption(${i},'provider',this.value)" placeholder="Amadeus / Duffel"></div></div><div class="grid2"><div class="field"><label>Content</label><select onchange="o_setOption(${i},'content',this.value)">${OFFER_CONTENT.map(c=>`<option ${op.content===c?'selected':''}>${c}</option>`).join('')}</select></div><div class="field"><label>Fare family</label><input value="${esc(op.fareFamily||'')}" oninput="o_setOption(${i},'fareFamily',this.value)" placeholder="Light / Flex / Business"></div></div><div class="grid2"><div class="field"><label>Base</label><input value="${esc(op.base||'')}" oninput="o_setOption(${i},'base',this.value)"></div><div class="field"><label>Taxes / YQ</label><input value="${esc(op.taxes||'')}" oninput="o_setOption(${i},'taxes',this.value)"></div></div><div class="grid2"><div class="field"><label>Ancillaries</label><input value="${esc(op.anc||'')}" oninput="o_setOption(${i},'anc',this.value)"></div><div class="field"><label>Agency fee</label><input value="${esc(op.fee||'')}" oninput="o_setOption(${i},'fee',this.value)"></div></div><div class="grid2"><div class="field"><label>Refundable</label><select onchange="o_setOption(${i},'refundable',this.value)"><option ${op.refundable==='No'?'selected':''}>No</option><option ${op.refundable==='Yes'?'selected':''}>Yes</option><option ${op.refundable==='Partial'?'selected':''}>Partial</option></select></div><div class="field"><label>Baggage</label><input value="${esc(op.baggage||'')}" oninput="o_setOption(${i},'baggage',this.value)"></div></div><div style="border-top:1px dashed var(--line-2);margin:8px 0;padding-top:6px"><div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.04em">SERVICE BUNDLE</div>${(op.items||[]).map((it,j)=>`<div style="display:flex;gap:5px;margin:4px 0;flex-wrap:wrap"><select onchange="o_setItem(${i},${j},'type',this.value)" style="flex:0 0 90px;border:1px solid var(--line-2);border-radius:6px;padding:4px;font:inherit;font-size:11.5px">${BUNDLE_TYPES.map(t=>`<option ${it.type===t?'selected':''}>${t}</option>`).join('')}</select><input value="${esc(it.detail||'')}" oninput="o_setItem(${i},${j},'detail',this.value)" placeholder="detail / vendor / pax" style="flex:1;min-width:80px;border:1px solid var(--line-2);border-radius:6px;padding:4px 6px;font:inherit;font-size:11.5px"><input value="${esc(it.price||'')}" oninput="o_setItem(${i},${j},'price',this.value)" placeholder="price" style="flex:0 0 60px;border:1px solid var(--line-2);border-radius:6px;padding:4px 6px;font:inherit;font-size:11.5px"><span onclick="o_delItem(${i},${j})" style="cursor:pointer;color:#F0453A;align-self:center">✕</span></div>`).join('')}<button class="btn sm" onclick="o_addItem(${i})">+ Add service</button>
        <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.04em;margin-top:8px">🎁 FREEBIES — complimentary to client ($0), internal cost tracked</div>${(op.freebies||[]).map((fb,j)=>`<div style="display:flex;gap:5px;margin:4px 0"><input value="${esc(fb.label||'')}" oninput="o_setFreebie(${i},${j},'label',this.value)" placeholder="e.g. airport transfer / upgrade" style="flex:1;border:1px solid var(--line-2);border-radius:6px;padding:4px 6px;font:inherit;font-size:11.5px"><input value="${esc(fb.cost||'')}" oninput="o_setFreebie(${i},${j},'cost',this.value)" placeholder="our cost" style="flex:0 0 64px;border:1px solid var(--line-2);border-radius:6px;padding:4px 6px;font:inherit;font-size:11.5px"><span onclick="o_delFreebie(${i},${j})" style="cursor:pointer;color:#F0453A;align-self:center">✕</span></div>`).join('')}<button class="btn sm" onclick="o_addFreebie(${i})">+ Add freebie</button>${optFreebieCost(op)?`<div style="font-size:11px;color:var(--muted);margin-top:4px">Freebie internal cost: ${optFreebieCost(op).toLocaleString()} ${esc(o.currency||'')} — reduces margin</div>`:''}</div>
        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><b>Option total: ${optTotal(op).toLocaleString()} ${esc(o.currency||'')}</b><button class="btn sm danger" onclick="o_delOption(${i})">Remove</button></div></div>`).join('')}</div>
-     <button class="btn sm" onclick="o_addOption()">+ Add fare option</button>
-     <h3 style="margin-top:14px">Deal, workflow &amp; compliance</h3>
+     <button class="btn sm" onclick="o_addOption()">+ Add fare option</button></details>
+     <details ${__ofO.deal?'open':''} ontoggle="__ofO.deal=this.open"><summary style="cursor:pointer;font-weight:800;font-size:14px;margin-top:14px;color:var(--ink)">Deal, workflow &amp; compliance</summary>
      <div class="grid2"><div class="field"><label>Status</label><select onchange="o_set('status',this.value);offerEditor(document.getElementById('view'),'${o.id}')">${OFFER_STATUS.map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></div><div class="field"><label>Valid until (expiry)</label><input type="date" value="${esc(o.validUntil||'')}" oninput="o_set('validUntil',this.value);offerEditor(document.getElementById('view'),'${o.id}')"></div></div>
      <div class="grid2"><div class="field"><label>Ticket time limit (TTL)</label><input value="${esc(o.ttl||'')}" oninput="o_set('ttl',this.value)" placeholder="10 Jan 18:00"></div><div class="field"><label>Version</label><input value="${esc(o.version||1)}" oninput="o_set('version',this.value)"></div></div>
      <div class="field"><label>Link to lead / client (auto-log on send)</label><select onchange="o_set('linkedLeadId',this.value)"><option value="">— none —</option>${DB.businesses.map(b=>`<option value="${b.id}" ${o.linkedLeadId===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>
@@ -1503,7 +1503,7 @@ function offerEditor(v,id){
      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px"><div class="field"><label>ADT</label><input type="number" value="${o.paxAdt||0}" oninput="o_set('paxAdt',this.value);offerEditor(document.getElementById('view'),'${o.id}')"></div><div class="field"><label>CHD</label><input type="number" value="${o.paxChd||0}" oninput="o_set('paxChd',this.value)"></div><div class="field"><label>INF</label><input type="number" value="${o.paxInf||0}" oninput="o_set('paxInf',this.value)"></div></div>
      <div class="field"><label>Win / lose reason (on Accepted/Rejected)</label><input value="${esc(o.winLoseReason||'')}" oninput="o_set('winLoseReason',this.value)"></div>
      <div style="margin-top:6px"><button class="btn sm" onclick="o_logToLead()">⤷ Log this offer to the linked lead</button></div>
-     <h3 style="margin-top:14px">Fare rules</h3>
+     </details><details ${__ofO.rules?'open':''} ontoggle="__ofO.rules=this.open"><summary style="cursor:pointer;font-weight:800;font-size:14px;margin-top:14px;color:var(--ink)">Fare rules</summary>
      <div class="grid2">${F('changesBefore','Changes — before')}${F('changesAfter','Changes — after')}</div>
      <div class="grid2">${F('cancelBefore','Cancellation — before')}${F('cancelAfter','Cancellation — after')}</div>
      <div class="grid2">${F('noShow','No-show fees')}${F('baggage','Baggage allowance')}</div>
@@ -1511,7 +1511,7 @@ function offerEditor(v,id){
      <div class="grid2">${F('minStay','Min stay')}${F('maxStay','Max stay')}</div>
      <div class="field"><label>Remarks</label><textarea id="of_remarks" rows="2" oninput="o_set('remarks',this.value)">${esc(o.remarks||'')}</textarea></div>
      <div class="field"><label>Additional fees</label><textarea id="of_addFees" rows="2" oninput="o_set('addFees',this.value)">${esc(o.addFees||'')}</textarea></div>
-     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn pri" onclick="o_copyText()">⧉ Copy for WhatsApp / Email</button><button class="btn" onclick="o_download()">⭳ Download</button><button class="btn" onclick="o_print()">🖨 Print / PDF</button><button class="btn danger" onclick="o_del('${o.id}')">Delete</button></div>
+     </details><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn pri" onclick="o_copyText()">⧉ Copy for WhatsApp / Email</button><button class="btn" onclick="o_download()">⭳ Download</button><button class="btn" onclick="o_print()">🖨 Print / PDF</button><button class="btn danger" onclick="o_del('${o.id}')">Delete</button></div>
    </div>
    <div class="offer-preview"><div class="ch-sub" style="margin-bottom:8px">Live preview — this is what the client sees</div><div id="offerDoc">${offerHTML(o)}</div></div>
   </div>`;
@@ -9265,7 +9265,7 @@ function opts(list,sel,allLabel){var h='<option value="all">'+escF(allLabel)+'</
 var SS='padding:7px 9px;border:1px solid var(--line,#e6e8ec);border-radius:8px;font:inherit;background:#fff';
 
 function finTabs(){
-  var tabs=[['overview',isArF()?'\u0646\u0638\u0631\u0629 \u0639\u0627\u0645\u0629':'Overview'],['ledger',isArF()?'\u0627\u0644\u0633\u062c\u0644':'Ledger'],['reports',isArF()?'\u0645\u0646\u0634\u0626 \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631':'Report Builder']];
+  var tabs=[['overview',isArF()?'\u0627\u0644\u0623\u062f\u0627\u0621':'Performance'],['clients',isArF()?'\u0627\u0644\u0639\u0645\u0644\u0627\u0621 \u0648\u0627\u0644\u062a\u062d\u0635\u064a\u0644':'Clients & collections'],['ledger',isArF()?'\u0627\u0644\u0633\u062c\u0644':'Ledger'],['reports',isArF()?'\u0645\u0646\u0634\u0626 \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631':'Report Builder']];
   if(canFinEdit())tabs.push(['import',isArF()?'\u0627\u0633\u062a\u064a\u0631\u0627\u062f':'Import']);
   return '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'+tabs.map(function(t){
     return '<button class="btn sm '+(FIN.tab===t[0]?'pri':'ghost')+'" onclick="finGo(\''+t[0]+'\')">'+t[1]+'</button>';
@@ -9273,50 +9273,26 @@ function finTabs(){
 }
 window.finGo=function(t){FIN.tab=t;render();};
 
-function rOverview(){
-  clearFinCanon();
-  var V=verified().filter(finInPeriod);
-  var rev=0,cost=0,prof=0,rec=0,rem=0,wal=0;
-  V.forEach(function(r){rev+=+r.revenue_sar;cost+=+r.cost_sar;prof+=+r.profit_sar;rec+=+r.amount_received_sar;rem+=+r.amount_remaining_sar;wal+=+r.wallet_portion_sar;});
-  var invCount=new Set(V.map(function(r){return r.invoice_no;})).size; // distinct invoices, not service lines
-  /* Period bar \u2014 the executive-dashboard structure: year \u00b7 All/Q1\u2013Q4/H1/H2 \u00b7 month */
+function finPeriodBar(){
   var years=uniq(live().map(function(r){var y=finYearOf(r);return y?String(y):'';}));
   var months=['January','February','March','April','May','June','July','August','September','October','November','December'].filter(function(m){return live().some(function(r){return r.month===m;});});
   var chip=function(val,lbl){return '<button class="btn sm '+((FIN.p.part===val)?'pri':'ghost')+'" onclick="finPP(\''+val+'\')">'+lbl+'</button>';};
-  var h='<style>.finh{border-inline-start:4px solid #F06820;padding-inline-start:10px;margin:0 0 12px;font-size:15px;line-height:1.35}.finh i{font-style:normal;display:block;font-size:11px;color:var(--muted);font-weight:500}.finpill{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}</style>';
-  h+='<div class="card" style="padding:12px 16px;margin-bottom:12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="font-size:13px">'+(isArF()?'\u0627\u0644\u0641\u062a\u0631\u0629':'Period')+'</b>'
+  var s='<style>.finh{border-inline-start:4px solid #F06820;padding-inline-start:10px;margin:0 0 12px;font-size:15px;line-height:1.35}.finh i{font-style:normal;display:block;font-size:11px;color:var(--muted);font-weight:500}.finpill{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}</style>';
+  s+='<div class="card" style="padding:12px 16px;margin-bottom:12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="font-size:13px">'+(isArF()?'\u0627\u0644\u0641\u062a\u0631\u0629':'Period')+'</b>'
    +'<select style="'+SS+'" onchange="finPY(this.value)"><option value="all">'+(isArF()?'\u0643\u0644 \u0627\u0644\u0633\u0646\u0648\u0627\u062a':'All years')+'</option>'+years.map(function(y){return '<option '+(String(FIN.p.year)===y?'selected':'')+'>'+y+'</option>';}).join('')+'</select>'
    +chip('all',isArF()?'\u0627\u0644\u0643\u0644':'All')+chip('Q1','Q1')+chip('Q2','Q2')+chip('Q3','Q3')+chip('Q4','Q4')+chip('H1','H1')+chip('H2','H2')
    +'<select style="'+SS+'" onchange="finPP(this.value)"><option value="all">'+(isArF()?'\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631':'All months')+'</option>'+months.map(function(m){return '<option value="M:'+m+'" '+(FIN.p.part==='M:'+m?'selected':'')+'>'+(isArF()?(MO_AR[m]||m):m)+'</option>';}).join('')+'</select>'
    +'<span style="margin-inline-start:auto;font-size:11px;color:var(--muted)">'+(isArF()?'\u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u062a\u0634\u0645\u0644 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629 \u0641\u0642\u0637':'Totals count verified-paid invoices only')+' \u00b7 <b>'+finPeriodLabel()+'</b></span></div>';
+  return s;
+}
+function rFinClients(){
+  clearFinCanon();
+  var V=verified().filter(finInPeriod);
+  var h=finPeriodBar();
   var credit=0;(FIN.links||[]).forEach(function(l){credit+=+l.credit_balance_sar||0;});
-  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3'],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a':'Outstanding',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0645\u062d\u0641\u0638\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f)':'Wallet (excluded)',wal,'#667085'],[isArF()?'رصيد العملاء (لدينا)':'Client credit (held)',credit,'#10B981'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',invCount,'#1C1E2B']];
-  h+='<h3 class="finh">'+(isArF()?'\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u0623\u062f\u0627\u0621 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629':'Key indicators')+'<i>'+finPeriodLabel()+' \u00b7 '+(isArF()?'\u0641\u0639\u0644\u064a \u2014 \u0645\u0646 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629':'actual \u2014 from verified invoices')+'</i></h3>';
-  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
-    return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+'</div></div>';
-  }).join('')+'</div>';
-  /* Plan vs actual (executive dashboard: expected/confirmed/actual) — actuals derived live. */
-  var _ty=(FIN.p.year!=='all')?+FIN.p.year:(new Date()).getFullYear();
-  var tgt=(FIN.targets||[]).find(function(t){return +t.year===_ty;});
-  var frac=1,fLbl='';
-  if(FIN.p.part!=='all'){ frac=(/^Q/.test(FIN.p.part))?0.25:(/^H/.test(FIN.p.part))?0.5:(FIN.p.part.indexOf('M:')===0?1/12:1); fLbl=isArF()?' · تقديري نسبةً للفترة':' · pro-rated for the period'; }
-  if(tgt||canFinEdit()){
-    var _exp=tgt?Math.round((+tgt.expected_sar||0)*frac):0, _conf=tgt?Math.round((+tgt.confirmed_sar||0)*frac):0;
-    var _att=_exp>0?Math.min(100,Math.round(rev/_exp*100)):0;
-    h+='<div class="card" style="padding:16px;margin-bottom:14px"><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap"><h3 class="finh" style="margin:0">'+(isArF()?'الخطة مقابل الفعلي':'Plan vs actual')+'<i>'+_ty+fLbl+'</i></h3>'+(canFinEdit()?('<button class="btn sm" onclick="finSetTargets('+_ty+')">'+(isArF()?'تعديل الأرقام':'Set targets')+'</button>'):'')+'</div>';
-    if(tgt){
-      var _pm=function(lbl,val,col){return '<div style="flex:1;min-width:120px"><div style="font-size:11px;color:var(--muted)">'+lbl+'</div><div style="font-size:19px;font-weight:800;color:'+col+'">'+moneyS(val)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>';};
-      h+='<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:10px">'
-        +_pm(isArF()?'متوقع':'Expected',_exp,'#B54708')
-        +_pm(isArF()?'مؤكد (عقود)':'Confirmed (signed)',_conf,'#175CD3')
-        +_pm(isArF()?'فعلي (مدقق)':'Actual (verified)',rev,'#0F6E56')
-        +'<div style="flex:2;min-width:180px"><div style="font-size:11px;color:var(--muted)">'+(isArF()?'نسبة تحقق المتوقع':'Of expected achieved')+' · '+_att+'%</div><div style="background:#EEF0F5;border-radius:8px;height:14px;margin-top:8px;overflow:hidden"><div style="height:100%;width:'+_att+'%;background:linear-gradient(90deg,#E54525,#F26721)"></div></div></div>'
-        +'</div>';
-    } else {
-      h+='<div class="ch-sub" style="margin-top:8px">'+(isArF()?'لا توجد أرقام خطة لهذه السنة بعد — اضغط «تعديل الأرقام».':'No plan numbers for this year yet — click Set targets.')+'</div>';
-    }
-    h+='</div>';
-  }
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px">'
+    +'<div class="card" style="padding:14px 16px;border-top:3px solid #10B981"><div style="font-size:11px;color:var(--muted)">'+(isArF()?'رصيد العملاء (لدينا)':'Client credit (held)')+'</div><div style="font-size:19px;font-weight:800;color:#10B981" title="'+money(credit)+' SAR">'+moneyS(credit)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'
+    +'</div>';
   // ---- Collections & AR aging (DSO · % overdue · aging buckets) — from all live invoices, no name matching ----
   var _fl=function(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;};
   var LV=live().filter(finInPeriod);
@@ -9344,6 +9320,51 @@ function rOverview(){
      (arOut>0?('<div style="display:flex;gap:8px;flex-wrap:wrap">'+_agc(_fl('0–30 days','0–30 يوم'),ag.b030)+_agc(_fl('31–60 days','31–60 يوم'),ag.b3160)+_agc(_fl('61–90 days','61–90 يوم'),ag.b6190)+_agc(_fl('90+ days','90+ يوم'),ag.b90)+'</div>')
        :('<div style="font-size:12px;color:#0F6E56">✓ '+_fl('No outstanding receivables in this period.','لا توجد مستحقات في هذه الفترة.')+'</div>'))+
      '</div>';
+  var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,_i:{},key:cc.key};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
+  var top=Object.keys(byC).sort(function(a,b){return byC[b].r-byC[a].r;}).slice(0,10);
+  var _tc={r:0,c:0,p:0};Object.keys(byC).forEach(function(k){_tc.r+=byC[k].r;_tc.c+=byC[k].c;_tc.p+=byC[k].p;});
+  h+='<div class="card" style="padding:16px"><h3 class="finh" style="margin:0 0 10px">'+(isArF()?'أعلى العملاء':'Top clients by revenue')+'<i>'+finPeriodLabel()+' · '+(isArF()?'التفاصيل والنسب داخل بطاقة كل عميل':'details & percentages live inside each client')+'</i></h3><div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:480px"><tr style="background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+'"><th style="padding:7px 9px">'+(isArF()?'العميل':'Client')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الإيرادات':'Revenue')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'التكلفة':'Cost')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الربح':'Profit')+'</th></tr>'+top.map(function(k){
+    return '<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finClient(\''+escF(byC[k].key).replace(/'/g,"\\'")+'\',\''+escF(k).replace(/'/g,"\\'")+'\')"><td style="padding:6px 9px;font-weight:600">'+escF(k)+'</td><td style="padding:6px 9px;text-align:right;font-weight:700">'+money(byC[k].r)+'</td><td style="padding:6px 9px;text-align:right;color:#B54708">'+money(byC[k].c)+'</td><td style="padding:6px 9px;text-align:right;color:#0F6E56;font-weight:700">'+money(byC[k].p)+'</td></tr>';
+  }).join('')+'<tr style="background:#303848;color:#fff;font-weight:800"><td style="padding:7px 9px">'+(isArF()?'الإجمالي الكلي':'Total')+'</td><td style="padding:7px 9px;text-align:right">'+money(_tc.r)+'</td><td style="padding:7px 9px;text-align:right">'+money(_tc.c)+'</td><td style="padding:7px 9px;text-align:right">'+money(_tc.p)+'</td></tr></table></div></div>';
+  return h;
+}
+function rOverview(){
+  clearFinCanon();
+  var V=verified().filter(finInPeriod);
+  var rev=0,cost=0,prof=0,rec=0,rem=0,wal=0;
+  V.forEach(function(r){rev+=+r.revenue_sar;cost+=+r.cost_sar;prof+=+r.profit_sar;rec+=+r.amount_received_sar;rem+=+r.amount_remaining_sar;wal+=+r.wallet_portion_sar;});
+  var invCount=new Set(V.map(function(r){return r.invoice_no;})).size; // distinct invoices, not service lines
+  /* Period bar \u2014 the executive-dashboard structure: year \u00b7 All/Q1\u2013Q4/H1/H2 \u00b7 month */
+  var h=finPeriodBar();
+
+  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3'],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a':'Outstanding',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0645\u062d\u0641\u0638\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f)':'Wallet (excluded)',wal,'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',invCount,'#1C1E2B']];
+  h+='<h3 class="finh">'+(isArF()?'\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u0623\u062f\u0627\u0621 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629':'Key indicators')+'<i>'+finPeriodLabel()+' \u00b7 '+(isArF()?'\u0641\u0639\u0644\u064a \u2014 \u0645\u0646 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629':'actual \u2014 from verified invoices')+'</i></h3>';
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
+    return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+'</div></div>';
+  }).join('')+'</div>';
+  /* Plan vs actual (executive dashboard: expected/confirmed/actual) — actuals derived live. */
+  var _ty=(FIN.p.year!=='all')?+FIN.p.year:(new Date()).getFullYear();
+  var tgt=(FIN.targets||[]).find(function(t){return +t.year===_ty;});
+  var frac=1,fLbl='';
+  if(FIN.p.part!=='all'){ frac=(/^Q/.test(FIN.p.part))?0.25:(/^H/.test(FIN.p.part))?0.5:(FIN.p.part.indexOf('M:')===0?1/12:1); fLbl=isArF()?' · تقديري نسبةً للفترة':' · pro-rated for the period'; }
+  if(tgt||canFinEdit()){
+    var _exp=tgt?Math.round((+tgt.expected_sar||0)*frac):0, _conf=tgt?Math.round((+tgt.confirmed_sar||0)*frac):0;
+    var _att=_exp>0?Math.min(100,Math.round(rev/_exp*100)):0;
+    h+='<div class="card" style="padding:16px;margin-bottom:14px"><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap"><h3 class="finh" style="margin:0">'+(isArF()?'الخطة مقابل الفعلي':'Plan vs actual')+'<i>'+_ty+fLbl+'</i></h3>'+(canFinEdit()?('<button class="btn sm" onclick="finSetTargets('+_ty+')">'+(isArF()?'تعديل الأرقام':'Set targets')+'</button>'):'')+'</div>';
+    if(tgt){
+      var _pm=function(lbl,val,col){return '<div style="flex:1;min-width:120px"><div style="font-size:11px;color:var(--muted)">'+lbl+'</div><div style="font-size:19px;font-weight:800;color:'+col+'">'+moneyS(val)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>';};
+      h+='<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:10px">'
+        +_pm(isArF()?'متوقع':'Expected',_exp,'#B54708')
+        +_pm(isArF()?'مؤكد (عقود)':'Confirmed (signed)',_conf,'#175CD3')
+        +_pm(isArF()?'فعلي (مدقق)':'Actual (verified)',rev,'#0F6E56')
+        +'<div style="flex:2;min-width:180px"><div style="font-size:11px;color:var(--muted)">'+(isArF()?'نسبة تحقق المتوقع':'Of expected achieved')+' · '+_att+'%</div><div style="background:#EEF0F5;border-radius:8px;height:14px;margin-top:8px;overflow:hidden"><div style="height:100%;width:'+_att+'%;background:linear-gradient(90deg,#E54525,#F26721)"></div></div></div>'
+        +'</div>';
+    } else {
+      h+='<div class="ch-sub" style="margin-top:8px">'+(isArF()?'لا توجد أرقام خطة لهذه السنة بعد — اضغط «تعديل الأرقام».':'No plan numbers for this year yet — click Set targets.')+'</div>';
+    }
+    h+='</div>';
+  }
+
   var MO=['January','February','March','April','May','June','July','August','September','October','November','December'];
   var by={};V.forEach(function(r){var k=r.month||'?';by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;by[k].p+=+r.profit_sar;});
   var mos=MO.filter(function(m){return by[m];});var mx=Math.max.apply(null,mos.map(function(m){return by[m].r;}).concat([1]));
@@ -9351,12 +9372,7 @@ function rOverview(){
     var hR=Math.round(by[m].r/mx*120),hP=Math.round(by[m].p/mx*120);
     return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="display:flex;gap:3px;align-items:flex-end;height:124px"><div title="Revenue '+money(by[m].r)+'" style="width:22px;height:'+Math.max(hR,2)+'px;background:#FF6B00;border-radius:4px 4px 0 0"></div><div title="Profit '+money(by[m].p)+'" style="width:22px;height:'+Math.max(hP,2)+'px;background:#303848;border-radius:4px 4px 0 0"></div></div><div style="font-size:10px;color:var(--muted)">'+m.slice(0,3)+'</div><div style="font-size:9.5px;font-weight:700">'+moneyS(by[m].r)+'</div></div>';
   }).join('')+'</div></div><div style="font-size:10px;color:var(--muted);margin-top:8px"><span style="color:#FF6B00">\u25a0</span> '+(isArF()?'\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue')+' &nbsp;<span style="color:#303848">\u25a0</span> '+(isArF()?'\u0631\u0628\u062d':'Profit')+'</div></div>';
-  var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,_i:{},key:cc.key};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
-  var top=Object.keys(byC).sort(function(a,b){return byC[b].r-byC[a].r;}).slice(0,10);
-  var _tc={r:0,c:0,p:0};Object.keys(byC).forEach(function(k){_tc.r+=byC[k].r;_tc.c+=byC[k].c;_tc.p+=byC[k].p;});
-  h+='<div class="card" style="padding:16px"><h3 class="finh" style="margin:0 0 10px">'+(isArF()?'أعلى العملاء':'Top clients by revenue')+'<i>'+finPeriodLabel()+' · '+(isArF()?'التفاصيل والنسب داخل بطاقة كل عميل':'details & percentages live inside each client')+'</i></h3><div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:480px"><tr style="background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+'"><th style="padding:7px 9px">'+(isArF()?'العميل':'Client')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الإيرادات':'Revenue')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'التكلفة':'Cost')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الربح':'Profit')+'</th></tr>'+top.map(function(k){
-    return '<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finClient(\''+escF(byC[k].key).replace(/'/g,"\\'")+'\',\''+escF(k).replace(/'/g,"\\'")+'\')"><td style="padding:6px 9px;font-weight:600">'+escF(k)+'</td><td style="padding:6px 9px;text-align:right;font-weight:700">'+money(byC[k].r)+'</td><td style="padding:6px 9px;text-align:right;color:#B54708">'+money(byC[k].c)+'</td><td style="padding:6px 9px;text-align:right;color:#0F6E56;font-weight:700">'+money(byC[k].p)+'</td></tr>';
-  }).join('')+'<tr style="background:#303848;color:#fff;font-weight:800"><td style="padding:7px 9px">'+(isArF()?'الإجمالي الكلي':'Total')+'</td><td style="padding:7px 9px;text-align:right">'+money(_tc.r)+'</td><td style="padding:7px 9px;text-align:right">'+money(_tc.c)+'</td><td style="padding:7px 9px;text-align:right">'+money(_tc.p)+'</td></tr></table></div></div>';
+
   return h;
 }
 window.finQ=function(v){FIN.f.quarter=v;render();};
@@ -9643,7 +9659,7 @@ window.renderFinance=function(v){
   if(!canFinView()){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">Finance is not available in shared view-only links.</div>';return;}
   if(!FIN.rows){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">Loading the finance ledger\u2026</div>';finLoad();return;}
   if(FIN.loadErr){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:#D92D20">Could not load: '+escF(FIN.loadErr)+'<br><span style="font-size:12px;color:var(--muted)">Make sure you are signed in.</span></div>';return;}
-  var body=FIN.tab==='ledger'?rLedger():FIN.tab==='reports'?rReports():FIN.tab==='import'?rImport():rOverview();
+  var body=FIN.tab==='ledger'?rLedger():FIN.tab==='clients'?rFinClients():FIN.tab==='reports'?rReports():FIN.tab==='import'?rImport():rOverview();
   v.innerHTML=finTabs()+body;
 };
 
@@ -11347,5 +11363,43 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
 }catch(e){if(window.console)console.warn('[v59] init',e);}})();
 </script>
 
+
+<script>
+/* v60 — long record cards (lead/client detail) get a "jump to section" chip bar under the
+   header: one tap scrolls to Finance / Key facts / Contacts / Work log / … Display-only,
+   built from whatever cards the page actually shows; nothing is moved or hidden. */
+(function(){try{
+  function inject(){
+    try{
+      var view=document.getElementById('view'); if(!view) return;
+      var head=view.querySelector('.detail-head');
+      var old=document.getElementById('v60jump');
+      if(!head){ if(old)old.remove(); return; }
+      if(old) return;
+      var items=[];
+      view.querySelectorAll('.card h3').forEach(function(h3){
+        var card=h3.closest('.card'); if(!card) return;
+        var t=''; h3.childNodes.forEach(function(n){ if(n.nodeType===3) t+=n.textContent; });
+        t=(t||h3.textContent||'').trim();
+        t=t.replace(/\s*(Edit|تعديل)\s*$/,'').trim();
+        if(t&&t.length<=38) items.push({card:card,t:t});
+      });
+      if(items.length<4) return; // short pages stay as they are
+      var bar=document.createElement('div'); bar.id='v60jump';
+      bar.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 12px';
+      items.slice(0,10).forEach(function(c){
+        var b=document.createElement('button'); b.className='btn sm ghost'; b.textContent=c.t;
+        b.onclick=function(){ try{ c.card.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){ c.card.scrollIntoView(); } };
+        bar.appendChild(b);
+      });
+      head.insertAdjacentElement('afterend',bar);
+    }catch(_){}
+  }
+  var _r=window.render;
+  if(typeof _r==='function'){ window.render=function(){ var o=_r.apply(this,arguments); try{ setTimeout(inject,80); }catch(_){ } return o; }; }
+  setTimeout(inject,900);
+  console.info('%c[v60] record-card section jump bar loaded','color:#0F6E56;font-weight:700');
+}catch(e){if(window.console)console.warn('[v60] init',e);}})();
+</script>
 </body>
 </html>
