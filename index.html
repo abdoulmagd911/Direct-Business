@@ -11156,6 +11156,8 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
   function wrapSave(){ try{ var f=window.save; if(typeof f==='function'&&!f.__v59){ window.save=function(){ var o=f.apply(this,arguments); queueSync(); return o; }; window.save.__v59=true; } }catch(_){ } }
   wrapSave(); setTimeout(wrapSave,2000);
   setTimeout(loadOps,1200);
+  // Backlog item since 2026-08-08: Escape now closes the open dialog.
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ try{ var m=document.getElementById('modal'); if(m&&m.offsetParent&&typeof closeModal==='function') closeModal(); }catch(_){ } } });
 }catch(e){if(window.console)console.warn('[v59] init',e);}})();
 </script>
 
