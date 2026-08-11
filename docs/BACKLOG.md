@@ -83,6 +83,22 @@ Then: **code lightening by deletion** — after each page is rebuilt, delete the
 patch layers it made obsolete (never delete first). Finally: move requests/offers/
 projects out of the app_state blob into real tables (ends last-write-wins).
 
+### Shipped 2026-08-11 — tall views split (3c45ea4)
+Owner: "DO THAT AND ENHANCE ANY SIMILAR TALL OR COMPLICATED VIEWS."
+1. Finance Overview → TWO tabs: **Performance** (period bar · KPIs · income-by-service ·
+   plan-vs-actual · monthly chart) and **Clients & collections** (same period bar ·
+   client credit held · Collections & AR aging · Top clients). Period bar factored into
+   finPeriodBar(), shared. AR tab labels: الأداء / العملاء والتحصيل.
+2. Proposal editor (the app's longest form): Fare options / Deal & workflow / Fare rules
+   now native collapsible sections, closed by default, open-state survives re-renders
+   (window.__ofO). Form opens ~4× shorter.
+3. v60 layer: long lead/client record cards get a "jump to section" chip bar under the
+   header (built live from the card's own sections; only when ≥4 sections; removed
+   elsewhere; labels stripped of trailing Edit buttons). Display-only.
+All harness-verified (probe-split.mjs) + consistency 8/8 + nav sweep + 0 errors.
+Surveyed & left alone deliberately: Today (already decluttered), Leads/Clients lists
+(tables, fine), Operations kanban (board metaphor is the split), Settings (tiled 08-10).
+
 ### Shipped 2026-08-11 — Finance round 2 (10b25ac): plan-vs-actual · credit · items · CSV · numbers-first
 Owner feedback on round 1 (phone screenshots): main views must show ACTUAL NUMBERS —
 cost, profit, total revenue — not percentages, and no invoice-count column; the
