@@ -56,6 +56,14 @@ for approval → deploy → delete the old layers that page no longer needs):
    (Benchmark) — undo via source_batch='lifecycle rehearsal' + legacy_id lc_*.
    NOTE: the QA mocks mirror only part of this richer live set — next session may
    re-sync scripts/qa/mock-seed.mjs if screen-accurate counts matter.
+   BILLING ACCOUNTS (owner explained, 08-10): one real company can be registered
+   in Direct Payments as 2-3 'companies' (Prepaid / Postpaid / Tender) because the
+   payment system cannot change an invoice type per account. NOT duplicates. Model:
+   ONE card per real company + raw.billingAccounts=[{id,mode}] listed as chips on
+   the Linked-to-Direct strip; finance_client_links already rolls all its groups up
+   to the one company. MDD resolved live as the first example (IDs 1 Prepaid + 2
+   Postpaid, flag cleared with an explanatory activity). When linking finance,
+   map EVERY billing account's invoice group to the same company card.
    FINDING (worker-path UI test): a lead created via "+ New business" gets NO
    default owner in the harness (assignedTo empty) — check on live login whether
    meName() resolves at creation time; if not, default owner to creator.

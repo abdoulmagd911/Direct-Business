@@ -10322,12 +10322,18 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
       var b=(typeof getLead==='function')?getLead(id):null; if(!b||!b.isClient)return; // clients only
       var view=document.getElementById('view'); if(!view||view.querySelector('.v34-link'))return;
       var grid=view.querySelector('.detail-grid'); if(!grid||!grid.parentNode)return;
-      var linked=!!(b.directClientId&&String(b.directClientId).trim());
+      // One real company can hold SEVERAL billing accounts in Direct Payments
+      // (prepaid / postpaid / tender are separate 'companies' there because the
+      // system cannot change an invoice type). b.billingAccounts = [{id,mode}].
+      var accts=(b.billingAccounts&&b.billingAccounts.length)?b.billingAccounts:((b.directClientId&&String(b.directClientId).trim())?[{id:String(b.directClientId),mode:''}]:[]);
+      var linked=accts.length>0;
+      var MODE_AR={'Prepaid':'مسبق الدفع','Postpaid':'آجل الدفع','Tender':'مناقصة'};
+      var acctHtml=accts.map(function(a2){return '<span class="tag" style="background:#E7F8EF;color:#0F6E56;font-weight:700">#'+esc(String(a2.id))+(a2.mode?(' · '+esc(fl(a2.mode,MODE_AR[a2.mode]||a2.mode))):'')+'</span>';}).join(' ');
       var el=document.createElement('div'); el.className='v34-link card';
       el.style.cssText='padding:11px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-inline-start:3px solid '+(linked?'#16B364':'#F79009');
       if(linked){
         el.innerHTML='<span style="font-size:15px">🔗</span><span style="font-weight:700;color:#0F6E56">'+fl('Linked to Direct','مرتبط بدايركت')+'</span>'+
-          '<span style="color:var(--muted);font-size:12.5px">'+fl('client','عميل')+' #'+esc(String(b.directClientId))+'</span><span style="flex:1"></span>'+
+          '<span style="color:var(--muted);font-size:12.5px">'+fl(accts.length>1?'billing accounts':'client','حسابات الفوترة')+'</span> '+acctHtml+'<span style="flex:1"></span>'+
           '<a class="chiplink" href="'+(typeof pdLink==='function'?pdLink(b):'#')+'" target="_blank" rel="noopener">'+fl('Open in Direct Payments ↗','افتح في مدفوعات دايركت ↗')+'</a>'+
           ' <button class="btn ghost sm" onclick="v34AddDirectId(\''+id+'\')">'+fl('Edit','تعديل')+'</button>';
       } else {
