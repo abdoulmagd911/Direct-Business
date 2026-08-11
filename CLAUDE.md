@@ -1,5 +1,9 @@
 # Direct Business — working notes for Claude
 
+> **2026-08-11 — `docs/BLUEPRINT.md` is the map.** The whole project in phases, one page
+> per phase, with the rules of engagement (don't invent scope; verify EN+AR in the harness;
+> Arabic pass closes each phase; schema-first for new data). Read it FIRST, then the handoff.
+>
 > **2026-08-10 — READ `docs/HANDOFF_2026-08-10.md` FIRST.** It is the single fresh-start briefing:
 > current live state, everything shipped, the design correction, the landmines, and open loops.
 > Then read this file and `docs/DIRECT_IDENTITY.md`. (`docs/HANDOFF_2026-08-09.md` is the detailed
