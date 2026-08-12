@@ -1,5 +1,27 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-12 · Round 5 — the "employee day" attack (owner: click everything, trust nothing)
+
+Two new all-click suites (`scripts/qa/attack-day.mjs`, `attack-wave2.mjs`) drive the app
+like a person: sign in by form, walk all 15 pages, click every stage chip, sort every
+column twice, search nonsense and recover, create + quick-edit + stage-move a business,
+open and close cards, export CSV (real download), work all 5 Finance tabs, flip every
+ledger dropdown, open invoice cards, refresh mid-view, browser back/forward, topbar
+Export/Team/Access/Share, global search, full CSV import commit (and the double-commit
+guard), Arabic pass, mobile pass. 190 checks green across 7 suites, zero page errors.
+
+Fixed what the eye caught (all deployed):
+1. Global-search dropdown was as narrow as the squeezed topbar box — result names
+   clipped to "N…". Dropdown now widens to fit its results (RTL-safe).
+2. Client card kept the sidebar highlight on "Leads" — now highlights "Clients".
+3. Import preview correctly REJECTED an inconsistent test row (revenue ≠ total−wallet)
+   — verified as protection, not a bug.
+
+Flagged, not changed (owner to decide): the Today quick action "New invoice" and the
+read-only FROM DIRECT mirror pages are the old manual mirror path — with the Finance
+ledger + the coming importer they are the closest thing we have to duplicated work
+against the real Direct system. Suggest folding them away at importer go-live.
+
 ## 2026-08-12 · Round 4 — real data world + the four revenue ways (owner's big note)
 
 Shipped, tested twice (mock suites + real-backend E2E 11/11), deployed:

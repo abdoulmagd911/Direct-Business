@@ -11,6 +11,12 @@
       var b=(typeof getLead==='function')?getLead(openLead):null;
       if(b&&b.isClient){
         var t=document.getElementById('vTitle'); if(t&&/Leads|العملاء المحتملون/.test(t.textContent))t.textContent=fl('Clients','العملاء');
+        /* the sidebar highlight should sit on Clients too, not Leads */
+        try{ var nav=document.getElementById('nav'); if(nav){ nav.querySelectorAll('button').forEach(function(nb){
+          var lbl=(nb.textContent||'').trim();
+          if(/^Leads$|^العملاء المحتملون$/.test(lbl))nb.className='';
+          if(/^Clients$|^العملاء$/.test(lbl))nb.className='active';
+        }); } }catch(_){ }
         var view=document.getElementById('view');
         if(view){
           var chips=view.querySelector('.v26_3-chips'); if(chips)chips.style.display='none';
