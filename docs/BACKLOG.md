@@ -83,6 +83,25 @@ Then: **code lightening by deletion** — after each page is rebuilt, delete the
 patch layers it made obsolete (never delete first). Finally: move requests/offers/
 projects out of the app_state blob into real tables (ends last-write-wins).
 
+### Shipped 2026-08-12 (round 3) — the REAL Direct Payments model, from the owner's own screens
+The owner captured live screenshots + URLs from payments.directksa.com. Confirmed chain:
+TRANSACTION (receipt ref, products, Need to issue/Issued) → INVOICE (reference + DPIN/TTIN
+ZATCA number, Hijri+Gregorian dates, salesman, branch, buyer VAT#) → SERVICE LINES as FEE
+PAIRS (provider/3rd-party fee = No VAT cost; Service Fee = 15% VAT = Direct's income) →
+PAYMENT RECEIPTS (PR-x, applied until Remaining 0). Proof pair: transaction 1163601785
+(507,800.00) became invoice 1163605527/DPIN-284070 whose 6 lines sum exactly.
+BUILT: finance_invoices += transaction_ref, direct_uuid, vat_sar (migration
+direct_payments_model_columns); invoice card groups lines under Transaction headers with
+per-transaction subtotals + "Included VAT (15% on service fees)" row; "Open in Direct ↗"
+deep-links to the REAL /en/admin/invoices/view/{uuid} when the uuid is stored (template
+pdInvoiceViewUrl), falls back to the admin invoices list. Full map in
+docs/DIRECT_PAYMENTS_MODEL.md (their term ↔ our column). Probes S29/S30 green; stress
+30/30; finance/allpages/landmines/controls all green.
+NEXT (Drive folder Direct-Payments-Capture-2026-08, via Cowork): Excel export column
+names → real-data import mapping; promo/discount-code screen → promo-revenue table;
+COGS report; credit notes/proformas/settlements; then the DESIGN-TONE phase from the
+captured screenshots + CSS.
+
 ### Shipped 2026-08-12 (round 2) — the bulletproof pass: core split + volume attack
 Owner: "I want the core right so we can build quickly — attack it, fix it, attack again."
 1. **The one-file app is GONE.** index.html is a 69KB shell; the base core is 10 ordered

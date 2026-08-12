@@ -97,6 +97,20 @@ export function smallRows() {
     rows.push(F('DP-WDI-100', ln, 'TTIN-WDI-100', 'Wadi Alkhadamat Co', 'WADI ALKHADAMAT COMPANY', '2026-08-06', p, s, 'b2b', amt, 0, amt, cost, amt, 0, 'verified_paid', 'project', 'DB-WDI-77',
       ln === 1 ? [{ d: 'RUH-JED-RUH x8 pax', q: 8, u: 690 }] : null));
   }
+  // Real Direct Payments shape (verified from the live system 2026-08-12):
+  // Wadi's invoice = TWO transactions; both invoices carry their Direct admin uuid + line VAT.
+  rows.forEach(r => {
+    if (r.invoice_no === 'DP-WDI-100') {
+      r.transaction_ref = r.line_no <= 6 ? 'TXR-1163801001' : 'TXR-1163801002';
+      r.direct_uuid = 'e2f1c9aa-7d31-4a52-9d3e-000000000100';
+      r.vat_sar = Math.round(r.profit_sar * 0.15);
+    }
+    if (r.invoice_no === 'DP-JBL-1') {
+      r.transaction_ref = 'TXR-1163800900';
+      r.direct_uuid = 'e2f1c9aa-7d31-4a52-9d3e-000000000200';
+      r.vat_sar = Math.round(r.profit_sar * 0.15);
+    }
+  });
   return rows;
 }
 
