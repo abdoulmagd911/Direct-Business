@@ -272,9 +272,12 @@ function calc(){
     var amt=qty*price;
     if(l.svc||l.svcAr||price){ rows.push({l:l, amt:amt}); sub+=amt; }
   });
+  /* round each figure to 2dp at computation, deriving the last one, so the
+     printed Subtotal + VAT always equals the printed Total to the halala */
+  function r2(n){ return Math.round(n*100)/100; }
   var subEx, vat, tot;
-  if(state.vatIncl){ tot=sub; subEx=sub/(1+VAT); vat=tot-subEx; }
-  else{ subEx=sub; vat=sub*VAT; tot=sub+vat; }
+  if(state.vatIncl){ tot=r2(sub); subEx=r2(sub/(1+VAT)); vat=r2(tot-subEx); }
+  else{ subEx=r2(sub); vat=r2(subEx*VAT); tot=r2(subEx+vat); }
   return {rows:rows, subEx:subEx, vat:vat, tot:tot};
 }
 function draw(){
