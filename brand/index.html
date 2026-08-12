@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Direct Brand Hub · مركز هوية دايركت</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23FF6C00'/%3E%3Ctext x='50' y='72' font-size='62' font-weight='bold' font-family='Arial' fill='%23fff' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --ground:#FBFAF8; --surface:#FFFFFF; --panel:#F6F7F9;
+    --ink:#303848; --muted:#6B7480; --line:#E6E8EC;
+    --accent:#F06820; --gold:#FBAE16; --wash-accent:#FFF3EC;
+    --font-display:'Proxima Nova Alt','Proxima Nova','Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;
+    --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-body);
+    font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1020px;margin:0 auto;padding:clamp(24px,4vw,52px) clamp(16px,4vw,36px) 90px}
+
+  header.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+  header.top img{height:44px}
+  .eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);font-weight:700;margin:18px 0 8px}
+  h1{font-family:var(--font-display);font-weight:800;font-size:clamp(28px,5vw,42px);line-height:1.1;margin:0 0 4px}
+  .h1-ar{font-size:clamp(18px,3vw,24px);color:var(--muted);font-weight:700;margin:0 0 14px}
+  .lead{max-width:64ch;margin:0 0 10px}
+  .quicklinks{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 0}
+  .quicklinks a{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;
+    font-weight:700;font-size:14px;padding:9px 16px;border-radius:10px}
+  .quicklinks a.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+  .quicklinks a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+  section{margin-top:clamp(40px,6vw,60px)}
+  .kicker{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;margin:0 0 8px;display:flex;align-items:center;gap:10px}
+  .kicker::before{content:"";width:22px;height:3px;background:var(--accent);border-radius:2px}
+  h2{font-family:var(--font-display);font-weight:800;font-size:clamp(22px,3vw,28px);margin:0}
+  .h2-ar{font-size:15px;color:var(--muted);font-weight:600;margin:2px 0 14px}
+  p{margin:0 0 12px}
+  .note{color:var(--muted);font-size:13.5px}
+
+  /* logo cards */
+  .logo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+  .logo-card{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--surface);
+    display:flex;flex-direction:column}
+  .logo-card .prev{display:grid;place-items:center;padding:30px 16px;min-height:130px}
+  .logo-card .prev img{width:180px;max-width:85%}
+  .logo-card .bd{padding:12px 14px 16px;border-top:1px solid var(--line)}
+  .logo-card .bd b{display:block;font-size:15px}
+  .logo-card .bd small{color:var(--muted);display:block;margin:2px 0 10px;font-size:12.5px}
+  .btn{display:inline-block;background:var(--ink);color:#fff;text-decoration:none;font-weight:700;
+    font-size:13px;padding:8px 14px;border-radius:9px;border:0;cursor:pointer;font-family:var(--font-body)}
+  .btn.orange{background:var(--accent)}
+  .btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+  /* color palettes */
+  .pal{border:1px solid var(--line);border-radius:16px;background:var(--surface);padding:16px 16px 18px;margin-top:14px}
+  .pal h3{margin:0 0 2px;font-family:var(--font-display);font-size:18px;font-weight:800}
+  .pal .sub{font-size:13px;color:var(--muted);margin:0 0 12px}
+  .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:9px}
+  .chip{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;
+    background:var(--panel);padding:8px 10px}
+  .chip i{width:34px;height:34px;border-radius:9px;flex:none;border:1px solid rgba(0,0,0,.12)}
+  .chip .nm{font-size:12.5px;font-weight:700;line-height:1.25}
+  .chip .nm small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+  .chip .cp{margin-left:auto;display:flex;gap:5px}
+  .cbtn{font-family:var(--font-mono);font-size:10.5px;font-weight:700;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink);border-radius:7px;padding:4px 7px;cursor:pointer}
+  .cbtn:hover{border-color:var(--accent);color:var(--accent)}
+  .cbtn:focus-visible{outline:2px solid var(--gold)}
+
+  .gradbar{height:64px;border-radius:14px;background:linear-gradient(to right,#E54525,#F26721);
+    display:flex;align-items:center;padding:0 18px;color:#fff;font-family:var(--font-mono);
+    font-weight:700;font-size:13px;margin-top:14px;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .gradbar button{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff}
+
+  /* fonts table */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-top:14px}
+  table{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
+  th{background:var(--panel);text-align:left;font-family:var(--font-mono);font-size:11px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--line)}
+  td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  td:first-child{font-weight:700}
+
+  .rules{margin:14px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;font-size:14.5px}
+  .rules li{padding-left:22px;position:relative}
+  .rules li::before{content:"";position:absolute;left:2px;top:8px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  .rules li.no::before{background:#D92D20}
+
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);
+    background:var(--ink);color:#fff;font-weight:700;font-size:13.5px;padding:10px 18px;
+    border-radius:999px;transition:transform .25s;z-index:9;pointer-events:none}
+  #toast.on{transform:translateX(-50%) translateY(0)}
+
+  footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);
+    font-size:12.5px;font-family:var(--font-mono);line-height:1.7}
+  [dir="rtl"]{direction:rtl}
+  @media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <img src="direct_logo_color.png" alt="Direct — دايركت للسفر والسياحة">
+  </header>
+  <p class="eyebrow">Internal · للاستخدام الداخلي</p>
+  <h1>Direct Brand Hub</h1>
+  <p class="h1-ar" dir="rtl">مركز هوية دايركت — كل ما يحتاجه الموظف من شعارات وألوان وخطوط</p>
+  <p class="lead">Everything you need to make something look like <b>Direct</b>: download the logo in HD, copy the exact color codes for PowerPoint, web, or design tools, and get the fonts. No more screenshots of screenshots.</p>
+  <div class="quicklinks">
+    <a href="proposal.html">Create a price offer · إنشاء عرض سعر</a>
+    <a class="ghost" href="identity.html">The three identities · الهويات الثلاث</a>
+    <a class="ghost" href="tokens.css" download>tokens.css</a>
+  </div>
+
+  <!-- ============ LOGOS ============ -->
+  <section id="logos">
+    <p class="kicker">Download · تحميل</p>
+    <h2>Logos — HD, transparent background</h2>
+    <p class="h2-ar" dir="rtl">الشعارات — بجودة عالية وخلفية شفافة</p>
+    <div class="logo-grid">
+      <figure class="logo-card" style="margin:0">
+        <div class="prev" style="background:#FFFFFF"><img src="direct_logo_color.png" alt="Full-color Direct logo"></div>
+        <div class="bd">
+          <b>Full color · الملوّن</b>
+          <small>The default on white/light — orange mark + slate wordmark · transparent · PNG 3010×1271 or vector SVG</small>
+          <a class="btn orange" href="direct_logo_color.png" download="Direct-logo-color.png">PNG</a>
+          <a class="btn orange" href="direct_logo_color.svg" download="Direct-logo-color.svg" style="margin-inline-start:6px">SVG</a>
+        </div>
+      </figure>
+      <figure class="logo-card" style="margin:0">
+        <div class="prev" style="background:#323E49"><img src="direct_logo_white.png" alt="White Direct logo"></div>
+        <div class="bd">
+          <b>White · أبيض</b>
+          <small>For orange or dark backgrounds · PNG · 3100×1328 · transparent</small>
+          <a class="btn orange" href="direct_logo_white.png" download="Direct-logo-white.png">Download PNG</a>
+        </div>
+      </figure>
+      <figure class="logo-card" style="margin:0">
+        <div class="prev" style="background:#FFFFFF"><img src="direct_logo_slate.png" alt="Slate Direct logo"></div>
+        <div class="bd">
+          <b>Slate · كحلي رمادي</b>
+          <small>For white/light backgrounds · PNG · 3100×1328 · transparent</small>
+          <a class="btn orange" href="direct_logo_slate.png" download="Direct-logo-slate.png">Download PNG</a>
+        </div>
+      </figure>
+      <figure class="logo-card" style="margin:0">
+        <div class="prev" style="background:#F6F7F9"><img src="direct_logo_vector.svg" alt="Vector Direct logo on orange plate"></div>
+        <div class="bd">
+          <b>Vector master · الملف الأصلي</b>
+          <small>White logo on its orange plate · SVG · scales to any size (print-safe)</small>
+          <a class="btn orange" href="direct_logo_vector.svg" download="Direct-logo-vector.svg">Download SVG</a>
+        </div>
+      </figure>
+    </div>
+    <p class="note" style="margin-top:12px">Need the Illustrator masters or other sizes? They live in Google Drive → <b>Direct Travel Logo</b> (ask Abdulrahman for access). Mark-only orange for tiny icons: <b>#FF6C00</b>.</p>
+  </section>
+
+  <!-- ============ COLORS ============ -->
+  <section id="colors">
+    <p class="kicker">Copy · نسخ</p>
+    <h2>Colors — click to copy</h2>
+    <p class="h2-ar" dir="rtl">الألوان — اضغط للنسخ (HEX للتصميم، RGB للبوربوينت)</p>
+
+    <div class="pal">
+      <h3>A · Documents — الرسمية</h3>
+      <p class="sub">Proposals, profiles, offers, agreements — anything a client sees.</p>
+      <div class="chips" id="pal-classic"></div>
+    </div>
+    <div class="gradbar">
+      <span>Cover gradient · تدرج الغلاف &nbsp; #E54525 → #F26721</span>
+      <button class="cbtn" data-copy="linear-gradient(to right, #E54525 0%, #F26721 100%)">Copy CSS</button>
+    </div>
+
+    <div class="pal">
+      <h3>B · Reports — التحريرية</h3>
+      <p class="sub">Internal reports and board readouts.</p>
+      <div class="chips" id="pal-editorial"></div>
+    </div>
+
+    <div class="pal">
+      <h3>C · App &amp; tools — المنتج</h3>
+      <p class="sub">The app, dashboards, and generators. Semantic colors are for state only.</p>
+      <div class="chips" id="pal-product"></div>
+    </div>
+
+    <p class="note" style="margin-top:12px"><b>PowerPoint:</b> Shape Fill → More Fill Colors → Custom → enter the RGB numbers (copy them with the RGB button). <b>Web/code:</b> use the HEX, or download <a href="tokens.css">tokens.css</a>.</p>
+  </section>
+
+  <!-- ============ FONTS ============ -->
+  <section id="fonts">
+    <p class="kicker">Install · تثبيت</p>
+    <h2>Fonts</h2>
+    <p class="h2-ar" dir="rtl">الخطوط — تُثبَّت على الجهاز قبل استخدام البوربوينت</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Use</th><th>Font</th><th>Company copy (internal)</th><th>Official source</th><th>Free substitute</th></tr></thead>
+        <tbody>
+          <tr><td>English documents</td><td>Proxima Nova (Alt)<br><span class="note">Regular · Semibold · Bold</span></td>
+              <td><a href="https://drive.google.com/drive/folders/1G8be-lFJN0fNODQzEV-rPH-Nm1TH59ej" target="_blank" rel="noopener">Drive → ProximaNova</a> <span class="note">(licensed — internal only)</span></td>
+              <td><a href="https://www.marksimonson.com/fonts/view/proxima-nova" target="_blank" rel="noopener">Mark Simonson</a> · <a href="https://fonts.adobe.com/fonts/proxima-nova" target="_blank" rel="noopener">Adobe Fonts</a></td>
+              <td><a href="https://fonts.google.com/specimen/Montserrat" target="_blank" rel="noopener">Montserrat</a> (free, similar feel)</td></tr>
+          <tr><td>Arabic documents</td><td>29LT Zarid Slab<br><span class="note">Regular–Black</span></td>
+              <td><a href="https://drive.google.com/drive/folders/1B9gO5mez2ufPpaesiIi7JIaND3K9JvvJ" target="_blank" rel="noopener">Drive → fonts/ar</a></td>
+              <td><a href="https://29lt.com" target="_blank" rel="noopener">29LT foundry</a></td>
+              <td><a href="https://fonts.google.com/specimen/Aref+Ruqaa" target="_blank" rel="noopener">—</a> <span class="note">no close free match; use the Drive copy</span></td></tr>
+          <tr><td>Arabic price tables</td><td>Bahij TheSansArabic<br><span class="note">Regular · Bold</span></td>
+              <td><a href="https://drive.google.com/drive/folders/1B9gO5mez2ufPpaesiIi7JIaND3K9JvvJ" target="_blank" rel="noopener">Drive → fonts/ar</a></td>
+              <td><span class="note">licensed arabization of TheSans</span></td>
+              <td><a href="https://fonts.google.com/specimen/Cairo" target="_blank" rel="noopener">Cairo</a> (free)</td></tr>
+          <tr><td>App / web UI</td><td>System fonts · Cairo/Tajawal for Arabic</td>
+              <td>—</td>
+              <td>Built into every device</td>
+              <td><a href="https://fonts.google.com/specimen/Cairo" target="_blank" rel="noopener">Cairo</a> · <a href="https://fonts.google.com/specimen/Tajawal" target="_blank" rel="noopener">Tajawal</a> — free direct downloads</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:10px"><b>Direct downloads hosted here (Arabic core set):</b>
+      <a href="fonts/29LTZaridSlab-Regular.ttf" download>Zarid Slab Regular</a> ·
+      <a href="fonts/29LTZaridSlab-Bold.ttf" download>Zarid Slab Bold</a> ·
+      <a href="fonts/Bahij_TheSansArabic-Bold.ttf" download>Bahij Bold</a>
+      — download, double-click, press Install.</p>
+    <p class="note" style="margin-top:10px"><b>Important for PowerPoint:</b> if the font isn't installed on the computer, PowerPoint silently swaps it for another font and the design breaks. Install first, or embed fonts when saving (File → Options → Save → Embed fonts). <b>Licensed fonts (Proxima Nova, Zarid Slab, Bahij) are for Direct's internal use</b> — install from Drive, don't reshare outside the company.</p>
+  </section>
+
+  <!-- ============ MORE ASSETS ============ -->
+  <section id="assets">
+    <p class="kicker">More assets · أصول إضافية</p>
+    <h2>Ready-made pieces</h2>
+    <p class="h2-ar" dir="rtl">قطع جاهزة للاستخدام في المستندات والعروض</p>
+    <div class="logo-grid">
+      <figure class="logo-card" style="margin:0">
+        <div class="prev" style="background:#fff"><img src="direct_qr_directksa.png" alt="QR code to directksa.com" style="width:130px"></div>
+        <div class="bd">
+          <b>QR → directksa.com</b>
+          <small>For covers and closing pages — same spot as the official profile · PNG</small>
+          <a class="btn orange" href="direct_qr_directksa.png" download="Direct-QR-directksa.png">Download PNG</a>
+        </div>
+      </figure>
+      <figure class="logo-card" style="margin:0">
+        <div class="prev" style="background:#F6F7F9;color:var(--muted);font-size:13px;text-align:center;padding:20px">Illustrator logo masters,<br>store badges, icon set</div>
+        <div class="bd">
+          <b>Source files · الملفات المصدرية</b>
+          <small>Logo Direct .pdf (2-page Illustrator master) · brand icons · app-store badges</small>
+          <a class="btn" href="https://drive.google.com/drive/folders/18lABJkSQVjtTpqW0oUVHCtsrIBZnNih3" target="_blank" rel="noopener">Open in Drive</a>
+        </div>
+      </figure>
+      <figure class="logo-card" style="margin:0">
+        <div class="prev" style="background:#F6F7F9;color:var(--muted);font-size:13px;text-align:center;padding:20px">Official profiles<br>(EN + AR, 2026)</div>
+        <div class="bd">
+          <b>Company profiles · الملفات التعريفية</b>
+          <small>Send-ready PDFs — the reference for every Classic document</small>
+          <a class="btn" href="https://drive.google.com/file/d/1-B0yC4wwu9WUDDOBH3yM1_lIV-Wmkfcu/view" target="_blank" rel="noopener">EN</a>
+          <a class="btn" href="https://drive.google.com/file/d/19rOiGzenECdort-pniNwp5NV2pn-8-Gi/view" target="_blank" rel="noopener" style="margin-inline-start:6px">AR</a>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ RULES ============ -->
+  <section id="rules">
+    <p class="kicker">The short rules · القواعد المختصرة</p>
+    <h2>Do &amp; don't</h2>
+    <p class="h2-ar" dir="rtl">افعل ولا تفعل</p>
+    <ul class="rules">
+      <li>White logo on orange or dark · slate logo on white. · الشعار الأبيض على البرتقالي والداكن، والكحلي على الأبيض</li>
+      <li>Keep clear space around the logo at least the height of the "D". · اترك فراغاً حول الشعار</li>
+      <li>Arabic documents are always right-to-left. · المستندات العربية دائماً من اليمين لليسار</li>
+      <li>Documents use <b>#F06820</b> · tiny marks &amp; favicons use <b>#FF6C00</b> · the app uses <b>#F47A1F</b>. They are siblings — don't "fix" one to match another.</li>
+      <li class="no">Don't stretch, recolor, add shadows to, or redraw the logo. · لا تقم بتمديد الشعار أو تغيير لونه</li>
+      <li class="no">Don't type prices as fixed public rates — every account gets a tailored schedule. · الأسعار استرشادية</li>
+    </ul>
+  </section>
+
+  <footer>
+    Direct — internal brand hub · <a href="IDENTITY.md">full brief &amp; provenance</a> ·
+    the three identities: <a href="identity.html">identity.html</a> ·
+    make an offer: <a href="proposal.html">proposal.html</a>
+  </footer>
+</div>
+
+<div id="toast" role="status">Copied ✓</div>
+
+<script>
+(function(){
+  "use strict";
+  var PALS = {
+    classic: [
+      ["#F06820","Orange","main accent"],["#F87020","Table header","fee tables"],
+      ["#FBAE16","Gold","highlights"],["#303848","Ink","text"],
+      ["#6B7480","Muted","secondary text"],["#E6E8EC","Hairline","borders"],
+      ["#F6F7F9","Wash","light background"],["#FFF3EC","Orange wash","tinted background"]
+    ],
+    editorial: [
+      ["#FAF8F4","Paper","page background"],["#2B2620","Ink","text"],
+      ["#EC6620","Accent","orange"],["#D9431F","Deep accent","emphasis"],
+      ["#C9820C","Gold","secondary accent"],["#3F6675","Teal","the counter color"],
+      ["#2E9E6B","Good","positive"],["#15120E","Dark ground","dark mode page"]
+    ],
+    product: [
+      ["#F47A1F","Accent","the app orange"],["#1C1E2B","Ink","text"],
+      ["#7C8194","Muted","secondary text"],["#16B364","Good","success state"],
+      ["#F0453A","Bad","error state"],["#F79009","Warn","warning state"],
+      ["#2E90FA","Info","information"],["#F6F7F9","Wash","background"]
+    ]
+  };
+  function rgb(hex){
+    var n=parseInt(hex.slice(1),16);
+    return ((n>>16)&255)+", "+((n>>8)&255)+", "+(n&255);
+  }
+  function chip(hex,name,use){
+    var d=document.createElement('div'); d.className='chip';
+    d.innerHTML='<i style="background:'+hex+'"></i>'+
+      '<span class="nm">'+name+'<small>'+use+' · '+hex+'</small></span>'+
+      '<span class="cp"><button class="cbtn" data-copy="'+hex+'">HEX</button>'+
+      '<button class="cbtn" data-copy="'+rgb(hex)+'">RGB</button></span>';
+    return d;
+  }
+  Object.keys(PALS).forEach(function(k){
+    var host=document.getElementById('pal-'+k); if(!host) return;
+    PALS[k].forEach(function(c){ host.appendChild(chip(c[0],c[1],c[2])); });
+  });
+  var toastEl=document.getElementById('toast'), tmr=null;
+  document.addEventListener('click', function(e){
+    var b=e.target.closest('.cbtn'); if(!b) return;
+    var txt=b.getAttribute('data-copy'); if(!txt) return;
+    function done(){
+      toastEl.textContent='Copied: '+txt+' ✓'; toastEl.classList.add('on');
+      clearTimeout(tmr); tmr=setTimeout(function(){toastEl.classList.remove('on');},1600);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done, function(){ fallback(); });
+    } else { fallback(); }
+    function fallback(){
+      var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta);
+      ta.select(); try{ document.execCommand('copy'); }catch(_){}
+      document.body.removeChild(ta); done();
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Direct Proposal Studio · استوديو عروض دايركت</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23FF6C00'/%3E%3Ctext x='50' y='72' font-size='62' font-weight='bold' font-family='Arial' fill='%23fff' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --ink:#303848; --muted:#6B7480; --line:#E6E8EC; --wash:#F6F7F9; --wash-o:#FFF3EC;
+    --accent:#F06820; --header:#F87020; --gold:#FBAE16;
+    --font-en:'Proxima Nova Alt','Proxima Nova','Segoe UI',-apple-system,sans-serif;
+    --font-ar:'Zarid Slab','29LT Zarid Slab','Bahij TheSansArabic','Segoe UI',Tahoma,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#EDEEF1;color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14.5px}
+
+  .studio{display:grid;grid-template-columns:400px 1fr;min-height:100vh}
+  @media(max-width:960px){.studio{grid-template-columns:1fr}}
+
+  /* ---------- form panel ---------- */
+  .form{background:#fff;border-right:1px solid var(--line);padding:20px 20px 40px;overflow-y:auto}
+  .form h1{font-family:var(--font-en);font-size:20px;font-weight:800;margin:0}
+  .form .sub{color:var(--muted);font-size:12.5px;margin:2px 0 16px}
+  .form label{display:block;font-weight:700;font-size:12px;margin:12px 0 4px;color:var(--ink)}
+  .form input[type=text],.form input[type=number],.form input[type=date],.form textarea,.form select{
+    width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13.5px;
+    font-family:inherit;color:var(--ink);background:#fff}
+  .form textarea{min-height:90px;resize:vertical}
+  .form input:focus,.form textarea:focus,.form select:focus{outline:2px solid var(--gold)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:4px}
+  .seg button{flex:1;border:0;background:#fff;padding:8px;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted)}
+  .seg button.on{background:var(--accent);color:#fff}
+  fieldset{border:1px solid var(--line);border-radius:12px;margin:18px 0 0;padding:12px 12px 14px}
+  legend{font-weight:800;font-size:12px;padding:0 6px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+  .lines .line{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px;background:var(--wash)}
+  .lines .line .row2{margin-top:8px}
+  .lines .rm{float:right;border:0;background:none;color:#D92D20;font-weight:700;cursor:pointer;font-size:12px}
+  .addline{width:100%;border:1px dashed var(--accent);background:var(--wash-o);color:var(--accent);
+    font-weight:800;border-radius:10px;padding:9px;cursor:pointer;font-size:13px}
+  .checks label{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;margin:8px 0 0}
+  .checks input{width:auto}
+  .actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+  .actions button{border:0;border-radius:10px;padding:11px 18px;font-weight:800;font-size:14px;cursor:pointer}
+  .go{background:var(--accent);color:#fff}
+  .ghost{background:#fff;color:var(--ink);border:1px solid var(--line)!important}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5}
+
+  /* ---------- preview ---------- */
+  .preview{padding:26px;display:flex;flex-direction:column;align-items:center;gap:22px;overflow-x:auto}
+  .page{width:794px;min-height:1123px;background:#fff;box-shadow:0 10px 30px -12px rgba(48,56,72,.35);
+    position:relative;display:flex;flex-direction:column;flex:none}
+  .page.ar{direction:rtl;font-family:var(--font-ar)}
+  .page.en{font-family:var(--font-en)}
+
+  /* cover + closing */
+  .page.orange{background:linear-gradient(135deg,#E54525 0%,#F26721 100%);color:#fff}
+  .cover-in{flex:1;display:flex;flex-direction:column;padding:70px 64px}
+  .cover-in img{width:220px;margin-bottom:60px}
+  .cover-title{font-size:46px;font-weight:800;line-height:1.15;margin:0 0 8px}
+  .cover-sub{font-size:22px;opacity:.95;margin:0 0 34px}
+  .cover-client{font-size:19px;border-top:1px solid rgba(255,255,255,.4);padding-top:22px;max-width:80%}
+  .cover-client b{display:block;font-size:24px;margin-top:4px}
+  .cover-meta{margin-top:auto;display:flex;gap:34px;flex-wrap:wrap;font-size:14px}
+  .cover-meta span{opacity:.85;display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em}
+  .cover-tag{margin-top:26px;font-size:13.5px;opacity:.9;border-top:1px solid rgba(255,255,255,.35);padding-top:14px}
+  .close-in{flex:1;display:grid;place-items:center;text-align:center;padding:60px}
+  .close-in img{width:230px;margin-bottom:26px}
+  .close-thanks{font-size:44px;font-weight:800;margin:0 0 30px}
+  .close-contact{font-size:15px;line-height:2;opacity:.95}
+
+  /* content page */
+  .content-in{flex:1;display:flex;flex-direction:column;padding:44px 56px 70px}
+  .chead{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+  .chead img{height:34px}
+  .chead .meta{font-size:11.5px;color:var(--muted);text-align:right}
+  .page.ar .chead .meta{text-align:left}
+  .ctitle{text-align:center;margin:0 0 4px;font-size:24px;font-weight:800}
+  .ctitle .dia{color:var(--accent);font-size:14px;vertical-align:middle}
+  .csub{text-align:center;color:var(--muted);margin:0 0 26px;font-size:14px}
+  table.fee{border-collapse:separate;border-spacing:0 6px;width:100%;font-size:13.5px}
+  table.fee th{background:var(--header);color:#fff;font-weight:700;padding:9px 12px;font-size:12.5px}
+  table.fee th:first-child{border-radius:999px 0 0 999px}
+  table.fee th:last-child{border-radius:0 999px 999px 0}
+  .page.ar table.fee th:first-child{border-radius:0 999px 999px 0}
+  .page.ar table.fee th:last-child{border-radius:999px 0 0 999px}
+  table.fee td{background:var(--wash);padding:9px 12px;text-align:center}
+  table.fee td.svc{text-align:start;font-weight:600}
+  table.fee tr.total td{background:var(--wash-o);font-weight:800;color:var(--ink)}
+  table.fee tr.total td.amt{color:var(--accent)}
+  table.fee td.amt{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .totals{margin:14px 0 0;margin-inline-start:auto;width:300px;font-size:13.5px}
+  .totals .tr{display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid var(--line)}
+  .totals .tr.big{background:var(--header);color:#fff;font-weight:800;border-radius:9px;border:0;margin-top:6px;font-size:15px}
+  .terms{margin-top:26px;background:var(--wash);border-inline-start:4px solid var(--accent);
+    border-radius:10px;padding:14px 16px;font-size:12px;line-height:1.7;color:#4A5261;white-space:pre-line}
+  .terms b{display:block;color:var(--ink);font-size:12.5px;margin-bottom:4px}
+  .cfoot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;
+    justify-content:space-between;padding:14px 56px;font-size:11px;color:var(--muted)}
+  .cfoot .pageno{position:absolute;right:0;top:50%;transform:translateY(-50%);
+    background:var(--accent);color:#fff;font-weight:800;padding:6px 10px;border-radius:8px 0 0 8px}
+  .page.ar .cfoot .pageno{right:auto;left:0;border-radius:0 8px 8px 0}
+
+  /* ---------- print ---------- */
+  @media print{
+    body{background:#fff}
+    .form,.preview>.bar{display:none!important}
+    .studio{display:block}
+    .preview{padding:0;display:block;overflow:visible}
+    .page{width:auto;min-height:0;height:99.3vh;box-shadow:none;margin:0;page-break-after:always}
+    .page:last-child{page-break-after:auto}
+    .page.orange{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    table.fee th,.totals .tr.big,.cfoot .pageno,.terms{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+  @page{size:A4;margin:0}
+</style>
+</head>
+<body>
+<div class="studio">
+
+  <!-- ================= FORM ================= -->
+  <div class="form" id="form">
+    <h1>Proposal Studio</h1>
+    <p class="sub">استوديو عروض دايركت — fill the form, the pages build themselves. Print = PDF.</p>
+
+    <label>Language · اللغة</label>
+    <div class="seg" id="langSeg">
+      <button type="button" data-lang="en" class="on">English</button>
+      <button type="button" data-lang="ar">العربية</button>
+    </div>
+
+    <fieldset>
+      <legend>Client · العميل</legend>
+      <label>Company name · اسم الشركة</label>
+      <input type="text" id="fClient" placeholder="e.g. Saudi Ground Services">
+      <label>Attention (person) · عناية</label>
+      <input type="text" id="fAttn" placeholder="e.g. Mr. Ahmed Al-Otaibi">
+    </fieldset>
+
+    <fieldset>
+      <legend>Offer · العرض</legend>
+      <label>Title · العنوان</label>
+      <input type="text" id="fTitle" placeholder="leave empty for default">
+      <div class="row3">
+        <div><label>Offer no. · الرقم</label><input type="text" id="fNo"></div>
+        <div><label>Date · التاريخ</label><input type="date" id="fDate"></div>
+        <div><label>Valid (days) · الصلاحية</label><input type="number" id="fValid" value="14" min="1"></div>
+      </div>
+      <label>Prepared by · إعداد</label>
+      <input type="text" id="fBy" placeholder="Business Development – Direct">
+    </fieldset>
+
+    <fieldset class="lines" id="lines">
+      <legend>Services &amp; prices · الخدمات والأسعار</legend>
+      <div id="lineHost"></div>
+      <button type="button" class="addline" id="addLine">+ Add service · إضافة خدمة</button>
+      <div class="checks">
+        <label><input type="checkbox" id="fShowOrig"> Show "original price" column (discount offer) · عمود السعر قبل الخصم</label>
+        <label><input type="checkbox" id="fVatIncl"> Entered prices already include VAT · الأسعار شاملة الضريبة</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Terms · الشروط</legend>
+      <label>Terms &amp; notes under the table · الشروط والملاحظات</label>
+      <textarea id="fTerms"></textarea>
+    </fieldset>
+
+    <div class="actions">
+      <button type="button" class="go" id="printBtn">Print / Save PDF · طباعة</button>
+      <button type="button" class="ghost" id="resetBtn">Reset · مسح</button>
+    </div>
+    <p class="hint">Drafts save automatically in this browser. Totals and VAT (15%) are always computed — never type totals by hand. Prices are service fees unless a line says otherwise; real invoices are issued from Direct Payment.</p>
+  </div>
+
+  <!-- ================= PREVIEW ================= -->
+  <div class="preview" id="preview"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var VAT = 0.15;
+var $ = function(id){ return document.getElementById(id); };
+var state = {
+  lang:'en', client:'', attn:'', title:'', no:'', date:'', valid:14, by:'',
+  showOrig:false, vatIncl:false, terms:null,
+  lines:[{svc:'', svcAr:'', unit:'', qty:1, orig:'', price:''}]
+};
+
+var T = {
+  en:{cover:'Price Offer', coverSub:'Travel & Tourism Services', prepFor:'Prepared for',
+      offerNo:'Offer no.', date:'Date', valid:'Valid until', by:'Prepared by',
+      pricing:'Pricing details', num:'#', svc:'Service', unit:'Unit', qty:'Qty',
+      orig:'Original price', price:'Price (SAR)', amount:'Amount (SAR)',
+      subtotal:'Subtotal (ex-VAT)', vat:'VAT 15%', total:'Total (incl. VAT)',
+      termsHead:'Terms & notes', thanks:'Thank You',
+      tag:'Global supplier power. Saudi service. One partner.',
+      defTerms:'Prices are service fees per person/ticket/document unless stated otherwise, and exclude supplier, airline, hotel, embassy and government charges unless the line says "Total".\nThis offer is valid until the date shown; after that, prices are subject to reconfirmation.\nTax invoices are issued by Direct Payment upon confirmation.'},
+  ar:{cover:'عرض سعر', coverSub:'خدمات السفر والسياحة', prepFor:'مقدم إلى',
+      offerNo:'رقم العرض', date:'التاريخ', valid:'صالح حتى', by:'إعداد',
+      pricing:'تفاصيل الأسعار', num:'#', svc:'الخدمة', unit:'الوحدة', qty:'الكمية',
+      orig:'السعر الأصلي', price:'السعر (ريال)', amount:'الإجمالي (ريال)',
+      subtotal:'الإجمالي غير شامل الضريبة', vat:'ضريبة القيمة المضافة 15%', total:'الإجمالي شامل الضريبة',
+      termsHead:'الشروط والملاحظات', thanks:'شكراً لكم',
+      tag:'قوة موردين عالمية. خدمة سعودية. شريك واحد.',
+      defTerms:'الأسعار قيمة خدمة لكل شخص/تذكرة/مستند ما لم يُذكر خلاف ذلك، ولا تشمل رسوم الموردين وشركات الطيران والفنادق والسفارات والجهات الحكومية ما لم يُذكر "الإجمالي".\nهذا العرض صالح حتى التاريخ الموضح، وبعده تخضع الأسعار لإعادة التأكيد.\nتصدر الفواتير الضريبية من دايركت للمدفوعات عند التأكيد.'}
+};
+
+function todayISO(){
+  var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function defaultNo(){
+  var d=new Date();
+  return 'OFR-'+d.getFullYear()+'-'+String(Math.floor(Math.random()*900)+100);
+}
+function fmt(n){
+  if(!isFinite(n)) return '—';
+  return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});
+}
+function addDays(iso,days){
+  var d=new Date(iso+'T00:00:00'); if(isNaN(d)) return '';
+  d.setDate(d.getDate()+Number(days||0));
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+/* ---------- form wiring ---------- */
+function lineRow(i,l){
+  var d=document.createElement('div'); d.className='line';
+  d.innerHTML='<button type="button" class="rm" data-i="'+i+'">remove ✕</button>'+
+    '<label>Service (EN) · الخدمة بالإنجليزية</label><input type="text" class="li" data-i="'+i+'" data-k="svc" value="'+esc(l.svc)+'" placeholder="e.g. International flight booking">'+
+    '<label>Service (AR) · الخدمة بالعربية</label><input type="text" dir="rtl" class="li" data-i="'+i+'" data-k="svcAr" value="'+esc(l.svcAr)+'" placeholder="مثال: حجز طيران دولي">'+
+    '<div class="row2"><div><label>Unit · الوحدة</label><input type="text" class="li" data-i="'+i+'" data-k="unit" value="'+esc(l.unit)+'" placeholder="Per ticket / لكل تذكرة"></div>'+
+    '<div><label>Qty · الكمية</label><input type="number" class="li" data-i="'+i+'" data-k="qty" value="'+esc(l.qty)+'" min="0" step="1"></div></div>'+
+    '<div class="row2"><div><label>Original (opt.) · قبل الخصم</label><input type="number" class="li" data-i="'+i+'" data-k="orig" value="'+esc(l.orig)+'" min="0" step="0.01"></div>'+
+    '<div><label>Price (SAR) · السعر</label><input type="number" class="li" data-i="'+i+'" data-k="price" value="'+esc(l.price)+'" min="0" step="0.01"></div></div>';
+  return d;
+}
+function drawForm(){
+  var host=$('lineHost'); host.innerHTML='';
+  state.lines.forEach(function(l,i){ host.appendChild(lineRow(i,l)); });
+  $('fClient').value=state.client; $('fAttn').value=state.attn; $('fTitle').value=state.title;
+  $('fNo').value=state.no; $('fDate').value=state.date; $('fValid').value=state.valid;
+  $('fBy').value=state.by; $('fShowOrig').checked=state.showOrig; $('fVatIncl').checked=state.vatIncl;
+  $('fTerms').value = state.terms==null ? T[state.lang].defTerms : state.terms;
+  var segs=$('langSeg').querySelectorAll('button');
+  segs.forEach(function(b){ b.className = b.getAttribute('data-lang')===state.lang ? 'on':''; });
+}
+function save(){
+  try{ localStorage.setItem('direct_proposal_draft', JSON.stringify(state)); }catch(_){}
+}
+function load(){
+  try{
+    var s=localStorage.getItem('direct_proposal_draft');
+    if(s){ var p=JSON.parse(s); if(p && p.lines) state=p; }
+  }catch(_){}
+  if(!state.date) state.date=todayISO();
+  if(!state.no) state.no=defaultNo();
+}
+
+/* ---------- preview ---------- */
+function calc(){
+  var rows=[], sub=0;
+  state.lines.forEach(function(l){
+    var qty=Number(l.qty)||0, price=Number(l.price)||0;
+    var amt=qty*price;
+    if(l.svc||l.svcAr||price){ rows.push({l:l, amt:amt}); sub+=amt; }
+  });
+  var subEx, vat, tot;
+  if(state.vatIncl){ tot=sub; subEx=sub/(1+VAT); vat=tot-subEx; }
+  else{ subEx=sub; vat=sub*VAT; tot=sub+vat; }
+  return {rows:rows, subEx:subEx, vat:vat, tot:tot};
+}
+function draw(){
+  var t=T[state.lang], ar=state.lang==='ar';
+  var c=calc();
+  var dirCls=ar?'ar':'en';
+  var title = state.title || t.cover;
+  var validUntil = addDays(state.date, state.valid);
+  var termsTxt = state.terms==null ? t.defTerms : state.terms;
+
+  var colsN = 4 + (state.showOrig?1:0);
+  var head='<tr><th>'+t.num+'</th><th>'+t.svc+'</th><th>'+t.unit+' / '+t.qty+'</th>'+
+    (state.showOrig?'<th>'+t.orig+'</th>':'')+'<th>'+t.amount+'</th></tr>';
+  var body=c.rows.map(function(r,i){
+    var l=r.l, svc=ar?(l.svcAr||l.svc):(l.svc||l.svcAr);
+    return '<tr><td>'+(i+1)+'</td><td class="svc">'+esc(svc)+'</td>'+
+      '<td>'+esc(l.unit||'—')+(Number(l.qty)>1?' × '+esc(l.qty):'')+'</td>'+
+      (state.showOrig?'<td class="amt">'+(l.orig?fmt(Number(l.orig)):'—')+'</td>':'')+
+      '<td class="amt">'+fmt(r.amt)+'</td></tr>';
+  }).join('') || '<tr><td colspan="'+colsN+'" style="color:#9AA1B6">…</td></tr>';
+
+  var cover =
+  '<div class="page orange '+dirCls+'"><div class="cover-in">'+
+    '<img src="direct_logo_white.png" alt="Direct">'+
+    '<h1 class="cover-title">'+esc(title)+'</h1>'+
+    '<p class="cover-sub">'+t.coverSub+'</p>'+
+    '<div class="cover-client">'+t.prepFor+
+      '<b>'+esc(state.client||'—')+'</b>'+(state.attn?esc(state.attn):'')+'</div>'+
+    '<div class="cover-meta">'+
+      '<div><span>'+t.offerNo+'</span><b>'+esc(state.no)+'</b></div>'+
+      '<div><span>'+t.date+'</span><b>'+esc(state.date)+'</b></div>'+
+      '<div><span>'+t.valid+'</span><b>'+esc(validUntil)+'</b></div>'+
+      (state.by?'<div><span>'+t.by+'</span><b>'+esc(state.by)+'</b></div>':'')+
+    '</div>'+
+    '<div class="cover-tag">'+t.tag+'</div>'+
+  '</div></div>';
+
+  var content =
+  '<div class="page '+dirCls+'"><div class="content-in">'+
+    '<div class="chead"><img src="direct_logo_color.png" alt="Direct">'+
+      '<div class="meta">'+t.offerNo+' '+esc(state.no)+'<br>'+esc(state.date)+'</div></div>'+
+    '<h2 class="ctitle"><span class="dia">◆</span> '+esc(state.client||title)+' <span class="dia">◆</span></h2>'+
+    '<p class="csub">'+t.pricing+'</p>'+
+    '<table class="fee"><thead>'+head+'</thead><tbody>'+body+'</tbody></table>'+
+    '<div class="totals">'+
+      '<div class="tr"><span>'+t.subtotal+'</span><b>'+fmt(c.subEx)+'</b></div>'+
+      '<div class="tr"><span>'+t.vat+'</span><b>'+fmt(c.vat)+'</b></div>'+
+      '<div class="tr big"><span>'+t.total+'</span><span>'+fmt(c.tot)+'</span></div>'+
+    '</div>'+
+    '<div class="terms"><b>'+t.termsHead+'</b>'+esc(termsTxt)+'</div>'+
+    '<div class="cfoot"><span>www.directksa.com</span><span>'+esc(state.by||'Direct — دايركت للسفر والسياحة')+'</span>'+
+      '<span class="pageno">02</span></div>'+
+  '</div></div>';
+
+  var closing =
+  '<div class="page orange '+dirCls+'"><div class="close-in"><div>'+
+    '<img src="direct_logo_white.png" alt="Direct">'+
+    '<p class="close-thanks">'+t.thanks+'</p>'+
+    '<p class="close-contact">011 512 2170 · support-v@directksa.com · www.directksa.com</p>'+
+  '</div></div></div>';
+
+  $('preview').innerHTML = cover + content + closing;
+  document.title = (state.no?state.no+' · ':'') + 'Direct ' + title;
+}
+
+/* ---------- events ---------- */
+document.addEventListener('input', function(e){
+  var el=e.target;
+  if(el.classList.contains('li')){
+    var i=Number(el.getAttribute('data-i')), k=el.getAttribute('data-k');
+    if(state.lines[i]) state.lines[i][k]=el.value;
+  } else {
+    switch(el.id){
+      case 'fClient': state.client=el.value; break;
+      case 'fAttn': state.attn=el.value; break;
+      case 'fTitle': state.title=el.value; break;
+      case 'fNo': state.no=el.value; break;
+      case 'fDate': state.date=el.value; break;
+      case 'fValid': state.valid=el.value; break;
+      case 'fBy': state.by=el.value; break;
+      case 'fTerms': state.terms=el.value; break;
+      case 'fShowOrig': state.showOrig=el.checked; break;
+      case 'fVatIncl': state.vatIncl=el.checked; break;
+      default: return;
+    }
+  }
+  save(); draw();
+});
+document.addEventListener('click', function(e){
+  var rm=e.target.closest('.rm');
+  if(rm){ state.lines.splice(Number(rm.getAttribute('data-i')),1);
+    if(!state.lines.length) state.lines.push({svc:'',svcAr:'',unit:'',qty:1,orig:'',price:''});
+    save(); drawForm(); draw(); return; }
+  var lb=e.target.closest('#langSeg button');
+  if(lb){ state.lang=lb.getAttribute('data-lang'); save(); drawForm(); draw(); return; }
+  if(e.target.id==='addLine'){ state.lines.push({svc:'',svcAr:'',unit:'',qty:1,orig:'',price:''});
+    save(); drawForm(); draw(); return; }
+  if(e.target.id==='printBtn'){ window.print(); return; }
+  if(e.target.id==='resetBtn'){
+    if(confirm('Clear the whole draft? · مسح المسودة بالكامل؟')){
+      try{ localStorage.removeItem('direct_proposal_draft'); }catch(_){}
+      state={lang:state.lang,client:'',attn:'',title:'',no:defaultNo(),date:todayISO(),valid:14,by:'',
+        showOrig:false,vatIncl:false,terms:null,
+        lines:[{svc:'',svcAr:'',unit:'',qty:1,orig:'',price:''}]};
+      drawForm(); draw();
+    }
+    return;
+  }
+});
+
+/* URL prefill: proposal.html?client=X&lang=ar&no=OFR-...
+   App handoff: proposal.html?from=app reads the offer payload the app's v47
+   layer left in localStorage (same origin) — data never travels in the URL. */
+function prefill(){
+  try{
+    var p=new URLSearchParams(location.search);
+    if(p.get('from')==='app'){
+      var raw=localStorage.getItem('direct_studio_handoff');
+      if(raw){
+        var h=JSON.parse(raw);
+        if(h && typeof h==='object'){
+          if(h.client) state.client=h.client;
+          if(h.attn) state.attn=h.attn;
+          if(h.no) state.no=h.no;
+          if(h.date) state.date=h.date;
+          if(h.valid) state.valid=h.valid;
+          if(h.by) state.by=h.by;
+          if(Array.isArray(h.lines)&&h.lines.length) state.lines=h.lines.map(function(l){
+            return {svc:l.svc||'', svcAr:l.svcAr||'', unit:l.unit||'', qty:l.qty||1, orig:l.orig||'', price:l.price||''};
+          });
+          var extra=[h.remarks,h.addFees].filter(Boolean).join('\n');
+          if(extra) state.terms=(state.terms==null?T[state.lang].defTerms:state.terms)+'\n'+extra;
+          save();
+        }
+        localStorage.removeItem('direct_studio_handoff');
+      }
+    }
+    if(p.get('client')) state.client=p.get('client');
+    if(p.get('lang')==='ar'||p.get('lang')==='en') state.lang=p.get('lang');
+    if(p.get('no')) state.no=p.get('no');
+    if(p.get('attn')) state.attn=p.get('attn');
+  }catch(_){}
+}
+
+load(); prefill(); drawForm(); draw();
+})();
+</script>
+</body>
+</html>
