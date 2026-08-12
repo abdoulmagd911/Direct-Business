@@ -1,6 +1,6 @@
 # KSA Events Hub — how we use it
 
-The events page (`events/index.html`, live at /events) is not just a calendar. Every
+The events page lives **inside the app** as the Events tab (open the app and click Events, or go straight to /events — it opens the app on that tab, behind the app login). The old public stand-alone page was retired on 2026-08-12; since then the events data itself is signed-in-only in the database, so nothing shows to anyone who is not logged in. The page is not just a calendar. Every
 event carries **"Our move"** — what Direct does with it:
 
 | Move | Meaning | Stored as |
@@ -40,26 +40,23 @@ the Edit button:
 - **Not decided (5):** the five study-vertical entries with no date and no link —
   nothing to act on yet.
 
-## Team sign-in, event-site logins, and lead counts (added 2026-08-12)
+## Event-site logins and lead counts (added 2026-08-12, in-app since the same day)
 
-The page has two faces:
-
-- **Signed out (anyone with the link):** sees the calendar and the moves. Cannot save —
-  this was always true in the database (`ksa_events` writes need a signed-in user), but
-  the page used to fail silently; now the Save/Delete buttons open the sign-in dialog.
-- **Signed in (Team sign-in button, same login as the main app):** can edit, and sees two
-  extra things per event — the **event-site login** and the **lead count**.
+The Events tab is part of the app, so the app login covers it — there is no separate
+sign-in. Employees with the `viewer` role can look but not edit (same rule as before,
+from the v38 layer). The `/s/<token>` share links show the workspace read-only via a
+server function; the events extras below never appear in them.
 
 **Event-site logins** (the account made on the event's own website to reach its exhibitor
 list) live in their own table, `ksa_event_signups` (migration
-`ksa_event_signups_team_only`): email used, password, who signed up. It has **no public
-access** — only signed-in team members can read or write it, so nothing about it ever
-reaches the public page. It is deliberately team-shared: anyone signed in sees the
-passwords, so use throwaway passwords for event sites, never personal ones. Passwords are
-also excluded from the CSV export.
+`ksa_event_signups_team_only`): email used, password, who signed up. Only signed-in team
+members can read or write it. "Who signed up" pre-fills with the signed-in person's name,
+so each user records their own sign-ups. It is deliberately team-shared: anyone signed in
+sees the passwords, so use throwaway passwords for event sites, never personal ones.
 
-On directksab2b.com the sign-in is shared with the main app automatically (same browser,
-same login). On preview links, use the Team sign-in button.
+**Anonymous access is fully closed** (migration `ksa_events_signed_in_only`, 2026-08-12):
+`ksa_events` and its history are readable only by signed-in users. The old public
+stand-alone page and its `/events` URL rules were removed; `/events` now opens the app.
 
 **Lead counts:** each event row shows "N leads in the app" — a live count of `businesses`
 rows whose Outreach & Network field `funnel_details->>'event_name'` matches the event's
@@ -76,7 +73,12 @@ approach). Set Progress to "Leads collected" on the event once they are in.
 
 ## Testing
 
-`node scripts/qa/events-sweep.mjs` drives the page headless with a stubbed Supabase
-module (the sandbox cannot reach supabase.co or esm.sh) — renders the table, exercises
-the Our-move filter, the edit/add modal, sorting, and the mobile layout, and saves
-screenshots next to the script. Look at the screenshots, not just the console output.
+`node scripts/qa/probe-events.mjs` drives the real app against the local mock: signs in,
+opens /events, and checks the move stats, the 🎪 We-take-part chip, the move filter,
+search, the edit modal with a stored event-site login, the who-signed-up prefill, and the
+lead-count line — with screenshots saved next to the script. `sweep-pages.mjs` covers the
+Events tab as part of the whole-app sweep. Look at the screenshots, not just the console.
+
+Known pre-existing issue (not from this work, verified by running the sweep with the v64
+layer removed): one `EN:Settings` button click errors with "Cannot read properties of
+null" on the current app base.
