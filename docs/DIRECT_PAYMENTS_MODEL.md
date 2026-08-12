@@ -84,3 +84,46 @@ Flights, Packages).
 COGS report structure · Excel export column names (drives the future real-data import
 mapping) · promo/discount-code screen (drives the promo-revenue table design) ·
 credit notes / proformas / settlements shapes · pricing & configurations.
+
+## ROUND 2 — corrections & completions from the Cowork Drive capture (2026-08-12)
+
+The Drive folder `Direct-Payments-Capture-2026-08` (00-DATA-MODEL.md, 7 Excel exports,
+19 full-page screenshots, saved pages incl. the B2B Admin Panel and Executive CRM) refines
+the model. **Corrections to the section above:**
+
+1. **There is no separate transaction table.** A "Corporate Transaction" IS an invoice
+   record — one table serves Invoices / Credit Notes / Proformas / Transactions,
+   discriminated by flags (`is_invoice`, `is_credit_note`, `is_tax_proforma`,
+   `is_consolidated`, `is_wallet_top_up_invoice`, …). The workflow field
+   `b2b_transaction_status` moves `consolidation_pending` → `consolidation_ready` →
+   `consolidation_invoiced` (UI: "Need to issue" → "Ready" → "Issued"), and
+   `consolidated_proforma_id` links a transaction to the consolidated invoice it entered.
+   Our `transaction_ref` column = that source-record reference. Compatible as built.
+2. **Tech shape (matters for the future importer):** Laravel + Inertia + Vue 2; every
+   page embeds its FULL data as JSON in `<div id="app" data-page="...">` —
+   `props.data.data` rows + `props.data.meta` paging (`per_page` capped at 100).
+   No separate API needed; saved pages carry complete row data.
+3. **Fee-pair confirmed with exact fields** (`02-invoice-example-expanded.csv`):
+   `is_taxable false/true`, `tax_rate 15`, `taxable_amount`, `tax_amount`, bilingual
+   service names (`name_en`/`name_ar`), product keys (`direct_flights`, `direct_hotels`,
+   `direct_visa`, `direct_support`, `direct_course`, `direct_packages`, `direct_wallet`).
+   VAT sits on the Service-Fee line only — invoice 1163735256: total 127,911.98 but
+   VAT just 105.39.
+4. **Discounts/promos live at LINE-ITEM level** (`is_discountable`, `discount_type`
+   ("fixed"), `discount_value`, `discount_value_incl_vat`) — not on the header, and
+   there is no Promotions screen. The authoritative promo view is the Excel export
+   **"Promo Code Invoice Export"**: columns Invoice Number · Before Discount · Discount ·
+   After Discount · Product · Payment Status. So **promo usage DOES carry invoice
+   numbers** and fits our ledger as normal rows + `discount_sar` (column exists since
+   08-10). OPEN QUESTION for the next capture: where the export names the CODE itself
+   (per-code export? a column not shown?) and how a code maps to the partner company.
+5. **The real-data import source is decided:** export **5551 "Invoice Export"**
+   (line-item level, 123,924 rows in the capture; columns include Type, Product,
+   Customer, Invoice Reference #, Invoice Number, dates, statuses, item name/qty/
+   taxable/unit price/discount/tax/total, Invoice Total, Payment Status). The go-live
+   importer maps THAT file. Also useful: 5659 GMV Transaction Breakdown (20,889 rows,
+   not yet downloaded).
+6. **The design-tone phase has its source:** `design-notes.txt` — Inter font,
+   brand orange #FF7A00/#F97316, text #6E6B7B, page bg #F8F8F8, table head #F3F2F7,
+   hairline #EBE9F1, 5px radius, fixed 230px sidebar, Feather icons, full RTL
+   (Vuexy admin lineage) — plus 19 retina full-page screenshots and the compiled CSS.
