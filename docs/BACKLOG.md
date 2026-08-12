@@ -259,3 +259,12 @@ items that need his wording calls, then the Arabic pass.
   the database is not.
 - `manual-confirm` runs with no login and can edit any lead or contact. Fine while it is
   unknown, worth an auth check before it is shared around.
+
+## 13 · New B2B landing page (b2b.devdksa.com) — logo & media cleanup (2026-08-12)
+
+Reviewed the new corporate-travel landing page (AR+EN). Full findings in
+`docs/B2B_LANDING_PAGE_REVIEW.md`; the ready-to-use client list is
+`Direct_B2B_Landing_Client_Logos_Priority.xlsx` in the Drive business-reports folder.
+Open items for the product team: swap the 8 fake logos (only Ma'aden is real), replace
+watermarked stock persona photos, real or anonymous testimonials, defensible trust numbers,
+add OG/social tags + Arabic title. Every real-client logo still needs written consent.
