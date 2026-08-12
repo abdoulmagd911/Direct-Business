@@ -36,6 +36,22 @@ Drive asset locations (for future sessions):
 
 ---
 
+## Company-scale facts — corrected 2026-08-12
+
+Verified against both 2026 profiles (viewed page by page): **500+ employees**
+(«أكثر من 500 موظف» in the Arabic profile; "+500 Employee specialized in travel and
+tourism" in the EN profile), **5 branches**, **10+ years**, **600+ airline agreements**,
++800 visas issued, +17K students abroad, 5M app downloads, 38 technical programs,
+subsidiary TECHTIC. The "200+ specialists" line in older notes and in the `direct-brand`
+skill is **outdated** — use 500+ going forward.
+
+The **Arabic profile** (`Direct Profile 2026.pdf`, Drive `19rOiGzenECdort-pniNwp5NV2pn-8-Gi`)
+is the best Classic-identity RTL reference: gradient cover with QR + store badges, white
+rounded cards on light wash with a subtle swoosh watermark, orange section titles on the
+right, swoosh footer, orange page-number tab. Cover gradient re-verified by rendering and
+pixel-sampling the actual page (matches the documented `#E54525 → #F26721` within
+rendering tolerance).
+
 ## The three oranges — this is not a mistake
 
 Three orange values exist in real Direct material. Each has a job:
