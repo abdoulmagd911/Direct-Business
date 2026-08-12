@@ -1,14 +1,19 @@
 # Direct Business — working notes for Claude
 
-> **2026-08-10 — READ `docs/HANDOFF_2026-08-10.md` FIRST.** It is the single fresh-start
-> briefing: current live state, everything shipped through 2026-08-10, the two-design-languages
-> correction, the landmines, and open loops. (`docs/HANDOFF_2026-08-09.md` is the detailed
-> chronological log; `docs/DIRECT_IDENTITY.md` is the brand/product design system.)
+> **2026-08-11 — `docs/BLUEPRINT.md` is the map.** The whole project in phases, one page
+> per phase, with the rules of engagement (don't invent scope; verify EN+AR in the harness;
+> Arabic pass closes each phase; schema-first for new data). Read it FIRST, then the handoff.
 >
-> ⚠️ **This branch (`main`) is not the live code.** The deployed app is on the Vercel
-> production branch `claude/new-session-9fhlp1`, ~41 commits ahead of `main` (product-UI
-> re-skin, proposals, ownership, Team & Access, assumption data 4 leads / 6 clients). Several
-> sections below describe the older state — trust the handoff first.
+> **2026-08-10 — READ `docs/HANDOFF_2026-08-10.md` FIRST.** It is the single fresh-start briefing:
+> current live state, everything shipped, the design correction, the landmines, and open loops.
+> Then read this file and `docs/DIRECT_IDENTITY.md`. (`docs/HANDOFF_2026-08-09.md` is the detailed
+> chronological log.)
+>
+> Quick current state: data is **assumption/test data** — **4 leads / 6 clients** (Direct IDs
+> 101–106), 12 finance service-lines, 3 proposals; real data is in backups (`*_prewipe_20260810`).
+> The app has been **re-skinned to Direct's real product UI** (cream `#FBF5F0` + `#ff6b00`).
+> **Critical:** the QA harness serves FAKE data — verify UI against real Supabase rows or a
+> screenshot, never the mock alone (that gap wasted a sub-session).
 
 ## Standing rules (set by Abdulrahman, 2026-08-08)
 
@@ -157,6 +162,27 @@ file is the reminder, so surface anything relevant rather than waiting to be ask
 the data was four months stale. Nothing deleted: `businesses_snapshot_20260808` (1,035 rows)
 and `contacts_snapshot_20260808` (335 rows) hold the full prior state, admin/manager only.
 
+**Re-verification, batch 1 — 2026-08-09.** Moved the 6 companies Direct has actually invoiced
+back to clients (`is_client=true` + `raw.isClient='true'` + `stage='won'` + `converted_date`):
+Takamol for Business Services (~10.9M SAR billed), Booking and Ticket Agency, Directorate of
+Public Security, Maaal, الوسائل الوقائية للسلامة, المطاحن الأولى. So the app now has 6 active
+clients again. Backup before the change: `businesses_snapshot_20260809_clientmove` (1,035 rows).
+Undo = copy `is_client/stage/converted_date/raw` back from that snapshot by id. The other ~27
+pre-reset "clients" stayed leads on purpose — they're duplicates (Ma'aden ×2, Riyadh Chamber ×3,
+Booking &/and, Abdel Hadi ×2), study-abroad schools (Kaplan, ELC Chester, New College), or have
+no invoice to prove the relationship. Big-name leads (SAMA, NEOM, Alshaya, alfanar, Kemya/SABIC,
+Savvy Games, Webook) are **not** clients in the data (no invoices, never flagged) — do not move
+them without Abdulrahman confirming. 68 leads still carry a `total_sar` amount with no matched
+invoice — a soft signal, not proof; a possible next batch to review with him.
+
+**Re-verification, batch 2 — 2026-08-09.** Moved **39** more companies from the `Old Customers`
++ `Invoice history` import (his Direct-Payments customer/invoice export) that carry real billing
+(`total_sar>0`) → clients. Backup: `businesses_snapshot_20260809_clientmove2` (1,035 rows). Now
+**969 leads / 45 clients** live. The remaining ~29 leads-with-an-amount are tender values or deal
+estimates (tenders, suppliers like Amadeus/Booking.com, individuals) — left as leads on purpose.
+The corporate-portal `Companies.html` export he shared is **test data** (that portal isn't
+launched); the real client master is still only in Direct Payments. See `docs/HANDOFF_2026-08-09.md`.
+
 ## Read this first: docs/DIRECT_MASTER_BRIEF.md
 
 A 140 KB brief Abdulrahman assembled from months of earlier sessions — the business, the
@@ -239,9 +265,12 @@ Orange `#F06820`, service-table header `#F87020`, cover gradient `#E54525 → #F
 Arabic = 29LT Zarid Slab. Founded 2016, Riyadh, 200+ specialists. Voice: "Global supplier
 power. Saudi service. One partner."
 
-Two mismatches worth knowing: the app uses `#F47A1F` as its orange, not the brand `#F06820`
-(the events page does use the brand value); and **the brand says Arabic is always RTL**,
-while `applyLang()` hardcodes `document.documentElement.dir='ltr'`.
+**Full identity is now consolidated in `docs/DIRECT_IDENTITY.md`** (built 2026-08-10 from a
+Drive sweep of the official 2026 profile + logo kit + real proposals). Read it before any
+Direct-branded design. The old `#F47A1F` app-orange mismatch is **fixed** — the app now uses the
+brand `#F06820` (97×). Note `#fc8004` is the *Direct Payments* admin theme, not the company
+brand. (Historical: the brand said Arabic is always RTL while an early `applyLang()` hardcoded
+`dir='ltr'`; the app has since been flipped to RTL in Arabic.)
 
 ## Testing
 
@@ -268,6 +297,20 @@ Today and Leads were invisible in the code and obvious on screen.
   the tab loaded, so two people working on different sections no longer overwrite each
   other. If you add a new top-level key to `DB`, it is picked up automatically. Don't
   reintroduce a full-blob write.
+- **The lead/client-detail cards are built by injection layers, not the base render.** The
+  detail page is enhanced after render by a stack of `try/catch` blocks at the end of the
+  file, each wrapping `renderLeadDetail`/`render` and injecting one card with a `setTimeout`
+  and a `view.querySelector('.vNN-…')` guard so it renders exactly once. The current stack:
+  `v33` service-fit map (leads **and** clients), `v34` Direct-link banner (clients only),
+  `v35` suggested-next-step nudge (active leads only), `v36` "profile managed in Direct" note
+  (clients only). If you add another, copy that pattern and gate on `b.isClient` correctly.
+- **The client onboarding form is deliberately collapsed (v36).** The full local onboarding
+  editor (`v22OpenClientOnboarding`) duplicates Direct's client master (CR/VAT/IBAN, pricing
+  scheme, credit line, documents) — the duplication trap. `v36` **hides** the loud
+  "🏛 KSA onboarding" button and shows a "managed in Direct ↗" note instead. This is a
+  reversible hide, **not** a delete: the function is untouched and still reachable via the
+  note's quiet "local form" link and the "Edit client profile (full form)" button. Don't
+  "fix" the hidden button — it's intentional.
 
 ## Known structural issues (context, not a to-do list)
 
