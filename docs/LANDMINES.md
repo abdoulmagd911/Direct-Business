@@ -54,6 +54,16 @@
 7. **Proposal file "Remove" by a non-admin** clears the reference from the proposal but
    may leave the file itself in storage (delete rights are admin/manager). Harmless
    orphan; an admin can purge storage occasionally.
+8. **Database permissions silently reset when a function is re-created.** Caught live on
+   2026-08-12: `save_state_patch` had been locked against signed-out callers on 08-11,
+   but a later change to the function quietly restored the default (open) permission —
+   Postgres does this on every CREATE OR REPLACE. Re-locked by migration
+   `relock_save_state_patch_anon`. *Standing rule:* after ANY database function change,
+   re-run the Supabase security advisor and re-check this exact grant. The advisor's
+   other notes are known and intentional (share links must work signed-out; style
+   warnings on helper functions). One dashboard toggle is deliberately left for Phase 8:
+   leaked-password protection (rejects passwords found in known breach lists) — enable
+   it when the real team logins are created.
 
 ## C · Cannot be tested from the harness — needs one real click each (before go-live)
 
