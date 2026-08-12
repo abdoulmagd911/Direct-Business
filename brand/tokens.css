@@ -1,0 +1,105 @@
+/* ============================================================
+   Direct — design tokens for the three identities
+   Assembled 2026-08-12 from real Direct sources (see IDENTITY.md).
+   Usage: set data-identity="classic" | "editorial" | "product"
+   on <html> or any container, then style with var(--...).
+   ============================================================ */
+
+/* ---------- shared: the brand constants ---------- */
+:root {
+  /* the three oranges — siblings, not typos (see IDENTITY.md) */
+  --direct-orange-document: #F06820; /* print/PDF documents */
+  --direct-orange-mark:     #FF6C00; /* the logo artwork, favicons, tiny marks */
+  --direct-orange-product:  #F47A1F; /* app/dashboard UI */
+
+  --direct-logo-slate: #323E49;      /* wordmark on light backgrounds */
+  --direct-gold:       #FBAE16;
+
+  /* cover / closing gradient (Classic documents) */
+  --direct-gradient: linear-gradient(to right, #E54525 0%, #F26721 100%);
+}
+
+/* ---------- Identity A · Direct Classic (documents) ---------- */
+[data-identity="classic"] {
+  --accent:        #F06820;
+  --accent-strong: #F87020;  /* service-fee table header */
+  --gold:          #FBAE16;
+  --ink:           #303848;
+  --muted:         #6B7480;
+  --hairline:      #E6E8EC;
+  --wash:          #F6F7F9;
+  --wash-accent:   #FFF3EC;
+  --surface:       #FFFFFF;
+  --ground:        #FFFFFF;
+
+  --font-en: 'Proxima Nova Alt', 'Proxima Nova', 'Segoe UI', -apple-system, sans-serif;
+  --font-ar: 'Zarid Slab', '29LT Zarid Slab', 'Bahij TheSansArabic', serif;
+
+  --radius-card: 14px;
+  --shadow-card: 0 6px 18px -8px rgba(48, 56, 72, .18);
+}
+
+/* ---------- Identity B · Direct Editorial (internal reading) ---------- */
+[data-identity="editorial"] {
+  --ground:      #FAF8F4;
+  --surface:     #FFFFFF;
+  --panel:       #F4F0E9;
+  --ink:         #2B2620;
+  --muted:       #7C7468;
+  --line:        #E9E3D9;
+  --accent:      #EC6620;
+  --accent-deep: #D9431F;
+  --gold:        #C9820C;
+  --counter:     #3F6675;  /* the teal "other side" (Direct's systems vs ours) */
+  --counter-wash:#EAF0F2;
+  --accent-wash: #FDF0E7;
+  --good:        #2E9E6B;
+
+  --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --font-body:   -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:   'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  --radius-card: 14px;
+}
+/* editorial dark mode */
+@media (prefers-color-scheme: dark) {
+  [data-identity="editorial"]:not([data-theme="light"]) {
+    --ground: #15120E; --surface: #1E1A15; --panel: #262019;
+    --ink: #F1ECE4; --muted: #A79E90; --line: #332C24;
+    --accent: #F5813F; --accent-deep: #EF6A34; --gold: #F2B23C;
+    --counter: #7FA6B7; --counter-wash: #182227; --accent-wash: #2A1D12;
+    --good: #43B681;
+  }
+}
+[data-identity="editorial"][data-theme="dark"] {
+  --ground: #15120E; --surface: #1E1A15; --panel: #262019;
+  --ink: #F1ECE4; --muted: #A79E90; --line: #332C24;
+  --accent: #F5813F; --accent-deep: #EF6A34; --gold: #F2B23C;
+  --counter: #7FA6B7; --counter-wash: #182227; --accent-wash: #2A1D12;
+  --good: #43B681;
+}
+
+/* ---------- Identity C · Direct Product (software) ---------- */
+[data-identity="product"] {
+  --accent:   #F47A1F;
+  --ink:      #1C1E2B;
+  --muted:    #7C8194;
+  --muted-2:  #9AA1B6;
+  --hairline: #E6E8EC;
+  --wash:     #F6F7F9;
+  --surface:  #FFFFFF;
+  --ground:   #F6F7F9;
+
+  /* semantic state colors — for state ONLY, orange stays the accent */
+  --good:   #16B364;
+  --bad:    #F0453A;
+  --bad-2:  #D92D20;
+  --warn:   #F79009;
+  --info:   #2E90FA;
+  --extra:  #7A5AF8;
+
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-ar: 'Cairo', 'Tajawal', 'Inter', system-ui, sans-serif;
+
+  --radius-card: 10px;
+}

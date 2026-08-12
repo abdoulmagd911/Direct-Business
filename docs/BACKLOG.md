@@ -1,5 +1,30 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-12 · Round 6 — THE IMPORTER + the mirror folded away + ordered re-sweep
+
+Blueprint step 1 SHIPPED. Finance → Import now reads **Direct Payments' own "Invoice
+Export" file directly** (Excel or CSV — the Excel reader loads on demand):
+- recognises the typed rows (invoice / item / credit note / payment receipt) and applies
+  the fee-pair rules: non-taxable = cost, the WHOLE taxable amount = profit, VAT stored
+  only, never shown;
+- pairs each numbered tax invoice with its unnumbered twin (the source transaction →
+  `transaction_ref`); classifies commissions, wallet top-ups, drafts;
+- previews counts + totals, writes NOTHING until confirmed, and skips rows already in
+  the ledger — dropping the same file twice imports zero duplicates (proven by test);
+- verified on a real export: 39 invoices — 29 paid, 15 transactions, 1 commission set,
+  1 credit note, 1 wallet top-up, 3 twin pairs, arithmetic consistent to the riyal.
+
+The old MANUAL mirror path is folded away (owner-approved): Today's "New invoice" card
+is now "Import invoices" → opens the importer; the "From Direct (read-only)" nav group
+is hidden (pages + data intact and reachable — one-line revert if ever wanted).
+
+Owner's login-page worry answered with evidence: the deployed site and the tested copy
+are byte-identical (same sha256), and the brand sentences under the logo are present —
+the "different look" in test screenshots is only the sandbox's fallback font (the Cairo
+webfont can't load offline). A wave-3 check now asserts those sentences on every run.
+
+Ordered re-sweep green: sign-out → sign-in → lead through all phases → Won auto-converts
+→ Clients list → importer end-to-end → reports → sign-out. 209 checks / 8 suites / 0 errors.
 ## 2026-08-12 · Round 5 — the "employee day" attack (owner: click everything, trust nothing)
 
 Two new all-click suites (`scripts/qa/attack-day.mjs`, `attack-wave2.mjs`) drive the app
@@ -653,3 +678,51 @@ items that need his wording calls, then the Arabic pass.
   the database is not.
 - `manual-confirm` runs with no login and can edit any lead or contact. Fine while it is
   unknown, worth an auth check before it is shared around.
+
+## 13 · Brand identity system — DONE 2026-08-12 (this unlocks branded output work)
+
+Built in the "Company brand identity" session from every real source (official profile
+PDFs, logo masters, `brand-assets` Drive kit, the three live Direct systems, this app, the
+events page, earlier sessions' designs). Result — one brand, **three identities**:
+**A · Classic** (client-facing documents), **B · Editorial** (internal reports/readouts,
+with dark mode), **C · Product** (app/dashboards/tools). The three oranges are documented
+as deliberate: `#F06820` documents · `#FF6C00` logo mark · `#F47A1F` app.
+
+- Files: `brand/IDENTITY.md` (full brief + provenance + Drive asset IDs),
+  `brand/tokens.css` (all three identities as CSS variables), `brand/identity.html`
+  (visual showcase, EN+AR), plus the logo files (vector SVG, white PNG, slate PNG).
+- Showcase artifact: https://claude.ai/code/artifact/4d5c57f1-45ed-4b67-8f40-6b94600b8546
+- Next users of this: branded proposals, the report/offer generators, and the Arabic/RTL
+  pass (backlog item 8 — the brand says Arabic is always RTL).
+
+**Extended 2026-08-12 (same session), phases built and verified in the harness:**
+- **Brand Hub** `brand/index.html` — employees download HD transparent logos, copy color
+  codes (HEX + RGB for PowerPoint), font guidance, do/don't. Served at `/brand/`
+  (vercel.json rewrites added ABOVE the `/(.*)` catch-all — that catch-all would
+  otherwise swallow the path).
+- **Proposal Studio** `brand/proposal.html` — bilingual (EN + real RTL AR) price-offer
+  generator matching the house pattern (orange cover → pill-header table + computed
+  VAT 15% totals + terms → orange thank-you page with the real contacts). Pure
+  client-side, drafts in localStorage, print = PDF. Structure verified against
+  `Price offer Directksa.pdf`, the Arabic quote PPTXs, and `offer-proposal.html`.
+- **App nav** — `v46` layer in `index.html` adds a "Brand/الهوية" button (v44b injection
+  pattern, survives re-renders, 0 JS errors in the harness with the test login).
+- ⚠ **Production branch land mine:** PR #15 targets `main`, but Vercel production deploys
+  from `claude/new-session-9fhlp1`. Merging the PR does NOT change directksab2b.com.
+  To go live: promote in Vercel, or point the Vercel production branch at `main`.
+- **DONE same session — v47 bridge:** the Offer Builder detail now has a
+  "Branded offer (PDF)" button. It hands the offer (ref, client, pax, ticket/partner/
+  service fees, validity, remarks) to the Studio via localStorage (same origin, nothing
+  in the URL) and opens it pre-filled. Verified end-to-end in the harness: offer
+  DB-418335 → studio showed the client, the ref in the title, and exact totals
+  (3,245.00 + 486.75 VAT = 3,731.75), 0 JS errors. The cycle is now:
+  lead → offer (linkedLeadId) → **branded document** → booking (offerId) → invoice →
+  finance. Still open: write the "sent/accepted" status back from Studio to DB.offers,
+  and an "Accepted → create booking" shortcut.
+- The Brand Hub now lists font sources (Drive internal copies + official foundries +
+  free substitutes with direct Google Fonts links) and extra assets (QR to directksa.com,
+  Drive links to logo masters and both official profiles).
+- Still to open on Drive (session expired mid-survey): `techincal offer final 1.pdf`,
+  `TECHNICAL PROPOSAL- SGC`, `Business Proposal Direct 02 2025.pdf`, `offer-B2B-110991.pdf`,
+  `technical-profile.html`, `company-profile.html`, `Logo Direct .pdf` (transparent vector
+  extraction), core font files for the hub.

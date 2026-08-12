@@ -1,0 +1,89 @@
+// Focused probe for the in-app Events page (v64 layer): Our move pills, the
+// We-take-part chip, move filter, event-site login, lead counts, edit modal.
+// Runs the real app against the local mock. Exits non-zero on any failure.
+// Run: node scripts/qa/probe-events.mjs
+import { chromium } from 'playwright';
+import { start } from './mock-supabase.mjs';
+import fs from 'fs';
+const LIB=fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js','utf8');
+const PORT=8093; const srv=start(PORT); const BASE='http://localhost:'+PORT;
+const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const p=await (await b.newContext({viewport:{width:1440,height:950}})).newPage();
+const errors=[];
+p.on('pageerror',e=>errors.push('js: '+e.message));
+p.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text());});
+await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r=>{
+  const rq=r.request(); const u=new URL(rq.url());
+  try{ const resp=await fetch(BASE+u.pathname+u.search,{method:rq.method(),headers:rq.headers(),body:['GET','HEAD'].includes(rq.method())?undefined:rq.postData()});
+    const body=await resp.text(); const h={}; resp.headers.forEach((v,k)=>{if(!['content-encoding','content-length','transfer-encoding'].includes(k))h[k]=v;});
+    await r.fulfill({status:resp.status,headers:h,body}); }catch(e){ await r.fulfill({status:500,body:'{}'}); }
+});
+await p.route('**cdn.jsdelivr.net/**', r=>r.fulfill({status:200,contentType:'application/javascript',body:LIB}));
+await p.route('**fonts.googleapis.com/**', r=>r.fulfill({status:200,contentType:'text/css',body:''}));
+await p.route('**fonts.gstatic.com/**', r=>r.abort());
+
+let failed=0, passed=0;
+const check=(label,actual,expected)=>{
+  const ok=actual===expected; ok?passed++:failed++;
+  console.log((ok?'PASS':'FAIL')+'  '+label+(ok?'':'  → got '+JSON.stringify(actual)+', expected '+JSON.stringify(expected)));
+};
+const rows=()=>p.evaluate(()=>document.querySelectorAll('#view tbody tr').length);
+const viewText=()=>p.evaluate(()=>document.querySelector('#view').innerText);
+
+// Boot straight to /events (deep path) and sign in
+await p.goto(BASE+'/events',{waitUntil:'domcontentloaded',timeout:60000});
+await p.waitForTimeout(2000);
+await p.fill('#cl_email','test@directksa.com'); await p.fill('#cl_pw','Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
+await p.waitForTimeout(5000);
+await p.evaluate(()=>{current='events';render();});
+await p.waitForTimeout(2500);
+
+const txt=await viewText();
+check('events page renders with rows', (await rows())>0, true);
+check('stats: Have a stand = 2', txt.includes('2\nHave a stand'), true);
+check('stats: Go & meet = 2', txt.includes('2\nGo & meet'), true);
+check('stats: Mine the website = 2', txt.includes('2\nMine the website'), true);
+check('move pill visible on rows', txt.includes('MINE THE WEBSITE')||txt.includes('Mine the website'), true);
+check('event-site login line shows (🔑 who signed up)', txt.includes('🔑')&&txt.includes('Abdulrahman'), true);
+check('lead count line shows on Event 0', txt.includes('3 leads in the app'), true);
+check('companies list link shows', txt.includes('Companies list ↗'), true);
+await p.screenshot({path:'scripts/qa/shot-app-events.png',fullPage:true});
+
+// The one-tap chip: stand + attend only (2+2 of 8)
+await p.click('#evF_ours'); await p.waitForTimeout(500);
+check('🎪 We take part → 4 rows', await rows(), 4);
+await p.click('#evF_ours'); await p.waitForTimeout(500);
+check('chip off → all 8 rows', await rows(), 8);
+
+// Move filter
+await p.selectOption('#evF_m','mine'); await p.waitForTimeout(500);
+check('move filter mine → 2 rows', await rows(), 2);
+await p.selectOption('#evF_m','all'); await p.waitForTimeout(500);
+check('move filter reset → 8 rows', await rows(), 8);
+
+// Search still works alongside
+await p.fill('#evF_q','Event 3'); await p.waitForTimeout(600);
+check('search narrows to 1 row', await rows(), 1);
+await p.fill('#evF_q',''); await p.waitForTimeout(600);
+
+// Edit modal: signup fields prefilled for the event that has a stored login (e2)
+await p.evaluate(()=>evOpenModal('e2')); await p.waitForTimeout(400);
+check('modal: move select present', await p.evaluate(()=>!!document.getElementById('ev_move')), true);
+check('modal: login email prefilled', await p.evaluate(()=>document.getElementById('ev_su_email').value), 'business@directksa.com');
+check('modal: password prefilled', await p.evaluate(()=>document.getElementById('ev_su_pass').value), 'throwaway-1');
+check('modal: who prefilled', await p.evaluate(()=>document.getElementById('ev_su_by').value), 'Abdulrahman');
+await p.screenshot({path:'scripts/qa/shot-app-events-modal.png',fullPage:true});
+await p.evaluate(()=>document.getElementById('ev_cancel').click()); await p.waitForTimeout(300);
+
+// Add modal: "who signed up" pre-fills from the signed-in user
+await p.evaluate(()=>evOpenModal()); await p.waitForTimeout(400);
+const who=await p.evaluate(()=>document.getElementById('ev_su_by').value);
+console.log('info  add-modal "Who signed up" prefill =', JSON.stringify(who), '(from the signed-in profile)');
+check('add modal: move defaults to Not decided', await p.evaluate(()=>document.getElementById('ev_move').value), 'undecided');
+await p.evaluate(()=>document.getElementById('ev_cancel').click());
+
+console.log('---');
+console.log(passed+' passed, '+failed+' failed');
+console.log(errors.length?('PAGE ERRORS:\n'+errors.join('\n')):'0 page errors');
+await b.close(); srv.close();
+process.exit(failed||errors.length?1:0);
