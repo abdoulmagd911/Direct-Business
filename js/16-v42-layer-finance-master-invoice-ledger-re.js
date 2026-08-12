@@ -32,7 +32,18 @@ try{
 function finLoad(cb){
   if(FIN.loading)return; FIN.loading=true;
   var c=fc(); if(!c){FIN.loading=false;return;}
-  c.from('finance_invoices').select('*').order('invoice_date',{ascending:false}).limit(10000).then(function(r){
+  // The API returns at most 1000 rows per request no matter what limit() asks for,
+  // so the ledger MUST page — one big limit() silently drops rows past 1000.
+  var _all=[];
+  (function _page(from){
+    c.from('finance_invoices').select('*').order('invoice_date',{ascending:false}).order('id',{ascending:true}).range(from,from+999).then(function(r){
+      if(r.error){finGot(r);return;}
+      _all=_all.concat(r.data||[]);
+      if((r.data||[]).length===1000)_page(from+1000);
+      else finGot({data:_all,error:null});
+    });
+  })(0);
+  function finGot(r){
     if(r.error){console.warn('finance load',r.error);FIN.rows=[];FIN.loadErr=r.error.message;}
     else {FIN.rows=r.data||[];FIN.loadErr=null;}
     // Load the client↔finance links (one row per finance client_group → a real client, or
@@ -52,7 +63,7 @@ function finLoad(cb){
         try{if(current==='finance')render();}catch(_){}
       });
     });
-  });
+  }
 }
 try{window.FIN=FIN;window.finLoad=finLoad;}catch(_){}  // expose for the Customer-360 finance snapshot (v29)
 function live(){ return (FIN.rows||[]).filter(function(r){return !r.deleted_at;}); }
