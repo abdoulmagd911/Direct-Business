@@ -137,6 +137,7 @@
     <div class="field"><label>City</label><select id="fCity"><option value="">All cities</option></select></div>
     <div class="field"><label>Venue</label><select id="fVenue"><option value="">All venues</option></select></div>
     <div class="field"><label>Priority</label><select id="fPriority"><option value="">All</option><option value="high">High (4-5)</option><option value="medium">Medium (3)</option><option value="low">Low (1-2)</option></select></div>
+    <button class="btn btn-chip btn-sm" id="btnOurs" style="align-self:center" title="Only the events we take part in — a stand or going in person">🎪 We take part</button>
     <button class="btn btn-chip btn-sm" id="btnUpcoming" style="align-self:center">Next 30 days</button>
     <button class="btn btn-outline btn-sm" id="btnExportCsv" style="align-self:center">CSV</button>
     <button class="btn btn-outline btn-sm" id="btnExportJson" style="align-self:center">JSON</button>
@@ -273,8 +274,10 @@ const STATUS_LABEL = {confirmed:"Confirmed", needs_verification:"Needs verificat
 const OPP_LABEL = {sales:"Sales", partner:"Partner"};
 const MOVE_LABEL = {stand:"Have a stand", attend:"Go & meet", mine:"Mine the website", skip:"Skip", undecided:"Not decided"};
 const PROGRESS_LABEL = {not_started:"Not started", signed_up:"Signed up", in_progress:"Working on it", leads_added:"Leads collected", done:"Done"};
-function moveOf(e){ return e.approach || 'undecided'; }
-function progressOf(e){ return e.approach_status || 'not_started'; }
+// Normalise here so the pill, the filter, the sort and the stats all agree:
+// any value we don't recognise counts as "Not decided" everywhere.
+function moveOf(e){ const m = e.approach || 'undecided'; return MOVE_LABEL[m] ? m : 'undecided'; }
+function progressOf(e){ const p = e.approach_status || 'not_started'; return PROGRESS_LABEL[p] ? p : 'not_started'; }
 const MONTH = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 let EVENTS = [];
@@ -287,6 +290,11 @@ const tbody = document.querySelector('#eventTable tbody');
 
 function normName(s){ return (s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
 
+// Every piece of saved text goes through esc() before touching the page,
+// so a name like  A<B "Travel"  renders literally instead of breaking the table.
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function safeUrl(u){ return (typeof u==='string' && /^https?:\/\//i.test(u.trim())) ? u.trim() : null; }
+
 function renderAuth(){
   document.getElementById('whoAmI').textContent = SESSION ? (SESSION.user.email||'') : '';
   document.getElementById('btnAuth').textContent = SESSION ? 'Sign out' : 'Team sign-in';
@@ -298,11 +306,20 @@ async function loadTeamData(){
   if (!SESSION){ render(); return; }
   const su = await sb.from('ksa_event_signups').select('*');
   if (!su.error && su.data) su.data.forEach(function(r){ SIGNUPS[r.event_id] = r; });
-  const ld = await sb.from('businesses').select('ev:funnel_details->>event_name').not('funnel_details->>event_name','is',null);
-  if (!ld.error && ld.data) ld.data.forEach(function(r){
-    const k = normName(r.ev); if (!k) return;
-    LEADS_BY_EVENT[k] = (LEADS_BY_EVENT[k]||0) + 1;
-  });
+  // The API returns at most 1000 rows per request, so page through — a one-shot
+  // read would silently undercount once event leads pass 1000 (same trap the
+  // finance loader hit).
+  for (let from = 0;;){
+    const ld = await sb.from('businesses').select('ev:funnel_details->>event_name')
+      .not('funnel_details->>event_name','is',null).range(from, from+999);
+    if (ld.error || !ld.data || !ld.data.length) break;
+    ld.data.forEach(function(r){
+      const k = normName(r.ev); if (!k) return;
+      LEADS_BY_EVENT[k] = (LEADS_BY_EVENT[k]||0) + 1;
+    });
+    if (ld.data.length < 1000) break;
+    from += 1000;
+  }
   render();
 }
 
@@ -375,6 +392,7 @@ function populateFilters(){
 }
 
 let upcomingOnly = false;
+let oursOnly = false; // one tap → only the events we take part in (a stand, or going in person)
 function filtered(){
   const v=document.getElementById('fVertical').value, st=document.getElementById('fStatus').value;
   const op=document.getElementById('fOpp').value, c=document.getElementById('fCity').value;
@@ -385,6 +403,7 @@ function filtered(){
     if (v && e.vertical!==v) return false;
     if (st && e.status!==st) return false;
     if (mv && moveOf(e)!==mv) return false;
+    if (oursOnly && moveOf(e)!=='stand' && moveOf(e)!=='attend') return false;
     if (op==='sales' && !e.opportunity_sales) return false;
     if (op==='partner' && !e.opportunity_partner) return false;
     if (c && e.city!==c) return false;
@@ -441,28 +460,32 @@ function render(){
       if (e.priority>=4) tr.classList.add('hi-priority');
       const dots = [1,2,3,4,5].map(function(i){return '<span class="'+(i<=e.priority?'on':'')+'"></span>';}).join('');
       const oppPills = [e.opportunity_sales?'<span class="pill opp-sales">'+OPP_LABEL.sales+'</span>':'', e.opportunity_partner?'<span class="pill opp-partner">'+OPP_LABEL.partner+'</span>':''].filter(Boolean).join(' ');
-      const link = e.link ? '<a href="'+e.link+'" target="_blank" rel="noopener">Link ↗</a>' : '';
-      const mv = moveOf(e), pg = progressOf(e);
+      const linkUrl = safeUrl(e.link);
+      const link = linkUrl ? '<a href="'+esc(linkUrl)+'" target="_blank" rel="noopener">Link ↗</a>' : '';
+      const mv = MOVE_LABEL[moveOf(e)] ? moveOf(e) : 'undecided';
+      const pg = PROGRESS_LABEL[progressOf(e)] ? progressOf(e) : 'not_started';
       const showProgress = (mv!=='skip' && mv!=='undecided');
-      const listLink = e.exhibitor_list_url ? '<div><a href="'+e.exhibitor_list_url+'" target="_blank" rel="noopener">Companies list ↗</a></div>' : '';
+      const listUrl = safeUrl(e.exhibitor_list_url);
+      const listLink = listUrl ? '<div><a href="'+esc(listUrl)+'" target="_blank" rel="noopener">Companies list ↗</a></div>' : '';
       const signup = SIGNUPS[e.id];
       const signupLine = signup && (signup.login_email||signup.signed_up_by) ?
-        '<div class="move-progress">🔑 '+(signup.login_email||'')+(signup.signed_up_by?' ('+signup.signed_up_by+')':'')+'</div>' : '';
+        '<div class="move-progress">🔑 '+esc(signup.login_email||'')+(signup.signed_up_by?' ('+esc(signup.signed_up_by)+')':'')+'</div>' : '';
       const leadCount = LEADS_BY_EVENT[normName(e.name_en)] || 0;
       const leadsLine = leadCount ? '<div class="move-progress p-done">'+leadCount+' lead'+(leadCount===1?'':'s')+' in the app</div>' : '';
       const moveCell = '<span class="pill mv-'+mv+'">'+MOVE_LABEL[mv]+'</span>'+
         (showProgress?'<div class="move-progress'+(pg==='done'||pg==='leads_added'?' p-done':'')+'">'+PROGRESS_LABEL[pg]+'</div>':'')+listLink+signupLine+leadsLine;
+      const vertical = ['Travel','Tech','Study','Other'].indexOf(e.vertical)!==-1 ? e.vertical : 'Other';
       tr.innerHTML =
         '<td class="prio-dots">'+dots+'</td>'+
         '<td class="month">'+dateRange(e.start_date,e.end_date)+'</td>'+
-        '<td><div class="name">'+e.name_en+'</div><div class="name-ar">'+(e.name_ar||'')+'</div>'+(link?'<div>'+link+'</div>':'')+(e.notes?'<div class="notes">'+e.notes+'</div>':'')+'</td>'+
+        '<td><div class="name">'+esc(e.name_en)+'</div><div class="name-ar">'+esc(e.name_ar||'')+'</div>'+(link?'<div>'+link+'</div>':'')+(e.notes?'<div class="notes">'+esc(e.notes)+'</div>':'')+'</td>'+
         '<td>'+moveCell+'</td>'+
-        '<td><span class="pill '+e.vertical.toLowerCase()+'">'+e.vertical+'</span></td>'+
-        '<td><span class="pill st-'+e.status+'">'+STATUS_LABEL[e.status]+'</span></td>'+
-        '<td>'+(e.city||'—')+'</td>'+
-        '<td>'+(e.venue||'—')+'</td>'+
+        '<td><span class="pill '+vertical.toLowerCase()+'">'+esc(e.vertical)+'</span></td>'+
+        '<td><span class="pill st-'+esc(e.status)+'">'+esc(STATUS_LABEL[e.status]||e.status)+'</span></td>'+
+        '<td>'+esc(e.city||'—')+'</td>'+
+        '<td>'+esc(e.venue||'—')+'</td>'+
         '<td>'+(oppPills||'—')+'</td>'+
-        '<td class="row-actions"><button class="btn btn-outline btn-sm" data-edit="'+e.id+'">Edit</button><button class="btn btn-danger-outline btn-sm" data-del="'+e.id+'">Delete</button></td>';
+        '<td class="row-actions"><button class="btn btn-outline btn-sm" data-edit="'+esc(e.id)+'">Edit</button><button class="btn btn-danger-outline btn-sm" data-del="'+esc(e.id)+'">Delete</button></td>';
       tbody.appendChild(tr);
     });
   }
@@ -597,7 +620,7 @@ async function openHistory(){
   list.innerHTML = data.map(function(row){
     const name = (row.new_data && row.new_data.name_en) || (row.old_data && row.old_data.name_en) || 'Unknown';
     const when = new Date(row.changed_at).toLocaleString();
-    return '<div style="padding:8px 0;border-bottom:1px solid var(--border)"><b>'+row.operation+'</b> — '+name+' <span style="color:var(--muted)">· '+when+'</span></div>';
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--border)"><b>'+esc(row.operation)+'</b> — '+esc(name)+' <span style="color:var(--muted)">· '+esc(when)+'</span></div>';
   }).join('') || '<div class="empty">No history yet.</div>';
 }
 
@@ -630,6 +653,11 @@ function init(){
   document.getElementById('btnUpcoming').addEventListener('click', function(ev){
     upcomingOnly = !upcomingOnly;
     ev.target.classList.toggle('active', upcomingOnly);
+    render();
+  });
+  document.getElementById('btnOurs').addEventListener('click', function(ev){
+    oursOnly = !oursOnly;
+    ev.target.classList.toggle('active', oursOnly);
     render();
   });
   ['fSearch','fVertical','fStatus','fMove','fOpp','fCity','fVenue','fPriority'].forEach(function(id){
