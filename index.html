@@ -1069,7 +1069,7 @@ function editBusiness(id){
     
     <div class="field"><label>Contacts (same business, multiple people)</label><div id="contacts"></div><button class="btn sm" onclick="addContactRow()">+ Add contact</button></div>
     <div class="field"><label>Notes</label><textarea id="f_notes" rows="2">${esc(b.notes||"")}</textarea></div>
-  `,()=>{b.name=val("f_name");b.nameAr=val("f_ar");b.segment=val("f_seg");b.area=val("f_area");b.category=val("f_cat");b.services=val("f_serv");b.nextAction=val("f_next");b.source=val("f_source");b.sourceSub=(val("f_source")==='Travel Agencies'?val("f_sub"):'');b.assignedTo=val("f_assign")||(window.meName?meName():"")||(typeof me==="function"?me():"");const _fk=val("f_funnel");b.funnelKey=_fk||null;const _fd=(window.__funnelDefs||[]).find(f=>f.key===_fk);b.funnelName=_fd?_fd.name_en:null;b.funnelNameAr=_fd?_fd.name_ar:null;b.stage=val("f_stage");b.status=val("f_stage");b.dueDate=val("f_due");if(b.stage==="Won")b.isClient=true;b.channels=[...document.querySelectorAll(".f_ch:checked")].map(e=>e.value);b.isClient=val("f_client")==="yes";b.isVendor=val("f_vendor")==="yes";b.notes=val("f_notes");b.contacts=readContacts();if(!b.name.trim()){alert("Business name required.");return false;}const i=DB.businesses.findIndex(x=>x.id===b.id);if(i>=0)DB.businesses[i]=b;else DB.businesses.push(b);save();render();},isNew?null:()=>{if(confirm("Delete this business?")){DB.businesses=DB.businesses.filter(x=>x.id!==id);openLead=null;save();render();}});
+  `,()=>{b.name=val("f_name");b.nameAr=val("f_ar");b.segment=val("f_seg");b.area=val("f_area");b.category=val("f_cat");b.services=val("f_serv");b.nextAction=val("f_next");b.source=val("f_source");b.sourceSub=(val("f_source")==='Travel Agencies'?val("f_sub"):'');b.assignedTo=val("f_assign")||(window.meName?meName():"")||(typeof me==="function"?me():"");const _fk=val("f_funnel");b.funnelKey=_fk||null;const _fd=(window.__funnelDefs||[]).find(f=>f.key===_fk);b.funnelName=_fd?_fd.name_en:null;b.funnelNameAr=_fd?_fd.name_ar:null;const _wasClient=!!b.isClient;b.stage=val("f_stage");b.status=val("f_stage");b.dueDate=val("f_due");b.channels=[...document.querySelectorAll(".f_ch:checked")].map(e=>e.value);b.isClient=val("f_client")==="yes";if(b.stage==="Won")b.isClient=true;b.isVendor=val("f_vendor")==="yes";b.notes=val("f_notes");b.contacts=readContacts();if(!b.name.trim()){alert("Business name required.");return false;}const i=DB.businesses.findIndex(x=>x.id===b.id);if(i>=0)DB.businesses[i]=b;else DB.businesses.push(b);save();render();if(b.isClient&&!_wasClient&&typeof window.__clientHandover==='function')setTimeout(()=>window.__clientHandover(b.id),250);},isNew?null:()=>{if(confirm("Delete this business?")){DB.businesses=DB.businesses.filter(x=>x.id!==id);openLead=null;save();render();}});
   window._contacts=(b.contacts||[]).slice();drawContacts();
 }
 function drawContacts(){const c=document.getElementById("contacts");if(!c)return;c.innerHTML=(window._contacts||[]).map((ct,i)=>`<div class="contact"><input placeholder="Name" value="${esc(ct.name||"")}" oninput="window._contacts[${i}].name=this.value"><input placeholder="Email" value="${esc(ct.email||"")}" oninput="window._contacts[${i}].email=this.value"><input placeholder="Phone" value="${esc(ct.phone||"")}" oninput="window._contacts[${i}].phone=this.value"><span class="x" onclick="window._contacts.splice(${i},1);drawContacts()">✕</span></div>`).join("");}
@@ -1571,6 +1571,7 @@ window.o_uploadFile=function(id){
   var inp=document.getElementById('o_file'),msg=document.getElementById('o_fileMsg');
   var f=inp&&inp.files&&inp.files[0];if(!f)return;
   var _ar=(typeof LANG!=='undefined'&&LANG==='ar');
+  if(!/\.(pdf|png|jpe?g|docx|xlsx)$/i.test(f.name)){if(msg)msg.textContent=_ar?'الأنواع المقبولة: PDF · صور · Word · Excel.':'Accepted types: PDF, images, Word, Excel.';inp.value='';return;}
   if(f.size>25*1024*1024){if(msg)msg.textContent=_ar?'الملف أكبر من 25MB.':'File is larger than 25MB.';return;}
   if(msg)msg.textContent=_ar?'جارٍ الرفع…':'Uploading…';
   var c=window.supabase.createClient();
@@ -7248,9 +7249,16 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
    extra+
    '<div class="field"><label>Quick note (optional - logs an activity)</label><textarea id="qe_note" rows="2"></textarea></div>',
    function(){
-    var ns=val('qe_stage');
+    var ns=val('qe_stage')||leadStage(b); // an empty stage must never be saved
     try{if(ns==='Lost'&&leadStage(b)!=='Lost'&&typeof captureLostReason==='function')captureLostReason(b);}catch(_){}
     var _newWon=(ns==='Won'&&!b.isClient);
+    if(b.isClient&&ns!=='Won'&&leadStage(b)==='Won'){
+      var _arQ=(typeof LANG!=='undefined'&&LANG==='ar');
+      if(confirm(_arQ?'هذه الشركة عميل حاليًا. الرجوع بها إلى قائمة العملاء المحتملين؟\nموافق = تعود عميلاً محتملاً (يبقى سجلها وماليتها). إلغاء = تبقى عميلاً.':'This company is currently a client. Move it back to the leads pipeline?\nOK = becomes a lead again (its history and finance links stay). Cancel = stays a client.')){
+        b.isClient=false;
+        b.activities=b.activities||[];b.activities.push({date:Date.now(),type:'Stage change',status:ns,note:_arQ?'أُعيدت من العملاء إلى المحتملين':'Moved back from clients to the pipeline',by:(typeof me==='function'?me():'Team')});
+      }
+    }
     b.stage=ns;b.status=ns;if(ns==='Won')b.isClient=true;
     var ov=val('qe_owner');if(ov!=='__add__')b.assignedTo=ov;
     var fv=val('qe_funnel');b.funnelKey=fv||null;var _fd=(window.__funnelDefs||[]).find(function(f){return f.key===fv;});b.funnelName=_fd?_fd.name_en:null;b.funnelNameAr=_fd?_fd.name_ar:null;
@@ -9638,7 +9646,7 @@ function rImport(){
   if(!canFinEdit())return '<div class="card" style="padding:30px;text-align:center;color:var(--muted)">'+_fl('Import is restricted to admins and managers.','الاستيراد متاح للمدراء والمسؤولين فقط.')+'</div>';
   var h='<div class="card" style="padding:18px;max-width:860px">';
   h+='<h3 style="margin:0 0 8px">'+_fl('Import invoices (CSV)','استيراد الفواتير (CSV)')+'</h3>';
-  h+='<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:12px">Expected header:<br><code style="font-size:11px;background:#F3F1EA;padding:3px 6px;border-radius:6px;display:inline-block;margin-top:4px;word-break:break-all;max-width:100%">client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes</code><br>Optional last columns: <code style="font-size:11px">origin,proposal_ref</code> (origin = booking or project).<br>Duplicates are skipped, totals re-checked, and nothing is written until you confirm the preview.</div>';
+  h+='<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:12px">'+_fl('Expected header','الأعمدة المطلوبة')+':<br><code style="font-size:11px;background:#F3F1EA;padding:3px 6px;border-radius:6px;display:inline-block;margin-top:4px;word-break:break-all;max-width:100%">client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes</code><br>'+_fl('Optional last columns: <code style="font-size:11px">origin,proposal_ref</code> (origin = booking or project).','عمودان اختياريان في النهاية: <code style="font-size:11px">origin,proposal_ref</code> (النوع: booking أو project).')+'<br>'+_fl('Duplicates are skipped, totals re-checked, and nothing is written until you confirm the preview.','تُتجاهل الفواتير المكررة وتُراجع الأرقام، ولا يُكتب شيء قبل تأكيدك للمعاينة.')+'</div>';
   h+='<div id="finDrop" style="border:2px dashed #C9CDD6;border-radius:12px;padding:22px;text-align:center;color:var(--muted);font-size:13px;margin-bottom:12px;cursor:pointer" onclick="document.getElementById(\'finFile\').click()">⬇ '+_fl('Drop a CSV file here, or click to choose','أفلت ملف CSV هنا أو انقر للاختيار')+'</div>';
   h+='<input type="file" id="finFile" accept=".csv" style="font-size:13px"> <button class="btn pri sm" onclick="finParse()">'+_fl('Check file','فحص الملف')+'</button>';
   h+='<div id="finImpOut" style="margin-top:14px"></div></div>';
@@ -9706,10 +9714,12 @@ window.finParse=function(){
       ok.push({invoice_no:o.invoice_no,zatca_dpin:o.zatca_dpin||null,client_group:o.client_group,customer_raw_name:o.customer_raw_name||null,invoice_date:o.invoice_date,month:o.month,quarter:o.quarter,products:o.products||null,service_type:svcType(o.products),record_type:'b2b',total_incl_vat_sar:tot,wallet_portion_sar:wal,revenue_sar:rev,cost_sar:cost,profit_sar:prof,amount_received_sar:st==='verified_paid'?tot:0,amount_remaining_sar:0,integrity_status:st,notes:o.notes||null,origin:org||'booking',proposal_ref:String(o.proposal_ref||'').trim()||null,source_batch:'import '+new Date().toISOString().slice(0,10)});
     });
     var trev=0,tcost=0,tprof=0;ok.forEach(function(r){trev+=r.revenue_sar;tcost+=r.cost_sar;tprof+=r.profit_sar;});
+    var unkRef=ok.filter(function(r){return r.proposal_ref&&!((typeof DB!=='undefined'&&DB.offers)||[]).some(function(o){return o.ref===r.proposal_ref;});}).length;
     FIN._pending=ok;
     var h='<div style="font-size:13px;line-height:1.8"><b>Preview \u2014 nothing written yet:</b><br>\u2705 Ready to import: <b>'+ok.length+'</b> rows \u00b7 revenue '+money(trev)+' \u00b7 cost '+money(tcost)+' \u00b7 profit '+money(tprof)+'<br>';
     if(dups.length)h+='\u23ed Skipped duplicates (already in the ledger): <b>'+dups.length+'</b> \u2014 '+dups.slice(0,8).map(function(d){return d.no;}).join(', ')+(dups.length>8?'\u2026':'')+'<br>';
     if(flagged.length)h+='\u26a0 Flagged for review (NOT imported): <b>'+flagged.length+'</b><br>'+flagged.slice(0,10).map(function(fl){return '<span style="font-size:11.5px;color:#8b5b1f">line '+fl.line+' \u00b7 '+escF(fl.no)+' \u2014 '+escF(fl.probs.join('; '))+'</span>';}).join('<br>')+(flagged.length>10?'<br>\u2026':'')+'<br>';
+    if(unkRef)h+='<span style="font-size:12px;color:#8b5b1f">\u26a0 '+unkRef+' project row(s) name a proposal that is not in the app yet \u2014 the link will say "no proposal" until it exists.</span><br>';
     h+=(ok.length?'<button class="btn pri sm" style="margin-top:8px" onclick="finCommit()">Confirm import of '+ok.length+' rows</button>':'')+'</div>';
     document.getElementById('finImpOut').innerHTML=h;
   };
@@ -9735,6 +9745,7 @@ function svcType(p){
 }
 window.finCommit=function(){
   var P=FIN._pending||[];if(!P.length)return;
+  FIN._pending=null; // double-click cannot import twice
   document.getElementById('finImpOut').innerHTML='<div style="font-size:13px">Importing '+P.length+' rows\u2026</div>';
   var c=fc(),i=0,errs=[];
   function next(){
