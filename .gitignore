@@ -9,3 +9,4 @@ package-lock.json
 
 # QA screenshots are throwaway run output — look at them, don't commit them
 scripts/qa/shot-*.png
+shots/
