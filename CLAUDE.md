@@ -280,6 +280,27 @@ runs `index.html` in a headless browser against a local stand-in for Supabase. S
 deliberately for this). Screenshot the pages and look at them — several real defects on
 Today and Leads were invisible in the code and obvious on screen.
 
+## Rules for editing the app (SPLIT INTO FILES on 2026-08-12)
+
+**The app is no longer one file.** `index.html` holds the base core; the 37 feature
+layers now live in **`js/NN-name.js`**, loaded in numeric order by `<script src="/js/...">`
+lines before `</body>`. Behavior is identical (each file was a self-contained script
+block already); what changed is that parallel work is now safe when sessions touch
+DIFFERENT files.
+
+- **New feature = NEW file.** Create `js/NN-short-name.js` (next number), self-contained,
+  wrapped in try/catch, and add its `<script src="/js/NN-short-name.js"></script>` line at
+  the end of index.html before the v-final blocks. Never grow an existing layer for an
+  unrelated feature.
+- **Parallel sessions rule (owner works this way):** two sessions may run at the same time
+  ONLY if they work in different files. Anything touching `index.html` itself (the core,
+  nav wiring, a new script line) is a "connection step" — do it in ONE session, alone.
+  Build-standalone-first, connect-alone-last.
+- Script src paths must be ABSOLUTE (`/js/...`) — relative paths break on deep-address
+  reloads like `/leads`.
+- The QA mock (`scripts/qa/`) serves `js/` files exactly like Vercel does; all probes run
+  against the split app unchanged.
+
 ## Rules for editing index.html
 
 - **Never call `window.supabase.createClient` again in a new layer.** The app had five
