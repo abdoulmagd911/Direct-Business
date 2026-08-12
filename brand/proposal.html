@@ -385,10 +385,33 @@ document.addEventListener('click', function(e){
   }
 });
 
-/* URL prefill: proposal.html?client=X&lang=ar&no=OFR-... */
+/* URL prefill: proposal.html?client=X&lang=ar&no=OFR-...
+   App handoff: proposal.html?from=app reads the offer payload the app's v47
+   layer left in localStorage (same origin) — data never travels in the URL. */
 function prefill(){
   try{
     var p=new URLSearchParams(location.search);
+    if(p.get('from')==='app'){
+      var raw=localStorage.getItem('direct_studio_handoff');
+      if(raw){
+        var h=JSON.parse(raw);
+        if(h && typeof h==='object'){
+          if(h.client) state.client=h.client;
+          if(h.attn) state.attn=h.attn;
+          if(h.no) state.no=h.no;
+          if(h.date) state.date=h.date;
+          if(h.valid) state.valid=h.valid;
+          if(h.by) state.by=h.by;
+          if(Array.isArray(h.lines)&&h.lines.length) state.lines=h.lines.map(function(l){
+            return {svc:l.svc||'', svcAr:l.svcAr||'', unit:l.unit||'', qty:l.qty||1, orig:l.orig||'', price:l.price||''};
+          });
+          var extra=[h.remarks,h.addFees].filter(Boolean).join('\n');
+          if(extra) state.terms=(state.terms==null?T[state.lang].defTerms:state.terms)+'\n'+extra;
+          save();
+        }
+        localStorage.removeItem('direct_studio_handoff');
+      }
+    }
     if(p.get('client')) state.client=p.get('client');
     if(p.get('lang')==='ar'||p.get('lang')==='en') state.lang=p.get('lang');
     if(p.get('no')) state.no=p.get('no');

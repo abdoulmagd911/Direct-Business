@@ -291,8 +291,18 @@ as deliberate: `#F06820` documents · `#FF6C00` logo mark · `#F47A1F` app.
 - ⚠ **Production branch land mine:** PR #15 targets `main`, but Vercel production deploys
   from `claude/new-session-9fhlp1`. Merging the PR does NOT change directksab2b.com.
   To go live: promote in Vercel, or point the Vercel production branch at `main`.
-- The app's existing **Offer Builder** page still produces the unbranded export
-  (`Offer-DB-817890.html` proved this) — wire it to the Studio next.
+- **DONE same session — v47 bridge:** the Offer Builder detail now has a
+  "Branded offer (PDF)" button. It hands the offer (ref, client, pax, ticket/partner/
+  service fees, validity, remarks) to the Studio via localStorage (same origin, nothing
+  in the URL) and opens it pre-filled. Verified end-to-end in the harness: offer
+  DB-418335 → studio showed the client, the ref in the title, and exact totals
+  (3,245.00 + 486.75 VAT = 3,731.75), 0 JS errors. The cycle is now:
+  lead → offer (linkedLeadId) → **branded document** → booking (offerId) → invoice →
+  finance. Still open: write the "sent/accepted" status back from Studio to DB.offers,
+  and an "Accepted → create booking" shortcut.
+- The Brand Hub now lists font sources (Drive internal copies + official foundries +
+  free substitutes with direct Google Fonts links) and extra assets (QR to directksa.com,
+  Drive links to logo masters and both official profiles).
 - Still to open on Drive (session expired mid-survey): `techincal offer final 1.pdf`,
   `TECHNICAL PROPOSAL- SGC`, `Business Proposal Direct 02 2025.pdf`, `offer-B2B-110991.pdf`,
   `technical-profile.html`, `company-profile.html`, `Logo Direct .pdf` (transparent vector
