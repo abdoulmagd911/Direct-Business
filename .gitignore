@@ -1,2 +1,11 @@
 # local test-harness symlink to /tmp/node_modules
 node_modules
+
+# QA harness installs its tools ad hoc (see scripts/qa/README.md); a committed
+# package.json would make Vercel try to npm-install on every deploy of this
+# static site, so keep it local-only
+package.json
+package-lock.json
+
+# QA screenshots are throwaway run output — look at them, don't commit them
+scripts/qa/shot-*.png
