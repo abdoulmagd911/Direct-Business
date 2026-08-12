@@ -189,7 +189,7 @@ await page.evaluate(() => { current = 'finance'; render(); });
 await page.waitForTimeout(1200);
 await page.locator('#view button, #view .btn').filter({ hasText: /استيراد/ }).first().click();
 await page.waitForTimeout(800);
-const arImport = await page.evaluate(() => { const t = document.getElementById('view').textContent || ''; return { drop: t.includes('أفلت ملف'), cols: t.includes('عمودان اختياريان'), check: t.includes('فحص الملف') }; });
+const arImport = await page.evaluate(() => { const t = document.getElementById('view').textContent || ''; return { drop: t.includes('أفلت هنا') || t.includes('أفلت ملف'), cols: t.includes('عمودان اختياريان'), check: t.includes('فحص الملف') }; });
 STEP('L14 Arabic import page: drop zone + optional-columns + check button all Arabic', arImport.drop && arImport.cols && arImport.check, JSON.stringify(arImport));
 await SHOT('ar-import');
 await page.evaluate(() => { current = 'offers'; render(); });

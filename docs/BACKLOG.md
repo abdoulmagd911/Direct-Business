@@ -1,5 +1,30 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-12 · Round 6 — THE IMPORTER + the mirror folded away + ordered re-sweep
+
+Blueprint step 1 SHIPPED. Finance → Import now reads **Direct Payments' own "Invoice
+Export" file directly** (Excel or CSV — the Excel reader loads on demand):
+- recognises the typed rows (invoice / item / credit note / payment receipt) and applies
+  the fee-pair rules: non-taxable = cost, the WHOLE taxable amount = profit, VAT stored
+  only, never shown;
+- pairs each numbered tax invoice with its unnumbered twin (the source transaction →
+  `transaction_ref`); classifies commissions, wallet top-ups, drafts;
+- previews counts + totals, writes NOTHING until confirmed, and skips rows already in
+  the ledger — dropping the same file twice imports zero duplicates (proven by test);
+- verified on a real export: 39 invoices — 29 paid, 15 transactions, 1 commission set,
+  1 credit note, 1 wallet top-up, 3 twin pairs, arithmetic consistent to the riyal.
+
+The old MANUAL mirror path is folded away (owner-approved): Today's "New invoice" card
+is now "Import invoices" → opens the importer; the "From Direct (read-only)" nav group
+is hidden (pages + data intact and reachable — one-line revert if ever wanted).
+
+Owner's login-page worry answered with evidence: the deployed site and the tested copy
+are byte-identical (same sha256), and the brand sentences under the logo are present —
+the "different look" in test screenshots is only the sandbox's fallback font (the Cairo
+webfont can't load offline). A wave-3 check now asserts those sentences on every run.
+
+Ordered re-sweep green: sign-out → sign-in → lead through all phases → Won auto-converts
+→ Clients list → importer end-to-end → reports → sign-out. 209 checks / 8 suites / 0 errors.
 ## 2026-08-12 · Round 5 — the "employee day" attack (owner: click everything, trust nothing)
 
 Two new all-click suites (`scripts/qa/attack-day.mjs`, `attack-wave2.mjs`) drive the app
