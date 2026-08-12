@@ -275,3 +275,25 @@ as deliberate: `#F06820` documents · `#FF6C00` logo mark · `#F47A1F` app.
 - Showcase artifact: https://claude.ai/code/artifact/4d5c57f1-45ed-4b67-8f40-6b94600b8546
 - Next users of this: branded proposals, the report/offer generators, and the Arabic/RTL
   pass (backlog item 8 — the brand says Arabic is always RTL).
+
+**Extended 2026-08-12 (same session), phases built and verified in the harness:**
+- **Brand Hub** `brand/index.html` — employees download HD transparent logos, copy color
+  codes (HEX + RGB for PowerPoint), font guidance, do/don't. Served at `/brand/`
+  (vercel.json rewrites added ABOVE the `/(.*)` catch-all — that catch-all would
+  otherwise swallow the path).
+- **Proposal Studio** `brand/proposal.html` — bilingual (EN + real RTL AR) price-offer
+  generator matching the house pattern (orange cover → pill-header table + computed
+  VAT 15% totals + terms → orange thank-you page with the real contacts). Pure
+  client-side, drafts in localStorage, print = PDF. Structure verified against
+  `Price offer Directksa.pdf`, the Arabic quote PPTXs, and `offer-proposal.html`.
+- **App nav** — `v46` layer in `index.html` adds a "Brand/الهوية" button (v44b injection
+  pattern, survives re-renders, 0 JS errors in the harness with the test login).
+- ⚠ **Production branch land mine:** PR #15 targets `main`, but Vercel production deploys
+  from `claude/new-session-9fhlp1`. Merging the PR does NOT change directksab2b.com.
+  To go live: promote in Vercel, or point the Vercel production branch at `main`.
+- The app's existing **Offer Builder** page still produces the unbranded export
+  (`Offer-DB-817890.html` proved this) — wire it to the Studio next.
+- Still to open on Drive (session expired mid-survey): `techincal offer final 1.pdf`,
+  `TECHNICAL PROPOSAL- SGC`, `Business Proposal Direct 02 2025.pdf`, `offer-B2B-110991.pdf`,
+  `technical-profile.html`, `company-profile.html`, `Logo Direct .pdf` (transparent vector
+  extraction), core font files for the hub.
