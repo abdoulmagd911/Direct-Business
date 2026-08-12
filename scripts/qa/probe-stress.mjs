@@ -114,7 +114,7 @@ const sahm = await page.evaluate(() => {
   const verified = rows.filter(r => r.integrity_status === 'verified_paid');
   return { n: rows.length, verifiedTotal: verified.reduce((a, r) => a + +r.total_incl_vat_sar, 0), hasCN: rows.some(r => r.integrity_status === 'credit_note' && r.total_incl_vat_sar < 0), hasExcluded: rows.some(r => r.integrity_status === 'excluded') };
 });
-STEP('S7 Sahm mess intact: 6 rows, credit note negative, excluded row outside verified totals', sahm.n === 6 && sahm.hasCN && sahm.hasExcluded && sahm.verifiedTotal === 34500 + 12650, JSON.stringify(sahm));
+STEP('S7 Sahm mess intact: 9 rows (incl. 2023 + 2027), credit note negative, excluded row outside verified totals', sahm.n === 9 && sahm.hasCN && sahm.hasExcluded && sahm.verifiedTotal === 34500 + 12650 + 18400 + 9660, JSON.stringify(sahm));
 
 // ===== S8 · AR aging counts the pending money =====
 await page.locator('#view button, #view .btn').filter({ hasText: /Clients & collections|العملاء والتحصيل/ }).first().click();
@@ -207,6 +207,59 @@ for (const p of ['leads', 'clients', 'finance']) {
 const arOk = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth > window.innerWidth + 2, err: window.__renderErr || null }));
 STEP('S20 Arabic under load: leads/clients/finance render, no overflow', !arOk.overflow && !arOk.err && errs.length === 0, JSON.stringify(arOk) + ' pageerrors=' + errs.length);
 await SHOT('ar-stress');
+
+// ===== S21 · far dates: 2023 history and 2027 future both first-class =====
+await page.locator('button:has-text("English")').first().click().catch(() => {});
+await page.waitForTimeout(1800);
+await page.evaluate(() => { current = 'finance'; openLead = null; FIN.tab = 'overview'; render(); });
+await page.waitForTimeout(1200);
+const years2 = await page.evaluate(() => [...document.querySelectorAll('#view select')].map(s => [...s.options].map(o => o.value).join(',')).join(';'));
+STEP('S21 year selector now offers 2023 AND 2027', /2023/.test(years2) && /2027/.test(years2));
+await page.evaluate(() => { FIN.p.year = '2027'; FIN.p.part = 'all'; render(); });
+await page.waitForTimeout(900);
+const rev2027exp = moneyS(sum(S.filter(r => r.integrity_status === 'verified_paid' && r.invoice_date.startsWith('2027')), 'revenue_sar'));
+const rev2027app = await page.evaluate(() => { const g = [...document.querySelectorAll('#view .card')].find(c => (c.parentElement.getAttribute('style') || '').includes('minmax(132px')); return g ? g.parentElement.children[0].textContent.replace(/\s+/g, ' ') : '?'; });
+STEP('S22 2027 revenue equals the formula (future-dated invoices countable)', rev2027app.includes(rev2027exp), `app "${rev2027app}" vs ${rev2027exp}`);
+await page.evaluate(() => { FIN.p.year = 'all'; render(); });
+await page.waitForTimeout(700);
+
+// ===== S23 · ledger views: by-invoice default, whole numbers, toggle to lines =====
+await page.locator('#view button, #view .btn').filter({ hasText: /^(Ledger|السجل)$/ }).first().click();
+await page.waitForTimeout(1500);
+const led1 = await page.evaluate(() => ({
+  label: ((document.getElementById('view').textContent || '').match(/(\d[\d,]*)\s*invoices · rev/) || [])[1] || null,
+  noFractions: !/\d\.\d\d\b/.test([...document.querySelectorAll('#view table td')].slice(0, 60).map(t => t.textContent).join(' ')),
+  multiSvc: (document.getElementById('view').textContent || '').includes('services'),
+}));
+STEP('S23 ledger defaults to BY INVOICE: invoice count label, multi-service marker, whole numbers only', !!led1.label && led1.noFractions && led1.multiSvc, JSON.stringify(led1));
+await SHOT('ledger-by-invoice');
+await page.locator('#view button').filter({ hasText: /^By service line$/ }).first().click();
+await page.waitForTimeout(1200);
+const led2 = await page.evaluate(() => ((document.getElementById('view').textContent || '').match(/(\d[\d,]*)\s*rows · rev/) || [])[1] || null);
+STEP('S24 toggle to BY SERVICE LINE shows more rows than invoices', !!led2 && parseInt(led2.replace(/,/g, '')) > parseInt((led1.label || '0').replace(/,/g, '')), `lines=${led2} invoices=${led1.label}`);
+const wadiGrouped = await page.evaluate(() => { FIN.lview = 'invoice'; FIN.f.q = 'DP-WDI-100'; render(); return null; });
+await page.waitForTimeout(900);
+const wadiRow = await page.evaluate(() => { const t = [...document.querySelectorAll('#view table tbody tr')]; return { n: t.length, svc: t[0] ? t[0].textContent.includes('9 services') : false }; });
+STEP('S25 the 12-line Wadi invoice = ONE row marked "9 services" in the simple view', wadiRow.n >= 1 && wadiRow.svc, JSON.stringify(wadiRow));
+await page.evaluate(() => { FIN.f.q = ''; render(); });
+await page.waitForTimeout(600);
+// full precision survives where it should: the CSV rows stay line-level
+const prec = await page.evaluate(() => { const lines = (FIN._csvRows || []).filter(x => x.invoice_no === 'DP-WDI-100').length; return { csvLines: lines }; });
+STEP('S26 CSV export still carries every service line (12 for Wadi)', prec.csvLines === 12, JSON.stringify(prec));
+
+// ===== S27 · client card no longer wears the Leads costume =====
+await page.evaluate(() => { const b = DB.businesses.find(x => x.name === 'Al-Mutlaq Holding Group'); openLead = b.id; current = 'leads'; render(); });
+await page.waitForTimeout(2000);
+const cctx = await page.evaluate(() => ({
+  title: (document.getElementById('vTitle') || {}).textContent || '',
+  chipsHidden: (() => { const c = document.querySelector('#view .v26_3-chips'); return !c || c.style.display === 'none'; })(),
+  back: [...document.querySelectorAll('#view button')].some(b => b.textContent.trim() === '← Back to clients'),
+}));
+STEP('S27 client card: title says Clients, stage chips hidden, Back goes to clients', /Clients|العملاء/.test(cctx.title) && cctx.chipsHidden && cctx.back, JSON.stringify(cctx));
+const backWorks = await page.evaluate(() => { const b = [...document.querySelectorAll('#view button')].find(x => x.textContent.trim() === '← Back to clients'); if (b) { b.click(); return true; } return false; });
+await page.waitForTimeout(1200);
+STEP('S28 Back lands on the Clients page', backWorks && await page.evaluate(() => current === 'clients'));
+await SHOT('client-context');
 
 console.log(LOG.join('\n'));
 console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.length}`);

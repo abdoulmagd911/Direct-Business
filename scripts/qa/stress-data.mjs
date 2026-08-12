@@ -77,6 +77,12 @@ export function smallRows() {
     F('DP-DNA-6',1,'TTIN-DNA-6','Dana Medical Group','DANA MEDICAL GROUP','2026-08-07','Training course logistics','Courses','b2b',9200,0,9200,7800,9200,0,'verified_paid','project','DB-DNA-01'),
     F('DP-DNA-7',1,'TTIN-DNA-7','Dana Medical Group','DANA MEDICAL GROUP','2026-08-09','Wallet top-up','Wallet top-up','b2b',10000,10000,0,0,10000,0,'verified_paid','booking'),
     F('DP-DNA-8',1,null,'Dana Medical Group','DANA MEDICAL GROUP','2026-08-11','Umrah staff package — awaiting ZATCA','Packages','b2b',27600,0,27600,23400,0,27600,'pending','booking'),
+    F('DP-OLD-1',1,'TTIN-OLD-1','Sahm Capital Aviation','SAHM CAPITAL AVIATION','2023-03-14','Historic charter 2023','Flights','b2b',18400,0,18400,15800,18400,0,'verified_paid','booking'),
+    F('DP-OLD-2',1,'TTIN-OLD-2','Sahm Capital Aviation','SAHM CAPITAL AVIATION','2023-08-02','Historic hotel block 2023','Hotels','b2b',9660,0,9660,8300,9660,0,'verified_paid','booking'),
+    F('DP-OLD-3',1,'TTIN-OLD-3','Dana Medical Group','DANA MEDICAL GROUP','2023-11-21','Historic conference travel 2023','Packages','b2b',31050,0,31050,26400,31050,0,'verified_paid','booking'),
+    F('DP-FUT-1',1,null,'Dana Medical Group','DANA MEDICAL GROUP','2026-12-15','Advance booking — December conference','Flights','b2b',26450,0,26450,22500,0,26450,'pending','booking'),
+    F('DP-FUT-2',1,null,'Sahm Capital Aviation','SAHM CAPITAL AVIATION','2027-02-10','Advance charter deposit 2027','Flights','b2b',40250,0,40250,34500,20125,20125,'pending','booking'),
+    F('DP-FUT-3',1,'TTIN-FUT-3','Jabal Omar Development','JABAL OMAR DEVELOPMENT CO','2027-01-05','2027 program first tranche','Packages','government',5750000,0,5750000,5175000,5750000,0,'verified_paid','project','DB-JBL-2026'),
     F('DP-IND-1',1,'TTIN-IND-1','MOHAMMED ALQAHTANI','MOHAMMED ALQAHTANI','2026-06-14','Family Umrah package','Packages','b2c',13800,0,13800,11700,13800,0,'verified_paid','booking'),
     F('DP-IND-2',1,null,'MOHAMMED ALQAHTANI','MOHAMMED ALQAHTANI','2026-08-01','Flight change fee','Flights','b2c',920,0,920,780,920,0,'verified_paid','booking'),
   ];

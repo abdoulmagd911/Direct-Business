@@ -7,6 +7,8 @@ function fc(){ if(!sbF&&window.supabase){try{sbF=window.supabase.createClient(SU
 function escF(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function isArF(){try{return (typeof LANG!=='undefined'&&LANG==='ar')||(document.documentElement.getAttribute('data-lang')==='ar');}catch(_){return false;}}
 function money(n){n=Number(n)||0;return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+/* Table views show whole numbers (owner 2026-08-12); the exact value with fractions stays in storage, the invoice card and CSV exports. */
+function money0(n){n=Number(n)||0;return Math.round(n).toLocaleString('en-US');}
 function moneyS(n){n=Number(n)||0;if(Math.abs(n)>=1e6)return (n/1e6).toFixed(2)+'M';if(Math.abs(n)>=1e3)return (n/1e3).toFixed(1)+'K';return n.toFixed(0);}
 function canFinEdit(){return !window.__isShareView && (window.__userTier==='admin'||window.__userTier==='manager');}
 function canFinView(){return !window.__isShareView;}
@@ -256,8 +258,8 @@ function rFinClients(){
   var top=Object.keys(byC).sort(function(a,b){return byC[b].r-byC[a].r;}).slice(0,10);
   var _tc={r:0,c:0,p:0};Object.keys(byC).forEach(function(k){_tc.r+=byC[k].r;_tc.c+=byC[k].c;_tc.p+=byC[k].p;});
   h+='<div class="card" style="padding:16px"><h3 class="finh" style="margin:0 0 10px">'+(isArF()?'أعلى العملاء':'Top clients by revenue')+'<i>'+finPeriodLabel()+'</i></h3><div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:480px"><tr style="background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+'"><th style="padding:7px 9px">'+(isArF()?'العميل':'Client')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الإيرادات':'Revenue')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'التكلفة':'Cost')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الربح':'Profit')+'</th></tr>'+top.map(function(k){
-    return '<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finClient(\''+escF(byC[k].key).replace(/'/g,"\\'")+'\',\''+escF(k).replace(/'/g,"\\'")+'\')"><td style="padding:6px 9px;font-weight:600">'+escF(k)+'</td><td style="padding:6px 9px;text-align:right;font-weight:700">'+money(byC[k].r)+'</td><td style="padding:6px 9px;text-align:right;color:#B54708">'+money(byC[k].c)+'</td><td style="padding:6px 9px;text-align:right;color:#0F6E56;font-weight:700">'+money(byC[k].p)+'</td></tr>';
-  }).join('')+'<tr style="background:#303848;color:#fff;font-weight:800"><td style="padding:7px 9px">'+(isArF()?'الإجمالي الكلي':'Total')+'</td><td style="padding:7px 9px;text-align:right">'+money(_tc.r)+'</td><td style="padding:7px 9px;text-align:right">'+money(_tc.c)+'</td><td style="padding:7px 9px;text-align:right">'+money(_tc.p)+'</td></tr></table></div></div>';
+    return '<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finClient(\''+escF(byC[k].key).replace(/'/g,"\\'")+'\',\''+escF(k).replace(/'/g,"\\'")+'\')"><td style="padding:6px 9px;font-weight:600">'+escF(k)+'</td><td style="padding:6px 9px;text-align:right;font-weight:700">'+money0(byC[k].r)+'</td><td style="padding:6px 9px;text-align:right;color:#B54708">'+money0(byC[k].c)+'</td><td style="padding:6px 9px;text-align:right;color:#0F6E56;font-weight:700">'+money0(byC[k].p)+'</td></tr>';
+  }).join('')+'<tr style="background:#303848;color:#fff;font-weight:800"><td style="padding:7px 9px">'+(isArF()?'الإجمالي الكلي':'Total')+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.r)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.c)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.p)+'</td></tr></table></div></div>';
   return h;
 }
 function rOverview(){
@@ -327,7 +329,20 @@ function rLedger(){
     return true;
   });
   var tr=0,tp=0;L.forEach(function(r){tr+=+r.revenue_sar;tp+=+r.profit_sar;});
-  FIN._csvRows=L;
+  FIN._csvRows=L; // exports always carry the full line-level detail
+  /* Main view groups by invoice (owner 2026-08-12): one row per invoice; the service
+     breakdown lives one click away (the invoice card) or in the "By service line" view. */
+  var byInv=(FIN.lview||'invoice')!=='line', D=L;
+  if(byInv){ var _g={},_ord=[];
+    L.forEach(function(r){ var k=r.invoice_no+(r.deleted_at?'|d':'');
+      if(!_g[k]){_g[k]={id:r.id,invoice_no:r.invoice_no,invoice_date:r.invoice_date,zatca_dpin:r.zatca_dpin,client_group:r.client_group,customer_raw_name:r.customer_raw_name,__svc:{},__n:0,total_incl_vat_sar:0,revenue_sar:0,cost_sar:0,profit_sar:0,wallet_portion_sar:0,origin:r.origin,proposal_ref:r.proposal_ref,deleted_at:r.deleted_at,integrity_status:r.integrity_status};_ord.push(k);}
+      var G=_g[k]; G.__n++; G.__svc[r.service_type||'-']=1;
+      G.total_incl_vat_sar+=+r.total_incl_vat_sar||0; G.revenue_sar+=+r.revenue_sar||0; G.cost_sar+=+r.cost_sar||0; G.profit_sar+=+r.profit_sar||0; G.wallet_portion_sar+=+r.wallet_portion_sar||0;
+      if(!G.zatca_dpin&&r.zatca_dpin)G.zatca_dpin=r.zatca_dpin;
+      if(r.origin==='project')G.origin='project';
+      if(!G.proposal_ref&&r.proposal_ref)G.proposal_ref=r.proposal_ref;
+      if(r.invoice_date>G.invoice_date)G.invoice_date=r.invoice_date; });
+    D=_ord.map(function(k){return _g[k];}); }
   var h='<div class="card" style="padding:12px 16px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px">';
   if(FIN.f.clientKey){
     h+='<span style="display:inline-flex;align-items:center;gap:6px;background:#FFF3EC;color:#9a4413;border:1px solid #F5C9A8;border-radius:9px;padding:5px 8px;font-size:12px;font-weight:600">'+(isArF()?'\u0627\u0644\u0639\u0645\u064a\u0644':'Client')+': '+escF(FIN.f.clientName||'')+' <span style="cursor:pointer;font-weight:800" title="'+(isArF()?'\u0625\u0632\u0627\u0644\u0629':'Clear')+'" onclick="finClientClear()">\u2715</span></span>';
@@ -339,12 +354,13 @@ function rLedger(){
   h+='<select style="'+SS+';max-width:220px" onchange="finF(\'client\',this.value)">'+opts(uniq(live().map(function(r){return r.client_group;})),FIN.f.client,isArF()?'\u0643\u0644 \u0627\u0644\u0639\u0645\u0644\u0627\u0621':'All clients')+'</select>';
   h+='<select style="'+SS+'" onchange="finF(\'status\',this.value)"><option value="verified_paid" '+(FIN.f.status==='verified_paid'?'selected':'')+'>'+(isArF()?'\u0645\u062f\u0642\u0642 \u0645\u062f\u0641\u0648\u0639':'Verified paid')+'</option><option value="all" '+(FIN.f.status==='all'?'selected':'')+'>'+(isArF()?'\u0643\u0644 \u0627\u0644\u062d\u0627\u0644\u0627\u062a':'All statuses')+'</option><option value="excluded" '+(FIN.f.status==='excluded'?'selected':'')+'>'+(isArF()?'\u0645\u0633\u062a\u0628\u0639\u062f':'Excluded')+'</option><option value="credit_note" '+(FIN.f.status==='credit_note'?'selected':'')+'>'+(isArF()?'\u0625\u0634\u0639\u0627\u0631\u0627\u062a \u062f\u0627\u0626\u0646\u0629':'Credit notes')+'</option></select>';
   h+='<select style="'+SS+'" onchange="finF(\'origin\',this.value)"><option value="all">'+_lh('All origins','كل الأنواع')+'</option><option value="booking" '+(FIN.f.origin==='booking'?'selected':'')+'>'+_lh('Bookings','حجوزات')+'</option><option value="project" '+(FIN.f.origin==='project'?'selected':'')+'>'+_lh('Projects (with proposal)','مشاريع (بعرض)')+'</option></select>';
+  h+='<span style="display:inline-flex;border:1px solid var(--line-2,#e6e8ec);border-radius:9px;overflow:hidden">'+'<button class="btn sm" style="border:0;border-radius:0;'+(byInv?'background:#303848;color:#fff':'')+'" onclick="FIN.lview=\'invoice\';render()">'+_lh('By invoice','حسب الفاتورة')+'</button>'+'<button class="btn sm" style="border:0;border-radius:0;'+(!byInv?'background:#303848;color:#fff':'')+'" onclick="FIN.lview=\'line\';render()">'+_lh('By service line','حسب بند الخدمة')+'</button></span>';
   h+='<button class="btn sm" onclick="finCSV()">⬇ '+_lh('Excel (CSV)','إكسل (CSV)')+'</button>';
   if(canFinEdit())h+='<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" '+(FIN.showDeleted?'checked':'')+' onchange="FIN.showDeleted=this.checked;render()">'+(isArF()?'\u0627\u0644\u0645\u062d\u0630\u0648\u0641 \u0645\u0624\u062e\u0631\u064b\u0627':'Recently deleted')+'</label>';
-  h+='<span style="margin-left:auto;font-size:12px">'+(isArF()?('<b>'+L.length+'</b> \u0635\u0641 \u00b7 \u0625\u064a\u0631\u0627\u062f <b>'+money(tr)+'</b> \u00b7 \u0631\u0628\u062d <b>'+money(tp)+'</b>'):('<b>'+L.length+'</b> rows \u00b7 rev <b>'+money(tr)+'</b> \u00b7 profit <b>'+money(tp)+'</b>'))+'</span></div>';
+  h+='<span style="margin-left:auto;font-size:12px">'+(isArF()?('<b>'+D.length+'</b> \u0635\u0641 \u00b7 \u0625\u064a\u0631\u0627\u062f <b>'+money0(tr)+'</b> \u00b7 \u0631\u0628\u062d <b>'+money0(tp)+'</b>'):('<b>'+D.length+'</b> '+(byInv?'invoices':'rows')+' \u00b7 rev <b>'+money0(tr)+'</b> \u00b7 profit <b>'+money0(tp)+'</b>'))+'</span></div>';
   
   h+='<div class="card" style="padding:0;overflow:auto;max-height:65vh"><table style="width:100%;font-size:12px;border-collapse:collapse;min-width:980px"><thead><tr style="position:sticky;top:0;background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+';z-index:2"><th style="padding:8px">'+_lh('Date','التاريخ')+'</th><th style="padding:8px">'+_lh('Invoice #','رقم الفاتورة')+'</th><th style="padding:8px">'+_lh('Tax inv (DPIN)','الفاتورة الضريبية')+'</th><th style="padding:8px">'+_lh('Client','العميل')+'</th><th style="padding:8px">'+_lh('Service','الخدمة')+'</th><th style="padding:8px;text-align:right">'+_lh('Total','الإجمالي')+'</th><th style="padding:8px;text-align:right">'+_lh('Revenue','الإيراد')+'</th><th style="padding:8px;text-align:right">'+_lh('Cost','التكلفة')+'</th><th style="padding:8px;text-align:right">'+_lh('Profit','الربح')+'</th><th style="padding:8px">'+_lh('Flags','ملاحظات')+'</th></tr></thead><tbody>';
-  var LCAP=500; var Lshow=L.slice(0,LCAP);
+  var LCAP=500; var Lshow=D.slice(0,LCAP);
   Lshow.forEach(function(r,i){
     var flags='';
     if(!r.zatca_dpin)flags+=badge(_lh('no tax inv','لا فاتورة ضريبية'),'#fff3d6','#8b5b1f')+' ';
@@ -353,10 +369,10 @@ function rLedger(){
     if(r.origin==='project')flags+=badge(_lh('project','مشروع'),'#EDE9FE','#6D28D9')+' ';
     if(r.proposal_ref)flags+=badge(escF(r.proposal_ref),'#FFF3EC','#9a4413')+' ';
     if(r.deleted_at)flags+=badge(_lh('deleted','محذوف'),'#fddede','#a3242c');
-    h+='<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finRow(\''+r.id+'\')"><td style="padding:7px 8px;white-space:nowrap">'+escF(r.invoice_date)+'</td><td style="padding:7px 8px">'+escF(r.invoice_no)+'</td><td style="padding:7px 8px">'+(r.zatca_dpin?('<a href="'+escF(pdInvoiceLink(r))+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Open in Direct" style="color:#175CD3;text-decoration:none">'+escF(r.zatca_dpin)+' \u2197</a>'):'\u2014')+'</td><td style="padding:7px 8px;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escF(r.customer_raw_name||'')+'">'+escF(r.client_group)+'</td><td style="padding:7px 8px">'+escF(svcLabel(r.service_type))+'</td><td style="padding:7px 8px;text-align:right">'+money(r.total_incl_vat_sar)+'</td><td style="padding:7px 8px;text-align:right;font-weight:700">'+money(r.revenue_sar)+'</td><td style="padding:7px 8px;text-align:right">'+money(r.cost_sar)+'</td><td style="padding:7px 8px;text-align:right;color:#175CD3">'+money(r.profit_sar)+'</td><td style="padding:7px 8px">'+flags+'</td></tr>';
+    h+='<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finRow(\''+r.id+'\')"><td style="padding:7px 8px;white-space:nowrap">'+escF(r.invoice_date)+'</td><td style="padding:7px 8px">'+escF(r.invoice_no)+'</td><td style="padding:7px 8px">'+(r.zatca_dpin?('<a href="'+escF(pdInvoiceLink(r))+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Open in Direct" style="color:#175CD3;text-decoration:none">'+escF(r.zatca_dpin)+' \u2197</a>'):'\u2014')+'</td><td style="padding:7px 8px;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escF(r.customer_raw_name||'')+'">'+escF(r.client_group)+'</td><td style="padding:7px 8px">'+(r.__svc?(function(ks){return ks.length===1?escF(svcLabel(ks[0])):'<span style="color:#6D28D9;font-weight:600">'+ks.length+' '+_lh('services','خدمات')+'</span>';})(Object.keys(r.__svc)):escF(svcLabel(r.service_type)))+'</td><td style="padding:7px 8px;text-align:right">'+money0(r.total_incl_vat_sar)+'</td><td style="padding:7px 8px;text-align:right;font-weight:700">'+money0(r.revenue_sar)+'</td><td style="padding:7px 8px;text-align:right">'+money0(r.cost_sar)+'</td><td style="padding:7px 8px;text-align:right;color:#175CD3">'+money0(r.profit_sar)+'</td><td style="padding:7px 8px">'+flags+'</td></tr>';
   });
-  if(!L.length)h+='<tr><td colspan="10" style="padding:30px;text-align:center;color:var(--muted)">'+_lh('No invoices match.','لا توجد فواتير مطابقة.')+'</td></tr>';
-  if(L.length>LCAP)h+='<tr><td colspan="10" style="padding:12px;text-align:center;color:var(--muted);font-size:12px">'+_lh('Showing first '+LCAP+' of '+L.length+' rows — narrow the filters or use the Report Builder for totals.','عرض أول '+LCAP+' من '+L.length+' صف — ضيّق الفلاتر أو استخدم منشئ التقارير للإجماليات.')+'</td></tr>';
+  if(!D.length)h+='<tr><td colspan="10" style="padding:30px;text-align:center;color:var(--muted)">'+_lh('No invoices match.','لا توجد فواتير مطابقة.')+'</td></tr>';
+  if(D.length>LCAP)h+='<tr><td colspan="10" style="padding:12px;text-align:center;color:var(--muted);font-size:12px">'+_lh('Showing first '+LCAP+' of '+D.length+' rows — narrow the filters or use the Report Builder for totals.','عرض أول '+LCAP+' من '+L.length+' صف — ضيّق الفلاتر أو استخدم منشئ التقارير للإجماليات.')+'</td></tr>';
   h+='</tbody></table></div>';
   return h;
 }
@@ -498,16 +514,16 @@ function rReports(){
   FIN._lastReport={g1:rb.g1,g2:rb.g2,mets:mets,keys:keys,g:g,grand:grand};
   var h2='<div class="card" style="padding:0;overflow:auto;max-height:60vh"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:600px"><thead><tr style="position:sticky;top:0;background:#F8F7F4;z-index:2;text-align:left;color:var(--muted)"><th style="padding:8px">'+dimLbl(rb.g1)+(rb.g2?' \u203a '+dimLbl(rb.g2):'')+'</th>'+mets.map(function(m){return '<th style="padding:8px;text-align:right">'+metLbl(m)+'</th>';}).join('')+'</tr></thead><tbody>';
   keys.forEach(function(k){
-    h2+='<tr style="border-top:1px solid var(--line,#eee);background:'+(rb.g2?'#FBFAF7':'#fff')+'"><td style="padding:7px 8px;font-weight:700">'+escF(k)+'</td>'+mets.map(function(m){return '<td style="padding:7px 8px;text-align:right;font-weight:700">'+(m==='_count'?g[k].__tot[m]:money(g[k].__tot[m]))+'</td>';}).join('')+'</tr>';
+    h2+='<tr style="border-top:1px solid var(--line,#eee);background:'+(rb.g2?'#FBFAF7':'#fff')+'"><td style="padding:7px 8px;font-weight:700">'+escF(k)+'</td>'+mets.map(function(m){return '<td style="padding:7px 8px;text-align:right;font-weight:700">'+(m==='_count'?g[k].__tot[m]:money0(g[k].__tot[m]))+'</td>';}).join('')+'</tr>';
     if(rb.g2){
       var subs=Object.keys(g[k].__sub);
       if(rb.g2==='month')subs.sort(function(a,b){return (MOI[a]||99)-(MOI[b]||99);});else subs.sort();
       subs.forEach(function(s){
-        h2+='<tr style="border-top:1px solid #f4f2ec"><td style="padding:5px 8px 5px 26px;color:var(--muted)">'+escF(s)+'</td>'+mets.map(function(m){return '<td style="padding:5px 8px;text-align:right">'+(m==='_count'?(g[k].__sub[s][m]||0):money(g[k].__sub[s][m]||0))+'</td>';}).join('')+'</tr>';
+        h2+='<tr style="border-top:1px solid #f4f2ec"><td style="padding:5px 8px 5px 26px;color:var(--muted)">'+escF(s)+'</td>'+mets.map(function(m){return '<td style="padding:5px 8px;text-align:right">'+(m==='_count'?(g[k].__sub[s][m]||0):money0(g[k].__sub[s][m]||0))+'</td>';}).join('')+'</tr>';
       });
     }
   });
-  h2+='<tr style="border-top:2px solid #1C1E2B;background:#F3F1EA"><td style="padding:9px 8px;font-weight:800">'+(isArF()?'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a':'TOTAL')+'</td>'+mets.map(function(m){return '<td style="padding:9px 8px;text-align:right;font-weight:800">'+(m==='_count'?grand[m]:money(grand[m]))+'</td>';}).join('')+'</tr></tbody></table></div>';
+  h2+='<tr style="border-top:2px solid #1C1E2B;background:#F3F1EA"><td style="padding:9px 8px;font-weight:800">'+(isArF()?'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a':'TOTAL')+'</td>'+mets.map(function(m){return '<td style="padding:9px 8px;text-align:right;font-weight:800">'+(m==='_count'?grand[m]:money0(grand[m]))+'</td>';}).join('')+'</tr></tbody></table></div>';
   return h+h2;
 }
 window.finRB=function(k,v){FIN.rb[k]=v;if(k==='g1'&&FIN.rb.g2===v)FIN.rb.g2='';render();};
