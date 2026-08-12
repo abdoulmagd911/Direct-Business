@@ -259,3 +259,19 @@ items that need his wording calls, then the Arabic pass.
   the database is not.
 - `manual-confirm` runs with no login and can edit any lead or contact. Fine while it is
   unknown, worth an auth check before it is shared around.
+
+## 13 · Brand identity system — DONE 2026-08-12 (this unlocks branded output work)
+
+Built in the "Company brand identity" session from every real source (official profile
+PDFs, logo masters, `brand-assets` Drive kit, the three live Direct systems, this app, the
+events page, earlier sessions' designs). Result — one brand, **three identities**:
+**A · Classic** (client-facing documents), **B · Editorial** (internal reports/readouts,
+with dark mode), **C · Product** (app/dashboards/tools). The three oranges are documented
+as deliberate: `#F06820` documents · `#FF6C00` logo mark · `#F47A1F` app.
+
+- Files: `brand/IDENTITY.md` (full brief + provenance + Drive asset IDs),
+  `brand/tokens.css` (all three identities as CSS variables), `brand/identity.html`
+  (visual showcase, EN+AR), plus the logo files (vector SVG, white PNG, slate PNG).
+- Showcase artifact: https://claude.ai/code/artifact/4d5c57f1-45ed-4b67-8f40-6b94600b8546
+- Next users of this: branded proposals, the report/offer generators, and the Arabic/RTL
+  pass (backlog item 8 — the brand says Arabic is always RTL).
