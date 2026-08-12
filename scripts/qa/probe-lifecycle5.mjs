@@ -223,7 +223,13 @@ await page.waitForTimeout(500);
 await page.evaluate(() => { document.getElementById('qe_stage').value = 'Won'; });
 await page.locator('#mSave').click();
 await page.waitForTimeout(900);
+// NEW (2026-08-12): winning now opens the "complete the client" handover — fill the Direct ID there
+const handoverShown = await page.evaluate(() => !!document.getElementById('c_did'));
+await STEP('Won opens the complete-the-client handover', handoverShown);
+await SHOT('won-handover-alnoor');
+if (handoverShown) { await page.fill('#c_did', '905'); await page.locator('#mSave').click(); await page.waitForTimeout(800); }
 await STEP('Won → auto client', await page.evaluate(id => getLead(id).isClient === true, id1));
+await STEP('handover stored the Direct ID', await page.evaluate(id => getLead(id).directClientId === '905', id1));
 await nav(/^(Clients|العملاء)$/);
 await STEP('appears on Clients page', await page.evaluate(() => document.getElementById('view').textContent.includes('Al-Noor Schools Group')));
 await SHOT('clients-with-alnoor');
@@ -249,11 +255,13 @@ await STEP('quick edit did NOT clear the owner', await page.evaluate(id => !!get
 // ============ STATION 7 · CLIENT CARD (Al-Noor): Direct ID, billing accounts, agreement, AM ============
 await page.evaluate(id => { openLeadFn(id); }, id1);
 await page.waitForTimeout(1300);
-// Direct ID via the strip prompt
+// Direct ID: the handover already set 905, so the strip shows the linked state — edit it to 907
+const stripLinked = await page.evaluate(() => (document.querySelector('.v34-link') || {}).textContent || '');
+await STEP('strip shows Linked to Direct after the handover', /Linked to Direct|مرتبط بدايركت/.test(stripLinked) && stripLinked.includes('905'), stripLinked.slice(0, 80));
 nextDialog = '907';
-const addIdClicked = await page.evaluate(() => { const b = [...document.querySelectorAll('.v34-link button')].find(x => /Add Direct ID|أضف معرّف/.test(x.textContent)); if (b) { b.click(); return true; } return false; });
+const addIdClicked = await page.evaluate(() => { const b = [...document.querySelectorAll('.v34-link button')].find(x => /Add Direct ID|أضف معرّف|Edit|تعديل/.test(x.textContent)); if (b) { b.click(); return true; } return false; });
 await page.waitForTimeout(900);
-await STEP('Direct client ID set via strip', await page.evaluate(id => getLead(id).directClientId === '907', id1), 'clicked=' + addIdClicked);
+await STEP('Direct client ID editable via strip', await page.evaluate(id => getLead(id).directClientId === '907', id1), 'clicked=' + addIdClicked);
 // Billing accounts editor (the new control)
 nextDialog = '907 Prepaid, 908 Postpaid';
 const baClicked = await page.evaluate(() => { const b = [...document.querySelectorAll('.v34-link button')].find(x => /Billing accounts|حسابات الفوترة/.test(x.textContent)); if (b) { b.click(); return true; } return false; });
@@ -339,7 +347,7 @@ await page.locator('#view button').filter({ hasText: /^(Performance|الأداء
 await page.waitForTimeout(900);
 await page.locator('#view select').nth(1).selectOption('M:August');
 await page.waitForTimeout(900);
-const augRev = await page.evaluate(() => { const g = [...document.querySelectorAll('#view .card')].find(c => (c.parentElement.getAttribute('style') || '').includes('minmax(150px')); return g ? g.parentElement.children[0].textContent.replace(/\s+/g, ' ') : '?'; });
+const augRev = await page.evaluate(() => { const g = [...document.querySelectorAll('#view .card')].find(c => (c.parentElement.getAttribute('style') || '').includes('minmax(132px')); return g ? g.parentElement.children[0].textContent.replace(/\s+/g, ' ') : '?'; });
 await STEP('August revenue includes the new invoices (736.0K = 516+220)', /736\.0K/.test(augRev), augRev);
 const svcHasVisa = await page.evaluate(() => { const t = document.querySelector('.v32-svc'); return t ? /Visas|Flights|Hotels/.test(t.textContent) : false; });
 await STEP('income-by-service reflects the new services', svcHasVisa);

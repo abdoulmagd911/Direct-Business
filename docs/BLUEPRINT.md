@@ -84,6 +84,10 @@ Paged branded document matching the real tender offers (cover with white logo �
 about with verified stats → signature services table `# | Service | الخدمة | Fee` → work
 plan → commercial with the real fee model → gradient closing); editor opens short
 (advanced sections collapsed); proposals live in a real table (app_offers).
+**Done 2026-08-12:** the proposal file library — PDFs upload into the app itself (Storage
+bucket `proposals`), shown with 📎 on the proposal and in the list; and the Won handover
+("complete the client") now fires on every path to Won. Invoices can arrive from the CSV
+import already marked booking/project with their proposal reference.
 **Still open:** owner's yes/no on the document; optional past-work page (Ma'aden 2M /
 Al-Hilal 1.5M / SFDA 500K / Takamol 4M / Riyadh Club 1M) as a toggle for tender-type
 proposals only.

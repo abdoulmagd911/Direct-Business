@@ -83,6 +83,45 @@ Then: **code lightening by deletion** — after each page is rebuilt, delete the
 patch layers it made obsolete (never delete first). Finally: move requests/offers/
 projects out of the app_state blob into real tables (ends last-write-wins).
 
+### Shipped 2026-08-12 — the three approved ideas + Direct-link structure + aggressive re-sweep
+Owner approved the three parked ideas; all built, probed (19/19 targeted + full regression
+54/54 lifecycle · 45-control · consistency · nav · all-pages EN/AR · mobile · AR labels, 0
+page errors) and deployed:
+1. **Proposal file library** — the proposal PDF now uploads INTO the app (Supabase Storage
+   bucket `proposals`, 25MB, pdf/png/jpeg/docx/xlsx; anyone signed in can add, only
+   admin/manager can replace/delete). The offer editor shows the stored file with 📎 +
+   remove; the proposals list marks rows that carry a file. Drive links still work beside it.
+2. **Import understands projects** — the invoice CSV accepts two optional last columns
+   `origin,proposal_ref`. Rows validate (origin must be booking/project; a project row must
+   name its proposal) and land pre-linked. Plus: a real drag-and-drop drop-zone on Import
+   (drop the file → checked immediately), and service detection now reads plain words in
+   English AND Arabic (flight/hotel/visa/umrah/فندق/طيران/تأشيرة/عمرة…) instead of only
+   "Direct Flights"-style product names.
+3. **Won → "complete the client"** — every road to Won (stage dropdown, quick edit,
+   convert button) now opens the handover step: Direct client ID, legal name, customer type,
+   payment mode, billing cycle, CR/VAT, credit limit, agreement status, AM, point of
+   contact, contract scope, win reason. Skippable; everything editable later on the card.
+   (The modal existed since v40 but only fired on one path nobody used — now it always fires.)
+4. **Direct-link structure** — invoices now carry "Open in Direct ↗" (modal button + the
+   ZATCA/DPIN cell is a link), and the client strip's "Open in Direct Payments" prefers the
+   real Direct client ID. The URL patterns are SETTINGS (`DB.settings.pdInvoiceUrl` /
+   `pdClientUrl` with {invoice_no} {dpin} {client_id} placeholders), so the moment the owner
+   shows us the real Direct screens/URLs we adjust one setting — no re-coding. The saved
+   backend snapshots in Drive ("Direct Websites - Backend": Main Direct / Executive CRM /
+   B2B Admin Panel, incl. invoices.html) are the reference for that day.
+5. **UI trim** — the 7 finance KPI cards fit one row (no lone wrapped card); the import
+   header code wraps instead of overflowing; long explainer sentences shortened on
+   log-activity, proposal scope, income-by-service, collections, top-clients, import.
+DRIVE SWEEP 2026-08-12 (new since 08-09): **Business Finance** sheet = the corporate-card
+cost ledger — every card charge classified (Tender/MDD/Booking API/HR/غرفة الرياض…) and many
+tied to an invoice number → ready-made cost-side source for go-live; **call recordings**
+folder (mp3 per call, numbers like 905/906 in filenames) → possible attach-to-client capture,
+discuss; new **Contacts Submissions** copies (08-09/08-10) for the Phase-8 load.
+TO DISCUSS WITH THE OWNER:
+1. Attach call recordings (the Drive mp3s) to the company card the same way pasted
+   conversations join the story — needs a naming/matching rule.
+2. Import the card cost ledger per invoice number so project profit includes card costs.
+
 ### Shipped 2026-08-11 — five-lead lifecycle rehearsal (892e4b0): 51/51 by hand
 Owner: create five test leads, drive EVERYTHING by hand, screenshots, fix what's broken.
 Done as a permanent test (scripts/qa/probe-lifecycle5.mjs, 23 screenshots reviewed):

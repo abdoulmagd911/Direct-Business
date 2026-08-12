@@ -1,5 +1,5 @@
 import http from 'http'; import fs from 'fs'; import url from 'url';
-const APP='/home/user/Direct-Business';
+const APP='/tmp/claude-0/-home-user-Direct-Business/c6b2dbb4-5df9-5075-b6c8-d5f2b7cdb838/scratchpad/live-app';
 const UMD='/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js';
 const UID='11111111-1111-1111-1111-111111111111';
 const now=Math.floor(Date.now()/1000);
@@ -56,7 +56,7 @@ const TABLES={
   finance_client_links:SEED_LINKS,
   finance_targets:[{"year": 2026, "expected_sar": 13200000, "confirmed_sar": 11300000, "notes": "From the 2026 operating plan (executive dashboard)", "updated_at": "2026-08-11T07:29:41.729833+00:00", "updated_by": "setup"}]
 };
-// v59 operational tables: served from the blob copies (mirrors the real app_requests/app_offers/app_projects)
+// v59 operational tables: served from the blob copies, with a marker proving table-read wins
 TABLES.app_requests=[{"id": "rq_rawabi1", "data": {"id": "rq_rawabi1", "pnr": "", "cost": 205000, "sell": 220000, "notes": "Repeat corporate travel", "owner": "Saif Abdulelah", "stage": "Quoting", "client": "Rawabi Holding", "detail": "12 executives RUH→LON business class, 15 Aug + 3 UK visas", "service": "Flights", "priority": "Urgent", "supplier": "Amadeus", "createdAt": 1786250000000}, "updated_at": "2026-08-11T01:14:39.572553+00:00", "updated_by": null}, {"id": "rq_tamimi1", "data": {"id": "rq_tamimi1", "pnr": "HCN-88213", "cost": 17500, "sell": 20000, "notes": "", "owner": "Abdulaziz Alreshody", "stage": "Booked", "client": "Tamimi Markets", "detail": "8 rooms Jeddah Hilton · 3 nights · regional managers offsite", "service": "Hotels", "priority": "Normal", "supplier": "Booking.com", "createdAt": 1786180000000}, "updated_at": "2026-08-11T01:14:39.572553+00:00", "updated_by": null}, {"id": "rq_bright1", "data": {"id": "rq_bright1", "pnr": "", "cost": 35000, "sell": 40000, "notes": "Awaiting board sign-off", "owner": "Assem Alsweed", "stage": "Awaiting client", "client": "Bright Horizons School", "detail": "Umrah group 40 pax · Sep · transport + hotel + guide", "service": "Group / MICE", "priority": "High", "supplier": "—", "createdAt": 1786120000000}, "updated_at": "2026-08-11T01:14:39.572553+00:00", "updated_by": null}, {"id": "rq_falcon1", "data": {"id": "rq_falcon1", "pnr": "", "cost": 0, "sell": 0, "notes": "Just came in", "owner": "Abdelrahman Hasan", "stage": "New", "client": "Falcon Events KSA", "detail": "Speaker travel for Q4 conference · 6 pax · multi-city", "service": "Flights", "priority": "Normal", "supplier": "", "createdAt": 1786290000000}, "updated_at": "2026-08-11T01:14:39.572553+00:00", "updated_by": null}];
 TABLES.app_offers=[{"id": "of_rawabi", "data": {"id": "of_rawabi", "ref": "DB-500101", "date": "2026-08-05", "owner": "Saif Abdulelah", "scope": "Full corporate travel desk · NDC + negotiated fares · monthly postpaid billing · dedicated account manager · SLA 2h.", "total": "1250000", "value": "1250000", "client": "Rawabi Holding", "docUrl": "https://drive.google.com/file/d/1KQu0mEOmzB24qdbYHIYXfUoT97UHraGW/view", "status": "Sent", "options": [], "subject": "Annual corporate travel management 2026", "currency": "SAR", "validUntil": "2026-09-30", "linkedLeadId": "L_rawabi", "proposalType": "Tender", "promotedToProject": false}, "updated_at": "2026-08-11T01:14:39.572553+00:00", "updated_by": null}, {"id": "of_falcon", "data": {"id": "of_falcon", "ref": "DB-500102", "date": "2026-08-02", "owner": "Abdelrahman Hasan", "scope": "Speaker + delegate flights, hotels, transfers, on-site desk for the Q4 conference.", "total": "320000", "value": "320000", "client": "Falcon Events KSA", "docUrl": "https://drive.google.com/file/d/1omNTngrD1uPzHmvbL3RRvpZF90uyaEpa/view", "status": "Draft", "options": [], "subject": "Q4 conference group travel + MICE logistics", "currency": "SAR", "validUntil": "2026-08-31", "linkedLeadId": "L_falcon", "proposalType": "Business solution", "promotedToProject": false}, "updated_at": "2026-08-11T01:14:39.572553+00:00", "updated_by": null}, {"id": "of_bright", "data": {"id": "of_bright", "ref": "DB-500103", "date": "2026-08-03", "owner": "Assem Alsweed", "scope": "Per-trip flight + hotel + transport pricing, plus a 40-pax Umrah package.", "total": "96000", "value": "96000", "client": "Bright Horizons School", "docUrl": "https://drive.google.com/file/d/1jZ6u84Jv-tB67NcEIhepjrHhzgi5azkK/view", "status": "Accepted", "options": [], "subject": "School trips + staff Umrah package pricing", "currency": "SAR", "validUntil": "2026-08-20", "linkedLeadId": "L_bright", "proposalType": "Price offer", "promotedToProject": true}, "updated_at": "2026-08-11T01:14:39.572553+00:00", "updated_by": null}];
 TABLES.app_projects=[{"id": "prj_bright", "data": {"id": "prj_bright", "name": "Bright Horizons — school trips + Umrah 2026", "notes": "Won from proposal DB-500103", "owner": "Assem Alsweed", "value": "96000", "client": "Bright Horizons School", "nameAr": "", "status": "Active", "createdAt": 1786290000000, "fromOfferId": "of_bright", "linkedClientId": "L_bright"}, "updated_at": "2026-08-11T01:14:39.572553+00:00", "updated_by": null}];
@@ -99,6 +99,15 @@ export function start(port){
     });
   }
   if(path==='/__rpclog') return send(res,200,RPCLOG);
+  if(path.startsWith('/storage/v1/object/')){
+    // proposal file library: accept uploads, remember paths, serve public URLs
+    TABLES.__storage=TABLES.__storage||{};
+    const key=decodeURIComponent(path.replace(/^\/storage\/v1\/object\/(public\/)?/,''));
+    if(req.method==='POST'||req.method==='PUT'){ let chunks=[]; req.on('data',d=>chunks.push(d)); req.on('end',()=>{ TABLES.__storage[key]=Buffer.concat(chunks).length; send(res,200,{Key:key,Id:'mock-'+Object.keys(TABLES.__storage).length}); }); return; }
+    if(req.method==='DELETE'){ let b=''; req.on('data',d=>b+=d); req.on('end',()=>{ try{const p=JSON.parse(b||'{}');(p.prefixes||[]).forEach(x=>delete TABLES.__storage['proposals/'+x]);}catch(_){} send(res,200,[]); }); return; }
+    if(req.method==='GET'){ return TABLES.__storage[key]!=null?send(res,200,{size:TABLES.__storage[key]}):send(res,404,{error:'not found'}); }
+    return send(res,200,{});
+  }
   if(path.startsWith('/rest/v1/rpc/')){
     let body='';
     req.on('data',c=>body+=c);

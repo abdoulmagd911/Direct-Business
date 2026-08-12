@@ -1048,7 +1048,7 @@ function renderClients(v){
   const cq=document.getElementById("clq");if(cq){cq.oninput=e=>{clFilter.q=e.target.value;render();const n=document.getElementById("clq");if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length);}catch(_){}}};}
 }
 function logActivity(id){const b=getLead(id);if(!b)return;
-  openModal("Log activity — "+esc(b.name),`<div class="grid2"><div class="field"><label>Type</label><select id="a_type">${ACT_TYPES.map(t=>`<option>${t}</option>`).join("")}</select></div><div class="field"><label>Move stage to</label><select id="a_status"><option value="">— keep ${esc(leadStage(b))} —</option>${LEAD_STAGES.map(s=>`<option>${s}</option>`).join("")}</select></div></div><div class="field"><label>What happened? — paste the email, WhatsApp messages or meeting notes; they become part of this company’s story</label><textarea id="a_note" rows="7" placeholder="Paste the conversation or write a summary — e.g. Called Mr. Nasser — interested in corporate flights, sending proposal Sunday"></textarea></div><div class="field"><label>Next action (optional)</label><input id="a_next" value="${esc(b.nextAction||"")}"></div>`,
+  openModal("Log activity — "+esc(b.name),`<div class="grid2"><div class="field"><label>Type</label><select id="a_type">${ACT_TYPES.map(t=>`<option>${t}</option>`).join("")}</select></div><div class="field"><label>Move stage to</label><select id="a_status"><option value="">— keep ${esc(leadStage(b))} —</option>${LEAD_STAGES.map(s=>`<option>${s}</option>`).join("")}</select></div></div><div class="field"><label>What happened? — paste the conversation or write a summary</label><textarea id="a_note" rows="7" placeholder="e.g. Called Mr. Nasser — interested, sending the proposal Sunday"></textarea></div><div class="field"><label>Next action (optional)</label><input id="a_next" value="${esc(b.nextAction||"")}"></div>`,
   ()=>{const ns=val("a_status");b.activities=b.activities||[];b.activities.push({date:Date.now(),type:val("a_type"),status:ns||"",note:val("a_note"),by:(typeof me==="function"?me():"Abdelrahman")});if(ns){b.stage=ns;b.status=ns;if(ns==="Won")b.isClient=true;}b.lastContact=Date.now();b.nextAction=val("a_next");save();render();});
 }
 
@@ -1439,7 +1439,7 @@ function renderOffers(v){
   drawOffers("");
 }
 function drawOffers(q){q=(q||'').toLowerCase();const ar=(typeof LANG!=='undefined'&&LANG==='ar');const tb=document.getElementById('otb');if(!tb)return;const _meO=(window.meName?meName():'');const O=(DB.offers||[]).filter(o=>(!q||((o.ref||'')+' '+(o.client||'')+' '+(o.subject||'')+' '+(o.proposalType||'')+' '+(o.airline||'')).toLowerCase().includes(q))&&(!window.offerMine||((o.owner||'')===_meO)));
-  tb.innerHTML=O.map(o=>{const ptype=ar?(PROPOSAL_TYPES_AR[o.proposalType]||o.proposalType||'—'):(o.proposalType||'—');return `<tr style="cursor:pointer" onclick="openOfferFn('${o.id}')"><td><b>${esc(o.ref||'—')}</b>${o.docUrl?' 📎':''}${o.promotedToProject?' 🏗':''}</td><td><span class="tag" style="background:#EEF0F5;color:#4B5563">${esc(ptype)}</span></td><td>${offerStatusBadge(o)}</td><td>${esc(o.client||'—')}</td><td style="color:var(--muted)">${esc(o.subject||'')}</td><td style="font-weight:700;white-space:nowrap">${esc(o.value||o.total||'')} ${esc(o.currency||'SAR')}</td><td style="color:var(--muted);white-space:nowrap">${o.validUntil?`<span style="color:${offerExpiry(o).color}">${offerExpiry(o).label}</span>`:esc(o.date||'')}</td><td style="text-align:right"><span class="chiplink">${ar?'فتح ›':'Open ›'}</span></td></tr>`;}).join('')||`<tr><td colspan="8" class="empty">${ar?'لا توجد عروض بعد — اضغط «عرض جديد».':'No proposals yet — click “New proposal”.'}</td></tr>`;
+  tb.innerHTML=O.map(o=>{const ptype=ar?(PROPOSAL_TYPES_AR[o.proposalType]||o.proposalType||'—'):(o.proposalType||'—');return `<tr style="cursor:pointer" onclick="openOfferFn('${o.id}')"><td><b>${esc(o.ref||'—')}</b>${(o.docUrl||o.fileName)?' 📎':''}${o.promotedToProject?' 🏗':''}</td><td><span class="tag" style="background:#EEF0F5;color:#4B5563">${esc(ptype)}</span></td><td>${offerStatusBadge(o)}</td><td>${esc(o.client||'—')}</td><td style="color:var(--muted)">${esc(o.subject||'')}</td><td style="font-weight:700;white-space:nowrap">${esc(o.value||o.total||'')} ${esc(o.currency||'SAR')}</td><td style="color:var(--muted);white-space:nowrap">${o.validUntil?`<span style="color:${offerExpiry(o).color}">${offerExpiry(o).label}</span>`:esc(o.date||'')}</td><td style="text-align:right"><span class="chiplink">${ar?'فتح ›':'Open ›'}</span></td></tr>`;}).join('')||`<tr><td colspan="8" class="empty">${ar?'لا توجد عروض بعد — اضغط «عرض جديد».':'No proposals yet — click “New proposal”.'}</td></tr>`;
 }
 function openOfferFn(id){openOffer=id;render();window.scrollTo(0,0);}
 function closeOffer(){openOffer=null;render();}
@@ -1473,8 +1473,9 @@ function offerEditor(v,id){
        <div class="field"><label>${_pl('Value (SAR)','القيمة (ريال)')}</label><input value="${esc(o.value||o.total||'')}" oninput="o_set('value',this.value)"></div>
        <div class="field"><label>${_pl('Valid until','صالح حتى')}</label><input type="date" value="${esc(o.validUntil||'')}" oninput="o_set('validUntil',this.value)"></div>
      </div>
-     <div class="field"><label>${_pl('Scope — one service per line (each line becomes a numbered row in the proposal)','النطاق — خدمة في كل سطر (كل سطر يصبح بندًا مرقّمًا في العرض)')}</label><textarea rows="4" oninput="o_set('scope',this.value)">${esc(o.scope||'')}</textarea></div>
+     <div class="field"><label>${_pl('Scope — one service per line','النطاق — خدمة في كل سطر')}</label><textarea rows="4" oninput="o_set('scope',this.value)">${esc(o.scope||'')}</textarea></div>
      <div class="field"><label>${_pl('Document link (the actual proposal file)','رابط المستند (ملف العرض الفعلي)')}</label><input value="${esc(o.docUrl||'')}" oninput="o_set('docUrl',this.value)" placeholder="https://drive.google.com/…">${o.docUrl?` <a href="${esc(o.docUrl)}" target="_blank" rel="noopener" class="chiplink">${_pl('Open ↗','فتح ↗')}</a>`:''}</div>
+     <div class="field"><label>${_pl('Proposal file — stored in the app','ملف العرض — محفوظ داخل التطبيق')}</label>${o.fileName?`<div style="display:flex;gap:8px;align-items:center;background:#FFF3EC;border:1px solid #FBD9B8;border-radius:9px;padding:7px 10px;margin-bottom:6px;font-size:12.5px">📎 <a href="${esc(o.fileUrl||'#')}" target="_blank" rel="noopener" style="font-weight:700;color:var(--ink)">${esc(o.fileName)}</a><span style="flex:1"></span><span onclick="o_removeFile('${o.id}')" style="cursor:pointer;color:#F0453A" title="${_pl('Remove','إزالة')}">✕</span></div>`:''}<input type="file" id="o_file" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx" style="font-size:12.5px" onchange="o_uploadFile('${o.id}')"><span id="o_fileMsg" style="font-size:12px;color:var(--muted)"></span></div>
      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="btn sm pri" onclick="o_genProposal('${o.id}')">🖨 ${_pl('Generate branded proposal','إنشاء عرض بهوية دايركت')}</button>${o.promotedToProject?`<span class="tag" style="background:#E7F8EF;color:#0F6E56">✓ ${_pl('Promoted to project','حُوّل إلى مشروع')}</span>`:`<button class="btn sm" onclick="o_promoteProject('${o.id}')">↗ ${_pl('Promote to project','تحويل إلى مشروع')}</button>`}</div>
    </div>`;
   v.innerHTML=`<button class="btn ghost sm" onclick="closeOffer()">← Offers</button>
@@ -1564,6 +1565,33 @@ function o_styleBlock(){return '<style>:root{--orange:#FF6B00;--orange-2:#FF9D45
 function o_download(){const o=curOffer();if(!o)return;const html='<!DOCTYPE html><meta charset="utf-8"><title>Offer '+(o.ref||'')+'</title>'+o_styleBlock()+'<body>'+offerHTML(o)+'</body>';const b=new Blob([html],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Offer-'+(o.ref||'direct')+'.html';a.click();}
 function o_print(){const o=curOffer();if(!o)return;const w=window.open('','_blank');if(!w)return;w.document.write('<!DOCTYPE html><meta charset="utf-8"><title>Offer '+(o.ref||'')+'</title>'+o_styleBlock()+'<body>'+offerHTML(o)+'</body>');w.document.close();w.focus();setTimeout(function(){w.print();},250);}
 function o_del(id){if(confirm('Delete this offer?')){DB.offers=(DB.offers||[]).filter(x=>x.id!==id);openOffer=null;save();render();}}
+/* Proposal file library — the file itself lives in the app (Supabase storage bucket "proposals"). */
+window.o_uploadFile=function(id){
+  var o=(DB.offers||[]).find(function(x){return x.id===id;});if(!o)return;
+  var inp=document.getElementById('o_file'),msg=document.getElementById('o_fileMsg');
+  var f=inp&&inp.files&&inp.files[0];if(!f)return;
+  var _ar=(typeof LANG!=='undefined'&&LANG==='ar');
+  if(f.size>25*1024*1024){if(msg)msg.textContent=_ar?'الملف أكبر من 25MB.':'File is larger than 25MB.';return;}
+  if(msg)msg.textContent=_ar?'جارٍ الرفع…':'Uploading…';
+  var c=window.supabase.createClient();
+  var path=(o.ref||o.id).replace(/[^\w.\-]+/g,'_')+'/'+Date.now()+'-'+f.name.replace(/[^\w.\-؀-ۿ]+/g,'_');
+  c.storage.from('proposals').upload(path,f,{upsert:true}).then(function(r){
+    if(r.error){if(msg)msg.textContent=(_ar?'فشل الرفع: ':'Upload failed: ')+r.error.message;return;}
+    var pub=c.storage.from('proposals').getPublicUrl(path);
+    o.fileUrl=(pub&&pub.data&&pub.data.publicUrl)||'';o.fileName=f.name;o.filePath=path;save();
+    offerEditor(document.getElementById('view'),o.id);
+    if(typeof toast==='function')toast(_ar?'تم حفظ الملف في مكتبة العروض':'File saved to the proposal library');
+  }).catch(function(e){if(msg)msg.textContent='Upload failed: '+e;});
+};
+window.o_removeFile=function(id){
+  var o=(DB.offers||[]).find(function(x){return x.id===id;});if(!o)return;
+  var _ar=(typeof LANG!=='undefined'&&LANG==='ar');
+  if(!confirm(_ar?'إزالة الملف من هذا العرض؟':'Remove the file from this proposal?'))return;
+  var p=o.filePath;
+  o.fileUrl='';o.fileName='';o.filePath='';save();
+  if(p){try{window.supabase.createClient().storage.from('proposals').remove([p]).then(function(){});}catch(_e){}}
+  offerEditor(document.getElementById('view'),id);
+};
 
 /* Branded proposal generator — pours a proposal record into a Direct-branded, bilingual,
    print-ready document (browser "Save as PDF"), using the real identity (docs/DIRECT_IDENTITY.md).
@@ -7222,6 +7250,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
    function(){
     var ns=val('qe_stage');
     try{if(ns==='Lost'&&leadStage(b)!=='Lost'&&typeof captureLostReason==='function')captureLostReason(b);}catch(_){}
+    var _newWon=(ns==='Won'&&!b.isClient);
     b.stage=ns;b.status=ns;if(ns==='Won')b.isClient=true;
     var ov=val('qe_owner');if(ov!=='__add__')b.assignedTo=ov;
     var fv=val('qe_funnel');b.funnelKey=fv||null;var _fd=(window.__funnelDefs||[]).find(function(f){return f.key===fv;});b.funnelName=_fd?_fd.name_en:null;b.funnelNameAr=_fd?_fd.name_ar:null;
@@ -7230,6 +7259,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
     var note=val('qe_note');
     if(note){b.activities=b.activities||[];b.activities.push({date:Date.now(),type:'Note',status:'',note:note,by:(typeof me==='function'?me():'Team')});b.lastContact=Date.now();}
     save();render();
+    if(_newWon&&typeof window.__clientHandover==='function')setTimeout(function(){window.__clientHandover(b.id);},250);
    });
  };
 
@@ -8799,12 +8829,10 @@ try{ if(typeof setLeadStage==='function'&&!window.__v40stage){
 /* ---------- 4. Won → client handover ---------- */
 try{ if(typeof convertToClient==='function'&&!window.__v40conv){
   var _cv=convertToClient;
-  window.convertToClient=function(id){
-    var before=(getLead(id)||{}).isClient;
-    _cv.apply(this,arguments);
+  window.__clientHandover=function(id){
     try{
       var b=getLead(id);
-      if(b&&b.isClient&&!before){
+      if(b){
         var ar=isAr();
         var _selHtml=function(id,cur,opts){return '<select id="'+id+'"><option value=""></option>'+opts.map(function(t){return '<option value="'+esc4(t[0])+'"'+(cur===t[0]?' selected':'')+'>'+esc4(ar?t[1]:t[0])+'</option>';}).join('')+'</select>';};
         var CT=[['Government','جهة حكومية'],['Semi Government','شبه حكومية'],['Big Company','شركة كبيرة'],['Medium Company','شركة متوسطة'],['Small Company','شركة صغيرة'],['Listed Company','شركة مدرجة'],['PIF company','شركة تابعة لصندوق الاستثمارات'],['Travel Partner','شريك سفر'],['Individual','فرد']];
@@ -8838,6 +8866,11 @@ try{ if(typeof convertToClient==='function'&&!window.__v40conv){
           });
       }
     }catch(_){}
+  };
+  window.convertToClient=function(id){
+    var before=(getLead(id)||{}).isClient;
+    _cv.apply(this,arguments);
+    try{ var b=getLead(id); if(b&&b.isClient&&!before)window.__clientHandover(id); }catch(_){}
   };
   window.__v40conv=true;
 }}catch(_){}
@@ -9319,7 +9352,7 @@ function rFinClients(){
   var _mini=function(lbl,val,col){return '<div style="flex:1;min-width:110px"><div style="font-size:11px;color:var(--muted)">'+lbl+'</div><div style="font-size:19px;font-weight:800;color:'+col+'">'+val+'</div></div>';};
   var _agc=function(lbl,val){return '<div style="flex:1;min-width:90px;background:#F9FAFB;border-radius:8px;padding:8px 10px"><div style="font-size:10.5px;color:var(--muted)">'+lbl+'</div><div style="font-weight:800;font-size:14px">'+moneyS(val)+' <span style="font-size:9px;font-weight:400">SAR</span></div></div>';};
   h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 class="finh" style="margin:0 0 4px">'+_fl('Collections & AR aging','التحصيل وتقادم الذمم')+'</h3>'+
-     '<div class="ch-sub" style="margin-bottom:12px">'+_fl('How long money takes to collect, the overdue share, and how the outstanding ages.','مدة تحصيل الأموال، ونسبة المتأخر، وكيف تتقادم المبالغ المستحقة.')+'</div>'+
+     '<div class="ch-sub" style="margin-bottom:12px">'+_fl('Uncollected money and how old it is.','الأموال غير المحصّلة وأعمارها.')+'</div>'+
      '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:'+(arOut>0?'14px':'0')+'">'+
        _mini(_fl('DSO (days to collect)','مدة التحصيل (أيام)'),dso,'#175CD3')+
        _mini(_fl('% overdue','٪ المتأخر'),pctOver+'%',pctOver>0?'#D92D20':'#0F6E56')+
@@ -9331,7 +9364,7 @@ function rFinClients(){
   var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,_i:{},key:cc.key};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
   var top=Object.keys(byC).sort(function(a,b){return byC[b].r-byC[a].r;}).slice(0,10);
   var _tc={r:0,c:0,p:0};Object.keys(byC).forEach(function(k){_tc.r+=byC[k].r;_tc.c+=byC[k].c;_tc.p+=byC[k].p;});
-  h+='<div class="card" style="padding:16px"><h3 class="finh" style="margin:0 0 10px">'+(isArF()?'أعلى العملاء':'Top clients by revenue')+'<i>'+finPeriodLabel()+' · '+(isArF()?'التفاصيل والنسب داخل بطاقة كل عميل':'details & percentages live inside each client')+'</i></h3><div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:480px"><tr style="background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+'"><th style="padding:7px 9px">'+(isArF()?'العميل':'Client')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الإيرادات':'Revenue')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'التكلفة':'Cost')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الربح':'Profit')+'</th></tr>'+top.map(function(k){
+  h+='<div class="card" style="padding:16px"><h3 class="finh" style="margin:0 0 10px">'+(isArF()?'أعلى العملاء':'Top clients by revenue')+'<i>'+finPeriodLabel()+'</i></h3><div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:480px"><tr style="background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+'"><th style="padding:7px 9px">'+(isArF()?'العميل':'Client')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الإيرادات':'Revenue')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'التكلفة':'Cost')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الربح':'Profit')+'</th></tr>'+top.map(function(k){
     return '<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finClient(\''+escF(byC[k].key).replace(/'/g,"\\'")+'\',\''+escF(k).replace(/'/g,"\\'")+'\')"><td style="padding:6px 9px;font-weight:600">'+escF(k)+'</td><td style="padding:6px 9px;text-align:right;font-weight:700">'+money(byC[k].r)+'</td><td style="padding:6px 9px;text-align:right;color:#B54708">'+money(byC[k].c)+'</td><td style="padding:6px 9px;text-align:right;color:#0F6E56;font-weight:700">'+money(byC[k].p)+'</td></tr>';
   }).join('')+'<tr style="background:#303848;color:#fff;font-weight:800"><td style="padding:7px 9px">'+(isArF()?'الإجمالي الكلي':'Total')+'</td><td style="padding:7px 9px;text-align:right">'+money(_tc.r)+'</td><td style="padding:7px 9px;text-align:right">'+money(_tc.c)+'</td><td style="padding:7px 9px;text-align:right">'+money(_tc.p)+'</td></tr></table></div></div>';
   return h;
@@ -9347,7 +9380,7 @@ function rOverview(){
 
   var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3'],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a':'Outstanding',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0645\u062d\u0641\u0638\u0629 (\u0645\u0633\u062a\u0628\u0639\u062f)':'Wallet (excluded)',wal,'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',invCount,'#1C1E2B']];
   h+='<h3 class="finh">'+(isArF()?'\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u0623\u062f\u0627\u0621 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629':'Key indicators')+'<i>'+finPeriodLabel()+' \u00b7 '+(isArF()?'\u0641\u0639\u0644\u064a \u2014 \u0645\u0646 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629':'actual \u2014 from verified invoices')+'</i></h3>';
-  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
     return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+'</div></div>';
   }).join('')+'</div>';
   /* Plan vs actual (executive dashboard: expected/confirmed/actual) — actuals derived live. */
@@ -9429,7 +9462,7 @@ function rLedger(){
     if(r.origin==='project')flags+=badge(_lh('project','مشروع'),'#EDE9FE','#6D28D9')+' ';
     if(r.proposal_ref)flags+=badge(escF(r.proposal_ref),'#FFF3EC','#9a4413')+' ';
     if(r.deleted_at)flags+=badge(_lh('deleted','محذوف'),'#fddede','#a3242c');
-    h+='<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finRow(\''+r.id+'\')"><td style="padding:7px 8px;white-space:nowrap">'+escF(r.invoice_date)+'</td><td style="padding:7px 8px">'+escF(r.invoice_no)+'</td><td style="padding:7px 8px">'+escF(r.zatca_dpin||'\u2014')+'</td><td style="padding:7px 8px;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escF(r.customer_raw_name||'')+'">'+escF(r.client_group)+'</td><td style="padding:7px 8px">'+escF(svcLabel(r.service_type))+'</td><td style="padding:7px 8px;text-align:right">'+money(r.total_incl_vat_sar)+'</td><td style="padding:7px 8px;text-align:right;font-weight:700">'+money(r.revenue_sar)+'</td><td style="padding:7px 8px;text-align:right">'+money(r.cost_sar)+'</td><td style="padding:7px 8px;text-align:right;color:#175CD3">'+money(r.profit_sar)+'</td><td style="padding:7px 8px">'+flags+'</td></tr>';
+    h+='<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finRow(\''+r.id+'\')"><td style="padding:7px 8px;white-space:nowrap">'+escF(r.invoice_date)+'</td><td style="padding:7px 8px">'+escF(r.invoice_no)+'</td><td style="padding:7px 8px">'+(r.zatca_dpin?('<a href="'+escF(pdInvoiceLink(r))+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Open in Direct" style="color:#175CD3;text-decoration:none">'+escF(r.zatca_dpin)+' \u2197</a>'):'\u2014')+'</td><td style="padding:7px 8px;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escF(r.customer_raw_name||'')+'">'+escF(r.client_group)+'</td><td style="padding:7px 8px">'+escF(svcLabel(r.service_type))+'</td><td style="padding:7px 8px;text-align:right">'+money(r.total_incl_vat_sar)+'</td><td style="padding:7px 8px;text-align:right;font-weight:700">'+money(r.revenue_sar)+'</td><td style="padding:7px 8px;text-align:right">'+money(r.cost_sar)+'</td><td style="padding:7px 8px;text-align:right;color:#175CD3">'+money(r.profit_sar)+'</td><td style="padding:7px 8px">'+flags+'</td></tr>';
   });
   if(!L.length)h+='<tr><td colspan="10" style="padding:30px;text-align:center;color:var(--muted)">'+_lh('No invoices match.','لا توجد فواتير مطابقة.')+'</td></tr>';
   if(L.length>LCAP)h+='<tr><td colspan="10" style="padding:12px;text-align:center;color:var(--muted);font-size:12px">'+_lh('Showing first '+LCAP+' of '+L.length+' rows — narrow the filters or use the Report Builder for totals.','عرض أول '+LCAP+' من '+L.length+' صف — ضيّق الفلاتر أو استخدم منشئ التقارير للإجماليات.')+'</td></tr>';
@@ -9457,6 +9490,17 @@ window.finOpenProposal=function(ref){try{
   if(o){openOffer=o.id;current='offers';render();window.scrollTo(0,0);}
   else if(typeof toast==='function')toast(isArF()?('لا يوجد عرض بالمرجع '+ref):('No proposal with ref '+ref));
 }catch(e){if(window.console)console.warn('finOpenProposal',e);}};
+/* Structure for linking into the Direct system (payments.directksa.com).
+   The URL pattern is a setting so it can be corrected the moment we see the real
+   Direct screens — placeholders: {invoice_no} {dpin} {client_id}. */
+window.pdInvoiceLink=function(r){
+  var tpl=(typeof DB!=='undefined'&&DB.settings&&DB.settings.pdInvoiceUrl)||'https://payments.directksa.com/invoices/{invoice_no}';
+  return tpl.replace('{invoice_no}',encodeURIComponent(r.invoice_no||'')).replace('{dpin}',encodeURIComponent(r.zatca_dpin||'')).replace('{client_id}',encodeURIComponent(r.direct_client_id||''));
+};
+window.pdClientLink=function(directClientId){
+  var tpl=(typeof DB!=='undefined'&&DB.settings&&DB.settings.pdClientUrl)||'https://payments.directksa.com/customers/{client_id}';
+  return tpl.replace('{client_id}',encodeURIComponent(directClientId||''));
+};
 window.finRow=function(id){
   var r=(FIN.rows||[]).find(function(x){return x.id===id;});if(!r)return;
   var ar=isArF(), _f=function(en,a){return ar?a:en;};
@@ -9473,7 +9517,7 @@ window.finRow=function(id){
     '<tr style="border-top:2px solid #1C1E2B;background:#F3F1EA;font-weight:800"><td style="padding:7px 8px" colspan="2">'+_f('Invoice total','\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629')+' \u00b7 '+lines.length+' '+_f('service(s)','\u062e\u062f\u0645\u0629')+'</td><td style="padding:7px 8px;text-align:right">'+money(t.tot)+'</td><td style="padding:7px 8px;text-align:right;color:#B54708">'+money(t.cost)+'</td><td style="padding:7px 8px;text-align:right;color:#0F6E56">'+money(t.prof)+'</td></tr>'+
     '</tbody></table></div>';
   var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(20,20,30,.45);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px';ov.dir=ar?'rtl':'ltr';
-  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:660px;width:100%;max-height:85vh;overflow:auto;padding:22px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h3 style="margin:0">'+_f('Invoice','\u0641\u0627\u062a\u0648\u0631\u0629')+' '+escF(r.invoice_no)+'</h3><div style="margin-'+(ar?'right':'left')+':auto;display:flex;gap:6px">'+(canFinEdit()&&!delState?'<button class="btn ghost sm" style="color:#D92D20" onclick="finDelInv(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Delete invoice','\u062d\u0630\u0641 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629')+'</button>':'')+(canFinEdit()&&delState?'<button class="btn ghost sm" onclick="finRestoreInv(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Restore','\u0627\u0633\u062a\u0631\u062c\u0627\u0639')+'</button>':'')+(r.proposal_ref?('<button class="btn ghost sm" onclick="finOpenProposal(\''+escF(r.proposal_ref).replace(/\x27/g,"\\\x27")+'\')">'+_f('Open proposal','فتح العرض')+'</button>'):'')+'<button class="btn sm" onclick="finCloseModal()">'+_f('Close','\u0625\u063a\u0644\u0627\u0642')+'</button></div></div>'+
+  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:660px;width:100%;max-height:85vh;overflow:auto;padding:22px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h3 style="margin:0">'+_f('Invoice','\u0641\u0627\u062a\u0648\u0631\u0629')+' '+escF(r.invoice_no)+'</h3><div style="margin-'+(ar?'right':'left')+':auto;display:flex;gap:6px">'+(canFinEdit()&&!delState?'<button class="btn ghost sm" style="color:#D92D20" onclick="finDelInv(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Delete invoice','\u062d\u0630\u0641 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629')+'</button>':'')+(canFinEdit()&&delState?'<button class="btn ghost sm" onclick="finRestoreInv(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Restore','\u0627\u0633\u062a\u0631\u062c\u0627\u0639')+'</button>':'')+(r.proposal_ref?('<button class="btn ghost sm" onclick="finOpenProposal(\''+escF(r.proposal_ref).replace(/\x27/g,"\\\x27")+'\')">'+_f('Open proposal','فتح العرض')+'</button>'):'')+'<a class="btn ghost sm" target="_blank" rel="noopener" href="'+escF(pdInvoiceLink(r))+'" style="text-decoration:none">'+_f('Open in Direct ↗','فتحها في دايركت ↗')+'</a>'+'<button class="btn sm" onclick="finCloseModal()">'+_f('Close','\u0625\u063a\u0644\u0627\u0642')+'</button></div></div>'+
     lineTbl+
     meta.map(function(x){return '<div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid #f0efe9;font-size:13px"><div style="min-width:150px;color:var(--muted)">'+escF(x[0])+'</div><div style="font-weight:600;word-break:break-word">'+escF(x[1]==null?'\u2014':x[1])+'</div></div>';}).join('')+
     (canFinEdit()&&!delState?('<div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;border-top:1px solid #f0efe9;padding-top:10px"><b style="font-size:12.5px">'+_f('This invoice is:','هذه الفاتورة:')+'</b>'+
@@ -9594,9 +9638,22 @@ function rImport(){
   if(!canFinEdit())return '<div class="card" style="padding:30px;text-align:center;color:var(--muted)">'+_fl('Import is restricted to admins and managers.','الاستيراد متاح للمدراء والمسؤولين فقط.')+'</div>';
   var h='<div class="card" style="padding:18px;max-width:860px">';
   h+='<h3 style="margin:0 0 8px">'+_fl('Import invoices (CSV)','استيراد الفواتير (CSV)')+'</h3>';
-  h+='<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:12px">Expected columns (exact header):<br><code style="font-size:11px;background:#F3F1EA;padding:3px 6px;border-radius:6px;display:inline-block;margin-top:4px">client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes</code><br>Checks before anything is written: duplicate invoice numbers are skipped (never overwritten) \u00b7 revenue/profit are recomputed and mismatches flagged \u00b7 dates checked against the stated quarter \u00b7 negative or credit rows become credit notes \u00b7 you confirm a preview first.</div>';
+  h+='<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:12px">Expected header:<br><code style="font-size:11px;background:#F3F1EA;padding:3px 6px;border-radius:6px;display:inline-block;margin-top:4px;word-break:break-all;max-width:100%">client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes</code><br>Optional last columns: <code style="font-size:11px">origin,proposal_ref</code> (origin = booking or project).<br>Duplicates are skipped, totals re-checked, and nothing is written until you confirm the preview.</div>';
+  h+='<div id="finDrop" style="border:2px dashed #C9CDD6;border-radius:12px;padding:22px;text-align:center;color:var(--muted);font-size:13px;margin-bottom:12px;cursor:pointer" onclick="document.getElementById(\'finFile\').click()">⬇ '+_fl('Drop a CSV file here, or click to choose','أفلت ملف CSV هنا أو انقر للاختيار')+'</div>';
   h+='<input type="file" id="finFile" accept=".csv" style="font-size:13px"> <button class="btn pri sm" onclick="finParse()">'+_fl('Check file','فحص الملف')+'</button>';
   h+='<div id="finImpOut" style="margin-top:14px"></div></div>';
+  setTimeout(function(){
+    var dz=document.getElementById('finDrop');if(!dz||dz.__wired)return;dz.__wired=1;
+    dz.addEventListener('dragover',function(e){e.preventDefault();dz.style.borderColor='#F47A1F';dz.style.background='#FFF3EC';});
+    dz.addEventListener('dragleave',function(){dz.style.borderColor='#C9CDD6';dz.style.background='';});
+    dz.addEventListener('drop',function(e){
+      e.preventDefault();dz.style.borderColor='#C9CDD6';dz.style.background='';
+      var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(!f)return;
+      var inp=document.getElementById('finFile');
+      try{var dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;}catch(_e){}
+      if(inp.files&&inp.files.length)finParse();
+    });
+  },0);
   return h;
 }
 function csvParse(text){
@@ -9620,9 +9677,11 @@ window.finParse=function(){
   var rd=new FileReader();
   rd.onload=function(){
     var rows=csvParse(String(rd.result));
-    var HDR='client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes'.split(',');
-    var hdr=rows[0]||[];
-    if(hdr.join(',').trim()!==HDR.join(',')){document.getElementById('finImpOut').innerHTML='<div style="color:#D92D20;font-size:13px">Header does not match the expected format. Found:<br><code style="font-size:11px">'+escF(hdr.join(','))+'</code></div>';return;}
+    var BASE='client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes';
+    var hdr=rows[0]||[],hj=hdr.join(',').trim();
+    var hasExtra=(hj===BASE+',origin,proposal_ref');
+    if(hj!==BASE&&!hasExtra){document.getElementById('finImpOut').innerHTML='<div style="color:#D92D20;font-size:13px">Header does not match the expected format. Found:<br><code style="font-size:11px;word-break:break-all">'+escF(hdr.join(','))+'</code></div>';return;}
+    var HDR=(hasExtra?BASE+',origin,proposal_ref':BASE).split(',');
     var existing={};(FIN.rows||[]).forEach(function(r){existing[r.invoice_no]=1;});
     var seen={},ok=[],dups=[],flagged=[];
     rows.slice(1).forEach(function(c,idx){
@@ -9640,8 +9699,11 @@ window.finParse=function(){
       else if(qr&&((d.getMonth()+1)<qr[0]||(d.getMonth()+1)>qr[1]))probs.push('date outside stated quarter');
       var st=o.integrity_status||'verified_paid';
       if(tot<0||/credit/i.test(o.products))st='credit_note';
+      var org=String(o.origin||'').trim().toLowerCase();
+      if(org&&org!=='booking'&&org!=='project')probs.push('origin must be booking or project');
+      if(org==='project'&&!String(o.proposal_ref||'').trim())probs.push('project rows need a proposal_ref');
       if(probs.length){flagged.push({line:line,no:o.invoice_no,probs:probs});return;}
-      ok.push({invoice_no:o.invoice_no,zatca_dpin:o.zatca_dpin||null,client_group:o.client_group,customer_raw_name:o.customer_raw_name||null,invoice_date:o.invoice_date,month:o.month,quarter:o.quarter,products:o.products||null,service_type:svcType(o.products),record_type:'b2b',total_incl_vat_sar:tot,wallet_portion_sar:wal,revenue_sar:rev,cost_sar:cost,profit_sar:prof,amount_received_sar:st==='verified_paid'?tot:0,amount_remaining_sar:0,integrity_status:st,notes:o.notes||null,source_batch:'import '+new Date().toISOString().slice(0,10)});
+      ok.push({invoice_no:o.invoice_no,zatca_dpin:o.zatca_dpin||null,client_group:o.client_group,customer_raw_name:o.customer_raw_name||null,invoice_date:o.invoice_date,month:o.month,quarter:o.quarter,products:o.products||null,service_type:svcType(o.products),record_type:'b2b',total_incl_vat_sar:tot,wallet_portion_sar:wal,revenue_sar:rev,cost_sar:cost,profit_sar:prof,amount_received_sar:st==='verified_paid'?tot:0,amount_remaining_sar:0,integrity_status:st,notes:o.notes||null,origin:org||'booking',proposal_ref:String(o.proposal_ref||'').trim()||null,source_batch:'import '+new Date().toISOString().slice(0,10)});
     });
     var trev=0,tcost=0,tprof=0;ok.forEach(function(r){trev+=r.revenue_sar;tcost+=r.cost_sar;tprof+=r.profit_sar;});
     FIN._pending=ok;
@@ -9656,8 +9718,19 @@ window.finParse=function(){
 function svcType(p){
   p=String(p||'');
   if(p.indexOf('+')>=0)return 'Mixed';
-  var m=[['Direct Flights','Flights'],['Direct Hotels','Hotels'],['Direct Visa','Visas'],['Direct Course','Courses'],['Direct Wallet','Wallet top-up'],['Techtic','Support Services']];
-  for(var i=0;i<m.length;i++)if(p.toLowerCase().indexOf(m[i][0].toLowerCase())>=0)return m[i][1];
+  var lc=p.toLowerCase();
+  var m=[
+    [['direct flights','flight','airfare','air ticket','ticket','طيران','تذكر'],'Flights'],
+    [['direct hotels','hotel','accommodation','room','فندق','إقام'],'Hotels'],
+    [['direct visa','visa','تأشير'],'Visas'],
+    [['direct course','course','training','study','دورة','تدريب'],'Courses'],
+    [['direct wallet','wallet','top-up','topup','محفظة'],'Wallet top-up'],
+    [['techtic','support service','دعم'],'Support Services'],
+    [['transport','transfer','car','bus','نقل'],'Transport'],
+    [['insurance','تأمين'],'Insurance'],
+    [['package','umrah','hajj','trip','tour','برنامج','عمرة','رحل'],'Packages']
+  ];
+  for(var i=0;i<m.length;i++)for(var j=0;j<m[i][0].length;j++)if(lc.indexOf(m[i][0][j])>=0)return m[i][1];
   return 'Other';
 }
 window.finCommit=function(){
@@ -10421,7 +10494,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
       var tot={gross:0,cost:0,rev:0,n:0}; keys.forEach(function(k){tot.gross+=by[k].gross;tot.cost+=by[k].cost;tot.rev+=by[k].rev;}); tot.n=new Set(rows.map(function(r){return r.invoice_no;})).size;
       var th=function(t,r){return '<th style="padding:6px 8px;text-align:'+(r?'right':'left')+';color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap">'+t+'</th>';};
       var h='<h3 class="finh" style="margin:0 0 3px">'+fl('Income by service line','الدخل حسب نوع الخدمة')+(window.finPeriodLabel?'<i>'+finPeriodLabel()+'</i>':'')+'</h3>'+
-        '<div class="ch-sub" style="margin-bottom:10px">'+fl('Service fee = Direct’s income (the taxable part). Gross billed = cost + service fee. Tap a service to see the invoices behind it.','رسوم الخدمة = دخل دايركت (الجزء الخاضع للضريبة). الإجمالي = التكلفة + رسوم الخدمة. اضغط الخدمة لرؤية فواتيرها.')+'</div>'+
+        '<div class="ch-sub" style="margin-bottom:10px">'+fl('Service fee = Direct’s income. Tap a service to see its invoices.','رسوم الخدمة = دخل دايركت. اضغط الخدمة لرؤية فواتيرها.')+'</div>'+
         '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px"><thead><tr>'+
         th(fl('Service','الخدمة'))+th(fl('Gross billed','الإجمالي'),1)+th(fl('Cost','التكلفة'),1)+th(fl('Service fee (income)','رسوم الخدمة (دخل)'),1)+'</tr></thead><tbody>';
       gkeys.forEach(function(g,gi){
@@ -10451,7 +10524,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
         '</tr>';
       h+='</tbody></table></div>';
       var card=document.createElement('div'); card.className='card v32-svc'; card.style.cssText='padding:16px;margin-bottom:14px'; card.innerHTML=h;
-      var kpi=null; view.querySelectorAll('div').forEach(function(d){var s=d.getAttribute('style')||'';if(!kpi&&s.indexOf('grid-template-columns')>=0&&s.indexOf('minmax(150px')>=0)kpi=d;});
+      var kpi=null; view.querySelectorAll('div').forEach(function(d){var s=d.getAttribute('style')||'';if(!kpi&&s.indexOf('grid-template-columns')>=0&&s.indexOf('minmax(132px')>=0)kpi=d;});
       if(kpi&&kpi.parentNode){kpi.parentNode.insertBefore(card,kpi.nextSibling);}
       else if(view.firstChild){view.insertBefore(card,view.firstChild.nextSibling);}
     }catch(e){if(window.console)console.warn('[v32] by-service',e);}
@@ -10566,7 +10639,7 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
       if(linked){
         el.innerHTML='<span style="font-size:15px">🔗</span><span style="font-weight:700;color:#0F6E56">'+fl('Linked to Direct','مرتبط بدايركت')+'</span>'+
           '<span style="color:var(--muted);font-size:12.5px">'+fl(accts.length>1?'billing accounts':'client','حسابات الفوترة')+'</span> '+acctHtml+'<span style="flex:1"></span>'+
-          '<a class="chiplink" href="'+(typeof pdLink==='function'?pdLink(b):'#')+'" target="_blank" rel="noopener">'+fl('Open in Direct Payments ↗','افتح في مدفوعات دايركت ↗')+'</a>'+
+          '<a class="chiplink" href="'+((b.directClientId&&typeof pdClientLink==='function')?pdClientLink(b.directClientId):(typeof pdLink==='function'?pdLink(b):'#'))+'" target="_blank" rel="noopener">'+fl('Open in Direct Payments ↗','افتح في مدفوعات دايركت ↗')+'</a>'+
           ' <button class="btn ghost sm" onclick="v34EditAccounts(\''+id+'\')">'+fl('Billing accounts','حسابات الفوترة')+'</button>'+
           ' <button class="btn ghost sm" onclick="v34AddDirectId(\''+id+'\')">'+fl('Edit','تعديل')+'</button>';
       } else {
@@ -11450,6 +11523,25 @@ console.info('%c[v43 per-session identity] loaded','color:#FF6B00;font-weight:70
   setTimeout(inject,900);
   console.info('%c[v60] record-card section jump bar loaded','color:#0F6E56;font-weight:700');
 }catch(e){if(window.console)console.warn('[v60] init',e);}})();
+</script>
+<script>
+/* v61 — every road to Won ends at the "complete the client" step (2026-08-12).
+   The v40 handover modal only fired through convertToClient(); the stage dropdown
+   (setLeadStage) and the quick-edit set isClient directly and skipped it. */
+(function(){try{
+  if(typeof setLeadStage==='function'&&!window.__v61won){
+    var _s=window.setLeadStage;
+    window.setLeadStage=function(id,s){
+      var b=(typeof getLead==='function')?getLead(id):null;
+      var was=!!(b&&b.isClient);
+      var out=_s.apply(this,arguments);
+      try{ if(s==='Won'&&b&&!was&&typeof window.__clientHandover==='function')setTimeout(function(){window.__clientHandover(id);},250); }catch(_){}
+      return out;
+    };
+    window.__v61won=true;
+    console.info('%c[v61] Won → complete-the-client hook loaded','color:#0F6E56;font-weight:700');
+  }
+}catch(e){if(window.console)console.warn('[v61] init',e);}})();
 </script>
 </body>
 </html>
