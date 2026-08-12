@@ -83,6 +83,27 @@ Then: **code lightening by deletion** — after each page is rebuilt, delete the
 patch layers it made obsolete (never delete first). Finally: move requests/offers/
 projects out of the app_state blob into real tables (ends last-write-wins).
 
+### Shipped 2026-08-12 (round 2) — the bulletproof pass: core split + volume attack
+Owner: "I want the core right so we can build quickly — attack it, fix it, attack again."
+1. **The one-file app is GONE.** index.html is a 69KB shell; the base core is 10 ordered
+   files in js/core/ (foundation, leads, reference-ops, proposals, records, v18–v29
+   modules) and the 37 feature layers are js/*.js — every extraction byte-verified.
+   Parallel sessions now work in different files; only shared-core edits stay solo
+   (rules in CLAUDE.md).
+2. **Volume attack** (docs/LANDMINES.md Part D): 20 stress companies + 1,254 invoice
+   lines seeded in the LIVE db (batch stress-2026-08-12, formula-mirrored in
+   scripts/qa/stress-data.mjs, SQL-checksum equal). CAUGHT AND FIXED: the finance
+   loader silently capped at the API's 1,000-row limit — past 1,000 ledger lines every
+   finance total would have been wrong with no error. Loader now pages; the QA mock now
+   enforces the cap (+offset paging) so the bug class is dead. probe-stress (20 checks,
+   independent expected values) + landmines re-run on stress data + full canonical
+   regression: ALL GREEN.
+3. Adversarial round 1 earlier the same day (LANDMINES Parts A–C): 7 traps fixed incl.
+   full-edit Won half-conversion, un-Won permanent client, empty-stage save, import
+   double-click, .exe upload, silent unknown proposal ref, AR-mode English leftovers.
+Also: save_state_patch anon grant found re-opened (function re-create resets grants) —
+re-locked by migration + standing advisor rule.
+
 ### Shipped 2026-08-12 — the three approved ideas + Direct-link structure + aggressive re-sweep
 Owner approved the three parked ideas; all built, probed (19/19 targeted + full regression
 54/54 lifecycle · 45-control · consistency · nav · all-pages EN/AR · mobile · AR labels, 0

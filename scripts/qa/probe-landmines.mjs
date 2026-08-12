@@ -160,8 +160,10 @@ STEP('L11 1000-row CSV parses + previews fast', /Ready to import: 1000/.test(out
 await page.evaluate(() => { finCommit(); finCommit(); finCommit(); }); // hammer the button
 await page.waitForTimeout(4000);
 const bulkCount = await page.evaluate(async () => {
-  const r = await fetch('http://127.0.0.1:8919/rest/v1/finance_invoices').then(x => x.json());
-  return r.filter(x => String(x.invoice_no || '').startsWith('DP-BULK-')).length;
+  // page through the API (it caps at 1000 rows per request, like real PostgREST)
+  let all = [], from = 0;
+  while (true) { const r = await fetch('http://127.0.0.1:8919/rest/v1/finance_invoices', { headers: { Range: from + '-' + (from + 999) } }).then(x => x.json()); all = all.concat(r); if (r.length < 1000) break; from += 1000; }
+  return all.filter(x => String(x.invoice_no || '').startsWith('DP-BULK-')).length;
 });
 STEP('L12 triple-click Confirm: exactly 1000 rows land, not 2000/3000', bulkCount === 1000, 'rows=' + bulkCount);
 
