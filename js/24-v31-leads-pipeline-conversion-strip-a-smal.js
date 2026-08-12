@@ -7,7 +7,8 @@
     var all=(typeof DB!=='undefined'&&DB.businesses)||[]; if(!all.length)return '';
     var stg=function(b){return (typeof leadStage==='function')?leadStage(b):(b.stage||'');};
     var month=new Date().toISOString().slice(0,7);
-    var newThis=all.filter(function(b){return String(created(b)).slice(0,7)===month;}).length;
+    /* count the same population the chips below count: pipeline leads, not converted clients */
+    var newThis=all.filter(function(b){return !b.isClient&&String(created(b)).slice(0,7)===month;}).length;
     var won=all.filter(function(b){return stg(b)==='Won'||b.isClient;});
     var lost=all.filter(function(b){return stg(b)==='Lost';}).length;
     var conv=all.length>0?Math.round(won.length/all.length*100):0; // won out of ALL leads, the standard rate

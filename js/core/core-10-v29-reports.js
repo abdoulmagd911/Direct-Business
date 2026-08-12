@@ -831,6 +831,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
  };
  // make Export respect the same view
  window.leadsView=function(){return leadTableList();};
+ window.leadClearFilters=function(){try{leadFilter.stage='all';leadFilter.cat='all';leadFilter.mine=false;leadFilter.hideClosed=false;leadFilter.attention=false;if(window.leadFilterFunnel!==undefined)window.leadFilterFunnel='all';drawLeads();}catch(e){console.warn(e);}};
  window.leadSelToggle=function(id,on){if(on)leadSel.add(id);else leadSel.delete(id);drawTable();};
  window.leadSelAll=function(on){var l=leadTableList();if(on)l.forEach(function(b){leadSel.add(b.id);});else leadSel.clear();drawTable();};
  window.leadSelClear=function(){leadSel.clear();drawTable();};
@@ -871,7 +872,12 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
      '<td style="color:var(--muted);max-width:170px;white-space:normal">'+(function(){var t=b.nextAction||b.nextActionNote||'';var d=b.nextActionDate?String(b.nextActionDate).slice(0,10):'';if(!t&&!d)return '—';var od=d&&d<new Date().toISOString().slice(0,10);return esc(t||((typeof LANG!=='undefined'&&LANG==='ar')?'متابعة':'Follow up'))+(d?' <span style="white-space:nowrap;color:'+(od?'#D92D20':'var(--muted)')+'">· '+d+'</span>':'');})()+'</td>'+
      '<td style="color:var(--muted)">'+((b.assignedTo||b.owner)?esc(b.assignedTo||b.owner):'<span class="tag" style="background:#F0453A14;color:#D92D20">Unassigned</span>')+'</td>'+
      '<td>'+(function(){var _s=leadScore(b),_sb=scoreBand(_s);return '<span class="tag" style="background:'+_sb.c+'1a;color:'+_sb.c+';font-weight:700" title="Lead score '+_s+'/100">'+_sb.l+'</span>';})()+'</td></tr>';
-  }).join('')||'<tr><td colspan="8" class="empty">No businesses match this view.</td></tr>';
+  }).join('')||(function(){
+    var base=DB.businesses.filter(matchLead).length;
+    var ar=(typeof LANG!=='undefined'&&LANG==='ar');
+    if(base>0){return '<tr><td colspan="8" class="empty">'+(ar?('لا نتائج مع الفلاتر الحالية — '+base+' سجل مخفي.'):('No results with the current filters — '+base+' record(s) hidden.'))+' <button class="btn sm pri" onclick="leadClearFilters()">'+(ar?'إظهار الكل':'Show all')+'</button></td></tr>';}
+    return '<tr><td colspan="8" class="empty">'+(ar?'لا توجد سجلات بعد.':'No businesses yet.')+'</td></tr>';
+  })();
   board.innerHTML=ctrl+'<div class="card" style="padding:0"><div class="tbl-wrap"><table><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div></div>';
  };
  console.info('%c[v30] leads bulk + hide-closed + needs-attention loaded','color:#7A5AF8;font-weight:700');

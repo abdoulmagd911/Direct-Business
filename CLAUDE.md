@@ -280,6 +280,17 @@ runs `index.html` in a headless browser against a local stand-in for Supabase. S
 deliberately for this). Screenshot the pages and look at them — several real defects on
 Today and Leads were invisible in the code and obvious on screen.
 
+
+## Data world (since 2026-08-12)
+
+The live database holds **real test data**: ~24 actual companies and 58 actual invoices
+mirrored from Direct Payments exports (batch `real-2026-08-12`), plus the full promo-code
+registry (`promo_codes`, 198 codes). The old synthetic worlds are preserved in
+`*_snapshot_20260812` tables. **Real company data lives in the database only — never
+commit names, amounts or invoice numbers to this public repo.** QA fixtures stay synthetic.
+`finance_invoices.revenue_way` records how revenue arrived: invoice / transaction /
+commission / promo_code. VAT is stored (`vat_sar`) but never displayed — owner rule.
+
 ## Rules for editing the app (SPLIT INTO FILES on 2026-08-12)
 
 **The app is no longer one file.** `index.html` holds the base core; the 37 feature

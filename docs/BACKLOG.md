@@ -1,5 +1,40 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-12 · Round 4 — real data world + the four revenue ways (owner's big note)
+
+Shipped, tested twice (mock suites + real-backend E2E 11/11), deployed:
+
+1. **The test data is now REAL.** All three fake batches (stress, lifecycle, assumption)
+   were removed from the live database and replaced with **24 actual companies** and
+   **58 actual invoices** taken from the Direct Payments exports (batch `real-2026-08-12`):
+   real clients with their true invoice histories, the biggest at 4.37M SAR billed, plus
+   pending transactions, a never-completed 30,850 SAR draft (warm re-approach), commission
+   schools, wallet top-ups, credit notes and 4 individual B2C customers. Nothing deleted:
+   `*_snapshot_20260812` tables hold the full prior state. Company identities live in the
+   DATABASE only — never in this public repo (QA fixtures stay synthetic).
+2. **The four ways revenue arrives** (owner-defined) are now a stored column
+   `finance_invoices.revenue_way`: `invoice` / `transaction` (created at confirmation,
+   tax invoice later) / `commission` (held or received at a supplier's wallet) /
+   `promo_code` (B2B2C totals). Ledger shows a badge for each; the invoice card has a
+   "How did this revenue arrive?" selector; commission rows are exempt from the
+   "no cost recorded" flag (commissions genuinely have no cost).
+3. **Promo-code registry**: new `promo_codes` table loaded with the full export —
+   198 codes, 134 used, 27.3M SAR of B2C sales through partner codes, 2.3M discounts.
+   A "Promo codes (B2B2C)" card on the Finance overview shows totals + top codes.
+   Future: per-code invoice scraping via the importer.
+4. **Income by service line is FLAT** — sub-groups cancelled per owner order; every
+   service on its own row, sorted by income, count column added.
+5. **VAT is never shown anywhere** (owner rule): the "Included VAT" row was removed from
+   the invoice card. `vat_sar` stays stored for the future importer, display-only ban.
+6. **Screenshot misalignments fixed**: plan-vs-actual shows the TRUE percentage (e.g. 618%)
+   with "above plan ✓" instead of a bar stuck at 100%; the monthly chart heading now carries
+   the same period label as the cards; the Leads header strip counts the same population as
+   the chips; an empty Leads table now says "N records hidden by filters — Show all" with a
+   one-tap clear instead of a dead "No businesses match this view".
+7. QA: probes updated (S29 asserts NO VAT; live2 re-pointed at the real world with
+   data-driven assertions — no client names in the public repo). All suites green twice:
+   lifecycle 54/54, landmines 21/21, stress 30/30, newfeatures 19/19, live2 11/11, 0 page errors.
+
 Living list. Every session should read this and update it. Nothing here is forgotten,
 it is *parked*, and each item says why and what "done" looks like.
 

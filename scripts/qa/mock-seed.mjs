@@ -42,6 +42,11 @@ const TABLES={
   app_state:[{id:1,data:BLOB,updated_at:'2026-08-08T13:52:37Z',updated_by:'test@directksa.com'}],
   funnels:SEED_FUNNELS,
   finance_invoices:SEED_FIN,
+  promo_codes:[
+    {id:'pc1',code:'TESTCO',slug:'x1',kind:'percent',value_pct:10,valid_from:'2026-01-01',valid_to:'2026-12-31',total_sales_sar:120000,total_discount_sar:12000,active:true,expired:false,created_by:'QA'},
+    {id:'pc2',code:'PARTNER5',slug:'x2',kind:'percent',value_pct:5,valid_from:'2026-01-01',valid_to:'2026-06-30',total_sales_sar:45000.5,total_discount_sar:2250.25,active:true,expired:true,created_by:'QA'},
+    {id:'pc3',code:'ZERO',slug:'x3',kind:'percent',value_pct:3,valid_from:'2026-01-01',valid_to:'2026-12-31',total_sales_sar:0,total_discount_sar:0,active:false,expired:false,created_by:'QA'}],
+
   ksa_events:[...Array(8)].map((_,i)=>({id:'e'+i,name_en:'Event '+i,name_ar:'فعالية '+i,vertical:['Travel','Tech','Study','Other'][i%4],status:'confirmed',start_date:'2026-09-1'+(i%9),end_date:'2026-09-1'+(i%9),city:'Riyadh',venue:'RICEC',organiser:'Org',link:'https://example.com',opportunity_sales:i%2===0,opportunity_partner:i%3===0,priority:(i%5)+1,notes:null,created_at:null,updated_at:null})),
   ksa_events_audit:[], airlines:[...Array(12)].map((_,i)=>({id:'ai'+i,legacy_id:'A'+i,name:'Airline '+i,code:'X'+i,icao:'XX'+i,stock:null,country:'KSA',type:'FSC',ksa:'yes',alliance:null,adm_risk:'low',gds:[],providers:[],frontend:null,deeplinks:null,manual:null,adm_policy:null,ticketing:{},notes:null,raw:{},contacts:[],contacts_source:null,contacts_updated_at:null})),
   providers:[...Array(6)].map((_,i)=>({id:'p'+i,legacy_id:'P'+i,name:'Provider '+i,kind:'GDS',source:'direct',portal:'https://example.com',login:'user',adm_policy:null,process:null,payment:'credit',contacts:[],notes:null,raw:{}})),
