@@ -261,6 +261,22 @@ await page.waitForTimeout(1200);
 STEP('S28 Back lands on the Clients page', backWorks && await page.evaluate(() => current === 'clients'));
 await SHOT('client-context');
 
+// ===== S29 · REAL Direct model: transaction grouping + VAT row + uuid deep link =====
+await page.evaluate(() => { current = 'finance'; openLead = null; FIN.tab = 'ledger'; render(); });
+await page.waitForTimeout(1200);
+await page.evaluate(() => { const r = (FIN.rows || []).find(x => x.invoice_no === 'DP-WDI-100'); finRow(r.id); });
+await page.waitForTimeout(800);
+const txm = await page.evaluate(() => {
+  const m = document.getElementById('finModal'); if (!m) return null;
+  const t = m.textContent.replace(/\s+/g, ' ');
+  const a = [...m.querySelectorAll('a')].find(x => (x.href || '').includes('/en/admin/invoices/view/'));
+  return { tx1: t.includes('TXR-1163801001'), tx2: t.includes('TXR-1163801002'), vat: t.includes('Included VAT'), vatAmt: t.includes('1,790'), deep: a ? a.href : null };
+});
+STEP('S29 invoice card groups by TRANSACTION (two headers) with VAT row (1,790)', !!txm && txm.tx1 && txm.tx2 && txm.vat && txm.vatAmt, JSON.stringify(txm));
+STEP('S30 "Open in Direct" deep-links to the real admin invoice URL by uuid', !!txm && !!txm.deep && txm.deep.includes('/en/admin/invoices/view/e2f1c9aa-7d31-4a52-9d3e-000000000100'), txm && txm.deep);
+await SHOT('transaction-model');
+await page.evaluate(() => finCloseModal());
+
 console.log(LOG.join('\n'));
 console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.length}`);
 console.log('PAGEERRORS:', errs.length, errs.slice(0, 8));
