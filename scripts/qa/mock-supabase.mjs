@@ -13,7 +13,7 @@ const biz=[...Array(60)].map((_,i)=>({id:'b'+i,legacy_id:'L'+i,name:'Test Compan
   account_manager:'QA Test Account',tier:i%2?'A':'B',entity_type:'LLC',legal_name:'Test Company '+i+' LLC',cr_vat:'30012345678'+i,
   payment_terms:'Net 30',credit_limit:50000,contract_start:'2026-01-01',contract_end:'2026-12-31',contract_scope:'Air + Hotel',
   contract_sla:'24h',next_review:'2026-09-01',total_sar:12000+i*37,website:'https://example.com',corp_email_flag:'yes',
-  is_client:i%4===0,converted_date:i%4===0?'2026-03-01':null,channels:[],prefs:{},airline_deals:[],pricing:[],notes:'Seed row',
+  is_client:i%4===0,converted_date:i%4===0?'2026-03-01':null,direct_client_id:i===0?'95':null,channels:[],prefs:{},airline_deals:[],pricing:[],notes:'Seed row',
   created_at:'2026-06-0'+((i%9)+1)+'T10:00:00Z',updated_at:'2026-08-01T10:00:00Z',raw:{},verification_source:'manual',
   needs_manual_confirmation:i%11===0,confirmation_reason:i%11===0?'No website found':null,confirmed_by:null,confirmed_at:null,
   scrub_run_id:null,funnel_id:null,funnel_details:{},stage_legacy:null,next_action_date:'2026-08-20',next_action_note:'Follow up',
@@ -26,7 +26,10 @@ const TABLES={
   businesses:biz,
   contacts:[...Array(20)].map((_,i)=>({id:'c'+i,business_id:'b'+i,name:'Contact '+i,role:'Manager',email:'c'+i+'@example.com',phone:'+96650000000'+i,verification_source:'manual',needs_manual_confirmation:false,confirmation_reason:null,confirmed_by:null,confirmed_at:null,meta:{},source:'import'})),
   activities:[...Array(10)].map((_,i)=>({id:'a'+i,business_id:'b'+i,type:'note',note:'Activity '+i,by_user:'QA',at:'2026-08-01T10:00:00Z'})),
-  app_users:[{id:UID,email:'test@directksa.com',full_name:'QA Test Account',role:'admin',active:true,created_at:'2026-08-08T00:00:00Z',must_change_password:false,allowed_pages:null}],
+  app_users:[{id:UID,email:'test@directksa.com',full_name:'QA Test Account',role:'admin',active:true,created_at:'2026-08-08T00:00:00Z',must_change_password:false,allowed_pages:null},
+    {id:'u-assem',email:'assem.alsweed@directksa.com',full_name:'Assem Alsweed',role:'team_member',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:true,allowed_pages:['today','leads','clients']},
+    {id:'u-fin',email:'finance.person@directksa.com',full_name:'Finance Person',role:'operations',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:false,allowed_pages:['today','finance']},
+    {id:'u-off',email:'switched.off@directksa.com',full_name:'Switched Off',role:'viewer',active:false,created_at:'2026-08-09T00:00:00Z',must_change_password:false,allowed_pages:['today','reports']}],
   app_state:[{id:1,data:BLOB,updated_at:'2026-08-08T13:52:37Z',updated_by:'test@directksa.com'}],
   funnels:[{id:'f1',key:'default',name_en:'Default',name_ar:'افتراضي',color:'orange',sort_order:1,active:true,field_template:[],created_at:null,updated_at:null}],
   finance_invoices:[...Array(15)].map((_,i)=>{const _svc=['Flights','Hotels','Visa','Support Services','Packages'][i%5];const _mo=['January','February','March','April','May','June'][i%6];const _q='Q'+(Math.floor((i%6)/3)+1);const _tot=5000+i*777;const _cost=_svc==='Support Services'?0:Math.round(_tot*0.88);const _rev=_tot-_cost;return {id:'i'+i,invoice_no:'11636'+(1000+i),zatca_dpin:(i%3)?('TTIN-'+(9000+i)):null,client_group:'Test Company '+(i%6),customer_raw_name:'Test Company '+(i%6),invoice_date:'2026-0'+((i%6)+1)+'-15',month:_mo,quarter:_q,year:2026,products:_svc,service_type:_svc,record_type:'b2b',total_incl_vat_sar:_tot,wallet_portion_sar:0,revenue_sar:_rev,cost_sar:_cost,profit_sar:_rev,amount_received_sar:_tot,amount_remaining_sar:0,collection_due_date:'2026-07-15',integrity_status:'verified_paid',exclusion_reason:null,notes:null,source_batch:'seed',created_at:'2026-06-01T00:00:00Z',updated_at:'2026-06-01T00:00:00Z',deleted_at:null};}),
@@ -36,7 +39,15 @@ const TABLES={
   sops:[...Array(5)].map((_,i)=>({id:'s'+i,legacy_id:'S'+i,title:'SOP '+i,category:'Ops',market_standard:'yes',edge:'n/a',body:'Body text',author:'QA',updated_at:'2026-08-01T00:00:00Z',raw:{}})),
   slas:[...Array(5)].map((_,i)=>({id:'sl'+i,legacy_id:'SL'+i,metric:'Response time',direct_business:'2h',market:'4h',whales:'1h',flag:'green',raw:{}})),
   requests:[...Array(4)].map((_,i)=>({id:'r'+i,legacy_id:'R'+i,title:'Request '+i,business_id:'b'+i,client_name:'Test Company '+i,stage:'open',owner:'QA',priority:'high',supplier:'Provider 1',pnr:'ABC12'+i,cost:900,sell:1100,sla_due:'2026-08-20T00:00:00Z',created_at:'2026-08-01T00:00:00Z',raw:{}})),
-  offers:[], external_refs:[], master_db_companies:[], generated_documents:[], app_state_history:[], app_state_bak:[], access_allowlist:[], share_links:[]
+  offers:[], external_refs:[], master_db_companies:[], generated_documents:[], app_state_history:[], app_state_bak:[], access_allowlist:[], share_links:[],
+  // client↔finance link fixture: maps finance group "Test Company 4" to business b4 (a client),
+  // so the harness exercises the real link path (legacy-id L4 → uuid b4 → group → invoices).
+  // A SECOND group "Test Company 5" also maps to b4 — simulating two invoice-spellings of one
+  // company — so the canonical-client rollup (both groups collapse into one client row) is tested.
+  finance_client_links:[
+    {id:'fl0',client_group:'Test Company 4',business_id:'b4',is_client:true,note:'auto: test',confirmed_by:'system',confirmed_at:'2026-08-10T00:00:00Z',created_at:'2026-08-10T00:00:00Z',updated_at:'2026-08-10T00:00:00Z'},
+    {id:'fl1',client_group:'Test Company 5',business_id:'b4',is_client:true,note:'dup spelling → same client',confirmed_by:'system',confirmed_at:'2026-08-10T00:00:00Z',created_at:'2026-08-10T00:00:00Z',updated_at:'2026-08-10T00:00:00Z'}
+  ]
 };
 const RPCLOG=[];
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
@@ -49,6 +60,21 @@ export function start(port){
   if(path==='/auth/v1/user') return send(res,200,SESSION.user);
   if(path==='/auth/v1/logout') return send(res,204,'');
   if(path.startsWith('/auth/v1/recover')) return send(res,200,{});
+  if(path.startsWith('/functions/v1/admin-users')){
+    let body='';
+    req.on('data',c=>body+=c);
+    return req.on('end',()=>{
+      let p={}; try{p=JSON.parse(body||'{}');}catch(_){}
+      const A=p.action;
+      if(A==='list') return send(res,200,{users:TABLES.app_users.map(u=>({id:u.id,email:u.email,full_name:u.full_name,role:u.role,active:u.active,must_change_password:u.must_change_password,created_at:u.created_at}))});
+      if(A==='create'){ const nu={id:'u-'+(TABLES.app_users.length),email:String(p.email||'').toLowerCase(),full_name:p.full_name||'',role:p.role||'team_member',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:true,allowed_pages:['today','leads','clients']}; TABLES.app_users.push(nu); return send(res,200,{ok:true,email:nu.email,temp_password:'Riyadh1234!'}); }
+      if(A==='set_role'){ const u=TABLES.app_users.find(x=>x.id===p.id); if(u)u.role=p.role; return send(res,200,{ok:true}); }
+      if(A==='set_active'){ const u=TABLES.app_users.find(x=>x.id===p.id); if(u)u.active=p.active===true; return send(res,200,{ok:true}); }
+      if(A==='reset_password'){ return send(res,200,{ok:true,temp_password:'Jeddah5678@'}); }
+      if(A==='clear_must_change') return send(res,200,{ok:true});
+      return send(res,200,{error:'unknown'});
+    });
+  }
   if(path==='/__rpclog') return send(res,200,RPCLOG);
   if(path.startsWith('/rest/v1/rpc/')){
     let body='';
@@ -64,11 +90,22 @@ export function start(port){
     const t=path.replace('/rest/v1/','').split('?')[0];
     let rows=TABLES[t]||[];
     if(req.method!=='GET') return send(res,201,[]);
+    // apply simple eq filters from the query string (e.g. id=eq.<uuid>) like real PostgREST,
+    // so .eq(...).maybeSingle() returns exactly the matching row (not row[0] of the whole table).
+    Object.keys(u.query||{}).forEach(k=>{
+      if(k==='select'||k==='order'||k==='limit'||k==='offset')return;
+      let val=u.query[k]; if(Array.isArray(val))val=val[0];
+      const m=String(val||'').match(/^eq\.(.*)$/);
+      if(m){ const want=m[1]; rows=rows.filter(r=>String(r[k])===want); }
+    });
     const single=(req.headers.accept||'').includes('vnd.pgrst.object');
     return send(res,200, single?(rows[0]||null):rows, {'Content-Range':'0-'+Math.max(rows.length-1,0)+'/'+rows.length});
   }
-  let f=path==='/'||path==='/ops'?'/index.html':path;
-  try{ const body=fs.readFileSync(APP+f); res.writeHead(200,{'Content-Type':f.endsWith('.html')?'text/html; charset=utf-8':'text/plain'}); res.end(body); }
-  catch(e){ res.writeHead(404); res.end('nf'); }
+  // Serve a real file if it exists; otherwise fall back to index.html (mirrors the vercel.json
+  // SPA rewrite) so deep paths like /leads or /clients and browser reloads work as in production.
+  let f=path==='/'?'/index.html':path; let body=null;
+  try{ body=fs.readFileSync(APP+f); }
+  catch(_){ try{ body=fs.readFileSync(APP+'/index.html'); f='/index.html'; }catch(e){ res.writeHead(404); return res.end('nf'); } }
+  res.writeHead(200,{'Content-Type':f.endsWith('.html')?'text/html; charset=utf-8':(f.endsWith('.js')?'application/javascript':'text/plain')}); res.end(body);
  }).listen(port);
 }
