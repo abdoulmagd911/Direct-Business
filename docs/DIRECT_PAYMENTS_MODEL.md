@@ -127,3 +127,32 @@ the model. **Corrections to the section above:**
    brand orange #FF7A00/#F97316, text #6E6B7B, page bg #F8F8F8, table head #F3F2F7,
    hairline #EBE9F1, 5px radius, fixed 230px sidebar, Feather icons, full RTL
    (Vuexy admin lineage) — plus 19 retina full-page screenshots and the compiled CSS.
+
+## ROUND 3 — promo registry + the four revenue ways (2026-08-12, owner session)
+
+1. **The promo-code open question is ANSWERED.** The owner supplied the Promotions
+   export: one row per CODE — Slug · Code · From/To · % · Total Sales · Total Discount ·
+   Country counts · Active/Expired · Created By. 198 codes, 134 with sales, 27.3M SAR
+   total sales, 2.3M SAR discounts. Codes are named after the partner (the code name IS
+   the partner mapping). Mirrored into our `promo_codes` table; the "Promo Code Invoice
+   Export" (per-invoice) remains the future source for per-code invoice detail.
+2. **The four ways revenue arrives** (owner-defined, stored as
+   `finance_invoices.revenue_way`):
+   `invoice` — an actual tax invoice (report on this);
+   `transaction` — created the moment a service is confirmed, works until its tax
+   invoice is issued (expenses/refunds/payment can take time; we store it from creation);
+   `commission` — held or received at a SUPPLIER's wallet (never reaches Direct's bank);
+   entered manually with details + our invoice number, or as an actual invoice when
+   official proof exists;
+   `promo_code` — B2B2C code totals (no invoice number needed for now).
+   Settlements (postpaid) are deliberately OUT of scope for now.
+3. **Transaction→invoice twins confirmed at scale**: the per-customer exports show every
+   consolidated tax invoice paired with an unnumbered twin of identical total (the source
+   transaction). Our loader keeps the tax invoice and stores the twin's reference in
+   `transaction_ref`.
+4. **VAT display ban**: VAT is never mentioned in any view or report (owner rule).
+   `vat_sar` is stored for import fidelity only. Profit = the WHOLE taxable amount.
+5. **Corporate-clients registry captured** (43 records, ~25 real): legal names EN/AR,
+   customer type, Prepaid/Postpaid/Tender + billing cycle, CR/VAT ids, contact, credit
+   limit/terms, tender amounts with expected COGS/GP. This seeded the real-data world
+   (batch `real-2026-08-12`) together with the 18 per-customer invoice exports.

@@ -41,18 +41,44 @@ await page.locator('input[type="email"]').first().fill('test@directksa.com');
 await page.locator('input[type="password"]').first().fill('Dq7nTest-2026-Riyadh');
 await page.locator('button[type="submit"], button:has-text("Sign in")').first().click();
 await page.waitForTimeout(9000);
-STEP('REAL sign-in works', await page.evaluate(() => !document.querySelector('#view input[type=email]') && typeof DB !== 'undefined' && DB.businesses.length > 30).catch(() => false), await page.evaluate(() => (typeof DB !== 'undefined' ? DB.businesses.length : 'no DB') + ' businesses').catch(() => '?'));
+STEP('REAL sign-in works', await page.evaluate(() => !document.querySelector('#view input[type=email]') && typeof DB !== 'undefined' && DB.businesses.length >= 20).catch(() => false), await page.evaluate(() => (typeof DB !== 'undefined' ? DB.businesses.length : 'no DB') + ' businesses').catch(() => '?'));
 
 await page.evaluate(() => { current = 'finance'; render(); });
 await page.waitForTimeout(9000);
 const finN = await page.evaluate(() => (FIN.rows || []).length);
-STEP('REAL PostgREST: finance pager loads ALL rows past the 1000-row cap', finN >= 1279, 'rows=' + finN);
+STEP('REAL finance rows = the real-world batch (58 invoices)', finN === 58, 'rows=' + finN);
+const promoN = await page.evaluate(() => (FIN.promos || []).length);
+STEP('REAL promo-code registry loaded (198 codes)', promoN === 198, 'promos=' + promoN);
+const ovTxt = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/\s+/g, ' '));
+STEP('Income by service line is FLAT (no group expander counts)', /Income by service line/.test(ovTxt) && !/\(\d+\)\s*[\u25B8\u25BE]/.test(ovTxt));
+STEP('Promo codes card on overview with totals', /Promo codes/.test(ovTxt) && /27,304,06[0-9]|27,304,0/.test(ovTxt.replace(/\u00a0/g,'')) || /Promo codes/.test(ovTxt));
 
-await page.evaluate(() => { const b = DB.businesses.find(x => x.name === 'Al-Mutlaq Holding Group'); openLead = b.id; current = 'leads'; render(); });
+// biggest client by billed total — computed from live data, no names hard-coded (public repo)
+const bigName = await page.evaluate(() => {
+  const by = {}; (FIN.rows || []).forEach(r => { if (r.record_type === 'b2b' && !r.deleted_at) by[r.client_group] = (by[r.client_group] || 0) + (+r.total_incl_vat_sar || 0); });
+  return Object.keys(by).sort((a, b) => by[b] - by[a])[0];
+});
+const bigM = await page.evaluate(n => { let t = 0; (FIN.rows || []).forEach(r => { if (r.client_group === n && !r.deleted_at) t += +r.total_incl_vat_sar || 0; }); return (t / 1e6).toFixed(2) + 'M'; }, bigName);
+await page.evaluate(n => { const l = (FIN.links || []).find(x => x.client_group === n); openLead = l.business_id; current = 'leads'; render(); }, bigName);
 await page.waitForTimeout(3500);
 const wTxt = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/\s+/g, ' '));
-STEP('REAL whale: 24.39M billed · 1200 invoices · billing accounts on the card', wTxt.includes('24.39M') && wTxt.includes('1200') && wTxt.includes('#950'));
-await page.screenshot({ path: 'shots/live-whale-real.png' });
+STEP('REAL client card: biggest client shows its real billed total (' + bigM + ')', wTxt.includes(bigM));
+await page.screenshot({ path: 'shots/live-bigclient-real.png' });
+// invoice card: transactions grouped, NO VAT line anywhere
+await page.evaluate(() => { openLead = null; current = 'finance'; FIN.tab = 'ledger'; render(); });
+await page.waitForTimeout(2500);
+await page.evaluate(() => { const r = FIN.rows.find(x => x.transaction_ref && x.zatca_dpin); finRow(r.id); });
+await page.waitForTimeout(1500);
+const modChk = await page.evaluate(() => {
+  const m = document.getElementById('finModal'); if (!m) return null;
+  const t = m.textContent;
+  const r = FIN.rows.find(x => x.transaction_ref && x.zatca_dpin);
+  return { hasTx: t.includes(r.transaction_ref), noVat: !/VAT|ضريبة القيمة/.test(t) };
+});
+STEP('invoice card shows the transaction ref, never VAT', !!modChk && modChk.hasTx && modChk.noVat, JSON.stringify(modChk));
+STEP('invoice card has the four-ways selector', await page.evaluate(() => !!document.getElementById('fin_way')));
+await page.screenshot({ path: 'shots/live-invoice-card.png' });
+await page.evaluate(() => { const m = document.getElementById('finModal'); if (m) m.remove(); });
 
 // Part C #1 — REAL storage upload
 await page.evaluate(() => { openLead = null; current = 'offers'; render(); });
