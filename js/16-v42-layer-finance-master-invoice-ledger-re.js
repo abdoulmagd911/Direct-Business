@@ -119,7 +119,8 @@ window.finSetTargets=function(y){try{
 window.finCSV=function(){
   var L=FIN._csvRows||[]; if(!L.length){alert(isArF()?'لا صفوف للتصدير':'No rows to export');return;}
   var cols=['invoice_date','invoice_no','zatca_dpin','client_group','service_type','products','origin','proposal_ref','month','quarter','year','total_incl_vat_sar','revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','integrity_status'];
-  var csv='\ufeff'+cols.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=r[c];v=(v==null)?'':String(v);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var _hdr=cols.map(function(c){return c==='total_incl_vat_sar'?'invoice_total_sar':c;});
+  var csv='\ufeff'+_hdr.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=r[c];v=(v==null)?'':String(v);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');
   var b=new Blob([csv],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-finance-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 };

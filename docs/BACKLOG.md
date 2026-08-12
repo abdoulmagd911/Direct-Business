@@ -707,9 +707,18 @@ as deliberate: `#F06820` documents · `#FF6C00` logo mark · `#F47A1F` app.
   `Price offer Directksa.pdf`, the Arabic quote PPTXs, and `offer-proposal.html`.
 - **App nav** — `v46` layer in `index.html` adds a "Brand/الهوية" button (v44b injection
   pattern, survives re-renders, 0 JS errors in the harness with the test login).
-- ⚠ **Production branch land mine:** PR #15 targets `main`, but Vercel production deploys
-  from `claude/new-session-9fhlp1`. Merging the PR does NOT change directksab2b.com.
-  To go live: promote in Vercel, or point the Vercel production branch at `main`.
+- **WENT LIVE 2026-08-12:** PR #15 merged to `main`, then `main` merged into the
+  production branch (conflict with the events session's vercel.json resolved: /events
+  rewrites stay removed, /brand rewrites kept; v46+v47+v64 layers verified coexisting
+  in the harness — 0 JS errors, bridge working, Arabic label الهوية correct). Production
+  deployment READY; live files verified byte-identical to the tested repo files
+  (sha256 on 7 files including fonts). Still recommended: point the Vercel production
+  branch at `main` (Settings → Git) to end the two-branch dance.
+- **Post-go-live attack round (same day):** XSS attempts via client/service/terms fields
+  all render as text (nothing executes); empty state clean; drafts persist; found and
+  fixed a 1-halala display-rounding mismatch (figures are now rounded at computation so
+  printed Subtotal + VAT always equals printed Total). Open item from the May v0 brand
+  notes: confirm palette against the official email signature (needs a screenshot).
 - **DONE same session — v47 bridge:** the Offer Builder detail now has a
   "Branded offer (PDF)" button. It hands the offer (ref, client, pax, ticket/partner/
   service fees, validity, remarks) to the Studio via localStorage (same origin, nothing

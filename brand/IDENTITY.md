@@ -86,6 +86,15 @@ extracted from the Illustrator master `Logo Direct .pdf` at high resolution —
 cropped viewBox). Arabic core fonts now hosted in `brand/fonts/` (Zarid Slab Regular/Bold,
 Bahij Bold); Proxima Nova stays on Drive (license: internal use).
 
+## Historical note + one open check (found in the 2026-08-12 re-sweep)
+
+`Direct-Business-Brand.md` on Drive (May 2026, v0) was the first token attempt, pulled
+from the Direct Payments app (`#fc8004` family, Vuexy semantics). This identity system
+supersedes it and stays consistent with it. Its one unfinished instruction is still open:
+**confirm the palette against the official Direct email signature** — needs a screenshot
+from Abdulrahman; if the signature disagrees with the documented palette, the signature
+wins for external documents.
+
 ## The three oranges — this is not a mistake
 
 Three orange values exist in real Direct material. Each has a job:
