@@ -52,6 +52,40 @@ right, swoosh footer, orange page-number tab. Cover gradient re-verified by rend
 pixel-sampling the actual page (matches the documented `#E54525 → #F26721` within
 rendering tolerance).
 
+## The tender anatomy — from the real HRC technical offer (added 2026-08-12)
+
+`techincal offer final 1.pdf` (Direct → Human Rights Commission) is the definitive
+structure for tender responses, in Arabic:
+
+**Technical offer (العرض الفني):** about Direct → work plan in 4 phases with durations
+(خطة العمل) → scope: numbered services, each with its "technical process" bullets
+(نطاق العمل + العملية التقنية) → timeline (الجدول الزمني) → services → **past projects
+with client, scope and contract value** (سابقة الأعمال: Takamol 4M SAR · Ma'aden 2M ·
+Al Hilal 1.5M · Al Riyadh Club 1M · SFDA 500K) → named team with degrees (فريق العمل) →
+**quantities table WITHOUT prices** (جدول الكميات بدون أسعار) → official certificates
+(المستندات الرسمية: Monsha'at SME cert, CR 1010611219, etc.).
+
+**Financial offer (العرض المالي), separate:** the same quantities table WITH prices
+(number + in words), monthly payment schedule (جدول الدفعات), totals: subtotal → VAT →
+total incl. VAT, each in numbers and words → official documents.
+
+Fee model in tenders: كل دفعة = تكلفة الخدمة المطلوبة + رسوم الخدمة التعاقدية (cost of the
+requested service + the contracted service fee) — matching the house fee model. This is
+the blueprint for a future "tender mode" in the Proposal Studio.
+
+**Survey status:** everything brand-relevant on Drive has now been opened. Checked and
+found NOT to be Direct designs (incoming documents): `Business Proposal Direct 02 2025.pdf`
+(Warsaw Transfers → Direct), `offer-B2B-110991.pdf` (RateHawk distribution agreement),
+`ARB offer-b.pdf` / `Direct X MIS Pay` (incoming/partner packages). Not viewable:
+`TECHNICAL PROPOSAL- SGC (1).pdf` (18 MB, image-only pages — no text layer; the file size
+crashes the Drive connector, so its visuals remain unseen; likely follows the HRC anatomy).
+
+**Logo set completed:** true transparent **full-color** logo (orange mark + slate wordmark)
+extracted from the Illustrator master `Logo Direct .pdf` at high resolution —
+`brand/direct_logo_color.png` (3010×1271) and `brand/direct_logo_color.svg` (clean vector,
+cropped viewBox). Arabic core fonts now hosted in `brand/fonts/` (Zarid Slab Regular/Bold,
+Bahij Bold); Proxima Nova stays on Drive (license: internal use).
+
 ## The three oranges — this is not a mistake
 
 Three orange values exist in real Direct material. Each has a job:
