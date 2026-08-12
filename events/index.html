@@ -72,6 +72,10 @@
   .pill.mv-undecided{background:#fff;color:#8b5b1f;border:1px dashed #d9b98a}
   .move-progress{font-size:10.5px;color:var(--muted);margin-top:3px;white-space:nowrap}
   .move-progress.p-done{color:#1e7a34;font-weight:600}
+  .signup-locked{background:var(--wash-orange);border:1px dashed var(--accent);border-radius:6px;padding:10px 12px;font-size:12.5px;color:#8b5b1f}
+  .signup-box{border:1px solid var(--border);border-radius:6px;padding:12px;background:#fafbfc}
+  .signup-box .form-grid{gap:10px}
+  .whoami{align-self:center;font-size:12px;color:#ffe9d6;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .prio-dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--border);margin-right:2px}
   .prio-dots span.on{background:var(--gold)}
   .name{font-weight:600}
@@ -117,6 +121,8 @@
     <p class="brand sub"><span class="live-dot"></span>Live &middot; KSA Events Hub &middot; Travel &middot; Tech &middot; Study</p>
   </div>
   <div class="header-actions">
+    <span class="whoami" id="whoAmI"></span>
+    <button class="btn btn-secondary" id="btnAuth">Team sign-in</button>
     <button class="btn btn-secondary" id="btnHistory">History</button>
   </div>
 </header>
@@ -209,6 +215,17 @@
         </select>
       </div>
       <div class="form-field"><label>Companies list (link)</label><input id="fld_list_url" type="text" placeholder="https:// — exhibitor or registry page"></div>
+      <div class="form-field full">
+        <label>Event-site login — the account we made on their website</label>
+        <div class="signup-locked" id="signupLocked">Team sign-in needed to see or save the login for this event's website. Use the <b>Team sign-in</b> button at the top.</div>
+        <div class="signup-box" id="signupBox" style="display:none">
+          <div class="form-grid">
+            <div class="form-field"><label>Email used</label><input id="fld_su_email" type="text" placeholder="business@directksa.com"></div>
+            <div class="form-field"><label>Password</label><input id="fld_su_password" type="text" placeholder="the password used on their site"></div>
+            <div class="form-field full"><label>Who signed up</label><input id="fld_su_by" type="text" placeholder="team member's name"></div>
+          </div>
+        </div>
+      </div>
       <div class="form-field full"><label>Notes</label><textarea id="fld_notes"></textarea></div>
     </div>
     <div class="modal-actions">
@@ -224,6 +241,22 @@
     <h2>Change history</h2>
     <div class="sub">Last 50 changes across all events, newest first.</div>
     <div id="historyList" style="max-height:60vh;overflow-y:auto;font-size:12.5px"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="authOverlay">
+  <div class="modal" style="max-width:420px">
+    <button class="modal-close" id="authClose">&times;</button>
+    <h2>Team sign-in</h2>
+    <div class="sub">Same login as the main app. Needed to save changes, see event-site logins, and see lead counts.</div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="form-field"><label>Email</label><input id="auth_email" type="email" autocomplete="username"></div>
+      <div class="form-field"><label>Password</label><input id="auth_password" type="password" autocomplete="current-password"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="authCancel">Cancel</button>
+      <button class="btn btn-primary" id="authSubmit">Sign in</button>
+    </div>
   </div>
 </div>
 
@@ -246,8 +279,52 @@ const MONTH = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov"
 
 let EVENTS = [];
 let editingId = null;
+let SESSION = null;           // team sign-in (shared with the main app on the same domain)
+let SIGNUPS = {};             // event_id -> {login_email, login_password, signed_up_by} (team-only)
+let LEADS_BY_EVENT = {};      // normalised event name -> lead count from the main app (team-only)
 const state = {sortKey:'date', sortDir:1};
 const tbody = document.querySelector('#eventTable tbody');
+
+function normName(s){ return (s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+
+function renderAuth(){
+  document.getElementById('whoAmI').textContent = SESSION ? (SESSION.user.email||'') : '';
+  document.getElementById('btnAuth').textContent = SESSION ? 'Sign out' : 'Team sign-in';
+}
+
+// Logins and lead counts live behind the team sign-in; the public page never receives them.
+async function loadTeamData(){
+  SIGNUPS = {}; LEADS_BY_EVENT = {};
+  if (!SESSION){ render(); return; }
+  const su = await sb.from('ksa_event_signups').select('*');
+  if (!su.error && su.data) su.data.forEach(function(r){ SIGNUPS[r.event_id] = r; });
+  const ld = await sb.from('businesses').select('ev:funnel_details->>event_name').not('funnel_details->>event_name','is',null);
+  if (!ld.error && ld.data) ld.data.forEach(function(r){
+    const k = normName(r.ev); if (!k) return;
+    LEADS_BY_EVENT[k] = (LEADS_BY_EVENT[k]||0) + 1;
+  });
+  render();
+}
+
+function openAuth(){ document.getElementById('authOverlay').classList.add('open'); document.getElementById('auth_email').focus(); }
+function closeAuth(){ document.getElementById('authOverlay').classList.remove('open'); }
+async function submitAuth(){
+  const email = document.getElementById('auth_email').value.trim();
+  const password = document.getElementById('auth_password').value;
+  if (!email || !password){ alert('Email and password are both needed.'); return; }
+  const {data, error} = await sb.auth.signInWithPassword({email: email, password: password});
+  if (error){ toast('Sign-in failed: '+error.message); return; }
+  SESSION = data.session;
+  document.getElementById('auth_password').value = '';
+  closeAuth(); renderAuth(); loadTeamData();
+  toast('Signed in as '+email);
+}
+function requireSignIn(){
+  if (SESSION) return true;
+  toast('Saving needs a team sign-in.');
+  openAuth();
+  return false;
+}
 
 function toast(msg){
   const t = document.getElementById('toast');
@@ -368,8 +445,13 @@ function render(){
       const mv = moveOf(e), pg = progressOf(e);
       const showProgress = (mv!=='skip' && mv!=='undecided');
       const listLink = e.exhibitor_list_url ? '<div><a href="'+e.exhibitor_list_url+'" target="_blank" rel="noopener">Companies list ↗</a></div>' : '';
+      const signup = SIGNUPS[e.id];
+      const signupLine = signup && (signup.login_email||signup.signed_up_by) ?
+        '<div class="move-progress">🔑 '+(signup.login_email||'')+(signup.signed_up_by?' ('+signup.signed_up_by+')':'')+'</div>' : '';
+      const leadCount = LEADS_BY_EVENT[normName(e.name_en)] || 0;
+      const leadsLine = leadCount ? '<div class="move-progress p-done">'+leadCount+' lead'+(leadCount===1?'':'s')+' in the app</div>' : '';
       const moveCell = '<span class="pill mv-'+mv+'">'+MOVE_LABEL[mv]+'</span>'+
-        (showProgress?'<div class="move-progress'+(pg==='done'||pg==='leads_added'?' p-done':'')+'">'+PROGRESS_LABEL[pg]+'</div>':'')+listLink;
+        (showProgress?'<div class="move-progress'+(pg==='done'||pg==='leads_added'?' p-done':'')+'">'+PROGRESS_LABEL[pg]+'</div>':'')+listLink+signupLine+leadsLine;
       tr.innerHTML =
         '<td class="prio-dots">'+dots+'</td>'+
         '<td class="month">'+dateRange(e.start_date,e.end_date)+'</td>'+
@@ -390,6 +472,7 @@ function render(){
 }
 
 async function deleteEvent(id){
+  if (!requireSignIn()) return;
   const evt = EVENTS.find(function(e){return e.id===id;});
   if (!evt) return;
   if (!confirm('Delete "'+evt.name_en+'"? This is saved live and can be restored from History.')) return;
@@ -419,11 +502,18 @@ function openModal(id){
   document.getElementById('fld_move_status').value = evt ? progressOf(evt) : 'not_started';
   document.getElementById('fld_list_url').value = evt ? (evt.exhibitor_list_url||'') : '';
   document.getElementById('fld_notes').value = evt ? (evt.notes||'') : '';
+  document.getElementById('signupLocked').style.display = SESSION ? 'none' : '';
+  document.getElementById('signupBox').style.display = SESSION ? '' : 'none';
+  const signup = (id && SIGNUPS[id]) || {};
+  document.getElementById('fld_su_email').value = signup.login_email||'';
+  document.getElementById('fld_su_password').value = signup.login_password||'';
+  document.getElementById('fld_su_by').value = signup.signed_up_by||'';
   document.getElementById('modalOverlay').classList.add('open');
 }
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); editingId=null; }
 
 async function saveModal(){
+  if (!requireSignIn()) return;
   const name_en = document.getElementById('fld_n').value.trim();
   if (!name_en){ alert('Event name is required.'); return; }
   const start_date = document.getElementById('fld_start').value || null;
@@ -450,15 +540,35 @@ async function saveModal(){
     exhibitor_list_url: listUrl || null,
     notes: document.getElementById('fld_notes').value.trim() || null
   };
-  let error;
+  let error, savedId = editingId;
   if (editingId){
     ({error} = await sb.from('ksa_events').update(data).eq('id', editingId));
   } else {
-    ({error} = await sb.from('ksa_events').insert(data));
+    const ins = await sb.from('ksa_events').insert(data).select('id').single();
+    error = ins.error;
+    if (ins.data) savedId = ins.data.id;
   }
   if (error){ toast('Save failed: '+error.message); return; }
+  // The event-site login goes to its own team-only table, never to the public one.
+  if (SESSION && savedId){
+    const su = {
+      event_id: savedId,
+      login_email: document.getElementById('fld_su_email').value.trim() || null,
+      login_password: document.getElementById('fld_su_password').value || null,
+      signed_up_by: document.getElementById('fld_su_by').value.trim() || null,
+      updated_at: new Date().toISOString()
+    };
+    const hadRow = !!SIGNUPS[savedId];
+    const hasData = su.login_email || su.login_password || su.signed_up_by;
+    if (hasData || hadRow){
+      const r = await sb.from('ksa_event_signups').upsert(su);
+      if (r.error){ toast('Event saved, but the login did not save: '+r.error.message); }
+      else { SIGNUPS[savedId] = su; }
+    }
+  }
   closeModal();
   toast(editingId ? 'Saved — visible to everyone now.' : 'Added — visible to everyone now.');
+  loadEvents();
 }
 
 function csvEscape(v){ if(v==null) v=''; return '"'+String(v).replace(/"/g,'""')+'"'; }
@@ -493,6 +603,22 @@ async function openHistory(){
 
 function init(){
   loadEvents();
+  // Same sign-in as the main app: on the same domain the session is shared automatically.
+  sb.auth.getSession().then(function(r){
+    SESSION = (r.data && r.data.session) || null;
+    renderAuth();
+    if (SESSION) loadTeamData();
+  });
+  sb.auth.onAuthStateChange(function(_ev, session){ SESSION = session; renderAuth(); });
+  document.getElementById('btnAuth').addEventListener('click', function(){
+    if (SESSION){ sb.auth.signOut(); SESSION = null; renderAuth(); loadTeamData(); toast('Signed out.'); }
+    else openAuth();
+  });
+  document.getElementById('authClose').addEventListener('click', closeAuth);
+  document.getElementById('authCancel').addEventListener('click', closeAuth);
+  document.getElementById('authSubmit').addEventListener('click', submitAuth);
+  document.getElementById('auth_password').addEventListener('keydown', function(e){ if(e.key==='Enter') submitAuth(); });
+  document.getElementById('authOverlay').addEventListener('click', function(e){ if(e.target.id==='authOverlay') closeAuth(); });
   document.getElementById('btnAdd').addEventListener('click', function(){openModal(null);});
   document.getElementById('modalClose').addEventListener('click', closeModal);
   document.getElementById('modalCancel').addEventListener('click', closeModal);

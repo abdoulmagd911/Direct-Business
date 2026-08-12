@@ -40,6 +40,34 @@ the Edit button:
 - **Not decided (5):** the five study-vertical entries with no date and no link —
   nothing to act on yet.
 
+## Team sign-in, event-site logins, and lead counts (added 2026-08-12)
+
+The page has two faces:
+
+- **Signed out (anyone with the link):** sees the calendar and the moves. Cannot save —
+  this was always true in the database (`ksa_events` writes need a signed-in user), but
+  the page used to fail silently; now the Save/Delete buttons open the sign-in dialog.
+- **Signed in (Team sign-in button, same login as the main app):** can edit, and sees two
+  extra things per event — the **event-site login** and the **lead count**.
+
+**Event-site logins** (the account made on the event's own website to reach its exhibitor
+list) live in their own table, `ksa_event_signups` (migration
+`ksa_event_signups_team_only`): email used, password, who signed up. It has **no public
+access** — only signed-in team members can read or write it, so nothing about it ever
+reaches the public page. It is deliberately team-shared: anyone signed in sees the
+passwords, so use throwaway passwords for event sites, never personal ones. Passwords are
+also excluded from the CSV export.
+
+On directksab2b.com the sign-in is shared with the main app automatically (same browser,
+same login). On preview links, use the Team sign-in button.
+
+**Lead counts:** each event row shows "N leads in the app" — a live count of `businesses`
+rows whose Outreach & Network field `funnel_details->>'event_name'` matches the event's
+English name (case/spacing-insensitive). Convention: when logging a lead from an event,
+put the event's **exact English name** from this page in the lead's "Event / conference"
+field, and the count links up by itself. (As of 2026-08-12, zero leads had this field
+filled — the 63 Outreach leads predate the convention.)
+
 ## Where mined leads go
 
 Leads collected from events belong in the **Outreach & Network funnel** in the main

@@ -1,5 +1,6 @@
 // Drives events/index.html in a headless browser with a stubbed Supabase module,
 // so the KSA Events Hub can be exercised without touching production data.
+// Covers both the signed-out (public) and signed-in (team) views.
 // Run: node scripts/qa/events-sweep.mjs
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
@@ -32,18 +33,46 @@ const SEED = [
    link:null, opportunity_sales:true, opportunity_partner:false,
    approach:null, approach_status:null, exhibitor_list_url:null, notes:null},
 ];
+const SIGNUP_ROWS = [
+  {event_id:'e3', login_email:'business@directksa.com', login_password:'ev-pass-1', signed_up_by:'Abdulrahman'},
+];
+const LEAD_ROWS = [ {ev:'LEAP 2026'}, {ev:'leap 2026 '}, {ev:'LEAP 2026'} ]; // 3 for LEAP after normalising
 
-// A stand-in for the supabase-js module: enough of the query/realtime surface for this page.
+// A stand-in for the supabase-js module: enough of the query/auth/realtime surface for this page.
 const stubModule = `
 const SEED = ${JSON.stringify(SEED)};
+const SIGNUP_ROWS = ${JSON.stringify(SIGNUP_ROWS)};
+const LEAD_ROWS = ${JSON.stringify(LEAD_ROWS)};
+let session = null;
+const listeners = [];
 export function createClient(){
   return {
-    from(){ return {
-      select(){ return { order(){ return Promise.resolve({data: SEED, error: null}); } }; },
-      update(){ return { eq(){ return Promise.resolve({error:null}); } }; },
-      insert(){ return Promise.resolve({error:null}); },
-      delete(){ return { eq(){ return Promise.resolve({error:null}); } }; },
-    }; },
+    auth: {
+      getSession(){ return Promise.resolve({data:{session}, error:null}); },
+      onAuthStateChange(cb){ listeners.push(cb); return {data:{subscription:{unsubscribe(){}}}}; },
+      signInWithPassword({email, password}){
+        if (!password || password === 'wrong') return Promise.resolve({data:{}, error:{message:'Invalid login credentials'}});
+        session = {user:{email}};
+        listeners.forEach(cb => cb('SIGNED_IN', session));
+        return Promise.resolve({data:{session}, error:null});
+      },
+      signOut(){ session = null; listeners.forEach(cb => cb('SIGNED_OUT', null)); return Promise.resolve({error:null}); },
+    },
+    from(table){
+      if (table === 'ksa_event_signups') return {
+        select(){ return Promise.resolve(session ? {data: SIGNUP_ROWS, error:null} : {data:null, error:{message:'permission denied'}}); },
+        upsert(){ return Promise.resolve(session ? {error:null} : {error:{message:'permission denied'}}); },
+      };
+      if (table === 'businesses') return {
+        select(){ return { not(){ return Promise.resolve(session ? {data: LEAD_ROWS, error:null} : {data:[], error:null}); } }; },
+      };
+      return {
+        select(){ return { order(){ return Promise.resolve({data: SEED, error: null}); } }; },
+        update(){ return { eq(){ return Promise.resolve({error:null}); } }; },
+        insert(){ return { select(){ return { single(){ return Promise.resolve({data:{id:'new1'}, error:null}); } }; } }; },
+        delete(){ return { eq(){ return Promise.resolve({error:null}); } }; },
+      };
+    },
     channel(){ return { on(){ return this; }, subscribe(){ return this; } }; },
   };
 }
@@ -71,50 +100,66 @@ await page.waitForSelector('#eventTable tbody tr');
 
 const shot = (name) => page.screenshot({ path: path.join(root, 'scripts', 'qa', `shot-events-${name}.png`), fullPage: true });
 
-// 1. Full table with every move represented
+// ---- SIGNED OUT (the public view) ----
 let rows = await page.locator('#eventTable tbody tr').count();
 console.log('rows rendered:', rows, '(expect 5)');
-const statsText = await page.locator('#statsBar').innerText();
-console.log('stats bar:', statsText.replace(/\n/g, ' | '));
-await shot('all');
+console.log('stats bar:', (await page.locator('#statsBar').innerText()).replace(/\n/g, ' | '));
+let keys = await page.locator('#eventTable tbody td:has-text("🔑")').count();
+console.log('signed out → login lines visible:', keys, '(expect 0)');
+let leadsChip = await page.locator('#eventTable tbody :text("leads in the app")').count();
+console.log('signed out → lead counts visible:', leadsChip, '(expect 0)');
 
-// 2. Filter: mine only
-await page.selectOption('#fMove', 'mine');
-rows = await page.locator('#eventTable tbody tr').count();
-const firstName = await page.locator('#eventTable tbody .name').first().innerText();
-console.log('filter mine → rows:', rows, '(expect 1) first:', firstName);
-const hasListLink = await page.locator('#eventTable tbody a:has-text("Companies list")').count();
-console.log('companies-list link visible:', hasListLink, '(expect 1)');
-await shot('filter-mine');
-
-// 3. Filter: not decided catches the null-column row
-await page.selectOption('#fMove', 'undecided');
-rows = await page.locator('#eventTable tbody tr').count();
-console.log('filter undecided → rows:', rows, '(expect 1)');
-
-// 4. Edit modal shows the new fields with current values
-await page.selectOption('#fMove', '');
 await page.locator('[data-edit="e3"]').click();
-const mv = await page.locator('#fld_move').inputValue();
-const pg = await page.locator('#fld_move_status').inputValue();
-const lu = await page.locator('#fld_list_url').inputValue();
-console.log('edit ATM → move:', mv, '(expect mine) progress:', pg, '(expect leads_added) list:', lu);
-await shot('modal');
+const lockedVisible = await page.locator('#signupLocked').isVisible();
+const boxVisible = await page.locator('#signupBox').isVisible();
+console.log('signed out modal → lock note:', lockedVisible, '(expect true) login fields:', boxVisible, '(expect false)');
+await shot('signedout-modal');
 await page.locator('#modalCancel').click();
 
-// 5. Add modal defaults
-await page.locator('#btnAdd').click();
-const mvNew = await page.locator('#fld_move').inputValue();
-const pgNew = await page.locator('#fld_move_status').inputValue();
-console.log('add modal defaults → move:', mvNew, '(expect undecided) progress:', pgNew, '(expect not_started)');
+await page.locator('[data-del="e4"]').click();
+const authOpened = await page.locator('#authOverlay.open').count();
+console.log('signed out delete → sign-in dialog opens:', authOpened, '(expect 1)');
+
+// ---- SIGN IN ----
+await page.fill('#auth_email', 'test@directksa.com');
+await page.fill('#auth_password', 'wrong');
+await page.locator('#authSubmit').click();
+console.log('wrong password stays signed out →', JSON.stringify(await page.locator('#whoAmI').innerText()), '(expect "")');
+await page.fill('#auth_password', 'right');
+await page.locator('#authSubmit').click();
+await page.waitForFunction(() => document.getElementById('whoAmI').textContent.includes('@'));
+console.log('signed in as:', await page.locator('#whoAmI').innerText());
+await page.waitForSelector('#eventTable tbody td:has-text("🔑")');
+
+// ---- SIGNED IN (the team view) ----
+keys = await page.locator('#eventTable tbody td:has-text("🔑")').count();
+console.log('signed in → login lines visible:', keys, '(expect 1)');
+const leapCell = await page.locator('#eventTable tbody tr', {hasText:'LEAP 2026'}).innerText();
+console.log('LEAP row shows lead count:', leapCell.includes('3 leads in the app'), '(expect true)');
+await shot('signedin-all');
+
+await page.locator('[data-edit="e3"]').click();
+console.log('signed in modal → lock note:', await page.locator('#signupLocked').isVisible(), '(expect false) login fields:', await page.locator('#signupBox').isVisible(), '(expect true)');
+console.log('login fields → email:', await page.locator('#fld_su_email').inputValue(),
+  'password:', await page.locator('#fld_su_password').inputValue(),
+  'by:', await page.locator('#fld_su_by').inputValue());
+await shot('signedin-modal');
 await page.locator('#modalCancel').click();
 
-// 6. Sort by move column
-await page.locator('th[data-sort="move"]').click();
-const order = await page.locator('#eventTable tbody .name').allInnerTexts();
-console.log('sorted by move:', order.join(' → '));
+// Save round-trip with signup upsert (edit ATM, add a note to password)
+await page.locator('[data-edit="e3"]').click();
+await page.fill('#fld_su_password', 'ev-pass-2');
+await page.locator('#modalSave').click();
+await page.waitForFunction(() => !document.getElementById('modalOverlay').classList.contains('open'));
+console.log('save with login round-trip: modal closed, no errors so far:', errors.length === 0);
 
-// 7. Mobile layout
+// Sign out returns to public view
+await page.locator('#btnAuth').click();
+await page.waitForFunction(() => !document.querySelector('#eventTable tbody td')?.textContent?.includes('🔑') || true);
+keys = await page.locator('#eventTable tbody td:has-text("🔑")').count();
+console.log('signed out again → login lines visible:', keys, '(expect 0)');
+
+// Mobile layout, signed out
 await page.setViewportSize({ width: 390, height: 844 });
 await shot('mobile');
 
