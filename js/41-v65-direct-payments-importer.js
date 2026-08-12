@@ -1,4 +1,4 @@
-/* v64 — THE IMPORTER (owner-approved blueprint step 1, 2026-08-12).
+/* v65 — THE IMPORTER (owner-approved blueprint step 1, 2026-08-12).
    Drop a Direct Payments export (CSV or Excel) into Finance → Import and the ledger
    fills itself: invoices, their transactions, commissions, wallet top-ups, credit
    notes — all four revenue ways — using Direct's own fee-pair rules:
@@ -184,7 +184,7 @@
         rd.onload=function(){ var rows2d=csvParse64(String(rd.result));
           if(rows2d.length&&isDPHeader(rows2d[0]))runDP(rows2d); else _fp.apply(this,arguments); };
         rd.readAsText(f); return; }
-    }catch(e){ console.warn('[v64] parse',e); }
+    }catch(e){ console.warn('[v65] parse',e); }
     return _fp.apply(this,arguments);
   };
 
@@ -231,5 +231,5 @@
   }catch(_){ }
   return out;};
 
-  console.info('%c[v64] Direct Payments importer loaded','color:#B54708;font-weight:700');
-}catch(e){if(window.console)console.warn('[v64] init',e);}})();
+  console.info('%c[v65] Direct Payments importer loaded','color:#B54708;font-weight:700');
+}catch(e){if(window.console)console.warn('[v65] init',e);}})();

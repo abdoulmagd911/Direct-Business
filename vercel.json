@@ -1,7 +1,5 @@
 {
   "rewrites": [
-    { "source": "/events", "destination": "/events/index.html" },
-    { "source": "/events/(.*)", "destination": "/events/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

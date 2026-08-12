@@ -16,7 +16,7 @@ const biz=[...Array(60)].map((_,i)=>({id:'b'+i,legacy_id:'L'+i,name:'Test Compan
   is_client:i%4===0,converted_date:i%4===0?'2026-03-01':null,direct_client_id:i===0?'95':null,channels:[],prefs:{},airline_deals:[],pricing:[],notes:'Seed row',
   created_at:'2026-06-0'+((i%9)+1)+'T10:00:00Z',updated_at:'2026-08-01T10:00:00Z',raw:{},verification_source:'manual',
   needs_manual_confirmation:i%11===0,confirmation_reason:i%11===0?'No website found':null,confirmed_by:null,confirmed_at:null,
-  scrub_run_id:null,funnel_id:null,funnel_details:{},stage_legacy:null,next_action_date:'2026-08-20',next_action_note:'Follow up',
+  scrub_run_id:null,funnel_id:null,funnel_details:i<3?{event_name:'Event 0'}:{},stage_legacy:null,next_action_date:'2026-08-20',next_action_note:'Follow up',
   lost_reason:null,archived_at:null,archived_by:null}));
 const BLOB={schemaVersion:24,meta:{},settings:{lang:'en',currency:'SAR'},agency:{name:'Direct'},recents:[],audit:[],
   businesses:[],airlines:[],vendors:[],ndcProviders:[],bookings:[],invoices:[],offers:[],requests:[],projects:[],sops:[],slas:[],
@@ -33,7 +33,8 @@ const TABLES={
   app_state:[{id:1,data:BLOB,updated_at:'2026-08-08T13:52:37Z',updated_by:'test@directksa.com'}],
   funnels:[{id:'f1',key:'default',name_en:'Default',name_ar:'افتراضي',color:'orange',sort_order:1,active:true,field_template:[],created_at:null,updated_at:null}],
   finance_invoices:[...Array(15)].map((_,i)=>{const _svc=['Flights','Hotels','Visa','Support Services','Packages'][i%5];const _mo=['January','February','March','April','May','June'][i%6];const _q='Q'+(Math.floor((i%6)/3)+1);const _tot=5000+i*777;const _cost=_svc==='Support Services'?0:Math.round(_tot*0.88);const _rev=_tot-_cost;return {id:'i'+i,invoice_no:'11636'+(1000+i),zatca_dpin:(i%3)?('TTIN-'+(9000+i)):null,client_group:'Test Company '+(i%6),customer_raw_name:'Test Company '+(i%6),invoice_date:'2026-0'+((i%6)+1)+'-15',month:_mo,quarter:_q,year:2026,products:_svc,service_type:_svc,record_type:'b2b',total_incl_vat_sar:_tot,wallet_portion_sar:0,revenue_sar:_rev,cost_sar:_cost,profit_sar:_rev,amount_received_sar:_tot,amount_remaining_sar:0,collection_due_date:'2026-07-15',integrity_status:'verified_paid',exclusion_reason:null,notes:null,source_batch:'seed',created_at:'2026-06-01T00:00:00Z',updated_at:'2026-06-01T00:00:00Z',deleted_at:null};}),
-  ksa_events:[...Array(8)].map((_,i)=>({id:'e'+i,name_en:'Event '+i,name_ar:'فعالية '+i,vertical:['Travel','Tech','Study','Other'][i%4],status:'confirmed',start_date:'2026-09-1'+(i%9),end_date:'2026-09-1'+(i%9),city:'Riyadh',venue:'RICEC',organiser:'Org',link:'https://example.com',opportunity_sales:i%2===0,opportunity_partner:i%3===0,priority:(i%5)+1,notes:null,created_at:null,updated_at:null})),
+  ksa_events:[...Array(8)].map((_,i)=>({id:'e'+i,name_en:'Event '+i,name_ar:'فعالية '+i,vertical:['Travel','Tech','Study','Other'][i%4],status:'confirmed',start_date:'2026-09-1'+(i%9),end_date:'2026-09-1'+(i%9),city:'Riyadh',venue:'RICEC',organiser:'Org',link:'https://example.com',opportunity_sales:i%2===0,opportunity_partner:i%3===0,priority:(i%5)+1,notes:null,approach:['attend','stand','mine','skip','undecided'][i%5],approach_status:i===0?'signed_up':'not_started',exhibitor_list_url:i===2?'https://example.com/exhibitors':null,created_at:null,updated_at:null})),
+  ksa_event_signups:[{event_id:'e2',login_email:'business@directksa.com',login_password:'throwaway-1',signed_up_by:'Abdulrahman',updated_at:null}],
   ksa_events_audit:[], airlines:[...Array(12)].map((_,i)=>({id:'ai'+i,legacy_id:'A'+i,name:'Airline '+i,code:'X'+i,icao:'XX'+i,stock:null,country:'KSA',type:'FSC',ksa:'yes',alliance:null,adm_risk:'low',gds:[],providers:[],frontend:null,deeplinks:null,manual:null,adm_policy:null,ticketing:{},notes:null,raw:{},contacts:[],contacts_source:null,contacts_updated_at:null})),
   providers:[...Array(6)].map((_,i)=>({id:'p'+i,legacy_id:'P'+i,name:'Provider '+i,kind:'GDS',source:'direct',portal:'https://example.com',login:'user',adm_policy:null,process:null,payment:'credit',contacts:[],notes:null,raw:{}})),
   sops:[...Array(5)].map((_,i)=>({id:'s'+i,legacy_id:'S'+i,title:'SOP '+i,category:'Ops',market_standard:'yes',edge:'n/a',body:'Body text',author:'QA',updated_at:'2026-08-01T00:00:00Z',raw:{}})),
@@ -98,6 +99,17 @@ export function start(port){
       const m=String(val||'').match(/^eq\.(.*)$/);
       if(m){ const want=m[1]; rows=rows.filter(r=>String(r[k])===want); }
     });
+    // json-path filter used by the events layer: funnel_details->>event_name=not.is.null
+    Object.keys(u.query||{}).forEach(k=>{
+      if(!k.includes('->>'))return;
+      let val=u.query[k]; if(Array.isArray(val))val=val[0];
+      const [col,key]=k.split('->>');
+      if(String(val)==='not.is.null') rows=rows.filter(r=>r[col]&&r[col][key]!=null&&r[col][key]!=='');
+    });
+    // alias select over a json path: select=ev:funnel_details->>event_name
+    const selRaw=Array.isArray(u.query.select)?u.query.select[0]:u.query.select;
+    const am=selRaw&&String(selRaw).match(/^(\w+):(\w+)->>(\w+)$/);
+    if(am) rows=rows.map(r=>({[am[1]]:(r[am[2]]||{})[am[3]]??null}));
     const single=(req.headers.accept||'').includes('vnd.pgrst.object');
     return send(res,200, single?(rows[0]||null):rows, {'Content-Range':'0-'+Math.max(rows.length-1,0)+'/'+rows.length});
   }
