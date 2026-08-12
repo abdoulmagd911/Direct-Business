@@ -265,12 +265,12 @@ input.cell:focus,textarea.cell:focus{border-color:var(--orange);background:#fff;
 .gsearch-wrap>svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted)}
 .gsearch-wrap input{width:100%;padding:9px 12px 9px 38px;border:1px solid var(--line-2);border-radius:11px;font:inherit;font-size:13px;background:#fff;box-shadow:var(--shadow)}
 .gsearch-wrap input:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,107,0,.12)}
-.gres{position:absolute;top:46px;left:0;right:0;background:#fff;border:1px solid var(--line-2);border-radius:13px;box-shadow:var(--shadow-lg);max-height:400px;overflow:auto;display:none;z-index:40;padding:6px}
+.gres{position:absolute;top:46px;inset-inline-start:0;min-width:100%;width:max-content;max-width:min(520px,72vw);background:#fff;border:1px solid var(--line-2);border-radius:13px;box-shadow:var(--shadow-lg);max-height:400px;overflow:auto;display:none;z-index:40;padding:6px}
 .gres-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;cursor:pointer;font-size:13px}
 .gres-item:hover{background:#F6F3EE}
 .gres-item .gres-t{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#fff;background:var(--ink-3);border-radius:6px;padding:3px 7px;flex:0 0 auto}
-.gres-item .gres-l{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gres-item .gres-s{color:var(--muted);font-size:11.5px;margin-left:auto;white-space:nowrap;flex:0 0 auto}
+.gres-item .gres-l{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+.gres-item .gres-s{color:var(--muted);font-size:11.5px;margin-left:auto;white-space:nowrap;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;max-width:45%}
 @media(max-width:780px){.gsearch-wrap{display:none}}
 .reqcard,.lead{cursor:grab}.reqcard:active,.lead:active{cursor:grabbing}
 .col.drop{outline:2px dashed var(--orange);outline-offset:-4px;background:#FFF3E8}
