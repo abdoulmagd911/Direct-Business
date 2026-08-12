@@ -1,5 +1,8 @@
 {
   "rewrites": [
+    { "source": "/brand", "destination": "/brand/index.html" },
+    { "source": "/brand/proposal", "destination": "/brand/proposal.html" },
+    { "source": "/brand/identity", "destination": "/brand/identity.html" },
     { "source": "/events", "destination": "/events/index.html" },
     { "source": "/events/(.*)", "destination": "/events/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
