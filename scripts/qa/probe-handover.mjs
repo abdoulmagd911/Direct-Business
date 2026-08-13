@@ -9,7 +9,10 @@
       the screen showed him.
 
    Everything is put back afterwards: the person switched off is switched on again, and the
-   test account created is switched off and left inactive.
+   test account created is switched off. NOTE: switching off is all this can do — there is no
+   "delete a person" action, by design. After running this, an admin should remove the row
+   `rehearsal.newjoiner@directksa.com` so it does not sit in the team list looking like a
+   real colleague who left.
    Run: ./runqa.sh probe-handover.mjs                                                       */
 import { openApp, signIn, ready, go, signOut, TEAM } from './emp-rig.mjs';
 

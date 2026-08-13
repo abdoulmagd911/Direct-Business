@@ -52,6 +52,24 @@ the manager hiring somebody end to end on screen rather than through the server.
    itself. Live data confirmed back to 30 companies (20 leads, 10 clients), 28 invoices,
    5 proposals, 7 requests, 11 active people.
 
+### Part 3 — the double-check
+
+Asked to check it all again before handing over. Two findings.
+
+9. **The Team screen's per-page tick boxes were a lie.** Looking for a sideways escalation —
+   grant PAGES instead of a level — found no escalation (level decides on screen and in the
+   database, proven), but found that "Save pages" wrote straight to `app_users` from the
+   browser, which the database refuses for a manager, returning no error and zero rows. The
+   button said "Saved ✓" regardless. Tick boxes and their three buttons removed; each row now
+   states in plain words what that level opens.
+10. **The rehearsal account is now removed properly.** `probe-handover` can only switch it off
+    (there is no delete-a-person action, by design), so it was deleted by hand and the probe
+    now says so in its header. Live roster: exactly 11 people, 11 logins, no strays.
+
+Proof for the whole round: 181/181 driving the bytes downloaded from the live site itself,
+14/14 on every route a manager might take to admin, 16/16 on the rebuilt Team screen, 11/11 on
+the passwords exactly as they were written out.
+
 ### Still open after this round
 
 - The old database roles `bd`, `operations` and `viewer` still exist but nobody is on them.

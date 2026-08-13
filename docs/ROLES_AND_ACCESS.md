@@ -70,6 +70,11 @@ Won lead becomes a client. Promo codes went the other way and were **widened** t
 invoice must be able to edit a promo code — otherwise the screen offers a change the database
 silently drops (a refused UPDATE returns no error and zero rows, so it looks saved and is not).
 
+There are **no per-page tick boxes** any more. The Team screen used to let you choose exactly
+which pages a person opened; those ticks were removed on 2026-08-13 because the level already
+decided everything, so they changed nothing — and the "Save pages" button reported success even
+when the database had refused the write. Level in, level out.
+
 ## How a new person gets in
 
 1. Admin or manager: profile chip (top right) → **Team** → email, name, level, and a
@@ -104,6 +109,13 @@ their work stays. A manager cannot reset or switch off an admin.
   than deleting it — correct, and what the test proves — but eleven runs a day buried the real
   thirty companies under 55 "Go-live check" rows. `probe-golive.mjs` now deletes them at the
   end. If you write a probe that creates data, make it clean up.
+- **"Save pages" said Saved ✓ having saved nothing.** It wrote straight to `app_users` from
+  the browser, and that write is refused for a manager — which comes back as no error and zero
+  rows. The control is gone. Anything that writes from the browser must count the rows that
+  came back before it claims success.
+- **A manager cannot escalate sideways by handing out pages instead of a level.** Proven: an
+  employee given `settings` in his page list still saw four pages, was still bounced off
+  Settings, and his write to the settings row still changed zero rows.
 - **Do not hide sidebar buttons by counting their position.** The sidebar is built three times
   over — the core builds it from `VIEWS`, the v25 layer throws that away and rebuilds it in
   groups, and later layers append Finance and Brand afterwards. Counting positions is what hid
@@ -121,3 +133,12 @@ their work stays. A manager cannot reset or switch off an admin.
     NODE_USE_ENV_PROXY=1 node probe-handover.mjs      # switched off mid-shift, manager hires: 19 checks
     NODE_USE_ENV_PROXY=1 node probe-phone.mjs         # every level on a phone: 63 checks
     NODE_USE_ENV_PROXY=1 node probe-teamwork.mjs      # hand-over + two people at once: 8 checks
+    NODE_USE_ENV_PROXY=1 node verify-final.mjs        # all 11 passwords work, right level
+    NODE_USE_ENV_PROXY=1 node verify-manager.mjs      # every route to admin a manager could try
+    NODE_USE_ENV_PROXY=1 node verify-teamscreen.mjs   # the Team screen, as admin and as manager
+
+To rehearse against exactly what the live site is serving rather than the working copy,
+download it first and point the rig at the download:
+
+    curl -s https://www.directksab2b.com/ -o mirror/index.html   # then each /js file it names
+    APP_DIR=mirror NODE_USE_ENV_PROXY=1 node probe-golive.mjs
