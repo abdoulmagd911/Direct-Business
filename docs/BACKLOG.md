@@ -1,5 +1,39 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-13 · Round 12 — the phone pass (five roles, iPhone-sized, live backend)
+
+Most of the team will open this on a phone, and that surface had never been tested for the
+non-admin roles. Five people were signed in on a 390×844 screen and put through their day in
+both languages. Nothing overflowed — but a SCREENSHOT showed two things a width check can
+never catch, plus one of my own tests was measuring the wrong page.
+
+1. **The page title was 18 pixels wide.** The top bar carried the menu button, the title, the
+   sync pill, the language button and the profile chip; the tools took 288 of 390 pixels, so
+   "Today" rendered as "D..". On phones (≤560px) the sync pill is hidden, the profile chip
+   keeps only its avatar, and the subtitle is dropped — the title now gets 176px and reads
+   properly. Everything hidden is still one tap away in the chip menu. (js/51-v75)
+2. **Cards sat in two 174-pixel columns.** The Today grids use auto-fit at 180px, so a 390px
+   phone still produced two columns barely wider than the words inside — "Today · Aug 13,
+   2026" wrapped and the tiles looked broken. Below 560px they stack one per row.
+3. **My own test bug, worth recording:** the Operations page id is `ops`, not `operations`.
+   `current='operations'` silently falls back to Today, so the earlier phone and role probes
+   were measuring the Today page and reporting a false pass for Operations. Fixed in both
+   probes; the real Operations page renders correctly on a phone (verified).
+4. The one remaining "failure" was my probe being impatient: Finance loads 28 invoices plus
+   198 promo codes over the network, and the check ran before it arrived. The probe now waits
+   for the ledger like a person would. Not an app defect.
+
+Proven: 49/49 phone checks across five roles (both languages, sign-in to sign-out), and the
+desktop battery still green (mega 49, lifecycle 54, wave2 13, round9 19).
+
+Still open (honest list):
+- `bd`, `operations` and `team_member` share one screen tier internally; the database enforces
+  the differences, but the screen cannot show a bd person their promo-code powers.
+- Expense receipts as photo attachments.
+- Tablet widths (560–900px) were not specifically examined — only phone and laptop.
+- A person signed in on two devices when switched off: the second clears within 90 seconds.
+
+
 ## 2026-08-13 · Round 11 — access stays live, the world is complete, Arabic names
 
 Asked whether anything was left. It was, and this round did it.
@@ -930,6 +964,16 @@ as deliberate: `#F06820` documents · `#FF6C00` logo mark · `#F47A1F` app.
   that could collide. Hub gains **live font specimens** rendered in the actual hosted
   files. The built-in unbranded export is now labelled "Plain copy (internal)" from the
   v68 layer, so it can't be mistaken for the client document.
+- **Pre-launch attack round 2026-08-13 (16 scenarios, an employee's day):** found and fixed
+  **a data-loss bug** — an offer arriving from the app's "Branded offer" button inherited the
+  saved-record id of whatever offer was open, so pressing Save overwrote that saved offer
+  (reproduced: two offers saved, one survived). A handoff is now always a NEW record. Also
+  fixed: a negative line (a discount row) printed "Zero" in the amount-in-words instead of
+  the negative figure; and the new buttons had no keyboard focus ring. Verified safe:
+  60 large saved offers fit in storage, private/blocked storage does not brick the page,
+  corrupt storage recovers, cancelling New/Reset keeps the draft, Delete with no selection
+  is a no-op, six rapid Saves make one record, two tabs stay independent, long custom terms
+  flow onto extra sheets, Arabic print is RTL with correct grammar, and print hides the form.
 - **Heavy testing round 2026-08-13:** five full example offers produced as real PDFs
   (EN corporate, AR discount, VAT-inclusive decimals, 20-line stress, extreme-length
   Arabic names) — found and fixed a real clipping bug: the printed content page was a

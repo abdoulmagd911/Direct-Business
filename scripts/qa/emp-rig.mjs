@@ -39,10 +39,14 @@ export function serve(port) {
   return srv;
 }
 
-export async function openApp(port) {
+export async function openApp(port, opts = {}) {
   serve(port);
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
+  const ctx = await browser.newContext(Object.assign(
+    { viewport: { width: 1440, height: 1000 }, acceptDownloads: true },
+    opts.phone ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3,
+                   userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' } : {},
+    opts.context || {}));
   const page = await ctx.newPage();
   const errs = [];
   page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
