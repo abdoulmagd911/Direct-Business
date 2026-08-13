@@ -5,8 +5,14 @@
 import { openApp, signIn, ready, go, signOut, TEAM } from './emp-rig.mjs';
 
 const LOG = []; const STEP = (n, ok, d = '') => { LOG.push(`${ok ? 'PASS' : 'FAIL'} · ${n}${d ? ' — ' + d : ''}`); console.log(LOG[LOG.length - 1]); };
-const PAGES = ['today', 'leads', 'clients', 'offers', 'ops', 'reports', 'finance'];
-const ORDER = ['othman', 'raad', 'kareem', 'assem', 'mohammed'];
+/* each person is walked through the pages HIS level actually has — asking an employee to
+   open Reports now bounces him to Today, and the check would call that page "empty" */
+const PAGES_BY_ROLE = {
+  admin:       ['today', 'leads', 'clients', 'offers', 'ops', 'reports', 'finance', 'settings'],
+  manager:     ['today', 'leads', 'clients', 'offers', 'events', 'airlines', 'finance', 'settings'],
+  team_member: ['today', 'leads', 'clients', 'finance'],
+};
+const ORDER = ['business', 'othman', 'raad', 'kareem', 'assem', 'mohammed'];
 let port = 9700;
 
 for (const key of ORDER) {
@@ -25,7 +31,7 @@ for (const key of ORDER) {
 
   /* every page: nothing may run off the right edge, and the page must actually have content */
   const bad = [];
-  for (const p of PAGES) {
+  for (const p of (PAGES_BY_ROLE[emp.role] || PAGES_BY_ROLE.team_member)) {
     await go(page, p, 1800);
     if (p === 'finance') {   // the ledger loads from the network — wait for it like a person would
       await page.waitForFunction(() => window.FIN && FIN.rows, null, { timeout: 30000 }).catch(() => {});
@@ -87,27 +93,32 @@ for (const key of ORDER) {
     STEP(`${tag}: the add-expense form is usable on a phone`, form.form && form.inside && form.over <= 4, JSON.stringify(form));
     await page.screenshot({ path: `shots/phone-${key}-expenses.png` });
   }
-  if (emp.role === 'operations') {
-    await page.evaluate(() => { openLead = null; current = 'ops'; render(); });
-    await page.waitForTimeout(2200);
-    const ops = await page.evaluate(() => ({ over: document.documentElement.scrollWidth - window.innerWidth, reqs: (DB.requests || []).length, len: (document.getElementById('view').textContent || '').length }));
-    STEP(`${tag}: the requests desk is readable on a phone`, ops.over <= 4 && ops.reqs >= 7 && ops.len > 200, JSON.stringify(ops));
-    await page.screenshot({ path: `shots/phone-${key}-operations.png` });
-  }
-  if (emp.role === 'viewer' || emp.role === 'operations') {
-    /* the "you can't change this" message must fit a phone screen */
-    await page.evaluate(() => { openLead = null; current = 'leads'; render(); });
-    await page.waitForTimeout(1400);
-    const refusal = await page.evaluate(async () => {
-      const b = (DB.businesses || [])[0];
-      if (typeof leadQuickEdit === 'function') leadQuickEdit(b.id);
-      await new Promise(r => setTimeout(r, 900));
-      const box = document.getElementById('v70box'); if (!box) return { shown: false };
+  if (emp.role === 'team_member') {
+    /* the one thing an employee does on a phone that he could not do before this round:
+       open the ledger and change something in it */
+    await page.evaluate(() => { openLead = null; current = 'finance'; render(); });
+    await page.waitForFunction(() => window.FIN && FIN.rows, null, { timeout: 30000 }).catch(() => {});
+    await page.waitForTimeout(1500);
+    const fin = await page.evaluate(() => ({
+      over: document.documentElement.scrollWidth - window.innerWidth,
+      rows: (window.FIN && FIN.rows ? FIN.rows.length : 0),
+      canEdit: (typeof canFinEdit === 'function') ? !!canFinEdit() : null,
+      len: (document.getElementById('view').textContent || '').length,
+    }));
+    STEP(`${tag}: the ledger is readable and editable on a phone`, fin.over <= 4 && fin.rows > 0 && fin.canEdit === true && fin.len > 200, JSON.stringify(fin));
+    await page.screenshot({ path: `shots/phone-${key}-finance.png` });
+
+    /* and the pages he does not have must bounce him back with a message that fits */
+    await page.evaluate(() => { current = 'reports'; render(); });
+    await page.waitForTimeout(1200);
+    const refusal = await page.evaluate(() => {
+      const box = document.getElementById('v70box');
+      const at = (typeof current !== 'undefined') ? current : '?';
+      if (!box) return { at, shown: false };
       const c = box.firstElementChild.getBoundingClientRect();
-      const ok = c.right <= window.innerWidth + 1 && c.left >= -1 && c.height < window.innerHeight;
-      return { shown: true, fits: ok };
+      return { at, shown: true, fits: c.right <= window.innerWidth + 1 && c.left >= -1 && c.height < window.innerHeight };
     });
-    STEP(`${tag}: the "you can't change this" message fits the phone`, refusal.shown && refusal.fits, JSON.stringify(refusal));
+    STEP(`${tag}: an off-limits page bounces back and the message fits the phone`, refusal.at === 'today' && (!refusal.shown || refusal.fits), JSON.stringify(refusal));
     await page.screenshot({ path: `shots/phone-${key}-refusal.png` });
     await page.evaluate(() => { const b = document.getElementById('v70box'); if (b) b.remove(); });
   }

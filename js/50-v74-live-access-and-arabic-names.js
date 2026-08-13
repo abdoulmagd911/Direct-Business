@@ -30,11 +30,15 @@
       document.body.appendChild(ov);
     }catch(_){}
     setTimeout(function(){
+      /* Reload no matter what. If signing out stalls on a bad connection, the person would
+         otherwise be left sitting on the message with the app still behind it. */
+      var done=false, go=function(){ if(done)return; done=true; try{ location.reload(); }catch(_){} };
+      setTimeout(go, 2500);
       try{
         var c=client();
-        if(c&&c.auth&&c.auth.signOut) c.auth.signOut().then(function(){ location.reload(); });
-        else location.reload();
-      }catch(_){ location.reload(); }
+        if(c&&c.auth&&c.auth.signOut) c.auth.signOut().then(go, go);
+        else go();
+      }catch(_){ go(); }
     }, 3500);
   }
 

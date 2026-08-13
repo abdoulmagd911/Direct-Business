@@ -37,8 +37,11 @@
           '<input id="v48n" placeholder="'+(A?'الاسم الكامل':'Full name')+'" style="flex:1;min-width:140px;padding:9px 11px;border:1px solid var(--line-2,#DADDE3);border-radius:9px;font:inherit;font-size:16px">'+
           '<input id="v48e" placeholder="name@directksa.com" inputmode="email" autocapitalize="none" style="flex:1.3;min-width:180px;padding:9px 11px;border:1px solid var(--line-2,#DADDE3);border-radius:9px;font:inherit;font-size:16px">'+
           '<select id="v48r" style="padding:9px 11px;border:1px solid var(--line-2,#DADDE3);border-radius:9px;font:inherit;font-size:14px">'+Object.keys(RL).map(function(k){return '<option value="'+k+'"'+(k==='team_member'?' selected':'')+'>'+(A?RL[k][1]:RL[k][0])+'</option>';}).join('')+'</select>'+
+          '<input id="v48pw" placeholder="'+(A?'كلمة المرور (اختياري)':'Password (optional)')+'" autocomplete="new-password" style="flex:1;min-width:170px;padding:9px 11px;border:1px solid var(--line-2,#DADDE3);border-radius:9px;font:inherit;font-size:16px">'+
           '<button id="v48create" class="btn pri sm">'+(A?'إنشاء':'Create')+'</button>'+
-        '</div><div id="v48res" style="display:none;margin-top:10px"></div>'+
+        '</div>'+
+        '<div style="font-size:11.5px;color:var(--muted,#6B7480);margin-top:7px">'+(A?'اكتب كلمة مرور لتسليمها بنفسك، أو اتركها فارغة ليصنع التطبيق واحدة مؤقتة ويطلب منه تغييرها أول مرة.':'Type a password to hand over yourself, or leave it blank and the app makes a temporary one they must change on first sign-in.')+'</div>'+
+        '<div id="v48res" style="display:none;margin-top:10px"></div>'+
       '</div>'+
       '<div id="v48list" style="font-size:13px;color:var(--muted,#6B7480)">'+(A?'جارٍ التحميل…':'Loading…')+'</div>';
     ov.appendChild(box); document.body.appendChild(ov);
@@ -51,22 +54,26 @@
       var n=(document.getElementById('v48n').value||'').trim();
       var e=(document.getElementById('v48e').value||'').trim().toLowerCase();
       var r=document.getElementById('v48r').value;
+      var pwEl=document.getElementById('v48pw');
+      var pw=(pwEl&&pwEl.value||'').trim();
       if(!e||e.indexOf('@')<0){ alert(A?'أدخل بريدًا صحيحًا.':'Enter a valid email address.'); return; }
+      if(pw&&pw.length<8){ alert(A?'كلمة المرور تحتاج ٨ أحرف على الأقل.':'A password needs at least 8 characters.'); return; }
       var btn=document.getElementById('v48create'); btn.disabled=true; btn.textContent=A?'جارٍ…':'Creating…';
-      call({action:'create',email:e,full_name:n,role:r}).then(function(res){
+      call({action:'create',email:e,full_name:n,role:r,password:pw||undefined}).then(function(res){
         btn.disabled=false; btn.textContent=A?'إنشاء':'Create';
         if(res.error){ alert(res.error); return; }
         document.getElementById('v48n').value=''; document.getElementById('v48e').value='';
-        showTemp(res.email,res.temp_password); load();
+        if(pwEl) pwEl.value='';
+        showTemp(res.email,res.temp_password,res.permanent); load();
       }).catch(function(x){ btn.disabled=false; btn.textContent=A?'إنشاء':'Create'; alert(String(x&&x.message||x)); });
     }
-    function showTemp(email,pw){
+    function showTemp(email,pw,permanent){
       var r=document.getElementById('v48res'); if(!r)return; r.style.display='block';
       r.innerHTML='<div style="background:#E7F8EF;border:1px solid #16B36455;border-radius:10px;padding:11px 13px;font-size:12.5px;color:#0B4229">'+
         '<b>'+(A?'تم إنشاء الحساب':'Account created')+'</b> — '+(A?'أرسل هذا للزميل على واتساب:':'send these to them on WhatsApp:')+
         '<div style="background:#fff;border:1px dashed #C9C2B4;border-radius:8px;padding:9px 11px;margin-top:7px;font-family:monospace;user-select:all;color:#1C1E2B">'+
-        (A?'الرابط':'Link')+': '+esc(location.origin)+'<br>'+(A?'البريد':'Email')+': '+esc(email)+'<br>'+(A?'كلمة مرور مؤقتة':'Temporary password')+': <b>'+esc(pw)+'</b></div>'+
-        '<div style="color:#6B7480;margin-top:6px">'+(A?'تظهر مرة واحدة. سيختار كلمته الخاصة عند أول دخول.':'Shown once. They choose their own password on first sign-in.')+'</div></div>';
+        (A?'الرابط':'Link')+': '+esc(location.origin)+'<br>'+(A?'البريد':'Email')+': '+esc(email)+'<br>'+(permanent?(A?'كلمة المرور':'Password'):(A?'كلمة مرور مؤقتة':'Temporary password'))+': <b>'+esc(pw)+'</b></div>'+
+        '<div style="color:#6B7480;margin-top:6px">'+(permanent?(A?'تظهر مرة واحدة. هذه كلمته الدائمة — لن يُطلب منه تغييرها.':'Shown once. This is their permanent password — they will not be asked to change it.'):(A?'تظهر مرة واحدة. سيختار كلمته الخاصة عند أول دخول.':'Shown once. They choose their own password on first sign-in.'))+'</div></div>';
     }
     function load(){
       var lb=document.getElementById('v48list'); if(!lb)return;
