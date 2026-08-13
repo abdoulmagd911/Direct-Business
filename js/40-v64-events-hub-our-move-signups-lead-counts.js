@@ -41,6 +41,24 @@ var extrasLoaded=false;
 
 function canEdit(){ return !window.__isShareView && window.__userTier && window.__userTier!=='viewer'; }
 
+/* On a phone the eight columns pushed the DATE off-screen — on a page whose whole
+   job is "when". Below 760px each row becomes a stacked card instead, with the
+   quiet columns labelled so nothing loses its meaning. Injected once. */
+(function mobileCards(){
+  if(document.getElementById('v64-ev-css'))return;
+  var st=document.createElement('style'); st.id='v64-ev-css';
+  st.textContent='@media(max-width:760px){'
+    +'.v64-ev-table thead{display:none}'
+    +'.v64-ev-table,.v64-ev-table tbody,.v64-ev-table tr,.v64-ev-table td{display:block;width:100%}'
+    +'.v64-ev-table tr{border:1px solid var(--line,#e6e8ec)!important;border-radius:10px;margin:0 0 10px;padding:8px 2px;background:var(--card,#fff)}'
+    +'.v64-ev-table td{border:none!important;padding:3px 12px!important;max-width:none!important}'
+    +'.v64-ev-table td:empty{display:none}'
+    +'.v64-ev-table td[data-l]:not(:empty):before{content:attr(data-l) " ";font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted,#7C8194);font-weight:700}'
+    +'.v64-ev-table td[data-act]{padding-top:8px!important;border-top:1px solid var(--line,#eef0f5)!important;margin-top:4px}'
+    +'}';
+  document.head.appendChild(st);
+})();
+
 function loadAll(){
   if(loading)return; loading=true;
   var c=client(); if(!c){loading=false;return;}
@@ -147,7 +165,7 @@ window.renderEvents=function(v){
   h+=sel('evF_s',Object.keys(EV_STATUS).map(function(k){return [k,statusLabel(k)];}),F.status,L('All statuses','كل الحالات'));
   h+='<input id="evF_q" placeholder="'+L('Search name, city, venue…','ابحث بالاسم أو المدينة أو المكان…')+'" value="'+esc(F.q)+'" style="padding:7px 10px;border:1px solid var(--line,#e6e8ec);border-radius:8px;font:inherit;min-width:180px">';
   h+='<span style="margin-'+(isAr()?'right':'left')+':auto;color:var(--muted);font-size:12px">'+L(list.length+' of '+E.length+' shown', 'عرض '+list.length+' من '+E.length)+'</span></div>';
-  h+='<div class="card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>';
+  h+='<div class="card" style="padding:0;overflow:auto"><table class="v64-ev-table" style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>';
   (isAr()?['الفعالية','خطتنا','القطاع','الحالة','التواريخ','المدينة','ملاحظات','']
         :['Event','Our move','Vertical','Status','Dates','City','Notes','']).forEach(function(c2){h+='<th style="text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-bottom:1px solid var(--line,#e6e8ec);white-space:nowrap">'+c2+'</th>';});
   h+='</tr></thead><tbody>';
@@ -169,13 +187,13 @@ window.renderEvents=function(v){
     var oppTags=(e.opportunity_sales?pill(L('Sales','عميل محتمل'),'#dceeff','#1a5c9e')+' ':'')+(e.opportunity_partner?pill(L('Partner','منافس/شريك'),'#ffe6d5','#a35216'):'');
     h+='<tr style="border-bottom:1px solid var(--line,#eef0f5)'+(ended?';opacity:.55':'')+(hiPri?';border-left:3px solid #FBAE16':'')+'">';
     h+='<td style="padding:9px 10px;min-width:180px"><div style="font-weight:600">'+esc(e.name_en)+(hiPri?' <span title="'+L('High priority','أولوية عالية')+'" style="color:#FBAE16">★</span>':'')+'</div>'+(e.name_ar?'<div style="font-size:11px;color:var(--muted);direction:rtl;text-align:left">'+esc(e.name_ar)+'</div>':'')+(oppTags?'<div style="margin-top:2px">'+oppTags+'</div>':'')+(lk?'<a href="'+esc(lk)+'" target="_blank" rel="noopener" style="font-size:11px">'+L('Website ↗','الموقع ↗')+'</a>':'')+'</td>';
-    h+='<td style="padding:9px 10px">'+moveCell+'</td>';
+    h+='<td data-l="'+L('Our move','خطتنا')+'" style="padding:9px 10px">'+moveCell+'</td>';
     h+='<td style="padding:9px 10px">'+pill(vertLabel(e.vertical),vt[0],vt[1])+'</td>';
     h+='<td style="padding:9px 10px">'+pill(statusLabel(e.status),stt[1],stt[2])+'</td>';
-    h+='<td style="padding:9px 10px">'+evDate(e)+(rel?'<div style="font-size:10.5px;color:'+(rel[0]==='happening now'?'#1e7a34;font-weight:600':'var(--muted)')+'">'+esc(rel[0])+'</div>':'')+'</td>';
-    h+='<td style="padding:9px 10px;white-space:nowrap">'+esc(e.city||'—')+'</td>';
+    h+='<td data-l="'+L('When','متى')+'" style="padding:9px 10px">'+evDate(e)+(rel?'<div style="font-size:10.5px;color:'+(rel[0]==='happening now'?'#1e7a34;font-weight:600':'var(--muted)')+'">'+esc(rel[0])+'</div>':'')+'</td>';
+    h+='<td data-l="'+L('City','المدينة')+'" style="padding:9px 10px;white-space:nowrap">'+esc(e.city||'—')+'</td>';
     h+='<td style="padding:9px 10px;max-width:260px;font-size:11.5px;color:var(--muted)"><div style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden" title="'+esc(e.notes||'')+'">'+esc(e.notes||'')+'</div></td>';
-    h+='<td style="padding:9px 10px;white-space:nowrap">'+(canEdit()?'<button class="btn ghost sm" onclick="evOpenModal(\''+esc(e.id)+'\')">'+L('Edit','تعديل')+'</button> <button class="btn ghost sm" style="color:#a3242c" onclick="evDelete(\''+esc(e.id)+'\')">'+L('Del','حذف')+'</button>':'')+'</td>';
+    h+='<td data-act="1" style="padding:9px 10px;white-space:nowrap">'+(canEdit()?'<button class="btn ghost sm" onclick="evOpenModal(\''+esc(e.id)+'\')">'+L('Edit','تعديل')+'</button> <button class="btn ghost sm" style="color:#a3242c" onclick="evDelete(\''+esc(e.id)+'\')">'+L('Del','حذف')+'</button>':'')+'</td>';
     h+='</tr>';
   });
   h+='</tbody></table></div>';
@@ -253,11 +271,20 @@ window.evOpenModal=function(id){
     +'<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line,#e6e8ec)">'
     +'<button class="btn ghost sm" id="ev_cancel">'+L('Cancel','إلغاء')+'</button><button class="btn pri sm" id="ev_save">'+L('Save event','حفظ الفعالية')+'</button></div></div>';
   document.body.appendChild(ov);
-  ov.addEventListener('click',function(x){if(x.target===ov)ov.remove();});
-  document.getElementById('ev_cancel').onclick=function(){ov.remove();};
+  /* Escape closes it — the missing-Escape gripe is app-wide; at least this dialog obeys. */
+  var onEsc=function(x){ if(x.key==='Escape'){ close(); } };
+  function close(){ try{ov.remove();}catch(_){} document.removeEventListener('keydown',onEsc); }
+  document.addEventListener('keydown',onEsc);
+  ov.addEventListener('click',function(x){if(x.target===ov)close();});
+  document.getElementById('ev_cancel').onclick=close;
+  try{ document.getElementById('ev_n').focus(); }catch(_){}
   document.getElementById('ev_save').onclick=function(){
     var gv=function(fid){var el=document.getElementById(fid);return el?el.value.trim():'';};
     var name=gv('ev_n'); if(!name){alert(L('Event name is required.','اسم الفعالية مطلوب.'));return;}
+    if(!id){
+      var clash=(DB.ksaEvents||[]).filter(function(x){return normName(x.name_en)===normName(name);});
+      if(clash.length&&!confirm(L('"'+name+'" is already on the calendar. Add it again anyway?','«'+name+'» موجودة بالفعل في التقويم. هل تضيفها مرة أخرى؟')))return;
+    }
     var start=gv('ev_start')||null, end=gv('ev_end')||null;
     if(start&&end&&end<start){alert(L('End date cannot be before start date.','تاريخ النهاية لا يمكن أن يسبق البداية.'));return;}
     var link=gv('ev_link'), listurl=gv('ev_listurl');
@@ -279,7 +306,7 @@ window.evOpenModal=function(id){
       var savedId=(r.data&&r.data.id)||id;
       var s={event_id:savedId,login_email:gv('ev_su_email')||null,login_password:gv('ev_su_pass')||null,signed_up_by:gv('ev_su_by')||null,updated_at:new Date().toISOString()};
       var had=!!SIGNUPS[savedId], has=s.login_email||s.login_password||s.signed_up_by;
-      var done=function(){ov.remove();loaded=false;loadAll();};
+      var done=function(){close();loaded=false;loadAll();};
       if(savedId&&(has||had)){
         c.from('ksa_event_signups').upsert(s).then(function(r2){
           if(r2.error)alert(L('Event saved, but the site login did not save: ','حُفظت الفعالية، لكن حساب الموقع لم يُحفظ: ')+r2.error.message);

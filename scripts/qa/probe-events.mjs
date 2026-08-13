@@ -102,6 +102,36 @@ check('add modal: move defaults to Not decided', await p.evaluate(()=>document.g
 await p.evaluate(()=>document.getElementById('ev_cancel').click());
 await p.waitForTimeout(300);
 
+// ---- Polish round: Escape, duplicate guard, phone layout ----
+await p.evaluate(()=>evOpenModal('e2')); await p.waitForTimeout(400);
+check('modal: first field is focused on open', await p.evaluate(()=>document.activeElement&&document.activeElement.id), 'ev_n');
+await p.keyboard.press('Escape'); await p.waitForTimeout(400);
+check('modal: Escape closes it', await p.evaluate(()=>!document.getElementById('ev_move')), true);
+
+await p.evaluate(()=>evOpenModal()); await p.waitForTimeout(400);
+await p.fill('#ev_n','Event 1');            // a name already on the calendar
+let asked=false; p.once('dialog', d=>{ asked=true; d.dismiss(); });
+await p.evaluate(()=>document.getElementById('ev_save').click()); await p.waitForTimeout(700);
+check('adding a duplicate name asks first', asked, true);
+check('duplicate declined → nothing saved, dialog stays open', await p.evaluate(()=>!!document.getElementById('ev_move')), true);
+await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+
+// Phone: the date must be visible without scrolling sideways
+await p.setViewportSize({width:390,height:844}); await p.waitForTimeout(600);
+check('phone: no sideways scroll on the page', await p.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1), true);
+check('phone: rows become stacked cards', await p.evaluate(()=>{
+  const td=document.querySelector('#view .v64-ev-table tbody td');
+  return td?getComputedStyle(td).display==='block':false;
+}), true);
+check('phone: the date is inside the visible width', await p.evaluate(()=>{
+  const tds=[...document.querySelectorAll('#view .v64-ev-table tbody td')].filter(t=>t.getAttribute('data-l')&&/When|متى/.test(t.getAttribute('data-l')));
+  if(!tds.length) return false;
+  const r=tds[0].getBoundingClientRect();
+  return r.left>=0 && r.right<=window.innerWidth+1;
+}), true);
+await p.screenshot({path:'scripts/qa/shot-app-events-phone.png',fullPage:true});
+await p.setViewportSize({width:1440,height:950}); await p.waitForTimeout(400);
+
 // ---- Arabic pass (2026-08-13): the page must speak Arabic, not half-English ----
 await p.evaluate(()=>{ try{ LANG='ar'; }catch(_){}; try{ applyLang&&applyLang(); }catch(_){}; try{ render(); }catch(_){} });
 await p.waitForTimeout(1500);
