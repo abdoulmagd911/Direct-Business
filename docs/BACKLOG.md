@@ -774,6 +774,20 @@ as deliberate: `#F06820` documents · `#FF6C00` logo mark · `#F47A1F` app.
   deployment READY; live files verified byte-identical to the tested repo files
   (sha256 on 7 files including fonts). Still recommended: point the Vercel production
   branch at `main` (Settings → Git) to end the two-branch dance.
+- **Enhancement round 2026-08-13 (post-go-live):** the app had been SPLIT into `js/NN-*.js`
+  by the parallel session while the brand layers were still inline in `index.html` — and
+  they were numbered v46/v47/v48, which **collide with the app's own real v46/v47/v48**.
+  Extracted and renumbered to `js/43-v67-brand-hub-nav-link.js`,
+  `js/44-v68-offer-to-branded-studio.js`, `js/45-v69-app-identity-shell.js` (house
+  new-file pattern; index.html keeps only the three script lines + the favicon links).
+  This also removes the repeated index.html merge conflicts.
+  Studio gains: **amount in words** EN + AR with real counted-noun grammar (the رقم/كتابة
+  convention from the HRC financial offer), **multiple saved offers** in the browser
+  (save / open / delete / new), **Copy for WhatsApp / Email**, line **move up/down +
+  duplicate**, and **sequential offer numbers** (OFR-YYYY-001…) instead of random ones
+  that could collide. Hub gains **live font specimens** rendered in the actual hosted
+  files. The built-in unbranded export is now labelled "Plain copy (internal)" from the
+  v68 layer, so it can't be mistaken for the client document.
 - **Heavy testing round 2026-08-13:** five full example offers produced as real PDFs
   (EN corporate, AR discount, VAT-inclusive decimals, 20-line stress, extreme-length
   Arabic names) — found and fixed a real clipping bug: the printed content page was a

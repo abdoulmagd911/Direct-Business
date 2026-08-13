@@ -50,6 +50,18 @@
   .actions button{border:0;border-radius:10px;padding:11px 18px;font-weight:800;font-size:14px;cursor:pointer}
   .go{background:var(--accent);color:#fff}
   .ghost{background:#fff;color:var(--ink);border:1px solid var(--line)!important}
+  .mini{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;
+    padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+  .mini:hover{border-color:var(--accent);color:var(--accent)}
+  .mini.danger:hover{border-color:#D92D20;color:#D92D20}
+  .lines .move{float:right;border:0;background:none;color:var(--muted);cursor:pointer;
+    font-size:13px;font-weight:700;padding:0 4px}
+  .lines .move:hover{color:var(--accent)}
+  #stoast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(90px);
+    background:var(--ink);color:#fff;font-weight:700;font-size:13px;padding:10px 18px;
+    border-radius:999px;transition:transform .25s;z-index:99;pointer-events:none;max-width:90vw}
+  #stoast.on{transform:translateX(-50%) translateY(0)}
+  @media print{#stoast{display:none}}
   .hint{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5}
 
   /* ---------- preview ---------- */
@@ -98,6 +110,9 @@
   .totals{margin:14px 0 0;margin-inline-start:auto;width:300px;font-size:13.5px}
   .totals .tr{display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid var(--line)}
   .totals .tr.big{background:var(--header);color:#fff;font-weight:800;border-radius:9px;border:0;margin-top:6px;font-size:15px}
+  .inwords{margin:10px 0 0;margin-inline-start:auto;width:100%;text-align:end;
+    font-size:12.5px;color:var(--ink);font-weight:600}
+  .inwords span{color:var(--muted);font-weight:400}
   .terms{margin-top:26px;background:var(--wash);border-inline-start:4px solid var(--accent);
     border-radius:10px;padding:14px 16px;font-size:12px;line-height:1.7;color:#4A5261;white-space:pre-line}
   .terms b{display:block;color:var(--ink);font-size:12.5px;margin-bottom:4px}
@@ -134,6 +149,15 @@
   <div class="form" id="form">
     <h1>Proposal Studio</h1>
     <p class="sub">استوديو عروض دايركت — fill the form, the pages build themselves. Print = PDF.</p>
+
+    <label>Saved offers · العروض المحفوظة</label>
+    <select id="savedList"><option value="">— this browser has no saved offers yet —</option></select>
+    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+      <button type="button" class="mini" id="saveOffer">💾 Save</button>
+      <button type="button" class="mini" id="loadOffer">Open</button>
+      <button type="button" class="mini danger" id="delOffer">Delete</button>
+      <button type="button" class="mini" id="newOffer">＋ New</button>
+    </div>
 
     <label>Language · اللغة</label>
     <div class="seg" id="langSeg">
@@ -185,10 +209,13 @@
 
     <div class="actions">
       <button type="button" class="go" id="printBtn">Print / Save PDF · طباعة</button>
+      <button type="button" class="ghost" id="copyBtn">⧉ Copy for WhatsApp / Email</button>
       <button type="button" class="ghost" id="resetBtn">Reset · مسح</button>
     </div>
-    <p class="hint">Drafts save automatically in this browser. Totals and VAT (15%) are always computed — never type totals by hand. Prices are service fees unless a line says otherwise; real invoices are issued from Direct Payment.</p>
+    <p class="hint">Your work saves automatically; use <b>Save</b> to keep several offers side by side. Totals and VAT (15%) are always computed — never type totals by hand. Prices are service fees unless a line says otherwise; real invoices are issued from Direct Payment.</p>
   </div>
+
+  <div id="stoast" role="status"></div>
 
   <!-- ================= PREVIEW ================= -->
   <div class="preview" id="preview"></div>
@@ -211,7 +238,7 @@ var T = {
       pricing:'Pricing details', num:'#', svc:'Service', unit:'Unit', qty:'Qty',
       orig:'Original price', price:'Price (SAR)', amount:'Amount (SAR)',
       subtotal:'Subtotal (ex-VAT)', vat:'VAT 15%', total:'Total (incl. VAT)',
-      termsHead:'Terms & notes', thanks:'Thank You',
+      termsHead:'Terms & notes', thanks:'Thank You', inWords:'In words:',
       tag:'Global supplier power. Saudi service. One partner.',
       defTerms:'Prices are service fees per person/ticket/document unless stated otherwise, and exclude supplier, airline, hotel, embassy and government charges unless the line says "Total".\nThis offer is valid until the date shown; after that, prices are subject to reconfirmation.\nTax invoices are issued by Direct Payment upon confirmation.'},
   ar:{cover:'عرض سعر', coverSub:'خدمات السفر والسياحة', prepFor:'مقدم إلى',
@@ -219,18 +246,127 @@ var T = {
       pricing:'تفاصيل الأسعار', num:'#', svc:'الخدمة', unit:'الوحدة', qty:'الكمية',
       orig:'السعر الأصلي', price:'السعر (ريال)', amount:'الإجمالي (ريال)',
       subtotal:'الإجمالي غير شامل الضريبة', vat:'ضريبة القيمة المضافة 15%', total:'الإجمالي شامل الضريبة',
-      termsHead:'الشروط والملاحظات', thanks:'شكراً لكم',
+      termsHead:'الشروط والملاحظات', thanks:'شكراً لكم', inWords:'المبلغ كتابةً:',
       tag:'قوة موردين عالمية. خدمة سعودية. شريك واحد.',
       defTerms:'الأسعار قيمة خدمة لكل شخص/تذكرة/مستند ما لم يُذكر خلاف ذلك، ولا تشمل رسوم الموردين وشركات الطيران والفنادق والسفارات والجهات الحكومية ما لم يُذكر "الإجمالي".\nهذا العرض صالح حتى التاريخ الموضح، وبعده تخضع الأسعار لإعادة التأكيد.\nتصدر الفواتير الضريبية من دايركت للمدفوعات عند التأكيد.'}
 };
 
+/* ---------- amount in words ----------
+   Direct's real financial offers state every figure in numbers AND in words
+   (السعر رقماً / كتابةً — see the HRC tender). Same convention here. */
+function wordsEN(n){
+  var ones=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve',
+    'thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+  var tens=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+  function under1000(x){
+    var s='';
+    if(x>=100){ s+=ones[Math.floor(x/100)]+' hundred'; x%=100; if(x) s+=' and '; }
+    if(x>=20){ s+=tens[Math.floor(x/10)]; if(x%10) s+='-'+ones[x%10]; }
+    else if(x>0){ s+=ones[x]; }
+    return s;
+  }
+  n=Math.floor(n);
+  if(n===0) return 'zero';
+  var parts=[], units=[[1e9,'billion'],[1e6,'million'],[1e3,'thousand']];
+  for(var i=0;i<units.length;i++){
+    var u=units[i][0];
+    if(n>=u){ parts.push(under1000(Math.floor(n/u))+' '+units[i][1]); n%=u; }
+  }
+  if(n>0) parts.push(under1000(n));
+  return parts.join(' ');
+}
+/* Arabic needs real agreement rules — this text goes on a financial document:
+   masculine forms for ريال, feminine for هللة, the dual (ريالان / هللتان),
+   the 3–10 plural (ريالات / هللات) and the 11+ accusative singular (ريالاً). */
+var AR_ONES_M=['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة'];
+var AR_ONES_F=['','واحدة','اثنتان','ثلاث','أربع','خمس','ست','سبع','ثماني','تسع'];
+var AR_TEENS_M=['عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'];
+var AR_TEENS_F=['عشر','إحدى عشرة','اثنتا عشرة','ثلاث عشرة','أربع عشرة','خمس عشرة','ست عشرة','سبع عشرة','ثماني عشرة','تسع عشرة'];
+var AR_TENS=['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'];
+var AR_HUNS=['','مائة','مائتان','ثلاثمائة','أربعمائة','خمسمائة','ستمائة','سبعمائة','ثمانمائة','تسعمائة'];
+function arUnder100(x, fem){
+  var ones=fem?AR_ONES_F:AR_ONES_M, teens=fem?AR_TEENS_F:AR_TEENS_M;
+  if(x===0) return '';
+  if(x<10) return ones[x];
+  if(x<20) return teens[x-10];
+  var t=AR_TENS[Math.floor(x/10)], o=x%10;
+  return o? ones[o]+' و'+t : t;
+}
+function arUnder1000(x, fem){
+  var p=[];
+  if(x>=100){ p.push(AR_HUNS[Math.floor(x/100)]); x%=100; }
+  var rest=arUnder100(x,fem); if(rest) p.push(rest);
+  return p.join(' و');
+}
+function wordsAR(n, fem){
+  n=Math.floor(n);
+  if(n===0) return 'صفر';
+  var out=[];
+  function group(value, one, two, few, many){
+    if(value===0) return;
+    if(value===1){ out.push(one); return; }
+    if(value===2){ out.push(two); return; }
+    var last2=value%100;
+    if(last2>=3 && last2<=10) out.push(arUnder1000(value,false)+' '+few);
+    else if(last2===0)        out.push(arUnder1000(value,false)+' '+one);
+    else                      out.push(arUnder1000(value,false)+' '+many);
+  }
+  var mil=Math.floor(n/1e6); n%=1e6;
+  var th=Math.floor(n/1e3);  n%=1e3;
+  group(mil,'مليون','مليونان','ملايين','مليوناً');
+  group(th,'ألف','ألفان','آلاف','ألفاً');
+  if(n>0) out.push(arUnder1000(n,fem));
+  var s=out.join(' و');
+  /* a dual before a counted noun drops its nun: مائتان → مائتا, ألفان → ألفا */
+  return s.replace(/مائتان$/,'مائتا').replace(/ألفان$/,'ألفا').replace(/مليونان$/,'مليونا');
+}
+function arCounted(value, fem){
+  /* returns the number in words followed by the correctly-agreeing noun */
+  var one   = fem?'هللة':'ريال';
+  var dual  = fem?'هللتان':'ريالان';
+  var few   = fem?'هللات':'ريالات';
+  var many  = fem?'هللة':'ريالاً';
+  if(value===1) return one+' '+(fem?'واحدة':'واحد');
+  if(value===2) return dual;
+  var last2=value%100, w=wordsAR(value,fem);
+  if(last2>=3 && last2<=10) return w+' '+few;
+  /* a round figure puts the noun straight after the thousands/millions word,
+     which then drops its tanween: أحد عشر ألف ريال (not ألفاً ريال) */
+  if(last2===0)             return w.replace(/ألفاً$/,'ألف').replace(/مليوناً$/,'مليون')+' '+one;
+  return w+' '+many;
+}
+function amountInWords(total, lang){
+  var riyals=Math.floor(total+1e-9);
+  var halalas=Math.round((total-riyals)*100);
+  if(halalas===100){ riyals+=1; halalas=0; }
+  if(lang==='ar'){
+    var parts=[];
+    if(riyals>0) parts.push(arCounted(riyals,false));
+    if(halalas>0) parts.push(arCounted(halalas,true));
+    if(!parts.length) parts.push('صفر ريال');
+    return 'فقط '+parts.join(' و')+' لا غير';
+  }
+  var e='';
+  if(riyals>0) e=wordsEN(riyals)+' Saudi riyal'+(riyals===1?'':'s');
+  if(halalas>0) e+=(e?' and ':'')+wordsEN(halalas)+' halala'+(halalas===1?'':'s');
+  if(!e) e='zero Saudi riyals';
+  return e.charAt(0).toUpperCase()+e.slice(1)+' only';
+}
+
 function todayISO(){
   var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
-function defaultNo(){
-  var d=new Date();
-  return 'OFR-'+d.getFullYear()+'-'+String(Math.floor(Math.random()*900)+100);
+function nextOfferNo(){
+  /* sequential per browser, so two offers made the same day never share a number */
+  var d=new Date(), y=d.getFullYear(), n=1;
+  try{
+    var seq=JSON.parse(localStorage.getItem('direct_proposal_seq')||'{}');
+    n=(seq.year===y? (Number(seq.n)||0) : 0)+1;
+    localStorage.setItem('direct_proposal_seq', JSON.stringify({year:y,n:n}));
+  }catch(_){ n=Math.floor(Math.random()*900)+100; }
+  return 'OFR-'+y+'-'+String(n).padStart(3,'0');
 }
+var defaultNo=nextOfferNo;
 function fmt(n){
   if(!isFinite(n)) return '—';
   return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -248,6 +384,9 @@ function addDays(iso,days){
 function lineRow(i,l){
   var d=document.createElement('div'); d.className='line';
   d.innerHTML='<button type="button" class="rm" data-i="'+i+'">remove ✕</button>'+
+    '<button type="button" class="move" data-mv="dup" data-i="'+i+'" title="Duplicate · نسخ">⧉</button>'+
+    '<button type="button" class="move" data-mv="down" data-i="'+i+'" title="Move down · لأسفل">↓</button>'+
+    '<button type="button" class="move" data-mv="up" data-i="'+i+'" title="Move up · لأعلى">↑</button>'+
     '<label>Service (EN) · الخدمة بالإنجليزية</label><input type="text" class="li" data-i="'+i+'" data-k="svc" value="'+esc(l.svc)+'" placeholder="e.g. International flight booking">'+
     '<label>Service (AR) · الخدمة بالعربية</label><input type="text" dir="rtl" class="li" data-i="'+i+'" data-k="svcAr" value="'+esc(l.svcAr)+'" placeholder="مثال: حجز طيران دولي">'+
     '<div class="row2"><div><label>Unit · الوحدة</label><input type="text" class="li" data-i="'+i+'" data-k="unit" value="'+esc(l.unit)+'" placeholder="Per ticket / لكل تذكرة"></div>'+
@@ -294,6 +433,110 @@ function drawForm(){
 }
 function save(){
   try{ localStorage.setItem('direct_proposal_draft', JSON.stringify(state)); }catch(_){}
+}
+
+/* ---------- saved offers (this browser) ---------- */
+var SAVED_KEY='direct_proposal_saved';
+function savedAll(){
+  try{ var a=JSON.parse(localStorage.getItem(SAVED_KEY)||'[]'); return Array.isArray(a)?a:[]; }
+  catch(_){ return []; }
+}
+function savedWrite(list){
+  try{ localStorage.setItem(SAVED_KEY, JSON.stringify(list)); return true; }
+  catch(_){ toast('Storage is full — delete an old saved offer'); return false; }
+}
+function savedLabel(o){
+  return (o.no||'—')+' · '+(o.client||'(no client)')+' · '+(o.date||'');
+}
+function drawSaved(){
+  var sel=$('savedList'); if(!sel) return;
+  var list=savedAll(), cur=sel.value;
+  sel.innerHTML='';
+  var first=document.createElement('option'); first.value='';
+  first.textContent=list.length? '— pick a saved offer ('+list.length+') —'
+                               : '— this browser has no saved offers yet —';
+  sel.appendChild(first);
+  list.forEach(function(o){
+    var op=document.createElement('option'); op.value=o.id; op.textContent=savedLabel(o);
+    sel.appendChild(op);
+  });
+  if(cur) sel.value=cur;
+}
+function saveCurrent(){
+  var list=savedAll();
+  var id=state._savedId || ('s'+Date.now().toString(36));
+  state._savedId=id;
+  var rec={id:id, no:state.no, client:state.client, date:state.date, state:JSON.parse(JSON.stringify(state))};
+  var i=-1; for(var k=0;k<list.length;k++){ if(list[k].id===id){ i=k; break; } }
+  if(i>=0) list[i]=rec; else list.unshift(rec);
+  if(list.length>60) list.length=60;   /* keep localStorage sane */
+  if(savedWrite(list)){ save(); drawSaved(); $('savedList').value=id; toast('Saved: '+savedLabel(rec)); }
+}
+function loadSaved(id){
+  var list=savedAll();
+  for(var i=0;i<list.length;i++){
+    if(list[i].id===id && list[i].state){
+      state=list[i].state; state._savedId=id;
+      save(); drawForm(); draw(); toast('Opened: '+savedLabel(list[i]));
+      return;
+    }
+  }
+}
+function deleteSaved(id){
+  var list=savedAll(), out=[], gone=null;
+  for(var i=0;i<list.length;i++){ if(list[i].id===id) gone=list[i]; else out.push(list[i]); }
+  if(!gone) return;
+  if(!confirm('Delete "'+savedLabel(gone)+'"? · حذف هذا العرض المحفوظ؟')) return;
+  savedWrite(out);
+  if(state._savedId===id) delete state._savedId;
+  save(); drawSaved(); toast('Deleted');
+}
+
+var _toastTmr=null;
+function toast(msg){
+  var t=$('stoast'); if(!t) return;
+  t.textContent=msg; t.classList.add('on');
+  clearTimeout(_toastTmr); _toastTmr=setTimeout(function(){ t.classList.remove('on'); }, 2200);
+}
+
+/* ---------- plain-text version for WhatsApp / email ---------- */
+function offerAsText(){
+  var t=T[state.lang], ar=state.lang==='ar', c=calc();
+  var L=[];
+  L.push((ar?'دايركت للسفر والسياحة':'Direct Travel & Tourism')+' — '+(state.title||t.cover));
+  L.push(t.offerNo+' '+(state.no||'—')+'  ·  '+t.date+' '+(state.date||'—'));
+  if(state.client) L.push(t.prepFor+': '+state.client+(state.attn?' ('+state.attn+')':''));
+  L.push('');
+  c.rows.forEach(function(r,i){
+    var l=r.l, svc=ar?(l.svcAr||l.svc):(l.svc||l.svcAr);
+    var qty=Number(l.qty)||0;
+    L.push((i+1)+'. '+svc+(l.unit?' — '+l.unit:'')+(qty>1?' × '+qty:'')+' — '+fmt(r.amt)+' SAR');
+  });
+  L.push('');
+  L.push(t.subtotal+': '+fmt(c.subEx)+' SAR');
+  L.push(t.vat+': '+fmt(c.vat)+' SAR');
+  L.push(t.total+': '+fmt(c.tot)+' SAR');
+  L.push(t.inWords+' '+amountInWords(c.tot, state.lang));
+  var validUntil=addDays(state.date, state.valid);
+  if(validUntil) L.push(t.valid+': '+validUntil);
+  L.push('');
+  L.push(state.terms==null?t.defTerms:state.terms);
+  L.push('');
+  L.push('www.directksa.com · 011 512 2170');
+  return L.join('\n');
+}
+function copyText(){
+  var txt=offerAsText();
+  function done(){ toast(ar_or('Copied — paste into WhatsApp or email','تم النسخ — الصقه في واتساب أو البريد')); }
+  function ar_or(en,arv){ return state.lang==='ar'?arv:en; }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done, fallback);
+  } else fallback();
+  function fallback(){
+    var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta);
+    ta.select(); try{ document.execCommand('copy'); }catch(_){}
+    document.body.removeChild(ta); done();
+  }
 }
 function load(){
   try{
@@ -367,6 +610,7 @@ function draw(){
       '<div class="tr"><span>'+t.vat+'</span><b>'+fmt(c.vat)+'</b></div>'+
       '<div class="tr big"><span>'+t.total+'</span><span>'+fmt(c.tot)+'</span></div>'+
     '</div>'+
+    '<div class="inwords"><span>'+t.inWords+'</span> '+esc(amountInWords(c.tot, state.lang))+'</div>'+
     '<div class="terms"><b>'+t.termsHead+'</b>'+esc(termsTxt)+'</div>'+
     '<div class="cfoot"><span>www.directksa.com</span><span>'+esc(state.by||'Direct — دايركت للسفر والسياحة')+'</span>'+
       '<span class="pageno">02</span></div>'+
@@ -427,11 +671,39 @@ document.addEventListener('click', function(e){
   if(e.target.id==='addLine'){ state.lines.push({svc:'',svcAr:'',unit:'',qty:1,orig:'',price:''});
     save(); drawForm(); draw(); return; }
   if(e.target.id==='resetTerms'){ state.terms=null; save(); drawForm(); draw(); return; }
+  var mv=e.target.closest('.move');
+  if(mv){
+    var mi=Number(mv.getAttribute('data-i')), how=mv.getAttribute('data-mv');
+    if(how==='dup'){ state.lines.splice(mi+1,0,JSON.parse(JSON.stringify(state.lines[mi]))); }
+    else if(how==='up' && mi>0){ var a=state.lines[mi-1]; state.lines[mi-1]=state.lines[mi]; state.lines[mi]=a; }
+    else if(how==='down' && mi<state.lines.length-1){ var b2=state.lines[mi+1]; state.lines[mi+1]=state.lines[mi]; state.lines[mi]=b2; }
+    save(); drawForm(); draw(); return;
+  }
+  if(e.target.id==='saveOffer'){ saveCurrent(); return; }
+  if(e.target.id==='loadOffer'){
+    var id=$('savedList').value;
+    if(!id){ toast('Pick a saved offer first · اختر عرضاً محفوظاً'); return; }
+    loadSaved(id); return;
+  }
+  if(e.target.id==='delOffer'){
+    var did=$('savedList').value;
+    if(!did){ toast('Pick a saved offer first · اختر عرضاً محفوظاً'); return; }
+    deleteSaved(did); return;
+  }
+  if(e.target.id==='newOffer'){
+    if(!confirm('Start a new blank offer? Save the current one first if you need it. · عرض جديد؟')) return;
+    state={lang:state.lang,client:'',attn:'',title:'',no:nextOfferNo(),date:todayISO(),valid:14,by:state.by,
+      showOrig:false,vatIncl:false,terms:null,
+      lines:[{svc:'',svcAr:'',unit:'',qty:1,orig:'',price:''}]};
+    save(); drawSaved(); $('savedList').value=''; drawForm(); draw(); toast('New offer '+state.no);
+    return;
+  }
+  if(e.target.id==='copyBtn'){ copyText(); return; }
   if(e.target.id==='printBtn'){ window.print(); return; }
   if(e.target.id==='resetBtn'){
     if(confirm('Clear the whole draft? · مسح المسودة بالكامل؟')){
       try{ localStorage.removeItem('direct_proposal_draft'); }catch(_){}
-      state={lang:state.lang,client:'',attn:'',title:'',no:defaultNo(),date:todayISO(),valid:14,by:'',
+      state={lang:state.lang,client:'',attn:'',title:'',no:nextOfferNo(),date:todayISO(),valid:14,by:'',
         showOrig:false,vatIncl:false,terms:null,
         lines:[{svc:'',svcAr:'',unit:'',qty:1,orig:'',price:''}]};
       drawForm(); draw();
@@ -474,7 +746,7 @@ function prefill(){
   }catch(_){}
 }
 
-load(); prefill(); fillQuickAdd(); drawForm(); draw();
+load(); prefill(); fillQuickAdd(); drawSaved(); drawForm(); draw();
 })();
 </script>
 </body>
