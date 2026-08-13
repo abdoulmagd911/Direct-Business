@@ -9,7 +9,10 @@
 
   // Reliable "who am I" display name. The global `me` is the auth session object after login,
   // so we read the resolved display name the app already stores (set by fetchRole / setMe).
-  window.meName=function(){ try{ if(typeof DB!=='undefined'&&DB.settings&&DB.settings.currentUser) return DB.settings.currentUser; if(typeof me==='function') return me(); }catch(_){ } return ''; };
+  /* Who I am comes from MY SIGN-IN first. The shared settings row is only a fallback: it is one
+     row for the whole company, so whoever signed in last used to overwrite everyone else's name
+     there — which made "Mine" show another person's work. Session identity always wins now. */
+  window.meName=function(){ try{ if(window.__userName) return window.__userName; if(typeof DB!=='undefined'&&DB.settings&&DB.settings.currentUser) return DB.settings.currentUser; if(typeof me==='function') return me(); }catch(_){ } return ''; };
 
   // Clients "Mine": toggle the existing owner filter between me and everyone.
   window.clToggleMine=function(){ try{ var m=(window.meName?meName():''); if(typeof clFilter==='undefined')return; clFilter.owner=(clFilter.owner===m?'all':m); if(typeof render==='function')render(); }catch(_){} };

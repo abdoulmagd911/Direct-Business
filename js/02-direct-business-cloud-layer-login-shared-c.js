@@ -48,7 +48,12 @@
 
   // ---- tiny sync status pill ----
   var pill=el('div','position:fixed;right:14px;bottom:14px;z-index:2147482000;background:#1C1E2B;color:#fff;font:12px Cairo,Inter,system-ui,Arial;padding:7px 12px;border-radius:999px;box-shadow:0 8px 20px -6px rgba(0,0,0,.4);display:none;align-items:center;gap:7px');
-  var pillTimer;function setPill(t,c){pill.innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:'+(c||'#16B364')+';display:inline-block"></span>'+t;pill.style.display='inline-flex';clearTimeout(pillTimer);if((c||'#16B364')!=='#D92D20')pillTimer=setTimeout(function(){pill.style.display='none';},2500);}
+  var pillTimer;
+  /* exposed so the permission guard (v70) can turn a whispered "Save issue" into a clear
+     message and reload the real data — the screen must never show an unsaved change */
+  function setPill(t,c){ try{ if(window.__pillHook) window.__pillHook(t,c); }catch(_){}
+    return _setPill(t,c); }
+  function _setPill(t,c){pill.innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:'+(c||'#16B364')+';display:inline-block"></span>'+t;pill.style.display='inline-flex';clearTimeout(pillTimer);if((c||'#16B364')!=='#D92D20')pillTimer=setTimeout(function(){pill.style.display='none';},2500);}
 
   function setLogo(n){try{var lg=document.querySelector('img.logo, .brand img, .side img');var ci=document.getElementById('cl_logo');if(ci&&lg&&lg.src){ci.src=lg.src;ci.style.display='block';return;}}catch(_){}if((n||0)<20)setTimeout(function(){setLogo((n||0)+1);},250);}
 
@@ -242,7 +247,10 @@
           try{ localStorage.setItem('db_cloud_ts', String((r.data&&r.data.updated_at)||'')); }catch(e){}
           if(typeof render==='function') render();
         }catch(e){ console.warn('v32 load merge issue',e); }
-        busy(false); hideOverlay(); afterReady();
+        /* The app is NOT revealed here any more. It is revealed by fetchRole() once we know
+           who this is and what they may do — otherwise a viewer briefly sees full-power
+           buttons, and someone who must change their password can start working first. */
+        busy(false); afterReady();
       });
     });
   }
@@ -263,18 +271,27 @@
     if(window.render&&!window.render.__roleHide){var _r=window.render;window.render=function(){var o=_r.apply(this,arguments);hideNav();return o;};window.render.__roleHide=true;}
     hideNav();
   }catch(_){}}
+  var roleSettled=false;
   function fetchRole(){
+    /* Never leave anyone staring at the splash because of a network hiccup. */
+    setTimeout(function(){ if(!roleSettled) hideOverlay(); }, 9000);
     sb.from('app_users').select('role,full_name,active,must_change_password').eq('id',me.id).maybeSingle().then(function(r){
       var d=r.data;
+      if(r.error){ hideOverlay(); setTimeout(fetchRole,5000); return; }   // transient — try again, don't lock anyone out
       if(!d||!d.role||d.active===false){ showPending(); return; }
       if(d.must_change_password===true){ showFirstLogin(); return; }
+      roleSettled=true;
       myRole=d.role; var tier=roleTier(myRole);
       var nm=(d.full_name||'').trim()||(me.email||'').split('@')[0];
-      try{DB.settings=DB.settings||{};DB.settings.currentUser=nm;if(typeof save==='function')save();}catch(_){}
+      /* Who I am is per-session, NOT shared. It used to be saved into the one shared settings
+         row, so the last person to sign in overwrote everybody else's name — which is why the
+         "Mine" filters kept showing the wrong person's work. Keep it in memory only. */
+      try{DB.settings=DB.settings||{};DB.settings.currentUser=nm;window.__userRole=myRole;window.__userEmail=(me&&me.email)||'';}catch(_){}
       applyRolePerms(tier);
       setPill(nm.replace(/[<>&]/g,'')+' &middot; '+(tier==='viewer'?'read-only':(myRole||'viewer')),'#16B364');
       if(tier==='admin') addTeamButton();
-    });
+      hideOverlay();   // now — and only now — the app is shown, with this person's permissions already applied
+    }).catch(function(){ hideOverlay(); });
   }
 
   function showFirstLogin(){

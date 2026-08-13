@@ -806,7 +806,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
 (function(){try{
  DB.settings=DB.settings||{};
  /* no invented default identity — v67 sets currentUser from the signed-in email */
- window.me=function(){return (DB.settings&&DB.settings.currentUser)||(window.__userName||'');};
+ window.me=function(){return (window.__userName)||(DB.settings&&DB.settings.currentUser)||'';};
  window.setMe=function(v){DB.settings=DB.settings||{};DB.settings.currentUser=v;save();var p=document.getElementById('mePick');if(p)p.value=v;};
  function mountPicker(){
   try{ var old=document.getElementById('meWrap'); if(old) old.remove(); }catch(_){}

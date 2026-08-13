@@ -1,78 +1,82 @@
-# Roles, logins and access — verified 2026-08-08
+# Roles, logins and access — proven by rehearsal, 2026-08-13
 
-Read straight from the live database, not from the code or the brief.
+Not read from the code, and not assumed: five employees and one admin **signed in for real,
+worked the live app, and tried to do what they must not do**. Every line below was measured
+twice — once on screen, once against the database with that person's own login.
 
-## Who can sign in today
+## The people who can sign in
 
-| Email | Role | Active | Last sign-in | Name on file |
-|---|---|---|---|---|
-| `aboelmagd@directksa.com` | **admin** | yes | 2026-07-25 | *(blank)* |
-| `osharafi@direct-visa.net` | **manager** | yes | 2026-07-07 | Othman Al Sharafi |
-| `a.hassan@directksa.net` | **team_member** | yes | 2026-08-08 | *(blank)* |
-| `test@directksa.com` | **admin** | yes | never | QA Test Account |
+| Email | Name | Arabic | Short | Role | Active |
+|---|---|---|---|---|---|
+| `business@directksa.com` | Abdulrahman Aboelmagd | عبدالرحمن أبوالمجد | Abdelrahman | **admin** | yes |
+| `aboelmagd@directksa.com` | Abdulrahman Aboelmagd | عبدالرحمن أبوالمجد | Abdelrahman | **admin** | yes |
+| `test@directksa.com` | QA Test Account | حساب الاختبار | QA | **admin** | yes (testing only) |
+| `osharafi@direct-visa.net` | Othman Al Sharafi | عثمان الشرفي | Othman | **manager** | yes |
+| `raad.elkhair@directksa.com` | Raad Awad | رعد عوض | Raad | **bd** | yes |
+| `kareem.medhat@directksa.com` | Kareem Medhat | كريم مدحت | Kareem | **operations** | yes |
+| `assem.alsweed@directksa.com` | Assem Alsweed | عاصم السويد | Assem | **team_member** | yes |
+| `mohammed.altuwaijri@directksa.com` | Mohammed Altuwaijri | محمد التويجري | Mohammed | **viewer** | yes |
+| `ahmed.aboelmagd@directksa.net` | Ahmed Abo El Magd | أحمد أبوالمجد | Ahmed | team_member | yes |
+| `abdulaziz.alreshody@directksa.com` | Abdul Aziz Alreshody | عبدالعزيز الرشودي | Abdulaziz | team_member | yes |
+| `a.hassan@directksa.net` | Abdelrahman Hasan | عبدالرحمن حسن | — | team_member | yes |
 
-All four are confirmed, each has a sign-in identity, and each links correctly to an
-`app_users` row. No orphans, nothing broken.
+Roles are changed in one click: profile chip (top right) → **Team**.
 
-- `business@directksa.com` is allow-listed as **admin** but has **no login yet**. Whoever
-  signs up with that address is auto-provisioned admin and active.
-- Two accounts have a **blank full name**, so the app falls back to the email prefix and
-  shows "aboelmagd" / "a.hassan" in the sidebar and the Today greeting. Worth filling in.
+## What each role may do — verified on 2026-08-13
 
-## The six roles and what each can actually do
+**Everyone signed in can READ everything.** That is deliberate: this is an internal tool for
+one company, and hiding numbers between colleagues only creates work. Writing is what differs.
 
-Access is decided by `app_role()`, which returns the role **only if `active` is true**.
-Switch someone off and `app_role()` returns nothing — every role-gated rule then denies.
+| | admin | manager | business dev | operations | team member | read-only |
+|---|---|---|---|---|---|---|
+| Leads & clients (add, edit, stage, owner) | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Proposals | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Requests & bookings | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Logging activity on any company | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Finance: invoices, expenses, targets, import | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Promo codes | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Company settings page | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Team & page access | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-| | admin | manager | bd | operations | team_member | viewer |
-|---|:--:|:--:|:--:|:--:|:--:|:--:|
-| Read leads, contacts, activities, funnels, finance | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Edit leads** (`businesses`) | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
-| **Edit contacts** | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Log activities | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Save the workspace (bookings, invoices, offers, requests, settings) | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Edit finance invoices** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Change funnels** (rename, field templates) | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Manage users and the allow-list** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+Both walls agree: the screen only offers what the person may do, **and** the database refuses
+the rest even if someone bypasses the screen entirely (measured: 60 write attempts across six
+roles and nine tables, every one landed exactly as the table above says).
 
-Two oddities worth a decision, not bugs as such:
+## How a new person gets in — the whole process
 
-1. **`operations` cannot edit leads or contacts**, but *can* save the workspace blob — which
-   is where bookings, invoices, offers and requests live. Probably intentional (ops handles
-   bookings, not the pipeline), but it means an ops person cannot correct a client's phone
-   number.
-2. **Everyone who can read anything can read everything**, including `viewer`. All read
-   rules are just `app_role() IS NOT NULL`. A viewer sees every lead and all 176 finance
-   invoices with revenue, cost and profit.
+1. Admin: profile chip → **Team** → type their email, name, pick a role → **Add**.
+2. The screen shows a **temporary password**. Send it to them.
+3. They sign in, and the app immediately makes them **choose their own password**
+   (at least 8 characters, typed twice). From then on it is theirs alone.
+4. Nothing else. No invitations to accept, no email links to click, no setup screens.
 
-## Five tables that ignore roles completely
+Forgotten password: admin → Team → **Reset password** → hand over the new temporary one.
+Someone leaves: admin → Team → switch them **off**. They keep no access, and their work stays.
 
-These are written as "any signed-in user", so they never call `app_role()`. That means a
-`viewer` — **and a user switched off, since deactivation only stops `app_role()`** — still
-has full access:
+## Landmines fixed on 2026-08-13 (do not reintroduce)
 
-| Table | What it exposes |
-|---|---|
-| `master_db_companies` | the company registry (VAT, IBAN, licence numbers) |
-| `app_state_bak` | full workspace backups — read **and delete** |
-| `generated_documents` | read, insert, update |
-| `ksa_events` | full read/write |
-| `share_links` | read existing share tokens **and mint new ones** |
+- **`clear_must_change` used to be admin-only.** Every employee who changed their password on
+  first sign-in was asked for it again on *every* sign-in, forever. It is now self-service
+  (it only ever touches the caller's own row). Anyone who re-gates it traps the whole team.
+- **The app used to appear before it knew who you were.** Permissions applied a second late,
+  so a read-only person saw full-power buttons and someone owing a password change could
+  start working first. The app is now revealed only after the role check passes, with a
+  9-second failsafe so a network hiccup can never lock anybody out.
+- **The signed-in person's name was stored in the ONE shared settings row.** Whoever signed in
+  last overwrote everybody else — which is exactly why "Mine" kept showing another person's
+  work. Identity is per-session now and never written to shared storage.
+- **Proposals, requests, bookings and settings accepted writes from anyone signed in**,
+  including the read-only account. They are now scoped to the roles in the table above.
+- **The Settings page was reachable by anyone who forced it** (the sidebar link was merely
+  hidden). It is now refused for non-admins with a plain explanation.
 
-**This is the thing to fix when the roles work starts.** Turning someone off today does not
-actually cut their access — it only stops the role-gated half.
+## How to re-prove all of this in one command
 
-## Page-level permissions are decoration
+    cd scripts/qa
+    NODE_USE_ENV_PROXY=1 node probe-rls-matrix.mjs    # the database wall: 60 checks
+    NODE_USE_ENV_PROXY=1 node probe-roles.mjs         # six people working: 83 checks
+    NODE_USE_ENV_PROXY=1 node probe-firstlogin.mjs    # first sign-in for five people: 40 checks
+    NODE_USE_ENV_PROXY=1 node probe-teamwork.mjs      # hand-over + two people at once: 8 checks
 
-`app_users.allowed_pages` exists and the app honours it when drawing the screen, but no
-database rule enforces it. The same is true of `must_change_password`: it is a flag the
-screen respects, and the user can clear it themselves. Neither is a real boundary.
-
-## What a proper authority model would need
-
-1. Make deactivation absolute — bring those five tables under `app_role()`.
-2. Decide whether `viewer` should see money. Right now it does.
-3. Give `operations` edit rights on contacts if they are expected to correct client details.
-4. Replace free-text `assigned_to` with a real link to `app_users`, so "my leads" and
-   per-person restrictions become possible. Nothing owner-based can be built until then.
-5. Enforce `allowed_pages` in the database, or drop it so it stops implying safety.
+`emp-rig.mjs` holds the logins used for testing. **Reset those passwords from the Team screen
+before handing accounts to the real people.**
