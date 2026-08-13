@@ -545,6 +545,19 @@ of Hajj 1447 providers 72, BNPL/integration partners). Built **`TravelAgencies_M
 (6,131 rows)** repairing all of it — handed over in chat 2026-08-13; **not kept in this
 public repo** (real company data never goes in it; `data/` is gitignored).
 
+**2026-08-13, session 2 — v3 VALIDATED, rebuilt as v4 and delivered.** Full detail in
+`docs/TRAVEL_AGENCIES_REBUILD.md`. Headline: **v3's 6,131 rows are really 4,494
+companies.** 1,292 were people grouped by their personal email domain (25 of them filed
+under "Gmail"/"Yahoo"/"Hotmail" as company names), 345 were duplicates, 17 are corporate
+clients rather than agencies. A first-pass CR scrape was found to be matching Unix
+timestamps and was thrown away and redone with label-anchored extraction plus an
+adversarial agent review; one cross-company contamination (jawalmosafer.com's CR about to
+be written onto Almosafer's row) was caught and blocked, and 31 duplicate groups were
+blocked from merging. Filled in: 948 websites checked for liveness, 119 company names
+recovered from the companies' own sites, 52 CR + 20 VAT numbers harvested and verified,
+every email domain MX-checked, 439 fake phones removed. Confirmed-by-official-number is
+still only 77 of 4,494 — the SBC gap needs a Saudi IP and is the next real move.
+
 **Owner decision (2026-08-13, this session):** the travel-agencies database is built
 **away from the app** — nothing loads into the app until the database is complete and
 reliable, and whether it goes in at all is decided at the end. Owner order: do not trust

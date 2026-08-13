@@ -85,4 +85,51 @@ personal email. Disagreements keep both values and flag. Every merge writes a
 ## Status log
 
 - **2026-08-13** — schema created (`scripts/ta/schema.sql`), db initialised, this plan
-  written. Source probing done. Next: ingest raw sources (task 3).
+  written. Source probing done.
+- **2026-08-13, second pass — v3 validated and rebuilt as v4 (`scripts/ta/10…50`).**
+  Delivered to Abdulrahman in chat as `TravelAgencies_MASTER_v4.xlsx`. Headline:
+  **v3's 6,131 rows are really 4,494 companies.**
+
+  What the validation found and fixed:
+  1. **The bare-10-digit CR regex was wrong.** 171 of 392 harvested "CR numbers" were
+     Unix timestamps (cache-busting values in the HTML), plus `2147483647` and years.
+     Replaced with label-anchored extraction (`21_recrawl_strict.py`) that requires an
+     explicit CR/VAT/licence label beside the number and keeps the sentence as evidence.
+  2. **Every candidate was then judged by an agent panel with an adversarial second
+     pass.** Traps correctly rejected: trademark numbers, 800/920 toll-free lines
+     published as «الرقم الموحد», IATA codes, e-commerce authentication numbers, SAMA
+     and Insurance-Authority licences, and US/UK/Canadian registrations. 52 numbers
+     rejected with a written reason, all kept visible in the sheet.
+  3. **A cross-company contamination was caught.** Row M00028 is Almosafer, but
+     `jawalmosafer.com` (a different company) was attached to it. Its CR would have
+     overwritten Almosafer's. Blocked — M00028 keeps CR 1010363465.
+  4. **870 rows were involved in duplicates**; v3 appended 1,249 v2-only rows without
+     deduping them against the anchor. 310 groups built, the 139 risky ones adjudicated:
+     345 records merged, and **31 groups were blocked from merging** — including a
+     "JOSOOR TRAVELS AGENCY" whose Arabic legal name is a construction contractor, and
+     الماهر الماسي transport vs travel (two sister companies, not branches).
+  5. **1,292 rows were people, not companies** — records created by grouping personal
+     email addresses (`19meshari@gmail.com`), including 25 grouped under "Gmail",
+     "Yahoo" and "Hotmail" as if those were company names. Moved to their own tab.
+  6. **17 rows are not travel businesses at all** — Al Rajhi Bank, stc Bank, hospitals,
+     L'Azurde, Johnson Controls. Real companies with a staff travel desk: corporate
+     client prospects, not competitors. Flagged, not deleted.
+
+  What was filled in:
+  - 948 websites visited: 577 live, 279 dead, 70 parked — every row now says which.
+  - 119 company names recovered by reading the company's own website (82 rejected as
+    SEO sentences, bare domains or a different business that reused the domain).
+  - 52 official numbers + 20 VAT numbers harvested from company websites and verified.
+  - Every email domain MX-checked: 3,774 of 4,058 addresses can actually receive mail;
+    179 rows carry addresses that would bounce, now separated into their own column.
+  - 439 fake phone numbers removed from the callable columns (kept visible).
+  - 144 regions derived from landline area codes, each stamped as derived.
+
+  Verified end-to-end afterwards: otlaat.com's CR, VAT and licence were all re-confirmed
+  present on the live site.
+
+  **Still open:** only 77 of 4,494 are confirmed by an official number — the SBC/CR gap
+  is unchanged and still needs a Saudi IP (see the verification stack above). 313
+  companies are reachable but still unnamed. 821 rows have no working contact at all.
+  Next best moves: the Wathq 100-inquiry trial on the highest-priority rows, and one
+  MOT-licence refresh from data.gov.sa from the office.
