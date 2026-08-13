@@ -519,7 +519,7 @@ function rReports(){
     var seen={},unl=0; base.forEach(function(r){var cg=r.client_group||'';if(seen[cg])return;seen[cg]=1;if(!finCanon(r.client_group).linked)unl++;});
     h+='<div style="margin-top:10px;font-size:12px;color:'+(unl?'#8b5b1f':'#0F6E56')+'">'+(unl
       ? (isArF()?('\u26a0 '+unl+' \u0645\u062c\u0645\u0648\u0639\u0629 \u0641\u0648\u0627\u062a\u064a\u0631 \u063a\u064a\u0631 \u0645\u0631\u062a\u0628\u0637\u0629 \u0628\u0639\u0645\u064a\u0644 \u0628\u0639\u062f \u2014 \u062a\u0638\u0647\u0631 \u0628\u0627\u0633\u0645\u0647\u0627. <span style="color:#FF6B00;cursor:pointer;font-weight:700" onclick="try{finLinkMap()}catch(e){}">\u0627\u0631\u0628\u0637\u0647\u0627 \u0627\u0644\u0622\u0646</span>')
-              : ('\u26a0 '+unl+' invoice group'+(unl>1?'s':'')+' not linked to a client yet \u2014 shown under their own name. <span style="color:#FF6B00;cursor:pointer;font-weight:700" onclick="try{finLinkMap()}catch(e){}">Link them</span>'))
+              : ('\u26a0 '+unl+' invoice group'+(unl>1?'s':'')+' could not be matched to a client automatically \u2014 shown under their own name. <span style="color:#FF6B00;cursor:pointer;font-weight:700" onclick="try{finLinkMap()}catch(e){}">Review them</span>'))
       : (isArF()?'\u2713 \u0643\u0644 \u0645\u062c\u0645\u0648\u0639\u0627\u062a \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0631\u062a\u0628\u0637\u0629 \u0628\u0639\u0645\u064a\u0644.':'\u2713 Every invoice group is linked to a client.'))+'</div>';
   }
   h+='</div>';
@@ -634,6 +634,7 @@ window.finParse=function(){
       var st=o.integrity_status||'verified_paid';
       if(tot<0||/credit/i.test(o.products))st='credit_note';
       var org=String(o.origin||'').trim().toLowerCase();
+      if(/techtic|verification|توثيق/i.test(String(o.products||'')+' '+String(o.notes||'')))probs.push('verification services are accounted for elsewhere — not imported into this ledger');
       if(org&&org!=='booking'&&org!=='project')probs.push('origin must be booking or project');
       if(org==='project'&&!String(o.proposal_ref||'').trim())probs.push('project rows need a proposal_ref');
       if(probs.length){flagged.push({line:line,no:o.invoice_no,probs:probs});return;}
@@ -661,7 +662,7 @@ function svcType(p){
     [['direct visa','visa','تأشير'],'Visas'],
     [['direct course','course','training','study','دورة','تدريب'],'Courses'],
     [['direct wallet','wallet','top-up','topup','محفظة'],'Wallet top-up'],
-    [['techtic','support service','دعم'],'Support Services'],
+    [['support service','دعم'],'Support Services'],
     [['transport','transfer','car','bus','نقل'],'Transport'],
     [['insurance','تأمين'],'Insurance'],
     [['package','umrah','hajj','trip','tour','برنامج','عمرة','رحل'],'Packages']

@@ -20,7 +20,7 @@ var PROG={not_started:'Not started',signed_up:'Signed up',in_progress:'Working o
 function moveOf(e){var m=(e&&e.approach)||'undecided';return MOVE[m]?m:'undecided';}
 function progOf(e){var p=(e&&e.approach_status)||'not_started';return PROG[p]?p:'not_started';}
 
-var F={vertical:'all',status:'all',opp:'all',move:'all',ours:false,q:''};
+var F={vertical:'all',status:'all',move:'all',ours:false,q:''};
 var loaded=false, loading=false;
 var SIGNUPS={};            /* event_id -> row from ksa_event_signups (team-only table) */
 var LEADS={};              /* normalised event name -> lead count from businesses */
@@ -65,6 +65,17 @@ function loadAll(){
 }
 
 function pill(txt,bg,fg){return '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:'+bg+';color:'+fg+';white-space:nowrap">'+esc(txt)+'</span>';}
+/* "in 12 days" / "happening now" / "ended" — so nobody has to do date math */
+function relDay(e){
+  if(!e.start_date)return null;
+  var day=function(d){var p=String(d).split('-').map(Number);return new Date(p[0],p[1]-1,p[2]);};
+  var now=new Date(); now.setHours(0,0,0,0);
+  var s=day(e.start_date), en=e.end_date?day(e.end_date):s;
+  if(en<now)return ['ended',true];
+  if(s<=now&&now<=en)return ['happening now',false];
+  var n=Math.round((s-now)/86400000);
+  return [n===1?'tomorrow':'in '+n+' days',false];
+}
 function evDate(e){
   if(!e.start_date)return '<span style="color:var(--muted)">—</span>';
   var s=e.start_date,en=e.end_date;
@@ -85,8 +96,6 @@ window.renderEvents=function(v){
     if(F.status!=='all'&&e.status!==F.status)return false;
     if(F.move!=='all'&&moveOf(e)!==F.move)return false;
     if(F.ours&&moveOf(e)!=='stand'&&moveOf(e)!=='attend')return false;
-    if(F.opp==='sales'&&!e.opportunity_sales)return false;
-    if(F.opp==='partner'&&!e.opportunity_partner)return false;
     if(F.q){var q=F.q.toLowerCase();if(((e.name_en||'')+' '+(e.name_ar||'')+' '+(e.city||'')+' '+(e.venue||'')+' '+(e.organiser||'')).toLowerCase().indexOf(q)<0)return false;}
     return true;
   });
@@ -100,20 +109,18 @@ window.renderEvents=function(v){
   h+='<div><div style="font-size:22px;font-weight:800;color:#8b5b1f">'+n('undecided')+'</div><div style="font-size:11px;color:var(--muted)">Not decided</div></div>';
   h+='<div style="margin-left:auto;display:flex;gap:8px">';
   if(canEdit())h+='<button class="btn pri sm" onclick="evOpenModal()">+ Add event</button>';
-  if(!window.__isShareView)h+='<button class="btn ghost sm" onclick="shareCurrentView()">Share view-only link</button>';
   h+='</div></div>';
   h+='<div class="card" style="margin-bottom:12px;padding:12px 16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:13px">';
   h+='<button id="evF_ours" class="btn sm '+(F.ours?'pri':'ghost')+'" title="Only the events we take part in — a stand or going in person" style="font-weight:700">🎪 We take part</button>';
   h+=sel('evF_m',Object.keys(MOVE).map(function(k){return [k,MOVE[k][0]];}),F.move,'All moves');
   h+=sel('evF_v',Object.keys(EV_VERT).map(function(k){return [k,k];}),F.vertical,'All verticals');
   h+=sel('evF_s',Object.keys(EV_STATUS).map(function(k){return [k,EV_STATUS[k][0]];}),F.status,'All statuses');
-  h+=sel('evF_o',[['sales','Sales prospect'],['partner','Partner / competitor']],F.opp,'All opportunities');
   h+='<input id="evF_q" placeholder="Search name, city, venue…" value="'+esc(F.q)+'" style="padding:7px 10px;border:1px solid var(--line,#e6e8ec);border-radius:8px;font:inherit;min-width:180px">';
   h+='<span style="margin-left:auto;color:var(--muted);font-size:12px">'+list.length+' of '+E.length+' shown</span></div>';
   h+='<div class="card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>';
-  ['Event','Our move','Vertical','Status','Dates','City','Opportunity','Pri','Notes',''].forEach(function(c2){h+='<th style="text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-bottom:1px solid var(--line,#e6e8ec);white-space:nowrap">'+c2+'</th>';});
+  ['Event','Our move','Vertical','Status','Dates','City','Notes',''].forEach(function(c2){h+='<th style="text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-bottom:1px solid var(--line,#e6e8ec);white-space:nowrap">'+c2+'</th>';});
   h+='</tr></thead><tbody>';
-  if(!list.length)h+='<tr><td colspan="10" style="padding:40px;text-align:center;color:var(--muted)">No events match these filters.</td></tr>';
+  if(!list.length)h+='<tr><td colspan="8" style="padding:40px;text-align:center;color:var(--muted)">No events match these filters.</td></tr>';
   list.forEach(function(e){
     var vt=EV_VERT[e.vertical]||EV_VERT.Other, stt=EV_STATUS[e.status]||EV_STATUS.no_date;
     var mv=moveOf(e), pg=progOf(e), mm=MOVE[mv];
@@ -126,16 +133,17 @@ window.renderEvents=function(v){
     var lc=LEADS[normName(e.name_en)]||0;
     if(lc)moveCell+='<div style="font-size:10.5px;color:#1e7a34;font-weight:600;margin-top:2px">'+lc+' lead'+(lc===1?'':'s')+' in the app</div>';
     var lk=safeUrl(e.link);
-    h+='<tr style="border-bottom:1px solid var(--line,#eef0f5)">';
-    h+='<td style="padding:9px 10px;min-width:180px"><div style="font-weight:600">'+esc(e.name_en)+'</div>'+(e.name_ar?'<div style="font-size:11px;color:var(--muted);direction:rtl;text-align:left">'+esc(e.name_ar)+'</div>':'')+(lk?'<a href="'+esc(lk)+'" target="_blank" rel="noopener" style="font-size:11px">Website ↗</a>':'')+'</td>';
+    var rel=relDay(e), ended=rel&&rel[1];
+    var hiPri=(e.priority||0)>=4&&!ended; /* an ended event is no longer a priority */
+    var oppTags=(e.opportunity_sales?pill('Sales','#dceeff','#1a5c9e')+' ':'')+(e.opportunity_partner?pill('Partner','#ffe6d5','#a35216'):'');
+    h+='<tr style="border-bottom:1px solid var(--line,#eef0f5)'+(ended?';opacity:.55':'')+(hiPri?';border-left:3px solid #FBAE16':'')+'">';
+    h+='<td style="padding:9px 10px;min-width:180px"><div style="font-weight:600">'+esc(e.name_en)+(hiPri?' <span title="High priority" style="color:#FBAE16">★</span>':'')+'</div>'+(e.name_ar?'<div style="font-size:11px;color:var(--muted);direction:rtl;text-align:left">'+esc(e.name_ar)+'</div>':'')+(oppTags?'<div style="margin-top:2px">'+oppTags+'</div>':'')+(lk?'<a href="'+esc(lk)+'" target="_blank" rel="noopener" style="font-size:11px">Website ↗</a>':'')+'</td>';
     h+='<td style="padding:9px 10px">'+moveCell+'</td>';
     h+='<td style="padding:9px 10px">'+pill(e.vertical,vt[0],vt[1])+'</td>';
     h+='<td style="padding:9px 10px">'+pill(stt[0],stt[1],stt[2])+'</td>';
-    h+='<td style="padding:9px 10px">'+evDate(e)+'</td>';
+    h+='<td style="padding:9px 10px">'+evDate(e)+(rel?'<div style="font-size:10.5px;color:'+(rel[0]==='happening now'?'#1e7a34;font-weight:600':'var(--muted)')+'">'+esc(rel[0])+'</div>':'')+'</td>';
     h+='<td style="padding:9px 10px;white-space:nowrap">'+esc(e.city||'—')+'</td>';
-    h+='<td style="padding:9px 10px;white-space:nowrap">'+(e.opportunity_sales?pill('Sales','#dceeff','#1a5c9e')+' ':'')+(e.opportunity_partner?pill('Partner','#ffe6d5','#a35216'):'')+((!e.opportunity_sales&&!e.opportunity_partner)?'—':'')+'</td>';
-    h+='<td style="padding:9px 10px;text-align:center;font-weight:700">'+(e.priority||'—')+'</td>';
-    h+='<td style="padding:9px 10px;max-width:220px;font-size:11.5px;color:var(--muted)">'+esc(e.notes||'')+'</td>';
+    h+='<td style="padding:9px 10px;max-width:260px;font-size:11.5px;color:var(--muted)"><div style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden" title="'+esc(e.notes||'')+'">'+esc(e.notes||'')+'</div></td>';
     h+='<td style="padding:9px 10px;white-space:nowrap">'+(canEdit()?'<button class="btn ghost sm" onclick="evOpenModal(\''+esc(e.id)+'\')">Edit</button> <button class="btn ghost sm" style="color:#a3242c" onclick="evDelete(\''+esc(e.id)+'\')">Del</button>':'')+'</td>';
     h+='</tr>';
   });
@@ -146,7 +154,6 @@ window.renderEvents=function(v){
   (b=document.getElementById('evF_m'))&&(b.onchange=function(){F.move=this.value;render();});
   (b=document.getElementById('evF_v'))&&(b.onchange=function(){F.vertical=this.value;render();});
   (b=document.getElementById('evF_s'))&&(b.onchange=function(){F.status=this.value;render();});
-  (b=document.getElementById('evF_o'))&&(b.onchange=function(){F.opp=this.value;render();});
   (b=document.getElementById('evF_q'))&&(b.oninput=function(){F.q=this.value;render();var x=document.getElementById('evF_q');if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length);}});
 };
 
@@ -192,7 +199,7 @@ window.evOpenModal=function(id){
       +'<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;margin-bottom:8px">Event-site login — the account made on their website (team can see it)</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
       +fld('Email used',inp('ev_su_email',su.login_email,'your work email'))
-      +fld('Password',inp('ev_su_pass',su.login_password,'use a throwaway password'))
+      +fld('Password','<input id="ev_su_pass" type="password" value="'+esc(su.login_password==null?'':su.login_password)+'" placeholder="use a throwaway password" autocomplete="new-password" style="width:100%;padding:8px 10px;border:1px solid var(--line,#e6e8ec);border-radius:8px;font:inherit">')
       +'<div style="grid-column:1/-1">'+fld('Who signed up',inp('ev_su_by',su.signed_up_by||(id?'':(window.__userName||'')),'name'))+'</div>'
       +'</div></div>'
     +'<div style="grid-column:1/-1">'+fld('Opportunity','<label style="margin-right:16px;font-size:13px"><input type="checkbox" id="ev_opps" '+(e.opportunity_sales?'checked':'')+'> Sales prospect</label><label style="font-size:13px"><input type="checkbox" id="ev_oppp" '+(e.opportunity_partner?'checked':'')+'> Competitor/partner intel</label>')+'</div>'

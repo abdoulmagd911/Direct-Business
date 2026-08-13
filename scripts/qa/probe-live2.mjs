@@ -46,7 +46,9 @@ STEP('REAL sign-in works', await page.evaluate(() => !document.querySelector('#v
 await page.evaluate(() => { current = 'finance'; render(); });
 await page.waitForTimeout(9000);
 const finN = await page.evaluate(() => (FIN.rows || []).length);
-STEP('REAL finance rows = real batch + imported credits, no wallets (73)', finN === 73, 'rows=' + finN);
+STEP('REAL finance rows = the 30-lead world ledger (28 rows, no wallets, no verification services)', finN === 28, 'rows=' + finN);
+const cleanWorld = await page.evaluate(() => (FIN.rows || []).every(r => !/takamol|techtic|verification/i.test((r.client_group || '') + ' ' + (r.products || '') + ' ' + (r.service_type || '')) && !(+r.wallet_portion_sar > 0)));
+STEP('REAL ledger carries no Takamol / verification / wallet rows', cleanWorld);
 const promoN = await page.evaluate(() => (FIN.promos || []).length);
 STEP('REAL promo-code registry loaded (198 codes)', promoN === 198, 'promos=' + promoN);
 const ovTxt = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/\s+/g, ' '));
@@ -58,7 +60,7 @@ const bigName = await page.evaluate(() => {
   const by = {}; (FIN.rows || []).forEach(r => { if (r.record_type === 'b2b' && !r.deleted_at) by[r.client_group] = (by[r.client_group] || 0) + (+r.total_incl_vat_sar || 0); });
   return Object.keys(by).sort((a, b) => by[b] - by[a])[0];
 });
-const bigM = await page.evaluate(n => { let t = 0; (FIN.rows || []).forEach(r => { if (r.client_group === n && !r.deleted_at) t += +r.total_incl_vat_sar || 0; }); return (t / 1e6).toFixed(2) + 'M'; }, bigName);
+const bigM = await page.evaluate(n => { let t = 0; (FIN.rows || []).forEach(r => { if (r.client_group === n && !r.deleted_at) t += +r.total_incl_vat_sar || 0; }); return t >= 1e6 ? (t / 1e6).toFixed(2) + 'M' : (t / 1e3).toFixed(1) + 'K'; }, bigName);
 await page.evaluate(n => { const l = (FIN.links || []).find(x => x.client_group === n); openLead = l.business_id; current = 'leads'; render(); }, bigName);
 await page.waitForTimeout(3500);
 const wTxt = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/\s+/g, ' '));
@@ -67,15 +69,14 @@ await page.screenshot({ path: 'shots/live-bigclient-real.png' });
 // invoice card: transactions grouped, NO VAT line anywhere
 await page.evaluate(() => { openLead = null; current = 'finance'; FIN.tab = 'ledger'; render(); });
 await page.waitForTimeout(2500);
-await page.evaluate(() => { const r = FIN.rows.find(x => x.transaction_ref && x.zatca_dpin); finRow(r.id); });
+await page.evaluate(() => { const r = FIN.rows.find(x => x.revenue_way === 'transaction') || FIN.rows[0]; finRow(r.id); });
 await page.waitForTimeout(1500);
 const modChk = await page.evaluate(() => {
   const m = document.getElementById('finModal'); if (!m) return null;
   const t = m.textContent;
-  const r = FIN.rows.find(x => x.transaction_ref && x.zatca_dpin);
-  return { hasTx: t.includes(r.transaction_ref), noVat: !/VAT|ضريبة القيمة/.test(t) };
+  return { noVat: !/VAT|ضريبة القيمة/.test(t), waySel: (document.getElementById('fin_way') || {}).value };
 });
-STEP('invoice card shows the transaction ref, never VAT', !!modChk && modChk.hasTx && modChk.noVat, JSON.stringify(modChk));
+STEP('invoice card: a pending transaction opens with its way selected, never VAT', !!modChk && modChk.noVat && modChk.waySel === 'transaction', JSON.stringify(modChk));
 STEP('invoice card has the four-ways selector', await page.evaluate(() => !!document.getElementById('fin_way')));
 await page.screenshot({ path: 'shots/live-invoice-card.png' });
 await page.evaluate(() => { const m = document.getElementById('finModal'); if (m) m.remove(); });
@@ -84,14 +85,23 @@ await page.evaluate(() => { FIN.tab = 'clients'; render(); });
 await page.waitForTimeout(2000);
 const agingTxt = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/\s+/g, ' '));
 const agingExp = await page.evaluate(() => { const L = FIN.rows.filter(r => !r.deleted_at); return Math.round(L.reduce((a, r) => a + Math.max(0, +r.amount_remaining_sar || 0), 0)); });
-STEP('REAL AR aging: Collections card shows true outstanding with buckets', /Collections & AR aging/.test(agingTxt) && /0–30 days|0-30 days/.test(agingTxt) && agingExp > 0, 'AR=' + agingExp.toLocaleString('en-US'));
+STEP('REAL AR aging: Collections card shows true outstanding with buckets', /Collections & AR aging/.test(agingTxt) && /0–30 days|0-30 days/.test(agingTxt) && agingExp === 216115, 'AR=' + agingExp.toLocaleString('en-US'));
+STEP('REAL clients: every invoice group is linked — no "not linked" warning, no manual link button', !/could not be matched|not linked to a client/.test(agingTxt) && await page.evaluate(() => { const b = document.getElementById('v53btn'); return !b || b.style.display === 'none'; }));
 await page.screenshot({ path: 'shots/live-aging.png' });
+// clients list: nobody Unassigned (owner screenshot complaint 2026-08-13)
+await page.evaluate(() => { current = 'clients'; render(); });
+await page.waitForTimeout(2500);
+const clTxt = await page.evaluate(() => (document.getElementById('view').textContent || ''));
+STEP('REAL clients list: every client has an owner (no "Unassigned")', !/Unassigned|غير معيّن/.test(clTxt));
+STEP('REAL clients list: 10 clients in the new world', await page.evaluate(() => (DB.businesses || []).filter(b => b.isClient).length === 10));
 
-// Part C #1 — REAL storage upload
+// Part C #1 — REAL storage upload (fresh world has no proposals yet — create one like a rep would)
 await page.evaluate(() => { openLead = null; current = 'offers'; render(); });
 await page.waitForTimeout(2500);
-await page.locator('#otb tr').first().click();
-await page.waitForTimeout(2500);
+await page.evaluate(() => { if (!(DB.offers || []).length && typeof newOffer === 'function') newOffer(); });
+await page.waitForTimeout(2000);
+const rowOrEditor = await page.evaluate(() => !!document.getElementById('o_file'));
+if (!rowOrEditor) { await page.locator('#otb tr').first().click().catch(() => {}); await page.waitForTimeout(2500); }
 fs.writeFileSync('shots/live-check.pdf', '%PDF-1.4\n% Direct Business real-storage check 2026-08-12\n%%EOF');
 await page.setInputFiles('#o_file', 'shots/live-check.pdf');
 await page.waitForTimeout(8000);

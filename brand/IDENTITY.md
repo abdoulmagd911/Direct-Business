@@ -60,7 +60,7 @@ structure for tender responses, in Arabic:
 **Technical offer (العرض الفني):** about Direct → work plan in 4 phases with durations
 (خطة العمل) → scope: numbered services, each with its "technical process" bullets
 (نطاق العمل + العملية التقنية) → timeline (الجدول الزمني) → services → **past projects
-with client, scope and contract value** (سابقة الأعمال: Takamol 4M SAR · Ma'aden 2M ·
+with client, scope and contract value** (سابقة الأعمال: Ma'aden 2M ·
 Al Hilal 1.5M · Al Riyadh Club 1M · SFDA 500K) → named team with degrees (فريق العمل) →
 **quantities table WITHOUT prices** (جدول الكميات بدون أسعار) → official certificates
 (المستندات الرسمية: Monsha'at SME cert, CR 1010611219, etc.).
