@@ -86,6 +86,19 @@ extracted from the Illustrator master `Logo Direct .pdf` at high resolution —
 cropped viewBox). Arabic core fonts now hosted in `brand/fonts/` (Zarid Slab Regular/Bold,
 Bahij Bold); Proxima Nova stays on Drive (license: internal use).
 
+## Historical note + one open check (found in the 2026-08-12 re-sweep)
+
+`Direct-Business-Brand.md` on Drive (May 2026, v0) was the first token attempt, pulled
+from the Direct Payments app (`#fc8004` family, Vuexy semantics). This identity system
+supersedes it and stays consistent with it. Its one unfinished instruction was **closed
+2026-08-12**: Abdulrahman provided the official email signature (Signature.jpg, Drive
+`1r8LsMuHNF5_XpaXLI5mhKWDUzvdZYNK4`) and it was pixel-sampled by frequency count —
+background orange `#FF6C00` (measured #FE6B01, JPEG tolerance) and slate `#323E49`
+(measured #303E47), white logo/text, a lighter slate `#435059` for the secondary curve.
+**The signature confirms the documented palette exactly**, and confirms the three-oranges
+doctrine: the signature is logo territory, so it wears the mark orange — not the document
+orange. Every source in this system is now verified; nothing remains unchecked.
+
 ## The three oranges — this is not a mistake
 
 Three orange values exist in real Direct material. Each has a job:

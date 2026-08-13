@@ -121,7 +121,7 @@ const prev = await page.evaluate(() => (document.getElementById('finImpOut') || 
 STEP('importer preview: detects the export, counts invoices + transactions + wallet', /Direct Payments export detected/.test(prev) && /Ready to import/.test(prev), prev.replace(/\s+/g, ' ').slice(0, 140));
 const pending = await page.evaluate(() => (FIN._pending || []).length);
 const pendStats = await page.evaluate(() => { const P = FIN._pending || []; return { n: P.length, tx: P.filter(r => r.revenue_way === 'transaction').length, wal: P.filter(r => r.integrity_status === 'excluded').length, cred: P.filter(r => r.integrity_status === 'credit_note').length, paid: P.filter(r => r.integrity_status === 'verified_paid').length, twins: P.filter(r => r.transaction_ref).length, badMath: P.filter(r => Math.abs((r.revenue_sar + r.vat_sar + r.wallet_portion_sar) - r.total_incl_vat_sar) > 1).length }; });
-STEP('importer parsed the real shapes (paid/tx/wallet/credit + twin refs, math consistent)', pendStats.n > 20 && pendStats.paid > 0 && pendStats.wal > 0 && pendStats.badMath === 0, JSON.stringify(pendStats));
+STEP('importer parsed the real shapes (paid/tx/credit + twin refs, wallets skipped, math consistent)', pendStats.n > 20 && pendStats.paid > 0 && pendStats.wal === 0 && pendStats.badMath === 0, JSON.stringify(pendStats));
 // commit into the (mock) ledger
 await page.locator('#view button:has-text("Confirm import")').first().click();
 await page.waitForTimeout(3000);

@@ -41,7 +41,9 @@
     return h.indexOf('Type')>=0 && h.indexOf('Invoice Reference #')>=0 && h.indexOf('Customer Name')>=0 && h.indexOf('Item Is Taxable')>=0;
   }
 
+  var _walletSkipped=0;
   function parseDP(rows){
+    _walletSkipped=0;
     var hdr=rows[0].map(function(x){return String(x||'').trim();});
     function ix(n){return hdr.indexOf(n);}
     var iType=ix('Type'),iProd=ix('Product'),iCust=ix('Customer Name'),iRef=ix('Invoice Reference #'),
@@ -78,6 +80,7 @@
         if(/Wallet Balance/i.test(it.name)||it.product==='Direct Wallet')wallet=true;
       });
       var profit=Math.round(taxTot/1.15*100)/100, vat=Math.round((taxTot-profit)*100)/100;
+      if(wallet){_walletSkipped++;return;} // owner rule 2026-08-12: wallet top-ups are NOT imported at all
       var svc=Object.keys(svcs).sort().join(' + ')||'Other';
       var st = inv.credit?'credit' : /Fully Paid/i.test(inv.status)?'paid' : /Draft/i.test(inv.status)?'draft' : 'pending';
       out.push({ref:ref,num:inv.num,date:inv.date,cust:inv.cust,total:inv.total,cost:Math.round(cost*100)/100,
@@ -120,11 +123,10 @@
   }
 
   function preview(rows,skipped){
-    var paid=0,pend=0,cred=0,wal=0,comm=0,tx=0,tot=0;
+    var paid=0,pend=0,cred=0,comm=0,tx=0,tot=0,wal=_walletSkipped;
     rows.forEach(function(r){
       if(r.integrity_status==='verified_paid'){paid++;tot+=r.total_incl_vat_sar;}
       else if(r.integrity_status==='credit_note')cred++;
-      else if(r.integrity_status==='excluded')wal++;
       else pend++;
       if(r.revenue_way==='commission')comm++;
       if(r.revenue_way==='transaction')tx++;
@@ -137,7 +139,7 @@
       (tx?' · '+fl('transactions (tax invoice later)','معاملات (الفاتورة الضريبية لاحقًا)')+' <b>'+tx+'</b>':'')+
       (comm?' · '+fl('commissions','عمولات')+' <b>'+comm+'</b>':'')+
       (cred?' · '+fl('credit notes','إشعارات دائنة')+' <b>'+cred+'</b>':'')+
-      (wal?' · '+fl('wallet top-ups (excluded from revenue)','تعبئة محفظة (خارج الإيراد)')+' <b>'+wal+'</b>':'')+
+      (wal?' · '+fl('wallet top-ups skipped (not stored)','تم تجاوز تعبئة المحفظة (لا تُخزن)')+' <b>'+wal+'</b>':'')+
       (skipped?('<br>↩ '+fl('Skipped (already in the ledger):','تم تجاوزها (موجودة مسبقًا):')+' <b>'+skipped+'</b>'):'')+
       '</div>'+
       (rows.length?('<button class="btn pri sm" style="margin-top:8px" onclick="finCommit()">'+fl('Confirm import of '+rows.length+' rows','تأكيد استيراد '+rows.length+' صف')+'</button>'):'');

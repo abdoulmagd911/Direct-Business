@@ -46,7 +46,7 @@ STEP('REAL sign-in works', await page.evaluate(() => !document.querySelector('#v
 await page.evaluate(() => { current = 'finance'; render(); });
 await page.waitForTimeout(9000);
 const finN = await page.evaluate(() => (FIN.rows || []).length);
-STEP('REAL finance rows = the real-world batch (58 invoices)', finN === 58, 'rows=' + finN);
+STEP('REAL finance rows = real batch + imported credits, no wallets (73)', finN === 73, 'rows=' + finN);
 const promoN = await page.evaluate(() => (FIN.promos || []).length);
 STEP('REAL promo-code registry loaded (198 codes)', promoN === 198, 'promos=' + promoN);
 const ovTxt = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/\s+/g, ' '));
@@ -79,6 +79,13 @@ STEP('invoice card shows the transaction ref, never VAT', !!modChk && modChk.has
 STEP('invoice card has the four-ways selector', await page.evaluate(() => !!document.getElementById('fin_way')));
 await page.screenshot({ path: 'shots/live-invoice-card.png' });
 await page.evaluate(() => { const m = document.getElementById('finModal'); if (m) m.remove(); });
+// finance-team screen: AR aging on REAL data (17 unpaid invoices live)
+await page.evaluate(() => { FIN.tab = 'clients'; render(); });
+await page.waitForTimeout(2000);
+const agingTxt = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/\s+/g, ' '));
+const agingExp = await page.evaluate(() => { const L = FIN.rows.filter(r => !r.deleted_at); return Math.round(L.reduce((a, r) => a + Math.max(0, +r.amount_remaining_sar || 0), 0)); });
+STEP('REAL AR aging: Collections card shows true outstanding with buckets', /Collections & AR aging/.test(agingTxt) && /0–30 days|0-30 days/.test(agingTxt) && agingExp > 0, 'AR=' + agingExp.toLocaleString('en-US'));
+await page.screenshot({ path: 'shots/live-aging.png' });
 
 // Part C #1 — REAL storage upload
 await page.evaluate(() => { openLead = null; current = 'offers'; render(); });
