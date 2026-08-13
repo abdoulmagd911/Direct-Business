@@ -206,6 +206,19 @@ for (const key of ORDER) {
   await browser.close();
 }
 
+/* Take the rehearsal rows back out. The app ARCHIVES a company rather than deleting it —
+   which is the right behaviour and what the check above proves — but archived rows still sit
+   in the list, so eleven runs a day would bury the real thirty companies under test rows. */
+try {
+  const t = await tok(TEAM.admin.email, TEAM.admin.pw);
+  const r = await fetch(URL + '/rest/v1/businesses?name=like.Go-live%20check%20golive-*', {
+    method: 'DELETE',
+    headers: { apikey: ANON, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+  });
+  const gone = await r.json().catch(() => []);
+  console.log(`\ncleaned up ${Array.isArray(gone) ? gone.length : 0} rehearsal companies`);
+} catch (e) { console.log('\nCLEANUP FAILED — remove the "Go-live check" rows by hand: ' + e); }
+
 console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.length}`);
 LOG.filter(l => l.startsWith('FAIL')).forEach(l => console.log('   ' + l));
 process.exit(0);

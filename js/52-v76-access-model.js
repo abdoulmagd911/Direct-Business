@@ -143,7 +143,10 @@
     try{
       var r=role(); if(!r) return;
       var keep=(r==='admin')?['admin','manager','team_member']:['manager','team_member'];
-      document.querySelectorAll('select[data-role], #tm_role, select.v48-role').forEach(function(sel){
+      /* #v48r is the "Add a teammate" box; select[data-role] is the level next to each
+         person already on the list. Both must be trimmed, or a manager is offered Admin in
+         one of them and told no by the server after he has already typed everything in. */
+      document.querySelectorAll('select[data-role], #v48r, #tm_role, select.v48-role').forEach(function(sel){
         try{
           [].slice.call(sel.options).forEach(function(o){
             var v=o.value;
@@ -176,7 +179,7 @@
            Watching for "a picker we have not trimmed yet" catches every case — including
            the row being the added element itself, which the old check missed. */
         new MutationObserver(function(){
-          try{ if(document.querySelector('select[data-role]:not([data-v76done])')) trimRolePickers(); }catch(_){}
+          try{ if(document.querySelector('select[data-role]:not([data-v76done]), #v48r:not([data-v76done])')) trimRolePickers(); }catch(_){}
         }).observe(document.body,{childList:true,subtree:true});
       }
     }catch(_){}
