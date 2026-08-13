@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Direct Business · دايركت أعمال</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23F06820'/><text x='32' y='45' text-anchor='middle' font-family='Georgia,Times,serif' font-size='42' font-weight='700' font-style='italic' fill='%23ffffff'>D</text></svg>">
+<link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/brand/favicon-192.png">
+<link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+<meta name="theme-color" content="#F47A1F">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -643,6 +646,62 @@ body{letter-spacing:-.012em}
   setInterval(function(){ try{ inject(); }catch(_){ } },1500);
   console.info('%c[v47] offer→studio bridge loaded','color:#F47A1F;font-weight:700');
 }catch(e){if(window.console)console.warn('[v47] init',e);}})();
+</script>
+
+<script>
+/* ===== v48: identity in the app shell =====
+   1. Login card logo — the login overlay ships a hidden <img id="cl_logo">
+      placeholder; point it at the real full-color logo.
+   2. Offers page brand strip — a slim header on the offers LIST view with the
+      logo and a one-click way into the branded Proposal Studio, so the page
+      the team uses for offers carries the identity and mounts the Studio. */
+(function(){try{
+  function isAr(){ try{ return (typeof LANG!=='undefined'&&LANG==='ar'); }catch(_){ return false; } }
+  function setLoginLogo(){
+    var img=document.getElementById('cl_logo');
+    if(img && !img.getAttribute('src')){
+      img.src='/brand/direct_logo_color.png';
+      img.style.display='block';
+    }
+  }
+  function injectOffersStrip(){
+    var cur=null, open=null;
+    try{ cur=current; }catch(_){}
+    try{ open=openOffer; }catch(_){}
+    var existing=document.getElementById('v48OffersStrip');
+    if(cur!=='offers' || open){ if(existing) existing.remove(); return; }
+    if(existing) return;
+    var view=document.getElementById('view')||document.querySelector('main'); if(!view) return;
+    var table=view.querySelector('table'); if(!table) return;
+    var ar=isAr();
+    var strip=document.createElement('div');
+    strip.id='v48OffersStrip';
+    strip.style.cssText='display:flex;align-items:center;gap:14px;flex-wrap:wrap;'+
+      'background:#FFF3EC;border:1px solid #F8CBAA;border-radius:12px;padding:10px 14px;margin:0 0 12px';
+    var img=document.createElement('img');
+    img.src='/brand/direct_logo_color.png'; img.alt='Direct'; img.style.cssText='height:26px';
+    var txt=document.createElement('span');
+    txt.style.cssText='font-size:12.5px;color:#6B7480;flex:1;min-width:200px';
+    txt.textContent=ar
+      ? 'العروض المرسلة للعملاء تصدر بالهوية الرسمية — افتح الاستوديو أو استخدم زر "عرض بالهوية" داخل أي عرض'
+      : 'Client-facing offers go out in the official identity — open the Studio, or use the "Branded offer" button inside any offer';
+    var btn=document.createElement('button');
+    btn.style.cssText='background:#F06820;color:#fff;border:0;border-radius:9px;padding:8px 14px;font-weight:800;font-size:13px;cursor:pointer';
+    btn.textContent=ar?'فتح استوديو العروض':'Open Proposal Studio';
+    btn.onclick=function(){ try{ window.open('/brand/proposal.html','_blank'); }catch(_){} };
+    strip.appendChild(img); strip.appendChild(txt); strip.appendChild(btn);
+    var anchor=table.closest('.card')||table;
+    anchor.parentNode.insertBefore(strip, anchor);
+  }
+  function tick(){ try{ setLoginLogo(); injectOffersStrip(); }catch(_){} }
+  tick();
+  var _r=window.render;
+  if(typeof _r==='function'){
+    window.render=function(){ var out=_r.apply(this,arguments); try{ tick(); }catch(_){ } return out; };
+  }
+  setInterval(tick,1500);
+  console.info('%c[v48] app identity layer loaded','color:#F47A1F;font-weight:700');
+}catch(e){if(window.console)console.warn('[v48] init',e);}})();
 </script>
 
 </body>
