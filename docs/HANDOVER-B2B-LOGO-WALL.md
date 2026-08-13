@@ -147,3 +147,48 @@ Simple beats complete: he rejected a rich analysis page for a plain ranked table
 weight beats revenue in ordering. "Even one invoice counts." Links must be tested, not
 plausible — he checks them. If a tool limit blocks something (file too big, site blocked),
 say so out loud immediately; silence reads as "Drive was down and you didn't tell me."
+
+---
+
+## 10 · UPDATE 13 Aug 2026 — logo verification pass (read this before touching logos)
+
+**What changed:** every logo link was downloaded, hashed and rendered in a browser, not just
+HTTP-checked. Three findings that invalidate the earlier link list:
+
+1. **unavatar.io serves a blank placeholder** (1,506 bytes, 400x400, md5 `3db1ae56a2…`) for
+   domains it cannot resolve. It was silently returned for cjlogistics.com, firstmills.com,
+   maaal.com, miragetourseg.com, saaraj.sa and sidratravel.com — those six links looked "200 OK"
+   but delivered a blank avatar. **Always hash-compare against that placeholder before trusting
+   an unavatar link.**
+2. **Blind site scraping picks up the wrong brand.** sidratravel.com's only logo file is its
+   *hosting provider's* (Hostinger plugin); mdd.sa's homepage serves its *clients'* logos;
+   aqsse.com's page also links Aramco and PipeWell logos. Always render and look before shipping.
+3. **Wikimedia `Special:FilePath` rate-limits hard (429).** Use the direct CDN path instead —
+   `https://upload.wikimedia.org/wikipedia/commons/<m[0]>/<m[:2]>/<filename>` where
+   `m = md5(filename_with_underscores)`. Computed locally, no API call, far more reliable.
+
+**Verified real logo files now embedded in the artifact (20):** Riyadh Air (SVG), Ma'aden (SVG),
+MOI emblem (SVG, both government rows), Takamol (SVG — **white version, needs a dark background**),
+Riyadh Chamber (JPG), First Mills (JPG 335px), Al-Qahtani/AQSSE (PNG 1024px), Maaal (PNG 96px),
+Amadeus (SVG), CJ (SVG), Kaplan (PNG), Benchmark (PNG 1330px), Kayan (PNG), Pro Display (PNG 2559px),
+EC English (SVG), Kings (SVG), Bayswater (PNG 482px), Malvern (SVG), New College Group (PNG 128px),
+ETC (PNG 32px, weak).
+
+**No public logo exists — request artwork from the client (12):** MDD, National Electronic Systems,
+Al-Nahla, Al-Rajhi Alawla, Aljandal FC, The Ultimates, Preventive Means Safety, Sidra Travel,
+Mirage Tours, CES, Sheffield Academy, (and Booking & Tickets — see below).
+
+**Two data corrections:**
+- **Kayan** is جمعية كيان للأيتام — the Kayan *orphan-care association* (confirmed from its own
+  logo file). Not a commercial company; treat accordingly.
+- **Booking & Tickets Agency** is marked **Suspended** in the corporate client registry, so it was
+  removed from the wall entirely.
+
+**Completeness re-checked:** the corporate client page reports exactly **43 registered clients**
+(all on one page, matching the xlsx export — nothing was missed), and page 1 of the full
+Direct Payments invoice list (446,403 invoices, newest first) contains only already-known B2B
+names. The company list is complete; only artwork is outstanding.
+
+**Reusable scripts** in the session scratchpad: `sheet.mjs` / `verify.mjs` (render a contact sheet
+or the page in light+dark via Chromium with a local file:// URL — no proxy needed), and the
+logo-fetch + md5/dimension audit loop.
