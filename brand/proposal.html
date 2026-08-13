@@ -53,6 +53,8 @@
   .mini{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;
     padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
   .mini:hover{border-color:var(--accent);color:var(--accent)}
+  .mini:focus-visible,.move:focus-visible,.addline:focus-visible,.seg button:focus-visible,
+  .actions button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   .mini.danger:hover{border-color:#D92D20;color:#D92D20}
   .lines .move{float:right;border:0;background:none;color:var(--muted);cursor:pointer;
     font-size:13px;font-weight:700;padding:0 4px}
@@ -336,6 +338,10 @@ function arCounted(value, fem){
   return w+' '+many;
 }
 function amountInWords(total, lang){
+  if(total<0){
+    var body=amountInWords(-total, lang);
+    return lang==='ar' ? body.replace(/^فقط /,'سالب ') : 'Minus '+body.charAt(0).toLowerCase()+body.slice(1);
+  }
   var riyals=Math.floor(total+1e-9);
   var halalas=Math.round((total-riyals)*100);
   if(halalas===100){ riyals+=1; halalas=0; }
@@ -734,6 +740,7 @@ function prefill(){
           });
           var extra=[h.remarks,h.addFees].filter(Boolean).join('\n');
           if(extra) state.terms=(state.terms==null?T[state.lang].defTerms:state.terms)+'\n'+extra;
+          delete state._savedId;   /* an offer arriving from the app is a NEW record */
           save();
         }
         localStorage.removeItem('direct_studio_handoff');
