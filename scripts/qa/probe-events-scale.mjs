@@ -38,6 +38,24 @@ for (let i=0;i<38;i++){
     notes: i%7===0 ? 'A long note that goes on and on about the event, its audience, the reason it matters to us, and what we plan to do there — long enough to wrap several lines.' : null,
   });
 }
+// a careless paste: a 900-character name and markup in the title (both accepted by the
+// database — the page must survive them without breaking the layout)
+push({name_en:'ZZ Long '+('A very long event name '.repeat(38)), vertical:'Travel', status:'confirmed',
+      start_date:'2026-12-28', end_date:'2026-12-29', city:'Riyadh', priority:2, approach:'mine'});
+push({name_en:'<script>alert(1)</script> & "quotes" <b>', vertical:'Tech', status:'confirmed',
+      start_date:'2026-12-29', end_date:'2026-12-30', city:'Riyadh', priority:2, approach:'attend'});
+
+// mirrors the real calendar: a Dubai commitment overlapping a Riyadh one (must warn),
+// and two Riyadh commitments on the same days (must NOT warn — two people cover them)
+push({name_en:'Clash Dubai Show', vertical:'Travel', status:'confirmed', start_date:'2026-12-20', end_date:'2026-12-23',
+      city:'Dubai', priority:5, approach:'stand'});
+push({name_en:'Clash Riyadh Summit', vertical:'Tech', status:'confirmed', start_date:'2026-12-21', end_date:'2026-12-22',
+      city:'Riyadh', priority:5, approach:'attend'});
+push({name_en:'Same City A', vertical:'Tech', status:'confirmed', start_date:'2026-12-26', end_date:'2026-12-27',
+      city:'Riyadh', priority:3, approach:'attend'});
+push({name_en:'Same City B', vertical:'Tech', status:'confirmed', start_date:'2026-12-26', end_date:'2026-12-27',
+      city:'Riyadh', priority:3, approach:'stand'});
+
 // 21 with no date yet (awards shelf + unscheduled fairs)
 for (let i=0;i<21;i++) push({
   name_en:'Undated Event '+(i+1), vertical:VERTS[i%4], status:'no_date',
@@ -110,11 +128,41 @@ check('undated events sit at the end, not the top', /Undated/.test(order[order.l
 await p.fill('#evF_q','Undated'); await p.waitForTimeout(700);
 check('undated shows "no date yet", not a dash', (await p.evaluate(()=>document.querySelector('#view').innerText)).includes('no date yet'), true);
 await p.fill('#evF_q',''); await p.waitForTimeout(600);
-check('the list paginates instead of running 59 rows deep', await visRows() <= 20, true);
-check('the pager reports the filtered total, not the raw 77', await p.evaluate(()=>{
+check('the list paginates instead of running 65 rows deep', await visRows() <= 20, true);
+check('the pager reports the filtered total, not the raw 83', await p.evaluate(()=>{
   const l=[...document.querySelectorAll('.pg-bar span')].map(s=>s.textContent).join(' ');
-  return /of 59/.test(l);
+  return /of 65/.test(l);
 }), true);
+
+// Cross-city clash warning — the thing a spreadsheet cannot tell you
+await p.fill('#evF_q','Clash'); await p.waitForTimeout(700);
+const clashTxt = await p.evaluate(()=>document.querySelector('#view').innerText);
+check('cross-city clash is flagged on both events', (clashTxt.match(/clashes with/g)||[]).length, 2);
+await p.fill('#evF_q','Same City'); await p.waitForTimeout(700);
+const sameTxt = await p.evaluate(()=>document.querySelector('#view').innerText);
+check('same-city overlap is NOT flagged (two people can cover it)', /clashes with/.test(sameTxt), false);
+await p.fill('#evF_q',''); await p.waitForTimeout(600);
+
+// A finished event must not claim a task is "Not started"
+await p.click('#evF_past'); await p.waitForTimeout(700);
+const pastTxt = await p.evaluate(()=>document.querySelector('#view').innerText);
+check('past events say "no outcome recorded", not "Not started"',
+  pastTxt.includes('no outcome recorded'), true);
+await p.click('#evF_past'); await p.waitForTimeout(600);
+
+// A 900-character name must not blow up the page or run it off the screen
+await p.fill('#evF_q','ZZ Long'); await p.waitForTimeout(700);
+check('a 900-char name does not make the page scroll sideways',
+  await p.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1), true);
+check('a 900-char name stays inside the table width', await p.evaluate(()=>{
+  const td=document.querySelector('#view .v64-ev-table tbody td');
+  return td ? td.getBoundingClientRect().width <= window.innerWidth : false;
+}), true);
+await p.screenshot({path:'scripts/qa/shot-events-longname.png',fullPage:true});
+await p.fill('#evF_q','<script>'); await p.waitForTimeout(700);
+check('markup in a name renders as text, never executes',
+  await p.evaluate(()=>window.__xssScale===undefined && /<script>alert/.test(document.querySelector('#view').innerText)), true);
+await p.fill('#evF_q',''); await p.waitForTimeout(600);
 
 await p.setViewportSize({width:390,height:844});
 await p.screenshot({path:'scripts/qa/shot-events-scale-mobile.png',fullPage:true});
