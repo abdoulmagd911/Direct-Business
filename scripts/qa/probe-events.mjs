@@ -40,9 +40,8 @@ await p.waitForTimeout(2500);
 
 const txt=await viewText();
 check('events page renders with rows', (await rows())>0, true);
-check('stats: Have a stand = 2', txt.includes('2\nHave a stand'), true);
-check('stats: Go & meet = 2', txt.includes('2\nGo & meet'), true);
-check('stats: Mine the website = 2', txt.includes('2\nMine the website'), true);
+check('stat tiles count only what is still ahead (7 of 8; the ended one is out)',
+  txt.includes('7\nStill ahead')&&txt.includes('2\nHave a stand')&&txt.includes('2\nGo & meet')&&txt.includes('2\nMine the website'), true);
 check('move pill visible on rows', txt.includes('MINE THE WEBSITE')||txt.includes('Mine the website'), true);
 check('event-site login line shows (🔑 who signed up)', txt.includes('🔑')&&txt.includes('Abdulrahman'), true);
 check('lead count line shows on Event 0', txt.includes('3 leads in the app'), true);
@@ -50,11 +49,17 @@ check('companies list link shows', txt.includes('Companies list ↗'), true);
 
 // Front-end audit round (2026-08-13): simpler table, self-cleaning dates
 check('relative day hint shows ("in N days")', /in \d+ days|tomorrow|happening now/.test(txt), true);
-check('past event reads "ended"', txt.includes('ended'), true);
-check('ended event row is faded', await p.evaluate(()=>{
+// Scale round: the page opens on what is still ahead; finished events are one click away
+check('ended event is NOT in the opening view', txt.includes('Event 3'), false);
+check('"Past (N)" chip offers the finished ones', await p.evaluate(()=>!!document.getElementById('evF_past')), true);
+await p.click('#evF_past'); await p.waitForTimeout(600);
+const withPast = await viewText();
+check('showing past: the ended event appears and reads "ended"', withPast.includes('Event 3')&&withPast.includes('ended'), true);
+check('showing past: the ended row is faded', await p.evaluate(()=>{
   const tr=[...document.querySelectorAll('#view tbody tr')].find(r=>r.textContent.includes('Event 3'));
   return tr?tr.getAttribute('style').includes('opacity:.55'):false;
 }), true);
+await p.click('#evF_past'); await p.waitForTimeout(600);
 check('high-priority star shows', txt.includes('★'), true);
 check('Opportunity column removed (tags live under the name)', await p.evaluate(()=>![...document.querySelectorAll('#view thead th')].some(th=>/opportunity|pri/i.test(th.textContent))), true);
 check('Sales/Partner tags still visible', txt.includes('Sales')&&txt.includes('Partner'), true);
@@ -66,13 +71,13 @@ await p.screenshot({path:'scripts/qa/shot-app-events.png',fullPage:true});
 await p.click('#evF_ours'); await p.waitForTimeout(500);
 check('🎪 We take part → 4 rows', await rows(), 4);
 await p.click('#evF_ours'); await p.waitForTimeout(500);
-check('chip off → all 8 rows', await rows(), 8);
+check('chip off → the 7 still ahead', await rows(), 7);
 
 // Move filter
 await p.selectOption('#evF_m','mine'); await p.waitForTimeout(500);
 check('move filter mine → 2 rows', await rows(), 2);
 await p.selectOption('#evF_m','all'); await p.waitForTimeout(500);
-check('move filter reset → 8 rows', await rows(), 8);
+check('move filter reset → the 7 still ahead', await rows(), 7);
 
 // Search still works alongside
 await p.fill('#evF_q','Event 3'); await p.waitForTimeout(600);
@@ -94,6 +99,26 @@ await p.evaluate(()=>evOpenModal()); await p.waitForTimeout(400);
 const who=await p.evaluate(()=>document.getElementById('ev_su_by').value);
 console.log('info  add-modal "Who signed up" prefill =', JSON.stringify(who), '(from the signed-in profile)');
 check('add modal: move defaults to Not decided', await p.evaluate(()=>document.getElementById('ev_move').value), 'undecided');
+await p.evaluate(()=>document.getElementById('ev_cancel').click());
+await p.waitForTimeout(300);
+
+// ---- Arabic pass (2026-08-13): the page must speak Arabic, not half-English ----
+await p.evaluate(()=>{ try{ LANG='ar'; }catch(_){}; try{ applyLang&&applyLang(); }catch(_){}; try{ render(); }catch(_){} });
+await p.waitForTimeout(1500);
+const arTxt = await viewText();
+check('AR: page is right-to-left', await p.evaluate(()=>document.documentElement.getAttribute('dir')), 'rtl');
+check('AR: move labels translated (جناح / حضور ولقاءات)', arTxt.includes('جناح')&&arTxt.includes('حضور ولقاءات'), true);
+check('AR: "Mine the website" translated', arTxt.includes('جمع من الموقع'), true);
+check('AR: column headers translated (خطتنا)', arTxt.includes('خطتنا'), true);
+check('AR: chip translated (نشارك فيها)', arTxt.includes('نشارك فيها'), true);
+check('AR: relative date translated (بعد N يوم)', /بعد \d+ يوم/.test(arTxt), true);
+check('AR: no leftover English move labels', /Have a stand|Go & meet|Mine the website|Not decided/.test(arTxt), false);
+await p.screenshot({path:'scripts/qa/shot-app-events-ar.png',fullPage:true});
+await p.evaluate(()=>evOpenModal('e2')); await p.waitForTimeout(500);
+const arModal = await p.evaluate(()=>document.body.innerText);
+check('AR: edit form translated (خطتنا / حساب موقع الفعالية)', arModal.includes('خطتنا')&&arModal.includes('حساب موقع الفعالية'), true);
+check('AR: save button translated', arModal.includes('حفظ الفعالية'), true);
+await p.screenshot({path:'scripts/qa/shot-app-events-ar-modal.png',fullPage:true});
 await p.evaluate(()=>document.getElementById('ev_cancel').click());
 
 console.log('---');
