@@ -207,7 +207,7 @@
           <tr><td>Arabic documents</td><td>29LT Zarid Slab<br><span class="note">Regular–Black</span></td>
               <td><a href="https://drive.google.com/drive/folders/1B9gO5mez2ufPpaesiIi7JIaND3K9JvvJ" target="_blank" rel="noopener">Drive → fonts/ar</a></td>
               <td><a href="https://29lt.com" target="_blank" rel="noopener">29LT foundry</a></td>
-              <td><a href="https://fonts.google.com/specimen/Aref+Ruqaa" target="_blank" rel="noopener">—</a> <span class="note">no close free match; use the Drive copy</span></td></tr>
+              <td><span class="note">no close free match — use the Drive copy</span></td></tr>
           <tr><td>Arabic price tables</td><td>Bahij TheSansArabic<br><span class="note">Regular · Bold</span></td>
               <td><a href="https://drive.google.com/drive/folders/1B9gO5mez2ufPpaesiIi7JIaND3K9JvvJ" target="_blank" rel="noopener">Drive → fonts/ar</a></td>
               <td><span class="note">licensed arabization of TheSans</span></td>
@@ -314,6 +314,11 @@
   }
   function chip(hex,name,use){
     var d=document.createElement('div'); d.className='chip';
+    /* the whole chip copies the HEX (big touch target on phones);
+       the RGB button still copies the PowerPoint numbers */
+    d.setAttribute('data-copy',hex);
+    d.style.cursor='pointer';
+    d.setAttribute('role','button'); d.setAttribute('tabindex','0');
     d.innerHTML='<i style="background:'+hex+'"></i>'+
       '<span class="nm">'+name+'<small>'+use+' · '+hex+'</small></span>'+
       '<span class="cp"><button class="cbtn" data-copy="'+hex+'">HEX</button>'+
@@ -325,8 +330,13 @@
     PALS[k].forEach(function(c){ host.appendChild(chip(c[0],c[1],c[2])); });
   });
   var toastEl=document.getElementById('toast'), tmr=null;
+  document.addEventListener('keydown', function(e){
+    if((e.key==='Enter'||e.key===' ') && e.target.classList && e.target.classList.contains('chip')){
+      e.preventDefault(); e.target.click();
+    }
+  });
   document.addEventListener('click', function(e){
-    var b=e.target.closest('.cbtn'); if(!b) return;
+    var b=e.target.closest('.cbtn') || e.target.closest('.chip'); if(!b) return;
     var txt=b.getAttribute('data-copy'); if(!txt) return;
     function done(){
       toastEl.textContent='Copied: '+txt+' ✓'; toastEl.classList.add('on');
