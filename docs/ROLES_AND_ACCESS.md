@@ -60,14 +60,26 @@ is which pages they get and what they may change.
 | Team & access | ✅ | ✅ (not admin level) | ❌ |
 | Everything else (Operations, Reports, Providers, SOPs, Brand, …) | ✅ | ❌ | ❌ |
 
-Both walls agree. The screen only offers what the person may do, **and** the database refuses
-the rest even if someone bypasses the screen entirely.
+Both walls agree — with one deliberate exception. The screen only offers what the person may
+do, **and** the database refuses the rest even if someone bypasses the screen entirely. The
+exception is proposals: the database still accepts a proposal written by an employee, even
+though an employee has no Proposals page and no button that reaches one. It is left that way
+because tightening it buys nothing inside one company and risks breaking the handover when a
+Won lead becomes a client. Promo codes went the other way and were **widened** to employees on
+2026-08-13: they are one of Finance's four revenue ways, and an employee who may edit an
+invoice must be able to edit a promo code — otherwise the screen offers a change the database
+silently drops (a refused UPDATE returns no error and zero rows, so it looks saved and is not).
 
 ## How a new person gets in
 
-1. Admin or manager: profile chip (top right) → **Team** → email, name, level → **Add**.
-2. The screen shows the password. Hand it over.
+1. Admin or manager: profile chip (top right) → **Team** → email, name, level, and a
+   **password** if you want to choose one → **Add**.
+2. The screen shows the password once. Hand it over.
 3. They sign in. Nothing else — no invitation to accept, no email link, no setup screen.
+
+Type a password and it is **permanent** — they are never asked to change it, which is how
+these accounts are handed over. Leave the box blank and the app invents one and asks them to
+pick their own the first time they sign in. Eight characters minimum either way.
 
 Forgotten password: Team → **Reset password**. Someone leaves: Team → switch them **off**;
 they lose access immediately (within 90 seconds even if they are already signed in), and all
@@ -88,6 +100,10 @@ their work stays. A manager cannot reset or switch off an admin.
   They are now scoped to the levels in the table above.
 - **The Settings page was reachable by anyone who forced it** (the sidebar link was merely
   hidden). Off-limits pages now bounce back to Today with a plain explanation.
+- **The rehearsal used to leave its own companies behind.** The app archives a company rather
+  than deleting it — correct, and what the test proves — but eleven runs a day buried the real
+  thirty companies under 55 "Go-live check" rows. `probe-golive.mjs` now deletes them at the
+  end. If you write a probe that creates data, make it clean up.
 - **Do not hide sidebar buttons by counting their position.** The sidebar is built three times
   over — the core builds it from `VIEWS`, the v25 layer throws that away and rebuilds it in
   groups, and later layers append Finance and Brand afterwards. Counting positions is what hid
@@ -102,4 +118,6 @@ their work stays. A manager cannot reset or switch off an admin.
     NODE_USE_ENV_PROXY=1 node probe-rls-matrix.mjs    # the database wall: 60 checks
     NODE_USE_ENV_PROXY=1 node probe-roles.mjs         # people working: 83 checks
     NODE_USE_ENV_PROXY=1 node probe-firstlogin.mjs    # first sign-in: 40 checks
+    NODE_USE_ENV_PROXY=1 node probe-handover.mjs      # switched off mid-shift, manager hires: 19 checks
+    NODE_USE_ENV_PROXY=1 node probe-phone.mjs         # every level on a phone: 63 checks
     NODE_USE_ENV_PROXY=1 node probe-teamwork.mjs      # hand-over + two people at once: 8 checks

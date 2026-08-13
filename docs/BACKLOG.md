@@ -31,6 +31,27 @@ Also: the test rig no longer carries the team's passwords. This repository is pu
 those are real working logins; `scripts/qa/emp-rig.mjs` now reads them from the environment
 (`DB_PW_OTHMAN`, `DB_PW_RAAD`, …) and the list lives only in Abdulrahman's hands.
 
+### Part 2 — found by rehearsing what nothing had covered
+
+Two scenarios had never been tried: someone being switched off while they are working, and
+the manager hiring somebody end to end on screen rather than through the server.
+
+4. **Adding a teammate always invented a temporary password and forced a change on arrival.**
+   That contradicts how these accounts are handed over. There is now a password box on the
+   Add-a-teammate form — type one and it is permanent, leave it blank and the old behaviour
+   returns. (`admin-users` v4, `js/31-v48`.)
+5. **The Add-a-teammate form had its own role box the manager's restriction never covered.**
+   He could pick Admin, fill the whole form in, and only then be refused.
+6. **Being switched off relied on the sign-out call coming back.** On a bad connection the
+   person sat on the message with the app still behind it. It now reloads either way.
+7. **Employees could not write promo codes** — though promo codes are one of Finance's four
+   revenue ways and employees may edit Finance. A refused UPDATE returns no error and zero
+   rows, so the screen would have looked saved and not been. The policy was widened.
+8. **The rehearsal was leaving its own companies in the live data.** 55 "Go-live check" rows
+   had piled up on top of the real thirty. Deleted, and `probe-golive.mjs` now cleans up after
+   itself. Live data confirmed back to 30 companies (20 leads, 10 clients), 28 invoices,
+   5 proposals, 7 requests, 11 active people.
+
 ### Still open after this round
 
 - The old database roles `bd`, `operations` and `viewer` still exist but nobody is on them.
