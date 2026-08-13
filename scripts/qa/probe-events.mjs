@@ -47,6 +47,19 @@ check('move pill visible on rows', txt.includes('MINE THE WEBSITE')||txt.include
 check('event-site login line shows (🔑 who signed up)', txt.includes('🔑')&&txt.includes('Abdulrahman'), true);
 check('lead count line shows on Event 0', txt.includes('3 leads in the app'), true);
 check('companies list link shows', txt.includes('Companies list ↗'), true);
+
+// Front-end audit round (2026-08-13): simpler table, self-cleaning dates
+check('relative day hint shows ("in N days")', /in \d+ days|tomorrow|happening now/.test(txt), true);
+check('past event reads "ended"', txt.includes('ended'), true);
+check('ended event row is faded', await p.evaluate(()=>{
+  const tr=[...document.querySelectorAll('#view tbody tr')].find(r=>r.textContent.includes('Event 3'));
+  return tr?tr.getAttribute('style').includes('opacity:.55'):false;
+}), true);
+check('high-priority star shows', txt.includes('★'), true);
+check('Opportunity column removed (tags live under the name)', await p.evaluate(()=>![...document.querySelectorAll('#view thead th')].some(th=>/opportunity|pri/i.test(th.textContent))), true);
+check('Sales/Partner tags still visible', txt.includes('Sales')&&txt.includes('Partner'), true);
+check('opportunity dropdown removed', await p.evaluate(()=>!document.getElementById('evF_o')), true);
+check('"Share view-only link" removed from this page', await p.evaluate(()=>!((document.getElementById('view')||{}).textContent||'').includes('Share view-only link')), true);
 await p.screenshot({path:'scripts/qa/shot-app-events.png',fullPage:true});
 
 // The one-tap chip: stand + attend only (2+2 of 8)
@@ -71,6 +84,7 @@ await p.evaluate(()=>evOpenModal('e2')); await p.waitForTimeout(400);
 check('modal: move select present', await p.evaluate(()=>!!document.getElementById('ev_move')), true);
 check('modal: login email prefilled', await p.evaluate(()=>document.getElementById('ev_su_email').value), 'business@directksa.com');
 check('modal: password prefilled', await p.evaluate(()=>document.getElementById('ev_su_pass').value), 'throwaway-1');
+check('modal: password is masked on screen', await p.evaluate(()=>document.getElementById('ev_su_pass').type), 'password');
 check('modal: who prefilled', await p.evaluate(()=>document.getElementById('ev_su_by').value), 'Abdulrahman');
 await p.screenshot({path:'scripts/qa/shot-app-events-modal.png',fullPage:true});
 await p.evaluate(()=>document.getElementById('ev_cancel').click()); await p.waitForTimeout(300);
