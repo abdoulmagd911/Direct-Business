@@ -1,5 +1,66 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-13 · Round 10 — five employees actually worked the app; five real defects found
+
+Not a code review: five people with five different roles (manager, business development,
+operations, standard rep, read-only) plus an admin **signed in for real against the live
+database**, worked their own companies, and tried to do what they must not. Everything below
+was found by doing, and every fix was re-proven the same way. See `docs/ROLES_AND_ACCESS.md`
+for the verified matrix and the one-command way to re-prove it.
+
+FOUND AND FIXED (all five would have hit the team on day one):
+1. **BLOCKER — every employee was trapped in the password screen.** Changing your password on
+   first sign-in calls `clear_must_change`, which sat behind the admin-only gate in the
+   `admin-users` edge function. The password changed, the flag never cleared, so the same
+   screen came back at every sign-in, forever. Proven with Kareem, then fixed: the action is
+   now self-service (it only touches the caller's own row). Edge function redeployed (v2).
+2. **The app appeared before it knew who you were.** Data loaded, the screen was revealed, and
+   only then did the role check run — so a read-only person saw full-power buttons for a
+   moment, and someone owing a password change could start working first. The app is now
+   revealed by the role check itself, with a 9s failsafe so nobody is ever stuck on the splash.
+3. **The signed-in person's name lived in the ONE shared settings row** — whoever signed in
+   last overwrote everyone else. This is the actual root cause of the owner's complaint that
+   "Mine" showed the wrong person's work: the admin session literally reported itself as
+   "Raad Awad". Identity is now per-session (from the signed-in email) and is never written to
+   shared storage; `me()`/`meName()` prefer the session identity.
+4. **Proposals, requests, bookings, projects, invoices and settings accepted writes from ANY
+   signed-in account, including read-only.** Those six tables had one blanket policy
+   (`app_role() is not null`). Now scoped per role, matching the rest of the app.
+5. **The Settings page was reachable by anyone who forced it** (only the sidebar link was
+   hidden) — exposing backup/restore/audit tools to a read-only account. Now refused for
+   non-admins with a plain-language explanation (js/46-v70).
+
+BUILT: `js/46-v70-permission-guard.js` — the screen now tells the truth. It knows the same
+matrix the database enforces, takes away controls a person may not use (with one clear
+sentence naming what they CAN do instead), gates the Settings page, and — most important —
+turns the whispered "Save issue" pill into a clear message plus a reload, so **the screen can
+never show a change the database refused**. Nothing here grants permission; the database
+remains the wall.
+
+PROVEN (all green, against the live backend):
+- 60/60 database write attempts across 6 roles × 9 tables land exactly as the matrix says.
+- 83/83 on-screen checks: six people signing in, seeing the right pages, editing what they may,
+  being refused what they may not, their work surviving a full page reload, signing out cleanly.
+- 40/40 first-sign-in checks: temporary password → forced own password (weak and mismatched
+  refused) → straight into the app → second sign-in goes straight in.
+- 8/8 teamwork checks: handing a lead to a colleague moves it out of one "Mine" and into the
+  other; two people saving at the same moment lose nothing.
+- 214 harness checks (mega/lifecycle/attack waves/notes/round8/round9) still green after the
+  core login changes.
+
+TEST ACCOUNTS: the five employee logins now have QA passwords (in `scripts/qa/emp-rig.mjs`,
+never in this file). **Reset each from the Team screen before handing accounts to the real
+people.** The QA admin `test@directksa.com` stays as-is for testing.
+
+Parked / open:
+- `bd` and `operations` and `team_member` all map to one screen tier internally, so the screen
+  cannot yet show a bd person their promo-code powers; the database does enforce it.
+- Expense receipts as photo attachments.
+- Owner names still display in English on Arabic screens (matching understands Arabic).
+- Not yet tested: a person being switched OFF mid-session, and behaviour on a phone browser
+  for the non-admin roles.
+
+
 ## 2026-08-13 · Round 9 — real users everywhere, tidy top bar, expenses, and a data-restore incident
 
 ⚠️ **DATA WORLD — READ BEFORE TOUCHING THE DATABASE.** The live world is the owner-ordered
@@ -818,6 +879,20 @@ as deliberate: `#F06820` documents · `#FF6C00` logo mark · `#F47A1F` app.
   deployment READY; live files verified byte-identical to the tested repo files
   (sha256 on 7 files including fonts). Still recommended: point the Vercel production
   branch at `main` (Settings → Git) to end the two-branch dance.
+- **Enhancement round 2026-08-13 (post-go-live):** the app had been SPLIT into `js/NN-*.js`
+  by the parallel session while the brand layers were still inline in `index.html` — and
+  they were numbered v46/v47/v48, which **collide with the app's own real v46/v47/v48**.
+  Extracted and renumbered to `js/43-v67-brand-hub-nav-link.js`,
+  `js/44-v68-offer-to-branded-studio.js`, `js/45-v69-app-identity-shell.js` (house
+  new-file pattern; index.html keeps only the three script lines + the favicon links).
+  This also removes the repeated index.html merge conflicts.
+  Studio gains: **amount in words** EN + AR with real counted-noun grammar (the رقم/كتابة
+  convention from the HRC financial offer), **multiple saved offers** in the browser
+  (save / open / delete / new), **Copy for WhatsApp / Email**, line **move up/down +
+  duplicate**, and **sequential offer numbers** (OFR-YYYY-001…) instead of random ones
+  that could collide. Hub gains **live font specimens** rendered in the actual hosted
+  files. The built-in unbranded export is now labelled "Plain copy (internal)" from the
+  v68 layer, so it can't be mistaken for the client document.
 - **Heavy testing round 2026-08-13:** five full example offers produced as real PDFs
   (EN corporate, AR discount, VAT-inclusive decimals, 20-line stress, extreme-length
   Arabic names) — found and fixed a real clipping bug: the printed content page was a
