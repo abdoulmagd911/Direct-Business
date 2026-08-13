@@ -108,6 +108,24 @@ function relDay(e){
   return [n===1?L('tomorrow','غدًا'):L('in '+n+' days','بعد '+n+' يوم'),false];
 }
 function hasEnded(e){ var r=relDay(e); return !!(r&&r[1]); }
+/* Two events we COMMITTED to (a stand or going in person) that overlap in time but
+   sit in different cities mean somebody has to be in two places at once. Same-city
+   overlaps are fine — two people cover them. Computed per render over the loaded set. */
+function clashesFor(e,all){
+  if(moveOf(e)!=='stand'&&moveOf(e)!=='attend')return [];
+  if(!e.start_date||hasEnded(e))return [];
+  var aS=e.start_date, aE=e.end_date||e.start_date, city=(e.city||'').trim().toLowerCase();
+  if(!city)return [];
+  return all.filter(function(o){
+    if(o.id===e.id)return false;
+    if(moveOf(o)!=='stand'&&moveOf(o)!=='attend')return false;
+    if(!o.start_date)return false;
+    var bCity=(o.city||'').trim().toLowerCase();
+    if(!bCity||bCity===city)return false;
+    var bS=o.start_date, bE=o.end_date||o.start_date;
+    return aS<=bE && bS<=aE;
+  });
+}
 function evDate(e){
   if(!e.start_date)return '<span style="color:var(--muted)">'+L('no date yet','لا يوجد تاريخ بعد')+'</span>';
   var s=e.start_date,en=e.end_date;
@@ -175,11 +193,21 @@ window.renderEvents=function(v){
     var vt=EV_VERT[e.vertical]||EV_VERT.Other, stt=EV_STATUS[e.status]||EV_STATUS.no_date;
     var mvk=moveOf(e), pgk=progOf(e), mm=mv(mvk);
     var moveCell=pill(mm[0],mm[1],mm[2]);
-    if(mvk!=='skip'&&mvk!=='undecided')moveCell+='<div style="font-size:10.5px;color:'+((pgk==='done'||pgk==='leads_added')?'#1e7a34;font-weight:600':'var(--muted)')+';margin-top:3px;white-space:nowrap">'+esc(pg(pgk))+'</div>';
+    if(mvk!=='skip'&&mvk!=='undecided'){
+      /* "Not started" on an event that already finished reads like a pending task it
+         is too late to do — say what is actually true instead. */
+      var pgTxt=(hasEnded(e)&&pgk==='not_started')?L('no outcome recorded','لم تُسجَّل النتيجة'):pg(pgk);
+      moveCell+='<div style="font-size:10.5px;color:'+((pgk==='done'||pgk==='leads_added')?'#1e7a34;font-weight:600':'var(--muted)')+';margin-top:3px;white-space:nowrap">'+esc(pgTxt)+'</div>';
+    }
     var lu=safeUrl(e.exhibitor_list_url);
     if(lu)moveCell+='<div><a href="'+esc(lu)+'" target="_blank" rel="noopener" style="font-size:10.5px">'+L('Companies list ↗','قائمة الشركات ↗')+'</a></div>';
     var su=SIGNUPS[e.id];
     if(su&&(su.login_email||su.signed_up_by))moveCell+='<div style="font-size:10.5px;color:var(--muted);margin-top:2px;white-space:nowrap">🔑 '+esc(su.login_email||'')+(su.signed_up_by?' ('+esc(su.signed_up_by)+')':'')+'</div>';
+    var cl=clashesFor(e,E);
+    if(cl.length){
+      var names=cl.map(function(x){return (x.name_en||'')+' — '+(x.city||'');}).join('\n');
+      moveCell+='<div title="'+esc(names)+'" style="font-size:10.5px;color:#a3242c;font-weight:600;margin-top:2px">⚠ '+L('clashes with '+cl.length+' event'+(cl.length===1?'':'s')+' elsewhere','تعارض مع '+cl.length+' فعالية في مدينة أخرى')+'</div>';
+    }
     var lc=LEADS[normName(e.name_en)]||0;
     if(lc)moveCell+='<div style="font-size:10.5px;color:#1e7a34;font-weight:600;margin-top:2px">'+L(lc+' lead'+(lc===1?'':'s')+' in the app', lc+' عميل محتمل في التطبيق')+'</div>';
     var lk=safeUrl(e.link);
