@@ -1,5 +1,42 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-13 · Round 11 — access stays live, the world is complete, Arabic names
+
+Asked whether anything was left. It was, and this round did it.
+
+1. **Access is re-checked while you work** (`js/50-v74`). The app used to ask "who is this and
+   what may they do?" once, at sign-in, and never again — so switching someone off in Team, or
+   changing their role, did nothing until they happened to reload. Now it re-checks every 90
+   seconds and whenever the tab comes back to the front: switched off → signed out with a plain
+   message; role changed → the new permissions apply immediately and the person is told once.
+   Proven live: Mohammed was switched off mid-session and was out within seconds; Assem was
+   promoted to manager and finance opened up without a reload, then closed again on demotion.
+2. **The training world was incomplete for two of the five roles.** There were ZERO proposals
+   (five leads sat at proposal stage with no proposal behind them) and an empty operations desk.
+   Added five real proposals — one per proposal-stage lead, owned by the person working it,
+   with scope, value, validity and status — and a seven-item operations queue spread across
+   New / Quoting / Awaiting client / Booked / Ticketed / Delivered.
+3. **Arabic names on Arabic screens.** Owner columns, the assign/account-manager dropdowns and
+   the sidebar footer now show each person's Arabic name while still STORING the English one,
+   so filters, matching and reports are untouched.
+4. **Two identical "الهوية" rows in the sidebar** — two separate layers were each adding a Brand
+   entry (`v46BrandBtn` and `v70BrandBtn`). The newer one now stands down when another already
+   provides it. (First attempt made them fight each other; the fix is "stand down", not "adopt".)
+5. **Refined the permission guard**: it no longer blanket-hides every primary button for
+   read-only people (that also hid harmless things like "Show all" and Export). Guarding the
+   actions is what stops the write.
+
+Proven: 11/11 round-11 checks, 83/83 role rehearsal, 60/60 database matrix, 214 harness checks.
+
+Still open (honest list):
+- `bd`, `operations` and `team_member` share one screen tier internally, so the screen cannot
+  show a bd person their promo-code powers; the database does enforce the difference.
+- Expense receipts as photo attachments.
+- Phone-browser pass for the non-admin roles.
+- A person signed in on two devices when switched off: the second device clears on its next
+  re-check (≤90s), not instantly.
+
+
 ## 2026-08-13 · Round 10 — five employees actually worked the app; five real defects found
 
 Not a code review: five people with five different roles (manager, business development,

@@ -71,6 +71,7 @@
         if(r.error||!r.data)return;
         _loaded=true;
         buildIndex(r.data);
+        try{ window.__ROSTER=r.data; window.__TEAMU=window.__TEAMU||r.data; }catch(_){}
         // the signed-in person's canonical identity, from their email — not from a stale blob value
         var meRow=r.data.find(function(x){return String(x.email||'').toLowerCase()===String(u.email||'').toLowerCase();});
         if(meRow){

@@ -7,10 +7,17 @@
   function isAr(){ try{ return (typeof LANG!=='undefined'&&LANG==='ar'); }catch(_){ return false; } }
   function inject(){
     var nav=document.getElementById('nav'); if(!nav||!nav.querySelector('button')) return;
-    var b=document.getElementById('v70BrandBtn');
     var label=isAr()?'الهوية':'Brand';
-    if(b){ var s=b.querySelector('span'); if(s&&s.textContent!==label) s.textContent=label; return; }
-    b=document.createElement('button');
+    var mine=document.getElementById('v70BrandBtn');
+    /* An earlier layer (v46BrandBtn) already puts a Brand entry in the sidebar. Adding a second
+       one produced two identical rows — glaring in Arabic, where both read "الهوية". If anyone
+       else already provides it, stand down completely and remove ours. (fix 2026-08-13) */
+    var others=[].slice.call(nav.querySelectorAll('button')).filter(function(x){
+      return x!==mine && /^(Brand|الهوية)$/.test((x.textContent||'').trim());
+    });
+    if(others.length){ if(mine&&mine.parentNode) mine.parentNode.removeChild(mine); return; }
+    if(mine){ var sp=mine.querySelector('span'); if(sp&&sp.textContent!==label) sp.textContent=label; return; }
+    var b=document.createElement('button');
     b.id='v70BrandBtn';
     b.innerHTML=IC_BRAND+'<span>'+label+'</span>';
     b.onclick=function(){ try{ window.open('/brand/','_blank'); }catch(_){} };
