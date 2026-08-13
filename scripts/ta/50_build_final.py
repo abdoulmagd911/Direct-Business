@@ -18,7 +18,8 @@ Usage: 50_build_final.py <outdir>
 """
 import sys, json, re, collections, os
 sys.path.insert(0, '/root/.claude/skills/synced/contact-data-consolidation/scripts')
-from normalize import valid_email, maps_url, priority_score, completeness
+from normalize import (valid_email, maps_url, priority_score, completeness,
+                       split_socials, classify_phone, is_placeholder_phone)
 
 SP = '/tmp/claude-0/-home-user-Direct-Business/87d1aec0-e2cf-54b0-95a9-480203ce0e75/scratchpad'
 OUTDIR = sys.argv[1] if len(sys.argv) > 1 else SP
@@ -30,12 +31,29 @@ def load_json(p, default=None):
     return json.load(open(p, encoding='utf-8'))
 
 recs = load_jsonl(f'{SP}/ta-work.jsonl')
+# Rows v3 parked in its "TAS v2 leftovers" sheet as empty shells. They are not
+# empty — most carry a name and an email — so they join the main set. Ones that
+# match an existing record only contribute their data; the rest are companies
+# that were missing from the master altogether.
+leftovers = load_jsonl(f'{SP}/ta-leftovers.jsonl') if os.path.exists(f'{SP}/ta-leftovers.jsonl') else []
+leftover_extra = collections.defaultdict(list)
+for lo in leftovers:
+    if lo.get('_existing_match'):
+        leftover_extra[lo['_existing_match']].append(lo)
+    else:
+        recs.append(lo)
+
 crawl = {r['domain']: r for r in load_jsonl(f'{SP}/ta-crawl.jsonl')}
+for extra in ('ed-crawl.jsonl',):          # domains reachable only via an email address
+    if os.path.exists(f'{SP}/{extra}'):
+        for r in load_jsonl(f'{SP}/{extra}'):
+            crawl.setdefault(r['domain'], r)
 mx = load_json(f'{SP}/ta-mx.json', {})
+mx.update(load_json(f'{SP}/ta-mx-extra.json', {}))
 decisions = load_json(f'{SP}/dedupe_decisions.json')
 safe = load_json(f'{SP}/dedupe_safe.json')
-idv = load_json(f'{SP}/id_verdicts.json')
-namev = load_json(f'{SP}/name_verdicts.json')
+idv = load_json(f'{SP}/id_verdicts.json') + load_json(f'{SP}/id_verdicts_extra.json')
+namev = load_json(f'{SP}/name_verdicts.json') + load_json(f'{SP}/name_verdicts_extra.json')
 
 by_id = {r.get('Row ID'): r for r in recs}
 id_by_row = {v['row_id']: v for v in idv if v.get('row_id')}
@@ -111,7 +129,7 @@ def g_(r, k):
 def combine(members):
     o = collections.defaultdict(list)
     o['whatsapp'] = ''; o['sar'] = 0.0
-    for r in members:
+    for r in list(members) + [x for m in members for x in leftover_extra.get(m.get('Row ID'), [])]:
         n = r['_norm']
         for k in ('mobiles', 'landlines', 'hotlines', 'emails', 'domains', 'placeholders'):
             for v in n[k]:
@@ -124,6 +142,7 @@ def combine(members):
         for fld, key in (('HQ City', 'cities'), ('HQ Region', 'regions'),
                          ('Contact Names', 'contacts'), ('Decision Maker', 'dms'),
                          ('IATA Number', 'iata'), ('IBAN', 'iban'), ('LinkedIn', 'linkedin'),
+                         ('Social Links', 'socials'),
                          ('License Status', 'licstatus')):
             v = g_(r, fld)
             if v and v not in o[key]: o[key].append(v)
@@ -194,9 +213,36 @@ for r in recs:
     web = ('live' if 'live' in statuses else 'parked/thin' if 'parked/thin' in statuses
            else 'dead' if statuses else '')
 
-    # ---- email deliverability
-    mailable = [e for e in c['emails'] if mx.get(e.split('@')[1].lower(), {}).get('status') == 'mx']
+    # ---- contacts the company publishes on its OWN site.
+    # Only ever taken from a domain this record owns, so nothing can cross companies.
+    site_em, site_ph = [], []
+    for d in corp_doms:
+        c_ = crawl.get(d)
+        if not c_: continue
+        for e in (c_.get('site_emails') or []):
+            e = e.lower().strip()
+            dom = e.split('@')[-1]
+            # keep only addresses on the company's own domain, or a free-mail address
+            # the company itself chose to publish; never another firm's corporate domain
+            if (dom == d or dom.endswith('.' + d) or is_free(dom)) and \
+               valid_email(e) and e not in c['emails'] and e not in site_em:
+                site_em.append(e)
+        for p in (c_.get('site_phones') or []):
+            e164, kind = classify_phone(p)
+            if not e164 or is_placeholder_phone(e164): continue
+            if e164 in c['mobiles'] or e164 in c['landlines'] or e164 in c['hotlines']: continue
+            if e164 not in [x[0] for x in site_ph]:
+                site_ph.append((e164, kind))
+    site_mob = [p for p, k in site_ph if k == 'mobile']
+    site_land = [p for p, k in site_ph if k in ('landline', 'hotline')]
+
+    # ---- email deliverability. A site-published address on a domain we know
+    # accepts mail counts as reachable; one we have not MX-checked is listed
+    # separately rather than promoted to a verified contact.
+    all_em = c['emails'] + [e for e in site_em if e not in c['emails']]
+    mailable = [e for e in all_em if mx.get(e.split('@')[1].lower(), {}).get('status') == 'mx']
     undeliverable = [e for e in c['emails'] if e not in mailable]
+    site_only_em = [e for e in site_em if e in mailable and e not in c['emails']]
 
     if cr and 'DIFFERS' not in cr_src:
         level = 'confirmed'
@@ -216,6 +262,8 @@ for r in recs:
                 break
     city = next((x for x in c['cities'] if x and 'unconfirmed' not in x.lower()), '')
     disp = name_en or name_ar
+    # one social network per column, as a campaign tool expects
+    soc = split_socials(*(c['socials'] + c['linkedin']))
 
     row = {
         'Row ID': rid,
@@ -230,9 +278,9 @@ for r in recs:
         'VAT Number': vat,
         'MOT Licence(s)': ' | '.join(licences[:4]),
         'Licence Status': c['licstatus'][0] if c['licstatus'] else '',
-        'Mobile 1': c['mobiles'][0] if c['mobiles'] else '',
-        'Mobile 2': c['mobiles'][1] if len(c['mobiles']) > 1 else '',
-        'Landline': c['landlines'][0] if c['landlines'] else '',
+        'Mobile 1': (c['mobiles'] + site_mob)[0] if (c['mobiles'] or site_mob) else '',
+        'Mobile 2': (c['mobiles'] + site_mob)[1] if len(c['mobiles'] + site_mob) > 1 else '',
+        'Landline': (c['landlines'] + site_land)[0] if (c['landlines'] or site_land) else '',
         'Hotline (920/800)': c['hotlines'][0] if c['hotlines'] else '',
         'WhatsApp (confirmed)': c['whatsapp'],
         'Email 1 (deliverable)': mailable[0] if mailable else '',
@@ -240,6 +288,8 @@ for r in recs:
         'Email 3 (deliverable)': mailable[2] if len(mailable) > 2 else '',
         'More deliverable emails': ' | '.join(mailable[3:8]),
         'Emails that cannot receive mail': ' | '.join(undeliverable[:4]),
+        'New contacts from their website': ' | '.join(
+            (site_only_em[:2] + site_mob[:1] + site_land[:1])[:4]),
         'Fake numbers found (ignored)': ' | '.join(c['placeholders'][:3]),
         'Website': corp_doms[0] if corp_doms else '',
         'Website Status (13 Aug 2026)': web,
@@ -250,7 +300,12 @@ for r in recs:
         'Find on Google Maps': maps_url(disp, city) if disp else '',
         'IATA Number': c['iata'][0] if c['iata'] else '',
         'IBAN': c['iban'][0] if c['iban'] else '',
-        'LinkedIn': c['linkedin'][0] if c['linkedin'] else '',
+        'LinkedIn': soc.get('linkedin', '') or (c['linkedin'][0] if c['linkedin'] else ''),
+        'Instagram': soc.get('instagram', ''),
+        'X (Twitter)': soc.get('x_twitter', ''),
+        'Facebook': soc.get('facebook', ''),
+        'TikTok / YouTube / Snapchat': ' | '.join(
+            x for x in (soc.get('tiktok', ''), soc.get('youtube', ''), soc.get('snapchat', '')) if x),
         'Decision Maker': ' | '.join(c['dms'][:2]),
         'Contact Names': ' | '.join(c['contacts'][:3]),
         'Already billed by Direct (SAR)': round(c['sar'], 2) if c['sar'] else '',
@@ -280,9 +335,11 @@ COLS = ['Row ID', 'Record Type', 'Company Name (EN)', 'Company Name (AR)',
         'Where the number came from', 'VAT Number', 'MOT Licence(s)', 'Licence Status',
         'Mobile 1', 'Mobile 2', 'Landline', 'Hotline (920/800)', 'WhatsApp (confirmed)',
         'Email 1 (deliverable)', 'Email 2 (deliverable)', 'Email 3 (deliverable)',
-        'More deliverable emails', 'Emails that cannot receive mail', 'Fake numbers found (ignored)',
+        'More deliverable emails', 'Emails that cannot receive mail',
+        'New contacts from their website', 'Fake numbers found (ignored)',
         'Website', 'Website Status (13 Aug 2026)', 'Other Domains', 'HQ City', 'Region',
-        'Where the region came from', 'Find on Google Maps', 'IATA Number', 'IBAN', 'LinkedIn',
+        'Where the region came from', 'Find on Google Maps', 'IATA Number', 'IBAN',
+        'LinkedIn', 'Instagram', 'X (Twitter)', 'Facebook', 'TikTok / YouTube / Snapchat',
         'Decision Maker', 'Contact Names', 'Already billed by Direct (SAR)',
         'Where this record came from', 'Duplicates folded in', 'Travel business?',
         'Numbers we rejected (and why)', 'Needs a human check', 'Priority Score', 'Completeness %']
