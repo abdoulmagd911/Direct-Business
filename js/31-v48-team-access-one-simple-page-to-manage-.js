@@ -1,8 +1,9 @@
 /* ===== v48 — Team & Access: one simple page to manage who can sign in and what they see =====
    Consolidates the old separate "Team" (create/reset/activate) and "Access" (per-page) tools into
-   ONE panel: add a teammate, set their role, toggle active, choose exactly which pages they open,
-   and reset a password. Reuses the existing admin-users function + app_users.allowed_pages, so no
-   new backend. Reachable from a Settings card (works on phone) and the top-bar Team/Access buttons. */
+   ONE panel: add a teammate, set their level, switch them on or off, and reset a password.
+   The per-page tick boxes were removed on 2026-08-13 — a person's LEVEL decides which pages
+   they open and what they may save, so the ticks changed nothing, and worse, "Save pages"
+   reported success even when the database had refused the write. Reachable from a Settings card (works on phone) and the top-bar Team/Access buttons. */
 (function(){try{
   var SUPA_URL='https://vkxoeeoauexyfpzqufqd.supabase.co';
   var SUPA_KEY='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
@@ -75,27 +76,26 @@
         (A?'الرابط':'Link')+': '+esc(location.origin)+'<br>'+(A?'البريد':'Email')+': '+esc(email)+'<br>'+(permanent?(A?'كلمة المرور':'Password'):(A?'كلمة مرور مؤقتة':'Temporary password'))+': <b>'+esc(pw)+'</b></div>'+
         '<div style="color:#6B7480;margin-top:6px">'+(permanent?(A?'تظهر مرة واحدة. هذه كلمته الدائمة — لن يُطلب منه تغييرها.':'Shown once. This is their permanent password — they will not be asked to change it.'):(A?'تظهر مرة واحدة. سيختار كلمته الخاصة عند أول دخول.':'Shown once. They choose their own password on first sign-in.'))+'</div></div>';
     }
+    /* what this level actually opens — the same lists the app and the server both go by */
+    function pagesLine(role){
+      if(role==='admin')   return A?'يفتح كل الصفحات، ويمنح أي صلاحية.':'Opens every page, and can grant any level.';
+      if(role==='manager') return A?'يفتح: اليوم، العملاء المحتملون، العملاء، المالية، العروض، الفعاليات، شركات الطيران، الإعدادات والسجلات. يضيف ويزيل الزملاء (دون صلاحية مسؤول).':'Opens Today, Leads, Clients, Finance, Proposals, Events, Airlines, Settings and the logs. Adds and removes people — but never an admin.';
+      return A?'يفتح: اليوم، العملاء المحتملون، العملاء، المالية — ويعدّل فيها جميعًا.':'Opens Today, Leads, Clients and Finance — and may edit all of them.';
+    }
     function load(){
       var lb=document.getElementById('v48list'); if(!lb)return;
       call({action:'list'}).then(function(res){
         if(res.error){ lb.textContent=res.error; return; }
         var users=res.users||[];
         var c=cl();
-        var apP=c?c.from('app_users').select('id,allowed_pages').then(function(r){var m={};(r.data||[]).forEach(function(u){m[u.id]=u.allowed_pages;});return m;}):Promise.resolve({});
-        apP.then(function(apMap){ draw(users,apMap); }).catch(function(){ draw(users,{}); });
+        draw(users);
       });
     }
-    function draw(users,apMap){
+    function draw(users){
       var lb=document.getElementById('v48list'); if(!lb)return;
-      var PG=pages();
       lb.style.color='var(--txt,#303848)';
       lb.innerHTML=users.map(function(u,i){
         var nm=esc((u.full_name||'').trim()||u.email.split('@')[0]);
-        var ap=apMap[u.id]; var all=!Array.isArray(ap)||!ap.length;
-        var chips=PG.map(function(p){
-          var on=all||ap.indexOf(p[0])>=0;
-          return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;background:'+(on?'var(--wash-orange,#FFF3EC)':'#f2f3f5')+';border:1px solid '+(on?'#F2C185':'#e3e3e3')+';border-radius:8px;padding:3px 8px;margin:2px 4px 2px 0;cursor:pointer"><input type="checkbox" data-u="'+i+'" data-p="'+p[0]+'"'+(on?' checked':'')+'> '+esc(A?p[2]:p[1])+'</label>';
-        }).join('');
         var roleSel='<select data-role="'+u.id+'" style="padding:6px 9px;border:1px solid var(--line-2,#DADDE3);border-radius:8px;font:inherit;font-size:12px;background:#fff">'+Object.keys(RL).map(function(k){return '<option value="'+k+'"'+(u.role===k?' selected':'')+'>'+(A?RL[k][1]:RL[k][0])+'</option>';}).join('')+'</select>';
         return '<div style="border-top:1px solid var(--line,#E6E8EC);padding:13px 0">'+
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'+
@@ -104,11 +104,10 @@
               '<button class="btn ghost sm" data-tog="'+u.id+'" data-act="'+(u.active?'0':'1')+'">'+(u.active?(A?'إيقاف':'Switch off'):(A?'تفعيل':'Switch on'))+'</button>'+
               '<button class="btn ghost sm" data-rst="'+u.id+'">'+(A?'كلمة مرور جديدة':'Reset password')+'</button>'+
             '</div></div>'+
-          '<div style="margin-top:8px;font-size:12px;color:var(--muted,#6B7480)">'+(A?'الصفحات التي يفتحها:':'Pages they can open:')+'</div>'+
-          '<div style="margin-top:4px">'+chips+'</div>'+
-          '<div style="margin-top:7px"><button class="btn sm" data-save="'+u.id+'" data-i="'+i+'">'+(A?'حفظ الصفحات':'Save pages')+'</button> '+
-            '<button class="btn ghost sm" data-all="'+i+'">'+(A?'كل الصفحات':'All pages')+'</button> '+
-            '<button class="btn ghost sm" data-none="'+i+'">'+(A?'مسح الكل':'Clear all')+'</button></div>'+
+          /* The per-page tick boxes were removed on 2026-08-13. A person's LEVEL decides which
+             pages they open and what they may save — the ticks changed neither, and the Save
+             button said "Saved ✓" even when the database had refused the write outright. */
+          '<div style="margin-top:6px;font-size:11.5px;color:var(--muted,#6B7480)">'+pagesLine(u.role)+'</div>'+
         '</div>';
       }).join('') || (A?'لا يوجد مستخدمون بعد.':'No users yet.');
       wire(users);
@@ -118,16 +117,6 @@
       lb.querySelectorAll('[data-role]').forEach(function(sel){ sel.onchange=function(){ call({action:'set_role',id:sel.getAttribute('data-role'),role:sel.value}).then(function(r){ if(r.error){alert(r.error);load();} }); }; });
       lb.querySelectorAll('[data-tog]').forEach(function(b){ b.onclick=function(){ call({action:'set_active',id:b.getAttribute('data-tog'),active:b.getAttribute('data-act')==='1'}).then(function(r){ if(r.error){alert(r.error);return;} load(); }); }; });
       lb.querySelectorAll('[data-rst]').forEach(function(b){ b.onclick=function(){ if(!confirm(A?'إعطاء هذا الشخص كلمة مرور مؤقتة جديدة؟':'Give this person a new temporary password?'))return; b.disabled=true; call({action:'reset_password',id:b.getAttribute('data-rst')}).then(function(r){ b.disabled=false; if(r.error){alert(r.error);return;} var wrap=b.closest('div').parentNode.parentNode; var sp=wrap?wrap.querySelector('.v48-nm span'):null; showTemp(sp?sp.textContent:'',r.temp_password); }); }; });
-      lb.querySelectorAll('[data-all]').forEach(function(b){ b.onclick=function(){ var i=b.getAttribute('data-all'); lb.querySelectorAll('input[data-u="'+i+'"]').forEach(function(x){x.checked=true;}); }; });
-      lb.querySelectorAll('[data-none]').forEach(function(b){ b.onclick=function(){ var i=b.getAttribute('data-none'); lb.querySelectorAll('input[data-u="'+i+'"]').forEach(function(x){x.checked=false;}); }; });
-      lb.querySelectorAll('[data-save]').forEach(function(b){ b.onclick=function(){
-        var id=b.getAttribute('data-save'), i=b.getAttribute('data-i');
-        var picked=[].slice.call(lb.querySelectorAll('input[data-u="'+i+'"]:checked')).map(function(x){return x.getAttribute('data-p');});
-        if(picked.indexOf('today')<0)picked.unshift('today'); /* Today is always allowed */
-        var payload=(picked.length>=pages().length)?null:picked; /* all ticked = full access */
-        var c=cl(); if(!c){alert('Not ready');return;}
-        c.from('app_users').update({allowed_pages:payload}).eq('id',id).then(function(r){ if(r.error){alert(r.error);return;} b.textContent=A?'تم ✓':'Saved ✓'; setTimeout(function(){b.textContent=A?'حفظ الصفحات':'Save pages';},1500); });
-      }; });
     }
   };
 
@@ -140,7 +129,7 @@
       var A=ar();
       var card=document.createElement('div'); card.className='card v48-card'; card.style.cssText='border:1px solid #F2C185';
       card.innerHTML='<h3>'+(A?'الفريق والصلاحيات':'Team & Access')+'</h3>'+
-        '<div style="font-size:13px;color:var(--muted,#6B7480);margin:2px 0 12px">'+(A?'أنشئ حسابات الفريق، عيّن دور كل شخص، وحدد الصفحات التي يمكنه فتحها (مثلاً: المالية فقط، أو العملاء المحتملون والعملاء).':'Create team accounts, set each person’s role, and choose which pages they can open (e.g. Finance only, or Leads + Clients).')+'</div>'+
+        '<div style="font-size:13px;color:var(--muted,#6B7480);margin:2px 0 12px">'+(A?'أنشئ حسابات الفريق وحدد مستوى كل شخص: مسؤول أو مدير أو موظف. المستوى وحده يحدد الصفحات التي يفتحها وما يمكنه تعديله.':'Create team accounts and set each person’s level — Admin, Manager or Employee. The level alone decides which pages they open and what they may change.')+'</div>'+
         '<button class="btn pri" onclick="v48Users()">'+(A?'فتح الفريق والصلاحيات':'Open Team & Access')+'</button>';
       var _sh=v.querySelector('.v26_3-chips')||v.querySelector('.v26_3-section-head');if(_sh)v.insertBefore(card,_sh.nextSibling);else v.insertBefore(card, v.firstChild);
     }catch(_){}
