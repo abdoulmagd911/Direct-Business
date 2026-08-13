@@ -3,7 +3,7 @@
 Living list. Every session should read this and update it. Nothing here is forgotten,
 it is *parked*, and each item says why and what "done" looks like.
 
-Last reviewed: **2026-08-09**
+Last reviewed: **2026-08-13**
 
 ### Shipped 2026-08-09 (live)
 - **Declutter of Leads / Clients / Finance** — removed the dead "Open in Direct" columns,
@@ -53,7 +53,39 @@ one pass.
 
 ---
 
-## 2 · Travel agencies project — scattered, needs collecting
+## 2 · Travel agencies project — consolidated into v3 on 2026-08-13
+
+**The "lost" work was found intact in Drive (2026-08-13 session).** The full lineage exists:
+raw email lists → `MASTER_DB_v1.0…v1.98` CSVs (Jul 12, built on the Q:\ laptop) →
+`TAS_MASTER_v1_DEDUPED.xlsx` (Jul 14 — dedup run: 5,139→5,084 rows, 36 groups merged) →
+`TAS_MASTER_v2_SBC_ENRICHED.xlsx` (Jul 15, 5,084 rows × 35 cols) →
+`Travel_Agencies_Contacts_Enriched.xlsx` (Jul 16, per-domain SBC registry checks) →
+`TravelAgencies_MASTER.xlsx` (Jul 23, 4,882 rows × 30 cols — was treated as final).
+
+**Confirmed data loss in the Jul 23 rebuild, now repaired:** the Jul 23 file used a narrower
+schema and silently dropped v2's city (1,096 rows), region (1,276), LinkedIn (149),
+social links (113), decision makers (84), IATA (25), WhatsApp (116), extra phones/emails —
+AND ~1,250 whole companies that only existed in v2: the Tabby Saudi Travel merchant
+directory (255), Direct Payments B2B/B2C exports (132), the official Ministry of Hajj
+providers list for 1447 AH (72), BNPL merchants and integration partners.
+
+**Built `data/TravelAgencies_MASTER_v3.xlsx` (in this repo): 6,131 rows.** The Jul 23 file
+is the anchor (all 4,882 rows carried byte-identical — verified); v2 data was attached in
+separate suffixed columns (never overwriting, keep-both rule); 1,249 v2-only companies
+appended as `M04883+` with `Link Method = from TAS v2`; 243 empty-shell v2 rows parked in
+a "TAS v2 leftovers" sheet; 13 ambiguous matches flagged `needs manual confirmation` with
+the candidate row ids in Notes. Matching order: MOT licence number → root domain →
+exact AR name → exact EN name (3,877 rows enriched).
+
+**Not uploaded to Drive** — the file (1.3 MB) exceeds what the Drive tool can upload from
+this environment; it was handed over in-chat and lives in `data/` here.
+
+**The real remaining gap is SBC verification, not consolidation:** only ~45 of 6,131 rows
+have a CR number. The Jul 16 progress report says 35 of 614 domain clusters were searched
+on eauthenticate.saudibusiness.gov.sa — 579 clusters never looked up. That lookup requires
+browsing the SBC site (blocked from sandboxes) or a data source we don't have yet.
+
+Unchanged context below:
 
 Travel agencies are a different kind of lead from a contact-form enquiry. They are
 **competitors as well as customers**, so each one needs its own offer and its own service
