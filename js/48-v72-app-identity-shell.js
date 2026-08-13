@@ -1,6 +1,6 @@
-/* ===== v69: identity in the app shell =====
+/* ===== v72: identity in the app shell =====
    Login-card logo + a brand strip on the offers list that mounts the Studio.
-   Renamed from v48 → v69 (the app already has a real v48 layer). */
+   Renamed from v48 → v72 (the app already has a real v48 layer). */
 (function(){try{
   function isAr(){ try{ return (typeof LANG!=='undefined'&&LANG==='ar'); }catch(_){ return false; } }
   function setLoginLogo(){
@@ -14,14 +14,14 @@
     var cur=null, open=null;
     try{ cur=current; }catch(_){}
     try{ open=openOffer; }catch(_){}
-    var existing=document.getElementById('v69OffersStrip');
+    var existing=document.getElementById('v72OffersStrip');
     if(cur!=='offers' || open){ if(existing) existing.remove(); return; }
     if(existing) return;
     var view=document.getElementById('view')||document.querySelector('main'); if(!view) return;
     var table=view.querySelector('table'); if(!table) return;
     var ar=isAr();
     var strip=document.createElement('div');
-    strip.id='v69OffersStrip';
+    strip.id='v72OffersStrip';
     strip.style.cssText='display:flex;align-items:center;gap:14px;flex-wrap:wrap;'+
       'background:#FFF3EC;border:1px solid #F8CBAA;border-radius:12px;padding:10px 14px;margin:0 0 12px';
     var img=document.createElement('img');
@@ -46,5 +46,5 @@
     window.render=function(){ var out=_r.apply(this,arguments); try{ tick(); }catch(_){ } return out; };
   }
   setInterval(tick,1500);
-  console.info('%c[v69] app identity layer loaded','color:#F47A1F;font-weight:700');
-}catch(e){if(window.console)console.warn('[v69] init',e);}})();
+  console.info('%c[v72] app identity layer loaded','color:#F47A1F;font-weight:700');
+}catch(e){if(window.console)console.warn('[v72] init',e);}})();

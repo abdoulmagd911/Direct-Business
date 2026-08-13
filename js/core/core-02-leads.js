@@ -171,7 +171,7 @@ function clientHealth(b){
 function renderClients(v){
   let cl=DB.businesses.filter(b=>b.isClient);
   if(clFilter.q){const q=clFilter.q.toLowerCase();cl=cl.filter(b=>((b.name||"")+" "+(b.nameAr||"")+" "+((b.contacts||[]).map(c=>String(c.email||"")+String(c.phone||"")).join(" "))).toLowerCase().includes(q));}
-  if(clFilter.owner!=="all")cl=cl.filter(b=>(b.accountManager||b.assignedTo||"")===clFilter.owner);
+  if(clFilter.owner!=="all")cl=cl.filter(b=>window.sameOwner?sameOwner(b.accountManager||b.assignedTo,clFilter.owner):(b.accountManager||b.assignedTo||"")===clFilter.owner);
   if(clFilter.tier!=="all")cl=cl.filter(b=>(b.tier||"Standard")===clFilter.tier);
   const sv=(b,k)=>k==="am"?String(b.accountManager||b.assignedTo||"").toLowerCase():k==="tier"?String(b.tier||"Standard"):k==="review"?(b.nextReview||"9999-99"):k==="health"?({"At risk":0,Watch:1,New:2,Good:3}[clientHealth(b).l]):String(b.name||"").toLowerCase();
   cl=cl.slice().sort((a,b)=>{const va=sv(a,clSort.k),vb=sv(b,clSort.k);return va<vb?-1*clSort.dir:va>vb?1*clSort.dir:0;});

@@ -719,7 +719,7 @@ window.rptPpt=function(){
  window.clientsView=function(){
   var cl=DB.businesses.filter(function(b){return b.isClient;});
   if(clFilter.q){var q=clFilter.q.toLowerCase();cl=cl.filter(function(b){return ((b.name||"")+" "+(b.nameAr||"")).toLowerCase().indexOf(q)>=0;});}
-  if(clFilter.owner!=="all")cl=cl.filter(function(b){return (b.accountManager||b.assignedTo||"")===clFilter.owner;});
+  if(clFilter.owner!=="all")cl=cl.filter(function(b){return window.sameOwner?sameOwner(b.accountManager||b.assignedTo,clFilter.owner):(b.accountManager||b.assignedTo||"")===clFilter.owner;});
   if(clFilter.tier!=="all")cl=cl.filter(function(b){return (b.tier||"Standard")===clFilter.tier;});
   var sv=function(b,k){return k==="am"?String(b.accountManager||b.assignedTo||"").toLowerCase():k==="tier"?String(b.tier||"Standard"):k==="review"?(b.nextReview||"9999-99"):String(b.name||"").toLowerCase();};
   return cl.slice().sort(function(a,b){var va=sv(a,clSort.k),vb=sv(b,clSort.k);return va<vb?-1*clSort.dir:va>vb?1*clSort.dir:0;});
@@ -805,8 +805,8 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
 /* v29.9 current-user ("who am I") so team-test attributions are correct, not hardcoded to Abdelrahman */
 (function(){try{
  DB.settings=DB.settings||{};
- if(!DB.settings.currentUser)DB.settings.currentUser='Abdelrahman';
- window.me=function(){return (DB.settings&&DB.settings.currentUser)||'Abdelrahman';};
+ /* no invented default identity — v67 sets currentUser from the signed-in email */
+ window.me=function(){return (DB.settings&&DB.settings.currentUser)||(window.__userName||'');};
  window.setMe=function(v){DB.settings=DB.settings||{};DB.settings.currentUser=v;save();var p=document.getElementById('mePick');if(p)p.value=v;};
  function mountPicker(){
   try{ var old=document.getElementById('meWrap'); if(old) old.remove(); }catch(_){}
@@ -823,7 +823,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
  // one filtered+refined+sorted list used by BOTH the table and Export
  window.leadTableList=function(){
   var list=DB.businesses.filter(matchLead);
-  if(leadFilter.mine){var _meN=(window.meName?meName():'');list=list.filter(function(b){return (b.assignedTo||b.owner||'')===_meN;});}
+  if(leadFilter.mine){var _meN=(window.meName?meName():'');list=list.filter(function(b){return window.sameOwner?sameOwner(b.assignedTo||b.owner,_meN):(b.assignedTo||b.owner||'')===_meN;});}
   if(leadFilter.hideClosed&&(leadFilter.stage==='all'||!leadFilter.stage))list=list.filter(function(b){var s=leadStage(b);return s!=='Won'&&s!=='Lost';});
   if(leadFilter.attention)list=list.filter(function(b){return !(b.contacts||[]).length||!b.source;});
   return list.slice().sort(function(a,b){var va=leadSortVal(a,leadSort.k),vb=leadSortVal(b,leadSort.k);return va<vb?-1*leadSort.dir:va>vb?1*leadSort.dir:0;});

@@ -68,7 +68,7 @@ TABLES.app_projects=[{"id": "prj_bright", "data": {"id": "prj_bright", "name": "
 TABLES.app_bookings=(BLOB.bookings||[]).map(r=>({id:r.id,data:r}));
 TABLES.app_invoices=(BLOB.invoices||[]).map(r=>({id:r.id,data:r}));
 TABLES.app_settings=[{id:'main',data:(BLOB.settings||{})}];
-TABLES.team_directory=TABLES.app_users.filter(u=>u.active).map(u=>({id:u.id,full_name:u.full_name,email:u.email,role:u.role,title:null}));
+TABLES.team_directory=TABLES.app_users.filter(u=>u.active).map(u=>({id:u.id,full_name:u.full_name,email:u.email,role:u.role,title:null,nickname:(u.full_name||'').split(' ')[0]||null,name_ar:(u.full_name==='Assem Alsweed'?'عاصم السويد':null)}));
 if(process.env.MOCK_STRESS==='1'){ const {applyStress}=await import('./stress-data.mjs'); applyStress(TABLES); }
 const RPCLOG=[];
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
@@ -149,6 +149,7 @@ export function start(port){
       let val=u.query[k]; if(Array.isArray(val))val=val[0];
       const m=String(val||'').match(/^eq\.(.*)$/);
       if(m){ const want=m[1]; rows=rows.filter(r=>String(r[k])===want); }
+      if(String(val)==='is.null'){ rows=rows.filter(r=>r[k]==null); }
     });
     // PostgREST semantics: a Range header windows the result; with or without one,
     // the server never returns more than 1000 rows (Supabase default max-rows).
