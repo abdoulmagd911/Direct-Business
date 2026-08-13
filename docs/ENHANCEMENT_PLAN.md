@@ -91,6 +91,27 @@ harness, screenshot for your approval, then live.
   lead score as Hot / Warm / Cool / Cold; click the header to sort and work the hottest first.
 - **Step 5 — Conversion strip on Leads:** ✅ shipped. New-this-month, in-pipeline, conversion %,
   and average time-to-win across the top of the Leads list.
+- **Step 6 — Finance income-by-service (the service-fee model):** ✅ shipped. The Finance overview
+  carries an "income by service line" card that splits every service into **gross billed** (cost +
+  service fee), **cost** (the pass-through expense), **service-fee income** (Direct's taxable income),
+  and margin — with a drill into the ledger for the proof (invoice # / DPIN). **Values were not
+  changed** — the team's numbers are shown as-is, restructured for review. (Cost-0 rows are flagged.)
+- **Step 7 — Leads service-fit map:** ✅ shipped. On each lead, an all-in-one capture of which Direct
+  services the company already buys, could win, buys elsewhere, or doesn't need — the "one partner for
+  everything" angle, per Direct service (flights, hotels, visa, transfers, MICE, and the growth lines).
+- **Step 8 — Won → Client link (the link key):** ✅ shipped. A client detail shows a **Direct client ID**
+  banner: linked (with a deep link into Direct Payments) or an amber "not linked yet" prompt. The ID is
+  captured at handover (the convert modal) or in one tap on the banner. This is the key that ties our
+  reflection to Direct's source of truth.
+- **Step 9 — Suggested next step per stage (v35):** ✅ shipped. Each active lead shows a calm one-line
+  nudge for its stage (New → assign an owner; Contacted → discovery call; Qualified → send the proposal;
+  Won → complete the Direct handover). A prompt from the travel lifecycle, not a task — EN + AR.
+- **Step 10 — Client profile "managed in Direct" (v36, the reflection boundary):** ✅ shipped. The client
+  master (registration, documents, pricing scheme, credit line) is owned by Direct Payments, so the
+  duplicate local onboarding form is now **collapsed behind a note** with a "Manage profile in Direct ↗"
+  deep link. **Reversible, nothing deleted:** the local form still exists and stays reachable via a quiet
+  "local form" fallback and the "Edit client profile (full form)" button. This closes the duplication trap
+  named in `DIRECT_SYSTEMS_MAP.md`.
 
 ## Declutter done alongside (2026-08-08)
 
