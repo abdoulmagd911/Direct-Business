@@ -774,6 +774,14 @@ as deliberate: `#F06820` documents · `#FF6C00` logo mark · `#F47A1F` app.
   deployment READY; live files verified byte-identical to the tested repo files
   (sha256 on 7 files including fonts). Still recommended: point the Vercel production
   branch at `main` (Settings → Git) to end the two-branch dance.
+- **Heavy testing round 2026-08-13:** five full example offers produced as real PDFs
+  (EN corporate, AR discount, VAT-inclusive decimals, 20-line stress, extreme-length
+  Arabic names) — found and fixed a real clipping bug: the printed content page was a
+  fixed height, so offers beyond ~14 lines lost their last rows, totals and terms; long
+  offers now flow onto extra sheets with rows kept whole. Studio placeholders switched
+  from a real prospect's name to fictional examples. All hub links verified against
+  existing files. Main↔production divergence ended by syncing main to the production tip
+  (the retired events page and its rewrites finally leave main too).
 - **Post-go-live attack round (same day):** XSS attempts via client/service/terms fields
   all render as text (nothing executes); empty state clean; drafts persist; found and
   fixed a 1-halala display-rounding mismatch (figures are now rounded at computation so

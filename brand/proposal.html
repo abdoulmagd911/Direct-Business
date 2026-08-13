@@ -113,8 +113,14 @@
     .form,.preview>.bar{display:none!important}
     .studio{display:block}
     .preview{padding:0;display:block;overflow:visible}
-    .page{width:auto;min-height:0;height:99.3vh;box-shadow:none;margin:0;page-break-after:always}
+    /* cover & closing are fixed full pages; the content page may GROW and flow
+       onto extra sheets — a long offer must never clip its rows, totals or terms */
+    .page{width:auto;box-shadow:none;margin:0;page-break-after:always}
+    .page.orange{min-height:0;height:99.3vh}
+    .page:not(.orange){height:auto;min-height:99.3vh}
     .page:last-child{page-break-after:auto}
+    table.fee tr{page-break-inside:avoid}
+    .totals,.terms{page-break-inside:avoid}
     .page.orange{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     table.fee th,.totals .tr.big,.cfoot .pageno,.terms{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   }
@@ -138,9 +144,9 @@
     <fieldset>
       <legend>Client · العميل</legend>
       <label>Company name · اسم الشركة</label>
-      <input type="text" id="fClient" placeholder="e.g. Saudi Ground Services">
+      <input type="text" id="fClient" placeholder="e.g. Example Trading Co. · شركة المثال">
       <label>Attention (person) · عناية</label>
-      <input type="text" id="fAttn" placeholder="e.g. Mr. Ahmed Al-Otaibi">
+      <input type="text" id="fAttn" placeholder="e.g. Mr. Khalid — Procurement · قسم المشتريات">
     </fieldset>
 
     <fieldset>
