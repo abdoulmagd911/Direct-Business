@@ -169,8 +169,12 @@ for r in recs:
             else: name_en = nv['clean_name']
             name_src = f"read from their website {nv['domain']} (13 Aug 2026)"
 
-    corp_doms = [d for d in c['domains'] if not is_free(d)]
     corp_maildoms = sorted({e.split('@')[1] for e in c['emails'] if not is_free(e.split('@')[1])})
+    # A company's own email domain IS its domain — that is the "verified root
+    # domain" key in the matching order — so it counts as a website for this
+    # record. The Domains column alone missed 127 of them.
+    corp_doms = [d for d in c['domains'] if not is_free(d)]
+    corp_doms += [d for d in corp_maildoms if d not in corp_doms]
 
     if rid in not_company or (not name_en and not name_ar and not c['licences']
                               and not corp_doms and not corp_maildoms):
@@ -213,18 +217,37 @@ for r in recs:
     web = ('live' if 'live' in statuses else 'parked/thin' if 'parked/thin' in statuses
            else 'dead' if statuses else '')
 
-    # ---- contacts the company publishes on its OWN site.
-    # Only ever taken from a domain this record owns, so nothing can cross companies.
-    site_em, site_ph = [], []
+    # ---- Is this record carrying a domain that belongs to a DIFFERENT company?
+    # v3 attached e.g. najmalmosafer.com to Almosafer's row. Harvesting contacts
+    # from such a domain would smuggle one company's details onto another, so the
+    # inconsistency is detected, reported, and those domains are not harvested.
+    def base(dm):
+        return re.sub(r'[^a-z0-9]', '', dm.rsplit('.', 1)[0].split('.')[0].lower())
+    # Substring matching is NOT safe here: "najmalmosafer" contains "almosafer"
+    # yet Najm Al Mosafer is a different company from Almosafer. Only an exact
+    # base match, or an extension of it (almosafer -> almosafergroup), is trusted.
+    name_toks = {t for t in re.split(r'\W+', (name_en or '').lower()) if len(t) > 3}
+    prim = base(corp_doms[0]) if corp_doms else ''
+    trusted, foreign = [], []
     for d in corp_doms:
+        b = base(d)
+        ok = (d == corp_doms[0]
+              or b == prim
+              or (len(prim) >= 5 and b.startswith(prim))
+              or b in name_toks)
+        (trusted if ok else foreign).append(d)
+
+    # ---- contacts the company publishes on its OWN site.
+    site_em, site_ph = [], []
+    for d in trusted:
         c_ = crawl.get(d)
         if not c_: continue
         for e in (c_.get('site_emails') or []):
             e = e.lower().strip()
             dom = e.split('@')[-1]
-            # keep only addresses on the company's own domain, or a free-mail address
-            # the company itself chose to publish; never another firm's corporate domain
-            if (dom == d or dom.endswith('.' + d) or is_free(dom)) and \
+            # ONLY addresses on the very domain we read. A free-mail address printed
+            # on a site is usually a third party's, so it is not adopted here.
+            if (dom == d or dom.endswith('.' + d)) and \
                valid_email(e) and e not in c['emails'] and e not in site_em:
                 site_em.append(e)
         for p in (c_.get('site_phones') or []):
@@ -290,6 +313,7 @@ for r in recs:
         'Emails that cannot receive mail': ' | '.join(undeliverable[:4]),
         'New contacts from their website': ' | '.join(
             (site_only_em[:2] + site_mob[:1] + site_land[:1])[:4]),
+        'Domain that may be another company': ' | '.join(foreign[:3]),
         'Fake numbers found (ignored)': ' | '.join(c['placeholders'][:3]),
         'Website': corp_doms[0] if corp_doms else '',
         'Website Status (13 Aug 2026)': web,
@@ -336,7 +360,8 @@ COLS = ['Row ID', 'Record Type', 'Company Name (EN)', 'Company Name (AR)',
         'Mobile 1', 'Mobile 2', 'Landline', 'Hotline (920/800)', 'WhatsApp (confirmed)',
         'Email 1 (deliverable)', 'Email 2 (deliverable)', 'Email 3 (deliverable)',
         'More deliverable emails', 'Emails that cannot receive mail',
-        'New contacts from their website', 'Fake numbers found (ignored)',
+        'New contacts from their website', 'Domain that may be another company',
+        'Fake numbers found (ignored)',
         'Website', 'Website Status (13 Aug 2026)', 'Other Domains', 'HQ City', 'Region',
         'Where the region came from', 'Find on Google Maps', 'IATA Number', 'IBAN',
         'LinkedIn', 'Instagram', 'X (Twitter)', 'Facebook', 'TikTok / YouTube / Snapchat',
@@ -359,6 +384,7 @@ DEFS = [
  ('Region / Where the region came from', 'If it says "worked out from the phone area code", we deduced it rather than read it from a source.'),
  ('Already billed by Direct (SAR)', 'Money this company has already paid Direct, from the Direct Payments export. A paying customer is the warmest lead you have.'),
  ('Duplicates folded in', 'Row IDs of duplicate records merged into this one. Their data was combined, never deleted. Full reasoning on the "Duplicates" tab.'),
+ ('Domain that may be another company', 'A website listed on this record whose name does not match the company — usually a similarly-named different firm attached by mistake in an earlier merge. We did NOT take any contacts from it. Worth checking whether it belongs on this record at all.'),
  ('Travel business?', 'Blank = a travel/tourism business. "no — corporate client" = a real company that is NOT an agency (a hospital, bank or industrial group whose staff travel desk put it on the list). Those are buyers, not competitors — a different sales conversation.'),
  ('Numbers we rejected (and why)', 'Numbers found on the website that look official but are not — trademark numbers, toll-free lines, IATA codes, foreign registrations. Kept so you can see what was considered.'),
  ('Needs a human check', 'TRUE = something conflicts and a person should decide.'),
@@ -403,6 +429,7 @@ QUAL = [
  ('  worked out from the phone area code', sum(1 for r in rows if 'area code' in r['Where the region came from'])),
  ('Already paying Direct', sum(1 for r in rows if r['Already billed by Direct (SAR)'])),
  ('Not agencies — corporate clients spotted on the list', sum(1 for r in rows if r['Travel business?'])),
+ ('Records carrying another company\'s website (not harvested)', sum(1 for r in rows if r['Domain that may be another company'])),
 ]
 
 top = sorted(rows, key=lambda r: (-r['Priority Score'], -r['Completeness %']))[:18]

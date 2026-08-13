@@ -128,7 +128,33 @@ personal email. Disagreements keep both values and flag. Every merge writes a
   Verified end-to-end afterwards: otlaat.com's CR, VAT and licence were all re-confirmed
   present on the live site.
 
-  **Still open:** only 77 of 4,494 are confirmed by an official number — the SBC/CR gap
+- **2026-08-13, third pass — three untouched sources found on review.** The second pass
+  reported complete while three inputs had never been read:
+  1. **127 corporate domains existed only inside email addresses** and were never visited
+     (the crawl read the Domains column only). 91 are live; 13 publish a labelled CR.
+     Counting a company's own mail domain as its website took websites checked from 927
+     to **1,115** and working sites from 578 to **728**.
+  2. **The site-published emails and phones were harvested and then never used** — 256
+     sites' emails and 324 sites' phones sat unread in the crawl output.
+  3. **v3's "TAS v2 leftovers" sheet (243 rows) was never processed.** They are not empty
+     shells: 175 carry a name, 140 an email. **153 are companies missing from the master
+     altogether**; 90 add data to existing records.
+
+  Two more cross-company contaminations were caught in this pass: `hayatour.com`'s
+  "commercial registration" was the **web developer's** number in the site credit line
+  («صنع بواسطة»), and row M00511 mixes Saudi Central Bank addresses with a travel
+  agency's — it needs splitting. A self-audit of the newly added contacts then caught a
+  bug in this pipeline's own guard: substring matching treated `najmalmosafer.com` as
+  Almosafer's domain because the string contains "almosafer". The rule is now exact
+  base-name match or a prefix extension; **29 records are flagged as carrying a domain
+  that probably belongs to another company, and nothing was harvested from them.**
+
+  Net effect of the third pass: 4,494 → **4,647 companies**, confirmed 77 → **106**,
+  website-published numbers 52 → **81**, VAT 20 → **30**, mobiles 1,703 → **1,837**,
+  landlines 1,468 → **1,596**, working emails 988 → **1,046**. Socials are now split one
+  network per column. Re-audited afterwards: **zero cross-company contaminations remain.**
+
+  **Still open:** only 106 of 4,647 are confirmed by an official number — the SBC/CR gap
   is unchanged and still needs a Saudi IP (see the verification stack above). 313
   companies are reachable but still unnamed. 821 rows have no working contact at all.
   Next best moves: the Wathq 100-inquiry trial on the highest-priority rows, and one
