@@ -192,3 +192,37 @@ names. The company list is complete; only artwork is outstanding.
 **Reusable scripts** in the session scratchpad: `sheet.mjs` / `verify.mjs` (render a contact sheet
 or the page in light+dark via Chromium with a local file:// URL — no proxy needed), and the
 logo-fetch + md5/dimension audit loop.
+
+## 11 · UPDATE 13 Aug 2026 — adversarial test pass (pre-launch)
+
+Deliverables were attacked rather than re-read. Six defects found and fixed:
+
+1. **Three download links were dead.** The Wikimedia CDN paths for the Ministry of Interior
+   emblem, Amadeus and CJ were hand-written rather than computed, so they pointed at
+   folders that do not exist. Correct paths (md5-derived) are `d/dc/`, `8/8d/`, `8/89/`.
+   *Never hand-write a Wikimedia path — always compute md5(filename_with_underscores).*
+2. **A dead domain shipped as a website link.** `saaraj.sa` (from the client registry's
+   contact email) is **NXDOMAIN**. The working domain is **`saraj.sa`** — the registry holds
+   both spellings across the two Al-Rajhi Alawla entities. Every other listed domain was
+   DNS-resolved and is alive (403/301 responses are geo-blocks, not dead sites).
+3. **Category inconsistency.** Amadeus sat under "Corporate clients" while the same review
+   told the product team to move Saudia out of the client strip for being a supplier. Amadeus
+   is a GDS partner that paid Direct commission, not a corporate-travel buyer — moved to a new
+   **"Travel & technology partners"** section. Sections are now: corporate clients (1–21),
+   travel & technology partners (22–24), education partners (25–32).
+4. **Arabic punctuation bug.** Arabic sentences inside English paragraphs pushed their full
+   stop to the wrong side. Fixed with `unicode-bidi:isolate` on `.ar` plus `dir="rtl"` on full
+   sentences — applied to both artifacts.
+5. **Logo chips were theme-coloured**, so dark logos vanished in dark mode and white logos
+   vanished in light mode. Chips are now always white, with a slate chip for the four
+   white-version files (Takamol, Kings, Bayswater, Malvern).
+6. **No alt text** on any logo. All 21 images now carry `alt="<Company> logo"`.
+
+Also tested and passing: iPhone (390px) and iPad (820px) render with no horizontal page
+scroll and zero broken images; light and dark themes both verified by screenshot; no stray
+non-Latin characters in either artifact.
+
+**New deliverable:** `Direct-Logos.zip` — the 20 verified logo files themselves, numbered to
+match the table rows, with a README covering the white-version files, the government-approval
+rule, and the 12 companies whose artwork must come from the client. Sent to Abdulrahman in
+chat; regenerate from the session scratchpad's `logos/` folder if needed.
