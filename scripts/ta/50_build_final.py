@@ -52,6 +52,11 @@ mx = load_json(f'{SP}/ta-mx.json', {})
 mx.update(load_json(f'{SP}/ta-mx-extra.json', {}))
 decisions = load_json(f'{SP}/dedupe_decisions.json')
 safe = load_json(f'{SP}/dedupe_safe.json')
+# Two RAW sources, read for the first time on the fourth pass. Everything above
+# derives from v3; these are the files v3 itself was built from, and it dropped
+# most of their columns.
+registry = load_json(f'{SP}/ta-registry.json', {})   # official MOT licence registry
+predup = load_json(f'{SP}/ta-predup.json', {})       # MASTER_DB_v1.98, pre-dedup
 idv = load_json(f'{SP}/id_verdicts.json') + load_json(f'{SP}/id_verdicts_extra.json')
 namev = load_json(f'{SP}/name_verdicts.json') + load_json(f'{SP}/name_verdicts_extra.json')
 
@@ -73,6 +78,12 @@ FREEMAIL = {'gmail.com', 'hotmail.com', 'yahoo.com', 'outlook.com', 'icloud.com'
 def is_free(d):
     d = (d or '').lower()
     return d in FREEMAIL or re.match(r'^(gmail|yahoo|hotmail|outlook|icloud|live|msn|aol)\.', d)
+
+# The raw file stores these machine-style; the sheet is read by people.
+PRETTY = {'travel_agency': 'Travel agency', 'other_b2b_buyer': 'Other B2B buyer',
+          'large_corporate': 'Large corporate', 'airline': 'Airline',
+          'exhibition_organizer': 'Exhibition organiser',
+          'university_education': 'University / education'}
 
 AREA = {'11': 'Riyadh', '12': 'Makkah', '13': 'Eastern Province',
         '14': 'Madinah / Tabuk / North', '16': 'Qassim / Hail',
@@ -158,6 +169,12 @@ for r in recs:
         continue
     members = [by_id[m] for m in merge_groups.get(rid, [rid]) if m in by_id]
     c = combine(members)
+
+    # official registry + raw pre-dedup rows for ANY member of this merged record
+    ids_ = merge_groups.get(rid, [rid])
+    regd = next((registry[m] for m in ids_ if m in registry), {})
+    prep = next((predup[m] for m in ids_ if m in predup), {})
+
 
     name_en = next((g_(m, 'Agency Name (EN)') for m in members if g_(m, 'Agency Name (EN)')), '')
     name_ar = next((g_(m, 'Agency Name (AR)') for m in members if g_(m, 'Agency Name (AR)')), '')
@@ -262,7 +279,13 @@ for r in recs:
     # ---- email deliverability. A site-published address on a domain we know
     # accepts mail counts as reachable; one we have not MX-checked is listed
     # separately rather than promoted to a verified contact.
-    all_em = c['emails'] + [e for e in site_em if e not in c['emails']]
+    src_em = [e for e in (regd.get('emails', []) + prep.get('emails', []))
+              if e not in c['emails'] and e not in site_em]
+    src_mob = [p for p in (regd.get('mobiles', []) + regd.get('other_mobiles', []) + prep.get('mobiles', []))
+               if p not in c['mobiles'] and p not in site_mob]
+    src_land = [p for p in (regd.get('landlines', []) + prep.get('landlines', []))
+                if p not in c['landlines'] and p not in site_land]
+    all_em = c['emails'] + [e for e in site_em + src_em if e not in c['emails']]
     mailable = [e for e in all_em if mx.get(e.split('@')[1].lower(), {}).get('status') == 'mx']
     undeliverable = [e for e in c['emails'] if e not in mailable]
     site_only_em = [e for e in site_em if e in mailable and e not in c['emails']]
@@ -276,14 +299,20 @@ for r in recs:
     else:
         level = 'unverified'
 
+    # Region, best source first: a source that STATED it beats one we deduced.
     region = next((x for x in c['regions'] if x and 'unconfirmed' not in x.lower()), '')
     rsrc = 'source file' if region else ''
+    if not region and prep.get('hq_region'):
+        region, rsrc = prep['hq_region'], 'raw MASTER_DB v1.98 (12 Jul)'
     if not region:
         for ll in c['landlines']:
             if ll[4:6] in AREA:
                 region, rsrc = AREA[ll[4:6]], f'worked out from the phone area code 0{ll[4:6]}'
                 break
+
     city = next((x for x in c['cities'] if x and 'unconfirmed' not in x.lower()), '')
+    if not city:
+        city = regd.get('city') or prep.get('hq_city') or ''
     disp = name_en or name_ar
     # one social network per column, as a campaign tool expects
     soc = split_socials(*(c['socials'] + c['linkedin']))
@@ -301,9 +330,9 @@ for r in recs:
         'VAT Number': vat,
         'MOT Licence(s)': ' | '.join(licences[:4]),
         'Licence Status': c['licstatus'][0] if c['licstatus'] else '',
-        'Mobile 1': (c['mobiles'] + site_mob)[0] if (c['mobiles'] or site_mob) else '',
-        'Mobile 2': (c['mobiles'] + site_mob)[1] if len(c['mobiles'] + site_mob) > 1 else '',
-        'Landline': (c['landlines'] + site_land)[0] if (c['landlines'] or site_land) else '',
+        'Mobile 1': (c['mobiles'] + site_mob + src_mob)[0] if (c['mobiles'] or site_mob or src_mob) else '',
+        'Mobile 2': (c['mobiles'] + site_mob + src_mob)[1] if len(c['mobiles'] + site_mob + src_mob) > 1 else '',
+        'Landline': (c['landlines'] + site_land + src_land)[0] if (c['landlines'] or site_land or src_land) else '',
         'Hotline (920/800)': c['hotlines'][0] if c['hotlines'] else '',
         'WhatsApp (confirmed)': c['whatsapp'],
         'Email 1 (deliverable)': mailable[0] if mailable else '',
@@ -330,7 +359,19 @@ for r in recs:
         'Facebook': soc.get('facebook', ''),
         'TikTok / YouTube / Snapchat': ' | '.join(
             x for x in (soc.get('tiktok', ''), soc.get('youtube', ''), soc.get('snapchat', '')) if x),
-        'Decision Maker': ' | '.join(c['dms'][:2]),
+        'Business Type': PRETTY.get(prep.get('entity_type', ''),
+                                    prep.get('entity_type', '').replace('_', ' ')) \
+                         or regd.get('activity', ''),
+        'Office Type': regd.get('office_type', '') or prep.get('office_type', ''),
+        'Has their own app?': prep.get('has_mobile_app', ''),
+        'Direct fit tier': prep.get('direct_fit_tier', ''),
+        'Market direction': prep.get('market_direction', '').replace('_', ' ').capitalize(),
+        'Best channel to reach them': prep.get('preferred_channel', '').capitalize(),
+        'Services they offer': prep.get('services_offered', ''),
+        'Licence status (registry)': regd.get('licence_status', ''),
+        'Our stage on file': regd.get('our_stage', '') or prep.get('stage', ''),
+        'Decision Maker': ' | '.join(x for x in (c['dms'][:2] + [regd.get('decision_maker', ''),
+                                                                prep.get('contact_1_name', '')]) if x)[:120],
         'Contact Names': ' | '.join(c['contacts'][:3]),
         'Already billed by Direct (SAR)': round(c['sar'], 2) if c['sar'] else '',
         'Where this record came from': ' | '.join(c['sources'][:6]),
@@ -365,6 +406,9 @@ COLS = ['Row ID', 'Record Type', 'Company Name (EN)', 'Company Name (AR)',
         'Website', 'Website Status (13 Aug 2026)', 'Other Domains', 'HQ City', 'Region',
         'Where the region came from', 'Find on Google Maps', 'IATA Number', 'IBAN',
         'LinkedIn', 'Instagram', 'X (Twitter)', 'Facebook', 'TikTok / YouTube / Snapchat',
+        'Business Type', 'Office Type', 'Has their own app?', 'Direct fit tier',
+        'Market direction', 'Best channel to reach them', 'Services they offer',
+        'Licence status (registry)', 'Our stage on file',
         'Decision Maker', 'Contact Names', 'Already billed by Direct (SAR)',
         'Where this record came from', 'Duplicates folded in', 'Travel business?',
         'Numbers we rejected (and why)', 'Needs a human check', 'Priority Score', 'Completeness %']
@@ -385,6 +429,12 @@ DEFS = [
  ('Already billed by Direct (SAR)', 'Money this company has already paid Direct, from the Direct Payments export. A paying customer is the warmest lead you have.'),
  ('Duplicates folded in', 'Row IDs of duplicate records merged into this one. Their data was combined, never deleted. Full reasoning on the "Duplicates" tab.'),
  ('Domain that may be another company', 'A website listed on this record whose name does not match the company — usually a similarly-named different firm attached by mistake in an earlier merge. We did NOT take any contacts from it. Worth checking whether it belongs on this record at all.'),
+ ('Business Type / Office Type', 'What kind of operation this is (travel agency, tour operator, online platform, branch office). From the official Ministry of Tourism registry and the raw July collection.'),
+ ('Has their own app?', 'yes = they run their own mobile app, so they are further along digitally — usually a competitor rather than a buyer of your booking tools.'),
+ ('Direct fit tier', "Direct's own earlier assessment of how well this agency fits what you sell. Carried over from the July working file."),
+ ('Market direction', 'Inbound, outbound or domestic — which way their travel flows. Decides which of your services is worth pitching.'),
+ ('Best channel to reach them', 'How this agency is most likely to respond (phone, WhatsApp, email).'),
+ ('Licence status (registry) / Our stage on file', 'Licence state straight from the Ministry registry, and any pipeline stage Direct had already recorded.'),
  ('Travel business?', 'Blank = a travel/tourism business. "no — corporate client" = a real company that is NOT an agency (a hospital, bank or industrial group whose staff travel desk put it on the list). Those are buyers, not competitors — a different sales conversation.'),
  ('Numbers we rejected (and why)', 'Numbers found on the website that look official but are not — trademark numbers, toll-free lines, IATA codes, foreign registrations. Kept so you can see what was considered.'),
  ('Needs a human check', 'TRUE = something conflicts and a person should decide.'),
@@ -425,6 +475,13 @@ QUAL = [
  ('Fake phone numbers removed', sum(1 for r in rows if r['Fake numbers found (ignored)'])),
  ('Not reachable by anything', sum(1 for r in rows if not (r['Mobile 1'] or r['Landline'] or r['Email 1 (deliverable)'] or r['Website']))),
  ('', ''),
+ ('Business type known', sum(1 for r in rows if r['Business Type'])),
+ ('Office type known (new)', sum(1 for r in rows if r['Office Type'])),
+ ('Know whether they have their own app (new)', sum(1 for r in rows if r['Has their own app?'])),
+ ("Direct's fit tier on file (new)", sum(1 for r in rows if r['Direct fit tier'])),
+ ('Market direction known (new)', sum(1 for r in rows if r['Market direction'])),
+ ('Best contact channel known (new)', sum(1 for r in rows if r['Best channel to reach them'])),
+ ('Licence status from the official registry', sum(1 for r in rows if r['Licence status (registry)'])),
  ('Region known', sum(1 for r in rows if r['Region'])),
  ('  worked out from the phone area code', sum(1 for r in rows if 'area code' in r['Where the region came from'])),
  ('Already paying Direct', sum(1 for r in rows if r['Already billed by Direct (SAR)'])),
