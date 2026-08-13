@@ -79,11 +79,9 @@
     ['newOffer','offerEditor','saveOffer'].forEach(function(f){ guardFn(f,'proposals'); });
     ['editRequest'].forEach(function(f){ guardFn(f,'requests'); });
     ['expSave','expDel','finSetWay','finCommit','finSetTargets','finLinkMap'].forEach(function(f){ guardFn(f,'finance'); });
-    /* hide the invitations too, so nobody is tempted */
-    try{
-      var hide=function(sel,ok){ if(ok)return; document.querySelectorAll(sel).forEach(function(b){ b.style.display='none'; }); };
-      hide('#view button.btn.pri', can('leads')||can('proposals'));   // only for the fully read-only case
-    }catch(_){}
+    /* NOTE: we deliberately do NOT blanket-hide primary buttons. Guarding the actions above is
+       what stops the write; hiding every strong button also removed harmless read-only ones
+       (Show all, Export) and left read-only people staring at a stripped screen. */
   }
 
   /* ---- 3. never let the screen show a change the database refused ------------------- */
