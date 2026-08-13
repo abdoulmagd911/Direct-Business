@@ -61,7 +61,8 @@ const bigName = await page.evaluate(() => {
   return Object.keys(by).sort((a, b) => by[b] - by[a])[0];
 });
 const bigM = await page.evaluate(n => { let t = 0; (FIN.rows || []).forEach(r => { if (r.client_group === n && !r.deleted_at) t += +r.total_incl_vat_sar || 0; }); return t >= 1e6 ? (t / 1e6).toFixed(2) + 'M' : (t / 1e3).toFixed(1) + 'K'; }, bigName);
-await page.evaluate(n => { const l = (FIN.links || []).find(x => x.client_group === n); openLead = l.business_id; current = 'leads'; render(); }, bigName);
+await page.waitForFunction(() => window.FIN && (FIN.links || []).length > 0, null, { timeout: 20000 }).catch(() => {});
+await page.evaluate(n => { const l = (FIN.links || []).find(x => x.client_group === n); if (l) { openLead = l.business_id; } else { const b = (DB.businesses || []).find(x => x.name === n); if (b) openLead = b.id; } current = 'leads'; render(); }, bigName);
 await page.waitForTimeout(3500);
 const wTxt = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/\s+/g, ' '));
 STEP('REAL client card: biggest client shows its real billed total (' + bigM + ')', wTxt.includes(bigM));

@@ -1,5 +1,49 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-13 · Round 9 — real users everywhere, tidy top bar, expenses, and a data-restore incident
+
+⚠️ **DATA WORLD — READ BEFORE TOUCHING THE DATABASE.** The live world is the owner-ordered
+**world-2026-08-13** (30 leads / 10 clients / 28 finance rows). During this round an
+unidentified concurrent session RESTORED the old 0808/0812 snapshots over it (1,035 old
+leads + 1,285 stress invoices came back, including Takamol and wallet rows the owner
+ordered removed). It was re-applied from source. **Do NOT restore businesses/finance
+snapshots over the live tables.** If it ever happens again, the fix is pure SQL: the
+tables `world30_businesses`, `world30_finance_invoices`, `world30_contacts`,
+`world30_activities`, `world30_finance_client_links` hold the exact world — wipe and
+`insert ... select * from world30_...`. All older worlds remain in `*_snapshot_*` tables.
+
+Owner orders executed:
+1. **Every email is now a real user, linked EN + AR.** `app_users` carries full_name,
+   name_ar and nickname for all 11 accounts; `business@directksa.com` was created as an
+   admin through the same Team-page flow employees will use (temp password handed to the
+   owner; the app forces a change on first sign-in). The simple model the owner asked
+   for already exists end-to-end: admin adds email + name + role → temp password → done.
+2. **Ownership is linked, and "Mine" works.** New layer js/43-v67 builds an alias index
+   per user (English name, Arabic name, nickname, email prefix, unique first name,
+   Abdel/Abdul spelling variants) and exposes ownerCanon/sameOwner; the Mine filters on
+   Leads, Clients and Proposals now match through it (guarded core edits), and identity
+   comes from the signed-in EMAIL, not a stale blob value (the fake 'Abdelrahman'
+   default is gone). Four world records were assigned to the owner so his Mine view has
+   content on first sign-in.
+3. **Top bar rearranged** (js/44-v68): Export and Share stay; Team, Access and Sign out
+   moved into a profile chip at the END of the bar (initial + name + role → menu with
+   who-you-are, Team, Page access, Sign out). The old buttons are hidden, not removed.
+4. **Expenses — money out** (js/45-v69 + table finance_expenses): date, description,
+   category, amount, paid via bank transfer / credit card / mada / cash / wallet,
+   supplier, optional client, receipt ref; totals split by payment method; month filter;
+   CSV export; soft delete. Viewing needs finance access; writing is admin/manager.
+   Expenses NEVER mix into the revenue screens (asserted by test).
+5. Battery: 316 checks green in the harness (incl. new probe-round9, 19 checks) + 16
+   real-backend checks after the world re-apply.
+
+Parked / open:
+- Owner dropdowns still show English names in the Arabic view (matching understands
+  Arabic; display can follow later via ownerLabel()).
+- Expense receipts as photo attachments (upload like proposals) — small follow-up.
+- If the restoring session's purpose becomes known (owner may have asked another chat
+  for the old 1,035 leads), reconcile deliberately instead of ping-ponging.
+
+
 ## 2026-08-13 · Round 8 — Takamol purge, auto-linking, the 30-lead world
 
 Owner orders executed:

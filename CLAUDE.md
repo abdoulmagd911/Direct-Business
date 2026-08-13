@@ -283,6 +283,11 @@ Today and Leads were invisible in the code and obvious on screen.
 
 ## Data world (rebuilt 2026-08-13 — the 30-lead training world)
 
+> ⚠️ **NEVER restore old businesses/finance snapshots over the live tables.** On
+> 2026-08-13 a concurrent session did exactly that and undid the owner's ordered world;
+> it was re-applied. The exact current world is copied in `world30_*` tables for pure-SQL
+> recovery; every older world stays in its `*_snapshot_*` tables. Recover, don't rebuild.
+
 Owner-ordered rebuild: the previous data was wiped (kept in `*_snapshot_20260813` tables)
 and replaced with **30 leads, each a different scenario**, every one owned by a real team
 member, spread across all 7 funnels and all 7 stages. **10 are converted clients** with
