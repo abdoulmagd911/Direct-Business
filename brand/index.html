@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Direct Brand Hub · مركز هوية دايركت</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23FF6C00'/%3E%3Ctext x='50' y='72' font-size='62' font-weight='bold' font-family='Arial' fill='%23fff' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#F06820">
 <style>
   :root{
     --ground:#FBFAF8; --surface:#FFFFFF; --panel:#F6F7F9;
@@ -97,6 +100,19 @@
 
   footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);
     font-size:12.5px;font-family:var(--font-mono);line-height:1.7}
+  /* live specimens — the real hosted files, so what you see is what installs */
+  @font-face{font-family:'DZarid';src:url('fonts/29LTZaridSlab-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
+  @font-face{font-family:'DZarid';src:url('fonts/29LTZaridSlab-Bold.ttf') format('truetype');font-weight:700;font-display:swap}
+  @font-face{font-family:'DBahij';src:url('fonts/Bahij_TheSansArabic-Bold.ttf') format('truetype');font-weight:700;font-display:swap}
+  .spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px}
+  .spec .card{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:16px 18px}
+  .spec .nm{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;margin-bottom:8px}
+  .spec .big{font-size:30px;line-height:1.5;margin:0}
+  .spec .row{font-size:16px;margin-top:6px;color:var(--ink)}
+  .spec .zarid{font-family:'DZarid',serif}
+  .spec .zaridb{font-family:'DZarid',serif;font-weight:700}
+  .spec .bahij{font-family:'DBahij',sans-serif;font-weight:700}
   [dir="rtl"]{direction:rtl}
   @media (prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
@@ -207,7 +223,7 @@
           <tr><td>Arabic documents</td><td>29LT Zarid Slab<br><span class="note">Regular–Black</span></td>
               <td><a href="https://drive.google.com/drive/folders/1B9gO5mez2ufPpaesiIi7JIaND3K9JvvJ" target="_blank" rel="noopener">Drive → fonts/ar</a></td>
               <td><a href="https://29lt.com" target="_blank" rel="noopener">29LT foundry</a></td>
-              <td><a href="https://fonts.google.com/specimen/Aref+Ruqaa" target="_blank" rel="noopener">—</a> <span class="note">no close free match; use the Drive copy</span></td></tr>
+              <td><span class="note">no close free match — use the Drive copy</span></td></tr>
           <tr><td>Arabic price tables</td><td>Bahij TheSansArabic<br><span class="note">Regular · Bold</span></td>
               <td><a href="https://drive.google.com/drive/folders/1B9gO5mez2ufPpaesiIi7JIaND3K9JvvJ" target="_blank" rel="noopener">Drive → fonts/ar</a></td>
               <td><span class="note">licensed arabization of TheSans</span></td>
@@ -219,6 +235,24 @@
         </tbody>
       </table>
     </div>
+    <div class="spec">
+      <div class="card">
+        <div class="nm">29LT Zarid Slab · Regular</div>
+        <p class="big zarid" dir="rtl">دايركت للسفر والسياحة</p>
+        <p class="row zarid" dir="rtl">عرض سعر · خدمات السفر · الرياض ١٤٤٧</p>
+      </div>
+      <div class="card">
+        <div class="nm">29LT Zarid Slab · Bold</div>
+        <p class="big zaridb" dir="rtl">قوة موردين عالمية</p>
+        <p class="row zaridb" dir="rtl">خدمة سعودية · شريك واحد</p>
+      </div>
+      <div class="card">
+        <div class="nm">Bahij TheSansArabic · Bold — price tables</div>
+        <p class="big bahij" dir="rtl">الإجمالي ٢٢٬١٣٧٫٥٠</p>
+        <p class="row bahij" dir="rtl">حجز طيران دولي · تأشيرات · فنادق</p>
+      </div>
+    </div>
+    <p class="note" style="margin-top:10px">Those three specimens render in the actual hosted files — what you see is exactly what installs.</p>
     <p class="note" style="margin-top:10px"><b>Direct downloads hosted here (Arabic core set):</b>
       <a href="fonts/29LTZaridSlab-Regular.ttf" download>Zarid Slab Regular</a> ·
       <a href="fonts/29LTZaridSlab-Bold.ttf" download>Zarid Slab Bold</a> ·
@@ -314,6 +348,11 @@
   }
   function chip(hex,name,use){
     var d=document.createElement('div'); d.className='chip';
+    /* the whole chip copies the HEX (big touch target on phones);
+       the RGB button still copies the PowerPoint numbers */
+    d.setAttribute('data-copy',hex);
+    d.style.cursor='pointer';
+    d.setAttribute('role','button'); d.setAttribute('tabindex','0');
     d.innerHTML='<i style="background:'+hex+'"></i>'+
       '<span class="nm">'+name+'<small>'+use+' · '+hex+'</small></span>'+
       '<span class="cp"><button class="cbtn" data-copy="'+hex+'">HEX</button>'+
@@ -325,8 +364,13 @@
     PALS[k].forEach(function(c){ host.appendChild(chip(c[0],c[1],c[2])); });
   });
   var toastEl=document.getElementById('toast'), tmr=null;
+  document.addEventListener('keydown', function(e){
+    if((e.key==='Enter'||e.key===' ') && e.target.classList && e.target.classList.contains('chip')){
+      e.preventDefault(); e.target.click();
+    }
+  });
   document.addEventListener('click', function(e){
-    var b=e.target.closest('.cbtn'); if(!b) return;
+    var b=e.target.closest('.cbtn') || e.target.closest('.chip'); if(!b) return;
     var txt=b.getAttribute('data-copy'); if(!txt) return;
     function done(){
       toastEl.textContent='Copied: '+txt+' ✓'; toastEl.classList.add('on');

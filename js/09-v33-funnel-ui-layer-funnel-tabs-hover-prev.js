@@ -1,0 +1,187 @@
+/* ===== v33 funnel UI layer: funnel tabs + hover preview + funnel-specific lead card section ===== */
+(function(){
+  function F(){return window.__FUNNELS||[];}
+  var FCOLOR={blue:'#185FA5',purple:'#534AB7',teal:'#0F6E56',amber:'#854F0B',gray:'#5F5E5A'};
+  window.__funnelTab=window.__funnelTab||'all';
+  window.__needsAttn=false;
+
+  function fdef(b){var out=null;F().forEach(function(f){if(f.key===b.funnelKey)out=f;});return out;}
+  function overdue(b){return b.nextActionDate&&(new Date(b.nextActionDate+'T23:59:59')<new Date());}
+  function attention(b){return !(b.contacts&&b.contacts.length)||overdue(b)||b.needsManualConfirmation===true;}
+
+  var _match=window.matchLead;
+  window.matchLead=function(b){
+    if(!_match(b))return false;
+    if(window.__funnelTab!=='all'&&b.funnelKey!==window.__funnelTab)return false;
+    if(window.__needsAttn&&!attention(b))return false;
+    return true;
+  };
+
+  var _rl=window.renderLeads;
+  window.renderLeads=function(v){
+    _rl(v);
+    try{addTabs(v);}catch(e){console.warn('v33 tabs',e);}
+  };
+  function addTabs(v){
+    if(window.openLead)return;
+    var tb=v.querySelector('.toolbar');if(!tb||document.getElementById('funnelTabs'))return;
+    var strip=document.createElement('div');
+    strip.id='funnelTabs';
+    strip.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px';
+    var counts={all:(DB.businesses||[]).length};
+    F().forEach(function(f){counts[f.key]=(DB.businesses||[]).filter(function(b){return b.funnelKey===f.key;}).length;});
+    function chip(key,label,color){
+      var on=window.__funnelTab===key;
+      var b=document.createElement('button');
+      b.textContent=label+' \u00b7 '+(counts[key]||0);
+      b.style.cssText='border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:999px;background:'+(on?(color||'#1C1E2B'):'#eef0f5')+';color:'+(on?'#fff':'#3a3f52');
+      b.onclick=function(){window.__funnelTab=key;renderLeads(v);};
+      return b;
+    }
+    strip.appendChild(chip('all','All','#1C1E2B'));
+    F().forEach(function(f){strip.appendChild(chip(f.key,f.name_en,FCOLOR[f.color]||'#5F5E5A'));});
+    var attnCount=(DB.businesses||[]).filter(function(b){return attention(b);}).length;
+    var na=document.createElement('button');
+    na.textContent='\u26a0 Needs attention \u00b7 '+attnCount;
+    na.style.cssText='border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:999px;margin-left:auto;background:'+(window.__needsAttn?'#D92D20':'#F0453A14')+';color:'+(window.__needsAttn?'#fff':'#D92D20');
+    na.onclick=function(){window.__needsAttn=!window.__needsAttn;renderLeads(v);};
+    strip.appendChild(na);
+    var ex=document.createElement('button');
+    ex.textContent='\u2193 Export CSV';
+    ex.style.cssText='border:1px solid #E3DCCF;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px;background:#fff;color:#3a3f52';
+    ex.onclick=exportCSV;
+    strip.appendChild(ex);
+    tb.parentNode.insertBefore(strip,tb);
+  }
+
+  function exportCSV(){
+    try{
+      var list=(DB.businesses||[]).filter(matchLead);
+      var head=['Name','Name (AR)','Funnel','Stage','Source','Owner','Client?','Website','Next action date','Next action','Primary contact','Contact phone','Contact email','Funnel details','Notes'];
+      var lines=[head.join(',')];
+      function q(s){s=(s==null?'':String(s)).replace(/"/g,'""');return '"'+s+'"';}
+      list.forEach(function(b){
+        var c=(b.contacts&&b.contacts[0])||{};
+        var f=fdef(b);
+        var det=b.funnelDetails||{};
+        var detTxt=Object.keys(det).map(function(k){return k+': '+det[k];}).join(' | ');
+        lines.push([q(b.name),q(b.nameAr),q(f?f.name_en:''),q(typeof leadStage==='function'?leadStage(b):b.stage),q(b.source),q(b.assignedTo||b.owner),q(b.isClient?'Yes':'No'),q(b.website),q(b.nextActionDate),q(b.nextAction||b.nextActionNote),q(c.name),q(c.phone),q(c.email),q(detTxt),q(b.notes)].join(','));
+      });
+      var blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+      var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='leads-export-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+    }catch(e){alert('Export failed: '+e.message);}
+  }
+
+  var pop=null;
+  function hidePop(){if(pop){pop.remove();pop=null;}}
+  var _dt=window.drawTable;
+  window.drawTable=function(){
+    _dt();
+    try{
+      var list=DB.businesses.filter(matchLead).slice().sort(function(a,b){var va=leadSortVal(a,leadSort.k),vb=leadSortVal(b,leadSort.k);return va<vb?-1*leadSort.dir:va>vb?1*leadSort.dir:0;});
+      var rows=document.querySelectorAll('#board table tbody tr');
+      rows.forEach(function(tr,i){
+        var b=list[i];if(!b)return;
+        tr.addEventListener('mouseenter',function(){showPop(b,tr);});
+        tr.addEventListener('mouseleave',hidePop);
+      });
+    }catch(e){}
+  };
+  function showPop(b,tr){
+    hidePop();
+    var f=fdef(b),det=b.funnelDetails||{},rowsH='';
+    if(f)(f.field_template||[]).forEach(function(fl){
+      if(!fl.hover)return;var val=det[fl.key];if(val==null||val==='')return;
+      if(typeof val==='boolean')val=val?'Yes':'No';
+      rowsH+='<div style="margin:3px 0;font-size:12px;line-height:1.5"><span style="color:#7C8194">'+fl.label_en+':</span> '+String(val).replace(/</g,'&lt;').slice(0,240)+'</div>';
+    });
+    var extra='';
+    if(!(b.contacts&&b.contacts.length))extra+='<div style="color:#D92D20;font-size:11.5px;margin-top:5px">\u26a0 No contact person recorded</div>';
+    if(overdue(b))extra+='<div style="color:#D92D20;font-size:11.5px;margin-top:2px">\u26a0 Next action overdue ('+b.nextActionDate+')</div>';
+    if(!rowsH&&!extra)return;
+    pop=document.createElement('div');
+    pop.className='v46-leadpop';
+    pop.style.cssText='position:fixed;z-index:2147480000;max-width:390px;background:#fff;border:1px solid #E3DCCF;border-radius:12px;box-shadow:0 16px 40px -12px rgba(0,0,0,.25);padding:12px 15px;pointer-events:none';
+    pop.innerHTML='<div style="font-size:10.5px;font-weight:800;color:'+(FCOLOR[(f||{}).color]||'#5F5E5A')+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">'+((f&&f.name_en)||'Lead')+' \u00b7 '+String(b.name||'').replace(/</g,'&lt;')+'</div>'+rowsH+extra;
+    document.body.appendChild(pop);
+    var r=tr.getBoundingClientRect();
+    var top=r.bottom+6;
+    pop.style.left=Math.min(r.left+40,Math.max(10,window.innerWidth-410))+'px';
+    if(top+pop.offsetHeight>window.innerHeight)top=r.top-pop.offsetHeight-6;
+    pop.style.top=Math.max(8,top)+'px';
+  }
+
+  var _rld=window.renderLeadDetail;
+  if(_rld){
+    window.renderLeadDetail=function(v,id){
+      _rld(v,id);
+      try{addDetailCard(v,id);}catch(e){console.warn('v33 detail',e);}
+    };
+  }
+  function addDetailCard(v,id){
+    if(document.getElementById('funnelCard'))return;
+    var b=getLead(id);if(!b)return;var f=fdef(b);if(!f)return;
+    var det=b.funnelDetails||{};
+    var card=document.createElement('div');card.className='card';card.id='funnelCard';
+    card.style.cssText='border:1.5px solid '+(FCOLOR[f.color]||'#5F5E5A')+'55';
+    var inner='<h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="color:'+(FCOLOR[f.color]||'#5F5E5A')+'">'+f.name_en+' details</span><button class="btn ghost sm" onclick="window.__editFunnelDetails(\''+String(b.id).replace(/'/g,"\\'")+'\')">Edit</button></h3>';
+    (f.field_template||[]).forEach(function(fl){
+      var val=det[fl.key];if(val==null||val==='')val='\u2014';
+      if(typeof val==='boolean')val=val?'Yes':'No';
+      inner+='<div class="fact"><span class="k">'+fl.label_en+'</span><span class="v" style="max-width:58%;text-align:right;white-space:normal">'+String(val).replace(/</g,'&lt;')+'</span></div>';
+    });
+    card.innerHTML=inner;
+    var grid=v.querySelector('.detail-grid');
+    var col=grid?grid.querySelector('div'):null;
+    if(col)col.insertBefore(card,col.firstChild);
+    else if(grid)grid.appendChild(card);
+    else v.appendChild(card);
+  }
+
+  window.__editFunnelDetails=function(id){
+    var b=getLead(id);if(!b)return;var f=fdef(b);if(!f)return;
+    var det=b.funnelDetails||{};
+    var old=document.getElementById('fdModal');if(old)old.remove();
+    var ov=document.createElement('div');ov.id='fdModal';
+    ov.style.cssText='position:fixed;inset:0;z-index:2147481000;background:rgba(20,22,35,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+    var inner='<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:86vh;overflow:auto;padding:22px 24px;font-family:inherit">'+
+      '<div style="font-size:16px;font-weight:800;margin-bottom:14px">'+f.name_en+' details \u2014 '+String(b.name||'').replace(/</g,'&lt;')+'</div>';
+    (f.field_template||[]).forEach(function(fl){
+      var val=det[fl.key];if(val==null)val='';
+      var fid='fd_'+fl.key;
+      inner+='<label style="display:block;font-size:12px;font-weight:700;color:#55596A;margin:10px 0 4px">'+fl.label_en+(fl.label_ar?' \u00b7 '+fl.label_ar:'')+'</label>';
+      var t=String(fl.type||'text');
+      if(t==='textarea')inner+='<textarea id="'+fid+'" style="width:100%;box-sizing:border-box;min-height:74px;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px">'+String(val).replace(/</g,'&lt;')+'</textarea>';
+      else if(t==='boolean')inner+='<select id="'+fid+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px"><option value=""'+(val===''?' selected':'')+'>\u2014</option><option value="true"'+(val===true?' selected':'')+'>Yes</option><option value="false"'+(val===false?' selected':'')+'>No</option></select>';
+      else if(t.indexOf('select:')===0){
+        var opts=t.slice(7).split(',');
+        inner+='<select id="'+fid+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px"><option value="">\u2014</option>'+opts.map(function(o){return '<option value="'+o+'"'+(val===o?' selected':'')+'>'+o.replace(/_/g,' ')+'</option>';}).join('')+'</select>';
+      }
+      else inner+='<input id="'+fid+'" type="'+(t==='date'?'date':t==='number'?'number':'text')+'" value="'+String(val).replace(/"/g,'&quot;')+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px">';
+    });
+    inner+='<div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">'+
+      '<button id="fd_cancel" style="border:1px solid #E3DCCF;background:#fff;border-radius:10px;padding:10px 18px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">Cancel</button>'+
+      '<button id="fd_save" style="border:0;background:#FF6B00;color:#fff;border-radius:10px;padding:10px 20px;font:inherit;font-size:13px;font-weight:800;cursor:pointer">Save</button></div></div>';
+    ov.innerHTML=inner;
+    document.body.appendChild(ov);
+    document.getElementById('fd_cancel').onclick=function(){ov.remove();};
+    ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+    document.getElementById('fd_save').onclick=function(){
+      var out={};
+      (f.field_template||[]).forEach(function(fl){
+        var e=document.getElementById('fd_'+fl.key);if(!e)return;
+        var v2=e.value;
+        if(v2===''||v2==null)return;
+        var t=String(fl.type||'text');
+        if(t==='boolean')out[fl.key]=(v2==='true');
+        else if(t==='number')out[fl.key]=Number(v2);
+        else out[fl.key]=v2;
+      });
+      b.funnelDetails=out;
+      try{save();}catch(_){}
+      ov.remove();
+      try{render();}catch(_){}
+    };
+  };
+  console.info('%c[v33 funnel UI] loaded','color:#FF6B00;font-weight:700');
+})();

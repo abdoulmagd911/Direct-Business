@@ -60,7 +60,7 @@ structure for tender responses, in Arabic:
 **Technical offer (العرض الفني):** about Direct → work plan in 4 phases with durations
 (خطة العمل) → scope: numbered services, each with its "technical process" bullets
 (نطاق العمل + العملية التقنية) → timeline (الجدول الزمني) → services → **past projects
-with client, scope and contract value** (سابقة الأعمال: Takamol 4M SAR · Ma'aden 2M ·
+with client, scope and contract value** (سابقة الأعمال: Ma'aden 2M ·
 Al Hilal 1.5M · Al Riyadh Club 1M · SFDA 500K) → named team with degrees (فريق العمل) →
 **quantities table WITHOUT prices** (جدول الكميات بدون أسعار) → official certificates
 (المستندات الرسمية: Monsha'at SME cert, CR 1010611219, etc.).
@@ -90,10 +90,14 @@ Bahij Bold); Proxima Nova stays on Drive (license: internal use).
 
 `Direct-Business-Brand.md` on Drive (May 2026, v0) was the first token attempt, pulled
 from the Direct Payments app (`#fc8004` family, Vuexy semantics). This identity system
-supersedes it and stays consistent with it. Its one unfinished instruction is still open:
-**confirm the palette against the official Direct email signature** — needs a screenshot
-from Abdulrahman; if the signature disagrees with the documented palette, the signature
-wins for external documents.
+supersedes it and stays consistent with it. Its one unfinished instruction was **closed
+2026-08-12**: Abdulrahman provided the official email signature (Signature.jpg, Drive
+`1r8LsMuHNF5_XpaXLI5mhKWDUzvdZYNK4`) and it was pixel-sampled by frequency count —
+background orange `#FF6C00` (measured #FE6B01, JPEG tolerance) and slate `#323E49`
+(measured #303E47), white logo/text, a lighter slate `#435059` for the secondary curve.
+**The signature confirms the documented palette exactly**, and confirms the three-oranges
+doctrine: the signature is logo territory, so it wears the mark orange — not the document
+orange. Every source in this system is now verified; nothing remains unchecked.
 
 ## The three oranges — this is not a mistake
 
