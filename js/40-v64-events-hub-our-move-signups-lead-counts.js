@@ -134,6 +134,7 @@ window.renderEvents=function(v){
     if(F.q){var q=F.q.toLowerCase();if(((e.name_en||'')+' '+(e.name_ar||'')+' '+(e.city||'')+' '+(e.venue||'')+' '+(e.organiser||'')).toLowerCase().indexOf(q)<0)return false;}
     return true;
   });
+  window.__v64LastList=list;   /* Export ships exactly what is on screen */
   /* Counts describe the LIVE calendar (what is still ahead), so the tiles never
      promise more than the list below them shows. */
   var AHEAD=E.filter(function(e){return !hasEnded(e);});
@@ -144,7 +145,7 @@ window.renderEvents=function(v){
      events still waiting on a decision. */
   var tile=function(key,val,label,color){
     var on=(key==='undecided'||key==='stand'||key==='attend'||key==='mine')&&F.move===key;
-    return '<div data-evstat="'+key+'" title="Show only these" style="cursor:pointer;padding:2px 8px;border-radius:8px;'+(on?'background:var(--wash-orange,#fff3ec);':'')+'">'
+    return '<div data-evstat="'+key+'" role="button" tabindex="0" aria-pressed="'+(on?'true':'false')+'" title="'+L('Show only these','اعرض هذه فقط')+'" style="cursor:pointer;padding:2px 8px;border-radius:8px;'+(on?'background:var(--wash-orange,#fff3ec);':'')+'">'
       +'<div style="font-size:22px;font-weight:800;'+(color?'color:'+color:'')+'">'+val+'</div>'
       +'<div style="font-size:11px;color:var(--muted)">'+label+'</div></div>';
   };
@@ -202,18 +203,61 @@ window.renderEvents=function(v){
   (b=document.getElementById('evF_ours'))&&(b.onclick=function(){F.ours=!F.ours;render();});
   (b=document.getElementById('evF_past'))&&(b.onclick=function(){F.past=!F.past;render();});
   Array.prototype.forEach.call(document.querySelectorAll('[data-evstat]'),function(el){
-    el.onclick=function(){
+    var hit=function(){
       var k=el.getAttribute('data-evstat');
       F.move=(k==='all'||F.move===k)?'all':k;  /* tapping the active tile clears it */
       if(k!=='all')F.ours=false;
       render();
     };
+    el.onclick=hit;
+    el.onkeydown=function(x){ if(x.key==='Enter'||x.key===' '){ x.preventDefault(); hit(); } };
   });
   (b=document.getElementById('evF_m'))&&(b.onchange=function(){F.move=this.value;render();});
   (b=document.getElementById('evF_v'))&&(b.onchange=function(){F.vertical=this.value;render();});
   (b=document.getElementById('evF_s'))&&(b.onchange=function(){F.status=this.value;render();});
   (b=document.getElementById('evF_q'))&&(b.oninput=function(){F.q=this.value;render();var x=document.getElementById('evF_q');if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length);}});
 };
+
+/* The app's Export button had no entry for Events, so it silently fell back to a
+   whole-database JSON backup — the old stand-alone page could export the list and
+   this one could not. Wrapping (not editing) the core exporter restores it: what
+   you exported is exactly what the filters were showing. Passwords never leave. */
+(function wrapExport(n){
+  if(typeof window.exportCurrent!=='function'){ if((n||0)<40)setTimeout(function(){wrapExport((n||0)+1);},300); return; }
+  if(window.exportCurrent.__v64)return;
+  var orig=window.exportCurrent;
+  window.exportCurrent=function(scope){
+    try{ if(typeof current!=='undefined'&&current==='events'){ return evExport(scope); } }catch(_){}
+    return orig.apply(this,arguments);
+  };
+  window.exportCurrent.__v64=true;
+})(0);
+
+function evExport(scope){
+  var list=(window.__v64LastList||[]);
+  var rows=list.map(function(e){
+    var su=SIGNUPS[e.id]||{};
+    return {
+      Event:e.name_en||'', 'Event (AR)':e.name_ar||'',
+      'Our move':mv(moveOf(e))[0], Progress:pg(progOf(e)),
+      When:e.start_date||'', Until:e.end_date||'',
+      City:e.city||'', Venue:e.venue||'', Vertical:vertLabel(e.vertical),
+      Status:statusLabel(e.status), Priority:e.priority||'',
+      Organiser:e.organiser||'', Website:e.link||'',
+      'Companies list':e.exhibitor_list_url||'',
+      'Signed up by':su.signed_up_by||'', 'Sign-up email':su.login_email||'',  /* password deliberately omitted */
+      'Leads in the app':LEADS[normName(e.name_en)]||0,
+      'Sales prospect':e.opportunity_sales?'Yes':'', 'Competitor/partner':e.opportunity_partner?'Yes':'',
+      Notes:e.notes||''
+    };
+  });
+  var fields=Object.keys(rows[0]||{Event:''});
+  var name='DirectBusiness-events-'+(rows.length)+'-rows';
+  try{
+    if(scope==='xlsList'||scope==='xlsFull')downloadXLS(name+'.xls',rows,fields);
+    else downloadCSV(name+'.csv',rows,fields);
+  }catch(err){ alert(L('Could not export: ','تعذّر التصدير: ')+err.message); }
+}
 
 window.evDelete=function(id){
   if(!canEdit())return;

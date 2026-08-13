@@ -8,7 +8,7 @@ import fs from 'fs';
 const LIB=fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js','utf8');
 const PORT=8093; const srv=start(PORT); const BASE='http://localhost:'+PORT;
 const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
-const p=await (await b.newContext({viewport:{width:1440,height:950}})).newPage();
+const p=await (await b.newContext({viewport:{width:1440,height:950},acceptDownloads:true})).newPage();
 const errors=[];
 p.on('pageerror',e=>errors.push('js: '+e.message));
 p.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text());});
@@ -101,6 +101,32 @@ console.log('info  add-modal "Who signed up" prefill =', JSON.stringify(who), '(
 check('add modal: move defaults to Not decided', await p.evaluate(()=>document.getElementById('ev_move').value), 'undecided');
 await p.evaluate(()=>document.getElementById('ev_cancel').click());
 await p.waitForTimeout(300);
+
+// ---- Export + keyboard round ----
+check('stat tiles are reachable by keyboard', await p.evaluate(()=>{
+  const t=document.querySelector('[data-evstat]');
+  return !!t && t.getAttribute('role')==='button' && t.getAttribute('tabindex')==='0';
+}), true);
+await p.evaluate(()=>document.querySelector('[data-evstat="mine"]').focus());
+await p.keyboard.press('Enter'); await p.waitForTimeout(600);
+check('Enter on a focused tile filters the list', await rows(), 2);
+await p.evaluate(()=>document.querySelector('[data-evstat="mine"]').focus());
+await p.keyboard.press(' '); await p.waitForTimeout(600);
+check('Space clears it again', await rows(), 7);
+
+const dl = p.waitForEvent('download', {timeout:15000}).catch(()=>null);
+await p.evaluate(()=>exportCurrent('list'));
+const file = await dl;
+check('Export on the Events page produces a file', !!file, true);
+if (file){
+  check('the file is the events list, not a database dump', /events/.test(file.suggestedFilename()), true);
+  const path = await file.path();
+  const csv = fs.readFileSync(path,'utf8');
+  check('CSV carries the move column', /Our move/.test(csv), true);
+  check('CSV carries who signed up', /Signed up by/.test(csv), true);
+  check('CSV never carries the event-site password', /throwaway-1/.test(csv), false);
+  check('CSV row count matches what was on screen', csv.trim().split('\n').length-1, 7);
+}
 
 // ---- Polish round: Escape, duplicate guard, phone layout ----
 await p.evaluate(()=>evOpenModal('e2')); await p.waitForTimeout(400);
