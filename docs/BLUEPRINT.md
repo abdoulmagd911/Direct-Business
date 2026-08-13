@@ -89,7 +89,7 @@ bucket `proposals`), shown with 📎 on the proposal and in the list; and the Wo
 ("complete the client") now fires on every path to Won. Invoices can arrive from the CSV
 import already marked booking/project with their proposal reference.
 **Still open:** owner's yes/no on the document; optional past-work page (Ma'aden 2M /
-Al-Hilal 1.5M / SFDA 500K / Takamol 4M / Riyadh Club 1M) as a toggle for tender-type
+Al-Hilal 1.5M / SFDA 500K / Riyadh Club 1M) as a toggle for tender-type
 proposals only.
 **Done means:** the team sends a client-ready PDF from the app without touching Word.
 

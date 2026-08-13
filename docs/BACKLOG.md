@@ -1,5 +1,43 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-13 · Round 8 — Takamol purge, auto-linking, the 30-lead world
+
+Owner orders executed:
+1. **Verification services (Takamol) removed from everything.** They are calculated in
+   another system and never belong here. The importer now SKIPS them exactly like wallet
+   top-ups (with a "verification services skipped" preview line), the legacy CSV import
+   flags them out, the seed/report references are gone, and the live ledger holds zero
+   such rows. QA guard: probe-round8 asserts Takamol appears on no page.
+2. **Service catalog now feeds every dropdown.** The Requests form service list was a
+   hardcoded 8-item list — it now offers the full catalog (24 services incl. Insurance,
+   Intl driving permit, Translation, eSIM, Umrah, Study abroad…), bilingual. The lead
+   form "Services they use" input suggests the same catalog.
+3. **Finance↔client linking is AUTOMATIC (js/42-v66).** After every ledger load, any
+   unlinked invoice group is matched to a client by normalised name (Arabic + English,
+   company words stripped) and the link is saved with confirmed_by='auto-match';
+   individuals-only groups auto-mark "Individuals / not a client". Only exact matches
+   link (no-cross-company rule); near-misses stay visible for human review. The manual
+   "Link finance to clients" button is hidden — the modal survives only as the fallback
+   behind the review warning.
+4. **The 30-lead world** (see CLAUDE.md "Data world"): previous data snapshotted to
+   *_snapshot_20260813 and wiped (incl. the stale 1,012-row blob copy); 30 scenario
+   leads inserted with owners, funnels, activity histories, next actions; 10 clients
+   with 28 finance rows across all revenue ways + aging story; all groups linked.
+   Three-team lens on live data: 0 unowned, 0 unlinked, 0 orphans, 0 mismatches,
+   0 dupes, all client lifetime totals reconcile with their ledger rows.
+5. **Importer month/quarter landmine fixed**: it wrote "2026-06"/"2026-Q2" while the
+   period filters expect "June"/"Q2" (the DB trigger was silently rescuing old imports).
+   Now it writes the names directly.
+6. Full battery: 308 checks green (10 mock suites + real-backend probe-live2 updated to
+   the new world: 28 rows, AR 216,115, 10 clients, no Unassigned).
+
+Parked / open:
+- Proposal-stage leads have no proposal *documents* yet (activities + funnel data tell
+  the story; create real proposals from the app when working the leads).
+- If Takamol should still appear in tender one-pagers as past work (marketing, not
+  finance), say so — it was removed from those lists too and is a one-line revert.
+
+
 ## 2026-08-12 · Round 7 — wallet purge, aging verified, and the triple mega-sweep
 
 Owner orders executed:
@@ -338,7 +376,7 @@ card strip gained Cost/Profit/Margin%/Credit held. Rule to keep: MAIN VIEW = num
 DETAIL VIEW = percentages & counts.
 Coverage check of the exec dashboard's OTHER tabs (Finance 26 / B2B / Tenders,
 screenshots taken): Remaining Credit → built (finance_client_links.credit_balance_sar,
-KPI card 'Client credit (held)', test: Takamol 250K + MDD 60K = 310K); uncollected
+KPI card 'Client credit (held)', test: Qassim Foods 250K + MDD 60K = 310K); uncollected
 money → already covered (Outstanding KPI + Collections & AR aging); plan-vs-actual
 (متوقع/مؤكد/فعلي) → built (finance_targets table seeded with the REAL 2026 plan:
 13.2M expected / 11.3M confirmed; strip with attainment bar; pro-rated for part
@@ -381,7 +419,7 @@ Read Direct's actual tender offer from Drive ("techincal offer final 1.pdf", the
 Human Rights Commission agreement, folder 1pG4Sgp8Jo7zUqNz5DuMFDkW6X18XBcqR). Its real
 skeleton: About Direct → work plan → numbered scope of services (each with process
 steps) → 4-phase timeline → past work (Ma'aden 2M / Al-Hilal 1.5M / SFDA 500K /
-Takamol 4M / Riyadh Club 1M) → team → quantities table without prices; the separate
+Riyadh Club 1M) → team → quantities table without prices; the separate
 FINANCIAL offer prices the same table and defines every payment as
 **contracted service fee + cost of the requested service** (رسوم الخدمة التعاقدية +
 تكلفة الخدمة المطلوبة) on a monthly schedule.
@@ -410,7 +448,7 @@ the separate financial offer), work-plan + commercial page, gradient closing pag
 with contacts. RTL in Arabic. Print = exactly 6 A4 pages (verified headlessly).
 Brand orange in the document corrected to #F06820 per the direct-brand skill.
 STILL OPEN in this phase: owner screenshot yes/no on the paged document; optional
-past-work page (Ma'aden 2M / Al-Hilal 1.5M / SFDA 500K / Takamol 4M / Riyadh Club
+past-work page (Ma'aden 2M / Al-Hilal 1.5M / SFDA 500K / Riyadh Club
 1M) as an opt-in for tender-type proposals; embed licensed brand fonts is NOT
 possible in the public repo — document uses font-family references with fallbacks.
 

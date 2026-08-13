@@ -127,7 +127,7 @@ driver) · airport transfers · **eSIM** · **VIP arrival/departure** · confere
 meeting/event halls · domestic & international **postal shipping**.
 
 ### Real clients (named in the profile)
-Ma'aden · Al Riyadh Club · Al Hilal Saudi Club · Takamol · Human Rights Commission · Saudi Food
+Ma'aden · Al Riyadh Club · Al Hilal Saudi Club · Human Rights Commission · Saudi Food
 & Drug Authority.
 
 ### Awards

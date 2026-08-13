@@ -164,7 +164,7 @@ and `contacts_snapshot_20260808` (335 rows) hold the full prior state, admin/man
 
 **Re-verification, batch 1 — 2026-08-09.** Moved the 6 companies Direct has actually invoiced
 back to clients (`is_client=true` + `raw.isClient='true'` + `stage='won'` + `converted_date`):
-Takamol for Business Services (~10.9M SAR billed), Booking and Ticket Agency, Directorate of
+Booking and Ticket Agency, Directorate of
 Public Security, Maaal, الوسائل الوقائية للسلامة, المطاحن الأولى. So the app now has 6 active
 clients again. Backup before the change: `businesses_snapshot_20260809_clientmove` (1,035 rows).
 Undo = copy `is_client/stage/converted_date/raw` back from that snapshot by id. The other ~27
@@ -281,15 +281,28 @@ deliberately for this). Screenshot the pages and look at them — several real d
 Today and Leads were invisible in the code and obvious on screen.
 
 
-## Data world (since 2026-08-12)
+## Data world (rebuilt 2026-08-13 — the 30-lead training world)
 
-The live database holds **real test data**: ~24 actual companies and 58 actual invoices
-mirrored from Direct Payments exports (batch `real-2026-08-12`), plus the full promo-code
-registry (`promo_codes`, 198 codes). The old synthetic worlds are preserved in
-`*_snapshot_20260812` tables. **Real company data lives in the database only — never
-commit names, amounts or invoice numbers to this public repo.** QA fixtures stay synthetic.
+Owner-ordered rebuild: the previous data was wiped (kept in `*_snapshot_20260813` tables)
+and replaced with **30 leads, each a different scenario**, every one owned by a real team
+member, spread across all 7 funnels and all 7 stages. **10 are converted clients** with
+full finance: 28 ledger rows covering paid invoices, pending transactions (tax invoice
+later), commissions (held at supplier wallet), a credit note, project-origin invoices
+under a proposal ref, and an aging story (4 overdue invoices, 216,115 SAR outstanding).
+Services deliberately include Insurance, Intl driving permit, Translation, eSIM, Umrah,
+Study abroad, MICE. Every finance group is linked to its client (`finance_client_links`,
+`confirmed_by='auto-match'`) — linking is now automatic (js/42-v66), never manual.
+The promo-code registry (`promo_codes`, 198 codes) remains as revenue way #4.
+**Verification services (Takamol / Techtic Support) are accounted for in another system
+and must NEVER appear in this app** — the importer skips them (like wallet top-ups) and
+the legacy CSV import flags them; do not reintroduce them anywhere.
+**Real company data lives in the database only — never commit names, amounts or invoice
+numbers to this public repo.** QA fixtures stay synthetic.
 `finance_invoices.revenue_way` records how revenue arrived: invoice / transaction /
 commission / promo_code. VAT is stored (`vat_sar`) but never displayed — owner rule.
+A database trigger (`finance_derive_fields`) enforces the doctrine on every insert:
+revenue = total − wallet, profit = revenue − cost (the whole taxable amount), and
+month/quarter derive from the invoice date.
 
 ## Rules for editing the app (SPLIT INTO FILES on 2026-08-12)
 

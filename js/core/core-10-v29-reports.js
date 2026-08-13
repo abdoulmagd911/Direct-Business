@@ -30,7 +30,7 @@
     [].map(function(a){return '<span style="background:#FFF1E6;color:#A9781A;border:1px solid #F4C892;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">'+a+'</span>';}).join('')+'</div>';}
   function talkingPoints(){
     var A=(typeof AGENCY!=='undefined')?AGENCY:{};
-    var pts=['10+ years in Saudi B2B travel','600+ airline agreements','2.5M+ accommodation options','IATA '+(A.iata||'7123828')+' - PAX accredited','Amadeus production + NDC content','PCI-DSS certified, Bank Guarantee 750K SAR','World Travel Award x3 + Great Place to Work x3',"Clients: Saudi Red Crescent, Ma'aden, Takamol, Saudi Ports"];
+    var pts=['10+ years in Saudi B2B travel','600+ airline agreements','2.5M+ accommodation options','IATA '+(A.iata||'7123828')+' - PAX accredited','Amadeus production + NDC content','PCI-DSS certified, Bank Guarantee 750K SAR','World Travel Award x3 + Great Place to Work x3',"Clients: Saudi Red Crescent, Ma'aden, Saudi Ports"];
     return ''; /* v29: talking-points card hidden for now */ var __v29dead='<div class="card"><h3>x</h3><div class="ch-sub" style="color:#7C8194;font-size:12px;margin-bottom:6px">For cold calls &amp; first-contact messages - pulled from the company profile</div><ul style="margin:0;padding-inline-start:18px;font-size:13px;line-height:1.7">'+pts.map(function(p){return '<li>'+p+'</li>';}).join('')+'</ul></div>';
   }
 
@@ -46,9 +46,9 @@
       ['Compliance','PCI-DSS · Bank Guarantee 750K SAR · DUNS registered'],
       ['Address',(A.address||'Saif Plaza, Jeddah Road, Al-Hada District, Riyadh 12321')],
       ['Contact',(A.website||'www.directksa.com')+' · '+(A.phone||'+966 508 434 126')]];
-    var clients=['Saudi Red Crescent',"Ma'aden",'Takamol','Saudi Ports Authority','Roads General Authority','Saudi Fund for Development','Ministry of Industry','Islamic University of Madinah'];
+    var clients=['Saudi Red Crescent',"Ma'aden",'Saudi Ports Authority','Roads General Authority','Saudi Fund for Development','Ministry of Industry','Islamic University of Madinah'];
     var awards=['World Travel Award 2023','World Travel Award 2024','World Travel Award 2025','Great Place to Work x3','ICEF','English UK','British Council','IATA PAX 2026','PCI-DSS'];
-    var tenderBlock=tender?'<h2>Why Direct for your tender · لماذا دايركت</h2><p>A Saudi-accredited TMC with 10+ years of government & enterprise travel operations, 600+ airline agreements, 24/7 servicing, ZATCA-compliant invoicing, and an in-house technology subsidiary (TECHTIC). Trusted by Saudi Red Crescent, Ma\'aden, Takamol and Saudi Ports Authority.</p>':'';
+    var tenderBlock=tender?'<h2>Why Direct for your tender · لماذا دايركت</h2><p>A Saudi-accredited TMC with 10+ years of government & enterprise travel operations, 600+ airline agreements, 24/7 servicing, ZATCA-compliant invoicing, and an in-house technology subsidiary (TECHTIC). Trusted by Saudi Red Crescent, Ma\'aden and Saudi Ports Authority.</p>':'';
     var html='<!DOCTYPE html><meta charset="utf-8"><title>'+(tender?'Direct Travel — Tender One-Pager':'About Direct Travel')+'</title>'+
      '<style>body{font-family:Inter,Arial,sans-serif;color:#1C1E2B;max-width:820px;margin:24px auto;padding:0 24px;line-height:1.6}h1{color:#FF6B00;margin:0 0 2px;font-size:26px}h2{border-bottom:2px solid #FF6B00;padding-bottom:4px;margin-top:22px;font-size:16px}.ar{direction:rtl;text-align:right;font-family:Tajawal,Arial}.row{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}.b{background:#FFF1E6;color:#A9781A;border:1px solid #F4C892;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700}table{width:100%;border-collapse:collapse;font-size:13px}td{border:1px solid #eee;padding:7px 9px}.k{background:#faf7f2;font-weight:700;width:38%}@media print{.noprint{display:none}}</style>'+
      '<button class="noprint" onclick="window.print()" style="background:#FF6B00;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;margin-bottom:14px">🖨 Print / Save as PDF</button>'+
@@ -541,7 +541,6 @@ window.rptPpt=function(){
 {"n":"ETC International College","e":"invoices@etc-inter.net","c":10,"t":30003},
 {"n":"Special Forces for Security and Protection","e":"SSF_RL@moisp.gov.sa","c":1,"t":27600},
 {"n":"هيئة الهلال الأحمر السعودي","e":"","c":1,"t":24955},
-{"n":"Takamol For Business Services","e":"","c":1,"t":24817},
 {"n":"مستشفي قوي الامن بمكة المكرمة","e":"waladwani@sfhm.med.sa","c":1,"t":24265},
 {"n":"Islamic University of Madinah","e":"Pr@iu.edu.sa","c":3,"t":24340},
 {"n":"Imam Mohammad Ibn Saud Islamic University (IMSIU)","e":"info@imamu.edu.sa","c":1,"t":23988},

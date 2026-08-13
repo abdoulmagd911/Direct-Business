@@ -21,7 +21,7 @@
   }
   var SVC64={'Direct Flights':'Flights','Direct Hotels':'Hotels','Direct Visa':'Visas',
     'Direct Course':'Study abroad','Direct Support':'Support services',
-    'Techtic Support':'Verification services','Direct Packages':'Packages','Direct Wallet':'Wallet top-up'};
+    'Direct Packages':'Packages','Direct Wallet':'Wallet top-up'};
 
   function csvParse64(text){
     text=String(text).replace(/^﻿/,'');
@@ -41,9 +41,9 @@
     return h.indexOf('Type')>=0 && h.indexOf('Invoice Reference #')>=0 && h.indexOf('Customer Name')>=0 && h.indexOf('Item Is Taxable')>=0;
   }
 
-  var _walletSkipped=0;
+  var _walletSkipped=0,_verifSkipped=0;
   function parseDP(rows){
-    _walletSkipped=0;
+    _walletSkipped=0;_verifSkipped=0;
     var hdr=rows[0].map(function(x){return String(x||'').trim();});
     function ix(n){return hdr.indexOf(n);}
     var iType=ix('Type'),iProd=ix('Product'),iCust=ix('Customer Name'),iRef=ix('Invoice Reference #'),
@@ -71,16 +71,18 @@
     order.forEach(function(ref){
       var inv=invs[ref];
       if(/Cancelled/i.test(inv.status))return; // never entered the books
-      var cost=0,taxTot=0,disc=0,svcs={},comm=false,wallet=false;
+      var cost=0,taxTot=0,disc=0,svcs={},comm=false,wallet=false,verif=false;
       inv.items.forEach(function(it){
         if(it.taxable)taxTot+=it.total; else cost+=it.total;
         disc+=it.discount||0;
         if(it.product)svcs[SVC64[it.product]||it.product]=1;
         if(/Commission/i.test(it.name))comm=true;
         if(/Wallet Balance/i.test(it.name)||it.product==='Direct Wallet')wallet=true;
+        if(it.product==='Techtic Support'||/Verification/i.test(it.name)||/Verification/i.test(it.product||''))verif=true;
       });
       var profit=Math.round(taxTot/1.15*100)/100, vat=Math.round((taxTot-profit)*100)/100;
       if(wallet){_walletSkipped++;return;} // owner rule 2026-08-12: wallet top-ups are NOT imported at all
+      if(verif){_verifSkipped++;return;}   // owner rule 2026-08-13: verification services are accounted for elsewhere — never imported here
       var svc=Object.keys(svcs).sort().join(' + ')||'Other';
       var st = inv.credit?'credit' : /Fully Paid/i.test(inv.status)?'paid' : /Draft/i.test(inv.status)?'draft' : 'pending';
       out.push({ref:ref,num:inv.num,date:inv.date,cust:inv.cust,total:inv.total,cost:Math.round(cost*100)/100,
@@ -104,8 +106,10 @@
       var rev = i.wallet?0 : Math.round((i.total-i.vat)*100)/100;
       return {
         invoice_no:i.ref, zatca_dpin:i.num, client_group:i.cust, customer_raw_name:i.cust,
-        invoice_date:i.date, month:i.date?i.date.slice(0,7):null,
-        quarter:i.date?(i.date.slice(0,4)+'-Q'+(Math.floor((+i.date.slice(5,7)-1)/3)+1)):null,
+        invoice_date:i.date,
+        // month NAME + bare quarter — the period filters compare against 'January'…'December' and 'Q1'…'Q4'
+        month:i.date?['January','February','March','April','May','June','July','August','September','October','November','December'][+i.date.slice(5,7)-1]:null,
+        quarter:i.date?('Q'+(Math.floor((+i.date.slice(5,7)-1)/3)+1)):null,
         products:i.svc, service_type:i.svc, record_type:'b2b',
         total_incl_vat_sar:i.total, wallet_portion_sar:i.wallet?i.total:0, revenue_sar:rev,
         cost_sar:i.cost, profit_sar:i.profit, vat_sar:i.vat, discount_sar:i.disc,
@@ -140,6 +144,7 @@
       (comm?' · '+fl('commissions','عمولات')+' <b>'+comm+'</b>':'')+
       (cred?' · '+fl('credit notes','إشعارات دائنة')+' <b>'+cred+'</b>':'')+
       (wal?' · '+fl('wallet top-ups skipped (not stored)','تم تجاوز تعبئة المحفظة (لا تُخزن)')+' <b>'+wal+'</b>':'')+
+      (_verifSkipped?' · '+fl('verification services skipped (accounted for elsewhere)','تم تجاوز خدمات التوثيق (تُحتسب في نظام آخر)')+' <b>'+_verifSkipped+'</b>':'')+
       (skipped?('<br>↩ '+fl('Skipped (already in the ledger):','تم تجاوزها (موجودة مسبقًا):')+' <b>'+skipped+'</b>'):'')+
       '</div>'+
       (rows.length?('<button class="btn pri sm" style="margin-top:8px" onclick="finCommit()">'+fl('Confirm import of '+rows.length+' rows','تأكيد استيراد '+rows.length+' صف')+'</button>'):'');
