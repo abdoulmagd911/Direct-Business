@@ -1,5 +1,27 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-12 · Round 7 — wallet purge, aging verified, and the triple mega-sweep
+
+Owner orders executed:
+1. **Wallet top-ups fully removed** — deleted from the live ledger, the importer now
+   SKIPS them entirely (never stored, preview says "skipped"), the Wallet KPI card and
+   its footnote are gone. Settlements remain completely absent (asserted by test).
+2. **AR aging for the finance team verified on real data** (Clients & collections tab):
+   DSO, % overdue, Outstanding, 0-30/31-60/61-90/90+ buckets — live shows 460.4K
+   outstanding with 397.6K past 90 days. Known limit: % overdue needs collection due
+   dates, which the line-item export doesn't carry; buckets age by invoice date.
+3. **probe-mega.mjs — the owner's cross-effect concept as a permanent suite (49 checks)**:
+   every finance number recomputed independently from raw rows, then overview KPIs,
+   plan-vs-actual, flat service table, monthly chart, aging card, top-clients total,
+   ledger label, report-builder total and the client card must all agree; then one
+   invoice is mutated and every screen must move by exactly that delta; a new lead must
+   ripple into chips/tables and vanish from the pipeline on Won; dev-jargon scanner over
+   9 pages in EN+AR; speed gates (page renders measured 5-50ms; login/refresh bounded).
+4. Cleanup: raw status codes humanized on the invoice card (verified_paid → "Paid &
+   verified"); export CSV header renamed invoice_total_sar; no dev words on any screen.
+5. **The full battery ran THREE times as ordered** — mega, notes-rules, lifecycle,
+   landmines(stress), stress, newfeatures, attack-day, wave2, wave3, live real-backend:
+   ~276 checks per round, three rounds, zero failures, zero page errors, no slow renders.
 ## 2026-08-12 · Round 6 — THE IMPORTER + the mirror folded away + ordered re-sweep
 
 Blueprint step 1 SHIPPED. Finance → Import now reads **Direct Payments' own "Invoice
