@@ -100,6 +100,19 @@
 
   footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);
     font-size:12.5px;font-family:var(--font-mono);line-height:1.7}
+  /* live specimens — the real hosted files, so what you see is what installs */
+  @font-face{font-family:'DZarid';src:url('fonts/29LTZaridSlab-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
+  @font-face{font-family:'DZarid';src:url('fonts/29LTZaridSlab-Bold.ttf') format('truetype');font-weight:700;font-display:swap}
+  @font-face{font-family:'DBahij';src:url('fonts/Bahij_TheSansArabic-Bold.ttf') format('truetype');font-weight:700;font-display:swap}
+  .spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px}
+  .spec .card{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:16px 18px}
+  .spec .nm{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;margin-bottom:8px}
+  .spec .big{font-size:30px;line-height:1.5;margin:0}
+  .spec .row{font-size:16px;margin-top:6px;color:var(--ink)}
+  .spec .zarid{font-family:'DZarid',serif}
+  .spec .zaridb{font-family:'DZarid',serif;font-weight:700}
+  .spec .bahij{font-family:'DBahij',sans-serif;font-weight:700}
   [dir="rtl"]{direction:rtl}
   @media (prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
@@ -222,6 +235,24 @@
         </tbody>
       </table>
     </div>
+    <div class="spec">
+      <div class="card">
+        <div class="nm">29LT Zarid Slab · Regular</div>
+        <p class="big zarid" dir="rtl">دايركت للسفر والسياحة</p>
+        <p class="row zarid" dir="rtl">عرض سعر · خدمات السفر · الرياض ١٤٤٧</p>
+      </div>
+      <div class="card">
+        <div class="nm">29LT Zarid Slab · Bold</div>
+        <p class="big zaridb" dir="rtl">قوة موردين عالمية</p>
+        <p class="row zaridb" dir="rtl">خدمة سعودية · شريك واحد</p>
+      </div>
+      <div class="card">
+        <div class="nm">Bahij TheSansArabic · Bold — price tables</div>
+        <p class="big bahij" dir="rtl">الإجمالي ٢٢٬١٣٧٫٥٠</p>
+        <p class="row bahij" dir="rtl">حجز طيران دولي · تأشيرات · فنادق</p>
+      </div>
+    </div>
+    <p class="note" style="margin-top:10px">Those three specimens render in the actual hosted files — what you see is exactly what installs.</p>
     <p class="note" style="margin-top:10px"><b>Direct downloads hosted here (Arabic core set):</b>
       <a href="fonts/29LTZaridSlab-Regular.ttf" download>Zarid Slab Regular</a> ·
       <a href="fonts/29LTZaridSlab-Bold.ttf" download>Zarid Slab Bold</a> ·

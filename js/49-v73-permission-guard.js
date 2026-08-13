@@ -1,4 +1,4 @@
-/* v70 — "You can't change this" guard (owner order 2026-08-13: roles must actually hold).
+/* v73 — "You can’t change this" guard (owner order 2026-08-13: roles must actually hold).
    The database has always enforced the real rules. The SCREEN did not: an Operations person
    or a read-only person was still shown Edit buttons, could type a change, saw it appear —
    and the database quietly refused it. The only hint was a small red pill in the corner.
@@ -141,5 +141,5 @@
   [900,2500,5000,9000].forEach(function(d){ setTimeout(function(){ gateSettings(); applyGuards(); watchSaves(); badge(); }, d); });
   setInterval(function(){ gateSettings(); applyGuards(); watchSaves(); }, 6000);
 
-  console.info('%c[v70] permission guard loaded','color:#D92D20;font-weight:700');
-}catch(e){if(window.console)console.warn('[v70] init',e);}})();
+  console.info('%c[v73] permission guard loaded','color:#D92D20;font-weight:700');
+}catch(e){if(window.console)console.warn('[v73] init',e);}})();

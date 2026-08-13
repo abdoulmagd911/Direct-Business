@@ -52,7 +52,10 @@ const TABLES={
 };
 const RPCLOG=[];
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
-export function start(port){
+// start(port) keeps the standard seed; start(port,{table:rows}) swaps a table's rows,
+// so a probe can drive the app at real-world scale without disturbing other probes.
+export function start(port, seedOverrides){
+ if(seedOverrides) Object.keys(seedOverrides).forEach(k=>{ TABLES[k]=seedOverrides[k]; });
  return http.createServer((req,res)=>{
   const u=url.parse(req.url,true); const path=u.pathname;
   if(req.method==='OPTIONS') return send(res,204,'');
