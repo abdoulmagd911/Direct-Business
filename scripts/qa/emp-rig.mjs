@@ -11,7 +11,9 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import http from 'http';
 import fs from 'fs';
 
-export const APP_DIR = 'live-app';
+/* Which copy of the app to drive. Defaults to the working copy; set APP_DIR to a folder
+   downloaded from the live site to rehearse against exactly what the server is serving. */
+export const APP_DIR = process.env.APP_DIR || 'live-app';
 
 const PW = (k) => process.env['DB_PW_' + k.toUpperCase()] || '';
 
