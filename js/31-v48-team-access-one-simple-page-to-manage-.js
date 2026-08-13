@@ -128,7 +128,7 @@
   function addSettingsCard(){
     try{
       if(typeof current==='undefined'||current!=='settings')return;
-      if(window.__userTier && window.__userTier!=='admin')return;
+      if(window.__userTier && window.__userTier!=='admin' && window.__userTier!=='manager')return;
       var v=document.getElementById('view'); if(!v||v.querySelector('.v48-card'))return;
       var A=ar();
       var card=document.createElement('div'); card.className='card v48-card'; card.style.cssText='border:1px solid #F2C185';

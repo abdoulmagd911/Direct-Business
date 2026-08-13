@@ -1,20 +1,43 @@
 /* Shared rig: drive the REAL app (local files, proven byte-identical to the live site)
    against the REAL Supabase backend, as a chosen employee.
-   Run scripts with: NODE_USE_ENV_PROXY=1 node <script>.mjs                              */
+
+   NO PASSWORDS LIVE IN THIS FILE. This repository is public, and these are the real
+   working logins of real people. Each person's password is read from the environment
+   instead, e.g.  DB_PW_OTHMAN='...'  DB_PW_RAAD='...'  and so on — the names are printed
+   below. Abdulrahman holds the list; ask him for it, or export the ones you need.
+
+   Run scripts with: NODE_USE_ENV_PROXY=1 DB_PW_...=... node <script>.mjs               */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import http from 'http';
 import fs from 'fs';
 
 export const APP_DIR = 'live-app';
 
+const PW = (k) => process.env['DB_PW_' + k.toUpperCase()] || '';
+
 export const TEAM = {
-  admin:       { email: 'test@directksa.com',                 pw: 'Dq7nTest-2026-Riyadh', name: 'QA Test Account',      role: 'admin' },
-  othman:      { email: 'osharafi@direct-visa.net',           pw: 'Direct-2026-Othman!',  name: 'Othman Al Sharafi',    role: 'manager' },
-  raad:        { email: 'raad.elkhair@directksa.com',         pw: 'Direct-2026-Raad!',    name: 'Raad Awad',            role: 'bd' },
-  kareem:      { email: 'kareem.medhat@directksa.com',        pw: 'Direct-2026-Kareem!',  name: 'Kareem Medhat',        role: 'operations' },
-  assem:       { email: 'assem.alsweed@directksa.com',        pw: 'Direct-2026-Assem!',   name: 'Assem Alsweed',        role: 'team_member' },
-  mohammed:    { email: 'mohammed.altuwaijri@directksa.com',  pw: 'Direct-2026-Mohammed!',name: 'Mohammed Altuwaijri',  role: 'viewer' },
+  /* super admins — everything, everywhere */
+  business:  { email: 'business@directksa.com',              pw: PW('business'),       name: 'Abdulrahman Aboelmagd',       role: 'admin' },
+  aboelmagd: { email: 'aboelmagd@directksa.com',             pw: PW('aboelmagd'),      name: 'Abdulrahman Aboelmagd',       role: 'admin' },
+  hassan:    { email: 'a.hassan@directksa.net',              pw: PW('hassan'),         name: 'Abdelrahman Hasan',           role: 'admin' },
+  admin:     { email: 'test@directksa.com',                  pw: PW('admin'),          name: 'QA Test Account',             role: 'admin' },
+  /* manager — employee pages + proposals/events/airlines/settings/logs, manages people */
+  othman:    { email: 'osharafi@direct-visa.net',            pw: PW('othman'),         name: 'Othman Al Sharafi',           role: 'manager' },
+  /* employees — leads, clients, finance, and they may edit all three */
+  raad:      { email: 'raad.elkhair@directksa.com',          pw: PW('raad'),           name: 'Raad Awad',                   role: 'team_member' },
+  kareem:    { email: 'kareem.medhat@directksa.com',         pw: PW('kareem'),         name: 'Kareem Medhat',               role: 'team_member' },
+  assem:     { email: 'assem.alsweed@directksa.com',         pw: PW('assem'),          name: 'Assem Alsweed',               role: 'team_member' },
+  mohammed:  { email: 'mohammed.altuwaijri@directksa.com',   pw: PW('mohammed'),       name: 'Mohammed Altuwaijri',         role: 'team_member' },
+  ahmed:     { email: 'ahmed.aboelmagd@directksa.net',       pw: PW('ahmed'),          name: 'Ahmed Abo El Magd',           role: 'team_member' },
+  abdulaziz: { email: 'abdulaziz.alreshody@directksa.com',   pw: PW('abdulaziz'),      name: 'Abdul Aziz Alreshody',        role: 'team_member' },
 };
+
+/* fail loudly rather than silently testing nothing */
+export function requirePw(key){
+  const t = TEAM[key];
+  if (!t || !t.pw) throw new Error('Set DB_PW_' + key.toUpperCase() + " — this rig reads passwords from the environment, never from the file.");
+  return t.pw;
+}
 
 /* what each role is SUPPOSED to be able to write (from the database policies) */
 export const EXPECT = {

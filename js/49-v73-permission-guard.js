@@ -15,9 +15,9 @@
   var CAN={
     admin:      {leads:1,proposals:1,requests:1,activities:1,finance:1,promo:1},
     manager:    {leads:1,proposals:1,requests:1,activities:1,finance:1,promo:1},
-    bd:         {leads:1,proposals:1,requests:1,activities:1,finance:0,promo:1},
-    operations: {leads:0,proposals:0,requests:1,activities:1,finance:0,promo:0},
-    team_member:{leads:1,proposals:1,requests:1,activities:1,finance:0,promo:0},
+    bd:         {leads:1,proposals:1,requests:1,activities:1,finance:1,promo:1},
+    operations: {leads:1,proposals:1,requests:1,activities:1,finance:1,promo:0},
+    team_member:{leads:1,proposals:1,requests:1,activities:1,finance:1,promo:0},
     viewer:     {leads:0,proposals:0,requests:0,activities:0,finance:0,promo:0}
   };
   var ROLE_EN={admin:'Admin',manager:'Manager',bd:'Business development',operations:'Operations',team_member:'Team member',viewer:'Read only'};
@@ -27,7 +27,7 @@
     operations:['You can create and work requests, and log activity on any company.','يمكنك إنشاء الطلبات ومتابعتها، وتسجيل النشاط على أي شركة.'],
     viewer:    ['Your account is read-only: you can open and read everything, and export reports.','حسابك للقراءة فقط: يمكنك فتح كل شيء وقراءته وتصدير التقارير.'],
     bd:        ['Finance is kept to managers. Everything about leads, clients and proposals is yours.','المالية للمدراء. كل ما يخص العملاء المحتملين والعملاء والعروض متاح لك.'],
-    team_member:['Finance is kept to managers. Everything about leads, clients and proposals is yours.','المالية للمدراء. كل ما يخص العملاء المحتملين والعملاء والعروض متاح لك.']
+    team_member:['Your account covers leads, clients and finance.','حسابك يشمل العملاء المحتملين والعملاء والمالية.']
   };
 
   function role(){ try{ return window.__userRole || (window.__userTier==='admin'?'admin':window.__userTier==='manager'?'manager':window.__userTier==='viewer'?'viewer':null); }catch(_){ return null; } }
@@ -49,6 +49,7 @@
         fl('Your access level is “'+lbl+'”. '+extra,'مستوى صلاحيتك «'+lbl+'». '+extra),
         fl('Ask an admin if you need this changed.','اطلب من المسؤول تغيير صلاحيتك إذا احتجت ذلك.'));
   }
+  try{ window.__v70box=function(a,b,c){ box(a,b,c); }; }catch(_){}
   function box(title,line1,line2,danger){
     try{
       var old=document.getElementById('v70box'); if(old)old.remove();
@@ -108,7 +109,7 @@
   function gateSettings(){
     try{
       if(typeof current==='undefined'||current!=='settings')return;
-      var r=role(); if(!r||r==='admin')return;
+      var r=role(); if(!r||r==='admin'||r==='manager')return;
       current='today';
       try{ if(typeof render==='function') render(); }catch(_){}
       box(fl('Settings is for admins','الإعدادات للمسؤولين فقط'),

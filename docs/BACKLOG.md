@@ -1,5 +1,44 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-13 · Round 13 — GO-LIVE: the three-level access model
+
+Abdulrahman set the model himself: three super admins (his two addresses plus Abdelrahman
+Hasan, and the QA account), one manager (Othman) who may add and remove people but never
+grant admin, and everyone else an employee with Leads, Clients and Finance — all editable.
+Permanent passwords, handed over by him, so nobody is asked to change one on first sign-in.
+All eleven accounts were signed in and out for real against the live backend.
+
+Built: `js/52-v76-access-model.js` (the screen half), edge function `admin-users` v3 (the
+server half: `roleAllowedForCaller`, `targetIsAdmin`, managers blocked from admin in five
+different ways), and `probe-golive.mjs` — 181 checks across all eleven people.
+
+Three real defects found by rehearsal and fixed:
+
+1. **The employee sidebar hid the wrong buttons.** It mapped buttons to pages by counting
+   positions, but the sidebar is built three times over (core → the v25 layer rebuilds it in
+   groups → later layers append Finance and Brand). Assem lost Finance and gained Projects.
+   Buttons are now named by their own wording, in English and Arabic, from the same `VIEWS`
+   list that writes them. **Never count sidebar positions again.**
+2. **The manager could not open Settings** — the core login layer hid that button for anyone
+   who was not an admin, which contradicted the model he asked for. Now admin or manager.
+3. **"Admin" was still offered in the manager's role picker.** The list arrives over the
+   network, and the watcher only noticed pickers that were nested inside a newly added
+   element, never a picker that WAS the added element. It now watches for any picker it has
+   not trimmed yet. (The server had refused it correctly all along — this was cosmetic, but
+   the kind of cosmetic that gets someone told "no" after they thought they had said yes.)
+
+Also: the test rig no longer carries the team's passwords. This repository is public and
+those are real working logins; `scripts/qa/emp-rig.mjs` now reads them from the environment
+(`DB_PW_OTHMAN`, `DB_PW_RAAD`, …) and the list lives only in Abdulrahman's hands.
+
+### Still open after this round
+
+- The old database roles `bd`, `operations` and `viewer` still exist but nobody is on them.
+  Leave them: they cost nothing, and collapsing the database enum would break history.
+- Employees have no Reports page. Under the model as set, reporting is a manager/admin thing.
+  Worth revisiting once the team is actually using it.
+
+
 ## 2026-08-13 · Round 12 — the phone pass (five roles, iPhone-sized, live backend)
 
 Most of the team will open this on a phone, and that surface had never been tested for the

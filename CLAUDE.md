@@ -280,6 +280,12 @@ runs `index.html` in a headless browser against a local stand-in for Supabase. S
 deliberately for this). Screenshot the pages and look at them — several real defects on
 Today and Leads were invisible in the code and obvious on screen.
 
+**The team's real passwords are never in this repository.** It is public, and since
+2026-08-13 the eleven accounts are the staff's actual working logins. `scripts/qa/emp-rig.mjs`
+reads each one from the environment (`DB_PW_OTHMAN`, `DB_PW_RAAD`, …) and throws a clear error
+if it is missing. Ask Abdulrahman for the list; keep it in a local file that is never
+committed. Do not paste a password into a probe, a doc, or a commit message.
+
 
 ## Data world (rebuilt 2026-08-13 — the 30-lead training world)
 

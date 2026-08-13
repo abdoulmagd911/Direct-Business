@@ -267,7 +267,7 @@
     document.body.setAttribute('data-rtier',tier);
     window.__userTier=tier;
     if(!document.getElementById('cl_role_css')){var st=document.createElement('style');st.id='cl_role_css';st.textContent='body[data-rtier="viewer"] .btn.pri,body[data-rtier="viewer"] .btn.danger{pointer-events:none!important;opacity:.4!important}';document.head.appendChild(st);}
-    var hideNav=function(){try{document.querySelectorAll('.nav a,.nav button,.side a,.side button').forEach(function(n){var t=(n.textContent||'').trim().toLowerCase();if(t.indexOf('settings')>=0){n.style.display=(tier==='admin')?'':'none';}});}catch(_){}};
+    var hideNav=function(){try{document.querySelectorAll('.nav a,.nav button,.side a,.side button').forEach(function(n){var t=(n.textContent||'').trim().toLowerCase();if(t.indexOf('settings')>=0){n.style.display=(tier==='admin'||tier==='manager')?'':'none';}});}catch(_){}};
     if(window.render&&!window.render.__roleHide){var _r=window.render;window.render=function(){var o=_r.apply(this,arguments);hideNav();return o;};window.render.__roleHide=true;}
     hideNav();
   }catch(_){}}
