@@ -155,8 +155,12 @@
 
     <fieldset class="lines" id="lines">
       <legend>Services &amp; prices · الخدمات والأسعار</legend>
-      <div id="lineHost"></div>
-      <button type="button" class="addline" id="addLine">+ Add service · إضافة خدمة</button>
+      <label>Quick add a standard service · إضافة خدمة قياسية</label>
+      <select id="quickAdd">
+        <option value="">— pick a Direct service, price it yourself · اختر خدمة وسعّرها بنفسك —</option>
+      </select>
+      <div id="lineHost" style="margin-top:10px"></div>
+      <button type="button" class="addline" id="addLine">+ Add blank service · إضافة خدمة فارغة</button>
       <div class="checks">
         <label><input type="checkbox" id="fShowOrig"> Show "original price" column (discount offer) · عمود السعر قبل الخصم</label>
         <label><input type="checkbox" id="fVatIncl"> Entered prices already include VAT · الأسعار شاملة الضريبة</label>
@@ -167,6 +171,7 @@
       <legend>Terms · الشروط</legend>
       <label>Terms &amp; notes under the table · الشروط والملاحظات</label>
       <textarea id="fTerms"></textarea>
+      <button type="button" class="cbtn-terms" id="resetTerms" style="margin-top:6px;border:1px solid var(--line);background:var(--wash);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer">↺ Restore default terms · استعادة الشروط الافتراضية</button>
     </fieldset>
 
     <div class="actions">
@@ -238,9 +243,35 @@ function lineRow(i,l){
     '<label>Service (AR) · الخدمة بالعربية</label><input type="text" dir="rtl" class="li" data-i="'+i+'" data-k="svcAr" value="'+esc(l.svcAr)+'" placeholder="مثال: حجز طيران دولي">'+
     '<div class="row2"><div><label>Unit · الوحدة</label><input type="text" class="li" data-i="'+i+'" data-k="unit" value="'+esc(l.unit)+'" placeholder="Per ticket / لكل تذكرة"></div>'+
     '<div><label>Qty · الكمية</label><input type="number" class="li" data-i="'+i+'" data-k="qty" value="'+esc(l.qty)+'" min="0" step="1"></div></div>'+
-    '<div class="row2"><div><label>Original (opt.) · قبل الخصم</label><input type="number" class="li" data-i="'+i+'" data-k="orig" value="'+esc(l.orig)+'" min="0" step="0.01"></div>'+
-    '<div><label>Price (SAR) · السعر</label><input type="number" class="li" data-i="'+i+'" data-k="price" value="'+esc(l.price)+'" min="0" step="0.01"></div></div>';
+    (state.showOrig
+      ? '<div class="row2"><div><label>Original · قبل الخصم</label><input type="number" class="li" data-i="'+i+'" data-k="orig" value="'+esc(l.orig)+'" min="0" step="0.01"></div>'+
+        '<div><label>Price (SAR) · السعر</label><input type="number" class="li" data-i="'+i+'" data-k="price" value="'+esc(l.price)+'" min="0" step="0.01"></div></div>'
+      : '<div><label>Price (SAR) · السعر</label><input type="number" class="li" data-i="'+i+'" data-k="price" value="'+esc(l.price)+'" min="0" step="0.01"></div>');
   return d;
+}
+/* Direct's standard services — bilingual names + units come pre-filled; the
+   price never does (every account gets a tailored schedule, never a fixed rate) */
+var STD = [
+  ['Domestic flight booking','حجز طيران داخلي','Per ticket'],
+  ['International flight booking','حجز طيران دولي','Per ticket'],
+  ['Ticket refund / re-issue','استرداد / إعادة إصدار تذكرة','Per ticket'],
+  ['Hotel reservation','حجز فندقي','Per night / booking'],
+  ['Visa services','خدمات التأشيرات','Per visa'],
+  ['Meet & assist / VIP lounge','استقبال ومساعدة / صالة كبار الزوار','Per person'],
+  ['Train & other transport tickets','تذاكر القطارات والمواصلات','Per ticket'],
+  ['Car rental (with/without driver)','استئجار سيارات (بسائق أو بدون)','Per day'],
+  ['Travel insurance','تأمين السفر','Per person'],
+  ['International driving permit','رخصة القيادة الدولية','Per permit'],
+  ['Meeting rooms & event venues','قاعات الاجتماعات والفعاليات','Per booking'],
+  ['Document shipping','الشحن بالبريد','Per shipment']
+];
+function fillQuickAdd(){
+  var s=document.getElementById('quickAdd'); if(!s || s.options.length>1) return;
+  STD.forEach(function(x,i){
+    var o=document.createElement('option'); o.value=String(i);
+    o.textContent=x[0]+' · '+x[1];
+    s.appendChild(o);
+  });
 }
 function drawForm(){
   var host=$('lineHost'); host.innerHTML='';
@@ -359,7 +390,18 @@ document.addEventListener('input', function(e){
       case 'fValid': state.valid=el.value; break;
       case 'fBy': state.by=el.value; break;
       case 'fTerms': state.terms=el.value; break;
-      case 'fShowOrig': state.showOrig=el.checked; break;
+      case 'fShowOrig': state.showOrig=el.checked; save(); drawForm(); draw(); return;
+      case 'quickAdd': {
+        var idx=parseInt(el.value,10); el.value='';
+        if(!isNaN(idx) && STD[idx]){
+          var last=state.lines[state.lines.length-1];
+          var blank = last && !last.svc && !last.svcAr && !last.price;
+          var line={svc:STD[idx][0], svcAr:STD[idx][1], unit:STD[idx][2], qty:1, orig:'', price:''};
+          if(blank) state.lines[state.lines.length-1]=line; else state.lines.push(line);
+          save(); drawForm(); draw();
+        }
+        return;
+      }
       case 'fVatIncl': state.vatIncl=el.checked; break;
       default: return;
     }
@@ -375,6 +417,7 @@ document.addEventListener('click', function(e){
   if(lb){ state.lang=lb.getAttribute('data-lang'); save(); drawForm(); draw(); return; }
   if(e.target.id==='addLine'){ state.lines.push({svc:'',svcAr:'',unit:'',qty:1,orig:'',price:''});
     save(); drawForm(); draw(); return; }
+  if(e.target.id==='resetTerms'){ state.terms=null; save(); drawForm(); draw(); return; }
   if(e.target.id==='printBtn'){ window.print(); return; }
   if(e.target.id==='resetBtn'){
     if(confirm('Clear the whole draft? · مسح المسودة بالكامل؟')){
@@ -422,7 +465,7 @@ function prefill(){
   }catch(_){}
 }
 
-load(); prefill(); drawForm(); draw();
+load(); prefill(); fillQuickAdd(); drawForm(); draw();
 })();
 </script>
 </body>
