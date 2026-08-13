@@ -930,6 +930,16 @@ as deliberate: `#F06820` documents · `#FF6C00` logo mark · `#F47A1F` app.
   that could collide. Hub gains **live font specimens** rendered in the actual hosted
   files. The built-in unbranded export is now labelled "Plain copy (internal)" from the
   v68 layer, so it can't be mistaken for the client document.
+- **Pre-launch attack round 2026-08-13 (16 scenarios, an employee's day):** found and fixed
+  **a data-loss bug** — an offer arriving from the app's "Branded offer" button inherited the
+  saved-record id of whatever offer was open, so pressing Save overwrote that saved offer
+  (reproduced: two offers saved, one survived). A handoff is now always a NEW record. Also
+  fixed: a negative line (a discount row) printed "Zero" in the amount-in-words instead of
+  the negative figure; and the new buttons had no keyboard focus ring. Verified safe:
+  60 large saved offers fit in storage, private/blocked storage does not brick the page,
+  corrupt storage recovers, cancelling New/Reset keeps the draft, Delete with no selection
+  is a no-op, six rapid Saves make one record, two tabs stay independent, long custom terms
+  flow onto extra sheets, Arabic print is RTL with correct grammar, and print hides the form.
 - **Heavy testing round 2026-08-13:** five full example offers produced as real PDFs
   (EN corporate, AR discount, VAT-inclusive decimals, 20-line stress, extreme-length
   Arabic names) — found and fixed a real clipping bug: the printed content page was a
