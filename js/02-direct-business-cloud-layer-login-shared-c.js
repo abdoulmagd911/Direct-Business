@@ -273,6 +273,11 @@
   }catch(_){}}
   var roleSettled=false;
   function fetchRole(){
+    /* Until the answer comes back we do not know who this is. Say so out loud, so the
+       screen can hold itself to the smallest set of pages instead of showing everything.
+       Also wipe the last person's name and level — switching accounts in the same tab used
+       to show the previous person's identity for a second or two. */
+    try{ window.__roleKnown=false; if(!roleSettled){ window.__userRole=null; window.__userName=''; } }catch(_){}
     /* Never leave anyone staring at the splash because of a network hiccup. */
     setTimeout(function(){ if(!roleSettled) hideOverlay(); }, 9000);
     sb.from('app_users').select('role,full_name,active,must_change_password').eq('id',me.id).maybeSingle().then(function(r){
@@ -281,17 +286,24 @@
       if(!d||!d.role||d.active===false){ showPending(); return; }
       if(d.must_change_password===true){ showFirstLogin(); return; }
       roleSettled=true;
+      try{ window.__roleKnown=true; }catch(_){}
       myRole=d.role; var tier=roleTier(myRole);
       var nm=(d.full_name||'').trim()||(me.email||'').split('@')[0];
       /* Who I am is per-session, NOT shared. It used to be saved into the one shared settings
          row, so the last person to sign in overwrote everybody else's name — which is why the
          "Mine" filters kept showing the wrong person's work. Keep it in memory only. */
-      try{DB.settings=DB.settings||{};DB.settings.currentUser=nm;window.__userRole=myRole;window.__userEmail=(me&&me.email)||'';}catch(_){}
+      try{DB.settings=DB.settings||{};DB.settings.currentUser=nm;window.__userRole=myRole;window.__userEmail=(me&&me.email)||'';window.__userName=nm;}catch(_){}
       applyRolePerms(tier);
       setPill(nm.replace(/[<>&]/g,'')+' &middot; '+(tier==='viewer'?'read-only':(myRole||'viewer')),'#16B364');
       if(tier==='admin') addTeamButton();
       hideOverlay();   // now — and only now — the app is shown, with this person's permissions already applied
-    }).catch(function(){ hideOverlay(); });
+    }).catch(function(){
+      /* A thrown failure (network gone, request reset) used to land here and just… stop.
+         The error path above retried; this one never did — so someone signing in on a bad
+         connection was left held at the smallest set of pages forever, with no message and
+         no recovery. Same treatment: let them in on the floor, keep trying. */
+      hideOverlay(); setTimeout(fetchRole,5000);
+    });
   }
 
   function showFirstLogin(){

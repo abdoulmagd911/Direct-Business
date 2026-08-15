@@ -17,9 +17,15 @@
   var PAGES_EMPLOYEE = ['today','leads','clients','finance'];
 
   function role(){ try{ return window.__userRole || (window.__userTier==='admin'?'admin':window.__userTier==='manager'?'manager':null); }catch(_){ return null; } }
+  function known(){ try{ return window.__roleKnown===true && !!role(); }catch(_){ return false; } }
   function allowedPages(){
+    /* Until we know who this is, hold to the floor everyone has — Today, Leads, Clients,
+       Finance. The app used to show EVERYTHING in this window, because "role unknown" was
+       treated as "no restrictions". On a slow first load, or the moment you switch accounts
+       in the same tab, an employee saw Settings and the full sidebar for a second or two.
+       Holding to the floor costs an admin a brief flicker; the other way round leaks. */
+    if(!known()) return PAGES_EMPLOYEE;
     var r=role();
-    if(!r) return null;                    // role not known yet — never lock anyone out
     if(r==='admin') return null;           // everything
     if(r==='manager') return PAGES_MANAGER;
     return PAGES_EMPLOYEE;
@@ -98,6 +104,7 @@
       var was=current;
       current='today';
       try{ if(typeof render==='function') render(); }catch(_){}
+      if(!known()) return;          // still checking — move them, but say nothing yet
       var now=Date.now();
       if(now-lastTold<4000) return;           // don't stack messages
       lastTold=now;
@@ -113,7 +120,7 @@
   /* employees edit finance too, under this model — but a read-only account never does */
   try{
     if(typeof window.canFinEdit==='function' && !window.canFinEdit.__v76){
-      var w=function(){ var r=role(); if(!r) return true; return r==='admin'||r==='manager'||r==='team_member'; };
+      var w=function(){ if(!known()) return false; var r=role(); return r==='admin'||r==='manager'||r==='team_member'; };
       w.__v76=1; window.canFinEdit=w;
     }
   }catch(_){}
@@ -139,20 +146,37 @@
     manager:    ['Manager — runs the team','مدير — يدير الفريق'],
     team_member:['Employee — leads, clients, finance','موظف — العملاء المحتملون والعملاء والمالية']
   };
+  /* Hiding an <option> is not enough. Chrome draws the dropdown with the operating system's
+     own menu on Windows and macOS, and that menu happily shows options marked hidden — which
+     is exactly what a real browser test found: a manager was still offered Admin (and three
+     old roles nobody is on). The only reliable answer is to take the options out of the page.
+     The person's CURRENT level has to stay, or the box would show the wrong thing — but it is
+     left disabled, which every browser does honour. */
   function trimRolePickers(){
     try{
-      var r=role(); if(!r) return;
+      if(!known()) return;
+      var r=role();
       var keep=(r==='admin')?['admin','manager','team_member']:['manager','team_member'];
       /* #v48r is the "Add a teammate" box; select[data-role] is the level next to each
          person already on the list. Both must be trimmed, or a manager is offered Admin in
          one of them and told no by the server after he has already typed everything in. */
       document.querySelectorAll('select[data-role], #v48r, #tm_role, select.v48-role').forEach(function(sel){
         try{
+          var cur=sel.value;
           [].slice.call(sel.options).forEach(function(o){
             var v=o.value;
-            if(keep.indexOf(v)<0){ o.disabled=true; o.hidden=true; if(o.selected&&v!=='admin')o.selected=false; }
-            else if(LEVELS[v]){ var lbl=fl(LEVELS[v][0],LEVELS[v][1]); if(o.textContent!==lbl)o.textContent=lbl; o.disabled=false; o.hidden=false; }
+            if(keep.indexOf(v)>=0){
+              if(LEVELS[v]){ var lbl=fl(LEVELS[v][0],LEVELS[v][1]); if(o.textContent!==lbl)o.textContent=lbl; }
+              o.disabled=false; o.removeAttribute('hidden');
+            } else if(v===cur){
+              /* their real level, which this person may not hand out — shown, never chosen */
+              if(LEVELS[v]){ var l2=fl(LEVELS[v][0],LEVELS[v][1]); if(o.textContent!==l2)o.textContent=l2; }
+              o.disabled=true; o.removeAttribute('hidden');
+            } else {
+              if(o.parentNode) o.parentNode.removeChild(o);
+            }
           });
+          if(sel.value!==cur){ try{ sel.value=cur; }catch(_){} }
           sel.setAttribute('data-v76done','1');
           if(!sel.__v76){ sel.__v76=1; sel.title=(r==='manager')
             ? fl('A manager can set Manager or Employee. Admin is given by an admin.','المدير يمنح صلاحية مدير أو موظف. صلاحية المسؤول يمنحها المسؤول فقط.')

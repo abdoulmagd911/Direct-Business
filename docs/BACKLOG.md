@@ -70,6 +70,39 @@ Proof for the whole round: 181/181 driving the bytes downloaded from the live si
 14/14 on every route a manager might take to admin, 16/16 on the rebuilt Team screen, 11/11 on
 the passwords exactly as they were written out.
 
+### Part 4 — what a real browser found (Claude Cowork, on the owner's machine, 2026-08-15)
+
+The one test this environment can never run — the real site, in a real Chrome — was handed to
+Claude Cowork on a machine with a browser. It found four things; three were real.
+
+11. **The manager's role dropdown still offered Admin — and three retired roles.** The trimmer
+    marked options `hidden`, but Chrome draws dropdowns with the operating system's own menu,
+    which shows hidden options anyway. Every headless check here passed; the real browser
+    failed. Disallowed options are now **removed from the page** (the person's own level stays,
+    disabled). The retired roles (bd / operations / viewer) no longer appear anywhere.
+12. **The first seconds after sign-in leaked.** While the role check was still in flight the
+    app treated "role unknown" as "no restrictions": a manager's first direct navigation fully
+    rendered Reports; an employee's first landing showed the admin sidebar; switching accounts
+    in the same tab briefly showed the previous person. It now **fails closed**: until the
+    answer arrives everyone is held to the smallest set (Today/Leads/Clients/Finance, read-only
+    finance), the previous person's identity is wiped at the start of the check, and — a second
+    real bug found while testing this — a *thrown* network failure used to kill the retry loop
+    entirely, leaving the person stuck at the floor forever. Both fixed (js/02 + js/52).
+13. **The audit log was empty because it had nothing to say — and lied when it spoke.**
+    `logAudit` hard-coded every entry to the name 'Abdelrahman', and almost nothing called it.
+    New layer `js/53-v77`: sign-ins, lead create/stage/convert/rename/delete (watched from the
+    data, so every path is covered), finance saves and team changes are recorded under the real
+    person. NOTE the landmine inside it: `DB` is a top-level `let`, NOT on `window` — a guard
+    written `window.DB` is always false and sits silent while looking alive.
+14. **"Delete looks successful but doesn't delete" — NOT a bug, wrong words.** Proven end to
+    end: deletion archives the row (`archived_at`), it vanishes from every employee's list, and
+    admins can restore it for 30 days. The tester saw it "still fully live" through an admin
+    view that shows archived rows. The confirm message now says what actually happens.
+
+Also from that report: two-tab tests share one login (same browser profile — use a private
+window), and its "switch Abdul Aziz back on" step did not actually run — he was found switched
+off and restored here. Check the roster after any outside test run.
+
 ### Still open after this round
 
 - The old database roles `bd`, `operations` and `viewer` still exist but nobody is on them.
