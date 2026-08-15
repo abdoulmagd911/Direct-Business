@@ -1,3 +1,18 @@
+/* ===== Won → client handover — one chapter, one file (Step 1, chapter 5 — 2026-08-15) =====
+
+   What happens when a lead is Won:
+     part 1 (was js/27-v34)  capture and surface the Direct client link on the lead card
+     part 2 (was js/37-v61)  every road to Won — dropdown, quick edit, stage buttons —
+                              ends at the complete-the-client handover screen
+
+   Anchored at slot 27, NOT 37, and the direction matters both ways:
+     · part 1 wraps renderLeadDetail, and slot 28 wraps the SAME function on top of it —
+       part 1 must keep loading before 28 or the card sections swap order;
+     · part 2 wraps setLeadStage and REPLACES __clientHandover, both of which slot 14
+       defines first — part 2 must keep loading after 14, which slot 27 satisfies.
+   Nothing between the old slots calls either symbol at load time (checked).            */
+
+/* ---------- part 1 — Direct client link on the card (was js/27-v34) ---------- */
 /* v34 — Won→Client link: capture & surface the Direct client ID (the link key to Direct's hub).
    Strong prompt, NOT a hard block: a client without a Direct ID shows an amber "not linked"
    banner with a one-tap Add; a linked client shows the ID + a deep link into Direct Payments.
@@ -56,3 +71,22 @@
   };
   console.info('%c[v34] client Direct-link banner loaded','color:#16B364;font-weight:700');
 }catch(e){if(window.console)console.warn('[v34] init',e);}})();
+
+/* ---------- part 2 — every road to Won ends at the handover (was js/37-v61) ---------- */
+/* v61 — every road to Won ends at the "complete the client" step (2026-08-12).
+   The v40 handover modal only fired through convertToClient(); the stage dropdown
+   (setLeadStage) and the quick-edit set isClient directly and skipped it. */
+(function(){try{
+  if(typeof setLeadStage==='function'&&!window.__v61won){
+    var _s=window.setLeadStage;
+    window.setLeadStage=function(id,s){
+      var b=(typeof getLead==='function')?getLead(id):null;
+      var was=!!(b&&b.isClient);
+      var out=_s.apply(this,arguments);
+      try{ if(s==='Won'&&b&&!was&&typeof window.__clientHandover==='function')setTimeout(function(){window.__clientHandover(id);},250); }catch(_){}
+      return out;
+    };
+    window.__v61won=true;
+    console.info('%c[v61] Won → complete-the-client hook loaded','color:#0F6E56;font-weight:700');
+  }
+}catch(e){if(window.console)console.warn('[v61] init',e);}})();
