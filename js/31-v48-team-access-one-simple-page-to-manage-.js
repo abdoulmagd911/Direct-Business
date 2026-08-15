@@ -87,6 +87,7 @@
       call({action:'list'}).then(function(res){
         if(res.error){ lb.textContent=res.error; return; }
         var users=res.users||[];
+        window.__v48callerRole=res.caller_role||'';
         var c=cl();
         draw(users);
       });
@@ -96,13 +97,18 @@
       lb.style.color='var(--txt,#303848)';
       lb.innerHTML=users.map(function(u,i){
         var nm=esc((u.full_name||'').trim()||u.email.split('@')[0]);
-        var roleSel='<select data-role="'+u.id+'" style="padding:6px 9px;border:1px solid var(--line-2,#DADDE3);border-radius:8px;font:inherit;font-size:12px;background:#fff">'+Object.keys(RL).map(function(k){return '<option value="'+k+'"'+(u.role===k?' selected':'')+'>'+(A?RL[k][1]:RL[k][0])+'</option>';}).join('')+'</select>';
+        /* A manager gets NO buttons on an admin's row: the server refuses those calls
+           anyway, so offering them is a confirm-box dead end. */
+        var mgrOnAdmin=(window.__v48callerRole==='manager' && u.role==='admin');
+        var roleSel='<select data-role="'+u.id+'"'+(mgrOnAdmin?' disabled':'')+' style="padding:6px 9px;border:1px solid var(--line-2,#DADDE3);border-radius:8px;font:inherit;font-size:12px;background:#fff">'+Object.keys(RL).map(function(k){return '<option value="'+k+'"'+(u.role===k?' selected':'')+'>'+(A?RL[k][1]:RL[k][0])+'</option>';}).join('')+'</select>';
         return '<div style="border-top:1px solid var(--line,#E6E8EC);padding:13px 0">'+
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'+
             '<div class="v48-nm"><b style="font-size:13.5px">'+nm+'</b> <span style="color:var(--muted,#6B7480);font-size:11.5px">'+esc(u.email)+'</span>'+(u.must_change_password?' <span style="font-size:10.5px;color:#B54708;font-weight:700">'+(A?'مؤقتة':'temp pw')+'</span>':'')+(u.active===false?' <span style="font-size:10.5px;color:#B54708;font-weight:700">'+(A?'موقوف':'off')+'</span>':'')+'</div>'+
             '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+roleSel+
-              '<button class="btn ghost sm" data-tog="'+u.id+'" data-act="'+(u.active?'0':'1')+'">'+(u.active?(A?'إيقاف':'Switch off'):(A?'تفعيل':'Switch on'))+'</button>'+
-              '<button class="btn ghost sm" data-rst="'+u.id+'">'+(A?'كلمة مرور جديدة':'Reset password')+'</button>'+
+              (mgrOnAdmin
+                ? '<span style="font-size:11px;color:var(--muted,#6B7480)">'+(A?'حسابات المسؤولين يديرها مسؤول فقط':'Admin accounts are managed by an admin')+'</span>'
+                : '<button class="btn ghost sm" data-tog="'+u.id+'" data-act="'+(u.active?'0':'1')+'">'+(u.active?(A?'إيقاف':'Switch off'):(A?'تفعيل':'Switch on'))+'</button>'+
+                  '<button class="btn ghost sm" data-rst="'+u.id+'">'+(A?'كلمة مرور جديدة':'Reset password')+'</button>')+
             '</div></div>'+
           /* The per-page tick boxes were removed on 2026-08-13. A person's LEVEL decides which
              pages they open and what they may save — the ticks changed neither, and the Save

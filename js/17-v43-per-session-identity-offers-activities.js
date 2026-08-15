@@ -5,6 +5,10 @@ var SUPA_KEY='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
 var sbN=null;
 function nc(){ if(!sbN&&window.supabase){try{sbN=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(_){}} return sbN; }
 function fetchMe(){
+  /* The login layer now sets __userName the moment the role check answers, so most of the
+     time this lookup has nothing left to do — skip the network round-trip it used to make
+     three times on every load. It still runs when the name is genuinely missing. */
+  if(window.__userName) return;
   var c=nc(); if(!c)return;
   c.auth.getSession().then(function(s){
     var u=s&&s.data&&s.data.session&&s.data.session.user; if(!u)return;

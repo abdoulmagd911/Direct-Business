@@ -77,7 +77,8 @@
         if(meRow){
           var nm=(meRow.full_name||'').trim()||String(meRow.email||'').split('@')[0];
           window.__userName=nm;
-          try{ DB.settings=DB.settings||{}; DB.settings.currentUser=nm; }catch(_){}
+          /* per-session only — writing it into DB.settings made every sign-in push the
+             whole shared settings section to the one shared row (see js/02) */
         }
         try{ if(typeof render==='function')render(); }catch(_){}
       });

@@ -103,6 +103,38 @@ Also from that report: two-tab tests share one login (same browser profile — u
 window), and its "switch Abdul Aziz back on" step did not actually run — he was found switched
 off and restored here. Check the roster after any outside test run.
 
+### Part 5 — the manager's own clicking (2026-08-15)
+
+Two reports from Abdulrahman clicking through as the manager. One was the disease we already
+knew; one was a theory the measurements did not support — but the measuring found real waste.
+
+15. **The Proposals identity banner rendered twice.** Root cause: the whole identity layer
+    (v46 brand link / v47 offer-to-studio bridge / v48 offers strip) existed TWICE — once as
+    the extracted files `js/46-v70 / 47-v71 / 48-v72`, and once as inline `<script>` blocks a
+    concurrent session had pasted straight into `index.html`. Both ran on every load: two
+    banners, two Branded-offer buttons. The inline blocks are gone (149 lines); the js/ files
+    are the only home. **Never paste a layer inline when a file version exists** — this is the
+    third collision from that one session (Brand button, banner, offer button).
+16. **"save_state_patch fires on every load" — half right, and capturing the payload proved
+    the half.** The write cannot touch design (that is code in git, not state) and browsing
+    writes nothing. But the on-load patch was carrying `audit` AND the whole shared
+    `settings` section — ~23KB — because two layers (js/02 fetchRole and js/43-v67) still
+    wrote `DB.settings.currentUser=<name>` in memory, which marked settings as changed. That
+    is the "Mine shows the wrong person" leak returning through a side door: every sign-in
+    stamped the shared settings with that person's name. Both writes removed; identity lives
+    only in `window.__userName/__userRole/__userEmail`. Measured after: the patch carries
+    `audit` alone. Rule: **capture the payload before calling a write harmless.** Also:
+    `app_users` reads on load trimmed (v43 stands down once the name is known).
+
+17. **The "15-second freeze" on Team & Access — measured, not a hang.** With a frame-beat
+    counter running, opening the screen and resetting a password never stalled the main
+    thread more than 47ms. The freeze is the native `confirm()` box: it blocks the whole page
+    by design, and the reporting tool could not see or answer it — a person in a real Chrome
+    gets a visible OK/Cancel. The place it was hit is also gone: a manager's view of an
+    ADMIN row no longer offers Reset password / Switch off at all (the server refuses those
+    calls, so the buttons were a confirm-box dead end) — it says "Admin accounts are managed
+    by an admin" instead. Admin callers still get buttons on every row.
+
 ### Still open after this round
 
 - The old database roles `bd`, `operations` and `viewer` still exist but nobody is on them.

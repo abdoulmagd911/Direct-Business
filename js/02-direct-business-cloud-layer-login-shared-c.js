@@ -292,7 +292,13 @@
       /* Who I am is per-session, NOT shared. It used to be saved into the one shared settings
          row, so the last person to sign in overwrote everybody else's name — which is why the
          "Mine" filters kept showing the wrong person's work. Keep it in memory only. */
-      try{DB.settings=DB.settings||{};DB.settings.currentUser=nm;window.__userRole=myRole;window.__userEmail=(me&&me.email)||'';window.__userName=nm;}catch(_){}
+      /* Who I am lives ONLY in this session (__userName / __userRole / __userEmail).
+         Writing it into DB.settings — even just in memory — marked the shared settings
+         section as changed, so the first save of every session pushed all of it to the
+         one shared row: ~23KB of settings, stamped with this person's name, on every
+         sign-in. That is the "Mine shows the wrong person" leak coming back through a
+         side door. Nothing reads settings.currentUser as its first choice any more. */
+      try{window.__userRole=myRole;window.__userEmail=(me&&me.email)||'';window.__userName=nm;}catch(_){}
       applyRolePerms(tier);
       setPill(nm.replace(/[<>&]/g,'')+' &middot; '+(tier==='viewer'?'read-only':(myRole||'viewer')),'#16B364');
       if(tier==='admin') addTeamButton();
