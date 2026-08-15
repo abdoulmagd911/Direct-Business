@@ -30,7 +30,10 @@ for (const k of ['business','othman']) {
   S(`${t.name}: no dead page buttons or tick boxes left`, r.deadButtons===0 && r.tickBoxes===0, JSON.stringify({deadButtons:r.deadButtons,tickBoxes:r.tickBoxes}));
   S(`${t.name}: each person's row explains what their level opens`, r.explains);
   S(`${t.name}: the password box is there when adding someone`, r.passwordBox);
-  S(`${t.name}: switch-off and reset-password still there`, r.switchOff>=11 && r.resetPw>=11, `${r.switchOff}/${r.resetPw}`);
+  /* an admin gets buttons on every row; a manager gets none on the four admin rows —
+     the server refuses those calls, so offering them was a confirm-box dead end */
+  const wantBtns = t.role==='admin' ? 11 : 7;
+  S(`${t.name}: switch-off and reset-password on exactly the rows he may touch`, r.switchOff>=wantBtns && r.resetPw>=wantBtns && (t.role==='admin'||r.switchOff<11), `${r.switchOff}/${r.resetPw}`);
   const wantAdmin = t.role==='admin';
   S(`${t.name}: Admin ${wantAdmin?'IS':'is NOT'} offered in the level list`, r.adminOffered===wantAdmin, `row picker=${r.adminOffered}, add form=${JSON.stringify(r.addFormLevels)}`);
   S(`${t.name}: the add form offers ${wantAdmin?'all three levels':'Manager and Employee only'}`,
