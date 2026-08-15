@@ -336,6 +336,13 @@ DIFFERENT files.
 - The QA mock (`scripts/qa/`) serves `js/` files exactly like Vercel does; all probes run
   against the split app unchanged.
 
+## Before every deploy
+
+Run `node scripts/qa/check-structure.mjs`. It fails loudly on the patterns that caused the
+repeated duplication bugs: inline `<script>` logic in index.html, the same js file loaded
+twice, two layers creating the same element id, hidden-option trimming, hard-coded names,
+`window.DB` guards. A doc rule did not stop the second occurrence; this check does.
+
 ## Rules for editing index.html
 
 - **Never call `window.supabase.createClient` again in a new layer.** The app had five
