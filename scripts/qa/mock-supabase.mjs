@@ -1,5 +1,8 @@
 import http from 'http'; import fs from 'fs'; import url from 'url';
-const APP='/home/user/Direct-Business';
+/* Which copy of the app to serve. Defaults to the repo this qa folder lives in, so the
+   probe always tests the code beside it — not a stale checkout somewhere else. */
+import { fileURLToPath } from 'url';
+const APP=process.env.APP_DIR || fileURLToPath(new URL('../..', import.meta.url)).replace(/\/$/,'');
 const UMD='/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js';
 const UID='11111111-1111-1111-1111-111111111111';
 const now=Math.floor(Date.now()/1000);
