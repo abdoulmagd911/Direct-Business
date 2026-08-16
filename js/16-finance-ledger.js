@@ -1,4 +1,18 @@
-/* ===== v42 layer: FINANCE — master invoice ledger + report builder + import (additive, safe) ===== */
+/* ===== Finance ledger core — one chapter, one file (Finance sitting F3 — 2026-08-16) =====
+
+   This is the Finance page itself (was js/16-v42). It draws all six tabs — Performance,
+   Clients & collections, Ledger, Report Builder, Expenses and Import — loads the invoice
+   rows out of finance_invoices, and owns the money maths every other finance chapter
+   decorates.
+
+   MUST STAY AT SLOT 16. It defines FIN, fc(), canFinEdit() and canFinView(), and three
+   later chapters read them: 25 (reporting add-ons), 41 (money in) and 45 (expenses).
+   The renderFinance wrap chain is 16 → 25 → 41 → 45; move this file down the list and the
+   chapters above it find nothing to wrap.
+
+   Nothing in the code below was changed in F3 — only the file's name and this comment.
+   The 713 lines that follow are the same bytes that were serving the live Finance page.
+   ===== v42 layer: FINANCE — master invoice ledger + report builder + import ===== */
 (function(){try{
 var SUPA_URL='https://vkxoeeoauexyfpzqufqd.supabase.co';
 var SUPA_KEY='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
