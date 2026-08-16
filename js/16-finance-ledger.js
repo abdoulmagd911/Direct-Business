@@ -542,8 +542,13 @@ function rReports(){
   var g={};
   base.forEach(function(r){
     var k1=dimVal(r,rb.g1),k2=rb.g2?dimVal(r,rb.g2):null;
-    g[k1]=g[k1]||{__sub:{},__tot:{}};
-    if(k2){var s=g[k1].__sub[k2]=g[k1].__sub[k2]||{};mets.forEach(function(m){s[m]=(s[m]||0)+(m==='_count'?1:+r[m]);});}
+    g[k1]=g[k1]||{__sub:{},__tot:{},__rows:[],__subRows:{}};
+    /* Keep the actual invoice rows behind every total. The drill-down (chapter 25, part 3)
+       opens THESE rows — not a second copy of this filter written somewhere else — so what
+       a row expands to always adds up to the row it expanded from. */
+    g[k1].__rows.push(r);
+    if(k2){var s=g[k1].__sub[k2]=g[k1].__sub[k2]||{};mets.forEach(function(m){s[m]=(s[m]||0)+(m==='_count'?1:+r[m]);});
+      (g[k1].__subRows[k2]=g[k1].__subRows[k2]||[]).push(r);}
     mets.forEach(function(m){g[k1].__tot[m]=(g[k1].__tot[m]||0)+(m==='_count'?1:+r[m]);});
   });
   var keys=Object.keys(g);
@@ -555,12 +560,12 @@ function rReports(){
   FIN._lastReport={g1:rb.g1,g2:rb.g2,mets:mets,keys:keys,g:g,grand:grand};
   var h2='<div class="card" style="padding:0;overflow:auto;max-height:60vh"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:600px"><thead><tr style="position:sticky;top:0;background:#F8F7F4;z-index:2;text-align:left;color:var(--muted)"><th style="padding:8px">'+dimLbl(rb.g1)+(rb.g2?' \u203a '+dimLbl(rb.g2):'')+'</th>'+mets.map(function(m){return '<th style="padding:8px;text-align:right">'+metLbl(m)+'</th>';}).join('')+'</tr></thead><tbody>';
   keys.forEach(function(k){
-    h2+='<tr style="border-top:1px solid var(--line,#eee);background:'+(rb.g2?'#FBFAF7':'#fff')+'"><td style="padding:7px 8px;font-weight:700">'+escF(k)+'</td>'+mets.map(function(m){return '<td style="padding:7px 8px;text-align:right;font-weight:700">'+(m==='_count'?g[k].__tot[m]:money0(g[k].__tot[m]))+'</td>';}).join('')+'</tr>';
+    h2+='<tr data-rbk="'+escF(k)+'" style="border-top:1px solid var(--line,#eee);background:'+(rb.g2?'#FBFAF7':'#fff')+'"><td style="padding:7px 8px;font-weight:700">'+escF(k)+'</td>'+mets.map(function(m){return '<td style="padding:7px 8px;text-align:right;font-weight:700">'+(m==='_count'?g[k].__tot[m]:money0(g[k].__tot[m]))+'</td>';}).join('')+'</tr>';
     if(rb.g2){
       var subs=Object.keys(g[k].__sub);
       if(rb.g2==='month')subs.sort(function(a,b){return (MOI[a]||99)-(MOI[b]||99);});else subs.sort();
       subs.forEach(function(s){
-        h2+='<tr style="border-top:1px solid #f4f2ec"><td style="padding:5px 8px 5px 26px;color:var(--muted)">'+escF(s)+'</td>'+mets.map(function(m){return '<td style="padding:5px 8px;text-align:right">'+(m==='_count'?(g[k].__sub[s][m]||0):money0(g[k].__sub[s][m]||0))+'</td>';}).join('')+'</tr>';
+        h2+='<tr data-rbk="'+escF(k)+'" data-rbs="'+escF(s)+'" style="border-top:1px solid #f4f2ec"><td style="padding:5px 8px 5px 26px;color:var(--muted)">'+escF(s)+'</td>'+mets.map(function(m){return '<td style="padding:5px 8px;text-align:right">'+(m==='_count'?(g[k].__sub[s][m]||0):money0(g[k].__sub[s][m]||0))+'</td>';}).join('')+'</tr>';
       });
     }
   });
