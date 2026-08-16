@@ -1,3 +1,38 @@
+/* ===== UI basics: brand name + pagination — one chapter, one file (Step 1, chapter 6) =====
+
+   Two small, unrelated-but-neighbouring conveniences:
+     part 1 (was js/04)  the brand name per language — English view says "Direct Business",
+                          Arabic says the Arabic name, everywhere the name is printed
+     part 2 (was js/05)  the page-size selector and pagination on every data table
+
+   The easiest merge of the series: the two old slots were ADJACENT (04, 05) — nothing
+   loads between them, so folding them into slot 04 changes no order at all. Verbatim,
+   each part keeping its own try/catch.                                                  */
+
+/* ---------- part 1 — brand name per language (was js/04) ---------- */
+/* Brand name per language — English view shows only "Direct Business", Arabic view shows only "دايركت أعمال" (same weight/colour) */
+(function(){try{
+  var AR='دايركت أعمال';
+  function isAr(){try{if(typeof LANG!=='undefined'&&LANG)return LANG==='ar';}catch(_){}return (document.documentElement.getAttribute('data-lang')==='ar');}
+  window.brandName=function(){return isAr()?AR:'Direct Business';};
+  // language-aware company name: primary follows the chosen language (Arabic-primary in Arabic view, English-primary in English view)
+  window.nmMain=function(b){try{var ar=isAr();var a=(b&&b.nameAr)||'',e=(b&&b.name)||'';return (ar&&a)?a:e;}catch(_){return (b&&b.name)||'';}};
+  window.nmSubHTML=function(b){try{var ar=isAr();var a=(b&&b.nameAr)||'',e=(b&&b.name)||'';if(!a)return '';var s=ar?e:a;if(!s)return '';var rtl=!ar;var t;try{t=esc(s);}catch(_){t=String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}return '<div style="font-size:11px;color:var(--muted)'+(rtl?";direction:rtl;text-align:left;font-family:'Cairo','Tajawal',sans-serif":'')+'" dir="'+(rtl?'rtl':'ltr')+'">'+t+'</div>';}catch(_){return '';}};
+  function apply(){try{
+    var ar=isAr();
+    document.querySelectorAll('.brand .lock').forEach(function(el){
+      el.innerHTML = ar ? '<b class="bm" style="font-family:\'Cairo\',\'Tajawal\',sans-serif">دايركت <span class="bz">أعمال</span></b>' : '<b class="bm">Direct <span class="bz">Business</span></b>';
+    });
+    document.title = ar ? AR : 'Direct Business';
+    var lg=document.getElementById('cl_logo');
+    if(lg&&lg.parentNode){var divs=lg.parentNode.querySelectorAll(':scope > div');if(divs.length>=2){divs[0].style.display=ar?'none':'';divs[1].style.display=ar?'':'none';if(ar){divs[1].style.fontSize='22px';divs[1].style.fontWeight='800';divs[1].style.color='#1C1E2B';divs[1].style.direction='rtl';}else{divs[1].style.fontSize='';divs[1].style.fontWeight='';divs[1].style.color='';}}}
+  }catch(_){}}
+  var iv=setInterval(function(){if(document.querySelector('.brand .lock')||document.getElementById('cl_logo')||typeof render==='function'){clearInterval(iv);apply();try{if(typeof render==='function'){var _r=render;render=function(){var o=_r.apply(this,arguments);try{apply();}catch(_){}; return o;};}}catch(_){}}},200);
+  try{new MutationObserver(apply).observe(document.documentElement,{attributes:true,attributeFilter:['data-lang']});}catch(_){}
+  setTimeout(apply,1200);setTimeout(apply,2500);
+}catch(e){console.warn('brand',e);}})();
+
+/* ---------- part 2 — page-size selector + pagination (was js/05) ---------- */
 /* Page-size selector + pagination on every data table (10/20/50/100/All, default 20, remembered per browser) */
 (function(){try{
   var KEY='db_pageSize';
