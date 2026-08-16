@@ -4,6 +4,8 @@
      part 1 (was js/25-v32)  Income by service line — the flat per-service table
      part 2 (was js/39-v63)  The four ways revenue arrives: the "how did this revenue
                               arrive?" selector on an invoice card, and the promo-codes card
+     part 3 (S1, 2026-08-16) Report Builder drill-down — a client (or a client's month)
+                              opens to the invoices and services behind the total
 
    Both are pure decorations over renderFinance and neither changes a stored value by
    itself. Anchored at slot 25: the renderFinance wrap chain is
@@ -48,7 +50,12 @@
       var h='<h3 class="finh" style="margin:0 0 3px">'+fl('Income by service line','الدخل حسب نوع الخدمة')+(window.finPeriodLabel?'<i>'+finPeriodLabel()+'</i>':'')+'</h3>'+
         '<div class="ch-sub" style="margin-bottom:10px">'+fl('Every service on its own row. Service fee = Direct’s income. Tap a service to see its invoices.','كل خدمة في صف مستقل. رسوم الخدمة = دخل دايركت. اضغط الخدمة لرؤية فواتيرها.')+'</div>'+
         '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px"><thead><tr>'+
-        th(fl('Service','الخدمة'))+th(fl('Invoices','الفواتير'),1)+th(fl('Gross billed','الإجمالي'),1)+th(fl('Cost','التكلفة'),1)+th(fl('Service fee (income)','رسوم الخدمة (دخل)'),1)+'</tr></thead><tbody>';
+        /* Audit, quality and strategy asked for this view in their own words — "Flights:
+           revenue, cost, profit". The figures were already exactly that, checked against
+           all 28 live invoices: gross billed equals revenue on every row, and the service
+           fee equals revenue minus cost, which is profit. Only the column names differed,
+           so the owner's service-fee wording is kept and their words added beside it. */
+        th(fl('Service','الخدمة'))+th(fl('Invoices','الفواتير'),1)+th(fl('Gross billed (revenue)','الإجمالي (الإيراد)'),1)+th(fl('Cost','التكلفة'),1)+th(fl('Service fee (income = profit)','رسوم الخدمة (دخل = ربح)'),1)+'</tr></thead><tbody>';
       keys.forEach(function(k){
         var b=by[k], fee=b.rev-b.cost, flag=(b.cost===0&&b.gross>1000&&!b.comm);
         h+='<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" data-svc="'+esc(k)+'" onclick="v32DrillService(this.getAttribute(\'data-svc\'))" title="'+fl('Open the invoices for this service','افتح فواتير هذه الخدمة')+'">'+
@@ -172,3 +179,138 @@
   }
   console.info('%c[v63] revenue ways loaded','color:#BE185D;font-weight:700');
 }catch(e){if(window.console)console.warn('[v63] init',e);}})();
+
+/* ---------- part 3 — Report Builder drill-down (sitting S1, 2026-08-16) ----------
+   Owner's ask: "per client, time rolled — MDD Company January total, expandable down to
+   the invoices and services under it."
+
+   The Report Builder already totals by client and by month. What it could not do was show
+   the invoices those totals are made of, so anyone checking a figure had to leave the
+   report, go to the ledger and filter by hand. This opens a row in place.
+
+   READ-ONLY. It writes nothing, saves nothing and changes no figure on the page — it only
+   reveals rows that were already counted.
+
+   Where the detail comes from matters. The ledger (chapter 16) now keeps the actual invoice
+   rows behind each total in FIN._lastReport, and this reads THOSE. It does not re-filter the
+   invoices itself. A second copy of that filter would look right for months and then quietly
+   disagree the day someone changed one and not the other — which is exactly the kind of
+   money bug that destroys trust in a finance page. Belt and braces: before showing any
+   detail, the rows are summed and checked against the total they hang under. If they ever
+   disagree by more than a hallala, the detail is refused and the row says so, rather than
+   showing numbers that don't add up.                                                      */
+(function(){try{
+  if(!window.renderFinance) return;
+  var _rf=window.renderFinance;
+  var OPEN={};                 /* which rows the user has opened, kept across re-renders */
+  var SEP='␟', CAP=200;   /* CAP: never silently truncate — the note says what is hidden */
+
+  function fl(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;}
+  function ex(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function m0(n){return Math.round(Number(n)||0).toLocaleString('en-US');}
+  function svc(r){try{return window.svcLabel?window.svcLabel(r.service_type):(r.service_type||'—');}catch(_){return r.service_type||'—';}}
+
+  window.s1Toggle=function(k,s){ try{ var id=k+(s?SEP+s:''); OPEN[id]=!OPEN[id]; paint(); }catch(e){console.warn('[S1] toggle',e);} };
+
+  function rowsFor(R,k,s){
+    var G=R.g&&R.g[k]; if(!G) return null;
+    return s ? ((G.__subRows&&G.__subRows[s])||null) : (G.__rows||null);
+  }
+  /* the total this detail must reconcile to — the number already printed on the row */
+  function totalFor(R,k,s){
+    var G=R.g&&R.g[k]; if(!G) return null;
+    return s ? (G.__sub&&G.__sub[s]) : G.__tot;
+  }
+
+  function paint(){
+    var R=window.FIN&&FIN._lastReport; if(!R||!R.g) return;
+    var view=document.getElementById('view'); if(!view) return;
+    var all=[].slice.call(view.querySelectorAll('tr[data-rbk]'));
+    if(!all.length) return;
+    [].slice.call(view.querySelectorAll('tr.s1-kid')).forEach(function(t){ t.parentNode&&t.parentNode.removeChild(t); });
+
+    /* With a second grouping the sub-rows are the ones that open (client › month › invoices).
+       Without one, the group rows open directly. Opening both would drop a client's invoices
+       above its own months and read as nonsense. */
+    var deep=!!R.g2;
+    all.forEach(function(tr){
+      var k=tr.getAttribute('data-rbk'), s=tr.getAttribute('data-rbs')||'';
+      if(deep ? !s : !!s) return;
+
+      var td=tr.firstElementChild; if(!td) return;
+      var id=k+(s?SEP+s:'');
+      if(!td.querySelector('.s1-mark')){
+        var mk=document.createElement('span');
+        mk.className='s1-mark';
+        mk.style.cssText='display:inline-block;width:13px;color:#FF6B00;font-weight:700';
+        td.insertBefore(mk,td.firstChild);
+        tr.style.cursor='pointer';
+        tr.title=fl('Open the invoices behind this total','افتح الفواتير خلف هذا الإجمالي');
+        tr.addEventListener('click',function(){ window.s1Toggle(k,s); });
+      }
+      var mark=td.querySelector('.s1-mark'); if(mark) mark.textContent=OPEN[id]?'▾':'▸';
+      if(!OPEN[id]) return;
+
+      var src=rowsFor(R,k,s), tot=totalFor(R,k,s);
+      var span=1+(R.mets?R.mets.length:1);
+      function note(msg,colour){
+        var t=document.createElement('tr'); t.className='s1-kid';
+        t.innerHTML='<td colspan="'+span+'" style="padding:6px 8px 6px 30px;font-size:11.5px;color:'+(colour||'var(--muted)')+'">'+ex(msg)+'</td>';
+        return t;
+      }
+      var frag=document.createDocumentFragment();
+      if(!src||!src.length){ frag.appendChild(note(fl('No invoice detail for this row.','لا توجد تفاصيل فواتير لهذا الصف.'))); }
+      else{
+        /* reconcile before showing anything */
+        var off=null;
+        (R.mets||[]).forEach(function(m){
+          var want=(tot&&tot[m])||0;
+          var got=src.reduce(function(a,r){return a+(m==='_count'?1:(+r[m]||0));},0);
+          if(Math.abs(want-got)>0.01) off=m;
+        });
+        if(off){
+          frag.appendChild(note(fl('Detail withheld: these invoices do not add up to the total above. Nothing is lost — open the Ledger tab to see them.',
+                                   'التفاصيل غير معروضة: مجموع هذه الفواتير لا يطابق الإجمالي أعلاه. افتح تبويب السجل لرؤيتها.'),'#B54708'));
+        }else{
+          var head=document.createElement('tr'); head.className='s1-kid';
+          head.innerHTML='<td colspan="'+span+'" style="padding:5px 8px 3px 30px;font-size:10.5px;color:var(--muted);letter-spacing:.03em;text-transform:uppercase">'+
+            ex(fl('Invoices and services behind this total','الفواتير والخدمات خلف هذا الإجمالي'))+'</td>';
+          frag.appendChild(head);
+          src.slice(0,CAP).forEach(function(r){
+            var t=document.createElement('tr'); t.className='s1-kid';
+            t.style.cssText='border-top:1px solid #f7f5f0;background:#FCFBF8';
+            var lbl='<span style="color:var(--muted)">'+ex(r.invoice_date||'')+'</span> · <b>'+ex(r.invoice_no||'—')+'</b> · '+ex(svc(r));
+            t.innerHTML='<td style="padding:5px 8px 5px 42px;font-size:12px">'+lbl+'</td>'+
+              (R.mets||[]).map(function(m){
+                return '<td style="padding:5px 8px;text-align:right;font-size:12px;color:#4a5060;font-variant-numeric:tabular-nums">'+
+                       (m==='_count'?1:m0(r[m]))+'</td>';
+              }).join('');
+            frag.appendChild(t);
+          });
+          if(src.length>CAP) frag.appendChild(note(fl('Showing the first '+CAP+' of '+src.length+' invoices — use Export CSV for all of them.',
+                                                     'يتم عرض أول '+CAP+' من '+src.length+' فاتورة — استخدم تصدير CSV للكل.')));
+        }
+      }
+      if(tr.parentNode) tr.parentNode.insertBefore(frag,tr.nextSibling);
+    });
+
+    /* Turning the page closes what is open. Opened detail belongs directly under its own
+       row, so if that row moves to another page the detail must not be left behind on
+       this one, stranded under somebody else's client. */
+    [].slice.call(view.querySelectorAll('.pg-bar')).forEach(function(bar){
+      if(bar.__s1) return; bar.__s1=1;
+      bar.addEventListener('click',function(e){ if(e.target&&e.target.tagName==='BUTTON'){ OPEN={}; setTimeout(paint,0); } });
+      bar.addEventListener('change',function(){ OPEN={}; setTimeout(paint,0); });
+    });
+  }
+
+  window.renderFinance=function(){
+    _rf.apply(this,arguments);
+    try{
+      if(!window.FIN||FIN.tab!=='reports') return;
+      /* the table is rebuilt by the render above, so the open rows are re-opened here */
+      paint();
+    }catch(e){if(window.console)console.warn('[S1] drill-down',e);}
+  };
+  console.info('%c[S1] report drill-down loaded','color:#0F6E56;font-weight:700');
+}catch(e){if(window.console)console.warn('[S1] init',e);}})();

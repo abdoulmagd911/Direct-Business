@@ -38,7 +38,11 @@
   var KEY='db_pageSize';
   function getSize(){try{return localStorage.getItem(KEY)||'20';}catch(_){return '20';}}
   function setSize(v){try{localStorage.setItem(KEY,v);}catch(_){}}
-  function dataRows(tb){return Array.prototype.filter.call(tb.rows,function(r){return r.cells&&r.cells.length>1;});}
+  /* A row that was opened out of another row is not a row of the table — it is detail
+     belonging to the row above it. Counting it made the Report Builder announce
+     "Showing 1–10 of 15" for eleven clients and push four of them off the page. */
+  function dataRows(tb){return Array.prototype.filter.call(tb.rows,function(r){
+    return r.cells&&r.cells.length>1&&String(r.className||'').indexOf('s1-kid')<0;});}
   function paginate(tb,size,page){
     var rows=dataRows(tb);var total=rows.length;
     if(size==='All'){rows.forEach(function(r){r.style.display='';});return {pages:1,page:1,total:total,n:total};}
