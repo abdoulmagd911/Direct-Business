@@ -25,7 +25,13 @@
   function load(){
     if(MAP||loading) return; loading=true;
     try{
-      var c=(window.fc?fc():null)||(window.supabase&&window.supabase.createClient&&window.supabase.createClient());
+      /* Only ever use a client that already exists. Calling supabase.createClient() with no
+     arguments looks harmless — the v44a memoiser is meant to hand back the shared client — but
+     if it happens to be the FIRST call on the page it builds a client with no project URL and
+     no key, and memoises that broken thing for everything that follows: sign-in, Finance, the
+     roster. That is a page-wide outage caused by a convenience fallback. So: wait for the real
+     client rather than risk creating a hollow one. */
+      var c=(window.fc?fc():null); if(!c){ loading=false; return; }
       if(!c){loading=false;return;}
       /* Read through team_nicknames() rather than app_users directly. A non-admin may only
          read their own row of app_users, so reading the table gave a manager a nickname list
