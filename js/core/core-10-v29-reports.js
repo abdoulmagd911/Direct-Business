@@ -662,7 +662,30 @@ window.rptPpt=function(){
  window.leadSort={k:"value",dir:-1};
  window.leadSortBy=function(k){if(leadSort.k===k)leadSort.dir*=-1;else{leadSort.k=k;leadSort.dir=(k==="last"||k==="value")?-1:1;}drawLeads();};
  window.leadArrow=function(k){return leadSort.k===k?(leadSort.dir>0?" \u25B2":" \u25BC"):"";};
- window.leadSortVal=function(b,k){switch(k){case "name":return String(b.name||"").toLowerCase();case "stage":return LEAD_STAGES.indexOf(leadStage(b));case "funnel":return String(b.source||"").toLowerCase();case "last":return b.lastContact||0;case "owner":return String(b.assignedTo||b.owner||"").toLowerCase();case "score":return leadScore(b);default:return b.totalSAR||0;}};
+ /* Sorting needs a tie-breaker (owner approved 2026-08-16).
+    Sort by Owner when every lead has the same owner, or by Priority when they are all "Cool",
+    and the rows come back in a different order every click: the comparator says "equal" and
+    the browser is free to arrange equal rows however it likes. Nothing is corrupted, but it
+    looks broken, and after the contact-form import 81 leads share those values.
+    Each sort value now carries the company name and then the created date appended after it,
+    so equal rows fall into a fixed, obvious order. Numbers are zero-padded to a fixed width
+    first, otherwise comparing them as text would put "10" before "9". */
+ window.leadSortTieBreak=function(b){return " "+String(b.name||"").toLowerCase()+" "+String(b.createdAt||b.created_at||"");};
+ window.leadSortNum=function(n){n=Math.round((Number(n)||0)*100); var neg=n<0; if(neg)n=-n;
+   return (neg?"-":"0")+String(n).padStart(15,"0");};
+ window.leadSortVal=function(b,k){
+   var v;
+   switch(k){
+     case "name":   v=String(b.name||"").toLowerCase(); break;
+     case "stage":  v=leadSortNum(LEAD_STAGES.indexOf(leadStage(b))); break;
+     case "funnel": v=String(b.source||"").toLowerCase(); break;
+     case "last":   v=leadSortNum(b.lastContact||0); break;
+     case "owner":  v=String(b.assignedTo||b.owner||"").toLowerCase(); break;
+     case "score":  v=leadSortNum(leadScore(b)); break;
+     default:       v=leadSortNum(b.totalSAR||0);
+   }
+   return v+leadSortTieBreak(b);
+ };
  console.info("%c[v29.4] helpers + website/corp-flag migration loaded","color:#2E90FA;font-weight:700");
 }catch(e){console.warn("[v29.4] fail",e);}})();
 /* v29.5 ownership + quick edit: team list (editable), lead quick-edit modal, account manager / key-account fields */
