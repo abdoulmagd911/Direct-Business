@@ -18,10 +18,10 @@ export const APP_DIR = process.env.APP_DIR || 'live-app';
 const PW = (k) => process.env['DB_PW_' + k.toUpperCase()] || '';
 
 export const TEAM = {
-  /* super admins — everything, everywhere */
+  /* super admins — everything, everywhere (a.hassan moved to employee 2026-08-17 on the owner's instruction) */
   business:  { email: 'business@directksa.com',              pw: PW('business'),       name: 'Abdulrahman Aboelmagd',       role: 'admin' },
   aboelmagd: { email: 'aboelmagd@directksa.com',             pw: PW('aboelmagd'),      name: 'Abdulrahman Aboelmagd',       role: 'admin' },
-  hassan:    { email: 'a.hassan@directksa.net',              pw: PW('hassan'),         name: 'Abdelrahman Hasan',           role: 'admin' },
+  hassan:    { email: 'a.hassan@directksa.net',              pw: PW('hassan'),         name: 'Abdelrahman Hasan',           role: 'team_member' },
   admin:     { email: 'test@directksa.com',                  pw: PW('admin'),          name: 'QA Test Account',             role: 'admin' },
   /* manager — employee pages + proposals/events/airlines/settings/logs, manages people */
   othman:    { email: 'osharafi@direct-visa.net',            pw: PW('othman'),         name: 'Othman Al Sharafi',           role: 'manager' },
