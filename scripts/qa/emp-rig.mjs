@@ -30,7 +30,7 @@ export const TEAM = {
   kareem:    { email: 'kareem.medhat@directksa.com',         pw: PW('kareem'),         name: 'Kareem Medhat',               role: 'team_member' },
   assem:     { email: 'assem.alsweed@directksa.com',         pw: PW('assem'),          name: 'Assem Alsweed',               role: 'team_member' },
   mohammed:  { email: 'mohammed.altuwaijri@directksa.com',   pw: PW('mohammed'),       name: 'Mohammed Altuwaijri',         role: 'team_member' },
-  ahmed:     { email: 'ahmed.aboelmagd@directksa.net',       pw: PW('ahmed'),          name: 'Ahmed Abo El Magd',           role: 'team_member' },
+  ahmed:     { email: 'ahmed.aboelmagd@directksa.net',       pw: PW('ahmed'),          name: 'Ahmed Salah'          ,           role: 'team_member' },
   abdulaziz: { email: 'abdulaziz.alreshody@directksa.com',   pw: PW('abdulaziz'),      name: 'Abdul Aziz Alreshody',        role: 'team_member' },
 };
 
