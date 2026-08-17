@@ -27,7 +27,11 @@
     try{
       var c=(window.fc?fc():null)||(window.supabase&&window.supabase.createClient&&window.supabase.createClient());
       if(!c){loading=false;return;}
-      c.from('app_users').select('full_name,nickname,nickname_ar').then(function(r){
+      /* Read through team_nicknames() rather than app_users directly. A non-admin may only
+         read their own row of app_users, so reading the table gave a manager a nickname list
+         of one person and left every other name on screen as the legal one. The function
+         returns display names only — no email, no role — so anyone signed in may call it. */
+      c.rpc('team_nicknames').then(function(r){
         loading=false;
         if(!r||r.error||!r.data) return;
         var m={};
@@ -111,6 +115,20 @@
       load(); setTimeout(paint,600);
     },200);
     setTimeout(function(){ load(); paint(); }, 2500);
+
+    /* The Leads table redraws itself without going through render() — drawLeads() rebuilds the
+       rows on every filter, sort and page change — so hooking render alone left the Owner
+       column showing legal names. Watching the working area covers every redraw whatever
+       triggered it. Only added and removed elements are watched, not text changes, so the
+       swap this makes cannot set the watcher off again. */
+    var target=document.getElementById('view');
+    if(target && window.MutationObserver){
+      var pending=null;
+      new MutationObserver(function(){
+        if(pending) return;
+        pending=setTimeout(function(){ pending=null; paint(); }, 120);
+      }).observe(target,{childList:true,subtree:true});
+    }
   }catch(_){}
 
   console.info('%c[nicknames] people shown by the name colleagues use','color:#FF6B00;font-weight:700');

@@ -25,7 +25,13 @@
     if(strong && strong.textContent!==nm) strong.textContent=nm;
     if(av){ var initial=(nm.trim()[0]||'?').toUpperCase(); if(av.textContent!==initial) av.textContent=initial; }
     if(small){
-      var lbl = who.role ? ((isAr()?ROLE_AR:ROLE_EN)[who.role]||who.role) : '';
+      /* Fall back to the role the app already knows. When this layer's own lookup had not
+         landed, the label was left as the placeholder text baked into the page — which is how
+         a manager's sidebar came to describe him as "Business Development" while the top bar
+         correctly said Manager. Better to use the role the rest of the app is already using
+         than to leave a stale label standing. */
+      var r = who.role || window.__userRole || null;
+      var lbl = r ? ((isAr()?ROLE_AR:ROLE_EN)[r]||r) : '';
       if(lbl && small.textContent!==lbl) small.textContent=lbl;
     }
   }
