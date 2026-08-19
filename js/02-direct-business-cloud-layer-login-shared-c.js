@@ -336,6 +336,14 @@
   function callAdmin(payload){
     return sb.auth.getSession().then(function(s){
       var tok=(s&&s.data&&s.data.session)?s.data.session.access_token:'';
+      /* No token means the session has lapsed, not that anything is wrong with the team tools.
+         Sending an empty one made the server answer "Not signed in", which then appeared inside
+         the roster as though the list itself were broken — a manager saw it while every other
+         page of the app was working. Say what it is, and let the session watch offer the fix. */
+      if(!tok){
+        try{ if(window.__sessionCheck) window.__sessionCheck(); }catch(_){}
+        return {error:'Your session has expired — sign in again to manage the team.'};
+      }
       return fetch(SUPA_URL+'/functions/v1/admin-users',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok,'apikey':SUPA_KEY},

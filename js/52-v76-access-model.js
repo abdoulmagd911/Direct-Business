@@ -26,10 +26,32 @@
        Holding to the floor costs an admin a brief flicker; the other way round leaks. */
     if(!known()) return PAGES_EMPLOYEE;
     var r=role();
-    if(r==='admin') return null;           // everything
+    if(r==='admin') return null;           // everything — admins are outside the matrix
+    /* Since 2026-08-17 access is set per person, per page, in Team & Access. When that matrix
+       has loaded it decides; the two lists below remain only as the floor to fall back on if
+       it has not arrived yet, and they match what the matrix was seeded with. */
+    try{
+      var m=window.__pageAccess;
+      if(m && typeof m==='object'){
+        var pages=Object.keys(m).filter(function(p){ return m[p]==='editor'||m[p]==='viewer'; });
+        if(pages.indexOf('today')<0) pages.push('today');   // the app has to have somewhere to open
+        if(pages.length) return pages;
+      }
+    }catch(_){}
     if(r==='manager') return PAGES_MANAGER;
     return PAGES_EMPLOYEE;
   }
+  /* May this person change things on a page, as opposed to only look at it? */
+  try{
+    window.mayEditPage=function(page){
+      try{
+        if(role()==='admin') return true;
+        var m=window.__pageAccess;
+        if(m && typeof m==='object') return m[page]==='editor';
+        return true;                        // matrix not loaded yet — the old behaviour
+      }catch(_){ return true; }
+    };
+  }catch(_){}
   function mayOpen(view){
     var a=allowedPages(); if(!a) return true;
     return a.indexOf(view)>=0;
@@ -120,7 +142,14 @@
   /* employees edit finance too, under this model — but a read-only account never does */
   try{
     if(typeof window.canFinEdit==='function' && !window.canFinEdit.__v76){
-      var w=function(){ if(!known()) return false; var r=role(); return r==='admin'||r==='manager'||r==='team_member'; };
+      var w=function(){
+        if(!known()) return false;
+        if(role()==='admin') return true;
+        /* Editing Finance is now a per-person setting, not a fact about your role. The database
+           enforces the same thing, so hiding the buttons and refusing the write agree. */
+        try{ if(window.mayEditPage) return window.mayEditPage('finance'); }catch(_){}
+        var r=role(); return r==='manager'||r==='team_member';
+      };
       w.__v76=1; window.canFinEdit=w;
     }
   }catch(_){}

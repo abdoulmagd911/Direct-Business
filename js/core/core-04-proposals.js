@@ -168,7 +168,12 @@ window.o_uploadFile=function(id){
   if(!/\.(pdf|png|jpe?g|docx|xlsx)$/i.test(f.name)){if(msg)msg.textContent=_ar?'الأنواع المقبولة: PDF · صور · Word · Excel.':'Accepted types: PDF, images, Word, Excel.';inp.value='';return;}
   if(f.size>25*1024*1024){if(msg)msg.textContent=_ar?'الملف أكبر من 25MB.':'File is larger than 25MB.';return;}
   if(msg)msg.textContent=_ar?'جارٍ الرفع…':'Uploading…';
-  var c=window.supabase.createClient();
+  /* 2026-08-17 audit: calling window.supabase's client-maker with nothing passed in builds a
+     client with no project URL and no key if it is ever the first such call on the page — this
+     file loads before the login layer that normally wins that race, so it was only safe because
+     a person has to click Upload before this line runs, by which time the real client has long
+     existed. window.fc() (js/16) is the same shared client without that risk. */
+  var c=window.fc?fc():null; if(!c){ if(msg)msg.textContent=_ar?'التطبيق لم يجهز بعد — أعد المحاولة.':'The app is not ready yet — try again.'; return; }
   var path=(o.ref||o.id).replace(/[^\w.\-]+/g,'_')+'/'+Date.now()+'-'+f.name.replace(/[^\w.\-؀-ۿ]+/g,'_');
   c.storage.from('proposals').upload(path,f,{upsert:true}).then(function(r){
     if(r.error){if(msg)msg.textContent=(_ar?'فشل الرفع: ':'Upload failed: ')+r.error.message;return;}
@@ -184,7 +189,7 @@ window.o_removeFile=function(id){
   if(!confirm(_ar?'إزالة الملف من هذا العرض؟':'Remove the file from this proposal?'))return;
   var p=o.filePath;
   o.fileUrl='';o.fileName='';o.filePath='';save();
-  if(p){try{window.supabase.createClient().storage.from('proposals').remove([p]).then(function(){});}catch(_e){}}
+  if(p){try{ var c=window.fc?fc():null; if(c) c.storage.from('proposals').remove([p]).then(function(){}); }catch(_e){}}
   offerEditor(document.getElementById('view'),id);
 };
 

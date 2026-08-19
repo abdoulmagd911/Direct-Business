@@ -286,6 +286,13 @@ function rOverview(){
   var V=verified().filter(finInPeriod);
   var rev=0,cost=0,prof=0,rec=0,rem=0,wal=0;
   V.forEach(function(r){rev+=+r.revenue_sar;cost+=+r.cost_sar;prof+=+r.profit_sar;rec+=+r.amount_received_sar;rem+=+r.amount_remaining_sar;wal+=+r.wallet_portion_sar;});
+  /* Outstanding cannot be read off the verified-paid invoices: an invoice is only verified-paid
+     once nothing is left to pay, so summing what remains across them is always zero — which is
+     exactly what this tile showed while Clients & collections reported 216.1K of real unpaid
+     money on the same page. Money still owed lives on the invoices that are NOT yet settled, so
+     it is counted over every live invoice in the period, the same basis the collections tab uses.
+     The other five indicators stay on verified invoices, as their subtitle says. */
+  rem=0; live().filter(finInPeriod).forEach(function(r){ rem+=+r.amount_remaining_sar||0; });
   var invCount=new Set(V.map(function(r){return r.invoice_no;})).size; // distinct invoices, not service lines
   /* Period bar \u2014 the executive-dashboard structure: year \u00b7 All/Q1\u2013Q4/H1/H2 \u00b7 month */
   var h=finPeriodBar();

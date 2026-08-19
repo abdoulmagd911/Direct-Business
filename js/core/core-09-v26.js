@@ -1231,11 +1231,28 @@
         });
         return;
       }
-      if(sec==='clients'&&filter==='AtRisk'){
+      if(sec==='clients'&&(filter==='AtRisk'||filter==='all')){
         /* Robust: match the client-health badge by data attribute, not visible text */
         view.querySelectorAll('tbody tr').forEach(function(tr){
-          tr.style.display=(tr.getAttribute('data-health')==='At risk')?'':'none';
+          tr.style.display=(filter==='all'||tr.getAttribute('data-health')==='At risk')?'':'none';
         });
+        /* The counters above the table are written when the page renders, so filtering rows
+           here left them showing the all-clients totals — the table said 2 clients while the
+           box above it still said 10 and 917K. Recalculate them from what is actually on
+           screen. (2026-08-16, found by the owner testing the live page.) */
+        try{
+          var vis=[].slice.call(view.querySelectorAll('tbody tr')).filter(function(tr){
+            return tr.style.display!=='none' && tr.hasAttribute('data-billed');
+          });
+          var n=vis.length,
+              key=vis.filter(function(tr){return tr.getAttribute('data-key')==='1';}).length,
+              sar=vis.reduce(function(a,tr){return a+(Number(tr.getAttribute('data-billed'))||0);},0);
+          var setv=function(id,val){var e=document.getElementById(id); if(e)e.textContent=val;};
+          var short=(window.moneyShort)?moneyShort(sar):Math.round(sar).toLocaleString('en-US');
+          setv('cl_kv_count', String(n));
+          setv('cl_kv_key',   String(key));
+          setv('cl_kv_billed', short+' SAR');
+        }catch(e){if(window.console)console.warn('[v26.3] client counters',e);}
         return;
       }
       /* Generic table-row filter */
