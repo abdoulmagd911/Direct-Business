@@ -24,7 +24,7 @@
 
   function client(){
     try{ if(window.fc) { var c=fc(); if(c) return c; } }catch(_){}
-    /* Only ever use a client that already exists. Calling supabase.createClient() with no
+    /* Only ever use a client that already exists. Calling supabase's createClient, called with nothing passed in, with no
      arguments looks harmless — the v44a memoiser is meant to hand back the shared client — but
      if it happens to be the FIRST call on the page it builds a client with no project URL and
      no key, and memoises that broken thing for everything that follows: sign-in, Finance, the

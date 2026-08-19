@@ -27,8 +27,15 @@ if (dup.length) problems.push('Duplicate <script src> tags: ' + [...new Set(dup)
 for (const t of tags) if (!fs.existsSync(at(t.slice(1)))) problems.push(`index.html loads ${t} but the file does not exist.`);
 
 /* 4 — no two layers may define the same element id (the Brand-button collision class).
-       Ids created via createElement/id= or getElementById guards are compared across files. */
-const files = fs.readdirSync(at('js')).filter(f => f.endsWith('.js')).map(f => 'js/' + f);
+       Ids created via createElement/id= or getElementById guards are compared across files.
+   Found in the 2026-08-17 audit: this only ever read js/, never js/core/ — so the two
+   hardcoded-name violations sitting in js/core/core-06 and core-07 passed every run of this
+   check silently. Both directories are scanned now, or a tripwire with a blind spot is worse
+   than no tripwire: it says "clean" about a file it never looked at. */
+const files = [
+  ...fs.readdirSync(at('js')).filter(f => f.endsWith('.js')).map(f => 'js/' + f),
+  ...fs.readdirSync(at('js/core')).filter(f => f.endsWith('.js')).map(f => 'js/core/' + f),
+];
 const idOwner = {};
 for (const f of files) {
   const src = fs.readFileSync(at(f), 'utf8');
@@ -44,8 +51,15 @@ for (const f of files) {
 for (const f of files) {
   const src = fs.readFileSync(at(f), 'utf8');
   if (/option[^;\n]{0,60}\.hidden\s*=\s*true|o\.hidden=true/.test(src)) problems.push(`${f} hides <option>s instead of removing them — the OS dropdown shows hidden options.`);
-  if (/user:\s*'Abdelrahman'/.test(src)) problems.push(`${f} hard-codes a person's name into records.`);
+  /* was one literal name; any person's name hardcoded into a record has the same failure
+     shape, so this now matches the pattern, not the one name that happened to get caught. */
+  if (/user\s*:\s*['"][A-Z][a-z]+(\s[A-Z][a-z]+)*['"]/.test(src)) problems.push(`${f} hard-codes a person's name into records — stamp the real signed-in user instead.`);
   if (/if\s*\(\s*!window\.DB\b/.test(src)) problems.push(`${f} guards on window.DB — DB is a top-level let, so that guard is always false and fails silently.`);
+  /* 6 — no zero-argument createClient() calls. Found in the 2026-08-17 audit: if this is ever
+     the first call on the page, before the login layer creates the real client, it builds a
+     client with no project URL and no key and memoises that broken thing for everything after
+     it. window.fc() (js/16) is the safe accessor — it never creates a client of its own. */
+  if (/supabase\s*\.\s*createClient\s*\(\s*\)/.test(src)) problems.push(`${f} calls supabase.createClient() with no arguments — if this ever runs before the login layer, it builds a client with no URL and no key. Use window.fc() instead.`);
 }
 
 if (problems.length) {

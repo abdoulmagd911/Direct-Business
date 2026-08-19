@@ -47,7 +47,12 @@ const PAYMENT_TERMS=['Pre-paid','Net 0','Net 15','Net 30','Net 45','Net 60','Net
 const EMD_TYPES=['—','EMD-A (associated)','EMD-S (standalone)'];
 const QC_ITEMS=['Low-fare check','Fare rules confirmed','Pax details verified','SSRs added','Ticket time limit set','Form of payment confirmed','Approval gate'];
 /* ----- Audit log + activity feed ----- */
-function logAudit(entity,entityId,action,detail){DB.audit=DB.audit||[];DB.audit.unshift({id:'a_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),ts:Date.now(),user:'Abdelrahman',entity:entity,entityId:entityId,action:action,detail:detail||''});if(DB.audit.length>800)DB.audit=DB.audit.slice(0,800);}
+/* 2026-08-17 audit: this stamped every entry with the literal name 'Abdelrahman', so the log
+   said he did everything no matter who was actually signed in. js/53 (v77) wraps this function
+   at runtime to fix that in normal use, but the wrap only works if it runs — fixed here too so
+   the base function is honest on its own and the check-structure tripwire, which was widened
+   this session to scan js/core/ for the first time, stops flagging it. */
+function logAudit(entity,entityId,action,detail){DB.audit=DB.audit||[];DB.audit.unshift({id:'a_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),ts:Date.now(),user:(window.__userName||'Team'),entity:entity,entityId:entityId,action:action,detail:detail||''});if(DB.audit.length>800)DB.audit=DB.audit.slice(0,800);}
 function activityFor(entity,entityId){return (DB.audit||[]).filter(a=>a.entity===entity&&a.entityId===entityId);}
 
 /* ----- Soft delete / restore ----- */
@@ -150,7 +155,7 @@ function migrateV18(d){d.bookings=d.bookings||[];d.invoices=d.invoices||[];d.aud
   // leads — IATA wakeel + Saudi IBAN already on AGENCY constant
   if(!d.agency)d.agency=Object.assign({},AGENCY);
   // pre-seed sample audit entries so the activity feed isn't empty
-  if((d.audit||[]).length===0){const seedActs=[];(d.bookings||[]).slice(0,4).forEach(b=>seedActs.push({entity:'booking',entityId:b.id,action:'create',detail:'Seeded booking '+b.ref,ts:Date.now()-Math.floor(Math.random()*7*86400000),user:'Abdelrahman',id:'a_'+Math.random().toString(36).slice(2,8)}));(d.invoices||[]).slice(0,4).forEach(i=>seedActs.push({entity:'invoice',entityId:i.id,action:'issue',detail:'Issued '+i.number,ts:Date.now()-Math.floor(Math.random()*5*86400000),user:'Abdelrahman',id:'a_'+Math.random().toString(36).slice(2,8)}));d.audit=seedActs.sort((a,b)=>b.ts-a.ts);}}
+  if((d.audit||[]).length===0){const _u=(window.__userName||'Team');const seedActs=[];(d.bookings||[]).slice(0,4).forEach(b=>seedActs.push({entity:'booking',entityId:b.id,action:'create',detail:'Seeded booking '+b.ref,ts:Date.now()-Math.floor(Math.random()*7*86400000),user:_u,id:'a_'+Math.random().toString(36).slice(2,8)}));(d.invoices||[]).slice(0,4).forEach(i=>seedActs.push({entity:'invoice',entityId:i.id,action:'issue',detail:'Issued '+i.number,ts:Date.now()-Math.floor(Math.random()*5*86400000),user:_u,id:'a_'+Math.random().toString(36).slice(2,8)}));d.audit=seedActs.sort((a,b)=>b.ts-a.ts);}}
 try{migrateV18(DB);save();}catch(e){console.warn('v18 migrate fail',e);}
 /* ----- Override renderInvoices (AR aging · bulk ops · ZATCA column) ----- */
 let invBulkSel={};

@@ -14,7 +14,15 @@
 (function(){try{
   var T={requests:'app_requests',offers:'app_offers',projects:'app_projects',bookings:'app_bookings',invoices:'app_invoices'};
   var SNAP=null; // id -> JSON string, per section; null until first successful table read
-  function cli(){ try{ if(!window.__sb59 && window.supabase && window.supabase.createClient){ window.__sb59=window.supabase.createClient(); } }catch(_){ } return window.__sb59||null; } /* v44a memoisation returns the app's shared client */
+  /* Found in the 2026-08-17 audit: this called supabase's createClient, called with nothing passed in, with no arguments as a
+     way to reach the shared client, and cached whatever came back into window.__sb59 forever.
+     Safe today only because js/02 creates the real client synchronously before this file's slot
+     35 loads — but if that ever changed, or a zero-argument call landed first, it would build a
+     client with no project URL and no key and lock that broken client in for the rest of the
+     page load. Same class of bug as the one found in three other files this session. Reading
+     through window.fc — the accessor js/16 already publishes for exactly this — never creates
+     a client of its own, so there is nothing here left to race. */
+  function cli(){ try{ if(window.fc){ var c=fc(); if(c) return c; } }catch(_){ } return null; }
   function who(){ try{ return (window.meName&&meName())||(DB.settings&&DB.settings.currentUser)||''; }catch(_){ return ''; } }
   function snapOf(arr){ var m={}; (arr||[]).forEach(function(r){ if(r&&r.id!=null) m[String(r.id)]=JSON.stringify(r); }); return m; }
 
