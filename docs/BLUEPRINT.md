@@ -2,7 +2,7 @@
 
 > One page per phase. Read top to bottom to know where the project stands, what "done"
 > means for each phase, and what is deliberately waiting. This is the map; the detailed
-> working log stays in `docs/BACKLOG.md`. Created 2026-08-11 after Ahmed's review
+> working log stays in `docs/BACKLOG.md`. Created 2026-08-11 after Abdulrahman's review
 > ("make a blueprint, work phase by phase, keep a guideline so Claude doesn't invent scope").
 >
 > **Status legend:** ✅ done & verified · 🟠 in progress · ⏳ waiting its turn
@@ -93,7 +93,7 @@ Al-Hilal 1.5M / SFDA 500K / Riyadh Club 1M) as a toggle for tender-type
 proposals only.
 **Done means:** the team sends a client-ready PDF from the app without touching Word.
 
-## Phase 6 — Schema & data integrity 🟠 (Ahmed's review, 2026-08-11)
+## Phase 6 — Schema & data integrity 🟠 (Abdulrahman's review, 2026-08-11)
 Real tables with RLS everywhere the app writes: businesses, contacts, finance_invoices
 (+origin/proposal_ref/items), finance_client_links (+credit), finance_targets,
 app_requests/app_offers/app_projects (dual-write, blob fallback). Security advisor run

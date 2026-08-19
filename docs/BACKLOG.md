@@ -1146,3 +1146,50 @@ as deliberate: `#F06820` documents · `#FF6C00` logo mark · `#F47A1F` app.
   `TECHNICAL PROPOSAL- SGC`, `Business Proposal Direct 02 2025.pdf`, `offer-B2B-110991.pdf`,
   `technical-profile.html`, `company-profile.html`, `Logo Direct .pdf` (transparent vector
   extraction), core font files for the hub.
+
+## 14 · Payment proofs — audit document register — DONE 2026-08-19 (refines the Round 7 wallet purge)
+
+Round 7 (2026-08-12) purged wallet top-ups from Finance because they are not Direct's
+revenue — deleted from the ledger, importer skips them, the Wallet KPI card removed.
+**That stands, confirmed again by the owner on 2026-08-19: wallet top-up numbers/details
+must NEVER return to Finance reports, dashboards or KPIs.** What Round 7 didn't cover: the
+owner still needs the bank-transfer proof FILES kept somewhere findable for an audit or
+strategy-team hand-off. Direct Payments itself has no upload field on its own wallet-top-up
+form, and its Payment Receipts ledger (B2C-scale, 500k+ rows) is a separate system from the
+per-client wallet flow — the same fragmentation problem, one level up.
+
+Built: `proof_documents` table (Supabase) + `payment-proofs` storage bucket, gated behind
+the same `can_see_page('finance')`/`can_edit_page('finance')` RLS as `finance_expenses` —
+finance-adjacent audit material, but the table carries **no revenue/cost/profit columns**
+and is read by nothing else in the app. A row tags one uploaded file with: type
+(`payment_proof` / `wallet_top_up` / `other`), client, invoice/tax-invoice number,
+wallet-top-up number (optional — present for tagging and filename only), amount, date.
+UI lives as a new "Payment proofs" tab on the Finance page (`js/57-payment-proofs.js`),
+next to Expenses — upload, preview, single/bulk (select-then-download) download, and a CSV
+manifest export, following the S5 Expenses pattern exactly.
+
+**Naming scheme** (the concrete recommendation asked for, applied here and matching the
+existing Expenses names): `{TYPE}_{Client}_{Ref}_{Amount}SAR_{Date}_{last4ofID}.{ext}` —
+`TYPE` is `PAY`/`WTU`/`DOC`, `Ref` is the invoice number and/or wallet-top-up number
+(dash-joined when a row carries both), Latin-only (same reason as Expenses: locked-down
+Windows machines).
+
+Verified hands-on against the real backend (`scripts/qa/diag-proofs.mjs`, real Supabase,
+QA admin account): a wallet-top-up proof saves with its file, the generated name is exactly
+right, preview/single-download/select-then-bulk-download/CSV export all work and use the
+generated name, and — the point of the whole exercise — every money figure on Overview,
+Ledger, Clients and Reports is byte-identical before and after, and the wallet-top-up
+reference appears nowhere in `FIN.rows`. Probe cleans up its own test row.
+
+Separately fixed in passing: `docs/BLUEPRINT.md` said "Ahmed's review" in two places — the
+decision-maker is Abdulrahman Hasan Abu Al Majid, not a person named Ahmed (a persistent
+misnaming, corrected by the owner directly on 2026-08-19; also noted years earlier in
+`DIRECT_MASTER_BRIEF.md`: "he is Abdulrahman, not Ahmed"). Fixed where caught in passing,
+not chased as its own task.
+
+**Next up (not built yet, deliberately sequenced after this):** the Aug-16 Decision 2 work
+— revenue recorded as individual records across the five real patterns (invoice / pending
+transaction / commission / promo code / B2C manual) with a `cash_state` field, and
+transactions stored as real DB records from creation rather than only at invoice time. That
+touches the core ledger and deserves its own money-fingerprinted sitting, same discipline as
+every other Finance change in this project — not folded into this one.
