@@ -116,9 +116,13 @@ await page.evaluate(id=>{ proofToggleSel(id); }, saved && saved.id);
 await page.waitForTimeout(300);
 const selOnCount = await page.evaluate(id=>document.querySelectorAll('#view input[type="checkbox"]:checked').length);
 if(selOnCount<1) fails.push('selecting the row did not check its box');
+/* proofDownloadSelected now opens the in-page pfConfirm box (not a native dialog) —
+   click through it, same as a real person would. */
+await page.evaluate(()=>proofDownloadSelected());
+await page.waitForSelector('#pfConfirmYes', {timeout:5000});
 const [dl2] = await Promise.all([
   page.waitForEvent('download', {timeout:15000}),
-  page.evaluate(()=>proofDownloadSelected())
+  page.click('#pfConfirmYes')
 ]);
 const dl2Name = dl2.suggestedFilename();
 if(dl2Name !== saved.name) fails.push(`bulk (selected) download: got filename "${dl2Name}", expected "${saved.name}"`);
@@ -140,10 +144,32 @@ const csvName = dlCsv.suggestedFilename();
 if(!/^direct-payment-proofs-\d{4}-\d{2}-\d{2}\.csv$/.test(csvName)) fails.push('CSV export: unexpected filename '+csvName);
 else notes.push('CSV manifest export downloads correctly: '+csvName);
 
-/* ---------------- 3. clean up: remove the probe row and its file ---------------- */
+/* ---------------- 3. the ✕ delete button, through the real UI ----------------
+   This is the exact path the owner's own hands-on QA hit: a native confirm() dialog
+   freezes any scripted driver of the page. Click the real button, wait for the IN-PAGE
+   confirm box (not a native dialog — nothing to await via page.on('dialog') anymore),
+   click its Confirm button, and prove the row actually goes away. If this ever regresses
+   back to window.confirm(), this step hangs until its 15s timeout and fails loudly. */
+const delBtn = await page.$(`button[onclick="proofDel('${saved && saved.id}')"]`);
+if(!delBtn) fails.push('delete: could not find the ✕ button for the probe row');
+else{
+  await delBtn.click();
+  const box = await page.waitForSelector('#pfConfirmBox', {timeout:5000}).catch(()=>null);
+  if(!box) fails.push('delete: clicking ✕ did not open the in-page confirm box (did it regress to window.confirm?)');
+  else{
+    notes.push('delete: ✕ opens an in-page confirm box, not a native dialog — safe for automation');
+    await page.click('#pfConfirmYes');
+    await page.waitForTimeout(2500);
+    const stillThere = await page.evaluate(id=>(window.PRX&&PRX.rows||[]).some(x=>x.id===id), saved && saved.id);
+    if(stillThere) fails.push('delete: row is still in the list after confirming removal');
+    else notes.push('delete: row removed from the list after confirming through the in-page box');
+  }
+}
+
+/* ---------------- 4. clean up: remove the file from storage (soft-delete keeps the row's history, same as Expenses) ---------------- */
 const cleaned = await page.evaluate(async id=>{
   const c=window.fc();
-  const row=(window.PRX&&PRX.rows||[]).find(x=>x.id===id);
+  const row=(await c.from('proof_documents').select('file_path').eq('id',id).maybeSingle()).data;
   if(row&&row.file_path) await c.storage.from('payment-proofs').remove([row.file_path]);
   const out=await c.from('proof_documents').delete().eq('id',id).select();
   return (out&&out.data&&out.data.length)?'removed':'COULD NOT REMOVE';

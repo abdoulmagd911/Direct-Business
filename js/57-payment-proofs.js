@@ -40,6 +40,30 @@
   function client(){ try{return window.fc?fc():null;}catch(_){return null;} }
   function meNow(){ try{ return (window.__userName||(window.meName?meName():'')||''); }catch(_){ return ''; } }
 
+  /* In-page confirmation, not window.confirm(). A native confirm() blocks the whole tab on
+     its own modal loop, which freezes any scripted/automated driver of the page (Playwright
+     included, per the owner's own hands-on QA of this exact chapter) — so anything that
+     needs a "are you sure" here uses this instead. */
+  window.pfConfirm=function(msg,onYes){
+    try{
+      var old=document.getElementById('pfConfirmBox'); if(old)old.remove();
+      var ar=(typeof LANG!=='undefined'&&LANG==='ar');
+      var d=document.createElement('div'); d.id='pfConfirmBox';
+      d.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center';
+      d.innerHTML='<div style="background:var(--card,#fff);border-radius:12px;padding:20px 22px;max-width:360px;box-shadow:0 12px 40px rgba(0,0,0,.25)">'+
+        '<div style="font-size:13.5px;margin-bottom:16px;line-height:1.5">'+esc(msg)+'</div>'+
+        '<div style="display:flex;gap:8px;justify-content:'+(ar?'flex-start':'flex-end')+'">'+
+        '<button class="btn sm ghost" id="pfConfirmNo">'+fl('Cancel','إلغاء')+'</button>'+
+        '<button class="btn sm pri" id="pfConfirmYes">'+fl('Confirm','تأكيد')+'</button>'+
+        '</div></div>';
+      document.body.appendChild(d);
+      var close=function(){ try{d.remove();}catch(_){} };
+      document.getElementById('pfConfirmNo').onclick=close;
+      d.addEventListener('click',function(e){ if(e.target===d)close(); });
+      document.getElementById('pfConfirmYes').onclick=function(){ close(); onYes(); };
+    }catch(e){ console.warn('[proof] confirm',e); onYes(); }
+  };
+
   function load(cb){
     if(PRX.loading)return; PRX.loading=true;
     var c=client(); if(!c){PRX.loading=false;return;}
@@ -134,20 +158,18 @@
   };
   function selectedRows(){ return view_().filter(function(r){return r.file_path && PRX.sel[r.id];}); }
 
+  function downloadInSequence(rows){ var i=0; (function next(){ if(i>=rows.length)return; proofDownload(rows[i++].id); setTimeout(next,900); })(); }
+
   window.proofDownloadSelected=function(){try{
     var rows=selectedRows();
     if(!rows.length){alert(fl('Select at least one document with a file attached first.','اختر مستندًا واحدًا على الأقل يحتوي على ملف أولًا.'));return;}
-    if(!confirm(fl(rows.length+' documents will be downloaded, one at a time.',rows.length+' مستندًا سيتم تنزيلها واحدًا تلو الآخر.')))return;
-    var i=0;
-    (function next(){ if(i>=rows.length)return; proofDownload(rows[i++].id); setTimeout(next,900); })();
+    pfConfirm(fl(rows.length+' documents will be downloaded, one at a time.',rows.length+' مستندًا سيتم تنزيلها واحدًا تلو الآخر.'), function(){ downloadInSequence(rows); });
   }catch(e){console.warn('[proof] downloadSelected',e);}};
 
   window.proofDownloadAll=function(){try{
     var rows=view_().filter(function(r){return r.file_path;});
     if(!rows.length){alert(fl('None of the documents in view have a file attached yet.','لا يوجد ملف مرفق بأي مستند معروض.'));return;}
-    if(!confirm(fl(rows.length+' documents will be downloaded, one at a time.',rows.length+' مستندًا سيتم تنزيلها واحدًا تلو الآخر.')))return;
-    var i=0;
-    (function next(){ if(i>=rows.length)return; proofDownload(rows[i++].id); setTimeout(next,900); })();
+    pfConfirm(fl(rows.length+' documents will be downloaded, one at a time.',rows.length+' مستندًا سيتم تنزيلها واحدًا تلو الآخر.'), function(){ downloadInSequence(rows); });
   }catch(e){console.warn('[proof] downloadAll',e);}};
 
   /* The manifest is what makes this a real audit hand-off, not just a pile of files. */
@@ -199,14 +221,15 @@
   }catch(e){console.warn('[proof] save',e);}};
 
   window.proofDel=function(id){try{
-    if(!confirm(fl('Remove this document record? It stays in the history and disappears from the list.','حذف هذا المستند؟ يبقى في السجل ويختفي من القائمة.')))return;
-    var c=client(); if(!c)return;
-    c.from('proof_documents').update({deleted_at:new Date().toISOString()}).eq('id',id).select().then(function(r){
-      if(r.error){alert(r.error.message);return;}
-      if(!r.data||!r.data.length){alert(fl('Nothing was removed — your account was not allowed to.','لم يُحذف شيء — لا تملك الصلاحية.'));return;}
-      try{ if(window.__note)__note('finance',id,'payment proof removed',''); }catch(_){}
-      delete PRX.sel[id];
-      PRX.rows=null; load();
+    pfConfirm(fl('Remove this document record? It stays in the history and disappears from the list.','حذف هذا المستند؟ يبقى في السجل ويختفي من القائمة.'), function(){
+      var c=client(); if(!c)return;
+      c.from('proof_documents').update({deleted_at:new Date().toISOString()}).eq('id',id).select().then(function(r){
+        if(r.error){alert(r.error.message);return;}
+        if(!r.data||!r.data.length){alert(fl('Nothing was removed — your account was not allowed to.','لم يُحذف شيء — لا تملك الصلاحية.'));return;}
+        try{ if(window.__note)__note('finance',id,'payment proof removed',''); }catch(_){}
+        delete PRX.sel[id];
+        PRX.rows=null; load();
+      });
     });
   }catch(e){}};
 
