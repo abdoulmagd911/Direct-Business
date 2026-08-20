@@ -1204,7 +1204,7 @@ Outstanding 216,115 / 28 invoices, `deleted_at is null`, excluding `excluded` ro
 inherently manual by definition (an individual/personal booking Direct made as a team, with
 no corporate-client Direct Payments export to import it from, unlike the other four).
 **No existing row changed** — pure widen, migration `s3_complete_five_revenue_patterns`.
-Fingerprint re-checked identical after. Also settled, not built: **`cash_state`" from the
+Fingerprint re-checked identical after. Also settled, not built: **`cash_state` from the
 Aug-16 conversation is NOT a new column** — `integrity_status` (verified_paid / pending /
 excluded / credit_note) already is that field, already wired into every Received/Outstanding
 number. Adding a second column with the same meaning would have been the exact "raw JSONB vs
@@ -1224,3 +1224,57 @@ get recorded? Schema is ready either way — `record_type='b2c'` and `revenue_wa
 already both exist and were probe-tested (insert → correct auto-derived revenue/profit →
 rolled back, zero rows left behind). Confirmed while probing: `finance_invoices.client_group`
 is NOT NULL, so any future manual form needs a client/individual name field, not a blank.
+
+**Methodology correction, caught by the owner's own independent check:** the fingerprint
+above (917,040 / 28 invoices) came from a plain "every non-excluded row" SQL query, but the
+Performance tab the owner actually looks at only counts `integrity_status='verified_paid'`
+rows for Revenue/Cost/Profit/Received (709,475 / 566,650 / 142,325 / 708,975 at the time,
+19 invoices), with Outstanding computed separately over ALL live invoices, not just verified
+ones. Same underlying data, different filter — the SQL fingerprint wasn't wrong, it just
+didn't match what's on screen. Fixed for every fingerprint from here on: read the figures the
+same way the Overview tab itself computes them (`live()`/`verified()` + `finInPeriod`), not
+an independent re-derivation of the same logic.
+
+## 15b · S3 (part 2) — individual bookings, the manual form — DONE 2026-08-20
+
+Owner's call: build the manual form now (his words: "Finalize it and have it live and I will
+add them manually or share them with you to add them once I collect them") rather than wait
+on a Direct Payments B2C-export importer.
+
+Built `js/58-b2c-manual.js` — "Individual bookings" tab on Finance, gated the same as every
+other Finance-editing action (`canFinEdit`). Writes a real `finance_invoices` row
+(`revenue_way='b2c_manual'`, `record_type='b2c'`) through the same `finance_derive_fields`
+trigger every other pattern already uses — no second computation of revenue/profit anywhere
+in this file. Not the same door as the folded-away "New invoice" card: `record_type` is
+fixed to `'b2c'`, not a free choice, so this can't become a side entrance for a corporate
+invoice.
+
+Two real bugs found by the hands-on diagnostic (`scripts/qa/diag-b2c.mjs`) before this
+shipped, both fixed:
+1. **`year` is a GENERATED column**, derived from `invoice_date` — the very first live save
+   attempt failed outright ("cannot insert a non-DEFAULT value into column 'year'") because
+   the form set it explicitly. Removed; the column derives itself, same as the importer
+   already relies on.
+2. **A blank reference number would have silently undercounted Overview's "Invoices" tile**
+   — that tile counts DISTINCT `invoice_no` among verified rows, and multiple null references
+   collapse into a single entry instead of one each. A reference (`B2C-YYYYMMDD-xxxx`) is now
+   always generated when the field is left blank.
+
+Verified hands-on against the real backend, reading the figures the same way the Overview
+tab itself computes them (the 15a methodology fix, applied): a Paid individual booking of
+500 SAR / 100 cost moved Revenue +500, Cost +100, Profit +400, Received +500, Outstanding
++0, Invoices +1 — exactly and only those numbers — and removing it through the real ✕ button
+(in-page confirm, not `window.confirm()`) returned every figure to the exact baseline
+(708,975 / 566,650 / 142,325 / 708,975 / 216,115 / 19), matching the owner's own live check.
+
+One self-inflicted near-miss caught and fixed: the diagnostic's own first draft matched its
+probe row by a fixed name, so a leftover from an earlier interrupted debug run got confused
+for the fresh insert — the test deleted the OLD row and left the NEW one live in the real
+ledger for a few minutes before it was caught and hard-removed. Fixed by giving every probe
+run a unique, timestamped marker so it can never collide with a leftover again. Lesson for
+every future money-fingerprint probe in this project: match your own test's row by the id
+the insert actually returned, never by a name that could repeat.
+
+**Next:** S4 (transactions as real DB records, transaction-created-first / invoice-issued-
+later), then S5 (expense roll-up into invoice cost — record-only/audit-trail, never altering
+invoice cost/profit).
