@@ -41,7 +41,7 @@
       var old=document.getElementById('pfConfirmBox'); if(old)old.remove();
       var ar=(typeof LANG!=='undefined'&&LANG==='ar');
       var d=document.createElement('div'); d.id='pfConfirmBox';
-      d.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center';
+      d.style.cssText='position:fixed;inset:0;z-index:1000000000;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center'; // kept in step with js/57's real pfConfirm — see its comment
       d.innerHTML='<div style="background:var(--card,#fff);border-radius:12px;padding:20px 22px;max-width:360px;box-shadow:0 12px 40px rgba(0,0,0,.25)">'+
         '<div style="font-size:13.5px;margin-bottom:16px;line-height:1.5">'+esc(msg)+'</div>'+
         '<div style="display:flex;gap:8px;justify-content:'+(ar?'flex-start':'flex-end')+'">'+

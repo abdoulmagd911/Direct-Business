@@ -49,7 +49,14 @@
       var old=document.getElementById('pfConfirmBox'); if(old)old.remove();
       var ar=(typeof LANG!=='undefined'&&LANG==='ar');
       var d=document.createElement('div'); d.id='pfConfirmBox';
-      d.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center';
+      /* Found 2026-08-20: this box must out-rank EVERY modal it might be confirming inside,
+         not just its own page. The Finance invoice detail modal alone uses z-index:999999 —
+         at 99998 this box was rendering invisibly BEHIND it, so "Delete invoice" looked like
+         a dead button (no confirm box ever appeared, nothing clicked, no error) when it was
+         really working the whole time, just hidden. 1e9 clears every modal in the app with
+         wide headroom, while staying under the ~2.1e9 tier reserved for session/permission
+         system banners, which must still win if ever shown at the same time as this. */
+      d.style.cssText='position:fixed;inset:0;z-index:1000000000;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center';
       d.innerHTML='<div style="background:var(--card,#fff);border-radius:12px;padding:20px 22px;max-width:360px;box-shadow:0 12px 40px rgba(0,0,0,.25)">'+
         '<div style="font-size:13.5px;margin-bottom:16px;line-height:1.5">'+esc(msg)+'</div>'+
         '<div style="display:flex;gap:8px;justify-content:'+(ar?'flex-start':'flex-end')+'">'+
