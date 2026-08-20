@@ -148,7 +148,12 @@ function drawDeals(){const c=document.getElementById('dealrows');if(!c)return;c.
 function addDeal(){window._deals=window._deals||[];window._deals.push({airline:'',code:'',discount:'',notes:''});drawDeals();}
 function drawPrice(){const c=document.getElementById('pricerows');if(!c)return;c.innerHTML=(window._pricing||[]).map((p,i)=>`<div class="contact" style="grid-template-columns:1fr 1fr 1.4fr auto"><input placeholder="Service" value="${esc(p.service||'')}" oninput="window._pricing[${i}].service=this.value"><input placeholder="Markup / fee" value="${esc(p.value||'')}" oninput="window._pricing[${i}].value=this.value"><input placeholder="Notes" value="${esc(p.notes||'')}" oninput="window._pricing[${i}].notes=this.value"><span class="x" onclick="window._pricing.splice(${i},1);drawPrice()">✕</span></div>`).join('');}
 function addPrice(){window._pricing=window._pricing||[];window._pricing.push({service:'',value:'',notes:''});drawPrice();}
-function o_loadClient(id){if(!id)return;const b=getLead(id);const o=curOffer();if(!b||!o)return;o.client=b.name;const parts=[];if(b.pricing&&b.pricing.length)parts.push('Pricing — '+b.pricing.map(p=>p.service+' '+p.value).join('; '));if(b.airlineDeals&&b.airlineDeals.length)parts.push('Deals — '+b.airlineDeals.map(d=>d.airline+' '+(d.discount||'')+(d.code?(' ['+d.code+']'):'')).join('; '));if(parts.length)o.remarks=(o.remarks?o.remarks+' · ':'')+parts.join(' · ');save();offerEditor(document.getElementById('view'),o.id);}
+/* o_setClient (the header "Client" dropdown) sets both o.client AND o.linkedLeadId — the
+   real link back to the client's own record. This one only ever set o.client, so a proposal
+   picked here alone looked linked (right name showing) but never actually was: it wouldn't
+   show up on the client's own page/history. Found by the QA-admin audit, 2026-08-20 — now
+   links the same way, on top of the pricing/deals note this dropdown already adds. */
+function o_loadClient(id){if(!id)return;const b=getLead(id);const o=curOffer();if(!b||!o)return;o.client=b.name;o.linkedLeadId=id;const parts=[];if(b.pricing&&b.pricing.length)parts.push('Pricing — '+b.pricing.map(p=>p.service+' '+p.value).join('; '));if(b.airlineDeals&&b.airlineDeals.length)parts.push('Deals — '+b.airlineDeals.map(d=>d.airline+' '+(d.discount||'')+(d.code?(' ['+d.code+']'):'')).join('; '));if(parts.length)o.remarks=(o.remarks?o.remarks+' · ':'')+parts.join(' · ');save();offerEditor(document.getElementById('view'),o.id);}
 
 /* ----- Export (per page: summary or full details) ----- */
 function supSelectAll(cb){document.querySelectorAll('.supchk').forEach(c=>c.checked=cb.checked);}
