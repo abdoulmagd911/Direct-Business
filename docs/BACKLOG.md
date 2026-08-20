@@ -1496,6 +1496,52 @@ cold and after visiting Report Builder, checks the access panel is absent from F
 every Finance sub-page while still present on Settings, and re-confirms Report Builder's own
 export still works. Green.
 
+## 15j · CRM audit round 2 (Today/Leads/Clients/Proposals) as QA admin — 2026-08-20
+
+Same method, extended past Finance: click through as QA admin, compare against the
+Othman/manager session, verify everything live. Admin and manager see identical controls on
+Today/Leads/Clients/Proposals (the admin-only surface is Settings and Finance, not the CRM
+pages). Two real, owner-approved fixes shipped; two more flagged but deliberately left alone
+(owner's call — judgment questions for Abdulrahman, not unilateral fixes):
+
+1. **Today's top-bar Export menu had the exact same bug Finance had before its own fix** —
+   all four options ("CSV - summary", "CSV - full details", "Excel - summary", "Excel - full
+   details") silently downloaded the whole-database JSON backup, because `exportCurrent()`'s
+   per-page column map has no `'today'` entry. Owner's call: there's genuinely nothing
+   tabular on Today to export, so the fix is to hide the menu on that one page rather than
+   invent a CSV for it. New file `js/60-today-export-hide.js` toggles `.exp-wrap`'s
+   visibility on every render, keyed off `current==='today'` — the menu lives in the
+   persistent top bar outside `#view`, so nothing rebuilds it on a normal page render; it has
+   to be toggled explicitly, same pattern `js/56`'s access panel already uses. Verified live:
+   gone on Today, present and working on Leads/Clients/Proposals/Finance, toggles cleanly
+   both directions on repeat navigation.
+
+2. **Proposals had two client-picker dropdowns doing half the same job.** The header "Client"
+   field (`o_setClient`) correctly links a proposal to the client's own record
+   (`linkedLeadId`) as well as setting the display name. A second dropdown lower on the same
+   form — "Load a corporate client's negotiated deal & pricing" (`o_loadClient`, in
+   `js/core/core-05-records.js`) — only ever set the display name. Picking a client through
+   that one alone made the proposal *look* linked but it wasn't: it would never show up on
+   that client's own page (`offersFor()` filters by `linkedLeadId`). Owner's call: fix the
+   real bug (make it link the same way), leave the "should it warn about overwriting an
+   existing link" question for later. `o_loadClient` now sets `o.linkedLeadId=id` alongside
+   the existing name + pricing/deals note. Verified live end-to-end: picked a client through
+   *only* the pricing dropdown, confirmed `linkedLeadId` was set, then confirmed the new
+   proposal actually appears in `offersFor(client.id)` — the exact list the client's own
+   detail page reads from — not just a display-name match.
+
+Flagged, not touched (owner is taking both to Abdulrahman directly, not bugs to squash
+unilaterally): Leads has a third export button (funnel-aware, respects the active filter tab)
+on top of the two top-bar options — genuinely useful but no cue which of the three to use,
+and two look identical on screen. And Today's "🔴 2 failed syncs / 🔌 2 integrations need
+attention" alert strip is entirely synthetic demo data (hardcoded so two integrations always
+show failed, unrelated to anything real) — reads exactly like a live operational problem with
+no way to tell it's fake from the screen.
+
+Regression script: `scripts/qa/verify-audit-round2-fixes.mjs` — confirms Today's Export menu
+hidden (and stays hidden on repeat visits) while every other page's stays working, and proves
+the Proposals fix with the real client-page link check, not just the field value. Green.
+
 ## S3–S5, the full series — done, 2026-08-20
 
 Started from the wallet-top-up scope conversation, ran through a real live bug the owner
