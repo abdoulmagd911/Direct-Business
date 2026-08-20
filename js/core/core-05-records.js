@@ -178,8 +178,15 @@ function exportCurrent(scope){
     bookings:{rows:DB.bookings||[],list:null},
     invoices:{rows:DB.invoices||[],list:null},
     tickets:{rows:(typeof allTickets==='function'?allTickets():[]),list:null},
-    projects:{rows:(DB.projects||[]),list:null}};
+    projects:{rows:(DB.projects||[]),list:null},
+    /* 'finance' was missing here entirely (found 2026-08-20) — every one of the four labeled
+       export buttons fell through to exportData(), the same full JSON backup as the plain
+       "Full backup (JSON)" button. FIN._csvRows is the currently-filtered Ledger rows (set
+       by rLedger() — the same source the working finCSV() button already exports from), so
+       Summary/Full now differ in column count and CSV/Excel now differ in actual format. */
+    finance:{rows:(typeof FIN!=='undefined'&&FIN._csvRows)||[],list:['invoice_no','invoice_date','client_group','service_type','total_incl_vat_sar','revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','integrity_status']}};
   const m=M[cur];if(!m){exportData();return;}
+  if(cur==='finance'&&!m.rows.length){alert((typeof LANG!=='undefined'&&LANG==='ar')?'لا صفوف للتصدير — افتح تبويب دفتر القيود أولًا':'No rows to export — open the Ledger tab first');return;}
   let rows=m.rows.slice();
   const sel=[...document.querySelectorAll('.supchk:checked')].map(c=>c.value);
   if(sel.length&&(cur==='airlines'||cur==='vendors'))rows=rows.filter(r=>sel.indexOf(r.id)>=0);
