@@ -1429,6 +1429,23 @@ finished panel need to share one CSS class, since `outerHTML` replaces the marke
 entirely — a check that only looks for the marker's class right after the swap wrongly
 concludes the panel never rendered, when it actually worked the whole time.
 
+## 15h · Last native confirm() in Finance closed — 2026-08-20
+
+The owner's own hands-on re-verification of S4/S5 confirmed everything held (export fix
+genuinely fixed, S4 duplicate-skip confirmed, S5 roll-up confirmed) — but cleaning up his own
+S5 test expense hit the Expenses page's row ✕ button, still on `window.confirm()`, and froze
+the tab exactly like the three already-fixed buttons before their fixes. `expDel()` and
+`expDownloadAll()` (`js/45-expenses.js`) now both route through the same shared `pfConfirm`
+box the other three already use. Verified hands-on: real ✕ click opens the in-page box with
+a visible Confirm button, confirming removes the row, and `expDownloadAll`'s bulk-download
+confirm also uses the box and a real download fires after confirming. The owner's own
+leftover test row ("QA S5 Verify - Translation service cost", 100 SAR, linked to
+INV-2026-1380) removed directly — it never touched any Finance total or invoice cost/profit,
+confirmed before removal.
+
+**Every native `confirm()` in Finance is now accounted for** — Payment proofs, Individual
+bookings, Ledger delete, and Expenses all share the one in-page box.
+
 ## S3–S5, the full series — done, 2026-08-20
 
 Started from the wallet-top-up scope conversation, ran through a real live bug the owner
