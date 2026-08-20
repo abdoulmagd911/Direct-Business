@@ -61,8 +61,8 @@ Status `Fully Applied` · Payment by (person) · created timestamp.
 | DPIN-x / TTIN-x (ZATCA) | `zatca_dpin` |
 | Transaction receipt ref | `transaction_ref` (added 2026-08-12) |
 | Admin page uuid | `direct_uuid` (added 2026-08-12) |
-| Provider/3rd-party fee lines | aggregated into `cost_sar` |
-| Service-fee lines (pre-VAT) | ≈ `profit_sar` (Direct's income) |
+| Provider/3rd-party fee lines | aggregated into `cost_sar` — exact rule: sum of item lines where `is_taxable=false` (Round 4) |
+| Service-fee lines (pre-VAT) | ≈ `profit_sar` (Direct's income) — exact rule: sum of item lines where `is_taxable=true`, using `total_after_discount` (excl. VAT) (Round 4) |
 | Line VAT (15% on service fees) | `vat_sar` (added 2026-08-12) |
 | Total after VAT | `total_incl_vat_sar` |
 | Payment receipts applied | `amount_received_sar` / `amount_remaining_sar` |
@@ -156,3 +156,62 @@ the model. **Corrections to the section above:**
    customer type, Prepaid/Postpaid/Tender + billing cycle, CR/VAT ids, contact, credit
    limit/terms, tender amounts with expected COGS/GP. This seeded the real-data world
    (batch `real-2026-08-12`) together with the 18 per-customer invoice exports.
+
+## ROUND 4 — exact revenue formula, consolidation verified at scale, receipts model (2026-08-20)
+
+Verified by reading Direct Payments' live JSON model directly — every admin page ships its
+full row data in a `data-page` attribute (the tech shape Round 2 already noted), so this reads
+the real backend fields, not a rendered table. **No client names below — company identities
+stay database-only, per the standing public-repo rule.**
+
+1. **The fee-pair model is confirmed with exact field names, and gives us a precise formula —
+   not just "≈".**
+   - `is_taxable` (bool) is the discriminator on every item line. `total_after_discount` is
+     the line's amount **excluding VAT**; `tax_amount` is the VAT on that line (15% only on
+     taxable lines); `total_incl_vat` is the transaction/invoice header total.
+   - **REVENUE = Σ item lines where `is_taxable=true`, using `total_after_discount`.**
+   - **PASS-THROUGH COST = Σ item lines where `is_taxable=false`.**
+   - **GROSS BILLED = `total_incl_vat`. Never call this figure revenue** — it's cost + fee + VAT.
+   - Proof pair (real transaction, name withheld): total `303,255.11` SAR, exactly two items —
+     a non-taxable line `213,409.99` (no VAT) and a taxable line `78,126.19` excl. VAT +
+     `11,718.93` VAT = `89,845.12` incl. VAT. `213,409.99 + 89,845.12 = 303,255.11` exactly.
+2. **Consolidation (Round 2 point 1) is real and verified at scale, not just in structure.**
+   `consolidated_proforma_id` on a transaction holds the tax invoice number it rolled into.
+   One proof: a single invoice consolidating **8 transactions summing to exactly 75,578.00
+   SAR**, which equals that client's own `tender_amount` on file. Checked across 28 clients:
+   invoice-linked transactions total **8,791,497 SAR gross**, matching each client's invoice
+   list to the riyal, with all 61 parent invoice ids resolving cleanly. This is the same
+   transaction→invoice relationship our `transaction_ref` column already models (Round 2/3) —
+   now confirmed correct against real, large-scale data, not just the one proof pair.
+3. **`zatca_invoice_number` is the field behind the DPIN** (e.g. `DPIN-315074`) — confirmed as
+   the exact same DPIN shown to users in the Corporate B2B Admin Panel. One field, consistent
+   across both systems; nothing separate to reconcile.
+4. **Payment receipts attach at the INVOICE level, never per-service.** `payment_receipts`
+   links to invoices through a pivot that carries the *allocated amount* — a receipt can be
+   split across several invoices, and an invoice can be paid by several receipts (partial
+   payment supported both ways). There is no per-line/per-service payment record at all. This
+   matters for how our `amount_received_sar` / `amount_remaining_sar` should ever be modeled
+   from a real receipts import: invoice-level allocation, not something derivable per item
+   line.
+5. **Real aggregate numbers, verified on the fee basis** (excluding Takamol/Techtic Support and
+   wallet top-ups, per the standing exclusion rule): gross billed **2,433,977 SAR**,
+   pass-through **2,136,268 SAR**, **REVENUE 258,878 SAR** (243,158 already invoiced + 15,719
+   still pipeline/transaction-only), blended take rate **10.6%**. By service (revenue / take
+   rate): Course 78,127 (18.5%) · no-product 74,445 (9.9%) · Support 52,100 (83.7%) · Other
+   Income 32,500 (87%) · Visa 11,983 (9%) · Packages 6,143 (5.5%) · Hotels 2,363 (2.2%) ·
+   **Flights 1,217 (0.2%)** — this last one is the real number behind the "thin service-fee
+   margin on travel" pattern already noted above (Section 1), now with an exact figure.
+6. **A data-quality issue found, and ruled out as a financial-accuracy risk.** 124 duplicate
+   records exist in `expenses[]`. They do **not** affect revenue or profit, because cost is
+   derived from the non-taxable **item** line (point 1 above), never from `expenses[]` — this
+   is consistent with, and a real-data confirmation of, the standing rule that expenses are
+   record-only and never move a stored cost or profit figure (see `js/45-expenses.js`'s own
+   three rules, and S5's roll-up-never-merges design). Stays open as an audit-trail
+   data-quality item for Finance to clean up on the Direct Payments side — not a bug in
+   anything this app computes.
+
+**Not yet changed:** this round is docs only. `finance_derive_fields` (the trigger that
+actually computes `revenue_sar`/`cost_sar`/`profit_sar` in our own tables) still runs on
+whatever the importer hands it — it has not been touched to enforce the exact `is_taxable`
+formula above. That's implementation work for when the real-data importer is next revisited,
+not something to change ahead of the Finance page spec.
