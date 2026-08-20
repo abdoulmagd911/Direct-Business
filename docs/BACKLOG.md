@@ -1366,6 +1366,42 @@ dialog can block a CDP-driven session the same way a native `confirm()` does), a
 the owner's own test instrumentation (he mentioned hooking `URL.createObjectURL` to compare
 export output) was still attached when the freeze happened.
 
-**Next:** S4 (transactions as real DB records, transaction-created-first / invoice-issued-
-later), then S5 (expense roll-up into invoice cost — record-only/audit-trail, never altering
+## 15f · S4 — cross-import transaction/invoice twin resolution — DONE 2026-08-20
+
+Four of the five revenue patterns already exist as individual `finance_invoices` rows —
+"transaction-created-first, invoice-issued-later" isn't a rebuild, it's about a real gap in
+the existing lifecycle. `parseDP()`'s twin-pairing (a numbered invoice matched to its
+unnumbered transaction twin, same customer+total) only works WITHIN one imported file. The
+normal way this app gets used: import an export today (transaction still pending, no tax
+invoice yet), import a NEWER export weeks later where that transaction now has its invoice.
+The twin at that point is a row ALREADY IN THE DATABASE from the first import — the existing
+pairing never sees it, so both rows would sit in the ledger forever, double-counting the same
+money.
+
+Fixed in `runDP()` (`js/41-money-in.js`): before building the import preview, every live
+pending `transaction` row is looked up by the same key the intra-file pairing already trusts
+(client + total). A matching incoming invoice gets `transaction_ref` linked to it (same
+convention as the intra-file case) and the old row is queued to retire. `finCommit()`
+(`js/16`) is wrapped — same additive pattern this file already uses for `finParse` — to
+soft-delete the queued rows once the import lands. The preview now says up front how many
+transactions are about to be superseded, before anything is confirmed.
+
+Verified hands-on against the real backend with the actual two-stage scenario: insert a
+pending transaction (as import #1 would leave it), then run a real CSV through the real
+preview→commit pipeline for the same amount now invoiced (as import #2 would show it).
+Preview correctly flags 1 superseded row; after commit the old transaction is soft-deleted,
+the new invoice carries `transaction_ref` back to it, and the Invoices count moves by exactly
++1, not +2.
+
+**Found along the way, not a bug in this sitting:** confirmed against 10 real existing
+invoice rows that `finance_derive_fields` (the DB trigger) has always enforced
+`revenue_sar = total_incl_vat_sar - wallet_portion_sar` for every row. "Revenue" in this app
+has meant **gross billed** (cost + fee) the whole time, not the fee-only pre-VAT figure
+`parseDP()` computes client-side and the trigger silently overwrites. Long-standing,
+pre-existing behavior — `profit_sar` is where the true margin lives, matching
+`docs/DIRECT_SYSTEMS_MAP.md`'s own distinction ("Gross billed = cost + service fee. Direct's
+real revenue is the service fees, not the gross"). Not touched here; flagged because a wrong
+assumption about it nearly shipped a passing-for-the-wrong-reason probe.
+
+**Next:** S5 (expense roll-up into invoice cost — record-only/audit-trail, never altering
 invoice cost/profit).
