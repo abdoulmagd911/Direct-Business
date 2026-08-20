@@ -490,13 +490,21 @@ window.finRow=function(id){
   ov.onclick=function(e){if(e.target===ov)ov.remove();};
   document.body.appendChild(ov);
 };
+/* In-page confirm, not window.confirm() \u2014 a native dialog blocks the whole tab on its own
+   modal loop, which froze the owner's own hands-on QA of this exact button (same failure the
+   Payment proofs chapter had before js/57 introduced pfConfirm; this reuses that same box). */
+function finConfirm(msg,onYes){
+  try{ if(window.pfConfirm) return pfConfirm(msg,onYes); }catch(_){}
+  if(confirm(msg))onYes(); // last-resort fallback if js/57 hasn't loaded for some reason
+}
 window.finDelInv=function(invNo){
   if(!canFinEdit())return;
   var ar=isArF();
-  if(!confirm(ar?('\u062d\u0630\u0641 \u0643\u0644 \u0628\u0646\u0648\u062f \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 '+invNo+'\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639.'):('Soft-delete all lines of invoice '+invNo+'? It disappears from totals but stays recoverable.')))return;
-  fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('invoice_no',invNo).is('deleted_at',null).then(function(r){
-    if(r.error){alert('Could not delete: '+r.error.message);return;}
-    finCloseModal(); FIN.rows=null;finLoad();
+  finConfirm(ar?('\u062d\u0630\u0641 \u0643\u0644 \u0628\u0646\u0648\u062f \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 '+invNo+'\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639.'):('Soft-delete all lines of invoice '+invNo+'? It disappears from totals but stays recoverable.'), function(){
+    fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('invoice_no',invNo).is('deleted_at',null).then(function(r){
+      if(r.error){alert('Could not delete: '+r.error.message);return;}
+      finCloseModal(); FIN.rows=null;finLoad();
+    });
   });
 };
 window.finRestoreInv=function(invNo){
@@ -508,10 +516,11 @@ window.finRestoreInv=function(invNo){
 window.finCloseModal=function(){var m=document.getElementById('finModal');if(m)m.remove();};
 window.finDel=function(id){
   if(!canFinEdit())return;
-  if(!confirm('Soft-delete this invoice? It disappears from all totals but stays recoverable under "Recently deleted".'))return;
-  fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('id',id).then(function(r){
-    if(r.error){alert('Could not delete: '+r.error.message);return;}
-    finCloseModal(); FIN.rows=null;finLoad();
+  finConfirm('Soft-delete this invoice? It disappears from all totals but stays recoverable under "Recently deleted".', function(){
+    fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('id',id).then(function(r){
+      if(r.error){alert('Could not delete: '+r.error.message);return;}
+      finCloseModal(); FIN.rows=null;finLoad();
+    });
   });
 };
 window.finRestore=function(id){
