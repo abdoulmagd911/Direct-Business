@@ -143,7 +143,7 @@
     });
   }
 
-  function preview(rows,skipped){
+  function preview(rows,skipped,supCount){
     var paid=0,pend=0,cred=0,comm=0,tx=0,tot=0,wal=_walletSkipped;
     rows.forEach(function(r){
       if(r.integrity_status==='verified_paid'){paid++;tot+=r.total_incl_vat_sar;}
@@ -163,6 +163,7 @@
       (wal?' · '+fl('wallet top-ups skipped (not stored)','تم تجاوز تعبئة المحفظة (لا تُخزن)')+' <b>'+wal+'</b>':'')+
       (_verifSkipped?' · '+fl('verification services skipped (accounted for elsewhere)','تم تجاوز خدمات التوثيق (تُحتسب في نظام آخر)')+' <b>'+_verifSkipped+'</b>':'')+
       (skipped?('<br>↩ '+fl('Skipped (already in the ledger):','تم تجاوزها (موجودة مسبقًا):')+' <b>'+skipped+'</b>'):'')+
+      (supCount?('<br>🔗 '+fl('Already-recorded transactions that now have their tax invoice — the old pending transaction will retire, this invoice replaces it:','معاملات مسجّلة سابقًا صدرت لها الآن فاتورة ضريبية — سيتقاعد سجل المعاملة المعلّق القديم وتحل محله هذه الفاتورة:')+' <b>'+supCount+'</b>'):'')+
       '</div>'+
       (rows.length?('<button class="btn pri sm" style="margin-top:8px" onclick="finCommit()">'+fl('Confirm import of '+rows.length+' rows','تأكيد استيراد '+rows.length+' صف')+'</button>'):'');
     document.getElementById('finImpOut').innerHTML=h;
@@ -173,13 +174,55 @@
     try{
       var parsed=parseDP(rows2d);
       var existing={}; ((window.FIN&&FIN.rows)||[]).forEach(function(r){existing[r.invoice_no]=1;});
+      /* Cross-import twin resolution (S4, 2026-08-20). parseDP()'s twin pairing above only
+         matches a numbered invoice to its unnumbered transaction WITHIN one file — but the
+         normal way this app gets used is: import an export today (a transaction still
+         pending, no tax invoice yet), then import a NEWER export weeks later where that
+         same transaction now HAS its tax invoice. At that point the twin is a row ALREADY
+         IN THE DATABASE from the first import, not another row in this file, so the pairing
+         above never sees it — and without this step both rows would sit in the ledger and
+         double-count the same money forever: once as the old pending transaction, once as
+         the new invoice. Matched on the exact same key the intra-file pairing already uses
+         (client + total) — same trust level already approved for that pairing. */
+      var openTx={};
+      ((window.FIN&&FIN.rows)||[]).forEach(function(r){
+        if(r.revenue_way==='transaction'&&!r.deleted_at&&r.integrity_status==='pending'){
+          openTx[r.client_group+'|'+(+r.total_incl_vat_sar).toFixed(2)]=r;
+        }
+      });
+      var supersede=[]; // old pending-transaction row ids to retire once the new rows commit
       var fresh=[],skipped=0;
-      toRows(parsed).forEach(function(r){ if(existing[r.invoice_no])skipped++; else fresh.push(r); });
-      preview(fresh,skipped);
+      toRows(parsed).forEach(function(r){
+        if(existing[r.invoice_no]){skipped++;return;}
+        if(r.revenue_way==='invoice'&&!r.transaction_ref){
+          var tw=openTx[r.client_group+'|'+(+r.total_incl_vat_sar).toFixed(2)];
+          if(tw){ r.transaction_ref=tw.invoice_no; supersede.push(tw.id); }
+        }
+        fresh.push(r);
+      });
+      FIN._supersede=supersede.length?supersede:null;
+      preview(fresh,skipped,supersede.length);
     }catch(e){
       document.getElementById('finImpOut').innerHTML='<div style="color:#D92D20;font-size:13px">'+fl('Could not read this export: ','تعذر قراءة الملف: ')+esc64(e.message)+'</div>';
     }
   }
+
+  /* finCommit() (js/16) only inserts the new rows — it knows nothing about superseded
+     transactions. Wrap it, same additive pattern this file already uses for finParse and
+     renderFinance: soft-delete the matched old pending-transaction rows once the new ones
+     are in, so the ledger never double-counts a transaction that has since been invoiced. */
+  var _fcm=window.finCommit;
+  window.finCommit=function(){
+    var sup=FIN._supersede; FIN._supersede=null;
+    var out=_fcm.apply(this,arguments);
+    if(sup&&sup.length){
+      fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).in('id',sup).then(function(r){
+        if(r&&r.error){ console.warn('[v65] could not retire superseded transactions',r.error); return; }
+        FIN.rows=null; finLoad();
+      });
+    }
+    return out;
+  };
 
   function readXlsx(f,cb){
     function go(){ var rd=new FileReader();
