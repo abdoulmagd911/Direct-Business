@@ -154,13 +154,20 @@ function o_loadClient(id){if(!id)return;const b=getLead(id);const o=curOffer();i
 function supSelectAll(cb){document.querySelectorAll('.supchk').forEach(c=>c.checked=cb.checked);}
 function csvCell(v){if(v==null)v='';if(Array.isArray(v))v=v.map(x=>x&&typeof x==='object'?Object.values(x).filter(Boolean).join(' '):x).join(' | ');else if(v&&typeof v==='object')v=Object.values(v).filter(Boolean).join(' ');return '"'+String(v).replace(/"/g,'""')+'"';}
 function allKeys(rows){const s=[];rows.forEach(r=>Object.keys(r).forEach(k=>{if(k!=='id'&&s.indexOf(k)<0)s.push(k);}));return s;}
-function downloadCSV(name,rows,fields){const head=fields.map(csvCell).join(',');const body=rows.map(r=>fields.map(f=>csvCell(r[f])).join(',')).join('\n');const blob=new Blob(['﻿'+head+'\n'+body],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();}
+/* Neither export helper ever revoked its blob URL (found 2026-08-20 while chasing a reported
+   export freeze — never reproduced, even at 3000 rows with nested JSONB, but an object URL
+   held open for the whole page session is real, avoidable waste on a page people leave open
+   all day, so it's fixed regardless). The URL is revoked a moment after the click, same
+   pattern already used elsewhere in this app (js/57's proofDownload) — enough delay for the
+   browser to have started the download from it. */
+function downloadCSV(name,rows,fields){const head=fields.map(csvCell).join(',');const body=rows.map(r=>fields.map(f=>csvCell(r[f])).join(',')).join('\n');const blob=new Blob(['﻿'+head+'\n'+body],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
 function downloadXLS(name,rows,fields){
  const eh=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
  const cv=v=>{if(Array.isArray(v))v=v.map(x=>x&&typeof x==='object'?Object.values(x).filter(Boolean).join(' '):x).join(' | ');else if(v&&typeof v==='object')v=Object.values(v).filter(Boolean).join(' ');return '<td>'+eh(v)+'</td>';};
  const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table border="1"><tr>'+fields.map(fd=>'<th>'+eh(fd)+'</th>').join('')+'</tr>'+rows.map(r=>'<tr>'+fields.map(fd=>cv(r[fd])).join('')+'</tr>').join('')+'</table></body></html>';
  const blob=new Blob(['﻿'+html],{type:'application/vnd.ms-excel;charset=utf-8'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
+ setTimeout(()=>URL.revokeObjectURL(a.href),1500);
 }
 function exportCurrent(scope){
   const xls=scope==='xlsList'||scope==='xlsFull';

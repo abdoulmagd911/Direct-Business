@@ -62,11 +62,24 @@ else{
   await page.evaluate(()=>{ finGo('ledger'); });
   await page.waitForTimeout(1500);
 
-  /* ---------------- finDelInv, through the real function, same confirm box ---------------- */
-  await page.evaluate(no=>finDelInv(no), probeNo);
+  /* ---------------- open the REAL invoice detail modal, click the REAL button ----------------
+     The first version of this probe called finDelInv() directly via page.evaluate(), which
+     never actually created the invoice modal (`ov`, z-index:999999) — so it never caught that
+     pfConfirmBox (z-index:99998 at the time) was rendering INVISIBLY BEHIND that modal. The
+     owner's own hands-on click on the real button found that; this now reproduces the exact
+     real flow: click the row to open the modal, click the actual button inside it. */
+  await page.evaluate(no=>{
+    const r=(window.FIN.rows||[]).find(x=>x.invoice_no===no); if(r) finRow(r.id);
+  }, probeNo);
+  await page.waitForTimeout(1200);
+  const delBtn = await page.$(`button[onclick^="finDelInv("]`);
+  if(!delBtn) fails.push('could not find the real "Delete invoice" button inside the opened modal');
+  else await delBtn.click();
   const box = await page.waitForSelector('#pfConfirmBox', {timeout:5000}).catch(()=>null);
   if(!box) fails.push('finDelInv: did not open the in-page confirm box (did it regress to window.confirm?)');
   else{
+    const visible = await page.isVisible('#pfConfirmYes').catch(()=>false);
+    if(!visible) fails.push('finDelInv: the confirm box exists in the DOM but its Confirm button is not visible/clickable — likely hidden behind another overlay (z-index)');
     notes.push('finDelInv: opens the in-page confirm box, not a native dialog — safe for automation');
     await page.click('#pfConfirmYes');
     await page.waitForTimeout(2500);
