@@ -1307,9 +1307,34 @@ a pure UI/classifier fix; confirmed zero existing rows anywhere in `finance_invo
 `finance_expenses` carried a wallet-labeled service before it shipped, so nothing needed
 cleaning up.
 
+## 15d · Finance export buttons + Ledger delete confirm — DONE 2026-08-20
+
+**Export.** `exportCurrent()` (`core-05-records.js`) had no `'finance'` entry in its per-page
+column map, so all four labeled buttons ("CSV - summary", "CSV - full details", both Excel
+buttons) fell through to `exportData()` — the full app-state JSON backup, same file as the
+"Full backup (JSON)" button, just mislabeled. Found by the owner round-tripping real exports
+(hooked `URL.createObjectURL`, compared blob content — same 752,714-byte JSON every click).
+Fixed by adding a `finance` entry reading `FIN._csvRows` (the currently-filtered Ledger rows
+— same source the already-working `finCSV()` button uses) with a curated summary column
+list; the existing generic CSV/Excel logic every other page uses now covers Finance too.
+Verified hands-on: all four buttons produce their own real format (CSV, HTML-table `.xls`,
+never JSON), full genuinely has more columns than summary (20 vs 11), Finance figures
+untouched. One unrelated stray test row (`TEST-QA-0002`, 115 SAR — the owner's own manual
+CSV-import round-trip test) was live in the ledger during this check; owner confirmed it on
+his end too, cleaned up, verified back to exact baseline (708,975/566,650/142,325/708,975/
+216,115/19).
+
+**Ledger delete.** The invoice detail modal's "Delete invoice" button (`finDelInv`) and the
+row-level `finDel` both used `window.confirm()` — the same failure mode Payment proofs had
+before `js/57`'s `pfConfirm`. The owner's own hands-on QA froze on it (had to close/reopen
+the tab; the delete never went through). Both now route through a shared `finConfirm()`
+helper that reuses `pfConfirm` when loaded. Verified hands-on: the in-page box opens, not a
+native dialog; deleting drops Revenue/Profit by the exact invoice amount; restoring returns
+to the exact with-row state; cleanup returns to the exact original baseline. Caught and fixed
+a bug in the diagnostic itself along the way: a direct DB insert/delete bypasses the app, so
+`window.FIN.rows` stays stale until `finLoad()` is forced — worth remembering for any future
+probe that manipulates `finance_invoices` directly rather than through the UI.
+
 **Next:** S4 (transactions as real DB records, transaction-created-first / invoice-issued-
 later), then S5 (expense roll-up into invoice cost — record-only/audit-trail, never altering
-invoice cost/profit). Also queued: the Finance export-format bug the owner found in parallel
-— "CSV - summary", "CSV - full details" and the Excel-labeled buttons all download the exact
-same JSON backup file instead of their own format (verified by comparing blob content across
-buttons; same 752,714-byte JSON every time). Needs its own fingerprint-fix-verify pass.
+invoice cost/profit).
