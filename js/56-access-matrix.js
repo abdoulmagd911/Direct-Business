@@ -145,8 +145,14 @@
   function paint(){
     try{
       if(!amAdmin()) return;
+      /* Only on the Settings page (where "Team & Access" lives) — was a text-content guess
+         (/team|access/i against the whole page) until 2026-08-20, which fired wrongly on any
+         page whose own copy happened to contain the word "team" or "access" (e.g. Finance ›
+         Performance has an unrelated note about "the commercial team"), leaking this panel —
+         and its live database-writing Save buttons — onto a page it has nothing to do with.
+         `current` is the same page identity every other view branch in the app checks. */
+      if(typeof current==='undefined'||current!=='settings') return;
       var view=document.getElementById('view'); if(!view) return;
-      if(!/team|access|الصلاحيات/i.test(view.textContent||'')) return;   // only on Team & Access
       var host=document.getElementById('axHost');
       if(!host){
         host=document.createElement('div'); host.id='axHost'; host.style.cssText='margin-top:16px';

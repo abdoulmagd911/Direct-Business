@@ -130,7 +130,12 @@ window.finSetTargets=function(y){try{
     render();
   });
 }catch(e){console.warn('finSetTargets',e);}};
-window.finCSV=function(){
+/* Ledger's own row-level export. Named finLedgerCSV (not finCSV) on purpose — this file also
+   defines the Report Builder's export further down, and until 2026-08-20 both were called
+   window.finCSV, so the second definition silently replaced this one and the Ledger's own
+   "Excel (CSV)" button either did nothing or downloaded the Report Builder's grouped summary
+   instead of the invoice rows on screen. Two different jobs, two different names. */
+window.finLedgerCSV=function(){
   var L=FIN._csvRows||[]; if(!L.length){alert(isArF()?'لا صفوف للتصدير':'No rows to export');return;}
   var cols=['invoice_date','invoice_no','zatca_dpin','client_group','service_type','products','origin','proposal_ref','month','quarter','year','total_incl_vat_sar','revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','integrity_status'];
   var _hdr=cols.map(function(c){return c==='total_incl_vat_sar'?'invoice_total_sar':c;});
@@ -388,7 +393,7 @@ function rLedger(){
   h+='<select style="'+SS+'" onchange="finF(\'status\',this.value)"><option value="verified_paid" '+(FIN.f.status==='verified_paid'?'selected':'')+'>'+(isArF()?'\u0645\u062f\u0642\u0642 \u0645\u062f\u0641\u0648\u0639':'Verified paid')+'</option><option value="all" '+(FIN.f.status==='all'?'selected':'')+'>'+(isArF()?'\u0643\u0644 \u0627\u0644\u062d\u0627\u0644\u0627\u062a':'All statuses')+'</option><option value="excluded" '+(FIN.f.status==='excluded'?'selected':'')+'>'+(isArF()?'\u0645\u0633\u062a\u0628\u0639\u062f':'Excluded')+'</option><option value="credit_note" '+(FIN.f.status==='credit_note'?'selected':'')+'>'+(isArF()?'\u0625\u0634\u0639\u0627\u0631\u0627\u062a \u062f\u0627\u0626\u0646\u0629':'Credit notes')+'</option></select>';
   h+='<select style="'+SS+'" onchange="finF(\'origin\',this.value)"><option value="all">'+_lh('All origins','كل الأنواع')+'</option><option value="booking" '+(FIN.f.origin==='booking'?'selected':'')+'>'+_lh('Bookings','حجوزات')+'</option><option value="project" '+(FIN.f.origin==='project'?'selected':'')+'>'+_lh('Projects (with proposal)','مشاريع (بعرض)')+'</option></select>';
   h+='<span style="display:inline-flex;border:1px solid var(--line-2,#e6e8ec);border-radius:9px;overflow:hidden">'+'<button class="btn sm" style="border:0;border-radius:0;'+(byInv?'background:#303848;color:#fff':'')+'" onclick="FIN.lview=\'invoice\';render()">'+_lh('By invoice','حسب الفاتورة')+'</button>'+'<button class="btn sm" style="border:0;border-radius:0;'+(!byInv?'background:#303848;color:#fff':'')+'" onclick="FIN.lview=\'line\';render()">'+_lh('By service line','حسب بند الخدمة')+'</button></span>';
-  h+='<button class="btn sm" onclick="finCSV()">⬇ '+_lh('Excel (CSV)','إكسل (CSV)')+'</button>';
+  h+='<button class="btn sm" onclick="finLedgerCSV()">⬇ '+_lh('Excel (CSV)','إكسل (CSV)')+'</button>';
   if(canFinEdit())h+='<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" '+(FIN.showDeleted?'checked':'')+' onchange="FIN.showDeleted=this.checked;render()">'+(isArF()?'\u0627\u0644\u0645\u062d\u0630\u0648\u0641 \u0645\u0624\u062e\u0631\u064b\u0627':'Recently deleted')+'</label>';
   h+='<span style="margin-left:auto;font-size:12px">'+(isArF()?('<b>'+D.length+'</b> \u0635\u0641 \u00b7 \u0625\u064a\u0631\u0627\u062f <b>'+money0(tr)+'</b> \u00b7 \u0631\u0628\u062d <b>'+money0(tp)+'</b>'):('<b>'+D.length+'</b> '+(byInv?'invoices':'rows')+' \u00b7 rev <b>'+money0(tr)+'</b> \u00b7 profit <b>'+money0(tp)+'</b>'))+'</span></div>';
   
