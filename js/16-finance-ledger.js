@@ -187,7 +187,14 @@ var SVC_CATALOG=[
   ['Insurance','التأمين'],['Activities / tours','الأنشطة والجولات'],['Tours','الأنشطة والجولات'],
   ['MICE / events','الفعاليات والمؤتمرات'],['Events','الفعاليات والمؤتمرات'],['Packages','الباقات'],
   ['Umrah','العمرة'],['Hajj','الحج'],['Courses','الدورات'],['Training','التدريب'],
-  ['Wallet top-up','شحن المحفظة'],['Support Services','خدمات الدعم'],['eSIM','شرائح eSIM'],
+  /* 'Wallet top-up' removed from here on purpose, 2026-08-20. This list feeds EVERY service
+     dropdown in the app (Expenses, the Individual-bookings form, any future one) — leaving
+     it selectable let someone label a real revenue-bearing Finance row "Wallet top-up",
+     which is exactly what the owner's explicit rule forbids: no wallet-top-up detail in
+     Finance reporting, ever, in any form. Wallet top-ups are tracked ONLY as documents in
+     the Payment proofs chapter (js/57), which never touches a Finance total. Caught live by
+     the owner's own hands-on testing of the Individual-bookings form. */
+  ['Support Services','خدمات الدعم'],['eSIM','شرائح eSIM'],
   ['Study abroad','الدراسة بالخارج'],['Furnished apartments','الشقق المفروشة'],
   ['Translation','ترجمة الوثائق'],['Intl driving permit','رخصة القيادة الدولية'],
   ['VIP meet & assist','استقبال كبار الشخصيات'],['Event halls','قاعات الاجتماعات والفعاليات'],
@@ -205,7 +212,7 @@ var SVC_GROUPS={
   'Transfers':{ar:'التنقلات',svcs:['Transport','Transfers','Car rental','Chauffeur']},
   'Study abroad':{ar:'الدراسة بالخارج',svcs:['Study abroad','Courses','Training']},
   'Packages':{ar:'الباقات',svcs:['Packages','Tours','Activities / tours','MICE / events','Events','Umrah','Hajj']},
-  'Other services':{ar:'خدمات أخرى',svcs:['Support Services','eSIM','Insurance','Shipping','VIP meet & assist','Wallet top-up','Mixed','Other','(unspecified)']}
+  'Other services':{ar:'خدمات أخرى',svcs:['Support Services','eSIM','Insurance','Shipping','VIP meet & assist','Mixed','Other','(unspecified)']}
 };
 var SVC2GRP={}; Object.keys(SVC_GROUPS).forEach(function(g){SVC_GROUPS[g].svcs.forEach(function(k){SVC2GRP[k]=g;});});
 try{ window.SVC_GROUPS=SVC_GROUPS; window.SVC2GRP=SVC2GRP; }catch(_){}
@@ -661,6 +668,13 @@ window.finParse=function(){
       if(tot<0||/credit/i.test(o.products))st='credit_note';
       var org=String(o.origin||'').trim().toLowerCase();
       if(/techtic|verification|توثيق/i.test(String(o.products||'')+' '+String(o.notes||'')))probs.push('verification services are accounted for elsewhere — not imported into this ledger');
+      /* Same rule as the Direct Payments importer (js/41): wallet top-ups are never Finance
+         revenue and must never enter this ledger under any label. The Excel importer already
+         detects and skips them before they reach a row; this legacy CSV path had no equal
+         guard — a row whose products/notes mentioned "wallet" or "top-up" would have been
+         classified service_type='Wallet top-up' by svcType() below and imported as real
+         revenue. Found 2026-08-20 while closing the same gap in the Individual-bookings form. */
+      if(/wallet|top-up|topup|محفظة/i.test(String(o.products||'')+' '+String(o.notes||'')))probs.push('wallet top-ups are never Finance revenue — not imported into this ledger (see Payment proofs for the document trail)');
       if(org&&org!=='booking'&&org!=='project')probs.push('origin must be booking or project');
       if(org==='project'&&!String(o.proposal_ref||'').trim())probs.push('project rows need a proposal_ref');
       if(probs.length){flagged.push({line:line,no:o.invoice_no,probs:probs});return;}
@@ -687,7 +701,9 @@ function svcType(p){
     [['direct hotels','hotel','accommodation','room','فندق','إقام'],'Hotels'],
     [['direct visa','visa','تأشير'],'Visas'],
     [['direct course','course','training','study','دورة','تدريب'],'Courses'],
-    [['direct wallet','wallet','top-up','topup','محفظة'],'Wallet top-up'],
+    /* No 'Wallet top-up' branch here on purpose — the caller now rejects wallet-mentioning
+       rows before svcType() ever runs, and this function must never be able to hand back
+       that label to any future caller that forgets to add the same guard. */
     [['support service','دعم'],'Support Services'],
     [['transport','transfer','car','bus','نقل'],'Transport'],
     [['insurance','تأمين'],'Insurance'],
