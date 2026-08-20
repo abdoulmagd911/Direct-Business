@@ -1403,5 +1403,42 @@ pre-existing behavior — `profit_sar` is where the true margin lives, matching
 real revenue is the service fees, not the gross"). Not touched here; flagged because a wrong
 assumption about it nearly shipped a passing-for-the-wrong-reason probe.
 
-**Next:** S5 (expense roll-up into invoice cost — record-only/audit-trail, never altering
-invoice cost/profit).
+## 15g · S5 — expenses rolled up next to their invoice, display only — DONE 2026-08-20
+
+The owner's wording sounded self-contradictory at first — "expense roll-up into invoice cost,
+record-only/audit-trail" — until read as two figures shown side by side, never merged into
+one. Decision 1 (weeks old, unchanged since it was first confirmed for the original Expenses
+chapter): a recorded service cost must never touch an invoice's `cost_sar`/`profit_sar`.
+"Roll-up" here means: open an invoice in the Ledger, see what Direct Business has on file as
+the real cost behind it — right next to the invoice's own Direct Payments numbers, clearly
+two different things, never one.
+
+Built `js/59-s5-expense-rollup.js` — wraps `finRow()` (the invoice detail modal) and injects a
+read-only panel querying `finance_expenses` by `transaction_ref`, matched against either the
+invoice's own `invoice_no` (an expense logged once the tax invoice existed) or its own
+`transaction_ref` (logged back when it was still the pending transaction — S4's twin
+resolution already carries that reference forward onto the invoice, so one lookup catches
+both stages of the same money). Nothing here ever writes to `finance_invoices`.
+
+Verified hands-on against the real backend: inserted an invoice (300 SAR, cost 200) with one
+linked 180 SAR expense, opened the real modal, confirmed the panel shows the expense and its
+amount, confirmed `cost_sar`/`profit_sar` stayed exactly 200/100 (not 380/-80), and confirmed
+the Finance-wide Cost fingerprint moved by exactly the invoice's own +200 — never +200+180.
+One self-inflicted diagnostic bug caught along the way: the loading placeholder and the
+finished panel need to share one CSS class, since `outerHTML` replaces the marker element
+entirely — a check that only looks for the marker's class right after the swap wrongly
+concludes the panel never rendered, when it actually worked the whole time.
+
+## S3–S5, the full series — done, 2026-08-20
+
+Started from the wallet-top-up scope conversation, ran through a real live bug the owner
+caught within hours of shipping (wallet top-up reachable as a Finance service label — closed
+everywhere the shared catalog feeds), a genuine cross-import double-counting gap in the real
+importer (S4), and closed with a display-only audit view (S5) — six real, hands-on-verified
+fixes total across this arc: payment proofs (audit document register), individual bookings
+(the fifth revenue pattern), the wallet-label close, the Finance export-button fix, the
+Ledger delete z-index fix, the transaction/invoice twin resolution, and the expense roll-up
+display. Every one fingerprinted before, diffed after, and proven against the real backend —
+not the mock — with the money always landing back on the exact same baseline once each
+probe's test data was removed. Next open item, not urgent: the export-freeze report (§15e)
+that couldn't be reproduced despite a real stress test.
