@@ -1542,6 +1542,40 @@ Regression script: `scripts/qa/verify-audit-round2-fixes.mjs` — confirms Today
 hidden (and stays hidden on repeat visits) while every other page's stays working, and proves
 the Proposals fix with the real client-page link check, not just the field value. Green.
 
+## 15k · Blanket bug-fix authorization: Leads export relabel + fake sync alert hidden — 2026-08-20
+
+Owner's standing update: audits no longer need a sign-off round per finding — genuine bugs,
+broken exports, misleading/fake elements and confusing duplicate UI found this way get fixed
+on sight, verified live, and reported after. Subjective product/design calls still get
+flagged first; this round had none. Closed the two items held back from round 2:
+
+1. **Leads' third export button, relabelled instead of removed** (owner's own earlier
+   preference, since it's genuinely more useful for its one job — funnel-aware, respects the
+   active filter tab, carries funnel answers/next action/contact info the top-bar export
+   doesn't). It used to say the same bare "Export CSV" as the top-bar menu next to it, so the
+   two read as duplicates. `js/09-funnels.js`'s button now reads "↓ Export this view (CSV)"
+   with a tooltip explaining the difference and pointing at the top-bar menu for an unfiltered
+   export. Nothing about what either button actually does changed — text and a tooltip only.
+   Verified live: new label + tooltip present, the button still exports the funnel/filter it's
+   scoped to, and the top-bar menu on the same page is unaffected.
+
+2. **The fake "🔴 N failed syncs / 🔌 N integrations need attention" alert on Today, hidden.**
+   Confirmed the whole strip — not just the two visible counts — is backed entirely by
+   `migrateV20`'s one-time seed (hardcoded so Kiwi always shows "down" and ZATCA always shows
+   "token expired") plus a few "simulate this action" demo helpers; nothing real ever writes
+   to it. Owner's call, given the choice between hiding it and labeling it "demo": hide it —
+   a labeled-but-still-red alert would keep drawing attention it doesn't deserve, and it isn't
+   actionable either way. New file `js/61-hide-fake-sync-alert.js` hides `.v20-alert-strip`
+   wherever it appears, via a MutationObserver rather than a timing guess (the strip is itself
+   injected by another script's own `setTimeout` after render, so racing a fixed delay against
+   it would be fragile). Deliberately scoped to just the homepage strip — the per-record sync
+   log and conflict-resolution tools on an individual invoice or booking are untouched, in
+   case that mock system becomes a real integration later. Verified live: strip present in the
+   DOM but `display:none` on first load and on a second, separate visit to Today; the
+   untouched per-record functions (`openSyncLog`, `openConflict`) still exist.
+
+Regression script: `scripts/qa/verify-audit-round3-fixes.mjs`. Green.
+
 ## S3–S5, the full series — done, 2026-08-20
 
 Started from the wallet-top-up scope conversation, ran through a real live bug the owner
