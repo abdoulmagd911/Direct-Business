@@ -1335,6 +1335,37 @@ a bug in the diagnostic itself along the way: a direct DB insert/delete bypasses
 `window.FIN.rows` stays stale until `finLoad()` is forced — worth remembering for any future
 probe that manipulates `finance_invoices` directly rather than through the UI.
 
+## 15e · Two regressions found by spot-checking 15d, one fixed, one open — 2026-08-20
+
+**Fixed — pfConfirm z-index collision.** After 15d shipped, the owner's hands-on QA found
+"Delete invoice" on the Ledger completely unresponsive — no confirm box, no error, no
+deletion, on a real click, a ref-click, and a raw dispatched click. Root cause: `pfConfirmBox`
+(`js/57`) used `z-index:99998`, but the invoice detail modal it opens inside (`js/16`'s `ov`)
+uses `z-index:999999` — the confirm box was rendering correctly, just entirely hidden BEHIND
+the modal, invisible and unclickable. **The 15d diagnostic never caught this** because it
+called `finDelInv()` directly via `page.evaluate()`, which never actually creates that modal
+— the stacking conflict simply didn't exist in that test. Fixed by raising `pfConfirmBox` to
+`z-index:1000000000` in both `js/57`'s real implementation and `js/58`'s fallback copy —
+comfortably above every modal found in the app (highest other value: 999999) and still below
+the ~2.1e9 tier reserved for session/permission system banners. The diagnostic now opens the
+REAL modal and clicks the REAL button, with an explicit visibility check on Confirm, so a
+regression like this fails loudly next time. Lesson: a diagnostic that calls a function
+directly instead of going through the actual click path can miss any bug that only exists in
+the DOM/rendering layer — worth remembering for every future confirm-dialog probe in this app.
+
+**Open — export freeze, not reproduced.** Separately, the owner hit a 30-45s frozen tab
+clicking "CSV - full details" on the 15d export fix, twice, including once via a raw
+dispatched click (bypassing any UI timing issue). Stress-tested the actual export code with
+3000 synthetic rows carrying nested JSONB (worse than any real dataset) — completed in 76ms,
+no performance cliff. Could not reproduce the freeze and don't have enough signal to name a
+cause with confidence. Fixed one real, independent gap found while investigating:
+`downloadCSV`/`downloadXLS` never revoked their blob object URLs, leaking a live URL for the
+rest of the page session on every export — low risk regardless of whether it's connected.
+**If this recurs**, worth checking: browser download-prompt settings (a native "Save As"
+dialog can block a CDP-driven session the same way a native `confirm()` does), and whether
+the owner's own test instrumentation (he mentioned hooking `URL.createObjectURL` to compare
+export output) was still attached when the freeze happened.
+
 **Next:** S4 (transactions as real DB records, transaction-created-first / invoice-issued-
 later), then S5 (expense roll-up into invoice cost — record-only/audit-trail, never altering
 invoice cost/profit).
