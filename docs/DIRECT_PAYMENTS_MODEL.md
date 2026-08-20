@@ -62,7 +62,7 @@ Status `Fully Applied` · Payment by (person) · created timestamp.
 | Transaction receipt ref | `transaction_ref` (added 2026-08-12) |
 | Admin page uuid | `direct_uuid` (added 2026-08-12) |
 | Transaction/invoice total (what the customer pays) | `total_incl_vat_sar` — **this is `revenue_sar`** (Round 5; supersedes the Round 4 fee-line reading below) |
-| The APPROVED expense Finance verified against proof of payment | `cost_sar` — falls back to the non-taxable item estimate only while the expense isn't yet finalised (Round 5) |
+| The APPROVED expense Finance verified against proof of payment | `cost_sar` — falls back to the non-taxable item estimate only while the expense isn't yet finalised (Round 5). **The authoritative source is the COGs Report's `cog_approved` rows, each with their own `amount_sar` — not the nested `expenses[]` array, which does not carry a real per-expense amount (Round 6).** |
 | Provider/3rd-party fee lines (`is_taxable=false`) | the transaction-time **estimate** of cost, superseded by the approved expense once Finance finalises it (Round 4/5) |
 | Service-fee lines (`is_taxable=true`, pre-VAT) | an internal **estimate** only — not stored as `profit_sar` and never shown (Round 5) |
 | Line VAT (15% on service fees) | `vat_sar` (added 2026-08-12) — stored for import fidelity only, **never displayed, never mentioned, at any stage, in any view or report** (strengthened Round 5: this also rules out ever showing a fee-excluding-VAT figure) |
@@ -232,33 +232,67 @@ it and no tax invoice follows. Re-verified against live data under this correcte
 
 **Real numbers on this corrected definition** (same exclusions as before — Takamol/Techtic
 Support and wallet top-ups out): **REVENUE 2,433,977 SAR** (2,067,206 already invoiced +
-366,771 not yet invoiced) · **COST 2,136,268 SAR** · **PROFIT 297,709 SAR** · **margin 12.2%.**
-By service (profit on revenue / margin): Course 89,846 / 423,347 (21.2%) · no-product 85,612 /
-750,552 (11.4%) · Support 59,915 / 62,230 (96.3%) · Other Income 37,375 / 37,375 (100%) · Visa
-13,781 / 133,012 (10.4%) · Packages 7,065 / 111,467 (6.3%) · Hotels 2,718 / 106,312 (2.6%) ·
-**Flights 1,399 / 809,683 (0.2%)** — the thin-margin-on-travel pattern holds under the
-corrected definition too. Transaction counts: 65 invoiced, 47 with a finalised approved
-expense, 46 still expense-pending.
+366,771 not yet invoiced). By service (revenue): Course 423,347 · no-product 750,552 ·
+Support 62,230 · Other Income 37,375 · Visa 133,012 · Packages 111,467 · Hotels 106,312 ·
+Flights 809,683. Transaction counts: 65 invoiced, 47 with a finalised approved expense, 46
+still expense-pending.
 
-Note the REVENUE and COST totals (2,433,977 / 2,136,268) are numerically identical to what
-Round 4 called "gross billed" and "pass-through" — only the labels and the profit/margin built
-on top of them were wrong. Profit under the corrected definition (297,709, 12.2%) is
-meaningfully higher than Round 4's mistaken 258,878/10.6%, because the item-level fee estimate
-understated what Finance actually approved.
-
-**Supporting finding — the importer must deduplicate approved expenses before summing them
-for cost.** 22 transactions have approved-expense records whose raw sum *exceeds* the
-transaction total — something Finance could never have legitimately approved, since an
-approved expense must be lower than the transaction total by rule. That's proof those are
-duplicate records, not real double-spending. (This also **supersedes** Round 4's now-struck
-point 6, which had ruled the 124 duplicate `expenses[]` records harmless on the theory that
-cost came from the item estimate, not from `expenses[]` — under the corrected model cost *is*
-built from approved expenses, so those duplicates matter and must be deduplicated by item name
-+ amount before computing cost, or `cost_sar` will be overstated and `profit_sar` understated.)
+**COST and PROFIT are pending a correct source — removed here, not replaced (Round 6).** The
+figures this round originally gave (COST 2,136,268 / PROFIT 297,709 / 12.2% margin, plus a
+per-service profit/margin breakdown) were computed from a misread field and are deleted below,
+not struck through — see Round 6's retraction. Do not use any cost/profit number from this
+document until a corrected one is verified against the COGs Report.
 
 **Not yet changed:** this round is docs only, same as Round 4. `finance_derive_fields` (the
 trigger that computes `revenue_sar`/`cost_sar`/`profit_sar` in our own tables) has not been
 touched — it still runs on whatever the importer hands it, under whatever formula the importer
 currently uses. Wiring the real-data importer to this corrected definition (transaction total
-as revenue, approved-and-deduplicated expense as cost) is implementation work for later, not
-something to change ahead of the Finance page spec.
+as revenue, approved expense as cost) is implementation work for later, not something to
+change ahead of the Finance page spec.
+
+## ROUND 6 — retraction: the expenses[] amount was misread; the real expense ledger is the COGs Report (2026-08-20)
+
+**Two things Round 5 stated are wrong, retracted here in full — not struck through, deleted,**
+because leaving them visible even as crossed-out text risks a future session building a
+"deduplicator" against a field that was never real in the first place, corrupting real cost.
+
+- **There are no duplicate approved expenses, and no importer deduplication step is needed.**
+  On one transaction, three `expenses[]` records each showed the same amount (213,409.99) and
+  were read as three copies of one expense. Checked properly: all three point to the *same*
+  invoice item (`item.id 1600909`) but carry *different* `expense_template_key` values (one
+  `institution_fees`, two `transaction_fee`). The 213,409.99 is the **parent item's amount,
+  echoed onto every expense record that references that item** — it is not each expense's own
+  amount. **The nested `expenses[]` array does not carry a real per-expense amount at all, and
+  any sum taken over it is meaningless.** The "124 duplicate records" and "22 transactions
+  whose approved-expense sum exceeds the transaction total" findings from Round 5 are both
+  false and are deleted, not kept as a lesson — there was never a real duplicate to find.
+- **The cost/profit numbers built on that misread field are wrong and are removed above** (not
+  replaced yet) — COST 2,136,268, PROFIT 297,709, 12.2% margin, and every per-service
+  profit/margin figure. The REVENUE numbers are unaffected (they were never derived from
+  `expenses[]`) and stay as given above.
+
+**The real expense ledger is the COGs Report** (`admin.stats.cog-report`), not the nested
+`expenses[]` array on a client/transaction payload. It holds **one row per expense**, each with
+its own `amount_sar` — the field that should actually be summed for cost — plus `reference_id`,
+`invoice_id`, `expense_template_type`, `status_key`, `merchant`, `card_details`,
+`submitted_by`, `approved_rejector`.
+
+- **Status values:** `cog_pending` → `cog_under_review` → `cog_approved` / `cog_rejected` /
+  `cog_cancelled`. **Only `cog_approved` rows count as cost.** Everything else is not yet real
+  money spent, or was refused.
+- **Expense template types seen:** Institution Fee · Hotel Cost · Provider Price · Airline
+  Fees · Embassy Expenses · Exam Fee · Manual Booking · Submission · Appointment · Insurance ·
+  e-Sim Cost · Railway Ticket Cost · App Filling · SEVIS · Miscellaneous.
+
+**Standing rule from Abdulrahman: read expense status to decide whether cost counts — never
+transaction status.** A draft or cancelled transaction never reaches the expense stage at all,
+so there is nothing to misread there; the risk is the other direction — a transaction that *is*
+finalised (invoiced) but has no registered `cog_approved` expense yet. That is not a zero-cost
+transaction and not a data gap to paper over with an estimate: it goes **OVERDUE**, which is a
+Finance chase item, not a number to compute anything from. `cost_sar` for such a transaction
+should stay unset/flagged, not defaulted to zero or backfilled from the item estimate.
+
+**Not yet changed:** docs only, same as every prior round. The corrected cost/profit
+computation — sum `cog_approved.amount_sar` per transaction, apply the overdue-not-zero rule
+above — is implementation work for the real-data importer, still pending, not something to
+build ahead of the Finance page spec.
