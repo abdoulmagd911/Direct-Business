@@ -1275,6 +1275,41 @@ run a unique, timestamped marker so it can never collide with a leftover again. 
 every future money-fingerprint probe in this project: match your own test's row by the id
 the insert actually returned, never by a name that could repeat.
 
+## 15c · URGENT — wallet top-up closed as a Finance service label — DONE 2026-08-20
+
+Owner's own hands-on testing of the brand-new Individual-bookings form (15b) found "Wallet
+top-up" selectable in its Service dropdown. He saved a test row (50 SAR, Paid) and confirmed
+on the live Performance tab that it moved Revenue/Profit/Received/Invoices, then deleted it
+and confirmed the figures returned to exact baseline. Direct violation of his explicit rule
+from the payment-proofs conversation: "I don't want any wallet top up details at all. I don't
+want them on any reports."
+
+Root cause: `SVC_CATALOG` in `js/16-finance-ledger.js` — the ONE shared list every Service
+dropdown in the app reads from — still carried a `'Wallet top-up'` entry, left over from
+before the Aug-12 purge. Removed it there (fixes Individual bookings, Expenses, and any
+future dropdown that reads the same list, in one place) and dropped it from `SVC_GROUPS`'
+"Other services" rollup too.
+
+**Checked for reuse elsewhere, as asked, and found a second, independent, pre-existing gap**:
+the legacy CSV importer (`rImport`/`finParse`, still the live "Import" tab) had no guard
+against a row whose products/notes mention "wallet"/"top-up" — unlike the newer Direct
+Payments Excel importer (`js/41`), which already skips these before a row is even built.
+Added a matching reject rule (same shape as the existing "verification services are
+accounted for elsewhere" rejection), and removed the now-dead `'Wallet top-up'` branch from
+`svcType()` itself so the function can never hand that label to any future caller that
+forgets the guard — belt-and-braces, not just closing the one reported hole.
+
+Verified hands-on against the real backend (`scripts/qa/diag-wallet-guard.mjs`): the option
+is gone from both the Individual-bookings and Expenses dropdowns, a wallet-mentioning CSV row
+is flagged and rejected rather than offered for import, and every Finance figure is
+byte-identical before/after (708,975 / 566,650 / 142,325 / 708,975 / 216,115 / 19) — this was
+a pure UI/classifier fix; confirmed zero existing rows anywhere in `finance_invoices` or
+`finance_expenses` carried a wallet-labeled service before it shipped, so nothing needed
+cleaning up.
+
 **Next:** S4 (transactions as real DB records, transaction-created-first / invoice-issued-
 later), then S5 (expense roll-up into invoice cost — record-only/audit-trail, never altering
-invoice cost/profit).
+invoice cost/profit). Also queued: the Finance export-format bug the owner found in parallel
+— "CSV - summary", "CSV - full details" and the Excel-labeled buttons all download the exact
+same JSON backup file instead of their own format (verified by comparing blob content across
+buttons; same 752,714-byte JSON every time). Needs its own fingerprint-fix-verify pass.
