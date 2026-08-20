@@ -1446,6 +1446,56 @@ confirmed before removal.
 **Every native `confirm()` in Finance is now accounted for** — Payment proofs, Individual
 bookings, Ledger delete, and Expenses all share the one in-page box.
 
+## 15i · Full Finance audit as QA admin: two real bugs found and fixed — 2026-08-20
+
+Owner asked for a hands-on click-through of every Finance page as the QA admin account
+specifically (not the Othman/manager session used for earlier rounds), checking every export
+button's actual columns against its label, any corporate/individual filter anywhere in the
+app, and duplication. Two genuine bugs found and fixed, both verified live against the real
+backend before and after:
+
+1. **Ledger's own "⬇ Excel (CSV)" button was silently exporting the wrong thing.** This file
+   (`js/16-finance-ledger.js`) defined `window.finCSV` twice — once for the Ledger's own
+   line-level export, again further down for the Report Builder's grouped-summary export.
+   The second definition silently replaced the first, so the Ledger's button either did
+   nothing (if Report Builder had never been opened that session — `FIN._lastReport` would be
+   undefined and the function returns early) or downloaded the Report Builder's last grouped
+   report instead of the invoice rows on screen. Fixed by renaming the Ledger's own function
+   to `window.finLedgerCSV` and pointing its button at the new name; the Report Builder's
+   `finCSV` is untouched. Verified live from a cold session (Report Builder never opened):
+   the Ledger button now downloads `direct-finance-YYYY-MM-DD.csv` with the correct
+   invoice-level header (`invoice_date,invoice_no,zatca_dpin,client_group,...`), and Report
+   Builder's own export still works unchanged.
+
+2. **The "Who can open what" access-matrix panel (`js/56-access-matrix.js`) was leaking onto
+   Finance › Performance.** Its `paint()` only meant to render on the Settings page, gated by
+   a regex (`/team|access|الصلاحيات/i`) scanning the *entire rendered page text* for those
+   words — a guess at "is this the Team & Access page," not an actual check. Finance ›
+   Performance has an unrelated flag sentence that happens to contain the word "team" ("...
+   revenue belongs to the commercial team"), which was enough to trigger it: the full
+   employee permissions grid, with live database-writing "Save access" buttons, was rendering
+   at the bottom of the revenue dashboard for any admin. Fixed by gating on `current==='settings'`
+   instead — the same page-identity variable every other view branch in the app already
+   checks. Verified live: gone from Finance › Performance (screenshot confirms a clean page
+   ending at the Monthly revenue & profit chart), still renders correctly on Settings, and a
+   sweep of every other Finance sub-page (Clients & collections, Expenses, Payment proofs,
+   Individual bookings, Report Builder, Import) confirms it was never leaking anywhere else.
+
+Also confirmed, not a bug to fix: there is **no "corporate expenses" filter anywhere in the
+app** — checked the Expenses page directly (only "All months" plus the two export buttons)
+and swept every Finance page and the Clients page for any corporate/individual control. The
+closest thing is Report Builder's "Record type" group-by option (B2B/B2C totals), which is a
+reporting axis, not a filter, and isn't on the Expenses page. Owner is relaying this to
+Abdulrahman directly in case he's remembering an older build. Also flagged, not built:
+Individual bookings has no export button at all, unlike every other Finance sub-page — real
+money, no way to pull it into a spreadsheet. Owner is taking this to Abdulrahman as a
+recommendation rather than treating it as a fix (it's a new feature, not broken behavior).
+
+Regression script added: `scripts/qa/verify-audit-fixes.mjs` — checks the Ledger export both
+cold and after visiting Report Builder, checks the access panel is absent from Finance and
+every Finance sub-page while still present on Settings, and re-confirms Report Builder's own
+export still works. Green.
+
 ## S3–S5, the full series — done, 2026-08-20
 
 Started from the wallet-top-up scope conversation, ran through a real live bug the owner
