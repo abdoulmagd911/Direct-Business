@@ -1193,3 +1193,34 @@ transaction / commission / promo code / B2C manual) with a `cash_state` field, a
 transactions stored as real DB records from creation rather than only at invoice time. That
 touches the core ledger and deserves its own money-fingerprinted sitting, same discipline as
 every other Finance change in this project — not folded into this one.
+
+## 15 · S3 (part 1) — the fifth revenue pattern, schema-complete — DONE 2026-08-19/20
+
+Owner went green on S3–S5, 2026-08-20. Started with a money fingerprint of every Finance
+headline figure (Revenue 917,040 / Cost 730,750 / Profit 186,290 / Received 708,975 /
+Outstanding 216,115 / 28 invoices, `deleted_at is null`, excluding `excluded` rows).
+
+`revenue_way` widened to allow a fifth value, `b2c_manual` — the one pattern that is
+inherently manual by definition (an individual/personal booking Direct made as a team, with
+no corporate-client Direct Payments export to import it from, unlike the other four).
+**No existing row changed** — pure widen, migration `s3_complete_five_revenue_patterns`.
+Fingerprint re-checked identical after. Also settled, not built: **`cash_state`" from the
+Aug-16 conversation is NOT a new column** — `integrity_status` (verified_paid / pending /
+excluded / credit_note) already is that field, already wired into every Received/Outstanding
+number. Adding a second column with the same meaning would have been the exact "raw JSONB vs
+real column" split-field trap this project has been bitten by twice before (`is_client`,
+`assigned_to`); documented on the columns instead via `comment on column`.
+
+**Flagged rather than built:** a data-entry UI that lets someone create a `b2c_manual` row.
+2026-08-08's own history explicitly folded away the general "New invoice" manual-entry card
+because it duplicated real Direct Payments data — "the closest thing we have to duplicated
+work against the real Direct system." Individual/personal bookings may ALSO already exist in
+Direct Payments' own B2C-scale Payment Receipts ledger (500k+ rows, per the Aug-12 capture) —
+so a naive manual form here risks reopening exactly the duplication trap that was closed
+before, just for B2C instead of B2B. **Needs an owner decision before any UI gets built**:
+does Direct Payments' B2C Payment Receipts export become an importer source (same shape as
+the corporate importer), or is a lightweight manual form genuinely the only way these ever
+get recorded? Schema is ready either way — `record_type='b2c'` and `revenue_way='b2c_manual'`
+already both exist and were probe-tested (insert → correct auto-derived revenue/profit →
+rolled back, zero rows left behind). Confirmed while probing: `finance_invoices.client_group`
+is NOT NULL, so any future manual form needs a client/individual name field, not a blank.
