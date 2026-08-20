@@ -139,12 +139,21 @@
     }).catch(function(e){ alert(fl('Could not download: ','تعذر التنزيل: ')+e); });
   }catch(e){console.warn('[exp] download',e);}};
 
+  /* In-page confirm, not window.confirm() — a native dialog blocks the whole tab on its own
+     modal loop. Reuses js/57's pfConfirm box when it's loaded (same one Payment proofs,
+     Individual bookings and the Ledger's "Delete invoice" already share), with a plain
+     confirm() fallback only if it somehow isn't. */
+  function expConfirm(msg,onYes){
+    try{ if(window.pfConfirm) return pfConfirm(msg,onYes); }catch(_){}
+    if(confirm(msg))onYes();
+  }
   window.expDownloadAll=function(){try{
     var rows=view_().filter(function(r){return r.proof_path;});
     if(!rows.length){alert(fl('None of the expenses in view have a document attached yet.','لا يوجد مستند مرفق بأي مصروف معروض.'));return;}
-    if(!confirm(fl(rows.length+' documents will be downloaded, one at a time.',rows.length+' مستندًا سيتم تنزيلها واحدًا تلو الآخر.')))return;
+    expConfirm(fl(rows.length+' documents will be downloaded, one at a time.',rows.length+' مستندًا سيتم تنزيلها واحدًا تلو الآخر.'), function(){
     var i=0;
     (function next(){ if(i>=rows.length)return; expDownload(rows[i++].id); setTimeout(next,900); })();
+    });
   }catch(e){console.warn('[exp] downloadAll',e);}};
 
   /* The manifest is what makes a bundle auditable — the files alone are just files. */
@@ -196,13 +205,14 @@
   }catch(e){console.warn('[exp] save',e);}};
 
   window.expDel=function(id){try{
-    if(!confirm(fl('Remove this expense? It stays in the history and disappears from the list.','حذف هذا المصروف؟ يبقى في السجل ويختفي من القائمة.')))return;
-    var c=client(); if(!c)return;
-    c.from('finance_expenses').update({deleted_at:new Date().toISOString()}).eq('id',id).select().then(function(r){
-      if(r.error){alert(r.error.message);return;}
-      if(!r.data||!r.data.length){alert(fl('Nothing was removed — your account was not allowed to.','لم يُحذف شيء — لا تملك الصلاحية.'));return;}
-      try{ if(window.__note)__note('finance',id,'expense removed',''); }catch(_){}
-      EXP.rows=null; load();
+    expConfirm(fl('Remove this expense? It stays in the history and disappears from the list.','حذف هذا المصروف؟ يبقى في السجل ويختفي من القائمة.'), function(){
+      var c=client(); if(!c)return;
+      c.from('finance_expenses').update({deleted_at:new Date().toISOString()}).eq('id',id).select().then(function(r){
+        if(r.error){alert(r.error.message);return;}
+        if(!r.data||!r.data.length){alert(fl('Nothing was removed — your account was not allowed to.','لم يُحذف شيء — لا تملك الصلاحية.'));return;}
+        try{ if(window.__note)__note('finance',id,'expense removed',''); }catch(_){}
+        EXP.rows=null; load();
+      });
     });
   }catch(e){}};
 
