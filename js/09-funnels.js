@@ -109,8 +109,16 @@
     na.style.cssText='border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:999px;margin-left:auto;background:'+(window.__needsAttn?'#D92D20':'#F0453A14')+';color:'+(window.__needsAttn?'#fff':'#D92D20');
     na.onclick=function(){window.__needsAttn=!window.__needsAttn;renderLeads(v);};
     strip.appendChild(na);
+    /* Distinct wording + a title tooltip on purpose (QA-admin audit, 2026-08-20) \u2014 this sits
+       right next to the top bar's own "Export \u25be" menu (CSV/Excel, summary/full, always ALL
+       leads) and used to say the same generic "Export CSV," so the two looked like duplicates
+       of each other. They're not: this one respects whichever funnel tab / Needs-attention
+       filter is active right now, and its columns include each funnel's own answers, next
+       action and contact info that the top-bar export doesn't carry. Not touching the
+       top-bar menu itself \u2014 it's shared by every page in the app. */
     var ex=document.createElement('button');
-    ex.textContent='\u2193 Export CSV';
+    ex.textContent='\u2193 Export this view (CSV)';
+    ex.title='Exports exactly what\u2019s shown here \u2014 the active funnel tab and filters, with each funnel\u2019s own detail fields, next action and contact info. For every lead regardless of filter, use the Export \u25be menu in the top bar instead.';
     ex.style.cssText='border:1px solid #E3DCCF;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px;background:#fff;color:#3a3f52';
     ex.onclick=exportCSV;
     strip.appendChild(ex);
