@@ -351,3 +351,55 @@ actual sum of the actual costs... the confirmed ones."* Three things follow dire
 guess at): which field marks a transaction "finalised" for the Overdue stage, and confirming
 that a tender profile's budget/consumed/remaining is capacity-tracking rather than the
 Clients-page money the Finance-page spec otherwise bans there.
+
+## ROUND 8 — Stage is a two-field read off Corporate Transactions, verified 6-for-6 (2026-08-21)
+
+Answers the "finalised" open item from Round 7 — and the answer is not the field this doc had
+guessed at. Corporate Transactions carries its own columns, and **Stage is a two-field
+derivation, not one:**
+
+- **Receipt Ref · Product · Amount (SAR) · Invoice Issuing · Created At · Expense Status.**
+- **Invoice Issuing** = `Need to issue` or `Issued <invoice number>`.
+- **Expense Status** = `Pending` or `Ready` — and **goes blank once the row is Issued.**
+
+**Stage:**
+- Expense Status `Pending` → **Expenses pending** — cost is the item estimate only, excluded
+  from confirmed totals.
+- Expense Status `Ready` + Invoice Issuing `Need to issue` → **Ready to invoice.**
+- Invoice Issuing `Issued <n>` → **Invoiced** — show that invoice number on the row.
+
+**Verified 6-for-6 against the per-line Corporate Expenses data** (Round 7's source), not
+assumed: every transaction whose expense lines were still Under Review showed Expense
+Status `Pending`; every transaction whose non-cancelled lines were all Approved (regardless of
+how many separate Cancelled lines sat alongside them) showed `Ready`; the one Issued
+transaction checked had Expense Status blank, as the field definition says it should. **The
+rule that falls out: a transaction goes Ready only when every non-cancelled expense line on it
+is Approved — one line still Under Review or Pending holds the whole transaction at Pending;
+Cancelled lines are ignored and never block readiness.**
+
+**This makes Expense Status the transaction-level equivalent of `cog_approved`, and Round 7's
+confirmed-cost gate should be read off THIS field, not off the line-level COGs/Corporate
+Expenses data directly:** only `Ready` or `Issued` transactions contribute cost/profit to the
+confirmed KPI strip; `Pending` transactions render their "est." row and stay out of the
+totals, exactly as Round 7 already specified — this round just supplies the correct field to
+gate on, superseding the `b2b_transaction_status` guess this doc had been carrying as an
+unconfirmed placeholder.
+
+**Free extras on the same page:** the header strip already computes **Total Transactions**,
+**Pending Transaction No.**, and **Pending Transaction amount** — and the pending amount was
+confirmed to count only Pending-status rows, i.e. it's measured at transaction level, the same
+level Stage now reads off. **Consolidation is literally driven from this screen**: row
+checkboxes plus a "Select All Ready Transactions" action — a human selects Ready transactions
+and consolidates them into one tax invoice, which is the real-world action behind
+`consolidated_proforma_id` (Round 2/4).
+
+**Open question this raises, not yet answered — the Overdue stage has no field to read.**
+Direct Payments itself only ever shows `Pending` — it does not distinguish "just opened,
+nothing wrong yet" from "sitting too long, go chase it." Spec 2's Overdue stage is therefore
+an **app-side aging judgement on top of Expense Status=Pending** (e.g. a days-since-`Created
+At` threshold), not something mirrored from a Direct Payments field. The threshold itself
+still needs a decision before Overdue can be built — not guessing at a number here.
+
+**Not yet changed:** docs only. Still open, waiting on Abdulrahman directly: the Overdue aging
+threshold just raised above, and the tender budget/consumed/remaining capacity-vs-money
+question from Round 7.
