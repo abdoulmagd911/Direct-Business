@@ -73,7 +73,7 @@ function leadDashboard(v,id){
   const b=getLead(id);if(!b){openLead=null;return renderLeads(v);}
   const sg=leadStage(b);const acts=(b.activities||[]).slice().sort((x,y)=>y.date-x.date);const stageIdx=LEAD_STAGES.indexOf(sg);
   const sc=leadScore(b),sb=scoreBand(sc);
-  const tiles=[["Lead score",sc+" · "+sb.l],["Lifetime billed",moneyShort(b.totalSAR)+" SAR"],["Open deal value",moneyShort(b.dealValue||0)+" SAR"],["Weighted",moneyShort(Math.round((b.dealValue||0)*(STAGE_PROB[sg]||0)))+" SAR"],["Activities",acts.length],["Assigned",b.assignedTo||b.owner||"Unassigned"]];
+  const tiles=[["Lead score",sc+" · "+sb.l],["Activities",acts.length],["Assigned",b.assignedTo||b.owner||"Unassigned"]];
   v.innerHTML=`<button class="btn ghost sm" onclick="closeLead()">← Back to pipeline</button>
   <div class="detail-head">
     <div class="ava" style="background:${avaColor(b.id)}">${initials(b.name)}</div>
@@ -94,12 +94,8 @@ function leadDashboard(v,id){
     <div class="card"><h3>Relationship to Direct</h3>
       <div class="fact"><span class="k">Link type</span><span class="v">${directLinkTag(b)}${b.source?'<span class="tag" style="background:'+(SOURCE_COLOR[b.source]||"#9AA1B6")+'1a;color:'+(SOURCE_COLOR[b.source]||"#9AA1B6")+'">'+esc(b.source)+'</span>':""}${b.website?'<a class="tag" style="background:#2E90FA14;color:#2E90FA;text-decoration:none" target="_blank" rel="noopener" href="'+esc(b.website)+'">Website</a>':""}${b.corpEmailFlag?'<span class="tag" style="background:#F0453A14;color:#D92D20" title="Individual using a company email - check">Corp email: '+esc(b.corpEmailFlag)+'</span>':""}</span></div>
       <div class="fact"><span class="k">Category</span><span class="v">${esc(b.category||"—")}</span></div>
-      <div class="fact"><span class="k">Lifetime billed</span><span class="v">${money(b.totalSAR)}</span></div>
-      <div class="fact"><span class="k">Open deal value</span><span class="v">${money(b.dealValue||0)}</span></div>
       <div class="fact"><span class="k">Invoices</span><span class="v">${b.invoices||0}</span></div>
       <div class="fact"><span class="k">Is client</span><span class="v">${b.isClient?'<span class="tag" style="background:#16B36418;color:#16B364">Yes</span>':"No"}</span></div>
-      <div class="fact"><span class="k">Billed (invoices)</span><span class="v">${money(leadBilled(b.id))}</span></div>
-      <div class="fact"><span class="k">Booked value</span><span class="v">${money(leadBookValue(b.id))}</span></div>
       <div class="fact"><span class="k">Tickets issued</span><span class="v">${ticketsFor(b.id).length}</span></div>
       <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">${!b.isClient?`<button class="btn sm" style="border-color:#16B364;color:#16B364" onclick="convertToClient('${b.id}')">★ Convert to client</button>`:''}<a class="chiplink" href="${pdLink(b)}" target="_blank" rel="noopener">Direct Payments ↗</a></div>
     </div>
@@ -143,7 +139,6 @@ function renderLeadDetail(v,id){
     </div>
     <div>
       <div class="card"><h3>Key facts</h3>
-        ${b.isClient?'':`<div class="fact"><span class="k">Lifetime billed</span><span class="v">${money(b.totalSAR||0)}</span></div>`}
         <div class="fact"><span class="k">Invoices</span><span class="v">${b.invoices||0}</span></div>
         <!-- Category had no fallback here, so a lead without one printed the word "undefined"
              on screen. Every other row on this panel already had one. -->

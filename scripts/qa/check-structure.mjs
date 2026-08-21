@@ -62,6 +62,25 @@ for (const f of files) {
   if (/supabase\s*\.\s*createClient\s*\(\s*\)/.test(src)) problems.push(`${f} calls supabase.createClient() with no arguments — if this ever runs before the login layer, it builds a client with no URL and no key. Use window.fc() instead.`);
 }
 
+/* 7 — money lives on the Finance page only (owner ruling 2026-08-21). Leads and Clients
+       report the RELATIONSHIP, never the money — that belongs on Finance, one company with
+       its profiles nested underneath. Real violations shipped here twice already (a stale
+       "Lifetime billed" chip, a proposal value span, a whole Finance panel with an inverted
+       isClient check) because nothing scanned for it. Comments are stripped first so this
+       checks live code, not the doc-comments explaining why a field was removed. */
+const MONEY_FILES = ['js/core/core-02-leads.js', 'js/13-leads-list.js', 'js/28-lead-card.js', 'js/38-client-card.js'];
+const MONEY_STRINGS = [' SAR', 'ريال', 'Lifetime billed', 'Open deal value', 'Deal value', 'Outstanding', 'Credit held'];
+const stripComments = src => src
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/(^|[^:])\/\/.*$/gm, '$1');
+for (const f of MONEY_FILES) {
+  if (!fs.existsSync(at(f))) continue;
+  const code = stripComments(fs.readFileSync(at(f), 'utf8'));
+  for (const s of MONEY_STRINGS) {
+    if (code.includes(s)) problems.push(`${f} contains "${s}" outside a comment — money belongs on Finance only, never on Leads or Clients (owner ruling 2026-08-21).`);
+  }
+}
+
 if (problems.length) {
   console.log('STRUCTURE CHECK FAILED — fix these before deploying:\n');
   problems.forEach(p => console.log('  ✗ ' + p));

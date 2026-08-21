@@ -19,7 +19,6 @@
 (function(){try{
   var fl=function(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;};
   function norm(s){return String(s==null?'':s).toLowerCase().replace(/[\s\-_.,&()]+/g,' ').replace(/\b(co|company|ltd|llc|est|group|est\.)\b/g,'').replace(/\s+/g,' ').trim();}
-  function mS(n){n=Number(n)||0;if(Math.abs(n)>=1e6)return (n/1e6).toFixed(2)+'M';if(Math.abs(n)>=1e3)return (n/1e3).toFixed(1)+'K';return n.toFixed(0);}
   function injectFinance(){
     try{
       if(typeof current==='undefined'||(current!=='leads'&&current!=='clients'))return;
@@ -29,12 +28,10 @@
       var head=view.querySelector('.detail-head'); if(!head)return;
       if(view.querySelector('.v29-fin'))return; // already injected this render
       var biz=(typeof getLead==='function')?getLead(openLead):null; if(!biz||!biz.name)return;
-      // The Clients page shows no money at all — no revenue, cost, profit, deal value,
-      // wallet or outstanding figure, anywhere (owner ruling 2026-08-21). That money now
-      // lives on the Finance page, one company with its profiles nested underneath. A lead
-      // that isn't a client yet (rare invoice-mined match) still gets this snapshot — it's
-      // on the Leads page, not the Clients page.
-      if(biz.isClient)return;
+      // Money lives on the Finance page ONLY — owner ruling 2026-08-21, and it means
+      // Leads AND Clients, not just Clients. This card still shows (both pages, lead or
+      // client) so people can see there's a finance record and jump to it, but it never
+      // prints an amount — invoice count, last invoice date, and a link out, nothing else.
       // finance data loads async; kick it off once, re-render when ready
       var FIN=window.FIN, finLoad=window.finLoad;
       if(!FIN)return;
@@ -53,8 +50,8 @@
         rows=FIN.rows.filter(function(r){ if(r.deleted_at)return false; return norm(r.client_group)===target || norm(r.customer_raw_name)===target; });
       }
       if(!rows.length)return; // nothing linked or matched -> show nothing (never a wrong match)
-      var billed=0,rec=0,out=0,_rev=0,_cost=0,_prof=0,cg=rows[0].client_group||biz.name,last='',_inv={};
-      rows.forEach(function(r){ billed+=+r.total_incl_vat_sar||0; rec+=+r.amount_received_sar||0; out+=+r.amount_remaining_sar||0; _rev+=+r.revenue_sar||0; _cost+=+r.cost_sar||0; _prof+=+r.profit_sar||0; _inv[r.invoice_no||('row'+Math.random())]=1; if((r.invoice_date||'')>last)last=r.invoice_date||''; });
+      var cg=rows[0].client_group||biz.name,last='',_inv={};
+      rows.forEach(function(r){ _inv[r.invoice_no||('row'+Math.random())]=1; if((r.invoice_date||'')>last)last=r.invoice_date||''; });
       var nInv=Object.keys(_inv).length;
       var card=document.createElement('div');
       card.className='card v29-fin';
@@ -67,24 +64,16 @@
             ? fl('Linked to Direct finance · '+nInv+' invoice'+(nInv>1?'s':''),'مرتبطة بمالية دايركت · '+nInv+' فاتورة')
             : (fl('Matched to '+nInv+' invoice'+(nInv>1?'s':'')+' by name — not linked yet; ','مطابَقة بـ '+nInv+' فاتورة حسب الاسم — غير مرتبطة بعد؛ ')+'<span style="color:#FF6B00;cursor:pointer;font-weight:700" onclick="try{finLinkMap()}catch(e){}">'+fl('link it now.','اربطها الآن.')+'</span>'))+'</div>'+
         '<div style="display:flex;gap:18px;flex-wrap:wrap">'+
-          mini(fl('Lifetime billed','إجمالي الفوترة'),mS(billed)+' SAR','#175CD3')+
-          mini(fl('Received','المُحصّل'),mS(rec)+' SAR','#0F6E56')+
-          mini(fl('Outstanding','المستحق'),mS(out)+' SAR',out>0?'#D92D20':'#667085')+
-          mini(fl('Cost','التكلفة'),mS(_cost)+' SAR','#B54708')+
-          mini(fl('Profit (service fee)','الربح (رسوم الخدمة)'),mS(_prof)+' SAR','#0F6E56')+
-          mini(fl('Margin %','هامش %'),(_rev>0?Math.round(_prof/_rev*100):0)+'%','#175CD3')+
-          (function(){var _cr=0;try{(linkedGroups||[]).forEach(function(g){var l=FIN.linkByGroup[g];if(l)_cr+=+l.credit_balance_sar||0;});}catch(_){ } return _cr>0?mini(fl('Credit held','رصيد لدينا'),mS(_cr)+' SAR','#10B981'):'';})()+
           mini(fl('Invoices','عدد الفواتير'),String(nInv))+
           mini(fl('Last invoice','آخر فاتورة'),last||'—')+
         '</div>';
       head.insertAdjacentElement('afterend',card);
-      // reconcile the stale "Key facts" numbers (which read a legacy b.totalSAR field) with the
-      // real finance figures, so the page never shows two different "Lifetime billed" values.
+      // sync the "Invoices" count on the Key facts card to this real finance-linked figure —
+      // never touches an amount, this panel doesn't have one to sync.
       var facts=view.querySelectorAll('.fact');
       for(var fi=0;fi<facts.length;fi++){ var kk=facts[fi].querySelector('.k'), vv=facts[fi].querySelector('.v'); if(!kk||!vv)continue;
         var kt=(kk.textContent||'').trim();
-        if(kt==='Lifetime billed'||kt==='إجمالي الفوترة'){ vv.textContent=mS(billed)+' SAR'; }
-        else if(kt==='Invoices'||kt==='عدد الفواتير'){ vv.textContent=String(nInv); }
+        if(kt==='Invoices'||kt==='عدد الفواتير'){ vv.textContent=String(nInv); }
       }
     }catch(e){ if(window.console)console.warn('[v29] fin snapshot',e); }
   }
