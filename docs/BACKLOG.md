@@ -1,5 +1,63 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-21 · Specs 6/7/8 — money placement, password-free RLS/nav tests, Undo + real audit log
+
+Full authority handed off for this batch ("Abdulrahman is stepping out of the loop... you
+have full authority to implement and push"); implemented, verified in the harness EN+AR
+and/or directly against live Postgres, and pushed on this branch — `d8a17e9` (Spec 6),
+`1274beb` (Spec 7 + 8). Full write-up in each commit message; the short version and what's
+still open:
+
+**Spec 6 — money really is off Leads/Clients now.** The report's own earlier "already
+money-free" check was broken (clicked `<tr>` elements that aren't clickable, so it silently
+re-scanned the same stale list). Fixed the four named files, and found two more violations
+the report's manual scan missed by grepping every file gated on `current==='leads'/'clients'`
+for money strings: `core-02-leads.js`'s "Billed (invoices)"/"Booked value" rows, and a
+credit-utilization card in `core-07-v22-v24.js` printing Used/Available/Limit in SAR on any
+lead/client with a credit line (kept the card, stripped the three amount rows — the
+percentage bar and blocked/warning banner aren't money). `check-structure.mjs` rule 7 now
+fails the build on these strings in the four named files; `probe-money-placement.mjs` proves
+it live across all 5 views, EN+AR, and fails loudly rather than silently if a view didn't
+actually render (leadDashboard is currently unreachable through normal navigation — its
+toggle button is `display:none` and nothing routes `leadDetailView` to it — so the probe
+calls it directly to still cover it; flagged, not fixed, since restoring that toggle is a
+product decision outside this spec).
+
+**Spec 7 — real RLS and real nav, no passwords, no new accounts.** `rls-matrix.sql` runs
+inside one `BEGIN...ROLLBACK` as real existing users (role-flipping one existing account for
+bd/operations/viewer, never creating one) — 33 real checks, 0 fail, 9 honest N/A where no
+role has live data to test. **Found live**: `emp-rig.mjs`'s `DB_EXPECT` says team_member's
+`finance_expenses`/`finance_invoices` should be 0 — every real team_member account today has
+`page_access.finance='editor'`, so it should be 1. That matrix is stale; worth a fix
+whenever someone's next in that file. `probe-role-nav.mjs` drives the mock as any of the 6
+roles (new `MOCK_ROLE`/`MOCK_PAGE_ACCESS` env vars in `mock-supabase.mjs`) and reads only
+visible nav — 6/6 match. **Found live**: neither `activity` nor `archive` has a nav button
+anywhere in the app (grep confirms — reachable only by direct URL, same as this project's
+deep-link convention), and `window.mayOpenPage()` is defined but never called by anything —
+nothing client-side blocks a direct URL visit to a forbidden page. The real backstop is
+server-side RLS, and it's uneven: finance/settings/activity are the three pages
+`js/56-access-matrix.js` itself calls "the database also enforces," but `archive` isn't on
+that list, and the `businesses` table's own SELECT policy has no per-page restriction at
+all. Not fixed — flagged as a product question (is Archive meant to be open to any signed-in
+employee?), not assumed to be a bug.
+
+**Spec 8 — Undo + the real who-did-what log.** Database side was already live; verified
+directly against Postgres (table, all 5 tables' triggers, the RLS read policy, and the
+function body including its exact refusal strings) before writing the app side against it.
+New `js/63-undo-and-real-audit.js`: `window.undoRecordChange()` shows the database's answer
+verbatim (Arabic for the known fixed refusal set, verbatim for anything else); Activity &
+Audit fully replaced to read `record_history` instead of the old browser-written,
+800-capped `DB.audit`; a "Recent changes" card on the lead/client detail page (not
+duplicated across all five tracked tables — Activity & Audit already covers those). The
+24-hour window and every permission rule are answered by the database, never computed in the
+browser. Verified in the harness: all four action shapes render correctly, clicking Undo
+round-trips through the RPC live, Arabic shows translated text.
+
+**Also verified while in there, not built:** the credit-note fix and `finance_reconciliation_gaps`
+view mentioned as "already live" — confirmed: `finance_reconciliation_gaps` returns 0 rows,
+and the security advisor shows 0 errors (only pre-existing WARN/INFO items unrelated to
+today's work).
+
 ## 2026-08-21 · Spec 5 proposal — split probe-roles, retire personal staff passwords from the RLS suite
 
 Proposal (not yet built — logged for the Phase 3 decision it's aimed at), independently
