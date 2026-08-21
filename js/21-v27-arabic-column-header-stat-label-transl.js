@@ -9,6 +9,7 @@
     'Area':'المنطقة','Authority':'صلاحية الإصدار','Availability source':'مصدر التوفر',
     'Booking':'الحجز','Business':'المنشأة','Channels':'القنوات','City':'المدينة',
     'Client':'العميل','Client since':'عميل منذ','Contacts':'جهات الاتصال','Coupons':'الكوبونات',
+    'Health':'الصحة',
     'Date':'التاريخ','Date · Hijri':'التاريخ · هجري','Dates':'التواريخ','Dunning':'التحصيل',
     'Event':'الفعالية','Fare+tax':'الأجرة + الضريبة','Flags':'مؤشرات','Funnel':'المسار',
     'Inv':'فواتير','Invoice #':'رقم الفاتورة','KSA BSP':'BSP السعودية','Last activity':'آخر نشاط',
