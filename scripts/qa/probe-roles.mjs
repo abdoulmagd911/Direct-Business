@@ -6,13 +6,24 @@ import { openApp, signIn, ready, signOut, go, viewText, TEAM } from './emp-rig.m
 const LOG = [];
 const STEP = (n, ok, d = '') => { LOG.push(`${ok ? 'PASS' : 'FAIL'} · ${n}${d ? ' — ' + d : ''}`); console.log(LOG[LOG.length - 1]); };
 
-/* what the DATABASE must allow per role — the wall that actually matters */
+/* what the DATABASE must allow per role — the wall that actually matters.
+   team_member's finance_expenses/finance_invoices corrected 2026-08-21: this table said 0,
+   but finance_expenses/finance_invoices are gated on can_edit_page('finance'), a SEPARATE
+   mechanism from the role-enum checks the other columns use — and every one of the 7 real
+   team_member accounts in the live database has page_access.finance='editor' (checked
+   directly, not assumed). The old 0 was true under an earlier access model and went stale
+   when page_access was introduced; a test asserting the wrong thing is worse than no test,
+   since it reads as proof. bd/operations/viewer are left as they were — no real account
+   holds those roles today (verified), so there is no live page_access to check them
+   against; see scripts/qa/rls-matrix.sql for how those three are covered instead (role-flip
+   on a real account inside a rolled-back transaction, N/A on the finance/settings columns
+   specifically rather than a guessed value). */
 const DB_EXPECT = {
   admin:       { businesses: 1, app_offers: 1, app_requests: 1, activities: 1, finance_expenses: 1, finance_invoices: 1, app_settings: 1 },
   manager:     { businesses: 1, app_offers: 1, app_requests: 1, activities: 1, finance_expenses: 1, finance_invoices: 1, app_settings: 1 },
   bd:          { businesses: 1, app_offers: 1, app_requests: 1, activities: 1, finance_expenses: 0, finance_invoices: 0, app_settings: 0 },
   operations:  { businesses: 0, app_offers: 0, app_requests: 1, activities: 1, finance_expenses: 0, finance_invoices: 0, app_settings: 0 },
-  team_member: { businesses: 1, app_offers: 1, app_requests: 1, activities: 1, finance_expenses: 0, finance_invoices: 0, app_settings: 0 },
+  team_member: { businesses: 1, app_offers: 1, app_requests: 1, activities: 1, finance_expenses: 1, finance_invoices: 1, app_settings: 0 },
   viewer:      { businesses: 0, app_offers: 0, app_requests: 0, activities: 0, finance_expenses: 0, finance_invoices: 0, app_settings: 0 },
 };
 const TIER = { admin: 'admin', manager: 'manager', bd: 'team', operations: 'team', team_member: 'team', viewer: 'viewer' };

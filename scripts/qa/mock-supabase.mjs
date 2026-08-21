@@ -179,6 +179,14 @@ export function start(port, seedOverrides){
         row.undone_at=new Date().toISOString(); row.undone_by=UID;
         return send(res,200, JSON.stringify('ok'));
       }
+      // page-access enforcement (2026-08-21): log_page_denied(p_page) appends a real row so
+      // the harness can prove the client actually calls it, not just that it redirects.
+      if(fn==='log_page_denied'){
+        const me=TABLES.app_users.find(u=>u.id===UID && u.active);
+        const nextId=Math.max(0,...TABLES.record_history.map(r=>r.id))+1;
+        TABLES.record_history.push({id:nextId,at:new Date().toISOString(),actor:UID,actor_name:(me&&me.full_name)||'unknown',table_name:'access',record_id:'mock-'+nextId,action:'denied',before_row:null,after_row:{page:parsed&&parsed.p_page},undone_at:null,undone_by:null});
+        return send(res,200, {});
+      }
       // Real PostgREST answers a SET-returning function with a JSON array, not an object —
       // {} for every RPC (the old default here) let callers whose guard only checked
       // truthiness (not Array.isArray) pass a non-array to .forEach and throw on every page.
