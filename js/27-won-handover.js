@@ -20,24 +20,59 @@
 (function(){try{
   if(!window.renderLeadDetail) return;
   function fl(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;}
-  /* One real company = several Direct Payments accounts (Prepaid/Postpaid/Tender).
-     Edit them as one line: "101 Prepaid, 102 Postpaid, 103 Tender". */
-  window.v34EditAccounts=function(id){try{
+  function client(){ try{return window.fc?fc():null;}catch(_){return null;} }
+  var TYPE_LBL={prepaid:['Prepaid','مسبق الدفع'],postpaid:['Postpaid','آجل الدفع'],tender:['Tender','مناقصة']};
+  function typeLbl(t){var e=TYPE_LBL[t]||[t,t];return fl(e[0],e[1]);}
+
+  /* client_profiles (Phase 1, 2026-08-21): the real schema behind "one company = several
+     Direct Payments billing accounts". Replaces the old free-text b.billingAccounts blob.
+     The select list is deliberately narrow — it never fetches tender_amount_sar /
+     expected_cogs_sar / expected_gp_sar / credit_limit_sar, so those money columns can
+     never end up rendered on the Clients page even by accident (owner ruling 2026-08-21:
+     the Clients page shows identity only — type badge + client ID + payment terms, no
+     figures). Those columns exist in the table for the Finance page to read separately. */
+  var CP={rows:null,loading:false,byBiz:{}};
+  window.CP=CP;
+  function cpLoad(cb){
+    if(CP.loading)return; CP.loading=true;
+    var c=client(); if(!c){CP.loading=false;return;}
+    c.from('client_profiles').select('id,business_id,direct_client_id,profile_type,status,payment_terms,billing_cycle,opened_at,closed_at')
+      .order('opened_at',{ascending:true}).then(function(r){
+        CP.loading=false;
+        if(r.error){ if(window.console)console.warn('client_profiles load',r.error); CP.rows=[]; }
+        else { CP.rows=r.data||[]; }
+        CP.byBiz={};
+        (CP.rows||[]).forEach(function(p){ (CP.byBiz[p.business_id]=CP.byBiz[p.business_id]||[]).push(p); });
+        cb&&cb();
+      });
+  }
+  window.cpLoad=cpLoad;
+
+  window.v34AddProfile=function(id){try{
     var b=getLead(id); if(!b)return;
-    var cur=(b.billingAccounts&&b.billingAccounts.length)?b.billingAccounts.map(function(a){return a.id+(a.mode?(' '+a.mode):'');}).join(', '):(b.directClientId||'');
-    var v=prompt(fl('Billing accounts in Direct Payments — one per company registration, format: 101 Prepaid, 102 Postpaid, 103 Tender','حسابات الفوترة في مدفوعات دايركت — مثال: 101 Prepaid, 102 Postpaid'),cur);
-    if(v===null)return;
-    var MODES={prepaid:'Prepaid',postpaid:'Postpaid',tender:'Tender'};
-    var list=String(v).split(',').map(function(s){return s.trim();}).filter(Boolean).map(function(s){
-      var m=s.match(/^(\S+)\s*(\S*)$/)||[]; var mode=MODES[String(m[2]||'').toLowerCase()]||'';
-      return {id:String(m[1]||s),mode:mode};
-    });
-    b.billingAccounts=list;
-    if(list.length&&!b.directClientId)b.directClientId=list[0].id;
-    if(typeof silentSave==='function')silentSave(save);else save();
-    if(typeof render==='function')render();
-  }catch(e){if(window.console)console.warn('v34EditAccounts',e);}};
-  window.v34AddDirectId=function(id){try{var b=getLead(id);if(!b)return;var v=prompt(fl('Direct client ID (from Direct Payments):','معرّف العميل في نظام دايركت:'),b.directClientId||'');if(v===null)return;b.directClientId=String(v).trim();if(typeof silentSave==='function')silentSave(save);else save();if(typeof render==='function')render();}catch(e){}};
+    var bizUuid=(window.__bizUuid?window.__bizUuid(id):id);
+    openModal(fl('Add billing profile','إضافة ملف فوترة'),
+      '<div class="ch-sub">'+fl('One company can hold several Direct Payments profiles — one Prepaid, one Postpaid, and a new one for each Tender.','شركة واحدة قد يكون لها أكثر من ملف في مدفوعات دايركت — ملف واحد لمسبق الدفع، وملف لآجل الدفع، وملف جديد لكل مناقصة.')+'</div>'+
+      '<div class="grid2"><div class="field"><label>'+fl('Direct client ID','معرّف العميل في دايركت')+'</label><input id="cp_id" placeholder="'+fl('e.g. 95','مثال: 95')+'"></div>'+
+      '<div class="field"><label>'+fl('Profile type','نوع الملف')+'</label><select id="cp_type"><option value="prepaid">'+fl('Prepaid','مسبق الدفع')+'</option><option value="postpaid">'+fl('Postpaid','آجل الدفع')+'</option><option value="tender">'+fl('Tender','مناقصة')+'</option></select></div></div>'+
+      '<div class="grid2"><div class="field"><label>'+fl('Payment terms','شروط الدفع')+'</label><input id="cp_terms" placeholder="'+fl('e.g. Net 30','مثال: 30 يومًا')+'"></div>'+
+      '<div class="field"><label>'+fl('Billing cycle','دورة الفوترة')+'</label><input id="cp_cycle" placeholder="'+fl('e.g. Monthly','مثال: شهري')+'"></div></div>'+
+      '<div class="ch-sub">'+fl('Money for this profile (tender amount, expected COGS/GP, credit limit) is entered and read on the Finance page — not here.','أرقام هذا الملف (قيمة المناقصة، التكلفة والربح المتوقعان، حد الائتمان) تُدخل وتُعرض في صفحة المالية — وليس هنا.')+'</div>',
+      function(){
+        var did=(val('cp_id')||'').trim();
+        if(!did){ alert(fl('Enter the Direct client ID.','أدخل معرّف العميل في دايركت.')); return false; }
+        var c=client(); if(!c){ alert(fl('Not connected — try again.','غير متصل — حاول مجددًا.')); return false; }
+        c.from('client_profiles').insert({
+          business_id:bizUuid, direct_client_id:did, profile_type:val('cp_type'),
+          payment_terms:val('cp_terms')||null, billing_cycle:val('cp_cycle')||null,
+          status:'active', source:'manual'
+        }).then(function(r){
+          if(r.error){ alert(fl('Could not save: ','تعذر الحفظ: ')+r.error.message); return; }
+          CP.rows=null; cpLoad(function(){ if(typeof render==='function')render(); });
+        });
+      });
+  }catch(e){if(window.console)console.warn('v34AddProfile',e);}};
+
   var _rld=window.renderLeadDetail;
   window.renderLeadDetail=function(v,id){
     _rld.apply(this,arguments);
@@ -46,25 +81,26 @@
       var b=(typeof getLead==='function')?getLead(id):null; if(!b||!b.isClient)return; // clients only
       var view=document.getElementById('view'); if(!view||view.querySelector('.v34-link'))return;
       var grid=view.querySelector('.detail-grid'); if(!grid||!grid.parentNode)return;
-      // One real company can hold SEVERAL billing accounts in Direct Payments
-      // (prepaid / postpaid / tender are separate 'companies' there because the
-      // system cannot change an invoice type). b.billingAccounts = [{id,mode}].
-      var accts=(b.billingAccounts&&b.billingAccounts.length)?b.billingAccounts:((b.directClientId&&String(b.directClientId).trim())?[{id:String(b.directClientId),mode:''}]:[]);
+      if(CP.rows==null){ cpLoad(function(){ try{if(typeof render==='function')render();}catch(_){} }); return; }
+      var bizUuid=(window.__bizUuid?window.__bizUuid(id):id);
+      var accts=CP.byBiz[bizUuid]||[];
       var linked=accts.length>0;
-      var MODE_AR={'Prepaid':'مسبق الدفع','Postpaid':'آجل الدفع','Tender':'مناقصة'};
-      var acctHtml=accts.map(function(a2){return '<span class="tag" style="background:#E7F8EF;color:#0F6E56;font-weight:700">#'+esc(String(a2.id))+(a2.mode?(' · '+esc(fl(a2.mode,MODE_AR[a2.mode]||a2.mode))):'')+'</span>';}).join(' ');
+      var acctHtml=accts.map(function(a2){
+        var extra=[a2.payment_terms,a2.billing_cycle].filter(Boolean).join(' · ');
+        var suspended=a2.status&&a2.status!=='active';
+        return '<span class="tag" style="background:'+(suspended?'#F0453A14':'#E7F8EF')+';color:'+(suspended?'#D92D20':'#0F6E56')+';font-weight:700">'+typeLbl(a2.profile_type)+' · #'+esc(String(a2.direct_client_id))+(extra?(' · '+esc(extra)):'')+(suspended?(' · '+esc(fl('Suspended','موقوف'))):'')+'</span>';
+      }).join(' ');
       var el=document.createElement('div'); el.className='v34-link card';
       el.style.cssText='padding:11px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-inline-start:3px solid '+(linked?'#16B364':'#F79009');
       if(linked){
         el.innerHTML='<span style="font-size:15px">🔗</span><span style="font-weight:700;color:#0F6E56">'+fl('Linked to Direct','مرتبط بدايركت')+'</span>'+
-          '<span style="color:var(--muted);font-size:12.5px">'+fl(accts.length>1?'billing accounts':'client','حسابات الفوترة')+'</span> '+acctHtml+'<span style="flex:1"></span>'+
-          '<a class="chiplink" href="'+((b.directClientId&&typeof pdClientLink==='function')?pdClientLink(b.directClientId):(typeof pdLink==='function'?pdLink(b):'#'))+'" target="_blank" rel="noopener">'+fl('Open in Direct Payments ↗','افتح في مدفوعات دايركت ↗')+'</a>'+
-          ' <button class="btn ghost sm" onclick="v34EditAccounts(\''+id+'\')">'+fl('Billing accounts','حسابات الفوترة')+'</button>'+
-          ' <button class="btn ghost sm" onclick="v34AddDirectId(\''+id+'\')">'+fl('Edit','تعديل')+'</button>';
+          '<span style="color:var(--muted);font-size:12.5px">'+fl(accts.length>1?'billing profiles':'profile','ملفات الفوترة')+'</span> '+acctHtml+'<span style="flex:1"></span>'+
+          '<a class="chiplink" href="'+((accts[0]&&typeof pdClientLink==='function')?pdClientLink(accts[0].direct_client_id):(typeof pdLink==='function'?pdLink(b):'#'))+'" target="_blank" rel="noopener">'+fl('Open in Direct Payments ↗','افتح في مدفوعات دايركت ↗')+'</a>'+
+          ' <button class="btn ghost sm" onclick="v34AddProfile(\''+id+'\')">'+fl('+ Add profile','+ إضافة ملف')+'</button>';
       } else {
         el.innerHTML='<span style="font-size:15px">⚠️</span><span style="font-weight:700;color:#B54708">'+fl('Not linked to Direct yet','غير مرتبط بدايركت بعد')+'</span>'+
-          '<span style="color:var(--muted);font-size:12.5px">'+fl('Add the Direct client ID so finance & invoices connect.','أضف معرّف العميل في دايركت لربط الفواتير والمالية.')+'</span><span style="flex:1"></span>'+
-          '<button class="btn pri sm" onclick="v34AddDirectId(\''+id+'\')">'+fl('+ Add Direct ID','+ أضف معرّف دايركت')+'</button>';
+          '<span style="color:var(--muted);font-size:12.5px">'+fl('Add a billing profile so finance & invoices connect.','أضف ملف فوترة لربط الفواتير والمالية.')+'</span><span style="flex:1"></span>'+
+          '<button class="btn pri sm" onclick="v34AddProfile(\''+id+'\')">'+fl('+ Add profile','+ إضافة ملف')+'</button>';
       }
       grid.parentNode.insertBefore(el,grid);
     }catch(e){if(window.console)console.warn('[v34] link',e);}},60);

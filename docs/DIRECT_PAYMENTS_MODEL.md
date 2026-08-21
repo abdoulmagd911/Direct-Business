@@ -505,3 +505,48 @@ is not itself a display permission.
 
 **Not yet changed:** docs only. Still open, waiting on Abdulrahman directly: whether tender
 figures may render on the Clients page at all, and the Overdue aging threshold from Round 8.
+
+## ROUND 11 — both open items closed by Abdulrahman; Phase 1 built (2026-08-21)
+
+**Tender display — answered, no exception.** *"If you mean that this series under show on the
+client page, no... the client here is the whole company... for the finance reports and page
+we are building, it should show one company only, and the rest under it. So we can clarify if
+this invoice is tender or prepaid or postpaid."* Settles Round 10's open question in full:
+- **Clients page = identity only, full stop.** Tender amount, Expected COGS, Expected GP —
+  and, Abdulrahman confirmed unprompted, **no other money either**: no revenue, cost, profit,
+  deal value, wallet or outstanding figure anywhere on it. The page is the company record
+  (identity, agreement, documents); profiles sit under it as identity rows — type badge +
+  Direct client ID + payment terms — never a figure. This is stricter than Phase 2's original
+  design (BLUEPRINT.md), which had put a billed/received/outstanding/cost/profit/margin/credit
+  strip on the client card — that strip is now removed from the Clients page as a direct
+  consequence of this ruling, not a separate decision.
+- **Finance page = company is the primary row, profiles nest under it, every row labelled.**
+  "One company only, and the rest under it" — so the company-grouped view (already the default
+  in the Spec 2 planning) is not merely the default, it is the shape; a profile-level
+  drill-down may stay as a secondary view if cheap. Every invoice/transaction row must carry a
+  visible prepaid/postpaid/tender label, in every view and every export — not optional.
+
+**Overdue aging threshold — answered: mirror, never invent.** Abdulrahman, from the live
+Corporate Expenses page: it already has its own **Overdue column** — a live countdown while a
+deadline is running ("8 hours left" etc.) and a breached flag once it passes ("1 Overdue"; 11
+of 72 corporate expense invoices showed it live). So Direct Payments already computes both the
+deadline and the breach — Round 8's "app-side aging judgement" framing is **wrong and
+retracted**. The rule, same principle as Expense Status `Ready` and "Direct Payments stays the
+system of record": **where the source already computes a state, we mirror it, we never
+recompute it.**
+1. Import the overdue flag as a mirrored field — never derive it from a days-since-created rule
+   of our own.
+2. **No hardcoded N-day constant, anywhere.** An invented threshold will silently disagree with
+   what Direct Payments shows the same person on the same invoice — exactly the class of bug
+   that erodes trust in a finance page.
+3. Until the import path for this field exists, model it and leave it **null** — null means
+   "not yet mirrored," never "not overdue." Do not default it to false/zero.
+4. The countdown text is presentation, not data. If the deadline timestamp itself isn't in the
+   export, mirror the boolean flag alone and show it without a countdown rather than
+   recomputing one.
+
+**Both items Round 8/9/10 left open are now closed.** Phase 1 (Company/Client-Profile schema,
+linking, Clients page rebuild, Corporate Clients import) was built the same session — see
+`docs/BACKLOG.md` for the schema shape, the real import (24 profiles / 19 companies from the
+verified Corporate Clients registry, Takamol excluded), and what got removed from the Clients
+page to match this ruling.

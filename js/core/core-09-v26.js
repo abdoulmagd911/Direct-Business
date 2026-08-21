@@ -1242,16 +1242,13 @@
            screen. (2026-08-16, found by the owner testing the live page.) */
         try{
           var vis=[].slice.call(view.querySelectorAll('tbody tr')).filter(function(tr){
-            return tr.style.display!=='none' && tr.hasAttribute('data-billed');
+            return tr.style.display!=='none' && tr.hasAttribute('data-client-row');
           });
           var n=vis.length,
-              key=vis.filter(function(tr){return tr.getAttribute('data-key')==='1';}).length,
-              sar=vis.reduce(function(a,tr){return a+(Number(tr.getAttribute('data-billed'))||0);},0);
+              key=vis.filter(function(tr){return tr.getAttribute('data-key')==='1';}).length;
           var setv=function(id,val){var e=document.getElementById(id); if(e)e.textContent=val;};
-          var short=(window.moneyShort)?moneyShort(sar):Math.round(sar).toLocaleString('en-US');
           setv('cl_kv_count', String(n));
           setv('cl_kv_key',   String(key));
-          setv('cl_kv_billed', short+' SAR');
         }catch(e){if(window.console)console.warn('[v26.3] client counters',e);}
         return;
       }

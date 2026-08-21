@@ -51,6 +51,15 @@ const TABLES={
   finance_client_links:[
     {id:'fl0',client_group:'Test Company 4',business_id:'b4',is_client:true,note:'auto: test',confirmed_by:'system',confirmed_at:'2026-08-10T00:00:00Z',created_at:'2026-08-10T00:00:00Z',updated_at:'2026-08-10T00:00:00Z'},
     {id:'fl1',client_group:'Test Company 5',business_id:'b4',is_client:true,note:'dup spelling → same client',confirmed_by:'system',confirmed_at:'2026-08-10T00:00:00Z',created_at:'2026-08-10T00:00:00Z',updated_at:'2026-08-10T00:00:00Z'}
+  ],
+  // client_profiles fixture (Phase 1, 2026-08-21): identity rows only — no money columns,
+  // matching what the real select actually asks for. b0 = one Tender profile; b4 = a
+  // Prepaid + Postpaid pair, so the harness exercises both the single- and multi-profile
+  // rendering paths on the client card.
+  client_profiles:[
+    {id:'cp0',business_id:'b0',direct_client_id:'95',profile_type:'tender',status:'active',payment_terms:null,billing_cycle:null,opened_at:'2026-05-19',closed_at:null},
+    {id:'cp1',business_id:'b4',direct_client_id:'12',profile_type:'prepaid',status:'active',payment_terms:null,billing_cycle:'Manual',opened_at:'2026-03-01',closed_at:null},
+    {id:'cp2',business_id:'b4',direct_client_id:'13',profile_type:'postpaid',status:'active',payment_terms:'Net 30',billing_cycle:'Monthly',opened_at:'2026-03-05',closed_at:null}
   ]
 };
 const RPCLOG=[];

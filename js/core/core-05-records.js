@@ -119,7 +119,7 @@ function corpCard(b){
   <div class="fact"><span class="k">Entity type</span><span class="v">${b.entityType?'<span class="tag gov">'+esc(b.entityType)+'</span>':'—'}</span></div>
   <div class="fact"><span class="k">Legal name / CR·VAT</span><span class="v">${esc(b.legalName||b.nameAr||'—')}${b.crVat?(' · '+esc(b.crVat)):''}</span></div>
   <div class="fact"><span class="k">Account manager</span><span class="v">${esc(b.accountManager||b.owner||'—')}</span></div>
-  <div class="fact"><span class="k">Payment terms</span><span class="v">${esc(b.paymentTerms||'—')}${b.creditLimit?(' · credit '+esc(b.creditLimit)):''}</span></div>
+  <div class="fact"><span class="k">Payment terms</span><span class="v">${esc(b.paymentTerms||'—')}${(b.creditLimit&&!b.isClient)?(' · credit '+esc(b.creditLimit)):''}</span></div>
   <div class="fact"><span class="k">Contract</span><span class="v">${esc(b.contractStart||'—')}${b.contractEnd?(' → '+esc(b.contractEnd)):''}${b.contractSLA?(' · SLA: '+esc(b.contractSLA)):''}</span></div>
   ${b.contractScope?`<div class="fact"><span class="k">Scope</span><span class="v">${esc(b.contractScope)}</span></div>`:''}
   ${b.prefs?`<div style="margin-top:9px"><div class="sub-h">Travel policy & preferences</div><p style="margin:0;font-size:12.5px;color:#3a4054;line-height:1.55;white-space:pre-line">${esc(b.prefs)}</p></div>`:''}

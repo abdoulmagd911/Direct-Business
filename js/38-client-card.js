@@ -29,6 +29,12 @@
       var head=view.querySelector('.detail-head'); if(!head)return;
       if(view.querySelector('.v29-fin'))return; // already injected this render
       var biz=(typeof getLead==='function')?getLead(openLead):null; if(!biz||!biz.name)return;
+      // The Clients page shows no money at all — no revenue, cost, profit, deal value,
+      // wallet or outstanding figure, anywhere (owner ruling 2026-08-21). That money now
+      // lives on the Finance page, one company with its profiles nested underneath. A lead
+      // that isn't a client yet (rare invoice-mined match) still gets this snapshot — it's
+      // on the Leads page, not the Clients page.
+      if(biz.isClient)return;
       // finance data loads async; kick it off once, re-render when ready
       var FIN=window.FIN, finLoad=window.finLoad;
       if(!FIN)return;

@@ -49,17 +49,33 @@ funnel-specific data filled for only 483 of 1,013 leads (data task, post-reset).
 **Done means:** a bd user can add, work, and close a lead start-to-finish with no dead
 control and no English leftovers in Arabic.
 
-## Phase 2 — Clients ✅ (data tasks wait for reset)
+## Phase 2 — Clients ✅ (data tasks wait for reset) — money strip corrected 2026-08-21
 Won auto-converts to client; columns decided (Next review + Tier); client card = the
-storage unit: contacts, comments, work log, finance strip (billed/received/outstanding +
-cost/profit/margin%/credit inside the card), billing accounts modeled (one company =
-several Direct Payments IDs: Prepaid/Postpaid/Tender chips), jump-bar on long cards.
+storage unit: contacts, comments, work log, jump-bar on long cards.
 **Waiting on data, not code:** client re-verification (all were reset to leads 08-08);
 Drive consolidation. **Communication capture (owner asked, 2026-08-11):** the Log-activity
 box is now a paste-in capture (Call/WhatsApp/Email/Meeting/Teams-Zoom-Meet types, big
 paste box) — the team pastes the conversation and it joins the company's story. A full
 automatic inbox integration is a separate future project, NOT in current scope.
-**Done means:** one card per real company holding everything the team knows about it.
+**Correction, 2026-08-21 (owner ruling, see Phase 1 below):** the original "finance strip
+(billed/received/outstanding + cost/profit/margin%/credit inside the card)" line above is
+now WRONG and was removed from the app — the Clients page shows no money, full stop; that
+strip now lives only on the Finance page. Billing accounts are no longer a free-text
+Prepaid/Postpaid/Tender chip list — they are the real `client_profiles` table (Phase 1),
+shown as identity-only rows (type badge + Direct client ID + payment terms).
+**Done means:** one card per real company holding everything the team knows about it, with
+no money on it anywhere.
+
+## Phase 1 (retro-numbered) — Company/Client-Profile schema ✅ 2026-08-21
+One company (`businesses`, unchanged) can hold several Direct Payments billing profiles —
+one Prepaid, one Postpaid, one PER tender, never merged. Real table `client_profiles` (RLS,
+append-only-once-closed tender amounts, one-live-profile cap on Prepaid/Postpaid) replaces
+the old `billingAccounts` free-text blob. Real Corporate Clients registry imported: 24
+profiles / 19 companies, Takamol excluded, kept separate from the synthetic 30-lead training
+world on purpose. Full detail: `docs/BACKLOG.md` 2026-08-21, `docs/DIRECT_PAYMENTS_MODEL.md`
+Round 11. **Done means:** the Clients page is identity-only and the schema is real, not a
+text blob — both verified true. **Still open:** the Finance page's own company-grouped
+rebuild (Spec 2) — a separate next phase, not done in this pass.
 
 ## Phase 3 — Finance ✅
 The upgrade of the owner's Executive Dashboard. Two tabs: **Performance** (period bar
