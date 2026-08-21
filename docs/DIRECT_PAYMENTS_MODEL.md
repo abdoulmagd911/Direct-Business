@@ -677,3 +677,43 @@ zero-because-inapplicable must never render identically.
 **Open question for Abdulrahman, not guessed at:** whether Corporate Transactions/Invoices'
 "Filter & Download Excel" output carries more columns than the on-screen table (a client column
 could be Excel-only) — checkable in one click from his side; not downloaded here on purpose.
+
+## ROUND 15 — the real export catalogue: eleven types, not six; COGs confirmed empty on a
+second independent line of evidence (2026-08-21)
+
+Direct Payments has an Excel Exports registry (`/en/admin/excel-exports`) — every export ever
+run, with id/name/filename/**row count**/status/timestamps, 100 rows of history. Not seen before
+this round (an earlier read of this page was a false negative — checked before it finished
+rendering, same proxy-check family as this session's other corrections).
+
+**The catalogue, by row count, with run count:** Invoice Export 544,541 (66 runs) · Revenue
+Report Export 72,875 (1) · Transaction Expense Export 70,682 (2) · Expense Export 70,679 (4) ·
+Expense Invoice Export 52,445 (4) · GMV Transaction Breakdown 20,889 (3) · Corporate Client
+Dashboard Invoices Export 44 (8) · Corporate Clients Export 43 (5) · Promo Code Invoice Export
+27 (3) · Expense GMV Export 13 (2) · **COG Report Export 0 rows, both times it was run (2).**
+
+**Two consequences:**
+1. **COGs-empty is now settled on two independent lines of evidence** — Round 13's live filter
+   test (every combination returned zero) and this registry (the export itself has produced
+   zero rows on both actual runs). Not a filter-parameter or session artefact; the report is
+   genuinely empty. Corporate Expenses (View Assignments) stays the one verified cost source
+   (Round 13) — unchanged by this round, just more certain.
+2. **The expense ledger exists in bulk, just never needed the Corporate Expenses UI as its
+   long-term source.** Transaction Expense Export and Expense Export each carry ~70,000 rows —
+   real bulk exports of exactly the data Round 6/7/13 have been reasoning about one screen at a
+   time. Column sets are **not yet verified** (the registry lists filenames and row counts only,
+   not headers, and downloading a file was deliberately not done this round) — Transaction
+   Expense Export is a strong-hint name for the transaction↔expense relationship the cost model
+   needs, not a confirmed mapping.
+
+**For the future import engine (item 4 territory — not being built yet):** the real catalogue
+is **eleven export types**, not the six originally assumed for the column-signature registry.
+Design against what exists, not the earlier assumption. Invoice Export is the workhorse at
+544,541 rows / 66 runs — any bulk importer must stream or chunk, never assume a small file.
+Revenue Report Export (72,875 rows, never modelled before) may be the cleanest revenue source
+and is worth a header check too.
+
+**Standing rule, owner-set:** do not ask Abdulrahman to open or check anything that can be
+tested first — verify from the reachable UI, then report, never guess. Column-set verification
+for Transaction Expense Export / Expense Export / Revenue Report Export is next, from the
+reachable UI, without downloading files, before any import code is written against them.
