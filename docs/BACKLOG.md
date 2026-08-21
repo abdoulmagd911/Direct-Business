@@ -1,5 +1,46 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-21 · Spec 5 proposal — split probe-roles, retire personal staff passwords from the RLS suite
+
+Proposal (not yet built — logged for the Phase 3 decision it's aimed at), independently
+checked against the actual files before agreeing: 47 of `scripts/qa/`'s 51 probe scripts
+import `emp-rig.mjs`, which signs in as one of five real employees (Othman, Raad, Kareem,
+Assem, Mohammed) using their actual working passwords, read from `DB_PW_*` env vars that
+Abdulrahman has to hand out. Only the 4 mock-only scripts (`sweep-pages`, `sweep-language`,
+`probe-events`, `probe-events-scale`) run without them. Confirmed by reading `emp-rig.mjs`
+and `probe-roles.mjs` directly — the count and the mechanism both check out.
+
+**The proposed split**, read from `probe-roles.mjs` and agreed with: it currently tests two
+different things that need different infrastructure. Wall one is what the *screen* offers per
+role (nav entries, buttons, the Import tab, the Mine filter) — pure UI gating, provably
+answerable from `mock-supabase.mjs`'s existing `app_users` fixtures with no real backend or
+secrets at all. Wall two is what the *database* actually allows (`DB_EXPECT`'s per-role write
+matrix across `businesses`, `app_offers`, `finance_expenses`, etc.) — real Postgres RLS, which
+a mock cannot honestly prove either way. Move wall one to a mock-based script so it runs on
+every change with zero secrets; keep wall two as the real-database suite.
+
+**The credential fix — agreed, and it has a direct precedent already in this repo.**
+`test@directksa.com` (role `admin`) already exists exactly for this reason — CLAUDE.md
+documents it as "created 2026-08-08 and kept deliberately" as a non-personal QA login. The
+proposal is to extend that same pattern to the other five roles (manager, bd, operations,
+team_member, viewer) as dedicated `test-*@` accounts instead of routing wall-two tests through
+Othman's, Raad's, Kareem's, Assem's, and Mohammed's real logins. That removes the only reason
+today's suite needs anyone's personal password, and stops it breaking when a staff member
+changes their password or leaves.
+
+**One scope note for whoever picks this up:** the proposal talks about "CI secrets," but this
+repo has no GitHub Actions wired up to run `scripts/qa/` today — that's a second, separate
+project (standing up CI) layered on top of "the suite is runnable at all." Don't conflate the
+two: the account split alone already fixes the actually-blocking problem (a session or a
+person other than Abdulrahman can run wall two without staff credentials); wiring an actual CI
+job is a follow-on, not a prerequisite. Also: keep the same environment-variable discipline the
+five real accounts already use for the six new ones — `test@directksa.com`'s committed
+password in CLAUDE.md is a deliberately-accepted one-off for a synthetic-data admin account,
+not a pattern to repeat five more times.
+
+Not started. Owner's framing was "when Phase 3 lands, ahead of the import engine" — logged
+here so it's a scoped, agreed plan waiting for that point, not a rediscovery.
+
 ## 2026-08-21 · Spec 4 items 1–3 — Takamol exclusion bug fixed; exclusion + grouping settings built
 
 Real bug, confirmed by reading the actual matching code before touching it: the Takamol
@@ -1775,6 +1816,43 @@ flagged first; this round had none. Closed the two items held back from round 2:
    untouched per-record functions (`openSyncLog`, `openConflict`) still exist.
 
 Regression script: `scripts/qa/verify-audit-round3-fixes.mjs`. Green.
+
+## Arabic sweep result — 2 real gaps fixed, rest triaged — 2026-08-21
+
+An independent Arabic-coverage sweep (35 raw untranslated-string hits across 9 pages) broke
+down as: ~two-thirds industry acronyms that correctly stay Latin (NDC, API, ZATCA, EMD — not
+bugs); two genuine daily-use gaps, fixed same day; and one deliberately-deferred block. Fixed:
+
+1. **Today page hero date** — rendered "Today · Aug 21, 2026" in English regardless of app
+   language. Root cause: it built the date via the shared `fmtDate()`, whose
+   `toLocaleDateString(undefined, ...)` is locale-agnostic (not tied to the app's `LANG`
+   toggle), inside a compound `<h2>` (dynamic date text + a nested Hijri `<span>`) that the
+   Arabic post-translate pass (`js/21-v27-...`) can't structurally match against a static
+   dictionary key. Fixed locally in `renderToday()` — "Today"/"اليوم" and the Gregorian date
+   now format directly against `LANG`, scoped to this one hero. `fmtDate()` itself untouched
+   (used elsewhere; changing it globally was out of scope of the reported gap).
+2. **Clients page "Health" column header** — every other header in that row (Client, Account
+   manager, Tier, Client since, Next review) was already in the v27 Arabic header dictionary;
+   `Health` alone had no entry, so it fell through untranslated. Added `'Health':'الصحة'`.
+
+Verified in the QA harness, EN+AR, zero console/JS errors. Commit `be6a22b`.
+
+**Deferred on purpose, not a launch blocker:** the 14-item developer/admin list under
+Settings (Generator templates, Re-learn from templates folder, Show learned tokens, Tag
+current state, Performance, Security & integrity, View hash report, Wipe local data,
+Accessibility audit, Internationalization, Toggle English, Developer / test harness, Run a
+day, Wipe test records) renders as literal English in Arabic. Diagnosis already done, so this
+is a ten-minute fix whenever `js/core/core-06-v18-v21.js` is next touched, not a rediscovery:
+Arabic already exists for most of it in that file's own dictionary (`'Performance':'الأداء'`,
+`'Security':'الأمان'`, `'Run a day':'تشغيل يوم اختبار'`, `'Wipe local data':'محو البيانات
+المحلية'`, …) but sits unused for two reasons, both needed together: (1) the Security card
+template (~line 1023) emits the English strings literally with no lookup wrapping them at
+all; (2) even wrapped, the rendered strings wouldn't match the dictionary keys as written —
+the heading reads "Security & integrity" against key `'Security'`, and the button reads
+"🗑 Wipe local data" (emoji prefix) against key `'Wipe local data'` — so a naive exact-key
+lookup would still miss. Whoever fixes it needs to normalise the emoji/suffix or align the
+keys, not just add a lookup call. Not fixed now because it's admin/developer tooling, not a
+screen any employee hits day to day.
 
 ## S3–S5, the full series — done, 2026-08-20
 
