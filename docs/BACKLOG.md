@@ -1,5 +1,62 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-21 · Spec 9 follow-up — chunked reading + teach-once mapping
+
+Pushed as `7b77c6e`. The owner independently verified Spec 9 by hand (harness driven directly,
+not just reading the report) and found two real things: a genuine blocker and a productive
+idea, not a bug in what shipped. Both addressed, in the order asked — chunking first,
+teach-once second.
+
+**Chunked reading.** The owner's own test of the real Invoice Export file confirmed what this
+file's own comment had flagged: 544,541 rows will not survive one FileReader pass into memory
+plus one `parseDP()` call. Every CSV drop — not just large ones — now streams through
+`file.slice()` chunks decoded by a streaming `TextDecoder` (correct across multi-byte UTF-8
+boundaries, unlike raw-byte-slice `readAsText`) into a resumable version of js/41's own CSV
+automaton. Rows batch up and flush only right before the next `invoice`/`credit_note` row —
+never mid-invoice — through js/41's unchanged, proven `parseDP()`/`toRows()`, one small batch
+at a time, yielding to the event loop between chunk reads so the tab stays responsive instead
+of freezing. Verified live with a synthetic 45,000-invoice / 10.6MB CSV: exact five-count
+preview, 900 insert batches of ≤50 totaling 45,000, an Arabic name surviving a chunk-boundary
+split intact, visible progress across multiple checkpoints (not a freeze-then-jump), and the
+owner's own idempotency test re-applied at this scale (seed `FIN.rows` with what a prior
+import would have written, re-drop the same file → New 0 / Updated 0 / Unchanged 45000).
+XLSX stays on the existing full-read path — true streaming needs a different, unverified
+library; said so honestly rather than pretending to solve it.
+
+**Teach-once mapping.** An unrecognised file now offers "Teach this file's columns" — map its
+header names to the handful of fields the importer needs (4 required: invoice/reference
+number, customer, date, total; a few more optional), saved in
+`DB.settings.importSignatureMappings` keyed by the file's signature (sorted header set). The
+next file with that exact header set imports automatically, no re-asking. Deliberately does
+NOT reproduce Direct Payments' own business rules (fee-pair math, twin pairing, wallet/
+verification exclusions) for an unknown shape — this session has never seen the other ten real
+headers to know those rules even apply the same way. It builds one row per source row from the
+mapped columns, applies the same client-exclusion rule every other path applies, and reuses
+the exact same natural-key diff / five-count preview / insert-or-update pipeline
+invoice_export already uses — one implementation, not two that could drift. Unmapped optional
+fields get an honest "pending / not yet reconciled" default, never a guessed business rule.
+Verified live end-to-end: unrecognised file → columns shown + Teach button → 4-field mapping
+saved → same file auto-reprocessed (New 2, date normalised, honest pending default, not a
+guessed "paid") → committed correctly → a second, different file with the identical header set
+auto-recognised on a fresh drop, no re-teach prompt. This is what stops the other ten Direct
+Payments signatures being a hard blocker for a determined user with a real file in hand, while
+never fabricating Direct-Payments-specific logic this session hasn't verified — the real ten
+headers themselves are still needed from Abdulrahman whenever he's back in Direct Payments
+(session expired on the owner's side while checking; not chased further, per instruction).
+
+**Found and fixed before either feature shipped** (design-time bugs, not live regressions):
+the xlsx route built its own ad-hoc fileKey instead of the one the results index was built
+with (would have made "Teach this file" silently no-op on an xlsx drop); the invoice/item
+batch-boundary check assumed the Type column always sat at position 0 (breaks the moment
+Direct Payments ships a run with different column order — their own registry doesn't
+guarantee stable order, same reasoning `detectSignature()` already uses); a dropped filename
+containing a quote character could have broken the Teach button's onclick attribute. A
+generation counter now also stops a slow file left over from an earlier drop from ever
+repainting over whatever the user has moved on to.
+
+Full regression clean throughout: check-structure (58 files), sweep-pages (0 errors, EN+AR),
+Spec 6 money-placement probe, Spec 8's page-access-enforce probe.
+
 ## 2026-08-21 · mayOpenPage() wired up for real; Spec 9 — the universal importer
 
 Pushed as `93b3224` (mayOpenPage enforcement) and `13d6864` (Spec 9). Full write-up in each
