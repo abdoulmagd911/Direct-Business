@@ -39,7 +39,7 @@
          returns display names only — no email, no role — so anyone signed in may call it. */
       c.rpc('team_nicknames').then(function(r){
         loading=false;
-        if(!r||r.error||!r.data) return;
+        if(!r||r.error||!Array.isArray(r.data)) return;
         var m={};
         r.data.forEach(function(u){
           if(!u.full_name) return;

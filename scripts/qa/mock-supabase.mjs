@@ -99,7 +99,13 @@ export function start(port, seedOverrides){
       let parsed=null; try{parsed=JSON.parse(body||'{}');}catch(_){}
       const fn=path.replace('/rest/v1/rpc/','');
       RPCLOG.push({fn, keys: parsed?Object.keys(parsed.patch||parsed.payload||{}):[], arg: parsed?Object.keys(parsed):[]});
-      send(res,200,{});
+      // Real PostgREST answers a SET-returning function with a JSON array, not an object —
+      // {} for every RPC (the old default here) let callers whose guard only checked
+      // truthiness (not Array.isArray) pass a non-array to .forEach and throw on every page.
+      // team_nicknames() is set-returning; add more names here as new set-returning RPCs
+      // are introduced. Everything else keeps the harmless {} stub.
+      const SET_RETURNING=new Set(['team_nicknames']);
+      send(res,200, SET_RETURNING.has(fn)?[]:{});
     });
   }
   if(path.startsWith('/rest/v1/')){

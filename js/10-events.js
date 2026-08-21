@@ -371,7 +371,7 @@ function loadAll(){
   if(!window.__isShareView){
     c.from('ksa_event_signups').select('*').then(function(r){
       SIGNUPS={};
-      if(!r.error&&r.data)r.data.forEach(function(x){SIGNUPS[x.event_id]=x;});
+      if(!r.error&&Array.isArray(r.data))r.data.forEach(function(x){SIGNUPS[x.event_id]=x;});
       extrasLoaded=true;
       try{if(current==='events')render();}catch(_){}
     });
