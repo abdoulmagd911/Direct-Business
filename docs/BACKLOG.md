@@ -1,5 +1,61 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-21 · mayOpenPage() wired up for real; Spec 9 — the universal importer
+
+Pushed as `93b3224` (mayOpenPage enforcement) and `13d6864` (Spec 9). Full write-up in each
+commit message; the short version and what's still open:
+
+**mayOpenPage() enforcement.** `myAllowedPages()`/`mayOpenPage()` (js/52) were defined and
+never called anywhere — a forbidden page's nav button was hidden, but a direct URL visit
+rendered it anyway. New `js/64-page-access-enforce.js` wraps `render()`: if the confirmed
+role's allowed-pages list doesn't include the current page, redirect to Today, show a plain
+EN/AR message, and log the attempt (new `log_page_denied()` DB function, one narrow
+SECURITY DEFINER exception that can only write this one action shape) so a pattern is
+visible in Activity & Audit. Gated on role being confirmed, not on the safe-floor answer, so
+a slow-loading matrix never bounces an admin. **Real bug found along the way**: supabase-js's
+`.rpc()` only actually sends its request once something calls `.then()` on it — `.catch()`
+alone silently drops the call with no error. Also corrected `probe-roles.mjs`'s stale
+`DB_EXPECT` (team_member's finance pages are `editor`, not `0`, per live data). Verified live
++ new permanent regression `probe-page-access-enforce.mjs`; full sweep clean.
+
+**Spec 9 — the universal importer, first real signature.** New `js/65-universal-importer.js`
+replaces the single-fixed-header importer with a column-SIGNATURE router: drop one or more
+Direct Payments exports at once, in any order, each routes itself by its exact header-name
+set (never a dropdown). Rows match on natural key and write in place (insert if new, update
+if changed, leave alone if unchanged — re-importing the same file twice changes nothing).
+Preview always shows the same five counts: new, updated, unchanged, excluded by rule, needs
+linking. **What's actually wired**: exactly one signature — Direct Payments' real Invoice
+Export header, reused via js/41's exposed internals. **What's deliberately not**: the other
+ten real export types (CATALOGUE records their real row/run counts and cost/client-column
+facts from the live registry, but the router honestly reports "not recognized" rather than
+guess at a header never seen) and the teach-once field-mapping UI for unknown signatures —
+both out of scope this round, per the owner's own scoping ("start with the router and the
+preview; teach-once can follow"). Three corrections to the 2026-08-20 plan are recorded in
+the file's own header comment: COG Report Export is empty and not a cost source; the real
+registry has 11 export types, not 6; Corporate Transactions/Invoices carry no client column
+at all, so the exclusion rule can't apply and the preview says so honestly instead of a
+misleading "0 excluded." Two column-encoded cost rules are documented for whoever next wires
+a real cost-source signature (transaction_expense_export etc.): cost counts only when
+CONFIRMED (invoice number present, or Expense Status=Ready); "Total Submitted Expenses" is
+never a cost figure.
+
+**Real bug found and fixed during verification, not a Playwright quirk**: the preview and
+the commit-done message were being silently wiped moments after rendering. Root cause: this
+app runs a dozen+ independent `setInterval` pollers scattered across other layers (session
+watch, nav tagging, the access-model pass, team-roster refresh, etc.), each of which
+periodically triggers the app's full `render()` chain for reasons that have nothing to do
+with the importer — and the base Finance-import tab (`js/16`) always regenerates its HTML
+from scratch with a blank `#finImpOut` on every render. A one-off `innerHTML` write is
+invisible to that; any of those unrelated timers firing a moment later wipes it clean, no
+error, nothing to grep for. Fixed by repainting the current preview/commit-result on every
+`render()` call while on the import tab — the same "survive a re-render" pattern this
+codebase's other injected cards (v33/v34/v35/v36) already use. Verified end-to-end: multi-
+file drop, the real signature detected and parsed, an unrecognized file reporting its own
+columns, the five-count preview, and — via captured outgoing request bodies, since the QA
+mock doesn't persist REST writes — a correct INSERT for a new invoice and a correct
+UPSERT(id) for one whose data changed. Full regression (check-structure, sweep-pages EN+AR,
+Spec 6/8 probes) clean throughout.
+
 ## 2026-08-21 · Specs 6/7/8 — money placement, password-free RLS/nav tests, Undo + real audit log
 
 Full authority handed off for this batch ("Abdulrahman is stepping out of the loop... you
