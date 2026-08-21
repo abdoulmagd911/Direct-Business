@@ -80,7 +80,13 @@ const TABLES={
   ],
   payment_receipts:[
     {id:'pr0',receipt_ref:'PR-QA-001',payment_method:'Bank transfer',amount_sar:42000,remaining_after_sar:0,status:'fully_applied',paid_by:'Finance ops',created_at_source:'2026-07-02T10:00:00Z',allocations:[{transaction_id:'tx0',allocated_amount_sar:42000}],source:'seed'}
-  ]
+  ],
+  // Spec 4 (2026-08-21): DB.settings loads from app_settings (v59, js/35), not the
+  // app_state blob — the harness needs its own row here or the exclusion list/grouping
+  // tool would render against an empty DB.settings.financeExclusions every run.
+  app_settings:[{id:'main',data:{lang:'en',currency:'SAR',financeExclusions:[
+    {id:'fx-qa-takamol',clientId:'7',matchNames:['Takamol for Business Services','Techtic Support'],reason:'Takamol — verification services, accounted for elsewhere',addedBy:'QA seed',addedAt:'2026-08-21T00:00:00Z'}
+  ]},updated_at:'2026-08-21T00:00:00Z',updated_by:'QA seed'}]
 };
 const RPCLOG=[];
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}

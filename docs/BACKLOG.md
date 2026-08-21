@@ -1,5 +1,45 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-21 · Spec 4 items 1–3 — Takamol exclusion bug fixed; exclusion + grouping settings built
+
+Real bug, confirmed by reading the actual matching code before touching it: the Takamol
+exclusion in `js/16-finance-ledger.js` and `js/41-money-in.js` matched free-text
+product/notes for "techtic"/"verification" — the regex never contained "takamol", so a
+Takamol invoice for any OTHER service sailed straight through, while an unrelated client's
+row that merely mentioned "verification" in its notes got wrongly excluded.
+
+**New file `js/62-finance-guardrails.js`**, wired via `index.html`, injects a settings card
+into Finance → Import (admin/manager only):
+- **Exclusion list** (item 2) — `DB.settings.financeExclusions` (the existing `app_settings`
+  store, no new infrastructure), keyed on the real Direct Payments client ID, never a name.
+  Each entry also carries `matchNames` — the practical bridge for matching today's imports,
+  which only carry a customer NAME per row (Direct Payments hasn't shipped a
+  transaction-level export with a numeric client ID yet); the ID stays the canonical record
+  for when one exists. Seeded with the real Takamol entry (client ID 7) directly in the live
+  `app_settings` row. Never silent: `window.finExclusionCheck()` is called from both
+  importers and the match (which id, why) surfaces in the import preview's count, not just an
+  aggregate. Audited: `addedBy`/`addedAt` on every entry, reversible via Remove.
+- **Company grouping** (item 3) — corrected from "merge" to **grouping**: each
+  `client_profiles` row keeps its own identity, type badge and (for Tender) its immutable
+  amount; the tool only reassigns `business_id` so several profiles roll up under one company,
+  "one company, sub details for the rest." This is the manual escape hatch the CR/VAT/domain/
+  name linking waterfall needs, since it correctly never auto-merges two Tender profiles.
+  Migration `client_profiles_grouping_audit` adds `grouped_by`/`grouped_at` — audit trail,
+  reversible by reassigning again.
+
+Fixed the two call sites: product-type exclusion (Techtic Support/Verification, applies
+regardless of client) now scans only the structured product field, never free-text notes;
+client-identity exclusion (Takamol specifically, regardless of product) is a separate check
+against the new list. Verified in the harness EN+AR: `finExclusionCheck` correctly matches
+Takamol and correctly returns null for an unrelated client name; the settings card renders
+with the seeded entry; the grouping modal explains the no-merge guarantee and lists real
+profiles. `check-structure.mjs` clean, zero console errors.
+
+**Item 4 (universal import + learned column-signature mapping), not started this pass** —
+agreed with the grouping-not-merging correction and the learned-signature approach (teach an
+unrecognised file's mapping once, remember it forever, never guess-route silently); flagged
+as the next, larger piece of Spec 4.
+
 ## 2026-08-21 · Brand Hub link on production — false alarm, verified and declined the requested fix
 
 A message this session claimed production (`claude/new-session-9fhlp1`) was missing the Brand

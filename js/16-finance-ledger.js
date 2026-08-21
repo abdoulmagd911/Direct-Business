@@ -753,7 +753,16 @@ window.finParse=function(){
       var st=o.integrity_status||'verified_paid';
       if(tot<0||/credit/i.test(o.products))st='credit_note';
       var org=String(o.origin||'').trim().toLowerCase();
-      if(/techtic|verification|توثيق/i.test(String(o.products||'')+' '+String(o.notes||'')))probs.push('verification services are accounted for elsewhere — not imported into this ledger');
+      // Product-type rule: scans only the products field, never free-text notes — an
+      // unrelated row that happens to mention "verification" in its notes must not be
+      // caught (Spec 4 item 1, 2026-08-21).
+      if(/techtic|verification|توثيق/i.test(String(o.products||'')))probs.push('verification services are accounted for elsewhere — not imported into this ledger');
+      // Client-identity rule: a SEPARATE check, by client ID via the exclusion list
+      // (js/62) — this is the actual fix for the reported bug. Excluding a company (e.g.
+      // Takamol) must never rest on which product a given row happens to be for; the old
+      // product-only regex let Takamol's non-verification invoices straight through.
+      var xhit16=(typeof window.finExclusionCheck==='function')?window.finExclusionCheck(o.client_group):null;
+      if(xhit16)probs.push('excluded client (#'+xhit16.clientId+(xhit16.reason?(': '+xhit16.reason):'')+') — not imported into this ledger');
       /* Same rule as the Direct Payments importer (js/41): wallet top-ups are never Finance
          revenue and must never enter this ledger under any label. The Excel importer already
          detects and skips them before they reach a row; this legacy CSV path had no equal
