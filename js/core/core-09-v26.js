@@ -1120,7 +1120,7 @@
       head.className='v26_3-section-head';
       head.innerHTML=
         '<div class="title-block"><h2>'+(titleText.replace(/[<>&]/g,''))+
-        ' <button class="help-dot" type="button" title="What is this section?" aria-label="What is this section?" onclick="(window.v26InjectSectionTip&&document.getElementById(\'v26TipBtn\')||{onclick:function(){}}).onclick&&document.getElementById(\'v26TipBtn\').click()">?</button></h2>'+
+        ' <button class="help-dot" type="button" title="What is this section?" aria-label="What is this section?" onclick="var t=document.getElementById(\'v26TipBtn\');if(t&&t.onclick)t.click();">?</button></h2>'+
         (subText?'<div class="sub">'+(subText.replace(/[<>&]/g,''))+'</div>':'')+'</div>'+
         ((cfg.demoteSelectors&&cfg.demoteSelectors.length)?'<button class="v26_3-insights-btn'+(insightsOpen?' active':'')+'" type="button" data-v26_3-toggle="1">'+insightsLbl+' <span style="opacity:.6">'+(insightsOpen?'▴':'▾')+'</span></button>':'');
       /* Wire the toggle */

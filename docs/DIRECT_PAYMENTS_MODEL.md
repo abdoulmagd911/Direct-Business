@@ -296,3 +296,58 @@ should stay unset/flagged, not defaulted to zero or backfilled from the item est
 computation — sum `cog_approved.amount_sar` per transaction, apply the overdue-not-zero rule
 above — is implementation work for the real-data importer, still pending, not something to
 build ahead of the Finance page spec.
+
+## ROUND 7 — a second real cost source found, and the confirmed-only rule settles how to use it (2026-08-20)
+
+A second, independent view of expense data exists inside Direct Payments and was checked
+line-by-line against several invoices before being trusted: Admin → Corporate Clients →
+Corporate Expenses, and on any row there, the 3-dot menu → "View Assignments" opens every
+expense line under that invoice (product, amount, status, submitter, approver, timestamps,
+proof link), with a server-computed header total: **"Total Submitted Expenses."**
+
+**Do not use that total raw as cost.** It counts expense lines whose status is either
+*Approved* **or** *Under Review* — not `cog_approved` only. On any invoice with lines still
+awaiting Finance sign-off, the raw total overstates confirmed cost. (It excludes *Cancelled*
+and *Pending*; why *Pending* specifically is excluded is observed, not explained — possibly
+those lines simply carry no amount yet — so treat that exclusion as unconfirmed, not a rule to
+build on.)
+
+**Abdulrahman settled how every confirmed figure must be built, in his own words:** *"The
+profit is being calculated by the total amount of the transaction or the tax invoice minus the
+actual sum of the actual costs... the confirmed ones."* Three things follow directly from that:
+
+1. **The transaction total and the tax invoice total are the same money** ("the transaction OR
+   the tax invoice") — this is the same twin relationship Round 2/3 already established
+   (`consolidated_proforma_id` / `transaction_ref`). One row per transaction, the invoice
+   number attaches to that same row once it exists, and revenue is never summed at both levels
+   at once — anchoring the Finance page on the transaction (Spec 2's shape) is correct as long
+   as nothing double-counts against the invoice.
+2. **"The actual SUM of the actual costs"** — every approved expense line on a transaction is
+   summed in full. This is an independent confirmation of Round 6's retraction from a
+   completely different angle: if summing every approved line is the rule, a dedup step would
+   silently throw real approved cost away. There is still no dedup step, and there must never
+   be one.
+3. **"...the confirmed ones" is a confirmed-only rule for every number that feeds
+   Revenue/Cost/Profit.** Concretely, against the two real cost sources this doc now
+   describes:
+   - **COGs Report:** only `status_key='cog_approved'` rows may ever be summed into `cost_sar`.
+     `cog_under_review` is real work in flight, not yet confirmed — it must stay visible as its
+     own separate figure (**"pending Finance review"**) and must never be blended into the
+     confirmed cost or profit numbers.
+   - **Corporate Expenses "Total Submitted Expenses":** never usable raw, for the reason
+     above — if it's ever surfaced at all, it must first be split back into its Approved and
+     Under Review parts, with only the Approved part treated as confirmed cost.
+   - **The transaction-time item estimate** (the `is_taxable=false` line, Round 4/5's fallback)
+     may still render at row level, greyed with an "est." tag, so a viewer can see the gap
+     between estimate and confirmed cost — but it must never be summed into `cost_sar` or into
+     any KPI total. Estimate is a display aid, not a number to compute with.
+   - **This also answers the Finance-page KPI-strip question this doc's own Round 5/Spec-2
+     discussion had left open:** the top-line Revenue/Cost/Profit strip is **confirmed figures
+     only** — Approved cost, never blended with Under Review or the item estimate. The default
+     assumed in the Spec 2 planning conversation ("blend estimates in, labelled") is overridden
+     by this rule and should not be built that way.
+
+**Not yet changed:** docs only. Still open, waiting on Abdulrahman directly (not something to
+guess at): which field marks a transaction "finalised" for the Overdue stage, and confirming
+that a tender profile's budget/consumed/remaining is capacity-tracking rather than the
+Clients-page money the Finance-page spec otherwise bans there.
