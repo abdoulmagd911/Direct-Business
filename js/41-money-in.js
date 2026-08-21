@@ -308,6 +308,14 @@
   }catch(_){ }
   return out;};
 
+  // Exposed 2026-08-21 so js/65 (the universal importer, Spec 9) can reuse the real,
+  // already-proven Invoice Export parsing instead of duplicating it — signature ROUTING and
+  // the five-count preview live in js/65; the row-level parsing rules (twin pairing, wallet/
+  // verification/client exclusions, the fee-pair math) stay here, unchanged.
+  window.__v65_isDPHeader=isDPHeader; window.__v65_parseDP=parseDP; window.__v65_toRowsDP=toRows;
+  window.__v65_csvParse=csvParse64; window.__v65_readXlsx=readXlsx;
+  window.__v65_exclusionCounts=function(){ return {wallet:_walletSkipped,verif:_verifSkipped,clientExcluded:_clientExcluded,clientExcludedDetail:_clientExcludedDetail}; };
+
   console.info('%c[v65] Direct Payments importer loaded','color:#B54708;font-weight:700');
 }catch(e){if(window.console)console.warn('[v65] init',e);}})();
 
