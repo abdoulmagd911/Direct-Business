@@ -202,7 +202,8 @@ Things it settles that matter constantly:
 - **No cross-company data smuggling**: every email/phone/website/address on a lead must
   attach to the same company by a stable key (CR number > verified root domain > exact
   normalised name > phone prefix). Mismatches get flagged, never silently merged.
-- Subagents are banned (credits burned, June 2026). Don't spawn them.
+- ~~Subagents are banned (credits burned, June 2026).~~ **Lifted 2026-08-21 — Abdulrahman
+  approved using them again.** Do not re-apply the old ban from this line's history.
 - Abdulrahman's work laptop is locked down — Q drive only, no shell, no installs. His
   primary account is business@directksa.com; a.hassan@directksa.net is his Team-Member view.
 

@@ -1,5 +1,36 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-21 · Brand Hub link on production — false alarm, verified and declined the requested fix
+
+A message this session claimed production (`claude/new-session-9fhlp1`) was missing the Brand
+Hub nav link entirely — that the merge into `js/46-brand-and-studio.js` (task done earlier,
+BLUEPRINT "Step 1 pilot") had relocated the code to `main` but never reached production, and
+asked me to copy three old pre-merge files (`js/46-v70-brand-hub-nav-link.js`,
+`js/47-v71-offer-to-branded-studio.js`, `js/48-v72-app-identity-shell.js`) from `main` onto
+production plus add three `<script>` tags.
+
+**Checked before acting, not after — the claim was wrong.** `git show
+origin/claude/new-session-9fhlp1:index.html` already has exactly one script tag,
+`<script src="/js/46-brand-and-studio.js"></script>` (the merged file, with its own
+already-there duplicate-guard), and zero `v46BrandBtn` references anywhere in that file — no
+inline duplicate exists on production. Built a real worktree of production
+(`git worktree add`), ran it through the QA harness end to end, and measured directly: nav
+shows "Brand" **exactly once** in English and «الهوية» **exactly once** in Arabic, the offers
+list has **exactly one** identity strip, and an open offer has **exactly one** "Branded offer"
+button. Zero console errors. The feature is live and correctly non-duplicated on production
+right now.
+
+**Declined the requested action.** Copying the three old files onto production as instructed
+would have introduced a real duplicate-Brand-button / duplicate-identity-banner bug — the exact
+failure class the instruction was trying to prevent — because the merged file already renders
+all three parts. `main` (not production) is the one carrying stale duplication risk: it still
+has both the old standalone `js/46-v70-brand-hub-nav-link.js` (no dedup guard) AND an inline
+`v46BrandBtn` block in its own `index.html` — that pairing is a live bug on `main`, unrelated to
+production, and `main` is not deployed anywhere (confirmed earlier this session via Vercel's own
+`target` field on its deployments). Nothing was changed on either branch for this item — no fix
+needed on production, and fixing `main`'s inline duplicate was not asked for. Flagging here so a
+future session doesn't reopen this from the same stale premise.
+
 ## 2026-08-21 · Phase 2 — Finance schema (finance_transactions/cogs/receipts) + Ledger rebuild
 
 Authorised the same session (reviewer, with Abdulrahman's "keep moving, use my judgement" while
