@@ -29,7 +29,7 @@ const TABLES={
   businesses:biz,
   contacts:[...Array(20)].map((_,i)=>({id:'c'+i,business_id:'b'+i,name:'Contact '+i,role:'Manager',email:'c'+i+'@example.com',phone:'+96650000000'+i,verification_source:'manual',needs_manual_confirmation:false,confirmation_reason:null,confirmed_by:null,confirmed_at:null,meta:{},source:'import'})),
   activities:[...Array(10)].map((_,i)=>({id:'a'+i,business_id:'b'+i,type:'note',note:'Activity '+i,by_user:'QA',at:'2026-08-01T10:00:00Z'})),
-  app_users:[{id:UID,email:'test@directksa.com',full_name:'QA Test Account',role:'admin',active:true,created_at:'2026-08-08T00:00:00Z',must_change_password:false,allowed_pages:null},
+  app_users:[{id:UID,email:'test@directksa.com',full_name:'QA Test Account',role:'admin',active:true,created_at:'2026-08-08T00:00:00Z',must_change_password:false,allowed_pages:null,page_access:null},
     {id:'u-assem',email:'assem.alsweed@directksa.com',full_name:'Assem Alsweed',role:'team_member',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:true,allowed_pages:['today','leads','clients']},
     {id:'u-fin',email:'finance.person@directksa.com',full_name:'Finance Person',role:'operations',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:false,allowed_pages:['today','finance']},
     {id:'u-off',email:'switched.off@directksa.com',full_name:'Switched Off',role:'viewer',active:false,created_at:'2026-08-09T00:00:00Z',must_change_password:false,allowed_pages:['today','reports']}],
@@ -81,6 +81,17 @@ const TABLES={
   payment_receipts:[
     {id:'pr0',receipt_ref:'PR-QA-001',payment_method:'Bank transfer',amount_sar:42000,remaining_after_sar:0,status:'fully_applied',paid_by:'Finance ops',created_at_source:'2026-07-02T10:00:00Z',allocations:[{transaction_id:'tx0',allocated_amount_sar:42000}],source:'seed'}
   ],
+  // Spec 8 (2026-08-21): record_history — the real who-did-what log the database writes on
+  // every create/edit/archive/restore/delete of businesses/finance_invoices/
+  // finance_transactions/client_profiles/contacts. One of each action shape, plus one
+  // already-undone row and one 'create' row (Undo hidden on both, for different reasons),
+  // so the harness exercises every branch of js/63's histRow() rendering.
+  record_history:[
+    {id:1,at:'2026-08-21T09:00:00Z',actor:UID,actor_name:'QA Test Account',table_name:'businesses',record_id:'b0',action:'edit',before_row:{id:'b0',name:'Test Company 0',stage:'new'},after_row:{id:'b0',name:'Test Company 0',stage:'contacted'},undone_at:null,undone_by:null},
+    {id:2,at:'2026-08-20T14:00:00Z',actor:'u-assem',actor_name:'Assem Alsweed',table_name:'finance_invoices',record_id:'i2',action:'edit',before_row:{id:'i2',status:'Draft'},after_row:{id:'i2',status:'Issued'},undone_at:null,undone_by:null},
+    {id:3,at:'2026-08-19T11:00:00Z',actor:'u-assem',actor_name:'Assem Alsweed',table_name:'businesses',record_id:'b1',action:'archive',before_row:{id:'b1',archived_at:null},after_row:{id:'b1',archived_at:'2026-08-19T11:00:00Z'},undone_at:'2026-08-19T12:00:00Z',undone_by:UID},
+    {id:4,at:'2026-08-18T08:00:00Z',actor:UID,actor_name:'QA Test Account',table_name:'businesses',record_id:'b2',action:'create',before_row:null,after_row:{id:'b2',name:'Test Company 2'},undone_at:null,undone_by:null}
+  ],
   // Spec 4 (2026-08-21): DB.settings loads from app_settings (v59, js/35), not the
   // app_state blob — the harness needs its own row here or the exclusion list/grouping
   // tool would render against an empty DB.settings.financeExclusions every run.
@@ -88,6 +99,20 @@ const TABLES={
     {id:'fx-qa-takamol',clientId:'7',matchNames:['Takamol for Business Services','Techtic Support'],reason:'Takamol — verification services, accounted for elsewhere',addedBy:'QA seed',addedAt:'2026-08-21T00:00:00Z'}
   ]},updated_at:'2026-08-21T00:00:00Z',updated_by:'QA seed'}]
 };
+// Spec 7b (2026-08-21): drive the app as any role without a second account. MOCK_ROLE /
+// MOCK_PAGE_ACCESS (a JSON string, e.g. '{"leads":"editor","finance":"editor"}') override
+// the signed-in test@directksa.com row's role/page_access at startup — one source of truth,
+// same as the real database: the plain `SELECT role,... FROM app_users` the login layer
+// reads AND the app_role()/my_page_access() RPCs below all read this same row, so nothing
+// can disagree with itself the way two separately-hardcoded stubs could.
+(function applyMockRoleEnv(){
+  const me=TABLES.app_users.find(u=>u.id===UID); if(!me) return;
+  if(process.env.MOCK_ROLE) me.role=process.env.MOCK_ROLE;
+  if(process.env.MOCK_PAGE_ACCESS){
+    try{ me.page_access=JSON.parse(process.env.MOCK_PAGE_ACCESS); }
+    catch(e){ throw new Error('MOCK_PAGE_ACCESS is not valid JSON: '+e.message); }
+  }
+})();
 const RPCLOG=[];
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
 // start(port) keeps the standard seed; start(port,{table:rows}) swaps a table's rows,
@@ -125,6 +150,35 @@ export function start(port, seedOverrides){
       let parsed=null; try{parsed=JSON.parse(body||'{}');}catch(_){}
       const fn=path.replace('/rest/v1/rpc/','');
       RPCLOG.push({fn, keys: parsed?Object.keys(parsed.patch||parsed.payload||{}):[], arg: parsed?Object.keys(parsed):[]});
+      // Spec 7b (2026-08-21): app_role() and my_page_access() read the SAME app_users row
+      // the login layer already reads, mirroring the real functions exactly —
+      //   app_role()        = role from app_users where id = auth.uid() and active
+      //   my_page_access()  = null for admin, else that row's page_access
+      // so a probe driving MOCK_ROLE/MOCK_PAGE_ACCESS gets one consistent answer everywhere,
+      // not two stubs that could quietly disagree with each other.
+      if(fn==='app_role'){
+        const me=TABLES.app_users.find(u=>u.id===UID && u.active);
+        return send(res,200, JSON.stringify(me?me.role:null));
+      }
+      if(fn==='my_page_access'){
+        const me=TABLES.app_users.find(u=>u.id===UID && u.active);
+        const val=(me && me.role!=='admin') ? (me.page_access||null) : null;
+        return send(res,200, val);
+      }
+      // Spec 8 (2026-08-21): undo_change(p_id) — approximates the real function's own
+      // ordering (not in the log / already undone / create entries refused / else mark
+      // undone and answer 'ok') closely enough to drive the app's Undo control end to end in
+      // the harness. This is NOT a substitute for testing the real 24h/role/money-table
+      // rules — that only means anything against real Postgres, which is what rls-matrix.sql
+      // and the live function itself are for.
+      if(fn==='undo_change'){
+        const row=TABLES.record_history.find(r=>r.id===(parsed&&parsed.p_id));
+        if(!row) return send(res,200, JSON.stringify('That change is not in the log.'));
+        if(row.undone_at) return send(res,200, JSON.stringify('Already undone.'));
+        if(row.action==='create') return send(res,200, JSON.stringify('Undoing a newly created record is not an undo — delete it instead, which is itself logged.'));
+        row.undone_at=new Date().toISOString(); row.undone_by=UID;
+        return send(res,200, JSON.stringify('ok'));
+      }
       // Real PostgREST answers a SET-returning function with a JSON array, not an object —
       // {} for every RPC (the old default here) let callers whose guard only checked
       // truthiness (not Array.isArray) pass a non-array to .forEach and throw on every page.
