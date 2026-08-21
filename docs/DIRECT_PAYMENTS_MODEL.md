@@ -639,3 +639,41 @@ two competing ones.** The Ledger's stage/confirmed-cost logic (`js/16-finance-le
 `expense_status` and the trigger-synced `cost_confirmed_sar`, never queries `finance_cogs_expenses`
 directly, so no UI code changed — only the underlying expense-line vocabulary and its
 provenance column.
+
+## ROUND 14 — Corporate Transactions/Invoices carry NO client field at all; the exclusion
+design's durable shape (2026-08-21)
+
+Checked directly against the live views (not inferred): **Corporate Transactions**
+(`/en/admin/corporate_clients/transactions`, 150 rows) columns are exactly Receipt Ref. ·
+Product · Amount (SAR) · Invoice Issuing · Created At · Expense Status. **Corporate Invoices**
+(`/en/admin/corporate_clients/invoices`, 63 rows) columns are exactly Invoice Number · Issue
+Date · Due Date · Amount (SAR) · Status. **Neither carries a client ID or a client name** — on
+the Transactions screen the client is one of four *filters* ("Corporate Client", alongside
+Product/Creation Range/Receipt ID), never a field on the row.
+
+**Consequence for Spec 4 item 2's `matchNames` bridge: it only works on files that actually
+carry a customer-name column.** Today's live importer (`js/41-money-in.js`, the 5551 "Invoice
+Export" shape) does — `Customer Name` is a real per-row column there, so the Round 13/Spec-4
+fix is correct and unaffected for that format. But if an importer for Corporate
+Transactions/Invoices is ever built, name-matching (or ID-matching) against the row itself is
+structurally impossible — the field doesn't exist to match against. Checked that this is not a
+live bug today: both `js/41`'s and the legacy CSV path's header checks fail closed on an
+unrecognised format (refuse the whole file with an explicit message) rather than importing rows
+with exclusions silently skipped — so a dropped Corporate Transactions file is refused outright
+today, not silently passed through clean.
+
+**The durable shape for when this gets built (item 4 territory, not built yet):** exclusion
+should resolve against the Corporate Clients registry — the one file confirmed to carry a real
+ID column (ids seen 1–96, Takamol at id 7, matching the Phase 1 import and the Spec 4 seed
+exactly) — via `client_profiles.direct_client_id`, not by each import file trying to match a
+name or ID it may not contain. A transaction/invoice row should inherit its exclusion through
+whatever join the importer builds to reach its `client_profile_id` (the same FK
+`finance_transactions` already carries, Phase 2), not through per-file text matching. **Explicit
+design rule for any future importer of a client-column-less file:** if no client identifier of
+any kind is present on the row, say so loudly in the preview ("this file carries no client
+column; exclusion rules were not applied to its N rows") — zero-because-clean and
+zero-because-inapplicable must never render identically.
+
+**Open question for Abdulrahman, not guessed at:** whether Corporate Transactions/Invoices'
+"Filter & Download Excel" output carries more columns than the on-screen table (a client column
+could be Excel-only) — checkable in one click from his side; not downloaded here on purpose.
