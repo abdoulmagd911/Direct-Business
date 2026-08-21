@@ -60,6 +60,26 @@ const TABLES={
     {id:'cp0',business_id:'b0',direct_client_id:'95',profile_type:'tender',status:'active',payment_terms:null,billing_cycle:null,opened_at:'2026-05-19',closed_at:null},
     {id:'cp1',business_id:'b4',direct_client_id:'12',profile_type:'prepaid',status:'active',payment_terms:null,billing_cycle:'Manual',opened_at:'2026-03-01',closed_at:null},
     {id:'cp2',business_id:'b4',direct_client_id:'13',profile_type:'postpaid',status:'active',payment_terms:'Net 30',billing_cycle:'Monthly',opened_at:'2026-03-05',closed_at:null}
+  ],
+  // Phase 2 Ledger fixture (2026-08-21): covers all four stages (invoiced / ready /
+  // pending / overdue) across the three profile types, so the harness exercises the
+  // confirmed-only KPI gate and the est.-tag / Overdue-mirror rules, not just the happy path.
+  finance_transactions:[
+    {id:'tx0',transaction_ref:'TXN-QA-001',invoice_no:'INV-QA-001',zatca_dpin:'DPIN-11001',direct_uuid:null,business_id:'b0',client_profile_id:'cp0',product:'Direct Hotels',service_type:'Hotels',amount_sar:42000,expense_status:null,cost_confirmed_sar:35000,cost_estimate_sar:null,amount_received_sar:42000,amount_remaining_sar:0,overdue:null,created_at_source:'2026-07-01T10:00:00Z',origin:'booking',proposal_ref:null,source:'seed'},
+    {id:'tx1',transaction_ref:'TXN-QA-002',invoice_no:null,zatca_dpin:null,direct_uuid:null,business_id:'b4',client_profile_id:'cp1',product:'Direct Flights',service_type:'Flights',amount_sar:9500,expense_status:'ready',cost_confirmed_sar:7600,cost_estimate_sar:null,amount_received_sar:0,amount_remaining_sar:9500,overdue:null,created_at_source:'2026-08-10T10:00:00Z',origin:'booking',proposal_ref:null,source:'seed'},
+    {id:'tx2',transaction_ref:'TXN-QA-003',invoice_no:null,zatca_dpin:null,direct_uuid:null,business_id:'b4',client_profile_id:'cp2',product:'Direct Visa',service_type:'Visas',amount_sar:6000,expense_status:'pending',cost_confirmed_sar:0,cost_estimate_sar:4800,amount_received_sar:0,amount_remaining_sar:0,overdue:null,created_at_source:'2026-08-18T10:00:00Z',origin:'booking',proposal_ref:null,source:'seed'},
+    {id:'tx3',transaction_ref:'TXN-QA-004',invoice_no:null,zatca_dpin:null,direct_uuid:null,business_id:'b0',client_profile_id:'cp0',product:'Direct Packages',service_type:'Packages',amount_sar:15000,expense_status:'pending',cost_confirmed_sar:0,cost_estimate_sar:12000,amount_received_sar:0,amount_remaining_sar:0,overdue:true,created_at_source:'2026-08-05T10:00:00Z',origin:'booking',proposal_ref:null,source:'seed'}
+  ],
+  // status/source_system normalised 2026-08-21 (Round 13): Direct Payments' COGs Report
+  // returns zero rows for every filter tested — Corporate Expenses > View Assignments is
+  // the verified real cost source, so that's the default source_system here.
+  finance_cogs_expenses:[
+    {id:'cog0',transaction_id:'tx0',reference_id:'COG-QA-001',invoice_id:'INV-QA-001',expense_template_type:'Hotel Cost',status:'approved',source_system:'corporate_expenses',amount_sar:35000,merchant:'Hotel supplier',submitted_by:'Ops team',approved_rejected_by:'Finance ops',source:'seed'},
+    {id:'cog1',transaction_id:'tx1',reference_id:'COG-QA-002',invoice_id:null,expense_template_type:'Airline Fees',status:'approved',source_system:'corporate_expenses',amount_sar:7600,merchant:'Airline',submitted_by:'Ops team',approved_rejected_by:'Finance ops',source:'seed'},
+    {id:'cog2',transaction_id:'tx2',reference_id:'COG-QA-003',invoice_id:null,expense_template_type:'Embassy Expenses',status:'under_review',source_system:'corporate_expenses',amount_sar:4800,merchant:'Embassy',submitted_by:'Ops team',approved_rejected_by:null,source:'seed'}
+  ],
+  payment_receipts:[
+    {id:'pr0',receipt_ref:'PR-QA-001',payment_method:'Bank transfer',amount_sar:42000,remaining_after_sar:0,status:'fully_applied',paid_by:'Finance ops',created_at_source:'2026-07-02T10:00:00Z',allocations:[{transaction_id:'tx0',allocated_amount_sar:42000}],source:'seed'}
   ]
 };
 const RPCLOG=[];

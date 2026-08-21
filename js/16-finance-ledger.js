@@ -349,72 +349,144 @@ function rOverview(){
 }
 window.finQ=function(v){FIN.f.quarter=v;render();};
 /* Drill from a canonical client row \u2192 Ledger filtered to that client (all its invoice groups). */
-window.finClient=function(key,name){FIN.tab='ledger';FIN.f.clientKey=key||null;FIN.f.clientName=name||'';FIN.f.client='all';render();};
+window.finClient=function(key,name){FIN.tab='ledger';FIN.f.clientKey=key||null;FIN.f.clientName=name||'';FIN.f.client='all';
+  // The Ledger tab now reads finance_transactions (Phase 2) — carry the drill-down across
+  // by resolving the same business_id the old key encoded, so "Top clients" still filters.
+  try{ TXN.f.business=(key&&key.indexOf('biz:')===0)?key.slice(4):'all'; }catch(_){}
+  render();};
 
+/* ===== Phase 2 Ledger rebuild (2026-08-21) =====================================
+   Staged ALONGSIDE finance_invoices — Overview / Clients & collections / Report
+   Builder / income-by-service above this point are UNTOUCHED and keep reading
+   finance_invoices via FIN/live(). Only this tab reads the new tables:
+   finance_transactions (+finance_cogs_expenses for confirmed cost, +client_profiles
+   for the prepaid/postpaid/tender label, +payment_receipts for what's been paid).
+   Rules from docs/DIRECT_PAYMENTS_MODEL.md Round 11 (owner ruling 2026-08-21):
+     - Company is the shape, not a toggle: one company row, its profiles nested
+       under it, every transaction/invoice row labelled prepaid/postpaid/tender —
+       in the UI and in the export.
+     - KPI strip is CONFIRMED ONLY: a transaction counts once it has an invoice
+       number OR its expense_status is 'ready' (Round 8's stage rule). A 'pending'
+       transaction shows its cost_estimate_sar tagged "est." at row level and never
+       reaches the headline totals (Round 7).
+     - Overdue is a mirror, never invented: only rendered when overdue===true;
+       null (not yet mirrored) shows nothing, never "not overdue" (Round 11). */
+var TXN={rows:null,profiles:null,loading:false,collapsed:{},
+  f:{q:'',profileType:'all',business:'all',stage:'all'}};
+function txnLoad(cb){
+  if(TXN.loading)return; TXN.loading=true;
+  var c=fc(); if(!c){TXN.loading=false;return;}
+  c.from('finance_transactions').select('*').is('deleted_at',null).order('created_at_source',{ascending:false}).then(function(r){
+    TXN.loading=false;
+    if(r.error){ if(window.console)console.warn('finance_transactions load',r.error); TXN.rows=[]; }
+    else TXN.rows=r.data||[];
+    c.from('client_profiles').select('id,business_id,direct_client_id,profile_type,payment_terms,billing_cycle,status').then(function(pr){
+      TXN.profiles={}; ((pr&&!pr.error&&pr.data)||[]).forEach(function(p){TXN.profiles[p.id]=p;});
+      if(cb)cb(); try{if(current==='finance'&&FIN.tab==='ledger')render();}catch(_){}
+    });
+  });
+}
+try{window.TXN=TXN;window.txnLoad=txnLoad;}catch(_){}
+function txnStage(r){
+  // Round 8's two-field derivation, plus Round 11's Overdue mirror.
+  if(r.invoice_no)return 'invoiced';
+  if(r.overdue===true)return 'overdue';
+  if(r.expense_status==='ready')return 'ready';
+  return 'pending';
+}
+var TXN_STAGE_LBL={pending:['Expenses pending','بانتظار المصاريف'],ready:['Ready to invoice','جاهز للفوترة'],
+  invoiced:['Invoiced','مفوترة'],overdue:['Overdue','متأخر']};
+var TXN_STAGE_COLOR={pending:'#B54708',ready:'#175CD3',invoiced:'#0F6E56',overdue:'#D92D20'};
+function txnConfirmed(r){ return txnStage(r)==='ready'||txnStage(r)==='invoiced'; }
+var TXN_TYPE_LBL={prepaid:['Prepaid','مسبق الدفع'],postpaid:['Postpaid','آجل الدفع'],tender:['Tender','مناقصة']};
+window.finTxnCSV=function(){
+  var L=TXN._csvRows||[]; if(!L.length){alert(isArF()?'لا صفوف للتصدير':'No rows to export');return;}
+  var cols=['company','profile_type','direct_client_id','transaction_ref','invoice_no','zatca_dpin','service_type','stage','amount_sar','cost_confirmed_sar','cost_estimate_sar','amount_received_sar','amount_remaining_sar','overdue','created_at_source'];
+  var csv='﻿'+cols.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=r[c];v=(v==null)?'':String(v);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var b=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-ledger-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+};
+window.finTxnF=function(k,v){TXN.f[k]=v;render();};
+window.txnToggleCo=function(bizId){TXN.collapsed[bizId]=!TXN.collapsed[bizId];render();};
 function rLedger(){
-  clearFinCanon();
   var _lh=function(en,ar){return isArF()?ar:en;};
-  var L=(FIN.showDeleted?(FIN.rows||[]).filter(function(r){return r.deleted_at;}):live()).filter(function(r){
-    var f=FIN.f;
-    if(f.quarter!=='all'&&r.quarter!==f.quarter)return false;
-    if(f.month!=='all'&&r.month!==f.month)return false;
-    if(f.service!=='all'&&r.service_type!==f.service)return false;
-    if(f.clientKey&&finCanon(r.client_group).key!==f.clientKey)return false;
-    if(f.client!=='all'&&r.client_group!==f.client)return false;
-    if(f.status!=='all'&&r.integrity_status!==f.status)return false;
-    if(f.origin&&f.origin!=='all'&&(r.origin||'booking')!==f.origin)return false;
-    if(f.q){var q=f.q.toLowerCase();if(((r.client_group||'')+' '+(r.customer_raw_name||'')+' '+(r.invoice_no||'')+' '+(r.zatca_dpin||'')+' '+(r.products||'')+' '+(r.proposal_ref||'')).toLowerCase().indexOf(q)<0)return false;}
+  if(TXN.rows==null||TXN.profiles==null){ txnLoad(); return '<div class="card" style="padding:40px;text-align:center;color:var(--muted)">'+_lh('Loading the ledger…','جارِ تحميل السجل…')+'</div>'; }
+  var bizName=_finBizName;
+  var rows=(TXN.rows||[]).filter(function(r){
+    var f=TXN.f, prof=TXN.profiles[r.client_profile_id];
+    if(f.profileType!=='all'&&(!prof||prof.profile_type!==f.profileType))return false;
+    if(f.business!=='all'&&r.business_id!==f.business)return false;
+    if(f.stage!=='all'&&txnStage(r)!==f.stage)return false;
+    if(f.q){var q=f.q.toLowerCase();var nm=bizName(r.business_id)||'';if(((nm)+' '+(r.transaction_ref||'')+' '+(r.invoice_no||'')+' '+(r.zatca_dpin||'')+' '+(r.product||'')).toLowerCase().indexOf(q)<0)return false;}
     return true;
   });
-  var tr=0,tp=0;L.forEach(function(r){tr+=+r.revenue_sar;tp+=+r.profit_sar;});
-  FIN._csvRows=L; // exports always carry the full line-level detail
-  /* Main view groups by invoice (owner 2026-08-12): one row per invoice; the service
-     breakdown lives one click away (the invoice card) or in the "By service line" view. */
-  var byInv=(FIN.lview||'invoice')!=='line', D=L;
-  if(byInv){ var _g={},_ord=[];
-    L.forEach(function(r){ var k=r.invoice_no+(r.deleted_at?'|d':'');
-      if(!_g[k]){_g[k]={id:r.id,invoice_no:r.invoice_no,invoice_date:r.invoice_date,zatca_dpin:r.zatca_dpin,client_group:r.client_group,customer_raw_name:r.customer_raw_name,__svc:{},__n:0,total_incl_vat_sar:0,revenue_sar:0,cost_sar:0,profit_sar:0,wallet_portion_sar:0,origin:r.origin,revenue_way:r.revenue_way,proposal_ref:r.proposal_ref,deleted_at:r.deleted_at,integrity_status:r.integrity_status};_ord.push(k);}
-      var G=_g[k]; G.__n++; G.__svc[r.service_type||'-']=1;
-      G.total_incl_vat_sar+=+r.total_incl_vat_sar||0; G.revenue_sar+=+r.revenue_sar||0; G.cost_sar+=+r.cost_sar||0; G.profit_sar+=+r.profit_sar||0; G.wallet_portion_sar+=+r.wallet_portion_sar||0;
-      if(!G.zatca_dpin&&r.zatca_dpin)G.zatca_dpin=r.zatca_dpin;
-      if(r.origin==='project')G.origin='project';
-      if(!G.proposal_ref&&r.proposal_ref)G.proposal_ref=r.proposal_ref;
-      if(r.invoice_date>G.invoice_date)G.invoice_date=r.invoice_date; });
-    D=_ord.map(function(k){return _g[k];}); }
-  var h='<div class="card" style="padding:12px 16px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px">';
-  if(FIN.f.clientKey){
-    h+='<span style="display:inline-flex;align-items:center;gap:6px;background:#FFF3EC;color:#9a4413;border:1px solid #F5C9A8;border-radius:9px;padding:5px 8px;font-size:12px;font-weight:600">'+(isArF()?'\u0627\u0644\u0639\u0645\u064a\u0644':'Client')+': '+escF(FIN.f.clientName||'')+' <span style="cursor:pointer;font-weight:800" title="'+(isArF()?'\u0625\u0632\u0627\u0644\u0629':'Clear')+'" onclick="finClientClear()">\u2715</span></span>';
-  }
-  h+='<input placeholder="'+(isArF()?'\u0628\u062d\u062b\u2026':'Search client / invoice # / DPIN\u2026')+'" value="'+escF(FIN.f.q)+'" style="'+SS+';min-width:200px" oninput="finF(\'q\',this.value)">';
-  h+='<select style="'+SS+'" onchange="finF(\'quarter\',this.value)">'+opts(uniq(live().map(function(r){return r.quarter;})),FIN.f.quarter,isArF()?'\u0643\u0644 \u0627\u0644\u0623\u0631\u0628\u0627\u0639':'All quarters')+'</select>';
-  h+='<select style="'+SS+'" onchange="finF(\'month\',this.value)">'+opts(['January','February','March','April','May','June','July','August','September','October','November','December'].filter(function(m){return live().some(function(r){return r.month===m;});}),FIN.f.month,isArF()?'\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631':'All months')+'</select>';
-  h+='<select style="'+SS+'" onchange="finF(\'service\',this.value)"><option value="all">'+(isArF()?'\u0643\u0644 \u0627\u0644\u062e\u062f\u0645\u0627\u062a':'All services')+'</option>'+uniq(live().map(function(r){return r.service_type;})).map(function(x){return '<option value="'+escF(x)+'" '+(FIN.f.service===x?'selected':'')+'>'+escF(svcLabel(x))+'</option>';}).join('')+'</select>';
-  h+='<select style="'+SS+';max-width:220px" onchange="finF(\'client\',this.value)">'+opts(uniq(live().map(function(r){return r.client_group;})),FIN.f.client,isArF()?'\u0643\u0644 \u0627\u0644\u0639\u0645\u0644\u0627\u0621':'All clients')+'</select>';
-  h+='<select style="'+SS+'" onchange="finF(\'status\',this.value)"><option value="verified_paid" '+(FIN.f.status==='verified_paid'?'selected':'')+'>'+(isArF()?'\u0645\u062f\u0642\u0642 \u0645\u062f\u0641\u0648\u0639':'Verified paid')+'</option><option value="all" '+(FIN.f.status==='all'?'selected':'')+'>'+(isArF()?'\u0643\u0644 \u0627\u0644\u062d\u0627\u0644\u0627\u062a':'All statuses')+'</option><option value="excluded" '+(FIN.f.status==='excluded'?'selected':'')+'>'+(isArF()?'\u0645\u0633\u062a\u0628\u0639\u062f':'Excluded')+'</option><option value="credit_note" '+(FIN.f.status==='credit_note'?'selected':'')+'>'+(isArF()?'\u0625\u0634\u0639\u0627\u0631\u0627\u062a \u062f\u0627\u0626\u0646\u0629':'Credit notes')+'</option></select>';
-  h+='<select style="'+SS+'" onchange="finF(\'origin\',this.value)"><option value="all">'+_lh('All origins','كل الأنواع')+'</option><option value="booking" '+(FIN.f.origin==='booking'?'selected':'')+'>'+_lh('Bookings','حجوزات')+'</option><option value="project" '+(FIN.f.origin==='project'?'selected':'')+'>'+_lh('Projects (with proposal)','مشاريع (بعرض)')+'</option></select>';
-  h+='<span style="display:inline-flex;border:1px solid var(--line-2,#e6e8ec);border-radius:9px;overflow:hidden">'+'<button class="btn sm" style="border:0;border-radius:0;'+(byInv?'background:#303848;color:#fff':'')+'" onclick="FIN.lview=\'invoice\';render()">'+_lh('By invoice','حسب الفاتورة')+'</button>'+'<button class="btn sm" style="border:0;border-radius:0;'+(!byInv?'background:#303848;color:#fff':'')+'" onclick="FIN.lview=\'line\';render()">'+_lh('By service line','حسب بند الخدمة')+'</button></span>';
-  h+='<button class="btn sm" onclick="finLedgerCSV()">⬇ '+_lh('Excel (CSV)','إكسل (CSV)')+'</button>';
-  if(canFinEdit())h+='<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" '+(FIN.showDeleted?'checked':'')+' onchange="FIN.showDeleted=this.checked;render()">'+(isArF()?'\u0627\u0644\u0645\u062d\u0630\u0648\u0641 \u0645\u0624\u062e\u0631\u064b\u0627':'Recently deleted')+'</label>';
-  h+='<span style="margin-left:auto;font-size:12px">'+(isArF()?('<b>'+D.length+'</b> \u0635\u0641 \u00b7 \u0625\u064a\u0631\u0627\u062f <b>'+money0(tr)+'</b> \u00b7 \u0631\u0628\u062d <b>'+money0(tp)+'</b>'):('<b>'+D.length+'</b> '+(byInv?'invoices':'rows')+' \u00b7 rev <b>'+money0(tr)+'</b> \u00b7 profit <b>'+money0(tp)+'</b>'))+'</span></div>';
-  
-  h+='<div class="card" style="padding:0;overflow:auto;max-height:65vh"><table style="width:100%;font-size:12px;border-collapse:collapse;min-width:980px"><thead><tr style="position:sticky;top:0;background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+';z-index:2"><th style="padding:8px">'+_lh('Date','التاريخ')+'</th><th style="padding:8px">'+_lh('Invoice #','رقم الفاتورة')+'</th><th style="padding:8px">'+_lh('Tax inv (DPIN)','الفاتورة الضريبية')+'</th><th style="padding:8px">'+_lh('Client','العميل')+'</th><th style="padding:8px">'+_lh('Service','الخدمة')+'</th><th style="padding:8px;text-align:right">'+_lh('Total','الإجمالي')+'</th><th style="padding:8px;text-align:right">'+_lh('Revenue','الإيراد')+'</th><th style="padding:8px;text-align:right">'+_lh('Cost','التكلفة')+'</th><th style="padding:8px;text-align:right">'+_lh('Profit','الربح')+'</th><th style="padding:8px">'+_lh('Flags','ملاحظات')+'</th></tr></thead><tbody>';
-  var LCAP=500; var Lshow=D.slice(0,LCAP);
-  Lshow.forEach(function(r,i){
-    var flags='';
-    if(!r.zatca_dpin)flags+=badge(_lh('no tax inv','لا فاتورة ضريبية'),'#fff3d6','#8b5b1f')+' ';
-    if(+r.cost_sar===0&&+r.revenue_sar>0&&r.revenue_way!=='commission')flags+=badge(_lh('no cost recorded','بدون تكلفة'),'#e0e6f7','#3a4f9e')+' ';
-    if(+r.wallet_portion_sar>0)flags+=badge(_lh('wallet','محفظة'),'#e9e9e9','#555')+' ';
-    if(r.revenue_way==='transaction')flags+=badge(_lh('transaction — tax invoice later','معاملة — الفاتورة الضريبية لاحقًا'),'#DBEAFE','#1D4ED8')+' ';
-    if(r.revenue_way==='commission')flags+=badge(_lh('commission','عمولة'),'#EDE9FE','#7A5AF8')+' ';
-    if(r.revenue_way==='promo_code')flags+=badge(_lh('promo code','كود خصم'),'#FCE7F3','#BE185D')+' ';
-    if(r.origin==='project')flags+=badge(_lh('project','مشروع'),'#EDE9FE','#6D28D9')+' ';
-    if(r.proposal_ref)flags+=badge(escF(r.proposal_ref),'#FFF3EC','#9a4413')+' ';
-    if(r.deleted_at)flags+=badge(_lh('deleted','محذوف'),'#fddede','#a3242c');
-    h+='<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finRow(\''+r.id+'\')"><td style="padding:7px 8px;white-space:nowrap">'+escF(r.invoice_date)+'</td><td style="padding:7px 8px">'+escF(r.invoice_no)+'</td><td style="padding:7px 8px">'+(r.zatca_dpin?('<a href="'+escF(pdInvoiceLink(r))+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Open in Direct" style="color:#175CD3;text-decoration:none">'+escF(r.zatca_dpin)+' \u2197</a>'):'\u2014')+'</td><td style="padding:7px 8px;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escF(r.customer_raw_name||'')+'">'+escF(r.client_group)+'</td><td style="padding:7px 8px">'+(r.__svc?(function(ks){return ks.length===1?escF(svcLabel(ks[0])):'<span style="color:#6D28D9;font-weight:600">'+ks.length+' '+_lh('services','خدمات')+'</span>';})(Object.keys(r.__svc)):escF(svcLabel(r.service_type)))+'</td><td style="padding:7px 8px;text-align:right">'+money0(r.total_incl_vat_sar)+'</td><td style="padding:7px 8px;text-align:right;font-weight:700">'+money0(r.revenue_sar)+'</td><td style="padding:7px 8px;text-align:right">'+money0(r.cost_sar)+'</td><td style="padding:7px 8px;text-align:right;color:#175CD3">'+money0(r.profit_sar)+'</td><td style="padding:7px 8px">'+flags+'</td></tr>';
+  // Confirmed-only KPI strip (Round 7/8) — pending never blends in.
+  var cRev=0,cCost=0,cProf=0,pendCount=0,pendEst=0,overdueCount=0;
+  rows.forEach(function(r){
+    if(txnConfirmed(r)){ cRev+=+r.amount_sar||0; cCost+=+r.cost_confirmed_sar||0; cProf+=(+r.amount_sar||0)-(+r.cost_confirmed_sar||0); }
+    else { pendCount++; pendEst+=+r.cost_estimate_sar||0; }
+    if(txnStage(r)==='overdue')overdueCount++;
   });
-  if(!D.length)h+='<tr><td colspan="10" style="padding:30px;text-align:center;color:var(--muted)">'+_lh('No invoices match.','لا توجد فواتير مطابقة.')+'</td></tr>';
-  if(D.length>LCAP)h+='<tr><td colspan="10" style="padding:12px;text-align:center;color:var(--muted);font-size:12px">'+_lh('Showing first '+LCAP+' of '+D.length+' rows — narrow the filters or use the Report Builder for totals.','عرض أول '+LCAP+' من '+L.length+' صف — ضيّق الفلاتر أو استخدم منشئ التقارير للإجماليات.')+'</td></tr>';
-  h+='</tbody></table></div>';
+  // Company is the primary row, profiles nest under it (owner ruling 2026-08-21).
+  var byBiz={},order=[];
+  rows.forEach(function(r){ if(!byBiz[r.business_id]){byBiz[r.business_id]=[];order.push(r.business_id);} byBiz[r.business_id].push(r); });
+  order.sort(function(a,b){return (bizName(a)||'').localeCompare(bizName(b)||'');});
+  // exports always carry the company + profile label, per row (owner ruling)
+  TXN._csvRows=rows.map(function(r){var p=TXN.profiles[r.client_profile_id];return Object.assign({},r,{company:bizName(r.business_id)||r.business_id,profile_type:p?p.profile_type:'',direct_client_id:p?p.direct_client_id:'',stage:txnStage(r)});});
+
+  var h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">'
+    +'<div class="card" style="padding:12px 14px;border-top:3px solid #0F6E56"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed revenue','الإيراد المؤكد')+'</div><div style="font-size:18px;font-weight:800;color:#0F6E56" title="'+money(cRev)+' SAR">'+moneyS(cRev)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'
+    +'<div class="card" style="padding:12px 14px;border-top:3px solid #B54708"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed cost','التكلفة المؤكدة')+'</div><div style="font-size:18px;font-weight:800;color:#B54708" title="'+money(cCost)+' SAR">'+moneyS(cCost)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'
+    +'<div class="card" style="padding:12px 14px;border-top:3px solid #175CD3"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed profit','الربح المؤكد')+'</div><div style="font-size:18px;font-weight:800;color:#175CD3" title="'+money(cProf)+' SAR">'+moneyS(cProf)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'
+    +'<div class="card" style="padding:12px 14px;border-top:3px solid #B54708"><div style="font-size:11px;color:var(--muted)">'+_lh('Pending (est. only)','بانتظار المصاريف (تقديري)')+'</div><div style="font-size:18px;font-weight:800;color:#8b5b1f">'+pendCount+' <span style="font-size:10px;font-weight:400">· '+moneyS(pendEst)+' '+_lh('est.','تقديري')+'</span></div></div>'
+    +'<div class="card" style="padding:12px 14px;border-top:3px solid '+(overdueCount?'#D92D20':'#E5E7EB')+'"><div style="font-size:11px;color:var(--muted)">'+_lh('Overdue','متأخر')+'</div><div style="font-size:18px;font-weight:800;color:'+(overdueCount?'#D92D20':'#667085')+'">'+overdueCount+'</div></div>'
+    +'</div><div class="ch-sub" style="margin:-4px 0 10px">'+_lh('Confirmed = has an invoice number, or Expense Status is Ready. Pending rows show their transaction-time estimate only — never counted above.','المؤكد = له رقم فاتورة، أو حالة المصاريف جاهزة. الصفوف المعلقة تعرض تقدير وقت الإنشاء فقط — لا تُحتسب أعلاه.')+'</div>';
+
+  h+='<div class="card" style="padding:12px 16px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px">';
+  h+='<input placeholder="'+_lh('Search company / ref / invoice / DPIN…','بحث عن شركة / مرجع / فاتورة…')+'" value="'+escF(TXN.f.q)+'" style="'+SS+';min-width:200px" oninput="finTxnF(\'q\',this.value)">';
+  h+='<select style="'+SS+'" onchange="finTxnF(\'profileType\',this.value)"><option value="all">'+_lh('All profile types','كل أنواع الملفات')+'</option><option value="prepaid" '+(TXN.f.profileType==='prepaid'?'selected':'')+'>'+_lh('Prepaid','مسبق الدفع')+'</option><option value="postpaid" '+(TXN.f.profileType==='postpaid'?'selected':'')+'>'+_lh('Postpaid','آجل الدفع')+'</option><option value="tender" '+(TXN.f.profileType==='tender'?'selected':'')+'>'+_lh('Tender','مناقصة')+'</option></select>';
+  h+='<select style="'+SS+'" onchange="finTxnF(\'stage\',this.value)"><option value="all">'+_lh('All stages','كل المراحل')+'</option><option value="pending" '+(TXN.f.stage==='pending'?'selected':'')+'>'+_lh('Expenses pending','بانتظار المصاريف')+'</option><option value="ready" '+(TXN.f.stage==='ready'?'selected':'')+'>'+_lh('Ready to invoice','جاهز للفوترة')+'</option><option value="invoiced" '+(TXN.f.stage==='invoiced'?'selected':'')+'>'+_lh('Invoiced','مفوترة')+'</option><option value="overdue" '+(TXN.f.stage==='overdue'?'selected':'')+'>'+_lh('Overdue','متأخر')+'</option></select>';
+  h+='<select style="'+SS+';max-width:240px" onchange="finTxnF(\'business\',this.value)"><option value="all">'+_lh('All companies','كل الشركات')+'</option>'+order.map(function(uid){return '<option value="'+escF(uid)+'" '+(TXN.f.business===uid?'selected':'')+'>'+escF(bizName(uid)||uid)+'</option>';}).join('')+'</select>';
+  h+='<button class="btn sm" onclick="finTxnCSV()">⬇ '+_lh('Excel (CSV)','إكسل (CSV)')+'</button>';
+  h+='<span style="margin-left:auto;font-size:12px">'+(isArF()?('<b>'+rows.length+'</b> معاملة عبر <b>'+order.length+'</b> شركة'):('<b>'+rows.length+'</b> transactions across <b>'+order.length+'</b> compan'+(order.length===1?'y':'ies')))+'</span></div>';
+
+  if(!order.length){ h+='<div class="card" style="padding:30px;text-align:center;color:var(--muted)">'+_lh('No transactions match.','لا توجد معاملات مطابقة.')+'</div>'; return h; }
+
+  order.forEach(function(bizId){
+    var list=byBiz[bizId].slice().sort(function(a,b){return (b.created_at_source||'').localeCompare(a.created_at_source||'');});
+    var coRev=0,coCost=0; list.forEach(function(r){ if(txnConfirmed(r)){coRev+=+r.amount_sar||0;coCost+=+r.cost_confirmed_sar||0;} });
+    var isCollapsed=!!TXN.collapsed[bizId];
+    h+='<div class="card" style="padding:0;margin-bottom:10px;overflow:hidden">';
+    h+='<div style="padding:10px 14px;background:#F6F7F9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer" onclick="txnToggleCo(\''+bizId+'\')">'
+      +'<span style="font-weight:800;font-size:13.5px">'+(isCollapsed?'▸':'▾')+' '+escF(bizName(bizId)||bizId)+'</span>'
+      +'<span style="font-size:11px;color:var(--muted)">'+list.length+' '+_lh('transactions','معاملة')+'</span>'
+      +'<span style="margin-left:auto;font-size:12px"><b style="color:#0F6E56">'+money0(coRev)+'</b> '+_lh('rev','إيراد')+' · <b style="color:#B54708">'+money0(coCost)+'</b> '+_lh('cost','تكلفة')+' <span style="color:var(--muted);font-size:10.5px">('+_lh('confirmed only','مؤكد فقط')+')</span></span></div>';
+    if(!isCollapsed){
+      h+='<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse;min-width:900px"><thead><tr style="background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+'"><th style="padding:7px 8px">'+_lh('Date','التاريخ')+'</th><th style="padding:7px 8px">'+_lh('Profile','الملف')+'</th><th style="padding:7px 8px">'+_lh('Ref / Invoice','المرجع / الفاتورة')+'</th><th style="padding:7px 8px">'+_lh('Service','الخدمة')+'</th><th style="padding:7px 8px;text-align:right">'+_lh('Amount','المبلغ')+'</th><th style="padding:7px 8px;text-align:right">'+_lh('Cost','التكلفة')+'</th><th style="padding:7px 8px;text-align:right">'+_lh('Profit','الربح')+'</th><th style="padding:7px 8px">'+_lh('Stage','المرحلة')+'</th></tr></thead><tbody>';
+      list.forEach(function(r){
+        var p=TXN.profiles[r.client_profile_id];
+        var tl=p&&TXN_TYPE_LBL[p.profile_type]?TXN_TYPE_LBL[p.profile_type]:['—','—'];
+        var stage=txnStage(r), sc=TXN_STAGE_COLOR[stage], sl=TXN_STAGE_LBL[stage];
+        var confirmed=txnConfirmed(r);
+        var costCell=confirmed?('<b>'+money0(r.cost_confirmed_sar)+'</b>')
+          :(r.cost_estimate_sar!=null?('<span style="color:var(--muted);font-style:italic">'+money0(r.cost_estimate_sar)+' '+_lh('est.','تقديري')+'</span>'):'—');
+        var profCell=confirmed?('<span style="color:#175CD3;font-weight:700">'+money0((+r.amount_sar||0)-(+r.cost_confirmed_sar||0))+'</span>'):'<span style="color:var(--muted)">—</span>';
+        var refCell=r.invoice_no
+          ?('<a href="'+escF(pdInvoiceLink({invoice_no:r.invoice_no,zatca_dpin:r.zatca_dpin,direct_client_id:p?p.direct_client_id:''}))+'" target="_blank" rel="noopener" style="color:#175CD3;text-decoration:none">'+escF(r.invoice_no)+' ↗</a>')
+          :escF(r.transaction_ref);
+        h+='<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:7px 8px;white-space:nowrap">'+escF((r.created_at_source||'').slice(0,10))+'</td>'
+          +'<td style="padding:7px 8px">'+badge(_lh(tl[0],tl[1]),'#EEF0F5','#4B5563')+(p&&p.direct_client_id?(' <span style="color:var(--muted);font-size:10.5px">#'+escF(p.direct_client_id)+'</span>'):'')+'</td>'
+          +'<td style="padding:7px 8px">'+refCell+'</td>'
+          +'<td style="padding:7px 8px">'+escF(svcLabel(r.service_type))+'</td>'
+          +'<td style="padding:7px 8px;text-align:right;font-weight:700">'+money0(r.amount_sar)+'</td>'
+          +'<td style="padding:7px 8px;text-align:right">'+costCell+'</td>'
+          +'<td style="padding:7px 8px;text-align:right">'+profCell+'</td>'
+          +'<td style="padding:7px 8px">'+badge(_lh(sl[0],sl[1]),sc+'1a',sc)+'</td></tr>';
+      });
+      h+='</tbody></table></div>';
+    }
+    h+='</div>';
+  });
   return h;
 }
 window.finF=function(k,v){FIN.f[k]=v;if(k==='client'){FIN.f.clientKey=null;FIN.f.clientName='';}render();};

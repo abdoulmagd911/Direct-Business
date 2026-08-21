@@ -550,3 +550,92 @@ linking, Clients page rebuild, Corporate Clients import) was built the same sess
 `docs/BACKLOG.md` for the schema shape, the real import (24 profiles / 19 companies from the
 verified Corporate Clients registry, Takamol excluded), and what got removed from the Clients
 page to match this ruling.
+
+## ROUND 12 — Phase 2: the Ledger rebuilt on the corrected model (2026-08-21)
+
+Owner (via the reviewer's independent-verification pass) authorised Phase 2 the same session,
+with explicit guardrails: stage it alongside `finance_invoices` rather than rip it out; company
+is the shape, not a toggle; confirmed-only in the KPI strip; Overdue stays a mirror; production
+promotion stays Abdulrahman's alone.
+
+**Schema, staged, not a replacement.** Three new tables (migration
+`finance_transactions_ledger_rebuild`): `finance_transactions` (one row per Corporate
+Transaction — Round 2's "a transaction IS an invoice record, one row, invoice number attaches
+once issued" — `business_id`+`client_profile_id` FK, `amount_sar` = revenue per Round 5,
+`cost_confirmed_sar` kept in sync by a database trigger off its own approved expense lines,
+`cost_estimate_sar` for the pending-row "est." display only, `overdue` nullable and never
+defaulted to false); `finance_cogs_expenses` (mirrors the COGs Report, one row per expense
+line, `cog_approved`/`cog_under_review`/etc.); `payment_receipts` (receipt-level, `allocations`
+jsonb holding the invoice/transaction split rather than a fourth table). `finance_invoices`
+itself is untouched — Performance, Clients & collections, Report Builder and Expenses all still
+read it exactly as before; only the Ledger tab now points at the new tables.
+
+**The Ledger tab (`rLedger()` in `js/16-finance-ledger.js`) is now company-grouped, not
+invoice-grouped.** Each company (`businesses` row) is its own section with a confirmed-only
+rev/cost subtotal; every transaction row under it carries a visible Prepaid/Postpaid/Tender
+badge plus the Direct client ID, sourced from `client_profiles` — never invented, never a
+free-text toggle. The CSV export carries the same company + profile-type columns on every row.
+Stage is Round 8's two-field derivation (`invoice_no` set → Invoiced; else `expense_status`
+ready/pending) plus Round 11's Overdue mirror layered on top when `overdue===true`. The KPI
+strip (Confirmed revenue/cost/profit) only ever sums rows that are Ready or Invoiced — a
+Pending row shows its `cost_estimate_sar` at row level, muted and tagged "est.", and is excluded
+from every total, exactly as Round 7 specifies. No VAT column, no VAT anywhere.
+
+**Demo data, kept out of the real 19 companies on purpose.** The 11 synthetic `world30` test
+clients (not the real Corporate Clients import from Phase 1) got their own `client_profiles`
+rows and 33 `finance_transactions` — 28 promoted from their existing `finance_invoices` rows
+(Issued stage, `cost_confirmed_sar` backed by real `cog_approved` lines the trigger sums, not a
+copied number) plus 5 new rows built to exercise Pending/Ready/Overdue and all three profile
+types. Real company data and demo financial data are kept in separate rows on purpose, same
+principle as Phase 1's import decision — a real company's identity should never carry invented
+transaction amounts.
+
+**Verified in the harness, EN+AR, screenshots:** company grouping, profile badges, stage badges,
+the confirmed-only KPI (hand-checked: 42,000+9,500 revenue / 35,000+7,600 cost from only the
+Ready+Invoiced rows, the Pending and Overdue rows correctly excluded), the "est." tag, zero VAT
+mentions, zero console errors, Overview tab unaffected (still reading `finance_invoices`).
+`check-structure.mjs` clean.
+
+**Known small rough edge, not fixed this round:** the "Open in Finance ledger ↗" link on a
+non-client lead's Finance snapshot (`js/38-client-card.js`) still sets the old `FIN.f.client`
+filter, which the new Ledger no longer reads — it navigates to the tab correctly but doesn't
+pre-filter to that company. The "Top clients" drill-down from Clients & Collections (which DOES
+stay on `finance_invoices`) was fixed to carry across (`finClient()` now also sets
+`TXN.f.business`). Low-traffic path; left for a follow-up rather than widening this pass.
+
+## ROUND 13 — the COGs Report holds zero rows; Corporate Expenses is THE cost source, not a fallback (2026-08-21)
+
+Closes the oldest open item in the project. The reviewer worked the COGs Report's own filter UI
+directly rather than waiting on a URL: **the working parameters are `status_key[]=cog_approved`
+("Cogs - Approved" in the UI) and `submission_range`/`approval_range`, both
+`YYYY-MM-DD to YYYY-MM-DD`.** Full example:
+`/en/admin/stats/cog-report?status_key[]=cog_approved&submission_range=2025-01-01 to 2026-12-31`.
+**Every combination tested — status alone, status + a two-year range, either date range alone
+over 2024–2026 — returned "Total Results: 0 / There are no records to show."** The page renders
+its full column set correctly and the server is healthy (other reports return data), so this is
+neither a filter-parameter problem nor a timeout: **the COGs Report itself is unpopulated.**
+
+**Consequences, settled, not tentative:**
+1. The COGs Report is not the primary cost-import path and "cost is pending until COGs lands" is
+   not a temporary state — on current evidence it will not resolve on its own.
+2. **Corporate Expenses (per-invoice "Total Submitted Expenses" + the per-line statuses from
+   View Assignments) is now THE verified cost source, not a fallback.** Everything Round 7
+   verified 6-for-6 stands and is now the only proven path — gated on Expense Status = Ready at
+   the transaction level for confirmed cost, exactly as Round 8 already specifies.
+3. **`finance_cogs_expenses` (Phase 2's schema) stays import-ready for a COGs feed, but nothing
+   depends on it arriving.** Corrected the same session: the status vocabulary was originally
+   modelled on the COGs Report's own values (`cog_approved` etc.) — normalised to a
+   source-agnostic `pending/under_review/approved/rejected/cancelled`, with a new
+   `source_system` column (`corporate_expenses` default, `cogs_report` still accepted) so a row
+   records which literal screen it came from. `finance_transactions.cost_confirmed_sar` is
+   unaffected in shape — still the trigger-maintained sum of that transaction's `approved` lines
+   — only the vocabulary changed, and existing rows/the sync trigger were migrated in place.
+4. Worth Abdulrahman raising independently with Direct's developers: their own COGs Report
+   returns nothing for any filter or date range — either a broken report or a feature nobody
+   populates. Useful for him to know regardless of this app.
+
+**Nothing here changes Phase 2's guardrails — it simplifies them: one verified cost source, not
+two competing ones.** The Ledger's stage/confirmed-cost logic (`js/16-finance-ledger.js`) reads
+`expense_status` and the trigger-synced `cost_confirmed_sar`, never queries `finance_cogs_expenses`
+directly, so no UI code changed — only the underlying expense-line vocabulary and its
+provenance column.

@@ -77,16 +77,26 @@ Round 11. **Done means:** the Clients page is identity-only and the schema is re
 text blob — both verified true. **Still open:** the Finance page's own company-grouped
 rebuild (Spec 2) — a separate next phase, not done in this pass.
 
-## Phase 3 — Finance ✅
+## Phase 3 — Finance ✅ (Ledger rebuilt on the corrected model, 2026-08-21)
 The upgrade of the owner's Executive Dashboard. Two tabs: **Performance** (period bar
 year·All/Q1–Q4/H1/H2·month driving everything · KPI cards · income by service families ·
 plan-vs-actual with the real 2026 plan · monthly chart) and **Clients & collections**
-(credit held · collections & AR aging · top clients, numbers only). Ledger with origin
-(booking vs project + proposal link — strategic/quality teams reach the proposal in two
-clicks), invoice line items, CSV export, dark-slate tables, margin pills only in details.
-Storage doctrine: raw rows once, everything derived, integrity flags on the row.
+(credit held · collections & AR aging · top clients, numbers only) — both still read
+`finance_invoices`, unchanged. Storage doctrine: raw rows once, everything derived, integrity
+flags on the row.
+**Phase 2 (2026-08-21):** the **Ledger tab** now reads its own real schema
+(`finance_transactions` + `finance_cogs_expenses` + `client_profiles`, staged alongside
+`finance_invoices` rather than replacing it) — company is the primary row, every transaction
+labelled Prepaid/Postpaid/Tender, KPI strip confirmed-only (has an invoice number, or Expense
+Status Ready), pending rows show their estimate tagged "est." and never reach the totals,
+Overdue only renders when Direct Payments' own field says so (null ≠ not overdue). Round 13:
+the COGs Report itself holds no data — Corporate Expenses > View Assignments is the verified
+cost source; the expense-line vocabulary was normalised to be source-agnostic. Full detail:
+`docs/DIRECT_PAYMENTS_MODEL.md` Rounds 11–13, `docs/BACKLOG.md` 2026-08-21.
 **Done means:** any month/quarter/half/year question answerable in two clicks and every
-number traceable to invoices. *True today; verified by hand-computed sums.*
+number traceable to invoices (Performance/Reports); every Ledger row traceable to its company,
+profile and confirmed-cost source. *True today; verified by hand-computed sums, EN+AR.*
+**Still open:** the real transaction-level import to replace the Ledger's demo seed.
 
 ## Phase 4 — Settings / Team & Access ✅
 Real users with roles (admin/manager/bd/operations/viewer/team_member), access allowlist,

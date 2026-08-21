@@ -1,5 +1,52 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-21 · Phase 2 — Finance schema (finance_transactions/cogs/receipts) + Ledger rebuild
+
+Authorised the same session (reviewer, with Abdulrahman's "keep moving, use my judgement" while
+away), with guardrails: stage alongside `finance_invoices`, don't rip it out; company is the
+shape, not a toggle; confirmed-only KPI; Overdue stays a mirror; production promotion stays
+Abdulrahman's alone. Full detail in `docs/DIRECT_PAYMENTS_MODEL.md` Rounds 12–13.
+
+**Schema, staged.** Migration `finance_transactions_ledger_rebuild`: `finance_transactions`
+(business_id+client_profile_id FK, amount_sar=revenue, cost_confirmed_sar trigger-synced from
+its own approved expense lines, cost_estimate_sar for the pending "est." display, overdue
+nullable/never-false), `finance_cogs_expenses` (one row per expense line — see the Round 13
+correction below), `payment_receipts` (jsonb allocations, no fourth pivot table).
+`finance_invoices` is untouched; Overview/Clients & collections/Report Builder/Expenses all
+still read it. Only the Ledger tab (`rLedger()` in `js/16-finance-ledger.js`) reads the new
+tables — company-grouped, every row labelled Prepaid/Postpaid/Tender from `client_profiles`,
+KPI strip confirmed-only (Ready or Invoiced), CSV export carries the same company+profile
+columns. No VAT column, no VAT anywhere.
+
+**Round 13 correction, same session:** Direct Payments' COGs Report (what `finance_cogs_expenses`
+was originally modelled on) returns zero rows for every filter tested — the reviewer worked its
+filter UI directly and recorded the working parameters (`status_key[]`, `submission_range`/
+`approval_range`) in the docs so nobody has to rediscover them. Corporate Expenses > View
+Assignments is the verified real cost source instead. `finance_cogs_expenses.status` was
+normalised from the COGs-Report-specific vocabulary (`cog_approved` etc.) to a source-agnostic
+`pending/under_review/approved/rejected/cancelled`, with a new `source_system` column
+(`corporate_expenses` default, `cogs_report` still accepted for later). The Ledger's own logic
+was unaffected — it reads `expense_status` and the trigger-synced `cost_confirmed_sar`, never
+queries `finance_cogs_expenses` directly.
+
+**Demo data kept separate from the real 19 companies, on purpose** — same principle as Phase 1.
+The 11 synthetic `world30` clients got `client_profiles` + 33 `finance_transactions` (28
+promoted from their existing `finance_invoices` rows at Issued stage, cost backed by real
+`approved` expense lines the trigger sums; 5 new rows built to exercise Pending/Ready/Overdue
+across all three profile types). Verified in the harness, EN+AR, screenshots — company
+grouping, profile badges, stage badges, hand-checked confirmed-only KPI math, the "est." tag,
+zero VAT mentions, zero console errors, Overview tab unaffected. `check-structure.mjs` clean.
+
+**Known rough edge, not fixed this round:** the "Open in Finance ledger ↗" link on a non-client
+lead's Finance snapshot still sets the old `FIN.f.client` filter, which the new Ledger doesn't
+read — it navigates to the tab but doesn't pre-filter. The Clients & Collections "Top clients"
+drill-down was fixed to carry across. Low-traffic path, left for a follow-up.
+
+**Still open, real next step:** the real transaction-level import (5659 GMV Transaction
+Breakdown, not yet downloaded, or a per-invoice Corporate Expenses export) to replace the demo
+seed with real Direct Payments data — same shape as Phase 1's Corporate Clients import, not
+started this pass.
+
 ## 2026-08-21 · Phase 1 — Company/Client-Profile schema, real Corporate Clients import, Clients page rebuilt money-free
 
 Both items blocking Phase 1 were answered by Abdulrahman the same session (see
