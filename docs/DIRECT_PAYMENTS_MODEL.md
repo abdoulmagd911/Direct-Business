@@ -348,9 +348,9 @@ actual sum of the actual costs... the confirmed ones."* Three things follow dire
      by this rule and should not be built that way.
 
 **Not yet changed:** docs only. Still open, waiting on Abdulrahman directly (not something to
-guess at): which field marks a transaction "finalised" for the Overdue stage, and confirming
-that a tender profile's budget/consumed/remaining is capacity-tracking rather than the
-Clients-page money the Finance-page spec otherwise bans there.
+guess at): which field marks a transaction "finalised" for the Overdue stage. **The tender
+capacity-vs-money question below turned out not to be capacity tracking at all — see Round 9,
+which corrects this assumption rather than confirming it.**
 
 ## ROUND 8 — Stage is a two-field read off Corporate Transactions, verified 6-for-6 (2026-08-21)
 
@@ -401,5 +401,58 @@ At` threshold), not something mirrored from a Direct Payments field. The thresho
 still needs a decision before Overdue can be built — not guessing at a number here.
 
 **Not yet changed:** docs only. Still open, waiting on Abdulrahman directly: the Overdue aging
-threshold just raised above, and the tender budget/consumed/remaining capacity-vs-money
-question from Round 7.
+threshold just raised above. **The tender question is answered in Round 9 — not the way this
+round and Round 7 assumed.**
+
+## ROUND 9 — the tender "capacity, not money" reading was wrong; retracted (2026-08-21)
+
+Retraction, checked against the real, live Corporate Clients list (44 clients) rather than
+assumed. **Both the original reading in the Spec 1 planning conversation and this doc's own
+"still open, but probably capacity-tracking" framing in Rounds 7/8 were wrong.**
+
+**A Tender client's payment configuration does not store a neutral capacity number.** It
+stores three fields together: **Tender amount, Expected COGS, Expected GP.** Real examples
+(different tender clients): `75,578.00 / 75,000.00 / 578.00`; `33,800.00 / 29,697.00 /
+4,103.00`; `11,100.00 / 10,600.00 / 500.00`. Expected COGS is cost. Expected GP is profit.
+**This is P&L sitting directly on the client record — it collides head-on with the hard rule
+that the Clients page shows no revenue, cost, profit, deal value, wallet, or outstanding
+figure anywhere.** It is not the capacity-tracking exception both this doc and the original
+plan assumed it must be, since the two rules were written in the same breath.
+
+**There is also no "consumed" or "remaining" field anywhere in the source — only those three.**
+So a "budget / consumed / remaining" display, as originally spec'd, was never going to be
+mirrored data in the first place: **consumed would have to be computed by summing that
+profile's invoices/transactions, and remaining derived from the subtraction** — meaning the
+Clients page would be *generating* a live money figure, not mirroring an identity field. That
+is a bigger violation of the money-free rule than simply displaying a stored number would have
+been.
+
+**Do not build tender budget/consumed/remaining on the Clients page until Abdulrahman rules on
+it.** Already put to him directly, with this evidence. No default assumption stands in the
+meantime — the honest state is "undecided," not "probably fine because it's not literally
+revenue."
+
+**Three more facts confirmed on the same page, useful independent of the tender question:**
+
+1. **The Company → many Client Profiles model is confirmed in real data, not just theory.**
+   Real examples: one company appears as a Pre-paid row and a separate Post-paid row under
+   near-identical legal names; a government body appears twice as two Tender rows with
+   *different* Expected COGS/GP on each; two further companies each appear twice. This
+   validates `direct_client_id` as the immutable join key and Company-above-Profile as the
+   right shape (Spec 1). **It also sharpens the linking-waterfall risk already named in Spec
+   1**: near-identical legal names can be genuinely different profiles of the same company,
+   not duplicates to merge into one profile — the waterfall's job is linking a profile to its
+   *company*, never collapsing two real profiles into each other.
+2. **Client Status is a real, mirrored field, not always "Active."** At least one client in
+   the live list is `Suspended`. The Client Profile schema (Spec 1) must carry the real status
+   value rather than assuming every mirrored client is active.
+3. **Takamol appears as an ordinary row in Corporate Clients.** The standing exclusion rule
+   (Takamol/Techtic Support never appear in this app) is about its *money* — invoices, income,
+   any P&L figure — not about its existence as a client identity. **The importer must still
+   import Takamol as a Client Profile (identity only) and exclude everything financial about
+   it, rather than skipping the row entirely** — skipping it would just create an orphan the
+   moment something else in the import references that `direct_client_id`.
+
+**Not yet changed:** docs only. Still open, waiting on Abdulrahman directly: the tender
+capacity-vs-money ruling this round surfaces (not resolves), and the Overdue aging threshold
+from Round 8.
