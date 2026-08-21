@@ -446,13 +446,62 @@ revenue."
 2. **Client Status is a real, mirrored field, not always "Active."** At least one client in
    the live list is `Suspended`. The Client Profile schema (Spec 1) must carry the real status
    value rather than assuming every mirrored client is active.
-3. **Takamol appears as an ordinary row in Corporate Clients.** The standing exclusion rule
-   (Takamol/Techtic Support never appear in this app) is about its *money* — invoices, income,
-   any P&L figure — not about its existence as a client identity. **The importer must still
-   import Takamol as a Client Profile (identity only) and exclude everything financial about
-   it, rather than skipping the row entirely** — skipping it would just create an orphan the
-   moment something else in the import references that `direct_client_id`.
+3. **Takamol appears as an ordinary row in Corporate Clients.** ~~The standing exclusion rule
+   is about its money, not its existence — import it as a Client Profile (identity only) and
+   exclude everything financial about it.~~ **Wrong, overridden by Round 10 — Abdulrahman does
+   not want Takamol to exist in this app at all, identity included. See Round 10.**
 
 **Not yet changed:** docs only. Still open, waiting on Abdulrahman directly: the tender
 capacity-vs-money ruling this round surfaces (not resolves), and the Overdue aging threshold
-from Round 8.
+from Round 8. **Point 3 above is corrected in Round 10, not still open.**
+
+## ROUND 10 — Takamol excluded at every layer (correcting Round 9); the tender-grain model is fully specified (2026-08-21)
+
+**Correction — Round 9 point 3 above was wrong, and it was wrong advice this doc itself gave
+in the previous round, not just a stale assumption.** Abdulrahman's own words: *"As for the old
+rules for Takamol and wallet top ups, I don't want them to appear anywhere."* **Takamol and
+wallet top-ups are excluded at every layer, not just the money layer — not a client, not a
+row, not a profile, not a line in any list, export, filter, dropdown, or count, in Clients and
+in Finance alike.** Exclude at **import time**, so the row never enters the data at all —
+never filter it out at display while it still sits in the table. **If excluding it leaves an
+unlinked reference somewhere downstream, drop the reference too — never resurrect the excluded
+row just to satisfy a join.** Wallet top-ups already had this full-exclusion treatment (Round
+1's original wallet-top-up rule, and the app-side purge already shipped); Takamol now gets the
+identical treatment, not the softer "identity-only" reading Round 9 wrongly proposed.
+
+**The Company/Client-Profile grain is now fully specified, and it confirms Spec 1 with one
+sharp addition.** One Company sits above many Client Profiles; **profile type decides the
+grain**:
+- **Pre-paid** — **one profile** for the company, covering all its prepaid invoices.
+- **Post-paid** — **one profile**, covering its postpaid invoices under that one credit limit
+  and term.
+- **Tender — one profile PER TENDER, never one per company.** Abdulrahman's reasoning is the
+  load-bearing part: a tender carries a fixed, certain amount ("not necessarily one invoice,
+  but at least the amount of it is certain"). Once that amount is consumed and its COGS/
+  expenses are issued, **it cannot be added to and its value cannot be adjusted** — the only
+  way forward is a brand-new tender for the same client. One client can hold three or more
+  tenders over time, each its own profile, all linked under the same company "so it reflects
+  all of their work together."
+
+This is the exact mechanism behind two of Round 9's real-data observations: the government
+body with two Tender rows carrying *different* Expected COGS/GP is two separate tenders, not a
+duplicate — and the company with one Pre-paid row and one Post-paid row is the same
+one-profile-per-grain pattern, just across two different payment types instead of two tenders.
+
+**Hard consequence for the linking waterfall (Spec 1): two Tender profiles for the same client
+must never auto-merge, even when CR, VAT, domain, and normalised name all match identically —
+which is precisely the situation where the waterfall's own logic would otherwise want to merge
+them.** New rule, ahead of any of the CR/VAT/domain/name checks: **if both candidate profiles
+are type Tender, they are always distinct profiles under one company, never collapsed into
+one.** `direct_client_id` stays the immutable key per profile; `company_id` is what groups
+them. A closed tender profile is also effectively immutable — its amount is **append-only
+history, never an editable field** once the tender is done.
+
+**Still genuinely unanswered — do not infer it from the mechanics above:** whether Tender
+amount / Expected COGS / Expected GP may ever *render* on the Clients page at all, given the
+no-money-on-Clients rule. Abdulrahman described how tenders work, not what's allowed on
+screen. **Keep it off the Clients page until he says otherwise** — the mechanics explanation
+is not itself a display permission.
+
+**Not yet changed:** docs only. Still open, waiting on Abdulrahman directly: whether tender
+figures may render on the Clients page at all, and the Overdue aging threshold from Round 8.
