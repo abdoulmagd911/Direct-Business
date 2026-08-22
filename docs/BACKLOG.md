@@ -1,5 +1,48 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-22 · Phantom records cleared — the Leads-page "+8" was a hardcoded re-seed, not a display bug
+
+The prior Leads-count fix (funnel/chip/table agreement) still left the funnel "All" tab
+reading 8 higher than the real table. Root cause: `js/core/core-06-v18-v21.js` hardcoded 8
+B2B clients from an old `Q:\Downloads\B2B.xlsx` import (`B2B_CLIENTS_V21`) and re-injected
+them into `d.businesses` on **every page load**, inside `migrateV21` step 3. They were never
+rows in the `businesses` table. 7 of the 8 duplicated a client that already existed in the
+database under its real name — the team was seeing Directorate of Public Security twice and
+Riyadh Chamber three times (`b_rcc_vip` and `b_rcc_team` both duplicated the one real "Riyadh
+Chamber" row).
+
+**Code change:** `B2B_CLIENTS_V21` is now `[]`. `migrateV21` step 3 no longer seeds anything,
+and now also strips any phantom row an older build already injected into a session's local
+DB object (`_v21added` + synthetic `b_`-prefixed id on `d.businesses` only), so an existing
+open tab heals itself on its next load instead of carrying a fake client forward forever.
+Verified by grep that the strip predicate can never touch a real record — only 3 places in
+the file ever set `_v21added:true` (airlines, vendors, this seed list), on non-overlapping id
+prefixes and different arrays; the one real pre-v21 lead sharing a `b_` id (`b_mdd`) is never
+tagged `_v21added`.
+
+**The one entry with no database counterpart, dropped but preserved here** in case it still
+needs to be entered for real, through the UI, by a person who confirms it first: **Riyadh
+Economic Forum / منتدى الرياض الإقتصادي** — segment "Forum/event", entity type "Government
+entity", payment configuration "Tender", customer type "Tender", note "Per WhatsApp findings"
+(this was never verified against Direct Payments — that's exactly why it shouldn't be
+auto-seeded again without a person confirming it first).
+
+**Database cleanup** (done separately, verified independently against production via SQL
+before trusting it): 2 duplicate synthetic rows — "Riyadh Chamber" and "Benchmark for
+Conferences" (old seed id pattern `a13e0000-0000-4000-8000-1...`, `direct_client_id` null) —
+archived (`archived_at` + `archived_by='cleanup-2026-08-22-duplicate-of-direct-import'`, not
+deleted) because each duplicated a real Direct-Payments-imported row under the same name
+(`direct_client_id` 8 and 23). Confirmed by direct query: 108 live rows (80 leads / 28
+clients), 0 duplicate names remaining, exactly 2 archived. 8 other rows share that same old
+synthetic id pattern but are the **only** copy of their record and were correctly left alone:
+Bayswater Education, Jeel Aljazira Travel & Tourism, Kayan Orphans Charity, Maaal Media,
+Mawani — Saudi Ports Authority, MDD — Smart Madad IT, Rawiz Investment, Security Forces
+Hospital Makkah.
+
+Verified before push: `check-structure.mjs` OK (58 script files) · `probe-leads-counts.mjs`
+OK (funnel/chip/table agree in both languages and both hide-closed states, refresher fires
+both directions) · `sweep-pages.mjs` PASS (144 EN buttons + full AR nav check, 0 errors).
+
 ## 2026-08-22 · Branch cleanup follow-up: appraisal boundary, finance rules, one closed reconciliation
 
 Three corrections from Abdulrahman, same day as the branch cleanup below:

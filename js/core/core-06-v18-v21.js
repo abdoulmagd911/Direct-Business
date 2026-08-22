@@ -852,17 +852,21 @@ const _v21OrigRender3=render;render=function(){_v21OrigRender3();setTimeout(()=>
 const AIR_ADD_V21=[{name:'Beond',code:'B4',stock:'971',icao:'***',country:''},{name:'AnadoluJet - AJet',code:'VF',stock:'204',icao:'TKJ',country:'Turkey'},{name:'Air Peace Limited',code:'P4',stock:'710',icao:'APK',country:'Nigeria'},{name:'ASKY Airlines',code:'KP',stock:'032',icao:'SKK',country:'Togo'},{name:'Alexanderia Airlines',code:'DQ',stock:'293',icao:'KHH',country:''},{name:'AlMasria Universal Airlines',code:'UJ',stock:'110',icao:'LMU',country:'Egypt'},{name:'APG Airlines',code:'GP',stock:'275',icao:'RIV',country:'France'},{name:'FlexFlight',code:'W2',stock:'365',icao:'FXT',country:''},{name:'Fly Arik Air',code:'W3',stock:'725',icao:'ARA',country:'Nigeria'},{name:'Euro Airlines',code:'Q4',stock:'291',icao:'ELE',country:''},{name:'Himalaya Airlines',code:'H9',stock:'769',icao:'HIM',country:''},{name:'MyWay Airlines',code:'MJ',stock:'669',icao:'MYW',country:''},{name:'Nepal Airlines',code:'RA',stock:'285',icao:'RNA',country:''},{name:'Nesma Airlines',code:'NE',stock:'477',icao:'NMA',country:'Egypt'},{name:'Nile Air',code:'NP',stock:'325',icao:'NIA',country:'Egypt'},{name:'Safe Air SAC',code:'K3',stock:'645',icao:'SAQ',country:''},{name:'Scat Air',code:'DV',stock:'655',icao:'VSV',country:''},{name:'SereneAir',code:'ER',stock:'092',icao:'SEP',country:''},{name:'Indonesia AirAsia',code:'QZ',stock:'975',icao:'AWQ',country:'Indonesia'},{name:'Super Air Jet',code:'IU',stock:'920',icao:'SJV',country:'Indonesia'},{name:'Air India Express',code:'IX',stock:'236',icao:'AXB',country:'India'},{name:'US-Bangla Airlines',code:'BS',stock:'779',icao:'***',country:''},{name:'Turkmenistan Airlines',code:'T5',stock:'542',icao:'TUA',country:'Turkmenistan'},{name:'Air Cairo',code:'SM',stock:'381',icao:'MSC',country:'Egypt'},{name:'Nouvel Air',code:'BJ',stock:'796',icao:'LBT',country:'Tunisia'},{name:'Jordan Aviation',code:'R5',stock:'151',icao:'JAV',country:'Jordan'}];
 // 5 additional providers from Ahmed's master (PKFare, Dnata, Sabre, Travelport, RateHawk)
 const PROV_ADD_V21=[{name:'PKFare',type:'NDC aggregator',source:'B2B fare aggregator',role:'NDC + LCC content'},{name:'Dnata',type:'GDS/agency',source:'GDS reseller',role:'agency-level content + servicing'},{name:'Sabre',type:'GDS',source:'GDS (alternate)',role:'PNRs + tickets + fares'},{name:'Travelport',type:'GDS',source:'GDS (alternate)',role:'Worldspan/Apollo/Galileo'},{name:'Rate Hawk',type:'Hotel aggregator',source:'Hotel content + fallback flights',role:'Hotel inventory + emergency flight fallback'}];
-// 8 real B2B clients from Q:\Downloads\B2B.xlsx (sheet names = canonical client names)
-const B2B_CLIENTS_V21=[
-  {id:'b_qahtani',name:'Abdul Hadi Al-Qahtani & Sons',nameAr:'شركة عبدالهادي القحطاني وأولاده',segment:'Corporate / Contracting',category:'Anchor',entityType:'Corporate',isClient:true,paymentConfiguration:'PostPaid',customerType:'B2B',creditLimit:20000,creditCycle:'monthly',vatNumber:'',contacts:[{name:'Finance',email:'',phone:''}],notes:'20k SAR/month credit per WhatsApp (دايركت & شركة عبدالهادي القحطاني)'},
-  {id:'b_aljandal',name:'Aljandal Sports Club',nameAr:'نادي الجندل',segment:'Corporate / Sports',category:'Convert',entityType:'Corporate',isClient:true,paymentConfiguration:'PostPaid',customerType:'B2B',creditLimit:30000,creditCycle:'monthly',contacts:[],notes:'30k SAR/month credit per WhatsApp (دايركت - نادي الجندل) · service suspends if not settled by month-end'},
-  {id:'b_rajhi',name:'Al-Rajhi First',nameAr:'الراجحي الأولى',segment:'Banking',category:'Anchor',entityType:'Corporate',isClient:true,paymentConfiguration:'PostPaid',customerType:'B2B',contacts:[],notes:'Low volume per B2B.xlsx (5 rows)'},
-  {id:'b_ultimates',name:'The Ultimates - Kingsleague',nameAr:'',segment:'Sports event',category:'Convert',entityType:'Corporate',isClient:true,paymentConfiguration:'PrePaid',customerType:'B2B',contacts:[],notes:'Per-event project'},
-  {id:'b_rcc_vip',name:'Riyadh Chamber of Commerce — VIP',nameAr:'غرفة أعمال الرياض - VIP',segment:'Chamber of Commerce',category:'Anchor',entityType:'Government entity',isClient:true,paymentConfiguration:'PostPaid',customerType:'B2B',contacts:[],notes:'VIP segment of Riyadh Chamber (30 rows in B2B.xlsx)'},
-  {id:'b_rcc_team',name:'Riyadh Chamber of Commerce — Team',nameAr:'غرفة أعمال الرياض - Team',segment:'Chamber of Commerce',category:'Anchor',entityType:'Government entity',isClient:true,paymentConfiguration:'PostPaid',customerType:'B2B',contacts:[],notes:'Team-travel segment (17 rows)'},
-  {id:'b_riyadh_econ_forum',name:'Riyadh Economic Forum',nameAr:'منتدى الرياض الإقتصادي',segment:'Forum/event',category:'Convert',entityType:'Government entity',isClient:false,paymentConfiguration:'Tender',customerType:'Tender',contacts:[],notes:'Per WhatsApp findings'},
-  {id:'b_directorate_public_security',name:'Directorate of Public Security',nameAr:'المديرية العامة للأمن العام',segment:'Government',category:'Anchor',entityType:'Government entity',isClient:true,paymentConfiguration:'Tender',customerType:'Tender',tenderAmount:75578,expectedCOGS:74820,expectedGP:758,vatNumber:'310000000000003',contacts:[],notes:'Per Direct Payment walkthrough — Tender client'}
-];
+/* 2026-08-22 owner catch: cleared, permanently. This used to hardcode 8 B2B clients from an
+   old Q:\Downloads\B2B.xlsx import and re-inject them into d.businesses on EVERY load (step 3
+   below). They were never real rows in the businesses table — the app was showing 118/81
+   records against a database of 110/80, and 7 of the 8 duplicated a client that already
+   existed in the database under its real name (the team saw Directorate of Public Security
+   twice and Riyadh Chamber three times: b_rcc_vip and b_rcc_team both duplicated the one
+   real "Riyadh Chamber" row). The database is the single source of truth for clients —
+   nothing gets re-seeded from a spreadsheet snapshot on every page load, ever again.
+   The one entry that had NO database counterpart, preserved here in case it still needs to
+   be entered for real, through the UI, by a person who confirms it first:
+     Riyadh Economic Forum / منتدى الرياض الإقتصادي — segment "Forum/event", entity type
+     "Government entity", payment configuration "Tender", customerType "Tender",
+     note "Per WhatsApp findings" (unverified against Direct Payments at the time it was
+     hardcoded). Full detail also lives in docs/BACKLOG.md. */
+const B2B_CLIENTS_V21=[];
 // MDD project tags (existing lead b_mdd from v17 stays; we add project history)
 const MDD_PROJECTS_V21=['Osaka October','Lisbon October','DC October','London March','USA January','Morocco January'];
 function migrateV21(d){
@@ -874,8 +878,14 @@ function migrateV21(d){
   d.vendors=d.vendors||[];
   const haveProv=new Set(d.vendors.map(v=>(v.name||'').toLowerCase()));
   PROV_ADD_V21.forEach(p=>{if(haveProv.has(p.name.toLowerCase()))return;d.vendors.push({id:'v_'+p.name.toLowerCase().replace(/[^a-z]/g,''),name:p.name,type:p.type,source:p.source,portal:'',login:'',payment:'',terms:'',sla:'',adm:'',process:'',contact:'',contacts:[],notes:p.role,caps:{Book:true,Reissue:false,Refund:false,EMD:false,Seats:false,Bags:false,'Split PNR':false},apiStatus:'—',_v21added:true});haveProv.add(p.name.toLowerCase());});
-  // 3. Seed real B2B clients (additive, by id)
+  // 3. B2B_CLIENTS_V21 is empty now (2026-08-22) — this no longer seeds anything, kept only
+  //    so re-adding a real, confirmed entry later is a one-line change. It also strips any
+  //    phantom row an OLDER build already injected into this session's local DB object, so
+  //    an existing browser tab heals itself on its next load instead of carrying a fake
+  //    client forward forever. The predicate only matches rows THIS code added and that were
+  //    never persisted (_v21added, synthetic 'b_' id) — it can never touch a real record.
   d.businesses=d.businesses||[];
+  d.businesses=d.businesses.filter(function(b){return !(b&&b._v21added&&/^b_/.test(String(b.id||'')));});
   const haveBiz=new Set(d.businesses.map(b=>b.id));
   B2B_CLIENTS_V21.forEach(c=>{if(haveBiz.has(c.id)){const existing=d.businesses.find(b=>b.id===c.id);if(existing){['paymentConfiguration','customerType','creditLimit','creditCycle','vatNumber','tenderAmount','expectedCOGS','expectedGP'].forEach(k=>{if(c[k]!==undefined&&existing[k]===undefined)existing[k]=c[k];});existing._v21upgraded=true;}return;}d.businesses.push(Object.assign({status:c.isClient?'Won':'In progress',owner:'Abdelrahman',activities:[],_v21added:true},c));haveBiz.add(c.id);});
   // 4. Tag MDD lead with project history
