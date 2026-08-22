@@ -40,6 +40,14 @@
    team out, or destroy real data.
 6. **He has been building this for months and hit repeated dead ends.** Bias toward
    reducing his workload and making things reversible, not toward best-practice purity.
+7. **Real company or client data never goes into this repository — no exceptions, no
+   "temporary" branches.** This repo is public. Rule 5 above is about test data already
+   *inside* the app being fine to work with; this is a different rule about what may ever be
+   *committed to git*. It already went wrong once: a 2026-08-13 branch committed real
+   snapshots (1,035 real leads, real contacts, a real invoice capture) as a database-recovery
+   aid, and it sat exposed on GitHub for over a week before being caught and dealt with on
+   2026-08-22. If real data ever needs to leave the database, it goes to Google Drive or
+   stays purely local — never committed, not even briefly.
 
 ## What this project is
 
