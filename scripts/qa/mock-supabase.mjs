@@ -114,6 +114,7 @@ const TABLES={
   }
 })();
 const RPCLOG=[];
+let _finIdSeq=0; // new finance_invoices rows inserted through the mock get mock-fi-N ids
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
 // start(port) keeps the standard seed; start(port,{table:rows}) swaps a table's rows,
 // so a probe can drive the app at real-world scale without disturbing other probes.
@@ -199,7 +200,36 @@ export function start(port, seedOverrides){
   if(path.startsWith('/rest/v1/')){
     const t=path.replace('/rest/v1/','').split('?')[0];
     let rows=TABLES[t]||[];
-    if(req.method!=='GET') return send(res,201,[]);
+    // finance_invoices writes are persisted for real (insert + upsert-by-id) — everything
+    // else keeps the old no-op 201,[] stub. Scoped narrowly on purpose: the universal
+    // importer's own idempotency (import, then re-import the same file → all Unchanged) is
+    // untestable the OBVIOUS way without this — FIN.rows never reflected a prior "commit",
+    // so a plain re-drop always answered "New" again and looked exactly like a real bug
+    // (confirmed live 2026-08-21 — cost the session real time before the cause was found:
+    // the mock, not the importer). Widening this to every table is a bigger, riskier change
+    // some other probe might be unknowingly relying on the current no-op — not done here.
+    if(req.method!=='GET'){
+      if(t==='finance_invoices'){
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(!Array.isArray(payload)) payload=[payload];
+          let onConflict=u.query.on_conflict; if(Array.isArray(onConflict))onConflict=onConflict[0];
+          const table=TABLES.finance_invoices;
+          const written=payload.map(row=>{
+            if(onConflict==='id' && row.id){
+              const ix=table.findIndex(r=>r.id===row.id);
+              if(ix>=0){ table[ix]=Object.assign({},table[ix],row); return table[ix]; }
+            }
+            const newRow=Object.assign({id: row.id || ('mock-fi-'+(++_finIdSeq))}, row);
+            table.push(newRow);
+            return newRow;
+          });
+          return send(res,201, written);
+        });
+      }
+      return send(res,201,[]);
+    }
     // apply simple eq filters from the query string (e.g. id=eq.<uuid>) like real PostgREST,
     // so .eq(...).maybeSingle() returns exactly the matching row (not row[0] of the whole table).
     Object.keys(u.query||{}).forEach(k=>{
