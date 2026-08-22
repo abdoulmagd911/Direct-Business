@@ -1,5 +1,43 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-22 · Password recovery — launch-critical, built and verified in the harness
+
+Pushed as `3a73723`. Abdulrahman was locked out of his own Super Admin account (only had
+Othman's test session), so this jumped ahead of everything else. Three pieces, all now live
+in this branch (not yet promoted — see the promotion entry below):
+
+1. **A real pre-existing bug, found and fixed.** A recovery email link was supposed to show
+   a "choose a new password" screen, but a race condition in the sign-in code meant the
+   ordinary sign-in check usually won the race and signed the person straight into the app
+   instead — without them ever setting a new password. Fixed in `js/02` by checking for a
+   recovery link before the ordinary sign-in check even starts, so it can no longer be raced.
+   Caught only because the QA probe was driven end-to-end, not by reading the code.
+2. **"Forgot password?" on the sign-in screen** — already existed and was already correct
+   (same neutral message whether or not the email is a real account); verified, not changed.
+3. **New "Send reset link" button in Team & Access, admin-only.** Replaces the old flow
+   where an admin/manager typed and could see a person's new temporary password. Now nobody
+   but that person ever sees their own password — the button just emails them Supabase's own
+   reset link. Restricted to admins (not managers, per Abdulrahman's explicit reasoning:
+   resetting someone's password is effectively becoming them). Every send is logged to
+   `record_history` as an `access` / `reset_link_sent` row — who sent it, for whom. Backing
+   edge function (`admin-users`) deployed live as version 5, additive-only diff, smoke-tested.
+
+Verified end-to-end in the QA harness (`scripts/qa/probe-password-recovery.mjs`, new):
+recovery screen (wrong-match / too-short / success), forgot-password neutrality, and the
+admin button (admin sees + can send; manager does not see it, and a direct API call bypassing
+the UI is still refused server-side). Full regression (`check-structure.mjs`, `sweep-pages.mjs`)
+clean. Arabic spot-checked on the new button and its confirmation text.
+
+**Cannot be verified from this sandbox: whether SMTP is actually configured on the real
+Supabase project**, i.e. whether the reset email actually lands in an inbox. The only way to
+know is a human clicking "Forgot password?" on the real sign-in screen and checking their
+own inbox — Abdulrahman doing this himself is the fastest way to confirm end to end.
+
+**Separate, unrelated, non-blocking observation surfaced while testing this:** signing in
+normally and landing on `/today` shows the businesses list as empty even though the API call
+underneath correctly returns rows — reproduced with an ordinary sign-in, nothing to do with
+recovery. Not investigated further; noted here for a later session to pick up.
+
 ## 2026-08-22 · PROMOTION IS THE CRITICAL PATH — production is 100+ commits behind
 
 **Confirmed by diffing branches directly:** Vercel's production branch (`claude/new-session-9fhlp1`)
