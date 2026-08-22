@@ -61,11 +61,14 @@
     bar.style.cssText='display:flex;align-items:center;gap:10px;justify-content:flex-end;margin:10px 2px 4px;font-size:12.5px;color:var(--muted,#7C8194);flex-wrap:wrap';
     var lbl=document.createElement('span');
     var sel=document.createElement('select'); sel.className='pg-size';
-    sel.style.cssText='background:rgba(255,255,255,.04);color:inherit;border:1px solid rgba(255,255,255,.16);border-radius:7px;padding:3px 7px;font-size:12px';
+    /* padding:3px + border rendered these ~22px tall — under the comfortable tap-target size,
+       and these are the controls the team hits most on a long list from a phone. Raised to
+       padding:4px + a min-height floor so both the select and the two buttons clear it. */
+    sel.style.cssText='background:rgba(255,255,255,.04);color:inherit;border:1px solid rgba(255,255,255,.16);border-radius:7px;padding:4px 7px;min-height:26px;font-size:12px';
     ['10','20','50','100','All'].forEach(function(o){var op=document.createElement('option');op.value=o;op.textContent=(o==='All'?'Show all':o+' / page');if(o===getSize())op.selected=true;sel.appendChild(op);});
     var prev=document.createElement('button'); prev.type='button'; prev.textContent='‹ Prev'; prev.className='pg-prev';
     var next=document.createElement('button'); next.type='button'; next.textContent='Next ›'; next.className='pg-next';
-    [prev,next].forEach(function(bn){bn.style.cssText='padding:3px 11px;font-size:12px;border-radius:7px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);color:inherit;cursor:pointer';});
+    [prev,next].forEach(function(bn){bn.style.cssText='padding:4px 11px;min-height:26px;font-size:12px;border-radius:7px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);color:inherit;cursor:pointer';});
     bar.appendChild(lbl);bar.appendChild(sel);bar.appendChild(prev);bar.appendChild(next);
     var anchor=tbl.closest('.tbl-wrap')||tbl; if(anchor.parentNode)anchor.parentNode.insertBefore(bar,anchor.nextSibling);
     function refresh(){var sz=getSize();var st=paginate(tb,sz,tbl.__page||1);tbl.__page=st.page;
