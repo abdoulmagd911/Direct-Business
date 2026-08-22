@@ -25,7 +25,16 @@ function relatedPanel(id){const offs=offersFor(id),bks=bookingsFor(id),invs=invo
   <div style="font-size:12px;color:var(--muted);margin-top:8px">Invoices (${invs.length})</div><div class="related">${invs.map(i=>`<a onclick="openInvoice='${i.id}';current='invoices';render()">🧾 ${esc(i.number)} · ${money(i.total)}</a>`).join('')||'<span class="muted" style="font-size:12px">none</span>'}</div>
   <div style="font-size:12px;color:var(--muted);margin-top:8px">Tickets (${tks.length})</div><div class="related">${tks.map(t=>`<a onclick="openBooking='${t.bookingId}';current='bookings';render()">🎫 ${esc(t.pnr||t.eticket||'PNR')} · ${esc(t.airline||'')}</a>`).join('')||'<span class="muted" style="font-size:12px">none</span>'}</div></div>`;}
 /* ----- drop zones + mock ingestion ----- */
-function dropZone(kind){const hint={invoice:'Invoice PDF',ticket:'Ticket / e-ticket PDF',offer:'Offer / quote PDF',booking:'Booking confirmation / ticket PDF'}[kind]||'file';return `<div class="dropzone" ondragover="dzOver(event,this)" ondragleave="dzLeave(this)" ondrop="dzDrop(event,'${kind}',this)" onclick="ingestModal('${kind}','',null)"><div class="dz-ic">📎</div><div style="flex:1;min-width:0"><b>Drop ${kind} files — or click to add</b><div style="font-size:11.5px;color:var(--muted)">${hint} · multiple files OK</div></div><input type="text" placeholder="paste a link, Enter" onkeydown="if(event.key==='Enter'){dzLink('${kind}',this.value);this.value=''}" onclick="event.stopPropagation()"></div>`;}
+function dropZone(kind){
+  const _ar=(typeof LANG!=='undefined'&&LANG==='ar');
+  const hintEn={invoice:'Invoice PDF',ticket:'Ticket / e-ticket PDF',offer:'Offer / quote PDF',booking:'Booking confirmation / ticket PDF'}[kind]||'file';
+  const hintAr={invoice:'فاتورة PDF',ticket:'تذكرة PDF',offer:'عرض / عرض سعر PDF',booking:'تأكيد حجز / تذكرة PDF'}[kind]||'ملف';
+  const kindAr={invoice:'الفاتورة',ticket:'التذكرة',offer:'العرض',booking:'الحجز'}[kind]||kind;
+  const dropLabel=_ar?('أفلت ملفات '+kindAr+' — أو انقر للإضافة'):('Drop '+kind+' files — or click to add');
+  const hint=(_ar?hintAr:hintEn)+(_ar?' · يمكن أكثر من ملف':' · multiple files OK');
+  const linkPh=_ar?'الصق رابطًا، ثم Enter':'paste a link, Enter';
+  return `<div class="dropzone" ondragover="dzOver(event,this)" ondragleave="dzLeave(this)" ondrop="dzDrop(event,'${kind}',this)" onclick="ingestModal('${kind}','',null)"><div class="dz-ic">📎</div><div style="flex:1;min-width:0"><b>${dropLabel}</b><div style="font-size:11.5px;color:var(--muted)">${hint}</div></div><input type="text" placeholder="${linkPh}" onkeydown="if(event.key==='Enter'){dzLink('${kind}',this.value);this.value=''}" onclick="event.stopPropagation()"></div>`;
+}
 function dzOver(e,el){e.preventDefault();el.classList.add('over');}
 function dzLeave(el){el.classList.remove('over');}
 function dzDrop(e,kind,el){e.preventDefault();el.classList.remove('over');const files=[...(e.dataTransfer.files||[])];if(files.length)ingestQueue(kind,files.map(f=>f.name));}
