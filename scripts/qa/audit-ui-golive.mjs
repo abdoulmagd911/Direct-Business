@@ -181,8 +181,35 @@ async function checkPage(p, moneyStrings, checkMoney, checkLatin) {
 
     // 6 — Latin text left on an Arabic page (2+ consecutive Latin words, rough heuristic —
     //     intentionally conservative for a go-live gate; single abbreviations like SAR/IATA/
-    //     GDS/CSV/PDF/KPI/SOP/VIP are not by themselves a defect)
+    //     GDS/CSV/PDF/KPI/SOP/VIP are not by themselves a defect). DATA is correctly Latin on
+    //     an Arabic page — a person's name, a company name, a product name — so this excludes
+    //     anything matching a real name-ish field already sitting in DB, the "Direct <Product>"
+    //     proper-noun family, a record-title <b>/<strong> inside a .card, and anything inside
+    //     .foot (the sidebar signed-in chip, which also repeats the same name in the Today
+    //     greeting). Each exclusion here was checked against real remaining hits before being
+    //     written, not guessed.
     if (checkLatin) {
+      const nameSet = new Set();
+      try {
+        const NAME_KEYS = ['name', 'nameAr', 'full_name', 'fullName', 'legal_name', 'legalName',
+          'trading_name', 'tradingName', 'nickname', 'contact_name', 'contactName',
+          'account_manager', 'accountManager', 'assigned_to', 'assignedTo', 'owner', 'by',
+          'company_name', 'companyName'];
+        const seenObj = new Set();
+        const walk = (v) => {
+          if (!v || typeof v !== 'object' || seenObj.has(v)) return;
+          seenObj.add(v);
+          if (Array.isArray(v)) { v.forEach(walk); return; }
+          NAME_KEYS.forEach((k) => { if (typeof v[k] === 'string' && v[k].trim()) nameSet.add(v[k].trim()); });
+          Object.values(v).forEach((x) => { if (x && typeof x === 'object') walk(x); });
+        };
+        if (typeof DB === 'object' && DB) Object.values(DB).forEach(walk);
+      } catch (e) {}
+
+      const PRODUCT_NAME = /^Direct (Payments|Travel|Business|Visa|Hotels|Flights|Support|Packages|Course|eSim)$/;
+      let meName = '';
+      try { const el = document.querySelector('.foot b'); meName = el ? (el.textContent || '').trim() : ''; } catch (e) {}
+
       const seen = new Set();
       document.querySelectorAll('body *').forEach((el) => {
         if (el.children.length) return; // leaf nodes only, avoid duplicate parent/child hits
@@ -191,10 +218,18 @@ async function checkPage(p, moneyStrings, checkMoney, checkLatin) {
                                           // user is actually looking at
         const r = el.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) return;
+        if (el.closest && el.closest('.foot')) return; // sidebar signed-in chip
         const t = (el.textContent || '').trim();
         if (!t) return;
-        const m = t.match(/[A-Za-z][A-Za-z .,'\-]{2,}[A-Za-z](?:\s+[A-Za-z][A-Za-z .,'\-]{1,}[A-Za-z])+/);
-        if (m && !seen.has(m[0])) { seen.add(m[0]); out.push({ type: 'latin-leak', detail: m[0].slice(0, 60) }); }
+        if (nameSet.has(t) || (meName && t === meName) || PRODUCT_NAME.test(t)) return;
+        if ((el.tagName === 'B' || el.tagName === 'STRONG') && el.closest && el.closest('.card')) return; // record title
+        // digits are part of the word here (fixture names are suffixed "Test Company 38" to
+        // stay unique) — without this, the match stops at "Test Company" and the trailing
+        // number is lost, so it can never equal the exact name sitting in nameSet
+        const m = t.match(/[A-Za-z][A-Za-z0-9 .,'\-]{2,}[A-Za-z0-9](?:\s+[A-Za-z][A-Za-z0-9 .,'\-]{1,}[A-Za-z0-9])+/);
+        if (!m) return;
+        if (nameSet.has(m[0]) || PRODUCT_NAME.test(m[0]) || (meName && m[0] === meName)) return;
+        if (!seen.has(m[0])) { seen.add(m[0]); out.push({ type: 'latin-leak', detail: m[0].slice(0, 60) }); }
       });
     }
 

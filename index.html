@@ -69,6 +69,21 @@ a{color:inherit;text-decoration:none}
 .btn.ghost{background:transparent;box-shadow:none;border-color:transparent;color:var(--muted)}
 .btn.ghost:hover{background:#fff;color:var(--txt)}
 .btn.danger{color:var(--red);border-color:#f3cfcd;background:#fff}
+/* Tap-target floor (2026-08-22 go-live audit): several row-action buttons carry an inline
+   style="padding:1px 7px;font-size:10.5px" that overrides the padding above, rendering as
+   little as 16px tall — a min-height here is not itself overridden by those inline styles
+   (they never set one), so it holds the floor regardless of how tight the padding gets. */
+.btn.sm,.btn.ghost.sm,.seg button,.segbtn,.inp.sm{min-height:26px}
+@media(hover:none) and (pointer:coarse){
+  .btn.sm,.btn.ghost.sm,.seg button,.segbtn,.inp.sm{min-height:30px}
+}
+/* .inp is used throughout (Settings' access/role pickers, expense/proof/B2C forms — 45+
+   uses) but had no rule at all until now, so every one of those inputs/selects was falling
+   back to the bare browser default (~18-19px, no border-radius, off-brand). Modelled on
+   .field input/select above, just more compact for dense rows. */
+.inp{padding:8px 10px;border:1px solid var(--line-2);border-radius:9px;font:inherit;background:#fff;color:inherit}
+.inp.sm{padding:6px 8px;font-size:12px}
+.inp:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,107,0,.12)}
 .wrap{padding:26px 28px 48px;max-width:1340px;width:100%;margin:0 auto}
 
 /* ---------- Hero ---------- */

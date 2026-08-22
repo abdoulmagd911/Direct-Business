@@ -1,5 +1,60 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-22 · Go-live UI audit round 2 — real fixes, six files
+
+Six real, independently-verified fixes from a second pass of the go-live UI audit (built in
+the first pass, `scripts/qa/audit-ui-golive.mjs`):
+
+1. **`index.html`** — a `min-height:26px` floor on `.btn.sm`, `.btn.ghost.sm`, `.seg button`,
+   `.segbtn`, `.inp.sm` (30px under `@media(hover:none) and (pointer:coarse)`, real touch
+   devices) survives inline `padding:1px 7px` overrides used by row-action buttons across 6+
+   files, since those overrides never touch `min-height`. Verified rendered height: Clients
+   "Edit" button 16px → 26px. Also: `.inp` (used 45+ times for Settings' access/role pickers
+   and several forms) had **no CSS rule at all** — those inputs/selects were on bare browser
+   defaults. Added `.inp`/`.inp.sm` modelled on the existing `.field input` style. Verified
+   rendered: a Settings `.inp` select now has a real 1px border, 9px radius, 30px height.
+2. **`js/09-funnels.js`** — two hardcoded-English lead-card warnings ("No contact person
+   recorded", "Next action overdue") are now bilingual.
+3. **`js/core/core-06-v18-v21.js`** — the accessibility skip-link's "Skip to content" text
+   is now LANG-aware at injection time; given an id (`v21SkipLink`) so it can also be kept in
+   sync on a later language switch (see #5).
+4. **`js/core/core-08-v25.js`** — real bug, not just a translation gap: the OTHER skip-link
+   (`#v25SkipLink`, `href="#view"`) was labelled with the `backToList` string ("Back to
+   list"/"العودة إلى القائمة") — wrong information for a screen-reader user, since it isn't a
+   back link. Added a real `skipToContent` key (EN+AR) and pointed the skip-link at it.
+5. **`js/21-v27-arabic-column-header-stat-label-transl.js`** — both skip-links are inserted
+   once as the first child of `<body>`, a sibling of `#view`/`.top`, not a descendant of
+   either — so no amount of tweaking `scopeTranslate`'s selector list would ever reach them.
+   Added a dedicated `patchSkipLinks(isAr)`, same shape as the existing `#gsearch` placeholder
+   patch (direct by-id patch + remembered original for restore), called from both branches of
+   `v27ArHeaders()` so a language switch after first load keeps them correct too.
+6. **`scripts/qa/audit-ui-golive.mjs`** — the Latin-leak check was flagging real DATA (person
+   names, company names) as translation bugs on Arabic pages, burying genuine gaps in noise.
+   Excluded: any string matching a name-ish field pulled live from `DB` (walks every array —
+   `name`/`nameAr`/`full_name`/`account_manager`/etc.), the `Direct <Product>` proper-noun
+   family, a bare `<b>`/`<strong>` leaf inside a `.card` (record title), and anything inside
+   `.foot` (the sidebar signed-in chip) or exactly matching the signed-in person's own name
+   (which also appears, undecorated by `.foot`, in the Today greeting). Two real bugs found
+   and fixed in the exclusion logic itself before trusting it: the word-boundary regex didn't
+   include digits, so a fixture name like "Test Company 38" matched only as "Test Company"
+   and never equalled the real name in the exclusion set; and the signed-in name was only
+   compared against a leaf's *full* text, not the regex-matched *substring*, so it wasn't
+   recognised inside a longer decorated string like "☀️ يومك — QA Test Account". Adversarially
+   re-checked after fixing both: injected a fake untranslated string into a live Arabic page
+   and confirmed the probe still caught it before trusting "FINDINGS: none" on the real run.
+
+Separately, done directly against production Supabase, nothing to commit here: revoked `anon`
+EXECUTE on `app_role`, `my_page_access`, `page_access`, `can_see_page`, `can_edit_page`,
+`team_nicknames`, `log_page_denied`; `undo_change` and `record_history_write` needed
+`REVOKE ... FROM PUBLIC` specifically (revoking from `anon` alone is a no-op when `PUBLIC`
+still grants it — `anon` inherits `PUBLIC`) — `undo_change` is now authenticated-only,
+`record_history_write` callable by nobody over the API. Verified via `pg_proc.proacl`: every
+one of those functions now shows only `{postgres, authenticated, service_role}` (or narrower
+for `record_history_write`), no `anon`, no bare public grant. The Supabase Auth Site URL /
+redirect allow-list change (away from `direct-business.vercel.app`, onto
+`www.directksab2b.com`) could not be independently re-verified from here — no tool in this
+session reads GoTrue's auth config — so that one claim is relayed, not confirmed.
+
 ## 2026-08-22 · Phantom records cleared — the Leads-page "+8" was a hardcoded re-seed, not a display bug
 
 The prior Leads-count fix (funnel/chip/table agreement) still left the funnel "All" tab

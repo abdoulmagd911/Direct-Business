@@ -169,6 +169,24 @@
       gs.placeholder=gs.getAttribute('data-v27phen'); gs.removeAttribute('data-v27phen');
     }
   }
+  // The two accessibility skip-links (js/core/core-06-v18-v21.js's #v21SkipLink and
+  // js/core/core-08-v25.js's #v25SkipLink) are inserted once as the FIRST CHILD of <body> —
+  // siblings of #view and .top, not descendants of either, so scopeTranslate's
+  // document.getElementById('view')/.querySelector('.top') scoping can never reach them no
+  // matter what's added to its selector list. Same shape as the #gsearch placeholder patch:
+  // patched directly by id, with the pre-switch text remembered for a clean restore.
+  var SKIP_LINK_TEXT_AR='تخطّي إلى المحتوى';
+  function patchSkipLinks(isAr){
+    ['v21SkipLink','v25SkipLink'].forEach(function(id){
+      var el=document.getElementById(id); if(!el)return;
+      if(isAr){
+        if(!el.hasAttribute('data-v27en')) el.setAttribute('data-v27en', el.textContent);
+        el.textContent=SKIP_LINK_TEXT_AR;
+      } else if(el.hasAttribute('data-v27en')){
+        el.textContent=el.getAttribute('data-v27en'); el.removeAttribute('data-v27en');
+      }
+    });
+  }
   function v27ArHeaders(){
     try{
       if(typeof LANG==='undefined')return;
@@ -176,11 +194,13 @@
         var stale=document.querySelectorAll('[data-v27en]');
         for(var s=0;s<stale.length;s++){ stale[s].textContent=stale[s].getAttribute('data-v27en'); stale[s].removeAttribute('data-v27en'); stale[s].removeAttribute('data-v27'); }
         patchGlobalSearchPlaceholder(false);
+        patchSkipLinks(false);
         return;
       }
       scopeTranslate(document.getElementById('view'));
       scopeTranslate(document.querySelector('.top'));
       patchGlobalSearchPlaceholder(true);
+      patchSkipLinks(true);
     }catch(e){ if(window.console)console.warn('[v27] ar-translate',e); }
   }
   window.v27ArHeaders=v27ArHeaders;

@@ -172,8 +172,9 @@
       rowsH+='<div style="margin:3px 0;font-size:12px;line-height:1.5"><span style="color:#7C8194">'+fl.label_en+':</span> '+String(val).replace(/</g,'&lt;').slice(0,240)+'</div>';
     });
     var extra='';
-    if(!(b.contacts&&b.contacts.length))extra+='<div style="color:#D92D20;font-size:11.5px;margin-top:5px">\u26a0 No contact person recorded</div>';
-    if(overdue(b))extra+='<div style="color:#D92D20;font-size:11.5px;margin-top:2px">\u26a0 Next action overdue ('+b.nextActionDate+')</div>';
+    var _ar=(typeof LANG!=='undefined'&&LANG==='ar');
+    if(!(b.contacts&&b.contacts.length))extra+='<div style="color:#D92D20;font-size:11.5px;margin-top:5px">\u26a0 '+(_ar?'\u0644\u0627 \u062a\u0648\u062c\u062f \u062c\u0647\u0629 \u0627\u062a\u0635\u0627\u0644 \u0645\u0633\u062c\u0651\u0644\u0629':'No contact person recorded')+'</div>';
+    if(overdue(b))extra+='<div style="color:#D92D20;font-size:11.5px;margin-top:2px">\u26a0 '+(_ar?'\u0627\u0644\u0625\u062c\u0631\u0627\u0621 \u0627\u0644\u062a\u0627\u0644\u064a \u0645\u062a\u0623\u062e\u0631':'Next action overdue')+' ('+b.nextActionDate+')</div>';
     if(!rowsH&&!extra)return;
     pop=document.createElement('div');
     pop.className='v46-leadpop';

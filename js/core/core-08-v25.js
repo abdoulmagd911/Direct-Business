@@ -15,7 +15,7 @@
       switchLang:'Switch to العربية',switchLangAr:'Switch to English',
       dismiss:'Dismiss',gotIt:'Got it',shortcuts:'Keyboard shortcuts',
       noResults:'No matches yet',addFirst:'Add your first one to get started.',
-      backToList:'Back to list',export:'Export'
+      backToList:'Back to list',export:'Export',skipToContent:'Skip to content'
     };
     var extras_ar={
       save:'حفظ التغييرات',cancel:'إلغاء',delete_:'حذف',close:'إغلاق',add:'إضافة',
@@ -24,7 +24,7 @@
       switchLang:'Switch to English',switchLangAr:'التبديل إلى العربية',
       dismiss:'إخفاء',gotIt:'تم',shortcuts:'اختصارات لوحة المفاتيح',
       noResults:'لا توجد نتائج بعد',addFirst:'أضف أول عنصر للبدء.',
-      backToList:'العودة إلى القائمة',export:'تصدير'
+      backToList:'العودة إلى القائمة',export:'تصدير',skipToContent:'تخطّي إلى المحتوى'
     };
     if(typeof I18N==='object'&&I18N){
       Object.keys(extras_en).forEach(function(k){if(!(k in I18N.en))I18N.en[k]=extras_en[k];});
@@ -237,7 +237,7 @@
       var skip=document.createElement('a');
       skip.id='v25SkipLink';
       skip.href='#view';
-      skip.textContent=(typeof T==='function'?T('backToList'):'Skip to main content');
+      skip.textContent=(typeof T==='function'?T('skipToContent'):'Skip to content');
       skip.className='v25-skip';
       document.body.insertBefore(skip,document.body.firstChild);
     }
