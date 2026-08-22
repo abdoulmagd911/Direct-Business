@@ -135,8 +135,14 @@
     };
   }
 
-  /* (b) Promo codes card on the Finance overview */
-  if(window.renderFinance){
+  /* (b) Promo codes card on the Finance overview — off, per owner ruling 2026-08-22: the
+     promo-code registry does not belong bundled into Finance's Performance view (200 rows
+     claiming 27,304,067 SAR against 8,755,055 real revenue read as a live number on the
+     page, not a footnote). "For now" — he wants it on its own page later, so the loading
+     (FIN.promos) and part (a)'s "How did this revenue arrive?" selector stay untouched;
+     only this injection is switched off. */
+  var SHOW_PROMO_ON_FINANCE=false;
+  if(SHOW_PROMO_ON_FINANCE&&window.renderFinance){
     var _rf=window.renderFinance;
     window.renderFinance=function(){
       _rf.apply(this,arguments);

@@ -495,7 +495,7 @@ function rLedger(){
       +'<span style="font-size:11px;color:var(--muted)">'+list.length+' '+_lh('transactions','معاملة')+'</span>'
       +'<span style="margin-left:auto;font-size:12px"><b style="color:#0F6E56">'+money0(coRev)+'</b> '+_lh('rev','إيراد')+' · <b style="color:#B54708">'+money0(coCost)+'</b> '+_lh('cost','تكلفة')+' <span style="color:var(--muted);font-size:10.5px">('+_lh('confirmed only','مؤكد فقط')+')</span></span></div>';
     if(!isCollapsed){
-      h+='<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse;min-width:900px"><thead><tr style="background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+'"><th style="padding:7px 8px">'+_lh('Date','التاريخ')+'</th><th style="padding:7px 8px">'+_lh('Profile','الملف')+'</th><th style="padding:7px 8px">'+_lh('Ref / Invoice','المرجع / الفاتورة')+'</th><th style="padding:7px 8px">'+_lh('Service','الخدمة')+'</th><th style="padding:7px 8px;text-align:right">'+_lh('Amount','المبلغ')+'</th><th style="padding:7px 8px;text-align:right">'+_lh('Cost','التكلفة')+'</th><th style="padding:7px 8px;text-align:right">'+_lh('Profit','الربح')+'</th><th style="padding:7px 8px">'+_lh('Stage','المرحلة')+'</th></tr></thead><tbody>';
+      h+='<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse;min-width:990px"><thead><tr style="background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+'"><th style="padding:7px 8px">'+_lh('Date','التاريخ')+'</th><th style="padding:7px 8px">'+_lh('Profile','الملف')+'</th><th style="padding:7px 8px">'+_lh('Ref / Invoice','المرجع / الفاتورة')+'</th><th style="padding:7px 8px">'+_lh('Service','الخدمة')+'</th><th style="padding:7px 8px;text-align:right">'+_lh('Amount','المبلغ')+'</th><th style="padding:7px 8px;text-align:right">'+_lh('Cost','التكلفة')+'</th><th style="padding:7px 8px;text-align:right">'+_lh('Profit','الربح')+'</th><th style="padding:7px 8px">'+_lh('Stage','المرحلة')+'</th><th style="padding:7px 8px">'+_lh('Payment','السداد')+'</th></tr></thead><tbody>';
       list.forEach(function(r){
         var p=TXN.profiles[r.client_profile_id];
         var tl=p&&TXN_TYPE_LBL[p.profile_type]?TXN_TYPE_LBL[p.profile_type]:['—','—'];
@@ -504,6 +504,17 @@ function rLedger(){
         var costCell=confirmed?('<b>'+money0(r.cost_confirmed_sar)+'</b>')
           :(r.cost_estimate_sar!=null?('<span style="color:var(--muted);font-style:italic">'+money0(r.cost_estimate_sar)+' '+_lh('est.','تقديري')+'</span>'):'—');
         var profCell=confirmed?('<span style="color:#175CD3;font-weight:700">'+money0((+r.amount_sar||0)-(+r.cost_confirmed_sar||0))+'</span>'):'<span style="color:var(--muted)">—</span>';
+        /* Payment column — owner ruling 2026-08-22 (tab 3: "every bit inside each one
+           working"). Deliberately blank when nothing is expected yet — a pending
+           transaction is not "Unpaid", and a red badge on every pending row would make the
+           column noise instead of signal. */
+        var _rec=+r.amount_received_sar||0, _rem=+r.amount_remaining_sar||0, _amt=+r.amount_sar||0;
+        var payCell;
+        if(_rec<=0&&_rem<=0&&_amt<=0)payCell='<span style="color:var(--muted)">—</span>';
+        else if(_rem<=0&&_rec>0)payCell=badge(_lh('Paid','مدفوع'),'#E6F4EA','#0F6E56');
+        else if(_rec>0&&_rem>0)payCell=badge(_lh('Partly paid','مدفوع جزئياً'),'#FEF0C7','#B54708');
+        else if(_rem>0)payCell=badge(_lh('Unpaid','غير مدفوع'),'#FEE4E2','#D92D20');
+        else payCell='<span style="color:var(--muted)">—</span>';
         var refCell=r.invoice_no
           ?('<a href="'+escF(pdInvoiceLink({invoice_no:r.invoice_no,zatca_dpin:r.zatca_dpin,direct_client_id:p?p.direct_client_id:''}))+'" target="_blank" rel="noopener" style="color:#175CD3;text-decoration:none">'+escF(r.invoice_no)+' ↗</a>')
           :escF(r.transaction_ref);
@@ -514,7 +525,8 @@ function rLedger(){
           +'<td style="padding:7px 8px;text-align:right;font-weight:700">'+money0(r.amount_sar)+'</td>'
           +'<td style="padding:7px 8px;text-align:right">'+costCell+'</td>'
           +'<td style="padding:7px 8px;text-align:right">'+profCell+'</td>'
-          +'<td style="padding:7px 8px">'+badge(_lh(sl[0],sl[1]),sc+'1a',sc)+'</td></tr>';
+          +'<td style="padding:7px 8px">'+badge(_lh(sl[0],sl[1]),sc+'1a',sc)+'</td>'
+          +'<td style="padding:7px 8px">'+payCell+'</td></tr>';
       });
       h+='</tbody></table></div>';
     }

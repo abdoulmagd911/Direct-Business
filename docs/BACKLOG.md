@@ -1,5 +1,90 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-22 · Owner's 4 Finance rulings applied: promo card off, Payment column, standing tab audit
+
+The owner ruled on the 4 pending decisions from the entry below. Three of the four are pure
+layout/scope calls already applied here; the fourth ("leave Plan-vs-actual and Monthly revenue
+alone, he still needs to check them") is **untouched on purpose** — do not touch those two
+blocks until he says so.
+
+1. **Promo codes off the Finance overview, "for now."** `js/25-finance-reporting.js` — the
+   promo-code card injection is now gated behind `SHOW_PROMO_ON_FINANCE = false`. `FIN.promos`
+   still loads and the separate "How did this revenue arrive?" selector (a different IIFE in
+   the same file) is untouched — only the card is switched off. He wants it back later on its
+   own page, not deleted.
+
+   **Why this was the right call on the data itself, not just placement** (found after
+   removing the block, independently verified against the live `promo_codes` table before
+   writing this): the 27,304,067 SAR the card was showing was never real money. Of the 134
+   promo codes with `total_sales_sar>0`, **114 are flagged `active` and `expired` at the same
+   time** (impossible on a real record) and **131 of 134 have a discount that doesn't match
+   their own stated percentage** — e.g. `DIR10`, a 2% code, shows a 7.5% discount rate on its
+   recorded sales. All 134 rows carry the identical `created_at` of 2026-08-12 17:25:35, i.e.
+   seeded in one batch the day before the real finance data landed (2026-08-13). Verified via:
+   ```sql
+   select count(*) filter (where active and expired) as active_and_expired,
+          count(*) filter (where kind='percent' and abs(round(total_sales_sar*value_pct/100.0,2) - total_discount_sar) > 1) as mismatched_discount,
+          count(*) as total_used, sum(total_sales_sar) as sum_sales, min(created_at), max(created_at)
+   from promo_codes where total_sales_sar>0;
+   -- 114 / 131 / 134 / 27304066.55 / 2026-08-12 17:25:35 / 2026-08-12 17:25:35
+   ```
+   **If the promo registry ever gets its own page, this table must be CLEARED first, not
+   displayed as-is.** Showing a fabricated sales figure 3x larger than real revenue, with no
+   flag that it's synthetic, is how it ended up above the fold on the owner's Finance page in
+   the first place. The rows were left in place — clearing test data is the owner's call, not
+   something to do unasked.
+
+2. **Payment column added to the Ledger tab.** Corrects an earlier miscall in this same round:
+   the Ledger tab's transaction table (`rLedger()` in `js/16-finance-ledger.js`) already **is**
+   the owner's spec item C, the per-transaction table — it was not missing, it was one column
+   short. Added `Payment` (Paid / Partly paid / Unpaid / —) computed per row from
+   `amount_received_sar` vs `amount_remaining_sar`. Verified against seeded harness rows: an
+   invoiced-and-received row reads "Paid", a pending row reads blank.
+
+   **On live production this column will render but the table under it will be empty**, and
+   that is a pre-existing data gap, not a bug in this change: `finance_transactions` currently
+   has 33 rows, **all 33 soft-deleted** (`deleted_at` set), none matching the real 1163-series
+   invoices — verified directly against the table. They're `TXN-INV-2026-*`/`TXN-COM-*`/
+   `TXN-CN-*` rows generated against the archived practice invoices, correctly deleted 2026-08-22
+   when that practice data was cleared. The 56 real invoices (`source_batch
+   'direct-payments-2026-08-22'`) have **zero transactions** — the transaction data behind them
+   was never imported, only the invoices were. So the Ledger — the table the owner's spec is
+   built around — has no rows to show on live right now, independent of anything in this repo.
+   **Do not fabricate transactions to fill it.** Per the owner's own model (transaction created
+   first, tax invoice issued later, expenses approved in between) that data has to come from
+   Direct Payments through the importer, the same way the invoices did — generating placeholder
+   rows here would repeat the exact mistake just found and removed in the promo table. This is
+   likely the single biggest gap standing between the Finance page and being useful to staff.
+
+3. **New standing probe: `scripts/qa/audit-finance-tabs.mjs`.** Owner ruling #3 was "keep all
+   8 tabs, but make every bit inside each one working" — so a probe was written to check exactly
+   that, walking all 8 tabs (Performance, Clients & collections, Ledger, Report Builder, Import,
+   Expenses, Payment proofs, B2C) × EN/AR and asserting: every `onclick`/`onchange`/`oninput`
+   handler resolves to something real, the tab renders non-trivial settled content, no tab
+   switch is slow, no JS/console errors. Built with two specific false-positive classes guarded
+   against up front (both hit and fixed during this same round, see below), and independently
+   re-verified against a fresh 8-tab list derived by reading `finTabs()` plus grepping every
+   `finGo('` call site in the codebase — not taken on trust.
+
+   Two bugs found and fixed in the probe itself before trusting a green run:
+   - **Handler-checker false positive on `document`.** The Import tab's file-drop zone calls
+     `document.getElementById('finFile').click()`; the checker's first pass required every
+     resolved global to be `typeof === 'function'`, so it flagged `document` (an object, not a
+     function) as an "unresolved handler" in both EN and AR. Fixed by also accepting a resolved
+     name that is a real object (`fn != null && typeof fn === 'object'`), which still catches
+     genuinely undefined names.
+   - **"Slow tab switch" false positive on first-visit Expenses.** First run flagged EN
+     `expenses` at 826ms as a "freeze-class regression" but AR `expenses` (the second visit, same
+     run) was 139ms. Read `js/45-expenses.js`'s `load()`: it guards on `EXP.loading` and only
+     fetches `finance_expenses` when `EXP.rows==null`, i.e. exactly once per session — so the
+     826ms is one real Supabase round-trip on first visit, not a regression, and it isn't touched
+     by anything in this round's changes. Left as expected first-load latency, not "fixed."
+
+   Final clean run: 16/16 tab×lang checks pass — all handlers resolve, no empty tabs, no slow
+   switches, zero JS/console errors. Also ran the full regression battery (`check-structure.mjs`,
+   `probe-csv-injection.mjs`, `probe-finance-export.mjs`, `probe-leads-counts.mjs`,
+   `probe-money-placement.mjs`, `sweep-pages.mjs`) — all green.
+
 ## 2026-08-22 · Finance-tab freeze fixed (pure perf); page does not match owner's spec — his call, not fixed
 
 The owner opened Finance and called it a disaster: a real freeze, plus the live page not
