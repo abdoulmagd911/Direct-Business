@@ -81,6 +81,27 @@ for (const f of MONEY_FILES) {
   }
 }
 
+/* RULE 8 — no NEW untranslated user-facing strings.
+   Owner decision 2026-08-22: Arabic is translated in ONE sweep at the end of the build,
+   not incrementally. That only stays cheap if the backlog does not grow in the meantime.
+   So: any user-visible English literal added to a UI layer must go through the translator
+   (t(...) / LANG check), or be listed in KNOWN_UNTRANSLATED below with a reason.
+   This does NOT block today's build — it freezes the debt at its current, known size. */
+const UI_LAYERS = ['js/04-ui-basics.js'];
+// Strings already known-English and scheduled for the end-of-build sweep. Do not add to this
+// list to silence a new violation — translate it instead.
+const KNOWN_UNTRANSLATED = ['Show all', ' / page', '‹ Prev', 'Next ›', 'All'];
+const UNTRANSLATED_HINT = /['"`](Show all|Prev|Next|Save|Cancel|Delete|Close|Search|Export|Filter|Loading|All)['"`]/g;
+for (const f of UI_LAYERS) {
+  if (!fs.existsSync(at(f))) continue;
+  const code = stripComments(fs.readFileSync(at(f), 'utf8'));
+  const hits = [...code.matchAll(UNTRANSLATED_HINT)].map(m => m[1]);
+  for (const h of new Set(hits)) {
+    const known = KNOWN_UNTRANSLATED.some(k => k.includes(h) || h.includes(k.trim()));
+    if (!known) problems.push(`${f} adds a new untranslated user-facing string "${h}" — wrap it in the translator, or the end-of-build Arabic sweep grows (owner decision 2026-08-22).`);
+  }
+}
+
 if (problems.length) {
   console.log('STRUCTURE CHECK FAILED — fix these before deploying:\n');
   problems.forEach(p => console.log('  ✗ ' + p));
