@@ -1,5 +1,62 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-22 · Mock write persistence + full pre-launch QA pass — 5 real Arabic gaps found and fixed
+
+Pushed as `d35115a` (mock fix), `88dfb1c` + `b5044a5` (the fixes). The owner independently
+verified the chunked importer by hand, found it genuinely good, then asked for two things:
+fix the one real gap their own test hit, and do a full pre-launch pass ahead of the 11-account
+go-live — every probe that can run without staff passwords, EN+AR, report anything wrong even
+outside the recent specs.
+
+**Mock fix.** The mock's REST layer answered every non-GET request with `201,[]` without
+touching `TABLES`, on every table — harmless for most probes, but it meant the obvious way to
+test the importer's idempotency (drop a file, commit, drop the same file again) always said
+"New" again and looked like a real bug. `finance_invoices` POST/upsert now actually mutate the
+in-memory table (insert with a generated id; upsert-by-`on_conflict=id` merges into the
+existing row). Every other table keeps the old no-op stub — narrow, low-risk. Verified: a bare
+REST insert/upsert round-trips through a real `select()`; the full drop → commit → the app's
+own `finLoad()` reload → drop-the-same-file-again path now shows `New 0 / Unchanged 2` with no
+manual seeding.
+
+**Full pre-launch QA pass.** Ran every current-mock probe (all clean) plus the older
+mock-seed.mjs-based battery (all substantive assertions passed once a stale-scratchpad-copy
+fixture bug was traced and discounted — not a live bug), then a manual EN+AR visual read of
+every nav page including Finance's 4 tabs, screenshotted and read by eye — new reusable script
+at `scripts/qa/manual-visual-sweep.mjs`. Found 5 real Arabic-translation gaps, all now fixed:
+
+1. **Reports page (Arabic)** — the most visible: all 14 business-objective titles + the
+   "Objective progress"/"Recent achievements" section headers rendered in English on an
+   otherwise fully-Arabic page. Added real Arabic titles to `RPT_OBJECTIVES` and wired them
+   into every render site. The 30 KPIs / 12 initiatives stay English this round (deeper,
+   lower-visibility, much larger surface) — noted, not silently dropped.
+2. **Operations kanban column headers (Arabic)** — sat inside a shape (`<span class="t">`
+   with a nested decorative `<span class="pip">`) no existing Arabic scan touched at all.
+   Isolated `OPS_STAGE_AR` dictionary (kept separate — "New"/"Closed" must never leak into
+   the shared word list and mistranslate an unrelated button elsewhere).
+3. **Leads/Clients table badges (Arabic)** — priority (Hot/Warm/Cool/Cold), "Unassigned"
+   owner, source — render as `.tag` spans inside table cells, a shape the Arabic layer's own
+   comment explicitly excluded ("never table-body values") to protect real data like company
+   names. `.tag` is different: always an app-generated status label, never raw data, so
+   extending the scan to it (same exact-whole-string matching) is a safe, documented extension
+   of that boundary, not a violation.
+4. **Pagination label** ("Showing 1–20 of 33") — translated at the source; dynamic
+   interpolated-number text doesn't fit the DOM-scan pattern the other three use.
+5. **Shared file drop-zone** (Proposals/Invoices/Tickets/Bookings) — "Drop offer files…",
+   "multiple files OK", the link-paste placeholder.
+
+**Investigated and confirmed NOT a bug**, so it doesn't get "found" again: the Leads
+next-action column showing "Follow up" in Arabic mode. The mock's own seed data literally
+stores `next_action_note:'Follow up'` as if it were real per-lead data — the app correctly
+displays whatever a real employee typed there, exactly like it correctly never translates a
+company's real name.
+
+**Deliberately left for later**, called out as minor in the sweep itself: the global
+search-box placeholder never localizes to Arabic (couldn't be located quickly in the time
+available — a `grep`/tooling gap, not a decision that it doesn't matter).
+
+Full regression clean throughout: check-structure (58 files), sweep-pages (0 errors, EN+AR),
+probe-money-placement, probe-page-access-enforce.
+
 ## 2026-08-21 · Spec 9 follow-up — chunked reading + teach-once mapping
 
 Pushed as `7b77c6e`. The owner independently verified Spec 9 by hand (harness driven directly,
