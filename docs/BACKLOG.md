@@ -1,5 +1,54 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-22 · Round 3 — fixed the sweep's single-word blind spot, translated what it caught
+
+Pushed as `f9c25e2`. The owner re-verified `510a3dc` (both Clients labels correct, Today
+improved 309→399 Arabic chars / 151→48 Latin), then did something more useful than counting
+characters: extracted the actual remaining Latin runs by hand on the Leads/Clients pages and
+found the sweep's own design was built to miss certain gaps.
+
+**Root cause, confirmed by the owner's diagnosis and my follow-up.** `latinRunCheck` required
+2+ words before flagging anything, so single-word gaps never got a chance — the client-health
+"New" badge, and words a digit/symbol splits off from a longer phrase ("Prev" from "‹ Prev",
+"page" from "10 / page"). Lowered the threshold to 1+ words, which immediately proved two
+things:
+
+1. **The pagination bar was already correctly translated.** Confirmed by reading
+   `el.textContent` directly on a live page — every dropdown option and the Prev/Next buttons
+   render in Arabic. What the owner's own hand extraction caught was English sitting in
+   `data-v27en` attributes — js/21's deliberate "remember the original for restore-on-switch"
+   mechanism — present in the markup, never shown on screen. Not a live bug.
+2. **The client-health badge genuinely was untranslated** — "New"/"Good"/"Watch"/"At risk"
+   from `clientHealth()`, a real app-generated status enum on a `.tag` span, same category as
+   the priority tags fixed two rounds ago. Added to js/21's dictionary.
+
+**Also fixed, once the lowered threshold surfaced them:** digits now stay inside a matched
+word (so "B2B"/"Q1" read as one token instead of the digit splitting off a false-positive lone
+"B"/"Q"); `<code>`/`<pre>` content is skipped entirely (raw CSV/JSON field names, never meant
+to be translated); the Airlines/Providers "Search…" placeholder (missed in the first
+placeholder round — it's one word, under the old 2-word floor); the Invoices aging-grid's four
+day-range labels + "N inv." counts; and the Events page date badges, which called
+`toLocaleDateString('en-GB',...)` unconditionally so "10 Sept 2026" never localized even
+though the rest of the app's dates follow `LANG`.
+
+**Investigated and confirmed NOT a bug, so it doesn't get "found" again:** "Follow up" is the
+free-text next-action field — a plain `<input>`, not a preset dropdown — so translating it
+would mean silently rewriting real per-lead notes an employee typed. Same conclusion as the
+prior round's investigation of this field, this time confirmed by reading how it's edited, not
+just where it's displayed. "English" in the language toggle (deliberately shows the *other*
+language's name), "QA"/"Q" in the logged-in test account's own avatar/name badge (real account
+data, same category as a company name), "Excel"/"JSON" as product/format names, and the
+already-deferred Settings dev-tools block + Commercial Credit Pool widget are likewise left
+alone — the allowlist and skip-scopes now document why, so the next sweep run doesn't re-flag
+them as noise.
+
+Verified live: client-health badges, all 4 aging labels + inv. counts, both search
+placeholders, and the Events date badge ("10 سبتمبر 2026") all render correctly in Arabic,
+zero JS errors. Also unit-tested the updated check's matching logic directly against the
+owner's exact reported strings (New/Show all/Prev/Next/page) to confirm it now catches each
+one — the owner had asked for this confirmation explicitly. check-structure (58 files) and
+sweep-pages (144 buttons, EN+AR) both clean.
+
 ## 2026-08-22 · Round 2 — Clients-page gap, a general Latin-leak sweep, and 15 more Arabic fixes
 
 Pushed as `da9677a` (search placeholders + sweep tool) and `dabd86d` (Today/Leads/Bookings/
