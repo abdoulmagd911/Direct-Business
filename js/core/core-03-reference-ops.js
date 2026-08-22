@@ -258,8 +258,9 @@ function renderSopSla(v){
  v.insertAdjacentHTML('afterbegin','<div style="display:flex;gap:8px;margin-bottom:14px">'+mk('sops','SOP Library')+mk('slas','Service Levels')+'</div>');
 }
 function renderSops(v){
+  const _arSp=(typeof LANG!=='undefined'&&LANG==='ar');
   v.innerHTML=`
-  <div class="toolbar"><div class="search-wrap">${IC.search}<input id="sq" placeholder="Search SOPs…" oninput="filterSops(this.value)"></div><button class="btn pri" onclick="editSop()">+ New SOP</button></div>
+  <div class="toolbar"><div class="search-wrap">${IC.search}<input id="sq" placeholder="${_arSp?'ابحث في إجراءات العمل…':'Search SOPs…'}" oninput="filterSops(this.value)"></div><button class="btn pri" onclick="editSop()">+ New SOP</button></div>
   <h3 style="margin:6px 2px 12px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Desk procedures (Saudi base · elevated)</h3>
   <div id="sopBase">${DB.sops.map(s=>sopHtml(s,false)).join("")}</div>
   <h3 style="margin:24px 2px 12px;font-size:13px;color:var(--violet);text-transform:uppercase;letter-spacing:.06em">★ Whale-grade additions (the market gap)</h3>
@@ -298,8 +299,9 @@ function renderOps(v){
   const R=DB.requests||[];const open=R.filter(r=>r.stage!=="Closed");const over=open.filter(slaOverdue).length;
   const sumSell=R.reduce((s,r)=>s+(+r.sell||0),0);const sumMargin=R.reduce((s,r)=>s+((+r.sell||0)-(+r.cost||0)),0);const mPct=sumSell?Math.round(sumMargin/sumSell*100):0;
   const kp=[["Open requests",open.length,"var(--blue)"],["SLA overdue",over,"var(--red)"],["Awaiting client",R.filter(r=>r.stage==="Awaiting client").length,"var(--amber)"],["Pipeline value",moneyShort(sumSell)+" SAR","var(--violet)"],["Booked margin",moneyShort(sumMargin)+" SAR · "+mPct+"%","var(--green)"],["Delivered / closed",R.filter(r=>r.stage==="Delivered"||r.stage==="Closed").length,"var(--ink-3)"]];
+  const _arOps=(typeof LANG!=='undefined'&&LANG==='ar');
   v.innerHTML=`
-  <div class="toolbar"><div class="search-wrap">${IC.search}<input id="rq" placeholder="Search requests…" oninput="drawReqBoard(this.value)"></div><div style="flex:1"></div><button class="btn pri" onclick="editRequest()">+ New request</button></div>
+  <div class="toolbar"><div class="search-wrap">${IC.search}<input id="rq" placeholder="${_arOps?'ابحث في الطلبات…':'Search requests…'}" oninput="drawReqBoard(this.value)"></div><div style="flex:1"></div><button class="btn pri" onclick="editRequest()">+ New request</button></div>
   <div class="kpis" style="margin-bottom:18px">${kp.map(([l,vv,c])=>`<div class="kpi"><div class="l">${l}</div><div class="v" style="color:${c}">${vv}</div></div>`).join("")}</div>
   <div id="reqboard"></div>`;
   drawReqBoard("");

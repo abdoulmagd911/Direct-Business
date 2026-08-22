@@ -44,6 +44,7 @@
     'Tickets due soon':'تذاكر يقترب موعد إصدارها','Nothing urgent right now — all clear.':'لا شيء عاجل الآن — كل شيء على ما يرام.','Overdue invoices':'فواتير متأخرة','Being chased':'قيد التحصيل',
     'Low-profit offers':'عروض ربح منخفض','My queue':'قائمتي',
     'Total clients':'إجمالي العملاء','Key accounts':'حسابات رئيسية','Total won (SAR)':'إجمالي المكسوب (ريال)',
+    'Clients in view':'العملاء المعروضون','Won leads not yet converted':'صفقات مكسوبة لم تُحوَّل بعد',
     'Reviews overdue':'مراجعات متأخرة','Open requests':'طلبات مفتوحة','SLA overdue':'تأخّر مستوى الخدمة',
     'Awaiting client':'بانتظار العميل','Pipeline value':'قيمة خط الأنابيب','Booked margin':'هامش المحجوز',
     'Delivered / closed':'مُسلّم / مغلق',
@@ -150,16 +151,33 @@
     var ops=scope.querySelectorAll('.col .ch .t'),q;
     for(q=0;q<ops.length;q++){ var colHead=ops[q]; if(colHead.getAttribute('data-v27'))continue; translateDecorated(colHead,OPS_STAGE_AR); }
   }
+  // #gsearch's placeholder is a static attribute baked into index.html itself (never
+  // re-rendered per page), not app-generated markup — so it never went through this file's
+  // usual textContent-scanning path at all, in either direction. Patched directly, by id,
+  // the same "translate, remember the English original for restore" shape as setText() uses
+  // elsewhere in this file, just via the placeholder attribute instead of textContent.
+  var GSEARCH_PLACEHOLDER_AR='ابحث في كل شيء — العملاء، الطلبات، شركات الطيران، الموردون، الإجراءات…';
+  function patchGlobalSearchPlaceholder(isAr){
+    var gs=document.getElementById('gsearch'); if(!gs)return;
+    if(isAr){
+      if(!gs.hasAttribute('data-v27phen')) gs.setAttribute('data-v27phen', gs.placeholder);
+      gs.placeholder=GSEARCH_PLACEHOLDER_AR;
+    } else if(gs.hasAttribute('data-v27phen')){
+      gs.placeholder=gs.getAttribute('data-v27phen'); gs.removeAttribute('data-v27phen');
+    }
+  }
   function v27ArHeaders(){
     try{
       if(typeof LANG==='undefined')return;
       if(LANG!=='ar'){ // restore any surviving translated element (e.g. persistent top bar) to English
         var stale=document.querySelectorAll('[data-v27en]');
         for(var s=0;s<stale.length;s++){ stale[s].textContent=stale[s].getAttribute('data-v27en'); stale[s].removeAttribute('data-v27en'); stale[s].removeAttribute('data-v27'); }
+        patchGlobalSearchPlaceholder(false);
         return;
       }
       scopeTranslate(document.getElementById('view'));
       scopeTranslate(document.querySelector('.top'));
+      patchGlobalSearchPlaceholder(true);
     }catch(e){ if(window.console)console.warn('[v27] ar-translate',e); }
   }
   window.v27ArHeaders=v27ArHeaders;

@@ -10,8 +10,9 @@ function closeLead(){openLead=null;leadDetailView="detail";render();}
 function setLeadView(m){leadDetailView=m;render();window.scrollTo(0,0);}
 function renderLeads(v){
   if(openLead){renderLeadDetail(v,openLead);return;}if(leadView!=='table'&&leadView!=='dash')leadView='table';
+  const _arRL=(typeof LANG!=='undefined'&&LANG==='ar');
   v.innerHTML=`<div id="leadoverview"></div><div class="toolbar">
-    <div class="search-wrap">${IC.search}<input id="lq" placeholder="Search business, contact, email, phone…" value="${esc(leadFilter.q)}"></div>
+    <div class="search-wrap">${IC.search}<input id="lq" placeholder="${_arRL?'ابحث عن منشأة أو جهة اتصال أو بريد أو هاتف…':'Search business, contact, email, phone…'}" value="${esc(leadFilter.q)}"></div>
     <div class="seg" id="viewseg"></div>
     <div class="seg" id="grpseg" style="display:none"></div>
     <div class="seg" id="catseg" style="display:none"></div><select id="fnsel" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"></select><select id="stgsel" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"></select>
@@ -183,6 +184,7 @@ function renderClients(v){
   const won=DB.businesses.filter(b=>!b.isClient&&leadStatus(b)==="Won").length;
   const today=new Date().toISOString().slice(0,10);
   const team=teamList();
+  const _arCl=(typeof LANG!=='undefined'&&LANG==='ar');
   v.innerHTML=`
   <div class="card" style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;padding:14px 20px;margin-bottom:14px">
     <!-- ids so the "At risk" chip can recalculate these; it filters rows in the table itself,
@@ -192,7 +194,7 @@ function renderClients(v){
     <div><div class="kl">Won leads not yet converted</div><div class="kv" style="color:#FF6B00">${won}</div></div>
     <div style="flex:1"></div><button class="btn sm ghost" onclick="current='leads';render()">&larr; Leads pipeline</button></div>
   <div class="toolbar">
-    <div class="search-wrap">${IC.search}<input id="clq" placeholder="Search clients..." value="${esc(clFilter.q)}"></div>
+    <div class="search-wrap">${IC.search}<input id="clq" placeholder="${_arCl?'ابحث عن العملاء...':'Search clients...'}" value="${esc(clFilter.q)}"></div>
     <select onchange="clFilter.owner=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All managers</option>${[...new Set(DB.businesses.filter(b=>b.isClient).map(b=>b.accountManager||b.assignedTo).filter(Boolean))].sort().map(t=>`<option value="${t}" ${clFilter.owner===t?"selected":""}>${t}</option>`).join("")}</select>
     <button class="btn sm ${clFilter.owner===(window.meName?meName():"")&&clFilter.owner!=="all"?"pri":"ghost"}" onclick="clToggleMine()">👤 ${(typeof LANG!=="undefined"&&LANG==="ar")?"خاص بي":"Mine"}</button>
     <select onchange="clFilter.tier=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All tiers</option><option ${clFilter.tier==="Key"?"selected":""}>Key</option><option ${clFilter.tier==="Standard"?"selected":""}>Standard</option></select>

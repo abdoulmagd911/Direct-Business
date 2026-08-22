@@ -104,6 +104,64 @@ const englishLeakCheck = () => {
   return hits;
 };
 
+// General rule (owner request, 2026-08-22, after the Clients-page gap sweep's own SUSPECT
+// list missed): once in Arabic, no run of 2+ Latin-script words should appear anywhere in
+// #view/#nav/.top, UNLESS it's an industry abbreviation, the company's own brand terms
+// (which the brand guide deliberately keeps in Latin script), a URL/email, or a code/
+// reference-number pattern — those are real data or intentional, not a translation miss.
+// This is advisory, not a hard gate: a real person's name typed in English, or a company
+// name, will legitimately still show up here and needs a human's read — same as how the
+// two real gaps this rule is meant to catch were actually found (screenshots, read by eye).
+function latinRunCheck(){
+  // Self-contained on purpose: page.evaluate(fn) serialises only the function's own source,
+  // not its enclosing closure — anything this needs must be declared INSIDE the function body.
+  const LATIN_RUN_ALLOW = new Set([
+    'app store', 'google play', 'direct payments', 'direct business', 'direct travel',
+    'ksa events', 'ksa b2b', 'po box', 'iso 8601'
+  ]);
+  const LATIN_RUN_WORD_ALLOW = new Set([
+    'ndc', 'api', 'apis', 'zatca', 'emd', 'pdf', 'pnr', 'gds', 'iata', 'bsp', 'vat', 'sar',
+    'csv', 'adm', 'ksa', 'mice', 'b2b', 'b2c', 'id', 'qr', 'iban', 'sla', 'kpi', 'gmt', 'utc',
+    'http', 'https', 'www', 'ios', 'android', 'direct', 'dpin', 'fsc', 'lcc', 'usd', 'eur',
+    'sar', 'esim', 'zip', 'pin', 'crm', 'erp', 'sso', 'url', 'jpg', 'png', 'xlsx', 'csv'
+  ]);
+  const CODE_RE = /^[A-Z0-9]+[-_][A-Z0-9-]+$/i;       // e.g. REF-001, BIGREF-000123
+  const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+/i;
+  const URL_RE = /https?:\/\/|www\./i;
+  const RUN_RE = /[A-Za-z][A-Za-z'’.]*(?:\s+[A-Za-z][A-Za-z'’.]*){1,}/g;
+  const hits = [];
+  function evalText(text, where){
+    if(!text) return;
+    if(EMAIL_RE.test(text) || URL_RE.test(text)) return;
+    let m;
+    RUN_RE.lastIndex = 0;
+    while((m = RUN_RE.exec(text))){
+      const run = m[0].trim();
+      const lower = run.toLowerCase();
+      if(LATIN_RUN_ALLOW.has(lower)) continue;
+      const words = lower.split(/\s+/).filter(Boolean);
+      if(words.length && words.every(w => LATIN_RUN_WORD_ALLOW.has(w.replace(/[^a-z0-9]/g,'')))) continue;
+      if(CODE_RE.test(run.replace(/\s+/g,''))) continue;
+      hits.push({ run, where, context: text.slice(0, 90) });
+    }
+  }
+  const scopes = [...document.querySelectorAll('#view, #nav, .top')];
+  for(const scope of scopes){
+    const leaves = [...scope.querySelectorAll('*')].filter(el => el.children.length === 0);
+    for(const el of leaves){
+      evalText((el.textContent || '').trim(), el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).split(' ')[0] : ''));
+    }
+    const withPh = [...scope.querySelectorAll('input[placeholder], textarea[placeholder]')];
+    for(const el of withPh){
+      evalText((el.getAttribute('placeholder') || '').trim(), 'placeholder:' + (el.id || el.className || el.tagName.toLowerCase()));
+    }
+  }
+  // de-dupe identical (run, where) pairs — a repeated table column produces the same hit many times
+  const seen = new Set(); const out = [];
+  for(const h of hits){ const k = h.run + '|' + h.where; if(seen.has(k)) continue; seen.add(k); out.push(h); }
+  return out;
+}
+
 // ---------- page list, EN labels used to click nav ----------
 const PAGES = [
   { label: 'Today', ar: 'اليوم' },
@@ -153,6 +211,7 @@ async function sweepOne(pageDef, lang, extra) {
   await p.waitForTimeout(600);
   const a = await p.evaluate(analyze);
   const leak = lang === 'ar' ? await p.evaluate(englishLeakCheck) : [];
+  const latinRuns = lang === 'ar' ? await p.evaluate(latinRunCheck) : [];
   const tag = name + (extra ? ' / ' + extra : '') + ' (' + lang.toUpperCase() + ')';
   if (a.lorem.length) findings.push({ sev: 'MED', where: tag, msg: 'placeholder/lorem-like text: ' + a.lorem.join(' | ') });
   if (a.nanUndefined.length) findings.push({ sev: 'HIGH', where: tag, msg: 'NaN/undefined/[object Object] on screen: ' + a.nanUndefined.join(' | ') });
@@ -161,6 +220,7 @@ async function sweepOne(pageDef, lang, extra) {
   if (a.moneyOdd.length) findings.push({ sev: 'LOW', where: tag, msg: 'odd money formatting: ' + a.moneyOdd.join(' | ') });
   if (a.emptyLinks.length) findings.push({ sev: 'LOW', where: tag, msg: 'empty/dead link(s): ' + a.emptyLinks.join(' | ') });
   if (leak.length) findings.push({ sev: 'MED', where: tag, msg: 'untranslated English strings visible in AR: ' + [...new Set(leak)].join(', ') });
+  if (latinRuns.length) findings.push({ sev: 'REVIEW', where: tag, msg: 'Latin-script run(s) outside the allowlist — may be a real translation gap OR legitimate data (a name, a company): ' + latinRuns.slice(0, 20).map(h => `"${h.run}" in ${h.where} (…${h.context}…)`).join(' | ') });
   const shotName = SHOTS + '/' + name.replace(/[^a-z0-9]+/gi, '-') + (extra ? '-' + extra : '') + '-' + lang + '.png';
   await p.screenshot({ path: shotName, fullPage: true }).catch(() => {});
 }
@@ -200,12 +260,14 @@ for (const pg of PAGES) {
       await p.waitForTimeout(700);
       const a = await p.evaluate(analyze);
       const leak = await p.evaluate(englishLeakCheck);
+      const latinRuns = await p.evaluate(latinRunCheck);
       const tag = 'Finance / ' + tab.en + ' (AR)';
       if (a.lorem.length) findings.push({ sev: 'MED', where: tag, msg: 'placeholder/lorem-like text: ' + a.lorem.join(' | ') });
       if (a.nanUndefined.length) findings.push({ sev: 'HIGH', where: tag, msg: 'NaN/undefined/[object Object] on screen: ' + a.nanUndefined.join(' | ') });
       if (a.overlaps.length) findings.push({ sev: 'MED', where: tag, msg: 'possible element overlap: ' + JSON.stringify(a.overlaps.slice(0, 5)) });
       if (a.hOverflow) findings.push({ sev: 'MED', where: tag, msg: `horizontal overflow: scrollWidth=${a.scrollW} clientWidth=${a.clientW}` });
       if (leak.length) findings.push({ sev: 'MED', where: tag, msg: 'untranslated English strings visible in AR: ' + [...new Set(leak)].join(', ') });
+      if (latinRuns.length) findings.push({ sev: 'REVIEW', where: tag, msg: 'Latin-script run(s) outside the allowlist — may be a real translation gap OR legitimate data (a name, a company): ' + latinRuns.slice(0, 20).map(h => `"${h.run}" in ${h.where} (…${h.context}…)`).join(' | ') });
       await p.screenshot({ path: SHOTS + '/finance-' + tab.en.toLowerCase() + '-ar.png', fullPage: true }).catch(() => {});
     }
   }
