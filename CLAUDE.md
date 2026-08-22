@@ -1,5 +1,11 @@
 # Direct Business — working notes for Claude
 
+> **2026-08-22 — READ `docs/DIRECT_SYSTEMS_PLAYBOOK.md` FIRST, before anything else.** The
+> one file that explains the four systems and who owns what, how to get real data out of
+> Direct Payments, the money model, our app's landmines, the owner's standing rules, and the
+> real mistakes this project has made and how they were caught. It is a living document —
+> add any new finding to it in the same commit that discovers it.
+>
 > **2026-08-11 — `docs/BLUEPRINT.md` is the map.** The whole project in phases, one page
 > per phase, with the rules of engagement (don't invent scope; verify EN+AR in the harness;
 > Arabic pass closes each phase; schema-first for new data). Read it FIRST, then the handoff.

@@ -1,5 +1,10 @@
 # BLUEPRINT — Direct Business, the whole project in phases
 
+> **Read `docs/DIRECT_SYSTEMS_PLAYBOOK.md` first** — the four systems and who owns what, how
+> to get data out of Direct Payments, the money model, our app's landmines, the owner's
+> standing rules, and how not to be wrong. This blueprint is the phase-by-phase map; the
+> playbook is the standing background knowledge every phase depends on.
+>
 > One page per phase. Read top to bottom to know where the project stands, what "done"
 > means for each phase, and what is deliberately waiting. This is the map; the detailed
 > working log stays in `docs/BACKLOG.md`. Created 2026-08-11 after Abdulrahman's review
