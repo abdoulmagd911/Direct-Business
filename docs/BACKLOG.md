@@ -1569,7 +1569,39 @@ those chats "Without media" into the same folder before they can be mined.
 
 ---
 
-## 2 · Travel agencies project — scattered, needs collecting
+## 2 · Travel agencies project — consolidated into v3, now rebuilding from raw sources
+
+**2026-08-13, session 1 (archived):** the "lost" July work was found intact in Drive. Full
+lineage: raw email lists → `MASTER_DB_v1.0…v1.98` CSVs (Jul 12) → `TAS_MASTER_v1_DEDUPED`
+(Jul 14, 5,139→5,084 rows) → `TAS_MASTER_v2_SBC_ENRICHED` (Jul 15, 5,084×35) →
+`Travel_Agencies_Contacts_Enriched` (Jul 16) → `TravelAgencies_MASTER.xlsx` (Jul 23,
+4,882×30 — was treated as final). Confirmed: the Jul-23 rebuild silently dropped v2 columns
+(city 1,096, region 1,276, LinkedIn 149, social 113, decision makers 84, IATA 25, WhatsApp
+116) AND ~1,250 whole companies (Tabby merchants 255, Direct Payments exports 132, Ministry
+of Hajj 1447 providers 72, BNPL/integration partners). Built **`TravelAgencies_MASTER_v3.xlsx`
+(6,131 rows)** repairing all of it — handed over in chat 2026-08-13; **not kept in this
+public repo** (real company data never goes in it; `data/` is gitignored).
+
+**2026-08-13, session 2 — v3 VALIDATED, rebuilt as v4 and delivered.** Full detail in
+`docs/TRAVEL_AGENCIES_REBUILD.md`. Headline: **v3's 6,131 rows are really 4,494
+companies.** 1,292 were people grouped by their personal email domain (25 of them filed
+under "Gmail"/"Yahoo"/"Hotmail" as company names), 345 were duplicates, 17 are corporate
+clients rather than agencies. A first-pass CR scrape was found to be matching Unix
+timestamps and was thrown away and redone with label-anchored extraction plus an
+adversarial agent review; one cross-company contamination (jawalmosafer.com's CR about to
+be written onto Almosafer's row) was caught and blocked, and 31 duplicate groups were
+blocked from merging. Filled in: 948 websites checked for liveness, 119 company names
+recovered from the companies' own sites, 52 CR + 20 VAT numbers harvested and verified,
+every email domain MX-checked, 439 fake phones removed. Confirmed-by-official-number is
+still only 77 of 4,494 — the SBC gap needs a Saudi IP and is the next real move.
+
+**Owner decision (2026-08-13, this session):** the travel-agencies database is built
+**away from the app** — nothing loads into the app until the database is complete and
+reliable, and whether it goes in at all is decided at the end. Owner order: do not trust
+any earlier merge including v3; re-derive from raw sources with provenance. Plan, schema
+and verification stack: `docs/TRAVEL_AGENCIES_REBUILD.md` + `scripts/ta/`. The real gap is
+SBC/CR verification (~45 of 6,131 rows have a CR number; 579 of 614 domain clusters never
+looked up).
 
 Travel agencies are a different kind of lead from a contact-form enquiry. They are
 **competitors as well as customers**, so each one needs its own offer and its own service
