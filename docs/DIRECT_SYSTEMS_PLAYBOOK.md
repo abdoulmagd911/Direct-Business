@@ -96,13 +96,18 @@ confirmed empty on two independent checks (the export registry here, and the liv
 page itself returning nothing for every filter tried — see §3), so "the COGs Report will
 eventually have data" is not a safe assumption to build on.
 
-**A reconciliation note, flagged rather than silently trusted:** Abdulrahman reported a live
-invoice total on 2026-08-22 of **63 corporate invoices, 8,909,774 SAR, dated 18 Mar to
-20 Aug** — close to, but not identical to, an earlier figure this doc already carries from
-2026-08-20 (§3: 8,791,497 SAR across 28 clients, all 61 parent invoices resolving cleanly).
-The likely explanation is simply invoices raised in the two days between those checks, but
-that has not been proven line-by-line — whoever reconciles the two totals next should record
-the actual invoice-by-invoice diff here, not just assume the gap is new invoices.
+**Reconciliation note, resolved 2026-08-22 — closed, do not re-open without new evidence.**
+An earlier version of this section flagged an unproven gap between two invoice totals
+(8,791,497 SAR / 28 clients from 2026-08-20 vs 8,909,774 SAR / 63 invoices from 22 Aug) and
+asked for a line-by-line check rather than assuming it was just newer invoices. Abdulrahman
+did that check directly. A separate small gap turned up along the way — **7,389.40 SAR** —
+and traced to a specific, now-understood mistake: **it came from mixing transaction
+references into a tax-invoice total.** Refs `1163752886` (74,820.85) and `1163705932`
+(33,887.99) are **VOID transactions**, not invoices at all; refs `1163732931` (36,067.00) and
+`1163737524` (375.00) are live transactions still at "Published - Pending Payment" — **none
+of the four is a tax invoice.** Once excluded correctly, the gap is not real. This is the
+same class of mistake as §3's "query trap c" (expenses keying on the transaction number, not
+the invoice number) — reading a transaction reference where an invoice reference was needed.
 
 ---
 
@@ -242,6 +247,25 @@ already carries in detail, just reconfirmed here.
 **Verified live totals, 22 Aug 2026:** 44 corporate clients, 150 corporate transactions, 63
 corporate tax invoices totalling **8,909,774.25 SAR** — 22 Settled, 36 Issued-Waiting for
 Settlement, 2 Waiting for Issuing, 2 Overdue, 1 Partially Settled.
+
+**Revenue rules, confirmed by Abdulrahman 2026-08-22:**
+- **Only a confirmed, Fully Paid tax invoice counts as revenue.** Not "Issued," not
+  "Waiting for Settlement" — Fully Paid / Settled.
+- **VOID is excluded from every total, everywhere, always.** A void transaction or invoice
+  is not a zero, not a cancellation to net against something else — it simply never enters
+  any total.
+- **A gap between "work done" and "invoiced" is normal, not a bug, and must be shown, not
+  hidden.** Direct waits for the client's money to actually arrive before issuing the tax
+  invoice — so any transaction that already has expenses registered on it is **"recorded and
+  tracked"** even while it sits short of Issued. This is the "Not yet invoiced" state, and it
+  has two distinct flavours that must be split apart, never blended into one number:
+  - **Ready** — expenses are Approved, the transaction is just waiting on the client's money.
+  - **Pending** — expenses are still waiting on Finance's own approval.
+
+  **Live measurement, 22 Aug 2026:** 54 such transactions, **1,133,517.20 SAR** —
+  **17 Ready (317,115.18 SAR)** and **37 Pending (816,402.02 SAR)**. This is the "Not yet
+  invoiced" section of the Finance page: one number split exactly these two ways, never
+  shown as a single blended figure.
 
 **Overdue is mirrored, never computed by us.** Direct Payments' own Corporate Expenses screen
 already shows a live countdown and a breached/overdue flag once a deadline passes. Our app
@@ -383,6 +407,12 @@ explicit instructions across many sessions:
     "Ahmed Abo Elmagd" — that is wrong, and it is not just a typo: Ahmed Abo El Magd is a
     different, real employee. Never assume the stored name is right without checking; use
     "Abdulrahman" in conversation regardless of what a record says.
+13. **OUT OF SCOPE — the appraisal / KPI / task-manager project** (Supabase ref
+    `byhxnmafaumersoaiybq`, project `directksa-performance`) **is a different project with
+    different work.** Never read it, write to it, document it in this repo, or reference its
+    data. If a task seems to require it, stop and ask. (`docs/APPRAISAL_TOOL.md`, a survey of
+    that other project, was removed from this repo on 2026-08-22 for exactly this reason —
+    it held named staff appraisal scores that belong to that project, not this one.)
 
 ---
 

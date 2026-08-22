@@ -1,5 +1,34 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-22 · Branch cleanup follow-up: appraisal boundary, finance rules, one closed reconciliation
+
+Three corrections from Abdulrahman, same day as the branch cleanup below:
+
+1. **`docs/APPRAISAL_TOOL.md` removed from the repo, permanently.** The appraisal / KPI /
+   task-manager project (Supabase `directksa-performance`, ref `byhxnmafaumersoaiybq`) is a
+   different project Abdulrahman does not want this repo anywhere near — "it's totally
+   different and I don't want to get near it." That file was a read-only survey of it, but it
+   carried named staff appraisal scores and belonged to that other project regardless. New
+   standing rule added to `CLAUDE.md` and `docs/DIRECT_SYSTEMS_PLAYBOOK.md` §5 marking that
+   whole project out of scope — never read, write, or document it here.
+2. **Finance rules confirmed and added to the playbook (§3):** only a Fully Paid tax invoice
+   counts as revenue; VOID is excluded from every total everywhere; a transaction with
+   expenses registered is "recorded and tracked" until its tax invoice is issued (Direct
+   waits for the money before issuing), so the gap between work-done and invoiced is normal
+   and must show as its own "Not yet invoiced" section, split Ready vs Pending — live 22 Aug:
+   54 transactions / 1,133,517.20 SAR (17 Ready, 317,115.18 SAR · 37 Pending, 816,402.02 SAR).
+3. **The open reconciliation flag in the playbook §2 is closed, not real.** The small
+   7,389.40 SAR gap found while reconciling it traced to mixing transaction references into
+   a tax-invoice total: refs `1163752886` / `1163705932` are VOID transactions, refs
+   `1163732931` / `1163737524` are live transactions still "Published - Pending Payment" —
+   none of the four is actually a tax invoice. Once excluded correctly the gap disappears.
+   Full detail and the corrected reconciliation note live in the playbook itself — do not
+   re-open this without genuinely new evidence.
+
+No GitHub support request for the 2026-08-13 real-data exposure (`im9o80` branch) —
+Abdulrahman confirmed no internal reporting is needed; the branch is simply deleted as part
+of the same cleanup.
+
 ## 2026-08-22 · PROMOTED TO PRODUCTION — handoff-docs merged into claude/new-session-9fhlp1
 
 Abdulrahman approved promotion explicitly (he was locked out of Super Admin and the

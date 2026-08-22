@@ -48,6 +48,10 @@
    aid, and it sat exposed on GitHub for over a week before being caught and dealt with on
    2026-08-22. If real data ever needs to leave the database, it goes to Google Drive or
    stays purely local — never committed, not even briefly.
+8. **OUT OF SCOPE — the appraisal / KPI / task-manager project (Supabase ref
+   `byhxnmafaumersoaiybq`, project `directksa-performance`) is a different project with
+   different work.** Never read it, write to it, document it in this repo, or reference its
+   data. If a task seems to require it, stop and ask.
 
 ## What this project is
 
