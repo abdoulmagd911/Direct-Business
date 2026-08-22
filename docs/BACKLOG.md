@@ -1173,7 +1173,7 @@ Shipped, tested twice (mock suites + real-backend E2E 11/11), deployed:
 Living list. Every session should read this and update it. Nothing here is forgotten,
 it is *parked*, and each item says why and what "done" looks like.
 
-Last reviewed: **2026-08-10**
+Last reviewed: **2026-08-13**
 
 ## 0 · THE GO-LIVE PLAN (owner-directed, 2026-08-10) — read before anything else
 
@@ -1557,6 +1557,15 @@ a personal email. Where two records disagree, keep both values and flag rather t
 **Method that works:** read files one at a time and write findings to a scratch table as you
 go, rather than trying to hold them all at once. A single session cannot read every file in
 one pass.
+
+**New source added 2026-08-12 — the "WhatsApp backup" Drive folder**
+(`10cAZZpnZVJe4XRjKTLSXomNHHqNHqMLH`, 14 chat-export zips). Full inventory in
+`docs/WHATSAPP_BACKUP.md`. Already done: all 92 contact cards from the readable 8 zips
+extracted into the Google Sheet **`WA-CONTACTS-EXTRACTED`** in that same folder — mostly
+**supplier** contacts (airlines, bed banks, hotels, transport, eSIM, study-abroad), so they
+belong on the supplier side, not in the lead pipeline. Still blocked: 6 zips are over the
+10 MB reading limit because they were exported *with media* — Abdulrahman needs to re-export
+those chats "Without media" into the same folder before they can be mined.
 
 ---
 
