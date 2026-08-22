@@ -145,6 +145,28 @@
     if(!window.supabase){ setTimeout(start,150); return; }
     sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
     setLogo(0);
+    /* 2026-08-22 — a real recovery-email link always arrives with type=recovery in the URL
+       fragment. Check that BEFORE any async auth call, so the ordinary sign-in bootstrap below
+       never gets a chance to race the recovery screen. That race was real and would have
+       silently defeated every password reset: detectSessionInUrl treats a recovery token as a
+       normal valid session, so getSession() resolves with it too — and since getSession() was
+       already in flight before onAuthStateChange('PASSWORD_RECOVERY') got a chance to fire,
+       the ordinary boot (handleSession → afterReady → fetchRole → hideOverlay) would win the
+       race, tear down the overlay showRecovery() had just built, and drop the person straight
+       into the app — signed in on a session that was only ever meant to last long enough to
+       pick a new password, never having set one. Caught by scripts/qa/probe-password-
+       recovery.mjs, which found the recovery card simply never appearing. */
+    var isRecoveryLink=/[#&?]type=recovery(&|$)/.test(location.hash)||/[#&?]type=recovery(&|$)/.test(location.search);
+    if(isRecoveryLink){
+      sb.auth.onAuthStateChange(function(_e,s){
+        if(s&&s.user){me=s.user;recoverySession=s;}
+        if(_e==='PASSWORD_RECOVERY'){ showRecovery(); }
+      });
+      // If Supabase never actually emits PASSWORD_RECOVERY (a malformed or expired link),
+      // fall back to the ordinary sign-in form instead of leaving the splash spinning forever.
+      setTimeout(function(){ if(!document.getElementById('rp_pw1')){ showLoginForm(); } }, 6000);
+      return;
+    }
     var settled=false;
     sb.auth.getSession().then(function(r){ settled=true; handleSession(r.data.session); })
       .catch(function(){ settled=true; showLoginForm(); });
@@ -152,21 +174,30 @@
     // after a few seconds so nobody is ever stuck staring at the splash.
     setTimeout(function(){ if(!settled && !formShown){ showLoginForm(); } }, 6000);
     sb.auth.onAuthStateChange(function(_e,s){
-      if(s&&s.user){me=s.user;}
+      if(s&&s.user){me=s.user;recoverySession=s;}
       if(_e==='PASSWORD_RECOVERY'){ showRecovery(); }
     });
   }
 
+  var recoverySession=null;
   function showRecovery(){
     showOverlay();
+    /* 2026-08-22 — Abdulrahman clicked his own reset link, got a bare two-box dialogue with
+       no explanation of whose account it was for, closed it without typing (he only wanted to
+       sign in), and ended up signed in on a password he still doesn't know. Two fixes: name
+       the account on screen so nobody wonders what they're changing, and give an explicit,
+       visible way to skip straight into the app — the recovery link already IS a valid sign-in,
+       so skipping loses nothing except the chance to also set a password right now. */
+    var whoEmail=(me&&me.email)||'your account';
     card.innerHTML='<div style="text-align:center;margin-bottom:6px"><div style="font-size:20px;font-weight:800;color:#1C1E2B">Set a new password</div>'+
-      '<div style="font-size:12.5px;color:#7C8194;margin:8px 0 16px">Choose a new password for your account.</div></div>'+
+      '<div style="font-size:12.5px;color:#7C8194;margin:8px 0 16px">Choose a new password for <b>'+whoEmail.replace(/[<>&]/g,'')+'</b>.</div></div>'+
       '<div id="cl_err" style="display:none;background:#F0453A14;color:#D92D20;font-size:12.5px;padding:9px 12px;border-radius:10px;margin-bottom:12px"></div>'+
       '<label style="font-size:12px;font-weight:700;color:#55596A">New password</label>'+
       '<input id="rp_pw1" type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
       '<label style="font-size:12px;font-weight:700;color:#55596A">Repeat new password</label>'+
       '<input id="rp_pw2" type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 16px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
-      '<button id="rp_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer">Save new password</button>';
+      '<button id="rp_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer">Save new password</button>'+
+      '<div style="text-align:center;margin-top:14px"><span id="rp_skip" style="color:#9AA1B6;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">Only wanted to sign in — skip this</span></div>';
     document.getElementById('rp_go').onclick=function(){
       var p1=document.getElementById('rp_pw1').value,p2=document.getElementById('rp_pw2').value;
       if(!p1||p1.length<8){ err('Password must be at least 8 characters.'); return; }
@@ -177,6 +208,12 @@
         if(e2){ e2.style.display='block'; e2.style.background='#16B36414'; e2.style.color='#0B7A43'; e2.textContent='Password updated — loading your workspace...'; }
         setTimeout(function(){ location.href=location.pathname; },1200);
       });
+    };
+    document.getElementById('rp_skip').onclick=function(){
+      // Clicking the recovery link already signed this browser tab in for real — skipping
+      // just continues into the app on that same session, same as an ordinary sign-in.
+      history.replaceState(null,'',location.pathname);
+      handleSession(recoverySession);
     };
   }
 
@@ -516,15 +553,24 @@
     callAdmin({action:'list'}).then(function(r){
       var box=document.getElementById('tm_list'); if(!box)return;
       if(r.error){ box.textContent=r.error; return; }
+      // 2026-08-22: same hardening as the current v48 panel — resetting a password is
+      // effectively becoming that person, so only an admin may trigger it, and it now sends
+      // a real reset link instead of handing the caller a plaintext temp password. This
+      // legacy modal is normally unreachable within 1.5s of load (js/31 repoints #cl_team /
+      // #v41acc to v48Users()), but keep it safe in case that race is ever lost.
+      var isAdminCaller=(window.__userRole==='admin');
       var rows=(r.users||[]).map(function(u){
         var nm=(u.full_name||'').trim()||u.email.split('@')[0];
+        var rstCell=isAdminCaller
+          ? '<button data-rst="'+u.id+'" data-email="'+u.email.replace(/</g,'&lt;')+'" style="border:1px solid #E3DCCF;background:#fff;border-radius:8px;padding:6px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">Send reset link</button> '
+          : '<span style="font-size:11px;color:#7C8194">Sending is admin-only</span> ';
         return '<tr style="border-top:1px solid #EEE8DE">'+
           '<td style="padding:9px 6px"><b>'+nm.replace(/</g,'&lt;')+'</b><div style="font-size:11.5px;color:#7C8194">'+u.email.replace(/</g,'&lt;')+'</div></td>'+
           '<td style="padding:9px 6px">'+(ROLE_LABEL[u.role]||u.role)+'</td>'+
           '<td style="padding:9px 6px">'+(u.active?'<span style="color:#0B7A43;font-weight:700">Active</span>':'<span style="color:#B54708;font-weight:700">Off</span>')+
             (u.must_change_password?'<div style="font-size:11px;color:#7C8194">temp password</div>':'')+'</td>'+
           '<td style="padding:9px 6px;text-align:right;white-space:nowrap">'+
-            '<button data-rst="'+u.id+'" style="border:1px solid #E3DCCF;background:#fff;border-radius:8px;padding:6px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">Reset password</button> '+
+            rstCell+
             '<button data-tog="'+u.id+'" data-act="'+(u.active?'0':'1')+'" style="border:1px solid #E3DCCF;background:#fff;border-radius:8px;padding:6px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">'+(u.active?'Switch off':'Switch on')+'</button>'+
           '</td></tr>';
       }).join('');
@@ -532,13 +578,13 @@
         '<table style="width:100%;border-collapse:collapse;font-size:13px;color:#1C1E2B"><tbody>'+rows+'</tbody></table>';
       box.querySelectorAll('[data-rst]').forEach(function(b){
         b.onclick=function(){
-          if(!confirm('Give this person a new temporary password?'))return;
-          b.disabled=true;b.textContent='…';
-          callAdmin({action:'reset_password',id:b.getAttribute('data-rst')}).then(function(r2){
-            b.disabled=false;b.textContent='Reset password';
+          var email=b.getAttribute('data-email')||'';
+          if(!confirm('Send a password reset link to '+email+'?'))return;
+          b.disabled=true;var was=b.textContent;b.textContent='…';
+          callAdmin({action:'send_reset_link',id:b.getAttribute('data-rst'),origin:location.origin}).then(function(r2){
+            b.disabled=false;b.textContent=was;
             if(r2.error){alert(r2.error);return;}
-            var row=b.closest('tr'); var em=row?row.querySelector('div').textContent:'';
-            showTemp(em,r2.temp_password,'New temporary password'); loadTeam();
+            alert('Reset link sent to '+email+'. They choose the new password themselves — nobody else sees it.');
           });
         };
       });

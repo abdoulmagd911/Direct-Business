@@ -56,7 +56,11 @@
     var a=allowedPages(); if(!a) return true;
     return a.indexOf(view)>=0;
   }
-  try{ window.mayOpenPage=mayOpen; window.myAllowedPages=allowedPages; }catch(_){}
+  try{ window.mayOpenPage=mayOpen; window.myAllowedPages=allowedPages; window.__accessKnown=known; }catch(_){}
+  /* known() exported (2026-08-21) so a page-access ENFORCEMENT layer (js/64) can tell "role
+     confirmed, this decision is final" apart from "still loading, using the floor" — acting
+     on mayOpenPage() during the unknown-role window would-be-admin included would bounce
+     someone who was about to turn out to be an admin, just because the answer wasn't in yet. */
 
   /* Work out which page each sidebar button opens, by its own wording.
 

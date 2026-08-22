@@ -34,7 +34,7 @@
     c.auth.getSession().then(function(s){
       var u=s&&s.data&&s.data.session&&s.data.session.user; if(!u){ return; }
       c.from('team_directory').select('id,email,full_name,role,active').then(function(r){
-        if(r.error||!r.data){ _done=true; return; }  // no view (e.g. harness) → keep fallback
+        if(r.error||!Array.isArray(r.data)){ _done=true; return; }  // no view (e.g. harness) → keep fallback
         var seen={}, names=[];
         r.data.forEach(function(x){ if(x.active===false) return; var n=String(x.full_name||'').trim()|| String(x.email||'').split('@')[0]; if(n && !seen[n]){ seen[n]=1; names.push(n); } });
         window.__TEAMU=r.data;

@@ -10,8 +10,9 @@ function closeLead(){openLead=null;leadDetailView="detail";render();}
 function setLeadView(m){leadDetailView=m;render();window.scrollTo(0,0);}
 function renderLeads(v){
   if(openLead){renderLeadDetail(v,openLead);return;}if(leadView!=='table'&&leadView!=='dash')leadView='table';
+  const _arRL=(typeof LANG!=='undefined'&&LANG==='ar');
   v.innerHTML=`<div id="leadoverview"></div><div class="toolbar">
-    <div class="search-wrap">${IC.search}<input id="lq" placeholder="Search business, contact, email, phone…" value="${esc(leadFilter.q)}"></div>
+    <div class="search-wrap">${IC.search}<input id="lq" placeholder="${_arRL?'ابحث عن منشأة أو جهة اتصال أو بريد أو هاتف…':'Search business, contact, email, phone…'}" value="${esc(leadFilter.q)}"></div>
     <div class="seg" id="viewseg"></div>
     <div class="seg" id="grpseg" style="display:none"></div>
     <div class="seg" id="catseg" style="display:none"></div><select id="fnsel" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"></select><select id="stgsel" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"></select>
@@ -63,7 +64,8 @@ function renderLeadSummary(){
      and Finance; this strip counts companies. */
   const list=DB.businesses.filter(b=>!b.isClient).filter(matchLead);
   const byStage=LEAD_STAGES.map(s=>({s,n:list.filter(b=>leadStage(b)===s).length})).filter(x=>x.n);
-  el.innerHTML=`<div class="card" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:13px 18px;margin-bottom:14px"><div><div style="font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">In view</div><div style="font-size:17px;font-weight:800;letter-spacing:-.02em">${list.length} ${list.length===1?"lead":"leads"}</div></div><div style="flex:1;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end">${byStage.map(x=>`<span class="statusbadge" style="background:${LSTAGE_COLOR[x.s]}1a;color:${LSTAGE_COLOR[x.s]}"><span class="dot" style="background:${LSTAGE_COLOR[x.s]}"></span>${x.s} ${x.n}</span>`).join("")}</div></div>`;
+  const _arLS=(typeof LANG!=='undefined'&&LANG==='ar');
+  el.innerHTML=`<div class="card" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:13px 18px;margin-bottom:14px"><div><div style="font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">${_arLS?'ضمن العرض':'In view'}</div><div style="font-size:17px;font-weight:800;letter-spacing:-.02em">${list.length} ${_arLS?'عميل محتمل':(list.length===1?"lead":"leads")}</div></div><div style="flex:1;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end">${byStage.map(x=>`<span class="statusbadge" style="background:${LSTAGE_COLOR[x.s]}1a;color:${LSTAGE_COLOR[x.s]}"><span class="dot" style="background:${LSTAGE_COLOR[x.s]}"></span>${x.s} ${x.n}</span>`).join("")}</div></div>`;
 }
 /* base drawTable deleted 2026-08-10 — superseded by the v30 window.drawTable override (bulk-select + priority table) */
 function matchLead(b){if(leadFilter.stage&&leadFilter.stage!=="all"&&leadStage(b)!==leadFilter.stage)return false;if(leadFilter.funnel&&leadFilter.funnel!=="all"&&(b.funnelKey||b.source||"")!==leadFilter.funnel)return false;const q=leadFilter.q.toLowerCase().trim();if(leadGroup==="category"&&leadFilter.cat!=="all"&&b.category!==leadFilter.cat)return false;if(!q)return true;const hay=(b.name+" "+(b.nameAr||"")+" "+(b.segment||"")+" "+(b.source||"")+" "+(b.assignedTo||"")+" "+(b.notes||"")+" "+(b.contacts||[]).map(c=>c.name+c.email+c.phone).join(" ")).toLowerCase();return hay.includes(q);}
@@ -73,7 +75,7 @@ function leadDashboard(v,id){
   const b=getLead(id);if(!b){openLead=null;return renderLeads(v);}
   const sg=leadStage(b);const acts=(b.activities||[]).slice().sort((x,y)=>y.date-x.date);const stageIdx=LEAD_STAGES.indexOf(sg);
   const sc=leadScore(b),sb=scoreBand(sc);
-  const tiles=[["Lead score",sc+" · "+sb.l],["Lifetime billed",moneyShort(b.totalSAR)+" SAR"],["Open deal value",moneyShort(b.dealValue||0)+" SAR"],["Weighted",moneyShort(Math.round((b.dealValue||0)*(STAGE_PROB[sg]||0)))+" SAR"],["Activities",acts.length],["Assigned",b.assignedTo||b.owner||"Unassigned"]];
+  const tiles=[["Lead score",sc+" · "+sb.l],["Activities",acts.length],["Assigned",b.assignedTo||b.owner||"Unassigned"]];
   v.innerHTML=`<button class="btn ghost sm" onclick="closeLead()">← Back to pipeline</button>
   <div class="detail-head">
     <div class="ava" style="background:${avaColor(b.id)}">${initials(b.name)}</div>
@@ -94,12 +96,8 @@ function leadDashboard(v,id){
     <div class="card"><h3>Relationship to Direct</h3>
       <div class="fact"><span class="k">Link type</span><span class="v">${directLinkTag(b)}${b.source?'<span class="tag" style="background:'+(SOURCE_COLOR[b.source]||"#9AA1B6")+'1a;color:'+(SOURCE_COLOR[b.source]||"#9AA1B6")+'">'+esc(b.source)+'</span>':""}${b.website?'<a class="tag" style="background:#2E90FA14;color:#2E90FA;text-decoration:none" target="_blank" rel="noopener" href="'+esc(b.website)+'">Website</a>':""}${b.corpEmailFlag?'<span class="tag" style="background:#F0453A14;color:#D92D20" title="Individual using a company email - check">Corp email: '+esc(b.corpEmailFlag)+'</span>':""}</span></div>
       <div class="fact"><span class="k">Category</span><span class="v">${esc(b.category||"—")}</span></div>
-      <div class="fact"><span class="k">Lifetime billed</span><span class="v">${money(b.totalSAR)}</span></div>
-      <div class="fact"><span class="k">Open deal value</span><span class="v">${money(b.dealValue||0)}</span></div>
       <div class="fact"><span class="k">Invoices</span><span class="v">${b.invoices||0}</span></div>
       <div class="fact"><span class="k">Is client</span><span class="v">${b.isClient?'<span class="tag" style="background:#16B36418;color:#16B364">Yes</span>':"No"}</span></div>
-      <div class="fact"><span class="k">Billed (invoices)</span><span class="v">${money(leadBilled(b.id))}</span></div>
-      <div class="fact"><span class="k">Booked value</span><span class="v">${money(leadBookValue(b.id))}</span></div>
       <div class="fact"><span class="k">Tickets issued</span><span class="v">${ticketsFor(b.id).length}</span></div>
       <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">${!b.isClient?`<button class="btn sm" style="border-color:#16B364;color:#16B364" onclick="convertToClient('${b.id}')">★ Convert to client</button>`:''}<a class="chiplink" href="${pdLink(b)}" target="_blank" rel="noopener">Direct Payments ↗</a></div>
     </div>
@@ -143,7 +141,6 @@ function renderLeadDetail(v,id){
     </div>
     <div>
       <div class="card"><h3>Key facts</h3>
-        <div class="fact"><span class="k">Lifetime billed</span><span class="v">${money(b.totalSAR||0)}</span></div>
         <div class="fact"><span class="k">Invoices</span><span class="v">${b.invoices||0}</span></div>
         <!-- Category had no fallback here, so a lead without one printed the word "undefined"
              on screen. Every other row on this panel already had one. -->
@@ -185,27 +182,26 @@ function renderClients(v){
   if(clFilter.tier!=="all")cl=cl.filter(b=>(b.tier||"Standard")===clFilter.tier);
   const sv=(b,k)=>k==="am"?String(b.accountManager||b.assignedTo||"").toLowerCase():k==="tier"?String(b.tier||"Standard"):k==="review"?(b.nextReview||"9999-99"):k==="health"?({"At risk":0,Watch:1,New:2,Good:3}[clientHealth(b).l]):String(b.name||"").toLowerCase();
   cl=cl.slice().sort((a,b)=>{const va=sv(a,clSort.k),vb=sv(b,clSort.k);return va<vb?-1*clSort.dir:va>vb?1*clSort.dir:0;});
-  const total=cl.reduce((s,b)=>s+(b.totalSAR||0),0);
   const won=DB.businesses.filter(b=>!b.isClient&&leadStatus(b)==="Won").length;
   const today=new Date().toISOString().slice(0,10);
   const team=teamList();
+  const _arCl=(typeof LANG!=='undefined'&&LANG==='ar');
   v.innerHTML=`
   <div class="card" style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;padding:14px 20px;margin-bottom:14px">
     <!-- ids so the "At risk" chip can recalculate these; it filters rows in the table itself,
          which used to leave these totals frozen at the all-clients figures (2026-08-16) -->
     <div><div class="kl">Clients in view</div><div class="kv" id="cl_kv_count">${cl.length}</div></div>
     <div><div class="kl">Key accounts</div><div class="kv" id="cl_kv_key">${cl.filter(b=>b.tier==="Key").length}</div></div>
-    <div><div class="kl">Billed (in view)</div><div class="kv" id="cl_kv_billed">${moneyShort(total)} SAR</div></div>
     <div><div class="kl">Won leads not yet converted</div><div class="kv" style="color:#FF6B00">${won}</div></div>
     <div style="flex:1"></div><button class="btn sm ghost" onclick="current='leads';render()">&larr; Leads pipeline</button></div>
   <div class="toolbar">
-    <div class="search-wrap">${IC.search}<input id="clq" placeholder="Search clients..." value="${esc(clFilter.q)}"></div>
+    <div class="search-wrap">${IC.search}<input id="clq" placeholder="${_arCl?'ابحث عن العملاء...':'Search clients...'}" value="${esc(clFilter.q)}"></div>
     <select onchange="clFilter.owner=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All managers</option>${[...new Set(DB.businesses.filter(b=>b.isClient).map(b=>b.accountManager||b.assignedTo).filter(Boolean))].sort().map(t=>`<option value="${t}" ${clFilter.owner===t?"selected":""}>${t}</option>`).join("")}</select>
     <button class="btn sm ${clFilter.owner===(window.meName?meName():"")&&clFilter.owner!=="all"?"pri":"ghost"}" onclick="clToggleMine()">👤 ${(typeof LANG!=="undefined"&&LANG==="ar")?"خاص بي":"Mine"}</button>
     <select onchange="clFilter.tier=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All tiers</option><option ${clFilter.tier==="Key"?"selected":""}>Key</option><option ${clFilter.tier==="Standard"?"selected":""}>Standard</option></select>
   </div>
-  <div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th style="cursor:pointer" onclick="clSortBy('name')">Client${clArrow('name')}</th><th style="cursor:pointer" onclick="clSortBy('am')">Account manager${clArrow('am')}</th><th style="cursor:pointer" onclick="clSortBy('tier')">Tier${clArrow('tier')}</th><th>Client since</th><th>Deal value (SAR)</th><th style="cursor:pointer" onclick="clSortBy('review')">Next review${clArrow('review')}</th><th style="cursor:pointer" onclick="clSortBy('health')" title="Client health — Good / Watch / At risk. Click to surface at-risk clients.">Health${clArrow('health')}</th><th></th></tr></thead><tbody>
-  ${cl.map(b=>{const am=b.accountManager||b.assignedTo;const overdue=b.nextReview&&b.nextReview<=today;const la=(b.activities||[]).slice().sort((x,y)=>(y.date||0)-(x.date||0))[0];const since=b.convertedDate||b.convertDate||'';const wonV=b.totalSAR||b.dealValue||0;const _h=clientHealth(b);return `<tr data-health="${_h.l}" data-billed="${b.totalSAR||0}" data-key="${b.tier==="Key"?1:0}" style="cursor:pointer" onclick="openLead='${b.id}';current='leads';render()"><td><b>${window.nmMain?esc(nmMain(b)):esc(b.name)}</b>${window.nmSubHTML?nmSubHTML(b):''}${la?`<div style="font-size:11px;color:#0F6E56;margin-top:2px">↪ ${esc(String((la.type||'Activity')+(la.note?': '+la.note:'')).slice(0,46))}</div>`:''}</td><td>${am?esc(am):'<span class="tag" style="background:#F0453A14;color:#D92D20">Unassigned</span>'}</td><td>${(b.tier==="Key")?'<span class="tag" style="background:#A9781A1a;color:#A9781A;font-weight:800">KEY</span>':'<span class="tag" style="background:#EEF0F5;color:#5b6178">Standard</span>'}</td><td style="white-space:nowrap;color:var(--muted);font-size:12px">${since?esc(typeof since==='number'?new Date(since).toISOString().slice(0,10):String(since)):'<span style="color:#C9C2B6">—</span>'}</td><td style="white-space:nowrap;font-weight:800;color:var(--ink)">${wonV?(moneyShort(wonV)):'<span style="color:#C9C2B6;font-weight:400">—</span>'}</td><td style="white-space:nowrap;${overdue?'color:#D92D20;font-weight:700':'color:var(--muted)'}">${b.nextReview?esc(b.nextReview):'-'}</td>${(function(){var h=_h;return '<td><span class="tag" style="background:'+h.c+'1a;color:'+h.c+';font-weight:700" title="'+h.why+'">'+h.l+'</span></td>';})()}<td><button class="btn ghost sm" style="padding:1px 7px;font-size:10.5px" onclick="event.stopPropagation();leadQuickEdit('${b.id}')">Edit</button></td></tr>`;}).join("")||'<tr><td colspan="8" class="empty">No clients match.</td></tr>'}
+  <div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th style="cursor:pointer" onclick="clSortBy('name')">Client${clArrow('name')}</th><th style="cursor:pointer" onclick="clSortBy('am')">Account manager${clArrow('am')}</th><th style="cursor:pointer" onclick="clSortBy('tier')">Tier${clArrow('tier')}</th><th>Client since</th><th style="cursor:pointer" onclick="clSortBy('review')">Next review${clArrow('review')}</th><th style="cursor:pointer" onclick="clSortBy('health')" title="Client health — Good / Watch / At risk. Click to surface at-risk clients.">Health${clArrow('health')}</th><th></th></tr></thead><tbody>
+  ${cl.map(b=>{const am=b.accountManager||b.assignedTo;const overdue=b.nextReview&&b.nextReview<=today;const la=(b.activities||[]).slice().sort((x,y)=>(y.date||0)-(x.date||0))[0];const since=b.convertedDate||b.convertDate||'';const _h=clientHealth(b);return `<tr data-health="${_h.l}" data-client-row="1" data-key="${b.tier==="Key"?1:0}" style="cursor:pointer" onclick="openLead='${b.id}';current='leads';render()"><td><b>${window.nmMain?esc(nmMain(b)):esc(b.name)}</b>${window.nmSubHTML?nmSubHTML(b):''}${la?`<div style="font-size:11px;color:#0F6E56;margin-top:2px">↪ ${esc(String((la.type||'Activity')+(la.note?': '+la.note:'')).slice(0,46))}</div>`:''}</td><td>${am?esc(am):'<span class="tag" style="background:#F0453A14;color:#D92D20">Unassigned</span>'}</td><td>${(b.tier==="Key")?'<span class="tag" style="background:#A9781A1a;color:#A9781A;font-weight:800">KEY</span>':'<span class="tag" style="background:#EEF0F5;color:#5b6178">Standard</span>'}</td><td style="white-space:nowrap;color:var(--muted);font-size:12px">${since?esc(typeof since==='number'?new Date(since).toISOString().slice(0,10):String(since)):'<span style="color:#C9C2B6">—</span>'}</td><td style="white-space:nowrap;${overdue?'color:#D92D20;font-weight:700':'color:var(--muted)'}">${b.nextReview?esc(b.nextReview):'-'}</td>${(function(){var h=_h;return '<td><span class="tag" style="background:'+h.c+'1a;color:'+h.c+';font-weight:700" title="'+h.why+'">'+h.l+'</span></td>';})()}<td><button class="btn ghost sm" style="padding:1px 7px;font-size:10.5px" onclick="event.stopPropagation();leadQuickEdit('${b.id}')">Edit</button></td></tr>`;}).join("")||'<tr><td colspan="7" class="empty">No clients match.</td></tr>'}
   </tbody></table></div></div>`;
   const cq=document.getElementById("clq");if(cq){cq.oninput=e=>{clFilter.q=e.target.value;render();const n=document.getElementById("clq");if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length);}catch(_){}}};}
 }

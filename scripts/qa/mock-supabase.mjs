@@ -29,7 +29,7 @@ const TABLES={
   businesses:biz,
   contacts:[...Array(20)].map((_,i)=>({id:'c'+i,business_id:'b'+i,name:'Contact '+i,role:'Manager',email:'c'+i+'@example.com',phone:'+96650000000'+i,verification_source:'manual',needs_manual_confirmation:false,confirmation_reason:null,confirmed_by:null,confirmed_at:null,meta:{},source:'import'})),
   activities:[...Array(10)].map((_,i)=>({id:'a'+i,business_id:'b'+i,type:'note',note:'Activity '+i,by_user:'QA',at:'2026-08-01T10:00:00Z'})),
-  app_users:[{id:UID,email:'test@directksa.com',full_name:'QA Test Account',role:'admin',active:true,created_at:'2026-08-08T00:00:00Z',must_change_password:false,allowed_pages:null},
+  app_users:[{id:UID,email:'test@directksa.com',full_name:'QA Test Account',role:'admin',active:true,created_at:'2026-08-08T00:00:00Z',must_change_password:false,allowed_pages:null,page_access:null},
     {id:'u-assem',email:'assem.alsweed@directksa.com',full_name:'Assem Alsweed',role:'team_member',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:true,allowed_pages:['today','leads','clients']},
     {id:'u-fin',email:'finance.person@directksa.com',full_name:'Finance Person',role:'operations',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:false,allowed_pages:['today','finance']},
     {id:'u-off',email:'switched.off@directksa.com',full_name:'Switched Off',role:'viewer',active:false,created_at:'2026-08-09T00:00:00Z',must_change_password:false,allowed_pages:['today','reports']}],
@@ -51,9 +51,74 @@ const TABLES={
   finance_client_links:[
     {id:'fl0',client_group:'Test Company 4',business_id:'b4',is_client:true,note:'auto: test',confirmed_by:'system',confirmed_at:'2026-08-10T00:00:00Z',created_at:'2026-08-10T00:00:00Z',updated_at:'2026-08-10T00:00:00Z'},
     {id:'fl1',client_group:'Test Company 5',business_id:'b4',is_client:true,note:'dup spelling → same client',confirmed_by:'system',confirmed_at:'2026-08-10T00:00:00Z',created_at:'2026-08-10T00:00:00Z',updated_at:'2026-08-10T00:00:00Z'}
-  ]
+  ],
+  // client_profiles fixture (Phase 1, 2026-08-21): identity rows only — no money columns,
+  // matching what the real select actually asks for. b0 = one Tender profile; b4 = a
+  // Prepaid + Postpaid pair, so the harness exercises both the single- and multi-profile
+  // rendering paths on the client card.
+  client_profiles:[
+    {id:'cp0',business_id:'b0',direct_client_id:'95',profile_type:'tender',status:'active',payment_terms:null,billing_cycle:null,opened_at:'2026-05-19',closed_at:null},
+    {id:'cp1',business_id:'b4',direct_client_id:'12',profile_type:'prepaid',status:'active',payment_terms:null,billing_cycle:'Manual',opened_at:'2026-03-01',closed_at:null},
+    {id:'cp2',business_id:'b4',direct_client_id:'13',profile_type:'postpaid',status:'active',payment_terms:'Net 30',billing_cycle:'Monthly',opened_at:'2026-03-05',closed_at:null}
+  ],
+  // Phase 2 Ledger fixture (2026-08-21): covers all four stages (invoiced / ready /
+  // pending / overdue) across the three profile types, so the harness exercises the
+  // confirmed-only KPI gate and the est.-tag / Overdue-mirror rules, not just the happy path.
+  finance_transactions:[
+    {id:'tx0',transaction_ref:'TXN-QA-001',invoice_no:'INV-QA-001',zatca_dpin:'DPIN-11001',direct_uuid:null,business_id:'b0',client_profile_id:'cp0',product:'Direct Hotels',service_type:'Hotels',amount_sar:42000,expense_status:null,cost_confirmed_sar:35000,cost_estimate_sar:null,amount_received_sar:42000,amount_remaining_sar:0,overdue:null,created_at_source:'2026-07-01T10:00:00Z',origin:'booking',proposal_ref:null,source:'seed'},
+    {id:'tx1',transaction_ref:'TXN-QA-002',invoice_no:null,zatca_dpin:null,direct_uuid:null,business_id:'b4',client_profile_id:'cp1',product:'Direct Flights',service_type:'Flights',amount_sar:9500,expense_status:'ready',cost_confirmed_sar:7600,cost_estimate_sar:null,amount_received_sar:0,amount_remaining_sar:9500,overdue:null,created_at_source:'2026-08-10T10:00:00Z',origin:'booking',proposal_ref:null,source:'seed'},
+    {id:'tx2',transaction_ref:'TXN-QA-003',invoice_no:null,zatca_dpin:null,direct_uuid:null,business_id:'b4',client_profile_id:'cp2',product:'Direct Visa',service_type:'Visas',amount_sar:6000,expense_status:'pending',cost_confirmed_sar:0,cost_estimate_sar:4800,amount_received_sar:0,amount_remaining_sar:0,overdue:null,created_at_source:'2026-08-18T10:00:00Z',origin:'booking',proposal_ref:null,source:'seed'},
+    {id:'tx3',transaction_ref:'TXN-QA-004',invoice_no:null,zatca_dpin:null,direct_uuid:null,business_id:'b0',client_profile_id:'cp0',product:'Direct Packages',service_type:'Packages',amount_sar:15000,expense_status:'pending',cost_confirmed_sar:0,cost_estimate_sar:12000,amount_received_sar:0,amount_remaining_sar:0,overdue:true,created_at_source:'2026-08-05T10:00:00Z',origin:'booking',proposal_ref:null,source:'seed'}
+  ],
+  // status/source_system normalised 2026-08-21 (Round 13): Direct Payments' COGs Report
+  // returns zero rows for every filter tested — Corporate Expenses > View Assignments is
+  // the verified real cost source, so that's the default source_system here.
+  finance_cogs_expenses:[
+    {id:'cog0',transaction_id:'tx0',reference_id:'COG-QA-001',invoice_id:'INV-QA-001',expense_template_type:'Hotel Cost',status:'approved',source_system:'corporate_expenses',amount_sar:35000,merchant:'Hotel supplier',submitted_by:'Ops team',approved_rejected_by:'Finance ops',source:'seed'},
+    {id:'cog1',transaction_id:'tx1',reference_id:'COG-QA-002',invoice_id:null,expense_template_type:'Airline Fees',status:'approved',source_system:'corporate_expenses',amount_sar:7600,merchant:'Airline',submitted_by:'Ops team',approved_rejected_by:'Finance ops',source:'seed'},
+    {id:'cog2',transaction_id:'tx2',reference_id:'COG-QA-003',invoice_id:null,expense_template_type:'Embassy Expenses',status:'under_review',source_system:'corporate_expenses',amount_sar:4800,merchant:'Embassy',submitted_by:'Ops team',approved_rejected_by:null,source:'seed'}
+  ],
+  payment_receipts:[
+    {id:'pr0',receipt_ref:'PR-QA-001',payment_method:'Bank transfer',amount_sar:42000,remaining_after_sar:0,status:'fully_applied',paid_by:'Finance ops',created_at_source:'2026-07-02T10:00:00Z',allocations:[{transaction_id:'tx0',allocated_amount_sar:42000}],source:'seed'}
+  ],
+  // Spec 8 (2026-08-21): record_history — the real who-did-what log the database writes on
+  // every create/edit/archive/restore/delete of businesses/finance_invoices/
+  // finance_transactions/client_profiles/contacts. One of each action shape, plus one
+  // already-undone row and one 'create' row (Undo hidden on both, for different reasons),
+  // so the harness exercises every branch of js/63's histRow() rendering.
+  record_history:[
+    {id:1,at:'2026-08-21T09:00:00Z',actor:UID,actor_name:'QA Test Account',table_name:'businesses',record_id:'b0',action:'edit',before_row:{id:'b0',name:'Test Company 0',stage:'new'},after_row:{id:'b0',name:'Test Company 0',stage:'contacted'},undone_at:null,undone_by:null},
+    {id:2,at:'2026-08-20T14:00:00Z',actor:'u-assem',actor_name:'Assem Alsweed',table_name:'finance_invoices',record_id:'i2',action:'edit',before_row:{id:'i2',status:'Draft'},after_row:{id:'i2',status:'Issued'},undone_at:null,undone_by:null},
+    {id:3,at:'2026-08-19T11:00:00Z',actor:'u-assem',actor_name:'Assem Alsweed',table_name:'businesses',record_id:'b1',action:'archive',before_row:{id:'b1',archived_at:null},after_row:{id:'b1',archived_at:'2026-08-19T11:00:00Z'},undone_at:'2026-08-19T12:00:00Z',undone_by:UID},
+    {id:4,at:'2026-08-18T08:00:00Z',actor:UID,actor_name:'QA Test Account',table_name:'businesses',record_id:'b2',action:'create',before_row:null,after_row:{id:'b2',name:'Test Company 2'},undone_at:null,undone_by:null}
+  ],
+  // Spec 4 (2026-08-21): DB.settings loads from app_settings (v59, js/35), not the
+  // app_state blob — the harness needs its own row here or the exclusion list/grouping
+  // tool would render against an empty DB.settings.financeExclusions every run.
+  app_settings:[{id:'main',data:{lang:'en',currency:'SAR',financeExclusions:[
+    {id:'fx-qa-takamol',clientId:'7',matchNames:['Takamol for Business Services','Techtic Support'],reason:'Takamol — verification services, accounted for elsewhere',addedBy:'QA seed',addedAt:'2026-08-21T00:00:00Z'}
+  ]},updated_at:'2026-08-21T00:00:00Z',updated_by:'QA seed'}]
 };
+// Spec 7b (2026-08-21): drive the app as any role without a second account. MOCK_ROLE /
+// MOCK_PAGE_ACCESS (a JSON string, e.g. '{"leads":"editor","finance":"editor"}') override
+// the signed-in test@directksa.com row's role/page_access at startup — one source of truth,
+// same as the real database: the plain `SELECT role,... FROM app_users` the login layer
+// reads AND the app_role()/my_page_access() RPCs below all read this same row, so nothing
+// can disagree with itself the way two separately-hardcoded stubs could.
+(function applyMockRoleEnv(){
+  const me=TABLES.app_users.find(u=>u.id===UID); if(!me) return;
+  if(process.env.MOCK_ROLE) me.role=process.env.MOCK_ROLE;
+  if(process.env.MOCK_PAGE_ACCESS){
+    try{ me.page_access=JSON.parse(process.env.MOCK_PAGE_ACCESS); }
+    catch(e){ throw new Error('MOCK_PAGE_ACCESS is not valid JSON: '+e.message); }
+  }
+})();
 const RPCLOG=[];
+let _finIdSeq=0; // new finance_invoices rows inserted through the mock get mock-fi-N ids
+// Password-recovery probes (2026-08-22): three inspectable logs, same pattern as RPCLOG below —
+// a probe drains these over HTTP instead of guessing at what the client actually sent.
+const RECOVERLOG=[];   // every resetPasswordForEmail() call the mock's /auth/v1/recover saw
+const PWUPDATELOG=[];  // every updateUser({password}) call the mock's PUT /auth/v1/user saw
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
 // start(port) keeps the standard seed; start(port,{table:rows}) swaps a table's rows,
 // so a probe can drive the app at real-world scale without disturbing other probes.
@@ -64,20 +129,54 @@ export function start(port, seedOverrides){
   if(req.method==='OPTIONS') return send(res,204,'');
   if(path==='/__lib') { res.writeHead(200,{'Content-Type':'application/javascript'}); return res.end(fs.readFileSync(UMD)); }
   if(path.startsWith('/auth/v1/token')) return send(res,200,SESSION);
-  if(path==='/auth/v1/user') return send(res,200,SESSION.user);
+  if(path==='/auth/v1/user'){
+    if(req.method==='PUT'){
+      let body=''; req.on('data',c=>body+=c);
+      return req.on('end',()=>{
+        let p={}; try{p=JSON.parse(body||'{}');}catch(_){}
+        // Never log the actual password, even in a mock — just that one was submitted.
+        PWUPDATELOG.push({hadPassword:!!p.password, passwordLen:p.password?String(p.password).length:0, at:new Date().toISOString()});
+        return send(res,200,SESSION.user);
+      });
+    }
+    return send(res,200,SESSION.user);
+  }
   if(path==='/auth/v1/logout') return send(res,204,'');
-  if(path.startsWith('/auth/v1/recover')) return send(res,200,{});
+  if(path.startsWith('/auth/v1/recover')){
+    let body=''; req.on('data',c=>body+=c);
+    return req.on('end',()=>{
+      let p={}; try{p=JSON.parse(body||'{}');}catch(_){}
+      // supabase-js sends redirect_to as a query param on this endpoint, not in the body.
+      RECOVERLOG.push({email:p.email||null, redirectTo:u.query.redirect_to||p.redirect_to||null, at:new Date().toISOString()});
+      return send(res,200,{});
+    });
+  }
+  if(path==='/__recoverlog') return send(res,200,RECOVERLOG);
+  if(path==='/__pwupdatelog') return send(res,200,PWUPDATELOG);
   if(path.startsWith('/functions/v1/admin-users')){
     let body='';
     req.on('data',c=>body+=c);
     return req.on('end',()=>{
       let p={}; try{p=JSON.parse(body||'{}');}catch(_){}
       const A=p.action;
-      if(A==='list') return send(res,200,{users:TABLES.app_users.map(u=>({id:u.id,email:u.email,full_name:u.full_name,role:u.role,active:u.active,must_change_password:u.must_change_password,created_at:u.created_at}))});
+      if(A==='list') return send(res,200,{users:TABLES.app_users.map(u=>({id:u.id,email:u.email,full_name:u.full_name,role:u.role,active:u.active,must_change_password:u.must_change_password,created_at:u.created_at})),caller_role:(TABLES.app_users.find(x=>x.id===UID)||{}).role||''});
       if(A==='create'){ const nu={id:'u-'+(TABLES.app_users.length),email:String(p.email||'').toLowerCase(),full_name:p.full_name||'',role:p.role||'team_member',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:true,allowed_pages:['today','leads','clients']}; TABLES.app_users.push(nu); return send(res,200,{ok:true,email:nu.email,temp_password:'Riyadh1234!'}); }
       if(A==='set_role'){ const u=TABLES.app_users.find(x=>x.id===p.id); if(u)u.role=p.role; return send(res,200,{ok:true}); }
       if(A==='set_active'){ const u=TABLES.app_users.find(x=>x.id===p.id); if(u)u.active=p.active===true; return send(res,200,{ok:true}); }
       if(A==='reset_password'){ return send(res,200,{ok:true,temp_password:'Jeddah5678@'}); }
+      // 2026-08-22: mirrors the real admin-users edge function's send_reset_link action —
+      // admin-only (server-enforced there via app_users.role, mocked here the same way via
+      // the signed-in test row, which MOCK_ROLE can override), never a password in the
+      // response, and a record_history row written for the caller to see logged.
+      if(A==='send_reset_link'){
+        const caller=TABLES.app_users.find(x=>x.id===UID);
+        if(!caller||caller.role!=='admin') return send(res,200,{error:'Only an admin can send a reset link.'});
+        const target=TABLES.app_users.find(x=>x.id===p.id);
+        if(!target) return send(res,200,{error:'Person not found.'});
+        RECOVERLOG.push({email:target.email, redirectTo:p.origin||null, at:new Date().toISOString(), via:'admin-users'});
+        TABLES.record_history.unshift({id:(TABLES.record_history.length?Math.max(...TABLES.record_history.map(r=>r.id)):0)+1,at:new Date().toISOString(),actor:UID,actor_name:caller.full_name||caller.email,table_name:'access',record_id:p.id,action:'reset_link_sent',before_row:null,after_row:{target_email:target.email},undone_at:null,undone_by:null});
+        return send(res,200,{ok:true});
+      }
       if(A==='clear_must_change') return send(res,200,{ok:true});
       return send(res,200,{error:'unknown'});
     });
@@ -90,13 +189,85 @@ export function start(port, seedOverrides){
       let parsed=null; try{parsed=JSON.parse(body||'{}');}catch(_){}
       const fn=path.replace('/rest/v1/rpc/','');
       RPCLOG.push({fn, keys: parsed?Object.keys(parsed.patch||parsed.payload||{}):[], arg: parsed?Object.keys(parsed):[]});
-      send(res,200,{});
+      // Spec 7b (2026-08-21): app_role() and my_page_access() read the SAME app_users row
+      // the login layer already reads, mirroring the real functions exactly —
+      //   app_role()        = role from app_users where id = auth.uid() and active
+      //   my_page_access()  = null for admin, else that row's page_access
+      // so a probe driving MOCK_ROLE/MOCK_PAGE_ACCESS gets one consistent answer everywhere,
+      // not two stubs that could quietly disagree with each other.
+      if(fn==='app_role'){
+        const me=TABLES.app_users.find(u=>u.id===UID && u.active);
+        return send(res,200, JSON.stringify(me?me.role:null));
+      }
+      if(fn==='my_page_access'){
+        const me=TABLES.app_users.find(u=>u.id===UID && u.active);
+        const val=(me && me.role!=='admin') ? (me.page_access||null) : null;
+        return send(res,200, val);
+      }
+      // Spec 8 (2026-08-21): undo_change(p_id) — approximates the real function's own
+      // ordering (not in the log / already undone / create entries refused / else mark
+      // undone and answer 'ok') closely enough to drive the app's Undo control end to end in
+      // the harness. This is NOT a substitute for testing the real 24h/role/money-table
+      // rules — that only means anything against real Postgres, which is what rls-matrix.sql
+      // and the live function itself are for.
+      if(fn==='undo_change'){
+        const row=TABLES.record_history.find(r=>r.id===(parsed&&parsed.p_id));
+        if(!row) return send(res,200, JSON.stringify('That change is not in the log.'));
+        if(row.undone_at) return send(res,200, JSON.stringify('Already undone.'));
+        if(row.action==='create') return send(res,200, JSON.stringify('Undoing a newly created record is not an undo — delete it instead, which is itself logged.'));
+        row.undone_at=new Date().toISOString(); row.undone_by=UID;
+        return send(res,200, JSON.stringify('ok'));
+      }
+      // page-access enforcement (2026-08-21): log_page_denied(p_page) appends a real row so
+      // the harness can prove the client actually calls it, not just that it redirects.
+      if(fn==='log_page_denied'){
+        const me=TABLES.app_users.find(u=>u.id===UID && u.active);
+        const nextId=Math.max(0,...TABLES.record_history.map(r=>r.id))+1;
+        TABLES.record_history.push({id:nextId,at:new Date().toISOString(),actor:UID,actor_name:(me&&me.full_name)||'unknown',table_name:'access',record_id:'mock-'+nextId,action:'denied',before_row:null,after_row:{page:parsed&&parsed.p_page},undone_at:null,undone_by:null});
+        return send(res,200, {});
+      }
+      // Real PostgREST answers a SET-returning function with a JSON array, not an object —
+      // {} for every RPC (the old default here) let callers whose guard only checked
+      // truthiness (not Array.isArray) pass a non-array to .forEach and throw on every page.
+      // team_nicknames() is set-returning; add more names here as new set-returning RPCs
+      // are introduced. Everything else keeps the harmless {} stub.
+      const SET_RETURNING=new Set(['team_nicknames']);
+      send(res,200, SET_RETURNING.has(fn)?[]:{});
     });
   }
   if(path.startsWith('/rest/v1/')){
     const t=path.replace('/rest/v1/','').split('?')[0];
     let rows=TABLES[t]||[];
-    if(req.method!=='GET') return send(res,201,[]);
+    // finance_invoices writes are persisted for real (insert + upsert-by-id) — everything
+    // else keeps the old no-op 201,[] stub. Scoped narrowly on purpose: the universal
+    // importer's own idempotency (import, then re-import the same file → all Unchanged) is
+    // untestable the OBVIOUS way without this — FIN.rows never reflected a prior "commit",
+    // so a plain re-drop always answered "New" again and looked exactly like a real bug
+    // (confirmed live 2026-08-21 — cost the session real time before the cause was found:
+    // the mock, not the importer). Widening this to every table is a bigger, riskier change
+    // some other probe might be unknowingly relying on the current no-op — not done here.
+    if(req.method!=='GET'){
+      if(t==='finance_invoices'){
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(!Array.isArray(payload)) payload=[payload];
+          let onConflict=u.query.on_conflict; if(Array.isArray(onConflict))onConflict=onConflict[0];
+          const table=TABLES.finance_invoices;
+          const written=payload.map(row=>{
+            if(onConflict==='id' && row.id){
+              const ix=table.findIndex(r=>r.id===row.id);
+              if(ix>=0){ table[ix]=Object.assign({},table[ix],row); return table[ix]; }
+            }
+            const newRow=Object.assign({id: row.id || ('mock-fi-'+(++_finIdSeq))}, row);
+            table.push(newRow);
+            return newRow;
+          });
+          return send(res,201, written);
+        });
+      }
+      return send(res,201,[]);
+    }
     // apply simple eq filters from the query string (e.g. id=eq.<uuid>) like real PostgREST,
     // so .eq(...).maybeSingle() returns exactly the matching row (not row[0] of the whole table).
     Object.keys(u.query||{}).forEach(k=>{

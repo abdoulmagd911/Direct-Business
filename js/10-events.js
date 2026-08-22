@@ -60,7 +60,7 @@ function evPill(txt,bg,fg){return '<span style="display:inline-block;padding:2px
 function evDate(e){
   if(!e.start_date)return '<span style="color:var(--muted)">—</span>';
   var s=e.start_date,en=e.end_date;
-  var f=function(d){try{return new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});}catch(_){return d;}};
+  var f=function(d){try{return new Date(d+'T00:00:00').toLocaleDateString(isAr()?'ar':'en-GB',{day:'numeric',month:'short'});}catch(_){return d;}};
   return '<span style="white-space:nowrap;font-weight:600">'+f(s)+(en&&en!==s?' – '+f(en):'')+' '+String(s).slice(0,4)+'</span>';
 }
 function canEditEvents(){ return !window.__isShareView && window.__userTier && window.__userTier!=='viewer'; }
@@ -371,7 +371,7 @@ function loadAll(){
   if(!window.__isShareView){
     c.from('ksa_event_signups').select('*').then(function(r){
       SIGNUPS={};
-      if(!r.error&&r.data)r.data.forEach(function(x){SIGNUPS[x.event_id]=x;});
+      if(!r.error&&Array.isArray(r.data))r.data.forEach(function(x){SIGNUPS[x.event_id]=x;});
       extrasLoaded=true;
       try{if(current==='events')render();}catch(_){}
     });
@@ -425,7 +425,7 @@ function clashesFor(e,all){
 function evDate(e){
   if(!e.start_date)return '<span style="color:var(--muted)">'+L('no date yet','لا يوجد تاريخ بعد')+'</span>';
   var s=e.start_date,en=e.end_date;
-  var f=function(d){try{return new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});}catch(_){return d;}};
+  var f=function(d){try{return new Date(d+'T00:00:00').toLocaleDateString(isAr()?'ar':'en-GB',{day:'numeric',month:'short'});}catch(_){return d;}};
   return '<span dir="ltr" style="white-space:nowrap;font-weight:600;display:inline-block">'+f(s)+(en&&en!==s?' – '+f(en):'')+' '+String(s).slice(0,4)+'</span>';
 }
 function statusLabel(k){return isAr()?(EV_STATUS_AR[k]||k):((EV_STATUS[k]||[k])[0]);}

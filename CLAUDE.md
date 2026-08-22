@@ -1,5 +1,11 @@
 # Direct Business — working notes for Claude
 
+> **2026-08-22 — READ `docs/DIRECT_SYSTEMS_PLAYBOOK.md` FIRST, before anything else.** The
+> one file that explains the four systems and who owns what, how to get real data out of
+> Direct Payments, the money model, our app's landmines, the owner's standing rules, and the
+> real mistakes this project has made and how they were caught. It is a living document —
+> add any new finding to it in the same commit that discovers it.
+>
 > **2026-08-11 — `docs/BLUEPRINT.md` is the map.** The whole project in phases, one page
 > per phase, with the rules of engagement (don't invent scope; verify EN+AR in the harness;
 > Arabic pass closes each phase; schema-first for new data). Read it FIRST, then the handoff.
@@ -202,7 +208,8 @@ Things it settles that matter constantly:
 - **No cross-company data smuggling**: every email/phone/website/address on a lead must
   attach to the same company by a stable key (CR number > verified root domain > exact
   normalised name > phone prefix). Mismatches get flagged, never silently merged.
-- Subagents are banned (credits burned, June 2026). Don't spawn them.
+- ~~Subagents are banned (credits burned, June 2026).~~ **Lifted 2026-08-21 — Abdulrahman
+  approved using them again.** Do not re-apply the old ban from this line's history.
 - Abdulrahman's work laptop is locked down — Q drive only, no shell, no installs. His
   primary account is business@directksa.com; a.hassan@directksa.net is his Team-Member view.
 

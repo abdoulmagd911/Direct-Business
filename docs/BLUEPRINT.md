@@ -1,8 +1,13 @@
 # BLUEPRINT — Direct Business, the whole project in phases
 
+> **Read `docs/DIRECT_SYSTEMS_PLAYBOOK.md` first** — the four systems and who owns what, how
+> to get data out of Direct Payments, the money model, our app's landmines, the owner's
+> standing rules, and how not to be wrong. This blueprint is the phase-by-phase map; the
+> playbook is the standing background knowledge every phase depends on.
+>
 > One page per phase. Read top to bottom to know where the project stands, what "done"
 > means for each phase, and what is deliberately waiting. This is the map; the detailed
-> working log stays in `docs/BACKLOG.md`. Created 2026-08-11 after Ahmed's review
+> working log stays in `docs/BACKLOG.md`. Created 2026-08-11 after Abdulrahman's review
 > ("make a blueprint, work phase by phase, keep a guideline so Claude doesn't invent scope").
 >
 > **Status legend:** ✅ done & verified · 🟠 in progress · ⏳ waiting its turn
@@ -49,28 +54,54 @@ funnel-specific data filled for only 483 of 1,013 leads (data task, post-reset).
 **Done means:** a bd user can add, work, and close a lead start-to-finish with no dead
 control and no English leftovers in Arabic.
 
-## Phase 2 — Clients ✅ (data tasks wait for reset)
+## Phase 2 — Clients ✅ (data tasks wait for reset) — money strip corrected 2026-08-21
 Won auto-converts to client; columns decided (Next review + Tier); client card = the
-storage unit: contacts, comments, work log, finance strip (billed/received/outstanding +
-cost/profit/margin%/credit inside the card), billing accounts modeled (one company =
-several Direct Payments IDs: Prepaid/Postpaid/Tender chips), jump-bar on long cards.
+storage unit: contacts, comments, work log, jump-bar on long cards.
 **Waiting on data, not code:** client re-verification (all were reset to leads 08-08);
 Drive consolidation. **Communication capture (owner asked, 2026-08-11):** the Log-activity
 box is now a paste-in capture (Call/WhatsApp/Email/Meeting/Teams-Zoom-Meet types, big
 paste box) — the team pastes the conversation and it joins the company's story. A full
 automatic inbox integration is a separate future project, NOT in current scope.
-**Done means:** one card per real company holding everything the team knows about it.
+**Correction, 2026-08-21 (owner ruling, see Phase 1 below):** the original "finance strip
+(billed/received/outstanding + cost/profit/margin%/credit inside the card)" line above is
+now WRONG and was removed from the app — the Clients page shows no money, full stop; that
+strip now lives only on the Finance page. Billing accounts are no longer a free-text
+Prepaid/Postpaid/Tender chip list — they are the real `client_profiles` table (Phase 1),
+shown as identity-only rows (type badge + Direct client ID + payment terms).
+**Done means:** one card per real company holding everything the team knows about it, with
+no money on it anywhere.
 
-## Phase 3 — Finance ✅
+## Phase 1 (retro-numbered) — Company/Client-Profile schema ✅ 2026-08-21
+One company (`businesses`, unchanged) can hold several Direct Payments billing profiles —
+one Prepaid, one Postpaid, one PER tender, never merged. Real table `client_profiles` (RLS,
+append-only-once-closed tender amounts, one-live-profile cap on Prepaid/Postpaid) replaces
+the old `billingAccounts` free-text blob. Real Corporate Clients registry imported: 24
+profiles / 19 companies, Takamol excluded, kept separate from the synthetic 30-lead training
+world on purpose. Full detail: `docs/BACKLOG.md` 2026-08-21, `docs/DIRECT_PAYMENTS_MODEL.md`
+Round 11. **Done means:** the Clients page is identity-only and the schema is real, not a
+text blob — both verified true. **Still open:** the Finance page's own company-grouped
+rebuild (Spec 2) — a separate next phase, not done in this pass.
+
+## Phase 3 — Finance ✅ (Ledger rebuilt on the corrected model, 2026-08-21)
 The upgrade of the owner's Executive Dashboard. Two tabs: **Performance** (period bar
 year·All/Q1–Q4/H1/H2·month driving everything · KPI cards · income by service families ·
 plan-vs-actual with the real 2026 plan · monthly chart) and **Clients & collections**
-(credit held · collections & AR aging · top clients, numbers only). Ledger with origin
-(booking vs project + proposal link — strategic/quality teams reach the proposal in two
-clicks), invoice line items, CSV export, dark-slate tables, margin pills only in details.
-Storage doctrine: raw rows once, everything derived, integrity flags on the row.
+(credit held · collections & AR aging · top clients, numbers only) — both still read
+`finance_invoices`, unchanged. Storage doctrine: raw rows once, everything derived, integrity
+flags on the row.
+**Phase 2 (2026-08-21):** the **Ledger tab** now reads its own real schema
+(`finance_transactions` + `finance_cogs_expenses` + `client_profiles`, staged alongside
+`finance_invoices` rather than replacing it) — company is the primary row, every transaction
+labelled Prepaid/Postpaid/Tender, KPI strip confirmed-only (has an invoice number, or Expense
+Status Ready), pending rows show their estimate tagged "est." and never reach the totals,
+Overdue only renders when Direct Payments' own field says so (null ≠ not overdue). Round 13:
+the COGs Report itself holds no data — Corporate Expenses > View Assignments is the verified
+cost source; the expense-line vocabulary was normalised to be source-agnostic. Full detail:
+`docs/DIRECT_PAYMENTS_MODEL.md` Rounds 11–13, `docs/BACKLOG.md` 2026-08-21.
 **Done means:** any month/quarter/half/year question answerable in two clicks and every
-number traceable to invoices. *True today; verified by hand-computed sums.*
+number traceable to invoices (Performance/Reports); every Ledger row traceable to its company,
+profile and confirmed-cost source. *True today; verified by hand-computed sums, EN+AR.*
+**Still open:** the real transaction-level import to replace the Ledger's demo seed.
 
 ## Phase 4 — Settings / Team & Access ✅
 Real users with roles (admin/manager/bd/operations/viewer/team_member), access allowlist,
@@ -93,7 +124,7 @@ Al-Hilal 1.5M / SFDA 500K / Riyadh Club 1M) as a toggle for tender-type
 proposals only.
 **Done means:** the team sends a client-ready PDF from the app without touching Word.
 
-## Phase 6 — Schema & data integrity 🟠 (Ahmed's review, 2026-08-11)
+## Phase 6 — Schema & data integrity 🟠 (Abdulrahman's review, 2026-08-11)
 Real tables with RLS everywhere the app writes: businesses, contacts, finance_invoices
 (+origin/proposal_ref/items), finance_client_links (+credit), finance_targets,
 app_requests/app_offers/app_projects (dual-write, blob fallback). Security advisor run

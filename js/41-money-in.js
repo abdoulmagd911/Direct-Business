@@ -58,9 +58,9 @@
     return h.indexOf('Type')>=0 && h.indexOf('Invoice Reference #')>=0 && h.indexOf('Customer Name')>=0 && h.indexOf('Item Is Taxable')>=0;
   }
 
-  var _walletSkipped=0,_verifSkipped=0;
+  var _walletSkipped=0,_verifSkipped=0,_clientExcluded=0,_clientExcludedDetail=[];
   function parseDP(rows){
-    _walletSkipped=0;_verifSkipped=0;
+    _walletSkipped=0;_verifSkipped=0;_clientExcluded=0;_clientExcludedDetail=[];
     var hdr=rows[0].map(function(x){return String(x||'').trim();});
     function ix(n){return hdr.indexOf(n);}
     var iType=ix('Type'),iProd=ix('Product'),iCust=ix('Customer Name'),iRef=ix('Invoice Reference #'),
@@ -100,6 +100,15 @@
       var profit=Math.round(taxTot/1.15*100)/100, vat=Math.round((taxTot-profit)*100)/100;
       if(wallet){_walletSkipped++;return;} // owner rule 2026-08-12: wallet top-ups are NOT imported at all
       if(verif){_verifSkipped++;return;}   // owner rule 2026-08-13: verification services are accounted for elsewhere — never imported here
+      // Spec 4 item 1 (2026-08-21) — the real bug fix: excluding a CLIENT (Takamol) is a
+      // separate rule from excluding a PRODUCT (Techtic Support/Verification above), and
+      // must never rest on a product regex — a Takamol invoice for any other service used
+      // to sail straight through. Checked by client ID via the exclusion list (js/62); the
+      // list is name-matched today only because Direct Payments hasn't shipped a
+      // transaction-level export carrying a numeric client ID yet — never silent, the match
+      // is recorded so the preview can show exactly which id and why.
+      var xhit=(typeof window.finExclusionCheck==='function')?window.finExclusionCheck(inv.cust):null;
+      if(xhit){ _clientExcluded++; _clientExcludedDetail.push({name:inv.cust,clientId:xhit.clientId,reason:xhit.reason}); return; }
       var svc=Object.keys(svcs).sort().join(' + ')||'Other';
       var st = inv.credit?'credit' : /Fully Paid/i.test(inv.status)?'paid' : /Draft/i.test(inv.status)?'draft' : 'pending';
       out.push({ref:ref,num:inv.num,date:inv.date,cust:inv.cust,total:inv.total,cost:Math.round(cost*100)/100,
@@ -162,6 +171,7 @@
       (cred?' · '+fl('credit notes','إشعارات دائنة')+' <b>'+cred+'</b>':'')+
       (wal?' · '+fl('wallet top-ups skipped (not stored)','تم تجاوز تعبئة المحفظة (لا تُخزن)')+' <b>'+wal+'</b>':'')+
       (_verifSkipped?' · '+fl('verification services skipped (accounted for elsewhere)','تم تجاوز خدمات التوثيق (تُحتسب في نظام آخر)')+' <b>'+_verifSkipped+'</b>':'')+
+      (_clientExcluded?('<br>🚫 '+fl('Excluded by rule:','مستبعد بحسب القاعدة:')+' <b>'+_clientExcluded+'</b> — '+esc64(_clientExcludedDetail.map(function(d){return d.name+' (#'+d.clientId+(d.reason?(': '+d.reason):'')+')';}).join('; '))):'')+
       (skipped?('<br>↩ '+fl('Skipped (already in the ledger):','تم تجاوزها (موجودة مسبقًا):')+' <b>'+skipped+'</b>'):'')+
       (supCount?('<br>🔗 '+fl('Already-recorded transactions that now have their tax invoice — the old pending transaction will retire, this invoice replaces it:','معاملات مسجّلة سابقًا صدرت لها الآن فاتورة ضريبية — سيتقاعد سجل المعاملة المعلّق القديم وتحل محله هذه الفاتورة:')+' <b>'+supCount+'</b>'):'')+
       '</div>'+
@@ -297,6 +307,14 @@
     }); } }
   }catch(_){ }
   return out;};
+
+  // Exposed 2026-08-21 so js/65 (the universal importer, Spec 9) can reuse the real,
+  // already-proven Invoice Export parsing instead of duplicating it — signature ROUTING and
+  // the five-count preview live in js/65; the row-level parsing rules (twin pairing, wallet/
+  // verification/client exclusions, the fee-pair math) stay here, unchanged.
+  window.__v65_isDPHeader=isDPHeader; window.__v65_parseDP=parseDP; window.__v65_toRowsDP=toRows;
+  window.__v65_csvParse=csvParse64; window.__v65_readXlsx=readXlsx;
+  window.__v65_exclusionCounts=function(){ return {wallet:_walletSkipped,verif:_verifSkipped,clientExcluded:_clientExcluded,clientExcludedDetail:_clientExcludedDetail}; };
 
   console.info('%c[v65] Direct Payments importer loaded','color:#B54708;font-weight:700');
 }catch(e){if(window.console)console.warn('[v65] init',e);}})();
