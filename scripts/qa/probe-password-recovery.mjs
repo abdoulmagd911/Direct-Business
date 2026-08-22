@@ -93,6 +93,29 @@ async function runAdminPass() {
     await ctx.close();
   }
 
+  // ---------- Part 1b: recovery card names the account + "skip, just sign me in" works
+  // (2026-08-22, Abdulrahman: the bare dialogue confused him — he closed it not knowing
+  // whose account it was, and ended up signed in without knowing a password.) ----------
+  {
+    const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+    const p = await ctx.newPage();
+    p.on('pageerror', e => errors.push('part1b: ' + String(e.message || e).slice(0, 300)));
+    await wireRoutes(p, BASE);
+    const RECOVERY_TOKEN = 'header.' + Buffer.from(JSON.stringify({ sub: '11111111-1111-1111-1111-111111111111', email: 'test@directksa.com', role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url') + '.sig';
+    const hash = `#access_token=${RECOVERY_TOKEN}&refresh_token=refresh-abc&expires_in=3600&token_type=bearer&type=recovery`;
+    await p.goto(BASE + '/today' + hash, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await p.waitForTimeout(2500);
+    out.recoveryNamesAccount = await p.evaluate(() => (document.body.innerText || '').includes('test@directksa.com'));
+    out.skipLinkPresent = !!(await p.$('#rp_skip'));
+    if (out.skipLinkPresent) {
+      await p.click('#rp_skip');
+      await p.waitForTimeout(4000);
+      out.skipSignedIn = await p.evaluate(() => !document.querySelector('div[style*="2147483000"]') && !!document.getElementById('vTitle'));
+      out.skipUrlCleaned = await p.evaluate(() => !location.hash.includes('access_token'));
+    }
+    await ctx.close();
+  }
+
   // ---------- Part 2: self-service "Forgot password?" neutrality (fresh context) ----------
   {
     const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });

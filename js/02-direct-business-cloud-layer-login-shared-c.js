@@ -159,7 +159,7 @@
     var isRecoveryLink=/[#&?]type=recovery(&|$)/.test(location.hash)||/[#&?]type=recovery(&|$)/.test(location.search);
     if(isRecoveryLink){
       sb.auth.onAuthStateChange(function(_e,s){
-        if(s&&s.user){me=s.user;}
+        if(s&&s.user){me=s.user;recoverySession=s;}
         if(_e==='PASSWORD_RECOVERY'){ showRecovery(); }
       });
       // If Supabase never actually emits PASSWORD_RECOVERY (a malformed or expired link),
@@ -174,21 +174,30 @@
     // after a few seconds so nobody is ever stuck staring at the splash.
     setTimeout(function(){ if(!settled && !formShown){ showLoginForm(); } }, 6000);
     sb.auth.onAuthStateChange(function(_e,s){
-      if(s&&s.user){me=s.user;}
+      if(s&&s.user){me=s.user;recoverySession=s;}
       if(_e==='PASSWORD_RECOVERY'){ showRecovery(); }
     });
   }
 
+  var recoverySession=null;
   function showRecovery(){
     showOverlay();
+    /* 2026-08-22 — Abdulrahman clicked his own reset link, got a bare two-box dialogue with
+       no explanation of whose account it was for, closed it without typing (he only wanted to
+       sign in), and ended up signed in on a password he still doesn't know. Two fixes: name
+       the account on screen so nobody wonders what they're changing, and give an explicit,
+       visible way to skip straight into the app — the recovery link already IS a valid sign-in,
+       so skipping loses nothing except the chance to also set a password right now. */
+    var whoEmail=(me&&me.email)||'your account';
     card.innerHTML='<div style="text-align:center;margin-bottom:6px"><div style="font-size:20px;font-weight:800;color:#1C1E2B">Set a new password</div>'+
-      '<div style="font-size:12.5px;color:#7C8194;margin:8px 0 16px">Choose a new password for your account.</div></div>'+
+      '<div style="font-size:12.5px;color:#7C8194;margin:8px 0 16px">Choose a new password for <b>'+whoEmail.replace(/[<>&]/g,'')+'</b>.</div></div>'+
       '<div id="cl_err" style="display:none;background:#F0453A14;color:#D92D20;font-size:12.5px;padding:9px 12px;border-radius:10px;margin-bottom:12px"></div>'+
       '<label style="font-size:12px;font-weight:700;color:#55596A">New password</label>'+
       '<input id="rp_pw1" type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
       '<label style="font-size:12px;font-weight:700;color:#55596A">Repeat new password</label>'+
       '<input id="rp_pw2" type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 16px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
-      '<button id="rp_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer">Save new password</button>';
+      '<button id="rp_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer">Save new password</button>'+
+      '<div style="text-align:center;margin-top:14px"><span id="rp_skip" style="color:#9AA1B6;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">Only wanted to sign in — skip this</span></div>';
     document.getElementById('rp_go').onclick=function(){
       var p1=document.getElementById('rp_pw1').value,p2=document.getElementById('rp_pw2').value;
       if(!p1||p1.length<8){ err('Password must be at least 8 characters.'); return; }
@@ -199,6 +208,12 @@
         if(e2){ e2.style.display='block'; e2.style.background='#16B36414'; e2.style.color='#0B7A43'; e2.textContent='Password updated — loading your workspace...'; }
         setTimeout(function(){ location.href=location.pathname; },1200);
       });
+    };
+    document.getElementById('rp_skip').onclick=function(){
+      // Clicking the recovery link already signed this browser tab in for real — skipping
+      // just continues into the app on that same session, same as an ordinary sign-in.
+      history.replaceState(null,'',location.pathname);
+      handleSession(recoverySession);
     };
   }
 
