@@ -39,8 +39,9 @@ function renderSuppliers(v,kind){
   supKind=kind;
   if(openSup)return supView==='dash'?(kind==='air'?supDashboard(v,openSup):provDashboard(v,openSup)):supplierDetail(v,kind,openSup);
   const isAir=kind==="air";
+  const _arSup=(typeof LANG!=='undefined'&&LANG==='ar');
   v.innerHTML=`
-  <div class="toolbar"><div class="search-wrap">${IC.search}<input id="sq" placeholder="Search…" oninput="drawSupTable(this.value)"></div><div style="flex:1"></div><button class="btn pri" onclick="editSupplier('${kind}')">+ New ${isAir?'airline':'provider'}</button></div>`;
+  <div class="toolbar"><div class="search-wrap">${IC.search}<input id="sq" placeholder="${_arSup?'بحث…':'Search…'}" oninput="drawSupTable(this.value)"></div><div style="flex:1"></div><button class="btn pri" onclick="editSupplier('${kind}')">+ New ${isAir?'airline':'provider'}</button></div>`;
   v.innerHTML+=`<div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th style="width:26px"><input type="checkbox" onclick="supSelectAll(this)"></th><th style="width:32px">#</th>${isAir?`<th style="cursor:pointer" onclick="supSortBy('name')">Airline${supArrow('name')}</th><th style="cursor:pointer" onclick="supSortBy('code')">IATA${supArrow('code')}</th><th style="cursor:pointer" onclick="supSortBy('stock')">Stock${supArrow('stock')}</th><th style="cursor:pointer" onclick="supSortBy('ksa')">KSA BSP${supArrow('ksa')}</th><th style="cursor:pointer" onclick="supSortBy('ticketingAuthority')">Authority${supArrow('ticketingAuthority')}</th><th>NDC</th><th>Void</th><th>Refund to</th>`:`<th style="cursor:pointer" onclick="supSortBy('name')">Provider${supArrow('name')}</th><th style="cursor:pointer" onclick="supSortBy('type')">Type${supArrow('type')}</th><th>API</th><th style="cursor:pointer" onclick="supSortBy('source')">Availability source${supArrow('source')}</th><th>Portal</th><th>Contacts</th>`}${isAir?``:`<th></th>`}</tr></thead><tbody id="suptb"></tbody></table></div></div>`;
   drawSupTable("");
 }

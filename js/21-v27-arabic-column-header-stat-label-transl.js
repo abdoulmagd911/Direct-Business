@@ -44,6 +44,8 @@
     'Tickets due soon':'تذاكر يقترب موعد إصدارها','Nothing urgent right now — all clear.':'لا شيء عاجل الآن — كل شيء على ما يرام.','Overdue invoices':'فواتير متأخرة','Being chased':'قيد التحصيل',
     'Low-profit offers':'عروض ربح منخفض','My queue':'قائمتي',
     'Total sale':'إجمالي المبيعات','QC complete':'اكتمال الفحص',
+    'New':'جديد','Good':'جيد','Watch':'مراقبة','At risk':'معرّض للخطر',
+    '0–30 days':'0–30 يومًا','31–60 days':'31–60 يومًا','61–90 days':'61–90 يومًا','90+ days':'90+ يومًا',
     'Total clients':'إجمالي العملاء','Key accounts':'حسابات رئيسية','Total won (SAR)':'إجمالي المكسوب (ريال)',
     'Clients in view':'العملاء المعروضون','Won leads not yet converted':'صفقات مكسوبة لم تُحوَّل بعد',
     'Reviews overdue':'مراجعات متأخرة','Open requests':'طلبات مفتوحة','SLA overdue':'تأخّر مستوى الخدمة',

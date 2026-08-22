@@ -123,14 +123,28 @@ function latinRunCheck(){
     'ndc', 'api', 'apis', 'zatca', 'emd', 'pdf', 'pnr', 'gds', 'iata', 'bsp', 'vat', 'sar',
     'csv', 'adm', 'ksa', 'mice', 'b2b', 'b2c', 'id', 'qr', 'iban', 'sla', 'kpi', 'gmt', 'utc',
     'http', 'https', 'www', 'ios', 'android', 'direct', 'dpin', 'fsc', 'lcc', 'usd', 'eur',
-    'sar', 'esim', 'zip', 'pin', 'crm', 'erp', 'sso', 'url', 'jpg', 'png', 'xlsx', 'csv'
+    'sar', 'esim', 'zip', 'pin', 'crm', 'erp', 'sso', 'url', 'jpg', 'png', 'xlsx', 'csv',
+    // added 2026-08-22 with the single-word threshold: universal technical/format terms and
+    // magnitude/quarter shorthand that keyboard- and finance-UI convention keeps in Latin even
+    // in an Arabic interface (Ctrl/K key names are handled separately, see KEY_NAME_ALLOW)
+    'excel', 'json', 'rbd', 'm', 'k', 'h', 'q1', 'q2', 'q3', 'q4', 'ttl', 'enter'
   ]);
+  // Keyboard key names (Ctrl/K/⌘) are never translated in any app — allow them wherever they
+  // appear rather than baking them into the general word-allowlist, which is for vocabulary,
+  // not physical key labels.
+  const KEY_NAME_ALLOW = new Set(['ctrl', 'alt', 'shift', 'k', 'esc', 'tab', 'enter']);
   const CODE_RE = /^[A-Z0-9]+[-_][A-Z0-9-]+$/i;       // e.g. REF-001, BIGREF-000123
   const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+/i;
   const URL_RE = /https?:\/\/|www\./i;
-  const RUN_RE = /[A-Za-z][A-Za-z'’.]*(?:\s+[A-Za-z][A-Za-z'’.]*){1,}/g;
+  // Owner correction 2026-08-22: this used to require 2+ words, which is why real single-word
+  // gaps ("New", "Prev", "Next", "page") slipped through undetected. Lowered to 1+ so a lone
+  // untranslated English word flags too — the word-allowlist below is what keeps this from
+  // drowning in noise from real abbreviations. Also now allows digits mid-token (was letters
+  // only), so alphanumeric codes like "B2B" or "Q1" read as one run instead of the digit
+  // splitting them into spurious lone-letter hits ("B2B" -> "B" ... "B").
+  const RUN_RE = /[A-Za-z][A-Za-z0-9'’.]*(?:\s+[A-Za-z][A-Za-z0-9'’.]*)*/g;
   const hits = [];
-  function evalText(text, where){
+  function evalText(text, where, isKeyContext){
     if(!text) return;
     if(EMAIL_RE.test(text) || URL_RE.test(text)) return;
     let m;
@@ -141,15 +155,23 @@ function latinRunCheck(){
       if(LATIN_RUN_ALLOW.has(lower)) continue;
       const words = lower.split(/\s+/).filter(Boolean);
       if(words.length && words.every(w => LATIN_RUN_WORD_ALLOW.has(w.replace(/[^a-z0-9]/g,'')))) continue;
+      if(isKeyContext && words.length && words.every(w => KEY_NAME_ALLOW.has(w.replace(/[^a-z0-9]/g,'')))) continue;
       if(CODE_RE.test(run.replace(/\s+/g,''))) continue;
       hits.push({ run, where, context: text.slice(0, 90) });
     }
   }
   const scopes = [...document.querySelectorAll('#view, #nav, .top')];
   for(const scope of scopes){
-    const leaves = [...scope.querySelectorAll('*')].filter(el => el.children.length === 0);
+    // <code>/<pre> hold raw technical content (CSV column names, JSON, SQL) that is never
+    // meant to be translated - same category as an email or URL, skip entirely.
+    const leaves = [...scope.querySelectorAll('*')].filter(el => el.children.length === 0 && !el.closest('code, pre'));
     for(const el of leaves){
-      evalText((el.textContent || '').trim(), el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).split(' ')[0] : ''));
+      // The language-toggle button deliberately shows the OTHER language's own name
+      // ("English" while the app is in Arabic) so the user knows what clicking it does -
+      // that is the one place a bare Latin word is correct in an Arabic-mode screen.
+      if(el.closest('#langBtn')) continue;
+      const isKeyContext = !!el.closest('.v19-qc, .pg-bar, [class*="shortcut"], [class*="hotkey"]');
+      evalText((el.textContent || '').trim(), el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).split(' ')[0] : ''), isKeyContext);
     }
     const withPh = [...scope.querySelectorAll('input[placeholder], textarea[placeholder]')];
     for(const el of withPh){
