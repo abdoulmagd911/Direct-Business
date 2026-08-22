@@ -239,6 +239,16 @@ function finTabs(){
 window.finGo=function(t){FIN.tab=t;render();};
 
 function finPeriodBar(){
+  /* Keep FIN._csvRows in step with what the user is actually looking at.
+     It is read by finLedgerCSV() and by the Records page's finance export, but nothing ever
+     assigned it: the comment there says "set by rLedger()", and rLedger() did set it until it
+     was refactored onto the transactions table, after which it sets TXN._csvRows instead.
+     The result was a permanently broken export — "No rows to export" no matter what the user
+     did, with 56 real invoices sitting loaded. Found 2026-08-22 while checking the two things
+     the team does daily: add an invoice, and export a report.
+     Live rows only (never soft-deleted), and filtered to the chosen period so the export
+     matches the figures on screen. finPeriodBar() runs on every finance render. */
+  try{ FIN._csvRows = live().filter(finInPeriod); }catch(_){ FIN._csvRows = []; }
   var years=uniq(live().map(function(r){var y=finYearOf(r);return y?String(y):'';}));
   var months=['January','February','March','April','May','June','July','August','September','October','November','December'].filter(function(m){return live().some(function(r){return r.month===m;});});
   var chip=function(val,lbl){return '<button class="btn sm '+((FIN.p.part===val)?'pri':'ghost')+'" onclick="finPP(\''+val+'\')">'+lbl+'</button>';};
