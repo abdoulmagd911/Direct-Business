@@ -166,7 +166,7 @@ function o_loadClient(id){if(!id)return;const b=getLead(id);const o=curOffer();i
 
 /* ----- Export (per page: summary or full details) ----- */
 function supSelectAll(cb){document.querySelectorAll('.supchk').forEach(c=>c.checked=cb.checked);}
-function csvCell(v){if(v==null)v='';if(Array.isArray(v))v=v.map(x=>x&&typeof x==='object'?Object.values(x).filter(Boolean).join(' '):x).join(' | ');else if(v&&typeof v==='object')v=Object.values(v).filter(Boolean).join(' ');return '"'+String(v).replace(/"/g,'""')+'"';}
+function csvCell(v){if(v==null)v='';if(Array.isArray(v))v=v.map(x=>x&&typeof x==='object'?Object.values(x).filter(Boolean).join(' '):x).join(' | ');else if(v&&typeof v==='object')v=Object.values(v).filter(Boolean).join(' ');return '"'+csvGuard(v).replace(/"/g,'""')+'"';}
 function allKeys(rows){const s=[];rows.forEach(r=>Object.keys(r).forEach(k=>{if(k!=='id'&&s.indexOf(k)<0)s.push(k);}));return s;}
 /* Neither export helper ever revoked its blob URL (found 2026-08-20 while chasing a reported
    export freeze — never reproduced, even at 3000 rows with nested JSONB, but an object URL

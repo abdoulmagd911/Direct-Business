@@ -1,5 +1,85 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-22 · Bulletproof oversight round — CSV formula injection + silent money-parsing bugs
+
+A parallel "oversight session" (separate sandbox, no shared filesystem, no push rights — every
+finding relayed as text and independently re-verified here before anything was applied) split
+a pre-launch audit by angle. This entry covers the code-side fixes; the session's own DB/RLS/
+storage-bucket findings were relayed separately and are not repeated here.
+
+**CSV / spreadsheet-formula injection — real, not theoretical.** All 7 CSV export paths quoted
+per RFC-4180 (wrap in `"..."`, double embedded `"`) but that is NOT protection: Excel strips the
+CSV quoting on open and still evaluates a cell whose first character is `=`, `+`, `@`, or a bare
+`-` that isn't a real number. Proved directly: `=HYPERLINK(...)` executes on open, and a real
+client name like "-Al Rajhi Trading" becomes a broken formula instead of a name. Fixed with one
+shared `csvGuard()` (`js/core/core-01-foundation.js`, loads before every exporter) — prefixes a
+dangerous leading character with a literal apostrophe so Excel treats the cell as text, and is
+number-aware on the `-` case specifically so a credit note/refund like `-1500.50` stays a real
+negative number and `SUM()` in the sheet still works. Wired into all 7 builders: `core-05-
+records.js` (`csvCell`, used by the whole Export ▾ menu), `js/16-finance-ledger.js` ×3
+(`finLedgerCSV`, `finTxnCSV`, the Report Builder's own export), `js/09-funnels.js` (`q()`),
+`js/45-expenses.js` (`expCSV`), `js/57-payment-proofs.js` (`proofCSV`). Three of those only
+quote a cell when it already needs it (comma/quote/newline) — added `charCodeAt(0)===39` so a
+cell we just guarded is still force-quoted, or the leading apostrophe would show up literally
+in the sheet instead of just suppressing formula evaluation.
+New guard: `scripts/qa/probe-csv-injection.mjs` — plants hostile cells into `FIN._csvRows`,
+fires the real `finLedgerCSV()` button, reads the real downloaded file, unquotes it the way
+Excel does, and asserts 0 executable cells AND a legitimate negative number survives unguarded.
+Verified both directions: 0 executable cells with the fix, 6/6 execute without it.
+
+**Silent 1000x money-parsing error — the dangerous one, not the loud ones.** Every manual
+amount field (`js/45-expenses.js`'s expense amount, `js/58-b2c-manual.js`'s individual-booking
+amount and cost) parsed with `parseFloat(String(v).replace(/[^\d.]/g,''))`, which has three
+distinct failure modes:
+- Arabic-Indic digits (١٢٣) and Extended Arabic-Indic/Persian digits (۱۲۳) are stripped
+  entirely (JS's `\d` only matches ASCII 0-9) — an amount typed on an Arabic keyboard, normal
+  for this app's staff, silently became empty, then 0, then a generic "amount required" alert
+  with no clue why. Loud, but confusing.
+- A leading `-` was stripped too, silently flipping an intended negative/credit entry positive.
+- European-style formatting (`"1.500,50"`, dot=thousands/comma=decimal) parses under naive
+  digit-stripping as `1.5005` — **wrong by a factor of 1000, and still passes every `>0` guard**,
+  so it was stored silently wrong. This is the one that mattered: the other two fail loudly
+  (blocked by the app's own `amount>0` check and, for expenses, by
+  `finance_expenses_amount_sar_check CHECK (amount_sar > 0)` at the database level too), but a
+  wrong-but-positive number sails straight through every guard that exists.
+- `b2c-manual.js`'s `cost` field had no `>0` guard at all (only `amt` did), so a mis-parsed cost
+  landed straight in `cost_sar` and flowed into the Profit card with zero rejection.
+Fixed with one shared `parseMoneyInput()` (`js/core/core-01-foundation.js`): normalises
+Arabic-Indic/Extended-Arabic-Indic digits and Arabic decimal/thousands separators (٫ ٬) to
+ASCII, disambiguates `"1,500.50"` vs `"1.500,50"` by treating the rightmost separator as
+decimal, treats a repeated same-type separator (`"1.500.500"`) as valid ONLY when every group
+after the first is exactly 3 digits (so `"1500.50.25"` — a typo, not a real number shape — is
+correctly rejected rather than silently truncated), and preserves a leading sign. Returns `NaN`
+for anything that doesn't parse cleanly — never 0 — so every existing `>0` guard keeps working
+exactly as before; malformed input still reaches the same "amount is required" rejection it
+already had, it just no longer misparses first. Added a `cost` guard to `b2c-manual.js`
+(rejects only a value that failed to parse; 0/blank still passes, since a genuinely free/no-cost
+booking is legitimate — this doesn't newly block anything that worked before).
+
+**The 4 finance delete/restore functions had a live RLS-silent-failure bug**, found while
+tracing the export bug: `finDelInv`/`finRestoreInv`/`finDel`/`finRestore`
+(`js/16-finance-ledger.js`) all called `.update(...).then()` with no `.select()`. Supabase
+returns no error when an RLS policy silently matches zero rows, so a delete/restore a viewer
+wasn't allowed to make looked like it worked — modal closes, row appears gone — then reappeared
+on the next refresh with no explanation. Added `.select()` + an empty-data check to all four
+(bilingual alert), and made `finDel`'s confirm dialog bilingual (it was English-only while
+`finDelInv` right above it already was). Inert today — every active account is `finance:editor`,
+verified 0 non-editors — but fires the day the owner sets a new hire to a role without
+finance-edit rights.
+
+Also independently re-verified two things reported by the oversight session, not touched here:
+confirmed via SQL that on all 56 live invoices `revenue_sar = total_incl_vat_sar` (gross, VAT-
+inclusive), `vat_sar` is null, and `cost_sar = 0` — the Finance page's "Revenue"/"Profit" cards
+are currently showing gross with zero cost, not net figures. Totals are internally consistent
+but the field *meaning* is wrong; this needs the owner's ruling on gross-vs-net display and on
+where approved-expense cost should come from (only 1 row exists in `finance_expenses` today,
+18,500 SAR) — data-load correction, not a code bug, left for the owner to rule on rather than
+silently "fixed" by writing numbers.
+
+Verified before push: `check-structure.mjs` OK (58 files) · `probe-csv-injection.mjs` (new,
+both directions) · `probe-finance-export.mjs` · `probe-leads-counts.mjs` ·
+`probe-money-placement.mjs` · `sweep-pages.mjs` — all clean, EN+AR.
+
 ## 2026-08-22 · Go-live UI audit round 2 — real fixes, six files
 
 Six real, independently-verified fixes from a second pass of the go-live UI audit (built in

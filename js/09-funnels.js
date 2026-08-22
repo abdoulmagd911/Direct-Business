@@ -135,7 +135,7 @@
       var list=(DB.businesses||[]).filter(matchLead);
       var head=['Name','Name (AR)','Funnel','Stage','Source','Owner','Client?','Website','Next action date','Next action','Primary contact','Contact phone','Contact email','Funnel details','Notes'];
       var lines=[head.join(',')];
-      function q(s){s=(s==null?'':String(s)).replace(/"/g,'""');return '"'+s+'"';}
+      function q(s){s=csvGuard(s).replace(/"/g,'""');return '"'+s+'"';}
       list.forEach(function(b){
         var c=(b.contacts&&b.contacts[0])||{};
         var f=fdef(b);

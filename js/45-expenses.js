@@ -165,7 +165,7 @@
                r.service_type||r.category||'', r.description, r.amount_sar, r.paid_via, r.supplier||'',
                r.client_group||'', r.receipt_ref||'', r.proof_path?'yes':'no', r.proof_uploaded_by||'',
                r.proof_uploaded_at||'', r.notes||'', r.created_by||''
-             ].map(function(x){x=String(x==null?'':x);return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;}).join(',');
+             ].map(function(x){x=csvGuard(x);return /[",\n]/.test(x)||x.charCodeAt(0)===39?'"'+x.replace(/"/g,'""')+'"':x;}).join(',');
     })).join('\n');
     var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
     a.download='direct-expenses-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
@@ -177,7 +177,12 @@
       expense_date:g('xp_date'), description:g('xp_desc').trim(),
       service_type:g('xp_svc')||null,
       transaction_ref:g('xp_txn').trim()||null,
-      amount_sar:parseFloat(String(g('xp_amt')).replace(/[^\d.]/g,''))||0,
+      /* parseMoneyInput (js/core/core-01-foundation.js) — the naive digit-strip this used to
+         do returned wrong-by-1000x for European-formatted input ("1.500,50" -> 1.5005),
+         silently, past the amount_sar>0 guard below. Returns NaN for anything that isn't a
+         clean amount, which is falsy against >0, so malformed input still hits the existing
+         "amount is required" rejection instead of being guessed at. */
+      amount_sar:parseMoneyInput(g('xp_amt')),
       paid_via:g('xp_via'), supplier:g('xp_sup').trim()||null, client_group:g('xp_client').trim()||null,
       receipt_ref:g('xp_ref').trim()||null, notes:g('xp_notes').trim()||null,
       created_by:meNow()

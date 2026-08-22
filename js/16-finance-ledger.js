@@ -139,7 +139,7 @@ window.finLedgerCSV=function(){
   var L=FIN._csvRows||[]; if(!L.length){alert(isArF()?'لا صفوف للتصدير':'No rows to export');return;}
   var cols=['invoice_date','invoice_no','zatca_dpin','client_group','service_type','products','origin','proposal_ref','month','quarter','year','total_incl_vat_sar','revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','integrity_status'];
   var _hdr=cols.map(function(c){return c==='total_incl_vat_sar'?'invoice_total_sar':c;});
-  var csv='\ufeff'+_hdr.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=r[c];v=(v==null)?'':String(v);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var csv='\ufeff'+_hdr.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=csvGuard(r[c]);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');
   var b=new Blob([csv],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-finance-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 };
@@ -412,7 +412,7 @@ var TXN_TYPE_LBL={prepaid:['Prepaid','مسبق الدفع'],postpaid:['Postpaid'
 window.finTxnCSV=function(){
   var L=TXN._csvRows||[]; if(!L.length){alert(isArF()?'لا صفوف للتصدير':'No rows to export');return;}
   var cols=['company','profile_type','direct_client_id','transaction_ref','invoice_no','zatca_dpin','service_type','stage','amount_sar','cost_confirmed_sar','cost_estimate_sar','amount_received_sar','amount_remaining_sar','overdue','created_at_source'];
-  var csv='﻿'+cols.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=r[c];v=(v==null)?'':String(v);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var csv='﻿'+cols.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=csvGuard(r[c]);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');
   var b=new Blob([csv],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-ledger-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 };
@@ -584,35 +584,48 @@ function finConfirm(msg,onYes){
   try{ if(window.pfConfirm) return pfConfirm(msg,onYes); }catch(_){}
   if(confirm(msg))onYes(); // last-resort fallback if js/57 hasn't loaded for some reason
 }
+/* Bulletproof-round finding (2026-08-22): none of these four called .select() after
+   .update(...) \u2014 Supabase/PostgREST returns no error when an RLS policy silently matches
+   zero rows, so a delete/restore a viewer wasn't allowed to make looked like it worked (modal
+   closes, row appears gone) and then reappeared on the next refresh with no explanation.
+   Inert today (every active account is finance:editor \u2014 verified 0 non-editors), but it fires
+   the day the owner sets a new hire to a role without finance-edit rights. */
 window.finDelInv=function(invNo){
   if(!canFinEdit())return;
   var ar=isArF();
   finConfirm(ar?('\u062d\u0630\u0641 \u0643\u0644 \u0628\u0646\u0648\u062f \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 '+invNo+'\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639.'):('Soft-delete all lines of invoice '+invNo+'? It disappears from totals but stays recoverable.'), function(){
-    fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('invoice_no',invNo).is('deleted_at',null).then(function(r){
+    fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('invoice_no',invNo).is('deleted_at',null).select().then(function(r){
       if(r.error){alert('Could not delete: '+r.error.message);return;}
+      if(!r.data||!r.data.length){alert(ar?'\u0644\u0645 \u064a\u064f\u062d\u0630\u0641 \u0634\u064a\u0621 \u2014 \u0644\u0627 \u062a\u0645\u0644\u0643 \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0629.':'Nothing was deleted - your account was not allowed to.');return;}
       finCloseModal(); FIN.rows=null;finLoad();
     });
   });
 };
 window.finRestoreInv=function(invNo){
-  fc().from('finance_invoices').update({deleted_at:null}).eq('invoice_no',invNo).not('deleted_at','is',null).then(function(r){
+  var ar=isArF();
+  fc().from('finance_invoices').update({deleted_at:null}).eq('invoice_no',invNo).not('deleted_at','is',null).select().then(function(r){
     if(r.error){alert('Could not restore: '+r.error.message);return;}
+    if(!r.data||!r.data.length){alert(ar?'\u0644\u0645 \u064a\u064f\u0633\u062a\u0631\u062c\u0639 \u0634\u064a\u0621 \u2014 \u0644\u0627 \u062a\u0645\u0644\u0643 \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0629.':'Nothing was restored - your account was not allowed to.');return;}
     finCloseModal(); FIN.rows=null;finLoad();
   });
 };
 window.finCloseModal=function(){var m=document.getElementById('finModal');if(m)m.remove();};
 window.finDel=function(id){
   if(!canFinEdit())return;
-  finConfirm('Soft-delete this invoice? It disappears from all totals but stays recoverable under "Recently deleted".', function(){
-    fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('id',id).then(function(r){
+  var ar=isArF();
+  finConfirm(ar?'\u062d\u0630\u0641 \u0647\u0630\u0647 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0643\u0644 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639 \u0645\u0646 \u00ab\u0627\u0644\u0645\u062d\u0630\u0648\u0641\u0629 \u0645\u0624\u062e\u0631\u0627\u064b\u00bb.':'Soft-delete this invoice? It disappears from all totals but stays recoverable under "Recently deleted".', function(){
+    fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('id',id).select().then(function(r){
       if(r.error){alert('Could not delete: '+r.error.message);return;}
+      if(!r.data||!r.data.length){alert(ar?'\u0644\u0645 \u064a\u064f\u062d\u0630\u0641 \u0634\u064a\u0621 \u2014 \u0644\u0627 \u062a\u0645\u0644\u0643 \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0629.':'Nothing was deleted - your account was not allowed to.');return;}
       finCloseModal(); FIN.rows=null;finLoad();
     });
   });
 };
 window.finRestore=function(id){
-  fc().from('finance_invoices').update({deleted_at:null}).eq('id',id).then(function(r){
+  var ar=isArF();
+  fc().from('finance_invoices').update({deleted_at:null}).eq('id',id).select().then(function(r){
     if(r.error){alert('Could not restore: '+r.error.message);return;}
+    if(!r.data||!r.data.length){alert(ar?'\u0644\u0645 \u064a\u064f\u0633\u062a\u0631\u062c\u0639 \u0634\u064a\u0621 \u2014 \u0644\u0627 \u062a\u0645\u0644\u0643 \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0629.':'Nothing was restored - your account was not allowed to.');return;}
     finCloseModal(); FIN.rows=null;finLoad();
   });
 };
@@ -692,7 +705,7 @@ window.finCSV=function(){
     if(R.g2)Object.keys(R.g[k].__sub).forEach(function(s){out.push(['  '+k+' \u203a '+s].concat(R.mets.map(function(m){return R.g[k].__sub[s][m]||0;})));});
   });
   out.push(['TOTAL'].concat(R.mets.map(function(m){return R.grand[m]||0;})));
-  var csv='\ufeff'+out.map(function(r){return r.map(function(c){c=String(c);return (c.indexOf(',')>=0||c.indexOf('"')>=0)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',');}).join('\r\n');
+  var csv='\ufeff'+out.map(function(r){return r.map(function(c){c=csvGuard(c);return (c.indexOf(',')>=0||c.indexOf('"')>=0||c.charCodeAt(0)===39)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',');}).join('\r\n');
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='Direct-Finance-Report-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 };
 

@@ -70,13 +70,22 @@
   window.b2cSave=function(){try{
     var g=function(id){var e=document.getElementById(id);return e?e.value:'';};
     var date=g('bc_date');
-    var amt=parseFloat(String(g('bc_amt')).replace(/[^\d.]/g,''))||0;
-    var cost=parseFloat(String(g('bc_cost')).replace(/[^\d.]/g,''))||0;
+    /* parseMoneyInput (js/core/core-01-foundation.js) — the naive digit-strip this used to do
+       returned wrong-by-1000x for European-formatted input ("1.500,50" -> 1.5005), silently,
+       past the amt>0 guard below. cost had NO guard at all, so a mis-parsed cost landed
+       straight in cost_sar and flowed into the Profit card with no rejection whatsoever. */
+    var amt=parseMoneyInput(g('bc_amt'));
+    var cost=parseMoneyInput(g('bc_cost'));
     var status=g('bc_status')||'verified_paid';
     var name=g('bc_name').trim();
     if(!date){alert(fl('A date is needed.','التاريخ مطلوب.'));return;}
     if(!name){alert(fl('The individual’s name is needed.','اسم الفرد مطلوب.'));return;}
     if(!(amt>0)){alert(fl('Amount must be more than zero.','المبلغ يجب أن يكون أكبر من صفر.'));return;}
+    /* cost is allowed to be 0 (a genuinely free/no-cost booking) — only a value that failed
+       to parse at all is rejected here, so this doesn't newly block anything that already
+       worked, only closes the silent-wrong-number gap. */
+    if(g('bc_cost').trim()&&isNaN(cost)){alert(fl('That cost doesn’t look like a valid amount.','هذه التكلفة ليست مبلغًا صالحًا.'));return;}
+    if(isNaN(cost))cost=0;
     /* Overview's "Invoices" tile counts DISTINCT invoice_no among verified rows — a blank
        reference here would either vanish from that count or collapse together with any other
        reference-less row (multiple nulls count as one). Every booking needs its own identity

@@ -187,7 +187,7 @@
       return [ r.file_path?proofFileName(r):'', typeLbl(r.doc_type), r.doc_date, r.client_group||'',
                r.invoice_no||'', r.wallet_topup_ref||'', r.amount_sar==null?'':r.amount_sar, r.notes||'',
                r.file_path?'yes':'no', r.file_uploaded_by||'', r.file_uploaded_at||'', r.created_by||''
-             ].map(function(x){x=String(x==null?'':x);return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;}).join(',');
+             ].map(function(x){x=csvGuard(x);return /[",\n]/.test(x)||x.charCodeAt(0)===39?'"'+x.replace(/"/g,'""')+'"':x;}).join(',');
     })).join('\n');
     var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
     a.download='direct-payment-proofs-'+new Date().toISOString().slice(0,10)+'.csv';a.click();

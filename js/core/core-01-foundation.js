@@ -1,4 +1,83 @@
 "use strict";
+/* Shared CSV-cell formula-injection guard (2026-08-22, bulletproof-round finding). Every CSV
+   export in the app quoted per RFC-4180 (wrap in "..." , double any embedded ") but that is
+   NOT protection against formula injection: Excel strips the CSV quoting on open and then
+   still evaluates a cell whose first character is =, +, @, or a bare - that isn't a real
+   number — "=HYPERLINK(...)" executes, and a real client name like "-Al Rajhi Trading"
+   becomes a broken formula instead of a name. The "-" branch is number-aware on purpose so a
+   credit note or refund like -1500.50 stays a real negative number and SUM() in the sheet
+   still works — only a "-" that ISN'T a plain number gets the guard. */
+function csvGuard(v){
+  v=(v==null)?'':String(v);
+  if(/^[=+@\t\r]/.test(v))return "'"+v;
+  if(/^-/.test(v)&&!/^-?\d+(\.\d+)?$/.test(v))return "'"+v;
+  return v;
+}
+try{window.csvGuard=csvGuard;}catch(_){}
+/* Shared amount parser (2026-08-22, bulletproof-round finding). Every manual money-amount
+   field in the app used parseFloat(String(v).replace(/[^\d.]/g,'')) — which has three
+   distinct failure modes, not one:
+     - Arabic-Indic digits (١٢٣) and Extended Arabic-Indic/Persian digits (۱۲۳) are stripped
+       entirely (JS's \d only matches ASCII 0-9), so an amount typed on an Arabic keyboard —
+       normal for this app's staff — silently became an empty string, then 0, then a generic
+       "amount is required" alert with no clue why. Loud, but confusing.
+     - a leading "-" was stripped too, silently flipping an intended negative/credit entry
+       into a positive charge instead of being rejected.
+     - European-style thousands/decimal formatting ("1.500,50", dot=thousands/comma=decimal)
+       parses under naive digit-stripping as 1.5005 — wrong by a factor of 1000, and still
+       passes an amount>0 guard, so it is stored SILENTLY WRONG. This is the dangerous one;
+       the other two fail loudly.
+   Returns NaN for anything that isn't a clean, unambiguous amount, on purpose — every caller
+   already treats "amount required" as its rejection path, so NaN (a falsy comparison against
+   `> 0`) reaches that same loud failure instead of this function silently guessing and
+   coercing to 0. Never returns 0 for garbage input; only for a literal "0". */
+function parseMoneyInput(raw){
+  var s=String(raw==null?'':raw).trim();
+  if(!s)return NaN;
+  s=s.replace(/[٠-٩]/g,function(c){return String(c.charCodeAt(0)-0x0660);})
+     .replace(/[۰-۹]/g,function(c){return String(c.charCodeAt(0)-0x06F0);});
+  s=s.replace(/٫/g,'.').replace(/٬/g,',').replace(/\s+/g,'');
+  var neg=false;var sm=s.match(/^([+-])/);if(sm){neg=sm[1]==='-';s=s.slice(1);}
+  s=s.replace(/[^\d,.]/g,'');
+  if(!/\d/.test(s))return NaN;
+  var seps=[];for(var i=0;i<s.length;i++)if(s[i]===','||s[i]==='.')seps.push(i);
+  var intPart,fracPart='';
+  if(seps.length===0){
+    intPart=s;
+  }else{
+    var groups=[],prev=0;
+    seps.forEach(function(idx){groups.push(s.slice(prev,idx));prev=idx+1;});
+    groups.push(s.slice(prev));
+    var types=new Set(seps.map(function(idx){return s[idx];}));
+    if(types.size===2){
+      // both "," and "." present: the RIGHTMOST separator is the decimal marker, whichever
+      // character it is — covers both "1,500.50" and "1.500,50". Everything before it must
+      // be a valid thousands grouping (first group 1-3 digits, every later group exactly 3)
+      // or this is treated as malformed rather than guessed.
+      var decGroup=groups[groups.length-1],thousands=groups.slice(0,-1);
+      var validThousands=thousands.length>0&&thousands[0].length>=1&&thousands[0].length<=3&&
+        thousands.slice(1).every(function(g){return g.length===3;});
+      if(!validThousands||!decGroup.length)return NaN;
+      intPart=thousands.join('');fracPart=decGroup;
+    }else if(seps.length===1){
+      var after=groups[1];
+      if(after.length===3)intPart=groups[0]+after;               // "1,500" / "1.500" -> 1500
+      else if(after.length>=1&&after.length<=2){intPart=groups[0]||'0';fracPart=after;} // "1500.5"/"1500,50"
+      else return NaN;
+    }else{
+      // same separator repeated 2+ times ("1.500.500") — valid ONLY as pure thousands
+      // grouping; "1500.50.25" fails this (the "50" group isn't 3 digits) and is correctly
+      // rejected as the typo it is, rather than silently truncated.
+      var ok=groups[0].length>=1&&groups[0].length<=3&&groups.slice(1).every(function(g){return g.length===3;});
+      if(!ok)return NaN;
+      intPart=groups.join('');
+    }
+  }
+  if(!/^\d+$/.test(intPart)||(fracPart&&!/^\d+$/.test(fracPart)))return NaN;
+  var n=parseFloat(intPart+(fracPart?'.'+fracPart:''));
+  if(!isFinite(n))return NaN;
+  return neg?-n:n;
+}
 /* ================= ICONS ================= */
 const IC={
   dash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>',
