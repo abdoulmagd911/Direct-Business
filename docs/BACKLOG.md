@@ -1,5 +1,37 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-22 · PROMOTION IS THE CRITICAL PATH — production is 100+ commits behind
+
+**Confirmed by diffing branches directly:** Vercel's production branch (`claude/new-session-9fhlp1`)
+last moved 2026-08-21 and does not carry ANY of the work on `claude/handoff-docs-2026-08-10-6n5ihq`
+since they diverged — not the file-split's later chapters, not the world rebuild, not the
+Direct Payments importer, not any of the Arabic fixes across 4 rounds today. Production has 4
+commits of its own (CRM/Finance audit fixes, 2026-08-20/21) that handoff-docs does not have.
+Abdulrahman is deciding whether to promote; this repo is not merged/pushed to production —
+only prepared and verified in a throwaway worktree, never committed anywhere real. Full
+technical brief (conflicts, resolution, rollback) given in chat. **When he approves: merge
+handoff-docs → new-session-9fhlp1, resolving index.html (script-tag concat) and
+js/09-funnels.js (take handoff-docs, strict superset) mechanically, and js/16-finance-ledger.js
+as a real judgment call — production's rLedger() is the old invoice-grouped view, handoff-docs'
+is a newer company-grouped "confirmed-only" Transactions redesign (Round 7/8 work); recommended
+take is handoff-docs' version, but confirm before merging since it changes what the Ledger tab
+shows to production's real users on day one.**
+
+## 2026-08-22 · Round 4 — banner/Credit-Pool/Settings-card fixes, sweep's Brand mislabeling found & fixed
+
+Pushed as `f778b79`. Follow-on to Round 3. The owner pushed back on three "deliberately
+deferred" calls from Round 3 and was right to: the read-only sync banner (Bookings/Invoices/
+Tickets), Today's Commercial Credit Pool widget, and Settings' "Admin & history" card were all
+genuinely fixable, not admin-only dev-tooling — all three now translate. Also traced why the
+sweep never caught the pagination bar and had spurious duplicate findings under "Brand": Brand
+is `window.open('/brand/','_blank')`, not an in-app view, so clicking it in the headless
+harness silently re-scanned whatever page was already showing (Tickets) under the wrong label.
+Removed it from the sweep's page list and added a page-title verification so any future nav
+item with the same shape gets caught with a clear message instead of silent misattribution.
+Also split the sweep's Latin-run findings into CONFIRMED-GAP (not inside a raw `<td>`) vs
+PROBABLY-DATA (inside one) per the owner's explicit request, so a real gap doesn't sit next to
+"Test Company 9" in the same line. Full details and live verification in chat; regression clean.
+
 ## 2026-08-22 · Round 3 — fixed the sweep's single-word blind spot, translated what it caught
 
 Pushed as `f9c25e2`. The owner re-verified `510a3dc` (both Clients labels correct, Today
