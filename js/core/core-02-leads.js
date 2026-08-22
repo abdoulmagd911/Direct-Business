@@ -31,7 +31,7 @@ function renderLeads(v){
     fns.onchange=e=>{leadFilter.funnel=e.target.value;drawLeads();};}const sgs=document.getElementById("stgsel");if(sgs){sgs.innerHTML='<option value="all">All stages</option>'+LEAD_STAGES.map(s=>'<option value="'+s+'" '+(leadFilter.stage===s?"selected":"")+'>'+(s==="Won"?"Client":s)+'</option>').join("");sgs.onchange=e=>{leadFilter.stage=e.target.value;drawLeads();};}document.getElementById("lq").oninput=e=>{leadFilter.q=e.target.value;drawLeads();};
   drawLeads();
 }
-function drawLeads(){var sum=document.getElementById("leadsum");if(leadView==='dash'){if(sum)sum.innerHTML="";drawLeadsDash();}else{renderLeadSummary();drawTable();}}
+function drawLeads(){var sum=document.getElementById("leadsum");if(leadView==='dash'){if(sum)sum.innerHTML="";drawLeadsDash();}else{renderLeadSummary();drawTable();}try{window.v26_3RefreshChipCounts('leads');}catch(_){}}
 function drawLeadsDash(){
 const board=document.getElementById("board");board.className="";
 const SL=s=>s==="Won"?"Client":s;

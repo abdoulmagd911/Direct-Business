@@ -91,8 +91,12 @@
     var strip=document.createElement('div');
     strip.id='funnelTabs';
     strip.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px';
-    var counts={all:(DB.businesses||[]).length};
-    F().forEach(function(f){counts[f.key]=(DB.businesses||[]).filter(function(b){return b.funnelKey===f.key;}).length;});
+    /* 2026-08-22 owner catch: this used to count DB.businesses outright, which includes
+       clients and archived rows — a 79-row leads table showed a funnel "All" tab reading
+       118 because it was silently counting the 30 live clients too. Leads only. */
+    var leadPool=function(){return (DB.businesses||[]).filter(function(b){return !b.isClient&&!b.archivedAt&&!b._archived;});};
+    var counts={all:leadPool().length};
+    F().forEach(function(f){counts[f.key]=leadPool().filter(function(b){return b.funnelKey===f.key;}).length;});
     function chip(key,label,color){
       var on=window.__funnelTab===key;
       var b=document.createElement('button');
@@ -103,7 +107,7 @@
     }
     strip.appendChild(chip('all','All','#1C1E2B'));
     F().forEach(function(f){strip.appendChild(chip(f.key,f.name_en,FCOLOR[f.color]||'#5F5E5A'));});
-    var attnCount=(DB.businesses||[]).filter(function(b){return attention(b);}).length;
+    var attnCount=leadPool().filter(function(b){return attention(b);}).length;
     var na=document.createElement('button');
     na.textContent='\u26a0 Needs attention \u00b7 '+attnCount;
     na.style.cssText='border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:999px;margin-left:auto;background:'+(window.__needsAttn?'#D92D20':'#F0453A14')+';color:'+(window.__needsAttn?'#fff':'#D92D20');

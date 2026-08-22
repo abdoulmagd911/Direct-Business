@@ -993,10 +993,12 @@
          in_discussion->Qualified, proposal->Proposal, won->Won, lost->Lost. The old
          chips filtered on 'New', 'Qualifying' and 'Proposing', which C2S never emits,
          so three of the six chips could never match a single lead - and with 973 of
-         1013 live leads sitting at 'new', that hid almost the whole database. */
+         1013 live leads sitting at 'new', that hid almost the whole database.
+         2026-08-22: 'Qualifying' and 'Proposing' were removed at the time, but the 'New'
+         chip itself was missed and sat dead (always 0) next to 'Prospect' — the owner
+         caught it live. Removed for the same reason as the other two. */
       chipsEn:[
         {label:'All',count:null,filter:'all',active:true},
-        {label:'New',count:null,filter:'New'},
         {label:'Prospect',count:null,filter:'Prospect'},
         {label:'Contacted',count:null,filter:'Contacted'},
         {label:'Qualified',count:null,filter:'Qualified'},
@@ -1006,7 +1008,6 @@
       ],
       chipsAr:[
         {label:'الكل',count:null,filter:'all',active:true},
-        {label:'جديد',count:null,filter:'New'},
         {label:'مرتقب',count:null,filter:'Prospect'},
         {label:'تم التواصل',count:null,filter:'Contacted'},
         {label:'مؤهل',count:null,filter:'Qualified'},
@@ -1074,10 +1075,14 @@
          the table filters on — so the badge matches what clicking the chip shows. */
       var B=((DB&&DB.businesses)||[]).filter(function(b){return !b.isClient;});
       var st=function(b){return (typeof leadStage==='function')?leadStage(b):(b.stage||'');};
-      if(filter==='all'){
-        if(typeof leadFilter!=='undefined'&&leadFilter.hideClosed){B=B.filter(function(b){var s=st(b);return s!=='Won'&&s!=='Lost';});}
-        return B.length;
-      }
+      /* 2026-08-22 owner catch: hideClosed used to apply only to the 'all' branch below, so
+         the All chip and the stage chips disagreed the moment someone turned Hide-closed on
+         (All read the filtered count, Won/Lost still read their real counts, and the sum of
+         the stage chips no longer matched All). Apply it once, before either branch reads B,
+         so every chip — All included — is counting the exact same pool. */
+      var hideClosed=(typeof leadFilter!=='undefined'&&leadFilter.hideClosed);
+      if(hideClosed){B=B.filter(function(b){var s=st(b);return s!=='Won'&&s!=='Lost';});}
+      if(filter==='all')return B.length;
       return B.filter(function(b){return st(b)===filter;}).length;
     }catch(_){return null;}
   };
@@ -1089,6 +1094,37 @@
     }catch(_){return null;}
   };
 
+  /* 2026-08-22 owner catch: the chip badges were computed exactly once, when the section
+     head was first built, and never touched again — because this function returns early
+     the moment the head already exists. Toggling "Hide closed" re-rendered the table
+     (45 rows) while the chip numbers kept showing the stale build (33). Give the early-exit
+     path a way to update the numbers in place, off each chip's own data-filter attribute,
+     instead of doing nothing. */
+  var v26_3RefreshChipCounts=function(sec){
+    try{
+      var view=document.getElementById('view');
+      if(!view)return;
+      var chipsEl=view.querySelector('.v26_3-chips');
+      if(!chipsEl)return;
+      chipsEl.querySelectorAll('.v26_3-chip').forEach(function(btn){
+        var filter=btn.getAttribute('data-filter');
+        var count=null;
+        if(sec==='leads')count=v26_3LeadCount(filter);
+        else if(sec==='projects')count=v26_3ProjectCount(filter);
+        if(count==null)return;
+        var span=btn.querySelector('.count');
+        if(span)span.textContent=count;
+        else{
+          span=document.createElement('span');
+          span.className='count';
+          span.textContent=count;
+          btn.appendChild(span);
+        }
+      });
+    }catch(e){console.warn('[v26.3] refresh-chip-counts',e);}
+  };
+  window.v26_3RefreshChipCounts=v26_3RefreshChipCounts;
+
   /* ===== 6. Build the section-head + chip strip + insights panel for current section ===== */
   var v26_3InjectSectionHead=function(){
     try{
@@ -1097,7 +1133,8 @@
       var cfg=V26_3_SECTIONS[sec];
       if(!cfg)return; /* No config for this section — skip */
       var view=document.getElementById('view');
-      if(!view||view.querySelector('.v26_3-section-head'))return;
+      if(!view)return;
+      if(view.querySelector('.v26_3-section-head')){ try{v26_3RefreshChipCounts(sec);}catch(_){} return; }
       var lang=v26_3GetLang();
       var titlesMap={today:['Today',(lang==='ar'?'ما يحتاج اهتمامك الآن':'What needs your attention right now')],
                      leads:['Leads',(lang==='ar'?'الجهات التي قد تحجز معنا':'People or companies that might book with us')],
