@@ -1,5 +1,57 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-22 · Round 2 — Clients-page gap, a general Latin-leak sweep, and 15 more Arabic fixes
+
+Pushed as `da9677a` (search placeholders + sweep tool) and `dabd86d` (Today/Leads/Bookings/
+Invoices/Tickets/Providers). Follow-on to the pass right below this entry: the owner
+independently re-verified the Reports fix (genuinely large — 806 Arabic chars to 2 Latin — and
+confirmed it was real, not cosmetic), then caught one real gap the sweep itself missed —
+"Clients in view" / "Won leads not yet converted" on the Clients page — and used it to make a
+concrete point about the sweep's design.
+
+**Clients-page fix.** Both strings sit in the same `.kl`-labeled stat strip as an
+already-working label ("Key accounts"), and js/21's dictionary just had one of the three
+entries. Added the missing two to the dictionary rather than hardcoding Arabic into
+`renderClients`, per the owner's explicit instruction, so the fix stays inside the mechanism
+the rest of that strip already uses.
+
+**Why the sweep missed it, and what changed.** `sweep-language.mjs` matches a short fixed word
+list, so it reported the same 33 English strings before and after the Reports fix — it never
+had a chance to see this gap. `manual-visual-sweep.mjs` extended with a general-purpose check
+instead: any Arabic-mode page containing a Latin-script run of 2+ words outside a known
+abbreviation/proper-noun allowlist gets flagged `REVIEW` (a findings dump, not a pass/fail
+gate — real data like company names still needs a human read). First run surfaced ~20 items;
+after two fix rounds, everything left is either intentional or legitimate data (see below).
+
+**Fixed this round (15 items):**
+- Search-box placeholders: Leads, Clients, SOPs, Operations, and the global `#gsearch` bar
+  (the last one lives in a static `index.html` attribute never re-rendered per page, so it's
+  patched from js/21 like everything else in that layer).
+- Today: hero subtitle, all 4 quick-create tiles, all 5 empty-state "all clear" cards,
+  "Recently visited" heading.
+- Leads: "In view" stat strip, "Export this view (CSV)" button + its tooltip.
+- Bookings/Invoices/Tickets/Brand: the "Open in Direct" button on the read-only sync banner;
+  "No invoices/tickets/bookings yet." table fallbacks; Bookings' "Total sale"/"QC complete"
+  stat labels + "More metrics" disclosure; Invoices' aging-card subtitle.
+- Airlines/Providers & GDS: "No records yet." table fallback; the Provider verdicts card
+  (Keep/Upgrade in progress/Deprecated labels — the provider names themselves are real
+  configured data and correctly stay untranslated).
+
+**Left alone on purpose** (re-confirmed by reading the code before touching anything, not
+assumed): Settings' admin/dev-tools block (backup destination, generator templates, snapshot
+internals, ZATCA integrity, security check) — a standing decision already in CLAUDE.md; the
+Commercial Credit Pool widget, a whole separate English-only admin panel; the read-only sync
+banner's own bilingual EN+AR body text, which is an intentional side-by-side design from the
+earlier v25.1 layer, not a translation gap — only its CTA button got an Arabic label added
+alongside it; "Test Company" fixture names (real company data never gets committed here); and
+the Finance exclusion-list row explaining Takamol/Techtic are accounted for elsewhere, which is
+configured explanatory text, not a leaked business name.
+
+Every fix verified live in the QA harness (EN+AR) via Playwright before committing, not just
+read in the code — placeholders confirmed to both show correctly in Arabic and restore their
+exact original English on language switch back. Full regression clean both rounds:
+check-structure (58 files), sweep-pages (144 buttons, 0 errors, EN+AR).
+
 ## 2026-08-22 · Mock write persistence + full pre-launch QA pass — 5 real Arabic gaps found and fixed
 
 Pushed as `d35115a` (mock fix), `88dfb1c` + `b5044a5` (the fixes). The owner independently
