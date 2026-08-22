@@ -115,6 +115,10 @@ const TABLES={
 })();
 const RPCLOG=[];
 let _finIdSeq=0; // new finance_invoices rows inserted through the mock get mock-fi-N ids
+// Password-recovery probes (2026-08-22): three inspectable logs, same pattern as RPCLOG below —
+// a probe drains these over HTTP instead of guessing at what the client actually sent.
+const RECOVERLOG=[];   // every resetPasswordForEmail() call the mock's /auth/v1/recover saw
+const PWUPDATELOG=[];  // every updateUser({password}) call the mock's PUT /auth/v1/user saw
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
 // start(port) keeps the standard seed; start(port,{table:rows}) swaps a table's rows,
 // so a probe can drive the app at real-world scale without disturbing other probes.
@@ -125,20 +129,54 @@ export function start(port, seedOverrides){
   if(req.method==='OPTIONS') return send(res,204,'');
   if(path==='/__lib') { res.writeHead(200,{'Content-Type':'application/javascript'}); return res.end(fs.readFileSync(UMD)); }
   if(path.startsWith('/auth/v1/token')) return send(res,200,SESSION);
-  if(path==='/auth/v1/user') return send(res,200,SESSION.user);
+  if(path==='/auth/v1/user'){
+    if(req.method==='PUT'){
+      let body=''; req.on('data',c=>body+=c);
+      return req.on('end',()=>{
+        let p={}; try{p=JSON.parse(body||'{}');}catch(_){}
+        // Never log the actual password, even in a mock — just that one was submitted.
+        PWUPDATELOG.push({hadPassword:!!p.password, passwordLen:p.password?String(p.password).length:0, at:new Date().toISOString()});
+        return send(res,200,SESSION.user);
+      });
+    }
+    return send(res,200,SESSION.user);
+  }
   if(path==='/auth/v1/logout') return send(res,204,'');
-  if(path.startsWith('/auth/v1/recover')) return send(res,200,{});
+  if(path.startsWith('/auth/v1/recover')){
+    let body=''; req.on('data',c=>body+=c);
+    return req.on('end',()=>{
+      let p={}; try{p=JSON.parse(body||'{}');}catch(_){}
+      // supabase-js sends redirect_to as a query param on this endpoint, not in the body.
+      RECOVERLOG.push({email:p.email||null, redirectTo:u.query.redirect_to||p.redirect_to||null, at:new Date().toISOString()});
+      return send(res,200,{});
+    });
+  }
+  if(path==='/__recoverlog') return send(res,200,RECOVERLOG);
+  if(path==='/__pwupdatelog') return send(res,200,PWUPDATELOG);
   if(path.startsWith('/functions/v1/admin-users')){
     let body='';
     req.on('data',c=>body+=c);
     return req.on('end',()=>{
       let p={}; try{p=JSON.parse(body||'{}');}catch(_){}
       const A=p.action;
-      if(A==='list') return send(res,200,{users:TABLES.app_users.map(u=>({id:u.id,email:u.email,full_name:u.full_name,role:u.role,active:u.active,must_change_password:u.must_change_password,created_at:u.created_at}))});
+      if(A==='list') return send(res,200,{users:TABLES.app_users.map(u=>({id:u.id,email:u.email,full_name:u.full_name,role:u.role,active:u.active,must_change_password:u.must_change_password,created_at:u.created_at})),caller_role:(TABLES.app_users.find(x=>x.id===UID)||{}).role||''});
       if(A==='create'){ const nu={id:'u-'+(TABLES.app_users.length),email:String(p.email||'').toLowerCase(),full_name:p.full_name||'',role:p.role||'team_member',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:true,allowed_pages:['today','leads','clients']}; TABLES.app_users.push(nu); return send(res,200,{ok:true,email:nu.email,temp_password:'Riyadh1234!'}); }
       if(A==='set_role'){ const u=TABLES.app_users.find(x=>x.id===p.id); if(u)u.role=p.role; return send(res,200,{ok:true}); }
       if(A==='set_active'){ const u=TABLES.app_users.find(x=>x.id===p.id); if(u)u.active=p.active===true; return send(res,200,{ok:true}); }
       if(A==='reset_password'){ return send(res,200,{ok:true,temp_password:'Jeddah5678@'}); }
+      // 2026-08-22: mirrors the real admin-users edge function's send_reset_link action —
+      // admin-only (server-enforced there via app_users.role, mocked here the same way via
+      // the signed-in test row, which MOCK_ROLE can override), never a password in the
+      // response, and a record_history row written for the caller to see logged.
+      if(A==='send_reset_link'){
+        const caller=TABLES.app_users.find(x=>x.id===UID);
+        if(!caller||caller.role!=='admin') return send(res,200,{error:'Only an admin can send a reset link.'});
+        const target=TABLES.app_users.find(x=>x.id===p.id);
+        if(!target) return send(res,200,{error:'Person not found.'});
+        RECOVERLOG.push({email:target.email, redirectTo:p.origin||null, at:new Date().toISOString(), via:'admin-users'});
+        TABLES.record_history.unshift({id:(TABLES.record_history.length?Math.max(...TABLES.record_history.map(r=>r.id)):0)+1,at:new Date().toISOString(),actor:UID,actor_name:caller.full_name||caller.email,table_name:'access',record_id:p.id,action:'reset_link_sent',before_row:null,after_row:{target_email:target.email},undone_at:null,undone_by:null});
+        return send(res,200,{ok:true});
+      }
       if(A==='clear_must_change') return send(res,200,{ok:true});
       return send(res,200,{error:'unknown'});
     });

@@ -95,20 +95,33 @@
     function draw(users){
       var lb=document.getElementById('v48list'); if(!lb)return;
       lb.style.color='var(--txt,#303848)';
+      /* 2026-08-22 — password recovery hardening: "Reset password" used to hand the ADMIN a
+         plaintext temporary password to relay by WhatsApp, and any admin OR manager could
+         trigger it. Resetting someone's password is effectively becoming them, so that button
+         is now "Send reset link" (emails the person a real Supabase recovery link — they alone
+         choose the new password) and admin-only, full stop, not just blocked on admin targets
+         the way the old manager check was. window.__userRole is this session's own level,
+         same source of truth as amAdmin() in js/56-access-matrix.js. */
+      var isAdminCaller=(window.__userRole==='admin');
       lb.innerHTML=users.map(function(u,i){
         var nm=esc((u.full_name||'').trim()||u.email.split('@')[0]);
         /* A manager gets NO buttons on an admin's row: the server refuses those calls
            anyway, so offering them is a confirm-box dead end. */
         var mgrOnAdmin=(window.__v48callerRole==='manager' && u.role==='admin');
         var roleSel='<select data-role="'+u.id+'"'+(mgrOnAdmin?' disabled':'')+' style="padding:6px 9px;border:1px solid var(--line-2,#DADDE3);border-radius:8px;font:inherit;font-size:12px;background:#fff">'+Object.keys(RL).map(function(k){return '<option value="'+k+'"'+(u.role===k?' selected':'')+'>'+(A?RL[k][1]:RL[k][0])+'</option>';}).join('')+'</select>';
+        var actionsHtml;
+        if(mgrOnAdmin){
+          actionsHtml='<span style="font-size:11px;color:var(--muted,#6B7480)">'+(A?'حسابات المسؤولين يديرها مسؤول فقط':'Admin accounts are managed by an admin')+'</span>';
+        } else {
+          actionsHtml='<button class="btn ghost sm" data-tog="'+u.id+'" data-act="'+(u.active?'0':'1')+'">'+(u.active?(A?'إيقاف':'Switch off'):(A?'تفعيل':'Switch on'))+'</button>'+
+            (isAdminCaller
+              ? ' <button class="btn ghost sm" data-rst="'+u.id+'" data-email="'+esc(u.email)+'">'+(A?'إرسال رابط إعادة التعيين':'Send reset link')+'</button>'
+              : ' <span style="font-size:11px;color:var(--muted,#6B7480)">'+(A?'الإرسال للمسؤول فقط':'Sending is admin-only')+'</span>');
+        }
         return '<div style="border-top:1px solid var(--line,#E6E8EC);padding:13px 0">'+
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'+
             '<div class="v48-nm"><b style="font-size:13.5px">'+nm+'</b> <span style="color:var(--muted,#6B7480);font-size:11.5px">'+esc(u.email)+'</span>'+(u.must_change_password?' <span style="font-size:10.5px;color:#B54708;font-weight:700">'+(A?'مؤقتة':'temp pw')+'</span>':'')+(u.active===false?' <span style="font-size:10.5px;color:#B54708;font-weight:700">'+(A?'موقوف':'off')+'</span>':'')+'</div>'+
-            '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+roleSel+
-              (mgrOnAdmin
-                ? '<span style="font-size:11px;color:var(--muted,#6B7480)">'+(A?'حسابات المسؤولين يديرها مسؤول فقط':'Admin accounts are managed by an admin')+'</span>'
-                : '<button class="btn ghost sm" data-tog="'+u.id+'" data-act="'+(u.active?'0':'1')+'">'+(u.active?(A?'إيقاف':'Switch off'):(A?'تفعيل':'Switch on'))+'</button>'+
-                  '<button class="btn ghost sm" data-rst="'+u.id+'">'+(A?'كلمة مرور جديدة':'Reset password')+'</button>')+
+            '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+roleSel+actionsHtml+
             '</div></div>'+
           /* The per-page tick boxes were removed on 2026-08-13. A person's LEVEL decides which
              pages they open and what they may save — the ticks changed neither, and the Save
@@ -118,11 +131,26 @@
       }).join('') || (A?'لا يوجد مستخدمون بعد.':'No users yet.');
       wire(users);
     }
+    function showSent(email){
+      var r=document.getElementById('v48res'); if(!r)return; r.style.display='block';
+      r.innerHTML='<div style="background:#E7F8EF;border:1px solid #16B36455;border-radius:10px;padding:10px 13px;font-size:12.5px;color:#0B4229">'+
+        (A?'تم إرسال رابط إعادة التعيين إلى ':'A reset link was sent to ')+'<b>'+esc(email)+'</b>'+(A?'.':'.')+' '+
+        (A?'سيختار الشخص كلمة المرور الجديدة بنفسه — لا يراها أحد غيره.':'They choose the new password themselves — nobody else sees it.')+'</div>';
+    }
     function wire(users){
       var lb=document.getElementById('v48list');
       lb.querySelectorAll('[data-role]').forEach(function(sel){ sel.onchange=function(){ call({action:'set_role',id:sel.getAttribute('data-role'),role:sel.value}).then(function(r){ if(r.error){alert(r.error);load();} }); }; });
       lb.querySelectorAll('[data-tog]').forEach(function(b){ b.onclick=function(){ call({action:'set_active',id:b.getAttribute('data-tog'),active:b.getAttribute('data-act')==='1'}).then(function(r){ if(r.error){alert(r.error);return;} load(); }); }; });
-      lb.querySelectorAll('[data-rst]').forEach(function(b){ b.onclick=function(){ if(!confirm(A?'إعطاء هذا الشخص كلمة مرور مؤقتة جديدة؟':'Give this person a new temporary password?'))return; b.disabled=true; call({action:'reset_password',id:b.getAttribute('data-rst')}).then(function(r){ b.disabled=false; if(r.error){alert(r.error);return;} var wrap=b.closest('div').parentNode.parentNode; var sp=wrap?wrap.querySelector('.v48-nm span'):null; showTemp(sp?sp.textContent:'',r.temp_password); }); }; });
+      lb.querySelectorAll('[data-rst]').forEach(function(b){ b.onclick=function(){
+        var email=b.getAttribute('data-email')||'';
+        if(!confirm((A?'إرسال رابط إعادة تعيين كلمة المرور إلى ':'Send a password reset link to ')+email+'?'))return;
+        b.disabled=true; var was=b.textContent; b.textContent=A?'…':'Sending…';
+        call({action:'send_reset_link',id:b.getAttribute('data-rst'),origin:location.origin}).then(function(r){
+          b.disabled=false; b.textContent=was;
+          if(r.error){alert(r.error);return;}
+          showSent(email);
+        });
+      }; });
     }
   };
 
