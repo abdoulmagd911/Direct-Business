@@ -1865,6 +1865,27 @@ as deliberate: `#F06820` documents · `#FF6C00` logo mark · `#F47A1F` app.
   `technical-profile.html`, `company-profile.html`, `Logo Direct .pdf` (transparent vector
   extraction), core font files for the hub.
 
+## 13a · New B2B landing page (b2b.devdksa.com) — logo wall & partner launch (2026-08-13)
+
+Reviewed the new corporate-travel landing page (AR+EN). Findings and the verified
+client list: `docs/B2B_LANDING_PAGE_REVIEW.md` and `docs/HANDOVER-B2B-LOGO-WALL.md`
+(the handover carries the logo-verification and pre-launch test findings — read it before
+touching logos).
+
+- **Logo wall — ready.** 8 of the 9 floating logos on the page are companies Direct has
+  never invoiced; only Ma'aden is real. Replacement list of 32 verified companies, ordered
+  by Saudi market/cultural weight, with 20 logo files verified and packaged.
+  Artifact: https://claude.ai/code/artifact/d77adddd-053e-4235-8318-6084dfd8d673
+- **Partner launch brief** for the 31 Aug conference (discount codes, revenue share,
+  finance-partner integrations, the service-fee margin rule, per-partner attribution):
+  https://claude.ai/code/artifact/403a8403-9e40-4c6a-82f2-742f94ca2216
+- **Open — Abdulrahman/product team:** collect artwork for the 12 companies with no public
+  logo; get written consent per client (government bodies need formal approval); remove the
+  8 fake SVGs from `/partners/`; replace the watermarked stock persona photos; fix the
+  unverifiable testimonials and "500+ clients" claim; add OG tags + an Arabic <title>.
+- **Open — dev:** promo/partner code field at signup + per-partner attribution report,
+  live and tested before any partner newsletter goes out (target 21 Aug).
+
 ## 14 · Payment proofs — audit document register — DONE 2026-08-19 (refines the Round 7 wallet purge)
 
 Round 7 (2026-08-12) purged wallet top-ups from Finance because they are not Direct's
