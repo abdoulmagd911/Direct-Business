@@ -154,16 +154,25 @@ try{window.finInPeriod=finInPeriod;window.finPeriodLabel=finPeriodLabel;}catch(_
    row-level Ledger deliberately stays on the raw group — it is an invoice list, not a rollup.
    Cache is rebuilt each finance render (clearFinCanon) since a mapping edit reloads FIN. */
 var _finCanonCache={};
-function clearFinCanon(){ _finCanonCache={}; }
+/* Freeze found 2026-08-22 (owner reproduced twice): _finBizName did an O(businesses.length)
+   linear scan, called once per invoice row via finCanon() — O(rows x businesses) on every
+   Clients/Overview/Report-Builder finance render. Indexed once per cache lifetime instead,
+   invalidated on the exact same clearFinCanon() calls the existing _finCanonCache already
+   relies on, so this can never go stale independently of that cache. */
+var _finBizNameIndex=null;
+function clearFinCanon(){ _finCanonCache={}; _finBizNameIndex=null; }
 function _finBizName(uuid){
   try{
-    var list=(typeof DB!=='undefined'&&DB.businesses)||[];
-    for(var i=0;i<list.length;i++){
-      var uu=(window.__bizUuid?window.__bizUuid(list[i].id):list[i].id);
-      if(uu===uuid)return list[i].name||null;
+    if(!_finBizNameIndex){
+      _finBizNameIndex={};
+      var list=(typeof DB!=='undefined'&&DB.businesses)||[];
+      for(var i=0;i<list.length;i++){
+        var uu=(window.__bizUuid?window.__bizUuid(list[i].id):list[i].id);
+        _finBizNameIndex[uu]=list[i].name||null;
+      }
     }
-  }catch(_){}
-  return null;
+    return Object.prototype.hasOwnProperty.call(_finBizNameIndex,uuid)?_finBizNameIndex[uuid]:null;
+  }catch(_){return null;}
 }
 function finCanon(clientGroup){
   var ck=(clientGroup==null?'':clientGroup);
@@ -236,7 +245,21 @@ function finTabs(){
     return '<button class="btn sm '+(FIN.tab===t[0]?'pri':'ghost')+'" onclick="finGo(\''+t[0]+'\')">'+t[1]+'</button>';
   }).join('')+'<span style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">'+(FIN.rows?(function(){var _ic=new Set(live().map(function(r){return r.invoice_no;})).size;var _d=(live().length?live().map(function(r){return r.invoice_date;}).sort().slice(-1)[0]:'\u2014');return isArF()?(_ic+' \u0641\u0627\u062a\u0648\u0631\u0629 \u00b7 \u062d\u062a\u0649 '+_d):(_ic+' invoices \u00b7 data through '+_d);})():'')+'</span></div>';
 }
-window.finGo=function(t){FIN.tab=t;render();};
+/* Freeze found 2026-08-22 (owner reproduced twice): switching a Finance tab called the
+   GLOBAL render() — buildNav(), applyLang(), renderTopExtras(), and (since 'finance' isn't a
+   key in the base render() dispatcher) a full wasted renderDash() computation over every
+   business, immediately thrown away the instant renderFinance() overwrites the same
+   #view.innerHTML right after. None of that depends on FIN.tab — switching tabs never
+   changes the nav, the language, or the top bar — so this calls renderFinance() directly on
+   the already-open Finance view instead. Falls back to the full render() if #view isn't
+   there yet (shouldn't happen — this only fires from a button already inside the rendered
+   Finance page — but this is a tab switch, not a page load, so it's cheap insurance either
+   way). */
+window.finGo=function(t){
+  FIN.tab=t;
+  var v=document.getElementById('view');
+  if(v&&current==='finance')renderFinance(v); else render();
+};
 
 function finPeriodBar(){
   /* Keep FIN._csvRows in step with what the user is actually looking at.

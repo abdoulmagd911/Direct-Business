@@ -1,5 +1,53 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-22 · Finance-tab freeze fixed (pure perf); page does not match owner's spec — his call, not fixed
+
+The owner opened Finance and called it a disaster: a real freeze, plus the live page not
+matching his own written spec (Cowork doc "Finance Model Master Reference + Finance Page
+Spec", Part 5 — one page, one filter bar, one KPI strip, one row-per-transaction table with
+expand/export/import; live reality is 8 tabs, 3 unrequested blocks on the Performance view
+including a promo-code block claiming 27,304,067 SAR against 8,755,055 real revenue, and the
+spec's actual centrepiece — the transaction table — isn't on the page at all). **Nothing about
+the layout/tabs/blocks was touched here** — he has 4 pending decisions (promo codes' home,
+keep/move/cut Plan-vs-actual and Monthly revenue, which of the 8 tabs survive, building the
+missing transaction table) and guessing at any of them is exactly what produced the current
+page. Also reconfirmed, verbatim, a rule already settled twice in writing: **VAT is never
+shown or mentioned, anywhere, at any stage — no VAT split is to be built.** The only real
+issue behind the 100%-margin look is `cost_sar = 0` on all 56 invoices, which the page already
+self-flags; cost must come from approved expenses (Part 1b), not a VAT computation.
+
+**The freeze itself is a pure bug, not a design question, so it was fixed.** Clicking a
+Finance tab while the page is still loading locked the browser 45+ seconds (owner reproduced
+twice; no probe in this project's history has ever caught it, because every probe — including
+every one written this session — waits for load to finish before doing anything, which is
+exactly the window this bug lives in). Root causes, both confirmed by reading the actual code
+before touching it:
+1. `_finBizName()` (`js/16-finance-ledger.js`) did a plain linear scan over every business,
+   called once per invoice row via `finCanon()` — O(rows × businesses) on every Clients/
+   Overview/Report-Builder finance render. Indexed once per cache lifetime instead (a plain
+   object keyed by business id), invalidated on the exact same `clearFinCanon()` calls the
+   existing client-name cache already relies on, so it can never go stale independently of
+   that cache.
+2. `finGo()` (tab-switch) called the GLOBAL `render()` — which runs `buildNav()`,
+   `applyLang()`, `renderTopExtras()`, and, since `'finance'` isn't a key in the base
+   `render()` dispatcher, a full **wasted** `renderDash()` computation over every business
+   that gets thrown away the instant `renderFinance()` overwrites the same `#view.innerHTML`
+   right after — a second, independently-found waste beyond what was reported. None of that
+   depends on which Finance tab is active, so `finGo()` now calls `renderFinance()` directly
+   on the already-open Finance view instead of the whole app's render chain.
+
+Verified as a pure optimisation, not a behaviour change: captured the exact rendered text of
+the Clients, Ledger, and Report-Builder tabs under the OLD code (via `git stash`) and the NEW
+code, byte-for-byte identical on all three (735/1167/728 chars respectively, `diff` empty).
+Could not reproduce the exact 45-second freeze in the QA harness itself — the mock backend
+responds near-instantly and the fixture is smaller (60 businesses vs 108 real), so the
+"loading window" this bug lives in barely exists there; the fix is verified by complexity
+(O(rows×businesses) → O(rows+businesses)) and by output-equivalence, not by reproducing the
+symptom under a mock that structurally can't reproduce it. Full regression battery clean:
+`check-structure.mjs`, `probe-finance-export.mjs`, `probe-csv-injection.mjs`,
+`probe-leads-counts.mjs`, `probe-money-placement.mjs`, `sweep-pages.mjs` — all green, EN+AR,
+0 console errors.
+
 ## 2026-08-22 · Bulletproof oversight round — CSV formula injection + silent money-parsing bugs
 
 A parallel "oversight session" (separate sandbox, no shared filesystem, no push rights — every
