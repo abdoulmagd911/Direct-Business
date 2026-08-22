@@ -201,8 +201,27 @@ const PAGES = [
   { label: 'Bookings', ar: 'الحجوزات' },
   { label: 'Invoices', ar: 'الفواتير' },
   { label: 'Tickets', ar: 'التذاكر' },
-  { label: 'Brand', ar: 'الهوية' },
+  // 'Brand' deliberately excluded: its nav button is window.open('/brand/','_blank') —
+  // an external link, not an in-app view. Clicking it in a headless context opens nothing
+  // reachable, so vTitle never changes and every "Brand" finding was actually a stale re-scan
+  // of whatever page was showing before it (2026-08-22 - traced after the owner questioned
+  // why "Brand" and "Tickets" findings were byte-for-byte identical).
 ];
+
+// Split latinRunCheck hits by where they were found, not by guessing at the text itself: raw
+// <td> content is exactly the table-body-value shape the app's own translation layer was
+// designed to never touch (js/21's own comment says so, and it's the CLAUDE.md rule for the
+// whole app) - a real gap almost never hides in a bare <td>, and real data (a company name, a
+// seed fixture) almost never hides anywhere else. Heuristic, not proof, but it keeps a real
+// gap like a "New" badge from sitting in the same line as "Test Company 9".
+function pushLatinFindings(latinRuns, tag) {
+  if (!latinRuns.length) return;
+  const isProbablyData = h => h.where.indexOf('td') === 0;
+  const gapHits = latinRuns.filter(h => !isProbablyData(h));
+  const dataHits = latinRuns.filter(isProbablyData);
+  if (gapHits.length) findings.push({ sev: 'REVIEW', where: tag, msg: 'CONFIRMED-GAP candidates (not inside a raw table cell — most likely app chrome, worth fixing): ' + gapHits.slice(0, 20).map(h => `"${h.run}" in ${h.where} (…${h.context}…)`).join(' | ') });
+  if (dataHits.length) findings.push({ sev: 'REVIEW-DATA', where: tag, msg: 'PROBABLY-DATA (inside a raw table cell — likely a real name/company/fixture, do not translate without checking): ' + dataHits.slice(0, 20).map(h => `"${h.run}" in ${h.where} (…${h.context}…)`).join(' | ') });
+}
 
 async function openNav(labelRegexSrc, exact) {
   // some entries live under a collapsible group ("▸ Reference" / "▾") — open all toggle groups first
@@ -225,12 +244,27 @@ async function openNav(labelRegexSrc, exact) {
 async function sweepOne(pageDef, lang, extra) {
   const name = pageDef.label;
   const labelSrc = lang === 'en' ? '^' + name.replace(/[&]/g, '.') : pageDef.ar;
+  const titleBefore = await p.evaluate(() => document.getElementById('vTitle')?.textContent || '').catch(() => '');
   const found = await openNav(labelSrc);
   if (!found) {
     findings.push({ sev: 'MED', where: name + ' (' + lang + (extra ? '/' + extra : '') + ')', msg: 'nav button not found/clicked' });
     return;
   }
   await p.waitForTimeout(600);
+  // Nav button matched and its click handler fired, but the page title never changed to
+  // something matching this page - this is what an external window.open() link, or any nav
+  // item that doesn't actually route in-app, looks like. Scanning would silently re-report
+  // whatever page was already showing under this page's name (exactly what happened to
+  // 'Brand' before it was excluded above). Match loosely against the expected title rather
+  // than just "did it change", since if this page happened to already be showing (e.g. the
+  // very first page of a pass) that's correct, not stale.
+  const titleAfter = await p.evaluate(() => document.getElementById('vTitle')?.textContent || '').catch(() => '');
+  const expectedTitleFrag = lang === 'ar' ? pageDef.ar : name.replace(/&.*/, '').trim();
+  const titleLooksRight = titleAfter && (titleAfter.indexOf(expectedTitleFrag) >= 0 || titleAfter !== titleBefore);
+  if (!titleLooksRight) {
+    findings.push({ sev: 'MED', where: name + ' (' + lang + (extra ? '/' + extra : '') + ')', msg: `nav click registered but the page title never changed to match this page (stayed "${titleAfter}") — likely opens externally or the click didn't route; findings below this page would be stale re-scans of the previous page, so it was skipped` });
+    return;
+  }
   const a = await p.evaluate(analyze);
   const leak = lang === 'ar' ? await p.evaluate(englishLeakCheck) : [];
   const latinRuns = lang === 'ar' ? await p.evaluate(latinRunCheck) : [];
@@ -242,7 +276,7 @@ async function sweepOne(pageDef, lang, extra) {
   if (a.moneyOdd.length) findings.push({ sev: 'LOW', where: tag, msg: 'odd money formatting: ' + a.moneyOdd.join(' | ') });
   if (a.emptyLinks.length) findings.push({ sev: 'LOW', where: tag, msg: 'empty/dead link(s): ' + a.emptyLinks.join(' | ') });
   if (leak.length) findings.push({ sev: 'MED', where: tag, msg: 'untranslated English strings visible in AR: ' + [...new Set(leak)].join(', ') });
-  if (latinRuns.length) findings.push({ sev: 'REVIEW', where: tag, msg: 'Latin-script run(s) outside the allowlist — may be a real translation gap OR legitimate data (a name, a company): ' + latinRuns.slice(0, 20).map(h => `"${h.run}" in ${h.where} (…${h.context}…)`).join(' | ') });
+  pushLatinFindings(latinRuns, tag);
   const shotName = SHOTS + '/' + name.replace(/[^a-z0-9]+/gi, '-') + (extra ? '-' + extra : '') + '-' + lang + '.png';
   await p.screenshot({ path: shotName, fullPage: true }).catch(() => {});
 }
@@ -289,13 +323,16 @@ for (const pg of PAGES) {
       if (a.overlaps.length) findings.push({ sev: 'MED', where: tag, msg: 'possible element overlap: ' + JSON.stringify(a.overlaps.slice(0, 5)) });
       if (a.hOverflow) findings.push({ sev: 'MED', where: tag, msg: `horizontal overflow: scrollWidth=${a.scrollW} clientWidth=${a.clientW}` });
       if (leak.length) findings.push({ sev: 'MED', where: tag, msg: 'untranslated English strings visible in AR: ' + [...new Set(leak)].join(', ') });
-      if (latinRuns.length) findings.push({ sev: 'REVIEW', where: tag, msg: 'Latin-script run(s) outside the allowlist — may be a real translation gap OR legitimate data (a name, a company): ' + latinRuns.slice(0, 20).map(h => `"${h.run}" in ${h.where} (…${h.context}…)`).join(' | ') });
+      pushLatinFindings(latinRuns, tag);
       await p.screenshot({ path: SHOTS + '/finance-' + tab.en.toLowerCase() + '-ar.png', fullPage: true }).catch(() => {});
     }
   }
 }
 
 console.log('\n=== FINDINGS (' + findings.length + ') ===');
+const reviewCount = findings.filter(f => f.sev === 'REVIEW').length;
+const reviewDataCount = findings.filter(f => f.sev === 'REVIEW-DATA').length;
+console.log(`(${reviewCount} REVIEW candidate-gap line(s), ${reviewDataCount} REVIEW-DATA probably-data line(s) — check REVIEW first)`);
 for (const f of findings) console.log('[' + f.sev + '] ' + f.where + ' — ' + f.msg);
 console.log('\nconsole warnings sample:', [...new Set(consoleWarnings)].slice(0, 15));
 fs.writeFileSync(SHOTS + '/../manual-sweep-findings.json', JSON.stringify({ findings, consoleWarnings: [...new Set(consoleWarnings)] }, null, 2));

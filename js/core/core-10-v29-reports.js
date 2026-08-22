@@ -145,8 +145,9 @@
     var cur=(typeof current!=='undefined')?current:null;
     var v=document.getElementById('view'); if(!v)return out;
     if(cur==='settings'&&!v.querySelector('.dt-admin-links')){
+      var _arAdm=(typeof LANG!=='undefined'&&LANG==='ar');
       var s=document.createElement('div');s.className='dt-admin-links card';s.style.cssText='margin-bottom:12px;border-left:3px solid #7C8194';
-      s.innerHTML='<h3>Admin & history</h3><div class="ch-sub" style="color:#7C8194;font-size:12px;margin-bottom:6px">Audit trail and archived records</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="current=\'activity\';render();window.scrollTo(0,0);">Activity & Audit</button><button class="btn" onclick="current=\'archive\';render();window.scrollTo(0,0);">Archive</button><button class="btn" onclick="current=\'sync\';render();window.scrollTo(0,0);">Connections</button></div>'+(typeof v295TeamCard==="function"?v295TeamCard():"")+'';
+      s.innerHTML='<h3>'+(_arAdm?'الإدارة والسجل':'Admin & history')+'</h3><div class="ch-sub" style="color:#7C8194;font-size:12px;margin-bottom:6px">'+(_arAdm?'سجل التدقيق والسجلات المؤرشفة':'Audit trail and archived records')+'</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="current=\'activity\';render();window.scrollTo(0,0);">'+(_arAdm?'النشاط والتدقيق':'Activity & Audit')+'</button><button class="btn" onclick="current=\'archive\';render();window.scrollTo(0,0);">'+(_arAdm?'الأرشيف':'Archive')+'</button><button class="btn" onclick="current=\'sync\';render();window.scrollTo(0,0);">'+(_arAdm?'الاتصالات':'Connections')+'</button></div>'+(typeof v295TeamCard==="function"?v295TeamCard():"")+'';
       (function(){var _h=v.querySelector('.v26_3-chips')||v.querySelector('.v26_3-section-head');if(_h)v.insertBefore(s,_h.nextSibling);else v.insertBefore(s,v.firstChild);})();
     }
     if(cur==='bookings'&&typeof openBooking!=='undefined'&&openBooking){

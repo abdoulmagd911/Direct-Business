@@ -368,8 +368,16 @@
       if(!view.querySelector('.ro-sync-banner')){
         var b=document.createElement('div'); b.className='ro-sync-banner'; b.setAttribute('role','note');
         var href=LINKS[sec]||'https://payments.directksa.com/en/admin';
-        var _roBtnLab=(typeof LANG!=='undefined'&&LANG==='ar')?'افتح في دايركت ↗':'Open in Direct ↗';
-        b.innerHTML="<span class='ro-ic'>🔒</span><span class='ro-tx'><b>Synced from the Direct system — read-only.</b> Create, edit &amp; billing happen in Direct.</span><span class='ro-ar'>مزامنة من نظام دايركت — للعرض والمتابعة فقط</span><a class='ro-link' target='_blank' rel='noopener' href='"+href+"'>"+_roBtnLab+"</a>";
+        var _roAr=(typeof LANG!=='undefined'&&LANG==='ar');
+        var _roBtnLab=_roAr?'افتح في دايركت ↗':'Open in Direct ↗';
+        /* Owner correction 2026-08-22: this used to always show the English sentence in
+           bold with a small Arabic gloss beside it, so an Arabic-mode screen still read as
+           English-first. Now the language actually being used gets the bold/primary slot;
+           the other language stays as the small gloss. */
+        var enTx="<b>Live from the Direct system — read-only.</b> Create, edit &amp; billing happen in Direct.";
+        var arTx="<b>مباشر من نظام دايركت — للعرض فقط.</b> الإنشاء والتعديل والفوترة تتم داخل دايركت.";
+        var secondaryDir=_roAr?"ltr":"rtl";
+        b.innerHTML="<span class='ro-ic'>🔒</span><span class='ro-tx'>"+(_roAr?arTx:enTx)+"</span><span class='ro-ar' style='direction:"+secondaryDir+"'>"+(_roAr?enTx.replace(/<\/?b>/g,''):arTx.replace(/<\/?b>/g,''))+"</span><a class='ro-link' target='_blank' rel='noopener' href='"+href+"'>"+_roBtnLab+"</a>";
         view.insertBefore(b, view.firstChild);
       }
     }
@@ -708,26 +716,27 @@
     var p=v25PoolCompute();
     var color=v25PoolColor(p.util);
     var pctBar=Math.min(100,p.util);
+    var _arPool=(typeof LANG!=='undefined'&&LANG==='ar');
     var html=''+
       '<div class="card v25-pool-card" style="background:linear-gradient(135deg,#FFF7EE,#FFFCF7);border:1px solid #FBD9B8">'+
       '  <div class="card-head" style="align-items:center">'+
-      '    <div><h3 style="display:flex;align-items:center;gap:8px">Commercial Credit Pool '+
-      (opts.compact?'':'<span style="font-size:11px;color:var(--muted);font-weight:600">Calendar month</span>')+'</h3>'+
-      '    <div class="ch-sub">Cap '+v25Money(p.cap)+' · headroom '+v25Money(p.headroom)+'</div></div>'+
-      '    <button class="btn sm ghost" onclick="v25OpenPoolSettings()" title="Edit cap">⚙️</button>'+
+      '    <div><h3 style="display:flex;align-items:center;gap:8px">'+(_arPool?'مجمع الائتمان التجاري':'Commercial Credit Pool')+' '+
+      (opts.compact?'':'<span style="font-size:11px;color:var(--muted);font-weight:600">'+(_arPool?'الشهر التقويمي':'Calendar month')+'</span>')+'</h3>'+
+      '    <div class="ch-sub">'+(_arPool?('السقف '+v25Money(p.cap)+' · الهامش المتاح '+v25Money(p.headroom)):('Cap '+v25Money(p.cap)+' · headroom '+v25Money(p.headroom)))+'</div></div>'+
+      '    <button class="btn sm ghost" onclick="v25OpenPoolSettings()" title="'+(_arPool?'تعديل السقف':'Edit cap')+'">⚙️</button>'+
       '  </div>'+
       '  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:8px">'+
-      '    <div><div style="font-size:10.5px;color:var(--muted);font-weight:700;letter-spacing:.04em">EXTENDED</div><div style="font-size:20px;font-weight:800">'+v25Money(p.extended)+'</div></div>'+
-      '    <div><div style="font-size:10.5px;color:var(--muted);font-weight:700">RECEIVED (this month)</div><div style="font-size:20px;font-weight:800;color:#16B364">'+v25Money(p.received)+'</div></div>'+
-      '    <div><div style="font-size:10.5px;color:var(--muted);font-weight:700">OUTSTANDING</div><div style="font-size:20px;font-weight:800;color:#F79009">'+v25Money(p.outstanding)+'</div></div>'+
-      '    <div><div style="font-size:10.5px;color:var(--muted);font-weight:700">UTILIZATION</div><div style="font-size:20px;font-weight:800;color:'+color+'">'+p.util.toFixed(1)+'%</div></div>'+
+      '    <div><div style="font-size:10.5px;color:var(--muted);font-weight:700;letter-spacing:.04em">'+(_arPool?'الممنوح':'EXTENDED')+'</div><div style="font-size:20px;font-weight:800">'+v25Money(p.extended)+'</div></div>'+
+      '    <div><div style="font-size:10.5px;color:var(--muted);font-weight:700">'+(_arPool?'المُستلم (هذا الشهر)':'RECEIVED (this month)')+'</div><div style="font-size:20px;font-weight:800;color:#16B364">'+v25Money(p.received)+'</div></div>'+
+      '    <div><div style="font-size:10.5px;color:var(--muted);font-weight:700">'+(_arPool?'المستحق':'OUTSTANDING')+'</div><div style="font-size:20px;font-weight:800;color:#F79009">'+v25Money(p.outstanding)+'</div></div>'+
+      '    <div><div style="font-size:10.5px;color:var(--muted);font-weight:700">'+(_arPool?'نسبة الاستخدام':'UTILIZATION')+'</div><div style="font-size:20px;font-weight:800;color:'+color+'">'+p.util.toFixed(1)+'%</div></div>'+
       '  </div>'+
       '  <div style="margin-top:12px;background:#f0f2f7;border-radius:6px;height:9px;overflow:hidden"><div style="height:100%;width:'+pctBar+'%;background:'+color+';transition:width .3s"></div></div>';
     if(!opts.compact){
       html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">';
       // Top contributors
-      html+='<div><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px">TOP CONTRIBUTORS</div>';
-      if(p.topContributors.length===0)html+='<div style="font-size:12px;color:var(--muted-2);font-style:italic">None — all paid up</div>';
+      html+='<div><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px">'+(_arPool?'أكبر المساهمين':'TOP CONTRIBUTORS')+'</div>';
+      if(p.topContributors.length===0)html+='<div style="font-size:12px;color:var(--muted-2);font-style:italic">'+(_arPool?'لا يوجد — الكل مسدد':'None — all paid up')+'</div>';
       else p.topContributors.forEach(function(c){
         var pct=p.extended>0?(c.amount/p.extended*100):0;
         html+='<div style="display:grid;grid-template-columns:1fr 64px;gap:8px;margin-bottom:5px;font-size:12px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
@@ -736,11 +745,11 @@
       });
       html+='</div>';
       // Aging
-      html+='<div><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px">AGING OF OUTSTANDING</div>';
+      html+='<div><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px">'+(_arPool?'تقادم المستحق':'AGING OF OUTSTANDING')+'</div>';
       var ag=p.aging;
       [['0–30',ag.b030,'#16B364'],['31–60',ag.b3160,'#F79009'],['61–90',ag.b6190,'#F0453A'],['90+',ag.b90,'#7A0511']].forEach(function(row){
         html+='<div style="display:grid;grid-template-columns:60px 1fr 80px;gap:8px;align-items:center;margin-bottom:4px;font-size:12px">'+
-          '<div style="color:var(--muted)">'+row[0]+' d</div>'+
+          '<div style="color:var(--muted)">'+row[0]+(_arPool?' يومًا':' d')+'</div>'+
           '<div style="background:#f0f2f7;border-radius:4px;height:8px;overflow:hidden"><div style="height:100%;width:'+(p.extended>0?Math.min(100,row[1]/p.extended*100):0)+'%;background:'+row[2]+'"></div></div>'+
           '<div style="text-align:right;font-weight:700">'+v25Money(row[1])+'</div></div>';
       });
@@ -748,11 +757,11 @@
       // Trend
       if(p.trend.length){
         var maxT=Math.max.apply(null,p.trend.map(function(t){return Math.max(t.extended,t.received);}))||1;
-        html+='<div style="margin-top:14px"><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px">MONTHLY TREND — extended (orange) vs received (green)</div>';
+        html+='<div style="margin-top:14px"><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px">'+(_arPool?'الاتجاه الشهري — الممنوح (برتقالي) مقابل المُستلم (أخضر)':'MONTHLY TREND — extended (orange) vs received (green)')+'</div>';
         html+='<div style="display:grid;grid-template-columns:repeat('+p.trend.length+',1fr);gap:8px;align-items:end;height:70px">';
         p.trend.forEach(function(t){
           var he=t.extended/maxT*60,hr=t.received/maxT*60;
-          html+='<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;gap:2px;align-items:flex-end;height:60px"><div style="width:8px;height:'+he+'px;background:#FF6B00;border-radius:2px 2px 0 0" title="Extended"></div><div style="width:8px;height:'+hr+'px;background:#16B364;border-radius:2px 2px 0 0" title="Received"></div></div><div style="font-size:10px;color:var(--muted)">'+t.month+'</div></div>';
+          html+='<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;gap:2px;align-items:flex-end;height:60px"><div style="width:8px;height:'+he+'px;background:#FF6B00;border-radius:2px 2px 0 0" title="'+(_arPool?'الممنوح':'Extended')+'"></div><div style="width:8px;height:'+hr+'px;background:#16B364;border-radius:2px 2px 0 0" title="'+(_arPool?'المُستلم':'Received')+'"></div></div><div style="font-size:10px;color:var(--muted)">'+t.month+'</div></div>';
         });
         html+='</div></div>';
       }
