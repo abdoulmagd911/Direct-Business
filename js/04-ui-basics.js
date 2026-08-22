@@ -70,7 +70,8 @@
     var anchor=tbl.closest('.tbl-wrap')||tbl; if(anchor.parentNode)anchor.parentNode.insertBefore(bar,anchor.nextSibling);
     function refresh(){var sz=getSize();var st=paginate(tb,sz,tbl.__page||1);tbl.__page=st.page;
       var from=st.total===0?0:((st.page-1)*st.n+1);var to=(sz==='All')?st.total:Math.min(st.page*st.n,st.total);
-      lbl.textContent='Showing '+from+'–'+to+' of '+st.total;
+      var _ar=(typeof LANG!=='undefined'&&LANG==='ar');
+      lbl.textContent=_ar?('عرض '+from+'–'+to+' من '+st.total):('Showing '+from+'–'+to+' of '+st.total);
       prev.disabled=(st.page<=1);next.disabled=(st.page>=st.pages);prev.style.opacity=prev.disabled?'.4':'1';next.style.opacity=next.disabled?'.4':'1';
     }
     sel.addEventListener('change',function(){setSize(sel.value);

@@ -164,22 +164,33 @@
 }catch(e){console.warn("[v27.1] fail",e);}})();
 /* ===== v29.1 REPORTS MODULE — embedded from Reports-Tab.html (storage key directReportsData_v1 unchanged; fully separate from operational DB — no bleed into Today/Leads) ===== */
 (function(){
+// tAr/deptAr added 2026-08-21 (owner's own pre-launch pass): these 14 titles rendered
+// entirely in English on the Reports Overview tab — an otherwise fully-Arabic page — the
+// most visible defect found in that pass. The 30 KPIs and 12 initiatives further down stay
+// English-only for this round (deeper in an expandable accordion, lower visibility, and a
+// much larger translation surface); not silently dropped, just scoped out of this pass.
+const RPT_DEPT_AR={
+  "Visas & Study + Hotels & Flights":"التأشيرات والدراسة + الفنادق والطيران",
+  "All Departments":"جميع الإدارات","Products and Tech":"المنتجات والتقنية","NA":"—"
+};
 const RPT_OBJECTIVES=[
- {n:1, t:"Increase revenue from commercial contracts and direct sales", link:"4.1 - 5.1", dept:"Visas & Study + Hotels & Flights"},
- {n:2, t:"Expand participation in public and private tenders as a revenue stream", link:"5.2", dept:"Visas & Study + Hotels & Flights"},
- {n:3, t:"Improve supplier terms and contract conditions", link:"4.3", dept:"All Departments"},
- {n:4, t:"Increase the number of payment solutions", link:"4.1", dept:"Products and Tech"},
- {n:5, t:"Raise customer satisfaction by improving complaint handling", link:"1.1", dept:"All Departments"},
- {n:6, t:"Expand strategic partnerships to enhance travel and service integration", link:"3.1", dept:"Products and Tech"},
- {n:7, t:"Explore new travel services \"support services\" and increase the number of embassies for visas business", link:"3.1", dept:"Products and Tech"},
- {n:8, t:"Achieve recognition through a local or international award in tourism or education", link:"2", dept:"NA"},
- {n:9, t:"Drive innovation by engaging employees to generate and implement creative ideas", link:"7.3", dept:"NA"},
- {n:10,t:"Apply unified quality standards across all departments", link:"8.3", dept:"All Departments"},
- {n:11,t:"Manage the commercial pricing across all products", link:"5.1", dept:"NA"},
- {n:12,t:"Direct's presence at key B2B travel and exhibitions and conferences", link:"2", dept:"NA"},
- {n:13,t:"Build a centralised commercial platform providing all departments with real-time data and insights", link:"8.2", dept:"NA"},
- {n:14,t:"Commercially launch and grow a full suite of luxury travel services", link:"3.1", dept:"NA"}
+ {n:1, t:"Increase revenue from commercial contracts and direct sales", tAr:"زيادة الإيرادات من العقود التجارية والمبيعات المباشرة", link:"4.1 - 5.1", dept:"Visas & Study + Hotels & Flights"},
+ {n:2, t:"Expand participation in public and private tenders as a revenue stream", tAr:"توسيع المشاركة في المناقصات الحكومية والخاصة كمصدر للإيرادات", link:"5.2", dept:"Visas & Study + Hotels & Flights"},
+ {n:3, t:"Improve supplier terms and contract conditions", tAr:"تحسين شروط الموردين وبنود العقود", link:"4.3", dept:"All Departments"},
+ {n:4, t:"Increase the number of payment solutions", tAr:"زيادة عدد حلول الدفع", link:"4.1", dept:"Products and Tech"},
+ {n:5, t:"Raise customer satisfaction by improving complaint handling", tAr:"رفع رضا العملاء من خلال تحسين التعامل مع الشكاوى", link:"1.1", dept:"All Departments"},
+ {n:6, t:"Expand strategic partnerships to enhance travel and service integration", tAr:"توسيع الشراكات الاستراتيجية لتعزيز تكامل السفر والخدمات", link:"3.1", dept:"Products and Tech"},
+ {n:7, t:"Explore new travel services \"support services\" and increase the number of embassies for visas business", tAr:"استكشاف خدمات سفر جديدة \"خدمات الدعم\" وزيادة عدد السفارات لأعمال التأشيرات", link:"3.1", dept:"Products and Tech"},
+ {n:8, t:"Achieve recognition through a local or international award in tourism or education", tAr:"تحقيق تقدير عبر جائزة محلية أو دولية في السياحة أو التعليم", link:"2", dept:"NA"},
+ {n:9, t:"Drive innovation by engaging employees to generate and implement creative ideas", tAr:"دفع الابتكار من خلال إشراك الموظفين في توليد الأفكار الإبداعية وتنفيذها", link:"7.3", dept:"NA"},
+ {n:10,t:"Apply unified quality standards across all departments", tAr:"تطبيق معايير جودة موحدة في جميع الإدارات", link:"8.3", dept:"All Departments"},
+ {n:11,t:"Manage the commercial pricing across all products", tAr:"إدارة التسعير التجاري عبر جميع المنتجات", link:"5.1", dept:"NA"},
+ {n:12,t:"Direct's presence at key B2B travel and exhibitions and conferences", tAr:"حضور دايركت في معارض ومؤتمرات السفر التجارية الرئيسية (B2B)", link:"2", dept:"NA"},
+ {n:13,t:"Build a centralised commercial platform providing all departments with real-time data and insights", tAr:"بناء منصة تجارية مركزية تزوّد جميع الإدارات ببيانات ورؤى فورية", link:"8.2", dept:"NA"},
+ {n:14,t:"Commercially launch and grow a full suite of luxury travel services", tAr:"إطلاق وتنمية مجموعة كاملة من خدمات السفر الفاخرة تجاريًا", link:"3.1", dept:"NA"}
 ];
+function rptObjTitle(o){return (typeof LANG!=='undefined'&&LANG==='ar'&&o.tAr)?o.tAr:o.t;}
+function rptDeptLabel(d){return (typeof LANG!=='undefined'&&LANG==='ar'&&RPT_DEPT_AR[d])?RPT_DEPT_AR[d]:d;}
 const RPT_KPIS=[
  {n:1, t:"Improvement of suppliers contracts terms", obj:3, target:20, type:"pct", f:["Improve contract conditions with service suppliers","Reduce operational service costs","Achieve higher discount rates from suppliers"]},
  {n:2, t:"Number of embassies added to the platform", obj:7, target:60, type:"count", f:["Add new embassies to the platform","Expand geographical coverage of embassy services","Develop digital integration with embassy systems"]},
@@ -276,6 +287,7 @@ function rptRowAch(a,withActs){
  (withActs?'<td style="text-align:right;white-space:nowrap"><button class="btn ghost sm" onclick="rptOpenAch(\''+a.id+'\')">Edit</button> <button class="btn ghost sm" style="color:#D94B3F" onclick="rptDelAch(\''+a.id+'\')">✕</button></td>':'')+'</tr>';
 }
 function rptOverview(v){
+ const _ar=(typeof LANG!=='undefined'&&LANG==='ar');
  const tot=RDB.achievements.length;
  const nowMk=new Date().toISOString().slice(0,7);
  const thisM=RDB.achievements.filter(a=>rptMonthKey(a.date)===nowMk).length;
@@ -284,14 +296,14 @@ function rptOverview(v){
  const recent=RDB.achievements.slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,8);
  const objBars=RPT_OBJECTIVES.map(o=>{const p=rptObjProgress(o.n);return {o:o,p:p==null?0:p};}).sort((a,b)=>b.p-a.p);
  v.innerHTML='<div class="chips" style="margin-bottom:14px">'+
- '<div class="chip"><div class="v">'+tot+'</div><div class="l">Achievements logged</div></div>'+
- '<div class="chip"><div class="v">'+thisM+'</div><div class="l">This month</div></div>'+
- '<div class="chip"><div class="v">'+tracked+' / '+RPT_KPIS.length+'</div><div class="l">KPIs with data</div></div>'+
- '<div class="chip"><div class="v">'+avg+'%</div><div class="l">Avg progress to 2026 targets</div></div></div>'+
- '<div class="card"><h3>Objective progress <span class="rpt-small">— average of each objective\'s KPI progress</span></h3>'+
- objBars.map(x=>'<div style="display:flex;gap:10px;align-items:center;margin:7px 0"><span class="tag" style="min-width:34px;text-align:center">#'+x.o.n+'</span><div style="flex:1"><div style="font-size:12.5px;margin-bottom:3px">'+esc(x.o.t)+'</div><div class="rpt-bar"><i class="'+(x.p>=100?'ok':x.p>=50?'':'warn')+'" style="width:'+x.p+'%"></i></div></div><b style="min-width:42px;text-align:right">'+x.p+'%</b></div>').join('')+'</div>'+
- '<div class="card"><h3>Recent achievements <button class="btn pri sm" onclick="rptOpenAch()">＋ Log achievement</button></h3>'+
- (recent.length?'<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Achievement</th><th>Member</th><th>Objective</th><th>Value</th></tr></thead><tbody>'+recent.map(a=>rptRowAch(a,false)).join('')+'</tbody></table></div>':'<div class="empty">No achievements yet — log the first one.</div>')+'</div>';
+ '<div class="chip"><div class="v">'+tot+'</div><div class="l">'+(_ar?'الإنجازات المسجّلة':'Achievements logged')+'</div></div>'+
+ '<div class="chip"><div class="v">'+thisM+'</div><div class="l">'+(_ar?'هذا الشهر':'This month')+'</div></div>'+
+ '<div class="chip"><div class="v">'+tracked+' / '+RPT_KPIS.length+'</div><div class="l">'+(_ar?'مؤشرات لها بيانات':'KPIs with data')+'</div></div>'+
+ '<div class="chip"><div class="v">'+avg+'%</div><div class="l">'+(_ar?'متوسط التقدم نحو أهداف 2026':'Avg progress to 2026 targets')+'</div></div></div>'+
+ '<div class="card"><h3>'+(_ar?'تقدّم الأهداف <span class="rpt-small">— متوسط تقدّم مؤشرات كل هدف</span>':'Objective progress <span class="rpt-small">— average of each objective\'s KPI progress</span>')+'</h3>'+
+ objBars.map(x=>'<div style="display:flex;gap:10px;align-items:center;margin:7px 0"><span class="tag" style="min-width:34px;text-align:center">#'+x.o.n+'</span><div style="flex:1"><div style="font-size:12.5px;margin-bottom:3px">'+esc(rptObjTitle(x.o))+'</div><div class="rpt-bar"><i class="'+(x.p>=100?'ok':x.p>=50?'':'warn')+'" style="width:'+x.p+'%"></i></div></div><b style="min-width:42px;text-align:right">'+x.p+'%</b></div>').join('')+'</div>'+
+ '<div class="card"><h3>'+(_ar?'أحدث الإنجازات':'Recent achievements')+' <button class="btn pri sm" onclick="rptOpenAch()">＋ '+(_ar?'تسجيل إنجاز':'Log achievement')+'</button></h3>'+
+ (recent.length?'<div class="tbl-wrap"><table><thead><tr><th>'+(_ar?'التاريخ':'Date')+'</th><th>'+(_ar?'الإنجاز':'Achievement')+'</th><th>'+(_ar?'العضو':'Member')+'</th><th>'+(_ar?'الهدف':'Objective')+'</th><th>'+(_ar?'القيمة':'Value')+'</th></tr></thead><tbody>'+recent.map(a=>rptRowAch(a,false)).join('')+'</tbody></table></div>':'<div class="empty">'+(_ar?'لا إنجازات بعد — سجّل أول إنجاز.':'No achievements yet — log the first one.')+'</div>')+'</div>';
 }
 function rptAch(v){
  let rows=RDB.achievements.slice().sort((a,b)=>a.date<b.date?1:-1);
@@ -302,7 +314,7 @@ function rptAch(v){
  v.innerHTML='<div class="toolbar">'+
  '<select onchange="rptSetFilter(\'month\',this.value)"><option value="">All months</option>'+months.map(m=>'<option value="'+m+'" '+(rptAchFilter.month===m?'selected':'')+'>'+rptMonthLabel(m)+'</option>').join('')+'</select>'+
  '<select onchange="rptSetFilter(\'member\',this.value)"><option value="">All members</option>'+RPT_TEAM.map(t=>'<option '+(rptAchFilter.member===t?'selected':'')+'>'+t+'</option>').join('')+'</select>'+
- '<select onchange="rptSetFilter(\'obj\',this.value)"><option value="">All objectives</option>'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(rptAchFilter.obj==o.n?'selected':'')+'>#'+o.n+' — '+esc(o.t.slice(0,40))+'…</option>').join('')+'</select>'+
+ '<select onchange="rptSetFilter(\'obj\',this.value)"><option value="">All objectives</option>'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(rptAchFilter.obj==o.n?'selected':'')+'>#'+o.n+' — '+esc(rptObjTitle(o).slice(0,40))+'…</option>').join('')+'</select>'+
  '<span class="rpt-small">'+rows.length+' entr'+(rows.length===1?'y':'ies')+'</span><span style="flex:1"></span>'+
  '<button class="btn pri" onclick="rptOpenAch()">＋ Log achievement</button></div>'+
  '<div class="card">'+(rows.length?'<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Achievement</th><th>Member</th><th>Objective / KPI</th><th>Value</th><th></th></tr></thead><tbody>'+rows.map(a=>rptRowAch(a,true)).join('')+'</tbody></table></div>':'<div class="empty">Nothing here yet. Log achievements as they happen — tenders submitted, contracts signed, embassies added, services launched…</div>')+'</div>';
@@ -315,7 +327,7 @@ window.rptOpenAch=function(id){
  '<div class="grid2"><div class="field"><label>Date</label><input type="date" id="rf_date" value="'+esc(a.date)+'"></div><div class="field"><label>Team member</label><select id="rf_member">'+RPT_TEAM.map(t=>'<option '+(a.member===t?'selected':'')+'>'+t+'</option>').join('')+'</select></div></div>'+
  '<div class="field"><label>What was achieved</label><input type="text" id="rf_title" value="'+esc(a.title)+'" placeholder="e.g. Tender submitted to Saudi Ports Authority"></div>'+
  '<div class="field"><label>Details (optional)</label><textarea id="rf_desc" rows="2">'+esc(a.desc||'')+'</textarea></div>'+
- '<div class="grid2"><div class="field"><label>Linked objective</label><select id="rf_obj" onchange="rptSyncKpiList()"><option value="">— none —</option>'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(a.objective==o.n?'selected':'')+'>#'+o.n+' — '+esc(o.t.slice(0,46))+'</option>').join('')+'</select></div><div class="field"><label>Linked KPI</label><select id="rf_kpi"></select></div></div>'+
+ '<div class="grid2"><div class="field"><label>Linked objective</label><select id="rf_obj" onchange="rptSyncKpiList()"><option value="">— none —</option>'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(a.objective==o.n?'selected':'')+'>#'+o.n+' — '+esc(rptObjTitle(o).slice(0,46))+'</option>').join('')+'</select></div><div class="field"><label>Linked KPI</label><select id="rf_kpi"></select></div></div>'+
  '<div class="grid2"><div class="field"><label>Numeric value (counts toward the KPI)</label><input type="number" id="rf_value" value="'+(a.value!=null?a.value:'')+'" placeholder="e.g. 1 tender · 300000 SAR"></div><div class="field"><label>Client / entity (optional)</label><input type="text" id="rf_client" value="'+esc(a.client||'')+'"></div></div>',
  function(){
    const g=i=>document.getElementById(i).value;
@@ -344,7 +356,7 @@ function rptObj(v){
   const p=rptObjProgress(o.n);
   const open=rptOpenObjs[o.n];
   return '<div class="rpt-obj '+(open?'open':'')+'"><div class="head" onclick="rptToggleObj('+o.n+')">'+
-  '<span class="n">'+o.n+'</span><div class="t">'+esc(o.t)+'<div class="meta">Strategic link '+esc(o.link)+' · '+esc(o.dept)+' · '+ks.length+' KPI'+(ks.length!==1?'s':'')+' · '+ach.length+' achievement'+(ach.length!==1?'s':'')+'</div></div>'+
+  '<span class="n">'+o.n+'</span><div class="t">'+esc(rptObjTitle(o))+'<div class="meta">Strategic link '+esc(o.link)+' · '+esc(rptDeptLabel(o.dept))+' · '+ks.length+' KPI'+(ks.length!==1?'s':'')+' · '+ach.length+' achievement'+(ach.length!==1?'s':'')+'</div></div>'+
   '<div style="min-width:130px"><div class="rpt-bar"><i class="'+((p>=100)?'ok':(p>=50)?'':'warn')+'" style="width:'+(p||0)+'%"></i></div><div class="rpt-small" style="text-align:right">'+(p==null?'no KPI':p+'%')+'</div></div></div>'+
   '<div class="body">'+
   (ks.length?ks.map(k=>{
@@ -367,7 +379,7 @@ function rptReport(v){
   :'<div class="field"><label>Quarter</label><select onchange="rptRepSet(\'quarter\',this.value)">'+['Q1','Q2','Q3','Q4'].map(q=>'<option '+(rptRep.quarter===q?'selected':'')+'>'+q+'</option>').join('')+'</select></div><div class="field"><label>Year</label><input type="number" value="'+rptRep.year+'" onchange="rptRepSet(\'year\',this.value)"></div>')+
  '<div class="field"><label>Scope</label><select onchange="rptRepSet(\'scope\',this.value)"><option value="dept" '+(rptRep.scope==='dept'?'selected':'')+'>Whole department</option><option value="member" '+(rptRep.scope==='member'?'selected':'')+'>One member</option><option value="obj" '+(rptRep.scope==='obj'?'selected':'')+'>One objective</option></select></div>'+
  (rptRep.scope==='member'?'<div class="field"><label>Member</label><select onchange="rptRepSet(\'member\',this.value)">'+RPT_TEAM.map(t=>'<option '+(rptRep.member===t?'selected':'')+'>'+t+'</option>').join('')+'</select></div>':'')+
- (rptRep.scope==='obj'?'<div class="field"><label>Objective</label><select onchange="rptRepSet(\'obj\',this.value)">'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(rptRep.obj==o.n?'selected':'')+'>#'+o.n+' — '+esc(o.t.slice(0,40))+'</option>').join('')+'</select></div>':'')+
+ (rptRep.scope==='obj'?'<div class="field"><label>Objective</label><select onchange="rptRepSet(\'obj\',this.value)">'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(rptRep.obj==o.n?'selected':'')+'>#'+o.n+' — '+esc(rptObjTitle(o).slice(0,40))+'</option>').join('')+'</select></div>':'')+
  '</div><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'+
  '<button class="btn pri" onclick="rptBuildReport()">Build report</button>'+
  '<button class="btn" onclick="rptPrintReport()">Print / PDF</button>'+

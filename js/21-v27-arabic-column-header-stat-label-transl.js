@@ -1,7 +1,15 @@
 /* v27 — Arabic column-header + stat-label translation.
    Safe by construction: runs ONLY in Arabic, matches WHOLE strings (no fragment
-   corruption like the old verb relabeler), and only touches <th> headers and
-   .kl stat labels — never table-body values. Self-contained, try/catch, reversible. */
+   corruption like the old verb relabeler), and only touches <th> headers, .kl stat
+   labels, and .tag badges — never free-text table-body values (a company's actual
+   name, notes, a real per-record next-action note someone typed). A .tag element in
+   this app is always a DERIVED status/enum label the app itself generated (priority
+   Hot/Warm/Cool/Cold, Unassigned, Import, Client), never raw business data — exact
+   whole-string matching against a short, deliberately-curated word list keeps that
+   distinction safe even though the scan itself is broad. Found live 2026-08-21 (owner's
+   own pre-launch pass): Leads/Clients row badges for priority, owner and source sat in
+   this exact shape and were never scanned at all, so they showed in English on an
+   otherwise fully-Arabic table. Self-contained, try/catch, reversible. */
 (function(){try{
   var V27_AR={
     // ---- table column headers ----
@@ -23,6 +31,10 @@
     'Subtotal':'المجموع الفرعي','TTL':'مهلة','Tickets':'التذاكر','Tier':'الفئة','Total':'الإجمالي',
     'Type':'النوع','VAT':'الضريبة','Valid':'صالح حتى','Venue':'المكان','Vertical':'القطاع',
     'Void':'الإبطال','Deal value (SAR)':'المكسوب (ريال)',
+    // ---- .tag row badges (priority / tier — see .tag comment above; Import, Unassigned,
+    // Standard, Key account, Client already exist above/below for other contexts and are
+    // reused here on purpose, same word, same meaning) ----
+    'Hot':'ساخن','Warm':'دافئ','Cool':'فاتر','Cold':'بارد','Key account':'حساب رئيسي',
     // ---- stat-tile labels (.kl) ----
     'Billed inc. VAT':'المفوتر شامل الضريبة','Paid':'مدفوع','Outstanding':'المستحق',
     'ZATCA cleared':'معتمد من هيئة الزكاة','Cost':'التكلفة','Received':'المُحصّل',
@@ -69,6 +81,7 @@
     // ---- finance / reports tabs ----
     'Overview':'نظرة عامة','Ledger':'السجل','Report Builder':'منشئ التقارير','Import':'استيراد',
     'All (H1 2026)':'الكل (النصف الأول 2026)','Achievements':'الإنجازات','Objectives & KPIs':'الأهداف والمؤشرات',
+    'Generate Report':'إنشاء تقرير',
     // ---- Today section headings (with emoji) ----
     'Today':'اليوم','Commercial Credit Pool':'مجمع الائتمان التجاري',
     '⏰ TTL expiring (next 48h)':'⏰ مهل تنتهي (خلال 48 ساعة)','💸 Overdue invoices (>30 days)':'💸 فواتير متأخرة (> 30 يوم)',
@@ -89,6 +102,15 @@
   // Stage badge words — translated ONLY inside .statusbadge / stage pills, to avoid
   // colliding with the same words used elsewhere (headers, chips, filters).
   var STAGE_AR={'New':'جديد','Prospect':'مرتقب','Contacted':'تم التواصل','Qualified':'مؤهل','Proposal':'عرض مقدم','Negotiation':'تفاوض','Won':'مكسوب','Lost':'مفقود','Client':'عميل','On hold':'مُعلّق','In discussion':'قيد النقاش'};
+  // Operations kanban column headers (js/core/core-03-reference-ops.js STAGES) — a different
+  // word set from lead stages above (Quoting/Ticketed/Delivered don't exist as lead stages,
+  // and "New"/"Closed" here must never leak into the shared V27_AR dict, which is scanned
+  // much more broadly and could then wrongly translate an unrelated button or label that
+  // happens to say exactly "New" or "Closed"). Found live 2026-08-21: these headers sat
+  // inside a nested <span class="pip"> + text-node structure that no existing scan touched
+  // at all, so the whole Operations board rendered its column headers in English on an
+  // otherwise fully-Arabic page.
+  var OPS_STAGE_AR={'New':'جديد','Quoting':'تسعير','Awaiting client':'بانتظار العميل','Booked':'محجوز','Ticketed':'تم إصدار التذكرة','Delivered':'تم التسليم','Closed':'مغلق'};
   var ARROWS=/[▲▼↑↓\s]+$/; // trailing sort arrows / whitespace
   function replaceLeadText(el,val){ // set text but keep child nodes (icon / arrow span)
     if(el.children.length===0){ el.textContent=val; return; }
@@ -115,7 +137,7 @@
     if(!scope)return;
     var heads=scope.querySelectorAll('th,h2,h3'),i;
     for(i=0;i<heads.length;i++){ var hd=heads[i]; if(hd.getAttribute('data-v27')||hd.querySelector('input,select'))continue; translateDecorated(hd,V27_AR); }
-    var els=scope.querySelectorAll('.kl,.l,button,a.btn'),j;
+    var els=scope.querySelectorAll('.kl,.l,button,a.btn,.tag'),j;
     for(j=0;j<els.length;j++){ var el=els[j]; if(el.getAttribute('data-v27')||el.querySelector('input,select,textarea'))continue; translateDecorated(el,V27_AR); }
     // dropdown options: main dict, then stage words (safe — options are filter values, not data)
     var opts=scope.querySelectorAll('option'),o;
@@ -124,6 +146,9 @@
     // stage badges (row pills) — isolated stage dictionary
     var bd=scope.querySelectorAll('.statusbadge,.stage-badge,.lead-stage'),k;
     for(k=0;k<bd.length;k++){ var pill=bd[k]; if(pill.getAttribute('data-v27'))continue; var pt=(pill.textContent||'').trim(); if(STAGE_AR[pt]!==undefined) setText(pill,STAGE_AR[pt]); }
+    // Operations kanban column headers — isolated dictionary, see OPS_STAGE_AR's own comment
+    var ops=scope.querySelectorAll('.col .ch .t'),q;
+    for(q=0;q<ops.length;q++){ var colHead=ops[q]; if(colHead.getAttribute('data-v27'))continue; translateDecorated(colHead,OPS_STAGE_AR); }
   }
   function v27ArHeaders(){
     try{
