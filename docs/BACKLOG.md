@@ -1,5 +1,74 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-22 · PROMOTED TO PRODUCTION — handoff-docs merged into claude/new-session-9fhlp1
+
+Abdulrahman approved promotion explicitly (he was locked out of Super Admin and the
+password-recovery fix was the only way back in). Merged `claude/handoff-docs-2026-08-10-6n5ihq`
+into production as commit `e9c40bf` (merge parent `918b071`), pushed, Vercel deployed and went
+Ready. **Production is now current** — the "100+ commits behind" gap from earlier today is
+closed.
+
+**3 conflicts resolved**, exactly as scoped in the earlier technical brief:
+- `index.html` — mechanical script-tag concatenation; production stopped at `js/61`, this adds
+  `62-finance-guardrails`, `63-undo-and-real-audit`, `64-page-access-enforce`,
+  `65-universal-importer`.
+- `js/09-funnels.js` — handoff-docs is a strict superset (adds the Arabic half of an
+  already-shipped export button); took it whole.
+- `js/16-finance-ledger.js` — the real judgment call. Production's `rLedger()` had none of the
+  `TXN.*`/company-profile scaffolding at all (git's line-level diff made the conflict look
+  partial; it wasn't — checked both full function bodies directly), so this replaced production's
+  entire old invoice-grouped `rLedger()` with handoff-docs' newer company-grouped
+  confirmed-only Transactions view, per the recommendation already given to Abdulrahman before
+  he approved.
+
+**Verified on the actual merge result** (not on handoff-docs alone, per explicit instruction):
+`check-structure.mjs` (58 files, clean), `sweep-pages.mjs` (144 buttons/18 pages, 0 errors,
+EN+AR), `probe-money-placement.mjs` (money stayed off Leads/Clients), `probe-role-nav.mjs`
+(6/6 roles reach exactly what they should), `probe-page-access-enforce.mjs` (0 failures),
+`probe-password-recovery.mjs` (full green, including two new checks — see below).
+
+**Two more fixes folded into the same push**, both from Abdulrahman mid-promotion:
+1. **`vercel.json` — his team must only ever land on `www.directksab2b.com`.** Added 307
+   (reversible — 308 would get cached hard by browsers) host-based redirects for the two
+   *stable* vercel.app aliases (`direct-business.vercel.app` and
+   `direct-business-abdoulmagd911s-projects.vercel.app`) only — never a wildcard, so every
+   per-deployment and git-branch preview URL keeps working untouched. The existing `/brand`
+   rewrites and the `/index.html` catch-all are unaffected (Vercel always runs redirects before
+   rewrites, regardless of array order in the file). Verified live: both aliases 307 to the
+   real domain with the path intact (`/leads` → `/leads`); a deployment preview URL and the
+   git-branch preview alias both still return 200.
+2. **Recovery-dialog clarity.** Abdulrahman clicked his own reset link, got a bare two-box
+   password form with no explanation, closed it without typing (he only wanted to sign in),
+   and ended up signed in on a password he doesn't know. `js/02`'s recovery card now says
+   "Choose a new password for `<email>`" and adds a visible "Only wanted to sign in — skip
+   this" link that continues straight into the app on the session the link already created —
+   losing nothing except the chance to also set a password right then. Extended
+   `probe-password-recovery.mjs` with checks for both (account name shown, skip works,
+   signs in, cleans the token off the URL) — green.
+
+**Live verification, not just Vercel's status:** fetched `https://www.directksab2b.com/`
+directly and counted script tags — **58 files total** (10 `core/` + 48 top-level), highest
+numbered `js/65-universal-importer.js`, with 62/63/64/65 all present as expected.
+
+**Reset links sent for real**, through the app's own flow (the live `admin-users` edge
+function's `send_reset_link` action, signed in as the `test@directksa.com` test admin account
+— never a real staff password) to `a.hassan@directksa.net` and `aboelmagd@directksa.com`.
+Both returned `{"ok":true}` and both logged to `record_history` (`table_name='access'`,
+`action='reset_link_sent'`) with no password anywhere in the log. SMTP delivery itself still
+can't be confirmed from this sandbox — only Abdulrahman checking his inbox can close that loop.
+
+**Flagged, not touched:** `app_users` shows `a.hassan@directksa.net` at role `team_member`,
+not `admin` — `docs/ROLES_AND_ACCESS.md` (2026-08-13) lists him as a Super admin. Could be an
+intentional later change or a real gap; didn't correct it without asking, since role changes
+are exactly the kind of action that needs a person's sign-off, not an inference from a
+mismatched doc.
+
+**Mirrored back onto `claude/handoff-docs-2026-08-10-6n5ihq`** (commit `89b6876`) so the branch
+matches what's actually live and the next promotion doesn't re-conflict on these two files.
+
+Real-money import into Finance was explicitly NOT done — deliberately deferred until
+Abdulrahman is back to review it himself.
+
 ## 2026-08-22 · Password recovery — launch-critical, built and verified in the harness
 
 Pushed as `3a73723`. Abdulrahman was locked out of his own Super Admin account (only had
