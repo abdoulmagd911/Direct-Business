@@ -377,7 +377,10 @@ function loadAll(){
     });
     /* paged 1000-by-1000 — a one-shot read silently undercounts past the API cap */
     (function page(from,acc){
-      c.from('businesses').select('ev:funnel_details->>event_name').not('funnel_details->>event_name','is',null).range(from,from+999).then(function(r){
+      /* Archived businesses must not be counted. Without .is('archived_at',null) an archived
+         record still lands in the event lead tally — verified 2026-08-22: of the records
+         carrying an event name, the only one was archived, so this count was 100% wrong. */
+      c.from('businesses').select('ev:funnel_details->>event_name').is('archived_at',null).not('funnel_details->>event_name','is',null).range(from,from+999).then(function(r){
         if(r.error||!r.data){finish(acc);return;}
         acc=acc.concat(r.data);
         if(r.data.length<1000)finish(acc);else page(from+1000,acc);
