@@ -72,11 +72,12 @@
       var d=document.createElement('div'); d.className='dt-talk'; d.innerHTML=talkingPoints(); v.insertBefore(d,v.firstChild);
     }
     if(cur==='vendors'&&!v.querySelector('.dt-verdicts')){
+      var _arPv=(typeof LANG!=='undefined'&&LANG==='ar');
       var b=document.createElement('div');b.className='dt-verdicts card';b.style.cssText='margin-bottom:12px;border-left:3px solid #FF6B00';
-      b.innerHTML='<h3>Provider verdicts</h3><div class="ch-sub" style="color:#7C8194;font-size:12px;margin-bottom:6px">From the Provider Evaluations scorecard</div><div style="font-size:13px;line-height:1.8">'+
-        '<div><span style="color:#16B364;font-weight:700">Keep:</span> '+keepL.join(', ')+'</div>'+
-        '<div><span style="color:#2E90FA;font-weight:700">Upgrade in progress:</span> '+upL.join(', ')+'</div>'+
-        '<div><span style="color:#F0453A;font-weight:700">Deprecated (phasing out):</span> '+depL.join(', ')+'</div></div>';
+      b.innerHTML='<h3>'+(_arPv?'أحكام الموردين':'Provider verdicts')+'</h3><div class="ch-sub" style="color:#7C8194;font-size:12px;margin-bottom:6px">'+(_arPv?'من بطاقة تقييم الموردين':'From the Provider Evaluations scorecard')+'</div><div style="font-size:13px;line-height:1.8">'+
+        '<div><span style="color:#16B364;font-weight:700">'+(_arPv?'إبقاء:':'Keep:')+'</span> '+keepL.join(', ')+'</div>'+
+        '<div><span style="color:#2E90FA;font-weight:700">'+(_arPv?'ترقية قيد التنفيذ:':'Upgrade in progress:')+'</span> '+upL.join(', ')+'</div>'+
+        '<div><span style="color:#F0453A;font-weight:700">'+(_arPv?'إيقاف تدريجي:':'Deprecated (phasing out):')+'</span> '+depL.join(', ')+'</div></div>';
       v.insertBefore(b,v.firstChild);
     }
     try{if(depLower.length)document.querySelectorAll('select option').forEach(function(o){if(depLower.indexOf((o.textContent||'').trim().toLowerCase())>-1)o.remove();});}catch(e){}

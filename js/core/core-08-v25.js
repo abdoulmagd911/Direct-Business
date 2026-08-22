@@ -368,7 +368,8 @@
       if(!view.querySelector('.ro-sync-banner')){
         var b=document.createElement('div'); b.className='ro-sync-banner'; b.setAttribute('role','note');
         var href=LINKS[sec]||'https://payments.directksa.com/en/admin';
-        b.innerHTML="<span class='ro-ic'>🔒</span><span class='ro-tx'><b>Synced from the Direct system — read-only.</b> Create, edit &amp; billing happen in Direct.</span><span class='ro-ar'>مزامنة من نظام دايركت — للعرض والمتابعة فقط</span><a class='ro-link' target='_blank' rel='noopener' href='"+href+"'>Open in Direct ↗</a>";
+        var _roBtnLab=(typeof LANG!=='undefined'&&LANG==='ar')?'افتح في دايركت ↗':'Open in Direct ↗';
+        b.innerHTML="<span class='ro-ic'>🔒</span><span class='ro-tx'><b>Synced from the Direct system — read-only.</b> Create, edit &amp; billing happen in Direct.</span><span class='ro-ar'>مزامنة من نظام دايركت — للعرض والمتابعة فقط</span><a class='ro-link' target='_blank' rel='noopener' href='"+href+"'>"+_roBtnLab+"</a>";
         view.insertBefore(b, view.firstChild);
       }
     }
