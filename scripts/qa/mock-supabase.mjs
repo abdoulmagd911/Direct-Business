@@ -44,7 +44,14 @@ const TABLES={
     // looks otherwise perfectly normal. scripts/qa/probe-finance-invariants.mjs asserts
     // this row NEVER reaches FIN.rows, any displayed total, or any CSV export — if this
     // one row silently counts anywhere, that probe must fail the build.
-    .concat([{id:'i-qa-takamol',invoice_no:'9999999999',zatca_dpin:'TTIN-9999',client_group:'Takamol for Business Services',customer_raw_name:'Takamol for Business Services',invoice_date:'2026-06-20',month:'June',quarter:'Q2',year:2026,products:'B2B',service_type:'B2B',record_type:'b2b',total_incl_vat_sar:314159,wallet_portion_sar:0,revenue_sar:314159,cost_sar:0,profit_sar:314159,amount_received_sar:314159,amount_remaining_sar:0,collection_due_date:'2026-06-20',integrity_status:'verified_paid',exclusion_reason:null,notes:null,source_batch:'seed-invariant-qa',created_at:'2026-06-20T00:00:00Z',updated_at:'2026-06-20T00:00:00Z',deleted_at:null}]),
+    .concat([{id:'i-qa-takamol',invoice_no:'9999999999',zatca_dpin:'TTIN-9999',client_group:'Takamol for Business Services',customer_raw_name:'Takamol for Business Services',invoice_date:'2026-06-20',month:'June',quarter:'Q2',year:2026,products:'B2B',service_type:'B2B',record_type:'b2b',total_incl_vat_sar:314159,wallet_portion_sar:0,revenue_sar:314159,cost_sar:0,profit_sar:314159,amount_received_sar:314159,amount_remaining_sar:0,collection_due_date:'2026-06-20',integrity_status:'verified_paid',exclusion_reason:null,notes:null,source_batch:'seed-invariant-qa',created_at:'2026-06-20T00:00:00Z',updated_at:'2026-06-20T00:00:00Z',deleted_at:null},
+    // M1 canary (2026-08-23, docs/DECISIONS.md — "VAT never enters cost, profit or revenue"):
+    // a real VAT-bearing row (vat_sar>0, unlike the 15 seed rows above which carry no VAT at
+    // all — this app's fixture never actually exercised a VAT-bearing figure before, which is
+    // its own gap). Correctly clean: total 11500 = revenue 10000 + vat 1500, and
+    // profit 4000 = revenue 10000 - cost 6000, with no vat_sar term anywhere in either
+    // calculation. scripts/qa/probe-no-vat-display.mjs asserts this arithmetic directly.
+    {id:'i-qa-vatclean',invoice_no:'8888888888',zatca_dpin:'TTIN-8888',client_group:'Test Company VAT Canary',customer_raw_name:'Test Company VAT Canary',invoice_date:'2026-06-21',month:'June',quarter:'Q2',year:2026,products:'Hotels',service_type:'Hotels',record_type:'b2b',total_incl_vat_sar:11500,wallet_portion_sar:0,revenue_sar:10000,cost_sar:6000,profit_sar:4000,vat_sar:1500,amount_received_sar:11500,amount_remaining_sar:0,collection_due_date:'2026-06-21',integrity_status:'verified_paid',exclusion_reason:null,notes:null,source_batch:'seed-invariant-qa',created_at:'2026-06-21T00:00:00Z',updated_at:'2026-06-21T00:00:00Z',deleted_at:null}]),
   ksa_events:[...Array(8)].map((_,i)=>({id:'e'+i,name_en:'Event '+i,name_ar:'فعالية '+i,vertical:['Travel','Tech','Study','Other'][i%4],status:'confirmed',start_date:i===3?'2026-08-01':'2026-09-1'+(i%9),end_date:i===3?'2026-08-02':'2026-09-1'+(i%9),city:'Riyadh',venue:'RICEC',organiser:'Org',link:'https://example.com',opportunity_sales:i%2===0,opportunity_partner:i%3===0,priority:(i%5)+1,notes:null,approach:['attend','stand','mine','skip','undecided'][i%5],approach_status:i===0?'signed_up':'not_started',exhibitor_list_url:i===2?'https://example.com/exhibitors':null,created_at:null,updated_at:null})),
   ksa_event_signups:[{event_id:'e2',login_email:'business@directksa.com',login_password:'throwaway-1',signed_up_by:'Abdulrahman',updated_at:null}],
   ksa_events_audit:[], airlines:[...Array(12)].map((_,i)=>({id:'ai'+i,legacy_id:'A'+i,name:'Airline '+i,code:'X'+i,icao:'XX'+i,stock:null,country:'KSA',type:'FSC',ksa:'yes',alliance:null,adm_risk:'low',gds:[],providers:[],frontend:null,deeplinks:null,manual:null,adm_policy:null,ticketing:{},notes:null,raw:{},contacts:[],contacts_source:null,contacts_updated_at:null})),
@@ -52,7 +59,19 @@ const TABLES={
   sops:[...Array(5)].map((_,i)=>({id:'s'+i,legacy_id:'S'+i,title:'SOP '+i,category:'Ops',market_standard:'yes',edge:'n/a',body:'Body text',author:'QA',updated_at:'2026-08-01T00:00:00Z',raw:{}})),
   slas:[...Array(5)].map((_,i)=>({id:'sl'+i,legacy_id:'SL'+i,metric:'Response time',direct_business:'2h',market:'4h',whales:'1h',flag:'green',raw:{}})),
   requests:[...Array(4)].map((_,i)=>({id:'r'+i,legacy_id:'R'+i,title:'Request '+i,business_id:'b'+i,client_name:'Test Company '+i,stage:'open',owner:'QA',priority:'high',supplier:'Provider 1',pnr:'ABC12'+i,cost:900,sell:1100,sla_due:'2026-08-20T00:00:00Z',created_at:'2026-08-01T00:00:00Z',raw:{}})),
-  offers:[], external_refs:[], master_db_companies:[], generated_documents:[], app_state_history:[], app_state_bak:[], access_allowlist:[], share_links:[],
+  offers:[], external_refs:[], master_db_companies:[], generated_documents:[],
+  // Backups-in-Supabase fixture (2026-08-23, docs/DECISIONS.md — moved off localStorage per
+  // P1). Mirrors the real live project: app_state_history is trigger-populated (never
+  // client-inserted, admin-only SELECT by RLS) — seeded with 3 rows so the harness can test
+  // the admin-visible path; app_state_bak starts empty so tagCurrentState()/migration tests
+  // start from a clean slate and their own inserts are what gets asserted against.
+  app_state_history:[
+    {hist_id:1,saved_at:'2026-08-20T09:00:00Z',updated_by:'test@directksa.com',data:{schemaVersion:24,seed:'qa-hist-1'}},
+    {hist_id:2,saved_at:'2026-08-21T09:00:00Z',updated_by:'test@directksa.com',data:{schemaVersion:24,seed:'qa-hist-2'}},
+    {hist_id:3,saved_at:'2026-08-22T09:00:00Z',updated_by:'test@directksa.com',data:{schemaVersion:24,seed:'qa-hist-3'}},
+  ],
+  app_state_bak:[],
+  access_allowlist:[], share_links:[],
   // client↔finance link fixture: maps finance group "Test Company 4" to business b4 (a client),
   // so the harness exercises the real link path (legacy-id L4 → uuid b4 → group → invoices).
   // A SECOND group "Test Company 5" also maps to b4 — simulating two invoice-spellings of one
@@ -124,6 +143,7 @@ const TABLES={
 })();
 const RPCLOG=[];
 let _finIdSeq=0; // new finance_invoices rows inserted through the mock get mock-fi-N ids
+let _bakIdSeq=0; // new app_state_bak rows inserted through the mock get sequential bak_ids
 // Password-recovery probes (2026-08-22): three inspectable logs, same pattern as RPCLOG below —
 // a probe drains these over HTTP instead of guessing at what the client actually sent.
 const RECOVERLOG=[];   // every resetPasswordForEmail() call the mock's /auth/v1/recover saw
@@ -256,6 +276,32 @@ export function start(port, seedOverrides){
     // the mock, not the importer). Widening this to every table is a bigger, riskier change
     // some other probe might be unknowingly relying on the current no-op — not done here.
     if(req.method!=='GET'){
+      // app_state_bak writes are persisted for real too — insert (tagCurrentState, migration)
+      // and delete (deleteTag), each real, RLS-shaped, .select()-checked call sites this app
+      // makes since the backup-to-Supabase move (2026-08-23, docs/DECISIONS.md P1). Scoped
+      // narrowly, same reasoning as finance_invoices above — everything else still no-ops.
+      if(t==='app_state_bak'){
+        const table=TABLES.app_state_bak;
+        if(req.method==='DELETE'){
+          let want=u.query.bak_id; if(Array.isArray(want))want=want[0];
+          const m=String(want||'').match(/^eq\.(.*)$/);
+          const id=m?m[1]:null;
+          const removed=[];
+          for(let i=table.length-1;i>=0;i--){ if(id!=null&&String(table[i].bak_id)===id){ removed.push(...table.splice(i,1)); } }
+          return send(res,200, removed);
+        }
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(!Array.isArray(payload)) payload=[payload];
+          const written=payload.map(row=>{
+            const newRow=Object.assign({bak_id:++_bakIdSeq, created_at:new Date().toISOString(), note:null, data:null}, row);
+            table.push(newRow);
+            return newRow;
+          });
+          return send(res,201, written);
+        });
+      }
       if(t==='finance_invoices'){
         let body=''; req.on('data',c=>body+=c);
         return req.on('end',()=>{
@@ -296,6 +342,22 @@ export function start(port, seedOverrides){
     const selRaw=Array.isArray(u.query.select)?u.query.select[0]:u.query.select;
     const am=selRaw&&String(selRaw).match(/^(\w+):(\w+)->>(\w+)$/);
     if(am) rows=rows.map(r=>({[am[1]]:(r[am[2]]||{})[am[3]]??null}));
+    // .order(col,{ascending}) / .limit(n) — additive, only applied when those query params are
+    // actually present, so every existing caller that never passes them is unaffected. Added
+    // 2026-08-23 for the Supabase-backed backup list (app_state_history/app_state_bak), the
+    // first callers in this app to actually need real ordering from the mock.
+    let orderRaw=Array.isArray(u.query.order)?u.query.order[0]:u.query.order;
+    if(orderRaw){
+      const [col,dir]=String(orderRaw).split('.');
+      const asc=dir!=='desc';
+      rows=rows.slice().sort((a,b)=>{
+        const av=a[col],bv=b[col];
+        if(av===bv)return 0;
+        return (av>bv?1:-1)*(asc?1:-1);
+      });
+    }
+    let limitRaw=Array.isArray(u.query.limit)?u.query.limit[0]:u.query.limit;
+    if(limitRaw!=null) rows=rows.slice(0,parseInt(limitRaw,10)||rows.length);
     const single=(req.headers.accept||'').includes('vnd.pgrst.object');
     return send(res,200, single?(rows[0]||null):rows, {'Content-Range':'0-'+Math.max(rows.length-1,0)+'/'+rows.length});
   }

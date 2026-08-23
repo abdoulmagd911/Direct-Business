@@ -6,8 +6,11 @@
 > repeated a mistake (asking the owner to hand-export files) that was already written down
 > in a doc it authored itself, because nothing forced a check against it at the moment of
 > acting. The absolute-highest-stakes rules, so they're in context even if this file gets
-> skimmed: **VAT is never shown or mentioned, anywhere, ever.** **Cost = approved expenses
-> only — never fabricate a number to fill a gap; leave it null and say why.** **Real
+> skimmed: **M1 — cost, profit and revenue must always be clean; VAT must never enter or be
+> mixed into any of the three (it may still appear on a client-facing document like a
+> quotation, where it's legally expected — that was never the violation; corrected 2026-08-23
+> after the earlier wording overshot into banning the glyph itself).** **Cost = approved
+> expenses only — never fabricate a number to fill a gap; leave it null and say why.** **Real
 > company/client/invoice data is never committed to this repo, ever.** **Data comes from
 > the Direct Payments export registry captured in-browser — never by asking the owner to
 > hand-export files; if a session can't reach it, say so plainly.** **A hardcoded

@@ -716,52 +716,221 @@ renderToday=function(v){_v19RenderToday(v);setTimeout(()=>{const view=document.g
 // ====== V21 ====== (bulletproofing: backup · print · perf · a11y · security · test harness · i18n · reframe verbs)
 /* V21_MODULE_START */
 /* ===== Sub-pass 1 — backup / restore / export / import ===== */
+/* MOVED OFF localStorage, 2026-08-23 (owner ruling, "take our long-run recommendation" — P1,
+   docs/DECISIONS.md). The browser was never the right home for this: a person's local backup
+   history lived only in that one browser, on that one device, invisible to anyone else, and
+   competed for the same ~5MB quota as the live data itself. Real fix, not a retention trim.
+
+   THE REAL FIX WAS ALREADY HALF-BUILT AND UNUSED — this is its own small P5 case. Two tables
+   already exist on the live Supabase project, already correctly permissioned, already wired
+   with a working trigger, and nothing in this app's own code ever read or wrote them:
+     - `app_state_history` — a Postgres trigger (`trg_app_state_snapshot`, BEFORE UPDATE on
+       `app_state`) already writes the FULL prior state into this table on every single save
+       this app makes, capped at the 20 most recent by the trigger itself. This has been
+       running the whole time — 20 real rows already exist. It replaces the old local
+       "incremental" snapshot array outright; nothing needs to write to it, only read it.
+       SELECT is `admin`-only by RLS (`hist_admin_read`), so this UI degrades honestly for
+       non-admins rather than showing a misleading "0 snapshots".
+     - `app_state_bak` — no trigger, open to any authenticated user for all operations
+       (`app_state_bak_auth`, cmd ALL). This is where `tagCurrentState()` now writes, and
+       where the one-time local-to-cloud migration below lands every pre-existing local
+       snapshot. That "any authenticated user, no ownership check" RLS shape is a pre-existing
+       gap (flagged in docs/BACKLOG.md's earlier access audit, not introduced by this change)
+       — noted here rather than silently tightened, since changing RLS is a separate,
+       deliberate decision this change didn't set out to make.
+   The old local "daily rollup" concept is gone too — it was just one-pick-per-day out of the
+   same local incremental array; now it's one-pick-per-day out of `app_state_history`,
+   computed on read, no separate storage needed.
+
+   MIGRATION: bkMigrateLocalToSupabase() runs once per page load (cheap no-op once done) and
+   uploads every existing local snapshot (inc + day + tag) into `app_state_bak`, preserving
+   the original timestamp. Per the owner's explicit requirement: nothing local is deleted
+   until every single upload is confirmed — if any batch fails partway, ALL local data stays
+   exactly where it was and the whole thing retries automatically next load (P1: automatic
+   and durable, not a one-shot manual button). And per "fail loudly, not silently to local":
+   a failed migration toasts a real, visible error — it does not quietly keep working off
+   local data while pretending the move happened. */
 const BK_KEY_INC='directBusinessBackupsInc_v21';
 const BK_KEY_DAY='directBusinessBackupsDay_v21';
 const BK_KEY_TAG='directBusinessBackupsTag_v21';
-const BK_KEY_LAST='directBusinessLastBackupAt_v21';
-const BK_INC_LIMIT=100;
-const BK_DAY_LIMIT=30;
-const BK_THROTTLE_MS=5*60*1000;
+const BK_MIGRATED_FLAG='directBusinessBackupsMigratedToSupabase_v1';
+var SUPA_URL_BK='https://vkxoeeoauexyfpzqufqd.supabase.co';
+var SUPA_KEY_BK='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
+var sbBK=null;
+function bkClient(){if(!sbBK&&window.supabase){try{sbBK=window.supabase.createClient(SUPA_URL_BK,SUPA_KEY_BK);}catch(_){}}return sbBK;}
 function bkRead(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return [];}}
-// Found 2026-08-23: this used to catch QuotaExceededError with only a console.warn — a failure
-// nobody would ever see, while save() (js/core/core-01-foundation.js, right above this module in
-// load order) already toasts+warns-once for the exact same failure on the MAIN data key. A silent
-// bkWrite() failure means new backup snapshots just stop landing, forever, with the Settings card
-// still showing the last-successful count — looks like it's working. Now: one retry with the array
-// halved (an emergency trim, not a policy change — see docs/BACKLOG.md for the real fix, lowering
-// BK_INC_LIMIT/BK_DAY_LIMIT, which is a retention trade-off for the owner, not a bug fix), then a
-// loud, once-only toast if even that fails.
-function bkWrite(k,a){
-  try{localStorage.setItem(k,JSON.stringify(a));return true;}
-  catch(e){
-    try{
-      var trimmed=a.slice(0,Math.max(1,Math.floor(a.length/2)));
-      localStorage.setItem(k,JSON.stringify(trimmed));
-      console.warn('bk write: storage full, trimmed '+k+' from '+a.length+' to '+trimmed.length+' entries to make room',e);
-      return true;
-    }catch(e2){
-      if(!window.__bkQuotaWarned){
-        window.__bkQuotaWarned=true;
-        console.warn('bk write fail — backup snapshots have stopped saving (storage full)',e2);
-        try{if(typeof toast==='function')toast('Backup storage full — auto-snapshots have stopped. Export a JSON backup soon (Settings → Backup & restore).');}catch(_){}
-      }
-      return false;
-    }
-  }
+function bkFail(msg,err){
+  // The one rule this whole rebuild exists to honor: a backup failure is never silent.
+  console.error('backup: '+msg,err||'');
+  try{if(typeof toast==='function')toast('⚠ Backup: '+msg);else alert('Backup: '+msg);}catch(_){try{alert('Backup: '+msg);}catch(__){}}
 }
-function snapshotMaybe(){const last=+localStorage.getItem(BK_KEY_LAST)||0;const now=Date.now();if(now-last<BK_THROTTLE_MS)return;localStorage.setItem(BK_KEY_LAST,String(now));const ts=new Date(now).toISOString();const data=localStorage.getItem(KEY)||'';if(!data)return;const inc=bkRead(BK_KEY_INC);inc.unshift({ts:ts,size:data.length,data:data});if(inc.length>BK_INC_LIMIT)inc.length=BK_INC_LIMIT;bkWrite(BK_KEY_INC,inc);const day=bkRead(BK_KEY_DAY);const today=ts.slice(0,10);if(!day.length||day[0].ts.slice(0,10)!==today){day.unshift({ts:ts,size:data.length,data:data});if(day.length>BK_DAY_LIMIT)day.length=BK_DAY_LIMIT;bkWrite(BK_KEY_DAY,day);}}
-const _v21OrigSave=save;save=function(){_v21OrigSave();try{snapshotMaybe();}catch(e){}};
-function listBackups(){return {inc:bkRead(BK_KEY_INC).map(b=>({ts:b.ts,size:b.size})),day:bkRead(BK_KEY_DAY).map(b=>({ts:b.ts,size:b.size})),tagged:bkRead(BK_KEY_TAG).map(b=>({ts:b.ts,size:b.size,name:b.name}))};}
-function restoreFromBackup(scope,idx){const arr=bkRead(scope==='day'?BK_KEY_DAY:scope==='tag'?BK_KEY_TAG:BK_KEY_INC);const b=arr[idx];if(!b)return;if(!confirm('Restore state from '+b.ts+' ('+Math.round(b.size/1024)+' KB)? Current state will snapshot first.'))return;snapshotMaybe();localStorage.setItem(KEY,b.data);try{DB=JSON.parse(b.data);}catch(e){alert('Backup unreadable.');return;}render();toast('Restored from '+b.ts);}
-function tagCurrentState(){const name=prompt('Tag name? (e.g. "before v20 migration")');if(!name)return;const tags=bkRead(BK_KEY_TAG);tags.unshift({ts:new Date().toISOString(),size:(localStorage.getItem(KEY)||'').length,data:localStorage.getItem(KEY)||'',name:name});if(tags.length>50)tags.length=50;bkWrite(BK_KEY_TAG,tags);toast('Tagged: '+name);render();}
-function deleteTag(idx){const tags=bkRead(BK_KEY_TAG);if(idx<0||idx>=tags.length)return;if(!confirm('Delete tag "'+tags[idx].name+'"?'))return;tags.splice(idx,1);bkWrite(BK_KEY_TAG,tags);render();}
+// Whether the signed-in user is admin — determines whether app_state_history (admin-only SELECT
+// by RLS) is even worth querying. Cached for the page's lifetime; RLS would just silently return
+// zero rows for a non-admin, which this app never treats as proof of anything (the exact
+// RLS-silent-write/read shape docs/DECISIONS.md already warns about) — so this is checked
+// directly instead of inferred from an empty result.
+var BK_IS_ADMIN=null;
+function bkCheckAdmin(){
+  var c=bkClient();if(!c)return Promise.resolve(false);
+  return c.auth.getSession().then(function(s){
+    var uid=s&&s.data&&s.data.session&&s.data.session.user&&s.data.session.user.id;
+    if(!uid)return false;
+    return c.from('app_users').select('role').eq('id',uid).maybeSingle().then(function(r){
+      return !!(r&&r.data&&r.data.role==='admin');
+    });
+  }).catch(function(){return false;});
+}
+var BK_CACHE={loaded:false,loading:false,error:null,history:[],tagged:[],historyRestricted:false};
+function bkFetchAll(){
+  if(BK_CACHE.loading)return Promise.resolve(BK_CACHE);
+  BK_CACHE.loading=true;
+  var c=bkClient();
+  if(!c){BK_CACHE.loading=false;BK_CACHE.error='Supabase client unavailable';return Promise.resolve(BK_CACHE);}
+  return (BK_IS_ADMIN===null?bkCheckAdmin().then(function(v){BK_IS_ADMIN=v;return v;}):Promise.resolve(BK_IS_ADMIN)).then(function(isAdmin){
+    var histP=isAdmin
+      ? c.from('app_state_history').select('hist_id,saved_at,updated_by').order('hist_id',{ascending:false}).limit(20)
+      : Promise.resolve({data:[],error:null});
+    var tagP=c.from('app_state_bak').select('bak_id,note,created_at').order('created_at',{ascending:false}).limit(200);
+    return Promise.all([histP,tagP]).then(function(res){
+      var histR=res[0],tagR=res[1];
+      if(histR.error||tagR.error){
+        BK_CACHE.error=(histR.error&&histR.error.message)||(tagR.error&&tagR.error.message);
+        bkFail('could not load the backup list — '+BK_CACHE.error,histR.error||tagR.error);
+      } else {
+        BK_CACHE.error=null;
+        BK_CACHE.history=histR.data||[];
+        BK_CACHE.tagged=(tagR.data||[]).map(function(r){return {id:r.bak_id,ts:r.created_at,name:r.note};});
+        BK_CACHE.historyRestricted=!isAdmin;
+        BK_CACHE.loaded=true;
+      }
+      BK_CACHE.loading=false;
+      return BK_CACHE;
+    });
+  }).catch(function(e){BK_CACHE.loading=false;BK_CACHE.error=String(e&&e.message||e);bkFail('could not load the backup list',e);return BK_CACHE;});
+}
+function bkDayView(){
+  // One entry per calendar day out of the (already at-most-20) history rows — computed on
+  // read, no separate storage, since app_state_history is itself already a small rolling cap.
+  var seen={},out=[];
+  BK_CACHE.history.forEach(function(r){var d=(r.saved_at||'').slice(0,10);if(d&&!seen[d]){seen[d]=1;out.push(r);}});
+  return out;
+}
+function restoreFromBackup(scope,id){
+  var c=bkClient();if(!c)return bkFail('no Supabase connection — cannot restore');
+  var table=scope==='tag'?'app_state_bak':'app_state_history';
+  var idCol=scope==='tag'?'bak_id':'hist_id';
+  if(!confirm('Restore state from this snapshot? Current state will be tagged first, automatically.'))return;
+  var tagFirst=tagCurrentState('auto: before restore',true);
+  (tagFirst||Promise.resolve()).then(function(){
+    return c.from(table).select('data').eq(idCol,id).maybeSingle();
+  }).then(function(r){
+    if(r.error||!r.data){bkFail('could not fetch that snapshot — nothing was restored',r.error);return;}
+    var candidate=r.data.data;
+    if(!candidate){bkFail('that snapshot has no data — nothing was restored');return;}
+    DB=candidate;localStorage.setItem(KEY,JSON.stringify(DB));render();
+    try{if(typeof toast==='function')toast('Restored.');}catch(_){}
+  }).catch(function(e){bkFail('restore failed',e);});
+}
+function tagCurrentState(presetName,silent){
+  var name=presetName;
+  if(name===undefined){name=prompt('Tag name? (e.g. "before v20 migration")');if(!name)return Promise.resolve();}
+  var c=bkClient();if(!c){bkFail('no Supabase connection — tag NOT saved');return Promise.resolve();}
+  return c.from('app_state_bak').insert({data:DB,note:name}).select().then(function(r){
+    // RLS-silent-write rule (docs/DECISIONS.md): a write can report success with zero rows
+    // actually inserted if a policy silently refused it. Always check r.data.length.
+    if(r.error||!r.data||!r.data.length){bkFail('tag "'+name+'" was NOT saved',r.error);return;}
+    if(!silent){try{if(typeof toast==='function')toast('Tagged: '+name);}catch(_){}}
+    BK_CACHE.loaded=false;
+    if(!silent&&typeof render==='function')render();
+  }).catch(function(e){bkFail('tag "'+name+'" was NOT saved',e);});
+}
+function deleteTag(id){
+  if(!confirm('Delete this tagged backup?'))return;
+  var c=bkClient();if(!c)return bkFail('no Supabase connection — nothing deleted');
+  c.from('app_state_bak').delete().eq('bak_id',id).select().then(function(r){
+    if(r.error||!r.data||!r.data.length){bkFail('delete did not go through',r.error);return;}
+    BK_CACHE.loaded=false;
+    if(typeof render==='function')render();
+  }).catch(function(e){bkFail('delete failed',e);});
+}
 function exportFullState(encrypted){const blob=new Blob([JSON.stringify({v:'v21',ts:new Date().toISOString(),db:DB},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='direct-business-state-v21-'+new Date().toISOString().slice(0,10)+'.json';a.click();toast('Exported');}
-function importFullState(file){const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);const candidate=o.db||o;snapshotMaybe();DB=candidate;localStorage.setItem(KEY,JSON.stringify(DB));render();toast('Imported state · '+(o.ts||'no timestamp'));}catch(e){alert('Invalid file: '+e.message);}};r.readAsText(file);}
-function v21SettingsCard(){const bk=listBackups();const last=+localStorage.getItem(BK_KEY_LAST)||0;return `<div class="card" id="v21SettingsBackup"><h3>💾 Backup & restore</h3><div class="ch-sub">Auto-snapshot throttled to 1 per 5 min · daily rollup kept 30 days · tagged restore points unlimited (cap 50).</div><div class="fact"><span class="k">Last auto-snapshot</span><span class="v">${last?esc(fmtRel(last)):'never'}</span></div><div class="fact"><span class="k">Incremental snapshots</span><span class="v">${bk.inc.length} / ${BK_INC_LIMIT}</span></div><div class="fact"><span class="k">Daily snapshots</span><span class="v">${bk.day.length} / ${BK_DAY_LIMIT}</span></div><div class="fact"><span class="k">Tagged restore points</span><span class="v">${bk.tagged.length}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" onclick="tagCurrentState()">📌 Tag current state</button><button class="btn sm" onclick="exportFullState(false)">⬇ Export JSON</button><label class="btn sm" style="cursor:pointer">⬆ Import JSON<input id="v21impFull" type="file" accept=".json" onchange="if(this.files[0])importFullState(this.files[0])" style="display:none"></label><button class="btn sm" onclick="v21OpenRestoreList()">🕓 Browse snapshots</button></div></div>`;}
-function v21OpenRestoreList(){const bk=listBackups();const rows=[];bk.tagged.forEach((b,i)=>rows.push(`<div class="fact"><span class="k">📌 ${esc(b.name)}<br><span style="color:var(--muted);font-size:11px">${esc(b.ts)} · ${Math.round(b.size/1024)} KB</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('tag',${i});closeModal()">Restore</button> <button class="btn sm danger" onclick="deleteTag(${i});v21OpenRestoreList()">✕</button></span></div>`));bk.day.forEach((b,i)=>rows.push(`<div class="fact"><span class="k">📅 ${esc(b.ts.slice(0,10))}<br><span style="color:var(--muted);font-size:11px">${Math.round(b.size/1024)} KB</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('day',${i});closeModal()">Restore</button></span></div>`));bk.inc.slice(0,20).forEach((b,i)=>rows.push(`<div class="fact"><span class="k">⏱ ${esc(fmtRel(new Date(b.ts).getTime()))}<br><span style="color:var(--muted);font-size:11px">${esc(b.ts)} · ${Math.round(b.size/1024)} KB</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('inc',${i});closeModal()">Restore</button></span></div>`));openModal('Browse backup snapshots','<div style="max-height:60vh;overflow-y:auto">'+(rows.join('')||'<div class="empty">No snapshots yet.</div>')+'</div>',()=>{});}
-// Auto-restore banner if DB looks empty but a backup exists
-(function autoRestoreBannerMaybe(){const dbStr=localStorage.getItem(KEY)||'';const tooSmall=dbStr.length<1000;const inc=bkRead(BK_KEY_INC);if(tooSmall&&inc.length){setTimeout(()=>{const view=document.getElementById('view');if(!view||view.querySelector('.v21RestoreBanner'))return;const b=document.createElement('div');b.className='v21RestoreBanner';b.style.cssText='background:#FEF3E2;border:1px solid #F8D896;color:#a8650a;padding:12px 16px;border-radius:11px;margin-bottom:14px;display:flex;align-items:center;gap:10px';b.innerHTML=`⚠ Local data looks empty but a backup exists from ${esc(inc[0].ts)} (${Math.round(inc[0].size/1024)} KB). <button class="btn sm" onclick="restoreFromBackup('inc',0)">Restore latest</button> <button class="btn sm" onclick="v21OpenRestoreList()">Browse all</button>`;view.insertBefore(b,view.firstChild);},500);}})();
+function importFullState(file){const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);const candidate=o.db||o;tagCurrentState('auto: before import',true).then(()=>{DB=candidate;localStorage.setItem(KEY,JSON.stringify(DB));render();toast('Imported state · '+(o.ts||'no timestamp'));});}catch(e){alert('Invalid file: '+e.message);}};r.readAsText(file);}
+function v21SettingsCard(){
+  if(!BK_CACHE.loaded&&!BK_CACHE.loading&&!BK_CACHE.error)bkFetchAll().then(()=>{if(typeof render==='function')render();});
+  const loading=!BK_CACHE.loaded&&!BK_CACHE.error;
+  const day=bkDayView();
+  const histLine=BK_CACHE.historyRestricted?'admin-only':(loading?'…':BK_CACHE.history.length+' / 20');
+  return `<div class="card" id="v21SettingsBackup"><h3>💾 Backup & restore</h3><div class="ch-sub">Stored in Supabase, not this browser — every save auto-snapshots the prior state (kept 20), and tags are unlimited. Visible from any device, any team member.</div>${BK_CACHE.error?`<div class="fact"><span class="k" style="color:#B54708">⚠ ${esc(BK_CACHE.error)}</span></div>`:''}<div class="fact"><span class="k">Incremental snapshots (auto)</span><span class="v">${histLine}</span></div><div class="fact"><span class="k">Daily view</span><span class="v">${loading?'…':day.length+' distinct day(s)'}</span></div><div class="fact"><span class="k">Tagged restore points</span><span class="v">${loading?'…':BK_CACHE.tagged.length}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" onclick="tagCurrentState()">📌 Tag current state</button><button class="btn sm" onclick="exportFullState(false)">⬇ Export JSON</button><label class="btn sm" style="cursor:pointer">⬆ Import JSON<input id="v21impFull" type="file" accept=".json" onchange="if(this.files[0])importFullState(this.files[0])" style="display:none"></label><button class="btn sm" onclick="v21OpenRestoreList()">🕓 Browse snapshots</button></div></div>`;
+}
+function v21OpenRestoreList(){
+  bkFetchAll().then(()=>{
+    const rows=[];
+    BK_CACHE.tagged.forEach(b=>rows.push(`<div class="fact"><span class="k">📌 ${esc(b.name)}<br><span style="color:var(--muted);font-size:11px">${esc(b.ts)}</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('tag',${JSON.stringify(b.id)});closeModal()">Restore</button> <button class="btn sm danger" onclick="deleteTag(${JSON.stringify(b.id)});v21OpenRestoreList()">✕</button></span></div>`));
+    bkDayView().forEach(b=>rows.push(`<div class="fact"><span class="k">📅 ${esc((b.saved_at||'').slice(0,10))}<br><span style="color:var(--muted);font-size:11px">${esc(b.updated_by||'')}</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('inc',${JSON.stringify(b.hist_id)});closeModal()">Restore</button></span></div>`));
+    BK_CACHE.history.forEach(b=>rows.push(`<div class="fact"><span class="k">⏱ ${esc(fmtRel(new Date(b.saved_at).getTime()))}<br><span style="color:var(--muted);font-size:11px">${esc(b.saved_at)} · ${esc(b.updated_by||'')}</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('inc',${JSON.stringify(b.hist_id)});closeModal()">Restore</button></span></div>`));
+    const restrictedNote=BK_CACHE.historyRestricted?'<div class="empty">Incremental snapshots are visible to admins only.</div>':'';
+    openModal('Browse backup snapshots','<div style="max-height:60vh;overflow-y:auto">'+(rows.join('')||'<div class="empty">No snapshots yet.</div>')+restrictedNote+'</div>',()=>{});
+  });
+}
+// Auto-restore banner if DB looks empty but a cloud backup exists — async now (the backups
+// live in Supabase, not localStorage), so this checks after a short delay rather than at
+// script-eval time.
+(function autoRestoreBannerMaybe(){
+  const dbStr=localStorage.getItem(KEY)||'';
+  if(dbStr.length>=1000)return; // looks like there's real local data, nothing to suggest
+  setTimeout(()=>{
+    bkFetchAll().then(()=>{
+      const latest=BK_CACHE.tagged[0]||BK_CACHE.history[0];
+      if(!latest)return;
+      const view=document.getElementById('view');if(!view||view.querySelector('.v21RestoreBanner'))return;
+      const isTag=!!BK_CACHE.tagged[0]&&(!BK_CACHE.history[0]||new Date(BK_CACHE.tagged[0].ts)>=new Date(BK_CACHE.history[0].saved_at));
+      const id=isTag?latest.id:latest.hist_id, scope=isTag?'tag':'inc', ts=isTag?latest.ts:latest.saved_at;
+      const b=document.createElement('div');b.className='v21RestoreBanner';b.style.cssText='background:#FEF3E2;border:1px solid #F8D896;color:#a8650a;padding:12px 16px;border-radius:11px;margin-bottom:14px;display:flex;align-items:center;gap:10px';
+      b.innerHTML=`⚠ Local data looks empty but a cloud backup exists from ${esc(ts)}. <button class="btn sm" onclick="restoreFromBackup('${scope}',${JSON.stringify(id)})">Restore latest</button> <button class="btn sm" onclick="v21OpenRestoreList()">Browse all</button>`;
+      view.insertBefore(b,view.firstChild);
+    });
+  },1500);
+})();
+// One-time (per browser) migration of everything the OLD local backup system ever captured,
+// into app_state_bak. Retries automatically on every load until every entry is confirmed
+// uploaded — nothing local is cleared until then. See the module header comment above.
+function bkMigrateLocalToSupabase(){
+  if(localStorage.getItem(BK_MIGRATED_FLAG)==='1')return;
+  const inc=bkRead(BK_KEY_INC),day=bkRead(BK_KEY_DAY),tag=bkRead(BK_KEY_TAG);
+  const jobs=[]
+    .concat(inc.map(b=>({note:'[migrated from local] incremental snapshot',ts:b.ts,data:b.data})))
+    .concat(day.map(b=>({note:'[migrated from local] daily snapshot',ts:b.ts,data:b.data})))
+    .concat(tag.map(b=>({note:'[migrated from local] tag: '+b.name,ts:b.ts,data:b.data})));
+  if(!jobs.length){localStorage.setItem(BK_MIGRATED_FLAG,'1');return;}
+  const c=bkClient();if(!c){bkFail('cannot migrate local backups to Supabase — no connection. Your local backups are untouched and this will retry next load.');return;}
+  const rows=jobs.map(j=>{let parsed=null;try{parsed=JSON.parse(j.data);}catch(e){parsed=null;}return {note:j.note,created_at:j.ts,data:parsed};}).filter(r=>r.data!==null);
+  if(rows.length!==jobs.length)console.warn('bk migrate: '+(jobs.length-rows.length)+' local entry(ies) had unreadable JSON and were skipped (not counted as migrated, but also not blocking the rest)');
+  let i=0,confirmed=0;const BATCH=20;
+  function next(){
+    if(i>=rows.length){
+      if(confirmed>=rows.length){
+        localStorage.setItem(BK_MIGRATED_FLAG,'1');
+        localStorage.removeItem(BK_KEY_INC);localStorage.removeItem(BK_KEY_DAY);localStorage.removeItem(BK_KEY_TAG);
+        console.log('bk migrate: '+confirmed+' local backup(s) moved to Supabase; local copies cleared.');
+      } else {
+        bkFail('local backup migration finished partway ('+confirmed+'/'+rows.length+' confirmed) — your local backups are untouched and this will retry next load.');
+      }
+      return;
+    }
+    const batch=rows.slice(i,i+BATCH);i+=BATCH;
+    c.from('app_state_bak').insert(batch).select().then(r=>{
+      if(r.error||!r.data||r.data.length!==batch.length){
+        bkFail('local backup migration stalled ('+confirmed+'/'+rows.length+' confirmed so far) — your local backups are untouched and this will retry next load.',r.error);
+        return; // stop here — do not clear anything, do not mark done
+      }
+      confirmed+=r.data.length;
+      next();
+    }).catch(e=>{bkFail('local backup migration stalled ('+confirmed+'/'+rows.length+' confirmed so far) — your local backups are untouched and this will retry next load.',e);});
+  }
+  next();
+}
+const _v21OrigSave=save;save=function(){_v21OrigSave();try{bkMigrateLocalToSupabase();}catch(e){}};
+setTimeout(()=>{try{bkMigrateLocalToSupabase();}catch(e){}},1500); // also try once shortly after load, not only on next save
 /* ===== Sub-pass 2 — print + PDF (bilingual invoice, A4, RTL, per-entity views) ===== */
 (function injectV21Print(){const s=document.createElement('style');s.id='v21print';s.textContent=`
 @media print{

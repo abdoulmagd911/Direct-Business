@@ -1,5 +1,88 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-23 · M1 corrected (dissolved, not just reworded); backups moved off localStorage into Supabase; owner ruled on the restart plan
+
+Three owner rulings landed in one message, on top of the two-file-join round below.
+
+**RULING 1 — M1 was never about the glyph "VAT" on screen.** Owner verbatim: "I dont care
+weither vat shows or not, what i want is a clean cost, profit, and revenue." The old wording
+("VAT is never shown or mentioned — anywhere, at any stage, in any view or report") overshot
+into a rule that would have had someone strip a legitimate VAT line off a client-facing
+quotation while believing they were enforcing the real rule. Corrected in `docs/DECISIONS.md`
+(now labelled **M1**, matching how this file's own earlier entries already referred to it) and
+in `CLAUDE.md`'s top banner, which repeated the same overshot wording verbatim and would have
+misled the very next session to skim it. `js/core/core-04-proposals.js`'s quotation VAT line
+needs no work — left untouched, and the Proposal & Documents task will be told the same when
+it starts.
+
+`scripts/qa/probe-no-vat-display.mjs` was rewritten from a text scan (asserted the string
+"VAT" never rendered — gave false comfort, since it would pass on a VAT-contaminated Profit
+figure so long as nothing printed the literal word) to real arithmetic: for every live
+`finance_invoices` row with `vat_sar > 0`, `revenue_sar` must not include the VAT amount and
+`profit_sar` must reconcile from `revenue_sar - cost_sar` with no VAT term anywhere in it. The
+checker is proven against a synthetic contaminated row inside the probe itself before it's
+ever trusted against live data — a self-test that would have caught the old probe's exact
+failure mode. `scripts/qa/mock-supabase.mjs` gained a dedicated VAT-bearing fixture row
+(`i-qa-vatclean`, the seed batch previously carried no VAT figures at all) so this is
+genuinely exercised, not just structurally possible. The old label scan is kept but demoted to
+observational-only (printed, never fails the build) since the owner explicitly said the glyph
+itself doesn't matter.
+
+**RULING 2 — backups move off localStorage into Supabase, per P1 ("take our long-run
+recommendation").** Not a retention trim — the browser was the wrong home for this from the
+start. Turned out to be a small P5 case of its own: two tables already existed on the live
+project, already correctly permissioned, and nothing in this app's code ever used them.
+`app_state_history` has a working trigger (`trg_app_state_snapshot`, confirmed by reading its
+real definition) that already snapshots the full prior state on every save this app makes,
+capped at 20 by the trigger itself — 20 real rows already existed before this change touched
+anything. `app_state_bak` is open to any authenticated user for all operations and has a
+`note` column that lines up exactly with the existing "Tag current state" feature's name
+prompt. Rebuilt `js/core/core-06-v18-v21.js`'s whole backup module against these: `tagCurrentState()`
+now writes a real row (checked against the RLS-silent-write rule — `r.data.length`, not just
+absence of an error), `restoreFromBackup()`/`deleteTag()` read/delete the real rows, and
+`app_state_history`'s admin-only RLS is respected client-side (checked directly via the
+signed-in user's own `app_users.role`, never inferred from an empty result — an empty result
+from an RLS-gated table proves nothing, the exact shape this file already warns about
+elsewhere).
+
+**Migration, built to the letter of what the owner asked for:** `bkMigrateLocalToSupabase()`
+runs automatically (on every save, and once shortly after load), uploads every existing local
+snapshot (incremental + daily + tagged) into `app_state_bak` with the original timestamp
+preserved, and **only clears the local copies once every single entry is confirmed uploaded**
+— a partial or failed batch leaves 100% of local data untouched and retries automatically next
+load. A failure **toasts and console.errors immediately** — never a silent continuation on
+local data. `scripts/qa/probe-backup-supabase.mjs` (new) proves this directly: it seeds local
+backup data, blocks the live route on purpose, asserts the data survives untouched and a loud
+failure fires, then unblocks the route and asserts the same data migrates, is confirmed
+server-side, clears locally only then, and that re-running afterward is a no-op (no duplicate
+uploads). `scripts/qa/mock-supabase.mjs` gained real (not stub) REST handling for
+`app_state_bak` insert/delete and generic `.order()/.limit()` support, plus 3 seeded
+`app_state_history` fixture rows, mirroring the real live table exactly.
+
+**Verified live, no schema change needed:** `app_state_bak`'s three writable columns
+(`data`, `note`, `created_at`) are all nullable with no constraints beyond what already exists
+— the table already accepts exactly the shape this app now writes. Confirmed by reading the
+real live schema and RLS policies (`vkxoeeoauexyfpzqufqd`), not assumed. **Known, pre-existing
+gap, NOT introduced by this change, and not fixed here on purpose:** `app_state_bak`'s RLS
+(`app_state_bak_auth`, cmd ALL, `qual: true`) lets any authenticated user read, write, or
+delete any row — no per-row ownership. This was already flagged in an earlier access audit
+(see "workspace backups" in the 2026-08-xx access-gap entry elsewhere in this file); tightening
+it is a deliberate RLS decision this change didn't set out to make, so it's called out here
+instead of silently changed.
+
+**RULING 3 — restart.** Same answer as Ruling 2: the long-run recommendation. Land cost
+first (blocked as of this writing on the oversight session's own side — a `per_page=100`
+request against Direct Payments has been holding the whole session lock for 20+ minutes with
+no way to cancel it; see the D7-widening entry below), then both sessions restart at a clean
+checkpoint with `docs/DECISIONS.md` and `docs/BACKLOG.md` carrying everything — the handover,
+not a summary written after the fact. Given the scale of `docs/BACKLOG.md` specifically, a
+genuine "make this readable cold, not just complete" pass is worth doing as its own explicit
+step before the cutover, flagged here rather than attempted informally inside this entry.
+
+Verified: `node -c` on every touched file, `check-structure.mjs` (58 files), the full probe
+battery including both new/rewritten probes, `check-decisions-wired.mjs`, `audit-finance-tabs.mjs`,
+`sweep-pages.mjs` — all green, EN+AR, zero console/JS errors.
+
 ## 2026-08-23 · Cost-capture rebuilt as a two-file join; three new standing rules; one real bug caught before shipping
 
 **Same day, one more correction on top of the entry directly below this one.** The single-file

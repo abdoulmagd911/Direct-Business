@@ -97,8 +97,8 @@ async function main() {
   else ok('finExclusionCheck is wired');
   if (!state.exclusionListHasTakamol) fail('the exclusion list does not name "Takamol for Business Services" — fixture/app_settings mismatch, this probe cannot test anything');
   else ok('exclusion list correctly names Takamol');
-  if (state.rawRowCount !== 16) fail(`FIN.rows (raw, pre-filter) has ${state.rawRowCount} rows, expected exactly 16 seeded server-side — fixture assumption broke`);
-  else ok('FIN.rows (raw) has all 16 seeded rows — the exclusion is applied on every read, not by dropping data at load');
+  if (state.rawRowCount !== 17) fail(`FIN.rows (raw, pre-filter) has ${state.rawRowCount} rows, expected exactly 17 seeded server-side (15 base + Takamol canary + VAT canary) — fixture assumption broke`);
+  else ok('FIN.rows (raw) has all 17 seeded rows — the exclusion is applied on every read, not by dropping data at load');
 
   // ---- 1b. cost_sar must never exceed the invoice's own total_incl_vat_sar — the exact shape
   // of the stale-iframe near-miss caught during cost-capture design (2026-08-23): a

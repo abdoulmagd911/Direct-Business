@@ -1,18 +1,38 @@
-/* probe-no-vat-display.mjs — VAT is never shown or mentioned, anywhere, at any stage, in
-   any view or report. Hard rule (docs/DECISIONS.md), ruled twice by the owner in writing,
-   asked a third time by a session that should have checked first.
+/* probe-no-vat-display.mjs — regression guard for M1 (docs/DECISIONS.md), corrected
+   2026-08-23. M1 was never a rule about the glyph "VAT" appearing on a screen — owner
+   verbatim, dissolving what earlier wording had turned into a recurring question: "I dont
+   care weither vat shows or not, what i want is a clean cost, profit, and revenue." The real
+   rule: VAT may legitimately appear on a client-facing document (a quotation, a tax invoice)
+   where it's legally expected; it must never appear IN, or be mixed INTO, an internal
+   cost/profit/revenue figure or report.
 
-   This is deliberately a RENDERED-DOM check, not a static grep. `vat_sar` is a legitimate
-   stored column (js/16-finance-ledger.js computes it, per the "VAT is stored but never
-   displayed" rule) — a source-text grep for "vat" would false-positive on that forever and
-   get muted, which is worse than no check at all. This probe drives the real harness,
-   visits every nav page plus all 8 Finance tabs in EN and AR, and asserts the banned
-   strings never appear in `document.body.innerText` — i.e. what a person actually sees,
-   not what the source code contains.
+   THIS PROBE USED TO BE A TEXT SCAN — it asserted the string "VAT" never appeared in
+   `document.body.innerText`. That was testing the wrong thing, and gave false comfort: it
+   would happily pass on a Finance page whose Profit KPI was silently computed with a
+   vat_sar term baked in, so long as nothing printed the literal word "VAT" on screen. A
+   contaminated number with no label is exactly as wrong as a contaminated number WITH a
+   label — arguably worse, since nobody would even know to look.
 
-   Same blind-spot discipline as scripts/qa/audit-finance-tabs.mjs: every check is "did the
-   view actually render something real" AND ONLY THEN "is it clean" — a probe that skips the
-   first half can report "clean" on a page that silently failed to load. */
+   WHAT THIS PROBE NOW ASSERTS, as the primary, build-failing checks: for every live
+   finance_invoices row that actually carries VAT (`vat_sar > 0` — the pre-existing 15-row
+   seed batch carries none at all, which was its own gap; a dedicated VAT-bearing canary row
+   was added to scripts/qa/mock-supabase.mjs, `i-qa-vatclean`, specifically so this probe has
+   a real figure to check),
+     1. `revenue_sar` must not include the VAT amount — it must be at most
+        `total_incl_vat_sar - vat_sar` (plus a hair of rounding tolerance).
+     2. `profit_sar` must reconcile from the two already-clean numbers alone —
+        `profit_sar == revenue_sar - cost_sar`, with no vat_sar term anywhere in that sum.
+   Before trusting these against the live app, the check function is proven against a
+   synthetic, deliberately-contaminated row built in this script (never touching the shared
+   fixture) — if the checker didn't actually catch a real violation, that would be exactly
+   the "gives false comfort" failure this rewrite exists to fix, so it's asserted directly,
+   not assumed.
+
+   The old page/tab render sweep is kept, because "does this page even render" is still a
+   real and separate concern from M1 — but the on-screen "VAT" text scan is now purely
+   OBSERVATIONAL (printed, never fails the build): the owner has explicitly said the glyph
+   itself doesn't matter, so gating the build on its absence would be enforcing a rule that
+   no longer exists. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
@@ -22,36 +42,50 @@ const PORT = 8163;
 const srv = start(PORT);
 const BASE = 'http://localhost:' + PORT;
 
-// Word-boundary / phrase match so this never flags an unrelated substring — this app's
-// domain has no legitimate word containing "VAT" other than the tax itself.
-const BANNED = [/\bVAT\b/i, /value[\s-]added tax/i, /ضريبة\s*القيمة\s*المضافة/, /ض\.?\s*ق\.?\s*م/];
-
-// The one legitimate exception: "CR, VAT" / "CR / VAT" / "CR · VAT" as a company's
-// registration-ID field label (VAT registration NUMBER, alongside Commercial Registration
-// number) — an identifier, not a computed tax amount. Confirmed by reading the actual
-// rendered text (Settings/▸ Reference: "Company profile | CR, VAT, IBAN, Wakeel") before
-// adding this — never assumed. Only a "VAT" immediately preceded by "CR" (short separator)
-// is exempt; every other occurrence is still banned.
-const CR_VAT_EXEMPT = /CR[\s,/·-]{0,4}$/i;
-
-function findVatViolation(text) {
-  // Check every \bVAT\b occurrence individually for the CR-adjacent exemption — a page
-  // could legitimately have "CR, VAT" AND separately have a real violation elsewhere.
-  const vatHits = [...text.matchAll(/\bVAT\b/gi)];
-  const realVat = vatHits.find((m) => !CR_VAT_EXEMPT.test(text.slice(Math.max(0, m.index - 6), m.index)));
-  if (realVat) return realVat[0];
-  for (const re of BANNED.slice(1)) {
-    const m = text.match(re);
-    if (m) return m[0];
-  }
-  return null;
-}
-
 const FIN_TABS = ['overview', 'clients', 'ledger', 'reports', 'import', 'expenses', 'proofs', 'b2c'];
 
 let failures = 0;
 function fail(msg) { failures++; console.log('  ✗ ' + msg); }
 function ok(msg) { console.log('  ✓ ' + msg); }
+function note(msg) { console.log('  · ' + msg); }
+
+// The actual M1 check, as plain arithmetic — deliberately independent of the app's own code,
+// so this probe can't be fooled by a bug shared between the checker and the thing it checks.
+function vatContaminationIssues(row) {
+  const issues = [];
+  const vat = +row.vat_sar || 0;
+  if (vat <= 0) return issues; // nothing to check — this row carries no VAT at all
+  const total = +row.total_incl_vat_sar || 0;
+  const revenue = +row.revenue_sar || 0;
+  const cost = +row.cost_sar || 0;
+  const profit = +row.profit_sar || 0;
+  const maxCleanRevenue = total - vat + 0.02;
+  if (revenue > maxCleanRevenue) {
+    issues.push(`revenue_sar (${revenue}) exceeds total_incl_vat_sar minus vat_sar (${(total - vat).toFixed(2)}) — VAT looks baked into revenue`);
+  }
+  const expectedProfit = revenue - cost;
+  if (Math.abs(profit - expectedProfit) > 0.02) {
+    issues.push(`profit_sar (${profit}) does not equal revenue_sar - cost_sar (${expectedProfit.toFixed(2)}) — a term other than the two clean numbers is in play, most likely vat_sar`);
+  }
+  return issues;
+}
+
+// Self-test: prove the checker actually catches a contaminated row before trusting it
+// against the live app. A synthetic object only — never written to the shared fixture.
+function selfTestChecker() {
+  const clean = { total_incl_vat_sar: 11500, vat_sar: 1500, revenue_sar: 10000, cost_sar: 6000, profit_sar: 4000 };
+  const contaminatedRevenue = { ...clean, revenue_sar: 11500 }; // VAT left inside revenue
+  const contaminatedProfit = { ...clean, profit_sar: 4000 + 1500 }; // VAT added back onto profit
+  const cleanIssues = vatContaminationIssues(clean);
+  const revIssues = vatContaminationIssues(contaminatedRevenue);
+  const profitIssues = vatContaminationIssues(contaminatedProfit);
+  if (cleanIssues.length) fail(`self-test: checker flagged a genuinely clean row as contaminated — ${cleanIssues.join('; ')}`);
+  else ok('self-test: a genuinely clean VAT-bearing row passes');
+  if (!revIssues.length) fail('self-test: checker did NOT catch a revenue figure with VAT left inside it — this would be exactly the false-comfort failure this rewrite exists to fix');
+  else ok(`self-test: checker correctly catches VAT-inclusive revenue (${revIssues[0]})`);
+  if (!profitIssues.length) fail('self-test: checker did NOT catch a profit figure with a vat_sar term added back in');
+  else ok(`self-test: checker correctly catches a VAT-contaminated profit (${profitIssues[0]})`);
+}
 
 async function settleContent(p, timeoutMs) {
   const start = Date.now();
@@ -71,13 +105,23 @@ async function settleContent(p, timeoutMs) {
   return { length: prev, timedOut: true };
 }
 
-function scanVAT(text, label) {
-  const hit = findVatViolation(text);
-  if (hit) fail(`${label}: VAT string found on screen (matched ${JSON.stringify(hit)}) — banned by docs/DECISIONS.md`);
-  else ok(`${label}: no VAT string on screen`);
+// Observational only now (see header) — printed for visibility, never calls fail().
+const BANNED = [/\bVAT\b/i, /value[\s-]added tax/i, /ضريبة\s*القيمة\s*المضافة/, /ض\.?\s*ق\.?\s*م/];
+const CR_VAT_EXEMPT = /CR[\s,/·-]{0,4}$/i;
+function findVatMention(text) {
+  const vatHits = [...text.matchAll(/\bVAT\b/gi)];
+  const realVat = vatHits.find((m) => !CR_VAT_EXEMPT.test(text.slice(Math.max(0, m.index - 6), m.index)));
+  if (realVat) return realVat[0];
+  for (const re of BANNED.slice(1)) {
+    const m = text.match(re);
+    if (m) return m[0];
+  }
+  return null;
 }
 
 async function main() {
+  selfTestChecker();
+
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
@@ -103,7 +147,26 @@ async function main() {
   await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh');
   await p.click('#cl_go');
   await p.waitForTimeout(4000);
+  await p.evaluate(() => { current = 'finance'; if (typeof render === 'function') render(); });
+  await p.waitForTimeout(1200);
 
+  // ---- THE REAL CHECK: read every live row's own numbers and run the arithmetic. This is
+  // data-layer, not render-layer — it holds regardless of which tab happens to be open. ----
+  const rows = await p.evaluate(() => (window.FIN && FIN.rows ? FIN.rows.filter((r) => !r.deleted_at) : []).map((r) => ({
+    invoice_no: r.invoice_no, total_incl_vat_sar: r.total_incl_vat_sar, vat_sar: r.vat_sar,
+    revenue_sar: r.revenue_sar, cost_sar: r.cost_sar, profit_sar: r.profit_sar,
+  })));
+  const vatBearing = rows.filter((r) => (+r.vat_sar || 0) > 0);
+  if (!vatBearing.length) fail('no live row carries vat_sar > 0 — the VAT canary fixture (i-qa-vatclean) is missing, this probe cannot actually test the rule it exists for');
+  else ok(`${vatBearing.length} live VAT-bearing row(s) found to check`);
+  for (const row of vatBearing) {
+    const issues = vatContaminationIssues(row);
+    if (issues.length) fail(`invoice ${row.invoice_no}: ${issues.join('; ')}`);
+    else ok(`invoice ${row.invoice_no}: revenue_sar and profit_sar are both clean of VAT`);
+  }
+
+  // ---- Page/tab render sweep — still real, still worth keeping; VAT text mentions are now
+  // OBSERVATIONAL only (see header), never fail the build. ----
   for (const lang of [{ code: 'en', label: 'EN' }, { code: 'ar', label: 'AR' }]) {
     console.log(`\n=== ${lang.label} ===`);
     if (lang.code === 'ar') {
@@ -116,8 +179,6 @@ async function main() {
       await p.waitForTimeout(700);
     }
 
-    // Every top-level nav page, one at a time — reads whatever #nav currently offers, so
-    // this doesn't need its own hardcoded page list to go stale against nav changes.
     const navLabels = await p.evaluate(() => [...document.querySelectorAll('#nav button')].map((x) => x.textContent.trim()).filter(Boolean));
     for (const label of navLabels) {
       const clicked = await p.evaluate((l) => {
@@ -130,13 +191,13 @@ async function main() {
       const pageLabel = `${lang.label} page "${label}"`;
       if (settled.timedOut || settled.length <= 40) fail(`${pageLabel}: BLIND SPOT — page did not render (length ${settled.length})`);
       else {
+        ok(`${pageLabel}: rendered`);
         const text = await p.evaluate(() => document.body.innerText);
-        scanVAT(text, pageLabel);
+        const hit = findVatMention(text);
+        if (hit) note(`${pageLabel}: mentions VAT on screen (${JSON.stringify(hit)}) — no longer a violation per the corrected M1, informational only`);
       }
     }
 
-    // Finance's 8 tabs specifically, via finGo — the nav sweep above only exercises
-    // whichever tab Finance happens to default to.
     await p.evaluate(() => { const btn = [...document.querySelectorAll('#nav button')].find((x) => /Finance|المالية/.test(x.textContent)); if (btn) btn.click(); });
     await settleContent(p, 4000);
     for (const tab of FIN_TABS) {
@@ -146,14 +207,17 @@ async function main() {
       const tabLabel = `${lang.label} Finance/${tab}`;
       if (settled.timedOut || settled.length <= 40) fail(`${tabLabel}: BLIND SPOT — tab did not render (length ${settled.length})`);
       else {
+        ok(`${tabLabel}: rendered`);
         const text = await p.evaluate(() => document.getElementById('view').innerText);
-        scanVAT(text, tabLabel);
+        const hit = findVatMention(text);
+        if (hit) note(`${tabLabel}: mentions VAT on screen (${JSON.stringify(hit)}) — no longer a violation per the corrected M1, informational only`);
       }
     }
   }
 
   const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
+  if (realErrors.length) fail(`${realErrors.length} JS/console error(s) during the run`);
 
   await b.close();
   srv.close();
@@ -162,7 +226,7 @@ async function main() {
     console.log(`\nFAILED — ${failures} check(s) did not pass.`);
     process.exit(1);
   }
-  console.log('\nPASSED — no VAT string anywhere on screen, every page + all 8 Finance tabs, EN+AR, no blind spots.');
+  console.log('\nPASSED — no live cost/profit/revenue figure is VAT-contaminated (M1), every page + all 8 Finance tabs render, EN+AR, no blind spots.');
   process.exit(0);
 }
 

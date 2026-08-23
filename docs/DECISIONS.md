@@ -80,14 +80,26 @@ document and the code both exist somewhere in the same repo.
 
 ## Money & finance display
 
-**Finance uses exactly three money words: Revenue, Cost, Profit. VAT is never shown or
-mentioned — anywhere, at any stage, in any view or report.** Restated positively 2026-08-23,
-owner verbatim: "as agreed, we don't need to mention any VAT. We just need to mention three
-things: cost, profit, revenue." Not just "no VAT" — no fourth money concept either. Ruled on
-VAT twice before in writing; a later session asked a third time and was told, again, no.
-`vat_sar` is a legitimate stored column (used internally) — the rule is about what renders
-on screen or in an export, never about the column existing.
-*Date: 2026-08-08 (ruled), reconfirmed 2026-08-22, restated positively 2026-08-23. Status:
+**M1 — The three numbers are cost, profit and revenue, and VAT never enters any of them.**
+Corrected 2026-08-23, owner verbatim, dissolving what earlier wording had turned into a
+recurring question: "I dont care weither vat shows or not, what i want is a clean cost,
+profit, and revenue." **This was never a rule about the glyph "VAT" appearing on a screen —
+it is a rule about the three internal figures never being contaminated by it.** The prior
+wording ("VAT is never shown or mentioned — anywhere, at any stage, in any view or report")
+overshot that and would have had someone strip a legitimate VAT line off a client-facing
+quotation while believing they were enforcing the real rule — that is NOT a violation and
+needs no work; `js/core/core-04-proposals.js`'s quotation VAT line stays exactly as it is.
+The corrected rule: **VAT is stored for import fidelity (`vat_sar` is a legitimate column)
+and may appear on client-facing documents where it is legally expected** (a quotation, a tax
+invoice). **It must never appear in, or be mixed into, an internal figure or report** — the
+Finance page, any export, any total speaks in exactly Revenue / Cost / Profit, full stop, no
+fourth money concept, and none of those three may be VAT-inclusive or VAT-computed.
+`scripts/qa/probe-no-vat-display.mjs` is the regression guard, and was rewritten the same day
+to match — it used to assert the absence of a "VAT" label on screen, which would pass even on
+a VAT-contaminated profit number as long as nothing printed the word; it now asserts no
+internal cost/profit/revenue figure is derived from or mixed with VAT.
+*Date: 2026-08-08 (first ruled), reconfirmed 2026-08-22, restated 2026-08-23 (still
+mis-scoped to "never shown anywhere"), corrected to its real meaning 2026-08-23. Status:
 ACTIVE.*
 
 **Cost = approved expenses only.** `finance_expenses` rows are the real cost behind a
