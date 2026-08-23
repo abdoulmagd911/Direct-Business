@@ -1,41 +1,47 @@
 /* probe-expense-report-capture.mjs — regression guard for js/65-universal-importer.js's
-   expense_report_capture signature (2026-08-23).
+   TWO-FILE cost-capture join (expense_lines_capture + expense_gate_capture), rebuilt
+   2026-08-23. This REPLACES the earlier single-file expense_report_capture probe: that
+   design (shipped in commit ef7c254) required a transaction-level txn_expense_status column
+   on every expense-report row, and the real source — Direct Payments'
+   admin.stats.expense-report (219 corporate rows) — does not carry that column at all. Its
+   own columns are INVOICE # | AMOUNT (SAR) | STATUS | APPROVAL DATE | MERCHANT, confirmed by
+   checking, not assumed.
 
-   THE SOURCE. Direct Payments' admin.stats.expense-report (?of_corporate_client=true, 219
-   corporate rows, one row per expense line), found by reading the app's own Ziggy route
-   registry rather than guessing URLs. Cross-verified against the earlier "View Assignments"
-   modal path on a real invoice before trusting it (both independently read 12,247.00 for
-   invoice 1163597647). That modal path was then abandoned entirely: a stale iframe reference
-   returned the PREVIOUS invoice's approved-cost figure for four rows in a row before it was
-   caught — a well-formed, plausible number that was simply wrong, discarded before any of it
-   reached a database. The expense-report path has no iframe, no per-row modal, no staleness
-   risk of that shape.
+   THE GATE'S REAL SOURCE, confirmed 2026-08-23: /en/admin/corporate_clients/transactions
+   (RECEIPT REF. | PRODUCT | AMOUNT (SAR) | INVOICE ISSUING | CREATED AT | EXPENSE STATUS,
+   153 rows — the expected many-lines-to-one-transaction shape against 219 lines, not a
+   mismatch). Per docs/DECISIONS.md principle P1 (take the durable option, not the quick
+   one), the join between the two files happens HERE, in the importer, in code — never in a
+   one-off capture script that would be invisible to this probe and would die with the
+   session that wrote it. The join key itself (expense-report's INVOICE # = transactions'
+   RECEIPT REF.) is an UNVERIFIED CLAIM — same number space, not yet proven on a real matching
+   pair — which is exactly why every unmatched invoice_no must be reported individually as
+   "waiting," never silently dropped: a wrong join-key assumption must surface as a visible
+   list, not a quietly-clean import that understates cost. This probe asserts that loud
+   reporting directly, on both sides of the join.
 
-   TWO TRAPS FOUND DURING CAPTURE, both defended here in code, neither trusted to memory:
-     1. The report's own expense_status URL filter does NOT apply server-side — filtering for
-        Approved still returned Pending/Cancelled/Under Review rows. This probe's fixture
-        deliberately includes a non-Approved line on the same invoice as Approved lines, and
-        asserts it is excluded from the sum by VALUE, not by having trusted a query string.
-     2. Repeated (amount, expense_type) pairs on one invoice are real, separate expenses (owner's
-        own notes: three identical-amount Hotel Cost / RateHawk lines, three different approval
-        timestamps) — never deduplicated. This probe's fixture repeats one amount twice on
-        purpose and asserts BOTH count toward the sum.
+   THE SELF-CAUGHT BUG THIS PROBE SPECIFICALLY EXERCISES: EXPENSE_JOIN (the in-memory join
+   state) must persist across SEPARATE drop batches, not just within one multi-file drop — the
+   two files are captured from two different Direct Payments pages and may genuinely arrive in
+   two different sessions (lines today, transaction status tomorrow). An earlier version of
+   processFileList() called resetExpenseJoin() at the start of every drop, which would have
+   silently destroyed an already-captured file's data the moment the second file was dropped
+   later — caught by re-reading the code against the importer's own stated rule before it ever
+   shipped, not by a test failure. This probe drops the two files via two SEPARATE
+   page.setInputFiles() calls (never together) specifically to prove the fix holds.
 
-   THE STANDING GATE (owner's Aug 20/21 notes, re-confirmed 2026-08-23 after an earlier,
-   incomplete design missed it): per-line Approved is not enough — an invoice's cost is only
-   FINAL once its own transaction Expense Status reads Ready/Issued; a line can be Approved
-   while ANOTHER line on the same invoice is still Under Review, leaving the invoice Pending
-   overall. Summing only the Approved lines in that state is a real number that is silently
-   INCOMPLETE. So nothing is ever written unless every line on the invoice agrees the gate
-   (txn_expense_status) is Ready/Issued — Pending leaves cost_sar exactly as it was: untouched,
-   never zeroed, never a partial sum. This probe asserts that gate directly, plus every other
-   guard the design carries: no new finance_invoices row is ever created (excluded/unknown
-   invoice_no rows are reported, never inserted), a second exclusion-list check runs even
-   though a live match already implies the invoice passed it once, a cost that would exceed
-   the invoice's own total is rejected (the exact shape of the stale-iframe class of bug), a
-   malformed amount voids that invoice's whole line group rather than guessing which lines to
-   trust, and conflicting txn_expense_status values across one invoice's lines are refused
-   rather than picked between. */
+   THE STANDING GATE (owner's Aug 20/21 notes, re-confirmed 2026-08-23): per-line Approved is
+   not enough — an invoice's cost is only FINAL once its own transaction Expense Status reads
+   Ready/Issued; a line can be Approved while ANOTHER line on the same invoice is still Under
+   Review, leaving the invoice Pending overall. Summing only the Approved lines in that state
+   is a real number that is silently INCOMPLETE. So nothing is ever written unless the gate
+   says Ready/Issued — Pending leaves cost_sar exactly as it was: untouched, never zeroed,
+   never a partial sum. This probe asserts that gate directly, plus every other guard the
+   design carries: no new finance_invoices row is ever created (excluded/unknown invoice_no
+   rows are reported, never inserted), a second exclusion-list check runs even though a live
+   match already implies the invoice passed it once, a cost that would exceed the invoice's
+   own total is rejected, a malformed amount voids that invoice's whole line group, and a
+   gate file that disagrees with itself on one invoice_no is refused rather than guessed at. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
@@ -87,29 +93,72 @@ async function main() {
   //   i0 116361000 total 5000  — Ready, 3 Approved lines (one repeated) + 1 Pending line
   //   i1 116361001 total 5777  — Pending gate, 1 Approved line — must stay untouched
   //   i2 116361002 total 6554  — Ready, Approved sum exceeds total — rejected
-  //   i3 116361003 total 7331  — lines disagree on gate — rejected
+  //   i3 116361003 total 7331  — gate file disagrees with itself on this invoice — rejected
   //   i4 116361004 total 8108  — Ready, one line has a malformed amount — rejected
-  const csv = [
-    'invoice_no,amount_sar,expense_status,txn_expense_status',
-    '116361000,1000,Approved,Ready',
-    '116361000,1000,Approved,Ready',
-    '116361000,500,Approved,Ready',
-    '116361000,300,Pending,Ready',
-    '116361001,2000,Approved,Pending',
-    '9999999999,100,Approved,Ready',
-    'UNKNOWN-TEST-001,50,Approved,Ready',
-    '116361002,999999,Approved,Ready',
-    '116361003,1000,Approved,Ready',
-    '116361003,500,Approved,Pending',
-    '116361004,abc,Approved,Ready',
+  //   i5 116361005 total 8885  — a REAL live invoice with a transaction-status row but NO
+  //                              expense lines dropped for it — "waiting for lines," untouched
+  const linesCsv = [
+    'invoice_no,amount_sar,expense_status',
+    '116361000,1000,Approved',
+    '116361000,1000,Approved',
+    '116361000,500,Approved',
+    '116361000,300,Pending',
+    '116361001,2000,Approved',
+    '9999999999,100,Approved',
+    'UNKNOWN-TEST-001,50,Approved',
+    '116361002,999999,Approved',
+    '116361003,1000,Approved',
+    '116361003,500,Approved',
+    '116361004,abc,Approved',
+  ].join('\n');
+  const gateCsv = [
+    'invoice_no,txn_expense_status',
+    '116361000,Ready',
+    '116361001,Pending',
+    '9999999999,Ready',
+    'UNKNOWN-TEST-001,Ready',
+    '116361002,Ready',
+    '116361003,Ready',
+    '116361003,Pending',
+    '116361004,Ready',
+    '116361005,Ready',
   ].join('\n');
 
-  await p.setInputFiles('#finFile', { name: 'expense-report.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+  // ---- Drop 1: expense_lines_capture ALONE. Everything must sit "waiting for gate" — no
+  // Confirm button, nothing written, and every waiting invoice named individually, not folded
+  // into a bare count. ----
+  await p.setInputFiles('#finFile', { name: 'expense-lines.csv', mimeType: 'text/csv', buffer: Buffer.from(linesCsv) });
   await p.waitForTimeout(1500);
 
-  const preview = await p.evaluate(() => { const v = document.getElementById('finImpOut'); return v ? v.innerText : ''; });
-  if (!/Expense Report Capture/i.test(preview)) fail(`preview did not show the expense_report_capture signature — file was not recognized: ${preview.slice(0, 200)}`);
-  else ok('file recognized as Expense Report Capture');
+  const preview1 = await p.evaluate(() => { const v = document.getElementById('finImpOut'); return v ? v.innerText : ''; });
+  if (!/Expense Report — lines/i.test(preview1)) fail(`drop 1: lines file was not recognized as expense_lines_capture: ${preview1.slice(0, 300)}`);
+  else ok('drop 1: expense-lines.csv recognized as "Expense Report — lines"');
+  if (!/Cost — joined and resolved/i.test(preview1)) fail('drop 1: no joined-result entry appeared — the join must render even with only one file present');
+  else ok('drop 1: joined-result entry appeared alongside the raw file');
+  if (!/7 invoice\(s\) have expense lines but no transaction status yet/i.test(preview1)) fail(`drop 1: waiting-for-gate note missing or wrong count (expected 7): ${preview1.slice(0, 400)}`);
+  else ok('drop 1: waiting-for-gate note correctly counts all 7 invoice_nos');
+  if (!/116361000/.test(preview1) || !/waiting/i.test(preview1)) fail('drop 1: individual waiting invoice_nos are not listed — this must be loud per-invoice, not just an aggregate count');
+  else ok('drop 1: individual invoice_nos are listed as waiting, not just summarized');
+  const hasConfirmBtn1 = await p.evaluate(() => !![...document.querySelectorAll('#finImpOut button')].find((x) => /Confirm/i.test(x.textContent)));
+  if (hasConfirmBtn1) fail('drop 1: a Confirm button appeared with only the lines file present — nothing should be writable before the gate arrives');
+  else ok('drop 1: no Confirm button — correctly nothing is writable yet');
+
+  // ---- Drop 2: expense_gate_capture ALONE, as a SEPARATE action (this is the exact scenario
+  // the self-caught resetExpenseJoin() bug would have broken: a second, later drop must not
+  // wipe what drop 1 already captured). ----
+  await p.setInputFiles('#finFile', { name: 'expense-gate.csv', mimeType: 'text/csv', buffer: Buffer.from(gateCsv) });
+  await p.waitForTimeout(1500);
+
+  const preview2 = await p.evaluate(() => { const v = document.getElementById('finImpOut'); return v ? v.innerText : ''; });
+  if (!/Expense Report — transaction status \(join\)/i.test(preview2)) fail(`drop 2: gate file was not recognized as expense_gate_capture: ${preview2.slice(0, 300)}`);
+  else ok('drop 2: expense-gate.csv recognized as "Expense Report — transaction status (join)"');
+  if (!/1 updated/.test(preview2)) fail(`drop 2: expected exactly 1 updated row (116361000) once both files are present: ${preview2.slice(0, 400)}`);
+  else ok('drop 2: join resolved to exactly 1 updated row — proves EXPENSE_JOIN carried drop 1\'s data forward into this separate drop');
+  if (!/116361005/.test(preview2) || !/waiting/i.test(preview2)) fail('drop 2: the transaction-only invoice (116361005, no expense lines) is not listed as waiting — a join-key mismatch here must be visible, never silent');
+  else ok('drop 2: 116361005 (gate with no matching lines) correctly listed as waiting, not silently dropped');
+  const hasConfirmBtn2 = await p.evaluate(() => !![...document.querySelectorAll('#finImpOut button')].find((x) => /Confirm/i.test(x.textContent)));
+  if (!hasConfirmBtn2) fail('drop 2: no Confirm button appeared even though the join now has a real update to write');
+  else ok('drop 2: Confirm button appeared now that the join has a real update');
 
   const dialogsBefore = dialogs.length;
   const clicked = await p.evaluate(() => {
@@ -118,7 +167,7 @@ async function main() {
     if (bt) { bt.click(); return true; }
     return false;
   });
-  if (!clicked) fail('no Confirm import button appeared — nothing to commit means the whole batch was rejected, which is wrong (invoice 116361000 must apply)');
+  if (!clicked) fail('no Confirm import button appeared to click');
   else ok('Confirm import button clicked');
   if (dialogs.length > dialogsBefore) fail(`commit alerted instead of importing: ${dialogs[dialogs.length - 1]}`);
   await p.waitForTimeout(1500);
@@ -134,6 +183,7 @@ async function main() {
       exceedsTotal: get('116361002'),
       conflictingGate: get('116361003'),
       malformed: get('116361004'),
+      waitingForLines: get('116361005'),
       takamol: get('9999999999'),
     };
   });
@@ -154,24 +204,29 @@ async function main() {
   else if (rows.exceedsTotal.cost === 999999) fail('116361002: the impossible 999999 cost was applied — this is exactly the stale-iframe class of bug the cost<=total guard exists to catch');
   else ok(`116361002: cost_sar left untouched at ${rows.exceedsTotal.cost} — the exceeds-total guard correctly rejected 999999`);
 
-  // ---- Invoice 116361003: lines disagree on txn_expense_status — never guessed at ----
+  // ---- Invoice 116361003: the GATE FILE disagrees with itself on this invoice_no — never guessed at ----
   if (!rows.conflictingGate) fail('116361003: row went missing entirely');
-  else if (rows.conflictingGate.cost === 1000 || rows.conflictingGate.cost === 1500) fail(`116361003: cost_sar was written (${rows.conflictingGate.cost}) despite the two lines disagreeing on transaction expense status — this must never be resolved by guessing`);
-  else ok('116361003: cost_sar left untouched — conflicting transaction expense status across lines correctly refused, not guessed');
+  else if (rows.conflictingGate.cost === 1500) fail(`116361003: cost_sar was written (${rows.conflictingGate.cost}) despite the gate file disagreeing with itself on this invoice_no — this must never be resolved by guessing`);
+  else ok('116361003: cost_sar left untouched — a gate file that disagrees with itself on one invoice_no was correctly refused, not guessed');
 
   // ---- Invoice 116361004: a malformed amount on one line must void the whole invoice's write ----
   if (!rows.malformed) fail('116361004: row went missing entirely');
   else if (rows.malformed.cost === 0) fail('116361004: a malformed amount silently became 0 cost — must be refused entirely, not fabricated as zero');
   else ok(`116361004: cost_sar left untouched at ${rows.malformed.cost} — the malformed-amount guard correctly refused the whole invoice`);
 
+  // ---- Invoice 116361005: a transaction-status row with NO matching expense lines — never touched ----
+  if (!rows.waitingForLines) fail('116361005: row went missing entirely');
+  else if (rows.waitingForLines.cost !== 7819) fail(`116361005: cost_sar is ${rows.waitingForLines.cost}, expected untouched at 7819 — a transaction-only row with no expense lines must never receive a cost write`);
+  else ok('116361005: cost_sar left untouched at 7819 — correctly waiting for the expense-lines file, never guessed at');
+
   // ---- Excluded client: never touched, never created ----
   if (!rows.takamol) fail('9999999999 (Takamol, already excluded): row unexpectedly disappeared');
-  else if (rows.takamol.cost === 100) fail('9999999999: the excluded Takamol row received a cost write — the exclusion re-check inside expense_report_capture did not fire');
-  else ok('9999999999: the excluded Takamol row was correctly left untouched by the capture path');
+  else if (rows.takamol.cost === 100) fail('9999999999: the excluded Takamol row received a cost write — the exclusion re-check inside the join did not fire');
+  else ok('9999999999: the excluded Takamol row was correctly left untouched by the join');
 
   // ---- Unknown invoice_no (test company / not in our system): never inserted as a new row ----
   const noNewRow = await p.evaluate(() => !(FIN.rows || []).some((r) => r.invoice_no === 'UNKNOWN-TEST-001'));
-  if (!noNewRow) fail('UNKNOWN-TEST-001: a new finance_invoices row was created — expense_report_capture must NEVER insert, only update a live invoice');
+  if (!noNewRow) fail('UNKNOWN-TEST-001: a new finance_invoices row was created — the join must NEVER insert, only update a live invoice');
   else ok('UNKNOWN-TEST-001: correctly never inserted as a new row — an unmatched invoice_no is reported, never created');
 
   const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION/.test(e));
@@ -185,7 +240,7 @@ async function main() {
     console.log(`\nFAILED — ${failures} check(s) did not pass.`);
     process.exit(1);
   }
-  console.log('\nexpense report capture OK — Ready/Issued gate holds, sums are correct without deduping, every trap stays refused, no new rows are ever created.');
+  console.log('\nexpense report capture (two-file join) OK — persists across separate drops, Ready/Issued gate holds, sums are correct without deduping, every trap stays refused loudly, no new rows are ever created.');
   process.exit(0);
 }
 

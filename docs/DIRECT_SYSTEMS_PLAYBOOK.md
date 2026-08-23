@@ -66,6 +66,21 @@ table draw, then read what's rendered on screen.
   CLAUDE.md's "what this session can and cannot reach" table). A screenshot, or Abdulrahman
   reading the live screen himself, is the only way in from this side.
 
+**The sync export/`?export=1` path is not slow, it is a session-wide stall — never poll or
+retry it.** Tested 2026-08-23: the fetch is accepted by the server and simply never returns.
+While it's in flight, EVERY other request from the same browser session queues behind it —
+a separate paginated DOM capture of page 1 hung too, and stayed hung even after a full tab
+reload, because the server-side job holds the Laravel session lock for the whole session, not
+just that one request. This is exactly why "Fast Excel Export" exists as a separate queued
+route into `/en/admin/excel-exports` — it is the only export path worth evaluating later.
+DOM pagination (reading the rendered table, page by page) stays the working capture mechanism
+for everything else. The same lock also fires on an ordinary page fetch with `per_page=100` —
+confirmed on both `/en/admin/corporate_clients/transactions` and `/en/admin/stats/cog-report`,
+both stalled the session the same way the export did; `per_page=10–25` on either returns
+instantly. **Page every Direct Payments capture small (10–25 rows), not 100** — a 219-row
+expense-report capture at `per_page=100` completed but sits on the edge of the same lock and
+should not be treated as a safe pattern to repeat.
+
 **Useful admin URLs** (`https://payments.directksa.com/en/admin/...` unless noted) —
 confirmed to exist and to be readable this way:
 - `corporate_clients/transactions` — Corporate Transactions list (150 rows as of 2026-08-21)
@@ -210,7 +225,14 @@ to client × period, not be trusted at the single-invoice level alone.
   look backwards.
 - **(d)** `/en/admin/proformas` is **not a real page** — proformas, invoices and credit notes
   all live together under `/en/admin/invoices`. Corporate transactions live at
-  `/en/admin/corporate_clients/transactions`.
+  `/en/admin/corporate_clients/transactions` — columns RECEIPT REF. | PRODUCT | AMOUNT (SAR) |
+  INVOICE ISSUING | CREATED AT | EXPENSE STATUS (153 rows, confirmed 2026-08-23). This is the
+  source of record for the transaction-level Expense Status gate (Pending/Ready, blank once
+  Issued) that our app's cost-capture importer needs — NOT the expense-report page, which only
+  carries the per-line status. **Unverified:** whether RECEIPT REF. here is literally the same
+  value as INVOICE # on the expense-report page — same number space (e.g. 1163764791 vs
+  1163597647), not yet proven on a matched pair. Treat any join between the two as a claim to
+  test, not an assumed fact — see `js/65-universal-importer.js`'s `expense_gate_capture`.
 - **(e)** Until its tax invoice is issued, a transaction is stored as an invoice record of
   type "Invoice - B2B" with status "Void Receivables" — that status is normal and expected
   for an un-issued transaction, not an error state.

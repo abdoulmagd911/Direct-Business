@@ -724,7 +724,32 @@ const BK_INC_LIMIT=100;
 const BK_DAY_LIMIT=30;
 const BK_THROTTLE_MS=5*60*1000;
 function bkRead(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return [];}}
-function bkWrite(k,a){try{localStorage.setItem(k,JSON.stringify(a));}catch(e){/* quota */console.warn('bk write fail',e);}}
+// Found 2026-08-23: this used to catch QuotaExceededError with only a console.warn — a failure
+// nobody would ever see, while save() (js/core/core-01-foundation.js, right above this module in
+// load order) already toasts+warns-once for the exact same failure on the MAIN data key. A silent
+// bkWrite() failure means new backup snapshots just stop landing, forever, with the Settings card
+// still showing the last-successful count — looks like it's working. Now: one retry with the array
+// halved (an emergency trim, not a policy change — see docs/BACKLOG.md for the real fix, lowering
+// BK_INC_LIMIT/BK_DAY_LIMIT, which is a retention trade-off for the owner, not a bug fix), then a
+// loud, once-only toast if even that fails.
+function bkWrite(k,a){
+  try{localStorage.setItem(k,JSON.stringify(a));return true;}
+  catch(e){
+    try{
+      var trimmed=a.slice(0,Math.max(1,Math.floor(a.length/2)));
+      localStorage.setItem(k,JSON.stringify(trimmed));
+      console.warn('bk write: storage full, trimmed '+k+' from '+a.length+' to '+trimmed.length+' entries to make room',e);
+      return true;
+    }catch(e2){
+      if(!window.__bkQuotaWarned){
+        window.__bkQuotaWarned=true;
+        console.warn('bk write fail — backup snapshots have stopped saving (storage full)',e2);
+        try{if(typeof toast==='function')toast('Backup storage full — auto-snapshots have stopped. Export a JSON backup soon (Settings → Backup & restore).');}catch(_){}
+      }
+      return false;
+    }
+  }
+}
 function snapshotMaybe(){const last=+localStorage.getItem(BK_KEY_LAST)||0;const now=Date.now();if(now-last<BK_THROTTLE_MS)return;localStorage.setItem(BK_KEY_LAST,String(now));const ts=new Date(now).toISOString();const data=localStorage.getItem(KEY)||'';if(!data)return;const inc=bkRead(BK_KEY_INC);inc.unshift({ts:ts,size:data.length,data:data});if(inc.length>BK_INC_LIMIT)inc.length=BK_INC_LIMIT;bkWrite(BK_KEY_INC,inc);const day=bkRead(BK_KEY_DAY);const today=ts.slice(0,10);if(!day.length||day[0].ts.slice(0,10)!==today){day.unshift({ts:ts,size:data.length,data:data});if(day.length>BK_DAY_LIMIT)day.length=BK_DAY_LIMIT;bkWrite(BK_KEY_DAY,day);}}
 const _v21OrigSave=save;save=function(){_v21OrigSave();try{snapshotMaybe();}catch(e){}};
 function listBackups(){return {inc:bkRead(BK_KEY_INC).map(b=>({ts:b.ts,size:b.size})),day:bkRead(BK_KEY_DAY).map(b=>({ts:b.ts,size:b.size})),tagged:bkRead(BK_KEY_TAG).map(b=>({ts:b.ts,size:b.size,name:b.name}))};}

@@ -1,6 +1,98 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-23 · Cost-capture rebuilt as a two-file join; three new standing rules; one real bug caught before shipping
+
+**Same day, one more correction on top of the entry directly below this one.** The single-file
+`expense_report_capture` design shipped in commit `ef7c254` (previous entry) required a
+`txn_expense_status` column on every expense-report row. The oversight session then tested it
+against the real source and found `admin.stats.expense-report` does not carry that column at
+all — its columns are `INVOICE # | AMOUNT (SAR) | STATUS | APPROVAL DATE | MERCHANT`, confirmed
+by checking, not assumed. **`expense_report_capture` is superseded.** The gate lives on a
+different Direct Payments screen entirely, `/en/admin/corporate_clients/transactions`
+(`RECEIPT REF. | PRODUCT | AMOUNT (SAR) | INVOICE ISSUING | CREATED AT | EXPENSE STATUS`, 153
+rows against 219 expense lines — the expected many-to-one shape, not a mismatch), confirmed by
+the oversight session 2026-08-23.
+
+**Rebuilt as two joined signatures in `js/65-universal-importer.js`:** `expense_lines_capture`
+(the per-line Approved/Pending/Cancelled/Under Review status) and `expense_gate_capture` (the
+transaction-level Ready/Issued gate) — resolved by a new `resolveExpenseJoin()`, which produces
+one synthetic result entry that slots into the existing multi-file combined-preview/commit UI
+unchanged. Every guard from the single-file design survived the rebuild: the exclusion list is
+re-checked even on a live match, a cost exceeding the invoice's own total is rejected, a
+malformed line amount voids that invoice's whole write, a gate file that disagrees with itself
+on one invoice_no is refused, and a Pending-gated invoice is left completely untouched. **New
+in this version:** every invoice_no waiting on the other file is now reported individually in
+the preview (`costCaptureDetail`), not folded into a bare summary count — the oversight session
+asked for this explicitly, because the join key itself (expense-report's `INVOICE #` = the
+transactions page's `RECEIPT REF.`) is an *unverified claim*, same number space but not yet
+proven on a real matching pair, so a wrong assumption there must surface as a visible list, not
+a quietly-clean import that understates cost.
+
+**A real bug caught before it ever shipped, by re-reading the code, not by a test failing.**
+The first draft of `processFileList()` called `resetExpenseJoin()` at the top of every drop
+batch. That would have silently thrown away an already-captured file's data the moment a
+second file was dropped in a *separate* action — a very real workflow, since the two files
+come from two different Direct Payments pages and may genuinely be captured a day apart. It
+directly contradicted the importer's own stated rule ("a file that references something not
+seen yet just sits unlinked until the file that supplies it arrives"). Fixed before commit:
+`EXPENSE_JOIN` now persists for the page's lifetime, cleared only by a reload.
+`scripts/qa/probe-expense-report-capture.mjs` was rewritten to drop the two files via two
+*separate* `page.setInputFiles()` calls specifically to prove this holds, not just to re-test
+the money math.
+
+**Three new rules added to `docs/DECISIONS.md`, Principles section:**
+- **P1** — between two working options, take the one that endures (owner's verbatim standing
+  rule, 23 Aug). Governed the second-file-and-join-in-code decision above.
+- **P4** — this repo now has two concurrent tasks (Finance/oversight; Proposal & Documents,
+  newly split off). File ownership is explicit — see the rule for the exact split — and
+  `docs/DECISIONS.md` itself is written only by the Finance/oversight pairing.
+- **P5** — "a correct rule that nothing consults is not a rule," after hitting the same
+  failure shape three times (Takamol exclusion list, `MIN_PW`, and now `/brand/tokens.css` not
+  being loaded by the two pages that render Direct's brand — the last one is the Proposal &
+  Documents task's to fix, recorded here only as a cross-reference). Given a mechanical teeth:
+  new `scripts/qa/check-decisions-wired.mjs` parses every ACTIVE rule's backtick code
+  citations (a function call, an ALL_CAPS constant, a file path) and fails the build if a
+  citation is stale (points at code that doesn't exist) or dead (defined but never called
+  anywhere else) — caught its own first real bug immediately: my own P5 entry cited
+  `proposal.html` and `core-04-proposals.js` as bare filenames, which don't resolve from repo
+  root; fixed to the real paths (`brand/proposal.html`, `js/core/core-04-proposals.js`) before
+  this was committed.
+
+**Two Direct Payments landmines recorded, both in `docs/DIRECT_SYSTEMS_PLAYBOOK.md` and
+`docs/DECISIONS.md`:** (1) the sync export/`?export=1` path is not slow, it's a session-wide
+stall — the fetch is accepted server-side and never returns, and while in flight it holds the
+Laravel session lock for the *whole browser session*, queuing every other request (a separate
+paginated DOM capture hung too, and stayed hung after a full tab reload). Never poll or retry
+it; the queued "Fast Excel Export" route is the only export worth evaluating later. (2) the
+same session lock also fires on an ordinary `per_page=100` page fetch — confirmed on both
+`/en/admin/corporate_clients/transactions` and `/en/admin/stats/cog-report` — so every capture
+should page at 10–25, not 100; the 219-row expense-report capture at `per_page=100` worked but
+sits on the edge of the same lock.
+
+**One landmine on our own side, flagged by the oversight session and fixed same day:**
+`bkWrite()` in `js/core/core-06-v18-v21.js` (the local backup-snapshot writer) caught
+`QuotaExceededError` with only a `console.warn` — nobody would ever see a failure there, while
+`save()` right above it in load order already toasts+warns-once for the identical failure on
+the main data key. Fixed: one retry with the array halved (an emergency trim, not a retention
+policy change), then a loud one-time toast if that still fails. **Not fixed, needs the owner's
+call, not a bug fix:** on the same browser origin, `directBusinessBackupsInc_v21` is 3.6 MB and
+`directBusinessBackupsDay_v21` is 1.0 MB against a roughly 5 MB origin quota — the backup layer
+is close to full already. `BK_INC_LIMIT`/`BK_DAY_LIMIT` (currently 100 incremental / 30 daily,
+each a full DB snapshot) could be lowered to buy headroom, but that's a retention trade-off,
+not something to change unilaterally.
+
+Verified: `node -c` on every touched file, `check-structure.mjs` (58 script files), the full
+probe battery, `check-decisions-wired.mjs` (new). See the deploy verification note below this
+entry for the exact list and results.
+
 ## 2026-08-23 · Real cost-import path built: js/65's expense_report_capture
+
+**SUPERSEDED — see the entry directly above.** `expense_report_capture` (single-file,
+`txn_expense_status` required on every row) was replaced the same day by the two-file join
+(`expense_lines_capture` + `expense_gate_capture`) once it was confirmed the real source
+doesn't carry that column. Left in place below as the design history — the three-iteration
+trail (modal scrape → single-file → two-file join) is worth keeping intact so nobody
+re-discovers iteration #1 or #2 from scratch.
 
 Three rounds of cost-capture design happened this same day, each corrected by the last —
 recorded in full so a future session doesn't repeat any of the three:

@@ -30,6 +30,54 @@ knowledge existed but nothing forced a check against it at the moment of acting.
 
 ---
 
+## Principles
+
+**P1 — Between two working options, take the one that endures.** Owner's standing rule,
+23 Aug, verbatim: "I always want you to do the best. There is two options like this. I would
+always go with the automatic or the best option on the long run. So please make it a standard
+rule to go with the best option on the long run because I'm building something that lasts and
+endures, not just something to view or to brag about." When an either/or choice comes up —
+join in a throwaway capture script vs. join in the importer; a manual one-off fix vs. a rule
+the importer enforces every time; a quick patch vs. the repeatable path — take the automatic,
+repeatable, durable option, even when the quick one would unblock today faster. This outranks
+convenience, never correctness: it is a tiebreaker between two options that are both already
+correct, not a license to skip a check because the durable version is slower to build. First
+applied 2026-08-23 to the expense-report cost-capture design: join the expense-lines file and
+the transaction-status file inside `js/65-universal-importer.js`, in code, rather than in a
+capture script that runs once and leaves no trace — the importer version is testable
+(`scripts/qa/probe-expense-report-capture.mjs`) and survives past the session that built it;
+a join done ad hoc would not.
+*Date: 2026-08-23. Status: ACTIVE.*
+
+**P4 — Two tasks, one repo: ownership by file, not by judgement.** Set 2026-08-23 when the
+Proposal & Documents work split into its own session pushing to this same repo. The
+Finance/oversight pairing owns `js/16-finance-ledger.js`, `js/25-finance-reporting.js`,
+`js/62-finance-guardrails.js`, `js/65-universal-importer.js` and `scripts/qa/*`. The Proposal
+& Documents task owns `/brand/*` (hub, `tokens.css`, `IDENTITY.md`, `proposal.html`),
+`js/core/core-04-proposals.js`, `js/46-brand-and-studio.js`, and its new generator page.
+**This file, `docs/DECISIONS.md`, is written by the Finance/oversight pairing only** — the
+other task sends rules across and reads the file, never edits it directly, so the two tasks
+never race on the same lines of the same document. A request that touches a file on the
+other side of this line gets a stated "that's not mine, here's whose it is" — never a quiet
+edit anyway because it seemed harmless.
+*Date: 2026-08-23. Status: ACTIVE.*
+
+**P5 — A correct rule that nothing consults is not a rule.** Hit this exact failure shape
+three times now: the Takamol exclusion list (correct, seeded, wired into every importer —
+and never called anyway, because the real write went in through direct SQL); `MIN_PW` (the
+Supabase Auth policy was 10, a screen hardcoded `<8`, so the form accepted an 8-char password
+the server then silently rejected); and `/brand/tokens.css` (a real three-identity design
+system that neither `brand/proposal.html` nor `js/core/core-04-proposals.js` loads — both hardcode their
+own hexes, one of them a full digit apart from the token file's own value, which is how you
+know nobody ever compared them). Writing a standard down is not the same action as making
+anything read it. **Whenever a standard is written — an exclusion list, a token file, a
+password policy, a schema constraint — the same change must also wire something to READ it,
+and something must be able to prove that reading actually happens**, not just that the
+document and the code both exist somewhere in the same repo.
+*Date: 2026-08-23. Status: ACTIVE.*
+
+---
+
 ## Money & finance display
 
 **Finance uses exactly three money words: Revenue, Cost, Profit. VAT is never shown or
@@ -60,13 +108,30 @@ moves from Pending to Ready/Issued. Summing only the Approved lines while anothe
 the same invoice is still Under Review produces a real number that is silently INCOMPLETE.
 So: cost_sar is written for an invoice ONLY when its gate is Ready/Issued; anything still
 Pending leaves cost_sar exactly as it was — untouched, never zeroed, never a partial sum.
-Wired in `js/65-universal-importer.js`'s `expense_report_capture` signature
-(`finalizeExpenseReportCapture()`), regression-guarded by
-`scripts/qa/probe-expense-report-capture.mjs`. The source itself — Direct Payments'
-`admin.stats.expense-report`, one row per expense line — carries two traps, both defended
-in code rather than trusted to memory: its own `expense_status` URL filter does not apply
-server-side (a request filtered to Approved still returns Pending/Cancelled/Under Review
-rows — filtering happens on the row's own value, in code, never the query string), and
+
+**The gate is not on the same source as the lines, so this is a two-file join, not a
+single-file signature.** Direct Payments' `admin.stats.expense-report` (219 corporate rows,
+one row per expense line) carries the per-line Approved/Pending/Under Review/Cancelled status
+but NOT the transaction-level gate — its columns are INVOICE # | AMOUNT (SAR) | STATUS |
+APPROVAL DATE | MERCHANT, confirmed by checking, not assumed (an earlier single-file design
+required the gate on every line and was abandoned the same day it was found the source
+doesn't carry it). The gate itself lives on a different screen,
+`/en/admin/corporate_clients/transactions` (RECEIPT REF. | PRODUCT | AMOUNT (SAR) |
+INVOICE ISSUING | CREATED AT | EXPENSE STATUS, 153 rows — the expected
+many-lines-to-one-transaction shape against 219 lines, not a mismatch), confirmed 2026-08-23.
+Per P1, the join is done inside the importer, in code — `js/65-universal-importer.js`'s
+`expense_lines_capture` + `expense_gate_capture` signatures, resolved by
+`resolveExpenseJoin()` — never in a one-off capture script that would be invisible to every
+probe here and would die with the session that wrote it. Regression-guarded by
+`scripts/qa/probe-expense-report-capture.mjs`. **The join key itself (expense-report's
+INVOICE # = transactions' RECEIPT REF.) is an unverified claim** — same number space, not yet
+proven on a real matching pair — so every expense-line invoice_no with no matching
+transaction row is reported individually as "waiting", never silently dropped; a wrong
+join-key assumption must surface as a visible list, not a quietly-clean import that
+understates cost. The source itself carries two further traps, both defended in code rather
+than trusted to memory: `admin.stats.expense-report`'s own `expense_status` URL filter does
+not apply server-side (a request filtered to Approved still returns Pending/Cancelled/Under
+Review rows — filtering happens on the row's own value, in code, never the query string), and
 repeated identical (amount, expense_type) pairs on one invoice are real, separate expenses
 (verified: three same-amount Hotel Cost/RateHawk lines, three different approval
 timestamps) — never deduplicated.
@@ -186,6 +251,21 @@ was stated plainly rather than quietly turned into a request for the owner to ex
 himself, which is the correct response under this rule.
 *Date: 2026-08-21 (planned), reconfirmed 2026-08-23 after being violated once. Status:
 ACTIVE.*
+
+**Never fire Direct Payments' sync export/`?export=1` path, and never request a large page
+from Direct Payments — the session lock is global to the whole browser session, not just the
+one request.** Verified 2026-08-23: the sync export fetch is accepted by the server and never
+returns; while it's in flight, EVERY other request from the same browser session queues
+behind it — a separate paginated capture of page 1 hung too, and stayed hung after a full tab
+reload, because the server-side job holds the Laravel session lock. That is why a separate
+queued "Fast Excel Export" route into `/en/admin/excel-exports` exists — it is the only export
+worth evaluating later; the sync URL is never worth retrying or polling. The same lock, not
+just the export button, also fires on an ordinary page fetch with `per_page=100` on
+`/en/admin/corporate_clients/transactions` and `/en/admin/stats/cog-report` — both stalled the
+session the same way; `per_page=10–25` returns instantly on both. Page Direct Payments small;
+a captured 219-row batch at `per_page=100` worked but sits on the edge of the same lock, not a
+safe pattern to repeat.
+*Date: 2026-08-23. Status: ACTIVE.*
 
 **Business data enters through the app's own import path, never by direct SQL.** The
 importer (`js/41`, `js/65`, `js/16`) enforces exclusions, dedup and the five-count preview

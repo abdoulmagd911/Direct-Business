@@ -129,38 +129,54 @@
     // screens, not registry exports — named explicitly because of what they DON'T carry
     corporate_transactions:     {label:'Corporate Transactions', rows:null,runs:null,isCostSource:false,hasClientColumn:false},
     corporate_invoices:         {label:'Corporate Invoices',     rows:null,runs:null,isCostSource:false,hasClientColumn:false},
-    // 2026-08-23 — the second real cost source, wired. NOT one of the eleven registry exports
-    // above and NOT the earlier Corporate Expenses "View Assignments" modal path (abandoned —
-    // required a per-invoice iframe read that returned a previous invoice's stale figures
-    // under load, caught before any number reached this file). The real source is
-    // admin.stats.expense-report (?of_corporate_client=true, 219 corporate rows, paginated,
-    // has its own Export/Fast Excel Export) — cross-verified against the modal path on one
-    // invoice before trusting it (both read 12,247.00 for 1163597647).
+    // 2026-08-23 — the second real cost source, wired as TWO joined files. NOT one of the
+    // eleven registry exports above and NOT the earlier Corporate Expenses "View Assignments"
+    // modal path (abandoned — required a per-invoice iframe read that returned a previous
+    // invoice's stale figures under load, caught before any number reached this file).
     //
-    // ONE ROW PER EXPENSE LINE, never pre-summed by whoever captures it — the summing and the
-    // Approved-only filter happen HERE, in code, so they're the same reviewable rule every
-    // time, not a hand computation trusted once. Required columns:
-    //   invoice_no          — natural key, matched against a LIVE finance_invoices row only
-    //   amount_sar          — this one line's amount
-    //   expense_status      — this LINE's own status; only 'Approved' lines count toward the
-    //                         sum. The report's own expense_status URL filter does NOT apply
-    //                         server-side (verified: filtering for Approved still returned
-    //                         Pending/Cancelled/Under Review rows) — filtering happens on this
-    //                         column's actual value, never trust the query string.
-    //   txn_expense_status  — the INVOICE-level gate (owner's standing rule, Aug 20/21 notes):
-    //                         cost is only FINAL once every non-cancelled line on the invoice
-    //                         is Approved, at which point the transaction's own Expense Status
-    //                         reads Ready/Issued. Per-line Approved alone does NOT mean the
-    //                         invoice's cost is final — it can still be Pending on account of
-    //                         one other line still Under Review. This column is NOT on the
-    //                         expense-report; it must be joined in from Corporate Transactions
-    //                         before the file is dropped here. Same value on every line of one
-    //                         invoice — see processCostCaptureBatch() for what happens if the
-    //                         lines disagree (never guessed at).
-    // Repeated (amount, expense_type) pairs on one invoice are real, separate expenses (owner's
-    // notes, verified: three RateHawk "Hotel Cost" lines on one invoice, three different
-    // approval timestamps) — every Approved line is summed, none deduplicated.
-    expense_report_capture:     {label:'Expense Report Capture (per-line, Ready/Issued only)', rows:null,runs:null,isCostSource:true,hasClientColumn:true}
+    // FILE 1 — expense_lines_capture. Direct Payments' admin.stats.expense-report
+    // (?of_corporate_client=true, 219 corporate rows, one row per expense line) — found by
+    // reading the app's own Ziggy route registry rather than guessing URLs, cross-verified
+    // against the abandoned modal path on one invoice before trusting it (both independently
+    // read 12,247.00 for invoice 1163597647). Its own columns are INVOICE # | AMOUNT (SAR) |
+    // STATUS | APPROVAL DATE | MERCHANT — no transaction-level status at all, confirmed by
+    // checking, not assumed. Required: invoice_no, amount_sar, expense_status (this LINE's own
+    // Approved/Pending/Cancelled/Under Review — the report's own expense_status URL filter
+    // does NOT apply server-side, verified: filtering for Approved still returned
+    // Pending/Cancelled/Under Review rows, so filtering happens on this column's actual value,
+    // in code, never the query string). Repeated (amount) pairs on one invoice are real,
+    // separate expenses (owner's notes, verified: three RateHawk "Hotel Cost" lines on one
+    // invoice, two at an identical amount, three different approval timestamps) — every
+    // Approved line is summed, none deduplicated.
+    //
+    // FILE 2 — expense_gate_capture. The transaction-level Expense Status
+    // (Pending / Ready / blank-once-Issued) — owner's notes, verified 6/6: a transaction goes
+    // Ready only when every non-cancelled expense line on it is Approved; ONE line still
+    // Under Review or Pending holds the whole invoice at Pending even if every other line is
+    // Approved, which is exactly why file 1 alone can never answer whether a cost figure is
+    // FINAL. Required: invoice_no, txn_expense_status. This app defines this shape; it is not
+    // a raw Direct Payments header. Real source CONFIRMED 2026-08-23:
+    // /en/admin/corporate_clients/transactions, columns RECEIPT REF. | PRODUCT | AMOUNT (SAR) |
+    // INVOICE ISSUING | CREATED AT | EXPENSE STATUS (153 rows, vs 219 expense lines — the
+    // expected many-lines-to-one-transaction shape, not a mismatch). Whoever captures it maps
+    // EXPENSE STATUS → txn_expense_status and RECEIPT REF. → invoice_no before dropping the
+    // file, the same way file 1's own shape is this app's normalized contract, not a raw scrape.
+    // ⚠ The join key itself is an UNVERIFIED CLAIM as of 2026-08-23: RECEIPT REF. is believed to
+    // be the same number space as file 1's INVOICE # (same style of value seen on both, e.g.
+    // 1163764791 / 1163597647), but no single ref has yet been proven to appear in both real
+    // sets. That is exactly why the join lives here, in code, and not in a capture script: every
+    // invoice_no in file 1 with no matching row in file 2 is reported per invoice as "waiting",
+    // never silently dropped — a wrong join-key assumption must surface as a visible list of
+    // unmatched invoice numbers, not as a quietly-clean import that understates cost.
+    //
+    // THE JOIN happens in this file, in code, never by hand: dropping both together resolves
+    // every invoice_no present in both; either alone sits waiting for the other, exactly like
+    // any other cross-file reference in this importer (see file header). EXPENSE_JOIN persists
+    // for the page's lifetime (not reset per drop), so the two files may be dropped together or
+    // in two separate sessions — either way. See resolveExpenseJoin() below for the actual
+    // resolution and every guard it applies.
+    expense_lines_capture:      {label:'Expense Report — lines',                    rows:null,runs:null,isCostSource:true, hasClientColumn:true},
+    expense_gate_capture:       {label:'Expense Report — transaction status (join)', rows:null,runs:null,isCostSource:false,hasClientColumn:false}
   };
   window.v65Catalogue=CATALOGUE;
 
@@ -170,8 +186,10 @@
   var SIGNATURES=[
     { key:'invoice_export', catalogueKey:'invoice_export',
       requiredColumns:['Type','Invoice Reference #','Customer Name','Item Is Taxable'] },
-    { key:'expense_report_capture', catalogueKey:'expense_report_capture',
-      requiredColumns:['invoice_no','amount_sar','expense_status','txn_expense_status'] }
+    { key:'expense_lines_capture', catalogueKey:'expense_lines_capture',
+      requiredColumns:['invoice_no','amount_sar','expense_status'] },
+    { key:'expense_gate_capture', catalogueKey:'expense_gate_capture',
+      requiredColumns:['invoice_no','txn_expense_status'] }
   ];
   function detectSignature(headerRow){
     var h=(headerRow||[]).map(function(x){return String(x||'').trim();});
@@ -317,40 +335,89 @@
     mergeRowsIntoState(candidates, state);
   }
 
-  /* ---------- expense_report_capture: cost, matched onto an EXISTING live invoice only ----------
-     Never creates a finance_invoices row (see CATALOGUE entry, 2026-08-23, for the full trail —
-     an earlier per-invoice-modal design was abandoned after a stale-iframe near-miss; the real
-     source is admin.stats.expense-report, one row per expense line).
+  /* ---------- expense_lines_capture + expense_gate_capture: cost, joined across two files ----------
+     Never creates a finance_invoices row. Two prior single-file designs were abandoned in the
+     same day (see docs/BACKLOG.md 2026-08-23 for the full trail — a per-invoice-modal read
+     killed by a stale-iframe near-miss, then a single-file design that assumed the real
+     expense-report source carried the transaction-level gate, which it does not: its own
+     columns are INVOICE # | AMOUNT (SAR) | STATUS | APPROVAL DATE | MERCHANT, confirmed by
+     checking, not assumed). The gate — the transaction's own Expense Status, Ready/Issued vs
+     Pending — has to come from a SECOND source and be joined in, in code, not by hand: a join
+     done in a capture script is invisible to every probe here and doesn't survive past that
+     one session; a join done here is testable and lasts (docs/DECISIONS.md, principle P1).
 
-     Rows are only ACCUMULATED here (buffer_ by invoice_no) — the actual sum/gate/write decision
-     happens once, in finalizeExpenseReportCapture(), after every batch of every dropped file has
-     been seen. Summing per invoice cannot safely happen batch-by-batch: nothing guarantees every
-     line for one invoice arrives in the same batch, and guessing would risk exactly the
-     plausible-but-wrong number this path exists to prevent. */
-  function processCostCaptureBatch(rawRows, header, state){
-    var ixNo=header.indexOf('invoice_no'), ixAmt=header.indexOf('amount_sar'),
-        ixSt=header.indexOf('expense_status'), ixTxn=header.indexOf('txn_expense_status');
-    if(ixNo<0||ixAmt<0||ixSt<0||ixTxn<0)return; // detectSignature() already guarantees these; defensive only
-    state.expenseLines=state.expenseLines||{};
+     The join is entirely in-memory, and persists for the lifetime of the page — NOT reset per
+     drop batch. That matters: the two files are captured from different Direct Payments pages
+     and may genuinely arrive in separate sessions (lines today, transaction status tomorrow).
+     An earlier version of this reset EXPENSE_JOIN at the start of every processFileList() call,
+     which would have silently thrown away an already-captured file the moment the second one
+     was dropped later — caught by re-reading this code against the importer's own stated rule
+     (see file header) before it ever shipped: "a file that references something not seen yet
+     just sits unlinked until the file that supplies it arrives." Only a page reload clears it.
+     Either file dropped alone sits waiting for the other; its invoices show up in the joined
+     preview as "waiting", listed individually, never guessed at and never silently dropped. */
+  var EXPENSE_JOIN=null; // {lines:{invNo:[{amount,status}]}, gates:{invNo:{status,conflict}}}
+  function ensureExpenseJoin(){ if(!EXPENSE_JOIN) EXPENSE_JOIN={lines:{},gates:{}}; return EXPENSE_JOIN; }
+  function resetExpenseJoin(){ EXPENSE_JOIN=null; }
+
+  function processExpenseLinesBatch(rawRows, header){
+    var j=ensureExpenseJoin();
+    var ixNo=header.indexOf('invoice_no'), ixAmt=header.indexOf('amount_sar'), ixSt=header.indexOf('expense_status');
+    if(ixNo<0||ixAmt<0||ixSt<0)return; // detectSignature() already guarantees these; defensive only
     rawRows.forEach(function(row){
       var invNo=String(row[ixNo]||'').trim(); if(!invNo)return;
-      (state.expenseLines[invNo]=state.expenseLines[invNo]||[]).push({
-        amount:row[ixAmt], status:String(row[ixSt]||'').trim(), txnStatus:String(row[ixTxn]||'').trim()
-      });
+      (j.lines[invNo]=j.lines[invNo]||[]).push({amount:row[ixAmt], status:String(row[ixSt]||'').trim()});
     });
   }
-  // FINAL — Ready/Issued gate (owner's Aug 20/21 notes): cost is confirmed only once every
-  // non-cancelled line on the invoice is Approved, which is what the transaction's own Expense
-  // Status reads Ready/Issued for. Per-line Approved is not enough on its own — an invoice can
-  // sit Pending overall because ONE other line is still Under Review, and summing only the
-  // Approved lines in that state produces a real but INCOMPLETE number, silently understated.
-  // So: nothing is written unless the gate says the invoice is done, full stop; Pending leaves
-  // cost_sar exactly as it was (untouched, never zeroed, never a partial sum).
+  function processExpenseGateBatch(rawRows, header){
+    var j=ensureExpenseJoin();
+    var ixNo=header.indexOf('invoice_no'), ixGate=header.indexOf('txn_expense_status');
+    if(ixNo<0||ixGate<0)return;
+    rawRows.forEach(function(row){
+      var invNo=String(row[ixNo]||'').trim(); if(!invNo)return;
+      var val=String(row[ixGate]||'').trim();
+      var cur=j.gates[invNo];
+      if(!cur) j.gates[invNo]={status:val,conflict:false};
+      else if(cur.status.toLowerCase()!==val.toLowerCase()) cur.conflict=true;
+    });
+  }
+
+  // FINAL — Ready/Issued gate (owner's Aug 20/21 notes, re-confirmed 2026-08-23): cost is
+  // confirmed only once every non-cancelled line on the invoice is Approved, which is what the
+  // transaction's own Expense Status reads Ready/Issued for. Per-line Approved is not enough on
+  // its own — an invoice can sit Pending overall because ONE other line is still Under Review,
+  // and summing only the Approved lines in that state produces a real but INCOMPLETE number,
+  // silently understated. So: nothing is written unless the gate says the invoice is done, full
+  // stop; Pending leaves cost_sar exactly as it was (untouched, never zeroed, never a partial
+  // sum). Called after every file in a drop batch finishes — see processFileList(). */
   var READY_STATUSES=['ready','issued'];
-  function finalizeExpenseReportCapture(state){
-    var lines=state.expenseLines||{};
-    Object.keys(lines).forEach(function(invNo){
-      var rows=lines[invNo];
+  function resolveExpenseJoin(){
+    var j=ensureExpenseJoin();
+    var state=initState();
+    var waitingForGate=0, waitingForLines=0;
+    Object.keys(j.gates).forEach(function(invNo){
+      if(invNo in j.lines)return;
+      // A transaction-status row with no expense lines yet — informational, not a suppressed
+      // write (there is no candidate cost to suppress), so this does not count toward
+      // excludedByRule. Still listed per-invoice, never folded into a bare summary count.
+      waitingForLines++;
+      state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('transaction status captured but no expense lines yet — waiting, not applied','تم التقاط حالة المعاملة لكن بلا أسطر مصروفات بعد — بالانتظار، لم تُطبَّق')});
+    });
+    Object.keys(j.lines).forEach(function(invNo){
+      var gate=j.gates[invNo];
+      if(!gate){
+        // Waiting for the transaction-status file — reported per invoice, not just folded into
+        // a summary count. This is exactly the failure mode flagged 2026-08-23: the join key
+        // (expense-report INVOICE # = transactions RECEIPT REF.) is a claim, not yet proven for
+        // a single real pair, so a mismatch here must never look like a clean import — a
+        // silently-skipped line is precisely the understated-cost bug this whole path exists to
+        // prevent (docs/DECISIONS.md "Real per-invoice cost is only FINAL once...").
+        waitingForGate++;
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('no matching transaction-status row yet — waiting, not applied','لا يوجد صف حالة معاملة مطابق بعد — بالانتظار، لم تُطبَّق')});
+        return;
+      }
+      var rows=j.lines[invNo];
       var existing=state.existingByNo[invNo];
       if(!existing){
         // Not a live invoice — this is exactly how Takamol/Techtic and test-company rows (seen
@@ -367,17 +434,14 @@
         state.excludedDetail.clientExcludedDetail.push({name:existing.client_group,clientId:xhit.clientId,reason:xhit.reason});
         return;
       }
-      // The gate must be the SAME value on every line of one invoice — if the capture disagrees
-      // with itself, that is a capture problem, never guessed at here.
-      var txnStatuses=rows.map(function(r){return r.txnStatus.toLowerCase();}).filter(function(v,i,a){return a.indexOf(v)===i;});
-      if(txnStatuses.length>1){
+      if(gate.conflict){
         state.excludedByRule++;
-        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('lines disagree on transaction expense status — not applied','الأسطر تختلف في حالة المصروف للمعاملة — لم تُطبَّق')});
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('transaction status file disagrees with itself — not applied','ملف حالة المعاملة يختلف مع نفسه — لم تُطبَّق')});
         return;
       }
-      if(READY_STATUSES.indexOf(txnStatuses[0])<0){
+      if(READY_STATUSES.indexOf(gate.status.toLowerCase())<0){
         state.excludedByRule++;
-        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('expense status "'+rows[0].txnStatus+'" — cost not final, not applied','حالة المصروف "'+rows[0].txnStatus+'" — التكلفة غير نهائية، لم تُطبَّق')});
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('expense status "'+gate.status+'" — cost not final, not applied','حالة المصروف "'+gate.status+'" — التكلفة غير نهائية، لم تُطبَّق')});
         return;
       }
       // Gate is open. Sum every Approved line — never deduplicated: the owner's own notes flag
@@ -410,6 +474,15 @@
       if(rowDiffers(existing,updated)) state.updated.push(Object.assign({},updated,{id:existing.id}));
       else state.unchangedCount++;
     });
+    var out=Object.assign({
+      name:fl('Expense report ↔ transaction status','تقرير المصروفات ↔ حالة المعاملة'),
+      recognized:true, label:fl('Cost — joined and resolved','التكلفة — مدموجة ومحلولة')
+    }, finalizeState(state,'expense_join',true));
+    var notes=[];
+    if(waitingForGate) notes.push(fl(waitingForGate+' invoice(s) have expense lines but no transaction status yet — drop that file to resolve them.',waitingForGate+' فاتورة لديها أسطر مصروفات لكن بلا حالة معاملة بعد — أفلت ذلك الملف لحلّها.'));
+    if(waitingForLines) notes.push(fl(waitingForLines+' invoice(s) have a transaction status but no expense lines yet.',waitingForLines+' فاتورة لديها حالة معاملة لكن بلا أسطر مصروفات بعد.'));
+    if(notes.length) out.joinNote=notes.join(' ');
+    return out;
   }
 
   var PENDING_UNKNOWN={}; // fileKey -> {file, header, rows2d (present only if already fully read)}
@@ -563,7 +636,8 @@
           header=row;
           var sig=detectSignature(header);
           if(sig&&sig.key==='invoice_export'){ mode='invoice_export'; state=initState(); typeColIdx=header.indexOf('Type'); return; }
-          if(sig&&sig.key==='expense_report_capture'){ mode='cost_capture'; state=initState(); return; }
+          if(sig&&sig.key==='expense_lines_capture'){ mode='expense_lines'; return; }
+          if(sig&&sig.key==='expense_gate_capture'){ mode='expense_gate'; return; }
           var learned=getLearnedMapping(header);
           if(learned){ mode='mapped'; mapping=learned.mapping; state=initState(); return; }
           mode='unknown';
@@ -586,9 +660,12 @@
         } else if(mode==='mapped'){
           buf.push(row);
           if(buf.length>=GENERIC_BATCH_ROWS){ processGenericBatch(buf,header,mapping,state); buf=[]; }
-        } else if(mode==='cost_capture'){
+        } else if(mode==='expense_lines'){
           buf.push(row);
-          if(buf.length>=GENERIC_BATCH_ROWS){ processCostCaptureBatch(buf,header,state); buf=[]; }
+          if(buf.length>=GENERIC_BATCH_ROWS){ processExpenseLinesBatch(buf,header); buf=[]; }
+        } else if(mode==='expense_gate'){
+          buf.push(row);
+          if(buf.length>=GENERIC_BATCH_ROWS){ processExpenseGateBatch(buf,header); buf=[]; }
         }
       },
       afterChunk:function(next){
@@ -605,10 +682,20 @@
         } else if(mode==='mapped'){
           if(buf.length) processGenericBatch(buf,header,mapping,state);
           done(Object.assign({name:f.name, recognized:true, label:fl('Mapped file','ملف مُعيَّن')}, finalizeState(state,signatureKey(header),true)));
-        } else if(mode==='cost_capture'){
-          if(buf.length) processCostCaptureBatch(buf,header,state);
-          finalizeExpenseReportCapture(state);
-          done(Object.assign({name:f.name, recognized:true, label:CATALOGUE.expense_report_capture.label}, finalizeState(state,'expense_report_capture',true)));
+        } else if(mode==='expense_lines'){
+          if(buf.length) processExpenseLinesBatch(buf,header);
+          var linesN=Object.keys(ensureExpenseJoin().lines).length;
+          done({name:f.name, recognized:true, label:CATALOGUE.expense_lines_capture.label,
+            counts:{isNew:0,updated:0,unchanged:0,excludedByRule:0,needsLinking:0}, excludedDetail:{clientExcludedDetail:[],costCaptureDetail:[]},
+            hasClientColumn:true, pendingInsert:[], pendingUpdate:[],
+            joinNote:fl(linesN+' invoice(s) worth of expense lines captured — resolved together with the transaction-status join below.', linesN+' فاتورة من أسطر المصروفات تم التقاطها — تُحل مع دمج حالة المعاملة أدناه.')});
+        } else if(mode==='expense_gate'){
+          if(buf.length) processExpenseGateBatch(buf,header);
+          var gatesN=Object.keys(ensureExpenseJoin().gates).length;
+          done({name:f.name, recognized:true, label:CATALOGUE.expense_gate_capture.label,
+            counts:{isNew:0,updated:0,unchanged:0,excludedByRule:0,needsLinking:0}, excludedDetail:{clientExcludedDetail:[],costCaptureDetail:[]},
+            hasClientColumn:true, pendingInsert:[], pendingUpdate:[],
+            joinNote:fl(gatesN+' invoice(s) worth of transaction status captured — resolved together with the expense-lines join below.', gatesN+' فاتورة من حالة المعاملة تم التقاطها — تُحل مع دمج أسطر المصروفات أدناه.')});
         }
       },
       onError:function(e){ if(!finished) done({name:f.name, recognized:false, header:header||[], err:String(e&&e.message||e)}); }
@@ -629,11 +716,24 @@
       done(Object.assign({name:name,recognized:true,label:CATALOGUE[sig.catalogueKey].label}, finalizeState(state,'invoice_export',true)));
       return;
     }
-    if(sig&&sig.key==='expense_report_capture'){
-      var state3=initState();
-      try{ processCostCaptureBatch(rows2d.slice(1),hdr,state3); finalizeExpenseReportCapture(state3); }
+    if(sig&&sig.key==='expense_lines_capture'){
+      try{ processExpenseLinesBatch(rows2d.slice(1),hdr); }
       catch(e){ done({name:name,recognized:false,header:hdr,err:String(e&&e.message||e)}); return; }
-      done(Object.assign({name:name,recognized:true,label:CATALOGUE[sig.catalogueKey].label}, finalizeState(state3,'expense_report_capture',true)));
+      var linesN2=Object.keys(ensureExpenseJoin().lines).length;
+      done({name:name, recognized:true, label:CATALOGUE.expense_lines_capture.label,
+        counts:{isNew:0,updated:0,unchanged:0,excludedByRule:0,needsLinking:0}, excludedDetail:{clientExcludedDetail:[],costCaptureDetail:[]},
+        hasClientColumn:true, pendingInsert:[], pendingUpdate:[],
+        joinNote:fl(linesN2+' invoice(s) worth of expense lines captured — resolved together with the transaction-status join below.', linesN2+' فاتورة من أسطر المصروفات تم التقاطها — تُحل مع دمج حالة المعاملة أدناه.')});
+      return;
+    }
+    if(sig&&sig.key==='expense_gate_capture'){
+      try{ processExpenseGateBatch(rows2d.slice(1),hdr); }
+      catch(e){ done({name:name,recognized:false,header:hdr,err:String(e&&e.message||e)}); return; }
+      var gatesN2=Object.keys(ensureExpenseJoin().gates).length;
+      done({name:name, recognized:true, label:CATALOGUE.expense_gate_capture.label,
+        counts:{isNew:0,updated:0,unchanged:0,excludedByRule:0,needsLinking:0}, excludedDetail:{clientExcludedDetail:[],costCaptureDetail:[]},
+        hasClientColumn:true, pendingInsert:[], pendingUpdate:[],
+        joinNote:fl(gatesN2+' invoice(s) worth of transaction status captured — resolved together with the expense-lines join below.', gatesN2+' فاتورة من حالة المعاملة تم التقاطها — تُحل مع دمج أسطر المصروفات أدناه.')});
       return;
     }
     var learned=getLearnedMapping(hdr);
@@ -709,6 +809,7 @@
           fl('Excluded by rule','مستبعد بحسب القاعدة')+' <b>'+exclLine+'</b> · '+
           fl('Needs linking','بحاجة لربط')+' <b>'+r.counts.needsLinking+'</b>'+
         '</div>'+
+        (r.joinNote?('<div style="font-size:11.5px;color:#B54708;margin-top:4px">'+esc(r.joinNote)+'</div>'):'')+
       '</div>';
     }).join('');
 
@@ -778,12 +879,29 @@
     var myGen=++GENERATION;
     var results=[];
     RESULTS=results; RESULT_INDEX={};
+    // EXPENSE_JOIN is deliberately NOT reset here — it persists across separate drop batches
+    // within the page's lifetime, so the lines file and the gate file can arrive in two
+    // different sessions and still join correctly. See expense_lines/gate_capture header
+    // comment above ensureExpenseJoin(). Only a page reload clears it.
+    var joinIndex=-1;
     function repaint(){ if(myGen===GENERATION) renderCombinedPreview(results); }
+    // Re-resolves the expense-lines↔transaction-status join after every file in this batch
+    // finishes, and keeps its result at one stable slot in `results` (never appended twice) —
+    // list.forEach below pushes every file's streaming placeholder synchronously before any
+    // async finishFile() can fire, so results.length is already the final file count the first
+    // time this runs, and joinIndex only ever gets set once.
+    function refreshJoin(){
+      var j=ensureExpenseJoin();
+      if(!Object.keys(j.lines).length&&!Object.keys(j.gates).length)return;
+      var joined=resolveExpenseJoin();
+      if(joinIndex<0){ joinIndex=results.length; results.push(joined); }
+      else results[joinIndex]=joined;
+    }
     list.forEach(function(f,idx){
       results.push({name:f.name, recognized:false, header:[], streaming:true, rowsRead:0});
       var fileKey=fileKeyOf(f);
       RESULT_INDEX[fileKey]=idx;
-      function finishFile(r){ r.streaming=false; results[idx]=r; repaint(); }
+      function finishFile(r){ r.streaming=false; results[idx]=r; refreshJoin(); repaint(); }
       if(/\.xlsx?$/i.test(f.name)){
         if(window.__v65_readXlsx) window.__v65_readXlsx(f, function(rows2d){ routeRows2d(f.name, rows2d||[], fileKey, finishFile); });
         else finishFile({name:f.name, recognized:false, header:[], err:'Excel reader unavailable'});
