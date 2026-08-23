@@ -29,14 +29,14 @@
     'Revenue':'الإيرادات','Route · RBD':'المسار · RBD','Sale':'البيع','Stage':'المرحلة',
     'Status':'الحالة','Status · FOP':'الحالة · الدفع','Stock':'رمز التذاكر','Subject':'الموضوع',
     'Subtotal':'المجموع الفرعي','TTL':'مهلة','Tickets':'التذاكر','Tier':'الفئة','Total':'الإجمالي',
-    'Type':'النوع','VAT':'الضريبة','Valid':'صالح حتى','Venue':'المكان','Vertical':'القطاع',
+    'Type':'النوع','Valid':'صالح حتى','Venue':'المكان','Vertical':'القطاع',
     'Void':'الإبطال','Deal value (SAR)':'المكسوب (ريال)',
     // ---- .tag row badges (priority / tier — see .tag comment above; Import, Unassigned,
     // Standard, Key account, Client already exist above/below for other contexts and are
     // reused here on purpose, same word, same meaning) ----
     'Hot':'ساخن','Warm':'دافئ','Cool':'فاتر','Cold':'بارد','Key account':'حساب رئيسي',
     // ---- stat-tile labels (.kl) ----
-    'Billed inc. VAT':'المفوتر شامل الضريبة','Paid':'مدفوع','Outstanding':'المستحق',
+    'Billed':'المفوتر','Paid':'مدفوع','Outstanding':'المستحق',
     'ZATCA cleared':'معتمد من هيئة الزكاة','Cost':'التكلفة','Received':'المُحصّل',
     'Wallet (excluded)':'المحفظة (مستثناة)','Invoices':'الفواتير',
     'Open':'مفتوحة','Used':'مستخدمة','Refunded':'مستردة','ADM-flagged':'مُعلَّمة ADM',

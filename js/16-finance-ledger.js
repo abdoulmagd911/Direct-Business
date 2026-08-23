@@ -86,7 +86,26 @@ function finLoad(cb){
   }
 }
 try{window.FIN=FIN;window.finLoad=finLoad;}catch(_){}  // expose for the Customer-360 finance snapshot (v29)
-function live(){ return (FIN.rows||[]).filter(function(r){return !r.deleted_at;}); }
+// Belt-and-suspenders, 2026-08-23: the exclusion list (js/62) was checked at IMPORT time
+// only. Ten Takamol invoices entered finance_invoices anyway — not through either
+// importer's exclusion check, but by a path outside this app entirely — and rendered in
+// every total until caught and removed by hand. A standing exclusion must hold no matter
+// how a row arrived, so live() — the one chokepoint every total/export in this file reads
+// through — re-checks client_group/customer_raw_name against the exclusion list on every
+// call, not just once at load. Filtering here (not in the load callback) also survives the
+// real race that a load-time-only filter did not: on a fresh page load, finance_invoices
+// can finish loading before DB.settings.financeExclusions does, so a filter that only runs
+// once inside the load callback can silently see an empty exclusion list and let a row
+// through on that first render; live() re-evaluates on every call, by which point settings
+// have always finished loading. docs/DECISIONS.md: "A standing exclusion is not satisfied
+// by loading the data and labelling it."
+function live(){
+  var rows=(FIN.rows||[]).filter(function(r){return !r.deleted_at;});
+  if(typeof window.finExclusionCheck==='function'){
+    rows=rows.filter(function(r){return !(finExclusionCheck(r.client_group)||finExclusionCheck(r.customer_raw_name));});
+  }
+  return rows;
+}
 function verified(){return live().filter(function(r){return r.integrity_status==='verified_paid';});}
 
 /* --- Period structure (owner-directed 2026-08-11) ------------------------------------

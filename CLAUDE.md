@@ -1,5 +1,21 @@
 # Direct Business — working notes for Claude
 
+> **2026-08-23 — READ `docs/DECISIONS.md` FIRST, before touching money display, permissions,
+> or data provenance.** The single short file of rules currently binding — not narrative,
+> not a snapshot, edited in place when something is superseded. Built after this project
+> repeated a mistake (asking the owner to hand-export files) that was already written down
+> in a doc it authored itself, because nothing forced a check against it at the moment of
+> acting. The absolute-highest-stakes rules, so they're in context even if this file gets
+> skimmed: **VAT is never shown or mentioned, anywhere, ever.** **Cost = approved expenses
+> only — never fabricate a number to fill a gap; leave it null and say why.** **Real
+> company/client/invoice data is never committed to this repo, ever.** **Data comes from
+> the Direct Payments export registry captured in-browser — never by asking the owner to
+> hand-export files; if a session can't reach it, say so plainly.** **A hardcoded
+> password-length minimum must equal Supabase's own Auth policy via one shared constant.**
+> Full list, with why/date/status (ACTIVE / OPEN-CONTESTED / SUPERSEDED-BY), in
+> `docs/DECISIONS.md` — check it before any nontrivial action, and if you learn something
+> that belongs there, add it in the same commit as the change that taught it.
+>
 > **2026-08-22 — READ `docs/DIRECT_SYSTEMS_PLAYBOOK.md` FIRST, before anything else.** The
 > one file that explains the four systems and who owns what, how to get real data out of
 > Direct Payments, the money model, our app's landmines, the owner's standing rules, and the

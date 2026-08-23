@@ -1,5 +1,56 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-23 · docs/DECISIONS.md built + Takamol resolved + two new standing probes
+
+Owner told both this session and the oversight session off, fairly: a written decision
+(the in-page "camera" capture, agreed 2026-08-21) got missed by the oversight session
+asking him to hand-export files, because the knowledge existed but nothing forced a check
+against it at the moment of acting. Built `docs/DECISIONS.md` in response — a short,
+ruthlessly pruned list of rules currently binding (RULE / why / date / ACTIVE /
+OPEN-CONTESTED / SUPERSEDED-BY, edited in place when something is unlearned, never appended
+under). `CLAUDE.md` now points to it as the mandatory first read for anything touching
+money display, permissions, or data provenance, with the highest-stakes rules inlined
+directly (not just linked) since `CLAUDE.md` is the one file guaranteed to be in context
+every turn — a link alone already proved insufficient once.
+
+**Takamol resolved.** Ten live Takamol invoices (6,724,291.12 of a displayed 8,755,055.41 —
+overstating BD revenue ~4.3x) turned out to be exactly the verification-service line a
+standing rule already excludes; a client record wrongly created for them the day before was
+the opposite of exclusion. Owner ruling, verbatim: "No takamol what so ever." All ten
+independently re-verified as soft-deleted post-ruling (46 invoices / 2,030,764.29 live,
+matches an independent workbook figure within 1.8%). Root cause recorded precisely in
+`docs/DECISIONS.md`: the exclusion list existed and was correctly wired into both of this
+app's importers — the rows entered through some other path entirely, which no import-time
+check can catch. Fixed with a second, independent line of defense: `js/16-finance-ledger.js`
+`live()` (the one chokepoint every Finance total/export reads through) now re-checks every
+row against the exclusion list on every call, not just once at load — a first version that
+only filtered at load time passed a manual reload but silently let the row through on the
+real first render, because `finance_invoices` can finish loading before
+`DB.settings.financeExclusions` does. Caught by the new probe below before it shipped.
+
+**Two new standing probes, both green:**
+- `scripts/qa/probe-no-vat-display.mjs` — rendered-DOM check (not a source grep, since
+  `vat_sar` is a legitimate stored column) across every nav page and all 8 Finance tabs,
+  EN+AR. Found and fixed two real, previously-unknown violations of the owner's VAT rule on
+  its first real run: the legacy Invoices page (`js/core/core-06-v18-v21.js`) had a live
+  `Billed inc. VAT` stat tile and a per-invoice `Subtotal | VAT | Total` table column —
+  removed both (kept `Subtotal`/`Total`, renamed the tile to `Billed`, dropped the dead
+  `'VAT'`/`'Billed inc. VAT'` entries from the Arabic translation dictionary in
+  `js/21-v27-arabic-column-header-stat-label-transl.js`). The probe also correctly exempts
+  "CR, VAT, IBAN, Wakeel" / "CR / VAT" as a company registration-ID field label (confirmed
+  by reading the actual rendered text before excluding it) — a VAT *registration number* is
+  a different kind of data than a VAT *amount*, and the rule is about the amount.
+  **Open question for the owner, not resolved here:** `js/core/core-04-proposals.js`'s offer
+  document (`offerHTML`) shows a `Ticket price | Partner's fees | Service fees | VAT | DIP |
+  Total` breakdown on client-facing flight quotations, with `o.vat` a field the BD person
+  fills in by hand — a formal itemized fare quote, not an internal report, so left alone
+  pending a ruling rather than guessed at either way.
+- `scripts/qa/probe-finance-invariants.mjs` — seeds one extra live, non-deleted,
+  verified_paid `finance_invoices` row for an excluded client (mirrors the exact shape the
+  Takamol mistake produced) and asserts it never reaches any rendered total or any of the
+  three real export paths (`finLedgerCSV`, Export ▾ list/full), on the first render with no
+  manual reload. This is the regression guard for the race condition described above.
+
 ## 2026-08-23 · URGENT FIX: owner locked out of his own account — password-minimum mismatch
 
 `js/02-direct-business-cloud-layer-login-shared-c.js` had two password screens (the
