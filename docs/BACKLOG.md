@@ -1,5 +1,69 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-23 · Jargon sweep + Takamol root cause confirmed (direct SQL bypass) + adversarial probe hardening
+
+Owner instruction: sweep every button/note/clarification, remove anything that doesn't
+belong, does no good, or is jargon — "especially the drop-down menus for the finance."
+
+**The 18 Finance dropdowns were checked and are clean — left alone.** Spot-verified: every
+option is a real business word (Prepaid/Postpaid/Tender, Expenses pending/Ready to
+invoice/Invoiced/Overdue, Normal booking/Project (with a proposal), etc.), no dead options
+like the "New" chip killed on Leads earlier. Reporting "checked, clean" rather than
+manufacturing a change to look responsive.
+
+**Five jargon findings in headings/help text, fixed:**
+- `js/58-b2c-manual.js`, `js/57-payment-proofs.js`, `js/45-expenses.js`: cut the
+  "— the fifth revenue pattern" / "— the audit file cabinet" / "— the cost behind a
+  service" suffixes from three Finance-tab headings — internal spec vocabulary nobody on
+  the team could parse, teaching nothing.
+- `js/16-finance-ledger.js`: the "Confirmed = has an invoice number, or Expense Status is
+  Ready..." help text rewritten plainer, same rule kept intact.
+- `js/16-finance-ledger.js`'s import panel: the raw `origin,proposal_ref` column names
+  moved out of the visible sentence and into the expected-header code block where they
+  belong; the sentence now just says the last two columns are optional.
+- **Two sentences were NOT decoration and were deliberately kept, compressed rather than
+  deleted** (`js/45-expenses.js`, `js/57-payment-proofs.js`): "these amounts never change
+  an invoice's cost or profit" and "wallet top-ups are never counted as revenue" are the
+  only thing at the point of use stopping an employee from assuming an expense moved a
+  number it shouldn't, or that a wallet top-up is revenue — both hard owner rules. New
+  standing rule in `docs/DECISIONS.md`: help text may state a rule the user could
+  otherwise violate; it may not explain our architecture; if removing a sentence would let
+  someone make a money mistake, rewrite it shorter, don't delete it.
+- `js/core/core-10-v29-reports.js:687`: two literal 0x00 bytes inside a string literal in
+  `leadSortTieBreak()` (deliberate low-sorting separators, not corruption) replaced with
+  the `\0` escape — identical runtime value, but the raw byte made `grep`/tools treat the
+  whole file as binary and silently skip it in every source search.
+
+**Takamol root cause CONFIRMED, not inferred.** The exclusion list was correctly seeded
+2026-08-21 and correctly wired into all three of this app's import paths — none of that
+was the gap. The ten rows entered by direct SQL against Supabase, going around the app's
+importer entirely, confirmed directly by the person who ran it. New standing rule in
+`docs/DECISIONS.md`: business data enters through the app's own import path, never by
+direct SQL — the importer enforces exclusions, dedup and the five-count preview; a direct
+write bypasses every one of them, silently. (One self-correction recorded in the same
+spirit: an earlier "routine" cleanup of 7 dead `finance_client_links` test rows this same
+session was also a direct SQL write — no total changed, own test data, but the rule
+doesn't get waived for convenience, so it's flagged rather than passed over.)
+
+**Both new probes independently adversarially verified** (oversight session, not taken on
+trust): sabotaged the exclusion list to return `[]` and re-ran `probe-finance-invariants.mjs`
+— caught the leak on Clients, both CSV export paths, real exit 1; restored, re-ran clean.
+Injected a literal "VAT" label onto a Finance KPI card and re-ran `probe-no-vat-display.mjs`
+— caught it on the Finance page and both language passes of Overview, real exit 1; restored,
+re-ran clean. One genuine gap surfaced by that adversarial pass: Overview shows KPI sums
+only, no client names anywhere, so the finance-invariants probe's text-scan check could never
+fail there even if the excluded row's money had leaked into a total — it was structurally
+incapable of proving anything on that one tab. Fixed by adding a real numeric check: the
+probe now reads the Revenue KPI's exact value straight off its DOM `title` attribute and
+compares it to an independently-computed expected sum (all seeded rows except the excluded
+one). Verified in both directions again: sabotaging the same exclusion list now fails with
+"Revenue KPI shows 362558, expected 48399.00" — exactly the excluded row's 314,159 SAR gap;
+restored, clean pass with the real number shown.
+
+Full regression battery green: check-structure (58 files), csv-injection, finance-export,
+leads-counts, money-placement, password-recovery, no-vat-display, finance-invariants
+(strengthened), audit-finance-tabs (8×EN/AR), sweep-pages (141 buttons, 0 errors).
+
 ## 2026-08-23 · docs/DECISIONS.md built + Takamol resolved + two new standing probes
 
 Owner told both this session and the oversight session off, fairly: a written decision

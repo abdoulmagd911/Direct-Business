@@ -241,10 +241,10 @@
     try{ txns=Array.from(new Set(((window.FIN&&FIN.rows)||[]).map(function(r){return r.transaction_ref||r.invoice_no;}).filter(Boolean))).slice(0,400); }catch(_){}
 
     var h='<div class="card" style="padding:16px;margin-bottom:14px">'+
-      '<h3 class="finh" style="margin:0 0 3px">'+fl('Expenses — the cost behind a service','المصروفات — تكلفة الخدمة')+'</h3>'+
+      '<h3 class="finh" style="margin:0 0 3px">'+fl('Expenses','المصروفات')+'</h3>'+
       '<div class="ch-sub" style="margin-bottom:12px">'+fl(
-        'What we actually paid out for the services we resell — the hotel, the activity, the visa. Each one belongs to a transaction and keeps its receipt. These amounts are a record only: they never change an invoice’s cost or profit.',
-        'ما دفعناه فعليًا مقابل الخدمات التي نبيعها — الفندق، النشاط، التأشيرة. كل مصروف يتبع معاملة ويحتفظ بإيصاله. هذه المبالغ للسجل فقط ولا تغيّر تكلفة أو ربح أي فاتورة.')+'</div>'+
+        'What we actually paid out for the services we resell — the hotel, the activity, the visa. This is a record only: it never changes an invoice’s cost or profit.',
+        'ما دفعناه فعليًا مقابل الخدمات التي نبيعها — الفندق، النشاط، التأشيرة. هذا سجل فقط ولا يغيّر تكلفة أو ربح أي فاتورة.')+'</div>'+
       '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px">'+
         '<div><div style="font-size:11px;color:var(--muted)">'+fl('Total in view','الإجمالي المعروض')+'</div><div style="font-size:21px;font-weight:800;color:#B54708">'+m0(tot)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'+
         Object.keys(byVia).map(function(k){return '<div><div style="font-size:11px;color:var(--muted)">'+esc(viaLbl(k))+'</div><div style="font-size:15px;font-weight:700">'+m0(byVia[k])+'</div></div>';}).join('')+

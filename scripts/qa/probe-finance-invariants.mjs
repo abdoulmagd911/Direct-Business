@@ -101,12 +101,33 @@ async function main() {
   else ok('FIN.rows (raw) has all 16 seeded rows — the exclusion is applied on every read, not by dropping data at load');
 
   // ---- 2. Rendered totals — Overview, Clients & collections, Ledger — no visible trace ----
+  // Overview shows KPI sums only, no client names anywhere on the tab — a text scan for
+  // "takamol" there can never fail even if the row's MONEY leaked into the total, since
+  // there is no name text to find. Caught by adversarial testing (oversight session,
+  // 2026-08-23): text-scanning alone passed on Overview even before this numeric check
+  // existed, which proved nothing about Overview specifically. Fixed with a genuine
+  // numeric assertion below — the text scan stays too, as a (weaker) belt-and-suspenders.
   for (const tab of ['overview', 'clients', 'ledger']) {
     const clicked = await p.evaluate((k) => { if (typeof window.finGo === 'function') { window.finGo(k); return true; } return false; }, tab);
     if (!clicked) { fail(`Finance/${tab}: window.finGo is not a function`); continue; }
     await p.waitForTimeout(900);
     const text = await p.evaluate(() => { const v = document.getElementById('view'); return v ? v.innerText : ''; });
     scanClean(text, `Finance/${tab} rendered text`);
+    if (tab === 'overview') {
+      const kpi = await p.evaluate(() => {
+        const cards = [...document.querySelectorAll('#view .card')];
+        const revCard = cards.find((c) => (c.firstElementChild && c.firstElementChild.textContent.trim() === 'Revenue'));
+        const valEl = revCard ? revCard.children[1] : null;
+        const shown = valEl ? parseFloat((valEl.getAttribute('title') || '').replace(/[^0-9.\-]/g, '')) : null;
+        const expected = (FIN.rows || [])
+          .filter((r) => !r.deleted_at && r.integrity_status === 'verified_paid' && r.id !== 'i-qa-takamol')
+          .reduce((s, r) => s + (+r.revenue_sar || 0), 0);
+        return { shown, expected };
+      });
+      if (kpi.shown == null) fail('Finance/overview: could not read the Revenue KPI card at all — DOM shape changed, this check needs updating');
+      else if (Math.abs(kpi.shown - kpi.expected) > 0.01) fail(`Finance/overview: Revenue KPI shows ${kpi.shown}, expected ${kpi.expected.toFixed(2)} (excluded row's 314159 SAR would explain the gap) — the exclusion did not hold on the one tab where a name could never prove it either way`);
+      else ok(`Finance/overview: Revenue KPI (${kpi.shown.toFixed(2)}) numerically excludes the Takamol row's 314,159 SAR — not just absent from visible text`);
+    }
   }
 
   // ---- 3. Every CSV export — the real buttons, the real downloaded file ----

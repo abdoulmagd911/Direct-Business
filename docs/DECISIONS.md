@@ -76,13 +76,16 @@ the wrongly-created client archived; its `finance_client_link` deleted. Live Fin
 after: **2,030,764.29** (46 invoices) — within 1.8% of an independent non-Takamol workbook
 figure, a decent cross-check that the right ten came out.
 
-**Root cause, worth recording precisely.** The exclusion list (`js/62-finance-guardrails.js`
-`finExclusionCheck()`) was seeded correctly on 2026-08-21 — client ID 7, match names
-"Takamol for Business Services" / "Techtic Support" — and IS correctly wired into both of
-this app's own importers (`js/41-money-in.js:110`, `js/65-universal-importer.js:275`,
-confirmed by reading both, not assumed). The ten rows entered anyway — almost certainly
-through a path outside this app's importer UI entirely, which no client-side import-time
-check can ever defend against. Fixed 2026-08-23 with a second, independent line of defense:
+**Root cause, confirmed, worth recording precisely.** The exclusion list
+(`js/62-finance-guardrails.js` `finExclusionCheck()`) was seeded correctly on 2026-08-21 —
+client ID 7, match names "Takamol for Business Services" / "Techtic Support" — and IS
+correctly wired into all three of this app's own import paths (`js/41-money-in.js:110`,
+`js/65-universal-importer.js:275`, `js/16-finance-ledger.js:822`, confirmed by reading all
+three, not assumed). The guard was right, wired, and live, and it never fired: the ten rows
+were written straight into `finance_invoices` with direct SQL, going around the app's
+importer entirely — confirmed directly by the person who ran it, not inferred. No
+client-side import-time check can ever defend against a write that never goes through the
+client. Fixed 2026-08-23 with a second, independent line of defense:
 `js/16-finance-ledger.js`'s `live()` — the one chokepoint every Finance total/export reads
 through — now re-checks every row against the same exclusion list on every call, not once
 at load. That mattered in practice: a first version that filtered only inside the load
@@ -129,6 +132,20 @@ enough to spread across invoices (1.8% gap) — spreading them anyway would have
 numbers on individual invoices. Left both as an honest, stated gap instead.
 *Date: 2026-08-22/23. Status: ACTIVE.*
 
+## User-facing text
+
+**Help text may state a RULE the user could otherwise violate. It may not explain our
+architecture.** A heading like "Payment proofs — the audit file cabinet" or "Individual
+bookings — the fifth revenue pattern" is this project's internal spec vocabulary leaking
+onto a real employee's screen — nobody on the team can name the other four revenue
+patterns, and it teaches nothing. Cut it. But two sentences under Expenses and Payment
+proofs state real rules — "these amounts never change an invoice's cost or profit," "wallet
+top-ups are never counted as revenue" — and are the only thing at the point of use stopping
+someone from assuming an expense moved a number it shouldn't, or that a wallet top-up counts
+as income. **If removing a sentence would let someone make a money mistake, rewrite it
+shorter — do not delete it.**
+*Date: 2026-08-23. Status: ACTIVE.*
+
 ## Data provenance — how data enters this app
 
 **Data comes from the Direct Payments export registry (`/en/admin/excel-exports`),
@@ -145,6 +162,16 @@ was stated plainly rather than quietly turned into a request for the owner to ex
 himself, which is the correct response under this rule.
 *Date: 2026-08-21 (planned), reconfirmed 2026-08-23 after being violated once. Status:
 ACTIVE.*
+
+**Business data enters through the app's own import path, never by direct SQL.** The
+importer (`js/41`, `js/65`, `js/16`) enforces exclusions, dedup and the five-count preview
+before anything is written — direct SQL bypasses every one of them, silently. This is the
+mechanical cause of the Takamol mistake above: the exclusion guard was correct and live,
+and a direct SQL write went around it entirely, invisible to the app until someone happened
+to look at the total. If a direct write is genuinely unavoidable, apply the exclusion rules
+by hand first and say in the commit why the importer couldn't be used — never write real
+finance rows straight into Supabase as a shortcut.
+*Date: 2026-08-23. Status: ACTIVE.*
 
 **Real company, client, or invoice data is never committed to this repository — no
 exceptions, no "temporary" branches.** This repo is public. It already went wrong once: a

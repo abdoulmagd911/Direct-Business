@@ -260,10 +260,10 @@
     var clients=((typeof DB!=='undefined'&&DB.businesses)||[]).filter(function(b){return b.isClient;}).map(function(b){return b.name;});
 
     var h='<div class="card" style="padding:16px;margin-bottom:14px">'+
-      '<h3 class="finh" style="margin:0 0 3px">'+fl('Payment proofs — the audit file cabinet','مستندات الدفع — أرشيف التدقيق')+'</h3>'+
+      '<h3 class="finh" style="margin:0 0 3px">'+fl('Payment proofs','مستندات الدفع')+'</h3>'+
       '<div class="ch-sub" style="margin-bottom:12px">'+fl(
-        'Bank-transfer proofs and wallet top-up documents, filed so an audit or strategy request can find them. This is a document register only — nothing here is counted in Revenue, Cost, Profit or any Finance number. Wallet top-ups in particular are deliberately excluded from every Finance total; they live here for the file only.',
-        'إثباتات التحويل البنكي ومستندات تعبئة المحفظة، مؤرشفة بحيث يسهل إيجادها عند طلب تدقيق أو استراتيجية. هذا سجل مستندات فقط — لا يُحتسب شيء هنا ضمن الإيرادات أو التكلفة أو الربح أو أي رقم مالي. تعبئات المحفظة تحديدًا مستبعدة عمدًا من كل إجماليات المالية؛ وجودها هنا للملف فقط.')+'</div>'+
+        'Bank-transfer and wallet top-up proofs, filed for audits. Nothing here counts toward Revenue, Cost or Profit — wallet top-ups especially are never counted as revenue.',
+        'إثباتات التحويل البنكي وتعبئة المحفظة، للتدقيق. لا شيء هنا يُحتسب ضمن الإيراد أو التكلفة أو الربح — وتعبئات المحفظة تحديدًا لا تُحتسب إيرادًا أبدًا.')+'</div>'+
       '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px">'+
         '<div><div style="font-size:11px;color:var(--muted)">'+fl('Documents in view','المستندات المعروضة')+'</div><div style="font-size:21px;font-weight:800;color:#175CD3">'+rows.length+'</div></div>'+
         TYPES.map(function(t){return byType[t[0]]?'<div><div style="font-size:11px;color:var(--muted)">'+fl(t[1],t[2])+'</div><div style="font-size:15px;font-weight:700">'+byType[t[0]]+'</div></div>':'';}).join('')+

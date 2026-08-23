@@ -684,7 +684,7 @@ window.rptPpt=function(){
     Each sort value now carries the company name and then the created date appended after it,
     so equal rows fall into a fixed, obvious order. Numbers are zero-padded to a fixed width
     first, otherwise comparing them as text would put "10" before "9". */
- window.leadSortTieBreak=function(b){return " "+String(b.name||"").toLowerCase()+" "+String(b.createdAt||b.created_at||"");};
+ window.leadSortTieBreak=function(b){return "\0"+String(b.name||"").toLowerCase()+"\0"+String(b.createdAt||b.created_at||"");};
  window.leadSortNum=function(n){n=Math.round((Number(n)||0)*100); var neg=n<0; if(neg)n=-n;
    return (neg?"-":"0")+String(n).padStart(15,"0");};
  window.leadSortVal=function(b,k){

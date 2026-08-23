@@ -136,7 +136,7 @@
     var editable=canFinEditSafe();
 
     var h='<div class="card" style="padding:16px;margin-bottom:14px">'+
-      '<h3 class="finh" style="margin:0 0 3px">'+fl('Individual bookings — the fifth revenue pattern','الحجوزات الفردية — نمط الإيراد الخامس')+'</h3>'+
+      '<h3 class="finh" style="margin:0 0 3px">'+fl('Individual bookings','الحجوزات الفردية')+'</h3>'+
       '<div class="ch-sub" style="margin-bottom:12px">'+fl(
         'Bookings made for an individual, not a company — the one revenue pattern with no Direct Payments export to import from, so it’s entered here by hand. Each row is a real Finance record: it counts toward Revenue, Cost, Profit, Received and Outstanding exactly like an imported invoice.',
         'حجوزات لفرد وليس لشركة — نمط الإيراد الوحيد الذي لا يوجد له ملف تصدير من Direct Payments، لذلك يُدخل هنا يدويًا. كل صف هو سجل مالي حقيقي: يُحتسب ضمن الإيراد والتكلفة والربح والمحصّل والمتبقي تمامًا كأي فاتورة مستوردة.')+'</div>'+
