@@ -1,5 +1,33 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-23 · URGENT FIX: owner locked out of his own account — password-minimum mismatch
+
+`js/02-direct-business-cloud-layer-login-shared-c.js` had two password screens (the
+recovery-link "Set a new password" card and the forced first-login change), each hardcoded
+to accept a password of 8+ characters. The Supabase project's own Auth policy requires 10+.
+So: the form accepted an 8-char password, `sb.auth.updateUser()` then failed **server-side**
+with Supabase's own "Password should be at least 10 characters." error — meaning **the
+password was never actually changed** — and the next sign-in attempt with the password the
+person believed they'd just set came back "Wrong email or password," sending them straight
+back to the same reset screen. This is exactly the loop Abdulrahman hit trying to get back
+into his own Super Admin account, and it would hit anyone else using recovery or a forced
+first-login change.
+
+Fix: a single `var MIN_PW=10;` declared once near the top of the module (comment: must match
+the Supabase policy exactly, change together in the same commit if the policy ever changes).
+Both `length<8` checks now read `length<MIN_PW`, and both screens now show "At least 10
+characters." directly under the "New password" label, before the person types anything —
+so the real rule is visible up front instead of surfacing only after a failed attempt.
+
+Verified: `new Function(fs.readFileSync(...))` parse check clean; `check-structure.mjs` OK
+(58 files); `scripts/qa/probe-password-recovery.mjs` — the existing dedicated harness for
+this exact flow — shows `tooShortError: "Password must be at least 10 characters."` and a
+real successful update at password length 14 reaching `/today`, plus all other recovery
+behavior (mismatch error, skip-and-sign-in link, forgot-password neutral messaging,
+admin-only "Reset password" button, manager blocked) still passing, zero JS errors.
+
+Nobody's password was set or reset as part of this fix — that stays a human action.
+
 ## 2026-08-22 · Owner's 4 Finance rulings applied: promo card off, Payment column, standing tab audit
 
 The owner ruled on the 4 pending decisions from the entry below. Three of the four are pure

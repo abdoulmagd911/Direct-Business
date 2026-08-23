@@ -4,6 +4,13 @@
   var SUPA_KEY='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
   var APPKEY='directBusinessData_v29';
   var sb=null, me=null, myRole=null;
+  /* Must match the Supabase project's own Auth password-policy minimum exactly. The
+     recovery and forced-first-login screens used to check length<8 while Supabase itself
+     enforces 10, so an 8-char password passed the form, failed server-side, and the person
+     was told nothing had changed while the sign-in they'd just "fixed" kept failing — the
+     account lockout loop this caused (2026-08-23). If the Supabase policy ever changes,
+     change MIN_PW in the same commit. */
+  var MIN_PW=10;
 
   function el(tag,css,html){var e=document.createElement(tag);if(css)e.style.cssText=css;if(html!=null)e.innerHTML=html;return e;}
 
@@ -193,6 +200,7 @@
       '<div style="font-size:12.5px;color:#7C8194;margin:8px 0 16px">Choose a new password for <b>'+whoEmail.replace(/[<>&]/g,'')+'</b>.</div></div>'+
       '<div id="cl_err" style="display:none;background:#F0453A14;color:#D92D20;font-size:12.5px;padding:9px 12px;border-radius:10px;margin-bottom:12px"></div>'+
       '<label style="font-size:12px;font-weight:700;color:#55596A">New password</label>'+
+      '<div style="font-size:11.5px;color:#7C8194;margin:2px 0 0">At least '+MIN_PW+' characters.</div>'+
       '<input id="rp_pw1" type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
       '<label style="font-size:12px;font-weight:700;color:#55596A">Repeat new password</label>'+
       '<input id="rp_pw2" type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 16px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
@@ -200,7 +208,7 @@
       '<div style="text-align:center;margin-top:14px"><span id="rp_skip" style="color:#9AA1B6;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">Only wanted to sign in — skip this</span></div>';
     document.getElementById('rp_go').onclick=function(){
       var p1=document.getElementById('rp_pw1').value,p2=document.getElementById('rp_pw2').value;
-      if(!p1||p1.length<8){ err('Password must be at least 8 characters.'); return; }
+      if(!p1||p1.length<MIN_PW){ err('Password must be at least '+MIN_PW+' characters.'); return; }
       if(p1!==p2){ err('The two passwords do not match.'); return; }
       sb.auth.updateUser({password:p1}).then(function(r){
         if(r.error){ err(r.error.message); return; }
@@ -355,13 +363,14 @@
       '<div style="font-size:12.5px;color:#7C8194;margin:8px 0 16px;line-height:1.6">You signed in with a temporary password.<br>Pick your own now — you will use it from next time.</div></div>'+
       '<div id="cl_err" style="display:none;background:#F0453A14;color:#D92D20;font-size:12.5px;padding:9px 12px;border-radius:10px;margin-bottom:12px"></div>'+
       '<label style="font-size:12px;font-weight:700;color:#55596A">New password</label>'+
+      '<div style="font-size:11.5px;color:#7C8194;margin:2px 0 0">At least '+MIN_PW+' characters.</div>'+
       '<input id="fl_pw1" type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
       '<label style="font-size:12px;font-weight:700;color:#55596A">Repeat new password</label>'+
       '<input id="fl_pw2" type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 16px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
       '<button id="fl_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer">Save and continue</button>';
     document.getElementById('fl_go').onclick=function(){
       var p1=document.getElementById('fl_pw1').value,p2=document.getElementById('fl_pw2').value;
-      if(!p1||p1.length<8){ err('Use at least 8 characters.'); return; }
+      if(!p1||p1.length<MIN_PW){ err('Use at least '+MIN_PW+' characters.'); return; }
       if(p1!==p2){ err('The two passwords do not match.'); return; }
       sb.auth.updateUser({password:p1}).then(function(r){
         if(r.error){ err(r.error.message); return; }
