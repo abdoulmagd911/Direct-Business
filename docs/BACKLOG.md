@@ -1,5 +1,82 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-23 · Client ID beside client name (built) + session/VAT/Ledger owner Q&A
+
+Four owner items relayed by the oversight session, diagnosed live before being reported.
+
+**1. "Stay logged in until they sign off" — app side confirmed already correct, not a code
+fix.** Independently re-verified `js/01-v44a`: `createClient` is memoised into one singleton
+with `persistSession:true`, `autoRefreshToken:true`, `detectSessionInUrl:true`, and every
+other layer's `window.supabase.createClient(...)` call returns that same shared client — no
+bug found. Also checked every `signOut()` / `localStorage` call site in the codebase (5
+found): two are explicit "Sign out" button clicks, one only shows a banner and signs out on
+click (`js/55-session-guard.js`, "read-only, no tokens rotated" by its own design), one
+clears legacy `directBusinessData_v*` local-cache keys on sign-in (not the Supabase auth
+token), and one (`js/50-v74`) auto-signs-out on a confirmed `active===false` from the
+database with an explicit `if(r.error||!r.data)return; // network hiccup — never act on
+doubt` guard — a deliberate, defensively-written feature (kicking a switched-off account),
+not an accidental-logout source. Nothing on the app side can explain a session not
+persisting. The lever is Supabase Auth project config (JWT expiry, refresh-token
+rotation/reuse interval) — neither session has a way to read or set that (no management API
+in this session's Supabase MCP tools either, confirmed by checking the available tool list).
+This is a one-toggle instruction for the owner: Supabase Dashboard → Authentication →
+Sessions — check "Time-box user sessions" / inactivity timeout are off or generous if he
+wants indefinite persistence.
+
+**2. VAT rule restated positively.** Owner verbatim: "we don't need to mention any VAT. We
+just need to mention three things: cost, profit, revenue." `docs/DECISIONS.md` M1 updated —
+Finance speaks in exactly three money words, not just "no VAT." Live-verified Clients &
+collections already matches exactly (CLIENT / REVENUE / COST / PROFIT columns,
+`probe-no-vat-display.mjs` passes). This also settles the `core-04-proposals.js`
+flight-quotation VAT-line question flagged last round — no carve-out; the oversight session
+is putting the explicit strip-it instruction to the owner directly, not decided here.
+
+**3. "The Ledger is empty" — confirmed data, not code; no rendering bug to chase.** Live:
+`TXN.rows=0`, `TXN.loadErr=null`, table/filters/Payment column all work correctly against
+zero rows because there are zero live rows in `finance_transactions` (33 rows, all
+soft-deleted practice data). Separately, "clients collection is empty" is **no longer
+true** — Clients & collections renders real revenue per client (MDD 642,549, alnahla
+599,347, etc.); what's actually zero is the COST column and "Client credit (held)" — i.e.
+item 4 below (cost import) is the real fix, not a Clients-page bug.
+
+**4. Client ID beside the client name — built.** `businesses.direct_client_id` (Direct
+Payments portal id) now renders next to the client name in three places, all using the
+Ledger's existing muted-badge treatment (`Name #123`, nothing rendered when the id is
+unset — never `#null`/`#—`):
+- Finance → Clients & collections → "Top clients by revenue" table.
+- The Clients page itself.
+- The Ledger already had this pattern; unchanged, used as the reference.
+
+`js/16-finance-ledger.js`: added `_finBizDirectId()`/`_finBizDirectIdIndex`, mirroring the
+existing `_finBizName()` cache exactly (same lazy-build, same `clearFinCanon()`
+invalidation), and `finCanon()` now returns `directId` alongside `name`/`key` when a group
+resolves to a linked business — pulled off the already-resolved business, no second lookup,
+per the ask. One real bug caught before shipping: the app-side field is `directClientId`
+(camelCase, per `js/02`'s `rowToApp`/`appToRow` mapping) — an initial pass read
+`direct_client_id` (the raw DB column name) directly off `DB.businesses` entries, which are
+already-mapped app objects; caught by testing against the actual harness rather than
+assuming the DB column name carries through, fixed in both `js/16` and
+`js/core/core-02-leads.js` before commit. Verified in the harness: `finCanon()` called
+directly returns the correct `directId`; the Clients-page table renders `#95` for the one
+fixture business that has one (`b0`/`L4`... — see file for exact fixture id).
+
+**On cost (item 4's real blocker, not yet built — my view, requested).** Agree the importer
+is the right home, not hand-scraped modals written in by SQL — that is exactly the D1
+violation that put Takamol in, and Direct Payments' Corporate Expenses page does carry
+`INVOICE #` per row, so a per-`invoice_no` join is real, not invented. Agree the simplest
+honest shape — one `cost_sar` per `invoice_no`, approved-expense-lines only, nothing else —
+is right-sized to "I don't want it complicated." One thing worth flagging: this is a
+different, legitimate cost-IMPORT path, not the same thing as `finance_expenses` (the
+record-only internal cost log, whose own header comment says its rows may never be
+substituted into an invoice's `cost_sar` automatically) — no conflict, this is the "Part 1b"
+real-cost-import gap that's been flagged as outstanding since 2026-08-22. Not built this
+round; capture-side blockers (per-row DOM reads through 46+ modals, no bulk export) are the
+oversight session's lane, not this session's.
+
+Full regression battery green: check-structure (58 files), csv-injection, finance-export,
+leads-counts, money-placement, password-recovery, no-vat-display, finance-invariants,
+audit-finance-tabs (8×EN/AR), sweep-pages (141 buttons, 0 errors).
+
 ## 2026-08-23 · Jargon sweep + Takamol root cause confirmed (direct SQL bypass) + adversarial probe hardening
 
 Owner instruction: sweep every button/note/clarification, remove anything that doesn't

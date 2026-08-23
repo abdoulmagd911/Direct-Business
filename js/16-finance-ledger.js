@@ -179,7 +179,8 @@ var _finCanonCache={};
    invalidated on the exact same clearFinCanon() calls the existing _finCanonCache already
    relies on, so this can never go stale independently of that cache. */
 var _finBizNameIndex=null;
-function clearFinCanon(){ _finCanonCache={}; _finBizNameIndex=null; }
+var _finBizDirectIdIndex=null;
+function clearFinCanon(){ _finCanonCache={}; _finBizNameIndex=null; _finBizDirectIdIndex=null; }
 function _finBizName(uuid){
   try{
     if(!_finBizNameIndex){
@@ -193,6 +194,22 @@ function _finBizName(uuid){
     return Object.prototype.hasOwnProperty.call(_finBizNameIndex,uuid)?_finBizNameIndex[uuid]:null;
   }catch(_){return null;}
 }
+// Same lazily-built, clearFinCanon()-invalidated index as _finBizName, for the owner's
+// "client ID beside the client name" request (2026-08-23) — businesses.direct_client_id is
+// the Direct Payments portal id (MDD=1, alnahla=46, ...). Not every client has one yet.
+function _finBizDirectId(uuid){
+  try{
+    if(!_finBizDirectIdIndex){
+      _finBizDirectIdIndex={};
+      var list=(typeof DB!=='undefined'&&DB.businesses)||[];
+      for(var i=0;i<list.length;i++){
+        var uu=(window.__bizUuid?window.__bizUuid(list[i].id):list[i].id);
+        _finBizDirectIdIndex[uu]=list[i].directClientId||null;
+      }
+    }
+    return Object.prototype.hasOwnProperty.call(_finBizDirectIdIndex,uuid)?_finBizDirectIdIndex[uuid]:null;
+  }catch(_){return null;}
+}
 function finCanon(clientGroup){
   var ck=(clientGroup==null?'':clientGroup);
   if(_finCanonCache[ck]!==undefined)return _finCanonCache[ck];
@@ -202,7 +219,7 @@ function finCanon(clientGroup){
     res={key:'__indiv__',name:isArF()?'أفراد / ليس عميلاً':'Individuals / not a client',linked:true};
   }else if(l&&l.business_id){
     var nm=_finBizName(l.business_id);
-    res=nm?{key:'biz:'+l.business_id,name:nm,linked:true}:{key:'raw:'+disp,name:disp,linked:false};
+    res=nm?{key:'biz:'+l.business_id,name:nm,linked:true,directId:_finBizDirectId(l.business_id)}:{key:'raw:'+disp,name:disp,linked:false};
   }else{
     res={key:'raw:'+disp,name:disp,linked:false};
   }
@@ -337,11 +354,11 @@ function rFinClients(){
      (arOut>0?('<div style="display:flex;gap:8px;flex-wrap:wrap">'+_agc(_fl('0–30 days','0–30 يوم'),ag.b030)+_agc(_fl('31–60 days','31–60 يوم'),ag.b3160)+_agc(_fl('61–90 days','61–90 يوم'),ag.b6190)+_agc(_fl('90+ days','90+ يوم'),ag.b90)+'</div>')
        :('<div style="font-size:12px;color:#0F6E56">✓ '+_fl('No outstanding receivables in this period.','لا توجد مستحقات في هذه الفترة.')+'</div>'))+
      '</div>';
-  var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,_i:{},key:cc.key};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
+  var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,_i:{},key:cc.key,directId:cc.directId};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
   var top=Object.keys(byC).sort(function(a,b){return byC[b].r-byC[a].r;}).slice(0,10);
   var _tc={r:0,c:0,p:0};Object.keys(byC).forEach(function(k){_tc.r+=byC[k].r;_tc.c+=byC[k].c;_tc.p+=byC[k].p;});
   h+='<div class="card" style="padding:16px"><h3 class="finh" style="margin:0 0 10px">'+(isArF()?'أعلى العملاء':'Top clients by revenue')+'<i>'+finPeriodLabel()+'</i></h3><div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:480px"><tr style="background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+'"><th style="padding:7px 9px">'+(isArF()?'العميل':'Client')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الإيرادات':'Revenue')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'التكلفة':'Cost')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الربح':'Profit')+'</th></tr>'+top.map(function(k){
-    return '<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finClient(\''+escF(byC[k].key).replace(/'/g,"\\'")+'\',\''+escF(k).replace(/'/g,"\\'")+'\')"><td style="padding:6px 9px;font-weight:600">'+escF(k)+'</td><td style="padding:6px 9px;text-align:right;font-weight:700">'+money0(byC[k].r)+'</td><td style="padding:6px 9px;text-align:right;color:#B54708">'+money0(byC[k].c)+'</td><td style="padding:6px 9px;text-align:right;color:#0F6E56;font-weight:700">'+money0(byC[k].p)+'</td></tr>';
+    return '<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finClient(\''+escF(byC[k].key).replace(/'/g,"\\'")+'\',\''+escF(k).replace(/'/g,"\\'")+'\')"><td style="padding:6px 9px;font-weight:600">'+escF(k)+(byC[k].directId?(' <span style="color:var(--muted);font-size:10.5px">#'+escF(byC[k].directId)+'</span>'):'')+'</td><td style="padding:6px 9px;text-align:right;font-weight:700">'+money0(byC[k].r)+'</td><td style="padding:6px 9px;text-align:right;color:#B54708">'+money0(byC[k].c)+'</td><td style="padding:6px 9px;text-align:right;color:#0F6E56;font-weight:700">'+money0(byC[k].p)+'</td></tr>';
   }).join('')+'<tr style="background:#303848;color:#fff;font-weight:800"><td style="padding:7px 9px">'+(isArF()?'الإجمالي الكلي':'Total')+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.r)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.c)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.p)+'</td></tr></table></div></div>';
   return h;
 }

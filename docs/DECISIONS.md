@@ -32,12 +32,15 @@ knowledge existed but nothing forced a check against it at the moment of acting.
 
 ## Money & finance display
 
-**VAT is never shown, never mentioned — anywhere, at any stage, in any view or report.**
-Hard rule, not a UI preference. Ruled twice by the owner in writing; a later session asked
-a third time and was told, again, no. `vat_sar` is a legitimate stored column (used
-internally) — the rule is about what renders on screen or in an export, never about the
-column existing.
-*Date: 2026-08-08 (ruled), reconfirmed 2026-08-22. Status: ACTIVE.*
+**Finance uses exactly three money words: Revenue, Cost, Profit. VAT is never shown or
+mentioned — anywhere, at any stage, in any view or report.** Restated positively 2026-08-23,
+owner verbatim: "as agreed, we don't need to mention any VAT. We just need to mention three
+things: cost, profit, revenue." Not just "no VAT" — no fourth money concept either. Ruled on
+VAT twice before in writing; a later session asked a third time and was told, again, no.
+`vat_sar` is a legitimate stored column (used internally) — the rule is about what renders
+on screen or in an export, never about the column existing.
+*Date: 2026-08-08 (ruled), reconfirmed 2026-08-22, restated positively 2026-08-23. Status:
+ACTIVE.*
 
 **Cost = approved expenses only.** `finance_expenses` rows are the real cost behind a
 service — the hotel bought, the visa paid for. They are record-only: nothing in that table
