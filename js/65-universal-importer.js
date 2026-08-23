@@ -128,7 +128,39 @@
                                   deprecated:'Confirmed empty on every filter tried, and zero rows on both real runs. Never a cost source — do not import.'},
     // screens, not registry exports — named explicitly because of what they DON'T carry
     corporate_transactions:     {label:'Corporate Transactions', rows:null,runs:null,isCostSource:false,hasClientColumn:false},
-    corporate_invoices:         {label:'Corporate Invoices',     rows:null,runs:null,isCostSource:false,hasClientColumn:false}
+    corporate_invoices:         {label:'Corporate Invoices',     rows:null,runs:null,isCostSource:false,hasClientColumn:false},
+    // 2026-08-23 — the second real cost source, wired. NOT one of the eleven registry exports
+    // above and NOT the earlier Corporate Expenses "View Assignments" modal path (abandoned —
+    // required a per-invoice iframe read that returned a previous invoice's stale figures
+    // under load, caught before any number reached this file). The real source is
+    // admin.stats.expense-report (?of_corporate_client=true, 219 corporate rows, paginated,
+    // has its own Export/Fast Excel Export) — cross-verified against the modal path on one
+    // invoice before trusting it (both read 12,247.00 for 1163597647).
+    //
+    // ONE ROW PER EXPENSE LINE, never pre-summed by whoever captures it — the summing and the
+    // Approved-only filter happen HERE, in code, so they're the same reviewable rule every
+    // time, not a hand computation trusted once. Required columns:
+    //   invoice_no          — natural key, matched against a LIVE finance_invoices row only
+    //   amount_sar          — this one line's amount
+    //   expense_status      — this LINE's own status; only 'Approved' lines count toward the
+    //                         sum. The report's own expense_status URL filter does NOT apply
+    //                         server-side (verified: filtering for Approved still returned
+    //                         Pending/Cancelled/Under Review rows) — filtering happens on this
+    //                         column's actual value, never trust the query string.
+    //   txn_expense_status  — the INVOICE-level gate (owner's standing rule, Aug 20/21 notes):
+    //                         cost is only FINAL once every non-cancelled line on the invoice
+    //                         is Approved, at which point the transaction's own Expense Status
+    //                         reads Ready/Issued. Per-line Approved alone does NOT mean the
+    //                         invoice's cost is final — it can still be Pending on account of
+    //                         one other line still Under Review. This column is NOT on the
+    //                         expense-report; it must be joined in from Corporate Transactions
+    //                         before the file is dropped here. Same value on every line of one
+    //                         invoice — see processCostCaptureBatch() for what happens if the
+    //                         lines disagree (never guessed at).
+    // Repeated (amount, expense_type) pairs on one invoice are real, separate expenses (owner's
+    // notes, verified: three RateHawk "Hotel Cost" lines on one invoice, three different
+    // approval timestamps) — every Approved line is summed, none deduplicated.
+    expense_report_capture:     {label:'Expense Report Capture (per-line, Ready/Issued only)', rows:null,runs:null,isCostSource:true,hasClientColumn:true}
   };
   window.v65Catalogue=CATALOGUE;
 
@@ -137,7 +169,9 @@
      an entry the instant a real header sample is captured; nothing here is ever guessed. */
   var SIGNATURES=[
     { key:'invoice_export', catalogueKey:'invoice_export',
-      requiredColumns:['Type','Invoice Reference #','Customer Name','Item Is Taxable'] }
+      requiredColumns:['Type','Invoice Reference #','Customer Name','Item Is Taxable'] },
+    { key:'expense_report_capture', catalogueKey:'expense_report_capture',
+      requiredColumns:['invoice_no','amount_sar','expense_status','txn_expense_status'] }
   ];
   function detectSignature(headerRow){
     var h=(headerRow||[]).map(function(x){return String(x||'').trim();});
@@ -158,7 +192,7 @@
       existingByNo:existingByNo,
       linkByGroup:(window.FIN&&FIN.linkByGroup)||{},
       isNew:[], updated:[], unchangedCount:0,
-      excludedByRule:0, excludedDetail:{wallet:0,verif:0,clientExcluded:0,clientExcludedDetail:[]},
+      excludedByRule:0, excludedDetail:{wallet:0,verif:0,clientExcluded:0,clientExcludedDetail:[],costCaptureDetail:[]},
       needsLinking:0
     };
   }
@@ -281,6 +315,101 @@
       candidates.push(built);
     });
     mergeRowsIntoState(candidates, state);
+  }
+
+  /* ---------- expense_report_capture: cost, matched onto an EXISTING live invoice only ----------
+     Never creates a finance_invoices row (see CATALOGUE entry, 2026-08-23, for the full trail —
+     an earlier per-invoice-modal design was abandoned after a stale-iframe near-miss; the real
+     source is admin.stats.expense-report, one row per expense line).
+
+     Rows are only ACCUMULATED here (buffer_ by invoice_no) — the actual sum/gate/write decision
+     happens once, in finalizeExpenseReportCapture(), after every batch of every dropped file has
+     been seen. Summing per invoice cannot safely happen batch-by-batch: nothing guarantees every
+     line for one invoice arrives in the same batch, and guessing would risk exactly the
+     plausible-but-wrong number this path exists to prevent. */
+  function processCostCaptureBatch(rawRows, header, state){
+    var ixNo=header.indexOf('invoice_no'), ixAmt=header.indexOf('amount_sar'),
+        ixSt=header.indexOf('expense_status'), ixTxn=header.indexOf('txn_expense_status');
+    if(ixNo<0||ixAmt<0||ixSt<0||ixTxn<0)return; // detectSignature() already guarantees these; defensive only
+    state.expenseLines=state.expenseLines||{};
+    rawRows.forEach(function(row){
+      var invNo=String(row[ixNo]||'').trim(); if(!invNo)return;
+      (state.expenseLines[invNo]=state.expenseLines[invNo]||[]).push({
+        amount:row[ixAmt], status:String(row[ixSt]||'').trim(), txnStatus:String(row[ixTxn]||'').trim()
+      });
+    });
+  }
+  // FINAL — Ready/Issued gate (owner's Aug 20/21 notes): cost is confirmed only once every
+  // non-cancelled line on the invoice is Approved, which is what the transaction's own Expense
+  // Status reads Ready/Issued for. Per-line Approved is not enough on its own — an invoice can
+  // sit Pending overall because ONE other line is still Under Review, and summing only the
+  // Approved lines in that state produces a real but INCOMPLETE number, silently understated.
+  // So: nothing is written unless the gate says the invoice is done, full stop; Pending leaves
+  // cost_sar exactly as it was (untouched, never zeroed, never a partial sum).
+  var READY_STATUSES=['ready','issued'];
+  function finalizeExpenseReportCapture(state){
+    var lines=state.expenseLines||{};
+    Object.keys(lines).forEach(function(invNo){
+      var rows=lines[invNo];
+      var existing=state.existingByNo[invNo];
+      if(!existing){
+        // Not a live invoice — this is exactly how Takamol/Techtic and test-company rows (seen
+        // in the wider expense-report set: TEST NEW COMPANY, saifamerholdingcompany) get kept
+        // out, without needing a name to check against: they were already excluded or never
+        // real, so no live row exists to match. Reported, never inserted.
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('not a live invoice — skipped','ليست فاتورة قائمة — تم التخطي')});
+        return;
+      }
+      var xhit=(typeof window.finExclusionCheck==='function')?(window.finExclusionCheck(existing.client_group)||window.finExclusionCheck(existing.customer_raw_name)):null;
+      if(xhit){
+        state.excludedByRule++; state.excludedDetail.clientExcluded++;
+        state.excludedDetail.clientExcludedDetail.push({name:existing.client_group,clientId:xhit.clientId,reason:xhit.reason});
+        return;
+      }
+      // The gate must be the SAME value on every line of one invoice — if the capture disagrees
+      // with itself, that is a capture problem, never guessed at here.
+      var txnStatuses=rows.map(function(r){return r.txnStatus.toLowerCase();}).filter(function(v,i,a){return a.indexOf(v)===i;});
+      if(txnStatuses.length>1){
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('lines disagree on transaction expense status — not applied','الأسطر تختلف في حالة المصروف للمعاملة — لم تُطبَّق')});
+        return;
+      }
+      if(READY_STATUSES.indexOf(txnStatuses[0])<0){
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('expense status "'+rows[0].txnStatus+'" — cost not final, not applied','حالة المصروف "'+rows[0].txnStatus+'" — التكلفة غير نهائية، لم تُطبَّق')});
+        return;
+      }
+      // Gate is open. Sum every Approved line — never deduplicated: the owner's own notes flag
+      // a real invoice with three separate Hotel Cost / RateHawk lines at the identical amount,
+      // each a distinct booking with its own approval timestamp. A dedup rule here would silently
+      // undercount real cost.
+      var sum=0, malformed=false;
+      rows.forEach(function(r){
+        if(r.status.toLowerCase()!=='approved')return; // Pending/Cancelled/Under Review never count
+        var amt=(typeof window.parseMoneyInput==='function')?window.parseMoneyInput(r.amount):parseFloat(r.amount);
+        if(amt==null||isNaN(amt)||amt<0){ malformed=true; return; }
+        sum+=amt;
+      });
+      if(malformed){
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('a line has a malformed amount — not applied, needs review','أحد الأسطر بمبلغ غير صالح — لم تُطبَّق، تحتاج مراجعة')});
+        return;
+      }
+      sum=Math.round(sum*100)/100;
+      var tot=+existing.total_incl_vat_sar||0;
+      if(sum>tot){
+        // The exact shape of the stale-iframe bug this whole path exists to catch: a well-formed
+        // number that is simply impossible for this invoice. Never applied, always reported.
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('approved cost exceeds invoice total — needs review, not applied','التكلفة المعتمدة أكبر من إجمالي الفاتورة — تحتاج مراجعة، لم تُطبَّق')});
+        return;
+      }
+      var rev=+existing.revenue_sar||0;
+      var updated=Object.assign({},existing,{cost_sar:sum,profit_sar:Math.round((rev-sum)*100)/100});
+      if(rowDiffers(existing,updated)) state.updated.push(Object.assign({},updated,{id:existing.id}));
+      else state.unchangedCount++;
+    });
   }
 
   var PENDING_UNKNOWN={}; // fileKey -> {file, header, rows2d (present only if already fully read)}
@@ -434,6 +563,7 @@
           header=row;
           var sig=detectSignature(header);
           if(sig&&sig.key==='invoice_export'){ mode='invoice_export'; state=initState(); typeColIdx=header.indexOf('Type'); return; }
+          if(sig&&sig.key==='expense_report_capture'){ mode='cost_capture'; state=initState(); return; }
           var learned=getLearnedMapping(header);
           if(learned){ mode='mapped'; mapping=learned.mapping; state=initState(); return; }
           mode='unknown';
@@ -456,6 +586,9 @@
         } else if(mode==='mapped'){
           buf.push(row);
           if(buf.length>=GENERIC_BATCH_ROWS){ processGenericBatch(buf,header,mapping,state); buf=[]; }
+        } else if(mode==='cost_capture'){
+          buf.push(row);
+          if(buf.length>=GENERIC_BATCH_ROWS){ processCostCaptureBatch(buf,header,state); buf=[]; }
         }
       },
       afterChunk:function(next){
@@ -472,6 +605,10 @@
         } else if(mode==='mapped'){
           if(buf.length) processGenericBatch(buf,header,mapping,state);
           done(Object.assign({name:f.name, recognized:true, label:fl('Mapped file','ملف مُعيَّن')}, finalizeState(state,signatureKey(header),true)));
+        } else if(mode==='cost_capture'){
+          if(buf.length) processCostCaptureBatch(buf,header,state);
+          finalizeExpenseReportCapture(state);
+          done(Object.assign({name:f.name, recognized:true, label:CATALOGUE.expense_report_capture.label}, finalizeState(state,'expense_report_capture',true)));
         }
       },
       onError:function(e){ if(!finished) done({name:f.name, recognized:false, header:header||[], err:String(e&&e.message||e)}); }
@@ -490,6 +627,13 @@
       try{ processInvoiceBatch(rows2d,state); }
       catch(e){ done({name:name,recognized:false,header:hdr,err:String(e&&e.message||e)}); return; }
       done(Object.assign({name:name,recognized:true,label:CATALOGUE[sig.catalogueKey].label}, finalizeState(state,'invoice_export',true)));
+      return;
+    }
+    if(sig&&sig.key==='expense_report_capture'){
+      var state3=initState();
+      try{ processCostCaptureBatch(rows2d.slice(1),hdr,state3); finalizeExpenseReportCapture(state3); }
+      catch(e){ done({name:name,recognized:false,header:hdr,err:String(e&&e.message||e)}); return; }
+      done(Object.assign({name:name,recognized:true,label:CATALOGUE[sig.catalogueKey].label}, finalizeState(state3,'expense_report_capture',true)));
       return;
     }
     var learned=getLearnedMapping(hdr);
@@ -552,6 +696,8 @@
         totals.excludedByRule+=r.counts.excludedByRule;
         exclLine=String(r.counts.excludedByRule)+(r.excludedDetail&&r.excludedDetail.clientExcludedDetail&&r.excludedDetail.clientExcludedDetail.length
           ? (' — '+esc(r.excludedDetail.clientExcludedDetail.map(function(d){return d.name+' (#'+d.clientId+(d.reason?(': '+d.reason):'')+')';}).join('; ')))
+          : '')+(r.excludedDetail&&r.excludedDetail.costCaptureDetail&&r.excludedDetail.costCaptureDetail.length
+          ? (' — '+esc(r.excludedDetail.costCaptureDetail.map(function(d){return d.invoice_no+': '+d.reason;}).join('; ')))
           : '');
       }
       return '<div class="card" style="margin-top:8px;padding:12px 14px">'+

@@ -1,5 +1,81 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-23 · Real cost-import path built: js/65's expense_report_capture
+
+Three rounds of cost-capture design happened this same day, each corrected by the last —
+recorded in full so a future session doesn't repeat any of the three:
+
+1. **First design (parked, never shipped):** per-invoice modal scrape ("View Assignments"
+   iframe), one pre-summed `approved_cost_sar` per invoice. Killed after a real near-miss —
+   the iframe element persists between modal opens and doesn't always refresh before being
+   read, so a stale reference silently returned the PREVIOUS invoice's figure for four rows
+   in a row, every one well-formed and plausible. Caught before any of it reached a
+   database; all 4 rows discarded.
+2. **Second design (also parked):** same source, function rewired to gate on a
+   `txn_expense_status` per row — right instinct (owner's notes: per-line Approved isn't
+   enough, the invoice's own transaction Expense Status must read Ready/Issued), but the
+   modal-scrape source it was built against had already been abandoned by the time this was
+   built, and the exact shape of the real transaction-status join was still unconfirmed.
+3. **Real source, found and shipped:** `admin.stats.expense-report`
+   (`?of_corporate_client=true`, 219 corporate rows, one row per expense line, has its own
+   Export/Fast Excel Export — found by reading the app's own Ziggy route registry out of the
+   page source rather than guessing URLs). Cross-verified against the abandoned modal path
+   on one real invoice before trusting it (both independently read 12,247.00 for invoice
+   1163597647).
+
+**Two real traps in this source, both defended in code:**
+- The report's own `expense_status` URL filter does not apply server-side — a request
+  filtered to `expense_approved` still returned Pending/Cancelled/Under Review rows
+  alongside Approved ones. The importer filters on each row's own status VALUE, never
+  trusts a query string.
+- Repeated identical (amount, expense_type) pairs on one invoice are real, separate
+  expenses, not duplicates — verified: invoice 1163760158 carries three Hotel Cost /
+  RateHawk lines, two at the identical 12,121.16, all three with different approval
+  timestamps (13:12:36 / 13:13:08 / 13:13:35). The importer sums every Approved line;
+  nothing is deduplicated.
+
+**Built: `js/65-universal-importer.js`'s `expense_report_capture` signature.** Required
+columns `invoice_no,amount_sar,expense_status,txn_expense_status` (the last is the
+transaction-level Ready/Issued gate, joined in before the file is dropped — not on the raw
+report itself). Never creates a new `finance_invoices` row — matches only an
+already-live `invoice_no`, or reports it unmatched. Guards, every one independently
+verified in the harness (`scripts/qa/probe-expense-report-capture.mjs`, 9 scenarios, all
+green): the exclusion list is re-checked even though a live match already implies it passed
+once; a cost that would exceed the invoice's own total is rejected (the exact shape of the
+stale-iframe class of bug from design #1); a malformed amount on any one line voids that
+whole invoice's write rather than guessing which lines to trust; conflicting
+`txn_expense_status` values across one invoice's lines are refused rather than picked
+between; and — the rule that matters most — **an invoice whose gate reads anything other
+than Ready/Issued is left completely untouched, even when it has real Approved lines on
+file.** `docs/DECISIONS.md` carries the standing rule.
+
+`scripts/qa/probe-finance-invariants.mjs` also gained a new universal check: no live
+invoice may have `cost_sar` exceeding its own `total_incl_vat_sar` — the general form of
+the same guard, catching it regardless of which import path a future cost figure comes
+through.
+
+**Still open, both flagged rather than silently skipped, per the person who found them:**
+- B2C/individual-booking cost is unverified — the expense-report is corporate-only
+  (`of_corporate_client=true`); whether the same field covers individual bookings has never
+  been checked. Even a perfect corporate capture leaves B2C cost at null; the page must not
+  imply completeness there.
+- The COGs Report (`admin.stats.cog-report`) loads but returns 0 rows without filters, and
+  its filter inputs are Vue components with no readable form-name attributes, so the params
+  can't be set from the DOM. If the owner sends a filtered URL (Status=Approved, wide date
+  range) directly, that would give `cog_approved` as a real report and could replace this
+  whole per-line-sum approach with something simpler — not acted on until that lands.
+
+**Not yet done:** nobody has captured the real 219 rows or the transaction-status join yet
+— this entry documents the CODE, verified against a synthetic fixture matching the
+confirmed real shape, not a completed data import. `expense_report_capture` will simply not
+recognize a file that's missing the `txn_expense_status` column (fails safe — an incomplete
+file falls through to "not recognized," never silently applies partial data).
+
+Full regression battery green: check-structure (58 files), csv-injection, finance-export,
+leads-counts, money-placement, password-recovery, no-vat-display, finance-invariants
+(strengthened), expense-report-capture (new, 9/9), audit-finance-tabs (8×EN/AR),
+sweep-pages (141 buttons, 0 errors).
+
 ## 2026-08-23 · Client ID beside client name (built) + session/VAT/Ledger owner Q&A
 
 Four owner items relayed by the oversight session, diagnosed live before being reported.

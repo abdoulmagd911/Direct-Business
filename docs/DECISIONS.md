@@ -51,6 +51,27 @@ compute a number for.
 *Date: 2026-08-16 (expenses model built), reconfirmed 2026-08-22 (BACKLOG entry: cost "must
 come from approved expenses... not a VAT computation"). Status: ACTIVE.*
 
+**Real per-invoice cost is only FINAL once its transaction Expense Status reads
+Ready/Issued — per-line Approved alone is not enough.** Owner's notes (Aug 20/21),
+re-confirmed 2026-08-23 after an earlier capture design missed exactly this: an invoice can
+have several expense lines, and ALL of them must be Approved (Cancelled lines don't block
+readiness; Pending or Under Review ones do) before the transaction's own Expense Status
+moves from Pending to Ready/Issued. Summing only the Approved lines while another line on
+the same invoice is still Under Review produces a real number that is silently INCOMPLETE.
+So: cost_sar is written for an invoice ONLY when its gate is Ready/Issued; anything still
+Pending leaves cost_sar exactly as it was — untouched, never zeroed, never a partial sum.
+Wired in `js/65-universal-importer.js`'s `expense_report_capture` signature
+(`finalizeExpenseReportCapture()`), regression-guarded by
+`scripts/qa/probe-expense-report-capture.mjs`. The source itself — Direct Payments'
+`admin.stats.expense-report`, one row per expense line — carries two traps, both defended
+in code rather than trusted to memory: its own `expense_status` URL filter does not apply
+server-side (a request filtered to Approved still returns Pending/Cancelled/Under Review
+rows — filtering happens on the row's own value, in code, never the query string), and
+repeated identical (amount, expense_type) pairs on one invoice are real, separate expenses
+(verified: three same-amount Hotel Cost/RateHawk lines, three different approval
+timestamps) — never deduplicated.
+*Date: 2026-08-23. Status: ACTIVE.*
+
 **SUPERSEDED — the invoice item split (Service Fee / 3rd Party Fee) is a VAT split, never
 real cost.** An earlier round of this project treated the 3rd-Party-Fee line as the real
 cost figure; re-verified live against Direct Payments and found wrong — that line is a VAT

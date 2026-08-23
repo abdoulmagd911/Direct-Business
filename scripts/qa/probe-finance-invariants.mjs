@@ -100,6 +100,20 @@ async function main() {
   if (state.rawRowCount !== 16) fail(`FIN.rows (raw, pre-filter) has ${state.rawRowCount} rows, expected exactly 16 seeded server-side — fixture assumption broke`);
   else ok('FIN.rows (raw) has all 16 seeded rows — the exclusion is applied on every read, not by dropping data at load');
 
+  // ---- 1b. cost_sar must never exceed the invoice's own total_incl_vat_sar — the exact shape
+  // of the stale-iframe near-miss caught during cost-capture design (2026-08-23): a
+  // well-formed, plausible cost figure that was simply impossible for the invoice it landed
+  // on. js/65-universal-importer.js's expense_report_capture path guards this at import time;
+  // this is the standing, load-time proof that no cost figure — from that path or any other,
+  // now or later — ever violates it in the live data. ----
+  const costCheck = await p.evaluate(() => {
+    const bad = (FIN.rows || []).filter((r) => !r.deleted_at && (+r.cost_sar || 0) > (+r.total_incl_vat_sar || 0) + 0.01)
+      .map((r) => ({ invoice_no: r.invoice_no, cost_sar: r.cost_sar, total_incl_vat_sar: r.total_incl_vat_sar }));
+    return { bad };
+  });
+  if (costCheck.bad.length) fail(`${costCheck.bad.length} invoice(s) have cost_sar exceeding their own total_incl_vat_sar: ${JSON.stringify(costCheck.bad)}`);
+  else ok('no live invoice has cost_sar exceeding its own total_incl_vat_sar');
+
   // ---- 2. Rendered totals — Overview, Clients & collections, Ledger — no visible trace ----
   // Overview shows KPI sums only, no client names anywhere on the tab — a text scan for
   // "takamol" there can never fail even if the row's MONEY leaked into the total, since
