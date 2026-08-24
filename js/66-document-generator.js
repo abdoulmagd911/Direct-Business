@@ -236,6 +236,21 @@
     return '<div class="dg-grid">'+radarHtml+bankHtml+brandHtml+'</div>'+regHtml;
   }
 
+  /* ---------- plug-in seam: later layer files own their own tab body ----------
+     window.dgRegisterTab('offer', fn) replaces that tab's comingSoon placeholder.
+     Tiny and defensive: if the layer file is missing nothing breaks, and a
+     throwing renderer falls back to the placeholder instead of killing the page. */
+  var EXT={};
+  window.dgRegisterTab=function(id,fn){
+    try{ if(typeof id==='string'&&typeof fn==='function'){ EXT[id]=fn;
+      if(typeof current!=='undefined'&&current==='documents')render(); } }catch(_){}
+  };
+  function extTab(id){
+    if(!EXT[id])return null;
+    try{ var h=EXT[id](); return (typeof h==='string')?h:null; }
+    catch(e){ console.warn('[dg] ext tab '+id,e); return null; }
+  }
+
   function comingSoon(name){
     return '<div class="card">'+fl('The '+name+' tab is the next build step — it will run on this same engine and registry.','هذا القسم هو خطوة البناء التالية — سيعمل على نفس المحرك والسجل.')+'</div>';
   }
@@ -247,9 +262,9 @@
       return '<button class="btn sm '+(DG.tab===t[0]?'pri':'ghost')+'" onclick="dgGo(\''+t[0]+'\')">'+esc(fl(t[1],t[2]))+'</button>';
     }).join('');
     var body= DG.tab==='assets'?assetsTab()
-            : DG.tab==='offer'?comingSoon('Price Offer')
-            : DG.tab==='fees'?comingSoon('Service-Fee Proposal')
-            : comingSoon('Company Profile');
+            : DG.tab==='offer'?(extTab('offer')||comingSoon('Price Offer'))
+            : DG.tab==='fees'?(extTab('fees')||comingSoon('Service-Fee Proposal'))
+            : (extTab('profile')||comingSoon('Company Profile'));
     /* Page chrome uses the app's product identity; document previews (later tabs) will
        carry data-identity="classic". */
     view.innerHTML=css()+'<div id="dgWrap" data-identity="product">'+
