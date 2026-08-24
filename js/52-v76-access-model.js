@@ -13,7 +13,7 @@
   function isAr(){ try{ return (typeof LANG!=='undefined'&&LANG==='ar'); }catch(_){ return false; } }
   function fl(en,ar){ return isAr()?ar:en; }
 
-  var PAGES_MANAGER  = ['today','leads','clients','finance','offers','events','airlines','settings','activity','archive'];
+  var PAGES_MANAGER  = ['today','leads','clients','finance','offers','documents','events','airlines','settings','activity','archive'];
   var PAGES_EMPLOYEE = ['today','leads','clients','finance'];
 
   function role(){ try{ return window.__userRole || (window.__userTier==='admin'?'admin':window.__userTier==='manager'?'manager':null); }catch(_){ return null; } }

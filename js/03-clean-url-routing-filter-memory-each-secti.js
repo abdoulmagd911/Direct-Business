@@ -3,7 +3,7 @@
    recorded in history too, so pressing Back first UNDOES the last filter you applied and keeps you
    on the page, instead of ejecting you out to whatever section you were on before. */
 (function(){try{
-  var VALID=['today','dashboard','leads','clients','airlines','vendors','providers','sops','slas','sopsla','reports','ops','operations','offers','activity','archive','bookings','invoices','tickets','finance','settings','events','sync','projects'];
+  var VALID=['today','dashboard','leads','clients','airlines','vendors','providers','sops','slas','sopsla','reports','ops','operations','offers','activity','archive','bookings','invoices','tickets','finance','settings','events','sync','projects','documents'];
   // capture the address the page opened at (accept clean path, or migrate an old #/hash); ignore any ?v= cache param
   var boot=(function(){var h=String(location.hash||'');if(h.indexOf('#/')===0)return h.slice(1);return String(location.pathname||'/');})();
   var ready=false, lastPath=null, restoring=false;
