@@ -142,8 +142,16 @@ await p.waitForTimeout(1500);
 check('offer tab renders through the seam (form present)', await p.evaluate(() => !!document.querySelector('#poWrap .po-form')));
 check('A4 preview renders under data-identity="classic"', await p.evaluate(() =>
   !!document.querySelector('#poPreviewCol[data-identity="classic"] .po-page')));
-check('preview shows the VAT 15% line (legitimate on client documents)', await p.evaluate(() =>
-  /VAT 15%|ضريبة القيمة المضافة 15%/.test(document.getElementById('poPages')?.innerText || '')));
+/* before any price is typed: VAT rows and amount-in-words stay hidden, and the empty
+   items table shows a friendly "add services above" row */
+{
+  const t0 = await p.evaluate(() => document.getElementById('poPages')?.innerText || '');
+  check('empty offer hides the VAT rows until a price exists', !/VAT 15%|ضريبة القيمة المضافة 15%/.test(t0));
+  check('empty offer hides the amount-in-words line', !/In words:|المبلغ كتابةً:/.test(t0));
+  check('empty items table shows the friendly add-services row', /Add services above|أضف الخدمات أعلاه/.test(t0));
+  check('unissued offer carries the diagonal DRAFT watermark', await p.evaluate(() =>
+    !!document.querySelector('#poPages .po-wm span')));
+}
 
 /* 3 — items math: type a price of 100.00, qty 1 → 100 + 15 = 115 */
 await p.fill('#poWrap .po-line input[step="0.01"]', '100');
@@ -157,6 +165,11 @@ if (m) {
 }
 const pv = await p.evaluate(() => document.getElementById('poPages')?.innerText || '');
 check('preview prints the computed total 115.00', pv.includes('115.00'));
+check('preview shows the VAT 15% line once priced (legitimate on client documents)',
+  /VAT 15%|ضريبة القيمة المضافة 15%/.test(pv));
+check('issue button carries the official-number wording',
+  await p.evaluate(() => [...document.querySelectorAll('#poBar button')]
+    .some(x => /Issue offer — assign official number|إصدار العرض — تعيين رقم رسمي/.test(x.textContent))));
 
 /* 4 — amount in words, both languages, from the live page's own algorithm */
 const w = await p.evaluate(() => window.__poWordsProbe ? __poWordsProbe(115) : null);

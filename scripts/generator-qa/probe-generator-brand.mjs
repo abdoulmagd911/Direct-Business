@@ -97,9 +97,12 @@ await p.route('**fonts.gstatic.com/**', r => r.abort());
 
 /* synthetic registry fixture — invented values only (D4) */
 const FIXTURE = [
-  { key: 'legal_name', category: 'legal', label_en: 'Legal name', label_ar: 'الاسم القانوني', value_en: 'Synthetic Test Co Ltd', value_ar: 'شركة اختبار', expires_on: null, source: 'fixture', sensitive: false, show_on_documents: true, sort: 10 },
-  { key: 'cr_number', category: 'legal', label_en: 'CR', label_ar: 'السجل', value_en: '9999999999', value_ar: null, expires_on: '2020-01-01', source: 'fixture', sensitive: false, show_on_documents: true, sort: 20 },
-  { key: 'iban_test', category: 'banking', label_en: 'Test IBAN', label_ar: 'آيبان', value_en: 'SA0000000000000000000000', value_ar: null, expires_on: null, source: 'fixture', sensitive: true, show_on_documents: true, sort: 60 },
+  { key: 'legal_name', category: 'legal', label_en: 'Legal name', label_ar: 'الاسم القانوني', value_en: 'Synthetic Test Co Ltd', value_ar: 'شركة اختبار', expires_on: null, source: 'fixture', sensitive: false, show_on_documents: true, sort: 10, proof_path: null },
+  { key: 'cr_number', category: 'legal', label_en: 'CR', label_ar: 'السجل', value_en: '9999999999', value_ar: null, expires_on: '2020-01-01', source: 'fixture', sensitive: false, show_on_documents: true, sort: 20, proof_path: null },
+  { key: 'iban_test', category: 'banking', label_en: 'Test IBAN', label_ar: 'آيبان', value_en: 'SA0000000000000000000000', value_ar: null, expires_on: null, source: 'fixture', sensitive: true, show_on_documents: true, sort: 60, proof_path: null },
+  /* certificate-like licence row with NO expiry date — must still appear on the radar
+     with a neutral "date not on file" pill, and its proof gets a View button */
+  { key: 'test_licence', category: 'licence', label_en: 'Test licence', label_ar: 'رخصة اختبار', value_en: 'LIC-0000', value_ar: null, expires_on: null, source: 'fixture', sensitive: false, show_on_documents: true, sort: 30, proof_path: 'licence/test_licence.pdf' },
 ];
 await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r =>
   r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FIXTURE) }));
@@ -129,16 +132,59 @@ if (live.classic) {
 
 /* page render */
 const txt = await p.evaluate(() => (document.getElementById('view') || {}).innerText || '');
-check('Documents nav entry present', await p.evaluate(() =>
-  [...document.querySelectorAll('#nav button')].some(x => /Documents|المستندات/.test(x.textContent))));
+check('nav entry is renamed to Generator', await p.evaluate(() =>
+  [...document.querySelectorAll('#nav button')].some(x => /Generator|المولّد/.test(x.textContent))));
+check('nav no longer says Documents', await p.evaluate(() =>
+  ![...document.querySelectorAll('#nav button')].some(x => /Documents|المستندات/.test(x.textContent))));
+check('page heading is Generator', await p.evaluate(() =>
+  /Generator|المولّد/.test((document.getElementById('vTitle') || {}).textContent || '')));
 check('tabs render (4 families)', await p.evaluate(() => document.querySelectorAll('#dgWrap .dg-tabs button').length) === 4);
 check('registry rows render from data', txt.includes('Synthetic Test Co Ltd'));
 check('renewals radar shows EXPIRED for the past date', /EXPIRED|منتهية/.test(txt));
+check('radar shows the no-date licence with a neutral pill', /date not on file|التاريخ غير مسجل/.test(txt)
+  && await p.evaluate(() => !!document.querySelector('#dgWrap .dg-pill.nodate')));
+check('proof row gets a View document button', /View document|عرض المستند/.test(txt));
+check('page is self-contained: no target=_blank links, no Brand Hub jump-off', await p.evaluate(() =>
+  document.querySelectorAll('#dgWrap a[target]').length === 0
+  && !/Open Brand Hub/.test(document.getElementById('dgWrap')?.innerText || '')));
+check('brand assets render inline as thumbnails with Download', await p.evaluate(() =>
+  document.querySelectorAll('#dgWrap .dg-chip img').length >= 4
+  && [...document.querySelectorAll('#dgWrap .dg-chip a[download]')].length >= 4));
 check('sensitive value is masked until revealed', !txt.includes('SA0000000000000000000000') && /hidden|مخفي/.test(txt));
 await p.evaluate(() => { const b = [...document.querySelectorAll('#dgWrap button')].find(x => /^(Show|عرض)$/.test(x.textContent.trim())); if (b) b.click(); });
 await p.waitForTimeout(600);
 const txt2 = await p.evaluate(() => (document.getElementById('view') || {}).innerText || '');
 check('reveal shows the value on demand', txt2.includes('SA0000000000000000000000'));
+/* sub-addresses: switching tab writes /documents/<tab>, and a /documents/offer
+   deep link opens straight onto the Price Offer tab */
+await p.evaluate(() => { const bts = [...document.querySelectorAll('#dgWrap .dg-tabs button')]; const bt = bts.find(x => /Price Offer|عرض السعر/.test(x.textContent)); if (bt) bt.click(); });
+await p.waitForTimeout(800);
+check('switching tab writes the sub-address /documents/offer', await p.evaluate(() => location.pathname) === '/documents/offer');
+/* leave the page first so the deep-link goto is a real cross-URL navigation */
+await p.goto(BASE + '/today', { waitUntil: 'domcontentloaded', timeout: 60000 });
+await p.waitForTimeout(1500);
+await p.goto(BASE + '/documents/offer', { waitUntil: 'domcontentloaded', timeout: 60000 });
+await p.waitForTimeout(3000);
+if (await p.$('#cl_email')) {
+  await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
+  await p.waitForTimeout(5000);
+}
+/* the QA mock serves an EMPTY access list, so js/52/64 bounce every page to Today on a
+   fresh load (live admins carry 'documents' in their access list). Step past the
+   harness artifact exactly like the checks above do — the deep-link claim being proven
+   is that the boot pathname picked the OFFER tab, which the bounce cannot undo. */
+await p.evaluate(() => { current = 'documents'; render(); });
+await p.waitForTimeout(2000);
+const deep = await p.evaluate(() => ({
+  cur: (typeof current !== 'undefined') ? current : null,
+  tab: window.__dgTabProbe ? __dgTabProbe() : null,
+  offerRendered: !!document.querySelector('#poWrap'),
+  path: location.pathname,
+}));
+check('deep link /documents/offer lands on the generator page', deep.cur === 'documents', JSON.stringify(deep));
+check('deep link opens the Price Offer tab directly', deep.tab === 'offer' && deep.offerRendered, JSON.stringify(deep));
+check('address bar keeps the tab sub-address', deep.path === '/documents/offer', JSON.stringify(deep));
+
 check('no javascript errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 
 await b.close();
