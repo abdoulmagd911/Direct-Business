@@ -525,7 +525,7 @@
 
   /* ===== Track B: Nav restructure (≤8 primary + read-only mirror + ▾ More) ===== */
   // Primary nav order (8 items + new Projects = 9, will fold)
-  var V25_PRIMARY=['today','leads','clients','offers','ops','reports','settings'];
+  var V25_PRIMARY=['today','leads','clients','offers','documents','ops','reports','settings'];
   // Reference/library pages — real content, but not daily-driver pages. Grouped and
   // collapsed so the working nav matches the go-live focus (Today/Leads/Clients/
   // Proposals/Operations/Finance/Reports/Settings), like the leaders' 6-8 item navs.
