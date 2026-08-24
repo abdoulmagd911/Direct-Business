@@ -206,6 +206,8 @@
         orig:'Original price',amount:'Amount (SAR)',
         subtotal:'Subtotal (ex-VAT)',vat:'VAT 15%',total:'Total (incl. VAT)',
         termsHead:'Terms & notes',thanks:'Thank You',inWords:'In words:',
+        draftPill:'DRAFT',thanksLine:'We look forward to serving you.',
+        addEmpty:'Add services above — they will appear here.',wm:'DRAFT',
         tag:'Global supplier power. Saudi service. One partner.',
         defTerms:'Prices are service fees per person/ticket/document unless stated otherwise, and exclude supplier, airline, hotel, embassy and government charges unless the line says "Total".\nThis offer is valid until the date shown; after that, prices are subject to reconfirmation.\nTax invoices are issued by Direct Payment upon confirmation.'},
     ar:{cover:'عرض سعر',coverSub:'خدمات السفر والسياحة',prepFor:'مقدم إلى',
@@ -214,6 +216,8 @@
         orig:'السعر الأصلي',amount:'الإجمالي (ريال)',
         subtotal:'الإجمالي غير شامل الضريبة',vat:'ضريبة القيمة المضافة 15%',total:'الإجمالي شامل الضريبة',
         termsHead:'الشروط والملاحظات',thanks:'شكراً لكم',inWords:'المبلغ كتابةً:',
+        draftPill:'مسودة',thanksLine:'نتطلع إلى خدمتكم.',
+        addEmpty:'أضف الخدمات أعلاه — ستظهر هنا.',wm:'مسودة',
         tag:'قوة موردين عالمية. خدمة سعودية. شريك واحد.',
         defTerms:'الأسعار قيمة خدمة لكل شخص/تذكرة/مستند ما لم يُذكر خلاف ذلك، ولا تشمل رسوم الموردين وشركات الطيران والفنادق والسفارات والجهات الحكومية ما لم يُذكر "الإجمالي".\nهذا العرض صالح حتى التاريخ الموضح، وبعده تخضع الأسعار لإعادة التأكيد.\nتصدر الفواتير الضريبية من دايركت للمدفوعات عند التأكيد.'}
   };
@@ -336,6 +340,7 @@
   function offerAsText(){
     var lang=S.cur.lang||'en', t=T[lang], ar=lang==='ar', c=calc();
     var L=[];
+    L.push(pdfName());
     L.push((ar?'دايركت للسفر والسياحة':'Direct Travel & Tourism')+' — '+((ar?S.cur.titleAr:S.cur.titleEn)||t.cover));
     L.push(t.offerNo+' '+(S.docNumber||fl('(draft)','(مسودة)'))+'  ·  '+t.date+' '+(S.cur.date||'—'));
     var cn=docClientName(lang);
@@ -364,7 +369,24 @@
     function fallback(){ try{ var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); }catch(_){ toast(fl('Copy failed','فشل النسخ')); } }
     try{ navigator.clipboard.writeText(txt).then(done,fallback); }catch(_){ fallback(); }
   };
-  window.poPrint=function(){ try{ window.print(); }catch(_){} };
+  /* Professional file name for the saved/printed PDF (and the copy-text header):
+     "Direct — Price Offer <number-or-DRAFT> — <client>". document.title is set just
+     before print and restored right after, so the browser's suggested PDF name is
+     clean without renaming the app tab permanently. */
+  function pdfName(){
+    var cn=docClientName('en')||docClientName('ar');
+    return 'Direct — Price Offer '+(S.docNumber||'DRAFT')+(cn?' — '+cn:'');
+  }
+  window.poPrint=function(){
+    var t0=document.title;
+    var restore=function(){ try{ document.title=t0; }catch(_){} };
+    try{
+      document.title=pdfName();
+      window.addEventListener('afterprint',function h(){ restore(); window.removeEventListener('afterprint',h); });
+      window.print();
+    }catch(_){}
+    setTimeout(restore,2000);   /* belt & braces if afterprint never fires */
+  };
 
   /* ---------- render: css ---------- */
   function css(){ return '<style id="poCss">'+
@@ -394,12 +416,16 @@
     '#poPages .po-page.ar{direction:rtl;font-family:var(--font-ar,serif)}'+
     '#poPages .po-page.en{direction:ltr;font-family:var(--font-en,sans-serif)}'+
     '#poPages .po-page.grad{background:var(--direct-gradient);color:#fff}'+
-    '#poPages .po-cover{flex:1;display:flex;flex-direction:column;padding:70px 64px}'+
-    '#poPages .po-cover img{width:220px;margin-bottom:56px}'+
-    '#poPages .po-ct{font-size:44px;font-weight:800;line-height:1.15;margin:0 0 8px}'+
-    '#poPages .po-cs{font-size:22px;opacity:.95;margin:0 0 32px}'+
-    '#poPages .po-cc{font-size:19px;border-top:1px solid rgba(255,255,255,.4);padding-top:20px;max-width:80%}'+
-    '#poPages .po-cc b{display:block;font-size:24px;margin-top:4px}'+
+    '#poPages .po-cover{flex:1;display:flex;flex-direction:column;padding:60px 64px 48px}'+
+    '#poPages .po-cover img{width:220px;margin-bottom:40px}'+
+    '#poPages .po-kind{font-size:15px;letter-spacing:.22em;text-transform:uppercase;opacity:.85;margin:0 0 6px}'+
+    '#poPages .po-ct{font-size:42px;font-weight:800;line-height:1.15;margin:0 0 6px}'+
+    '#poPages .po-cs{font-size:20px;opacity:.95;margin:0 0 0}'+
+    '#poPages .po-cc{font-size:18px;border-top:1px solid rgba(255,255,255,.4);padding-top:22px;max-width:85%;margin-top:56px}'+
+    '#poPages .po-cm{margin-top:auto}'+
+    '#poPages .po-cc b{display:block;font-size:30px;margin-top:6px;line-height:1.25}'+
+    '#poPages .po-nopill{display:inline-block;margin-top:14px;padding:5px 16px;border-radius:99px;border:1px solid rgba(255,255,255,.55);font-size:14px;font-weight:800;letter-spacing:.04em}'+
+    '#poPages .po-nopill.dr{border-style:dashed;opacity:.9}'+
     '#poPages .po-cm{margin-top:auto;display:flex;gap:32px;flex-wrap:wrap;font-size:14px}'+
     '#poPages .po-cm span{opacity:.85;display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em}'+
     '#poPages .po-tag{margin-top:24px;font-size:13.5px;opacity:.9;border-top:1px solid rgba(255,255,255,.35);padding-top:14px}'+
@@ -424,12 +450,19 @@
     '#poPages .po-words span{color:var(--muted);font-weight:400}'+
     '#poPages .po-terms{margin-top:24px;background:var(--wash);border-inline-start:4px solid var(--accent);border-radius:10px;padding:13px 16px;font-size:12px;line-height:1.7;color:var(--muted);white-space:pre-line}'+
     '#poPages .po-terms b{display:block;color:var(--ink);font-size:12.5px;margin-bottom:4px}'+
-    '#poPages .po-foot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:14px 56px;font-size:11px;color:var(--muted)}'+
+    /* footer: legal name may be long — padded box, smaller font, ellipsis, never
+       touching the page edge */
+    '#poPages .po-foot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 56px 16px;font-size:10px;color:var(--muted);box-sizing:border-box}'+
+    '#poPages .po-foot span{max-width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
     '#poPages .po-close{flex:1;display:grid;place-items:center;text-align:center;padding:60px}'+
     '#poPages .po-close img{width:230px;margin-bottom:24px}'+
-    '#poPages .po-thanks{font-size:44px;font-weight:800;margin:0 0 28px}'+
-    '#poPages .po-contact{font-size:15px;line-height:2;opacity:.95}'+
-    '#poPages .po-draftmark{position:absolute;top:18px;inset-inline-end:18px;background:rgba(255,255,255,.9);color:var(--muted);font-weight:800;font-size:12px;padding:5px 12px;border-radius:99px;border:1px dashed var(--muted)}'+
+    '#poPages .po-thanks{font-size:44px;font-weight:800;margin:0 0 10px}'+
+    '#poPages .po-thanksline{font-size:16px;opacity:.9;margin:0 0 30px}'+
+    '#poPages .po-contact{font-size:15px;line-height:2.1;opacity:.95;border-top:1px solid rgba(255,255,255,.4);padding-top:22px;max-width:520px;margin:0 auto}'+
+    '#poPages .po-draftmark{position:absolute;top:18px;inset-inline-end:18px;background:rgba(255,255,255,.9);color:var(--muted);font-weight:800;font-size:12px;padding:5px 12px;border-radius:99px;border:1px dashed var(--muted);z-index:2}'+
+    /* subtle diagonal DRAFT watermark — preview only while unissued */
+    '#poPages .po-wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;overflow:hidden;z-index:1}'+
+    '#poPages .po-wm span{font-size:150px;font-weight:800;letter-spacing:.1em;color:var(--muted);opacity:.10;transform:rotate(-32deg);white-space:nowrap;user-select:none}'+
     /* --- print: the preview pages become the PDF, everything else hides --- */
     '@media print{'+
       'body *{visibility:hidden}'+
@@ -455,12 +488,17 @@
     var vu=addDays(S.cur.date,S.cur.valid);
     var terms=S.cur.notes||t.defTerms;
     var no=S.docNumber||'—';
-    var draftMark=S.docNumber?'':'<div class="po-draftmark">'+t.draft+'</div>';
+    var issued=!!S.docNumber;
+    var draftMark=issued?'':'<div class="po-draftmark">'+t.draft+'</div>';
+    var wm=issued?'':'<div class="po-wm"><span>'+t.wm+'</span></div>';
     var site=idv('website','en')||'www.directksa.com';
     var phone=idv('phone_licence','en');
     var mail=idv('email','en');
+    var addr=idv('address',lang)||idv('address','en');
     var legal=idv('legal_name',lang);
     var crL=idv('cr_number','en'), vatL=idv('vat_number','en');
+    /* words + VAT/totals only once at least one line actually carries a price */
+    var hasPrice=c.rows.some(function(r){ return Number(r.l.price)>0; });
 
     var colsN=4+(S.cur.showOrig?1:0);
     var head='<tr><th>'+t.num+'</th><th>'+t.svc+'</th><th>'+t.unit+'</th>'+
@@ -471,16 +509,20 @@
         '<td>'+esc(l.unit||'—')+(Number(l.qty)>1?' × '+esc(l.qty):'')+'</td>'+
         (S.cur.showOrig?'<td class="amt">'+(l.orig?fmt(Number(l.orig)):'—')+'</td>':'')+
         '<td class="amt">'+fmt(r.amt)+'</td></tr>';
-    }).join('')||'<tr><td colspan="'+colsN+'" style="color:var(--muted)">…</td></tr>';
+    }).join('')||'<tr><td colspan="'+colsN+'" style="color:var(--muted);text-align:center;padding:18px">'+t.addEmpty+'</td></tr>';
 
+    /* cover composed like a real cover: logo → document kind → client → number/date */
+    var noBlock=issued
+      ? '<div class="po-nopill">'+t.offerNo+' '+esc(no)+'</div>'
+      : '<div class="po-nopill dr">'+t.draftPill+'</div>';
     var cover=
     '<div class="po-page grad '+dirCls+'">'+draftMark+'<div class="po-cover">'+
       '<img src="/brand/direct_logo_white.png" alt="Direct">'+
+      '<p class="po-kind">'+t.coverSub+'</p>'+
       '<h1 class="po-ct">'+esc(title)+'</h1>'+
-      '<p class="po-cs">'+t.coverSub+'</p>'+
-      '<div class="po-cc">'+t.prepFor+'<b>'+esc(cn||'—')+'</b>'+(S.cur.attn?esc(S.cur.attn):'')+'</div>'+
+      '<div class="po-cc">'+t.prepFor+'<b>'+esc(cn||'—')+'</b>'+(S.cur.attn?esc(S.cur.attn):'')+noBlock+'</div>'+
       '<div class="po-cm">'+
-        '<div><span>'+t.offerNo+'</span><b>'+esc(no)+'</b></div>'+
+        '<div><span>'+t.offerNo+'</span><b>'+esc(issued?no:t.draftPill)+'</b></div>'+
         '<div><span>'+t.date+'</span><b>'+esc(S.cur.date||'')+'</b></div>'+
         '<div><span>'+t.valid+'</span><b>'+esc(vu)+'</b></div>'+
         (S.cur.by?'<div><span>'+t.by+'</span><b>'+esc(S.cur.by)+'</b></div>':'')+
@@ -488,29 +530,35 @@
       '<div class="po-tag">'+t.tag+'</div>'+
     '</div></div>';
 
-    var content=
-    '<div class="po-page '+dirCls+'"><div class="po-content">'+
-      '<div class="po-head"><img src="/brand/direct_logo_color.png" alt="Direct">'+
-        '<div class="m">'+t.offerNo+' '+esc(no)+'<br>'+esc(S.cur.date||'')+'</div></div>'+
-      '<h2 class="po-title"><span class="dia">◆</span> '+esc(cn||title)+' <span class="dia">◆</span></h2>'+
-      '<p class="po-sub">'+t.pricing+'</p>'+
-      '<table class="po-fee"><thead>'+head+'</thead><tbody>'+body+'</tbody></table>'+
+    var totalsHtml=hasPrice?
       '<div class="po-totals">'+
         '<div class="tr"><span>'+t.subtotal+'</span><b>'+fmt(c.subEx)+'</b></div>'+
         '<div class="tr"><span>'+t.vat+'</span><b>'+fmt(c.vat)+'</b></div>'+
         '<div class="tr big"><span>'+t.total+'</span><span>'+fmt(c.tot)+'</span></div>'+
       '</div>'+
-      '<div class="po-words"><span>'+t.inWords+'</span> '+esc(amountInWords(c.tot,lang))+'</div>'+
+      '<div class="po-words"><span>'+t.inWords+'</span> '+esc(amountInWords(c.tot,lang))+'</div>'
+      :'';
+
+    var content=
+    '<div class="po-page '+dirCls+'">'+wm+'<div class="po-content">'+
+      '<div class="po-head"><img src="/brand/direct_logo_color.png" alt="Direct">'+
+        '<div class="m">'+t.offerNo+' '+esc(issued?no:t.draftPill)+'<br>'+esc(S.cur.date||'')+'</div></div>'+
+      '<h2 class="po-title"><span class="dia">◆</span> '+esc(cn||title)+' <span class="dia">◆</span></h2>'+
+      '<p class="po-sub">'+t.pricing+'</p>'+
+      '<table class="po-fee"><thead>'+head+'</thead><tbody>'+body+'</tbody></table>'+
+      totalsHtml+
       '<div class="po-terms"><b>'+t.termsHead+'</b>'+esc(terms)+'</div>'+
       '<div class="po-foot"><span>'+esc(site)+(crL?' · CR '+esc(crL):'')+(vatL?' · VAT '+esc(vatL):'')+'</span>'+
-        '<span>'+esc(legal||'Direct — دايركت للسفر والسياحة')+'</span></div>'+
+        '<span title="'+esc(legal||'')+'">'+esc(legal||'Direct — دايركت للسفر والسياحة')+'</span></div>'+
     '</div></div>';
 
+    var contactLines=[addr,mail,site,phone].filter(Boolean).map(function(x){return esc(x);}).join('<br>');
     var closing=
-    '<div class="po-page grad '+dirCls+'"><div class="po-close"><div>'+
+    '<div class="po-page grad '+dirCls+'">'+draftMark+'<div class="po-close"><div>'+
       '<img src="/brand/direct_logo_white.png" alt="Direct">'+
       '<p class="po-thanks">'+t.thanks+'</p>'+
-      '<p class="po-contact">'+esc([phone,mail,site].filter(Boolean).join(' · '))+'</p>'+
+      '<p class="po-thanksline">'+t.thanksLine+'</p>'+
+      '<p class="po-contact">'+(contactLines||'&nbsp;')+'</p>'+
     '</div></div></div>';
 
     return cover+content+closing;
@@ -614,11 +662,14 @@
   }
   function barHtml(){
     var w=canWrite();
-    return (w?'<button class="btn sm pri" '+(S.saving?'disabled':'')+' onclick="poSaveDraft()">'+(S.saving?fl('Saving…','جارٍ الحفظ…'):fl('💾 Save draft','💾 حفظ المسودة'))+'</button>':'')+
-      (w&&!S.docNumber?'<button class="btn sm ghost" onclick="poIssue()">'+fl('Issue — assign number','إصدار — تخصيص رقم')+'</button>':'')+
+    return (w?'<button class="btn sm pri" '+(S.saving?'disabled':'')+' onclick="poSaveDraft()">'+(S.saving?fl('Saving…','جارٍ الحفظ…'):fl('Save draft','حفظ المسودة'))+'</button>':'')+
+      /* data-v21relabeled opts this button out of core-06's verb relabeler, which would
+         otherwise rewrite "Issue…" to "Push to source…" — the wording the owner asked
+         to retire. The action itself still assigns the number server-side. */
+      (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="poIssue()">'+fl('Issue offer — assign official number','إصدار العرض — تعيين رقم رسمي')+'</button>':'')+
       (w&&S.docNumber&&S.status!=='accepted'?'<button class="btn sm ghost" onclick="poMarkAccepted()">'+fl('Mark accepted','وضع علامة مقبول')+'</button>':'')+
       '<button class="btn sm ghost" onclick="poPrint()">'+fl('Print / PDF','طباعة / PDF')+'</button>'+
-      '<button class="btn sm ghost" onclick="poCopy()">⧉ '+fl('Copy for WhatsApp / Email','نسخ لواتساب / البريد')+'</button>';
+      '<button class="btn sm ghost" onclick="poCopy()">'+fl('Copy for WhatsApp / Email','نسخ لواتساب / البريد')+'</button>';
   }
 
   /* ---------- render: tab body + targeted repaints ---------- */

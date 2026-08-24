@@ -63,16 +63,54 @@
   /* ---------- part 2 — register the page ---------- */
   var IC_DOCS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>';
   try{
-    if(typeof TITLES==='object')TITLES.documents=['Documents','Generate every client-facing document from one place'];
+    /* User-facing name is "Generator" (owner-approved rename). The internal page id
+       stays 'documents' — router keys and access lists depend on it. Labels only. */
+    if(typeof TITLES==='object')TITLES.documents=['Generator','Generate every client-facing document from one place'];
+    try{ if(window.__V25_TITLES_AR)window.__V25_TITLES_AR.documents=['المولّد','أنشئ كل مستندات العملاء من مكان واحد']; }catch(_){}
+    try{ if(typeof I18N==='object'&&I18N.en&&I18N.ar){ I18N.en['Generator']='Generator'; I18N.ar['Generator']='المولّد'; } }catch(_){}
     if(typeof VIEWS!=='undefined'&&VIEWS.push&&!VIEWS.some(function(v){return v.id==='documents';})){
       var ix=VIEWS.findIndex(function(v){return v.id==='offers';});
-      VIEWS.splice(ix>=0?ix+1:VIEWS.length,0,{id:'documents',label:'Documents',ic:IC_DOCS,primary:true});
+      VIEWS.splice(ix>=0?ix+1:VIEWS.length,0,{id:'documents',label:'Generator',ic:IC_DOCS,primary:true});
       try{ if(typeof buildNav==='function')buildNav(); }catch(_){}
+    }else if(typeof VIEWS!=='undefined'){
+      VIEWS.forEach(function(v){ if(v.id==='documents')v.label='Generator'; });
     }
   }catch(e){ console.warn('[dg] view register',e); }
 
   /* ---------- part 3 — state + data ---------- */
-  var DG={tab:'assets', rows:null, loading:false, editKey:null, revealed:{}};
+  var DG={tab:'assets', rows:null, loading:false, editKey:null, revealed:{}, __push:false};
+
+  /* ---------- sub-addresses: /documents/<tab> ----------
+     js/03 (not modified) parses /documents/offer as sec='documents' and ignores the
+     second segment — verified against its regex. Its writeURL, wrapped OUTERMOST
+     around render, would rewrite the address bar to plain '/documents' after every
+     render. So this layer: (a) adopts the tab from the pathname when the URL changed
+     outside us (initial load, back/forward), (b) parks the path at '/documents'
+     synchronously during render so js/03's writeURL sees "nothing changed" and never
+     pushes a duplicate entry, then (c) restores '/documents/<tab>' on a 0-timeout,
+     which runs after writeURL. Tab clicks push a real history entry (back undoes
+     the tab switch); everything else replaces in place. */
+  var TAB_IDS=['assets','offer','fees','profile'];
+  function pathTab(){ var m=String(location.pathname||'').match(/^\/documents\/([a-zA-Z]+)\/?$/); return (m&&TAB_IDS.indexOf(m[1])>=0)?m[1]:null; }
+  (function(){ var t=pathTab(); if(t)DG.tab=t; })();
+  function urlSync(){
+    try{
+      var t=pathTab();
+      if(t&&t!==DG.tab&&!DG.__push)DG.tab=t;           /* external change: boot / popstate */
+      if(location.pathname!=='/documents')history.replaceState({p:'/documents',f:''},'','/documents');
+      var push=DG.__push; DG.__push=false;
+      setTimeout(function(){ try{
+        if(typeof current!=='undefined'&&current!=='documents')return;   /* user already left */
+        var want='/documents/'+DG.tab;
+        if(location.pathname==='/documents'){
+          if(push)history.pushState({p:want,f:''},'',want);
+          else history.replaceState({p:want,f:''},'',want);
+        }
+      }catch(_){} },0);
+    }catch(_){}
+  }
+  /* QA hook: lets a probe read which tab the page believes is open */
+  window.__dgTabProbe=function(){ return DG.tab; };
   function loadRegistry(force){
     if(DG.loading)return; if(DG.rows&&!force)return;
     var c=client(); if(!c)return;
@@ -111,6 +149,64 @@
     copyText(isAr()&&r.value_ar?r.value_ar:(r.value_en||''), fl('Copied','تم النسخ'));
   };
   window.dgReveal=function(key){ DG.revealed[key]=!DG.revealed[key]; try{render();}catch(_){} };
+
+  /* ---------- proof documents (PRIVATE bucket 'company-docs') ----------
+     Rows with proof_path get View/Download via a short-lived signed URL. Opening the
+     signed URL in a new tab is the ONE allowed exception to "nothing leaves this
+     page" — a PDF has to open somewhere. */
+  function signedProof(key,cb){
+    var r=(DG.rows||[]).find(function(x){return x.key===key;});
+    if(!r||!r.proof_path){ cb(null); return; }
+    var c=client(); if(!c){ cb(null); return; }
+    try{
+      c.storage.from('company-docs').createSignedUrl(r.proof_path,600).then(function(res){
+        if(res.error||!res.data||!res.data.signedUrl){ cb(null); return; }
+        cb(res.data.signedUrl);
+      },function(){ cb(null); });
+    }catch(_){ cb(null); }
+  }
+  window.dgProofView=function(key){
+    signedProof(key,function(u){
+      if(!u){ toast(fl('Could not open the document','تعذّر فتح المستند')); return; }
+      try{ var w=window.open(u,'_blank','noopener'); if(!w)toast(fl('Pop-up blocked — allow pop-ups to view','حُجبت النافذة — اسمح بالنوافذ المنبثقة للعرض')); }catch(_){}
+    });
+  };
+  window.dgProofDownload=function(key){
+    signedProof(key,function(u){
+      if(!u){ toast(fl('Could not open the document','تعذّر فتح المستند')); return; }
+      try{ var w=window.open(u+(u.indexOf('?')>=0?'&':'?')+'download=','_blank','noopener'); if(!w)toast(fl('Pop-up blocked','حُجبت النافذة')); }catch(_){}
+    });
+  };
+  window.dgProofUpload=function(key,input){
+    var f=input&&input.files&&input.files[0]; if(!f)return;
+    var r=(DG.rows||[]).find(function(x){return x.key===key;}); if(!r)return;
+    var c=client(); if(!c)return;
+    var mExt=String(f.name||'').match(/\.([A-Za-z0-9]+)$/);
+    var ext=(mExt?mExt[1]:'pdf').toLowerCase();
+    var path=(r.category||'other')+'/'+r.key+'.'+ext;   /* clean, stable path; upsert replaces */
+    toast(fl('Uploading…','جارٍ الرفع…'));
+    try{
+      c.storage.from('company-docs').upload(path,f,{upsert:true}).then(function(up){
+        if(up.error){ toast(fl('Upload was refused','رُفض الرفع')); return; }
+        c.from('company_identity').update({proof_path:path,updated_by:(window.__userEmail||null)})
+         .eq('key',key).select().then(function(s){
+            if(s.error||!s.data||s.data.length!==1){ toast(fl('Save was refused — nothing changed','رُفض الحفظ — لم يتغير شيء')); return; }
+            loadRegistry(true); toast(fl('Proof attached','تم إرفاق المستند'));
+         });
+      },function(){ toast(fl('Upload was refused','رُفض الرفع')); });
+    }catch(_){ toast(fl('Upload was refused','رُفض الرفع')); }
+  };
+  function proofBtns(r,mini){
+    if(!r.proof_path)return '';
+    return '<button class="btn sm ghost dg-mini" onclick="dgProofView(\''+esc(r.key)+'\')">'+fl('View document','عرض المستند')+'</button> '+
+      (mini?'':'<button class="btn sm ghost dg-mini" onclick="dgProofDownload(\''+esc(r.key)+'\')">'+fl('Download','تنزيل')+'</button> ');
+  }
+  function proofAttach(r){
+    if(!canEdit())return '';
+    return '<label class="btn sm ghost dg-mini" style="cursor:pointer">'+
+      (r.proof_path?fl('Replace proof','استبدال المستند'):fl('Attach proof','إرفاق مستند'))+
+      '<input type="file" accept="application/pdf,image/*" style="display:none" onchange="dgProofUpload(\''+esc(r.key)+'\',this)"></label> ';
+  }
 
   /* "Send bank details" one-tap block: built from live registry rows, Al Rajhi first. */
   window.dgCopyBank=function(){
@@ -153,7 +249,17 @@
     ['fees',   'Service-Fee Proposal','عرض رسوم الخدمات'],
     ['profile','Company Profile','الملف التعريفي']
   ];
-  window.dgGo=function(t){ DG.tab=t; try{render();}catch(_){} };
+  window.dgGo=function(t){ DG.tab=t; DG.__push=true; try{render();}catch(_){} };
+  /* back/forward inside the page: js/03's popstate handler re-renders; renderDocs then
+     adopts the tab from the restored pathname via urlSync(). Defensive extra listener:
+     if js/03's render did not run (edge), repaint ourselves. */
+  window.addEventListener('popstate',function(){
+    try{
+      if(typeof current==='undefined'||current!=='documents')return;
+      var t=pathTab();
+      if(t&&t!==DG.tab){ DG.tab=t; var v=document.getElementById('view'); if(v&&v.querySelector('#dgWrap'))renderDocs(v); }
+    }catch(_){}
+  });
 
   function css(){ return '<style>'+
     '#dgWrap{--dg-acc:var(--accent,#888)}'+
@@ -169,6 +275,13 @@
     '#dgWrap .dg-pill.exp{background:#FDECEB;color:#D92D20}'+
     '#dgWrap .dg-pill.soon{background:var(--wash-accent,#FFF3EC);color:var(--accent)}'+
     '#dgWrap .dg-pill.ok{background:#EAF6EE;color:#1E7A34}'+
+    '#dgWrap .dg-pill.nodate{background:var(--wash,#F0F0F0);color:var(--muted,#777)}'+
+    '#dgWrap .dg-chip{display:flex;flex-direction:column;align-items:center;gap:8px;border:1px solid var(--hairline,#eee);border-radius:12px;padding:12px;width:150px}'+
+    '#dgWrap .dg-chip .th{display:grid;place-items:center;width:100%;height:64px;border-radius:8px}'+
+    '#dgWrap .dg-chip .th.light{background:var(--wash,#F6F7F9)}'+
+    '#dgWrap .dg-chip .th.dark{background:var(--ink,#333)}'+
+    '#dgWrap .dg-chip img{max-width:90%;max-height:52px}'+
+    '#dgWrap .dg-chip .nm{font-size:12px;color:var(--muted,#777);text-align:center}'+
     '#dgWrap .dg-mini{font-size:12px;padding:3px 9px}'+
     '#dgWrap .dg-radar{overflow-x:auto}'+
     '#dgWrap .dg-assets img{max-width:100%;max-height:56px}'+
@@ -195,6 +308,7 @@
       '<div class="dg-src">'+esc(r.source||'')+'</div></td>'+
       '<td style="white-space:nowrap;text-align:end">'+
       (r.sensitive?'<button class="btn sm ghost dg-mini" onclick="dgReveal(\''+esc(r.key)+'\')">'+(DG.revealed[r.key]?fl('Hide','إخفاء'):fl('Show','عرض'))+'</button> ':'')+
+      proofBtns(r,false)+proofAttach(r)+
       '<button class="btn sm ghost dg-mini" onclick="dgCopy(\''+esc(r.key)+'\')">'+fl('Copy','نسخ')+'</button>'+
       (canEdit()?' <button class="btn sm ghost dg-mini" onclick="dgEdit(\''+esc(r.key)+'\')">'+fl('Edit','تعديل')+'</button>':'')+
       '</td></tr>';
@@ -205,26 +319,46 @@
     if(rows===null){ loadRegistry(); return '<div class="card">'+fl('Loading the company registry…','جارٍ تحميل سجل الشركة…')+'</div>'; }
     if(!rows.length) return '<div class="card">'+fl('The registry is empty or could not be read.','السجل فارغ أو تعذّرت قراءته.')+'</div>';
 
-    /* renewals radar — only rows with a REAL date on file (no approximations stored) */
-    var radar=rows.filter(function(r){return r.expires_on;}).map(function(r){return {r:r,ex:expiryState(r.expires_on)};})
-      .sort(function(a,b){return a.ex.days-b.ex.days;});
+    /* renewals radar — every certificate-like row (licence/membership/tax/legal) shows,
+       even with no date on file: a neutral "date not on file" pill instead of silence,
+       so a missing date is visible, never fabricated. Sort: expired → soonest → no date. */
+    var CERT_CATS=['licence','membership','tax','legal'];
+    var radar=rows.filter(function(r){return r.expires_on||CERT_CATS.indexOf(r.category)>=0;})
+      .map(function(r){return {r:r,ex:expiryState(r.expires_on)};})
+      .sort(function(a,b){
+        var da=a.ex?a.ex.days:Infinity, db=b.ex?b.ex.days:Infinity;
+        return da-db;
+      });
     var radarHtml='<div class="card dg-radar"><h3 style="margin-top:0;color:var(--accent)">'+fl('Renewals radar','رادار التجديدات')+'</h3>'+
       '<table class="dg">'+radar.map(function(x){
+        var pill=x.ex?'<span class="dg-pill '+x.ex.cls+'">'+esc(x.ex.txt)+'</span>'
+                     :'<span class="dg-pill nodate">'+fl('date not on file','التاريخ غير مسجل')+'</span>';
         return '<tr><td class="dg-key">'+esc(isAr()&&x.r.label_ar?x.r.label_ar:x.r.label_en)+'</td>'+
-          '<td>'+esc(x.r.expires_on)+'</td><td><span class="dg-pill '+x.ex.cls+'">'+esc(x.ex.txt)+'</span></td></tr>';
+          '<td>'+esc(x.r.expires_on||'—')+'</td><td>'+pill+'</td>'+
+          '<td style="text-align:end">'+proofBtns(x.r,true)+'</td></tr>';
       }).join('')+'</table>'+
-      '<div class="dg-src" style="margin-top:6px">'+fl('Dates without a confirmed document stay off this list on purpose (MoT licence and IATA expiry are not on file in Gregorian).','التواريخ غير المؤكدة بمستند لا تظهر هنا عمداً.')+'</div></div>';
+      '<div class="dg-src" style="margin-top:6px">'+fl('A neutral pill means no confirmed expiry date is on file — no date is ever approximated.','الشارة الرمادية تعني عدم وجود تاريخ انتهاء مؤكد في السجل — لا تُقدَّر التواريخ أبداً.')+'</div></div>';
 
     var bankHtml='<div class="card"><h3 style="margin-top:0;color:var(--accent)">'+fl('Send bank details','إرسال البيانات البنكية')+'</h3>'+
       '<div style="font-size:13px;color:var(--muted,#777);margin-bottom:8px">'+fl('One tap copies the company name, CR, VAT and every IBAN — ready to paste.','نقرة واحدة تنسخ اسم الشركة والسجل والرقم الضريبي وكل الآيبانات — جاهزة للصق.')+'</div>'+
       '<button class="btn sm pri" onclick="dgCopyBank()">'+fl('Copy bank details block','نسخ البيانات البنكية')+'</button></div>';
 
+    /* brand assets render INLINE — thumbnail chips on the right light/dark ground, each
+       with its own Download. Nothing here opens another page or tab. */
+    var ASSETS=[
+      ['direct_logo_color.png','Color logo (PNG)','الشعار الملون (PNG)','light'],
+      ['direct_logo_color.svg','Color logo (SVG)','الشعار الملون (SVG)','light'],
+      ['direct_logo_white.png','White logo (PNG)','الشعار الأبيض (PNG)','dark'],
+      ['direct_logo_slate.png','Slate logo (PNG)','الشعار الرمادي (PNG)','light'],
+      ['direct_qr_directksa.png','QR — directksa.com','رمز QR — directksa.com','light']
+    ];
     var brandHtml='<div class="card dg-assets"><h3 style="margin-top:0;color:var(--accent)">'+fl('Brand assets','أصول الهوية')+'</h3>'+
-      '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">'+
-      [['direct_logo_color.svg','Color SVG'],['direct_logo_color.png','Color PNG'],['direct_logo_white.png','White PNG'],['direct_logo_slate.png','Slate PNG'],['direct_qr_directksa.png','QR']].map(function(a){
-        return '<a class="btn sm ghost" href="/brand/'+a[0]+'" download target="_blank" rel="noopener">'+esc(a[1])+'</a>';
-      }).join('')+
-      '<a class="btn sm ghost" href="/brand/" target="_blank" rel="noopener">'+fl('Open Brand Hub ↗','فتح مركز الهوية ↗')+'</a></div></div>';
+      '<div style="display:flex;gap:12px;flex-wrap:wrap">'+
+      ASSETS.map(function(a){
+        return '<div class="dg-chip"><div class="th '+a[3]+'"><img src="/brand/'+a[0]+'" alt="'+esc(a[1])+'" loading="lazy"></div>'+
+          '<div class="nm">'+esc(fl(a[1],a[2]))+'</div>'+
+          '<a class="btn sm ghost dg-mini" href="/brand/'+a[0]+'" download>'+fl('Download','تنزيل')+'</a></div>';
+      }).join('')+'</div></div>';
 
     var cats=CAT_ORDER.filter(function(c){return rows.some(function(r){return r.category===c;});});
     var regHtml=cats.map(function(c){
@@ -257,6 +391,7 @@
 
   function renderDocs(view){
     if(!view)return;
+    urlSync();
     if(view.querySelector('#dgWrap'))view.innerHTML='';
     var tabs=TABS.map(function(t){
       return '<button class="btn sm '+(DG.tab===t[0]?'pri':'ghost')+'" onclick="dgGo(\''+t[0]+'\')">'+esc(fl(t[1],t[2]))+'</button>';
