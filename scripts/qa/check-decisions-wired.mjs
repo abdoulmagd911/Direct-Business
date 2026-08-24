@@ -68,7 +68,25 @@ function main() {
   // Split into rule blocks: a bolded rule statement through its own "*Date: ... Status: ...*"
   // line. Only ACTIVE rules are checked — a SUPERSEDED or OPEN-CONTESTED rule describing old
   // code is expected to point at something that may no longer be wired the same way.
-  const blocks = md.split(/\n(?=\*\*)/).filter((b) => /^\*\*/.test(b));
+  const fragments = md.split(/\n(?=\*\*)/).filter((b) => /^\*\*/.test(b));
+  // A single rule can span several bolded paragraphs (e.g. "**M9 — ...**" followed by its own
+  // "**The gate itself has a second correction...**" sub-paragraph) — all sharing ONE
+  // "*Date: ... Status: ...*" marker at the very end. Splitting naively on every "\n**" (as an
+  // earlier version of this script did) fragments a multi-paragraph rule into pieces, and only
+  // the LAST piece carries the Status marker — every citation in the earlier pieces silently
+  // never gets checked. Self-caught 2026-08-24 re-reading this file's own output after adding
+  // the M9 rewrite: it reported the M9 rule's citations as zero, which was the parser's bug, not
+  // a real absence. Fixed by accumulating fragments until one actually contains its own Status
+  // marker — that accumulated span is the real rule block, however many bolded paragraphs it has.
+  const STATUS_RE = /Status:\s*(ACTIVE|OPEN\s*—\s*CONTESTED|SUPERSEDED-BY[^*]*)\.?\*/i;
+  const blocks = [];
+  let acc = [];
+  for (const frag of fragments) {
+    acc.push(frag);
+    if (STATUS_RE.test(frag)) { blocks.push(acc.join('\n')); acc = []; }
+  }
+  // A trailing accumulation with no Status marker at all (malformed rule, or end-of-file
+  // stragglers) is not a rule this script can classify — dropped, not silently treated as ACTIVE.
   let checkedRules = 0, citedSymbols = 0;
 
   for (const block of blocks) {

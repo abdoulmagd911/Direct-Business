@@ -1,5 +1,85 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-24 · Cost-capture join model was wrong; rebuilt as two levels (M9); a bug in the P5 checker itself, caught by re-reading its own output
+
+The oversight session finished a real capture (all 219 expense lines, all 153 transactions,
+"zero orphans" by exact page-count math) and, testing it end to end against a real record,
+proved the 2026-08-23 join model wrong the same day it shipped.
+
+**THE REAL CHAIN, proven on a live example.** Expense line `INVOICE #` `1163760881` is not a
+tax invoice number — it is the TRANSACTION's own reference. That transaction's own
+`INVOICE ISSUING` column reads "Issued `1163762432`", and `1163762432` IS a real
+`finance_invoices` row (5,600.00 SAR), matching the transaction's amount and its single
+Approved expense line exactly. So the real model is **two levels, not one**: many expense
+lines → one transaction (Level 1), many transactions → one tax invoice (Level 2) — confirmed
+on a real 7-transaction group, all issuing into the same invoice
+(`1163754021`, 75,578.00 SAR). Grouping expense lines by their own `INVOICE #` directly, as
+the 2026-08-23 version did, would never have produced a correct number.
+
+**SECOND CORRECTION: EXPENSE STATUS blank means "Issued," not "unknown."** Blank always
+co-occurs with `INVOICE ISSUING` = "Issued `<no>`" (45 of a sampled 100 transactions read
+blank, all already issued); the on-screen badge itself renders with no text at all. The
+2026-08-23 version's literal `READY_STATUSES=['ready','issued']` check, which blank never
+matched, would have dropped nearly half of all real transactions and produced a
+clean-looking, badly understated cost — caught before it ever ran against real data.
+
+**Rebuilt `js/65-universal-importer.js`'s cost path as a genuine two-level join.** File 1
+(`expense_lines_capture`) keys on `transaction_ref` (renamed from `invoice_no` — same column,
+named for what it actually is) with `amount_sar`/`expense_status` unchanged. File 2
+(`expense_gate_capture`) now carries `transaction_ref`, `txn_expense_status`, and
+`invoice_issuing_raw` (the raw "Issued `<no>`" / "Need to issue" text) — parsed in code via
+`parseInvoiceIssuing()`, never pre-parsed by the capture step, so the parse itself is
+testable and survives past the session that captured the file (P1). `resolveExpenseJoin()`
+now does Level 1 (sum each transaction's own Approved lines) then Level 2 (group transactions
+by the invoice their `invoice_issuing_raw` parses to, and sum Level 1 across the whole group).
+
+**The core new safeguard, worth its own line: one dirty contributing transaction holds back
+the WHOLE invoice — never a partial sum from only the transactions that happened to be
+clean.** "Dirty" means: no expense lines captured for that transaction yet, a malformed line
+amount, that transaction's own gate row disagreeing with itself, or a status that
+contradicts its own issued-ness. A partial sum here would be the exact same silent
+understatement the whole path exists to prevent, one level down — `scripts/qa/probe-expense-report-capture.mjs`
+was rewritten specifically to prove this: a fixture invoice fed by two transactions, one
+clean (2,000 SAR) and one with no captured lines at all, must end up completely untouched,
+never silently applied as 2,000. It passed on the first real run, along with every other
+scenario (multi-transaction summing, blank-status-is-Issued, gate self-conflict, malformed
+amount, exceeds-total, not-a-live-invoice, not-yet-issued, and persistence across two
+separate file drops).
+
+**Three findings recorded in `docs/DECISIONS.md` (now labelled M9) and left for their own
+separate work, not patched here:**
+1. Invoice `1163692466` computes cost 28,998.18 against a 26,536.00 total — the cost≤total
+   guard correctly refuses it. May be a join error or a genuinely loss-making booking;
+   surfaces loudly as needs-review either way, never silently dropped.
+2. Three tax invoices with real approved cost have no matching row in `finance_invoices` at
+   all (`1163732931`, `1163737524`, `1163765089`) — a gap in the invoice importer, not in
+   this capture. Reported as "not a live invoice," never inserted (D1 stands).
+3. Ten invoices get no cost from this capture; most are plausibly cost-free service-fee
+   invoices, but `1163754021` (the 75,578.00 invoice fed by 7 transactions) reading zero is
+   suspicious and worth checking once real data lands — the code now handles the multi-
+   transaction case correctly, so if it still comes up zero after a real drop, that's a
+   capture-completeness question (were all 7 receipt refs actually captured with correct raw
+   text?), not a design gap.
+
+**A bug in `scripts/qa/check-decisions-wired.mjs` itself, caught by re-reading its own
+output — a small, direct proof of why P5 needs a mechanical check at all.** The checker split
+`docs/DECISIONS.md` into rule blocks on every bolded paragraph start, which silently
+fragments any rule spanning more than one bolded paragraph (M9 has four) — only the LAST
+fragment carries the rule's own `*Date: ... Status: ...*` marker, so every citation in the
+earlier fragments was silently never checked. Re-reading the tool's own output after adding
+M9 (it reported zero citations checked for a rule that visibly has several) surfaced this
+immediately. Fixed: fragments are now accumulated until one actually contains its own Status
+marker, which is the real end of a rule regardless of how many bolded paragraphs it spans.
+Once fixed, the widened scope immediately caught a second real bug: P4's own citation of
+`tokens.css`/`IDENTITY.md`/`proposal.html` as bare filenames (the same imprecision-citation
+mistake fixed in P5 last round) — corrected to the real paths (`brand/tokens.css`,
+`brand/IDENTITY.md`, `brand/proposal.html`).
+
+Verified: `node -c` on every touched file, `check-structure.mjs` (58 files), the full probe
+battery including the rewritten expense-capture probe, `check-decisions-wired.mjs` (now
+fixed), `audit-finance-tabs.mjs`, `sweep-pages.mjs` — all green, EN+AR, zero console/JS
+errors.
+
 ## 2026-08-23 · M1 corrected (dissolved, not just reworded); backups moved off localStorage into Supabase; owner ruled on the restart plan
 
 Three owner rulings landed in one message, on top of the two-file-join round below.

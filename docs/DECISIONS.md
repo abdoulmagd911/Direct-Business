@@ -53,7 +53,7 @@ a join done ad hoc would not.
 Proposal & Documents work split into its own session pushing to this same repo. The
 Finance/oversight pairing owns `js/16-finance-ledger.js`, `js/25-finance-reporting.js`,
 `js/62-finance-guardrails.js`, `js/65-universal-importer.js` and `scripts/qa/*`. The Proposal
-& Documents task owns `/brand/*` (hub, `tokens.css`, `IDENTITY.md`, `proposal.html`),
+& Documents task owns `/brand/*` (hub, `brand/tokens.css`, `brand/IDENTITY.md`, `brand/proposal.html`),
 `js/core/core-04-proposals.js`, `js/46-brand-and-studio.js`, and its new generator page.
 **This file, `docs/DECISIONS.md`, is written by the Finance/oversight pairing only** — the
 other task sends rules across and reads the file, never edits it directly, so the two tasks
@@ -111,43 +111,69 @@ compute a number for.
 *Date: 2026-08-16 (expenses model built), reconfirmed 2026-08-22 (BACKLOG entry: cost "must
 come from approved expenses... not a VAT computation"). Status: ACTIVE.*
 
-**Real per-invoice cost is only FINAL once its transaction Expense Status reads
-Ready/Issued — per-line Approved alone is not enough.** Owner's notes (Aug 20/21),
-re-confirmed 2026-08-23 after an earlier capture design missed exactly this: an invoice can
-have several expense lines, and ALL of them must be Approved (Cancelled lines don't block
-readiness; Pending or Under Review ones do) before the transaction's own Expense Status
-moves from Pending to Ready/Issued. Summing only the Approved lines while another line on
-the same invoice is still Under Review produces a real number that is silently INCOMPLETE.
-So: cost_sar is written for an invoice ONLY when its gate is Ready/Issued; anything still
-Pending leaves cost_sar exactly as it was — untouched, never zeroed, never a partial sum.
+**M9 — real cost is only FINAL once every contributing transaction's own expenses are done,
+and that is a TWO-LEVEL join, not a one-level one.** Corrected 2026-08-24 — the 2026-08-23
+version of this rule described a one-level join (expense lines → directly to a tax invoice)
+that was proven wrong the same day it shipped, on a real record end to end: expense line
+`INVOICE #` `1163760881` is not a tax invoice number, it is the *transaction's own reference* —
+that transaction's own `INVOICE ISSUING` column reads "Issued `1163762432`", and `1163762432`
+IS a real `finance_invoices` row (5,600.00 SAR), matching the transaction's amount and its
+single Approved line exactly. **The real chain has two levels: many expense lines → one
+transaction (Level 1), many transactions → one tax invoice (Level 2)** — confirmed on a real
+7-transaction group, all issuing into the same invoice. Grouping expense lines by their own
+`INVOICE #` directly, as the superseded version did, would never have produced a correct
+number — it would have treated dozens of transaction-level partial sums as though each were
+its own invoice.
 
-**The gate is not on the same source as the lines, so this is a two-file join, not a
-single-file signature.** Direct Payments' `admin.stats.expense-report` (219 corporate rows,
-one row per expense line) carries the per-line Approved/Pending/Under Review/Cancelled status
-but NOT the transaction-level gate — its columns are INVOICE # | AMOUNT (SAR) | STATUS |
-APPROVAL DATE | MERCHANT, confirmed by checking, not assumed (an earlier single-file design
-required the gate on every line and was abandoned the same day it was found the source
-doesn't carry it). The gate itself lives on a different screen,
-`/en/admin/corporate_clients/transactions` (RECEIPT REF. | PRODUCT | AMOUNT (SAR) |
-INVOICE ISSUING | CREATED AT | EXPENSE STATUS, 153 rows — the expected
-many-lines-to-one-transaction shape against 219 lines, not a mismatch), confirmed 2026-08-23.
-Per P1, the join is done inside the importer, in code — `js/65-universal-importer.js`'s
-`expense_lines_capture` + `expense_gate_capture` signatures, resolved by
-`resolveExpenseJoin()` — never in a one-off capture script that would be invisible to every
-probe here and would die with the session that wrote it. Regression-guarded by
-`scripts/qa/probe-expense-report-capture.mjs`. **The join key itself (expense-report's
-INVOICE # = transactions' RECEIPT REF.) is an unverified claim** — same number space, not yet
-proven on a real matching pair — so every expense-line invoice_no with no matching
-transaction row is reported individually as "waiting", never silently dropped; a wrong
-join-key assumption must surface as a visible list, not a quietly-clean import that
-understates cost. The source itself carries two further traps, both defended in code rather
-than trusted to memory: `admin.stats.expense-report`'s own `expense_status` URL filter does
-not apply server-side (a request filtered to Approved still returns Pending/Cancelled/Under
-Review rows — filtering happens on the row's own value, in code, never the query string), and
-repeated identical (amount, expense_type) pairs on one invoice are real, separate expenses
-(verified: three same-amount Hotel Cost/RateHawk lines, three different approval
-timestamps) — never deduplicated.
-*Date: 2026-08-23. Status: ACTIVE.*
+**The gate itself has a second correction: EXPENSE STATUS blank does NOT mean "unknown" or
+"not ready" — it IS the "Issued" half of Ready/Issued**, confirmed 2026-08-24: blank always
+co-occurs with `INVOICE ISSUING` = "Issued `<no>`" (45 of a sampled 100 transactions read
+blank, all already issued), and the on-screen badge itself renders with no text at all.
+"Ready" means a transaction's expenses are complete but no tax invoice yet; blank means the
+tax invoice has already been issued — **both mean that transaction's own expenses are done.**
+The superseded version's literal `READY_STATUSES=['ready','issued']` check, which blank never
+matched, would have dropped nearly half of all real transactions and produced a
+clean-looking, badly understated cost — caught before it ever ran against real data.
+
+**The core safeguard, worth stating on its own: when an invoice is fed by more than one
+transaction, ONE dirty contributing transaction holds back the WHOLE invoice — never a
+partial sum from only the transactions that happened to be clean.** "Dirty" means: no
+expense lines captured for that transaction yet, a malformed line amount, that transaction's
+own gate row disagreeing with itself, or a status that contradicts its own issued-ness (e.g.
+issued into an invoice but its own status still literally reads "Pending"). A partial sum
+here would be the exact same silent-understatement failure this whole path exists to
+prevent, one level down.
+
+Direct Payments sources, confirmed by checking, not assumed: `admin.stats.expense-report`
+(`INVOICE #` | `AMOUNT (SAR)` | `STATUS` | `APPROVAL DATE` | `MERCHANT`, 219 corporate rows,
+one row per expense line — `INVOICE #` is the transaction's own reference) joins to
+`/en/admin/corporate_clients/transactions` (`RECEIPT REF.` | `PRODUCT` | `AMOUNT (SAR)` |
+`INVOICE ISSUING` | `CREATED AT` | `EXPENSE STATUS`, 153 rows — the expected
+many-lines-to-one-transaction shape against 219 lines, not a mismatch; "zero orphans" per the
+capturer's own exact page-count math). The join key itself (expense-report's transaction
+reference = transactions' `RECEIPT REF.`) is now proven on a real matching pair, not just
+believed. Per P1, both levels of the join are done inside the importer, in code —
+`js/65-universal-importer.js`'s `expense_lines_capture` + `expense_gate_capture` signatures,
+resolved by `resolveExpenseJoin()` — never in a one-off capture script that would be
+invisible to every probe here and would die with the session that wrote it.
+Regression-guarded by `scripts/qa/probe-expense-report-capture.mjs`. Every transaction that
+can't yet be attributed to an invoice (no gate row yet, or gate row present but not yet
+issued) is reported individually as waiting, never silently dropped. The source's own two
+further traps stay defended in code: `admin.stats.expense-report`'s `expense_status` URL
+filter does not apply server-side (filtering happens on the row's own value, in code, never
+the query string), and repeated identical amounts on one transaction are real, separate
+expenses — never deduplicated.
+
+**Two real, un-fixed gaps this capture surfaced, deliberately left for their own separate
+work, not patched here:** three tax invoices with real approved cost behind them
+(`1163732931`, `1163737524`, `1163765089`) have no matching row in `finance_invoices` at
+all — a gap in the invoice importer, not in this capture; reported as "not a live invoice",
+never inserted (D1 stands — this path only ever updates a live row). And a cost figure that
+would exceed its own invoice's total is refused by the cost≤total guard exactly as designed,
+whether the cause is a join error or a genuinely loss-making booking — either way it is
+never applied silently, only surfaced as needs-review.
+*Date: 2026-08-23 (first shipped), corrected to the real two-level model 2026-08-24.
+Status: ACTIVE.*
 
 **SUPERSEDED — the invoice item split (Service Fee / 3rd Party Fee) is a VAT split, never
 real cost.** An earlier round of this project treated the 3rd-Party-Fee line as the real
