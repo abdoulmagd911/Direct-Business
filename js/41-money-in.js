@@ -274,13 +274,11 @@
       var inp=document.getElementById('finFile'); if(inp)inp.setAttribute('accept','.csv,.xlsx,.xls');
       var dz=document.getElementById('finDrop');
       if(dz&&!dz.__v64){ dz.__v64=1; dz.innerHTML='⬇ '+fl('Drop the Direct Payments invoice export here (Excel or CSV) — or the simple CSV format below','أفلت هنا تصدير فواتير Direct Payments (إكسل أو CSV) — أو ملف CSV البسيط أدناه'); }
-      var card=dz&&dz.closest('.card');
-      if(card&&!card.__v64){ card.__v64=1;
-        var note=document.createElement('div');
-        note.style.cssText='background:#EFF8F2;border:1px solid #CDEBD8;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#0F6E56;margin-bottom:12px';
-        note.innerHTML='<b>'+fl('New:','جديد:')+'</b> '+fl('this screen now reads Direct Payments’ own "Invoice Export" file directly — invoices, transactions, commissions and wallet rows are recognised automatically. No manual typing.','هذه الشاشة تقرأ الآن ملف "تصدير الفواتير" من Direct Payments مباشرة — تتعرف تلقائيًا على الفواتير والمعاملات والعمولات وتعبئة المحفظة. بلا إدخال يدوي.');
-        card.insertBefore(note,card.children[1]);
-      }
+      // 2026-08-25: dropped the green "New: this screen now reads Direct Payments' own
+      // Invoice Export file directly" banner — it announced a feature that stopped being
+      // new weeks ago and just sat there permanently once injected (density/copy pass,
+      // owner-directed). No functional change: js/65's own dropzone text (wired on mount,
+      // M12) already carries the up-to-date instructions.
     }catch(e){}
   };
 

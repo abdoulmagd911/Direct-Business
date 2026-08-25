@@ -80,6 +80,128 @@
     if(typeof save==='function')save(); if(typeof render==='function')render();
   };
 
+  /* ---------- Part 1.5: client name aliases — collapse spelling/language variants of one
+     company under one canonical display name (owner-directed, 2026-08-25, M14). NOT Part 2
+     below: Part 2 moves client_profiles.business_id (billing accounts); this collapses
+     finance_invoices.client_group TEXT for display — "MDD" and its Arabic spelling are the
+     same company under two spellings, and every revenue rollup that groups by client
+     (rFinClients()'s table, the client card, exports, the report builder) must read one line.
+
+     Lives here, checked LIVE by finCanon() (js/16), not applied once as a data rewrite: a
+     one-time rename fixes today's rows and nothing else — the next Direct Payments export
+     recreates the other spelling as a fresh row and the split is back next month. Because
+     nothing in finance_invoices is ever written by this feature, undo is instant and lossless
+     — the totals just split back apart on the next render. Same shape as finExclusionCheck():
+     never silent, who/when recorded, undo not delete. Auto-suggest below catches FUTURE
+     same-script duplicates (a stray "Co" vs "Company") automatically via the same norm62()
+     already trusted for the exclusion list; a cross-script rename (English vs Arabic, MDD's
+     case) never normalises the same way and always needs a human's call. */
+  function groupMap(){ try{ return (DB.settings&&DB.settings.financeGroupMap)||[]; }catch(_){ return []; } }
+  function money62(n){ n=Number(n)||0; return Math.round(n).toLocaleString('en-US'); }
+
+  // Called by finCanon() on every client_group→display-name resolution. Exact-shape twin of
+  // finExclusionCheck(): normalised match against each ACTIVE entry's aliases, returns the
+  // matched entry or null.
+  window.finGroupCheck=function(clientGroup){
+    var n=norm62(clientGroup); if(!n)return null;
+    var list=groupMap();
+    for(var i=0;i<list.length;i++){
+      var e=list[i]; if(e.active===false)continue;
+      var al=e.aliases||[];
+      for(var j=0;j<al.length;j++){ if(norm62(al[j])===n) return e; }
+    }
+    return null;
+  };
+  window.finGroupList=groupMap;
+
+  // Every distinct client_group value currently live, with its own invoice count and total —
+  // the real preview behind the alias picker and the suggestion pass, not a blind text field.
+  function groupCandidates(){
+    var rows=(typeof window.live==='function')?window.live():((FIN.rows||[]).filter(function(r){return !r.deleted_at;}));
+    var byG={};
+    rows.forEach(function(r){
+      var g=r.client_group||''; if(!g)return;
+      byG[g]=byG[g]||{n:0,total:0,_i:{}};
+      byG[g]._i[r.invoice_no||('row'+Math.random())]=1; byG[g].total+=(+r.total_incl_vat_sar||0);
+    });
+    Object.keys(byG).forEach(function(g){ byG[g].n=Object.keys(byG[g]._i).length; });
+    return byG;
+  }
+  // Two independent ways a duplicate surfaces, both one-click suggestions:
+  // (a) same normalised spelling ("...Sons Co" vs "...Sons Company") — catches a same-script
+  //     rename with zero setup, using the same norm62() already trusted for exclusions.
+  // (b) same finance_client_links business_id — catches a CROSS-script rename (MDD's English
+  //     vs Arabic spelling never normalises the same way, but the automatic linking system
+  //     already resolved both to one business independently of this feature) — the suggested
+  //     canonical name defaults to that business's own name, editable before Add.
+  function groupSuggestions(){
+    var cands=groupCandidates();
+    var already={}; groupMap().forEach(function(e){ if(e.active===false)return; (e.aliases||[]).forEach(function(a){already[norm62(a)]=1;}); });
+    var buckets={};
+    Object.keys(cands).forEach(function(g){ var nk=norm62(g); if(nk)(buckets['n:'+nk]=buckets['n:'+nk]||{aliases:[]}).aliases.push(g); });
+    var linkByGroup=(window.FIN&&FIN.linkByGroup)||{};
+    var byBiz={};
+    Object.keys(cands).forEach(function(g){ var l=linkByGroup[g]; if(l&&l.business_id)(byBiz[l.business_id]=byBiz[l.business_id]||[]).push(g); });
+    Object.keys(byBiz).forEach(function(bid){ if(byBiz[bid].length>1)buckets['b:'+bid]={aliases:byBiz[bid],name:bizName62(bid)}; });
+    var out=[], seenSets={};
+    Object.keys(buckets).forEach(function(k){
+      var b=buckets[k], names=b.aliases; if(names.length<2)return;
+      var setKey=names.slice().sort().join('|'); if(seenSets[setKey])return;
+      if(names.some(function(n){return already[norm62(n)];}))return;
+      seenSets[setKey]=1;
+      out.push({aliases:names, suggestedName:b.name||names.slice().sort(function(a,b){return b.length-a.length;})[0]});
+    });
+    return out;
+  }
+
+  window.v62UndoGrouping=function(id){
+    if(!canEdit62())return;
+    if(!confirm(fl('Undo this grouping? Totals split back apart immediately — nothing is deleted, this can be redone.','التراجع عن هذا الدمج؟ ستنفصل الإجماليات فورًا — لا يُحذف شيء، ويمكن إعادته لاحقًا.')))return;
+    var list=groupMap(), e=list.filter(function(x){return x.id===id;})[0]; if(!e)return;
+    e.active=false; e.undoneBy=who62(); e.undoneAt=new Date().toISOString();
+    DB.settings.financeGroupMap=list;
+    if(typeof clearFinCanon==='function')clearFinCanon();
+    if(typeof save==='function')save(); if(typeof render==='function')render();
+  };
+  window.v62RedoGrouping=function(id){
+    if(!canEdit62())return;
+    var list=groupMap(), e=list.filter(function(x){return x.id===id;})[0]; if(!e)return;
+    e.active=true; e.undoneBy=null; e.undoneAt=null;
+    DB.settings.financeGroupMap=list;
+    if(typeof clearFinCanon==='function')clearFinCanon();
+    if(typeof save==='function')save(); if(typeof render==='function')render();
+  };
+
+  window.v62OpenAddGrouping=function(prefillAliases,prefillName){
+    if(!canEdit62())return;
+    var cands=groupCandidates();
+    var already={}; groupMap().forEach(function(e){ if(e.active===false)return; (e.aliases||[]).forEach(function(a){already[a]=1;}); });
+    var names=Object.keys(cands).sort(function(a,b){return cands[b].total-cands[a].total;});
+    var opts=names.map(function(g){
+      var c=cands[g], sel=(prefillAliases||[]).indexOf(g)>=0?' selected':'';
+      return '<option value="'+esc62(g)+'"'+sel+'>'+esc62(g)+' — '+c.n+' '+fl('inv.','فاتورة')+', '+money62(c.total)+' SAR'+(already[g]?(' ('+fl('already grouped','مُدمَجة بالفعل')+')'):'')+'</option>';
+    }).join('');
+    openModal(fl('Add client name alias','إضافة أسماء بديلة لعميل'),
+      '<div class="ch-sub">'+fl('Pick two or more values that are the same real company under different spellings or languages — each shows its own live count and total.','اختر قيمتين أو أكثر تخصان نفس الشركة بصيغ أو لغات مختلفة — كل خيار يعرض عدده وإجماليه الحقيقيين.')+'</div>'+
+      '<div class="field"><label>'+fl('Values to merge (Ctrl/Cmd-click for several)','القيم المطلوب دمجها (Ctrl/Cmd + نقر لعدة قيم)')+'</label><select id="g2_aliases" multiple size="8" style="width:100%">'+opts+'</select></div>'+
+      '<div class="field"><label>'+fl('Canonical display name','الاسم المعتمد للعرض')+'</label><input id="g2_name" value="'+esc62(prefillName||'')+'" placeholder="'+fl('e.g. MDD - Smart Madad IT','مثال: MDD - Smart Madad IT')+'"></div>'+
+      '<div class="field"><label>'+fl('Note (optional)','ملاحظة (اختياري)')+'</label><input id="g2_note"></div>',
+      function(){
+        var sel=[].slice.call(document.getElementById('g2_aliases').selectedOptions).map(function(o){return o.value;});
+        var name=(val('g2_name')||'').trim(), note=(val('g2_note')||'').trim();
+        if(sel.length<2){ alert(fl('Pick at least two values.','اختر قيمتين على الأقل.')); return false; }
+        if(!name){ alert(fl('Enter the canonical display name.','أدخل الاسم المعتمد للعرض.')); return false; }
+        var dupe=sel.filter(function(g){return already[g];});
+        if(dupe.length){ alert(fl('Already grouped: ','مُدمَجة بالفعل: ')+dupe.join(', ')+'. '+fl('Undo that grouping first.','تراجع عن ذلك الدمج أولًا.')); return false; }
+        var n=0,total=0; sel.forEach(function(g){ var c=cands[g]; if(c){n+=c.n;total+=c.total;} });
+        if(!confirm(fl('Merge '+sel.length+' values into "'+name+'" — '+n+' invoices, '+money62(total)+' SAR combined. Reversible anytime. Continue?','دمج '+sel.length+' قيم ضمن "'+name+'" — '+n+' فاتورة، '+money62(total)+' ريال إجمالًا. قابل للتراجع دائمًا. متابعة؟')))return false;
+        DB.settings=DB.settings||{}; DB.settings.financeGroupMap=DB.settings.financeGroupMap||[];
+        DB.settings.financeGroupMap.push({id:'fg'+Date.now(),canonicalName:name,aliases:sel,note:note||null,addedBy:who62(),addedAt:new Date().toISOString(),active:true,undoneBy:null,undoneAt:null});
+        if(typeof clearFinCanon==='function')clearFinCanon();
+        if(typeof save==='function')save(); if(typeof render==='function')render();
+      });
+  };
+
   /* ---------- Part 2: company grouping — reassign client_profiles.business_id ---------- */
   function bizName62(uuid){ try{ var list=(DB.businesses||[]); for(var i=0;i<list.length;i++){ var uu=(window.__bizUuid?window.__bizUuid(list[i].id):list[i].id); if(uu===uuid)return list[i].name||uuid; } }catch(_){} return uuid; }
   var TYPE_LBL62={prepaid:['Prepaid','مسبق الدفع'],postpaid:['Postpaid','آجل الدفع'],tender:['Tender','مناقصة']};
@@ -129,15 +251,37 @@
           +'<td style="padding:6px 8px;color:var(--muted);font-size:11px">'+esc62(e.addedBy||'')+' · '+esc62((e.addedAt||'').slice(0,10))+'</td>'
           +'<td style="padding:6px 8px"><button class="btn ghost sm" onclick="v62RemoveExclusion(\''+e.id+'\')">'+fl('Remove','إزالة')+'</button></td></tr>';
       }).join('');
+      var gm=groupMap();
+      var gRows=gm.map(function(e){
+        var active=e.active!==false;
+        return '<tr'+(active?'':' style="opacity:.55"')+'><td style="padding:6px 8px;font-weight:700">'+esc62(e.canonicalName)+'</td>'
+          +'<td style="padding:6px 8px">'+esc62((e.aliases||[]).join(', '))+'</td>'
+          +'<td style="padding:6px 8px;color:var(--muted);font-size:11px">'+esc62(e.addedBy||'')+' · '+esc62((e.addedAt||'').slice(0,10))+(active?'':(' · '+fl('undone','أُلغي')+' '+esc62((e.undoneAt||'').slice(0,10))))+'</td>'
+          +'<td style="padding:6px 8px">'+(active
+            ?('<button class="btn ghost sm" onclick="v62UndoGrouping(\''+e.id+'\')">'+fl('Undo','تراجع')+'</button>')
+            :('<button class="btn ghost sm" onclick="v62RedoGrouping(\''+e.id+'\')">'+fl('Redo','إعادة')+'</button>'))+'</td></tr>';
+      }).join('');
+      var sugg=groupSuggestions();
+      var suggHtml=sugg.length?('<div style="margin-bottom:10px;font-size:12.5px">'+sugg.map(function(s){
+        return '<div style="margin-bottom:4px">'+fl('Possible duplicate: ','احتمال تكرار: ')+esc62(s.aliases.join(' / '))
+          +' <button class="btn ghost sm" onclick=\'v62OpenAddGrouping('+JSON.stringify(s.aliases)+','+JSON.stringify(s.suggestedName)+')\'>'+fl('Group »','دمج »')+'</button></div>';
+      }).join('')+'</div>'):'';
       var card=document.createElement('div'); card.className='card v62-guardrails'; card.style.cssText='padding:18px;max-width:860px;margin-top:16px';
       card.innerHTML='<h3 style="margin:0 0 4px">'+fl('Exclusion list','قائمة الاستبعاد')+'</h3>'
-        +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Companies whose rows never enter Finance data, by their real Direct Payments client ID — never by name. Applied at import; every match is shown, never silent.','الشركات التي لن تدخل بياناتها إلى المالية، حسب معرّف العميل الحقيقي في دايركت — وليس بالاسم. يُطبَّق عند الاستيراد، وكل تطابق يظهر، لا شيء يحدث بصمت.')+'</div>'
+        +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Matched by Direct Payments client ID, not name. Applied at import — every match shown, never silent.','مطابقة حسب معرّف العميل في دايركت، لا بالاسم. تُطبَّق عند الاستيراد — كل تطابق يظهر، لا شيء بصمت.')+'</div>'
         +(rows?('<div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse"><thead><tr style="background:#303848;color:#fff;text-align:'+(ar?'right':'left')+'"><th style="padding:6px 8px">'+fl('Client ID','معرّف العميل')+'</th><th style="padding:6px 8px">'+fl('Match names','الأسماء المطابِقة')+'</th><th style="padding:6px 8px">'+fl('Reason','السبب')+'</th><th style="padding:6px 8px">'+fl('Added','أُضيف بواسطة')+'</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>')
           :('<div class="empty" style="padding:10px 0">'+fl('No exclusions yet.','لا توجد استبعادات بعد.')+'</div>'))
         +'<div style="margin-top:10px"><button class="btn sm" onclick="v62AddExclusion()">+ '+fl('Add exclusion','إضافة استبعاد')+'</button></div>'
         +'<hr style="margin:18px 0;border:none;border-top:1px solid var(--line,#eee)">'
-        +'<h3 style="margin:0 0 4px">'+fl('Company grouping','تجميع الشركات')+'</h3>'
-        +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Declare that several billing profiles (prepaid / postpaid / one per tender) belong to the same real company — the manual fix for cases the automatic linking can\'t merge on its own, and it never touches a profile\'s own amount.','أعلن أن عدة ملفات فوترة (مسبق الدفع / آجل الدفع / ملف لكل مناقصة) تخص نفس الشركة الحقيقية — الحل اليدوي للحالات التي لا يستطيع الربط التلقائي دمجها بنفسه، ولا يمس مبلغ أي ملف على الإطلاق.')+'</div>'
+        +'<h3 style="margin:0 0 4px">'+fl('Client name aliases','أسماء العملاء البديلة')+'</h3>'
+        +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Collapses spelling or language variants into one name, everywhere finance groups by client. Reversible anytime.','يدمج صيغ الاسم المختلفة (لغة أو تهجئة) تحت اسم واحد، أينما تُجمَّع المالية حسب العميل. قابل للتراجع دائمًا.')+'</div>'
+        +suggHtml
+        +(gRows?('<div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse"><thead><tr style="background:#303848;color:#fff;text-align:'+(ar?'right':'left')+'"><th style="padding:6px 8px">'+fl('Canonical name','الاسم المعتمد')+'</th><th style="padding:6px 8px">'+fl('Aliases','الأسماء البديلة')+'</th><th style="padding:6px 8px">'+fl('Added','أُضيف بواسطة')+'</th><th></th></tr></thead><tbody>'+gRows+'</tbody></table></div>')
+          :('<div class="empty" style="padding:10px 0">'+fl('No aliases yet.','لا توجد أسماء بديلة بعد.')+'</div>'))
+        +'<div style="margin-top:10px"><button class="btn sm" onclick="v62OpenAddGrouping()">+ '+fl('Add alias','إضافة اسم بديل')+'</button></div>'
+        +'<hr style="margin:18px 0;border:none;border-top:1px solid var(--line,#eee)">'
+        +'<h3 style="margin:0 0 4px">'+fl('Billing-profile grouping','تجميع ملفات الفوترة')+'</h3>'
+        +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Each profile keeps its own row, badge and amount — this only displays several under one company; nothing is merged.','يحتفظ كل ملف بصفه وشارته ومبلغه — هذا يعرض عدة ملفات تحت شركة واحدة فقط؛ لا شيء يُدمج.')+'</div>'
         +'<button class="btn sm" onclick="v62OpenGrouping()">'+fl('Group profiles…','تجميع الملفات…')+'</button>';
       view.appendChild(card);
     }catch(e){ if(window.console)console.warn('[v62] inject',e); }

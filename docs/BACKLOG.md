@@ -1,5 +1,89 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-25 (round 2) · Owner brief — UI density/copy pass, client name aliases (M14), expense-capture persistence (M15)
+
+Three workstreams from one owner brief, after M13 (below) shipped. Order below is build order,
+not priority — the owner marked the importer (Workstream 3 / M15) as the one he cares most about.
+
+**Workstream 1 — UI density and copy.** Fixed the four named offenders on the Import tab: the
+stale green "New: this screen now reads Direct Payments' own Invoice Export file directly"
+banner (`js/41-money-in.js`) — announced a feature that stopped being new weeks ago and sat
+there permanently once injected, removed outright; the raw 14-column CSV header dump plus the
+"last two columns are optional" filler (`js/16-finance-ledger.js` `rImport()`) — stale prose
+explaining the importer's own plumbing (v65's real signatures auto-detect columns; nobody needs
+to read a hand-typed spec), removed; the safety-promise sentence ("nothing is written until you
+confirm the preview") kept, shortened, per B6. Biggest offender: the preview printed the
+identical Takamol exclusion sentence once per excluded row — real case, 20 times. Built
+`groupDupes()` (`js/65-universal-importer.js`) — groups `clientExcludedDetail`/
+`costCaptureDetail` entries by their own identity and collapses identical rows into one line
+with a count ("Takamol for Business Services (#7: reason) — 20 rows"); the reason text itself
+is never shortened or dropped, only the repetition. Same collapse applies to the held-back
+list. Also lightly tightened the exclusion-list and billing-profile-grouping card copy in
+`js/62-finance-guardrails.js` while already in that file for M14. Checked the rest of Finance
+(Overview, Ledger, Report Builder, income-by-service, Expenses) for the same pattern —
+genuinely clean already, reported as such rather than inventing edits. Sabotage-tested: the
+collapse was reverted to a plain join, `scripts/qa/probe-import-preview-density.mjs` failed
+(exit 1) reproducing the sentence repeating 5 times, restored and diffed byte-identical.
+
+**Workstream 2 — company grouping (M14).** Investigated before building: queried
+`finance_client_links` directly and found the underlying business-linking for all three
+duplicate pairs (MDD, AlQahtani, alrajhi) was ALREADY correct — every spelling variant already
+resolves to the same `business_id`, automatically, via the existing auto-linker. What was
+actually missing was a deliberate, visible, reversible NAME decision, plus a durable place for
+it to live so a future import doesn't recreate the split — not a data-linking fix. Owner then
+confirmed the exact canonical names and that all three pairs (not just MDD) should merge; Public
+Security and Riyadh Chamber need nothing, they're already single and clean. Built
+`window.finGroupCheck()` (`js/62-finance-guardrails.js`) — an exact-shape twin of
+`finExclusionCheck()`, storing canonical name + aliases (`DB.settings.financeGroupMap`),
+undo-not-delete. `finCanon()` (`js/16-finance-ledger.js`) consults it FIRST on every
+client_group→display-name resolution, so the mapping applies live to every row that ever
+carries a mapped alias — past AND future, zero backfill. Built the "+ Add alias" admin UI: a
+live picker showing each candidate's real invoice count and total (a genuine preview, not a
+blind text field), a confirm dialog summarizing the merge before it applies, and Undo/Redo
+buttons with full visible history. Auto-suggest surfaces candidates two ways — same normalised
+spelling (`norm62()`, catches a same-script rename like AlQahtani automatically) and same
+`finance_client_links` business_id (catches a cross-script rename like MDD's, which the
+automatic linker had already silently resolved at the business level). Added to
+`check-decisions-wired.mjs` coverage as M14 — its citations resolve like every other ACTIVE
+rule's. Sabotage-tested: `finCanon()`'s `finGroupCheck()` consultation was removed,
+`scripts/qa/probe-client-group-map.mjs` failed (exit 1) reproducing the reported split, restored
+and diffed byte-identical.
+
+**Workstream 3 — the importer, M15.** The owner's core requirement, verbatim: drop one updated
+file and have it "spread automatically" without re-supplying the others. Design question
+answered before building, as asked: the raw captured facts now live in Supabase
+(`finance_expense_lines_capture` / `finance_expense_gate_capture`, new migration
+`finance_expense_capture_persistence`, RLS-matched to `finance_invoices`), not only in browser
+memory — page-lifetime memory (M9) was the right instinct but didn't survive a reload or a new
+session. `loadCaptureBaseline()` loads both tables once per page session and seeds
+`EXPENSE_JOIN` BEFORE any file in a drop is dispatched — an ordering bug in the first version
+(baseline loaded AFTER a fresh drop's rows landed) silently summed old and new captures
+(1,000 + 1,500 = 2,500 instead of 1,500), caught by the new probe before shipping, not after.
+Lines are delete-then-insert per touched transaction_ref on every drop (a re-export is that
+transaction's complete current line list, never appended to); gates are upsert-by-transaction_ref
+(latest wins) — a fresh drop's data now properly supersedes an EARLIER session's capture instead
+of being flagged a same-session conflict, matching the owner's incremental-update ask, while
+still catching a genuine self-conflict WITHIN one session's drop(s). Written only on Confirm
+(`flushPendingCapture()` inside `v65Commit()`), so "nothing written until confirmed" holds for
+these tables too. The multi-file "select several, check, apply together" control itself was
+already built in M11/M12 (`#finFile.multiple`, `v65CheckFiles()`) — confirmed by re-reading the
+code rather than assumed, so M15 is purely the persistence layer underneath an existing control,
+not a second one. New probe `scripts/qa/probe-expense-capture-persistence.mjs` drives TWO real
+browser sessions (`page.reload()`, not just a JS variable reset) against the same mock database
+— session 1 drops both files and confirms; session 2 reloads, drops ONLY an updated lines file,
+and asserts the cost updates correctly with the gate file never re-supplied, plus a direct read
+of both capture tables proving delete-then-insert (never append) on re-export. Sabotage-tested
+twice: the ordering fix reverted (fails as 2,500), and the line-replacement clear reverted
+(fails as 2,500 again from a different cause) — both confirmed exit 1, restored, diffed
+byte-identical.
+
+Verified across all three workstreams: `node -c` on every touched file, `check-structure.mjs`,
+`check-decisions-wired.mjs` (M14 + M15 both resolve, 85 citations total across 29 rules), the
+full probe battery including all four new probes
+(`probe-client-group-map.mjs`, `probe-import-preview-density.mjs`,
+`probe-expense-capture-persistence.mjs`, plus the existing expense/tax-invoice/import-wiring
+suite re-run clean against the new async ordering) — all green, EN+AR, zero console/JS errors.
+
 ## 2026-08-25 · CRITICAL — a commit reported success while writing nothing; fixed the payload leak and the reporting itself (M13)
 
 Worse than any crash so far, in the oversight session's own words. The owner ran a real

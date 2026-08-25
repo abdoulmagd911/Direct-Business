@@ -214,6 +214,15 @@ function finCanon(clientGroup){
   var ck=(clientGroup==null?'':clientGroup);
   if(_finCanonCache[ck]!==undefined)return _finCanonCache[ck];
   var disp=(ck==='')?'—':ck, res;
+  // M14, 2026-08-25 — client name aliases (js/62 Part 1.5) are checked FIRST and win outright:
+  // an admin-confirmed canonical name (e.g. "MDD - Smart Madad IT" for "MDD" + its Arabic
+  // spelling) always overrides whatever the linked business's own name field says. Consulted
+  // live on every resolution, not applied once — a future import carrying the same raw
+  // client_group text groups correctly with zero extra work, exactly like finExclusionCheck().
+  var g=(typeof window.finGroupCheck==='function')?window.finGroupCheck(clientGroup):null;
+  if(g){
+    res={key:'grp:'+g.id,name:g.canonicalName,linked:true,grouped:true};
+  }else{
   var l=(FIN.linkByGroup||{})[clientGroup];
   if(l&&l.is_client===false){
     res={key:'__indiv__',name:isArF()?'أفراد / ليس عميلاً':'Individuals / not a client',linked:true};
@@ -222,6 +231,7 @@ function finCanon(clientGroup){
     res=nm?{key:'biz:'+l.business_id,name:nm,linked:true,directId:_finBizDirectId(l.business_id)}:{key:'raw:'+disp,name:disp,linked:false};
   }else{
     res={key:'raw:'+disp,name:disp,linked:false};
+  }
   }
   _finCanonCache[ck]=res; return res;
 }
@@ -785,7 +795,11 @@ function rImport(){
   if(!canFinEdit())return '<div class="card" style="padding:30px;text-align:center;color:var(--muted)">'+_fl('Import is restricted to admins and managers.','الاستيراد متاح للمدراء والمسؤولين فقط.')+'</div>';
   var h='<div class="card" style="padding:18px;max-width:860px">';
   h+='<h3 style="margin:0 0 8px">'+_fl('Import invoices (CSV)','استيراد الفواتير (CSV)')+'</h3>';
-  h+='<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:12px">'+_fl('Expected header','الأعمدة المطلوبة')+':<br><code style="font-size:11px;background:#F3F1EA;padding:3px 6px;border-radius:6px;display:inline-block;margin-top:4px;word-break:break-all;max-width:100%">client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes,origin,proposal_ref</code><br>'+_fl('The last two columns are optional — leave them blank if you don’t track that yet.','العمودان الأخيران اختياريان — اتركهما فارغين إن لم تكن تتابعهما بعد.')+'<br>'+_fl('Duplicates are skipped, totals re-checked, and nothing is written until you confirm the preview.','تُتجاهل الفواتير المكررة وتُراجع الأرقام، ولا يُكتب شيء قبل تأكيدك للمعاينة.')+'</div>';
+  // 2026-08-25: dropped the raw 14-column header dump and the "optional columns" filler
+  // (density/copy pass, owner-directed) — v65's own signatures auto-detect the real column
+  // set on drop, so a hand-typed CSV spec here was stale prose explaining our own plumbing,
+  // not something a user needs to read. Kept, shortened: the one load-bearing safety promise.
+  h+='<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">'+_fl('Nothing is written until you confirm the preview.','لا يُكتب شيء قبل تأكيدك للمعاينة.')+'</div>';
   h+='<div id="finDrop" style="border:2px dashed #C9CDD6;border-radius:12px;padding:22px;text-align:center;color:var(--muted);font-size:13px;margin-bottom:12px;cursor:pointer" onclick="document.getElementById(\'finFile\').click()">⬇ '+_fl('Drop a CSV file here, or click to choose','أفلت ملف CSV هنا أو انقر للاختيار')+'</div>';
   h+='<input type="file" id="finFile" accept=".csv" style="font-size:13px"> <button class="btn pri sm" onclick="finParse()">'+_fl('Check file','فحص الملف')+'</button>';
   h+='<div id="finImpOut" style="margin-top:14px"></div></div>';

@@ -291,6 +291,72 @@ independent defense-in-depth. The passthrough was then restored and the file dif
 byte-identical to before.
 *Date: 2026-08-25. Status: ACTIVE.*
 
+**M14 — a name-collapsing rule is the same shape as an exclusion rule: it must be consulted
+live, by every reader, not applied once to today's rows.** The owner found real duplicate
+clients by data, not invention: "MDD" (1 invoice, 507,800.00 SAR) and its Arabic spelling
+"شركة مدد الذكية لتقنية المعلومات" (2 invoices, 134,748.95 SAR) are one company reported as
+two; same shape for "Abdel Hadi Abdullah AlQahtani Sons Co" vs "...Sons Company" and an
+alrajhi pair with "sharikat shakhs wahid" inserted. A one-time rename of the affected
+`finance_invoices` rows would fix today's data and nothing else — the next Direct Payments
+export recreates the other spelling as a fresh row and the split reappears next month, exactly
+P5's shape ("a correct rule that nothing consults is not a rule") and the same lesson Takamol
+already taught. Built `window.finGroupCheck(clientGroup)` (`js/62-finance-guardrails.js`), an
+exact-shape twin of `finExclusionCheck()`: entries store a canonical display name plus its
+aliases (`DB.settings.financeGroupMap`, self-documenting — a human can see why two names
+collapsed), matched by the same `norm62()` already trusted for exclusions, undo-not-delete
+(reversible, visible history, never silent). `finCanon()` (`js/16-finance-ledger.js`) consults
+it FIRST, before business-link resolution, on every client_group→display-name resolution — so
+the mapping applies live to every row that ever carries a mapped alias, past or future, with
+zero backfill and zero per-import-path wiring to remember. This is why undo is instant and
+lossless: nothing in `finance_invoices` is ever written by this feature. Auto-suggest surfaces
+candidates two ways — same normalised spelling (catches a same-script rename like the AlQahtani
+pair automatically) and same `finance_client_links` business_id (catches a cross-script rename
+like MDD's, which the automatic linking system had already silently resolved at the business
+level, just never surfaced as a display-name decision) — both need only a confirming click, per
+the owner's explicit requirement that every merge is previewed (both source names, both live
+totals, shown before Add) and reversible after. Sabotage-verified: `finCanon()`'s
+`finGroupCheck()` consultation was temporarily removed, `scripts/qa/probe-client-group-map.mjs`
+was run and confirmed to fail (exit 1) reproducing the exact reported symptom (the merged
+totals split back into two separate client rows), then restored and diffed byte-identical.
+*Date: 2026-08-25. Status: ACTIVE.*
+
+**M15 — page-lifetime memory was the right instinct for the cost join, but not enough: the raw
+captured facts must survive a reload and a new session, so a single updated file resolves
+against everything already known.** The owner's own words: "if something happened on the
+expenses and it got updated and I got a new export... I want it to accept it and update the
+values... so I do not have to import all the files, I just need to import the updates and it
+would spread it automatically." `EXPENSE_JOIN` (M9) already persisted for a page's lifetime,
+which handled the two files arriving in the same tab at different times — it did not handle a
+fresh browser tab, or the same tab tomorrow, having forgotten everything. DESIGN DECISION
+(given before building, per the owner's explicit ask): the raw captured facts now live in
+Supabase — `finance_expense_lines_capture` / `finance_expense_gate_capture` (migration
+`finance_expense_capture_persistence`), RLS-matched to `finance_invoices`'s own
+`can_see_page`/`can_edit_page('finance')` policies — not only in browser memory.
+`loadCaptureBaseline()` (`js/65-universal-importer.js`) fetches both tables once per page
+session and seeds `EXPENSE_JOIN` with them BEFORE any file in a drop is dispatched to its
+processor — ordering that matters: a first version loaded the baseline AFTER processing, and a
+fresh drop's rows landed first with the baseline then appended on top, silently summing old and
+new (1,000 + 1,500 = 2,500 instead of 1,500 — caught by
+`scripts/qa/probe-expense-capture-persistence.mjs` before shipping). `processExpenseLinesBatch`
+now clears whatever a baseline loaded for a transaction_ref the FIRST time a fresh drop touches
+it (`LINES_TOUCHED_THIS_SESSION`) — a re-export is that transaction's current complete line
+list, replacing the stale one, never appended to it; repeated genuine lines within the SAME
+drop still accumulate normally. `processExpenseGateBatch`'s old same-session "conflict" flag is
+now reserved for two rows genuinely disagreeing within one session's drop(s) — a fresh drop
+disagreeing with an EARLIER session's baseline is a normal update, not a conflict, per the
+owner's incremental-update requirement. Written only on Confirm (`flushPendingCapture()`,
+called from `v65Commit()`), through the app's own import path, so "nothing is written until you
+confirm the preview" holds for these tables too — lines are delete-then-insert per touched
+transaction_ref (never appended, matching the fix above), gates are upsert-by-transaction_ref
+(latest wins). The multi-file "select several, check them, apply together" control the owner
+asked for was already built (M11/M12 — `#finFile.multiple`, `v65CheckFiles()`,
+`processFileList()` accepting many files and committing them in one `v65Commit()` call) — M15
+adds the persistence layer underneath it, not a second import control. Sabotage-verified: the
+line-replacement clear was temporarily reverted to a plain append, the probe was run and
+confirmed to fail (exit 1) reproducing the exact 2,500-instead-of-1,500 double-count, then
+restored and diffed byte-identical.
+*Date: 2026-08-25. Status: ACTIVE.*
+
 **SUPERSEDED — the invoice item split (Service Fee / 3rd Party Fee) is a VAT split, never
 real cost.** An earlier round of this project treated the 3rd-Party-Fee line as the real
 cost figure; re-verified live against Direct Payments and found wrong — that line is a VAT

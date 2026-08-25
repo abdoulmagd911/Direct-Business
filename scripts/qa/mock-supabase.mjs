@@ -71,6 +71,9 @@ const TABLES={
     {hist_id:3,saved_at:'2026-08-22T09:00:00Z',updated_by:'test@directksa.com',data:{schemaVersion:24,seed:'qa-hist-3'}},
   ],
   app_state_bak:[],
+  // M15 (2026-08-25) capture-persistence fixture — empty on purpose: probes assert their OWN
+  // writes land (delete-then-insert for lines, upsert for gates), not a pre-seeded state.
+  finance_expense_lines_capture:[], finance_expense_gate_capture:[],
   access_allowlist:[], share_links:[],
   // client↔finance link fixture: maps finance group "Test Company 4" to business b4 (a client),
   // so the harness exercises the real link path (legacy-id L4 → uuid b4 → group → invoices).
@@ -296,6 +299,37 @@ export function start(port, seedOverrides){
           if(!Array.isArray(payload)) payload=[payload];
           const written=payload.map(row=>{
             const newRow=Object.assign({bak_id:++_bakIdSeq, created_at:new Date().toISOString(), note:null, data:null}, row);
+            table.push(newRow);
+            return newRow;
+          });
+          return send(res,201, written);
+        });
+      }
+      // M15 capture tables — lines: DELETE .in('transaction_ref',[...]) then INSERT (delete-
+      // then-insert per touched transaction_ref); gates: POST upsert on_conflict=transaction_ref
+      // (latest wins). Mirrors exactly what js/65-universal-importer.js's flushPendingCapture()
+      // actually sends, so a probe here proves the real write shape, not an assumed one.
+      if(t==='finance_expense_lines_capture'||t==='finance_expense_gate_capture'){
+        const table=TABLES[t];
+        if(req.method==='DELETE'){
+          let want=u.query.transaction_ref; if(Array.isArray(want))want=want[0];
+          const m=String(want||'').match(/^in\.\((.*)\)$/);
+          const refs=m?m[1].split(',').map(s=>s.trim()):[];
+          const removed=[];
+          for(let i=table.length-1;i>=0;i--){ if(refs.indexOf(String(table[i].transaction_ref))>=0){ removed.push(...table.splice(i,1)); } }
+          return send(res,200, removed);
+        }
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(!Array.isArray(payload)) payload=[payload];
+          let onConflict=u.query.on_conflict; if(Array.isArray(onConflict))onConflict=onConflict[0];
+          const written=payload.map(row=>{
+            if(onConflict==='transaction_ref'){
+              const ix=table.findIndex(r=>r.transaction_ref===row.transaction_ref);
+              if(ix>=0){ table[ix]=Object.assign({},table[ix],row,{captured_at:new Date().toISOString()}); return table[ix]; }
+            }
+            const newRow=Object.assign({id: row.id || ('mock-cap-'+Math.random().toString(36).slice(2))}, row, {captured_at:row.captured_at||new Date().toISOString()});
             table.push(newRow);
             return newRow;
           });
