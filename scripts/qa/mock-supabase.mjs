@@ -227,6 +227,55 @@ export function start(port, seedOverrides){
       //   my_page_access()  = null for admin, else that row's page_access
       // so a probe driving MOCK_ROLE/MOCK_PAGE_ACCESS gets one consistent answer everywhere,
       // not two stubs that could quietly disagree with each other.
+      // M16 (2026-08-25) — mirrors fn_commit_finance_import() (migration
+      // finance_commit_import_rpc): ONE atomic call replacing v65Commit()'s old several
+      // sequential .insert()/.upsert() round trips. The real function's explicit
+      // jsonb_to_recordset() column lists ARE the write allowlist (M13) — a stray `year` (or
+      // any other unlisted key) is silently ignored here too, never fails the call, matching
+      // the real function's behavior exactly (stricter/kinder than the old direct-REST path,
+      // which rejected the whole batch on a `year` key).
+      if(fn==='fn_commit_finance_import'){
+        const WRITABLE=['invoice_no','zatca_dpin','client_group','customer_raw_name','invoice_date',
+          'month','quarter','products','service_type','record_type','total_incl_vat_sar','wallet_portion_sar',
+          'revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','collection_due_date',
+          'integrity_status','exclusion_reason','notes','source_batch','line_no','branch','salesman','project_tag',
+          'discount_sar','origin','proposal_ref','items','transaction_ref','direct_uuid','vat_sar','revenue_way'];
+        const pick=(row,extra)=>{ const out={}; (extra?WRITABLE.concat(extra):WRITABLE).forEach(k=>{ if(Object.prototype.hasOwnProperty.call(row,k)) out[k]=row[k]; }); return out; };
+        const pIns=Array.isArray(parsed.p_insert)?parsed.p_insert:[];
+        const pUpd=Array.isArray(parsed.p_update)?parsed.p_update:[];
+        const pCapLines=Array.isArray(parsed.p_capture_lines)?parsed.p_capture_lines:[];
+        const pCapGates=Array.isArray(parsed.p_capture_gates)?parsed.p_capture_gates:[];
+        const fiTable=TABLES.finance_invoices;
+        let inserted=0, updated=0;
+        pIns.forEach(row=>{
+          const clean=pick(row);
+          fiTable.push(Object.assign({id:'mock-fi-'+(++_finIdSeq)}, clean));
+          inserted++;
+        });
+        pUpd.forEach(row=>{
+          if(!row.id)return;
+          const clean=pick(row);
+          const ix=fiTable.findIndex(r=>r.id===row.id);
+          if(ix>=0){ fiTable[ix]=Object.assign({},fiTable[ix],clean,{updated_at:new Date().toISOString()}); updated++; }
+        });
+        if(pCapLines.length){
+          const refs=[...new Set(pCapLines.map(l=>l.transaction_ref))];
+          const linesTable=TABLES.finance_expense_lines_capture;
+          for(let i=linesTable.length-1;i>=0;i--){ if(refs.includes(linesTable[i].transaction_ref)) linesTable.splice(i,1); }
+          pCapLines.forEach(l=>{ linesTable.push(Object.assign({id:'mock-cap-'+Math.random().toString(36).slice(2)}, pick(l,['transaction_ref','amount_sar','expense_status','source_batch']), {captured_at:new Date().toISOString()})); });
+        }
+        if(pCapGates.length){
+          const byRef={}; pCapGates.forEach(g=>{byRef[g.transaction_ref]=g;});
+          const gatesTable=TABLES.finance_expense_gate_capture;
+          Object.keys(byRef).forEach(ref=>{
+            const g=pick(byRef[ref],['transaction_ref','txn_expense_status','invoice_issuing_raw','source_batch']);
+            const ix=gatesTable.findIndex(r=>r.transaction_ref===ref);
+            if(ix>=0) gatesTable[ix]=Object.assign({},gatesTable[ix],g,{captured_at:new Date().toISOString()});
+            else gatesTable.push(Object.assign({},g,{captured_at:new Date().toISOString()}));
+          });
+        }
+        return send(res,200, JSON.stringify({inserted, updated, capture_lines:pCapLines.length, capture_gates:Object.keys(pCapGates.reduce((a,g)=>{a[g.transaction_ref]=1;return a;},{})).length}));
+      }
       if(fn==='app_role'){
         const me=TABLES.app_users.find(u=>u.id===UID && u.active);
         return send(res,200, JSON.stringify(me?me.role:null));

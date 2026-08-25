@@ -519,7 +519,7 @@
   // fetches both tables ONCE per page session and seeds EXPENSE_JOIN with them BEFORE any
   // newly-dropped file is resolved against it — so a lone updated file always joins against
   // everything captured in every PRIOR session, not just this one. Written only on Confirm
-  // (v65Commit → flushPendingCapture), through the app's own import path, matching D1 and the
+  // (v65Commit → fn_commit_finance_import RPC, M16), through the app's own import path, matching D1 and the
   // "nothing written until you confirm the preview" promise.
   var CAPTURE_BASELINE_STATE='none'; // 'none' | 'loading' | 'loaded'
   var CAPTURE_BASELINE_WAITERS=[];
@@ -598,35 +598,13 @@
       PENDING_CAPTURE.gates.push({transaction_ref:ref, txn_expense_status:status, invoice_issuing_raw:raw, source_batch:batchTag});
     });
   }
-  // Writes THIS session's raw captures to Supabase — called only from v65Commit(), so the
-  // "nothing written until you confirm the preview" promise holds for these tables too. Lines:
-  // delete-then-insert every row for each transaction_ref touched this drop (a re-export is
-  // that transaction's current complete line list, never appended to indefinitely). Gates:
-  // upsert by transaction_ref, latest wins.
-  function flushPendingCapture(cb){
-    cb=cb||function(){};
-    var lines=PENDING_CAPTURE.lines, gates=PENDING_CAPTURE.gates;
-    if(!lines.length&&!gates.length){ cb(); return; }
-    PENDING_CAPTURE={lines:[],gates:[]};
-    var c=fc(); if(!c){ cb('not connected'); return; }
-    var err=null;
-    function doLines(next){
-      if(!lines.length)return next();
-      var refs=Object.keys(lines.reduce(function(acc,l){acc[l.transaction_ref]=1;return acc;},{}));
-      c.from('finance_expense_lines_capture').delete().in('transaction_ref',refs).then(function(rd){
-        if(rd.error){ err=rd.error.message; return next(); }
-        c.from('finance_expense_lines_capture').insert(lines).then(function(ri){ if(ri.error)err=ri.error.message; next(); });
-      });
-    }
-    function doGates(next){
-      if(!gates.length)return next();
-      var byRef={}; gates.forEach(function(g){byRef[g.transaction_ref]=g;}); // last-seen-wins within this flush
-      c.from('finance_expense_gate_capture').upsert(Object.keys(byRef).map(function(r){return byRef[r];}),{onConflict:'transaction_ref'}).then(function(rg){
-        if(rg.error)err=rg.error.message; next();
-      });
-    }
-    doLines(function(){ doGates(function(){ cb(err); }); });
-  }
+  // M16, 2026-08-25: the raw-capture write that used to happen here (delete-then-insert for
+  // lines, upsert for gates, via several separate REST calls) now happens server-side, inside
+  // the SAME atomic transaction as the invoice write — see fn_commit_finance_import()
+  // (migration finance_commit_import_rpc) and window.v65Commit() below. PENDING_CAPTURE is
+  // still accumulated by processExpenseLinesBatch()/processExpenseGateBatch() above exactly as
+  // before; only how it gets flushed changed — one RPC call instead of a client-driven
+  // sequential loop.
 
   // The Ready/Issued gate at TRANSACTION level (owner's Aug 20/21 notes; blank-means-Issued
   // correction verified 2026-08-24 — see the FILE 2 comment above for the full evidence: blank
@@ -1134,76 +1112,69 @@
 
   // M13, 2026-08-25 — real live bug: the owner ran a real import and read "Done. Imported 0
   // new, updated 27." while the database had written NOTHING (the `year` GENERATED-column
-  // rejection above failed the whole batch statement, confirmed in Supabase immediately after:
+  // rejection failed the whole batch statement, confirmed in Supabase immediately after:
   // with_cost still 0, cost still 0.00). The error text WAS present in the same message, but
-  // subordinated under a green "Done" headline that led with the INTENDED count (toInsert.length
-  // / toUpdate.length — what was sent, not what landed) — a reasonable person reads "Done,
-  // updated 27" and stops, exactly as B2 in docs/DECISIONS.md already names: a refused write
-  // that looks identical to a successful one. Fixed on two axes: (1) every insert/upsert now
-  // chains `.select('id')` so the reported count is rows the database actually returned, never
-  // the batch length merely sent — the RLS-silent-write rule already applied elsewhere in this
-  // app, now applied here too; (2) any batch error flips the whole headline to a red FAILED
-  // stating both the confirmed-written count and the intended count side by side, never a
-  // success count derived from intent. Sabotage-tested: scripts/qa/probe-false-success-commit.mjs
-  // forces a payload containing `year`, asserts the headline says FAILED with a written-count of
-  // 0 and never prints the intended count as if it were the written count.
+  // subordinated under a green "Done" headline that led with the INTENDED count — a reasonable
+  // person reads "Done, updated 27" and stops, exactly as B2 in docs/DECISIONS.md already
+  // names: a refused write that looks identical to a successful one. Fixed by reporting only
+  // what the database actually confirmed, never a success count derived from intent.
+  //
+  // M16, 2026-08-25 — the oversight session's browser-extension injection context dies
+  // mid-request ("Failed to execute forEach on Headers: the provided callback is no longer
+  // runnable" — an "extension context invalidated" shape, the same root cause as the dead
+  // file-I/O layer documented 2026-08-24, unrelated to M13). The OLD commit here made SEVERAL
+  // sequential .insert()/.upsert() round trips (one per 50-row batch), each one a fresh window
+  // for that teardown to land mid-batch — verified live: cost_sar still 0.00, nothing written,
+  // clean failure, but also nowhere near durable against a context that can die at any moment.
+  // Rebuilt as ONE call to fn_commit_finance_import() (migration finance_commit_import_rpc): a
+  // single Postgres function, one transaction, one round trip. Two things this buys that
+  // patching the client-side fetch call could not: (1) TRUE atomicity — either the whole batch
+  // lands or none of it does, strictly stronger than the old per-50-row-batch behavior, where a
+  // batch midway through could succeed while a later one failed; (2) the write is durable the
+  // MOMENT Postgres commits the transaction — if the calling context dies while parsing the
+  // response afterward (exactly the reported symptom), the data is already saved regardless,
+  // because response-reading happens strictly after the server-side commit, not before it. This
+  // is also why patching "don't hold a live Headers reference across the await" (the client-side
+  // fix first considered) would not have helped: the failure is inside the browser/extension's
+  // own fetch/Headers internals, code this app does not control or wrap either way — moving the
+  // durability guarantee onto the server, where it does not depend on the client surviving at
+  // all, is the only fix that actually reaches the reported failure. The RPC's explicit
+  // jsonb_to_recordset() column lists ARE the M13 write allowlist enforced again, server-side: a
+  // stray `year` key is silently ignored, never fails the statement — stricter than the direct-
+  // REST path this replaces. Sabotage-tested: scripts/qa/probe-false-success-commit.mjs forces
+  // the RPC call itself to fail, asserts the headline says FAILED with a written-count of 0 and
+  // never prints the intended count as if it were the written count;
+  // scripts/qa/probe-commit-survives-context-death.mjs proves the NEW guarantee directly — the
+  // page is closed the instant after the RPC request is sent (before any response is read), and
+  // the write is still found committed in the database on reconnect.
   window.v65Commit=function(){
     if(!FILES_STATE)return;
     var toInsert=[],toUpdate=[];
     FILES_STATE.forEach(function(r){ if(!r.recognized)return; toInsert=toInsert.concat(r.pendingInsert||[]); toUpdate=toUpdate.concat(r.pendingUpdate||[]); });
     FILES_STATE=null;
     var intendedInsert=toInsert.length, intendedUpdate=toUpdate.length;
+    var capLines=PENDING_CAPTURE.lines, capGates=PENDING_CAPTURE.gates;
+    PENDING_CAPTURE={lines:[],gates:[]};
     paintDone('<div style="font-size:13px">'+fl('Importing ','جارٍ الاستيراد ')+(intendedInsert+intendedUpdate)+' '+fl('rows…','صف…')+'</div>');
-    var c=fc(); var errs=[]; var insertedCount=0, updatedCount=0;
-    function doInsert(cb){
-      if(!toInsert.length)return cb();
-      var i=0;
-      (function next(){
-        if(i>=toInsert.length)return cb();
-        var batch=toInsert.slice(i,i+50); i+=50;
-        c.from('finance_invoices').insert(batch).select('id').then(function(r){
-          if(r.error) errs.push(r.error.message); else insertedCount+=(r.data||[]).length;
-          next();
-        });
-      })();
-    }
-    function doUpdate(cb){
-      if(!toUpdate.length)return cb();
-      var i=0;
-      (function next(){
-        if(i>=toUpdate.length)return cb();
-        var batch=toUpdate.slice(i,i+50); i+=50;
-        // upsert on the primary key IS an update-in-place for a row whose id already exists —
-        // this is the "match on natural key, write in place" rule, not a fresh insert.
-        c.from('finance_invoices').upsert(batch,{onConflict:'id'}).select('id').then(function(r){
-          if(r.error) errs.push(r.error.message); else updatedCount+=(r.data||[]).length;
-          next();
-        });
-      })();
-    }
-    doInsert(function(){
-      doUpdate(function(){
-        // M15 — persist this session's raw expense captures now, alongside the invoice write,
-        // so a future session's single updated file resolves against them automatically.
-        // Independent of the invoice write's own success/failure (orthogonal facts): a capture
-        // write problem is noted, never allowed to dress up as, or hide inside, the M13
-        // FAILED/Done headline logic above it.
-        flushPendingCapture(function(captureErr){
-        var failed=errs.length>0;
-        var msg=failed
-          ? ('<div style="font-size:13px;color:#D92D20"><b>'+fl('FAILED — nothing landed for the failing batch(es).','فشل — لم يُكتب شيء للدفعة (الدفعات) الفاشلة.')+'</b><br>'+
-             fl('The database actually wrote: ','ما كتبته قاعدة البيانات فعليًا: ')+'<b>'+insertedCount+'</b> '+fl('new, ','جديد، ')+'<b>'+updatedCount+'</b> '+fl('updated','محدَّث')+
-             ' ('+fl('intended ','المقصود ')+intendedInsert+' '+fl('new, ','جديد، ')+intendedUpdate+' '+fl('updated','محدَّث')+'). '+
-             fl('Errors: ','أخطاء: ')+esc(errs.slice(0,5).join('; '))+
-             '</div>')
-          : ('<div style="font-size:13px;color:#0F6E56"><b>'+fl('Done.','تم.')+'</b> '+
-             fl('Imported ','تم استيراد ')+insertedCount+' '+fl('new, updated ','جديد، وتحديث ')+updatedCount+'.'+
-             '</div>');
-        if(captureErr) msg+='<div style="font-size:11.5px;color:#B54708;margin-top:4px">'+fl('Note: the raw expense capture (used to join future updates automatically) did not save — ','ملاحظة: لم يُحفظ التقاط المصروفات الخام (المستخدم لدمج التحديثات المستقبلية تلقائيًا) — ')+esc(captureErr)+'. '+fl('Next month\'s file will need this one re-dropped alongside it.','سيحتاج ملف الشهر القادم إعادة إسقاط هذا الملف معه.')+'</div>';
-        paintDone(msg);
-        FIN.rows=null; finLoad();
-        });
-      });
+    var c=fc();
+    if(!c){ paintDone('<div style="font-size:13px;color:#D92D20">'+fl('Not connected — try again.','غير متصل — حاول مجددًا.')+'</div>'); return; }
+    c.rpc('fn_commit_finance_import',{p_insert:toInsert, p_update:toUpdate, p_capture_lines:capLines, p_capture_gates:capGates}).then(function(r){
+      var failed=!!r.error;
+      var got=(r.data)||{};
+      // Atomic: on failure NOTHING landed (the whole transaction rolled back) — never report a
+      // partial count derived from what might have happened before the error.
+      var insertedCount=failed?0:(+got.inserted||0), updatedCount=failed?0:(+got.updated||0);
+      var msg=failed
+        ? ('<div style="font-size:13px;color:#D92D20"><b>'+fl('FAILED — nothing landed for the failing batch(es).','فشل — لم يُكتب شيء للدفعة (الدفعات) الفاشلة.')+'</b><br>'+
+           fl('The database actually wrote: ','ما كتبته قاعدة البيانات فعليًا: ')+'<b>'+insertedCount+'</b> '+fl('new, ','جديد، ')+'<b>'+updatedCount+'</b> '+fl('updated','محدَّث')+
+           ' ('+fl('intended ','المقصود ')+intendedInsert+' '+fl('new, ','جديد، ')+intendedUpdate+' '+fl('updated','محدَّث')+'). '+
+           fl('Errors: ','أخطاء: ')+esc((r.error&&r.error.message)||'unknown error')+
+           '</div>')
+        : ('<div style="font-size:13px;color:#0F6E56"><b>'+fl('Done.','تم.')+'</b> '+
+           fl('Imported ','تم استيراد ')+insertedCount+' '+fl('new, updated ','جديد، وتحديث ')+updatedCount+'.'+
+           '</div>');
+      paintDone(msg);
+      FIN.rows=null; finLoad();
     });
   };
 

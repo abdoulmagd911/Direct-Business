@@ -23,9 +23,13 @@
        writable columns instead of ever spreading a full row object. SCENARIO 1 intercepts the
        real outgoing request body and asserts `year` is never present in it, then confirms via
        FIN.rows that the write actually landed with the exact values reported.
-   (2) v65Commit()'s reporting — every insert/upsert now chains `.select('id')` and counts what
-       the database actually returned; on ANY batch error the headline flips to a red FAILED
-       naming the confirmed-written count (never the intended count as if it were written).
+   (2) v65Commit()'s reporting — reads the counts the database actually confirmed and, on ANY
+       failure, flips the headline to a red FAILED naming the confirmed-written count (never the
+       intended count as if it were written). Originally built on `.select('id')` chained onto
+       several sequential .insert()/.upsert() calls; M16 (2026-08-25) replaced that with ONE
+       atomic call to fn_commit_finance_import() (migration finance_commit_import_rpc) — same
+       reporting contract, now backed by a single transaction instead of several round trips
+       (see probe-commit-survives-context-death.mjs for the guarantee that motivated the change).
        SCENARIO 2 forces a real Postgres-shaped rejection at the network layer — independent of
        whether fix (1) holds — and asserts the UI reports FAILED with a written count of 0, the
        real error text, and leaves the target row byte-for-byte unchanged.
@@ -57,11 +61,17 @@ async function main() {
   const dialogs = [];
   p.on('dialog', (d) => { dialogs.push(d.message()); d.dismiss(); });
 
+  // M16: the commit is now one call to /rest/v1/rpc/fn_commit_finance_import, not a direct
+  // POST to /rest/v1/finance_invoices — capture the RPC body instead to still prove
+  // pickWritable() strips `year` from the payload before it's even sent.
   let capturedBodies = [];
   async function proxyHandler(r) {
     const rq = r.request(); const u = new URL(rq.url());
-    if (rq.method() === 'POST' && u.pathname === '/rest/v1/finance_invoices') {
-      try { capturedBodies.push(JSON.parse(rq.postData() || '[]')); } catch (_) {}
+    if (rq.method() === 'POST' && u.pathname === '/rest/v1/rpc/fn_commit_finance_import') {
+      try {
+        const args = JSON.parse(rq.postData() || '{}');
+        capturedBodies.push((args.p_update || []).concat(args.p_insert || []));
+      } catch (_) {}
     }
     try {
       const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
@@ -121,19 +131,23 @@ async function main() {
   if (!row1 || row1.dpin !== 'DPIN-200000' || row1.total !== 5300) fail(`SCENARIO 1: the reported "updated 1" did not actually land in the database — got ${JSON.stringify(row1)}`);
   else ok('SCENARIO 1: the reported count matches a real, DB-confirmed write (zatca_dpin/total actually changed)');
 
-  // ================= SCENARIO 2 — forced database refusal, fix (2): reporting =================
-  // Independent of fix (1): force the exact real Postgres rejection at the network layer,
-  // regardless of what the app's own payload contains, and confirm the UI never claims success.
+  // ================= SCENARIO 2 — forced RPC failure, fix (2): reporting =================
+  // M16: the commit is now ONE call to fn_commit_finance_import() (migration
+  // finance_commit_import_rpc), not several direct .insert()/.upsert() calls — force THAT call
+  // to fail at the network layer (any real Postgres error the function could raise, e.g. a
+  // constraint violation unrelated to `year` — the RPC's own jsonb_to_recordset() allowlist
+  // already makes the `year` case impossible server-side) and confirm the UI never claims
+  // success regardless of what the app's own payload contains.
   capturedBodies = [];
   let scenario2Blocked = false;
   await p.unroute('**vkxoeeoauexyfpzqufqd.supabase.co/**');
   await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
-    if (rq.method() === 'POST' && u.pathname === '/rest/v1/finance_invoices') {
+    if (rq.method() === 'POST' && u.pathname === '/rest/v1/rpc/fn_commit_finance_import') {
       scenario2Blocked = true;
       await r.fulfill({
         status: 400, contentType: 'application/json',
-        body: JSON.stringify({ message: 'cannot insert a non-DEFAULT value into column "year"', code: '428C9', hint: 'Column "year" is a generated column.' }),
+        body: JSON.stringify({ message: 'duplicate key value violates unique constraint "finance_invoices_pkey"', code: '23505', hint: null }),
       });
       return;
     }
@@ -164,7 +178,7 @@ async function main() {
   else ok('SCENARIO 2: the confirmed-written count reads 0 — never the intended batch length dressed up as success');
   if (!/intended 0 new,\s*1 updated/i.test(preview2)) fail(`SCENARIO 2: expected the intended count (1) to still be shown, separately labeled "intended" — got: ${preview2.slice(0, 400)}`);
   else ok('SCENARIO 2: the intended count is still shown, but explicitly labeled "intended" — never presented as what was written');
-  if (!/cannot insert a non-DEFAULT value into column "year"/.test(preview2)) fail(`SCENARIO 2: the real Postgres error text is missing from the message — got: ${preview2.slice(0, 400)}`);
+  if (!/duplicate key value violates unique constraint/.test(preview2)) fail(`SCENARIO 2: the real Postgres error text is missing from the message — got: ${preview2.slice(0, 400)}`);
   else ok('SCENARIO 2: the real error text is surfaced, not swallowed');
 
   const row2 = await p.evaluate(() => { const r = (FIN.rows || []).find((x) => x.invoice_no === '116361009'); return r ? { dpin: r.zatca_dpin, total: r.total_incl_vat_sar } : null; });

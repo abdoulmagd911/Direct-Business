@@ -344,10 +344,11 @@ list, replacing the stale one, never appended to it; repeated genuine lines with
 drop still accumulate normally. `processExpenseGateBatch`'s old same-session "conflict" flag is
 now reserved for two rows genuinely disagreeing within one session's drop(s) — a fresh drop
 disagreeing with an EARLIER session's baseline is a normal update, not a conflict, per the
-owner's incremental-update requirement. Written only on Confirm (`flushPendingCapture()`,
-called from `v65Commit()`), through the app's own import path, so "nothing is written until you
-confirm the preview" holds for these tables too — lines are delete-then-insert per touched
-transaction_ref (never appended, matching the fix above), gates are upsert-by-transaction_ref
+owner's incremental-update requirement. Written only on Confirm, via `v65Commit()` (M16 moved
+this write inside the same server-side `fn_commit_finance_import` transaction that writes the
+invoices themselves — see M16 below), through the app's own import path, so "nothing is written
+until you confirm the preview" holds for these tables too — lines are delete-then-insert per
+touched transaction_ref (never appended, matching the fix above), gates are upsert-by-transaction_ref
 (latest wins). The multi-file "select several, check them, apply together" control the owner
 asked for was already built (M11/M12 — `#finFile.multiple`, `v65CheckFiles()`,
 `processFileList()` accepting many files and committing them in one `v65Commit()` call) — M15
@@ -355,6 +356,49 @@ adds the persistence layer underneath it, not a second import control. Sabotage-
 line-replacement clear was temporarily reverted to a plain append, the probe was run and
 confirmed to fail (exit 1) reproducing the exact 2,500-instead-of-1,500 double-count, then
 restored and diffed byte-identical.
+*Date: 2026-08-25. Status: ACTIVE.*
+
+**M16 — a commit must be durable the moment it reaches the server, never dependent on the
+calling browser context surviving to read the response.** The oversight session reported
+v65Commit() failing every time from their side with `Failed to execute forEach on Headers: The
+provided callback is no longer runnable` — their browser-extension injection context dying
+mid-request (an "extension context invalidated" shape, the same root cause as the dead file-I/O
+layer already documented 2026-08-24; explicitly NOT the M13 `year` bug — they never reached the
+database to test it). Verified on their side: nothing written, clean failure, no partial state
+— true, but also proof the OLD commit path (several sequential `.insert()`/`.upsert()` round
+trips, one per 50-row batch) gave that kind of teardown a wide window to land mid-batch. Two
+options were weighed, as asked, before building: (a) make the client-side fetch resilient
+(avoid holding a live `Headers` reference across the await) — rejected, because the reported
+failure is inside the browser/extension's own fetch/Headers internals, code this app does not
+control or wrap either way, so patching our own await-holding code would not reach it; (b) move
+the commit server-side so the browser context becomes irrelevant to whether the DATA lands —
+this is the one that actually addresses the reported failure, and it converges with M15's
+already-Supabase-persisted join state, both being the same underlying problem (the importer
+living entirely inside one fragile browser session). Built as a single Postgres RPC function,
+`fn_commit_finance_import` (a Postgres function, migration `finance_commit_import_rpc`, `SECURITY INVOKER` — runs
+as the calling user, existing RLS `can_edit_page('finance')` still applies, no privilege
+escalation), not a separate edge function: a plain RPC gives the SAME two guarantees an edge
+function would (one round trip, atomic server-side transaction) with less operational surface,
+since it rides the same PostgREST layer and RLS policies every other write already goes
+through. `jsonb_to_recordset` (a Postgres function)'s explicit column lists ARE the M13 write allowlist enforced
+again, server-side — a stray `year` key is silently ignored, never fails the statement,
+stricter than the direct-REST path it replaces. `window.v65Commit()`
+(`js/65-universal-importer.js`) now makes ONE `c.rpc('fn_commit_finance_import', {...})` call
+carrying the already-resolved `toInsert`/`toUpdate` arrays plus this session's pending raw
+captures (M15) in one payload — TRUE atomicity as a side effect (either the whole batch lands
+or none of it does, strictly stronger than the old per-50-row-batch behavior), and the write is
+durable the instant Postgres commits, regardless of what happens to the calling context
+afterward, because response-reading happens strictly after that commit, not before it.
+Verified directly, not just argued for: `scripts/qa/probe-commit-survives-context-death.mjs`
+intercepts the RPC request node-side (outside the browser page, so closing the page cannot
+cancel the forward-to-server fetch), destroys the entire browser context the instant the
+request leaves the page — before any response could possibly arrive — and confirms via a
+direct, browser-free database read that the write still landed. Sabotage-verified the other
+direction too: `v65Commit()` was temporarily reverted to the old direct-REST path (never calling
+the RPC at all), and the probe correctly failed to observe the expected request (a bounded
+15s timeout was added specifically so this failure mode reports cleanly rather than hanging),
+confirming the guarantee genuinely depends on the M16 mechanism; restored and diffed
+byte-identical.
 *Date: 2026-08-25. Status: ACTIVE.*
 
 **SUPERSEDED — the invoice item split (Service Fee / 3rd Party Fee) is a VAT split, never

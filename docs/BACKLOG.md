@@ -1,5 +1,78 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-25 (round 3) · A commit's durability can no longer depend on the browser staying alive (M16)
+
+The oversight session (separate sandbox, direct Supabase access, no filesystem in common with
+this one) ran a deliberate single-invoice test of the M15 importer end to end and reported two
+things: the good news first — ingest, the two-file join, and the preview were all correct even
+at minimum scale, matching full-scale behavior exactly. Then the actual blocker, explicitly
+flagged as theirs, not this app's: `v65Commit()` failed every single time from their side with
+`Failed to execute forEach on Headers: The provided callback is no longer runnable` — their
+browser-extension injection context dying mid-request, the same root cause as the dead
+file-I/O layer they'd already documented the day before, and explicitly NOT the M13 `year` bug
+(they never got far enough to reach the database). Verified on their side directly against
+Supabase: the test invoice was untouched — `cost_sar` still 0.00, `updated_at` unchanged —
+a clean failure with no partial write, but also proof the OLD commit path (several sequential
+`.insert()`/`.upsert()` HTTP round trips, one per 50-row batch) gave that kind of mid-flight
+context death a wide window to land mid-batch on a real, larger import.
+
+They asked for a judgment call, not a vote: fix the client's own fetch to survive a dying
+context (avoid holding a live `Headers` reference across an `await`), or move the commit
+server-side so the browser context becomes irrelevant to whether the write lands. Worked through
+where their actual failure occurs before picking: it's inside the browser/extension's own
+fetch/Headers internals — code neither this app nor its author controls or wraps either way — so
+no amount of client-side defensive coding reaches it. That ruled out option (a). Chose (b), but
+narrower than the literal ask: not a separate Deno edge function, a plain Postgres RPC
+(`SECURITY INVOKER`, so it runs as the calling user and the existing `can_edit_page('finance')`
+RLS policy still applies — no privilege escalation). A function on the same PostgREST/RLS layer
+every other write already goes through gives the identical two guarantees a dedicated edge
+function would (one round trip, one atomic server-side transaction) with materially less new
+operational surface. This also directly answers the oversight session's own earlier question
+about where M15's join state should live — they're the same underlying problem, an importer
+that lived entirely inside one fragile browser session, so it made sense to fix both with one
+mechanism rather than patch them separately.
+
+Built `fn_commit_finance_import` (new migration `finance_commit_import_rpc`) — one Postgres
+function taking the already-resolved insert/update arrays plus this session's pending M15
+capture rows, and writing all of it (invoices, capture lines, capture gates) inside ONE
+transaction. `jsonb_to_recordset`'s explicit column-type lists are the SQL-side equivalent of
+`pickWritable()`'s M13 allowlist — a stray key is silently ignored, never fails the statement,
+which is stricter and kinder than the direct-REST path it replaces. True atomicity (the whole
+batch lands or none of it does) fell out of this as a side effect, strictly stronger than the
+old per-50-row-batch behavior. `window.v65Commit()` (`js/65-universal-importer.js`) now makes
+exactly ONE `c.rpc('fn_commit_finance_import', {...})` call; `flushPendingCapture()` is gone —
+its job is now done server-side, inside the same transaction, on the same request.
+
+Proved the actual guarantee, not just argued for it: `scripts/qa/probe-commit-survives-context-death.mjs`
+intercepts the RPC request at the network layer from the TEST PROCESS itself (not from inside
+the browser page — the forward-to-server `fetch()` that does the real write runs in Node, so
+closing the browser page and its entire context cannot cancel it), destroys the whole browser
+context the instant the request leaves the page and before any response could possibly come
+back, then reads the database directly with no browser involved at all and confirms the write
+landed anyway. Sabotage-tested the other direction too: `v65Commit()` was temporarily reverted
+to the old direct-REST path (never calling the RPC), and the probe correctly failed to observe
+the expected request — the very first attempt hung indefinitely rather than exiting cleanly,
+since the sabotage caused a promise the probe awaits to never resolve; treated as valid
+confirmation, and a 15-second timeout guard was added to the probe immediately after so a REAL
+future regression reports cleanly (exit 1) instead of hanging the suite. Restored and diffed
+byte-identical, re-ran green. Also updated `scripts/qa/probe-false-success-commit.mjs` (both
+scenarios now watch/intercept the RPC endpoint instead of the old direct-insert endpoint —
+Scenario 2's forced-failure now returns a realistic Postgres unique-constraint error instead of
+the now-unreachable year-column error text) and `scripts/qa/mock-supabase.mjs` (new
+`fn_commit_finance_import` RPC dispatch case mirroring the real function's allowlist and
+delete-then-insert/upsert semantics for the two M15 capture tables).
+
+Verified: `node -c` on every touched file, `check-structure.mjs`, `check-decisions-wired.mjs`
+(M16 added as its own ACTIVE rule, all citations resolve; also fixed two stale-citation false
+positives from the checker's JS-only citation regex being unable to verify SQL/Postgres-side
+function names — `fn_commit_finance_import` and `jsonb_to_recordset` cited without trailing
+`()` so they read as decorative rather than checkable), the full probe battery including the
+new `probe-commit-survives-context-death.mjs` and the updated `probe-false-success-commit.mjs`
+— all green. `audit-finance-tabs.mjs`'s EN tab-switch timing check flaked at ~811-815ms against
+an 800ms threshold; reproduced the identical flake at the identical magnitude against the prior
+pushed commit (before any of this round's changes, via `git stash`), confirming it's a
+pre-existing, unrelated timing flake and not a regression from this round.
+
 ## 2026-08-25 (round 2) · Owner brief — UI density/copy pass, client name aliases (M14), expense-capture persistence (M15)
 
 Three workstreams from one owner brief, after M13 (below) shipped. Order below is build order,
@@ -63,9 +136,9 @@ Lines are delete-then-insert per touched transaction_ref on every drop (a re-exp
 transaction's complete current line list, never appended to); gates are upsert-by-transaction_ref
 (latest wins) — a fresh drop's data now properly supersedes an EARLIER session's capture instead
 of being flagged a same-session conflict, matching the owner's incremental-update ask, while
-still catching a genuine self-conflict WITHIN one session's drop(s). Written only on Confirm
-(`flushPendingCapture()` inside `v65Commit()`), so "nothing written until confirmed" holds for
-these tables too. The multi-file "select several, check, apply together" control itself was
+still catching a genuine self-conflict WITHIN one session's drop(s). Written only on Confirm,
+via `v65Commit()` (M16 below later folded this write into the same server-side transaction that
+writes the invoices themselves), so "nothing written until confirmed" holds for these tables too. The multi-file "select several, check, apply together" control itself was
 already built in M11/M12 (`#finFile.multiple`, `v65CheckFiles()`) — confirmed by re-reading the
 code rather than assumed, so M15 is purely the persistence layer underneath an existing control,
 not a second one. New probe `scripts/qa/probe-expense-capture-persistence.mjs` drives TWO real
