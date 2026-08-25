@@ -184,8 +184,8 @@ await p.evaluate(() => { window.__userRole = window.__userRole || 'admin'; curre
 await p.waitForTimeout(1800);
 
 /* 2 — 5th tab registered + deep link works */
-check('tab bar shows 5 tabs (contract added to TABS)', await p.evaluate(() =>
-  document.querySelectorAll('#dgWrap .dg-tabs button').length === 5));
+check('tab bar shows 6 tabs (contract + tender in TABS)', await p.evaluate(() =>
+  document.querySelectorAll('#dgWrap .dg-tabs button').length === 6));
 check('a tab button is labelled Contract / العقد', await p.evaluate(() =>
   [...document.querySelectorAll('#dgWrap .dg-tabs button')].some(x => /العقد/.test(x.textContent))));
 check('/documents/contract deep link opens the contract tab', await p.evaluate(() =>
