@@ -56,7 +56,7 @@
         year:'السنة',no:'رقم العرض',date:'التاريخ',valid:'صالح حتى',draftPill:'مسودة',
         draft:'مسودة — بلا رقم بعد',wm:'مسودة',
         about:'عن دايركت',aboutLead:'دايركت للسفر والسياحة شركة سعودية للسفر والسياحة. قوة موردين عالمية. خدمة سعودية. شريك واحد.',
-        fees:'رسوم الخدمات',svc:'الخدمة',num:'#',free:'مجاناً',
+        fees:'عرض رسوم خدمة',svc:'الخدمة',num:'#',free:'مجاناً',
         totalNote:'(شامل جميع الرسوم)',
         termsHead:'الشروط القياسية',
         terms:'جميع الرسوم المذكورة غير شاملة ضريبة القيمة المضافة · لكل شخص أو تذكرة أو مستند أو تأشيرة · الرسوم تغطي رسوم خدماتنا فقط ولا تشمل رسوم السفارات/القنصليات/الشحن/الفنادق/شركات الطيران (ما لم يُوضَّح أن السطر إجمالي).',
@@ -117,6 +117,26 @@
   function bizName(id){
     try{ var b=(DB.businesses||[]).find(function(x){return x.id===id;});
       return b?(isAr()&&b.nameAr?b.nameAr:b.name):''; }catch(_){ return ''; }
+  }
+  /* real-design footer strip (2026-08-25): QR · email/site · branches · AR legal
+     block. Unified/licence numbers hydrate from the registry when rows exist;
+     the printed-footer literals are the text fallback (public footer text). */
+  function regNum(keys,fb){
+    for(var i=0;i<keys.length;i++){ var v=idv(keys[i],'en'); if(v)return v; }
+    return fb;
+  }
+  function footHtml(){
+    var mail=idv('email','en')||'business@directksa.com';
+    var site=idv('website','en')||'www.directksa.com';
+    var unn=regNum(['unified_number','unified_national_number','unn'],'700782406');
+    var lic=regNum(['mot_licence','tourism_licence','licence_number'],'7310322');
+    return '<div class="sf-foot">'+
+      '<img class="fq" src="/brand/direct_qr_directksa.png" alt="" onerror="this.style.display=\'none\'">'+
+      '<div class="fc">'+esc(mail)+'<br>'+esc(site)+'</div>'+
+      '<div class="fb">You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam</div>'+
+      '<div class="fl" dir="rtl">الاسم التجاري: شركة المسافر المباشر للسفر والسياحة<br>'+
+        'الرقم الموحد '+esc(unn)+' · رقم الترخيص '+esc(lic)+'</div>'+
+    '</div>';
   }
   function docClientName(lang){
     try{ var b=(DB.businesses||[]).find(function(x){return x.id===S.cur.clientId;});
@@ -298,20 +318,18 @@
     '#sfPages .sf-page{width:794px;min-height:1123px;background:var(--surface,#fff);box-shadow:var(--shadow-card,0 6px 18px rgba(0,0,0,.15));position:relative;display:flex;flex-direction:column;flex:none;color:var(--ink)}'+
     '#sfPages .sf-page.ar{direction:rtl;font-family:var(--font-ar,serif)}'+
     '#sfPages .sf-page.en{direction:ltr;font-family:var(--font-en,sans-serif)}'+
-    '#sfPages .sf-page.grad{background:var(--direct-gradient);color:#fff}'+
-    '#sfPages .sf-cover{flex:1;display:flex;flex-direction:column;padding:60px 64px 48px}'+
-    '#sfPages .sf-cover img{width:220px;margin-bottom:40px}'+
-    '#sfPages .sf-kind{font-size:15px;letter-spacing:.22em;text-transform:uppercase;opacity:.85;margin:0 0 6px}'+
-    '#sfPages .sf-ct{font-size:42px;font-weight:800;line-height:1.15;margin:0 0 6px}'+
-    '#sfPages .sf-cy{font-size:24px;opacity:.95;margin:0}'+
-    '#sfPages .sf-cc{font-size:18px;border-top:1px solid rgba(255,255,255,.4);padding-top:22px;max-width:85%;margin-top:56px}'+
-    '#sfPages .sf-cc b{display:block;font-size:30px;margin-top:6px;line-height:1.25}'+
-    '#sfPages .sf-nopill{display:inline-block;margin-top:14px;padding:5px 16px;border-radius:99px;border:1px solid rgba(255,255,255,.55);font-size:14px;font-weight:800;letter-spacing:.04em}'+
-    '#sfPages .sf-nopill.dr{border-style:dashed;opacity:.9}'+
-    '#sfPages .sf-cm{margin-top:auto;display:flex;gap:32px;flex-wrap:wrap;font-size:14px}'+
-    '#sfPages .sf-cm span{opacity:.85;display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em}'+
-    '#sfPages .sf-tag{margin-top:24px;font-size:13.5px;opacity:.9;border-top:1px solid rgba(255,255,255,.35);padding-top:14px}'+
-    '#sfPages .sf-content{flex:1;display:flex;flex-direction:column;padding:44px 56px 70px}'+
+    /* full-bleed brand-primary cover / back-cover (real Family-A design) */
+    '#sfPages .sf-page.grad{background:var(--accent);color:#fff}'+
+    '#sfPages .sf-cvr{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:56px 60px 44px}'+
+    '#sfPages .sf-cvr .lg{width:210px}'+
+    '#sfPages .sf-cvr .mid{margin:auto 0}'+
+    '#sfPages .sf-cvr .t{font-size:40px;font-weight:800;line-height:1.35;margin:0}'+
+    '#sfPages .sf-cvr .t span{display:block}'+
+    '#sfPages .sf-cvr .yr{font-size:22px;opacity:.95;margin-top:6px}'+
+    '#sfPages .sf-cvr .sw{width:250px;height:20px;border-bottom:2.5px solid rgba(255,255,255,.92);border-radius:0 0 55% 55%/0 0 100% 100%;margin:8px auto 0}'+
+    '#sfPages .sf-cvr .qrb{margin-top:auto}'+
+    '#sfPages .sf-cvr .qrb img{width:74px;height:74px;background:#fff;padding:5px;border-radius:10px;display:block;margin:0 auto}'+
+    '#sfPages .sf-content{flex:1;display:flex;flex-direction:column;padding:44px 56px 104px}'+
     '#sfPages .sf-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}'+
     '#sfPages .sf-head img{height:34px}'+
     '#sfPages .sf-head .m{font-size:11.5px;color:var(--muted)}'+
@@ -336,18 +354,21 @@
     '#sfPages .sf-totnote{display:block;font-size:10.5px;font-weight:600;color:var(--muted)}'+
     '#sfPages .sf-terms{margin-top:26px;background:var(--wash);border-inline-start:4px solid var(--accent);border-radius:10px;padding:13px 16px;font-size:12px;line-height:1.8;color:var(--muted)}'+
     '#sfPages .sf-terms b{display:block;color:var(--ink);font-size:12.5px;margin-bottom:4px}'+
-    '#sfPages .sf-foot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 56px 16px;font-size:10px;color:var(--muted);box-sizing:border-box}'+
-    '#sfPages .sf-foot span{max-width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
-    '#sfPages .sf-close{flex:1;display:flex;flex-direction:column;padding:60px 64px}'+
-    '#sfPages .sf-close img{width:200px;margin-bottom:34px}'+
-    '#sfPages .sf-slahead{font-size:22px;font-weight:800;margin:0 0 14px}'+
-    '#sfPages .sf-sla{font-size:16px;line-height:2.2;margin:0 0 30px;padding:0;list-style:none}'+
-    '#sfPages .sf-sla li:before{content:"◆  ";font-size:11px;opacity:.8}'+
-    '#sfPages .sf-contact{font-size:15px;line-height:2;opacity:.95;border-top:1px solid rgba(255,255,255,.4);padding-top:20px;margin-bottom:36px}'+
+    /* real-design footer strip: QR · email/site · branches · Arabic legal block */
+    '#sfPages .sf-foot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;gap:14px;padding:12px 40px 14px;font-size:9.5px;color:var(--muted);box-sizing:border-box;border-top:1px solid var(--hairline)}'+
+    '#sfPages .sf-foot .fq{width:44px;height:44px;flex:none}'+
+    '#sfPages .sf-foot .fc{line-height:1.7;white-space:nowrap}'+
+    '#sfPages .sf-foot .fb{flex:1;text-align:center;line-height:1.6}'+
+    '#sfPages .sf-foot .fl{text-align:right;line-height:1.7;white-space:nowrap}'+
+    /* commitments/signature CONTENT page (the deck now closes with the back-cover) */
+    '#sfPages .sf-slahead{font-size:20px;font-weight:800;margin:6px 0 12px;color:var(--accent)}'+
+    '#sfPages .sf-sla{font-size:15px;line-height:2.2;margin:0 0 22px;padding:0;list-style:none}'+
+    '#sfPages .sf-sla li:before{content:"◆  ";font-size:11px;color:var(--accent)}'+
+    '#sfPages .sf-contact{font-size:14px;line-height:2;border-top:1px solid var(--hairline);padding-top:16px;margin-bottom:26px;color:var(--ink)}'+
     '#sfPages .sf-sign{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:auto}'+
-    '#sfPages .sf-sign .pt{border:1px solid rgba(255,255,255,.5);border-radius:12px;padding:16px 18px;font-size:13.5px}'+
-    '#sfPages .sf-sign .pt b{display:block;font-size:15px;margin-bottom:10px}'+
-    '#sfPages .sf-sign .ln{display:flex;gap:8px;border-bottom:1px dashed rgba(255,255,255,.5);margin:16px 0 0;padding-bottom:4px;opacity:.95}'+
+    '#sfPages .sf-sign .pt{border:1.5px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:13.5px}'+
+    '#sfPages .sf-sign .pt b{display:block;font-size:15px;margin-bottom:10px;color:var(--accent)}'+
+    '#sfPages .sf-sign .ln{display:flex;gap:8px;border-bottom:1px dashed var(--hairline,#bbb);margin:16px 0 0;padding-bottom:4px}'+
     '#sfPages .sf-draftmark{position:absolute;top:18px;inset-inline-end:18px;background:rgba(255,255,255,.9);color:var(--muted);font-weight:800;font-size:12px;padding:5px 12px;border-radius:99px;border:1px dashed var(--muted);z-index:2}'+
     '#sfPages .sf-wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;overflow:hidden;z-index:1}'+
     '#sfPages .sf-wm span{font-size:150px;font-weight:800;letter-spacing:.1em;color:var(--muted);opacity:.10;transform:rotate(-32deg);white-space:nowrap;user-select:none}'+
@@ -388,26 +409,19 @@
     var addr=idv('address',lang)||idv('address','en');
     var legal=idv('legal_name',lang);
     var crL=idv('cr_number','en'), vatL=idv('vat_number','en');
-    var footer='<div class="sf-foot"><span>'+esc(site)+(crL?' · CR '+esc(crL):'')+(vatL?' · VAT '+esc(vatL):'')+'</span>'+
-      '<span title="'+esc(legal||'')+'">'+esc(legal||'Direct — دايركت للسفر والسياحة')+'</span></div>';
+    var footer=footHtml();
 
-    /* page 1 — gradient cover: title + client + year */
-    var noBlock=issued
-      ? '<div class="sf-nopill">'+t.no+' '+esc(no)+'</div>'
-      : '<div class="sf-nopill dr">'+t.draftPill+'</div>';
+    /* page 1 — real Family-A cover: full-bleed brand orange, white logo top-center,
+       stacked centered title + "For {client}" with the thin curved underline, QR
+       bottom-center. NO date, number or contact on the cover. */
     var cover=
-    '<div class="sf-page grad '+dirCls+'">'+draftMark+'<div class="sf-cover">'+
-      '<img src="/brand/direct_logo_white.png" alt="Direct">'+
-      '<p class="sf-kind">'+t.coverSub+'</p>'+
-      '<h1 class="sf-ct">'+esc(title)+'</h1>'+
-      '<p class="sf-cy">'+esc(S.cur.year||'')+'</p>'+
-      '<div class="sf-cc">'+t.prepFor+'<b>'+esc(cn||'—')+'</b>'+noBlock+'</div>'+
-      '<div class="sf-cm">'+
-        '<div><span>'+t.no+'</span><b>'+esc(issued?no:t.draftPill)+'</b></div>'+
-        '<div><span>'+t.year+'</span><b>'+esc(S.cur.year||'—')+'</b></div>'+
-        (S.cur.validity?'<div><span>'+t.valid+'</span><b>'+esc(S.cur.validity)+'</b></div>':'')+
-      '</div>'+
-      '<div class="sf-tag">'+t.tag+'</div>'+
+    '<div class="sf-page grad '+dirCls+'">'+draftMark+'<div class="sf-cvr">'+
+      '<img class="lg" src="/brand/direct_logo_white.png" alt="Direct">'+
+      '<div class="mid"><h1 class="t"><span>'+esc(title)+'</span>'+
+        (cn?'<span>'+t.prepFor+'</span><span>'+esc(cn)+'</span>':'')+
+      '</h1><div class="sw"></div>'+
+      (S.cur.year?'<div class="yr">'+esc(S.cur.year)+'</div>':'')+'</div>'+
+      '<div class="qrb"><img src="/brand/direct_qr_directksa.png" alt="QR" onerror="this.parentNode.style.display=\'none\'"></div>'+
     '</div></div>';
 
     /* page 2 — About Direct: identity rows flagged show_on_documents (never sensitive) */
@@ -467,7 +481,8 @@
       footer+
     '</div></div>';
 
-    /* closing page — SLA + contacts + signature block */
+    /* commitments page — SLA + contacts + signature block, now a CONTENT page
+       (the real decks close with a bare back-cover, not a text page) */
     var contactLines=[addr,mail,site,phone].filter(Boolean).map(function(x){return esc(x);}).join('<br>');
     function party(label){
       return '<div class="pt"><b>'+label+'</b>'+
@@ -476,17 +491,25 @@
         '<div class="ln">'+t.signSig+':</div>'+
         '<div class="ln">'+t.signDate+':</div></div>';
     }
-    var closing=
-    '<div class="sf-page grad '+dirCls+'">'+draftMark+'<div class="sf-close">'+
-      '<img src="/brand/direct_logo_white.png" alt="Direct">'+
-      '<p class="sf-slahead">'+t.slaHead+'</p>'+
+    var commitPage=
+    '<div class="sf-page '+dirCls+'">'+wm+'<div class="sf-content">'+
+      '<div class="sf-head"><img src="/brand/direct_logo_color.png" alt="Direct">'+
+        '<div class="m">'+t.no+' '+esc(issued?no:t.draftPill)+'</div></div>'+
+      '<h2 class="sf-h2"><span class="dia">◆</span> '+t.slaHead+' <span class="dia">◆</span></h2>'+
       '<ul class="sf-sla">'+t.sla.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'+
       '<div class="sf-contact"><b>'+t.contactsHead+'</b><br>'+(contactLines||'&nbsp;')+'</div>'+
       '<div class="sf-sign">'+party(t.partyA)+party(t.partyB)+'</div>'+
-      '<div class="sf-tag" style="border-top:1px solid rgba(255,255,255,.35);padding-top:14px;margin-top:26px;font-size:13.5px;opacity:.9">'+t.thanks+' · '+t.tag+'</div>'+
+      footer+
     '</div></div>';
 
-    return cover+about+feePage+closing;
+    /* back-cover — full-bleed orange, white logo centered, QR bottom-center */
+    var closing=
+    '<div class="sf-page grad '+dirCls+'">'+draftMark+'<div class="sf-cvr">'+
+      '<img class="lg" style="margin:auto 0" src="/brand/direct_logo_white.png" alt="Direct">'+
+      '<div class="qrb"><img src="/brand/direct_qr_directksa.png" alt="QR" onerror="this.parentNode.style.display=\'none\'"></div>'+
+    '</div></div>';
+
+    return cover+about+feePage+commitPage+closing;
   }
 
   /* ---------- render: form ---------- */

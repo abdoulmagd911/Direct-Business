@@ -95,6 +95,27 @@
       return (lang==='ar'&&b.nameAr)?b.nameAr:(b.name||b.nameAr||''); }catch(_){ return ''; }
   }
 
+  /* real-design footer strip (2026-08-25): QR · email/site · branches · AR legal
+     block. Unified/licence numbers hydrate from the registry when rows exist;
+     the printed-footer literals are the text fallback (public footer text). */
+  function regNum(keys,fb){
+    for(var i=0;i<keys.length;i++){ var v=idv(keys[i],'en'); if(v)return v; }
+    return fb;
+  }
+  function footHtml(){
+    var mail=idv('email','en')||'business@directksa.com';
+    var site=idv('website','en')||'www.directksa.com';
+    var unn=regNum(['unified_number','unified_national_number','unn'],'700782406');
+    var lic=regNum(['mot_licence','tourism_licence','licence_number'],'7310322');
+    return '<div class="cp-foot">'+
+      '<img class="fq" src="/brand/direct_qr_directksa.png" alt="" onerror="this.style.display=\'none\'">'+
+      '<div class="fc">'+esc(mail)+'<br>'+esc(site)+'</div>'+
+      '<div class="fb">You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam</div>'+
+      '<div class="fl" dir="rtl">الاسم التجاري: شركة المسافر المباشر للسفر والسياحة<br>'+
+        'الرقم الموحد '+esc(unn)+' · رقم الترخيص '+esc(lic)+'</div>'+
+    '</div>';
+  }
+
   /* ---------- markdown-lite: plain paragraphs + "- " bullet lines ---------- */
   function mdLite(body){
     var lines=String(body||'').split(/\r?\n/);
@@ -279,18 +300,22 @@
     '#cpPages .cp-page{width:794px;min-height:1123px;background:var(--surface,#fff);box-shadow:var(--shadow-card,0 6px 18px rgba(0,0,0,.15));position:relative;display:flex;flex-direction:column;flex:none;color:var(--ink)}'+
     '#cpPages .cp-page.ar{direction:rtl;font-family:var(--font-ar,serif)}'+
     '#cpPages .cp-page.en{direction:ltr;font-family:var(--font-en,sans-serif)}'+
-    '#cpPages .cp-page.grad{background:var(--direct-gradient);color:#fff}'+
-    '#cpPages .cp-cover{flex:1;display:flex;flex-direction:column;padding:60px 64px 48px}'+
-    '#cpPages .cp-cover img{width:220px;margin-bottom:40px}'+
-    '#cpPages .cp-kind{font-size:15px;letter-spacing:.22em;text-transform:uppercase;opacity:.85;margin:0 0 6px}'+
-    '#cpPages .cp-ct{font-size:44px;font-weight:800;line-height:1.15;margin:0 0 6px}'+
-    '#cpPages .cp-cy{font-size:26px;opacity:.95;margin:0}'+
-    '#cpPages .cp-cc{font-size:18px;border-top:1px solid rgba(255,255,255,.4);padding-top:22px;max-width:85%;margin-top:56px}'+
-    '#cpPages .cp-cc b{display:block;font-size:30px;margin-top:6px;line-height:1.25}'+
-    '#cpPages .cp-nopill{display:inline-block;margin-top:14px;padding:5px 16px;border-radius:99px;border:1px solid rgba(255,255,255,.55);font-size:14px;font-weight:800;letter-spacing:.04em}'+
-    '#cpPages .cp-nopill.dr{border-style:dashed;opacity:.9}'+
-    '#cpPages .cp-tag{margin-top:auto;font-size:13.5px;opacity:.9;border-top:1px solid rgba(255,255,255,.35);padding-top:14px}'+
-    '#cpPages .cp-content{flex:1;display:flex;flex-direction:column;padding:44px 56px 70px}'+
+    /* Family-B gradient cover/closing: orange-red GRADIENT, rounded-corner frame
+       (the real 2026 profile look, adapted to portrait A4) */
+    '#cpPages .cp-page.grad{background:var(--direct-gradient);color:#fff;border-radius:22px}'+
+    '#cpPages .cp-cvr{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:56px 60px 40px}'+
+    '#cpPages .cp-cvr .mid{margin:auto 0}'+
+    '#cpPages .cp-cvr .lg{width:240px;display:block;margin:0 auto}'+
+    '#cpPages .cp-cvr .ct2{font-size:30px;font-weight:800;margin:26px 0 0}'+
+    '#cpPages .cp-cvr .cy2{font-size:20px;opacity:.95;margin-top:6px}'+
+    '#cpPages .cp-cvr .cc2{font-size:17px;margin-top:18px;opacity:.95}'+
+    '#cpPages .cp-cvr .cc2 b{display:block;font-size:24px;margin-top:4px}'+
+    '#cpPages .cp-cvr .bot{margin-top:auto;width:100%;display:flex;align-items:flex-end;justify-content:space-between}'+
+    '#cpPages .cp-cvr .bot .site{font-size:13.5px;opacity:.95}'+
+    '#cpPages .cp-cvr .bot img{width:64px;height:64px;background:#fff;padding:4px;border-radius:9px;display:block}'+
+    '#cpPages .cp-content{flex:1;display:flex;flex-direction:column;padding:44px 56px 104px}'+
+    /* section body as a soft rounded card (Family-B content style) */
+    '#cpPages .cp-seccard{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;box-shadow:var(--shadow-card);padding:20px 24px}'+
     '#cpPages .cp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}'+
     '#cpPages .cp-head img{height:34px}'+
     '#cpPages .cp-head .m{font-size:11.5px;color:var(--muted)}'+
@@ -305,16 +330,26 @@
     '#cpPages .cp-svc{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 14px}'+
     '#cpPages .cp-svc .it{background:var(--wash-accent);border-radius:12px;padding:11px 14px;font-size:13.5px;font-weight:600}'+
     '#cpPages .cp-svc .it .n{color:var(--accent);font-weight:800;margin-inline-end:8px}'+
-    '#cpPages .cp-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:6px 0 14px}'+
-    '#cpPages .cp-stat{background:var(--wash);border-radius:14px;padding:18px 14px;text-align:center}'+
-    '#cpPages .cp-stat b{display:block;font-size:26px;color:var(--accent);font-variant-numeric:tabular-nums}'+
-    '#cpPages .cp-stat span{font-size:12.5px;color:var(--muted)}'+
-    '#cpPages .cp-foot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 56px 16px;font-size:10px;color:var(--muted);box-sizing:border-box}'+
-    '#cpPages .cp-foot span{max-width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
-    '#cpPages .cp-close{flex:1;display:flex;flex-direction:column;padding:60px 64px}'+
-    '#cpPages .cp-close img{width:200px;margin-bottom:34px}'+
-    '#cpPages .cp-thanks{font-size:40px;font-weight:800;margin:0 0 20px}'+
-    '#cpPages .cp-contact{font-size:15px;line-height:2;opacity:.95;border-top:1px solid rgba(255,255,255,.4);padding-top:20px}'+
+    /* stat cards grid — rounded cards, HUGE orange number (real "لغة الأرقام" page) */
+    '#cpPages .cp-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:6px 0 14px}'+
+    '#cpPages .cp-stat{background:var(--surface);border:1px solid var(--hairline);border-radius:18px;box-shadow:var(--shadow-card);padding:24px 16px;text-align:center}'+
+    '#cpPages .cp-stat b{display:block;font-size:36px;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.2}'+
+    '#cpPages .cp-stat span{font-size:13px;color:var(--muted)}'+
+    /* real-design footer strip: QR · email/site · branches · Arabic legal block */
+    '#cpPages .cp-foot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;gap:14px;padding:12px 40px 14px;font-size:9.5px;color:var(--muted);box-sizing:border-box;border-top:1px solid var(--hairline)}'+
+    '#cpPages .cp-foot .fq{width:44px;height:44px;flex:none}'+
+    '#cpPages .cp-foot .fc{line-height:1.7;white-space:nowrap}'+
+    '#cpPages .cp-foot .fb{flex:1;text-align:center;line-height:1.6}'+
+    '#cpPages .cp-foot .fl{text-align:right;line-height:1.7;white-space:nowrap}'+
+    /* Family-B Thank-You closing: gradient page, white logo, big Thank You,
+       bottom contact strip separated by thin vertical bars */
+    '#cpPages .cp-close{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:56px 60px 40px}'+
+    '#cpPages .cp-close .lg{width:210px;display:block;margin:0 auto 30px}'+
+    '#cpPages .cp-thanks{font-size:46px;font-weight:800;margin:0}'+
+    '#cpPages .cp-idline{font-size:12px;opacity:.85;margin-top:14px}'+
+    '#cpPages .cp-cstrip{margin-top:auto;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;font-size:13.5px;opacity:.95;width:100%}'+
+    '#cpPages .cp-cstrip span{padding:0 16px;border-inline-end:1px solid rgba(255,255,255,.5)}'+
+    '#cpPages .cp-cstrip span:last-child{border-inline-end:0}'+
     '#cpPages .cp-draftmark{position:absolute;top:18px;inset-inline-end:18px;background:rgba(255,255,255,.9);color:var(--muted);font-weight:800;font-size:12px;padding:5px 12px;border-radius:99px;border:1px dashed var(--muted);z-index:2}'+
     '#cpPages .cp-wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;overflow:hidden;z-index:1}'+
     '#cpPages .cp-wm span{font-size:150px;font-weight:800;letter-spacing:.1em;color:var(--muted);opacity:.10;transform:rotate(-32deg);white-space:nowrap;user-select:none}'+
@@ -375,23 +410,22 @@
     var addr=idv('address',lang)||idv('address','en');
     var legal=idv('legal_name',lang);
     var crL=idv('cr_number','en'), vatL=idv('vat_number','en');
-    var footer='<div class="cp-foot"><span>'+esc(site)+(crL?' · CR '+esc(crL):'')+(vatL?' · VAT '+esc(vatL):'')+'</span>'+
-      '<span title="'+esc(legal||'')+'">'+esc(legal||'Direct — دايركت للسفر والسياحة')+'</span></div>';
+    var footer=footHtml();
 
-    /* page 1 — gradient cover: "Company Profile / الملف التعريفي", year,
-       optional client name (personalized cover variant — cover ONLY) */
-    var noBlock=issued
-      ? '<div class="cp-nopill">'+t.no+' '+esc(no)+'</div>'
-      : '<div class="cp-nopill dr">'+t.draftPill+'</div>';
+    /* page 1 — Family-B gradient cover: white logo centered mid-page, title/year,
+       optional client name (personalized cover variant — cover ONLY);
+       bottom-left www.directksa.com, bottom-right QR. NO document number. */
     var cover=
-    '<div class="cp-page grad '+dirCls+'">'+draftMark+'<div class="cp-cover">'+
-      '<img src="/brand/direct_logo_white.png" alt="Direct">'+
-      '<p class="cp-kind">'+t.coverSub+'</p>'+
-      '<h1 class="cp-ct">'+t.cover+'</h1>'+
-      '<p class="cp-cy">'+esc(S.cur.year||'')+'</p>'+
-      (cn?'<div class="cp-cc">'+t.prepFor+'<b>'+esc(cn)+'</b></div>':'')+
-      noBlock+
-      '<div class="cp-tag">'+t.tag+'</div>'+
+    '<div class="cp-page grad '+dirCls+'">'+draftMark+'<div class="cp-cvr">'+
+      '<div class="mid">'+
+        '<img class="lg" src="/brand/direct_logo_white.png" alt="Direct">'+
+        '<div class="ct2">'+t.cover+'</div>'+
+        (S.cur.year?'<div class="cy2">'+esc(S.cur.year)+'</div>':'')+
+        (cn?'<div class="cc2">'+t.prepFor+'<b>'+esc(cn)+'</b></div>':'')+
+      '</div>'+
+      '<div class="bot"><span class="site">'+esc(site)+'</span>'+
+        '<img src="/brand/direct_qr_directksa.png" alt="QR" onerror="this.style.display=\'none\'">'+
+      '</div>'+
     '</div></div>';
 
     /* one page per enabled section, in sort order */
@@ -405,20 +439,23 @@
         '<div class="cp-head"><img src="/brand/direct_logo_color.png" alt="Direct">'+
           '<div class="m">'+t.cover+' '+esc(S.cur.year||'')+'</div></div>'+
         '<h2 class="cp-h2"><span class="dia">◆</span> '+esc(title)+' <span class="dia">◆</span></h2>'+
-        body+footer+
+        '<div class="cp-seccard">'+body+'</div>'+footer+
       '</div></div>';
     }).join('');
 
-    /* closing thank-you page — identity block from company_identity */
-    var contactLines=[addr,mail,site,phone].filter(Boolean).map(function(x){return esc(x);}).join('<br>');
+    /* closing — Family-B Thank-You page: gradient, white logo, big white Thank You,
+       bottom contact strip phone | email | website separated by thin bars.
+       The small identity line keeps CR/VAT visible on the document. */
     var idBits=[legal,crL?('CR '+crL):'',vatL?('VAT '+vatL):''].filter(Boolean).map(function(x){return esc(x);}).join(' · ');
+    var strip=[phone,mail,site].filter(Boolean).map(function(x){return '<span>'+esc(x)+'</span>';}).join('');
     var closing=
     '<div class="cp-page grad '+dirCls+'">'+draftMark+'<div class="cp-close">'+
-      '<img src="/brand/direct_logo_white.png" alt="Direct">'+
-      '<p class="cp-thanks">'+t.thanks+'</p>'+
-      '<div class="cp-contact"><b>'+t.contactsHead+'</b><br>'+(contactLines||'&nbsp;')+
-        (idBits?'<br>'+idBits:'')+'</div>'+
-      '<div class="cp-tag">'+t.tag+'</div>'+
+      '<div style="margin:auto 0">'+
+        '<img class="lg" src="/brand/direct_logo_white.png" alt="Direct">'+
+        '<p class="cp-thanks">'+t.thanks+'</p>'+
+        (idBits?'<div class="cp-idline">'+idBits+'</div>':'')+
+      '</div>'+
+      '<div class="cp-cstrip">'+(strip||'<span>'+esc(site)+'</span>')+'</div>'+
     '</div></div>';
 
     return cover+secPages+closing;

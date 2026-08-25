@@ -20,7 +20,7 @@
 (function(){try{
   var PAGES=[
     ['today','Today','اليوم'],['leads','Leads','العملاء المحتملون'],['clients','Clients','العملاء'],
-    ['offers','Proposals','العروض'],['documents','Documents','المستندات'],['ops','Operations','العمليات'],['reports','Reports','التقارير'],
+    ['offers','Proposals','العروض'],['documents','Generator','المولّد'],['ops','Operations','العمليات'],['reports','Reports','التقارير'],
     ['finance','Finance','المالية'],['settings','Settings','الإعدادات'],['events','Events','الفعاليات'],
     ['airlines','Airlines','شركات الطيران'],['vendors','Suppliers','المورّدون'],['sopsla','SOP & SLA','الإجراءات'],
     ['activity','Activity & Audit','السجل'],['archive','Archive','الأرشيف']

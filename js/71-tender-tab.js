@@ -121,6 +121,26 @@
     return r.value_en||r.value_ar||'';
   }
   function proofRows(){ return (S.identity||[]).filter(function(r){return r.proof_path;}); }
+  /* real-design footer strip (2026-08-25): QR · email/site · branches · AR legal
+     block. Unified/licence numbers hydrate from the registry when rows exist;
+     the printed-footer literals are the text fallback (public footer text). */
+  function regNum(keys,fb){
+    for(var i=0;i<keys.length;i++){ var v=idv(keys[i],'en'); if(v)return v; }
+    return fb;
+  }
+  function footHtml(){
+    var mail=idv('email','en')||'business@directksa.com';
+    var site=idv('website','en')||'www.directksa.com';
+    var unn=regNum(['unified_number','unified_national_number','unn'],'700782406');
+    var lic=regNum(['mot_licence','tourism_licence','licence_number'],'7310322');
+    return '<div class="td-foot">'+
+      '<img class="fq" src="/brand/direct_qr_directksa.png" alt="" onerror="this.style.display=\'none\'">'+
+      '<div class="fc">'+esc(mail)+'<br>'+esc(site)+'</div>'+
+      '<div class="fb">You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam</div>'+
+      '<div class="fl" dir="rtl">الاسم التجاري: شركة المسافر المباشر للسفر والسياحة<br>'+
+        'الرقم الموحد '+esc(unn)+' · رقم الترخيص '+esc(lic)+'</div>'+
+    '</div>';
+  }
   function loadList(force){
     if(S.listLoading)return; if(S.list&&!force)return;
     var c=client(); if(!c)return;
@@ -311,7 +331,17 @@
     '#tdPages .td-page{width:794px;min-height:1123px;background:var(--surface,#fff);box-shadow:var(--shadow-card,0 6px 18px rgba(0,0,0,.15));position:relative;display:flex;flex-direction:column;flex:none;color:var(--ink)}'+
     '#tdPages .td-page.ar{direction:rtl;font-family:var(--font-ar,serif)}'+
     '#tdPages .td-page.en{direction:ltr;font-family:var(--font-en,sans-serif)}'+
-    '#tdPages .td-content{flex:1;display:flex;flex-direction:column;padding:44px 56px 70px}'+
+    /* full-bleed brand-primary cover / back-cover (Family-A design) */
+    '#tdPages .td-page.grad{background:var(--accent);color:#fff}'+
+    '#tdPages .td-cvr{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:56px 60px 44px}'+
+    '#tdPages .td-cvr .lg{width:210px}'+
+    '#tdPages .td-cvr .mid{margin:auto 0}'+
+    '#tdPages .td-cvr .t{font-size:38px;font-weight:800;line-height:1.35;margin:0}'+
+    '#tdPages .td-cvr .t span{display:block}'+
+    '#tdPages .td-cvr .sw{width:250px;height:20px;border-bottom:2.5px solid rgba(255,255,255,.92);border-radius:0 0 55% 55%/0 0 100% 100%;margin:8px auto 0}'+
+    '#tdPages .td-cvr .qrb{margin-top:auto}'+
+    '#tdPages .td-cvr .qrb img{width:74px;height:74px;background:#fff;padding:5px;border-radius:10px;display:block;margin:0 auto}'+
+    '#tdPages .td-content{flex:1;display:flex;flex-direction:column;padding:44px 56px 104px}'+
     '#tdPages .td-head{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--accent);padding-bottom:12px;margin-bottom:22px}'+
     '#tdPages .td-head img{height:38px}'+
     '#tdPages .td-head .m{font-size:11.5px;color:var(--muted);text-align:end;line-height:1.6}'+
@@ -334,8 +364,12 @@
     '#tdPages .td-tot{background:var(--wash);border-inline-start:4px solid var(--accent);border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:2;margin:10px 0}'+
     '#tdPages .td-tot b{color:var(--accent)}'+
     '#tdPages .td-formula{background:var(--wash-accent);border:1.5px dashed var(--accent);border-radius:10px;padding:10px 14px;font-weight:800;font-size:14px;text-align:center;margin:12px 0}'+
-    '#tdPages .td-foot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 56px 16px;font-size:10px;color:var(--muted);box-sizing:border-box;border-top:1px solid var(--hairline,#eee)}'+
-    '#tdPages .td-foot span{max-width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+    /* real-design footer strip: QR · email/site · branches · Arabic legal block */
+    '#tdPages .td-foot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;gap:14px;padding:12px 40px 14px;font-size:9.5px;color:var(--muted);box-sizing:border-box;border-top:1px solid var(--hairline,#eee)}'+
+    '#tdPages .td-foot .fq{width:44px;height:44px;flex:none}'+
+    '#tdPages .td-foot .fc{line-height:1.7;white-space:nowrap}'+
+    '#tdPages .td-foot .fb{flex:1;text-align:center;line-height:1.6}'+
+    '#tdPages .td-foot .fl{text-align:right;line-height:1.7;white-space:nowrap}'+
     '#tdPages .td-draftmark{position:absolute;top:18px;inset-inline-end:18px;background:var(--surface,#fff);color:var(--muted);font-weight:800;font-size:12px;padding:5px 12px;border-radius:99px;border:1px dashed var(--muted);z-index:2}'+
     '#tdPages .td-wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;overflow:hidden;z-index:1}'+
     '#tdPages .td-wm span{font-size:150px;font-weight:800;letter-spacing:.1em;color:var(--muted);opacity:.10;transform:rotate(-32deg);white-space:nowrap;user-select:none}'+
@@ -344,6 +378,7 @@
       '#tdPages,#tdPages *{visibility:visible}'+
       '#tdPages{position:absolute;left:0;top:0;display:block}'+
       '#tdPages .td-page{width:auto;box-shadow:none;margin:0;page-break-after:always;height:auto;min-height:99.3vh}'+
+      '#tdPages .td-page.grad{min-height:0;height:99.3vh;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
       '#tdPages .td-page:last-child{page-break-after:auto}'+
       '#tdPages .td-h{page-break-after:avoid}'+
       '#tdPages table.td-t tr,#tdPages .td-tot{page-break-inside:avoid}'+
@@ -364,11 +399,33 @@
     return '<div class="td-page '+dirCls+'">'+draftMark+wm+'<div class="td-content">'+head;
   }
   function pageClose(t){
-    var site=idv('website','en')||'www.directksa.com';
-    var crL=idv('cr_number','en'), vatL=idv('vat_number','en');
-    var legal=idv('legal_name','en');
-    return '<div class="td-foot"><span>'+esc(site)+(crL?' · CR '+esc(crL):'')+(vatL?' · VAT '+esc(vatL):'')+'</span>'+
-      '<span>'+esc(legal||'Direct — دايركت للسفر والسياحة')+'</span></div></div></div>';
+    return footHtml()+'</div></div>';
+  }
+  /* Family-A cover: full-bleed brand orange, white logo, stacked centered title
+     (document kind + entity), curved underline, QR bottom-center — NO date/number */
+  function coverPage(t,ar,kind,st){
+    var dirCls=ar?'ar':'en';
+    var issued=!!st.docNumber;
+    var draftMark=issued?'':'<div class="td-draftmark">'+t.draftPill+'</div>';
+    var title=(ar?S.cur.titleAr:S.cur.titleEn)||(ar?S.cur.titleEn:S.cur.titleAr)||'';
+    var cn=S.cur.clientId?bizName(S.cur.clientId,ar?'ar':'en'):'';
+    return '<div class="td-page grad '+dirCls+'">'+draftMark+'<div class="td-cvr">'+
+      '<img class="lg" src="/brand/direct_logo_white.png" alt="Direct">'+
+      '<div class="mid"><h1 class="t"><span>'+kind+'</span>'+
+        (title?'<span>'+esc(title)+'</span>':'')+
+        (cn?'<span>'+(ar?'مقدم إلى':'Prepared for')+'</span><span>'+esc(cn)+'</span>':'')+
+      '</h1><div class="sw"></div></div>'+
+      '<div class="qrb"><img src="/brand/direct_qr_directksa.png" alt="QR" onerror="this.parentNode.style.display=\'none\'"></div>'+
+    '</div></div>';
+  }
+  /* back-cover: full-bleed orange, white logo centered, QR bottom-center */
+  function backCover(t,ar,st){
+    var dirCls=ar?'ar':'en';
+    var draftMark=st.docNumber?'':'<div class="td-draftmark">'+t.draftPill+'</div>';
+    return '<div class="td-page grad '+dirCls+'">'+draftMark+'<div class="td-cvr">'+
+      '<img class="lg" style="margin:auto 0" src="/brand/direct_logo_white.png" alt="Direct">'+
+      '<div class="qrb"><img src="/brand/direct_qr_directksa.png" alt="QR" onerror="this.parentNode.style.display=\'none\'"></div>'+
+    '</div></div>';
   }
   function titleBlock(t,ar,kind,st){
     var title=(ar?S.cur.titleAr:S.cur.titleEn)||(ar?S.cur.titleEn:S.cur.titleAr)||'';
@@ -463,7 +520,7 @@
       ppHtml+
       tecBoqHtml(t,ar)+
       pageClose(t);
-    return main+certsPage(t,ar,st);
+    return coverPage(t,ar,t.tec,st)+main+certsPage(t,ar,st)+backCover(t,ar,st);
   }
   function finPages(){
     var lang=S.cur.lang||'ar', t=T[lang], ar=lang==='ar', st=S.fin;
@@ -489,7 +546,7 @@
       totHtml+
       '<div class="td-formula">'+esc(FEE_FORMULA)+'</div>'+
       pageClose(t);
-    return main+(certRows.length?certsPage(t,ar,st):'');
+    return coverPage(t,ar,t.fin,st)+main+(certRows.length?certsPage(t,ar,st):'')+backCover(t,ar,st);
   }
   function pagesHtml(){ return S.view==='fin'?finPages():tecPages(); }
 

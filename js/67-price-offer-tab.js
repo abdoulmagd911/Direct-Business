@@ -183,6 +183,29 @@
       return (lang==='ar'&&b.nameAr)?b.nameAr:(b.name||b.nameAr||''); }catch(_){ return ''; }
   }
 
+  /* ---------- footer strip (real-design fidelity, 2026-08-25) ----------
+     Email + website + branches line + the Arabic legal block. The unified number
+     and the tourism-licence number hydrate from the company registry when rows
+     exist; otherwise the literals from the real printed footer are used AS TEXT
+     (they are public footer text, not brand colours — F1 is about hexes). */
+  function regNum(keys,fb){
+    for(var i=0;i<keys.length;i++){ var v=idv(keys[i],'en'); if(v)return v; }
+    return fb;
+  }
+  function footHtml(){
+    var mail=idv('email','en')||'business@directksa.com';
+    var site=idv('website','en')||'www.directksa.com';
+    var unn=regNum(['unified_number','unified_national_number','unn'],'700782406');
+    var lic=regNum(['mot_licence','tourism_licence','licence_number','moT_license'],'7310322');
+    return '<div class="po-foot">'+
+      '<img class="fq" src="/brand/direct_qr_directksa.png" alt="" onerror="this.style.display=\'none\'">'+
+      '<div class="fc">'+esc(mail)+'<br>'+esc(site)+'</div>'+
+      '<div class="fb">You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam</div>'+
+      '<div class="fl" dir="rtl">الاسم التجاري: شركة المسافر المباشر للسفر والسياحة<br>'+
+        'الرقم الموحد '+esc(unn)+' · رقم الترخيص '+esc(lic)+'</div>'+
+    '</div>';
+  }
+
   /* ---------- math (subtotal + VAT = total, to the halala) ---------- */
   function calc(){
     var rows=[], sub=0;
@@ -209,13 +232,16 @@
         draftPill:'DRAFT',thanksLine:'We look forward to serving you.',
         addEmpty:'Add services above — they will appear here.',wm:'DRAFT',
         tag:'Global supplier power. Saudi service. One partner.',
+        /* owner-approved IATA Wakeel disclosure — EXACT text, never rephrased */
+        iata:'Direct is an IATA-accredited agent (Wakeel) No. 71238285 acting as agent for the carriers.',
         defTerms:'Prices are service fees per person/ticket/document unless stated otherwise, and exclude supplier, airline, hotel, embassy and government charges unless the line says "Total".\nThis offer is valid until the date shown; after that, prices are subject to reconfirmation.\nTax invoices are issued by Direct Payment upon confirmation.'},
     ar:{cover:'عرض سعر',coverSub:'خدمات السفر والسياحة',prepFor:'مقدم إلى',
+        iata:'دايركت وكيل معتمد من الاتحاد الدولي للنقل الجوي (إياتا) رقم 71238285 ويعمل بصفته وكيلاً عن الناقلين.',
         offerNo:'رقم العرض',date:'التاريخ',valid:'صالح حتى',by:'إعداد',draft:'مسودة — بلا رقم بعد',
         pricing:'تفاصيل الأسعار',num:'#',svc:'الخدمة',unit:'الوحدة / الكمية',
         orig:'السعر الأصلي',amount:'الإجمالي (ريال)',
         subtotal:'الإجمالي غير شامل الضريبة',vat:'ضريبة القيمة المضافة 15%',total:'الإجمالي شامل الضريبة',
-        termsHead:'الشروط والملاحظات',thanks:'شكراً لكم',inWords:'المبلغ كتابةً:',
+        termsHead:'الشروط والأحكام',thanks:'شكراً لكم',inWords:'المبلغ كتابةً:',
         draftPill:'مسودة',thanksLine:'نتطلع إلى خدمتكم.',
         addEmpty:'أضف الخدمات أعلاه — ستظهر هنا.',wm:'مسودة',
         tag:'قوة موردين عالمية. خدمة سعودية. شريك واحد.',
@@ -415,21 +441,17 @@
     '#poPages .po-page{width:794px;min-height:1123px;background:var(--surface,#fff);box-shadow:var(--shadow-card,0 6px 18px rgba(0,0,0,.15));position:relative;display:flex;flex-direction:column;flex:none;color:var(--ink)}'+
     '#poPages .po-page.ar{direction:rtl;font-family:var(--font-ar,serif)}'+
     '#poPages .po-page.en{direction:ltr;font-family:var(--font-en,sans-serif)}'+
-    '#poPages .po-page.grad{background:var(--direct-gradient);color:#fff}'+
-    '#poPages .po-cover{flex:1;display:flex;flex-direction:column;padding:60px 64px 48px}'+
-    '#poPages .po-cover img{width:220px;margin-bottom:40px}'+
-    '#poPages .po-kind{font-size:15px;letter-spacing:.22em;text-transform:uppercase;opacity:.85;margin:0 0 6px}'+
-    '#poPages .po-ct{font-size:42px;font-weight:800;line-height:1.15;margin:0 0 6px}'+
-    '#poPages .po-cs{font-size:20px;opacity:.95;margin:0 0 0}'+
-    '#poPages .po-cc{font-size:18px;border-top:1px solid rgba(255,255,255,.4);padding-top:22px;max-width:85%;margin-top:56px}'+
-    '#poPages .po-cm{margin-top:auto}'+
-    '#poPages .po-cc b{display:block;font-size:30px;margin-top:6px;line-height:1.25}'+
-    '#poPages .po-nopill{display:inline-block;margin-top:14px;padding:5px 16px;border-radius:99px;border:1px solid rgba(255,255,255,.55);font-size:14px;font-weight:800;letter-spacing:.04em}'+
-    '#poPages .po-nopill.dr{border-style:dashed;opacity:.9}'+
-    '#poPages .po-cm{margin-top:auto;display:flex;gap:32px;flex-wrap:wrap;font-size:14px}'+
-    '#poPages .po-cm span{opacity:.85;display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em}'+
-    '#poPages .po-tag{margin-top:24px;font-size:13.5px;opacity:.9;border-top:1px solid rgba(255,255,255,.35);padding-top:14px}'+
-    '#poPages .po-content{flex:1;display:flex;flex-direction:column;padding:44px 56px 70px}'+
+    /* full-bleed brand-primary cover / back-cover (real Family-A design) */
+    '#poPages .po-page.grad{background:var(--accent);color:#fff}'+
+    '#poPages .po-cvr{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:56px 60px 44px}'+
+    '#poPages .po-cvr .lg{width:210px}'+
+    '#poPages .po-cvr .mid{margin:auto 0}'+
+    '#poPages .po-cvr .t{font-size:40px;font-weight:800;line-height:1.35;margin:0}'+
+    '#poPages .po-cvr .t span{display:block}'+
+    '#poPages .po-cvr .sw{width:250px;height:20px;border-bottom:2.5px solid rgba(255,255,255,.92);border-radius:0 0 55% 55%/0 0 100% 100%;margin:8px auto 0}'+
+    '#poPages .po-cvr .qrb{margin-top:auto}'+
+    '#poPages .po-cvr .qrb img{width:74px;height:74px;background:#fff;padding:5px;border-radius:10px;display:block;margin:0 auto}'+
+    '#poPages .po-content{flex:1;display:flex;flex-direction:column;padding:44px 56px 104px}'+
     '#poPages .po-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}'+
     '#poPages .po-head img{height:34px}'+
     '#poPages .po-head .m{font-size:11.5px;color:var(--muted)}'+
@@ -441,6 +463,7 @@
     '#poPages table.po-fee th:first-child{border-start-start-radius:999px;border-end-start-radius:999px}'+
     '#poPages table.po-fee th:last-child{border-start-end-radius:999px;border-end-end-radius:999px}'+
     '#poPages table.po-fee td{background:var(--wash);padding:9px 12px;text-align:center}'+
+    '#poPages table.po-fee tbody tr:nth-child(even) td{background:var(--wash-accent)}'+   /* zebra (real design) */
     '#poPages table.po-fee td.svc{text-align:start;font-weight:600}'+
     '#poPages table.po-fee td.amt{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}'+
     '#poPages .po-totals{margin:14px 0 0;margin-inline-start:auto;width:300px;font-size:13.5px}'+
@@ -450,15 +473,13 @@
     '#poPages .po-words span{color:var(--muted);font-weight:400}'+
     '#poPages .po-terms{margin-top:24px;background:var(--wash);border-inline-start:4px solid var(--accent);border-radius:10px;padding:13px 16px;font-size:12px;line-height:1.7;color:var(--muted);white-space:pre-line}'+
     '#poPages .po-terms b{display:block;color:var(--ink);font-size:12.5px;margin-bottom:4px}'+
-    /* footer: legal name may be long — padded box, smaller font, ellipsis, never
-       touching the page edge */
-    '#poPages .po-foot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 56px 16px;font-size:10px;color:var(--muted);box-sizing:border-box}'+
-    '#poPages .po-foot span{max-width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
-    '#poPages .po-close{flex:1;display:grid;place-items:center;text-align:center;padding:60px}'+
-    '#poPages .po-close img{width:230px;margin-bottom:24px}'+
-    '#poPages .po-thanks{font-size:44px;font-weight:800;margin:0 0 10px}'+
-    '#poPages .po-thanksline{font-size:16px;opacity:.9;margin:0 0 30px}'+
-    '#poPages .po-contact{font-size:15px;line-height:2.1;opacity:.95;border-top:1px solid rgba(255,255,255,.4);padding-top:22px;max-width:520px;margin:0 auto}'+
+    '#poPages .po-iata{margin-top:12px;font-size:11px;color:var(--muted);line-height:1.7;text-align:center}'+
+    /* real-design footer strip: QR · email/site · branches · Arabic legal block */
+    '#poPages .po-foot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;gap:14px;padding:12px 40px 14px;font-size:9.5px;color:var(--muted);box-sizing:border-box;border-top:1px solid var(--hairline)}'+
+    '#poPages .po-foot .fq{width:44px;height:44px;flex:none}'+
+    '#poPages .po-foot .fc{line-height:1.7;white-space:nowrap}'+
+    '#poPages .po-foot .fb{flex:1;text-align:center;line-height:1.6}'+
+    '#poPages .po-foot .fl{text-align:right;line-height:1.7;white-space:nowrap}'+
     '#poPages .po-draftmark{position:absolute;top:18px;inset-inline-end:18px;background:rgba(255,255,255,.9);color:var(--muted);font-weight:800;font-size:12px;padding:5px 12px;border-radius:99px;border:1px dashed var(--muted);z-index:2}'+
     /* subtle diagonal DRAFT watermark — preview only while unissued */
     '#poPages .po-wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;overflow:hidden;z-index:1}'+
@@ -511,23 +532,17 @@
         '<td class="amt">'+fmt(r.amt)+'</td></tr>';
     }).join('')||'<tr><td colspan="'+colsN+'" style="color:var(--muted);text-align:center;padding:18px">'+t.addEmpty+'</td></tr>';
 
-    /* cover composed like a real cover: logo → document kind → client → number/date */
-    var noBlock=issued
-      ? '<div class="po-nopill">'+t.offerNo+' '+esc(no)+'</div>'
-      : '<div class="po-nopill dr">'+t.draftPill+'</div>';
+    /* cover — real Family-A design: full-bleed brand orange, white logo top-center,
+       stacked centered white title with the thin curved underline, QR bottom-center.
+       NOTHING else — no date, no number, no contact (all of that lives on the
+       content page header). The DRAFT pill stays for drafts. */
     var cover=
-    '<div class="po-page grad '+dirCls+'">'+draftMark+'<div class="po-cover">'+
-      '<img src="/brand/direct_logo_white.png" alt="Direct">'+
-      '<p class="po-kind">'+t.coverSub+'</p>'+
-      '<h1 class="po-ct">'+esc(title)+'</h1>'+
-      '<div class="po-cc">'+t.prepFor+'<b>'+esc(cn||'—')+'</b>'+(S.cur.attn?esc(S.cur.attn):'')+noBlock+'</div>'+
-      '<div class="po-cm">'+
-        '<div><span>'+t.offerNo+'</span><b>'+esc(issued?no:t.draftPill)+'</b></div>'+
-        '<div><span>'+t.date+'</span><b>'+esc(S.cur.date||'')+'</b></div>'+
-        '<div><span>'+t.valid+'</span><b>'+esc(vu)+'</b></div>'+
-        (S.cur.by?'<div><span>'+t.by+'</span><b>'+esc(S.cur.by)+'</b></div>':'')+
-      '</div>'+
-      '<div class="po-tag">'+t.tag+'</div>'+
+    '<div class="po-page grad '+dirCls+'">'+draftMark+'<div class="po-cvr">'+
+      '<img class="lg" src="/brand/direct_logo_white.png" alt="Direct">'+
+      '<div class="mid"><h1 class="t"><span>'+esc(title)+'</span>'+
+        (cn?'<span>'+t.prepFor+'</span><span>'+esc(cn)+'</span>':'')+
+      '</h1><div class="sw"></div></div>'+
+      '<div class="qrb"><img src="/brand/direct_qr_directksa.png" alt="QR" onerror="this.parentNode.style.display=\'none\'"></div>'+
     '</div></div>';
 
     var totalsHtml=hasPrice?
@@ -542,24 +557,24 @@
     var content=
     '<div class="po-page '+dirCls+'">'+wm+'<div class="po-content">'+
       '<div class="po-head"><img src="/brand/direct_logo_color.png" alt="Direct">'+
-        '<div class="m">'+t.offerNo+' '+esc(issued?no:t.draftPill)+'<br>'+esc(S.cur.date||'')+'</div></div>'+
+        '<div class="m">'+t.offerNo+' '+esc(issued?no:t.draftPill)+'<br>'+esc(S.cur.date||'')+(vu?'<br>'+t.valid+' '+esc(vu):'')+'</div></div>'+
       '<h2 class="po-title"><span class="dia">◆</span> '+esc(cn||title)+' <span class="dia">◆</span></h2>'+
       '<p class="po-sub">'+t.pricing+'</p>'+
       '<table class="po-fee"><thead>'+head+'</thead><tbody>'+body+'</tbody></table>'+
       totalsHtml+
       '<div class="po-terms"><b>'+t.termsHead+'</b>'+esc(terms)+'</div>'+
-      '<div class="po-foot"><span>'+esc(site)+(crL?' · CR '+esc(crL):'')+(vatL?' · VAT '+esc(vatL):'')+'</span>'+
-        '<span title="'+esc(legal||'')+'">'+esc(legal||'Direct — دايركت للسفر والسياحة')+'</span></div>'+
+      /* owner-approved IATA Wakeel line — near the closing/footer of the body */
+      '<div class="po-iata">'+esc(t.iata)+'</div>'+
+      footHtml()+
     '</div></div>';
 
-    var contactLines=[addr,mail,site,phone].filter(Boolean).map(function(x){return esc(x);}).join('<br>');
+    /* closing — real Family-A back-cover: full-bleed orange, white logo centered,
+       QR bottom-center, nothing else */
     var closing=
-    '<div class="po-page grad '+dirCls+'">'+draftMark+'<div class="po-close"><div>'+
-      '<img src="/brand/direct_logo_white.png" alt="Direct">'+
-      '<p class="po-thanks">'+t.thanks+'</p>'+
-      '<p class="po-thanksline">'+t.thanksLine+'</p>'+
-      '<p class="po-contact">'+(contactLines||'&nbsp;')+'</p>'+
-    '</div></div></div>';
+    '<div class="po-page grad '+dirCls+'">'+draftMark+'<div class="po-cvr">'+
+      '<img class="lg" style="margin:auto 0" src="/brand/direct_logo_white.png" alt="Direct">'+
+      '<div class="qrb"><img src="/brand/direct_qr_directksa.png" alt="QR" onerror="this.parentNode.style.display=\'none\'"></div>'+
+    '</div></div>';
 
     return cover+content+closing;
   }

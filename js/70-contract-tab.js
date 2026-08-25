@@ -143,6 +143,26 @@
       if(!b)return '';
       return (lang==='ar'&&b.nameAr)?b.nameAr:(b.name||b.nameAr||''); }catch(_){ return ''; }
   }
+  /* real-design footer strip (2026-08-25): QR · email/site · branches · AR legal
+     block. Unified/licence numbers hydrate from the registry when rows exist;
+     the printed-footer literals are the text fallback (public footer text). */
+  function regNum(keys,fb){
+    for(var i=0;i<keys.length;i++){ var v=idv(keys[i],'en'); if(v)return v; }
+    return fb;
+  }
+  function footHtml(){
+    var mail=idv('email','en')||'business@directksa.com';
+    var site=idv('website','en')||'www.directksa.com';
+    var unn=regNum(['unified_number','unified_national_number','unn'],'700782406');
+    var lic=regNum(['mot_licence','tourism_licence','licence_number'],'7310322');
+    return '<div class="ct-foot">'+
+      '<img class="fq" src="/brand/direct_qr_directksa.png" alt="" onerror="this.style.display=\'none\'">'+
+      '<div class="fc">'+esc(mail)+'<br>'+esc(site)+'</div>'+
+      '<div class="fb">You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam</div>'+
+      '<div class="fl" dir="rtl">الاسم التجاري: شركة المسافر المباشر للسفر والسياحة<br>'+
+        'الرقم الموحد '+esc(unn)+' · رقم الترخيص '+esc(lic)+'</div>'+
+    '</div>';
+  }
 
   /* ---------- QA hooks ---------- */
   window.__ctProbe=function(){
@@ -363,7 +383,17 @@
     '#ctPages .ct-page{width:794px;min-height:1123px;background:var(--surface,#fff);box-shadow:var(--shadow-card,0 6px 18px rgba(0,0,0,.15));position:relative;display:flex;flex-direction:column;flex:none;color:var(--ink)}'+
     '#ctPages .ct-page.ar{direction:rtl;font-family:var(--font-ar,serif)}'+
     '#ctPages .ct-page.en{direction:ltr;font-family:var(--font-en,sans-serif)}'+
-    '#ctPages .ct-content{flex:1;display:flex;flex-direction:column;padding:44px 56px 70px}'+
+    /* full-bleed brand-primary cover / back-cover (Family-A styling, sensibly applied) */
+    '#ctPages .ct-page.grad{background:var(--accent);color:#fff}'+
+    '#ctPages .ct-cvr{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:56px 60px 44px}'+
+    '#ctPages .ct-cvr .lg{width:210px}'+
+    '#ctPages .ct-cvr .mid{margin:auto 0}'+
+    '#ctPages .ct-cvr .t{font-size:38px;font-weight:800;line-height:1.35;margin:0}'+
+    '#ctPages .ct-cvr .t span{display:block}'+
+    '#ctPages .ct-cvr .sw{width:250px;height:20px;border-bottom:2.5px solid rgba(255,255,255,.92);border-radius:0 0 55% 55%/0 0 100% 100%;margin:8px auto 0}'+
+    '#ctPages .ct-cvr .qrb{margin-top:auto}'+
+    '#ctPages .ct-cvr .qrb img{width:74px;height:74px;background:#fff;padding:5px;border-radius:10px;display:block;margin:0 auto}'+
+    '#ctPages .ct-content{flex:1;display:flex;flex-direction:column;padding:44px 56px 104px}'+
     '#ctPages .ct-head{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--accent);padding-bottom:12px;margin-bottom:22px}'+
     '#ctPages .ct-head img{height:38px}'+
     '#ctPages .ct-head .m{font-size:11.5px;color:var(--muted);text-align:end;line-height:1.6}'+
@@ -391,8 +421,12 @@
     '#ctPages .ct-sign .pt b{display:block;font-size:14.5px;margin-bottom:8px;color:var(--accent)}'+
     '#ctPages .ct-sign .ln{display:flex;gap:8px;border-bottom:1px dashed var(--hairline,#bbb);margin:12px 0 0;padding-bottom:3px}'+
     '#ctPages .ct-sign .ln i{font-style:normal;color:var(--muted);white-space:nowrap}'+
-    '#ctPages .ct-foot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 56px 16px;font-size:10px;color:var(--muted);box-sizing:border-box;border-top:1px solid var(--hairline,#eee)}'+
-    '#ctPages .ct-foot span{max-width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+    /* real-design footer strip: QR · email/site · branches · Arabic legal block */
+    '#ctPages .ct-foot{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;gap:14px;padding:12px 40px 14px;font-size:9.5px;color:var(--muted);box-sizing:border-box;border-top:1px solid var(--hairline,#eee)}'+
+    '#ctPages .ct-foot .fq{width:44px;height:44px;flex:none}'+
+    '#ctPages .ct-foot .fc{line-height:1.7;white-space:nowrap}'+
+    '#ctPages .ct-foot .fb{flex:1;text-align:center;line-height:1.6}'+
+    '#ctPages .ct-foot .fl{text-align:right;line-height:1.7;white-space:nowrap}'+
     '#ctPages .ct-draftmark{position:absolute;top:18px;inset-inline-end:18px;background:var(--surface,#fff);color:var(--muted);font-weight:800;font-size:12px;padding:5px 12px;border-radius:99px;border:1px dashed var(--muted);z-index:2}'+
     '#ctPages .ct-wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;overflow:hidden;z-index:1}'+
     '#ctPages .ct-wm span{font-size:150px;font-weight:800;letter-spacing:.1em;color:var(--muted);opacity:.10;transform:rotate(-32deg);white-space:nowrap;user-select:none}'+
@@ -401,6 +435,7 @@
       '#ctPages,#ctPages *{visibility:visible}'+
       '#ctPages{position:absolute;left:0;top:0;display:block}'+
       '#ctPages .ct-page{width:auto;box-shadow:none;margin:0;page-break-after:always;height:auto;min-height:99.3vh}'+
+      '#ctPages .ct-page.grad{min-height:0;height:99.3vh;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
       '#ctPages .ct-page:last-child{page-break-after:auto}'+
       '#ctPages .ct-clh{page-break-after:avoid}'+
       '#ctPages table.ct-fee tr,#ctPages .ct-sign .pt,#ctPages .ct-party{page-break-inside:avoid}'+
@@ -492,8 +527,25 @@
     var site=idv('website','en')||'www.directksa.com';
     var legal=idv('legal_name',lang);
     var crL=idv('cr_number','en'), vatL=idv('vat_number','en');
-    var footer='<div class="ct-foot"><span>'+esc(site)+(crL?' · CR '+esc(crL):'')+(vatL?' · VAT '+esc(vatL):'')+'</span>'+
-      '<span title="'+esc(legal||'')+'">'+esc(legal||'Direct — دايركت للسفر والسياحة')+'</span></div>';
+    var footer=footHtml();
+
+    /* cover — Family-A: full-bleed brand orange, white logo, stacked centered title
+       + client, curved underline, QR bottom-center; NO date/number/contact */
+    var cn=S.cur.clientId?bizName(S.cur.clientId,lang):'';
+    var cover=
+    '<div class="ct-page grad '+dirCls+'">'+draftMark+'<div class="ct-cvr">'+
+      '<img class="lg" src="/brand/direct_logo_white.png" alt="Direct">'+
+      '<div class="mid"><h1 class="t"><span>'+esc(title)+'</span>'+
+        (cn?'<span>'+(ar?'مقدم إلى':'Prepared for')+'</span><span>'+esc(cn)+'</span>':'')+
+      '</h1><div class="sw"></div></div>'+
+      '<div class="qrb"><img src="/brand/direct_qr_directksa.png" alt="QR" onerror="this.parentNode.style.display=\'none\'"></div>'+
+    '</div></div>';
+    /* back-cover — full-bleed orange, white logo centered, QR bottom-center */
+    var backCover=
+    '<div class="ct-page grad '+dirCls+'">'+draftMark+'<div class="ct-cvr">'+
+      '<img class="lg" style="margin:auto 0" src="/brand/direct_logo_white.png" alt="Direct">'+
+      '<div class="qrb"><img src="/brand/direct_qr_directksa.png" alt="QR" onerror="this.parentNode.style.display=\'none\'"></div>'+
+    '</div></div>';
 
     /* letterhead header from company_identity */
     var head='<div class="ct-head"><img src="/brand/direct_logo_color.png" alt="Direct">'+
@@ -515,7 +567,7 @@
         (body?'<p class="ct-clb">'+esc(body)+'</p>':'')+extra;
     }).join('');
 
-    return '<div class="ct-page '+dirCls+'">'+draftMark+wm+'<div class="ct-content">'+
+    return cover+'<div class="ct-page '+dirCls+'">'+draftMark+wm+'<div class="ct-content">'+
       head+
       '<h1 class="ct-title"><span class="dia">◆</span> '+esc(title)+' <span class="dia">◆</span></h1>'+
       '<p class="ct-sub">'+t.no+' '+esc(issued?no:t.draftPill)+(S.cur.clientId?' · '+esc(bizName(S.cur.clientId,lang)):'')+'</p>'+
@@ -523,7 +575,7 @@
       annexHtml(t,ar)+
       signBlock(t,ar)+
       footer+
-    '</div></div>';
+    '</div></div>'+backCover;
   }
 
   /* ---------- render: form ---------- */
