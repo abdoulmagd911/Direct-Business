@@ -137,7 +137,9 @@
         if(typeof AGENCY!=='undefined'&&AGENCY&&DG.rows&&DG.rows.length){
           var g=function(k){ var x=DG.rows.find(function(r){return r.key===k;}); return x?(x.value_en||''):''; };
           if(g('vat_number'))AGENCY.vat=g('vat_number');
-          if(g('iban_alrajhi')){ AGENCY.iban=g('iban_alrajhi'); AGENCY.bank='Al Rajhi Bank'; }
+          /* owner ruling 25 Aug: the DEFAULT account on documents is ALINMA */
+          if(g('iban_alinma')){ AGENCY.iban=g('iban_alinma'); AGENCY.bank='Alinma Bank'; }
+          else if(g('iban_alrajhi')){ AGENCY.iban=g('iban_alrajhi'); AGENCY.bank='Al Rajhi Bank'; }
           if(g('cr_number'))AGENCY.cr=g('cr_number');
           if(g('capital'))AGENCY.capital=g('capital')+' SAR';
         }

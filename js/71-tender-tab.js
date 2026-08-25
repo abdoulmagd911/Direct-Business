@@ -100,7 +100,7 @@
       boq:[blankBoq()],
       team:[blankTeam()],
       schedule:[blankPay()],
-      pastProjects:{on:false,items:[]} };   /* owner call — ships DISABLED (M2) */
+      pastProjects:{on:true,items:[]} };   /* owner ruling 25 Aug: SHOW past projects (M2 exclusions still never appear); default items prefill from company_profile_sections key 'past_projects' */
   }
   var S={ cur:blankDoc(), view:'tec',
           tec:{rowId:null,docNumber:null,status:'draft'},
@@ -227,7 +227,16 @@
     if(!Array.isArray(S.cur.boq))S.cur.boq=[blankBoq()];
     if(!Array.isArray(S.cur.team))S.cur.team=[blankTeam()];
     if(!Array.isArray(S.cur.schedule))S.cur.schedule=[blankPay()];
-    if(!S.cur.pastProjects)S.cur.pastProjects={on:false,items:[]};
+    if(!S.cur.pastProjects)S.cur.pastProjects={on:true,items:[]};
+    /* prefill defaults once, from the DB (never hardcoded here — D4) */
+    if(S.cur.pastProjects.on&&!(S.cur.pastProjects.items||[]).length&&!S.cur.pastProjects.__seeded){
+      S.cur.pastProjects.__seeded=true;
+      try{ var c=client(); if(c)c.from('company_profile_sections').select('items').eq('key','past_projects').eq('enabled',true).then(function(r){
+        try{ var it=(r.data&&r.data[0]&&r.data[0].items)||[]; if(it.length&&!(S.cur.pastProjects.items||[]).length){
+          S.cur.pastProjects.items=it.map(function(x){ return (typeof LANG!=='undefined'&&LANG==='ar')?(x.ar||x.en||''):(x.en||x.ar||''); }).filter(Boolean);
+          repaint(); } }catch(_){ }
+      }); }catch(_){ }
+    }
     if(!S.cur.tender_ref)S.cur.tender_ref=uuid();
     /* adopt BOTH family rows sharing this tender_ref */
     var ref=S.cur.tender_ref;
