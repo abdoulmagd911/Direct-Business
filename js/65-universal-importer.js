@@ -205,7 +205,37 @@
     // page's lifetime (not reset per drop), so the two files may be dropped together or in two
     // separate sessions — either way.
     expense_lines_capture:      {label:'Expense Report — lines',                    rows:null,runs:null,isCostSource:true, hasClientColumn:true},
-    expense_gate_capture:       {label:'Expense Report — transaction status (join)', rows:null,runs:null,isCostSource:false,hasClientColumn:false}
+    expense_gate_capture:       {label:'Expense Report — transaction status (join)', rows:null,runs:null,isCostSource:false,hasClientColumn:false},
+    // 2026-08-24 — the third real source: /en/admin/corporate_clients/invoices, "the owner's
+    // 'final phase' source" (oversight session's words), 65 tax invoices, columns
+    // INVOICE NUMBER (carries the tax code inline on a second line) | ISSUE DATE | DUE DATE |
+    // AMOUNT (SAR) | STATUS. Required (normalized contract): invoice_no, tax_code,
+    // total_incl_vat_sar, invoice_status, issue_date.
+    //
+    // THE OWNER'S RULE, applied literally: an invoice's tax code and total are only trusted
+    // automatically once it has BOTH a real tax code AND a status other than "Waiting for
+    // Issuing" — anything short of that goes to manual review, reported, never guessed at.
+    // Never inserts a new row — this signature carries no client name at all, and
+    // finance_invoices.client_group is NOT NULL, so there is nothing to create a brand-new row
+    // WITH; an invoice_no with no existing match is reported as needing manual review, exactly
+    // like every other "not a live invoice" case in this importer, never fabricated.
+    //
+    // ⚠ THE TTIN/DPIN TRAP, caught by the oversight session BEFORE it shipped — this is the
+    // Takamol mistake's shape happening again, on a different column, months after the first
+    // one: a first-pass regex matched only DPIN- codes and reported 21 invoices as having no
+    // tax code at all. Wrong — 10 of those 21 carry TTIN- codes instead, and all ten are
+    // Takamol invoices already `integrity_status='excluded'` in finance_invoices (the five
+    // largest invoices in the whole system, every one over a million SAR — total 6,724,291.12).
+    // An import of "all finalised tax invoices" done on tax-code-presence alone would have
+    // silently re-imported the entire excluded Takamol book. TTIN appears to BE the Takamol
+    // invoice series (10 for 10 on this sample) — but that is a hypothesis from one sample, not
+    // a proven rule, so this signature does NOT special-case the TTIN prefix at all. It gates
+    // on `finExclusionCheck()` against the EXISTING row's own client_group, the same exclusion
+    // list every other import path already uses — so exclusion holds regardless of what any
+    // future tax-code prefix turns out to look like. Regression-guarded, including a sabotage
+    // case (a would-otherwise-qualify TTIN row targeting the seeded Takamol fixture, asserted
+    // to never be written), by scripts/qa/probe-tax-invoice-capture.mjs.
+    tax_invoice_capture:        {label:'Tax Invoices — final phase', rows:null,runs:null,isCostSource:false,hasClientColumn:true}
   };
   window.v65Catalogue=CATALOGUE;
 
@@ -218,7 +248,9 @@
     { key:'expense_lines_capture', catalogueKey:'expense_lines_capture',
       requiredColumns:['transaction_ref','amount_sar','expense_status'] },
     { key:'expense_gate_capture', catalogueKey:'expense_gate_capture',
-      requiredColumns:['transaction_ref','txn_expense_status','invoice_issuing_raw'] }
+      requiredColumns:['transaction_ref','txn_expense_status','invoice_issuing_raw'] },
+    { key:'tax_invoice_capture', catalogueKey:'tax_invoice_capture',
+      requiredColumns:['invoice_no','tax_code','total_incl_vat_sar','invoice_status','issue_date'] }
   ];
   function detectSignature(headerRow){
     var h=(headerRow||[]).map(function(x){return String(x||'').trim();});
@@ -243,7 +275,10 @@
       needsLinking:0
     };
   }
-  var CMP_FIELDS=['total_incl_vat_sar','integrity_status','amount_received_sar','amount_remaining_sar','revenue_sar','cost_sar','profit_sar'];
+  // zatca_dpin/invoice_date added 2026-08-24 for tax_invoice_capture — without them, a row
+  // whose ONLY real change is a newly-attached tax code (nothing else differing) would report
+  // as "unchanged" and silently never get its tax code written at all.
+  var CMP_FIELDS=['total_incl_vat_sar','integrity_status','amount_received_sar','amount_remaining_sar','revenue_sar','cost_sar','profit_sar','zatca_dpin','invoice_date'];
   function rowDiffers(oldR,newR){
     return CMP_FIELDS.some(function(f){
       var a=oldR[f], b=newR[f];
@@ -362,6 +397,64 @@
       candidates.push(built);
     });
     mergeRowsIntoState(candidates, state);
+  }
+
+  /* ---------- tax_invoice_capture: the third real source, update-only, never inserted ----------
+     See the CATALOGUE comment above for the full TTIN/DPIN trap this signature exists to defend
+     against. Never creates a finance_invoices row (this source carries no client name at all,
+     and client_group is NOT NULL — there is nothing to create a new row WITH). Exclusion is
+     checked against the EXISTING row's own client_group via finExclusionCheck(), never against
+     the tax-code prefix — a hypothesis ("TTIN looks like the Takamol series") is not a rule. */
+  function processTaxInvoiceBatch(rawRows, header, state){
+    var ixNo=header.indexOf('invoice_no'), ixCode=header.indexOf('tax_code'),
+        ixTot=header.indexOf('total_incl_vat_sar'), ixSt=header.indexOf('invoice_status'),
+        ixDate=header.indexOf('issue_date');
+    if(ixNo<0||ixCode<0||ixTot<0||ixSt<0||ixDate<0)return; // detectSignature() already guarantees these; defensive only
+    rawRows.forEach(function(row){
+      var invNo=String(row[ixNo]||'').trim(); if(!invNo)return;
+      var taxCode=String(row[ixCode]||'').trim();
+      var status=String(row[ixSt]||'').trim();
+      var existing=state.existingByNo[invNo];
+      if(!existing){
+        // Never inserted — see the module comment above. Reported the same way every other
+        // "not a live invoice" case is reported across this importer.
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('not a live invoice — no client name available to create one, needs manual review','ليست فاتورة قائمة — لا يوجد اسم عميل لإنشائها، تحتاج مراجعة يدوية')});
+        return;
+      }
+      // Exclusion is checked BEFORE the eligibility gate below, on purpose: a row that would
+      // otherwise sail straight through (has a tax code, status is final) must still never
+      // touch an excluded client's row — this is the sabotage case
+      // scripts/qa/probe-tax-invoice-capture.mjs proves directly.
+      var xhit=(typeof window.finExclusionCheck==='function')?(window.finExclusionCheck(existing.client_group)||window.finExclusionCheck(existing.customer_raw_name)):null;
+      if(xhit){
+        state.excludedByRule++; state.excludedDetail.clientExcluded++;
+        state.excludedDetail.clientExcludedDetail.push({name:existing.client_group,clientId:xhit.clientId,reason:xhit.reason});
+        return;
+      }
+      // THE OWNER'S RULE, applied literally: a tax code AND a status past "Waiting for
+      // Issuing" — anything short of either goes to manual review, never guessed at.
+      if(!taxCode){
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('no tax code yet — needs manual review','لا يوجد رمز ضريبي بعد — تحتاج مراجعة يدوية')});
+        return;
+      }
+      if(status.toLowerCase()==='waiting for issuing'){
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('status is "Waiting for Issuing" — not final yet, needs manual review','الحالة "بانتظار الإصدار" — غير نهائية بعد، تحتاج مراجعة يدوية')});
+        return;
+      }
+      // Never fabricate a number to fill a gap (docs/DECISIONS.md): a malformed/blank total or
+      // date on this row leaves the existing value exactly as it was, rather than zeroing or
+      // nulling a real figure.
+      var parsedTotal=moneyG(row[ixTot]);
+      var newTotal=(parsedTotal>0)?parsedTotal:(+existing.total_incl_vat_sar||0);
+      var parsedDate=isoDateG(row[ixDate]);
+      var newDate=parsedDate||existing.invoice_date;
+      var updated=Object.assign({},existing,{zatca_dpin:taxCode, total_incl_vat_sar:newTotal, invoice_date:newDate});
+      if(rowDiffers(existing,updated)) state.updated.push(Object.assign({},updated,{id:existing.id}));
+      else state.unchangedCount++;
+    });
   }
 
   /* ---------- expense_lines_capture + expense_gate_capture: cost, joined across two files ----------
@@ -690,6 +783,7 @@
           if(sig&&sig.key==='invoice_export'){ mode='invoice_export'; state=initState(); typeColIdx=header.indexOf('Type'); return; }
           if(sig&&sig.key==='expense_lines_capture'){ mode='expense_lines'; return; }
           if(sig&&sig.key==='expense_gate_capture'){ mode='expense_gate'; return; }
+          if(sig&&sig.key==='tax_invoice_capture'){ mode='tax_invoice'; state=initState(); return; }
           var learned=getLearnedMapping(header);
           if(learned){ mode='mapped'; mapping=learned.mapping; state=initState(); return; }
           mode='unknown';
@@ -718,6 +812,9 @@
         } else if(mode==='expense_gate'){
           buf.push(row);
           if(buf.length>=GENERIC_BATCH_ROWS){ processExpenseGateBatch(buf,header); buf=[]; }
+        } else if(mode==='tax_invoice'){
+          buf.push(row);
+          if(buf.length>=GENERIC_BATCH_ROWS){ processTaxInvoiceBatch(buf,header,state); buf=[]; }
         }
       },
       afterChunk:function(next){
@@ -748,6 +845,9 @@
             counts:{isNew:0,updated:0,unchanged:0,excludedByRule:0,needsLinking:0}, excludedDetail:{clientExcludedDetail:[],costCaptureDetail:[]},
             hasClientColumn:true, pendingInsert:[], pendingUpdate:[],
             joinNote:fl(gatesN+' transaction(s) worth of status captured — resolved together with the expense-lines join below.', gatesN+' معاملة من الحالة تم التقاطها — تُحل مع دمج أسطر المصروفات أدناه.')});
+        } else if(mode==='tax_invoice'){
+          if(buf.length) processTaxInvoiceBatch(buf,header,state);
+          done(Object.assign({name:f.name, recognized:true, label:CATALOGUE.tax_invoice_capture.label}, finalizeState(state,'tax_invoice_capture',true)));
         }
       },
       onError:function(e){ if(!finished) done({name:f.name, recognized:false, header:header||[], err:String(e&&e.message||e)}); }
@@ -786,6 +886,13 @@
         counts:{isNew:0,updated:0,unchanged:0,excludedByRule:0,needsLinking:0}, excludedDetail:{clientExcludedDetail:[],costCaptureDetail:[]},
         hasClientColumn:true, pendingInsert:[], pendingUpdate:[],
         joinNote:fl(gatesN2+' transaction(s) worth of status captured — resolved together with the expense-lines join below.', gatesN2+' معاملة من الحالة تم التقاطها — تُحل مع دمج أسطر المصروفات أدناه.')});
+      return;
+    }
+    if(sig&&sig.key==='tax_invoice_capture'){
+      var state3=initState();
+      try{ processTaxInvoiceBatch(rows2d.slice(1),hdr,state3); }
+      catch(e){ done({name:name,recognized:false,header:hdr,err:String(e&&e.message||e)}); return; }
+      done(Object.assign({name:name,recognized:true,label:CATALOGUE.tax_invoice_capture.label}, finalizeState(state3,'tax_invoice_capture',true)));
       return;
     }
     var learned=getLearnedMapping(hdr);
@@ -954,6 +1061,12 @@
       var fileKey=fileKeyOf(f);
       RESULT_INDEX[fileKey]=idx;
       function finishFile(r){ r.streaming=false; results[idx]=r; refreshJoin(); repaint(); }
+      // Pre-parsed text ingestion (window.v65IngestText) — already a full rows2d array in
+      // memory, so it skips File I/O entirely and goes straight through the SAME
+      // detectSignature → batch → refreshJoin → renderCombinedPreview path as every other
+      // file. Checked first since f is a plain object here, not a real File — the .xlsx? test
+      // below would still work on its .name, but there is nothing to read.
+      if(f.__rows2d){ routeRows2d(f.name, f.__rows2d, fileKey, finishFile); return; }
       if(/\.xlsx?$/i.test(f.name)){
         if(window.__v65_readXlsx) window.__v65_readXlsx(f, function(rows2d){ routeRows2d(f.name, rows2d||[], fileKey, finishFile); });
         else finishFile({name:f.name, recognized:false, header:[], err:'Excel reader unavailable'});
@@ -962,6 +1075,36 @@
       routeCsvStreamed(f, fileKey, function(rowsRead){ results[idx].rowsRead=rowsRead; repaint(); }, finishFile);
     });
   }
+
+  /* ================= window.v65IngestText — CSV text in, same path, no File object =========
+     Built 2026-08-24 for the oversight session's own capture workflow: it drives this importer
+     by injecting JavaScript into a live Direct Payments tab, and that injection context's async
+     layer is dead (setTimeout, Blob.text(), FileReader.readAsText, File.slice().arrayBuffer() —
+     all confirmed to never resolve, silently, not an error). streamCsvFile() was correctly
+     asking the browser for file bytes and just never getting an answer back — the importer
+     itself was never at fault, and the earlier "freeze" reports the same session sent about the
+     File-reading path were retracted once this was understood. This does not weaken anything:
+     it reuses parseCsvTextToRows2d() (the same tokenizer streamCsvFile() itself is built on)
+     and routeRows2d() (the same synchronous dispatcher the .xlsx path already uses) verbatim —
+     every guard, the Ready/Issued gate, every exclusion check, the cost-exceeds-total refusal,
+     the whole preview-then-commit flow all sit downstream of the parse and are completely
+     untouched. It also makes a real-size import scriptable end to end without a human dragging
+     a file, which is the actual P1 answer here — and it lets a QA probe drive the real
+     `processFileList` → `resolveExpenseJoin()` path at real row counts instead of only a
+     handful of synthetic fixture rows (scripts/qa/probe-cost-join-performance.mjs). */
+  function parseCsvTextToRows2d(text){
+    var rows=[];
+    var parser=makeCsvStreamParser(function(row){ rows.push(row); });
+    parser.feed(String(text||''));
+    parser.finish();
+    return rows;
+  }
+  window.v65IngestText=function(fileName, csvText){
+    var rows2d=parseCsvTextToRows2d(csvText);
+    if(!rows2d.length) return false;
+    processFileList([{ name:String(fileName||'pasted.csv'), size:String(csvText||'').length, lastModified:0, __rows2d:rows2d }]);
+    return true;
+  };
 
   var _rf65=window.render;
   window.render=function(){

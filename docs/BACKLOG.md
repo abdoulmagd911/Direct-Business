@@ -1,5 +1,82 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-24 (round 2) · Third source (tax invoices, M10) caught a second Takamol-shaped trap; v65IngestText built (M11); freeze report investigated and does not reproduce
+
+Same day, a second round on top of the M9 rebuild below. The oversight session found the
+owner's "final phase" source and, testing it, caught a repeat of the Takamol disaster before
+it happened — then reported a real-looking freeze, then retracted an earlier freeze report
+as their own tooling's fault, then reported this second freeze as real and separate.
+
+**M10 — the tax-invoice report has two tax-code prefixes, not one, and the same mistake
+almost happened again.** `/en/admin/corporate_clients/invoices` (65 tax invoices) carries
+DPIN and TTIN codes. A first-pass regex matching only DPIN- reported 21 invoices with no
+code; 10 of those 21 carry TTIN- instead, and all ten are Takamol invoices already excluded
+in `finance_invoices` — the five largest invoices in the system, all over a million SAR,
+totalling 6,724,291.12. Importing "has a tax code" as "safe" would have re-admitted the
+whole excluded Takamol book and pushed displayed margin to 80.5% — implausible, which is
+what triggered the check rather than shipping it. Built `tax_invoice_capture`
+(`js/65-universal-importer.js`, columns `invoice_no, tax_code, total_incl_vat_sar,
+invoice_status, issue_date`): gates on `finExclusionCheck()` against the EXISTING row's own
+`client_group`, never on the tax-code prefix (TTIN-as-Takamol is a hypothesis from one
+sample, not a rule); auto-imports only when a real tax code is present AND status isn't
+"Waiting for Issuing"; never inserts (no client name in this source, and
+`finance_invoices.client_group` is `NOT NULL`). `scripts/qa/probe-tax-invoice-capture.mjs`
+(new) proves the sabotage case directly: a row with a real tax code and final status,
+targeting the seeded Takamol fixture, must be refused purely on client exclusion — passed
+first run.
+
+**M11 — `window.v65IngestText(fileName, csvText)` built.** The oversight session drives this
+importer by injecting JavaScript into a live Direct Payments tab; that context's async layer
+is dead for file I/O (`setTimeout`, `Blob.text()`, `FileReader.readAsText`,
+`File.slice().arrayBuffer()` all confirmed to never resolve, silently — proven three
+independent ways in their own retraction). `v65IngestText()` takes CSV text directly and
+routes through the exact same `detectSignature → batch → resolveExpenseJoin →
+renderCombinedPreview` path as a real file drop, reusing `parseCsvTextToRows2d()` (built on
+the same tokenizer `streamCsvFile()` already used) and `routeRows2d()` (the same dispatcher
+the `.xlsx` path already used) — every guard sits downstream of the parse, untouched. This
+is the P1 answer to "how does data get into this app": no human dragging a file, ever,
+required. `processFileList()` was widened to accept a pre-parsed `{name, __rows2d}`
+descriptor alongside real `File` objects, so both paths share one implementation rather than
+two that could drift apart.
+
+**A three-part bug-report arc worth recording precisely, because the pattern (not the
+specific bug) will recur.** (1) An earlier session reported the importer freezing on a real
+file drop. (2) The SAME session later retracted that report in full: it was driving the
+importer via injected JavaScript in a browser-extension sandbox, and proved — three
+independent ways — that the sandbox's async primitives for file I/O never fire at all in
+that context. Not a code bug; `streamCsvFile()` was correctly waiting for bytes the browser
+extension environment never delivered. (3) The SAME session then reported a SEPARATE, real-
+looking freeze on the two-level join specifically (154 transactions, 222 lines; console
+hooks installed before the drop show nothing; page unresponsive to script injection for
+60-90 seconds; resolves with no preview and nothing written) and asked for it to be profiled
+rather than assumed away.
+
+**Investigated rather than trusted either way.** Built `scripts/qa/probe-cost-join-performance.mjs`:
+a synthetic fixture at the real cardinality (154 transactions, 222 expense lines, one
+8-transaction group and one 4-transaction group feeding single invoices — the exact shape
+reported for real invoices, reproduced with fake IDs; real invoice/transaction numbers never
+get committed to this repo), driven end to end through `v65IngestText()` with wall-clock
+timing measured inside the page around the call itself (fully synchronous — parse, join
+resolution, and render all happen in one JS tick, so this measurement is exactly what would
+block a real browser's main thread on a real drop). Result: the lines file (222 rows)
+processed in 4.0ms, the gate file (154 rows — the one specifically reported to freeze) in
+2.7ms. **The reported freeze does not reproduce at real scale in a clean browser.** Given
+report (3) used a real `File`/`DataTransfer` drop through `#finFile` (not `v65IngestText()`,
+which didn't exist yet), and `streamCsvFile()` calls `file.slice().arrayBuffer()` — the exact
+call chain report (2) already proved dead in that same session's injection sandbox — the
+strong working hypothesis is that report (3) is the SAME root cause as the already-retracted
+report (2), surfacing again because that particular drop still went through the File-reading
+layer. Not certain — this session cannot directly inspect the oversight session's browser
+extension environment — but consistent with every piece of evidence available, and
+`v65IngestText()` (M11, built the same round) sidesteps the File-reading layer entirely,
+which should resolve it either way going forward. The probe stays in the regression suite
+regardless: if the join's real algorithmic complexity ever does regress as row counts grow,
+this is what catches it before a real drop does.
+
+Verified: `node -c` on every touched file, `check-structure.mjs` (58 files), the full probe
+battery including both new probes and the widened `check-decisions-wired.mjs` scope,
+`audit-finance-tabs.mjs`, `sweep-pages.mjs` — all green, EN+AR, zero console/JS errors.
+
 ## 2026-08-24 · Cost-capture join model was wrong; rebuilt as two levels (M9); a bug in the P5 checker itself, caught by re-reading its own output
 
 The oversight session finished a real capture (all 219 expense lines, all 153 transactions,

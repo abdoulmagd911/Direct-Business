@@ -175,6 +175,57 @@ never applied silently, only surfaced as needs-review.
 *Date: 2026-08-23 (first shipped), corrected to the real two-level model 2026-08-24.
 Status: ACTIVE.*
 
+**M10 — a tax code alone is never enough to trust an invoice; exclusion is checked by client,
+never by prefix.** The Takamol mistake's exact shape, on a different column, months later —
+caught before it shipped. `/en/admin/corporate_clients/invoices` (65 tax invoices, "the
+owner's final phase source") carries TWO tax-code prefixes, DPIN and TTIN, not one. A
+first-pass regex matching only DPIN- reported 21 invoices as having no code at all; 10 of
+those 21 carry TTIN- codes instead, and all ten are Takamol invoices already
+`integrity_status='excluded'` in `finance_invoices` — the five largest invoices in the whole
+system, every one over a million SAR, totalling 6,724,291.12. An import that treats "has a
+tax code" as "safe to import" would have silently re-admitted the entire excluded Takamol
+book the moment it saw a TTIN- string, pushing displayed revenue to 8.96M and margin to
+80.5% — a number that looked better only because a rule got broken, exactly the shape P5
+exists to catch (the 22.1% margin the corrected import actually produces is believable for
+this business; the 80.5% never was, and that implausibility is what triggered the check).
+TTIN appears to BE the Takamol invoice series (10 for 10 on this sample) — **that is a
+hypothesis from one sample, never treated as a proven rule.** `tax_invoice_capture`
+(`js/65-universal-importer.js`) does not special-case any prefix at all: it gates on
+`finExclusionCheck()` against the EXISTING row's own `client_group`, the same exclusion list
+every other import path in this app already uses, so exclusion holds regardless of what a
+future tax-code prefix turns out to look like. The owner's rule, applied literally: an
+invoice's tax code and total are trusted automatically only once it has BOTH a real tax code
+AND a status other than "Waiting for Issuing" — anything short of either goes to manual
+review, reported individually, never guessed at. Never inserts a new row (this source
+carries no client name at all, and `finance_invoices.client_group` is `NOT NULL` — there is
+nothing to create a row WITH); an `invoice_no` with no existing match is reported as needing
+manual review, same as every other "not a live invoice" case in this importer.
+Regression-guarded, including the sabotage case (a would-otherwise-qualify TTIN row
+targeting the seeded Takamol fixture, asserted to never be written), by
+`scripts/qa/probe-tax-invoice-capture.mjs`.
+*Date: 2026-08-24. Status: ACTIVE.*
+
+**M11 — `window.v65IngestText(fileName, csvText)` is the durable answer to "how does cost
+data get into this app," per P1.** Before this, the only way to load cost or tax-invoice data
+was a human dragging a file onto the Import tab — every time, forever, the quick path rather
+than the enduring one. `v65IngestText()` takes CSV text directly and routes it through the
+exact same `detectSignature()` → batch processor → `resolveExpenseJoin()`/`finalizeState()` →
+`renderCombinedPreview()` path as a real file drop — it reuses `parseCsvTextToRows2d()` (the
+same tokenizer `streamCsvFile()` is itself built on) and `routeRows2d()` (the same
+synchronous dispatcher the `.xlsx` path already used) verbatim. It skips ONLY the
+File-reading layer — every guard, the Ready/Issued gate, every exclusion check, the
+cost-exceeds-total refusal, and the whole preview-then-commit flow sit completely downstream
+of the parse and are untouched. Built specifically because the oversight session drives this
+importer by injecting JavaScript into a live Direct Payments tab, and that injection
+context's async layer is dead for file I/O — `setTimeout`, `Blob.text()`,
+`FileReader.readAsText`, and `File.slice().arrayBuffer()` all confirmed to never resolve,
+silently, not an error (`streamCsvFile()` was correctly asking the browser for bytes and
+simply never getting an answer back; the importer was never at fault). This also makes a
+real-size import scriptable end to end without a human's hands, and lets a QA probe drive the
+real path at real row counts instead of only a handful of synthetic fixture rows — see
+`scripts/qa/probe-cost-join-performance.mjs`.
+*Date: 2026-08-24. Status: ACTIVE.*
+
 **SUPERSEDED — the invoice item split (Service Fee / 3rd Party Fee) is a VAT split, never
 real cost.** An earlier round of this project treated the 3rd-Party-Fee line as the real
 cost figure; re-verified live against Direct Payments and found wrong — that line is a VAT
