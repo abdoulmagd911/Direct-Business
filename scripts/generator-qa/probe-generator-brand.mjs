@@ -66,6 +66,14 @@ const check = (label, ok, detail = '') => {
   check('js/66 contains no copied brand hex', found.length === 0, 'found: ' + found.join(','));
 }
 
+/* audit 2026-08-24: the legacy AGENCY block must never again carry the stale VAT /
+   unknown-IBAN literals that printed on invoice previews and seeded the ZATCA QR */
+{
+  const core06 = fs.readFileSync(APP + '/js/core/core-06-v18-v21.js', 'utf8');
+  check('core-06 carries no stale VAT literal', !/302166089700003/.test(core06));
+  check('core-06 carries no IBAN literal', !/SA\d{22}/.test(core06));
+}
+
 /* 2+3 — live page */
 const PORT = 8871; process.env.APP_DIR = APP; start(PORT); const BASE = 'http://localhost:' + PORT;
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
@@ -99,6 +107,7 @@ await p.route('**fonts.gstatic.com/**', r => r.abort());
 const FIXTURE = [
   { key: 'legal_name', category: 'legal', label_en: 'Legal name', label_ar: 'الاسم القانوني', value_en: 'Synthetic Test Co Ltd', value_ar: 'شركة اختبار', expires_on: null, source: 'fixture', sensitive: false, show_on_documents: true, sort: 10, proof_path: null },
   { key: 'cr_number', category: 'legal', label_en: 'CR', label_ar: 'السجل', value_en: '9999999999', value_ar: null, expires_on: '2020-01-01', source: 'fixture', sensitive: false, show_on_documents: true, sort: 20, proof_path: null },
+  { key: 'vat_number', category: 'tax', label_en: 'VAT', label_ar: 'ضريبة', value_en: '999999999999999', value_ar: null, expires_on: null, source: 'fixture', sensitive: false, show_on_documents: true, sort: 30, proof_path: null },
   { key: 'iban_test', category: 'banking', label_en: 'Test IBAN', label_ar: 'آيبان', value_en: 'SA0000000000000000000000', value_ar: null, expires_on: null, source: 'fixture', sensitive: true, show_on_documents: true, sort: 60, proof_path: null },
   /* certificate-like licence row with NO expiry date — must still appear on the radar
      with a neutral "date not on file" pill, and its proof gets a View button */
@@ -128,6 +137,8 @@ if (live.classic) {
   check('product --accent resolves from tokens.css (' + EXP_PRODUCT.accent + ')',
     !!EXP_PRODUCT.accent && live.product.accent === EXP_PRODUCT.accent, 'got ' + JSON.stringify(live.product.accent));
   check('tokens.css <link> injected', live.classic.linkPresent === true);
+  const ag = await p.evaluate(() => (typeof AGENCY!=='undefined' ? { vat: AGENCY.vat, iban: AGENCY.iban } : null));
+  check('AGENCY.vat hydrates from the registry (not a stale literal)', !!ag && ag.vat === '999999999999999', 'got ' + JSON.stringify(ag));
 }
 
 /* page render */
