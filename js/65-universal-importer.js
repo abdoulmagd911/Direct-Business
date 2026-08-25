@@ -1106,46 +1106,76 @@
     return true;
   };
 
+  /* Found live 2026-08-24: the owner opened Import, dropped a real (correct)
+     tax_invoice_capture file, clicked "Check file", and got a red "Header does not match
+     the expected format" — his file, verified correct, was rejected because the multi-file
+     wiring below had NOT attached yet. Root cause, confirmed by direct measurement: on the
+     common path — the user is already on the Finance page and clicks the "Import" sub-tab —
+     window.finGo() (js/16) calls renderFinance(v) DIRECTLY, never the global window.render()
+     this wiring hooks into:
+       window.finGo=function(t){ FIN.tab=t; var v=...; if(v&&current==='finance')
+         renderFinance(v); else render(); };
+     So the FIRST paint of the Import tab is drawn by rImport()'s raw HTML (the button still
+     reads onclick="finParse()", the OLD single-format legacy checker), and nothing rewires it
+     until some LATER, unrelated global render() happens to fire (a poller, a nav click) —
+     which is exactly why a bare `window.render()` call "fixed" it: it was never a signature
+     problem, the new importer simply hadn't mounted yet. This is the worst kind of guard
+     failure: it never says "not ready", it says "your file is wrong", in red, and teaches the
+     next person to distrust correct data. Fixed by wiring on BOTH paths — window.finGo() is
+     now ALSO wrapped, identically to window.render() below, so the very first paint of the
+     Import tab is already fully wired, whichever path drew it. Regression-guarded,
+     including a sabotage case, by scripts/qa/probe-import-tab-wiring.mjs. */
+  function v65WireImportPanel(){
+    if(typeof current==='undefined'||current!=='finance'||!window.FIN||FIN.tab!=='import')return;
+    var inp=document.getElementById('finFile');
+    if(inp&&!inp.multiple){
+      inp.multiple=true;
+      inp.onchange=function(){ if(inp.files&&inp.files.length)processFileList(inp.files); };
+      // the "Check file" button already calls finParse(); redirect it to the multi-file path
+      var btn=[...document.querySelectorAll('#view button')].find(function(b){return /finParse\(\)/.test(b.getAttribute('onclick')||'');});
+      if(btn) btn.setAttribute('onclick','v65CheckFiles()');
+    }
+    var dz=document.getElementById('finDrop');
+    if(dz&&!dz.__v65){
+      dz.__v65=1;
+      // Replace, not append: the existing listener (js/16) only ever takes the FIRST
+      // dropped file into a single-file input and calls the old single-file finParse().
+      // Cloning strips that listener so dropping five files at once actually reads all
+      // five, instead of racing the old handler for control of #finFile.
+      var clean=dz.cloneNode(true);
+      dz.parentNode.replaceChild(clean,dz);
+      clean.__v65=1;
+      clean.innerHTML='⬇ '+fl('Drop one or more Direct Payments exports here (Excel or CSV) — each routes itself by its columns','أفلت هنا ملف تصدير واحد أو أكثر من Direct Payments (إكسل أو CSV) — يتم توجيه كل ملف تلقائيًا حسب أعمدته');
+      clean.onclick=function(){ var i=document.getElementById('finFile'); if(i)i.click(); };
+      clean.addEventListener('dragover',function(e){e.preventDefault();clean.style.borderColor='#F47A1F';clean.style.background='#FFF3EC';});
+      clean.addEventListener('dragleave',function(){clean.style.borderColor='#C9CDD6';clean.style.background='';});
+      clean.addEventListener('drop',function(e){
+        e.preventDefault(); clean.style.borderColor='#C9CDD6'; clean.style.background='';
+        var fl2=e.dataTransfer&&e.dataTransfer.files; if(!fl2||!fl2.length)return;
+        processFileList(fl2);
+      });
+    }
+    // Repaint whatever preview/commit-result is current EVERY time — see paintPersisted()'s
+    // own comment for why: this tab gets rebuilt from scratch by render() calls that have
+    // nothing to do with the importer, and rImport() always emits a blank #finImpOut.
+    paintPersisted();
+  }
+
   var _rf65=window.render;
   window.render=function(){
     var out=_rf65.apply(this,arguments);
-    try{
-      if(typeof current==='undefined'||current!=='finance'||!window.FIN||FIN.tab!=='import')return out;
-      var inp=document.getElementById('finFile');
-      if(inp&&!inp.multiple){
-        inp.multiple=true;
-        inp.onchange=function(){ if(inp.files&&inp.files.length)processFileList(inp.files); };
-        // the "Check file" button already calls finParse(); redirect it to the multi-file path
-        var btn=[...document.querySelectorAll('#view button')].find(function(b){return /finParse\(\)/.test(b.getAttribute('onclick')||'');});
-        if(btn) btn.setAttribute('onclick','v65CheckFiles()');
-      }
-      var dz=document.getElementById('finDrop');
-      if(dz&&!dz.__v65){
-        dz.__v65=1;
-        // Replace, not append: the existing listener (js/16) only ever takes the FIRST
-        // dropped file into a single-file input and calls the old single-file finParse().
-        // Cloning strips that listener so dropping five files at once actually reads all
-        // five, instead of racing the old handler for control of #finFile.
-        var clean=dz.cloneNode(true);
-        dz.parentNode.replaceChild(clean,dz);
-        clean.__v65=1;
-        clean.innerHTML='⬇ '+fl('Drop one or more Direct Payments exports here (Excel or CSV) — each routes itself by its columns','أفلت هنا ملف تصدير واحد أو أكثر من Direct Payments (إكسل أو CSV) — يتم توجيه كل ملف تلقائيًا حسب أعمدته');
-        clean.onclick=function(){ var i=document.getElementById('finFile'); if(i)i.click(); };
-        clean.addEventListener('dragover',function(e){e.preventDefault();clean.style.borderColor='#F47A1F';clean.style.background='#FFF3EC';});
-        clean.addEventListener('dragleave',function(){clean.style.borderColor='#C9CDD6';clean.style.background='';});
-        clean.addEventListener('drop',function(e){
-          e.preventDefault(); clean.style.borderColor='#C9CDD6'; clean.style.background='';
-          var fl2=e.dataTransfer&&e.dataTransfer.files; if(!fl2||!fl2.length)return;
-          processFileList(fl2);
-        });
-      }
-      // Repaint whatever preview/commit-result is current EVERY time — see paintPersisted()'s
-      // own comment for why: this tab gets rebuilt from scratch by render() calls that have
-      // nothing to do with the importer, and rImport() always emits a blank #finImpOut.
-      paintPersisted();
-    }catch(e){ if(window.console)console.warn('[v65] wire',e); }
+    try{ v65WireImportPanel(); }catch(e){ if(window.console)console.warn('[v65] wire',e); }
     return out;
   };
+
+  if(typeof window.finGo==='function'){
+    var _fg65=window.finGo;
+    window.finGo=function(){
+      var out=_fg65.apply(this,arguments);
+      try{ v65WireImportPanel(); }catch(e){ if(window.console)console.warn('[v65] wire (finGo)',e); }
+      return out;
+    };
+  }
   window.v65CheckFiles=function(){ var inp=document.getElementById('finFile'); if(inp&&inp.files&&inp.files.length)processFileList(inp.files); else { var m=fl('Choose one or more files first.','اختر ملفًا واحدًا أو أكثر أولاً.'); if(typeof toast==='function')toast(m); else alert(m); } };
 
   console.info('%c[v65-router] universal importer — chunked reading + teach-once mapping loaded','color:#B54708;font-weight:700');

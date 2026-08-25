@@ -827,7 +827,12 @@ window.finParse=function(){
     var BASE='client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes';
     var hdr=rows[0]||[],hj=hdr.join(',').trim();
     var hasExtra=(hj===BASE+',origin,proposal_ref');
-    if(hj!==BASE&&!hasExtra){document.getElementById('finImpOut').innerHTML='<div style="color:#D92D20;font-size:13px">Header does not match the expected format. Found:<br><code style="font-size:11px;word-break:break-all">'+escF(hdr.join(','))+'</code></div>';return;}
+    // 2026-08-24: this is the LEGACY single-format checker (js/65-universal-importer.js's
+    // v65WireImportPanel() rebinds "Check file" away from this the instant the Import tab is
+    // wired — which is now immediate, but this label stays as a second, explicit signal in
+    // case it's ever seen again, so a rejection here is never mistaken for "your file is
+    // wrong" the way the owner did on 2026-08-24 (docs/DECISIONS.md M12).
+    if(hj!==BASE&&!hasExtra){document.getElementById('finImpOut').innerHTML='<div style="color:#D92D20;font-size:13px"><b>Legacy single-format checker</b> — expects the original Invoice Export columns exactly, nothing else (not expense lines, transaction status, or tax invoices). If you dropped one of those newer file types, this is very likely the wrong checker, not a wrong file — reload this tab, or wait a second and press Check file again. Header does not match the expected format. Found:<br><code style="font-size:11px;word-break:break-all">'+escF(hdr.join(','))+'</code></div>';return;}
     var HDR=(hasExtra?BASE+',origin,proposal_ref':BASE).split(',');
     var existing={};(FIN.rows||[]).forEach(function(r){existing[r.invoice_no]=1;});
     var seen={},ok=[],dups=[],flagged=[];

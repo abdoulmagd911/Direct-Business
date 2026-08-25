@@ -226,6 +226,31 @@ real path at real row counts instead of only a handful of synthetic fixture rows
 `scripts/qa/probe-cost-join-performance.mjs`.
 *Date: 2026-08-24. Status: ACTIVE.*
 
+**M12 — a page's own tab-switch is not the same event as a global render(), and a guard
+wired to only one of them is not wired.** The owner opened Finance, clicked the Import
+sub-tab, dropped a genuinely correct `tax_invoice_capture.csv`, clicked "Check file", and
+got a red "Header does not match the expected format" listing his own correct columns —
+reasonably concluded the file was bad. Root cause: `window.finGo()` (`js/16-finance-ledger.js`)
+has two paths — `if (v && current==='finance') renderFinance(v); else render();` — and the
+common case (already on the Finance page, clicking a sub-tab) takes the first path, which
+never touches the global `window.render()` that `js/65-universal-importer.js`'s multi-file
+wiring hooked into. So the FIRST paint of the Import tab was always the raw, unwired HTML —
+"Check file" still bound to the legacy single-format `finParse()` — until some unrelated
+LATER global `render()` (a poller, a nav click) retroactively wired it. **This is the worst
+shape a guard-bearing UI can fail in: it never said "not ready," it said "your data is
+wrong," in red, on a correct file** — teaching a person to distrust data that was never at
+fault. Fixed by wrapping `window.finGo()` itself (`js/65-universal-importer.js`), not just
+`window.render()` — the same `v65WireImportPanel()` now runs after EITHER path, so the very
+first paint is already fully wired regardless of which one drew it. Sabotage-verified before
+shipping: the `finGo()` wrap was disabled, `scripts/qa/probe-import-tab-wiring.mjs` was run
+and confirmed to fail (exit 1) reproducing the owner's exact symptom byte for byte
+(`checkFileOnclick: "finParse()"`), then the wrap was restored and the file diffed byte-
+identical to before. The legacy `finParse()` rejection message (`js/16-finance-ledger.js`)
+was also reworded to say plainly that it is the legacy checker and the file is likely fine,
+rather than reading as a verdict on the data — so even a future variant of this race is
+never mistaken for "your file is wrong" again.
+*Date: 2026-08-24. Status: ACTIVE.*
+
 **SUPERSEDED — the invoice item split (Service Fee / 3rd Party Fee) is a VAT split, never
 real cost.** An earlier round of this project treated the 3rd-Party-Fee line as the real
 cost figure; re-verified live against Direct Payments and found wrong — that line is a VAT

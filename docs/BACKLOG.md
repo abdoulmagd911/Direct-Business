@@ -1,5 +1,50 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-24 (round 3) · Owner hit a real live bug — a correct file was rejected as wrong; fixed the mount-wiring race (M12)
+
+The owner himself, not the oversight session, hit this one directly: opened Finance,
+clicked the Import sub-tab, dropped a genuinely correct `tax_invoice_capture.csv`, clicked
+"Check file", and got a red "Header does not match the expected format" listing his own
+correct columns. Reasonably concluded the file was bad — it wasn't.
+
+**Root cause.** `window.finGo()` (`js/16-finance-ledger.js`) has two paths —
+`if (v && current==='finance') renderFinance(v); else render();` — and the common case (a
+person already on the Finance page clicking a sub-tab) takes the first path, which never
+touches the global `window.render()` that `js/65-universal-importer.js`'s multi-file wiring
+hooked into. So the very FIRST paint of the Import tab was always the raw, unwired HTML:
+"Check file" still bound to the legacy single-format `finParse()`, `#finDrop` had no
+`__v65` marker, `#finFile.multiple` was still false — until some later, unrelated global
+`render()` (a poller, a different nav click) retroactively wired it. Confirmed as a pure
+mount-timing race by calling `window.render()` once and watching all three flip correct.
+This is the worst shape a guard-bearing UI can fail in: it never said "not ready yet," it
+said "your data is wrong," in red, on a file that was completely fine.
+
+**Fix.** Extracted the existing wiring logic in `js/65-universal-importer.js` into a named
+`v65WireImportPanel()` function, and wrapped BOTH `window.render` and `window.finGo` to call
+it — so the very first paint is fully wired regardless of which path drew it, with no
+dependency on a second render ever happening. `js/16-finance-ledger.js` itself was not
+touched (the base function stays as the layering convention requires — new behavior wraps
+it from outside); the legacy `finParse()` rejection message was reworded there to identify
+itself explicitly as "the legacy single-format checker" and suggest the file is likely fine,
+so even a future variant of this race reads as "wrong tool," never "your data is wrong."
+
+**Verification.** New probe `scripts/qa/probe-import-tab-wiring.mjs` reproduces the owner's
+exact real path — a Finance nav click, then a single click on the Import sub-tab from an
+already-open Finance page, no second render(), no wait for a poller — and asserts all three
+conditions (`#finDrop.__v65`, `#finFile.multiple`, "Check file" bound to `v65CheckFiles()`)
+plus a functional check (a real file dropped immediately after is actually recognized, not
+just that the wiring flags are set). Sabotage-tested exactly as asked: backed up
+`js/65-universal-importer.js`, disabled the new `finGo` wrap, ran the probe — it failed with
+exit code 1, reproducing the owner's exact real symptom byte for byte
+(`checkFileOnclick: "finParse()"`) — then restored the fix and confirmed via `diff` the file
+was byte-identical to the pre-sabotage backup, re-ran green.
+
+Verified: `node -c` on both touched files, `check-structure.mjs` (62 files),
+`check-decisions-wired.mjs` (M12's own citations all resolve — `finGo()`/`render()`/
+`v65WireImportPanel()`/`finParse()` all defined and called beyond their own definition), the
+full probe battery including the new probe, `audit-finance-tabs.mjs`, `sweep-pages.mjs` — all
+green, EN+AR, zero console/JS errors.
+
 ## 2026-08-24 (round 2) · Third source (tax invoices, M10) caught a second Takamol-shaped trap; v65IngestText built (M11); freeze report investigated and does not reproduce
 
 Same day, a second round on top of the M9 rebuild below. The oversight session found the
