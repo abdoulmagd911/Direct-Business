@@ -155,7 +155,7 @@ check('nav no longer says Documents', await p.evaluate(() =>
   ![...document.querySelectorAll('#nav button')].some(x => /Documents|المستندات/.test(x.textContent))));
 check('page heading is Generator', await p.evaluate(() =>
   /Generator|المولّد/.test((document.getElementById('vTitle') || {}).textContent || '')));
-check('tabs render (4 families)', await p.evaluate(() => document.querySelectorAll('#dgWrap .dg-tabs button').length) === 4);
+check('tabs render (5 families)', await p.evaluate(() => document.querySelectorAll('#dgWrap .dg-tabs button').length) === 5);
 check('registry rows render from data', txt.includes('Synthetic Test Co Ltd'));
 check('renewals radar shows EXPIRED for the past date', /EXPIRED|منتهية/.test(txt));
 check('radar shows the no-date licence with a neutral pill', /date not on file|التاريخ غير مسجل/.test(txt)
