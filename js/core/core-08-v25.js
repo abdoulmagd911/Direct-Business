@@ -800,7 +800,8 @@
 
   /* ===== Track D.2: View presets — Commercial / Finance / CFO / Everything / B2B ===== */
   var V25_PRESETS={
-    commercial:{label:'Commercial',ic:'🎯',nav:['today','leads','clients','projects','offers','events','airlines','vendors','sync','settings'],todoKpis:['leads','clients','offers','margin'],sections:{showPool:true,showAR:false,showAging:false}},
+    /* 2026-08-25: 'offers' removed from the commercial preset (owner-approved cosmetic) */
+    commercial:{label:'Commercial',ic:'🎯',nav:['today','leads','clients','projects','events','airlines','vendors','sync','settings'],todoKpis:['leads','clients','offers','margin'],sections:{showPool:true,showAR:false,showAging:false}},
     finance:{label:'Finance',ic:'💰',nav:['today','clients','projects','events','sync','settings','bookings','invoices','tickets'],todoKpis:['pool','outstanding','aging','received'],sections:{showPool:true,showAR:true,showAging:true,featurePool:true}},
     cfo:{label:'CFO',ic:'📊',nav:['today','clients','projects','events','sync','settings'],todoKpis:['pool','aging','received','headroom'],sections:{showPool:true,showAR:true,showAging:true,featurePool:true,hideReceived:false}},
     everything:{label:'Everything',ic:'🌐',nav:null,todoKpis:null,sections:{showPool:true,showAR:true,showAging:true}},
