@@ -147,10 +147,14 @@
   }
 
   var CAT_LABEL={legal:['Legal identity','الهوية القانونية'],tax:['Tax','الضرائب'],licence:['Licences','التراخيص'],
-    banking:['Bank accounts','الحسابات البنكية'],contact:['Contact & address','التواصل والعنوان'],
+    banking:['Bank accounts','الحسابات البنكية'],
+    wallet:['Wallets — outgoing only','المحافظ — للإرسال فقط'],
+    contact:['Contact & address','التواصل والعنوان'],
     membership:['Memberships & certificates','العضويات والشهادات'],stats:['Company numbers','أرقام الشركة'],
     brand:['Brand','العلامة'],other:['Other','أخرى']};
-  var CAT_ORDER=['legal','tax','licence','membership','banking','contact','brand','stats','other'];
+  var CAT_ORDER=['legal','tax','licence','membership','banking','wallet','contact','brand','stats','other'];
+  /* one small muted note under a category header (wallets: never a receiving account) */
+  var CAT_NOTE={wallet:['Used to fund virtual cards; we do not receive money on wallets.','تُستخدم لتغذية البطاقات الافتراضية؛ لا نستقبل أموالاً عليها.']};
 
   function expiryState(d){
     if(!d)return null;
@@ -177,12 +181,15 @@
      Rows with proof_path get View/Download via a short-lived signed URL. Opening the
      signed URL in a new tab is the ONE allowed exception to "nothing leaves this
      page" — a PDF has to open somewhere. */
-  function signedProof(key,cb){
+  function signedProof(key,cb,forDownload){
     var r=(DG.rows||[]).find(function(x){return x.key===key;});
     if(!r||!r.proof_path){ cb(null); return; }
     var c=client(); if(!c){ cb(null); return; }
+    /* download_name (registry column) is the descriptive file name used ONLY at download
+       time — e.g. "Darb Pay virtual IBAN for Direct Travel.pdf". Never shown on screen. */
+    var opts=forDownload?{download:(r.download_name||((r.label_en||r.key)+'.pdf'))}:undefined;
     try{
-      c.storage.from('company-docs').createSignedUrl(r.proof_path,600).then(function(res){
+      c.storage.from('company-docs').createSignedUrl(r.proof_path,600,opts).then(function(res){
         if(res.error||!res.data||!res.data.signedUrl){ cb(null); return; }
         cb(res.data.signedUrl);
       },function(){ cb(null); });
@@ -195,10 +202,12 @@
     });
   };
   window.dgProofDownload=function(key){
+    /* the signed URL already carries &download=<descriptive name> (createSignedUrl's
+       download option), so the browser saves the file under its proper name */
     signedProof(key,function(u){
       if(!u){ toast(fl('Could not open the document','تعذّر فتح المستند')); return; }
-      try{ var w=window.open(u+(u.indexOf('?')>=0?'&':'?')+'download=','_blank','noopener'); if(!w)toast(fl('Pop-up blocked','حُجبت النافذة')); }catch(_){}
-    });
+      try{ var w=window.open(u,'_blank','noopener'); if(!w)toast(fl('Pop-up blocked','حُجبت النافذة')); }catch(_){}
+    },true);
   };
   window.dgProofUpload=function(key,input){
     var f=input&&input.files&&input.files[0]; if(!f)return;
@@ -231,7 +240,9 @@
       '<input type="file" accept="application/pdf,image/*" style="display:none" onchange="dgProofUpload(\''+esc(r.key)+'\',this)"></label> ';
   }
 
-  /* "Send bank details" one-tap block: built from live registry rows, Al Rajhi first. */
+  /* "Send bank details" one-tap block: built from live registry rows, Al Rajhi first.
+     RECEIVING accounts only — category 'banking'. Wallets (category 'wallet') are
+     outgoing-only and are deliberately excluded from this block. */
   window.dgCopyBank=function(){
     var rows=(DG.rows||[]).filter(function(r){return r.category==='banking';});
     rows.sort(function(a,b){return a.sort-b.sort;});
@@ -296,7 +307,7 @@
     '#dgWrap .dg-key{color:var(--muted,#777);white-space:nowrap}'+
     '#dgWrap .dg-val{font-weight:600;word-break:break-all}'+
     '#dgWrap .dg-src{color:var(--muted,#999);font-size:11.5px;font-weight:400;margin-top:2px}'+
-    '#dgWrap .dg-pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:700}'+
+    '#dgWrap .dg-pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:700;white-space:nowrap}'+
     '#dgWrap .dg-pill.exp{background:#FDECEB;color:#D92D20}'+
     '#dgWrap .dg-pill.soon{background:var(--wash-accent,#FFF3EC);color:var(--accent)}'+
     '#dgWrap .dg-pill.ok{background:#EAF6EE;color:#1E7A34}'+
@@ -309,19 +320,32 @@
     '#dgWrap .dg-chip .nm{font-size:12px;color:var(--muted,#777);text-align:center}'+
     '#dgWrap .dg-mini{font-size:12px;padding:3px 9px}'+
     '#dgWrap .dg-radar{overflow-x:auto}'+
+    '#dgWrap .dg-date{white-space:nowrap}'+
+    '#dgWrap .dg-grid>.card{display:flex;flex-direction:column;margin:0}'+
     '#dgWrap .dg-assets img{max-width:100%;max-height:56px}'+
-    '#dgWrap .dg-edit input{width:100%;box-sizing:border-box;margin:2px 0;padding:6px;border:1px solid var(--hairline,#ccc);border-radius:8px}'+
+    '#dgWrap .dg-edit{background:var(--wash,#F6F7F9);border-radius:10px}'+
+    '#dgWrap .dg-edit-title{font-weight:700;font-size:13px;margin:2px 0 8px}'+
+    '#dgWrap .dg-edit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}'+
+    '#dgWrap .dg-f{display:flex;flex-direction:column;gap:3px;min-width:0}'+
+    '#dgWrap .dg-fl{font-size:11.5px;color:var(--muted,#777)}'+
+    '#dgWrap .dg-edit input{width:100%;max-width:100%;box-sizing:border-box;margin:0;padding:7px 8px;border:1px solid var(--hairline,#ccc);border-radius:8px;font-size:13px}'+
     '</style>'; }
 
   function rowHtml(r){
     if(DG.editKey===r.key){
-      return '<tr><td class="dg-key">'+esc(isAr()&&r.label_ar?r.label_ar:r.label_en)+'</td>'+
-        '<td colspan="2" class="dg-edit">'+
-        '<input id="dgE_en" value="'+esc(r.value_en||'')+'" placeholder="Value (EN)">'+
-        '<input id="dgE_ar" value="'+esc(r.value_ar||'')+'" placeholder="القيمة (عربي)" dir="rtl">'+
-        '<input id="dgE_exp" type="date" value="'+esc(r.expires_on||'')+'">'+
-        '<input id="dgE_src" value="'+esc(r.source||'')+'" placeholder="'+fl('Source (named document) — required by the no-fabrication rule','المصدر (مستند مسمى)')+'">'+
-        '<div style="margin-top:6px"><button class="btn sm pri" onclick="dgEditSave(\''+esc(r.key)+'\')">'+fl('Save','حفظ')+'</button> '+
+      /* owner feedback 2026-08-25: editing felt "kinda weird" — bare unlabeled inputs
+         stacked in a jumping row. Now: a labeled 2-column grid (label ABOVE each input,
+         consistent widths, date input capped) spanning the full row, so nothing shifts. */
+      function fld(label,inner){ return '<label class="dg-f"><span class="dg-fl">'+label+'</span>'+inner+'</label>'; }
+      return '<tr class="dg-editrow"><td colspan="3" class="dg-edit">'+
+        '<div class="dg-edit-title">'+fl('Editing: ','تعديل: ')+esc(isAr()&&r.label_ar?r.label_ar:r.label_en)+'</div>'+
+        '<div class="dg-edit-grid">'+
+        fld(fl('Value (English)','القيمة (إنجليزي)'),'<input id="dgE_en" value="'+esc(r.value_en||'')+'">')+
+        fld(fl('Value (Arabic)','القيمة (عربي)'),'<input id="dgE_ar" value="'+esc(r.value_ar||'')+'" dir="rtl">')+
+        fld(fl('Expiry date (leave empty if none)','تاريخ الانتهاء (اتركه فارغاً إن لم يوجد)'),'<input id="dgE_exp" type="date" value="'+esc(r.expires_on||'')+'">')+
+        fld(fl('Source — the named document this value comes from','المصدر — المستند المسمى الذي جاءت منه القيمة'),'<input id="dgE_src" value="'+esc(r.source||'')+'">')+
+        '</div>'+
+        '<div style="margin-top:10px"><button class="btn sm pri" onclick="dgEditSave(\''+esc(r.key)+'\')">'+fl('Save','حفظ')+'</button> '+
         '<button class="btn sm ghost" onclick="dgEditCancel()">'+fl('Cancel','إلغاء')+'</button></div></td></tr>';
     }
     var val=isAr()&&r.value_ar?r.value_ar:(r.value_en||'—');
@@ -359,13 +383,13 @@
         var pill=x.ex?'<span class="dg-pill '+x.ex.cls+'">'+esc(x.ex.txt)+'</span>'
                      :'<span class="dg-pill nodate">'+fl('date not on file','التاريخ غير مسجل')+'</span>';
         return '<tr><td class="dg-key">'+esc(isAr()&&x.r.label_ar?x.r.label_ar:x.r.label_en)+'</td>'+
-          '<td>'+esc(x.r.expires_on||'—')+'</td><td>'+pill+'</td>'+
+          '<td class="dg-date">'+esc(x.r.expires_on||'—')+'</td><td class="dg-date">'+pill+'</td>'+
           '<td style="text-align:end">'+proofBtns(x.r,true)+'</td></tr>';
       }).join('')+'</table>'+
-      '<div class="dg-src" style="margin-top:6px">'+fl('A neutral pill means no confirmed expiry date is on file — no date is ever approximated.','الشارة الرمادية تعني عدم وجود تاريخ انتهاء مؤكد في السجل — لا تُقدَّر التواريخ أبداً.')+'</div></div>';
+      '<div class="dg-src" style="margin-top:6px">'+fl('Some documents have no expiry date on file','بعض الوثائق لا يتوفر لها تاريخ انتهاء')+'</div></div>';
 
     var bankHtml='<div class="card"><h3 style="margin-top:0;color:var(--accent)">'+fl('Send bank details','إرسال البيانات البنكية')+'</h3>'+
-      '<div style="font-size:13px;color:var(--muted,#777);margin-bottom:8px">'+fl('One tap copies the company name, CR, VAT and every IBAN — ready to paste.','نقرة واحدة تنسخ اسم الشركة والسجل والرقم الضريبي وكل الآيبانات — جاهزة للصق.')+'</div>'+
+      '<div style="font-size:13px;color:var(--muted,#777);margin-bottom:8px">'+fl('One tap copies the company name, CR, VAT and every receiving bank IBAN — ready to paste. Wallets are not included.','نقرة واحدة تنسخ اسم الشركة والسجل والرقم الضريبي وكل آيبانات الاستقبال البنكية — جاهزة للصق. المحافظ غير مشمولة.')+'</div>'+
       '<button class="btn sm pri" onclick="dgCopyBank()">'+fl('Copy bank details block','نسخ البيانات البنكية')+'</button></div>';
 
     /* brand assets render INLINE — thumbnail chips on the right light/dark ground, each
@@ -388,7 +412,8 @@
     var cats=CAT_ORDER.filter(function(c){return rows.some(function(r){return r.category===c;});});
     var regHtml=cats.map(function(c){
       var rs=rows.filter(function(r){return r.category===c;});
-      return '<div class="dg-cat"><h3>'+esc(fl.apply(null,CAT_LABEL[c]||[c,c]))+'</h3>'+
+      var note=CAT_NOTE[c]?'<div class="dg-src" style="margin:-4px 0 8px">'+esc(fl.apply(null,CAT_NOTE[c]))+'</div>':'';
+      return '<div class="dg-cat"><h3>'+esc(fl.apply(null,CAT_LABEL[c]||[c,c]))+'</h3>'+note+
         '<div class="card" style="overflow-x:auto"><table class="dg">'+rs.map(rowHtml).join('')+'</table></div></div>';
     }).join('');
 
