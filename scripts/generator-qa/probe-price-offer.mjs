@@ -153,6 +153,46 @@ check('A4 preview renders under data-identity="classic"', await p.evaluate(() =>
     !!document.querySelector('#poPages .po-wm span')));
 }
 
+/* — real-design cover / closing / footer (2026-08-25 redesign) — */
+{
+  const cover = await p.evaluate(() => {
+    const pg = document.querySelector('#poPages .po-page');
+    return { grad: !!pg && pg.classList.contains('grad'), cvr: !!pg && !!pg.querySelector('.po-cvr'),
+      qr: !!pg && !!pg.querySelector('img[src*="direct_qr"]'),
+      logo: !!pg && !!pg.querySelector('img[src*="direct_logo_white"]'), txt: pg ? pg.innerText : '' };
+  });
+  check('cover is the full-bleed brand cover (grad + .po-cvr + white logo + QR)',
+    cover.grad && cover.cvr && cover.logo && cover.qr);
+  const today = await p.evaluate(() => (new Date()).toISOString().slice(0, 10));
+  check('cover carries NO date and NO offer-number label', !cover.txt.includes(today) &&
+    !/Offer no\.|رقم العرض|Valid until|صالح حتى/.test(cover.txt), 'cover text: ' + cover.txt.slice(0, 120));
+  const back = await p.evaluate(() => {
+    const pgs = [...document.querySelectorAll('#poPages .po-page')];
+    const pg = pgs[pgs.length - 1];
+    return !!pg && pg.classList.contains('grad') && !!pg.querySelector('.po-cvr') &&
+      !!pg.querySelector('img[src*="direct_logo_white"]') && !!pg.querySelector('img[src*="direct_qr"]');
+  });
+  check('closing back-cover exists (last page: full-bleed, white logo, QR)', back);
+  const all = await p.evaluate(() => document.getElementById('poPages')?.innerText || '');
+  check('footer legal block: trade name + unified no. + licence no.',
+    all.includes('شركة المسافر المباشر للسفر والسياحة') && all.includes('700782406') && all.includes('7310322'));
+  check('footer carries email/site + the branches line',
+    /business@directksa\.com|qa@example\.test/.test(all) &&
+    all.includes('You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam'));
+  check('IATA Wakeel line (EN, exact owner-approved text) renders on the offer body',
+    all.includes('Direct is an IATA-accredited agent (Wakeel) No. 71238285 acting as agent for the carriers.'));
+}
+/* AR document: the AR IATA line renders too */
+await p.evaluate(() => poLang('ar'));
+await p.waitForTimeout(700);
+check('IATA Wakeel line (AR, exact owner-approved text) renders on the AR offer', await p.evaluate(() =>
+  (document.getElementById('poPages')?.innerText || '')
+    .includes('دايركت وكيل معتمد من الاتحاد الدولي للنقل الجوي (إياتا) رقم 71238285 ويعمل بصفته وكيلاً عن الناقلين.')));
+check('AR terms heading reads الشروط والأحكام', await p.evaluate(() =>
+  (document.getElementById('poPages')?.innerText || '').includes('الشروط والأحكام')));
+await p.evaluate(() => poLang('en'));
+await p.waitForTimeout(600);
+
 /* 3 — items math: type a price of 100.00, qty 1 → 100 + 15 = 115 */
 await p.fill('#poWrap .po-line input[step="0.01"]', '100');
 await p.waitForTimeout(400);

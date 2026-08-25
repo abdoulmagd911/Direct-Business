@@ -165,6 +165,32 @@ check('A4 preview renders under data-identity="classic"', await p.evaluate(() =>
 check('unissued document carries the diagonal DRAFT watermark', await p.evaluate(() =>
   !!document.querySelector('#tdPages .td-wm span')));
 
+/* — real-design cover / closing / footer (2026-08-25 redesign) — */
+{
+  const cover = await p.evaluate(() => {
+    const pg = document.querySelector('#tdPages .td-page');
+    return { grad: !!pg && pg.classList.contains('grad'), cvr: !!pg && !!pg.querySelector('.td-cvr'),
+      logo: !!pg && !!pg.querySelector('img[src*="direct_logo_white"]'),
+      qr: !!pg && !!pg.querySelector('img[src*="direct_qr"]'), txt: pg ? pg.innerText : '' };
+  });
+  check('cover is the full-bleed brand cover (grad + .td-cvr + white logo + QR)',
+    cover.grad && cover.cvr && cover.logo && cover.qr);
+  check('cover carries NO document-number label and NO date',
+    !/Document no\.|رقم المستند/.test(cover.txt) && !/\d{4}-\d{2}-\d{2}/.test(cover.txt),
+    'cover text: ' + cover.txt.slice(0, 120));
+  check('closing back-cover exists (last page: full-bleed, white logo, QR)', await p.evaluate(() => {
+    const pgs = [...document.querySelectorAll('#tdPages .td-page')];
+    const pg = pgs[pgs.length - 1];
+    return pgs.length >= 3 && pg.classList.contains('grad') && !!pg.querySelector('.td-cvr') &&
+      !!pg.querySelector('img[src*="direct_logo_white"]') && !!pg.querySelector('img[src*="direct_qr"]');
+  }));
+  const all = await p.evaluate(() => document.getElementById('tdPages')?.innerText || '');
+  check('footer legal block: trade name + unified no. + licence no.',
+    all.includes('شركة المسافر المباشر للسفر والسياحة') && all.includes('700782406') && all.includes('7310322'));
+  check('footer carries the branches line',
+    all.includes('You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam'));
+}
+
 /* 3 — AR default + strict RTL; technical is the default view */
 check('AR is the default document language and the page is RTL', await p.evaluate(() => {
   const pg = document.querySelector('#tdPages .td-page');

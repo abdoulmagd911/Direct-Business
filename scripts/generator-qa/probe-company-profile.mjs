@@ -181,6 +181,32 @@ check('cover + closing pages use the gradient identity', await p.evaluate(() => 
   return pages.length >= 3 && pages[0].classList.contains('grad') && pages[pages.length - 1].classList.contains('grad');
 }));
 
+/* — real-design cover / closing / footer (2026-08-25 redesign, Family B) — */
+{
+  const cover = await p.evaluate(() => {
+    const pg = document.querySelector('#cpPages .cp-page');
+    return { cvr: !!pg && !!pg.querySelector('.cp-cvr'),
+      logo: !!pg && !!pg.querySelector('img[src*="direct_logo_white"]'),
+      qr: !!pg && !!pg.querySelector('img[src*="direct_qr"]'), txt: pg ? pg.innerText : '' };
+  });
+  check('cover is the gradient Family-B cover (.cp-cvr + white logo + QR)', cover.cvr && cover.logo && cover.qr);
+  check('cover carries NO document-number label and NO date',
+    !/Document no\.|رقم المستند/.test(cover.txt) && !/\d{4}-\d{2}-\d{2}/.test(cover.txt),
+    'cover text: ' + cover.txt.slice(0, 120));
+  check('closing is the Thank-You back page (gradient, white logo, contact strip)', await p.evaluate(() => {
+    const pgs = [...document.querySelectorAll('#cpPages .cp-page')];
+    const pg = pgs[pgs.length - 1];
+    return !!pg && pg.classList.contains('grad') && !!pg.querySelector('.cp-close') &&
+      !!pg.querySelector('img[src*="direct_logo_white"]') && !!pg.querySelector('.cp-cstrip') &&
+      /Thank You|شكراً لكم/.test(pg.innerText);
+  }));
+  const all = await p.evaluate(() => document.getElementById('cpPages')?.innerText || '');
+  check('footer legal block: trade name + unified no. + licence no.',
+    all.includes('شركة المسافر المباشر للسفر والسياحة') && all.includes('700782406') && all.includes('7310322'));
+  check('footer carries the branches line',
+    all.includes('You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam'));
+}
+
 /* 3 — enabled sections in sort order; disabled absent; stats band absent */
 {
   const txt = await p.evaluate(() => document.getElementById('cpPages')?.innerText || '');

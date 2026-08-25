@@ -174,11 +174,37 @@ await p.waitForTimeout(1800);
 check('fees tab renders through the seam (form present)', await p.evaluate(() => !!document.querySelector('#sfWrap .sf-form')));
 check('A4 preview renders under data-identity="classic"', await p.evaluate(() =>
   !!document.querySelector('#sfPreviewCol[data-identity="classic"] .sf-page')));
-check('deck has 4 pages (cover, About, fees, closing)', await p.evaluate(() =>
-  document.querySelectorAll('#sfPages .sf-page').length === 4),
+check('deck has 5 pages (cover, About, fees, commitments, back-cover)', await p.evaluate(() =>
+  document.querySelectorAll('#sfPages .sf-page').length === 5),
   'got ' + await p.evaluate(() => document.querySelectorAll('#sfPages .sf-page').length));
 check('unissued proposal carries the diagonal DRAFT watermark', await p.evaluate(() =>
   !!document.querySelector('#sfPages .sf-wm span')));
+
+/* — real-design cover / closing / footer (2026-08-25 redesign) — */
+{
+  const cover = await p.evaluate(() => {
+    const pg = document.querySelector('#sfPages .sf-page');
+    return { grad: !!pg && pg.classList.contains('grad'), cvr: !!pg && !!pg.querySelector('.sf-cvr'),
+      qr: !!pg && !!pg.querySelector('img[src*="direct_qr"]'),
+      logo: !!pg && !!pg.querySelector('img[src*="direct_logo_white"]'), txt: pg ? pg.innerText : '' };
+  });
+  check('cover is the full-bleed brand cover (grad + .sf-cvr + white logo + QR)',
+    cover.grad && cover.cvr && cover.logo && cover.qr);
+  check('cover carries NO proposal-number label and NO date',
+    !/Proposal no\.|رقم العرض|Valid until|صالح حتى/.test(cover.txt) && !/\d{4}-\d{2}-\d{2}/.test(cover.txt),
+    'cover text: ' + cover.txt.slice(0, 120));
+  check('closing back-cover exists (last page: full-bleed, white logo, QR)', await p.evaluate(() => {
+    const pgs = [...document.querySelectorAll('#sfPages .sf-page')];
+    const pg = pgs[pgs.length - 1];
+    return !!pg && pg.classList.contains('grad') && !!pg.querySelector('.sf-cvr') &&
+      !!pg.querySelector('img[src*="direct_logo_white"]') && !!pg.querySelector('img[src*="direct_qr"]');
+  }));
+  const all = await p.evaluate(() => document.getElementById('sfPages')?.innerText || '');
+  check('footer legal block: trade name + unified no. + licence no.',
+    all.includes('شركة المسافر المباشر للسفر والسياحة') && all.includes('700782406') && all.includes('7310322'));
+  check('footer carries the branches line',
+    all.includes('You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam'));
+}
 
 /* 3 — About page shows show_on_documents identity rows, never the sensitive one */
 {
@@ -221,6 +247,7 @@ await p.waitForTimeout(900);
   check('AR dual headers render (سعر الشركة / سعر الموظف)', txt.includes('سعر الشركة') && txt.includes('سعر الموظف'));
   check('AR FREE renders as مجاناً', txt.includes('مجاناً'));
   check('AR T&C renders (غير شاملة ضريبة القيمة المضافة)', txt.includes('غير شاملة ضريبة القيمة المضافة'));
+  check('AR fees page title reads عرض رسوم خدمة (real deck wording)', txt.includes('عرض رسوم خدمة'));
   check('AR page direction is RTL', await p.evaluate(() =>
     !![...document.querySelectorAll('#sfPages .sf-page.ar')].length));
 }
