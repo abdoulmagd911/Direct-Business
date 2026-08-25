@@ -144,6 +144,39 @@ await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**'
   return r.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
 });
 
+/* synthetic methodology fixtures (D4) — the REAL 4-phase delivery methodology
+   lives in tender_template_sections (kind='method'); here it is synthetic so the
+   "insert methodology" code path is exercised without any real content in the repo.
+   Registered AFTER the catch-all so it wins. */
+const METHOD = [
+  { key: 'method_p1', title_en: 'SYNTH Planning & pre-arrangement', title_ar: 'التخطيط والتجهيز المسبق (اختباري)', body_en: 'SYNTH phase-1 body', body_ar: 'نص المرحلة الأولى الاختباري', kind: 'method', sort: 2, enabled: true },
+  { key: 'method_p2', title_en: 'SYNTH Field execution', title_ar: 'التنفيذ الميداني (اختباري)', body_en: 'SYNTH phase-2 body', body_ar: 'نص المرحلة الثانية الاختباري', kind: 'method', sort: 3, enabled: true },
+  { key: 'method_p3', title_en: 'SYNTH Supervision & QA', title_ar: 'الإشراف وضبط الجودة (اختباري)', body_en: 'SYNTH phase-3 body', body_ar: 'نص المرحلة الثالثة الاختباري', kind: 'method', sort: 4, enabled: true },
+  { key: 'method_p4', title_en: 'SYNTH Closeout & handover', title_ar: 'الإغلاق والتسليم (اختباري)', body_en: 'SYNTH phase-4 body', body_ar: 'نص المرحلة الرابعة الاختباري', kind: 'method', sort: 5, enabled: true },
+];
+await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/tender_template_sections**', r =>
+  r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(METHOD) }));
+
+/* synthetic company_profile_sections (services + stats) — the section skeleton the
+   technical doc pulls loosely. past_projects requests fall through to the mock. */
+const PROFILE = [
+  { key: 'services', title_en: 'Our services', title_ar: 'خدماتنا', enabled: true, items: [ { en: 'SYNTH Air ticketing', ar: 'إصدار تذاكر اختباري' }, { en: 'SYNTH Hotels', ar: 'فنادق اختبارية' } ] },
+  { key: 'stats', title_en: 'Direct in numbers', title_ar: 'دايركت في أرقام', enabled: true, items: [ { value: '999+', label_en: 'SYNTH specialists', label_ar: 'مختص اختباري' } ] },
+];
+await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_profile_sections**', async r => {
+  const u = new URL(r.request().url());
+  if (/services|stats/.test(u.search)) {
+    return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(PROFILE) });
+  }
+  /* past_projects (and anything else) → mock via the same proxy the catch-all uses */
+  try {
+    const rq = r.request();
+    const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
+    const body = await resp.text(); const h = {}; resp.headers.forEach((v, k) => { if (!['content-encoding', 'content-length', 'transfer-encoding'].includes(k)) h[k] = v; });
+    return r.fulfill({ status: resp.status, headers: h, body });
+  } catch (e) { return r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }); }
+});
+
 /* deep link straight to the 6th tab */
 await p.goto(BASE + '/documents/tender', { waitUntil: 'domcontentloaded', timeout: 60000 });
 await p.waitForTimeout(2500);
@@ -212,6 +245,26 @@ check('the TECHNICAL document is the default view', await p.evaluate(() =>
     (await p.evaluate(() => window.__tdProbe().pastProjectsOn === true)));
   check('certificates index lists proof documents as attached: <label>',
     txt.includes('الشهادات والمستندات الرسمية') && txt.includes('مرفق: رخصة اختبارية'));
+  /* section skeleton pulled loosely from company_profile_sections (services + stats) */
+  check('technical pulls the "Our services" block from company_profile_sections',
+    txt.includes('خدماتنا') && txt.includes('إصدار تذاكر اختباري'));
+  check('technical pulls the "Direct in numbers" block from company_profile_sections',
+    txt.includes('دايركت في أرقام') && txt.includes('999+'));
+}
+
+/* 3b — the "Insert the standard delivery methodology" button + its effect */
+check('the "insert standard methodology" button exists in the work-plan fieldset', await p.evaluate(() =>
+  [...document.querySelectorAll('#tdWrap button')].some(x => /إدراج منهجية التنفيذ المعتمدة|Insert the standard delivery methodology/.test(x.textContent))));
+await p.evaluate(() => tdInsertMethodology());
+await p.waitForTimeout(1200);
+{
+  const txt = await p.evaluate(() => document.getElementById('tdPages')?.innerText || '');
+  check('inserting the methodology replaces the phases with the 4 DB method rows (kind=method)',
+    await p.evaluate(() => window.__tdProbe().phases === 4) &&
+    txt.includes('التخطيط والتجهيز المسبق (اختباري)') && txt.includes('الإغلاق والتسليم (اختباري)'),
+    'methodology phases not rendered');
+  check('the generic seed phases are gone after the methodology is inserted',
+    !txt.includes('توقيع العقد وتحليل الاحتياج'));
 }
 
 /* 4 — the fixture tender: entity from records (leads allowed) + BoQ + schedule */
@@ -225,6 +278,12 @@ await p.evaluate(() => {
   tdItemSet('boq', 1, 'ar', 'إقامة فندقية اختبارية'); tdItemSet('boq', 1, 'en', 'SYNTH hotel stay');
   tdItemSet('boq', 1, 'unit', 'night'); tdItemSet('boq', 1, 'qty', '2'); tdItemSet('boq', 1, 'price', '500');
   tdItemSet('schedule', 0, 'month', 'SYNTH-Month-1'); tdItemSet('schedule', 0, 'amount', '2000'); tdItemSet('schedule', 0, 'notes', 'first payment');
+  /* fill the extended scope-of-work columns (البند 68) on the first scope item */
+  tdItemSet('scope', 0, 'nAr', 'سكن القضاة'); tdItemSet('scope', 0, 'nEn', 'SYNTH judges housing');
+  tdItemSet('scope', 0, 'locAr', 'الرياض الاختبارية'); tdItemSet('scope', 0, 'locEn', 'SYNTH Riyadh');
+  tdItemSet('scope', 0, 'nearAr', 'قرب الجامعة الاختبارية'); tdItemSet('scope', 0, 'nearEn', 'SYNTH near university');
+  tdItemSet('scope', 0, 'benef', '40'); tdItemSet('scope', 0, 'durAr', 'ثلاثة أشهر اختبارية');
+  tdItemSet('scope', 0, 'dateHijri', '١٤٤٧هـ اختباري'); tdItemSet('scope', 0, 'dateGreg', '2026 SYNTH');
 });
 await p.waitForTimeout(900);
 check('a lead (non-client) entity is selectable for a tender', await p.evaluate(() =>
@@ -235,6 +294,13 @@ check('a lead (non-client) entity is selectable for a tender', await p.evaluate(
   const tec = await p.evaluate(() => document.getElementById('tdPages')?.innerText || '');
   check('technical view shows the BoQ items (unpriced table present)',
     tec.includes('تذاكر طيران اختبارية') && tec.includes('إقامة فندقية اختبارية') && tec.includes('جدول الكميات'));
+  /* the extended scope-of-work table renders with the new columns, in addition
+     to the per-item technical-process paragraph */
+  check('technical renders the scope-of-work table with the new columns (location/near/beneficiaries/duration/dates)',
+    tec.includes('نطاق العمل') && tec.includes('الموقع') && tec.includes('قريب من') &&
+    tec.includes('المستفيدون') && tec.includes('التواريخ') &&
+    tec.includes('الرياض الاختبارية') && tec.includes('قرب الجامعة الاختبارية') &&
+    tec.includes('40') && tec.includes('١٤٤٧هـ اختباري'));
   check('TECHNICAL CONTAINS NO PRICES: fixture unit prices absent (1,000.00 / 500.00)',
     !tec.includes('1,000.00') && !tec.includes('500.00'), 'a price leaked into the technical document');
   check('TECHNICAL CONTAINS NO PRICES: line amounts and totals absent (3,000.00 / 4,000.00 / 4,600.00)',
