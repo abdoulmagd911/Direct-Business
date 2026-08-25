@@ -90,7 +90,7 @@
      pushes a duplicate entry, then (c) restores '/documents/<tab>' on a 0-timeout,
      which runs after writeURL. Tab clicks push a real history entry (back undoes
      the tab switch); everything else replaces in place. */
-  var TAB_IDS=['assets','offer','fees','profile'];
+  var TAB_IDS=['assets','offer','fees','profile','contract'];
   function pathTab(){ var m=String(location.pathname||'').match(/^\/documents\/([a-zA-Z]+)\/?$/); return (m&&TAB_IDS.indexOf(m[1])>=0)?m[1]:null; }
   (function(){ var t=pathTab(); if(t)DG.tab=t; })();
   function urlSync(){
@@ -270,7 +270,8 @@
     ['assets', 'Company Assets','أصول الشركة'],
     ['offer',  'Price Offer','عرض السعر'],
     ['fees',   'Service-Fee Proposal','عرض رسوم الخدمات'],
-    ['profile','Company Profile','الملف التعريفي']
+    ['profile','Company Profile','الملف التعريفي'],
+    ['contract','Contract / العقد','العقد']
   ];
   window.dgGo=function(t){ DG.tab=t; DG.__push=true; try{render();}catch(_){} };
   /* back/forward inside the page: js/03's popstate handler re-renders; renderDocs then
@@ -422,6 +423,7 @@
     var body= DG.tab==='assets'?assetsTab()
             : DG.tab==='offer'?(extTab('offer')||comingSoon('Price Offer'))
             : DG.tab==='fees'?(extTab('fees')||comingSoon('Service-Fee Proposal'))
+            : DG.tab==='contract'?(extTab('contract')||comingSoon('Contract'))
             : (extTab('profile')||comingSoon('Company Profile'));
     /* Page chrome uses the app's product identity; document previews (later tabs) will
        carry data-identity="classic". */
