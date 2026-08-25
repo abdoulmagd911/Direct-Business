@@ -556,7 +556,7 @@
   function scenarioOptions(){
     var list=S.scenarios;
     if(list===null)return '<option value="">'+fl('Loading scenarios…','جارٍ تحميل السيناريوهات…')+'</option>';
-    return '<option value="">'+fl('— seed from a scenario (everything stays editable) —','— ابدأ من سيناريو (كل شيء قابل للتعديل) —')+'</option>'+
+    return '<option value="">'+fl('— choose a scenario —','— اختر سيناريو —')+'</option>'+
       (list||[]).map(function(s){
         return '<option value="'+esc(s.id)+'" '+(S.cur.scenarioId===s.id?'selected':'')+'>'+esc(isAr()?(s.name_ar||s.name_en):(s.name_en||s.name_ar))+'</option>';
       }).join('');
@@ -579,7 +579,7 @@
         '<b>'+fl('Service-Fee Proposal','عرض رسوم الخدمات')+'</b>'+
         '<span class="sf-status '+esc(st)+'">'+stLabel+(S.docNumber?' · '+esc(S.docNumber):'')+'</span>'+
       '</div>'+
-      '<label>'+fl('Saved proposals (shared registry)','العروض المحفوظة (سجل مشترك)')+'</label>'+
+      '<label>'+fl('Saved proposals','العروض المحفوظة')+'</label>'+
       '<select onchange="if(this.value)sfOpen(this.value)">'+savedOptions()+'</select>'+
       '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'+
         '<button class="btn sm ghost" onclick="sfNew()">＋ '+fl('New','جديد')+'</button>'+
@@ -590,7 +590,7 @@
         '<button type="button" class="'+(S.cur.lang==='ar'?'on':'')+'" onclick="sfLang(\'ar\')">العربية</button>'+
       '</div>'+
       '<fieldset><legend>'+fl('Client','العميل')+'</legend>'+
-        '<label>'+fl('Company (picked from records — never retyped)','الشركة (من السجلات — لا تُكتب يدوياً)')+'</label>'+
+        '<label>'+fl('Company','الشركة')+'</label>'+
         '<select onchange="sfSet(\'clientId\',this.value)">'+clientOptions()+'</select>'+
       '</fieldset>'+
       '<fieldset><legend>'+fl('Proposal','العرض')+'</legend>'+
@@ -602,12 +602,9 @@
           '<div><label>'+fl('Year','السنة')+'</label><input value="'+esc(S.cur.year)+'" oninput="sfSet(\'year\',this.value)"></div>'+
           '<div><label>'+fl('Valid until','صالح حتى')+'</label><input type="date" value="'+esc(S.cur.validity)+'" oninput="sfSet(\'validity\',this.value)"></div>'+
         '</div>'+
-        '<div style="margin-top:8px;font-size:12px;color:var(--muted,#777)">'+
-          fl('The proposal number is assigned by the server when you issue — drafts have no number.',
-             'يُخصَّص رقم العرض من الخادم عند الإصدار — المسودات بلا رقم.')+'</div>'+
       '</fieldset>'+
       '<fieldset><legend>'+fl('Scenario','السيناريو')+'</legend>'+
-        '<label>'+fl('Seed the fee tables from a real scenario','ابدأ جداول الرسوم من سيناريو حقيقي')+'</label>'+
+        '<label>'+fl('Start from a scenario','ابدأ من سيناريو')+'</label>'+
         '<select onchange="sfSeed(this.value)">'+scenarioOptions()+'</select>'+
         '<div style="margin-top:6px;font-size:11.5px;color:var(--muted,#777)">'+
           fl('Scenarios carry the approved fee sets. Nothing is hardcoded to any client — every fee stays editable.',
@@ -634,14 +631,14 @@
       '</fieldset>'+
       '<div id="sfBar" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'+barHtml()+'</div>'+
       '<div style="margin-top:10px;font-size:11.5px;color:var(--muted,#777);line-height:1.5">'+
-        fl('All listed fees are service fees, ex-VAT. Real tax invoices are issued from Direct Payment.',
+        fl('All listed fees are service fees, ex-VAT. Tax invoices come from Direct Payment.',
            'جميع الرسوم رسوم خدمات غير شاملة الضريبة. الفواتير الضريبية تصدر من دايركت للمدفوعات.')+'</div>'+
     '</div>';
   }
   function barHtml(){
     var w=canWrite();
     return (w?'<button class="btn sm pri" '+(S.saving?'disabled':'')+' onclick="sfSaveDraft()">'+(S.saving?fl('Saving…','جارٍ الحفظ…'):fl('Save draft','حفظ المسودة'))+'</button>':'')+
-      (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="sfIssue()">'+fl('Issue proposal — assign official number','إصدار العرض — تعيين رقم رسمي')+'</button>':'')+
+      (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="sfIssue()">'+fl('Issue proposal','إصدار العرض')+'</button>':'')+
       '<button class="btn sm ghost" onclick="sfPrint()">'+fl('Print / PDF','طباعة / PDF')+'</button>';
   }
 

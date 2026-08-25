@@ -626,7 +626,7 @@
         '<b>'+fl('Price Offer','عرض السعر')+'</b>'+
         '<span><span class="po-status '+esc(st)+'">'+stLabel+(S.docNumber?' · '+esc(S.docNumber):'')+'</span></span>'+
       '</div>'+
-      '<label>'+fl('Saved offers (shared registry)','العروض المحفوظة (سجل مشترك)')+'</label>'+
+      '<label>'+fl('Saved offers','العروض المحفوظة')+'</label>'+
       '<select onchange="if(this.value)poOpen(this.value)">'+savedOptions()+'</select>'+
       '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'+
         '<button class="btn sm ghost" onclick="poNew()">＋ '+fl('New','جديد')+'</button>'+
@@ -637,7 +637,7 @@
         '<button type="button" class="'+(S.cur.lang==='ar'?'on':'')+'" onclick="poLang(\'ar\')">العربية</button>'+
       '</div>'+
       '<fieldset><legend>'+fl('Client','العميل')+'</legend>'+
-        '<label>'+fl('Company (picked from records — never retyped)','الشركة (من السجلات — لا تُكتب يدوياً)')+'</label>'+
+        '<label>'+fl('Company','الشركة')+'</label>'+
         '<select onchange="poSet(\'clientId\',this.value)">'+clientOptions()+'</select>'+
         '<label>'+fl('Attention (person)','عناية')+'</label>'+
         '<input value="'+esc(S.cur.attn)+'" oninput="poSet(\'attn\',this.value)">'+
@@ -653,9 +653,6 @@
         '</div>'+
         '<label>'+fl('Prepared by','إعداد')+'</label>'+
         '<input value="'+esc(S.cur.by)+'" placeholder="Business Development – Direct" oninput="poSet(\'by\',this.value)">'+
-        '<div style="margin-top:8px;font-size:12px;color:var(--muted,#777)">'+
-          fl('The offer number is assigned by the server when you issue — drafts have no number, and two people can never mint the same one.',
-             'يُخصَّص رقم العرض من الخادم عند الإصدار — المسودات بلا رقم، ولا يمكن تكرار الرقم أبداً.')+'</div>'+
       '</fieldset>'+
       '<fieldset><legend>'+fl('Services & prices','الخدمات والأسعار')+'</legend>'+
         '<label>'+fl('Quick add a standard service','إضافة خدمة قياسية')+'</label>'+
@@ -671,8 +668,8 @@
       '</fieldset>'+
       '<div id="poBar" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'+barHtml()+'</div>'+
       '<div style="margin-top:10px;font-size:11.5px;color:var(--muted,#777);line-height:1.5">'+
-        fl('Totals and VAT (15%) are always computed — never type totals by hand. Real tax invoices are issued from Direct Payment.',
-           'الإجماليات والضريبة (15%) تُحسب دائماً — لا تكتب الإجمالي يدوياً. الفواتير الضريبية تصدر من دايركت للمدفوعات.')+'</div>'+
+        fl('VAT is calculated automatically. Tax invoices come from Direct Payment.',
+           'تُحسب الضريبة تلقائياً. الفواتير الضريبية تصدر من دايركت للمدفوعات.')+'</div>'+
     '</div>';
   }
   function barHtml(){
@@ -681,7 +678,7 @@
       /* data-v21relabeled opts this button out of core-06's verb relabeler, which would
          otherwise rewrite "Issue…" to "Push to source…" — the wording the owner asked
          to retire. The action itself still assigns the number server-side. */
-      (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="poIssue()">'+fl('Issue offer — assign official number','إصدار العرض — تعيين رقم رسمي')+'</button>':'')+
+      (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="poIssue()">'+fl('Issue offer','إصدار العرض')+'</button>':'')+
       (w&&S.docNumber&&S.status!=='accepted'?'<button class="btn sm ghost" onclick="poMarkAccepted()">'+fl('Mark accepted','وضع علامة مقبول')+'</button>':'')+
       '<button class="btn sm ghost" onclick="poPrint()">'+fl('Print / PDF','طباعة / PDF')+'</button>'+
       '<button class="btn sm ghost" onclick="poCopy()">'+fl('Copy for WhatsApp / Email','نسخ لواتساب / البريد')+'</button>';

@@ -529,7 +529,7 @@
         '<b>'+fl('Company Profile','الملف التعريفي')+'</b>'+
         '<span class="cp-status '+esc(st)+'">'+stLabel+(S.docNumber?' · '+esc(S.docNumber):'')+'</span>'+
       '</div>'+
-      '<label>'+fl('Saved profiles (shared registry)','الملفات المحفوظة (سجل مشترك)')+'</label>'+
+      '<label>'+fl('Saved profiles','الملفات المحفوظة')+'</label>'+
       '<select onchange="if(this.value)cpOpen(this.value)">'+savedOptions()+'</select>'+
       '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'+
         '<button class="btn sm ghost" onclick="cpNew()">＋ '+fl('New','جديد')+'</button>'+
@@ -539,9 +539,6 @@
         '<button type="button" class="'+((S.cur.lang||'en')==='en'?'on':'')+'" onclick="cpLang(\'en\')">English</button>'+
         '<button type="button" class="'+(S.cur.lang==='ar'?'on':'')+'" onclick="cpLang(\'ar\')">العربية</button>'+
       '</div>'+
-      '<div style="margin-top:4px;font-size:11.5px;color:var(--muted,#777)">'+
-        fl('Real profiles ship as separate EN and AR files — pick the language, print each.',
-           'الملفات الحقيقية تصدر بنسختين منفصلتين إنجليزي وعربي — اختر اللغة واطبع كل نسخة.')+'</div>'+
       '<fieldset><legend>'+fl('Cover','الغلاف')+'</legend>'+
         '<label>'+fl('Year','السنة')+'</label>'+
         '<input value="'+esc(S.cur.year)+'" oninput="cpSet(\'year\',this.value)">'+
@@ -551,17 +548,14 @@
       '<fieldset><legend>'+fl('Sections','الأقسام')+'</legend>'+
         sectionsFormHtml()+
         '<div style="font-size:11.5px;color:var(--muted,#777);margin-top:6px">'+
-          fl('Sections are shared company content — an edit here changes every future profile.',
-             'الأقسام محتوى مشترك للشركة — أي تعديل هنا يغيّر كل ملف مستقبلي.')+'</div>'+
+          fl('Editing a section changes every future profile.',
+             'تعديل أي قسم يغيّر كل ملف مستقبلي.')+'</div>'+
       '</fieldset>'+
       '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'+
         (w?'<button class="btn sm pri" '+(S.saving?'disabled':'')+' onclick="cpSaveDraft()">'+(S.saving?fl('Saving…','جارٍ الحفظ…'):fl('Save draft','حفظ المسودة'))+'</button>':'')+
         (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="cpIssue()">'+fl('Issue — assign official number','إصدار — تعيين رقم رسمي')+'</button>':'')+
         '<button class="btn sm ghost" onclick="cpPrint()">'+fl('Print / PDF','طباعة / PDF')+'</button>'+
       '</div>'+
-      '<div style="margin-top:10px;font-size:11.5px;color:var(--muted,#777);line-height:1.5">'+
-        fl('The profile is WHO WE ARE — no prices, no client data beyond the optional cover name.',
-           'الملف التعريفي هو من نحن — بلا أسعار وبلا بيانات عميل سوى اسم الغلاف الاختياري.')+'</div>'+
     '</div>';
   }
 

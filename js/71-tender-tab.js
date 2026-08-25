@@ -597,7 +597,7 @@
       '<div class="td-note" style="font-size:11.5px;color:var(--muted,#777);margin-top:6px">'+
         fl('One tender definition produces two separate documents. They are saved as a linked pair and issued separately.',
            'تعريف واحد للمناقصة ينتج مستندين منفصلين. يُحفظان كزوج مترابط ويُصدر كل منهما على حدة.')+'</div>'+
-      '<label>'+fl('Saved tender documents (shared registry)','مستندات المناقصات المحفوظة (سجل مشترك)')+'</label>'+
+      '<label>'+fl('Saved tender documents','مستندات المناقصات المحفوظة')+'</label>'+
       '<select onchange="if(this.value)tdOpen(this.value)">'+savedOptions()+'</select>'+
       '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'+
         '<button class="btn sm ghost" onclick="tdNew()">＋ '+fl('New tender','مناقصة جديدة')+'</button>'+
@@ -613,7 +613,7 @@
         '<button type="button" class="'+(S.view==='fin'?'on':'')+'" onclick="tdView(\'fin\')">'+fl('Financial','العرض المالي')+'</button>'+
       '</div>'+
       '<fieldset><legend>'+fl('Tender','المناقصة')+'</legend>'+
-        '<label>'+fl('Entity (picked from records — leads allowed)','الجهة (من السجلات — يُسمح بغير العملاء)')+'</label>'+
+        '<label>'+fl('Entity (leads allowed)','الجهة (يُسمح بغير العملاء)')+'</label>'+
         '<select onchange="tdSet(\'clientId\',this.value)">'+clientOptions()+'</select>'+
         '<label>'+fl('Tender title (AR)','عنوان المناقصة بالعربية')+'</label>'+
         '<input dir="rtl" value="'+esc(S.cur.titleAr)+'" oninput="tdSet(\'titleAr\',this.value)">'+
@@ -656,7 +656,7 @@
             '<div>'+inp('boq',i,'unit',r.unit,fl('Unit','الوحدة'))+'</div>'+
             '<div>'+inp('boq',i,'qty',r.qty,fl('Qty','الكمية'),false,'number')+'</div>'+
             '</div>'+
-            inp('boq',i,'price',r.price,fl('Unit price (SAR, ex-VAT) — financial document only','سعر الوحدة (ريال، دون الضريبة) — للعرض المالي فقط'),false,'number')+
+            inp('boq',i,'price',r.price,fl('Unit price (SAR, ex-VAT)','سعر الوحدة (ريال، دون الضريبة)'),false,'number')+
           '</div>';
         }).join('')+
         '<button type="button" class="td-add" onclick="tdItem(\'boq\',\'add\')">+ '+fl('Add BoQ line','إضافة سطر كميات')+'</button>'+
@@ -683,16 +683,16 @@
         }).join('')+
         '<button type="button" class="td-add" onclick="tdItem(\'schedule\',\'add\')">+ '+fl('Add payment row','إضافة دفعة')+'</button>'+
       '</fieldset>'+
-      '<fieldset><legend>'+fl('Past projects (owner call)','مشاريع سابقة (قرار المالك)')+'</legend>'+
+      '<fieldset><legend>'+fl('Past projects','مشاريع سابقة')+'</legend>'+
         '<label style="display:flex;align-items:center;gap:8px;font-weight:600"><input type="checkbox" style="width:auto" '+(S.cur.pastProjects&&S.cur.pastProjects.on?'checked':'')+' onchange="tdPP(this.checked)"> '+fl('Show a past-projects section','إظهار قسم المشاريع السابقة')+'</label>'+
         '<div class="td-note" style="font-size:11.5px;color:var(--muted,#777)">'+
-          fl('OFF by default — whether past work may be named publicly is an owner decision that has not been made. Verification-system vendors never appear regardless.',
-             'مغلق افتراضياً — إظهار الأعمال السابقة قرار للمالك لم يُتخذ بعد. مورّدو نظام التحقق لا يظهرون بأي حال.')+'</div>'+
+          fl('Shown by default. Verification-system vendors never appear.',
+             'يظهر افتراضياً. مورّدو نظام التحقق لا يظهرون أبداً.')+'</div>'+
       '</fieldset>'+
       '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'+
         (w?'<button class="btn sm pri" '+(S.saving?'disabled':'')+' onclick="tdSaveDraft()">'+(S.saving?fl('Saving…','جارٍ الحفظ…'):fl('Save both drafts','حفظ المسودتين'))+'</button>':'')+
-        (w&&!stT.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="tdIssue(\'TEC\')">'+fl('Issue technical — assign number','إصدار العرض الفني — تعيين رقم')+'</button>':'')+
-        (w&&!stF.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="tdIssue(\'FIN\')">'+fl('Issue financial — assign number','إصدار العرض المالي — تعيين رقم')+'</button>':'')+
+        (w&&!stT.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="tdIssue(\'TEC\')">'+fl('Issue technical','إصدار العرض الفني')+'</button>':'')+
+        (w&&!stF.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="tdIssue(\'FIN\')">'+fl('Issue financial','إصدار العرض المالي')+'</button>':'')+
         '<button class="btn sm ghost" onclick="tdPrint()">'+fl('Print / PDF (current view)','طباعة / PDF (المعاينة الحالية)')+'</button>'+
       '</div>'+
       '<div style="margin-top:10px;font-size:11.5px;color:var(--muted,#777);line-height:1.5">'+

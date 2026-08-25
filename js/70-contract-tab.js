@@ -688,12 +688,12 @@
         '<b>'+fl('Contract / Agreement','العقد / الاتفاقية')+'</b>'+
         '<span class="ct-status '+esc(st)+'">'+stLabel+(S.docNumber?' · '+esc(S.docNumber):'')+'</span>'+
       '</div>'+
-      '<label>'+fl('Saved contracts (shared registry)','العقود المحفوظة (سجل مشترك)')+'</label>'+
+      '<label>'+fl('Saved contracts','العقود المحفوظة')+'</label>'+
       '<select onchange="if(this.value)ctOpen(this.value)">'+savedOptions()+'</select>'+
       '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'+
         '<button class="btn sm ghost" onclick="ctNew()">＋ '+fl('New','جديد')+'</button>'+
       '</div>'+
-      '<label>'+fl('Document language (contracts are legally Arabic — EN is a courtesy layout)','لغة المستند (العقود بالعربية نظاماً — الإنجليزية نسخة مجاملة)')+'</label>'+
+      '<label>'+fl('Document language','لغة المستند')+'</label>'+
       '<div class="ct-seg">'+
         '<button type="button" class="'+(S.cur.lang==='ar'?'on':'')+'" onclick="ctLang(\'ar\')">العربية</button>'+
         '<button type="button" class="'+(S.cur.lang==='en'?'on':'')+'" onclick="ctLang(\'en\')">English</button>'+
@@ -705,7 +705,7 @@
         '<input value="'+esc(S.cur.titleEn)+'" oninput="ctSet(\'titleEn\',this.value)">'+
       '</fieldset>'+
       '<fieldset><legend>'+fl('Second party (the client)','الطرف الثاني (العميل)')+'</legend>'+
-        '<label>'+fl('Company (picked from records — never retyped)','الشركة (من السجلات — لا تُكتب يدوياً)')+'</label>'+
+        '<label>'+fl('Company','الشركة')+'</label>'+
         '<select onchange="ctSet(\'clientId\',this.value)">'+clientOptions()+'</select>'+
         '<label>'+fl('Commercial registration (CR)','السجل التجاري')+'</label>'+
         '<input value="'+esc(S.cur.party2.cr)+'" oninput="ctParty(\'party2\',\'cr\',this.value)">'+
@@ -720,7 +720,7 @@
              'تُحفظ هذه البيانات في هذا العقد فقط — سجل العميل قد لا يحملها.')+'</div>'+
       '</fieldset>'+
       '<fieldset><legend>'+fl('First party (Direct) signatory','موقّع الطرف الأول (دايركت)')+'</legend>'+
-        '<label>'+fl('Represented by (empty until the owner decides)','يمثلها (فارغ حتى يقرر المالك)')+'</label>'+
+        '<label>'+fl('Represented by','يمثلها')+'</label>'+
         '<input value="'+esc(S.cur.party1.rep)+'" oninput="ctParty(\'party1\',\'rep\',this.value)">'+
         '<label>'+fl('Title / capacity','الصفة')+'</label>'+
         '<input value="'+esc(S.cur.party1.title)+'" oninput="ctParty(\'party1\',\'title\',this.value)">'+
@@ -729,8 +729,8 @@
              'الاسم القانوني والسجل والهاتف تأتي من سجل الشركة تلقائياً.')+'</div>'+
       '</fieldset>'+
       '<fieldset><legend>'+fl('Term & notice','المدة والإشعار')+'</legend>'+
-        '<label>'+fl('Termination notice (days) — real agreements used 7 or 30','مدة إشعار الإنهاء (أيام) — الاتفاقيات الفعلية استخدمت 7 أو 30')+'</label>'+
-        '<input type="number" min="1" value="'+esc(S.cur.noticeDays)+'" oninput="ctSet(\'noticeDays\',this.value)">'+
+        '<label>'+fl('Termination notice (days)','مدة إشعار الإنهاء (أيام)')+'</label>'+
+        '<input type="number" min="1" placeholder="'+esc(fl('e.g. 7 or 30','مثال: 7 أو 30'))+'" value="'+esc(S.cur.noticeDays)+'" oninput="ctSet(\'noticeDays\',this.value)">'+
       '</fieldset>'+
       '<fieldset><legend>'+fl('Clauses','البنود')+'</legend>'+
         clausesFormHtml()+
@@ -758,7 +758,7 @@
       '</fieldset>'+
       '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'+
         (w?'<button class="btn sm pri" '+(S.saving?'disabled':'')+' onclick="ctSaveDraft()">'+(S.saving?fl('Saving…','جارٍ الحفظ…'):fl('Save draft','حفظ المسودة'))+'</button>':'')+
-        (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="ctIssue()">'+fl('Issue contract — assign official number','إصدار العقد — تعيين رقم رسمي')+'</button>':'')+
+        (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="ctIssue()">'+fl('Issue contract','إصدار العقد')+'</button>':'')+
         '<button class="btn sm ghost" onclick="ctPrint()">'+fl('Print / PDF','طباعة / PDF')+'</button>'+
       '</div>'+
       '<div style="margin-top:10px;font-size:11.5px;color:var(--muted,#777);line-height:1.5">'+

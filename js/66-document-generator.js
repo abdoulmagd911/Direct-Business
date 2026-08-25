@@ -391,7 +391,7 @@
       '<div class="dg-src" style="margin-top:6px">'+fl('Some documents have no expiry date on file','بعض الوثائق لا يتوفر لها تاريخ انتهاء')+'</div></div>';
 
     var bankHtml='<div class="card"><h3 style="margin-top:0;color:var(--accent)">'+fl('Send bank details','إرسال البيانات البنكية')+'</h3>'+
-      '<div style="font-size:13px;color:var(--muted,#777);margin-bottom:8px">'+fl('One tap copies the company name, CR, VAT and every receiving bank IBAN — ready to paste. Wallets are not included.','نقرة واحدة تنسخ اسم الشركة والسجل والرقم الضريبي وكل آيبانات الاستقبال البنكية — جاهزة للصق. المحافظ غير مشمولة.')+'</div>'+
+      '<div style="font-size:13px;color:var(--muted,#777);margin-bottom:8px">'+fl('Copies name, CR, VAT and receiving IBANs. Wallets excluded.','ينسخ الاسم والسجل والرقم الضريبي وآيبانات الاستقبال. المحافظ مستثناة.')+'</div>'+
       '<button class="btn sm pri" onclick="dgCopyBank()">'+fl('Copy bank details block','نسخ البيانات البنكية')+'</button></div>';
 
     /* brand assets render INLINE — thumbnail chips on the right light/dark ground, each
