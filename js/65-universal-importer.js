@@ -279,6 +279,30 @@
   // whose ONLY real change is a newly-attached tax code (nothing else differing) would report
   // as "unchanged" and silently never get its tax code written at all.
   var CMP_FIELDS=['total_incl_vat_sar','integrity_status','amount_received_sar','amount_remaining_sar','revenue_sar','cost_sar','profit_sar','zatca_dpin','invoice_date'];
+  // M13, 2026-08-25 — real live bug: `year` on finance_invoices is `GENERATED ALWAYS AS
+  // (EXTRACT(year FROM invoice_date))::integer STORED` (verified against the live schema, not
+  // guessed) — Postgres refuses ANY statement that assigns it explicitly, even a matching value,
+  // and PostgREST sends one batch's rows as ONE insert/upsert statement, so a single generated
+  // column in ONE row's payload fails the WHOLE batch. Two update sites below built their payload
+  // by spreading a live finance_invoices row (`Object.assign({},existing,{...delta})`) straight
+  // from FIN.rows (a real `select *`), which carries `year` — every field on that row rides along
+  // into the write. Fixed by routing every update/insert payload through this explicit allowlist
+  // instead of ever spreading a full row object again, so a future generated or DB-managed column
+  // (audited against the live schema: only `year` is GENERATED today; `month`/`quarter` are plain
+  // columns the finance_derive_fields trigger recomputes regardless of what is sent, safe to
+  // include) can't ride along the same way. `id`/`created_at`/`updated_at`/`deleted_at` are
+  // deliberately excluded too — `id` is added back explicitly by each call site that needs it for
+  // upsert matching, the rest are DB-managed and this importer never sets them.
+  var WRITABLE_INVOICE_FIELDS=['invoice_no','zatca_dpin','client_group','customer_raw_name','invoice_date',
+    'month','quarter','products','service_type','record_type','total_incl_vat_sar','wallet_portion_sar',
+    'revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','collection_due_date',
+    'integrity_status','exclusion_reason','notes','source_batch','line_no','branch','salesman','project_tag',
+    'discount_sar','origin','proposal_ref','items','transaction_ref','direct_uuid','vat_sar','revenue_way'];
+  function pickWritable(row){
+    var out={};
+    WRITABLE_INVOICE_FIELDS.forEach(function(f){ if(Object.prototype.hasOwnProperty.call(row,f)) out[f]=row[f]; });
+    return out;
+  }
   function rowDiffers(oldR,newR){
     return CMP_FIELDS.some(function(f){
       var a=oldR[f], b=newR[f];
@@ -290,8 +314,8 @@
   function mergeRowsIntoState(rows,state){
     rows.forEach(function(r){
       var ex=state.existingByNo[r.invoice_no];
-      if(!ex){ state.isNew.push(r); if(!isLinked(r,state.linkByGroup))state.needsLinking++; }
-      else if(rowDiffers(ex,r)){ var u=Object.assign({},r,{id:ex.id}); state.updated.push(u); if(!isLinked(u,state.linkByGroup))state.needsLinking++; }
+      if(!ex){ var nr=pickWritable(r); state.isNew.push(nr); if(!isLinked(nr,state.linkByGroup))state.needsLinking++; }
+      else if(rowDiffers(ex,r)){ var u=Object.assign({},pickWritable(r),{id:ex.id}); state.updated.push(u); if(!isLinked(u,state.linkByGroup))state.needsLinking++; }
       else { state.unchangedCount++; }
     });
   }
@@ -451,7 +475,7 @@
       var newTotal=(parsedTotal>0)?parsedTotal:(+existing.total_incl_vat_sar||0);
       var parsedDate=isoDateG(row[ixDate]);
       var newDate=parsedDate||existing.invoice_date;
-      var updated=Object.assign({},existing,{zatca_dpin:taxCode, total_incl_vat_sar:newTotal, invoice_date:newDate});
+      var updated=Object.assign({},pickWritable(existing),{zatca_dpin:taxCode, total_incl_vat_sar:newTotal, invoice_date:newDate});
       if(rowDiffers(existing,updated)) state.updated.push(Object.assign({},updated,{id:existing.id}));
       else state.unchangedCount++;
     });
@@ -617,7 +641,7 @@
         return;
       }
       var rev=+existing.revenue_sar||0;
-      var updated=Object.assign({},existing,{cost_sar:sum,profit_sar:Math.round((rev-sum)*100)/100});
+      var updated=Object.assign({},pickWritable(existing),{cost_sar:sum,profit_sar:Math.round((rev-sum)*100)/100});
       if(rowDiffers(existing,updated)) state.updated.push(Object.assign({},updated,{id:existing.id}));
       else state.unchangedCount++;
     });
@@ -990,20 +1014,39 @@
      preview fix above. */
   function paintDone(html){ LAST_DONE_HTML=html; RESULTS=null; var out=document.getElementById('finImpOut'); if(out)out.innerHTML=html; }
 
+  // M13, 2026-08-25 — real live bug: the owner ran a real import and read "Done. Imported 0
+  // new, updated 27." while the database had written NOTHING (the `year` GENERATED-column
+  // rejection above failed the whole batch statement, confirmed in Supabase immediately after:
+  // with_cost still 0, cost still 0.00). The error text WAS present in the same message, but
+  // subordinated under a green "Done" headline that led with the INTENDED count (toInsert.length
+  // / toUpdate.length — what was sent, not what landed) — a reasonable person reads "Done,
+  // updated 27" and stops, exactly as B2 in docs/DECISIONS.md already names: a refused write
+  // that looks identical to a successful one. Fixed on two axes: (1) every insert/upsert now
+  // chains `.select('id')` so the reported count is rows the database actually returned, never
+  // the batch length merely sent — the RLS-silent-write rule already applied elsewhere in this
+  // app, now applied here too; (2) any batch error flips the whole headline to a red FAILED
+  // stating both the confirmed-written count and the intended count side by side, never a
+  // success count derived from intent. Sabotage-tested: scripts/qa/probe-false-success-commit.mjs
+  // forces a payload containing `year`, asserts the headline says FAILED with a written-count of
+  // 0 and never prints the intended count as if it were the written count.
   window.v65Commit=function(){
     if(!FILES_STATE)return;
     var toInsert=[],toUpdate=[];
     FILES_STATE.forEach(function(r){ if(!r.recognized)return; toInsert=toInsert.concat(r.pendingInsert||[]); toUpdate=toUpdate.concat(r.pendingUpdate||[]); });
     FILES_STATE=null;
-    paintDone('<div style="font-size:13px">'+fl('Importing ','جارٍ الاستيراد ')+(toInsert.length+toUpdate.length)+' '+fl('rows…','صف…')+'</div>');
-    var c=fc(); var errs=[];
+    var intendedInsert=toInsert.length, intendedUpdate=toUpdate.length;
+    paintDone('<div style="font-size:13px">'+fl('Importing ','جارٍ الاستيراد ')+(intendedInsert+intendedUpdate)+' '+fl('rows…','صف…')+'</div>');
+    var c=fc(); var errs=[]; var insertedCount=0, updatedCount=0;
     function doInsert(cb){
       if(!toInsert.length)return cb();
       var i=0;
       (function next(){
         if(i>=toInsert.length)return cb();
         var batch=toInsert.slice(i,i+50); i+=50;
-        c.from('finance_invoices').insert(batch).then(function(r){ if(r.error)errs.push(r.error.message); next(); });
+        c.from('finance_invoices').insert(batch).select('id').then(function(r){
+          if(r.error) errs.push(r.error.message); else insertedCount+=(r.data||[]).length;
+          next();
+        });
       })();
     }
     function doUpdate(cb){
@@ -1014,15 +1057,25 @@
         var batch=toUpdate.slice(i,i+50); i+=50;
         // upsert on the primary key IS an update-in-place for a row whose id already exists —
         // this is the "match on natural key, write in place" rule, not a fresh insert.
-        c.from('finance_invoices').upsert(batch,{onConflict:'id'}).then(function(r){ if(r.error)errs.push(r.error.message); next(); });
+        c.from('finance_invoices').upsert(batch,{onConflict:'id'}).select('id').then(function(r){
+          if(r.error) errs.push(r.error.message); else updatedCount+=(r.data||[]).length;
+          next();
+        });
       })();
     }
     doInsert(function(){
       doUpdate(function(){
-        paintDone('<div style="font-size:13px;color:'+(errs.length?'#D92D20':'#0F6E56')+'"><b>'+fl('Done.','تم.')+'</b> '+
-          fl('Imported ','تم استيراد ')+toInsert.length+' '+fl('new, updated ','جديد، وتحديث ')+toUpdate.length+'.'+
-          (errs.length?(' '+fl('Errors: ','أخطاء: ')+esc(errs.slice(0,5).join('; '))):'')+
-        '</div>');
+        var failed=errs.length>0;
+        var msg=failed
+          ? ('<div style="font-size:13px;color:#D92D20"><b>'+fl('FAILED — nothing landed for the failing batch(es).','فشل — لم يُكتب شيء للدفعة (الدفعات) الفاشلة.')+'</b><br>'+
+             fl('The database actually wrote: ','ما كتبته قاعدة البيانات فعليًا: ')+'<b>'+insertedCount+'</b> '+fl('new, ','جديد، ')+'<b>'+updatedCount+'</b> '+fl('updated','محدَّث')+
+             ' ('+fl('intended ','المقصود ')+intendedInsert+' '+fl('new, ','جديد، ')+intendedUpdate+' '+fl('updated','محدَّث')+'). '+
+             fl('Errors: ','أخطاء: ')+esc(errs.slice(0,5).join('; '))+
+             '</div>')
+          : ('<div style="font-size:13px;color:#0F6E56"><b>'+fl('Done.','تم.')+'</b> '+
+             fl('Imported ','تم استيراد ')+insertedCount+' '+fl('new, updated ','جديد، وتحديث ')+updatedCount+'.'+
+             '</div>');
+        paintDone(msg);
         FIN.rows=null; finLoad();
       });
     });

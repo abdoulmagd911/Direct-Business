@@ -1,5 +1,89 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-25 · CRITICAL — a commit reported success while writing nothing; fixed the payload leak and the reporting itself (M13)
+
+Worse than any crash so far, in the oversight session's own words. The owner ran a real
+import and read "Done. Imported 0 new, updated 27." — a green success headline — and walked
+away believing cost was loaded. Checked in Supabase immediately after: 46 invoices, with_cost
+0, cost 0.00, profit still equalling revenue. Nothing had landed. The error text was actually
+present in the same message ("cannot insert a non-DEFAULT value into column \"year\""), but
+buried under the success headline, printed from the INTENDED batch size, not from anything the
+database confirmed — the owner's own diagnosis was exact and it was right.
+
+**Root cause, verified against the live schema (`information_schema.columns`), not guessed.**
+`finance_invoices.year` is `GENERATED ALWAYS AS (EXTRACT(year FROM invoice_date))::integer
+STORED` — the only generated column on the table (checked every sibling: `month`/`quarter` are
+plain columns the `finance_derive_fields` trigger recomputes unconditionally regardless of what
+is sent, so they were never a risk). Two update-payload builders in
+`js/65-universal-importer.js` — the tax-invoice update (`processTaxInvoiceBatch()`) and the
+cost-join update (`resolveExpenseJoin()`) — built their write by spreading a full,
+already-fetched `finance_invoices` row (`Object.assign({},existing,{...delta})`) straight from
+`FIN.rows`, a real `select *`. Every field on that live row rode along into the write,
+including `year`. PostgREST sends one batch as one SQL statement, so a single row carrying
+`year` fails the WHOLE batch at once — exactly why all 27 failed together, never a partial
+success.
+
+**Fixed on two independent axes, per the owner's own instruction that the reporting bug is the
+more important half.**
+
+1. **`pickWritable()`** — a new explicit allowlist (`WRITABLE_INVOICE_FIELDS`) that every
+   insert/update payload is now built from, replacing every site that used to spread a full row
+   object. This makes the whole CLASS of "a DB-managed column rides along into a write"
+   impossible going forward, not just this one instance — exactly as asked.
+2. **`v65Commit()`'s reporting** — every insert/upsert now chains `.select('id')` and counts
+   what the database actually returned. Any batch error flips the whole headline to a red
+   FAILED, naming the confirmed-written count (0 for a failed batch) side by side with the
+   intended count, explicitly labeled "intended" — never a success count derived from what was
+   merely sent.
+
+`scripts/qa/mock-supabase.mjs` was taught to reject any `finance_invoices` write payload
+carrying `year`, mirroring the real Postgres constraint — before this the mock had no way to
+catch this class of bug at all, which is exactly how it shipped through an otherwise thorough
+regression suite (including the tax-invoice and cost-join probes built two days earlier)
+completely undetected.
+
+**Verification, exactly as asked.** New probe `scripts/qa/probe-false-success-commit.mjs` runs
+two scenarios: (1) a clean commit — intercepts the real outgoing write body and asserts `year`
+is never present, then confirms via `FIN.rows` that the reported "updated 1" genuinely landed
+in the database; (2) a forced database refusal — intercepts the network call and returns the
+exact real Postgres error text, independent of whether fix (1) holds, and asserts the UI
+reports FAILED with a written count of 0, the intended count shown separately and explicitly
+labeled, the real error text surfaced, and the target row byte-for-byte unchanged. Sabotage-
+tested exactly as requested: `pickWritable()` was temporarily reduced to an identity
+passthrough (reintroducing the exact original leak), the probe was run and failed (exit 1)
+reproducing the bug class — and notably, even with the payload bug reintroduced, the reporting
+fix (2) still correctly reported FAILED/written-0 rather than a false success, direct proof the
+two fixes are genuinely independent defense-in-depth, not one fix wearing two hats. The
+passthrough was then restored and the file diffed byte-identical to the pre-sabotage backup.
+
+**A gap in the mock itself, worth naming.** `probe-tax-invoice-capture.mjs` and
+`probe-expense-report-capture.mjs` — built two days earlier and passing at the time — never
+caught this, because the mock accepted any payload shape; it had no model of which columns are
+generated. Real-schema fidelity gaps like this are exactly how a bug survives a thorough-
+looking regression suite. Both probes were re-run against the now-schema-aware mock after this
+fix and still pass clean.
+
+**Open, not yet re-confirmed:** the oversight session separately reported the owner hit the
+M12 import-tab wiring race AGAIN, after the M12 fix was already deployed (their own note that
+"your improved [finParse rejection] message helped him recover" confirms the M12 deploy was
+live at the time). `probe-import-tab-wiring.mjs` still passes clean against the exact
+"already-on-Finance, click Import" path M12 was built to fix, and no second code path that
+sets `FIN.tab` while skipping both wrapped `render()` and wrapped `finGo()` was found on
+inspection (checked every `FIN.tab=` assignment site and the `/finance` deep-link boot route in
+`js/16-finance-ledger.js`). Left open rather than guessed at — asked the oversight session for
+the exact navigation path and a console-state dump (`#finDrop.__v65`, `#finFile.multiple`,
+`Check file`'s onclick) the next time it recurs, the same rigor the original M12 report carried.
+
+**Also surfaced, not acted on:** a Supabase advisory flagged `RLS disabled` on
+`public.finance_cogs_expenses_archive_20260822` (an archive table) — anyone with the anon key
+can read/write it. Not touched here (enabling RLS without policies blocks all access); flagged
+to the owner for a decision.
+
+Verified: `node -c` on every touched file, `check-structure.mjs` (63 files),
+`check-decisions-wired.mjs` (M13's own citations all resolve), the full probe battery including
+the new probe, `audit-finance-tabs.mjs`, `sweep-pages.mjs` — all green, EN+AR, zero
+console/JS errors.
+
 ## 2026-08-24 (round 3) · Owner hit a real live bug — a correct file was rejected as wrong; fixed the mount-wiring race (M12)
 
 The owner himself, not the oversight session, hit this one directly: opened Finance,

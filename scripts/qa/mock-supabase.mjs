@@ -307,6 +307,17 @@ export function start(port, seedOverrides){
         return req.on('end',()=>{
           let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
           if(!Array.isArray(payload)) payload=[payload];
+          // `year` is GENERATED ALWAYS AS (EXTRACT(year FROM invoice_date))::integer STORED on
+          // the real table (verified against the live schema, docs/DECISIONS.md M13) — Postgres
+          // refuses ANY statement that assigns it explicitly, even a matching value, and because
+          // PostgREST sends one batch as ONE insert/upsert statement, a single row carrying it
+          // fails the WHOLE batch — nothing in the batch is written, matching the real symptom
+          // the owner hit (27 intended, 0 actually written). Mirrored here so a regression in the
+          // app's own payload-building code (spreading a full existing row back into a write) is
+          // caught locally, not only against the live database.
+          if(payload.some(row=>Object.prototype.hasOwnProperty.call(row,'year'))){
+            return send(res,400,{message:'cannot insert a non-DEFAULT value into column "year"',code:'428C9',hint:'Column "year" is a generated column.'});
+          }
           let onConflict=u.query.on_conflict; if(Array.isArray(onConflict))onConflict=onConflict[0];
           const table=TABLES.finance_invoices;
           const written=payload.map(row=>{

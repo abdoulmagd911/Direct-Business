@@ -251,6 +251,46 @@ rather than reading as a verdict on the data — so even a future variant of thi
 never mistaken for "your file is wrong" again.
 *Date: 2026-08-24. Status: ACTIVE.*
 
+**M13 — a write report must only ever say what the database confirmed, never what was merely
+intended, and every write payload must be built from an explicit allowlist, never by spreading
+a full existing row.** The owner ran a real import and read "Done. Imported 0 new, updated
+27." — a green success headline — while Supabase confirmed immediately after that NOTHING was
+written (46 invoices, with_cost 0, cost 0.00, profit still equalling revenue). The error text
+("cannot insert a non-DEFAULT value into column \"year\"") WAS present in the same message,
+but subordinated under the success headline, printed from `toInsert.length`/`toUpdate.length`
+— the INTENDED batch size, not anything the database returned — so a reasonable person reads
+"Done, updated 27" and stops. This is the exact B2 failure (a refused write that looks
+identical to a successful one) except worse: the refusal text was right there and still didn't
+stop a false read. Root cause, confirmed against the live schema (`information_schema.columns`,
+not guessed): `finance_invoices.year` is `GENERATED ALWAYS AS (EXTRACT(year FROM
+invoice_date))::integer STORED` — the ONLY generated column on the table (`month`/`quarter`
+are plain columns the `finance_derive_fields` trigger recomputes unconditionally, so they were
+never the problem). Two update-payload builders in `js/65-universal-importer.js`
+(`processTaxInvoiceBatch()`'s tax-invoice update, `resolveExpenseJoin()`'s cost-join update)
+built their write by spreading a full, already-fetched `finance_invoices` row
+(`Object.assign({},existing,{...delta})`) straight from `FIN.rows` — a real `select *` — so
+`year` rode along. PostgREST sends one batch as ONE statement, so a single row carrying `year`
+fails the WHOLE batch — this is why all 27 failed together, not a partial success. Fixed on
+two independent axes, each verified to hold on its own: (1) `pickWritable()` — an explicit
+allowlist of writable `finance_invoices` columns (`WRITABLE_INVOICE_FIELDS` in
+`js/65-universal-importer.js`) that every insert/update payload is now built from, instead of
+ever spreading a full row object again — this makes the whole CLASS of "a DB-managed column
+rides along into a write" impossible, not just this one instance; (2) `v65Commit()` now chains
+`.select('id')` on every insert/upsert and counts what the database actually returned — on any
+batch error the headline flips to a red FAILED naming the confirmed-written count (always 0 for
+a failed batch) separately from the intended count, and the real error text, never a success
+count derived from intent. `scripts/qa/mock-supabase.mjs` was taught to reject any `finance_invoices`
+write payload carrying `year`, mirroring the real constraint — before this the mock could not
+catch this class of bug at all, which is exactly how it shipped through an otherwise thorough
+regression suite undetected. Sabotage-verified: `pickWritable()` was temporarily reduced to an
+identity passthrough, `scripts/qa/probe-false-success-commit.mjs` was run and confirmed to fail
+(exit 1) reproducing the exact bug class (payload carries `year`, mock rejects the whole
+batch) — and notably still showed the reporting fix (2) holding on its own, correctly reporting
+FAILED/written-0 even with the payload bug reintroduced, proof the two fixes are genuinely
+independent defense-in-depth. The passthrough was then restored and the file diffed
+byte-identical to before.
+*Date: 2026-08-25. Status: ACTIVE.*
+
 **SUPERSEDED — the invoice item split (Service Fee / 3rd Party Fee) is a VAT split, never
 real cost.** An earlier round of this project treated the 3rd-Party-Fee line as the real
 cost figure; re-verified live against Direct Payments and found wrong — that line is a VAT
