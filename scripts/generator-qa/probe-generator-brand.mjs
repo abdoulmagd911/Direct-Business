@@ -111,10 +111,28 @@ const FIXTURE = [
   { key: 'iban_test', category: 'banking', label_en: 'Test IBAN', label_ar: 'آيبان', value_en: 'SA0000000000000000000000', value_ar: null, expires_on: null, source: 'fixture', sensitive: true, show_on_documents: true, sort: 60, proof_path: null },
   /* certificate-like licence row with NO expiry date — must still appear on the radar
      with a neutral "date not on file" pill, and its proof gets a View button */
-  { key: 'test_licence', category: 'licence', label_en: 'Test licence', label_ar: 'رخصة اختبار', value_en: 'LIC-0000', value_ar: null, expires_on: null, source: 'fixture', sensitive: false, show_on_documents: true, sort: 30, proof_path: 'licence/test_licence.pdf' },
+  { key: 'test_licence', category: 'licence', label_en: 'Test licence', label_ar: 'رخصة اختبار', value_en: 'LIC-0000', value_ar: null, expires_on: null, source: 'fixture', sensitive: false, show_on_documents: true, sort: 30, proof_path: 'licence/test_licence.pdf', download_name: 'Synthetic licence proof for QA.pdf' },
+  /* wallet row (outgoing only) — must render in its own section AFTER banking and must
+     NEVER appear in the copied bank-details block */
+  { key: 'wallet_test', category: 'wallet', label_en: 'Test wallet (outgoing only)', label_ar: 'محفظة اختبار', value_en: 'SA1111111111111111111111', value_ar: null, expires_on: null, source: 'fixture', sensitive: false, show_on_documents: false, sort: 70, proof_path: 'wallet/wallet_test.pdf', download_name: 'Synthetic wallet letter for QA.pdf' },
 ];
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r =>
-  r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FIXTURE) }));
+FIXTURE.forEach(r => { if (!('download_name' in r)) r.download_name = null; });
+const patches = [];   /* every PATCH body the app sends, for the edit-save check */
+await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r => {
+  const rq = r.request();
+  if (rq.method() === 'PATCH') {
+    const body = JSON.parse(rq.postData() || '{}'); patches.push(body);
+    const m = new URL(rq.url()).searchParams.get('key');           // key=eq.<key>
+    const key = m ? m.replace(/^eq\./, '') : '';
+    const row = FIXTURE.find(x => x.key === key);
+    if (row) Object.keys(body).forEach(k => { if (k in row) row[k] = body[k]; });
+    return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(row ? [row] : []) });
+  }
+  r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FIXTURE) });
+});
+/* storage sign endpoint — echo a plausible signed path so the client can build the URL */
+await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/storage/v1/object/sign/**', r =>
+  r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ signedURL: '/object/sign/company-docs/x.pdf?token=qa' }) }));
 
 await p.goto(BASE + '/documents', { waitUntil: 'domcontentloaded', timeout: 60000 });
 await p.waitForTimeout(2500);
@@ -172,6 +190,124 @@ await p.evaluate(() => { const b = [...document.querySelectorAll('#dgWrap button
 await p.waitForTimeout(600);
 const txt2 = await p.evaluate(() => (document.getElementById('view') || {}).innerText || '');
 check('reveal shows the value on demand', txt2.includes('SA0000000000000000000000'));
+
+/* ---- wallet section: renders with its explainer note, AFTER banking ---- */
+{
+  const w = await p.evaluate(() => {
+    const t = document.getElementById('dgWrap')?.innerText || '';
+    return {
+      bank: t.indexOf('Bank accounts'),
+      wallet: t.indexOf('Wallets — outgoing only'),
+      note: t.includes('Used to fund virtual cards; we do not receive money on wallets.'),
+    };
+  });
+  check('wallet section renders after the banking section', w.bank >= 0 && w.wallet > w.bank, JSON.stringify(w));
+  check('wallet section carries the outgoing-only note', w.note);
+}
+
+/* ---- dgCopyBank: banking IBAN in, wallet IBAN OUT (real click, clipboard spied) ---- */
+{
+  await p.evaluate(() => {
+    window.__copied = null;
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: (t) => { window.__copied = t; return Promise.resolve(); } }, configurable: true });
+    const b = [...document.querySelectorAll('#dgWrap button')].find(x => /Copy bank details|نسخ البيانات البنكية/.test(x.textContent));
+    if (b) b.click();
+  });
+  await p.waitForTimeout(400);
+  const copied = await p.evaluate(() => window.__copied);
+  check('Copy-bank click copies the banking IBAN', !!copied && copied.includes('SA0000000000000000000000'), JSON.stringify(copied));
+  check('Copy-bank block EXCLUDES the wallet IBAN', !!copied && !copied.includes('SA1111111111111111111111'));
+  check('Copy-bank intro no longer claims "every IBAN"', !/every IBAN —|كل الآيبانات/.test(await p.evaluate(() => document.getElementById('dgWrap').innerText)));
+}
+
+/* ---- Download uses the registry download_name (window.open spied, real click) ---- */
+{
+  await p.evaluate(() => {
+    window.__opened = []; window.open = (u) => { window.__opened.push(String(u)); return { closed: false }; };
+    const tr = [...document.querySelectorAll('#dgWrap table.dg tr')].find(x => x.innerText.includes('Test licence') && /Download|تنزيل/.test(x.innerText));
+    const b = tr && [...tr.querySelectorAll('button')].find(x => /^(Download|تنزيل)$/.test(x.textContent.trim()));
+    if (b) b.click();
+  });
+  /* signed-URL fetch is async — poll instead of racing a fixed wait */
+  let opened = [];
+  for (let i = 0; i < 20 && !opened.length; i++) { await p.waitForTimeout(400); opened = await p.evaluate(() => window.__opened); }
+  check('proof Download opens a signed URL carrying the descriptive download_name',
+    opened.some(u => u.includes('download=') && /Synthetic(%20|\+| )licence(%20|\+| )proof/.test(u)), JSON.stringify(opened));
+  check('the download_name is never shown on screen',
+    !(await p.evaluate(() => document.getElementById('dgWrap').innerText.includes('Synthetic licence proof for QA'))));
+  /* View stays a plain signed URL with no download param */
+  await p.evaluate(() => {
+    window.__opened = [];
+    const tr = [...document.querySelectorAll('#dgWrap table.dg tr')].find(x => x.innerText.includes('Test licence') && /View document|عرض المستند/.test(x.innerText));
+    const b = tr && [...tr.querySelectorAll('button')].find(x => /View document|عرض المستند/.test(x.textContent));
+    if (b) b.click();
+  });
+  let viewed = [];
+  for (let i = 0; i < 20 && !viewed.length; i++) { await p.waitForTimeout(400); viewed = await p.evaluate(() => window.__opened); }
+  check('proof View opens in a tab WITHOUT forcing a download name', viewed.length === 1 && !viewed[0].includes('download='), JSON.stringify(viewed));
+}
+
+/* ---- edit UX: real clicks through Edit → labeled aligned inputs → Save → Cancel ---- */
+{
+  const clickRowBtn = (rowText, btnRe) => p.evaluate(([t, re]) => {
+    const tr = [...document.querySelectorAll('#dgWrap table.dg tr')].find(x => x.innerText.includes(t));
+    const b = tr && [...tr.querySelectorAll('button')].find(x => new RegExp(re).test(x.textContent.trim()));
+    if (b) { b.click(); return true; } return false;
+  }, [rowText, btnRe]);
+  check('Edit button clicks on the legal-name row', await clickRowBtn('Synthetic Test Co Ltd', '^(Edit|تعديل)$'));
+  await p.waitForTimeout(500);
+  const form = await p.evaluate(() => {
+    const en = document.getElementById('dgE_en'), exp = document.getElementById('dgE_exp');
+    const grid = document.querySelector('#dgWrap .dg-edit-grid');
+    const labels = [...document.querySelectorAll('#dgWrap .dg-fl')].map(x => x.textContent);
+    const gw = grid ? grid.getBoundingClientRect().width : 0;
+    return {
+      open: !!en, labels, gridded: !!grid && getComputedStyle(grid).display === 'grid',
+      dateFits: !!exp && exp.getBoundingClientRect().right <= grid.getBoundingClientRect().right + 1,
+      inputsAligned: !!en && Math.abs(en.getBoundingClientRect().left - grid.getBoundingClientRect().left) < 2,
+      spans: document.querySelector('#dgWrap .dg-editrow td')?.getAttribute('colspan') === '3',
+    };
+  });
+  check('edit form opens as a labeled grid (4 labels, grid layout, full-row, aligned)',
+    form.open && form.labels.length === 4 && form.gridded && form.spans && form.inputsAligned, JSON.stringify(form));
+  check('date input does not overflow the form', form.dateFits, JSON.stringify(form));
+  await p.evaluate(() => { const e = document.getElementById('dgE_en'); e.value = 'Edited Co Ltd QA'; });
+  check('Save button clicks', await p.evaluate(() => { const b = [...document.querySelectorAll('#dgWrap .dg-edit button')].find(x => /^(Save|حفظ)$/.test(x.textContent.trim())); if (b) { b.click(); return true; } return false; }));
+  /* PATCH + reload + re-render are async — poll for the new value instead of a fixed wait */
+  let saved = false;
+  for (let i = 0; i < 25 && !saved; i++) { await p.waitForTimeout(400); saved = await p.evaluate(() => document.getElementById('dgWrap').innerText.includes('Edited Co Ltd QA')); }
+  check('Save sent one PATCH whose body carries the edited value', patches.length === 1 && patches[0].value_en === 'Edited Co Ltd QA', JSON.stringify(patches));
+  check('row shows the new value after Save', saved);
+  /* Cancel: open again, cancel, form gone, nothing new PATCHed */
+  check('Edit re-opens for Cancel', await clickRowBtn('Edited Co Ltd QA', '^(Edit|تعديل)$'));
+  await p.waitForTimeout(400);
+  await p.evaluate(() => { const b = [...document.querySelectorAll('#dgWrap .dg-edit button')].find(x => /^(Cancel|إلغاء)$/.test(x.textContent.trim())); if (b) b.click(); });
+  await p.waitForTimeout(400);
+  check('Cancel closes the form without writing', patches.length === 1 && await p.evaluate(() => !document.getElementById('dgE_en')));
+}
+
+/* ---- radar dates never wrap mid-date ---- */
+{
+  const radar = await p.evaluate(() => {
+    const cells = [...document.querySelectorAll('#dgWrap .dg-radar .dg-date')];
+    return {
+      n: cells.length,
+      nowrap: cells.every(c => getComputedStyle(c).whiteSpace === 'nowrap'),
+      noBreak: cells.every(c => !/\d\n\d|\d-\n/.test(c.innerText)),
+    };
+  });
+  check('radar date cells are nowrap and unbroken', radar.n > 0 && radar.nowrap && radar.noBreak, JSON.stringify(radar));
+}
+
+/* ---- nav: 'offers' (Proposals) is out of the primary menu, page still renders ---- */
+{
+  check('Proposals is absent from the primary nav', await p.evaluate(() =>
+    ![...document.querySelectorAll('#nav button')].some(x => /Proposals|العروض/.test(x.textContent))));
+  const off = await p.evaluate(() => { current = 'offers'; render(); return { cur: current, len: (document.getElementById('view')?.innerText || '').length }; });
+  check('the /offers page itself still renders (reachable by URL)', off.cur === 'offers' && off.len > 40, JSON.stringify(off));
+  await p.evaluate(() => { current = 'documents'; render(); });
+  await p.waitForTimeout(1200);
+}
 /* sub-addresses: switching tab writes /documents/<tab>, and a /documents/offer
    deep link opens straight onto the Price Offer tab */
 await p.evaluate(() => { const bts = [...document.querySelectorAll('#dgWrap .dg-tabs button')]; const bt = bts.find(x => /Price Offer|عرض السعر/.test(x.textContent)); if (bt) bt.click(); });
