@@ -111,6 +111,13 @@
   }
   /* QA hook: lets a probe read which tab the page believes is open */
   window.__dgTabProbe=function(){ return DG.tab; };
+  /* Eager registry load (audit fix): the AGENCY hydration above must not wait for the
+     Generator page to be opened — invoice previews can print before that. Retry until
+     the shared client exists (sign-in) and the rows arrive, then stop. */
+  (function(){ var tries=0; var t=setInterval(function(){ try{
+    tries++; if(DG.rows||tries>40){ clearInterval(t); return; }
+    loadRegistry();
+  }catch(_){ } },1500); })();
   function loadRegistry(force){
     if(DG.loading)return; if(DG.rows&&!force)return;
     var c=client(); if(!c)return;
@@ -119,6 +126,22 @@
       DG.loading=false;
       if(r.error){ console.warn('[dg] registry load',r.error); DG.rows=[]; }
       else DG.rows=r.data||[];
+      /* Hydrate the legacy AGENCY block (core-06) from the registry — audit fix 2026-08-24.
+         Its VAT/IBAN literals were stale (old VAT number; an IBAN matching none of the
+         registered accounts) and printed on in-app invoice previews + seeded the ZATCA QR.
+         The literals are now empty in core-06; the CURRENT values flow from here, so a
+         registry edit updates every consumer. Default document account = Al Rajhi (the
+         account on recent letters — owner question Q4; change the registry row to change it). */
+      try{
+        /* AGENCY is a top-level const in core-06 — a global binding but NOT a window property */
+        if(typeof AGENCY!=='undefined'&&AGENCY&&DG.rows&&DG.rows.length){
+          var g=function(k){ var x=DG.rows.find(function(r){return r.key===k;}); return x?(x.value_en||''):''; };
+          if(g('vat_number'))AGENCY.vat=g('vat_number');
+          if(g('iban_alrajhi')){ AGENCY.iban=g('iban_alrajhi'); AGENCY.bank='Al Rajhi Bank'; }
+          if(g('cr_number'))AGENCY.cr=g('cr_number');
+          if(g('capital'))AGENCY.capital=g('capital')+' SAR';
+        }
+      }catch(e){ console.warn('[dg] agency hydrate',e); }
       try{ if(current==='documents')render(); }catch(_){}
     });
   }
