@@ -303,6 +303,7 @@
     '#dgWrap{--dg-acc:var(--accent,#888)}'+
     '#dgWrap .dg-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}'+
     '#dgWrap .dg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}'+
+    '#dgWrap .dg-grid>*{min-width:0}'+
     '#dgWrap .dg-cat h3{margin:18px 0 8px;color:var(--accent);font-size:15px}'+
     '#dgWrap table.dg{width:100%;border-collapse:collapse;font-size:13.5px}'+
     '#dgWrap table.dg td{padding:7px 8px;border-bottom:1px solid var(--hairline,#eee);vertical-align:top}'+

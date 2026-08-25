@@ -392,6 +392,7 @@
   function css(){ return '<style id="tdCss">'+
     '#tdWrap{display:grid;grid-template-columns:420px 1fr;gap:18px;align-items:start}'+
     '@media(max-width:1100px){#tdWrap{grid-template-columns:1fr}}'+
+    '#tdPreviewCol{min-width:0;overflow-x:auto}'+
     '#tdWrap .td-form label{display:block;font-weight:700;font-size:12px;margin:10px 0 4px;color:var(--ink)}'+
     '#tdWrap .td-form input,#tdWrap .td-form select,#tdWrap .td-form textarea{width:100%;box-sizing:border-box;border:1px solid var(--hairline,#ddd);border-radius:9px;padding:8px 10px;font-size:13.5px;font-family:inherit;background:var(--surface,#fff);color:var(--ink)}'+
     '#tdWrap .td-form textarea{min-height:56px;resize:vertical}'+

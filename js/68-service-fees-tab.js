@@ -292,6 +292,7 @@
   function css(){ return '<style id="sfCss">'+
     '#sfWrap{display:grid;grid-template-columns:400px 1fr;gap:18px;align-items:start}'+
     '@media(max-width:1100px){#sfWrap{grid-template-columns:1fr}}'+
+    '#sfPreviewCol{min-width:0;overflow-x:auto}'+
     '#sfWrap .sf-form label{display:block;font-weight:700;font-size:12px;margin:10px 0 4px;color:var(--ink)}'+
     '#sfWrap .sf-form input,#sfWrap .sf-form select,#sfWrap .sf-form textarea{width:100%;box-sizing:border-box;border:1px solid var(--hairline,#ddd);border-radius:9px;padding:8px 10px;font-size:13.5px;font-family:inherit;background:var(--surface,#fff);color:var(--ink)}'+
     '#sfWrap .sf-form textarea{min-height:70px;resize:vertical}'+

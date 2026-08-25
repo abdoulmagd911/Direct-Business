@@ -353,6 +353,7 @@
   function css(){ return '<style id="ctCss">'+
     '#ctWrap{display:grid;grid-template-columns:420px 1fr;gap:18px;align-items:start}'+
     '@media(max-width:1100px){#ctWrap{grid-template-columns:1fr}}'+
+    '#ctPreviewCol{min-width:0;overflow-x:auto}'+
     '#ctWrap .ct-form label{display:block;font-weight:700;font-size:12px;margin:10px 0 4px;color:var(--ink)}'+
     '#ctWrap .ct-form input,#ctWrap .ct-form select,#ctWrap .ct-form textarea{width:100%;box-sizing:border-box;border:1px solid var(--hairline,#ddd);border-radius:9px;padding:8px 10px;font-size:13.5px;font-family:inherit;background:var(--surface,#fff);color:var(--ink)}'+
     '#ctWrap .ct-form textarea{min-height:70px;resize:vertical}'+

@@ -280,6 +280,7 @@
   function css(){ return '<style id="cpCss">'+
     '#cpWrap{display:grid;grid-template-columns:400px 1fr;gap:18px;align-items:start}'+
     '@media(max-width:1100px){#cpWrap{grid-template-columns:1fr}}'+
+    '#cpPreviewCol{min-width:0;overflow-x:auto}'+
     '#cpWrap .cp-form label{display:block;font-weight:700;font-size:12px;margin:10px 0 4px;color:var(--ink)}'+
     '#cpWrap .cp-form input,#cpWrap .cp-form select,#cpWrap .cp-form textarea{width:100%;box-sizing:border-box;border:1px solid var(--hairline,#ddd);border-radius:9px;padding:8px 10px;font-size:13.5px;font-family:inherit;background:var(--surface,#fff);color:var(--ink)}'+
     '#cpWrap .cp-form textarea{min-height:70px;resize:vertical}'+
@@ -553,7 +554,7 @@
       '</fieldset>'+
       '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'+
         (w?'<button class="btn sm pri" '+(S.saving?'disabled':'')+' onclick="cpSaveDraft()">'+(S.saving?fl('Saving…','جارٍ الحفظ…'):fl('Save draft','حفظ المسودة'))+'</button>':'')+
-        (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="cpIssue()">'+fl('Issue — assign official number','إصدار — تعيين رقم رسمي')+'</button>':'')+
+        (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="cpIssue()">'+fl('Issue profile','إصدار الملف')+'</button>':'')+
         '<button class="btn sm ghost" onclick="cpPrint()">'+fl('Print / PDF','طباعة / PDF')+'</button>'+
       '</div>'+
     '</div>';
