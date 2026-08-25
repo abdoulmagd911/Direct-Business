@@ -207,9 +207,9 @@ const pv = await p.evaluate(() => document.getElementById('poPages')?.innerText 
 check('preview prints the computed total 115.00', pv.includes('115.00'));
 check('preview shows the VAT 15% line once priced (legitimate on client documents)',
   /VAT 15%|ضريبة القيمة المضافة 15%/.test(pv));
-check('issue button carries the official-number wording',
+check('issue button shows the trimmed Issue-offer label AND keeps the relabel-guard attribute',
   await p.evaluate(() => [...document.querySelectorAll('#poBar button')]
-    .some(x => /Issue offer — assign official number|إصدار العرض — تعيين رقم رسمي/.test(x.textContent))));
+    .some(x => /^\s*(Issue offer|إصدار العرض)\s*$/.test(x.textContent) && x.getAttribute('data-v21relabeled') === 'true')));
 
 /* 4 — amount in words, both languages, from the live page's own algorithm */
 const w = await p.evaluate(() => window.__poWordsProbe ? __poWordsProbe(115) : null);
