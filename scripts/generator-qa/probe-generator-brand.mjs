@@ -108,6 +108,7 @@ const FIXTURE = [
   { key: 'legal_name', category: 'legal', label_en: 'Legal name', label_ar: 'الاسم القانوني', value_en: 'Synthetic Test Co Ltd', value_ar: 'شركة اختبار', expires_on: null, source: 'fixture', sensitive: false, show_on_documents: true, sort: 10, proof_path: null },
   { key: 'cr_number', category: 'legal', label_en: 'CR', label_ar: 'السجل', value_en: '9999999999', value_ar: null, expires_on: '2020-01-01', source: 'fixture', sensitive: false, show_on_documents: true, sort: 20, proof_path: null },
   { key: 'vat_number', category: 'tax', label_en: 'VAT', label_ar: 'ضريبة', value_en: '999999999999999', value_ar: null, expires_on: null, source: 'fixture', sensitive: false, show_on_documents: true, sort: 30, proof_path: null },
+  { key: 'iban_alinma', category: 'banking', label_en: 'Alinma IBAN', label_ar: 'آيبان', value_en: 'SA9999999999999999999999', value_ar: null, expires_on: null, source: 'fixture', sensitive: true, show_on_documents: true, sort: 59, proof_path: null, download_name: null },
   { key: 'iban_test', category: 'banking', label_en: 'Test IBAN', label_ar: 'آيبان', value_en: 'SA0000000000000000000000', value_ar: null, expires_on: null, source: 'fixture', sensitive: true, show_on_documents: true, sort: 60, proof_path: null },
   /* certificate-like licence row with NO expiry date — must still appear on the radar
      with a neutral "date not on file" pill, and its proof gets a View button */
@@ -159,10 +160,10 @@ if (live.classic) {
   let ag = null;
   for (let i = 0; i < 24; i++) {
     ag = await p.evaluate(() => (typeof AGENCY !== 'undefined' ? { vat: AGENCY.vat, iban: AGENCY.iban } : null));
-    if (ag && ag.vat === '999999999999999') break;
+    if (ag && ag.vat === '999999999999999' && ag.iban === 'SA9999999999999999999999') break;
     await p.waitForTimeout(500);
   }
-  check('AGENCY.vat hydrates from the registry (not a stale literal)', !!ag && ag.vat === '999999999999999', 'got ' + JSON.stringify(ag));
+  check('AGENCY vat+iban hydrate from the registry (Alinma default)', !!ag && ag.vat === '999999999999999', 'got ' + JSON.stringify(ag));
 }
 
 /* page render */
@@ -186,7 +187,7 @@ check('brand assets render inline as thumbnails with Download', await p.evaluate
   document.querySelectorAll('#dgWrap .dg-chip img').length >= 4
   && [...document.querySelectorAll('#dgWrap .dg-chip a[download]')].length >= 4));
 check('sensitive value is masked until revealed', !txt.includes('SA0000000000000000000000') && /hidden|مخفي/.test(txt));
-await p.evaluate(() => { const b = [...document.querySelectorAll('#dgWrap button')].find(x => /^(Show|عرض)$/.test(x.textContent.trim())); if (b) b.click(); });
+await p.evaluate(() => { [...document.querySelectorAll('#dgWrap button')].filter(x => /^(Show|عرض)$/.test(x.textContent.trim())).forEach(b=>b.click()); });
 await p.waitForTimeout(600);
 const txt2 = await p.evaluate(() => (document.getElementById('view') || {}).innerText || '');
 check('reveal shows the value on demand', txt2.includes('SA0000000000000000000000'));

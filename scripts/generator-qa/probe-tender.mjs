@@ -17,7 +17,7 @@
    6. The 4-phase work plan renders (real anatomy, pre-seeded).
    7. Amounts in words EN+AR for a known total; VAT 15% math; payment schedule
       renders; the fee formula is present VERBATIM in the financial document.
-   8. Past-projects section is ABSENT by default (owner call); certificates
+   8. Past-projects section is PRESENT by default (owner ruling 25 Aug); certificates
       index lists proof documents as "attached: <label>".
    9. Draft save POSTs TWO rows — family TEC and family FIN — sharing
       payload.tender_ref, both with NO doc_number (numbering is issue-time,
@@ -182,8 +182,8 @@ check('the TECHNICAL document is the default view', await p.evaluate(() =>
     return true;
   })(), 'phase order broken');
   check('the tender definition carries exactly 4 phases', await p.evaluate(() => window.__tdProbe().phases === 4));
-  check('past-projects section is ABSENT by default (owner call)',
-    !txt.includes('مشاريع سابقة') && (await p.evaluate(() => window.__tdProbe().pastProjectsOn === false)));
+  check('past-projects section is PRESENT by default (owner ruling 25 Aug; M2 exclusions still never appear)',
+    (await p.evaluate(() => window.__tdProbe().pastProjectsOn === true)));
   check('certificates index lists proof documents as attached: <label>',
     txt.includes('الشهادات والمستندات الرسمية') && txt.includes('مرفق: رخصة اختبارية'));
 }
