@@ -137,7 +137,13 @@ if (live.classic) {
   check('product --accent resolves from tokens.css (' + EXP_PRODUCT.accent + ')',
     !!EXP_PRODUCT.accent && live.product.accent === EXP_PRODUCT.accent, 'got ' + JSON.stringify(live.product.accent));
   check('tokens.css <link> injected', live.classic.linkPresent === true);
-  const ag = await p.evaluate(() => (typeof AGENCY!=='undefined' ? { vat: AGENCY.vat, iban: AGENCY.iban } : null));
+  /* hydration runs on a 1.5s retry loop — poll up to 12s instead of racing a fixed wait */
+  let ag = null;
+  for (let i = 0; i < 24; i++) {
+    ag = await p.evaluate(() => (typeof AGENCY !== 'undefined' ? { vat: AGENCY.vat, iban: AGENCY.iban } : null));
+    if (ag && ag.vat === '999999999999999') break;
+    await p.waitForTimeout(500);
+  }
   check('AGENCY.vat hydrates from the registry (not a stale literal)', !!ag && ag.vat === '999999999999999', 'got ' + JSON.stringify(ag));
 }
 
