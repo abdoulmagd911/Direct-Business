@@ -63,7 +63,10 @@
         certNote:'The listed proof documents are appended as PDF pages by the sender when printing — this page is the index.',
         sched:'Monthly payment schedule',month:'Month',notes:'Notes',
         subtotal:'Subtotal (SAR)',vat:'VAT 15% (SAR)',grand:'Total incl. VAT (SAR)',
-        validity:'Offer validity',num:'#'},
+        validity:'Offer validity',num:'#',
+        services:'Our services',stats:'Direct in numbers',
+        scopeTbl:'Scope of work',location:'Location',near:'Near to',beneficiaries:'Beneficiaries',dates:'Dates',
+        insertMethod:'Insert the standard delivery methodology'},
     ar:{tec:'العرض الفني',fin:'العرض المالي',no:'رقم المستند',date:'التاريخ',draftPill:'مسودة',wm:'مسودة',
         about:'نبذة عن الشركة',plan:'خطة العمل',phase:'المرحلة',dur:'المدة',
         scope:'نطاق الخدمات والعملية الفنية',proc:'العملية الفنية',
@@ -74,7 +77,10 @@
         certNote:'المستندات المذكورة تُرفق كصفحات PDF من قِبل المرسل عند الطباعة — هذه الصفحة فهرس لها.',
         sched:'جدول الدفعات الشهرية',month:'الشهر',notes:'ملاحظات',
         subtotal:'المجموع (ريال)',vat:'ضريبة القيمة المضافة 15% (ريال)',grand:'الإجمالي شامل الضريبة (ريال)',
-        validity:'صلاحية العرض',num:'#'}
+        validity:'صلاحية العرض',num:'#',
+        services:'خدماتنا',stats:'دايركت في أرقام',
+        scopeTbl:'نطاق العمل',location:'الموقع',near:'قريب من',beneficiaries:'المستفيدون',dates:'التواريخ',
+        insertMethod:'إدراج منهجية التنفيذ المعتمدة'}
   };
   /* the verbatim fee formula — owner wording, never rephrased */
   var FEE_FORMULA='كل دفعة = تكلفة الخدمة المطلوبة + رسوم الخدمة التعاقدية';
@@ -88,7 +94,47 @@
       {tEn:'Continuous service',tAr:'الخدمة المستمرة',dEn:'Ongoing service delivery and account management',dAr:'تقديم الخدمة المستمرة وإدارة الحساب',dur:'Contract term',durAr:'مدة العقد'}
     ];
   }
-  function blankScope(){ return {nEn:'',nAr:'',pEn:'',pAr:''}; }
+  /* scope item: name + technical process, PLUS the optional real scope-of-work
+     table columns (البند 68) — location, near-to landmark, beneficiary count,
+     duration, and dual dates (Hijri text + Gregorian text). All optional, all
+     free-text; dates are text and are NEVER computed. */
+  /* Load the REAL 4-phase delivery methodology from the DB (tender_template_sections,
+     kind='method') and replace S.cur.phases with it — fully editable afterwards.
+     The text lives in the DB (D4 provenance): NOTHING is hardcoded here. If the
+     table can't be read, toast plainly and leave the phases untouched. seedPhases()
+     stays as the fallback for a fresh tender. */
+  window.tdInsertMethodology=function(){
+    if(S.insertingMethod)return;
+    var c=client();
+    if(!c){ toast(fl('Could not load the standard methodology — no connection.','تعذّر تحميل المنهجية المعتمدة — لا يوجد اتصال.')); return; }
+    S.insertingMethod=true; repaint();
+    var done=function(msg){ S.insertingMethod=false; if(msg)toast(msg); repaint(); };
+    try{
+      c.from('tender_template_sections')
+       .select('key,title_en,title_ar,body_en,body_ar,kind,sort,enabled')
+       .eq('kind','method').eq('enabled',true).order('sort',{ascending:true})
+       .then(function(r){
+         if(r.error||!Array.isArray(r.data)||!r.data.length){
+           done(fl('Could not load the standard methodology — leaving your phases as they are.',
+                   'تعذّر تحميل المنهجية المعتمدة — تم الإبقاء على مراحلك كما هي.'));
+           return;
+         }
+         S.cur.phases=r.data.map(function(row){
+           return { tEn:row.title_en||'', tAr:row.title_ar||'',
+             dEn:row.body_en||'', dAr:row.body_ar||'', dur:'', durAr:'' };
+         });
+         done(fl('Standard delivery methodology inserted — everything stays editable.',
+                 'تم إدراج منهجية التنفيذ المعتمدة — جميع الحقول قابلة للتعديل.'));
+       });
+    }catch(_){ done(fl('Could not load the standard methodology — leaving your phases as they are.',
+                       'تعذّر تحميل المنهجية المعتمدة — تم الإبقاء على مراحلك كما هي.')); }
+  };
+  function blankScope(){ return {nEn:'',nAr:'',pEn:'',pAr:'',
+    locEn:'',locAr:'',nearEn:'',nearAr:'',benef:'',durEn:'',durAr:'',dateHijri:'',dateGreg:''}; }
+  /* normalise one scope item so a payload saved before these keys existed still
+     renders (safe defaults, never overwriting a filled value) */
+  function normScope(s){ s=s||{}; var d=blankScope();
+    for(var k in d){ if(s[k]==null)s[k]=d[k]; } return s; }
   function blankBoq(){ return {en:'',ar:'',unit:'',qty:1,price:''}; }
   function blankTeam(){ return {role:'',name:''}; }
   function blankPay(){ return {month:'',amount:'',notes:''}; }
@@ -105,7 +151,8 @@
   var S={ cur:blankDoc(), view:'tec',
           tec:{rowId:null,docNumber:null,status:'draft'},
           fin:{rowId:null,docNumber:null,status:'draft'},
-          identity:null, list:null, listLoading:false, saving:false };
+          identity:null, list:null, listLoading:false, saving:false,
+          profileSecs:null, insertingMethod:false };
 
   /* ---------- data ---------- */
   function loadIdentity(){
@@ -121,6 +168,40 @@
     return r.value_en||r.value_ar||'';
   }
   function proofRows(){ return (S.identity||[]).filter(function(r){return r.proof_path;}); }
+  /* the EXISTING company_profile_sections rows (same DB the profile tab uses) —
+     'services' and 'stats' only, and only when enabled. If unreachable we render
+     NOTHING (never a placeholder — D4). */
+  function loadProfileSecs(){
+    if(S.profileSecs!==null)return;
+    var c=client(); if(!c)return;
+    S.profileSecs=[];
+    try{
+      c.from('company_profile_sections').select('key,title_en,title_ar,items,enabled')
+       .in('key',['services','stats']).eq('enabled',true)
+       .then(function(r){ S.profileSecs=r.error?[]:(r.data||[]); repaint(); });
+    }catch(_){ S.profileSecs=[]; }
+  }
+  function profileSec(key){ return (S.profileSecs||[]).find(function(x){return x.key===key&&x.enabled;})||null; }
+  /* a short "Our services" / "Direct in numbers" block, sourced ONLY from the DB.
+     services items are {en,ar}; stats items are {value,label_en,label_ar}. */
+  function profileBlocksHtml(t,ar){
+    var out='';
+    var svc=profileSec('services');
+    if(svc&&Array.isArray(svc.items)&&svc.items.length){
+      var names=svc.items.map(function(it){ return ar?(it.ar||it.en||''):(it.en||it.ar||''); }).filter(Boolean);
+      if(names.length)out+=h(t,t.services)+'<p class="td-p">'+names.map(esc).join(ar?' · ':' · ')+'</p>';
+    }
+    var st=profileSec('stats');
+    if(st&&Array.isArray(st.items)&&st.items.length){
+      var rows=st.items.map(function(it){
+        var lbl=ar?(it.label_ar||it.label_en||''):(it.label_en||it.label_ar||'');
+        var val=it.value||'';
+        return (val||lbl)?'<tr><td class="amt">'+esc(val)+'</td><td class="svc">'+esc(lbl)+'</td></tr>':'';
+      }).filter(Boolean).join('');
+      if(rows)out+=h(t,t.stats)+'<table class="td-t"><tbody>'+rows+'</tbody></table>';
+    }
+    return out;
+  }
   /* real-design footer strip (2026-08-25): QR · email/site · branches · AR legal
      block. Unified/licence numbers hydrate from the registry when rows exist;
      the printed-footer literals are the text fallback (public footer text). */
@@ -243,7 +324,8 @@
     if(!rec||!rec.payload)return;
     S.cur=Object.assign(blankDoc(),rec.payload);
     if(!Array.isArray(S.cur.phases)||!S.cur.phases.length)S.cur.phases=seedPhases();
-    if(!Array.isArray(S.cur.scope))S.cur.scope=[blankScope()];
+    if(!Array.isArray(S.cur.scope)||!S.cur.scope.length)S.cur.scope=[blankScope()];
+    else S.cur.scope=S.cur.scope.map(normScope);
     if(!Array.isArray(S.cur.boq))S.cur.boq=[blankBoq()];
     if(!Array.isArray(S.cur.team))S.cur.team=[blankTeam()];
     if(!Array.isArray(S.cur.schedule))S.cur.schedule=[blankPay()];
@@ -495,7 +577,24 @@
     var legal=idv('legal_name',lang);
     var about=legal?('<p class="td-p">'+esc(legal)+(idv('cr_number','en')?' · CR '+esc(idv('cr_number','en')):'')+'</p>'):'';
     var scope=(S.cur.scope||[]).filter(function(s){return s.nEn||s.nAr;});
-    var scopeHtml=scope.length?h(t,t.scope)+scope.map(function(s,i){
+    /* does ANY scope item carry the extended scope-of-work columns? */
+    var scopeHasTbl=scope.some(function(s){
+      return s.locEn||s.locAr||s.nearEn||s.nearAr||s.benef||s.durEn||s.durAr||s.dateHijri||s.dateGreg;
+    });
+    var scopeTblHtml=scopeHasTbl?'<table class="td-t"><thead><tr>'+
+      '<th>'+t.item+'</th><th>'+t.location+'</th><th>'+t.near+'</th><th>'+t.beneficiaries+'</th><th>'+t.dur+'</th><th>'+t.dates+'</th></tr></thead><tbody>'+
+      scope.map(function(s){
+        var nm=ar?(s.nAr||s.nEn):(s.nEn||s.nAr);
+        var loc=ar?(s.locAr||s.locEn):(s.locEn||s.locAr);
+        var nr=ar?(s.nearAr||s.nearEn):(s.nearEn||s.nearAr);
+        var du=ar?(s.durAr||s.durEn):(s.durEn||s.durAr);
+        var dt=[s.dateHijri,s.dateGreg].filter(Boolean).join(' / ');
+        return '<tr><td class="svc">'+esc(nm)+'</td><td>'+esc(loc||'—')+'</td><td>'+esc(nr||'—')+'</td>'+
+          '<td>'+esc(String(s.benef||'—'))+'</td><td>'+esc(du||'—')+'</td><td>'+esc(dt||'—')+'</td></tr>';
+      }).join('')+'</tbody></table>':'';
+    var scopeHtml=scope.length?h(t,t.scope)+
+      (scopeHasTbl?'<div class="td-h" style="margin:6px 0 4px;font-size:13px">'+t.scopeTbl+'</div>'+scopeTblHtml:'')+
+      scope.map(function(s,i){
       var nm=ar?(s.nAr||s.nEn):(s.nEn||s.nAr);
       var pr=ar?(s.pAr||s.pEn):(s.pEn||s.pAr);
       return '<p class="td-p"><b>'+(i+1)+'. '+esc(nm)+'</b>'+(pr?'<br><span class="td-note">'+t.proc+': '+esc(pr)+'</span>':'')+'</p>';
@@ -513,6 +612,7 @@
     }
     var main=pageOpen(t,ar,st)+titleBlock(t,ar,t.tec,st)+
       (about?h(t,t.about)+about:'')+
+      profileBlocksHtml(t,ar)+
       phasesHtml(t,ar)+
       scopeHtml+
       h(t,t.timeline)+'<div class="td-note">'+(ar?'الجدول الزمني يتبع مراحل خطة العمل أعلاه.':'The timeline follows the work-plan phases above.')+'</div>'+
@@ -623,6 +723,11 @@
         '<input value="'+esc(S.cur.validity)+'" oninput="tdSet(\'validity\',this.value)">'+
       '</fieldset>'+
       '<fieldset><legend>'+fl('Work plan (4 phases — pre-seeded from the real anatomy, editable)','خطة العمل (٤ مراحل — من البنية الفعلية، قابلة للتعديل)')+'</legend>'+
+        '<button type="button" class="td-add" '+(S.insertingMethod?'disabled':'')+' onclick="tdInsertMethodology()">'+
+          (S.insertingMethod?fl('Loading…','جارٍ التحميل…'):('★ '+fl(T.en.insertMethod,T.ar.insertMethod)))+'</button>'+
+        '<div class="td-note" style="font-size:11px;color:var(--muted,#777);margin:4px 0 6px">'+
+          fl('Loads the standard 4-phase delivery methodology from the template library. Everything stays editable.',
+             'يحمّل منهجية التنفيذ المعتمدة (٤ مراحل) من مكتبة القوالب. جميع الحقول تبقى قابلة للتعديل.')+'</div>'+
         (S.cur.phases||[]).map(function(p,i){
           return '<div class="td-row">'+rowCtl('phases',i)+
             inp('phases',i,'tEn',p.tEn,fl('Phase (EN)','المرحلة بالإنجليزية'))+
@@ -643,6 +748,25 @@
             inp('scope',i,'nAr',s.nAr,fl('Item (AR)','البند بالعربية'),true)+
             '<label>'+fl('Technical process (EN)','العملية الفنية بالإنجليزية')+'</label><textarea oninput="tdItemSet(\'scope\','+i+',\'pEn\',this.value)">'+esc(s.pEn||'')+'</textarea>'+
             '<label>'+fl('Technical process (AR)','العملية الفنية بالعربية')+'</label><textarea dir="rtl" oninput="tdItemSet(\'scope\','+i+',\'pAr\',this.value)">'+esc(s.pAr||'')+'</textarea>'+
+            '<div class="td-note" style="font-size:11px;color:var(--muted,#777);margin:6px 0 2px">'+
+              fl('Scope-of-work table (optional — all free text; dates are text, never computed)','جدول نطاق العمل (اختياري — نص حر؛ التواريخ نص وليست محسوبة)')+'</div>'+
+            '<div class="td-row2">'+
+              '<div>'+inp('scope',i,'locEn',s.locEn,fl('Location (EN)','الموقع بالإنجليزية'))+'</div>'+
+              '<div>'+inp('scope',i,'locAr',s.locAr,fl('Location (AR)','الموقع بالعربية'),true)+'</div>'+
+            '</div>'+
+            '<div class="td-row2">'+
+              '<div>'+inp('scope',i,'nearEn',s.nearEn,fl('Near to (EN)','قريب من بالإنجليزية'))+'</div>'+
+              '<div>'+inp('scope',i,'nearAr',s.nearAr,fl('Near to (AR)','قريب من بالعربية'),true)+'</div>'+
+            '</div>'+
+            inp('scope',i,'benef',s.benef,fl('Beneficiary count','عدد المستفيدين'))+
+            '<div class="td-row2">'+
+              '<div>'+inp('scope',i,'durEn',s.durEn,fl('Duration (EN)','المدة بالإنجليزية'))+'</div>'+
+              '<div>'+inp('scope',i,'durAr',s.durAr,fl('Duration (AR)','المدة بالعربية'),true)+'</div>'+
+            '</div>'+
+            '<div class="td-row2">'+
+              '<div>'+inp('scope',i,'dateHijri',s.dateHijri,fl('Date (Hijri, text)','التاريخ الهجري (نص)'),true)+'</div>'+
+              '<div>'+inp('scope',i,'dateGreg',s.dateGreg,fl('Date (Gregorian, text)','التاريخ الميلادي (نص)'))+'</div>'+
+            '</div>'+
           '</div>';
         }).join('')+
         '<button type="button" class="td-add" onclick="tdItem(\'scope\',\'add\')">+ '+fl('Add scope item','إضافة بند نطاق')+'</button>'+
@@ -703,7 +827,7 @@
 
   /* ---------- tab body + repaints ---------- */
   function tabHtml(){
-    loadIdentity(); loadList();
+    loadIdentity(); loadList(); loadProfileSecs();
     return css()+
       '<div id="tdWrap">'+
         '<div>'+formHtml()+'</div>'+
