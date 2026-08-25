@@ -346,7 +346,7 @@
        even with no date on file: a neutral "date not on file" pill instead of silence,
        so a missing date is visible, never fabricated. Sort: expired → soonest → no date. */
     var CERT_CATS=['licence','membership','tax','legal'];
-    var radar=rows.filter(function(r){return r.expires_on||CERT_CATS.indexOf(r.category)>=0;})
+    var radar=rows.filter(function(r){return r.expires_on||['licence','membership'].indexOf(r.category)>=0; /* audit: identity rows that never expire (legal name, unified no., VAT) do not belong on a renewals radar */})
       .map(function(r){return {r:r,ex:expiryState(r.expires_on)};})
       .sort(function(a,b){
         var da=a.ex?a.ex.days:Infinity, db=b.ex?b.ex.days:Infinity;
