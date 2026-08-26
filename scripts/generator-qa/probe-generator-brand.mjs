@@ -287,6 +287,37 @@ check('reveal shows the value on demand', txt2.includes('SA000000000000000000000
   check('Cancel closes the form without writing', patches.length === 1 && await p.evaluate(() => !document.getElementById('dgE_en')));
 }
 
+/* ---- Replace proof moved off the row strip into the edit form (declutter 2026-08-26):
+        rows with a proof end at 4 actions (View document / Download / Copy / Edit);
+        rows without one keep Attach proof on the row (nothing to view yet) ---- */
+{
+  const strip = await p.evaluate(() => {
+    const t = document.getElementById('dgWrap').innerText;
+    return { replaceVisible: /Replace proof|استبدال المستند/.test(t),
+             attachVisible: /Attach proof|إرفاق مستند/.test(t) };
+  });
+  check('row strips show NO Replace proof while nothing is being edited', !strip.replaceVisible, JSON.stringify(strip));
+  check('rows without a proof still offer Attach proof on the row', strip.attachVisible, JSON.stringify(strip));
+  const openEdit = (rowText) => p.evaluate((t) => {
+    /* the renewals radar lists the same licence WITHOUT an Edit button — pick the
+       registry row (the one that actually carries Edit), not merely the first match */
+    const tr = [...document.querySelectorAll('#dgWrap table.dg tr')].find(x => x.innerText.includes(t)
+      && [...x.querySelectorAll('button')].some(b => /^(Edit|تعديل)$/.test(b.textContent.trim())));
+    const b = tr && [...tr.querySelectorAll('button')].find(x => /^(Edit|تعديل)$/.test(x.textContent.trim()));
+    if (b) { b.click(); return true; } return false;
+  }, rowText);
+  check('Edit opens on the proof-carrying licence row', await openEdit('Test licence'));
+  await p.waitForTimeout(500);
+  const ed = await p.evaluate(() => {
+    const e = document.querySelector('#dgWrap .dg-edit');
+    return { open: !!e, replaceInEdit: !!e && /Replace proof|استبدال المستند/.test(e.innerText),
+             fileInput: !!e && !!e.querySelector('input[type="file"]') };
+  });
+  check('edit form carries Replace proof with its file-upload control', ed.open && ed.replaceInEdit && ed.fileInput, JSON.stringify(ed));
+  await p.evaluate(() => { const b = [...document.querySelectorAll('#dgWrap .dg-edit button')].find(x => /^(Cancel|إلغاء)$/.test(x.textContent.trim())); if (b) b.click(); });
+  await p.waitForTimeout(400);
+}
+
 /* ---- radar dates never wrap mid-date ---- */
 {
   const radar = await p.evaluate(() => {

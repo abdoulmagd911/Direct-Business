@@ -113,6 +113,19 @@ const IDENTITY = [
 await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r =>
   r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(IDENTITY) }));
 
+/* standard-rates scenario fixture (quick-add prefills the standard fee). The app asks
+   for the lowest-`sort` row only (order=sort.asc, limit=1). Names deliberately carry
+   stray case/whitespace to prove the match is case-insensitive and trimmed.
+   'Visa services' is deliberately ABSENT so a non-matching quick-add stays empty. */
+const SCENARIOS = [
+  { id: 'bbbbbbbb-0000-0000-0000-000000000001', name_en: 'Flat corporate rates', sort: 1,
+    rows: [{ title_en: 'Flights', title_ar: 'الطيران', rows: [
+      { svc_en: '  domestic FLIGHT booking ', svc_ar: 'حجز طيران داخلي', fees: [25] },
+      { svc_en: 'Hotel reservation', svc_ar: 'حجز فندقي', fees: [40] }] }] },
+];
+await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/service_fee_scenarios**', r =>
+  r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SCENARIOS.slice(0, 1)) }));
+
 let draftPost = null;
 await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**', async r => {
   const rq = r.request();
@@ -235,6 +248,29 @@ if (draftPost) {
   check('POST body: payload carries the line items', !!body.payload && Array.isArray(body.payload.lines)
     && body.payload.lines.some(l => String(l.price) === '100'));
 }
+
+/* 5b — quick-add prefills the standard fee from service_fee_scenarios (silent, editable) */
+const quickAdd = async (name) => {
+  await p.evaluate((nm) => {
+    const sel = [...document.querySelectorAll('#poWrap select')]
+      .find(s => (s.getAttribute('onchange') || '').includes('poQuickAdd'));
+    const opt = [...sel.options].find(o => o.value !== '' && o.text.includes(nm));
+    sel.value = opt.value;
+    sel.dispatchEvent(new Event('change'));
+  }, name);
+  await p.waitForTimeout(500);
+  return p.evaluate(() => {
+    const lines = [...document.querySelectorAll('#poWrap .po-line')];
+    const last = lines[lines.length - 1];
+    return { svc: last.querySelector('input').value, price: last.querySelector('input[step="0.01"]').value };
+  });
+};
+const qa1 = await quickAdd('Domestic flight booking');
+check('quick-add prefills the scenario standard fee (25), case-insensitive + trimmed match',
+  qa1.svc === 'Domestic flight booking' && qa1.price === '25', JSON.stringify(qa1));
+const qa2 = await quickAdd('Visa services');
+check('quick-add of a service NOT in the scenario leaves the price empty (never invented)',
+  qa2.svc === 'Visa services' && qa2.price === '', JSON.stringify(qa2));
 
 /* 6 — nothing in js/67 ever writes localStorage */
 const ls = await p.evaluate(() => (window.__lsWrites || []).filter(x => x.stack.includes('67-price-offer')));
