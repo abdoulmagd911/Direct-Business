@@ -89,8 +89,22 @@ async function main() {
   else ok('baseline: the two synthetic rows show as separate clients, exactly as reported — proves the test is real');
 
   // ---- Drive the real admin UI: Finance > Import > "+ Add alias" ----
+  // Settle first: the seeding steps above leave a pending debounced global render() that can
+  // fire moments after finGo and inject the card COINCIDENTALLY, masking a missing finGo hook
+  // (measured 2026-08-26: without the settle, a sabotaged build still passed; with it, the
+  // card stays absent indefinitely). The first-paint check below is only honest after this.
+  await p.waitForTimeout(3000);
   await p.evaluate(() => { current = 'finance'; if (typeof window.finGo === 'function') window.finGo('import'); });
-  await p.waitForTimeout(900);
+  // FIRST-PAINT check (found by hands-on driving 2026-08-26): finGo('import') paints via
+  // renderFinance() directly, and v62 originally hooked only window.render — so the whole
+  // guardrails/alias card was missing on the common first paint of the Import tab (the M12
+  // shape again). The finGo hook must make it appear immediately, not after some later
+  // unrelated global render happens to fire.
+  await p.waitForTimeout(400);
+  const firstPaint = await p.evaluate(() => !!document.querySelector('.v62-guardrails'));
+  if (!firstPaint) fail('FIRST-PAINT: the guardrails/alias card is missing right after finGo(\'import\') — the finGo hook is not wired (M12 shape: a tab-switch is not a global render)');
+  else ok('FIRST-PAINT: the guardrails/alias card is present immediately on the finGo(\'import\') paint');
+  await p.waitForTimeout(500);
 
   // Business-linked auto-suggest: "Test Company 4"/"Test Company 5" are the mock's own
   // pre-existing fixture — already linked to the SAME business (finance_client_links) but
@@ -108,6 +122,18 @@ async function main() {
   if (!opened) fail('could not find the "+ Add alias" button — the guardrails card did not render or the button text changed');
   else ok('opened the real "Add client name alias" modal via the admin UI');
   await p.waitForTimeout(400);
+
+  // EXCLUDED clients must never be offered as merge candidates (found by hands-on driving
+  // 2026-08-26: the picker listed "Takamol for Business Services" with its totals, because
+  // groupCandidates()'s window.live fallback skipped the exclusion filter — js/16's live() is
+  // IIFE-scoped and never actually reaches window). The mock seeds both the Takamol invoice
+  // row and its exclusion entry, so this is the exact standing-invariant fixture. The card's
+  // exclusion-LIST section legitimately shows the name (that is where the rule is managed) —
+  // the assertion is scoped to the picker's options only.
+  const pickerOptions = await p.evaluate(() => [...document.querySelectorAll('#g2_aliases option')].map((o) => o.value));
+  const leakedExcluded = pickerOptions.filter((v) => /takamol|techtic/i.test(v));
+  if (leakedExcluded.length) fail(`EXCLUSION LEAK: the alias picker offers excluded client(s) as merge candidates: ${JSON.stringify(leakedExcluded)} — groupCandidates() is not applying finExclusionCheck`);
+  else ok('the alias picker offers no excluded client (Takamol/Techtic absent from the candidates)');
 
   await p.selectOption('#g2_aliases', [ALIAS_EN, ALIAS_AR]);
   await p.fill('#g2_name', CANONICAL);

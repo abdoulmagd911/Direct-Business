@@ -549,7 +549,17 @@
       });
     });
   }
-  function processExpenseLinesBatch(rawRows, header){
+  function processExpenseLinesBatch(rawRows, header, gen){
+    // M17 (found by hands-on driving 2026-08-26): the file input's own change event AND the
+    // "Check file" button both call processFileList on the same selection — the natural owner
+    // flow (pick files, then click the button) processed everything twice, and the session-level
+    // accumulators here doubled every expense line (900 became 1800). Two guards fix it:
+    // (1) a batch arriving from a SUPERSEDED drop (its stream still finishing after a newer
+    // processFileList started) is discarded outright, same philosophy as the myGen repaint
+    // guard; (2) first-touch tracking is per-DROP, not per-page-session, so a duplicate or
+    // deliberately re-dropped file REPLACES that transaction's lines instead of appending —
+    // which is also exactly the owner's incremental-update model within one sitting.
+    if(gen!==undefined&&gen!==GENERATION)return;
     var j=ensureExpenseJoin();
     var ixRef=header.indexOf('transaction_ref'), ixAmt=header.indexOf('amount_sar'), ixSt=header.indexOf('expense_status');
     if(ixRef<0||ixAmt<0||ixSt<0)return; // detectSignature() already guarantees these; defensive only
@@ -558,12 +568,16 @@
       var ref=String(row[ixRef]||'').trim(); if(!ref)return;
       var status=String(row[ixSt]||'').trim();
       // M15: the FIRST time this drop touches a given transaction_ref, clear whatever lines
-      // were loaded for it from the persisted baseline (an earlier session's capture) before
-      // pushing — a re-export is that transaction's complete current line list, replacing the
-      // stale one, never summed alongside it (the exact bug a naive append would reproduce:
-      // 1000 baseline + 1500 re-export silently double-counting to 2500). Repeated rows for the
-      // SAME ref later in this SAME drop still accumulate normally — real, separate expenses.
-      if(!LINES_TOUCHED_THIS_SESSION[ref]){ LINES_TOUCHED_THIS_SESSION[ref]=true; j.lines[ref]=[]; }
+      // exist for it — the persisted baseline of an earlier session AND anything a previous
+      // drop (or a duplicate run of this one) pushed this session — before pushing. A
+      // re-export is that transaction's complete current line list, replacing the stale one,
+      // never summed alongside it. Repeated rows for the SAME ref later in this SAME drop
+      // still accumulate normally — real, separate expenses.
+      if(LINES_TOUCHED_THIS_SESSION[ref]!==GENERATION){
+        LINES_TOUCHED_THIS_SESSION[ref]=GENERATION;
+        j.lines[ref]=[];
+        PENDING_CAPTURE.lines=PENDING_CAPTURE.lines.filter(function(x){return x.transaction_ref!==ref;});
+      }
       (j.lines[ref]=j.lines[ref]||[]).push({amount:row[ixAmt], status:status});
       PENDING_CAPTURE.lines.push({transaction_ref:ref, amount_sar:moneyG(row[ixAmt]), expense_status:status, source_batch:batchTag});
     });
@@ -575,7 +589,8 @@
     var m=String(raw||'').trim().match(/^issued\s+(\S+)/i);
     return m?m[1]:null;
   }
-  function processExpenseGateBatch(rawRows, header){
+  function processExpenseGateBatch(rawRows, header, gen){
+    if(gen!==undefined&&gen!==GENERATION)return; // superseded drop's late batch — discard (M17)
     var j=ensureExpenseJoin();
     var ixRef=header.indexOf('transaction_ref'), ixSt=header.indexOf('txn_expense_status'), ixRaw=header.indexOf('invoice_issuing_raw');
     if(ixRef<0||ixSt<0||ixRaw<0)return;
@@ -585,15 +600,17 @@
       var status=String(row[ixSt]||'').trim();
       var raw=String(row[ixRaw]||'').trim();
       var cur=j.gates[ref];
-      if(cur&&cur.__fromThisDrop){
-        // seen twice within THIS session's drop(s) — a genuine self-conflict if they disagree,
-        // exactly the old behavior.
+      if(cur&&cur.__dropGen===GENERATION){
+        // seen twice within THIS drop — a genuine self-conflict if they disagree, exactly the
+        // old behavior.
         if(cur.status.toLowerCase()!==status.toLowerCase()||cur.raw.toLowerCase()!==raw.toLowerCase()) cur.conflict=true;
       } else {
-        // either brand new, or was only baseline-loaded from a PRIOR session — a fresh drop's
-        // data properly supersedes it (M15: the owner's incremental-update requirement), never
-        // treated as a conflict just because it differs from what an earlier session captured.
-        j.gates[ref]={status:status, raw:raw, issuedInvoiceNo:parseInvoiceIssuing(raw), conflict:false, __fromThisDrop:true};
+        // brand new, baseline-loaded from a PRIOR session, or captured by an earlier (or
+        // duplicate — M17) drop this session — a fresh drop's data properly supersedes it
+        // (M15: the owner's incremental-update requirement), never treated as a conflict just
+        // because it differs from what was captured before this drop.
+        j.gates[ref]={status:status, raw:raw, issuedInvoiceNo:parseInvoiceIssuing(raw), conflict:false, __dropGen:GENERATION};
+        PENDING_CAPTURE.gates=PENDING_CAPTURE.gates.filter(function(x){return x.transaction_ref!==ref;});
       }
       PENDING_CAPTURE.gates.push({transaction_ref:ref, txn_expense_status:status, invoice_issuing_raw:raw, source_batch:batchTag});
     });
@@ -867,7 +884,7 @@
      vs a learned mapping vs "not recognised — offer to teach it" (aborting the read early in
      that last case, so a huge unrecognised file is never fully read for nothing), then batch
      and process the body accordingly. */
-  function routeCsvStreamed(f, fileKey, onProgress, done){
+  function routeCsvStreamed(f, fileKey, onProgress, done, gen){
     var header=null, mode=null, mapping=null, state=null, buf=[], ctrl=null, finished=false, typeColIdx=-1, totalRows=0;
     ctrl=streamCsvFile(f, {
       onRow:function(row,isFirst){
@@ -902,10 +919,10 @@
           if(buf.length>=GENERIC_BATCH_ROWS){ processGenericBatch(buf,header,mapping,state); buf=[]; }
         } else if(mode==='expense_lines'){
           buf.push(row);
-          if(buf.length>=GENERIC_BATCH_ROWS){ processExpenseLinesBatch(buf,header); buf=[]; }
+          if(buf.length>=GENERIC_BATCH_ROWS){ processExpenseLinesBatch(buf,header,gen); buf=[]; }
         } else if(mode==='expense_gate'){
           buf.push(row);
-          if(buf.length>=GENERIC_BATCH_ROWS){ processExpenseGateBatch(buf,header); buf=[]; }
+          if(buf.length>=GENERIC_BATCH_ROWS){ processExpenseGateBatch(buf,header,gen); buf=[]; }
         } else if(mode==='tax_invoice'){
           buf.push(row);
           if(buf.length>=GENERIC_BATCH_ROWS){ processTaxInvoiceBatch(buf,header,state); buf=[]; }
@@ -926,14 +943,14 @@
           if(buf.length) processGenericBatch(buf,header,mapping,state);
           done(Object.assign({name:f.name, recognized:true, label:fl('Mapped file','ملف مُعيَّن')}, finalizeState(state,signatureKey(header),true)));
         } else if(mode==='expense_lines'){
-          if(buf.length) processExpenseLinesBatch(buf,header);
+          if(buf.length) processExpenseLinesBatch(buf,header,gen);
           var linesN=Object.keys(ensureExpenseJoin().lines).length;
           done({name:f.name, recognized:true, label:CATALOGUE.expense_lines_capture.label,
             counts:{isNew:0,updated:0,unchanged:0,excludedByRule:0,needsLinking:0}, excludedDetail:{clientExcludedDetail:[],costCaptureDetail:[]},
             hasClientColumn:true, pendingInsert:[], pendingUpdate:[],
             joinNote:fl(linesN+' transaction(s) worth of expense lines captured — resolved together with the transaction-status join below.', linesN+' معاملة من أسطر المصروفات تم التقاطها — تُحل مع دمج حالة المعاملة أدناه.')});
         } else if(mode==='expense_gate'){
-          if(buf.length) processExpenseGateBatch(buf,header);
+          if(buf.length) processExpenseGateBatch(buf,header,gen);
           var gatesN=Object.keys(ensureExpenseJoin().gates).length;
           done({name:f.name, recognized:true, label:CATALOGUE.expense_gate_capture.label,
             counts:{isNew:0,updated:0,unchanged:0,excludedByRule:0,needsLinking:0}, excludedDetail:{clientExcludedDetail:[],costCaptureDetail:[]},
@@ -952,7 +969,7 @@
      fileKey is passed in from processFileList's fileKeyOf(f) — MUST be the same key
      RESULT_INDEX was built with, or a "Teach this file" click on an xlsx file would look up
      an index that was never stored and silently do nothing. */
-  function routeRows2d(name, rows2d, fileKey, done){
+  function routeRows2d(name, rows2d, fileKey, done, gen){
     var hdr=(rows2d&&rows2d[0])||[];
     var sig=detectSignature(hdr);
     if(sig&&sig.key==='invoice_export'){
@@ -963,7 +980,7 @@
       return;
     }
     if(sig&&sig.key==='expense_lines_capture'){
-      try{ processExpenseLinesBatch(rows2d.slice(1),hdr); }
+      try{ processExpenseLinesBatch(rows2d.slice(1),hdr,gen); }
       catch(e){ done({name:name,recognized:false,header:hdr,err:String(e&&e.message||e)}); return; }
       var linesN2=Object.keys(ensureExpenseJoin().lines).length;
       done({name:name, recognized:true, label:CATALOGUE.expense_lines_capture.label,
@@ -973,7 +990,7 @@
       return;
     }
     if(sig&&sig.key==='expense_gate_capture'){
-      try{ processExpenseGateBatch(rows2d.slice(1),hdr); }
+      try{ processExpenseGateBatch(rows2d.slice(1),hdr,gen); }
       catch(e){ done({name:name,recognized:false,header:hdr,err:String(e&&e.message||e)}); return; }
       var gatesN2=Object.keys(ensureExpenseJoin().gates).length;
       done({name:name, recognized:true, label:CATALOGUE.expense_gate_capture.label,
@@ -1147,11 +1164,32 @@
   // scripts/qa/probe-commit-survives-context-death.mjs proves the NEW guarantee directly — the
   // page is closed the instant after the RPC request is sent (before any response is read), and
   // the write is still found committed in the database on reconnect.
+  // M17 (found by hands-on driving 2026-08-26): two files in ONE drop can both update the
+  // SAME invoice — the tax capture sets zatca_dpin/total, the expense join sets cost. Each
+  // builder spreads the same FIN.rows base row into a full-column payload, so applying them
+  // sequentially made the LAST one's stale copies of the OTHER's fields win: the tax fields
+  // were silently reverted by the cost update in the same commit. Merge per invoice before
+  // sending: a field that differs from the shared base row is that payload's intentional
+  // change (unchanged fields are literal copies of base, so === identifies them); layer the
+  // changes, in file order, onto one payload per invoice. Derived money fields stay
+  // consistent server-side — trg_fin_inv_derive is BEFORE INSERT OR UPDATE.
+  function mergeUpdatesByInvoice(list){
+    var base={}; (FIN.rows||[]).forEach(function(r){ if(r&&r.invoice_no!=null) base[r.invoice_no]=r; });
+    var byInv={}, out=[];
+    list.forEach(function(u){
+      var k=u&&u.invoice_no; if(k==null){ out.push(u); return; }
+      if(!byInv[k]){ byInv[k]=Object.assign({},u); out.push(byInv[k]); return; }
+      var m=byInv[k], b=base[k];
+      Object.keys(u).forEach(function(f){ if(!b||u[f]!==b[f]) m[f]=u[f]; });
+    });
+    return out;
+  }
   window.v65Commit=function(){
     if(!FILES_STATE)return;
     var toInsert=[],toUpdate=[];
     FILES_STATE.forEach(function(r){ if(!r.recognized)return; toInsert=toInsert.concat(r.pendingInsert||[]); toUpdate=toUpdate.concat(r.pendingUpdate||[]); });
     FILES_STATE=null;
+    toUpdate=mergeUpdatesByInvoice(toUpdate);
     var intendedInsert=toInsert.length, intendedUpdate=toUpdate.length;
     var capLines=PENDING_CAPTURE.lines, capGates=PENDING_CAPTURE.gates;
     PENDING_CAPTURE={lines:[],gates:[]};
@@ -1237,13 +1275,13 @@
         // detectSignature → batch → refreshJoin → renderCombinedPreview path as every other
         // file. Checked first since f is a plain object here, not a real File — the .xlsx? test
         // below would still work on its .name, but there is nothing to read.
-        if(f.__rows2d){ routeRows2d(f.name, f.__rows2d, fileKey, finishFile); return; }
+        if(f.__rows2d){ routeRows2d(f.name, f.__rows2d, fileKey, finishFile, myGen); return; }
         if(/\.xlsx?$/i.test(f.name)){
           if(window.__v65_readXlsx) window.__v65_readXlsx(f, function(rows2d){ routeRows2d(f.name, rows2d||[], fileKey, finishFile); });
           else finishFile({name:f.name, recognized:false, header:[], err:'Excel reader unavailable'});
           return;
         }
-        routeCsvStreamed(f, fileKey, function(rowsRead){ results[idx].rowsRead=rowsRead; repaint(); }, finishFile);
+        routeCsvStreamed(f, fileKey, function(rowsRead){ results[idx].rowsRead=rowsRead; repaint(); }, finishFile, myGen);
       });
     });
   }

@@ -117,7 +117,14 @@
   // Every distinct client_group value currently live, with its own invoice count and total —
   // the real preview behind the alias picker and the suggestion pass, not a blind text field.
   function groupCandidates(){
-    var rows=(typeof window.live==='function')?window.live():((FIN.rows||[]).filter(function(r){return !r.deleted_at;}));
+    // js/16's live() is IIFE-scoped and never reaches window, so the window.live branch never
+    // ran and the fallback listed EXCLUDED clients (Takamol, with its totals) as merge
+    // candidates — found by hands-on driving 2026-08-26. Apply the exclusion here directly:
+    // finExclusionCheck is defined in this very file, no cross-file reach needed.
+    var rows=(FIN.rows||[]).filter(function(r){
+      if(r.deleted_at)return false;
+      return !(finExclusionCheck(r.client_group)||finExclusionCheck(r.customer_raw_name));
+    });
     var byG={};
     rows.forEach(function(r){
       var g=r.client_group||''; if(!g)return;
@@ -288,6 +295,13 @@
   }
   var _r62=window.render;
   if(typeof _r62==='function'){ window.render=function(){ var o=_r62.apply(this,arguments); try{ inject(); }catch(_){ } return o; }; }
+  // M12 (docs/DECISIONS.md): a page's own tab-switch is not the same event as a global render.
+  // finGo('import') paints via renderFinance() directly, so hooking window.render alone left
+  // this card missing on the common first paint of the Import tab — found by hands-on driving
+  // 2026-08-26 (the same gap that once left js/65's wiring unattached). Hook finGo too, and
+  // re-check shortly after in case finGo was wrapped later by another layer.
+  var _g62=window.finGo;
+  if(typeof _g62==='function'){ window.finGo=function(){ var o=_g62.apply(this,arguments); try{ inject(); }catch(_){ } try{ setTimeout(inject,300); }catch(_){ } return o; }; }
   setTimeout(inject,1200);
   console.info('%c[v62] finance guardrails (exclusions + grouping) loaded','color:#F06820;font-weight:700');
 }catch(e){if(window.console)console.warn('[v62] init',e);}})();

@@ -1,5 +1,68 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-26 · Owner: "test the app yourself" — hands-on drive found four real bugs the whole green battery missed (M17)
+
+The owner asked for the app to be tested by hand, and the standing rule ("verify UI work by
+actually driving the app, not by reading the code") earned its keep again: a full
+screenshot-everything walkthrough in the QA harness — login, Today, Finance tabs, a REAL
+multi-select file drop on the REAL `#finFile` input, Confirm, the alias admin card, undo, and
+an Arabic pass — found four genuine defects that every probe and the entire pre-commit battery
+had just passed green over. The common thread, now the M17 rule in `docs/DECISIONS.md`: every
+importer probe drove `v65IngestText()` (the scriptable text path), so the real input path —
+the one the owner actually uses — had never been exercised by QA at all.
+
+**Bug 1 — the natural flow processed every file twice.** Selecting files fires the input's
+change event, which auto-processes; clicking the orange "Check file" button right next to it
+(which any real user does) processes the same selection AGAIN. `GENERATION` guarded the
+preview but not the session-level expense accumulators: a 900 SAR expense committed as a
+1,800 SAR cost, and `finance_expense_lines_capture` got two identical rows. Fixed by making
+the accumulators drop-generation-aware: a duplicate or deliberately re-dropped file REPLACES
+a transaction's lines and pending capture (matching the owner's incremental-update model even
+within one sitting), and a superseded drop's late streaming batches are discarded — the
+generation is threaded into the stream's closure at start, so the race where the first run's
+chunks land after the second run began is closed too, not just the tidy case.
+
+**Bug 2 — two files updating the same invoice silently reverted each other.** In one drop,
+the tax capture set dpin/total on invoice A while the expense join set cost on the same
+invoice; each payload spreads the same stale base row, so the later payload's stale copies of
+the earlier one's fields won — the invoice ended the commit with dpin null and the old total,
+and nothing said so. Fixed by `mergeUpdatesByInvoice()` in `v65Commit()`: fields differing
+from the shared base row are that payload's intentional changes, layered in file order onto
+one payload per invoice (the database's own derive trigger runs on UPDATE too — verified
+live — so derived money fields stay consistent server-side). New probe
+`scripts/qa/probe-multi-file-single-drop.mjs` drives the real input (Playwright setInputFiles
+→ change → auto-process, plus the redundant Check click) and judges by direct database reads;
+both fixes sabotage-verified independently (1,800 + doubled capture row; reverted dpin/total),
+restored byte-identical.
+
+**Bug 3 — the M14 alias picker offered EXCLUDED clients.** Takamol appeared as a merge
+candidate with its invoice count and total, because `groupCandidates()` leaned on
+`window.live` — and js/16's `live()` is IIFE-scoped, so it never reaches window and the
+fallback path skipped the exclusion filter entirely (in production too, not just the mock).
+No money ever leaked into Finance numbers — row-level exclusion filters on the raw name
+before any renaming — but an excluded client's name and total showing up as groupable
+violates the standing Takamol rule. Fixed: the candidates apply `finExclusionCheck()`
+directly, no window.live dependency at all.
+
+**Bug 4 — the whole guardrails/alias card was missing on the common first paint of Import.**
+v62 hooked only `window.render()`; clicking the Import sub-tab paints via `finGo()` →
+`renderFinance()` directly — the M12 lesson repeating verbatim, two files down from where it
+was first learned. Fixed: v62 wraps `finGo()` too. Both v62 fixes guarded in
+`probe-client-group-map.mjs` — a picker-scoped Takamol-absence assertion, and a first-paint
+assertion that only became honest after adding a settle wait: the probe's own seeding leaves
+a pending debounced render that fires moments after finGo and injects the card
+coincidentally, which is exactly why this probe had been passing over the missing card all
+along. Measured both ways before trusting it (sabotaged build: card absent at +0.4s, +1.5s,
++5s in the user-shaped flow; probe red — fixed build: green).
+
+Also verified while driving, for the record: the Workstream-1 density pass reads clean on
+screen (one-line safety promise, no stale banner, no header dump); the combined multi-file
+preview, the confirm dialog's merge summary (real counts and totals), Undo/Redo, and the
+full Arabic RTL pass all behave; undo's confirm() dialog is why the drive script's
+unhandled-dialog click didn't apply it — the probe, which answers the dialog, proves undo
+end-to-end. One cosmetic note, deliberately not chased: the persisted "Done. Imported…"
+result line replays in the language it was committed in, since it's a stored snapshot string.
+
 ## 2026-08-25 (round 3) · A commit's durability can no longer depend on the browser staying alive (M16)
 
 The oversight session (separate sandbox, direct Supabase access, no filesystem in common with

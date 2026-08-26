@@ -401,6 +401,43 @@ confirming the guarantee genuinely depends on the M16 mechanism; restored and di
 byte-identical.
 *Date: 2026-08-25. Status: ACTIVE.*
 
+**M17 — the importer is only proven on the input path the user actually uses; every QA drive
+of it must include one real multi-select on the real `#finFile` input.** Found by hands-on
+driving (owner-ordered, 2026-08-26), not by any probe: every prior importer probe drove
+`v65IngestText()` (the pre-parsed text path built for the oversight session), so two bugs in
+the real file-input flow were unreachable by the whole green battery. (1) The input's own
+change event auto-processes a selection AND the "Check file" button processes it again — the
+natural flow (pick files, then click the button) ran everything twice; `GENERATION` guarded
+the preview repaint but not the session-level expense accumulators, so a 900 SAR expense
+committed as a 1,800 SAR cost and the capture table got two identical rows. Fixed by making
+the accumulators drop-generation-aware (`processExpenseLinesBatch()` /
+`processExpenseGateBatch()`, `js/65-universal-importer.js`): a duplicate or re-dropped file
+REPLACES a transaction's lines and pending capture instead of appending — which is also
+exactly the owner's incremental-update model within one sitting — and a superseded drop's
+late streaming batches are discarded outright. (2) Two files in ONE drop can both update the
+SAME invoice (tax capture → dpin/total; expense join → cost); each payload spreads the same
+stale base row, so the later payload's stale copies silently reverted the earlier one's
+fields inside the same commit. Fixed by `mergeUpdatesByInvoice()` in `v65Commit()`: fields
+differing from the shared base row are that payload's intentional changes, layered in file
+order onto one payload per invoice; derived money fields stay consistent because
+`trg_fin_inv_derive` (a Postgres trigger) runs BEFORE INSERT OR UPDATE. Guarded by
+`scripts/qa/probe-multi-file-single-drop.mjs`, which drives the REAL input (Playwright
+setInputFiles → change event → auto-process, plus the redundant Check click) and judges by
+direct database reads; both fixes sabotage-verified independently (reverting the generation
+tracking reproduced 1,800 + the double capture row; removing the merge reproduced the
+reverted dpin/total), restored and diffed byte-identical. The same drive also caught two
+defects in the M14 admin card — the alias picker offered EXCLUDED clients (Takamol, with its
+totals) because js/16's `live()` is IIFE-scoped and the `window.live` fallback skipped the
+exclusion filter (fixed: `js/62-finance-guardrails.js` applies `finExclusionCheck()` to the
+candidates directly), and the whole guardrails card was missing on the common first paint of
+the Import tab because v62 hooked only `window.render()` — the M12 shape repeating verbatim
+(fixed: v62 wraps `finGo()` too). Both guarded in `scripts/qa/probe-client-group-map.mjs`
+(picker-scoped Takamol-absence assertion; a first-paint assertion made honest by settling
+pending renders before navigating), both sabotage-verified. The rule, so it binds future
+work: any new importer or Finance-admin probe must include at least one assertion driven
+through the real input/tab-switch path, not only the scriptable shortcut.
+*Date: 2026-08-26. Status: ACTIVE.*
+
 **SUPERSEDED — the invoice item split (Service Fee / 3rd Party Fee) is a VAT split, never
 real cost.** An earlier round of this project treated the 3rd-Party-Fee line as the real
 cost figure; re-verified live against Direct Payments and found wrong — that line is a VAT
