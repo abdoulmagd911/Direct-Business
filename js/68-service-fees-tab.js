@@ -187,8 +187,10 @@
         })};
     });
     if(!S.cur.sections.length)S.cur.sections=[blankSection()];
-    if(!S.cur.titleEn)S.cur.titleEn=sc.name_en||'';
-    if(!S.cur.titleAr)S.cur.titleAr=sc.name_ar||'';
+    /* NOTE: scenario names (e.g. "Dual rate — company / employee") are internal
+       picker labels, not client-facing wording — never auto-fill the document
+       title from them. Leave title blank; it falls back to the standard
+       "Service-Fee Proposal" cover text until the user types their own. */
     repaint();
     toast(fl('Scenario loaded — every fee stays editable','تم تحميل السيناريو — كل الرسوم قابلة للتعديل'));
   };
