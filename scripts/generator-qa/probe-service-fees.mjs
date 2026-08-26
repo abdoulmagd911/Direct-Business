@@ -14,7 +14,13 @@
    7. The verbatim T&C text and the SLA lines render on the pages.
    8. Draft save POSTs to generated_documents with family SFP, status draft and NO
       doc_number (numbering is server-side, issue-time only).
-   9. Runtime: no localStorage.setItem call originates from js/68. No js errors.
+   9. Per-client saved rates (26 Aug, client_service_fees): picking a client with
+      saved rows shows the "This client has saved rates" note + Load button; Load
+      fills the fee tables (percent fee rendered with %, discount + unit noted);
+      "Save as this client's rates" issues delete-then-insert (both captured) with
+      percent detection on save; an insert failure toasts plainly and never claims
+      success.
+  10. Runtime: no localStorage.setItem call originates from js/68. No js errors.
    Fixture data is synthetic (D4: nothing real in the repo).
 
    Run:            node scripts/generator-qa/probe-service-fees.mjs
@@ -156,6 +162,36 @@ await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**'
   return r.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
 });
 
+/* client_service_fees fixture — AFTER the catch-all so it wins. Captures the
+   DELETE and INSERT requests the save flow issues; failNextFeeInsert makes the
+   next insert 500 (the toast-plainly-never-claim-success path). */
+const FEES = [
+  { id: 'fee-1', business_id: 'qa-sfbiz-1', service_en: 'SYNTH-CLIENT-SVC ticketing', service_ar: 'خدمة-تذاكر-اختبارية',
+    fee_type: 'fixed', fee_value: 35, discount_pct: null, unit_en: 'per ticket', unit_ar: 'لكل تذكرة', notes: null, sort: 1, enabled: true },
+  { id: 'fee-2', business_id: 'qa-sfbiz-1', service_en: 'SYNTH-CLIENT-PCT management', service_ar: 'خدمة-نسبة-اختبارية',
+    fee_type: 'percent', fee_value: 5, discount_pct: 10, unit_en: null, unit_ar: null, notes: 'synth note', sort: 2, enabled: true },
+];
+const feeDeletes = [], feeInserts = [];
+let failNextFeeInsert = false;
+await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/client_service_fees**', async r => {
+  const rq = r.request(); const m = rq.method(); const u = new URL(rq.url());
+  if (m === 'DELETE') {
+    feeDeletes.push(u.search);
+    return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FEES.map(x => ({ id: x.id }))) });
+  }
+  if (m === 'POST') {
+    if (failNextFeeInsert) {
+      failNextFeeInsert = false;
+      return r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"synthetic insert failure"}' });
+    }
+    let body = null; try { body = JSON.parse(rq.postData() || 'null'); } catch (_) { body = { parseError: true }; }
+    feeInserts.push(body);
+    const rows = (Array.isArray(body) ? body : [body]).map((x, i) => Object.assign({ id: 'fee-new-' + i }, x));
+    return r.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(rows) });
+  }
+  return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FEES) });
+});
+
 await p.goto(BASE + '/documents', { waitUntil: 'domcontentloaded', timeout: 60000 });
 await p.waitForTimeout(2500);
 await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
@@ -163,10 +199,10 @@ await p.waitForTimeout(5000);
 await p.evaluate(() => { window.__userRole = window.__userRole || 'admin'; current = 'documents'; render(); });
 await p.waitForTimeout(1500);
 
-/* open the fees tab through the real tab button */
+/* open the fees editor through its start-screen card (26 Aug redesign) */
 await p.evaluate(() => {
-  const btn = [...document.querySelectorAll('#dgWrap .dg-tabs button')].find(x => /Service-Fee Proposal|عرض رسوم الخدمات/.test(x.textContent));
-  if (btn) btn.click();
+  const c = [...document.querySelectorAll('#dgHome .dg-card')].find(x => /Service fees|رسوم الخدمات/.test(x.textContent));
+  if (c) c.click(); else if (window.dgGo) dgGo('fees');
 });
 await p.waitForTimeout(1800);
 
@@ -277,6 +313,67 @@ if (draftPost) {
   check('POST body: NO doc_number on a draft (numbering is issue-time, server-side)', body.doc_number == null);
   check('POST body: payload carries the seeded sections', !!body.payload && Array.isArray(body.payload.sections)
     && body.payload.sections.length === 2);
+}
+
+/* 7b — per-client saved rates (client_service_fees, 26 Aug) */
+await p.evaluate(() => {
+  try { DB.businesses = DB.businesses || []; DB.businesses.push({ id: 'qa-sfbiz-1', name: 'Synthetic Rates Client LLC', isClient: true }); } catch (_) {}
+  sfSet('clientId', 'qa-sfbiz-1');
+});
+await p.waitForTimeout(1500);
+check('picking a client with saved rows shows the saved-rates note', await p.evaluate(() =>
+  /This client has saved rates|لهذا العميل أسعار محفوظة/.test(document.getElementById('sfClientRates')?.innerText || '')));
+check('Load saved rates button renders', await p.evaluate(() =>
+  [...document.querySelectorAll('#sfClientRates button')].some(b => /Load saved rates|تحميل الأسعار المحفوظة/.test(b.textContent))));
+await p.evaluate(() => {
+  const b = [...document.querySelectorAll('#sfClientRates button')].find(x => /Load saved rates|تحميل الأسعار المحفوظة/.test(x.textContent));
+  if (b) b.click();
+});
+await p.waitForTimeout(1200);
+{
+  const txt = await p.evaluate(() => document.getElementById('sfPages')?.innerText || '');
+  check('loaded rates fill the fee table (service names)', txt.includes('SYNTH-CLIENT-SVC') && txt.includes('SYNTH-CLIENT-PCT'));
+  check('percent fee renders WITH the % sign (5%)', txt.includes('5%'));
+  check('fixed fee renders as a number (35)', /\b35\b/.test(txt));
+  check('discount renders beside the fee row (Discount: 10%)', txt.includes('Discount: 10%'));
+  check('unit renders in the row (per ticket)', txt.includes('per ticket'));
+  check('row note from the DB renders (synth note)', txt.includes('synth note'));
+  const fp = await p.evaluate(() => window.__sfFeesProbe ? __sfFeesProbe() : null);
+  check('fees probe: 2 saved rows loaded for this client', !!fp && fp.biz === 'qa-sfbiz-1' && fp.saved === 2, JSON.stringify(fp));
+}
+/* save-as-client-rates: delete-then-insert, both captured */
+await p.evaluate(() => {
+  const b = [...document.querySelectorAll('#sfClientRates button')].find(x => /Save as this client|حفظ كأسعار هذا العميل/.test(x.textContent));
+  if (b) b.click();
+});
+await p.waitForTimeout(1500);
+check('save issued the DELETE for exactly this business_id', feeDeletes.length === 1 && /business_id=eq\.qa-sfbiz-1/.test(feeDeletes[0]),
+  JSON.stringify(feeDeletes));
+check('save issued the INSERT after the delete', feeInserts.length === 1);
+if (feeInserts.length) {
+  const rows = feeInserts[0];
+  check('insert rows all carry the business_id', Array.isArray(rows) && rows.length === 2 && rows.every(x => x.business_id === 'qa-sfbiz-1'));
+  const pct = Array.isArray(rows) ? rows.find(x => /SYNTH-CLIENT-PCT/.test(x.service_en || '')) : null;
+  check('a fee cell ending in % saves as fee_type=percent, value 5, discount 10',
+    !!pct && pct.fee_type === 'percent' && Number(pct.fee_value) === 5 && Number(pct.discount_pct) === 10, JSON.stringify(pct));
+  const fx = Array.isArray(rows) ? rows.find(x => /SYNTH-CLIENT-SVC/.test(x.service_en || '')) : null;
+  check('a plain number saves as fee_type=fixed, value 35, unit round-trips',
+    !!fx && fx.fee_type === 'fixed' && Number(fx.fee_value) === 35 && fx.unit_en === 'per ticket', JSON.stringify(fx));
+}
+check('successful save toasts the confirmed row count', await p.evaluate(() =>
+  /Saved 2 rates|تم حفظ 2/.test(document.body.innerText)));
+/* failure path: the insert 500s — plain failure toast, NO success claim */
+await p.waitForTimeout(3200);              /* let the success toast expire first */
+failNextFeeInsert = true;
+await p.evaluate(() => {
+  const b = [...document.querySelectorAll('#sfClientRates button')].find(x => /Save as this client|حفظ كأسعار هذا العميل/.test(x.textContent));
+  if (b) b.click();
+});
+await p.waitForTimeout(1500);
+{
+  const bodyTxt = await p.evaluate(() => document.body.innerText);
+  check('failed save toasts plainly (names the failure)', /FAILED|فشل حفظ الأسعار الجديدة/.test(bodyTxt));
+  check('failed save never claims success', !/Saved \d+ rates|تم حفظ \d+/.test(bodyTxt));
 }
 
 /* 8 — nothing in js/68 ever writes localStorage; no js errors */

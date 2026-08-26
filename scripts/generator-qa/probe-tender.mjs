@@ -185,11 +185,11 @@ await p.waitForTimeout(5000);
 await p.evaluate(() => { window.__userRole = window.__userRole || 'admin'; current = 'documents'; render(); });
 await p.waitForTimeout(1800);
 
-/* 2 — 6th tab registered + deep link works */
-check('tab bar shows 6 tabs (tender added to TABS)', await p.evaluate(() =>
-  document.querySelectorAll('#dgWrap .dg-tabs button').length === 6));
-check('a tab button is labelled Tender / المناقصات', await p.evaluate(() =>
-  [...document.querySelectorAll('#dgWrap .dg-tabs button')].some(x => /المناقصات/.test(x.textContent))));
+/* 2 — editor registered + deep link works (start-screen redesign: no tab bar) */
+check('deep link opens the editor view (home probe reports editor=tender)', await p.evaluate(() =>
+  window.__dgHomeProbe && __dgHomeProbe().view === 'editor' && __dgHomeProbe().editor === 'tender'));
+check('editor top bar is labelled Technical + financial / عرض فني ومالي', await p.evaluate(() =>
+  /عرض فني ومالي|Technical \+ financial/.test((document.querySelector('#dgWrap .dg-ed-name') || {}).textContent || '')));
 check('/documents/tender deep link opens the tender tab', await p.evaluate(() =>
   window.__dgTabProbe && window.__dgTabProbe() === 'tender'));
 check('tender tab renders through the seam (form present)', await p.evaluate(() => !!document.querySelector('#tdWrap .td-form')));

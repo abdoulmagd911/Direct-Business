@@ -183,11 +183,11 @@ await p.waitForTimeout(5000);
 await p.evaluate(() => { window.__userRole = window.__userRole || 'admin'; current = 'documents'; render(); });
 await p.waitForTimeout(1800);
 
-/* 2 — 5th tab registered + deep link works */
-check('tab bar shows 6 tabs (contract + tender in TABS)', await p.evaluate(() =>
-  document.querySelectorAll('#dgWrap .dg-tabs button').length === 6));
-check('a tab button is labelled Contract / العقد', await p.evaluate(() =>
-  [...document.querySelectorAll('#dgWrap .dg-tabs button')].some(x => /العقد/.test(x.textContent))));
+/* 2 — editor registered + deep link works (start-screen redesign: no tab bar) */
+check('deep link opens the editor view (home probe reports editor=contract)', await p.evaluate(() =>
+  window.__dgHomeProbe && __dgHomeProbe().view === 'editor' && __dgHomeProbe().editor === 'contract'));
+check('editor top bar is labelled Contract / العقد', await p.evaluate(() =>
+  /Contract|العقد/.test((document.querySelector('#dgWrap .dg-ed-name') || {}).textContent || '')));
 check('/documents/contract deep link opens the contract tab', await p.evaluate(() =>
   window.__dgTabProbe && window.__dgTabProbe() === 'contract'));
 check('contract tab renders through the seam (form present)', await p.evaluate(() => !!document.querySelector('#ctWrap .ct-form')));

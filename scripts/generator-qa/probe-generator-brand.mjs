@@ -135,6 +135,17 @@ await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r
 await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/storage/v1/object/sign/**', r =>
   r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ signedURL: '/object/sign/company-docs/x.pdf?token=qa' }) }));
 
+/* synthetic saved-documents fixture for the unified start-screen list (D4) */
+const DOCS = [
+  { id: 'qa-doc-1', family: 'OFR', doc_number: 'OFR-2026-0001', title: 'QA Offer', status: 'sent', business_id: null, created_at: '2026-08-20T10:00:00Z',
+    payload: { titleEn: 'QA Loaded Offer', titleAr: '', attn: '', date: '2026-08-20', valid: 14, by: '', notes: '', lines: [{ svc: 'QA service', qty: 1, fee: 100 }] } },
+  { id: 'qa-doc-2', family: 'CTR', doc_number: null, title: 'QA Contract Draft', status: 'draft', business_id: null, created_at: '2026-08-19T10:00:00Z' },
+];
+await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**', r => {
+  if (r.request().method() === 'GET') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(DOCS) });
+  r.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+});
+
 await p.goto(BASE + '/documents', { waitUntil: 'domcontentloaded', timeout: 60000 });
 await p.waitForTimeout(2500);
 await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
@@ -167,14 +178,45 @@ if (live.classic) {
 }
 
 /* page render */
-const txt = await p.evaluate(() => (document.getElementById('view') || {}).innerText || '');
 check('nav entry is renamed to Generator', await p.evaluate(() =>
   [...document.querySelectorAll('#nav button')].some(x => /Generator|المولّد/.test(x.textContent))));
 check('nav no longer says Documents', await p.evaluate(() =>
   ![...document.querySelectorAll('#nav button')].some(x => /Documents|المستندات/.test(x.textContent))));
 check('page heading is Generator', await p.evaluate(() =>
   /Generator|المولّد/.test((document.getElementById('vTitle') || {}).textContent || '')));
-check('tabs render (6 families)', await p.evaluate(() => document.querySelectorAll('#dgWrap .dg-tabs button').length) === 6);
+
+/* ---- start screen (26 Aug redesign): /documents with no sub-address = home ---- */
+{
+  /* the saved-list query resolves async — poll until the rows land */
+  let home = null;
+  for (let i = 0; i < 20; i++) {
+    home = await p.evaluate(() => window.__dgHomeProbe ? __dgHomeProbe() : null);
+    if (home && home.savedRows > 0) break;
+    await p.waitForTimeout(400);
+  }
+  check('__dgHomeProbe exists and reports the home view', !!home && home.view === 'home', JSON.stringify(home));
+  check('start screen renders 5 document cards', !!home && home.cards === 5, JSON.stringify(home));
+  const ht = await p.evaluate(() => (document.getElementById('dgHome') || {}).innerText || '');
+  check('start screen carries the heading', /What do you want to create\?|ماذا تريد أن تنشئ؟/.test(ht));
+  check('the quieter Company assets & registry entry exists', await p.evaluate(() =>
+    !!document.querySelector('#dgHome .dg-assets-row')) && /Company assets & registry|أصول الشركة والسجل/.test(ht));
+  check('unified saved list renders rows from the fixture (all families, one list)',
+    !!home && home.savedRows === 2 && ht.includes('OFR-2026-0001') && /Draft|مسودة/.test(ht)
+    && /Financial proposal|عرض مالي/.test(ht) && /Contract|العقد/.test(ht), JSON.stringify(home));
+  check('the old tab bar is gone', await p.evaluate(() => !document.querySelector('#dgWrap .dg-tabs')));
+}
+
+/* open the Company Assets editor through its start-screen entry */
+await p.evaluate(() => { const b = document.querySelector('#dgHome .dg-assets-row'); if (b) b.click(); });
+await p.waitForTimeout(1200);
+const txt = await p.evaluate(() => (document.getElementById('view') || {}).innerText || '');
+check('assets entry opens the assets editor view', await p.evaluate(() =>
+  window.__dgHomeProbe && __dgHomeProbe().view === 'editor' && __dgHomeProbe().editor === 'assets'));
+check('editor view shows the back button + the editor name', await p.evaluate(() =>
+  !!document.querySelector('#dgWrap .dg-back')
+  && /All documents|كل المستندات/.test(document.querySelector('#dgWrap .dg-back').textContent)
+  && /Company assets & registry|أصول الشركة والسجل/.test((document.querySelector('#dgWrap .dg-ed-name') || {}).textContent || '')));
+check('assets editor hides the step header (not a document)', await p.evaluate(() => !document.getElementById('dgSteps')));
 check('registry rows render from data', txt.includes('Synthetic Test Co Ltd'));
 check('renewals radar shows EXPIRED for the past date', /EXPIRED|منتهية/.test(txt));
 check('radar shows the no-date licence with a neutral pill', /date not on file|التاريخ غير مسجل/.test(txt)
@@ -340,11 +382,43 @@ check('reveal shows the value on demand', txt2.includes('SA000000000000000000000
   await p.evaluate(() => { current = 'documents'; render(); });
   await p.waitForTimeout(1200);
 }
-/* sub-addresses: switching tab writes /documents/<tab>, and a /documents/offer
-   deep link opens straight onto the Price Offer tab */
-await p.evaluate(() => { const bts = [...document.querySelectorAll('#dgWrap .dg-tabs button')]; const bt = bts.find(x => /Price Offer|عرض السعر/.test(x.textContent)); if (bt) bt.click(); });
+/* ---- back button returns home, then a card opens its editor with the sub-address ---- */
+await p.evaluate(() => { const b = document.querySelector('#dgWrap .dg-back'); if (b) b.click(); });
 await p.waitForTimeout(800);
-check('switching tab writes the sub-address /documents/offer', await p.evaluate(() => location.pathname) === '/documents/offer');
+check('back button returns to the start screen', await p.evaluate(() =>
+  window.__dgHomeProbe && __dgHomeProbe().view === 'home' && document.querySelectorAll('#dgWrap .dg-card').length === 5));
+check('back button leaves the address at /documents', await p.evaluate(() => location.pathname) === '/documents');
+await p.evaluate(() => { const c = [...document.querySelectorAll('#dgHome .dg-card')].find(x => /Financial proposal|عرض مالي/.test(x.textContent)); if (c) c.click(); });
+await p.waitForTimeout(800);
+check('the card opens the offer editor full-width', await p.evaluate(() =>
+  window.__dgHomeProbe && __dgHomeProbe().view === 'editor' && __dgHomeProbe().editor === 'offer' && !!document.querySelector('#poWrap')));
+check('the editor shows the sticky 3-step header', await p.evaluate(() =>
+  document.querySelectorAll('#dgSteps button').length === 3
+  && getComputedStyle(document.getElementById('dgSteps')).position === 'sticky'));
+check('opening a card writes the sub-address /documents/offer', await p.evaluate(() => location.pathname) === '/documents/offer');
+/* browser Back from the editor returns to the start screen (spec item 6) */
+await p.evaluate(() => history.back());
+await p.waitForTimeout(1200);
+check('browser Back returns to /documents and shows the start screen', await p.evaluate(() =>
+  location.pathname === '/documents' && window.__dgHomeProbe && __dgHomeProbe().view === 'home'));
+/* clicking a saved row opens the matching editor AND hands the id to its opener */
+{
+  /* the home list re-fetches after dgHome — wait for the fixture row to be back */
+  let ok = false;
+  for (let i = 0; i < 20 && !ok; i++) { await p.waitForTimeout(400); ok = await p.evaluate(() => !!document.querySelector('#dgHome .dg-saved .dg-row')); }
+  await p.evaluate(() => { const r = [...document.querySelectorAll('#dgHome .dg-saved .dg-row')].find(x => x.innerText.includes('OFR-2026-0001')); if (r) r.click(); });
+  let loaded = null;
+  for (let i = 0; i < 25; i++) {
+    loaded = await p.evaluate(() => ({
+      editor: window.__dgHomeProbe ? __dgHomeProbe().editor : null,
+      hasDoc: !!document.querySelector('#poWrap') && (document.querySelector('#poWrap') || {}).innerText.includes('OFR-2026-0001'),
+    }));
+    if (loaded.hasDoc) break;
+    await p.waitForTimeout(400);
+  }
+  check('saved row opens the offer editor', !!loaded && loaded.editor === 'offer', JSON.stringify(loaded));
+  check('saved row loads that document through poOpen (number shown in the editor)', !!loaded && loaded.hasDoc, JSON.stringify(loaded));
+}
 /* leave the page first so the deep-link goto is a real cross-URL navigation */
 await p.goto(BASE + '/today', { waitUntil: 'domcontentloaded', timeout: 60000 });
 await p.waitForTimeout(1500);
@@ -369,6 +443,47 @@ const deep = await p.evaluate(() => ({
 check('deep link /documents/offer lands on the generator page', deep.cur === 'documents', JSON.stringify(deep));
 check('deep link opens the Price Offer tab directly', deep.tab === 'offer' && deep.offerRendered, JSON.stringify(deep));
 check('address bar keeps the tab sub-address', deep.path === '/documents/offer', JSON.stringify(deep));
+
+/* ---- phone (390px): no horizontal overflow; preview behind a floating toggle ---- */
+await p.setViewportSize({ width: 390, height: 844 });
+await p.waitForTimeout(800);
+const mob = await p.evaluate(() => {
+  const t = document.getElementById('dgPreviewToggle');
+  const c = document.querySelector('#dgWrap [id$="PreviewCol"]');
+  return {
+    scrollW: document.documentElement.scrollWidth, clientW: document.documentElement.clientWidth,
+    toggleVisible: !!t && getComputedStyle(t).display !== 'none',
+    previewHidden: !!c && getComputedStyle(c).display === 'none',
+    backTap: (document.querySelector('#dgWrap .dg-back') || { getBoundingClientRect: () => ({ height: 0 }) }).getBoundingClientRect().height >= 44,
+    stepTap: [...document.querySelectorAll('#dgSteps button')].every(b => b.getBoundingClientRect().height >= 44),
+  };
+});
+check('390px: page has no horizontal overflow', mob.scrollW <= mob.clientW + 1, JSON.stringify(mob));
+check('390px: preview is hidden behind a visible floating toggle', mob.toggleVisible && mob.previewHidden, JSON.stringify(mob));
+check('390px: back button and step chips are 44px tap targets', mob.backTap && mob.stepTap, JSON.stringify(mob));
+await p.evaluate(() => window.dgTogglePreview());
+await p.waitForTimeout(400);
+check('preview toggle shows the preview panel', await p.evaluate(() => {
+  const c = document.querySelector('#dgWrap [id$="PreviewCol"]');
+  return !!c && getComputedStyle(c).display !== 'none';
+}));
+await p.evaluate(() => window.dgTogglePreview());
+await p.waitForTimeout(300);
+check('preview toggle hides it again', await p.evaluate(() => {
+  const c = document.querySelector('#dgWrap [id$="PreviewCol"]');
+  return !!c && getComputedStyle(c).display === 'none';
+}));
+/* home at 390px: cards stack and stay tappable, nothing overflows */
+await p.evaluate(() => window.dgHome());
+await p.waitForTimeout(1000);
+const mobHome = await p.evaluate(() => ({
+  scrollW: document.documentElement.scrollWidth, clientW: document.documentElement.clientWidth,
+  cards: document.querySelectorAll('#dgWrap .dg-card').length,
+  cardTap: [...document.querySelectorAll('#dgWrap .dg-card')].every(c => c.getBoundingClientRect().height >= 44),
+  stacked: (() => { const cs = [...document.querySelectorAll('#dgWrap .dg-card')]; return cs.length > 1 && cs[0].getBoundingClientRect().left === cs[1].getBoundingClientRect().left; })(),
+}));
+check('390px: start screen has no horizontal overflow', mobHome.scrollW <= mobHome.clientW + 1, JSON.stringify(mobHome));
+check('390px: the 5 cards stack in one column, each a 44px+ target', mobHome.cards === 5 && mobHome.stacked && mobHome.cardTap, JSON.stringify(mobHome));
 
 check('no javascript errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 

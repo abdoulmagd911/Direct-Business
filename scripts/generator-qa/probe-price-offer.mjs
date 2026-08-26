@@ -145,10 +145,10 @@ await p.waitForTimeout(5000);
 await p.evaluate(() => { window.__userRole = window.__userRole || 'admin'; current = 'documents'; render(); });
 await p.waitForTimeout(1500);
 
-/* open the Offer tab through the real tab button */
+/* open the offer editor through its start-screen card (26 Aug redesign) */
 await p.evaluate(() => {
-  const btn = [...document.querySelectorAll('#dgWrap .dg-tabs button')].find(x => /Price Offer|عرض السعر/.test(x.textContent));
-  if (btn) btn.click();
+  const c = [...document.querySelectorAll('#dgHome .dg-card')].find(x => /Financial proposal|عرض مالي/.test(x.textContent));
+  if (c) c.click(); else if (window.dgGo) dgGo('offer');
 });
 await p.waitForTimeout(1500);
 
