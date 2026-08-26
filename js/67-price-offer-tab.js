@@ -134,7 +134,7 @@
   window.__poWordsProbe=function(n){ return { en:amountInWords(n,'en'), ar:amountInWords(n,'ar') }; };
 
   /* ---------- state ---------- */
-  function blankLine(){ return {svc:'',svcAr:'',unit:'',qty:1,orig:'',price:''}; }
+  function blankLine(){ return {svc:'',svcAr:'',unit:'',unitAr:'',qty:1,orig:'',price:''}; }
   function blankOffer(){
     return { lang:'en', clientId:'', attn:'', titleEn:'', titleAr:'',
       date:todayISO(), valid:14, by:'', notes:'', showOrig:false, vatIncl:false,
@@ -282,20 +282,20 @@
         tag:'قوة موردين عالمية. خدمة سعودية. شريك واحد.',
         defTerms:'الأسعار قيمة خدمة لكل شخص/تذكرة/مستند ما لم يُذكر خلاف ذلك، ولا تشمل رسوم الموردين وشركات الطيران والفنادق والسفارات والجهات الحكومية ما لم يُذكر "الإجمالي".\nهذا العرض صالح حتى التاريخ الموضح، وبعده تخضع الأسعار لإعادة التأكيد.\nتصدر الفواتير الضريبية من دايركت للمدفوعات عند التأكيد.'}
   };
-  /* Direct's standard services — bilingual names + units pre-filled, prices never */
+  /* Direct's standard services — bilingual names + bilingual units pre-filled, prices never */
   var STD=[
-    ['Domestic flight booking','حجز طيران داخلي','Per ticket'],
-    ['International flight booking','حجز طيران دولي','Per ticket'],
-    ['Ticket refund / re-issue','استرداد / إعادة إصدار تذكرة','Per ticket'],
-    ['Hotel reservation','حجز فندقي','Per night / booking'],
-    ['Visa services','خدمات التأشيرات','Per visa'],
-    ['Meet & assist / VIP lounge','استقبال ومساعدة / صالة كبار الزوار','Per person'],
-    ['Train & other transport tickets','تذاكر القطارات والمواصلات','Per ticket'],
-    ['Car rental (with/without driver)','استئجار سيارات (بسائق أو بدون)','Per day'],
-    ['Travel insurance','تأمين السفر','Per person'],
-    ['International driving permit','رخصة القيادة الدولية','Per permit'],
-    ['Meeting rooms & event venues','قاعات الاجتماعات والفعاليات','Per booking'],
-    ['Document shipping','الشحن بالبريد','Per shipment']
+    ['Domestic flight booking','حجز طيران داخلي','Per ticket','لكل تذكرة'],
+    ['International flight booking','حجز طيران دولي','Per ticket','لكل تذكرة'],
+    ['Ticket refund / re-issue','استرداد / إعادة إصدار تذكرة','Per ticket','لكل تذكرة'],
+    ['Hotel reservation','حجز فندقي','Per night / booking','لكل ليلة / حجز'],
+    ['Visa services','خدمات التأشيرات','Per visa','لكل تأشيرة'],
+    ['Meet & assist / VIP lounge','استقبال ومساعدة / صالة كبار الزوار','Per person','لكل شخص'],
+    ['Train & other transport tickets','تذاكر القطارات والمواصلات','Per ticket','لكل تذكرة'],
+    ['Car rental (with/without driver)','استئجار سيارات (بسائق أو بدون)','Per day','لكل يوم'],
+    ['Travel insurance','تأمين السفر','Per person','لكل شخص'],
+    ['International driving permit','رخصة القيادة الدولية','Per permit','لكل رخصة'],
+    ['Meeting rooms & event venues','قاعات الاجتماعات والفعاليات','Per booking','لكل حجز'],
+    ['Document shipping','الشحن بالبريد','Per shipment','لكل شحنة']
   ];
 
   /* ---------- persistence (B2: every write .select()-checked) ---------- */
@@ -393,7 +393,7 @@
     loadRates(); /* fallback trigger — normally already fetched on tab load */
     var L=S.cur.lines, last=L[L.length-1];
     /* silent prefill from the company's standard rates; empty when no match */
-    var line={svc:STD[idx][0],svcAr:STD[idx][1],unit:STD[idx][2],qty:1,orig:'',
+    var line={svc:STD[idx][0],svcAr:STD[idx][1],unit:STD[idx][2],unitAr:STD[idx][3],qty:1,orig:'',
               price:stdFee(STD[idx][0],STD[idx][1])};
     if(last&&!last.svc&&!last.svcAr&&!last.price)L[L.length-1]=line; else L.push(line);
     repaint();
@@ -411,8 +411,9 @@
     if(cn) L.push(t.prepFor+': '+cn+(S.cur.attn?' ('+S.cur.attn+')':''));
     L.push('');
     c.rows.forEach(function(r,i){
-      var l=r.l, svc=ar?(l.svcAr||l.svc):(l.svc||l.svcAr), qty=Number(l.qty)||0;
-      L.push((i+1)+'. '+svc+(l.unit?' — '+l.unit:'')+(qty>1?' × '+qty:'')+' — '+fmt(r.amt)+' SAR');
+      var l=r.l, svc=ar?(l.svcAr||l.svc):(l.svc||l.svcAr), qty=Number(l.qty)||0,
+          unitTxt=ar?(l.unitAr||l.unit):(l.unit||l.unitAr);
+      L.push((i+1)+'. '+svc+(unitTxt?' — '+unitTxt:'')+(qty>1?' × '+qty:'')+' — '+fmt(r.amt)+' SAR');
     });
     L.push('');
     L.push(t.subtotal+': '+fmt(c.subEx)+' SAR');
@@ -564,9 +565,9 @@
     var head='<tr><th>'+t.num+'</th><th>'+t.svc+'</th><th>'+t.unit+'</th>'+
       (S.cur.showOrig?'<th>'+t.orig+'</th>':'')+'<th>'+t.amount+'</th></tr>';
     var body=c.rows.map(function(r,i){
-      var l=r.l, svc=ar?(l.svcAr||l.svc):(l.svc||l.svcAr);
+      var l=r.l, svc=ar?(l.svcAr||l.svc):(l.svc||l.svcAr), unitTxt=ar?(l.unitAr||l.unit):(l.unit||l.unitAr);
       return '<tr><td>'+(i+1)+'</td><td class="svc">'+esc(svc)+'</td>'+
-        '<td>'+esc(l.unit||'—')+(Number(l.qty)>1?' × '+esc(l.qty):'')+'</td>'+
+        '<td>'+esc(unitTxt||'—')+(Number(l.qty)>1?' × '+esc(l.qty):'')+'</td>'+
         (S.cur.showOrig?'<td class="amt">'+(l.orig?fmt(Number(l.orig)):'—')+'</td>':'')+
         '<td class="amt">'+fmt(r.amt)+'</td></tr>';
     }).join('')||'<tr><td colspan="'+colsN+'" style="color:var(--muted);text-align:center;padding:18px">'+t.addEmpty+'</td></tr>';
@@ -627,8 +628,11 @@
       '<button type="button" class="mv" onclick="poLine(\'up\','+i+')">↑</button>'+
       '<label>'+fl('Service (EN)','الخدمة بالإنجليزية')+'</label><input value="'+esc(l.svc)+'" oninput="poSetLine('+i+',\'svc\',this.value)">'+
       '<label>'+fl('Service (AR)','الخدمة بالعربية')+'</label><input dir="rtl" value="'+esc(l.svcAr)+'" oninput="poSetLine('+i+',\'svcAr\',this.value)">'+
-      '<div class="po-row3">'+
-      '<div><label>'+fl('Unit','الوحدة')+'</label><input value="'+esc(l.unit)+'" oninput="poSetLine('+i+',\'unit\',this.value)"></div>'+
+      '<div class="po-row2">'+
+      '<div><label>'+fl('Unit (EN)','الوحدة بالإنجليزية')+'</label><input value="'+esc(l.unit)+'" oninput="poSetLine('+i+',\'unit\',this.value)"></div>'+
+      '<div><label>'+fl('Unit (AR)','الوحدة بالعربية')+'</label><input dir="rtl" value="'+esc(l.unitAr)+'" oninput="poSetLine('+i+',\'unitAr\',this.value)"></div>'+
+      '</div>'+
+      '<div class="po-row2">'+
       '<div><label>'+fl('Qty','الكمية')+'</label><input type="number" min="0" step="1" value="'+esc(l.qty)+'" oninput="poSetLine('+i+',\'qty\',this.value)"></div>'+
       '<div><label>'+fl('Price (SAR)','السعر (ريال)')+'</label><input type="number" min="0" step="0.01" value="'+esc(l.price)+'" oninput="poSetLine('+i+',\'price\',this.value)"></div>'+
       '</div>'+
