@@ -1,5 +1,38 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-26 (round 2) · Bulletproof/landmine premortem pass — six attacks written to land; five survived, one found a real gap
+
+Owner-ordered follow-up to the hands-on round below: assume it is a month from now and the
+importer has corrupted Finance data or silently lost facts, write the stories of HOW as
+attacks designed to FAIL, run them, fix what lands, keep the attacks. All six are now a
+permanent probe, `scripts/qa/probe-premortem-attacks.mjs`:
+
+- **A — intra-drop summing**: two real expense rows for one transaction in one file must SUM
+  (900+600=1,500), proving the M17 replace-per-drop fix did not break genuine multi-line
+  expenses. Survived.
+- **B — same-session update after commit**: an updated lines file dropped in the SAME
+  session, after a commit, must REPLACE (400, not 1,900) — and the capture table must hold
+  exactly the one new row. Survived.
+- **C — the sharpest one**: a 6,000-row lines file through the REAL input, crossing the
+  5,000-row streaming batch boundary, WITH the duplicate trigger (change event + Check
+  click) fired while the first run is still streaming — 6,000 × 0.25 must land as exactly
+  1,500, and exactly 6,000 capture rows. Survived — the generation guard holds under the
+  race, not just in the tidy case.
+- **D — torn merge**: two tax files in one drop disagreeing about the same invoice must end
+  as the LAST file's consistent dpin/total pair, never an interleaved mix. Survived.
+- **E — exclusion on the import path**: a tax file targeting the excluded Takamol invoice
+  must not touch it. Survived.
+- **H — LANDED (the premortem catch)**: a capture-only drop — the transaction-status (gate)
+  file alone, exactly the "gate today, lines next week" incremental flow — offered NO commit
+  button at all (`writeCount` gated it), so the captured facts silently died with the tab
+  and the lines file dropped after a reload could never resolve (cost stayed at the stale
+  fixture value; the owner would have concluded the feature is broken and re-supplied
+  everything). Fixed: when nothing needs writing to invoices but pending captures exist,
+  the preview offers "Save captured expense facts — N row(s)" through the same atomic RPC,
+  with an explanatory line, and the Done message reports the database's own capture counts
+  instead of a misleading "Imported 0 new, updated 0." Sabotage-verified both ways and
+  re-run: all six attacks now survive.
+
 ## 2026-08-26 · Owner: "test the app yourself" — hands-on drive found four real bugs the whole green battery missed (M17)
 
 The owner asked for the app to be tested by hand, and the standing rule ("verify UI work by

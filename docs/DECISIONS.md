@@ -436,6 +436,18 @@ the Import tab because v62 hooked only `window.render()` — the M12 shape repea
 pending renders before navigating), both sabotage-verified. The rule, so it binds future
 work: any new importer or Finance-admin probe must include at least one assertion driven
 through the real input/tab-switch path, not only the scriptable shortcut.
+Premortem addendum (same day): a deliberate attack pass over this surface —
+`scripts/qa/probe-premortem-attacks.mjs`, six failure stories written to LAND, kept as a
+permanent probe — confirmed intra-drop summing, same-session update-replace, a 6,000-row file
+across the streaming batch boundary under the duplicate-trigger race, torn-merge resistance,
+and import-path exclusion all hold, and caught one more real gap: a CAPTURE-ONLY drop (the
+gate file alone — "gate today, lines next week") offered no commit button at all, so the
+captured facts silently died with the tab and the counterpart file could never resolve in a
+later session. Fixed in `renderCombinedPreview()`: when there is nothing to write to invoices
+but pending captures exist, a "Save captured expense facts" action commits just the facts
+through the same atomic RPC, and the result message reports the database's own capture
+counts. Sabotage-verified (reverting the button reproduced both failures), restored
+byte-identical.
 *Date: 2026-08-26. Status: ACTIVE.*
 
 **SUPERSEDED — the invoice item split (Service Fee / 3rd Party Fee) is a VAT split, never

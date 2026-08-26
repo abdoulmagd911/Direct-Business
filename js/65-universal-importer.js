@@ -1112,10 +1112,24 @@
     var recognizedCount=results.filter(function(r){return r.recognized;}).length;
     var writeCount=totals.isNew+totals.updated;
     var stillStreaming=results.some(function(r){return r.streaming;});
+    // M17 premortem finding (2026-08-26): a capture-only drop — the gate file alone, or
+    // expense files whose join resolves no invoice yet — used to offer NO commit button at
+    // all, so the captured facts silently died with the tab and the counterpart file dropped
+    // in a LATER session could never resolve (the exact "gate today, lines next week" flow
+    // the incremental-update promise is for). If there is nothing to write to invoices but
+    // there ARE pending raw captures, offer saving just the facts; v65Commit already sends
+    // them through the same atomic RPC with empty insert/update arrays.
+    var capCount=PENDING_CAPTURE.lines.length+PENDING_CAPTURE.gates.length;
+    var btnHtml='';
+    if(!stillStreaming){
+      if(writeCount) btnHtml='<button class="btn pri sm" style="margin-top:10px" onclick="v65Commit()">'+fl('Confirm import — ','تأكيد الاستيراد — ')+totals.isNew+' '+fl('new','جديد')+', '+totals.updated+' '+fl('updated','محدَّث')+'</button>';
+      else if(capCount) btnHtml='<button class="btn pri sm" style="margin-top:10px" onclick="v65Commit()">'+fl('Save captured expense facts — ','حفظ وقائع المصروفات الملتقطة — ')+capCount+' '+fl('row(s), no invoice changes yet','صف/صفوف، دون تغييرات على الفواتير بعد')+'</button>'+
+        '<div style="font-size:11.5px;color:var(--muted);margin-top:4px">'+fl('Saving keeps these facts for a later import — drop the matching file another day and the cost resolves without re-supplying this one.','الحفظ يُبقي هذه الوقائع لاستيراد لاحق — أسقط الملف المقابل في يوم آخر وستُحلّ التكلفة دون إعادة هذا الملف.')+'</div>';
+    }
     var h='<div style="font-size:13px;line-height:1.7">'+
       '<b>'+fl('Files dropped: ','الملفات المُسقطة: ')+results.length+' · '+fl('recognized: ','معروف: ')+recognizedCount+'</b>'+
       rowsHtml+
-      (writeCount&&!stillStreaming?('<button class="btn pri sm" style="margin-top:10px" onclick="v65Commit()">'+fl('Confirm import — ','تأكيد الاستيراد — ')+totals.isNew+' '+fl('new','جديد')+', '+totals.updated+' '+fl('updated','محدَّث')+'</button>'):'')+
+      btnHtml+
     '</div>';
     document.getElementById('finImpOut').innerHTML=h;
   }
@@ -1210,6 +1224,11 @@
            '</div>')
         : ('<div style="font-size:13px;color:#0F6E56"><b>'+fl('Done.','تم.')+'</b> '+
            fl('Imported ','تم استيراد ')+insertedCount+' '+fl('new, updated ','جديد، وتحديث ')+updatedCount+'.'+
+           // M17 premortem: a capture-only save would otherwise read "Imported 0 new, updated
+           // 0." — say what actually happened, from the database's own counts (M13 doctrine).
+           ((!insertedCount&&!updatedCount&&((+got.capture_lines||0)+(+got.capture_gates||0)>0))
+             ?(' '+fl('Saved ','تم حفظ ')+((+got.capture_lines||0)+(+got.capture_gates||0))+' '+fl('captured expense fact(s) for a later import.','من وقائع المصروفات الملتقطة لاستيراد لاحق.'))
+             :'')+
            '</div>');
       paintDone(msg);
       FIN.rows=null; finLoad();
