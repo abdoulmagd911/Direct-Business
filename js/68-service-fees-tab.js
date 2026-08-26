@@ -70,7 +70,11 @@
   };
 
   /* ---------- state ---------- */
-  function blankRow(){ return {en:'',ar:'',fee:'',fee2:'',total:false,free:false}; }
+  /* unitEn/unitAr, disc (discount %), noteTxt round-trip client_service_fees
+     rows through the editor; blank on scenario/blank rows. fee may carry a
+     trailing % — that renders as text and saves as fee_type='percent'. */
+  function blankRow(){ return {en:'',ar:'',fee:'',fee2:'',total:false,free:false,
+    unitEn:'',unitAr:'',disc:'',noteTxt:''}; }
   function blankSection(){ return {tEn:'',tAr:'',rows:[blankRow()]}; }
   function blankProp(){
     var y=new Date().getFullYear();
@@ -79,7 +83,9 @@
       col2:{on:false,head1En:'',head1Ar:'',headEn:'',headAr:''}, sections:[blankSection()] };
   }
   var S={ cur:blankProp(), rowId:null, docNumber:null, status:'draft',
-          list:null, listLoading:false, identity:null, scenarios:null, scnLoading:false, saving:false };
+          list:null, listLoading:false, identity:null, scenarios:null, scnLoading:false, saving:false,
+          /* per-client saved rates (client_service_fees) */
+          cfRows:null, cfBiz:null, cfLoading:false, cfSaving:false };
 
   /* ---------- data ---------- */
   function loadIdentity(){
@@ -113,6 +119,22 @@
     c.from('generated_documents').select('id,doc_number,title,status,business_id,created_at,payload')
      .eq('family','SFP').order('created_at',{ascending:false}).limit(60)
      .then(function(r){ S.listLoading=false; S.list=r.error?[]:(r.data||[]); repaint(); });
+  }
+  /* client_service_fees — this client's standing rates record (26 Aug feature).
+     Loaded whenever a client is picked; a fetch error just shows nothing. */
+  function loadClientFees(){
+    var id=S.cur.clientId;
+    S.cfRows=null; S.cfBiz=id||null;
+    if(!id)return;
+    var c=client(); if(!c)return;
+    S.cfLoading=true;
+    c.from('client_service_fees').select('*').eq('business_id',id).eq('enabled',true)
+     .order('sort',{ascending:true}).then(function(r){
+        S.cfLoading=false;
+        if(S.cfBiz!==id)return;                      /* a later pick superseded this */
+        S.cfRows=r.error?null:(r.data||[]);
+        repaint();
+     });
   }
   function bizName(id){
     try{ var b=(DB.businesses||[]).find(function(x){return x.id===id;});
@@ -177,6 +199,76 @@
       col2:!!(S.cur.col2&&S.cur.col2.on), scenarioId:S.cur.scenarioId||null };
   };
   window.__sfTermsProbe=function(){ return { en:T.en.terms, ar:T.ar.terms }; };
+  window.__sfFeesProbe=function(){
+    return { biz:S.cfBiz, loaded:Array.isArray(S.cfRows), saved:Array.isArray(S.cfRows)?S.cfRows.length:null, saving:!!S.cfSaving };
+  };
+
+  /* ---------- per-client saved rates (client_service_fees) ---------- */
+  /* Fill the fee tables from this client's saved rates. Percent fees render as
+     "5%" in the fee cell; unit / discount / notes print as a small line under
+     the service name. Everything stays editable after loading. */
+  window.sfLoadClientRates=function(){
+    var rows=S.cfRows||[]; if(!rows.length)return;
+    S.cur.sections=[{ tEn:'', tAr:'', rows:rows.map(function(r){
+      var fee=r.fee_type==='percent'
+        ? (r.fee_value==null?'':String(r.fee_value)+'%')
+        : (r.fee_value==null?'':String(r.fee_value));
+      return { en:r.service_en||'', ar:r.service_ar||'', fee:fee, fee2:'',
+        total:false, free:false,
+        unitEn:r.unit_en||'', unitAr:r.unit_ar||'',
+        disc:(r.discount_pct==null?'':String(r.discount_pct)), noteTxt:r.notes||'' };
+    })}];
+    S.cur.col2={on:false,head1En:'',head1Ar:'',headEn:'',headAr:''};
+    repaint();
+    toast(fl('Saved rates loaded — every fee stays editable','تم تحميل الأسعار المحفوظة — كل الرسوم قابلة للتعديل'));
+  };
+  /* Write the current fee tables as this client's standing rates:
+     delete-then-insert, BOTH .select()-checked (B2). A fee cell ending in %
+     saves as fee_type='percent'. Fee values come only from the tables — a row
+     with a non-numeric or missing fee refuses the whole save (M8). */
+  window.sfSaveClientRates=function(){
+    var bid=S.cur.clientId; if(!bid)return;
+    if(S.cfSaving)return;
+    var c=client(); if(!c){ toast(fl('Save was refused — nothing changed','رُفض الحفظ — لم يتغير شيء')); return; }
+    var out=[], bad=null, i=0;
+    (S.cur.sections||[]).forEach(function(sec){ (sec.rows||[]).forEach(function(r){
+      var feeStr=String(r.fee==null?'':r.fee).trim();
+      if(!(r.en||r.ar||feeStr))return;               /* fully blank row — skip */
+      var isPct=/%$/.test(feeStr);
+      var num=r.free?0:Number(feeStr.replace(/%$/,'').replace(/,/g,''));
+      if((feeStr===''&&!r.free)||!isFinite(num)){ bad=(r.en||r.ar||feeStr); return; }
+      var d=(r.disc!=null&&String(r.disc).trim()!=='')?Number(String(r.disc).trim()):null;
+      out.push({ business_id:bid, service_en:r.en||'', service_ar:r.ar||'',
+        fee_type:(isPct&&!r.free)?'percent':'fixed', fee_value:num,
+        discount_pct:(d!=null&&isFinite(d))?d:null,
+        unit_en:r.unitEn||null, unit_ar:r.unitAr||null,
+        notes:r.noteTxt||null, sort:++i, enabled:true });
+    });});
+    if(bad!=null){ toast(fl('Not saved — a row has no valid fee: ','لم يُحفظ — سطر بلا رسوم صالحة: ')+bad); return; }
+    if(!out.length){ toast(fl('Nothing to save — the fee tables are empty','لا شيء للحفظ — جداول الرسوم فارغة')); return; }
+    S.cfSaving=true; repaint();
+    c.from('client_service_fees').delete().eq('business_id',bid).select('id').then(function(del){
+      /* B2: an RLS-refused delete "succeeds" with zero rows — if we KNOW this
+         client has saved rows and none came back deleted, stop before inserting
+         duplicates next to the rows that never went away. */
+      var known=(S.cfBiz===bid&&Array.isArray(S.cfRows))?S.cfRows.length:null;
+      if(del.error||!del.data||(known!==null&&known>0&&del.data.length===0)){
+        S.cfSaving=false; repaint();
+        toast(fl('Save was refused — nothing changed','رُفض الحفظ — لم يتغير شيء'));
+        return;
+      }
+      c.from('client_service_fees').insert(out).select('id').then(function(ins){
+        S.cfSaving=false;
+        if(ins.error||!ins.data||ins.data.length!==out.length){
+          toast(fl('Saving the new rates FAILED after the old ones were cleared — this client has no saved rates right now. Fix and press Save again.',
+                   'فشل حفظ الأسعار الجديدة بعد مسح القديمة — لا توجد الآن أسعار محفوظة لهذا العميل. صحّح ثم احفظ مرة أخرى.'));
+          loadClientFees(); repaint(); return;
+        }
+        toast(fl('Saved '+out.length+' rates as this client\'s rates','تم حفظ '+out.length+' من الأسعار كأسعار هذا العميل'));
+        loadClientFees(); repaint();
+      });
+    });
+  };
 
   /* ---------- persistence (B2: every write .select()-checked) ---------- */
   function rowFromState(){
@@ -241,12 +333,17 @@
     if(!S.cur.sections||!S.cur.sections.length)S.cur.sections=[blankSection()];
     if(!S.cur.col2)S.cur.col2={on:false,head1En:'',head1Ar:'',headEn:'',headAr:''};
     S.rowId=rec.id; S.docNumber=rec.doc_number||null; S.status=rec.status||'draft';
+    loadClientFees();
     repaint();
   };
-  window.sfNew=function(){ S.cur=blankProp(); S.rowId=null; S.docNumber=null; S.status='draft'; repaint(); };
+  window.sfNew=function(){ S.cur=blankProp(); S.rowId=null; S.docNumber=null; S.status='draft'; loadClientFees(); repaint(); };
 
   /* ---------- form mutation ---------- */
-  window.sfSet=function(k,v){ S.cur[k]=v; repaintPreview(); };
+  window.sfSet=function(k,v){
+    S.cur[k]=v;
+    if(k==='clientId'){ loadClientFees(); repaint(); return; }
+    repaintPreview();
+  };
   window.sfCol2=function(k,v){ S.cur.col2[k]=(k==='on')?!!v:v; if(k==='on')repaint(); else repaintPreview(); };
   window.sfSecSet=function(si,k,v){ if(S.cur.sections[si]){ S.cur.sections[si][k]=v; repaintPreview(); } };
   window.sfRowSet=function(si,ri,k,v){
@@ -462,6 +559,13 @@
       var body=rows.map(function(r,i){
         var svc=ar?(r.ar||r.en):(r.en||r.ar);
         var note=r.total?'<span class="sf-totnote">'+t.totalNote+'</span>':'';
+        /* per-client rate extras: unit · Discount X% · notes (from client_service_fees) */
+        var extras=[];
+        var u=ar?(r.unitAr||r.unitEn):(r.unitEn||r.unitAr); if(u)extras.push(u);
+        if(r.disc!=null&&String(r.disc).trim()!=='')
+          extras.push(ar?('خصم ٪'+String(r.disc)):('Discount: '+String(r.disc)+'%'));
+        if(r.noteTxt)extras.push(r.noteTxt);
+        if(extras.length)note+='<span class="sf-totnote">'+esc(extras.join(' · '))+'</span>';
         return '<tr><td>'+(i+1)+'</td><td class="svc">'+esc(svc)+note+'</td>'+
           '<td class="amt">'+feeCell(r,r.fee,t)+'</td>'+
           (col2?'<td class="amt">'+feeCell(r,r.fee2,t)+'</td>':'')+'</tr>';
@@ -522,8 +626,8 @@
       '<label>'+fl('Service (EN)','الخدمة بالإنجليزية')+'</label><input value="'+esc(r.en)+'" oninput="sfRowSet('+si+','+ri+',\'en\',this.value)">'+
       '<label>'+fl('Service (AR)','الخدمة بالعربية')+'</label><input dir="rtl" value="'+esc(r.ar)+'" oninput="sfRowSet('+si+','+ri+',\'ar\',this.value)">'+
       '<div class="sf-row2">'+
-      '<div><label>'+fl('Fee (SAR)','الرسوم (ريال)')+'</label><input type="number" min="0" step="0.01" value="'+esc(r.fee)+'" oninput="sfRowSet('+si+','+ri+',\'fee\',this.value)"></div>'+
-      (S.cur.col2&&S.cur.col2.on?'<div><label>'+fl('Second fee (SAR)','الرسوم الثانية (ريال)')+'</label><input type="number" min="0" step="0.01" value="'+esc(r.fee2)+'" oninput="sfRowSet('+si+','+ri+',\'fee2\',this.value)"></div>':'')+
+      '<div><label>'+fl('Fee (SAR or %)','الرسوم (ريال أو ٪)')+'</label><input type="text" inputmode="decimal" value="'+esc(r.fee)+'" oninput="sfRowSet('+si+','+ri+',\'fee\',this.value)"></div>'+
+      (S.cur.col2&&S.cur.col2.on?'<div><label>'+fl('Second fee (SAR)','الرسوم الثانية (ريال)')+'</label><input type="text" inputmode="decimal" value="'+esc(r.fee2)+'" oninput="sfRowSet('+si+','+ri+',\'fee2\',this.value)"></div>':'')+
       '</div>'+
       '<div class="sf-flags">'+
         '<label><input type="checkbox" '+(r.total?'checked':'')+' onchange="sfRowSet('+si+','+ri+',\'total\',this.checked)"> '+fl('Total (all-inclusive)','إجمالي (شامل)')+'</label>'+
@@ -572,6 +676,27 @@
         return '<option value="'+esc(o.id)+'" '+(S.rowId===o.id?'selected':'')+'>'+esc(label)+'</option>';
       }).join('');
   }
+  /* the per-client rates note + Load/Save buttons under the client picker */
+  function clientRatesHtml(){
+    if(!S.cur.clientId)return '';
+    var h='';
+    if(S.cfLoading)
+      h+='<div style="margin-top:8px;font-size:12px;color:var(--muted,#777)">'+fl('Checking saved rates…','جارٍ التحقق من الأسعار المحفوظة…')+'</div>';
+    if(S.cfRows&&S.cfRows.length){
+      h+='<div style="margin-top:8px;font-size:12.5px;font-weight:700;color:var(--accent)">'+
+           fl('This client has saved rates','لهذا العميل أسعار محفوظة')+' ('+S.cfRows.length+')</div>'+
+         '<button type="button" class="btn sm ghost" style="margin-top:6px" onclick="sfLoadClientRates()">'+
+           fl('Load saved rates','تحميل الأسعار المحفوظة')+'</button>';
+    }
+    var hasRows=(S.cur.sections||[]).some(function(s){
+      return (s.rows||[]).some(function(r){return r.en||r.ar||String(r.fee==null?'':r.fee).trim()!=='';});
+    });
+    if(hasRows&&canWrite()){
+      h+='<div style="margin-top:6px"><button type="button" class="btn sm ghost" '+(S.cfSaving?'disabled':'')+' onclick="sfSaveClientRates()">'+
+         (S.cfSaving?fl('Saving…','جارٍ الحفظ…'):fl('Save as this client\'s rates','حفظ كأسعار هذا العميل'))+'</button></div>';
+    }
+    return h;
+  }
   function formHtml(){
     var st=S.status||'draft';
     var stLabel=st==='draft'?fl('Draft','مسودة'):st==='sent'?fl('Issued / sent','صادر / مُرسل'):fl('Accepted','مقبول');
@@ -593,6 +718,7 @@
       '<fieldset><legend>'+fl('Client','العميل')+'</legend>'+
         '<label>'+fl('Company','الشركة')+'</label>'+
         '<select onchange="sfSet(\'clientId\',this.value)">'+clientOptions()+'</select>'+
+        '<div id="sfClientRates">'+clientRatesHtml()+'</div>'+
       '</fieldset>'+
       '<fieldset><legend>'+fl('Proposal','العرض')+'</legend>'+
         '<label>'+fl('Title (EN)','العنوان بالإنجليزية')+'</label>'+

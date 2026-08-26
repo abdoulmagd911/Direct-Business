@@ -1,4 +1,12 @@
-/* ===== Document Generator — one page, tabs per document family (phase 1, 2026-08-24) =====
+/* ===== Document Generator — start screen + one editor at a time (redesigned 2026-08-26) =====
+
+   26 Aug owner-approved redesign: the packed 6-tab bar became a calm start screen
+   ("What do you want to create?") of five document cards + a quieter Company-Assets
+   entry + ONE unified saved-documents list, and each card opens its editor full-width
+   with a back button, a 3-step scroll header, and phone support (preview behind a
+   floating toggle below 900px). Display-only: families, numbering, URLs, the
+   dgRegisterTab seam and every editor's internals are unchanged.
+   ===== original phase-1 notes (still accurate for the registry below) =====
 
    The single page that will generate every client-facing document: Company Assets ·
    Price Offer · Service-Fee Proposal · Company Profile (phase 2: Contract, Technical+
@@ -78,7 +86,11 @@
   }catch(e){ console.warn('[dg] view register',e); }
 
   /* ---------- part 3 — state + data ---------- */
-  var DG={tab:'assets', rows:null, loading:false, editKey:null, revealed:{}, __push:false};
+  /* view: 'home' (the start screen — "What do you want to create?") or 'editor'
+     (one document family rendered full-width). tab = which editor. showPreview =
+     phone-only preview toggle (survives repaints because render re-applies it). */
+  var DG={view:'home', tab:'assets', rows:null, loading:false, editKey:null, revealed:{}, __push:false,
+          homeList:null, homeLoading:false, showPreview:false};
 
   /* ---------- sub-addresses: /documents/<tab> ----------
      js/03 (not modified) parses /documents/offer as sec='documents' and ignores the
@@ -88,19 +100,25 @@
      outside us (initial load, back/forward), (b) parks the path at '/documents'
      synchronously during render so js/03's writeURL sees "nothing changed" and never
      pushes a duplicate entry, then (c) restores '/documents/<tab>' on a 0-timeout,
-     which runs after writeURL. Tab clicks push a real history entry (back undoes
-     the tab switch); everything else replaces in place. */
+     which runs after writeURL. Card clicks push a real history entry (back returns
+     to the start screen); everything else replaces in place.
+     /documents with no sub-address = the start screen (view 'home'). */
   var TAB_IDS=['assets','offer','fees','profile','contract','tender'];
   function pathTab(){ var m=String(location.pathname||'').match(/^\/documents\/([a-zA-Z]+)\/?$/); return (m&&TAB_IDS.indexOf(m[1])>=0)?m[1]:null; }
-  (function(){ var t=pathTab(); if(t)DG.tab=t; })();
+  (function(){ var t=pathTab(); if(t){ DG.tab=t; DG.view='editor'; } })();
   function urlSync(){
     try{
       var t=pathTab();
-      if(t&&t!==DG.tab&&!DG.__push)DG.tab=t;           /* external change: boot / popstate */
+      /* external change (boot / popstate): adopt the editor from the pathname.
+         Going back to home is adopted ONLY in the popstate listener below — during
+         the park-and-restore window the pathname is briefly '/documents' on every
+         render, so reading "home" from it here would be a race. */
+      if(t&&(t!==DG.tab||DG.view!=='editor')&&!DG.__push){ DG.tab=t; DG.view='editor'; }
       if(location.pathname!=='/documents')history.replaceState({p:'/documents',f:''},'','/documents');
       var push=DG.__push; DG.__push=false;
       setTimeout(function(){ try{
         if(typeof current!=='undefined'&&current!=='documents')return;   /* user already left */
+        if(DG.view!=='editor')return;                     /* home = plain /documents */
         var want='/documents/'+DG.tab;
         if(location.pathname==='/documents'){
           if(push)history.pushState({p:want,f:''},'',want);
@@ -109,8 +127,14 @@
       }catch(_){} },0);
     }catch(_){}
   }
-  /* QA hook: lets a probe read which tab the page believes is open */
+  /* QA hooks: which tab the page believes is open, and the whole navigation state */
   window.__dgTabProbe=function(){ return DG.tab; };
+  window.__dgHomeProbe=function(){
+    var out={view:(DG.view==='home'?'home':'editor'), editor:(DG.view==='editor'?DG.tab:null), cards:0, savedRows:0};
+    try{ out.cards=document.querySelectorAll('#dgWrap .dg-card').length;
+         out.savedRows=document.querySelectorAll('#dgWrap .dg-saved .dg-row').length; }catch(_){}
+    return out;
+  };
   /* Eager registry load (audit fix): the AGENCY hydration above must not wait for the
      Generator page to be opened — invoice previews can print before that. Retry until
      the shared client exists (sign-in) and the rows arrive, then stop. */
@@ -278,30 +302,163 @@
     });
   };
 
-  /* ---------- part 5 — render ---------- */
-  var TABS=[
-    ['assets', 'Company Assets','أصول الشركة'],
-    ['offer',  'Price Offer','عرض السعر'],
-    ['fees',   'Service-Fee Proposal','عرض رسوم الخدمات'],
-    ['profile','Company Profile','الملف التعريفي'],
-    ['contract','Contract / العقد','العقد'],
-    ['tender','Tender / المناقصات','المناقصات']
-  ];
-  window.dgGo=function(t){ DG.tab=t; DG.__push=true; try{render();}catch(_){} };
+  /* ---------- part 5 — navigation (start screen + step-flow editors, 26 Aug) ----------
+     Owner-approved redesign: the packed 6-tab bar is gone. /documents opens a calm
+     start screen of five document cards + a quieter Company-Assets row + one unified
+     saved-documents list; a card opens ONE editor full-width with a back button and a
+     three-step anchor header. All display-only: families, numbering (OFR/SFP/TEC/FIN/
+     PRF/CTR), URLs, the dgRegisterTab seam and every editor's internals are unchanged. */
+  var EDITORS={
+    offer:   {en:'Financial proposal — project', ar:'عرض مالي — مشروع',
+              subEn:'Priced for one project or request', subAr:'تسعير لمشروع أو طلب محدد', open:'poOpen'},
+    fees:    {en:'Service fees — general', ar:'رسوم الخدمات — عام',
+              subEn:'Standing rates a client uses on our system', subAr:'أسعار ثابتة يستخدمها العميل على نظامنا', open:'sfOpen'},
+    tender:  {en:'Technical + financial pack', ar:'عرض فني ومالي',
+              subEn:'For tenders — two linked documents', subAr:'للمناقصات — مستندان مترابطان', open:'tdOpen'},
+    profile: {en:'Company profile', ar:'الملف التعريفي',
+              subEn:'Who we are, tailored to the audience', subAr:'من نحن، موجه لكل جهة', open:'cpOpen'},
+    contract:{en:'Contract', ar:'العقد', subEn:'', subAr:'', open:'ctOpen'},
+    assets:  {en:'Company assets & registry', ar:'أصول الشركة والسجل', subEn:'', subAr:'', open:null}
+  };
+  var CARD_ORDER=['offer','fees','tender','profile','contract'];
+  /* document family → its editor + a short display chip (display-only rename) */
+  var FAMS={
+    OFR:{ed:'offer',   en:'Financial proposal', ar:'عرض مالي'},
+    SFP:{ed:'fees',    en:'Service fees',       ar:'رسوم الخدمات'},
+    TEC:{ed:'tender',  en:'Technical',          ar:'فني'},
+    FIN:{ed:'tender',  en:'Financial (tender)', ar:'مالي (مناقصة)'},
+    PRF:{ed:'profile', en:'Company profile',    ar:'الملف التعريفي'},
+    CTR:{ed:'contract',en:'Contract',           ar:'العقد'}
+  };
+
+  window.dgGo=function(t){ DG.tab=t; DG.view='editor'; DG.showPreview=false; DG.__push=true; try{render();}catch(_){} };
+  window.dgHome=function(){ DG.view='home'; DG.homeList=null; DG.__push=true; try{render();}catch(_){} };
+
+  /* unified saved-documents list — ONE query across all families, read-only */
+  function loadHomeList(force){
+    if(DG.homeLoading)return; if(DG.homeList&&!force)return;
+    var c=client(); if(!c)return;
+    DG.homeLoading=true;
+    c.from('generated_documents')
+     .select('id,family,doc_number,title,status,business_id,created_at')
+     .order('created_at',{ascending:false}).limit(30)
+     .then(function(r){
+        DG.homeLoading=false;
+        DG.homeList=r.error?[]:(r.data||[]);            /* empty list on error, never a crash */
+        try{ if(current==='documents'&&DG.view==='home')render(); }catch(_){}
+     },function(){ DG.homeLoading=false; DG.homeList=[]; });
+  }
+  function bizName(id){
+    try{ var b=(DB.businesses||[]).find(function(x){return x.id===id;});
+      return b?(isAr()&&b.nameAr?b.nameAr:b.name):''; }catch(_){ return ''; }
+  }
+  /* open a saved row: switch to its editor, then hand the id to the editor's own
+     opener (poOpen/sfOpen/cpOpen/ctOpen/tdOpen) once its saved list has loaded —
+     detected by the id appearing in the editor's own saved-documents <select>.
+     If the editor exposes no opener, switching alone is the whole job. */
+  window.dgOpenDoc=function(id){
+    var row=(DG.homeList||[]).find(function(x){return String(x.id)===String(id);});
+    var fam=row&&FAMS[row.family]; var ed=fam?fam.ed:null;
+    if(!ed){ return; }
+    window.dgGo(ed);
+    var fnName=EDITORS[ed]&&EDITORS[ed].open; if(!fnName)return;
+    var tries=0;
+    (function poll(){
+      tries++;
+      try{
+        var ready=document.querySelector('#dgEditorBody option[value="'+String(id).replace(/"/g,'')+'"]');
+        var fn=window[fnName];
+        if(ready&&typeof fn==='function'){ fn(row.id); return; }
+        if(tries>=20){ if(typeof fn==='function')fn(row.id); return; }  /* last resort: call anyway */
+      }catch(_){ return; }
+      setTimeout(poll,300);
+    })();
+  };
+
+  /* step chips — pure scroll anchors, no logic changes inside any editor:
+     1 = top of the form · 2 = first fieldset after the client area · 3 = the preview */
+  window.dgStep=function(n){
+    try{
+      var b=document.getElementById('dgEditorBody'); if(!b)return;
+      var el=null;
+      if(n===1){ el=b.querySelector('.card')||b.firstElementChild; }
+      else if(n===2){ var fs=b.querySelectorAll('fieldset'); el=fs[1]||fs[0]||b.firstElementChild; }
+      else{
+        el=b.querySelector('[id$="PreviewCol"]')||b.querySelector('[data-identity="classic"]');
+        /* on a phone the preview is behind the toggle — reviewing means showing it */
+        try{ if(el&&window.innerWidth<900&&!DG.showPreview){ DG.showPreview=true;
+          var w=document.getElementById('dgWrap'); if(w)w.classList.add('dg-show-preview'); } }catch(_){}
+      }
+      if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(_){}
+  };
+  window.dgTogglePreview=function(){
+    DG.showPreview=!DG.showPreview;
+    try{ var w=document.getElementById('dgWrap'); if(w)w.classList.toggle('dg-show-preview',DG.showPreview); }catch(_){}
+  };
+
   /* back/forward inside the page: js/03's popstate handler re-renders; renderDocs then
-     adopts the tab from the restored pathname via urlSync(). Defensive extra listener:
-     if js/03's render did not run (edge), repaint ourselves. */
+     adopts the editor from the restored pathname via urlSync(). This listener also
+     adopts HOME (plain /documents) — urlSync cannot, because the pathname parks at
+     '/documents' briefly on every render — and repaints if js/03's render did not. */
   window.addEventListener('popstate',function(){
     try{
       if(typeof current==='undefined'||current!=='documents')return;
-      var t=pathTab();
-      if(t&&t!==DG.tab){ DG.tab=t; var v=document.getElementById('view'); if(v&&v.querySelector('#dgWrap'))renderDocs(v); }
+      var t=pathTab(); var changed=false;
+      if(t&&(t!==DG.tab||DG.view!=='editor')){ DG.tab=t; DG.view='editor'; changed=true; }
+      else if(!t&&/^\/documents\/?$/.test(String(location.pathname||''))&&DG.view!=='home'){ DG.view='home'; changed=true; }
+      if(changed){ var v=document.getElementById('view'); if(v&&v.querySelector('#dgWrap'))renderDocs(v); }
     }catch(_){}
   });
 
   function css(){ return '<style>'+
-    '#dgWrap{--dg-acc:var(--accent,#888)}'+
-    '#dgWrap .dg-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}'+
+    '#dgWrap{--dg-acc:var(--accent,#888);max-width:100%}'+
+    /* --- start screen --- */
+    '#dgWrap .dg-home-h1{font-size:24px;font-weight:800;margin:4px 0 18px;color:var(--ink,#333)}'+
+    '#dgWrap .dg-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:14px}'+
+    '#dgWrap .dg-card{display:flex;flex-direction:column;justify-content:flex-start;gap:6px;text-align:start;'+
+      'border:1px solid var(--hairline,#eee);border-radius:14px;padding:18px;min-height:96px;'+
+      'background:var(--surface,#fff);cursor:pointer;font:inherit;color:var(--ink,#333)}'+
+    '#dgWrap .dg-card:hover{border-color:var(--accent);box-shadow:var(--shadow-card,0 6px 18px -8px rgba(0,0,0,.18))}'+
+    '#dgWrap .dg-card b{font-size:16px;line-height:1.35}'+
+    '#dgWrap .dg-card .sub{font-size:12.5px;color:var(--muted,#777);line-height:1.5}'+
+    '#dgWrap .dg-assets-row{display:block;width:100%;margin-top:14px;text-align:start;min-height:44px;'+
+      'border:1px dashed var(--hairline,#ccc);border-radius:12px;padding:13px 18px;'+
+      'background:var(--wash,#F6F7F9);color:var(--muted,#666);cursor:pointer;font:inherit;font-size:13.5px}'+
+    '#dgWrap .dg-assets-row:hover{border-color:var(--accent);color:var(--ink,#333)}'+
+    '#dgWrap .dg-saved{margin-top:24px}'+
+    '#dgWrap .dg-saved h3{color:var(--accent);font-size:15px;margin:0 0 6px}'+
+    '#dgWrap .dg-saved .dg-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%;text-align:start;'+
+      'background:none;border:0;border-bottom:1px solid var(--hairline,#eee);padding:10px 6px;min-height:44px;'+
+      'cursor:pointer;font:inherit;font-size:13px;color:var(--ink,#333)}'+
+    '#dgWrap .dg-saved .dg-row:hover{background:var(--wash,#F6F7F9)}'+
+    '#dgWrap .dg-fam{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:700;'+
+      'background:var(--wash-accent,#FFF3EC);color:var(--accent);white-space:nowrap}'+
+    '#dgWrap .dg-saved .no{font-weight:700;white-space:nowrap}'+
+    '#dgWrap .dg-saved .who{flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+    '#dgWrap .dg-saved .dt{color:var(--muted,#777);white-space:nowrap;font-size:12px}'+
+    /* --- editor view chrome --- */
+    '#dgWrap .dg-topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 10px}'+
+    '#dgWrap .dg-back{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:8px 16px;'+
+      'border:1px solid var(--hairline,#ddd);border-radius:10px;background:var(--surface,#fff);'+
+      'cursor:pointer;font:inherit;font-size:13.5px;font-weight:600;color:var(--ink,#333)}'+
+    '#dgWrap .dg-back:hover{border-color:var(--accent);color:var(--accent)}'+
+    '#dgWrap .dg-ed-name{font-size:17px;font-weight:800;color:var(--ink,#333)}'+
+    '#dgWrap .dg-steps{position:sticky;top:0;z-index:40;display:flex;gap:8px;flex-wrap:wrap;'+
+      'padding:8px;margin:0 0 12px;background:var(--surface,#fff);border:1px solid var(--hairline,#eee);border-radius:12px}'+
+    '#dgWrap .dg-steps button{min-height:44px;padding:8px 14px;border:0;border-radius:9px;background:var(--wash,#F6F7F9);'+
+      'cursor:pointer;font:inherit;font-size:13px;font-weight:600;color:var(--ink,#333)}'+
+    '#dgWrap .dg-steps button:hover{background:var(--wash-accent,#FFF3EC);color:var(--accent)}'+
+    '#dgEditorBody{min-width:0}'+
+    /* --- phone/tablet: preview behind a floating toggle; nothing overflows at 390px --- */
+    '#dgPreviewToggle{display:none;position:fixed;bottom:18px;inset-inline-end:18px;z-index:60;min-height:44px;'+
+      'border:0;border-radius:99px;padding:12px 22px;background:var(--accent);color:#fff;font:inherit;'+
+      'font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}'+
+    '@media(max-width:900px){'+
+      '#dgPreviewToggle{display:block}'+
+      '#dgWrap [id$="PreviewCol"]{display:none}'+
+      '#dgWrap.dg-show-preview [id$="PreviewCol"]{display:block;min-width:0;overflow-x:auto}'+
+    '}'+
     '#dgWrap .dg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}'+
     '#dgWrap .dg-grid>*{min-width:0}'+
     '#dgWrap .dg-cat h3{margin:18px 0 8px;color:var(--accent);font-size:15px}'+
@@ -446,26 +603,64 @@
   }
 
   function comingSoon(name){
-    return '<div class="card">'+fl('The '+name+' tab is the next build step — it will run on this same engine and registry.','هذا القسم هو خطوة البناء التالية — سيعمل على نفس المحرك والسجل.')+'</div>';
+    return '<div class="card">'+fl('The '+name+' editor is the next build step — it will run on this same engine and registry.','هذا القسم هو خطوة البناء التالية — سيعمل على نفس المحرك والسجل.')+'</div>';
+  }
+
+  function savedListHtml(){
+    var list=DG.homeList, inner;
+    if(list===null)inner='<div class="dg-src">'+fl('Loading saved documents…','جارٍ تحميل المستندات المحفوظة…')+'</div>';
+    else if(!list.length)inner='<div class="dg-src">'+fl('No saved documents yet.','لا توجد مستندات محفوظة بعد.')+'</div>';
+    else inner=list.map(function(o){
+      var f=FAMS[o.family]||{en:String(o.family||'?'),ar:String(o.family||'?')};
+      var who=bizName(o.business_id)||o.title||'';
+      return '<button class="dg-row" onclick="dgOpenDoc(\''+esc(String(o.id))+'\')">'+
+        '<span class="dg-fam">'+esc(fl(f.en,f.ar))+'</span>'+
+        '<span class="no">'+esc(o.doc_number||fl('Draft','مسودة'))+'</span>'+
+        '<span class="who">'+esc(who)+'</span>'+
+        '<span class="dt">'+esc(String(o.created_at||'').slice(0,10))+'</span></button>';
+    }).join('');
+    return '<div class="dg-saved"><h3>'+fl('Saved documents','المستندات المحفوظة')+'</h3>'+inner+'</div>';
+  }
+
+  function homeHtml(){
+    loadHomeList();
+    var cards=CARD_ORDER.map(function(id){
+      var e=EDITORS[id];
+      return '<button class="dg-card" onclick="dgGo(\''+id+'\')"><b>'+esc(fl(e.en,e.ar))+'</b>'+
+        (e.subEn?'<span class="sub">'+esc(fl(e.subEn,e.subAr))+'</span>':'')+'</button>';
+    }).join('');
+    return '<div id="dgHome">'+
+      '<h2 class="dg-home-h1">'+fl('What do you want to create?','ماذا تريد أن تنشئ؟')+'</h2>'+
+      '<div class="dg-cards">'+cards+'</div>'+
+      '<button class="dg-assets-row" onclick="dgGo(\'assets\')">'+esc(fl(EDITORS.assets.en,EDITORS.assets.ar))+'</button>'+
+      savedListHtml()+'</div>';
+  }
+
+  function editorHtml(){
+    var ed=EDITORS[DG.tab]||{en:DG.tab,ar:DG.tab};
+    var body= DG.tab==='assets'?assetsTab():(extTab(DG.tab)||comingSoon(ed.en||DG.tab));
+    var isAssets=DG.tab==='assets';
+    /* the step header is a pure scroll aid; Company Assets is a registry, not a document */
+    var steps=isAssets?'':('<div class="dg-steps" id="dgSteps">'+
+      '<button onclick="dgStep(1)">1 · '+fl('Client','العميل')+'</button>'+
+      '<button onclick="dgStep(2)">2 · '+fl('Content','المحتوى')+'</button>'+
+      '<button onclick="dgStep(3)">3 · '+fl('Review','المراجعة')+'</button></div>');
+    var pv=isAssets?'':('<button id="dgPreviewToggle" onclick="dgTogglePreview()">'+fl('Preview','معاينة')+'</button>');
+    return '<div class="dg-topbar">'+
+      '<button class="dg-back" onclick="dgHome()">'+(isAr()?'→':'←')+' '+fl('All documents','كل المستندات')+'</button>'+
+      '<b class="dg-ed-name">'+esc(fl(ed.en,ed.ar))+'</b></div>'+
+      steps+'<div id="dgEditorBody">'+body+'</div>'+pv;
   }
 
   function renderDocs(view){
     if(!view)return;
     urlSync();
     if(view.querySelector('#dgWrap'))view.innerHTML='';
-    var tabs=TABS.map(function(t){
-      return '<button class="btn sm '+(DG.tab===t[0]?'pri':'ghost')+'" onclick="dgGo(\''+t[0]+'\')">'+esc(fl(t[1],t[2]))+'</button>';
-    }).join('');
-    var body= DG.tab==='assets'?assetsTab()
-            : DG.tab==='offer'?(extTab('offer')||comingSoon('Price Offer'))
-            : DG.tab==='fees'?(extTab('fees')||comingSoon('Service-Fee Proposal'))
-            : DG.tab==='contract'?(extTab('contract')||comingSoon('Contract'))
-            : DG.tab==='tender'?(extTab('tender')||comingSoon('Tender'))
-            : (extTab('profile')||comingSoon('Company Profile'));
-    /* Page chrome uses the app's product identity; document previews (later tabs) will
-       carry data-identity="classic". */
-    view.innerHTML=css()+'<div id="dgWrap" data-identity="product">'+
-      '<div class="dg-tabs">'+tabs+'</div>'+body+'</div>';
+    /* Page chrome uses the app's product identity; document previews (the editors)
+       carry data-identity="classic" on their own preview columns. */
+    view.innerHTML=css()+'<div id="dgWrap" data-identity="product"'+
+      ((DG.view==='editor'&&DG.showPreview)?' class="dg-show-preview"':'')+'>'+
+      (DG.view==='home'?homeHtml():editorHtml())+'</div>';
   }
 
   /* hook render */
@@ -481,5 +676,5 @@
     }
   })();
 
-  console.info('[dg] document generator loaded (Company Assets)');
+  console.info('[dg] document generator loaded (start screen + editors)');
 }catch(e){ if(window.console)console.warn('[dg] init',e); }})();

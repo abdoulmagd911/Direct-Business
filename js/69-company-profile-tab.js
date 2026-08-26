@@ -53,11 +53,23 @@
 
   /* ---------- state ---------- */
   function blankDoc(){
-    return { lang:'en', clientId:'', year:String(new Date().getFullYear()) };
+    /* audience: '' = General (no targeting) or one of AUD keys — stored in the
+       payload, INTERNAL ONLY, printed nowhere on the document (26 Aug feature) */
+    return { lang:'en', clientId:'', year:String(new Date().getFullYear()), audience:'' };
   }
   var S={ cur:blankDoc(), rowId:null, docNumber:null, status:'draft',
           sections:null, secLoading:false, identity:null,
-          list:null, listLoading:false, editKey:null, saving:false };
+          list:null, listLoading:false, editKey:null, saving:false,
+          /* audience targeting (company_achievements) */
+          ach:null, achLoading:false, achFail:false, pastOverride:false };
+
+  /* ---------- audiences (owner-approved 26 Aug) ---------- */
+  var AUD=[
+    {k:'',en:'General',ar:'عام'},
+    {k:'travel_trade',en:'Travel trade',ar:'وكالات السفر'},
+    {k:'education',en:'Education',ar:'التعليم'},
+    {k:'corporate_mice',en:'Corporate & MICE',ar:'الشركات والمؤتمرات'},
+    {k:'government',en:'Government',ar:'الجهات الحكومية'}];
 
   /* ---------- data ---------- */
   function loadSections(force){
@@ -80,6 +92,36 @@
     var r=(S.identity||[]).find(function(x){return x.key===key;})||{};
     if(lang==='ar') return r.value_ar||r.value_en||'';
     return r.value_en||r.value_ar||'';
+  }
+  /* company_achievements — fetched ONCE (memoised), enabled rows in sort order.
+     On ANY failure the document falls back to current behavior exactly (the
+     stored sections render as-is); nothing is ever invented (M8). */
+  function loadAch(){
+    if(S.achLoading||Array.isArray(S.ach))return;
+    var c=client(); if(!c)return;
+    S.achLoading=true;
+    c.from('company_achievements').select('*').eq('enabled',true)
+     .order('sort',{ascending:true}).then(function(r){
+        S.achLoading=false;
+        if(r.error){ S.achFail=true; S.ach=null; }   /* fallback: sections as-is */
+        else{ S.achFail=false; S.ach=r.data||[]; }
+        repaint();
+     });
+  }
+  /* achievements of one kind matching the chosen audience, or null when the
+     audience is General/unset or the fetch has not succeeded (→ fall back). */
+  function achFor(kind){
+    var a=S.cur.audience;
+    if(!a||!Array.isArray(S.ach))return null;
+    return S.ach.filter(function(r){
+      return r.kind===kind&&Array.isArray(r.audiences)&&r.audiences.indexOf(a)>=0;
+    });
+  }
+  /* "500+ employees" → {value:"500+", label:"employees"} (same split for AR) */
+  function statSplit(t){
+    var s=String(t||'').trim();
+    var m=/^(\S+)\s+([\s\S]+)$/.exec(s);
+    return m?{value:m[1],label:m[2]}:{value:s,label:''};
   }
   function loadList(force){
     if(S.listLoading)return; if(S.list&&!force)return;
@@ -135,7 +177,8 @@
     var secs=(S.sections||[]).slice().sort(function(a,b){return a.sort-b.sort;});
     return { loaded:S.sections!==null,
       sections:secs.map(function(s){return {key:s.key,enabled:!!s.enabled,sort:s.sort,items:(Array.isArray(s.items)?s.items.length:0)};}),
-      lang:S.cur.lang, clientId:S.cur.clientId||null, docNumber:S.docNumber, status:S.status };
+      lang:S.cur.lang, clientId:S.cur.clientId||null, docNumber:S.docNumber, status:S.status,
+      audience:S.cur.audience||'', achievements:Array.isArray(S.ach)?S.ach.length:null, achFailed:!!S.achFail };
   };
 
   /* ---------- persistence (generated_documents, family PRF) ---------- */
@@ -152,7 +195,7 @@
       business_id:S.cur.clientId||null,
       title:'Company Profile '+(S.cur.year||''),
       payload:{ lang:S.cur.lang, clientId:S.cur.clientId||null, year:S.cur.year,
-                sections:snapshotSections() },
+                audience:S.cur.audience||'', sections:snapshotSections() },
       status:S.status||'draft',
       doc_number:S.docNumber||null,
       updated_at:new Date().toISOString(),
@@ -206,17 +249,29 @@
   window.cpOpen=function(id){
     var rec=(S.list||[]).find(function(x){return x.id===id;});
     if(!rec||!rec.payload)return;
-    S.cur={ lang:rec.payload.lang||'en', clientId:rec.payload.clientId||'', year:rec.payload.year||'' };
+    S.cur={ lang:rec.payload.lang||'en', clientId:rec.payload.clientId||'', year:rec.payload.year||'',
+            audience:rec.payload.audience||'' };
     S.rowId=rec.id; S.docNumber=rec.doc_number||null; S.status=rec.status||'draft';
+    S.pastOverride=false;
+    if(S.cur.audience)loadAch();
     repaint();
   };
-  window.cpNew=function(){ S.cur=blankDoc(); S.rowId=null; S.docNumber=null; S.status='draft'; repaint(); };
+  window.cpNew=function(){ S.cur=blankDoc(); S.rowId=null; S.docNumber=null; S.status='draft'; S.pastOverride=false; repaint(); };
   window.cpSet=function(k,v){ S.cur[k]=v; repaintPreview(); };
   window.cpLang=function(l){ S.cur.lang=l; repaint(); };
+  /* audience chip — internal targeting only; NEVER printed on the document */
+  window.cpAud=function(a){
+    S.cur.audience=a||''; S.pastOverride=false;
+    if(S.cur.audience)loadAch();
+    repaint();
+  };
 
   /* ---------- section editing (admin/manager; RLS enforces server-side) ---------- */
   window.cpToggleSec=function(key,on){
     var c=client(); if(!c)return;
+    /* the existing toggles override the audience emphasis: touching the past-
+       projects toggle turns the audience default off for this editing session */
+    if(key==='past_projects')S.pastOverride=true;
     c.from('company_profile_sections').update({enabled:!!on,updated_at:new Date().toISOString(),updated_by:(window.__userEmail||null)})
      .eq('key',key).select().then(function(r){
         if(r.error||!r.data||r.data.length!==1){ refusedMsg(); loadSections(true); return; }
@@ -293,6 +348,9 @@
     '#cpWrap .cp-sec .hd{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px}'+
     '#cpWrap .cp-sec .hd input{width:auto}'+
     '#cpWrap .cp-sec .off{color:var(--muted,#999);font-weight:400;font-size:11.5px}'+
+    '#cpWrap .cp-aud{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}'+
+    '#cpWrap .cp-aud button{border:1px solid var(--hairline,#ddd);background:var(--surface,#fff);color:var(--muted,#777);border-radius:99px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer}'+
+    '#cpWrap .cp-aud button.on{background:var(--accent);border-color:var(--accent);color:#fff}'+
     '#cpWrap .cp-status{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11.5px;font-weight:800}'+
     '#cpWrap .cp-status.draft{background:var(--wash,#eee);color:var(--muted,#777)}'+
     '#cpWrap .cp-status.sent{background:var(--wash-accent,#fff3ec);color:var(--accent)}'+
@@ -371,6 +429,20 @@
   function sectionBody(s,ar){
     var body=ar?(s.body_ar||s.body_en):(s.body_en||s.body_ar);
     var items=Array.isArray(s.items)?s.items:[];
+    /* audience emphasis: with a targeted audience chosen AND the achievements
+       fetch succeeded, the stats/services/past-projects ITEMS come from the
+       audience-tagged company_achievements rows. Values are never filtered.
+       Any other situation (General, no selection, fetch failed) renders the
+       stored sections exactly as before — never invented content (M8). */
+    var achItems=null;
+    if(s.key==='services'){
+      var svcA=achFor('service');
+      if(svcA!==null)achItems=svcA.map(function(r){return {en:r.title_en||'',ar:r.title_ar||''};});
+    }else if(s.key==='past_projects'){
+      var ppA=achFor('past_project');
+      if(ppA!==null)achItems=ppA.map(function(r){return {en:r.title_en||'',ar:r.title_ar||''};});
+    }
+    if(achItems!==null)items=achItems;
     var html=body?mdLite(body):'';
     if(s.key==='values'&&items.length){
       html+='<div class="cp-cards">'+items.map(function(it){
@@ -384,12 +456,25 @@
         return '<div class="it"><span class="n">'+(i+1)+'</span>'+esc(nm)+'</div>';
       }).join('')+'</div>';
     }else if(s.key==='stats'){
-      /* the stats band renders ONLY when the owner has entered items — the
-         canonical numbers are an open owner question; nothing is invented. */
-      if(!items.length)return '';
-      html+='<div class="cp-stats">'+items.map(function(it){
-        var lb=ar?(it.label_ar||it.label_en||''):(it.label_en||it.label_ar||'');
-        return '<div class="cp-stat"><b>'+esc(it.value||'')+'</b><span>'+esc(lb)+'</span></div>';
+      /* the stats band renders ONLY when items exist — the canonical numbers
+         are an open owner question; nothing is invented. With a targeted
+         audience the band shows the audience-tagged achievement stats. */
+      var statA=achFor('stat');
+      var cells;
+      if(statA!==null){
+        cells=statA.map(function(r){
+          return statSplit(ar?(r.title_ar||r.title_en):(r.title_en||r.title_ar));
+        });
+      }else{
+        cells=items.map(function(it){
+          if(it&&it.value!=null)
+            return {value:it.value,label:ar?(it.label_ar||it.label_en||''):(it.label_en||it.label_ar||'')};
+          return statSplit(ar?(it.ar||it.en):(it.en||it.ar));   /* tolerate {en,ar} rows */
+        });
+      }
+      if(!cells.length)return '';
+      html+='<div class="cp-stats">'+cells.map(function(c){
+        return '<div class="cp-stat"><b>'+esc(c.value||'')+'</b><span>'+esc(c.label||'')+'</span></div>';
       }).join('')+'</div>';
     }else if(items.length){
       html+='<ul class="cp-ul">'+items.map(function(it){
@@ -429,8 +514,16 @@
       '</div>'+
     '</div></div>';
 
-    /* one page per enabled section, in sort order */
-    var secs=(S.sections||[]).filter(function(s){return s.enabled;})
+    /* one page per enabled section, in sort order. Audience emphasis: past
+       projects print for Government / Corporate & MICE and hide for the other
+       targeted audiences — a starting default the section toggles override
+       (and only when the achievements fetch succeeded; otherwise as-is). */
+    var audK=S.cur.audience;
+    var hidePast=!!audK&&Array.isArray(S.ach)&&!S.pastOverride&&
+      audK!=='government'&&audK!=='corporate_mice';
+    var secs=(S.sections||[]).filter(function(s){
+        return s.enabled&&!(hidePast&&s.key==='past_projects');
+      })
       .sort(function(a,b){return a.sort-b.sort;});
     var secPages=secs.map(function(s){
       var body=sectionBody(s,ar);
@@ -540,6 +633,14 @@
         '<button type="button" class="'+((S.cur.lang||'en')==='en'?'on':'')+'" onclick="cpLang(\'en\')">English</button>'+
         '<button type="button" class="'+(S.cur.lang==='ar'?'on':'')+'" onclick="cpLang(\'ar\')">العربية</button>'+
       '</div>'+
+      '<fieldset><legend>'+fl('Who is this profile for?','لمن هذا الملف؟')+'</legend>'+
+        '<div class="cp-aud">'+AUD.map(function(a){
+          return '<button type="button" data-aud="'+esc(a.k)+'" class="'+(((S.cur.audience||'')===a.k)?'on':'')+'" onclick="cpAud(\''+esc(a.k)+'\')">'+esc(fl(a.en,a.ar))+'</button>';
+        }).join('')+'</div>'+
+        '<div style="font-size:11.5px;color:var(--muted,#777);margin-top:6px">'+
+          fl('Internal targeting only — it never prints on the document. It sets which stats, services and past projects are emphasized; every section stays editable.',
+             'استهداف داخلي فقط — لا يُطبع على المستند أبداً. يحدد الأرقام والخدمات والمشاريع المُبرزة؛ وتبقى كل الأقسام قابلة للتعديل.')+'</div>'+
+      '</fieldset>'+
       '<fieldset><legend>'+fl('Cover','الغلاف')+'</legend>'+
         '<label>'+fl('Year','السنة')+'</label>'+
         '<input value="'+esc(S.cur.year)+'" oninput="cpSet(\'year\',this.value)">'+
