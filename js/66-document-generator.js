@@ -349,7 +349,12 @@
         fld(fl('Source — the named document this value comes from','المصدر — المستند المسمى الذي جاءت منه القيمة'),'<input id="dgE_src" value="'+esc(r.source||'')+'">')+
         '</div>'+
         '<div style="margin-top:10px"><button class="btn sm pri" onclick="dgEditSave(\''+esc(r.key)+'\')">'+fl('Save','حفظ')+'</button> '+
-        '<button class="btn sm ghost" onclick="dgEditCancel()">'+fl('Cancel','إلغاء')+'</button></div></td></tr>';
+        '<button class="btn sm ghost" onclick="dgEditCancel()">'+fl('Cancel','إلغاء')+'</button> '+
+        /* Replace proof lives HERE (declutter, 2026-08-26): rows that already carry a
+           proof keep View/Download on the row strip and replace it from the edit form.
+           Same label + handler as before — only the placement moved. */
+        (r.proof_path?proofAttach(r):'')+
+        '</div></td></tr>';
     }
     var val=isAr()&&r.value_ar?r.value_ar:(r.value_en||'—');
     var shown=(r.sensitive&&!DG.revealed[r.key])?'•••• '+fl('hidden','مخفي'):esc(val);
@@ -360,7 +365,9 @@
       '<div class="dg-src">'+esc(r.source||'')+'</div></td>'+
       '<td style="white-space:nowrap;text-align:end">'+
       (r.sensitive?'<button class="btn sm ghost dg-mini" onclick="dgReveal(\''+esc(r.key)+'\')">'+(DG.revealed[r.key]?fl('Hide','إخفاء'):fl('Show','عرض'))+'</button> ':'')+
-      proofBtns(r,false)+proofAttach(r)+
+      /* rows WITH a proof no longer show Replace here (it moved into the edit form);
+         rows WITHOUT one keep Attach proof visible — there is nothing to view yet */
+      proofBtns(r,false)+(r.proof_path?'':proofAttach(r))+
       '<button class="btn sm ghost dg-mini" onclick="dgCopy(\''+esc(r.key)+'\')">'+fl('Copy','نسخ')+'</button>'+
       (canEdit()?' <button class="btn sm ghost dg-mini" onclick="dgEdit(\''+esc(r.key)+'\')">'+fl('Edit','تعديل')+'</button>':'')+
       '</td></tr>';

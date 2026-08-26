@@ -141,7 +141,7 @@
       lines:[blankLine()] };
   }
   var S={ cur:blankOffer(), rowId:null, docNumber:null, status:'draft',
-          list:null, listLoading:false, identity:null, saving:false };
+          list:null, listLoading:false, identity:null, rates:null, saving:false };
 
   /* ---------- data ---------- */
   function loadIdentity(){
@@ -159,6 +159,41 @@
     /* company names are never translated — legal_name keeps whichever form is on file */
     if(lang==='ar') return v.ar||v.en||'';
     return v.en||v.ar||'';
+  }
+  /* Standard fees — the company's flat corporate rates (service_fee_scenarios,
+     lowest sort). Fetched lazily ONCE per page session via the memoised client;
+     used only to PREFILL a quick-added line's price, which stays fully editable.
+     No hardcoded prices in this file (M-rules): a fee either comes from the
+     scenario row or the price stays empty exactly as before — never invented. */
+  function loadRates(){
+    if(S.rates!==null)return;
+    var c=client(); if(!c)return;
+    S.rates={}; /* in-flight marker; stays empty on failure → no prefill, ever */
+    try{
+      c.from('service_fee_scenarios').select('rows,sort').order('sort',{ascending:true}).limit(1)
+       .then(function(r){
+          try{
+            if(r.error||!r.data||!r.data.length)return;
+            var map={};
+            (((r.data[0]||{}).rows)||[]).forEach(function(sec){
+              ((sec&&sec.rows)||[]).forEach(function(row){
+                if(!row)return;
+                var fee=(row.fees&&row.fees.length)?Number(row.fees[0]):NaN;
+                if(!isFinite(fee))return;
+                if(row.svc_en)map['en:'+String(row.svc_en).trim().toLowerCase()]=fee;
+                if(row.svc_ar)map['ar:'+String(row.svc_ar).trim().toLowerCase()]=fee;
+              });
+            });
+            S.rates=map;
+          }catch(_){}
+       });
+    }catch(_){}
+  }
+  function stdFee(en,ar){
+    var m=S.rates||{};
+    var fee=m['en:'+String(en||'').trim().toLowerCase()];
+    if(fee==null&&ar)fee=m['ar:'+String(ar).trim().toLowerCase()];
+    return (fee==null)?'':String(fee);
   }
   function loadList(force){
     if(S.listLoading)return; if(S.list&&!force)return;
@@ -355,8 +390,11 @@
   window.poQuickAdd=function(sel){
     var idx=parseInt(sel.value,10); sel.value='';
     if(isNaN(idx)||!STD[idx])return;
+    loadRates(); /* fallback trigger — normally already fetched on tab load */
     var L=S.cur.lines, last=L[L.length-1];
-    var line={svc:STD[idx][0],svcAr:STD[idx][1],unit:STD[idx][2],qty:1,orig:'',price:''};
+    /* silent prefill from the company's standard rates; empty when no match */
+    var line={svc:STD[idx][0],svcAr:STD[idx][1],unit:STD[idx][2],qty:1,orig:'',
+              price:stdFee(STD[idx][0],STD[idx][1])};
     if(last&&!last.svc&&!last.svcAr&&!last.price)L[L.length-1]=line; else L.push(line);
     repaint();
   };
@@ -687,7 +725,7 @@
 
   /* ---------- render: tab body + targeted repaints ---------- */
   function tabHtml(){
-    loadIdentity(); loadList();
+    loadIdentity(); loadList(); loadRates();
     return css()+
       '<div id="poWrap">'+
         '<div>'+formHtml()+'</div>'+
