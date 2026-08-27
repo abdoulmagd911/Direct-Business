@@ -1,5 +1,34 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-27 · Re-checked two items left open in the M13 round; one closes, one stays open
+
+Prompted by a routine status check, not a new report — went back to the two loose ends
+logged on 2026-08-24 (in the M13 entry below) rather than let them sit unverified.
+
+**Closes: the `finance_cogs_expenses_archive_20260822` RLS advisory.** Flagged then as "RLS
+disabled — anyone with the anon key can read/write it," left for the owner to decide since
+enabling RLS with no policy blocks all access. Re-ran `get_advisors` (security) just now: the
+table now shows "RLS enabled, no policies" — someone already fixed it (no BACKLOG entry
+recorded when), and deny-by-default is the correct end state here, not a half-fix — confirmed
+by grepping `js/` and `scripts/` for any reference to this table: there is none, so nothing in
+the app ever needs API access to a dated archive snapshot. Nothing left to do.
+
+**Stays open: the M12 (import-tab wiring race) recurrence report.** The 2026-08-24 note left
+this open pending a console-state dump from the oversight session, having found no second
+code path that skips the wrapped `render()`/`finGo()` on inspection at the time. Worth
+re-checking now because six new files landed in this repo since then — `js/66-71`
+(document/price-offer/service-fees/company-profile/contract/tender tabs) and edits to
+`js/core/core-08-v25.js` — any one of which could plausibly have reintroduced exactly this
+shape by reassigning `window.render` or `window.finGo` without chaining the previous handler.
+Checked every `window.render=` and `window.finGo=` assignment in the codebase (not just the
+new files): all of them capture the prior function first and call it via `.apply()` before
+doing their own work — none clobber the chain. Also checked for a duplicate `#finFile`/
+`#finDrop` id that a new tab could have introduced (would let `document.getElementById` return
+the wrong element depending on DOM order) — none exists; only `js/16-finance-ledger.js`
+defines those ids. The hypothesis that newer files caused the recurrence is ruled out by this
+check. The item is genuinely still open, for the same reason it was on 2026-08-24: nothing
+found on inspection, still waiting on the diagnostic data already requested.
+
 ## 2026-08-26 (round 2) · Bulletproof/landmine premortem pass — six attacks written to land; five survived, one found a real gap
 
 Owner-ordered follow-up to the hands-on round below: assume it is a month from now and the
