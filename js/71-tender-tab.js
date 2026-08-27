@@ -4,8 +4,8 @@
    Anatomy from the company's real HRC tender:
    - TECHNICAL: about the company → 4-phase work plan (the REAL phases, pre-seeded,
      editable) → scope items each with a technical-process description → timeline →
-     team (named roles, entered per tender) → past projects (owner call — section
-     ships DISABLED by default, M2: the excluded vendors never appear) → BoQ WITHOUT prices →
+     team (named roles, entered per tender) → past projects (owner call, 25 Aug ruling —
+     section ships ENABLED by default, M2: the excluded vendors never appear) → BoQ WITHOUT prices →
      certificates page (proof documents already in company_identity, listed as
      "attached: <label>" — the PDFs themselves are appended by the user at print).
    - FINANCIAL: same BoQ WITH prices — each line in numbers AND words → monthly
@@ -604,7 +604,7 @@
     var teamHtml=team.length?h(t,t.team)+'<table class="td-t"><thead><tr><th>'+t.num+'</th><th>'+t.role+'</th><th>'+t.name+'</th></tr></thead><tbody>'+
       team.map(function(m,i){ return '<tr><td>'+(i+1)+'</td><td class="svc">'+esc(m.role)+'</td><td>'+esc(m.name||'—')+'</td></tr>'; }).join('')+
       '</tbody></table>':'';
-    /* past projects — DISABLED by default, an owner call (M2: the excluded vendors never appear) */
+    /* past projects — ENABLED by default (owner ruling, 25 Aug), M2: the excluded vendors never appear */
     var ppHtml='';
     if(S.cur.pastProjects&&S.cur.pastProjects.on){
       var items=(S.cur.pastProjects.items||[]).filter(function(x){return x;});
