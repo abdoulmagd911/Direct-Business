@@ -325,6 +325,39 @@ if (draftPost) {
     && !!body.payload.party2);
 }
 
+/* 7b — Issue is refused while a required clause still carries the seeded
+   placeholder wording ("[Edit per agreement]"), so a real contract can never
+   be sent to a client with that bracketed text printed in it. In this
+   fixture only 'preamble' and 'scope' carry the marker (CLAUSES above). */
+check('placeholder clauses are detected before issuing (unedited defaults)', await p.evaluate(() => {
+  const keys = window.__ctProbe().placeholderClauseKeys.slice().sort();
+  return keys.join(',') === 'preamble,scope';
+}));
+await p.evaluate(() => ctIssue());
+await p.waitForTimeout(900);
+check('Issue is refused while placeholder wording remains (no doc number assigned)', await p.evaluate(() =>
+  window.__ctProbe().docNumber === null && window.__ctProbe().status === 'draft'));
+/* clear the placeholder text the same way a real user would — edit + save,
+   per-contract override — then Issue must proceed */
+for (const key of ['preamble', 'scope']) {
+  await p.evaluate((k) => ctClauseEdit(k), key);
+  await p.waitForTimeout(150);
+  await p.evaluate(() => {
+    const en = document.getElementById('ctE_ben');
+    const ar = document.getElementById('ctE_bar');
+    if (en) en.value = en.value.replace(/\s*\[?Edit per agreement\]?/g, '').trim() || 'Agreed wording.';
+    if (ar) ar.value = ar.value.replace(/\s*\[?يُحرَّر حسب الاتفاق\]?/g, '').trim() || 'نص متفق عليه.';
+  });
+  await p.evaluate((k) => ctClauseSave(k), key);
+  await p.waitForTimeout(150);
+}
+check('placeholder clauses cleared after editing preamble + scope', await p.evaluate(() =>
+  window.__ctProbe().placeholderClauseKeys.length === 0));
+/* NOTE: the mock harness doesn't stub next_document_number RPC, so the
+   number-assignment leg of Issue is verified live (real click + direct
+   Supabase read), same discipline as every other family this session —
+   this probe only guards the placeholder-block logic itself. */
+
 /* 8 — relabeler trap + storage + errors */
 check('Issue button carries data-v21relabeled (core-06 relabeler trap)', await p.evaluate(() => {
   const btn = [...document.querySelectorAll('#ctWrap button')].find(x => /Issue|إصدار العقد/.test(x.textContent));

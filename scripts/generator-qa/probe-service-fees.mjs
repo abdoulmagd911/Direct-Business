@@ -265,6 +265,13 @@ if (sp) {
   check('dual scenario seeded 3 editable rows', sp.rows === 3, 'got ' + JSON.stringify(sp));
   check('dual scenario turned the second fee column on', sp.col2 === true);
 }
+/* the scenario's internal picker label must never leak onto the client-facing title */
+const titleAfterSeed = await p.evaluate(() => {
+  const el = [...document.querySelectorAll('#sfWrap input')].find(i => i.placeholder === 'Service-Fee Proposal');
+  return el ? el.value : null;
+});
+check('seeding a scenario does NOT overwrite the document title with the scenario\'s internal name',
+  titleAfterSeed === '', 'title after seed: ' + JSON.stringify(titleAfterSeed));
 
 /* 5 — dual-column rendering + FREE */
 {

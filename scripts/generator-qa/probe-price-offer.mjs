@@ -272,6 +272,15 @@ const qa2 = await quickAdd('Visa services');
 check('quick-add of a service NOT in the scenario leaves the price empty (never invented)',
   qa2.svc === 'Visa services' && qa2.price === '', JSON.stringify(qa2));
 
+/* 5c — quick-added units are bilingual: the AR document must never leak an English unit */
+await p.evaluate(() => poLang('ar'));
+await p.waitForTimeout(500);
+const arUnit = await p.evaluate(() => (document.getElementById('poPages')?.innerText || ''));
+check('quick-added unit renders in Arabic on the AR document (not the English "Per ticket")',
+  arUnit.includes('لكل تذكرة') && !arUnit.includes('Per ticket'), 'sample: ' + (arUnit.match(/.{0,20}لكل تذكرة.{0,10}/) || arUnit.match(/Per ticket/) || 'not found'));
+await p.evaluate(() => poLang('en'));
+await p.waitForTimeout(500);
+
 /* 6 — nothing in js/67 ever writes localStorage */
 const ls = await p.evaluate(() => (window.__lsWrites || []).filter(x => x.stack.includes('67-price-offer')));
 check('no localStorage.setItem call originates from js/67', ls.length === 0,
