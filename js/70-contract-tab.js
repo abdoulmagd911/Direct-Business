@@ -172,6 +172,7 @@
       noticeDays:S.cur.noticeDays,
       annexSections:(S.cur.annex.sections||[]).length,
       importedFrom:S.cur.importedFrom,
+      placeholderClauseKeys:(window.__ctPlaceholderClauses?window.__ctPlaceholderClauses():[]).map(function(c){return c.key;}),
       docNumber:S.docNumber, status:S.status };
   };
 
@@ -211,10 +212,31 @@
       });
     }
   };
+  /* Guard: a contract must never go out to a client still carrying the
+     seeded placeholder wording — "[Edit per agreement]" / "[يُحرَّر حسب الاتفاق]".
+     That text is a deliberate, visible flag (M8: no invented legal prose),
+     not real legal wording — so Issue is refused while any ENABLED clause
+     still carries it, and the editor is told exactly which ones. */
+  var PH_EN='Edit per agreement', PH_AR='يُحرَّر حسب الاتفاق';
+  function placeholderClauses(){
+    return (S.cur.clauses||[]).filter(function(c){
+      if(!c.enabled)return false;
+      var en=c.body_en||'', ar=c.body_ar||'';
+      return en.indexOf(PH_EN)>=0 || ar.indexOf(PH_AR)>=0;
+    });
+  }
+  window.__ctPlaceholderClauses=placeholderClauses; /* QA hook */
   /* number assigned ONLY here, server-side, at issue time */
   window.ctIssue=function(){
     var c=client(); if(!c){ refusedMsg(); return; }
     if(S.docNumber){ toast(fl('Already issued as '+S.docNumber,'صدر مسبقاً برقم '+S.docNumber)); return; }
+    var ph=placeholderClauses();
+    if(ph.length){
+      var names=ph.map(function(x){return fl(x.title_en||x.key,x.title_ar||x.key);}).join('، ');
+      toast(fl('Still has placeholder wording — edit before issuing: '+names,
+                'لا تزال تحمل نصاً مبدئياً — حرّرها قبل الإصدار: '+names));
+      return;
+    }
     var go=function(){
       c.rpc('next_document_number',{p_family:'CTR'}).then(function(r){
         if(r.error||!r.data){ toast(fl('Numbering was refused — the contract stays a draft','رُفض الترقيم — يبقى العقد مسودة')); return; }
