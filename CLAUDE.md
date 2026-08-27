@@ -71,6 +71,17 @@
    `byhxnmafaumersoaiybq`, project `directksa-performance`) is a different project with
    different work.** Never read it, write to it, document it in this repo, or reference its
    data. If a task seems to require it, stop and ask.
+9. **When a session has a clear recommendation, act on it — don't stop to ask "should I?"**
+   (2026-08-27, after a session found real customer PII exposed in the repo since 2026-08-08,
+   named one clear fix, and paused to ask permission instead of doing it or the reachable part
+   of it.) This extends rule 2, it doesn't replace the judgment behind it: a session should
+   still flag genuinely destructive or hard-to-reverse actions before taking them — rewriting
+   git history, force-pushing, deleting real data, anything that can't be undone or that
+   affects another session's in-flight work — that carve-out in the main system instructions
+   stands. What changes is everything short of that: don't present a recommendation and wait:
+   do it, then report what happened. If part of the fix genuinely can't be done from the
+   session (a GitHub repo setting, a dashboard toggle), do the reachable part immediately and
+   ask for the one remaining manual step, in order — same as rule 2 already says.
 
 ## What this project is
 
