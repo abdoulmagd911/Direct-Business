@@ -172,7 +172,12 @@ async function main() {
   // (`app_role() IS NOT NULL`) has no per-page restriction at all — so archived records may
   // be readable by direct URL regardless of role. Flagging for a product decision, not
   // assuming it's a bug: maybe Archive is meant to be open to any signed-in employee.
-  const ALL_GATED_PAGES = ['today', 'leads', 'clients', 'finance', 'offers', 'events', 'airlines', 'settings'];
+  /* 'offers' removed from the gated-nav scope 2026-08-26: commit e572cd3 (owner feedback
+     round, 25 Aug) deliberately took Proposals/Offers out of the primary nav for every role
+     — reversible, the page itself still lives at /offers by URL. This script tests NAV
+     visibility, so expecting an entry the nav intentionally no longer carries produced two
+     permanent false failures (admin + manager). */
+  const ALL_GATED_PAGES = ['today', 'leads', 'clients', 'finance', 'events', 'airlines', 'settings'];
 
   for (const row of rows) {
     if (!row.roleKnown) { fail(`${row.role}: BLIND SPOT — role never settled (window.__roleKnown stayed false), nav read is meaningless`); continue; }

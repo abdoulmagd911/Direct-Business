@@ -1,5 +1,10 @@
 import http from 'http'; import fs from 'fs'; import url from 'url';
-const APP='/tmp/claude-0/-home-user-Direct-Business/c6b2dbb4-5df9-5075-b6c8-d5f2b7cdb838/scratchpad/live-app';
+/* 2026-08-26 portability: the scratchpad copy exists only in the Code session's container.
+   Anywhere else (oversight session, CI, a fresh clone) fall back to serving the repo itself —
+   same index.html + js/, which is what the scratchpad copy was. Without this, 11 probes
+   timed out on a blank page in any environment but one. */
+const _SCRATCH='/tmp/claude-0/-home-user-Direct-Business/c6b2dbb4-5df9-5075-b6c8-d5f2b7cdb838/scratchpad/live-app';
+const APP=fs.existsSync(_SCRATCH)?_SCRATCH:new URL('../..', import.meta.url).pathname;
 const UMD='/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js';
 const UID='11111111-1111-1111-1111-111111111111';
 const now=Math.floor(Date.now()/1000);

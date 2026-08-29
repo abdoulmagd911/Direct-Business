@@ -48,7 +48,9 @@ const PAGES = [
   { key: 'today', en: 'Today', ar: 'اليوم' },
   { key: 'leads', en: 'Leads', ar: 'العملاء المحتملون' },
   { key: 'clients', en: 'Clients', ar: 'العملاء' },
-  { key: 'proposals', en: 'Proposals', ar: 'العروض المقدمة' },
+  /* 'proposals' removed from this list 2026-08-26: commit e572cd3 (owner feedback round,
+     25 Aug) deliberately took Proposals out of the primary nav — reversible, page still
+     lives at /offers. Expecting the label here made 4 permanent false findings. */
   { key: 'operations', en: 'Operations', ar: 'العمليات' },
   { key: 'reports', en: 'Reports', ar: 'التقارير' },
   { key: 'finance', en: 'Finance', ar: 'المالية' },
