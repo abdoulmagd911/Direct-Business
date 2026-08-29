@@ -1,5 +1,28 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-27 · Report Builder is scoped independently of the Overview/Clients period bar
+
+Found while self-auditing the day's Report Builder and Compare-to work (asked "what else did
+you miss"). `FIN.rb.quarter` (Report Builder's own period filter) is a completely separate
+piece of state from `FIN.p` (the period bar Overview and Clients & collections share) — it
+only offers `all | Q1..Q4` with no year axis (so "Q1" spans every year in the data, not one),
+no H1/H2/month granularity, and critically **no sector filter at all**. Concretely: pick
+Sector = Tenders on the period bar, then go to Report Builder and click any Quick view — the
+report is NOT scoped to Tenders, it silently includes every sector, with nothing on screen
+saying so. This predates today's work (the two fields have always been separate) but the new
+Quick views presets inherit it unexamined, since they only set `rb.g1/g2/quarter/verifiedOnly/
+metrics`, the same fields Report Builder already had.
+
+Not fixed now — this is a real design decision (does Report Builder become a fifth consumer
+of `FIN.p`, or does it stay deliberately independent because grouped reports and the period
+bar's headline KPIs are different jobs?), not a one-line patch, and it touches the same file
+(`js/16-finance-ledger.js`) two different features already changed today. Belongs in the same
+conversation as the `docs/DECISIONS.md` P4-addendum finding about Expenses/Payment
+Proofs/B2C's own separate period filters — Finance now has at least three independent
+period-filtering mechanisms (`FIN.p`, `FIN.rb.quarter`, the two `EXP.month`/`PRX.month`
+dropdowns) plus one tab with none at all (B2C manual). Worth deciding as one thing, not
+patching one at a time.
+
 ## 2026-08-27 · Re-checked two items left open in the M13 round; one closes, one stays open
 
 Prompted by a routine status check, not a new report — went back to the two loose ends
