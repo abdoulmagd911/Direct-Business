@@ -400,7 +400,14 @@
   window.__callAdmin=callAdmin;
 
   // v32: push only the leads that actually changed (row upserts), plus the small non-lead blob
-  var t=null, pendingSave=false;
+  var t=null, pendingSave=false, saveRetryN=0;
+  /* 2026-08-26 — a failed cloud save used to wait FOREVER for the next save() call or a
+     tab-hide before trying again; a transient RPC failure left changes sitting in memory
+     with only the small pill as a warning (caught live: the third alias-map entry never
+     reached app_state until the tab navigated away). Now a failed push retries itself
+     with backoff (3s,6s,...,30s cap, max 8 tries), and a successful save resets it. */
+  function scheduleSaveRetry(){ if(saveRetryN>=8)return; saveRetryN++; if(t)clearTimeout(t);
+    t=setTimeout(function(){ pushCloud(); }, Math.min(30000, 3000*saveRetryN)); }
   function pushCloud(){
     try{
       pendingSave=false;
@@ -420,8 +427,8 @@
       var rest={}; Object.keys(DB).forEach(function(k){ if(k!=='businesses')rest[k]=DB[k]; });
       var finish=function(errMsg){
         sb.rpc('save_state',{payload:rest}).then(function(r2){
-          if(errMsg||(r2&&r2.error)){ pendingSave=true; setPill('Save issue: '+(errMsg||r2.error.message),'#D92D20'); }
-          else setPill(ups.length?('Saved · '+ups.length+' lead'+(ups.length===1?'':'s')+' updated'):'Saved to cloud','#16B364');
+          if(errMsg||(r2&&r2.error)){ pendingSave=true; setPill('Save issue: '+(errMsg||r2.error.message),'#D92D20'); scheduleSaveRetry(); }
+          else { saveRetryN=0; setPill(ups.length?('Saved · '+ups.length+' lead'+(ups.length===1?'':'s')+' updated'):'Saved to cloud','#16B364'); }
           sb.from('app_state').select('updated_at').eq('id',1).maybeSingle().then(function(u){ try{ if(u&&u.data&&u.data.updated_at) localStorage.setItem('db_cloud_ts', String(u.data.updated_at)); }catch(e){} });
         });
       };
@@ -447,7 +454,7 @@
         });
       }
       next();
-    }catch(e){ setPill('Save error','#D92D20'); }
+    }catch(e){ setPill('Save error','#D92D20'); pendingSave=true; scheduleSaveRetry(); }
   }
   function hookSave(){
     if(typeof window.save==='function'){

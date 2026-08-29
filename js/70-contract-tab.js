@@ -269,7 +269,41 @@
   window.ctNew=function(){ S.cur=blankDoc(); S.rowId=null; S.docNumber=null; S.status='draft'; S.sfpFor=null; S.sfpList=null; snapshotClauses(); repaint(); };
 
   /* ---------- form mutation ---------- */
-  window.ctSet=function(k,v){ S.cur[k]=v; if(k==='clientId'){ S.sfpFor=null; S.sfpList=null; repaint(); } else repaintPreview(); };
+  /* A2, 2026-08-25 (owner-approved audit fix) — the client record's CR was never read. crVat and
+     legalName appear nowhere in this tab, so party2.cr started empty and was typed by hand for
+     EVERY contract, including the 20 client records that already hold a CR. Owner's scenario found
+     it: picking MDD produced a contract with blank legal identity.
+     Fills only what is still empty — anything already typed is never overwritten.
+     Duplicate records: MDD exists twice (dp record has the CR, CRM record has none). Rather than
+     merge live client data from here, fall back to an exact normalised-name twin that carries a CR
+     and SAY SO in the form, so a borrowed value is visible rather than silent. */
+  function ctNorm(n){ return String(n||'').split('—')[0].replace(/[^a-zA-Z0-9\u0600-\u06FF]/g,'').toLowerCase(); }
+  function ctFindBiz(id){ try{ return (DB.businesses||[]).filter(function(b){return b.id===id;})[0]||null; }catch(_){ return null; } }
+  function ctCrTwin(b){
+    if(!b) return null;
+    var k=ctNorm(b.name||b.nameAr); if(!k) return null;
+    try{
+      return (DB.businesses||[]).filter(function(o){
+        return o.id!==b.id && (o.crVat||'').toString().trim() && ctNorm(o.name||o.nameAr)===k;
+      })[0]||null;
+    }catch(_){ return null; }
+  }
+  function ctAutofillParty2(id){
+    S.crSource=null;
+    var b=ctFindBiz(id); if(!b) return;
+    if(!S.cur.party2) S.cur.party2={cr:'',rep:'',title:'',phone:''};
+    var cr=(b.crVat||'').toString().trim();
+    if(!cr){ var twin=ctCrTwin(b); if(twin){ cr=(twin.crVat||'').toString().trim(); if(cr) S.crSource=twin.name||twin.nameAr||''; } }
+    if(cr && !String(S.cur.party2.cr||'').trim()) S.cur.party2.cr=cr;
+    try{
+      var c=(b.contacts||[])[0];
+      if(c){
+        if(c.phone && !String(S.cur.party2.phone||'').trim()) S.cur.party2.phone=c.phone;
+        if(c.name  && !String(S.cur.party2.rep  ||'').trim()) S.cur.party2.rep  =c.name;
+      }
+    }catch(_){}
+  }
+  window.ctSet=function(k,v){ S.cur[k]=v; if(k==='clientId'){ S.sfpFor=null; S.sfpList=null; ctAutofillParty2(v); repaint(); } else repaintPreview(); };
   window.ctParty=function(p,k,v){ if(S.cur[p])S.cur[p][k]=v; repaintPreview(); };
   window.ctLang=function(l){ S.cur.lang=l; repaint(); };
 
@@ -732,6 +766,7 @@
         '<select onchange="ctSet(\'clientId\',this.value)">'+clientOptions()+'</select>'+
         '<label>'+fl('Commercial registration (CR)','السجل التجاري')+'</label>'+
         '<input value="'+esc(S.cur.party2.cr)+'" oninput="ctParty(\'party2\',\'cr\',this.value)">'+
+        (S.crSource?('<div style="font-size:11.5px;color:#9A6400;margin-top:2px">'+fl('Taken from the matching record ','مأخوذ من السجل المطابق ')+'\u00ab'+esc(S.crSource)+'\u00bb'+'</div>'):'')+
         '<label>'+fl('Represented by','يمثلها')+'</label>'+
         '<input value="'+esc(S.cur.party2.rep)+'" oninput="ctParty(\'party2\',\'rep\',this.value)">'+
         '<label>'+fl('Title / capacity','الصفة')+'</label>'+

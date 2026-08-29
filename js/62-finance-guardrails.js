@@ -288,7 +288,7 @@
         +'<div style="margin-top:10px"><button class="btn sm" onclick="v62OpenAddGrouping()">+ '+fl('Add alias','إضافة اسم بديل')+'</button></div>'
         +'<hr style="margin:18px 0;border:none;border-top:1px solid var(--line,#eee)">'
         +'<h3 style="margin:0 0 4px">'+fl('Billing-profile grouping','تجميع ملفات الفوترة')+'</h3>'
-        +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Each profile keeps its own row, badge and amount — this only displays several under one company; nothing is merged.','يحتفظ كل ملف بصفه وشارته ومبلغه — هذا يعرض عدة ملفات تحت شركة واحدة فقط؛ لا شيء يُدمج.')+'</div>'
+        +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Show several billing profiles under one company.','عرض عدة ملفات فوترة تحت شركة واحدة.')+'</div>'
         +'<button class="btn sm" onclick="v62OpenGrouping()">'+fl('Group profiles…','تجميع الملفات…')+'</button>';
       view.appendChild(card);
     }catch(e){ if(window.console)console.warn('[v62] inject',e); }

@@ -112,10 +112,10 @@ function verified(){return live().filter(function(r){return r.integrity_status==
    Finance is read monthly / quarterly / half-yearly / annually. ONE period state drives
    every Overview number; nothing is stored per period — all sums stay derived live from
    the raw rows (the storage doctrine). part: all | Q1..Q4 | H1 | H2 | M:<MonthName>. */
-FIN.p=FIN.p||{year:'all',part:'all'};
+FIN.p=FIN.p||{year:'all',part:'all',sector:'all'};
+FIN.p.cmp=FIN.p.cmp||'none'; // blueprint step 5 (2026-08-27): compare-to mode, in-memory only — same storage doctrine as the rest of FIN.p, nothing per-period is ever saved.
 function finYearOf(r){return r.year||(r.invoice_date?+String(r.invoice_date).slice(0,4):null);}
-function finInPeriod(r){
-  var p=FIN.p||{year:'all',part:'all'};
+function finPeriodMatch(r,p){
   if(p.year!=='all'&&String(finYearOf(r))!==String(p.year))return false;
   var pt=p.part||'all';
   if(pt==='all')return true;
@@ -125,6 +125,57 @@ function finInPeriod(r){
   if(pt.indexOf('M:')===0)return r.month===pt.slice(2);
   return true;
 }
+function finInPeriod(r){
+  return finPeriodMatch(r,FIN.p||{year:'all',part:'all'});
+}
+/* Compare-to (blueprint step 5, 2026-08-27): "previous period" and "same period last year",
+   the two the owner actually asked for — "pick a period" is left for a later pass rather than
+   guessed at. Needs a concrete year to shift from, so it's a no-op (returns null, control hides
+   its result) when the year filter is 'all'; "the year before all years" isn't a period. */
+function finCompPeriodOf(mode){
+  var p=FIN.p||{}; if(!p.year||p.year==='all')return null;
+  var y=+p.year, pt=p.part||'all';
+  if(mode==='yoy')return {year:y-1,part:pt,sector:p.sector};
+  if(mode==='prev'){
+    if(pt==='all')return {year:y-1,part:'all',sector:p.sector};
+    if(pt==='H1')return {year:y-1,part:'H2',sector:p.sector};
+    if(pt==='H2')return {year:y,part:'H1',sector:p.sector};
+    if(/^Q[1-4]$/.test(pt)){var qn=+pt.slice(1);return qn===1?{year:y-1,part:'Q4',sector:p.sector}:{year:y,part:'Q'+(qn-1),sector:p.sector};}
+    if(pt.indexOf('M:')===0){
+      var mname=pt.slice(2),idx=MOI[mname]; if(!idx)return null;
+      var pm=idx===1?12:idx-1, py=idx===1?y-1:y;
+      var pname=Object.keys(MOI).filter(function(k){return MOI[k]===pm;})[0];
+      return pname?{year:py,part:'M:'+pname,sector:p.sector}:null;
+    }
+  }
+  return null;
+}
+function finCompLabel(p){
+  if(!p)return '';
+  var ar=isArF();
+  var pt=(p.part==='all')?(ar?'كامل الفترة':'Full period'):(p.part.indexOf('M:')===0?(ar?(MO_AR[p.part.slice(2)]||p.part.slice(2)):p.part.slice(2)):p.part);
+  return p.year+' · '+pt;
+}
+/* Same aggregate a comparison period needs — revenue/cost/profit off verified-paid rows (the
+   Key indicators basis), plus the incomplete-cost count so the comparison can carry the same
+   A7 warning the current period already shows. Never touches FIN.p itself, so building a
+   comparison can't disturb what's actually on screen. */
+function finPeriodTotals(p){
+  var sec=(p&&p.sector)||'all';
+  var rows=verified().filter(function(r){return finPeriodMatch(r,p)&&(sec==='all'||finSectorOf(r)===sec);});
+  var t={rev:0,cost:0,prof:0,n:rows.length,noCost:0};
+  rows.forEach(function(r){t.rev+=+r.revenue_sar||0;t.cost+=+r.cost_sar||0;t.prof+=+r.profit_sar||0;if((+r.cost_sar||0)===0)t.noCost++;});
+  return t;
+}
+window.finCmp=function(v){FIN.p.cmp=v;render();};
+/* Sector filter rides the same scope check every tab already uses, so picking a sector
+   filters KPIs, charts, clients, ledger and exports alike — scope is a page property. */
+var _finInPeriodBase=finInPeriod;
+finInPeriod=function(r){
+  if(!_finInPeriodBase(r))return false;
+  var sec=(FIN.p&&FIN.p.sector)||'all';
+  return sec==='all'||finSectorOf(r)===sec;
+};
 var MO_AR={January:'يناير',February:'فبراير',March:'مارس',April:'أبريل',May:'مايو',June:'يونيو',July:'يوليو',August:'أغسطس',September:'سبتمبر',October:'أكتوبر',November:'نوفمبر',December:'ديسمبر'};
 function finPeriodLabel(){
   var p=FIN.p,ar=isArF();
@@ -179,8 +230,37 @@ var _finCanonCache={};
    invalidated on the exact same clearFinCanon() calls the existing _finCanonCache already
    relies on, so this can never go stale independently of that cache. */
 var _finBizNameIndex=null;
+/* Sector, 2026-08-26 — blueprint step 4, built the M14 way: DERIVED AT RENDER from data the
+   app already holds, no schema change, nothing stored per invoice. payment_terms='Tender' on
+   the linked business makes the invoice a Tender; service_type 'School Commission' makes it
+   Academies; everything else is B2B. The alias map cannot hide this: sector reads the raw
+   client_group's LINK (FIN.linkByGroup), which survives display grouping untouched. When the
+   653-invoice backfill lands with Corporate / codes / incentives, this one function is the
+   single place that grows. */
+var _finBizTermsIndex=null;
+function _finBizTerms(uuid){
+  try{
+    if(!_finBizTermsIndex){
+      _finBizTermsIndex={};
+      var list=(typeof DB!=='undefined'&&DB.businesses)||[];
+      for(var i=0;i<list.length;i++){
+        var uu=(window.__bizUuid?window.__bizUuid(list[i].id):list[i].id);
+        _finBizTermsIndex[uu]=list[i].paymentTerms||null;
+      }
+    }
+    return _finBizTermsIndex[uuid]||null;
+  }catch(_){ return null; }
+}
+function finSectorOf(r){
+  if(String(r.service_type||'')==='School Commission')return 'academies';
+  var l=(FIN.linkByGroup||{})[r.client_group];
+  if(l&&l.business_id&&/tender/i.test(String(_finBizTerms(l.business_id)||'')))return 'tenders';
+  return 'b2b';
+}
+var SECTORS=[['all',['All sectors','كل القطاعات']],['tenders',['Tenders','مناقصات']],['b2b',['B2B','أعمال']],['academies',['Academies','أكاديميات']]];
+window.finPS=function(v){ FIN.p.sector=v; clearFinCanon(); if(typeof render==='function')render(); };
 var _finBizDirectIdIndex=null;
-function clearFinCanon(){ _finCanonCache={}; _finBizNameIndex=null; _finBizDirectIdIndex=null; }
+function clearFinCanon(){ _finCanonCache={}; _finBizNameIndex=null; _finBizDirectIdIndex=null; _finBizTermsIndex=null; }
 function _finBizName(uuid){
   try{
     if(!_finBizNameIndex){
@@ -326,7 +406,8 @@ function finPeriodBar(){
    +'<select style="'+SS+'" onchange="finPY(this.value)"><option value="all">'+(isArF()?'\u0643\u0644 \u0627\u0644\u0633\u0646\u0648\u0627\u062a':'All years')+'</option>'+years.map(function(y){return '<option '+(String(FIN.p.year)===y?'selected':'')+'>'+y+'</option>';}).join('')+'</select>'
    +chip('all',isArF()?'\u0627\u0644\u0643\u0644':'All')+chip('Q1','Q1')+chip('Q2','Q2')+chip('Q3','Q3')+chip('Q4','Q4')+chip('H1','H1')+chip('H2','H2')
    +'<select style="'+SS+'" onchange="finPP(this.value)"><option value="all">'+(isArF()?'\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631':'All months')+'</option>'+months.map(function(m){return '<option value="M:'+m+'" '+(FIN.p.part==='M:'+m?'selected':'')+'>'+(isArF()?(MO_AR[m]||m):m)+'</option>';}).join('')+'</select>'
-   +'<span style="margin-inline-start:auto;font-size:11px;color:var(--muted)">'+(isArF()?'\u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u062a\u0634\u0645\u0644 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629 \u0641\u0642\u0637':'Totals count verified-paid invoices only')+' \u00b7 <b>'+finPeriodLabel()+'</b></span></div>';
+   +SECTORS.map(function(sc){var on=(FIN.p.sector||'all')===sc[0];return '<button class="btn sm '+(on?'pri':'ghost')+'" onclick="finPS(\''+sc[0]+'\')">'+(isArF()?sc[1][1]:sc[1][0])+'</button>';}).join('')
+   +'<span style="margin-inline-start:auto;font-size:11px;color:var(--muted)">'+(isArF()?'\u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629 \u0641\u0642\u0637':'Paid invoices only')+' \u00b7 <b>'+finPeriodLabel()+'</b></span></div>';
   return s;
 }
 function rFinClients(){
@@ -337,7 +418,7 @@ function rFinClients(){
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px">'
     +'<div class="card" style="padding:14px 16px;border-top:3px solid #10B981"><div style="font-size:11px;color:var(--muted)">'+(isArF()?'رصيد العملاء (لدينا)':'Client credit (held)')+'</div><div style="font-size:19px;font-weight:800;color:#10B981" title="'+money(credit)+' SAR">'+moneyS(credit)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'
     +'</div>';
-  // ---- Collections & AR aging (DSO · % overdue · aging buckets) — from all live invoices, no name matching ----
+  // ---- Collections & ageing (days to collect · % overdue · ageing buckets) — from all live invoices, no name matching ----
   var _fl=function(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;};
   var LV=live().filter(finInPeriod);
   var arOut=0,arOver=0,billed=0,ag={b030:0,b3160:0,b6190:0,b90:0},_now=Date.now();
@@ -352,17 +433,25 @@ function rFinClients(){
   var _dates=LV.map(function(r){return r.invoice_date;}).filter(Boolean).sort();
   var _span=_dates.length?Math.max(30,Math.round((new Date(_dates[_dates.length-1]).getTime()-new Date(_dates[0]).getTime())/86400000)):180;
   var dso=billed>0?Math.round(arOut/billed*_span):0, pctOver=arOut>0?Math.round(arOver/arOut*100):0;
+  /* A1, 2026-08-25 (owner-approved audit fix) — the card used to print DSO 0 / 0% / 0 SAR and a
+     green "No outstanding receivables", which reads as "we collect perfectly". It is not: rule M10
+     imports only finalised/paid invoices, so an unpaid invoice cannot enter the table at all and
+     this card is structurally incapable of finding one. Zero here was a fabricated number filling
+     a gap — exactly what rule M8 forbids. When nothing in the period carries any payment state to
+     measure, say so instead of showing zeros. */
+  var _noUnpaidData=LV.length>0&&!LV.some(function(r){return (+r.amount_remaining_sar||0)>0;})&&LV.every(function(r){return r.integrity_status==='verified_paid';});
   var _mini=function(lbl,val,col){return '<div style="flex:1;min-width:110px"><div style="font-size:11px;color:var(--muted)">'+lbl+'</div><div style="font-size:19px;font-weight:800;color:'+col+'">'+val+'</div></div>';};
   var _agc=function(lbl,val){return '<div style="flex:1;min-width:90px;background:#F9FAFB;border-radius:8px;padding:8px 10px"><div style="font-size:10.5px;color:var(--muted)">'+lbl+'</div><div style="font-weight:800;font-size:14px">'+moneyS(val)+' <span style="font-size:9px;font-weight:400">SAR</span></div></div>';};
-  h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 class="finh" style="margin:0 0 4px">'+_fl('Collections & AR aging','التحصيل وتقادم الذمم')+'</h3>'+
-     '<div class="ch-sub" style="margin-bottom:12px">'+_fl('Uncollected money and how old it is.','الأموال غير المحصّلة وأعمارها.')+'</div>'+
-     '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:'+(arOut>0?'14px':'0')+'">'+
-       _mini(_fl('DSO (days to collect)','مدة التحصيل (أيام)'),dso,'#175CD3')+
+  h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 class="finh" style="margin:0 0 10px">'+_fl('Collections & ageing','التحصيل والتقادم')+'</h3>'+
+     (_noUnpaidData
+       ? ('<div style="font-size:12.5px;color:var(--muted)">'+_fl('Not tracked yet — only paid invoices are imported, so nothing here can show as unpaid.','لم يُتتبَّع بعد — لا تُستورد إلا الفواتير المدفوعة، لذا لا يظهر أي مبلغ غير محصَّل.')+'</div>')
+       : ('<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:'+(arOut>0?'14px':'0')+'">'+
+       _mini(_fl('Days to collect','مدة التحصيل (أيام)'),dso,'#175CD3')+
        _mini(_fl('% overdue','٪ المتأخر'),pctOver+'%',pctOver>0?'#D92D20':'#0F6E56')+
-       _mini(_fl('Outstanding (AR)','إجمالي المستحق'),moneyS(arOut)+' SAR',arOut>0?'#D92D20':'#667085')+
+       _mini(_fl('Outstanding','إجمالي المستحق'),moneyS(arOut)+' SAR',arOut>0?'#D92D20':'#667085')+
      '</div>'+
      (arOut>0?('<div style="display:flex;gap:8px;flex-wrap:wrap">'+_agc(_fl('0–30 days','0–30 يوم'),ag.b030)+_agc(_fl('31–60 days','31–60 يوم'),ag.b3160)+_agc(_fl('61–90 days','61–90 يوم'),ag.b6190)+_agc(_fl('90+ days','90+ يوم'),ag.b90)+'</div>')
-       :('<div style="font-size:12px;color:#0F6E56">✓ '+_fl('No outstanding receivables in this period.','لا توجد مستحقات في هذه الفترة.')+'</div>'))+
+       :('<div style="font-size:12px;color:#0F6E56">✓ '+_fl('Nothing outstanding','لا توجد مستحقات')+'</div>'))))+
      '</div>';
   var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,_i:{},key:cc.key,directId:cc.directId};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
   var top=Object.keys(byC).sort(function(a,b){return byC[b].r-byC[a].r;}).slice(0,10);
@@ -393,6 +482,50 @@ function rOverview(){
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
     return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+'</div></div>';
   }).join('')+'</div>';
+  /* A7, 2026-08-26 (landmine sweep) — the newest month always flattered itself: August showed a
+     63.5% margin only because most of its cost had not arrived yet, and nothing marked the gap.
+     When the filtered period contains verified invoices carrying no cost, say so right under the
+     KPIs, with the count — factual either way (a commission invoice genuinely has no cost; a
+     held-back one just doesn't have it YET), so the wording states the fact and hedges the risk. */
+  var _noCost=V.filter(function(r){return (+r.cost_sar||0)===0;}).length;
+  if(_noCost>0){
+    h+='<div style="font-size:12px;color:#B54708;margin:-6px 0 14px">⚠ '+(isArF()
+      ?(_noCost+' من '+V.length+' فاتورة في هذه الفترة بلا تكلفة مسجلة — قد يظهر الهامش أعلى من الحقيقة حتى تصل مصروفاتها.')
+      :(_noCost+' of '+V.length+' invoices in this period carry no recorded cost — margin may read higher than reality until their expenses arrive.'))+'</div>';
+  }
+  /* Compare to (blueprint step 5, 2026-08-27): revenue/cost/profit/margin against the previous
+     period or the same period last year. Needs one concrete year selected above — spanning
+     "all years" has no single "previous" to shift to, so the control still shows but explains
+     why, instead of silently doing nothing. */
+  h+=(function(){
+    var ar=isArF(), cmp=FIN.p.cmp||'none';
+    var sel='<select style="'+SS+'" onchange="finCmp(this.value)"><option value="none" '+(cmp==='none'?'selected':'')+'>'+(ar?'بلا مقارنة':'No comparison')+'</option><option value="prev" '+(cmp==='prev'?'selected':'')+'>'+(ar?'مقابل الفترة السابقة':'vs previous period')+'</option><option value="yoy" '+(cmp==='yoy'?'selected':'')+'>'+(ar?'مقابل نفس الفترة العام الماضي':'vs same period last year')+'</option></select>';
+    var out='<div class="card" style="padding:14px 16px;margin-bottom:14px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="font-size:13px">'+(ar?'المقارنة':'Compare to')+'</b>'+sel+'</div>';
+    if(cmp==='none')return '';
+    if(FIN.p.year==='all'){
+      out+='<div style="font-size:12px;color:var(--muted);margin-top:8px">'+(ar?'اختر سنة محددة أعلاه أولاً — لا يوجد «سابق» لكل السنوات معًا.':'Pick a specific year above first — there is no "previous" for all years at once.')+'</div></div>';
+      return out;
+    }
+    var cp=finCompPeriodOf(cmp);
+    if(!cp){out+='</div>';return out;}
+    var ct=finPeriodTotals(cp);
+    var rows=[[ar?'الإيرادات':'Revenue',rev,ct.rev],[ar?'التكلفة':'Cost',cost,ct.cost],[ar?'الربح':'Profit',prof,ct.prof],
+      [ar?'الهامش':'Margin',rev>0?(prof/rev*100):0,ct.rev>0?(ct.prof/ct.rev*100):0]];
+    out+='<div style="overflow-x:auto;margin-top:10px"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:420px"><thead><tr style="text-align:'+(ar?'right':'left')+';color:var(--muted)"><th style="padding:6px 8px"></th><th style="padding:6px 8px;text-align:right">'+finPeriodLabel()+'</th><th style="padding:6px 8px;text-align:right">'+finCompLabel(cp)+'</th><th style="padding:6px 8px;text-align:right">'+(ar?'الفرق':'Δ')+'</th></tr></thead><tbody>'+rows.map(function(r){
+      var isMargin=r[0]===(ar?'الهامش':'Margin');
+      var d=r[1]-r[2], pct=r[2]!==0?(d/Math.abs(r[2])*100):(r[1]!==0?null:0);
+      var fmt=function(n){return isMargin?(n.toFixed(1)+'%'):(money0(n)+' SAR');};
+      var col=d>0?'#0F6E56':(d<0?'#D92D20':'var(--muted)');
+      var dTxt=isMargin?((d>=0?'+':'')+d.toFixed(1)+' pts'):((d>=0?'+':'')+money0(d)+' SAR'+(pct===null?'':' ('+(pct>=0?'+':'')+Math.round(pct)+'%)'));
+      return '<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:6px 8px;font-weight:600">'+r[0]+'</td><td style="padding:6px 8px;text-align:right">'+fmt(r[1])+'</td><td style="padding:6px 8px;text-align:right;color:var(--muted)">'+fmt(r[2])+'</td><td style="padding:6px 8px;text-align:right;font-weight:700;color:'+col+'">'+dTxt+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+    var warn=[]; if(_noCost>0)warn.push(ar?'هذه الفترة':'this period'); if(ct.noCost>0)warn.push(ar?'فترة المقارنة':'the comparison period');
+    if(warn.length){out+='<div style="font-size:11.5px;color:#B54708;margin-top:8px">⚠ '+(ar
+      ?('التكلفة غير مكتملة في '+warn.join(' و')+' — الفرق قد لا يعكس التغيّر الحقيقي بعد.')
+      :('Cost is incomplete in '+warn.join(' and ')+' — the difference may not reflect the real change yet.'))+'</div>';}
+    out+='</div>';
+    return out;
+  })();
   /* Plan vs actual (executive dashboard: expected/confirmed/actual) — actuals derived live. */
   var _ty=(FIN.p.year!=='all')?+FIN.p.year:(new Date()).getFullYear();
   var tgt=(FIN.targets||[]).find(function(t){return +t.year===_ty;});
@@ -719,10 +852,42 @@ var METS={revenue_sar:'Revenue',cost_sar:'Cost',profit_sar:'Profit',amount_recei
 var METS_AR={revenue_sar:'الإيرادات',cost_sar:'التكلفة',profit_sar:'الربح',amount_received_sar:'المحصّل',amount_remaining_sar:'المتبقي',_count:'عدد البنود'};
 function metLbl(k){return isArF()?(METS_AR[k]||METS[k]):METS[k];}
 var MOI={January:1,February:2,March:3,April:4,May:5,June:6,July:7,August:8,September:9,October:10,November:11,December:12};
+/* Saved views (owner-requested 2026-08-26): the three report shapes people actually reach
+   for, one click instead of five. Each just sets FIN.rb to a known-good combination and
+   re-renders \u2014 nothing new is stored, so there is no schema change and no per-view
+   persistence to keep in sync. "Collections chase" deliberately turns OFF verified-only:
+   an unpaid invoice is exactly what collections needs to see, and it would never appear
+   in the verified-paid set by definition. */
+var RB_PRESETS={
+  exec:{en:'Executive monthly',ar:'\u0645\u0644\u062e\u0635 \u0634\u0647\u0631\u064a \u062a\u0646\u0641\u064a\u0630\u064a',
+    rb:{g1:'month',g2:'',quarter:'all',verifiedOnly:true,metrics:{revenue_sar:true,cost_sar:true,profit_sar:true}}},
+  collect:{en:'Collections chase',ar:'\u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u062a\u062d\u0635\u064a\u0644',
+    rb:{g1:'__client',g2:'',quarter:'all',verifiedOnly:false,metrics:{amount_received_sar:true,amount_remaining_sar:true}}},
+  tax:{en:'Tax pack',ar:'\u062d\u0632\u0645\u0629 \u0627\u0644\u0625\u0642\u0631\u0627\u0631 \u0627\u0644\u0636\u0631\u064a\u0628\u064a',
+    rb:{g1:'quarter',g2:'service_type',quarter:'all',verifiedOnly:true,metrics:{revenue_sar:true}}}
+};
+window.finRBPreset=function(key){
+  var p=RB_PRESETS[key];if(!p)return;
+  FIN.rb={g1:p.rb.g1,g2:p.rb.g2,quarter:p.rb.quarter,verifiedOnly:p.rb.verifiedOnly,metrics:Object.assign({},p.rb.metrics)};
+  render();
+};
+function rbActivePreset(){
+  var rb=FIN.rb,ks=Object.keys(RB_PRESETS);
+  for(var i=0;i<ks.length;i++){
+    var p=RB_PRESETS[ks[i]].rb;
+    if(p.g1===rb.g1&&p.g2===rb.g2&&!!p.verifiedOnly===!!rb.verifiedOnly&&JSON.stringify(Object.keys(p.metrics).sort())===JSON.stringify(Object.keys(rb.metrics).filter(function(k){return rb.metrics[k];}).sort()))return ks[i];
+  }
+  return null;
+}
 function rReports(){
   var rb=FIN.rb; clearFinCanon();
   var base=(rb.verifiedOnly?verified():live()).filter(function(r){return rb.quarter==='all'||r.quarter===rb.quarter;});
+  var active=rbActivePreset();
   var h='<div class="card" style="padding:14px 16px;margin-bottom:12px;font-size:13px">';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><b>'+(isArF()?'\u0639\u0631\u0636 \u062c\u0627\u0647\u0632':'Quick views')+':</b>'+Object.keys(RB_PRESETS).map(function(k){
+    var p=RB_PRESETS[k],on=active===k;
+    return '<button class="btn sm'+(on?' pri':'')+'" style="'+(on?'':'background:#fff;border:1px solid var(--line,#ddd)')+'" onclick="finRBPreset(\''+k+'\')">'+(isArF()?p.ar:p.en)+'</button>';
+  }).join('')+'</div>';
   h+='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center"><b>'+(isArF()?'\u062a\u062c\u0645\u064a\u0639 \u062d\u0633\u0628':'Group by')+':</b>';
   h+='<select style="'+SS+'" onchange="finRB(\'g1\',this.value)">'+Object.keys(DIMS).map(function(k){return '<option value="'+k+'" '+(rb.g1===k?'selected':'')+'>'+dimLbl(k)+'</option>';}).join('')+'</select>';
   h+='<span style="color:var(--muted)">'+(isArF()?'\u062b\u0645':'then')+'</span><select style="'+SS+'" onchange="finRB(\'g2\',this.value)"><option value="">\u2014 '+(isArF()?'\u0644\u0627 \u0634\u064a\u0621':'none')+' \u2014</option>'+Object.keys(DIMS).map(function(k){return k===rb.g1?'':'<option value="'+k+'" '+(rb.g2===k?'selected':'')+'>'+dimLbl(k)+'</option>';}).join('')+'</select>';

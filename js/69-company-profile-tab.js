@@ -581,8 +581,8 @@
   function secEditorHtml(s){
     var hasItems=['values','services','stats'].indexOf(s.key)>=0||(Array.isArray(s.items)&&s.items.length>0);
     var hint=s.key==='stats'
-      ? fl('One stat per line: value | label EN | label AR. The stats band prints only when lines exist — the official numbers are still an open owner question, so nothing is pre-filled.',
-           'إحصائية في كل سطر: القيمة | التسمية إنجليزي | التسمية عربي. يظهر شريط الأرقام فقط عند وجود أسطر — الأرقام الرسمية سؤال مفتوح للمالك، لذا لا شيء معبأ مسبقاً.')
+      ? fl('One stat per line: value | label EN | label AR. The band prints only when you add lines.',
+           'إحصائية في كل سطر: القيمة | التسمية إنجليزي | التسمية عربي. يظهر الشريط فقط عند إضافة أسطر.')
       : s.key==='values'
       ? fl('One value per line: EN | AR | description EN | description AR','قيمة في كل سطر: إنجليزي | عربي | وصف إنجليزي | وصف عربي')
       : fl('One item per line: EN | AR','عنصر في كل سطر: إنجليزي | عربي');
