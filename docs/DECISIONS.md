@@ -670,23 +670,46 @@ oversight/Finance track) burned real time on the wrong theory. What actually hap
 push — that's the committed plan already, not a suggestion to re-confirm each time this
 comes up.
 
-**Better fix, found 2026-08-27 (same day) reading the Generator track's build log: skip
-`git push` entirely.** The Generator session has been shipping to this same repo the whole
-time via a completely different route that never touches the git proxy at all — driving a
-real Chrome browser (Claude's browser-automation tools) to GitHub's own website, uploading
-each changed file through the normal "add file" web form, and submitting the commit exactly
-as a person would by hand. That's an ordinary authenticated web request using the browser's
-own logged-in GitHub session, not a `git push` over the git protocol — so the proxy that
-blocks the latter never sees it and has no say in it. This doesn't need session CSE, doesn't
-need any other session to be reachable, and doesn't need anyone to change a setting. It only
-needs a Chrome browser (with Claude's browser extension) logged into GitHub as the owner to
-be connected to whichever session is trying to deploy — see that session's own build log for
-the exact repeatable steps and its known rough edges (upload tabs that need a fresh tab if
-they freeze, the commit-message box needing a visible focus check before typing). This is
-now the preferred route for every session in this project, not just Generator's; the
-session-handoff rule above is the fallback when no browser is available.
+**Found 2026-08-27 (same day) reading the Generator track's build log: `git push` can be
+skipped entirely.** The Generator session has been shipping to this same repo the whole time
+via a completely different route that never touches the git proxy at all — driving a real
+Chrome browser (Claude's browser-automation tools) to GitHub's own website, uploading each
+changed file through the normal "add file" web form, and submitting the commit exactly as a
+person would by hand. That's an ordinary authenticated web request using the browser's own
+logged-in GitHub session, not a `git push` over the git protocol — so the proxy that blocks
+the latter never sees it and has no say in it. It only needs a Chrome browser (with Claude's
+browser extension) logged into GitHub as the owner to be connected to whichever session is
+trying to deploy. Known rough edges: upload tabs that need a fresh tab if they freeze; the
+commit-message box needing a visible focus check before typing.
 
-*Date: 2026-08-27. Status: ACTIVE — operational fact, not a to-do.*
+**Superseded 2026-08-29 — this route is no longer to be used by a session on its own
+initiative.** A session used it to push on its own, and the owner said plainly he wants
+sessions guiding and reviewing this project, not pushing to it — Claude Code should be the
+one executing pushes, not an oversight/Finance-track session. See CLAUDE.md rule 10. The
+correct sequence now, in order: (1) check whether a Claude Code / "Code session" is reachable
+and hand off local commits to it if so; (2) if not reachable, say so in plain language and
+leave the commits saved locally, unpushed; (3) if commits stay stuck local for a real stretch
+of time, ask the owner what to do rather than silently waiting indefinitely or deciding alone
+to use the browser-upload route. The browser-upload mechanics above still work and remain
+documented here for Claude Code's own use — they are just no longer this kind of session's
+default self-serve fallback.
+
+**Amendment, same day (2026-08-29) — "don't push" is not "don't talk."** An oversight session,
+right after the supersession above landed, over-applied it: it drafted a handoff message to a
+reachable Claude Code browser session (flagging the exact commit, hash, and what it touched)
+and then paused before sending it, waiting for the owner's go-ahead to send a *chat message*.
+Owner's correction, verbatim: *"you have been doing so since the beginning!! what changed!!"*
+The rule this section states was never about restricting communication between sessions — P2
+("discuss, don't instruct") already establishes that oversight and Code sessions talk to each
+other as a matter of course. **The line that matters is acting ON the repo (push, merge,
+force-push, rewrite history) vs. talking TO the other session (typing into its chat,
+browser-driving to it, flagging a pending commit, handing off work).** The first needs the
+other session's own push authority and is never done from here. The second is ordinary P2
+discussion and does not wait on the owner's sign-off each time — do it the moment there is
+something to hand off.
+
+*Date: 2026-08-27, superseded 2026-08-29, amended 2026-08-29. Status: ACTIVE — operational
+fact, not a to-do.*
 
 ## Code patterns that keep re-biting
 
