@@ -10,6 +10,8 @@ package-lock.json
 # QA screenshots are throwaway run output — look at them, don't commit them
 scripts/qa/shot-*.png
 shots/
+# sweep-buttons writes its full click log here every run — same throwaway class
+button-sweep-results.txt
 
 # Travel-agencies working data is real company data — never commit it to this
 # public repo. Build locally; deliver Excel snapshots via chat/Drive.

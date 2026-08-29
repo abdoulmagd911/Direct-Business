@@ -81,7 +81,10 @@
    stands. What changes is everything short of that: don't present a recommendation and wait:
    do it, then report what happened. If part of the fix genuinely can't be done from the
    session (a GitHub repo setting, a dashboard toggle), do the reachable part immediately and
-   ask for the one remaining manual step, in order — same as rule 2 already says.
+   ask for the one remaining manual step, in order — same as rule 2 already says. This covers
+   recurring situations too, not just one-off decisions: e.g. the browser-upload deploy route
+   (see `docs/DECISIONS.md` → "Session & GitHub-push access") should be used the moment a
+   browser is connected, without re-asking each time the push-block comes up.
 
 ## What this project is
 
