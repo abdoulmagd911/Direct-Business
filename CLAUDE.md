@@ -81,10 +81,18 @@
    stands. What changes is everything short of that: don't present a recommendation and wait:
    do it, then report what happened. If part of the fix genuinely can't be done from the
    session (a GitHub repo setting, a dashboard toggle), do the reachable part immediately and
-   ask for the one remaining manual step, in order — same as rule 2 already says. This covers
-   recurring situations too, not just one-off decisions: e.g. the browser-upload deploy route
-   (see `docs/DECISIONS.md` → "Session & GitHub-push access") should be used the moment a
-   browser is connected, without re-asking each time the push-block comes up.
+   ask for the one remaining manual step, in order — same as rule 2 already says.
+10. **Getting local commits live is Claude Code's job, not this (or any oversight) session's
+    — even when Claude Code isn't reachable.** (2026-08-29, superseding the browser-upload
+    part of rule 9 above and the "preferred route" note in `docs/DECISIONS.md` → "Session &
+    GitHub-push access": a session used the browser-upload route to push on its own, and the
+    owner said plainly he wants sessions guiding and reviewing, not pushing — Claude Code
+    should be the one executing.) When commits are sitting local and unpushed: check whether
+    Claude Code is reachable and hand off to it if so. If it isn't reachable, say so plainly
+    (no git jargon — "saved here, not live yet") and leave the commits local. Do **not** use
+    the browser-upload route, or any other self-serve push path, to make them live without
+    being asked. If a real amount of time passes with commits still stuck local, ask the owner
+    what to do rather than deciding alone — don't let it go silently unmentioned either.
 
 ## What this project is
 
