@@ -639,16 +639,16 @@ oversight/Finance track) burned real time on the wrong theory. What actually hap
    the repo was private, and started working the moment the owner switched it to public — a
    public repo needs no credential to read.
 2. Separately, **all outbound traffic from this sandbox goes through a local proxy**
-   (`https_proxy`/`HTTPS_PROXY` env vars point at `127.0.0.1:<port>`; env vars named
-   `CCR_AGENT_PROXY_ENABLED`/`CCR_UPSTREAM_PROXY_ENABLED` confirm it's on). For a `git push`
+   (the https_proxy/HTTPS_PROXY env vars point at 127.0.0.1:<port>; env vars named
+   CCR_AGENT_PROXY_ENABLED/CCR_UPSTREAM_PROXY_ENABLED confirm it's on). For a `git push`
    (which always needs a real credential, public repo or not), that proxy is the thing that
    would inject one — and it only does so for repos in "this session's authorized repository
    set," decided when the session/environment was created, not by anything inside the
    session. Denial looks like: `remote: access denied by the git proxy: <owner>/<repo> is not
    in this session's authorized repository set... To fix, add the repository to the session's
    sources.` — that "fix" is not self-service; nothing in this container can edit that set
-   (checked: `GIT_ASKPASS` and the session-profile env var are both empty strings, no local
-   config file for it exists, `GH_TOKEN`/`GITHUB_TOKEN` in the environment are 14-character
+   (checked: GIT_ASKPASS and the session-profile env var are both empty strings, no local
+   config file for it exists, GH_TOKEN/GITHUB_TOKEN in the environment are 14-character
    placeholders, not real tokens). Making the repo public fixes symptom #1 (fetch) and does
    **nothing** for #2 (push) — confirmed by testing push immediately before and after the
    visibility change, identical failure both times.
