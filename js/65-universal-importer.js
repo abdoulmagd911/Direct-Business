@@ -894,7 +894,7 @@
           // shown as "not recognized — Columns found: %PDF-1.4 …" with a Teach button, as if
           // its garbage were a header. Say what it is and stop reading it.
           var h0=String(header[0]||''), joined=header.join('');
-          if(/^(%PDF|PK|ÿþ|þÿ|�)/.test(h0)||/[ --]/.test(joined)){
+          if(/^(%PDF|PK\x03\x04|ÿþ|þÿ|�)/.test(h0)||/[\x00-\x08\x0e-\x1f]/.test(joined)){
             finished=true; ctrl.abort();
             done({name:f.name, recognized:false, header:[], err:fl('Header does not match any known export — this is a binary file (PDF, Excel or zip), not a text CSV. Export the report as CSV and drop that.','الترويسة لا تطابق أي تصدير معروف — هذا ملف ثنائي (PDF أو Excel أو zip) وليس ملف CSV نصيًا. صدّر التقرير بصيغة CSV ثم أفلته.')});
             return;

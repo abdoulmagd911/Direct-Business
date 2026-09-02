@@ -45,6 +45,50 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   now persists contact updates; probe scenarios (edit reaches the table, removal flags not
   deletes, edit survives a fresh load), sabotage-verified.
 
+## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
+
+Owner: *"continue monitoring and updating the task and keep sweeping and enhancing and landmining
+and attacking the features to make sure all is good. dont stop for the next 12 hours."* Hourly
+cycles, each: sync → full battery → attack one area → fix in Finance's lane → hand off → log.
+
+**Full battery baseline after the Code session's audit round (60 scripts):** 44 green, 13
+skipped as environmental (need staff logins / live systems), 6 red — all six classified, none a
+live app defect: `probe-lifecycle5` and `probe-round9` are stale selectors (the Ledger tab no
+longer renders a plain invoice table; a form field id moved) — drift, pre-existing on the
+untouched tip; `probe-stress` times out its own perf threshold in this sandbox — environmental;
+`probe-live2` wants a locally served copy on :8931 — environmental; `sweep-buttons` exceeds the
+battery's 4-minute cap — environmental; `sweep-consistency` could not even start from the repo
+root (cwd-relative path) and, once it ran, was asserting "Lifetime billed" on client cards — a
+figure the 21 Aug "money belongs to Finance only" ruling deliberately removed. Fixed both: path
+now relative to the file; the check inverted (money on a client card is the failure).
+
+**Attack: writes the database can refuse without saying so (DECISIONS "code patterns that keep
+re-biting", B2).** Found five in Finance's own files that still had the pre-M13 shape — no
+`.select()`, no row-count check, "Saved" toast and local state mutated regardless: invoice
+origin/proposal-ref editor and the legacy batch insert (`js/16`), the yearly targets upsert
+(`js/16`), the revenue-way editor (`js/25`), the client-profile regroup (`js/62`). All five now
+ask for the rows back and refuse to touch the screen unless the database confirmed them, with a
+plain "Not saved — the database refused the write (permissions). Nothing changed." New
+`scripts/qa/probe-silent-write-refusal.mjs` proves each editor on the permitted path AND under a
+network-level `200 []` (PostgREST's exact answer when RLS matches nothing): row untouched, user
+told, no "Saved" toast. Sabotage-verified (`SABOTAGE=1` restores the old handlers → 8 failures).
+**The mock had to be made honest first:** every non-GET on `finance_invoices` was treated as an
+insert — an UPDATE from the app silently added a stray row and returned it, so a row-count check
+could never fail in the harness and "RLS refused the update" could not be modelled at all. PATCH
+now updates in place under the request's eq/is/in filters and returns exactly the matched rows;
+`finance_targets` and `client_profiles` writes no longer fall through to the blanket `201 []`.
+Still carrying the old shape, NOT Finance's files — for the Code session: `js/41-money-in.js`
+:229 (invoice soft-delete) and :423 (client-links upsert), `js/02-…cloud-layer` :438 (business
+archive), `js/10-events.js` :130/:168/:597/:685.
+
+**A source file that had turned "binary."** The Code session's new binary-file detector in
+`js/65` had the regex character class `[\x00-\x08\x0e-\x1f]` and the ZIP signature `PK\x03\x04`
+written with the LITERAL bytes, not the escapes. Works in the browser; but every text tool then
+treats the file as binary — `grep` skipped it (so the rule-7 name sweep silently missed it),
+diffs render as "Binary files differ", an editor can strip the bytes on save. Replaced with the
+escapes (identical regex semantics, verified) and added structure check #8: no raw control bytes
+in any `js/` or `scripts/qa/` source, sabotage-verified.
+
 ## 2026-09-02 (later) · "What else needs to be fixed? Perform immediately" — full audit, fixed same day
 
 Method (bulletproof-audit): run the ENTIRE probe suite (57 files, not the finance battery), a

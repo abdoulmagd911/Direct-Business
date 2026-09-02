@@ -428,6 +428,44 @@ export function start(port, seedOverrides){
           return send(res,201, written);
         });
       }
+      // PATCH = UPDATE (2026-09-02). Before this, every non-GET on finance_invoices was treated
+      // as an insert — an update from the app quietly ADDED a stray row to the mock table and
+      // returned it, so a .select()+row-count check could never fail here and the harness could
+      // not model "RLS refused the update" at all. Now: apply the eq./is./in. filters from the
+      // query string exactly like PostgREST, update the matching rows in place, and return only
+      // those — zero matches returns [] (the silent-refusal shape the app must now detect).
+      // Same for finance_targets and client_profiles, the other tables the Finance layers
+      // update and previously fell through to the blanket `201 []`.
+      if(req.method==='PATCH'&&(t==='finance_invoices'||t==='finance_targets'||t==='client_profiles')){
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          let patch={}; try{ patch=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(Object.prototype.hasOwnProperty.call(patch,'year')) return send(res,400,{message:'cannot insert a non-DEFAULT value into column "year"',code:'428C9'});
+          const table=TABLES[t]||[];
+          let rows=table.slice();
+          Object.keys(u.query||{}).forEach(k=>{
+            if(k==='select'||k==='order'||k==='limit'||k==='offset'||k==='on_conflict')return;
+            let val=u.query[k]; if(Array.isArray(val))val=val[0]; val=String(val||'');
+            let m;
+            if((m=val.match(/^eq\.(.*)$/))) rows=rows.filter(r=>String(r[k])===m[1]);
+            else if(val==='is.null') rows=rows.filter(r=>r[k]==null);
+            else if(val==='not.is.null') rows=rows.filter(r=>r[k]!=null);
+            else if((m=val.match(/^in\.\((.*)\)$/))){ const set=m[1].split(',').map(x=>x.replace(/^"|"$/g,'')); rows=rows.filter(r=>set.includes(String(r[k]))); }
+          });
+          rows.forEach(r=>Object.assign(r,patch));
+          return send(res,200, rows);
+        });
+      }
+      if(t==='finance_targets'&&req.method==='POST'){
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(!Array.isArray(payload)) payload=[payload];
+          TABLES.finance_targets=TABLES.finance_targets||[];
+          const written=payload.map(row=>{ const ix=TABLES.finance_targets.findIndex(r=>+r.year===+row.year); if(ix>=0){ TABLES.finance_targets[ix]=Object.assign({},TABLES.finance_targets[ix],row); return TABLES.finance_targets[ix]; } TABLES.finance_targets.push(row); return row; });
+          return send(res,201, written);
+        });
+      }
       if(t==='finance_invoices'){
         let body=''; req.on('data',c=>body+=c);
         return req.on('end',()=>{

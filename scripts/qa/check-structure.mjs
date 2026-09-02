@@ -102,6 +102,19 @@ for (const f of UI_LAYERS) {
   }
 }
 
+/* 8 — no raw control bytes in any source file (2026-09-02). js/65 shipped a binary-file
+       detector whose regex character class contained LITERAL bytes 0x00/0x03/0x04/0x08/0x0e/0x1f
+       instead of the escapes \\x00…; it worked in the browser, but every text tool then treated
+       the file as binary — grep skipped it (so the rule-7 name sweep silently missed it), diff
+       tools choke, editors may strip the bytes on save. Escapes only. */
+const SOURCE_FILES = [...files, ...fs.readdirSync(at('scripts/qa')).filter(f => f.endsWith('.mjs')).map(f => 'scripts/qa/' + f)];
+for (const f of SOURCE_FILES) {
+  if (!fs.existsSync(at(f))) continue;
+  const buf = fs.readFileSync(at(f));
+  let bad = 0; for (const b of buf) if ((b >= 0x00 && b <= 0x08) || (b >= 0x0e && b <= 0x1f)) bad++;
+  if (bad) problems.push(`${f} contains ${bad} raw control byte(s) (0x00–0x08 / 0x0e–0x1f). Write them as \\xNN escapes — a raw byte turns the file "binary" for grep/diff and can be stripped by an editor.`);
+}
+
 if (problems.length) {
   console.log('STRUCTURE CHECK FAILED — fix these before deploying:\n');
   problems.forEach(p => console.log('  ✗ ' + p));

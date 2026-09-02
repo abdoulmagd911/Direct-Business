@@ -105,8 +105,9 @@
   window.finSetWay=function(invNo){try{
     var w=(document.getElementById('fin_way')||{}).value||'invoice';
     var c=(typeof fc==='function')?fc():null; if(!c)return;
-    c.from('finance_invoices').update({revenue_way:w}).eq('invoice_no',invNo).is('deleted_at',null).then(function(r){
+    c.from('finance_invoices').update({revenue_way:w}).eq('invoice_no',invNo).is('deleted_at',null).select('id').then(function(r){
       if(r.error){alert(fl('Could not save: ','تعذر الحفظ: ')+r.error.message);return;}
+      if(!r.data||!r.data.length){alert(fl('Not saved — the database confirmed no rows (permissions, or the invoice is deleted). Nothing changed.','لم يُحفظ — لم تؤكد قاعدة البيانات أي صف (صلاحيات أو فاتورة محذوفة). لم يتغير شيء.'));return;}
       ((window.FIN&&FIN.rows)||[]).forEach(function(x){ if(x.invoice_no===invNo&&!x.deleted_at)x.revenue_way=w; });
       var m=document.getElementById('finModal'); if(m)m.remove();
       if(typeof toast==='function')toast(fl('Saved','تم الحفظ'));

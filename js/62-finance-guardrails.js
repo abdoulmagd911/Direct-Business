@@ -241,8 +241,10 @@
         if(!sel.length){ alert(fl('Select at least one profile.','اختر ملفًا واحدًا على الأقل.')); return false; }
         if(!target){ alert(fl('Choose the company to group them under.','اختر الشركة المطلوب التجميع تحتها.')); return false; }
         var c=client62(); if(!c){ alert(fl('Not connected — try again.','غير متصل — حاول مجددًا.')); return false; }
-        c.from('client_profiles').update({business_id:target,grouped_by:who62(),grouped_at:new Date().toISOString()}).in('id',sel).then(function(r){
+        c.from('client_profiles').update({business_id:target,grouped_by:who62(),grouped_at:new Date().toISOString()}).in('id',sel).select('id').then(function(r){
           if(r.error){ alert(fl('Could not save: ','تعذر الحفظ: ')+r.error.message); return; }
+          var moved=(r.data||[]).length;
+          if(moved!==sel.length){ alert(fl('Only '+moved+' of '+sel.length+' profiles were actually moved — the database refused the rest (permissions). Reloading to show what is really there.','نُقل '+moved+' من '+sel.length+' ملفات فقط — رفضت قاعدة البيانات الباقي (صلاحيات). سيُعاد التحميل لعرض الوضع الفعلي.')); }
           CP.rows=null; if(typeof cpLoad==='function')cpLoad(function(){ if(typeof render==='function')render(); });
         });
       });

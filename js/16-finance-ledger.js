@@ -192,8 +192,13 @@ window.finSetTargets=function(y){try{
   var cf=prompt(isArF()?('الإيراد المؤكد (عقود موقعة) لسنة '+y+':'):('Confirmed revenue (signed contracts) for '+y+' (SAR):'), t.confirmed_sar||''); if(cf===null)return;
   var num=function(s){return parseFloat(String(s).replace(/[^0-9.]/g,''))||0;};
   var c=fc(); if(!c)return;
-  c.from('finance_targets').upsert({year:+y,expected_sar:num(e),confirmed_sar:num(cf),updated_at:new Date().toISOString(),updated_by:(window.meName?meName():'')},{onConflict:'year'}).then(function(r){
+  /* B2 / M13 shape (fixed 2026-09-02): a write without .select() + a row-count check reports
+     success even when Row-Level Security silently refused it — the screen would then show the
+     new target while the database still held the old one. Every write in this file now asks
+     for the rows back and refuses to update the screen unless the database confirmed them. */
+  c.from('finance_targets').upsert({year:+y,expected_sar:num(e),confirmed_sar:num(cf),updated_at:new Date().toISOString(),updated_by:(window.meName?meName():'')},{onConflict:'year'}).select('year').then(function(r){
     if(r.error){alert((isArF()?'تعذر الحفظ: ':'Could not save: ')+r.error.message);return;}
+    if(!r.data||!r.data.length){alert(isArF()?'لم يُحفظ — رفضت قاعدة البيانات الكتابة (صلاحيات). لم يتغير شيء.':'Not saved — the database refused the write (permissions). Nothing changed.');return;}
     var i=(FIN.targets||[]).findIndex(function(x){return +x.year===+y;});
     var row={year:+y,expected_sar:num(e),confirmed_sar:num(cf)};
     if(i>=0)FIN.targets[i]=row;else (FIN.targets=FIN.targets||[]).push(row);
@@ -724,8 +729,9 @@ window.finSetOrigin=function(invNo){try{
   var o=(document.getElementById('fin_origin')||{}).value||'booking';
   var p=((document.getElementById('fin_pref')||{}).value||'').trim();
   var c=fc(); if(!c)return;
-  c.from('finance_invoices').update({origin:o,proposal_ref:p||null}).eq('invoice_no',invNo).is('deleted_at',null).then(function(r){
+  c.from('finance_invoices').update({origin:o,proposal_ref:p||null}).eq('invoice_no',invNo).is('deleted_at',null).select('id').then(function(r){
     if(r.error){alert((isArF()?'تعذر الحفظ: ':'Could not save: ')+r.error.message);return;}
+    if(!r.data||!r.data.length){alert(isArF()?'لم يُحفظ — لم تؤكد قاعدة البيانات أي صف (صلاحيات أو فاتورة محذوفة). لم يتغير شيء.':'Not saved — the database confirmed no rows (permissions, or the invoice is deleted). Nothing changed.');return;}
     (FIN.rows||[]).forEach(function(x){ if(x.invoice_no===invNo&&!x.deleted_at){ x.origin=o; x.proposal_ref=p||null; } });
     var m=document.getElementById('finModal'); if(m)m.remove();
     if(typeof toast==='function')toast(isArF()?'تم الحفظ':'Saved');
@@ -1118,8 +1124,9 @@ window.finCommit=function(){
       return;
     }
     var batch=P.slice(i,i+50);i+=50;
-    c.from('finance_invoices').insert(batch).then(function(r){
+    c.from('finance_invoices').insert(batch).select('id').then(function(r){
       if(r.error)errs.push(r.error.message);
+      else if(!r.data||r.data.length!==batch.length)errs.push('database confirmed '+((r.data&&r.data.length)||0)+' of '+batch.length+' rows in a batch (refused silently — permissions?)');
       next();
     });
   }

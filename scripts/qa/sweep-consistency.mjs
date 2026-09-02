@@ -3,7 +3,7 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
 const PORT = 8890, BASE = `http://127.0.0.1:${PORT}`;
 start(PORT);
-const src = fs.readFileSync('./mock-seed.mjs', 'utf8');
+const src = fs.readFileSync(new URL('./mock-seed.mjs', import.meta.url), 'utf8');   // path relative to this file, not the cwd (2026-09-02: ran only from scripts/qa before)
 const fin = eval(src.match(/const SEED_FIN=(\[.*?\]);\n/s)[1]);
 const biz = eval(src.match(/const SEED_BIZ=(\[.*?\]);\n/s)[1]);
 const exp = {};
@@ -47,9 +47,11 @@ for (const b of biz.filter(x => x.is_client)) {
   });
   const e = exp[b.name];
   if (!e) { out.push(`${b.name}: no finance rows in seed — card ${got ? 'SHOWN (check!)' : 'absent, correct'}`); continue; }
-  const expBilled = e.billed >= 1e6 ? (e.billed / 1e6).toFixed(2) + 'M' : (e.billed / 1e3).toFixed(1) + 'K';
-  const ok = got && String(got.inv) === String(e.inv.size) && got.billed === expBilled;
-  out.push(`${ok ? 'PASS' : 'FAIL'} ${b.name}: card inv=${got && got.inv} exp=${e.inv.size} · billed=${got && got.billed} exp=${expBilled}`);
+  // 2026-09-02: the "Lifetime billed" figure is deliberately NOT on the client card any more —
+  // owner ruling 2026-08-21 ("money belongs to Finance only", guarded by probe-money-placement).
+  // A card that SHOWS it is now the failure, not one that doesn't. Invoice count stays checked.
+  const ok = got && String(got.inv) === String(e.inv.size) && got.billed === undefined;
+  out.push(`${ok ? 'PASS' : 'FAIL'} ${b.name}: card inv=${got && got.inv} exp=${e.inv.size} · money on card=${got && got.billed !== undefined ? 'YES (violates the 21 Aug ruling)' : 'none, correct'}`);
 }
 // Finance overview totals
 await page.evaluate(() => { openLead = null; current = 'finance'; render(); });
