@@ -447,6 +447,19 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   English, a Log activity saved from the Arabic dialog stores type "Call", English dialogs
   unchanged, the dialog fits a phone. Two sabotages → red each. Still English in dialogs:
   placeholders (attribute text, not scanned) — low value, left.
+- **Loop close (20:45).** 26 attack rounds and 4 oversight cycles in the 12-hour window, every
+  one committed, pushed and confirmed READY on Vercel; three read-only live sweeps, all clean.
+  The second half (rounds 18–26) was probe-driven and lean: a lapsed session mid-use; the
+  Reference pages, SOPs / service levels / Sync driven WITH rows for the first time (three
+  harness gaps closed, two dead addresses, a mislabeled money flag); global search in Arabic
+  and a search button for phones; every export path with rows ("[object Object]", bridge
+  marks, epochs, Arabic titles); Reports on a phone; the client card; and the whole class
+  of dialog forms in Arabic with a data-safety rule. Twelve new probes guard all of it, each
+  sabotage-verified. **Left open, for the owner:** real client names / amounts in old commit
+  history and messages (rewriting history is destructive — ruling needed); the Settings admin
+  cards and dialog placeholders still English in Arabic (dev-facing / attribute text);
+  `attack-wave3` / `attack-day` remain red on selector drift (classified above); the same
+  record edited in two tabs is still last-write-wins (documented limit).
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 
