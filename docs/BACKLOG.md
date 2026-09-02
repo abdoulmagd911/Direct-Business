@@ -1,5 +1,43 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Watch cycle 7 — Compare-to and the sector scope attacked; an empty period no longer prints as zero
+
+**Attack area: "Compare to" (blueprint step 5) and the sector chips**, new
+`scripts/qa/probe-compare-attacks.mjs` (port 8199, 33 checks) on a controlled in-page fixture
+so every figure is recomputed by the probe's own period matcher and sector rule, never the
+app's. Period arithmetic checked at **every** shape in both modes — a whole year, H1, H2,
+Q1–Q4, January, a mid-year month, and "All years" (20 assertions): Q1 wraps back to the prior
+year's Q4, H1 to the prior year's H2, January to December of the prior year, and "same period
+last year" is always the same part with year − 1. `finCompPeriodOf` is now exposed on `window`
+so that arithmetic can be checked directly instead of only through a rendered label.
+
+**Real gap, fixed in `js/16` (Finance's lane): an empty period was printed as a zero.** Comparing
+a quarter against one that holds no invoices at all drew "Revenue 0 SAR · Δ +0 SAR (+0%)", and
+comparing an empty current period against a real one drew a **−100% collapse that never
+happened** — plus a "cost is incomplete" warning about a period with no rows. That is a
+fabricated number (M8), the same shape as the A1 collections fix in August. The card now names
+whichever side is empty ("No invoices in the comparison period (2025 · Q2) — there is nothing
+to compare against. That is not a zero: the period has no data.") in English and Arabic, and
+draws no Δ table. Both directions, and the both-empty case, are covered.
+
+**Held under attack:** both columns match an independent recount of their own period; Δ is
+current − comparison in money and in percentage **points** for margin; a comparison period with
+rows but zero revenue shows the money Δ and no percentage (never ∞ or NaN); a negative base
+gives a finite signed percentage; the sector chips scope BOTH sides (tenders 600 vs 300, B2B
+1,200 vs 500 on the fixture) and each sector is a real subset; the cost-incomplete warning names
+which side; Arabic throughout; no page errors.
+
+**Sabotage-verified three ways** (empty-period guard removed → 5 red; Q1 no longer wrapping to
+Q4 → arithmetic and figures red, and a nonsense "2026 · Q0" label appears; `sector` dropped from
+the period shift → both sector checks red). Restore byte-identical (md5); structure check and
+nine neighbouring probes green.
+
+**Noted for a ruling, unchanged here:** the sector classifier reads `/tender/i` against the
+linked business's free-text **payment terms** (`finSectorOf`), so "Net 30 after tender award" on
+an ordinary B2B client would classify it as a tender. `client_profiles.profile_type` is the
+proper key (M18 put it there); this is the third cycle to note it — it needs the owner's word
+before changing how sectors are decided.
+
 ## 2026-09-02 · Watch cycle 6 — Clients & collections attacked; three small honesty gaps fixed
 
 **Attack area: Finance → Clients & collections** (`rFinClients` in `js/16`), new

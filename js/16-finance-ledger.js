@@ -182,6 +182,7 @@ function finCompPeriodOf(mode){
   }
   return null;
 }
+try{ window.finCompPeriodOf=finCompPeriodOf; }catch(_){}   // exposed 2026-09-02 so scripts/qa/probe-compare-attacks.mjs can check every period shape directly
 function finCompLabel(p){
   if(!p)return '';
   var ar=isArF();
@@ -563,6 +564,22 @@ function rOverview(){
     var cp=finCompPeriodOf(cmp);
     if(!cp){out+='</div>';return out;}
     var ct=finPeriodTotals(cp);
+    /* 2026-09-02 (watch cycle 7, scripts/qa/probe-compare-attacks.mjs) — a period with NO
+       invoices at all is not "0 SAR of revenue". Printing 0 and a −100% / +0% Δ against it is
+       a fabricated number (M8), the same shape as the A1 collections fix: it reads as "we
+       earned nothing then", when the truth is "there is no data for that period". Say which
+       side is empty and draw no table. Both directions matter — an empty CURRENT period
+       compared against a real one reads as a collapse that never happened. */
+    var _curN=V.length;
+    if(!_curN||!ct.n){
+      var _who=[];
+      if(!_curN)_who.push(ar?('هذه الفترة ('+finPeriodLabel()+')'):('this period ('+finPeriodLabel()+')'));
+      if(!ct.n)_who.push(ar?('فترة المقارنة ('+finCompLabel(cp)+')'):('the comparison period ('+finCompLabel(cp)+')'));
+      out+='<div style="font-size:12px;color:#B54708;margin-top:8px">⚠ '+(ar
+        ?('لا توجد فواتير في '+_who.join(' ولا في ')+' — لا يوجد ما يُقارن به. (هذا ليس صفرًا: تلك الفترة بلا بيانات.)')
+        :('No invoices in '+_who.join(' or ')+' — there is nothing to compare against. (That is not a zero: the period has no data.)'))+'</div></div>';
+      return out;
+    }
     var rows=[[ar?'الإيرادات':'Revenue',rev,ct.rev],[ar?'التكلفة':'Cost',cost,ct.cost],[ar?'الربح':'Profit',prof,ct.prof],
       [ar?'الهامش':'Margin',rev>0?(prof/rev*100):0,ct.rev>0?(ct.prof/ct.rev*100):0]];
     out+='<div style="overflow-x:auto;margin-top:10px"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:420px"><thead><tr style="text-align:'+(ar?'right':'left')+';color:var(--muted)"><th style="padding:6px 8px"></th><th style="padding:6px 8px;text-align:right">'+finPeriodLabel()+'</th><th style="padding:6px 8px;text-align:right">'+finCompLabel(cp)+'</th><th style="padding:6px 8px;text-align:right">'+(ar?'الفرق':'Δ')+'</th></tr></thead><tbody>'+rows.map(function(r){
