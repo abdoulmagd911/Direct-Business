@@ -29,10 +29,20 @@
     priority:'الأولوية', nextAction:'الإجراء التالي', nextActionDate:'تاريخ الإجراء التالي',
     email:'البريد', phone:'الهاتف', city:'المدينة', createdAt:'تاريخ الإنشاء', updatedAt:'آخر تحديث',
     // airlines / providers
-    code:'الرمز', icao:'رمز ICAO', stock:'رمز التذاكر', ksa:'السعودية', ticketingAuthority:'صلاحية الإصدار',
+    code:'الرمز', icao:'رمز ICAO', stock:'رمز التذاكر', ksa:'BSP السعودية', ticketingAuthority:'صلاحية الإصدار',
     alliance:'التحالف', type:'النوع', country:'الدولة', gds:'GDS', providers:'الموردون', portal:'البوابة',
     verdict:'التقييم', apiStatus:'حالة الربط', settlement:'التسوية',
+    // airlines / providers — "full details" columns (2026-09-02, round 22: the full export had
+    // been driven for the first time with rows and 24 of its 26 columns came out as bare keys;
+    // "ksa" above used to read "السعودية", i.e. the country, for what is the KSA-BSP yes/no)
+    admRisk:'مخاطر ADM', hubs:'المحاور', payment:'الدفع', ndc:'حالة NDC حسب المصدر', voidRule:'مهلة الإبطال',
+    reissueRule:'إعادة الإصدار', refundRule:'الاسترداد', lccRefundTo:'استرداد LCC إلى', corporateDeal:'اتفاقية شركات',
+    saf:'وقود مستدام', otp:'الالتزام بالمواعيد', terms:'الشروط', sla:'اتفاقية مستوى الخدمة', process:'آلية العمل',
+    adm:'ADM / الامتثال', adminPortal:'بوابة الإدارة', login:'اسم المستخدم', caps:'إمكانات الخدمة', uptime:'زمن التشغيل',
+    respTime:'زمن الاستجابة', costPerBooking:'التكلفة لكل حجز', markup:'العمولة / الهامش', supportSLA:'اتفاقية الدعم',
+    accountManager:'مدير الحساب', renewalDate:'تجديد العقد', useFor:'يُستخدم لـ', contentMix:'مزيج المحتوى', incidents:'سجل الأعطال',
     // SOPs / SLAs / ops / offers
+    cmd:'الأوامر', body:'الإجراء', edge:'ميزة Direct',
     title:'العنوان', purpose:'الغرض', event:'الحدث', direct:'Direct', market:'السوق', whale:'المعيار المرتفع',
     client:'العميل', service:'الخدمة', sell:'البيع', cost:'التكلفة', ref:'المرجع', date:'التاريخ',
     airline:'شركة الطيران', total:'الإجمالي', currency:'العملة', status:'الحالة',
@@ -57,8 +67,15 @@
     if(v===true)return 'نعم'; if(v===false)return 'لا';
     if(v==='Yes')return 'نعم'; if(v==='No')return 'لا';
     if(k==='stage'&&typeof v==='string'){ try{ var m=window.__STAGE_AR; if(m&&m[v])return m[v]; }catch(_){} }
+    // code-list values on the reference pages (not free text) — the same words the screens use
+    if(typeof v==='string'&&ENUM[k]&&ENUM[k][v]!==undefined)return ENUM[k][v];
     return v;
   }
+  var ENUM={
+    ticketingAuthority:{'Authorized (issue via BSP)':'مصرّح (الإصدار عبر BSP)','No authority - TARGET':'بدون صلاحية — مستهدف'},
+    admRisk:{Low:'منخفض',Medium:'متوسط',High:'مرتفع'},
+    apiStatus:{Healthy:'سليم',Degraded:'متدهور',Down:'متوقف'}
+  };
   function arabize(rows,fields){
     var labels=fields.map(label);
     var out=(rows||[]).map(function(r){ var o={}; fields.forEach(function(f,i){ o[labels[i]]=val(f, r?r[f]:''); }); return o; });

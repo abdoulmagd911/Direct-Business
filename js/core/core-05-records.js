@@ -166,7 +166,25 @@ function o_loadClient(id){if(!id)return;const b=getLead(id);const o=curOffer();i
 
 /* ----- Export (per page: summary or full details) ----- */
 function supSelectAll(cb){document.querySelectorAll('.supchk').forEach(c=>c.checked=cb.checked);}
-function csvCell(v){if(v==null)v='';if(Array.isArray(v))v=v.map(x=>x&&typeof x==='object'?Object.values(x).filter(Boolean).join(' '):x).join(' | ');else if(v&&typeof v==='object')v=Object.values(v).filter(Boolean).join(' ');return '"'+csvGuard(v).replace(/"/g,'""')+'"';}
+/* One flattener for both exporters (2026-09-02, attack round 22). The old one-level join wrote
+   "[object Object]" six times per airline for the NDC matrix (an object whose values are objects)
+   in the "full details" export, in both languages. Shapes: a list → items joined " | " (an item
+   that is an object → its non-empty values joined " "); an object of objects → "key: status" (or
+   the first text value) joined " | "; an object of yes/no flags → the keys that are on, joined
+   ", "; any other object → its non-empty values joined " ". Scalars pass through. */
+function exportFlat(v){
+  if(v==null)return '';
+  const one=x=>{if(x==null)return '';if(typeof x!=='object')return String(x);const vals=Object.values(x).filter(y=>y!==''&&y!=null&&y!==false&&typeof y!=='object');return vals.join(' ');};
+  if(Array.isArray(v))return v.map(one).filter(Boolean).join(' | ');
+  if(typeof v==='object'){
+    const ks=Object.keys(v);if(!ks.length)return '';
+    if(ks.every(k=>v[k]&&typeof v[k]==='object'&&!Array.isArray(v[k])))return ks.map(k=>{const o=v[k];const st=o.status!=null?o.status:(Object.values(o).find(y=>typeof y==='string'&&y)||'');return st?k+': '+st:'';}).filter(Boolean).join(' | ');
+    if(ks.every(k=>typeof v[k]==='boolean'))return ks.filter(k=>v[k]).join(', ');
+    return one(v);
+  }
+  return v;
+}
+function csvCell(v){v=exportFlat(v);return '"'+csvGuard(v).replace(/"/g,'""')+'"';}
 function allKeys(rows){const s=[];rows.forEach(r=>Object.keys(r).forEach(k=>{if(k!=='id'&&s.indexOf(k)<0)s.push(k);}));return s;}
 /* Neither export helper ever revoked its blob URL (found 2026-08-20 while chasing a reported
    export freeze — never reproduced, even at 3000 rows with nested JSONB, but an object URL
@@ -177,7 +195,7 @@ function allKeys(rows){const s=[];rows.forEach(r=>Object.keys(r).forEach(k=>{if(
 function downloadCSV(name,rows,fields){const head=fields.map(csvCell).join(',');const body=rows.map(r=>fields.map(f=>csvCell(r[f])).join(',')).join('\n');const blob=new Blob(['﻿'+head+'\n'+body],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
 function downloadXLS(name,rows,fields){
  const eh=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
- const cv=v=>{if(Array.isArray(v))v=v.map(x=>x&&typeof x==='object'?Object.values(x).filter(Boolean).join(' '):x).join(' | ');else if(v&&typeof v==='object')v=Object.values(v).filter(Boolean).join(' ');return '<td>'+eh(v)+'</td>';};
+ const cv=v=>'<td>'+eh(exportFlat(v))+'</td>';
  const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table border="1"><tr>'+fields.map(fd=>'<th>'+eh(fd)+'</th>').join('')+'</tr>'+rows.map(r=>'<tr>'+fields.map(fd=>cv(r[fd])).join('')+'</tr>').join('')+'</table></body></html>';
  const blob=new Blob(['﻿'+html],{type:'application/vnd.ms-excel;charset=utf-8'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();

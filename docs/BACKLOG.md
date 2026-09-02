@@ -382,6 +382,18 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   bar and focuses it; closes after a pick or when focus leaves; hidden on desktop; reversible by
   removing the line. Also confirmed the Today alert strip flags the seeded failed sync and its
   pill opens Sync. `probe-search-phone.mjs` covers all of it. Two sabotages → red each.
+- **Round 22 (18:10–18:40) — Export ▾ on the Reference pages, summary and "full details".**
+  First time these ran with rows. The summary files were fine in both languages. The airlines
+  "full details" file (CSV and Excel) wrote the NDC matrix as six "[object Object]" per carrier
+  — the shared cell flattener in core-05 only went one level deep. Replaced by one `exportFlat`
+  used by both exporters: a list → items joined " | ", an object of objects → "source: status"
+  joined " | ", an object of yes/no flags → the flags that are on, anything else → its text
+  values. In Arabic, 24 of the 26 full-details columns came out as bare keys, "ksa" was titled
+  as the country instead of the BSP flag, and the code-list values (ticketing authority, ADM
+  risk, API status) stayed English — js/73 gained the labels and a small code-list map (free
+  text and names are still never touched; English files are byte-for-byte unaffected).
+  `probe-export-reference.mjs` covers airlines/providers/SOPs, summary+full, CSV+Excel, EN+AR.
+  Two sabotages → red each; the Arabic-export, ledger-attacks and finance CSV probes stay green.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 
