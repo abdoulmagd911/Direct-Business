@@ -41,13 +41,16 @@
       var bizUuid=(window.__bizUuid?window.__bizUuid(biz.id):biz.id);
       var linkedGroups=(window.FIN&&FIN.groupsByBiz&&bizUuid)?FIN.groupsByBiz[bizUuid]:null;
       var rows, matchedByLink=false;
+      /* 2026-09-02 (attack round 11): read through js/16's chokepoint (standing exclusion +
+         sanitised money), not the raw rows. */
+      var _src=(typeof window.finLive==='function')?window.finLive():FIN.rows;
       if(linkedGroups&&linkedGroups.length){
         var gset={}; linkedGroups.forEach(function(g){gset[g]=1;});
-        rows=FIN.rows.filter(function(r){ return !r.deleted_at && gset[r.client_group]; });
+        rows=_src.filter(function(r){ return !r.deleted_at && gset[r.client_group]; });
         matchedByLink=true;
       } else {
         var target=norm(biz.name); if(!target)return;
-        rows=FIN.rows.filter(function(r){ if(r.deleted_at)return false; return norm(r.client_group)===target || norm(r.customer_raw_name)===target; });
+        rows=_src.filter(function(r){ if(r.deleted_at)return false; return norm(r.client_group)===target || norm(r.customer_raw_name)===target; });
       }
       if(!rows.length)return; // nothing linked or matched -> show nothing (never a wrong match)
       var cg=rows[0].client_group||biz.name,last='',_inv={};

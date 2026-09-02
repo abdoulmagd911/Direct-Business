@@ -384,6 +384,12 @@ export function start(port, seedOverrides){
     // the mock, not the importer). Widening this to every table is a bigger, riskier change
     // some other probe might be unknowingly relying on the current no-op — not done here.
     if(req.method!=='GET'){
+      // Generic silent-refusal switch (2026-09-02, attack round 11): MOCK_REFUSE_TABLES=a,b makes
+      // every write to those tables answer no error and no rows — the RLS-refused shape every
+      // M13 check must detect. Lets one probe exercise the refusal path of any write site.
+      if((process.env.MOCK_REFUSE_TABLES||'').split(',').map(s=>s.trim()).filter(Boolean).includes(t)){
+        req.on('data',()=>{}); return req.on('end',()=>send(res, req.method==='DELETE'?200:201, []));
+      }
       // app_state_bak writes are persisted for real too — insert (tagCurrentState, migration)
       // and delete (deleteTag), each real, RLS-shaped, .select()-checked call sites this app
       // makes since the backup-to-Supabase move (2026-08-23, docs/DECISIONS.md P1). Scoped
@@ -451,7 +457,7 @@ export function start(port, seedOverrides){
       // update and previously fell through to the blanket `201 []`.
       // 2026-09-02 attack round 6: the same honest UPDATE for the tables the Leads/Events/linker
       // layers update, so their new row-count checks can be exercised here too.
-      if(req.method==='PATCH'&&(t==='finance_invoices'||t==='finance_targets'||t==='client_profiles'||t==='ksa_events'||t==='businesses'||t==='finance_client_links')){
+      if(req.method==='PATCH'&&(t==='finance_invoices'||t==='finance_targets'||t==='client_profiles'||t==='ksa_events'||t==='businesses'||t==='finance_client_links'||t==='app_users')){
         let body=''; req.on('data',c=>body+=c);
         return req.on('end',()=>{
           let patch={}; try{ patch=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
@@ -534,6 +540,18 @@ export function start(port, seedOverrides){
       }
       // businesses INSERT / UPSERT (2026-09-02): the app's save path expects id+legacy_id back for
       // every row it sent; fewer rows back is the silent-refusal shape it must now detect.
+      // client_profiles INSERT (2026-09-02, attack round 11): js/27's manual profile form expects
+      // its row back; a plain 201 [] hid a refusal behind a reload that showed nothing new.
+      if(t==='client_profiles'&&req.method==='POST'){
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(!Array.isArray(payload)) payload=[payload];
+          TABLES.client_profiles=TABLES.client_profiles||[];
+          const written=payload.map(row=>{ const newRow=Object.assign({id:row.id||('mock-cp-'+Math.random().toString(36).slice(2)),created_at:new Date().toISOString()},row); TABLES.client_profiles.push(newRow); return newRow; });
+          return send(res,201,written);
+        });
+      }
       if(t==='businesses'&&req.method==='POST'){
         let body=''; req.on('data',c=>body+=c);
         return req.on('end',()=>{

@@ -66,8 +66,11 @@
           business_id:bizUuid, direct_client_id:did, profile_type:val('cp_type'),
           payment_terms:val('cp_terms')||null, billing_cycle:val('cp_cycle')||null,
           status:'active', source:'manual'
-        }).then(function(r){
+        }).select('id').then(function(r){
           if(r.error){ alert(fl('Could not save: ','تعذر الحفظ: ')+r.error.message); return; }
+          /* M13 (2026-09-02, attack round 11): no error but no row back = the database refused it
+             silently — say so instead of reloading as if it had been saved. */
+          if(!r.data||!r.data.length){ alert(fl('The database refused this profile — nothing was saved (permission?).','رفضت قاعدة البيانات هذا الملف — لم يُحفظ شيء (صلاحية؟).')); return; }
           CP.rows=null; cpLoad(function(){ if(typeof render==='function')render(); });
         });
       });

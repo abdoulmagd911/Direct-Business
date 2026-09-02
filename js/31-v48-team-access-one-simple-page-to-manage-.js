@@ -368,7 +368,12 @@
   window.finLinkMap=function(){
     var A=isAr(); var FIN=window.FIN||{};
     if(FIN.rows==null){ if(typeof finLoad==='function')finLoad(function(){finLinkMap();}); return; }
-    var byG={}; (FIN.rows||[]).forEach(function(r){ if(r.deleted_at)return; var g=r.client_group||'(blank)'; byG[g]=byG[g]||{rev:0,inv:0}; byG[g].rev+=+r.revenue_sar||0; byG[g].inv++; });
+    /* 2026-09-02 (attack round 11): this read FIN.rows directly, bypassing the standing exclusion
+       that js/16's live() applies — an excluded partner (Takamol/Techtic) showed up in this dialog
+       as a group to link. Read through the same chokepoint when it is there; otherwise re-check
+       each group against the exclusion list. */
+    var src=(typeof window.finLive==='function')?window.finLive():(FIN.rows||[]);
+    var byG={}; (src||[]).forEach(function(r){ if(r.deleted_at)return; var g=r.client_group||'(blank)'; try{ if(typeof window.finExclusionCheck==='function'&&(window.finExclusionCheck(g)||window.finExclusionCheck(r.customer_raw_name)))return; }catch(_){} byG[g]=byG[g]||{rev:0,inv:0}; byG[g].rev+=+r.revenue_sar||0; byG[g].inv++; });
     var groups=Object.keys(byG).sort(function(a,b){return byG[b].rev-byG[a].rev;});
     var linkByGroup=FIN.linkByGroup||{};
     var clients=((typeof DB!=='undefined'&&DB.businesses)||[]).filter(function(b){return b.isClient;}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
@@ -404,8 +409,10 @@
         else { payload.business_id=(window.__bizUuid?window.__bizUuid(val):val); payload.is_client=true; payload.confirmed_by=(window.__userName||'app'); payload.confirmed_at=new Date().toISOString(); }
         var c=client(); stat.textContent='…';
         if(!c){ stat.textContent='⚠'; return; }
-        c.from('finance_client_links').upsert(payload,{onConflict:'client_group'}).then(function(r){
+        c.from('finance_client_links').upsert(payload,{onConflict:'client_group'}).select('client_group').then(function(r){
           if(r&&r.error){ stat.textContent='⚠'; if(typeof toast==='function')toast(A?'تعذّر الحفظ':'Save failed'); return; }
+          /* M13 (2026-09-02, attack round 11): no error but no row back = refused silently. */
+          if(!r||!r.data||!r.data.length){ stat.textContent='⚠'; if(typeof toast==='function')toast(A?'رفضت قاعدة البيانات الربط — لم يتغير شيء':'The database refused the link — nothing changed'); return; }
           FIN.linkByGroup=FIN.linkByGroup||{}; FIN.linkByGroup[g]=payload;
           FIN.groupsByBiz={}; Object.keys(FIN.linkByGroup).forEach(function(k){var L=FIN.linkByGroup[k]; if(L.business_id){(FIN.groupsByBiz[L.business_id]=FIN.groupsByBiz[L.business_id]||[]).push(k);}});
           stat.textContent=(val==='__indiv__')?'—':(val===''?'⚠':'✓');

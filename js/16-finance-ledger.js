@@ -86,6 +86,11 @@ function finLoad(cb){
   }
 }
 try{window.FIN=FIN;window.finLoad=finLoad;}catch(_){}  // expose for the Customer-360 finance snapshot (v29)
+/* 2026-09-02 (attack round 11): live() is THE chokepoint — soft-deleted rows out, the standing
+   exclusion applied, money sanitised. Other layers that read FIN.rows directly bypassed all of
+   that (the Link-finance dialog listed an excluded partner as a group to link). Shared here so
+   they read through the same gate. */
+try{window.finLive=function(){return live();};}catch(_){}
 // Belt-and-suspenders, 2026-08-23: the exclusion list (js/62) was checked at IMPORT time
 // only. Ten Takamol invoices entered finance_invoices anyway — not through either
 // importer's exclusion check, but by a path outside this app entirely — and rendered in

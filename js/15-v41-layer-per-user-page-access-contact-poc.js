@@ -73,8 +73,11 @@ window.v41Access=function(){
         var i=+btn.getAttribute('data-save'), u=users[i];
         var picked=[].slice.call(ov.querySelectorAll('input[data-u="'+i+'"]:checked')).map(function(x){return x.getAttribute('data-p');});
         var payload=(picked.length>=PAGES.length)?null:picked; /* everything = null */
-        c.from('app_users').update({allowed_pages:payload}).eq('id',u.id).then(function(r2){
+        c.from('app_users').update({allowed_pages:payload}).eq('id',u.id).select('id').then(function(r2){
           if(r2.error){alert((ar?'تعذر الحفظ: ':'Could not save: ')+r2.error.message);return;}
+          /* M13 (2026-09-02, attack round 11): no error but no row back = refused silently —
+             never show "Saved ✓" for an access change that did not land. */
+          if(!r2.data||!r2.data.length){alert(ar?'رفضت قاعدة البيانات هذا التغيير — لم يُحفظ شيء (صلاحية؟).':'The database refused this change — nothing was saved (permission?).');return;}
           btn.textContent=ar?'تم الحفظ ✓':'Saved ✓'; setTimeout(function(){btn.textContent=ar?'حفظ صلاحيات هذا المستخدم':'Save this user\'s access';},1500);
         });
       };

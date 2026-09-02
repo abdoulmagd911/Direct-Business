@@ -369,7 +369,10 @@
     var linkBy=FIN.linkByGroup||{};
     // collect candidate groups: not linked, not already attempted
     var groups={};
-    (FIN.rows||[]).forEach(function(r){
+    /* 2026-09-02 (attack round 11): read through js/16's chokepoint so an EXCLUDED partner's
+       group is never auto-linked to a company by name. */
+    var _src=(typeof window.finLive==='function')?window.finLive():(FIN.rows||[]);
+    (_src||[]).forEach(function(r){
       if(r.deleted_at)return; var g=r.client_group; if(!g)return;
       var l=linkBy[g];
       if(l&&(l.business_id||l.is_client===false))return;   // already linked

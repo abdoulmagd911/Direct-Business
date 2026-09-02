@@ -161,6 +161,24 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   Guard: `probe-ops-board.mjs` (board counts, KPI arithmetic from the same records, Advance →
   reaches the table / refusal reported, Arabic headers + labels, phone, proposals list + editor
   EN/AR). Sabotage-verified: js/35 row confirmation → refusal red; bridge marker → phantom red.
+- **Round 11 (12:20–12:55) — the last pre-M13 write sites, and an excluded partner in a dialog.**
+  The three remaining old-shape writes outside the Finance lane now confirm rows back: the
+  Team → Access levels save (`js/15`, never "Saved ✓" for a change that did not land), the manual
+  billing-profile insert (`js/27`, no silent reload) and the finance→client link (`js/31`, ⚠ +
+  toast). `js/66` was already M13-shaped. The mock gained a generic `MOCK_REFUSE_TABLES=a,b`
+  switch (any write to those tables answers no error, no rows) plus honest `app_users` PATCH and
+  `client_profiles` INSERT. **Landmine found by the new probe:** the "Link finance to clients"
+  dialog listed the EXCLUDED partner (Takamol) as a group to link — it read the raw `FIN.rows`
+  instead of js/16's `live()` chokepoint (soft-deletes out, standing exclusion applied, money
+  sanitised). `live()` is now shared as `window.finLive`, and the four raw readers that could
+  show or act on an excluded row go through it: the link dialog (js/31), the Overview
+  income-by-service add-on (js/25), the automatic linker (js/41 — it could have auto-linked the
+  excluded group to a company by name) and the client-card finance snapshot (js/38). js/62
+  already excluded; js/65's idempotency lookup and js/59's find-by-id are correct on raw rows.
+  Left for the Finance lane: `js/45` :103 (expenses) and `js/57` :115 (proof documents), and
+  `js/45` :241 reads raw rows for the transaction-ref dropdown (an excluded ref could be picked).
+  Guard: `probe-m13-remaining.mjs` (happy + refusal paths through the real dialogs, and "no
+  excluded client in the link dialog"); sabotage-verified on js/31 and js/15.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

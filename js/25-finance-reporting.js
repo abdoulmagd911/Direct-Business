@@ -35,7 +35,10 @@
     try{
       if(!window.FIN||FIN.tab!=='overview'||!FIN.rows) return;
       var view=document.getElementById('view'); if(!view||view.querySelector('.v32-svc')) return;
-      var rows=FIN.rows.filter(function(r){return !r.deleted_at && r.integrity_status==='verified_paid' && (!window.finInPeriod||finInPeriod(r));});
+      /* 2026-09-02 (attack round 11): read through js/16's chokepoint (exclusion + sanitised money),
+         not the raw rows — the raw list still carries an excluded partner's rows. */
+      var _src=(typeof window.finLive==='function')?window.finLive():FIN.rows;
+      var rows=_src.filter(function(r){return !r.deleted_at && r.integrity_status==='verified_paid' && (!window.finInPeriod||finInPeriod(r));});
       if(!rows.length) return;
       var by={};
       rows.forEach(function(r){
