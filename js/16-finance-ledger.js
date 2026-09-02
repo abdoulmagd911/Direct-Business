@@ -219,21 +219,46 @@ function finPeriodLabel(){
 }
 window.finPY=function(v){FIN.p.year=v;render();};
 window.finPP=function(v){FIN.p.part=v;render();};
+/* 2026-09-02 (overnight cycle, scripts/qa/probe-targets-attacks.mjs) — the old parser was
+   `parseFloat(String(s).replace(/[^0-9.]/g,''))||0`, which SILENTLY changed what the person
+   typed: Arabic-Indic digits (١٥٠٠٠٠٠) became 0 in an app that is half-Arabic, "1e6" became
+   16, any text became 0, and "-500" became +500. A target nobody typed is a fabricated number
+   (M8). This reads the same digits the importer already reads (js/65 asciiDigits) and REFUSES
+   anything that is not a plain amount, naming the box — it never guesses. Empty stays a
+   deliberate "clear to 0". */
+function finTargetNum(sv){
+  var AR={'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9','٫':'.','٬':','};
+  var s=String(sv==null?'':sv).replace(/[٠-٩۰-۹٫٬]/g,function(c){return AR[c]||c;}).trim();
+  s=s.replace(/[\s,\u00a0]/g,'').replace(/(?:SAR|ر\.?س|ريال)$/i,'');
+  if(s==='')return 0;
+  if(!/^\d+(\.\d+)?$/.test(s))return null;   // no exponents, no minus, no stray text
+  var n=parseFloat(s); return isFinite(n)?n:null;
+}
+try{ window.finTargetNum=finTargetNum; }catch(_){}
 window.finSetTargets=function(y){try{
+  if(!canFinEdit())return;   // the button is already gated; guard the function too, like finDelInv
   var t=(FIN.targets||[]).find(function(x){return +x.year===+y;})||{};
   var e=prompt(isArF()?('الإيراد المتوقع لسنة '+y+' (ريال):'):('Expected revenue for '+y+' (SAR):'), t.expected_sar||''); if(e===null)return;
   var cf=prompt(isArF()?('الإيراد المؤكد (عقود موقعة) لسنة '+y+':'):('Confirmed revenue (signed contracts) for '+y+' (SAR):'), t.confirmed_sar||''); if(cf===null)return;
-  var num=function(s){return parseFloat(String(s).replace(/[^0-9.]/g,''))||0;};
+  var _e=finTargetNum(e), _c=finTargetNum(cf);
+  if(_e===null||_c===null){
+    var _bad=(_e===null)?(isArF()?'«الإيراد المتوقع»':'"Expected revenue"'):(isArF()?'«الإيراد المؤكد»':'"Confirmed revenue"');
+    alert(isArF()
+      ?('لم يُحفظ — '+_bad+' ليست مبلغًا مقروءًا: "'+String(_e===null?e:cf)+'". اكتب رقمًا موجبًا (الفواصل والأرقام العربية مقبولة). لم يتغير شيء.')
+      :('Not saved — '+_bad+' is not a readable amount: "'+String(_e===null?e:cf)+'". Type a positive number (commas and Arabic digits are fine). Nothing changed.'));
+    return;
+  }
+  var num=function(){ return 0; };   // kept out of reach: every value below is already parsed
   var c=fc(); if(!c)return;
   /* B2 / M13 shape (fixed 2026-09-02): a write without .select() + a row-count check reports
      success even when Row-Level Security silently refused it — the screen would then show the
      new target while the database still held the old one. Every write in this file now asks
      for the rows back and refuses to update the screen unless the database confirmed them. */
-  c.from('finance_targets').upsert({year:+y,expected_sar:num(e),confirmed_sar:num(cf),updated_at:new Date().toISOString(),updated_by:(window.meName?meName():'')},{onConflict:'year'}).select('year').then(function(r){
+  c.from('finance_targets').upsert({year:+y,expected_sar:_e,confirmed_sar:_c,updated_at:new Date().toISOString(),updated_by:(window.meName?meName():'')},{onConflict:'year'}).select('year').then(function(r){
     if(r.error){alert((isArF()?'تعذر الحفظ: ':'Could not save: ')+r.error.message);return;}
     if(!r.data||!r.data.length){alert(isArF()?'لم يُحفظ — رفضت قاعدة البيانات الكتابة (صلاحيات). لم يتغير شيء.':'Not saved — the database refused the write (permissions). Nothing changed.');return;}
     var i=(FIN.targets||[]).findIndex(function(x){return +x.year===+y;});
-    var row={year:+y,expected_sar:num(e),confirmed_sar:num(cf)};
+    var row={year:+y,expected_sar:_e,confirmed_sar:_c};
     if(i>=0)FIN.targets[i]=row;else (FIN.targets=FIN.targets||[]).push(row);
     render();
   });

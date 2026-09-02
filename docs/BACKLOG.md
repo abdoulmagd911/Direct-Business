@@ -1,5 +1,37 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 (overnight) · Watch cycle 9 — the targets editor was silently changing what you typed
+
+**Attack area: Plan vs actual and its "Set targets" editor** (`js/16`), new
+`scripts/qa/probe-targets-attacks.mjs` (port 8203, 18 checks).
+
+**Real gap, fixed — four ways to type a number and get a different one stored.** The parser was
+`parseFloat(String(s).replace(/[^0-9.]/g,''))||0`, so:
+- **Arabic-Indic digits became 0.** In an app that is half-Arabic, typing ١٥٠٠٠٠٠ set the year's
+  target to nothing, with no message. (The importer has read those digits since August —
+  `asciiDigits` in `js/65` — the targets box never did.)
+- **"1e6" became 16.** The "e" was stripped and "16" parsed.
+- **Any text became 0** — a typo silently wiped the target.
+- **"-500" became +500** — the minus was stripped, not rejected.
+Now one parser reads the same digits the importer reads, accepts commas/spaces/a trailing SAR,
+treats an empty box as a deliberate "clear to 0", and **refuses anything else by name** ("Not
+saved — "Expected revenue" is not a readable amount: "1e6". Type a positive number… Nothing
+changed."), in both languages. A target nobody typed is a fabricated number (M8).
+
+**Also fixed:** `finSetTargets` had no permission check of its own — the button was hidden from
+a viewer but the function still ran and still asked for numbers. It now guards with
+`canFinEdit()` like `finDelInv` does. (`finSetOrigin`/`finSetWay` are in the same shape; their
+UI is gated too — noted for a later pass rather than changed blind tonight.)
+
+**Held under attack:** thousands separators; cancelling either prompt writes nothing; a write
+the database refuses says so and leaves the old number on screen (M13); attainment = actual ÷
+expected recomputed independently; a quarter pro-rates to a quarter and a month to a twelfth and
+the card says it is pro-rated; past 100% it reads "above plan"; a zero target never divides by
+zero.
+
+**Sabotage-verified twice** (old lenient parser back → 4 red; permission guard removed → the
+viewer check goes red). Restore byte-identical (md5); structure check and six neighbouring
+probes green.
 ## 2026-09-02 · Round 41 — every generated document printed a blank VAT number and no CR at all
 
 The header at the top of **every** document the app generates — tax invoice, booking
