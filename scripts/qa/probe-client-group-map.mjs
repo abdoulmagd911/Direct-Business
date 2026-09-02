@@ -1,5 +1,5 @@
 /* probe-client-group-map.mjs — M14 regression guard for the owner-directed client name
-   alias feature (2026-08-25): "MDD" and its Arabic spelling "شركة مدد الذكية لتقنية
+   alias feature (2026-08-25): a client's short English name and its full Arabic legal spelling (fictional pair here; real one in DB.settings.financeGroupMap) "شركة مدار الذكية لتقنية
    المعلومات" are the same real company under two spellings, one English one Arabic —
    currently 507,800.00 SAR (1 invoice) and 134,748.95 SAR (2 invoices) reported as two
    unrelated clients. Same shape for "...Sons Co" vs "...Sons Company" and the alrajhi pair.
@@ -29,9 +29,9 @@ let failures = 0;
 function fail(msg) { failures++; console.log('  ✗ ' + msg); }
 function ok(msg) { console.log('  ✓ ' + msg); }
 
-const ALIAS_EN = 'MDD';
-const ALIAS_AR = 'شركة مدد الذكية لتقنية المعلومات';
-const CANONICAL = 'MDD - Smart Madad IT';
+const ALIAS_EN = 'Madar';
+const ALIAS_AR = 'شركة مدار الذكية لتقنية المعلومات';
+const CANONICAL = 'Madar - Smart Systems';
 
 async function main() {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -69,9 +69,9 @@ async function main() {
   await p.evaluate(([enName, arName]) => {
     FIN.rows = FIN.rows || [];
     FIN.rows.push(
-      { invoice_no: 'QA-MDD-EN-1', client_group: enName, customer_raw_name: enName, total_incl_vat_sar: 507800, revenue_sar: 507800, cost_sar: 0, profit_sar: 507800, integrity_status: 'verified_paid', deleted_at: null, invoice_date: '2026-05-01', month: 'May', quarter: 'Q2' },
-      { invoice_no: 'QA-MDD-AR-1', client_group: arName, customer_raw_name: arName, total_incl_vat_sar: 67374.475, revenue_sar: 67374.475, cost_sar: 0, profit_sar: 67374.475, integrity_status: 'verified_paid', deleted_at: null, invoice_date: '2026-06-01', month: 'June', quarter: 'Q2' },
-      { invoice_no: 'QA-MDD-AR-2', client_group: arName, customer_raw_name: arName, total_incl_vat_sar: 67374.475, revenue_sar: 67374.475, cost_sar: 0, profit_sar: 67374.475, integrity_status: 'verified_paid', deleted_at: null, invoice_date: '2026-07-01', month: 'July', quarter: 'Q2' },
+      { invoice_no: 'QA-MADAR-EN-1', client_group: enName, customer_raw_name: enName, total_incl_vat_sar: 507800, revenue_sar: 507800, cost_sar: 0, profit_sar: 507800, integrity_status: 'verified_paid', deleted_at: null, invoice_date: '2026-05-01', month: 'May', quarter: 'Q2' },
+      { invoice_no: 'QA-MADAR-AR-1', client_group: arName, customer_raw_name: arName, total_incl_vat_sar: 67374.475, revenue_sar: 67374.475, cost_sar: 0, profit_sar: 67374.475, integrity_status: 'verified_paid', deleted_at: null, invoice_date: '2026-06-01', month: 'June', quarter: 'Q2' },
+      { invoice_no: 'QA-MADAR-AR-2', client_group: arName, customer_raw_name: arName, total_incl_vat_sar: 67374.475, revenue_sar: 67374.475, cost_sar: 0, profit_sar: 67374.475, integrity_status: 'verified_paid', deleted_at: null, invoice_date: '2026-07-01', month: 'July', quarter: 'Q2' },
     );
   }, [ALIAS_EN, ALIAS_AR]);
 
@@ -84,7 +84,7 @@ async function main() {
   // ---- BASELINE: prove the two synthetic rows really are split before any grouping exists ----
   const before = await clientsTableText();
   if (!before.includes(ALIAS_EN)) fail(`baseline: "${ALIAS_EN}" row not found at all — test setup is broken`);
-  if (!/شركة مدد/.test(before)) fail('baseline: the Arabic-name row not found at all — test setup is broken');
+  if (!/شركة مدار/.test(before)) fail('baseline: the Arabic-name row not found at all — test setup is broken');
   if (before.includes(CANONICAL)) fail(`baseline: "${CANONICAL}" already appears before any grouping was added — test setup is contaminated`);
   else ok('baseline: the two synthetic rows show as separate clients, exactly as reported — proves the test is real');
 
@@ -108,7 +108,7 @@ async function main() {
 
   // Business-linked auto-suggest: "Test Company 4"/"Test Company 5" are the mock's own
   // pre-existing fixture — already linked to the SAME business (finance_client_links) but
-  // never yet given an alias mapping. This is the MDD shape exactly (a cross-script rename
+  // never yet given an alias mapping. This is the real EN/AR-pair shape exactly (a cross-script rename
   // that norm62() alone would never catch) — the suggestion must appear without any typing.
   const suggestionText = await p.evaluate(() => { const c = document.querySelector('.v62-guardrails'); return c ? c.innerText : ''; });
   if (!/Test Company 4/.test(suggestionText) || !/Test Company 5/.test(suggestionText)) fail(`business-linked auto-suggest missing for the pre-linked "Test Company 4"/"Test Company 5" fixture pair — got: ${suggestionText.slice(0, 500)}`);
@@ -143,7 +143,7 @@ async function main() {
   const afterMerge = await clientsTableText();
   if (!afterMerge.includes(CANONICAL)) fail(`after merge: "${CANONICAL}" does not appear — got: ${afterMerge.slice(0, 400)}`);
   else ok(`after merge: "${CANONICAL}" appears as the canonical name`);
-  // A standalone "MDD" row (tab-separated table cell, not part of "MDD - Smart Madad IT")
+  // A standalone raw-alias row (tab-separated table cell, not part of the canonical name)
   // would mean the raw alias is still showing separately alongside the merged one.
   if (new RegExp('\\n' + ALIAS_EN + '\\t').test(afterMerge)) fail(`after merge: the raw "${ALIAS_EN}" row is still showing separately — not actually consolidated`);
   else ok(`after merge: no separate "${ALIAS_EN}" row remains — the raw alias is gone from the table`);
@@ -156,7 +156,7 @@ async function main() {
   // using the SAME already-mapped alias text (standing in for next month's export) must
   // consolidate immediately, with zero extra steps ----
   await p.evaluate(([arName]) => {
-    FIN.rows.push({ invoice_no: 'QA-MDD-AR-3-FUTURE-IMPORT', client_group: arName, customer_raw_name: arName, total_incl_vat_sar: 10000, revenue_sar: 10000, cost_sar: 0, profit_sar: 10000, integrity_status: 'verified_paid', deleted_at: null, invoice_date: '2026-08-01', month: 'August', quarter: 'Q3' });
+    FIN.rows.push({ invoice_no: 'QA-MADAR-AR-3-FUTURE-IMPORT', client_group: arName, customer_raw_name: arName, total_incl_vat_sar: 10000, revenue_sar: 10000, cost_sar: 0, profit_sar: 10000, integrity_status: 'verified_paid', deleted_at: null, invoice_date: '2026-08-01', month: 'August', quarter: 'Q3' });
   }, [ALIAS_AR]);
   const afterFutureImport = await clientsTableText();
   if (!/652,549/.test(afterFutureImport)) fail(`a "future import" row using the same mapped alias text did not consolidate automatically — got: ${afterFutureImport.slice(0, 600)}`);
@@ -165,7 +165,7 @@ async function main() {
   // ---- REQUIREMENT (1): undo is instant and lossless — the split must reappear exactly ----
   const undone = await p.evaluate(() => {
     const list = (window.finGroupList ? finGroupList() : []);
-    const e = list.find((x) => x.canonicalName === 'MDD - Smart Madad IT' && x.active !== false);
+    const e = list.find((x) => x.canonicalName === 'Madar - Smart Systems' && x.active !== false);
     if (!e) return false;
     v62UndoGrouping(e.id);
     return true;
@@ -174,13 +174,13 @@ async function main() {
   await p.waitForTimeout(500);
   const afterUndo = await clientsTableText();
   if (afterUndo.includes(CANONICAL)) fail(`after undo: "${CANONICAL}" still appears — undo did not actually take effect`);
-  else if (!afterUndo.includes(ALIAS_EN) || !/شركة مدد/.test(afterUndo)) fail(`after undo: the two original names did not reappear — got: ${afterUndo.slice(0, 400)}`);
+  else if (!afterUndo.includes(ALIAS_EN) || !/شركة مدار/.test(afterUndo)) fail(`after undo: the two original names did not reappear — got: ${afterUndo.slice(0, 400)}`);
   else ok('REQUIREMENT (1) held: undo split the totals back apart instantly, byte-for-byte matching the pre-merge baseline shape — nothing in finance_invoices was ever touched');
 
   // ---- Redo, to confirm the entry is genuinely reversible both ways, not just deletable ----
   const redone = await p.evaluate(() => {
     const list = (window.finGroupList ? finGroupList() : []);
-    const e = list.find((x) => x.canonicalName === 'MDD - Smart Madad IT' && x.active === false);
+    const e = list.find((x) => x.canonicalName === 'Madar - Smart Systems' && x.active === false);
     if (!e) return false;
     v62RedoGrouping(e.id);
     return true;

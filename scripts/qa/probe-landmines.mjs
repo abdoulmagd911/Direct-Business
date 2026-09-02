@@ -173,7 +173,7 @@ await page2.route('**cdn.jsdelivr.net/**', route);
 await page2.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', route);
 await page2.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
 await page2.waitForTimeout(3500);
-const tid = await page.evaluate(() => DB.businesses.find(x => x.name === 'Rawabi Holding').id);
+const tid = await page.evaluate(() => DB.businesses.find(x => x.name === 'Rawasi Holding').id);
 // tab A changes the next action; tab B (stale copy) changes the segment afterwards
 await page.evaluate(id => { const b = getLead(id); b.nextAction = 'TAB-A action'; save(); }, tid);
 await page.waitForTimeout(800);

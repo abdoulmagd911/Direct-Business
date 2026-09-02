@@ -83,7 +83,7 @@
   /* ---------- Part 1.5: client name aliases — collapse spelling/language variants of one
      company under one canonical display name (owner-directed, 2026-08-25, M14). NOT Part 2
      below: Part 2 moves client_profiles.business_id (billing accounts); this collapses
-     finance_invoices.client_group TEXT for display — "MDD" and its Arabic spelling are the
+     finance_invoices.client_group TEXT for display — a client's English short name and its Arabic spelling are the
      same company under two spellings, and every revenue rollup that groups by client
      (rFinClients()'s table, the client card, exports, the report builder) must read one line.
 
@@ -94,7 +94,7 @@
      — the totals just split back apart on the next render. Same shape as finExclusionCheck():
      never silent, who/when recorded, undo not delete. Auto-suggest below catches FUTURE
      same-script duplicates (a stray "Co" vs "Company") automatically via the same norm62()
-     already trusted for the exclusion list; a cross-script rename (English vs Arabic, MDD's
+     already trusted for the exclusion list; a cross-script rename (English vs Arabic, the real case's
      case) never normalises the same way and always needs a human's call. */
   function groupMap(){ try{ return (DB.settings&&DB.settings.financeGroupMap)||[]; }catch(_){ return []; } }
   function money62(n){ n=Number(n)||0; return Math.round(n).toLocaleString('en-US'); }
@@ -137,7 +137,7 @@
   // Two independent ways a duplicate surfaces, both one-click suggestions:
   // (a) same normalised spelling ("...Sons Co" vs "...Sons Company") — catches a same-script
   //     rename with zero setup, using the same norm62() already trusted for exclusions.
-  // (b) same finance_client_links business_id — catches a CROSS-script rename (MDD's English
+  // (b) same finance_client_links business_id — catches a CROSS-script rename (the real case's English
   //     vs Arabic spelling never normalises the same way, but the automatic linking system
   //     already resolved both to one business independently of this feature) — the suggested
   //     canonical name defaults to that business's own name, editable before Add.
@@ -191,7 +191,7 @@
     openModal(fl('Add client name alias','إضافة أسماء بديلة لعميل'),
       '<div class="ch-sub">'+fl('Pick two or more values that are the same real company under different spellings or languages — each shows its own live count and total.','اختر قيمتين أو أكثر تخصان نفس الشركة بصيغ أو لغات مختلفة — كل خيار يعرض عدده وإجماليه الحقيقيين.')+'</div>'+
       '<div class="field"><label>'+fl('Values to merge (Ctrl/Cmd-click for several)','القيم المطلوب دمجها (Ctrl/Cmd + نقر لعدة قيم)')+'</label><select id="g2_aliases" multiple size="8" style="width:100%">'+opts+'</select></div>'+
-      '<div class="field"><label>'+fl('Canonical display name','الاسم المعتمد للعرض')+'</label><input id="g2_name" value="'+esc62(prefillName||'')+'" placeholder="'+fl('e.g. MDD - Smart Madad IT','مثال: MDD - Smart Madad IT')+'"></div>'+
+      '<div class="field"><label>'+fl('Canonical display name','الاسم المعتمد للعرض')+'</label><input id="g2_name" value="'+esc62(prefillName||'')+'" placeholder="'+fl('e.g. Madar - Smart Systems','مثال: Madar - Smart Systems')+'"></div>'+
       '<div class="field"><label>'+fl('Note (optional)','ملاحظة (اختياري)')+'</label><input id="g2_note"></div>',
       function(){
         var sel=[].slice.call(document.getElementById('g2_aliases').selectedOptions).map(function(o){return o.value;});

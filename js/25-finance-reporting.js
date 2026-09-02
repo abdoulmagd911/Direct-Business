@@ -187,7 +187,7 @@
 }catch(e){if(window.console)console.warn('[v63] init',e);}})();
 
 /* ---------- part 3 — Report Builder drill-down (sitting S1, 2026-08-16) ----------
-   Owner's ask: "per client, time rolled — MDD Company January total, expandable down to
+   Owner's ask: "per client, time rolled — <client> January total, expandable down to
    the invoices and services under it."
 
    The Report Builder already totals by client and by month. What it could not do was show

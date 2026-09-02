@@ -276,7 +276,7 @@ function _finBizName(uuid){
 }
 // Same lazily-built, clearFinCanon()-invalidated index as _finBizName, for the owner's
 // "client ID beside the client name" request (2026-08-23) — businesses.direct_client_id is
-// the Direct Payments portal id (MDD=1, alnahla=46, ...). Not every client has one yet.
+// the Direct Payments portal id (small integers, e.g. 1, 46, ...). Not every client has one yet.
 function _finBizDirectId(uuid){
   try{
     if(!_finBizDirectIdIndex){
@@ -295,7 +295,7 @@ function finCanon(clientGroup){
   if(_finCanonCache[ck]!==undefined)return _finCanonCache[ck];
   var disp=(ck==='')?'—':ck, res;
   // M14, 2026-08-25 — client name aliases (js/62 Part 1.5) are checked FIRST and win outright:
-  // an admin-confirmed canonical name (e.g. "MDD - Smart Madad IT" for "MDD" + its Arabic
+  // an admin-confirmed canonical name (e.g. "Madar - Smart Systems" for "Madar" + its Arabic
   // spelling) always overrides whatever the linked business's own name field says. Consulted
   // live on every resolution, not applied once — a future import carrying the same raw
   // client_group text groups correctly with zero extra work, exactly like finExclusionCheck().

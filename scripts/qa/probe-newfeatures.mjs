@@ -61,7 +61,7 @@ const CSV = ['client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name
   'Al-Noor Schools,August,Q3,DP-9103,,Al-Noor Schools Group,2026-08-12,Visa processing x4,4600,0,4600,4000,600,verified_paid,,tender,',
   'Al-Noor Schools,August,Q3,DP-9104,,Al-Noor Schools Group,2026-08-12,Transfer bus,2300,0,2300,2000,300,verified_paid,,project,',
   'Al-Noor Schools,August,Q3,DP-9105,,Al-Noor Schools Group,2026-08-14,حجز فندق مكة ٣ ليال,8050,0,8050,7000,1050,verified_paid,,booking,',
-  'Rawabi Holding,August,Q3,DP-9101,,dup row,2026-08-13,Anything,100,0,100,50,50,verified_paid,,booking,'].join('\r\n');
+  'Rawasi Holding,August,Q3,DP-9101,,dup row,2026-08-13,Anything,100,0,100,50,50,verified_paid,,booking,'].join('\r\n');
 fs.writeFileSync('shots/newfeat-import.csv', '﻿' + CSV);
 await page.setInputFiles('#finFile', 'shots/newfeat-import.csv');
 await page.evaluate(() => finParse());

@@ -60,7 +60,7 @@ const hasForm = await page.evaluate(()=>!!document.getElementById('pf_wtu'));
 if(!hasForm) fails.push('the add-a-payment-proof form is not on the page');
 else {
   await page.selectOption('#pf_type','wallet_top_up');
-  await page.fill('#pf_client','MDD Company');
+  await page.fill('#pf_client','Madar Company');
   await page.fill('#pf_wtu','WTU-PROBE-001');
   await page.fill('#pf_amt','50000');
   await page.setInputFiles('#pf_file', PROOF);
@@ -78,9 +78,9 @@ if(!saved) fails.push('the payment proof did not save at all');
 else{
   if(!saved.file)                          fails.push('the record saved but the file did not attach');
   if(saved.type!=='wallet_top_up')         fails.push('doc_type was not stored — got '+saved.type);
-  if(saved.client!=='MDD Company')         fails.push('client was not stored');
+  if(saved.client!=='Madar Company')         fails.push('client was not stored');
   if(/[^\x00-\x7F]/.test(saved.name))      fails.push('the generated file name is not plain Latin: '+saved.name);
-  if(!/^WTU_MDD-Company_WTU-PROBE-001_50000SAR_/.test(saved.name)) fails.push('the generated file name is wrong: '+saved.name);
+  if(!/^WTU_Madar-Company_WTU-PROBE-001_50000SAR_/.test(saved.name)) fails.push('the generated file name is wrong: '+saved.name);
   notes.push('generated name: '+saved.name);
 }
 

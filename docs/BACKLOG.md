@@ -181,6 +181,32 @@ names live in the database (`businesses`, `finance_invoices.client_group`,
 rows that happen to use real company names were replaced the same way for simplicity.
 `CLAUDE.md` and `docs/DECISIONS.md` were scrubbed in the same commit.
 
+**Same sweep, code side (Finance-owned files only):** the QA fixtures (`scripts/qa/mock-seed.mjs`,
+`mock-seed-live.mjs`) carried eight real company names, two real company email domains and one
+real government email address inside the otherwise-synthetic 30-lead training world — replaced
+with fictional equivalents, consistently, and the two probes that looked those names up
+(`probe-landmines`, `probe-newfeatures`) updated to match. `probe-client-group-map.mjs` had the
+real EN/AR client name pair hard-coded as its fixture — now a fictional pair of the same shape
+(short English name vs. full Arabic legal name); passes unchanged. `js/62`'s alias-form
+placeholder example and `js/16`/`js/25` comments no longer name a real client. Re-run after:
+structure OK · client-group-map OK · finance-invariants OK · report-presets OK.
+
+**Three pre-existing probe failures surfaced by that re-run, NOT caused by it (confirmed by
+running the same probes on the untouched tip first):** `probe-landmines` L6 (binary-junk CSV —
+expects a "clear header error" wording the importer no longer uses since the M12 rewording)
+and L14 (Arabic import page — the optional-columns label isn't Arabic); `probe-newfeatures`
+times out looking for a "Proposals" primary-nav button that commit `e572cd3` deliberately
+removed — the same stale-probe class fixed in `probe-role-nav`/`audit-ui-golive` on 26 Aug,
+missed then because this probe wasn't in the run set. All three are probe drift, not app
+defects; L14 may be a real Arabic gap worth a look. Left for the next QA pass.
+
+**Outside Finance's files, same names appear in:** `js/core/core-06/08/09`, `js/57`, `js/70`
+(comments and in-app copy like "MDD-style multi-trip engagements"), `brand/*` +
+`docs/HANDOVER-B2B-LOGO-WALL.md` + `docs/B2B_LANDING_PAGE_REVIEW.md` (the public client logo
+wall — public marketing, arguably fine), and `docs/DIRECT_MASTER_BRIEF.md`,
+`docs/HANDOFF_2026-08-09.md`, `docs/DIRECT_SYSTEMS_PLAYBOOK.md`. Inventory handed to the Code
+session; its call per file.
+
 ## 2026-08-29 · Five enhancement ideas from Direct's own product changelog — parked, not started
 
 Source: the 20 weekly "Product Updates" pages on Direct's internal Info Center (Direct's own
