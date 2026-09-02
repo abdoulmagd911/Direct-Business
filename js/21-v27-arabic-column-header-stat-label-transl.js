@@ -188,6 +188,21 @@
     'Open in your Amadeus session':'افتح في جلسة Amadeus لديك','Read-only':'للقراءة فقط','Open':'فتح'
   };
   Object.keys(SLA_SYNC_AR).forEach(function(k){ if(V27_AR[k]===undefined) V27_AR[k]=SLA_SYNC_AR[k]; });
+  // ---- Reports: Generate Report tab, Achievements filters, the built report's heads (2026-09-02,
+  // round 24 — first Arabic drive of the report builder). The type/scope <select>s carry value
+  // attributes, so translating their option text is safe (rptRepSet reads this.value). ----
+  var REPORTS_AR={
+    'Generate report':'إنشاء تقرير','Report type':'نوع التقرير','Month':'الشهر','Scope':'النطاق',
+    'Monthly department report':'تقرير القسم الشهري','Quarterly objectives review':'مراجعة الأهداف الربعية',
+    'Whole department':'القسم كاملًا','One member':'عضو واحد','One objective':'هدف واحد',
+    'Build report':'إنشاء التقرير','Print / PDF':'طباعة / PDF','Download .html':'تنزيل .html','Copy text':'نسخ النص',
+    'All months':'كل الأشهر','All members':'كل الأعضاء','All objectives':'كل الأهداف',
+    'Nothing here yet. Log achievements as they happen — tenders submitted, contracts signed, embassies added, services launched…':'لا شيء هنا بعد. سجّل الإنجازات فور حدوثها — مناقصات مقدّمة، عقود موقّعة، سفارات مضافة، خدمات مطلقة…',
+    'Date':'التاريخ','Achievement':'الإنجاز','Member':'العضو','Objective / KPI':'الهدف / المؤشر','Value':'القيمة',
+    '1 · Achievements':'1 · الإنجازات','2 · KPI progress vs 2026 targets':'2 · تقدّم المؤشرات مقابل أهداف 2026','3 · Gaps & focus areas (<50% of target)':'3 · الفجوات ومجالات التركيز (أقل من 50% من الهدف)',
+    'KPI':'المؤشر','Target':'الهدف','Actual (YTD)':'الفعلي (منذ بداية السنة)','Progress':'التقدم'
+  };
+  Object.keys(REPORTS_AR).forEach(function(k){ if(V27_AR[k]===undefined) V27_AR[k]=REPORTS_AR[k]; });
   // Stage badge words — translated ONLY inside .statusbadge / stage pills, to avoid
   // colliding with the same words used elsewhere (headers, chips, filters).
   var STAGE_AR={'New':'جديد','Prospect':'مرتقب','Contacted':'تم التواصل','Qualified':'مؤهل','Proposal':'عرض مقدم','Negotiation':'تفاوض','Won':'مكسوب','Lost':'مفقود','Client':'عميل','On hold':'مُعلّق','In discussion':'قيد النقاش'};
@@ -230,7 +245,8 @@
     for(i=0;i<heads.length;i++){ var hd=heads[i]; if(hd.getAttribute('data-v27')||hd.querySelector('input,select'))continue; translateDecorated(hd,V27_AR); }
     // label / summary / .ch-sub added 2026-09-02 for the proposal editor — whole-string matches only,
     // and a label wrapping an input/select/textarea is skipped, so free text is never touched
-    var els=scope.querySelectorAll('.kl,.l,button,a.btn,.tag,label,summary,.ch-sub'),j;
+    // .empty added 2026-09-02 (round 24) for the Reports empty states — whole-string matches only
+    var els=scope.querySelectorAll('.kl,.l,button,a.btn,.tag,label,summary,.ch-sub,.empty'),j;
     for(j=0;j<els.length;j++){ var el=els[j]; if(el.getAttribute('data-v27')||el.querySelector('input,select,textarea'))continue; translateDecorated(el,V27_AR); }
     // fact-row labels (.fact > .k) added 2026-09-02 for the Reference drill-downs — the label half of
     // a key/value row only, whole-string matches only, and a label that wraps markup (a tag pill in

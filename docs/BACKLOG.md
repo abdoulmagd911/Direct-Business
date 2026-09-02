@@ -405,6 +405,19 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   labels and the code-list words (exact matches only; names and free text still untouched).
   `probe-export-records.mjs` covers it EN+AR. Three sabotages → red each; the reference-export,
   Arabic-export and ledger-attacks probes stay green.
+- **Round 24 (19:05–19:35) — Reports on a phone and in Arabic.** On a 390 px phone the four
+  report tabs ran off the right edge (a scrolling row with no hint, so "Generate Report" sat
+  off-screen) and the built report's KPI table pushed the whole page sideways. core-10: the tab
+  row wraps under 760 px and the report preview scrolls internally. In Arabic the Generate
+  Report tab (title, labels, the type/scope options, the six buttons), the Achievements filters
+  and empty state, the Objectives meta line and the built report's section/table heads were
+  English — js/21 gained the entries (the selects carry value attributes, so translating the
+  option text is safe and the probe proves the English key is stored) and a `.empty` pass; the
+  meta line is composed in core-10 with a language check. One more: the built report is
+  injected without a render pass, so the Arabic layer never saw it — "Build report" now calls
+  the layer once after injecting. `probe-reports-phone-ar.mjs` covers it. Three sabotages
+  (tab wrap, build hook, dictionary block) → red each. Left for a later round: the Settings admin cards (generator
+  templates, snapshots) still read English in Arabic — dev-facing, low traffic.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 
