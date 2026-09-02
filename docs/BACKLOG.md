@@ -1,5 +1,28 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 (overnight) · Watch cycle 11 — Finance driven end to end in Arabic: nothing broken, kept as a guard
+
+**Attack area: the whole Finance section with `LANG='ar'`**, new
+`scripts/qa/probe-finance-arabic-attacks.mjs` (port 8207, 20 checks). **No defect found** —
+after the Code session's several Arabic rounds this part holds, so the probe stays as the
+permanent guard for a screen where a translation slip would be read as a wrong number.
+
+Held under attack: the page is right-to-left; Performance, Clients & collections, Ledger and
+Report Builder carry **no English money label** (a 34-word watchlist — Revenue, Profit, Cost,
+Margin, Outstanding, Overdue, Ready to invoice, Confirmed revenue, Excel (CSV)…) and all four
+really render Arabic; the monthly chart and period bar use Arabic month names; every
+**reorderable** amount — signed, or printed beside a currency word — is direction-isolated, so
+RTL cannot flip a minus onto the wrong end (plain digit groups are a single weak-LTR run by
+Unicode's own rules and are deliberately not flagged, which is why the first version of this
+check raised a false alarm on a year); a credit note still reads as −4,321 in Arabic exactly as
+in English; the invoice CSV and the Ledger CSV both start with a BOM and carry an Arabic company
+name unmangled with Arabic column titles; and the four honest-empty messages this watch added
+are all translated — Compare-to's "that period has no invoices", the unreadable-amount warning,
+the Ledger's unlinked-client note, with no NaN anywhere.
+
+**Sabotage-verified twice** (English month names forced into the Arabic chart → red; the BOM
+dropped from the invoice CSV → red). Restore byte-identical (md5); structure check green.
+
 ## 2026-09-02 (overnight) · Watch cycle 10 — a deleted invoice could be silently overwritten by a re-import
 
 **Attack area: the importer against invoices the owner has DELETED**, new
