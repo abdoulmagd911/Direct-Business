@@ -115,9 +115,9 @@ come from approved expenses... not a VAT computation"). Status: ACTIVE.*
 and that is a TWO-LEVEL join, not a one-level one.** Corrected 2026-08-24 — the 2026-08-23
 version of this rule described a one-level join (expense lines → directly to a tax invoice)
 that was proven wrong the same day it shipped, on a real record end to end: expense line
-`INVOICE #` `1163760881` is not a tax invoice number, it is the *transaction's own reference* —
-that transaction's own `INVOICE ISSUING` column reads "Issued `1163762432`", and `1163762432`
-IS a real `finance_invoices` row (5,600.00 SAR), matching the transaction's amount and its
+the expense line's `INVOICE #` value is not a tax invoice number, it is the *transaction's own
+reference* — that transaction's own `INVOICE ISSUING` column reads "Issued `<a different
+number>`", and THAT number IS a real `finance_invoices` row (5,600.00 SAR), matching the transaction's amount and its
 single Approved line exactly. **The real chain has two levels: many expense lines → one
 transaction (Level 1), many transactions → one tax invoice (Level 2)** — confirmed on a real
 7-transaction group, all issuing into the same invoice. Grouping expense lines by their own
@@ -166,7 +166,7 @@ expenses — never deduplicated.
 
 **Two real, un-fixed gaps this capture surfaced, deliberately left for their own separate
 work, not patched here:** three tax invoices with real approved cost behind them
-(`1163732931`, `1163737524`, `1163765089`) have no matching row in `finance_invoices` at
+(numbers recorded in the importer's needs-review output, not here) have no matching row in `finance_invoices` at
 all — a gap in the invoice importer, not in this capture; reported as "not a live invoice",
 never inserted (D1 stands — this path only ever updates a live row). And a cost figure that
 would exceed its own invoice's total is refused by the cost≤total guard exactly as designed,
@@ -293,10 +293,10 @@ byte-identical to before.
 
 **M14 — a name-collapsing rule is the same shape as an exclusion rule: it must be consulted
 live, by every reader, not applied once to today's rows.** The owner found real duplicate
-clients by data, not invention: "MDD" (1 invoice, 507,800.00 SAR) and its Arabic spelling
-"شركة مدد الذكية لتقنية المعلومات" (2 invoices, 134,748.95 SAR) are one company reported as
-two; same shape for "Abdel Hadi Abdullah AlQahtani Sons Co" vs "...Sons Company" and an
-alrajhi pair with "sharikat shakhs wahid" inserted. A one-time rename of the affected
+clients by data, not invention: one client's short English name (1 invoice, 507,800.00 SAR)
+and its full Arabic legal name (2 invoices, 134,748.95 SAR) reported as two companies; same
+shape for a "...Co" vs "...Company" pair and a pair differing only by an inserted legal-form
+phrase. (Real names deliberately not recorded here — rule 7; they're in `DB.settings.financeGroupMap`.) A one-time rename of the affected
 `finance_invoices` rows would fix today's data and nothing else — the next Direct Payments
 export recreates the other spelling as a fresh row and the split reappears next month, exactly
 P5's shape ("a correct rule that nothing consults is not a rule") and the same lesson Takamol
@@ -309,9 +309,9 @@ it FIRST, before business-link resolution, on every client_group→display-name 
 the mapping applies live to every row that ever carries a mapped alias, past or future, with
 zero backfill and zero per-import-path wiring to remember. This is why undo is instant and
 lossless: nothing in `finance_invoices` is ever written by this feature. Auto-suggest surfaces
-candidates two ways — same normalised spelling (catches a same-script rename like the AlQahtani
+candidates two ways — same normalised spelling (catches a same-script rename like the "Co/Company"
 pair automatically) and same `finance_client_links` business_id (catches a cross-script rename
-like MDD's, which the automatic linking system had already silently resolved at the business
+like the EN/AR pair's, which the automatic linking system had already silently resolved at the business
 level, just never surfaced as a display-name decision) — both need only a confirming click, per
 the owner's explicit requirement that every merge is previewed (both source names, both live
 totals, shown before Add) and reversible after. Sabotage-verified: `finCanon()`'s
@@ -602,8 +602,7 @@ total. If a future import re-introduces them, that is a BUG, not new data.
 
 Full history, since this was contested for a few hours before the ruling settled it —
 proof the mechanism catches exactly what it's for: exactly ten Takamol invoices
-(`1163619023, 1163632114, 1163643155, 1163642810, 1163669282, 1163676553, 1163703086,
-1163708455, 1163744152, 1163744151`) entered `finance_invoices` live, summing
+(invoice numbers recorded in each row's `exclusion_reason`, not here) entered `finance_invoices` live, summing
 **6,724,291.12** of a displayed total of 8,755,055.41 — independently re-verified against
 the database, exact match. A `Takamol for Business Services` client record was created and
 the ten linked to it 2026-08-22 — the opposite of exclusion. Two readings were open (full
@@ -731,8 +730,14 @@ exceptions, no "temporary" branches.** This repo is public. It already went wron
 2026-08-13 branch committed real snapshots (1,035 real leads, real contacts, a real invoice
 capture) as a database-recovery aid, and it sat exposed on GitHub for over a week before
 being caught. If real data ever needs to leave the database, it goes to Google Drive or
-stays purely local.
-*Date: 2026-08-08 (ruled), violated once 2026-08-13, re-enforced. Status: ACTIVE.*
+stays purely local. **This covers the repo's own docs, not just code and data files** —
+found 2026-08-29 that `CLAUDE.md`, this file and `docs/BACKLOG.md` named real clients with
+real invoice numbers while the JS seed data had been carefully scrubbed. A rule entry that
+needs a real example describes the *shape* ("an EN/AR spelling pair") and points at where the
+real value lives (a DB column, a settings map) — it never carries the value itself. This file
+was scrubbed the same day; the other two are the Code session's to do.
+*Date: 2026-08-08 (ruled), violated once 2026-08-13, re-enforced; extended to docs
+2026-08-29. Status: ACTIVE.*
 
 **FIN.p — one period state drives every Overview/Clients number; nothing is stored per
 period.** `year: 'all'|<year>`, `part: 'all'|Q1..Q4|H1|H2|M:<MonthName>`, `sector:
