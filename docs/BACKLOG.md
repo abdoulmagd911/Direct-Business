@@ -1,5 +1,53 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 33 — four pages had never rendered a row in the harness; driving them found a money-rule breach and a set of Arabic gaps
+
+**The harness gap first, because it is the reusable lesson.** `app_bookings` and `app_invoices`
+had **no seed at all** in `scripts/qa/mock-supabase.mjs`. js/35 lists both in its KEYS, so the
+empty answer *replaced* whatever the workspace blob carried — meaning **Bookings, Invoices,
+Tickets and the whole Archive screen had never rendered a single row in any QA run, ever.**
+This is the third time the same shape of gap has hidden real defects (round 19 reference pages,
+round 20 SOP/SLA). Both are now seeded: six bookings across the statuses, with a TTL inside 72 h,
+an ADM-flagged ticket and — deliberately — one with **no cost recorded**; five invoices including
+a credit note and an overdue one.
+
+What driving them surfaced:
+
+1. **M8 on the Bookings page, and round 29 made it live.** `bkMargin` was sale − cost through
+   `onum()`, so a booking whose cost nobody had recorded reported its **entire sale as margin** —
+   a 15,500 sale showing 15,500 of profit on the row, with the page's Margin total carrying it
+   (27k where the evidenced figure is 11k). This was not theoretical: round 29 stopped
+   `bookingFromOffer` fabricating a cost at 85% of the sale, so **"no cost recorded" is now the
+   normal shape of a booking converted from a proposal.** Fixing one honesty bug exposed the
+   next one downstream. The margin is now unknown, the row and the detail card say so, the
+   total counts only evidenced margins and names how many it left out.
+2. **Arabic words that only exist on a row.** The TTL badges carry a number, so no dictionary
+   entry could ever have reached them — they are built per language now. Booking statuses were
+   *half* translated: `Confirmed` sat in the main dictionary and `Ticketed` only in the
+   Operations-board one, so a single column showed one row in Arabic and the next in English.
+   The payment flag (`.fopflag`) sat outside every selector the Arabic layer scans. Today's
+   card lines (`Dated … · dunning:`, `Stage:`, `approval:`, `due`, `EXPIRED`, the QC sentence)
+   only appear when there ARE bookings and invoices, so they had never been seen either. And
+   the `✅ QC checklist incomplete` heading — the one Today group that renders conditionally —
+   was the single heading missing from the emoji-heading dictionary.
+
+**Checked and NOT a defect: archiving.** The sweep's "archiving does not actually archive"
+report does **not** reproduce. Driven end to end: the record leaves its list, appears under
+Archive, and Restore brings it back. Closed rather than left hanging.
+
+Guarded by `scripts/qa/probe-bookings-invoices-rows.mjs` (22 checks), three sabotages verified.
+
+**A mistake of mine worth keeping, because it would have shipped silently.** The first version
+of the Bookings "N with no cost recorded — not counted" note used class `ch-sub`, and
+`index.html:522` carries `.card .ch-sub{display:none !important}` — a deliberate rule hiding grey
+helper lines inside cards. The note was in the DOM, read perfectly from `textContent`, and was
+**invisible to every human being**. My probe passed. A probe that only reads text cannot tell
+"we told the user" from "we wrote it into a hidden element" — the note is now asserted by
+`getBoundingClientRect()`, and the same check was applied back over the round-29 and round-31
+notes (Ops tile and dashboard tile: both genuinely visible; the Today one sits inside a group
+the v26.3 layer collapses along with **every** Today group, so it is exactly as visible as the
+cards beside it — the app's existing design, not something these rounds introduced).
+
 ## 2026-09-02 · Round 32 — a request you deleted came back on screen for 20 seconds (fixed)
 
 The "deleted request re-appears" report from the eight-area sweep, reproduced in the harness and

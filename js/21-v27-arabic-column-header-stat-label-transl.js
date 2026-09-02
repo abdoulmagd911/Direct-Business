@@ -113,6 +113,11 @@
     '⏰ TTL expiring (next 48h)':'⏰ مهل تنتهي (خلال 48 ساعة)','💸 Overdue invoices (>30 days)':'💸 فواتير متأخرة (> 30 يوم)',
     '📞 Dunning sequence active':'📞 تسلسل تحصيل نشط','📉 Low-margin offers / approvals':'📉 عروض هامش منخفض / موافقات',
     '📌 My queue (next 7 days)':'📌 قائمتي (خلال 7 أيام)',
+    /* 2026-09-02 (round 33): the QC group is the only Today group that renders CONDITIONALLY —
+       it needs a ticketed booking whose quality checklist is incomplete. The harness had no
+       app_bookings seed at all, so it had never appeared, and it was the one heading in this
+       list nobody had noticed was missing. */
+    '✅ QC checklist incomplete':'✅ قائمة الجودة غير مكتملة',
     // ---- lead source / funnel names ----
     'Contact form':'نموذج تواصل','Tender':'مناقصة','Referral':'إحالة','Invoice history':'سجل الفواتير',
     'Service Integration Partners':'شركاء تكامل الخدمات','Outreach':'تواصل مباشر','Inbound':'وارد','Website Form':'نموذج الموقع',
@@ -139,6 +144,27 @@
   // Deliberately NOT here: the NDC matrix <option> words (Active / Pending / Inactive / N/A /
   // EDIFACT / Aggregator) — those <option>s carry no value attribute, so translating their text
   // would make setNdc() store an Arabic word and ndcActive() (status==="Active") would stop counting. ----
+  /* 2026-09-02 (round 33): booking / ticket / invoice words that only ever appear ON A ROW.
+     The harness had no app_bookings or app_invoices seed at all, so Bookings, Invoices,
+     Tickets and Archive had never rendered a single row in QA and these were never seen.
+     'Confirmed' was already translated and 'Ticketed' was not — the same column showing one
+     word in Arabic and the next in English — because 'Ticketed' lived only in the
+     Operations-board dictionary below. Display only: the stored status is untouched, and none
+     of these is an <option> (see round 28's rule about value-less options being stored by
+     their label). */
+  var ROW_AR={
+    'Ticketed':'تم إصدار التذكرة','Cancelled':'ملغاة','Draft':'مسودة','Pending':'قيد الانتظار','Delivered':'تم التسليم',
+    'Credit':'ائتمان','Cash':'نقدًا','Card':'بطاقة','Wallet':'محفظة','Invoice':'فاتورة',
+    'OPEN':'مفتوحة','USED':'مستخدمة','REFUNDED':'مستردة','VOID':'ملغاة','EXCHANGED':'مستبدلة',
+    'Issued':'صادرة','Paid':'مدفوعة','Overdue':'متأخرة','Cleared':'مقبولة','Not submitted':'لم تُرسل',
+    'Standard':'قياسية','Credit note':'إشعار دائن','Debit':'إشعار مدين','None':'لا يوجد',
+    'Friendly reminder':'تذكير ودّي','Final notice':'إشعار أخير','Escalation':'تصعيد',
+    'Nothing archived yet. Use the Archive button on any record to soft-delete it.':'لا يوجد شيء في الأرشيف بعد. استخدم زر الأرشفة على أي سجل.',
+    'Archived invoices':'الفواتير المؤرشفة','Archived bookings':'الحجوزات المؤرشفة','Archived offers':'العروض المؤرشفة','Archived leads':'العملاء المحتملون المؤرشفون',
+    '↺ Restore':'↺ استعادة','not recorded':'غير مسجّلة','unknown':'غير معروف'
+  };
+  try{ Object.keys(ROW_AR).forEach(function(k){ if(!V27_AR[k]) V27_AR[k]=ROW_AR[k]; }); }catch(_){}
+
   var REF_AR={
     '← Back':'← رجوع','← Back to airlines':'← العودة إلى شركات الطيران','← Back to providers':'← العودة إلى الموردين',
     '📊 Dashboard view':'📊 لوحة المؤشرات','Hide empty rows':'إخفاء الصفوف الفارغة',
@@ -282,7 +308,7 @@
     // label / summary / .ch-sub added 2026-09-02 for the proposal editor — whole-string matches only,
     // and a label wrapping an input/select/textarea is skipped, so free text is never touched
     // .empty added 2026-09-02 (round 24) for the Reports empty states — whole-string matches only
-    var els=scope.querySelectorAll('.kl,.l,button,a.btn,.tag,label,summary,.ch-sub,.empty,.sub-h'),j;
+    var els=scope.querySelectorAll('.kl,.l,button,a.btn,.tag,label,summary,.ch-sub,.empty,.sub-h,.fopflag,.bk-nocost-note'),j;
     for(j=0;j<els.length;j++){ var el=els[j]; if(el.getAttribute('data-v27')||el.querySelector('input,select,textarea'))continue; translateDecorated(el,V27_AR); }
     // fact-row labels (.fact > .k) added 2026-09-02 for the Reference drill-downs — the label half of
     // a key/value row only, whole-string matches only, and a label that wraps markup (a tag pill in

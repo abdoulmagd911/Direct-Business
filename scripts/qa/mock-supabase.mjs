@@ -106,6 +106,56 @@ const TABLES={
     .map((s,i)=>({id:'req'+i,data:{id:'req'+i,client:'Test Company '+i,service:s[1],detail:'Seed request '+i,stage:s[0],owner:i%2?'QA':'',priority:['Urgent','High','Normal','Low'][i%4],createdAt:Date.now()-(i<2?1:5)*3600e3,supplier:'Provider 1',pnr:i%3?('PNR'+i):'',sell:s[2],cost:s[3],notes:''},updated_at:'2026-08-01T00:00:00Z',updated_by:'QA'})),
   app_offers:[['Draft','Price offer',12000,''],['Sent','Tender',48000,'2026-12-31'],['Won','Training',9500,'']]
     .map((s,i)=>({id:'off'+i,data:{id:'off'+i,ref:'DB-10000'+i,date:'2026-08-1'+i,client:'Test Company '+i,subject:'Seed proposal '+i,airline:'',route:'',currency:'SAR',ticketPrice:'',partnerFees:'',serviceFees:'',vat:'',total:'',status:s[0],version:1,validUntil:s[3],linkedLeadId:'',policyStatus:'Not checked',approvalStatus:'Not required',paxAdt:1,paxChd:0,paxInf:0,cost:'',commission:'',options:[],owner:'QA',proposalType:s[1],docUrl:'',scope:'',value:s[2],promotedToProject:false},updated_at:'2026-08-01T00:00:00Z',updated_by:'QA'})),
+  /* app_bookings / app_invoices had NO seed at all (2026-09-02, round 33). js/35 lists them in
+     its KEYS, so the empty answer REPLACED whatever the blob carried — meaning Bookings,
+     Invoices, Tickets and the whole Archive page had never rendered a single row in the
+     harness, in any run. Same shape of gap as the reference pages (round 19) and the SOP/SLA
+     pages (round 20), and it hid real defects both of those times.
+     Six bookings: a mix of statuses, one with a TTL inside 72 h, one QC-complete, one ADM-
+     flagged ticket, and — deliberately — one with NO cost recorded, which is what a booking
+     converted from a proposal now looks like since round 29 made the app stop inventing one.
+     Five invoices: issued / paid / overdue / a credit note / one on a far date, with items so
+     v18InvTotals has something real to add up. */
+  app_bookings:[
+    ['BK-2001','Test Company 1','Amadeus','Ticketed', 12000, 9500, 20, 'OPEN', false],
+    ['BK-2002','Test Company 2','Sabre',  'Confirmed',  8400, 6100, 96, 'OPEN', false],
+    ['BK-2003','Test Company 3','Amadeus','Ticketed',  26000,21000, -8, 'USED', true ],
+    ['BK-2004','Test Company 4','Galileo','Draft',      3200, 2400,240, 'OPEN', false],
+    ['BK-2005','Test Company 1','Amadeus','Ticketed',  15500,     0, 48, 'OPEN', false],
+    ['BK-2006','Test Company 5','Sabre',  'Cancelled',  4100, 3300,300, 'REFUNDED', false]
+  ].map(function(s,i){
+    var noCost = s[5]===0;
+    return {id:'bkg'+i,data:{id:'bkg'+i,ref:s[0],leadId:'L'+((i%6)),client:s[1],provider:s[2],status:s[3],
+      pnr:'PNR'+(200+i), recordLocator:'PNR'+(200+i), bookingSource:'GDS',
+      ttl:new Date(Date.now()+s[6]*3600e3).toISOString(),
+      fop:'Credit', queueAssignee:i%2?'Abdelrahman':'', queueDueBy:i%2?new Date(Date.now()+3*86400e3).toISOString().slice(0,10):'',
+      endorsements:'', totalSale:s[4], totalCost:noCost?'':s[5], costNotRecorded:noCost,
+      date:'2026-08-0'+((i%9)+1), notes:'', provider2:'',
+      tickets:[{pnr:'PNR'+(200+i), eticket:'065-1234'+(560+i), pax:'PAX '+(i+1), route:'RUH-JED', cls:'Y', rbd:'Y',
+        fareBasis:'YOWSA', validity:'1Y', ffn:'', status:s[7], emdType:'', fare:s[4]*0.8, taxes:s[4]*0.2,
+        airline:['SV','XY','MS','TK','EK','QR'][i%6], admFlag:s[8], admId:s[8]?'ADM-77'+i:'',
+        fareRules:{refundPenalty:'200 SAR',changePenalty:'150 SAR',noShow:'Non-refundable'},
+        reissueChain:{parent:'',children:[],fareDiff:0}, autoRefund:false, fraudScore:0, mileage:'', conjunction:false,
+        linkedTickets:[], coupons:[{n:1,status:s[7],validity:'1Y'}]}],
+      qc:i===0?{fareRulesChecked:true,paxNamesChecked:true,ssrChecked:true,priceChecked:true,docsChecked:true}:{}
+    },updated_at:'2026-08-01T00:00:00Z',updated_by:'QA'};
+  }),
+  app_invoices:[
+    ['INV-3001','Issued',   'Standard', 14000, '2026-08-02', 'None'],
+    ['INV-3002','Paid',     'Standard',  9200, '2026-07-11', 'None'],
+    ['INV-3003','Overdue',  'Standard', 22400, '2026-05-04', 'Friendly reminder'],
+    ['INV-3004','Issued',   'Credit',   -3100, '2026-08-14', 'None'],
+    ['INV-3005','Issued',   'Standard',  6750, '2026-08-20', 'None']
+  ].map(function(s,i){
+    return {id:'inv'+i,data:{id:'inv'+i,number:s[0],clientId:'L'+(i%6),invoiceType:s[2],status:s[1],
+      date:s[4], dueDate:'2026-09-0'+((i%9)+1), paymentTerms:'Net 30', poNumber:'PO-'+(9000+i), buyerVat:'',
+      dunningStage:s[5], currency:'SAR', fxRate:1, zatcaStatus:i%2?'Cleared':'Not submitted',
+      zatcaUUID:'uuid-seed-'+i, zatcaHash:'', prevHash:'', notes:'',
+      recurring:{enabled:false,every:'Monthly'}, bspBucket:'',
+      items:[{desc:'Seed line '+i, amount:s[3], vatRate:'Standard 15%'}], total:s[3]*1.15,
+      collectionsLog:[]
+    },updated_at:'2026-08-01T00:00:00Z',updated_by:'QA'};
+  }),
   app_projects:[['Active',120000,80000,25000,40],['Proposed',48000,0,0,12]]
     .map((s,i)=>({id:'prj'+i,data:{id:'prj'+i,name:'Seed project '+i,nameAr:'مشروع تجريبي '+i,client:'Test Company '+i,linkedClientId:'',value:String(s[1]),status:s[0],fromOfferId:'',owner:'QA',createdAt:1756000000000+i,notes:'',budget:s[1],actualCost:s[2],profit:s[3],pax:s[4],start:'2026-10-0'+(i+1),end:'2026-10-0'+(i+5)},updated_at:'2026-08-01T00:00:00Z',updated_by:'QA'})),
   // Backups-in-Supabase fixture (2026-08-23, docs/DECISIONS.md — moved off localStorage per
