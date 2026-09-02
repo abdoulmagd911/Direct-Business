@@ -106,6 +106,7 @@
 
   /* (a) selector on the invoice card, next to the origin editor */
   window.finSetWay=function(invNo){try{
+    if(typeof window.finCanWrite==='function'?!window.finCanWrite():(typeof window.canFinEdit==='function'&&!window.canFinEdit()))return;   // 2026-09-02: guard the function, not just the button (share views included)
     var w=(document.getElementById('fin_way')||{}).value||'invoice';
     var c=(typeof fc==='function')?fc():null; if(!c)return;
     c.from('finance_invoices').update({revenue_way:w}).eq('invoice_no',invNo).is('deleted_at',null).select('id').then(function(r){

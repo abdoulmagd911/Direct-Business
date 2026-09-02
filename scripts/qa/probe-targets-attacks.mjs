@@ -117,13 +117,19 @@ async function main() {
 
   /* ---------- 5. a viewer gets no editor ---------- */
   const viewer = await p.evaluate(async () => {
-    const t = window.__userTier; window.__userTier = 'viewer';
+    /* Being a non-editor is not just a tier — canFinEdit() delegates to mayEditPage('finance'),
+       which reads the per-person access matrix (window.__pageAccess). A real viewer has that
+       matrix loaded WITHOUT finance:editor, so simulate all three (learned 2026-09-02 in
+       scripts/qa/probe-permissions-attacks.mjs; setting only the tier proves nothing). */
+    const t = window.__userTier, ro = window.__userRole, pa = window.__pageAccess;
+    window.__userTier = 'viewer'; window.__userRole = 'viewer';
+    window.__pageAccess = { today: 'viewer', leads: 'viewer', clients: 'viewer', finance: 'viewer' };
     FIN.p = { year: '2026', part: 'all', sector: 'all', cmp: 'none' }; FIN.tab = 'overview';
     renderFinance(document.getElementById('view')); await new Promise(r => setTimeout(r, 400));
     const c = [...document.querySelectorAll('#view .card')].find(e => /Plan vs actual|الخطة/.test(e.textContent));
     const hasBtn = !!(c && [...c.querySelectorAll('button')].some(b => /Set targets|تعديل الأرقام/.test(b.textContent)));
     let called = false; const op = window.prompt; window.prompt = () => { called = true; return '999'; };
-    try { finSetTargets(2026); await new Promise(r => setTimeout(r, 500)); } finally { window.prompt = op; window.__userTier = t; }
+    try { finSetTargets(2026); await new Promise(r => setTimeout(r, 500)); } finally { window.prompt = op; window.__userTier = t; window.__userRole = ro; window.__pageAccess = pa; }
     return { hasBtn, called };
   });
   if (!viewer.hasBtn) ok('a viewer sees no "Set targets" button'); else fail('viewer was offered the editor');

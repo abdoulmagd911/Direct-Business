@@ -1,5 +1,47 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 (overnight) · Watch cycle 12 — a read-only share link could write in Finance; five write paths had no guard of their own
+
+**Attack area: permissions and the share view**, new `scripts/qa/probe-permissions-attacks.mjs`
+(port 8211, 34 checks). It drives viewer / team member / BD / operations and a share view, checks
+what is OFFERED, then calls **all ten** Finance write paths directly and diffs five database
+tables byte for byte.
+
+**Real gap 1 — a share view could write.** `js/52-v76-access-model.js` REPLACES
+`window.canFinEdit` with a wrapper that returns `true` outright for an admin — and that wrapper
+**dropped the `!window.__isShareView` half** of the original rule in `js/16`. A read-only share
+link opened in an admin's session therefore came back as "may edit": the probe merged two
+companies and reloaded the page from a share view before the fix. The wrapper governs every page,
+so it is **reported, not rewritten** (see the ruling item below); instead every Finance write now
+goes through a small local `finCanWrite()` in `js/16` that re-applies the share-view half no
+matter which `canFinEdit` is in force, and `js/25`, `js/62` and `js/65` defer to it.
+
+**Real gap 2 — five write paths had no permission check of their own.** `finDelInv` guarded
+itself; `finSetOrigin`, `finSetWay`, `finRestoreInv` and `v65Commit` did not (and `finSetTargets`
+only got one in cycle 9). Their buttons are hidden for a non-editor, but a stale tab, a role
+changed while it was open, or a share view leaves the functions one call away — and `v65Commit`
+writes a whole import batch. All now guard with `finCanWrite()`. The probe proves it the way it
+actually happens: an **admin builds an import preview and stops**, then the tier changes and
+Confirm is pressed — with the guard removed, that batch lands.
+
+**Held:** every tier is offered no targets editor, no Import tab, no Delete/Restore and no
+revenue-way/origin editor; reaching Import directly is refused in words; a share view is refused
+Finance outright; all ten calls leave every table byte-identical and nothing throws; and an admin
+can still set a target and restore an invoice (the guards do not break real work).
+
+**Sabotage-verified twice** (drop the share-view half of `finCanWrite` → 2 red; remove the
+`v65Commit` guard → the armed batch lands and 2 checks go red). Restores byte-identical (md5),
+structure check and sixteen probes green.
+
+**FOR THE OWNER — a ruling, not a change:** `mayEditPage()` in `js/52` ends with
+`return true; // matrix not loaded yet — the old behaviour`. Until the per-person access matrix
+arrives, **every signed-in person is treated as an editor of every page**. The database still
+refuses the write (and since this watch every editor says "Not saved — the database refused"),
+so money is safe; what a viewer gets in that window is buttons that look like they work. Fail
+open or fail closed is your call, and it touches every page, so it was not changed here. The
+same cycle also corrected `probe-targets-attacks`: simulating a viewer by setting only
+`window.__userTier` proves nothing, because the check reads `__userRole` and `__pageAccess` too.
+
 ## 2026-09-02 (overnight) · Watch cycle 11 — Finance driven end to end in Arabic: nothing broken, kept as a guard
 
 **Attack area: the whole Finance section with `LANG='ar'`**, new

@@ -33,7 +33,8 @@
   function esc62(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function client62(){ try{return window.fc?fc():null;}catch(_){return null;} }
   function who62(){ try{ return (window.meName&&meName())||(DB.settings&&DB.settings.currentUser)||'Unknown'; }catch(_){ return 'Unknown'; } }
-  function canEdit62(){ try{ return window.canFinEdit?canFinEdit():false; }catch(_){ return false; } }
+  // share views are read-only everywhere (2026-09-02) — finCanWrite re-applies that half of the rule
+  function canEdit62(){ try{ if(window.finCanWrite) return !!window.finCanWrite(); return window.canFinEdit?canFinEdit():false; }catch(_){ return false; } }
   // 2026-09-02: folds Arabic letter variants (أإآ→ا, ى→ي, ة→ه, diacritics, tatweel) and Unicode
   // presentation forms (NFKC) the same way js/41's linker does — an alias spelled "…ة" used to
   // miss an export row spelled "…ه", so the sibling never linked.

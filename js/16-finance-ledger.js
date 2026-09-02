@@ -25,6 +25,16 @@ function money(n){n=Number(n)||0;return n.toLocaleString('en-US',{minimumFractio
 function money0(n){n=Number(n)||0;return Math.round(n).toLocaleString('en-US');}
 function moneyS(n){n=Number(n)||0;if(Math.abs(n)>=1e6)return (n/1e6).toFixed(2)+'M';if(Math.abs(n)>=1e3)return (n/1e3).toFixed(1)+'K';return n.toFixed(0);}
 function canFinEdit(){return !window.__isShareView && (window.__userTier==='admin'||window.__userTier==='manager');}
+/* 2026-09-02 (overnight cycle, scripts/qa/probe-permissions-attacks.mjs) — js/52's access model
+   REPLACES window.canFinEdit with a wrapper that returns true outright for an admin, and that
+   wrapper dropped the `!window.__isShareView` half of the rule above. A read-only share link
+   opened in an admin's session therefore came back as "may edit": delete an invoice, merge two
+   companies, run an import. The wrapper is outside Finance's lane (it governs every page), so it
+   is reported rather than rewritten — but every Finance write goes through THIS check, which
+   re-applies the share-view half no matter which canFinEdit is in force. A share view is
+   read-only, always. */
+function finCanWrite(){ try{ if(window.__isShareView) return false; }catch(_){} try{ return (typeof window.canFinEdit==='function')?!!window.canFinEdit():false; }catch(_){ return false; } }
+try{ window.finCanWrite=finCanWrite; }catch(_){}
 function canFinView(){return !window.__isShareView;}
 /* expose the finance client + permission checks so later layers (e.g. the finance↔client
    mapping in v53) can reach them from their own script block */
@@ -236,7 +246,7 @@ function finTargetNum(sv){
 }
 try{ window.finTargetNum=finTargetNum; }catch(_){}
 window.finSetTargets=function(y){try{
-  if(!canFinEdit())return;   // the button is already gated; guard the function too, like finDelInv
+  if(!finCanWrite())return;   // the button is already gated; guard the function too, like finDelInv
   var t=(FIN.targets||[]).find(function(x){return +x.year===+y;})||{};
   var e=prompt(isArF()?('الإيراد المتوقع لسنة '+y+' (ريال):'):('Expected revenue for '+y+' (SAR):'), t.expected_sar||''); if(e===null)return;
   var cf=prompt(isArF()?('الإيراد المؤكد (عقود موقعة) لسنة '+y+':'):('Confirmed revenue (signed contracts) for '+y+' (SAR):'), t.confirmed_sar||''); if(cf===null)return;
@@ -432,7 +442,7 @@ var SS='padding:7px 9px;border:1px solid var(--line,#e6e8ec);border-radius:8px;f
 
 function finTabs(){
   var tabs=[['overview',isArF()?'\u0627\u0644\u0623\u062f\u0627\u0621':'Performance'],['clients',isArF()?'\u0627\u0644\u0639\u0645\u0644\u0627\u0621 \u0648\u0627\u0644\u062a\u062d\u0635\u064a\u0644':'Clients & collections'],['ledger',isArF()?'\u0627\u0644\u0633\u062c\u0644':'Ledger'],['reports',isArF()?'\u0645\u0646\u0634\u0626 \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631':'Report Builder']];
-  if(canFinEdit())tabs.push(['import',isArF()?'\u0627\u0633\u062a\u064a\u0631\u0627\u062f':'Import']);
+  if(finCanWrite())tabs.push(['import',isArF()?'\u0627\u0633\u062a\u064a\u0631\u0627\u062f':'Import']);
   return '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'+tabs.map(function(t){
     return '<button class="btn sm '+(FIN.tab===t[0]?'pri':'ghost')+'" onclick="finGo(\''+t[0]+'\')">'+t[1]+'</button>';
   }).join('')+'<span style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">'+(FIN.rows?(function(){var _ic=new Set(live().map(function(r){return r.invoice_no;})).size;var _d=(live().length?live().map(function(r){return r.invoice_date;}).sort().slice(-1)[0]:'\u2014');return isArF()?(_ic+' \u0641\u0627\u062a\u0648\u0631\u0629 \u00b7 \u062d\u062a\u0649 '+_d):(_ic+' invoices \u00b7 data through '+_d);})():'')+'</span></div>';
@@ -853,6 +863,7 @@ window.finF=function(k,v){FIN.f[k]=v;if(k==='client'){FIN.f.clientKey=null;FIN.f
 window.finClientClear=function(){FIN.f.clientKey=null;FIN.f.clientName='';render();};
 /* Strategic & quality teams: jump from a project invoice to the proposal behind it. */
 window.finSetOrigin=function(invNo){try{
+  if(!finCanWrite())return;   // 2026-09-02: the editor block is gated, guard the function too (finDelInv's pattern)
   var o=(document.getElementById('fin_origin')||{}).value||'booking';
   var p=((document.getElementById('fin_pref')||{}).value||'').trim();
   var c=fc(); if(!c)return;
@@ -942,7 +953,7 @@ function finConfirm(msg,onYes){
    Inert today (every active account is finance:editor \u2014 verified 0 non-editors), but it fires
    the day the owner sets a new hire to a role without finance-edit rights. */
 window.finDelInv=function(invNo){
-  if(!canFinEdit())return;
+  if(!finCanWrite())return;
   var ar=isArF();
   finConfirm(ar?('\u062d\u0630\u0641 \u0643\u0644 \u0628\u0646\u0648\u062f \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 '+invNo+'\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639.'):('Soft-delete all lines of invoice '+invNo+'? It disappears from totals but stays recoverable.'), function(){
     fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('invoice_no',invNo).is('deleted_at',null).select().then(function(r){
@@ -953,6 +964,7 @@ window.finDelInv=function(invNo){
   });
 };
 window.finRestoreInv=function(invNo){
+  if(!finCanWrite())return;   // 2026-09-02: delete guarded itself, restore did not — the pair now matches
   var ar=isArF();
   fc().from('finance_invoices').update({deleted_at:null}).eq('invoice_no',invNo).not('deleted_at','is',null).select().then(function(r){
     if(r.error){alert('Could not restore: '+r.error.message);return;}
@@ -1125,7 +1137,7 @@ window.finCSV=function(){
 
 function rImport(){
   var _fl=function(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;};
-  if(!canFinEdit())return '<div class="card" style="padding:30px;text-align:center;color:var(--muted)">'+_fl('Import is restricted to admins and managers.','الاستيراد متاح للمدراء والمسؤولين فقط.')+'</div>';
+  if(!finCanWrite())return '<div class="card" style="padding:30px;text-align:center;color:var(--muted)">'+_fl('Import is restricted to admins and managers.','الاستيراد متاح للمدراء والمسؤولين فقط.')+'</div>';
   var h='<div class="card" style="padding:18px;max-width:860px">';
   h+='<h3 style="margin:0 0 8px">'+_fl('Import invoices (CSV)','استيراد الفواتير (CSV)')+'</h3>';
   // 2026-08-25: dropped the raw 14-column header dump and the "optional columns" filler

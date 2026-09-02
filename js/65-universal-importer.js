@@ -1292,6 +1292,10 @@
     return out;
   }
   window.v65Commit=function(){
+    /* 2026-09-02: the Import tab already refuses to render for a non-editor, but the commit
+       itself writes every invoice in the batch — guard the function too, so a stale tab (or a
+       role changed while it was open) cannot push a whole import through. */
+    try{ if(typeof window.finCanWrite==='function'?!window.finCanWrite():(typeof window.canFinEdit==='function'&&!window.canFinEdit()))return; }catch(_){}
     if(!FILES_STATE)return;
     var toInsert=[],toUpdate=[];
     FILES_STATE.forEach(function(r){ if(!r.recognized)return; toInsert=toInsert.concat(r.pendingInsert||[]); toUpdate=toUpdate.concat(r.pendingUpdate||[]); });
