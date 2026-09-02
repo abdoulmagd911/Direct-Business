@@ -1,5 +1,33 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 34 — the five printed documents, guarded for the first time (and the "blank print" report closed)
+
+The sweep reported "Print/PDF comes out blank in all five document generators". Driven end to
+end, that is **not reproducible**: every one produces real content (3.6 KB to 48 KB of HTML),
+bilingual, carrying its own record's data. The report is closed.
+
+The reason nobody had ever checked is worth recording: all five render into a
+`window.open('','_blank')` popup via `document.write`, and no probe was watching for a new page,
+so the harness had never once opened one. These are the pages a **client** reads — the tax
+invoice, the booking confirmation, the statement of account, the quotation, and the monthly
+commercial report — and until now nothing would have noticed any of them breaking.
+
+`scripts/qa/probe-documents-print.mjs` (14 checks) now opens each one and reads it back. It also
+holds the money rules where they matter most, on the document itself:
+
+- **M8** — a booking confirmation for a booking with no recorded cost prints
+  "Cost not recorded · Margin unknown", not a zero and not a fabricated figure. This is the
+  round-29/33 fix followed all the way out to the printed page: sabotaging it back reproduces
+  the old "Sale 16k · **Cost 0** · Margin 16k", which would have told a manager the whole sale
+  was profit.
+- **M1** — and deliberately **not** a ban on the word VAT. The owner corrected that rule on
+  2026-08-23: the violation was never the glyph, it was VAT entering cost / profit / revenue. A
+  quotation and a tax invoice are exactly where VAT is legally expected, so the probe asserts
+  the quotation's VAT line is still **present**.
+
+Also asserted: a statement for a client with no invoices opens **no** document at all — it says
+so rather than printing an empty form.
+
 ## 2026-09-02 · Round 33 — four pages had never rendered a row in the harness; driving them found a money-rule breach and a set of Arabic gaps
 
 **The harness gap first, because it is the reusable lesson.** `app_bookings` and `app_invoices`
