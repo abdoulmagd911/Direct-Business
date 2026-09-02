@@ -16,3 +16,7 @@ button-sweep-results.txt
 # Travel-agencies working data is real company data — never commit it to this
 # public repo. Build locally; deliver Excel snapshots via chat/Drive.
 data/
+
+# probes run from scripts/qa write their screenshots to a nested scripts/qa/scripts/qa/ —
+# same throwaway class as shot-*.png above; the copies once committed there are untracked
+scripts/qa/scripts/
