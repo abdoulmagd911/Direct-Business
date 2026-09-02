@@ -133,6 +133,22 @@ async function main() {
   if (arLink !== 'b2') fail(`ARABIC VARIANTS: "${AR_ROW}" should match the alias "${AR_ALIAS}" (ة/ه, أ/ا are the same word) and link to b2 — got ${JSON.stringify(arLink)}`);
   else ok('ARABIC VARIANTS: ta-marbuta/ha and hamza/alef spellings match the same alias and link automatically');
 
+  // ---- Suggestion path (2026-09-02): two UNREGISTERED groups differing only by ة/ه must be
+  //      offered as ONE "Possible duplicate" suggestion on Finance › Import ----
+  const SUG_A = 'شركة النور للسفر', SUG_B = 'شركه النور للسفر';
+  await p.evaluate(([a, bName]) => {
+    const base = FIN.rows[0];
+    const mk = (g, no) => Object.assign({}, base, { id: 'sug-' + no, invoice_no: no, client_group: g, customer_raw_name: g, record_type: 'b2b', deleted_at: null, total_incl_vat_sar: 500, revenue_sar: 500, cost_sar: 0, profit_sar: 500 });
+    FIN.rows.push(mk(a, '777000007'), mk(bName, '777000008'));
+    if (typeof clearFinCanon === 'function') clearFinCanon();
+    document.querySelectorAll('.v62-guardrails').forEach((c) => c.remove());
+    if (typeof window.finGo === 'function') window.finGo('import');
+  }, [SUG_A, SUG_B]);
+  await p.waitForTimeout(2000);
+  const sug = await p.evaluate(([a, bName]) => { const t = (document.querySelector('.v62-guardrails') || {}).innerText || ''; const line = t.split('\n').find((l) => /Possible duplicate|احتمال تكرار/.test(l) && l.includes(a) && l.includes(bName)); return line || null; }, [SUG_A, SUG_B]);
+  if (!sug) fail(`SUGGESTION: "${SUG_A}" and "${SUG_B}" (ة/ه) were not offered as one duplicate suggestion on the Import card`);
+  else ok('SUGGESTION: the ة/ه pair is offered as one "Possible duplicate" suggestion with one click to merge');
+
   const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5), null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} unexpected JS/console error(s)`);
