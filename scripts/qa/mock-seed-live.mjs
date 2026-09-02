@@ -126,6 +126,15 @@ export function start(port){
       let parsed=null; try{parsed=JSON.parse(body||'{}');}catch(_){}
       const fn=path.replace('/rest/v1/rpc/','');
       RPCLOG.push({fn, keys: parsed?Object.keys(parsed.patch||parsed.payload||{}):[], arg: parsed?Object.keys(parsed):[]});
+      // 2026-09-02: the importer commits through ONE atomic function (M16); this seed-mock answered
+      // it with {} and stored nothing, so an end-to-end "import lands in the table" check could
+      // never pass here. Minimal honest mirror: inserts land (with ids), updates apply by id.
+      if(fn==='fn_commit_finance_import'&&parsed){
+        const t=(TABLES.finance_invoices=TABLES.finance_invoices||[]); let inserted=0, updated=0;
+        (Array.isArray(parsed.p_insert)?parsed.p_insert:[]).forEach(row=>{ const r={...row}; delete r.year; r.id=r.id||('seed-fi-'+Math.random().toString(36).slice(2,10)); t.push(r); inserted++; });
+        (Array.isArray(parsed.p_update)?parsed.p_update:[]).forEach(row=>{ const i=t.findIndex(r=>r.id===row.id); if(i>=0){ const r={...row}; delete r.year; t[i]={...t[i],...r}; updated++; } });
+        return send(res,200,JSON.stringify({inserted,updated,capture_lines:0,capture_gates:0}));
+      }
       send(res,200,{});
     });
   }

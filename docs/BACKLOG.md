@@ -257,6 +257,24 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   not changed:** the mock's workspace blob carries no airlines/providers, so those two pages
   render empty in the harness while the live blob has 136 airlines and 23 providers — a
   future drive of those pages needs the blob seeded from the mock's own tables.
+- **Oversight cycle 3 applied (3d04fd9)** — Report Builder attacked and held; its probe is green
+  on this tree. The oversight session is running leaner cycles from here (plan usage); so is this
+  loop — probe-driven rounds, screenshots only where a probe cannot see.
+- **Round 16 (15:05–15:40) — the attack-wave battery, re-pointed at what the app does today.**
+  `attack-wave2` had six red checks, all drift, none a defect: the topbar "Team"/"Access"
+  buttons were folded into Settings → "Open Team & Access" (now driven through `v48Users()`);
+  the client-card snapshot's labels are "Invoices / Last invoice / Open in Finance ledger" and
+  it renders only for a client with a linked or matched finance group (the check now opens such
+  a client, under the leads route where the card lives, after loading finance); the old
+  15-column ledger CSV is no longer a recognised source (the check now drives the taught-once
+  path, ingest → preview → confirm → the mock table, and proves a re-drop cannot duplicate);
+  the promo card was removed from the Overview on purpose (must stay absent). To make the
+  end-to-end import check honest, the seed-mock now mirrors the one-call commit function
+  (inserts land with ids, updates apply by id). wave2 12/12. **Still red, classified as
+  pre-existing drift, not re-pointed (older, larger scripts):** `attack-wave3` (drives a topbar
+  "Sign out" button that moved into the user menu) and `attack-day` (waits for a leads table
+  row the seed world no longer renders first) — both time out on their first selector;
+  `probe-round9` / `probe-lifecycle5` as classified before.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 
