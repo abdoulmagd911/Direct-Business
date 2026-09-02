@@ -21,7 +21,15 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   chart months were "Jan…Jun" → Arabic month names; a negative service fee rendered as "18.0K-"
   (bidi) → sign isolated left-to-right, red when negative. New guard
   `scripts/qa/probe-ar-finance-display.mjs`, sabotage-verified. Live sweep clean (no orphans,
-  no flag mismatches, no duplicate pairs, money invariants hold on all 46 invoices).
+  no flag mismatches, no duplicate pairs, money invariants hold on all 46 invoices). Commit 49ce40d.
+- **Round 3 (09:10–09:40).** Phone viewport (390 px) EN+AR: leads list, client card, Ledger,
+  Import — no page-level sideways scroll anywhere; wide tables scroll inside their own cards;
+  the client-card buttons and jump bar wrap cleanly in Arabic. Landmine found by reasoning
+  through the merge: a LEAD absorbing a CLIENT record set only the `is_client` column — the
+  mirrored `raw.isClient` flag and the stage stayed as they were, creating exactly the
+  half-converted shape the sweeps hunt. Fixed in the function (both flags, stage won, converted
+  date carried; undo reverses it), proven with a rolled-back live test; a non-editor no longer
+  sees Merge buttons. The rollback tests are now a file: `scripts/qa/live/merge-rollback-tests.sql`.
 
 ## 2026-09-02 (later) · "What else needs to be fixed? Perform immediately" — full audit, fixed same day
 

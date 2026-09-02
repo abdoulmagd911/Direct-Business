@@ -515,6 +515,13 @@ older form, and exactly why a merge must be ONE audited call. Repaired through t
 prior archive state instead of assuming it was live. Rule sharpened: **archiving a duplicate is
 not a merge** — anything that archives a company because another record is the real one goes
 through `fn_merge_businesses`, so its children move and the action is undoable.
+Attack-loop addenda (same day, rounds 2–3): (d) Undo un-fills only the fields the merge itself
+filled — an edit made on the kept company after the merge survives Undo. (e) A lead absorbing
+a client becomes a client on BOTH flags (`is_client` and `raw.isClient`), moves to stage won and
+carries the converted date — the half-converted shape the sweeps flag can no longer be created
+by a merge; Undo reverses exactly that. Both proven on throwaway rows inside rolled-back
+transactions; the tests live in `scripts/qa/live/merge-rollback-tests.sql` and can be re-run by
+any session with database access (they change nothing — every block ends by raising its verdict).
 *Date: 2026-09-02. Status: ACTIVE.*
 
 **M19 — a company's people and history live in TWO places, and every screen must read both.**
