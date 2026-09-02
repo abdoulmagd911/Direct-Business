@@ -30,6 +30,20 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   half-converted shape the sweeps hunt. Fixed in the function (both flags, stage won, converted
   date carried; undo reverses it), proven with a rolled-back live test; a non-editor no longer
   sees Merge buttons. The rollback tests are now a file: `scripts/qa/live/merge-rollback-tests.sql`.
+  Commit 5fae5b1.
+- **Round 4 (09:00–09:15).** Arabic drive of Today, Leads, Events, Operations, Reports, Settings on
+  desktop and phone through the REAL language toggle: no sideways scroll, no English labels (the
+  only Latin words left are e-mail addresses, people's names and fixture data). Two Arabic
+  spellings of one company (ة/ه) now surface as ONE "Possible duplicate" suggestion on Import
+  (probe scenario added).
+- **Round 5 (09:15–09:35).** Landmine in the people bridge: editing a table-sourced contact
+  through the card's edit form kept the edit in memory only — js/02 strips table rows from raw
+  on save (correctly), so the edit never reached the contacts table and vanished on reload.
+  Fixed with a write-through in `js/72-people-bridge.js`: an edited table contact is updated in
+  the TABLE (name/e-mail/phone, row confirmed back); a table contact removed from the form is
+  never deleted — it is flagged "needs confirmation" with the reason so a human decides. The mock
+  now persists contact updates; probe scenarios (edit reaches the table, removal flags not
+  deletes, edit survives a fresh load), sabotage-verified.
 
 ## 2026-09-02 (later) · "What else needs to be fixed? Perform immediately" — full audit, fixed same day
 

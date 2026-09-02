@@ -59,7 +59,7 @@ try{
     function done(){
       BUSY=false;
       var n=0;
-      try{ n=attach(got.contacts||[],got.activities||[]); }catch(e){ console.warn('[v72] attach',e); }
+      try{ snapFrom(got.contacts||[]); n=attach(got.contacts||[],got.activities||[]); }catch(e){ console.warn('[v72] attach',e); }
       LAST_LIST=DB.businesses;
       try{ if(n&&typeof render==='function'&&(window.openLead||window.current==='leads'||window.current==='clients'))render(); }catch(_){}
       if(cb)cb(n);
@@ -82,6 +82,47 @@ try{
     pageAll('activities','id,business_id,type,note,by_user,at','activities');
   }
   window.v72Apply=function(cb){ run(cb); };
+
+  /* ---- write-through (2026-09-02 attack round 5) ----
+     The card's edit form hands the same contact objects back through readContacts(); a
+     table-sourced one keeps its _tid, and js/02 strips it from raw on save — so an edit to it
+     used to be silently lost on the next load. Now: an edited table contact is written back
+     to the contacts TABLE (name/email/phone); a table contact removed from the form is not
+     deleted (never delete a person silently) — it is flagged needs_manual_confirmation with
+     the reason, so it shows with the badge until a human decides. */
+  var SNAP={};   // _tid → {business_id,name,email,phone} as last seen from the table
+  function snapFrom(rows){ (rows||[]).forEach(function(r){ SNAP[r.id]={business_id:r.business_id,name:r.name||'',email:r.email||'',phone:r.phone||''}; }); }
+  function writeThrough(list){
+    try{
+      var c=client(); if(!c||!Array.isArray(list))return;
+      var seen={}, bizOf=null;
+      list.forEach(function(x){ if(!x||!x._tid||!SNAP[x._tid])return; seen[x._tid]=1; bizOf=bizOf||SNAP[x._tid].business_id;
+        var s=SNAP[x._tid], nm=String(x.name||''), em=String(x.email||''), ph=String(x.phone||'');
+        if(nm!==s.name||em!==s.email||ph!==s.phone){
+          c.from('contacts').update({name:nm,email:em,phone:ph}).eq('id',x._tid).select('id').then(function(r){
+            if(r&&r.data&&r.data.length){ SNAP[x._tid].name=nm; SNAP[x._tid].email=em; SNAP[x._tid].phone=ph; }
+            else { try{ if(typeof toast==='function')toast((typeof LANG!=='undefined'&&LANG==='ar')?'تعذّر حفظ تعديل جهة الاتصال في قاعدة البيانات':'Could not save the contact edit to the database'); }catch(_){} }
+          });
+        }
+      });
+      if(bizOf){
+        Object.keys(SNAP).forEach(function(tid){
+          if(SNAP[tid].business_id!==bizOf||seen[tid]||SNAP[tid]._flaggedRemoved)return;
+          SNAP[tid]._flaggedRemoved=true;
+          var who=''; try{ who=(window.meName&&meName())||''; }catch(_){}
+          c.from('contacts').update({needs_manual_confirmation:true,confirmation_reason:'Removed from the company card'+(who?(' by '+who):'')+' on '+new Date().toISOString().slice(0,10)+' — delete in the database if confirmed, or clear this flag to keep.'}).eq('id',tid).select('id').then(function(){});
+        });
+      }
+    }catch(e){ console.warn('[v72] write-through',e); }
+  }
+  (function hookRead(n){
+    if(typeof window.readContacts==='function'&&!window.readContacts.__v72){
+      var orig=window.readContacts;
+      window.readContacts=function(){ var out=orig.apply(this,arguments); writeThrough(out); return out; };
+      window.readContacts.__v72=true; return;
+    }
+    if((n||0)<40)setTimeout(function(){hookRead((n||0)+1);},500);
+  })(0);
   // first run once the businesses are in; re-run whenever the list is replaced (a reload)
   function tick(){
     try{

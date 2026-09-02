@@ -458,6 +458,19 @@ export function start(port, seedOverrides){
           return send(res,201, written);
         });
       }
+      // contacts PATCH persisted for real (2026-09-02): js/72's write-through edits a
+      // table-sourced contact by id — the probe must see the edit survive a reload.
+      if(t==='contacts' && req.method==='PATCH'){
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          let patch={}; try{ patch=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          let want=u.query.id; if(Array.isArray(want))want=want[0];
+          const m=String(want||'').match(/^eq\.(.*)$/); const id=m?m[1]:null;
+          const hit=(TABLES.contacts||[]).filter(r=>id?String(r.id)===id:false);
+          hit.forEach(r=>Object.assign(r,patch));
+          return send(res,200,hit);
+        });
+      }
       return send(res,201,[]);
     }
     // apply simple eq filters from the query string (e.g. id=eq.<uuid>) like real PostgREST,

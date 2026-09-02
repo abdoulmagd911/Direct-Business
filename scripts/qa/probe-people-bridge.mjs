@@ -27,11 +27,14 @@ async function main() {
   const errors = [];
   p.on('pageerror', (e) => errors.push('JS: ' + e.message));
   p.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
-  const bizWrites = [];
+  const bizWrites = [], contactPatches = [];
   await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
     if (u.pathname === '/rest/v1/businesses' && (rq.method() === 'POST' || rq.method() === 'PATCH')) {
       try { bizWrites.push(JSON.parse(rq.postData() || 'null')); } catch (_) {}
+    }
+    if (u.pathname === '/rest/v1/contacts' && rq.method() === 'PATCH') {
+      try { contactPatches.push({ id: (u.searchParams.get('id') || '').replace(/^eq\./, ''), body: JSON.parse(rq.postData() || 'null') }); } catch (_) {}
     }
     try {
       const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
@@ -100,6 +103,28 @@ async function main() {
     if (leaked) fail('table rows were written back into businesses.raw on save — they would double on the next load');
     else ok('save() stripped the table rows from raw — the table stays the single home of those people');
   }
+
+  // ---- write-through (2026-09-02): editing a table contact on the card must reach the TABLE ----
+  await p.evaluate(() => { const bz = DB.businesses.find((x) => x.id === 'L3'); window._contacts = (bz.contacts || []).slice(); const c3 = window._contacts.find((c) => c._tid === 'c3'); c3.phone = '+966599990003'; if (typeof readContacts === 'function') readContacts(); });
+  await p.waitForTimeout(1500);
+  const edit = contactPatches.find((x) => x.id === 'c3' && x.body && x.body.phone === '+966599990003');
+  if (!edit) fail('WRITE-THROUGH: editing a table contact on the card did not update the contacts table — the edit would vanish on the next load. Patches: ' + JSON.stringify(contactPatches));
+  else ok('WRITE-THROUGH: the edited phone was written to the contacts table (by id)');
+  // removal: taking a table contact off the form must not delete it — it gets flagged for a human
+  await p.evaluate(() => { const bz = DB.businesses.find((x) => x.id === 'L3'); window._contacts = (bz.contacts || []).filter((c) => c._tid !== 'c3'); if (typeof readContacts === 'function') readContacts(); });
+  await p.waitForTimeout(1500);
+  const flagged = contactPatches.find((x) => x.id === 'c3' && x.body && x.body.needs_manual_confirmation === true && /Removed from the company card/.test(x.body.confirmation_reason || ''));
+  if (!flagged) fail('WRITE-THROUGH: removing a table contact from the form should FLAG it for a human (never delete) — no such update went out');
+  else ok('WRITE-THROUGH: a removed table contact is flagged for a human, not deleted');
+  // and the edit survives a fresh load
+  await p.goto(BASE + '/leads', { waitUntil: 'domcontentloaded', timeout: 60000 }); await p.waitForTimeout(2500);
+  if (await p.locator('#cl_email').isVisible().catch(() => false)) { await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go'); await p.waitForTimeout(4000); }
+  await p.waitForFunction(() => window.__v72 && window.__v72.runs > 0, null, { timeout: 15000 }).catch(() => null);
+  const after2 = await p.evaluate(() => { const bz = DB.businesses.find((x) => x.id === 'L3'); const c = (bz.contacts || []).find((x) => x._tid === 'c3'); return c ? { phone: c.phone, needsConfirm: !!c.needsConfirm } : null; });
+  if (!after2 || after2.phone !== '+966599990003') fail('WRITE-THROUGH: after a fresh load the edited phone is gone: ' + JSON.stringify(after2));
+  else ok('WRITE-THROUGH: the edit survived a fresh load (it lives in the table now)');
+  if (after2 && !after2.needsConfirm) fail('WRITE-THROUGH: the removed-then-flagged contact should show the needs-confirmation badge after reload');
+  else if (after2) ok('WRITE-THROUGH: the flagged contact carries its badge after reload');
 
   const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5), null, 2) : 'none');
