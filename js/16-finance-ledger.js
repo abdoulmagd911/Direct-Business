@@ -99,13 +99,40 @@ try{window.FIN=FIN;window.finLoad=finLoad;}catch(_){}  // expose for the Custome
 // through on that first render; live() re-evaluates on every call, by which point settings
 // have always finished loading. docs/DECISIONS.md: "A standing exclusion is not satisfied
 // by loading the data and labelling it."
+/* Money-field sanity at the one chokepoint (2026-09-02, watch cycle 2 — found by
+   probe-overview-attacks): every total in this file did `sum += +r.revenue_sar`. One row with the
+   key ABSENT (+undefined) or a string with a thousands separator ("1,000.00") turns the running
+   sum into NaN, and money()/moneyS() then coerce NaN to 0 — so a single malformed row silently
+   showed Revenue / Cost / Profit as a clean 0.00 for the whole company, nothing on screen saying
+   why. Supabase returns numeric columns as numbers or null, so the real-data path was safe; rows
+   pushed into FIN.rows by an import preview or another layer are not guaranteed to be. Rule:
+   read every money field through here — absent/null → 0, "1,250.50" → 1250.5, anything that
+   still isn't a finite number → 0 AND the row is flagged (r._badMoney) so the Overview can say
+   "N rows had unreadable amounts" instead of quietly under-counting. */
+var MONEY_FIELDS=['total_incl_vat_sar','revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','wallet_portion_sar','vat_sar'];
+function finSanitizeMoney(r){
+  var bad=null;
+  for(var i=0;i<MONEY_FIELDS.length;i++){
+    var k=MONEY_FIELDS[i], v=r[k];
+    if(v==null||v===''){ r[k]=0; continue; }
+    if(typeof v==='number'){ if(!isFinite(v)){ r[k]=0; (bad=bad||[]).push(k); } continue; }
+    var n=parseFloat(String(v).replace(/[,\s]/g,''));
+    if(isFinite(n)&&/^-?[\d.,\s]+$/.test(String(v).trim())) r[k]=n; else { r[k]=0; (bad=bad||[]).push(k); }
+  }
+  // Sticky on purpose: the first pass rewrites the bad value to 0, so a second pass would see a
+  // clean number and — if this cleared the flag — erase the only evidence. A reload brings fresh rows.
+  if(bad) r._badMoney=bad;
+  return r;
+}
 function live(){
   var rows=(FIN.rows||[]).filter(function(r){return !r.deleted_at;});
   if(typeof window.finExclusionCheck==='function'){
     rows=rows.filter(function(r){return !(finExclusionCheck(r.client_group)||finExclusionCheck(r.customer_raw_name));});
   }
+  for(var i=0;i<rows.length;i++)finSanitizeMoney(rows[i]);
   return rows;
 }
+try{ window.finSanitizeMoney=finSanitizeMoney; }catch(_){}
 function verified(){return live().filter(function(r){return r.integrity_status==='verified_paid';});}
 
 /* --- Period structure (owner-directed 2026-08-11) ------------------------------------
@@ -498,6 +525,12 @@ function rOverview(){
      When the filtered period contains verified invoices carrying no cost, say so right under the
      KPIs, with the count — factual either way (a commission invoice genuinely has no cost; a
      held-back one just doesn't have it YET), so the wording states the fact and hedges the risk. */
+  var _badMoney=live().filter(finInPeriod).filter(function(r){return r._badMoney;}).length;
+  if(_badMoney>0){
+    h+='<div style="font-size:12px;color:#B54708;margin:-6px 0 14px">⚠ '+(isArF()
+      ? (_badMoney+' صف/صفوف في هذه الفترة تحمل مبالغ غير قابلة للقراءة (ليست أرقامًا) — حُسبت كصفر هنا. راجع الاستيراد.')
+      : (_badMoney+' row'+(_badMoney>1?'s':'')+' in this period carr'+(_badMoney>1?'y':'ies')+' an unreadable amount (not a number) — counted as 0 here. Check the import.'))+'</div>';
+  }
   var _noCost=V.filter(function(r){return (+r.cost_sar||0)===0;}).length;
   if(_noCost>0){
     h+='<div style="font-size:12px;color:#B54708;margin:-6px 0 14px">⚠ '+(isArF()

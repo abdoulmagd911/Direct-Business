@@ -1,5 +1,43 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Watch cycle 2 — one malformed row could show Revenue = 0.00 for the whole company
+
+**Attack area: Finance Overview**, new `scripts/qa/probe-overview-attacks.mjs` — six hostile row
+shapes the importer or another layer could plausibly hand to `FIN.rows`, with every tile
+recomputed independently from raw rows and compared to the rendered `title="<exact> SAR"`.
+
+**Real landmine found and fixed (A1/A2).** Every total in `js/16` did `sum += +r.revenue_sar`.
+One row with the money key *absent* (`+undefined`), or a string with a thousands separator
+(`"1,000.00"`), turns the running sum into NaN — and `money()`/`moneyS()` coerce NaN to 0. So a
+single bad row made Revenue, Cost and Profit read a clean **0.00** for the entire company, with
+nothing on screen saying why — the exact "looks cleaner than expected" shape P5 warns about.
+The Supabase path was safe (numeric columns arrive as numbers or null); rows pushed by an
+import preview or another layer are not guaranteed to be. Fix at the one chokepoint: `live()`
+now passes every row through `finSanitizeMoney()` — absent/null → 0, `"1,250.50"` → 1250.5,
+anything still non-numeric → 0 **and the row is flagged**, and the Overview says "N rows in
+this period carry an unreadable amount — counted as 0 here. Check the import." Sticky flag on
+purpose (a second pass sees a clean 0 and would otherwise erase the evidence). Sabotage
+(skip the sanitiser) → tiles read 0.00 again, probe fails in 6 places. Full finance battery green.
+
+**Held under attack, no change needed:** a row with no year/month/quarter counts under All
+years and drops under a concrete year (A3); a period with zero revenue and real cost renders a
+finite margin on Performance/Compare-to, no NaN/Infinity (A4); the Invoices tile counts distinct
+invoice numbers, not lines (A5). A6 (month stored in a different case vanishes from `M:August`)
+is real but only reachable by direct SQL — the importer normalises month names; rule D3 covers it.
+
+**Noted, not changed — needs a ruling:** `finSectorOf()` classifies a client as Tenders when its
+`paymentTerms` text matches `/tender/i`. Today's values are "Tender", "Post-paid · Monthly",
+"Pre-paid (wallet)", so it's correct, but a future value like "Non-tender" would flip a client
+into the Tenders sector silently. The proper key now exists — `client_profiles.profile_type`
+('tender'), from M18 — worth switching to once the owner confirms that's the intended source.
+
+**Cycle 1 follow-through:** the Code session applied cycle 1 (`d047b8d`), then fixed the seven
+silent-write sites in its own lane (round 6) and made the lead save path itself confirm rows
+(round 7). Still the old shape, outside both Finance and the audit's scope, for whoever owns
+them: `js/15` :76 (allowed_pages), `js/27` :65 (client_profiles insert), `js/31` :407
+(client-links upsert), `js/35` :65/:66/:72 (section upserts/deletes/app_settings), `js/45` :103
+(expenses), `js/57` :115 (proof_documents), `js/66` :249 (company_identity).
+
 ## 2026-09-02 · 12-hour attack-and-sweep loop (owner: "keep sweeping, enhancing, landmining, attacking — don't stop")
 
 Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in English AND Arabic
