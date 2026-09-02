@@ -331,6 +331,18 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   `is_client=true` with no `raw.isClient` — it is an **archived** row (archived 2026-08-23,
   the duplicate a merge leaves behind), so it never reaches the app. Left as is; future sweeps
   should count that check on non-archived rows only.
+- **Round 21 (17:40–18:10) — global search in both languages and on a phone; the Today sync
+  strip.** With reference rows finally in the harness, global search was driven for the first
+  time across airlines, providers, procedures and leads. It finds everything and the pick opens
+  the right record, but the result-type word ("Airline / Provider / SOP / Lead") and the
+  "No matches" line stayed English in Arabic — fixed in core-01 (chrome, not data). The bigger
+  one: index.html hides the search box under 780 px and nothing replaced it, so a person on a
+  phone had no search at all outside the Today page's "Find a client" card. New layer
+  `js/74-phone-search.js` (script line added to index.html — connection step, done alone): a
+  🔍 button in the top bar at phone widths that reveals the SAME search box as a row under the
+  bar and focuses it; closes after a pick or when focus leaves; hidden on desktop; reversible by
+  removing the line. Also confirmed the Today alert strip flags the seeded failed sync and its
+  pill opens Sync. `probe-search-phone.mjs` covers all of it. Two sabotages → red each.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

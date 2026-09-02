@@ -550,7 +550,11 @@ function runGlobalSearch(q){
   DB.vendors.forEach(v=>{if((v.name+' '+(v.type||'')+' '+(v.source||'')).toLowerCase().includes(q))res.push({t:'Provider',label:v.name,sub:v.type||'',go:()=>{openLead=null;supKind='prov';openSup=v.id;current='vendors';render();}});});
   DB.sops.concat(DB.sopsWhale).forEach(s=>{if((s.title+' '+(s.purpose||'')+' '+(s.body||'')).toLowerCase().includes(q))res.push({t:'SOP',label:s.title,sub:s.code,go:()=>{openLead=null;openSup=null;current='sops';render();setTimeout(()=>{const d=[...document.querySelectorAll('.sop')].find(x=>x.querySelector('.ti')&&x.querySelector('.ti').textContent===s.title);if(d){d.open=true;d.scrollIntoView({block:'center'});}},60);}});});
   window._gres=res;
-  box.innerHTML=res.length?res.slice(0,14).map((r,i)=>`<div class="gres-item" onmousedown="gGo(${i})"><span class="gres-t">${esc(r.t)}</span><span class="gres-l">${esc(r.label)}</span><span class="gres-s">${esc(r.sub)}</span></div>`).join(''):('<div class="gres-item" style="color:var(--muted)">No matches for “'+esc(q)+'”</div>');
+  // The result-type word and the no-match line are chrome, not data — Arabic in Arabic
+  // (2026-09-02, attack round 21: they read "Airline / Provider / SOP / No matches" in Arabic).
+  const _gAr=(typeof LANG!=='undefined'&&LANG==='ar');
+  const _gT={Lead:'عميل محتمل',Request:'طلب',Airline:'شركة طيران',Provider:'مورّد',SOP:'إجراء'};
+  box.innerHTML=res.length?res.slice(0,14).map((r,i)=>`<div class="gres-item" onmousedown="gGo(${i})"><span class="gres-t">${esc(_gAr?(_gT[r.t]||r.t):r.t)}</span><span class="gres-l">${esc(r.label)}</span><span class="gres-s">${esc(r.sub)}</span></div>`).join(''):('<div class="gres-item" style="color:var(--muted)">'+(_gAr?'لا نتائج لـ “'+esc(q)+'”':'No matches for “'+esc(q)+'”')+'</div>');
   box.style.display='block';
 }
 function gGo(i){const r=(window._gres||[])[i];const box=document.getElementById('gres');if(box)box.style.display='none';const inp=document.getElementById('gsearch');if(inp)inp.value='';if(r&&r.go){r.go();window.scrollTo(0,0);}}
