@@ -275,6 +275,16 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   "Sign out" button that moved into the user menu) and `attack-day` (waits for a leads table
   row the seed world no longer renders first) — both time out on their first selector;
   `probe-round9` / `probe-lifecycle5` as classified before.
+- **Round 17 (15:40–16:05) — two people, two tabs.** The owner's team works in parallel, and
+  the app promises that two people editing DIFFERENT things never overwrite each other
+  (row-level lead saves in js/02, section-level blob saves in js/19). Never proven with two
+  real tabs before. `probe-two-tabs.mjs` drives two browser contexts on one mock: A renames a
+  lead, B (holding a stale copy of it) edits another lead — both land, A's rename survives B's
+  later save; A changes a setting, B adds a service-level row — both land in the blob. Held.
+  The mock now mirrors `save_state_patch` (merge the sections sent) and `save_state`; the
+  save-confirms-rows and no-phantom-writes probes still green on it. Sabotage (every row
+  rewritten on save) → A's rename lost → red. The one documented limit — the SAME record in
+  two tabs is last-write-wins — is not asserted and stays on the known-issues list.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

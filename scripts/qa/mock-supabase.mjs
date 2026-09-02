@@ -333,6 +333,16 @@ export function start(port, seedOverrides){
         row.undone_at=new Date().toISOString(); row.undone_by='mock';
         return send(res,200,{merge_id:row.id,restored_id:row.dropped_id,kept_id:row.kept_id});
       }
+      // Workspace blob writes (2026-09-02, attack round 17 — two tabs): mirrors the real
+      // save_state_patch (merge only the sections sent) and save_state (replace), so a probe can
+      // prove one person's partial save never wipes another's section.
+      if(fn==='save_state_patch'||fn==='save_state'){
+        const st=(TABLES.app_state=TABLES.app_state||[{id:1,data:{}}])[0];
+        if(fn==='save_state'&&parsed&&parsed.payload&&typeof parsed.payload==='object') st.data=Object.assign({},st.data,parsed.payload);
+        if(fn==='save_state_patch'&&parsed&&parsed.patch&&typeof parsed.patch==='object') Object.keys(parsed.patch).forEach(k=>{ st.data[k]=parsed.patch[k]; });
+        st.updated_at=new Date().toISOString(); st.updated_by='test@directksa.com';
+        return send(res,200, JSON.stringify(true));
+      }
       if(fn==='app_role'){
         const me=TABLES.app_users.find(u=>u.id===UID && u.active);
         return send(res,200, JSON.stringify(me?me.role:null));
