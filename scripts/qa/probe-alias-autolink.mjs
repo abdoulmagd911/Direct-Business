@@ -133,6 +133,24 @@ async function main() {
   if (arLink !== 'b2') fail(`ARABIC VARIANTS: "${AR_ROW}" should match the alias "${AR_ALIAS}" (ة/ه, أ/ا are the same word) and link to b2 — got ${JSON.stringify(arLink)}`);
   else ok('ARABIC VARIANTS: ta-marbuta/ha and hamza/alef spellings match the same alias and link automatically');
 
+  // ---- Presentation forms (2026-09-02): an export row typed in Arabic PRESENTATION forms
+  //      (ﺷﺮﻛﺔ — the shaped glyphs some PDF-to-CSV tools emit) must still match the alias ----
+  const PF_ALIAS = 'شركة الأفق للسياحة';
+  const PF_ROW = '\uFEB7\uFEAE\uFEDB\uFE94 \uFE8D\uFEE0\uFE84\uFED3\uFED8 \uFEDF\uFEE0\uFEB4\uFEF4\uFE8E\uFEA3\uFE94';   // the same words in shaped (presentation-form) code points — NFKC folds them back
+  await p.evaluate(([a, bName]) => {
+    const base = FIN.rows[0];
+    const mk = (g, no) => Object.assign({}, base, { id: 'pf-' + no, invoice_no: no, client_group: g, customer_raw_name: g, record_type: 'b2b', deleted_at: null, total_incl_vat_sar: 700, revenue_sar: 700, cost_sar: 0, profit_sar: 700 });
+    FIN.rows.push(mk(a, '777000009'), mk(bName, '777000010'));
+    FIN.linkByGroup[a] = { client_group: a, business_id: 'b2', is_client: true, confirmed_by: 'manual' };
+    DB.settings.financeGroupMap.push({ id: 'fg-probe-4', canonicalName: a, aliases: [a], active: true, addedBy: 'probe', addedAt: new Date().toISOString() });
+    if (typeof clearFinCanon === 'function') clearFinCanon();
+  }, [PF_ALIAS, PF_ROW]);
+  await p.evaluate(() => { if (typeof render === 'function') render(); });
+  await p.waitForTimeout(2500);
+  const pfLink = await p.evaluate((g) => { const l = (FIN.linkByGroup || {})[g]; return l ? l.business_id || null : null; }, PF_ROW);
+  if (pfLink !== 'b2') fail('PRESENTATION FORMS: a row typed in shaped Arabic glyphs did not match its normal-form alias — got ' + JSON.stringify(pfLink));
+  else ok('PRESENTATION FORMS: shaped Arabic glyphs match the normal-form alias and link automatically');
+
   // ---- Suggestion path (2026-09-02): two UNREGISTERED groups differing only by ة/ه must be
   //      offered as ONE "Possible duplicate" suggestion on Finance › Import ----
   const SUG_A = 'شركة النور للسفر', SUG_B = 'شركه النور للسفر';
