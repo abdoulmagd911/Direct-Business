@@ -26,6 +26,10 @@
   function who(){ try{ return (window.meName&&meName())||(DB.settings&&DB.settings.currentUser)||''; }catch(_){ return ''; } }
   function snapOf(arr){ var m={}; (arr||[]).forEach(function(r){ if(r&&r.id!=null) m[String(r.id)]=JSON.stringify(r); }); return m; }
 
+  /* ids the person has deleted in this tab since the tables were read — see apply() and
+     syncOps(). Keyed by id alone, which is enough: ids are unique across these sections. */
+  var _GONE={};
+
   var _tries=0, _loaded=false;
   function loadOps(){
     if(_loaded) return; _tries++;
@@ -38,7 +42,12 @@
         if(rs.some(function(r){return r.error||!r.data;})) { return; } // tables unreachable → keep blob copy
         _loaded=true;
         var apply=function(){
-          KEYS.forEach(function(k,i){ DB[k]=rs[i].data.map(function(r){return r.data;}); });
+          /* 2026-09-02 (round 32): `rs` is the response captured at LOAD time, so every
+             re-assert replays the world as it was when the page opened. Anything the person
+             has deleted since then would be resurrected. _GONE remembers those ids (recorded
+             in syncOps, where the delete is actually issued) and they are filtered out here,
+             so a delete holds even when the blob loader really does land late. */
+          KEYS.forEach(function(k,i){ DB[k]=rs[i].data.map(function(r){return r.data;}).filter(function(r){ return !(r&&r.id!=null&&_GONE[String(r.id)]); }); });
           var st=rs[KEYS.length].data[0];
           if(st&&st.data){ DB.settings=DB.settings||{}; Object.keys(st.data).forEach(function(k){ DB.settings[k]=st.data[k]; }); }
           window.__v59ref=DB.requests;
@@ -61,7 +70,7 @@
       var cur=(DB&&DB[sec])||[], curMap=snapOf(cur), prev=SNAP[sec]||{};
       var ups=[], dels=[];
       Object.keys(curMap).forEach(function(id){ if(prev[id]!==curMap[id]) ups.push({id:id,data:JSON.parse(curMap[id]),updated_at:new Date().toISOString(),updated_by:who()}); });
-      Object.keys(prev).forEach(function(id){ if(!(id in curMap)) dels.push(id); });
+      Object.keys(prev).forEach(function(id){ if(!(id in curMap)){ dels.push(id); _GONE[String(id)]=1; } });
       /* M13 (2026-09-02, attack round 10): only the records the database confirms back count as
          synced. Before, a silent policy refusal (no error, no rows) was recorded as "synced" and
          the request/proposal change lived only in this tab until reload. A refused record stays
@@ -91,7 +100,18 @@
     }catch(_){ }
   }
   function queueSync(){ clearTimeout(_syncT); _syncT=setTimeout(syncOps,500); }
-  function wrapSave(){ try{ var f=window.save; if(typeof f==='function'&&!f.__v59){ window.save=function(){ var o=f.apply(this,arguments); queueSync(); return o; }; window.save.__v59=true; } }catch(_){ } }
+  /* 2026-09-02 (round 32): the re-assert guard above watches DB.requests's IDENTITY, because a
+     late-finishing blob loader replaces the array wholesale. But so does a delete —
+     `DB.requests = DB.requests.filter(...)` — and the guard could not tell the two apart. A
+     request deleted in the first ~20 seconds after the page opened was therefore put straight
+     back on screen 1.5 s later, restored from the load-time response, even though the DELETE
+     had already reached the database: the person was looking at a row the database no longer
+     had, and touching it would have written it back.
+     Re-pointing the reference after every save() makes the guard mean what it was meant to
+     mean — "the array was swapped by something that did not go through save()", which is the
+     blob loader and nothing else. (An edit was never exposed: it assigns in place and keeps
+     the identity. Only a delete replaced the array, which is why only deletes came back.) */
+  function wrapSave(){ try{ var f=window.save; if(typeof f==='function'&&!f.__v59){ window.save=function(){ var o=f.apply(this,arguments); try{ window.__v59ref=DB.requests; }catch(_){} queueSync(); return o; }; window.save.__v59=true; } }catch(_){ } }
   wrapSave(); setTimeout(wrapSave,2000);
   setTimeout(loadOps,1200);
   // Backlog item since 2026-08-08: Escape now closes the open dialog.

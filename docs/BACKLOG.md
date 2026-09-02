@@ -1,5 +1,48 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 32 — a request you deleted came back on screen for 20 seconds (fixed)
+
+The "deleted request re-appears" report from the eight-area sweep, reproduced in the harness and
+fixed. It was real, and the mechanism is worth understanding because it will catch the next
+person too.
+
+`js/35` reads requests / proposals / projects / bookings / invoices from real tables, then —
+because the workspace-blob loader can finish **later** and put its stale copy back — re-asserts
+the table copy every 1.5 s for ~20 s. The trigger is `DB.requests !== window.__v59ref`: the
+array's **identity** changing. But deleting a request is
+`DB.requests = DB.requests.filter(...)`, which makes a new array, so a legitimate delete looked
+exactly like the clobber the guard exists to stop. Editing was never exposed, purely by luck:
+an edit assigns into the array in place and keeps the identity. Only deletes replaced the array,
+which is why only deletes came back.
+
+**What actually happened was slightly different from the report, and worse in one way and better
+in another.** The DELETE *did* reach the database — the row was really gone. What came back was
+a **phantom on screen**, restored from the load-time response the guard closes over. So for up
+to twenty seconds the person was looking at a record the database no longer had; and had they
+touched it, the sync would have written it straight back.
+
+Two changes, each guarding a different mechanism:
+- `save()` now re-points `window.__v59ref`, so the guard means what it was meant to mean —
+  "the array was swapped by something that did **not** go through save()", which is the blob
+  loader and nothing else.
+- `apply()` filters out ids deleted in this tab since load (`_GONE`, recorded where the DELETE
+  is issued), so a delete holds even when the blob loader genuinely does land late and a
+  re-assert is the correct response.
+
+Guarded by `scripts/qa/probe-delete-sticks.mjs` (12 checks), including two that prove the guard
+still does its original job: a swap that did not go through `save()` is still overruled, and
+that overrule still does not resurrect the deleted row.
+
+**Two corrections to my own reasoning, recorded because both were wrong in an instructive way.**
+(1) I first assumed a re-assert would throw away an edit made moments earlier. It does not:
+`apply()` re-maps the *same row objects*, which the app mutates in place, so the edit rides
+through. The real harm is that `apply()` rebuilds the **sync baseline** over the edit, so the
+next sync sees no difference and never writes it — the note is on screen and never in the
+database. The probe now asserts the write, not the memory. (2) Each half of the fix alone masks
+the visible symptom, so neither single sabotage goes red; the verification is the sabotage that
+restores **both** halves, i.e. the original code, which does. Where two fixes are redundant for
+the symptom but cover different mechanisms, say so rather than implying one sabotage proved both.
+
 ## 2026-09-02 · Round 31 — "Booked margin" counted an unrecorded cost as zero (fixed)
 
 The same money rule the proposal editor broke in round 29, in two more places: the Operations
