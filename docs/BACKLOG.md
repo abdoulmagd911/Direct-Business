@@ -54,6 +54,19 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   instead of pretending. The mock now updates/deletes/inserts events, signups, links and
   businesses honestly (matched rows back, [] on a miss) so those checks are exercisable here.
   Events 52/52 + 16/16, alias-autolink, people-bridge, dedupe green.
+- **Round 7 (10:00–10:25).** The app's own save path (js/02) now applies M13 to the lead
+  insert/upsert itself: when the database answers with no error but fewer rows than were sent
+  (a silent policy refusal), the save is treated as failed — red "Save issue: Only 0 of 1 records
+  were accepted" pill, js/49's "That change was not saved" box, retry with backoff — instead of
+  "Saved · 1 lead updated" while the change lived only in the browser. New
+  `probe-save-confirms-rows.mjs` drives both paths (the mock refuses every businesses write under
+  `MOCK_REFUSE_BUSINESS_WRITES=1`); sabotage-verified (without the guard the refusal read
+  "Saved · 1 lead updated"). Lesson recorded in the probe: js/49 reloads the page 4.5 s after a
+  refusal, so a witness has to be sampled the moment the save settles — the probe's first run
+  sampled after that reload and wrongly blamed the app. Also this round: the Supabase advisor
+  search_path warnings on the trigger functions were cleared (`pin_search_path_on_trigger_functions`),
+  and the alias probe gained a presentation-forms scenario (Arabic typed as `\uFExx` compatibility
+  glyphs still folds to the same company).
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

@@ -468,7 +468,13 @@
                        : sb.from('businesses').upsert(job.rows,{onConflict:'id'}).select('id,legacy_id');
         req.then(function(r){
           if(r.error){ errAll=r.error.message; }
-          else (r.data||[]).forEach(function(x){ if(x.legacy_id) ROWID[x.legacy_id]=x.id; });
+          else {
+            (r.data||[]).forEach(function(x){ if(x.legacy_id) ROWID[x.legacy_id]=x.id; });
+            // M13 (2026-09-02): no error but fewer rows back than sent = a silent refusal.
+            // Treat it as a failed save (red pill + retry), never as "Cloud synced".
+            var got=(r.data||[]).length;
+            if(got<job.rows.length){ errAll='Only '+got+' of '+job.rows.length+' records were accepted by the database (permission?)'; }
+          }
           next();
         });
       }

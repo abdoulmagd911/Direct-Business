@@ -519,6 +519,25 @@ export function start(port, seedOverrides){
         for(let i=table.length-1;i>=0;i--){ if(id&&String(table[i].id)===id){ removed.push(...table.splice(i,1)); } }
         return send(res,200,removed);
       }
+      // businesses INSERT / UPSERT (2026-09-02): the app's save path expects id+legacy_id back for
+      // every row it sent; fewer rows back is the silent-refusal shape it must now detect.
+      if(t==='businesses'&&req.method==='POST'){
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          if(process.env.MOCK_REFUSE_BUSINESS_WRITES==='1') return send(res,201,[]);   // sabotage switch for the probe
+          let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(!Array.isArray(payload)) payload=[payload];
+          const table=TABLES.businesses;
+          const written=payload.map(row=>{
+            let ix=row.id?table.findIndex(r=>String(r.id)===String(row.id)):-1;
+            if(ix<0&&row.legacy_id) ix=table.findIndex(r=>String(r.legacy_id)===String(row.legacy_id));
+            if(ix>=0){ table[ix]=Object.assign({},table[ix],row); return {id:table[ix].id,legacy_id:table[ix].legacy_id}; }
+            const newRow=Object.assign({id:row.id||('mock-biz-'+Math.random().toString(36).slice(2))},row);
+            table.push(newRow); return {id:newRow.id,legacy_id:newRow.legacy_id};
+          });
+          return send(res,201,written);
+        });
+      }
       if((t==='ksa_events'||t==='ksa_event_signups'||t==='finance_client_links')&&req.method==='POST'){
         let body=''; req.on('data',c=>body+=c);
         return req.on('end',()=>{
