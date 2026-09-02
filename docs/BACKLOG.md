@@ -311,6 +311,26 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   would be stored and break the "active" count). `probe-reference-pages.mjs` covers all of it in
   EN+AR, desktop+phone, plus "a flag click persists" and "an NDC status changed in Arabic still
   stores the English keyword". Three sabotages (alias, skip, dictionary entry) → red each.
+- **Round 20 (17:10–17:40) — SOP library, Service Levels, Sync page with rows.** Same gap
+  class as round 19: live holds 12 SOPs / 14 service levels / 14 sync events in the workspace
+  and the harness had none (Bookings / Invoices / Tickets are genuinely empty live too — no gap
+  there). The mock now seeds 3 + 2 procedures, 4 service levels and 6 sync events. Findings:
+  the Service Levels legend pills ("★ Faster than common" / "✓ Standard target"), the
+  "Common practice" / "Stretch goal" column heads and "+ Add SLA" were English in Arabic; the
+  Sync page's note paragraph, "Deep links…" sub-line, area names (Corporate clients, Refund
+  requests, …) and its two tags were English in Arabic. js/21 gained the entries, a `.bench`
+  pass, and a Sync-page-only `td>b` pass (on every other page a bold table cell is a record
+  name and stays untouched) plus a whole-element pass for the note. `probe-sopsla-sync.mjs`
+  drives it all: rows, SOP search, an inline SLA edit persisting, "+ Add SLA" adding exactly
+  one row, Arabic chrome, phone widths. Two sabotages (bench pass, td>b pass) → red each.
+  Also: `manual-visual-sweep.mjs` now skips `<style>/<script>` injected inside the view — the
+  Documents page was producing thirty false "Latin run" hits from CSS property names.
+- **Live sweep (17:00).** 80 leads / 28 clients / 4 archived, 46 live invoices, 0 missing
+  cost, 0 bad quarter, 0 VAT-in-profit, 0 orphan finance links, requests 7 / offers 5 /
+  projects 1, last data change ~3.5 h earlier. One new signal: a single `businesses` row has
+  `is_client=true` with no `raw.isClient` — it is an **archived** row (archived 2026-08-23,
+  the duplicate a merge leaves behind), so it never reaches the app. Left as is; future sweeps
+  should count that check on non-archived rows only.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

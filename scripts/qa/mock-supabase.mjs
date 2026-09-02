@@ -39,9 +39,25 @@ const SEED_VENDORS=[
   {id:'ven_qa2',name:'QA LCC Aggregator',type:'Aggregator',source:'Direct connect to LCCs',payment:'Prepaid wallet',terms:'',sla:'',process:'',adm:'',portal:'https://example.com/lcc',login:'',caps:{Book:true,Reissue:false,Refund:false,EMD:false,Seats:true,Bags:true,'Split PNR':false},apiStatus:'Degraded',uptime:'97.1%',respTime:'900 ms',costPerBooking:'0.80 USD',settlement:'Wallet',markup:'Markup 2%',supportSLA:'24h',accountManager:'',renewalDate:'',useFor:'Low-cost carriers',contentMix:'LCC',incidents:'',contacts:[],notes:''},
   {id:'ven_qa3',name:'QA Hotel Bedbank',type:'Bedbank',source:'Hotel API',payment:'Credit line',caps:{},apiStatus:'Down',contacts:[],notes:''},
   {id:'ven_qa4',name:'QA Empty Provider',type:'',source:'',contacts:[]}];
+// SOPs / service levels / sync events also live in the blob (live: 12 / 14 / 14 rows) and the harness
+// had none — seeded 2026-09-02 (round 20) so the SOP library, the Service Levels table and the Sync
+// page render rows in QA. Synthetic wording; nothing copied from the real procedures.
+const SEED_SOPS=[
+  {id:'sop_qa1',code:'SOP-01',title:'QA Ticket issuance check',purpose:'Issue only after fare rules are read.',cmd:'',body:'Read fare rules, confirm TTL, issue, file the PNR.',market:'Issue on request.',edge:'Read rules first, every time.'},
+  {id:'sop_qa2',code:'SOP-02',title:'QA Void window handling',purpose:'Never miss the void cut-off.',cmd:'TRDC/L1',body:'Same-day void before cut-off; otherwise refund path.',market:'Manual reminder.',edge:'Cut-off alarm on the desk.'},
+  {id:'sop_qa3',code:'SOP-03',title:'QA Hotel confirmation',purpose:'Confirm every hotel booking in writing.',cmd:'',body:'Send the confirmation and file it on the request.',market:'—',edge:'Written confirmation on file.'}];
+const SEED_SOPS_WHALE=[
+  {id:'sopw_qa1',code:'EXT-01',title:'QA Proactive disruption watch',purpose:'Call the traveller before they call us.',cmd:'',body:'Watch schedule changes; rebook and inform within the hour.',market:'Reactive.',edge:'Proactive.'},
+  {id:'sopw_qa2',code:'EXT-02',title:'QA Duty of care log',purpose:'Know where every traveller is.',cmd:'',body:'Keep the traveller location log current per trip.',market:'—',edge:'Live log.'}];
+const SEED_SLAS=[
+  {id:'sla_qa1',event:'QA Quote turnaround',direct:'2 hours',market:'24 hours',whale:'1 hour',rank:'beat'},
+  {id:'sla_qa2',event:'QA Ticket issuance',direct:'30 minutes',market:'Same day',whale:'15 minutes',rank:'beat'},
+  {id:'sla_qa3',event:'QA Refund processing',direct:'7 days',market:'7 days',whale:'3 days',rank:'meet'},
+  {id:'sla_qa4',event:'QA Disruption response',direct:'1 hour',market:'Next business day',whale:'30 minutes',rank:'beat'}];
+const SEED_SYNC_EVENTS=[...Array(6)].map((_,i)=>({id:'se_qa'+i,ts:Date.parse('2026-08-2'+i+'T09:00:00Z'),source:['payments','amadeus','mail'][i%3],dir:i%2?'out':'in',result:i===4?'failed':'success',entity:i%2?'invoice':'booking',entityId:'',note:i===4?'QA seed — one failed pull':'QA seed — routine pull'}));
 const BLOB={schemaVersion:24,meta:{},settings:{lang:'en',currency:'SAR'},agency:{name:'Direct'},recents:[],audit:[],
-  businesses:[],airlines:SEED_AIRLINES,vendors:SEED_VENDORS,ndcProviders:[],bookings:[],invoices:[],offers:[],requests:[],projects:[],sops:[],slas:[],
-  sopsWhale:[],syncEvents:[],templateLibrary:[],bundleTemplates:[],travelerProfiles:[],serviceFeePricing:[],integrations:{},
+  businesses:[],airlines:SEED_AIRLINES,vendors:SEED_VENDORS,ndcProviders:[],bookings:[],invoices:[],offers:[],requests:[],projects:[],sops:SEED_SOPS,slas:SEED_SLAS,
+  sopsWhale:SEED_SOPS_WHALE,syncEvents:SEED_SYNC_EVENTS,templateLibrary:[],bundleTemplates:[],travelerProfiles:[],serviceFeePricing:[],integrations:{},
   _bkSeed:1,_cfMergeV3:1,_invSeed:1,_oldCustMerged:1,_v20seed:1,_v21reconciled:1,_v22migrated:1,_v23migrated:1,_v24migrated:1};
 const TABLES={
   businesses:biz,

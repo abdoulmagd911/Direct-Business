@@ -173,6 +173,21 @@
     'Seats':'المقاعد','✓ Seats':'✓ المقاعد','Bags':'الأمتعة','✓ Bags':'✓ الأمتعة','Split PNR':'فصل PNR','✓ Split PNR':'✓ فصل PNR'
   };
   Object.keys(REF_AR).forEach(function(k){ if(V27_AR[k]===undefined) V27_AR[k]=REF_AR[k]; });
+  // ---- Service Levels + Sync page (2026-09-02, attack round 20 — first Arabic drive of both WITH
+  // rows; the harness had carried no service levels or sync events). The SLA legend/th words come
+  // in two spellings because core-08's de-jargon pass rewrites them after render ("Beats market" →
+  // "Faster than common") and this file may see either. Same "existing entry wins" rule. ----
+  var SLA_SYNC_AR={
+    '★ Beats market':'★ أسرع من الشائع','★ Faster than common':'★ أسرع من الشائع','✓ Meets best practice':'✓ الهدف القياسي','✓ Standard target':'✓ الهدف القياسي',
+    'Saudi market':'السوق السعودي','Common practice':'الممارسة الشائعة','Industry whales':'كبرى الشركات','Stretch goal':'هدف طموح','+ Add SLA':'+ إضافة مستوى خدمة',
+    'SOP Library':'مكتبة الإجراءات','Service Levels':'مستويات الخدمة',
+    // sync page: the note paragraph (whole element, see scopeTranslate), the sub-line, the area names and tags
+    'This workspace is a read-and-follow-up layer. All payment, invoice, tax and client actions happen in the Direct system - open the right page below. Live two-way sync arrives with the hosted backend phase.':'مساحة العمل هذه طبقة للقراءة والمتابعة. كل إجراءات الدفع والفواتير والضرائب والعملاء تتم داخل نظام Direct — افتح الصفحة المناسبة أدناه. المزامنة الحية في الاتجاهين تأتي مع مرحلة الخادم المستضاف.',
+    'Deep links into payments.directksa.com (admin login required)':'روابط مباشرة إلى payments.directksa.com (يلزم تسجيل دخول المشرف)',
+    'Corporate clients':'عملاء الشركات','Refund requests':'طلبات الاسترداد','Receipts and settlements':'الإيصالات والتسويات','Pricing settings':'إعدادات التسعير','Mailboxes':'صناديق البريد',
+    'Open in your Amadeus session':'افتح في جلسة Amadeus لديك','Read-only':'للقراءة فقط','Open':'فتح'
+  };
+  Object.keys(SLA_SYNC_AR).forEach(function(k){ if(V27_AR[k]===undefined) V27_AR[k]=SLA_SYNC_AR[k]; });
   // Stage badge words — translated ONLY inside .statusbadge / stage pills, to avoid
   // colliding with the same words used elsewhere (headers, chips, filters).
   var STAGE_AR={'New':'جديد','Prospect':'مرتقب','Contacted':'تم التواصل','Qualified':'مؤهل','Proposal':'عرض مقدم','Negotiation':'تفاوض','Won':'مكسوب','Lost':'مفقود','Client':'عميل','On hold':'مُعلّق','In discussion':'قيد النقاش'};
@@ -222,6 +237,19 @@
     // the ADM-risk distribution, say) is skipped so the pill is never flattened to text
     var fk=scope.querySelectorAll('.fact>.k'),f;
     for(f=0;f<fk.length;f++){ var kl=fk[f]; if(kl.getAttribute('data-v27')||kl.children.length)continue; translateDecorated(kl,V27_AR); }
+    // Service Levels legend pills (.bench) — whole-string matches only (2026-09-02, round 20)
+    var bn=scope.querySelectorAll('.bench'),bi;
+    for(bi=0;bi<bn.length;bi++){ var bp=bn[bi]; if(bp.getAttribute('data-v27')||bp.children.length)continue; translateDecorated(bp,V27_AR); }
+    // Sync page only: the area names (<td><b>) are chrome there, not data — on every other page a
+    // <td><b> is a record name and is never touched. The note paragraph wraps a <b>, so it is
+    // translated as a whole element (the English is remembered as plain text; the page re-renders
+    // on a language switch anyway).
+    if(typeof current!=='undefined'&&current==='sync'){
+      var sb=scope.querySelectorAll('td>b'),si;
+      for(si=0;si<sb.length;si++){ var nb=sb[si]; if(nb.getAttribute('data-v27')||nb.children.length)continue; translateDecorated(nb,V27_AR); }
+      var note=scope.querySelector('.note.v29-connections');
+      if(note&&!note.getAttribute('data-v27')){ var nt=(note.textContent||'').replace(/\s+/g,' ').trim(); if(V27_AR[nt]!==undefined){ note.setAttribute('data-v27en',nt); note.textContent=V27_AR[nt]; note.setAttribute('data-v27','1'); } }
+    }
     // dropdown options: main dict, then stage words (safe — options are filter values, not data)
     var opts=scope.querySelectorAll('option'),o;
     for(o=0;o<opts.length;o++){ var op=opts[o]; if(op.getAttribute('data-v27'))continue; var ot=(op.textContent||'').trim(); if(!ot)continue;

@@ -164,7 +164,10 @@ function latinRunCheck(){
   for(const scope of scopes){
     // <code>/<pre> hold raw technical content (CSV column names, JSON, SQL) that is never
     // meant to be translated - same category as an email or URL, skip entirely.
-    const leaves = [...scope.querySelectorAll('*')].filter(el => el.children.length === 0 && !el.closest('code, pre'));
+    // <style>/<script> blocks that a layer injects INSIDE #view (the Documents page does this) are
+    // CSS/JS source, not screen text — skipped the same way, or every property name reads as a
+    // "Latin run" (2026-09-02, attack round 20: "dgWrap / grid / minmax…" all flagged on Documents).
+    const leaves = [...scope.querySelectorAll('*')].filter(el => el.children.length === 0 && !el.closest('code, pre, style, script'));
     for(const el of leaves){
       // The language-toggle button deliberately shows the OTHER language's own name
       // ("English" while the app is in Arabic) so the user knows what clicking it does -
