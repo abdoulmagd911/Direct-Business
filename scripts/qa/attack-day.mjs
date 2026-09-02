@@ -27,6 +27,22 @@ const route = async r => {
 await page.route('**cdn.jsdelivr.net/**', route);
 await page.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', route);
 const LOG = []; const STEP = (n, ok, d = '') => LOG.push(`${ok ? 'PASS' : 'FAIL'} · ${n}${d ? ' — ' + d : ''}`);
+/* 2026-09-02 (round 27): this script used to print its results only on the last line, so ANY
+   crash mid-run threw the whole log away and the run read as "attack-day is broken" with
+   nothing to say where it got to. The log now survives a crash — partial results are the
+   most useful thing a stale probe can give you. */
+let PRINTED = false;
+const dumpLog = () => {
+  if (PRINTED) return; PRINTED = true;
+  console.log(LOG.join('\n'));
+  console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.filter(l => !l.startsWith('SKIP')).length}`);
+  console.log('ERRORS:', errs.length); errs.slice(0, 10).forEach(e => console.log('  ', e));
+};
+process.on('exit', dumpLog);
+process.on('uncaughtException', (e) => {
+  LOG.push('CRASH · run stopped here — ' + String(e && e.message || e).split('\n')[0].slice(0, 160));
+  dumpLog(); process.exit(1);
+});
 const DEAD = [];
 const shot = p => page.screenshot({ path: 'shots/atk-' + p + '.png' }).catch(() => {});
 const html = () => page.evaluate(() => (document.getElementById('view') || document.body).innerHTML.length);
@@ -119,9 +135,12 @@ await page.waitForTimeout(700);
 STEP('lead detail: back button returns to list', backBtn && await page.evaluate(() => !openLead));
 // CSV export
 const dl = page.waitForEvent('download', { timeout: 6000 }).catch(() => null);
-await page.evaluate(() => { const b = [...document.querySelectorAll('#view button')].find(x => /Export CSV|تصدير/.test(x.textContent)); if (b) b.click(); });
+/* Re-pointed 2026-09-02 (round 27): the in-view button is labelled "↓ Export this view (CSV)"
+   (js/09), which does NOT contain the contiguous string "Export CSV" — the old regex simply
+   missed a button that was sitting right there and working. Match what it is actually called. */
+const exClicked = await page.evaluate(() => { const b = [...document.querySelectorAll('#view button')].find(x => /Export this view|تصدير هذا العرض/.test(x.textContent)); if (!b) return null; b.click(); return b.textContent.trim(); });
 const gotDl = await dl;
-STEP('leads: Export CSV downloads a file', !!gotDl, gotDl ? await gotDl.suggestedFilename() : 'no download');
+STEP('leads: "Export this view (CSV)" downloads a file', !!gotDl, gotDl ? await gotDl.suggestedFilename() : 'no download (button: ' + exClicked + ')');
 
 // ---------- FINANCE workout ----------
 await page.evaluate(() => { current = 'finance'; render(); });
@@ -132,11 +151,17 @@ for (const tab of ['overview', 'ledger', 'clients', 'reports', 'import']) {
   STEP('finance tab "' + tab + '" renders', tOK === true && (await txt()).length > 80);
   await shot('fin-' + tab);
 }
-// overview must carry the flat service card + promo card
+/* Promo card must be ABSENT — owner ruling 2026-08-22 took promo codes off the Finance
+   overview ("for now"), gated by SHOW_PROMO_ON_FINANCE=false in js/25, because the registry's
+   own figures were untrustworthy (114 of 134 used codes were flagged active AND expired at
+   once). This assertion used to demand the card be PRESENT — it predated the ruling, and left
+   as-is it would have pushed a future session into switching back on what the owner turned
+   off. It now guards the ruling. (2026-09-02, round 27) */
 await page.evaluate(() => { FIN.tab = 'overview'; render(); });
 await page.waitForTimeout(900);
 const ovHas = await page.evaluate(() => ({ svc: !!document.querySelector('.v32-svc'), promo: !!document.querySelector('.v63-promo') }));
-STEP('overview shows flat income-by-service + promo cards', ovHas.svc && ovHas.promo, JSON.stringify(ovHas));
+STEP('overview shows the flat income-by-service card', ovHas.svc, JSON.stringify(ovHas));
+STEP('promo card stays OFF the overview (owner ruling 2026-08-22)', !ovHas.promo, JSON.stringify(ovHas));
 await shot('fin-overview-cards');
 // ledger: every filter dropdown option count sanity + both views
 await page.evaluate(() => { FIN.tab = 'ledger'; render(); });
@@ -152,7 +177,29 @@ for (let i = 0; i < seld; i++) {
     await page.waitForTimeout(300);
   }
 }
-STEP('finance ledger: all ' + seld + ' filter dropdowns switch without error', seld >= 4 && filterOK);
+/* The rebuilt Ledger (Phase 2) carries exactly three filters — profile type, stage, company
+   (finTxnF). The old assertion demanded 4 or more, a magic number left over from the ledger
+   this one replaced. Pin it to the three that exist and name them, so a filter going missing
+   is still caught. (2026-09-02, round 27) */
+const ledgerFilters = await page.evaluate(() => [...document.querySelectorAll('#view select')].map((s) => (s.getAttribute('onchange') || '').replace(/^finTxnF\('([a-zA-Z]+)'.*$/, '$1')));
+const wantFilters = ['profileType', 'stage', 'business'];
+STEP('finance ledger: its ' + seld + ' filter dropdowns are profile type / stage / company, and all switch without error',
+  filterOK && wantFilters.every((w) => ledgerFilters.includes(w)), ledgerFilters.join(', '));
+/* Ledger guard (2026-09-02, round 27). This section was written against the OLD ledger — a
+   by-invoice / by-service-line toggle over a flat table. Phase 2 rebuilt the Ledger tab on the
+   finance_transactions tables (company-grouped, collapsible), and this script still runs on
+   mock-seed-live.mjs, a legacy seed that never got those tables — so TXN.rows is 0 here and the
+   tab renders no table at all. Clicking a row that cannot exist is what crashed the whole run.
+   The section is SKIPPED OUT LOUD when the ledger has no rows; the rebuilt ledger is covered
+   properly by probe-ledger-attacks.mjs on the maintained mock (mock-supabase.mjs).
+   Recorded in the BACKLOG as harness debt: seed-live needs the Phase-2 tables, or these two
+   legacy scripts should move to the maintained mock. */
+const ledgerRows = await page.evaluate(() => ((window.TXN && TXN.rows) || []).length);
+if (!ledgerRows) {
+  LOG.push('SKIP · ledger row/modal section — this seed (mock-seed-live.mjs) predates the Phase-2 finance_transactions tables, so the Ledger has no rows to click.');
+  LOG.push('SKIP ·   The rebuilt Ledger is covered by probe-ledger-attacks.mjs on mock-supabase.mjs.');
+}
+if (ledgerRows) {
 // by-invoice / by-line toggle via real clicks
 await page.locator('#view button:has-text("By service line")').first().click().catch(() => {});
 await page.waitForTimeout(500);
@@ -171,6 +218,7 @@ const modalBits = await page.evaluate(() => {
 });
 STEP('invoice modal: way selector + origin + delete + NO VAT text', !!modalBits && modalBits.way && modalBits.origin && modalBits.del && modalBits.noVat, JSON.stringify(modalBits));
 await page.evaluate(() => { const m = document.getElementById('finModal'); if (m) m.remove(); });
+}   // end ledger guard
 // report builder: run a grouping
 await page.evaluate(() => { FIN.tab = 'reports'; render(); });
 await page.waitForTimeout(700);
@@ -221,7 +269,5 @@ for (const pid of ['today', 'leads', 'finance']) {
 await page.evaluate(() => { LANG = 'en'; if (typeof applyLang === 'function') applyLang(); render(); });
 await page.waitForTimeout(800);
 
-console.log(LOG.join('\n'));
-console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.length}`);
-console.log('ERRORS:', errs.length); errs.slice(0, 10).forEach(e => console.log('  ', e));
+dumpLog();
 await browser.close(); process.exit(0);

@@ -1,5 +1,45 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 27 — the two stale attack scripts brought back, and TWO probes caught contradicting an owner ruling
+
+`attack-wave3` and `attack-day` had been red for weeks and were classified as "selector drift".
+Both are green again — **wave3 0 fails / 20, attack-day 0 fails / 41** — and nothing was wrong
+with the app. What was wrong was the probes, in four ways worth remembering:
+
+1. **A probe demanded something the owner had switched off — twice.** Both scripts asserted the
+   promo-code card must be PRESENT on the Finance overview. The owner ruled on 2026-08-22 that
+   promo codes come OFF that page ("for now"), because the registry's own numbers were not
+   trustworthy — 114 of 134 used codes were flagged `active` and `expired` at the same time.
+   Both assertions predated the ruling. Left as they were, the next session to run them would
+   have read two red probes as "the promo card is broken" and switched back on exactly what the
+   owner turned off. **Both now guard the ruling instead** (card absent AND its wording absent,
+   even with promo rows loaded). This is the failure mode `docs/BACKLOG.md` already warned about
+   at the "promo card ABSENT by rule" note — a probe must guard the decision that REPLACED a
+   feature, never the feature the decision removed.
+2. **A fixture that can never exist.** wave3's Direct Payments import section needed
+   `shots/dp-export-test.csv`. `shots/` is gitignored on purpose, and a real Direct Payments
+   export carries real company names and amounts, which rule 7 forbids in this public repo — so
+   the file cannot exist in a clean clone and that section can never run here. It is now
+   SKIPPED OUT LOUD, pointing at `probe-importer-attacks.mjs`, which builds its own synthetic
+   file. A missing fixture must never read as a passing import.
+3. **A crash threw away the whole log.** attack-day printed its results only on the final line,
+   so any mid-run crash produced nothing but a stack trace — which is why "attack-day is red"
+   carried no information for weeks. The log now survives a crash (`process.on('exit')` plus an
+   uncaughtException hook that records where it stopped).
+4. **Stale magic numbers and stale labels.** Sign out moved into the v68 profile chip by owner
+   order, so clicking the raw hidden button timed out; the leads export button is called
+   "↓ Export this view (CSV)", which never matched a regex looking for "Export CSV"; the
+   rebuilt Ledger has exactly three filters (profile type / stage / company) while the old
+   assertion demanded four or more. All re-pointed at what the app actually is, and the ledger
+   check now names the three filters so a real removal is still caught.
+
+**Harness debt found, not fixed (needs a decision):** both legacy scripts run on
+`scripts/qa/mock-seed-live.mjs`, a seed that predates the Phase-2 `finance_transactions`
+tables — so `TXN.rows` is 0 there and the whole rebuilt Ledger renders nothing. That section is
+skipped out loud for now. Either seed-live gains the Phase-2 tables, or these two scripts move
+to the maintained `mock-supabase.mjs`. Until then the Ledger is covered only by
+`probe-ledger-attacks.mjs`.
+
 ## 2026-09-02 · Watch cycle 7 — Compare-to and the sector scope attacked; an empty period no longer prints as zero
 
 **Attack area: "Compare to" (blueprint step 5) and the sector chips**, new
