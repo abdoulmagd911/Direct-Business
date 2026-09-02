@@ -1,5 +1,36 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Watch cycle 8 — alias grouping, the exclusion twin and the company merge/undo attacked; everything held
+
+**Attack area: M14 alias grouping + M18 duplicate companies** (`js/62-finance-guardrails.js`),
+new `scripts/qa/probe-alias-dedupe-attacks.mjs` (port 8201, 34 checks). **No defect found —
+the probe is kept as a permanent guard for a part of the app where a silent mistake would
+move one client's money under another client's name.**
+
+Held under attack: `finGroupCheck` matches on a normalised name, folding case, surrounding and
+doubled spaces, punctuation, and the Arabic variants (ة↔ه both directions, ى↔ي, أإآ↔ا, tatweel
+inside a word, diacritics, NFKC forms) — while a genuinely different word ("Ma-dar") is still
+not folded into a match; an inactive/undone group is ignored; empty and null match nothing; an
+alias that appears in two active groups resolves to the same group every time (a data fault must
+not shuffle money between renders). `finExclusionCheck` behaves as its exact twin, and
+**exclusion wins**: a company that is both excluded and grouped never reaches Finance at all.
+The duplicate finder pairs records on a shared Direct client ID, on CR/VAT digits written
+differently (310-123456-7 = 3101234567), and on a normalised name (Co/Company stripped); it
+treats three records on one domain as a portal rather than duplicates; it never offers an
+archived record; "Not a duplicate" stores that pair and "show dismissed again" clears the list.
+The merge moves invoice links, billing profiles and contacts, archives (never deletes) the
+dropped record, refuses a company merged into itself, and the undo puts every moved record back
+and un-archives the company — with `finance_invoices` **byte-identical** before the merge, after
+the merge and after the undo: a merge never moves or recomputes money.
+
+**Sabotage-verified twice** (Arabic folding removed from `norm62` → 4 red; the `active===false`
+skip removed → the inactive group starts matching). Restore byte-identical (md5); structure
+check OK.
+
+**Probe note for whoever extends it:** `save()` + `render()` reloads `DB.businesses` from the
+server, so synthetic companies injected in-page do not survive a re-render — the dismissal
+check therefore asserts the stored list rather than a second render.
+
 ## 2026-09-02 · Round 27 — the two stale attack scripts brought back, and TWO probes caught contradicting an owner ruling
 
 `attack-wave3` and `attack-day` had been red for weeks and were classified as "selector drift".
