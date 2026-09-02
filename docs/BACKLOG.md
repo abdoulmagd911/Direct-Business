@@ -1,5 +1,59 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · M18 — duplicate companies fixed for good, MDD merged live, second sweep clean
+
+Owner's ruling on the 2026-08-29 finding: both MDD records are the same company; "find the fix
+for the future … whether on the merge or combined clients or anything, and go ahead." Also ruled:
+the repo stays public (recorded under CLAUDE.md rule 7 — do not raise it again).
+
+**Built (rule M18 in `docs/DECISIONS.md`).** (1) The automatic finance↔client linker now lets a
+declared alias sibling WIN over a plain name match — the exact mechanism that split MDD.
+(2) A "Duplicate companies" section on Finance › Import (admin/manager) finds likely pairs by
+alias-split links, Direct client ID, CR/VAT, normalised name (EN/AR/legal) and website, states
+the reason, previews both records with their invoice counts, and offers Merge » / Not a
+duplicate. (3) Merging is ONE audited database call that moves every child row (contacts,
+activities, requests, offers, billing profiles, invoice links, transactions, documents…) to the
+kept record, fills only its empty profile fields, archives the other (never deletes), and is
+undoable from the same card. Three probes guard it (`probe-company-dedupe.mjs` end-to-end incl.
+undo; `probe-alias-autolink.mjs` precedence scenario), all sabotage-verified.
+
+**Caught along the way, fixed.** (a) The browser confirm wrapper in `js/core/core-09-v26.js`
+rewrote ANY prompt containing "archive" into "Delete this lead? … Yes, delete" and any prompt
+containing "reset" (the Users page's password-reset link) into "Clear all test data? … Yes,
+clear", throwing the caller's real words away. Templates now apply only to short prompts that
+start with the intent word; anything longer is shown as written. (b) The first live merge was
+refused by the database — both MDD records held an open postpaid billing profile and only one
+open profile of a type may exist per company. The refusal was atomic (nothing changed). The
+merge function now closes the colliding profile as it moves, with a note saying why, and undo
+reopens it with its original note; the mock and probe cover the same shape. (c) The website
+signal treated placeholder/shared domains as evidence (every QA fixture shares `example.com`);
+placeholders are ignored and a domain shared by 3+ records is not a signal. (d) Detector now
+also skips records soft-deleted with the older `_archived` flag.
+
+**Applied live (owner-authorized, reversible).** MDD merged: "MDD — Smart Madad IT" → "MDD" (the
+record carrying the Direct client ID, VAT number and payment terms). Moved: 2 contacts, 5
+activities, 2 billing profiles (both closed on arrival — the survivor already had open prepaid
+and postpaid ones; the notes say so), 1 finance link, 5 transactions. Verified after: the
+survivor holds all three MDD finance links (both Latin spellings + the Arabic one), 4 contacts,
+5 activities, 5 transactions, 4 profiles of which 2 open; the dropped record is archived with
+`merged-into:<survivor>`; one live audit row; zero finance links point at any archived company.
+Undo = the Undo button on the same card, or `fn_unmerge_businesses` with the merge id.
+
+**Second sweep (live, read-only, after the merge).** Live: 80 leads / 28 clients / 4 archived.
+Duplicate signals across all non-archived companies — same Direct client ID, same CR/VAT, same
+normalised name, same website, alias groups linked to two records: **none** — MDD was the only
+pair. Money invariants over all 46 invoices: cost never exceeds total, revenue = total − wallet
+and profit = revenue − cost on every row, zero Takamol rows, zero duplicate invoice numbers, all
+46 `verified_paid`; every B2B group is linked; 3 alias groups active. Structure check,
+decisions-wired check (33 rules, every citation resolves) and the 8-probe finance/importer
+battery all green.
+
+**For the owner — one honest note, no action taken.** The 19 invoices "with no cost" are stored
+as cost **0**, not empty, unchanged since 2026-08-22; the on-screen flag is what keeps that
+honest, and their profit therefore reads as the full revenue. Turning those zeros into "unknown"
+would be the stricter reading of "never fill a gap" but touches the derive trigger and Finance
+display together — left as is, on purpose, until the real costs arrive through expense capture.
+
 ## 2026-08-29 · Full sweep — every owner instruction and note re-verified against live state, not against my own summaries
 
 Owner-ordered. Method: take each instruction from the briefs and each standing note, and check

@@ -71,6 +71,10 @@
    aid, and it sat exposed on GitHub for over a week before being caught and dealt with on
    2026-08-22. If real data ever needs to leave the database, it goes to Google Drive or
    stays purely local — never committed, not even briefly.
+   **Owner ruling (given in the 2026-08-29 sweep round, recorded 2026-09-02): the repo stays
+   PUBLIC.** Other tasks and sessions depend on reaching it, it is internal work that will never
+   be "published" as a product, and he has weighed it. Do not recommend making it private
+   again, and do not raise it as a finding — rule 7 is exactly how a public repo stays safe.
 8. **OUT OF SCOPE — the appraisal / KPI / task-manager project (Supabase ref
    `byhxnmafaumersoaiybq`, project `directksa-performance`) is a different project with
    different work.** Never read it, write to it, document it in this repo, or reference its

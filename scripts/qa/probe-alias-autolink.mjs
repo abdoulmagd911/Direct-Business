@@ -96,6 +96,26 @@ async function main() {
   else if (wrote.business_id !== BIZ || wrote.is_client !== true) fail(`the persisted link payload is wrong: ${JSON.stringify(wrote)}`);
   else ok('the link was written to finance_client_links in the real auto-linker shape (business_id + is_client:true)');
 
+  // ---- M18 precedence: a declared alias sibling WINS over a name match ----
+  // The MDD split happened exactly this way: the Arabic spelling name-matched a second,
+  // duplicate company record while the owner had already declared it the same company.
+  const SIB2_LINKED = 'Alias Second Linked Spelling';
+  const SIB2_NEW = 'Fresh Alias Name Co';   // ALSO the name of a business record seeded below → name index would say bZ
+  await p.evaluate(([a, bName]) => {
+    const base = FIN.rows[0];
+    const mk = (g, no) => Object.assign({}, base, { id: 'alias2-' + no, invoice_no: no, client_group: g, customer_raw_name: g, record_type: 'b2b', deleted_at: null, total_incl_vat_sar: 1000, revenue_sar: 1000, cost_sar: 0, profit_sar: 1000 });
+    FIN.rows.push(mk(a, '777000003'), mk(bName, '777000004'));
+    FIN.linkByGroup[a] = { client_group: a, business_id: 'b2', is_client: true, confirmed_by: 'manual' };
+    DB.businesses.push({ id: 'bZ', name: bName, stage: 'Prospect' });   // the decoy: a record whose name matches the fresh spelling
+    DB.settings.financeGroupMap.push({ id: 'fg-probe-2', canonicalName: a, aliases: [a, bName], active: true, addedBy: 'probe', addedAt: new Date().toISOString() });
+    if (typeof clearFinCanon === 'function') clearFinCanon();
+  }, [SIB2_LINKED, SIB2_NEW]);
+  await p.evaluate(() => { if (typeof render === 'function') render(); });
+  await p.waitForTimeout(2500);
+  const prec = await p.evaluate((g) => { const l = (FIN.linkByGroup || {})[g]; return l ? { business_id: l.business_id || null, confirmed_by: l.confirmed_by || null } : null; }, SIB2_NEW);
+  if (!prec || prec.business_id !== 'b2') fail(`PRECEDENCE: the declared alias sibling (b2) must win over the name-matched decoy record (bZ) — got ${JSON.stringify(prec)}. This is the exact mechanism that split MDD into two records.`);
+  else ok('PRECEDENCE: the declared alias sibling won over a same-name decoy record — the MDD split cannot recur through the linker');
+
   const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5), null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} unexpected JS/console error(s)`);

@@ -74,6 +74,7 @@ const TABLES={
   // M15 (2026-08-25) capture-persistence fixture — empty on purpose: probes assert their OWN
   // writes land (delete-then-insert for lines, upsert for gates), not a pre-seeded state.
   finance_expense_lines_capture:[], finance_expense_gate_capture:[],
+  business_merges:[],
   access_allowlist:[], share_links:[],
   // client↔finance link fixture: maps finance group "Test Company 4" to business b4 (a client),
   // so the harness exercises the real link path (legacy-id L4 → uuid b4 → group → invoices).
@@ -275,6 +276,38 @@ export function start(port, seedOverrides){
           });
         }
         return send(res,200, JSON.stringify({inserted, updated, capture_lines:pCapLines.length, capture_gates:Object.keys(pCapGates.reduce((a,g)=>{a[g.transaction_ref]=1;return a;},{})).length}));
+      }
+      // M18 (2026-08-29) — mirrors fn_merge_businesses()/fn_unmerge_businesses() (migration
+      // business_merges_reversible): repoint child rows to the survivor, archive the dropped
+      // company, record exactly what moved so undo puts it back. The mock only carries the
+      // child tables it has (finance_client_links); the real function covers eleven.
+      if(fn==='fn_merge_businesses'){
+        const keep=parsed&&parsed.p_keep, drop=parsed&&parsed.p_drop;
+        if(!keep||!drop||keep===drop) return send(res,400,{message:'keep and drop must be two different companies',code:'P0001'});
+        const moved={finance_client_links:[],client_profiles:[],client_profiles_closed:[]};
+        (TABLES.finance_client_links||[]).forEach(l=>{ if(l.business_id===drop){ l.business_id=keep; moved.finance_client_links.push(l.id||l.client_group); } });
+        // 2026-09-02, learned from the first live merge: an open prepaid/postpaid profile may
+        // not sit twice on one company (unique index client_profiles_one_open_prepaid_postpaid)
+        // — the dropped company's colliding open profile is CLOSED as it moves, remembered for undo.
+        const openOnKeep=new Set((TABLES.client_profiles||[]).filter(p=>p.business_id===keep&&!p.closed_at&&['prepaid','postpaid'].includes(p.profile_type)).map(p=>p.profile_type));
+        (TABLES.client_profiles||[]).forEach(p=>{ if(p.business_id!==drop)return;
+          if(!p.closed_at&&openOnKeep.has(p.profile_type)){ moved.client_profiles_closed.push({id:p.id,notes:p.notes||null}); p.closed_at=new Date().toISOString(); p.notes=(p.notes?p.notes+'\n':'')+'Closed by merging this company into '+keep+': the kept company already had an open '+p.profile_type+' profile. Undoing the merge reopens it.'; }
+          p.business_id=keep; moved.client_profiles.push(p.id); });
+        const dropRow=(TABLES.businesses||[]).find(b=>b.id===drop);
+        if(dropRow){ dropRow.archived_at=new Date().toISOString(); dropRow.archived_by='merged-into:'+keep; }
+        const row={id:'mock-merge-'+Math.random().toString(36).slice(2), kept_id:keep, dropped_id:drop, dropped_snapshot:dropRow||{id:drop}, kept_before:{}, moved, reason:(parsed&&parsed.p_reason)||null, actor:'mock', merged_at:new Date().toISOString(), undone_at:null, undone_by:null};
+        TABLES.business_merges.push(row);
+        return send(res,200,{merge_id:row.id,kept_id:keep,dropped_id:drop,moved});
+      }
+      if(fn==='fn_unmerge_businesses'){
+        const row=(TABLES.business_merges||[]).find(r=>r.id===(parsed&&parsed.p_merge_id)&&!r.undone_at);
+        if(!row) return send(res,400,{message:'merge not found or already undone',code:'P0001'});
+        (TABLES.finance_client_links||[]).forEach(l=>{ if((row.moved.finance_client_links||[]).indexOf(l.id||l.client_group)>=0) l.business_id=row.dropped_id; });
+        (TABLES.client_profiles||[]).forEach(p=>{ if((row.moved.client_profiles||[]).indexOf(p.id)>=0) p.business_id=row.dropped_id;
+          const c=(row.moved.client_profiles_closed||[]).find(x=>x.id===p.id); if(c){ p.closed_at=null; p.notes=c.notes; } });
+        const dropRow=(TABLES.businesses||[]).find(b=>b.id===row.dropped_id); if(dropRow){ dropRow.archived_at=null; dropRow.archived_by=null; }
+        row.undone_at=new Date().toISOString(); row.undone_by='mock';
+        return send(res,200,{merge_id:row.id,restored_id:row.dropped_id,kept_id:row.kept_id});
       }
       if(fn==='app_role'){
         const me=TABLES.app_users.find(u=>u.id===UID && u.active);

@@ -461,6 +461,46 @@ counts. Sabotage-verified (reverting the button reproduced both failures), resto
 byte-identical.
 *Date: 2026-08-26. Status: ACTIVE.*
 
+**M18 — one company, one record: duplicates are detected automatically and merged through
+one reversible, audited path — never by hand-editing rows, never by deleting.** Born from the
+MDD case: the 2026-08-21 corporate-clients import created "MDD" beside the older "MDD — Smart
+Madad IT". The alias map (M14) merged the DISPLAY, but contacts, activities, billing
+profiles, invoice links and transactions stayed split across two records, and the automatic
+linker made it worse — it matched the Arabic spelling by NAME to the second record even though
+the owner had already declared, in the alias map, that both spellings are one company. Owner
+ruling 2026-08-29/09-02: same company; "find the fix for the future … whether on the merge or
+combined clients or anything, and go ahead." Three parts, each guarded:
+(1) **Linker precedence** — in `js/41-money-in.js`, a declared alias sibling that is already
+linked WINS over a plain name match. A name index can only say "a record with this name
+exists"; the alias map says "this IS that company". Guarded by the PRECEDENCE scenario in
+`scripts/qa/probe-alias-autolink.mjs` (decoy same-name record must lose), sabotage-verified.
+(2) **Detection** — `dupCandidates()` in `js/62-finance-guardrails.js` surfaces pairs with the
+reason stated, strongest first: alias siblings linked to two records; same Direct client ID;
+same CR/VAT number; same normalised name (EN/AR/legal, Arabic letter-forms folded, corporate
+stop-words dropped); same website root domain — with two honesty rules learned on the first
+run: placeholder domains are never a signal, and a domain shared by more than two records is a
+portal or group site, not a duplicate (every QA fixture shares `example.com`; that must not
+paint every pair as a duplicate). Dismissing a pair ("Not a duplicate") is remembered, and
+reversible.
+(3) **Merge = one RPC, previewed, audited, undoable.** `fn_merge_businesses` repoints every
+child row (contacts, activities, requests, offers, projects, billing profiles, finance links,
+transactions, documents) from the dropped record to the survivor, fills the survivor's EMPTY
+profile fields from the dropped one (never overwrites a filled one), archives the dropped
+record (never deletes), and writes a `business_merges` audit row listing exactly what moved;
+`fn_unmerge_businesses` puts every moved row back and un-archives. The confirm names both
+records, the invoice count and total moving, and the undo promise. Admin/manager only.
+Guarded end-to-end (detect → merge → database → reload → undo → database) by
+`scripts/qa/probe-company-dedupe.mjs`, judged by the writes that went out and the mock
+database after, sabotage-verified (dropping the same-name signal reproduced the miss).
+That probe also caught a live landmine outside this feature: the browser confirm wrapper in
+`js/core/core-09-v26.js` rewrote any prompt containing "archive" into "Delete this lead? …
+Yes, delete" and any prompt containing "reset" (a password reset link!) into "Clear all test
+data? … Yes, clear", discarding the caller's real words. Fixed: a template applies only to a
+short prompt that starts with the intent word; anything longer is shown verbatim. The rule:
+a duplicate is fixed by merging records, not by adding another alias; a merge is one audited
+call, not a series of row edits; and nothing on this path deletes.
+*Date: 2026-09-02. Status: ACTIVE.*
+
 **SUPERSEDED — the invoice item split (Service Fee / 3rd Party Fee) is a VAT split, never
 real cost.** An earlier round of this project treated the 3rd-Party-Fee line as the real
 cost figure; re-verified live against Direct Payments and found wrong — that line is a VAT

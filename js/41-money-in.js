@@ -379,8 +379,6 @@
       attempted[g]=true;
       var info=groups[g];
       if(info.b2c>0&&info.b2b===0){ todo.push({g:g,indiv:true}); return; }   // pure individuals
-      var b=ix[norm(g)];
-      if(b){ todo.push({g:g,biz:b}); return; }
       // M14 (owner, 2026-08-25): the client-name alias map must be consulted on the IMPORT/
       // linking path too, beside the exclusion check — not only at display time. If this
       // spelling is a registered alias and a sibling spelling is already linked, it is the
@@ -388,6 +386,10 @@
       // Found in the 2026-08-29 sweep: display merged the spellings, but the link (which
       // finSectorOf() reads by RAW client_group) did not follow, so a fresh alias spelling
       // could sit unlinked and mis-sectored until a human noticed.
+      // M18 (same day): the declared sibling WINS over a name match. The MDD split happened
+      // exactly because the Arabic spelling name-matched a second, duplicate company record
+      // while the owner had already declared it the same company as "MDD" — a name index can
+      // only say "a record with this name exists", the alias map says "this IS that company".
       try{
         var e=(typeof window.finGroupCheck==='function')?window.finGroupCheck(g):null;
         if(e){
@@ -395,6 +397,8 @@
           if(sib){ todo.push({g:g,bizId:sib.business_id,viaAlias:true}); return; }
         }
       }catch(_){}
+      var b=ix[norm(g)];
+      if(b){ todo.push({g:g,biz:b}); return; }
       // no match → stays unlinked and visible; a human decides (edge case only)
     });
     if(!todo.length)return;

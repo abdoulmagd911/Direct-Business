@@ -481,11 +481,17 @@
 
   /* ===== S6: Plain-language confirms ===== */
   /* Wrap window.confirm so destructive flows use a friendlier dialog. */
+  /* 2026-09-02: templates apply only to SHORT prompts that START with the intent word. The old
+     loose patterns (/archive/, /reset/) swallowed the caller's real message: a company MERGE
+     that said "archived, not deleted" became "Delete this lead? … Yes, delete", and "Send a
+     password reset link?" became "Clear all test data? … Yes, clear". Caught by
+     scripts/qa/probe-company-dedupe.mjs. A long message already speaks plain language — it is
+     shown verbatim under the generic title; the caller's words are never discarded. */
   var V26_CONFIRM_MAP=[
-    {match:/archive|soft-delete|delete this lead|delete lead/i,en:{title:'Delete this lead?',body:'It moves to Archive where you can restore it within 30 days.',cancel:'Cancel',ok:'Yes, delete'},ar:{title:'حذف هذا العميل المحتمل؟',body:'سينتقل إلى الأرشيف ويمكن استعادته خلال 30 يومًا.',cancel:'إلغاء',ok:'نعم، احذف'}},
-    {match:/reset|clear test|go-live|wipe/i,en:{title:'Clear all test data?',body:'Templates, settings, and your real B2B clients stay. A backup is saved first.',cancel:'Cancel',ok:'Yes, clear'},ar:{title:'مسح جميع بيانات الاختبار؟',body:'القوالب والإعدادات وعملاء B2B الحقيقيون يبقون. سيتم حفظ نسخة احتياطية أولاً.',cancel:'إلغاء',ok:'نعم، امسح'}},
-    {match:/credit|over-limit|override/i,en:{title:'Over the credit limit',body:'This client is over their credit limit. Override means you choose to proceed anyway and the action is logged for Finance.',cancel:'Cancel',ok:'Override and continue'},ar:{title:'تجاوز حد الائتمان',body:'هذا العميل تجاوز حد الائتمان. التجاوز يعني اختيار المتابعة وتسجيل العملية للحسابات.',cancel:'إلغاء',ok:'تجاوَز وتابع'}},
-    {match:/refund|cancel.*ticket|void/i,en:{title:'Cancel / refund?',body:'This will ask Finance to refund. The actual refund happens inside Direct Payments.',cancel:'Cancel',ok:'Yes, ask Finance'},ar:{title:'إلغاء / استرداد؟',body:'سيُطلب من قسم الحسابات الاسترداد. التنفيذ الفعلي يتم داخل Direct Payments.',cancel:'إلغاء',ok:'نعم، اطلب من الحسابات'}},
+    {match:/^(archive|soft-delete|delete)\s+(this\s+)?lead\b/i,en:{title:'Delete this lead?',body:'It moves to Archive where you can restore it within 30 days.',cancel:'Cancel',ok:'Yes, delete'},ar:{title:'حذف هذا العميل المحتمل؟',body:'سينتقل إلى الأرشيف ويمكن استعادته خلال 30 يومًا.',cancel:'إلغاء',ok:'نعم، احذف'}},
+    {match:/^(reset|clear\s+test|go-live|wipe)\b/i,en:{title:'Clear all test data?',body:'Templates, settings, and your real B2B clients stay. A backup is saved first.',cancel:'Cancel',ok:'Yes, clear'},ar:{title:'مسح جميع بيانات الاختبار؟',body:'القوالب والإعدادات وعملاء B2B الحقيقيون يبقون. سيتم حفظ نسخة احتياطية أولاً.',cancel:'إلغاء',ok:'نعم، امسح'}},
+    {match:/^(credit|over-limit|override)\b|\bcredit limit\b/i,en:{title:'Over the credit limit',body:'This client is over their credit limit. Override means you choose to proceed anyway and the action is logged for Finance.',cancel:'Cancel',ok:'Override and continue'},ar:{title:'تجاوز حد الائتمان',body:'هذا العميل تجاوز حد الائتمان. التجاوز يعني اختيار المتابعة وتسجيل العملية للحسابات.',cancel:'إلغاء',ok:'تجاوَز وتابع'}},
+    {match:/^(refund|void|cancel\b.*\bticket)/i,en:{title:'Cancel / refund?',body:'This will ask Finance to refund. The actual refund happens inside Direct Payments.',cancel:'Cancel',ok:'Yes, ask Finance'},ar:{title:'إلغاء / استرداد؟',body:'سيُطلب من قسم الحسابات الاسترداد. التنفيذ الفعلي يتم داخل Direct Payments.',cancel:'إلغاء',ok:'نعم، اطلب من الحسابات'}},
     {match:/.+/,en:{title:'Are you sure?',body:'',cancel:'Cancel',ok:'Yes, continue'},ar:{title:'هل أنت متأكد؟',body:'',cancel:'إلغاء',ok:'نعم، تابع'}}
   ];
 
@@ -496,7 +502,10 @@
       var lang=v26GetLang();
       // Pick matching template
       var tpl=null;
+      var last=V26_CONFIRM_MAP.length-1;
       for(var i=0;i<V26_CONFIRM_MAP.length;i++){
+        // a specific template only for a short prompt; a long message is shown as written
+        if(i<last&&msg.length>60)continue;
         if(V26_CONFIRM_MAP[i].match.test(msg)){tpl=V26_CONFIRM_MAP[i];break;}
       }
       tpl=tpl||V26_CONFIRM_MAP[V26_CONFIRM_MAP.length-1];
