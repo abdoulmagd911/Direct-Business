@@ -239,7 +239,19 @@ collide with the open period-filter question above. Ordered by recommendation:
    new "Uninvoiced Transactions" line. Ours already keeps a Ready-vs-Pending split by rule
    (DECISIONS → "Only confirmed, fully-paid tax invoices count as revenue") — worth one probe
    confirming no card or export ever adds the two together, then a label pass. Verification
-   first, feature second.
+   first, feature second. → **VERIFIED + LABELLED 2026-08-29.** New
+   `scripts/qa/probe-outstanding-split.mjs` proves, from raw rows recomputed independently:
+   Overview "Outstanding" equals money still owed on live *invoices* only; the Ledger's
+   "Confirmed revenue" is ready + invoiced transactions only, pending estimates shown
+   separately; and no Overview tile carries the ready-but-uninvoiced transaction amount or a
+   blend of the two. Sabotage-verified by hand (Overview made to add ready-transaction money
+   into Outstanding → 3 failures; `js/16` restored byte-identical, md5 checked). Label pass:
+   the Overview tile now reads **"Outstanding (invoiced)"** / «المتبقي (مفوتر)» so it says
+   which outstanding it is; `diag-ledger` regex widened for the parenthetical. **Still open,
+   the owner's call:** whether Overview should ALSO show a separate "Ready to invoice (not yet
+   invoiced)" line the way Direct's Payments team does — it would mean Overview reading the
+   transactions dataset (two tiles, never one number, so the rule holds), and deciding how the
+   period bar applies to transactions (`created_at_source`). Not done unprompted.
 3. **Invoice timeline card** (Finance ledger, per invoice; `js/16`). Their Hotels team added an
    "Order Timeline" — created → invoiced → paid → confirmed as one strip. Ours holds the same
    facts as separate fields (created, verified, paid, closed). Nice, not urgent; render-time

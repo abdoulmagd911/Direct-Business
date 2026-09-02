@@ -31,7 +31,7 @@ for (const lang of ['en','ar']) {
       const kpis = {};
       ['Revenue','Cost','Profit','Received','Outstanding','Invoices',
        'الإيراد','التكلفة','الربح','المحصل','المتبقي','الفواتير']
-        .forEach(k=>{ const m = txt.match(new RegExp(k+'\\s*([\\d.,]+[KM]?)','i')); if(m) kpis[k]=m[1]; });
+        .forEach(k=>{ const m = txt.match(new RegExp(k+'(?:\\s*\\([^)]*\\))?\\s*([\\d.,]+[KM]?)','i')); if(m) kpis[k]=m[1]; });
       /* every table on the tab, every row, cell by cell */
       const tables = [...v.querySelectorAll('table')].map(t =>
         [...t.querySelectorAll('tr')].map(r =>
