@@ -1,5 +1,34 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 (overnight) · Watch cycle 10 — a deleted invoice could be silently overwritten by a re-import
+
+**Attack area: the importer against invoices the owner has DELETED**, new
+`scripts/qa/probe-deleted-invoice-attacks.mjs` (port 8205, 10 checks).
+
+**Real gap, fixed in `js/65`.** `finLoad()` selects `finance_invoices` with no `deleted_at`
+filter — deliberately, so the Ledger can offer Restore — so `FIN.rows` carries soft-deleted
+rows. The importer's `initState()` indexed **every** one of them as "already exists". Proved
+end to end: soft-delete an invoice, drop a file containing it with a different total, and the
+preview reported "**Updated 2**" and wrote 99,999 into a row that stays invisible on every
+screen. From the owner's chair: *"I deleted it, dropped the file again, it said updated, and
+the invoice never came back."* The cost-capture join had the same blind spot, and reported a
+deleted invoice as "not a live invoice — likely an invoice-import gap", which is a different
+problem with a different fix.
+
+Deleted invoice numbers are now kept in their own index and **reported, never written to and
+never silently resurrected** — "deleted in this app — restore it first, then re-import; nothing
+was written" — on all three paths that match by invoice number (the mapped/teach-once and
+Invoice-Export merge, the tax-invoice capture, and the Level-2 cost join, where it also says how
+many transactions issue into it). Restoring stays the owner's decision. A number that has both a
+live and a deleted row still matches the live one, exactly as before.
+
+**Held in the same drop:** a live invoice still updates, a brand-new number still inserts, no
+duplicate row is created for the deleted number, and an invoice this app has never seen is still
+reported as a likely import gap — two different problems, two messages.
+
+**Sabotage-verified** (index deleted rows as existing again → 4 red). Restore byte-identical
+(md5); structure check green; eight importer-family probes re-run green.
+
 ## 2026-09-02 (overnight) · Watch cycle 9 — the targets editor was silently changing what you typed
 
 **Attack area: Plan vs actual and its "Set targets" editor** (`js/16`), new

@@ -273,11 +273,22 @@
   /* ================= shared diff / preview state — used by BOTH invoice_export and a
      teach-once mapped file, so there is exactly one "new vs updated vs unchanged, needs
      linking" implementation, not two that could quietly drift apart. ================= */
+  /* 2026-09-02 (overnight cycle, scripts/qa/probe-deleted-invoice-attacks.mjs) — finLoad()
+     selects finance_invoices with NO deleted_at filter on purpose (the Ledger offers Restore),
+     so FIN.rows carries soft-deleted rows too. This index used to treat every one of them as
+     "already exists": re-importing an invoice the owner had DELETED matched the deleted row,
+     reported "1 updated", and wrote the new figures into a row that stays invisible on every
+     screen. From the owner's chair: "I deleted it, dropped the file again, it said updated, and
+     the invoice never came back." Deleted numbers are now kept apart and reported, never
+     written to and never silently resurrected — restoring is his decision, not the importer's.
+     A number that has BOTH a live and a deleted row (deleted one line, re-imported later) is
+     matched on the live row, exactly as before. */
   function initState(){
-    var existingByNo={};
-    ((window.FIN&&FIN.rows)||[]).forEach(function(r){ if(r.invoice_no) existingByNo[r.invoice_no]=r; });
+    var existingByNo={}, deletedByNo={};
+    ((window.FIN&&FIN.rows)||[]).forEach(function(r){ if(r.invoice_no&&!r.deleted_at) existingByNo[r.invoice_no]=r; });
+    ((window.FIN&&FIN.rows)||[]).forEach(function(r){ if(r.invoice_no&&r.deleted_at&&!existingByNo[r.invoice_no]) deletedByNo[r.invoice_no]=r; });
     return {
-      existingByNo:existingByNo,
+      existingByNo:existingByNo, deletedByNo:deletedByNo,
       linkByGroup:(window.FIN&&FIN.linkByGroup)||{},
       isNew:[], updated:[], unchangedCount:0,
       excludedByRule:0, excludedDetail:{wallet:0,verif:0,clientExcluded:0,clientExcludedDetail:[],costCaptureDetail:[]},
@@ -320,8 +331,17 @@
     });
   }
   function isLinked(r,linkByGroup){ var l=linkByGroup[r.client_group]; return !!(l&&(l.business_id||l.is_client===false)); }
+  function deletedHereNote(no){
+    return fl('deleted in this app — restore it first, then re-import; nothing was written',
+              'محذوفة في هذا التطبيق — استرجعها أولًا ثم أعد الاستيراد؛ لم يُكتب شيء');
+  }
   function mergeRowsIntoState(rows,state){
     rows.forEach(function(r){
+      if(!state.existingByNo[r.invoice_no]&&state.deletedByNo&&state.deletedByNo[r.invoice_no]){
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:r.invoice_no,reason:deletedHereNote(r.invoice_no)});
+        return;
+      }
       var ex=state.existingByNo[r.invoice_no];
       if(!ex){ var nr=pickWritable(r); state.isNew.push(nr); if(!isLinked(nr,state.linkByGroup))state.needsLinking++; }
       else if(rowDiffers(ex,r)){ var u=Object.assign({},pickWritable(r),{id:ex.id}); state.updated.push(u); if(!isLinked(u,state.linkByGroup))state.needsLinking++; }
@@ -491,6 +511,12 @@
       var taxCode=String(row[ixCode]||'').trim();
       var status=String(row[ixSt]||'').trim();
       var existing=state.existingByNo[invNo];
+      if(!existing&&state.deletedByNo&&state.deletedByNo[invNo]){
+        // a deleted invoice is a different problem from an invoice this app has never seen
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:deletedHereNote(invNo)});
+        return;
+      }
       if(!existing){
         // Never inserted — see the module comment above. Reported the same way every other
         // "not a live invoice" case is reported across this importer.
@@ -736,6 +762,12 @@
     Object.keys(invoiceGroups).forEach(function(invNo){
       var refs=invoiceGroups[invNo];
       var existing=state.existingByNo[invNo];
+      if(!existing&&state.deletedByNo&&state.deletedByNo[invNo]){
+        // deleted here is a different problem from "this app has never seen that invoice"
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:deletedHereNote(invNo)+fl(' ('+refs.length+' transaction(s) issue into it)',' ('+refs.length+' معاملة تصدر إليها)')});
+        return;
+      }
       if(!existing){
         // Not a live invoice — a real gap between Direct Payments' own tax-invoice list and
         // this app's finance_invoices table (2026-08-24 finding: 3 such gaps, all with real
