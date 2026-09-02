@@ -222,7 +222,18 @@ collide with the open period-filter question above. Ordered by recommendation:
    screen with exactly which statuses feed it ("Total Sales = fully paid only"). Our Quick-view
    presets already do this correctly underneath — nothing on screen says so. Smallest, safest,
    directly serves M1/"only confirmed fully-paid counts" by making the rule visible at the
-   point of reading. **Recommend first.**
+   point of reading. **Recommend first.** → **BUILT 2026-08-29** (owner: "act on what you
+   recommend"): a one-line "What this report counts" caption under the Report Builder
+   controls, computed from the same `rb` state and the same base row set the table is built
+   from — never a second copy of the rule — stating scope (verified fully-paid only vs. all
+   live incl. unpaid), period, the standing exclusions, the row count, and, honestly, that the
+   period bar above does not apply to this report (the 2026-08-27 gap, now disclosed on screen
+   rather than silent; the design question itself stays open). `probe-report-presets.mjs`
+   extended: caption scope must match the preset, its count must equal an independent recount
+   from raw rows AND the rows behind the rendered table, and it must say all this in words;
+   fixture now carries one unpaid row so the two scopes differ (16 vs 17) and the count check
+   can actually fail. Sabotage-verified (`SABOTAGE=2` inverts the caption's scope → 3
+   failures). `sweep-language` and `audit-finance-tabs` unchanged before/after.
 2. **"Uninvoiced work" vs "invoiced outstanding" as two lines, never one** (Finance Overview;
    `js/16`). Their Payments team split "Outstanding Balance" into "Invoiced Outstanding" and a
    new "Uninvoiced Transactions" line. Ours already keeps a Ready-vs-Pending split by rule

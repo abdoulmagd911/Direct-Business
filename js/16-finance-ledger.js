@@ -905,6 +905,23 @@ function rReports(){
               : ('\u26a0 '+unl+' invoice group'+(unl>1?'s':'')+' could not be matched to a client automatically \u2014 shown under their own name. <span style="color:#FF6B00;cursor:pointer;font-weight:700" onclick="try{finLinkMap()}catch(e){}">Review them</span>'))
       : (isArF()?'\u2713 \u0643\u0644 \u0645\u062c\u0645\u0648\u0639\u0627\u062a \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0645\u0631\u062a\u0628\u0637\u0629 \u0628\u0639\u0645\u064a\u0644.':'\u2713 Every invoice group is linked to a client.'))+'</div>';
   }
+  /* Scope caption (2026-08-29, borrowed from Direct's own Marketing dashboards, which label
+     every metric with exactly which invoice statuses feed it). Computed from the SAME rb
+     state and the SAME base set the table below is built from — never a second copy of the
+     rule — so what it says can't drift from what the numbers are. It also states plainly
+     what this report does NOT do (follow the period bar), which was the silent gap logged in
+     BACKLOG 2026-08-27; saying it on screen is not the design fix, but it stops a reader
+     assuming a sector- or year-scoped number they never got. */
+  var _rbN=base.length;
+  var _capScope=rb.verifiedOnly
+    ? (isArF()?'\u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0636\u0631\u064a\u0628\u064a\u0629 \u0627\u0644\u0645\u062f\u0642\u0642\u0629 \u0648\u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629 \u0628\u0627\u0644\u0643\u0627\u0645\u0644 \u0641\u0642\u0637':'verified, fully-paid tax invoices only')
+    : (isArF()?'\u0643\u0644 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u062d\u064a\u0629 \u2014 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629 \u0648\u063a\u064a\u0631 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629 \u0645\u0639\u0627\u064b':'all live invoices, paid and unpaid together');
+  var _capPeriod=rb.quarter==='all'?(isArF()?'\u0643\u0644 \u0627\u0644\u0641\u062a\u0631\u0627\u062a':'all periods'):rb.quarter;
+  var _capTail=isArF()
+    ? '\u0639\u0628\u0631 \u0643\u0644 \u0627\u0644\u0633\u0646\u0648\u0627\u062a \u0648\u0627\u0644\u0642\u0637\u0627\u0639\u0627\u062a \u2014 \u0634\u0631\u064a\u0637 \u0627\u0644\u0641\u062a\u0631\u0629 \u0623\u0639\u0644\u0627\u0647 \u0644\u0627 \u064a\u0646\u0637\u0628\u0642 \u0639\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u062a\u0642\u0631\u064a\u0631. \u0627\u0644\u0645\u0644\u063a\u0627\u0629 \u0648\u0634\u062d\u0646 \u0627\u0644\u0645\u062d\u0641\u0638\u0629 \u0648\u0627\u0644\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u0633\u062a\u0628\u0639\u062f\u0629 \u0644\u0627 \u062a\u064f\u062d\u0633\u0628 \u0623\u0628\u062f\u0627\u064b.'
+    : 'across all years and sectors \u2014 the period bar above does not apply to this report. Void, wallet top-ups and excluded partners are never counted.';
+  h+='<div id="rb-caption" data-scope="'+(rb.verifiedOnly?'verified':'all')+'" data-n="'+_rbN+'" style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#F8F7F4;font-size:12px;color:#444;line-height:1.5">'
+    +'<b>'+(isArF()?'\u0645\u0627 \u0627\u0644\u0630\u064a \u064a\u064f\u062d\u0633\u0628 \u0647\u0646\u0627':'What this report counts')+':</b> '+_capScope+' \u00b7 '+_capPeriod+', '+_capTail+' <span style="color:var(--muted)">('+_rbN+' '+(isArF()?'\u0641\u0627\u062a\u0648\u0631\u0629':'invoice'+(_rbN===1?'':'s'))+')</span></div>';
   h+='</div>';
   var mets=Object.keys(rb.metrics).filter(function(k){return rb.metrics[k];});
   if(!mets.length)mets=['revenue_sar'];

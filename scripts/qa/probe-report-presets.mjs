@@ -2,7 +2,12 @@
    Proves the three buttons (Executive monthly / Collections chase / Tax pack) each set
    FIN.rb to the intended shape, that the active one highlights, and that switching back to
    a manual combination clears the highlight. Sabotage-tested: run with SABOTAGE=1 to prove
-   a broken preset (wrong g1) makes this probe fail, not just pass by accident. */
+   a broken preset (wrong g1) makes this probe fail, not just pass by accident.
+   2026-08-29: also proves the scope caption ("What this report counts") — it must exist,
+   its scope must match the preset (verified-only vs all live), and the invoice count it
+   states must equal the rows the table was actually built from (same base set, no second
+   copy of the rule). SABOTAGE=2 breaks the caption (scope attribute inverted) to prove the
+   caption checks can fail. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
@@ -12,6 +17,7 @@ let failures = 0;
 const fail = (m) => { failures++; console.log('  ✗ ' + m); };
 const ok = (m) => console.log('  ✓ ' + m);
 const SABOTAGE = process.env.SABOTAGE === '1';
+const SABOTAGE_CAPTION = process.env.SABOTAGE === '2';
 
 async function main() {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -61,6 +67,56 @@ async function main() {
   };
   await settle();
 
+  // Caption check: reads the caption the page rendered and recomputes the expected invoice
+  // count from the app's own filters, independently of the caption's own code path.
+  const checkCaption = async (label, expectScope) => {
+    const c = await p.evaluate(() => {
+      const el = document.querySelector('#rb-caption'); if (!el) return null;
+      const rb = FIN.rb;
+      // live()/verified() are IIFE-scoped and unreachable from here (build-log lesson) — so
+      // recompute from the raw rows with the app's own public exclusion check. That is the
+      // better test anyway: an independent count, not the caption's own helper re-run.
+      const ex = (typeof window.finExclusionCheck === 'function') ? window.finExclusionCheck : () => false;
+      const base = (FIN.rows || []).filter(r => !r.deleted_at && !(ex(r.client_group) || ex(r.customer_raw_name)))
+        .filter(r => !rb.verifiedOnly || r.integrity_status === 'verified_paid')
+        .filter(r => rb.quarter === 'all' || r.quarter === rb.quarter);
+      return { scope: el.getAttribute('data-scope'), n: +el.getAttribute('data-n'), text: el.textContent.trim(), expectN: base.length,
+               tableRowsBehind: (FIN._lastReport && FIN._lastReport.keys || []).reduce((a, k) => a + FIN._lastReport.g[k].__rows.length, 0) };
+    });
+    if (!c) { fail(label + ': no #rb-caption rendered'); return; }
+    if (c.scope !== expectScope) fail(label + `: caption scope is "${c.scope}", expected "${expectScope}"`); else ok(label + `: caption scope = ${expectScope}`);
+    if (c.n !== c.expectN) fail(label + `: caption says ${c.n} invoices, the same filters give ${c.expectN}`); else ok(label + `: caption count ${c.n} = rows the filters actually select`);
+    if (c.n !== c.tableRowsBehind) fail(label + `: caption says ${c.n} invoices, the rendered table is built from ${c.tableRowsBehind}`); else ok(label + `: caption count = rows behind the rendered table`);
+    const want = expectScope === 'verified' ? /fully-paid|المدفوعة بالكامل/ : /paid and unpaid|المدفوعة وغير المدفوعة/;
+    if (!want.test(c.text)) fail(label + ': caption text does not state the scope in words: ' + c.text.slice(0, 120)); else ok(label + ': caption states the scope in words');
+    if (!/period bar above does not apply|شريط الفترة/.test(c.text)) fail(label + ': caption does not disclose that the period bar is ignored here'); else ok(label + ': caption discloses the period-bar gap');
+  };
+  if (SABOTAGE_CAPTION) {
+    // Invert the scope attribute after every render — the caption now lies about what's counted.
+    await p.evaluate(() => {
+      const orig = window.render;
+      window.render = function () { orig.apply(this, arguments); const el = document.querySelector('#rb-caption'); if (el) el.setAttribute('data-scope', el.getAttribute('data-scope') === 'verified' ? 'all' : 'verified'); };
+    });
+  }
+
+  // Add one synthetic UNPAID invoice so the verified-only and all-live sets differ by exactly
+  // one row — otherwise (the seed is all verified_paid) the caption's count could never tell
+  // the two scopes apart and the count check would be incapable of failing on scope.
+  await p.evaluate(() => {
+    FIN.rows.push({ id: 'qa-caption-unpaid', invoice_no: 'QA-CAPTION-UNPAID-1', client_group: 'QA Caption Co', customer_raw_name: 'QA Caption Co',
+      integrity_status: 'pending', total_incl_vat_sar: 1000, revenue_sar: 1000, cost_sar: 0, profit_sar: 1000, amount_received_sar: 0, amount_remaining_sar: 1000,
+      invoice_date: '2026-03-03', month: 'March', quarter: 'Q1', year: 2026, service_type: 'flights', record_type: 'invoice', deleted_at: null });
+    render();
+  });
+  await settle();
+  const counts = await p.evaluate(() => {
+    const ex = (typeof window.finExclusionCheck === 'function') ? window.finExclusionCheck : () => false;
+    const rows = (FIN.rows || []).filter(r => !r.deleted_at && !(ex(r.client_group) || ex(r.customer_raw_name)));
+    return { all: rows.length, verified: rows.filter(r => r.integrity_status === 'verified_paid').length };
+  });
+  if (counts.all === counts.verified + 1) ok(`fixture: ${counts.verified} verified-paid + 1 unpaid = ${counts.all} live (scopes now distinguishable)`);
+  else fail('fixture setup: expected all = verified + 1, got ' + JSON.stringify(counts));
+
   // 1. Buttons render
   const btnCount = await p.evaluate(() => document.querySelectorAll('button[onclick^="finRBPreset"]').length);
   if (btnCount === 3) ok('3 quick-view buttons render'); else fail('expected 3 quick-view buttons, found ' + btnCount);
@@ -74,6 +130,7 @@ async function main() {
   } else fail('Executive monthly rb mismatch: ' + JSON.stringify(rb));
   let activeCount = await p.evaluate(() => document.querySelectorAll('button[onclick^="finRBPreset"].pri').length);
   if (activeCount === 1) ok('exactly one preset button highlighted after Executive monthly'); else fail('expected 1 highlighted preset, found ' + activeCount);
+  await checkCaption('Executive monthly', 'verified');
 
   // 3. Collections chase
   await p.evaluate(() => finRBPreset('collect'));
@@ -82,6 +139,7 @@ async function main() {
   if (rb.g1 === '__client' && rb.verifiedOnly === false && rb.metrics.amount_received_sar && rb.metrics.amount_remaining_sar) {
     ok('Collections chase groups by client, turns OFF verified-only, shows received/outstanding');
   } else fail('Collections chase rb mismatch: ' + JSON.stringify(rb));
+  await checkCaption('Collections chase', 'all');
 
   // 4. Tax pack
   await p.evaluate(() => finRBPreset('tax'));
@@ -90,6 +148,7 @@ async function main() {
   if (rb.g1 === 'quarter' && rb.g2 === 'service_type' && rb.verifiedOnly === true && rb.metrics.revenue_sar) {
     ok('Tax pack groups by quarter › service type, verified-only revenue');
   } else fail('Tax pack rb mismatch: ' + JSON.stringify(rb));
+  await checkCaption('Tax pack', 'verified');
 
   // 5. Manual tweak clears the highlight (proves it's a live match, not a sticky flag)
   await p.evaluate(() => finRB('g1', 'record_type'));
@@ -99,7 +158,7 @@ async function main() {
 
   if (errors.length) { errors.forEach(e => fail(e)); }
 
-  console.log(SABOTAGE ? '\n[SABOTAGE MODE]' : '');
+  console.log(SABOTAGE ? '\n[SABOTAGE MODE]' : SABOTAGE_CAPTION ? '\n[SABOTAGE MODE — caption]' : '');
   console.log(failures === 0 ? '\nALL PASS' : '\n' + failures + ' FAILURE(S)');
   await b.close(); srv.close();
   process.exit(failures === 0 ? 0 : 1);
