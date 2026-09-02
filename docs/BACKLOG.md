@@ -1,5 +1,42 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 35 — "Top clients by revenue" was presenting unrecorded costs as 100% margin (fixed)
+
+**Found by a live read-only sweep, not by reading code** — and it is the only defect this
+overnight run has found that is biting *today*, on *real money*.
+
+Of 46 live invoices, **19 carry `cost_sar = 0` rather than NULL**, and the database trigger
+derives `profit = revenue − 0`, so those 19 record their entire sale as profit. Grouped by
+client that is **5 of 18 client groups with no recorded cost on any invoice**, appearing in
+"Top clients by revenue" as **131,871 SAR at 100% margin**. (Counts and the aggregate only —
+no names, no per-client figures, rule 7.)
+
+The Finance overview headline was already honest about this: *"N of M invoices in this period
+carry no recorded cost — margin may read higher than reality until their expenses arrive."*
+That was correct and stays. But the *per-client table* is where a manager decides which client
+is worth the effort, and it showed those clients a Cost of **0** and a Profit equal to their
+whole revenue with nothing to mark it. **The warning was in the room; it just was not next to
+the number being misread.** That is the lesson worth keeping: a caveat at the top of a page does
+not protect a table further down it.
+
+Same rule as rounds 29 / 31 / 33 (M8) — a cost nobody has recorded is not zero, and a profit
+derived from it is not a profit:
+
+- a client with **no** cost on any invoice → Cost reads "not recorded", Profit reads "unknown";
+  its **revenue is still shown in full**, because that part genuinely is known
+- a client with **some** → the real numbers, plus ⚠ so the reader knows they are partial
+- a client with **all** costs recorded → untouched, no marker, no noise
+- the Total row keeps the true arithmetic, because it must still reconcile against the ledger,
+  and now says the profit total is **an upper bound, not a final figure**
+
+Guarded by `scripts/qa/probe-client-profit-honest.mjs` (11 checks, EN + AR), sabotage verified —
+reverting the row reproduces "Cost 0 · Profit 60,000" for a client nobody has costed.
+
+**Not done, and deliberately left for the owner: the live data itself.** Those 19 rows hold `0`
+where they mean "unknown". Changing them to NULL would alter every profit figure in the app and
+is a real-data mutation on real invoices — his call, not a session's. The app now tells the
+truth about them either way, which is the part that was reachable from here.
+
 ## 2026-09-02 · Round 34 — the five printed documents, guarded for the first time (and the "blank print" report closed)
 
 The sweep reported "Print/PDF comes out blank in all five document generators". Driven end to

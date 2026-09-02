@@ -499,12 +499,33 @@ function rFinClients(){
      (arOut>0?('<div style="display:flex;gap:8px;flex-wrap:wrap">'+_agc(_fl('0–30 days','0–30 يوم'),ag.b030)+_agc(_fl('31–60 days','31–60 يوم'),ag.b3160)+_agc(_fl('61–90 days','61–90 يوم'),ag.b6190)+_agc(_fl('90+ days','90+ يوم'),ag.b90)+(ag.nodate>0?_agc(_fl('No invoice date','بدون تاريخ فاتورة'),ag.nodate):'')+'</div>')
        :('<div style="font-size:12px;color:#0F6E56">✓ '+_fl('Nothing outstanding','لا توجد مستحقات')+'</div>'))))+
      '</div>';
-  var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,_i:{},key:cc.key,directId:cc.directId};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
+  /* 2026-09-02 (round 35): the overview headline already warns that some invoices in the period
+     carry no recorded cost — but THIS table is where a manager decides which client is worth
+     the effort, and it was showing those clients a Cost of 0 and a Profit equal to their whole
+     revenue, with nothing to say the cost is simply unknown. Live today that is 5 of 18 client
+     groups and 131,871 SAR presented as 100% margin. Same rule as everywhere else (M8): a cost
+     nobody has recorded is not zero, and a profit derived from it is not a profit.
+     nz counts the invoices in each group with no cost recorded. */
+  var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,nz:0,_i:{},key:cc.key,directId:cc.directId};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;if((+r.cost_sar||0)===0)byC[k].nz++;byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
+  function _cCell(x){ // cost cell: a group with NO cost on any invoice shows the words, not a 0
+    if(x.nz>=x.n) return '<span style="color:#B54708" title="'+(isArF()?'لم تُسجَّل تكلفة لأي فاتورة لهذا العميل':'No cost recorded on any of this client\'s invoices')+'">'+(isArF()?'غير مسجّلة':'not recorded')+'</span>';
+    return money0(x.c)+(x.nz?('<span style="color:#B54708;font-size:10.5px" title="'+(isArF()?'بعض الفواتير بلا تكلفة مسجّلة':'some invoices carry no recorded cost')+'"> ⚠</span>'):'');
+  }
+  function _pCell(x){ // profit follows: unknown cost means unknown profit, never the whole sale
+    if(x.nz>=x.n) return '<span style="color:#B54708" title="'+(isArF()?'الربح غير معروف حتى تُسجَّل التكلفة':'Profit is unknown until a cost is recorded')+'">'+(isArF()?'غير معروف':'unknown')+'</span>';
+    return money0(x.p)+(x.nz?'<span style="color:#B54708;font-size:10.5px"> ⚠</span>':'');
+  }
   var top=Object.keys(byC).sort(function(a,b){return byC[b].r-byC[a].r;}).slice(0,10);
-  var _tc={r:0,c:0,p:0};Object.keys(byC).forEach(function(k){_tc.r+=byC[k].r;_tc.c+=byC[k].c;_tc.p+=byC[k].p;});
+  var _tc={r:0,c:0,p:0,gaps:0};Object.keys(byC).forEach(function(k){_tc.r+=byC[k].r;_tc.c+=byC[k].c;_tc.p+=byC[k].p;if(byC[k].nz)_tc.gaps++;});
+  /* The Total row keeps the real arithmetic — it must still reconcile against the ledger — but
+     a total built partly on unrecorded costs is an upper bound on profit, not a profit, and it
+     now says so rather than leaving the reader to infer it from the rows above. */
+  var _tcNote=_tc.gaps?('<div style="font-size:11px;color:#B54708;font-weight:600;margin-top:8px">⚠ '+(isArF()
+    ?(_tc.gaps+' من العملاء لديهم فواتير بلا تكلفة مسجّلة — إجمالي الربح أعلاه حدّ أقصى وليس رقمًا نهائيًا.')
+    :(_tc.gaps+' of these clients have invoices with no recorded cost — the profit total above is an upper bound, not a final figure.'))+'</div>'):'';
   h+='<div class="card" style="padding:16px"><h3 class="finh" style="margin:0 0 10px">'+(isArF()?'أعلى العملاء':'Top clients by revenue')+'<i>'+finPeriodLabel()+'</i></h3><div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:480px"><tr style="background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+'"><th style="padding:7px 9px">'+(isArF()?'العميل':'Client')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الإيرادات':'Revenue')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'التكلفة':'Cost')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الربح':'Profit')+'</th></tr>'+top.map(function(k){
-    return '<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finClient(\''+escF(byC[k].key).replace(/'/g,"\\'")+'\',\''+escF(k).replace(/'/g,"\\'")+'\')"><td style="padding:6px 9px;font-weight:600">'+escF(k)+(byC[k].directId?(' <span style="color:var(--muted);font-size:10.5px">#'+escF(byC[k].directId)+'</span>'):'')+'</td><td style="padding:6px 9px;text-align:right;font-weight:700">'+money0(byC[k].r)+'</td><td style="padding:6px 9px;text-align:right;color:#B54708">'+money0(byC[k].c)+'</td><td style="padding:6px 9px;text-align:right;color:#0F6E56;font-weight:700">'+money0(byC[k].p)+'</td></tr>';
-  }).join('')+'<tr style="background:#303848;color:#fff;font-weight:800"><td style="padding:7px 9px">'+(isArF()?'الإجمالي الكلي':'Total')+(Object.keys(byC).length>top.length?(' <span style="font-weight:400;font-size:10.5px;opacity:.85">'+(isArF()?('— كل العملاء ('+Object.keys(byC).length+')، أعلى 10 معروضون'):('— all '+Object.keys(byC).length+' clients, top 10 shown'))+'</span>'):'')+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.r)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.c)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.p)+'</td></tr></table></div></div>';
+    return '<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finClient(\''+escF(byC[k].key).replace(/'/g,"\\'")+'\',\''+escF(k).replace(/'/g,"\\'")+'\')"><td style="padding:6px 9px;font-weight:600">'+escF(k)+(byC[k].directId?(' <span style="color:var(--muted);font-size:10.5px">#'+escF(byC[k].directId)+'</span>'):'')+'</td><td style="padding:6px 9px;text-align:right;font-weight:700">'+money0(byC[k].r)+'</td><td style="padding:6px 9px;text-align:right;color:#B54708">'+_cCell(byC[k])+'</td><td style="padding:6px 9px;text-align:right;color:#0F6E56;font-weight:700">'+_pCell(byC[k])+'</td></tr>';
+  }).join('')+'<tr style="background:#303848;color:#fff;font-weight:800"><td style="padding:7px 9px">'+(isArF()?'الإجمالي الكلي':'Total')+(Object.keys(byC).length>top.length?(' <span style="font-weight:400;font-size:10.5px;opacity:.85">'+(isArF()?('— كل العملاء ('+Object.keys(byC).length+')، أعلى 10 معروضون'):('— all '+Object.keys(byC).length+' clients, top 10 shown'))+'</span>'):'')+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.r)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.c)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.p)+'</td></tr></table></div>'+_tcNote+'</div>';
   return h;
 }
 function rOverview(){
