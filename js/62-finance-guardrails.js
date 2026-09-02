@@ -34,7 +34,14 @@
   function client62(){ try{return window.fc?fc():null;}catch(_){return null;} }
   function who62(){ try{ return (window.meName&&meName())||(DB.settings&&DB.settings.currentUser)||'Unknown'; }catch(_){ return 'Unknown'; } }
   function canEdit62(){ try{ return window.canFinEdit?canFinEdit():false; }catch(_){ return false; } }
-  function norm62(s){ return String(s==null?'':s).toLowerCase().replace(/[\s\-_.,&()]+/g,' ').trim(); }
+  // 2026-09-02: folds Arabic letter variants (أإآ→ا, ى→ي, ة→ه, diacritics, tatweel) and Unicode
+  // presentation forms (NFKC) the same way js/41's linker does — an alias spelled "…ة" used to
+  // miss an export row spelled "…ه", so the sibling never linked.
+  function norm62(s){
+    s=String(s==null?'':s); try{ s=s.normalize('NFKC'); }catch(_){}
+    s=s.toLowerCase().replace(/[أإآا]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[ً-ْـ]/g,'');
+    return s.replace(/[\s\-_.,&()]+/g,' ').trim();
+  }
 
   /* ---------- Part 1: exclusion list — read + write + the check itself ---------- */
   function exclusions(){ try{ return (DB.settings&&DB.settings.financeExclusions)||[]; }catch(_){ return []; } }
@@ -321,13 +328,16 @@
     var c=client62(); if(!c){ MERGES=[]; MERGES_LOADING=false; cb(); return; }
     c.from('business_merges').select('*').order('merged_at',{ascending:false}).limit(50).then(function(r){ MERGES=(r&&r.data)||[]; MERGES_LOADING=false; cb(); });
   }
+  // stage word in the reader's language (the Arabic map lives in js/21); falls back to the raw word
+  function stageLabel62(s){ s=String(s||''); try{ var m=window.__STAGE_AR||window.STAGE_AR; if(isAr62()&&m&&m[s])return m[s]; }catch(_){} return s; }
+  function isAr62(){ try{ return (typeof LANG!=='undefined'&&LANG==='ar'); }catch(_){ return false; } }
   function bizCard(b,f){
     return '<div style="flex:1;min-width:220px;border:1px solid var(--line,#eee);border-radius:10px;padding:10px 12px;font-size:12.5px">'
       +'<div style="font-weight:800">'+esc62(b.name||'')+'</div>'
       +(b.nameAr?('<div>'+esc62(b.nameAr)+'</div>'):'')
       +(b.legalName&&b.legalName!==b.name?('<div style="color:var(--muted)">'+esc62(b.legalName)+'</div>'):'')
-      +'<div style="color:var(--muted);margin-top:4px">'+(b.crVat?('CR/VAT '+esc62(b.crVat)+' · '):'')+(b.directClientId?('Direct #'+esc62(b.directClientId)+' · '):'')+esc62(b.stage||'')+(b.isClient?' · '+fl('client','عميل'):'')+'</div>'
-      +'<div style="margin-top:4px"><b>'+f.n+'</b> '+fl('invoices','فاتورة')+' · <b>'+money62(f.total)+'</b> SAR</div>'
+      +'<div style="color:var(--muted);margin-top:4px">'+(b.crVat?(fl('CR/VAT ','س.ت/الرقم الضريبي ')+esc62(b.crVat)+' · '):'')+(b.directClientId?(fl('Direct #','دايركت #')+esc62(b.directClientId)+' · '):'')+esc62(stageLabel62(b.stage))+(b.isClient?' · '+fl('client','عميل'):'')+'</div>'
+      +'<div style="margin-top:4px"><b>'+f.n+'</b> '+fl('invoices','فاتورة')+' · <b>'+money62(f.total)+'</b> '+fl('SAR','ر.س')+'</div>'
       +'</div>';
   }
   window.v62MergeBiz=function(keepU,dropU){

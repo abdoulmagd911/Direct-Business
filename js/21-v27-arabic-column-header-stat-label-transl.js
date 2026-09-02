@@ -101,11 +101,18 @@
     'Admin & history':'الإدارة والسجل','Activity & Audit':'النشاط والتدقيق','Company profile — printables':'ملف الشركة — للطباعة',
     'Tender one-pager':'صفحة المناقصة','About Direct Travel (one-pager)':'عن Direct Travel','Edit cap…':'تعديل السقف…',
     '👤 View preset':'👤 نمط العرض','🎯 Commercial':'🎯 تجاري','💰 Finance':'💰 المالية','📊 CFO':'📊 المدير المالي',
-    '🌐 Everything':'🌐 الكل','📈 B2B snapshot':'📈 لقطة B2B'
+    '🌐 Everything':'🌐 الكل','📈 B2B snapshot':'📈 لقطة B2B',
+    // ---- Client/lead card header + jump bar (2026-09-02 Arabic drive found these in English) ----
+    'Chain of command':'سلسلة القرار','Chain incomplete':'السلسلة غير مكتملة','Chain ok':'السلسلة مكتملة',
+    'New booking':'حجز جديد','Create proposal':'إنشاء عرض','Log activity':'تسجيل نشاط','Log activity +':'تسجيل نشاط +',
+    'Request':'طلب','Request +':'طلب +','Key facts':'حقائق أساسية','Corporate account':'الحساب المؤسسي',
+    'Activity & workflow':'النشاط وسير العمل','Contacts & channels':'جهات الاتصال والقنوات',
+    '＋ Log activity':'＋ تسجيل نشاط','＋ Request':'＋ طلب','＋ Contact / POC':'＋ جهة اتصال / مسؤول','🔗 Link':'🔗 رابط','📄 Detail view':'📄 عرض التفاصيل'
   };
   // Stage badge words — translated ONLY inside .statusbadge / stage pills, to avoid
   // colliding with the same words used elsewhere (headers, chips, filters).
   var STAGE_AR={'New':'جديد','Prospect':'مرتقب','Contacted':'تم التواصل','Qualified':'مؤهل','Proposal':'عرض مقدم','Negotiation':'تفاوض','Won':'مكسوب','Lost':'مفقود','Client':'عميل','On hold':'مُعلّق','In discussion':'قيد النقاش'};
+  try{ window.__STAGE_AR=STAGE_AR; }catch(_){}   // 2026-09-02: shared so other layers (js/62's merge card) use the same words
   // Operations kanban column headers (js/core/core-03-reference-ops.js STAGES) — a different
   // word set from lead stages above (Quoting/Ticketed/Delivered don't exist as lead stages,
   // and "New"/"Closed" here must never leak into the shared V27_AR dict, which is scanned

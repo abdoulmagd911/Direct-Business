@@ -333,7 +333,8 @@
   var busy=false;
 
   function norm(s){
-    s=String(s==null?'':s).toLowerCase();
+    s=String(s==null?'':s); try{ s=s.normalize('NFKC'); }catch(_){}   // presentation forms (ﻻ, ﺷ…) → base letters
+    s=s.toLowerCase();
     // unify Arabic letter variants, strip diacritics/tatweel
     s=s.replace(/[أإآا]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[ً-ْـ]/g,'');
     // drop punctuation

@@ -116,6 +116,20 @@ async function main() {
     else ok('DETECT: invoice counts/totals are shown for each record');
   }
 
+  // ---- 1b. ARABIC — the same card in Arabic must speak Arabic (stage word, currency, labels) ----
+  await p.evaluate(() => { LANG = 'ar'; if (typeof applyLang === 'function') applyLang(); const old = document.querySelector('.v62-guardrails'); if (old) old.remove(); if (typeof window.finGo === 'function') window.finGo('import'); });
+  await p.waitForTimeout(1500);
+  const ar = await p.evaluate((nid) => { const el = [...document.querySelectorAll('.v62-dup')].find((x) => (x.getAttribute('data-key') || '').split('|').includes(nid)); return el ? el.innerText.replace(/\s+/g, ' ') : ''; }, NEW_BIZ);
+  if (!ar) fail('ARABIC: the candidate block did not render in Arabic');
+  else {
+    if (/\bWon\b|\bSAR\b|CR\/VAT|Keep:|Merge »|Not a duplicate/.test(ar)) fail('ARABIC: English leaked into the Arabic duplicate card: ' + ar.slice(0, 200));
+    else ok('ARABIC: stage word, currency and labels are Arabic — no English leak');
+    if (!/مكسوب|فاتورة|ر\.س/.test(ar)) fail('ARABIC: expected Arabic stage/currency words, got: ' + ar.slice(0, 200));
+    else ok('ARABIC: the stage word and currency read in Arabic');
+  }
+  await p.evaluate(() => { LANG = 'en'; if (typeof applyLang === 'function') applyLang(); const old = document.querySelector('.v62-guardrails'); if (old) old.remove(); if (typeof window.finGo === 'function') window.finGo('import'); });
+  await p.waitForTimeout(1500);
+
   // ---- 2. MERGE — keep the NEW record, merge the fixture's b4 into it ----
   const merged = await p.evaluate(([nid]) => {
     const sel = document.querySelector('.v62-dup select'); if (!sel) return 'no select';

@@ -54,7 +54,8 @@
     var c=city(b), riy=isRiyadh(b);
     var line=document.createElement('div'); line.className='mapsLine';
     line.style.cssText='display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap;font-size:13px';
-    line.innerHTML='<span style="color:#475467">HQ: '+(c?c.slice(0,60).replace(/[<>&]/g,''):'not set')+'</span>'+(riy?'<span style="background:#16B364;color:#fff;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">Riyadh</span>':'')+'<a href="'+mapsUrl(b)+'" target="_blank" rel="noopener" class="btn ghost sm" style="text-decoration:none">Map ↗</a>';
+    var ar=(typeof LANG!=='undefined'&&LANG==='ar');
+    line.innerHTML='<span style="color:#475467">'+(ar?'المقر: ':'HQ: ')+(c?c.slice(0,60).replace(/[<>&]/g,''):(ar?'غير محدد':'not set'))+'</span>'+(riy?'<span style="background:#16B364;color:#fff;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">'+(ar?'الرياض':'Riyadh')+'</span>':'')+'<a href="'+mapsUrl(b)+'" target="_blank" rel="noopener" class="btn ghost sm" style="text-decoration:none">'+(ar?'الخريطة ↗':'Map ↗')+'</a>';
     head.appendChild(line);
   }catch(e){} }
   if(window.render && !window.render.__mapsWrap){ var _r=window.render; window.render=function(){var o=_r.apply(this,arguments); setTimeout(inject,0); return o;}; window.render.__mapsWrap=true; }

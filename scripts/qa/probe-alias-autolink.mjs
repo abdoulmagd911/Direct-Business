@@ -116,6 +116,23 @@ async function main() {
   if (!prec || prec.business_id !== 'b2') fail(`PRECEDENCE: the declared alias sibling (b2) must win over the name-matched decoy record (bZ) — got ${JSON.stringify(prec)}. This is the exact mechanism that split MDD into two records.`);
   else ok('PRECEDENCE: the declared alias sibling won over a same-name decoy record — the MDD split cannot recur through the linker');
 
+  // ---- Arabic letter variants (2026-09-02): an alias spelled with ة must catch a row spelled with ه ----
+  const AR_ALIAS = 'شركة الاختبار المحدودة';        // registered spelling (ta marbuta, alef)
+  const AR_ROW = 'شركه الإختبار المحدوده';          // export spelling (ha, hamza) — same company to any reader
+  await p.evaluate(([a, bName]) => {
+    const base = FIN.rows[0];
+    const mk = (g, no) => Object.assign({}, base, { id: 'alias3-' + no, invoice_no: no, client_group: g, customer_raw_name: g, record_type: 'b2b', deleted_at: null, total_incl_vat_sar: 1000, revenue_sar: 1000, cost_sar: 0, profit_sar: 1000 });
+    FIN.rows.push(mk(a, '777000005'), mk(bName, '777000006'));
+    FIN.linkByGroup[a] = { client_group: a, business_id: 'b2', is_client: true, confirmed_by: 'manual' };
+    DB.settings.financeGroupMap.push({ id: 'fg-probe-3', canonicalName: a, aliases: [a], active: true, addedBy: 'probe', addedAt: new Date().toISOString() });
+    if (typeof clearFinCanon === 'function') clearFinCanon();
+  }, [AR_ALIAS, AR_ROW]);
+  await p.evaluate(() => { if (typeof render === 'function') render(); });
+  await p.waitForTimeout(2500);
+  const arLink = await p.evaluate((g) => { const l = (FIN.linkByGroup || {})[g]; return l ? l.business_id || null : null; }, AR_ROW);
+  if (arLink !== 'b2') fail(`ARABIC VARIANTS: "${AR_ROW}" should match the alias "${AR_ALIAS}" (ة/ه, أ/ا are the same word) and link to b2 — got ${JSON.stringify(arLink)}`);
+  else ok('ARABIC VARIANTS: ta-marbuta/ha and hamza/alef spellings match the same alias and link automatically');
+
   const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5), null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} unexpected JS/console error(s)`);

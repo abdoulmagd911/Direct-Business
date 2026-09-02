@@ -74,6 +74,15 @@ async function main() {
   if (!card.timeline.some((t) => /Activity 3/.test(t))) fail('the table activity "Activity 3" is not shown in the company history — timeline: ' + JSON.stringify(card.timeline));
   else ok('table activity history is shown on the card');
 
+  // Arabic: the badge speaks Arabic on the same card
+  await p.evaluate(() => { LANG = 'ar'; if (typeof applyLang === 'function') applyLang(); render(); });
+  await p.waitForTimeout(1000);
+  const arBadge = await p.evaluate(() => (document.querySelector('.v72-confirm') || {}).textContent || '');
+  if (!/يحتاج تأكيدًا/.test(arBadge)) fail('ARABIC: the needs-confirmation badge did not switch to Arabic: ' + JSON.stringify(arBadge));
+  else ok('ARABIC: the badge reads in Arabic');
+  await p.evaluate(() => { LANG = 'en'; if (typeof applyLang === 'function') applyLang(); render(); });
+  await p.waitForTimeout(800);
+
   // idempotent: a second run attaches nothing new
   const before = await p.evaluate(() => (DB.businesses.find((x) => x.id === 'L3').contacts || []).length);
   await p.evaluate(() => new Promise((res) => window.v72Apply(res)));

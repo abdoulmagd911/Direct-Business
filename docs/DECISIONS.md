@@ -539,38 +539,14 @@ Rule: any new writer of people or history writes to the TABLE, never to raw; any
 reads through the loaded `b.contacts` / `b.activities` (which the bridge has already completed).
 *Date: 2026-09-02. Status: ACTIVE.*
 
-**A probe that fails because the app changed on purpose is corrected, not deleted, and never
-left red.** The 2026-09-02 full-suite run had five probes carrying assertions from before a
-deliberate change: the promo card (turned off by rule), the "two optional columns" filler line
-(dropped in the density pass), the Ledger's totals (it reads transactions now, never invoices),
-the collections heading, the importer's five-count wording. Each was re-pointed at the rule that
-replaced it (e.g. "promo card ABSENT", "ledger did NOT move with an invoice edit") — so the suite
-keeps guarding the decision instead of the old wording. A red probe nobody reads teaches the
-team to ignore red. Twelve probes in the suite need the staff's real logins or the live database
-(`scripts/qa/emp-rig.mjs`) and can only run from a machine that has them; they are listed as
-environmental, never counted as green.
-*Date: 2026-09-02. Status: ACTIVE.*
-
-**M19 — a company's people and history live in TWO places, and every screen must read both.**
-Found in the 2026-09-02 audit, the largest defect of the day. The cards read a company's contacts
-and activity timeline from the JSON embedded in the business row (`raw`, the app's own
-`b.contacts` / `b.activities`). The corporate-clients import, the Contact Submission import and
-the merge function write people to the real `contacts` / `activities` TABLES — which no screen
-had ever read (`from` calls across the app: 30 tables, neither of those two). Live at the time:
-29 companies with people only in the table (45 people vs 7 embedded), 30 with history only in
-the table — to the team those clients showed "No contacts yet". Three consequences, all now in
-place: (1) `js/72-people-bridge.js` attaches both tables to the loaded companies (deduped by
-e-mail/phone and note+day, tagged `_fromTable`), so every card shows everyone, and shows a
-contact's `needs_manual_confirmation` flag as a visible "needs confirmation" badge with its
-reason (core-02) — a flag no screen shows is not a flag (P5). (2) js/02 strips `_fromTable` items
-before writing `raw`, so the table stays the single home of those rows and nothing doubles on
-the next load. (3) The merge carries the EMBEDDED lists too (`fn_carry_embedded_people`, tagged
-`mergedFrom`, undo removes exactly those) — the first three merges of the day had moved the
-table rows and left the embedded people behind on the archived record; repaired the same day.
-Guarded by `scripts/qa/probe-people-bridge.mjs` (card shows the table contact, badge with
-reason, timeline, idempotent re-run, save never leaks table rows into raw), sabotage-verified.
-Rule: any new writer of people or history writes to the TABLE, never to raw; any new reader
-reads through the loaded `b.contacts` / `b.activities` (which the bridge has already completed).
+**Every name comparison folds Arabic letter variants and Unicode presentation forms the same
+way.** (2026-09-02 attack round.) The linker's `norm()` in `js/41-money-in.js` folded أإآ→ا,
+ى→ي, ة→ه, diacritics and tatweel; the alias/exclusion lookup's `norm62()` in
+`js/62-finance-guardrails.js` did not — so an alias registered as "…المحدودة" silently missed an
+export row spelled "…المحدوده" and the sibling never linked. Both now fold the same set and
+apply NFKC first (presentation forms such as ﻻ). Guarded by the ARABIC VARIANTS scenario in
+`scripts/qa/probe-alias-autolink.mjs`, sabotage-verified. Rule: a new name comparison anywhere
+reuses one of these two helpers; never a bare lower-casing of the raw string.
 *Date: 2026-09-02. Status: ACTIVE.*
 
 **A probe that fails because the app changed on purpose is corrected, not deleted, and never

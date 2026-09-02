@@ -65,8 +65,21 @@ try{
       if(cb)cb(n);
     }
     var pending=2;
-    c.from('contacts').select('id,business_id,name,role,email,phone,needs_manual_confirmation,confirmation_reason').limit(5000).then(function(r){ got.contacts=(r&&r.data)||[]; if(--pending===0)done(); }, function(){ got.contacts=[]; if(--pending===0)done(); });
-    c.from('activities').select('id,business_id,type,note,by_user,at').limit(5000).then(function(r){ got.activities=(r&&r.data)||[]; if(--pending===0)done(); }, function(){ got.activities=[]; if(--pending===0)done(); });
+    // page through in 1,000s (Supabase's default cap) — a hard .limit() would silently drop
+    // everyone past it once the tables grow; the loop stops on the first short page.
+    function pageAll(table,cols,key){
+      var acc=[];
+      function page(from){
+        c.from(table).select(cols).order('id',{ascending:true}).range(from,from+999).then(function(r){
+          var rows=(r&&r.data)||[]; acc=acc.concat(rows);
+          if(rows.length===1000&&from<50000){ page(from+1000); return; }
+          got[key]=acc; if(--pending===0)done();
+        }, function(){ got[key]=acc; if(--pending===0)done(); });
+      }
+      page(0);
+    }
+    pageAll('contacts','id,business_id,name,role,email,phone,needs_manual_confirmation,confirmation_reason','contacts');
+    pageAll('activities','id,business_id,type,note,by_user,at','activities');
   }
   window.v72Apply=function(cb){ run(cb); };
   // first run once the businesses are in; re-run whenever the list is replaced (a reload)
