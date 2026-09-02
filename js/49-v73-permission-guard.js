@@ -68,10 +68,40 @@
   }
 
   /* ---- 2. take away what this person may not use ----------------------------------- */
+
+  /* 2026-09-02 (round 30): this layer guards on ROLE, but js/64 bounces on the per-user PAGE
+     matrix (js/56) — two different models, and they disagreed. A team_member whose Proposals
+     access is set to "No access" still passes can('proposals'), because the team_member role
+     writes proposals. So Today's "New offer" tile ran newOffer(), which pushes a record and
+     save()s it IMMEDIATELY, and only then did render() bounce them to Today with "You do not
+     have access to that page". A blank proposal was created and stored by someone denied the
+     page, who never saw it and could not go and delete it.
+     Nobody is restricted on Proposals today, so this has not yet bitten — but that matrix is
+     exactly what the owner set up to restrict people, so it would bite on first use.
+     A guarded action whose page the person cannot open is now refused before it writes.
+     Checked at CALL time, not wrap time: myAllowedPages lives in js/52, which loads after
+     this file, and the role/matrix arrive later still. An unknown answer never blocks. */
+  var PAGE_OF={proposals:'offers',leads:'leads',requests:'ops',finance:'finance'};
+  function mayOpen(what){
+    try{
+      var pg=PAGE_OF[what]; if(!pg) return true;
+      if(typeof window.__accessKnown!=='function'||!window.__accessKnown()) return true;
+      if(typeof window.myAllowedPages!=='function') return true;
+      var allowed=window.myAllowedPages();
+      if(!allowed) return true;                    // null = unrestricted (admins)
+      return allowed.indexOf(pg)>=0;
+    }catch(_){ return true; }
+  }
+  function refusePage(){
+    box(fl('You do not have access to that page','ليست لديك صلاحية للوصول إلى هذه الصفحة'),
+        fl('Nothing was created. Ask an admin if you need it.','لم يُنشأ أي شيء. اطلب من أحد المسؤولين إذا احتجت إليها.'),'');
+  }
+  try{ window.__v73MayOpen=mayOpen; }catch(_){}
+
   function guardFn(name,what){
     try{
       var orig=window[name]; if(typeof orig!=='function'||orig.__v70)return;
-      var wrapped=function(){ if(!can(what)){ refuse(what); return; } return orig.apply(this,arguments); };
+      var wrapped=function(){ if(!can(what)){ refuse(what); return; } if(!mayOpen(what)){ refusePage(); return; } return orig.apply(this,arguments); };
       wrapped.__v70=1; wrapped.__orig=orig; window[name]=wrapped;
     }catch(_){}
   }

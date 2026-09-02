@@ -458,7 +458,17 @@ document.addEventListener('keydown',e=>{const pal=document.getElementById('v19pa
   if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){e.preventDefault();if(palOpen)closePalette();else openPalette();return;}if(palOpen){if(e.key==='Escape'){e.preventDefault();closePalette();}else if(e.key==='ArrowDown'){e.preventDefault();_palSel=Math.min(_palResults.length-1,_palSel+1);renderPalette();}else if(e.key==='ArrowUp'){e.preventDefault();_palSel=Math.max(0,_palSel-1);renderPalette();}else if(e.key==='Enter'){e.preventDefault();runPalette(_palSel);}else{setTimeout(renderPalette,1);}return;}
   // when typing in fields, only handle Esc
   const tag=(e.target&&e.target.tagName||'').toLowerCase();const inField=tag==='input'||tag==='textarea'||tag==='select'||(e.target&&e.target.isContentEditable);if(e.key==='Escape'){if(inOv){closeModal();}else if(helpEl&&helpEl.classList.contains('show')){helpEl.classList.remove('show');}else{closeSide();}return;}if(inField)return;
-  if(e.key==='/'){const gs=document.getElementById('gsearch');if(gs){e.preventDefault();gs.focus();}return;}if(e.key==='?'){e.preventDefault();helpEl.classList.add('show');return;}if(e.key==='n'||e.key==='N'){e.preventDefault();if(current==='invoices')ingestModal('invoice','',null);else if(current==='bookings')ingestModal('booking','',null);else if(current==='offers'){newOffer();render();}else if(current==='leads'&&typeof editLead==='function')editLead('');else{openPalette();document.getElementById('v19pinput').value='New ';renderPalette();}return;}if(e.key==='e'||e.key==='E'){e.preventDefault();if(openInvoice)editInvoice(openInvoice);else if(openBooking)editBooking(openBooking);else if(openOffer){current='offers';render();}return;}});
+  if(e.key==='/'){const gs=document.getElementById('gsearch');if(gs){e.preventDefault();gs.focus();}return;}if(e.key==='?'){e.preventDefault();helpEl.classList.add('show');return;}if(e.key==='n'||e.key==='N'){e.preventDefault();if(current==='invoices')ingestModal('invoice','',null);else if(current==='bookings')ingestModal('booking','',null);else if(current==='offers'){
+    /* 2026-09-02 (round 30): every other branch of this shortcut opens a form you can cancel —
+       nothing is stored until you choose to store it. This one alone called newOffer(), which
+       pushes a proposal and save()s it on the spot. So a stray "n" while reading the proposals
+       list (focus not in a field) silently wrote a blank DB-xxxxxx draft to the database, which
+       then sat in the list and in the proposal counts with nothing to say it was an accident.
+       The keystroke now asks first; the "+ New proposal" BUTTON still creates instantly,
+       because clicking a button with that label is itself the intent. */
+    var _nAr=(typeof LANG!=='undefined'&&LANG==='ar');
+    if(!confirm(_nAr?'إنشاء عرض جديد فارغ؟':'Create a new blank proposal?'))return;
+    newOffer();render();}else if(current==='leads'&&typeof editLead==='function')editLead('');else{openPalette();document.getElementById('v19pinput').value='New ';renderPalette();}return;}if(e.key==='e'||e.key==='E'){e.preventDefault();if(openInvoice)editInvoice(openInvoice);else if(openBooking)editBooking(openBooking);else if(openOffer){current='offers';render();}return;}});
 /* ----- v19 Today tab (default landing — agent's daily inbox) ----- */
 TITLES['today']=['Today','What needs your attention right now — TTLs · overdue · dunning · low-margin offers'];
 function renderToday(v){const now=Date.now();const B=activeRows(DB.bookings);const I=activeRows(DB.invoices);const O=activeRows(DB.offers);

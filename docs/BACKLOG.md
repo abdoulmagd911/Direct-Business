@@ -1,5 +1,44 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 30 — the access screen was calling unknown roles "Admin", and a page you cannot open was still writable
+
+Three defects, one theme: **two parts of the app disagreed about who may do what, and every
+disagreement resolved the more permissive — or more misleading — way.** None had bitten yet;
+each would bite the first time the feature behind it is used. Guarded by
+`scripts/qa/probe-access-truth.mjs` (13 checks), three sabotages verified.
+
+1. **The access matrix showed `operations` and `viewer` users as "Admin."** The screen offers
+   three levels (Admin / Manager / Employee), but `app_users.role` has **no check constraint**
+   (verified against the live schema) and the app also understands `bd`, `operations` and
+   `viewer` — js/49's own CAN table lists all six, and `app_role()` treats them apart. A user
+   on one of the other three matched no `<option>`, and a `<select>` with nothing selected
+   shows its **first** option — which is "Admin". So the one screen whose entire job is to
+   answer "who has admin rights?" answered it wrongly, in the most dangerous direction. Worse,
+   an admin who noticed and "corrected" the dropdown to Employee would have silently
+   overwritten the person's real role with `team_member`. Such a role is now shown by name and
+   marked "not one of the three levels" — visible instead of guessed.
+   *Live today: only admin (3) / manager (1) / team_member (7), and `access_allowlist` issues
+   only those three, so an off-list role currently needs a direct database write.*
+2. **A page you are denied was still writable.** js/49 guards writes by **role**; js/64 bounces
+   by the per-user **page matrix** (js/56). They are different models and they disagreed. A
+   `team_member` whose Proposals access is set to "No access" passes `can('proposals')` — the
+   role writes proposals — so Today's "New offer" tile ran `newOffer()`, which pushes a record
+   and `save()`s it on the spot, and only *then* did `render()` bounce them to Today with "You
+   do not have access to that page". A blank proposal was created and stored in the database by
+   someone denied the page, who never saw it and could not go and delete it. Guarded actions
+   now check the page before they write, at call time (js/52 loads after js/49), and never
+   block while the role is still unknown.
+   *Live today: all 8 non-admin accounts have a page matrix, none is restricted on Proposals —
+   but that matrix is exactly what the owner built to restrict people, so this bites on first
+   real use.*
+3. **A stray `n` saved a blank proposal.** The shortcut opens a *cancellable* form on Invoices,
+   Bookings and Leads — nothing is stored until you choose to store it. On Proposals alone it
+   called `newOffer()` straight through, so one accidental keystroke while reading the list
+   (focus not in a field) wrote a blank `DB-xxxxxx` draft into the database and into the
+   proposal counts, with nothing to say it was an accident. It now asks first. The
+   **"+ New proposal" button is unchanged** — clicking a button with that label is itself the
+   intent — and the probe asserts that difference both ways.
+
 ## 2026-09-02 · Round 29 — the app was inventing costs it did not have, and counting VAT as profit (fixed)
 
 Four money-rule breaches, all found by reading the source during the eight-area sweep and all

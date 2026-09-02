@@ -113,6 +113,25 @@
   };
 
   var TIER=[['admin','Admin','مسؤول النظام'],['manager','Manager','مدير'],['team_member','Employee','موظف']];
+  /* 2026-09-02 (round 30): this screen offers three levels, but app_users.role has no check
+     constraint and the database also understands bd / operations / viewer (see js/49's CAN
+     table and app_role()). A user on one of those matched NO option, and a <select> with
+     nothing selected falls back to its first option — which here is "Admin". So the one
+     screen whose whole job is to answer "who has admin rights?" would have answered it
+     wrongly, in the most dangerous direction, and an admin who "corrected" the dropdown to
+     Employee would have silently overwritten the real role.
+     A role this screen does not offer is now shown by name and marked, rather than guessed:
+     nothing is selected by accident, and the discrepancy is visible instead of hidden. */
+  var ROLE_NAME={bd:['Business development','تطوير الأعمال'],operations:['Operations','العمليات'],viewer:['Read only','قراءة فقط']};
+  function tierOptions(u){
+    var known=TIER.some(function(t){return u.role===t[0];});
+    var h=TIER.map(function(t){return '<option value="'+t[0]+'"'+(u.role===t[0]?' selected':'')+'>'+fl(t[1],t[2])+'</option>';}).join('');
+    if(!known){
+      var nm=ROLE_NAME[u.role]||[u.role,u.role];
+      h='<option value="'+esc(u.role||'')+'" selected>'+esc(fl(nm[0],nm[1]))+' — '+fl('not one of the three levels','ليس أحد المستويات الثلاثة')+'</option>'+h;
+    }
+    return h;
+  }
 
   function card(u){
     var isAdm=u.role==='admin';
@@ -122,7 +141,7 @@
         '<b style="font-size:14px">'+esc(u.full_name||u.email)+'</b>'+
         '<span style="color:var(--muted);font-size:11.5px">'+esc(u.email)+'</span>'+
         '<select class="inp sm" style="max-width:150px" onchange="axSetRole(\''+u.id+'\',this.value)">'+
-          TIER.map(function(t){return '<option value="'+t[0]+'"'+(u.role===t[0]?' selected':'')+'>'+fl(t[1],t[2])+'</option>';}).join('')+
+          tierOptions(u)+
         '</select>'+
         (isAdm?('<span style="color:#0F6E56;font-size:12px;font-weight:700">'+fl('Full access to everything','صلاحية كاملة لكل شيء')+'</span>'):'')+
       '</div>';
