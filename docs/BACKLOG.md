@@ -170,6 +170,45 @@ rigs on the `mock-seed-live` harness (`probe-round9`, `probe-newfeatures`, `prob
 red there too, so they predate this session's work; Events is not a Finance-track file (P4),
 left for its owner; the four stale rigs are worth either fixing or retiring by whoever next
 touches that harness, so the battery stops carrying known-red scripts.
+## 2026-08-29 · Five enhancement ideas from Direct's own product changelog — parked, not started
+
+Source: the 20 weekly "Product Updates" pages on Direct's internal Info Center (Direct's own
+product/dev org shipping to Hotels, Payments, the corporate B2B portal, Marketing). Read end
+to end 2026-08-29; write-up in the Cowork project (`Direct Info Center — 20 weekly Product
+Updates reviewed (Aug 29)` and `ENHANCEMENT IDEAS — from Direct's own changelog (Aug 29)`).
+These are *patterns their team already validated on real users*, mapped onto this app's pages.
+None is started; each needs the owner's nod and, for the finance ones, a slot that doesn't
+collide with the open period-filter question above. Ordered by recommendation:
+
+1. **Report captions naming the invoice statuses behind each metric** (Finance → Report
+   Builder; `js/16`, Finance/oversight-owned). Their Marketing team labels every metric on
+   screen with exactly which statuses feed it ("Total Sales = fully paid only"). Our Quick-view
+   presets already do this correctly underneath — nothing on screen says so. Smallest, safest,
+   directly serves M1/"only confirmed fully-paid counts" by making the rule visible at the
+   point of reading. **Recommend first.**
+2. **"Uninvoiced work" vs "invoiced outstanding" as two lines, never one** (Finance Overview;
+   `js/16`). Their Payments team split "Outstanding Balance" into "Invoiced Outstanding" and a
+   new "Uninvoiced Transactions" line. Ours already keeps a Ready-vs-Pending split by rule
+   (DECISIONS → "Only confirmed, fully-paid tax invoices count as revenue") — worth one probe
+   confirming no card or export ever adds the two together, then a label pass. Verification
+   first, feature second.
+3. **Invoice timeline card** (Finance ledger, per invoice; `js/16`). Their Hotels team added an
+   "Order Timeline" — created → invoiced → paid → confirmed as one strip. Ours holds the same
+   facts as separate fields (created, verified, paid, closed). Nice, not urgent; render-time
+   only, no schema change (the M14 way).
+4. **Proof-of-payment shown on the invoice itself** (Finance ledger ↔ Payment Proofs tab;
+   touches `js/57-payment-proofs.js`, which P4 lists under NEITHER task). Their Payments team
+   moved the proof viewer into the invoice screen. Blocked on the same ownership question as
+   the injected-tabs period-bar item (DECISIONS P4-addendum) — decide both together.
+5. **"Needs my action" queues with SLA timers on Leads** (Leads page; Code-session files).
+   Their Hotels Leads queue split into Offer Needed / Confirmation Needed / All, with live
+   timers and breach alerts. Not Finance's file — handed to the Code session as a finding.
+
+Also noted, not for this app: their "Customer 360" is the same problem our client-grouping
+(M14) solves at a bigger scale — confirms the direction, nothing to copy. And their corporate
+platform's "Supply Date" auto-flowing into generated invoices/tax paperwork is a Generator
+idea (dates typed by hand into tender/contract documents) — handed to the Generator task via
+its own build log, not tracked here.
 
 ## 2026-08-27 · Report Builder is scoped independently of the Overview/Clients period bar
 
