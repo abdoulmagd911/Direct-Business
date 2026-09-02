@@ -82,10 +82,18 @@
       if(!o||typeof o!=='object')return o;
       var hasC=Array.isArray(o.contacts)&&o.contacts.some(function(c){return c&&c._fromTable;});
       var hasA=Array.isArray(o.activities)&&o.activities.some(function(a){return a&&a._fromTable;});
-      if(!hasC&&!hasA)return o;
-      var c={}; for(var k in o){c[k]=o[k];}
+      var mc=o._v72mc===1, ma=o._v72ma===1;   // arrays the bridge itself created (js/72)
+      if(!hasC&&!hasA&&!mc&&!ma)return o;
+      var c={}; for(var k in o){ if(k==='_v72mc'||k==='_v72ma')continue; c[k]=o[k]; }
       if(hasC)c.contacts=o.contacts.filter(function(x){return !(x&&x._fromTable);});
       if(hasA)c.activities=o.activities.filter(function(x){return !(x&&x._fromTable);});
+      /* 2026-09-02 (attack round 10): an array the bridge created on a record that had none is
+         taken back out when nothing of the user's is in it, so the row compares equal to what
+         was loaded. Before this, the first save() of every session rewrote every company with
+         table people (29 live rows) with this tab's copy — a stale-overwrite window on rows
+         nobody had edited. Guard: scripts/qa/probe-no-phantom-writes.mjs. */
+      if(mc&&Array.isArray(c.contacts)&&!c.contacts.length)delete c.contacts;
+      if(ma&&Array.isArray(c.activities)&&!c.activities.length)delete c.activities;
       return c;
     }catch(_){ return o; }
   }

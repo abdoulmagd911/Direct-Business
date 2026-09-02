@@ -49,7 +49,7 @@
     'Total clients':'إجمالي العملاء','Key accounts':'حسابات رئيسية','Total won (SAR)':'إجمالي المكسوب (ريال)',
     'Clients in view':'العملاء المعروضون','Won leads not yet converted':'صفقات مكسوبة لم تُحوَّل بعد',
     'Reviews overdue':'مراجعات متأخرة','Open requests':'طلبات مفتوحة','SLA overdue':'تأخّر مستوى الخدمة',
-    'Awaiting client':'بانتظار العميل','Pipeline value':'قيمة خط الأنابيب','Booked margin':'هامش المحجوز',
+    'Awaiting client':'بانتظار العميل','Pipeline value':'قيمة المسار','Booked margin':'هامش المحجوز',
     'Delivered / closed':'مُسلّم / مغلق',
     // ---- filter + action buttons ----
     'Table':'جدول','Dashboard':'لوحة','By stage':'حسب المرحلة','By category':'حسب الفئة','By funnel':'حسب المسار',
@@ -62,6 +62,28 @@
     '+ Booking':'+ حجز','+ Invoice':'+ فاتورة','+ Add event':'+ إضافة فعالية',
     'Share view-only link':'مشاركة رابط للعرض فقط','Projects board':'لوحة المشاريع',
     'Backup now':'انسخ الآن','Backup now to destination':'انسخ الآن','＋ Log achievement':'＋ تسجيل إنجاز',
+    // ---- proposal editor (2026-09-02, attack round 10 — first Arabic drive of the editor WITH a
+    // record): its form labels, section summaries, buttons and the two injected action buttons
+    // were English. Whole-string matches on <label>/<summary>/.ch-sub (selectors added below);
+    // the client-facing preview document itself is deliberately left as authored. ----
+    '← Offers':'← العروض','Live preview — this is what the client sees':'معاينة حية — هذا ما يراه العميل',
+    '🧳 Convert to booking':'🧳 حجز مبدئي (يُدفع إلى المصدر عند التأكيد)','🧳 Draft booking (push to source on confirm)':'🧳 حجز مبدئي (يُدفع إلى المصدر عند التأكيد)',
+    '📤 Send for review (Email + WhatsApp)':'📤 إرسال للمراجعة (بريد + واتساب)','📤 Send for review':'📤 إرسال للمراجعة',
+    'Pricing':'التسعير','Fare options — compare 2–3 fares':'خيارات الأسعار — قارن 2–3 أسعار',
+    'Add 2–3 fare families / sources to compare — they appear in the client quote with NDC/EDIFACT badges.':'أضف 2–3 عائلات أسعار / مصادر للمقارنة — تظهر في عرض العميل مع شارات NDC/EDIFACT.',
+    'Deal, workflow & compliance':'الصفقة وسير العمل والامتثال','Fare rules':'قواعد السعر',
+    'Ref #':'المرجع #','Counselor':'المستشار','Passenger / subject':'المسافر / الموضوع','Class / fare basis':'الدرجة / أساس السعر',
+    'Route':'المسار','Flight details':'تفاصيل الرحلة','Ticket price':'سعر التذكرة',"Partner's fees":'رسوم الشريك','Service fees':'رسوم الخدمة',
+    'VAT amount':'مبلغ الضريبة','Currency':'العملة','Valid until (expiry)':'صالح حتى (الانتهاء)','Ticket time limit (TTL)':'مهلة إصدار التذكرة (TTL)',
+    'Version':'الإصدار','Link to lead / client (auto-log on send)':'ربط بعميل محتمل / عميل (يُسجَّل تلقائيًا عند الإرسال)',
+    'Travel policy':'سياسة السفر','Approval':'الموافقة','Out-of-policy reason':'سبب مخالفة السياسة','ADT':'بالغ','CHD':'طفل','INF':'رضيع',
+    'Win / lose reason (on Accepted/Rejected)':'سبب الفوز / الخسارة (عند القبول/الرفض)','Remarks':'ملاحظات','Additional fees':'رسوم إضافية',
+    'Changes — before':'التغييرات — قبل السفر','Changes — after':'التغييرات — بعد السفر','Cancellation — before':'الإلغاء — قبل السفر','Cancellation — after':'الإلغاء — بعد السفر',
+    'No-show fees':'رسوم عدم الحضور','Baggage allowance':'الأمتعة المسموحة','Last issue date':'آخر موعد للإصدار','Cheapest fare?':'أرخص سعر؟','Min stay':'أقل مدة إقامة','Max stay':'أقصى مدة إقامة',
+    'Label':'التسمية','Provider / source':'المورّد / المصدر','Content':'المحتوى','Fare family':'عائلة السعر','Base':'الأساس','Taxes / YQ':'الضرائب / YQ',
+    'Ancillaries':'الإضافات','Agency fee':'رسوم الوكالة','Refundable':'قابل للاسترداد','Baggage':'الأمتعة',
+    '∑ Auto-total':'∑ الإجمالي تلقائيًا','⧉ Copy for WhatsApp / Email':'⧉ نسخ لواتساب / البريد','Delete':'حذف','Remove':'إزالة',
+    '+ Add fare option':'+ إضافة خيار سعر','+ Add service':'+ إضافة خدمة','+ Add freebie':'+ إضافة مجاني','⤷ Log this offer to the linked lead':'⤷ تسجيل هذا العرض على العميل المرتبط',
     // ---- top-bar controls ----
     'Access':'الصلاحيات','Team':'الفريق','Sign out':'تسجيل الخروج','Export':'تصدير','▾ Export':'▾ تصدير',
     'Export ▾':'تصدير ▾','Share (view-only)':'مشاركة (عرض فقط)',
@@ -122,6 +144,7 @@
   // at all, so the whole Operations board rendered its column headers in English on an
   // otherwise fully-Arabic page.
   var OPS_STAGE_AR={'New':'جديد','Quoting':'تسعير','Awaiting client':'بانتظار العميل','Booked':'محجوز','Ticketed':'تم إصدار التذكرة','Delivered':'تم التسليم','Closed':'مغلق'};
+  try{ window.__OPS_STAGE_AR=OPS_STAGE_AR; }catch(_){}   // 2026-09-02: shared so the request cards' "Advance →" button uses the same words as the column headers
   var ARROWS=/[▲▼↑↓\s]+$/; // trailing sort arrows / whitespace
   function replaceLeadText(el,val){ // set text but keep child nodes (icon / arrow span)
     if(el.children.length===0){ el.textContent=val; return; }
@@ -132,7 +155,7 @@
     if(!el.hasAttribute('data-v27en')) el.setAttribute('data-v27en', el.textContent);
     replaceLeadText(el,val); el.setAttribute('data-v27','1');
   }
-  var TRAIL=/\s*(?:[·▾▸►?▲▼↑↓]\s*)+\d*\s*$/; // trailing "· 60", " ?", " ▲", "▾ 0"
+  var TRAIL=/\s*(?:[·▾▸►?▲▼↑↓]\s*)+\d*\s*$|\s*\(\d+\)\s*$/; // trailing "· 60", " ?", " ▲", "▾ 0", " (3)"
   function translateDecorated(el,dict){
     var full=(el.textContent||'').trim(); if(!full)return;
     if(dict[full]!==undefined){ setText(el,dict[full]); return; }
@@ -148,7 +171,9 @@
     if(!scope)return;
     var heads=scope.querySelectorAll('th,h2,h3'),i;
     for(i=0;i<heads.length;i++){ var hd=heads[i]; if(hd.getAttribute('data-v27')||hd.querySelector('input,select'))continue; translateDecorated(hd,V27_AR); }
-    var els=scope.querySelectorAll('.kl,.l,button,a.btn,.tag'),j;
+    // label / summary / .ch-sub added 2026-09-02 for the proposal editor — whole-string matches only,
+    // and a label wrapping an input/select/textarea is skipped, so free text is never touched
+    var els=scope.querySelectorAll('.kl,.l,button,a.btn,.tag,label,summary,.ch-sub'),j;
     for(j=0;j<els.length;j++){ var el=els[j]; if(el.getAttribute('data-v27')||el.querySelector('input,select,textarea'))continue; translateDecorated(el,V27_AR); }
     // dropdown options: main dict, then stage words (safe — options are filter values, not data)
     var opts=scope.querySelectorAll('option'),o;

@@ -300,8 +300,10 @@ function slaOverdue(r){return r.stage!=="Closed"&&r.stage!=="Delivered"&&Date.no
 function renderOps(v){
   const R=DB.requests||[];const open=R.filter(r=>r.stage!=="Closed");const over=open.filter(slaOverdue).length;
   const sumSell=R.reduce((s,r)=>s+(+r.sell||0),0);const sumMargin=R.reduce((s,r)=>s+((+r.sell||0)-(+r.cost||0)),0);const mPct=sumSell?Math.round(sumMargin/sumSell*100):0;
-  const kp=[["Open requests",open.length,"var(--blue)"],["SLA overdue",over,"var(--red)"],["Awaiting client",R.filter(r=>r.stage==="Awaiting client").length,"var(--amber)"],["Pipeline value",moneyShort(sumSell)+" SAR","var(--violet)"],["Booked margin",moneyShort(sumMargin)+" SAR · "+mPct+"%","var(--green)"],["Delivered / closed",R.filter(r=>r.stage==="Delivered"||r.stage==="Closed").length,"var(--ink-3)"]];
   const _arOps=(typeof LANG!=='undefined'&&LANG==='ar');
+  /* 2026-09-02 (attack round 10): "10k SAR · 15%" wrapped mid-value inside the tile on desktop and
+     phone alike — the percentage is now its own small line under the amount. */
+  const kp=[["Open requests",open.length,"var(--blue)"],["SLA overdue",over,"var(--red)"],["Awaiting client",R.filter(r=>r.stage==="Awaiting client").length,"var(--amber)"],["Pipeline value",moneyShort(sumSell)+" SAR","var(--violet)"],["Booked margin",moneyShort(sumMargin)+' SAR<div style="font-size:12px;font-weight:600;color:var(--muted);margin-top:2px">'+(_arOps?'الهامش ':'margin ')+'<span dir="ltr">'+mPct+'%</span></div>',"var(--green)"],["Delivered / closed",R.filter(r=>r.stage==="Delivered"||r.stage==="Closed").length,"var(--ink-3)"]];
   v.innerHTML=`
   <div class="toolbar"><div class="search-wrap">${IC.search}<input id="rq" placeholder="${_arOps?'ابحث في الطلبات…':'Search requests…'}" oninput="drawReqBoard(this.value)"></div><div style="flex:1"></div><button class="btn pri" onclick="editRequest()">+ New request</button></div>
   <div class="kpis" style="margin-bottom:18px">${kp.map(([l,vv,c])=>`<div class="kpi"><div class="l">${l}</div><div class="v" style="color:${c}">${vv}</div></div>`).join("")}</div>
@@ -313,10 +315,20 @@ function drawReqBoard(q){q=(q||"").toLowerCase();const board=document.getElement
     return `<div class="col" ondragover="allowDrop(event,this)" ondragleave="leaveDrop(this)" ondrop="dropOn(event,'req','${stage}',this)"><div class="ch"><span class="t"><span class="pip" style="background:${STAGE_COLOR[stage]}"></span>${stage}</span><span class="n">${items.length}</span></div>${items.map(reqCard).join("")||'<div class="empty">—</div>'}</div>`;}).join("");
 }
 function reqCard(r){const over=slaOverdue(r);const early=(r.stage==="New"||r.stage==="Quoting");
-  return `<div class="reqcard" draggable="true" ondragstart="dragStart(event,'req','${r.id}')" onclick="editRequest('${r.id}')"><div class="rc-top"><span class="svc">${esc(r.service)}</span><span class="due ${over?'over':'ok'}">${over?'⚠ SLA overdue':(early?'resp by '+fmtTime(slaDue(r)):'')}</span></div>
+  /* 2026-09-02 (attack round 10 — the first time this board was driven WITH records in Arabic):
+     the card's own words were English under Arabic ("Advance → Booked", "SLA overdue", "resp by",
+     "Unassigned", priority), and "800 SAR · △150" scrambled to "SAR · △150 800" in the
+     right-to-left line. Stage words come from js/21's own map; the amount is an isolated
+     left-to-right span; the service chip uses the catalogue label like the editor does. */
+  const ar=(typeof LANG!=='undefined'&&LANG==='ar');
+  const stAr=(s)=>{try{return (ar&&window.__OPS_STAGE_AR&&window.__OPS_STAGE_AR[s])||s;}catch(_){return s;}};
+  const next=STAGES[STAGES.indexOf(r.stage)+1]||'';
+  const due=over?(ar?'⚠ تأخّر مستوى الخدمة':'⚠ SLA overdue'):(early?(ar?'الرد قبل ':'resp by ')+fmtTime(slaDue(r)):'');
+  const prioAr={Urgent:'عاجل',High:'مرتفع',Normal:'عادي',Low:'منخفض'};
+  return `<div class="reqcard" draggable="true" ondragstart="dragStart(event,'req','${r.id}')" onclick="editRequest('${r.id}')"><div class="rc-top"><span class="svc">${esc(typeof svcLabel==='function'?svcLabel(r.service):r.service)}</span><span class="due ${over?'over':'ok'}">${due}</span></div>
   <div style="font-weight:700;margin-top:8px;font-size:13.5px">${esc(r.client)}</div>
   <div style="font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4">${esc(r.detail||"")}</div>
-  <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted)"><span>${esc(r.owner||"Unassigned")}${r.pnr?" · "+esc(r.pnr):""}</span>${r.sell?`<span style="font-weight:700">${moneyShort(r.sell)} SAR${r.cost?` · <span style="color:var(--green)">△${moneyShort(r.sell-r.cost)}</span>`:""}</span>`:`<span style="font-weight:700;color:${r.priority==='Urgent'?'var(--red)':r.priority==='High'?'var(--amber)':'var(--muted)'}">${esc(r.priority||"")}</span>`}</div>${r.stage!=="Closed"?('<button class="btn sm" style="width:100%;margin-top:9px;justify-content:center;padding:6px" onclick="advanceReq(\''+r.id+'\',event)">Advance &#8594; '+esc(STAGES[STAGES.indexOf(r.stage)+1]||'')+' &#9656;</button>'):''}</div>`;}
+  <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted)"><span>${esc(r.owner||(ar?'غير مُسند':'Unassigned'))}${r.pnr?" · "+esc(r.pnr):""}</span>${r.sell?`<span style="font-weight:700;direction:ltr;unicode-bidi:isolate">${moneyShort(r.sell)} SAR${r.cost?` · <span style="color:var(--green)">△${moneyShort(r.sell-r.cost)}</span>`:""}</span>`:`<span style="font-weight:700;color:${r.priority==='Urgent'?'var(--red)':r.priority==='High'?'var(--amber)':'var(--muted)'}">${esc(ar?(prioAr[r.priority]||r.priority||''):(r.priority||""))}</span>`}</div>${r.stage!=="Closed"?('<button class="btn sm" style="width:100%;margin-top:9px;justify-content:center;padding:6px" onclick="advanceReq(\''+r.id+'\',event)">'+(ar?('التالي &#8592; '+esc(stAr(next))):('Advance &#8594; '+esc(next)+' &#9656;'))+'</button>'):''}</div>`;}
 function editRequest(id){
   const isNew=!id;const r=id?JSON.parse(JSON.stringify((DB.requests||[]).find(x=>x.id===id))):{id:uid("r"),client:"",service:"Flights",detail:"",stage:"New",owner:"",priority:"Normal",createdAt:Date.now(),supplier:"",pnr:"",sell:0,notes:""};
   openModal(isNew?"New request":"Request — "+esc(r.client),`

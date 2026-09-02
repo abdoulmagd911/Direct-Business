@@ -128,6 +128,39 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   the same Arabic label map (js/73, raw key as fallback) and the Report Builder file uses the
   screen's own bilingual labels and "الإجمالي". English files unchanged; four more scenarios in
   `probe-export-arabic.mjs` (AR + EN for both buttons); sabotage-verified.
+- **Oversight cycle 2 applied (0b007cd)** — one malformed row could zero every Overview tile;
+  money sanitised at the chokepoint, flagged on screen; `probe-overview-attacks.mjs` green here.
+  Of the old-shape writes it listed, `js/35` is done in round 10 below; the Tender-by-text
+  `finSectorOf()` note is left for the owner's ruling (profile_type is the proper key).
+- **Round 10 (11:25–12:20) — Operations board and Proposals WITH data.** The harness had never
+  fed these pages a record: the app reads requests/proposals from the `app_requests` /
+  `app_offers` tables (js/35) and the mock served nothing for them — and because an unknown
+  table answers `[]`, js/35 took that as "reachable, empty" and replaced the blob copy with
+  nothing. Every earlier check of Ops/Proposals ran on an empty page. Now: seven requests (one
+  per column, sell/cost set) and three proposals seeded; honest upsert/delete for the v59
+  tables with a `MOCK_REFUSE_OPS_WRITES=1` switch. Found with data, fixed:
+  · **js/35 (M13):** a section upsert/delete recorded "synced" without looking at the rows back —
+    a silent policy refusal kept the request/proposal change in this tab only. Now only confirmed
+    rows are snapshotted, the person is told once, and the next save retries.
+  · **Phantom writes (js/72 + js/02):** the save pill after a language toggle said "Saved · 20
+    leads updated" with no lead touched. The people bridge created an empty contacts/activities
+    array on every company whose stored record had none, so the first save of the session saw
+    those companies as changed and rewrote their rows with this tab's copy — 29 live companies,
+    every session, a stale-overwrite window on rows nobody edited. The bridge now marks the keys
+    it created and the save strips them back out; `probe-no-phantom-writes.mjs` asserts a
+    no-change save writes nothing and a one-lead edit sends exactly one row.
+  · **Arabic request cards (core-03):** "Advance → Booked", "SLA overdue", "resp by",
+    "Unassigned", priority were English under Arabic; "800 SAR · △150" scrambled to
+    "SAR · △150 800" in the RTL line (amount isolated LTR); service chip uses the catalogue
+    label; the "Booked margin" tile wrapped mid-value on desktop and phone — the % is now its
+    own small line. "Pipeline value" reads قيمة المسار.
+  · **Arabic proposal editor (js/21):** its form labels, section summaries, buttons and the two
+    injected action buttons were English — ~60 whole-string entries added, and the label layer
+    now also covers `<label>`, `<summary>` and `.ch-sub` (whole-string only; labels wrapping an
+    input are skipped). The client-facing preview document is deliberately left as authored.
+  Guard: `probe-ops-board.mjs` (board counts, KPI arithmetic from the same records, Advance →
+  reaches the table / refusal reported, Arabic headers + labels, phone, proposals list + editor
+  EN/AR). Sabotage-verified: js/35 row confirmation → refusal red; bridge marker → phantom red.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

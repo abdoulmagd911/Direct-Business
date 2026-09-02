@@ -27,7 +27,12 @@ try{
     var addedC=0, addedA=0;
     (contacts||[]).forEach(function(r){
       var b=byUuid[r.business_id]; if(!b)return;
-      b.contacts=Array.isArray(b.contacts)?b.contacts:[];
+      /* 2026-09-02 (attack round 10): creating the array on a company whose stored record had none
+         made the first save() of every session see that company as CHANGED and rewrite its row
+         with this tab's copy (20 of 33 rows in the harness; 29 live companies) — a stale
+         overwrite window on rows nobody touched. Mark the keys this layer created so js/02's
+         strip can take them back out and the row compares equal to what was loaded. */
+      if(!Array.isArray(b.contacts)){ b.contacts=[]; b._v72mc=1; }
       var em=nrm(r.email), ph=dig(r.phone);
       var have=b.contacts.some(function(c){ if(!c)return false; if(c._tid&&c._tid===r.id)return true; return (em&&nrm(c.email)===em)||(ph&&dig(c.phone)===ph); });
       if(have){
@@ -40,7 +45,7 @@ try{
     });
     (activities||[]).forEach(function(r){
       var b=byUuid[r.business_id]; if(!b)return;
-      b.activities=Array.isArray(b.activities)?b.activities:[];
+      if(!Array.isArray(b.activities)){ b.activities=[]; b._v72ma=1; }
       var d=day(r.at), note=String(r.note||'');
       var have=b.activities.some(function(a){ if(!a)return false; if(a._tid&&a._tid===r.id)return true; return note===String(a.note||'')&&d===day(a.date); });
       if(have)return;

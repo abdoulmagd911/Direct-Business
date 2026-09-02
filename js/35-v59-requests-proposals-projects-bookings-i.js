@@ -62,8 +62,25 @@
       var ups=[], dels=[];
       Object.keys(curMap).forEach(function(id){ if(prev[id]!==curMap[id]) ups.push({id:id,data:JSON.parse(curMap[id]),updated_at:new Date().toISOString(),updated_by:who()}); });
       Object.keys(prev).forEach(function(id){ if(!(id in curMap)) dels.push(id); });
-      if(ups.length) c.from(T[sec]).upsert(ups,{onConflict:'id'}).then(function(r){ if(!r.error) ups.forEach(function(u){ prev[u.id]=JSON.stringify(u.data); }); }).catch(function(){});
-      if(dels.length) c.from(T[sec]).delete().in('id',dels).then(function(r){ if(!r.error) dels.forEach(function(id){ delete prev[id]; }); }).catch(function(){});
+      /* M13 (2026-09-02, attack round 10): only the records the database confirms back count as
+         synced. Before, a silent policy refusal (no error, no rows) was recorded as "synced" and
+         the request/proposal change lived only in this tab until reload. A refused record stays
+         different from its snapshot, so the next save() tries it again; the person is told once. */
+      if(ups.length) c.from(T[sec]).upsert(ups,{onConflict:'id'}).select('id').then(function(r){
+        var okIds={}; ((r&&r.data)||[]).forEach(function(x){ okIds[String(x.id)]=1; });
+        if(!r.error) ups.forEach(function(u){ if(okIds[String(u.id)]) prev[u.id]=JSON.stringify(u.data); });
+        var got=Object.keys(okIds).length;
+        if(r.error||got<ups.length){
+          var why=r.error?r.error.message:('only '+got+' of '+ups.length+' accepted');
+          try{ if(typeof toast==='function') toast((typeof LANG!=='undefined'&&LANG==='ar')?('لم يُحفظ التغيير — رفضته قاعدة البيانات ('+sec+')'):('Not saved — the database refused the '+sec+' change ('+why+')')); }catch(_){}
+          if(window.console) console.warn('[v59] '+sec+' sync refused: '+why);
+        }
+      }).catch(function(){});
+      if(dels.length) c.from(T[sec]).delete().in('id',dels).select('id').then(function(r){
+        var okIds={}; ((r&&r.data)||[]).forEach(function(x){ okIds[String(x.id)]=1; });
+        if(!r.error) dels.forEach(function(id){ if(okIds[String(id)]) delete prev[id]; });
+        if(!r.error&&Object.keys(okIds).length<dels.length&&window.console) console.warn('[v59] '+sec+' delete refused for '+(dels.length-Object.keys(okIds).length)+' record(s)');
+      }).catch(function(){});
       SNAP[sec]=prev;
     });
     try{

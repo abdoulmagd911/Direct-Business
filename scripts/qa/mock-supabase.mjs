@@ -60,6 +60,19 @@ const TABLES={
   slas:[...Array(5)].map((_,i)=>({id:'sl'+i,legacy_id:'SL'+i,metric:'Response time',direct_business:'2h',market:'4h',whales:'1h',flag:'green',raw:{}})),
   requests:[...Array(4)].map((_,i)=>({id:'r'+i,legacy_id:'R'+i,title:'Request '+i,business_id:'b'+i,client_name:'Test Company '+i,stage:'open',owner:'QA',priority:'high',supplier:'Provider 1',pnr:'ABC12'+i,cost:900,sell:1100,sla_due:'2026-08-20T00:00:00Z',created_at:'2026-08-01T00:00:00Z',raw:{}})),
   offers:[], external_refs:[], master_db_companies:[], generated_documents:[],
+  // Operations + Proposals live in real tables since v59 (js/35): one row per record, `data` =
+  // the exact JSON the app uses. Until 2026-09-02 (attack round 10) the mock served NOTHING
+  // for app_requests / app_offers — and because an unknown table answers `[]`, js/35 took that
+  // as "tables reachable, empty" and replaced the blob copy with nothing, so every harness run
+  // of the Ops board and the Proposals list was on an EMPTY page. Seven requests, one per
+  // board stage, with sell/cost so the KPI arithmetic is checkable; three proposals in the
+  // three statuses. `createdAt` is relative to mock start: the first two are 1 h old (inside
+  // the 2 h SLA), the rest 5 h old (overdue unless Delivered/Closed).
+  app_requests:[['New','Flights',1100,900],['Quoting','Hotels',5400,4700],['Awaiting client','Visa',800,650],['Booked','Package',12000,10100],['Ticketed','Flights',3300,2900],['Delivered','eSIM',150,90],['Closed','Group / MICE',48000,41000]]
+    .map((s,i)=>({id:'req'+i,data:{id:'req'+i,client:'Test Company '+i,service:s[1],detail:'Seed request '+i,stage:s[0],owner:i%2?'QA':'',priority:['Urgent','High','Normal','Low'][i%4],createdAt:Date.now()-(i<2?1:5)*3600e3,supplier:'Provider 1',pnr:i%3?('PNR'+i):'',sell:s[2],cost:s[3],notes:''},updated_at:'2026-08-01T00:00:00Z',updated_by:'QA'})),
+  app_offers:[['Draft','Price offer',12000,''],['Sent','Tender',48000,'2026-12-31'],['Won','Training',9500,'']]
+    .map((s,i)=>({id:'off'+i,data:{id:'off'+i,ref:'DB-10000'+i,date:'2026-08-1'+i,client:'Test Company '+i,subject:'Seed proposal '+i,airline:'',route:'',currency:'SAR',ticketPrice:'',partnerFees:'',serviceFees:'',vat:'',total:'',status:s[0],version:1,validUntil:s[3],linkedLeadId:'',policyStatus:'Not checked',approvalStatus:'Not required',paxAdt:1,paxChd:0,paxInf:0,cost:'',commission:'',options:[],owner:'QA',proposalType:s[1],docUrl:'',scope:'',value:s[2],promotedToProject:false},updated_at:'2026-08-01T00:00:00Z',updated_by:'QA'})),
+  app_projects:[],
   // Backups-in-Supabase fixture (2026-08-23, docs/DECISIONS.md — moved off localStorage per
   // P1). Mirrors the real live project: app_state_history is trigger-populated (never
   // client-inserted, admin-only SELECT by RLS) — seeded with 3 rows so the harness can test
@@ -551,6 +564,27 @@ export function start(port, seedOverrides){
             const newRow=Object.assign({id:row.id||('mock-'+t+'-'+Math.random().toString(36).slice(2))},row);
             TABLES[t].push(newRow); return newRow;
           });
+          return send(res,201,written);
+        });
+      }
+      // v59 record tables (2026-09-02, attack round 10): honest UPSERT by id (rows back) and
+      // DELETE by id=in.(...) (removed rows back). MOCK_REFUSE_OPS_WRITES=1 answers [] to every
+      // write — the silent-refusal shape js/35 must now detect instead of recording "synced".
+      if(/^app_(requests|offers|projects|bookings|invoices)$/.test(t)){
+        const table=TABLES[t]=TABLES[t]||[];
+        if(req.method==='DELETE'){
+          if(process.env.MOCK_REFUSE_OPS_WRITES==='1') return send(res,200,[]);
+          let want=u.query.id; if(Array.isArray(want))want=want[0];
+          const m=String(want||'').match(/^in\.\((.*)\)$/); const ids=m?m[1].split(',').map(s=>s.replace(/^"|"$/g,'')):[];
+          const removed=[]; for(let i=table.length-1;i>=0;i--){ if(ids.includes(String(table[i].id))) removed.push(...table.splice(i,1)); }
+          return send(res,200,removed);
+        }
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          if(process.env.MOCK_REFUSE_OPS_WRITES==='1') return send(res,201,[]);
+          let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(!Array.isArray(payload)) payload=[payload];
+          const written=payload.map(row=>{ const ix=table.findIndex(r=>String(r.id)===String(row.id)); if(ix>=0){ table[ix]=Object.assign({},table[ix],row); return table[ix]; } table.push(row); return row; });
           return send(res,201,written);
         });
       }
