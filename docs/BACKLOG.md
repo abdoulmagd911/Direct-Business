@@ -170,6 +170,17 @@ rigs on the `mock-seed-live` harness (`probe-round9`, `probe-newfeatures`, `prob
 red there too, so they predate this session's work; Events is not a Finance-track file (P4),
 left for its owner; the four stale rigs are worth either fixing or retiring by whoever next
 touches that harness, so the battery stops carrying known-red scripts.
+## 2026-08-29 · Real client names and invoice numbers scrubbed from this file (rule 7)
+
+Owner ruled the repo stays public, so the fix for real client data in the docs is scrubbing,
+not visibility. Throughout this file, real clients now appear as consistent placeholders
+(`Client M`, `Client Q`, `Client RC`, `Client PS`, `Client B` …) and invoice/transaction
+numbers as `<ref>` / `DPIN-<no>`. The mapping is not written anywhere in this repo — the real
+names live in the database (`businesses`, `finance_invoices.client_group`,
+`DB.settings.financeGroupMap`). Amounts were kept: they're Direct's own figures. Test-world
+rows that happen to use real company names were replaced the same way for simplicity.
+`CLAUDE.md` and `docs/DECISIONS.md` were scrubbed in the same commit.
+
 ## 2026-08-29 · Five enhancement ideas from Direct's own product changelog — parked, not started
 
 Source: the 20 weekly "Product Updates" pages on Direct's internal Info Center (Direct's own
@@ -458,7 +469,7 @@ collapse was reverted to a plain join, `scripts/qa/probe-import-preview-density.
 
 **Workstream 2 — company grouping (M14).** Investigated before building: queried
 `finance_client_links` directly and found the underlying business-linking for all three
-duplicate pairs (MDD, AlQahtani, alrajhi) was ALREADY correct — every spelling variant already
+duplicate pairs (Client M, Client Q, Client R) was ALREADY correct — every spelling variant already
 resolves to the same `business_id`, automatically, via the existing auto-linker. What was
 actually missing was a deliberate, visible, reversible NAME decision, plus a durable place for
 it to live so a future import doesn't recreate the split — not a data-linking fix. Owner then
@@ -472,8 +483,8 @@ carries a mapped alias — past AND future, zero backfill. Built the "+ Add alia
 live picker showing each candidate's real invoice count and total (a genuine preview, not a
 blind text field), a confirm dialog summarizing the merge before it applies, and Undo/Redo
 buttons with full visible history. Auto-suggest surfaces candidates two ways — same normalised
-spelling (`norm62()`, catches a same-script rename like AlQahtani automatically) and same
-`finance_client_links` business_id (catches a cross-script rename like MDD's, which the
+spelling (`norm62()`, catches a same-script rename like Client Q automatically) and same
+`finance_client_links` business_id (catches a cross-script rename like Client M's, which the
 automatic linker had already silently resolved at the business level). Added to
 `check-decisions-wired.mjs` coverage as M14 — its citations resolve like every other ACTIVE
 rule's. Sabotage-tested: `finCanon()`'s `finGroupCheck()` consultation was removed,
@@ -727,14 +738,14 @@ The oversight session finished a real capture (all 219 expense lines, all 153 tr
 "zero orphans" by exact page-count math) and, testing it end to end against a real record,
 proved the 2026-08-23 join model wrong the same day it shipped.
 
-**THE REAL CHAIN, proven on a live example.** Expense line `INVOICE #` `1163760881` is not a
+**THE REAL CHAIN, proven on a live example.** Expense line `INVOICE #` `<ref>` is not a
 tax invoice number — it is the TRANSACTION's own reference. That transaction's own
-`INVOICE ISSUING` column reads "Issued `1163762432`", and `1163762432` IS a real
+`INVOICE ISSUING` column reads "Issued `<ref>`", and `<ref>` IS a real
 `finance_invoices` row (5,600.00 SAR), matching the transaction's amount and its single
 Approved expense line exactly. So the real model is **two levels, not one**: many expense
 lines → one transaction (Level 1), many transactions → one tax invoice (Level 2) — confirmed
 on a real 7-transaction group, all issuing into the same invoice
-(`1163754021`, 75,578.00 SAR). Grouping expense lines by their own `INVOICE #` directly, as
+(`<ref>`, 75,578.00 SAR). Grouping expense lines by their own `INVOICE #` directly, as
 the 2026-08-23 version did, would never have produced a correct number.
 
 **SECOND CORRECTION: EXPENSE STATUS blank means "Issued," not "unknown."** Blank always
@@ -769,14 +780,14 @@ separate file drops).
 
 **Three findings recorded in `docs/DECISIONS.md` (now labelled M9) and left for their own
 separate work, not patched here:**
-1. Invoice `1163692466` computes cost 28,998.18 against a 26,536.00 total — the cost≤total
+1. Invoice `<ref>` computes cost 28,998.18 against a 26,536.00 total — the cost≤total
    guard correctly refuses it. May be a join error or a genuinely loss-making booking;
    surfaces loudly as needs-review either way, never silently dropped.
 2. Three tax invoices with real approved cost have no matching row in `finance_invoices` at
-   all (`1163732931`, `1163737524`, `1163765089`) — a gap in the invoice importer, not in
+   all (`<ref>`, `<ref>`, `<ref>`) — a gap in the invoice importer, not in
    this capture. Reported as "not a live invoice," never inserted (D1 stands).
 3. Ten invoices get no cost from this capture; most are plausibly cost-free service-fee
-   invoices, but `1163754021` (the 75,578.00 invoice fed by 7 transactions) reading zero is
+   invoices, but `<ref>` (the 75,578.00 invoice fed by 7 transactions) reading zero is
    suspicious and worth checking once real data lands — the code now handles the multi-
    transaction case correctly, so if it still comes up zero after a real drop, that's a
    capture-completeness question (were all 7 receipt refs actually captured with correct raw
@@ -997,7 +1008,7 @@ recorded in full so a future session doesn't repeat any of the three:
    Export/Fast Excel Export — found by reading the app's own Ziggy route registry out of the
    page source rather than guessing URLs). Cross-verified against the abandoned modal path
    on one real invoice before trusting it (both independently read 12,247.00 for invoice
-   1163597647).
+   <ref>).
 
 **Two real traps in this source, both defended in code:**
 - The report's own `expense_status` URL filter does not apply server-side — a request
@@ -1005,7 +1016,7 @@ recorded in full so a future session doesn't repeat any of the three:
   alongside Approved ones. The importer filters on each row's own status VALUE, never
   trusts a query string.
 - Repeated identical (amount, expense_type) pairs on one invoice are real, separate
-  expenses, not duplicates — verified: invoice 1163760158 carries three Hotel Cost /
+  expenses, not duplicates — verified: invoice <ref> carries three Hotel Cost /
   RateHawk lines, two at the identical 12,121.16, all three with different approval
   timestamps (13:12:36 / 13:13:08 / 13:13:35). The importer sums every Approved line;
   nothing is deduplicated.
@@ -1087,7 +1098,7 @@ is putting the explicit strip-it instruction to the owner directly, not decided 
 `TXN.rows=0`, `TXN.loadErr=null`, table/filters/Payment column all work correctly against
 zero rows because there are zero live rows in `finance_transactions` (33 rows, all
 soft-deleted practice data). Separately, "clients collection is empty" is **no longer
-true** — Clients & collections renders real revenue per client (MDD 642,549, alnahla
+true** — Clients & collections renders real revenue per client (Client M 642,549, Client N
 599,347, etc.); what's actually zero is the COST column and "Client credit (held)" — i.e.
 item 4 below (cost import) is the real fix, not a Clients-page bug.
 
@@ -1556,7 +1567,7 @@ DB object (`_v21added` + synthetic `b_`-prefixed id on `d.businesses` only), so 
 open tab heals itself on its next load instead of carrying a fake client forward forever.
 Verified by grep that the strip predicate can never touch a real record — only 3 places in
 the file ever set `_v21added:true` (airlines, vendors, this seed list), on non-overlapping id
-prefixes and different arrays; the one real pre-v21 lead sharing a `b_` id (`b_mdd`) is never
+prefixes and different arrays; the one real pre-v21 lead sharing a `b_` id (`b_client_m`) is never
 tagged `_v21added`.
 
 **The one entry with no database counterpart, dropped but preserved here** in case it still
@@ -1573,9 +1584,8 @@ deleted) because each duplicated a real Direct-Payments-imported row under the s
 (`direct_client_id` 8 and 23). Confirmed by direct query: 108 live rows (80 leads / 28
 clients), 0 duplicate names remaining, exactly 2 archived. 8 other rows share that same old
 synthetic id pattern but are the **only** copy of their record and were correctly left alone:
-Bayswater Education, Jeel Aljazira Travel & Tourism, Kayan Orphans Charity, Maaal Media,
-Mawani — Saudi Ports Authority, MDD — Smart Madad IT, Rawiz Investment, Security Forces
-Hospital Makkah.
+Client B, Client J, Client K, Client Ml,
+Client Mw, Client M, Client Rw, Client SF.
 
 Verified before push: `check-structure.mjs` OK (58 script files) · `probe-leads-counts.mjs`
 OK (funnel/chip/table agree in both languages and both hide-closed states, refresher fires
@@ -1600,8 +1610,8 @@ Three corrections from Abdulrahman, same day as the branch cleanup below:
    54 transactions / 1,133,517.20 SAR (17 Ready, 317,115.18 SAR · 37 Pending, 816,402.02 SAR).
 3. **The open reconciliation flag in the playbook §2 is closed, not real.** The small
    7,389.40 SAR gap found while reconciling it traced to mixing transaction references into
-   a tax-invoice total: refs `1163752886` / `1163705932` are VOID transactions, refs
-   `1163732931` / `1163737524` are live transactions still "Published - Pending Payment" —
+   a tax-invoice total: refs `<ref>` / `<ref>` are VOID transactions, refs
+   `<ref>` / `<ref>` are live transactions still "Published - Pending Payment" —
    none of the four is actually a tax invoice. Once excluded correctly the gap disappears.
    Full detail and the corrected reconciliation note live in the playbook itself — do not
    re-open this without genuinely new evidence.
@@ -2262,11 +2272,11 @@ database, not just in app logic.
 **Real data imported** from the verified Direct Payments Corporate Clients registry (Drive
 file `09-corporate-clients-export.xlsx`, 43–44 rows, re-verified 2026-08-21 against the live
 list): **24 real client-profile rows across 19 real companies**, Takamol excluded per the
-standing rule. Five companies hold two profiles each (Directorate of Public Security ×2
-tender, Maaal tender+prepaid, Abdel Hadi Al-Qahtani & Sons prepaid+postpaid, alrajhi alawla
-prepaid+postpaid, MDD prepaid+postpaid); the other 14 are single-profile companies. Each
+standing rule. Five companies hold two profiles each (Client PS ×2
+tender, Client Ml tender+prepaid, Client Q prepaid+postpaid, Client R
+prepaid+postpaid, Client M prepaid+postpaid); the other 14 are single-profile companies. Each
 profile's registry contact was kept as its own `contacts` row rather than picked-one, since
-two pairs (Maaal, MDD) show one-letter-different emails between their two profiles — a
+two pairs (Client Ml, Client M) show one-letter-different emails between their two profiles — a
 genuine data question for Abdulrahman, not something to silently resolve. **Deliberately NOT
 merged into the existing 30-lead synthetic training world**, even where a name coincidentally
 matches an existing test client (e.g. "the chamber-of-commerce client", "MDD") — mixing real financial
@@ -2841,7 +2851,7 @@ for approval → deploy → delete the old layers that page no longer needs):
    payment system cannot change an invoice type per account. NOT duplicates. Model:
    ONE card per real company + raw.billingAccounts=[{id,mode}] listed as chips on
    the Linked-to-Direct strip; finance_client_links already rolls all its groups up
-   to the one company. MDD resolved live as the first example (IDs 1 Prepaid + 2
+   to the one company. Client M resolved live as the first example (IDs 1 Prepaid + 2
    Postpaid, flag cleared with an explanatory activity). When linking finance,
    map EVERY billing account's invoice group to the same company card.
    FINDING (worker-path UI test): a lead created via "+ New business" gets NO
@@ -2868,8 +2878,8 @@ The owner captured live screenshots + URLs from payments.directksa.com. Confirme
 TRANSACTION (receipt ref, products, Need to issue/Issued) → INVOICE (reference + DPIN/TTIN
 ZATCA number, Hijri+Gregorian dates, salesman, branch, buyer VAT#) → SERVICE LINES as FEE
 PAIRS (provider/3rd-party fee = No VAT cost; Service Fee = 15% VAT = Direct's income) →
-PAYMENT RECEIPTS (PR-x, applied until Remaining 0). Proof pair: transaction 1163601785
-(507,800.00) became invoice 1163605527/DPIN-284070 whose 6 lines sum exactly.
+PAYMENT RECEIPTS (PR-x, applied until Remaining 0). Proof pair: transaction <ref>
+(507,800.00) became invoice <ref>/DPIN-<no> whose 6 lines sum exactly.
 BUILT: finance_invoices += transaction_ref, direct_uuid, vat_sar (migration
 direct_payments_model_columns); invoice card groups lines under Transaction headers with
 per-transaction subtotals + "Included VAT (15% on service fees)" row; "Open in Direct ↗"
@@ -2933,7 +2943,7 @@ page errors) and deployed:
    header code wraps instead of overflowing; long explainer sentences shortened on
    log-activity, proposal scope, income-by-service, collections, top-clients, import.
 DRIVE SWEEP 2026-08-12 (new since 08-09): **Business Finance** sheet = the corporate-card
-cost ledger — every card charge classified (Tender/MDD/Booking API/HR/غرفة الرياض…) and many
+cost ledger — every card charge classified (Tender/Client M/Booking API/HR/Client RC…) and many
 tied to an invoice number → ready-made cost-side source for go-live; **call recordings**
 folder (mp3 per call, numbers like 905/906 in filenames) → possible attach-to-client capture,
 discuss; new **Contacts Submissions** copies (08-09/08-10) for the Phase-8 load.
@@ -3014,7 +3024,7 @@ card strip gained Cost/Profit/Margin%/Credit held. Rule to keep: MAIN VIEW = num
 DETAIL VIEW = percentages & counts.
 Coverage check of the exec dashboard's OTHER tabs (Finance 26 / B2B / Tenders,
 screenshots taken): Remaining Credit → built (finance_client_links.credit_balance_sar,
-KPI card 'Client credit (held)', test: Qassim Foods 250K + MDD 60K = 310K); uncollected
+KPI card 'Client credit (held)', test: Qassim Foods 250K + Client M 60K = 310K); uncollected
 money → already covered (Outstanding KPI + Collections & AR aging); plan-vs-actual
 (متوقع/مؤكد/فعلي) → built (finance_targets table seeded with the REAL 2026 plan:
 13.2M expected / 11.3M confirmed; strip with attainment bar; pro-rated for part
@@ -3056,7 +3066,7 @@ the same period bar; Excel export per period from the Report Builder.
 Read Direct's actual tender offer from Drive ("techincal offer final 1.pdf", the
 Human Rights Commission agreement, folder 1pG4Sgp8Jo7zUqNz5DuMFDkW6X18XBcqR). Its real
 skeleton: About Direct → work plan → numbered scope of services (each with process
-steps) → 4-phase timeline → past work (Ma'aden 2M / Al-Hilal 1.5M / SFDA 500K /
+steps) → 4-phase timeline → past work (Client Mn 2M / Al-Hilal 1.5M / SFDA 500K /
 Riyadh Club 1M) → team → quantities table without prices; the separate
 FINANCIAL offer prices the same table and defines every payment as
 **contracted service fee + cost of the requested service** (رسوم الخدمة التعاقدية +
@@ -3086,7 +3096,7 @@ the separate financial offer), work-plan + commercial page, gradient closing pag
 with contacts. RTL in Arabic. Print = exactly 6 A4 pages (verified headlessly).
 Brand orange in the document corrected to #F06820 per the direct-brand skill.
 STILL OPEN in this phase: owner screenshot yes/no on the paged document; optional
-past-work page (Ma'aden 2M / Al-Hilal 1.5M / SFDA 500K / Riyadh Club
+past-work page (Client Mn 2M / Al-Hilal 1.5M / SFDA 500K / Riyadh Club
 1M) as an opt-in for tender-type proposals; embed licensed brand fonts is NOT
 possible in the public repo — document uses font-family references with fallbacks.
 
@@ -3333,7 +3343,7 @@ spare chip. Reversible via `businesses_snapshot_20260808`. Low risk, cosmetic, n
 
 ## 11c · A company can arrive through more than one door
 
-`funnel_id` holds a single funnel, but Bayswater was reached by outreach **and** has invoice
+`funnel_id` holds a single funnel, but Client B was reached by outreach **and** has invoice
 history. On 2026-08-08 the invoice record was merged into the outreach record and the
 duplicate archived — the invoice fields now sit in the same `funnel_details`, but the record
 shows only one funnel.
@@ -3348,20 +3358,20 @@ Found 2026-08-08 by a full-database duplicate sweep. **Eleven records carry
 
 | Earlier attempt (Outreach & Network funnel) | Later attempt (Past Invoices funnel) |
 |---|---|
-| `b_bta` Booking & Ticket Agency | `inv_aug06_bta` Booking and Ticket Agency |
-| `b_maaden` Maaden — Saudi Arabian Mining | `inv_aug06_maaden` Ma'aden — Saudi Arabian Mining Co. |
-| `b_qahtani` Abdel Hadi Al-Qahtani & Sons | `inv_aug06_qahtani` + `inv_5504` |
-| `b_kayan`, `b_maaal`, `b_takamol`, `b_ultimates` | |
+| `b_client_bt` Client BT | `inv_aug06_client_bt` Client BT |
+| `b_client_mn` Client Mn | `inv_aug06_client_mn` Client Mn |
+| `b_client_q` Client Q | `inv_aug06_client_q` + `inv_5504` |
+| `b_client_k`, `b_client_ml`, `b_takamol`, `b_ultimates` | |
 
 A session on **2026-08-06** loaded invoice leads without checking what was already there, and
-on **2026-08-08** this session did the same again. Bayswater duplicated the same way and has
+on **2026-08-08** this session did the same again. Client B duplicated the same way and has
 been merged.
 
 **Do not load the remaining 14 invoice files until a matching step exists.** Loading them
 blind would produce a third layer of duplicates.
 
-**And do not merge on name similarity.** `b_imp_95` "Al Qahtanitravelbureau" and `b_wf_47`
-"Al-Qahtani Pipe Coating Industries" share a family name and are **different companies**.
+**And do not merge on name similarity.** `b_imp_95` "a travel bureau" and `b_wf_47`
+"a second, unrelated company sharing the family name" share a family name and are **different companies**.
 The locked rule stands: CR number, then verified root domain, then exact normalised name,
 then phone prefix. All duplicate candidates are flagged with
 `needs_manual_confirmation` and a reason naming the other records, so they surface on the
@@ -3515,7 +3525,7 @@ client list: `docs/B2B_LANDING_PAGE_REVIEW.md` and `docs/HANDOVER-B2B-LOGO-WALL.
 touching logos).
 
 - **Logo wall — ready.** 8 of the 9 floating logos on the page are companies Direct has
-  never invoiced; only Ma'aden is real. Replacement list of 32 verified companies, ordered
+  never invoiced; only Client Mn is real. Replacement list of 32 verified companies, ordered
   by Saudi market/cultural weight, with 20 logo files verified and packaged.
   Artifact: https://claude.ai/code/artifact/d77adddd-053e-4235-8318-6084dfd8d673
 - **Partner launch brief** for the 31 Aug conference (discount codes, revenue share,

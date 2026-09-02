@@ -734,10 +734,12 @@ stays purely local. **This covers the repo's own docs, not just code and data fi
 found 2026-08-29 that `CLAUDE.md`, this file and `docs/BACKLOG.md` named real clients with
 real invoice numbers while the JS seed data had been carefully scrubbed. A rule entry that
 needs a real example describes the *shape* ("an EN/AR spelling pair") and points at where the
-real value lives (a DB column, a settings map) — it never carries the value itself. This file
-was scrubbed the same day; the other two are the Code session's to do.
-*Date: 2026-08-08 (ruled), violated once 2026-08-13, re-enforced; extended to docs
-2026-08-29. Status: ACTIVE.*
+real value lives (a DB column, a settings map) — it never carries the value itself. **Owner
+ruled the same day: the repo stays public** (sessions need it public to fetch), so scrubbing
+is the fix, not visibility — all three docs scrubbed 2026-08-29. Old commits still carry what
+they carried; a history rewrite is a separate, coordinated job that has not been asked for.
+*Date: 2026-08-08 (ruled), violated once 2026-08-13, re-enforced; extended to docs and
+"repo stays public" ruled 2026-08-29. Status: ACTIVE.*
 
 **FIN.p — one period state drives every Overview/Clients number; nothing is stored per
 period.** `year: 'all'|<year>`, `part: 'all'|Q1..Q4|H1|H2|M:<MonthName>`, `sector:

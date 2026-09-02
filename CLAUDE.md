@@ -230,16 +230,14 @@ the data was four months stale. Nothing deleted: `businesses_snapshot_20260808` 
 and `contacts_snapshot_20260808` (335 rows) hold the full prior state, admin/manager only.
 
 **Re-verification, batch 1 — 2026-08-09.** Moved the 6 companies Direct has actually invoiced
-back to clients (`is_client=true` + `raw.isClient='true'` + `stage='won'` + `converted_date`):
-Booking and Ticket Agency, Directorate of
-Public Security, Maaal, الوسائل الوقائية للسلامة, المطاحن الأولى. So the app now has 6 active
-clients again. Backup before the change: `businesses_snapshot_20260809_clientmove` (1,035 rows).
+back to clients (`is_client=true` + `raw.isClient='true'` + `stage='won'` + `converted_date`)
+— names are in the database (`businesses` where `converted_date='2026-08-09'`), not here (rule
+7). So the app now has 6 active clients again. Backup before the change: `businesses_snapshot_20260809_clientmove` (1,035 rows).
 Undo = copy `is_client/stage/converted_date/raw` back from that snapshot by id. The other ~27
-pre-reset "clients" stayed leads on purpose — they're duplicates (Ma'aden ×2, Riyadh Chamber ×3,
-Booking &/and, Abdel Hadi ×2), study-abroad schools (Kaplan, ELC Chester, New College), or have
-no invoice to prove the relationship. Big-name leads (SAMA, NEOM, Alshaya, alfanar, Kemya/SABIC,
-Savvy Games, Webook) are **not** clients in the data (no invoices, never flagged) — do not move
-them without Abdulrahman confirming. 68 leads still carry a `total_sar` amount with no matched
+pre-reset "clients" stayed leads on purpose — they're duplicate spellings of the same company
+(one ×2, one ×3, an "&/and" pair, a family-business pair), study-abroad schools, or have no
+invoice to prove the relationship. The well-known large-organisation leads are **not** clients
+in the data (no invoices, never flagged) — do not move them without Abdulrahman confirming. 68 leads still carry a `total_sar` amount with no matched
 invoice — a soft signal, not proof; a possible next batch to review with him.
 
 **Re-verification, batch 2 — 2026-08-09.** Moved **39** more companies from the `Old Customers`
@@ -307,19 +305,20 @@ companies loaded so far as a proven pattern; **14 of the ~18 source files still 
 
 Rules learned from reading the source files — apply them to the rest:
 
-1. **Not every file is a company.** `5468` is ABDULLAH ALHAYAN on a personal Gmail — an
-   individual, B2C, not a B2B lead. Judge by the *customer name* (شركة / Co / Ltd / LLC /
+1. **Not every file is a company.** One file is a private individual on a personal Gmail —
+   B2C, not a B2B lead. Judge by the *customer name* (شركة / Co / Ltd / LLC /
    school / institute), not the email.
-2. **A company can have a personal email on file.** `5504` is a large contracting group
+2. **A company can have a personal email on file.** One file is a large contracting group
    whose only contact address is a Gmail. Per the no-cross-company-smuggling rule, do not
    attach it as the company email — set `needs_manual_confirmation` and say why.
-3. **Unpaid drafts are the best re-approach reason.** `5504` drafted 30,850 SAR of flights
-   and never completed. That is a warmer opening than a cold call.
+3. **Unpaid drafts are the best re-approach reason.** That same group drafted 30,850 SAR of
+   flights and never completed. That is a warmer opening than a cold call.
 4. Each file may hold many invoices for one customer — sum them for lifetime billed, count
    them, and take the newest date and DPIN.
 
-Loaded: `inv_5466` Bayswater (10 invoices, ~49,290 SAR, study abroad) and `inv_5504`
-Al-Qahtani/Sinopec (1 draft invoice, 30,850 SAR, flights).
+Loaded: two companies — a study-abroad customer (10 invoices, ~49,290 SAR) and the
+contracting group above (1 draft invoice, 30,850 SAR, flights). Their `businesses` ids start
+`inv_` + the Direct customer number; names are in the database, not here (rule 7).
 
 Known gaps against what Abdulrahman has described: there is **no funnel for leads mined from
 old invoices**, nothing yet distinguishes the new corporate site (corporate.directksa.com)
