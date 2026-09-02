@@ -124,8 +124,8 @@ the live database, the live repo/deploy, and the code — not the BACKLOG entrie
 done. What held, what didn't, and what changed:
 
 **Held (verified live, not assumed).** All three owner-decided alias merges exist and are
-active — the owner created them himself on 2026-08-26 (MDD, AlQahtani, alrajhi); Public
-Security and the chamber-of-commerce client are single groups, no action needed, as decided. The M15 capture
+active — the owner created them himself on 2026-08-26 (Client M, Client Q, Client R); Public
+Security and Client RC are single groups, no action needed, as decided. The M15 capture
 tables are in real use (223 expense lines / 155 gate rows across 75 transactions). The oversight
 session's single-invoice test (1163605511) that was the M16 blocker now carries a real cost,
 written after M16 deployed — the real-data confirmation this project was waiting on has
@@ -148,12 +148,12 @@ pinned, behaviour unchanged. (3) CLAUDE.md's "quick current state" still claimed
 assumption/test data with 4 leads / 6 clients — it holds real data, 80 leads / 32 clients;
 corrected so rule 7 is read against reality.
 
-**For the owner — data, his call, not touched (D1).** The two MDD spellings are linked to TWO
-different company records: "MDD" and "MDD — Smart Madad IT" — a duplicate business, which is
+**For the owner — data, his call, not touched (D1).** The two Client M spellings are linked to TWO
+different company records: "Client M" and "Client M — Smart Madad IT" — a duplicate business, which is
 why the Arabic spelling auto-matched to the second one. Display merges them (alias map), the
-client card and sector do not. Also, the alias group's canonical name is "MDD", not the
-"MDD - Smart Madad IT" the owner decided on 2026-08-25 — possibly deliberate; one Undo + Add
-fixes it if not. Both need a human decision about which record is the real MDD.
+client card and sector do not. Also, the alias group's canonical name is "Client M", not the
+"Client M - Smart Madad IT" the owner decided on 2026-08-25 — possibly deliberate; one Undo + Add
+fixes it if not. Both need a human decision about which record is the real Client M.
 
 **Still open, unchanged.** The repository is still PUBLIC (checked directly), so the real
 customer PII removed from the code on 2026-08-27 remains readable in git history; making it
@@ -199,9 +199,16 @@ times out looking for a "Proposals" primary-nav button that commit `e572cd3` del
 removed — the same stale-probe class fixed in `probe-role-nav`/`audit-ui-golive` on 26 Aug,
 missed then because this probe wasn't in the run set. All three are probe drift, not app
 defects; L14 may be a real Arabic gap worth a look. Left for the next QA pass.
+*Reconciled 2026-09-02 (the audit round above): L6 turned out to be a REAL defect, not drift —
+a binary file renamed .csv was shown as "not recognized — Columns found: %PDF…" with a Teach
+button; fixed in `js/65-universal-importer.js`, probe green. L14 was drift: the
+"two optional columns" line was dropped on purpose in the 2026-08-25 density pass; the probe now
+checks the Arabic surfaces that exist and that no English leaked. `probe-newfeatures` imports
+`emp-rig` (the staff's real logins) and cannot run from a sandbox — environmental, listed as
+such, not green.*
 
 **Outside Finance's files, same names appear in:** `js/core/core-06/08/09`, `js/57`, `js/70`
-(comments and in-app copy like "MDD-style multi-trip engagements"), `brand/*` +
+(comments and in-app copy like "Client M-style multi-trip engagements"), `brand/*` +
 `docs/HANDOVER-B2B-LOGO-WALL.md` + `docs/B2B_LANDING_PAGE_REVIEW.md` (the public client logo
 wall — public marketing, arguably fine), and `docs/DIRECT_MASTER_BRIEF.md`,
 `docs/HANDOFF_2026-08-09.md`, `docs/DIRECT_SYSTEMS_PLAYBOOK.md`. Inventory handed to the Code
@@ -522,8 +529,8 @@ duplicate pairs (Client M, Client Q, Client R) was ALREADY correct — every spe
 resolves to the same `business_id`, automatically, via the existing auto-linker. What was
 actually missing was a deliberate, visible, reversible NAME decision, plus a durable place for
 it to live so a future import doesn't recreate the split — not a data-linking fix. Owner then
-confirmed the exact canonical names and that all three pairs (not just MDD) should merge; Public
-Security and the chamber-of-commerce client need nothing, they're already single and clean. Built
+confirmed the exact canonical names and that all three pairs (not just Client M) should merge; Public
+Security and Client RC need nothing, they're already single and clean. Built
 `window.finGroupCheck()` (`js/62-finance-guardrails.js`) — an exact-shape twin of
 `finExclusionCheck()`, storing canonical name + aliases (`DB.settings.financeGroupMap`),
 undo-not-delete. `finCanon()` (`js/16-finance-ledger.js`) consults it FIRST on every
@@ -1607,8 +1614,8 @@ reading 8 higher than the real table. Root cause: `js/core/core-06-v18-v21.js` h
 B2B clients from an old `Q:\Downloads\B2B.xlsx` import (`B2B_CLIENTS_V21`) and re-injected
 them into `d.businesses` on **every page load**, inside `migrateV21` step 3. They were never
 rows in the `businesses` table. 7 of the 8 duplicated a client that already existed in the
-database under its real name — the team was seeing Directorate of Public Security twice and
-the chamber-of-commerce client three times (`b_rcc_vip` and `b_rcc_team` both duplicated the one real "the chamber-of-commerce client" row).
+database under its real name — the team was seeing Client PS twice and
+Client RC three times (`b_rcc_vip` and `b_rcc_team` both duplicated the one real "Client RC" row).
 
 **Code change:** `B2B_CLIENTS_V21` is now `[]`. `migrateV21` step 3 no longer seeds anything,
 and now also strips any phantom row an older build already injected into a session's local
@@ -1627,7 +1634,7 @@ entity", payment configuration "Tender", customer type "Tender", note "Per Whats
 auto-seeded again without a person confirming it first).
 
 **Database cleanup** (done separately, verified independently against production via SQL
-before trusting it): 2 duplicate synthetic rows — "the chamber-of-commerce client" and "the conferences client" (old seed id pattern `a13e0000-0000-4000-8000-1...`, `direct_client_id` null) —
+before trusting it): 2 duplicate synthetic rows — "Client RC" and "the conferences client" (old seed id pattern `a13e0000-0000-4000-8000-1...`, `direct_client_id` null) —
 archived (`archived_at` + `archived_by='cleanup-2026-08-22-duplicate-of-direct-import'`, not
 deleted) because each duplicated a real Direct-Payments-imported row under the same name
 (`direct_client_id` 8 and 23). Confirmed by direct query: 108 live rows (80 leads / 28
@@ -2328,7 +2335,7 @@ profile's registry contact was kept as its own `contacts` row rather than picked
 two pairs (Client Ml, Client M) show one-letter-different emails between their two profiles — a
 genuine data question for Abdulrahman, not something to silently resolve. **Deliberately NOT
 merged into the existing 30-lead synthetic training world**, even where a name coincidentally
-matches an existing test client (e.g. "the chamber-of-commerce client", "MDD") — mixing real financial
+matches an existing test client (e.g. "Client RC", "Client M") — mixing real financial
 identity (real VAT numbers, real tender amounts) into deliberately-synthetic training rows
 would corrupt the boundary CLAUDE.md draws between them; new real companies were added
 instead, tagged `source='corporate_clients_import_20260821'`, fully reversible (new rows, not
@@ -2890,7 +2897,7 @@ for approval → deploy → delete the old layers that page no longer needs):
    the reason (bilingual), stores it in lost_reason + logs a Lost activity, and the
    record card shows "Why we lost it" in red; lost leads stay findable under the
    Lost chip. LIVE TEST DATA now: 11 clients / 7 leads / 15 invoices / 4.59M SAR
-   incl. tender-in-proposal (the chamber-of-commerce client), supplier-partner (Amadeus), lost
+   incl. tender-in-proposal (Client RC), supplier-partner (Amadeus), lost
    agency with comeback note (Elite Holidays), partial payment with 40K outstanding
    (Benchmark) — undo via source_batch='lifecycle rehearsal' + legacy_id lc_*.
    NOTE: the QA mocks mirror only part of this richer live set — next session may

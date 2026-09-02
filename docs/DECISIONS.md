@@ -508,8 +508,7 @@ a note saying why, and undo reopens it with its original note. (b) The the IT-se
 one person (three contact rows for one travel coordinator). A moved contact that duplicates one
 already on the kept company (same e-mail or phone) is now FLAGGED `needs_manual_confirmation`
 with a reason naming the other record — never silently doubled, never deleted; undo restores the
-prior flag. (c) The 2026-08-22 manual cleanup had archived two duplicate records ("Riyadh
-Chamber", "the conferences client") but left 80,750 + 82,800 SAR of transactions, their
+prior flag. (c) The 2026-08-22 manual cleanup had archived two duplicate records ("Client RC", "the conferences client") but left 80,750 + 82,800 SAR of transactions, their
 contacts, activities and profiles behind on the archived rows — the same defect as the IT-services client in an
 older form, and exactly why a merge must be ONE audited call. Repaired through the function
 (`p_allow_archived`, which the UI never passes); undo now restores the dropped record's exact
