@@ -451,6 +451,9 @@ window.renderEvents=function(v){
     if(F.q){var q=F.q.toLowerCase();if(((e.name_en||'')+' '+(e.name_ar||'')+' '+(e.city||'')+' '+(e.venue||'')+' '+(e.organiser||'')).toLowerCase().indexOf(q)<0)return false;}
     return true;
   });
+  /* 2026-09-02: order is decided HERE, not trusted from the query — soonest first, undated
+     last, so an event with no date never pretends to be first in a date-sorted list. */
+  list.sort(function(a,b){ var da=a.start_date||'', db=b.start_date||''; if(!da&&!db)return 0; if(!da)return 1; if(!db)return -1; return da<db?-1:da>db?1:0; });
   window.__v64LastList=list;   /* Export ships exactly what is on screen */
   /* Counts describe the LIVE calendar (what is still ahead), so the tiles never
      promise more than the list below them shows. */

@@ -1,13 +1,76 @@
 # Action items — things deliberately put on hold
 
-## 2026-09-02 · M18 — duplicate companies fixed for good, MDD merged live, second sweep clean
+## 2026-09-02 (later) · "What else needs to be fixed? Perform immediately" — full audit, fixed same day
 
-Owner's ruling on the 2026-08-29 finding: both MDD records are the same company; "find the fix
+Method (bulletproof-audit): run the ENTIRE probe suite (57 files, not the finance battery), a
+live contradiction sweep across every table pair, and the Supabase advisors; attack, fix, re-run.
+
+**Broken and fixed — the app.**
+1. **The app was blind to 38 people and most activity history (M19).** Cards read contacts and
+   history from the JSON inside the business row; the imports and the merge function write to the
+   separate `contacts` / `activities` tables, which no screen read. 29 live companies showed "No
+   contacts yet" while their people sat in the table. New `js/72-people-bridge.js` shows both,
+   deduped; `js/02` never writes table rows back into raw; a contact's "needs confirmation" flag
+   is now a visible badge with its reason. Probe + sabotage.
+2. **Merges left the embedded people behind.** The three merges made earlier today moved the table
+   rows but not the JSON lists the cards read — fixed in the function (carried, tagged, undoable)
+   and repaired on all three (+4 people and +12 history rows across the three).
+3. **A 22-Aug manual cleanup had archived two duplicate companies with their money still on
+   them.** ≈163,550 SAR across two clients of transactions, plus contacts,
+   activities and profiles, sat on archived records where no Ledger row could reach them. Both
+   absorbed into the live Direct-import records through the audited merge (reversible).
+4. **The the IT-services client merge had doubled one person** (three rows for one coordinator). Merges now FLAG a
+   moved contact that duplicates one already on the kept company — never silently double, never
+   delete; the two the IT-services client copies are flagged for a human, visible on the card.
+5. **One half-converted client** (one Direct-Payments-import client): client flag set on the row, unset in raw, no
+   converted date. Synced; converted date = its first real invoice date (18 Aug), not a guess.
+6. **Binary junk renamed .csv** was shown as "not recognized — Columns found: %PDF…" with a Teach
+   button. Now: "this is a binary file, not a text CSV — export as CSV". (Landmine L6.)
+7. **Events list trusted the database for date order** — an undated event could sit first. Order
+   is decided on screen now: soonest first, undated last.
+8. **The confirm pop-up rewrote messages** (earlier today, kept here for the record).
+9. **Eight database functions had an unpinned search path** (advisor WARN) — pinned, no
+   behaviour change, same fix as the M16 function.
+
+**Probes corrected (not deleted).** Five probes asserted wording from before deliberate changes;
+each now guards the decision that replaced it (promo card ABSENT by rule; Ledger reads
+transactions and must NOT move with an invoice edit; "Collections & ageing" heading; the
+importer's five-count wording; the optional-columns filler that was dropped on purpose); one
+seed carries no transactions so its export check accepts the plain "No rows to export".
+
+**Suite result after fixes.** Every runnable probe green: landmines 21/21, mega 49/49, notes
+17/17, round8 14/14, events-scale 16/16, plus the finance/importer battery, dedupe, alias,
+people-bridge, structure and decisions-wired checks. 18 files could not run here: 12 need the
+staff's real logins or the live database (emp-rig), 6 are older live-only scripts — environmental,
+listed, not claimed green.
+
+**Live after the repairs (read-only sweep).** Zero orphan transactions, zero contacts on archived
+companies, zero flag mismatches, zero open-profile collisions, zero duplicate pairs by any
+signal, money invariants hold on all 46 invoices; 80 leads / 28 clients / 4 archived; 3 live
+merges, each undoable from the Import card.
+
+**For the owner — decisions only a human can make (nothing changed).**
+- **One trading-company client (converted 20 Aug)** is marked a client (converted 20 Aug) AND stage "Lost". Which is it? If
+  lost, it should stop being a client; if a client, its stage is wrong.
+- **20 clients have no owner** (all from the corporate import + one Direct-Payments-import client). Owners are
+  people; I do not invent them. Assigning them is a 10-minute pass on the Clients page.
+- **6 clients have no money in the app at all** (names in the database — `businesses` where `is_client` and no finance link): no invoice, no transaction, one profile each.
+  Real, or imported by mistake?
+- **The two flagged the IT-services client contact copies** are on the IT-services client card with a "needs confirmation" badge
+  — keep one, remove the others, when convenient.
+- Advisor items deliberately left: functions the app calls before sign-in are callable without
+  signing in (by design for the share link and role lookup), leaked-password protection is off in
+  Supabase Auth (one dashboard toggle, your call), and the many "multiple permissive policies"
+  notices are performance, not safety.
+
+## 2026-09-02 · M18 — duplicate companies fixed for good, the IT-services client merged live, second sweep clean
+
+Owner's ruling on the 2026-08-29 finding: both records of the IT-services client are the same company; "find the fix
 for the future … whether on the merge or combined clients or anything, and go ahead." Also ruled:
 the repo stays public (recorded under CLAUDE.md rule 7 — do not raise it again).
 
 **Built (rule M18 in `docs/DECISIONS.md`).** (1) The automatic finance↔client linker now lets a
-declared alias sibling WIN over a plain name match — the exact mechanism that split MDD.
+declared alias sibling WIN over a plain name match — the exact mechanism that split that client.
 (2) A "Duplicate companies" section on Finance › Import (admin/manager) finds likely pairs by
 alias-split links, Direct client ID, CR/VAT, normalised name (EN/AR/legal) and website, states
 the reason, previews both records with their invoice counts, and offers Merge » / Not a
@@ -22,7 +85,7 @@ rewrote ANY prompt containing "archive" into "Delete this lead? … Yes, delete"
 containing "reset" (the Users page's password-reset link) into "Clear all test data? … Yes,
 clear", throwing the caller's real words away. Templates now apply only to short prompts that
 start with the intent word; anything longer is shown as written. (b) The first live merge was
-refused by the database — both MDD records held an open postpaid billing profile and only one
+refused by the database — both records of the IT-services client held an open postpaid billing profile and only one
 open profile of a type may exist per company. The refusal was atomic (nothing changed). The
 merge function now closes the colliding profile as it moves, with a note saying why, and undo
 reopens it with its original note; the mock and probe cover the same shape. (c) The website
@@ -30,18 +93,18 @@ signal treated placeholder/shared domains as evidence (every QA fixture shares `
 placeholders are ignored and a domain shared by 3+ records is not a signal. (d) Detector now
 also skips records soft-deleted with the older `_archived` flag.
 
-**Applied live (owner-authorized, reversible).** MDD merged: "MDD — Smart Madad IT" → "MDD" (the
+**Applied live (owner-authorized, reversible).** The IT-services client merged: the older record → the Direct-import record (the
 record carrying the Direct client ID, VAT number and payment terms). Moved: 2 contacts, 5
 activities, 2 billing profiles (both closed on arrival — the survivor already had open prepaid
 and postpaid ones; the notes say so), 1 finance link, 5 transactions. Verified after: the
-survivor holds all three MDD finance links (both Latin spellings + the Arabic one), 4 contacts,
+survivor holds all three of its finance links (both Latin spellings + the Arabic one), 4 contacts,
 5 activities, 5 transactions, 4 profiles of which 2 open; the dropped record is archived with
 `merged-into:<survivor>`; one live audit row; zero finance links point at any archived company.
 Undo = the Undo button on the same card, or `fn_unmerge_businesses` with the merge id.
 
 **Second sweep (live, read-only, after the merge).** Live: 80 leads / 28 clients / 4 archived.
 Duplicate signals across all non-archived companies — same Direct client ID, same CR/VAT, same
-normalised name, same website, alias groups linked to two records: **none** — MDD was the only
+normalised name, same website, alias groups linked to two records: **none** — the IT-services client was the only
 pair. Money invariants over all 46 invoices: cost never exceeds total, revenue = total − wallet
 and profit = revenue − cost on every row, zero Takamol rows, zero duplicate invoice numbers, all
 46 `verified_paid`; every B2B group is linked; 3 alias groups active. Structure check,
@@ -62,7 +125,7 @@ done. What held, what didn't, and what changed:
 
 **Held (verified live, not assumed).** All three owner-decided alias merges exist and are
 active — the owner created them himself on 2026-08-26 (MDD, AlQahtani, alrajhi); Public
-Security and Riyadh Chamber are single groups, no action needed, as decided. The M15 capture
+Security and the chamber-of-commerce client are single groups, no action needed, as decided. The M15 capture
 tables are in real use (223 expense lines / 155 gate rows across 75 transactions). The oversight
 session's single-invoice test (1163605511) that was the M16 blocker now carries a real cost,
 written after M16 deployed — the real-data confirmation this project was waiting on has
@@ -361,7 +424,7 @@ resolves to the same `business_id`, automatically, via the existing auto-linker.
 actually missing was a deliberate, visible, reversible NAME decision, plus a durable place for
 it to live so a future import doesn't recreate the split — not a data-linking fix. Owner then
 confirmed the exact canonical names and that all three pairs (not just MDD) should merge; Public
-Security and Riyadh Chamber need nothing, they're already single and clean. Built
+Security and the chamber-of-commerce client need nothing, they're already single and clean. Built
 `window.finGroupCheck()` (`js/62-finance-guardrails.js`) — an exact-shape twin of
 `finExclusionCheck()`, storing canonical name + aliases (`DB.settings.financeGroupMap`),
 undo-not-delete. `finCanon()` (`js/16-finance-ledger.js`) consults it FIRST on every
@@ -1446,8 +1509,7 @@ B2B clients from an old `Q:\Downloads\B2B.xlsx` import (`B2B_CLIENTS_V21`) and r
 them into `d.businesses` on **every page load**, inside `migrateV21` step 3. They were never
 rows in the `businesses` table. 7 of the 8 duplicated a client that already existed in the
 database under its real name — the team was seeing Directorate of Public Security twice and
-Riyadh Chamber three times (`b_rcc_vip` and `b_rcc_team` both duplicated the one real "Riyadh
-Chamber" row).
+the chamber-of-commerce client three times (`b_rcc_vip` and `b_rcc_team` both duplicated the one real "the chamber-of-commerce client" row).
 
 **Code change:** `B2B_CLIENTS_V21` is now `[]`. `migrateV21` step 3 no longer seeds anything,
 and now also strips any phantom row an older build already injected into a session's local
@@ -1466,8 +1528,7 @@ entity", payment configuration "Tender", customer type "Tender", note "Per Whats
 auto-seeded again without a person confirming it first).
 
 **Database cleanup** (done separately, verified independently against production via SQL
-before trusting it): 2 duplicate synthetic rows — "Riyadh Chamber" and "Benchmark for
-Conferences" (old seed id pattern `a13e0000-0000-4000-8000-1...`, `direct_client_id` null) —
+before trusting it): 2 duplicate synthetic rows — "the chamber-of-commerce client" and "the conferences client" (old seed id pattern `a13e0000-0000-4000-8000-1...`, `direct_client_id` null) —
 archived (`archived_at` + `archived_by='cleanup-2026-08-22-duplicate-of-direct-import'`, not
 deleted) because each duplicated a real Direct-Payments-imported row under the same name
 (`direct_client_id` 8 and 23). Confirmed by direct query: 108 live rows (80 leads / 28
@@ -2169,7 +2230,7 @@ profile's registry contact was kept as its own `contacts` row rather than picked
 two pairs (Maaal, MDD) show one-letter-different emails between their two profiles — a
 genuine data question for Abdulrahman, not something to silently resolve. **Deliberately NOT
 merged into the existing 30-lead synthetic training world**, even where a name coincidentally
-matches an existing test client (e.g. "Riyadh Chamber", "MDD") — mixing real financial
+matches an existing test client (e.g. "the chamber-of-commerce client", "MDD") — mixing real financial
 identity (real VAT numbers, real tender amounts) into deliberately-synthetic training rows
 would corrupt the boundary CLAUDE.md draws between them; new real companies were added
 instead, tagged `source='corporate_clients_import_20260821'`, fully reversible (new rows, not
@@ -2731,7 +2792,7 @@ for approval → deploy → delete the old layers that page no longer needs):
    the reason (bilingual), stores it in lost_reason + logs a Lost activity, and the
    record card shows "Why we lost it" in red; lost leads stay findable under the
    Lost chip. LIVE TEST DATA now: 11 clients / 7 leads / 15 invoices / 4.59M SAR
-   incl. tender-in-proposal (Riyadh Chamber), supplier-partner (Amadeus), lost
+   incl. tender-in-proposal (the chamber-of-commerce client), supplier-partner (Amadeus), lost
    agency with comeback note (Elite Holidays), partial payment with 40K outstanding
    (Benchmark) — undo via source_batch='lifecycle rehearsal' + legacy_id lc_*.
    NOTE: the QA mocks mirror only part of this richer live set — next session may

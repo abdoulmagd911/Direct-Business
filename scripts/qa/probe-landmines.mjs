@@ -189,8 +189,11 @@ await page.evaluate(() => { current = 'finance'; render(); });
 await page.waitForTimeout(1200);
 await page.locator('#view button, #view .btn').filter({ hasText: /استيراد/ }).first().click();
 await page.waitForTimeout(800);
-const arImport = await page.evaluate(() => { const t = document.getElementById('view').textContent || ''; return { drop: t.includes('أفلت هنا') || t.includes('أفلت ملف'), cols: t.includes('عمودان اختياريان'), check: t.includes('فحص الملف') }; });
-STEP('L14 Arabic import page: drop zone + optional-columns + check button all Arabic', arImport.drop && arImport.cols && arImport.check, JSON.stringify(arImport));
+// 2026-09-02: the "two optional columns" filler line was dropped on purpose in the 2026-08-25
+// density pass (js/16-finance-ledger.js) — the probe no longer demands it. It now checks the
+// surfaces that exist, and that no English leaked into them.
+const arImport = await page.evaluate(() => { const t = document.getElementById('view').textContent || ''; return { drop: t.includes('أفلت هنا') || t.includes('أفلت ملف'), noEnglishDrop: !/Drop (files|here)|Check file/i.test(t), check: t.includes('فحص الملف') }; });
+STEP('L14 Arabic import page: drop zone + check button Arabic, no English leak', arImport.drop && arImport.noEnglishDrop && arImport.check, JSON.stringify(arImport));
 await SHOT('ar-import');
 await page.evaluate(() => { current = 'offers'; render(); });
 await page.waitForTimeout(900);

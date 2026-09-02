@@ -74,6 +74,21 @@
   var S2C={'Prospect':'new','New':'new','Contacted':'contacted','Qualified':'in_discussion','Negotiation':'in_discussion','Proposal':'proposal','Won':'won','Lost':'lost','On hold':'on_hold'};
   var C2S={'new':'Prospect','contacted':'Contacted','in_discussion':'Qualified','proposal':'Proposal','won':'Won','lost':'Lost','on_hold':'Prospect'};
   function stageToApp(canon, prev){ if(prev && S2C[prev]===canon) return prev; return C2S[canon]||'Prospect'; }
+  /* 2026-09-02 — js/72-people-bridge.js shows the people and history stored in the `contacts`
+     and `activities` TABLES on each card (tagged _fromTable). They already live in those
+     tables, so they must never be written back into the row's raw JSON: strip them on save. */
+  function stripBridged(o){
+    try{
+      if(!o||typeof o!=='object')return o;
+      var hasC=Array.isArray(o.contacts)&&o.contacts.some(function(c){return c&&c._fromTable;});
+      var hasA=Array.isArray(o.activities)&&o.activities.some(function(a){return a&&a._fromTable;});
+      if(!hasC&&!hasA)return o;
+      var c={}; for(var k in o){c[k]=o[k];}
+      if(hasC)c.contacts=o.contacts.filter(function(x){return !(x&&x._fromTable);});
+      if(hasA)c.activities=o.activities.filter(function(x){return !(x&&x._fromTable);});
+      return c;
+    }catch(_){ return o; }
+  }
   function rowToApp(r){
     var base=(r.raw&&typeof r.raw==='object')?r.raw:{};
     var o={}; for(var k in base){o[k]=base[k];}
@@ -116,7 +131,7 @@
       next_action_note:o.nextActionNote||null,
       lost_reason:(o.lostReason&&String(o.lostReason).trim())||null,
       direct_client_id:(o.directClientId!=null&&String(o.directClientId).trim()!=='')?String(o.directClientId).trim():null,
-      raw:o
+      raw:stripBridged(o)
     };
     // Persist the client handover fields to real columns too (not just raw), so a lead
     // converted in-app writes the same shape my SQL seed does and external reads can use them.

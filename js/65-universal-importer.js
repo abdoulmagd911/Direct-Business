@@ -890,6 +890,15 @@
       onRow:function(row,isFirst){
         if(isFirst){
           header=row;
+          // 2026-09-02 (landmine L6): a binary file renamed .csv (PDF, Excel, zip) used to be
+          // shown as "not recognized — Columns found: %PDF-1.4 …" with a Teach button, as if
+          // its garbage were a header. Say what it is and stop reading it.
+          var h0=String(header[0]||''), joined=header.join('');
+          if(/^(%PDF|PK|ÿþ|þÿ|�)/.test(h0)||/[ --]/.test(joined)){
+            finished=true; ctrl.abort();
+            done({name:f.name, recognized:false, header:[], err:fl('Header does not match any known export — this is a binary file (PDF, Excel or zip), not a text CSV. Export the report as CSV and drop that.','الترويسة لا تطابق أي تصدير معروف — هذا ملف ثنائي (PDF أو Excel أو zip) وليس ملف CSV نصيًا. صدّر التقرير بصيغة CSV ثم أفلته.')});
+            return;
+          }
           var sig=detectSignature(header);
           if(sig&&sig.key==='invoice_export'){ mode='invoice_export'; state=initState(); typeColIdx=header.indexOf('Type'); return; }
           if(sig&&sig.key==='expense_lines_capture'){ mode='expense_lines'; return; }

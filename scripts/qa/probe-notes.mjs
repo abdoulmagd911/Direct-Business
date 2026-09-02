@@ -46,15 +46,23 @@ await page.evaluate(()=>{ const m=document.getElementById('finModal'); if(m)m.re
 
 // RULE: CSV export header has no VAT word
 await page.evaluate(()=>{ FIN.tab='ledger'; render(); });
-await page.waitForTimeout(700);
+// the Ledger reads finance_transactions (loaded async) — export only has rows once they are in
+await page.waitForFunction(()=>window.TXN&&Array.isArray(TXN._csvRows)&&TXN._csvRows.length>0,null,{timeout:15000}).catch(()=>null);
+await page.waitForTimeout(400);
 const dl=page.waitForEvent('download',{timeout:8000}).catch(()=>null);
+const csvDialogs=[]; const onDlg=d=>{ csvDialogs.push(d.message()); }; page.on('dialog',onDlg);
 await page.evaluate(()=>{ const b=[...document.querySelectorAll('#view button')].find(x=>/CSV/.test(x.textContent)); if(b)b.click(); });
-const got=await dl;
+const got=await dl; page.off('dialog',onDlg);
 if (got) {
   const p='/tmp/notes-csv-test.csv'; await got.saveAs(p);
   const head=fs.readFileSync(p,'utf8').split('\n')[0];
   STEP('ledger CSV header carries no "vat" word', !/vat/i.test(head), head.slice(0,90));
-} else STEP('ledger CSV export downloads', false);
+} else {
+  // 2026-09-02: this seed carries no finance_transactions, so the Ledger has nothing to export —
+  // the correct behaviour is a plain "No rows to export" message, never a silent no-op.
+  const noRows=csvDialogs.some(m=>/No rows to export|لا صفوف/.test(m));
+  STEP('ledger CSV export: downloads, or says plainly there is nothing to export', noRows, JSON.stringify(csvDialogs));
+}
 
 // RULE: whole numbers in views (ledger cells show no decimals)
 const dec=await page.evaluate(()=>{ const tds=[...document.querySelectorAll('#view tbody td')].map(t=>t.textContent.trim()); return tds.filter(t=>/^\d{1,3}(,\d{3})*\.\d/.test(t)).length; });
@@ -65,7 +73,9 @@ await page.evaluate(()=>{ FIN.tab='overview'; render(); });
 await page.waitForTimeout(1000);
 const ov=await vtxt();
 STEP('income by service is flat (no group counts/chevrons)', !!(await page.evaluate(()=>document.querySelector('.v32-svc'))) && !/\(\d+\)\s*[▸▾]/.test(ov));
-STEP('promo codes card present', !!(await page.evaluate(()=>document.querySelector('.v63-promo'))));
+// 2026-09-02: inverted on purpose — the promo-code card was turned OFF by rule ("never fabricate a
+// number to fill a gap", docs/DECISIONS.md: 27.3M SAR of never-real promo value). It must stay absent.
+STEP('promo codes card ABSENT (turned off by rule — its numbers were never real)', !(await page.evaluate(()=>document.querySelector('.v63-promo'))));
 STEP('profit is an actual number on the overview (not a percentage KPI)', /Profit/.test(ov) && !/Profit\s*\d+%/.test(ov));
 
 // RULE: settlements NOT built (out of scope)

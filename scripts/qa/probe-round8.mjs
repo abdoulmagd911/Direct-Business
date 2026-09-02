@@ -82,9 +82,13 @@ await page.setInputFiles('#view input[type=file]', 'shots/dp-verif-test.csv');
 await page.locator('#view button:has-text("Check file")').first().click().catch(() => {});
 await page.waitForTimeout(1500);
 const impOut = await page.evaluate(() => (document.getElementById('finImpOut') || {}).textContent || '');
-STEP('importer: verification services are skipped with a plain-language note', /verification services skipped/i.test(impOut), impOut.slice(0, 180));
-STEP('importer: wallet top-up still skipped too', /wallet top-ups skipped/i.test(impOut));
-STEP('importer: only the real invoice remains importable (1 of 3)', /Ready to import:\s*1\b/.test(impOut.replace(/\s+/g, ' ')));
+// 2026-09-02: wording follows the universal importer's five-count preview (Spec 9) — the two
+// non-revenue rows (verification service, wallet top-up) land under "Excluded by rule", and
+// exactly one real invoice is offered for import.
+const impFlat = impOut.replace(/\s+/g, ' ');
+STEP('importer: verification service + wallet top-up are excluded by rule (2)', /Excluded by rule\s*2\b/.test(impFlat), impOut.slice(0, 180));
+STEP('importer: nothing excluded is offered as new (New 1, not 3)', /New\s*1\b/.test(impFlat) && !/New\s*3\b/.test(impFlat));
+STEP('importer: only the real invoice remains importable (1 of 3)', /Confirm import\s*[—-]\s*1 new/.test(impFlat));
 const pendOK = await page.evaluate(() => (FIN._pending || []).every(r => r.service_type !== 'Verification services' && !/techtic/i.test(r.products || '')));
 STEP('importer: nothing verification-related sits in the pending batch', pendOK);
 

@@ -80,7 +80,7 @@ STEP('monthly chart bars sum = KPI revenue', Math.abs(chartSum - EXP.rev) < 2, M
 await page.evaluate(() => { FIN.tab = 'clients'; render(); });
 await page.waitForTimeout(900);
 const cc = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/\u00a0/g, ' '));
-STEP('AR aging card (finance team) shows the true outstanding', /Collections & AR aging|التحصيل/.test(cc) && cc.includes(mS(EXP.arOut)), 'AR=' + mS(EXP.arOut));
+STEP('AR aging card (finance team) shows the true outstanding', /Collections & (AR )?age?ing|التحصيل/.test(cc) && cc.includes(mS(EXP.arOut)), 'AR=' + mS(EXP.arOut));
 const topTot = await page.evaluate(() => { const rows = [...document.querySelectorAll('#view table tr')]; const r = rows.find(x => /^(Total|الإجمالي الكلي)/.test(x.textContent.trim())); return r ? r.textContent.replace(/\u00a0/g, ' ') : ''; });
 STEP('top-clients Total row = raw rev/cost/profit', topTot.includes(m0(EXP.rev)) && topTot.includes(m0(EXP.prof)), topTot.slice(0, 60));
 await page.evaluate(() => { FIN.tab = 'overview'; render(); });
@@ -89,7 +89,10 @@ await page.waitForTimeout(700);
 await page.evaluate(() => { FIN.tab = 'ledger'; render(); });
 await page.waitForTimeout(800);
 const led = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/ /g, ' '));
-STEP('ledger totals label = raw rev+profit (verified filter)', led.includes(m0(EXP.rev)) && led.includes(m0(EXP.prof)));
+// 2026-09-02: the Ledger reads finance_transactions (Phase 2), NEVER the invoice rows — summing the
+// two is forbidden (docs/DECISIONS.md). So the Ledger must show its own transaction-based cards
+// and must NOT echo the invoice totals.
+STEP('ledger shows transaction-based cards (Confirmed revenue) and a transaction count', /Confirmed revenue|الإيراد المؤكد/.test(led) && /\d+ transactions across|معاملة عبر/.test(led));
 // 8 report builder grand total
 await page.evaluate(() => { FIN.tab = 'reports'; render(); });
 await page.waitForTimeout(900);
@@ -124,7 +127,7 @@ STEP('MUTATION: monthly chart moved too', Math.abs(chart2 - (EXP.rev + DELTA)) <
 await page.evaluate(() => { FIN.tab = 'ledger'; render(); });
 await page.waitForTimeout(700);
 const led2 = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/ /g, ' '));
-STEP('MUTATION: ledger label moved too', led2.includes(m0(EXP.rev + DELTA)));
+STEP('MUTATION: ledger did NOT move with an invoice edit (it reads transactions, never invoices)', !led2.includes(m0(EXP.rev + DELTA)) && /Confirmed revenue|الإيراد المؤكد/.test(led2));
 await page.evaluate(() => { FIN.tab = 'reports'; render(); });
 await page.waitForTimeout(800);
 const rep2 = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/ /g, ' '));

@@ -463,7 +463,7 @@ byte-identical.
 
 **M18 — one company, one record: duplicates are detected automatically and merged through
 one reversible, audited path — never by hand-editing rows, never by deleting.** Born from the
-MDD case: the 2026-08-21 corporate-clients import created "MDD" beside the older "MDD — Smart
+the IT-services client case: the 2026-08-21 corporate-clients import created "the IT-services client" beside the older "the IT-services client — Smart
 Madad IT". The alias map (M14) merged the DISPLAY, but contacts, activities, billing
 profiles, invoice links and transactions stayed split across two records, and the automatic
 linker made it worse — it matched the Arabic spelling by NAME to the second record even though
@@ -499,6 +499,91 @@ data? … Yes, clear", discarding the caller's real words. Fixed: a template app
 short prompt that starts with the intent word; anything longer is shown verbatim. The rule:
 a duplicate is fixed by merging records, not by adding another alias; a merge is one audited
 call, not a series of row edits; and nothing on this path deletes.
+Audit addendum (same day, owner: "what else needs to be fixed? perform immediately"): three
+lessons from the first three live merges, all now in `fn_merge_businesses` and mirrored in the
+mock and `scripts/qa/probe-company-dedupe.mjs`. (a) The database refused the first the IT-services client merge —
+both records held an OPEN postpaid billing profile and only one open profile of a type may exist
+per company. The refusal was atomic; the merge now closes the colliding profile as it moves, with
+a note saying why, and undo reopens it with its original note. (b) The the IT-services client merge silently doubled
+one person (three contact rows for one travel coordinator). A moved contact that duplicates one
+already on the kept company (same e-mail or phone) is now FLAGGED `needs_manual_confirmation`
+with a reason naming the other record — never silently doubled, never deleted; undo restores the
+prior flag. (c) The 2026-08-22 manual cleanup had archived two duplicate records ("Riyadh
+Chamber", "the conferences client") but left 80,750 + 82,800 SAR of transactions, their
+contacts, activities and profiles behind on the archived rows — the same defect as the IT-services client in an
+older form, and exactly why a merge must be ONE audited call. Repaired through the function
+(`p_allow_archived`, which the UI never passes); undo now restores the dropped record's exact
+prior archive state instead of assuming it was live. Rule sharpened: **archiving a duplicate is
+not a merge** — anything that archives a company because another record is the real one goes
+through `fn_merge_businesses`, so its children move and the action is undoable.
+*Date: 2026-09-02. Status: ACTIVE.*
+
+**M19 — a company's people and history live in TWO places, and every screen must read both.**
+Found in the 2026-09-02 audit, the largest defect of the day. The cards read a company's contacts
+and activity timeline from the JSON embedded in the business row (`raw`, the app's own
+`b.contacts` / `b.activities`). The corporate-clients import, the Contact Submission import and
+the merge function write people to the real `contacts` / `activities` TABLES — which no screen
+had ever read (`from` calls across the app: 30 tables, neither of those two). Live at the time:
+29 companies with people only in the table (45 people vs 7 embedded), 30 with history only in
+the table — to the team those clients showed "No contacts yet". Three consequences, all now in
+place: (1) `js/72-people-bridge.js` attaches both tables to the loaded companies (deduped by
+e-mail/phone and note+day, tagged `_fromTable`), so every card shows everyone, and shows a
+contact's `needs_manual_confirmation` flag as a visible "needs confirmation" badge with its
+reason (core-02) — a flag no screen shows is not a flag (P5). (2) js/02 strips `_fromTable` items
+before writing `raw`, so the table stays the single home of those rows and nothing doubles on
+the next load. (3) The merge carries the EMBEDDED lists too (`fn_carry_embedded_people`, tagged
+`mergedFrom`, undo removes exactly those) — the first three merges of the day had moved the
+table rows and left the embedded people behind on the archived record; repaired the same day.
+Guarded by `scripts/qa/probe-people-bridge.mjs` (card shows the table contact, badge with
+reason, timeline, idempotent re-run, save never leaks table rows into raw), sabotage-verified.
+Rule: any new writer of people or history writes to the TABLE, never to raw; any new reader
+reads through the loaded `b.contacts` / `b.activities` (which the bridge has already completed).
+*Date: 2026-09-02. Status: ACTIVE.*
+
+**A probe that fails because the app changed on purpose is corrected, not deleted, and never
+left red.** The 2026-09-02 full-suite run had five probes carrying assertions from before a
+deliberate change: the promo card (turned off by rule), the "two optional columns" filler line
+(dropped in the density pass), the Ledger's totals (it reads transactions now, never invoices),
+the collections heading, the importer's five-count wording. Each was re-pointed at the rule that
+replaced it (e.g. "promo card ABSENT", "ledger did NOT move with an invoice edit") — so the suite
+keeps guarding the decision instead of the old wording. A red probe nobody reads teaches the
+team to ignore red. Twelve probes in the suite need the staff's real logins or the live database
+(`scripts/qa/emp-rig.mjs`) and can only run from a machine that has them; they are listed as
+environmental, never counted as green.
+*Date: 2026-09-02. Status: ACTIVE.*
+
+**M19 — a company's people and history live in TWO places, and every screen must read both.**
+Found in the 2026-09-02 audit, the largest defect of the day. The cards read a company's contacts
+and activity timeline from the JSON embedded in the business row (`raw`, the app's own
+`b.contacts` / `b.activities`). The corporate-clients import, the Contact Submission import and
+the merge function write people to the real `contacts` / `activities` TABLES — which no screen
+had ever read (`from` calls across the app: 30 tables, neither of those two). Live at the time:
+29 companies with people only in the table (45 people vs 7 embedded), 30 with history only in
+the table — to the team those clients showed "No contacts yet". Three consequences, all now in
+place: (1) `js/72-people-bridge.js` attaches both tables to the loaded companies (deduped by
+e-mail/phone and note+day, tagged `_fromTable`), so every card shows everyone, and shows a
+contact's `needs_manual_confirmation` flag as a visible "needs confirmation" badge with its
+reason (core-02) — a flag no screen shows is not a flag (P5). (2) js/02 strips `_fromTable` items
+before writing `raw`, so the table stays the single home of those rows and nothing doubles on
+the next load. (3) The merge carries the EMBEDDED lists too (`fn_carry_embedded_people`, tagged
+`mergedFrom`, undo removes exactly those) — the first three merges of the day had moved the
+table rows and left the embedded people behind on the archived record; repaired the same day.
+Guarded by `scripts/qa/probe-people-bridge.mjs` (card shows the table contact, badge with
+reason, timeline, idempotent re-run, save never leaks table rows into raw), sabotage-verified.
+Rule: any new writer of people or history writes to the TABLE, never to raw; any new reader
+reads through the loaded `b.contacts` / `b.activities` (which the bridge has already completed).
+*Date: 2026-09-02. Status: ACTIVE.*
+
+**A probe that fails because the app changed on purpose is corrected, not deleted, and never
+left red.** The 2026-09-02 full-suite run had five probes carrying assertions from before a
+deliberate change: the promo card (turned off by rule), the "two optional columns" filler line
+(dropped in the density pass), the Ledger's totals (it reads transactions now, never invoices),
+the collections heading, the importer's five-count wording. Each was re-pointed at the rule that
+replaced it (e.g. "promo card ABSENT", "ledger did NOT move with an invoice edit") — so the suite
+keeps guarding the decision instead of the old wording. A red probe nobody reads teaches the
+team to ignore red. Twelve probes in the suite need the staff's real logins or the live database
+(`scripts/qa/emp-rig.mjs`) and can only run from a machine that has them; they are listed as
+environmental, never counted as green.
 *Date: 2026-09-02. Status: ACTIVE.*
 
 **SUPERSEDED — the invoice item split (Service Fee / 3rd Party Fee) is a VAT split, never

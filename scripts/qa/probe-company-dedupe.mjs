@@ -29,7 +29,12 @@ const FIXTURE_PROFILES = [
   { id: 'cp2', business_id: 'b4', direct_client_id: '13', profile_type: 'postpaid', status: 'active', payment_terms: 'Net 30', billing_cycle: 'Monthly', opened_at: '2026-03-05', closed_at: null, notes: 'original note' },
   { id: 'cp9', business_id: 'dupX', direct_client_id: '13', profile_type: 'postpaid', status: 'active', payment_terms: 'Net 30', billing_cycle: 'Monthly', opened_at: '2026-08-21', closed_at: null, notes: null },
 ];
-const srv = start(PORT, { client_profiles: FIXTURE_PROFILES });
+// The seeded duplicate also carries a contact who is the SAME PERSON as b4's contact (same e-mail,
+// different spelling) — the MDD merge doubled such a person. The merge must flag the moved copy
+// for a human (needs_manual_confirmation + reason), never silently double it, never delete it.
+const FIXTURE_CONTACTS = [...Array(20)].map((_, i) => ({ id: 'c' + i, business_id: 'b' + i, name: 'Contact ' + i, role: 'Manager', email: 'c' + i + '@example.com', phone: '+96650000000' + i, verification_source: 'manual', needs_manual_confirmation: false, confirmation_reason: null, confirmed_by: null, confirmed_at: null, meta: {}, source: 'import' }))
+  .concat([{ id: 'cX', business_id: 'dupX', name: 'Same Person Different Spelling', role: null, email: 'C4@Example.com', phone: '+966599999999', verification_source: 'manual', needs_manual_confirmation: false, confirmation_reason: null, confirmed_by: null, confirmed_at: null, meta: {}, source: 'import' }]);
+const srv = start(PORT, { client_profiles: FIXTURE_PROFILES, contacts: FIXTURE_CONTACTS });
 const BASE = 'http://localhost:' + PORT;
 
 let failures = 0;
@@ -145,6 +150,15 @@ async function main() {
   const openPostpaid = profAfter.filter((x) => x.business_id === NEW_BIZ && x.profile_type === 'postpaid' && !x.closed_at).length;
   if (openPostpaid !== 1) fail(`MERGE/PROFILES: exactly one open postpaid profile may remain on the survivor, found ${openPostpaid}`);
   else ok('MERGE/PROFILES: exactly one open postpaid profile on the survivor — the database rule holds');
+  const contAfter = await fetch(BASE + '/rest/v1/contacts').then((r) => r.json());
+  const c4 = contAfter.find((x) => x.id === 'c4'), cX = contAfter.find((x) => x.id === 'cX');
+  if (!c4 || c4.business_id !== NEW_BIZ) fail(`MERGE/CONTACTS: b4's contact should have moved to ${NEW_BIZ}, got ${JSON.stringify(c4)}`);
+  else if (!c4.needs_manual_confirmation || !/duplicate/i.test(c4.confirmation_reason || '') || !/cX/.test(c4.confirmation_reason || '')) fail(`MERGE/CONTACTS: the moved contact duplicates one already on the survivor (same e-mail) and must be FLAGGED for a human with the reason naming the other record — got ${JSON.stringify({ needs: c4.needs_manual_confirmation, reason: c4.confirmation_reason })}`);
+  else ok('MERGE/CONTACTS: the moved same-person contact was flagged for a human, with the reason naming the other record (the MDD doubling cannot pass silently)');
+  if (!cX || cX.needs_manual_confirmation) fail('MERGE/CONTACTS: the survivor\'s own contact must be untouched');
+  else ok('MERGE/CONTACTS: the survivor\'s own contact is untouched, and nothing was deleted');
+  if (contAfter.length !== FIXTURE_CONTACTS.length) fail(`MERGE/CONTACTS: no contact may be deleted by a merge — ${FIXTURE_CONTACTS.length} before, ${contAfter.length} after`);
+  else ok('MERGE/CONTACTS: contact count unchanged — a merge never deletes a person');
 
   // ---- 3. UNDO (the app reloads after a merge; log in again if needed, reopen Import) ----
   await p.waitForTimeout(1500);
@@ -174,6 +188,10 @@ async function main() {
   else ok('UNDO/PROFILES: the profile the merge had to close is back on the original record, reopened, original note restored');
   if (!rcp1 || rcp1.business_id !== FIXTURE_BIZ) fail('UNDO/PROFILES: the prepaid profile should be back on the original record');
   else ok('UNDO/PROFILES: the prepaid profile went back too');
+  const contRestored = await fetch(BASE + '/rest/v1/contacts').then((r) => r.json());
+  const rc4 = contRestored.find((x) => x.id === 'c4');
+  if (!rc4 || rc4.business_id !== FIXTURE_BIZ || rc4.needs_manual_confirmation || rc4.confirmation_reason) fail(`UNDO/CONTACTS: the flagged contact should be back on ${FIXTURE_BIZ} with its flag and reason exactly as before — got ${JSON.stringify(rc4)}`);
+  else ok('UNDO/CONTACTS: the flagged contact went back with its prior flag and reason restored');
 
   const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION|Target page, context or browser has been closed/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5), null, 2) : 'none');

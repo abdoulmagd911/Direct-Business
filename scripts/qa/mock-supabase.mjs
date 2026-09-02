@@ -284,8 +284,16 @@ export function start(port, seedOverrides){
       if(fn==='fn_merge_businesses'){
         const keep=parsed&&parsed.p_keep, drop=parsed&&parsed.p_drop;
         if(!keep||!drop||keep===drop) return send(res,400,{message:'keep and drop must be two different companies',code:'P0001'});
-        const moved={finance_client_links:[],client_profiles:[],client_profiles_closed:[]};
+        const moved={finance_client_links:[],client_profiles:[],client_profiles_closed:[],contacts:[],contacts_flagged:[]};
         (TABLES.finance_client_links||[]).forEach(l=>{ if(l.business_id===drop){ l.business_id=keep; moved.finance_client_links.push(l.id||l.client_group); } });
+        // contacts move; one that duplicates a contact already on the kept company (same e-mail or
+        // phone) is FLAGGED for a human, never silently doubled, never deleted (2026-09-02 audit).
+        const keepContacts=(TABLES.contacts||[]).filter(c=>c.business_id===keep);
+        const nrm=s=>String(s||'').toLowerCase().trim(), dig=s=>String(s||'').replace(/\D/g,'');
+        (TABLES.contacts||[]).forEach(c=>{ if(c.business_id!==drop)return;
+          const dup=keepContacts.find(k=>(nrm(k.email)&&nrm(k.email)===nrm(c.email))||(dig(k.phone)&&dig(k.phone)===dig(c.phone)));
+          if(dup){ moved.contacts_flagged.push({id:c.id,needs:!!c.needs_manual_confirmation,reason:c.confirmation_reason||null,dup_of:dup.id}); c.needs_manual_confirmation=true; c.confirmation_reason=(c.confirmation_reason?c.confirmation_reason+' | ':'')+'Possible duplicate of contact '+dup.id+' (same e-mail or phone) after merging — confirm which record to keep.'; }
+          c.business_id=keep; moved.contacts.push(c.id); });
         // 2026-09-02, learned from the first live merge: an open prepaid/postpaid profile may
         // not sit twice on one company (unique index client_profiles_one_open_prepaid_postpaid)
         // — the dropped company's colliding open profile is CLOSED as it moves, remembered for undo.
@@ -305,6 +313,8 @@ export function start(port, seedOverrides){
         (TABLES.finance_client_links||[]).forEach(l=>{ if((row.moved.finance_client_links||[]).indexOf(l.id||l.client_group)>=0) l.business_id=row.dropped_id; });
         (TABLES.client_profiles||[]).forEach(p=>{ if((row.moved.client_profiles||[]).indexOf(p.id)>=0) p.business_id=row.dropped_id;
           const c=(row.moved.client_profiles_closed||[]).find(x=>x.id===p.id); if(c){ p.closed_at=null; p.notes=c.notes; } });
+        (TABLES.contacts||[]).forEach(c=>{ if((row.moved.contacts||[]).indexOf(c.id)>=0) c.business_id=row.dropped_id;
+          const f=(row.moved.contacts_flagged||[]).find(x=>x.id===c.id); if(f){ c.needs_manual_confirmation=f.needs; c.confirmation_reason=f.reason; } });
         const dropRow=(TABLES.businesses||[]).find(b=>b.id===row.dropped_id); if(dropRow){ dropRow.archived_at=null; dropRow.archived_by=null; }
         row.undone_at=new Date().toISOString(); row.undone_by='mock';
         return send(res,200,{merge_id:row.id,restored_id:row.dropped_id,kept_id:row.kept_id});
