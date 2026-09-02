@@ -208,6 +208,21 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   five now refuse on screen with the v73 box (`js/49`), nothing changes in memory, nothing is
   sent; a team member still goes through all of them. Events already had their own gate.
   Guard: `probe-viewer-writes.mjs` (viewer + team_member passes); sabotage-verified.
+- **Round 14 (13:55–14:25) — importer premortem #2, the teach-once (mapped) path.** Hostile but
+  plausible cells a hand-made spreadsheet brings, each written as "how would Finance be wrong a
+  month from now": an amount typed with Arabic-Indic digits ("١٬٢٥٠٫٥٠") became **0 silently**
+  (every non-ASCII digit was stripped — the P5 shape); an accounting negative "(500)" lost its
+  sign; a European "1.250,50" read as 1.25; "2026/06/15" or "15-06-2026" became no date at all;
+  a US "06/15/2026" became month 15 and quarter **"Q5"**; two rows with one reference number in
+  the same file became two inserts that hit the database's unique key and failed the WHOLE
+  commit with no row named. `js/65`: digits normalised first, parentheses = negative, decimal
+  comma recognised, four date shapes with a day/month swap when the month is impossible and a
+  null (never a guess) when still invalid; an in-file duplicate keeps the first row and names
+  the later one for manual review. The Direct Payments export path (js/41's own parser) was not
+  touched — it reads the system's fixed format. Guard: `probe-import-hostile-shapes.mjs`
+  (nine shapes through the real ingest → preview → confirm → table); sabotage-verified twice
+  (digit normaliser, duplicate check). Premortem #1, preview-density, tab-wiring, tax-capture
+  and CSV-injection probes all still green.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

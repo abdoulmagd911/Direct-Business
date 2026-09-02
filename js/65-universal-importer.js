@@ -368,13 +368,35 @@
     for(var i=0;i<list.length;i++){ if(list[i].key===key) return list[i]; }
     return null;
   }
-  function moneyG(x){ if(typeof x==='number')return x; return parseFloat(String(x==null?'':x).replace(/[^\d.\-]/g,''))||0; }
-  function isoDateG(s){
-    s=String(s||'').trim();
-    var m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/); if(m)return m[3]+'-'+m[2]+'-'+m[1];
-    m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m)return m[0];
-    return null;
+  /* 2026-09-02 (attack round 14, importer premortem #2 on the teach-once path): moneyG stripped
+     every non-ASCII digit, so an amount typed with Arabic-Indic digits ("١٬٢٥٠٫٥٠") became 0
+     — a silent zero, the exact "looks cleaner than expected" shape P5 warns about; an
+     accounting negative "(500)" lost its sign; a European "1.250,50" read as 1.25. Digits are
+     normalised first, parentheses mean negative, and a trailing ",dd" with a "." before it is a
+     decimal comma. isoDateG accepted only dd/mm/yyyy and ISO: "2026/06/15" or "15-06-2026" became
+     no date at all, and a US "06/15/2026" became month 15 → quarter "Q5". */
+  var AR_DIGITS={'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9','٫':'.','٬':',','−':'-'};
+  function asciiDigits(s){ return String(s==null?'':s).replace(/[٠-٩۰-۹٫٬−]/g,function(c){return AR_DIGITS[c]||c;}); }
+  function moneyG(x){
+    if(typeof x==='number')return x;
+    var s=asciiDigits(x).trim(); if(!s)return 0;
+    var neg=/^\(.*\)$/.test(s)||/^-/.test(s.replace(/[^\d.,\-]/g,''));
+    s=s.replace(/[^\d.,]/g,'');
+    if(/,\d{1,2}$/.test(s)&&s.indexOf('.')>=0&&s.lastIndexOf('.')<s.lastIndexOf(',')) s=s.replace(/\./g,'').replace(',','.');   // 1.250,50
+    else if(/,\d{1,2}$/.test(s)&&s.indexOf('.')<0&&(s.match(/,/g)||[]).length===1) s=s.replace(',','.');                    // 1250,50
+    else s=s.replace(/,/g,'');                                                                                                // 1,250.50
+    var v=parseFloat(s)||0; return neg?-Math.abs(v):v;
   }
+  function isoDateG(s){
+    s=asciiDigits(s).trim();
+    var y,mo,d,m;
+    if((m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/))){ y=+m[1]; mo=+m[2]; d=+m[3]; }
+    else if((m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/))){ d=+m[1]; mo=+m[2]; y=+m[3]; if(mo>12&&d<=12){ var t=mo; mo=d; d=t; } }
+    else return null;
+    if(!(mo>=1&&mo<=12&&d>=1&&d<=31))return null;
+    return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  }
+  try{ window.__v65MoneyG=moneyG; window.__v65IsoDateG=isoDateG; }catch(_){}
   // one source row + the learned column mapping → one finance_invoices-shaped candidate row.
   // Returns null (skip, silently — there is nothing to key or write) only when the row has no
   // usable invoice/reference number, since that is the natural key everything else keys off.
@@ -410,8 +432,19 @@
   }
   function processGenericBatch(rawRows, header, mapping, state){
     var candidates=[];
+    /* 2026-09-02 (attack round 14): two rows carrying the SAME reference number in one file
+       used to become two inserts with the same (invoice_no, line_no) — the database's unique
+       key then failed the WHOLE commit, with nothing telling the person which row. The first
+       row is kept; every later duplicate is reported for manual review, never guessed at. */
+    state.seenGenericNo=state.seenGenericNo||{};
     rawRows.forEach(function(row){
       var built=buildGenericRow(row,header,mapping); if(!built)return;
+      if(state.seenGenericNo[built.invoice_no]){
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:built.invoice_no,reason:fl('appears more than once in this file — the first row was kept, this one needs manual review','يتكرر في هذا الملف — احتُفظ بالصف الأول، وهذا الصف يحتاج مراجعة يدوية')});
+        return;
+      }
+      state.seenGenericNo[built.invoice_no]=1;
       var xhit=(typeof window.finExclusionCheck==='function')?window.finExclusionCheck(built.customer_raw_name):null;
       if(xhit){
         state.excludedByRule++; state.excludedDetail.clientExcluded++;
