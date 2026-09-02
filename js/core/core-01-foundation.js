@@ -485,7 +485,23 @@ function render(){buildNav();const v=document.getElementById("view");document.ge
 function renderDash(v){
   const B=DB.businesses;const clients=B.filter(b=>b.isClient);const convert=B.filter(b=>b.category==="Convert");const vendors=B.filter(b=>b.isVendor);
   const totalVal=B.reduce((s,b)=>s+(b.totalSAR||0),0);const convertVal=convert.reduce((s,b)=>s+(b.totalSAR||0),0);
-  const reqMargin=(DB.requests||[]).reduce((s,r)=>s+((+r.sell||0)-(+r.cost||0)),0);const reqSell=(DB.requests||[]).reduce((s,r)=>s+(+r.sell||0),0);
+  /* 2026-09-02 (round 31): this was Σ(sell − cost) over EVERY request, with `+r.cost||0`
+     turning a request whose cost nobody has recorded into a cost of zero — so its whole sale
+     was reported as booked margin. Same rule as the proposal editor (round 29): cost is
+     approved expenses only, and a gap is left as a gap, never filled with a number. Only
+     requests that actually record a cost count toward the margin, the percentage is taken
+     against those same requests' sales rather than against the whole pipeline, and the ones
+     left out are counted so they stay visible. */
+  const _reqHasCost=r=>r&&r.cost!=null&&String(r.cost).trim()!=='';
+  const _reqCosted=(DB.requests||[]).filter(_reqHasCost);
+  const reqNoCost=(DB.requests||[]).filter(r=>!_reqHasCost(r)&&(+r.sell||0)>0);
+  const reqMargin=_reqCosted.reduce((s,r)=>s+((+r.sell||0)-(+r.cost||0)),0);
+  const reqCostedSell=_reqCosted.reduce((s,r)=>s+(+r.sell||0),0);
+  const reqSell=(DB.requests||[]).reduce((s,r)=>s+(+r.sell||0),0);
+  const reqMarginText=_reqCosted.length?(moneyShort(reqMargin)+' SAR'):'—';
+  const reqMarginSub=_reqCosted.length
+    ? (moneyShort(reqCostedSell)+' SAR costed'+(reqNoCost.length?(' · '+reqNoCost.length+' with no cost recorded, not counted'):''))
+    : (reqNoCost.length?(reqNoCost.length+' requests, none with a cost recorded'):'no requests yet');
   const segs=CATEGORIES.map(c=>({nm:c,v:B.filter(b=>b.category===c).length,c:CAT_COLOR[c]})).filter(x=>x.v);
   const top=B.slice().filter(b=>!b.isVendor).sort((a,b)=>(b.totalSAR||0)-(a.totalSAR||0)).slice(0,6);
   const mx=top.length?top[0].totalSAR:1;
@@ -507,7 +523,7 @@ function renderDash(v){
     ${kpi(IC.star,'var(--green)','var(--green-bg)','Existing clients',clients.length,'already onboarded','up')}
     ${kpi(IC.target,'var(--orange)','var(--orange-bg,#FEF1E6)','Conversion targets',convert.length,money(convertVal).replace(' SAR',' SAR billed'),'up')}
     ${kpi(IC.box,'var(--violet)','var(--violet-bg)','Vendors / partners',vendors.length,'commission & supply','flat')}
-    ${kpi(IC.money,'var(--green)','var(--green-bg)','Booked margin',moneyShort(reqMargin)+' SAR',moneyShort(reqSell)+' SAR request pipeline','up')}
+    ${kpi(IC.money,'var(--green)','var(--green-bg)','Booked margin',reqMarginText,reqMarginSub,'up')}
   </div>
   <div class="grid-2">
     <div class="card">

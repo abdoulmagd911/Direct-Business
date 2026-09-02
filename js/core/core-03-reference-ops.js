@@ -299,11 +299,29 @@ function slaDue(r){return (r.createdAt||Date.now())+2*3600e3;}
 function slaOverdue(r){return r.stage!=="Closed"&&r.stage!=="Delivered"&&Date.now()>slaDue(r);}
 function renderOps(v){
   const R=DB.requests||[];const open=R.filter(r=>r.stage!=="Closed");const over=open.filter(slaOverdue).length;
-  const sumSell=R.reduce((s,r)=>s+(+r.sell||0),0);const sumMargin=R.reduce((s,r)=>s+((+r.sell||0)-(+r.cost||0)),0);const mPct=sumSell?Math.round(sumMargin/sumSell*100):0;
+  const sumSell=R.reduce((s,r)=>s+(+r.sell||0),0);
+  /* 2026-09-02 (round 31): sumMargin was Σ(sell − cost) over EVERY request, and `+r.cost||0`
+     read a request whose cost nobody has recorded as a cost of ZERO — so its entire sale was
+     reported as booked margin, and the percentage beside it was computed on that. That is the
+     same rule the proposal editor broke (round 29): cost is approved expenses only; a gap is
+     left as a gap and named, never filled with a number that looks researched.
+     Only requests that actually record a cost count; the percentage is taken against those
+     same requests' sales, not against the whole pipeline (mixing the two would understate it);
+     and the requests left out are counted on the tile so nothing is quietly dropped. */
+  const _opsHasCost=r=>r&&r.cost!=null&&String(r.cost).trim()!=='';
+  const _opsCosted=R.filter(_opsHasCost);
+  const opsNoCost=R.filter(r=>!_opsHasCost(r)&&(+r.sell||0)>0);
+  const sumMargin=_opsCosted.reduce((s,r)=>s+((+r.sell||0)-(+r.cost||0)),0);
+  const costedSell=_opsCosted.reduce((s,r)=>s+(+r.sell||0),0);
+  const mPct=costedSell?Math.round(sumMargin/costedSell*100):0;
   const _arOps=(typeof LANG!=='undefined'&&LANG==='ar');
+  const marginNote=_opsCosted.length
+    ? ((_arOps?'الهامش ':'margin ')+'<span dir="ltr">'+mPct+'%</span>'+(opsNoCost.length?('<br>'+(_arOps?(opsNoCost.length+' بدون تكلفة مسجّلة — غير محتسبة'):(opsNoCost.length+' with no cost recorded — not counted'))):''))
+    : (_arOps?'لا توجد تكلفة مسجّلة على أي طلب':'no request has a cost recorded');
+  const marginValue=_opsCosted.length?(moneyShort(sumMargin)+' SAR'):'—';
   /* 2026-09-02 (attack round 10): "10k SAR · 15%" wrapped mid-value inside the tile on desktop and
      phone alike — the percentage is now its own small line under the amount. */
-  const kp=[["Open requests",open.length,"var(--blue)"],["SLA overdue",over,"var(--red)"],["Awaiting client",R.filter(r=>r.stage==="Awaiting client").length,"var(--amber)"],["Pipeline value",moneyShort(sumSell)+" SAR","var(--violet)"],["Booked margin",moneyShort(sumMargin)+' SAR<div style="font-size:12px;font-weight:600;color:var(--muted);margin-top:2px">'+(_arOps?'الهامش ':'margin ')+'<span dir="ltr">'+mPct+'%</span></div>',"var(--green)"],["Delivered / closed",R.filter(r=>r.stage==="Delivered"||r.stage==="Closed").length,"var(--ink-3)"]];
+  const kp=[["Open requests",open.length,"var(--blue)"],["SLA overdue",over,"var(--red)"],["Awaiting client",R.filter(r=>r.stage==="Awaiting client").length,"var(--amber)"],["Pipeline value",moneyShort(sumSell)+" SAR","var(--violet)"],["Booked margin",marginValue+'<div style="font-size:12px;font-weight:600;color:var(--muted);margin-top:2px">'+marginNote+'</div>',"var(--green)"],["Delivered / closed",R.filter(r=>r.stage==="Delivered"||r.stage==="Closed").length,"var(--ink-3)"]];
   v.innerHTML=`
   <div class="toolbar"><div class="search-wrap">${IC.search}<input id="rq" placeholder="${_arOps?'ابحث في الطلبات…':'Search requests…'}" oninput="drawReqBoard(this.value)"></div><div style="flex:1"></div><button class="btn pri" onclick="editRequest()">+ New request</button></div>
   <div class="kpis" style="margin-bottom:18px">${kp.map(([l,vv,c])=>`<div class="kpi"><div class="l">${l}</div><div class="v" style="color:${c}">${vv}</div></div>`).join("")}</div>

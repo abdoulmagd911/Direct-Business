@@ -1,5 +1,36 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 31 — "Booked margin" counted an unrecorded cost as zero (fixed)
+
+The same money rule the proposal editor broke in round 29, in two more places: the Operations
+board's KPI row (`js/core/core-03-reference-ops.js`) and the dashboard's (`js/core/core-01-foundation.js`).
+Both computed Σ(sell − cost) over **every** request, and `+r.cost||0` read a request whose cost
+nobody had recorded as a cost of **zero** — so its entire sale was reported as booked margin,
+and the percentage printed beside it was computed on that. Three costed requests plus one
+uncosted 50,000 SAR job showed a margin of 64,000 at 58%, when the evidenced figure is 14,000
+at 23%. Both numbers were fabricated, and neither was reconcilable against anything.
+
+Now: only requests that actually record a cost count toward the margin; the percentage is taken
+against those same requests' sales (against the whole pipeline it would understate it); the
+requests left out are counted on the tile ("1 with no cost recorded — not counted" /
+«بدون تكلفة مسجّلة — غير محتسبة»); and with nothing costed at all the tile reads "—" rather
+than a confident 0 SAR. **"Pipeline value" still counts every request**, so no work is hidden —
+it is only the *margin claim* that now requires evidence.
+
+*Live today: zero rows in `requests`, so Operations is empty and the tile reads nothing — latent
+until the desk is first used, which is exactly when it would have mattered.*
+
+Guarded by `scripts/qa/probe-ops-margin-honest.mjs` (11 checks), two sabotages verified.
+
+**Harness note worth keeping.** The first version of that probe assigned `DB.requests` in the
+browser and was silently overruled: `js/35` loads requests from the real tables and then
+**re-asserts that copy for ~20 seconds** whenever `DB.requests` changes identity (an anti-clobber
+guard against the workspace-blob loader finishing later). A probe's assignment looks exactly like
+the clobber it defends against. Fixtures for requests/proposals/projects must be **seeded into
+the mock** (`start(PORT, {app_requests: […]})`), not assigned in the page. That same re-assert
+window is the mechanism behind the still-unverified "request delete comes back ~20 s later"
+report — worth checking next.
+
 ## 2026-09-02 · Round 30 — the access screen was calling unknown roles "Admin", and a page you cannot open was still writable
 
 Three defects, one theme: **two parts of the app disagreed about who may do what, and every
