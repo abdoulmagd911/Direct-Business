@@ -160,6 +160,11 @@ const TABLES={
   }
 })();
 const RPCLOG=[];
+// Lapsed-session switch (2026-09-02, attack round 18): GET /__lapse?on=1 makes the mock answer
+// like PostgREST does to an anonymous caller — app_role()/my_page_access() null, every table
+// read [] — without touching the browser's token, so js/55's "never show zeros as truth" guard
+// can be driven for real. /__lapse?on=0 restores.
+let LAPSED=false;
 let _finIdSeq=0; // new finance_invoices rows inserted through the mock get mock-fi-N ids
 let _bakIdSeq=0; // new app_state_bak rows inserted through the mock get sequential bak_ids
 // Password-recovery probes (2026-08-22): three inspectable logs, same pattern as RPCLOG below —
@@ -229,6 +234,7 @@ export function start(port, seedOverrides){
     });
   }
   if(path==='/__rpclog') return send(res,200,RPCLOG);
+  if(path==='/__lapse'){ LAPSED=String(u.query.on||'')==='1'; return send(res,200,{lapsed:LAPSED}); }
   if(path.startsWith('/rest/v1/rpc/')){
     let body='';
     req.on('data',c=>body+=c);
@@ -236,6 +242,7 @@ export function start(port, seedOverrides){
       let parsed=null; try{parsed=JSON.parse(body||'{}');}catch(_){}
       const fn=path.replace('/rest/v1/rpc/','');
       RPCLOG.push({fn, keys: parsed?Object.keys(parsed.patch||parsed.payload||{}):[], arg: parsed?Object.keys(parsed):[]});
+      if(LAPSED&&(fn==='app_role'||fn==='my_page_access')) return send(res,200,'null');   // anonymous caller: no role
       // Spec 7b (2026-08-21): app_role() and my_page_access() read the SAME app_users row
       // the login layer already reads, mirroring the real functions exactly —
       //   app_role()        = role from app_users where id = auth.uid() and active
@@ -386,6 +393,7 @@ export function start(port, seedOverrides){
   if(path.startsWith('/rest/v1/')){
     const t=path.replace('/rest/v1/','').split('?')[0];
     let rows=TABLES[t]||[];
+    if(LAPSED&&req.method==='GET') return send(res,200,[]);   // RLS shows an anonymous caller nothing
     // finance_invoices writes are persisted for real (insert + upsert-by-id) — everything
     // else keeps the old no-op 201,[] stub. Scoped narrowly on purpose: the universal
     // importer's own idempotency (import, then re-import the same file → all Unchanged) is

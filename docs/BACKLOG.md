@@ -285,6 +285,15 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   save-confirms-rows and no-phantom-writes probes still green on it. Sabotage (every row
   rewritten on save) → A's rename lost → red. The one documented limit — the SAME record in
   two tabs is last-write-wins — is not asserted and stays on the known-issues list.
+- **Round 18 (16:05–16:30) — a session that lapses mid-use.** The real story behind js/55: a
+  lapsed login once let Finance load happily with Revenue 0 / Cost 0 / Profit 0 and nothing on
+  screen saying anything was wrong. Never driven for real before. The mock gained a runtime
+  switch (`/__lapse?on=1`: role answers null, every read answers empty — an anonymous caller)
+  and `probe-session-lapse.mjs` signs in, opens Finance with figures, flips the switch, reloads
+  the rows the way a page visit does, and asserts the orange "session has expired" bar within
+  seconds (from the Finance zero-shape trigger, not the minute sweep), no token rotation by the
+  guard, and the bar gone on the next check once the session is good again. Held: bar in ~300 ms.
+  Sabotage (drop the zero-shape trigger) → no bar in 7.5 s → red; restored byte-identical.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 
