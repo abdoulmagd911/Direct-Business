@@ -89,7 +89,7 @@
     'Export ▾':'تصدير ▾','Share (view-only)':'مشاركة (عرض فقط)',
     // ---- in-page page headings (the ? help button is preserved) ----
     'Leads':'العملاء المحتملون','Clients':'العملاء','Offers':'العروض','Bookings':'الحجوزات','Projects':'المشاريع',
-    'Invoices':'الفواتير','Tickets':'التذاكر','Settings':'الإعدادات','Providers GDS':'الموردون و GDS',
+    'Invoices':'الفواتير','Tickets':'التذاكر','Settings':'الإعدادات','Providers GDS':'الموردون و GDS','Providers & GDS':'الموردون و GDS',
     'Provider verdicts':'تقييمات الموردين','Monthly revenue & profit':'الإيرادات والأرباح الشهرية',
     'Top clients by revenue':'أعلى العملاء إيراداً','★ Extended procedures':'★ إجراءات موسّعة',
     'SOP Library':'مكتبة الإجراءات','Service Levels':'مستويات الخدمة','Desk procedures (Saudi base · elevated)':'إجراءات المكتب (المعيار السعودي · مُرفَّع)',

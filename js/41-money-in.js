@@ -30,7 +30,10 @@
 (function(){try{
   function fl(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;}
   function esc64(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
-  function money64(x){ if(typeof x==='number')return x; return parseFloat(String(x==null?'':x).replace(/[^\d.\-]/g,''))||0; }
+  /* 2026-09-02 (attack round 14): same reading as js/65's moneyG — Arabic-Indic digits, "(500)",
+     decimal commas — so the two import paths can never read one cell two ways. Falls back to
+     the original one-liner if js/65 is not there. */
+  function money64(x){ if(typeof x==='number')return x; try{ if(typeof window.__v65MoneyG==='function')return window.__v65MoneyG(x); }catch(_){} return parseFloat(String(x==null?'':x).replace(/[^\d.\-]/g,''))||0; }
   function m0(n){return Math.round(Number(n)||0).toLocaleString('en-US');}
   function isoDate(s){ // "18/06/2026 03:35:42 PM" or "2026-06-18..." → "2026-06-18"
     s=String(s||'').trim(); var m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/); if(m)return m[3]+'-'+m[2]+'-'+m[1];

@@ -133,11 +133,17 @@ export function start(port){
     const t=path.replace('/rest/v1/','').split('?')[0];
     let rows=TABLES[t]||[];
     if(req.method==='POST'){ let b=''; req.on('data',d=>b+=d); req.on('end',()=>{ try{
+      // 2026-09-02 (attack round 15): this mock persisted writes but answered `201 []` — the
+      // silent-refusal shape every M13 check now detects — so the round-8 auto-link checks went
+      // red the moment js/41 started counting a link only when its row came back (round 6).
+      // Honest now: the written rows are returned (upsert key: year / client_group / id).
       const parsed=JSON.parse(b||'[]'); const list=Array.isArray(parsed)?parsed:[parsed];
-      const key=(t==='finance_targets')?'year':'id';
+      const key=(t==='finance_targets')?'year':(t==='finance_client_links')?'client_group':'id';
+      const written=[];
       list.forEach(row=>{ const arr=(TABLES[t]=TABLES[t]||[]);
-        if(key==='id'&&row.id==null){ row.id='gen-'+Math.random().toString(36).slice(2,10)+arr.length; arr.push(row); return; }
-        const i=arr.findIndex(r=>String(r[key])===String(row[key])); if(i>=0)arr[i]={...arr[i],...row}; else arr.push(row); });
+        if(key==='id'&&row.id==null){ row.id='gen-'+Math.random().toString(36).slice(2,10)+arr.length; arr.push(row); written.push(row); return; }
+        const i=arr.findIndex(r=>String(r[key])===String(row[key])); if(i>=0){ arr[i]={...arr[i],...row}; written.push(arr[i]); } else { arr.push(row); written.push(row); } });
+      send(res,201,written); return;
     }catch(_){} send(res,201,[]); }); return; }
     if(req.method==='PATCH'){ let b=''; req.on('data',d=>b+=d); req.on('end',()=>{ try{
       const patch=JSON.parse(b||'{}'); let list=TABLES[t]||[];
@@ -145,6 +151,7 @@ export function start(port){
         const m=String(val||'').match(/^eq\.(.*)$/); if(m) list=list.filter(r=>String(r[k])===m[1]);
         if(String(val)==='is.null') list=list.filter(r=>r[k]==null); });
       list.forEach(r=>Object.assign(r,patch));
+      send(res,200,list); return;   // the matched rows back, like PostgREST with .select()
     }catch(_){} send(res,204,[]); }); return; }
     if(req.method!=='GET') return send(res,201,[]);
     // apply simple eq filters from the query string (e.g. id=eq.<uuid>) like real PostgREST,

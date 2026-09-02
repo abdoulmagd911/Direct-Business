@@ -223,6 +223,21 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   (nine shapes through the real ingest → preview → confirm → table); sabotage-verified twice
   (digit normaliser, duplicate check). Premortem #1, preview-density, tab-wiring, tax-capture
   and CSV-injection probes all still green.
+- **Round 15 (14:25–15:00) — reference pages in Arabic, and a battery regression run down.**
+  Settings, Clients, Airlines, Providers and SOPs driven EN/AR, desktop/phone: clean apart from
+  the Providers heading ("Providers & GDS" under Arabic — dictionary entry added) and the
+  Clients list's last-activity line showing the raw type word ("note: …") under Arabic — the
+  known types read Arabic now. The Direct Payments import path now reads amounts through the
+  same normaliser as the teach-once path (js/41 → js/65's), so one cell can never read two ways.
+  **Battery regression run down:** `probe-round8` had two red v66 auto-link checks. Bisected to
+  round 6 — NOT a defect: js/41 now counts a link only when the database returns its row (M13),
+  and the older seed-mock (`mock-seed-live.mjs`, used by round8/mega/landmines/notes/attack
+  waves) still answered every write with `201 []` — the exact silent-refusal shape. The
+  seed-mock now returns what it wrote (upsert keys year / client_group / id) and the matched
+  rows on PATCH; round8 back to 14/14, the other seed-mock probes re-run. **Harness gap noted,
+  not changed:** the mock's workspace blob carries no airlines/providers, so those two pages
+  render empty in the harness while the live blob has 136 airlines and 23 providers — a
+  future drive of those pages needs the blob seeded from the mock's own tables.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 
