@@ -1210,7 +1210,12 @@ const V21_VERB_MAP={
   'Convert to booking':'Draft booking (push to source on confirm)'
 };
 // DOM-pass: walk every button + link after each render and relabel
-function v21RelabelVerbs(){const root=document.getElementById('view');if(!root)return;const targets=root.querySelectorAll('button, .btn, a.btn');targets.forEach(el=>{if(el.dataset.v21relabeled)return;const txt=(el.textContent||'').trim();// preserve emoji prefix
+function v21RelabelVerbs(){const root=document.getElementById('view');if(!root)return;const targets=root.querySelectorAll('button, .btn, a.btn');targets.forEach(el=>{if(el.dataset.v21relabeled)return;
+    // The provider "servicing capability" toggles (core-03 capMatrixHTML → setCap) are yes/no flags
+    // — "can this provider do a Refund?" — not money actions. Before 2026-09-02 (attack round 19)
+    // the Refund flag was relabeled "Request refund → Direct Payment", which is a lie on a checkbox.
+    if((el.getAttribute('onclick')||'').indexOf('setCap(')>=0)return;
+    const txt=(el.textContent||'').trim();// preserve emoji prefix
     Object.keys(V21_VERB_MAP).forEach(old=>{var __re=new RegExp('\\b'+old.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b');if(__re.test(txt)&&txt.indexOf(V21_VERB_MAP[old])<0){el.innerHTML=el.innerHTML.replace(__re,V21_VERB_MAP[old]);el.dataset.v21relabeled='true';}});});}
 const _v21OrigRender4=render;render=function(){_v21OrigRender4();setTimeout(v21RelabelVerbs,50);};
 // Draft → Push pattern: invoice edit modal gets a clear "Status: DRAFT — not yet on Direct Payment" banner when status === Draft

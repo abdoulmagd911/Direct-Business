@@ -294,6 +294,23 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   seconds (from the Finance zero-shape trigger, not the minute sweep), no token rotation by the
   guard, and the bar gone on the next check once the session is good again. Held: bar in ~300 ms.
   Sabotage (drop the zero-shape trigger) → no bar in 7.5 s → red; restored byte-identical.
+- **Round 19 (16:30–17:10) — the Reference pages past the list.** Airlines and Providers & GDS
+  had only ever been swept at list level, and the harness workspace carried zero airlines and
+  zero providers (live has 136 / 23 in the blob; the separate `airlines` / `providers` tables
+  are an unused copy the app never reads), so the drill-downs had never rendered a row in QA.
+  The mock now seeds five carriers and four providers with every field the cards show. Driving
+  them found three real things: (1) the address `/providers` was accepted by the URL router but
+  no such view exists (the page's id is `vendors`), so a bookmark to it quietly showed Today —
+  js/03 now maps `/providers` → Providers, `/operations` → Operations, `/dashboard` → Today;
+  (2) the provider "servicing capability" flags were being relabeled by the verb map in
+  core-06, so the yes/no flag "Refund" read "Request refund → Direct Payment" — a money action
+  on a checkbox — the relabel now skips those toggles; (3) the Arabic drill-down chrome (back
+  buttons, card titles, fact labels, KPI tiles, table heads, sub-lines, the flags) was English —
+  js/21 gained the entries and a `.fact>.k` pass (existing entries win; the NDC matrix `<option>`
+  words are deliberately NOT translated because they carry no value attribute and an Arabic word
+  would be stored and break the "active" count). `probe-reference-pages.mjs` covers all of it in
+  EN+AR, desktop+phone, plus "a flag click persists" and "an NDC status changed in Arabic still
+  stores the English keyword". Three sabotages (alias, skip, dictionary entry) → red each.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

@@ -131,6 +131,48 @@
     'Activity & workflow':'النشاط وسير العمل','Contacts & channels':'جهات الاتصال والقنوات',
     '＋ Log activity':'＋ تسجيل نشاط','＋ Request':'＋ طلب','＋ Contact / POC':'＋ جهة اتصال / مسؤول','🔗 Link':'🔗 رابط','📄 Detail view':'📄 عرض التفاصيل'
   };
+  // ---- Reference drill-downs (2026-09-02, attack round 19 — the first Arabic drive of an airline
+  // detail/dashboard and a provider detail/dashboard WITH a record; the harness had carried zero
+  // airlines/providers until then). Whole-string chrome only: back buttons, card titles, fact labels
+  // (.fact>.k, added below), KPI tiles, table heads, explanatory sub-lines and the servicing flags.
+  // Added with "existing entry wins" so nothing already translated elsewhere changes meaning.
+  // Deliberately NOT here: the NDC matrix <option> words (Active / Pending / Inactive / N/A /
+  // EDIFACT / Aggregator) — those <option>s carry no value attribute, so translating their text
+  // would make setNdc() store an Arabic word and ndcActive() (status==="Active") would stop counting. ----
+  var REF_AR={
+    '← Back':'← رجوع','← Back to airlines':'← العودة إلى شركات الطيران','← Back to providers':'← العودة إلى الموردين',
+    '📊 Dashboard view':'📊 لوحة المؤشرات','Hide empty rows':'إخفاء الصفوف الفارغة',
+    // airline dashboard tiles + cards
+    'Ticket stock':'مخزون التذاكر','KSA IATA':'IATA السعودية','Alliance':'التحالف','NDC active':'NDC مفعّل','ADM risk':'مخاطر ADM','On-time':'الالتزام بالمواعيد',
+    'NDC activation — by source':'تفعيل NDC — حسب المصدر','Ticketing rules':'قواعد الإصدار','Sourcing':'المصادر','Booked volume (reflected)':'حجم الحجوزات (منعكس)',
+    'Fare value SAR':'قيمة التذاكر (ر.س)','Value SAR':'القيمة (ر.س)',
+    'Single source of truth — editing any cell here also updates the front list and the detailed page.':'مصدر واحد للحقيقة — أي تعديل هنا ينعكس على القائمة الأمامية وصفحة التفاصيل.',
+    'Auto-aggregated from bookings & tickets — add a booking on this carrier and it lands here.':'يُجمَّع تلقائيًا من الحجوزات والتذاكر — أضف حجزًا على هذه الشركة وسيظهر هنا.',
+    'Source / provider':'المصدر / المزوّد','NDC status':'حالة NDC','Content type':'نوع المحتوى','Updated':'آخر تحديث','Notes (account / link)':'ملاحظات (الحساب / الرابط)',
+    'No active NDC / content source on this carrier yet.':'لا يوجد مصدر NDC / محتوى مفعّل على هذه الشركة بعد.',
+    // airline detail (fact labels + section summaries)
+    'Ticketing & fare rules':'قواعد الإصدار والأسعار','NDC & content sources':'NDC ومصادر المحتوى',
+    'On KSA IATA (BSP Saudi)':'على IATA السعودية (BSP)','Country · Type':'الدولة · النوع','Content providers':'مزوّدو المحتوى','Manual provider':'مزوّد يدوي',
+    'Frontend (OTA)':'الواجهة (OTA)','Deeplinks':'روابط مباشرة','Payment':'الدفع','Terms':'الشروط','Ticketing authority':'صلاحية الإصدار',
+    'Void window':'مهلة الإبطال','Reissue (voluntary)':'إعادة الإصدار (اختياري)','Refund (voluntary)':'الاسترداد (اختياري)','LCC refund to':'استرداد LCC إلى','No-show':'عدم الحضور',
+    'Corporate deal / TMC tariff':'اتفاقية شركات / تعرفة TMC','Codeshare / interline':'الرمز المشترك / الربط البيني','Hubs / focus cities':'المحاور / المدن الرئيسية',
+    'Fleet (primary)':'الأسطول (الرئيسي)','Classes offered':'الدرجات المتاحة','ADM risk profile':'ملف مخاطر ADM','On-time performance':'الالتزام بالمواعيد',
+    'SAF / sustainability':'الوقود المستدام / الاستدامة','NDC version · env':'إصدار NDC · البيئة','Availability source':'مصدر التوفر',
+    'BSP authorized':'مصرّح عبر BSP','No authority — target':'بدون صلاحية — مستهدف','Authorized':'مصرّح','Target':'مستهدف','Available':'متاح',
+    // provider detail / dashboard
+    'Servicing & commercial':'الخدمة والجانب التجاري','Servicing capability matrix':'مصفوفة إمكانات الخدمة','Routed volume (reflected)':'الحجم الموجَّه (منعكس)',
+    'Incident / outage history':'سجل الأعطال والانقطاعات','Where we get availability':'من أين نحصل على التوفر','Servicing':'الخدمة','Content mix':'مزيج المحتوى',
+    'Settlement':'التسوية','Commission / markup':'العمولة / الهامش','Cost per booking':'التكلفة لكل حجز','Uptime · response':'التشغيل · الاستجابة','Support SLA':'اتفاقية الدعم',
+    'Account manager':'مدير الحساب','Contract renewal':'تجديد العقد','Use for':'يُستخدم لـ','Booking / agent portal':'بوابة الحجز / الوكيل','ADM / admin portal':'بوابة ADM / الإدارة',
+    'Account / username':'الحساب / اسم المستخدم','API status':'حالة API','Uptime':'زمن التشغيل','Response':'زمن الاستجابة','Cost / booking':'التكلفة / حجز','Renewal':'التجديد',
+    'Click to toggle what we can do through this provider — syncs to the list & detail view.':'انقر لتبديل ما يمكننا تنفيذه عبر هذا المورّد — يتزامن مع القائمة وصفحة التفاصيل.',
+    'Auto-aggregated from bookings routed through this provider.':'يُجمَّع تلقائيًا من الحجوزات الموجَّهة عبر هذا المورّد.',
+    'Healthy':'سليم','Degraded':'متدهور','Down':'متوقف',
+    // servicing flags (buttons; "✓ " prefix when on)
+    'Book':'حجز','✓ Book':'✓ حجز','Reissue':'إعادة إصدار','✓ Reissue':'✓ إعادة إصدار','Refund':'استرداد','✓ Refund':'✓ استرداد',
+    'Seats':'المقاعد','✓ Seats':'✓ المقاعد','Bags':'الأمتعة','✓ Bags':'✓ الأمتعة','Split PNR':'فصل PNR','✓ Split PNR':'✓ فصل PNR'
+  };
+  Object.keys(REF_AR).forEach(function(k){ if(V27_AR[k]===undefined) V27_AR[k]=REF_AR[k]; });
   // Stage badge words — translated ONLY inside .statusbadge / stage pills, to avoid
   // colliding with the same words used elsewhere (headers, chips, filters).
   var STAGE_AR={'New':'جديد','Prospect':'مرتقب','Contacted':'تم التواصل','Qualified':'مؤهل','Proposal':'عرض مقدم','Negotiation':'تفاوض','Won':'مكسوب','Lost':'مفقود','Client':'عميل','On hold':'مُعلّق','In discussion':'قيد النقاش'};
@@ -175,6 +217,11 @@
     // and a label wrapping an input/select/textarea is skipped, so free text is never touched
     var els=scope.querySelectorAll('.kl,.l,button,a.btn,.tag,label,summary,.ch-sub'),j;
     for(j=0;j<els.length;j++){ var el=els[j]; if(el.getAttribute('data-v27')||el.querySelector('input,select,textarea'))continue; translateDecorated(el,V27_AR); }
+    // fact-row labels (.fact > .k) added 2026-09-02 for the Reference drill-downs — the label half of
+    // a key/value row only, whole-string matches only, and a label that wraps markup (a tag pill in
+    // the ADM-risk distribution, say) is skipped so the pill is never flattened to text
+    var fk=scope.querySelectorAll('.fact>.k'),f;
+    for(f=0;f<fk.length;f++){ var kl=fk[f]; if(kl.getAttribute('data-v27')||kl.children.length)continue; translateDecorated(kl,V27_AR); }
     // dropdown options: main dict, then stage words (safe — options are filter values, not data)
     var opts=scope.querySelectorAll('option'),o;
     for(o=0;o<opts.length;o++){ var op=opts[o]; if(op.getAttribute('data-v27'))continue; var ot=(op.textContent||'').trim(); if(!ot)continue;

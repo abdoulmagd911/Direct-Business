@@ -36,7 +36,11 @@
     if(lastPath===null)history.replaceState(entry,'',p);else history.pushState(entry,'',p);
     lastPath=p;
   }catch(_){}}
-  function applyRoute(r){if(!r)return false;if(VALID.indexOf(r.sec)<0&&!r.dk)return false;try{if(r.dk==='lead'&&r.dv){current='leads';openLead=r.dv;}else if(r.dk==='offer'&&r.dv){current='offers';openOffer=r.dv;}else if(r.dk==='invoice'&&r.dv){current='invoices';openInvoice=r.dv;}else{if(VALID.indexOf(r.sec)>=0)current=r.sec;try{openLead='';}catch(_){}}}catch(_){return false;}return true;}
+  // Friendly addresses that are not view ids. Before 2026-09-02 (attack round 19) `/providers`
+  // was accepted as valid, set current='providers' — a view that does not exist — and the app
+  // quietly showed Today under a /providers address. The page's real id is `vendors`.
+  var ALIAS={providers:'vendors',operations:'ops',dashboard:'today'};
+  function applyRoute(r){if(!r)return false;if(r.sec&&ALIAS[r.sec])r.sec=ALIAS[r.sec];if(VALID.indexOf(r.sec)<0&&!r.dk)return false;try{if(r.dk==='lead'&&r.dv){current='leads';openLead=r.dv;}else if(r.dk==='offer'&&r.dv){current='offers';openOffer=r.dv;}else if(r.dk==='invoice'&&r.dv){current='invoices';openInvoice=r.dv;}else{if(VALID.indexOf(r.sec)>=0)current=r.sec;try{openLead='';}catch(_){}}}catch(_){return false;}return true;}
   function restoreBoot(){var r=parse(boot);if(applyRoute(r)){try{if(typeof render==='function')render();}catch(_){}}ready=true;lastPath=buildPath();try{if(lastPath)history.replaceState({p:lastPath,f:snapFilters()},'',lastPath);}catch(_){}}
   // wrap render AND the filter re-draws (renderLeads/drawLeads) so a filter change records history too
   function wrapFn(name){try{var f=window[name];if(typeof f==='function'&&!f.__pathWrap){var _f=f;window[name]=function(){var o=_f.apply(this,arguments);writeURL();return o;};window[name].__pathWrap=true;}}catch(_){}}
