@@ -199,6 +199,15 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   the M18 commit naming the client); removing them means rewriting published history. Other
   docs still name clients without amounts (playbook, blueprint, identity, payments model) — a
   per-mention judgment pass for the doc lane. Guard: `probe-projects-ar.mjs`.
+- **Round 13 (13:35–13:55) — write actions as a read-only viewer, with records on the pages.**
+  The earlier role probes proved navigation and page access; this one attacked the write
+  actions that only appear once pages have data. Found: the Ops board's "Advance →" button,
+  the drag-drop between columns, "+ New project", "Promote to project" and "Add billing
+  profile" were not in the v73 screen guard — a read-only person could move a request a column
+  along and see it move (the database refused it later, so the screen lied until reload). All
+  five now refuse on screen with the v73 box (`js/49`), nothing changes in memory, nothing is
+  sent; a team member still goes through all of them. Events already had their own gate.
+  Guard: `probe-viewer-writes.mjs` (viewer + team_member passes); sabotage-verified.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

@@ -80,6 +80,25 @@
     ['newOffer','offerEditor','saveOffer'].forEach(function(f){ guardFn(f,'proposals'); });
     ['editRequest'].forEach(function(f){ guardFn(f,'requests'); });
     ['expSave','expDel','finSetWay','finCommit','finSetTargets','finLinkMap'].forEach(function(f){ guardFn(f,'finance'); });
+    /* 2026-09-02 (attack round 13, driven as a read-only viewer WITH records on the pages): the
+       Ops board's "Advance →" button, the drag-drop between columns, "+ New project",
+       "Promote to project" and "Add billing profile" were not in this list — a read-only person
+       could move a request a column along and see it move (the database refused it later, so
+       the screen lied until reload). */
+    ['advanceReq','newRequestForLead'].forEach(function(f){ guardFn(f,'requests'); });
+    ['v25NewProject','o_promoteProject'].forEach(function(f){ guardFn(f,'proposals'); });
+    ['v34AddProfile'].forEach(function(f){ guardFn(f,'leads'); });
+    try{
+      var od=window.dropOn;
+      if(typeof od==='function'&&!od.__v70){
+        var wd=function(e,kind,key,el){
+          var what=kind==='req'?'requests':kind==='lead'?'leads':null;
+          if(what&&!can(what)){ try{ if(e&&e.preventDefault)e.preventDefault(); }catch(_){} if(el&&el.classList)el.classList.remove('drop'); try{ _drag=null; }catch(_){} refuse(what); return; }
+          return od.apply(this,arguments);
+        };
+        wd.__v70=1; wd.__orig=od; window.dropOn=wd;
+      }
+    }catch(_){}
     /* NOTE: we deliberately do NOT blanket-hide primary buttons. Guarding the actions above is
        what stops the write; hiding every strong button also removed harmless read-only ones
        (Show all, Export) and left read-only people staring at a stripped screen. */
