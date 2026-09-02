@@ -442,8 +442,8 @@ function migrate(d){
   d.invoices.forEach(i=>{if(!i.items)i.items=[];if(!i.files)i.files=[];if(i.total===undefined)i.total=0;if(i.status===undefined)i.status="Draft";});
 }
 function leadStatus(b){return b.status||(b.isClient||b.isVendor?"Won":"To contact");}
-function fmtDate(ms){if(!ms)return"—";return new Date(ms).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});}
-function fmtAgo(ms){if(!ms)return"";const h=(Date.now()-ms)/3600e3;if(h<1)return Math.max(1,Math.round(h*60))+"m ago";if(h<24)return Math.round(h)+"h ago";return Math.round(h/24)+"d ago";}
+function fmtDate(ms){if(!ms)return"—";const _ar=(typeof LANG!=='undefined'&&LANG==='ar');try{return new Date(ms).toLocaleDateString(_ar?'ar':undefined,_ar?{day:"numeric",month:"short",year:"numeric",calendar:"gregory"}:{day:"numeric",month:"short",year:"numeric"});}catch(_){return new Date(ms).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});}}
+function fmtAgo(ms){if(!ms)return"";const _ar=(typeof LANG!=='undefined'&&LANG==='ar');const h=(Date.now()-ms)/3600e3;if(h<1){const m=Math.max(1,Math.round(h*60));return _ar?('قبل '+m+' د'):(m+"m ago");}if(h<24){const hh=Math.round(h);return _ar?('قبل '+hh+' س'):(hh+"h ago");}const d=Math.round(h/24);return _ar?('قبل '+d+' ي'):(d+"d ago");}
 function fmtTime(ms){return new Date(ms).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
 function pdLink(b){const cs=b.contacts||[];let ph="";for(const c of cs){if(c.phone){ph=String(c.phone).replace(/[^0-9+]/g,"");break;}}if(ph){if(ph.indexOf("00")===0)ph="+"+ph.slice(2);else if(ph.indexOf("05")===0)ph="+966"+ph.slice(1);else if(ph.indexOf("966")===0)ph="+"+ph;else if(ph.indexOf("5")===0&&ph.length===9)ph="+966"+ph;return "https://payments.directksa.com/en/admin/invoices?customer_identifier="+encodeURIComponent(ph);}const em=(cs.find(c=>c.email)||{}).email;return "https://payments.directksa.com/en/admin/invoices?customer_identifier="+encodeURIComponent(em||b.name);}
 

@@ -418,6 +418,22 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   the layer once after injecting. `probe-reports-phone-ar.mjs` covers it. Three sabotages
   (tab wrap, build hook, dictionary block) → red each. Left for a later round: the Settings admin cards (generator
   templates, snapshots) still read English in Arabic — dev-facing, low traffic.
+- **Live sweep (19:45).** Unchanged and clean: 80 leads / 28 clients / 4 archived, the
+  client-flag check now counted on non-archived rows only = 0, 46 live invoices with 0 missing
+  cost / bad quarter / VAT-in-profit / orphan links, 3 merges on record, 11 active accounts, no
+  data change for ~4 h.
+- **Round 25 (19:45–20:15) — a client's card in Arabic; the Events page.** Events holds in
+  both languages and on a phone (one stray "Event" legend word, left). On a client card in
+  Arabic: the Corporate account card's labels (Entity type, Legal name, CR, Payment terms,
+  Contract, Credit limit) and sub-line, the Activity card's sub-line, the "Airline corporate
+  deals / fares" sub-head, the timeline's type word and "moved to" phrase, and the date /
+  "d ago" stamps were English. Fixed: js/21 gained the entries and a `.sub-h` pass; core-02's
+  timeline maps the type word and the phrase; core-01's `fmtDate` / `fmtAgo` now follow the
+  app language (Arabic month names on the Gregorian calendar, "قبل n ي/س/د"); core-10's
+  hidden "Managed client" strip is bilingual too. Re-checked the two deliberate hides on a
+  client card (the loud onboarding button, the managed-client strip): both stay hidden in
+  both languages — an earlier scan had read their hidden text and mis-flagged them.
+  `probe-client-card-ar.mjs` covers it, desktop + phone. Two sabotages → red each.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

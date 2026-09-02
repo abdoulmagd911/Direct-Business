@@ -203,6 +203,18 @@
     'KPI':'المؤشر','Target':'الهدف','Actual (YTD)':'الفعلي (منذ بداية السنة)','Progress':'التقدم'
   };
   Object.keys(REPORTS_AR).forEach(function(k){ if(V27_AR[k]===undefined) V27_AR[k]=REPORTS_AR[k]; });
+  // ---- Client card (2026-09-02, round 25 — the Corporate account card, the activity card's
+  // sub-line, the onboarding / profile buttons). Fact labels via the .fact>.k pass, the
+  // "Airline corporate deals / fares" sub-head via .sub-h (selector added above). ----
+  var CLIENT_CARD_AR={
+    'Every touch with this business — no digging through chats or invoices':'كل تواصل مع هذه الجهة — دون البحث في المحادثات أو الفواتير',
+    'Contract, policy, negotiated deals & pricing — agents check before quoting':'العقد والسياسة والاتفاقيات المتفاوض عليها والتسعير — يراجعها الموظفون قبل التسعير',
+    'Entity type':'نوع الجهة','Legal name':'الاسم القانوني','CR':'السجل التجاري','Payment terms':'شروط الدفع','Contract':'العقد','Credit limit':'سقف الائتمان',
+    'Airline corporate deals / fares':'اتفاقيات الشركات مع الطيران / الأسعار','+ Add airline deal':'+ إضافة اتفاقية طيران',
+    '🏛 KSA onboarding':'🏛 تسجيل العميل','Edit profile':'تعديل الملف','Edit client profile (full form)':'تعديل ملف العميل (النموذج الكامل)',
+    'Open in Clients ↗':'افتح في العملاء ↗','Open in Clients':'افتح في العملاء'
+  };
+  Object.keys(CLIENT_CARD_AR).forEach(function(k){ if(V27_AR[k]===undefined) V27_AR[k]=CLIENT_CARD_AR[k]; });
   // Stage badge words — translated ONLY inside .statusbadge / stage pills, to avoid
   // colliding with the same words used elsewhere (headers, chips, filters).
   var STAGE_AR={'New':'جديد','Prospect':'مرتقب','Contacted':'تم التواصل','Qualified':'مؤهل','Proposal':'عرض مقدم','Negotiation':'تفاوض','Won':'مكسوب','Lost':'مفقود','Client':'عميل','On hold':'مُعلّق','In discussion':'قيد النقاش'};
@@ -246,7 +258,7 @@
     // label / summary / .ch-sub added 2026-09-02 for the proposal editor — whole-string matches only,
     // and a label wrapping an input/select/textarea is skipped, so free text is never touched
     // .empty added 2026-09-02 (round 24) for the Reports empty states — whole-string matches only
-    var els=scope.querySelectorAll('.kl,.l,button,a.btn,.tag,label,summary,.ch-sub,.empty'),j;
+    var els=scope.querySelectorAll('.kl,.l,button,a.btn,.tag,label,summary,.ch-sub,.empty,.sub-h'),j;
     for(j=0;j<els.length;j++){ var el=els[j]; if(el.getAttribute('data-v27')||el.querySelector('input,select,textarea'))continue; translateDecorated(el,V27_AR); }
     // fact-row labels (.fact > .k) added 2026-09-02 for the Reference drill-downs — the label half of
     // a key/value row only, whole-string matches only, and a label that wraps markup (a tag pill in

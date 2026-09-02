@@ -821,7 +821,8 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
        // client banner
        if(b.isClient&&!v.querySelector('.dt-clientbanner')){
          var bn=document.createElement('div');bn.className='dt-clientbanner card';bn.style.cssText='display:flex;align-items:center;gap:10px;border-left:3px solid #16B364;background:#E7F8EF;margin-bottom:12px';
-         bn.innerHTML='<span style="font-size:18px">★</span><div style="flex:1"><b>Managed client</b> — work this account in the Clients book; it is no longer in the active leads pipeline.</div><button class="btn sm" onclick="current=\'clients\';openLead=null;render()">Open in Clients ↗</button>';
+         var _bnAr=(typeof LANG!=='undefined'&&LANG==='ar');
+         bn.innerHTML='<span style="font-size:18px">★</span><div style="flex:1">'+(_bnAr?'<b>عميل مُدار</b> — اعمل على هذا الحساب في سجل العملاء؛ لم يعد ضمن مسار العملاء المحتملين النشط.':'<b>Managed client</b> — work this account in the Clients book; it is no longer in the active leads pipeline.')+'</div><button class="btn sm" onclick="current=\'clients\';openLead=null;render()">'+(_bnAr?'افتح في العملاء ↗':'Open in Clients ↗')+'</button>';
          var head=v.querySelector('.detail-head');if(head&&head.parentNode)head.parentNode.insertBefore(bn,head.nextSibling);
        }
        // website row into Key facts if missing
