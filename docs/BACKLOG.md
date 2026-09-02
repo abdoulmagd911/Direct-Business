@@ -179,6 +179,26 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   `js/45` :241 reads raw rows for the transaction-ref dropdown (an excluded ref could be picked).
   Guard: `probe-m13-remaining.mjs` (happy + refusal paths through the real dialogs, and "no
   excluded client in the link dialog"); sabotage-verified on js/31 and js/15.
+- **Round 12 (12:55–13:35) — Projects WITH records, and a rule-7 scrub.** Today, Reports and
+  Projects driven EN/AR, desktop/phone with the seeded requests/proposals: Today and Reports
+  clean. Projects had never had a record in the harness (mock served nothing for
+  `app_projects`; two seeded now). Found with records: **the "No projects yet — add your first
+  project" card showed above two live project cards** — the empty-state layer (core-09)
+  injected it as soon as ANY one of the four boards (Active/Proposed/Closed/Archived) was empty;
+  now only when none has an item. The board itself was English under Arabic (title, chips,
+  search, buttons, section headers, empties, card labels) — bilingual now (core-08), with the
+  section title in js/21 and the top-bar title in the v25 titles map; dates/money isolated LTR.
+  **Rule 7:** the real client abbreviation from the duplicate case was still in the public repo
+  — in an Arabic help string and the Projects empty-state copy (core-09), in two probes'
+  comments, in the master brief's project-closeout paragraph and the 2026-08-09 handoff
+  (names, Direct IDs, paid amounts), and `docs/B2B_LANDING_PAGE_REVIEW.md` /
+  `docs/HANDOVER-B2B-LOGO-WALL.md` carried a ranked table of real clients WITH paid amounts,
+  invoice facts and account-owner names. All scrubbed to placeholders / pointers to the Drive
+  files and the artifact. **Needs the owner's ruling (not done — destructive):** the same names
+  and amounts remain in git history (older versions of those docs, and commit messages such as
+  the M18 commit naming the client); removing them means rewriting published history. Other
+  docs still name clients without amounts (playbook, blueprint, identity, payments model) — a
+  per-mention judgment pass for the doc lane. Guard: `probe-projects-ar.mjs`.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

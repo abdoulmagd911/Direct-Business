@@ -161,8 +161,8 @@
       ar:'عروض الأسعار التي ترسلها للعملاء قبل تأكيد الحجز. أنشئها، احفظها، شاركها بالبريد أو واتساب.'
     },
     projects:{
-      en:'Big multi-trip jobs — like an MDD roadshow. Track budget, services, profit, and the proposal deck.',
-      ar:'مهام كبيرة متعددة الرحلات — مثل جولات MDD. تابع الميزانية والخدمات والأرباح وعرض المقترح.'
+      en:'Big multi-trip jobs — like a three-city roadshow. Track budget, services, profit, and the proposal deck.',
+      ar:'مهام كبيرة متعددة الرحلات — مثل جولة عروض في ثلاث مدن. تابع الميزانية والخدمات والأرباح وعرض المقترح.'
     },
     airlines:{
       en:'Your airline accounts — IATA codes, portals, contacts, and notes on each carrier.',
@@ -421,7 +421,7 @@
     invoices:{ic:'🧾',en:{t:'No invoices yet',sub:'Invoices appear here once they are created in Direct Payments.'},ar:{t:'لا توجد فواتير بعد',sub:'تظهر الفواتير هنا بمجرد إنشائها داخل Direct Payments.'},onClick:function(){window.open('https://payments.direct.com.sa/en/admin/invoices','_blank');},btnEn:'Open Direct Payments ↗',btnAr:'افتح Direct Payments ↗'},
     tickets:{ic:'🎟️',en:{t:'No tickets yet',sub:'Tickets appear here once they are issued in the Direct system.'},ar:{t:'لا توجد تذاكر بعد',sub:'تظهر التذاكر هنا بمجرد إصدارها داخل نظام Direct.'},onClick:function(){window.open('https://payments.direct.com.sa/en/admin','_blank');},btnEn:'Open Direct ↗',btnAr:'افتح Direct ↗'},
     offers:{ic:'📋',en:{t:'No offers yet',sub:'Build a quote to send a client by email or WhatsApp.',btn:'+ Build your first offer'},ar:{t:'لا توجد عروض بعد',sub:'أنشئ عرض سعر لإرساله للعميل بالبريد أو واتساب.',btn:'+ أنشئ أول عرض'},onClick:function(){if(typeof newOffer==='function'){newOffer();render();}}},
-    projects:{ic:'📁',en:{t:'No projects yet',sub:'Projects are big multi-trip jobs — like an MDD roadshow. Track budget, services, and profit per project.',btn:'+ Add your first project'},ar:{t:'لا توجد مشاريع بعد',sub:'المشاريع مهام كبيرة متعددة الرحلات. تابع الميزانية والخدمات والأرباح.',btn:'+ أضف أول مشروع'},onClick:function(){if(typeof v25NewProject==='function')v25NewProject();}},
+    projects:{ic:'📁',en:{t:'No projects yet',sub:'Projects are big multi-trip jobs — like a three-city roadshow. Track budget, services, and profit per project.',btn:'+ Add your first project'},ar:{t:'لا توجد مشاريع بعد',sub:'المشاريع مهام كبيرة متعددة الرحلات. تابع الميزانية والخدمات والأرباح.',btn:'+ أضف أول مشروع'},onClick:function(){if(typeof v25NewProject==='function')v25NewProject();}},
     clients:{ic:'🏢',en:{t:'No clients yet',sub:'Clients are companies that already book with us. Add the first one to start managing.',btn:'+ Add your first client'},ar:{t:'لا يوجد عملاء بعد',sub:'العملاء هم الشركات التي تحجز معنا. أضف الأول لتبدأ.',btn:'+ أضف أول عميل'},onClick:function(){if(typeof addBusiness==='function')addBusiness();}},
     activity:{ic:'📊',en:{t:'No activity yet',sub:'Every change, who did it and when, will appear here.'},ar:{t:'لا توجد أنشطة بعد',sub:'كل تعديل ومن قام به ومتى سيظهر هنا.'}},
     archive:{ic:'🗂️',en:{t:'Archive is empty',sub:'Soft-deleted items appear here. You can restore them within 30 days.'},ar:{t:'الأرشيف فارغ',sub:'تظهر العناصر المؤرشفة هنا. يمكن استعادتها خلال 30 يومًا.'}}
@@ -459,21 +459,23 @@
       var sel=emptyMap[current];
       if(!sel)return;
       var containers=view.querySelectorAll(sel);
-      // Check each container has only "empty" or zero meaningful children
+      if(!containers.length)return;
+      /* 2026-09-02 (attack round 12, first drive of Projects WITH records): this injected the
+         "No projects yet" card as soon as ANY one board was empty — the Projects page has four
+         (Active / Proposed / Closed / Archived), so with two live projects the page still opened
+         with "No projects yet — add your first project" above them. The section is empty only
+         when NO container has an item. */
+      var anyItems=false;
       containers.forEach(function(c){
-        var hasItems=false;
-        if(current==='leads'||current==='projects'){
-          hasItems=c.querySelectorAll('.lead').length>0;
-        } else {
-          hasItems=c.querySelectorAll('tr').length>0;
-        }
-        if(hasItems)return;
-        // Only inject once at top of view (avoid duplicates)
-        if(view.querySelector('.v26-empty-card'))return;
-        var card=document.createElement('div');
-        card.innerHTML=v26EmptyCard(current);
-        if(card.firstChild)view.insertBefore(card.firstChild,view.firstChild.nextSibling);
+        var hasItems=(current==='leads'||current==='projects')?c.querySelectorAll('.lead').length>0:c.querySelectorAll('tr').length>0;
+        if(hasItems)anyItems=true;
       });
+      if(anyItems)return;
+      // Only inject once at top of view (avoid duplicates)
+      if(view.querySelector('.v26-empty-card'))return;
+      var card=document.createElement('div');
+      card.innerHTML=v26EmptyCard(current);
+      if(card.firstChild)view.insertBefore(card.firstChild,view.firstChild.nextSibling);
     }catch(e){console.warn('[v26.1] empty states',e);}
   };
   window.v26ReplaceBlankStates=v26ReplaceBlankStates;

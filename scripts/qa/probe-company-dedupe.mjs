@@ -1,8 +1,8 @@
 /* probe-company-dedupe.mjs — M18: duplicate company records are found automatically and merged
    through ONE reversible, audited path (fn_merge_businesses / fn_unmerge_businesses).
 
-   Born from the MDD case (2026-08-29): the corporate-clients import created "MDD" beside the
-   older "MDD — Smart Madad IT"; the alias map merged the DISPLAY, but contacts, profiles, links
+   Born from the Client M case (2026-08-29): the corporate-clients import created "Client M" beside the
+   older "Client M — long-form spelling"; the alias map merged the DISPLAY, but contacts, profiles, links
    and transactions stayed split across two records. Owner: "find the fix for the future and go
    ahead." This drives the real admin card (Finance > Import > Duplicate companies):
 
@@ -20,7 +20,7 @@ import fs from 'fs';
 
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const PORT = 8267;
-// The seeded duplicate carries its OWN open postpaid billing profile — exactly the MDD shape that
+// The seeded duplicate carries its OWN open postpaid billing profile — exactly the Client M shape that
 // refused the first live merge (an open prepaid/postpaid profile may not sit twice on one
 // company). The merge must close the colliding one as it moves, and undo must reopen it.
 const FIXTURE_PROFILES = [
@@ -30,7 +30,7 @@ const FIXTURE_PROFILES = [
   { id: 'cp9', business_id: 'dupX', direct_client_id: '13', profile_type: 'postpaid', status: 'active', payment_terms: 'Net 30', billing_cycle: 'Monthly', opened_at: '2026-08-21', closed_at: null, notes: null },
 ];
 // The seeded duplicate also carries a contact who is the SAME PERSON as b4's contact (same e-mail,
-// different spelling) — the MDD merge doubled such a person. The merge must flag the moved copy
+// different spelling) — the Client M merge doubled such a person. The merge must flag the moved copy
 // for a human (needs_manual_confirmation + reason), never silently double it, never delete it.
 const FIXTURE_CONTACTS = [...Array(20)].map((_, i) => ({ id: 'c' + i, business_id: 'b' + i, name: 'Contact ' + i, role: 'Manager', email: 'c' + i + '@example.com', phone: '+96650000000' + i, verification_source: 'manual', needs_manual_confirmation: false, confirmation_reason: null, confirmed_by: null, confirmed_at: null, meta: {}, source: 'import' }))
   .concat([{ id: 'cX', business_id: 'dupX', name: 'Same Person Different Spelling', role: null, email: 'C4@Example.com', phone: '+966599999999', verification_source: 'manual', needs_manual_confirmation: false, confirmation_reason: null, confirmed_by: null, confirmed_at: null, meta: {}, source: 'import' }]);
@@ -179,7 +179,7 @@ async function main() {
   if (!cp1 || cp1.business_id !== NEW_BIZ || cp1.closed_at) fail(`MERGE/PROFILES: the non-colliding prepaid profile should move to ${NEW_BIZ} and stay open, got ${JSON.stringify(cp1)}`);
   else ok('MERGE/PROFILES: the non-colliding prepaid profile moved to the survivor and stayed open');
   if (!cp2 || cp2.business_id !== NEW_BIZ || !cp2.closed_at || !/merg/i.test(cp2.notes || '')) fail(`MERGE/PROFILES: the colliding postpaid profile should move AND be closed with a note saying why, got ${JSON.stringify(cp2)}`);
-  else ok('MERGE/PROFILES: the colliding postpaid profile moved and was closed, with a note saying why (the MDD case)');
+  else ok('MERGE/PROFILES: the colliding postpaid profile moved and was closed, with a note saying why (the Client M case)');
   if (!cp9 || cp9.closed_at) fail('MERGE/PROFILES: the survivor\'s own open postpaid profile must be untouched');
   else ok('MERGE/PROFILES: the survivor\'s own open profile is untouched');
   const openPostpaid = profAfter.filter((x) => x.business_id === NEW_BIZ && x.profile_type === 'postpaid' && !x.closed_at).length;
@@ -189,7 +189,7 @@ async function main() {
   const c4 = contAfter.find((x) => x.id === 'c4'), cX = contAfter.find((x) => x.id === 'cX');
   if (!c4 || c4.business_id !== NEW_BIZ) fail(`MERGE/CONTACTS: b4's contact should have moved to ${NEW_BIZ}, got ${JSON.stringify(c4)}`);
   else if (!c4.needs_manual_confirmation || !/duplicate/i.test(c4.confirmation_reason || '') || !/cX/.test(c4.confirmation_reason || '')) fail(`MERGE/CONTACTS: the moved contact duplicates one already on the survivor (same e-mail) and must be FLAGGED for a human with the reason naming the other record — got ${JSON.stringify({ needs: c4.needs_manual_confirmation, reason: c4.confirmation_reason })}`);
-  else ok('MERGE/CONTACTS: the moved same-person contact was flagged for a human, with the reason naming the other record (the MDD doubling cannot pass silently)');
+  else ok('MERGE/CONTACTS: the moved same-person contact was flagged for a human, with the reason naming the other record (the Client M doubling cannot pass silently)');
   if (!cX || cX.needs_manual_confirmation) fail('MERGE/CONTACTS: the survivor\'s own contact must be untouched');
   else ok('MERGE/CONTACTS: the survivor\'s own contact is untouched, and nothing was deleted');
   if (contAfter.length !== FIXTURE_CONTACTS.length) fail(`MERGE/CONTACTS: no contact may be deleted by a merge — ${FIXTURE_CONTACTS.length} before, ${contAfter.length} after`);

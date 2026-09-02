@@ -72,7 +72,8 @@ const TABLES={
     .map((s,i)=>({id:'req'+i,data:{id:'req'+i,client:'Test Company '+i,service:s[1],detail:'Seed request '+i,stage:s[0],owner:i%2?'QA':'',priority:['Urgent','High','Normal','Low'][i%4],createdAt:Date.now()-(i<2?1:5)*3600e3,supplier:'Provider 1',pnr:i%3?('PNR'+i):'',sell:s[2],cost:s[3],notes:''},updated_at:'2026-08-01T00:00:00Z',updated_by:'QA'})),
   app_offers:[['Draft','Price offer',12000,''],['Sent','Tender',48000,'2026-12-31'],['Won','Training',9500,'']]
     .map((s,i)=>({id:'off'+i,data:{id:'off'+i,ref:'DB-10000'+i,date:'2026-08-1'+i,client:'Test Company '+i,subject:'Seed proposal '+i,airline:'',route:'',currency:'SAR',ticketPrice:'',partnerFees:'',serviceFees:'',vat:'',total:'',status:s[0],version:1,validUntil:s[3],linkedLeadId:'',policyStatus:'Not checked',approvalStatus:'Not required',paxAdt:1,paxChd:0,paxInf:0,cost:'',commission:'',options:[],owner:'QA',proposalType:s[1],docUrl:'',scope:'',value:s[2],promotedToProject:false},updated_at:'2026-08-01T00:00:00Z',updated_by:'QA'})),
-  app_projects:[],
+  app_projects:[['Active',120000,80000,25000,40],['Proposed',48000,0,0,12]]
+    .map((s,i)=>({id:'prj'+i,data:{id:'prj'+i,name:'Seed project '+i,nameAr:'مشروع تجريبي '+i,client:'Test Company '+i,linkedClientId:'',value:String(s[1]),status:s[0],fromOfferId:'',owner:'QA',createdAt:1756000000000+i,notes:'',budget:s[1],actualCost:s[2],profit:s[3],pax:s[4],start:'2026-10-0'+(i+1),end:'2026-10-0'+(i+5)},updated_at:'2026-08-01T00:00:00Z',updated_by:'QA'})),
   // Backups-in-Supabase fixture (2026-08-23, docs/DECISIONS.md — moved off localStorage per
   // P1). Mirrors the real live project: app_state_history is trigger-populated (never
   // client-inserted, admin-only SELECT by RLS) — seeded with 3 rows so the harness can test

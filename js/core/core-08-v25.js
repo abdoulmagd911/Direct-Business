@@ -56,7 +56,8 @@
         sopsla:['الإجراءات ومستويات الخدمة','إجراءات العمل ومعايير مستوى الخدمة'],
         reports:['التقارير','أهداف 2026 · الإنجازات · تقدّم المؤشرات · منشئ التقارير'],
         finance:['المالية','سجل الفواتير الرئيسي · منشئ التقارير · بيانات النصف الأول 2026 المدققة'],
-        events:['الفعاليات','رادار فعاليات السعودية — تقويم فرص المبيعات والشراكات']
+        events:['الفعاليات','رادار فعاليات السعودية — تقويم فرص المبيعات والشراكات'],
+        projects:['المشاريع','ارتباطات متعددة الرحلات — العرض، التنفيذ، الإقفال، الربح والخسارة']   // 2026-09-02: the top-bar title said "Projects" under Arabic
       };
       window.__V25_TITLES_AR=TITLES_AR;
     }
@@ -890,29 +891,35 @@
     var totalActual=projects.reduce(function(s,p){return s+(+p.actualCost||0);},0);
     var totalProfit=projects.reduce(function(s,p){return s+(+p.profit||0);},0);
     var activeCount=byStatus.Active.length;
+    /* 2026-09-02 (attack round 12 — first Arabic drive of this page): the whole board was English
+       under Arabic (title, chips, search, buttons, section headers, empty texts, card labels).
+       Bilingual now; project names, owners and figures are data and stay as typed. */
+    var _ar=(typeof LANG!=='undefined'&&LANG==='ar'); var _t=function(en,ar){return _ar?ar:en;};
+    var _stAr={Active:'نشط',Proposed:'مقترح',Closed:'مغلق',Archived:'مؤرشف'};
+    var _noAr={Active:'لا توجد مشاريع نشطة.',Proposed:'لا توجد مشاريع مقترحة.',Closed:'لا توجد مشاريع مغلقة.',Archived:'لا توجد مشاريع مؤرشفة.'};
     var html=''+
       '<div class="hero">'+
-      '  <h2>Projects</h2>'+
-      '  <p>Multi-trip engagements — proposal, execution, closeout, P&amp;L. Each project links to its bookings, documents, and a project deck.</p>'+
+      '  <h2>'+_t('Projects','المشاريع')+'</h2>'+
+      '  <p>'+_t('Multi-trip engagements — proposal, execution, closeout, P&amp;L. Each project links to its bookings, documents, and a project deck.','ارتباطات متعددة الرحلات — العرض، التنفيذ، الإقفال، الربح والخسارة. كل مشروع يرتبط بحجوزاته ومستنداته وعرضه التقديمي.')+'</p>'+
       '  <div class="chips">'+
-      '    <div class="chip"><div class="v">'+projects.length+'</div><div class="l">Projects</div></div>'+
-      '    <div class="chip"><div class="v">'+activeCount+'</div><div class="l">Active</div></div>'+
-      '    <div class="chip"><div class="v">'+v25Money(totalBudget)+'</div><div class="l">Total budget</div></div>'+
-      '    <div class="chip"><div class="v">'+v25Money(totalProfit)+'</div><div class="l">Realized profit</div></div>'+
+      '    <div class="chip"><div class="v">'+projects.length+'</div><div class="l">'+_t('Projects','المشاريع')+'</div></div>'+
+      '    <div class="chip"><div class="v">'+activeCount+'</div><div class="l">'+_t('Active','نشطة')+'</div></div>'+
+      '    <div class="chip"><div class="v">'+v25Money(totalBudget)+'</div><div class="l">'+_t('Total budget','إجمالي الميزانية')+'</div></div>'+
+      '    <div class="chip"><div class="v">'+v25Money(totalProfit)+'</div><div class="l">'+_t('Realized profit','الربح المحقق')+'</div></div>'+
       '  </div>'+
       '</div>'+
       '<div class="toolbar">'+
-      '  <div class="search-wrap">🔍<input id="pqs" placeholder="Search projects" oninput="v25FilterProjects(this.value)"></div>'+
-      '  <button class="btn pri" onclick="v25NewProject()">+ New project</button>'+
-      '  <button class="btn sm" onclick="v25OpenProjectProposalGen()">📄 Generate proposal</button>'+
+      '  <div class="search-wrap">🔍<input id="pqs" placeholder="'+_t('Search projects','ابحث في المشاريع')+'" oninput="v25FilterProjects(this.value)"></div>'+
+      '  <button class="btn pri" onclick="v25NewProject()">'+_t('+ New project','+ مشروع جديد')+'</button>'+
+      '  <button class="btn sm" onclick="v25OpenProjectProposalGen()">📄 '+_t('Generate proposal','إنشاء عرض')+'</button>'+
       '</div>';
     ['Active','Proposed','Closed','Archived'].forEach(function(st){
       var rows=byStatus[st]||[];
       if(rows.length===0&&st==='Archived')return;
       var col=v25Status[st]||{c:'#7C8194',bg:'#EEF0F5'};
-      html+='<h3 style="margin:18px 2px 10px;font-size:12px;color:'+col.c+';text-transform:uppercase;letter-spacing:.08em;font-weight:800">'+st+' · '+rows.length+'</h3>';
+      html+='<h3 style="margin:18px 2px 10px;font-size:12px;color:'+col.c+';text-transform:uppercase;letter-spacing:.08em;font-weight:800">'+(_ar?(_stAr[st]||st):st)+' · '+rows.length+'</h3>';
       html+='<div class="board" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))" id="pcol_'+st+'">';
-      if(rows.length===0)html+='<div class="empty">No '+st.toLowerCase()+' projects.</div>';
+      if(rows.length===0)html+='<div class="empty">'+(_ar?(_noAr[st]||''):('No '+st.toLowerCase()+' projects.'))+'</div>';
       else rows.forEach(function(p){
         var marginPct=p.budget>0?(p.profit/p.budget*100):0;
         var spend=p.budget>0?(p.actualCost/p.budget*100):0;
@@ -921,13 +928,13 @@
           '<div style="flex:1;min-width:0"><div class="nm">'+v25EscHTML(p.name)+'</div>'+
           (p.nameAr?'<div class="ar">'+v25EscHTML(p.nameAr)+'</div>':'')+
           '</div></div>'+
-          '<div class="tags"><span class="tag" style="background:'+col.bg+';color:'+col.c+'">'+st+'</span>'+
-          (p.pax?'<span class="tag seg">'+p.pax+' pax</span>':'')+
+          '<div class="tags"><span class="tag" style="background:'+col.bg+';color:'+col.c+'">'+(_ar?(_stAr[st]||st):st)+'</span>'+
+          (p.pax?'<span class="tag seg">'+p.pax+' '+_t('pax','مسافر')+'</span>':'')+
           (p.owner?'<span class="tag client">'+v25EscHTML(p.owner)+'</span>':'')+'</div>'+
-          '<div style="margin-top:8px;font-size:11px;color:var(--muted)">'+v25EscHTML(p.start||'')+' → '+v25EscHTML(p.end||'')+'</div>'+
-          '<div class="ft"><span>Budget</span><span class="val">'+v25Money(p.budget||0)+'</span></div>'+
-          (p.actualCost?'<div style="font-size:11px;color:var(--muted);margin-top:2px">Spent '+v25Money(p.actualCost)+' ('+spend.toFixed(0)+'%)</div>':'')+
-          (p.profit?'<div style="font-size:11.5px;color:#16B364;margin-top:2px;font-weight:700">Margin '+v25Money(p.profit)+' ('+marginPct.toFixed(0)+'%)</div>':'')+
+          '<div style="margin-top:8px;font-size:11px;color:var(--muted)" dir="ltr">'+v25EscHTML(p.start||'')+' → '+v25EscHTML(p.end||'')+'</div>'+
+          '<div class="ft"><span>'+_t('Budget','الميزانية')+'</span><span class="val" dir="ltr">'+v25Money(p.budget||0)+'</span></div>'+
+          (p.actualCost?'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+_t('Spent','المصروف')+' <span dir="ltr">'+v25Money(p.actualCost)+' ('+spend.toFixed(0)+'%)</span></div>':'')+
+          (p.profit?'<div style="font-size:11.5px;color:#16B364;margin-top:2px;font-weight:700">'+_t('Margin','الهامش')+' <span dir="ltr">'+v25Money(p.profit)+' ('+marginPct.toFixed(0)+'%)</span></div>':'')+
           '</div>';
       });
       html+='</div>';

@@ -97,7 +97,7 @@ async function main() {
   else ok('the link was written to finance_client_links in the real auto-linker shape (business_id + is_client:true)');
 
   // ---- M18 precedence: a declared alias sibling WINS over a name match ----
-  // The MDD split happened exactly this way: the Arabic spelling name-matched a second,
+  // The Client M split happened exactly this way: the Arabic spelling name-matched a second,
   // duplicate company record while the owner had already declared it the same company.
   const SIB2_LINKED = 'Alias Second Linked Spelling';
   const SIB2_NEW = 'Fresh Alias Name Co';   // ALSO the name of a business record seeded below → name index would say bZ
@@ -113,8 +113,8 @@ async function main() {
   await p.evaluate(() => { if (typeof render === 'function') render(); });
   await p.waitForTimeout(2500);
   const prec = await p.evaluate((g) => { const l = (FIN.linkByGroup || {})[g]; return l ? { business_id: l.business_id || null, confirmed_by: l.confirmed_by || null } : null; }, SIB2_NEW);
-  if (!prec || prec.business_id !== 'b2') fail(`PRECEDENCE: the declared alias sibling (b2) must win over the name-matched decoy record (bZ) — got ${JSON.stringify(prec)}. This is the exact mechanism that split MDD into two records.`);
-  else ok('PRECEDENCE: the declared alias sibling won over a same-name decoy record — the MDD split cannot recur through the linker');
+  if (!prec || prec.business_id !== 'b2') fail(`PRECEDENCE: the declared alias sibling (b2) must win over the name-matched decoy record (bZ) — got ${JSON.stringify(prec)}. This is the exact mechanism that split Client M into two records.`);
+  else ok('PRECEDENCE: the declared alias sibling won over a same-name decoy record — the Client M split cannot recur through the linker');
 
   // ---- Arabic letter variants (2026-09-02): an alias spelled with ة must catch a row spelled with ه ----
   const AR_ALIAS = 'شركة الاختبار المحدودة';        // registered spelling (ta marbuta, alef)
