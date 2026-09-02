@@ -67,6 +67,21 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   search_path warnings on the trigger functions were cleared (`pin_search_path_on_trigger_functions`),
   and the alias probe gained a presentation-forms scenario (Arabic typed as `\uFExx` compatibility
   glyphs still folds to the same company).
+- **Round 8 (10:25–11:05) — exports in Arabic.** With the app in Arabic every "Export ▾" file
+  (Leads, Clients, Finance, Airlines, Providers, Ops, Offers, Events) had the raw field keys as
+  column titles (`nameAr`, `assignedTo`, `invoice_no`) and English stage words / true-false in
+  the cells — an Arabic menu producing a file its user could not read. New
+  `js/73-export-arabic.js` re-keys the shared exporters in Arabic: titles are Arabic with the
+  key kept in brackets ("الاسم (name)") so a person can read it and the importer's teach-once
+  mapping can still recognise it; stage words come from the same map the screens use;
+  true/false and Yes/No become نعم/لا; nothing else in a cell is touched. The Leads page's own
+  "Export this view" file (js/09) got the same treatment. English exports are unchanged.
+  **A real defect found on the way (js/16):** arriving at Finance for the first time in a session
+  straight on the Ledger tab — a client card's "Open in Finance ledger ↗", a report drill-down —
+  left the export rows empty, so Export ▾ said "No rows to export — open the Ledger tab first"
+  to a person already on the Ledger tab (only the Overview/Clients tabs filled them). Filled on
+  every finance render now. Guard: `probe-export-arabic.mjs` reads the real downloaded files in
+  both languages and takes the straight-to-Ledger route; sabotage-verified both ways.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

@@ -133,7 +133,13 @@
   function exportCSV(){
     try{
       var list=(DB.businesses||[]).filter(matchLead);
-      var head=['Name','Name (AR)','Funnel','Stage','Source','Owner','Client?','Website','Next action date','Next action','Primary contact','Contact phone','Contact email','Funnel details','Notes'];
+      /* 2026-09-02 (attack round 8): in Arabic this file came out with English column titles,
+         English funnel names, English stage words and Yes/No — an Arabic button producing a
+         file its user could not read. Titles, funnel name, stage word and نعم/لا follow LANG;
+         the data cells (names, notes, contacts) are never translated. */
+      var ar=(typeof LANG!=='undefined'&&LANG==='ar');
+      var head=ar?['الاسم','الاسم (عربي)','المسار','المرحلة','المصدر','المسؤول','عميل؟','الموقع الإلكتروني','تاريخ الإجراء التالي','الإجراء التالي','جهة الاتصال الرئيسية','هاتف جهة الاتصال','بريد جهة الاتصال','تفاصيل المسار','ملاحظات']
+                 :['Name','Name (AR)','Funnel','Stage','Source','Owner','Client?','Website','Next action date','Next action','Primary contact','Contact phone','Contact email','Funnel details','Notes'];
       var lines=[head.join(',')];
       function q(s){s=csvGuard(s).replace(/"/g,'""');return '"'+s+'"';}
       list.forEach(function(b){
@@ -141,7 +147,9 @@
         var f=fdef(b);
         var det=b.funnelDetails||{};
         var detTxt=Object.keys(det).map(function(k){return k+': '+det[k];}).join(' | ');
-        lines.push([q(b.name),q(b.nameAr),q(f?f.name_en:''),q(typeof leadStage==='function'?leadStage(b):b.stage),q(b.source),q(b.assignedTo||b.owner),q(b.isClient?'Yes':'No'),q(b.website),q(b.nextActionDate),q(b.nextAction||b.nextActionNote),q(c.name),q(c.phone),q(c.email),q(detTxt),q(b.notes)].join(','));
+        var st=(typeof leadStage==='function'?leadStage(b):b.stage);
+        if(ar&&typeof st==='string'){ try{ if(window.__STAGE_AR&&window.__STAGE_AR[st])st=window.__STAGE_AR[st]; }catch(_){} }
+        lines.push([q(b.name),q(b.nameAr),q(f?((ar&&f.name_ar)?f.name_ar:f.name_en):''),q(st),q(b.source),q(b.assignedTo||b.owner),q(b.isClient?(ar?'نعم':'Yes'):(ar?'لا':'No')),q(b.website),q(b.nextActionDate),q(b.nextAction||b.nextActionNote),q(c.name),q(c.phone),q(c.email),q(detTxt),q(b.notes)].join(','));
       });
       var blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
       var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='leads-export-'+new Date().toISOString().slice(0,10)+'.csv';a.click();

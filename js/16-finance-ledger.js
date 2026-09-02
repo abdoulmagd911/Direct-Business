@@ -1137,6 +1137,12 @@ window.renderFinance=function(v){
   if(!canFinView()){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">Finance is not available in shared view-only links.</div>';return;}
   if(!FIN.rows){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">Loading the finance ledger\u2026</div>';finLoad();return;}
   if(FIN.loadErr){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:#D92D20">Could not load: '+escF(FIN.loadErr)+'<br><span style="font-size:12px;color:var(--muted)">Make sure you are signed in.</span></div>';return;}
+  /* 2026-09-02 (attack round 8): the export rows were only filled by finPeriodBar(), which the
+     Overview and Clients tabs render but the Ledger tab does not. Arrive at Finance for the first
+     time this session straight on the Ledger (a client card's "Open in Finance ledger ↗", a
+     report drill-down) and Export ▾ answered "No rows to export — open the Ledger tab first"
+     while the person was looking at the Ledger tab. Fill them on every finance render. */
+  try{ FIN._csvRows=live().filter(finInPeriod); }catch(_){}
   var body=FIN.tab==='ledger'?rLedger():FIN.tab==='clients'?rFinClients():FIN.tab==='reports'?rReports():FIN.tab==='import'?rImport():rOverview();
   v.innerHTML=finTabs()+body;
 };
