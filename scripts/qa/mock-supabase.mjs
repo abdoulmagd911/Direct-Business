@@ -200,6 +200,26 @@ const RPCLOG=[];
 // can be driven for real. /__lapse?on=0 restores.
 let LAPSED=false;
 let _finIdSeq=0; // new finance_invoices rows inserted through the mock get mock-fi-N ids
+// 2026-09-02 (watch cycle 5): mirror of the LIVE trigger finance_derive_fields() (BEFORE INSERT OR
+// UPDATE on finance_invoices, read from pg_trigger the same day) — month/quarter from the date,
+// revenue = total − wallet, profit = revenue − cost, remaining = 0 on excluded/credit rows. Without
+// it the harness stored whatever the client sent, so an importer that computed revenue differently
+// from the database looked idempotent here and was not on the real table (every re-import of the
+// same file then reported "updated" rows and wrote a history entry per invoice, for nothing).
+const MONTHS_EN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function deriveFinanceInvoice(r){
+  if(!r||typeof r!=='object')return r;
+  if(r.invoice_date&&/^\d{4}-\d{2}-\d{2}/.test(String(r.invoice_date))){ const mo=+String(r.invoice_date).slice(5,7); r.month=MONTHS_EN[mo-1]||null; r.quarter='Q'+(Math.floor((mo-1)/3)+1); }
+  else if(r.invoice_date==null){ r.month=null; r.quarter=null; }
+  const n=x=>Number(x)||0;
+  const rev=n(r.total_incl_vat_sar)-n(r.wallet_portion_sar);
+  if(Math.abs(rev-n(r.revenue_sar))>0.01) r.revenue_sar=Math.round(rev*100)/100;
+  const prof=n(r.revenue_sar)-n(r.cost_sar);
+  if(Math.abs(prof-n(r.profit_sar))>0.01) r.profit_sar=Math.round(prof*100)/100;
+  if(r.integrity_status==='excluded'||r.integrity_status==='credit_note') r.amount_remaining_sar=0;
+  return r;
+}
+export { deriveFinanceInvoice };
 let _bakIdSeq=0; // new app_state_bak rows inserted through the mock get sequential bak_ids
 // Password-recovery probes (2026-08-22): three inspectable logs, same pattern as RPCLOG below —
 // a probe drains these over HTTP instead of guessing at what the client actually sent.
@@ -305,14 +325,14 @@ export function start(port, seedOverrides){
         let inserted=0, updated=0;
         pIns.forEach(row=>{
           const clean=pick(row);
-          fiTable.push(Object.assign({id:'mock-fi-'+(++_finIdSeq)}, clean));
+          fiTable.push(deriveFinanceInvoice(Object.assign({id:'mock-fi-'+(++_finIdSeq)}, clean)));
           inserted++;
         });
         pUpd.forEach(row=>{
           if(!row.id)return;
           const clean=pick(row);
           const ix=fiTable.findIndex(r=>r.id===row.id);
-          if(ix>=0){ fiTable[ix]=Object.assign({},fiTable[ix],clean,{updated_at:new Date().toISOString()}); updated++; }
+          if(ix>=0){ fiTable[ix]=deriveFinanceInvoice(Object.assign({},fiTable[ix],clean,{updated_at:new Date().toISOString()})); updated++; }
         });
         if(pCapLines.length){
           const refs=[...new Set(pCapLines.map(l=>l.transaction_ref))];
@@ -526,7 +546,7 @@ export function start(port, seedOverrides){
             else if(val==='not.is.null') rows=rows.filter(r=>r[k]!=null);
             else if((m=val.match(/^in\.\((.*)\)$/))){ const set=m[1].split(',').map(x=>x.replace(/^"|"$/g,'')); rows=rows.filter(r=>set.includes(String(r[k]))); }
           });
-          rows.forEach(r=>Object.assign(r,patch));
+          rows.forEach(r=>{ Object.assign(r,patch); if(t==='finance_invoices')deriveFinanceInvoice(r); });
           return send(res,200, rows);
         });
       }
@@ -561,9 +581,9 @@ export function start(port, seedOverrides){
           const written=payload.map(row=>{
             if(onConflict==='id' && row.id){
               const ix=table.findIndex(r=>r.id===row.id);
-              if(ix>=0){ table[ix]=Object.assign({},table[ix],row); return table[ix]; }
+              if(ix>=0){ table[ix]=deriveFinanceInvoice(Object.assign({},table[ix],row)); return table[ix]; }
             }
-            const newRow=Object.assign({id: row.id || ('mock-fi-'+(++_finIdSeq))}, row);
+            const newRow=deriveFinanceInvoice(Object.assign({id: row.id || ('mock-fi-'+(++_finIdSeq))}, row));
             table.push(newRow);
             return newRow;
           });

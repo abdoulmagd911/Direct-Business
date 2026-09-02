@@ -1,5 +1,43 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Watch cycle 5 — Importer attacked; the harness now applies the real database trigger, and that exposed a re-import gap on the mapped path (fixed)
+
+**Harness made honest first.** The live table has `finance_derive_fields()` (BEFORE INSERT OR
+UPDATE — read from `pg_trigger` today, not assumed): month/quarter from the date, revenue =
+total − wallet, profit = revenue − cost, remaining = 0 on excluded/credit rows. The mock stored
+whatever the client sent, so any importer that derived money differently from the database
+looked idempotent here and was not on the real table. `scripts/qa/mock-supabase.mjs` now runs
+the same derivation on every finance_invoices insert/update (RPC, POST, PATCH). Every probe that
+writes invoices through the mock was re-run afterwards — all green.
+
+**Real gap, fixed in `js/65` (Finance's lane):** the teach-once (mapped) path built each row
+with `revenue_sar = profit`. On disk the trigger silently corrected it, but the preview's
+new/updated/unchanged diff compares the client's row against the stored one — so **every
+mapped row with a cost re-imported as "updated" for ever** (Confirm offered on an unchanged
+file, a write and a `record_history` "edit" entry per invoice per re-drop, for nothing), and
+"re-importing the same file twice changes nothing the second time" was untrue. Now the row is
+derived exactly as the trigger stores it (revenue = total, profit = revenue − cost); a mapped
+profit column is still honoured. Also: the binary-file refusal (landmine L6) only guarded the
+streamed-file route — the pre-parsed route (`v65IngestText`, xlsx) showed a binary header with
+control bytes as "Columns found" and offered Teach; one shared `looksBinaryHeader()` now guards
+both. New `scripts/qa/probe-importer-attacks.mjs` (port 8195, 27 checks): doctrine on a mapped
+row, idempotent re-drop with no Confirm offered, one edited total = exactly 1 updated, the
+excluded partner named and never written, a date-less row lands with no guessed period, a
+reference-less row creates nothing, `(200)` stays negative through all three money fields,
+binary refused, preview counts = database counts (M13).
+
+**Sabotage-verified three ways:** revenue back to profit → 6 red; the pre-parsed binary guard
+removed → 1 red; the mock's trigger mirror removed → 2 red (the harness would go blind again).
+Restores byte-identical (md5). Structure check OK.
+
+**For decision 9 (VAT / revenue), not changed here — `js/41` is outside Finance's lane:** the
+Invoice Export path (`js/41` `toRows`) computes `revenue = total − vat`, while the live trigger
+stores `total − wallet`. The 46 live rows all carry `vat_sar = 0`, so today they agree; the
+moment an export with real per-line VAT is imported, every taxable invoice will re-import as
+"updated" on each drop for the same reason as above, and the screen's revenue will be the
+trigger's (VAT inside), not js/41's (VAT stripped). Whichever way decision 9 goes, the trigger
+and the two importers must derive revenue the same way — one rule, three places.
+
 ## 2026-09-02 · Watch cycle 4 — Ledger attacked; one real gap fixed (invoiced + overdue rows were hidden from the Overdue count)
 
 **Attack area: the Ledger tab (`finance_transactions`)**, new `scripts/qa/probe-ledger-attacks.mjs`

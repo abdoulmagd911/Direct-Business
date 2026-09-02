@@ -252,6 +252,15 @@
     { key:'tax_invoice_capture', catalogueKey:'tax_invoice_capture',
       requiredColumns:['invoice_no','tax_code','total_incl_vat_sar','invoice_status','issue_date'] }
   ];
+  // 2026-09-02 (landmine L6, shared since watch cycle 5): a binary file (PDF, Excel, zip) whose
+  // bytes were read as text — used by BOTH the streamed CSV route and the pre-parsed rows route,
+  // so a pasted/scripted drop is refused the same way a dragged file is.
+  var BINARY_MSG_EN='Header does not match any known export — this is a binary file (PDF, Excel or zip), not a text CSV. Export the report as CSV and drop that.',
+      BINARY_MSG_AR='الترويسة لا تطابق أي تصدير معروف — هذا ملف ثنائي (PDF أو Excel أو zip) وليس ملف CSV نصيًا. صدّر التقرير بصيغة CSV ثم أفلته.';
+  function looksBinaryHeader(header){
+    var h0=String((header&&header[0])||''), joined=(header||[]).join('');
+    return /^(%PDF|PK\x03\x04|ÿþ|þÿ|\ufffd)/.test(h0)||/[\x00-\x08\x0e-\x1f]/.test(joined);
+  }
   function detectSignature(headerRow){
     var h=(headerRow||[]).map(function(x){return String(x||'').trim();});
     for (var i=0;i<SIGNATURES.length;i++){
@@ -407,7 +416,17 @@
     var date=isoDateG(get('invoice_date'));
     var total=moneyG(get('total_incl_vat_sar'));
     var costField=get('cost_sar'); var cost=costField!=null?moneyG(costField):0;
-    var profitField=get('profit_sar'); var profit=profitField!=null?moneyG(profitField):Math.round((total-cost)*100)/100;
+    /* 2026-09-02 (watch cycle 5, scripts/qa/probe-importer-attacks.mjs): derive money EXACTLY
+       the way the database trigger finance_derive_fields() will store it — revenue = total −
+       wallet (wallet is 0 on this path), profit = revenue − cost. This row used to send
+       revenue_sar = profit; the trigger silently corrected it on disk, but the preview's
+       new/updated/unchanged diff compared the client's value against the stored one, so every
+       mapped row with a cost re-imported as "updated" for ever (a history entry per invoice per
+       re-drop, for nothing) and "re-importing the same file twice changes nothing" was untrue.
+       A mapped profit column, if the file has one, is still honoured as the profit figure — the
+       trigger then keeps it only when it equals revenue − cost, same as before. */
+    var revenue=Math.round(total*100)/100;
+    var profitField=get('profit_sar'); var profit=profitField!=null?moneyG(profitField):Math.round((revenue-cost)*100)/100;
     var svc=String(get('products')||'').trim()||null;
     return {
       invoice_no:invoiceNo, zatca_dpin:String(get('zatca_dpin')||'').trim()||null,
@@ -416,7 +435,7 @@
       month:date?MONTH_NAMES[+date.slice(5,7)-1]:null,
       quarter:date?('Q'+(Math.floor((+date.slice(5,7)-1)/3)+1)):null,
       products:svc, service_type:svc, record_type:'b2b',
-      total_incl_vat_sar:total, wallet_portion_sar:0, revenue_sar:profit,
+      total_incl_vat_sar:total, wallet_portion_sar:0, revenue_sar:revenue,
       cost_sar:cost, profit_sar:profit,
       vat_sar:0, // this method does not know the file's VAT breakdown — recorded as unknown (0), never guessed at 15%
       discount_sar:0,
@@ -926,10 +945,9 @@
           // 2026-09-02 (landmine L6): a binary file renamed .csv (PDF, Excel, zip) used to be
           // shown as "not recognized — Columns found: %PDF-1.4 …" with a Teach button, as if
           // its garbage were a header. Say what it is and stop reading it.
-          var h0=String(header[0]||''), joined=header.join('');
-          if(/^(%PDF|PK\x03\x04|ÿþ|þÿ|�)/.test(h0)||/[\x00-\x08\x0e-\x1f]/.test(joined)){
+          if(looksBinaryHeader(header)){
             finished=true; ctrl.abort();
-            done({name:f.name, recognized:false, header:[], err:fl('Header does not match any known export — this is a binary file (PDF, Excel or zip), not a text CSV. Export the report as CSV and drop that.','الترويسة لا تطابق أي تصدير معروف — هذا ملف ثنائي (PDF أو Excel أو zip) وليس ملف CSV نصيًا. صدّر التقرير بصيغة CSV ثم أفلته.')});
+            done({name:f.name, recognized:false, header:[], err:fl(BINARY_MSG_EN,BINARY_MSG_AR)});
             return;
           }
           var sig=detectSignature(header);
@@ -1013,6 +1031,7 @@
      an index that was never stored and silently do nothing. */
   function routeRows2d(name, rows2d, fileKey, done, gen){
     var hdr=(rows2d&&rows2d[0])||[];
+    if(looksBinaryHeader(hdr)){ done({name:name, recognized:false, header:[], err:fl(BINARY_MSG_EN,BINARY_MSG_AR)}); return; }
     var sig=detectSignature(hdr);
     if(sig&&sig.key==='invoice_export'){
       var state=initState();
