@@ -461,13 +461,18 @@ function rFinClients(){
   // ---- Collections & ageing (days to collect · % overdue · ageing buckets) — from all live invoices, no name matching ----
   var _fl=function(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;};
   var LV=live().filter(finInPeriod);
-  var arOut=0,arOver=0,billed=0,ag={b030:0,b3160:0,b6190:0,b90:0},_now=Date.now();
+  var arOut=0,arOver=0,billed=0,ag={b030:0,b3160:0,b6190:0,b90:0,nodate:0},_now=Date.now();
   LV.forEach(function(r){
     billed+=+r.total_incl_vat_sar||0;
     var out=+r.amount_remaining_sar||0; if(out<=0)return;
     arOut+=out;
     var due=r.collection_due_date?new Date(r.collection_due_date).getTime():0; if(due&&due<_now)arOver+=out;
-    var invd=r.invoice_date?new Date(r.invoice_date).getTime():_now; var d=Math.floor((_now-invd)/86400000);
+    /* 2026-09-02 (watch cycle 6, scripts/qa/probe-clients-attacks.mjs): a row with NO invoice
+       date used to be aged from "today", i.e. shown as 0–30 days — an invented age (M8). It now
+       sits in its own "No invoice date" amount, still inside Outstanding, never in a bucket. */
+    var invd=r.invoice_date?new Date(r.invoice_date).getTime():NaN;
+    if(isNaN(invd)){ ag.nodate+=out; return; }
+    var d=Math.floor((_now-invd)/86400000);
     if(d<=30)ag.b030+=out;else if(d<=60)ag.b3160+=out;else if(d<=90)ag.b6190+=out;else ag.b90+=out;
   });
   var _dates=LV.map(function(r){return r.invoice_date;}).filter(Boolean).sort();
@@ -490,7 +495,7 @@ function rFinClients(){
        _mini(_fl('% overdue','٪ المتأخر'),pctOver+'%',pctOver>0?'#D92D20':'#0F6E56')+
        _mini(_fl('Outstanding','إجمالي المستحق'),moneyS(arOut)+' SAR',arOut>0?'#D92D20':'#667085')+
      '</div>'+
-     (arOut>0?('<div style="display:flex;gap:8px;flex-wrap:wrap">'+_agc(_fl('0–30 days','0–30 يوم'),ag.b030)+_agc(_fl('31–60 days','31–60 يوم'),ag.b3160)+_agc(_fl('61–90 days','61–90 يوم'),ag.b6190)+_agc(_fl('90+ days','90+ يوم'),ag.b90)+'</div>')
+     (arOut>0?('<div style="display:flex;gap:8px;flex-wrap:wrap">'+_agc(_fl('0–30 days','0–30 يوم'),ag.b030)+_agc(_fl('31–60 days','31–60 يوم'),ag.b3160)+_agc(_fl('61–90 days','61–90 يوم'),ag.b6190)+_agc(_fl('90+ days','90+ يوم'),ag.b90)+(ag.nodate>0?_agc(_fl('No invoice date','بدون تاريخ فاتورة'),ag.nodate):'')+'</div>')
        :('<div style="font-size:12px;color:#0F6E56">✓ '+_fl('Nothing outstanding','لا توجد مستحقات')+'</div>'))))+
      '</div>';
   var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,_i:{},key:cc.key,directId:cc.directId};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
@@ -498,7 +503,7 @@ function rFinClients(){
   var _tc={r:0,c:0,p:0};Object.keys(byC).forEach(function(k){_tc.r+=byC[k].r;_tc.c+=byC[k].c;_tc.p+=byC[k].p;});
   h+='<div class="card" style="padding:16px"><h3 class="finh" style="margin:0 0 10px">'+(isArF()?'أعلى العملاء':'Top clients by revenue')+'<i>'+finPeriodLabel()+'</i></h3><div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:480px"><tr style="background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+'"><th style="padding:7px 9px">'+(isArF()?'العميل':'Client')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الإيرادات':'Revenue')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'التكلفة':'Cost')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الربح':'Profit')+'</th></tr>'+top.map(function(k){
     return '<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finClient(\''+escF(byC[k].key).replace(/'/g,"\\'")+'\',\''+escF(k).replace(/'/g,"\\'")+'\')"><td style="padding:6px 9px;font-weight:600">'+escF(k)+(byC[k].directId?(' <span style="color:var(--muted);font-size:10.5px">#'+escF(byC[k].directId)+'</span>'):'')+'</td><td style="padding:6px 9px;text-align:right;font-weight:700">'+money0(byC[k].r)+'</td><td style="padding:6px 9px;text-align:right;color:#B54708">'+money0(byC[k].c)+'</td><td style="padding:6px 9px;text-align:right;color:#0F6E56;font-weight:700">'+money0(byC[k].p)+'</td></tr>';
-  }).join('')+'<tr style="background:#303848;color:#fff;font-weight:800"><td style="padding:7px 9px">'+(isArF()?'الإجمالي الكلي':'Total')+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.r)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.c)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.p)+'</td></tr></table></div></div>';
+  }).join('')+'<tr style="background:#303848;color:#fff;font-weight:800"><td style="padding:7px 9px">'+(isArF()?'الإجمالي الكلي':'Total')+(Object.keys(byC).length>top.length?(' <span style="font-weight:400;font-size:10.5px;opacity:.85">'+(isArF()?('— كل العملاء ('+Object.keys(byC).length+')، أعلى 10 معروضون'):('— all '+Object.keys(byC).length+' clients, top 10 shown'))+'</span>'):'')+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.r)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.c)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.p)+'</td></tr></table></div></div>';
   return h;
 }
 function rOverview(){
@@ -675,12 +680,22 @@ window.finTxnCSV=function(){
   var b=new Blob([csv],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-ledger-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 };
-window.finTxnF=function(k,v){TXN.f[k]=v;render();};
+window.finTxnF=function(k,v){TXN.f[k]=v; if(k==='business'){FIN.f.clientKey=null;FIN.f.clientName='';} render();};
 window.txnToggleCo=function(bizId){TXN.collapsed[bizId]=!TXN.collapsed[bizId];render();};
 function rLedger(){
   var _lh=function(en,ar){return isArF()?ar:en;};
   if(TXN.rows==null||TXN.profiles==null){ txnLoad(); return '<div class="card" style="padding:40px;text-align:center;color:var(--muted)">'+_lh('Loading the ledger…','جارِ تحميل السجل…')+'</div>'; }
   var bizName=_finBizName;
+  /* 2026-09-02 (watch cycle 6): a drill-down from a Clients row whose client has no linked
+     company (or is an alias group) used to open the WHOLE ledger with nothing saying so. Say
+     which client was asked for and why no company filter applies; clears with the ✕ or the
+     moment a company is chosen in the filter. */
+  var _drillNote='';
+  if(FIN.f&&FIN.f.clientKey&&!/^biz:/.test(FIN.f.clientKey)&&TXN.f.business==='all'){
+    _drillNote='<div class="card" style="padding:10px 14px;margin-bottom:10px;background:#FFF3EC;border:1px solid #F6C9A8;font-size:12.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+      +'<span>'+(isArF()?('طلبت «'+escF(FIN.f.clientName||'')+'» — لا توجد شركة مرتبطة بهذا الاسم بعد، لذا يُعرض السجل لكل الشركات.'):('You asked for <b>'+escF(FIN.f.clientName||'')+'</b> — no linked company for that name yet, so the Ledger below shows <b>all companies</b>. Link it on the Clients page to filter here.'))+'</span>'
+      +'<button class="btn ghost sm" style="margin-inline-start:auto" onclick="finClientClear()">✕</button></div>';
+  }
   var rows=(TXN.rows||[]).filter(function(r){
     var f=TXN.f, prof=TXN.profiles[r.client_profile_id];
     if(f.profileType!=='all'&&(!prof||prof.profile_type!==f.profileType))return false;
@@ -704,7 +719,7 @@ function rLedger(){
   // exports always carry the company + profile label, per row (owner ruling)
   TXN._csvRows=rows.map(function(r){var p=TXN.profiles[r.client_profile_id];return Object.assign({},r,{company:bizName(r.business_id)||r.business_id,profile_type:p?p.profile_type:'',direct_client_id:p?p.direct_client_id:'',stage:txnStage(r)});});
 
-  var h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">'
+  var h=_drillNote+'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">'
     +'<div class="card" style="padding:12px 14px;border-top:3px solid #0F6E56"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed revenue','الإيراد المؤكد')+'</div><div style="font-size:18px;font-weight:800;color:#0F6E56" title="'+money(cRev)+' SAR">'+moneyS(cRev)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'
     +'<div class="card" style="padding:12px 14px;border-top:3px solid #B54708"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed cost','التكلفة المؤكدة')+'</div><div style="font-size:18px;font-weight:800;color:#B54708" title="'+money(cCost)+' SAR">'+moneyS(cCost)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'
     +'<div class="card" style="padding:12px 14px;border-top:3px solid #175CD3"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed profit','الربح المؤكد')+'</div><div style="font-size:18px;font-weight:800;color:#175CD3" title="'+money(cProf)+' SAR">'+moneyS(cProf)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'

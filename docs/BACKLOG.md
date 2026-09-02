@@ -1,5 +1,44 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Watch cycle 6 — Clients & collections attacked; three small honesty gaps fixed
+
+**Attack area: Finance → Clients & collections** (`rFinClients` in `js/16`), new
+`scripts/qa/probe-clients-attacks.mjs` (port 8197, 25 checks). Every "Top clients" row
+recomputed independently from the verified-paid invoices behind it; the seed link pair (two
+spellings → one company) and an injected M14 alias group (an English name + its Arabic
+spelling) each fold into ONE row with the exact sum — nothing double counted, grand total
+unchanged; Collections & ageing recomputed (Outstanding, % overdue by due date, the four
+buckets by invoice date); drill-down from a linked and an unlinked client; hostile rows (null
+client_group → its own "—" row, HTML name escaped, the excluded partner never shown, a
+credit-note-only group never in the verified table, no "Lifetime billed" wording, no NaN).
+
+**Held:** the sums, the folding, the exclusion, the credit-note gate, the escaping.
+
+**Three gaps, fixed in `js/16` (Finance's lane), each sabotage-verified red then restored
+byte-identical:**
+1. **Ageing invented an age.** Outstanding money on a row with NO invoice date was aged from
+   "today" and shown as 0–30 days. It now sits in its own "No invoice date" amount — still
+   inside Outstanding, never in a bucket (M8: never fabricate a number to fill a gap).
+2. **A "Total" larger than the rows above it.** The Top-clients table shows 10 rows but its
+   Total row sums every client; with more than 10 clients a reader adding the rows gets a
+   different number and nothing said why. The Total row now reads "Total — all N clients, top
+   10 shown" whenever that is the case (and stays plain "Total" when everything is visible).
+3. **A silent full ledger.** Clicking a client that has no linked company (or is an alias
+   group) opened the Ledger with no company filter and no explanation — every company's rows
+   under a heading that never mentioned the client you clicked. The Ledger now carries a note
+   ("You asked for X — no linked company yet, so all companies are shown; link it on the
+   Clients page"), dismissable, and cleared automatically the moment a company is chosen in
+   the filter.
+
+Neighbouring probes (ledger, outstanding-split, overview, invariants, sector, compare-to,
+report-presets) re-run green. Structure check OK.
+
+**Noted, not changed:** the harness seed's `finance_invoices` carry `revenue_sar = total −
+cost` (i.e. revenue = profit), which the live trigger would never store — the probes are
+internally consistent with it, but a future seed refresh should follow the trigger
+(`revenue = total − wallet`) so the mock's read path matches its write path, which since
+cycle 5 mirrors the trigger.
+
 ## 2026-09-02 · Watch cycle 5 — Importer attacked; the harness now applies the real database trigger, and that exposed a re-import gap on the mapped path (fixed)
 
 **Harness made honest first.** The live table has `finance_derive_fields()` (BEFORE INSERT OR
