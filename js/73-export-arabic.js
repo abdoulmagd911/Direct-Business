@@ -41,6 +41,13 @@
     adm:'ADM / الامتثال', adminPortal:'بوابة الإدارة', login:'اسم المستخدم', caps:'إمكانات الخدمة', uptime:'زمن التشغيل',
     respTime:'زمن الاستجابة', costPerBooking:'التكلفة لكل حجز', markup:'العمولة / الهامش', supportSLA:'اتفاقية الدعم',
     accountManager:'مدير الحساب', renewalDate:'تجديد العقد', useFor:'يُستخدم لـ', contentMix:'مزيج المحتوى', incidents:'سجل الأعطال',
+    // ops / proposals / projects — "full details" columns (2026-09-02, round 23)
+    detail:'التفاصيل', supplier:'المورّد', pnr:'PNR', subject:'الموضوع', route:'المسار', ticketPrice:'سعر التذكرة',
+    partnerFees:'رسوم الشريك', serviceFees:'رسوم الخدمة', vat:'ضريبة القيمة المضافة', version:'الإصدار', validUntil:'صالح حتى',
+    linkedLeadId:'معرّف العميل المحتمل', policyStatus:'حالة السياسة', approvalStatus:'حالة الاعتماد', paxAdt:'بالغون',
+    paxChd:'أطفال', paxInf:'رضّع', commission:'العمولة', options:'الخيارات', proposalType:'نوع العرض', docUrl:'رابط المستند',
+    scope:'النطاق', value:'القيمة', promotedToProject:'حُوّل إلى مشروع', linkedClientId:'معرّف العميل', fromOfferId:'من العرض',
+    budget:'الميزانية', actualCost:'التكلفة الفعلية', profit:'الربح', pax:'المسافرون', start:'البداية', end:'النهاية',
     // SOPs / SLAs / ops / offers
     cmd:'الأوامر', body:'الإجراء', edge:'ميزة Direct',
     title:'العنوان', purpose:'الغرض', event:'الحدث', direct:'Direct', market:'السوق', whale:'المعيار المرتفع',
@@ -74,7 +81,14 @@
   var ENUM={
     ticketingAuthority:{'Authorized (issue via BSP)':'مصرّح (الإصدار عبر BSP)','No authority - TARGET':'بدون صلاحية — مستهدف'},
     admRisk:{Low:'منخفض',Medium:'متوسط',High:'مرتفع'},
-    apiStatus:{Healthy:'سليم',Degraded:'متدهور',Down:'متوقف'}
+    apiStatus:{Healthy:'سليم',Degraded:'متدهور',Down:'متوقف'},
+    // ops / proposals / projects (round 23) — exact matches only; anything else passes through
+    priority:{Urgent:'عاجل',High:'مرتفع',Normal:'عادي',Medium:'متوسط',Low:'منخفض'},
+    status:{Draft:'مسودة',Sent:'مُرسل',Accepted:'مقبول',Rejected:'مرفوض',Expired:'منتهي',Active:'نشط',Done:'منجز',Completed:'مكتمل','On hold':'مُعلّق'},
+    policyStatus:{'Not checked':'لم يُفحص',Compliant:'مطابق','Needs review':'يحتاج مراجعة'},
+    approvalStatus:{'Not required':'غير مطلوب',Pending:'قيد الاعتماد',Approved:'معتمد',Rejected:'مرفوض'},
+    proposalType:{'Price offer':'عرض سعر','Financial proposal':'عرض مالي','Technical + financial':'عرض فني ومالي'},
+    source:{Import:'استيراد','Website form':'نموذج الموقع',Referral:'إحالة',Inbound:'وارد',Outreach:'تواصل'}
   };
   function arabize(rows,fields){
     var labels=fields.map(label);

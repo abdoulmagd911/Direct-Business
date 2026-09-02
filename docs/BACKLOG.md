@@ -394,6 +394,17 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   text and names are still never touched; English files are byte-for-byte unaffected).
   `probe-export-reference.mjs` covers airlines/providers/SOPs, summary+full, CSV+Excel, EN+AR.
   Two sabotages → red each; the Arabic-export, ledger-attacks and finance CSV probes stay green.
+- **Round 23 (18:40–19:05) — the shared exporter, second pass (Leads / Operations /
+  Proposals / Projects "full details").** Three more real things: (1) a lead's contacts cell
+  read "true c9 Contact 9 Manager …" — the people bridge's own bookkeeping marks
+  (`_fromTable` / `_tid`) leaked into the spreadsheet; the flattener now skips any key that
+  starts with "_"; (2) `createdAt` exported as a 13-digit epoch on Operations and Projects —
+  a 13-digit number on a time column (…At / …Date / ts) now reads as "2026-09-02 11:11";
+  (3) in Arabic those three pages' full exports carried ~40 bare keys and English code-list
+  values (Urgent, Draft, Price offer, Not checked, Not required, Import) — js/73 gained the
+  labels and the code-list words (exact matches only; names and free text still untouched).
+  `probe-export-records.mjs` covers it EN+AR. Three sabotages → red each; the reference-export,
+  Arabic-export and ledger-attacks probes stay green.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

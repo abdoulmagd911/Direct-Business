@@ -172,9 +172,13 @@ function supSelectAll(cb){document.querySelectorAll('.supchk').forEach(c=>c.chec
    that is an object → its non-empty values joined " "); an object of objects → "key: status" (or
    the first text value) joined " | "; an object of yes/no flags → the keys that are on, joined
    ", "; any other object → its non-empty values joined " ". Scalars pass through. */
-function exportFlat(v){
+function exportFlat(v,k){
   if(v==null)return '';
-  const one=x=>{if(x==null)return '';if(typeof x!=='object')return String(x);const vals=Object.values(x).filter(y=>y!==''&&y!=null&&y!==false&&typeof y!=='object');return vals.join(' ');};
+  // Round 23 additions: keys that start with "_" are the app's own bookkeeping (the people
+  // bridge's _fromTable / _tid marks) and never belong in a person's spreadsheet; a 13-digit
+  // number on a time column (createdAt, updatedAt, ts) is an epoch and reads as a date-time.
+  const one=x=>{if(x==null)return '';if(typeof x!=='object')return String(x);const vals=Object.keys(x).filter(kk=>kk.charAt(0)!=='_').map(kk=>x[kk]).filter(y=>y!==''&&y!=null&&y!==false&&typeof y!=='object');return vals.join(' ');};
+  if(typeof v==='number'&&k&&/(At|_at|Date|date|Ts|ts)$/.test(String(k))&&v>1e11&&v<1e13){try{const d=new Date(v);return d.toISOString().slice(0,10)+' '+d.toISOString().slice(11,16);}catch(_){return v;}}
   if(Array.isArray(v))return v.map(one).filter(Boolean).join(' | ');
   if(typeof v==='object'){
     const ks=Object.keys(v);if(!ks.length)return '';
@@ -184,7 +188,7 @@ function exportFlat(v){
   }
   return v;
 }
-function csvCell(v){v=exportFlat(v);return '"'+csvGuard(v).replace(/"/g,'""')+'"';}
+function csvCell(v,k){v=exportFlat(v,k);return '"'+csvGuard(v).replace(/"/g,'""')+'"';}
 function allKeys(rows){const s=[];rows.forEach(r=>Object.keys(r).forEach(k=>{if(k!=='id'&&s.indexOf(k)<0)s.push(k);}));return s;}
 /* Neither export helper ever revoked its blob URL (found 2026-08-20 while chasing a reported
    export freeze — never reproduced, even at 3000 rows with nested JSONB, but an object URL
@@ -192,11 +196,11 @@ function allKeys(rows){const s=[];rows.forEach(r=>Object.keys(r).forEach(k=>{if(
    all day, so it's fixed regardless). The URL is revoked a moment after the click, same
    pattern already used elsewhere in this app (js/57's proofDownload) — enough delay for the
    browser to have started the download from it. */
-function downloadCSV(name,rows,fields){const head=fields.map(csvCell).join(',');const body=rows.map(r=>fields.map(f=>csvCell(r[f])).join(',')).join('\n');const blob=new Blob(['﻿'+head+'\n'+body],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
+function downloadCSV(name,rows,fields){const head=fields.map(f=>csvCell(f)).join(',');const body=rows.map(r=>fields.map(f=>csvCell(r[f],f)).join(',')).join('\n');const blob=new Blob(['﻿'+head+'\n'+body],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
 function downloadXLS(name,rows,fields){
  const eh=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
- const cv=v=>'<td>'+eh(exportFlat(v))+'</td>';
- const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table border="1"><tr>'+fields.map(fd=>'<th>'+eh(fd)+'</th>').join('')+'</tr>'+rows.map(r=>'<tr>'+fields.map(fd=>cv(r[fd])).join('')+'</tr>').join('')+'</table></body></html>';
+ const cv=(v,k)=>'<td>'+eh(exportFlat(v,k))+'</td>';
+ const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table border="1"><tr>'+fields.map(fd=>'<th>'+eh(fd)+'</th>').join('')+'</tr>'+rows.map(r=>'<tr>'+fields.map(fd=>cv(r[fd],fd)).join('')+'</tr>').join('')+'</table></body></html>';
  const blob=new Blob(['﻿'+html],{type:'application/vnd.ms-excel;charset=utf-8'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
