@@ -1,5 +1,46 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 29 — the app was inventing costs it did not have, and counting VAT as profit (fixed)
+
+Four money-rule breaches, all found by reading the source during the eight-area sweep and all
+confirmed hands-on before being touched. They matter because they all point the same way: the
+app was quietly filling in a number nobody had researched, and then showing it as if it were
+fact. Guarded by `scripts/qa/probe-no-invented-cost.mjs` (13 checks), sabotage-verified twice.
+
+1. **VAT was sitting inside every quoted margin.** The proposal editor's margin read
+   `total − cost`, but `o_calc` builds `total` as ticket + partner + service + **VAT** + DIP.
+   So the margin shown to whoever was pricing the work included tax the company never keeps.
+   On a 12,520 quote carrying 1,620 of VAT against a 9,000 cost, the editor said the margin
+   was 3,520 when it is 1,900. That is the M1 rule — VAT never enters cost, profit or revenue
+   — broken on the screen where deals actually get priced. The margin is now taken net of VAT.
+2. **A blank cost was being read as zero, so an uncosted proposal printed its whole sale as
+   profit.** `onum('')` is 0, so a proposal nobody had costed yet showed 100% margin. A margin
+   with no recorded cost is now *unknown*: the editor says "Cost not recorded" /
+   «التكلفة غير مسجّلة» instead of printing a figure. This is M8 — cost is approved expenses
+   only, never a number invented to fill a gap.
+3. **Today's "Low-profit offers" chip judged offers on a cost it made up.** The test was
+   `onum(o.cost) || base*0.85` — with nothing recorded it assumed cost was 85% of base and
+   then reported on that assumption. A proposal with no cost and a 1,200 giveaway came out as
+   a 3% margin, on a deal nobody had costed. The same test also OR-ed in
+   `approvalStatus === 'Pending'`, so a healthy 60%-margin deal waiting for sign-off was
+   reported as *low profit* — two different things wearing one label. Both are gone. Awaiting
+   approval and no-cost-recorded are now counted as their own categories and named in a
+   sub-line on the group ("2 awaiting approval · 1 with no cost recorded (margin unknown —
+   not counted as low margin)"), so nothing is silently dropped; the hero total is
+   de-duplicated by record id so one proposal in two categories is one item, not two.
+4. **Converting a proposal to a booking wrote a fabricated cost into the record.**
+   `bookingFromOffer` set `totalCost: Math.round(fareTotal*0.85)` — the booking was born
+   carrying a made-up number that from then on looked researched, and fed everything
+   downstream. It now carries the recorded cost, or none at all plus a `costNotRecorded` flag
+   so the gap stays visible.
+
+**Probe weakness worth recording, because it nearly let a fix pass unverified:** the first
+sabotage of #3 came back *green*. The fixture (no cost, 10,000 base, no freebies) gave an
+invented cost of 8,500 — a 15% margin, healthy either way — so it never exercised the path.
+The probe was wrong, not the fix. A `QA-FREE` fixture with a 1,200 giveaway was added, which
+does trip it, and the re-run went red as it should. A sabotage that passes means the probe is
+too weak, and is worth more attention than one that fails.
+
 ## 2026-09-02 · Round 28 — Arabic was corrupting stored data through value-less dropdowns (fixed); the round-26 fix was incomplete
 
 Found by the eight-area sweep (a fan-out of agents driving areas the 27 rounds had never
