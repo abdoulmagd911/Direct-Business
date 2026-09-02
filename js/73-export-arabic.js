@@ -41,6 +41,8 @@
     total_incl_vat_sar:'الإجمالي (ريال)', revenue_sar:'الإيرادات (ريال)', cost_sar:'التكلفة (ريال)',
     profit_sar:'الربح (ريال)', amount_received_sar:'المُحصّل (ريال)', amount_remaining_sar:'المتبقي (ريال)',
     integrity_status:'حالة السلامة', revenue_way:'طريقة الإيراد', payment_status:'حالة الدفع',
+    invoice_total_sar:'إجمالي الفاتورة (ريال)', zatca_dpin:'رقم DPIN', products:'البنود', origin:'المنشأ',
+    proposal_ref:'مرجع العرض', month:'الشهر', quarter:'الربع', year:'السنة',
     // events (js/10 evExport builds display keys)
     'Event':'الفعالية', 'Event (AR)':'الفعالية (عربي)', 'Our move':'خطوتنا', 'Progress':'التقدم',
     'When':'البداية', 'Until':'النهاية', 'City':'المدينة', 'Venue':'المكان', 'Vertical':'القطاع',

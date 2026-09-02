@@ -82,6 +82,14 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   to a person already on the Ledger tab (only the Overview/Clients tabs filled them). Filled on
   every finance render now. Guard: `probe-export-arabic.mjs` reads the real downloaded files in
   both languages and takes the straight-to-Ledger route; sabotage-verified both ways.
+- **Round 9 (11:05–11:25) — Finance's own two export buttons in Arabic.** The Ledger's
+  "Excel (CSV)" and the Report Builder's "Export CSV" write their own files and bypassed the
+  shared exporter, so in Arabic they still came out English-keyed: raw column keys on the
+  Ledger file, and the Report Builder file used the English dimension/metric words and a
+  "TOTAL" row while the table on screen was Arabic. Now the Ledger file takes its titles from
+  the same Arabic label map (js/73, raw key as fallback) and the Report Builder file uses the
+  screen's own bilingual labels and "الإجمالي". English files unchanged; four more scenarios in
+  `probe-export-arabic.mjs` (AR + EN for both buttons); sabotage-verified.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

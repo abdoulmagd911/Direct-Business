@@ -214,6 +214,9 @@ window.finLedgerCSV=function(){
   var L=FIN._csvRows||[]; if(!L.length){alert(isArF()?'لا صفوف للتصدير':'No rows to export');return;}
   var cols=['invoice_date','invoice_no','zatca_dpin','client_group','service_type','products','origin','proposal_ref','month','quarter','year','total_incl_vat_sar','revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','integrity_status'];
   var _hdr=cols.map(function(c){return c==='total_incl_vat_sar'?'invoice_total_sar':c;});
+  /* 2026-09-02 (attack round 9): in Arabic the titles come from the same Arabic label map the
+     shared exporters use (js/73) — "رقم الفاتورة (invoice_no)" — with the raw key as fallback. */
+  try{ if(isArF()&&window.__v73&&window.__v73.label) _hdr=_hdr.map(function(c){return window.__v73.label(c);}); }catch(_){}
   var csv='\ufeff'+_hdr.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=csvGuard(r[c]);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');
   var b=new Blob([csv],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-finance-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
@@ -972,12 +975,14 @@ window.finRB=function(k,v){FIN.rb[k]=v;if(k==='g1'&&FIN.rb.g2===v)FIN.rb.g2='';r
 window.finRBM=function(k,v){FIN.rb.metrics[k]=v;render();};
 window.finCSV=function(){
   var R=FIN._lastReport;if(!R)return;
-  var out=[[DIMS[R.g1]+(R.g2?' / '+DIMS[R.g2]:'')].concat(R.mets.map(function(m){return METS[m];}))];
+  /* 2026-09-02 (attack round 9): the file used the English DIMS/METS words and "TOTAL" even in
+     Arabic while the table on screen was Arabic \u2014 same labels as the screen now (dimLbl/metLbl). */
+  var out=[[dimLbl(R.g1)+(R.g2?' / '+dimLbl(R.g2):'')].concat(R.mets.map(function(m){return metLbl(m);}))];
   R.keys.forEach(function(k){
     out.push([k].concat(R.mets.map(function(m){return R.g[k].__tot[m]||0;})));
     if(R.g2)Object.keys(R.g[k].__sub).forEach(function(s){out.push(['  '+k+' \u203a '+s].concat(R.mets.map(function(m){return R.g[k].__sub[s][m]||0;})));});
   });
-  out.push(['TOTAL'].concat(R.mets.map(function(m){return R.grand[m]||0;})));
+  out.push([isArF()?'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a':'TOTAL'].concat(R.mets.map(function(m){return R.grand[m]||0;})));
   var csv='\ufeff'+out.map(function(r){return r.map(function(c){c=csvGuard(c);return (c.indexOf(',')>=0||c.indexOf('"')>=0||c.charCodeAt(0)===39)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',');}).join('\r\n');
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='Direct-Finance-Report-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 };

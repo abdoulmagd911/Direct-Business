@@ -138,6 +138,26 @@ async function main() {
     else fail('Finance AR CSV: header not Arabic — ' + head.slice(0, 5).join(' | '));
   }
 
+  // ---- Finance's own two buttons (they write their own files, bypassing the shared exporter)
+  f = await exportVia(() => { window.finLedgerCSV(); });
+  if (!f || f.alert) fail('Ledger "Excel (CSV)" AR: no file (' + (f && f.alert) + ')');
+  else {
+    const head = parseCSV(f.text)[0] || [];
+    if (head.includes('رقم الفاتورة (invoice_no)') && head.includes('إجمالي الفاتورة (ريال) (invoice_total_sar)')) ok('Ledger "Excel (CSV)" AR: Arabic titles');
+    else fail('Ledger "Excel (CSV)" AR: header not Arabic — ' + head.slice(0, 5).join(' | '));
+  }
+  await p.evaluate(() => { FIN.tab = 'reports'; render(); }); await p.waitForTimeout(1200);
+  f = await exportVia(() => { window.finCSV(); });
+  if (!f || f.alert) fail('Report Builder "Export CSV" AR: no file');
+  else {
+    const rows = parseCSV(f.text); const head = rows[0] || []; const last = rows[rows.length - 1] || [];
+    if (AR.test(head[0] || '') && head.some((h) => /الإيرادات|الربح|التكلفة/.test(h))) ok('Report Builder AR: Arabic dimension + metric titles — ' + head.slice(0, 3).join(' | '));
+    else fail('Report Builder AR: header not Arabic — ' + head.slice(0, 4).join(' | '));
+    if (last[0] === 'الإجمالي') ok('Report Builder AR: total row reads الإجمالي');
+    else fail('Report Builder AR: total row reads "' + last[0] + '"');
+  }
+  await p.evaluate(() => { FIN.tab = 'overview'; });
+
   // ---- Events, Arabic, CSV
   await goto('events', 'ar');
   await p.waitForTimeout(1500);
@@ -162,6 +182,16 @@ async function main() {
     if (!arStage.length) ok('Leads EN CSV: stage cells stay English');
     else fail('Leads EN CSV: ' + arStage.length + ' stage cell(s) Arabic in English mode');
   }
+
+  // ---- English Finance buttons untouched
+  await goto('finance', 'en');
+  f = await exportVia(() => { window.finLedgerCSV(); });
+  if (!f || f.alert) fail('Ledger "Excel (CSV)" EN: no file');
+  else { const head = parseCSV(f.text)[0] || []; if (head.includes('invoice_no') && head.includes('invoice_total_sar') && !AR.test(head.join(''))) ok('Ledger "Excel (CSV)" EN: raw keys'); else fail('Ledger "Excel (CSV)" EN: header changed — ' + head.slice(0, 4).join(' | ')); }
+  await p.evaluate(() => { FIN.tab = 'reports'; render(); }); await p.waitForTimeout(1200);
+  f = await exportVia(() => { window.finCSV(); });
+  if (!f || f.alert) fail('Report Builder "Export CSV" EN: no file');
+  else { const rows = parseCSV(f.text); const last = rows[rows.length - 1] || []; if (last[0] === 'TOTAL' && !AR.test(rows[0].join(''))) ok('Report Builder EN: English titles, TOTAL row'); else fail('Report Builder EN: changed — ' + rows[0].slice(0, 3).join(' | ') + ' … ' + last[0]); }
 
   const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
