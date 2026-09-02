@@ -1,5 +1,53 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 28 — Arabic was corrupting stored data through value-less dropdowns (fixed); the round-26 fix was incomplete
+
+Found by the eight-area sweep (a fan-out of agents driving areas the 27 rounds had never
+covered) and confirmed in source before anything was touched.
+
+**The rule.** An `<option>` with NO `value` attribute is stored BY ITS TEXT — `select.value`
+returns the label. Translating that text therefore SAVES an Arabic word as data.
+
+**Round 26 got this half right.** It wrapped the dialog opener and applied the rule there,
+trusting the comment then in `js/21` that in-page options are "filter values, not data". That
+assumption was wrong twice over:
+
+1. **The proposal editor is a FORM rendered inside `#view`.** Its bundle-item type, status,
+   policy, approval and refundable selects are all value-less
+   (`<option ${it.type===t?'selected':''}>`, js/core/core-04-proposals.js). With `'Other'` in the
+   dictionary, an Arabic user picking it stored **"أخرى" as the service-bundle type** — in the
+   form the commercial team uses to price work.
+2. **Even a genuine filter was broken by it.** The sabotage run showed the Clients page tier
+   filter setting `clFilter.tier` to "رئيسي" / "قياسي" — Arabic words that can never match the
+   English "Key" / "Standard" stored on the records. **Filtering clients by tier did nothing in
+   Arabic**, silently.
+
+**Fix:** the rule is now universal in `js/21` — a value-less option is never translated, in any
+scope. A dropdown whose wording should read Arabic must carry an explicit `value`, which is how
+the proposal Type select already works (shows "أخرى", stores `Other`).
+
+New `scripts/qa/probe-option-values-are-data.mjs` sweeps all 14 pages for a value-less option
+carrying Arabic text, checks the proposal editor's four value-less selects specifically, proves
+picking "أخرى" stores `Other`, and proves value-carrying selects still read Arabic so the UI is
+not flattened. Sabotage (rule back to dialogs-only) → red, naming the Clients tier filter.
+Arabic battery re-run green: modals-ar, client-card-ar, reports-phone-ar, projects-ar, ops-board.
+
+**Still unverified — do NOT act on these yet.** The same sweep returned ~82 further candidate
+findings across Proposals, Operations, Today, Documents, keyboard shortcuts and Archive
+(including claims that VAT reaches proposal margin, that converting a proposal to a booking
+invents an 85% cost, that Print/PDF is blank in all five generators, and that archiving does not
+actually archive). They are UNVERIFIED: this box has 4 CPUs, so the workflow's verification stage
+was still queued when the run was harvested. Two were confirmed by hand from source and are
+recorded below; the rest need a verification pass before anyone changes code on them.
+
+**Confirmed by hand from source, not yet fixed (`js/core/core-06-v18-v21.js:473`):**
+`const cost = onum(o.cost) || base*0.85;` — when a proposal has NO cost recorded, Today's
+"low-profit offers" count invents a cost at 85% of base and judges the offer on the invented
+number. That breaks the standing rule that cost is approved expenses only and a gap is never
+filled with a guess. The same line ORs in `approvalStatus==='Pending'`, so anything merely
+awaiting approval is counted as low-profit whatever its real margin. Left for a Finance-lane
+decision because it changes a number the owner reads daily.
+
 ## 2026-09-02 · Watch cycle 8 — alias grouping, the exclusion twin and the company merge/undo attacked; everything held
 
 **Attack area: M14 alias grouping + M18 duplicate companies** (`js/62-finance-guardrails.js`),

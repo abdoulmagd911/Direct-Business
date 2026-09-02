@@ -305,10 +305,18 @@
     // dropdown options: main dict, then stage words (safe — options are filter values, not data)
     var opts=scope.querySelectorAll('option'),o;
     for(o=0;o<opts.length;o++){ var op=opts[o]; if(op.getAttribute('data-v27'))continue;
-      // inside a dialog (safeOptions) an <option> with no value attribute IS the stored value —
-      // translating its text would save an Arabic word as data (activity type, stage, priority,
-      // ADM risk). Only options that carry an explicit value are translated there (round 26).
-      if(safeOptions&&!op.hasAttribute('value'))continue;
+      /* An <option> with NO value attribute is stored BY ITS TEXT — `this.value` returns the
+         label — so translating it saves an Arabic word as data.
+         Round 26 applied this rule to dialogs only, on the assumption recorded in the old
+         comment here that in-page options are "filter values, not data". That assumption was
+         wrong: the proposal editor is a FORM rendered inside #view, and its type / status /
+         policy / approval / refundable selects are all value-less
+         (`<option ${it.type===t?'selected':''}>` in js/core/core-04-proposals.js). With
+         'Other' in the dictionary below, an Arabic user picking it stored "أخرى" as the
+         service-bundle type. Found 2026-09-02 (round 28) by the eight-area sweep and confirmed
+         in source. The rule is now universal: no value attribute → never translated, in ANY
+         scope. A dropdown whose wording should read Arabic must carry an explicit value. */
+      if(!op.hasAttribute('value'))continue;
       var ot=(op.textContent||'').trim(); if(!ot)continue;
       if(V27_AR[ot]!==undefined) setText(op,V27_AR[ot]); else if(STAGE_AR[ot]!==undefined) setText(op,STAGE_AR[ot]); }
     // stage badges (row pills) — isolated stage dictionary
