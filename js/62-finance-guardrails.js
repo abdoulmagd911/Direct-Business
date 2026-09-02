@@ -393,8 +393,10 @@
           +'<label>'+fl('Keep:','الإبقاء على:')+' <select id="'+sid+'" style="font-size:12.5px">'
             +'<option value="'+esc62(p.ua)+'" '+(keepDefault===p.ua?'selected':'')+'>'+esc62(p.a.name||'')+'</option>'
             +'<option value="'+esc62(p.ub)+'" '+(keepDefault===p.ub?'selected':'')+'>'+esc62(p.b.name||'')+'</option></select></label>'
-          +'<button class="btn pri sm" onclick="(function(){var s=document.getElementById(\''+sid+'\');var k=s.value;var d=(k===\''+esc62(p.ua)+'\')?\''+esc62(p.ub)+'\':\''+esc62(p.ua)+'\';v62MergeBiz(k,d);})()">'+fl('Merge »','دمج »')+'</button>'
-          +'<button class="btn ghost sm" onclick="v62DismissDup(\''+esc62(p.key)+'\')">'+fl('Not a duplicate','ليست مكرّرة')+'</button>'
+          +(canEdit62()
+            ?('<button class="btn pri sm" onclick="(function(){var s=document.getElementById(\''+sid+'\');var k=s.value;var d=(k===\''+esc62(p.ua)+'\')?\''+esc62(p.ub)+'\':\''+esc62(p.ua)+'\';v62MergeBiz(k,d);})()">'+fl('Merge »','دمج »')+'</button>'
+              +'<button class="btn ghost sm" onclick="v62DismissDup(\''+esc62(p.key)+'\')">'+fl('Not a duplicate','ليست مكرّرة')+'</button>')
+            :('<span style="color:var(--muted);font-size:12px">'+fl('Only an admin or manager can merge.','الدمج للمدير أو المشرف فقط.')+'</span>'))
           +'</div></div>';
       }).join('');
     } else {

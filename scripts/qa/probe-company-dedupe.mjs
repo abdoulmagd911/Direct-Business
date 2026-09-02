@@ -130,6 +130,27 @@ async function main() {
   await p.evaluate(() => { LANG = 'en'; if (typeof applyLang === 'function') applyLang(); const old = document.querySelector('.v62-guardrails'); if (old) old.remove(); if (typeof window.finGo === 'function') window.finGo('import'); });
   await p.waitForTimeout(1500);
 
+  // ---- 1c. ROLE — a viewer/team member sees the pair but gets no Merge button ----
+  // The tier itself is re-derived from the signed-in account on every render (js/02), so the
+  // honest lever here is the one gate every Finance edit goes through: canFinEdit().
+  const viewerBtns = await p.evaluate((nid) => {
+    const wasFn = window.canFinEdit; window.canFinEdit = function () { return false; };
+    document.querySelectorAll('.v62-guardrails').forEach((c) => c.remove()); if (typeof window.finGo === 'function') window.finGo('import');
+    return new Promise((res) => setTimeout(() => {
+      const el = [...document.querySelectorAll('.v62-dup')].find((x) => (x.getAttribute('data-key') || '').split('|').includes(nid));
+      const btns = el ? [...el.querySelectorAll('button')].map((b) => b.textContent.trim()) : null;
+      const cards = document.querySelectorAll('.v62-guardrails').length;
+      window.canFinEdit = wasFn;
+      document.querySelectorAll('.v62-guardrails').forEach((c) => c.remove()); if (typeof window.finGo === 'function') window.finGo('import');
+      res({ btns, cards });
+    }, 1200));
+  }, NEW_BIZ);
+  await p.waitForTimeout(1500);
+  if (viewerBtns.cards > 1) fail(`ROLE: ${viewerBtns.cards} guardrails cards in the DOM at once — the card is being injected twice`);
+  if (viewerBtns.btns === null) ok('ROLE: a team member does not get the guardrails card at all (import is admin/manager territory)');
+  else if (viewerBtns.btns.some((t) => /Merge|Not a duplicate/.test(t))) fail('ROLE: a team member was offered Merge / Not-a-duplicate buttons: ' + JSON.stringify(viewerBtns));
+  else ok('ROLE: a team member sees the pair but no Merge / dismiss buttons');
+
   // ---- 2. MERGE — keep the NEW record, merge the fixture's b4 into it ----
   const merged = await p.evaluate(([nid]) => {
     const sel = document.querySelector('.v62-dup select'); if (!sel) return 'no select';

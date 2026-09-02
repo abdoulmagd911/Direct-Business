@@ -65,14 +65,14 @@
           '<td style="padding:7px 8px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums">'+b.n+'</td>'+
           '<td style="padding:7px 8px;text-align:right;font-variant-numeric:tabular-nums">'+mS(b.gross)+'</td>'+
           '<td style="padding:7px 8px;text-align:right;color:#B54708;font-variant-numeric:tabular-nums">'+mS(b.cost)+'</td>'+
-          '<td style="padding:7px 8px;text-align:right;font-weight:700;color:#0F6E56;font-variant-numeric:tabular-nums">'+mS(fee)+'</td>'+
+          '<td style="padding:7px 8px;text-align:right;font-weight:700;color:'+(fee<0?'#B42318':'#0F6E56')+';font-variant-numeric:tabular-nums"><span dir="ltr" style="unicode-bidi:isolate">'+mS(fee)+'</span></td>'+   /* dir=ltr: in Arabic a negative used to render as "18.0K-" */
           '</tr>';
       });
       h+='<tr style="border-top:2px solid var(--line,#ddd);font-weight:800"><td style="padding:8px">'+fl('All services','كل الخدمات')+'</td>'+
         '<td style="padding:8px;text-align:right;color:var(--muted)">'+tot.n+'</td>'+
         '<td style="padding:8px;text-align:right;font-variant-numeric:tabular-nums">'+mS(tot.gross)+'</td>'+
         '<td style="padding:8px;text-align:right;color:#B54708;font-variant-numeric:tabular-nums">'+mS(tot.cost)+'</td>'+
-        '<td style="padding:8px;text-align:right;color:#0F6E56;font-variant-numeric:tabular-nums">'+mS(tot.rev-tot.cost)+'</td>'+
+        '<td style="padding:8px;text-align:right;color:'+((tot.rev-tot.cost)<0?'#B42318':'#0F6E56')+';font-variant-numeric:tabular-nums"><span dir="ltr" style="unicode-bidi:isolate">'+mS(tot.rev-tot.cost)+'</span></td>'+
         '</tr>';
       h+='</tbody></table></div>';
       var card=document.createElement('div'); card.className='card v32-svc'; card.style.cssText='padding:16px;margin-bottom:14px'; card.innerHTML=h;

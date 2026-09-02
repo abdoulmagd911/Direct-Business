@@ -1,5 +1,28 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · 12-hour attack-and-sweep loop (owner: "keep sweeping, enhancing, landmining, attacking — don't stop")
+
+Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in English AND Arabic
+(screenshots read by eye), fix, guard with a probe, sabotage-verify, commit, push. Log:
+
+- **Round 1 (08:34–08:45, commit 11ec1ad).** Arabic drive of the new Duplicate-companies card
+  and a client card with a bridged, flagged contact. Fixed: merge card spoke English for the
+  stage word / currency / CR-VAT labels; the "needs confirmation" badge was missing on the
+  client-card branch and English under Arabic; 20 client-card header/jump-bar labels were English
+  in Arabic (Chain of command, New booking, Create proposal, Log activity, Request, Key facts,
+  Corporate account, Activity & workflow…); the HQ/Map line; the people bridge now pages through
+  the tables instead of a hard 5,000 cap. Landmine: the alias/exclusion name lookup did not fold
+  Arabic letter variants while the linker did — an alias "…ة" missed a row "…ه" (rule added in
+  DECISIONS, probe scenario, sabotage-verified). Finance tabs in Arabic: EN/AR numbers identical
+  on all 8 tabs.
+- **Round 2 (08:45–09:10).** Undo of a merge used to wipe an edit made on the kept company AFTER
+  the merge (e.g. new payment terms) — the function now un-fills only what the merge itself
+  filled; proven on throwaway rows inside a rolled-back transaction. Arabic Finance overview:
+  chart months were "Jan…Jun" → Arabic month names; a negative service fee rendered as "18.0K-"
+  (bidi) → sign isolated left-to-right, red when negative. New guard
+  `scripts/qa/probe-ar-finance-display.mjs`, sabotage-verified. Live sweep clean (no orphans,
+  no flag mismatches, no duplicate pairs, money invariants hold on all 46 invoices).
+
 ## 2026-09-02 (later) · "What else needs to be fixed? Perform immediately" — full audit, fixed same day
 
 Method (bulletproof-audit): run the ENTIRE probe suite (57 files, not the finance battery), a
