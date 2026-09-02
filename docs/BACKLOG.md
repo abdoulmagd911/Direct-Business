@@ -1,5 +1,59 @@
 # Action items — things deliberately put on hold
 
+## 2026-08-29 · Full sweep — every owner instruction and note re-verified against live state, not against my own summaries
+
+Owner-ordered. Method: take each instruction from the briefs and each standing note, and check
+the live database, the live repo/deploy, and the code — not the BACKLOG entries that said it was
+done. What held, what didn't, and what changed:
+
+**Held (verified live, not assumed).** All three owner-decided alias merges exist and are
+active — the owner created them himself on 2026-08-26 (MDD, AlQahtani, alrajhi); Public
+Security and Riyadh Chamber are single groups, no action needed, as decided. The M15 capture
+tables are in real use (223 expense lines / 155 gate rows across 75 transactions). The oversight
+session's single-invoice test (1163605511) that was the M16 blocker now carries a real cost,
+written after M16 deployed — the real-data confirmation this project was waiting on has
+actually happened. Live money invariants over all 46 invoices: cost never exceeds total,
+revenue = total − wallet and profit = revenue − cost on every row, zero Takamol rows, zero
+duplicate invoice numbers, zero generated-year mismatches; 19 invoices still carry no cost —
+an honest gap, flagged on screen, never filled. RLS is on with policies on every finance table
+including the two M15 capture tables. Production is on the latest commit and READY. The
+current tree holds no real PII (the only phone-shaped strings are the fictional
+`9665000000xx` placeholders); the `window.live` fallback bug class from M17 has no other
+instance in the codebase.
+
+**Fixed in this sweep.** (1) M14's instruction was only half-met: the alias map was consulted
+at display time, not on the import/linking path — the automatic linker matched by business
+name alone, so a fresh alias spelling that isn't a business name stayed "needs linking", and
+`finSectorOf()` reads the link by raw group, so it would mis-sector. The linker now falls back
+to the alias map (`auto-match-alias` provenance); new `probe-alias-autolink.mjs`, sabotage-
+verified. (2) `fn_commit_finance_import` had a mutable search_path (Supabase advisor WARN) —
+pinned, behaviour unchanged. (3) CLAUDE.md's "quick current state" still claimed the app held
+assumption/test data with 4 leads / 6 clients — it holds real data, 80 leads / 32 clients;
+corrected so rule 7 is read against reality.
+
+**For the owner — data, his call, not touched (D1).** The two MDD spellings are linked to TWO
+different company records: "MDD" and "MDD — Smart Madad IT" — a duplicate business, which is
+why the Arabic spelling auto-matched to the second one. Display merges them (alias map), the
+client card and sector do not. Also, the alias group's canonical name is "MDD", not the
+"MDD - Smart Madad IT" the owner decided on 2026-08-25 — possibly deliberate; one Undo + Add
+fixes it if not. Both need a human decision about which record is the real MDD.
+
+**Still open, unchanged.** The repository is still PUBLIC (checked directly), so the real
+customer PII removed from the code on 2026-08-27 remains readable in git history; making it
+private is a one-click owner action that has not happened. The M12 recurrence report (waiting
+on the oversight session's console dump). The P4-addendum ownership question for `js/45`,
+`js/57`, `js/58`.
+
+**Probe battery, all 57 scripts, honestly classified.** 37 green. 14 red for environmental
+reasons only — they need staff passwords from the environment or the live Supabase project
+and its login rigs, neither of which this sandbox has (by design, rule: passwords never in the
+repo). 5 red for real: `probe-events-scale` (two Events-page assertions) and four older
+rigs on the `mock-seed-live` harness (`probe-round9`, `probe-newfeatures`, `probe-lifecycle5`,
+`probe-stress`) — all five re-run at the pre-session commit `2d5deef` in a clean worktree and
+red there too, so they predate this session's work; Events is not a Finance-track file (P4),
+left for its owner; the four stale rigs are worth either fixing or retiring by whoever next
+touches that harness, so the battery stops carrying known-red scripts.
+
 ## 2026-08-27 · Report Builder is scoped independently of the Overview/Clients period bar
 
 Found while self-auditing the day's Report Builder and Compare-to work (asked "what else did

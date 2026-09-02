@@ -318,7 +318,18 @@ totals, shown before Add) and reversible after. Sabotage-verified: `finCanon()`'
 `finGroupCheck()` consultation was temporarily removed, `scripts/qa/probe-client-group-map.mjs`
 was run and confirmed to fail (exit 1) reproducing the exact reported symptom (the merged
 totals split back into two separate client rows), then restored and diffed byte-identical.
-*Date: 2026-08-25. Status: ACTIVE.*
+Sweep addendum, 2026-08-29: the owner's instruction said the map must be consulted on the
+IMPORT path too, "beside `finExclusionCheck()`, called the same way" — and only the display
+path had it. The automatic finance↔client linker (`js/41-money-in.js`) matched a new
+client_group by normalised business name alone, so a freshly imported alias spelling that is
+not itself a business name stayed "needs linking"; that now matters because `finSectorOf()`
+reads the link by RAW client_group, so such a row would sector as plain B2B even when its
+sibling spelling is a linked Tender client. Fixed: when the name index misses, the linker asks
+`finGroupCheck()`; if the spelling is a registered alias and a sibling is already linked, it
+links to the same business with `confirmed_by='auto-match-alias'` (visible provenance, never
+silent). Guarded by `scripts/qa/probe-alias-autolink.mjs`, sabotage-verified (fallback removed
+→ the spelling stays unlinked and no link write goes out), restored byte-identical.
+*Date: 2026-08-25, linking-path addendum 2026-08-29. Status: ACTIVE.*
 
 **M15 — page-lifetime memory was the right instinct for the cost join, but not enough: the raw
 captured facts must survive a reload and a new session, so a single updated file resolves

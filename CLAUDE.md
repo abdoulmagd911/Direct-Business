@@ -34,8 +34,12 @@
 > Then read this file and `docs/DIRECT_IDENTITY.md`. (`docs/HANDOFF_2026-08-09.md` is the detailed
 > chronological log.)
 >
-> Quick current state: data is **assumption/test data** — **4 leads / 6 clients** (Direct IDs
-> 101–106), 12 finance service-lines, 3 proposals; real data is in backups (`*_prewipe_20260810`).
+> Quick current state (re-verified live 2026-08-29 — the older "assumption/test data" and
+> "30-lead training world" descriptions further down are history, kept in `*_snapshot_*`
+> tables): the app now holds **real data** — 80 leads / 32 clients in `businesses`, 46 live
+> `finance_invoices` (19 still with no cost recorded — an honest gap, flagged on screen, never
+> filled with a guess), 3 client-name alias groups set by the owner himself, and the M15
+> expense-capture tables in real use. Treat every row as real for rule 7 purposes.
 > The app has been **re-skinned to Direct's real product UI** (cream `#FBF5F0` + `#ff6b00`).
 > **Critical:** the QA harness serves FAKE data — verify UI against real Supabase rows or a
 > screenshot, never the mock alone (that gap wasted a sub-session).

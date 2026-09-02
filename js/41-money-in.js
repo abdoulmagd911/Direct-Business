@@ -380,7 +380,21 @@
       var info=groups[g];
       if(info.b2c>0&&info.b2b===0){ todo.push({g:g,indiv:true}); return; }   // pure individuals
       var b=ix[norm(g)];
-      if(b)todo.push({g:g,biz:b});
+      if(b){ todo.push({g:g,biz:b}); return; }
+      // M14 (owner, 2026-08-25): the client-name alias map must be consulted on the IMPORT/
+      // linking path too, beside the exclusion check — not only at display time. If this
+      // spelling is a registered alias and a sibling spelling is already linked, it is the
+      // same company: link it to the same business instead of leaving it "needs linking".
+      // Found in the 2026-08-29 sweep: display merged the spellings, but the link (which
+      // finSectorOf() reads by RAW client_group) did not follow, so a fresh alias spelling
+      // could sit unlinked and mis-sectored until a human noticed.
+      try{
+        var e=(typeof window.finGroupCheck==='function')?window.finGroupCheck(g):null;
+        if(e){
+          var sib=(e.aliases||[]).map(function(a){return linkBy[a];}).filter(function(l){return l&&l.business_id;})[0];
+          if(sib){ todo.push({g:g,bizId:sib.business_id,viaAlias:true}); return; }
+        }
+      }catch(_){}
       // no match → stays unlinked and visible; a human decides (edge case only)
     });
     if(!todo.length)return;
@@ -400,6 +414,7 @@
       var t=todo[i++]; var now=new Date().toISOString();
       var payload={client_group:t.g,updated_at:now,confirmed_by:'auto-match',confirmed_at:now};
       if(t.indiv){ payload.business_id=null; payload.is_client=false; }
+      else if(t.viaAlias){ payload.business_id=t.bizId; payload.is_client=true; payload.confirmed_by='auto-match-alias'; }
       else { payload.business_id=(window.__bizUuid?__bizUuid(t.biz.id):t.biz.id); payload.is_client=true; }
       c.from('finance_client_links').upsert(payload,{onConflict:'client_group'}).then(function(r){
         if(!r||!r.error){
