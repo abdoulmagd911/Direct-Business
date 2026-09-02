@@ -1,5 +1,44 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Watch cycle 4 — Ledger attacked; one real gap fixed (invoiced + overdue rows were hidden from the Overdue count)
+
+**Attack area: the Ledger tab (`finance_transactions`)**, new `scripts/qa/probe-ledger-attacks.mjs`
+(port 8193, 50 checks). Stage derivation across the seed's four rows; the confirmed-only KPI
+strip recomputed independently under hostile rows (string amounts with thousands separators,
+null confirmed cost on a Ready row, unknown `business_id`, missing `client_profile_id`, a
+duplicate `transaction_ref`, HTML in a ref, a formula-looking ref); the Overdue mirror (null and
+false show nothing, no "not overdue" wording anywhere); profile/stage/company filters composing
+with search (regex specials never throw; a stale company filter gives the honest empty state);
+company grouping and collapse (headers are confirmed-only and say so; the KPI strip ignores
+collapse state); and the Ledger CSV against the table (row count follows the filter, company +
+profile + stage + overdue on every row, `csvGuard` on the formula ref, BOM present, HTML
+exported verbatim because a spreadsheet is not a browser).
+
+**Real gap, fixed in `js/16` (Finance's lane):** `txnStage()` lets `invoice_no` win, so a
+transaction Direct Payments had flagged `overdue===true` *after* it was invoiced showed as
+"Invoiced" only — the **Overdue tile did not count it and the Overdue stage filter did not list
+it**. That is exactly the row a collections person needs to see. Fix: a `txnOverdue(r)` reader
+of the flag; the tile, the filter and a second badge on the row ("Invoiced" + "Overdue") all
+use it. `txnStage()` precedence is untouched, so confirmed revenue/cost/profit did not move;
+the CSV already exported `overdue=true` on such rows, so the export was right and the screen
+was wrong. Also: the CSV's BOM was a literal invisible byte in the source — now the escaped
+`'\ufeff'`, same as the invoice export.
+
+**Sabotage-verified both ways:** reverting the one-line tile count makes the probe fail (1 red),
+restore byte-identical (md5); `SABOTAGE=1` (the injected row loses its flag) fails the CSV
+mirror check. Structure check OK; outstanding-split, finance-invariants and overview-attacks
+still green after the change.
+
+**Held under attack (no change needed):** confirmed totals never blend pending estimates;
+`"1,250"` as a string counts as 0 on the confirmed tiles (visible in the row as 0, never NaN —
+the Overview sanitiser's parse rule is a candidate to share here later, noted below); orphan
+rows get their own group under the raw id; duplicate refs stay visible as two rows.
+
+**Follow-ups (not done, owner's call):** (a) Ledger rows could reuse `finSanitizeMoney`'s
+parse rule so `"1,250"` reads as 1,250 with a warning instead of 0 — a one-line change once he
+confirms the Ledger should be lenient like Overview; (b) a duplicate `transaction_ref` could
+carry a small "duplicate ref" marker — data fault surfaced, not hidden.
+
 ## 2026-09-02 · Watch cycle 3 — Report Builder attacked, held everywhere; probe kept as a permanent guard
 
 **Attack area: Report Builder**, new `scripts/qa/probe-report-builder-attacks.mjs`. Six

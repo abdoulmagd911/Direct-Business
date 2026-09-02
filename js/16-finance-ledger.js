@@ -632,7 +632,9 @@ window.finClient=function(key,name){FIN.tab='ledger';FIN.f.clientKey=key||null;F
        transaction shows its cost_estimate_sar tagged "est." at row level and never
        reaches the headline totals (Round 7).
      - Overdue is a mirror, never invented: only rendered when overdue===true;
-       null (not yet mirrored) shows nothing, never "not overdue" (Round 11). */
+       null (not yet mirrored) shows nothing, never "not overdue" (Round 11).
+       An invoiced row can be overdue too — the tile/filter/marker count the flag,
+       not the stage label (2026-09-02, scripts/qa/probe-ledger-attacks.mjs). */
 var TXN={rows:null,profiles:null,loading:false,collapsed:{},
   f:{q:'',profileType:'all',business:'all',stage:'all'}};
 function txnLoad(cb){
@@ -660,11 +662,16 @@ var TXN_STAGE_LBL={pending:['Expenses pending','بانتظار المصاريف'
   invoiced:['Invoiced','مفوترة'],overdue:['Overdue','متأخر']};
 var TXN_STAGE_COLOR={pending:'#B54708',ready:'#175CD3',invoiced:'#0F6E56',overdue:'#D92D20'};
 function txnConfirmed(r){ return txnStage(r)==='ready'||txnStage(r)==='invoiced'; }
+/* 2026-09-02 (watch cycle 4): Overdue is a MIRROR of Direct Payments' flag, and the flag can
+   be true on an invoiced row too — invoice_no winning the stage label must not hide it. The
+   Overdue tile, the Overdue stage filter and the row marker all read the flag directly;
+   txnStage() keeps its precedence so confirmed totals are untouched. */
+function txnOverdue(r){ return r.overdue===true; }
 var TXN_TYPE_LBL={prepaid:['Prepaid','مسبق الدفع'],postpaid:['Postpaid','آجل الدفع'],tender:['Tender','مناقصة']};
 window.finTxnCSV=function(){
   var L=TXN._csvRows||[]; if(!L.length){alert(isArF()?'لا صفوف للتصدير':'No rows to export');return;}
   var cols=['company','profile_type','direct_client_id','transaction_ref','invoice_no','zatca_dpin','service_type','stage','amount_sar','cost_confirmed_sar','cost_estimate_sar','amount_received_sar','amount_remaining_sar','overdue','created_at_source'];
-  var csv='﻿'+cols.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=csvGuard(r[c]);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var csv='\ufeff'+cols.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=csvGuard(r[c]);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');   // escaped BOM, not a literal invisible byte (2026-09-02)
   var b=new Blob([csv],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-ledger-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 };
@@ -678,7 +685,8 @@ function rLedger(){
     var f=TXN.f, prof=TXN.profiles[r.client_profile_id];
     if(f.profileType!=='all'&&(!prof||prof.profile_type!==f.profileType))return false;
     if(f.business!=='all'&&r.business_id!==f.business)return false;
-    if(f.stage!=='all'&&txnStage(r)!==f.stage)return false;
+    if(f.stage==='overdue'){ if(!txnOverdue(r))return false; }
+    else if(f.stage!=='all'&&txnStage(r)!==f.stage)return false;
     if(f.q){var q=f.q.toLowerCase();var nm=bizName(r.business_id)||'';if(((nm)+' '+(r.transaction_ref||'')+' '+(r.invoice_no||'')+' '+(r.zatca_dpin||'')+' '+(r.product||'')).toLowerCase().indexOf(q)<0)return false;}
     return true;
   });
@@ -687,7 +695,7 @@ function rLedger(){
   rows.forEach(function(r){
     if(txnConfirmed(r)){ cRev+=+r.amount_sar||0; cCost+=+r.cost_confirmed_sar||0; cProf+=(+r.amount_sar||0)-(+r.cost_confirmed_sar||0); }
     else { pendCount++; pendEst+=+r.cost_estimate_sar||0; }
-    if(txnStage(r)==='overdue')overdueCount++;
+    if(txnOverdue(r))overdueCount++;   // every mirrored overdue row, invoiced ones included
   });
   // Company is the primary row, profiles nest under it (owner ruling 2026-08-21).
   var byBiz={},order=[];
@@ -754,7 +762,7 @@ function rLedger(){
           +'<td style="padding:7px 8px;text-align:right;font-weight:700">'+money0(r.amount_sar)+'</td>'
           +'<td style="padding:7px 8px;text-align:right">'+costCell+'</td>'
           +'<td style="padding:7px 8px;text-align:right">'+profCell+'</td>'
-          +'<td style="padding:7px 8px">'+badge(_lh(sl[0],sl[1]),sc+'1a',sc)+'</td>'
+          +'<td style="padding:7px 8px">'+badge(_lh(sl[0],sl[1]),sc+'1a',sc)+((stage!=='overdue'&&txnOverdue(r))?(' '+badge(_lh('Overdue','متأخر'),TXN_STAGE_COLOR.overdue+'1a',TXN_STAGE_COLOR.overdue)):'')+'</td>'
           +'<td style="padding:7px 8px">'+payCell+'</td></tr>';
       });
       h+='</tbody></table></div>';
