@@ -1,5 +1,32 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 36 — the same caveat, carried to the Report Builder
+
+Round 35's lesson generalised: a caveat at the top of a page does not protect a table further
+down it. Swept every remaining place that displays or sums profit, and the **Report Builder**
+had the same hole — it groups by client / month / quarter / service and sums `profit_sar`, so a
+group whose invoices all carry cost 0 reports its entire revenue as profit, with nothing said.
+
+Fixed with one line under the table rather than per-row markers, deliberately:
+- per-row marking is **noise** here, because the report also groups by month and quarter, where
+  a marker on a time bucket tells the reader nothing actionable;
+- the TOTAL row must keep reconciling against the ledger (`probe-report-builder-attacks` holds
+  that), so the arithmetic is untouched;
+- and the line only appears when a **profit or cost metric is actually switched on** — a
+  revenue-only report does not carry it, because there is no profit claim to qualify.
+
+**Exports deliberately left alone.** The ledger CSV writes `cost_sar` / `profit_sar` as stored.
+An export is raw data, and a spreadsheet that silently rewrote 0 as "not recorded" would stop
+reconciling against the database it came from. The screen is where the interpretation belongs.
+
+**A probe mistake worth recording, because two checks passed for the wrong reason.** The first
+version switched tabs with `finTab('reports')` — but the switcher is `finGo(t)`. The call
+silently no-opped, the probe read the *Clients* tab, and two assertions passed anyway on text
+that happened to be there ("upper bound" from the round-35 note, and the absence of the report
+wording in a revenue-only run). Only the third assertion failed and exposed it. The probe now
+asserts `FIN.tab === 'reports'` **before** anything else, so reading the wrong screen can never
+again look like a pass. A guessed function name that no-ops is worse than one that throws.
+
 ## 2026-09-02 · Round 35 — "Top clients by revenue" was presenting unrecorded costs as 100% margin (fixed)
 
 **Found by a live read-only sweep, not by reading code** — and it is the only defect this

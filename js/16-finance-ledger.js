@@ -1068,6 +1068,18 @@ function rReports(){
     }
   });
   h2+='<tr style="border-top:2px solid #1C1E2B;background:#F3F1EA"><td style="padding:9px 8px;font-weight:800">'+(isArF()?'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a':'TOTAL')+'</td>'+mets.map(function(m){return '<td style="padding:9px 8px;text-align:right;font-weight:800">'+(m==='_count'?grand[m]:money0(grand[m]))+'</td>';}).join('')+'</tr></tbody></table></div>';
+  /* 2026-09-02 (round 36): the same rule round 35 applied to the per-client table. This report
+     sums profit_sar across whatever it groups by, and a row whose invoices all carry cost 0
+     reports its whole revenue as profit. Marking every row would be noise here (the report also
+     groups by month and quarter, where a marker says nothing useful), and the TOTAL must keep
+     reconciling against the ledger for the report-builder probe — so the honest move is one
+     line under the table, shown only when a profit or cost metric is actually on. */
+  if(mets.indexOf('profit_sar')>=0||mets.indexOf('cost_sar')>=0){
+    var _rbNo=base.filter(function(r){return (+r.cost_sar||0)===0;}).length;
+    if(_rbNo>0) h2+='<div style="font-size:11.5px;color:#B54708;font-weight:600;padding:8px 10px">⚠ '+(isArF()
+      ?(_rbNo+' من '+base.length+' بند في هذا التقرير بلا تكلفة مسجّلة — أرقام الربح هنا حدّ أقصى وليست نهائية.')
+      :(_rbNo+' of '+base.length+' rows in this report carry no recorded cost — the profit figures here are an upper bound, not final.'))+'</div>';
+  }
   return h+h2;
 }
 window.finRB=function(k,v){FIN.rb[k]=v;if(k==='g1'&&FIN.rb.g2===v)FIN.rb.g2='';render();};

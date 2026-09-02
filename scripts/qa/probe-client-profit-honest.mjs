@@ -85,8 +85,10 @@ async function main() {
     await p.evaluate(() => { openLead = null; current = 'finance'; render(); });
     await p.waitForTimeout(2200);
     await p.evaluate(() => {
-      if (typeof finTab === 'function') return finTab('clients');
-      const t = [...document.querySelectorAll('#view button, #view .fin-tab, #view .tab')].find((x) => /Clients & collections/.test(x.textContent || ''));
+      /* the switcher is finGo(tab), not finTab — an earlier version of this probe guessed
+         finTab, silently no-opped, and read the WRONG TAB while two checks passed anyway. */
+      if (typeof finGo === 'function') return finGo('clients');
+      const t = [...document.querySelectorAll('#view button, #view .fin-tab, #view .tab')].find((x) => /Clients & collections|العملاء والتحصيل/.test(x.textContent || ''));
       if (t) t.click();
     });
     await p.waitForTimeout(2000);
@@ -134,6 +136,36 @@ async function main() {
     if (t.note.some((n) => /upper bound/i.test(n))) ok('…and it says the profit total is an upper bound, because part of it rests on costs nobody has recorded');
     else fail('the Total row does not warn that the profit is an upper bound: ' + JSON.stringify(t.note));
   }
+
+  /* The Report Builder sums profit the same way and had no caveat at all. Marking every row
+     would be noise (it also groups by month and quarter), and the TOTAL has to keep reconciling
+     against the ledger for probe-report-builder-attacks — so it carries one line under the
+     table, and only when a profit or cost metric is actually switched on. */
+  const rb = await p.evaluate(async () => {
+    if (typeof finGo === 'function') finGo('reports');
+    await new Promise((r) => setTimeout(r, 1400));
+    const view = document.getElementById('view');
+    return { tab: (typeof FIN !== 'undefined' ? FIN.tab : '?'), txt: (view ? view.innerText : '').replace(/\s+/g, ' ') };
+  });
+  await p.waitForTimeout(600);
+  if (rb.tab === 'reports') ok('the Report Builder tab is the one being read (FIN.tab === "reports")');
+  else fail('the probe is reading tab "' + rb.tab + '", not the Report Builder — the assertions below would be meaningless');
+  if (/of \d+ rows in this report carry no recorded cost/.test(rb.txt)) ok('the Report Builder says how many of its rows have no recorded cost, and that its profit figures are an upper bound');
+  else fail('the Report Builder shows profit with no caveat. TAIL: ' + JSON.stringify(rb.txt.slice(-400)));
+  if (/upper bound/.test(rb.txt)) ok('…in those words, so nobody reads a grouped profit total as final');
+  else fail('the report note does not say "upper bound"');
+
+  // the caveat must NOT appear when no cost/profit metric is on — it would be noise
+  const revOnly = await p.evaluate(async () => {
+    try { FIN.rb.metrics = { revenue_sar: true }; } catch (_) {}
+    if (typeof finGo === 'function') finGo('reports');
+    await new Promise((r) => setTimeout(r, 1400));
+    const view = document.getElementById('view');
+    return (view ? view.innerText : '').replace(/\s+/g, ' ');
+  });
+  if (!/carry no recorded cost/.test(revOnly)) ok('…and a revenue-only report does NOT carry it — the caveat appears where profit is claimed, not everywhere');
+  else fail('the cost caveat shows on a revenue-only report, where it says nothing');
+  await p.evaluate(() => { try { FIN.rb.metrics = { revenue_sar: true, cost_sar: true, profit_sar: true }; } catch (_) {} });
 
   // Arabic
   await p.evaluate(() => { LANG = 'ar'; if (typeof applyLang === 'function') applyLang(); });
