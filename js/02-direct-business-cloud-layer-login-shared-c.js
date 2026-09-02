@@ -435,8 +435,12 @@
       var gone=Object.keys(SNAP).filter(function(k){ return !present[k] && ROWID[k]; });
       if(gone.length){
         var goneIds=gone.map(function(k){return ROWID[k];});
-        sb.from('businesses').update({archived_at:new Date().toISOString(),archived_by:(me&&me.email)||'app'}).in('id',goneIds).then(function(r){
-          if(!r.error) gone.forEach(function(k){ delete SNAP[k]; delete ROWID[k]; });
+        sb.from('businesses').update({archived_at:new Date().toISOString(),archived_by:(me&&me.email)||'app'}).in('id',goneIds).select('id').then(function(r){
+          // M13: only forget the rows the database confirms it archived — a silent RLS refusal
+          // returns no rows, and forgetting those would resurrect them as "new" on the next save.
+          var okIds={}; ((r&&r.data)||[]).forEach(function(x){ okIds[x.id]=1; });
+          if(!r.error) gone.forEach(function(k){ if(okIds[ROWID[k]]){ delete SNAP[k]; delete ROWID[k]; } });
+          if(!r.error&&Object.keys(okIds).length<goneIds.length) console.warn('[cloud] archived '+Object.keys(okIds).length+' of '+goneIds.length+' removed records — the rest were refused');
         });
       }
       var rest={}; Object.keys(DB).forEach(function(k){ if(k!=='businesses')rest[k]=DB[k]; });

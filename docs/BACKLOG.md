@@ -43,7 +43,17 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   the TABLE (name/e-mail/phone, row confirmed back); a table contact removed from the form is
   never deleted — it is flagged "needs confirmation" with the reason so a human decides. The mock
   now persists contact updates; probe scenarios (edit reaches the table, removal flags not
-  deletes, edit survives a fresh load), sabotage-verified.
+  deletes, edit survives a fresh load), sabotage-verified. Commit a825c94.
+- **Oversight cycle 1 applied (d047b8d)** — refuse-aware writes in the Finance editors, honest mock
+  PATCH, js/65's binary detector de-binarised, probe triage. Applied clean with a three-way merge.
+- **Round 6 (09:35–09:55).** The seven writes the oversight session flagged in this lane now
+  confirm rows back (M13): retiring superseded transactions and the automatic finance↔client
+  link (js/41), archiving removed records on save (js/02 — only rows the database confirms are
+  forgotten locally, so a refused archive can never resurrect as "new"), event delete/save and
+  the event site-login (js/10) — each says plainly "the database refused it, nothing changed"
+  instead of pretending. The mock now updates/deletes/inserts events, signups, links and
+  businesses honestly (matched rows back, [] on a miss) so those checks are exercisable here.
+  Events 52/52 + 16/16, alias-autolink, people-bridge, dedupe green.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

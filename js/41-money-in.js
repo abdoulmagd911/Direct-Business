@@ -226,8 +226,11 @@
     var sup=FIN._supersede; FIN._supersede=null;
     var out=_fcm.apply(this,arguments);
     if(sup&&sup.length){
-      fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).in('id',sup).then(function(r){
+      fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).in('id',sup).select('id').then(function(r){
         if(r&&r.error){ console.warn('[v65] could not retire superseded transactions',r.error); return; }
+        // M13: no error is not proof — a silent RLS refusal returns no rows. Say so, never pretend.
+        var got=(r&&r.data)?r.data.length:0;
+        if(got<sup.length){ console.warn('[v65] retired '+got+' of '+sup.length+' superseded transactions'); try{ if(typeof toast==='function')toast((typeof LANG!=='undefined'&&LANG==='ar')?('تم سحب '+got+' من '+sup.length+' معاملة قديمة فقط — تحقّق من الصلاحيات'):('Only '+got+' of '+sup.length+' superseded transactions were retired — check permissions')); }catch(_){} }
         FIN.rows=null; finLoad();
       });
     }
@@ -421,8 +424,9 @@
       if(t.indiv){ payload.business_id=null; payload.is_client=false; }
       else if(t.viaAlias){ payload.business_id=t.bizId; payload.is_client=true; payload.confirmed_by='auto-match-alias'; }
       else { payload.business_id=(window.__bizUuid?__bizUuid(t.biz.id):t.biz.id); payload.is_client=true; }
-      c.from('finance_client_links').upsert(payload,{onConflict:'client_group'}).then(function(r){
-        if(!r||!r.error){
+      c.from('finance_client_links').upsert(payload,{onConflict:'client_group'}).select('client_group').then(function(r){
+        // M13: a write with no error but no row back was refused silently — do not count it as linked
+        if(!r||(!r.error&&r.data&&r.data.length)){
           linked++;
           FIN.linkByGroup=FIN.linkByGroup||{}; FIN.linkByGroup[t.g]=payload;
           FIN.links=(FIN.links||[]).filter(function(l){return l.client_group!==t.g;}).concat([payload]);

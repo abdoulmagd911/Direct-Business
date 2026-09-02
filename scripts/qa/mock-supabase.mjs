@@ -436,7 +436,9 @@ export function start(port, seedOverrides){
       // those — zero matches returns [] (the silent-refusal shape the app must now detect).
       // Same for finance_targets and client_profiles, the other tables the Finance layers
       // update and previously fell through to the blanket `201 []`.
-      if(req.method==='PATCH'&&(t==='finance_invoices'||t==='finance_targets'||t==='client_profiles')){
+      // 2026-09-02 attack round 6: the same honest UPDATE for the tables the Leads/Events/linker
+      // layers update, so their new row-count checks can be exercised here too.
+      if(req.method==='PATCH'&&(t==='finance_invoices'||t==='finance_targets'||t==='client_profiles'||t==='ksa_events'||t==='businesses'||t==='finance_client_links')){
         let body=''; req.on('data',c=>body+=c);
         return req.on('end',()=>{
           let patch={}; try{ patch=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
@@ -507,6 +509,30 @@ export function start(port, seedOverrides){
           const hit=(TABLES.contacts||[]).filter(r=>id?String(r.id)===id:false);
           hit.forEach(r=>Object.assign(r,patch));
           return send(res,200,hit);
+        });
+      }
+      // ksa_events: DELETE by id returns the removed rows; INSERT returns the new row (2026-09-02).
+      if(t==='ksa_events'&&req.method==='DELETE'){
+        let want=u.query.id; if(Array.isArray(want))want=want[0];
+        const m=String(want||'').match(/^eq\.(.*)$/); const id=m?m[1]:null;
+        const removed=[]; const table=TABLES.ksa_events||[];
+        for(let i=table.length-1;i>=0;i--){ if(id&&String(table[i].id)===id){ removed.push(...table.splice(i,1)); } }
+        return send(res,200,removed);
+      }
+      if((t==='ksa_events'||t==='ksa_event_signups'||t==='finance_client_links')&&req.method==='POST'){
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(!Array.isArray(payload)) payload=[payload];
+          TABLES[t]=TABLES[t]||[];
+          const key=t==='ksa_event_signups'?'event_id':t==='finance_client_links'?'client_group':'id';
+          const written=payload.map(row=>{
+            const ix=row[key]!=null?TABLES[t].findIndex(r=>String(r[key])===String(row[key])):-1;
+            if(ix>=0){ TABLES[t][ix]=Object.assign({},TABLES[t][ix],row); return TABLES[t][ix]; }
+            const newRow=Object.assign({id:row.id||('mock-'+t+'-'+Math.random().toString(36).slice(2))},row);
+            TABLES[t].push(newRow); return newRow;
+          });
+          return send(res,201,written);
         });
       }
       return send(res,201,[]);
