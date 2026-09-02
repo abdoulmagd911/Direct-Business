@@ -1,5 +1,24 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Watch cycle 3 — Report Builder attacked, held everywhere; probe kept as a permanent guard
+
+**Attack area: Report Builder**, new `scripts/qa/probe-report-builder-attacks.mjs`. Six
+attacks across four grouping/metric configurations: every group total must equal the sum of
+the invoice rows the app keeps behind it (the drill-down can never disagree with the row it
+opened from); sub-groups must sum to their group and groups to the grand total; the grand
+total must equal an independent sum over every base row (nothing dropped, nothing double
+counted); the CSV export must be the table — same groups, sub-groups, numbers, order — with
+no unguarded formula-leading cell; a hostile client name (`<img onerror>`, `=HYPERLINK(...)`)
+must render as text and be formula-guarded in the file; a row with null quarter/month must
+never become a "null" dropdown option and must still group under "—". **All held.** Two
+sabotages proved the probe bites: doubling one metric in the aggregator → 5 failures;
+dropping sub-group rows from the CSV → failures. Files restored byte-identical.
+
+Regression after the Code session's rounds 10–14 (which touched `js/16`, `js/25`, `js/65`):
+finance-invariants · report-presets · outstanding-split · overview-attacks ·
+silent-write-refusal · compare-to · sector-scope · finance-export · import-hostile-shapes ·
+m13-remaining — all green. Cycle 2 (`0b007cd`) landed.
+
 ## 2026-09-02 · Watch cycle 2 — one malformed row could show Revenue = 0.00 for the whole company
 
 **Attack area: Finance Overview**, new `scripts/qa/probe-overview-attacks.mjs` — six hostile row
