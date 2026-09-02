@@ -434,6 +434,19 @@ Started 08:34 UTC. One round ≈ 25–40 min: attack one area hands-on in Englis
   client card (the loud onboarding button, the managed-client strip): both stay hidden in
   both languages — an earlier scan had read their hidden text and mis-flagged them.
   `probe-client-card-ar.mjs` covers it, desktop + phone. Two sabotages → red each.
+- **Round 26 (20:15–20:45) — the dialog forms, a whole class at once.** Scanning the modal
+  overlay (which the Arabic sweep had never covered — it scans the page body and top bar,
+  and the dialog lives beside them) found EVERY form English in Arabic: Log activity, New
+  request, New business / Edit lead, airline and provider edit, New SOP. Fixed at the root:
+  js/21 wraps the dialog opener and runs its pass on the dialog, with one deliberate safety
+  rule — inside a dialog a dropdown option is translated ONLY when it carries an explicit
+  value attribute, because in these forms the option text often IS the stored value
+  (activity type, stage, priority, ADM risk), and an Arabic word there would be saved as
+  data. The dictionary gained the five forms' titles and labels. `probe-modals-ar.mjs`
+  proves both halves: labels Arabic, the type / priority / ADM-risk option words still
+  English, a Log activity saved from the Arabic dialog stores type "Call", English dialogs
+  unchanged, the dialog fits a phone. Two sabotages → red each. Still English in dialogs:
+  placeholders (attribute text, not scanned) — low value, left.
 
 ## 2026-09-02 · Oversight cycle 1 of the 12-hour watch — silent writes, a binary-looking source file, probe triage
 

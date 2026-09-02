@@ -215,6 +215,30 @@
     'Open in Clients ↗':'افتح في العملاء ↗','Open in Clients':'افتح في العملاء'
   };
   Object.keys(CLIENT_CARD_AR).forEach(function(k){ if(V27_AR[k]===undefined) V27_AR[k]=CLIENT_CARD_AR[k]; });
+  // ---- Dialog forms (2026-09-02, round 26): titles and field labels of the Log activity, New
+  // request, New business / Edit lead, airline / provider edit and New SOP dialogs. Whole-string
+  // matches; the dropdown option words are deliberately NOT here (see the safe-options rule). ----
+  var MODAL_AR={
+    'New request':'طلب جديد','New business':'جهة جديدة','New SOP':'إجراء جديد','New event':'فعالية جديدة',
+    // log activity
+    'Type':'النوع','Move stage to':'نقل المرحلة إلى','What happened? — paste the conversation or write a summary':'ماذا حدث؟ — الصق المحادثة أو اكتب ملخصًا','Next action (optional)':'الإجراء التالي (اختياري)',
+    // request
+    'Client / business':'العميل / الجهة','Service':'الخدمة','Stage':'المرحلة','Request detail':'تفاصيل الطلب','Owner':'المسؤول','Priority':'الأولوية',
+    'Supplier / GDS':'المورّد / GDS','PNR / Ref / HCN':'PNR / المرجع / HCN','Sell value (SAR)':'قيمة البيع (ر.س)','Cost (SAR)':'التكلفة (ر.س)','Notes':'ملاحظات',
+    // lead / business form
+    'Business name (canonical)':'اسم الجهة (الرسمي)','Arabic name':'الاسم بالعربية','Segment':'الشريحة','Category':'الفئة','Funnel — where this lead came from':'المسار — من أين جاء هذا العميل المحتمل',
+    'Funnel / source':'المسار / المصدر','Assigned to (who works it)':'مسند إلى (من يعمل عليه)','Area (city)':'المنطقة (المدينة)','Agency subtype':'نوع الوكالة','Services they use':'الخدمات التي يستخدمونها',
+    // airline / provider edit
+    'Name':'الاسم','IATA code':'رمز IATA','Ticket stock (3-digit IATA code)':'رمز التذاكر (3 أرقام IATA)','On KSA IATA (BSP Saudi)?':'على IATA السعودية (BSP)؟','Country':'الدولة',
+    'Codeshare / interline partners':'الرمز المشترك / شركاء الربط','Availability source (where we book)':'مصدر التوفر (أين نحجز)','Booking / agent portal link':'رابط بوابة الحجز / الوكيل',
+    'ADM / admin portal link':'رابط بوابة ADM / الإدارة','Account / username (🔒 no passwords)':'الحساب / اسم المستخدم (🔒 بدون كلمات مرور)','ADM / compliance notes':'ملاحظات ADM / الامتثال',
+    'Process (booking / ticketing / issuance)':'آلية العمل (الحجز / الإصدار)','Points of contact':'جهات الاتصال','+ Add contact':'+ إضافة جهة اتصال','Servicing capabilities':'إمكانات الخدمة','Settlement model':'نموذج التسوية',
+    'Avg response time':'متوسط زمن الاستجابة','Use for (route-family recommendation)':'يُستخدم لـ (توصية حسب عائلة المسار)','Corporate self-service portal':'بوابة الخدمة الذاتية للشركات',
+    'NDC version supported':'إصدار NDC المدعوم','NDC environment':'بيئة NDC','On-time performance band':'نطاق الالتزام بالمواعيد',
+    // SOP
+    'Code':'الرمز','Title':'العنوان','Purpose':'الغرض','Commands (optional)':'الأوامر (اختياري)','Procedure':'الإجراء','Saudi market standard':'المعيار السوقي السعودي','Direct Business edge':'ميزة Direct Business'
+  };
+  Object.keys(MODAL_AR).forEach(function(k){ if(V27_AR[k]===undefined) V27_AR[k]=MODAL_AR[k]; });
   // Stage badge words — translated ONLY inside .statusbadge / stage pills, to avoid
   // colliding with the same words used elsewhere (headers, chips, filters).
   var STAGE_AR={'New':'جديد','Prospect':'مرتقب','Contacted':'تم التواصل','Qualified':'مؤهل','Proposal':'عرض مقدم','Negotiation':'تفاوض','Won':'مكسوب','Lost':'مفقود','Client':'عميل','On hold':'مُعلّق','In discussion':'قيد النقاش'};
@@ -251,7 +275,7 @@
       el.setAttribute('data-v27','1');
     }
   }
-  function scopeTranslate(scope){
+  function scopeTranslate(scope,safeOptions){
     if(!scope)return;
     var heads=scope.querySelectorAll('th,h2,h3'),i;
     for(i=0;i<heads.length;i++){ var hd=heads[i]; if(hd.getAttribute('data-v27')||hd.querySelector('input,select'))continue; translateDecorated(hd,V27_AR); }
@@ -280,7 +304,12 @@
     }
     // dropdown options: main dict, then stage words (safe — options are filter values, not data)
     var opts=scope.querySelectorAll('option'),o;
-    for(o=0;o<opts.length;o++){ var op=opts[o]; if(op.getAttribute('data-v27'))continue; var ot=(op.textContent||'').trim(); if(!ot)continue;
+    for(o=0;o<opts.length;o++){ var op=opts[o]; if(op.getAttribute('data-v27'))continue;
+      // inside a dialog (safeOptions) an <option> with no value attribute IS the stored value —
+      // translating its text would save an Arabic word as data (activity type, stage, priority,
+      // ADM risk). Only options that carry an explicit value are translated there (round 26).
+      if(safeOptions&&!op.hasAttribute('value'))continue;
+      var ot=(op.textContent||'').trim(); if(!ot)continue;
       if(V27_AR[ot]!==undefined) setText(op,V27_AR[ot]); else if(STAGE_AR[ot]!==undefined) setText(op,STAGE_AR[ot]); }
     // stage badges (row pills) — isolated stage dictionary
     var bd=scope.querySelectorAll('.statusbadge,.stage-badge,.lead-stage'),k;
@@ -339,6 +368,15 @@
     }catch(e){ if(window.console)console.warn('[v27] ar-translate',e); }
   }
   window.v27ArHeaders=v27ArHeaders;
+  // ---- Dialogs (2026-09-02, attack round 26): every modal form (Log activity, New request, New
+  // business, airline/provider edit, New SOP …) was English in Arabic because this file only ever
+  // scanned #view and .top — the dialog overlay lives beside them. Wrap the dialog opener once and
+  // run the same pass on the dialog, with the safe-options rule above. ----
+  function translateModal(){
+    try{ if(typeof LANG==='undefined'||LANG!=='ar')return; var m=document.getElementById('modal')||document.getElementById('ov'); if(!m)return; scopeTranslate(m,true); }catch(e){ if(window.console)console.warn('[v27] modal',e); }
+  }
+  window.v27TranslateModal=translateModal;
+  try{ if(typeof window.openModal==='function'&&!window.openModal.__v27){ var _om=window.openModal; var w=function(){ var out=_om.apply(this,arguments); translateModal(); setTimeout(translateModal,80); return out; }; w.__v27=1; window.openModal=w; } }catch(_){}
   if(typeof render==='function'){ var _r27=render; window.render=function(){ var out=_r27.apply(this,arguments); v27ArHeaders(); setTimeout(v27ArHeaders,80); return out; }; }
   v27ArHeaders();
 }catch(e){ if(window.console)console.warn('[v27] init',e); }})();
