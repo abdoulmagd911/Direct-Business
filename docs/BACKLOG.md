@@ -1,5 +1,31 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 39 — a Finance tab that fails silently showed you a different tab
+
+Found while driving the Finance tabs in the previous round, and it follows from how they are
+built. `js/16` owns five tabs, and its dispatcher was a chain ending in `: rOverview()`. The
+other three — **Expenses, Payment proofs, Individual bookings** — are added by later layers that
+**wrap** `renderFinance`: the inner call runs first and draws the Overview, then the wrapper
+checks `FIN.tab` and, if the tab is its own, wipes `#view` and rebuilds it.
+
+Every one of those wrappers ends in `catch(e){ console.warn(…) }`.
+
+So **if a layer throws while rendering its tab, its Overview fallback simply stays on screen.**
+The person clicks "Individual bookings" and gets **Performance** — no error, no empty state,
+nothing to suggest the click did anything at all. This project's own notes name that failure
+mode exactly: *"looks exactly like a mysterious failure"* — the pattern that cost months here.
+
+A tab js/16 does not own now renders an honest placeholder instead. A working layer overwrites
+it within the same tick, so nobody ever sees it; if it survives, the section really did fail and
+it says so and says what to do. Deliberately **neutral wording rather than a guessed label** —
+js/16 cannot name a tab another layer owns, because those layers inject their own buttons after
+`finTabs()` has run, and inventing a lookup would be one more thing to drift.
+
+Guarded by `scripts/qa/probe-finance-tab-honest.mjs` (8 checks). The important one does not test
+the theory but the real case: it **forces the Individual-bookings layer to throw mid-render** and
+asserts the person is not left looking at Performance. Sabotage restores `: rOverview()` and five
+checks go red, the failing-tab one among them.
+
 ## 2026-09-02 · Round 38 — the harness's own finance fixture could never have existed
 
 **Every finance probe in this repo has been asserting against invoices the live database could

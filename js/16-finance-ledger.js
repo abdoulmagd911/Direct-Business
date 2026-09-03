@@ -1259,7 +1259,32 @@ window.renderFinance=function(v){
      report drill-down) and Export ▾ answered "No rows to export — open the Ledger tab first"
      while the person was looking at the Ledger tab. Fill them on every finance render. */
   try{ FIN._csvRows=live().filter(finInPeriod); }catch(_){}
-  var body=FIN.tab==='ledger'?rLedger():FIN.tab==='clients'?rFinClients():FIN.tab==='reports'?rReports():FIN.tab==='import'?rImport():rOverview();
+  /* 2026-09-02 (round 39): this chain used to end in `:rOverview()`, so ANY tab this file does
+     not itself know silently rendered the Performance page. The extra tabs — Expenses, Payment
+     proofs, Individual bookings — are added by later layers that WRAP this function: the inner
+     call runs first (drawing the Overview), then the wrapper checks FIN.tab and rebuilds #view
+     if the tab is theirs. Each wrapper ends in `catch(e){console.warn(...)}`.
+     So if one of those layers throws while rendering, its Overview fallback simply stays on
+     screen: the person clicks "Individual bookings" and gets Performance, with no error, no
+     empty state, and nothing to suggest the click did anything at all. That is precisely the
+     shape of failure this project's history warns about — "looks exactly like a mysterious
+     failure". A tab this file does not own now gets an honest placeholder instead, which the
+     working layers overwrite in the same tick and nobody ever sees; if it survives, it is
+     because the section really did fail, and it says so. */
+  var OWN_TABS=['overview','clients','ledger','reports','import'];
+  /* This file cannot name a tab another layer owns — those layers inject their own buttons into
+     the bar after finTabs() has run — so the placeholder stays deliberately neutral rather than
+     guessing a label from the key. */
+  function finPlaceholder(){
+    return '<div class="card" id="fin-tab-pending" style="padding:34px;text-align:center;color:var(--muted)">'
+      +'<div style="font-size:15px;font-weight:700;color:var(--ink,#1C1E2B);margin-bottom:6px">'+(isArF()?'جارٍ فتح القسم':'Opening this section')+'</div>'
+      +'<div style="font-size:13px">'+(isArF()
+        ? 'إذا بقيت هذه الرسالة على الشاشة، فإن القسم لم يُحمَّل — أعد تحميل الصفحة.'
+        : 'If this message stays on screen, the section did not load — refresh the page.')
+      +'</div></div>';
+  }
+  var body=FIN.tab==='ledger'?rLedger():FIN.tab==='clients'?rFinClients():FIN.tab==='reports'?rReports():FIN.tab==='import'?rImport()
+          :(OWN_TABS.indexOf(FIN.tab)<0?finPlaceholder():rOverview());
   v.innerHTML=finTabs()+body;
 };
 
