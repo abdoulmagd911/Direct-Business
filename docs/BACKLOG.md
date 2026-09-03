@@ -1,5 +1,36 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-03 (overnight) · Watch cycle 21 — the twelve-commit batch is live, and the 29k question has an answer
+
+**The hand-off completed.** Watch cycles 9–20 went over as one patch series the moment Claude
+Code's usage reset, were applied on top of `50eac86`, and are live. Nineteen probes re-run green
+**against the merged tree**, including the corrected mock seed the other session landed in its own
+round 38 — which matters, because several of these probes read that seed and a silent interaction
+would have shown up here.
+
+**FOR THE OWNER — the one invoice with costs waiting, and why it has not been applied.**
+The other session flagged that 19 live invoices carry no recorded cost while the expense-capture
+tables hold 223 lines, and that exactly one of the 19 has approved expenses waiting. Re-checked
+independently against the live database, and the numbers agree: **one invoice, 14 approved expense
+lines, 28,998.18 SAR**.
+
+The reason it has not been applied is not a broken pipeline. **That invoice was billed at
+26,536.00 SAR and the approved costs against it come to 28,998.18 SAR** — the costs exceed what
+the client was charged. The importer refuses to write a cost larger than the invoice total and
+says "needs review, not applied" instead. That guardrail is doing exactly its job: applying it
+silently would turn a paid invoice into a loss on screen with nobody told.
+
+So the question is a business one, not a technical one: either that booking really did cost more
+than it billed, or some of those 14 lines belong to a different invoice. **It needs a person, and
+the amounts are real money, so nothing here was changed.** (Numbers only — the client name stays
+in the database, rule 7.)
+
+**Flagged, not this lane:** `finance_cogs_expenses` is empty on the live database while the QA mock
+seeds rows into it. `js/16` only mentions the table in a comment and never reads it; the tab that
+does is `js/45-expenses`, outside the P4 finance lane, so this is recorded for that owner rather
+than edited here. It is the same harness-vs-live shape that has produced a real finding four times
+this watch — the mock exercising a populated case the live system does not have.
+
 ## 2026-09-03 (overnight) · Watch cycle 20 — mutation audit round two: four more guards that were not guarding
 
 Cycle 17 ran this audit over the battery as it stood; everything added since (cycles 13–19) had
