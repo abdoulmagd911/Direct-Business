@@ -86,23 +86,32 @@ async function main() {
   ].join('\n');
   await ingest('mapped-a.csv', fileA);
   let c = await counts();
-  if (c.isNew === 4 && c.updated === 0 && c.unchanged === 0 && c.needsLinking >= 0) ok(`first drop preview: New 4 · Updated 0 · Unchanged 0 (IA-1, IA-2, IA-4, IA-5)`); else fail('first drop preview counts wrong: ' + JSON.stringify(c));
+  /* 2026-09-03 (watch cycle 16) — these numbers changed, and the reason matters more than the
+     numbers. invoice_date is NOT NULL with no default on the live table, so IA-4 (no date) could
+     never have landed there: this probe's original expectation was written against a mock that
+     accepted a null date, and it asserted behaviour production forbids. Worse, sending that null
+     lost the WHOLE batch (PostgREST sends one batch as one statement), so the preview promised
+     4 new and the database wrote 0. IA-4 is now held back by name and the other three land. */
+  if (c.isNew === 3 && c.updated === 0 && c.unchanged === 0 && c.needsLinking >= 0) ok(`first drop preview: New 3 · Updated 0 · Unchanged 0 (IA-1, IA-2, IA-5) — IA-4 held back, it has no date`); else fail('first drop preview counts wrong: ' + JSON.stringify(c));
   if (/Takamol for Business Services \(#7: Takamol/.test(c.text)) ok('excluded partner named in the preview with client id and reason (never silent)'); else fail('exclusion not named in preview: ' + JSON.stringify(c.text.slice(0, 400)));
-  if (/Excluded by rule\s+1\b/.test(c.text)) ok('Excluded by rule = 1'); else fail('Excluded by rule count not 1');
+  if (/Excluded by rule\s+2\b/.test(c.text)) ok('Excluded by rule = 2 — the excluded partner and the date-less row, each named'); else fail('Excluded by rule count not 2');
+  if (/IA-4[\s\S]{0,120}(no readable invoice date|تاريخ فاتورة)/.test(c.text)) ok('IA-4 is named in the preview with the reason it was held back'); else fail('IA-4 not named as held back: ' + JSON.stringify(c.text.slice(0, 500)));
   if (!/NaN|undefined|Q5|Invalid Date/.test(c.text)) ok('no NaN / undefined / Q5 in the preview'); else fail('preview carries NaN/undefined/Q5');
   let btn = await confirmBtn();
-  if (btn && /4 new, 0 updated/.test(btn)) ok(`confirm button says what will be written — "${btn}"`); else fail('confirm button text: ' + btn);
+  if (btn && /3 new, 0 updated/.test(btn)) ok(`confirm button says what will be written — "${btn}"`); else fail('confirm button text: ' + btn);
   let done = await clickConfirm();
-  if (/Done\.\s*Imported 4 new, updated 0\./.test(done)) ok('database reported exactly the preview\'s numbers: 4 new, 0 updated (M13)'); else fail('commit message: ' + JSON.stringify(done.slice(0, 200)));
+  if (/Done\.\s*Imported 3 new, updated 0\./.test(done)) ok('database reported exactly the preview\'s numbers: 3 new, 0 updated (M13) — one unwritable row no longer costs the whole file'); else fail('commit message: ' + JSON.stringify(done.slice(0, 200)));
 
   const r1 = (await inv('IA-1'))[0] || {};
   if (near(r1.total_incl_vat_sar, 1000) && near(r1.revenue_sar, 1000) && near(r1.cost_sar, 100) && near(r1.profit_sar, 900)) ok('IA-1 landed as the database keeps it: total 1000 · revenue 1000 · cost 100 · profit 900 (revenue is never profit)'); else fail(`IA-1 stored total ${r1.total_incl_vat_sar} revenue ${r1.revenue_sar} cost ${r1.cost_sar} profit ${r1.profit_sar}`);
   if (near(r1.vat_sar, 0) && near(r1.wallet_portion_sar, 0)) ok('IA-1: vat_sar 0 and wallet 0 — the mapped path never guesses a VAT split'); else fail(`IA-1 vat ${r1.vat_sar} wallet ${r1.wallet_portion_sar}`);
   if (r1.month === 'June' && r1.quarter === 'Q2' && r1.integrity_status === 'pending' && near(r1.amount_remaining_sar, 1000)) ok('IA-1: June / Q2, pending, fully outstanding until reconciled'); else fail(`IA-1 month ${r1.month} q ${r1.quarter} status ${r1.integrity_status} remaining ${r1.amount_remaining_sar}`);
-  const r4 = (await inv('IA-4'))[0] || {};
-  if (r4.invoice_no === 'IA-4' && r4.invoice_date == null && r4.month == null && r4.quarter == null) ok('IA-4 (no date) landed with null date and NO month/quarter — never a guessed period'); else fail(`IA-4 date ${r4.invoice_date} month ${r4.month} quarter ${r4.quarter}`);
+  if ((await inv('IA-4')).length === 0) ok('IA-4 (no date) reached the table not at all — held back by name, never sent as a null the database refuses, and never given a guessed date'); else fail('the date-less row was written after all');
   const r5 = (await inv('IA-5'))[0] || {};
   if (near(r5.total_incl_vat_sar, -200) && near(r5.revenue_sar, -200) && near(r5.profit_sar, -200)) ok('IA-5 (200) stays a negative 200 through total, revenue and profit'); else fail(`IA-5 total ${r5.total_incl_vat_sar} revenue ${r5.revenue_sar} profit ${r5.profit_sar}`);
+  // the live fin_nonneg_chk allows a negative total ONLY on a credit note, and forbids a negative
+  // amount_remaining — a negative sent as "pending" is refused, and takes the batch with it
+  if (r5.integrity_status === 'credit_note' && near(r5.amount_remaining_sar, 0)) ok('IA-5 is stored as a credit note with nothing outstanding — the one shape the database accepts for a negative total'); else fail(`IA-5 status ${r5.integrity_status} remaining ${r5.amount_remaining_sar}`);
   if ((await inv('IA-3')).length === 0) ok('IA-3 (excluded partner) never reached the table'); else fail('excluded partner row was written');
   const blank = (await allInv()).filter((r) => !String(r.invoice_no || '').trim()).length;
   if (blank === 0) ok('the reference-less row created nothing'); else fail(blank + ' blank-reference row(s) written');
@@ -112,16 +121,16 @@ async function main() {
   await p.evaluate(() => { if (typeof window.finGo === 'function') window.finGo('import'); }); await p.waitForTimeout(600);
   await ingest('mapped-a.csv', fileA);
   c = await counts();
-  if (c.isNew === 0 && c.updated === 0 && c.unchanged === 4) ok('re-dropping the same file: New 0 · Updated 0 · Unchanged 4 — there is no "importing twice"'); else fail('re-drop is not idempotent: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
+  if (c.isNew === 0 && c.updated === 0 && c.unchanged === 3) ok('re-dropping the same file: New 0 · Updated 0 · Unchanged 3 — there is no "importing twice"'); else fail('re-drop is not idempotent: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
   btn = await confirmBtn();
   if (!btn) ok('no Confirm button offered when nothing would change'); else fail('Confirm offered on an unchanged re-drop: ' + btn);
-  if (/Excluded by rule\s+1\b/.test(c.text)) ok('the excluded partner is still named on the re-drop (exclusion is at import, every time)'); else fail('exclusion count missing on re-drop');
+  if (/Excluded by rule\s+2\b/.test(c.text)) ok('the excluded partner and the date-less row are still both named on the re-drop (both checks run at import, every time)'); else fail('exclusion count missing on re-drop');
 
   /* ---------- 3. one real change ---------- */
   const fileB = fileA.replace('IA-2,Test Company 2,2026-06-16,500,0', 'IA-2,Test Company 2,2026-06-16,650,120');
   await ingest('mapped-b.csv', fileB);
   c = await counts();
-  if (c.isNew === 0 && c.updated === 1 && c.unchanged === 3) ok('one edited total: New 0 · Updated 1 · Unchanged 3'); else fail('edited-file preview wrong: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
+  if (c.isNew === 0 && c.updated === 1 && c.unchanged === 2) ok('one edited total: New 0 · Updated 1 · Unchanged 2'); else fail('edited-file preview wrong: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
   btn = await confirmBtn();
   if (btn && /0 new, 1 updated/.test(btn)) ok(`confirm button — "${btn}"`); else fail('confirm button text: ' + btn);
   done = await clickConfirm();
@@ -132,7 +141,7 @@ async function main() {
   await p.evaluate(() => { if (typeof window.finGo === 'function') window.finGo('import'); }); await p.waitForTimeout(600);
   await ingest('mapped-b.csv', fileB);
   c = await counts();
-  if (c.isNew === 0 && c.updated === 0 && c.unchanged === 4) ok('and the edited file re-dropped is fully unchanged again'); else fail('edited file not idempotent on second drop: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
+  if (c.isNew === 0 && c.updated === 0 && c.unchanged === 3) ok('and the edited file re-dropped is fully unchanged again'); else fail('edited file not idempotent on second drop: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
 
   /* ---------- 4. binary renamed .csv ---------- */
   const bin = 'PK\x03\x04\x01\x02binary-not-a-csv\x07\x08Ref,Customer,Date,Total,Cost\nZZ-1,Test Company 1,2026-06-15,10,0';

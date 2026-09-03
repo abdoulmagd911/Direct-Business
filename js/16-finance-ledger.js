@@ -383,7 +383,12 @@ function _finBizDirectId(uuid){
 function finCanon(clientGroup){
   var ck=(clientGroup==null?'':clientGroup);
   if(_finCanonCache[ck]!==undefined)return _finCanonCache[ck];
-  var disp=(ck==='')?'—':ck, res;
+  /* 2026-09-03 (watch cycle 16): client_group is NOT NULL on the live table, but "" and "   "
+     both satisfy that — and only the exact empty string fell back to the em-dash, so a
+     whitespace-only name rendered as a row of real money with no visible owner. Trim before
+     deciding. The LOOKUP below deliberately still uses the raw value, because a link may
+     legitimately be keyed on the name exactly as Direct Payments typed it, padding included. */
+  var disp=(String(ck).trim()==='')?'—':ck, res;
   // M14, 2026-08-25 — client name aliases (js/62 Part 1.5) are checked FIRST and win outright:
   // an admin-confirmed canonical name (e.g. "Madar - Smart Systems" for "Madar" + its Arabic
   // spelling) always overrides whatever the linked business's own name field says. Consulted

@@ -1,5 +1,64 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-03 (overnight) · Watch cycle 16 — one bad date in a file destroyed the whole import, and a negative total did the same
+
+**Attack area: hostile shapes the live SCHEMA permits**, new
+`scripts/qa/probe-hostile-shapes-attacks.mjs` (port 8219, 22 checks), plus a correction to
+`probe-importer-attacks` that had been asserting something production forbids.
+
+**Harness honesty first, and it paid immediately.** The live table's rules were read from
+`information_schema` and `pg_constraint` on the real database this cycle: `invoice_no`,
+`client_group` and `invoice_date` are **NOT NULL with no default**; `line_no` is NOT NULL default 1
+and the unique key is `(invoice_no, line_no)`; `fin_nonneg_chk` permits a negative total **only**
+when `integrity_status = 'credit_note'`; `fin_wallet_le_total_chk`, `fin_quarter_chk`,
+`fin_rectype_chk`, `fin_status_chk` and the origin/revenue-way checks bound the rest. The mock
+enforced **none** of it. It does now (rejections in PostgREST's own 23502 / 22007 / 22008 / 23514
+shapes, on the REST insert path and the commit RPC, atomically). The existing importer probe went
+red the moment it was honest.
+
+**Real gap 1 — one unreadable date lost the entire file.** A file row whose date column is blank
+or unparseable produced `invoice_date: null`. The database refuses it, and because PostgREST sends
+a batch as ONE statement, that single row loses **every** row in the file: the preview promised
+"4 new" and the commit reported "0 new". This is the exact shape of the incident the owner already
+lived through once (27 intended, 0 written, caused by the generated `year` column). Such rows are
+now named and held back like a deleted invoice — "no readable invoice date … the rest of the file
+still imports" — so the good rows land and the person can see which line to fix.
+
+**Real gap 2 — a negative total was sent as a "pending" invoice**, which `fin_nonneg_chk` refuses,
+losing the whole batch the same way. A negative total *is* a credit note; it is now stored as one,
+with nothing outstanding (that constraint forbids a negative `amount_remaining_sar` too).
+
+**Real gap 3 — an impossible date got through the parser.** `isoDateG` accepted day 31 for every
+month, so `2026-02-30` became a string that looks like a date and the database rejected the batch.
+It now checks the real calendar day.
+
+**Real gap 4 — a whitespace-only client name showed a row of real money with no owner.**
+`client_group` is NOT NULL, but `"   "` satisfies that, and only the exact empty string fell back
+to the em-dash placeholder. Trimmed now; the link lookup still uses the raw value, since a link may
+legitimately be keyed on the name exactly as Direct Payments typed it.
+
+**An earlier probe was asserting the impossible.** `probe-importer-attacks` checked that a
+date-less row "landed with a null date and no month/quarter". It cannot land at all in production.
+That expectation was written against a mock that accepted anything, and it was defending the very
+behaviour that destroyed the batch. Corrected, with the reason written into the probe.
+
+**Held under attack** (no defect): a four-line tax invoice counts as ONE invoice on both counters —
+the header strip and the Invoices tile are separate code and both were checked, because sabotaging
+one passed while the other was being read; its money is summed once per line and once only; a
+ten-year span 2016–2028 scopes correctly and every year appears in the period bar; a future year
+holding only an unpaid invoice shows no verified revenue rather than inventing one; zero, 0.005 and
+9,876,543.21 all render without NaN or Infinity; an invoice paid entirely from the client wallet
+contributes exactly zero revenue; a credit note stays out of the verified total but stays in the
+export; a 400-character client name does not break the table; all four Report Builder groupings
+agree on one grand total; and the invoice export carries every service line with no bad cell.
+
+**Sabotage-verified four times, file-level**, each red, each restored byte-identical (md5).
+Twenty-one probes and the structure check green.
+
+**For the owner, no change made:** today's 46 live invoices are all single-line, single-status, no
+wallet, no negatives, no future dates — so none of this is visible yet. It becomes visible with the
+653-invoice backfill, where multi-line invoices are the norm.
+
 ## 2026-09-03 (overnight) · Watch cycle 15 — two people, two tabs: the app blamed the wrong thing, and one restore had no lock at all
 
 **Attack area: concurrency**, new `scripts/qa/probe-concurrency-attacks.mjs` (port 8217,

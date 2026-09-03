@@ -331,12 +331,28 @@
     });
   }
   function isLinked(r,linkByGroup){ var l=linkByGroup[r.client_group]; return !!(l&&(l.business_id||l.is_client===false)); }
+  /* 2026-09-03 (watch cycle 16): invoice_date is NOT NULL with no default on the live table
+     (information_schema, read the same day). A file row whose date column is blank or unreadable
+     produced invoice_date:null, which the database refuses — and since PostgREST sends a batch as
+     ONE statement, that single row loses EVERY row in the file. The preview said "4 new" and the
+     commit said "0 new"; the owner has lived through this exact shape once already, with the
+     generated `year` column. Such rows are now named and held back like a deleted invoice, so the
+     rest of the file still lands and the person can see which line to fix. */
+  function noDateNote(){
+    return fl('no readable invoice date — the invoice date is required, so this row was held back; the rest of the file still imports',
+              'لا يوجد تاريخ فاتورة مقروء — تاريخ الفاتورة مطلوب، لذا حُجز هذا الصف؛ وبقية الملف تُستورد كالمعتاد');
+  }
   function deletedHereNote(no){
     return fl('deleted in this app — restore it first, then re-import; nothing was written',
               'محذوفة في هذا التطبيق — استرجعها أولًا ثم أعد الاستيراد؛ لم يُكتب شيء');
   }
   function mergeRowsIntoState(rows,state){
     rows.forEach(function(r){
+      if(r.invoice_date==null||r.invoice_date===''){
+        state.excludedByRule++;
+        state.excludedDetail.costCaptureDetail.push({invoice_no:r.invoice_no,reason:noDateNote()});
+        return;
+      }
       if(!state.existingByNo[r.invoice_no]&&state.deletedByNo&&state.deletedByNo[r.invoice_no]){
         state.excludedByRule++;
         state.excludedDetail.costCaptureDetail.push({invoice_no:r.invoice_no,reason:deletedHereNote(r.invoice_no)});
@@ -423,6 +439,12 @@
     else if((m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/))){ d=+m[1]; mo=+m[2]; y=+m[3]; if(mo>12&&d<=12){ var t=mo; mo=d; d=t; } }
     else return null;
     if(!(mo>=1&&mo<=12&&d>=1&&d<=31))return null;
+    /* 2026-09-03 (watch cycle 16): "31" passed for every month, so 2026-02-30 came through as a
+       string that LOOKS like a date. invoice_date is a real DATE column — Postgres rejects it
+       ("date/time field value out of range"), and because PostgREST sends one batch as ONE
+       statement, that single row loses the WHOLE import. Check the real calendar day. */
+    var _t=new Date(Date.UTC(y,mo-1,d));
+    if(_t.getUTCFullYear()!==y||_t.getUTCMonth()!==mo-1||_t.getUTCDate()!==d)return null;
     return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
   }
   try{ window.__v65MoneyG=moneyG; window.__v65IsoDateG=isoDateG; }catch(_){}
@@ -461,8 +483,13 @@
       discount_sar:0,
       // no payment-status column is asked for in the mapping (kept deliberately simple) — a
       // mapped row is honestly "not yet reconciled" until someone updates it, not assumed paid.
-      amount_received_sar:0, amount_remaining_sar:total,
-      integrity_status:'pending',
+      // 2026-09-03 (watch cycle 16): a NEGATIVE total is a credit note, and the live table says
+      // so — fin_nonneg_chk allows total < 0 only when integrity_status='credit_note'. Sending
+      // such a row as 'pending' is rejected by the database, and one rejected row loses the whole
+      // batch. amount_remaining is never negative either (the same constraint), so a credit note
+      // carries nothing outstanding: there is nothing left for the client to pay on it.
+      amount_received_sar:0, amount_remaining_sar:(total<0?0:total),
+      integrity_status:(total<0?'credit_note':'pending'),
       exclusion_reason:null, notes:String(get('notes')||'').trim()||null,
       source_batch:'mapped-import-'+new Date().toISOString().slice(0,10),
       line_no:1, branch:String(get('branch')||'').trim()||null, salesman:null,

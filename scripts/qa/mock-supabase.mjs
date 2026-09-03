@@ -278,6 +278,47 @@ let _finIdSeq=0; // new finance_invoices rows inserted through the mock get mock
    while the real database rejects the second write and rolls the whole batch back. Mirrored so
    the app's behaviour on that rejection is testable locally (the same reason the derive trigger
    is mirrored). Returns PostgREST's own 23505 shape. */
+/* 2026-09-03 (watch cycle 16): the live table's NOT NULLs and CHECK constraints, read from
+   information_schema/pg_constraint on the real database the same day. The mock accepted anything,
+   so a client that builds an unwritable row looked fine here and failed only in production —
+   and because PostgREST sends a batch as ONE statement, one bad row loses the WHOLE batch (the
+   exact shape of the owner's "27 intended, 0 written" incident with the generated `year` column).
+   Columns NOT NULL with no default: invoice_no, client_group, invoice_date. */
+function finConstraintViolation(row){
+  const bad=(code,message,details)=>({code,message,details:details||null,hint:null});
+  for(const col of ['invoice_no','client_group','invoice_date']){
+    if(row[col]===null||row[col]===undefined||row[col]===''){
+      if(col==='invoice_date'&&row[col]==='') return bad('22007','invalid input syntax for type date: ""');
+      return bad('23502','null value in column "'+col+'" of relation "finance_invoices" violates not-null constraint');
+    }
+  }
+  // a real DATE column rejects an out-of-range day (2026-02-30, 2026-13-01) outright
+  const d=String(row.invoice_date);
+  const m=d.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m) return bad('22007','invalid input syntax for type date: "'+d+'"');
+  const y=+m[1],mo=+m[2],da=+m[3];
+  const dt=new Date(Date.UTC(y,mo-1,da));
+  if(!(mo>=1&&mo<=12)||dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==da){
+    return bad('22008','date/time field value out of range: "'+d+'"');
+  }
+  const n=(v)=>(v==null?0:Number(v));
+  if(n(row.wallet_portion_sar)<0||n(row.amount_received_sar)<0||n(row.amount_remaining_sar)<0||
+     (n(row.total_incl_vat_sar)<0&&row.integrity_status!=='credit_note'))
+    return bad('23514','new row for relation "finance_invoices" violates check constraint "fin_nonneg_chk"');
+  if(n(row.wallet_portion_sar)>Math.max(n(row.total_incl_vat_sar),0))
+    return bad('23514','new row for relation "finance_invoices" violates check constraint "fin_wallet_le_total_chk"');
+  if(row.quarter!=null&&['Q1','Q2','Q3','Q4'].indexOf(row.quarter)<0)
+    return bad('23514','new row for relation "finance_invoices" violates check constraint "fin_quarter_chk"');
+  if(row.record_type!=null&&['b2b','tender','b2c','government'].indexOf(row.record_type)<0)
+    return bad('23514','new row for relation "finance_invoices" violates check constraint "fin_rectype_chk"');
+  if(row.integrity_status!=null&&['verified_paid','pending','excluded','credit_note'].indexOf(row.integrity_status)<0)
+    return bad('23514','new row for relation "finance_invoices" violates check constraint "fin_status_chk"');
+  if(row.origin!=null&&['booking','project'].indexOf(row.origin)<0)
+    return bad('23514','new row for relation "finance_invoices" violates check constraint "finance_invoices_origin_check"');
+  if(row.revenue_way!=null&&['invoice','transaction','commission','promo_code','b2c_manual'].indexOf(row.revenue_way)<0)
+    return bad('23514','new row for relation "finance_invoices" violates check constraint "finance_invoices_revenue_way_check"');
+  return null;
+}
 function finUniqueClash(table,row,ignoreId){
   if(row==null||row.invoice_no==null)return null;
   const ln=(row.line_no==null?null:row.line_no);
@@ -416,6 +457,8 @@ export function start(port, seedOverrides){
         const _staged=[];
         for(const row of pIns){
           const clean=pick(row);
+          const bad=finConstraintViolation(clean);
+          if(bad) return send(res,400,bad);
           const clash=finUniqueClash(fiTable.concat(_staged),clean,null);
           if(clash) return send(res,409,clash);
           _staged.push(clean);
@@ -679,6 +722,8 @@ export function start(port, seedOverrides){
           const staged=[];
           for(const row of payload){
             if(onConflict==='id' && row.id && table.findIndex(r=>r.id===row.id)>=0) continue;
+            const bad=finConstraintViolation(row);
+            if(bad) return send(res,400,bad);
             const clash=finUniqueClash(table.concat(staged),row,null);
             if(clash) return send(res,409,clash);
             staged.push(row);
