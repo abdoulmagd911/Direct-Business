@@ -1,3 +1,38 @@
+## Round 43 — who owns this client, and finding the ones nobody owns (2026-09-03)
+
+Found by sweeping the **live data** rather than the code, after the owner asked for spotless in
+every way, not just code and UI.
+
+**The data finding, for Abdulrahman:** 20 of Direct's 28 live clients have **no account manager**.
+Every one of them came from the corporate-client import of 21–23 August — the import created the
+client records but nobody was ever assigned to them. That is a business decision (who owns which
+client), so nothing was assigned here; a session must never invent an owner any more than it
+invents a cost. The 20 also have no funnel, which is *not* a defect — funnels are a
+lead-acquisition concept and these arrived as clients.
+
+Two code defects behind it, both fixed:
+
+1. **`rowToApp()` never read `assigned_to` or `account_manager` at all.** The one function that
+   turns a database row into the object every screen reads took ownership only from the `raw` JSON
+   blob. Measured live: all 88 owned records carry the name in *both* places, so nothing on screen
+   was wrong today. The trap is anything that assigns ownership without going through the app — a
+   SQL update, or an import exactly like the August one. It writes the column, `raw` stays empty,
+   and the app shows "Unassigned" over a name sitting right there in the database. The raw blob
+   still wins; the column is now a fallback for a row the app has never saved.
+2. **The account-manager filter could not ask for the unowned.** It was built from the names
+   actually present, with `.filter(Boolean)`, so the only way to find the 20 was to scroll and spot
+   red "Unassigned" tags. It now offers "Unassigned (n)" — built bilingual at source, because
+   js/21's translator matches an option's text exactly and "Unassigned (20)" is not the bare word
+   its dictionary holds.
+
+Also checked and found clean, so they are not defects: the `is_client` / `raw.isClient` split-brain
+CLAUDE.md warns about is guarded by an OR on read (`(r.is_client===true)||base.isClient===true`), so
+the one mismatched record reads as a client everywhere and the next save heals it; "Unassigned" is
+already in the Arabic dictionary; both clients tables already flag it in red.
+
+Guarded by `scripts/qa/probe-ownership-visible.mjs` (11 checks). Both fixes sabotage-verified
+(column fallback → 4 red, `__none__` branch → 1 red), both files restored byte-identical.
+
 ## Round 42 — the funnel details card: Arabic that was already written, and a Save that deleted answers (2026-09-03)
 
 Seven funnels are live and 91 leads carry answers, and **not one probe had ever rendered a single

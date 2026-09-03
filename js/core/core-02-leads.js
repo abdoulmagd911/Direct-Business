@@ -178,7 +178,13 @@ function clientHealth(b){
 function renderClients(v){
   let cl=DB.businesses.filter(b=>b.isClient);
   if(clFilter.q){const q=clFilter.q.toLowerCase();cl=cl.filter(b=>((b.name||"")+" "+(b.nameAr||"")+" "+((b.contacts||[]).map(c=>String(c.email||"")+String(c.phone||"")).join(" "))).toLowerCase().includes(q));}
-  if(clFilter.owner!=="all")cl=cl.filter(b=>window.sameOwner?sameOwner(b.accountManager||b.assignedTo,clFilter.owner):(b.accountManager||b.assignedTo||"")===clFilter.owner);
+  /* 2026-09-03 (round 43): "__none__" lists the clients nobody owns. The dropdown was built from
+     the names actually present and .filter(Boolean), so there was no way to ASK for the unowned
+     ones — you could only spot the red "Unassigned" tags by scrolling. Live that day: 20 of
+     Direct's 28 clients had no account manager (all from the August corporate-client import), so
+     the one view a manager most needs in order to fix it was the one view the page could not show. */
+  if(clFilter.owner==="__none__")cl=cl.filter(b=>!String(b.accountManager||b.assignedTo||"").trim());
+  else if(clFilter.owner!=="all")cl=cl.filter(b=>window.sameOwner?sameOwner(b.accountManager||b.assignedTo,clFilter.owner):(b.accountManager||b.assignedTo||"")===clFilter.owner);
   if(clFilter.tier!=="all")cl=cl.filter(b=>(b.tier||"Standard")===clFilter.tier);
   const sv=(b,k)=>k==="am"?String(b.accountManager||b.assignedTo||"").toLowerCase():k==="tier"?String(b.tier||"Standard"):k==="review"?(b.nextReview||"9999-99"):k==="health"?({"At risk":0,Watch:1,New:2,Good:3}[clientHealth(b).l]):String(b.name||"").toLowerCase();
   cl=cl.slice().sort((a,b)=>{const va=sv(a,clSort.k),vb=sv(b,clSort.k);return va<vb?-1*clSort.dir:va>vb?1*clSort.dir:0;});
@@ -196,7 +202,9 @@ function renderClients(v){
     <div style="flex:1"></div><button class="btn sm ghost" onclick="current='leads';render()">&larr; Leads pipeline</button></div>
   <div class="toolbar">
     <div class="search-wrap">${IC.search}<input id="clq" placeholder="${_arCl?'ابحث عن العملاء...':'Search clients...'}" value="${esc(clFilter.q)}"></div>
-    <select onchange="clFilter.owner=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All managers</option>${[...new Set(DB.businesses.filter(b=>b.isClient).map(b=>b.accountManager||b.assignedTo).filter(Boolean))].sort().map(t=>`<option value="${t}" ${clFilter.owner===t?"selected":""}>${t}</option>`).join("")}</select>
+    <select onchange="clFilter.owner=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All managers</option>${(function(){var _n=DB.businesses.filter(b=>b.isClient&&!String(b.accountManager||b.assignedTo||"").trim()).length;/* built bilingual here on purpose: js/21's translator matches an option's text exactly, and
+   "Unassigned (20)" is not the bare "Unassigned" that its dictionary holds */
+var _ar=(typeof LANG!=='undefined'&&LANG==='ar');return _n?`<option value="__none__" ${clFilter.owner==="__none__"?"selected":""}>${_ar?"غير معيّن":"Unassigned"} (${_n})</option>`:"";})()}${[...new Set(DB.businesses.filter(b=>b.isClient).map(b=>b.accountManager||b.assignedTo).filter(Boolean))].sort().map(t=>`<option value="${t}" ${clFilter.owner===t?"selected":""}>${t}</option>`).join("")}</select>
     <button class="btn sm ${clFilter.owner===(window.meName?meName():"")&&clFilter.owner!=="all"?"pri":"ghost"}" onclick="clToggleMine()">👤 ${(typeof LANG!=="undefined"&&LANG==="ar")?"خاص بي":"Mine"}</button>
     <select onchange="clFilter.tier=this.value;render()" style="border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;background:#fff;cursor:pointer"><option value="all">All tiers</option><option ${clFilter.tier==="Key"?"selected":""}>Key</option><option ${clFilter.tier==="Standard"?"selected":""}>Standard</option></select>
   </div>

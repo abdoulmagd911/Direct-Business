@@ -123,6 +123,17 @@
       var _mx=0;o.activities.forEach(function(a){var d=(typeof a.date==='number')?a.date:Date.parse(a.date)||0;if(d>_mx)_mx=d;});
       if(_mx)o.lastContact=_mx;
     }
+    /* Who works it. 2026-09-03 (round 43): this conversion never read assigned_to or
+       account_manager at all — ownership reached the screen ONLY if it happened to be inside the
+       raw blob, which is true for every record the app itself saved. Checked live the same day:
+       all 88 owned records carry the name in BOTH places, so nothing on screen changes today.
+       The trap is anything that assigns ownership WITHOUT going through the app — a SQL update, or
+       an import like the one that created the 20 corporate clients in August. It writes the column,
+       the raw blob stays empty, and the app keeps showing "Unassigned" over a name that is sitting
+       right there in the database. The raw blob still wins, so current behaviour is untouched; the
+       column is only a fallback for a record the app has never saved. */
+    if(!o.assignedTo&&r.assigned_to!=null&&String(r.assigned_to).trim()!=='')o.assignedTo=String(r.assigned_to).trim();
+    if(!o.accountManager&&r.account_manager!=null&&String(r.account_manager).trim()!=='')o.accountManager=String(r.account_manager).trim();
     // Direct client ID — the link key to Direct Payments. Real column wins over any raw copy.
     if(r.direct_client_id!=null&&r.direct_client_id!=='')o.directClientId=String(r.direct_client_id);
     return o;
