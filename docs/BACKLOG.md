@@ -1,5 +1,45 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-03 (overnight) · Watch cycle 18 — five tender invoices were being reported as ordinary B2B
+
+**Attack area: which field decides a sector.** Raised in cycles 2, 3 and 7 and left for a ruling
+each time. It is not a business decision — it is a wrong key — so this cycle measured it against
+the live database and fixed it.
+
+**Measured, live, 3 Sep** (counts only; no company names in this repo, rule 7):
+- 36 client profiles exist; **6 carry the explicit `profile_type = 'tender'`**, and all six have a
+  business record.
+- **4 of those 6 have invoices — 9 invoices in total belong to tender clients.**
+- The rule in force matched the word "tender" against a client's **free-text payment terms**, and
+  called only **4 of those 9** a tender.
+- **So five real tender invoices were being counted as ordinary B2B.**
+- Nothing goes the other way: no client whose payment terms mention a tender has a profile saying
+  it is something else. Only 2 of 21 businesses with payment terms mention one at all.
+
+**Fixed:** `finSectorOf()` now prefers `client_profiles.profile_type` when a live profile exists
+for that client, and keeps the free-text match **only** as a fallback where no profile exists — so
+nothing that used to be classified stops being classified. An archived or closed profile decides
+nothing. A new `finSectorBasis()` reports which of the two answered, so the page can say so
+instead of mixing them silently. The profile index is loaded in `finLoad()` (a small paged read)
+and refreshed by `txnLoad()`, so the sector key is available before anyone opens the Ledger —
+previously the profiles were only fetched by the Ledger tab.
+
+**New probe `probe-sector-key-attacks.mjs`** (port 8221, 11 checks) seeds all four combinations —
+profile says tender / terms say tender / both / neither — plus an archived profile and a School
+Commission line, and proves: the explicit field wins both ways, the fallback still works, an
+archived profile decides nothing, the three chips add up to the unfiltered total with nothing lost
+or double-counted, and the Tenders chip totals exactly the clients that really are tenders.
+
+**Sabotage-verified twice, file-level:** putting the payment-terms match back in front turns 3
+checks red (including the Tenders total); letting archived profiles decide turns 2 red. Restores
+byte-identical (md5). Twenty-two probes and the structure check green.
+
+**For the owner — what changes on screen:** the Tenders chip will now include the tender clients
+whose payment-terms text never said so. On today's data that moves five invoices out of B2B and
+into Tenders. If any of those six clients is *not* really a tender client, the fix is to correct
+its profile in Direct Payments — which is the right place for it — rather than to reword its
+payment terms.
+
 ## 2026-09-03 (overnight) · Watch cycle 17 — a mutation audit of the safety net itself: does each check actually bite?
 
 **Attack area: the probes, not the app.** Cycle 15 found that the cycle-12 probe's "all ten write

@@ -97,6 +97,17 @@ function finLoad(cb){
         FIN.linkByGroup[l.client_group]=l;
         if(l.business_id){ (FIN.groupsByBiz[l.business_id]=FIN.groupsByBiz[l.business_id]||[]).push(l.client_group); }
       });
+      // the sector key: business_id -> profile_type, so finSectorOf can prefer the explicit field
+      finPageAll(function(){return c.from('client_profiles').select('id,business_id,profile_type,status').order('id',{ascending:true});}, function(cp){
+        FIN.profileTypeByBiz={};
+        ((cp&&!cp.error&&cp.data)||[]).forEach(function(x){
+          if(!x||!x.business_id)return;
+          // an archived or closed profile must not decide a sector; only a live one does
+          if(x.status&&String(x.status).toLowerCase()!=='active')return;
+          FIN.profileTypeByBiz[x.business_id]=x.profile_type||null;
+        });
+        try{ if(typeof clearFinCanon==='function')clearFinCanon(); }catch(_){}
+      });
       finPageAll(function(){return c.from('finance_targets').select('*').order('year',{ascending:true});}, function(tr){
         FIN.targets=(tr&&!tr.error&&tr.data)?tr.data:[];
         // Promo-code registry (revenue way #4): per-code totals mirrored from Direct Payments.
@@ -341,12 +352,43 @@ function _finBizTerms(uuid){
     return _finBizTermsIndex[uuid]||null;
   }catch(_){ return null; }
 }
+/* 2026-09-03 (watch cycle 18) — raised in cycles 2, 3 and 7, now measured and fixed.
+   The Tenders chip was decided by matching the word "tender" against a client's FREE-TEXT
+   payment terms. `client_profiles.profile_type` exists for exactly this purpose and carries an
+   explicit 'tender' value. Read live from the database on 3 Sep: 6 clients carry that profile,
+   4 of them have invoices, 9 invoices belong to them — and the free-text rule was calling only 4
+   of those 9 a tender. Five real tender invoices were being reported as ordinary B2B. Nothing in
+   the other direction: no client whose terms say "tender" has a profile saying otherwise.
+   So: the explicit field wins where a profile exists; the free-text match is kept ONLY as a
+   fallback for a client with no profile yet, so nothing that used to be classified stops being.
+   finSectorBasis() says which of the two answered, so the page can show it rather than mixing
+   the two silently. */
+function finProfileTypeOf(bizId){
+  try{
+    if(!bizId)return null;
+    var ix=(FIN&&FIN.profileTypeByBiz)||null;
+    if(!ix)return null;
+    return Object.prototype.hasOwnProperty.call(ix,bizId)?ix[bizId]:null;
+  }catch(_){ return null; }
+}
+function finSectorBasis(r){
+  if(String(r.service_type||'')==='School Commission')return 'service';
+  var l=(FIN.linkByGroup||{})[r.client_group];
+  if(l&&l.business_id&&finProfileTypeOf(l.business_id))return 'profile';
+  if(l&&l.business_id&&/tender/i.test(String(_finBizTerms(l.business_id)||'')))return 'terms';
+  return 'default';
+}
 function finSectorOf(r){
   if(String(r.service_type||'')==='School Commission')return 'academies';
   var l=(FIN.linkByGroup||{})[r.client_group];
-  if(l&&l.business_id&&/tender/i.test(String(_finBizTerms(l.business_id)||'')))return 'tenders';
+  if(l&&l.business_id){
+    var pt=finProfileTypeOf(l.business_id);
+    if(pt) return (String(pt).toLowerCase()==='tender')?'tenders':'b2b';
+    if(/tender/i.test(String(_finBizTerms(l.business_id)||'')))return 'tenders';
+  }
   return 'b2b';
 }
+try{ window.finSectorOf=finSectorOf; window.finSectorBasis=finSectorBasis; }catch(_){}
 var SECTORS=[['all',['All sectors','كل القطاعات']],['tenders',['Tenders','مناقصات']],['b2b',['B2B','أعمال']],['academies',['Academies','أكاديميات']]];
 window.finPS=function(v){ FIN.p.sector=v; clearFinCanon(); if(typeof render==='function')render(); };
 var _finBizDirectIdIndex=null;
@@ -748,7 +790,11 @@ function txnLoad(cb){
     if(r.error){ if(window.console)console.warn('finance_transactions load',r.error); TXN.rows=[]; }
     else TXN.rows=r.data||[];
     finPageAll(function(){return c.from('client_profiles').select('id,business_id,direct_client_id,profile_type,payment_terms,billing_cycle,status').order('id',{ascending:true});}, function(pr){
-      TXN.profiles={}; ((pr&&!pr.error&&pr.data)||[]).forEach(function(p){TXN.profiles[p.id]=p;});
+      TXN.profiles={}; FIN.profileTypeByBiz=FIN.profileTypeByBiz||{};
+      ((pr&&!pr.error&&pr.data)||[]).forEach(function(p){
+        TXN.profiles[p.id]=p;
+        if(p.business_id&&(!p.status||String(p.status).toLowerCase()==='active')) FIN.profileTypeByBiz[p.business_id]=p.profile_type||null;
+      });
       if(cb)cb(); try{if(current==='finance'&&FIN.tab==='ledger')render();}catch(_){}
     });
   });
