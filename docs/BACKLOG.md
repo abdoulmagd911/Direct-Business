@@ -1,3 +1,38 @@
+## Round 42 — the funnel details card: Arabic that was already written, and a Save that deleted answers (2026-09-03)
+
+Seven funnels are live and 91 leads carry answers, and **not one probe had ever rendered a single
+funnel field**. The mock's only funnel was `{key:'default', field_template:[]}` and every seeded
+lead had `funnel_id:null`, so the card never matched a lead and never drew. The same shape that hid
+defects in rounds 19, 20, 33 and 41: an unseeded fixture is not a passing test, it is no test.
+
+Driving it with a faithful fixture found three things, each confirmed by hand before the fix:
+
+1. **The card and its editor were English-only.** Every funnel carries `name_ar` and every field in
+   `field_template` carries `label_ar` — the Arabic was already written, sitting in the data — and
+   the card printed `name_en` / `label_en` whatever the language, plus "Yes"/"No". 72 of the 91
+   funnelled leads are Website Form — Entities, worked by BD staff in Arabic. Now the Arabic leads
+   in Arabic, with the English as a quiet second line in the editor, and a template row with no
+   Arabic yet falls back to its English label rather than to a blank.
+2. **Pressing Save destroyed answers nobody saw.** The save built a fresh `{}` from the *current*
+   template and assigned it over `funnelDetails`, so any stored key the template no longer lists was
+   deleted — silently, by someone editing an unrelated field. Measured live the same day: **zero
+   leads carry an orphan key right now**, so nothing has been lost yet. But templates get edited
+   (past_invoices was built three weeks ago) and the importer writes `funnel_details` straight in.
+   The save now starts from what is stored; clearing a box still clears that answer, deliberately.
+3. **No guard on the editor.** `window.__editFunnelDetails` was callable by anyone and the Edit
+   button was drawn for everyone, including a read-only share link — the same shape the oversight
+   session had just fixed in Finance. Guarded at the function, not only the button.
+
+Deliberately **not** changed: a `select:`'s option values stay English. They are stored values, not
+labels; translating them would write Arabic into the data and break every filter that reads them —
+the rule `probe-option-values-are-data` already holds.
+
+Guarded by `scripts/qa/probe-funnel-details.mjs` (23 checks). All three fixes sabotage-verified
+separately (Arabic → 3 red, preserve → 3 red, guard → 2 red), file restored byte-identical each
+time. The shared mock's funnel now carries one field of every type the live funnels actually use,
+with no lead attached, so the next session has something real to drive without shifting any count
+another probe asserts.
+
 # Action items — things deliberately put on hold
 
 ## 2026-09-03 (overnight) · Watch cycle 21 — the twelve-commit batch is live, and the 29k question has an answer

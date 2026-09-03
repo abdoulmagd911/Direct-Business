@@ -68,7 +68,24 @@ const TABLES={
     {id:'u-fin',email:'finance.person@directksa.com',full_name:'Finance Person',role:'operations',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:false,allowed_pages:['today','finance']},
     {id:'u-off',email:'switched.off@directksa.com',full_name:'Switched Off',role:'viewer',active:false,created_at:'2026-08-09T00:00:00Z',must_change_password:false,allowed_pages:['today','reports']}],
   app_state:[{id:1,data:BLOB,updated_at:'2026-08-08T13:52:37Z',updated_by:'test@directksa.com'}],
-  funnels:[{id:'f1',key:'default',name_en:'Default',name_ar:'افتراضي',color:'orange',sort_order:1,active:true,field_template:[],created_at:null,updated_at:null}],
+  /* 2026-09-03 (round 42): field_template was `[]` and every seeded lead had funnel_id:null, so
+     fdef() never matched and the funnel-details card had NEVER rendered a field in any probe —
+     seven funnels are live and 91 leads carry answers. Same shape as rounds 19/20/33/41: an
+     unseeded fixture is not a passing test, it is no test. The template now carries one field of
+     every type the live funnels actually use (read from the database that day: text, textarea,
+     boolean, date, number, select:a,b,c) so a probe has something real to drive. No seeded lead
+     points at this funnel on purpose — attaching one would shift the lead counts that other
+     probes assert; probe-funnel-details.mjs seeds its own leads and funnel via start()'s
+     overrides. */
+  funnels:[{id:'f1',key:'default',name_en:'Default',name_ar:'افتراضي',color:'orange',sort_order:1,active:true,created_at:null,updated_at:null,
+    field_template:[
+      {key:'how_identified',label_en:'How we identified them',label_ar:'كيف تعرفنا عليهم',type:'text'},
+      {key:'original_message',label_en:'Original message',label_ar:'الرسالة الأصلية',type:'textarea'},
+      {key:'form_received',label_en:'Form received on',label_ar:'تاريخ استلام النموذج',type:'date'},
+      {key:'has_app',label_en:'Has mobile app',label_ar:'لديهم تطبيق',type:'boolean'},
+      {key:'tender_value',label_en:'Tender value',label_ar:'قيمة المناقصة',type:'number'},
+      {key:'research_status',label_en:'Research status',label_ar:'حالة البحث',type:'select:pending,done'},
+    ]}],
   finance_invoices:[...Array(15)].map((_,i)=>{const _svc=['Flights','Hotels','Visa','Support Services','Packages'][i%5];const _mo=['January','February','March','April','May','June'][i%6];const _q='Q'+(Math.floor((i%6)/3)+1);const _tot=5000+i*777;const _cost=_svc==='Support Services'?0:Math.round(_tot*0.88);/* 2026-09-02 (round 38): this fixture used to store revenue = total − cost and profit = revenue,
        which the live database could never produce. The trigger finance_derive_fields defines
        revenue = total − wallet and profit = revenue − cost, and 12 of these 17 rows broke the

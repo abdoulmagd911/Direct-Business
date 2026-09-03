@@ -69,6 +69,24 @@
   window.__needsAttn=false;
 
   function fdef(b){var out=null;F().forEach(function(f){if(f.key===b.funnelKey)out=f;});return out;}
+  /* 2026-09-03 (round 42) — the funnel card and its editor were English-only, on a page half the
+     team works in Arabic. Every funnel carries name_ar, and EVERY field in field_template carries
+     label_ar: the Arabic was sitting in the data, already written, and the card printed name_en
+     and label_en regardless of language. 72 of the 91 funnelled leads are Website Form — Entities,
+     worked by BD staff. These helpers pick the Arabic when the page is Arabic and fall back to the
+     English when a template row has no Arabic (never to a blank label). */
+  /* part 1's E() is inside its own IIFE and out of scope here; this part had been escaping only
+     "<" by hand, which leaves a label or an answer containing & or a quote to render wrong. */
+  function E(x){return (''+(x==null?'':x)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function fnAr(){try{return (typeof LANG!=='undefined'&&LANG==='ar');}catch(_){return false;}}
+  function fnL(en,ar){return fnAr()?(ar||en):(en||ar||'');}
+  function fnLabel(fl){return fnL(fl&&fl.label_en,fl&&fl.label_ar);}
+  function fnTitle(f){return fnL(f&&f.name_en,f&&f.name_ar);}
+  /* A share link is read-only and a viewer may not write — the same rule js/15 and js/10 apply.
+     Read the flags directly rather than through whichever canEdit() won the load order, so this
+     holds even if a later layer replaces that function (exactly how a read-only share link came
+     to be writable in Finance, fixed the day before this). */
+  function fnMayEdit(){try{ if(window.__isShareView)return false; if(window.__userTier==='viewer')return false; return true; }catch(_){return true;}}
   function overdue(b){return b.nextActionDate&&(new Date(b.nextActionDate+'T23:59:59')<new Date());}
   function attention(b){return !(b.contacts&&b.contacts.length)||overdue(b)||b.needsManualConfirmation===true;}
 
@@ -209,11 +227,12 @@
     var det=b.funnelDetails||{};
     var card=document.createElement('div');card.className='card';card.id='funnelCard';
     card.style.cssText='border:1.5px solid '+(FCOLOR[f.color]||'#5F5E5A')+'55';
-    var inner='<h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="color:'+(FCOLOR[f.color]||'#5F5E5A')+'">'+f.name_en+' details</span><button class="btn ghost sm" onclick="window.__editFunnelDetails(\''+String(b.id).replace(/'/g,"\\'")+'\')">Edit</button></h3>';
+    var inner='<h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="color:'+(FCOLOR[f.color]||'#5F5E5A')+'">'+E(fnL(fnTitle(f)+' details',fnTitle(f)+' \u2014 \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644'))+'</span>'+
+      (fnMayEdit()?('<button class="btn ghost sm" onclick="window.__editFunnelDetails(\''+String(b.id).replace(/'/g,"\\'")+'\')">'+fnL('Edit','\u062a\u0639\u062f\u064a\u0644')+'</button>'):'')+'</h3>';
     (f.field_template||[]).forEach(function(fl){
       var val=det[fl.key];if(val==null||val==='')val='\u2014';
-      if(typeof val==='boolean')val=val?'Yes':'No';
-      inner+='<div class="fact"><span class="k">'+fl.label_en+'</span><span class="v" style="max-width:58%;text-align:right;white-space:normal">'+String(val).replace(/</g,'&lt;')+'</span></div>';
+      if(typeof val==='boolean')val=val?fnL('Yes','\u0646\u0639\u0645'):fnL('No','\u0644\u0627');
+      inner+='<div class="fact"><span class="k">'+E(fnLabel(fl))+'</span><span class="v" style="max-width:58%;text-align:right;white-space:normal">'+E(val)+'</span></div>';
     });
     card.innerHTML=inner;
     var grid=v.querySelector('.detail-grid');
@@ -224,20 +243,24 @@
   }
 
   window.__editFunnelDetails=function(id){
+    if(!fnMayEdit())return;   // guard the function, not just the button — a share link is read-only
     var b=getLead(id);if(!b)return;var f=fdef(b);if(!f)return;
     var det=b.funnelDetails||{};
     var old=document.getElementById('fdModal');if(old)old.remove();
     var ov=document.createElement('div');ov.id='fdModal';
     ov.style.cssText='position:fixed;inset:0;z-index:2147481000;background:rgba(20,22,35,.55);display:flex;align-items:center;justify-content:center;padding:20px';
     var inner='<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:86vh;overflow:auto;padding:22px 24px;font-family:inherit">'+
-      '<div style="font-size:16px;font-weight:800;margin-bottom:14px">'+f.name_en+' details \u2014 '+String(b.name||'').replace(/</g,'&lt;')+'</div>';
+      '<div style="font-size:16px;font-weight:800;margin-bottom:14px">'+E(fnL(fnTitle(f)+' details',fnTitle(f)+' \u2014 \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644'))+' \u2014 '+E(b.name||'')+'</div>';
     (f.field_template||[]).forEach(function(fl){
       var val=det[fl.key];if(val==null)val='';
       var fid='fd_'+fl.key;
-      inner+='<label style="display:block;font-size:12px;font-weight:700;color:#55596A;margin:10px 0 4px">'+fl.label_en+(fl.label_ar?' \u00b7 '+fl.label_ar:'')+'</label>';
+      // the language in front leads, the other stays as a quiet second line — a template row with
+      // no Arabic still shows its English label rather than nothing
+      var _l1=E(fnLabel(fl)), _l2=E(fnAr()?(fl.label_en||''):(fl.label_ar||''));
+      inner+='<label style="display:block;font-size:12px;font-weight:700;color:#55596A;margin:10px 0 4px">'+_l1+(_l2&&_l2!==_l1?' \u00b7 '+_l2:'')+'</label>';
       var t=String(fl.type||'text');
       if(t==='textarea')inner+='<textarea id="'+fid+'" style="width:100%;box-sizing:border-box;min-height:74px;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px">'+String(val).replace(/</g,'&lt;')+'</textarea>';
-      else if(t==='boolean')inner+='<select id="'+fid+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px"><option value=""'+(val===''?' selected':'')+'>\u2014</option><option value="true"'+(val===true?' selected':'')+'>Yes</option><option value="false"'+(val===false?' selected':'')+'>No</option></select>';
+      else if(t==='boolean')inner+='<select id="'+fid+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px"><option value=""'+(val===''?' selected':'')+'>\u2014</option><option value="true"'+(val===true?' selected':'')+'>'+fnL('Yes','\u0646\u0639\u0645')+'</option><option value="false"'+(val===false?' selected':'')+'>'+fnL('No','\u0644\u0627')+'</option></select>';
       else if(t.indexOf('select:')===0){
         var opts=t.slice(7).split(',');
         inner+='<select id="'+fid+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px"><option value="">\u2014</option>'+opts.map(function(o){return '<option value="'+o+'"'+(val===o?' selected':'')+'>'+o.replace(/_/g,' ')+'</option>';}).join('')+'</select>';
@@ -245,18 +268,27 @@
       else inner+='<input id="'+fid+'" type="'+(t==='date'?'date':t==='number'?'number':'text')+'" value="'+String(val).replace(/"/g,'&quot;')+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px">';
     });
     inner+='<div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">'+
-      '<button id="fd_cancel" style="border:1px solid #E3DCCF;background:#fff;border-radius:10px;padding:10px 18px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">Cancel</button>'+
-      '<button id="fd_save" style="border:0;background:#FF6B00;color:#fff;border-radius:10px;padding:10px 20px;font:inherit;font-size:13px;font-weight:800;cursor:pointer">Save</button></div></div>';
+      '<button id="fd_cancel" style="border:1px solid #E3DCCF;background:#fff;border-radius:10px;padding:10px 18px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">'+fnL('Cancel','\u0625\u0644\u063a\u0627\u0621')+'</button>'+
+      '<button id="fd_save" style="border:0;background:#FF6B00;color:#fff;border-radius:10px;padding:10px 20px;font:inherit;font-size:13px;font-weight:800;cursor:pointer">'+fnL('Save','\u062d\u0641\u0638')+'</button></div></div>';
     ov.innerHTML=inner;
     document.body.appendChild(ov);
     document.getElementById('fd_cancel').onclick=function(){ov.remove();};
     ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
     document.getElementById('fd_save').onclick=function(){
-      var out={};
+      if(!fnMayEdit())return;
+      /* 2026-09-03 (round 42) — this used to build a FRESH {} from the template and assign it over
+         funnelDetails, so any stored answer whose key is not in the CURRENT template was destroyed
+         by pressing Save on an unrelated field. The person never saw the field, so they never knew
+         it went. Measured live the same day: no lead carries an orphan key right now, so nothing
+         is lost today — but funnel templates are edited (past_invoices was built three weeks ago)
+         and the importer writes funnel_details straight in, so the moment a template loses a field
+         every save quietly deletes that answer. Start from what is stored and change only the
+         fields this form actually showed; clearing a box still removes its key, deliberately. */
+      var out={};Object.keys(det||{}).forEach(function(k){out[k]=det[k];});
       (f.field_template||[]).forEach(function(fl){
         var e=document.getElementById('fd_'+fl.key);if(!e)return;
         var v2=e.value;
-        if(v2===''||v2==null)return;
+        if(v2===''||v2==null){delete out[fl.key];return;}   // emptied on purpose = cleared
         var t=String(fl.type||'text');
         if(t==='boolean')out[fl.key]=(v2==='true');
         else if(t==='number')out[fl.key]=Number(v2);
