@@ -37,6 +37,37 @@ Guarded by `scripts/qa/probe-tier-filter-bilingual.mjs` (10 checks: Arabic words
 and the filter returning identical rows in both languages). Sabotage — remove the value attributes,
 which is the original bug exactly — goes red; file restored byte-identical.
 
+## 2026-09-03 · Watch cycle 22 — the Report Builder drill-down: no defect found, kept as a guard
+
+**Attack area: the drill-down** (js/25, chapter 25 part 3) — clicking a grouped row opens the
+invoices behind that total. Ninety-odd probes existed and none had ever driven it. The whole
+promise is that what a row expands to adds up to the row it expanded from; if that were ever
+untrue a manager would read a total and a contradicting list side by side and believe both.
+
+**No defect found.** New `scripts/qa/probe-drilldown-attacks.mjs` (port 8223, 22 checks) opens
+**every** openable row across five shapes — client, month, service type, client › month, and both
+with verified-only on and off — and reconciles each one against its own printed total on every
+metric. All 251 detail lines across all shapes reconcile exactly. A client with a single invoice
+opens to one line; a client with 260 says "the first 200 of 260 invoices — use Export CSV for all
+of them" rather than quietly stopping at 200; with a second grouping only the sub-rows open, so a
+client's invoices never appear above its own months; opening every client and closing them again
+leaves nothing stranded. The reconciliation guard is real: deliberately moving one invoice's
+revenue without moving the total makes the app refuse the detail in words.
+
+**Two corrections to this probe, both mine, both worth recording.** It first asserted that every
+opened invoice must fall inside the period on the bar — and flagged correct behaviour as a defect.
+The Report Builder deliberately spans all years and sectors, and **says so in its own caption on
+screen** ("the period bar above does not apply to this report"). The check now verifies that the
+page says it, which is the actual guarantee. Second, its open/close counting depended on whatever
+the previous check had left open, and read exactly backwards once (0 open, 250 after "closing");
+it now starts from a known-closed state and toggles until the detail is really painted.
+
+**Sabotage-verified twice, file-level:** dropping the reconcile loop turns the guard check red;
+making the sub-grouping open the group rows turns 36 rows red — via the app's own withholding
+notice, which is that guard doing its job. Restores byte-identical (md5). Nineteen probes and the
+structure check green.
+
+
 ## Round 44 — the five documents a client actually reads (2026-09-03)
 
 js/67 price offer, js/68 service fees, js/69 company profile, js/70 contract, js/71 tender:
