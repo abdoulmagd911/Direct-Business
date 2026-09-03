@@ -271,6 +271,23 @@ const RPCLOG=[];
 // can be driven for real. /__lapse?on=0 restores.
 let LAPSED=false;
 let _finIdSeq=0; // new finance_invoices rows inserted through the mock get mock-fi-N ids
+/* 2026-09-03 (watch cycle 15): the live table carries
+     UNIQUE (invoice_no, line_no)   -- finance_invoices_invoice_line_key
+   read from pg_constraint on the real database the same day. The mock enforced nothing, so two
+   sessions could both insert the same invoice number here and the harness would call it fine —
+   while the real database rejects the second write and rolls the whole batch back. Mirrored so
+   the app's behaviour on that rejection is testable locally (the same reason the derive trigger
+   is mirrored). Returns PostgREST's own 23505 shape. */
+function finUniqueClash(table,row,ignoreId){
+  if(row==null||row.invoice_no==null)return null;
+  const ln=(row.line_no==null?null:row.line_no);
+  const hit=table.find(r=>r.invoice_no===row.invoice_no&&((r.line_no==null?null:r.line_no))===ln&&(ignoreId==null||r.id!==ignoreId));
+  if(!hit)return null;
+  return {code:'23505',
+    message:'duplicate key value violates unique constraint "finance_invoices_invoice_line_key"',
+    details:'Key (invoice_no, line_no)=('+row.invoice_no+', '+(ln==null?'null':ln)+') already exists.',
+    hint:null};
+}
 // 2026-09-02 (watch cycle 5): mirror of the LIVE trigger finance_derive_fields() (BEFORE INSERT OR
 // UPDATE on finance_invoices, read from pg_trigger the same day) — month/quarter from the date,
 // revenue = total − wallet, profit = revenue − cost, remaining = 0 on excluded/credit rows. Without
@@ -394,6 +411,15 @@ export function start(port, seedOverrides){
         const pCapGates=Array.isArray(parsed.p_capture_gates)?parsed.p_capture_gates:[];
         const fiTable=TABLES.finance_invoices;
         let inserted=0, updated=0;
+        // the real function runs in ONE transaction: a unique violation on any inserted row
+        // aborts the whole call and nothing lands. Checked before anything is written.
+        const _staged=[];
+        for(const row of pIns){
+          const clean=pick(row);
+          const clash=finUniqueClash(fiTable.concat(_staged),clean,null);
+          if(clash) return send(res,409,clash);
+          _staged.push(clean);
+        }
         pIns.forEach(row=>{
           const clean=pick(row);
           fiTable.push(deriveFinanceInvoice(Object.assign({id:'mock-fi-'+(++_finIdSeq)}, clean)));
@@ -649,6 +675,14 @@ export function start(port, seedOverrides){
           }
           let onConflict=u.query.on_conflict; if(Array.isArray(onConflict))onConflict=onConflict[0];
           const table=TABLES.finance_invoices;
+          // one statement, one transaction: a clash anywhere fails the WHOLE batch and writes nothing
+          const staged=[];
+          for(const row of payload){
+            if(onConflict==='id' && row.id && table.findIndex(r=>r.id===row.id)>=0) continue;
+            const clash=finUniqueClash(table.concat(staged),row,null);
+            if(clash) return send(res,409,clash);
+            staged.push(row);
+          }
           const written=payload.map(row=>{
             if(onConflict==='id' && row.id){
               const ix=table.findIndex(r=>r.id===row.id);

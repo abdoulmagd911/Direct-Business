@@ -1,5 +1,52 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-03 (overnight) · Watch cycle 15 — two people, two tabs: the app blamed the wrong thing, and one restore had no lock at all
+
+**Attack area: concurrency**, new `scripts/qa/probe-concurrency-attacks.mjs` (port 8217,
+17 checks). Two independent browser sessions against one database, every check diffing the whole
+table before and after.
+
+**Real gap 1 — the app gave a reason it did not know.** When a delete or restore matched zero
+rows, all four paths said the same thing: *"your account was not allowed to."* Zero rows can mean
+three different things, and on a team the usual one is the third: a colleague (or your own other
+tab) already did it and your screen is out of date. Telling that person it is a permission problem
+sends them to ask for rights they already have, and leaves them believing the invoice is still
+there. Rule M8 applies to explanations as much as to numbers. A new `finZeroRowMsg()` asks the
+database which of the three it actually is — the row is gone, the row is already in that state, or
+the write was genuinely refused — says so plainly in both languages, and on a race reloads so the
+screen stops showing something that is no longer true.
+
+**Real gap 2 — `finRestore(id)` had no permission check at all**, and `finDel(id)` still used
+`canFinEdit()`, the wrapper cycle 12 showed can answer "yes" inside a share view. Cycle 12 guarded
+the by-invoice-number pair and missed the by-id pair. Worse, and worth writing down: **the cycle-12
+probe claimed to cover "all ten write paths" and did not catch this**, because it called Restore on
+a LIVE invoice — where `deleted_at` goes from null to null and the table is unchanged whatever the
+guard does. A check that cannot fail is not a check. Pointed at an actually-deleted invoice, a
+viewer restored it. Both paths now use `finCanWrite()`.
+
+**Held under attack.** Two admins editing different invoices at the same moment: both writes land,
+neither touches the other row. Two admins editing the same invoice in different fields: both
+fields survive. Both tabs arming the SAME 25-row import and both pressing Confirm: exactly one copy
+of each invoice number ends up in the table, and the second tab is told its import failed and
+nothing landed, with the database's own reason. Two tabs setting the same year's target leave one
+row, not two.
+
+**Harness honesty, again.** The live table carries `UNIQUE (invoice_no, line_no)`
+(`finance_invoices_invoice_line_key`, read from `pg_constraint` on the real database this cycle).
+The mock enforced nothing, so two sessions could both insert the same invoice number here and the
+harness would call it fine — while production rejects the second write and rolls the whole batch
+back. Now mirrored, returning PostgREST's own 23505 shape, on both the REST insert path and the
+`fn_commit_finance_import` RPC (atomic: a clash anywhere writes nothing).
+
+**Sabotage-verified twice, file-level:** putting the flat permission message back turns 2 checks
+red; dropping the guard from `finRestore` turns 1 red. Restores byte-identical (md5). Twenty-one
+probes and the structure check green.
+
+**Measured, not changed:** two tabs setting the same target is last-write-wins with no notice to
+the first person. One row, no corruption, and the number is a single deliberate figure someone
+types — so this is recorded as known behaviour rather than fixed blind. Say the word if you want
+the second person warned that someone changed it while their screen was open.
+
 ## 2026-09-03 (overnight) · Watch cycle 14 — the importer driven at scale: no defect found, kept as a guard
 
 **Attack area: the import flow against a large existing table**, new

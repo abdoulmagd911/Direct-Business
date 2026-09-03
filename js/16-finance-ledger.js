@@ -972,13 +972,41 @@ function finConfirm(msg,onYes){
    closes, row appears gone) and then reappeared on the next refresh with no explanation.
    Inert today (every active account is finance:editor \u2014 verified 0 non-editors), but it fires
    the day the owner sets a new hire to a role without finance-edit rights. */
+/* 2026-09-03 (watch cycle 15, scripts/qa/probe-concurrency-attacks.mjs): a delete or restore that
+   matched ZERO rows used to give exactly one explanation — "your account was not allowed to".
+   That is only one of the three things zero rows can mean, and on a team it is usually the wrong
+   one: the common case is that a colleague (or another tab) already did it, and the screen in
+   front of you is simply out of date. Telling that person they lack permission sends them to ask
+   for rights they already have, and leaves them believing the invoice is still there. Rule M8
+   applies to explanations as much as to numbers: say what is actually known. This asks the
+   database which of the three it is, then says so — and on a race reloads, so the screen stops
+   showing a state that is no longer true. */
+function finZeroRowMsg(col,val,wantDeleted,cb){
+  var ar=isArF();
+  var permMsg=wantDeleted?(ar?'\u0644\u0645 \u064a\u064f\u062d\u0630\u0641 \u0634\u064a\u0621 \u2014 \u0644\u0627 \u062a\u0645\u0644\u0643 \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0629.':'Nothing was deleted - your account was not allowed to.')
+                         :(ar?'\u0644\u0645 \u064a\u064f\u0633\u062a\u0631\u062c\u0639 \u0634\u064a\u0621 \u2014 \u0644\u0627 \u062a\u0645\u0644\u0643 \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0629.':'Nothing was restored - your account was not allowed to.');
+  var c=fc(); if(!c){ cb(permMsg,false); return; }
+  c.from('finance_invoices').select('id,deleted_at').eq(col,val).then(function(r){
+    var rows=(r&&!r.error&&r.data)||[];
+    if(!rows.length){ cb(ar?'\u0644\u0645 \u064a\u062a\u063a\u064a\u0631 \u0634\u064a\u0621 \u2014 \u0647\u0630\u0647 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 \u0644\u0645 \u062a\u0639\u062f \u0645\u0648\u062c\u0648\u062f\u0629 \u0641\u064a \u0627\u0644\u062c\u062f\u0648\u0644.':'Nothing changed - that invoice is no longer in the table.',true); return; }
+    var already=wantDeleted?rows.every(function(x){return !!x.deleted_at;})
+                           :rows.every(function(x){return !x.deleted_at;});
+    if(already){
+      cb(wantDeleted?(ar?'\u062d\u064f\u0630\u0641\u062a \u0628\u0627\u0644\u0641\u0639\u0644 \u2014 \u0634\u062e\u0635 \u0622\u062e\u0631 \u0623\u0648 \u062a\u0628\u0648\u064a\u0628 \u0622\u062e\u0631 \u0633\u0628\u0642\u0643. \u0644\u0645 \u064a\u062a\u063a\u064a\u0631 \u0634\u064a\u0621 \u0647\u0646\u0627 \u2014 \u064a\u064f\u0639\u0627\u062f \u0627\u0644\u062a\u062d\u0645\u064a\u0644.':'Already deleted - someone else, or another tab, got there first. Nothing changed here; reloading.')
+                    :(ar?'\u0627\u064f\u0633\u062a\u064f\u0631\u062c\u0639\u062a \u0628\u0627\u0644\u0641\u0639\u0644 \u2014 \u0634\u062e\u0635 \u0622\u062e\u0631 \u0623\u0648 \u062a\u0628\u0648\u064a\u0628 \u0622\u062e\u0631 \u0633\u0628\u0642\u0643. \u0644\u0645 \u064a\u062a\u063a\u064a\u0631 \u0634\u064a\u0621 \u0647\u0646\u0627 \u2014 \u064a\u064f\u0639\u0627\u062f \u0627\u0644\u062a\u062d\u0645\u064a\u0644.':'Already restored - someone else, or another tab, got there first. Nothing changed here; reloading.'),true);
+      return;
+    }
+    cb(permMsg,false);
+  },function(){ cb(permMsg,false); });
+}
+try{ window.finZeroRowMsg=finZeroRowMsg; }catch(_){}
 window.finDelInv=function(invNo){
   if(!finCanWrite())return;
   var ar=isArF();
   finConfirm(ar?('\u062d\u0630\u0641 \u0643\u0644 \u0628\u0646\u0648\u062f \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 '+invNo+'\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639.'):('Soft-delete all lines of invoice '+invNo+'? It disappears from totals but stays recoverable.'), function(){
     fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('invoice_no',invNo).is('deleted_at',null).select().then(function(r){
       if(r.error){alert('Could not delete: '+r.error.message);return;}
-      if(!r.data||!r.data.length){alert(ar?'\u0644\u0645 \u064a\u064f\u062d\u0630\u0641 \u0634\u064a\u0621 \u2014 \u0644\u0627 \u062a\u0645\u0644\u0643 \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0629.':'Nothing was deleted - your account was not allowed to.');return;}
+      if(!r.data||!r.data.length){ finZeroRowMsg('invoice_no',invNo,true,function(m,raced){ alert(m); if(raced){ finCloseModal(); FIN.rows=null; finLoad(); } }); return; }
       finCloseModal(); FIN.rows=null;finLoad();
     });
   });
@@ -988,27 +1016,32 @@ window.finRestoreInv=function(invNo){
   var ar=isArF();
   fc().from('finance_invoices').update({deleted_at:null}).eq('invoice_no',invNo).not('deleted_at','is',null).select().then(function(r){
     if(r.error){alert('Could not restore: '+r.error.message);return;}
-    if(!r.data||!r.data.length){alert(ar?'\u0644\u0645 \u064a\u064f\u0633\u062a\u0631\u062c\u0639 \u0634\u064a\u0621 \u2014 \u0644\u0627 \u062a\u0645\u0644\u0643 \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0629.':'Nothing was restored - your account was not allowed to.');return;}
+    if(!r.data||!r.data.length){ finZeroRowMsg('invoice_no',invNo,false,function(m,raced){ alert(m); if(raced){ finCloseModal(); FIN.rows=null; finLoad(); } }); return; }
     finCloseModal(); FIN.rows=null;finLoad();
   });
 };
 window.finCloseModal=function(){var m=document.getElementById('finModal');if(m)m.remove();};
 window.finDel=function(id){
-  if(!canFinEdit())return;
+  if(!finCanWrite())return;   // 2026-09-03: was canFinEdit(), the wrapper cycle 12 showed can say yes in a share view
   var ar=isArF();
   finConfirm(ar?'\u062d\u0630\u0641 \u0647\u0630\u0647 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0643\u0644 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639 \u0645\u0646 \u00ab\u0627\u0644\u0645\u062d\u0630\u0648\u0641\u0629 \u0645\u0624\u062e\u0631\u0627\u064b\u00bb.':'Soft-delete this invoice? It disappears from all totals but stays recoverable under "Recently deleted".', function(){
     fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('id',id).select().then(function(r){
       if(r.error){alert('Could not delete: '+r.error.message);return;}
-      if(!r.data||!r.data.length){alert(ar?'\u0644\u0645 \u064a\u064f\u062d\u0630\u0641 \u0634\u064a\u0621 \u2014 \u0644\u0627 \u062a\u0645\u0644\u0643 \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0629.':'Nothing was deleted - your account was not allowed to.');return;}
+      if(!r.data||!r.data.length){ finZeroRowMsg('id',id,true,function(m,raced){ alert(m); if(raced){ finCloseModal(); FIN.rows=null; finLoad(); } }); return; }
       finCloseModal(); FIN.rows=null;finLoad();
     });
   });
 };
 window.finRestore=function(id){
+  if(!finCanWrite())return;   /* 2026-09-03 (watch cycle 15): this one had NO permission check at
+     all — cycle 12 guarded the by-invoice-number pair and missed the by-id pair, and the probe
+     that claimed to cover "all ten write paths" used a LIVE invoice, where restore sets
+     deleted_at from null to null and nothing changes whatever the guard does. Pointed at an
+     actually-deleted invoice, a viewer restored it. */
   var ar=isArF();
   fc().from('finance_invoices').update({deleted_at:null}).eq('id',id).select().then(function(r){
     if(r.error){alert('Could not restore: '+r.error.message);return;}
-    if(!r.data||!r.data.length){alert(ar?'\u0644\u0645 \u064a\u064f\u0633\u062a\u0631\u062c\u0639 \u0634\u064a\u0621 \u2014 \u0644\u0627 \u062a\u0645\u0644\u0643 \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0629.':'Nothing was restored - your account was not allowed to.');return;}
+    if(!r.data||!r.data.length){ finZeroRowMsg('id',id,false,function(m,raced){ alert(m); if(raced){ finCloseModal(); FIN.rows=null; finLoad(); } }); return; }
     finCloseModal(); FIN.rows=null;finLoad();
   });
 };
