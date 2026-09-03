@@ -1,3 +1,42 @@
+## Round 45 — the Arabic sweep was lying, and the one real leak under it (2026-09-03)
+
+Ran the app-wide sweeps nobody had run in a while. `sweep-language.mjs` reported **36 untranslated
+Latin strings across 8 pages**. Thirty-five of them were not defects.
+
+**The measuring instrument was wrong**, in two ways:
+
+1. It read `textContent`, which happily reads nodes the app has **hidden**. js/22 hides the
+   developer/QA cards on Settings with `display:none`, and the sweep reported all fourteen of their
+   buttons — "Wipe local data", "Run a day", "Developer / test harness" — as untranslated
+   user-facing text, on two pages. 28 of the 36 findings, none of them visible to anybody. A future
+   session would have spent a round translating buttons no employee can see. This is the round-33
+   lesson in reverse: there I wrote a note the CSS hid and the probe passed; here the tool failed
+   text nobody reads. It now judges only what is actually on screen (measuring the `<select>` for
+   an `<option>`, which has no box of its own).
+2. Its allowlist of terms that legitimately stay Latin was missing **NDC, EMD, ZATCA, API** — five
+   more findings. A travel or finance professional in Riyadh writes those exactly like that;
+   "translating" them would be wrong, not thorough.
+
+36 became 1: a person's name, which is data and correctly untranslated.
+
+**The one real leak.** The Clients tier filter rendered `<option>Key</option>` with **no `value`
+attribute**, so the browser used the visible text as the value and `clFilter.tier=this.value`
+compared it against `b.tier==='Key'`. js/21 therefore refused to translate it — correctly, and by
+its own documented rule that a value-less option must never be translated because that changes what
+gets stored. **The translator was right; the markup was the bug.** An Arabic user read "Key" and
+"Standard" in English while "All tiers" beside them was Arabic, because that one already had a
+value.
+
+Giving the options explicit values is the entire fix — js/21's dictionary already held
+Key → رئيسي, Standard → قياسي. First draft also hardcoded the Arabic in `core-02`; that was
+removed after testing each half separately showed the dictionary alone does it. One dictionary, one
+place to change a wording, nothing to drift — the same reasoning that made js/71 reuse js/67's
+amount-in-words instead of copying it.
+
+Guarded by `scripts/qa/probe-tier-filter-bilingual.mjs` (10 checks: Arabic words, English values,
+and the filter returning identical rows in both languages). Sabotage — remove the value attributes,
+which is the original bug exactly — goes red; file restored byte-identical.
+
 ## Round 44 — the five documents a client actually reads (2026-09-03)
 
 js/67 price offer, js/68 service fees, js/69 company profile, js/70 contract, js/71 tender:

@@ -28,13 +28,27 @@ for(const label of nav){
   await p.waitForTimeout(800);
   const latin=await p.evaluate(()=>{
     const out=new Set();
+    /* 2026-09-03 (round 45) — this read textContent, which happily reads nodes the app has
+       HIDDEN. js/22 hides the developer/QA cards on Settings with display:none, and this sweep
+       reported all fourteen of their buttons as untranslated user-facing text — 28 of its 36
+       "leaks", on two pages, none of them visible to anybody. A future session would have spent a
+       round translating buttons no employee can see. Same trap as round 33, the other way round:
+       there I wrote a note the CSS hid and the probe passed; here the tool failed text nobody
+       reads. Only judge what is actually on screen. */
+    const shown=el=>{ const r=el.getBoundingClientRect(); return r.width>0&&r.height>0&&getComputedStyle(el).visibility!=='hidden'; };
+    /* An <option> has no box of its own — measure the <select> that owns it. */
+    const visible=el=>(el.tagName==='OPTION') ? (el.parentElement?shown(el.parentElement):false) : shown(el);
     document.querySelectorAll('#view button, #view label, #view th, #view h1, #view h2, #view h3, #view option').forEach(el=>{
       const t=(el.textContent||'').trim();
       if(!t||t.length<3||t.length>40) return;
       if(/[؀-ۿ]/.test(t)) return;          // has Arabic -> translated
       if(!/[A-Za-z]{3}/.test(t)) return;             // no real words
       if(/^[\d\s.,%+\-\/]+$/.test(t)) return;
-      if(/(SAR|VAT|PNR|GDS|SLA|SOP|IATA|CSV|PDF|B2B|ID|KSA|Direct|Test Company|Provider \d|Airline \d|Event \d|INV-|https?:)/i.test(t)) return;
+      /* Industry terms that stay Latin in Arabic too — a travel or finance professional in Riyadh
+         writes NDC, EMD, ZATCA and API exactly like this, and "translating" them would be wrong,
+         not thorough. Added 2026-09-03 after they showed up as five of this sweep's findings. */
+      if(/(SAR|VAT|PNR|GDS|SLA|SOP|IATA|CSV|PDF|B2B|B2C|ID|KSA|NDC|EMD|ZATCA|API|ADM|BSP|TTL|FOP|RBD|QR|UUID|Direct|Test Company|Provider \d|Airline \d|Event \d|INV-|https?:)/i.test(t)) return;
+      if(!visible(el)) return;
       out.add(t);
     });
     return [...out];
