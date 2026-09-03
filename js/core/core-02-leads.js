@@ -4,6 +4,22 @@ let leadGroup="stage";
 let leadView="board";
 let openLead=null;
 function getLead(id){return DB.businesses.find(b=>b.id===id);}
+/* 2026-09-02 (reversibility audit) — this confirm used to promise that the record moves to
+   the Archive, stops appearing in anyone's lists, and can be restored by an admin for a month.
+   Both halves were untrue. Deleting a company removes it from DB.businesses entirely, so it can never
+   reach renderArchive() (which lists DB.businesses.filter(x=>x._archived)); the cloud layer
+   archives the ROW (js/02 pushCloud sets archived_at) and the loader filters archived rows
+   out, so nothing in the product ever lists it again. And nothing anywhere enforces or even
+   records that window: there is no purge job, no expiry column, no cleanup script (checked
+   live — no pg_cron, no scheduled cleanup function). The only real reversal window in this
+   system is the 24 hours hard-coded in undo_change(). House rule: an honest visible
+   limitation beats a comforting false one. */
+function _delWarn(){
+  var ar=(typeof LANG!=='undefined'&&LANG==='ar');
+  return ar
+    ? 'حذف هذه الشركة؟\n\nلا يُمحى شيء — يُؤرشَف السجل في قاعدة البيانات ويختفي من قوائم الجميع. لا توجد شاشة أرشيف للشركات: الطريق الوحيد لإرجاعه داخل التطبيق هو «النشاط والتدقيق ← تراجع» خلال 24 ساعة. بعد ذلك يلزم مسؤول لاستعادته من قاعدة البيانات.'
+    : 'Delete this company?\n\nNothing is erased — the record is archived in the database and stops appearing in anyone\'s lists. There is no Archive screen for companies: the only way back inside the app is Activity & Audit \u2192 Undo, within 24 hours. After that an admin has to restore it in the database.';
+}
 let leadDetailView="detail";
 function openLeadFn(id){openLead=id;leadDetailView="detail";render();window.scrollTo(0,0);}
 function closeLead(){openLead=null;leadDetailView="detail";render();}
@@ -235,7 +251,7 @@ function editBusiness(id){
     
     <div class="field"><label>Contacts (same business, multiple people)</label><div id="contacts"></div><button class="btn sm" onclick="addContactRow()">+ Add contact</button></div>
     <div class="field"><label>Notes</label><textarea id="f_notes" rows="2">${esc(b.notes||"")}</textarea></div>
-  `,()=>{b.name=val("f_name");b.nameAr=val("f_ar");b.segment=val("f_seg");b.area=val("f_area");b.category=val("f_cat");b.services=val("f_serv");b.nextAction=val("f_next");b.source=val("f_source");b.sourceSub=(val("f_source")==='Travel Agencies'?val("f_sub"):'');b.assignedTo=val("f_assign")||(window.meName?meName():"")||(typeof me==="function"?me():"");const _fk=val("f_funnel");b.funnelKey=_fk||null;const _fd=(window.__funnelDefs||[]).find(f=>f.key===_fk);b.funnelName=_fd?_fd.name_en:null;b.funnelNameAr=_fd?_fd.name_ar:null;const _wasClient=!!b.isClient;b.stage=val("f_stage");b.status=val("f_stage");b.dueDate=val("f_due");b.channels=[...document.querySelectorAll(".f_ch:checked")].map(e=>e.value);b.isClient=val("f_client")==="yes";if(b.stage==="Won")b.isClient=true;b.isVendor=val("f_vendor")==="yes";b.notes=val("f_notes");b.contacts=readContacts();if(!b.name.trim()){alert("Business name required.");return false;}const i=DB.businesses.findIndex(x=>x.id===b.id);if(i>=0)DB.businesses[i]=b;else DB.businesses.push(b);save();render();if(b.isClient&&!_wasClient&&typeof window.__clientHandover==='function')setTimeout(()=>window.__clientHandover(b.id),250);},isNew?null:()=>{if(confirm("Delete this company?\n\nIt moves to the Archive and stops appearing in anyone's lists. An admin can restore it for 30 days.")){DB.businesses=DB.businesses.filter(x=>x.id!==id);openLead=null;if(typeof logAudit==='function')try{logAudit('lead',id,'delete',(b&&b.name)||'');}catch(_){}save();render();}});
+  `,()=>{b.name=val("f_name");b.nameAr=val("f_ar");b.segment=val("f_seg");b.area=val("f_area");b.category=val("f_cat");b.services=val("f_serv");b.nextAction=val("f_next");b.source=val("f_source");b.sourceSub=(val("f_source")==='Travel Agencies'?val("f_sub"):'');b.assignedTo=val("f_assign")||(window.meName?meName():"")||(typeof me==="function"?me():"");const _fk=val("f_funnel");b.funnelKey=_fk||null;const _fd=(window.__funnelDefs||[]).find(f=>f.key===_fk);b.funnelName=_fd?_fd.name_en:null;b.funnelNameAr=_fd?_fd.name_ar:null;const _wasClient=!!b.isClient;b.stage=val("f_stage");b.status=val("f_stage");b.dueDate=val("f_due");b.channels=[...document.querySelectorAll(".f_ch:checked")].map(e=>e.value);b.isClient=val("f_client")==="yes";if(b.stage==="Won")b.isClient=true;b.isVendor=val("f_vendor")==="yes";b.notes=val("f_notes");b.contacts=readContacts();if(!b.name.trim()){alert("Business name required.");return false;}const i=DB.businesses.findIndex(x=>x.id===b.id);if(i>=0)DB.businesses[i]=b;else DB.businesses.push(b);save();render();if(b.isClient&&!_wasClient&&typeof window.__clientHandover==='function')setTimeout(()=>window.__clientHandover(b.id),250);},isNew?null:()=>{if(confirm(_delWarn())){DB.businesses=DB.businesses.filter(x=>x.id!==id);openLead=null;if(typeof logAudit==='function')try{logAudit('lead',id,'delete',(b&&b.name)||'');}catch(_){}save();render();}});
   window._contacts=(b.contacts||[]).slice();drawContacts();
 }
 function drawContacts(){const c=document.getElementById("contacts");if(!c)return;c.innerHTML=(window._contacts||[]).map((ct,i)=>`<div class="contact"><input placeholder="Name" value="${esc(ct.name||"")}" oninput="window._contacts[${i}].name=this.value"><input placeholder="Email" value="${esc(ct.email||"")}" oninput="window._contacts[${i}].email=this.value"><input placeholder="Phone" value="${esc(ct.phone||"")}" oninput="window._contacts[${i}].phone=this.value"><span class="x" onclick="window._contacts.splice(${i},1);drawContacts()">✕</span></div>`).join("");}

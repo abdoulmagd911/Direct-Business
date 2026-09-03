@@ -193,8 +193,8 @@
       ar:'كل تعديل، من قام به ومتى. استخدمه للتدقيق ولتتبع الخطوات.'
     },
     archive:{
-      en:'Soft-deleted items — restorable within 30 days.',
-      ar:'العناصر المؤرشفة — يمكن استعادتها خلال 30 يومًا.'
+      en:'Archived invoices, bookings and offers — kept indefinitely, restore any of them here. Deleted companies are NOT listed here.',
+      ar:'الفواتير والحجوزات والعروض المؤرشفة — تُحفظ بلا حد زمني ويمكن استعادتها من هنا. الشركات المحذوفة لا تظهر هنا.'
     },
     dashboard:{
       en:'A high-level overview of the whole pipeline.',
@@ -424,7 +424,7 @@
     projects:{ic:'📁',en:{t:'No projects yet',sub:'Projects are big multi-trip jobs — like a three-city roadshow. Track budget, services, and profit per project.',btn:'+ Add your first project'},ar:{t:'لا توجد مشاريع بعد',sub:'المشاريع مهام كبيرة متعددة الرحلات. تابع الميزانية والخدمات والأرباح.',btn:'+ أضف أول مشروع'},onClick:function(){if(typeof v25NewProject==='function')v25NewProject();}},
     clients:{ic:'🏢',en:{t:'No clients yet',sub:'Clients are companies that already book with us. Add the first one to start managing.',btn:'+ Add your first client'},ar:{t:'لا يوجد عملاء بعد',sub:'العملاء هم الشركات التي تحجز معنا. أضف الأول لتبدأ.',btn:'+ أضف أول عميل'},onClick:function(){if(typeof addBusiness==='function')addBusiness();}},
     activity:{ic:'📊',en:{t:'No activity yet',sub:'Every change, who did it and when, will appear here.'},ar:{t:'لا توجد أنشطة بعد',sub:'كل تعديل ومن قام به ومتى سيظهر هنا.'}},
-    archive:{ic:'🗂️',en:{t:'Archive is empty',sub:'Soft-deleted items appear here. You can restore them within 30 days.'},ar:{t:'الأرشيف فارغ',sub:'تظهر العناصر المؤرشفة هنا. يمكن استعادتها خلال 30 يومًا.'}}
+    archive:{ic:'🗂️',en:{t:'Archive is empty',sub:'Archived invoices, bookings and offers appear here and can be restored at any time. Deleted companies are archived in the database but are not listed here — use Activity & Audit.'},ar:{t:'الأرشيف فارغ',sub:'تظهر هنا الفواتير والحجوزات والعروض المؤرشفة ويمكن استعادتها في أي وقت. الشركات المحذوفة تُؤرشف في قاعدة البيانات لكنها لا تظهر هنا — استخدم «النشاط والتدقيق».'}}
   };
   window.V26_EMPTY=V26_EMPTY;
 
@@ -490,7 +490,7 @@
      scripts/qa/probe-company-dedupe.mjs. A long message already speaks plain language — it is
      shown verbatim under the generic title; the caller's words are never discarded. */
   var V26_CONFIRM_MAP=[
-    {match:/^(archive|soft-delete|delete)\s+(this\s+)?lead\b/i,en:{title:'Delete this lead?',body:'It moves to Archive where you can restore it within 30 days.',cancel:'Cancel',ok:'Yes, delete'},ar:{title:'حذف هذا العميل المحتمل؟',body:'سينتقل إلى الأرشيف ويمكن استعادته خلال 30 يومًا.',cancel:'إلغاء',ok:'نعم، احذف'}},
+    {match:/^(archive|soft-delete|delete)\s+(this\s+)?lead\b/i,en:{title:'Delete this lead?',body:'Nothing is erased — the record is archived in the database and leaves everyone\u2019s lists. The only way back inside the app is Activity & Audit \u2192 Undo, within 24 hours.',cancel:'Cancel',ok:'Yes, delete'},ar:{title:'حذف هذا العميل المحتمل؟',body:'لا يُمحى شيء — يُؤرشَف السجل في قاعدة البيانات ويختفي من قوائم الجميع. الطريق الوحيد لإرجاعه داخل التطبيق هو «النشاط والتدقيق ← تراجع» خلال 24 ساعة.',cancel:'إلغاء',ok:'نعم، احذف'}},
     {match:/^(reset|clear\s+test|go-live|wipe)\b/i,en:{title:'Clear all test data?',body:'Templates, settings, and your real B2B clients stay. A backup is saved first.',cancel:'Cancel',ok:'Yes, clear'},ar:{title:'مسح جميع بيانات الاختبار؟',body:'القوالب والإعدادات وعملاء B2B الحقيقيون يبقون. سيتم حفظ نسخة احتياطية أولاً.',cancel:'إلغاء',ok:'نعم، امسح'}},
     {match:/^(credit|over-limit|override)\b|\bcredit limit\b/i,en:{title:'Over the credit limit',body:'This client is over their credit limit. Override means you choose to proceed anyway and the action is logged for Finance.',cancel:'Cancel',ok:'Override and continue'},ar:{title:'تجاوز حد الائتمان',body:'هذا العميل تجاوز حد الائتمان. التجاوز يعني اختيار المتابعة وتسجيل العملية للحسابات.',cancel:'إلغاء',ok:'تجاوَز وتابع'}},
     {match:/^(refund|void|cancel\b.*\bticket)/i,en:{title:'Cancel / refund?',body:'This will ask Finance to refund. The actual refund happens inside Direct Payments.',cancel:'Cancel',ok:'Yes, ask Finance'},ar:{title:'إلغاء / استرداد؟',body:'سيُطلب من قسم الحسابات الاسترداد. التنفيذ الفعلي يتم داخل Direct Payments.',cancel:'إلغاء',ok:'نعم، اطلب من الحسابات'}},

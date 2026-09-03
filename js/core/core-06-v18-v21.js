@@ -321,13 +321,20 @@ v.innerHTML=`
 
 /* ----- Archive viewer ----- */
 function renderArchive(v){const inv=(DB.invoices||[]).filter(x=>x._archived);const bk=(DB.bookings||[]).filter(x=>x._archived);const of=(DB.offers||[]).filter(x=>x._archived);const ld=(DB.businesses||[]).filter(x=>x._archived);
+/* 2026-09-02 (reversibility audit) — this page lists only what is still IN the workspace and
+   carries an _archived flag. Deleting a company takes it out of DB.businesses entirely, so an
+   archived company can never appear here, and there is no other screen that lists one. Saying
+   so out loud beats an Archive page that silently implies "nothing was deleted". */
+const _arch=(typeof LANG!=='undefined'&&LANG==='ar')
+  ? 'الشركات المحذوفة لا تظهر هنا. تُؤرشَف في قاعدة البيانات ولا تُمحى، لكن لا توجد شاشة لاستعادتها — الطريق الوحيد داخل التطبيق هو «النشاط والتدقيق ← تراجع» خلال 24 ساعة، وبعدها يلزم مسؤول يعمل في قاعدة البيانات.'
+  : 'Deleted companies are not listed here. They are archived in the database, never erased, but no screen restores one — the only way back inside the app is Activity & Audit → Undo, within 24 hours; after that it takes an admin working in the database.';
 v.innerHTML=`
 <div class="card" style="display:flex;flex-wrap:wrap;gap:18px;padding:14px 20px;margin-bottom:14px"><div><div class="kl">Archived invoices</div><div class="kv">${inv.length}</div></div><div><div class="kl">Archived bookings</div><div class="kv">${bk.length}</div></div><div><div class="kl">Archived offers</div><div class="kv">${of.length}</div></div><div><div class="kl">Archived leads</div><div class="kv">${ld.length}</div></div></div>
 ${inv.length?`<div class="card"><h3>Archived invoices</h3>${inv.map(i=>`<div class="fact"><span class="k archived-row">${esc(i.number)} · ${esc(leadName(i.clientId))} · ${moneyShort(v18InvTotals(i).total)}</span><span class="v"><button class="btn sm" onclick="restoreEntity('invoices','${i.id}')">↺ ${T('restore')}</button></span></div>`).join('')}</div>`:''}
 ${bk.length?`<div class="card"><h3>Archived bookings</h3>${bk.map(b=>`<div class="fact"><span class="k archived-row">${esc(b.ref)} · ${esc(leadName(b.leadId))} · ${esc(bkAirlines(b).join(', '))}</span><span class="v"><button class="btn sm" onclick="restoreEntity('bookings','${b.id}')">↺ ${T('restore')}</button></span></div>`).join('')}</div>`:''}
 ${of.length?`<div class="card"><h3>Archived offers</h3>${of.map(o=>`<div class="fact"><span class="k archived-row">${esc(o.ref||'')} · ${esc(o.client||'')}</span><span class="v"><button class="btn sm" onclick="restoreEntity('offers','${o.id}')">↺ ${T('restore')}</button></span></div>`).join('')}</div>`:''}
 ${ld.length?`<div class="card"><h3>Archived leads</h3>${ld.map(l=>`<div class="fact"><span class="k archived-row">${esc(l.name)}</span><span class="v"><button class="btn sm" onclick="restoreEntity('businesses','${l.id}')">↺ ${T('restore')}</button></span></div>`).join('')}</div>`:''}
-${(inv.length+bk.length+of.length+ld.length===0)?'<div class="card"><div class="empty">Nothing archived yet. Use the Archive button on any record to soft-delete it.</div></div>':''}`;}
+${(inv.length+bk.length+of.length+ld.length===0)?'<div class="card"><div class="empty">Nothing archived yet. Use the Archive button on any record to soft-delete it.</div></div>':''}<div class="card"><div style="font-size:12.5px;color:var(--muted);line-height:1.6">${_arch}</div></div>`;}
 
 /* ----- Titles for new tabs + agency settings panel injection ----- */
 TITLES['activity']=['Activity & Audit','Stripe-style activity feed · full audit trail · who-did-what-when'];
@@ -882,7 +889,19 @@ function restoreFromBackup(scope,id){
   var c=bkClient();if(!c)return bkFail('no Supabase connection — cannot restore');
   var table=scope==='tag'?'app_state_bak':'app_state_history';
   var idCol=scope==='tag'?'bak_id':'hist_id';
-  if(!confirm('Restore state from this snapshot? Current state will be tagged first, automatically.'))return;
+  /* 2026-09-02 (reversibility audit) — this restore was a data-destroyer, not a recovery path.
+     app_state (and therefore every app_state_history snapshot) deliberately EXCLUDES
+     businesses: js/02 pushCloud() builds its payload as "every key of DB except businesses",
+     because leads and clients live in their own table. Verified live: app_state.data has 35
+     keys and no `businesses` at all. `DB=candidate` therefore emptied every lead and client
+     from the workspace, and the very next save() made pushCloud() see zero businesses, treat
+     all ~110 cloud rows as "removed in the app", and archive every one of them — with no
+     screen anywhere that can list or restore an archived company. The snapshot simply does
+     not contain leads/clients, so the correct restore keeps the live ones untouched. */
+  var _bkAr=(typeof LANG!=='undefined'&&LANG==='ar');
+  if(!confirm(_bkAr
+    ? 'استعادة مساحة العمل من هذه اللقطة؟\n\nستُستبدل الإعدادات والعروض والحجوزات والفواتير والقوالب بمحتوى اللقطة. العملاء المحتملون والعملاء ليسوا جزءًا من اللقطة — فهم في جدول خاص بهم وسيبقون كما هم تمامًا. سيتم وسم الحالة الحالية تلقائيًا أولًا.'
+    : 'Restore the workspace from this snapshot?\n\nSettings, offers, bookings, invoices and templates are replaced by the snapshot. Leads and clients are NOT part of a snapshot — they live in their own table and are left exactly as they are. The current state is tagged first, automatically.'))return;
   var tagFirst=tagCurrentState('auto: before restore',true);
   (tagFirst||Promise.resolve()).then(function(){
     return c.from(table).select('data').eq(idCol,id).maybeSingle();
@@ -890,8 +909,11 @@ function restoreFromBackup(scope,id){
     if(r.error||!r.data){bkFail('could not fetch that snapshot — nothing was restored',r.error);return;}
     var candidate=r.data.data;
     if(!candidate){bkFail('that snapshot has no data — nothing was restored');return;}
-    DB=candidate;localStorage.setItem(KEY,JSON.stringify(DB));render();
-    try{if(typeof toast==='function')toast('Restored.');}catch(_){}
+    var _keepBiz=Array.isArray(DB.businesses)?DB.businesses:[];
+    DB=candidate;
+    if(!Array.isArray(DB.businesses)||!DB.businesses.length)DB.businesses=_keepBiz;
+    localStorage.setItem(KEY,JSON.stringify(DB));render();
+    try{if(typeof toast==='function')toast(_bkAr?'تمت الاستعادة — لم تتغيّر قوائم العملاء.':'Restored — leads and clients untouched.');}catch(_){}
   }).catch(function(e){bkFail('restore failed',e);});
 }
 function tagCurrentState(presetName,silent){
@@ -917,7 +939,7 @@ function deleteTag(id){
   }).catch(function(e){bkFail('delete failed',e);});
 }
 function exportFullState(encrypted){const blob=new Blob([JSON.stringify({v:'v21',ts:new Date().toISOString(),db:DB},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='direct-business-state-v21-'+new Date().toISOString().slice(0,10)+'.json';a.click();toast('Exported');}
-function importFullState(file){const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);const candidate=o.db||o;tagCurrentState('auto: before import',true).then(()=>{DB=candidate;localStorage.setItem(KEY,JSON.stringify(DB));render();toast('Imported state · '+(o.ts||'no timestamp'));});}catch(e){alert('Invalid file: '+e.message);}};r.readAsText(file);}
+function importFullState(file){const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);const candidate=o.db||o;tagCurrentState('auto: before import',true).then(()=>{const _keepBiz=Array.isArray(DB.businesses)?DB.businesses:[];DB=candidate;if(!Array.isArray(DB.businesses)||!DB.businesses.length)DB.businesses=_keepBiz;localStorage.setItem(KEY,JSON.stringify(DB));render();toast('Imported state · '+(o.ts||'no timestamp'));});}catch(e){alert('Invalid file: '+e.message);}};r.readAsText(file);}
 function v21SettingsCard(){
   if(!BK_CACHE.loaded&&!BK_CACHE.loading&&!BK_CACHE.error)bkFetchAll().then(()=>{if(typeof render==='function')render();});
   const loading=!BK_CACHE.loaded&&!BK_CACHE.error;

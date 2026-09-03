@@ -570,7 +570,14 @@ function runGlobalSearch(q){
   // (2026-09-02, attack round 21: they read "Airline / Provider / SOP / No matches" in Arabic).
   const _gAr=(typeof LANG!=='undefined'&&LANG==='ar');
   const _gT={Lead:'عميل محتمل',Request:'طلب',Airline:'شركة طيران',Provider:'مورّد',SOP:'إجراء'};
-  box.innerHTML=res.length?res.slice(0,14).map((r,i)=>`<div class="gres-item" onmousedown="gGo(${i})"><span class="gres-t">${esc(_gAr?(_gT[r.t]||r.t):r.t)}</span><span class="gres-l">${esc(r.label)}</span><span class="gres-s">${esc(r.sub)}</span></div>`).join(''):('<div class="gres-item" style="color:var(--muted)">'+(_gAr?'لا نتائج لـ “'+esc(q)+'”':'No matches for “'+esc(q)+'”')+'</div>');
+  /* 2026-09-03 (audit/events/search attack round): the dropdown has always shown the first 14
+     matches and said nothing about the rest — search "Zed" against 31 matching companies and
+     you were shown 14 with no hint that 17 more existed, which reads as "that is all of them".
+     Same shape as the Ledger's silent 1,000-row cap. Show the cap, and say how many are left. */
+  const GS_CAP=14, _gMore=res.length-GS_CAP;
+  box.innerHTML=res.length?(res.slice(0,GS_CAP).map((r,i)=>`<div class="gres-item" onmousedown="gGo(${i})"><span class="gres-t">${esc(_gAr?(_gT[r.t]||r.t):r.t)}</span><span class="gres-l">${esc(r.label)}</span><span class="gres-s">${esc(r.sub)}</span></div>`).join('')
+      +(_gMore>0?('<div class="gres-item" style="color:var(--muted);cursor:default;font-size:11.5px">'+(_gAr?('يُعرض '+GS_CAP+' من '+res.length+' — أضف كلمات للبحث لتضييق النتائج'):('showing '+GS_CAP+' of '+res.length+' — type more to narrow it down'))+'</div>'):''))
+    :('<div class="gres-item" style="color:var(--muted)">'+(_gAr?'لا نتائج لـ “'+esc(q)+'”':'No matches for “'+esc(q)+'”')+'</div>');
   box.style.display='block';
 }
 function gGo(i){const r=(window._gres||[])[i];const box=document.getElementById('gres');if(box)box.style.display='none';const inp=document.getElementById('gsearch');if(inp)inp.value='';if(r&&r.go){r.go();window.scrollTo(0,0);}}
