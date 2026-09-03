@@ -221,4 +221,6 @@ try {
 
 console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.length}`);
 LOG.filter(l => l.startsWith('FAIL')).forEach(l => console.log('   ' + l));
-process.exit(0);
+/* PROBE-INTEGRITY FIX (meta-audit, 2026-09-03): was `process.exit(0)` — the go-live rehearsal
+   counted and printed FAILs but always exited 0, so a failed rehearsal signalled success. */
+process.exit(LOG.filter(l => l.startsWith('FAIL')).length ? 1 : 0);

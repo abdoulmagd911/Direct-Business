@@ -165,6 +165,43 @@ async function main() {
     else ok(`invoice ${row.invoice_no}: revenue_sar and profit_sar are both clean of VAT`);
   }
 
+  // ---- THE CHECK THAT WAS MISSING (added 2026-09-03, probe-integrity round). Everything above
+  // reads STORED columns — revenue_sar / profit_sar as the fixture seeded them. The app never
+  // computes those, so the arithmetic above holds no matter what the Finance page actually
+  // prints. Proven by sabotage: baking vat_sar into the Revenue and Profit totals in
+  // js/16-finance-ledger.js (the two sums at ~line 200 and ~line 535) left this probe printing
+  // "PASSED — no live cost/profit/revenue figure is VAT-contaminated (M1)" and exiting 0.
+  // M1 is the owner's first money rule, and its only guard could not fail — the same
+  // rule-nothing-consults shape P5 exists to catch. So: read what the OVERVIEW ACTUALLY SHOWS
+  // and compare it both ways — it must equal the VAT-clean sum, and must NOT equal the
+  // VAT-inclusive one whenever a VAT-bearing row is present to tell them apart. ----
+  await p.evaluate(() => { if (typeof window.finGo === 'function') window.finGo('overview'); });
+  await p.waitForTimeout(900);
+  const kpiM1 = await p.evaluate(() => {
+    const num = (el) => el ? parseFloat((el.getAttribute('title') || el.textContent || '').replace(/[^0-9.\-]/g, '')) : null;
+    const cards = [...document.querySelectorAll('#view .card')];
+    const pick = (label) => {
+      const c = cards.find((x) => x.firstElementChild && x.firstElementChild.textContent.trim() === label);
+      return c ? num(c.children[1]) : null;
+    };
+    const live = (window.FIN && FIN.rows ? FIN.rows : []).filter((r) => !r.deleted_at
+      && r.integrity_status === 'verified_paid' && r.id !== 'i-qa-takamol');
+    const sum = (f) => live.reduce((s, r) => s + (+r[f] || 0), 0);
+    return { revShown: pick('Revenue'), profShown: pick('Profit'),
+             revClean: sum('revenue_sar'), profClean: sum('profit_sar'), vat: sum('vat_sar') };
+  });
+  if (kpiM1.revShown == null || kpiM1.profShown == null) {
+    fail('Finance/overview: could not read the Revenue and Profit tiles — DOM shape changed, this M1 check needs updating (do NOT delete it: it is the only thing that tests what the page prints)');
+  } else if (!(kpiM1.vat > 0)) {
+    fail('no VAT-bearing row is live, so the displayed figure cannot be told apart from a VAT-inclusive one — the M1 render check is blind without the VAT canary');
+  } else {
+    const near = (a, b) => Math.abs(a - b) < 0.01;
+    if (near(kpiM1.revShown, kpiM1.revClean)) ok(`Finance/overview: Revenue tile (${kpiM1.revShown.toFixed(2)}) equals the VAT-clean sum, not the VAT-inclusive ${(kpiM1.revClean + kpiM1.vat).toFixed(2)}`);
+    else fail(`M1 VIOLATED on screen: Revenue tile shows ${kpiM1.revShown.toFixed(2)}; VAT-clean is ${kpiM1.revClean.toFixed(2)} and VAT-inclusive is ${(kpiM1.revClean + kpiM1.vat).toFixed(2)}`);
+    if (near(kpiM1.profShown, kpiM1.profClean)) ok(`Finance/overview: Profit tile (${kpiM1.profShown.toFixed(2)}) equals the VAT-clean sum, not the VAT-inclusive ${(kpiM1.profClean + kpiM1.vat).toFixed(2)}`);
+    else fail(`M1 VIOLATED on screen: Profit tile shows ${kpiM1.profShown.toFixed(2)}; VAT-clean is ${kpiM1.profClean.toFixed(2)} and VAT-inclusive is ${(kpiM1.profClean + kpiM1.vat).toFixed(2)}`);
+  }
+
   // ---- Page/tab render sweep — still real, still worth keeping; VAT text mentions are now
   // OBSERVATIONAL only (see header), never fail the build. ----
   for (const lang of [{ code: 'en', label: 'EN' }, { code: 'ar', label: 'AR' }]) {

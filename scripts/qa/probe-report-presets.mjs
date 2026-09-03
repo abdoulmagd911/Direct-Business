@@ -12,7 +12,7 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = 8179; const srv = start(PORT); const BASE = 'http://localhost:' + PORT;
+const PORT = 8990 /* PROBE-INTEGRITY FIX (meta-audit, 2026-09-03): was 8179, the port probe-finance-invariants.mjs also binds. Two probes on one port cannot run side by side, and mock-supabase's listen() has no error handler, so the clash surfaced as a bare EADDRINUSE stack instead of a test result. */; const srv = start(PORT); const BASE = 'http://localhost:' + PORT;
 let failures = 0;
 const fail = (m) => { failures++; console.log('  ✗ ' + m); };
 const ok = (m) => console.log('  ✓ ' + m);

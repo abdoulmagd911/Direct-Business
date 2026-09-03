@@ -37,7 +37,9 @@ await page.waitForFunction(() => typeof DB !== 'undefined' && (DB.businesses || 
 await page.waitForTimeout(1500);
 
 // ---- global search
-await page.locator('input[placeholder*="Search everything"], input[placeholder*="بحث"]').first().fill('Nadeem').catch(() => {});
+/* 2026-09-03: matched on the placeholder text, which changed when the box stopped claiming to
+   "Search everything" (it never searched Finance). Match the id — that cannot drift. */
+await page.locator('input#gsearch').first().fill('Nadeem').catch(() => {});
 await page.waitForTimeout(900);
 const searchHits = await page.evaluate(() => { const b = document.getElementById('gres'); if (!b || b.style.display === 'none') return null; const l = b.querySelector('.gres-l'); return l ? { label: l.textContent, clipped: l.scrollWidth > l.clientWidth + 2 } : null; });
 STEP('global search dropdown shows the match with a readable name', !!searchHits && /Nadeem/.test(searchHits.label) && !searchHits.clipped, JSON.stringify(searchHits));

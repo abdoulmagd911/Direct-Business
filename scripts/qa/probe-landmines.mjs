@@ -244,4 +244,9 @@ if (await gs.isVisible().catch(() => false)) {
 console.log(LOG.join('\n'));
 console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.length}`);
 console.log('PAGEERRORS:', errs.length, errs.slice(0, 6));
-await browser.close(); process.exit(0);
+const _fails = LOG.filter(l => l.startsWith('FAIL')).length;
+/* PROBE-INTEGRITY FIX (meta-audit, 2026-09-03): this line was `process.exit(0)`. The probe
+   counted FAILs and printed them, then exited 0 regardless — so a real regression read as a
+   pass to anything using the exit code. Sabotage-proven: with the .exe and 25MB upload guards
+   disabled, L17/L18 printed FAIL and the process still exited 0. */
+await browser.close(); process.exit(_fails ? 1 : 0);

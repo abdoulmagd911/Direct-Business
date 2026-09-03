@@ -423,8 +423,18 @@ export function start(port, seedOverrides){
       const A=p.action;
       if(A==='list') return send(res,200,{users:TABLES.app_users.map(u=>({id:u.id,email:u.email,full_name:u.full_name,role:u.role,active:u.active,must_change_password:u.must_change_password,created_at:u.created_at})),caller_role:(TABLES.app_users.find(x=>x.id===UID)||{}).role||''});
       if(A==='create'){ const nu={id:'u-'+(TABLES.app_users.length),email:String(p.email||'').toLowerCase(),full_name:p.full_name||'',role:p.role||'team_member',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:true,allowed_pages:['today','leads','clients']}; TABLES.app_users.push(nu); return send(res,200,{ok:true,email:nu.email,temp_password:'Riyadh1234!'}); }
-      if(A==='set_role'){ const u=TABLES.app_users.find(x=>x.id===p.id); if(u)u.role=p.role; return send(res,200,{ok:true}); }
-      if(A==='set_active'){ const u=TABLES.app_users.find(x=>x.id===p.id); if(u)u.active=p.active===true; return send(res,200,{ok:true}); }
+      // 2026-09-02 (share/settings attack round): the two self-lockout guards the REAL
+      // admin-users function carries, read from its deployed source the same day —
+      // "You cannot change your own role." / "You cannot switch off your own access."
+      // Without them the mock let a probe drive a lockout the live server would refuse, and
+      // the client's own refusal path (alert + redraw) could never be exercised here at all.
+      if(A==='set_role'){
+        const caller0=TABLES.app_users.find(x=>x.id===UID);
+        if(p.id===UID && p.role!==(caller0||{}).role) return send(res,200,{error:'You cannot change your own role.'});
+        const u=TABLES.app_users.find(x=>x.id===p.id); if(u)u.role=p.role; return send(res,200,{ok:true}); }
+      if(A==='set_active'){
+        if(p.id===UID && p.active!==true) return send(res,200,{error:'You cannot switch off your own access.'});
+        const u=TABLES.app_users.find(x=>x.id===p.id); if(u)u.active=p.active===true; return send(res,200,{ok:true}); }
       if(A==='reset_password'){ return send(res,200,{ok:true,temp_password:'Jeddah5678@'}); }
       // 2026-08-22: mirrors the real admin-users edge function's send_reset_link action —
       // admin-only (server-enforced there via app_users.role, mocked here the same way via
@@ -445,12 +455,26 @@ export function start(port, seedOverrides){
   }
   if(path==='/__rpclog') return send(res,200,RPCLOG);
   if(path==='/__lapse'){ LAPSED=String(u.query.on||'')==='1'; return send(res,200,{lapsed:LAPSED}); }
+  // MOCK_ANON_ENFORCE=1 (2026-09-02, share-link attack round) — model the LIVE grant/RLS wall
+  // for a caller with NO session (the share-link visitor). Read straight off the real project
+  // the same day: EXECUTE on share_view and app_role IS granted to `anon`; save_state,
+  // save_state_patch, undo_change, log_page_denied and my_page_access are NOT. Every table's
+  // read policy is `app_role() IS NOT NULL` and every write policy names a role, so an anon
+  // caller sees no rows and every write is silently refused. Off by default and gated behind
+  // the env var on purpose: every other probe signs in, and none of them should change shape.
+  const ANON_OK_RPC=new Set(['share_view','app_role']);
+  const anonCaller=()=>{ try{ return !String(req.headers.authorization||'').includes(SESSION.access_token); }catch(_){ return false; } };
+  const anonWall=process.env.MOCK_ANON_ENFORCE==='1'&&anonCaller();
   if(path.startsWith('/rest/v1/rpc/')){
     let body='';
     req.on('data',c=>body+=c);
     return req.on('end',()=>{
       let parsed=null; try{parsed=JSON.parse(body||'{}');}catch(_){}
       const fn=path.replace('/rest/v1/rpc/','');
+      if(anonWall&&!ANON_OK_RPC.has(fn)){
+        RPCLOG.push({fn, keys:[], arg: parsed?Object.keys(parsed):[], refused:'anon-no-execute'});
+        return send(res,404,{code:'PGRST202',message:'Could not find the function public.'+fn+' in the schema cache'});
+      }
       RPCLOG.push({fn, keys: parsed?Object.keys(parsed.patch||parsed.payload||{}):[], arg: parsed?Object.keys(parsed):[]});
       if(LAPSED&&(fn==='app_role'||fn==='my_page_access')) return send(res,200,'null');   // anonymous caller: no role
       // Spec 7b (2026-08-21): app_role() and my_page_access() read the SAME app_users row
@@ -572,6 +596,7 @@ export function start(port, seedOverrides){
         return send(res,200, JSON.stringify(true));
       }
       if(fn==='app_role'){
+        if(anonWall) return send(res,200,'null');   // live: app_role() is auth.uid()-based → null for anon
         const me=TABLES.app_users.find(u=>u.id===UID && u.active);
         return send(res,200, JSON.stringify(me?me.role:null));
       }
@@ -591,6 +616,47 @@ export function start(port, seedOverrides){
         if(!row) return send(res,200, JSON.stringify('That change is not in the log.'));
         if(row.undone_at) return send(res,200, JSON.stringify('Already undone.'));
         if(row.action==='create') return send(res,200, JSON.stringify('Undoing a newly created record is not an undo — delete it instead, which is itself logged.'));
+        /* MOCK_UNDO_FAITHFUL=1 (2026-09-02, reversibility round) — opt-in port of the two rules
+           the old stub skipped, both read straight out of the LIVE pg_proc body the same day:
+           the hard-coded `win interval := '24 hours'` window, and the write itself, which is a
+           WHOLE-ROW overwrite from before_row (`update %I set (<every non-generated column>) =
+           (select ... from jsonb_populate_record(null::%I, before_row)) where id = record_id`)
+           with NO check that the row still looks the way it did when the entry was written.
+           Off by default so every existing probe keeps the old permissive stub. */
+        if(process.env.MOCK_UNDO_FAITHFUL==='1'){
+          if(Date.now()-new Date(row.at).getTime() > 24*3600*1000)
+            return send(res,200, JSON.stringify('Too old to undo — this only works within 24 hours. Ask an admin to restore it.'));
+          if(row.before_row==null) return send(res,200, JSON.stringify('Nothing to put back.'));
+          const tbl=TABLES[row.table_name];
+          if(Array.isArray(tbl)){
+            const ix=tbl.findIndex(r=>String(r.id)===String(row.record_id));
+            if(row.after_row==null){ if(ix<0) tbl.push(Object.assign({},row.before_row)); }
+            else if(ix>=0){ Object.keys(row.before_row).forEach(k=>{ tbl[ix][k]=row.before_row[k]; }); }
+          }
+        }
+        /* MOCK_UNDO_ACTOR_GATE=1 (2026-09-03, audit-trail round) — opt-in port of the ONE
+           remaining live rule the stub above still skips, read verbatim from the live
+           pg_proc body the same day:
+             if h.table_name in ('finance_invoices','finance_transactions')
+                  and my_role not in ('admin','manager')  -> money refusal
+             elsif h.actor is distinct from me and my_role not in ('admin','manager')
+                  -> "You can undo your own changes; ..."
+           It matters because 213 of the 242 live history rows carry actor IS NULL, and
+           `null is distinct from me` is TRUE — so those rows are un-undoable by anyone below
+           manager. Off by default so every existing probe keeps the old permissive stub. */
+        if(process.env.MOCK_UNDO_ACTOR_GATE==='1'){
+          const meRow=(TABLES.app_users||[]).find(u=>u.id===UID && u.active);
+          const myRole=meRow?String(meRow.role):'';
+          const privileged=(myRole==='admin'||myRole==='manager');
+          if(!meRow) return send(res,200, JSON.stringify('You must be signed in with an active account to undo a change.'));
+          if(row.table_name==='finance_invoices'||row.table_name==='finance_transactions'){
+            if(!privileged) return send(res,200, JSON.stringify('Money records can only be undone by an admin or a manager.'));
+          } else if(String(row.actor)!==String(UID) && !privileged){
+            return send(res,200, JSON.stringify("You can undo your own changes; an admin or manager can undo anyone's."));
+          }
+          if(row.action==='delete' && row.after_row==null && myRole!=='admin')
+            return send(res,200, JSON.stringify('Bringing back a fully deleted record is an admin action.'));
+        }
         row.undone_at=new Date().toISOString(); row.undone_by=UID;
         return send(res,200, JSON.stringify('ok'));
       }
@@ -601,6 +667,26 @@ export function start(port, seedOverrides){
         const nextId=Math.max(0,...TABLES.record_history.map(r=>r.id))+1;
         TABLES.record_history.push({id:nextId,at:new Date().toISOString(),actor:UID,actor_name:(me&&me.full_name)||'unknown',table_name:'access',record_id:'mock-'+nextId,action:'denied',before_row:null,after_row:{page:parsed&&parsed.p_page},undone_at:null,undone_by:null});
         return send(res,200, {});
+      }
+      // share_view(p_token) (2026-09-02, share-link attack round) — mirrors the LIVE
+      // SECURITY DEFINER function read straight out of pg_proc the same day: a token shorter
+      // than 16 chars or not matching an ACTIVE row answers {ok:false}; a match answers
+      // {ok:true, scope, data:{blob, businesses, funnels, events}} where blob is the WHOLE
+      // app_state row, businesses is every non-archived row, and last_used_at is stamped.
+      // Anon may execute it live (verified: has_function_privilege('anon',…)='t'), so the
+      // handler deliberately does NOT check the caller's session — that is the point of the test.
+      if(fn==='share_view'){
+        const tok=parsed&&parsed.p_token;
+        if(!tok||String(tok).length<16) return send(res,200,{ok:false,error:'bad token'});
+        const link=(TABLES.share_links||[]).find(r=>r.token===tok&&r.active===true);
+        if(!link) return send(res,200,{ok:false,error:'invalid link'});
+        link.last_used_at=new Date().toISOString();
+        const blob=((TABLES.app_state||[])[0]||{}).data||{};
+        return send(res,200,{ok:true,scope:link.scope,data:{
+          blob,
+          businesses:(TABLES.businesses||[]).filter(b=>b.archived_at==null),
+          funnels:TABLES.funnels||[],
+          events:TABLES.ksa_events||[]}});
       }
       // Real PostgREST answers a SET-returning function with a JSON array, not an object —
       // {} for every RPC (the old default here) let callers whose guard only checked
@@ -615,6 +701,10 @@ export function start(port, seedOverrides){
     const t=path.replace('/rest/v1/','').split('?')[0];
     let rows=TABLES[t]||[];
     if(LAPSED&&req.method==='GET') return send(res,200,[]);   // RLS shows an anonymous caller nothing
+    if(anonWall){                                             // see MOCK_ANON_ENFORCE above
+      if(req.method==='GET') return send(res,200,[],{'Content-Range':'0-0/0'});
+      req.on('data',()=>{}); return req.on('end',()=>send(res, req.method==='DELETE'?200:201, []));
+    }
     // finance_invoices writes are persisted for real (insert + upsert-by-id) — everything
     // else keeps the old no-op 201,[] stub. Scoped narrowly on purpose: the universal
     // importer's own idempotency (import, then re-import the same file → all Unchanged) is
@@ -629,6 +719,28 @@ export function start(port, seedOverrides){
       // M13 check must detect. Lets one probe exercise the refusal path of any write site.
       if((process.env.MOCK_REFUSE_TABLES||'').split(',').map(s=>s.trim()).filter(Boolean).includes(t)){
         req.on('data',()=>{}); return req.on('end',()=>send(res, req.method==='DELETE'?200:201, []));
+      }
+      // share_links INSERT (2026-09-02, share-link attack round): the app does
+      // .from('share_links').insert({scope,created_by}).select('token').single(), so the row has
+      // to come BACK or the Share button can never be driven end to end. The token default
+      // mirrors the live column default exactly — two gen_random_uuid()s with the hyphens
+      // stripped, i.e. 64 hex characters — so a probe measuring token length/alphabet measures
+      // the real shape. RLS live is `authenticated ALL true`, so this is deliberately open to
+      // any signed-in caller here too; that IS one of the findings under test.
+      if(t==='share_links'&&req.method==='POST'){
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(!Array.isArray(payload)) payload=[payload];
+          const hex=()=>[...Array(32)].map(()=>Math.floor(Math.random()*16).toString(16)).join('');
+          const written=payload.map(row=>{
+            const nr=Object.assign({token:hex()+hex(),scope:'all',active:true,created_by:null,
+              created_at:new Date().toISOString(),last_used_at:null}, row);
+            TABLES.share_links.push(nr); return nr;
+          });
+          const single=(req.headers.accept||'').includes('vnd.pgrst.object');
+          return send(res,201, single?(written[0]||null):written);
+        });
       }
       // app_state_bak writes are persisted for real too — insert (tagCurrentState, migration)
       // and delete (deleteTag), each real, RLS-shaped, .select()-checked call sites this app
@@ -812,9 +924,9 @@ export function start(port, seedOverrides){
           const written=payload.map(row=>{
             let ix=row.id?table.findIndex(r=>String(r.id)===String(row.id)):-1;
             if(ix<0&&row.legacy_id) ix=table.findIndex(r=>String(r.legacy_id)===String(row.legacy_id));
-            if(ix>=0){ table[ix]=Object.assign({},table[ix],row); return {id:table[ix].id,legacy_id:table[ix].legacy_id}; }
+            if(ix>=0){ table[ix]=Object.assign({},table[ix],row); return {id:table[ix].id,legacy_id:table[ix].legacy_id,archived_at:table[ix].archived_at==null?null:table[ix].archived_at}; }
             const newRow=Object.assign({id:row.id||('mock-biz-'+Math.random().toString(36).slice(2))},row);
-            table.push(newRow); return {id:newRow.id,legacy_id:newRow.legacy_id};
+            table.push(newRow); return {id:newRow.id,legacy_id:newRow.legacy_id,archived_at:newRow.archived_at==null?null:newRow.archived_at};
           });
           return send(res,201,written);
         });
@@ -865,6 +977,12 @@ export function start(port, seedOverrides){
       let val=u.query[k]; if(Array.isArray(val))val=val[0];
       const m=String(val||'').match(/^eq\.(.*)$/);
       if(m){ const want=m[1]; rows=rows.filter(r=>String(r[k])===want); }
+      // 2026-09-02 (reversibility round): the loader really does send
+      // businesses?archived_at=is.null, and ignoring it meant an archived company came back on
+      // reload here but not in production. Scoped to archived_at ONLY — every other is.null GET
+      // in the harness keeps the old unfiltered behaviour it was written against.
+      else if(k==='archived_at'&&String(val)==='is.null') rows=rows.filter(r=>r[k]==null);
+      else if(k==='archived_at'&&String(val)==='not.is.null') rows=rows.filter(r=>r[k]!=null);
     });
     // json-path filter used by the events layer: funnel_details->>event_name=not.is.null
     Object.keys(u.query||{}).forEach(k=>{
@@ -937,5 +1055,12 @@ export function start(port, seedOverrides){
   try{ body=fs.readFileSync(APP+f); }
   catch(_){ try{ body=fs.readFileSync(APP+'/index.html'); f='/index.html'; }catch(e){ res.writeHead(404); return res.end('nf'); } }
   res.writeHead(200,{'Content-Type':f.endsWith('.html')?'text/html; charset=utf-8':(f.endsWith('.js')?'application/javascript':'text/plain')}); res.end(body);
- }).listen(port);
+ }).listen(port).on('error', (e) => {
+   /* PROBE-INTEGRITY FIX (meta-audit, 2026-09-03): listen() carried no 'error' handler, so a
+      port already held by another probe crashed the run with a bare EADDRINUSE stack trace
+      that read as a broken probe rather than a scheduling clash. Say which port and why. */
+   console.error(`\nmock-supabase: cannot listen on port ${port} — ${e.code}.` +
+     (e.code === 'EADDRINUSE' ? ' Another QA probe (or a leftover one) is already using it; run this probe on its own, or give it a free port.' : ''));
+   process.exit(1);
+ });
 }
