@@ -76,11 +76,12 @@
   };
 
   /* ---------- Activity & Audit — now reading record_history, not DB.audit ---------- */
+  var HIST_CAP=500;   // named so the tile and the query can never drift apart
   var HIST={rows:null,loading:false,err:null};
   function histLoad(cb){
     var c=client(); if(!c){ setTimeout(function(){histLoad(cb);},400); return; }
     if(HIST.loading)return; HIST.loading=true;
-    c.from('record_history').select('*').order('at',{ascending:false}).limit(500).then(function(r){
+    c.from('record_history').select('*').order('at',{ascending:false}).limit(HIST_CAP).then(function(r){
       HIST.loading=false;
       if(r.error){ HIST.err=r.error.message||String(r.error); HIST.rows=[]; }
       else { HIST.err=null; HIST.rows=Array.isArray(r.data)?r.data:[]; }
@@ -124,11 +125,18 @@
     var rows=HIST.rows||[];
     var today=rows.filter(function(r){return Date.now()-new Date(r.at).getTime()<86400000;}).length;
     var week=rows.filter(function(r){return Date.now()-new Date(r.at).getTime()<7*86400000;}).length;
+    /* 2026-09-02 (round 37): the query above asks for the most recent HIST_CAP entries. The
+       tile has always been honestly labelled "Events loaded" rather than "Total events", and
+       Today / 7-day are exact as long as the window fits inside the cap — which it does today
+       (242 rows live). But when the cap is actually reached, nothing said so: a reader would
+       see a round number and no reason to doubt it, and the 7-day count could then be an
+       undercount rather than a count. Say it, but only when it is true. */
+    var atCap=rows.length>=HIST_CAP;
     v.innerHTML=
       '<div class="card" style="display:flex;flex-wrap:wrap;gap:18px;padding:14px 20px;margin-bottom:14px">'+
-        '<div><div class="kl">'+fl('Events loaded','الأحداث المحمّلة')+'</div><div class="kv">'+rows.length+'</div></div>'+
+        '<div><div class="kl">'+fl('Events loaded','الأحداث المحمّلة')+'</div><div class="kv">'+rows.length+'</div>'+(atCap?('<div style="font-size:10.5px;font-weight:600;color:#B54708;margin-top:2px">'+fl('the most recent '+HIST_CAP+' — there are older ones','أحدث '+HIST_CAP+' فقط — توجد سجلات أقدم')+'</div>'):'')+'</div>'+
         '<div><div class="kl">'+fl('Today','اليوم')+'</div><div class="kv" style="color:#2E90FA">'+today+'</div></div>'+
-        '<div><div class="kl">'+fl('7-day','٧ أيام')+'</div><div class="kv" style="color:#16B364">'+week+'</div></div>'+
+        '<div><div class="kl">'+fl('7-day','٧ أيام')+'</div><div class="kv" style="color:#16B364">'+week+(atCap?'+':'')+'</div>'+(atCap?('<div style="font-size:10.5px;font-weight:600;color:#B54708;margin-top:2px">'+fl('at least — the log was capped','على الأقل — السجل مقطوع')+'</div>'):'')+'</div>'+
         '<div style="flex:1"></div><button class="btn sm ghost" onclick="histRefresh()">'+fl('↻ Refresh','↻ تحديث')+'</button>'+
       '</div>'+
       (HIST.err?'<div class="card" style="border-color:#F0453A"><b style="color:#D92D20">'+fl('Could not load the log:','تعذّر تحميل السجل:')+'</b> '+esc(HIST.err)+'</div>':'')+

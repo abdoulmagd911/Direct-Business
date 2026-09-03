@@ -1,5 +1,40 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 37 — Undo and the audit log: ninety probes and not one drove the most consequential button in the app
+
+**Undo asks the database to put a previous version of a row back.** It is the single most
+consequential thing anyone can click here. There were ninety probes in `scripts/qa/` and *not
+one* of them drove it: `probe-golive` checks who may **open** Activity & Audit; nothing checked
+what the page says or what the button does.
+
+Reading js/63 first, most of it is in better shape than the sweep suggested, and that is worth
+recording so nobody "fixes" it later:
+- the rules live in the database (`undo_change(p_id)`), which is right — the server is the
+  authority and returns a fixed set of English strings the app translates;
+- a change older than 24 h **still offers the button**, with a tooltip saying it will likely be
+  refused. That is deliberate: the app explains the server's rule rather than duplicating it,
+  and a duplicated rule is one that can drift;
+- the "Events loaded" tile was always honestly labelled — not "Total events".
+
+`scripts/qa/probe-audit-undo.mjs` (14 checks) now holds all of it: the feed and what changed, a
+create entry offering no Undo, an already-undone entry offering no second one, the 24 h warning,
+and a **real Undo driven end to end** — confirmed, reported, and verified against the database
+(one more `undone_at` row) rather than trusting the screen. It also asserts the layer's own claim
+that its refusal list is "the exact, exhaustive set", by checking all eight strings the function
+can return actually have Arabic.
+
+**The one behaviour change: the 500-row cap now says when it was hit.** `record_history` is read
+with `limit(500)`. Today that is not biting (242 rows live) and Today / 7-day are exact while the
+window fits inside the cap. But at the cap nothing said so — a reader would see a round `500` in
+three tiles with no reason to doubt it, and the 7-day figure would be an undercount presented as
+a count. It now reads "the most recent 500 — there are older ones" and marks 7-day as "at least",
+**only when true**; below the cap the page stays quiet. The literal is now a named `HIST_CAP` so
+the query and the message can never drift apart.
+
+*Note: `probe-golive` cannot run in this sandbox — it drives the real site through `emp-rig.mjs`
+with the team's actual passwords from the environment, which this session correctly does not
+have. It fails at navigation, before any page logic, and is unrelated to this change.*
+
 ## 2026-09-02 · Round 36 — the same caveat, carried to the Report Builder
 
 Round 35's lesson generalised: a caveat at the top of a page does not protect a table further
