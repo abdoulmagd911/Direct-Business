@@ -464,5 +464,7 @@ twice, two layers creating the same element id, hidden-option trimming, hard-cod
   pipeline (`leadFilter.stage` + `drawLeads()` → `matchLead`), the counts reflect leads only,
   and the active chip + the "All stages" dropdown stay in sync. Verified in the harness (each
   chip filters to exactly its stage; badge count == rows shown; EN+AR clean).
-- `business@directksa.com` is listed as an admin in `access_allowlist` but has no login
-  yet. Abdulrahman's other address, `aboelmagd@directksa.com`, is a working admin.
+- ~~`business@directksa.com` has no login yet~~ — **closed 2026-08-13**: both of
+  Abdulrahman's addresses (`business@directksa.com`, `aboelmagd@directksa.com`) are active
+  admins in `app_users` (re-checked against the live table 2026-09-02); his Team-Member view
+  is `a.hassan@directksa.net` (`team_member`).
