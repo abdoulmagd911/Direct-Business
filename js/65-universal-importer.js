@@ -612,11 +612,24 @@
     function done(){ CAPTURE_BASELINE_STATE='loaded'; var ws=CAPTURE_BASELINE_WAITERS; CAPTURE_BASELINE_WAITERS=[]; ws.forEach(function(w){try{w();}catch(_){}}); }
     var c=fc(); if(!c){ done(); return; }
     var j=ensureExpenseJoin();
-    c.from('finance_expense_lines_capture').select('transaction_ref,amount_sar,expense_status').then(function(rl){
+    /* 2026-09-03 (watch cycle 13): both capture reads page now. They were single unpaged selects,
+       and the API hands back at most 1000 rows without saying so — expense LINES grow faster than
+       anything else in Finance (one transaction can carry many), so past 1000 the join would have
+       quietly stopped seeing recorded costs and reported the invoices as "an import gap" while
+       their profit read as if the cost were zero. js/16 owns the helper; the local fallback keeps
+       this file working on its own if the load order ever changes. */
+    var _pageAll=(typeof window.finPageAll==='function')?window.finPageAll:function(mk,cb){
+      var all=[]; (function _p(from){ mk().range(from,from+999).then(function(r){
+        if(r&&r.error){cb({data:null,error:r.error});return;}
+        var d=(r&&r.data)||[]; all=all.concat(d);
+        if(d.length===1000)_p(from+1000); else cb({data:all,error:null});
+      },function(e){cb({data:null,error:e});}); })(0);
+    };
+    _pageAll(function(){return c.from('finance_expense_lines_capture').select('transaction_ref,amount_sar,expense_status').order('transaction_ref',{ascending:true});}, function(rl){
       (rl.data||[]).forEach(function(row){
         (j.lines[row.transaction_ref]=j.lines[row.transaction_ref]||[]).push({amount:row.amount_sar, status:row.expense_status||''});
       });
-      c.from('finance_expense_gate_capture').select('transaction_ref,txn_expense_status,invoice_issuing_raw').then(function(rg){
+      _pageAll(function(){return c.from('finance_expense_gate_capture').select('transaction_ref,txn_expense_status,invoice_issuing_raw').order('transaction_ref',{ascending:true});}, function(rg){
         (rg.data||[]).forEach(function(row){
           // __fromThisDrop deliberately unset here — a baseline-loaded entry that a fresh drop
           // later disagrees with is a normal UPDATE (superseded), never flagged as a conflict;

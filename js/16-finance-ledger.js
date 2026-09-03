@@ -55,27 +55,41 @@ try{
   }
 }catch(e){console.warn('v42 nav',e);}
 
+/* 2026-09-03 (watch cycle 13): ONE paging helper for the whole Finance lane.
+   The API returns at most 1000 rows per request no matter what the client asks for, and says so
+   only in a Content-Range header nobody reads — so a read that does not page returns a clean,
+   plausible, WRONG answer: the first 1000 rows presented as the whole table. finLoad() has paged
+   since August; txnLoad() and five other reads in this lane did not, which meant the Ledger's own
+   totals (confirmed revenue, cost, outstanding, the Overdue count) were computed from whatever
+   1000 transactions came back first, with nothing on screen admitting it. mk() must return a
+   FRESH query builder each call — a PostgREST builder is single-use. */
+function finPageAll(mk, cb){
+  var all=[];
+  (function _page(from){
+    var q; try{ q=mk(); }catch(e){ cb({data:null,error:e}); return; }
+    q.range(from, from+999).then(function(r){
+      if(r&&r.error){ cb({data:null,error:r.error}); return; }
+      var d=(r&&r.data)||[];
+      all=all.concat(d);
+      if(d.length===1000)_page(from+1000); else cb({data:all,error:null});
+    }, function(e){ cb({data:null,error:e}); });
+  })(0);
+}
+try{ window.finPageAll=finPageAll; }catch(_){}
+
 function finLoad(cb){
   if(FIN.loading)return; FIN.loading=true;
   var c=fc(); if(!c){FIN.loading=false;return;}
   // The API returns at most 1000 rows per request no matter what limit() asks for,
   // so the ledger MUST page — one big limit() silently drops rows past 1000.
-  var _all=[];
-  (function _page(from){
-    c.from('finance_invoices').select('*').order('invoice_date',{ascending:false}).order('id',{ascending:true}).range(from,from+999).then(function(r){
-      if(r.error){finGot(r);return;}
-      _all=_all.concat(r.data||[]);
-      if((r.data||[]).length===1000)_page(from+1000);
-      else finGot({data:_all,error:null});
-    });
-  })(0);
+  finPageAll(function(){return c.from('finance_invoices').select('*').order('invoice_date',{ascending:false}).order('id',{ascending:true});}, finGot);
   function finGot(r){
     if(r.error){console.warn('finance load',r.error);FIN.rows=[];FIN.loadErr=r.error.message;}
     else {FIN.rows=r.data||[];FIN.loadErr=null;}
     // Load the client↔finance links (one row per finance client_group → a real client, or
     // is_client=false for individuals). This is the join key so a client's money reflects by
     // ID, not by fuzzy name. Small table; build lookup maps once loaded.
-    c.from('finance_client_links').select('*').then(function(lr){
+    finPageAll(function(){return c.from('finance_client_links').select('*').order('id',{ascending:true});}, function(lr){
       FIN.loading=false;
       FIN.links=(lr&&!lr.error&&lr.data)?lr.data:[];
       FIN.linkByGroup={}; FIN.groupsByBiz={};
@@ -83,10 +97,10 @@ function finLoad(cb){
         FIN.linkByGroup[l.client_group]=l;
         if(l.business_id){ (FIN.groupsByBiz[l.business_id]=FIN.groupsByBiz[l.business_id]||[]).push(l.client_group); }
       });
-      c.from('finance_targets').select('*').then(function(tr){
+      finPageAll(function(){return c.from('finance_targets').select('*').order('year',{ascending:true});}, function(tr){
         FIN.targets=(tr&&!tr.error&&tr.data)?tr.data:[];
         // Promo-code registry (revenue way #4): per-code totals mirrored from Direct Payments.
-        c.from('promo_codes').select('*').order('total_sales_sar',{ascending:false}).then(function(pr){
+        finPageAll(function(){return c.from('promo_codes').select('*').order('total_sales_sar',{ascending:false}).order('code',{ascending:true});}, function(pr){
           FIN.promos=(pr&&!pr.error&&pr.data)?pr.data:[];
           if(cb)cb();
           try{if(current==='finance')render();}catch(_){}
@@ -718,11 +732,17 @@ var TXN={rows:null,profiles:null,loading:false,collapsed:{},
 function txnLoad(cb){
   if(TXN.loading)return; TXN.loading=true;
   var c=fc(); if(!c){TXN.loading=false;return;}
-  c.from('finance_transactions').select('*').is('deleted_at',null).order('created_at_source',{ascending:false}).then(function(r){
+  /* 2026-09-03 (watch cycle 13, probe-scale-attacks): both of these reads used to be a single
+     unpaged select. Past 1000 transactions the Ledger silently showed the first 1000 and computed
+     its confirmed revenue / cost / outstanding / Overdue count from them; past 1000 client
+     profiles, every transaction beyond the cut lost its company and profile type and fell out of
+     the profile filter. finance_transactions grows faster than invoices — one invoice can carry
+     many transactions — so this was a matter of when, not if. Both page now. */
+  finPageAll(function(){return c.from('finance_transactions').select('*').is('deleted_at',null).order('created_at_source',{ascending:false}).order('id',{ascending:true});}, function(r){
     TXN.loading=false;
     if(r.error){ if(window.console)console.warn('finance_transactions load',r.error); TXN.rows=[]; }
     else TXN.rows=r.data||[];
-    c.from('client_profiles').select('id,business_id,direct_client_id,profile_type,payment_terms,billing_cycle,status').then(function(pr){
+    finPageAll(function(){return c.from('client_profiles').select('id,business_id,direct_client_id,profile_type,payment_terms,billing_cycle,status').order('id',{ascending:true});}, function(pr){
       TXN.profiles={}; ((pr&&!pr.error&&pr.data)||[]).forEach(function(p){TXN.profiles[p.id]=p;});
       if(cb)cb(); try{if(current==='finance'&&FIN.tab==='ledger')render();}catch(_){}
     });

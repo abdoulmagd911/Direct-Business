@@ -775,20 +775,55 @@ export function start(port, seedOverrides){
     // actually present, so every existing caller that never passes them is unaffected. Added
     // 2026-08-23 for the Supabase-backed backup list (app_state_history/app_state_bak), the
     // first callers in this app to actually need real ordering from the mock.
-    let orderRaw=Array.isArray(u.query.order)?u.query.order[0]:u.query.order;
-    if(orderRaw){
-      const [col,dir]=String(orderRaw).split('.');
-      const asc=dir!=='desc';
-      rows=rows.slice().sort((a,b)=>{
-        const av=a[col],bv=b[col];
-        if(av===bv)return 0;
-        return (av>bv?1:-1)*(asc?1:-1);
-      });
+    // 2026-09-03 (watch cycle 13): apply EVERY .order() the client sent, in order, not just the
+    // first. supabase-js sends one `order` query param per call, so `.order(a).order(b)` arrives
+    // as an array — taking [0] alone left the tie-break column unapplied, which is exactly what
+    // makes a paged read non-deterministic (a row can appear on two pages, or on none).
+    let orderRaw=u.query.order;
+    if(orderRaw!=null){
+      const specs=(Array.isArray(orderRaw)?orderRaw:[orderRaw]).map(String).filter(Boolean)
+        .map(o=>{const [col,dir]=o.split('.');return {col,asc:dir!=='desc'};});
+      if(specs.length){
+        rows=rows.slice().sort((a,b)=>{
+          for(const sp of specs){
+            const av=a[sp.col],bv=b[sp.col];
+            if(av===bv)continue;
+            if(av==null)return sp.asc?-1:1;
+            if(bv==null)return sp.asc?1:-1;
+            return (av>bv?1:-1)*(sp.asc?1:-1);
+          }
+          return 0;
+        });
+      }
     }
-    let limitRaw=Array.isArray(u.query.limit)?u.query.limit[0]:u.query.limit;
-    if(limitRaw!=null) rows=rows.slice(0,parseInt(limitRaw,10)||rows.length);
     const single=(req.headers.accept||'').includes('vnd.pgrst.object');
-    return send(res,200, single?(rows[0]||null):rows, {'Content-Range':'0-'+Math.max(rows.length-1,0)+'/'+rows.length});
+    // 2026-09-03 (watch cycle 13): honour the Range HEADER and the server's own max-rows cap,
+    // the way PostgREST/Supabase actually behave. supabase-js `.range(a,b)` sends `Range: a-b`
+    // as a header (never a query param), so the mock used to ignore it completely and hand back
+    // every row in one response — which meant a client that does NOT page looked identical to
+    // one that does, and the 1000-row ceiling could never be felt in the harness. Supabase's
+    // default db-max-rows is 1000: a request for more than that gets 1000 and nothing says so
+    // except Content-Range. MOCK_MAX_ROWS overrides it for tests that need a smaller ceiling.
+    const MAX_ROWS=parseInt(process.env.MOCK_MAX_ROWS||'1000',10);
+    const total=rows.length;
+    // postgrest-js implements .range(from,to) as offset= + limit= QUERY PARAMS (not a Range
+    // header — that is the old shape, still accepted here for a hand-written fetch). Honouring
+    // offset is what makes a paging client actually page in the harness: the mock used to apply
+    // limit and ignore offset, so every page came back as page ONE. A client whose loop keys off
+    // "did I get a full page?" then never terminates — which is exactly how this was found.
+    const q1=(k)=>{let v=u.query[k]; if(Array.isArray(v))v=v[0]; return v==null?null:parseInt(v,10);};
+    let winFrom=q1('offset')||0;
+    let want=q1('limit'); if(want==null||!isFinite(want)) want=total;
+    const rangeHdr=String(req.headers['range']||'').replace(/^items=/,'').trim();
+    const rm=rangeHdr.match(/^(\d+)-(\d*)$/);
+    if(rm&&q1('offset')==null){ winFrom=parseInt(rm[1],10); want=(rm[2]===''?total:(parseInt(rm[2],10)-winFrom+1)); }
+    rows=rows.slice(winFrom, winFrom+Math.max(want,0));
+    // Supabase's own db-max-rows ceiling (default 1000): asking for more silently gets 1000,
+    // and only Content-Range says so. MOCK_MAX_ROWS overrides it for tests needing a smaller one.
+    if(rows.length>MAX_ROWS) rows=rows.slice(0,MAX_ROWS);
+    const lastIx=winFrom+Math.max(rows.length-1,0);
+    return send(res,200, single?(rows[0]||null):rows,
+      {'Content-Range':(rows.length?(winFrom+'-'+lastIx):'*')+'/'+total});
   }
   // Serve a real file if it exists; otherwise fall back to index.html (mirrors the vercel.json
   // SPA rewrite) so deep paths like /leads or /clients and browser reloads work as in production.

@@ -1,5 +1,57 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-03 (overnight) · Watch cycle 13 — past 1,000 rows the Ledger showed the first 1,000 and called it the total
+
+**Attack area: scale**, new `scripts/qa/probe-scale-attacks.mjs` (port 8213, 38 checks) — 5,200
+invoices, 5,200 transactions, 1,200 client profiles, 1,500 expense-capture lines, 120 billing
+names (12 of them alias twins), through every Finance tab and both exports, with every headline
+number recounted independently from the fixture rather than read back off the screen.
+
+**The harness was blind first, and the fix to it is half the finding.** The API returns at most
+1,000 rows per request and says so only in a `Content-Range` header. The mock ignored the paging
+the client sends (postgrest-js expresses `.range()` as `offset=` + `limit=` query params) and
+handed back the whole table in one response — so a read that pages and a read that does not
+looked *identical* here, and no probe written since August could ever have told them apart. Worse,
+with more than 1,000 rows seeded the mock would have hung any correctly-paging client for ever,
+because every page came back as page one. The mock now honours `offset`/`limit` (and a `Range`
+header, for a hand-written fetch), applies every `.order()` the client sent instead of only the
+first, and enforces the same 1,000-row ceiling Supabase does.
+
+**Real gap — six reads in this lane never paged.** `finLoad()` has paged since August; nothing
+else did. The one that matters is `txnLoad()`: past 1,000 transactions the Ledger silently showed
+the first 1,000 and computed its confirmed revenue, cost, outstanding and **Overdue count** from
+them — in the fixture, 3.4M of confirmed revenue rendered as 628K and 99 overdue transactions
+rendered as 18, with nothing on screen admitting a short list. `finance_transactions` grows faster
+than invoices (one invoice can carry many), so this was a question of when, not if. `client_profiles`
+had the same shape — every transaction past the cut loses its company and profile type and falls
+out of the profile filter. So did `finance_client_links`, `finance_targets`, `promo_codes`, and
+the two expense-capture tables in `js/65` — where a truncation would drop *recorded costs*, report
+the invoices as "an import gap", and leave their profit reading as if the cost were zero (M1/M8).
+
+**Fix:** one shared `finPageAll()` in `js/16`, used by every read in the lane including `finLoad`'s
+own loop, with a local fallback in `js/65` so that file still works if the load order changes.
+Each paged read also carries a stable tie-break column now.
+
+**Held under attack at 5,200 rows:** Performance, Clients & collections, Ledger and Report Builder
+all render in about a second; every tile equals an independent recount; the Top-clients total is
+labelled "all 108 clients, top 10 shown" and the twelve alias twins fold onto their base client;
+outstanding money splits across the ageing buckets with nothing lost and the date-less money stays
+in its own bucket; all four Report Builder groupings agree on the same grand total and keep
+profit = revenue − cost; both CSVs carry every row on screen with a BOM; and a standing exclusion
+plus a soft-deleted row placed past the fifth page boundary still reach no total.
+
+**Sabotage-verified:** reverting `txnLoad()`'s two reads to plain unpaged selects turns 4 checks
+red; restore byte-identical (md5). Nineteen probes and the structure check green afterwards.
+
+**Said plainly, not guarded:** removing the `.order('id')` tie-break from a paged read changes
+nothing in this harness, because the mock's sort keeps identical dates in the same order on every
+request. A real database need not. An unstable sort across page boundaries can show a row twice
+or not at all — the tie-break stays in the code on principle, not because a check would catch its
+removal.
+
+**Not changed, deliberately:** `business_merges` in `js/62` asks for `.limit(50)` and gets 50 —
+a visible, intended cap on a "last 50 merges" list, not a silent truncation. Left alone.
+
 ## 2026-09-02 (overnight) · Watch cycle 12 — a read-only share link could write in Finance; five write paths had no guard of their own
 
 **Attack area: permissions and the share view**, new `scripts/qa/probe-permissions-attacks.mjs`
