@@ -1,5 +1,43 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-03 (overnight) · Watch cycle 14 — the importer driven at scale: no defect found, kept as a guard
+
+**Attack area: the import flow against a large existing table**, new
+`scripts/qa/probe-importer-scale-attacks.mjs` (port 8215, 18 checks). A 3,000-row file dropped
+onto 5,201 existing invoices and 1,503 expense-capture lines, through the app's **own** ingest
+entry point and its **own** Confirm button — nothing poked into state. **No defect found**, so the
+probe stays as the permanent guard for the one screen where a wrong count means real money
+written or silently not written.
+
+**Held under attack.** The preview reads New 1,000 · Updated 800 · Unchanged 1,177 · Excluded 23,
+each one an independent recount, and it arrives in **1.6 seconds** against 5,201 existing
+invoices. Confirm inserts exactly 1,000 rows — no duplicate, no excluded-client row, no deleted
+row resurrected — while a genuinely changed invoice still updates. Dropping the **same file
+again** is a real no-op (New 0 · Updated 0 · Unchanged 2,977) with the index now built over 6,201
+rows: cycle 5's idempotency finding holds at fifty times the size. All three invoices deleted in
+this app are named in the preview and held back, so cycle 10's guard still finds them in an index
+that large. A binary file is still refused in words. And cycle 12's permission guard holds where
+it matters most: a 300-row preview armed as an admin, then confirmed after the role drops to
+viewer, writes nothing.
+
+**Cycle 13's paging fix, now proved end to end.** The join reads all **1,500** baseline
+expense-line transactions from the capture table (it stopped at 1,000 before), and a transaction
+whose lines sit past that boundary resolves its cost onto the invoice through the real flow.
+**Sabotage-verified twice, file-level:** reverting the two capture reads in `js/65` to plain
+unpaged selects turns both of those checks red (the join drops to 1,000 and the cost never
+arrives); letting `initState()` index deleted rows again turns three red, including a deleted
+invoice being written with 99,999 while still deleted — cycle 10's exact defect, reproduced.
+Restores byte-identical (md5). Nineteen probes and the structure check green.
+
+**Worth recording, because it is the same mistake one level up:** the probe's own verification
+reads counted 1,000 rows in a 6,201-row table, because they too asked the API for everything and
+took what came back. The checker made the error it was written to catch. Every out-of-page count
+in this probe pages now.
+
+**Also noticed, working as intended, not changed:** the cost join refuses to apply an approved
+cost that exceeds the invoice total ("needs review, not applied") — the first fixture tripped it
+with a 1,500 cost on a 1,091 invoice, which is the guardrail doing its job, not a defect.
+
 ## 2026-09-03 (overnight) · Watch cycle 13 — past 1,000 rows the Ledger showed the first 1,000 and called it the total
 
 **Attack area: scale**, new `scripts/qa/probe-scale-attacks.mjs` (port 8213, 38 checks) — 5,200
