@@ -1,3 +1,32 @@
+## 2026-09-03 · Watch cycle 25 — mutation audit round three: a clean sweep, and the export checked against its own rows
+
+**Mutation audit round three**, over everything added since cycle 20 — the sector key and its
+archived-profile skip, the Ledger's money chokepoint, the duplicate-reference index, the target
+pre-read, the drill-down's reconcile, the twelve-month chart, the whitespace-name placeholder, and
+the importer's all-or-nothing commit. Ten mutations, each breaking one rule a probe claims to
+guard, each reverted byte-identically (md5).
+
+**All ten were caught, by the probe you would expect.** That is the first clean sweep of the three
+audits, and it is the point of having run the earlier two: rounds one and two found six guards
+that were decoration, and everything built since has been written to bite.
+
+**With no blind spot to close, the cycle went after the next unguarded thing: the Report Builder's
+CSV.** The file a manager sends to an accountant is built from the same group totals the
+drill-down reconciles against, but through a completely separate code path — so if the export ever
+read a different filter, the file and the screen it was taken from would disagree and only the
+accountant would find out. `probe-drilldown-attacks` now captures the real file and checks **every
+exported line against the invoices the drill-down opens for that same row** — 8 lines grouped by
+client, 46 grouped by client › month — plus the file's TOTAL against the report's own grand total.
+No defect found. Sabotage-verified: shifting the exported figures by 5% turns both checks red.
+
+**One probe-side correction:** the first parse read each CSV line as a label with no value, because
+the file is CRLF and the hand-rolled comma split fell through to a fallback that returned the whole
+line. It reported "0 of 0 lines disagree" — a check that had examined nothing while printing a
+failure that looked like a real one. Split fixed against the actual file.
+
+Twenty-one probes and the structure check green.
+
+
 ## 2026-09-03 · Watch cycle 24 — two people importing overlapping files: no defect found, kept as a guard
 
 **Attack area: the importer under real concurrency.** Cycle 15 covered two tabs importing the SAME

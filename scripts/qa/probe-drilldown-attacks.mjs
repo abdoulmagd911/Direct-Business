@@ -207,6 +207,66 @@ async function main() {
   if (guard) ok('when the invoices behind a row genuinely do not add up to it, the detail is refused in words rather than shown — a manager never reads a total and a contradicting list side by side');
   else fail('a row whose invoices do not add up to its total still showed the detail');
 
+  /* ---------- 9. the exported file says the same as the rows it summarises (watch cycle 25) ----
+     The CSV is built from R.g[k].__tot — the same totals the drill-down reconciles against — but
+     through a completely separate code path. If the export ever read a different filter, the file
+     a manager sends to an accountant would disagree with the screen it was taken from, and only
+     the accountant would find out. Checked at a grouping and at a sub-grouping. */
+  const csvAgrees = async (g1, g2) => {
+    await setRb(g1, g2, true);
+    return p.evaluate(() => new Promise(res => {
+      let captured = null;
+      const oc = URL.createObjectURL, ok2 = HTMLAnchorElement.prototype.click;
+      URL.createObjectURL = function (b) { captured = b; return 'blob:stub'; };
+      HTMLAnchorElement.prototype.click = function () { };
+      try { window.finCSV(); } catch (e) { }
+      URL.createObjectURL = oc; HTMLAnchorElement.prototype.click = ok2;
+      if (!captured) return res({ err: 'no file' });
+      captured.text().then(text => {
+        const R = FIN._lastReport;
+        const lines = text.replace(/^\ufeff/, '').trim().split('\n');
+        const body = lines.slice(1);
+        const num = (c) => +String(c).replace(/[^\d.-]/g, '');
+        // the file is CRLF and a label may be quoted; split on the first comma outside quotes
+        const cell = (raw) => {
+          const line = String(raw).replace(/\r$/, '');
+          if (line[0] === '"') { const end = line.indexOf('"', 1); return [line.slice(1, end).replace(/""/g, '"'), line.slice(end + 2)]; }
+          const i = line.indexOf(',');
+          return i < 0 ? [line, ''] : [line.slice(0, i), line.slice(i + 1)];
+        };
+        let mismatched = 0, checked = 0, grand = null;
+        body.forEach(line => {
+          const [label, rest] = cell(line);
+          const v = num(rest.split(',')[0]);
+          if (/^(TOTAL|الإجمالي)/.test(label.trim())) { grand = v; return; }
+          const isSub = label.indexOf('\u203a') >= 0;
+          let src = null;
+          if (isSub) {
+            const parts = label.trim().split(' \u203a ');
+            const G = R.g[parts[0]]; src = G && G.__subRows ? G.__subRows[parts[1]] : null;
+          } else {
+            const G = R.g[label]; src = G ? G.__rows : null;
+          }
+          if (!src) return;
+          checked++;
+          const sum = Math.round(src.reduce((a, r) => a + (+r[R.mets[0]] || 0), 0) * 100) / 100;
+          if (Math.abs(sum - v) > 0.02) mismatched++;
+        });
+        const grandWant = Math.round((R.grand[R.mets[0]] || 0) * 100) / 100;
+        res({ checked, mismatched, grand, grandWant });
+      });
+    }));
+  };
+  for (const [g1, g2] of [['__client', ''], ['__client', 'month']]) {
+    const r = await csvAgrees(g1, g2);
+    const lbl = g1 + (g2 ? ' › ' + g2 : '');
+    if (r.err) { fail('the Report Builder CSV produced no file at ' + lbl); continue; }
+    if (r.checked > 0 && !r.mismatched) ok(`the exported file agrees with the rows behind it at ${lbl}: all ${r.checked} exported line(s) equal the invoices the drill-down opens for them`);
+    else fail(`at ${lbl}: ${r.mismatched} of ${r.checked} exported line(s) disagree with the invoices behind them`);
+    if (r.grand != null && Math.abs(r.grand - r.grandWant) < 0.02) ok(`  …and the file's TOTAL line matches the report's own grand total`);
+    else fail(`  at ${lbl}: the file's TOTAL reads ${r.grand}, the report's grand total is ${r.grandWant}`);
+  }
+
   if (!errors.length) ok('no page errors through the run'); else fail('page errors: ' + errors.slice(0, 3).join(' | '));
   await b.close(); srv.close();
   console.log(failures ? ('\n' + failures + ' FAILURE(S)') : '\nALL PASS');
