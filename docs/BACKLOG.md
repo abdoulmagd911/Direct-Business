@@ -4674,7 +4674,13 @@ Shipped, tested twice (mock suites + real-backend E2E 11/11), deployed:
 Living list. Every session should read this and update it. Nothing here is forgotten,
 it is *parked*, and each item says why and what "done" looks like.
 
-Last reviewed: **2026-08-13**
+Last reviewed: **2026-09-02** (full sweep — see the project doc `SWEEP — every note and the
+live system checked end to end (Sep 2)`). Items §3, §6, §7 and §8 below are closed and kept
+only as history — §3 by the 20–22 Aug real-client import (21 real clients live), §6/§7/§8 by
+the 13 Aug rounds (`business@directksa.com` signs in as admin; ownership linked to real
+users; Arabic lays out right-to-left). Still open from §0:
+Phase 8's "wipe test data" — 8 practice clients from the 13 Aug training world are still live
+(archive decision with the owner) — and the browser-push reminder.
 
 ## 0 · THE GO-LIVE PLAN (owner-directed, 2026-08-10) — read before anything else
 

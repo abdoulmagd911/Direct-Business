@@ -180,9 +180,15 @@ Also still true from earlier work: **"Total Submitted Expenses"** (a number Dire
 shows on an invoice) is *not* cost either — it counts lines still Under Review, not only
 Approved ones, so it can overstate real confirmed cost.
 
-**VAT is never shown, anywhere, at any stage, in any form** — not as its own figure, not as a
-"fee excluding VAT" figure either. This is a hard, repeated owner rule, not a style
-preference, and nothing in this correction changes it.
+**VAT never enters an internal figure** — cost, profit and revenue are always VAT-clean, and
+no internal screen breaks a number out "excluding VAT" to get there. It *may* appear on a
+client-facing document where the law expects it (a quotation, a tax invoice) — corrected
+2026-08-23 after the earlier wording here ("never shown, anywhere, in any form") overshot
+into banning the glyph itself; rule M1 in `docs/DECISIONS.md` is the binding text.
+*Status 2026-09-02:* the rule is not yet true in the data — every live invoice carries
+`revenue_sar` = the VAT-inclusive invoice total with `vat_sar` empty; whether revenue stays
+gross or gets netted is an open owner decision (project doc `DECISIONS — rules currently in
+force`, open item 9).
 
 **Verified profit, worked by hand on 5 real invoices across 4 clients:**
 
@@ -367,8 +373,10 @@ Practical rules that exist because breaking them has already caused real, confus
   branch, and the one branch anyone should ever push to. Before the cleanup this was a real,
   repeated trap: work sat pushed to a *different* branch, genuinely live nowhere, for over a
   week (100+ commits behind) before anyone noticed. **Never create a second long-lived
-  branch** — that's exactly how the trap comes back. Push straight to
-  `claude/new-session-9fhlp1`. **The quick way to check what's actually live, if this rule is
+  branch** — that's exactly how the trap comes back. Everything lands on
+  `claude/new-session-9fhlp1` — and since 2026-08-29 only the Claude Code session pushes
+  there (CLAUDE.md rule 10); an oversight/Cowork session commits locally and hands off.
+  **The quick way to check what's actually live, if this rule is
   ever suspected to have slipped again:** compare how many `<script src="/js/...">` lines the
   real site is serving against how many the branch has —
   `curl -s https://www.directksab2b.com/ | grep -c '<script src'` against

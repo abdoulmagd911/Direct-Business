@@ -105,11 +105,17 @@ ACTIVE.*
 **Cost = approved expenses only.** `finance_expenses` rows are the real cost behind a
 service — the hotel bought, the visa paid for. They are record-only: nothing in that table
 may ever be substituted into an invoice's `cost_sar`/`profit_sar` automatically (see
-`js/45-expenses.js`'s own header comment). Until real per-invoice cost data is imported
-from Direct Payments, `cost_sar=0` on an invoice is an honest gap, not something to
-compute a number for.
+`js/45-expenses.js`'s own header comment). Real per-invoice cost now comes from Direct
+Payments through the M9–M17 capture chain (live since late August: 1,538,141.70 across 27 of
+the 46 invoices as of 2026-09-02). Where that chain has not produced a number —
+19 invoices today, including the two M9 cases (the 7-transaction government invoice that
+computed zero; the invoice whose approved cost exceeds its own total and is held for
+review) — `cost_sar=0` stays an honest gap, never
+something to compute a number for, and the Finance page says so in its "N of M invoices carry
+no recorded cost" line.
 *Date: 2026-08-16 (expenses model built), reconfirmed 2026-08-22 (BACKLOG entry: cost "must
-come from approved expenses... not a VAT computation"). Status: ACTIVE.*
+come from approved expenses... not a VAT computation"), figures refreshed 2026-09-02.
+Status: ACTIVE.*
 
 **M9 — real cost is only FINAL once every contributing transaction's own expenses are done,
 and that is a TWO-LEVEL join, not a one-level one.** Corrected 2026-08-24 — the 2026-08-23

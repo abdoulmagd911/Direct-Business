@@ -25,7 +25,7 @@ just *Manager* and *Employee*; if anyone bypasses the screen, the server refuses
 |---|---|---|---|
 | `business@directksa.com` | Abdulrahman Aboelmagd | عبدالرحمن أبوالمجد | **Super admin** |
 | `aboelmagd@directksa.com` | Abdulrahman Aboelmagd | عبدالرحمن أبوالمجد | **Super admin** |
-| `a.hassan@directksa.net` | Abdelrahman Hasan | عبدالرحمن حسن | **Super admin** |
+| `a.hassan@directksa.net` | Abdelrahman Hasan | عبدالرحمن حسن | **Employee** (Abdulrahman's own Team-Member view — live role `team_member`, checked 2026-09-02) |
 | `test@directksa.com` | QA Test Account | حساب الاختبار | **Super admin** (testing) |
 | `osharafi@direct-visa.net` | Othman Al Sharafi | عثمان الشرفي | **Manager** |
 | `raad.elkhair@directksa.com` | Raad Awad | رعد عوض | Employee |
@@ -84,9 +84,13 @@ when the database had refused the write. Level in, level out.
 
 Type a password and it is **permanent** — they are never asked to change it, which is how
 these accounts are handed over. Leave the box blank and the app invents one and asks them to
-pick their own the first time they sign in. Eight characters minimum either way.
+pick their own the first time they sign in. **Ten characters minimum either way** — the app's
+`MIN_PW` constant (`js/02`) matches Supabase's own policy exactly; the earlier "eight" here
+was the mismatch that locked people into a silent reset loop (fixed 2026-08-22/23, see
+`docs/DECISIONS.md` → password minimum).
 
-Forgotten password: Team → **Reset password**. Someone leaves: Team → switch them **off**;
+Forgotten password: Team → **Send reset link** (an admin or manager sends them an emailed
+link; nobody types a password for someone else — Playbook rule 3). Someone leaves: Team → switch them **off**;
 they lose access immediately (within 90 seconds even if they are already signed in), and all
 their work stays. A manager cannot reset or switch off an admin.
 

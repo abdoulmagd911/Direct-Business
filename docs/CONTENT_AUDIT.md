@@ -69,7 +69,7 @@ These are worth deciding once, because a change fixes all 15 pages together.
 
 | Element | Call | Note |
 |---|---|---|
-| `Search everything` box | ✅ Keep | Clear. |
+| Global search box | ✅ Keep | Wording corrected 2026-09-03: it used to say "Search everything" but never searched Finance (invoices, transactions, expenses). It now names what it covers. |
 | `● Live · 27s` | ✏️ Reword | It means "last synced 27 seconds ago", but reads like a countdown. Suggest `● Synced 27s ago`. |
 | `?` (help) | ✅ Keep | Opens the keyboard-shortcut sheet. |
 | `⌘K` | ✅ Keep | Command palette. |
