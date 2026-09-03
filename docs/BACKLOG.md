@@ -1,3 +1,29 @@
+## Round 47 — mutation audit part two: the conversion check was hollow (2026-09-03)
+
+Continued round 46's audit into `attack-wave3`. One finding, and it is the most consequential of the
+series.
+
+**"lifecycle 3: Won auto-converts to client" and "lifecycle 4: appears in the Clients list" were
+both hollow.** Both read `DB.businesses`, the in-memory array. Mutation: force `is_client:false` on
+every write, so no lead ever becomes a client in the database — **both steps still passed.**
+
+Conversion is the hinge of the whole book of business: it drives the Clients page, the finance
+link, and the account-manager work. CLAUDE.md names it as a database trigger. A conversion that
+never lands is one the person loses on the next reload, having been told it worked. Both steps now
+read the row back and report `database is_client=false` when it diverges; re-tested against the
+same mutation, both go red.
+
+**Checked and found genuinely sound, so not changed:**
+- The importer's commit path. `attack-wave3`'s importer section *skips* here — its fixture is
+  gitignored and under rule 7 a real Direct Payments export may never be committed — and it names
+  `probe-importer-attacks.mjs` as the substitute. Verified that claim rather than trusting it:
+  pointing the commit at a non-existent RPC makes that probe go red with four failures, including
+  "Imported 0 new, updated 0". The delegation is accurate and the path is properly guarded.
+
+**Harness debt found, not fixed here:** `probe-lifecycle5.mjs` errors out on a locator timeout, and
+does so identically on a clean tree — it has been failing regardless of the code for some time. A
+probe that always errors is worse than no probe: the noise is what a real failure would hide in.
+
 ## Round 46 — mutation audit of the CRM battery: three guards that were not guarding (2026-09-03)
 
 Rounds 43 and 45 both found real problems by attacking the **instruments** rather than the code, and

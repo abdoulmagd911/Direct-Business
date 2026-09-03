@@ -138,11 +138,22 @@ await page.waitForTimeout(1200);
 await page.evaluate(() => { const m = [...document.querySelectorAll('body > div')].filter(d => +((d.style || {}).zIndex || 0) > 999990 && +((d.style || {}).zIndex || 0) < 2147483000); m.forEach(x => x.remove()); });
 await closeAll();
 const st3 = await page.evaluate(() => { const b = DB.businesses.find(x => x.name === 'Wave3 Lifecycle Co'); return { won: leadStage(b) === 'Won', client: !!b.isClient }; });
-STEP('lifecycle 3: Won auto-converts to client', st3.won && st3.client, JSON.stringify(st3));
+/* 2026-09-03 (round 47, mutation audit) — this read DB.businesses, the in-memory array, and so did
+   "lifecycle 4" below. Proven hollow: with is_client forced to false on every write, so no lead
+   ever became a client in the database, BOTH steps still passed. Conversion is the hinge of the
+   whole book of business — it drives the Clients page, the finance link and the account-manager
+   work — and a conversion that never lands is one the person loses on the next reload, having been
+   told it worked. CLAUDE.md names it as a database trigger; check the database. */
+const dbConv = await (await fetch(BASE + '/rest/v1/businesses?select=name,is_client,stage')).json().catch(() => []);
+const convRow = Array.isArray(dbConv) ? dbConv.find(r => r && r.name === 'Wave3 Lifecycle Co') : null;
+const convInDb = !!(convRow && convRow.is_client === true);
+STEP('lifecycle 3: Won converts to client, in the DATABASE and not just on screen', st3.won && st3.client && convInDb, JSON.stringify(st3) + ' database is_client=' + (convRow ? convRow.is_client : 'row missing'));
 const st4 = await page.evaluate(() => { current = 'clients'; openLead = null; render(); return true; });
 await page.waitForTimeout(900);
 const inClients = await page.evaluate(() => (document.getElementById('view').textContent || '').includes('Wave3 Lifecycle Co'));
-STEP('lifecycle 4: appears in the Clients list', inClients);
+/* The screen listing it is necessary but not sufficient — the list is drawn from the same
+   in-memory array. It is a real client only if a reload would still find one. */
+STEP('lifecycle 4: appears in the Clients list, and is a client in the database too', inClients && convInDb, 'onScreen=' + inClients + ' database=' + convInDb);
 
 await closeAll();
 // ---- THE IMPORTER with a real-shaped Direct Payments export (44 invoices, all four ways)
