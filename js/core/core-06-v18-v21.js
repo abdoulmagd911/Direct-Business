@@ -532,7 +532,29 @@ ${recents.length?`<div><div style="font-size:11px;color:var(--muted);text-transf
 ${qcMiss.length?`<div class="v19-today-group"><h3>✅ QC checklist incomplete</h3>${qcMiss.map(b=>{const qc=qcScore(b);return card({cls:qc.pct>=60?'amber':'red',ic:'✅',ti:b.ref+' · QC '+qc.done+'/'+qc.total,meta:leadName(b.leadId)+' · '+(_todayAr?'صدرت التذكرة وفحص الجودة غير مكتمل':'ticketed but quality gate open'),v:qc.pct+'%',click:`openBookingFn('${b.id}')`});}).join('')}</div>`:''}
 `;}
 /* hook today into the dispatcher */
-const _origRender=render;render=function(){buildNav();const v=document.getElementById("view");document.getElementById("vTitle").textContent=TITLES[current]?TITLES[current][0]:current;document.getElementById("vSub").textContent=TITLES[current]?TITLES[current][1]:'';if(typeof applyLang==='function')applyLang();if(typeof renderTopExtras==='function')renderTopExtras();const map={today:renderToday,dashboard:renderDash,leads:renderLeads,clients:renderClients,bookings:renderBookings,invoices:renderInvoices,tickets:renderTickets,airlines:(vv)=>renderSuppliers(vv,'air'),vendors:(vv)=>renderSuppliers(vv,'prov'),sops:renderSops,slas:renderSlas,sopsla:renderSopSla,reports:(typeof renderReports==="function"?renderReports:renderDash),ops:(vv)=>{renderOps(vv);vv.insertAdjacentHTML("afterbegin","<div style=\"margin-bottom:12px\"><button class=\"btn ghost sm\" onclick=\"gotoProjects()\">Projects board</button></div>");},offers:renderOffers,activity:(typeof renderActivity==='function'?renderActivity:renderDash),archive:(typeof renderArchive==='function'?renderArchive:renderDash)};(map[current]||renderToday)(v);if(typeof v19WireExtras==='function')v19WireExtras();};
+const _origRender=render;render=function(){buildNav();const v=document.getElementById("view");document.getElementById("vTitle").textContent=TITLES[current]?TITLES[current][0]:current;document.getElementById("vSub").textContent=TITLES[current]?TITLES[current][1]:'';if(typeof applyLang==='function')applyLang();if(typeof renderTopExtras==='function')renderTopExtras();const map={today:renderToday,dashboard:renderDash,leads:renderLeads,clients:renderClients,bookings:renderBookings,invoices:renderInvoices,tickets:renderTickets,airlines:(vv)=>renderSuppliers(vv,'air'),vendors:(vv)=>renderSuppliers(vv,'prov'),sops:renderSops,slas:renderSlas,sopsla:renderSopSla,reports:(typeof renderReports==="function"?renderReports:renderDash),ops:(vv)=>{renderOps(vv);vv.insertAdjacentHTML("afterbegin","<div style=\"margin-bottom:12px\"><button class=\"btn ghost sm\" onclick=\"gotoProjects()\">Projects board</button></div>");},offers:renderOffers,activity:(typeof renderActivity==='function'?renderActivity:renderDash),archive:(typeof renderArchive==='function'?renderArchive:renderDash)};/* 2026-09-02 (round 40): this used to be `(map[current]||renderToday)(v)`. Three pages —
+   Finance, Events and Generator — are added to VIEWS by later layers and have NO branch in
+   this map; they are drawn by wrappers on render() that run AFTER this returns, each ending in
+   `catch(e){ console.warn(...) }`. So a layer that throws while drawing its page left TODAY on
+   screen with the nav still highlighting the page you asked for: no error, no empty state,
+   nothing to say the click failed. Round 39 fixed exactly this one level down, between the
+   Finance tabs; this is the same trap between PAGES.
+   A `current` that is a real nav entry but has no renderer here now gets an honest placeholder,
+   which the working layer overwrites in the same tick and nobody ever sees. A `current` that is
+   not a nav entry at all is bad input, not a failure, and still lands on Today as before. */
+(function(){
+  var fn=map[current];
+  if(fn){ fn(v); return; }
+  var isRealPage=false;
+  try{ isRealPage=(typeof VIEWS!=='undefined')&&VIEWS.some(function(x){return x&&x.id===current;}); }catch(_){}
+  if(!isRealPage){ renderToday(v); return; }
+  var _ar=(typeof LANG!=='undefined'&&LANG==='ar');
+  v.innerHTML='<div class="card" id="page-pending" style="padding:34px;text-align:center;color:var(--muted)">'
+    +'<div style="font-size:15px;font-weight:700;color:var(--ink,#1C1E2B);margin-bottom:6px">'+(_ar?'جارٍ فتح الصفحة':'Opening this page')+'</div>'
+    +'<div style="font-size:13px">'+(_ar
+      ?'إذا بقيت هذه الرسالة على الشاشة، فإن الصفحة لم تُحمَّل — أعد تحميل الصفحة.'
+      :'If this message stays on screen, the page did not load — refresh the page.')+'</div></div>';
+})();if(typeof v19WireExtras==='function')v19WireExtras();};
 /* topbar ⌘K + ? buttons */
 function renderTopExtras19(){const t=document.querySelector('.tools');if(!t)return;if(!document.getElementById('langBtn'))renderTopExtras();/* kBtn/hBtn chrome deleted 2026-08-10 — shortcuts still work */}
 const _origRTE=renderTopExtras;renderTopExtras=function(){_origRTE();renderTopExtras19();};

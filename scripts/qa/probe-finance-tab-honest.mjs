@@ -136,6 +136,50 @@ async function main() {
   else fail('a working tab shows the placeholder in Arabic');
   await p.evaluate(() => { LANG = 'en'; if (typeof applyLang === 'function') applyLang(); });
 
+  /* ---- 5. the same trap one level up, between PAGES.
+     Finance, Events and Generator are added to VIEWS by later layers and have no branch in the
+     core render map; they are drawn by wrappers that run after render() returns, each ending in
+     catch(e){console.warn(...)}. A layer that throws left TODAY on screen with the nav still
+     highlighting the page you asked for. */
+  await p.evaluate(() => { LANG = 'en'; if (typeof applyLang === 'function') applyLang(); });
+  for (const pg of ['finance', 'events', 'documents']) {
+    const r = await p.evaluate((x) => { openLead = null; current = x; render(); return null; }, pg);
+    await p.waitForTimeout(1400);
+    const got = await p.evaluate(() => ({
+      txt: ((document.getElementById('view') || {}).innerText || '').replace(/\s+/g, ' '),
+      pending: !!document.getElementById('page-pending'),
+    }));
+    if (!got.pending && !/items need your attention|Nothing urgent/.test(got.txt)) ok(`the ${pg} page draws its own content, not Today`);
+    else fail(`${pg} fell back to Today or left the placeholder up: ` + JSON.stringify(got.txt.slice(0, 140)));
+  }
+
+  /* A real nav page whose layer throws must show the placeholder, NOT Today.
+     Use Events, which has exactly ONE wrapper: replacing window.renderEvents with a thrower is
+     a faithful stand-in for a runtime error inside it. (Finance is a poor choice here — it has
+     several wrappers stacked, and a later one still draws the page when an earlier one fails,
+     which is the app working correctly, not the case under test.) */
+  const brokenPage = await p.evaluate(async () => {
+    const real = window.renderEvents;
+    window.renderEvents = function () { throw new Error('QA forced failure drawing the events page'); };
+    try { openLead = null; current = 'events'; render(); } catch (_) {}
+    window.renderEvents = real;
+    await new Promise((r) => setTimeout(r, 300));
+    const v = document.getElementById('view');
+    return { txt: ((v || {}).innerText || '').replace(/\s+/g, ' '), pending: !!document.getElementById('page-pending') };
+  });
+  if (!/items need your attention|Nothing urgent/.test(brokenPage.txt)) ok('a page whose layer throws does NOT leave the person on Today');
+  else fail('a failing page still shows Today — the same mysterious failure, one level up');
+  if (brokenPage.pending || /did not load|لم تُحمَّل/.test(brokenPage.txt)) ok('…they get the placeholder saying the page did not load');
+  else fail('a failing page shows neither its content nor an explanation: ' + JSON.stringify(brokenPage.txt.slice(0, 180)));
+
+  // a `current` that is not a nav entry at all is bad input, not a failure — Today is right
+  const junk = await p.evaluate(() => { openLead = null; current = 'not-a-page-at-all'; render(); return null; });
+  await p.waitForTimeout(1200);
+  const junkGot = await p.evaluate(() => ({ txt: ((document.getElementById('view') || {}).innerText || '').replace(/\s+/g, ' '), pending: !!document.getElementById('page-pending') }));
+  if (!junkGot.pending) ok('a view id that is not a nav entry at all still lands on Today — that is bad input, not a failed page, and the placeholder would be a lie');
+  else fail('a junk view id shows the "did not load" placeholder, which claims a failure that did not happen');
+  await p.evaluate(() => { openLead = null; current = 'finance'; render(); });
+
   const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION|QA forced failure/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');

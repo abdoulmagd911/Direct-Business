@@ -1,5 +1,29 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 40 — the same trap one level up: a page that fails dropped you on Today
+
+Round 39 fixed a Finance **tab** that failed silently showing another tab. The identical pattern
+sits between **pages**, and the same three layers are involved.
+
+`Finance`, `Events` and `Generator` are added to `VIEWS` by later layers and have **no branch**
+in the core render map. They are drawn by wrappers on `render()` that run after it returns —
+each ending in `catch(e){ console.warn(…) }` — while the map's own fallback was
+`(map[current] || renderToday)(v)`. So a layer that throws while drawing its page left **Today**
+on screen with the nav still highlighting the page you asked for: no error, no empty state,
+nothing to say the click failed.
+
+A `current` that **is** a real nav entry but has no renderer here now gets the honest
+placeholder, which the working layer overwrites in the same tick. A `current` that is **not** a
+nav entry stays on Today, deliberately: that is bad input, not a failed page, and a "did not
+load" message there would claim a failure that never happened. The probe asserts both directions.
+
+**A test I had to correct.** My first version of the failing-page check broke `getElementById`
+while rendering Finance — and it passed for the wrong reason. Finance has *several* wrappers
+stacked, so when the earlier one failed a later one still drew the page: that is the app working
+correctly, not the case under test. The check now uses **Events**, which has exactly one wrapper,
+and replaces `window.renderEvents` with a thrower — a faithful stand-in for a runtime error
+inside it. Sabotage then reproduces the real symptom, printing the Today page's own chips.
+
 ## 2026-09-02 · Round 39 — a Finance tab that fails silently showed you a different tab
 
 Found while driving the Finance tabs in the previous round, and it follows from how they are
