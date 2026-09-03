@@ -1,3 +1,33 @@
+## 2026-09-03 · Watch cycle 24 — two people importing overlapping files: no defect found, kept as a guard
+
+**Attack area: the importer under real concurrency.** Cycle 15 covered two tabs importing the SAME
+file. The harder case is two DIFFERENT files that happen to share some invoice numbers — which is
+what actually happens when two people export overlapping date ranges from Direct Payments on the
+same afternoon. Each preview is computed against the table as it was **before** the other person
+confirmed, so the second Confirm tries to insert rows that now exist.
+
+**No defect found.** New `scripts/qa/probe-importer-concurrency-attacks.mjs` (port 8227, 12
+checks). The question that matters is what the loser is left with: a partial write — some invoices
+in, some out, and no way to tell which — is far worse than a clean refusal.
+
+**Held under attack.** Both tabs preview honestly against the table as it was (8 new and 7 new,
+three of them the same invoices). The first Confirm lands all eight. The second fails as a whole:
+no invoice number exists twice; **none** of the second file's four own invoices were written, so
+there is no half-imported file to reconcile by hand; nothing leaked into the expense-capture
+tables either; the three shared invoices still hold the first tab's figures; and the second tab is
+told its import **failed and nothing landed**, carrying the database's own reason rather than a
+success message. Reloading that tab shows the truth instead of its stale preview, and re-dropping
+the very same file then reports its four own invoices as new and the three shared ones as already
+there — one more Confirm finishes the job cleanly, every invoice present exactly once.
+
+**Sabotage-verified twice, file-level.** Making `v65Commit` ignore the error turns the message
+into **"Done. Imported 0 new, updated 0."** — a success notice for a batch that wrote nothing,
+which is precisely the shape rule M13 exists to prevent, and the probe catches it. Making the
+commit RPC insert row-by-row instead of all-or-nothing turns three checks red, including the four
+orphan rows being written anyway. Restores byte-identical (md5). Twenty probes and the structure
+check green.
+
+
 ## Round 47 — mutation audit part two: the conversion check was hollow (2026-09-03)
 
 Continued round 46's audit into `attack-wave3`. One finding, and it is the most consequential of the
