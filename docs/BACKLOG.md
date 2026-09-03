@@ -1,3 +1,37 @@
+## Round 44 — the five documents a client actually reads (2026-09-03)
+
+js/67 price offer, js/68 service fees, js/69 company profile, js/70 contract, js/71 tender:
+**3,949 lines producing the documents a real client reads and signs, and not one probe drove any
+of them.** They even expose QA hooks (`__poCalcProbe`, `__ctProbe`, `__ctPlaceholderClauses`,
+`__tdProbe`) — a previous session built them to be testable and the test was never written.
+
+**No product defect found in the money.** The arithmetic is right in both VAT directions, rounds
+to the halala, and the amount-in-words is written once in js/67 and *reused* by the tender rather
+than duplicated — so an offer and a tender can never spell the same amount differently. On these
+pages VAT belongs: M1 bars it from cost/profit/revenue, and the owner's 2026-08-23 correction says
+a client-facing quotation may show it. The test is therefore reconciliation, not absence.
+
+Two real things did come out of it:
+
+1. **`contract_clauses` was unseeded in the mock**, so `S.tpl` was `[]`, `snapshotClauses()`
+   returned early, and the whole clause system — including the guard that stops a contract going
+   out still saying "[Edit per agreement]" — had never run in any test. Proven, not assumed: the
+   guard was deleted outright and the battery stayed green. The fixture now carries real clauses.
+2. **The tender printed an empty "In words" line** when the shared speller was unavailable. js/71
+   correctly refuses to fabricate a spelling (M8) and returned `''` — but a blank on a client
+   document is indistinguishable from a real blank amount. It now says so out loud, the same rule
+   the documents layer already follows for a missing VAT number.
+
+**A hollow check of my own, caught by sabotage.** The first version of this probe only asserted
+that the placeholder-guard hook existed. Deleting the guard left it green. It now seeds a
+placeholder clause, drives `ctIssue()`, and asserts the refusal happens, names the clause, clears
+when that clause is switched off, and returns when it is switched back on.
+
+Guarded by `scripts/qa/probe-client-documents.mjs` (23 checks). Four sabotages, all red:
+VAT dropped from the offer total (2), words describing the subtotal instead of the total (1),
+the placeholder guard neutered (1), the tender grand total dropping VAT (1), the tender words
+back to a silent blank (1). Every file restored byte-identical.
+
 ## Round 43 — who owns this client, and finding the ones nobody owns (2026-09-03)
 
 Found by sweeping the **live data** rather than the code, after the owner asked for spotless in

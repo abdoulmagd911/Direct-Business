@@ -44,7 +44,13 @@
   /* amount-in-words: reuse js/67's exposed algorithm — never duplicated (source: js/67-price-offer-tab.js) */
   function words(n,lang){
     try{ if(typeof window.__poWordsProbe==='function'){ var w=window.__poWordsProbe(Number(n)||0); return lang==='ar'?w.ar:w.en; } }catch(_){}
-    return '';   /* js/67 missing = no words; never a fabricated string */
+    /* js/67 missing = no words; never a fabricated string. But an EMPTY line is its own problem:
+       a tender would go to a client showing "In words (EN):" with nothing after it, and nobody
+       would know whether the amount was left blank or the app failed. Same rule the documents
+       layer already follows for a missing VAT number (2026-09-02) — say it is missing, out loud,
+       rather than printing a blank a reader will mistake for a real value. (2026-09-03, round 44.) */
+    return fl('[amount in words unavailable — do not send this document]',
+              '[تعذّر كتابة المبلغ كتابةً — لا ترسل هذا المستند]');
   }
   function uuid(){
     try{ if(window.crypto&&crypto.randomUUID)return crypto.randomUUID(); }catch(_){}

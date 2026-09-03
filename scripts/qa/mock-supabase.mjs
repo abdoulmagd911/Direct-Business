@@ -68,6 +68,16 @@ const TABLES={
     {id:'u-fin',email:'finance.person@directksa.com',full_name:'Finance Person',role:'operations',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:false,allowed_pages:['today','finance']},
     {id:'u-off',email:'switched.off@directksa.com',full_name:'Switched Off',role:'viewer',active:false,created_at:'2026-08-09T00:00:00Z',must_change_password:false,allowed_pages:['today','reports']}],
   app_state:[{id:1,data:BLOB,updated_at:'2026-08-08T13:52:37Z',updated_by:'test@directksa.com'}],
+  /* 2026-09-03 (round 44): the contract editor reads its clause library from here. It served no
+     rows, so S.tpl was [], snapshotClauses() returned early, and the whole clause system — the
+     placeholder-wording guard included — had never run in any test. Proven by sabotage: the guard
+     could be deleted outright and the battery stayed green. One clause deliberately carries the
+     seeded "[Edit per agreement]" wording the guard exists to catch. */
+  contract_clauses:[
+    {id:'cl-1',key:'scope',sort:1,enabled:true,optional:false,title_en:'Scope of services',title_ar:'نطاق الخدمات',body_en:'The First Party shall provide corporate travel services.',body_ar:'يقدّم الطرف الأول خدمات سفر الشركات.'},
+    {id:'cl-2',key:'fees',sort:2,enabled:true,optional:false,title_en:'Fees and payment',title_ar:'الأتعاب والسداد',body_en:'[Edit per agreement]',body_ar:'[يُحرَّر حسب الاتفاق]'},
+    {id:'cl-3',key:'term',sort:3,enabled:true,optional:false,title_en:'Term',title_ar:'المدة',body_en:'One year, renewable.',body_ar:'سنة واحدة قابلة للتجديد.'},
+  ],
   /* 2026-09-03 (round 42): field_template was `[]` and every seeded lead had funnel_id:null, so
      fdef() never matched and the funnel-details card had NEVER rendered a field in any probe —
      seven funnels are live and 91 leads carry answers. Same shape as rounds 19/20/33/41: an
