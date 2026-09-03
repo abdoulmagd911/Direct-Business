@@ -1,3 +1,36 @@
+## 2026-09-03 · Watch cycle 26 — the filters in combination: no defect found, kept as a guard
+
+**Attack area: a year, a period, a sector chip and a client drill-down all in force at once.**
+Every filter had been tested on its own; nobody uses them on their own. One screen making four
+claims at the same time is where a filter that quietly fails to apply — or quietly stays applied
+after being cleared — produces a number no single-filter test can see is wrong.
+
+**No defect found.** New `scripts/qa/probe-filter-combination-attacks.mjs` (port 8229, 18 checks)
+on a fixture built so every combination leaves a different set: three years × four clients (two
+tender, two B2B) × four months. Eleven combinations of year × period × sector each checked against
+a recount computed from the fixture, never read off the page — and checked twice over, once on the
+rows the page believes are in scope and once on the Revenue tile itself, which are separate code.
+
+**Held:** all eleven scope correctly; Clients & collections shows the same scope as Performance at
+the same moment; the invoice export carries exactly the rows the combined filter leaves, so the
+file cannot describe a wider scope than the screen; clearing the sector widens to the whole month
+without disturbing the year, and clearing the month widens to the year without silently restoring
+the sector; and a combination matching nothing says so instead of printing a confident set of
+zeros.
+
+**A correction to this probe, and the second of its kind — so it is now a rule.** The check first
+asserted that the Report Builder honours the sector chip. It does not, deliberately, and **its own
+caption says so**: *"across all years and sectors — the period bar above does not apply to this
+report."* Cycle 22 made the same mistake about the years half of that same sentence. The rule:
+**read the caption the app prints about itself before deciding what the app should do.** What is
+checked now is the guarantee the app actually makes — the report spans everything, and says so
+where a reader will see it.
+
+**Sabotage-verified twice, file-level:** making `finInPeriod` ignore the month turns 8 checks red;
+making the sector classifier a no-op turns 10 red. Restores byte-identical (md5). Twenty-two
+probes and the structure check green.
+
+
 ## 2026-09-03 · Watch cycle 25 — mutation audit round three: a clean sweep, and the export checked against its own rows
 
 **Mutation audit round three**, over everything added since cycle 20 — the sector key and its
