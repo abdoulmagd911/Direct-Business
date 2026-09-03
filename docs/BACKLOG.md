@@ -1,3 +1,39 @@
+## Round 46 — mutation audit of the CRM battery: three guards that were not guarding (2026-09-03)
+
+Rounds 43 and 45 both found real problems by attacking the **instruments** rather than the code, and
+a hollow guard means everything it claims to protect is actually unguarded. The oversight session
+mutation-audited its own Finance lane in cycles 17 and 20; the CRM/leads battery had never been
+audited. Each mutation below breaks one thing a step claims to guard, is run against the battery,
+and is restored byte-identical.
+
+**1 & 2. "leads: new business SAVES" and "quick-edit stage change persists" — both hollow.**
+Both read `DB.businesses`, the in-memory array, and never asked the database. With the businesses
+insert changed to send an empty array — nothing whatsoever reaching the database — both steps still
+passed. In a project whose entire history is writes that look fine and never land (M13 exists for
+exactly that), a green step claiming a save is worse than no step at all. Both now query the mock
+over HTTP and report `memory=true database=false` when they diverge. Re-tested against the same
+mutation: both go red.
+
+*The rule itself was never unguarded* — `probe-save-confirms-rows` catches that mutation cleanly,
+including the app's own honest "Only 0 of 1 records were accepted by the database". The app is
+right; the labels were lying.
+
+**3. The CSV export check asserted only that a download EVENT fired.** An export producing a
+header row and nothing under it passed just as happily, while "downloads a file" stayed true and
+the person got nothing usable. It now opens the file and requires a header, at least one data row,
+and a company that is really in the list. Mutation — export the empty list, so the download still
+fires — now goes red with `1 line(s) · a listed company present: false`.
+
+**Two steps that never run at all.** The invoice-modal check (which includes the M1 "no VAT text"
+assertion) and the ledger view toggle sit behind a guard that skips when the legacy seed has no
+ledger rows — which is always. The skip is honestly logged and the count of 41 only counts steps
+that executed, so nothing is being overstated, and M1 is genuinely guarded by
+`probe-no-vat-display` and `probe-ledger-attacks`. Recorded here so a future session does not read
+"invoice modal: … NO VAT text" in this file and believe it ran.
+
+**Verified real, not changed:** the promo-card check (owner ruling, 2026-08-22) — switching
+`SHOW_PROMO_ON_FINANCE` back to true makes it go red, so that ruling is properly held.
+
 ## Round 45 — the Arabic sweep was lying, and the one real leak under it (2026-09-03)
 
 Ran the app-wide sweeps nobody had run in a while. `sweep-language.mjs` reported **36 untranslated

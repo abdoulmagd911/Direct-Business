@@ -117,7 +117,14 @@ const nameSet = await page.evaluate(() => { const f = document.getElementById('f
 const saved = await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /^(Save|حفظ)/.test(x.textContent.trim())); if (!b) return false; b.click(); return true; });
 await page.waitForTimeout(1200);
 const found = await page.evaluate(() => DB.businesses.some(b => /^QA Attack Co/.test(b.name)));
-STEP('leads: new business SAVES and appears in data', nameSet && saved && found);
+/* 2026-09-03 (round 46, mutation audit) — this step said "SAVES" and checked only DB.businesses,
+   the in-memory array. Proven hollow: with the businesses insert changed to write an empty array,
+   so nothing at all reached the database, this step and the "persists" one below both still
+   passed. In a project whose whole history is writes that look fine and never land — M13 exists
+   for exactly that — a green step claiming a save is worse than no step. Ask the database. */
+const dbRows = await (await fetch(BASE + '/rest/v1/businesses?select=name')).json().catch(() => []);
+const inDb = Array.isArray(dbRows) && dbRows.some(r => /^QA Attack Co/.test(r && r.name || ''));
+STEP('leads: new business is saved and appears in the DATABASE, not just on screen', nameSet && saved && found && inDb, 'memory=' + found + ' database=' + inDb);
 // quick edit + stage move + un-won guard
 const qeOpened = await page.evaluate(() => { const b = DB.businesses.find(x => /^QA Attack Co/.test(x.name)); if (!b || !window.leadQuickEdit) return false; leadQuickEdit(b.id); return true; });
 await page.waitForTimeout(600);
@@ -125,7 +132,10 @@ await shot('lead-quickedit');
 const qeStage = await page.evaluate(() => { const s = document.getElementById('qe_stage'); if (!s) return false; s.value = 'Contacted'; const b = [...document.querySelectorAll('button')].find(x => /^(Save|حفظ)/.test(x.textContent.trim())); if (b) b.click(); return true; });
 await page.waitForTimeout(900);
 const stageMoved = await page.evaluate(() => { const b = DB.businesses.find(x => /^QA Attack Co/.test(x.name)); return b && (typeof leadStage === 'function' ? leadStage(b) : b.stage) === 'Contacted'; });
-STEP('leads: quick-edit stage change persists', qeOpened && qeStage && stageMoved);
+/* Same audit, same fix: "persists" has to mean the database, or it does not mean anything. */
+const dbStage = await (await fetch(BASE + '/rest/v1/businesses?select=name,stage')).json().catch(() => []);
+const stageInDb = Array.isArray(dbStage) && dbStage.some(r => /^QA Attack Co/.test(r && r.name || '') && /contacted/i.test(String(r.stage || '')));
+STEP('leads: quick-edit stage change reaches the database', qeOpened && qeStage && stageMoved && stageInDb, 'screen=' + stageMoved + ' database=' + stageInDb);
 // open detail card + back
 await page.evaluate(() => { const b = DB.businesses.find(x => /^QA Attack Co/.test(x.name)); openLeadFn(b.id); });
 await page.waitForTimeout(900);
@@ -140,7 +150,24 @@ const dl = page.waitForEvent('download', { timeout: 6000 }).catch(() => null);
    missed a button that was sitting right there and working. Match what it is actually called. */
 const exClicked = await page.evaluate(() => { const b = [...document.querySelectorAll('#view button')].find(x => /Export this view|تصدير هذا العرض/.test(x.textContent)); if (!b) return null; b.click(); return b.textContent.trim(); });
 const gotDl = await dl;
-STEP('leads: "Export this view (CSV)" downloads a file', !!gotDl, gotDl ? await gotDl.suggestedFilename() : 'no download (button: ' + exClicked + ')');
+/* 2026-09-03 (round 46, mutation audit) — this asserted only that a download EVENT fired. An
+   export producing an empty file, or a header row with nothing under it, passed just as happily,
+   and "downloads a file" was true while the person got nothing usable. Open it and look: a header,
+   at least one data row, and a company name that is really in the list. */
+let csvNote = 'no download (button: ' + exClicked + ')', csvOk = false;
+if (gotDl) {
+  try {
+    const pth = await gotDl.path();
+    const body = pth ? fs.readFileSync(pth, 'utf8') : '';
+    const lines = body.split(/\r?\n/).filter(l => l.trim().length);
+    const firstName = await page.evaluate(() => { const b = (DB.businesses || []).filter(matchLead)[0]; return b ? String(b.name || '') : ''; });
+    const hasRow = lines.length >= 2;
+    const hasName = !!firstName && body.includes(firstName);
+    csvOk = hasRow && hasName;
+    csvNote = await gotDl.suggestedFilename() + ' · ' + lines.length + ' line(s) · a listed company present: ' + hasName;
+  } catch (e) { csvNote = 'download could not be read: ' + String(e).slice(0, 80); }
+}
+STEP('leads: "Export this view (CSV)" downloads a file with the rows actually in it', csvOk, csvNote);
 
 // ---------- FINANCE workout ----------
 await page.evaluate(() => { current = 'finance'; render(); });
