@@ -119,7 +119,50 @@ async function main() {
   if (nocost && !/Cost 0 SAR|Cost 0\b/.test(nocost.text)) ok('…and specifically not "Cost 0", which is what an unrecorded cost used to print');
   else fail('the document prints a zero cost for a booking nobody has costed');
 
-  // ---- 3. no document is generated from nothing
+  /* ---- 3. THE COMPANY IDENTITY ON THE HEADER (round 41).
+     Every generated document opens with v21AgencyHeader(). It used to print
+     `CR · VAT ${AGENCY.vat} · … · IBAN ${AGENCY.iban}` — with NO value after the CR label at
+     all, and with .vat/.iban deliberately empty in core-06 (the old hard-coded ones were an
+     outdated VAT number and an IBAN matching none of the real accounts). The live values are
+     hydrated asynchronously from the company_identity registry, so printing before that lands
+     produced "CR · VAT  · IATA Wakeel … · IBAN  · ". A Saudi tax invoice without the seller's
+     VAT number is not a valid tax invoice; a blank IBAN is an invoice nobody can pay.
+     The harness had no company_identity seed, so it had only ever exercised the broken case —
+     which is why the round-34 version of this probe walked past it: it asked whether the
+     document rendered, not what it said. */
+  const idInv = await doc('invoice header', () => { const i = (DB.invoices || []).find((x) => x.number === 'INV-3001'); v21PrintInvoice(i.id); });
+  const head = (idInv && idInv.text.split('Invoice · فاتورة')[0]) || '';
+  /* require a DIGIT after the label, not merely "not a space": the first version of this check
+     used /CR\s+\S/ and passed under sabotage, because the old dangling header reads "CR · VAT"
+     and the separator itself satisfied \S. */
+  if (/CR\s+\d/.test(head)) ok('the document header prints the company CR — it had no value after that label at all, hydrated or not');
+  else fail('the CR label still has no value after it: ' + JSON.stringify(head.slice(0, 140)));
+  if (/VAT\s+\d/.test(head)) ok('…and the VAT number, from the identity registry');
+  else fail('the VAT number is missing from the header: ' + JSON.stringify(head.slice(0, 140)));
+  if (/IBAN\s+SA/.test(head)) ok('…and an IBAN a client could actually pay into');
+  else fail('the IBAN is missing from the header: ' + JSON.stringify(head.slice(0, 140)));
+  if (!/VAT\s*·/.test(head) && !/IBAN\s*·/.test(head)) ok('…with no dangling label left anywhere in it');
+  else fail('a label is still printed with nothing after it: ' + JSON.stringify(head.slice(0, 160)));
+  if (!/do not send this document/.test(head)) ok('…and no warning, because the identity really did load');
+  else fail('the header warns about missing identity when it is all present');
+
+  // and the case that matters: identity NOT loaded must be said, not silently blank
+  const unloaded = await p.evaluate(() => {
+    const keep = { cr: AGENCY.cr, vat: AGENCY.vat, iban: AGENCY.iban, bank: AGENCY.bank };
+    AGENCY.cr = ''; AGENCY.vat = ''; AGENCY.iban = ''; AGENCY.bank = '';
+    const h = v21AgencyHeader();
+    Object.assign(AGENCY, keep);
+    const d = document.createElement('div'); d.innerHTML = h;
+    return (d.textContent || '').replace(/\s+/g, ' ').trim();
+  });
+  if (/do not send this document/.test(unloaded)) ok('when the identity registry has not loaded, the document says "do not send this document" and names what is missing');
+  else fail('an unhydrated document prints silently with blanks: ' + JSON.stringify(unloaded.slice(0, 200)));
+  if (/VAT/.test(unloaded) && /IBAN/.test(unloaded) && /CR/.test(unloaded)) ok('…naming VAT, IBAN and CR specifically, so the person knows what to fix');
+  else fail('the warning does not say what is missing: ' + JSON.stringify(unloaded.slice(0, 200)));
+  if (!/VAT\s*·\s*IATA/.test(unloaded)) ok('…and it does not emit the old dangling "VAT · IATA Wakeel" with nothing between them');
+  else fail('the dangling labels are back: ' + JSON.stringify(unloaded.slice(0, 200)));
+
+  // ---- 4. no document is generated from nothing
   const empty = await doc('statement for a client with no invoices', () => { v21PrintStatement('no-such-client-id'); }, true);
   if (!empty) ok('a statement for a client with no invoices opens no document at all — it says so instead of printing an empty form');
   else fail('an empty statement was generated: ' + JSON.stringify(empty.text.slice(0, 120)));

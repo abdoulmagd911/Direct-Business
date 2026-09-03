@@ -1,5 +1,41 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 41 — every generated document printed a blank VAT number and no CR at all
+
+The header at the top of **every** document the app generates — tax invoice, booking
+confirmation, statement, quotation — is `v21AgencyHeader()`. It read:
+
+    CR · VAT ${AGENCY.vat} · IATA Wakeel ${AGENCY.iataWakeel} · IBAN ${AGENCY.iban} · ${AGENCY.bank}
+
+Two faults, both on a page a **client** reads:
+
+1. **The CR label had no value interpolated after it at all.** Not a hydration problem — the
+   company's CR number has never been printed on any document, in any state.
+2. **`AGENCY.vat` / `.iban` / `.bank` are deliberately empty literals** in core-06 (audit fix
+   2026-08-24: the old hard-coded ones were an outdated VAT number and an IBAN matching none of
+   the real accounts). The real values are hydrated **asynchronously** from the
+   `company_identity` registry by js/66, on a poll that retries for about a minute. Print before
+   that lands — or if it never lands — and the header rendered
+   `CR · VAT  · IATA Wakeel 71238285 · IBAN  · `. **A Saudi tax invoice without the seller's VAT
+   number is not a valid tax invoice, and a blank IBAN is an invoice nobody can pay.**
+
+Each part is now emitted only when it *has* a value, the CR is printed, and when statutory
+identity is missing the document says **"Company identity not loaded (VAT, IBAN, CR) — do not
+send this document"** in both languages instead of leaving quiet gaps.
+
+**Why nothing caught it, and a correction to my own round-34 work.** `company_identity` had **no
+seed in the mock**, so the harness had only ever exercised the not-loaded case — the fourth time
+this run that an unseeded table hid a real defect (rounds 19, 20, 33, 41). And round 34's probe
+asked *whether the document rendered*, not what it said; its own captured output contains the
+string `CR · VAT · IATA Wakeel 71238285 · IBAN ·` and I read straight past it. The registry is
+now seeded with obvious placeholders — the real CR / VAT / IBANs are company data and never go
+in this repo (rule 7); only their shape matters here.
+
+**A weak assertion caught by its own sabotage.** The first CR check was `/CR\s+\S/` and passed
+while sabotaged, because the broken header reads `CR · VAT` and the separator itself satisfies
+`\S`. It now requires a digit. Live is fine either way: 29 identity rows with a VAT number, a
+CR and 8 IBANs.
+
 ## 2026-09-02 · Round 40 — the same trap one level up: a page that fails dropped you on Today
 
 Round 39 fixed a Finance **tab** that failed silently showing another tab. The identical pattern

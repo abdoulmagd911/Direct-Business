@@ -122,6 +122,21 @@ const TABLES={
      converted from a proposal now looks like since round 29 made the app stop inventing one.
      Five invoices: issued / paid / overdue / a credit note / one on a far date, with items so
      v18InvTotals has something real to add up. */
+  /* company_identity — the registry js/66 hydrates AGENCY from (CR / VAT / IBANs), and which
+     every generated document's header prints. It had NO seed (2026-09-02, round 41), so the
+     harness had only ever exercised the NOT-LOADED case and nothing noticed that the printed
+     tax invoice carried a blank VAT number and a blank IBAN. Values here are deliberately
+     obvious placeholders — the real CR / VAT / IBANs are company data and never go in this
+     repo (rule 7). Their SHAPE is what matters for the header test. */
+  company_identity:[
+    {id:'ci1',key:'legal_name',category:'legal',value_en:'QA Placeholder Trading Co.',value_ar:'شركة اختبار',sort:1,expires_on:null,proof_path:null},
+    {id:'ci2',key:'cr_number',category:'legal',value_en:'0000000000',value_ar:null,sort:2,expires_on:'2027-01-31',proof_path:null},
+    {id:'ci3',key:'vat_number',category:'tax',value_en:'300000000000003',value_ar:null,sort:3,expires_on:null,proof_path:null},
+    {id:'ci4',key:'iban_alinma',category:'bank',value_en:'SA0000000000000000000000',value_ar:null,sort:4,expires_on:null,proof_path:null},
+    {id:'ci5',key:'iban_alrajhi',category:'bank',value_en:'SA1111111111111111111111',value_ar:null,sort:5,expires_on:null,proof_path:null},
+    {id:'ci6',key:'capital',category:'legal',value_en:'1000000',value_ar:null,sort:6,expires_on:null,proof_path:null},
+    {id:'ci7',key:'iata_licence',category:'licence',value_en:'QA-IATA-0000',value_ar:null,sort:7,expires_on:'2026-11-30',proof_path:null}
+  ],
   app_bookings:[
     ['BK-2001','Test Company 1','Amadeus','Ticketed', 12000, 9500, 20, 'OPEN', false],
     ['BK-2002','Test Company 2','Sabre',  'Confirmed',  8400, 6100, 96, 'OPEN', false],
