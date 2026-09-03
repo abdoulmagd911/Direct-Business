@@ -825,6 +825,33 @@ to use the browser-upload route. The browser-upload mechanics above still work a
 documented here for Claude Code's own use — they are just no longer this kind of session's
 default self-serve fallback.
 
+**Exercised 2026-09-03 — the owner asked, so the route was used.** Rule 10's carve-out is
+"without being asked"; the owner said **"Go live with whats ready"**, which is the asking.
+Sequence actually followed, and the one to follow next time: (1) `git push` attempted first
+and refused by the proxy with the usual "not in this session's authorized repository set";
+(2) `ListAgents` checked — no Claude Code session reachable; (3) the owner's instruction on
+record, so the browser route was used; (4) uploaded as **five commits, one per directory**
+(root, `docs/`, `js/`, `js/core/`, `scripts/qa/`) rather than 41 single-file edits, because
+GitHub's upload form takes a whole directory's files at once and each commit then reads as one
+change; (5) verified not by looking at the page but by `git fetch` and comparing **blob hashes**
+— all 41 files identical, and `git diff HEAD origin/...` empty, which also proves nothing else
+in the tree drifted; (6) `git reset --hard origin/...` to realign, **never** a local "mirror
+commit" (that is what caused the 27 Aug drift); (7) confirmed live by fetching
+`https://www.directksab2b.com/` and each changed `js` file and comparing hashes against the
+repo — 19/19 identical — then asserting each fix's own marker in the *downloaded* copy, not
+the local one.
+
+Two things worth carrying forward. The upload tab froze twice mid-batch (a blank white
+screenshot, then a 30-second CDP timeout); both times it recovered after ~20 seconds of
+waiting, so wait before assuming it is dead and opening a fresh tab. And the branch name
+contains a slash — `/upload/claude/new-session-9fhlp1/scripts/qa` is ambiguous between branch
+and path, so GitHub's resolution was checked on every batch by reading the breadcrumb before
+uploading anything, not assumed.
+
+**This does not make the route self-serve again.** The default order in the paragraph above
+still stands: Claude Code first, plain language second, ask the owner third. What is now on
+record is exactly what "being asked" looks like and exactly how to do it safely when it comes.
+
 **Amendment, same day (2026-08-29) — "don't push" is not "don't talk."** An oversight session,
 right after the supersession above landed, over-applied it: it drafted a handoff message to a
 reachable Claude Code browser session (flagging the exact commit, hash, and what it touched)

@@ -6,7 +6,11 @@
 > "promote/patch" edge functions that rewrote the app in Supabase Storage must **not** be used
 > (see the ⛔ section in `CLAUDE.md`); and since 2026-08-29 **only the Claude Code session
 > pushes** — a Cowork/oversight session commits locally and hands off (CLAUDE.md rule 10).
-> The "edit on GitHub's website" route described further down is retired for the same reason.
+> The "edit on GitHub's website" route described further down is retired for the same reason —
+> retired as a *default*, not forbidden: on 2026-09-03 the owner said "Go live with whats ready"
+> and it was used to land 41 files as five commits, with `git push` tried first and Claude Code
+> confirmed unreachable. See `docs/DECISIONS.md` → "Session & GitHub-push access" for the exact
+> sequence and the verification that proved it landed clean.
 
 Abdulrahman works from multiple devices — laptop, tablet, phone, sometimes a travel machine. Any Claude session on any device can edit the app safely, provided everyone follows one loop:
 
