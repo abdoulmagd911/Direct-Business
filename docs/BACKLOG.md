@@ -1,5 +1,48 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-03 (overnight) · Watch cycle 17 — a mutation audit of the safety net itself: does each check actually bite?
+
+**Attack area: the probes, not the app.** Cycle 15 found that the cycle-12 probe's "all ten write
+paths" check could never have failed. That raised the obvious question: how many other checks in
+this battery are decoration? Ten deliberate mutations were made to the lane's own code — each one
+breaking a single rule some probe claims to guard — and the probes were run against every one.
+Every mutation was reverted byte-identically (md5) before the next.
+
+**Eight of ten were caught immediately**, by the probe you would expect: the standing exclusion no
+longer applying, unverified invoices counting as revenue, unreadable amounts poisoning the sums
+again, an invoiced-and-overdue transaction hiding again, the targets editor rewriting what you
+type, every write path answering "yes", a paged read stopping after one page, and date-less money
+being aged as 0–30 days. Those eight guards are real.
+
+**Two were not, and both concern money.**
+
+1. **"Deleted means gone from the totals" was guarded by exactly one probe.** Breaking the filter
+   that keeps soft-deleted invoices out of every total was caught by the 5,200-row scale probe —
+   and by **none** of the five probes whose subject is closest to it (deleted-invoice, ledger,
+   importer, clients, hostile shapes). One probe, and the slowest one in the battery, standing
+   between the owner and deleted invoices silently rejoining his revenue. **Worth recording
+   honestly:** the first run said "no probe catches this at all"; widening the set before writing
+   it down proved that wrong. A finding is not finished until it has been attacked too.
+2. **Nothing checked that a Report Builder column holds what its header says.** Relabelling the
+   profit column "Revenue" was caught by nothing at all; summing revenue *into* the profit column
+   was caught by one probe. The Report Builder is where a manager reads margins.
+
+**Fixed, in the probes:** `probe-hostile-shapes-attacks` gains a soft-deleted 555,555 invoice and
+three checks (no tile, no count, no export line carries it), and its Report Builder pass now
+verifies the cost and profit columns against the same independent recount and asserts the headers
+read Revenue · Cost · Profit in that order. All three previously-blind mutations now go red, and
+the whole battery is green with them reverted. The deleted-row rule is now guarded by a probe that
+runs in a second rather than only by the one that takes a minute and a half.
+
+**Environmental, not a defect:** `audit-finance-tabs` failed one check when run twenty-first in a
+back-to-back batch and passes on its own — resource pressure in the sandbox, classified and not
+chased.
+
+**Method worth keeping.** `/tmp/mutations.py` + `/tmp/mutate.py` (a mutation, the probes that
+should catch it, an assert that the file is restored byte-identical) is a cheap way to ask a test
+suite whether it is doing anything. It found two blind spots in a battery of twenty-one probes
+that were all passing.
+
 ## 2026-09-03 (overnight) · Watch cycle 16 — one bad date in a file destroyed the whole import, and a negative total did the same
 
 **Attack area: hostile shapes the live SCHEMA permits**, new

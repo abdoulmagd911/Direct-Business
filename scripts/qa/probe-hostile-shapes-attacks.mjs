@@ -73,6 +73,12 @@ SEED.push(row({ id: 'cn1', no: 'HS-CREDIT', group: 'Multiline Co', invoice_date:
 // (g) names: blank-ish and 400 characters
 SEED.push(row({ id: 'nm1', no: 'HS-BLANKNAME', group: BLANK_NAME, invoice_date: '2026-06-06', total: 1200, cost: 500 }));
 SEED.push(row({ id: 'nm2', no: 'HS-LONGNAME', group: LONG_NAME, invoice_date: '2026-06-07', total: 1300, cost: 600 }));
+// (i) a SOFT-DELETED invoice carrying a distinctive amount. Added 2026-09-03 (watch cycle 17)
+// after a mutation audit: breaking live()'s deleted-row filter was caught by exactly ONE probe in
+// the whole battery (the 5,200-row scale one) and by none of the five whose subject is closest to
+// it. "Deleted means gone from every total" is the most basic money rule in this app; it now has
+// a direct, fast guard as well.
+SEED.push(Object.assign(row({ id: 'del1', no: 'HS-DELETED', group: 'Edge Co', invoice_date: '2026-06-08', total: 555555, cost: 111111 }), { deleted_at: '2026-08-01T00:00:00Z' }));
 // (h) outstanding money, so the ageing card has something to split
 SEED.push(row({ id: 'os1', no: 'HS-OPEN-1', group: 'Decade Co', invoice_date: '2026-01-10', total: 2000, cost: 800, outstanding: true, status: 'pending' }));
 SEED.push(row({ id: 'os2', no: 'HS-OPEN-2', group: 'Edge Co', invoice_date: '2016-01-10', total: 3000, cost: 900, outstanding: true, status: 'pending' }));
@@ -130,6 +136,9 @@ async function main() {
   else fail('the header counts ' + hdr + ' invoices; there are ' + liveDistinct + ' distinct numbers across ' + WANT.rows + ' rows (a multi-line invoice must not be counted per line)');
   // the header strip and the Invoices tile are TWO different counters (finTabs vs rOverview) —
   // check both, or a sabotage of one passes because the other is being read
+  const deletedGone = !/555,555|555555/.test(await p.evaluate(() => document.querySelector('#view').innerHTML));
+  if (deletedGone) ok('a deleted invoice of 555,555 appears in no tile and no count on Performance — deleted means gone from the totals, not hidden behind them');
+  else fail('the deleted 555,555 invoice is showing on Performance');
   const invTile = await tile('Invoices');
   if (invTile === WANT.distinctInvoices) ok('the Invoices tile also counts ' + WANT.distinctInvoices + ' distinct verified invoices, not the ' + ver.length + ' service lines behind them');
   else fail('the Invoices tile shows ' + invTile + ', there are ' + WANT.distinctInvoices + ' distinct verified invoice numbers across ' + ver.length + ' lines');
@@ -196,12 +205,19 @@ async function main() {
         const tr = [...document.querySelectorAll('#view table tr')].filter(t => t.children.length && /^(TOTAL|الإجمالي)/.test((t.children[0].textContent || '').trim())).pop();
         if (!tr) return res(null);
         const c = [...tr.children].slice(1).map(td => +String(td.textContent).replace(/[^\d.-]/g, ''));
-        return res({ rev: c[0], cost: c[1], profit: c[2] });
+        const head = tr.closest('table') ? [...tr.closest('table').querySelectorAll('th')].map(th => th.textContent.trim()) : [];
+        return res({ rev: c[0], cost: c[1], profit: c[2], headers: head.slice(1) });
       }, 900));
     }, [g1, g2]);
     const lbl = g1 + (g2 ? ' › ' + g2 : '');
     if (got && Math.abs(got.rev - WANT.revenue) < 2) ok('Report Builder by ' + lbl + ': grand total ' + WANT.revenue.toLocaleString() + ', the same recount every tab agrees on');
     else fail('Report Builder by ' + lbl + ': grand total ' + (got && got.rev) + ', recount ' + WANT.revenue);
+    // 2026-09-03 (watch cycle 17): the cost and profit columns were never checked here — a
+    // mutation that summed revenue into the profit column survived this probe entirely.
+    if (got && Math.abs(got.cost - WANT.cost) < 2 && Math.abs(got.profit - WANT.profit) < 2) ok('  …and its cost and profit columns match the same recount, each holding what its header says');
+    else fail('  by ' + lbl + ': cost ' + (got && got.cost) + ' (recount ' + WANT.cost + '), profit ' + (got && got.profit) + ' (recount ' + WANT.profit + ')');
+    if (got && got.headers && /revenue/i.test(got.headers[0] || '') && /cost/i.test(got.headers[1] || '') && /profit/i.test(got.headers[2] || '')) ok('  …and the columns are labelled Revenue · Cost · Profit, in that order');
+    else fail('  by ' + lbl + ': column headers read ' + JSON.stringify(got && got.headers));
   }
 
   /* ---------- 7. both exports ---------- */
@@ -222,6 +238,7 @@ async function main() {
     const mlLines = body.filter(l => l.indexOf('HS-MULTI-1') >= 0).length;
     if (mlLines === 4) ok('the invoice export carries all four lines of the multi-line invoice — the file is a line list, and says so'); else fail('the export holds ' + mlLines + ' lines for HS-MULTI-1, the table has 4');
     if (body.some(l => l.indexOf('HS-CREDIT') >= 0)) ok('the credit note is in the export too, not quietly dropped'); else fail('the credit note is missing from the export');
+    if (!body.some(l => l.indexOf('HS-DELETED') >= 0)) ok('the deleted invoice is not in the export either'); else fail('the deleted invoice was exported');
     const cells = body.filter(l => /NaN|undefined|Infinity/.test(l)).length;
     if (!cells) ok('no NaN, undefined or Infinity in any exported cell'); else fail(cells + ' exported rows carry NaN/undefined/Infinity');
   } else fail('the invoice export produced no file');
