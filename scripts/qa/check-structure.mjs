@@ -115,6 +115,44 @@ for (const f of SOURCE_FILES) {
   if (bad) problems.push(`${f} contains ${bad} raw control byte(s) (0x00–0x08 / 0x0e–0x1f). Write them as \\xNN escapes — a raw byte turns the file "binary" for grep/diff and can be stripped by an editor.`);
 }
 
+/* 9 — the harness's own finance fixture must obey the live money trigger (2026-09-02, round 38).
+       finance_derive_fields() in Postgres defines, on every insert and update:
+           revenue = total_incl_vat − wallet
+           profit  = revenue − cost
+       The seeded fixture used to store revenue = total − cost and profit = revenue instead, so
+       12 of 17 rows broke the second rule and 13 broke the first. The Performance tiles then
+       showed a Cost LARGER than Revenue — which reads as an app bug and was a fixture bug, and
+       every finance probe in the harness was asserting against numbers no real invoice could
+       have had. Checked here rather than in a probe because it needs no browser and it should
+       block a deploy: a fixture that cannot exist makes every check standing on it meaningless.
+
+       ONE DELIBERATE EXCEPTION: i-qa-vatclean, the VAT canary owned by probe-no-vat-display.
+       It is built with revenue deliberately net of VAT to prove the app never shows a
+       VAT-contaminated money figure (M1). Live has no VAT stored on any invoice, so the trigger
+       never gets to disagree with it in practice. Do not "correct" it. */
+try {
+  const mockSrc = fs.readFileSync(at('scripts/qa/mock-supabase.mjs'), 'utf8');
+  const CANARY = 'i-qa-vatclean';
+  const rowRe = /\{[^{}]*?total_incl_vat_sar:\s*([^,]+?),\s*wallet_portion_sar:\s*([^,]+?),\s*revenue_sar:\s*([^,]+?),\s*cost_sar:\s*([^,]+?),\s*profit_sar:\s*([^,]+?),/g;
+  let m, checked = 0;
+  while ((m = rowRe.exec(mockSrc))) {
+    const around = mockSrc.slice(Math.max(0, m.index - 200), m.index + 200);
+    if (around.includes(CANARY)) continue;
+    const [, tot, wal, rev, cost, prof] = m.map((x) => String(x).trim());
+    checked++;
+    // literal-number rows only; expression rows (_tot/_rev/_prof) are checked by their algebra below
+    if (/^-?[0-9.]+$/.test(tot) && /^-?[0-9.]+$/.test(rev) && /^-?[0-9.]+$/.test(cost) && /^-?[0-9.]+$/.test(prof)) {
+      const T = +tot, W = /^-?[0-9.]+$/.test(wal) ? +wal : 0, R = +rev, C = +cost, P = +prof;
+      if (Math.abs(R - (T - W)) > 0.01) problems.push(`scripts/qa/mock-supabase.mjs: a finance_invoices fixture has revenue ${R} but total−wallet is ${T - W}. The live trigger would rewrite it — the fixture cannot exist.`);
+      if (Math.abs(P - (R - C)) > 0.01) problems.push(`scripts/qa/mock-supabase.mjs: a finance_invoices fixture has profit ${P} but revenue−cost is ${R - C}. The live trigger would rewrite it — the fixture cannot exist.`);
+    }
+  }
+  if (!checked) problems.push('scripts/qa/mock-supabase.mjs: could not find any finance_invoices fixture rows to check — the money-doctrine guard has stopped matching and is no longer protecting anything.');
+  if (!/const _wal=0;const _rev=_tot-_wal;const _prof=_rev-_cost;/.test(mockSrc)) problems.push('scripts/qa/mock-supabase.mjs: the generated finance_invoices rows no longer derive revenue = total − wallet and profit = revenue − cost the way the live trigger does.');
+} catch (e) {
+  problems.push('money-doctrine check could not run: ' + e.message);
+}
+
 if (problems.length) {
   console.log('STRUCTURE CHECK FAILED — fix these before deploying:\n');
   problems.forEach(p => console.log('  ✗ ' + p));

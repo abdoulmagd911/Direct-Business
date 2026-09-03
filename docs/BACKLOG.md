@@ -1,5 +1,49 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-02 · Round 38 — the harness's own finance fixture could never have existed
+
+**Every finance probe in this repo has been asserting against invoices the live database could
+not produce.** `finance_derive_fields()` — read straight out of Postgres, not from memory —
+defines, on every insert and update:
+
+    revenue = total_incl_vat − wallet        profit = revenue − cost
+
+The seeded fixture stored `revenue = total − cost` and `profit = revenue` instead. **12 of 17
+rows broke the profit rule and 13 broke the revenue rule.** The visible symptom, which is what
+led here: driving the Finance tabs in the live shape showed **Revenue 58.4K against Cost 114.2K
+with a positive Profit of 52.4K** — a cost larger than revenue and a profit that reconciles with
+neither. That reads as an app bug. It was a fixture bug.
+
+Fixed at the generator, and guarded in `check-structure.mjs` (the pre-deploy gate) rather than in
+a probe: it needs no browser, and it *should* block a deploy — a fixture that cannot exist makes
+every check standing on it meaningless. Both halves sabotage-verified: reverting the generator's
+algebra is caught, and skewing a single literal row's profit by 999 is caught with the arithmetic
+spelled out.
+
+**One deliberate exception, left exactly as it is: `i-qa-vatclean`.** It is the VAT canary owned
+by `probe-no-vat-display`, built with revenue deliberately net of VAT to prove no money figure is
+VAT-contaminated (M1). The guard skips it by name and says why. I nearly "corrected" it — checking
+first was the right call, and the live data settles it: **all 46 live invoices store no VAT at
+all**, so the trigger never gets to disagree with that fixture in practice.
+
+### A correction to my own investigation, recorded because the wrong version was persuasive
+
+This round started from a real live observation — `finance_cogs_expenses` is **empty live** (0
+rows) while `finance_expense_lines_capture` holds **223 rows, 183 of them Approved, 1.94M SAR** —
+and I formed the theory that the captured costs were stranded, disconnected from the invoices,
+and were the missing costs behind round 35's 19 zero-cost invoices.
+
+**That theory was wrong, and the reason is instructive.** I joined `capture.transaction_ref` to
+`finance_invoices.invoice_no` and got zero matches out of 75 — both are 10-digit, which made the
+join look right. They are not the same thing: capture refs are Direct Payments *transaction*
+refs, and a separate table, `finance_expense_gate_capture` (155 rows), maps a transaction to the
+invoice it issued. Through the real chain, **63 gate rows reach invoices the app holds**, and of
+round 35's 19 zero-cost invoices exactly **one** has approved expenses waiting (~29,000 SAR). The
+pipeline is not broken. Two fields of the same width are not a join key.
+
+*Worth the owner's attention, and not something a session should act on alone: that one invoice
+has approved expenses recorded against it and still shows a cost of zero.*
+
 ## 2026-09-02 · Round 37 — Undo and the audit log: ninety probes and not one drove the most consequential button in the app
 
 **Undo asks the database to put a previous version of a row back.** It is the single most
