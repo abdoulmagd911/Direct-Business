@@ -24,6 +24,39 @@ same mutation, both go red.
 does so identically on a clean tree — it has been failing regardless of the code for some time. A
 probe that always errors is worse than no probe: the noise is what a real failure would hide in.
 
+## 2026-09-03 · Watch cycle 23 — the monthly chart drew a year that did not happen
+
+**Attack area: the Overview's monthly chart**, new `scripts/qa/probe-monthly-chart-attacks.mjs`
+(port 8225, 11 checks). It is the first thing anyone looks at on the Finance page, and no probe
+had ever measured it. A bar chart makes a claim about **shape** — which months were strong, which
+way the year is going — and shape is the one thing a correct total cannot correct.
+
+**Real gap: months with no business were left off the chart entirely.** The bars were built from
+`MO.filter(function(m){return by[m];})` — only months that had invoices. A year with billing in
+January, February, May and December therefore drew four bars side by side, labelled Jan Feb May
+Dec, describing a continuous run of business that never happened; the two long silences simply
+vanished. Worse at the extreme: a year holding a single invoice drew **one full-height bar across
+the whole chart**, which reads as a complete year at a glance. Every month is now drawn, empty
+ones as a 2px stub with a printed 0 beneath — "nothing was billed here" is information, and the
+gap between May and December is part of what the year looks like.
+
+**Held under attack:** every bar's tooltip carries that month's own revenue, recounted
+independently; every height is proportional to the tallest month, so one month at 250,000 beside
+one at 4,000 does not distort the rest; the months on the chart add up exactly to the Revenue tile
+above them, so the picture and the number cannot disagree; Arabic month names in Arabic with the
+same twelve slots; and a credit note stays outside the chart exactly as it stays outside the tile.
+
+**Three corrections to this probe, all mine, all before it could be trusted:** it looked for the
+card by the wrong heading and found nothing in English while passing in Arabic; it read each
+slot's *amount* as the month label, so every month lookup silently missed; and it expected a bare
+`height:0` for an empty month when the app floors every bar at 2px on purpose. Each was fixed
+against the real markup rather than by loosening the check.
+
+**Sabotage-verified, file-level:** restoring the filter turns 2 checks red (the seven silent
+months, and the single-invoice year drawing one slot). Restore byte-identical (md5). Twenty probes
+and the structure check green.
+
+
 ## Round 46 — mutation audit of the CRM battery: three guards that were not guarding (2026-09-03)
 
 Rounds 43 and 45 both found real problems by attacking the **instruments** rather than the code, and

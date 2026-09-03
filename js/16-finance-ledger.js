@@ -767,8 +767,16 @@ function rOverview(){
   }
 
   var MO=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  var by={};V.forEach(function(r){var k=r.month||'?';by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;by[k].p+=+r.profit_sar;});
-  var mos=MO.filter(function(m){return by[m];});var mx=Math.max.apply(null,mos.map(function(m){return by[m].r;}).concat([1]));
+  var by={};var _noMonth=0;
+  V.forEach(function(r){var k=r.month||'?';if(k==='?')_noMonth++;by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;by[k].p+=+r.profit_sar;});
+  /* 2026-09-03 (watch cycle 23): draw EVERY month, not only the ones with business in them.
+     Filtering to months that have rows put January, February, May and December side by side as
+     four adjacent bars — a year with two long silences in it read as four consecutive months, and
+     a year holding one invoice read as a single full-height bar spanning the whole chart. A chart
+     makes a claim about shape, and shape is the one thing a correct total cannot correct. An
+     empty month is now an empty slot: it says "nothing was billed here", which is information. */
+  MO.forEach(function(m){ by[m]=by[m]||{r:0,p:0}; });
+  var mos=MO;var mx=Math.max.apply(null,mos.map(function(m){return by[m].r;}).concat([1]));
   h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 class="finh" style="margin:0 0 12px">'+(isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a \u0648\u0627\u0644\u0631\u0628\u062d \u0634\u0647\u0631\u064a\u064b\u0627':'Monthly revenue & profit')+(window.finPeriodLabel?'<i>'+finPeriodLabel()+'</i>':'')+'</h3><div style="overflow-x:auto"><div style="display:flex;gap:14px;align-items:flex-end;height:150px;min-width:520px">'+mos.map(function(m){
     var hR=Math.round(by[m].r/mx*120),hP=Math.round(by[m].p/mx*120);
     var lbl=isArF()?((typeof MO_AR!=='undefined'&&MO_AR[m])||m):m.slice(0,3);   // 2026-09-02: Arabic month names in Arabic
