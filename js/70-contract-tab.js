@@ -80,7 +80,10 @@
           tpl:null, tplLoading:false, identity:null,
           list:null, listLoading:false,
           sfpList:null, sfpFor:null, sfpLoading:false,
-          editKey:null, saving:false };
+          editKey:null, editBuf:null, saving:false, issuing:false,
+          /* which party2 fields THIS session auto-filled — so a client switch clears only
+             those, never a value the user typed (2026-09-02 audit: CR bled between clients) */
+          auto:{} };
 
   /* ---------- data ---------- */
   function loadTemplates(force){
@@ -237,21 +240,27 @@
                 'لا تزال تحمل نصاً مبدئياً — حرّرها قبل الإصدار: '+names));
       return;
     }
+    /* Re-entrancy guard: two rapid Issue clicks must never each pull a number and burn two.
+       S.issuing is set synchronously; a watchdog guarantees it clears (never a stuck button). */
+    if(S.issuing) return;
+    S.issuing=true; repaint();
+    var wd=setTimeout(function(){ S.issuing=false; try{repaint();}catch(_){} },8000);
+    var settle=function(){ clearTimeout(wd); S.issuing=false; };
     var go=function(){
       c.rpc('next_document_number',{p_family:'CTR'}).then(function(r){
-        if(r.error||!r.data){ toast(fl('Numbering was refused — the contract stays a draft','رُفض الترقيم — يبقى العقد مسودة')); return; }
+        if(r.error||!r.data){ settle(); repaint(); toast(fl('Numbering was refused — the contract stays a draft','رُفض الترقيم — يبقى العقد مسودة')); return; }
         var no=r.data;
         c.from('generated_documents')
          .update({doc_number:no,status:'sent',updated_at:new Date().toISOString(),updated_by:(window.__userEmail||null)})
          .eq('id',S.rowId).select().then(function(u){
-            if(u.error||!u.data||u.data.length!==1){ refusedMsg(); return; }
+            if(u.error||!u.data||u.data.length!==1){ settle(); repaint(); refusedMsg(); return; }
             S.docNumber=no; S.status='sent';
-            loadList(true); repaint();
+            settle(); loadList(true); repaint();
             toast(fl('Issued: '+no,'صدر العقد برقم: '+no));
          });
       });
     };
-    if(S.rowId) window.ctSaveDraft(go); else window.ctSaveDraft(function(){ if(S.rowId)go(); });
+    if(S.rowId) window.ctSaveDraft(go); else window.ctSaveDraft(function(){ if(S.rowId)go(); else { settle(); repaint(); } });
   };
   window.ctOpen=function(id){
     var rec=(S.list||[]).find(function(x){return x.id===id;});
@@ -263,10 +272,10 @@
     if(S.cur.clauses===undefined)S.cur.clauses=null;
     snapshotClauses();
     S.rowId=rec.id; S.docNumber=rec.doc_number||null; S.status=rec.status||'draft';
-    S.sfpFor=null; S.sfpList=null;
+    S.sfpFor=null; S.sfpList=null; S.auto={}; S.editBuf=null; S.editKey=null;
     repaint();
   };
-  window.ctNew=function(){ S.cur=blankDoc(); S.rowId=null; S.docNumber=null; S.status='draft'; S.sfpFor=null; S.sfpList=null; snapshotClauses(); repaint(); };
+  window.ctNew=function(){ S.cur=blankDoc(); S.rowId=null; S.docNumber=null; S.status='draft'; S.sfpFor=null; S.sfpList=null; S.auto={}; S.editBuf=null; S.editKey=null; snapshotClauses(); repaint(); };
 
   /* ---------- form mutation ---------- */
   /* A2, 2026-08-25 (owner-approved audit fix) — the client record's CR was never read. crVat and
@@ -288,30 +297,47 @@
       })[0]||null;
     }catch(_){ return null; }
   }
+  /* Drop any party2 value WE auto-filled for the PREVIOUS client, so one company's CR / rep /
+     phone can never persist onto a different company's contract (cross-company data bleed).
+     Only auto-filled fields are cleared — a value the user typed is never touched. */
+  function ctClearAuto(){
+    if(!S.auto)S.auto={};
+    if(S.cur.party2){ ['cr','rep','phone'].forEach(function(k){ if(S.auto[k]) S.cur.party2[k]=''; }); }
+    S.auto={};
+  }
   function ctAutofillParty2(id){
     S.crSource=null;
+    ctClearAuto();
     var b=ctFindBiz(id); if(!b) return;
     if(!S.cur.party2) S.cur.party2={cr:'',rep:'',title:'',phone:''};
     var cr=(b.crVat||'').toString().trim();
     if(!cr){ var twin=ctCrTwin(b); if(twin){ cr=(twin.crVat||'').toString().trim(); if(cr) S.crSource=twin.name||twin.nameAr||''; } }
-    if(cr && !String(S.cur.party2.cr||'').trim()) S.cur.party2.cr=cr;
+    if(cr && !String(S.cur.party2.cr||'').trim()){ S.cur.party2.cr=cr; S.auto.cr=true; }
     try{
       var c=(b.contacts||[])[0];
       if(c){
-        if(c.phone && !String(S.cur.party2.phone||'').trim()) S.cur.party2.phone=c.phone;
-        if(c.name  && !String(S.cur.party2.rep  ||'').trim()) S.cur.party2.rep  =c.name;
+        if(c.phone && !String(S.cur.party2.phone||'').trim()){ S.cur.party2.phone=c.phone; S.auto.phone=true; }
+        if(c.name  && !String(S.cur.party2.rep  ||'').trim()){ S.cur.party2.rep  =c.name;  S.auto.rep=true; }
       }
     }catch(_){}
   }
   window.ctSet=function(k,v){ S.cur[k]=v; if(k==='clientId'){ S.sfpFor=null; S.sfpList=null; ctAutofillParty2(v); repaint(); } else repaintPreview(); };
-  window.ctParty=function(p,k,v){ if(S.cur[p])S.cur[p][k]=v; repaintPreview(); };
+  /* a value the user types is theirs — mark it manual so a later client switch never clears it */
+  window.ctParty=function(p,k,v){ if(S.cur[p])S.cur[p][k]=v; if(p==='party2'&&S.auto)delete S.auto[k]; repaintPreview(); };
   window.ctLang=function(l){ S.cur.lang=l; repaint(); };
 
   /* ---------- clause enable/disable + OVERRIDE-ON-EDIT (payload only) ---------- */
   function clause(key){ return (S.cur.clauses||[]).find(function(x){return x.key===key;}); }
   window.ctClauseToggle=function(key,on){ var c=clause(key); if(c){ c.enabled=!!on; repaint(); } };
-  window.ctClauseEdit=function(key){ S.editKey=key; repaint(); };
-  window.ctClauseEditCancel=function(){ S.editKey=null; repaint(); };
+  /* Open-editor draft buffer (2026-09-02 audit): the clause editor is a bare DOM form read
+     only at save time, so a repaint mid-edit — the AR/EN toggle, picking a client — rebuilt
+     it from the stored clause and silently WIPED the in-flight edit. The buffer mirrors the
+     fields on input so a repaint keeps the typed text; ctClauseSave still reads the live DOM
+     (which reflects the buffer after a repaint), so save behaviour is unchanged. */
+  window.ctClauseBuf=function(f,v){ if(!S.editBuf)S.editBuf={}; S.editBuf[f]=v; };
+  function ctBufOr(f,dflt){ return (S.editBuf&&S.editBuf[f]!=null)?S.editBuf[f]:(dflt==null?'':dflt); }
+  window.ctClauseEdit=function(key){ S.editKey=key; S.editBuf=null; repaint(); };
+  window.ctClauseEditCancel=function(){ S.editKey=null; S.editBuf=null; repaint(); };
   /* saves into THIS contract's payload copy only — never touches contract_clauses */
   window.ctClauseSave=function(key){
     var c=clause(key); if(!c)return;
@@ -319,7 +345,7 @@
     c.title_en=gv('ctE_ten'); c.title_ar=gv('ctE_tar');
     c.body_en=gv('ctE_ben'); c.body_ar=gv('ctE_bar');
     c.override=true;                       /* per-contract override; template untouched */
-    S.editKey=null; repaint();
+    S.editKey=null; S.editBuf=null; repaint();
     toast(fl('Changed in this contract only — the shared template is untouched','عُدِّل في هذا العقد فقط — القالب المشترك لم يتغير'));
   };
   window.ctClauseReset=function(key){
@@ -327,6 +353,7 @@
     if(!c||!t)return;
     c.title_en=t.title_en; c.title_ar=t.title_ar;
     c.body_en=t.body_en; c.body_ar=t.body_ar; c.override=false;
+    if(S.editKey===key)S.editBuf=null;
     repaint(); toast(fl('Reset to the shared template','أُعيد إلى القالب المشترك'));
   };
   /* the ONLY path that writes the shared template (explicit, admin/manager) */
@@ -671,10 +698,10 @@
   }
   function clauseEditorHtml(c){
     return '<div style="margin-top:8px">'+
-      '<label>'+fl('Title (EN)','العنوان بالإنجليزية')+'</label><input id="ctE_ten" value="'+esc(c.title_en||'')+'">'+
-      '<label>'+fl('Title (AR)','العنوان بالعربية')+'</label><input dir="rtl" id="ctE_tar" value="'+esc(c.title_ar||'')+'">'+
-      '<label>'+fl('Body (EN)','النص بالإنجليزية')+'</label><textarea id="ctE_ben">'+esc(c.body_en||'')+'</textarea>'+
-      '<label>'+fl('Body (AR)','النص بالعربية')+'</label><textarea id="ctE_bar" dir="rtl">'+esc(c.body_ar||'')+'</textarea>'+
+      '<label>'+fl('Title (EN)','العنوان بالإنجليزية')+'</label><input id="ctE_ten" oninput="ctClauseBuf(\'ten\',this.value)" value="'+esc(ctBufOr('ten',c.title_en))+'">'+
+      '<label>'+fl('Title (AR)','العنوان بالعربية')+'</label><input dir="rtl" id="ctE_tar" oninput="ctClauseBuf(\'tar\',this.value)" value="'+esc(ctBufOr('tar',c.title_ar))+'">'+
+      '<label>'+fl('Body (EN)','النص بالإنجليزية')+'</label><textarea id="ctE_ben" oninput="ctClauseBuf(\'ben\',this.value)">'+esc(ctBufOr('ben',c.body_en))+'</textarea>'+
+      '<label>'+fl('Body (AR)','النص بالعربية')+'</label><textarea id="ctE_bar" dir="rtl" oninput="ctClauseBuf(\'bar\',this.value)">'+esc(ctBufOr('bar',c.body_ar))+'</textarea>'+
       (c.key==='term'?'<div style="font-size:11.5px;color:var(--muted,#777);margin-top:4px">'+
         fl('Keep {{notice_days}} where the notice period should print — the field below fills it.',
            'أبقِ {{notice_days}} حيث يجب أن تظهر مدة الإشعار — الحقل أدناه يعبئها.')+'</div>':'')+
@@ -816,7 +843,7 @@
       '</fieldset>'+
       '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'+
         (w?'<button class="btn sm pri" '+(S.saving?'disabled':'')+' onclick="ctSaveDraft()">'+(S.saving?fl('Saving…','جارٍ الحفظ…'):fl('Save draft','حفظ المسودة'))+'</button>':'')+
-        (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="ctIssue()">'+fl('Issue contract','إصدار العقد')+'</button>':'')+
+        (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" '+(S.issuing?'disabled':'')+' onclick="ctIssue()">'+(S.issuing?fl('Issuing…','جارٍ الإصدار…'):fl('Issue contract','إصدار العقد'))+'</button>':'')+
         '<button class="btn sm ghost" onclick="ctPrint()">'+fl('Print / PDF','طباعة / PDF')+'</button>'+
       '</div>'+
       '<div style="margin-top:10px;font-size:11.5px;color:var(--muted,#777);line-height:1.5">'+

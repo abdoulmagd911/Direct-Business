@@ -41,6 +41,8 @@
     t.textContent=msg; document.body.appendChild(t); setTimeout(function(){try{t.remove();}catch(_){}} ,2600);
   }
   function fmt(n){ if(!isFinite(n))return '—'; return Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  /* comma/space-tolerant numeric parse: "1,250.50" → 1250.5, non-number → 0 (never NaN) */
+  function num(v){ if(typeof v==='number')return isFinite(v)?v:0; var n=Number(String(v==null?'':v).replace(/[,\s]/g,'')); return isFinite(n)?n:0; }
   /* amount-in-words: reuse js/67's exposed algorithm — never duplicated (source: js/67-price-offer-tab.js) */
   function words(n,lang){
     try{ if(typeof window.__poWordsProbe==='function'){ var w=window.__poWordsProbe(Number(n)||0); return lang==='ar'?w.ar:w.en; } }catch(_){}
@@ -241,8 +243,31 @@
       if(!b)return '';
       return (lang==='ar'&&b.nameAr)?b.nameAr:(b.name||b.nameAr||''); }catch(_){ return ''; }
   }
+  /* Past-projects items prefill from company_profile_sections (key 'past_projects') — the
+     stated default (see blankDoc). It used to run only in tdOpen, so a NEW tender showed an
+     empty past-projects section ("—") and, worse, a tender saved empty then reopened would
+     silently gain items on open — a mismatch between what was saved and what re-rendered.
+     Seeding on BOTH new and open (once, guarded by __seeded) makes the section populated from
+     the first render and the saved payload stable. Fetch failure leaves items untouched (D4). */
+  function seedPastProjects(){
+    var pp=S.cur&&S.cur.pastProjects;
+    if(!pp||!pp.on||(pp.items&&pp.items.length)||pp.__seeded)return;
+    pp.__seeded=true;
+    try{ var c=client(); if(!c)return;
+      c.from('company_profile_sections').select('items').eq('key','past_projects').eq('enabled',true).then(function(r){
+        try{ var it=(r.data&&r.data[0]&&r.data[0].items)||[];
+          if(it.length&&S.cur.pastProjects&&!(S.cur.pastProjects.items||[]).length){
+            S.cur.pastProjects.items=it.map(function(x){ return (typeof LANG!=='undefined'&&LANG==='ar')?(x.ar||x.en||''):(x.en||x.ar||''); }).filter(Boolean);
+            repaint(); } }catch(_){ }
+      });
+    }catch(_){ }
+  }
   function boqRows(){ return (S.cur.boq||[]).filter(function(r){return r.en||r.ar||r.unit||r.price!=='';}); }
-  function lineAmount(r){ var q=Number(r.qty)||0, p=Number(r.price); return isFinite(p)?q*p:NaN; }
+  /* qty/price clamped to >=0 (comma-tolerant): a negative qty or price is invalid input and
+     must never yield a negative line amount, subtotal, VAT or grand total on the financial
+     document. An empty price stays NaN so its amount cell renders "—", not a fabricated 0. */
+  function lineAmount(r){ if(r.price===''||r.price==null)return NaN; return Math.max(0,num(r.qty))*Math.max(0,num(r.price)); }
+  function unitPrice(r){ return (r.price===''||r.price==null)?NaN:Math.max(0,num(r.price)); }
   function totals(){
     var sub=0, any=false;
     boqRows().forEach(function(r){ var a=lineAmount(r); if(isFinite(a)){ sub+=a; any=true; } });
@@ -309,21 +334,28 @@
     var c=client(); if(!c){ refusedMsg(); return; }
     var st=fam==='TEC'?S.tec:S.fin;
     if(st.docNumber){ toast(fl('Already issued as '+st.docNumber,'صدر مسبقاً برقم '+st.docNumber)); return; }
+    /* Re-entrancy guard, PER FAMILY: two rapid "Issue financial" (or technical) clicks must
+       never each pull a number and burn two. TEC and FIN guard independently so one can be
+       issued while the other is mid-flight. A watchdog guarantees the flag clears. */
+    if(st.issuing) return;
+    st.issuing=true; repaint();
+    var wd=setTimeout(function(){ st.issuing=false; try{repaint();}catch(_){} },8000);
+    var settle=function(){ clearTimeout(wd); st.issuing=false; };
     var go=function(){
       c.rpc('next_document_number',{p_family:fam}).then(function(r){
-        if(r.error||!r.data){ toast(fl('Numbering was refused — the document stays a draft','رُفض الترقيم — يبقى المستند مسودة')); return; }
+        if(r.error||!r.data){ settle(); repaint(); toast(fl('Numbering was refused — the document stays a draft','رُفض الترقيم — يبقى المستند مسودة')); return; }
         var no=r.data;
         c.from('generated_documents')
          .update({doc_number:no,status:'sent',updated_at:new Date().toISOString(),updated_by:(window.__userEmail||null)})
          .eq('id',st.rowId).select().then(function(u){
-            if(u.error||!u.data||u.data.length!==1){ refusedMsg(); return; }
+            if(u.error||!u.data||u.data.length!==1){ settle(); repaint(); refusedMsg(); return; }
             st.docNumber=no; st.status='sent';
-            loadList(true); repaint();
+            settle(); loadList(true); repaint();
             toast(fl('Issued: '+no,'صدر برقم: '+no));
          });
       });
     };
-    if(st.rowId)window.tdSaveDraft(go); else window.tdSaveDraft(function(){ if(st.rowId)go(); });
+    if(st.rowId)window.tdSaveDraft(go); else window.tdSaveDraft(function(){ if(st.rowId)go(); else { settle(); repaint(); } });
   };
   window.tdOpen=function(id){
     var rec=(S.list||[]).find(function(x){return x.id===id;});
@@ -337,14 +369,7 @@
     if(!Array.isArray(S.cur.schedule))S.cur.schedule=[blankPay()];
     if(!S.cur.pastProjects)S.cur.pastProjects={on:true,items:[]};
     /* prefill defaults once, from the DB (never hardcoded here — D4) */
-    if(S.cur.pastProjects.on&&!(S.cur.pastProjects.items||[]).length&&!S.cur.pastProjects.__seeded){
-      S.cur.pastProjects.__seeded=true;
-      try{ var c=client(); if(c)c.from('company_profile_sections').select('items').eq('key','past_projects').eq('enabled',true).then(function(r){
-        try{ var it=(r.data&&r.data[0]&&r.data[0].items)||[]; if(it.length&&!(S.cur.pastProjects.items||[]).length){
-          S.cur.pastProjects.items=it.map(function(x){ return (typeof LANG!=='undefined'&&LANG==='ar')?(x.ar||x.en||''):(x.en||x.ar||''); }).filter(Boolean);
-          repaint(); } }catch(_){ }
-      }); }catch(_){ }
-    }
+    seedPastProjects();
     if(!S.cur.tender_ref)S.cur.tender_ref=uuid();
     /* adopt BOTH family rows sharing this tender_ref */
     var ref=S.cur.tender_ref;
@@ -357,7 +382,8 @@
     repaint();
   };
   window.tdNew=function(){ S.cur=blankDoc(); S.view='tec';
-    S.tec={rowId:null,docNumber:null,status:'draft'}; S.fin={rowId:null,docNumber:null,status:'draft'}; repaint(); };
+    S.tec={rowId:null,docNumber:null,status:'draft'}; S.fin={rowId:null,docNumber:null,status:'draft'};
+    seedPastProjects(); repaint(); };
 
   /* ---------- form mutation ---------- */
   window.tdSet=function(k,v){ S.cur[k]=v; repaintPreview(); };
@@ -547,7 +573,7 @@
       var amt=isFinite(a)?fmt(a):'—';
       var w=isFinite(a)?words(a,ar?'ar':'en'):'';
       return '<tr><td>'+(i+1)+'</td><td class="svc">'+esc(svc)+'</td><td>'+esc(r.unit||'—')+'</td><td>'+esc(String(r.qty||''))+'</td>'+
-        '<td class="amt">'+(r.price===''?'—':fmt(Number(r.price)))+'</td><td class="amt">'+amt+'</td>'+
+        '<td class="amt">'+fmt(unitPrice(r))+'</td><td class="amt">'+amt+'</td>'+
         '<td class="wrd">'+esc(w)+'</td></tr>';
     }).join('');
     return h(t,t.boq)+
@@ -636,8 +662,7 @@
     var sched=(S.cur.schedule||[]).filter(function(p){return p.month||p.amount!==''||p.notes;});
     var schedHtml=sched.length?h(t,t.sched)+'<table class="td-t"><thead><tr><th>'+t.num+'</th><th>'+t.month+'</th><th>'+t.amount+'</th><th>'+t.notes+'</th></tr></thead><tbody>'+
       sched.map(function(p,i){
-        var n=Number(p.amount);
-        return '<tr><td>'+(i+1)+'</td><td class="svc">'+esc(p.month)+'</td><td class="amt">'+(p.amount===''?'—':(isFinite(n)?fmt(n):esc(p.amount)))+'</td><td>'+esc(p.notes||'')+'</td></tr>';
+        return '<tr><td>'+(i+1)+'</td><td class="svc">'+esc(p.month)+'</td><td class="amt">'+(p.amount===''||p.amount==null?'—':fmt(Math.max(0,num(p.amount))))+'</td><td>'+esc(p.notes||'')+'</td></tr>';
       }).join('')+'</tbody></table>':'';
     var totHtml=tt.any?'<div class="td-tot">'+
       t.subtotal+': <b>'+fmt(tt.sub)+'</b><br>'+
@@ -822,8 +847,8 @@
       '</fieldset>'+
       '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'+
         (w?'<button class="btn sm pri" '+(S.saving?'disabled':'')+' onclick="tdSaveDraft()">'+(S.saving?fl('Saving…','جارٍ الحفظ…'):fl('Save both drafts','حفظ المسودتين'))+'</button>':'')+
-        (w&&!stT.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="tdIssue(\'TEC\')">'+fl('Issue technical','إصدار العرض الفني')+'</button>':'')+
-        (w&&!stF.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="tdIssue(\'FIN\')">'+fl('Issue financial','إصدار العرض المالي')+'</button>':'')+
+        (w&&!stT.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" '+(stT.issuing?'disabled':'')+' onclick="tdIssue(\'TEC\')">'+(stT.issuing?fl('Issuing…','جارٍ الإصدار…'):fl('Issue technical','إصدار العرض الفني'))+'</button>':'')+
+        (w&&!stF.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" '+(stF.issuing?'disabled':'')+' onclick="tdIssue(\'FIN\')">'+(stF.issuing?fl('Issuing…','جارٍ الإصدار…'):fl('Issue financial','إصدار العرض المالي'))+'</button>':'')+
         '<button class="btn sm ghost" onclick="tdPrint()">'+fl('Print / PDF (current view)','طباعة / PDF (المعاينة الحالية)')+'</button>'+
       '</div>'+
       '<div style="margin-top:10px;font-size:11.5px;color:var(--muted,#777);line-height:1.5">'+
@@ -834,7 +859,7 @@
 
   /* ---------- tab body + repaints ---------- */
   function tabHtml(){
-    loadIdentity(); loadList(); loadProfileSecs();
+    loadIdentity(); loadList(); loadProfileSecs(); seedPastProjects();
     return css()+
       '<div id="tdWrap">'+
         '<div>'+formHtml()+'</div>'+

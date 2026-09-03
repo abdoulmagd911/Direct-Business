@@ -32,6 +32,15 @@
 
   function role(){ try{ return window.__userRole || (window.__userTier==='admin'?'admin':window.__userTier==='manager'?'manager':window.__userTier==='viewer'?'viewer':null); }catch(_){ return null; } }
   function can(what){
+    /* A view-only SHARE LINK has no role at all, and "no role yet" used to mean "allow" here
+       (the line below, which exists so a real user is never blocked while their role loads).
+       Consequence found 2026-09-02 driving a share link anonymously: every guarded action was
+       still open to the holder — Edit on a lead or a client opened the full Quick-edit modal,
+       which also lists every team member by name. The database refused the save, so nothing
+       was ever written, but the banner promises "nothing can be changed" while the screen
+       offered the change. A share view is a KNOWN state, not an unknown one, so it is decided
+       first and answers no to everything. */
+    try{ if(window.__isShareView) return false; }catch(_){}
     var r=role(); if(!r) return true;              // role not known yet — never block a real user by accident
     var row=CAN[r]; if(!row) return true;
     return !!row[what];
@@ -41,6 +50,14 @@
   /* ---- one clear sentence, never a dead end ---------------------------------------- */
   var shown=0;
   function refuse(what){
+    /* the share-link holder is not a person with a level — say the true reason instead */
+    try{ if(window.__isShareView){
+      box(fl('This is a view-only link','هذا رابط للعرض فقط'),
+          fl('You are looking at a shared, read-only copy. Nothing on this screen can be changed.',
+             'أنت تشاهد نسخة مشتركة للعرض فقط. لا يمكن تغيير أي شيء في هذه الشاشة.'),
+          fl('Sign in to the workspace if you need to edit.','سجّل الدخول إلى مساحة العمل إذا احتجت التعديل.'));
+      return;
+    } }catch(_){}
     var r=role()||'', lbl=fl(ROLE_EN[r]||r,ROLE_AR[r]||r);
     var whatEn={leads:'companies (leads and clients)',proposals:'proposals',requests:'requests',activities:'activity',finance:'finance',promo:'promo codes'}[what]||what;
     var whatAr={leads:'الشركات (العملاء المحتملون والعملاء)',proposals:'العروض',requests:'الطلبات',activities:'النشاط',finance:'المالية',promo:'أكواد الخصم'}[what]||what;

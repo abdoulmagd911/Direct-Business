@@ -234,7 +234,19 @@ if(SHARE){
     try{
       document.body.setAttribute('data-share','1');
       var st=document.createElement('style');
+      /* The edit affordances on Leads and Clients are `.btn.ghost`, so the old rule (primary +
+         danger only) left an "Edit" button on every row of a shared link — clicking it opened
+         the Quick-edit modal, which also lists every team member by name (found 2026-09-02
+         driving a share link with no session). The write itself was always refused by the
+         database; what was wrong was offering it at all, against this banner's own promise.
+         Matched on the inline onclick, which is how both tables render them, so the rule stays
+         narrow — it can only ever hide a control that calls one of these editors, and only
+         inside a shared view. js/49's guard is the belt to this pair of braces. */
       st.textContent='body[data-share="1"] .btn.pri,body[data-share="1"] .btn.danger,body[data-share="1"] #cl_share,body[data-share="1"] #cl_signout{display:none!important}'+
+        'body[data-share="1"] [onclick*="leadQuickEdit"],body[data-share="1"] [onclick*="editBusiness"],'+
+        'body[data-share="1"] [onclick*="editLead"],body[data-share="1"] [onclick*="convertToClient"],'+
+        'body[data-share="1"] [onclick*="qeAddOwner"],body[data-share="1"] [onclick*="qeAddFunnel"],'+
+        'body[data-share="1"] [onclick*="setLeadStage"]{display:none!important}'+
         'body[data-share="1"] input,body[data-share="1"] textarea{pointer-events:none;background:#fafafa}'+
         'body[data-share="1"] #v38banner{display:flex!important}';
       document.head.appendChild(st);

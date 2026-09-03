@@ -42,6 +42,12 @@
   }
 
   var lastLogged=null; // one log entry per attempt, not one per re-render while stuck on it
+  /* 2026-09-03 (audit/events/search attack round): the card was inserted into #view and then
+     wiped by the very next render — Today refreshes itself a few hundred milliseconds after
+     the bounce, so the explanation flashed up and vanished (measured: present at 400 ms, gone
+     by 900 ms) and the person was left moved with no reason given. Re-assert it on the renders
+     that follow the bounce, for long enough to be read; showBanner() is already idempotent. */
+  var stickUntil=0, STICK_MS=8000;
   if(typeof window.render==='function'){
     var _r64=window.render;
     window.render=function(){
@@ -54,13 +60,16 @@
             current='today';
             if(lastLogged!==denied){ lastLogged=denied; logDenied(denied); }
             var out=_r64.apply(this,arguments);
+            stickUntil=Date.now()+STICK_MS;
             showBanner();
             return out;
           }
         }
       }catch(e){ if(window.console)console.warn('[v64] access guard',e); }
       lastLogged=null;
-      return _r64.apply(this,arguments);
+      var out2=_r64.apply(this,arguments);
+      try{ if(Date.now()<stickUntil) showBanner(); }catch(_){}
+      return out2;
     };
   }
 }catch(e){ if(window.console)console.warn('[v64] init',e); }})();

@@ -11,6 +11,12 @@
      account lockout loop this caused (2026-08-23). If the Supabase policy ever changes,
      change MIN_PW in the same commit. */
   var MIN_PW=10;
+  /* One shared constant (DECISIONS.md M-rule: a hardcoded password-length minimum must equal
+     Supabase's own Auth policy via ONE shared constant). The Team & Access create form in
+     js/31 reads this instead of carrying its own number — it used to check <8, so a 9-char
+     password passed the form and was then refused server-side (the same lockout shape MIN_PW
+     was raised to 10 to prevent). Exposed on window so a layer in another IIFE can read it. */
+  try{ window.MIN_PW=MIN_PW; }catch(_){}
 
   function el(tag,css,html){var e=document.createElement(tag);if(css)e.style.cssText=css;if(html!=null)e.innerHTML=html;return e;}
 
@@ -447,7 +453,7 @@
       pendingSave=false;
       setPill('Saving...','#F79009');
       var biz=Array.isArray(DB.businesses)?DB.businesses:[];
-      var ups=[];
+      var ups=[], archivedHit=[];
       biz.forEach(function(b){ if(!b||b.id==null)return; try{ var row=appToRow(b); if(SNAP[b.id]!==JSON.stringify(row)) ups.push(row); }catch(_){}});
       // Leads removed in the app: archive their row (recoverable), never hard-delete
       var present={}; biz.forEach(function(b){ if(b&&b.id!=null)present[b.id]=1; });
@@ -466,6 +472,14 @@
       var finish=function(errMsg){
         sb.rpc('save_state',{payload:rest}).then(function(r2){
           if(errMsg||(r2&&r2.error)){ pendingSave=true; setPill('Save issue: '+(errMsg||r2.error.message),'#D92D20'); scheduleSaveRetry(); }
+          else if(archivedHit.length){
+            saveRetryN=0;
+            var _aAr=(typeof LANG!=='undefined'&&LANG==='ar');
+            setPill(_aAr?('حُفظ على سجل محذوف ('+archivedHit.length+')'):('Saved onto a deleted record ('+archivedHit.length+')'),'#B54708');
+            try{ alert(_aAr
+              ? ('حُفظ تعديلك، لكن '+archivedHit.length+' من هذه الشركات حذفها شخص آخر أثناء فتحها لديك. التعديل مكتوب على سجل مؤرشف لن يظهر في أي قائمة بعد إعادة التحميل. استخدم «النشاط والتدقيق ← تراجع» لإلغاء الحذف خلال 24 ساعة.')
+              : ('Your change was saved, but '+archivedHit.length+' of these companies was deleted by someone else while you had it open. The edit is on an archived record that will not appear in any list after a reload. Use Activity & Audit \u2192 Undo to reverse the delete, within 24 hours.')); }catch(_){}
+          }
           else { saveRetryN=0; setPill(ups.length?('Saved · '+ups.length+' lead'+(ups.length===1?'':'s')+' updated'):'Saved to cloud','#16B364'); }
           sb.from('app_state').select('updated_at').eq('id',1).maybeSingle().then(function(u){ try{ if(u&&u.data&&u.data.updated_at) localStorage.setItem('db_cloud_ts', String(u.data.updated_at)); }catch(e){} });
         });
@@ -483,12 +497,19 @@
           finish(errAll); return;
         }
         var job=queue[qi++];
-        var req=job.ins? sb.from('businesses').insert(job.rows).select('id,legacy_id')
-                       : sb.from('businesses').upsert(job.rows,{onConflict:'id'}).select('id,legacy_id');
+        var req=job.ins? sb.from('businesses').insert(job.rows).select('id,legacy_id,archived_at')
+                       : sb.from('businesses').upsert(job.rows,{onConflict:'id'}).select('id,legacy_id,archived_at');
         req.then(function(r){
           if(r.error){ errAll=r.error.message; }
           else {
             (r.data||[]).forEach(function(x){ if(x.legacy_id) ROWID[x.legacy_id]=x.id; });
+            /* 2026-09-02 (reversibility audit) — two people, one company: A deletes it while B
+               still has it open. B's save is an upsert by id, and appToRow() never touches
+               archived_at, so the write lands SILENTLY on the archived row: green "Saved",
+               B keeps seeing it until the next reload, then it is gone and the edit is on a
+               record no screen in the app can list. The row comes back saying archived_at is
+               set — say so instead of reporting success. */
+            (r.data||[]).forEach(function(x){ if(x&&x.archived_at) archivedHit.push(x.legacy_id||x.id); });
             // M13 (2026-09-02): no error but fewer rows back than sent = a silent refusal.
             // Treat it as a failed save (red pill + retry), never as "Cloud synced".
             var got=(r.data||[]).length;

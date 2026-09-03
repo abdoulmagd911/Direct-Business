@@ -76,23 +76,34 @@
     }catch(_){ return false; }
   }
 
+  /* Swap a person's full name for their nickname, but ONLY where a text node is WHOLLY that
+     name (an owner cell, a dropdown option, the greeting line, the identity chip). Two bugs
+     the old substring swap had, both found by the 2026-09-02 alias-collision audit:
+       1. it corrupted any text that merely CONTAINED a name — a company literally called
+          "Abu Faris Trading" became "Faris Trading", because "Abu Faris" is also a person.
+       2. it was not idempotent and cascaded on a name collision: when one person's nickname
+          equals another's FULL name (Salem's nickname is "Abu Faris"; "Abu Faris" is also a
+          real full name), Salem's cell was swapped to "Abu Faris" and then a LATER paint
+          re-swapped that to "Faris" — Salem shown under a third person's nickname.
+     Whole-cell matching fixes (1). Marking each localized cell (data-nsw) and skipping it on
+     later paints fixes (2): the cell is localized exactly once per render, the mark is wiped
+     when render() rebuilds #view, so a language switch or reload re-localizes correctly. */
   function swapIn(root){
     if(!MAP||!root) return;
     var names=Object.keys(MAP); if(!names.length) return;
     var walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false), n, jobs=[];
     while((n=walker.nextNode())){
-      var t=n.nodeValue; if(!t || t.length<3) continue;
-      for(var i=0;i<names.length;i++){
-        if(t.indexOf(names[i])>=0){ jobs.push(n); break; }
-      }
+      var p=n.parentNode; if(!p||p.nodeType!==1) continue;
+      if(p.getAttribute && p.getAttribute('data-nsw')==='1') continue;   // already localized this render
+      var key=(n.nodeValue||'').trim();
+      if(key && MAP[key]) jobs.push(n);                                  // WHOLE-cell match only
     }
     jobs.forEach(function(node){
       if(inTeamScreen(node)) return;
-      var v=node.nodeValue;
-      names.forEach(function(full){
-        if(v.indexOf(full)>=0) v=v.split(full).join(window.nickOf(full));
-      });
-      if(v!==node.nodeValue) node.nodeValue=v;
+      var key=node.nodeValue.trim();
+      var nick=window.nickOf(key);
+      if(nick && nick!==key) node.nodeValue=node.nodeValue.replace(key,nick);  // keep surrounding whitespace
+      try{ if(node.parentNode&&node.parentNode.setAttribute) node.parentNode.setAttribute('data-nsw','1'); }catch(_){}
     });
   }
 

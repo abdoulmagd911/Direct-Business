@@ -31,6 +31,9 @@
     t.textContent=msg; document.body.appendChild(t); setTimeout(function(){try{t.remove();}catch(_){}} ,2600);
   }
   function fmt(n){ if(!isFinite(n))return '—'; return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  /* Parse a money/qty field tolerantly: strip thousands separators + spaces so a pasted or
+     programmatic "1,250.50" is 1250.5 and not silently NaN→0; a non-number is 0, never NaN. */
+  function num(v){ if(typeof v==='number')return isFinite(v)?v:0; var n=Number(String(v==null?'':v).replace(/[,\s]/g,'')); return isFinite(n)?n:0; }
   function todayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   function addDays(iso,days){ var d=new Date(iso+'T00:00:00'); if(isNaN(d))return '';
     d.setDate(d.getDate()+Number(days||0));
@@ -92,13 +95,18 @@
       else if(last2===0)      out.push(arUnder1000(value,false)+' '+one);
       else                    out.push(arUnder1000(value,false)+' '+many);
     }
+    /* billions group added so AR reaches the SAME range EN does (up to 999,999,999,999):
+       without it group(mil,…) was fed mil>=1000, arUnder1000() could not spell it, and a
+       billion silently printed "مليون" (a million) on a client-facing financial document. */
+    var bil=Math.floor(n/1e9); n%=1e9;
     var mil=Math.floor(n/1e6); n%=1e6;
     var th=Math.floor(n/1e3);  n%=1e3;
+    group(bil,'مليار','ملياران','مليارات','ملياراً');
     group(mil,'مليون','مليونان','ملايين','مليوناً');
     group(th,'ألف','ألفان','آلاف','ألفاً');
     if(n>0) out.push(arUnder1000(n,fem));
     var s=out.join(' و');
-    return s.replace(/مائتان$/,'مائتا').replace(/ألفان$/,'ألفا').replace(/مليونان$/,'مليونا');
+    return s.replace(/مائتان$/,'مائتا').replace(/ألفان$/,'ألفا').replace(/مليونان$/,'مليونا').replace(/ملياران$/,'مليارا');
   }
   function arCounted(value,fem){
     var one=fem?'هللة':'ريال', dual=fem?'هللتان':'ريالان', few=fem?'هللات':'ريالات', many=fem?'هللة':'ريالاً';
@@ -245,7 +253,10 @@
   function calc(){
     var rows=[], sub=0;
     (S.cur.lines||[]).forEach(function(l){
-      var qty=Number(l.qty)||0, price=Number(l.price)||0, amt=qty*price;
+      /* qty/price are clamped to >=0 (comma-tolerant): a negative qty or price is invalid
+         input and must never produce a negative line amount or drag the document total
+         below zero — the rendered money document must never show a negative total. */
+      var qty=Math.max(0,num(l.qty)), price=Math.max(0,num(l.price)), amt=qty*price;
       if(l.svc||l.svcAr||price){ rows.push({l:l,amt:amt}); sub+=amt; }
     });
     function r2(n){ return Math.round(n*100)/100; }
@@ -338,21 +349,28 @@
   window.poIssue=function(){
     var c=client(); if(!c){ refusedMsg(); return; }
     if(S.docNumber){ toast(fl('Already issued as '+S.docNumber,'صدر مسبقاً برقم '+S.docNumber)); return; }
+    /* Re-entrancy guard: two rapid Issue clicks must never each pull a number and burn two.
+       S.issuing is set synchronously here, so the second click returns immediately; a watchdog
+       guarantees the flag clears even if a network step never settles (never a stuck button). */
+    if(S.issuing) return;
+    S.issuing=true; repaintBar();
+    var wd=setTimeout(function(){ S.issuing=false; try{repaintBar();}catch(_){} },8000);
+    var settle=function(){ clearTimeout(wd); S.issuing=false; try{repaintBar();}catch(_){} };
     var go=function(){
       c.rpc('next_document_number',{p_family:'OFR'}).then(function(r){
-        if(r.error||!r.data){ toast(fl('Numbering was refused — the offer stays a draft','رُفض الترقيم — يبقى العرض مسودة')); return; }
+        if(r.error||!r.data){ settle(); toast(fl('Numbering was refused — the offer stays a draft','رُفض الترقيم — يبقى العرض مسودة')); return; }
         var no=r.data;
         c.from('generated_documents')
          .update({doc_number:no,status:'sent',updated_at:new Date().toISOString(),updated_by:(window.__userEmail||null)})
          .eq('id',S.rowId).select().then(function(u){
-            if(u.error||!u.data||u.data.length!==1){ refusedMsg(); return; }
+            if(u.error||!u.data||u.data.length!==1){ settle(); refusedMsg(); return; }
             S.docNumber=no; S.status='sent';
-            loadList(true); repaint();
+            settle(); loadList(true); repaint();
             toast(fl('Issued: '+no,'صدر العرض: '+no));
          });
       });
     };
-    if(S.rowId) window.poSaveDraft(go); else window.poSaveDraft(function(){ if(S.rowId)go(); });
+    if(S.rowId) window.poSaveDraft(go); else window.poSaveDraft(function(){ if(S.rowId)go(); else settle(); });
   };
   window.poMarkAccepted=function(){
     var c=client(); if(!c||!S.rowId)return;
@@ -568,7 +586,7 @@
       var l=r.l, svc=ar?(l.svcAr||l.svc):(l.svc||l.svcAr), unitTxt=ar?(l.unitAr||l.unit):(l.unit||l.unitAr);
       return '<tr><td>'+(i+1)+'</td><td class="svc">'+esc(svc)+'</td>'+
         '<td>'+esc(unitTxt||'—')+(Number(l.qty)>1?' × '+esc(l.qty):'')+'</td>'+
-        (S.cur.showOrig?'<td class="amt">'+(l.orig?fmt(Number(l.orig)):'—')+'</td>':'')+
+        (S.cur.showOrig?'<td class="amt">'+((l.orig!==''&&l.orig!=null)?fmt(Math.max(0,num(l.orig))):'—')+'</td>':'')+
         '<td class="amt">'+fmt(r.amt)+'</td></tr>';
     }).join('')||'<tr><td colspan="'+colsN+'" style="color:var(--muted);text-align:center;padding:18px">'+t.addEmpty+'</td></tr>';
 
@@ -721,7 +739,7 @@
       /* data-v21relabeled opts this button out of core-06's verb relabeler, which would
          otherwise rewrite "Issue…" to "Push to source…" — the wording the owner asked
          to retire. The action itself still assigns the number server-side. */
-      (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="poIssue()">'+fl('Issue offer','إصدار العرض')+'</button>':'')+
+      (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" '+(S.issuing?'disabled':'')+' onclick="poIssue()">'+(S.issuing?fl('Issuing…','جارٍ الإصدار…'):fl('Issue offer','إصدار العرض'))+'</button>':'')+
       (w&&S.docNumber&&S.status!=='accepted'?'<button class="btn sm ghost" onclick="poMarkAccepted()">'+fl('Mark accepted','وضع علامة مقبول')+'</button>':'')+
       '<button class="btn sm ghost" onclick="poPrint()">'+fl('Print / PDF','طباعة / PDF')+'</button>'+
       '<button class="btn sm ghost" onclick="poCopy()">'+fl('Copy for WhatsApp / Email','نسخ لواتساب / البريد')+'</button>';

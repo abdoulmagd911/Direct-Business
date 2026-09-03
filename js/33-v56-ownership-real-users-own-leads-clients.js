@@ -26,7 +26,13 @@
   };
 
   // Load the live roster from the team_directory view (readable by every signed-in user).
-  function _c56(){ try{ if(!window.__sb56 && window.supabase && window.supabase.createClient){ window.__sb56=window.supabase.createClient(SUPA_URL,SUPA_KEY);} }catch(_){ } return window.__sb56||null; }
+  // Use the app's ONE shared client (fc(), exposed by js/16). SUPA_URL / SUPA_KEY are declared
+  // `var` inside each layer's own IIFE — they are NOT globals — so the old bare reference here
+  // threw a ReferenceError (swallowed by the catch) on every call, __sb56 never got built, the
+  // roster never loaded, and teamList() fell back forever to the hardcoded TEAM=["Abdelrahman",
+  // …]. That stale list is what the owner / account-manager / assigned-to dropdowns showed.
+  // (2026-09-02 CRM audit — probe-crm-attacks.mjs asserts the dropdowns list the real roster.)
+  function _c56(){ try{ if(window.fc) return fc(); }catch(_){ } return null; }
   var _tries=0, _done=false;
   function loadTeam(){
     if(_done) return; _tries++;

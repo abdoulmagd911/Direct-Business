@@ -357,7 +357,11 @@
   // usual textContent-scanning path at all, in either direction. Patched directly, by id,
   // the same "translate, remember the English original for restore" shape as setText() uses
   // elsewhere in this file, just via the placeholder attribute instead of textContent.
-  var GSEARCH_PLACEHOLDER_AR='ابحث في كل شيء — العملاء، الطلبات، شركات الطيران، الموردون، الإجراءات…';
+  /* 2026-09-03 (search attack round): both placeholders used to promise "everything" / "كل شيء".
+     The index carries leads, clients, requests, airlines, providers and SOPs — and nothing from
+     Finance: an invoice number, a transaction or an expense returns zero results. Name what it
+     really searches rather than promising what it does not. */
+  var GSEARCH_PLACEHOLDER_AR='ابحث في العملاء المحتملين والعملاء والطلبات وشركات الطيران والموردين والإجراءات';
   function patchGlobalSearchPlaceholder(isAr){
     var gs=document.getElementById('gsearch'); if(!gs)return;
     if(isAr){

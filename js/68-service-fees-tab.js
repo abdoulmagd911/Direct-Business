@@ -312,21 +312,27 @@
   window.sfIssue=function(){
     var c=client(); if(!c){ refusedMsg(); return; }
     if(S.docNumber){ toast(fl('Already issued as '+S.docNumber,'صدر مسبقاً برقم '+S.docNumber)); return; }
+    /* Re-entrancy guard: two rapid Issue clicks must never each pull a number and burn two.
+       S.issuing is set synchronously; a watchdog guarantees it clears (never a stuck button). */
+    if(S.issuing) return;
+    S.issuing=true; repaintBar();
+    var wd=setTimeout(function(){ S.issuing=false; try{repaintBar();}catch(_){} },8000);
+    var settle=function(){ clearTimeout(wd); S.issuing=false; try{repaintBar();}catch(_){} };
     var go=function(){
       c.rpc('next_document_number',{p_family:'SFP'}).then(function(r){
-        if(r.error||!r.data){ toast(fl('Numbering was refused — the proposal stays a draft','رُفض الترقيم — يبقى العرض مسودة')); return; }
+        if(r.error||!r.data){ settle(); toast(fl('Numbering was refused — the proposal stays a draft','رُفض الترقيم — يبقى العرض مسودة')); return; }
         var no=r.data;
         c.from('generated_documents')
          .update({doc_number:no,status:'sent',updated_at:new Date().toISOString(),updated_by:(window.__userEmail||null)})
          .eq('id',S.rowId).select().then(function(u){
-            if(u.error||!u.data||u.data.length!==1){ refusedMsg(); return; }
+            if(u.error||!u.data||u.data.length!==1){ settle(); refusedMsg(); return; }
             S.docNumber=no; S.status='sent';
-            loadList(true); repaint();
+            settle(); loadList(true); repaint();
             toast(fl('Issued: '+no,'صدر العرض: '+no));
          });
       });
     };
-    if(S.rowId) window.sfSaveDraft(go); else window.sfSaveDraft(function(){ if(S.rowId)go(); });
+    if(S.rowId) window.sfSaveDraft(go); else window.sfSaveDraft(function(){ if(S.rowId)go(); else settle(); });
   };
   window.sfOpen=function(id){
     var rec=(S.list||[]).find(function(x){return x.id===id;});
@@ -767,7 +773,7 @@
   function barHtml(){
     var w=canWrite();
     return (w?'<button class="btn sm pri" '+(S.saving?'disabled':'')+' onclick="sfSaveDraft()">'+(S.saving?fl('Saving…','جارٍ الحفظ…'):fl('Save draft','حفظ المسودة'))+'</button>':'')+
-      (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="sfIssue()">'+fl('Issue proposal','إصدار العرض')+'</button>':'')+
+      (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" '+(S.issuing?'disabled':'')+' onclick="sfIssue()">'+(S.issuing?fl('Issuing…','جارٍ الإصدار…'):fl('Issue proposal','إصدار العرض'))+'</button>':'')+
       '<button class="btn sm ghost" onclick="sfPrint()">'+fl('Print / PDF','طباعة / PDF')+'</button>';
   }
 

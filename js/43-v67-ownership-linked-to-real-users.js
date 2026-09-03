@@ -24,23 +24,33 @@
     return s;
   }
 
+  /* Precedence matters (2026-09-02 alias-collision audit). The old single pass wrote every
+     alias with last-writer-wins, so one person's NICKNAME could overwrite another person's
+     FULL NAME: Salem's nickname is "Abu Faris", which is also a real colleague's full name —
+     ownerCanon("Abu Faris") then resolved to Salem, and every lead owned by the real Abu Faris
+     was mis-attributed to him in the Mine filters and the Your-day card. Now full name and
+     Arabic name are laid down FIRST as authoritative identity keys, and the weaker aliases
+     (nickname, email prefix, first name) only fill keys no one's real name already claimed —
+     so a nickname can never hijack another person's identity. When "Abu Faris" is genuinely
+     ambiguous it resolves to the person whose actual name it is, the defensible default. */
   function buildIndex(rows){
     ROSTER=rows||[]; ALIAS={};
+    var active=ROSTER.filter(function(u){return u.active!==false;});
     var firstCount={};
-    ROSTER.forEach(function(u){
-      var fn=norm(u.full_name).split(' ')[0];
-      if(fn)firstCount[fn]=(firstCount[fn]||0)+1;
-    });
-    ROSTER.forEach(function(u){
-      if(u.active===false)return;
+    active.forEach(function(u){ var fn=norm(u.full_name).split(' ')[0]; if(fn)firstCount[fn]=(firstCount[fn]||0)+1; });
+    // Pass 1 — strong identity keys: a person's own full name and Arabic name.
+    active.forEach(function(u){
       var canon=(u.full_name||'').trim()||String(u.email||'').split('@')[0];
-      [u.full_name,u.name_ar,u.nickname,String(u.email||'').split('@')[0]].forEach(function(a){
-        var k=norm(a); if(k)ALIAS[k]=canon;
-      });
+      [u.full_name,u.name_ar].forEach(function(a){ var k=norm(a); if(k)ALIAS[k]=canon; });
+    });
+    // Pass 2 — weak aliases: fill only keys no strong alias already claimed.
+    active.forEach(function(u){
+      var canon=(u.full_name||'').trim()||String(u.email||'').split('@')[0];
+      [u.nickname,String(u.email||'').split('@')[0]].forEach(function(a){ var k=norm(a); if(k&&!ALIAS[k])ALIAS[k]=canon; });
       var fn=norm(u.full_name).split(' ')[0];
-      if(fn&&fn.length>=3&&firstCount[fn]===1)ALIAS[fn]=canon;  // unique first names count too
+      if(fn&&fn.length>=3&&firstCount[fn]===1&&!ALIAS[fn])ALIAS[fn]=canon;  // unique first names count too
       var far=norm(u.name_ar).split(' ')[0];
-      if(far&&far.length>=3)ALIAS[far]=ALIAS[far]||canon;
+      if(far&&far.length>=3&&!ALIAS[far])ALIAS[far]=canon;
     });
   }
 

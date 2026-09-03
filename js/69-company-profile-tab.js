@@ -230,21 +230,27 @@
   window.cpIssue=function(){
     var c=client(); if(!c){ refusedMsg(); return; }
     if(S.docNumber){ toast(fl('Already issued as '+S.docNumber,'صدر مسبقاً برقم '+S.docNumber)); return; }
+    /* Re-entrancy guard: two rapid Issue clicks must never each pull a number and burn two.
+       S.issuing is set synchronously; a watchdog guarantees it clears (never a stuck button). */
+    if(S.issuing) return;
+    S.issuing=true; repaint();
+    var wd=setTimeout(function(){ S.issuing=false; try{repaint();}catch(_){} },8000);
+    var settle=function(){ clearTimeout(wd); S.issuing=false; };
     var go=function(){
       c.rpc('next_document_number',{p_family:'PRF'}).then(function(r){
-        if(r.error||!r.data){ toast(fl('Numbering was refused — the profile stays a draft','رُفض الترقيم — يبقى الملف مسودة')); return; }
+        if(r.error||!r.data){ settle(); repaint(); toast(fl('Numbering was refused — the profile stays a draft','رُفض الترقيم — يبقى الملف مسودة')); return; }
         var no=r.data;
         c.from('generated_documents')
          .update({doc_number:no,status:'sent',updated_at:new Date().toISOString(),updated_by:(window.__userEmail||null)})
          .eq('id',S.rowId).select().then(function(u){
-            if(u.error||!u.data||u.data.length!==1){ refusedMsg(); return; }
+            if(u.error||!u.data||u.data.length!==1){ settle(); repaint(); refusedMsg(); return; }
             S.docNumber=no; S.status='sent';
-            loadList(true); repaint();
+            settle(); loadList(true); repaint();
             toast(fl('Issued: '+no,'صدر المستند: '+no));
          });
       });
     };
-    if(S.rowId) window.cpSaveDraft(go); else window.cpSaveDraft(function(){ if(S.rowId)go(); });
+    if(S.rowId) window.cpSaveDraft(go); else window.cpSaveDraft(function(){ if(S.rowId)go(); else { settle(); repaint(); } });
   };
   window.cpOpen=function(id){
     var rec=(S.list||[]).find(function(x){return x.id===id;});
@@ -279,8 +285,16 @@
         repaint();
      });
   };
-  window.cpEditSec=function(key){ S.editKey=key; repaint(); };
-  window.cpEditCancel=function(){ S.editKey=null; repaint(); };
+  /* Open-editor draft buffer (2026-09-02 audit fix): the section editor is a bare DOM form
+     read only at save time, so any repaint mid-edit — an audience chip, the AR/EN toggle,
+     toggling another section — rebuilt it from the stale DB row and silently WIPED whatever
+     the user had typed. The buffer mirrors the open editor's fields on input, so a repaint
+     re-renders the typed text; cpEditSave still reads the live DOM (which now reflects the
+     buffer), so save behaviour is unchanged. Reset whenever the open editor changes. */
+  window.cpEditBuf=function(f,v){ if(!S.editBuf)S.editBuf={}; S.editBuf[f]=v; };
+  function cpBufOr(f,dflt){ return (S.editBuf&&S.editBuf[f]!=null)?S.editBuf[f]:(dflt==null?'':dflt); }
+  window.cpEditSec=function(key){ S.editKey=key; S.editBuf=null; repaint(); };
+  window.cpEditCancel=function(){ S.editKey=null; S.editBuf=null; repaint(); };
   /* items are edited as one line per item, fields separated by " | ":
      values:  EN | AR | description EN | description AR
      stats:   value | label EN | label AR
@@ -311,7 +325,7 @@
     if(itEl)patch.items=linesToItems(key,itEl.value);
     c.from('company_profile_sections').update(patch).eq('key',key).select().then(function(r){
       if(r.error||!r.data||r.data.length!==1){ refusedMsg(); return; }
-      S.editKey=null; loadSections(true);
+      S.editKey=null; S.editBuf=null; loadSections(true);
       toast(fl('Section saved','تم حفظ القسم'));
     });
   };
@@ -587,14 +601,14 @@
       ? fl('One value per line: EN | AR | description EN | description AR','قيمة في كل سطر: إنجليزي | عربي | وصف إنجليزي | وصف عربي')
       : fl('One item per line: EN | AR','عنصر في كل سطر: إنجليزي | عربي');
     return '<div style="margin-top:8px">'+
-      '<label>'+fl('Title (EN)','العنوان بالإنجليزية')+'</label><input id="cpE_ten" value="'+esc(s.title_en||'')+'">'+
-      '<label>'+fl('Title (AR)','العنوان بالعربية')+'</label><input dir="rtl" id="cpE_tar" value="'+esc(s.title_ar||'')+'">'+
+      '<label>'+fl('Title (EN)','العنوان بالإنجليزية')+'</label><input id="cpE_ten" oninput="cpEditBuf(\'ten\',this.value)" value="'+esc(cpBufOr('ten',s.title_en))+'">'+
+      '<label>'+fl('Title (AR)','العنوان بالعربية')+'</label><input dir="rtl" id="cpE_tar" oninput="cpEditBuf(\'tar\',this.value)" value="'+esc(cpBufOr('tar',s.title_ar))+'">'+
       '<label>'+fl('Body (EN) — paragraphs, and lines starting "- " become bullets','النص بالإنجليزية — فقرات، والأسطر التي تبدأ بـ "- " تصبح نقاطاً')+'</label>'+
-      '<textarea id="cpE_ben">'+esc(s.body_en||'')+'</textarea>'+
+      '<textarea id="cpE_ben" oninput="cpEditBuf(\'ben\',this.value)">'+esc(cpBufOr('ben',s.body_en))+'</textarea>'+
       '<label>'+fl('Body (AR)','النص بالعربية')+'</label>'+
-      '<textarea id="cpE_bar" dir="rtl">'+esc(s.body_ar||'')+'</textarea>'+
+      '<textarea id="cpE_bar" dir="rtl" oninput="cpEditBuf(\'bar\',this.value)">'+esc(cpBufOr('bar',s.body_ar))+'</textarea>'+
       (hasItems?'<label>'+fl('Items','العناصر')+'</label>'+
-        '<textarea id="cpE_items" style="min-height:110px">'+esc(itemsToLines(s.key,s.items))+'</textarea>'+
+        '<textarea id="cpE_items" style="min-height:110px" oninput="cpEditBuf(\'items\',this.value)">'+esc(cpBufOr('items',itemsToLines(s.key,s.items)))+'</textarea>'+
         '<div style="font-size:11.5px;color:var(--muted,#777);margin-top:4px">'+hint+'</div>':'')+
       '<div style="margin-top:8px"><button class="btn sm pri" onclick="cpEditSave(\''+esc(s.key)+'\')">'+fl('Save section','حفظ القسم')+'</button> '+
       '<button class="btn sm ghost" onclick="cpEditCancel()">'+fl('Cancel','إلغاء')+'</button></div></div>';
@@ -655,7 +669,7 @@
       '</fieldset>'+
       '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'+
         (w?'<button class="btn sm pri" '+(S.saving?'disabled':'')+' onclick="cpSaveDraft()">'+(S.saving?fl('Saving…','جارٍ الحفظ…'):fl('Save draft','حفظ المسودة'))+'</button>':'')+
-        (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" onclick="cpIssue()">'+fl('Issue profile','إصدار الملف')+'</button>':'')+
+        (w&&!S.docNumber?'<button class="btn sm ghost" data-v21relabeled="true" '+(S.issuing?'disabled':'')+' onclick="cpIssue()">'+(S.issuing?fl('Issuing…','جارٍ الإصدار…'):fl('Issue profile','إصدار الملف'))+'</button>':'')+
         '<button class="btn sm ghost" onclick="cpPrint()">'+fl('Print / PDF','طباعة / PDF')+'</button>'+
       '</div>'+
     '</div>';

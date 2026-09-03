@@ -57,8 +57,20 @@
       var r=document.getElementById('v48r').value;
       var pwEl=document.getElementById('v48pw');
       var pw=(pwEl&&pwEl.value||'').trim();
-      if(!e||e.indexOf('@')<0){ alert(A?'أدخل بريدًا صحيحًا.':'Enter a valid email address.'); return; }
-      if(pw&&pw.length<8){ alert(A?'كلمة المرور تحتاج ٨ أحرف على الأقل.':'A password needs at least 8 characters.'); return; }
+      /* "contains an @" was the whole check until 2026-09-02. `a@`, `@directksa.com`,
+         `two words@directksa.com` and `qa@directksa` all passed it, went to the server, and
+         came back as a raw Supabase auth error — an admin creating an account for a colleague
+         saw a technical message instead of "that address is not right". One local part, one
+         domain, no spaces, a real dot-suffix on the domain. Deliberately not an RFC parser:
+         the server checks it too, and this only has to stop the shapes that are obviously
+         wrong before anyone waits on a round trip. */
+      if(!/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(e)){ alert(A?'أدخل بريدًا صحيحًا.':'Enter a valid email address.'); return; }
+      /* Same minimum as the sign-in / recovery / first-login screens — read the ONE shared
+         constant (js/02 window.MIN_PW), never a second hardcoded number. This was <8, so a
+         9-char password passed here and was then refused by Supabase's own 10-char policy
+         (2026-09-02 CRM audit; DECISIONS.md — the shared-constant rule). */
+      var MINPW=(window.MIN_PW||10);
+      if(pw&&pw.length<MINPW){ alert(A?('كلمة المرور تحتاج '+MINPW+' أحرف على الأقل.'):('A password needs at least '+MINPW+' characters.')); return; }
       var btn=document.getElementById('v48create'); btn.disabled=true; btn.textContent=A?'جارٍ…':'Creating…';
       call({action:'create',email:e,full_name:n,role:r,password:pw||undefined}).then(function(res){
         btn.disabled=false; btn.textContent=A?'إنشاء':'Create';
