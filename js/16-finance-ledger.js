@@ -289,6 +289,34 @@ window.finSetTargets=function(y){try{
      success even when Row-Level Security silently refused it — the screen would then show the
      new target while the database still held the old one. Every write in this file now asks
      for the rows back and refuses to update the screen unless the database confirmed them. */
+  /* 2026-09-03 (watch cycle 19) — measured in watch cycle 15 and parked: two people setting the
+     same year's target is last-write-wins, and the first person was never told. One row, no
+     corruption, so nothing was broken — but a number someone typed can be replaced by a number
+     someone else typed and neither of them ever knows. Read the stored row first: if it has moved
+     since this tab loaded it, say so and let the person decide, rather than overwriting in
+     silence. This is a WARNING, not a lock — the owner has never asked for one, and a lock on a
+     single yearly figure would cost more than it saves. */
+  c.from('finance_targets').select('year,expected_sar,confirmed_sar,updated_by').eq('year',+y).then(function(pre){
+    var stored=(pre&&!pre.error&&pre.data&&pre.data[0])||null;
+    var mine=(FIN.targets||[]).find(function(x){return +x.year===+y;})||null;
+    var moved=!!(stored&&mine&&(Number(stored.expected_sar)!==Number(mine.expected_sar)||Number(stored.confirmed_sar)!==Number(mine.confirmed_sar)));
+    if(!moved) return _finTargetWrite(c,y,_e,_c);
+    var who=stored.updated_by?(' ('+stored.updated_by+')'):'';
+    var msg=isArF()
+      ? ('\u062a\u063a\u064a\u0651\u0631 \u0647\u062f\u0641 '+y+' \u0628\u064a\u0646\u0645\u0627 \u0643\u0627\u0646\u062a \u0634\u0627\u0634\u062a\u0643 \u0645\u0641\u062a\u0648\u062d\u0629'+who+': \u0627\u0644\u0645\u062e\u0632\u0651\u0646 \u0627\u0644\u0622\u0646 '+money(stored.expected_sar)+' / '+money(stored.confirmed_sar)+'. \u0647\u0644 \u062a\u0633\u062a\u0628\u062f\u0644\u0647 \u0628\u0645\u0627 \u0643\u062a\u0628\u062a\u061f')
+      : ('The '+y+' target changed while your screen was open'+who+': it now holds '+money(stored.expected_sar)+' expected / '+money(stored.confirmed_sar)+' confirmed. Replace it with what you just typed?');
+    finConfirm(msg,function(){ _finTargetWrite(c,y,_e,_c); });
+  },function(){
+    /* 2026-09-03 (watch cycle 19): if the pre-read itself fails, the save must still go ahead —
+       found by the probe, whose refusal test went silent because a rejected read left this chain
+       with nowhere to go and finSetTargets quietly did nothing at all. The write has its own
+       row-count check (M13), so proceeding is safe; refusing to write because a courtesy read
+       failed would be a worse answer than the problem it guards. */
+    _finTargetWrite(c,y,_e,_c);
+  });
+}catch(e){console.warn('finSetTargets',e);}};
+function _finTargetWrite(c,y,_e,_c){
+  var isArF2=isArF;
   c.from('finance_targets').upsert({year:+y,expected_sar:_e,confirmed_sar:_c,updated_at:new Date().toISOString(),updated_by:(window.meName?meName():'')},{onConflict:'year'}).select('year').then(function(r){
     if(r.error){alert((isArF()?'تعذر الحفظ: ':'Could not save: ')+r.error.message);return;}
     if(!r.data||!r.data.length){alert(isArF()?'لم يُحفظ — رفضت قاعدة البيانات الكتابة (صلاحيات). لم يتغير شيء.':'Not saved — the database refused the write (permissions). Nothing changed.');return;}
@@ -297,7 +325,8 @@ window.finSetTargets=function(y){try{
     if(i>=0)FIN.targets[i]=row;else (FIN.targets=FIN.targets||[]).push(row);
     render();
   });
-}catch(e){console.warn('finSetTargets',e);}};
+}
+try{ window._finTargetWrite=_finTargetWrite; }catch(_){}
 /* Ledger's own row-level export. Named finLedgerCSV (not finCSV) on purpose — this file also
    defines the Report Builder's export further down, and until 2026-08-20 both were called
    window.finCSV, so the second definition silently replaced this one and the Ledger's own
@@ -800,6 +829,33 @@ function txnLoad(cb){
   });
 }
 try{window.TXN=TXN;window.txnLoad=txnLoad;}catch(_){}
+/* 2026-09-03 (watch cycle 19) — the second half of what watch cycle 2 fixed for invoices, parked
+   at the time and now due. Every Ledger total reads `+r.amount_sar||0`. A row whose amount
+   arrives as a formatted string ("1,250.00") makes that NaN, and `||0` turns it into a clean
+   ZERO — so the same string reads 1,250 on Performance (where live() sanitises it) and 0 on the
+   Ledger, two tabs of one page disagreeing, with nothing on screen saying which is right.
+   Supabase returns numerics as numbers, so the live path is safe today; a row pushed into
+   TXN.rows by another layer is not. Same rule as everywhere else: read every amount through one
+   place, repair what is repairable, and COUNT what is not so the tab can say so (M8). */
+var TXN_MONEY_FIELDS=['amount_sar','cost_confirmed_sar','cost_estimate_sar','amount_received_sar','amount_remaining_sar'];
+function txnSanitizeMoney(r){
+  var bad=null;
+  for(var i=0;i<TXN_MONEY_FIELDS.length;i++){
+    var k=TXN_MONEY_FIELDS[i], v=r[k];
+    if(v==null||v===''){ r[k]=0; continue; }
+    if(typeof v==='number'){ if(!isFinite(v)){ r[k]=0; (bad=bad||[]).push(k); } continue; }
+    var n=parseFloat(String(v).replace(/[,\s]/g,''));
+    if(isFinite(n)&&/^-?[\d.,\s]+$/.test(String(v).trim())) r[k]=n; else { r[k]=0; (bad=bad||[]).push(k); }
+  }
+  if(bad) r._badMoney=bad;   // sticky, like the invoice one: the first pass rewrites the value
+  return r;
+}
+function txnLive(){
+  var rows=(TXN.rows||[]);
+  for(var i=0;i<rows.length;i++)txnSanitizeMoney(rows[i]);
+  return rows;
+}
+try{ window.txnSanitizeMoney=txnSanitizeMoney; window.txnLive=txnLive; }catch(_){}
 function txnStage(r){
   // Round 8's two-field derivation, plus Round 11's Overdue mirror.
   if(r.invoice_no)return 'invoiced';
@@ -840,7 +896,7 @@ function rLedger(){
       +'<span>'+(isArF()?('طلبت «'+escF(FIN.f.clientName||'')+'» — لا توجد شركة مرتبطة بهذا الاسم بعد، لذا يُعرض السجل لكل الشركات.'):('You asked for <b>'+escF(FIN.f.clientName||'')+'</b> — no linked company for that name yet, so the Ledger below shows <b>all companies</b>. Link it on the Clients page to filter here.'))+'</span>'
       +'<button class="btn ghost sm" style="margin-inline-start:auto" onclick="finClientClear()">✕</button></div>';
   }
-  var rows=(TXN.rows||[]).filter(function(r){
+  var rows=txnLive().filter(function(r){
     var f=TXN.f, prof=TXN.profiles[r.client_profile_id];
     if(f.profileType!=='all'&&(!prof||prof.profile_type!==f.profileType))return false;
     if(f.business!=='all'&&r.business_id!==f.business)return false;
@@ -849,6 +905,15 @@ function rLedger(){
     if(f.q){var q=f.q.toLowerCase();var nm=bizName(r.business_id)||'';if(((nm)+' '+(r.transaction_ref||'')+' '+(r.invoice_no||'')+' '+(r.zatca_dpin||'')+' '+(r.product||'')).toLowerCase().indexOf(q)<0)return false;}
     return true;
   });
+  /* 2026-09-03 (watch cycle 19) — parked in watch cycle 4, now due. Two rows carrying the SAME
+     transaction reference were listed side by side with nothing to say so, and their amounts were
+     both counted. Direct Payments' export has produced repeated refs before. This does not guess
+     which one is right — deduplicating would be inventing an answer — it MARKS them, so the
+     person can see there are two and decide. Counted across every row the ledger holds, not just
+     the filtered view, or a filter could hide the twin and make the marker lie. */
+  var _refSeen={};
+  (TXN.rows||[]).forEach(function(r){ var k=r.transaction_ref; if(!k)return; _refSeen[k]=(_refSeen[k]||0)+1; });
+  var _dupRefs=Object.keys(_refSeen).filter(function(k){return _refSeen[k]>1;});
   // Confirmed-only KPI strip (Round 7/8) — pending never blends in.
   var cRev=0,cCost=0,cProf=0,pendCount=0,pendEst=0,overdueCount=0;
   rows.forEach(function(r){
@@ -870,6 +935,19 @@ function rLedger(){
     +'<div class="card" style="padding:12px 14px;border-top:3px solid #B54708"><div style="font-size:11px;color:var(--muted)">'+_lh('Pending (est. only)','بانتظار المصاريف (تقديري)')+'</div><div style="font-size:18px;font-weight:800;color:#8b5b1f">'+pendCount+' <span style="font-size:10px;font-weight:400">· '+moneyS(pendEst)+' '+_lh('est.','تقديري')+'</span></div></div>'
     +'<div class="card" style="padding:12px 14px;border-top:3px solid '+(overdueCount?'#D92D20':'#E5E7EB')+'"><div style="font-size:11px;color:var(--muted)">'+_lh('Overdue','متأخر')+'</div><div style="font-size:18px;font-weight:800;color:'+(overdueCount?'#D92D20':'#667085')+'">'+overdueCount+'</div></div>'
     +'</div><div class="ch-sub" style="margin:-4px 0 10px">'+_lh('Confirmed = it has an invoice number, or its expense is marked Ready. A pending row only shows an early estimate — that number is not included above.','المؤكد = له رقم فاتورة، أو مصروفه بحالة جاهز. الصف المعلّق يعرض تقديرًا مبكرًا فقط — هذا الرقم غير مُدرج أعلاه.')+'</div>';
+  /* 2026-09-03 (watch cycle 19): say it, the way the Overview has said it since watch cycle 2 —
+     a row whose amount cannot be read is counted as zero, and the person is told how many. */
+  if(_dupRefs.length){
+    h+='<div style="font-size:12px;color:#B54708;margin:-6px 0 12px">\u26a0 '+(isArF()
+      ? (_dupRefs.length+' \u0645\u0631\u062c\u0639 \u0645\u0639\u0627\u0645\u0644\u0629 \u0645\u0643\u0631\u0631 \u2014 \u0623\u0643\u062b\u0631 \u0645\u0646 \u0635\u0641 \u064a\u062d\u0645\u0644 \u0646\u0641\u0633 \u0627\u0644\u0645\u0631\u062c\u0639\u060c \u0648\u0643\u0644\u0651 \u0645\u0646\u0647\u0627 \u0645\u062d\u0633\u0648\u0628. \u0631\u0627\u062c\u0639\u0647\u0627 \u0641\u064a Direct Payments.')
+      : (_dupRefs.length+' transaction reference'+(_dupRefs.length>1?'s appear':' appears')+' on more than one row, and every copy is counted. Check them in Direct Payments \u2014 nothing was merged or dropped here.'))+'</div>';
+  }
+  var _txnBad=rows.filter(function(r){return r._badMoney;}).length;
+  if(_txnBad>0){
+    h+='<div style="font-size:12px;color:#B54708;margin:-6px 0 12px">\u26a0 '+(isArF()
+      ? (_txnBad+' \u0635\u0641/\u0635\u0641\u0648\u0641 \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u0633\u062c\u0644 \u062a\u062d\u0645\u0644 \u0645\u0628\u0627\u0644\u063a \u063a\u064a\u0631 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0642\u0631\u0627\u0621\u0629 (\u0644\u064a\u0633\u062a \u0623\u0631\u0642\u0627\u0645\u064b\u0627) \u2014 \u062d\u064f\u0633\u0628\u062a \u0643\u0635\u0641\u0631 \u0647\u0646\u0627.')
+      : (_txnBad+' row'+(_txnBad>1?'s':'')+' in this ledger carr'+(_txnBad>1?'y':'ies')+' an unreadable amount (not a number) \u2014 counted as 0 here.'))+'</div>';
+  }
 
   h+='<div class="card" style="padding:12px 16px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px">';
   h+='<input placeholder="'+_lh('Search company / ref / invoice / DPIN…','بحث عن شركة / مرجع / فاتورة…')+'" value="'+escF(TXN.f.q)+'" style="'+SS+';min-width:200px" oninput="finTxnF(\'q\',this.value)">';
@@ -911,12 +989,15 @@ function rLedger(){
         else if(_rec>0&&_rem>0)payCell=badge(_lh('Partly paid','مدفوع جزئياً'),'#FEF0C7','#B54708');
         else if(_rem>0)payCell=badge(_lh('Unpaid','غير مدفوع'),'#FEE4E2','#D92D20');
         else payCell='<span style="color:var(--muted)">—</span>';
+        var _dupMark=(r.transaction_ref&&_refSeen[r.transaction_ref]>1)
+          ?(' '+badge(_lh(_refSeen[r.transaction_ref]+'\u00d7 same ref',_refSeen[r.transaction_ref]+'\u00d7 \u0646\u0641\u0633 \u0627\u0644\u0645\u0631\u062c\u0639'),'#FEF0C7','#B54708'))
+          :'';
         var refCell=r.invoice_no
           ?('<a href="'+escF(pdInvoiceLink({invoice_no:r.invoice_no,zatca_dpin:r.zatca_dpin,direct_client_id:p?p.direct_client_id:''}))+'" target="_blank" rel="noopener" style="color:#175CD3;text-decoration:none">'+escF(r.invoice_no)+' ↗</a>')
           :escF(r.transaction_ref);
         h+='<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:7px 8px;white-space:nowrap">'+escF((r.created_at_source||'').slice(0,10))+'</td>'
           +'<td style="padding:7px 8px">'+badge(_lh(tl[0],tl[1]),'#EEF0F5','#4B5563')+(p&&p.direct_client_id?(' <span style="color:var(--muted);font-size:10.5px">#'+escF(p.direct_client_id)+'</span>'):'')+'</td>'
-          +'<td style="padding:7px 8px">'+refCell+'</td>'
+          +'<td style="padding:7px 8px">'+refCell+_dupMark+'</td>'
           +'<td style="padding:7px 8px">'+escF(svcLabel(r.service_type))+'</td>'
           +'<td style="padding:7px 8px;text-align:right;font-weight:700">'+money0(r.amount_sar)+'</td>'
           +'<td style="padding:7px 8px;text-align:right">'+costCell+'</td>'

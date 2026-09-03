@@ -85,14 +85,23 @@ async function main() {
     FIN.tab = 'overview'; renderFinance(document.getElementById('view'));
   });
   await p.waitForTimeout(900);
+  /* 2026-09-03 (watch cycle 19): this scan used to look only at LEAF elements, and the shapes it
+     hunts do not live in leaves. A tile renders "174.6K <span>SAR</span>" — the number and the
+     currency word are siblings inside a parent, so the leaf holding the number has no currency in
+     it and the leaf holding "SAR" has no number, and the scan found nothing at all. The probe's
+     own "this check proved nothing" guard caught that rather than passing silently, which is
+     exactly what it is for. It now looks at the SMALLEST element that contains both parts —
+     which is the element whose bidi run actually decides the order. */
   const risky = await p.evaluate(() => {
     const out = { total: 0, isolated: 0, samples: [] };
+    const AMT_CCY = /[\d,](?:\.\d+)?\s*[KM]?\s*(?:SAR|ر\.س)|(?:SAR|ر\.س)\s*[\d,]/;
+    const SIGNED = /(^|\s)[-\u2212]\s?[\d,]/;
     document.querySelectorAll('#view *').forEach(el => {
-      if (el.children.length) return;
-      const txt = (el.textContent || '').trim();
-      const signed = /^-\s?[\d,]/.test(txt);
-      const withCcy = /[\d,](\.\d+)?\s*(SAR|ر\.س)/.test(txt) || /(SAR|ر\.س)\s*[\d,]/.test(txt);
-      if (!signed && !withCcy) return;
+      const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!txt || txt.length > 60) return;
+      if (!AMT_CCY.test(txt) && !SIGNED.test(txt)) return;
+      // the smallest element carrying the whole shape: no child carries it too
+      if ([...el.children].some(ch => { const t = (ch.textContent || '').replace(/\s+/g, ' ').trim(); return AMT_CCY.test(t) || SIGNED.test(t); })) return;
       out.total++;
       const st = getComputedStyle(el);
       const iso = st.unicodeBidi === 'isolate' || st.unicodeBidi === 'isolate-override' || st.direction === 'ltr' || !!el.closest('[dir="ltr"],[style*="unicode-bidi"]');
@@ -100,6 +109,10 @@ async function main() {
     });
     return out;
   });
+  if (risky.total === 0 && process.env.DEBUG_AR) {
+    const dbg = await p.evaluate(() => ({ rows: (FIN.rows || []).length, hasNeg: !!(FIN.rows || []).find(r => r.invoice_no === 'AR-NEG'), tab: FIN.tab, sample: document.querySelector('#view').innerText.slice(0, 600) }));
+    console.log('DEBUG_AR', JSON.stringify(dbg));
+  }
   if (risky.total === 0) fail('no signed or currency-bearing amount found on the Arabic screen — the check proved nothing');
   else if (risky.isolated === risky.total) ok(`all ${risky.total} reorderable amounts (signed, or printed next to a currency word) are direction-isolated on the Arabic screen`);
   else fail(`${risky.total - risky.isolated} of ${risky.total} reorderable amounts are not direction-isolated, e.g. ${JSON.stringify(risky.samples)}`);

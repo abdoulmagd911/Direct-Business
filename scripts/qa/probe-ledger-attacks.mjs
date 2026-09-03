@@ -123,17 +123,35 @@ async function main() {
   if (v.indexOf('no-such-business') >= 0 && shown === N) ok('unknown business_id falls back to the raw id in the company header (no crash, no blank group)'); else fail('orphan row lost or company header blank');
   if (/TXN-QA-ORPHAN[\s\S]{0,400}?—/.test(v)) ok('missing client_profile_id renders the profile cell as "—"'); else fail('orphan profile cell not "—"');
 
-  // confirmed KPIs recomputed with the same parse rule the page uses (Number(x)||0 → "1,250" is 0, not NaN)
+  /* 2026-09-03 (watch cycle 19) — this recount used to mirror `Number(x)||0`, which turns
+     "1,250" into a clean ZERO, and the check below asserted that zero was correct. It was not:
+     the Performance tab has sanitised the same string into 1250 since watch cycle 2, so one page
+     was reading one amount two different ways and this probe was defending the disagreement. The
+     Ledger now reads every amount through its own chokepoint, and the recount follows it. */
   const exp = await p.evaluate(() => {
     const st = (r) => r.invoice_no ? 'invoiced' : r.overdue === true ? 'overdue' : r.expense_status === 'ready' ? 'ready' : 'pending';
-    const n = (x) => Number(x) || 0; let rev = 0, cost = 0, prof = 0, pend = 0, est = 0, od = 0;
+    const n = (x) => { if (x == null || x === '') return 0; if (typeof x === 'number') return isFinite(x) ? x : 0; const v = parseFloat(String(x).replace(/[,\s]/g, '')); return (isFinite(v) && /^-?[\d.,\s]+$/.test(String(x).trim())) ? v : 0; };
+    let rev = 0, cost = 0, prof = 0, pend = 0, est = 0, od = 0;
     (TXN.rows || []).forEach(r => { if (st(r) === 'ready' || st(r) === 'invoiced') { rev += n(r.amount_sar); cost += n(r.cost_confirmed_sar); prof += n(r.amount_sar) - n(r.cost_confirmed_sar); } else { pend++; est += n(r.cost_estimate_sar); } if (r.overdue === true) od++; });
     return { rev, cost, prof, pend, est, od };
   });
   for (const [lbl, want] of [['Confirmed revenue', exp.rev], ['Confirmed cost', exp.cost], ['Confirmed profit', exp.prof]]) {
     const got = await tileNum(lbl); if (got === want) ok(`KPI "${lbl}" = ${want} under hostile rows (string amounts count as 0, never NaN; pending never blends in)`); else fail(`KPI "${lbl}" = ${got}, expected ${want}`);
   }
-  if (exp.rev === 42000 + 9500 + 3000 + 0 + 20) ok('independent recount confirms: "1,250" string amount contributed 0 to confirmed revenue (the row is visible, flagged by its 0)'); else fail('recount drifted: ' + JSON.stringify(exp));
+  /* ---------- duplicate transaction reference: marked, never merged (watch cycle 19) ---------- */
+  const dup = await p.evaluate(() => {
+    const html = document.querySelector('#view').innerHTML;
+    const refs = {}; (TXN.rows || []).forEach(r => { if (r.transaction_ref) refs[r.transaction_ref] = (refs[r.transaction_ref] || 0) + 1; });
+    const dupes = Object.keys(refs).filter(k => refs[k] > 1);
+    return { dupes, marks: (html.match(/\u00d7 same ref/g) || []).length, banner: /transaction reference[\s\S]{0,60}(appear|appears) on more than one row/.test(html) };
+  });
+  if (dup.dupes.length) {
+    if (dup.marks >= 2) ok('both rows carrying the same transaction reference are marked on the row itself (' + dup.marks + ' marks for ' + dup.dupes.length + ' repeated ref) — shown, never silently merged');
+    else fail('a repeated transaction ref exists but only ' + dup.marks + ' row(s) are marked');
+    if (dup.banner) ok('…and the ledger says so once above the table, so it is visible without scanning every row'); else fail('no duplicate-reference notice above the table');
+  } else fail('the fixture no longer contains a repeated transaction_ref — this check would prove nothing');
+
+  if (exp.rev === 42000 + 9500 + 3000 + 1250 + 20) ok('independent recount confirms: a "1,250" string amount now contributes 1,250 to confirmed revenue — the same number the Performance tab reads from the same string, instead of a silent 0 on one tab and 1,250 on the other'); else fail('recount drifted: ' + JSON.stringify(exp));
 
   /* ---------- 3. overdue mirror ---------- */
   const odTile = await tileNum('Overdue');

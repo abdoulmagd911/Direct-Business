@@ -1,5 +1,49 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-03 (overnight) · Watch cycle 19 — the three parked items, cleared
+
+Three things earlier cycles noticed and deliberately did not change. All three are done, and each
+was sabotage-verified.
+
+**1. The same amount read two different ways on one page** (parked in watch cycle 4). Every Ledger
+total read `+r.amount_sar||0`. A row whose amount arrives as a formatted string — "1,250.00" —
+makes that NaN, and `||0` turns it into a clean **zero**. The Performance tab has sanitised the
+same string into 1250 since watch cycle 2, so one page was reading one amount two different ways,
+and neither tab said which was right. The Ledger now reads every amount through its own chokepoint
+(`txnLive()`), repairs what is repairable, and — like the Overview — **says how many rows carried
+an amount it could not read** instead of quietly counting them as nothing. **The probe was
+defending the disagreement:** `probe-ledger-attacks` recounted with the same `Number(x)||0` rule
+and asserted that the silent zero was correct. Corrected, with the reason written in.
+
+**2. Two rows with the same transaction reference, and nothing said so** (parked in watch cycle 4).
+Direct Payments' export has produced repeated references before, and both copies were being
+counted. This does **not** deduplicate — picking a winner would be inventing an answer — it marks
+each row ("2× same ref") and says once above the table that N references appear on more than one
+row and every copy is counted, so the person can check them at the source.
+
+**3. Two people setting the same year's target** (measured in watch cycle 15). It was
+last-write-wins with no notice: a number one person typed could be replaced by another's and
+neither would ever know. `finSetTargets` now reads the stored row first and, if it has moved since
+this screen loaded it, shows the stored numbers and who set them and asks before overwriting. A
+warning, not a lock — a lock on one yearly figure would cost more than it saves.
+
+**Found while fixing 3, in this cycle's own new code:** if that courtesy read *failed*, the promise
+chain had nowhere to go and `finSetTargets` silently did nothing at all — the exact silent-failure
+shape this watch exists to remove, introduced and caught inside one cycle. A failed pre-read now
+proceeds to the write, which has its own row-count check.
+
+**Also fixed, in a probe rather than the app:** `probe-finance-arabic-attacks`' direction-isolation
+scan looked only at leaf elements, and the shape it hunts does not live in a leaf — a tile renders
+`174.6K <span>SAR</span>`, so the leaf with the number has no currency word and the leaf with the
+currency word has no number. It found nothing at all, and **its own "this check proved nothing"
+guard caught that instead of passing silently** — the guard added in cycle 11 doing its job. It now
+examines the smallest element containing both parts, which is the one whose bidi run actually
+decides the order: five such amounts, all isolated. No app defect either way.
+
+**Sabotage-verified three times, file-level** (raw amount reads back → 3 red; no duplicate index →
+2 red; overwrite a moved target silently → 1 red), each restored byte-identical (md5). Twenty-two
+probes and the structure check green.
+
 ## 2026-09-03 (overnight) · Watch cycle 18 — five tender invoices were being reported as ordinary B2B
 
 **Attack area: which field decides a sector.** Raised in cycles 2, 3 and 7 and left for a ruling

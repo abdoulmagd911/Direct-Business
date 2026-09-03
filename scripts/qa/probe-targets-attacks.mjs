@@ -46,13 +46,22 @@ async function main() {
   await p.evaluate(() => { current = 'finance'; render(); }); await p.waitForTimeout(1200);
   for (let i = 0; i < 40 && !(await p.evaluate(() => window.FIN && FIN.rows && FIN.rows.length)); i++) await p.waitForTimeout(250);
   // feed the two prompts, capture any alert, run the editor
+  /* 2026-09-03 (watch cycle 19): finSetTargets now READS the stored row before writing, so it can
+     notice a target someone else changed while this screen was open. That adds a round trip (so
+     the wait is longer) and, when the stored value has moved, a confirmation question — captured
+     here as `asked` and answered yes, which is what a person would do. Without stubbing it the
+     browser auto-dismisses the dialog, the write never happens, and every check below goes quietly
+     green on a page that did nothing. */
   const setT = async (expected, confirmed) => p.evaluate(async ({ expected, confirmed }) => {
-    const answers = [expected, confirmed]; let i = 0; let alerted = null;
-    const op = window.prompt, oa = window.alert;
+    const answers = [expected, confirmed]; let i = 0; let alerted = null, asked = null;
+    const op = window.prompt, oa = window.alert, oc = window.pfConfirm, ow = window.confirm;
     window.prompt = () => answers[i++];
     window.alert = (m) => { alerted = String(m); };
-    try { finSetTargets(2026); await new Promise(r => setTimeout(r, 900)); } finally { window.prompt = op; window.alert = oa; }
-    return { alerted, inMemory: (FIN.targets || []).find(t => +t.year === 2026) || null };
+    window.pfConfirm = (m, onYes) => { asked = String(m); onYes(); };
+    window.confirm = (m) => { asked = String(m); return true; };
+    try { finSetTargets(2026); await new Promise(r => setTimeout(r, 1600)); }
+    finally { window.prompt = op; window.alert = oa; window.pfConfirm = oc; window.confirm = ow; }
+    return { alerted, asked, inMemory: (FIN.targets || []).find(t => +t.year === 2026) || null };
   }, { expected: expected, confirmed: confirmed });
   const stored = async () => (await targets()).find((t) => +t.year === 2026) || null;
 
@@ -79,11 +88,38 @@ async function main() {
   if (JSON.stringify(beforeCancel) === JSON.stringify(afterCancel)) ok('cancelling the first prompt writes nothing'); else fail('cancel changed the stored target');
 
   /* ---------- 3. a refused write says so ---------- */
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/finance_targets**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }), { times: 1 });
+  /* 2026-09-03 (watch cycle 19): stub the WRITE only. finSetTargets now READS the stored row
+     first, to notice a target someone else changed while this screen was open, so a stub that
+     matched any request to this table was swallowed by that read and the refusal path was never
+     reached — the probe would have gone quietly green on a broken refusal message. */
+  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/finance_targets**', async (route) => {
+    // the GET is the courtesy pre-read; relay it to the mock exactly as the outer handler does,
+    // so only the WRITE is refused
+    const rq = route.request(); const u = new URL(rq.url());
+    if (rq.method() === 'GET') {
+      const resp = await fetch(BASE + u.pathname + u.search, { headers: rq.headers() });
+      return route.fulfill({ status: resp.status, contentType: 'application/json', body: await resp.text() });
+    }
+    return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+  });
   const refused = await setT('7777777', '1');
   const afterRefusal = await stored();
   if (refused.alerted && /not saved|refused|لم يُحفظ/i.test(refused.alerted)) ok('a write the database refuses says "Not saved — the database refused the write"'); else fail('no refusal message: ' + JSON.stringify(refused.alerted));
   if (!afterRefusal || +afterRefusal.expected_sar !== 7777777) ok('…and the screen keeps the old number rather than showing one the database never took'); else fail('the refused number was kept on screen');
+
+  /* ---------- 3b. a target someone else moved is not overwritten in silence ---------- */
+  await p.unroute('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/finance_targets**');
+  await setT('1000000', '400000');
+  // another session changes the stored row while this screen still shows the old one
+  await fetch(BASE + '/rest/v1/finance_targets?year=eq.2026', {
+    method: 'PATCH', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ expected_sar: 5000000, confirmed_sar: 2500000, updated_by: 'someone else' })
+  });
+  const raced = await setT('1200000', '600000');
+  if (raced.asked && /changed while your screen was open|5,000,000|تغيّر/i.test(raced.asked)) ok('a target another person changed while this screen was open is not overwritten in silence — the person is shown the stored numbers and asked first');
+  else fail('no question was asked before overwriting a target that had moved: ' + JSON.stringify(raced.asked));
+  const afterRace = await stored();
+  if (afterRace && +afterRace.expected_sar === 1200000) ok('…and saying yes does write the new number, so the warning does not block real work'); else fail('after confirming, the stored target is ' + JSON.stringify(afterRace && afterRace.expected_sar));
 
   /* ---------- 4. the card's arithmetic ---------- */
   await p.unroute('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/finance_targets**');
