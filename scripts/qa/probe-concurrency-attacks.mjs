@@ -167,6 +167,45 @@ async function main() {
   if (/already restored|not deleted|someone else|another tab|no longer/i.test(msgRes)) ok('…and B is told the truth: ' + JSON.stringify(msgRes.slice(0, 120)));
   else fail('B was told: ' + JSON.stringify(msgRes.slice(0, 160)) + ' - but the invoice had already been restored by someone else');
 
+  /* ---------- 4b. the third reason zero rows can mean: the row is not there at all ----------
+     Added 2026-09-03 (watch cycle 20): a mutation audit made this branch say "your account was
+     not allowed to" and NO probe noticed — only the "already done" branch was ever exercised.
+     A message with three branches needs three tests. */
+  A.alerts.length = 0;
+  const beforeGone = await snapshot();
+  await A.p.evaluate(() => window.finDelInv('CC-NO-SUCH-INVOICE'));
+  await new Promise(r => setTimeout(r, 2500));
+  const afterGone = await snapshot();
+  const msgGone = A.alerts.join(' | ');
+  if (afterGone === beforeGone) ok('deleting an invoice number that is not in the table writes nothing'); else fail('the missing-invoice delete changed the table');
+  if (/no longer in the table|nothing changed/i.test(msgGone) && !/not allowed/i.test(msgGone)) ok('…and the person is told the invoice is not there, not that they lack permission: ' + JSON.stringify(msgGone.slice(0, 100)));
+  else fail('a delete of a missing invoice said: ' + JSON.stringify(msgGone.slice(0, 160)));
+
+  /* ---------- 4c. the harness itself still refuses what the real table refuses ----------
+     The mock mirrors the live NOT NULLs, CHECK constraints and UNIQUE (invoice_no, line_no).
+     If that enforcement ever regresses, every write-path probe silently starts testing nothing —
+     and a mutation audit showed no probe would notice. This is the guard on the guard. */
+  const rejects = async (row) => {
+    const r = await fetch(BASE + '/rest/v1/finance_invoices', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify([row]) });
+    return r.status >= 400;
+  };
+  const goodRow = JSON.parse(JSON.stringify(SEED[0]));
+  delete goodRow.year;   // GENERATED ALWAYS on the live table: the mock refuses ANY row carrying it,
+                         // which would make every probe below pass for the wrong reason
+  delete goodRow.id;
+  // POSITIVE CONTROL FIRST. Without it "everything is refused" passes this check trivially — which
+  // is exactly what happened when it was first written (watch cycle 20), and a mutation audit
+  // caught it: the harness had stopped enforcing anything and this check still said yes.
+  const accepted = !(await rejects(Object.assign({}, goodRow, { invoice_no: 'HZ-OK' })));
+  if (accepted) ok('a perfectly ordinary invoice is still accepted by the harness — so the three refusals below mean something');
+  else fail('the harness refused a valid row: every refusal check below would pass for the wrong reason');
+  const nullDate = Object.assign({}, goodRow, { invoice_no: 'HZ-1', invoice_date: null });
+  const negTotal = Object.assign({}, goodRow, { invoice_no: 'HZ-2', total_incl_vat_sar: -5, integrity_status: 'pending' });
+  const dupKey = Object.assign({}, goodRow, { invoice_no: 'HZ-OK' });   // same (invoice_no, line_no) as the row just accepted
+  const hzNull = await rejects(nullDate), hzNeg = await rejects(negTotal), hzDup = await rejects(dupKey);
+  if (accepted && hzNull && hzNeg && hzDup) ok('the harness still refuses a null invoice date, a negative total that is not a credit note, and a duplicate (invoice_no, line_no) — the same three the live table refuses');
+  else fail('the harness accepted a row production would refuse: nullDate=' + hzNull + ' negativeTotal=' + hzNeg + ' duplicateKey=' + hzDup + ' — every write-path check in this battery would be testing nothing');
+
   /* ---------- 5. both tabs confirm the same import ---------- */
   const HEADER = ['Ref', 'Customer', 'Date', 'Total', 'Cost'];
   const CSV = ['Ref,Customer,Date,Total,Cost']

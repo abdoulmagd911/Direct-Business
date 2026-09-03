@@ -81,6 +81,7 @@ async function main() {
     'IA-2,Test Company 2,2026-06-16,500,0',                    // no cost
     'IA-3,Takamol for Business Services,2026-06-16,300,0',     // excluded partner (seed exclusion list)
     'IA-4,Test Company 2,,250,50',                             // no date at all
+    'IA-6,Test Company 3,2026-02-30,410,60',                   // a date that LOOKS valid and is not (watch cycle 20)
     ',Test Company 2,2026-06-17,999,0',                        // no reference → nothing to key
     'IA-5,Test Company 3,2026-06-18,"(200)",0',                // credit-shaped negative stays negative
   ].join('\n');
@@ -92,9 +93,14 @@ async function main() {
      accepted a null date, and it asserted behaviour production forbids. Worse, sending that null
      lost the WHOLE batch (PostgREST sends one batch as one statement), so the preview promised
      4 new and the database wrote 0. IA-4 is now held back by name and the other three land. */
-  if (c.isNew === 3 && c.updated === 0 && c.unchanged === 0 && c.needsLinking >= 0) ok(`first drop preview: New 3 · Updated 0 · Unchanged 0 (IA-1, IA-2, IA-5) — IA-4 held back, it has no date`); else fail('first drop preview counts wrong: ' + JSON.stringify(c));
+  if (c.isNew === 3 && c.updated === 0 && c.unchanged === 0 && c.needsLinking >= 0) ok(`first drop preview: New 3 · Updated 0 · Unchanged 0 (IA-1, IA-2, IA-5) — IA-4 and IA-6 held back, one with no date and one with 30 February`); else fail('first drop preview counts wrong: ' + JSON.stringify(c));
+  /* 2026-09-03 (watch cycle 20): 30 February passes every "is it shaped like a date" test and is
+     rejected by the DATE column itself, taking the whole batch with it. Nothing tested that until
+     a mutation audit removed the calendar-day check and no probe noticed. */
+  if (/IA-6[\s\S]{0,140}(no readable invoice date|تاريخ فاتورة)/.test(c.text)) ok('30 February is named and held back too — it looks like a date and is not one, and the database would refuse the whole file over it');
+  else fail('the impossible date was not held back: ' + JSON.stringify(c.text.slice(0, 500)));
   if (/Takamol for Business Services \(#7: Takamol/.test(c.text)) ok('excluded partner named in the preview with client id and reason (never silent)'); else fail('exclusion not named in preview: ' + JSON.stringify(c.text.slice(0, 400)));
-  if (/Excluded by rule\s+2\b/.test(c.text)) ok('Excluded by rule = 2 — the excluded partner and the date-less row, each named'); else fail('Excluded by rule count not 2');
+  if (/Excluded by rule\s+3\b/.test(c.text)) ok('Excluded by rule = 3 — the excluded partner, the date-less row and the impossible date, each named'); else fail('Excluded by rule count not 3');
   if (/IA-4[\s\S]{0,120}(no readable invoice date|تاريخ فاتورة)/.test(c.text)) ok('IA-4 is named in the preview with the reason it was held back'); else fail('IA-4 not named as held back: ' + JSON.stringify(c.text.slice(0, 500)));
   if (!/NaN|undefined|Q5|Invalid Date/.test(c.text)) ok('no NaN / undefined / Q5 in the preview'); else fail('preview carries NaN/undefined/Q5');
   let btn = await confirmBtn();
@@ -106,6 +112,7 @@ async function main() {
   if (near(r1.total_incl_vat_sar, 1000) && near(r1.revenue_sar, 1000) && near(r1.cost_sar, 100) && near(r1.profit_sar, 900)) ok('IA-1 landed as the database keeps it: total 1000 · revenue 1000 · cost 100 · profit 900 (revenue is never profit)'); else fail(`IA-1 stored total ${r1.total_incl_vat_sar} revenue ${r1.revenue_sar} cost ${r1.cost_sar} profit ${r1.profit_sar}`);
   if (near(r1.vat_sar, 0) && near(r1.wallet_portion_sar, 0)) ok('IA-1: vat_sar 0 and wallet 0 — the mapped path never guesses a VAT split'); else fail(`IA-1 vat ${r1.vat_sar} wallet ${r1.wallet_portion_sar}`);
   if (r1.month === 'June' && r1.quarter === 'Q2' && r1.integrity_status === 'pending' && near(r1.amount_remaining_sar, 1000)) ok('IA-1: June / Q2, pending, fully outstanding until reconciled'); else fail(`IA-1 month ${r1.month} q ${r1.quarter} status ${r1.integrity_status} remaining ${r1.amount_remaining_sar}`);
+  if ((await inv('IA-6')).length === 0) ok('IA-6 (30 February) reached the table not at all — a date the calendar does not have is not written, and does not cost the file'); else fail('the impossible-date row was written');
   if ((await inv('IA-4')).length === 0) ok('IA-4 (no date) reached the table not at all — held back by name, never sent as a null the database refuses, and never given a guessed date'); else fail('the date-less row was written after all');
   const r5 = (await inv('IA-5'))[0] || {};
   if (near(r5.total_incl_vat_sar, -200) && near(r5.revenue_sar, -200) && near(r5.profit_sar, -200)) ok('IA-5 (200) stays a negative 200 through total, revenue and profit'); else fail(`IA-5 total ${r5.total_incl_vat_sar} revenue ${r5.revenue_sar} profit ${r5.profit_sar}`);
@@ -124,7 +131,7 @@ async function main() {
   if (c.isNew === 0 && c.updated === 0 && c.unchanged === 3) ok('re-dropping the same file: New 0 · Updated 0 · Unchanged 3 — there is no "importing twice"'); else fail('re-drop is not idempotent: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
   btn = await confirmBtn();
   if (!btn) ok('no Confirm button offered when nothing would change'); else fail('Confirm offered on an unchanged re-drop: ' + btn);
-  if (/Excluded by rule\s+2\b/.test(c.text)) ok('the excluded partner and the date-less row are still both named on the re-drop (both checks run at import, every time)'); else fail('exclusion count missing on re-drop');
+  if (/Excluded by rule\s+3\b/.test(c.text)) ok('all three held-back rows are still named on the re-drop (every check runs at import, every time)'); else fail('exclusion count missing on re-drop');
 
   /* ---------- 3. one real change ---------- */
   const fileB = fileA.replace('IA-2,Test Company 2,2026-06-16,500,0', 'IA-2,Test Company 2,2026-06-16,650,120');

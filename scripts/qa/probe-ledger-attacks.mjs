@@ -104,6 +104,11 @@ async function main() {
       Object.assign({}, base, { id: 'qa-inv-od', transaction_ref: 'TXN-QA-INVOD', invoice_no: 'INV-QA-OD1', business_id: 'b4', client_profile_id: 'cp2', amount_sar: 3000, expense_status: null, cost_confirmed_sar: 2000, cost_estimate_sar: null, amount_received_sar: 0, amount_remaining_sar: 3000, overdue: SAB === '1' ? null : true, created_at_source: '2026-06-01T10:00:00Z' }),
       // B. string amounts with thousands separators + null confirmed cost on a ready row
       Object.assign({}, base, { id: 'qa-str', transaction_ref: 'TXN-QA-STR', invoice_no: null, business_id: 'b4', client_profile_id: 'cp1', amount_sar: '1,250', expense_status: 'ready', cost_confirmed_sar: null, cost_estimate_sar: null, amount_received_sar: '0', amount_remaining_sar: '1,250', overdue: false, created_at_source: '2026-06-02T10:00:00Z' }),
+      // B2. an amount that is NOT a number in any reading — "n/a". Added 2026-09-03 (watch cycle
+      // 20) after a mutation audit: silencing the Ledger's unreadable-amount notice was caught by
+      // nothing, because "1,250" now parses correctly and no row was left flagged. A notice with
+      // nothing to report is not a guard.
+      Object.assign({}, base, { id: 'qa-nan', transaction_ref: 'TXN-QA-NAN', invoice_no: null, business_id: 'b4', client_profile_id: 'cp1', amount_sar: 'n/a', expense_status: 'ready', cost_confirmed_sar: 0, cost_estimate_sar: null, amount_received_sar: 0, amount_remaining_sar: 0, overdue: false, created_at_source: '2026-06-02T11:00:00Z' }),
       // C. unknown business, missing profile, pending
       Object.assign({}, base, { id: 'qa-orphan', transaction_ref: 'TXN-QA-ORPHAN', invoice_no: null, business_id: 'no-such-business', client_profile_id: null, amount_sar: 700, expense_status: 'pending', cost_confirmed_sar: 0, cost_estimate_sar: 500, amount_received_sar: 0, amount_remaining_sar: 0, overdue: null, created_at_source: '2026-06-03T10:00:00Z' }),
       // D. duplicate transaction_ref of the seed's tx1, HTML in the ref, formula-looking ref for the CSV guard
@@ -115,9 +120,9 @@ async function main() {
   }, SABOTAGE);
   await settle();
   v = await view();
-  const N = 10;
+  const N = 11;   // seed 4 + 7 hostile (an unreadable-amount row added in watch cycle 20)
   const shown = await tableRows();
-  if (shown === N) ok(`all ${N} rows render (seed 4 + 6 hostile) — nothing crashed the tab`); else fail(`table shows ${shown} rows, expected ${N}`);
+  if (shown === N) ok(`all ${N} rows render (seed 4 + 7 hostile) — nothing crashed the tab`); else fail(`table shows ${shown} rows, expected ${N}`);
   if (v.indexOf('NaN') < 0) ok('no "NaN" anywhere in the rendered Ledger'); else fail('rendered Ledger contains "NaN"');
   if (!(await p.evaluate(() => !!document.querySelector('#qa-xss')))) ok('HTML in a transaction_ref is escaped, not rendered'); else fail('HTML in transaction_ref rendered as an element');
   if (v.indexOf('no-such-business') >= 0 && shown === N) ok('unknown business_id falls back to the raw id in the company header (no crash, no blank group)'); else fail('orphan row lost or company header blank');
@@ -138,6 +143,17 @@ async function main() {
   for (const [lbl, want] of [['Confirmed revenue', exp.rev], ['Confirmed cost', exp.cost], ['Confirmed profit', exp.prof]]) {
     const got = await tileNum(lbl); if (got === want) ok(`KPI "${lbl}" = ${want} under hostile rows (string amounts count as 0, never NaN; pending never blends in)`); else fail(`KPI "${lbl}" = ${got}, expected ${want}`);
   }
+  /* ---------- an amount nobody can read is counted as 0 AND said out loud (watch cycle 20) ---------- */
+  const badMoney = await p.evaluate(() => {
+    const html = document.querySelector('#view').innerHTML;
+    const flagged = (TXN.rows || []).filter(r => r._badMoney).length;
+    return { flagged, said: /row[\s\S]{0,80}unreadable amount[\s\S]{0,40}counted as 0/i.test(html) };
+  });
+  if (badMoney.flagged >= 1) ok(`an amount that is not a number in any reading is flagged on its row (${badMoney.flagged} row) rather than quietly becoming a zero nobody questions`);
+  else fail('no row was flagged as carrying an unreadable amount, though the fixture contains one');
+  if (badMoney.said) ok('…and the Ledger says how many such rows there are, the way the Overview has since watch cycle 2');
+  else fail('the Ledger counted an unreadable amount as 0 and said nothing about it');
+
   /* ---------- duplicate transaction reference: marked, never merged (watch cycle 19) ---------- */
   const dup = await p.evaluate(() => {
     const html = document.querySelector('#view').innerHTML;

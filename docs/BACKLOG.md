@@ -1,5 +1,48 @@
 # Action items — things deliberately put on hold
 
+## 2026-09-03 (overnight) · Watch cycle 20 — mutation audit round two: four more guards that were not guarding
+
+Cycle 17 ran this audit over the battery as it stood; everything added since (cycles 13–19) had
+never been through it. Eight fresh mutations, each breaking one rule a probe claims to guard, run
+against the probes that should catch them, each reverted byte-identically (md5).
+
+**Four were caught** — the sector classifier's profile-first order, the date-less hold-back, the
+credit-note status for a negative total, and the mock's unique key.
+
+**Four were not:**
+
+1. **30 February.** `isoDateG`'s calendar-day check, added in cycle 16, was never tested — no
+   fixture anywhere contained a date that looks valid and is not. Removing the check changed
+   nothing visible. A row now carries `2026-02-30` and must be named and held back.
+2. **Two of the three branches of the "nothing happened" message.** Cycle 15 gave that message
+   three honest answers — the row is gone, it is already in that state, or the write was genuinely
+   refused — and only the middle one was ever exercised. Making the "row is gone" branch blame
+   permissions again was invisible. A delete of an invoice number that is not in the table is now
+   a check of its own.
+3. **The Ledger's unreadable-amount notice.** Silencing it entirely was caught by nothing, because
+   after cycle 19 the fixture's only awkward amount ("1,250") parses correctly and no row was left
+   flagged. A notice with nothing to report is not a guard. The fixture now carries an amount that
+   is not a number in any reading ("n/a").
+4. **The harness's own honesty.** If the mock stopped enforcing the live NOT NULLs and CHECK
+   constraints, every write-path probe would silently start testing nothing — and no probe would
+   notice. There is now a guard on the guard: an ordinary invoice must be **accepted**, and a null
+   date, a negative total that is not a credit note, and a duplicate `(invoice_no, line_no)` must
+   each be **refused**.
+
+**And that guard was itself wrong on the first attempt** — worth recording, because it is the same
+trap twice in one cycle. The rows it posted carried `year`, which the mock refuses outright as a
+generated column, so all three were rejected for a reason that had nothing to do with the
+constraints and the check passed with the enforcement switched off. The positive control — a valid
+row must be accepted — is what makes the three refusals mean anything. **Any check that only ever
+asserts "this was refused" passes trivially the moment everything is refused.**
+
+All four re-run red against their mutation and green with it reverted. Twenty-two probes and the
+structure check green.
+
+**Environmental, not chased:** `audit-finance-tabs` failed one check when run last in a
+back-to-back batch of twenty-two and passes on its own — the same sandbox resource pressure noted
+in cycle 17.
+
 ## 2026-09-03 (overnight) · Watch cycle 19 — the three parked items, cleared
 
 Three things earlier cycles noticed and deliberately did not change. All three are done, and each
