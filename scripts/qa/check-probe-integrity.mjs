@@ -107,9 +107,50 @@ for (const d of DIRS) {
 /* Strip block and line comments before pattern-matching. Without this, a probe that
    *documents* its own sabotage recipe in a header comment reads as if it contained the
    very tell being searched for. */
+/* 2026-09-03, second pass — the regex version of this function was itself a landmine, and
+   this checker exists precisely to catch that shape of thing.
+   `s.replace(/\/\*[\s\S]*?\*\//g, blank)` cannot tell a comment from a STRING that contains
+   "/*". Playwright route globs are written `p.route('**host.com/**', …)` — that `/**` opened a
+   block comment as far as the regex was concerned, and everything up to the next `*​/`
+   anywhere in the file was blanked. Measured on probe-client-documents.mjs: 149 of its 244
+   lines were invisible to every detector below, including the two hardcoded /home/user paths
+   that mean the probe has never once run. Any probe using route globs was scanned at roughly
+   40%.
+   This scanner tracks string, template and comment state character by character instead. A
+   regex literal can never start with `/*` (that is not valid JavaScript), so the only way a
+   `/*` reaches the block-comment branch now is inside real code. */
 function decomment(s) {
-  const blank = (m) => m.replace(/[^\n]/g, ' ');   // keep every newline so line numbers stay true
-  return s.replace(/\/\*[\s\S]*?\*\//g, blank).replace(/(^|[^:])(\/\/[^\n]*)/g, (m, a, b) => a + blank(b));
+  const out = new Array(s.length);
+  let i = 0;
+  const N = s.length;
+  let state = 'code';              // code | line | block | sq | dq | tpl
+  while (i < N) {
+    const c = s[i], d = s[i + 1];
+    if (state === 'code') {
+      if (c === '/' && d === '*') { state = 'block'; out[i] = ' '; out[i + 1] = ' '; i += 2; continue; }
+      if (c === '/' && d === '/') { state = 'line';  out[i] = ' '; out[i + 1] = ' '; i += 2; continue; }
+      if (c === "'")  state = 'sq';
+      else if (c === '"') state = 'dq';
+      else if (c === '`') state = 'tpl';
+      out[i] = c; i += 1; continue;
+    }
+    if (state === 'line') {
+      if (c === '\n') { state = 'code'; out[i] = c; } else out[i] = ' ';
+      i += 1; continue;
+    }
+    if (state === 'block') {
+      if (c === '*' && d === '/') { state = 'code'; out[i] = ' '; out[i + 1] = ' '; i += 2; continue; }
+      out[i] = (c === '\n') ? c : ' ';   // keep newlines so line numbers stay true
+      i += 1; continue;
+    }
+    /* inside a string or template: copy verbatim, honour backslash escapes, and never let a
+       newline strand us (an unterminated quote would otherwise eat the rest of the file). */
+    if (c === '\\' && i + 1 < N) { out[i] = c; out[i + 1] = s[i + 1]; i += 2; continue; }
+    if ((state === 'sq' && c === "'") || (state === 'dq' && c === '"') || (state === 'tpl' && c === '`')) state = 'code';
+    else if (c === '\n' && state !== 'tpl') state = 'code';
+    out[i] = c; i += 1;
+  }
+  return out.join('');
 }
 
 const findings = [];
@@ -163,6 +204,25 @@ for (const f of files) {
   for (let m; (m = taut.exec(code));) {
     add(f.rel, lineOf(code, m.index), 'TAUTOLOGY',
       'failure condition uses `>= 0` / `typeof !== undefined` — it can never be true');
+  }
+
+  /* ---- T6 CWD_PATH: a red that is about where you stand, not about the code -------
+     Found 2026-09-03 running the suite from scripts/qa instead of the repo root: two probes
+     died with ENOENT on 'js/10-events.js' and 'js/core/core-06-v18-v21.js' — output that is
+     indistinguishable from a real defect, on a tree that was in fact correct. Two more read
+     from a hardcoded '/home/user/...' that does not exist in this environment at all, so
+     they have never once run. A guard that goes red for the wrong reason is worse than no
+     guard: it teaches people that red means nothing. Resolve repo files from the probe's own
+     location (fileURLToPath(import.meta.url)), never from the current directory. */
+  const cwdRel = /\b(?:readFileSync|readdirSync|createReadStream)\s*\(\s*['"`](js|index\.html|docs|scripts|events)[/'"`]/g;
+  for (let m; (m = cwdRel.exec(code));) {
+    add(f.rel, lineOf(code, m.index), 'CWD_PATH',
+      `reads ${m[1]} by a path relative to the current directory — red from anywhere but the repo root`);
+  }
+  const absHome = /['"`]\/home\/[a-z0-9_-]+\/[^'"`]*['"`]/gi;
+  for (let m; (m = absHome.exec(code));) {
+    add(f.rel, lineOf(code, m.index), 'CWD_PATH',
+      `hardcoded absolute path ${m[0]} — cannot run on any machine that is not that one`);
   }
 
   /* ---- T5 PORT_DUP: collected here, reported after the sweep ---------------------- */

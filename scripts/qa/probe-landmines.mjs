@@ -233,13 +233,29 @@ STEP('L18 26MB upload: rejected client-side before any network', /larger than 25
 // ===== L19 · Global search with hostile input =====
 await page.evaluate(() => { current = 'today'; render(); });
 await page.waitForTimeout(700);
-const gs = page.locator('input[placeholder*="Search everything"], input[placeholder*="بحث"]').first();
-if (await gs.isVisible().catch(() => false)) {
+/* Target the box by its id, not by its placeholder wording. The old selector looked for the
+   English string "Search everything" — which cycle 5 deliberately removed, because the box
+   does not search everything and saying so was the defect. From that moment the selector
+   matched nothing, L19's hostile-input test stopped running, and the vacuous `else` below
+   recorded the silence as a PASS. `#gsearch` is what the app's own Arabic layer (js/21)
+   keys on, so it survives any rewording in either language. */
+const gs = page.locator('#gsearch').first();
+/* PROBE-INTEGRITY FIX (2026-09-03, second meta-pass): this used to end
+   `else STEP('L19 global search box present', true, 'not visible ... skipped')` — a missing
+   search box was recorded as a PASS. That is the "element missing, call it a pass" shape, and
+   it hid the hostile-input test entirely: if the box ever disappeared, L19 would go quiet and
+   the suite would stay green. The box is not optional — the app's own header promises
+   "Search everything" on every page — so its absence is a defect, and the injection test runs
+   only once its presence has been asserted in its own right. Found by the meta-guard only
+   after decomment() was fixed; the naive version had blanked this line. */
+const gsVisible = await gs.isVisible().catch(() => false);
+STEP('L19 the global search box is present on Today (the header promises it — a missing box is a defect, not a skip)', gsVisible);
+if (gsVisible) {
   await gs.fill(`<script>alert(1)</script>' OR 1=1`);
   await page.waitForTimeout(900);
   STEP('L19 global search with script/SQL text: no crash, no injection', errs.length === 0);
   await gs.fill('');
-} else STEP('L19 global search box present', true, 'not visible on this layout — skipped');
+}
 
 console.log(LOG.join('\n'));
 console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.length}`);

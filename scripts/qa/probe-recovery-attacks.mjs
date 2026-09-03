@@ -15,6 +15,15 @@
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
+/* 2026-09-03 — a guard that goes red because of where you stand is worse than no guard: it
+   trains people to ignore reds. Every source read below used to be relative to the current
+   directory, so this probe passed from the repo root and died from scripts/qa with an ENOENT
+   that looks exactly like a real defect (and phase E would have scanned whatever `js` folder
+   happened to be underfoot). Resolve from this file's own location instead. */
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const repoFile = (p) => join(REPO_ROOT, p);
 
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
@@ -319,7 +328,7 @@ async function phaseC() {
 
   /* Is there any coded path that restores a company from these tables? */
   const src = ['js/core/core-06-v18-v21.js', 'js/02-direct-business-cloud-layer-login-shared-c.js', 'js/63-undo-and-real-audit.js']
-    .map(f => fs.readFileSync(f, 'utf8')).join('\n');
+    .map(f => fs.readFileSync(repoFile(f), 'utf8')).join('\n');
   const unarchivers = (src.match(/archived_at\s*:\s*null/g) || []).length;
   check('C6 nothing in the backup/cloud/undo layers ever clears archived_at — restoring a company is not coded anywhere',
     unarchivers === 0, unarchivers + ' occurrence(s) of archived_at:null');
@@ -383,11 +392,11 @@ async function phaseD() {
 /* PHASE E — promise 2: the "30 days" claim, checked across the whole repo               */
 /* =================================================================================== */
 function phaseE() {
-  const files = fs.readdirSync('js').filter(f => f.endsWith('.js')).map(f => 'js/' + f)
-    .concat(fs.readdirSync('js/core').map(f => 'js/core/' + f));
+  const files = fs.readdirSync(repoFile('js')).filter(f => f.endsWith('.js')).map(f => 'js/' + f)
+    .concat(fs.readdirSync(repoFile('js/core')).map(f => 'js/core/' + f));
   const offenders = [];
   files.forEach(f => {
-    const txt = fs.readFileSync(f, 'utf8');
+    const txt = fs.readFileSync(repoFile(f), 'utf8');
     txt.split('\n').forEach((line, i) => {
       if (!/30\s*(days|يوم)/i.test(line)) return;
       // AR aging buckets and payment terms legitimately say "30 days" — only a RESTORE /
@@ -398,7 +407,7 @@ function phaseE() {
   });
   check('E1 no file anywhere still claims archived data is restorable for 30 days', offenders.length === 0, offenders);
 
-  const all = files.map(f => fs.readFileSync(f, 'utf8')).join('\n');
+  const all = files.map(f => fs.readFileSync(repoFile(f), 'utf8')).join('\n');
   /* Something has to actually REMOVE an archived row for a retention window to exist: a hard
      delete against businesses, or a purge/TTL identifier. Neither exists. */
   const remover = all.match(/from\(['"]businesses['"]\)[\s\S]{0,80}?\.delete\(|purgeArchived|archiveRetention|ARCHIVE_(TTL|DAYS)|RETENTION_DAYS/gi) || [];

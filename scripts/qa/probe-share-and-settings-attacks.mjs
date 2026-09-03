@@ -12,6 +12,15 @@
    Notes: touches scripts/qa/mock-supabase.mjs ADDITIVELY (share_links INSERT, share_view RPC,
    MOCK_ANON_ENFORCE) — nothing existing changed.                                            */
 import { chromium } from 'playwright';
+/* 2026-09-03 — a guard that goes red because of where you stand is worse than no guard:
+   it trains people to ignore reds. These source reads used to be relative to the current
+   directory, so the probe passed from the repo root and failed from scripts/qa with an
+   ENOENT that looks exactly like a real defect. Resolve from this file's own location. */
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const repoFile = (p) => join(REPO_ROOT, p);
+
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 
@@ -75,12 +84,12 @@ const TOKEN=(links[0]||{}).token||'';
 ok('token is 64 chars (two UUIDs, hyphens stripped — the live column default)', TOKEN.length===64);
 ok('token alphabet is hex only — no short/guessable alphabet', /^[0-9a-f]{64}$/.test(TOKEN));
 ok('token is minted SERVER-side, not by client Math.random()',
-   !/Math\.random[\s\S]{0,200}token/i.test(fs.readFileSync('js/10-events.js','utf8')));
+   !/Math\.random[\s\S]{0,200}token/i.test(fs.readFileSync(repoFile('js/10-events.js'),'utf8')));
 ok('share_links row has scope "all" — never the page it was created from', (links[0]||{}).scope==='all');
 ok('share_links row has NO expiry column (no expires_at / valid_until)',
    !('expires_at' in (links[0]||{})) && !('valid_until' in (links[0]||{})));
 /* revoke: is there any way, anywhere in the app, to switch a link off again? */
-const src=['js/10-events.js','index.html'].map(f=>fs.readFileSync(f,'utf8')).join('\n');
+const src=['js/10-events.js','index.html'].map(f=>fs.readFileSync(repoFile(f),'utf8')).join('\n');
 const HAS_REVOKE=/share_links[\s\S]{0,160}(update|delete)\s*\(/i.test(src);
 ok('KNOWN GAP recorded: no revoke/expire control exists in the UI', HAS_REVOKE===false);
 if(!HAS_REVOKE) notes.push('share links cannot be revoked or listed from the app — only by hand in SQL');
