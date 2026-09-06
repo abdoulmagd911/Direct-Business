@@ -1,4 +1,26 @@
 // Click EVERY visible button on the four go-live pages; classify each: ERROR / action / NO-OP.
+//
+// READ THIS BEFORE TREATING A "NO-OP?" LINE AS A DEFECT (round 57, 2026-09-06).
+// "NO-OP?" means THIS SWEEP SAW NO CHANGE — not "the button is dead". The verdict used to be
+// "did the markup grow by 50 characters", which called 79 of 189 buttons NO-OP; widening it to
+// watch text, open/closed cards, row counts, dropdowns, checkboxes, the address, scroll position,
+// the real modal container (#ov, not #modal) and external links took that to 31, with 33 dialogs
+// and 9 scrolls now correctly recognised. What is left is a residue, and it is NOT a defect list:
+//
+//   · "Clients list | Edit" ×11 — DRIVEN BY HAND AND VERIFIED WORKING: the click runs
+//     leadQuickEdit(), #ov gains its "show" class and the dialog fills with "Quick edit — <name>".
+//     Why this sweep still misses it is UNEXPLAINED; it is not index drift (the sweep now reports
+//     the label of the button it really pressed, and no run has shown a mismatch). Left honest
+//     rather than silenced.
+//   · The jump-bar chips (Key facts, Notes, Contacts, Corporate account …) scroll to a section
+//     and change nothing else, deliberately — their own comment in js/28 says so. Nine of them
+//     are caught by the scroll check; the rest sit in a viewport tall enough not to need scrolling.
+//   · "‹ Prev / Next ›" with fewer rows than one page, and "All clients" when it is already the
+//     active filter, correctly do nothing.
+//   · "⬇ Excel (CSV)" downloads a file, which this sweep does not watch for.
+//
+// A "LEFT THE APP" line names where the sweep WAS when the app went, not necessarily the cause:
+// a refused save reloads the tab 4.5 seconds later, several buttons downstream.
 import { start } from './mock-seed.mjs';
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';

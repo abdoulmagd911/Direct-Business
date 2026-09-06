@@ -1,3 +1,43 @@
+## 2026-09-06 · Round 57 — pipeline chips on a single company's card, and a button report worth reading
+
+**Fixed (app):** the Leads section injects stage filter chips — "All 6 · Prospect 0 · Contacted 2 ·
+Proposal 1 · Won 0" — and the lead DETAIL card is part of that section, so they sat above one
+company's card with nothing to filter. Tapping one highlighted it and did nothing else. This was
+already fixed for the CLIENT card (js/38, "no longer wears the Leads costume", guarded by
+probe-stress S27) but only inside the is-a-client branch, so the lead card kept wearing it. Hidden
+now for any open record; the list keeps them. Sabotage-verified, and probe-lifecycle5 checks both
+halves — gone on the card, still there on the list.
+
+**Why it surfaced now:** `sweep-buttons` can finish, which it could not until round 53. But its
+verdict was "did the markup grow by 50 characters", so it called **79 of 189** buttons NO-OP. A
+list that noisy is one nobody reads — the same disease as the warning nobody must act on that
+watch cycle 34 named. The fingerprint now watches what this app's controls actually change: page
+text, open/closed cards, row counts, dropdowns, checkboxes, the address, and scroll position.
+Two detector gaps closed with it — quick-edit dialogs were invisible because `openModal` puts its
+class on `#ov` rather than `#modal`, and an anchor that opens a new tab hands the click to the
+browser, so it is read from the element. **79 → 31**, with 33 dialogs, 9 scrolls and 2 external
+links now correctly named. The sweep also reports the label of the button it *actually* pressed,
+so a verdict can never be filed under the wrong name.
+
+**The 31 that remain are NOT a defect list**, and the probe's own header now says so:
+- **"Clients list | Edit" ×11 — driven by hand and verified working.** The click runs
+  `leadQuickEdit()`, `#ov` gains its `show` class, the dialog fills with "Quick edit — <name>".
+  **Why the sweep still misses it is unexplained** — it is not index drift (no run has shown a
+  label mismatch since the sweep started reporting the real one). Left visible rather than
+  silenced.
+- The jump-bar chips scroll to a section and change nothing else, deliberately; nine are caught by
+  the scroll check and the rest sit in a viewport tall enough not to need scrolling.
+- Pagination with fewer rows than a page, and a filter that is already active, correctly do nothing.
+- "⬇ Excel (CSV)" downloads a file, which this sweep does not watch for.
+
+**Also corrected this round:** watch cycle 34's crash fix in `probe-generator-attacks` carried a
+precedence bug in two of its six edits — `(el||{}).innerText||''.includes('…')` is
+`innerText || false`, so the substring was never tested and the check passed for any non-empty
+page. Demonstrated rather than argued: with a needle provably absent from the page, cycle 34's form
+reports 114 passed / 0 failed and the corrected form turns exactly those two red. Neither was
+hiding a defect, but neither could have caught one. **A crash fix that quietly turns an assertion
+into a rubber stamp is worse than the crash, because the crash was at least loud.**
+
 ## 2026-09-06 · Watch cycle 34 — six cycles of "environmental" were twelve port collisions, eleven of them mine
 
 **Attack area (gg): the alias grouping map at scale and under hostile names. Attack area (hh): the client-rollup cache. And, first, the item cycle 33 left unresolved: `sweep-buttons`.**
