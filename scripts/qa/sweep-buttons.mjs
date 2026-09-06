@@ -33,6 +33,16 @@ if (await em.isVisible().catch(() => false)) {
   await page.locator('button:has-text("Sign in"), button[type="submit"]').first().click();
   await page.waitForTimeout(3000);
 }
+const signInIfNeeded = async () => {
+  const e2 = page.locator('input[type="email"]').first();
+  if (await e2.isVisible().catch(() => false)) {
+    await e2.fill('test@directksa.com');
+    await page.locator('input[type="password"]').first().fill('Dq7nTest-2026-Riyadh');
+    await page.locator('button:has-text("Sign in"), button[type="submit"]').first().click();
+    await page.waitForTimeout(3000);
+  }
+};
+const recover = async () => { await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(2500); await signInIfNeeded(); };
 const goto = async (spec) => {
   await page.evaluate(spec => {
     try { if (typeof closeModal === 'function') closeModal(); } catch (e) {} try { document.querySelectorAll('#modal,.modal-back').forEach(m => m.classList.remove('show','open')); } catch (e) {}
@@ -40,8 +50,20 @@ const goto = async (spec) => {
   }, spec);
   await page.waitForTimeout(900);
 };
+/* 2026-09-06 (round 52): `current` is a script-scoped binding inside the app, so the moment a
+   button navigates away or reloads the tab it stops existing — and this read threw
+   "current is not defined", killing the whole sweep with a raw stack. Every button already
+   clicked went unreported, and nobody could tell WHICH button did it, so the sweep sat on the
+   pre-existing-red list instead of being read. A button that takes you out of the app is a
+   FINDING, which is exactly what this sweep exists to surface — reported and recovered from. */
+const alive = async () => {
+  /* Be precise about WHY: an execution context torn down mid-re-render is not the same thing as
+     the app having gone. Report the reason, never guess one. */
+  try { return { ok: await page.evaluate(() => typeof current !== 'undefined'), why: '' }; }
+  catch (e) { return { ok: false, why: String(e && e.message || e).split('\n')[0].slice(0, 90) }; }
+};
 const state = () => page.evaluate(() => ({
-  page: current, lead: (typeof openLead !== 'undefined' && openLead) || '', body: document.body.innerHTML.length,
+  page: (typeof current !== 'undefined' ? current : '(app gone)'), lead: (typeof openLead !== 'undefined' && openLead) || '', body: document.body.innerHTML.length,
   modal: !!(document.querySelector('#modal.show, .modal-back.show, #modal[style*="flex"], #modal[style*="block"]') || (document.getElementById('modal') && document.getElementById('modal').offsetParent)), len: (document.getElementById('view') || {}).innerHTML?.length || 0,
   toastTxt: [...document.querySelectorAll('.toast,.v19-toast,[class*=toast]')].filter(t=>t.offsetParent!==null).map(t=>t.textContent.trim()).join('|')
 }));
@@ -68,6 +90,13 @@ for (const P of PAGES) {
       if (!btns[i]) return false; try { btns[i].click(); return true; } catch (e) { window.__clickErr = String(e); return 'threw'; }
     }, i);
     await page.waitForTimeout(700);
+    const liv = await alive();
+    if (!liv.ok) {
+      const url = page.url();
+      results.push([P.name, label, 'LEFT THE APP: ' + (liv.why || 'the app was gone afterwards') + ' · url now ' + url]);
+      await recover();
+      continue;
+    }
     const after = await state();
     let verdict;
     if (errs.length || clicked === 'threw') verdict = 'ERROR: ' + (errs[0] || 'click threw');
@@ -81,7 +110,7 @@ for (const P of PAGES) {
     results.push([P.name, label, verdict]);
   }
 }
-const bad = results.filter(r => /ERROR|NO-OP/.test(r[2]));
+const bad = results.filter(r => /ERROR|NO-OP|LEFT THE APP/.test(r[2]));
 console.log('TOTAL buttons clicked:', results.filter(r => r[2] !== 'skipped').length, '| skipped(destructive):', results.filter(r => r[2] === 'skipped').length);
 console.log('--- problems ---'); bad.forEach(r => console.log(r.join(' | ')));
 fs.writeFileSync('button-sweep-results.txt', results.map(r => r.join(' | ')).join('\n'));

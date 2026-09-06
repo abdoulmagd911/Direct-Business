@@ -443,8 +443,24 @@ details.v19-disclose .ds-body{padding:6px 14px 14px;border-top:1px solid var(--l
 `;document.head.appendChild(s);})();
 /* ----- v19 toast + recents + smart helpers ----- */
 (function bootV19(){const t=document.createElement('div');t.id='v19toast';t.className='v19-toast';document.body.appendChild(t);})();
-function toast(msg,kind){const t=document.getElementById('v19toast');if(!t)return;t.innerHTML=(kind==='err'?'⚠':'<span class="ic">✓</span>')+' '+esc(msg);t.style.background=kind==='err'?'#F0453A':'#1C1E2B';t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2400);}
-const _origSave=save;save=function(){_origSave();/* fire-and-forget toast on most saves; quiet on bulk */if(window._silentSave)return;toast('Saved');};
+/* 2026-09-06 (round 52): the tick is a claim, so it is no longer given to every message.
+   kind 'wait' means "this has started, the outcome is not known yet" and gets a neutral glyph. */
+function toast(msg,kind){const t=document.getElementById('v19toast');if(!t)return;t.innerHTML=(kind==='err'?'⚠':kind==='wait'?'<span class="ic">⋯</span>':'<span class="ic">✓</span>')+' '+esc(msg);t.style.background=kind==='err'?'#F0453A':'#1C1E2B';t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2400);}
+/* 2026-09-06 (round 52) — this said "✓ Saved" the instant save() was CALLED, before the database
+   had answered anything: its own comment said "fire-and-forget". So on a refused write the screen
+   showed a green "✓ Saved" toast at the same moment the permission guard was putting up "That
+   change was not saved" and counting down to a reload — two opposite messages, side by side, the
+   green one first. Measured in the harness on a service-fit tap: pill "Save issue: Only 0 of 1
+   records were accepted by the database (permission?)", overlay "That change was not saved",
+   toast "✓ Saved".
+   This is the rule the project already wrote down (DECISIONS B2, and M13: a refused write must
+   never look like a successful one) and already fixed one place at a time — js/15 and js/31 both
+   carry a comment saying never show "Saved ✓" for a change that did not land. This wrapper is the
+   path almost every save in the app goes through, and it was still doing it.
+   It now reports what it actually knows: the save has STARTED. The cloud layer's pill (js/02)
+   owns the outcome and says "Saved to cloud" or "Save issue: …" when the database has answered. */
+const _origSave=save;save=function(){_origSave();if(window._silentSave)return;
+  toast((typeof LANG!=='undefined'&&LANG==='ar')?'جارٍ الحفظ…':'Saving…','wait');};
 function silentSave(fn){window._silentSave=true;try{fn();}finally{window._silentSave=false;}}
 /* recently-visited */
 function pushRecent(kind,id){DB.recents=DB.recents||[];DB.recents=DB.recents.filter(r=>!(r.kind===kind&&r.id===id));DB.recents.unshift({kind:kind,id:id,ts:Date.now()});if(DB.recents.length>8)DB.recents=DB.recents.slice(0,8);silentSave(()=>_origSave());}
@@ -1274,7 +1290,7 @@ const V21_STRINGS_AR={'Reports':'التقارير','Generate Report':'إنشاء
   'Backup & restore':'النسخ الاحتياطي والاستعادة','Restore from backup':'استعادة من نسخة احتياطية','Tag current state':'وسم الحالة الحالية','Export JSON':'تصدير JSON','Import JSON':'استيراد JSON','Browse snapshots':'تصفح اللقطات','Performance':'الأداء','Accessibility':'إمكانية الوصول','Security':'الأمان','Run a day':'تشغيل يوم اختبار','Hash chain integrity':'سلامة سلسلة التجزئة','Wipe local data':'محو البيانات المحلية','Idle lock':'قفل الخمول','Privacy lock':'قفل الخصوصية','Keyboard shortcuts':'اختصارات لوحة المفاتيح','Skip to content':'تخطي إلى المحتوى',
   // Misc
   'From Direct (read-only)':'من نظام Direct — للقراءة فقط','SOPs & SLAs':'الإجراءات ومستويات الخدمة','Projects board':'لوحة المشاريع','Overview & sourcing':'نظرة عامة والمصادر','Ticketing & fare rules':'قواعد الإصدار والأسعار','NDC & content sources':'NDC ومصادر المحتوى','Network & commercial profile':'الشبكة والملف التجاري','Contacts & notes':'جهات الاتصال والملاحظات','Direct Payments - open the real system':'مدفوعات Direct — افتح النظام الفعلي','Other working sources':'مصادر العمل الأخرى','Coming with the hosted backend':'قادم مع النسخة المستضافة','Authority':'صلاحية الإصدار','Alliance':'التحالف','KSA BSP':'BSP السعودية','Stock':'رمز التذاكر','Airline':'شركة الطيران','Business':'المنشأة','Stage':'المرحلة','Last activity':'آخر نشاط','Next action':'الإجراء التالي','Owner':'المسؤول','Open in Direct':'افتح في Direct','Authorized':'مصرّح','Target':'مستهدف','Points of contact':'جهات الاتصال','Availability & sourcing':'التوفر والمصادر','Process':'آلية العمل','ADM / compliance':'الامتثال و ADM','Portals & logins':'البوابات وحسابات الدخول','Ops case intelligence':'حالات تشغيلية موثقة','Leads by stage':'العملاء المحتملون حسب المرحلة','Leads by funnel':'حسب مصدر الوصول','By owner':'حسب المسؤول','Total leads':'إجمالي العملاء المحتملين','In pipeline':'قيد المتابعة','Became client':'أصبح عميلاً','Lost':'مفقود','Area':'القسم','What lives there':'ما يوجد هناك','Open':'افتح','Table':'جدول','Dashboard':'لوحة المتابعة',
-  'Loading':'جاري التحميل','Empty':'فارغ','No results':'لا نتائج','All':'الكل','Recent':'الأخيرة','Saved':'تم الحفظ','Updated':'تم التحديث','Created':'تم الإنشاء','Deleted':'تم الحذف','Archived':'مؤرشف'
+  'Loading':'جاري التحميل','Empty':'فارغ','No results':'لا نتائج','All':'الكل','Recent':'الأخيرة','Saved':'تم الحفظ','Saving…':'جارٍ الحفظ…','Updated':'تم التحديث','Created':'تم الإنشاء','Deleted':'تم الحذف','Archived':'مؤرشف'
 };
 // Translate helper — first checks v18 I18N, then v21 extension, falls back to canonical
 const _v21OrigT=typeof T==='function'?T:(k=>k);

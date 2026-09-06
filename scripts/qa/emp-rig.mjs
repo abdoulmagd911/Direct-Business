@@ -12,8 +12,16 @@ import http from 'http';
 import fs from 'fs';
 
 /* Which copy of the app to drive. Defaults to the working copy; set APP_DIR to a folder
-   downloaded from the live site to rehearse against exactly what the server is serving. */
-export const APP_DIR = process.env.APP_DIR || 'live-app';
+   downloaded from the live site to rehearse against exactly what the server is serving.
+
+   2026-09-06 (round 52): the comment said "the working copy" and the code said 'live-app' —
+   a folder downloaded from the live site that nobody commits, so on a fresh clone it does not
+   exist. serve() then answered 404 to everything and the only symptom was
+   "page.goto: net::ERR_HTTP_RESPONSE_CODE_FAILURE" from inside Playwright, which reads like the
+   app is broken. The default now matches the comment: the repo itself, which CLAUDE.md records
+   as byte-identical to what the live site serves. */
+const REPO_ROOT = new URL('../../', import.meta.url).pathname.replace(/\/$/, '');
+export const APP_DIR = process.env.APP_DIR || REPO_ROOT;
 
 const PW = (k) => process.env['DB_PW_' + k.toUpperCase()] || '';
 
@@ -52,6 +60,11 @@ export const EXPECT = {
 };
 
 export function serve(port) {
+  /* Say what is wrong in one line, before a browser is launched — a missing app folder used to
+     surface 40 seconds later as a Playwright network error. */
+  if (!fs.existsSync(APP_DIR + '/index.html')) {
+    throw new Error('No app to serve: "' + APP_DIR + '/index.html" does not exist. This rig serves a copy of the app; set APP_DIR to a folder that has index.html, or run it from the repository.');
+  }
   const srv = http.createServer((req, res) => {
     let f = req.url.split('?')[0]; if (f === '/') f = '/index.html';
     let body;

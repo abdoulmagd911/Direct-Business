@@ -29,6 +29,20 @@ const DB_EXPECT = {
 const TIER = { admin: 'admin', manager: 'manager', bd: 'team', operations: 'team', team_member: 'team', viewer: 'viewer' };
 const ORDER = ['admin', 'othman', 'raad', 'kareem', 'assem', 'mohammed'];
 
+/* 2026-09-06 (round 52): this probe signs in as REAL people against the REAL database, so it
+   only runs where those passwords are exported (DB_PW_ADMIN, DB_PW_OTHMAN, …) and where
+   *.supabase.co is reachable. It used to discover that 40 seconds in, as a raw Playwright
+   network error, which reads exactly like the app being broken — and that is why it sat on the
+   "pre-existing red" list for rounds. Say it in one line, before launching anything.
+   This is a SKIP, not a pass: nothing was tested, and the last line says so. */
+const MISSING = ORDER.filter(k => !(TEAM[k] && TEAM[k].pw));
+if (MISSING.length) {
+  console.log('SKIPPED — this probe signs in as real people against the real database, and it has no passwords to do it with.');
+  console.log('Missing: ' + MISSING.map(k => 'DB_PW_' + k.toUpperCase()).join(', '));
+  console.log('Abdulrahman holds the list. Export the ones you need and run again; nothing was tested here.');
+  process.exit(0);
+}
+
 let port = 9400;
 const OWNERSHIP = {};
 

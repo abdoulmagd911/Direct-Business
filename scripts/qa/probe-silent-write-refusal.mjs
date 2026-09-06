@@ -30,9 +30,13 @@ async function main() {
   p.on('dialog', async (d) => { dialogs.push({ type: d.type(), msg: d.message() }); if (d.type() === 'prompt') await d.accept(PROMPT_ANSWER); else await d.accept(); });
   let PROMPT_ANSWER = '';
   let REFUSE = false; // when true, every PATCH/POST to the tables under test answers 200 [] (RLS-refused shape)
+  let REFUSE_BIZ = false; // the same shape for `businesses` — the table the app's global save() writes
   await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
     if (REFUSE && ['PATCH', 'POST'].includes(rq.method()) && /\/rest\/v1\/(finance_invoices|finance_targets|client_profiles)/.test(u.pathname)) {
+      return r.fulfill({ status: rq.method() === 'POST' ? 201 : 200, headers: { 'content-type': 'application/json' }, body: '[]' });
+    }
+    if (REFUSE_BIZ && ['PATCH', 'POST'].includes(rq.method()) && /\/rest\/v1\/businesses/.test(u.pathname)) {
       return r.fulfill({ status: rq.method() === 'POST' ? 201 : 200, headers: { 'content-type': 'application/json' }, body: '[]' });
     }
     try {
@@ -133,6 +137,32 @@ async function main() {
   if (t && +t.expected_sar === 1000000) ok('targets: refused upsert left the target untouched'); else fail('targets: refused upsert CHANGED the target on screen: ' + JSON.stringify(t));
   if (dialogs.some(d => d.type === 'alert' && /not saved|لم يُحفظ/i.test(d.msg))) ok('targets: user was told "not saved"'); else fail('targets: no "not saved" message after a refused upsert');
   REFUSE = false;
+
+  /* ---------- 5. the app's OWN global save() — the path almost every edit goes through ----------
+     Added 2026-09-06 (round 52). The four cases above each cover one small editor that was
+     fixed individually; the wrapper in js/core/core-06 that wraps save() itself was still
+     announcing "✓ Saved" the instant it was CALLED, before the database had answered. On a
+     refused write that put a green tick on screen beside the permission guard's "That change
+     was not saved" — measured in the harness on a service-fit tap. The rule this whole probe
+     exists for has to hold on the common path too, not only the rare ones. */
+  REFUSE_BIZ = true; dialogs.length = 0;
+  await p.evaluate(() => { window.__toasts = []; });
+  const bizEdit = await p.evaluate(() => {
+    const b = (DB.businesses || [])[0]; if (!b) return null;
+    b.notes = 'refused-write probe ' + (b.notes || '');
+    if (typeof save === 'function') save();
+    return b.id;
+  });
+  await p.waitForTimeout(3500);
+  const bizToasts = await p.evaluate(() => (window.__toasts || []).slice());
+  if (!bizEdit) fail('global save: no business in the fixture to edit');
+  else {
+    if (!bizToasts.some(t => /^saved$|^تم الحفظ$/i.test(t.trim()))) ok('global save: a refused write is never announced as "Saved" — said ' + JSON.stringify(bizToasts));
+    else fail('global save: the app toasted "Saved" on a write the database refused — ' + JSON.stringify(bizToasts));
+    if (bizToasts.length) ok('global save: it does say something, so the save is not silent — ' + JSON.stringify(bizToasts));
+    else fail('global save: nothing was said at all; a save must not be silent either');
+  }
+  REFUSE_BIZ = false;
 
   if (errors.length) errors.forEach(e => fail(e));
   console.log(SABOTAGE ? '\n[SABOTAGE MODE]' : '');
