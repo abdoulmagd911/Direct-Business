@@ -48,11 +48,19 @@ function canFinView(){return !window.__isShareView;}
    into canFinView(), because canFinView() also drives the page's own share-view wording (and
    js/45 / js/57 read it), and a role-denied person should get js/49's message, not that one.
    Unknown answers never block, matching mayOpen's own rule. */
-function finMayExport(){
+/* 2026-09-06 (watch cycle 31): round 50 built the two-question check below for the CSV exports,
+   and the name describes its first caller rather than the question it asks. The question — "may
+   this session see Finance's money at all" — is not specific to a file: finRow() prints one
+   invoice's total, cost, revenue, profit, received and remaining into a modal, and had no check
+   of its own. So the predicate is named for the question and finMayExport delegates to it, which
+   leaves round 50's name, its callers and its probe exactly as they were. */
+function finMaySeeMoney(){
   try{ if(typeof canFinView==='function'&&!canFinView())return false; }catch(_){}
   try{ if(typeof window.__v73MayOpen==='function'&&!window.__v73MayOpen('finance'))return false; }catch(_){}
   return true;
 }
+try{ window.finMaySeeMoney=finMaySeeMoney; }catch(_){}
+function finMayExport(){ return finMaySeeMoney(); }
 try{ window.finMayExport=finMayExport; }catch(_){}
 /* expose the finance client + permission checks so later layers (e.g. the finance↔client
    mapping in v53) can reach them from their own script block */
@@ -1114,6 +1122,14 @@ window.pdClientLink=function(directClientId){
   return tpl.replace('{client_id}',encodeURIComponent(directClientId||''));
 };
 window.finRow=function(id){
+  /* 2026-09-06 (watch cycle 31): this modal is one invoice's whole money — total, cost, revenue,
+     profit, received, remaining and wallet — and it had no check of its own. Same stale-tab shape
+     cycle 12 closed on the writes and cycle 30 / round 50 closed on the exports: the page refuses
+     this session in words while the function sits on window with the rows already in memory.
+     Returns silently rather than alerting: the only way to reach it on a refused page is a stale
+     tab or the console, and the person already has the refusal on screen — an alert would be noise
+     on top of it, not the missing explanation the write paths needed. */
+  if(typeof finMaySeeMoney==='function'&&!finMaySeeMoney())return;
   var r=(FIN.rows||[]).find(function(x){return x.id===id;});if(!r)return;
   var ar=isArF(), _f=function(en,a){return ar?a:en;};
   // The invoice = every line sharing this invoice number (same deleted state as the one clicked).
