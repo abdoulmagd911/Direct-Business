@@ -1,3 +1,60 @@
+## 2026-09-06 · Round 52 — the stale rehearsal probe was hiding four live defects
+
+`scripts/qa/probe-lifecycle5.mjs` walks a lead's whole life across 64 stations. It had been on
+the "pre-existing red" list for rounds, and nobody could say WHICH station broke, because it
+collected its report as it went and printed it only at the end — one hard error and everything
+it had already measured vanished behind a Playwright timeout. It now prints the whole run
+before it stops. That single change turned "a stale probe" into a list of real defects.
+
+**Fixed this round (each sabotage-verified on its own):**
+
+1. **A client the app had just linked was told it was not linked.** The Won handover asks for
+   the Direct client ID under the words "links invoices & finance" and saves it on the company;
+   the banner on the card asked only the `client_profiles` table, so it showed an amber
+   "⚠️ Not linked to Direct yet — add a billing profile" and invited the same number to be typed
+   in a second time. Three states now (js/27): no ID; an ID captured at handover with no billing
+   profile recorded yet; a full profile. Only the first is "not linked".
+
+2. **The importer could not name the one file this app itself writes.** Dropping the Finance
+   ledger export back in gave the generic "not recognized" plus a Teach button — which would map
+   `revenue_sar` and `profit_sar` back in as though a person had supplied them. They are worked
+   out by the database (revenue = total − wallet, profit = revenue − cost), so teaching that
+   shape is a loop that can only overwrite live numbers with a stale copy of themselves. Named
+   and refused in both languages, no mapping offered (js/65).
+
+3. **Two drill-downs wrote filter keys nothing has read since the Phase 2 Ledger rebuild.**
+   "Tap a service to see its invoices" set `FIN.f.service` and opened the WHOLE ledger silently;
+   the client card's "Open in Finance ledger ↗" set `FIN.f.client` and showed every company's
+   money to someone who asked for one client's. The client one now goes through `finClient()`
+   and really filters; the service one says plainly that this Ledger has no service filter
+   (js/25 + js/16) — the same shape watch cycle 6 already fixed once for `clientKey`.
+
+4. **The Ledger's company filter could not state its own filter.** Its dropdown was built from
+   the rows that survived the filter, so narrowing to a company with nothing to show removed
+   that company from its own list and the control fell back to reading "All companies" while it
+   was hiding everything. Built from every company the ledger holds (js/16).
+
+**Flagged, NOT fixed — decisions or work that is not a session's to take:**
+
+- **The invoice modal has no route in the interface.** `finRow(id)` still holds one invoice's
+  whole money and its origin/proposal editor, and it still works — but since the Ledger tab was
+  rebuilt on `finance_transactions`, every remaining caller is a probe. Nothing a person can
+  click opens an invoice any more. probe-lifecycle5 drives it directly and says so in the
+  station's own label rather than implying a route that does not exist.
+- **There is no per-service invoice list.** That is what the income-by-service tap was reaching
+  for; the honest note is a stopgap, not the feature.
+- **The importer keys invoices on `Invoice Reference #`, not `Invoice Number`.** Measured, not
+  changed — an import produced `invoice_no = REF-3001` while the file also carried `DP-3001`.
+  Worth confirming with the owner which of the two he thinks of as "the invoice number".
+
+**Probe rewritten where it was stale, not where the app was wrong** — the renamed leads export
+button, the `client_profiles` model that replaced the billing-accounts blob, a real Invoice
+Export in place of our own export, and one assertion **inverted**: it demanded the client card
+print an amount, which the owner's 2026-08-21 ruling forbids and which `probe-money-placement`
+in the same battery asserts the opposite of. Two probes in one battery contradicting each other
+is worse than either being wrong alone. The August headline is now checked against what the
+ledger recorded rather than a hard-coded total. 64 stations, 0 failures.
+
 ## 2026-09-06 · Watch cycle 31 — the rest of the read-out surface, and the Arabic side of everything added since cycle 26
 
 **Attack area (aa): every OTHER way money leaves the Finance page to a session that may not see it. Attack area (bb): the Arabic wording of every surface this watch has added since cycle 26.**
