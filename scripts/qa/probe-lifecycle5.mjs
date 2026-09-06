@@ -273,6 +273,16 @@ await STEP('card shows "Why we lost it"', await page.evaluate(() => /Why we lost
 await SHOT('card-marasi-lost');
 await STEP('quick edit did NOT clear the owner', await page.evaluate(id => !!getLead(id).assignedTo, id5), await page.evaluate(id => getLead(id).assignedTo || 'CLEARED', id5));
 
+/* 2026-09-06 (round 57): the Leads pipeline chips were being injected above the DETAIL card too —
+   "All 6 · Prospect 0 · Contacted 2" over ONE company, filtering nothing, highlighting themselves
+   when tapped. Already fixed for the client card and guarded by probe-stress; the lead card kept
+   it. Checked on a LEAD (Marasi, still open from the station above) and on a CLIENT below. */
+const chipsOnLead = await page.evaluate(id => { openLeadFn(id); return null; }, id5);
+await page.waitForTimeout(1400);
+await STEP('a lead\'s own card shows no pipeline stage chips — there is nothing on it to filter',
+  await page.evaluate(() => { const c = document.querySelector('#view .v26_3-chips'); return !c || c.style.display === 'none' || c.offsetParent === null; }));
+await STEP('and the Leads LIST still has them', await page.evaluate(() => { openLead = null; current = 'leads'; render(); return true; }) && await (async () => { await page.waitForTimeout(1200); return page.evaluate(() => { const c = document.querySelector('#view .v26_3-chips'); return !!(c && c.offsetParent !== null); }); })());
+
 // ============ STATION 7 · CLIENT CARD (Al-Noor): Direct ID, billing accounts, agreement, AM ============
 await page.evaluate(id => { openLeadFn(id); }, id1);
 await page.waitForTimeout(1300);

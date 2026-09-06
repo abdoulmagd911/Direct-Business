@@ -62,10 +62,32 @@ const alive = async () => {
   try { return { ok: await page.evaluate(() => typeof current !== 'undefined'), why: '' }; }
   catch (e) { return { ok: false, why: String(e && e.message || e).split('\n')[0].slice(0, 90) }; }
 };
+/* 2026-09-06 (round 57): the verdict used to be "did #view's innerHTML get more than 50
+   characters longer, or the body 200". That is far too coarse for most of this app's controls,
+   and it produced 79 "NO-OP?" lines out of 189 buttons — a list too noisy for anyone to act on,
+   which is the same disease as a warning nobody must read. Almost all of them DO something: a
+   <details> card opens, a chip cycles its label from "—" to "Buys elsewhere", a filter narrows
+   the rows. None of those move the length much, and one of them (a chip cycling) can make the
+   markup SHORTER. The fingerprint now notices what those controls actually change — the text, the
+   open/closed cards, the row count, the clicked button's own state — so a "NO-OP" line means the
+   page really did not react. */
 const state = () => page.evaluate(() => ({
   page: (typeof current !== 'undefined' ? current : '(app gone)'), lead: (typeof openLead !== 'undefined' && openLead) || '', body: document.body.innerHTML.length,
-  modal: !!(document.querySelector('#modal.show, .modal-back.show, #modal[style*="flex"], #modal[style*="block"]') || (document.getElementById('modal') && document.getElementById('modal').offsetParent)), len: (document.getElementById('view') || {}).innerHTML?.length || 0,
-  toastTxt: [...document.querySelectorAll('.toast,.v19-toast,[class*=toast]')].filter(t=>t.offsetParent!==null).map(t=>t.textContent.trim()).join('|')
+  /* openModal() puts the class on #ov, not on #modal — so every quick-edit dialog in the app was
+     invisible to this detector and reported as a dead button (round 57). */
+  modal: !!(document.querySelector('#ov.show, #modal.show, .modal-back.show, #modal[style*="flex"], #modal[style*="block"]') || (document.getElementById('modal') && document.getElementById('modal').offsetParent)), len: (document.getElementById('view') || {}).innerHTML?.length || 0,
+  toastTxt: [...document.querySelectorAll('.toast,.v19-toast,[class*=toast]')].filter(t=>t.offsetParent!==null).map(t=>t.textContent.trim()).join('|'),
+  /* what the length test cannot see */
+  text: ((document.getElementById('view') || {}).innerText || '').replace(/\s+/g, ' '),
+  details: [...document.querySelectorAll('#view details')].map(d => d.open ? '1' : '0').join(''),
+  rows: document.querySelectorAll('#view tbody tr').length,
+  visRows: [...document.querySelectorAll('#view tbody tr')].filter(r => r.style.display !== 'none').length,
+  selects: [...document.querySelectorAll('#view select')].map(x => x.value).join('|'),
+  checks: [...document.querySelectorAll('#view input[type=checkbox]')].map(x => x.checked ? '1' : '0').join(''),
+  href: location.pathname,
+  /* the v60 jump-bar chips scroll to a section and change nothing else — deliberately, their own
+     comment says "display-only; nothing is moved or hidden". Scrolling IS the action. */
+  scroll: Math.round(window.scrollY) + ':' + [...document.querySelectorAll('#view, #view .scroll, main, .app')].map(e => Math.round(e.scrollTop)).join(',')
 }));
 const PAGES = [
   { name: 'Leads list', spec: { page: 'leads' } },
@@ -85,6 +107,14 @@ for (const P of PAGES) {
     if (!label || SKIP.test(label)) { results.push([P.name, label || '(blank)', 'skipped']); continue; }
     await goto(P.spec);
     const before = await state(); errs = []; popups = 0;
+    /* An <a target="_blank"> hands the click to the browser, which the harness suppresses — the
+       action is real and verifiable from the element itself, so it is read before clicking rather
+       than inferred from a page that correctly did not change. */
+    const isExternalLink = await page.evaluate(i => {
+      const btns = [...document.querySelectorAll('#view button, #view a.btn, .v26_3-chips button, .v26_3-section-head button')].filter(b => b.offsetParent !== null);
+      const b = btns[i];
+      return !!(b && b.tagName === 'A' && b.getAttribute('target') === '_blank' && (b.getAttribute('href') || '').length > 1);
+    }, i);
     const clicked = await page.evaluate(i => {
       const btns = [...document.querySelectorAll('#view button, #view a.btn, .v26_3-chips button, .v26_3-section-head button')].filter(b => b.offsetParent !== null);
       if (!btns[i]) return false; try { btns[i].click(); return true; } catch (e) { window.__clickErr = String(e); return 'threw'; }
@@ -106,6 +136,14 @@ for (const P of PAGES) {
     else if (Math.abs(after.len - before.len) > 50) verdict = 'ok: view changes';
     else if (Math.abs(after.body - before.body) > 200) verdict = 'ok: opens panel/overlay';
     else if (after.toastTxt !== before.toastTxt) verdict = 'ok: toast: ' + after.toastTxt.slice(0, 40);
+    else if (after.details !== before.details) verdict = 'ok: opens/closes a card';
+    else if (after.visRows !== before.visRows || after.rows !== before.rows) verdict = `ok: filters the list (${before.visRows}→${after.visRows} rows)`;
+    else if (after.selects !== before.selects) verdict = 'ok: changes a dropdown';
+    else if (after.checks !== before.checks) verdict = 'ok: toggles a checkbox';
+    else if (after.href !== before.href) verdict = 'ok: changes the address → ' + after.href;
+    else if (after.text !== before.text) verdict = 'ok: the page text changes';
+    else if (after.scroll !== before.scroll) verdict = 'ok: scrolls to a section';
+    else if (isExternalLink) verdict = 'ok: opens an external link in a new tab';
     else verdict = 'NO-OP?';
     results.push([P.name, label, verdict]);
   }

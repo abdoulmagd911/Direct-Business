@@ -134,6 +134,15 @@
   window.render=function(){var out=_r.apply(this,arguments);try{
     if(current==='leads'&&typeof openLead!=='undefined'&&openLead){
       var b=(typeof getLead==='function')?getLead(openLead):null;
+      /* 2026-09-06 (round 57) — the pipeline stage chips ("All 6 · Prospect 0 · Contacted 2 · …")
+         are injected for the whole Leads section, and the DETAIL card is part of that section, so
+         they sat above a single company's card with nothing to filter. Clicking one highlighted it
+         and did nothing else. This was already fixed for the CLIENT card ("no longer wears the
+         Leads costume", guarded by probe-stress S27) — but only inside the isClient branch, so the
+         LEAD card kept wearing it. Found by sweep-buttons once round 53 let it finish.
+         Hidden for ANY open record; the list keeps them. */
+      try{ var _dv=document.getElementById('view');
+        if(_dv){ var _ch=_dv.querySelector('.v26_3-chips'); if(_ch)_ch.style.display='none'; } }catch(_){}
       if(b&&b.isClient){
         var t=document.getElementById('vTitle'); if(t&&/Leads|العملاء المحتملون/.test(t.textContent))t.textContent=fl('Clients','العملاء');
         /* the sidebar highlight should sit on Clients too, not Leads */
