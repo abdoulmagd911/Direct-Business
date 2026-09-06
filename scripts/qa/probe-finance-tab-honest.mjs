@@ -29,7 +29,7 @@ import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = 8387;
+const PORT = 8712;
 const srv = start(PORT);
 const BASE = 'http://localhost:' + PORT;
 let failures = 0;

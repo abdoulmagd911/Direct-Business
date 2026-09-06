@@ -24,14 +24,14 @@
      5. A later Direct Payments import carrying the same invoice number does not silently overwrite
         a hand-entered booking without saying what it is doing.
 
-   Run:  node scripts/qa/probe-b2c-manual-attacks.mjs        (port 8237)
+   Run:  node scripts/qa/probe-b2c-manual-attacks.mjs        (port 8706)
    Sabotage (file-level): make live() drop revenue_way='b2c_manual'; make the ageing card skip
    record_type='b2c'. Restore byte-identical (md5). */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = 8237;
+const PORT = 8706;
 let failures = 0;
 const fail = (m) => { failures++; console.log('  ✗ ' + m); };
 const ok = (m) => console.log('  ✓ ' + m);

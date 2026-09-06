@@ -28,7 +28,7 @@
      3. The three CSVs stay refused (a regression guard on cycles 30 and round 50).
      4. The Records-page export refuses under both halves too (round 51's guard).
 
-   Run:  node scripts/qa/probe-readout-surface-attacks.mjs        (port 8243)
+   Run:  node scripts/qa/probe-readout-surface-attacks.mjs        (port 8709)
    Sabotage (file-level): remove the guard from finRow, and separately the finance guard from
    exportCurrent() in js/core/core-05-records.js. Each must turn this red on its own. Restore
    byte-identical (md5). */
@@ -36,7 +36,7 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = 8243;
+const PORT = 8709;
 let failures = 0;
 const fail = (m) => { failures++; console.log('  x ' + m); };
 const ok = (m) => console.log('  + ' + m);

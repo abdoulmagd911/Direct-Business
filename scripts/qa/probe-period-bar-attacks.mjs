@@ -25,14 +25,14 @@
         leaves the state filtering by a month the dropdown can no longer show. Whatever the app
         does there, it must not display a control that contradicts the filter actually in force.
 
-   Run:  node scripts/qa/probe-period-bar-attacks.mjs        (port 8239)
+   Run:  node scripts/qa/probe-period-bar-attacks.mjs        (port 8707)
    Sabotage (file-level): wire a chip's onclick to the wrong value; make finPeriodLabel print the
    part without the month name. Restore byte-identical (md5). */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = 8239;
+const PORT = 8707;
 let failures = 0;
 const fail = (m) => { failures++; console.log('  x ' + m); };
 const ok = (m) => console.log('  + ' + m);

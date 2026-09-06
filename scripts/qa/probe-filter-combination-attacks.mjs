@@ -19,7 +19,7 @@
      4. A combination that matches nothing says so, rather than printing a confident set of zeros
         (the A1 rule, and the empty-comparison rule from cycle 7).
 
-   Run:  node scripts/qa/probe-filter-combination-attacks.mjs        (port 8229)
+   Run:  node scripts/qa/probe-filter-combination-attacks.mjs        (port 8704)
    Sabotage (file-level): make finInPeriod ignore the month part -> the month combinations go red;
    make the sector chip a no-op in finInPeriod -> the sector combinations go red. Restore
    byte-identical (md5). */
@@ -27,7 +27,7 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = 8229;
+const PORT = 8704;
 let failures = 0;
 const fail = (m) => { failures++; console.log('  ✗ ' + m); };
 const ok = (m) => console.log('  ✓ ' + m);

@@ -267,10 +267,26 @@ async function clearPlaceholders(p, keys) {
   const { p, errors } = await openPage('/documents/contract');
   check('A: contract editor opens by deep link', await p.evaluate(() => window.__dgTabProbe && __dgTabProbe() === 'contract' && !!document.querySelector('#ctWrap .ct-form')));
   await p.evaluate(SEED_BIZ);
-  const crInput = () => p.evaluate(() => {
-    const f = (k) => ([...document.querySelectorAll('#ctWrap input')].find(i => (i.getAttribute('oninput') || '').includes("'party2','" + k + "'")) || {}).value;
-    return { cr: f('cr'), rep: f('rep'), phone: f('phone'), note: /Taken from the matching record|مأخوذ من السجل المطابق/.test(document.querySelector('#ctWrap .ct-form').innerText) };
-  });
+  /* 2026-09-06 (watch cycle 34): this read `.innerText` off #ctWrap .ct-form without waiting for
+     it, so under load — six probes in a parallel batch — the form had not rendered yet and the
+     whole run died on "Cannot read properties of null". That crash is the entire reason this probe
+     was classified "environmental, red in a batch and green alone" for six cycles: it was never
+     the environment, it was a check reading a node before it existed. It waits for the form now,
+     and says so plainly if it never appears rather than throwing a stack trace that hides every
+     finding behind it (the same lesson round 52 applied to probe-lifecycle5). */
+  const crInput = async () => {
+    for (let i = 0; i < 40; i++) {
+      const there = await p.evaluate(() => !!document.querySelector('#ctWrap .ct-form'));
+      if (there) break;
+      await sleep(250);
+    }
+    return p.evaluate(() => {
+      const form = document.querySelector('#ctWrap .ct-form');
+      if (!form) return { cr: null, rep: null, phone: null, note: null, __missing: true };
+      const f = (k) => ([...document.querySelectorAll('#ctWrap input')].find(i => (i.getAttribute('oninput') || '').includes("'party2','" + k + "'")) || {}).value;
+      return { cr: f('cr'), rep: f('rep'), phone: f('phone'), note: /Taken from the matching record|مأخوذ من السجل المطابق/.test(form.innerText) };
+    });
+  };
   /* item 1 — no CR, no twin */
   await p.evaluate(() => ctSet('clientId', 'qa-nocr')); await sleep(900);
   let v = await crInput();
@@ -307,7 +323,7 @@ async function clearPlaceholders(p, keys) {
     [...document.querySelectorAll('#ctWrap select option')].some(o => /no saved proposals for this client|لا توجد عروض محفوظة لهذا العميل/.test(o.textContent))));
   const ann = await p.evaluate(() => ({ annex: !!document.querySelector('#ctAnnex'), feeTables: document.querySelectorAll('#ctPages table.ct-fee').length,
     emptyTbody: [...document.querySelectorAll('#ctPages table').values()].some(t => !t.querySelector('tbody tr')),
-    clauseRefsAnnex: /ملحق الرسوم/.test(document.getElementById('ctPages').innerText) }));
+    clauseRefsAnnex: /ملحق الرسوم/.test((document.getElementById('ctPages')||{}).innerText||'') }));
   check('A2: an empty annex prints NO annex element and NO fee table (renders as nothing, not a broken/empty table)', !ann.annex && ann.feeTables === 0 && !ann.emptyTbody, JSON.stringify(ann));
   check('A2: the financial clause DOES reference the fee annex (fixture mirrors the live template shape)', ann.clauseRefsAnnex);
 
@@ -326,7 +342,7 @@ async function clearPlaceholders(p, keys) {
   /* a realistic contract carries a fee annex; add one row, then Issue must proceed */
   await p.evaluate(() => { ctSec('add'); ctSecSet(0, 'tAr', 'طيران'); ctRowSet(0, 0, 'ar', 'تذكرة داخلية اختبارية'); ctRowSet(0, 0, 'en', 'SYNTH domestic ticket'); ctRowSet(0, 0, 'fee', '25'); });
   await sleep(500);
-  check('A2: with one fee row the annex renders (table + heading)', await p.evaluate(() => !!document.querySelector('#ctAnnex table.ct-fee') && document.getElementById('ctPages').innerText.includes('ملحق الرسوم')));
+  check('A2: with one fee row the annex renders (table + heading)', await p.evaluate(() => !!document.querySelector('#ctAnnex table.ct-fee') && (document.getElementById('ctPages')||{}).innerText||''.includes('ملحق الرسوم')));
   await p.evaluate(() => ctIssue()); await sleep(2500);
   const issued = await p.evaluate(() => __ctProbe());
   check('A3: Issue succeeds → CTR-2026-001', issued.docNumber === 'CTR-2026-001', JSON.stringify(issued));
@@ -354,7 +370,10 @@ async function clearPlaceholders(p, keys) {
   /* item 6 variant — clause editor mid-edit survives a language toggle / client pick */
   await p.evaluate(() => { ctNew(); }); await sleep(400);
   await p.evaluate(() => ctClauseEdit('scope')); await sleep(200);
-  await p.evaluate(() => { document.getElementById('ctE_bar').value = 'SYNTH-TYPED-AR-CLAUSE'; document.getElementById('ctE_bar').dispatchEvent(new Event('input')); });
+  /* wait for the editor bar rather than assuming ctClauseEdit has already drawn it — under load it
+     has not, and the raw .value assignment threw and killed the run (watch cycle 34) */
+  for (let i = 0; i < 40 && !(await p.evaluate(() => !!document.getElementById('ctE_bar'))); i++) await sleep(250);
+  await p.evaluate(() => { const e = document.getElementById('ctE_bar'); if (!e) return; e.value = 'SYNTH-TYPED-AR-CLAUSE'; e.dispatchEvent(new Event('input')); });
   await p.evaluate(() => ctLang('en')); await sleep(500);
   const typed1 = await p.evaluate(() => (document.getElementById('ctE_bar') || {}).value);
   check('A6 ATTACK: clause text typed mid-edit survives the AR/EN toggle', typed1 === 'SYNTH-TYPED-AR-CLAUSE', 'editor now holds: ' + JSON.stringify(typed1));
@@ -362,7 +381,7 @@ async function clearPlaceholders(p, keys) {
   const typed2 = await p.evaluate(() => (document.getElementById('ctE_bar') || {}).value);
   check('A6 ATTACK: … and survives picking a client (full repaint)', typed2 === 'SYNTH-TYPED-AR-CLAUSE', 'editor now holds: ' + JSON.stringify(typed2));
   await p.evaluate(() => ctClauseSave('scope')); await sleep(300);
-  check('A6: saving the edited clause prints the typed text (AR) and stays a per-contract override', await p.evaluate(() => { ctLang('ar'); return new Promise(r => setTimeout(() => r(document.getElementById('ctPages').innerText.includes('SYNTH-TYPED-AR-CLAUSE') && __ctProbe().clauses.find(c => c.key === 'scope').override === true), 400)); }));
+  check('A6: saving the edited clause prints the typed text (AR) and stays a per-contract override', await p.evaluate(() => { ctLang('ar'); return new Promise(r => setTimeout(() => r((document.getElementById('ctPages')||{}).innerText||''.includes('SYNTH-TYPED-AR-CLAUSE') && __ctProbe().clauses.find(c => c.key === 'scope').override === true), 400)); }));
   check('A6: no PATCH ever reached contract_clauses (override isolation intact)', clausePatches === 0);
 
   /* item 8 — round trip: save → reload → reopen → save */
@@ -391,7 +410,7 @@ async function clearPlaceholders(p, keys) {
   const p2 = patches[patches.length - 1].body;
   const dCtr = subsetDiff(p1.payload, p2 && p2.payload);
   check('A8 ROUND TRIP (contract): every saved field survives reload + reopen', dCtr === '', dCtr);
-  check('A8: reopened contract prints the override + notice days + annex + hides the disabled clause', await p.evaluate(() => { const t = document.getElementById('ctPages').innerText; return t.includes('(45)') && t.includes('داخلي') && !t.includes('تسوية النزاعات'); }));
+  check('A8: reopened contract prints the override + notice days + annex + hides the disabled clause', await p.evaluate(() => { const t = (document.getElementById('ctPages')||{}).innerText||''; return t.includes('(45)') && t.includes('داخلي') && !t.includes('تسوية النزاعات'); }));
   check('A: no JS errors on the contract editor', errors.length === 0, errors.join(' | '));
   await p.close();
 }
@@ -491,7 +510,7 @@ async function clearPlaceholders(p, keys) {
   await p.evaluate(() => { sfNew(); sfSet('clientId', 'qa-nocr'); }); await sleep(1200);
   const fp = await p.evaluate(() => __sfFeesProbe());
   check('C2: client with ZERO client_service_fees rows → probe reports 0 saved, no Load button, no error', fp.biz === 'qa-nocr' && fp.saved === 0 && await p.evaluate(() => ![...document.querySelectorAll('#sfClientRates button')].some(b => /Load saved rates|تحميل الأسعار المحفوظة/.test(b.textContent))), JSON.stringify(fp));
-  check('C2: … and the fee page shows the friendly placeholder, not an empty table', await p.evaluate(() => /Pick a scenario or add services|اختر سيناريو أو أضف خدمات/.test(document.getElementById('sfPages').innerText) && !document.querySelector('#sfPages table.sf-fee')));
+  check('C2: … and the fee page shows the friendly placeholder, not an empty table', await p.evaluate(() => /Pick a scenario or add services|اختر سيناريو أو أضف خدمات/.test((document.getElementById('sfPages')||{}).innerText||'') && !document.querySelector('#sfPages table.sf-fee')));
   await p.evaluate(() => { sfRowSet(0, 0, 'en', 'SYNTH free row'); sfRowSet(0, 0, 'fee', '0');
     sfRow('add', 0); sfRowSet(0, 1, 'en', 'SYNTH pct row'); sfRowSet(0, 1, 'fee', '5%');
     sfRow('add', 0); sfRowSet(0, 2, 'en', 'SYNTH pct free'); sfRowSet(0, 2, 'fee', '5%'); sfRowSet(0, 2, 'free', true);

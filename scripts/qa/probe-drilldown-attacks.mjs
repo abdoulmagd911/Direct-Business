@@ -20,7 +20,7 @@
      8. The reconciliation guard is real: when the rows genuinely do not add up to the total, the
         detail is refused in words instead of shown.
 
-   Run:  node scripts/qa/probe-drilldown-attacks.mjs        (port 8223)
+   Run:  node scripts/qa/probe-drilldown-attacks.mjs        (port 8703)
    Sabotage (file-level): drop the reconcile loop in js/25 -> check 8 goes red; make rowsFor()
    return the group rows when a sub-group is open -> checks 1 and 2 go red. Restore
    byte-identical (md5). */
@@ -28,7 +28,7 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = 8223;
+const PORT = 8703;
 let failures = 0;
 const fail = (m) => { failures++; console.log('  ✗ ' + m); };
 const ok = (m) => console.log('  ✓ ' + m);

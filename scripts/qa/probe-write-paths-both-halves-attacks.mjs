@@ -25,14 +25,14 @@
      3. Under a role that denies the Finance page it changes nothing.
    Every check diffs the actual table over the REST API, never the page's own state.
 
-   Run:  node scripts/qa/probe-write-paths-both-halves-attacks.mjs        (port 8247)
+   Run:  node scripts/qa/probe-write-paths-both-halves-attacks.mjs        (port 8710)
    Sabotage (file-level): narrow the guard back to the share-view question alone. Restore
    byte-identical (md5). */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = 8247;
+const PORT = 8710;
 let failures = 0;
 const fail = (m) => { failures++; console.log('  x ' + m); };
 const ok = (m) => console.log('  + ' + m);

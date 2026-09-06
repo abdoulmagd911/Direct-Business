@@ -13,14 +13,14 @@
         v62MergeBiz, v62UnmergeBiz, v62DismissDup) all leave every table byte-identical.
      3. They refuse QUIETLY and safely — no exception thrown, no half-written row, no crash.
      4. An admin can still do all of it (the guards do not break real work).
-   Run:  node scripts/qa/probe-permissions-attacks.mjs      (port 8211)
+   Run:  node scripts/qa/probe-permissions-attacks.mjs      (port 8701)
    Sabotage: drop the canFinEdit() guard from finDelInv (or any of the four added this cycle)
    → that path's check goes red. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = 8211; const srv = start(PORT); const BASE = 'http://localhost:' + PORT;
+const PORT = 8701; const srv = start(PORT); const BASE = 'http://localhost:' + PORT;
 let failures = 0;
 const fail = (m) => { failures++; console.log('  ✗ ' + m); };
 const ok = (m) => console.log('  ✓ ' + m);

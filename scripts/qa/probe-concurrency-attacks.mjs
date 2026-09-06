@@ -20,7 +20,7 @@
      7. The by-id Delete/Restore pair carries the same permission guard as the by-invoice-number
         pair (cycle 12 fixed the second pair and this probe found the first still open).
 
-   Run:  node scripts/qa/probe-concurrency-attacks.mjs        (port 8217)
+   Run:  node scripts/qa/probe-concurrency-attacks.mjs        (port 8702)
    Sabotage (file-level - js/16 calls its own local functions, so replacing a window.* copy is a
    rubber stamp): put the flat "your account was not allowed to" message back on the four
    delete/restore paths -> checks 3, 4 go red; drop the guard from finRestore -> check 7 goes red.
@@ -29,7 +29,7 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = 8217;
+const PORT = 8702;
 let failures = 0;
 const fail = (m) => { failures++; console.log('  ✗ ' + m); };
 const ok = (m) => console.log('  ✓ ' + m);

@@ -1,3 +1,31 @@
+## 2026-09-06 · Watch cycle 34 — six cycles of "environmental" were twelve port collisions, eleven of them mine
+
+**Attack area (gg): the alias grouping map at scale and under hostile names. Attack area (hh): the client-rollup cache. And, first, the item cycle 33 left unresolved: `sweep-buttons`.**
+
+Cycle 33 landed, and the Code session cleared the last four standing reds (`7e6da51`) — none of them an app defect: fixtures whose meaning drifted with the calendar, a probe asserting a world the owner had replaced, and one that could never run at all. Nothing queued.
+
+**The real find of this cycle is about this session's own work, and it is the largest self-inflicted defect found so far.**
+
+`sweep-buttons` had been "red at a different line every run — load-timing, environmental" since cycle 29. Run alone with a generous limit it **exits 0 in 363 seconds**. The battery runner kills at **240**. It was never failing; it was being killed mid-run, and *where* it happened to be when killed varied — which is exactly the symptom recorded as a mystery for five cycles.
+
+That answered one probe. Then the same question was asked of `probe-generator-attacks`, which fails in a batch and passes alone in 189s — inside the old limit, so the timeout could not be the reason. Reproduced under deliberate contention, it died on **EADDRINUSE, port 8899**. So the ports were audited across the whole suite:
+
+**Twelve pairs of probes were sharing a port. Eleven of the twelve involve probes this session created** — ports 8211 through 8251, picked by incrementing without once checking what was already taken. The battery runs **six at a time**, so whenever two colliding probes overlapped, one died with EADDRINUSE at an unpredictable point. **That is the whole "environmental, red in a batch and green alone" class**, written off across three probes and six cycles.
+
+Worse, and worth recording plainly: **the suite already knew.** `check-probe-integrity.mjs` has had a `PORT_DUP` tell all along, and it was printing these collisions among the ~50 warnings *outside the gated set* — a list nobody had to act on, so nobody read it. **A warning nobody must act on is a warning nobody reads.**
+
+Fixed: all eleven of this session's probes moved to a private block (8701–8711), plus the one remaining pre-existing pair (`probe-finance-tab-honest` 8387 → 8712). And **`PORT_DUP` is now a build failure, not a warning** — `check-probe-integrity` fails the run on a duplicate port and names both files. Verified it can fail (a deliberate collision reddens it and names the pair) and restores clean. It now reports **all 122 probes that open a port use a port of their own**.
+
+**Two real crashes fixed in `probe-generator-attacks` on the way.** Under load it read `.innerText` off `#ctWrap .ct-form` and `.value` off `#ctE_bar` before either had rendered, and died on a null — killing the run and hiding every finding behind a stack trace, the same shape round 52 fixed in `probe-lifecycle5`. Both now wait for their element, and every `getElementById(...).innerText` in that file is null-safe.
+
+**Attack area (gg): no defect found.** New `scripts/qa/probe-grouping-canon-attacks.mjs` (port 8711, 12 checks) drives **306 groups and 1,107 aliases** over 308 invoices. Every invoice lands in exactly one bucket and they sum to the independent recount (68ms); a retired group listed **before** a live one does not capture the live one's client; `finCanon` is stable across repeated calls; `clearFinCanon` genuinely empties the cache (a renamed group is the old name until it is cleared and the new name immediately after); and an ungrouped client keeps the same identity key across a real language switch. Three sabotages caught.
+
+**A blind spot in my own new probe, caught by sabotage and closed.** Turning off `finCanon`'s grouping entirely was caught by only one incidental check — because every fixture name belonged to a *different* group, so grouping-on and grouping-off gave the same bucket count and the same total. **Money moves between buckets, never in or out, so a total can never prove grouping happened.** Three invoices naming a *second* alias of an existing group were added, and the bucket **count** now proves it: with grouping off the mutation reddens three checks, including one that names the cause.
+
+**Two behaviours measured and written down rather than "fixed".** A name listed as an alias by **two active groups** resolves to whichever appears first in the list, silently — order in `financeGroupMap` is not something anyone sets deliberately, so the winner is arbitrary. **Checked against the live database before deciding it mattered: 3 live groups, all active, zero aliases claimed by more than one.** It is a question about the data, not a defect in the code, and it is not raised to the owner because no live money is affected. Separately: a row named exactly a group's **canonicalName**, when that name is not among its own aliases, is *not* matched to it — js/62 matches on aliases only, which is what its code says it does.
+
+**Battery:** 79 probes plus `check-structure` and `check-probe-integrity`, 76 green. `sweep-buttons` is **green in the battery** now. Three probes still fail only under six-way parallel load and pass alone (`probe-generator-attacks`, `probe-recovery-attacks`, `probe-scale-attacks`, all exit 0 serially) — genuine resource contention rather than ports or timeouts, and now a precisely-bounded three rather than a vague class.
+
 ## 2026-09-06 · Round 55 — the last four standing reds, and a probe that was writing into real storage
 
 All four are green. **Not one of them was an app defect** — every failure was a probe asserting a

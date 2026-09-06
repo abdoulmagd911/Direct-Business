@@ -29,13 +29,13 @@
      4. Whatever they do, they must not half-work - no empty-but-downloaded file, no file naming
         the invoices with the numbers blanked.
 
-   Run:  node scripts/qa/probe-export-access-attacks.mjs        (port 8241)
+   Run:  node scripts/qa/probe-export-access-attacks.mjs        (port 8708)
    Sabotage (file-level): remove the canFinView guard from any one export. Restore byte-identical (md5). */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = 8241;
+const PORT = 8708;
 let failures = 0;
 const fail = (m) => { failures++; console.log('  x ' + m); };
 const ok = (m) => console.log('  + ' + m);

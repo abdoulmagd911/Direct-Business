@@ -27,7 +27,7 @@
         opening a b2c_manual invoice showed "Actual invoice" selected, and one Save silently
         rewrote the stored way. Check 17 is that defect; check 16 is its positive control.
 
-   Run:  node scripts/qa/probe-promo-revenue-attacks.mjs        (port 8231)
+   Run:  node scripts/qa/probe-promo-revenue-attacks.mjs        (port 8705)
    Sabotage (file-level): switch SHOW_PROMO_ON_FINANCE back on in js/25 -> the withheld-registry
    checks go red; drop 'promo_code' rows out of live() in js/16 -> the counted-once checks go red;
    revert WAYS to the four-way list -> check 17 goes red. Restore byte-identical (md5). */
@@ -35,7 +35,7 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = 8231;
+const PORT = 8705;
 let failures = 0;
 const fail = (m) => { failures++; console.log('  ✗ ' + m); };
 const ok = (m) => console.log('  ✓ ' + m);

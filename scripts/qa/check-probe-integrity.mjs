@@ -277,6 +277,31 @@ if (noSignal.length > NO_FAIL_SIGNAL_BUDGET) {
   console.log(`  ✓ ${noSignal.length} probe(s) cannot signal failure — at or below the ${NO_FAIL_SIGNAL_BUDGET} recorded on 2026-09-03`);
 }
 
+/* ---- no two probes may listen on the same port (added watch cycle 34) ----
+   Twelve pairs of probes shared a port, eleven of them created by the oversight session simply
+   incrementing without checking what was taken. The battery runs six at a time, so whenever two
+   colliding probes overlapped one died with EADDRINUSE — at a different point every run, because
+   it depends on timing. That symptom was written off as "environmental, red in a batch and green
+   alone" for six cycles across three probes. It was never the environment. This check makes the
+   mistake impossible to repeat quietly: a duplicate port is a build failure, not a mystery. */
+{
+  const ports = new Map();
+  for (const f of files) {
+    const m = f.src.match(/PORT\s*=\s*(\d+)/);
+    if (!m) continue;
+    const port = +m[1];
+    if (!ports.has(port)) ports.set(port, []);
+    ports.get(port).push(f.base);
+  }
+  const clashes = [...ports.entries()].filter(([, fsx]) => fsx.length > 1);
+  if (clashes.length) {
+    clashes.forEach(([port, fsx]) => console.log(`  ✗ port ${port} is used by ${fsx.length} probes: ${fsx.join(', ')} — the battery runs six at a time, so these will kill each other with EADDRINUSE at an unpredictable point`));
+    bad += clashes.length;
+  } else {
+    console.log(`  ✓ all ${ports.size} probes that open a port use a port of their own`);
+  }
+}
+
 if (bad) { console.log(`\nprobe-integrity FAILED — ${bad} problem(s).`); process.exit(1); }
 console.log('\nprobe-integrity OK — every gated probe can still fail, and no new probe was added that cannot.');
 process.exit(0);
