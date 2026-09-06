@@ -27,7 +27,13 @@
 (function(){try{
   if(!window.renderFinance) return;
   var _rf=window.renderFinance;
-  window.v32DrillService=function(svc){try{if(window.FIN){FIN.tab='ledger';FIN.f.service=svc;if(typeof render==='function')render();}}catch(e){}};
+  /* 2026-09-06 (round 52): this set FIN.f.service, a key nothing has read since the Phase 2
+     Ledger rebuild — so the tap this table advertises landed on the WHOLE ledger, unfiltered,
+     with nothing saying the service had been dropped. It now names the request so the Ledger can
+     say what it can and cannot do with it (js/16), instead of quietly answering a different
+     question. Clears the client drill at the same time; two stale drill notes at once would be
+     worse than none. */
+  window.v32DrillService=function(svc){try{if(window.FIN){FIN.tab='ledger';FIN.f.serviceDrill=svc;FIN.f.clientKey=null;FIN.f.clientName='';if(typeof render==='function')render();}}catch(e){}};
   function fl(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;}
   function mS(n){n=Number(n)||0;var s=n<0?'-':'';n=Math.abs(n);if(n>=1e6)return s+(n/1e6).toFixed(2)+'M';if(n>=1e3)return s+(n/1e3).toFixed(1)+'K';return s+n.toFixed(0);}
   window.renderFinance=function(v){

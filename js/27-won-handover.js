@@ -88,14 +88,33 @@
       var bizUuid=(window.__bizUuid?window.__bizUuid(id):id);
       var accts=CP.byBiz[bizUuid]||[];
       var linked=accts.length>0;
+      /* 2026-09-06 (round 52) — this banner asked ONE source (the client_profiles table) and
+         called everything else "Not linked to Direct yet". But the handover screen that runs the
+         moment a lead is Won asks for the Direct client ID under the words "links invoices &
+         finance" and stores it on the company record (b.directClientId, js/14). So the app
+         collected the ID, saved it, and then told the person their client was not linked — and
+         invited them to type the same number again as a "profile". Found by probe-lifecycle5,
+         which had been failing on exactly this for rounds without anyone reading its report.
+         There are three states, not two: no ID at all; an ID captured at handover with no billing
+         profile recorded yet; and a full profile. Only the first is "not linked". */
+      var handoverId=(b.directClientId!=null&&String(b.directClientId).trim()!=='')?String(b.directClientId).trim():null;
+      var idOnly=!linked&&!!handoverId;
       var acctHtml=accts.map(function(a2){
         var extra=[a2.payment_terms,a2.billing_cycle].filter(Boolean).join(' · ');
         var suspended=a2.status&&a2.status!=='active';
         return '<span class="tag" style="background:'+(suspended?'#F0453A14':'#E7F8EF')+';color:'+(suspended?'#D92D20':'#0F6E56')+';font-weight:700">'+typeLbl(a2.profile_type)+' · #'+esc(String(a2.direct_client_id))+(extra?(' · '+esc(extra)):'')+(suspended?(' · '+esc(fl('Suspended','موقوف'))):'')+'</span>';
       }).join(' ');
       var el=document.createElement('div'); el.className='v34-link card';
-      el.style.cssText='padding:11px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-inline-start:3px solid '+(linked?'#16B364':'#F79009');
-      if(linked){
+      el.style.cssText='padding:11px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-inline-start:3px solid '+((linked||idOnly)?'#16B364':'#F79009');
+      if(idOnly){
+        /* Linked — by the ID the handover captured. What is missing is the billing profile
+           (payment terms, prepaid/postpaid), so that is what the line asks for, by name. */
+        el.innerHTML='<span style="font-size:15px">🔗</span><span style="font-weight:700;color:#0F6E56">'+fl('Linked to Direct','مرتبط بدايركت')+'</span>'+
+          '<span class="tag" style="background:#E7F8EF;color:#0F6E56;font-weight:700">#'+esc(handoverId)+'</span>'+
+          '<span style="color:var(--muted);font-size:12.5px">'+fl('No billing profile recorded yet — add one to show prepaid/postpaid and payment terms here.','لم يُسجَّل ملف فوترة بعد — أضف ملفًا لعرض نوع الدفع وشروطه هنا.')+'</span><span style="flex:1"></span>'+
+          '<a class="chiplink" href="'+((typeof pdClientLink==='function')?pdClientLink(handoverId):(typeof pdLink==='function'?pdLink(b):'#'))+'" target="_blank" rel="noopener">'+fl('Open in Direct Payments ↗','افتح في مدفوعات دايركت ↗')+'</a>'+
+          ' <button class="btn pri sm" onclick="v34AddProfile(\''+id+'\')">'+fl('+ Add profile','+ إضافة ملف')+'</button>';
+      } else if(linked){
         el.innerHTML='<span style="font-size:15px">🔗</span><span style="font-weight:700;color:#0F6E56">'+fl('Linked to Direct','مرتبط بدايركت')+'</span>'+
           '<span style="color:var(--muted);font-size:12.5px">'+fl(accts.length>1?'billing profiles':'profile','ملفات الفوترة')+'</span> '+acctHtml+'<span style="flex:1"></span>'+
           '<a class="chiplink" href="'+((accts[0]&&typeof pdClientLink==='function')?pdClientLink(accts[0].direct_client_id):(typeof pdLink==='function'?pdLink(b):'#'))+'" target="_blank" rel="noopener">'+fl('Open in Direct Payments ↗','افتح في مدفوعات دايركت ↗')+'</a>'+

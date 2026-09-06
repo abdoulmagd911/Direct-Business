@@ -966,6 +966,19 @@ function rLedger(){
       +'<span>'+(isArF()?('طلبت «'+escF(FIN.f.clientName||'')+'» — لا توجد شركة مرتبطة بهذا الاسم بعد، لذا يُعرض السجل لكل الشركات.'):('You asked for <b>'+escF(FIN.f.clientName||'')+'</b> — no linked company for that name yet, so the Ledger below shows <b>all companies</b>. Link it on the Clients page to filter here.'))+'</span>'
       +'<button class="btn ghost sm" style="margin-inline-start:auto" onclick="finClientClear()">✕</button></div>';
   }
+  /* 2026-09-06 (round 52) — the SAME defect as the note above, a second time, uncaught since the
+     Phase 2 rebuild. "Income by service line" says "Tap a service to see its invoices" and sends
+     you here with FIN.f.service set — a key NOTHING reads any more, because this tab lists
+     finance_transactions by company and has no service filter at all. So the tap opened the whole
+     ledger, unfiltered, silently, for someone who asked for one service. Say it plainly rather
+     than let the page pass itself off as the answer. A per-service invoice list does not exist
+     yet — recorded in docs/BACKLOG.md; this note is honest, not a substitute for building it. */
+  if(FIN.f&&FIN.f.serviceDrill){
+    _drillNote+='<div class="card" style="padding:10px 14px;margin-bottom:10px;background:#FFF3EC;border:1px solid #F6C9A8;font-size:12.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+      +'<span>'+(isArF()?('طلبت خدمة «'+escF(FIN.f.serviceDrill)+'» — هذا السجل يسرد المعاملات حسب الشركة ولا يحتوي على فلتر للخدمة، لذلك يُعرض كل شيء. أرقام هذه الخدمة في جدول «الدخل حسب نوع الخدمة» في الأداء.')
+        :('You asked for the service <b>'+escF(FIN.f.serviceDrill)+'</b> \u2014 this Ledger lists transactions by company and has no service filter, so it is showing <b>everything</b>. That service\u2019s own figures are the row you tapped, on Performance.'))+'</span>'
+      +'<button class="btn ghost sm" style="margin-inline-start:auto" onclick="finServiceClear()">✕</button></div>';
+  }
   var rows=txnLive().filter(function(r){
     var f=TXN.f, prof=TXN.profiles[r.client_profile_id];
     if(f.profileType!=='all'&&(!prof||prof.profile_type!==f.profileType))return false;
@@ -1023,7 +1036,16 @@ function rLedger(){
   h+='<input placeholder="'+_lh('Search company / ref / invoice / DPIN…','بحث عن شركة / مرجع / فاتورة…')+'" value="'+escF(TXN.f.q)+'" style="'+SS+';min-width:200px" oninput="finTxnF(\'q\',this.value)">';
   h+='<select style="'+SS+'" onchange="finTxnF(\'profileType\',this.value)"><option value="all">'+_lh('All profile types','كل أنواع الملفات')+'</option><option value="prepaid" '+(TXN.f.profileType==='prepaid'?'selected':'')+'>'+_lh('Prepaid','مسبق الدفع')+'</option><option value="postpaid" '+(TXN.f.profileType==='postpaid'?'selected':'')+'>'+_lh('Postpaid','آجل الدفع')+'</option><option value="tender" '+(TXN.f.profileType==='tender'?'selected':'')+'>'+_lh('Tender','مناقصة')+'</option></select>';
   h+='<select style="'+SS+'" onchange="finTxnF(\'stage\',this.value)"><option value="all">'+_lh('All stages','كل المراحل')+'</option><option value="pending" '+(TXN.f.stage==='pending'?'selected':'')+'>'+_lh('Expenses pending','بانتظار المصاريف')+'</option><option value="ready" '+(TXN.f.stage==='ready'?'selected':'')+'>'+_lh('Ready to invoice','جاهز للفوترة')+'</option><option value="invoiced" '+(TXN.f.stage==='invoiced'?'selected':'')+'>'+_lh('Invoiced','مفوترة')+'</option><option value="overdue" '+(TXN.f.stage==='overdue'?'selected':'')+'>'+_lh('Overdue','متأخر')+'</option></select>';
-  h+='<select style="'+SS+';max-width:240px" onchange="finTxnF(\'business\',this.value)"><option value="all">'+_lh('All companies','كل الشركات')+'</option>'+order.map(function(uid){return '<option value="'+escF(uid)+'" '+(TXN.f.business===uid?'selected':'')+'>'+escF(bizName(uid)||uid)+'</option>';}).join('')+'</select>';
+  /* 2026-09-06 (round 52): this select's options were built from `order`, which is the list of
+     companies IN THE FILTERED ROWS. So the moment a filter (or a drill-down from a client card)
+     narrowed to a company with nothing to show, that company vanished from its own dropdown and
+     the control fell back to reading "All companies" — while it was in fact hiding everything.
+     The control has to be able to state the filter it is applying, so the list comes from every
+     company the ledger holds, and the current pick is added even if the ledger holds none. */
+  var _allBiz=[]; (function(){ var seen={}; txnLive().forEach(function(r){ if(r.business_id&&!seen[r.business_id]){seen[r.business_id]=1;_allBiz.push(r.business_id);} });
+    if(TXN.f.business!=='all'&&!seen[TXN.f.business])_allBiz.push(TXN.f.business);
+    _allBiz.sort(function(a,b){return (bizName(a)||'').localeCompare(bizName(b)||'');}); })();
+  h+='<select style="'+SS+';max-width:240px" onchange="finTxnF(\'business\',this.value)"><option value="all">'+_lh('All companies','كل الشركات')+'</option>'+_allBiz.map(function(uid){return '<option value="'+escF(uid)+'" '+(TXN.f.business===uid?'selected':'')+'>'+escF(bizName(uid)||uid)+'</option>';}).join('')+'</select>';
   h+='<button class="btn sm" onclick="finTxnCSV()">⬇ '+_lh('Excel (CSV)','إكسل (CSV)')+'</button>';
   h+='<span style="margin-left:auto;font-size:12px">'+(isArF()?('<b>'+rows.length+'</b> معاملة عبر <b>'+order.length+'</b> شركة'):('<b>'+rows.length+'</b> transactions across <b>'+order.length+'</b> compan'+(order.length===1?'y':'ies')))+'</span></div>';
 
@@ -1083,6 +1105,7 @@ function rLedger(){
 }
 window.finF=function(k,v){FIN.f[k]=v;if(k==='client'){FIN.f.clientKey=null;FIN.f.clientName='';}render();};
 window.finClientClear=function(){FIN.f.clientKey=null;FIN.f.clientName='';render();};
+window.finServiceClear=function(){FIN.f.serviceDrill=null;render();};
 /* Strategic & quality teams: jump from a project invoice to the proposal behind it. */
 window.finSetOrigin=function(invNo){try{
   if(!finCanWrite())return;   // 2026-09-02: the editor block is gated, guard the function too (finDelInv's pattern)

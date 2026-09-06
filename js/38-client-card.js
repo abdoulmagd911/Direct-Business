@@ -62,7 +62,7 @@
       var mini=function(lbl,val,col){return '<div style="flex:1;min-width:100px"><div style="font-size:11px;color:var(--muted)">'+lbl+'</div><div style="font-size:18px;font-weight:800;color:'+(col||'#1C1E2B')+'">'+val+'</div></div>';};
       card.innerHTML='<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap">'+
           '<h3 style="margin:0">'+fl('Finance','المالية')+'</h3>'+
-          '<button class="btn sm" onclick="try{current=\'finance\';FIN.tab=\'ledger\';FIN.f.client='+JSON.stringify(cg).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+';render();}catch(e){}">'+fl('Open in Finance ledger ↗','افتح في سجل المالية ↗')+'</button></div>'+
+          '<button class="btn sm" onclick="try{current=\'finance\';if(typeof finClient===\'function\')finClient(\'biz:'+String(bizUuid).replace(/[^A-Za-z0-9_-]/g,'')+'\','+JSON.stringify(cg).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+');else{FIN.tab=\'ledger\';}render();}catch(e){}">'+fl('Open in Finance ledger ↗','افتح في سجل المالية ↗')+'</button></div>'+
         '<div class="ch-sub" style="margin:2px 0 12px">'+(matchedByLink
             ? fl('Linked to Direct finance · '+nInv+' invoice'+(nInv>1?'s':''),'مرتبطة بمالية دايركت · '+nInv+' فاتورة')
             : (fl('Matched to '+nInv+' invoice'+(nInv>1?'s':'')+' by name — not linked yet; ','مطابَقة بـ '+nInv+' فاتورة حسب الاسم — غير مرتبطة بعد؛ ')+'<span style="color:#FF6B00;cursor:pointer;font-weight:700" onclick="try{finLinkMap()}catch(e){}">'+fl('link it now.','اربطها الآن.')+'</span>'))+'</div>'+

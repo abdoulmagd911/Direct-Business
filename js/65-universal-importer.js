@@ -261,6 +261,30 @@
     var h0=String((header&&header[0])||''), joined=(header||[]).join('');
     return /^(%PDF|PK\x03\x04|ÿþ|þÿ|\ufffd)/.test(h0)||/[\x00-\x08\x0e-\x1f]/.test(joined);
   }
+  /* 2026-09-06 (round 52) — the one file this importer could not name was the one this app
+     itself writes. Export the Finance ledger, open it in a spreadsheet, drop it back, and you
+     got the generic "not recognized", with a Teach button inviting you to map its columns —
+     including revenue_sar and profit_sar, which are NOT facts anybody supplied. The database
+     works them out (revenue = total - wallet, profit = revenue - cost) from Direct Payments'
+     figures, so teaching this shape builds a loop that can only overwrite live numbers with a
+     stale copy of themselves, and a person who edited "revenue" in the sheet would watch the
+     app quietly ignore it. Named and refused, with no Teach button offered.
+     Found by probe-lifecycle5, which had been failing on exactly this station for rounds.
+     The Arabic export relabels its header, but js/73 keeps the raw key in brackets -
+     "رقم الفاتورة (invoice_no)" - so headerKeys() catches both languages. */
+  var OURS_MSG_EN='This is a file this app exported (the Finance ledger), not a Direct Payments export. It is a report: its revenue, cost and profit columns are worked out by the app from Direct Payments figures, so importing it back would only overwrite live numbers with a copy of themselves. Drop the Direct Payments export instead.',
+      OURS_MSG_AR='هذا ملف صدّره هذا التطبيق (سجل المالية)، وليس تصديرًا من مدفوعات دايركت. هو تقرير: أعمدة الإيراد والتكلفة والربح فيه يحسبها التطبيق من أرقام مدفوعات دايركت، فاستيراده يكتب الأرقام فوق نفسها لا أكثر. أفلت ملف مدفوعات دايركت بدلًا منه.';
+  function headerKeys(header){
+    return (header||[]).map(function(x){
+      var s=String(x||'').trim(), m=s.match(/\(([A-Za-z0-9_]+)\)\s*$/);
+      return m?m[1]:s;
+    });
+  }
+  function looksLikeOurOwnExport(header){
+    var h=headerKeys(header);
+    return h.indexOf('revenue_sar')>=0&&h.indexOf('profit_sar')>=0&&h.indexOf('integrity_status')>=0;
+  }
+  window.v65LooksLikeOurOwnExport=looksLikeOurOwnExport;
   function detectSignature(headerRow){
     var h=(headerRow||[]).map(function(x){return String(x||'').trim();});
     for (var i=0;i<SIGNATURES.length;i++){
@@ -1023,6 +1047,13 @@
             return;
           }
           var sig=detectSignature(header);
+          /* After the real signatures (a genuine Direct Payments export always wins) and BEFORE
+             any learned mapping — a mapping taught for this shape is itself the mistake. */
+          if(!sig&&looksLikeOurOwnExport(header)){
+            finished=true; ctrl.abort();
+            done({name:f.name, recognized:false, header:header, err:fl(OURS_MSG_EN,OURS_MSG_AR)});
+            return;
+          }
           if(sig&&sig.key==='invoice_export'){ mode='invoice_export'; state=initState(); typeColIdx=header.indexOf('Type'); return; }
           if(sig&&sig.key==='expense_lines_capture'){ mode='expense_lines'; return; }
           if(sig&&sig.key==='expense_gate_capture'){ mode='expense_gate'; return; }
@@ -1104,6 +1135,9 @@
   function routeRows2d(name, rows2d, fileKey, done, gen){
     var hdr=(rows2d&&rows2d[0])||[];
     if(looksBinaryHeader(hdr)){ done({name:name, recognized:false, header:[], err:fl(BINARY_MSG_EN,BINARY_MSG_AR)}); return; }
+    /* same refusal on the pre-parsed route (a pasted or scripted drop), so a file is judged the
+       same way however it arrives — the rule BINARY_MSG already sets for this pair of paths. */
+    if(!detectSignature(hdr)&&looksLikeOurOwnExport(hdr)){ done({name:name, recognized:false, header:hdr, err:fl(OURS_MSG_EN,OURS_MSG_AR)}); return; }
     var sig=detectSignature(hdr);
     if(sig&&sig.key==='invoice_export'){
       var state=initState();
