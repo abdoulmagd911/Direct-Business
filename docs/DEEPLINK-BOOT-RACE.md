@@ -1,5 +1,14 @@
 # The deep link that a slow phone throws away
 
+**Status: FIXED and deployed, round 58, 6 Sep 2026.** Both lines below are landed. Guarded by
+`scripts/qa/probe-deeplink-boot-race.mjs` (port 8713), which reproduces the race deterministically
+by CPU throttling instead of waiting for a busy machine — and which reddens when EITHER half of
+the fix is removed.
+
+**Correction to the table below, measured independently before landing anything: the link was
+lost from 4x, not 6x.** 4x is an ordinary mid-range phone, not a low-end one. It survived only at
+1x — which is to say, only on the machines the people who built it were using.
+
 **Found:** watch cycle 35, 6 Sep 2026 · **Files:** `js/03-clean-url-routing-filter-memory-each-secti.js`, `js/66-document-generator.js` — both outside the watch session's lane, so the fix below is handed over, not landed.
 **Guarded by:** `scripts/qa/probe-generator-attacks.mjs`, check `A: contract editor opens by deep link` (and B–E for the other four editors).
 
@@ -37,7 +46,7 @@ parallel load, no network delay. `4x` is roughly a mid-range Android phone, `6x`
 | CPU throttle | today (as pushed) | with the fix below |
 |---|---|---|
 | 1x | `tab=contract` ✓ | `tab=contract` ✓ |
-| 4x | `tab=contract` ✓ | `tab=contract` ✓ |
+| 4x | **`tab=assets` ✗** (cycle 35 recorded ✓ here; re-measured round 58) | `tab=contract` ✓ |
 | 6x | **`tab=assets` ✗** | `tab=contract` ✓ |
 | 10x | **`tab=assets` ✗** | `tab=contract` ✓ |
 | 20x | **`tab=assets` ✗** | `tab=contract` ✓ |

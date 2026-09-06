@@ -1,3 +1,35 @@
+## 2026-09-06 · Round 58 — the deep link a phone throws away is fixed, and it bit one step earlier than reported
+
+Watch cycle 35 traced six cycles of "probe-generator-attacks is environmental" to a real defect in
+the app and handed over a two-line fix, because `js/03` and `js/66` are outside its lane. **Both
+lines are landed.**
+
+**Reproduced independently before touching anything, by CPU throttling alone — and the measurement
+differs from the handover in the direction that matters: the link was lost from 4x, not 6x.**
+Cycle 35 recorded 4x as surviving. It does not. 4x is an ordinary mid-range phone, not a low-end
+one; the deep link survived only at **1x**, which is to say only on the machines the people who
+built it were using. Anyone opening a `/documents/<tab>` link on a normal phone signed in and
+landed on Today, with nothing saying an address had ever been asked for.
+
+**The mechanism, confirmed:** `index.html` loads 68 blocking scripts in order. `js/03` (14th)
+captures the boot address, then on a 200 ms timer rewrites `location.pathname` to `'/' + current`
+— `'today'`, because nobody is signed in yet. `js/66` (~55th) reads `location.pathname` at its own
+evaluation time to decide which editor the link asked for. Neither file is wrong alone; the defect
+exists only in the order they run in. `js/03` now publishes `window.__bootPath`, and `js/66`'s boot
+IIFE — boot only, never `urlSync()` or the popstate listener, or `dgHome()` could never leave the
+editor — falls back to it.
+
+**Guarded deterministically, not by luck.** New `scripts/qa/probe-deeplink-boot-race.mjs` (port
+8713) throttles the CPU over CDP and asks the same question at 1x, 4x and 10x, with every wait
+scaled to the throttle so it measures the app rather than its own impatience. `probe-generator-
+attacks` could only ever catch this when the machine happened to be busy. **Sabotage-verified on
+both halves separately** — removing `js/66`'s fallback reddens the throttled rates; removing
+`js/03`'s publish reddens all three plus the control. `probe-generator-attacks` is 114/0 again.
+
+**Cycle 35's other two claims verified before pushing:** a deliberately false check in one of the
+seven newly-exit-coded probes really does make it exit 1 (`FAILS: 1 / 18`, `exit=1`), and all seven
+are green on a real run — 0 failures out of 21 / 49 / 17 / 14 / 20 / 31.
+
 ## 2026-09-06 · Watch cycle 35 — "environmental" was a real defect all along, and the battery has been reading pass from probes that cannot fail
 
 **Attack area (ii): the three probes that fail only under parallel load. Attack area (jj): the ~50 ungated warnings in `check-probe-integrity`.**

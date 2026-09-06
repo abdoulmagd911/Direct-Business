@@ -105,7 +105,16 @@
      /documents with no sub-address = the start screen (view 'home'). */
   var TAB_IDS=['assets','offer','fees','profile','contract','tender'];
   function pathTab(){ var m=String(location.pathname||'').match(/^\/documents\/([a-zA-Z]+)\/?$/); return (m&&TAB_IDS.indexOf(m[1])>=0)?m[1]:null; }
-  (function(){ var t=pathTab(); if(t){ DG.tab=t; DG.view='editor'; } })();
+  (function(){ var t=pathTab();
+    /* js/03 rewrites location.pathname on a 200ms timer once render+DB exist. This file is
+       ~40 blocking scripts further down index.html, so on a slow device that timer wins and the
+       deep link is already gone by the time this line reads it — the person signs in and lands
+       on Today with nothing saying an address was ever asked for. js/03 publishes the address
+       the page actually opened at; fall back to it. BOOT ONLY: urlSync() and the popstate
+       listener below must keep reading the LIVE pathname, or dgHome() could never leave the
+       editor. See docs/DEEPLINK-BOOT-RACE.md. */
+    if(!t){ var mb=String(window.__bootPath||'').match(/^\/documents\/([a-zA-Z]+)\/?$/); if(mb&&TAB_IDS.indexOf(mb[1])>=0)t=mb[1]; }
+    if(t){ DG.tab=t; DG.view='editor'; } })();
   function urlSync(){
     try{
       var t=pathTab();

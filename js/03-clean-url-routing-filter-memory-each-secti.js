@@ -6,6 +6,14 @@
   var VALID=['today','dashboard','leads','clients','airlines','vendors','providers','sops','slas','sopsla','reports','ops','operations','offers','activity','archive','bookings','invoices','tickets','finance','settings','events','sync','projects','documents'];
   // capture the address the page opened at (accept clean path, or migrate an old #/hash); ignore any ?v= cache param
   var boot=(function(){var h=String(location.hash||'');if(h.indexOf('#/')===0)return h.slice(1);return String(location.pathname||'/');})();
+  /* 2026-09-06 (round 58) — publish the address the page actually opened at.
+     location.pathname is NOT a safe substitute for any module loaded after this one:
+     restoreBoot() below rewrites it to '/' + current a few hundred ms into boot, and on a
+     slower device that happens BEFORE the later scripts have even been evaluated. Found by
+     watch cycle 35 and reproduced here by CPU throttling alone — a /documents/<tab> deep
+     link survives at 1x and is lost from 4x up, which is an ordinary mid-range phone.
+     See docs/DEEPLINK-BOOT-RACE.md. */
+  try{ window.__bootPath=boot; }catch(_){}
   var ready=false, lastPath=null, restoring=false;
   function parse(path){var m=String(path||'').match(/^\/([a-zA-Z]+)(?:\/(lead|offer|invoice)\/([^\/?#]+))?/);return m?{sec:m[1],dk:m[2],dv:m[3]}:null;}
   function curSafe(){try{return current;}catch(_){return undefined;}}
