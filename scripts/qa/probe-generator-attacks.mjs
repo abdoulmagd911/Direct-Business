@@ -342,7 +342,13 @@ async function clearPlaceholders(p, keys) {
   /* a realistic contract carries a fee annex; add one row, then Issue must proceed */
   await p.evaluate(() => { ctSec('add'); ctSecSet(0, 'tAr', 'طيران'); ctRowSet(0, 0, 'ar', 'تذكرة داخلية اختبارية'); ctRowSet(0, 0, 'en', 'SYNTH domestic ticket'); ctRowSet(0, 0, 'fee', '25'); });
   await sleep(500);
-  check('A2: with one fee row the annex renders (table + heading)', await p.evaluate(() => !!document.querySelector('#ctAnnex table.ct-fee') && (document.getElementById('ctPages')||{}).innerText||''.includes('ملحق الرسوم')));
+  /* 2026-09-06 (round 56): the null-guard added in watch cycle 34 wrote
++       (document.getElementById('ctPages')||{}).innerText||''.includes('…')
+     which || binds looser than the method call, so it evaluates to `innerText || false` — the
+     substring is never tested and the check passes for ANY non-empty page. A crash fix that turns
+     an assertion into a rubber stamp is worse than the crash: the crash was at least loud. The
+     empty-string fallback belongs INSIDE the parentheses the .test/.includes is called on. */
+  check('A2: with one fee row the annex renders (table + heading)', await p.evaluate(() => !!document.querySelector('#ctAnnex table.ct-fee') && ((document.getElementById('ctPages')||{}).innerText||'').includes('ملحق الرسوم')));
   await p.evaluate(() => ctIssue()); await sleep(2500);
   const issued = await p.evaluate(() => __ctProbe());
   check('A3: Issue succeeds → CTR-2026-001', issued.docNumber === 'CTR-2026-001', JSON.stringify(issued));
@@ -381,7 +387,7 @@ async function clearPlaceholders(p, keys) {
   const typed2 = await p.evaluate(() => (document.getElementById('ctE_bar') || {}).value);
   check('A6 ATTACK: … and survives picking a client (full repaint)', typed2 === 'SYNTH-TYPED-AR-CLAUSE', 'editor now holds: ' + JSON.stringify(typed2));
   await p.evaluate(() => ctClauseSave('scope')); await sleep(300);
-  check('A6: saving the edited clause prints the typed text (AR) and stays a per-contract override', await p.evaluate(() => { ctLang('ar'); return new Promise(r => setTimeout(() => r((document.getElementById('ctPages')||{}).innerText||''.includes('SYNTH-TYPED-AR-CLAUSE') && __ctProbe().clauses.find(c => c.key === 'scope').override === true), 400)); }));
+  check('A6: saving the edited clause prints the typed text (AR) and stays a per-contract override', await p.evaluate(() => { ctLang('ar'); return new Promise(r => setTimeout(() => r(((document.getElementById('ctPages')||{}).innerText||'').includes('SYNTH-TYPED-AR-CLAUSE') && __ctProbe().clauses.find(c => c.key === 'scope').override === true), 400)); }));
   check('A6: no PATCH ever reached contract_clauses (override isolation intact)', clausePatches === 0);
 
   /* item 8 — round trip: save → reload → reopen → save */
