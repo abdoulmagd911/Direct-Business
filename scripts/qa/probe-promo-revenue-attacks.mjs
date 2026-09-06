@@ -67,6 +67,14 @@ function inv(id, c, date, total, cost, way) {
 }
 /* Every client carries every way, in both years and several months, so no combination of
    year x month x sector can leave a set that happens to hold only one way. */
+/* 2026-09-06 (watch cycle 29, mutation audit round four): cycle 27 added a fallback so an
+   unrecognised STORED revenue way is offered back as itself rather than silently rewritten — and
+   nothing exercised it, because with all five known ways in the list the fallback never fires.
+   Removing it entirely changed no check. This row carries a way the editor does not know (the
+   live CHECK constraint would refuse it, which is the point: it models the database gaining a way
+   before this file hears about it, exactly the situation the fallback exists for) and is seeded
+   directly, bypassing the write path, so the constraint is not what is under test here. */
+const UNKNOWN_WAY = 'partner_rebate';
 const SEED = [];
 let n = 0;
 [2025, 2026].forEach(y => {
@@ -78,6 +86,8 @@ let n = 0;
     });
   });
 });
+
+SEED.push(inv('u1', CLIENTS[2], '2026-11-09', 4321, 1000, UNKNOWN_WAY));
 
 /* A registry big enough to force paging, and hostile enough that any per-row handling would
    show. Its total is far larger than the real revenue in SEED - which is the whole point of the
@@ -266,6 +276,10 @@ async function main() {
   const b2cSel = await wayOf('b2c_manual');
   if (b2cSel && b2cSel.value === 'b2c_manual') ok('opening a b2c_manual invoice shows its real stored way — one Save cannot silently rewrite it');
   else fail('a b2c_manual invoice opens showing "' + (b2cSel ? b2cSel.value : 'no selector') + '" — the stored way is not on the list, so the editor displays the wrong one and a Save overwrites it');
+
+  const unkSel = await wayOf(UNKNOWN_WAY);
+  if (unkSel && unkSel.value === UNKNOWN_WAY) ok(`an invoice carrying "${UNKNOWN_WAY}" — a way this editor has never heard of — opens showing its own stored value, so the next way the database gains cannot be silently rewritten before this file is updated`);
+  else fail(`an invoice storing "${UNKNOWN_WAY}" opens showing "${unkSel ? unkSel.value : 'no selector'}" — the unknown-way fallback is not holding, and one Save would overwrite the stored way`);
 
   const offered = (b2cSel && b2cSel.options) || [];
   const missing = DB_WAYS.filter(w => !offered.includes(w));

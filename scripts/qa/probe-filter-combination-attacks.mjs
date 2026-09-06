@@ -203,17 +203,48 @@ async function main() {
   if (/all years and sectors|period bar above does not apply|كل السنوات والقطاعات/i.test(rbCaption)) ok('…and its caption says so on screen, so a reader cannot mistake it for the filtered view they were just looking at');
   else fail('the Report Builder ignores the filters but its caption does not say so: ' + JSON.stringify(rbCaption.slice(0, 160)));
 
-  /* ---------- 3. clearing one filter leaves the others exactly as they were ---------- */
+  /* ---------- 3. clearing one filter leaves the others exactly as they were ----------
+     2026-09-06 (watch cycle 29, mutation audit round four): these two checks used to CLEAR the
+     filter by assigning FIN.p.sector / FIN.p.part directly and calling render(). That skips the
+     app's own handlers entirely — window.finPS, finPY and finPP are what a chip and a dropdown
+     actually call — so the mutation "clearing the sector also clears the month" passed straight
+     through a probe whose stated subject is exactly that. A check that reaches around the control
+     it is testing proves nothing about the control. They go through the real handlers now, and
+     each one asserts the WHOLE period state afterwards, not just the row count, so a filter that
+     is quietly reset is visible even when the row count happens to coincide. */
+  const pstate = () => p.evaluate(() => ({ year: String(FIN.p.year), part: String(FIN.p.part), sector: String(FIN.p.sector) }));
   await apply(2026, 'M:March', 'tenders');
-  await p.evaluate(() => { FIN.p.sector = 'all'; if (typeof clearFinCanon === 'function') clearFinCanon(); render(); }); await p.waitForTimeout(800);
-  const afterSectorCleared = await inScope();
+  await p.evaluate(() => window.finPS('all')); await p.waitForTimeout(800);
+  const afterSectorCleared = await inScope(), stAfterSector = await pstate();
   const wSectorCleared = want(2026, 'M:March', 'all');
-  if (afterSectorCleared.n === wSectorCleared.length) ok('clearing the sector chip widens to the whole month and leaves the year and month exactly as they were');
-  else fail('after clearing the sector: ' + afterSectorCleared.n + ' rows, expected ' + wSectorCleared.length);
-  await p.evaluate(() => { FIN.p.part = 'all'; render(); }); await p.waitForTimeout(800);
-  const afterPartCleared = await inScope();
-  if (afterPartCleared.n === want(2026, 'all', 'all').length) ok('clearing the month widens to the whole year without silently restoring the sector');
-  else fail('after clearing the month: ' + afterPartCleared.n + ' rows, expected ' + want(2026, 'all', 'all').length);
+  const sectorStateOk = stAfterSector.year === '2026' && stAfterSector.part === 'M:March' && stAfterSector.sector === 'all';
+  if (afterSectorCleared.n === wSectorCleared.length && sectorStateOk) ok('clearing the sector chip through the app\'s own control widens to the whole month and leaves the year and month exactly as they were (' + JSON.stringify(stAfterSector) + ')');
+  else fail('after clearing the sector through finPS: ' + afterSectorCleared.n + ' rows, expected ' + wSectorCleared.length + '; period state ' + JSON.stringify(stAfterSector) + ', expected year 2026 · part M:March · sector all');
+  await p.evaluate(() => window.finPP('all')); await p.waitForTimeout(800);
+  const afterPartCleared = await inScope(), stAfterPart = await pstate();
+  const partStateOk = stAfterPart.year === '2026' && stAfterPart.part === 'all' && stAfterPart.sector === 'all';
+  if (afterPartCleared.n === want(2026, 'all', 'all').length && partStateOk) ok('clearing the month through the app\'s own control widens to the whole year without silently restoring the sector (' + JSON.stringify(stAfterPart) + ')');
+  else fail('after clearing the month through finPP: ' + afterPartCleared.n + ' rows, expected ' + want(2026, 'all', 'all').length + '; period state ' + JSON.stringify(stAfterPart));
+  /* Each control must leave the others alone in BOTH orders. The first version of this check ran
+     finPY then finPS, so finPS set the sector LAST and a finPY that wipes the sector was invisible
+     — the mutation "choosing a year silently clears the sector" walked straight through it. Every
+     pair is now driven in the order where the control under test runs SECOND, which is the only
+     order in which its side effect on an already-chosen filter can be seen. */
+  const pair = async (label, first, second, expect) => {
+    await p.evaluate(() => { FIN.p.year = 'all'; FIN.p.part = 'all'; FIN.p.sector = 'all'; if (typeof clearFinCanon === 'function') clearFinCanon(); render(); });
+    await p.waitForTimeout(400);
+    await p.evaluate(([fn, v]) => window[fn](v), first); await p.waitForTimeout(500);
+    await p.evaluate(([fn, v]) => window[fn](v), second); await p.waitForTimeout(700);
+    const st = await pstate();
+    if (st.year === expect.year && st.part === expect.part && st.sector === expect.sector) ok(label);
+    else fail(label.replace(/ — .*/, '') + ' — period state is ' + JSON.stringify(st) + ', expected ' + JSON.stringify(expect));
+  };
+  await pair('choosing a year after a sector leaves that sector in force', ['finPS', 'tenders'], ['finPY', 2025], { year: '2025', part: 'all', sector: 'tenders' });
+  await pair('choosing a sector after a year leaves that year in force', ['finPY', 2025], ['finPS', 'tenders'], { year: '2025', part: 'all', sector: 'tenders' });
+  await pair('choosing a year after a month leaves that month in force', ['finPP', 'M:March'], ['finPY', 2025], { year: '2025', part: 'M:March', sector: 'all' });
+  await pair('choosing a month after a sector leaves that sector in force', ['finPS', 'tenders'], ['finPP', 'M:March'], { year: 'all', part: 'M:March', sector: 'tenders' });
+  await pair('choosing a sector after a month leaves that month in force', ['finPP', 'M:March'], ['finPS', 'tenders'], { year: 'all', part: 'M:March', sector: 'tenders' });
+  await pair('choosing a month after a year leaves that year in force', ['finPY', 2025], ['finPP', 'M:March'], { year: '2025', part: 'M:March', sector: 'all' });
 
   /* ---------- 4. a combination that matches nothing says so ---------- */
   await apply(2024, 'M:December', 'tenders');   // no December rows anywhere in the fixture

@@ -238,6 +238,33 @@ async function main() {
   if (!noNewRow) fail('UNKNOWN-TEST-002: a new finance_invoices row was created — the join must NEVER insert, only update a live invoice');
   else ok('UNKNOWN-TEST-002: correctly never inserted as a new row — a tax invoice with real cost but no matching finance_invoices row is reported, never created');
 
+  /* ---- 2026-09-06 (watch cycle 29): re-dropping the SAME two files must not apply the cost a
+     second time. probe-expense-capture-persistence proves the capture TABLE keeps one row per
+     transaction_ref rather than appending — but that is a different claim from the one that
+     matters to a profit figure: that the INVOICE's cost_sar does not move when the same export is
+     dropped again. Two people re-exporting the same period, or one person dropping a file twice,
+     is the ordinary case, and a cost applied twice halves a margin with nothing on screen saying
+     so. Nothing checked it, so this does — against every invoice at once, not just the one that
+     received a cost. ---- */
+  const before = await p.evaluate(() => Object.fromEntries((FIN.rows || []).map((r) => [r.invoice_no, [r.cost_sar, r.profit_sar]])));
+  await p.setInputFiles('#finFile', { name: 'expense-lines.csv', mimeType: 'text/csv', buffer: Buffer.from(linesCsv) });
+  await p.waitForTimeout(1500);
+  await p.setInputFiles('#finFile', { name: 'expense-gate.csv', mimeType: 'text/csv', buffer: Buffer.from(gateCsv) });
+  await p.waitForTimeout(1500);
+  const btn2 = await p.evaluate(() => { const bt = [...document.querySelectorAll('#finImpOut button')].find((x) => /Confirm/i.test(x.textContent)); if (bt) { bt.click(); return true; } return false; });
+  await p.waitForTimeout(2500);
+  await p.evaluate(() => { FIN.rows = null; finLoad(); });
+  for (let i = 0; i < 80 && !(await p.evaluate(() => window.FIN && FIN.rows && FIN.rows.length)); i++) await p.waitForTimeout(250);
+  const after = await p.evaluate(() => Object.fromEntries((FIN.rows || []).map((r) => [r.invoice_no, [r.cost_sar, r.profit_sar]])));
+  const moved = Object.keys(before).filter((k) => JSON.stringify(before[k]) !== JSON.stringify(after[k]));
+  const missing = Object.keys(before).filter((k) => !(k in after));
+  if (!moved.length && !missing.length) ok(`re-drop: dropping the same two files again${btn2 ? ' and pressing Confirm' : ''} moved no invoice's cost or profit — all ${Object.keys(before).length} rows are identical, so a re-exported period cannot double a cost and halve a margin`);
+  else fail(`re-drop: ${moved.length} invoice(s) changed on a second identical drop — ` + moved.slice(0, 4).map((k) => `${k}: cost/profit ${JSON.stringify(before[k])} → ${JSON.stringify(after[k])}`).join('; ') + (missing.length ? ` (and ${missing.length} row(s) vanished)` : ''));
+  /* the check must be able to fail: 116361000 really did receive a cost on the first pass, so
+     there is something here a second application could move */
+  if (before['116361000'] && before['116361000'][0] === 2000) ok('control: 116361000 carries the 2,000 the first pass applied, so a second application would have had something to double');
+  else fail(`control: 116361000 carries ${before['116361000'] && before['116361000'][0]}, not the 2000 the first pass applied — the re-drop check above had nothing to catch`);
+
   const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} JS/console error(s) during the run`);
