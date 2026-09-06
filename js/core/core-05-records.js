@@ -34,11 +34,20 @@ function airlineStats(a){const bks=(DB.bookings||[]).filter(b=>(b.tickets||[]).s
 function providerStats(name){const bks=(DB.bookings||[]).filter(b=>b.provider===name);let nTk=0;const air={},clients={};let val=0;bks.forEach(b=>{nTk+=(b.tickets||[]).length;val+=onum(b.totalSale);bkAirlines(b).forEach(al=>air[al]=(air[al]||0)+1);const nm=leadName(b.leadId);clients[nm]=(clients[nm]||0)+1;});return {bks,nBk:bks.length,nTk,val,nAir:Object.keys(air).length,topAir:topN(air),clients:topN(clients)};}
 function leadBilled(id){return invoicesFor(id).filter(i=>['Issued','Paid','Overdue'].indexOf(i.status)>-1).reduce((s,i)=>s+onum(i.total),0);}
 function leadBookValue(id){return bookingsFor(id).reduce((s,b)=>s+onum(b.totalSale),0);}
+/* 2026-09-06 (round 49) — the Invoices line here printed the invoice AMOUNT on a lead/client card,
+   which is the one place the owner's 2026-08-21 ruling says money must never appear: money lives on
+   the Finance page only, and Leads and Clients report the RELATIONSHIP, never the amount. Every
+   sibling line in this same panel already did exactly that — an offer by its ref, a booking by its
+   ref and airline, a ticket by its PNR — and only the invoice line appended a figure. It now names
+   the invoice and its status, which is the relationship; the amount is one click away on Finance,
+   where it belongs. Guarded by scripts/qa/probe-money-placement.mjs, which had been red on this
+   since watch cycle 27. (That probe's failure line names the SEARCH STRING it matched, ' SAR' —
+   not the text on screen; the render was a well-formed "16,100 SAR", never a bare unit.) */
 function relatedPanel(id){const offs=offersFor(id),bks=bookingsFor(id),invs=invoicesFor(id),tks=ticketsFor(id);
   return `<div class="card"><h3>Related records</h3><div class="ch-sub">Everything connected to this account — click to jump.</div>
   <div style="font-size:12px;color:var(--muted);margin-top:4px">Offers (${offs.length})</div><div class="related">${offs.map(o=>`<a onclick="openOffer='${o.id}';current='offers';render()">📄 ${esc(o.ref||o.subject||'Offer')}</a>`).join('')||'<span class="muted" style="font-size:12px">none</span>'}</div>
   <div style="font-size:12px;color:var(--muted);margin-top:8px">Bookings (${bks.length})</div><div class="related">${bks.map(b=>`<a onclick="openBooking='${b.id}';current='bookings';render()">🧳 ${esc(b.ref)} · ${bkAirlines(b).join(', ')||'—'}</a>`).join('')||'<span class="muted" style="font-size:12px">none</span>'}</div>
-  <div style="font-size:12px;color:var(--muted);margin-top:8px">Invoices (${invs.length})</div><div class="related">${invs.map(i=>`<a onclick="openInvoice='${i.id}';current='invoices';render()">🧾 ${esc(i.number)} · ${money(i.total)}</a>`).join('')||'<span class="muted" style="font-size:12px">none</span>'}</div>
+  <div style="font-size:12px;color:var(--muted);margin-top:8px">Invoices (${invs.length})</div><div class="related">${invs.map(i=>`<a onclick="openInvoice='${i.id}';current='invoices';render()">🧾 ${esc(i.number)}${i.status?' · '+esc(i.status):''}</a>`).join('')||'<span class="muted" style="font-size:12px">none</span>'}</div>
   <div style="font-size:12px;color:var(--muted);margin-top:8px">Tickets (${tks.length})</div><div class="related">${tks.map(t=>`<a onclick="openBooking='${t.bookingId}';current='bookings';render()">🎫 ${esc(t.pnr||t.eticket||'PNR')} · ${esc(t.airline||'')}</a>`).join('')||'<span class="muted" style="font-size:12px">none</span>'}</div></div>`;}
 /* ----- drop zones + mock ingestion ----- */
 function dropZone(kind){

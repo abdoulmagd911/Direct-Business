@@ -1,3 +1,30 @@
+## Round 49 — money on a lead card: the owner ruling that was actually being broken (2026-09-06)
+
+Watch cycle 29 reported `probe-money-placement` as **now green**, fixed by these rounds. It was not.
+It fails identically here, the same two checks watch cycle 27 first recorded — and its diagnosis
+there was wrong too.
+
+**What the probe was actually saying.** Its failure line names the SEARCH STRING it matched, not
+the text on screen. `" SAR"` is the needle. Cycle 27 read that as "a bare ` SAR` with no number
+renders", and there is no such render: the actual text was `🧾 INV-3001 · 16,100 SAR`, a perfectly
+well-formed amount. Reading the probe's rule instead of its output settles it — the header states
+the owner ruling of 2026-08-21: **money lives on the Finance page ONLY; Leads and Clients report
+the relationship, never the amount.** A well-formed amount is precisely the violation.
+
+**The real defect, and it was a recorded ruling being broken on the busiest card in the app.**
+`relatedPanel()` — the "Related records" card on every lead and client — listed each invoice as
+`🧾 <number> · <amount>`. Every sibling line in that same panel already reported the relationship
+and nothing else: an offer by its ref, a booking by its ref and airline, a ticket by its PNR. Only
+the invoice line carried a figure. It now names the invoice and its status; the amount is one click
+away on Finance, where the ruling puts it.
+
+Guarded by `probe-money-placement` (green for the first time since cycle 27). Sabotage — put the
+amount back — turns both checks red again. The one remaining `money(i.total)` in that file is the
+invoice detail page's own Total line, which is a Finance view where the amount belongs.
+
+**`sweep-buttons` verified as they classified it:** identical `ReferenceError: current is not
+defined` on the untouched tree, so it is neither theirs nor a regression from `e55caed`.
+
 ## 2026-09-06 · Watch cycle 29 — mutation audit round four: three guards that were decoration, and a cost that could be applied twice
 
 **Round four of the mutation audit, over everything added since cycle 25, plus attack area (x): the expenses→invoice cost join.**
