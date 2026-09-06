@@ -70,10 +70,15 @@ const GATE = [
 /* Baseline measured 2026-09-03: 43 files cannot report a failure through their exit code.
    27 of them count and print FAILs and then exit 0 (the dangerous shape — they look like
    probes); the other 16 are diag-/sweep-/audit- dumps with no assertions at all. Both are
-   listed in the audit report and are the other session's to triage. May go DOWN freely.
-   It going UP means a new probe was written that cannot fail — which is the thing this
-   whole file exists to stop. */
-const NO_FAIL_SIGNAL_BUDGET = 43;
+   listed in the audit report. May go DOWN freely. It going UP means a new probe was written
+   that cannot fail — which is the thing this whole file exists to stop.
+   2026-09-06 (watch cycle 35), 43 → 35: the seven files in this shape that the BATTERY
+   actually runs — probe-live2, probe-mega, probe-notes, probe-round8, probe-round9,
+   probe-stress, sweep-consistency — now exit on their own failure count. Until today the
+   runner read exit 0 from every one of them, so any regression they could see was recorded
+   as a pass. Ratcheted so the seven cannot quietly go back. The 35 that remain are outside
+   the battery and are classified one by one in docs/PROBE-WARNINGS-TRIAGE.md. */
+const NO_FAIL_SIGNAL_BUDGET = 35;
 
 /* --sabotage: prove this checker really checks. Copy the suite to a scratch tree, blunt one
    gated probe's exit into a constant 0 — the exact regression this file exists to catch —
@@ -210,10 +215,15 @@ for (const f of files) {
      Found 2026-09-03 running the suite from scripts/qa instead of the repo root: two probes
      died with ENOENT on 'js/10-events.js' and 'js/core/core-06-v18-v21.js' — output that is
      indistinguishable from a real defect, on a tree that was in fact correct. Two more read
-     from a hardcoded '/home/user/...' that does not exist in this environment at all, so
-     they have never once run. A guard that goes red for the wrong reason is worse than no
-     guard: it teaches people that red means nothing. Resolve repo files from the probe's own
-     location (fileURLToPath(import.meta.url)), never from the current directory. */
+     from a hardcoded absolute path under a home directory belonging to no one here.
+     Corrected 2026-09-06 (watch cycle 35): those two were NOT dead, which is worse than if
+     they had been. An earlier session had left a symlink at that path pointing back at the
+     repo, so they ran — silently reading the repo even when the run was pointed at a
+     sabotaged copy through APP_DIR. Three checks that are only ever verified by sabotage
+     therefore could not fail under it. Both are fixed; this tell is a build failure from
+     here on, because a path outside the repo is never right and the failure it causes is
+     indistinguishable from a real defect. Resolve repo files from the probe's own location
+     (fileURLToPath(import.meta.url)), never from the current directory and never absolutely. */
   const cwdRel = /\b(?:readFileSync|readdirSync|createReadStream)\s*\(\s*['"`](js|index\.html|docs|scripts|events)[/'"`]/g;
   for (let m; (m = cwdRel.exec(code));) {
     add(f.rel, lineOf(code, m.index), 'CWD_PATH',
@@ -244,7 +254,9 @@ for (const [port, owners] of portsByFile) {
 
 /* ---------------------------------- report ---------------------------------------- */
 const gateHits = findings.filter((x) => GATE.includes(path.basename(x.file)));
-const otherHits = findings.filter((x) => !GATE.includes(path.basename(x.file)));
+/* CWD_PATH is a build failure everywhere, gated or not (watch cycle 35) — see T6 above. */
+const pathHits = findings.filter((x) => x.tell === 'CWD_PATH' && !GATE.includes(path.basename(x.file)));
+const otherHits = findings.filter((x) => !GATE.includes(path.basename(x.file)) && x.tell !== 'CWD_PATH');
 const noSignal = findings.filter((x) => x.tell === 'NO_FAIL_SIGNAL');
 
 console.log(`scanned ${files.length} file(s) in ${DIRS.join(', ')} — ${files.length - [...files].filter((f) => SUPPORT.has(f.base)).length} probe(s), ${[...files].filter((f) => SUPPORT.has(f.base)).length} support file(s)\n`);
@@ -256,6 +268,14 @@ if (otherHits.length) {
 }
 
 let bad = 0;
+if (pathHits.length) {
+  console.log(`FAILED — ${pathHits.length} probe file(s) resolve a repo file by a path that is not the probe's own tree:`);
+  for (const h of pathHits) console.log(`  \u2717 ${h.file}:${h.line}  ${h.tell} — ${h.detail}`);
+  bad += pathHits.length;
+} else {
+  console.log('  \u2713 every probe resolves repo files from its own tree — none can be pointed at the wrong copy, or die for standing in the wrong directory');
+}
+
 if (gateHits.length) {
   console.log(`FAILED — ${gateHits.length} tell(s) in probes that MUST be able to fail:`);
   for (const h of gateHits) console.log(`  ✗ ${h.file}:${h.line}  ${h.tell} — ${h.detail}`);
@@ -274,7 +294,7 @@ if (noSignal.length > NO_FAIL_SIGNAL_BUDGET) {
   console.log(`  ✗ ${noSignal.length} probe(s) cannot signal failure, above the recorded baseline of ${NO_FAIL_SIGNAL_BUDGET} — a new probe was written that cannot fail`);
   bad += 1;
 } else {
-  console.log(`  ✓ ${noSignal.length} probe(s) cannot signal failure — at or below the ${NO_FAIL_SIGNAL_BUDGET} recorded on 2026-09-03`);
+  console.log(`  ✓ ${noSignal.length} probe(s) cannot signal failure — at or below the ${NO_FAIL_SIGNAL_BUDGET} recorded on 2026-09-06`);
 }
 
 /* ---- no two probes may listen on the same port (added watch cycle 34) ----

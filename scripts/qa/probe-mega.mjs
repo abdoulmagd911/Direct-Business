@@ -26,6 +26,10 @@ const route = async r => {
 await page.route('**cdn.jsdelivr.net/**', route);
 await page.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', route);
 const LOG = []; const STEP = (n, ok, d = '') => LOG.push(`${ok ? 'PASS' : 'FAIL'} · ${n}${d ? ' — ' + d : ''}`);
+/* A check whose precondition the seed did not produce has not passed — it did not run.
+   Saying so as a SKIP keeps it out of the pass total instead of padding it with a
+   literal `true` that reads exactly like a real result. */
+const SKIP = (n, d = '') => LOG.push(`SKIP · ${n}${d ? ' — ' + d : ''}`);
 
 const t0 = Date.now();
 await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
@@ -110,7 +114,7 @@ if (cinfo) {
   await page.waitForTimeout(1500);
   const card = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/ /g, ' '));
   STEP('client card "Lifetime billed" = raw rows for that client', card.includes(mS(cinfo.billed)), cinfo.group + ' ' + mS(cinfo.billed));
-} else STEP('client card cross-check (no linked client with 2+ invoices in seed)', true, 'skipped');
+} else SKIP('client card cross-check', 'the seed produced no linked client with 2+ invoices, so this check did not run');
 
 // ---------- MUTATION: change ONE invoice → every screen must move ----------
 await page.evaluate(() => { openLead = null; current = 'finance'; FIN.tab = 'overview'; render(); });
@@ -183,4 +187,11 @@ STEP('SPEED: refresh back to working app < 15s (harness), no glitch', (Date.now(
 console.log(LOG.join('\n'));
 console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.length}`);
 console.log('ERRORS:', errs.length, errs.slice(0, 6));
-await browser.close(); process.exit(0);
+
+/* 2026-09-06 (watch cycle 35): this file counted its failures, printed them, and then exited 0.
+   The battery reads exit codes, so every regression this probe could see has been reported to
+   the runner as a pass for as long as it has existed. The count decides the exit code now. */
+const __fails = LOG.filter((l) => l.startsWith('FAIL')).length;
+await browser.close();
+if (__fails) { console.log(`\nFAILED — ${__fails} check(s) did not pass.`); process.exit(1); }
+process.exit(0);

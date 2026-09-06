@@ -192,7 +192,25 @@ async function signIn(p) {
   await p.waitForTimeout(1800);
 }
 const WRAP = { '/documents/contract': '#ctWrap', '/documents/offer': '#poWrap', '/documents/fees': '#sfWrap', '/documents/profile': '#cpWrap', '/documents/tender': '#tdWrap' };
-/* boot can lag on later pages — re-render until the deep-linked editor's wrap appears */
+/* 2026-09-06 (watch cycle 35) — WHY THIS HELPER HAS A FALLBACK, AND WHY THE FALLBACK IS LOUD.
+   For six cycles this probe was written off as "environmental: red in a parallel batch, green
+   alone". It is not environmental. index.html loads 68 blocking scripts in order; js/03 is the
+   14th and js/66 the ~55th. js/03 captures the address the page opened at, then on a 200ms
+   timer (once render+DB exist) it rewrites location.pathname to whatever `current` happens to
+   be — and while nobody is signed in yet, `current` is 'today'. js/66 reads location.pathname
+   at its own script-evaluation time to decide which editor a /documents/<tab> deep link asked
+   for. Whichever gets there first wins. Normally js/66 wins. When script EXECUTION is slowed —
+   a parallel QA batch on two vCPUs, or a mid-range phone — js/03's timer fires first, js/66
+   reads '/today', and the deep link is silently dropped: the user signs in and lands on Today.
+   Reproduced with no contention at all, purely by CPU throttling (Emulation.setCPUThrottlingRate):
+   the deep link survives at 1x and 4x and is lost from 6x up. Repro + a two-line fix (js/03
+   publishes window.__bootPath; js/66's boot IIFE falls back to it) are in
+   docs/DEEPLINK-BOOT-RACE.md — both files are outside this session's lane, so the fix is handed
+   over, not landed here.
+   This helper therefore keeps the deep-linked open as the real thing it tests, and only after
+   that has demonstrably failed opens the tab the way a card click does — so ONE lost address
+   costs one honest FAIL instead of fifteen cascaded ones. It records that it fell back, and the
+   deep-link check below reads that record, so the fallback can never turn the check green. */
 async function ensureEditor(p, pathname) {
   const sel = WRAP[pathname]; if (!sel) return true;
   for (let i = 0; i < 25; i++) {
@@ -200,16 +218,29 @@ async function ensureEditor(p, pathname) {
     await p.evaluate(() => { try { current = 'documents'; render(); } catch (_) {} });
     await sleep(400);
   }
+  const tab = (String(pathname).match(/^\/documents\/([a-zA-Z]+)/) || [])[1] || null;
+  if (!tab) return false;
+  LOST = tab;                                /* the address was lost — say so, do not hide it */
+  for (let i = 0; i < 25; i++) {
+    await p.evaluate((t) => { try { current = 'documents'; if (typeof dgGo === 'function') dgGo(t); else render(); } catch (_) {} }, tab);
+    await sleep(400);
+    if (await p.evaluate(s => !!document.querySelector(s), sel)) return true;
+  }
   return false;
 }
+/* set by ensureEditor for the page openPage() is currently opening, and copied into that
+   page's own `lost` so one section's dropped address never speaks for another's */
+let LOST = null;
+const lostNote = (what) => 'the ' + what + ' address was dropped during boot (js/03 rewrote it before js/66 was evaluated) — the editor was opened by the fallback instead, so the checks after this one still ran; see docs/DEEPLINK-BOOT-RACE.md';
 async function openPage(pathname) {
   const p = await ctx.newPage(); const errors = [];
   p.on('pageerror', e => errors.push(String(e.message)));
   await wire(p);
   await p.goto(BASE + pathname, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await signIn(p);
+  LOST = null;
   await ensureEditor(p, pathname);
-  return { p, errors };
+  return { p, errors, lost: LOST };
 }
 const pagesText = (p, id) => p.evaluate((i) => (document.getElementById(i) || {}).innerText || '', id);
 const bodyText = (p) => p.evaluate(() => document.body.innerText || '');
@@ -264,8 +295,10 @@ async function clearPlaceholders(p, keys) {
 /* A — CONTRACT (items 1, 2, 3, 6-variant, 8)                              */
 /* ===================================================================== */
 {
-  const { p, errors } = await openPage('/documents/contract');
-  check('A: contract editor opens by deep link', await p.evaluate(() => window.__dgTabProbe && __dgTabProbe() === 'contract' && !!document.querySelector('#ctWrap .ct-form')));
+  const { p, errors, lost } = await openPage('/documents/contract');
+  check('A: contract editor opens by deep link',
+    !lost && await p.evaluate(() => window.__dgTabProbe && __dgTabProbe() === 'contract' && !!document.querySelector('#ctWrap .ct-form')),
+    lost ? lostNote('/documents/contract') : 'the editor did not render');
   await p.evaluate(SEED_BIZ);
   /* 2026-09-06 (watch cycle 34): this read `.innerText` off #ctWrap .ct-form without waiting for
      it, so under load — six probes in a parallel batch — the form had not rendered yet and the
@@ -425,8 +458,10 @@ async function clearPlaceholders(p, keys) {
 /* B — PRICE OFFER (items 4, 8)                                            */
 /* ===================================================================== */
 {
-  const { p, errors } = await openPage('/documents/offer');
-  check('B: offer editor opens by deep link', await p.evaluate(() => window.__dgTabProbe && __dgTabProbe() === 'offer' && !!document.querySelector('#poWrap .po-form')));
+  const { p, errors, lost } = await openPage('/documents/offer');
+  check('B: offer editor opens by deep link',
+    !lost && await p.evaluate(() => window.__dgTabProbe && __dgTabProbe() === 'offer' && !!document.querySelector('#poWrap .po-form')),
+    lost ? lostNote('/documents/offer') : 'the editor did not render');
   await p.evaluate(SEED_BIZ);
   /* zero lines via saved payloads */
   DOCS.push({ id: 'gd-ofr-empty', family: 'OFR', doc_type: 'price_offer', title: 'SYNTH empty', status: 'draft', doc_number: null, business_id: null, created_at: '2026-01-01T00:00:00Z', payload: { lang: 'en', lines: [] } });
@@ -510,8 +545,10 @@ async function clearPlaceholders(p, keys) {
 /* C — SERVICE FEES (items 5, 2-spirit, 8)                                 */
 /* ===================================================================== */
 {
-  const { p, errors } = await openPage('/documents/fees');
-  check('C: fees editor opens by deep link', await p.evaluate(() => window.__dgTabProbe && __dgTabProbe() === 'fees' && !!document.querySelector('#sfWrap .sf-form')));
+  const { p, errors, lost } = await openPage('/documents/fees');
+  check('C: fees editor opens by deep link',
+    !lost && await p.evaluate(() => window.__dgTabProbe && __dgTabProbe() === 'fees' && !!document.querySelector('#sfWrap .sf-form')),
+    lost ? lostNote('/documents/fees') : 'the editor did not render');
   await p.evaluate(SEED_BIZ);
   await p.evaluate(() => { sfNew(); sfSet('clientId', 'qa-nocr'); }); await sleep(1200);
   const fp = await p.evaluate(() => __sfFeesProbe());
@@ -569,8 +606,10 @@ async function clearPlaceholders(p, keys) {
 /* D — COMPANY PROFILE (items 6, 8)                                        */
 /* ===================================================================== */
 {
-  const { p, errors } = await openPage('/documents/profile');
-  check('D: profile editor opens by deep link', await p.evaluate(() => window.__dgTabProbe && __dgTabProbe() === 'profile' && !!document.querySelector('#cpWrap .cp-form')));
+  const { p, errors, lost } = await openPage('/documents/profile');
+  check('D: profile editor opens by deep link',
+    !lost && await p.evaluate(() => window.__dgTabProbe && __dgTabProbe() === 'profile' && !!document.querySelector('#cpWrap .cp-form')),
+    lost ? lostNote('/documents/profile') : 'the editor did not render');
   await p.evaluate(SEED_BIZ);
   let t = await pagesText(p, 'cpPages');
   check('D6: a DISABLED section never renders', !t.includes('SYNTH-TECH-HIDDEN') && !t.includes('must NEVER render'));
@@ -624,8 +663,10 @@ async function clearPlaceholders(p, keys) {
 /* E — TENDER (items 7, 4-spirit, 8)                                       */
 /* ===================================================================== */
 {
-  const { p, errors } = await openPage('/documents/tender');
-  check('E: tender editor opens by deep link', await p.evaluate(() => window.__dgTabProbe && __dgTabProbe() === 'tender' && !!document.querySelector('#tdWrap .td-form')));
+  const { p, errors, lost } = await openPage('/documents/tender');
+  check('E: tender editor opens by deep link',
+    !lost && await p.evaluate(() => window.__dgTabProbe && __dgTabProbe() === 'tender' && !!document.querySelector('#tdWrap .td-form')),
+    lost ? lostNote('/documents/tender') : 'the editor did not render');
   await p.evaluate(SEED_BIZ);
   await sleep(800);
   let t = await pagesText(p, 'tdPages');

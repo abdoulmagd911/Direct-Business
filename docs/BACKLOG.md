@@ -1,3 +1,34 @@
+## 2026-09-06 · Watch cycle 35 — "environmental" was a real defect all along, and the battery has been reading pass from probes that cannot fail
+
+**Attack area (ii): the three probes that fail only under parallel load. Attack area (jj): the ~50 ungated warnings in `check-probe-integrity`.**
+
+Cycle 34 removed the port collisions and raised the runner's timeout, so the three remaining "fails in a batch, green alone" probes had no excuse left. Two of them — `probe-recovery-attacks` (37/37) and `probe-scale-attacks` (ALL PASS) — are now green under the same six-way load that used to redden them; the ports were their whole problem. **The third was not environmental at any point. It was reporting a real defect in the app, and it had been for six cycles.**
+
+### A deep link that a slow phone throws away
+
+Open `/documents/contract` while signed out, sign in, and on a fast machine you land in the contract editor. On a slower one you land on **Today** — no error, no sign an address was ever asked for. Same for `/offer`, `/fees`, `/profile`, `/tender`: every link anyone pastes into an email.
+
+`index.html` loads 68 blocking scripts in order and two of them race over the same value. **js/03** (14th) captures the boot address, then on a 200 ms timer rewrites `location.pathname` to `'/' + current` — and nobody is signed in yet, so `current` is `'today'`. **js/66** (~55th) decides which editor a `/documents/<tab>` link asked for by reading `location.pathname` at its own evaluation time. Normally js/66 is evaluated inside 200 ms and wins. Slow the *execution* of those 40 scripts and js/03's timer wins: js/66 reads `/today` and the deep link is gone. Neither file is wrong on its own — the defect exists only in the order they happen to run in.
+
+**Reproduced deterministically with no contention at all**, purely by CPU throttling over CDP, one page at a time: the deep link survives at 1x and 4x and is lost from **6x** up — roughly a low-end Android phone. Per-request latency does not reproduce it; the preload scanner fetches in parallel. It is execution time that decides the race, which is why two vCPUs running six probes reproduces it as reliably as a cheap phone does.
+
+**js/03 and js/66 are outside this session's lane, so the two-line fix is handed over, not landed** — repro table, mechanism and exact diff in `docs/DEEPLINK-BOOT-RACE.md`. Measured both ways under identical load: `113 passed, 1 failed` against the tree as pushed, `114 passed, 0 failed` with the two lines applied.
+
+The probe itself is fixed here, and the shape of the fix matters after round 56's correction: `ensureEditor` still opens the editor **by the deep link first**, and only after that has demonstrably failed opens the tab the way a card click does. It records that it fell back, and the five deep-link checks read that record — so the fallback can never turn a check green. One lost address now costs **one honest FAIL that names the cause** instead of fifteen cascaded reds.
+
+### The battery has been reading "pass" from seven probes that could not fail
+
+Attack area (jj), and the more uncomfortable finding. Seven files the battery actually runs — `probe-live2`, `probe-mega`, `probe-notes`, `probe-round8`, `probe-round9`, `probe-stress`, `sweep-consistency` — counted their failures, printed the count, and then `process.exit(0)`. **The runner reads exit codes. Every regression those seven could see has been reported as a pass for as long as they have existed: 152 checks' worth of guard that was decoration.** They exit on their own count now, all seven are green on a real run (0 failures out of 21/49/17/14/20/31), and a deliberately false check makes one exit 1 — the wiring is proved, not assumed. Budget ratcheted 43 → 35 so they cannot quietly go back.
+
+Two `LITERAL_TRUE` hits in battery probes fixed with them: `probe-live2` was pushing a business finding for Abdulrahman through the assertion helper with a literal `true`, so an unchecked number printed as PASS and counted toward the pass total (a `REPORT` now); `probe-mega` did the same for a check its seed could not set up (a `SKIP` now). **A check that did not run has not passed.**
+
+### Two probes that were reading the wrong copy of the app
+
+`CWD_PATH` promoted from warning to build failure, and both offenders fixed. `probe-audit-undo` read js/63, and `probe-client-documents` read js/67 and js/71, from an absolute path under a home directory belonging to nobody here. The checker's own note assumed they had therefore never run — they had, because an earlier session left a **symlink** at that path pointing back at the repo. That is worse than dead: those three checks read the **repo** even when the run was pointed at a sabotaged copy through `APP_DIR`, and sabotage is the only way a probe is ever verified. Both resolve from their own tree now, and both are re-verified by sabotage — breaking one Arabic refusal string, and adding a second `amountInWords` to js/71, each redden a check that could not have failed before.
+
+The remaining 35 warnings are read and given a verdict one by one in `docs/PROBE-WARNINGS-TRIAGE.md`: 17 are report tools that should stop being counted as probes (six of them sit in the battery and cannot go red — `sweep-buttons` costs 363 seconds of every run and can only report), and 18 are the same exit-0 defect in files that are *not* in the battery, so they are at least not lying to anyone yet.
+
+**Battery:** 79 probes plus `check-structure` and `check-probe-integrity` — 78 green. The one red is `probe-generator-attacks`, and it is red on purpose: it is guarding the deep-link defect above until the two-line fix lands.
 ## 2026-09-06 · Round 57 — pipeline chips on a single company's card, and a button report worth reading
 
 **Fixed (app):** the Leads section injects stage filter chips — "All 6 · Prospect 0 · Contacted 2 ·

@@ -29,6 +29,16 @@
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+/* 2026-09-06 (watch cycle 35): js/67 and js/71 used to be read from an absolute path under a
+   home directory that exists on no machine but this one — and here only because an earlier
+   session left a symlink at that path pointing back at the repo. Two consequences, both bad:
+   the probe dies with ENOENT anywhere else (a red that is about where you stand, not about the
+   code), and here it read the REPO even when the run was pointed at a sabotaged copy through
+   APP_DIR — so this check could not fail under sabotage, which is the only way it is ever
+   verified. Resolve the tree from the probe's own location, like every other probe. */
+const REPO = fileURLToPath(new URL('../..', import.meta.url)).replace(/\/$/, '');
+const APP = process.env.APP_DIR || REPO;
 
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const PORT = 8503;
@@ -148,8 +158,8 @@ async function main() {
   else fail('the words do not change with the amount — they are not derived from it');
 
   // ---------- 4. one implementation, reused
-  const src67 = fs.readFileSync('/home/user/Direct-Business/js/67-price-offer-tab.js', 'utf8');
-  const src71 = fs.readFileSync('/home/user/Direct-Business/js/71-tender-tab.js', 'utf8');
+  const src67 = fs.readFileSync(APP + '/js/67-price-offer-tab.js', 'utf8');
+  const src71 = fs.readFileSync(APP + '/js/71-tender-tab.js', 'utf8');
   const defines = (s) => (s.match(/function amountInWords\s*\(/g) || []).length;
   if (defines(src67) === 1 && defines(src71) === 0) ok('amount-in-words is written once (js/67) and reused by the tender — an offer and a tender can never spell the same amount differently');
   else fail(`amount-in-words is defined in ${defines(src67)} place(s) in js/67 and ${defines(src71)} in js/71 — two copies WILL drift`);

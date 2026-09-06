@@ -74,4 +74,11 @@ const nClients = biz.filter(x => x.is_client).length;
 out.push(`${String(cl.n) === String(nClients) && cl.rows === nClients ? 'PASS' : 'FAIL'} Clients page: tile=${cl.n} rows=${cl.rows} exp=${nClients}`);
 console.log(out.join('\n'));
 console.log('PAGEERRORS:', errors.length);
-await browser.close(); process.exit(0);
+
+/* 2026-09-06 (watch cycle 35): this file counted its failures, printed them, and then exited 0.
+   The battery reads exit codes, so every regression this probe could see has been reported to
+   the runner as a pass for as long as it has existed. The count decides the exit code now. */
+const __fails = out.filter((l) => String(l).startsWith('FAIL')).length;
+await browser.close();
+if (__fails) { console.log(`\nFAILED — ${__fails} check(s) did not pass.`); process.exit(1); }
+process.exit(0);

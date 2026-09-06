@@ -49,6 +49,10 @@ await page.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', fwd);
 
 const LOG = [];
 const STEP = (n, ok, d = '') => LOG.push(`${ok ? 'PASS' : 'FAIL'} · ${n}${d ? ' — ' + d : ''}`);
+/* Some lines here are findings for Abdulrahman to judge, not assertions. They used to be
+   pushed through STEP with a literal `true`, so a number nobody had checked printed as a
+   PASS and was counted in the pass total. They are REPORTs now — printed, never counted. */
+const REPORT = (n, d = '') => LOG.push(`REPORT · ${n}${d ? ' — ' + d : ''}`);
 
 await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(6000);
@@ -187,7 +191,7 @@ const unowned = await page.evaluate(() => {
   const cl = (DB.businesses || []).filter(b => b.isClient);
   return { clients: cl.length, without: cl.filter(b => !(b.accountManager || b.assignedTo)).length };
 });
-STEP('REAL clients list: how many clients have nobody named on them', true, JSON.stringify(unowned) + ' — a business decision for Abdulrahman, reported not asserted');
+REPORT('REAL clients list: how many clients have nobody named on them', JSON.stringify(unowned) + ' — a business decision for Abdulrahman, reported not asserted');
 STEP('REAL clients list: the Clients page and the data agree on how many clients there are',
   await page.evaluate((n) => (DB.businesses || []).filter(b => b.isClient).length === n, unowned.clients), JSON.stringify(unowned));
 
@@ -224,4 +228,11 @@ await page.screenshot({ path: 'shots/live-upload-real.png' });
 console.log(LOG.join('\n'));
 console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.length}`);
 console.log('PAGEERRORS:', errs.length, errs.slice(0, 5));
-await browser.close(); process.exit(0);
+
+/* 2026-09-06 (watch cycle 35): this file counted its failures, printed them, and then exited 0.
+   The battery reads exit codes, so every regression this probe could see has been reported to
+   the runner as a pass for as long as it has existed. The count decides the exit code now. */
+const __fails = LOG.filter((l) => l.startsWith('FAIL')).length;
+await browser.close();
+if (__fails) { console.log(`\nFAILED — ${__fails} check(s) did not pass.`); process.exit(1); }
+process.exit(0);

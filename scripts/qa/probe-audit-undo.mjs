@@ -29,6 +29,16 @@
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+/* 2026-09-06 (watch cycle 35): js/63 used to be read from an absolute path under a
+   home directory that exists on no machine but this one — and here only because an earlier
+   session left a symlink at that path pointing back at the repo. Two consequences, both bad:
+   the probe dies with ENOENT anywhere else (a red that is about where you stand, not about the
+   code), and here it read the REPO even when the run was pointed at a sabotaged copy through
+   APP_DIR — so this check could not fail under sabotage, which is the only way it is ever
+   verified. Resolve the tree from the probe's own location, like every other probe. */
+const REPO = fileURLToPath(new URL('../..', import.meta.url)).replace(/\/$/, '');
+const APP = process.env.APP_DIR || REPO;
 
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 let failures = 0;
@@ -149,7 +159,7 @@ async function main() {
     ];
     /* The layer keeps its map file-private, so the honest check is against the file itself:
        every string the database can return must appear in js/63 with an Arabic counterpart. */
-    const dictText = fs.readFileSync('/home/user/Direct-Business/js/63-undo-and-real-audit.js', 'utf8');
+    const dictText = fs.readFileSync(APP + '/js/63-undo-and-real-audit.js', 'utf8');
     const missing = refusals.filter((r) => dictText.indexOf(r.replace(/'/g, "\\'")) < 0 && dictText.indexOf(r) < 0);
     if (!missing.length) ok(`all ${refusals.length} refusal messages the database can return have an Arabic translation — the layer's claim to an "exact, exhaustive set" holds`);
     else fail('refusal messages with no Arabic: ' + JSON.stringify(missing));
