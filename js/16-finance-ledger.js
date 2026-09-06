@@ -587,18 +587,29 @@ function rFinClients(){
   // ---- Collections & ageing (days to collect · % overdue · ageing buckets) — from all live invoices, no name matching ----
   var _fl=function(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;};
   var LV=live().filter(finInPeriod);
-  var arOut=0,arOver=0,billed=0,ag={b030:0,b3160:0,b6190:0,b90:0,nodate:0},_now=Date.now();
+  var arOut=0,arOver=0,arNoDue=0,billed=0,ag={b030:0,b3160:0,b6190:0,b90:0,nodate:0,future:0},_now=Date.now();
   LV.forEach(function(r){
     billed+=+r.total_incl_vat_sar||0;
     var out=+r.amount_remaining_sar||0; if(out<=0)return;
     arOut+=out;
     var due=r.collection_due_date?new Date(r.collection_due_date).getTime():0; if(due&&due<_now)arOver+=out;
+    /* 2026-09-06 (watch cycle 28): "% overdue" can only ever see money on an invoice that carries
+       a collection due date. 19 of the 46 live invoices carry none, so the figure is a percentage
+       of a subset while reading as a percentage of everything — and with no due date anywhere it
+       prints a confident 0% beside a full 90+ bucket. Measure how much money it cannot see, so
+       the card can say so instead of letting the number speak for money it never looked at. */
+    if(!due)arNoDue+=out;
     /* 2026-09-02 (watch cycle 6, scripts/qa/probe-clients-attacks.mjs): a row with NO invoice
        date used to be aged from "today", i.e. shown as 0–30 days — an invented age (M8). It now
        sits in its own "No invoice date" amount, still inside Outstanding, never in a bucket. */
     var invd=r.invoice_date?new Date(r.invoice_date).getTime():NaN;
     if(isNaN(invd)){ ag.nodate+=out; return; }
     var d=Math.floor((_now-invd)/86400000);
+    /* 2026-09-06 (watch cycle 28): an invoice dated in the FUTURE gave a negative age, and the
+       first comparison below is `d<=30`, so it was reported as 0-30 days old — an age it cannot
+       have. Same invented-age shape cycle 6 removed from the no-date row, and the same answer:
+       its own amount, still inside Outstanding, never in a bucket that claims it has aged. */
+    if(d<0){ ag.future+=out; return; }
     if(d<=30)ag.b030+=out;else if(d<=60)ag.b3160+=out;else if(d<=90)ag.b6190+=out;else ag.b90+=out;
   });
   var _dates=LV.map(function(r){return r.invoice_date;}).filter(Boolean).sort();
@@ -621,7 +632,10 @@ function rFinClients(){
        _mini(_fl('% overdue','٪ المتأخر'),pctOver+'%',pctOver>0?'#D92D20':'#0F6E56')+
        _mini(_fl('Outstanding','إجمالي المستحق'),moneyS(arOut)+' SAR',arOut>0?'#D92D20':'#667085')+
      '</div>'+
-     (arOut>0?('<div style="display:flex;gap:8px;flex-wrap:wrap">'+_agc(_fl('0–30 days','0–30 يوم'),ag.b030)+_agc(_fl('31–60 days','31–60 يوم'),ag.b3160)+_agc(_fl('61–90 days','61–90 يوم'),ag.b6190)+_agc(_fl('90+ days','90+ يوم'),ag.b90)+(ag.nodate>0?_agc(_fl('No invoice date','بدون تاريخ فاتورة'),ag.nodate):'')+'</div>')
+     (arOut>0?('<div style="display:flex;gap:8px;flex-wrap:wrap">'+_agc(_fl('0–30 days','0–30 يوم'),ag.b030)+_agc(_fl('31–60 days','31–60 يوم'),ag.b3160)+_agc(_fl('61–90 days','61–90 يوم'),ag.b6190)+_agc(_fl('90+ days','90+ يوم'),ag.b90)+(ag.nodate>0?_agc(_fl('No invoice date','بدون تاريخ فاتورة'),ag.nodate):'')+(ag.future>0?_agc(_fl('Dated in the future','بتاريخ مستقبلي'),ag.future):'')+'</div>'+
+       (arNoDue>0?('<div style="font-size:11.5px;color:var(--muted);margin-top:8px">'+_fl(
+         '% overdue is measured on the '+moneyS(arOut-arNoDue)+' SAR that carries a collection due date. The other '+moneyS(arNoDue)+' SAR has none, so it can never count as overdue however old it is.',
+         'تُحتسب نسبة المتأخر على '+moneyS(arOut-arNoDue)+' ريال تحمل تاريخ استحقاق. أما '+moneyS(arNoDue)+' ريال المتبقية فبلا تاريخ استحقاق، فلا يمكن احتسابها متأخرة مهما تقادمت.')+'</div>'):''))
        :('<div style="font-size:12px;color:#0F6E56">✓ '+_fl('Nothing outstanding','لا توجد مستحقات')+'</div>'))))+
      '</div>';
   /* 2026-09-02 (round 35): the overview headline already warns that some invoices in the period
