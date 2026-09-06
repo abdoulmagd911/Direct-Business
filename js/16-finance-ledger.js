@@ -36,6 +36,24 @@ function canFinEdit(){return !window.__isShareView && (window.__userTier==='admi
 function finCanWrite(){ try{ if(window.__isShareView) return false; }catch(_){} try{ return (typeof window.canFinEdit==='function')?!!window.canFinEdit():false; }catch(_){ return false; } }
 try{ window.finCanWrite=finCanWrite; }catch(_){}
 function canFinView(){return !window.__isShareView;}
+/* 2026-09-06 (round 50) — watch cycle 30 gave the three CSV exports a guard, and it closed half
+   the case it described. canFinView() asks ONE question: is this a read-only share link. But the
+   Finance page is refused for a second reason as well — a ROLE that does not allow it, enforced by
+   js/49's mayOpen('finance') and js/64. Measured on the merged tree: with a role that denies
+   Finance and no share view, the page refuses in words ("You do not have access to that page")
+   while canFinView() returns true and finLedgerCSV still produced 16 rows and finTxnCSV 4.
+   That is precisely the stale-tab shape cycle 30 set out to close — "a role changed while it was
+   open" — and it is the likelier half of it: a revoked role is an ordinary event, a share link is
+   the rarer one. The exports ask both questions now. Kept as its own helper rather than widened
+   into canFinView(), because canFinView() also drives the page's own share-view wording (and
+   js/45 / js/57 read it), and a role-denied person should get js/49's message, not that one.
+   Unknown answers never block, matching mayOpen's own rule. */
+function finMayExport(){
+  try{ if(typeof canFinView==='function'&&!canFinView())return false; }catch(_){}
+  try{ if(typeof window.__v73MayOpen==='function'&&!window.__v73MayOpen('finance'))return false; }catch(_){}
+  return true;
+}
+try{ window.finMayExport=finMayExport; }catch(_){}
 /* expose the finance client + permission checks so later layers (e.g. the finance↔client
    mapping in v53) can reach them from their own script block */
 try{ window.fc=fc; window.canFinEdit=canFinEdit; window.canFinView=canFinView; }catch(_){}
@@ -343,7 +361,7 @@ window.finLedgerCSV=function(){
      claimed as a boundary against someone reading the rows out of devtools — the rows are already
      in the tab — only that pressing something must not produce Finance's file for a person
      Finance is refused to. */
-  if(typeof canFinView==='function'&&!canFinView()){alert(isArF()?'التصدير غير متاح في روابط العرض فقط.':'Export is not available in shared view-only links.');return;}
+  if(typeof finMayExport==='function'&&!finMayExport()){alert(isArF()?'التصدير غير متاح لهذه الصلاحية.':'Export is not available for this access level.');return;}
   var L=FIN._csvRows||[]; if(!L.length){alert(isArF()?'لا صفوف للتصدير':'No rows to export');return;}
   var cols=['invoice_date','invoice_no','zatca_dpin','client_group','service_type','products','origin','proposal_ref','month','quarter','year','total_incl_vat_sar','revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','integrity_status'];
   var _hdr=cols.map(function(c){return c==='total_incl_vat_sar'?'invoice_total_sar':c;});
@@ -917,7 +935,7 @@ window.finTxnCSV=function(){
      claimed as a boundary against someone reading the rows out of devtools — the rows are already
      in the tab — only that pressing something must not produce Finance's file for a person
      Finance is refused to. */
-  if(typeof canFinView==='function'&&!canFinView()){alert(isArF()?'التصدير غير متاح في روابط العرض فقط.':'Export is not available in shared view-only links.');return;}
+  if(typeof finMayExport==='function'&&!finMayExport()){alert(isArF()?'التصدير غير متاح لهذه الصلاحية.':'Export is not available for this access level.');return;}
   var L=TXN._csvRows||[]; if(!L.length){alert(isArF()?'لا صفوف للتصدير':'No rows to export');return;}
   var cols=['company','profile_type','direct_client_id','transaction_ref','invoice_no','zatca_dpin','service_type','stage','amount_sar','cost_confirmed_sar','cost_estimate_sar','amount_received_sar','amount_remaining_sar','overdue','created_at_source'];
   var csv='\ufeff'+cols.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=csvGuard(r[c]);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');   // escaped BOM, not a literal invisible byte (2026-09-02)
@@ -1361,7 +1379,7 @@ window.finCSV=function(){
      claimed as a boundary against someone reading the rows out of devtools — the rows are already
      in the tab — only that pressing something must not produce Finance's file for a person
      Finance is refused to. */
-  if(typeof canFinView==='function'&&!canFinView()){alert(isArF()?'التصدير غير متاح في روابط العرض فقط.':'Export is not available in shared view-only links.');return;}
+  if(typeof finMayExport==='function'&&!finMayExport()){alert(isArF()?'التصدير غير متاح لهذه الصلاحية.':'Export is not available for this access level.');return;}
   var R=FIN._lastReport;if(!R)return;
   /* 2026-09-02 (attack round 9): the file used the English DIMS/METS words and "TOTAL" even in
      Arabic while the table on screen was Arabic \u2014 same labels as the screen now (dimLbl/metLbl). */

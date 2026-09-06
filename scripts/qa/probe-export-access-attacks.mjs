@@ -142,6 +142,34 @@ async function main() {
   if (!half.length) ok('no export produced a header-only or blanked file — each either works fully or refuses, never a download that looks like an answer');
   else fail(half.map(([, l]) => l).join(' and ') + ' produced a header-only file — a download that looks like an answer and is not');
 
+  /* ---------- 3b. the OTHER half of the stale tab: a role that denies Finance (2026-09-06, round 50)
+     Cycle 30 guarded these with canFinView(), which asks one question: is this a read-only share
+     link. The Finance page is refused for a second reason as well — a role that does not allow it,
+     enforced by js/49's mayOpen('finance'). Measured before the fix: with a denying role and NO
+     share view, the page refused in words while finLedgerCSV still produced 16 rows and finTxnCSV
+     4. That is the likelier half of the very case cycle 30 set out to close — a revoked role is an
+     ordinary event; a share link is the rarer one. */
+  await p.evaluate(() => {
+    window.__isShareView = false;                 // explicitly NOT a share view
+    window.__userTier = 'viewer';
+    window.__accessKnown = function () { return true; };
+    window.myAllowedPages = function () { return ['leads']; };   // Finance not among them
+  });
+  const roleState = await p.evaluate(() => ({
+    canFinView: typeof canFinView === 'function' ? canFinView() : null,
+    mayOpen: window.__v73MayOpen ? window.__v73MayOpen('finance') : null,
+  }));
+  if (roleState.canFinView === true && roleState.mayOpen === false)
+    ok('control: the session is refused Finance by ROLE and is not a share view — canFinView() says yes, mayOpen("finance") says no, so this is the half canFinView alone cannot see');
+  else fail(`control: expected canFinView true and mayOpen false, got ${JSON.stringify(roleState)} — the role case below is not actually set up`);
+  for (const [fn, label] of EXPORTS) {
+    const r = await tryExport(fn);
+    const lines = r.file ? r.file.trim().split('\n').length - 1 : 0;
+    if (!r.file && !r.clicked) ok(`a role that denies Finance: ${label} refuses and produces no file${r.alerted ? ' — "' + r.alerted.slice(0, 70) + '"' : ''}`);
+    else fail(`a role that denies Finance: ${label} produced a ${lines}-row file. The page refuses this session in words, but the export does not ask the same question — canFinView() only covers a share link`);
+  }
+  await p.evaluate(() => { window.__userTier = 'admin'; try { delete window.myAllowedPages; } catch (_) { window.myAllowedPages = undefined; } try { delete window.__accessKnown; } catch (_) { window.__accessKnown = undefined; } });
+
   /* ---------- 2. a share view from the start ---------- */
   await p.evaluate(() => { window.__isShareView = true; FIN._csvRows = null; TXN._csvRows = null; FIN._lastReport = null; current = 'finance'; render(); });
   await p.waitForTimeout(1200);

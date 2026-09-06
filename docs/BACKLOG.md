@@ -1,3 +1,33 @@
+## Round 50 — the other half of the export guard: a role, not just a share link (2026-09-06)
+
+Watch cycle 30 found a real defect — the three Finance CSV exports had no permission check of
+their own — and guarded all three with `canFinView()`. Verified each guard individually (removing
+only the third produces exactly one failure, naming the Report Builder export, so each export
+really does carry its own). **But the fix closes half the case it describes.**
+
+`canFinView()` asks one question: *is this a read-only share link* (`!window.__isShareView`). The
+Finance page is refused for a **second** reason as well — a role that does not allow it, enforced
+by js/49's `mayOpen('finance')` and js/64. Measured on the merged tree, with a denying role and
+**no** share view:
+
+- the page refuses in words — *"You do not have access to that page"*
+- `canFinView()` returns **true**
+- `finLedgerCSV` produced **16 rows**, `finTxnCSV` **4**
+
+That is precisely the shape cycle 30 set out to close — its own commit names *"a role changed while
+it was open"* — and it is the **likelier** half: a revoked role is an ordinary event, a share link
+is the rarer one.
+
+Fixed with `finMayExport()`, which asks both questions, and all three guards now call it. Kept as
+its own helper rather than widened into `canFinView()`, because `canFinView()` also drives the
+page's own share-view wording and js/45 / js/57 read it — a role-denied person should get js/49's
+message, not "shared view-only links". Unknown answers never block, matching `mayOpen`'s own rule.
+
+`probe-export-access-attacks` gains the role case (a control first, proving `canFinView` says yes
+while `mayOpen` says no — the half `canFinView` alone cannot see). Sabotage — drop the `mayOpen`
+question back out — reopens exactly the role half (3 red) and leaves the share-view half green.
+File restored byte-identical.
+
 ## 2026-09-06 · Watch cycle 30 — the period bar clicked rather than called, and three exports that ignored the rule the page obeys
 
 **Attack area (y): every control the period bar renders, operated the way a person operates it. Attack area (z): the CSV exports under a session that may not see Finance.**
