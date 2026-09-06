@@ -224,12 +224,24 @@ async function main() {
     }
     return last;
   };
-  const teachOpen = () => p.evaluate(() => {
-    const before = document.querySelectorAll('.field').length;
-    const keys = Object.keys(window.__v65PendingKeys || {});
-    try { if (typeof window.v65OpenTeach === 'function') { const btn = [...document.querySelectorAll('#finImpOut button')].find(b => /Teach|تعليم/i.test(b.textContent)); if (btn) btn.click(); } } catch (e) { }
-    return { fieldsBefore: before, fieldsAfter: document.querySelectorAll('.field').length, keys: keys.length };
+  /* Round 54 (2026-09-06) — cycle 32 left v65OpenTeach as a note because it checks canFinEdit()
+     directly. It is guarded through finCanWrite() now, so the note is an assertion: drive the real
+     button, and require the mapping dialog to appear for an allowed admin and NOT to appear under
+     either refused half. The stale-tab shape is exactly how it would be reached in life — the
+     preview is built while the session is still allowed, and the role changes underneath it — so
+     the file is armed as an admin and the half applied WITHOUT reloading. */
+  const UNKNOWN_CSV = 'Alpha,Beta,Gamma\nsomething,else,entirely';
+  const clickTeach = () => p.evaluate(() => {
+    const btn = [...document.querySelectorAll('#finImpOut button')].find(b => /Teach|تعليم/i.test(b.textContent));
+    if (!btn) return { clicked: false, dialog: false };
+    btn.click();
+    return { clicked: true, dialog: false };
   });
+  /* closeModal() only hides the overlay — the dialog's fields stay in the DOM — so "is it open"
+     has to be a VISIBILITY question. Checking existence would have called the control's own
+     leftover dialog a failure of the check that follows it. */
+  const teachDialogOpen = () => p.evaluate(() => { const el = document.getElementById('v65t_invoice_no'); return !!(el && el.offsetParent !== null); });
+  const closeAnyModal = () => p.evaluate(() => { try { if (typeof closeModal === 'function') closeModal(); } catch (_) { } try { const m = document.getElementById('modal'); if (m) m.innerHTML = ''; } catch (_) { } });
 
   await reload();
   await p.evaluate((header) => {
@@ -262,9 +274,23 @@ async function main() {
     const tabRefused = impText === '__NO_IMPORT_SURFACE__' || /restricted|متاح للمدراء|not available|غير متاح/i.test(impText || '') || !/New\s+\d/.test(impText || '');
     if (tabRefused) ok(`under ${half}: the Import tab itself does not offer a preview to build a batch from${impText === '__NO_IMPORT_SURFACE__' ? ' (it does not render at all)' : ''}`);
     else note(`under ${half}: the Import tab still rendered a preview ("${(impText || '').slice(0, 90).replace(/\s+/g, ' ')}") — the Confirm above is what must hold, and it does`);
-    const teach = await p.evaluate(() => ({ canFinEdit: typeof window.canFinEdit === 'function' ? window.canFinEdit() : null, hasTeach: typeof window.v65OpenTeach === 'function' }));
-    if (teach.hasTeach && teach.canFinEdit === true && half.indexOf('role') >= 0)
-      note(`under ${half}: v65OpenTeach checks canFinEdit() directly (which reads ${teach.canFinEdit} here) rather than finCanWrite — it opens a dialog whose save writes a column mapping into DB.settings. No invoice money moves, so it is recorded rather than asserted; flagged in BACKLOG`);
+    /* teach-the-columns, armed as an admin then refused underneath — see the helper above */
+    /* reload() only resets the FIXTURE — the half's flags are still on, which is why the control
+       has to put the session back to an allowed admin explicitly before arming the file. */
+    await p.evaluate(() => { window.__isShareView = false; window.__userTier = 'admin'; try { delete window.myAllowedPages; } catch (_) { window.myAllowedPages = undefined; } try { delete window.__accessKnown; } catch (_) { window.__accessKnown = undefined; } });
+    await reload();
+    await armImport(UNKNOWN_CSV);
+    const teachCtl = await clickTeach();
+    const ctlDialog = teachCtl.clicked ? await teachDialogOpen() : false;
+    await closeAnyModal();
+    if (teachCtl.clicked && ctlDialog) ok(`control (${half}): as an allowed admin the unrecognised file offers Teach and it opens the mapping dialog`);
+    else fail(`control (${half}): the Teach dialog did not open for an allowed admin (${JSON.stringify(teachCtl)}, dialog ${ctlDialog}) — the refusal below would prove nothing`);
+    await p.evaluate(setup);
+    const teachRef = await clickTeach();
+    const refDialog = teachRef.clicked ? await teachDialogOpen() : false;
+    if (!refDialog) ok(`under ${half}: the Teach-the-columns dialog does not open${teachRef.clicked ? ' even with the button still on screen from before the change' : ' (no button offered)'}`);
+    else fail(`under ${half}: v65OpenTeach opened the mapping dialog — its save writes a column mapping the importer then trusts, and teaching the wrong shape is exactly what round 52 closed off`);
+    await closeAnyModal();
     await p.evaluate(() => { window.__isShareView = false; window.__userTier = 'admin'; try { delete window.myAllowedPages; } catch (_) { window.myAllowedPages = undefined; } try { delete window.__accessKnown; } catch (_) { window.__accessKnown = undefined; } });
   }
   await reload();

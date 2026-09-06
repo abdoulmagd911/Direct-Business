@@ -1,3 +1,31 @@
+## 2026-09-06 · Round 54 — the fifth caller, and cycle 32's own sabotage claim corrected
+
+**Fixed: `v65OpenTeach` (js/65), the last caller in this lane asking the narrow question.** Watch
+cycle 32 measured it and handed it over: it checked `canFinEdit()` directly, so a session the
+Finance page refuses could still open the teach-the-columns dialog. What it saves is a column
+mapping rather than money, which is why cycle 32 recorded rather than asserted it — but it is the
+door through which the importer is TAUGHT how to read a file, and round 52 has just made teaching
+the wrong shape a live hazard (teach our own ledger export and revenue and profit come back in as
+if a person had supplied them). It asks `finCanWrite()` now, the same chokepoint every other write
+on the page goes through. Cycle 32's note is an assertion: the probe arms an unrecognised file as
+an allowed admin, flips the session underneath it — the real stale-tab shape — and requires the
+dialog not to open. Sabotage-verified: reverting to `canFinEdit()` turns it red under **both**
+halves, because a later layer redefines `canFinEdit` without the share-view half, which is exactly
+why `finCanWrite` re-applies it.
+
+**Correction to watch cycle 32's second sabotage claim.** It reported that dropping the share-view
+question from `finCanWrite` turns both its probe and `probe-permissions-attacks` red. Measured
+here: it does not — removing that line leaves both green, because `finMaySeeMoney()` (which the
+new first line calls) already asks `canFinView()`. The line is now a redundant second copy of the
+same question. Removing **both** copies is what turns them red — 6 checks in the write-paths probe
+and 3 in permissions-attacks. The rule the watch itself wrote holds here too: when a fix has two
+halves that each mask the symptom, sabotaging one proves nothing. Nothing needs changing in the
+code; the belt-and-braces line is fine to keep. Only the claim was wrong.
+
+**Probe bug found in my own promotion, worth recording:** `closeModal()` only hides the overlay —
+the dialog's fields stay in the DOM — so "is the dialog open" had to be a visibility question. As
+an existence check it called the control's own leftover dialog a failure of the check after it.
+
 ## 2026-09-06 · Watch cycle 32 — the same missing question, found for the fourth time, on the oldest surface
 
 **Attack area (cc): the ten Finance write paths, re-audited against BOTH reasons the page is refused. Attack area (dd): the import surface, the same way.**

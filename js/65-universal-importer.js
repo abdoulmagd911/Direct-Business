@@ -894,7 +894,17 @@
 
   window.v65OpenTeach=function(fileKey){
     var pend=PENDING_UNKNOWN[fileKey]; if(!pend)return;
-    if(typeof canFinEdit==='function'&&!canFinEdit())return;
+    /* 2026-09-06 (round 54, handed over by watch cycle 32): this asked canFinEdit() — the narrow
+       question — which is the same half that was missing from the CSV exports, the Records export,
+       the invoice modal and every Finance write in turn. This is the last caller in that lane.
+       What it saves is a column mapping rather than money, so it is not the most serious of the
+       five; it is still the door through which the importer is TAUGHT how to read a file, and
+       round 52 has just made teaching the wrong shape a real hazard — teach our own ledger export
+       and the importer would read revenue and profit back in as if a person had supplied them.
+       finCanWrite() asks all three questions (share view, role allows Finance, edit rights) and is
+       the same chokepoint every other write on this page goes through. */
+    if(typeof finCanWrite==='function'&&!finCanWrite())return;
+    if(typeof finCanWrite!=='function'&&typeof canFinEdit==='function'&&!canFinEdit())return;
     var header=pend.header;
     var optsHtml='<option value="">'+fl('— not present —','— غير موجود —')+'</option>'+
       header.map(function(h){return '<option value="'+esc(h)+'">'+esc(h)+'</option>';}).join('');
