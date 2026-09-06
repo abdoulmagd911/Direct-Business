@@ -15,9 +15,10 @@
      received, remaining and wallet. It is in this lane and had no check of its own.
 
      exportCurrent() in js/core/core-05-records.js - the Records page's own export reads
-     FIN._csvRows DIRECTLY and downloads it, so it never passes through finLedgerCSV and neither
-     cycle 30's guard nor round 50's finMayExport() is in its path at all. That file is OUTSIDE
-     this lane, so this probe MEASURES it and reports; it does not fix it.
+     FIN._csvRows DIRECTLY and downloads it, so it never passed through finLedgerCSV and neither
+     cycle 30's guard nor round 50's finMayExport() was in its path at all. That file was OUTSIDE
+     cycle 31's lane, so cycle 31 measured it and handed it over. GUARDED 2026-09-06 (round 51)
+     with the same finMaySeeMoney() question, and the measurement below is now an ASSERTION.
 
    Under test:
      1. Positive controls first: as an admin every read-out really does produce what it claims, so
@@ -25,10 +26,12 @@
      2. Under a read-only share view AND under a role that denies Finance, each read-out is checked
         separately. Both halves, every time - that is the lesson of round 50.
      3. The three CSVs stay refused (a regression guard on cycles 30 and round 50).
-     4. What the Records-page export does with FIN._csvRows, measured and reported.
+     4. The Records-page export refuses under both halves too (round 51's guard).
 
    Run:  node scripts/qa/probe-readout-surface-attacks.mjs        (port 8243)
-   Sabotage (file-level): remove the guard from finRow. Restore byte-identical (md5). */
+   Sabotage (file-level): remove the guard from finRow, and separately the finance guard from
+   exportCurrent() in js/core/core-05-records.js. Each must turn this red on its own. Restore
+   byte-identical (md5). */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
@@ -153,8 +156,11 @@ async function main() {
     else { ctlBad++; fail(`control: as an admin, ${label} produced no file (${JSON.stringify({ a: r.alerted, t: r.threw })})`); }
   }
   const ctlRec = await tryRecords();
+  /* This control is what stops step 4 below passing for the wrong reason. "No file under a denied
+     role" is only meaningful if an ALLOWED role gets one — otherwise a path that simply broke, or
+     a harness that cannot reach it, would read as a permission check working. So it FAILS here. */
   if (ctlRec.file && ctlRec.file.trim().split('\n').length > 1) ok(`control: as an admin, the Records-page finance export produces a file (${ctlRec.name || 'unnamed'}) with ${ctlRec.file.trim().split('\n').length - 1} row(s) — it reads FIN._csvRows directly, never through finLedgerCSV`);
-  else note(`the Records-page finance export is not reachable in this harness (${JSON.stringify({ a: ctlRec.alerted, t: ctlRec.threw })}) — the measurement below is skipped rather than guessed at`);
+  else { ctlBad++; fail(`control: as an admin, the Records-page finance export produced no file (${JSON.stringify({ a: ctlRec.alerted, t: ctlRec.threw })}) — the refusal checks below would then pass for the wrong reason, so this is a failure, not a skip`); }
   if (ctlBad) { console.log('\nFAILED - ' + failures + ' check(s)'); await b.close(); srv.close(); process.exit(1); }
 
   /* ---------- 2. both halves of "refused Finance" ---------- */
@@ -178,22 +184,21 @@ async function main() {
     else fail(`under ${half}: finRow opened the invoice modal with the invoice's total, cost, revenue, profit, received and remaining on it — "${rr.sample}". The page refuses this session in words, and every CSV export now asks the same question, but the modal that prints one invoice's whole money does not`);
     await closeModal();
 
-    /* The Records-page export is js/core/core-05-records.js — OUTSIDE this lane. It is measured
-       and named here rather than asserted, so this probe stays green on a gap it is not allowed to
-       fix; the finding is in BACKLOG and was handed to that file's owner. To stop the note rotting
-       into something meaningless, the check below FAILS if the path stops reading FIN._csvRows at
-       all — either because it was guarded (turn this note into an assertion) or because it was
-       rewired (this note is then describing code that no longer exists). */
+    /* Cycle 31 could only MEASURE this one — js/core/core-05-records.js was outside its lane, so
+       it left a note and handed the file over. Round 51 guarded it with the same two-question
+       finMaySeeMoney(), so the note is now an assertion: a finance file here is a failure, exactly
+       like the three Ledger exports above. The admin control at step 1 is what keeps this honest —
+       it fails if an allowed role gets nothing, so "no file" can never mean "path broken". */
     const rec = await tryRecords();
-    if (rec.file) note(`KNOWN GAP, not this lane — under ${half} the Records-page export produced a ${rec.file.trim().split('\n').length - 1}-row finance file (${rec.name || 'unnamed'}). It reads FIN._csvRows DIRECTLY, so it never passes through finLedgerCSV and neither cycle 30's guard nor round 50's finMayExport() is in its path. Flagged for js/core/core-05-records.js; turn this into a failing assertion once guarded`);
-    else ok(`under ${half}: the Records-page export produced no finance file${rec.alerted ? ' — "' + rec.alerted.slice(0, 70) + '"' : ''} — if this is now guarded, promote the note above to an assertion`);
+    if (!rec.file) ok(`under ${half}: the Records-page export produced no finance file${rec.alerted ? ' — "' + rec.alerted.slice(0, 70) + '"' : ''}`);
+    else fail(`under ${half}: the Records-page export handed over a ${rec.file.trim().split('\n').length - 1}-row finance file (${rec.name || 'unnamed'}) of invoice money. It reads FIN._csvRows directly, so finLedgerCSV's guard is not in its path — round 51 guarded exportCurrent() itself; that guard is gone or no longer asks both questions`);
     recordsSeen = recordsSeen || !!rec.file || !!rec.alerted || !!rec.threw;
 
     await p.evaluate(() => { window.__isShareView = false; window.__userTier = 'admin'; try { delete window.myAllowedPages; } catch (_) { window.myAllowedPages = undefined; } try { delete window.__accessKnown; } catch (_) { window.__accessKnown = undefined; } });
   }
 
-  if (recordsSeen) ok('the Records-page finance export is still a live path reading FIN._csvRows — the note above is describing code that exists, not a stale flag');
-  else fail('the Records-page finance export no longer behaves as described — it produced nothing and said nothing under either half. Either it is now guarded (promote the note to an assertion) or it was rewired (rewrite the note); do not leave it as a flag for code that has moved');
+  if (recordsSeen) ok('the Records-page finance export is still a live path — it answered under a denied role rather than silently not existing, so the refusals above are a guard doing its job');
+  else fail('the Records-page finance export produced nothing and said nothing under either half — it may have been rewired or removed, in which case the checks above are guarding code that has moved. Re-read js/core/core-05-records.js before trusting this probe again');
 
   if (!errors.length) ok('no page error'); else fail('page errors: ' + errors.slice(0, 3).join(' | '));
   console.log('\n' + (failures ? 'FAILED - ' + failures + ' check(s)' : 'ALL PASS'));

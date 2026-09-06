@@ -235,6 +235,15 @@ function exportCurrent(scope){
   const fullScope=scope==='full'||scope==='xlsFull';
   let cur=current;
   if(cur==='sopsla')cur=(window.sopslaTab==='slas')?'slas':'sops';
+  /* The finance scope hands real invoice money over as a downloaded file, so it has to ask the
+     same two questions the Ledger's own export buttons ask (js/16's finMaySeeMoney): the
+     read-only share view, and the role gate. Found 2026-09-06: this path reads FIN._csvRows
+     directly, so it never passed through finLedgerCSV and NEITHER guard was in it — a session
+     refused the Finance page still got a full finance CSV from the Records page. An unknown
+     answer never blocks; only a definite no does. */
+  if(cur==='finance'&&typeof window.finMaySeeMoney==='function'&&!window.finMaySeeMoney()){
+    alert((typeof LANG!=='undefined'&&LANG==='ar')?'التصدير غير متاح لهذه الصلاحية.':'Export is not available for this access level.');return;
+  }
   const M={leads:{rows:(typeof leadsView==="function"?leadsView():DB.businesses),list:['name','nameAr','area','source','sourceSub','stage','assignedTo','category','segment','website','contacts','linkedin','facebook','instagram','x_twitter','tiktok','youtube','licenceNumber','licenceStatus','mtActivity','verificationStatus','outreachScore','decisionMakers','totalSAR','notes']},
     clients:{rows:(typeof clientsView==="function"?clientsView():(DB.businesses||[]).filter(b=>b.isClient)),list:['name','nameAr','area','source','stage','assignedTo','tier','segment','website','contacts','linkedin','licenceNumber','verificationStatus','channels','totalSAR','convertedDate','nextReview','notes']},
     airlines:{rows:(typeof supListView==="function"&&current==="airlines"?supListView("air"):(DB.airlines||[])),list:['name','code','icao','stock','ksa','ticketingAuthority','alliance','type','country','gds','providers']},
