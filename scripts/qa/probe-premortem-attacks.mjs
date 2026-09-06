@@ -31,8 +31,23 @@ let failures = 0;
 function fail(msg) { failures++; console.log('  ✗ ' + msg); }
 function ok(msg) { console.log('  ✓ ' + msg); }
 const inv = async (n) => fetch(BASE + '/rest/v1/finance_invoices?invoice_no=eq.' + n).then((r) => r.json()).then((a) => a[0] || {});
-const capLines = async (ref) => fetch(BASE + '/rest/v1/finance_expense_lines_capture?transaction_ref=eq.' + ref).then((r) => r.json());
-const capGates = async (ref) => fetch(BASE + '/rest/v1/finance_expense_gate_capture?transaction_ref=eq.' + ref).then((r) => r.json());
+/* 2026-09-03 (watch cycle 27): these two verification fetches were UNPAGED. Since cycle 13 the
+   mock enforces the real PostgREST 1000-row ceiling, so attack C — which writes 6,000 capture
+   rows on purpose to cross the 5,000-row batch boundary — could only ever read 1,000 of them
+   back and reported "got 1000" as an app defect. It never was one: the same attack's real
+   assertion, that the cost summed to exactly 1500, has been passing throughout. A probe that
+   checks a count must read every row the way the app does. */
+const pageAll = async (url) => {
+  const all = [];
+  for (let from = 0; ; from += 1000) {
+    const page = await fetch(url + (url.includes('?') ? '&' : '?') + 'offset=' + from + '&limit=1000').then((r) => r.json());
+    if (!Array.isArray(page)) return page;
+    all.push(...page);
+    if (page.length < 1000) return all;
+  }
+};
+const capLines = async (ref) => pageAll(BASE + '/rest/v1/finance_expense_lines_capture?transaction_ref=eq.' + ref);
+const capGates = async (ref) => pageAll(BASE + '/rest/v1/finance_expense_gate_capture?transaction_ref=eq.' + ref);
 
 async function main() {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });

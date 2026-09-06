@@ -87,21 +87,33 @@
   console.info('%c[v32] Finance income-by-service loaded (flat)','color:#0F6E56;font-weight:700');
 }catch(e){if(window.console)console.warn('[v32] init',e);}})();
 
-/* ---------- part 2 — the four revenue ways + promo codes card (was js/39-v63) ---------- */
-/* v63 — The four ways revenue arrives (owner-directed 2026-08-12).
+/* ---------- part 2 — the revenue ways + promo codes card (was js/39-v63) ---------- */
+/* v63 — The ways revenue arrives (owner-directed 2026-08-12; a fifth added 2026-08-20).
    1) actual tax invoice  2) transaction awaiting its tax invoice  3) commission held/received
-   at a supplier's wallet  4) promo codes (B2B2C) — totals for now, per-invoice detail later.
+   at a supplier's wallet  4) promo codes (B2B2C) — totals for now, per-invoice detail later
+   5) b2c_manual — an individual booking typed in by hand (js/58), which has no export to
+      import from. Written as "the four ways" until 2026-09-03, when a watch cycle found that
+      the editor below still offered only four and silently rewrote the fifth.
    Adds: (a) a "How did this revenue arrive?" selector on the invoice card,
          (b) a Promo codes card on the Finance overview reading the promo_codes registry.
    Additive layer — wraps existing renderers, changes no stored value by itself. */
 (function(){try{
   function fl(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;}
   function m0(n){n=Number(n)||0;return Math.round(n).toLocaleString('en-US');}
+  /* 2026-09-03 (watch cycle 27): this list held FOUR ways and the database accepts FIVE.
+     b2c_manual arrived on 2026-08-20 (js/58, "the fifth revenue pattern") and this editor,
+     written on 2026-08-12, was never told. The consequence was not a missing option but a
+     silent rewrite: a b2c_manual invoice opened with no matching <option>, so the browser
+     showed the FIRST one — "Actual invoice" — and one Save wrote 'invoice' over the stored
+     way without anybody choosing it. The live CHECK constraint on finance_invoices is
+     revenue_way = ANY (ARRAY['invoice','transaction','commission','promo_code','b2c_manual']);
+     this list must carry every value that constraint accepts. */
   var WAYS=[
     ['invoice',     'Actual invoice',                     'فاتورة فعلية'],
     ['transaction', 'Transaction — tax invoice later',    'معاملة — الفاتورة الضريبية لاحقًا'],
     ['commission',  'Commission (supplier wallet)',       'عمولة (محفظة المورّد)'],
-    ['promo_code',  'Promo code totals',                  'إجمالي كود خصم']
+    ['promo_code',  'Promo code totals',                  'إجمالي كود خصم'],
+    ['b2c_manual',  'Individual booking — entered by hand','حجز فردي — مُدخل يدويًا']
   ];
 
   /* (a) selector on the invoice card, next to the origin editor */
@@ -128,11 +140,18 @@
         if(document.getElementById('fin_way'))return;
         var row=((window.FIN&&FIN.rows)||[]).find(function(x){return x.id===id;}); if(!row)return;
         var cur=row.revenue_way||'invoice';
+        /* And belt-and-braces for the next time the database gains a way before this file
+           hears about it: never let the editor present a value the row does not hold. An
+           unrecognised stored way is offered back as itself, labelled, so the worst case is
+           an ugly option rather than a silent overwrite. */
+        var OPTS=WAYS.slice();
+        if(!OPTS.some(function(w){return w[0]===cur;}))
+          OPTS.unshift([cur, cur+' (stored value — unknown way)', cur+' (القيمة المخزنة — طريقة غير معروفة)']);
         var holder=org.closest('div')||org.parentNode; if(!holder||!holder.parentNode)return;
         var d=document.createElement('div');
         d.style.cssText='margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap';
         d.innerHTML='<label style="font-size:11.5px;color:var(--muted)">'+fl('How did this revenue arrive?','كيف وصل هذا الإيراد؟')+'</label>'+
-          '<select id="fin_way" class="inp sm" style="max-width:260px">'+WAYS.map(function(w){
+          '<select id="fin_way" class="inp sm" style="max-width:260px">'+OPTS.map(function(w){
             return '<option value="'+w[0]+'"'+(cur===w[0]?' selected':'')+'>'+fl(w[1],w[2])+'</option>';}).join('')+'</select>'+
           '<button class="btn sm" onclick="finSetWay(\''+String(row.invoice_no).replace(/'/g,"\\'")+'\')">'+fl('Save','حفظ')+'</button>';
         holder.parentNode.insertBefore(d,holder.nextSibling);
