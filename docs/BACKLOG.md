@@ -1,3 +1,27 @@
+## 2026-09-06 · Watch cycle 33 — mutation audit round five: a clean sweep, and js/62 measured rather than assumed
+
+**Attack area (ee): mutation audit round five, over everything added since cycle 29. Attack area (ff): js/62's own write surface, driven against both halves.**
+
+**First, a correction to cycle 32 from the Code session — and it is right.** Cycle 32 reported that dropping the share-view question from `finCanWrite` turns two probes red. It does not: `finMaySeeMoney()`, which the new first line calls, already asks it, so the second line is a **redundant copy** and removing it alone leaves both probes green. **Verified here independently before recording it** — removing only that line: both green; removing both copies: 13 red in one probe, 3 in the other. The code was right; the claim was wrong. **The cause is worth naming, because it is a methodology error, not a typo: my mutation was labelled "stops asking the share-view question" while the edit it made replaced the whole function body, removing both copies.** A mutation whose *name* is narrower than its *edit* attributes the red to the wrong line. **Name a mutation by exactly what it removes.** Every mutation in round five below is named that way — "the ROLE question line removed (canFinView line kept)", and so on.
+
+That naming immediately earned its keep: removing `finMaySeeMoney`'s **share-view** line turns the two read-out probes red with 6 and 3 checks but the write probe red with only **1** — because `finCanWrite`'s redundant copy is still catching the rest. The redundancy is real, and it is doing work as a backstop.
+
+**Mutation audit round five: 10 of 10 caught, by the probe you would expect.** The second clean sweep of the five (round three was the first). Covered: `finRow`'s guard, both of `finMaySeeMoney`'s questions separately, the ageing future-date branch, the no-due-date measurement, the Arabic future-date wording, the b2c blank-reference generator, the cost-join re-drop, the period-bar chip highlight, and the Records-page export guard. Rounds one and two found six guards that were decoration and round four found three; everything built since cycle 29 bites.
+
+**Attack area (ff): js/62, no defect found.** All eight write functions — the exclusion editors, the grouping undo/redo and its two dialogs, the duplicate dismiss/undismiss and the merge/undo pair — route through `canEdit62()`, which delegates to `finCanWrite()`, so they **should** have inherited cycle 32's fix for free. "Should have" is exactly what this watch does not accept on inspection: cycle 32 found five write paths open after four cycles of guarding write paths. Measured instead, with a positive control on every one, and all eight hold under both halves. New `scripts/qa/probe-guardrails-both-halves-attacks.mjs` (port 8249, 27 checks). Three file-level sabotages caught — including one that proves the delegation is what is doing the work: making `canEdit62` fall back to `canFinEdit` turns **14** checks red.
+
+**Three probe-side errors of my own, each found by refusing to accept a green.**
+
+1. **A check that could not fail, found only by sabotage.** Removing the merge guard produced **0 red** — because the admin control had already merged the fixture pair, so by the time the refusal rounds ran, js/62 answered *"could not find both companies"* and returned **before** reaching the guard. The same "nothing left to do" rubber stamp cycle 32 found in the write probe, in a new place. Each half now gets a **fresh pair**, and a check that sees "could not find both companies" **fails itself** rather than passing.
+
+2. **A red that was not a guard failure at all.** `v62RemoveExclusion` reported changing stored state under a share view but not under the denying role — an asymmetry no guard could produce. **The diff settled it:** the exclusion list did not lose `fx-seed`, it came back holding `fx-qa-takamol`, *the mock seed's own entry* — the app had re-read `app_settings` between the two snapshots. The fixture is now verified to have stuck before anything is measured against it, and the probe fails outright if it cannot be held still.
+
+3. **A control that failed for a fixture reason.** The merge was passed raw ids, but js/62 identifies a company by `bizUuid(b) = __bizUuid(b.id)`, which returns undefined for an id it has never seen. It asks the page what it calls them now.
+
+**The standing-red list is down to four.** `probe-lifecycle5` is **green**, confirmed by a serial re-run rather than a single batch pass: the Code session's round 52 made it print what it measured before it stops, which turned "a stale probe" into four live defects and then a passing one. Remaining, none in this lane: `probe-live2` (environmental — needs a `live-app/` snapshot not in the repo), `probe-events-scale`, `probe-round9`, `probe-stress`. `sweep-buttons` did not report in this batch and needs re-checking next cycle rather than being assumed either way.
+
+**Battery:** 78 probes plus `check-structure`, 72 green. `probe-generator-attacks` red in the parallel batch and green re-run alone (114 passed, 0 failed).
+
 ## 2026-09-06 · Round 54 — the fifth caller, and cycle 32's own sabotage claim corrected
 
 **Fixed: `v65OpenTeach` (js/65), the last caller in this lane asking the narrow question.** Watch
