@@ -333,6 +333,17 @@ try{ window._finTargetWrite=_finTargetWrite; }catch(_){}
    "Excel (CSV)" button either did nothing or downloaded the Report Builder's grouped summary
    instead of the invoice rows on screen. Two different jobs, two different names. */
 window.finLedgerCSV=function(){
+  /* 2026-09-06 (watch cycle 30): the READ-OUT paths had no check of their own. Cycle 12 found
+     and closed exactly this shape on all ten Finance WRITE paths — "a stale tab, a role changed
+     while it was open, or a share view leaves the function one call away" — and the exports were
+     never looked at. They build a file out of state the page filled in while it was still allowed
+     to render, so a tab that was an admin's a moment ago hands over every invoice, every
+     transaction and the whole report to a session the page itself now refuses in words. Same rule
+     as the screen: canFinView() is what rFinance checks before it will render at all. This is not
+     claimed as a boundary against someone reading the rows out of devtools — the rows are already
+     in the tab — only that pressing something must not produce Finance's file for a person
+     Finance is refused to. */
+  if(typeof canFinView==='function'&&!canFinView()){alert(isArF()?'التصدير غير متاح في روابط العرض فقط.':'Export is not available in shared view-only links.');return;}
   var L=FIN._csvRows||[]; if(!L.length){alert(isArF()?'لا صفوف للتصدير':'No rows to export');return;}
   var cols=['invoice_date','invoice_no','zatca_dpin','client_group','service_type','products','origin','proposal_ref','month','quarter','year','total_incl_vat_sar','revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','integrity_status'];
   var _hdr=cols.map(function(c){return c==='total_incl_vat_sar'?'invoice_total_sar':c;});
@@ -896,6 +907,17 @@ function txnConfirmed(r){ return txnStage(r)==='ready'||txnStage(r)==='invoiced'
 function txnOverdue(r){ return r.overdue===true; }
 var TXN_TYPE_LBL={prepaid:['Prepaid','مسبق الدفع'],postpaid:['Postpaid','آجل الدفع'],tender:['Tender','مناقصة']};
 window.finTxnCSV=function(){
+  /* 2026-09-06 (watch cycle 30): the READ-OUT paths had no check of their own. Cycle 12 found
+     and closed exactly this shape on all ten Finance WRITE paths — "a stale tab, a role changed
+     while it was open, or a share view leaves the function one call away" — and the exports were
+     never looked at. They build a file out of state the page filled in while it was still allowed
+     to render, so a tab that was an admin's a moment ago hands over every invoice, every
+     transaction and the whole report to a session the page itself now refuses in words. Same rule
+     as the screen: canFinView() is what rFinance checks before it will render at all. This is not
+     claimed as a boundary against someone reading the rows out of devtools — the rows are already
+     in the tab — only that pressing something must not produce Finance's file for a person
+     Finance is refused to. */
+  if(typeof canFinView==='function'&&!canFinView()){alert(isArF()?'التصدير غير متاح في روابط العرض فقط.':'Export is not available in shared view-only links.');return;}
   var L=TXN._csvRows||[]; if(!L.length){alert(isArF()?'لا صفوف للتصدير':'No rows to export');return;}
   var cols=['company','profile_type','direct_client_id','transaction_ref','invoice_no','zatca_dpin','service_type','stage','amount_sar','cost_confirmed_sar','cost_estimate_sar','amount_received_sar','amount_remaining_sar','overdue','created_at_source'];
   var csv='\ufeff'+cols.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=csvGuard(r[c]);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');   // escaped BOM, not a literal invisible byte (2026-09-02)
@@ -1329,6 +1351,17 @@ function rReports(){
 window.finRB=function(k,v){FIN.rb[k]=v;if(k==='g1'&&FIN.rb.g2===v)FIN.rb.g2='';render();};
 window.finRBM=function(k,v){FIN.rb.metrics[k]=v;render();};
 window.finCSV=function(){
+  /* 2026-09-06 (watch cycle 30): the READ-OUT paths had no check of their own. Cycle 12 found
+     and closed exactly this shape on all ten Finance WRITE paths — "a stale tab, a role changed
+     while it was open, or a share view leaves the function one call away" — and the exports were
+     never looked at. They build a file out of state the page filled in while it was still allowed
+     to render, so a tab that was an admin's a moment ago hands over every invoice, every
+     transaction and the whole report to a session the page itself now refuses in words. Same rule
+     as the screen: canFinView() is what rFinance checks before it will render at all. This is not
+     claimed as a boundary against someone reading the rows out of devtools — the rows are already
+     in the tab — only that pressing something must not produce Finance's file for a person
+     Finance is refused to. */
+  if(typeof canFinView==='function'&&!canFinView()){alert(isArF()?'التصدير غير متاح في روابط العرض فقط.':'Export is not available in shared view-only links.');return;}
   var R=FIN._lastReport;if(!R)return;
   /* 2026-09-02 (attack round 9): the file used the English DIMS/METS words and "TOTAL" even in
      Arabic while the table on screen was Arabic \u2014 same labels as the screen now (dimLbl/metLbl). */
