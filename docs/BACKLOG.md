@@ -1,3 +1,29 @@
+## Round 48 — the Individual bookings tab past 1,000 rows (2026-09-06)
+
+Taking the item watch cycle 28 flagged as outside its lane. `js/58`'s `load()` read
+`finance_invoices` with **no paging**. The API returns at most 1000 rows however many exist, and
+says so only in a Content-Range header nobody reads — so past 1,000 hand-entered bookings the tab
+would have shown the first 1,000 as if that were all of them. A clean, plausible, wrong answer, and
+the same shape watch cycle 13 fixed in six reads in `js/16`. Fixed with `window.finPageAll`, which
+js/16 already exports for exactly this, plus a local fallback so the file still works if the load
+order changes.
+
+**The fix arrived unguarded, so it now has a guard.** `probe-b2c-manual-attacks` enters four
+bookings through the real form — the right test for everything else it checks, and one that cannot
+touch this: four rows never reach the ceiling. New `scripts/qa/probe-b2c-paging.mjs` seeds 1,240
+bookings and holds four things: the tab loads all 1,240 rather than 1,000; a control proves the
+ceiling is genuinely enforced in the harness, so passing means the app pages and not that the mock
+returned everything; a booking that exists only past the first page is really among them, by name;
+and the bookings on the tab add up to an independent recount, because a right count can still sit
+beside a total computed off a truncated set. Sabotage — restore the original single unpaged select
+— turns two of them red (1000 of 1240, and 712,204 against 892,180). File restored byte-identical.
+
+**Verified from the live database rather than taken on trust:** cycle 28's "19 of the 46 live
+invoices carry no collection due date" is exactly right, and no live invoice is future-dated. One
+thing to add to their entry, though — **total outstanding on live data is currently 0**, so the
+ageing card renders "Nothing outstanding" and neither the 0% nor the new note appears yet. Both
+fixes are correct and both matter at the 653-invoice backfill; neither is visible today.
+
 ## 2026-09-06 · Watch cycle 28 — the ageing card, invoice by invoice, and the fifth revenue way end to end
 
 **Attack area (v): the Clients ageing buckets across a ten-year span. Attack area (w): `revenue_way='b2c_manual'` from the form that writes it to every surface that reads it.**

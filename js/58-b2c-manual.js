@@ -59,12 +59,28 @@
   function load(cb){
     if(B2C.loading)return; B2C.loading=true;
     var c=client(); if(!c){B2C.loading=false;return;}
-    c.from('finance_invoices').select('*').eq('revenue_way','b2c_manual').is('deleted_at',null)
-      .order('invoice_date',{ascending:false}).then(function(r){
-        B2C.loading=false;
-        B2C.rows=(r&&!r.error&&r.data)?r.data:[];
-        if(cb)cb(); else try{if(current==='finance'&&FIN.tab==='b2c')render();}catch(_){}
-      });
+    /* 2026-09-06 (round 48) — this read was UNPAGED. The API returns at most 1000 rows however
+       many exist and says so only in a Content-Range header nobody reads, so past 1,000 hand-
+       entered bookings this tab would have shown the first 1,000 as though that were all of them:
+       a clean, plausible, wrong answer, and the same shape watch cycle 13 fixed in six reads in
+       js/16. Flagged there by the oversight session as one line for this file's owner. js/16
+       already exports finPageAll for exactly this; the local fallback keeps this file working on
+       its own if the load order ever changes. mk() must return a FRESH builder each call — a
+       PostgREST builder is single-use. */
+    var _mk=function(){return c.from('finance_invoices').select('*').eq('revenue_way','b2c_manual').is('deleted_at',null)
+      .order('invoice_date',{ascending:false}).order('id',{ascending:true});};
+    var _page=(typeof window.finPageAll==='function')?window.finPageAll:function(mk,done){
+      var all=[];(function _p(from){mk().range(from,from+999).then(function(r){
+        if(r&&r.error){done({data:null,error:r.error});return;}
+        var d=(r&&r.data)||[];all=all.concat(d);
+        if(d.length===1000)_p(from+1000);else done({data:all,error:null});
+      },function(e){done({data:null,error:e});});})(0);
+    };
+    _page(_mk,function(r){
+      B2C.loading=false;
+      B2C.rows=(r&&!r.error&&r.data)?r.data:[];
+      if(cb)cb(); else try{if(current==='finance'&&FIN.tab==='b2c')render();}catch(_){}
+    });
   }
 
   window.b2cSave=function(){try{
