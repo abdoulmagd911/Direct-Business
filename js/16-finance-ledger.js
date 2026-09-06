@@ -33,7 +33,21 @@ function canFinEdit(){return !window.__isShareView && (window.__userTier==='admi
    is reported rather than rewritten — but every Finance write goes through THIS check, which
    re-applies the share-view half no matter which canFinEdit is in force. A share view is
    read-only, always. */
-function finCanWrite(){ try{ if(window.__isShareView) return false; }catch(_){} try{ return (typeof window.canFinEdit==='function')?!!window.canFinEdit():false; }catch(_){ return false; } }
+/* 2026-09-06 (watch cycle 32): this asked two questions — is this a share view, and does this
+   person have EDIT rights — and never the third: does this person's role allow the Finance page at
+   all. That is the same half that was missing from the CSV exports (cycle 30, closed by round 50),
+   from the Records export (round 51) and from finRow (cycle 31); the write paths are the oldest
+   surface and were the last still asking the narrow question. Measured before this change, with a
+   tier that still reads 'admin' (so canFinEdit says yes) and a page access that no longer includes
+   Finance (so the page refuses in words): FIVE of seven write paths still changed the database —
+   delete and restore by number, delete and restore by id, and the origin editor. finMaySeeMoney()
+   already covers the share view, so asking it first is a superset of the old rule, and every path
+   that routes through finCanWrite is covered at once rather than one guard at a time. */
+function finCanWrite(){
+  try{ if(typeof finMaySeeMoney==='function'&&!finMaySeeMoney()) return false; }catch(_){}
+  try{ if(window.__isShareView) return false; }catch(_){}
+  try{ return (typeof window.canFinEdit==='function')?!!window.canFinEdit():false; }catch(_){ return false; }
+}
 try{ window.finCanWrite=finCanWrite; }catch(_){}
 function canFinView(){return !window.__isShareView;}
 /* 2026-09-06 (round 50) — watch cycle 30 gave the three CSV exports a guard, and it closed half

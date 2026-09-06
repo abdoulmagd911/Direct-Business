@@ -1,3 +1,28 @@
+## 2026-09-06 · Watch cycle 32 — the same missing question, found for the fourth time, on the oldest surface
+
+**Attack area (cc): the ten Finance write paths, re-audited against BOTH reasons the page is refused. Attack area (dd): the import surface, the same way.**
+
+Cycle 31 landed, and the Code session took the flag it left and guarded the Records-page export (`d188ebd`) — **promoting this session's note to an assertion**, which is exactly what the staleness check was written for. Nothing queued.
+
+**Real defect, fixed: five of seven write paths changed the database under a role that denies the Finance page.**
+
+Every Finance write routes through `finCanWrite()`, which asked two questions — *is this a share view* and *does this person have EDIT rights* — and never the third: **does this person's role allow the Finance page at all.** That is the same half that was missing from the CSV exports (cycle 30, closed by round 50), from the Records export (round 51) and from `finRow` (cycle 31). **Four surfaces, four times, the same question.** The write paths are the oldest of them and were the last still asking the narrow one.
+
+The session that exposes it: a **tier that still reads `admin`** — so `canFinEdit()` says yes — with a **per-person page access that no longer includes Finance**, so the page refuses them in words. js/52's access model returns "yes" outright for an admin tier, which is what lets tier and page access disagree. Measured before the change: `canFinEdit true · finCanWrite true · mayOpen('finance') false`, and **delete by number, restore by number, delete by id, restore by id and the origin editor all wrote.**
+
+Fixed at the chokepoint: `finCanWrite()` now asks `finMaySeeMoney()` first, which already covers the share view, so the new rule is a strict superset of the old one and **every path routing through it is covered at once** rather than one guard at a time. Sabotage both ways — narrowing it back to the share-view question reopens exactly the role half (6 red); dropping the share-view question turns this probe **and cycle 12's `probe-permissions-attacks`** red together, so the older guarantee is proved still intact.
+
+**Attack area (dd): no defect.** `v65Commit` routes through `finCanWrite` and so was covered by the same fix; under both halves the Import tab does not render at all and Confirm writes nothing even when called directly. **Flagged, measured not asserted:** `v65OpenTeach` checks `canFinEdit()` **directly** rather than `finCanWrite`, so the fix does not reach it — it opens the teach-the-columns dialog whose save writes a column mapping into `DB.settings`. No invoice money moves, so it is recorded rather than made a failure; it is the last caller in this lane still asking the narrow question.
+
+New `scripts/qa/probe-write-paths-both-halves-attacks.mjs` (port 8247, 31 checks). Every check **diffs the actual table over the REST API**, never the page's own state, and every confirm and prompt is answered yes so that a guard is the only thing that can stop a write.
+
+**Two fixture errors of my own, both of the kind this watch exists to catch.**
+
+1. **Controls that failed because the fixture matched the defaults.** `finSetOrigin` and `finSetWay` fall back to `'booking'` and `'invoice'` when their editor is not on screen — and the fixture seeded exactly those values, so a real write stored the same value and the diff saw nothing. Three controls reported the app doing nothing while it was writing. The rows are seeded **away** from the fallbacks now, which also models the real hazard precisely: a stale tab calling the function with no editor present overwrites the stored value with the default — the cycle-27 defect shape.
+
+2. **A rubber stamp in my own probe, and it hid four of the five defects.** The first working run reported five of seven paths as "refused" — and the app's own message gave it away: *"Already deleted — someone else, or another tab, got there first."* An earlier check in the loop had already put the row into the state the write wanted, so the update matched zero rows and looked like a guard holding. **A check that changes nothing because there was nothing left to change proves nothing.** The fixture is now reset from a pristine copy before **every single attempt** (using, deliberately, the by-reference behaviour cycle 28 was bitten by), and a check that sees an "already in that state" message **fails itself** rather than passing. With that fixed, one apparent defect became five.
+
+**Battery:** 77 probes plus `check-structure`, 70 green. `probe-generator-attacks` red in the parallel batch and **green re-run alone** (114 passed, 0 failed). Standing reds unchanged and none in this lane: `probe-live2`, `probe-events-scale`, `probe-round9`, `probe-lifecycle5`, `probe-stress`, `sweep-buttons`.
 ## 2026-09-06 · Round 52 — the stale rehearsal probe was hiding four live defects
 
 `scripts/qa/probe-lifecycle5.mjs` walks a lead's whole life across 64 stations. It had been on
