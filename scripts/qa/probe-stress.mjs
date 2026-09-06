@@ -77,15 +77,31 @@ const rev2024fmt = moneyS(EXP.rev2024);
 STEP('S3 2024 revenue equals the independent formula sum', rev2024app.includes(rev2024fmt), `app "${rev2024app}" vs expected ${rev2024fmt} (${EXP.rev2024})`);
 await SHOT('finance-2024');
 
-// ===== S4 · ledger with 1,279 rows: renders, usable, timed =====
+/* ===== S4 · usable under load =====
+   2026-09-06 (round 55): this waited for the Ledger tab to draw more than 10 table rows from the
+   1,279 seeded invoices, and hung for 30 seconds because the Ledger was rebuilt on 2026-08-21 to
+   list finance_TRANSACTIONS by company — this fixture seeds invoices, so it has nothing to draw
+   and never will. The load question is still worth asking, so it is asked of the surfaces that
+   actually read those 1,279 invoices; and the Ledger is checked on what it must do with nothing
+   to show, which is say so promptly rather than hang or go blank. */
 const t0 = Date.now();
 await page.locator('#view button, #view .btn').filter({ hasText: /Ledger|السجل/ }).first().click();
-await page.waitForTimeout(300);
-await page.waitForFunction(() => document.querySelectorAll('#view table tr').length > 10, { timeout: 20000 });
+await page.waitForTimeout(1200);
 const ledgerMs = Date.now() - t0;
-const ledgerRows = await page.evaluate(() => document.querySelectorAll('#view table tr').length);
-STEP('S4 ledger renders under load', ledgerRows > 10 && ledgerMs < 12000, `${ledgerRows} rows drawn in ${ledgerMs}ms`);
+const ledgerTxt = await page.evaluate(() => (document.getElementById('view') || {}).innerText || '');
+STEP('S4a the Ledger says it has nothing to list rather than hanging or going blank',
+  ledgerMs < 12000 && /No transactions match|لا توجد معاملات مطابقة/.test(ledgerTxt),
+  `${ledgerMs}ms · "${ledgerTxt.replace(/\s+/g, ' ').slice(0, 90)}"`);
 await SHOT('ledger-loaded');
+const t1 = Date.now();
+await page.locator('#view button, #view .btn').filter({ hasText: /Report Builder|منشئ التقارير/ }).first().click();
+await page.waitForFunction(() => document.querySelectorAll('#view table tr').length > 10, { timeout: 20000 }).catch(() => {});
+const rbMs = Date.now() - t1;
+const rbRows = await page.evaluate(() => document.querySelectorAll('#view table tr').length);
+STEP('S4b the Report Builder groups all 1,279 invoices and draws in time', rbRows > 10 && rbMs < 12000, `${rbRows} rows drawn in ${rbMs}ms`);
+await SHOT('reportbuilder-loaded');
+await page.locator('#view button, #view .btn').filter({ hasText: /Ledger|السجل/ }).first().click();
+await page.waitForTimeout(600);
 
 // ===== S5 · the 48.5M invoice displays sanely =====
 await page.evaluate(() => { const el = document.querySelector('#view input[placeholder*="earch"], #view input[type="search"]'); });
@@ -148,10 +164,39 @@ const wc = await page.evaluate(() => {
   const b = DB.businesses.find(x => x.name === 'Al-Mutlaq Holding Group');
   return { contacts: (b.contacts || []).length, accounts: t.includes('#950') && t.includes('#951') && t.includes('#952'), agr: ((b.agreement || (b.raw && b.raw.agreement) || '')).includes('Master services agreement'), txt: t.slice(0, 0) };
 });
+/* 2026-09-06 (round 55) — S11 and S12 were both written against models the owner has since
+   replaced, and both were accusing the app of a change he asked for.
+   S11 demanded the client card print the lifetime billed figure. His 2026-08-21 ruling is that
+   money lives on the Finance page ONLY and that Leads and Clients report the RELATIONSHIP; the
+   card now shows the invoice count and a way through, and probe-money-placement asserts the
+   opposite of what this station demanded. Inverted, and the figure is checked where it does
+   belong — in the data the Finance page reads.
+   S12 looked for three billing-account numbers in the card's text. The free-text billingAccounts
+   blob was replaced on 2026-08-21 by the client_profiles table, and this fixture seeds none, so
+   the strip correctly says the client is linked with no billing profile recorded yet. Checked
+   through the table the app actually reads. */
 const expBilled = moneyS(EXP.whaleBilled);
 const wTxt = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/\s+/g, ' '));
-STEP('S11 whale card: lifetime billed equals the 1,224-line formula sum', wTxt.includes(expBilled), `expected ${expBilled} (${EXP.whaleBilled})`);
-STEP('S12 whale card: 8 contacts, 3 billing accounts, agreement stored, opened in ' + whaleMs + 'ms', wc.contacts === 8 && wc.accounts && wc.agr && whaleMs < 9000, JSON.stringify(wc));
+const billedInData = await page.evaluate((name) => {
+  const b = (DB.businesses || []).find(x => x.name === name);
+  const u = (window.__bizUuid ? __bizUuid(b.id) : b.id);
+  const groups = (window.FIN && FIN.groupsByBiz && FIN.groupsByBiz[u]) || [];
+  const src = (typeof window.finLive === 'function') ? finLive() : (FIN.rows || []);
+  const rows = groups.length ? src.filter(r => !r.deleted_at && groups.indexOf(r.client_group) >= 0)
+                             : src.filter(r => !r.deleted_at && r.customer_raw_name === name);
+  return rows.reduce((s, r) => s + (Number(r.total_incl_vat_sar) || 0), 0);
+}, 'Al-Mutlaq Holding Group');
+STEP('S11 the whale\'s lifetime billed matches the 1,224-line formula sum in the data Finance reads',
+  Math.abs(billedInData - EXP.whaleBilled) < 1, `data ${billedInData} vs formula ${EXP.whaleBilled}`);
+STEP('S11b and the client card does NOT print it — money lives on Finance only (owner, 2026-08-21)',
+  !wTxt.includes(expBilled), `looked for "${expBilled}"`);
+const profs = await page.evaluate((name) => {
+  const b = (DB.businesses || []).find(x => x.name === name);
+  const u = (window.__bizUuid ? __bizUuid(b.id) : b.id);
+  return { n: ((window.CP && CP.byBiz && CP.byBiz[u]) || []).length, linkedWording: /Linked to Direct|مرتبط بدايركت|Not linked to Direct yet|غير مرتبط بدايركت بعد/.test((document.getElementById('view') || {}).innerText || '') };
+}, 'Al-Mutlaq Holding Group');
+STEP('S12 whale card: 8 contacts, agreement stored, a Direct-link strip that states its state, opened in ' + whaleMs + 'ms',
+  wc.contacts === 8 && wc.agr && profs.linkedWording && whaleMs < 9000, JSON.stringify({ ...wc, ...profs }));
 const wInv = await page.evaluate(() => (document.getElementById('view').textContent || '').match(/(\d[\d,]*)\s*invoices/));
 STEP('S13 whale card shows 1200 invoices (distinct, not 1224 lines)', !!wInv && wInv[1].replace(',', '') === '1200', wInv && wInv[0]);
 await SHOT('whale-card');
@@ -189,13 +234,19 @@ await nav(/^(Finance|المالية)$/);
 await page.waitForTimeout(1500);
 await page.locator('#view button, #view .btn').filter({ hasText: /Import|استيراد/ }).first().click();
 await page.waitForTimeout(700);
-const HDR = 'client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes';
-fs.writeFileSync('shots/dup-whale.csv', HDR + '\r\nAl-Mutlaq Holding Group,March,Q1,DP-AMH-10007,TTIN-X,dup test,2024-03-05,Flights,1000,0,1000,800,200,verified_paid,');
+/* 2026-09-06 (round 55): this re-imported the duplicate in OUR OWN ledger-export shape, which
+   round 52 taught the importer to refuse by name — so the file never reached the duplicate check
+   at all. It is a Direct Payments Invoice Export now, the shape this importer is actually for. */
+const HDR = 'Type,Product,Customer Name,Invoice Reference #,Invoice Number,Invoice Create Date,Invoice Status,Name,Item Is Taxable,Item Discount,Item Total,Invoice Total,Sale Branch,Salesman';
+fs.writeFileSync('shots/dup-whale.csv', [HDR,
+  'invoice,Direct Flights,Al-Mutlaq Holding Group,DP-AMH-10007,DP-AMH-10007,05/03/2024 10:00:00 AM,Fully Paid,,,,,1000,Riyadh,QA',
+  'item,Direct Flights,Al-Mutlaq Holding Group,DP-AMH-10007,,,,Flights,No,0,1000,,,'].join('\r\n'));
 await page.setInputFiles('#finFile', 'shots/dup-whale.csv');
-await page.evaluate(() => finParse());
-await page.waitForTimeout(1200);
+await page.evaluate(() => { if (typeof window.v65CheckFiles === 'function') window.v65CheckFiles(); else finParse(); });
+await page.waitForTimeout(2500);
 const dupOut = await page.evaluate(() => (document.getElementById('finImpOut').textContent || '').replace(/\s+/g, ' '));
-STEP('S19 whale invoice number re-imported → skipped as duplicate', /Skipped duplicates[^0-9]*1/.test(dupOut), dupOut.slice(0, 110));
+STEP('S19 a whale invoice number re-imported at volume is recognised, not written again as new',
+  /recognized: 1/.test(dupOut) && !/\b1 new\b/.test(dupOut), dupOut.slice(0, 150));
 
 // ===== S20 · Arabic sweep under load =====
 await page.locator('button:has-text("العربية")').first().click().catch(() => {});
@@ -223,26 +274,27 @@ STEP('S22 2027 revenue equals the formula (future-dated invoices countable)', re
 await page.evaluate(() => { FIN.p.year = 'all'; render(); });
 await page.waitForTimeout(700);
 
-// ===== S23 · ledger views: by-invoice default, whole numbers, toggle to lines =====
+/* ===== S23-S26 · a multi-line invoice is one invoice, and the export still carries every line
+   2026-09-06 (round 55): S23-S25 drove the Ledger's old "By invoice / By service line" toggle and
+   its FIN.lview state. That whole view was replaced on 2026-08-21 by the transactions ledger, and
+   neither the toggle nor lview exists in the app any more — the three stations were testing a
+   screen that is gone, and the first click hung the run for 30 seconds. What they were really
+   protecting outlived the screen: a 12-line invoice must be counted ONCE wherever invoices are
+   counted, and the export must still carry all 12 lines. Both are asserted against what the app
+   holds and what it prints, rather than against a control that no longer exists. */
 await page.locator('#view button, #view .btn').filter({ hasText: /^(Ledger|السجل)$/ }).first().click();
-await page.waitForTimeout(1500);
-const led1 = await page.evaluate(() => ({
-  label: ((document.getElementById('view').textContent || '').match(/(\d[\d,]*)\s*invoices · rev/) || [])[1] || null,
-  noFractions: !/\d\.\d\d\b/.test([...document.querySelectorAll('#view table td')].slice(0, 60).map(t => t.textContent).join(' ')),
-  multiSvc: (document.getElementById('view').textContent || '').includes('services'),
-}));
-STEP('S23 ledger defaults to BY INVOICE: invoice count label, multi-service marker, whole numbers only', !!led1.label && led1.noFractions && led1.multiSvc, JSON.stringify(led1));
-await SHOT('ledger-by-invoice');
-await page.locator('#view button').filter({ hasText: /^By service line$/ }).first().click();
 await page.waitForTimeout(1200);
-const led2 = await page.evaluate(() => ((document.getElementById('view').textContent || '').match(/(\d[\d,]*)\s*rows · rev/) || [])[1] || null);
-STEP('S24 toggle to BY SERVICE LINE shows more rows than invoices', !!led2 && parseInt(led2.replace(/,/g, '')) > parseInt((led1.label || '0').replace(/,/g, '')), `lines=${led2} invoices=${led1.label}`);
-const wadiGrouped = await page.evaluate(() => { FIN.lview = 'invoice'; FIN.f.q = 'DP-WDI-100'; render(); return null; });
-await page.waitForTimeout(900);
-const wadiRow = await page.evaluate(() => { const t = [...document.querySelectorAll('#view table tbody tr')]; return { n: t.length, svc: t[0] ? t[0].textContent.includes('9 services') : false }; });
-STEP('S25 the 12-line Wadi invoice = ONE row marked "9 services" in the simple view', wadiRow.n >= 1 && wadiRow.svc, JSON.stringify(wadiRow));
-await page.evaluate(() => { FIN.f.q = ''; render(); });
-await page.waitForTimeout(600);
+const wadiCount = await page.evaluate(() => {
+  const rows = (FIN.rows || []).filter(x => x.invoice_no === 'DP-WDI-100' && !x.deleted_at);
+  const distinct = new Set((FIN.rows || []).filter(x => !x.deleted_at).map(x => x.invoice_no)).size;
+  const header = [...document.querySelectorAll('#view span')].map(x => x.textContent || '').find(t => /invoices · data through|فاتورة · حتى/.test(t)) || '';
+  const counted = (header.match(/([\d,]+)\s*(invoices|فاتورة)/) || [])[1] || null;
+  return { lines: rows.length, distinct, counted };
+});
+STEP('S23 the 12-line Wadi invoice is stored as 12 lines', wadiCount.lines === 12, JSON.stringify(wadiCount));
+STEP('S24 the Finance header counts INVOICES, not invoice lines — a 12-line invoice counts once',
+  !!wadiCount.counted && parseInt(String(wadiCount.counted).replace(/,/g, '')) === wadiCount.distinct, JSON.stringify(wadiCount));
+await SHOT('ledger-under-load');
 // full precision survives where it should: the CSV rows stay line-level
 const prec = await page.evaluate(() => { const lines = (FIN._csvRows || []).filter(x => x.invoice_no === 'DP-WDI-100').length; return { csvLines: lines }; });
 STEP('S26 CSV export still carries every service line (12 for Wadi)', prec.csvLines === 12, JSON.stringify(prec));

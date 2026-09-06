@@ -1,3 +1,54 @@
+## 2026-09-06 · Round 55 — the last four standing reds, and a probe that was writing into real storage
+
+All four are green. **Not one of them was an app defect** — every failure was a probe asserting a
+world the owner had deliberately replaced, or a fixture whose meaning drifted with the calendar.
+
+- **`probe-events-scale`** hardcoded "18 ended, so the pager reads 65". Its own fixture dates
+  events by month and day-of-month, so on any day after the 1st of September some "upcoming"
+  events are already past and the page correctly hides them — 63, not 65. A fixture whose meaning
+  changes with the calendar makes a probe that is right for a few days and then accuses the app
+  for ever. Both the ended count and the expected total are derived from the fixture and today's
+  date now, and "no ended event on the opening view" is checked BY DATE rather than by name.
+- **`probe-round9`** set `xp_cat` — a category field the S5 rework replaced with `xp_svc`, the
+  real service — so it threw on a null and killed the run before reporting anything. It also
+  looked for a button reading "Export CSV" that is now "Export list (CSV)", and drove the remove
+  action without ever answering its confirmation, then read the un-deleted row as the app failing
+  to delete. 20 of 20 now, with a new check that removing an expense **asks first**.
+- **`probe-stress`** waited for the Ledger to draw rows from 1,279 seeded invoices — the Ledger
+  was rebuilt on the transaction tables, so it had nothing to draw and hung for 30 seconds. Four
+  more stations drove a "By invoice / By service line" toggle that no longer exists. The load
+  question is asked of the surfaces that do read those invoices, and the concern the toggle
+  protected — a 12-line invoice counts ONCE, and the export still carries all 12 lines — is
+  asserted directly. Three more were the same stale-model failures found in round 52: money
+  demanded on a client card, three billing-account numbers from the replaced blob, and a
+  duplicate-import test written in our own export shape that round 52 now refuses by name.
+- **`probe-live2`** could never run at all — same wrong `APP_DIR` as `emp-rig`. Fixed, and then it
+  ran, and ten of its sixteen checks were asserting the 2026-08-13 **training world** (28 ledger
+  rows, 198 promo codes, 10 clients, one client's billed total to the hundred) against the
+  owner's REAL data. A probe pointed at the live database has to test invariants and internal
+  consistency, never a snapshot of how much business the company had done on one day in August.
+
+**⚠️ For Abdulrahman — 15 test files are sitting in the live `proposals` storage bucket.**
+`probe-live2` uploaded a `live-check.pdf` into the real bucket on every run and never removed it;
+they have been accumulating since 2026-08-12, in folders named after real proposal references.
+The probe now deletes its own upload after checking it. **The two this session created were
+removed; the 15 older ones were left alone** — they are not this session's to delete and deletion
+cannot be undone. Say the word and they go.
+
+**Two rubber stamps found inside probe-live2 itself**, the same shape watch cycles 32 and 33 keep
+finding: it set `openLead` to a link's **uuid** while the app addresses a record by its own id, so
+no client card ever opened — and the check "the card does not print the amount" passed because
+there was no card. And it read `FIN.rows` raw rather than through `finLive()`, so it counted
+soft-deleted and excluded rows and accused the app of carrying a wallet row. **Checked against the
+database directly: the live ledger is clean** — 46 live invoices, zero verification rows, zero
+wallet rows, zero wallet portions. The single "Wallet top-up" row it was tripping on is
+soft-deleted.
+
+**Measured on live data, reported not asserted:** 28 clients, **20 of them with nobody named on
+them**; nothing currently outstanding (AR = 0); no invoice stored as `revenue_way='transaction'`
+right now. These are facts about the business, not defects — a probe that fails on them would be
+failing the company for doing business.
+
 ## 2026-09-06 · Watch cycle 33 — mutation audit round five: a clean sweep, and js/62 measured rather than assumed
 
 **Attack area (ee): mutation audit round five, over everything added since cycle 29. Attack area (ff): js/62's own write surface, driven against both halves.**

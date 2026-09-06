@@ -118,7 +118,12 @@ await page.evaluate(() => {
   document.getElementById('xp_desc').value = 'Amadeus subscription — August';
   document.getElementById('xp_amt').value = '2300';
   document.getElementById('xp_via').value = 'credit_card';
-  document.getElementById('xp_cat').value = 'Software & subscriptions';
+  /* 2026-09-06 (round 55): xp_cat was a free-text CATEGORY. The S5 rework replaced it with
+     xp_svc — the real service the cost belongs to, chosen from the service catalogue — so this
+     line set .value on null and killed the whole run before anything was reported. Driven
+     through the field that exists, picking whatever the catalogue actually offers rather than
+     asserting a hard-coded service name. */
+  (function(){ var sv=document.getElementById('xp_svc'); if(sv&&sv.options.length>1) sv.value=sv.options[1].value; })();
   document.getElementById('xp_sup').value = 'Amadeus';
   expSave();
 });
@@ -134,7 +139,12 @@ await page.evaluate(() => {
   document.getElementById('xp_desc').value = 'Hotel block deposit — supplier';
   document.getElementById('xp_amt').value = '15000';
   document.getElementById('xp_via').value = 'bank_transfer';
-  document.getElementById('xp_cat').value = 'Supplier payment';
+  /* 2026-09-06 (round 55): xp_cat was a free-text CATEGORY. The S5 rework replaced it with
+     xp_svc — the real service the cost belongs to, chosen from the service catalogue — so this
+     line set .value on null and killed the whole run before anything was reported. Driven
+     through the field that exists, picking whatever the catalogue actually offers rather than
+     asserting a hard-coded service name. */
+  (function(){ var sv=document.getElementById('xp_svc'); if(sv&&sv.options.length>1) sv.value=sv.options[1].value; })();
   document.getElementById('xp_sup').value = 'Makkah Hotels Co';
   expSave();
 });
@@ -144,21 +154,33 @@ const split = await page.evaluate(() => {
   return { both: /17,300/.test(t), bank: /Bank transfer/.test(t) && /15,000/.test(t) };
 });
 STEP('Expenses: totals split by payment method (bank vs card)', split.both && split.bank, JSON.stringify(split));
-STEP('Expenses: CSV export is one click', await page.evaluate(() => typeof expCSV === 'function' && !![...document.querySelectorAll('#view button')].find(b => /Export CSV/.test(b.textContent))));
+/* The button was renamed to "Export list (CSV)" — it says which list it exports, since the page
+   also offers a bulk document download. Matched on what it says now, in both languages. */
+STEP('Expenses: CSV export is one click', await page.evaluate(() => typeof expCSV === 'function' && !![...document.querySelectorAll('#view button')].find(b => /Export list \(CSV\)|تصدير القائمة/.test(b.textContent))));
 // revenue screens untouched by expenses
 const rev = await page.evaluate(() => { FIN.tab = 'overview'; render(); return new Promise(res => setTimeout(() => { const t = document.getElementById('view').textContent; res({ noExp: !/Amadeus subscription/.test(t) }); }, 900)); });
 STEP('Expenses NEVER leak into the revenue overview', rev.noExp);
 // delete (soft) works
 await page.evaluate(() => { finGo('expenses'); });
 await page.waitForTimeout(1200);
-const delOK = await page.evaluate(() => new Promise(res => {
-  const before = (EXPX.rows || []).length;
+/* 2026-09-06 (round 55): removing an expense asks for confirmation — pfConfirm's own box, not
+   a browser dialog — and this drove expDel without ever answering it, so nothing was deleted and
+   the probe read that as the app failing to delete. Answer it the way a person does, by pressing
+   Confirm; and fail loudly if the box never appears, because a delete that needs no confirmation
+   would be the real defect here. */
+const before = await page.evaluate(() => {
+  const b = (EXPX.rows || []).length;
   const r = (EXPX.rows || []).find(x => /Amadeus/.test(x.description));
-  if (!r) return res({ before, after: -1 });
-  expDel(r.id);
-  setTimeout(() => res({ before, after: (EXPX.rows || []).length }), 1600);
-}));
-STEP('Expenses: remove hides the expense (kept in history)', delOK.after === delOK.before - 1, JSON.stringify(delOK));
+  if (r) expDel(r.id);
+  return { b, found: !!r };
+});
+await page.waitForTimeout(600);
+const confirmShown = await page.evaluate(() => !!document.getElementById('pfConfirmYes'));
+STEP('Expenses: removing asks for confirmation first', before.found && confirmShown, JSON.stringify({ ...before, confirmShown }));
+await page.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
+await page.waitForTimeout(2000);
+const delOK = await page.evaluate(() => ({ after: (EXPX.rows || []).length }));
+STEP('Expenses: remove hides the expense (kept in history)', delOK.after === before.b - 1, JSON.stringify({ before: before.b, ...delOK }));
 
 // ---- 7) Arabic pass on the new pieces
 await page.evaluate(() => { LANG = 'ar'; if (typeof applyLang === 'function') applyLang(); render(); });

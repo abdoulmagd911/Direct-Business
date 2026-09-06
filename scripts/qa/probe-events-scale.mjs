@@ -101,9 +101,28 @@ console.log('world: '+EV.length+' events — 18 ended, 38 upcoming, 21 undated, 
 console.log('rows shown by default:', await rows());
 await p.screenshot({path:'scripts/qa/shot-events-scale-default.png',fullPage:true});
 
-// What a person actually needs: the upcoming ones, not a wall of history
-const TOTAL = EV.length, ENDED = 18;
-check('no ended event on the opening view', await p.evaluate(()=>!/Past Event/.test(document.querySelector('#view tbody').textContent)), true);
+/* 2026-09-06 (round 55) — this probe hardcoded ENDED = 18 and expected the pager to read
+   "of 65". It was 63, and the two missing rows were NOT a defect: the fixture dates its
+   "upcoming" events by month 9-12 and day (i%27)+1, so on any day after the 1st of September
+   some of them are already in the past and the page correctly hides them. A fixture whose
+   meaning changes with the calendar makes a probe that is right for a few days and then accuses
+   the app for ever. Both the ended count and the expected total are worked out from the fixture
+   and today's date now, so the check means the same thing whenever it is run. */
+const TODAY = new Date().toISOString().slice(0, 10);
+const ENDED = EV.filter(e => e.end_date && e.end_date < TODAY).length;
+const TOTAL = EV.length, LIVE = TOTAL - ENDED;
+console.log(`today ${TODAY}: ${ENDED} of the ${TOTAL} events have already ended, so the default view should hold ${LIVE}`);
+/* By DATE, not by name: the fixture's own "Upcoming Event" rows drift into the past as the
+   calendar moves, and a name-only check would call that a pass while an ended event sat there. */
+/* Matched with a boundary: "Upcoming Event 1" is a prefix of "Upcoming Event 19", so a plain
+   indexOf would report an ended event as present (or absent) purely by numbering luck. */
+const ENDED_NAMES = EV.filter(e => e.end_date && e.end_date < TODAY).map(e => e.name_en);
+const endedShown = await p.evaluate((names)=>{
+  const rows=[...document.querySelectorAll('#view tbody tr')].map(r=>r.textContent);
+  return names.filter(n=>rows.some(t=>new RegExp(n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?!\\d)').test(t)));
+}, ENDED_NAMES);
+if (endedShown.length) console.log('   ended events still listed: ' + JSON.stringify(endedShown));
+check('no ended event on the opening view', endedShown.length, 0);
 check('"Past (N)" control exists', await p.evaluate(()=>!!document.getElementById('evF_past')), true);
 check('first row is something still ahead', await p.evaluate(()=>/Upcoming|Undated/.test(document.querySelector('#view tbody tr').textContent)), true);
 await p.click('#evF_past'); await p.waitForTimeout(600);
@@ -128,11 +147,11 @@ check('undated events sit at the end, not the top', /Undated/.test(order[order.l
 await p.fill('#evF_q','Undated'); await p.waitForTimeout(700);
 check('undated shows "no date yet", not a dash', (await p.evaluate(()=>document.querySelector('#view').innerText)).includes('no date yet'), true);
 await p.fill('#evF_q',''); await p.waitForTimeout(600);
-check('the list paginates instead of running 65 rows deep', await visRows() <= 20, true);
-check('the pager reports the filtered total, not the raw 83', await p.evaluate(()=>{
+check(`the list paginates instead of running all ${LIVE} rows deep`, await visRows() <= 20, true);
+check(`the pager reports the filtered total (${LIVE}), not the raw ${TOTAL}`, await p.evaluate((live)=>{
   const l=[...document.querySelectorAll('.pg-bar span')].map(s=>s.textContent).join(' ');
-  return /of 65/.test(l);
-}), true);
+  return new RegExp('of ' + live + '\\b').test(l);
+}, LIVE), true);
 
 // Cross-city clash warning — the thing a spreadsheet cannot tell you
 await p.fill('#evF_q','Clash'); await p.waitForTimeout(700);
