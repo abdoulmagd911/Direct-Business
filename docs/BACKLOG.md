@@ -29,6 +29,54 @@ served blob, `probe-finance-invariants` and `probe-expense-report-capture` both 
 "the exclusion list never arrived from app_settings" — so the marker really is a key only the
 seed can set, and the guard can fail. That was the trap that had already caught them once.
 
+## Round 62 — 2026-09-07 — every dialog in the app, on a phone
+
+The same blind spot as round 61, one dimension over. All the responsive work in this repo measures
+PAGES — probe-responsive-finance says so in its own header, and probe-phone, probe-search-phone and
+probe-reports-phone-ar are all page walks. A dialog does not exist until someone presses a button,
+and on a phone the stakes are higher than on a page: a page that overflows is ugly, while a dialog
+whose Save button cannot be reached simply cannot be completed.
+
+**New: `scripts/qa/sweep-dialogs-phone.mjs`** (port 9019) — 390x844, deliberately in Arabic, presses
+126 controls across nine pages, opens 43 dialogs (41 distinct) and measures each: does it push the
+page sideways, is anything inside it wider than the screen without a scroller, and is its Save
+button reachable — hit-tested at its own centre, not merely "visible".
+
+**The app is clean.** No sideways scroll, nothing too wide, every Save reachable. What took the
+round was establishing that the green means something.
+
+**Three false findings the sweep produced about itself, in order.**
+1. First run: 23 dialogs "unreachable", naming `div.pitem` — the COMMAND PALETTE, which one of the
+   pressed buttons had opened and closing the modal did not close. Every later dialog was measured
+   underneath a full-screen overlay the sweep had opened itself.
+2. Second run: four left, naming `#v48ov` — js/31's Team & Access panel, same shape. It is removed
+   rather than hidden to close, and it opens no `#ov`, so the close step was being skipped
+   entirely. Now everything is closed after EVERY button, and a generic guard asks what is actually
+   on top of the dialog's own middle: anything outside `#ov` means the dialog is reported as
+   **not measured** rather than as a finding.
+3. And the walk was ending up in Arabic by accident — a Settings card flipped it half way through —
+   so half the dialogs were measured LTR and half RTL and the report said neither. Arabic is now
+   chosen on purpose (RTL moves Save to the other side) and restored whenever a control flips it.
+
+**The part worth keeping: I could not break this from the CSS.** Sabotaging `.modal`'s
+`overflow:auto` to `hidden` AND `.mf`'s `position:sticky` to `static` — both mechanisms that keep
+Save reachable — left the sweep entirely green. There are THREE defences, not two: the modal
+scrolls, the footer sticks, and the browser scrolls a focused control into view even inside a
+clipped box. Good news about the app; bad news about the evidence, since a check nobody has ever
+seen fail is a check nobody should trust. Two things came out of that:
+
+* An earlier version of the check **could not have failed at all**: it set `.scrollTop` itself, and
+  that succeeds on an `overflow:hidden` box no finger can scroll. It now only scrolls an ancestor
+  whose computed overflow actually offers it, and deliberately does not call `scrollIntoView()`,
+  which scrolls clipped ancestors too.
+* The detector now proves itself on every run: it lays a strip over the bottom of the screen and
+  requires the reachability test to report the button as unreachable. That is the same shape as the
+  real defect the sweep caught twice — something standing above a dialog.
+
+Also recorded honestly in the file: the tallest dialog in the app needs 687px of an 844px screen, so
+the walk's reachability result is currently vacuous on its own, and the run says so out loud. A
+forced 3000px dialog is what actually exercises the contract.
+
 ## Round 61 — 2026-09-07 — the Arabic pass on the surfaces you have to CLICK to reach
 
 Everything that has ever checked the app's Arabic walked the navigation and read each page as it

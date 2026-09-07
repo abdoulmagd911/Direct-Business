@@ -82,6 +82,7 @@ probe-tax-invoice-capture
 probe-write-paths-both-halves-attacks
 sweep-buttons
 sweep-consistency
+sweep-dialogs-phone
 sweep-language
 sweep-language-deep
 sweep-nav
