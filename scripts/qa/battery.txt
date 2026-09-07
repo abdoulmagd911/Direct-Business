@@ -78,6 +78,7 @@ probe-sector-key-attacks
 probe-sector-scope
 probe-share-and-settings-attacks
 probe-stress
+probe-sync-badge-honest
 probe-targets-attacks
 probe-tax-invoice-capture
 probe-write-paths-both-halves-attacks

@@ -29,6 +29,43 @@ served blob, `probe-finance-invariants` and `probe-expense-report-capture` both 
 "the exclusion list never arrived from app_settings" — so the marker really is a key only the
 seed can set, and the guard can fail. That was the trap that had already caught them once.
 
+## Round 64 — 2026-09-07 — the "Live" badge was a random number
+
+Opened the app with the network cut, to see what a person meets in a dead spot. **The app itself
+behaves well**: the session holds, all 60 companies render from the device, the Leads page draws 33
+rows, no login wall. One thing on that screen was lying.
+
+The badge in the top bar read **"Live · 58s" with a green dot, while nothing had reached the server
+at all.** core-09 builds it as `'Live · ' + Math.floor(Math.random()*50+10) + 's'` — a fresh random
+number on every render, wired to nothing. Under sabotage the probe's own output shows it best: the
+same "Live · 16s" through a failing connection, a recovery, and a switch to Arabic.
+
+That is worse than a cosmetic slip after round 63. The app now deliberately works through a dead
+spot instead of reloading, and the notice it shows tells the person to watch this badge. A badge
+that always says Live makes that instruction worthless.
+
+**`js/75-honest-sync-badge.js`** replaces the text with what actually happened, from three real
+sources: js/02's status pill (chained through `window.__pillHook`), the `db_cloud_ts` timestamp
+js/02 writes after every confirmed save (so the age survives a reload), and `navigator.onLine`.
+Same element, same place, same shape — only the words, the dot colour and the truth. It reads
+"Synced 2m ago" / "Not synced — saved on this device" / "No connection" / "Not synced yet", in both
+languages.
+
+**The regression run earned its keep.** With js/75 added, round 63's guard went red — three checks.
+js/49 announces refused and failed saves through the same `window.__pillHook` slot, and its guard
+was `if(window.__pillHook) return;` — "somebody has the slot, so I must already be installed". js/75
+installs at load and js/49 only from render and a 900ms timer, so js/75 always won and **js/49
+silently stopped installing altogether**: every save failure unannounced, refused saves no longer
+reloading, nothing on screen to notice. js/49 now guards on its own flag and chains whatever is
+already there. `probe-sync-badge-honest` asserts both layers are on the hook, so the coupling
+cannot come back quietly.
+
+**New guard: `scripts/qa/probe-sync-badge-honest.mjs`** (port 9025), eight checks. The one that
+distinguishes a real clock from a decorative one: read the badge twice eleven seconds apart with
+nothing happening in between, and require the age to have grown by about that much. A random number
+and a frozen number read identically to any check that only looks once. Removing js/75 reddens
+seven of the eight.
+
 ## Round 63 — 2026-09-07 — a dead spot is not a refusal (the app was reload-looping on bad wifi)
 
 **The defect.** js/49's `watchSaves()` exists for a good reason: if the database refuses a change,

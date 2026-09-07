@@ -154,8 +154,18 @@
   /* ---- 3. never let the screen show a change the database refused ------------------- */
   function watchSaves(){
     try{
-      if(window.__pillHook) return;
+      /* 2026-09-07 (round 64): this used to be `if(window.__pillHook) return;` — "somebody has
+         the slot, so I am already installed". That is not the same statement, and it cost the
+         whole layer: js/75 installs a hook of its own AT LOAD, while this one only installs from
+         render and a 900ms timer, so js/75 always won the slot and watchSaves() then declined to
+         install at all. Every save failure went unannounced and a refused save stopped reloading —
+         silently, with nothing on screen to notice. Guard on THIS layer's own flag, and chain
+         whatever is already there instead of assuming it is us. */
+      if(window.__v73SaveWatch) return;
+      window.__v73SaveWatch=1;
+      var __prevPillHook=window.__pillHook;
       window.__pillHook=function(text){
+        try{ if(__prevPillHook) __prevPillHook.apply(this,arguments); }catch(_){}
         try{
           var t=String(text||'');
           /* the connection came back: arm the notice again for the NEXT outage, or a person who
