@@ -923,11 +923,53 @@ function txnSanitizeMoney(r){
   if(bad) r._badMoney=bad;   // sticky, like the invoice one: the first pass rewrites the value
   return r;
 }
+/* 2026-09-07 (round 68) — THE STANDING EXCLUSION, ON THIS TABLE TOO.
+   This file's own header states the doctrine the Takamol incident taught: "a standing exclusion
+   must hold no matter how a row arrived, so live() — the one chokepoint every total and export in
+   this file reads through — re-checks client_group/customer_raw_name against the exclusion list on
+   every call, not just once at load." That was written for finance_INVOICES. Transactions are a
+   second money table, loaded from the same source system, and this is their chokepoint — and it
+   sanitised money and did nothing else. Measured with a transaction on the standing-excluded
+   client: the Transactions tab's confirmed revenue read 751,000 SAR of which 750,000 was theirs,
+   and BOTH excluded rows were written into the file finTxnCSV() hands the owner to send onward.
+   Transactions carry a stronger key than invoices do, which is why this can be done properly
+   rather than by name alone: an exclusion entry has a clientId, and a transaction's client_profile
+   row has direct_client_id. That is the real client-ID bridge js/62's comment says it is waiting
+   for, already present on this table — so a second spelling of the company name, or a rename, no
+   longer brings the money back. The name is still checked, for a row whose profile is missing or
+   whose id was never filled in. */
 function txnLive(){
   var rows=(TXN.rows||[]);
   for(var i=0;i<rows.length;i++)txnSanitizeMoney(rows[i]);
-  return rows;
+  try{
+    if(typeof window.finExclusionCheck!=='function') return rows;
+    var list=(typeof window.finExclusionList==='function')?(window.finExclusionList()||[]):[];
+    var ids={},any=false;
+    list.forEach(function(e){ var c=e&&e.clientId; if(c!=null&&String(c).trim()!==''){ ids[String(c).trim()]=1; any=true; } });
+    return rows.filter(function(r){
+      var prof=(TXN.profiles||{})[r.client_profile_id];
+      if(any&&prof&&prof.direct_client_id!=null&&ids[String(prof.direct_client_id).trim()]) return false;
+      /* _finBizName, not bizName: `bizName` is a LOCAL of the transactions render function
+         (var bizName=_finBizName, further down), so at this point in the file it resolves to
+         nothing and `typeof bizName==='function'` is false. Written that way first, the name
+         test silently never ran — the guard was there and did nothing, which the probe caught
+         only because its fixture includes a transaction with no client profile, where the name
+         is the only thing that can hold the row. */
+      var nm=(typeof _finBizName==='function')?_finBizName(r.business_id):'';
+      if(nm&&window.finExclusionCheck(nm)) return false;
+      return true;
+    });
+  }catch(_){ return rows; }
 }
+/* Whether the exclusion list has arrived at all. finExclusionCheck() answers "not excluded" both
+   for a client that is not on the list AND for a list that has not loaded, so a total computed
+   before app_settings lands quietly includes money the owner ruled out (watch cycle 40 measured
+   exactly that on the merge dialog). A number on screen can degrade honestly; a FILE cannot, so
+   finTxnCSV refuses while the answer is unknown. Duplicated from js/62's settingsLanded() on
+   purpose and noted in docs/BACKLOG.md: the right home for it is finExclusionCheck itself, which
+   is the only code that can tell "not excluded" from "cannot answer yet", and that file is the
+   oversight lane's. */
+function txnExclusionsKnown(){ try{ return !!(DB.settings&&Object.keys(DB.settings).length); }catch(_){ return false; } }
 try{ window.txnSanitizeMoney=txnSanitizeMoney; window.txnLive=txnLive; }catch(_){}
 function txnStage(r){
   // Round 8's two-field derivation, plus Round 11's Overdue mirror.
@@ -958,6 +1000,9 @@ window.finTxnCSV=function(){
      in the tab — only that pressing something must not produce Finance's file for a person
      Finance is refused to. */
   if(typeof finMayExport==='function'&&!finMayExport()){alert(isArF()?'التصدير غير متاح لهذه الصلاحية.':'Export is not available for this access level.');return;}
+  if(!txnExclusionsKnown()){alert(isArF()
+    ?'ليس بعد — لم تكتمل قراءة قائمة الاستبعاد، فلا يمكن التحقق من أن هذا الملف لا يحتوي على عميل مستبعد. أمهله لحظة ثم أعد المحاولة.'
+    :'Not yet — the exclusion list has not finished loading, so this file cannot be checked for a client this workspace excludes. Give it a moment and try again.');return;}
   var L=TXN._csvRows||[]; if(!L.length){alert(isArF()?'لا صفوف للتصدير':'No rows to export');return;}
   var cols=['company','profile_type','direct_client_id','transaction_ref','invoice_no','zatca_dpin','service_type','stage','amount_sar','cost_confirmed_sar','cost_estimate_sar','amount_received_sar','amount_remaining_sar','overdue','created_at_source'];
   var csv='\ufeff'+cols.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=csvGuard(r[c]);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');   // escaped BOM, not a literal invisible byte (2026-09-02)

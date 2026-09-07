@@ -52,6 +52,58 @@ Also still timing out under load at 90 s: `probe-premortem-attacks`' check H. Th
 
 The cycle-39 delivery note in this file said "saved, not delivered", which was true when written and false by the time it landed. Corrected.
 
+## Round 68 — 2026-09-07 — the standing exclusion was missing from the OTHER money table
+
+js/16's own header states the doctrine the Takamol incident taught, in these words: *"a standing
+exclusion must hold no matter how a row arrived, so live() — the one chokepoint every total and
+export in this file reads through — re-checks client_group/customer_raw_name against the exclusion
+list on every call, not just once at load."* Ten Takamol invoices had reached `finance_invoices` by
+a path outside this app entirely and rendered in every total until they were found and removed by
+hand.
+
+That is `live()`, and it covers **invoices**. Transactions are a second money table, loaded from
+the same source system, and their chokepoint was:
+
+```js
+function txnLive(){
+  var rows=(TXN.rows||[]);
+  for(var i=0;i<rows.length;i++)txnSanitizeMoney(rows[i]);
+  return rows;                          // ← sanitised, and nothing else
+}
+```
+
+**Measured, with a transaction on the standing-excluded client:** the Transactions tab's confirmed
+revenue read **751,000 SAR of which 750,000 was the excluded client's**, and both excluded rows were
+written into the file `finTxnCSV()` hands the owner to send onward. Not a screen — a file that
+leaves the building.
+
+**Fixed** in `txnLive()`, by two tests because each covers a row the other cannot see. Transactions
+carry a stronger key than invoices do: an exclusion entry has a `clientId` and a transaction's
+client_profile row has `direct_client_id` — the real client-ID bridge js/62's comment says it is
+waiting for, already present on this table — so a second spelling of the company name no longer
+brings the money back. The company name is checked too, for a row whose profile is missing.
+
+`finTxnCSV()` also refuses while the exclusion list has not landed, for cycle 40's reason: a number
+on screen can degrade honestly, a file cannot. That duplicates js/62's `settingsLanded()` on
+purpose — **the right home for it is `finExclusionCheck` itself**, the only code that can tell "not
+excluded" from "cannot answer yet", and that file is the oversight lane's (see round 67).
+
+**Two mistakes of my own, both caught by the probe rather than by reading.**
+
+1. The first version of the name test called `bizName(...)` — which is a **local** of the
+   transactions render function (`var bizName=_finBizName`, further down the file), so at that
+   point it resolves to nothing, `typeof bizName==='function'` is false, and **the name test
+   silently never ran.** The guard was there and did nothing. `_finBizName` is the file-scope one.
+2. That only surfaced because the fixture has a transaction with **no client profile**, where the
+   name is the only thing that can hold the row — and I had to add it. With the first three rows
+   both excluded transactions also carried the excluded clientId, so removing the name test changed
+   nothing and that half was untested. **The two-halves trap, in my own fixture, one round after
+   finding it in someone else's.**
+
+New guard: `scripts/qa/probe-txn-exclusion-attacks.mjs` (port 9027), seven checks. Removing either
+half reddens exactly two. Six finance probes green with the fix, including the ledger, the
+invariants and cycle 39's invoice modal.
+
 ## Round 67 — 2026-09-07 — cycle 40 verified, its guard made able to fail, and the importer question answered
 
 **The defect is real and the fix is right.** Against the true pre-fix js/62 (`git show e77ae71^`)

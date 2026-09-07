@@ -84,6 +84,7 @@ probe-stress
 probe-sync-badge-honest
 probe-targets-attacks
 probe-tax-invoice-capture
+probe-txn-exclusion-attacks
 probe-write-paths-both-halves-attacks
 sweep-buttons
 sweep-consistency
