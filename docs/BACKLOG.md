@@ -29,6 +29,51 @@ served blob, `probe-finance-invariants` and `probe-expense-report-capture` both 
 "the exclusion list never arrived from app_settings" — so the marker really is a key only the
 seed can set, and the guard can fail. That was the trap that had already caught them once.
 
+## Round 65 — 2026-09-07 — Today was raising alarms about things that never happened
+
+Round 64's badge turned out to be one instance of a pattern, so I swept every `Math.random()` in the
+app. Most are honest (ids, uuids, dedup keys). Four were not, and they all fed the **alert strip on
+the Today page — the first screen every employee opens.**
+
+`migrateV20()` invented the entire integration panel: a status per source from a hard-coded
+expression (kiwi "down", ZATCA "token expired", everything else "connected"), a `lastSync` of
+`Date.now() - random(30 minutes)`, and `errorsToday` of 7 and 2. A separate `_v20seed` block
+fabricated twelve sync events with random timestamps and a one-in-seven chance of being marked
+failed, plus a conflict reading "Total differs by 30 SAR (FX adjustment)" and a kiwi webhook
+timeout. Nothing in this app polls anything — Direct Payments data arrives by CSV import.
+
+**Checked against the live database before touching anything.** `app_state` held 12 integration
+objects and 14 sync events, 2 marked failed and 1 a conflict. So Today was showing every employee
+**"🔴 2 failed syncs"** and **"🔌 2 integrations need attention"** — and one of the two was ZATCA,
+the Saudi tax authority, reading "token expired". Somebody could lose a morning to a tax-compliance
+problem that had never happened.
+
+Two more of the same shape, both also invented at migration time and both reaching the screen:
+`lastSyncedAt` backfilled to a random point in the last hour or two (fmtRel prints it as fact, and
+`v20StaleRecords()` decides whether to raise a stale-record alarm by comparing it against a
+threshold — so a random number becomes an alarm), and `syncHealth:'synced'` claimed for records
+that had never synced. A per-ticket `fraudScore` of `random(15)` was invented too; it never showed,
+because the badge only renders above 40, but the tickets table does render "Fraud risk N" from it.
+
+**Fixed** in js/core/core-06: sources the app does not talk to read "not connected", with no time
+and no error count; the `_v20seed` block is removed rather than rewritten, because there is nothing
+truthful to put in its place until something real reports a sync; a record that has never synced
+keeps no sync time, no "synced" claim and no log line; no fraud score is invented.
+
+**New guard: `scripts/qa/probe-invented-alerts-attacks.mjs`** (port 9026), seven checks. The
+important one is check 4: the failed-sync pill is verified against the number of failed events
+really in the data, and then the failed event is removed and the pill must disappear — otherwise
+the count check would also pass on a strip that had simply stopped rendering. Restoring the old
+status expression reddens exactly checks 1 and 2.
+
+The probe's own first version measured the fixture instead of the code — the harness's app_state
+carries `integrations:{}` and is loaded over the migrated object — and reported "no integration
+entries at all", which was true and about nothing. It now asks `migrateV20` directly.
+
+**Live data:** the 14 fabricated sync events and 12 invented integration rows are still stored in
+`app_state`. They are backed up and cleared in this round, after the code fix is live — clearing
+first would only let the old code invent them again on the next load.
+
 ## Round 64 — 2026-09-07 — the "Live" badge was a random number
 
 Opened the app with the network cut, to see what a person meets in a dead spot. **The app itself

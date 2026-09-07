@@ -47,6 +47,7 @@ probe-import-tab-wiring
 probe-importer-attacks
 probe-importer-concurrency-attacks
 probe-importer-scale-attacks
+probe-invented-alerts-attacks
 probe-landmines
 probe-leads-counts
 probe-ledger-attacks
