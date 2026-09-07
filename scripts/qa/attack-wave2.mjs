@@ -157,4 +157,10 @@ for (const pid of ['today', 'leads', 'finance']) {
 console.log(LOG.join('\n'));
 console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.length}`);
 console.log('ERRORS:', errs.length); errs.slice(0, 8).forEach(e => console.log('  ', e));
-await browser.close(); process.exit(0);
+/* 2026-09-07 (watch cycle 36): this file counted its failures, printed them, and then exited 0,
+   so a regression it could see was reported to any runner as a pass. Cycle 35 fixed the seven of
+   these that the battery runs; this is one of the rest. The count decides the exit code now. */
+await browser.close();
+const __fails = LOG.filter((l) => String(l).startsWith('FAIL')).length;
+if (__fails) { console.log(`\nFAILED — ${__fails} check(s) did not pass.`); process.exit(1); }
+process.exit(0);

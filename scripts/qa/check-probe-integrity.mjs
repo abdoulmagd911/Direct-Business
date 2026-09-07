@@ -72,13 +72,22 @@ const GATE = [
    probes); the other 16 are diag-/sweep-/audit- dumps with no assertions at all. Both are
    listed in the audit report. May go DOWN freely. It going UP means a new probe was written
    that cannot fail — which is the thing this whole file exists to stop.
+   2026-09-07 (watch cycle 36), 35 → 17: the eighteen remaining files in this shape were fixed
+   the same way. Every one is a LIVE-SYSTEM probe — fifteen import emp-rig, which reads the
+   team's passwords from DB_PW_* and never from the file, so none of them can run in this
+   environment at all. That is why they were never in the battery, and it is also why the exit
+   code mattered less than it looks: they were failing for want of a password and reporting
+   success either way. The rig itself now refuses an empty password (see emp-rig.mjs), so they
+   stop rather than test nothing; the exit codes are fixed for whoever runs them WITH the
+   credentials. The 17 that remain are report tools with no assertions at all, listed in
+   docs/PROBE-WARNINGS-TRIAGE.md — they need a category of their own, not an exit code.
    2026-09-06 (watch cycle 35), 43 → 35: the seven files in this shape that the BATTERY
    actually runs — probe-live2, probe-mega, probe-notes, probe-round8, probe-round9,
    probe-stress, sweep-consistency — now exit on their own failure count. Until today the
    runner read exit 0 from every one of them, so any regression they could see was recorded
    as a pass. Ratcheted so the seven cannot quietly go back. The 35 that remain are outside
    the battery and are classified one by one in docs/PROBE-WARNINGS-TRIAGE.md. */
-const NO_FAIL_SIGNAL_BUDGET = 35;
+const NO_FAIL_SIGNAL_BUDGET = 17;
 
 /* --sabotage: prove this checker really checks. Copy the suite to a scratch tree, blunt one
    gated probe's exit into a constant 0 — the exact regression this file exists to catch —
@@ -294,7 +303,42 @@ if (noSignal.length > NO_FAIL_SIGNAL_BUDGET) {
   console.log(`  ✗ ${noSignal.length} probe(s) cannot signal failure, above the recorded baseline of ${NO_FAIL_SIGNAL_BUDGET} — a new probe was written that cannot fail`);
   bad += 1;
 } else {
-  console.log(`  ✓ ${noSignal.length} probe(s) cannot signal failure — at or below the ${NO_FAIL_SIGNAL_BUDGET} recorded on 2026-09-06`);
+  console.log(`  ✓ ${noSignal.length} probe(s) cannot signal failure — at or below the ${NO_FAIL_SIGNAL_BUDGET} recorded on 2026-09-07`);
+}
+
+/* ---- every probe is either in the battery or excluded, with a reason (watch cycle 36) ----
+   Until this cycle the battery's membership lived only in a scratch file in /tmp: it died with
+   the container, could not be diffed or reviewed, and "why is this probe not in the battery?"
+   had no answer anywhere in the repo — which is how eighteen probes that exit 0 on failure sat
+   outside it unnoticed, and how a probe the Code session had just written was not run by it at
+   all. A probe in neither list is a probe nobody decided about. */
+{
+  const listFile = (f) => {
+    try {
+      return fs.readFileSync(path.join(ROOT, 'scripts/qa', f), 'utf8')
+        .split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
+        .map((l) => l.split(':')[0].trim());
+    } catch (_) { return null; }
+  };
+  const inBattery = listFile('battery.txt');
+  const excluded = listFile('battery-excluded.txt');
+  if (!inBattery || !excluded) {
+    console.log('  \u2717 scripts/qa/battery.txt and battery-excluded.txt must both exist — without them nobody can say which probes actually run');
+    bad += 1;
+  } else {
+    const supportBases = [...SUPPORT].map((n) => String(n).replace(/\.mjs$/, ''));
+    const known = new Set([...inBattery, ...excluded, ...supportBases]);
+    const both = inBattery.filter((n) => excluded.includes(n));
+    const orphans = files.map((f) => f.base.replace(/\.mjs$/, ''))
+      .filter((n) => !known.has(n));
+    const ghosts = [...inBattery, ...excluded].filter((n) => !files.some((f) => f.base === n + '.mjs'));
+    if (both.length) { console.log(`  \u2717 listed as both run and not-run: ${both.join(', ')}`); bad += both.length; }
+    if (orphans.length) { console.log(`  \u2717 ${orphans.length} probe(s) in neither battery.txt nor battery-excluded.txt — nobody has decided whether these run: ${orphans.join(', ')}`); bad += orphans.length; }
+    if (ghosts.length) { console.log(`  \u2717 named in a battery list but not in the tree: ${ghosts.join(', ')} — a deleted probe is not a passing probe`); bad += ghosts.length; }
+    if (!both.length && !orphans.length && !ghosts.length) {
+      console.log(`  \u2713 all ${files.length} files are accounted for: ${inBattery.length} in the battery, ${excluded.length} excluded with a reason, ${supportBases.length} support`);
+    }
+  }
 }
 
 /* ---- no two probes may listen on the same port (added watch cycle 34) ----

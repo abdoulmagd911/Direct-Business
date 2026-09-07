@@ -148,4 +148,9 @@ const made = (post.body.users || []).find(u => (u.email || '').toLowerCase() ===
 if (made) { const o = await callAdmin(mgrTok, { action: 'set_active', id: made.id, active: false }); STEP('the rehearsal account is switched off afterwards', o.status === 200, String(o.status)); }
 
 console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.length}`);
+/* 2026-09-07 (watch cycle 36): this file counted its failures, printed them, and then exited 0,
+   so a regression it could see was reported to any runner as a pass. Cycle 35 fixed the seven of
+   these that the battery runs; this is one of the rest. The count decides the exit code now. */
+const __fails = LOG.filter((l) => String(l).startsWith('FAIL')).length;
+if (__fails) { console.log(`\nFAILED — ${__fails} check(s) did not pass.`); process.exit(1); }
 process.exit(0);

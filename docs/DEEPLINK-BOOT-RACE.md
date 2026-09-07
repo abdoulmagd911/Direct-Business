@@ -1,13 +1,25 @@
 # The deep link that a slow phone throws away
 
 **Status: FIXED and deployed, round 58, 6 Sep 2026.** Both lines below are landed. Guarded by
-`scripts/qa/probe-deeplink-boot-race.mjs` (port 8713), which reproduces the race deterministically
-by CPU throttling instead of waiting for a busy machine — and which reddens when EITHER half of
-the fix is removed.
+`scripts/qa/probe-deeplink-boot-race.mjs` (port 8713), which forces the race rather than waiting
+for a busy machine — and which reddens when EITHER half of the fix is removed.
 
-**Correction to the table below, measured independently before landing anything: the link was
-lost from 4x, not 6x.** 4x is an ordinary mid-range phone, not a low-end one. It survived only at
-1x — which is to say, only on the machines the people who built it were using.
+**On the 4x/6x disagreement — settled by measurement, watch cycle 36.** Round 58 measured the
+loss from 4x; cycle 35 measured it from 6x; both were run honestly. **Neither number is a
+property of the app.** CPU throttling only slows script execution until js/03's 200 ms timer
+beats js/66, and how slow that has to be depends on the box, its ambient load, and its cache.
+Re-measured here on the pre-fix tree with round 58's own probe, four consecutive runs: **4x
+survived every time, 10x was lost every time** — and with both halves of the fix removed one at
+a time, only the 10x check went red. So on this host the 4x assertion **passes on the broken
+tree**: a check that cannot fail, in a probe written to end exactly that problem.
+
+The number was never the point, and chasing it further would repeat the mistake. `probe-deeplink-boot-race`
+now also asserts the guarantee a way that does not depend on the host at all: **hold js/66's own
+response back**, which forces the losing order — js/03's rewrite first, js/66 evaluated after —
+on any machine, at 1x, with no throttle. Pre-fix tree: LOST. Fixed tree: SURVIVED. Both sabotages
+redden it, and its own control (the same run with nothing held back) proves the failure is about
+the order rather than the delay. The rate checks are kept for breadth, and the probe now prints a
+note when every one of them passed, so a green is never mistaken for evidence it was tested.
 
 **Found:** watch cycle 35, 6 Sep 2026 · **Files:** `js/03-clean-url-routing-filter-memory-each-secti.js`, `js/66-document-generator.js` — both outside the watch session's lane, so the fix below is handed over, not landed.
 **Guarded by:** `scripts/qa/probe-generator-attacks.mjs`, check `A: contract editor opens by deep link` (and B–E for the other four editors).
@@ -46,7 +58,7 @@ parallel load, no network delay. `4x` is roughly a mid-range Android phone, `6x`
 | CPU throttle | today (as pushed) | with the fix below |
 |---|---|---|
 | 1x | `tab=contract` ✓ | `tab=contract` ✓ |
-| 4x | **`tab=assets` ✗** (cycle 35 recorded ✓ here; re-measured round 58) | `tab=contract` ✓ |
+| 4x | host-dependent — ✗ on round 58's box, ✓ on this one across 4 runs | `tab=contract` ✓ |
 | 6x | **`tab=assets` ✗** | `tab=contract` ✓ |
 | 10x | **`tab=assets` ✗** | `tab=contract` ✓ |
 | 20x | **`tab=assets` ✗** | `tab=contract` ✓ |

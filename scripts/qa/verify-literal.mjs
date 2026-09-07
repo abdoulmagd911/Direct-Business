@@ -23,4 +23,9 @@ for (const [email,pw] of PRINTED) {
   console.log(`${ok?'OK  ':'FAIL'} ${email.padEnd(36)} (${pw.length} characters)`);
 }
 console.log(bad? `\n${bad} of the printed passwords DO NOT WORK` : '\nEvery password exactly as written in chat logs in. Nothing lost in the typing.');
+/* 2026-09-07 (watch cycle 36): this file counted its failures, printed them, and then exited 0,
+   so a regression it could see was reported to any runner as a pass. Cycle 35 fixed the seven of
+   these that the battery runs; this is one of the rest. The count decides the exit code now. */
+const __fails = bad;
+if (__fails) { console.log(`\nFAILED — ${__fails} check(s) did not pass.`); process.exit(1); }
 process.exit(0);

@@ -54,4 +54,9 @@ S('the newest entries name the person who did it, not a hard-coded name', log.ha
 S('the manager can open the log and it is not empty', log.total>0 && !/No activity yet/.test(log.onScreen), `${log.total} entries`);
 await b2.browser.close();
 console.log(`\nFAILS: ${LOG.filter(x=>x==='F').length} / ${LOG.length}`);
+/* 2026-09-07 (watch cycle 36): this file counted its failures, printed them, and then exited 0,
+   so a regression it could see was reported to any runner as a pass. Cycle 35 fixed the seven of
+   these that the battery runs; this is one of the rest. The count decides the exit code now. */
+const __fails = LOG.filter((x) => x === 'F').length;
+if (__fails) { console.log(`\nFAILED — ${__fails} check(s) did not pass.`); process.exit(1); }
 process.exit(0);

@@ -1,3 +1,43 @@
+## 2026-09-07 · Watch cycle 36 — the loud guard that 36 of 49 callers never called, and a battery list that lived in /tmp
+
+**Attack area (jj) finished: the eighteen remaining exit-0 probes, and where battery membership actually lives.** Plus an independent re-measurement of round 58's correction.
+
+### The 4x/6x disagreement is not about the app, and one of the new probe's checks cannot fail
+
+Round 58 landed cycle 35's deep-link fix and corrected the measurement: the link was lost **from 4x, not 6x**. Re-measured here before recording anything, using **round 58's own probe** against the pre-fix tree, four consecutive runs: **4x survived every time, 10x was lost every time.** Sabotage settles it — remove js/66's fallback, or js/03's publish, one at a time, and only the 10x check goes red. So on this host **the 4x assertion passes on the broken tree**: a check that cannot fail, inside a probe written to end exactly that problem.
+
+Neither number is wrong and neither is a property of the app. CPU throttling only slows script execution until js/03's 200 ms timer beats js/66, and how slow that has to be depends on the box, its load and its cache. **Chasing the number would repeat the mistake.** `probe-deeplink-boot-race` now asserts the guarantee a way that cannot depend on the host at all: **hold js/66's own response back**, which forces the losing order — js/03's rewrite first, js/66 evaluated after — on any machine, at 1x, with no throttle. Pre-fix tree LOST, fixed tree SURVIVED, both sabotages redden it, and its own control (the same run with nothing held back) proves the failure is about the order and not the delay. The rate checks stay for breadth, and the probe now prints a line saying so when every one of them passed, so a green is never mistaken for evidence.
+
+### 36 of 49 probes signed in as nobody, and 15 of them called it a pass
+
+The eighteen files cycle 35 left are all fixed to exit on their own count. That was the easy half. The question the list told this cycle to ask first — *why is this probe not in the battery?* — has the same answer for every one: **they cannot run here at all.** Fifteen import `emp-rig.mjs`, which signs in as a real member of staff and reads the passwords from `DB_PW_*` — never from the file, because CLAUDE.md forbids the team's real passwords from being in this repository.
+
+What nobody had noticed is what they do without those credentials. `emp-rig.mjs` has always carried a function whose own comment says it exists to *"fail loudly rather than silently testing nothing"* — `requirePw()`, which throws when the password is missing. **36 of the 49 probes that import the rig never call it.** They read `TEAM.<who>.pw` directly, get `''`, and sign in as nobody. Measured, not inferred: `probe-teamwork` run here prints **`FAILS: 8 / 8`** — every check failing, all for the one reason — and **exits 0**.
+
+**Fixed at the chokepoint, not at the 36 call sites.** `signIn()` is the one function every one of them goes through, so it refuses an empty password there, with the reason in the message. A guard a caller can forget to call is not a guard. Verified both ways: the probe now stops on the first sign-in and exits 1, and with the guard removed in a scratch copy it goes back to 8-of-8-failing-and-exit-0.
+
+### Battery membership did not live anywhere
+
+Until this cycle the battery's contents existed only as `/tmp/fullrun.txt` — a scratch file that dies with the container, cannot be diffed or reviewed, and gives no answer to "why is this probe not in the battery?". That is how eighteen exit-0 probes sat outside it unnoticed, and how **`probe-deeplink-boot-race`, written hours earlier to guard a live defect, was not being run by anything.**
+
+Now `scripts/qa/battery.txt` and `scripts/qa/battery-excluded.txt` (each exclusion with a one-line reason), and `check-probe-integrity` fails if a probe is in neither, in both, or named in a list but missing from the tree — sabotage-verified in all three directions. It found seven unaccounted files on its first run.
+
+**And it found three phantom green rows.** `emp-rig`, `mock-seed` and `mock-seed-live` were in the battery list. They are **libraries** — imported by probes, with no checks of their own — so the runner ran them, they exited 0, and three of the battery's green rows were modules that cannot fail. Removed. The battery is 76 probes, not 79.
+
+`NO_FAIL_SIGNAL` budget ratcheted **35 → 17**, and the 17 that remain are report tools with no assertions at all; six of them sit in the battery and cannot go red. They need a category, not an exit code — the plan is written up in `docs/PROBE-WARNINGS-TRIAGE.md` and is cycle 37's work.
+
+**Flagged for the Generator task:** six `generator-qa` probes (`probe-contract`, `probe-price-offer`, `probe-service-fees`, `probe-company-profile`, `probe-tender`, `probe-generator-brand`) use the mock and look runnable, but **nobody in this session has ever run them**. Named in the exclusion file with that reason; that task should confirm they still pass and say who runs them.
+
+### Why every one of these mysteries has been diagnosed from a summary line
+
+Two full battery runs this cycle produced **five reds between them, and not one probe failed in both**: `probe-finance-invariants` (6 checks) in the first, `probe-csv-injection`, `probe-expense-report-capture`, `probe-premortem-attacks` and `probe-scale-attacks` in the second. All five are green run alone, green run with their real battery neighbours, and green under three separate deliberate-contention harnesses including six probes plus three CPU burners. Not reproduced, not explained, and **not** written off as environmental.
+
+What is explained is why nobody could ever diagnose them. **The runner kept only the last line of each probe's output.** By the time a red was noticed the failing checks were gone, so every one of these has been argued about from a summary. That is now fixed rather than complained about: **`scripts/qa/run-battery.sh`** reads `battery.txt`, keeps the full output of every probe in its own log, and on a red prints the failing checks and the path to the log. Sabotage-verified — a deliberately false check makes it exit 1 and print the check by name, not the summary. The scratch runner in `/tmp` is retired.
+
+Cycle 37 runs the battery through it and reads the log the next time this happens. The standing hypothesis to test first: **six probes at a time on two vCPUs is 3x oversubscription**, and most of these probes wait with fixed sleeps rather than for a condition — the exact mechanism cycle 35 proved for `probe-generator-attacks`. `run-battery.sh -j 3` is one command away from testing it.
+
+**Battery:** 76 probes plus `check-structure`, `check-probe-integrity` and `check-decisions-wired` (the last of which was not in the battery either and is now).
+
 ## 2026-09-06 · Round 58 — the deep link a phone throws away is fixed, and it bit one step earlier than reported
 
 Watch cycle 35 traced six cycles of "probe-generator-attacks is environmental" to a real defect in

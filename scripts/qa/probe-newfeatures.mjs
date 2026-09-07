@@ -165,4 +165,10 @@ await SHOT('finance-kpis');
 console.log(LOG.join('\n'));
 console.log(`\n${LOG.filter(l => l.startsWith('PASS')).length}/${LOG.length} PASS · pageerrors: ${errs.length}`);
 if (errs.length) console.log(errs.slice(0, 6).join('\n'));
-await browser.close(); process.exit(0);
+/* 2026-09-07 (watch cycle 36): this file counted its failures, printed them, and then exited 0,
+   so a regression it could see was reported to any runner as a pass. Cycle 35 fixed the seven of
+   these that the battery runs; this is one of the rest. The count decides the exit code now. */
+await browser.close();
+const __fails = LOG.filter((l) => String(l).startsWith('FAIL')).length;
+if (__fails) { console.log(`\nFAILED — ${__fails} check(s) did not pass.`); process.exit(1); }
+process.exit(0);

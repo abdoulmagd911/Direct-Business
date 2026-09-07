@@ -1,0 +1,86 @@
+# The battery: every probe /tmp/runner.sh runs, one per line.
+#
+# Written 2026-09-07 (watch cycle 36) — before this the list lived only in a scratch file, so it
+# was lost with the container and could not be reviewed or diffed. Everything NOT here must be
+# named in battery-excluded.txt with a reason; check-probe-integrity fails otherwise.
+# 2026-09-07: emp-rig, mock-seed and mock-seed-live were in this list. They are LIBRARIES —
+#   imported by probes, with no checks of their own — so the runner ran them, they exited 0,
+#   and three of the battery's green rows were modules that cannot fail. Removed.
+check-decisions-wired
+check-structure
+manual-visual-sweep
+probe-ageing-attacks
+probe-alias-dedupe-attacks
+probe-arabic-new-surfaces-attacks
+probe-audit-events-search-attacks
+probe-b2c-manual-attacks
+probe-b2c-paging
+probe-backup-supabase
+probe-client-group-map
+probe-clients-attacks
+probe-commit-survives-context-death
+probe-compare-attacks
+probe-concurrency-attacks
+probe-cost-join-performance
+probe-crm-attacks
+probe-csv-injection
+probe-deeplink-boot-race
+probe-deleted-invoice-attacks
+probe-drilldown-attacks
+probe-events
+probe-events-scale
+probe-expense-capture-persistence
+probe-expense-report-capture
+probe-export-access-attacks
+probe-false-success-commit
+probe-filter-combination-attacks
+probe-finance-arabic-attacks
+probe-finance-export
+probe-finance-invariants
+probe-generator-attacks
+probe-grouping-canon-attacks
+probe-guardrails-both-halves-attacks
+probe-hostile-shapes-attacks
+probe-import-preview-density
+probe-import-tab-wiring
+probe-importer-attacks
+probe-importer-concurrency-attacks
+probe-importer-scale-attacks
+probe-landmines
+probe-leads-counts
+probe-ledger-attacks
+probe-lifecycle5
+probe-live2
+probe-mega
+probe-money-placement
+probe-monthly-chart-attacks
+probe-no-vat-display
+probe-notes
+probe-overview-attacks
+probe-page-access-enforce
+probe-password-recovery
+probe-period-bar-attacks
+probe-permissions-attacks
+probe-premortem-attacks
+probe-promo-revenue-attacks
+probe-readout-surface-attacks
+probe-received-outstanding-attacks
+probe-recovery-attacks
+probe-report-builder-attacks
+probe-responsive-finance
+probe-role-nav
+probe-round8
+probe-round9
+probe-scale-attacks
+probe-sector-key-attacks
+probe-sector-scope
+probe-share-and-settings-attacks
+probe-stress
+probe-targets-attacks
+probe-tax-invoice-capture
+probe-write-paths-both-halves-attacks
+sweep-buttons
+sweep-consistency
+sweep-language
+sweep-nav
+sweep-pages

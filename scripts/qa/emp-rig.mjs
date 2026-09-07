@@ -106,8 +106,25 @@ export async function openApp(port, opts = {}) {
   return { browser, page, errs, base: `http://127.0.0.1:${port}` };
 }
 
-/* Sign in the way a person does. Returns 'app' | 'firstlogin' | 'pending' | 'error'. */
+/* Sign in the way a person does. Returns 'app' | 'firstlogin' | 'pending' | 'error'.
+
+   2026-09-07 (watch cycle 36) — WHY THIS THROWS ON AN EMPTY PASSWORD.
+   `requirePw()` above was written to "fail loudly rather than silently testing nothing", and
+   **36 of the 49 probes that import this rig never call it.** They read TEAM.<who>.pw directly,
+   which is `''` whenever DB_PW_<WHO> is unset — which is always, because CLAUDE.md forbids the
+   team's real passwords from ever being in this repository. So they signed in with an empty
+   password, every check failed for that one reason, and fifteen of them then exited 0 and
+   reported success. A guard that a caller can forget to call is not a guard; this is the
+   chokepoint every one of them goes through, so the refusal belongs here where it cannot be
+   skipped. A literal password (the QA account) is unaffected. */
 export async function signIn(page, email, pw) {
+  if (!String(pw || '').trim()) {
+    throw new Error(
+      'signIn("' + email + '") was given an EMPTY password. This rig reads passwords from the ' +
+      'environment (DB_PW_<WHO>), never from the file, and none is set — so this run would have ' +
+      'signed in as nobody and failed every check for that reason alone. Set the variable, or ' +
+      'run one of the probes that uses the mock instead. Refusing rather than testing nothing.');
+  }
   await page.waitForSelector('input[type="email"]', { timeout: 30000 });
   await page.locator('input[type="email"]').first().fill(email);
   await page.locator('input[type="password"]').first().fill(pw);

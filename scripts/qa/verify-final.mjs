@@ -17,4 +17,9 @@ for (const k of ORDER) {
   console.log(`${okRole&&okActive&&okPerm?'OK   ':'FAIL '} ${t.email.padEnd(36)} role=${m.role} active=${m.active} asked_to_change=${m.must_change_password}`);
 }
 console.log(bad? `\n${bad} PROBLEM(S)` : '\nAll 11 sign in, correct level, active, and NOT asked to change their password.');
+/* 2026-09-07 (watch cycle 36): this file counted its failures, printed them, and then exited 0,
+   so a regression it could see was reported to any runner as a pass. Cycle 35 fixed the seven of
+   these that the battery runs; this is one of the rest. The count decides the exit code now. */
+const __fails = bad;
+if (__fails) { console.log(`\nFAILED — ${__fails} check(s) did not pass.`); process.exit(1); }
 process.exit(0);
