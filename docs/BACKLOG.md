@@ -88,9 +88,13 @@ The probe's own first version measured the fixture instead of the code — the h
 carries `integrations:{}` and is loaded over the migrated object — and reported "no integration
 entries at all", which was true and about nothing. It now asks `migrateV20` directly.
 
-**Live data:** the 14 fabricated sync events and 12 invented integration rows are still stored in
-`app_state`. They are backed up and cleared in this round, after the code fix is live — clearing
-first would only let the old code invent them again on the next load.
+**Live data — done, after the code fix went live** (clearing first would only have let the old code
+invent it all again on the next load). Backed up to **`app_state_syncseed_backup_20260907`** (the
+full `integrations` object and all 14 `syncEvents` as they stood), then `app_state` was updated:
+`syncEvents` is now `[]`, and every integration reads `not connected` except `internal`. Re-checked
+after the write: **0 sync events, 0 integrations needing attention, ZATCA no longer "token
+expired".** The Today alert strip has nothing false left to show. To undo, copy the two keys back
+from the backup table.
 
 ## Round 64 — 2026-09-07 — the "Live" badge was a random number
 
