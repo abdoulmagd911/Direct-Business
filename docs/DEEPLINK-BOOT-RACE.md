@@ -13,6 +13,13 @@ survived every time, 10x was lost every time** — and with both halves of the f
 a time, only the 10x check went red. So on this host the 4x assertion **passes on the broken
 tree**: a check that cannot fail, in a probe written to end exactly that problem.
 
+**And the same test on the repo host gives the opposite answer (round 59), which is the point.**
+Re-run there with cycle 36's own probe against a deliberately broken tree, **4x reddens**. So
+round 58's figure is right about the repo machine and cycle 36's is right about the watch
+machine, and any fixed rate is a check that may or may not be able to fail depending on where it
+runs — with nothing in its output saying which. Judge the fix by the held-back check, which
+forces the losing order at 1x on any box; read the rates as breadth only.
+
 The number was never the point, and chasing it further would repeat the mistake. `probe-deeplink-boot-race`
 now also asserts the guarantee a way that does not depend on the host at all: **hold js/66's own
 response back**, which forces the losing order — js/03's rewrite first, js/66 evaluated after —
