@@ -158,14 +158,35 @@
       window.__pillHook=function(text){
         try{
           var t=String(text||'');
+          /* the connection came back: arm the notice again for the NEXT outage, or a person who
+             works through two of them in one session is warned only about the first */
+          if(/^Saved/i.test(t)) window.__v73OfflineNotice=0;
           if(!/^Save issue/i.test(t)) return;
-          var denied=/row-level security|violates|not authorized|permission|policy/i.test(t);
-          box(fl('That change was not saved','لم يتم حفظ التعديل'),
-              denied
-                ? fl('Your access level does not allow this change, so it was refused.','مستوى صلاحيتك لا يسمح بهذا التعديل، لذلك تم رفضه.')
-                : fl('The change could not be stored.','تعذر حفظ التعديل.'),
-              fl('The screen will refresh so it matches what is really saved.','ستُحدَّث الشاشة لتطابق المحفوظ فعليًا.'), true);
-          setTimeout(function(){ try{ location.reload(); }catch(_){} }, 4500);
+          var denied=/row-level security|violates|not authorized|permission|policy|denied|forbidden|401|403/i.test(t);
+          /* 2026-09-07 (round 61 lane, found by driving a failed save): this used to reload for
+             ANY save failure, and that is only right for a refusal. A refusal means the screen is
+             showing something the database rejected, so refreshing brings it back to the truth.
+             A dropped connection means the opposite: js/02 has kept the change, written it to this
+             device, and scheduled a retry with backoff — reloading throws that retry away and
+             tells the person their work is gone when it is not. Driven with the save endpoint
+             answering 503, the app reloaded three times in twelve seconds, once per retry: on the
+             patchy mobile connection a travel agent actually works on, that is a reload loop that
+             loses the pending write every time round.
+             So a transport failure now says what is true — it is saved here, it has not reached
+             the server yet, we are still trying — and does NOT reload. Only a refusal reloads. */
+          if(denied){
+            box(fl('That change was not saved','لم يتم حفظ التعديل'),
+                fl('Your access level does not allow this change, so it was refused.','مستوى صلاحيتك لا يسمح بهذا التعديل، لذلك تم رفضه.'),
+                fl('The screen will refresh so it matches what is really saved.','ستُحدَّث الشاشة لتطابق المحفوظ فعليًا.'), true);
+            setTimeout(function(){ try{ location.reload(); }catch(_){} }, 4500);
+            return;
+          }
+          /* One notice while the connection is down, not one per retry. */
+          if(window.__v73OfflineNotice) return;
+          window.__v73OfflineNotice=1;
+          box(fl('Not on the server yet','لم يصل إلى الخادم بعد'),
+              fl('Your change is saved on this device, but it has not reached the server. We are still trying.','تم حفظ تعديلك على هذا الجهاز، لكنه لم يصل إلى الخادم بعد. ما زلنا نحاول.'),
+              fl('Keep this tab open until the badge says saved. Nothing has been lost.','أبقِ هذه الصفحة مفتوحة حتى تظهر علامة الحفظ. لم يُفقد شيء.'), true);
         }catch(_){}
       };
     }catch(_){}

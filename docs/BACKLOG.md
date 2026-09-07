@@ -29,6 +29,43 @@ served blob, `probe-finance-invariants` and `probe-expense-report-capture` both 
 "the exclusion list never arrived from app_settings" — so the marker really is a key only the
 seed can set, and the guard can fail. That was the trap that had already caught them once.
 
+## Round 63 — 2026-09-07 — a dead spot is not a refusal (the app was reload-looping on bad wifi)
+
+**The defect.** js/49's `watchSaves()` exists for a good reason: if the database refuses a change,
+the screen must not keep showing it, so the layer explains and reloads. But it fired on ANY save
+failure, and a dropped connection is the opposite case. Driven with the save endpoints answering
+503 — an ordinary mobile dead spot — **the app reloaded three times in twelve seconds, once per
+retry.**
+
+Everything about that is wrong. js/02 has already written the change to the device and scheduled a
+retry with backoff; the reload throws that retry away. The person is told their change was not
+saved, when it is sitting safely on their phone. And on a merely patchy connection it becomes a
+reload loop that loses the pending write every time round. Direct's agents work on hotel and
+airport wifi — this is their normal, not an edge case.
+
+**The fix.** A refusal (row-level security, 401/403, "not authorized") still reloads, unchanged. A
+transport failure now shows one honest notice — *"Not on the server yet · your change is saved on
+this device, but it has not reached the server. We are still trying. Keep this tab open until the
+badge says saved. Nothing has been lost."* — and does not reload. One notice per outage, re-armed
+when a save succeeds, so someone who hits two dead spots in a session is told about both.
+
+**New guard: `scripts/qa/probe-save-failure-attacks.mjs`** (port 9020). Six checks, and the one
+that makes the rest mean anything is check 4: after the connection returns, the change must reach
+the database by itself. Not reloading is only defensible because the retry actually delivers. Check
+5 is the other half — a row-level-security refusal must STILL reload, so a fix that simply stopped
+reloading for everything would pass 1-4 and reopen the hole js/49 was written to close.
+
+Both halves sabotaged: forcing `denied` true reddens 1, 2, 3, 4 and 6; forcing it false reddens
+exactly 5. Restored byte-identical.
+
+**Two probe faults found and fixed before they became false claims.** `nextAction` maps to the
+next_action_DATE column, not the note, so the first version wrote a sentence where a date belongs
+and its row check could never match — one red that was read rather than believed. And the Arabic
+page was being created while the previous block's refusal mode was still on, so the notice fired in
+English before the language switch and the once-per-outage guard suppressed the Arabic one: the
+probe was accusing the app of being English-only on an Arabic screen, and it was its own leftover
+state.
+
 ## Round 62 — 2026-09-07 — every dialog in the app, on a phone
 
 The same blind spot as round 61, one dimension over. All the responsive work in this repo measures

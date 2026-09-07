@@ -72,6 +72,7 @@ probe-responsive-finance
 probe-role-nav
 probe-round8
 probe-round9
+probe-save-failure-attacks
 probe-scale-attacks
 probe-sector-key-attacks
 probe-sector-scope
