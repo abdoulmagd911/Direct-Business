@@ -548,7 +548,7 @@ window.rptPpt=function(){
   var stages=LEAD_STAGES.map(function(s){return [s,(s==="Won"?"Client":s)];});
   var team=[["","Unassigned"]].concat(teamList().map(function(x){return [x,x];}));
   var extra=b.isClient?('<div class="grid2"><div class="field"><label>Account manager</label>'+sel(team,b.accountManager||"","qe_am")+'</div><div class="field"><label>Account tier</label>'+sel([["Standard","Standard"],["Key","Key account"]],b.tier||"Standard","qe_tier")+'</div></div><div class="field"><label>Next account review</label><input type="date" id="qe_review" value="'+esc(b.nextReview||"")+'"></div>'):"";
-  openModal("Quick edit - "+esc(b.name),
+  openModal((((typeof LANG!=='undefined'&&LANG==='ar')?'\u062a\u0639\u062f\u064a\u0644 \u0633\u0631\u064a\u0639 - ':"Quick edit - "))+esc(b.name),
    '<div class="grid2"><div class="field"><label>Stage</label>'+sel(stages,leadStage(b),"qe_stage")+'</div><div class="field"><label>Assigned to</label>'+sel(team,b.assignedTo||"","qe_owner")+'</div></div>'+
    '<div class="field"><label>Next action</label><input id="qe_next" value="'+esc(b.nextAction||"")+'"></div>'+
    extra+
@@ -575,7 +575,7 @@ window.rptPpt=function(){
  window.airQuickEdit=function(id){
   var x=(DB.airlines||[]).find(function(a){return a.id===id;});if(!x)return;
   var sel=function(opts,cur,fid){return '<select id="'+fid+'">'+opts.map(function(o){return '<option value="'+o+'" '+(cur===o?"selected":"")+'>'+o+'</option>';}).join("")+'</select>';};
-  openModal("Quick edit - "+esc(x.name),
+  openModal((((typeof LANG!=='undefined'&&LANG==='ar')?'\u062a\u0639\u062f\u064a\u0644 \u0633\u0631\u064a\u0639 - ':"Quick edit - "))+esc(x.name),
    '<div class="grid2"><div class="field"><label>IATA code</label><input id="aq_code" value="'+esc(x.code||"")+'"></div><div class="field"><label>Ticket stock</label><input id="aq_stock" value="'+esc(x.stock||"")+'"></div></div>'+
    '<div class="grid2"><div class="field"><label>KSA BSP</label>'+sel(["","Yes","No"],x.ksa||"","aq_ksa")+'</div><div class="field"><label>Alliance</label>'+sel(["","Star Alliance","SkyTeam","Oneworld","Unaligned"],x.alliance||"","aq_alliance")+'</div></div>'+
    '<div class="grid2"><div class="field"><label>ADM risk</label>'+sel(["","Low","Medium","High"],x.admRisk||"","aq_adm")+'</div><div class="field"><label>Type</label>'+sel(["FSC","LCC"],x.type||"FSC","aq_type")+'</div></div>'+
@@ -772,7 +772,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
   var ownerSel='<select id="qe_owner" onchange="if(this.value===\'__add__\')qeAddOwner(\''+b.id+'\')">'+opt('','Unassigned',curOwner)+_team.map(function(t){return opt(t,t,curOwner);}).join('')+'<option value="__add__">+ Add new person...</option></select>';
   var funnelSel='<select id="qe_funnel">'+opt('',((typeof LANG!=='undefined'&&LANG==='ar')?'— بدون قناة —':'— no funnel —'),curFunnel)+((window.__funnelDefs||[]).map(function(f){return opt(f.key,((typeof LANG!=='undefined'&&LANG==='ar')?(f.name_ar||f.name_en):f.name_en),curFunnel);}).join(''))+'</select>';
   var extra=b.isClient?('<div class="grid2"><div class="field"><label>Account manager</label><select id="qe_am">'+opt('','Unassigned',b.accountManager||'')+(function(){var _t=team.slice();var _am=b.accountManager||'';if(_am&&_t.indexOf(_am)<0)_t.unshift(_am);return _t;})().map(function(t){return opt(t,t,b.accountManager||'');}).join('')+'</select></div><div class="field"><label>Account tier</label><select id="qe_tier">'+opt('Standard','Standard',b.tier||'Standard')+opt('Key','Key account',b.tier||'Standard')+'</select></div></div><div class="field"><label>Next account review</label><input type="date" id="qe_review" value="'+esc(b.nextReview||'')+'"></div>'):'';
-  openModal('Quick edit - '+esc(b.name),
+  openModal((((typeof LANG!=='undefined'&&LANG==='ar')?'\u062a\u0639\u062f\u064a\u0644 \u0633\u0631\u064a\u0639 - ':"Quick edit - "))+esc(b.name),
    '<div class="grid2"><div class="field"><label>Stage</label>'+stageSel+'</div><div class="field"><label>Assigned to</label>'+ownerSel+'</div></div>'+
    '<div class="field"><label>'+((typeof LANG!=='undefined'&&LANG==='ar')?'القناة (المصدر)':'Funnel')+'</label>'+funnelSel+'</div>'+
    '<div class="field"><label>Next action</label><input id="qe_next" value="'+esc(b.nextAction||'')+'"></div>'+

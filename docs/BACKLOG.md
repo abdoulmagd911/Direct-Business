@@ -29,6 +29,50 @@ served blob, `probe-finance-invariants` and `probe-expense-report-capture` both 
 "the exclusion list never arrived from app_settings" — so the marker really is a key only the
 seed can set, and the guard can fail. That was the trap that had already caught them once.
 
+## Round 61 — 2026-09-07 — the Arabic pass on the surfaces you have to CLICK to reach
+
+Everything that has ever checked the app's Arabic walked the navigation and read each page as it
+landed. That is the shallow half. A dialog does not exist until someone presses a button, so a tool
+that presses no buttons cannot see one — and the nav walk has been clean for days while three
+dialogs in daily use sat in English on a fully Arabic screen.
+
+**New: `scripts/qa/sweep-language-deep.mjs`** (port 9016) — walks nine pages in Arabic, presses
+every visible control, and when a dialog opens reads THE DIALOG rather than the page behind it. It
+also drives the sub-tab strips, which swap a page's whole body without navigating.
+
+**What it found, and what was fixed**
+
+* The **quick-edit dialog** on a lead and on a client — the one used more than any other screen in
+  the app — showed *Assigned to*, *+ Add new person…*, *Quick note (optional - logs an activity)*,
+  and on a client *Account tier* and *Next account review*, all in English. Its title read
+  "Quick edit - <company>". Fixed: dictionary entries in js/21, and the title is now bilingual.
+* The **Ops new-request form** showed all eleven of its Stage and Priority words in English
+  (New · Quoting · Awaiting client · Booked · Ticketed · Delivered · Closed · Urgent · High ·
+  Normal · Low). This one could not be fixed by a dictionary: those `<option>`s carried no `value`
+  attribute, and an option with no value is stored **by its text**, so translating the label would
+  have written "محجوز" into `requests.stage`. js/21 has refused to touch value-less options since
+  round 28 for exactly that reason. Fixed properly: core-03 now gives every option an explicit
+  English value, and the labels are translated on top of that.
+* **Settings** — the credit-pool settings dialog, the pool-cap history, and both proposal
+  generators were English throughout. Fixed by dictionary.
+
+**New guard: `scripts/qa/probe-dialog-arabic-attacks.mjs`** (port 9018). The request-dialog trade is
+only safe while both halves hold, and each is invisible from the other side: the label must read
+Arabic, and the stored value must stay English. So the probe picks the Arabic-labelled option the
+way a person does, **saves the record**, and reads back what the app stored. Sabotage measured, not
+predicted — and the measurement corrected the prediction: removing the `value` attributes does NOT
+corrupt anything, because js/21's guard then declines to translate at all. Only removing the values
+*and* that guard produces the corruption, and then the probe reports the record coming back as
+`{"stage":"محجوز","priority":"مرتفع"}`.
+
+**Two false findings the sweep produced on its first run, both now impossible.** It pressed the
+language card on Settings and flipped the app to English, then reported the five dialogs it read
+afterwards as Arabic gaps — a tool that flips the setting it is measuring. And it read the
+client-facing price-offer document, which is authored in the *document's* language (an Arabic user
+producing an English offer is the app working). The sweep now skips the language control, re-reads
+LANG at every scan and discards any reading not taken in Arabic, and exempts document previews and
+language pickers.
+
 ## 2026-09-07 · Watch cycle 37 — the "environmental" reds were one harness defect, and it had been accusing the app of leaking excluded money
 
 **The runner built at the end of cycle 36 paid for itself on its first run.** Because it now keeps every probe's full output instead of the last line, four reds could be *read* rather than argued about — and they turned out to be one defect with one cause.

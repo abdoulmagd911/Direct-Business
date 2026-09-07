@@ -134,7 +134,32 @@
     'New booking':'حجز جديد','Create proposal':'إنشاء عرض','Log activity':'تسجيل نشاط','Log activity +':'تسجيل نشاط +',
     'Request':'طلب','Request +':'طلب +','Key facts':'حقائق أساسية','Corporate account':'الحساب المؤسسي',
     'Activity & workflow':'النشاط وسير العمل','Contacts & channels':'جهات الاتصال والقنوات',
-    '＋ Log activity':'＋ تسجيل نشاط','＋ Request':'＋ طلب','＋ Contact / POC':'＋ جهة اتصال / مسؤول','🔗 Link':'🔗 رابط','📄 Detail view':'📄 عرض التفاصيل'
+    '＋ Log activity':'＋ تسجيل نشاط','＋ Request':'＋ طلب','＋ Contact / POC':'＋ جهة اتصال / مسؤول','🔗 Link':'🔗 رابط','📄 Detail view':'📄 عرض التفاصيل',
+    /* ---- Dialogs, found 2026-09-07 (round 61) by the first sweep that PRESSES BUTTONS in
+       Arabic. Round 26 wired this file into openModal, but a dialog only exists after a click,
+       and every tool until now walked the nav and read the page as it landed — so these had
+       never been on an Arabic screen anybody or anything looked at. Three dialogs in daily use:
+       the quick-edit on a lead and on a client, the Ops new-request form, and the two Settings
+       generators. Whole-string chrome only; every <option> below carries an explicit value in
+       its own markup (checked one by one), so the stored value stays English. ---- */
+    // quick edit (lead + client) — core-10
+    'Assigned to':'مُسند إلى','+ Add new person...':'+ إضافة شخص جديد...',
+    'Quick note (optional - logs an activity)':'ملاحظة سريعة (اختيارية — تُسجَّل كنشاط)',
+    'Account tier':'فئة الحساب','Next account review':'المراجعة القادمة للحساب',
+    // Ops new-request form — the option words only became translatable in round 61, when
+    // core-03 gave them explicit values; before that translating them would have stored Arabic
+    'New request':'طلب جديد','Quoting':'تسعير','Booked':'محجوز','Closed':'مغلق',
+    /* Medium rides along with High/Low: the airline quick-edit's ADM-risk select offers all
+       three, and translating two of them would read worse than translating none. */
+    'Urgent':'عاجل','High':'مرتفع','Medium':'متوسط','Normal':'عادي','Low':'منخفض',
+    // Settings → credit pool + the two proposal generators — core-08
+    'Commercial Credit Pool — settings':'مجمع الائتمان التجاري — الإعدادات',
+    'Change reason (logged to audit)':'سبب التغيير (يُسجَّل في التدقيق)',
+    'Pool cap history':'سجل سقف المجمع','When':'متى','Cap':'السقف','Reason':'السبب',
+    'Generate service-fee proposal':'إنشاء عرض رسوم الخدمة','— Pick a client —':'— اختر عميلاً —',
+    'Fee card':'بطاقة الرسوم','Effective from':'سارٍ من','Notes / scope':'ملاحظات / النطاق',
+    'Generate project proposal':'إنشاء عرض المشروع','Project':'المشروع',
+    '— Pick a project —':'— اختر مشروعًا —','Executive summary':'الملخص التنفيذي','📥 Both':'📥 كليهما'
   };
   // ---- Reference drill-downs (2026-09-02, attack round 19 — the first Arabic drive of an airline
   // detail/dashboard and a provider detail/dashboard WITH a record; the harness had carried zero

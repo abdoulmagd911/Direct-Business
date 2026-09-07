@@ -26,6 +26,7 @@ probe-crm-attacks
 probe-csv-injection
 probe-deeplink-boot-race
 probe-deleted-invoice-attacks
+probe-dialog-arabic-attacks
 probe-drilldown-attacks
 probe-events
 probe-events-scale
@@ -82,5 +83,6 @@ probe-write-paths-both-halves-attacks
 sweep-buttons
 sweep-consistency
 sweep-language
+sweep-language-deep
 sweep-nav
 sweep-pages
