@@ -357,6 +357,19 @@ async function main() {
   await p.evaluate(() => finGo('clients'));
   const tClients = await settle();
   const clientsHtml = await p.evaluate(() => document.querySelector('#view').innerHTML);
+  /* 2026-09-07: watch cycle 38 left this check as its one remaining red — 120 read where 108 is
+     expected — and named the probe's own `.match()` as the next suspect, on the theory that a
+     stale copy of the label is still in #view and the first match wins. Measured here rather than
+     assumed: four runs of this probe on the repo host under heavy parallel load (mega, stress,
+     events-scale, importer-scale alongside it), all green, and every one found EXACTLY ONE
+     occurrence of the label, reading 108. So the first-match theory has no support on this host,
+     and neither does the red — it did not reproduce. The occurrence list is printed on every run
+     so that the next host that does redden answers the question in its own output instead of
+     leaving it to be guessed at again.
+     (An earlier attempt reproduced two reds and they were mine: three copies of this same probe
+      running at once, colliding on port 8213 — cycle 34's lesson, made again.) */
+  const nAll = clientsHtml.match(/all (\d+) clients, top 10 shown/g) || [];
+  console.log('  · Top-clients label occurrences in #view: ' + JSON.stringify(nAll));
   const nLabel = clientsHtml.match(/all (\d+) clients, top 10 shown/);
   if (nLabel && +nLabel[1] === WANT.clients) ok(`Top clients total is labelled "all ${WANT.clients} clients, top 10 shown" — the twelve alias twins folded into their base client, and the total is not mistaken for the ten rows`);
   else fail(`Top clients label reads ${nLabel ? nLabel[0] : 'nothing'}; expected all ${WANT.clients} clients (120 billing names, 12 of them alias twins)`);
