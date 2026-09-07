@@ -132,7 +132,18 @@ const srv = start(PORT, {
   finance_expense_lines_capture: SEED_LINES,
   // Each billing name gets its OWN client, EXCEPT the 12 "… LLC" twins, which point at the same
   // client as their base name — the alias shape, carried all the way out to 120 groups.
-  finance_client_links: GROUPS.map((g, i) => ({ id: 'scl' + i, client_group: g, business_id: (i < 108 ? ('sbz' + i) : ('sbz' + (i - 108))), is_client: true, confirmed_by: 'auto-match' }))
+  finance_client_links: GROUPS.map((g, i) => ({ id: 'scl' + i, client_group: g, business_id: (i < 108 ? ('sbz' + i) : ('sbz' + (i - 108))), is_client: true, confirmed_by: 'auto-match' })),
+  /* 2026-09-07 (watch cycle 37): the standing exclusion used to be written into the page with
+     p.evaluate AFTER sign-in — which races js/35's app_settings loader, because that loader
+     merges the server blob key by key over DB.settings. On a busy machine the loader landed
+     second, replaced 'fx-scale' with the mock's own 'fx-qa-takamol', and this probe reported
+     NINE red checks: the excluded 999,999 row counted into Revenue and Profit, an extra
+     invoice in the header count, and the twelve alias twins unfolded because the group map
+     went with it. Seeded through app_settings now, so the app's own loader delivers it and
+     there is no ordering left to get wrong. See mock-supabase.mjs's note on __settings. */
+  __settings: {
+    financeExclusions: [{ id: 'fx-scale', clientId: 'scale-excl', matchNames: [EXCLUDED_GROUP], reason: 'QA scale fixture', addedBy: 'probe', addedAt: '2026-09-07T00:00:00Z' }]
+  }
 });
 const BASE = 'http://localhost:' + PORT;
 
@@ -196,10 +207,47 @@ async function main() {
     DB.businesses = DB.businesses || [];
     for (let i = 0; i < 108; i++) DB.businesses.push({ id: 'sbz' + i, name: 'Scale Client ' + String(i).padStart(3, '0'), isClient: true, paymentTerms: 'Net 30' });
   });
-  await p.evaluate((g) => {
-    DB.settings = DB.settings || {};
-    DB.settings.financeExclusions = [{ id: 'fx-scale', clientId: 'scale-excl', matchNames: [g], reason: 'QA scale fixture', addedBy: 'probe', addedAt: new Date().toISOString() }];
-  }, EXCLUDED_GROUP);
+  /* 2026-09-07 (watch cycle 37): the 108 companies above are pushed into DB.businesses from
+     outside the page, and the app's own loaders assign to DB.* when they land — so on a busy
+     machine the push happened first and was thrown away, the twelve alias twins had nothing to
+     fold onto, and the Top-clients label read 120 instead of 108. Same shape as the exclusion
+     race, one object along. Confirm the push actually stuck, and say so if it did not, rather
+     than reporting a fixture that was overwritten as a defect in the app's grouping. */
+  {
+    let stuck = false;
+    for (let i = 0; i < 60; i++) {
+      const has = () => p.evaluate(() => { try { return (DB.businesses || []).filter((b) => String(b.id || '').startsWith('sbz')).length === 108; } catch (_) { return false; } });
+      if (await has()) {                 /* and STILL there a beat later — an app loader can
+                                            assign to DB.* more than once during boot, so one
+                                            successful read is not the same as it having stuck */
+        await p.waitForTimeout(700);
+        if (await has()) { stuck = true; break; }
+      }
+      await p.evaluate(() => {
+        try {
+          DB.businesses = DB.businesses || [];
+          if ((DB.businesses || []).filter((b) => String(b.id || '').startsWith('sbz')).length !== 108) {
+            DB.businesses = (DB.businesses || []).filter((b) => !String(b.id || '').startsWith('sbz'));
+            for (let i = 0; i < 108; i++) DB.businesses.push({ id: 'sbz' + i, name: 'Scale Client ' + String(i).padStart(3, '0'), isClient: true, paymentTerms: 'Net 30' });
+          }
+        } catch (_) {}
+      });
+      await p.waitForTimeout(250);
+    }
+    if (!stuck) fail('the 108 fixture companies never stayed in DB.businesses — an app loader kept replacing them, so the alias-folding checks below would measure a fixture that is not there');
+  }
+  /* the exclusion now arrives through app_settings (see the seed above), so instead of writing
+     it we WAIT for the app's own loader to deliver it — and fail loudly if it never does,
+     rather than measuring an unexcluded world and blaming the app for it */
+  {
+    let ok = false;
+    for (let i = 0; i < 80; i++) {
+      ok = await p.evaluate((g) => { try { return ((DB.settings || {}).financeExclusions || []).some((e) => (e.matchNames || []).includes(g)); } catch (_) { return false; } }, EXCLUDED_GROUP);
+      if (ok) break;
+      await p.waitForTimeout(250);
+    }
+    if (!ok) fail("the standing exclusion never reached DB.settings — every check below would measure an unexcluded world and blame the app for it");
+  }
   await p.evaluate(() => { current = 'finance'; render(); });
   const settle = async (budgetMs = 30000) => {
     const t0 = Date.now(); let last = -1, same = 0;

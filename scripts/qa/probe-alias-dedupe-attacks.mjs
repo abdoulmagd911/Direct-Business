@@ -27,7 +27,7 @@
    `active:false` → check 1 red; let the mock's merge skip the profile-collision close → check 5
    red (the undo then has nothing to reopen). */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
-import { start } from './mock-supabase.mjs';
+import { start, settingsLoaded } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const PORT = 8201; const srv = start(PORT); const BASE = 'http://localhost:' + PORT;
@@ -57,6 +57,12 @@ async function main() {
   await p.waitForTimeout(5000);
   await p.evaluate(() => { current = 'finance'; render(); }); await p.waitForTimeout(1500);
   for (let i = 0; i < 40 && !(await p.evaluate(() => window.FIN && FIN.rows && FIN.rows.length)); i++) await p.waitForTimeout(250);
+  /* 2026-09-07 (watch cycle 37): everything below either reads DB.settings (the exclusion list)
+     or writes to it (the group map), and js/35's app_settings loader merges the served blob over
+     DB.settings whenever it lands. Reading before it lands gave "exclusion → null, expected 7";
+     writing before it lands had the write silently replaced. Both were reported as app defects.
+     Wait for it once, here, and fail loudly rather than measure a world that has not arrived. */
+  if (!(await settingsLoaded(p, 25000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('DB.settings never arrived from app_settings — the exclusion list and group map below would be measured against an empty object, which is not a finding about the app');
 
   /* ---------- 1. alias normalisation ---------- */
   await p.evaluate(() => {

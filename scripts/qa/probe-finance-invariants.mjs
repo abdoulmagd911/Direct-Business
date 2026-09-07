@@ -19,7 +19,7 @@
    row EVER counts in FIN.rows, any rendered total, or any export, this probe fails the
    build. It does not rely on remembering to check — that is the whole point. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
-import { start } from './mock-supabase.mjs';
+import { start, settingsLoaded } from './mock-supabase.mjs';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -78,6 +78,13 @@ async function main() {
   await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh');
   await p.click('#cl_go');
   await p.waitForTimeout(4000);
+  /* 2026-09-07 (watch cycle 37): every check in this file rests on the exclusion list, which
+     arrives from app_settings on js/35's own schedule. In watch cycle 36's battery this probe
+     reported SIX red checks in one run and was green alone — because on a busy machine the
+     page had rendered before the list arrived, so it measured a world where nothing was
+     excluded and blamed the app for it. That is the owner's hardest ruling; a false red on it
+     is nearly as costly as a false green. Wait for the list, and say so if it never comes. */
+  if (!(await settingsLoaded(p, 25000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('the exclusion list never arrived from app_settings — every check below would measure a world where nothing is excluded, which is a fact about this run and not about the app');
   await p.evaluate(() => { current = 'finance'; if (typeof render === 'function') render(); });
   await p.waitForTimeout(1200);
 

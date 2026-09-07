@@ -273,7 +273,7 @@ const TABLES={
   // Spec 4 (2026-08-21): DB.settings loads from app_settings (v59, js/35), not the
   // app_state blob — the harness needs its own row here or the exclusion list/grouping
   // tool would render against an empty DB.settings.financeExclusions every run.
-  app_settings:[{id:'main',data:{lang:'en',currency:'SAR',financeExclusions:[
+  app_settings:[{id:'main',data:{__mockSettingsLanded:1,lang:'en',currency:'SAR',financeExclusions:[
     {id:'fx-qa-takamol',clientId:'7',matchNames:['Takamol for Business Services','Techtic Support'],reason:'Takamol — verification services, accounted for elsewhere',addedBy:'QA seed',addedAt:'2026-08-21T00:00:00Z'}
   ]},updated_at:'2026-08-21T00:00:00Z',updated_by:'QA seed'}]
 };
@@ -384,8 +384,66 @@ const PWUPDATELOG=[];  // every updateUser({password}) call the mock's PUT /auth
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
 // start(port) keeps the standard seed; start(port,{table:rows}) swaps a table's rows,
 // so a probe can drive the app at real-world scale without disturbing other probes.
+/* Wait until the app's own app_settings loader (js/35) has landed, so that anything a probe
+   writes into DB.settings afterwards will not be replaced under it, and anything a probe READS
+   out of DB.settings is the real fixture rather than an empty object it happened to catch too
+   early. Both halves of that have bitten: probe-scale-attacks lost the exclusion it had just
+   written and reported nine red checks; probe-alias-dedupe-attacks read the exclusion list
+   before it arrived and reported four. Detected on `currency`, which only the served blob
+   carries — the app never sets it on its own. Returns true if it landed, false on timeout;
+   callers must FAIL on false rather than carry on measuring an empty world. */
+export async function settingsLoaded(page, ms = 20000, alsoRequire = null) {
+  /* Two traps, both hit while writing this and both worth naming.
+     (a) bare `DB`, not `window.DB` — DB is a top-level binding, a global but NOT a window
+         property, so `window.DB` is undefined and the first version answered "never arrived"
+         forever.
+     (b) the key must be one ONLY the served blob can carry. The first version watched
+         `currency`, which the app sets for itself — so with the blob deliberately broken the
+         helper still said "landed" and the probe passed. A guard that cannot fail is the thing
+         this file exists to prevent, and only sabotage found it.
+     And one more, found by running the battery again after (a) and (b) were fixed:
+     (c) DB.settings can be replaced MORE THAN ONCE during boot, so seeing the marker is not
+         the same as the fixture still being there when the checks run. `alsoRequire` is a
+         predicate evaluated in the page — pass the thing the probe actually depends on — and
+         it must hold TWICE, 700ms apart, so a later replacement is caught rather than raced. */
+  const marker = () => page.evaluate(() => { try { return !!(DB && DB.settings && DB.settings.__mockSettingsLanded); } catch (_) { return false; } });
+  const extra = alsoRequire ? () => page.evaluate(alsoRequire) : async () => true;
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    if (await marker() && await extra()) {
+      await page.waitForTimeout(700);
+      if (await marker() && await extra()) return true;   // still true after a beat
+      continue;                                            // something replaced it — keep waiting
+    }
+    await page.waitForTimeout(200);
+  }
+  return false;
+}
+
+/* 2026-09-07 (watch cycle 36/37) — SEED SETTINGS HERE, NEVER FROM INSIDE THE PAGE.
+   A probe that does `p.evaluate(() => DB.settings.financeExclusions = [...])` is racing the
+   app's own loader. js/35 fetches app_settings and then merges the blob key by key over
+   DB.settings — so a fixture written BEFORE that response lands is silently replaced by the
+   server's copy, and a fixture written after survives. Which one happens depends on how busy
+   the machine is, which is why it looked like weather: probe-scale-attacks lost its exclusion
+   entry and its alias map that way and reported 9 red checks (an excluded 999,999 row counted
+   into Revenue, twelve alias twins unfolded), probe-alias-dedupe-attacks lost its exclusions
+   and reported 4, and watch cycle 33 met the same thing and patched around it in one probe.
+   Reproduced deterministically by holding the app_settings response back: the probe's own
+   'fx-probe-fixture' is 'fx-qa-takamol' 1.5 seconds later, every time.
+   `__settings` merges into the app_settings blob the app itself loads, so the app delivers the
+   fixture and there is no ordering to get wrong:
+     start(PORT, { __settings: { financeExclusions: [...], financeGroupMap: [...] } })          */
 export function start(port, seedOverrides){
- if(seedOverrides) Object.keys(seedOverrides).forEach(k=>{ TABLES[k]=seedOverrides[k]; });
+ if(seedOverrides) Object.keys(seedOverrides).forEach(k=>{
+   if(k==='__settings'){
+     const row=(TABLES.app_settings&&TABLES.app_settings[0])||{id:'main',data:{}};
+     row.data=Object.assign({}, row.data, seedOverrides[k]);
+     TABLES.app_settings=[row];
+     return;
+   }
+   TABLES[k]=seedOverrides[k];
+ });
  return http.createServer((req,res)=>{
   const u=url.parse(req.url,true); const path=u.pathname;
   if(req.method==='OPTIONS') return send(res,204,'');

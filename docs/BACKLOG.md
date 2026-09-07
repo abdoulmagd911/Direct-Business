@@ -1,3 +1,47 @@
+## 2026-09-07 · Watch cycle 37 — the "environmental" reds were one harness defect, and it had been accusing the app of leaking excluded money
+
+**The runner built at the end of cycle 36 paid for itself on its first run.** Because it now keeps every probe's full output instead of the last line, four reds could be *read* rather than argued about — and they turned out to be one defect with one cause.
+
+### What the log said
+
+`probe-scale-attacks` failed nine checks: *"Revenue tile shows 8163575, an independent recount gives 7163576"* — a difference of **exactly 999,999**, which is the amount on `SC-EXCL-1`, the probe's own **excluded** row. Also one extra invoice in the header count, and the Top-clients label reading 121 clients where 108 were expected, because the twelve alias twins had not folded. `probe-alias-dedupe-attacks` failed four: *`exclusion "Takamol for Business Services" → null, expected 7`*. Two probes, two symptoms, one cause.
+
+### The cause: a fixture that the app's own loader throws away
+
+`js/35` fetches `app_settings` and merges the blob **key by key over `DB.settings`**. A probe that writes its fixture into the page — `p.evaluate(() => DB.settings.financeExclusions = [...])` — is racing that loader. Land the write first and it is silently replaced by the server's copy; land it second and it survives. Which happens depends on how busy the machine is.
+
+**Reproduced deterministically** by holding back only the `app_settings` response: the probe's own `fx-probe-fixture` is `fx-qa-takamol` 1.5 seconds later, every time. Watch cycle 33 met this same thing and patched around it inside one probe; nobody had gone looking for the root.
+
+The reverse hazard is the same defect read the other way: a probe that *reads* `DB.settings` before the loader lands sees an empty exclusion list. That is what produced `probe-alias-dedupe-attacks`' four reds, `probe-finance-invariants`' six in cycle 36, and — worst of the set — `probe-expense-report-capture` reporting **"the excluded Takamol row received a cost write — the exclusion re-check inside the join did not fire."** That is the strongest possible accusation against the owner's hardest ruling, and it was false. The list simply had not arrived.
+
+### Fixed at the harness, not in each probe
+
+- `mock-supabase.mjs` `start()` takes **`__settings`**, which merges into the `app_settings` blob the app itself loads — so the app delivers the fixture and there is no ordering left to get wrong. `probe-scale-attacks` seeds its exclusion that way now.
+- A shared **`settingsLoaded(page)`** waits for the blob to land and returns false on timeout; every caller **fails loudly** on false rather than measuring an empty world. Added to `probe-alias-dedupe-attacks`, `probe-finance-invariants` and `probe-expense-report-capture`.
+- `probe-scale-attacks` also pushes 108 companies into `DB.businesses` from outside the page — the same race one object along, which is what left the twelve twins unfolded. It now confirms the push actually stuck.
+
+**Two traps hit while writing that helper, both worth naming, both found only by sabotage.** It first read `window.DB` — `DB` is a top-level binding, a global but *not* a window property, so it answered "never arrived" forever. Then it watched `DB.settings.currency`, **a key the app sets for itself**: with the served blob deliberately broken the helper still said "landed" and the probe passed. *A guard that cannot fail is the exact thing this work exists to remove, and only sabotage found it.* It now watches `__mockSettingsLanded`, which nothing but the seed sets — sabotage-verified green clean, red broken, restored byte-identical.
+
+### A check that measured the machine
+
+`probe-mega` asserted a **15-second wall-clock budget** on a page reload. In the battery it failed at **15,062 ms** and passed alone: six probes on two vCPUs is 3× oversubscription, so the number it measured was the box, not the app. Split — the claim that a refresh comes back to a rendered page stays an assertion; the duration is now REPORTED, so a real slowdown is still visible without a red that is about what else was running.
+
+### And a third trap in the same helper, found by re-running the battery rather than trusting the fix
+
+With the marker in place, `probe-finance-invariants` still failed in the next batch — but now with its own precise message: *"the exclusion list does not name 'Takamol for Business Services' — fixture/app_settings mismatch."* The marker had landed and the exclusion was gone anyway, because **`DB.settings` is replaced more than once during boot.** Seeing the fixture arrive is not the same as it still being there when the checks run.
+
+So `settingsLoaded(page, ms, alsoRequire)` now takes the predicate the probe actually depends on — for these four, `finExclusionCheck('Takamol for Business Services')` — and requires it to hold **twice, 700 ms apart**, so a later replacement is caught instead of raced. `probe-scale-attacks` holds its `DB.businesses` fixture the same way. Sabotage-verified twice over: with the marker removed it reddens, and with the marker present but the exclusion entry renamed it reddens on the predicate. Restored byte-identical each time.
+
+**Result, measured over four full battery runs:** `probe-finance-invariants`, `probe-alias-dedupe-attacks`, `probe-expense-report-capture`, `probe-import-preview-density`, `probe-scale-attacks`, `probe-csv-injection` and `probe-mega` all green in the final run — **75 of 78**, and every probe that had been failing on the settings race is fixed.
+
+**Three left for cycle 38, all now legible rather than mysterious.** The work is mechanical from here because the cause is proven; what is left is applying the same wait where it belongs.
+
+- **`probe-received-outstanding-attacks`** — *"Received tile 17527857.5, independent recount 16527858.5"*. The gap is **exactly 999,999**, the excluded fixture row, in six checks. Same family, one more probe: it needs `settingsLoaded` with the exclusion predicate.
+- **`probe-import-tab-wiring`** — *"could not find the Import sub-tab button — cannot reproduce the real navigation path at all"*. Not the settings race: fixed sleeps where a condition wait belongs. The probe gives up before the tab renders under load.
+- **`probe-premortem-attacks`** — *"H: after reload, the lines-only drop did not resolve — cost is 12605, expected 750."* The only one of the three that has not been explained yet, and the only one that could still turn out to be about the app. Worth reading properly rather than assuming it joins the family.
+
+None of the three is to be called environmental. All three now print what they measured.
+
 ## 2026-09-07 · Round 59 — the deep-link rate settled, and cycle 36's guards verified
 
 **On the throttle rate, settled.** Cycle 35 measured the deep link lost from 6x, round 58 from 4x,

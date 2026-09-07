@@ -12,7 +12,7 @@
    processTaxInvoiceBatch(), and the preview must show ONE collapsed line ("Takamol ... — 5
    rows"), never 5 separate near-identical sentences. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
-import { start } from './mock-supabase.mjs';
+import { start, settingsLoaded } from './mock-supabase.mjs';
 import fs from 'fs';
 
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
@@ -50,6 +50,12 @@ async function main() {
   await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh');
   await p.click('#cl_go');
   await p.waitForTimeout(4000);
+  /* 2026-09-07 (watch cycle 37): the preview's exclusion notice only appears if the exclusion
+     list is loaded. In the battery this probe reported "the exclusion reason text does not
+     appear at all — the exclusion may not have fired", which read as a defect and was a fixture
+     that had not arrived yet. Same family as probe-finance-invariants and probe-scale-attacks;
+     see the note on settingsLoaded in mock-supabase.mjs. */
+  if (!(await settingsLoaded(p, 25000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('the exclusion list never arrived from app_settings — the preview cannot show an exclusion notice for a rule it does not have, so the checks below would blame the app for the harness');
   await p.evaluate(() => { current = 'finance'; if (typeof render === 'function') render(); });
   await p.waitForTimeout(1200);
   await p.evaluate(() => { if (typeof window.finGo === 'function') window.finGo('import'); });

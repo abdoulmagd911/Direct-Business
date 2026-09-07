@@ -25,7 +25,7 @@
    the transactions that happened to be clean. That silent partial-sum shape is exactly what
    made the previous single-level design dangerous in the first place, just one level down. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
-import { start } from './mock-supabase.mjs';
+import { start, settingsLoaded } from './mock-supabase.mjs';
 import fs from 'fs';
 
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
@@ -65,6 +65,13 @@ async function main() {
   await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh');
   await p.click('#cl_go');
   await p.waitForTimeout(4000);
+  /* 2026-09-07 (watch cycle 37): the cost join re-checks the standing exclusion, and that list
+     arrives from app_settings on its own schedule. In cycle 36's battery this probe reported
+     "the excluded Takamol row received a cost write — the exclusion re-check inside the join
+     did not fire", which is the strongest possible claim about the owner's hardest ruling, and
+     it was false: the list simply had not arrived yet. Wait for it, and say so if it never
+     comes, rather than accusing the app of writing money onto an excluded client. */
+  if (!(await settingsLoaded(p, 25000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('the exclusion list never arrived from app_settings — the cost-join checks below would run against a world where nothing is excluded, which is a fact about this run and not about the app');
   await p.evaluate(() => { current = 'finance'; if (typeof render === 'function') render(); });
   await p.waitForTimeout(1200);
   await p.evaluate(() => { if (typeof window.finGo === 'function') window.finGo('import'); });
