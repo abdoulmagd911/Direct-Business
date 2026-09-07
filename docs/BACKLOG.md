@@ -35,6 +35,23 @@ The cycle-39 patch is **saved, not delivered** — the browser extension reporte
 
 `probe-password-recovery` is now `diag-password-recovery`: it asserts nothing and always exits 0, and the old name promised a guard where there is a report. `sweep-buttons` stays in the battery for now — the argument on both sides is recorded in `reports.txt`, and it is a 363-second cost against a report that has produced one real finding.
 
+## Round 66 — 2026-09-07 — cycle 39 verified, and the question it raises answered
+
+**The defect is real and the fix is right — checked, not accepted.** Reverting cycle 39's single
+line in `finRow` and re-running its probe reddens **exactly one check**, the one that names the
+soft-deleted invoice, and the captured modal text is the one the patch describes: `Flights B2B
+0.00 0.00 0.00`, `Received 0.00 SAR`, `Outstanding 0.00 SAR`, beside a Restore button. Restored
+byte-identical. The probe's nine checks are green on the fixed tree, and six finance probes
+(ledger, invariants, no-VAT, deleted-invoice, money-placement, Arabic finance) are green with it.
+
+**The obvious next question — does the same root cause bite a second surface? — is no, and it was
+worth asking rather than assuming.** `live()` filtering soft-deleted rows before it sanitises is a
+hole only for a surface that *displays* a deleted row's money. Every other consumer of `FIN.rows`
+in the app drops deleted rows instead of showing them (js/25, js/31, js/38, js/41 all
+`if (r.deleted_at) return`), and the two that sum money read through `finLive()` with a raw-rows
+fallback that can only fire if js/16 never loaded, in which case there are no rows to read. So the
+invoice modal was the one surface, and it is now closed.
+
 ## 2026-09-07 · Watch cycle 38 — NO_FAIL_SIGNAL is a build failure now, and the settings wait was timing out honestly
 
 The Code session had already closed the three reds cycle 37 named (`7d1499f`), and none was about the app — its own summary of the class is the right one: **a probe that waits a fixed number of milliseconds for something it could wait for a condition on is measuring the machine, not the app.** Its `probe-premortem` fix keeps the check's full strength (poll for the value, and if it never arrives fail with the last thing actually seen), which was the part worth checking before accepting it. It also found a real Arabic gap by pressing buttons instead of walking navigation (`cd61e2a`) — three dialogs in daily use sitting in English on a fully Arabic screen, invisible to every previous sweep because a dialog does not exist until someone presses a button.
