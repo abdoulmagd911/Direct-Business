@@ -33,7 +33,7 @@
    to zero and check 2 goes red; drop `rec+=` from the tile loop -> check 1 goes red; count the
    excluded client -> check 4 goes red. Restore byte-identical (md5). */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
-import { start } from './mock-supabase.mjs';
+import { start, settingsLoaded } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const PORT = 8233;
@@ -99,7 +99,15 @@ HOSTILE.forEach(([id, st, rec, rem], k) => {
 SEED.push(Object.assign({}, SEED[0], { id: 'ro-del', invoice_no: 'RO-DEL', year: 2026, month: 'June', quarter: 'Q2', invoice_date: '2026-06-01', integrity_status: 'verified_paid', total_incl_vat_sar: 777777, revenue_sar: 777777, amount_received_sar: 777777, amount_remaining_sar: 555555, deleted_at: '2026-07-01T00:00:00Z' }));
 SEED.push(Object.assign({}, SEED[0], { id: 'ro-excl', invoice_no: 'RO-EXCL', client_group: EXCLUDED_GROUP, customer_raw_name: EXCLUDED_GROUP, year: 2026, month: 'June', quarter: 'Q2', invoice_date: '2026-06-02', integrity_status: 'verified_paid', total_incl_vat_sar: 999999, revenue_sar: 999999, amount_received_sar: 999999, amount_remaining_sar: 888888, deleted_at: null }));
 
-const srv = start(PORT, { finance_invoices: SEED, finance_transactions: [], finance_client_links: [], client_profiles: [] });
+/* 2026-09-07 (round 60) — the standing exclusion used to be written into the page with
+   p.evaluate AFTER sign-in, which races js/35's app_settings loader: that loader merges the
+   served blob key by key over DB.settings, so on a busy machine it landed second and replaced
+   'fx-ro' with the mock's own entry. The excluded 999,999 row then counted, and six checks went
+   red with a gap of exactly 999,999 — reported for cycles as environmental. Watch cycle 37 found
+   the cause and gave the harness a way to seed through app_settings, so the app's own loader
+   delivers the fixture and there is no ordering left to get wrong. */
+const srv = start(PORT, { finance_invoices: SEED, finance_transactions: [], finance_client_links: [], client_profiles: [],
+  __settings: { financeExclusions: [{ id: 'fx-ro', clientId: 'ro-excl', matchNames: [EXCLUDED_GROUP], reason: 'QA fixture — standing exclusion', addedBy: 'probe', addedAt: '2026-09-07T00:00:00Z' }] } });
 const BASE = 'http://localhost:' + PORT;
 
 const liveRows = SEED.filter(r => !r.deleted_at && r.client_group !== EXCLUDED_GROUP);
@@ -143,10 +151,10 @@ async function main() {
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 90000 }); await p.waitForTimeout(1800);
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
   await p.waitForTimeout(4500);
-  await p.evaluate((g) => {
-    DB.settings = DB.settings || {};
-    DB.settings.financeExclusions = [{ id: 'fx-ro', clientId: 'ro-excl', matchNames: [g], reason: 'QA fixture — standing exclusion', addedBy: 'probe', addedAt: new Date().toISOString() }];
-  }, EXCLUDED_GROUP);
+  /* wait for the app's own loader to deliver it, and fail loudly if it never does, rather than
+     measuring an unexcluded world and blaming the app for it (see settingsLoaded's note) */
+  if (!(await settingsLoaded(p, 25000, () => { try { return ((DB.settings || {}).financeExclusions || []).some((e) => (e.matchNames || []).includes('Takamol Received QA')); } catch (_) { return false; } })))
+    fail('the standing exclusion never reached DB.settings — every total below would count the excluded 999,999 row, which is a fact about this run and not about the app');
   await p.evaluate(() => { current = 'finance'; FIN.rows = null; finLoad(); });
   for (let i = 0; i < 200 && !(await p.evaluate(() => window.FIN && FIN.rows && FIN.rows.length > 1000)); i++) await p.waitForTimeout(300);
   await p.evaluate(() => { if (typeof clearFinCanon === 'function') clearFinCanon(); });

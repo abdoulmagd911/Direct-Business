@@ -68,7 +68,18 @@ async function main() {
     return false;
   });
   if (!clickedFinanceNav) fail('could not find the Finance nav button at all');
-  await p.waitForTimeout(900);
+  /* 2026-09-07 (round 60): this waited a fixed 900ms for the Finance page to draw its sub-tabs
+     and then looked for the Import button once. Under load — six probes on two vCPUs — the tabs
+     were not there yet, so the probe reported "could not find the Import sub-tab button — cannot
+     reproduce the real navigation path at all", which reads as the app having lost the control.
+     It had not; the probe was early. Wait for the condition instead of guessing a duration: a
+     probe that measures its own impatience is the class watch cycle 37 has just spent a cycle
+     removing. */
+  for (let i = 0; i < 60; i++) {
+    const there = await p.evaluate(() => [...document.querySelectorAll('#view button')].some((x) => /^Import$|^استيراد$/.test(x.textContent.trim())));
+    if (there) break;
+    await p.waitForTimeout(250);
+  }
 
   const clickedImportTab = await p.evaluate(() => {
     const btn = [...document.querySelectorAll('#view button')].find((x) => /^Import$|^استيراد$/.test(x.textContent.trim()));

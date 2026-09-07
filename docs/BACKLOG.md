@@ -1,3 +1,34 @@
+## 2026-09-07 · Round 60 — the last three "environmental" reds closed, all three probes measuring themselves
+
+Watch cycle 37 proved the cause of the whole class — a probe that writes or reads `DB.settings`
+is racing js/35's `app_settings` loader — fixed it at the harness, and left three named reds. All
+three are closed, and **none was about the app**. Verified the way the cycle asked for: not just
+green alone, but green under the six-way parallel load that produced the reds.
+
+- **`probe-received-outstanding-attacks`** — same family exactly. Its standing exclusion was
+  written into the page after sign-in, so on a busy machine the loader replaced it and the
+  excluded 999,999 row counted; six checks red with a gap of precisely that. Seeded through
+  `__settings` now, with `settingsLoaded` and the exclusion as its predicate.
+- **`probe-import-tab-wiring`** — waited a fixed 900 ms for the Finance sub-tabs to draw, then
+  looked once. Under load they were not there yet, and it reported *"could not find the Import
+  sub-tab button — cannot reproduce the real navigation path at all"*, which reads as the app
+  having lost the control. It waits for the condition now.
+- **`probe-premortem-attacks`** (the one cycle 37 said might still be about the app) — check H
+  fires a commit, waits a **fixed 2 seconds**, then reads the database. Under load the commit had
+  not finished, so it read the old cost (12,605) and reported the incremental-update promise
+  broken. It polls for the value the app is supposed to reach instead, **with the failure exactly
+  as strong**: if the value never arrives the check still fails, with the last thing actually seen.
+
+**The pattern under all three is the same one, and it is worth naming as a rule:** a probe that
+waits a fixed number of milliseconds for something it could wait for a *condition* on is
+measuring the machine, not the app. Cycle 37 found it in `probe-mega`'s 15-second budget; these
+are three more of it. A fixed sleep is a red for the wrong reason waiting to happen.
+
+**Cycle 37's own fix verified before trusting it:** with `__mockSettingsLanded` removed from the
+served blob, `probe-finance-invariants` and `probe-expense-report-capture` both **exit 1** with
+"the exclusion list never arrived from app_settings" — so the marker really is a key only the
+seed can set, and the guard can fail. That was the trap that had already caught them once.
+
 ## 2026-09-07 · Watch cycle 37 — the "environmental" reds were one harness defect, and it had been accusing the app of leaking excluded money
 
 **The runner built at the end of cycle 36 paid for itself on its first run.** Because it now keeps every probe's full output instead of the last line, four reds could be *read* rather than argued about — and they turned out to be one defect with one cause.

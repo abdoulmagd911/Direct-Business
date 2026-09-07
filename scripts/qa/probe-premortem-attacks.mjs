@@ -31,6 +31,22 @@ let failures = 0;
 function fail(msg) { failures++; console.log('  ✗ ' + msg); }
 function ok(msg) { console.log('  ✓ ' + msg); }
 const inv = async (n) => fetch(BASE + '/rest/v1/finance_invoices?invoice_no=eq.' + n).then((r) => r.json()).then((a) => a[0] || {});
+/* 2026-09-07 (round 60): confirm() clicks the commit and waits a FIXED 2 seconds before the
+   checks read the database. Under load — six probes on two vCPUs — the commit RPC had not
+   finished in that window, so attack H read the invoice's OLD cost (12,605) and reported "the
+   lines-only drop did not resolve", which reads as the incremental-update promise being broken.
+   It was not; the probe was early. Poll for the value the app is supposed to reach instead of
+   guessing how long it takes, and keep the failure exactly as strong: if it never arrives, the
+   check still fails, with the last thing actually seen. */
+const invWhen = async (n, pred, ms = 20000) => {
+  const t0 = Date.now(); let last = {};
+  while (Date.now() - t0 < ms) {
+    last = await inv(n);
+    if (pred(last)) return last;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return last;
+};
 /* 2026-09-03 (watch cycle 27): these two verification fetches were UNPAGED. Since cycle 13 the
    mock enforces the real PostgREST 1000-row ceiling, so attack C — which writes 6,000 capture
    rows on purpose to cross the 5,000-row batch boundary — could only ever read 1,000 of them
@@ -189,7 +205,7 @@ async function main() {
   await login(true);
   await ingest('lines-h.csv', ['transaction_ref,amount_sar,expense_status', 'ATT-H,750,Approved'].join('\n'));
   btn = await confirm();
-  const rH = await inv('116361012');
+  const rH = await invWhen('116361012', (r) => Number(r.cost_sar) === 750);
   if (Number(rH.cost_sar) !== 750) fail(`H: after reload, the lines-only drop did not resolve — cost is ${rH.cost_sar}, expected 750. The owner would have to re-supply the gate file, breaking the incremental-update promise.`);
   else ok('H: gate captured in session 1, lines dropped in session 2 — cost resolved to 750 with nothing re-supplied');
 
