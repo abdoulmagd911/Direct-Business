@@ -1,3 +1,33 @@
+## 2026-09-07 · Round 59 — the deep-link rate settled, and cycle 36's guards verified
+
+**On the throttle rate, settled.** Cycle 35 measured the deep link lost from 6x, round 58 from 4x,
+cycle 36 re-measured 4x as surviving. All three runs were honest. **Cycle 36's conclusion is the
+right one: the rate is a property of the machine, not of the app** — throttling only has to make
+script execution slow enough for js/03's 200ms timer to beat js/66, and how slow that is depends
+on the host. Checked here with cycle 36's own probe against a deliberately broken tree: **4x
+reddens on this host**, so round 58's figure holds for the repo machine and cycle 36's holds for
+theirs. Neither number is a fact about the app, which is exactly the point — and cycle 36's answer
+(hold js/66's response back and force the losing order at 1x, on any box) is the durable one. The
+rate checks stay as breadth, and the probe now says out loud when they proved nothing.
+
+**Cycle 36's guards verified independently before pushing:**
+- The held-back check reddens under **both** sabotages taken separately — removing js/66's
+  fallback, and removing js/03's publish (4 checks red).
+- `requirePw` moved to `signIn()`: `probe-teamwork` now **exits 1** with a message naming the
+  missing variable, where it used to print `FAILS 8/8` and exit 0.
+- The battery-membership gate really gates, both directions: a phantom name in `battery.txt`
+  fails the run ("a deleted probe is not a passing probe"), and removing a real probe from both
+  lists fails it too ("nobody has decided whether these run"). It caught that round 58's
+  `probe-deeplink-boot-race` was not being run by anything.
+- `NO_FAIL_SIGNAL` ratcheted 35 → 17; 186 files accounted for, 78 in the battery, 102 excluded
+  with a reason.
+
+**Worth naming for whoever reads this next:** 36 of the 49 probes that import `emp-rig` sign in as
+real people against the real database, and there are no passwords here by design (rule 7). They
+now refuse loudly instead of failing every check for that one reason and reporting success. That
+is the honest state, not a regression — but it means that family of probes is verified nowhere
+except on a machine that has the owner's list.
+
 ## 2026-09-07 · Watch cycle 36 — the loud guard that 36 of 49 callers never called, and a battery list that lived in /tmp
 
 **Attack area (jj) finished: the eighteen remaining exit-0 probes, and where battery membership actually lives.** Plus an independent re-measurement of round 58's correction.
