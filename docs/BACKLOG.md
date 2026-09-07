@@ -52,6 +52,63 @@ Also still timing out under load at 90 s: `probe-premortem-attacks`' check H. Th
 
 The cycle-39 delivery note in this file said "saved, not delivered", which was true when written and false by the time it landed. Corrected.
 
+## Round 67 — 2026-09-07 — cycle 40 verified, its guard made able to fail, and the importer question answered
+
+**The defect is real and the fix is right.** Against the true pre-fix js/62 (`git show e77ae71^`)
+the merge confirmation reads, word for word, what cycle 40 reported:
+
+```
+… invoice links (2 invoices, 0 SAR) … moves to "Merge B" (1 invoices, 500 SAR).
+```
+
+Count right, money zero, on the screen where someone chooses which company record to keep and which
+to archive.
+
+**But the new guard could not have caught it here, and the stated sabotage does not reproduce it.**
+Two things, both measured:
+
+* The patch says *"drop the finSanitizeMoney call from bizFinance — check 2 goes red"*. It does not:
+  the fix has **two independent halves** — the `finLive()` read *and* a `finSanitizeMoney` call kept
+  in the fallback loop — and removing either alone leaves the dialog correct. Same shape as round
+  62's Save button, where three mechanisms defended one property and no single removal reddened
+  anything.
+* More importantly, `probe-merge-dialog-money` **passes in full against the pre-fix tree** on this
+  host. Its "cold path" is not cold: `live()` sanitises **in place**, and four other layers call
+  `finLive()` during ordinary rendering — js/25, js/31, js/38, js/41 — and the probe renders Today.
+  So by the time the dialog opens, some unrelated screen has usually already cleaned `FIN.rows`,
+  and the pre-fix code reads clean numbers. Cycle 40's "2 invoices, 0 SAR" was real; it needed a run
+  where none of those layers happened to touch the rows first.
+
+That race is the strongest argument *for* the fix — whether the dialog is honest should not depend
+on which unrelated screen rendered first — but a guard that only fails when the race lands the wrong
+way is not a guard. **The probe now forces the raw state**: the rows are put back exactly as the
+database sends them, strings and all, immediately before the dialog opens. Fixed tree → 20,000 SAR
+every time; pre-fix tree → `(2 invoices, 0 SAR)` every time, on any host.
+
+### The importer fail-open: confirmed, and it belongs one function higher
+
+`probe-importer-scale-attacks` was green here under six-way load, as was everything else. **It does
+not need to reproduce.** The hole is structural, and reading `finExclusionCheck` settles it:
+
+```js
+window.finExclusionCheck=function(name){
+  var n=norm62(name); if(!n)return null;
+  var list=exclusions();          // (DB.settings && DB.settings.financeExclusions) || []
+  … return null;                  // ← the same answer for "not on the list" and "no list yet"
+};
+```
+
+The race only decides *whether the moment occurs*, not whether the hole exists. And it is not the
+importer's alone — **six call sites share it**: js/16's `live()` and its line 1544, js/31's linking
+card, js/41's money-in, and js/65 three times. Cycle 40 fixed the symptom at one of them, with
+`settingsLanded()` in the merge dialog.
+
+The honest place for the fix is `finExclusionCheck` itself, which is the only code that can tell the
+two cases apart: return `null` for "not excluded", and something distinguishable — a sentinel, or a
+companion `finExclusionsReady()` — for "cannot answer yet", then let each caller decide. Displaying
+a number can degrade to "not checked yet"; **writing rows must refuse.** That is js/62, which is the
+oversight lane and where cycle 41 is already headed, so it is written down rather than done here.
+
 ## 2026-09-07 · Watch cycle 39 — the invoice modal showed a deleted invoice as all zeros, next to its own Restore button
 
 **A real defect in this lane, found by opening a dialog nobody had opened.** The Code session's Arabic round made the point that a dialog does not exist until someone presses a button, which is why nav-driven sweeps had never seen three dialogs in daily use. The same argument applies to numbers: `window.finRow(id)` prints one invoice's whole money — total, cost, revenue, profit, received, outstanding, wallet, and a line table — and **nothing had ever checked what it prints.** Cycle 31 gave it a permission check and stopped there.

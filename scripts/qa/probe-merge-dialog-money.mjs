@@ -70,7 +70,7 @@ const srv = start(PORT, { finance_invoices: SEED, finance_client_links: LINKS })
 const BASE = 'http://localhost:' + PORT;
 const WANT_A = '20,000', WANT_B = '500';
 
-async function dialogFigures(b, renderFinanceFirst) {
+async function dialogFigures(b, renderFinanceFirst, forceRaw) {
   const ctx = await b.newContext({ viewport: { width: 1400, height: 950 } });
   const p = await ctx.newPage();
   await p.route('**cdn.jsdelivr.net/**', (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
@@ -101,6 +101,22 @@ async function dialogFigures(b, renderFinanceFirst) {
      the rest being the excluded partner's — a real fail-open, guarded by its own check further
      down rather than left to redden these ones at random. */
   const exclReady = await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } });
+  /* 2026-09-07 (round 67, Code session) — THE COLD PATH WAS NOT COLD, so check 2 could not fail.
+     Measured: this probe passes in full against the PRE-FIX js/62 (`git show e77ae71^`). The
+     reason is that live() sanitises IN PLACE and four other layers call finLive() during ordinary
+     rendering — js/25, js/31, js/38 and js/41 — and this run renders Today. So by the time the
+     dialog opens, somebody else has usually already cleaned FIN.rows, and the pre-fix bizFinance
+     reads clean numbers. Cycle 40's measurement of "2 invoices, 0 SAR" was real; it just needed a
+     run where none of those layers happened to touch the rows first, which is a race.
+     That race is the strongest argument FOR the fix — whether the dialog is honest should not
+     depend on which unrelated screen rendered first — but a guard that only fails when the race
+     lands the wrong way is not a guard. So the raw state is now forced: the rows are put back as
+     the database sends them, strings and all, immediately before the dialog is opened. Pre-fix
+     that reads 0 SAR every time; fixed, it reads 20,000 every time, on any host. */
+  if (forceRaw) {
+    await p.evaluate((seed) => { try { FIN.rows = JSON.parse(JSON.stringify(seed)); } catch (_) { } }, SEED);
+    await p.waitForTimeout(200);
+  }
   const msg = await p.evaluate(() => {
     let captured = null; const oc = window.confirm; window.confirm = (m) => { captured = m; return false; };
     try { window.v62MergeBiz('bizB', 'bizA'); } catch (e) { captured = 'THREW ' + e.message; }
@@ -115,11 +131,12 @@ async function dialogFigures(b, renderFinanceFirst) {
 async function main() {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 
-  const rendered = await dialogFigures(b, true);
-  const cold = await dialogFigures(b, false);
+  const rendered = await dialogFigures(b, true, false);
+  const cold = await dialogFigures(b, false, false);
+  const raw = await dialogFigures(b, false, true);
   /* If either run never got the exclusion list, no check below can mean anything — say that
      once, plainly, instead of letting it cascade into four failures that name the wrong cause. */
-  if (!rendered.exclReady || !cold.exclReady) {
+  if (!rendered.exclReady || !cold.exclReady || !raw.exclReady) {
     fail('the exclusion list never arrived from app_settings in ' + (!rendered.exclReady && !cold.exclReady ? 'either run' : (!rendered.exclReady ? 'the rendered run' : 'the cold run')) + ' — every check here is about whether the merge dialog respects the standing exclusion, so measuring without it would blame the app for the harness');
     await b.close(); srv.close();
     console.log(`\nFAILED — ${failures} check(s) did not pass.`);
@@ -132,6 +149,11 @@ async function main() {
   if (cold.pairs.length === 2 && cold.pairs[0].includes(WANT_A) && cold.pairs[1].includes(WANT_B))
     ok('with Finance NEVER rendered the merge dialog prints the same figures — bizFinance sanitises the rows it sums instead of trusting that some other screen already did');
   else fail(`with Finance never rendered the merge dialog prints ${JSON.stringify(cold.pairs)} instead of ${WANT_A} and ${WANT_B} SAR. bizFinance sums FIN.rows with the raw \`+\`, and FIN.rows is only clean as a side effect of live() having run — so the company holding 20,000 reads as "0 SAR" with its invoice COUNT still right, which is the shape someone believes. This is the number they use to choose which record survives a merge. Dialog: ${JSON.stringify(cold.msg.slice(0, 260))}`);
+
+  /* the deterministic form of check 2 — see the note in dialogFigures */
+  if (raw.pairs.length === 2 && raw.pairs[0].includes(WANT_A) && raw.pairs[1].includes(WANT_B))
+    ok(`with the rows forced back to the raw shape the database sends — money as the strings "12,345.00" and "7,655.00", nothing having sanitised them — the dialog still prints ${raw.pairs.join(' and ')}`);
+  else fail(`with the rows forced back to their raw shape the merge dialog prints ${JSON.stringify(raw.pairs)} instead of ${WANT_A} and ${WANT_B} SAR. This is the state cycle 40 measured as "2 invoices, 0 SAR": the count right, the money zero, read by the person choosing which company record survives. Dialog: ${JSON.stringify(raw.msg.slice(0, 260))}`);
 
   const counts = cold.pairs.map((s) => (s.match(/\((\d+) invoices/) || [])[1]);
   if (counts[0] === '2' && counts[1] === '1')
