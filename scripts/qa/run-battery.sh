@@ -40,9 +40,26 @@ xargs -P "$JOBS" -I {} bash -c '
   echo "{}|$code|$last" >> "$RES"
 ' < "$LIST"
 echo
+# Files that REPORT rather than assert (scripts/qa/reports.txt) always exit 0 — they cannot go
+# red, so counting them among the passes makes the green number larger without making it mean
+# more. Added 2026-09-07 (watch cycle 38): they get their own line, and the pass count is the
+# count of things that could actually have failed.
+REPORTS_FILE="$HERE/reports.txt"
+REPORT_NAMES=""
+[ -f "$REPORTS_FILE" ] && REPORT_NAMES=$(grep -v '^#' "$REPORTS_FILE" | grep -v '^[[:space:]]*$' | cut -d: -f1 | tr -d ' ' | tr '\n' ' ')
+is_report() { case " $REPORT_NAMES " in *" $1 "*) return 0;; *) return 1;; esac; }
+
+REPORTED=""; PROBE_GOOD=0; PROBE_N=0
+while IFS="|" read -r name code rest; do
+  if is_report "$name"; then REPORTED="$REPORTED $name"; continue; fi
+  PROBE_N=$((PROBE_N+1)); [ "$code" = "0" ] && PROBE_GOOD=$((PROBE_GOOD+1))
+done < "$RES"
+
 BAD=$(awk -F"|" '$2!=0' "$RES" | sort)
-GOOD=$(awk -F"|" '$2==0' "$RES" | wc -l)
-echo "green: $GOOD / $N"
+echo "green: $PROBE_GOOD / $PROBE_N probes that can fail"
+if [ -n "$REPORTED" ]; then
+  echo "reports (no assertions — read them, they cannot go red):$REPORTED"
+fi
 if [ -n "$BAD" ]; then
   echo "RED:"
   echo "$BAD" | while IFS="|" read -r name code last; do
@@ -53,4 +70,4 @@ if [ -n "$BAD" ]; then
   done
   exit 1
 fi
-echo "battery OK — every probe in battery.txt exited 0"
+echo "battery OK — every probe in battery.txt that can fail exited 0"

@@ -215,7 +215,12 @@ async function main() {
      than reporting a fixture that was overwritten as a defect in the app's grouping. */
   {
     let stuck = false;
-    for (let i = 0; i < 60; i++) {
+    /* 2026-09-07 (watch cycle 38): 60 attempts at 250ms was 15 seconds, and under six-way load
+       the app's loaders can still be assigning to DB.* after that — so the fixture check timed
+       out and the alias-folding checks reported 120 clients instead of 108 again. Same lesson as
+       the settings wait: give it a budget that fits the slowest honest case (this returns the
+       moment the fixture sticks) and keep the loud failure for when it genuinely never does. */
+    for (let i = 0; i < 360; i++) {
       const has = () => p.evaluate(() => { try { return (DB.businesses || []).filter((b) => String(b.id || '').startsWith('sbz')).length === 108; } catch (_) { return false; } });
       if (await has()) {                 /* and STILL there a beat later — an app loader can
                                             assign to DB.* more than once during boot, so one
@@ -235,6 +240,14 @@ async function main() {
       await p.waitForTimeout(250);
     }
     if (!stuck) fail('the 108 fixture companies never stayed in DB.businesses — an app loader kept replacing them, so the alias-folding checks below would measure a fixture that is not there');
+    /* 2026-09-07 (watch cycle 38): the fixture sticking is not enough. finCanon caches each
+       billing name's identity, and that cache is built the first time Finance renders — which
+       under load happens BEFORE these 108 companies are in DB.businesses. The twelve "… LLC"
+       twins then keep the identity they were given when their base company did not exist yet,
+       and the Top-clients label reads 120 instead of 108: a stale cache reported as the app
+       failing to fold aliases. js/16 exports clearFinCanon for exactly this; the fixture is
+       only complete once the cache has been told the world changed. */
+    await p.evaluate(() => { try { if (typeof clearFinCanon === 'function') clearFinCanon(); } catch (_) {} });
   }
   /* the exclusion now arrives through app_settings (see the seed above), so instead of writing
      it we WAIT for the app's own loader to deliver it — and fail loudly if it never does,
@@ -313,6 +326,34 @@ async function main() {
   else fail(`Performance took ${(tOverview / 1000).toFixed(1)}s at ${WANT.live} rows — too slow to use`);
 
   /* ---------- 10-13. Clients & collections ---------- */
+  /* 2026-09-07 (watch cycle 38): folding a twin onto its base needs THREE things true at the
+     same moment — the 108 companies in DB.businesses, finCanon's cache cleared since they
+     arrived, and the Clients tab rendered after both. Under load an app loader can assign to
+     DB.businesses again long after the earlier hold, and the cache is then rebuilt from a world
+     without them: the label reads 120 and it looks like the app failed to fold aliases. Assert
+     the three conditions here, where the label is actually read, and repair-and-retry rather
+     than reporting a fixture that has been overwritten as a defect. */
+  {
+    let ready = false;
+    for (let i = 0; i < 40; i++) {
+      ready = await p.evaluate(() => { try { return (DB.businesses || []).filter((b) => String(b.id || '').startsWith('sbz')).length === 108; } catch (_) { return false; } });
+      if (ready) break;
+      await p.evaluate(() => {
+        try {
+          DB.businesses = (DB.businesses || []).filter((b) => !String(b.id || '').startsWith('sbz'));
+          for (let i = 0; i < 108; i++) DB.businesses.push({ id: 'sbz' + i, name: 'Scale Client ' + String(i).padStart(3, '0'), isClient: true, paymentTerms: 'Net 30' });
+        } catch (_) {}
+      });
+      await p.waitForTimeout(250);
+    }
+    if (!ready) fail('the 108 fixture companies are not in DB.businesses at the moment the Top-clients label is read — the folding check below would measure a fixture that is not there');
+    const cleared = await p.evaluate(() => { try { if (typeof clearFinCanon === 'function') { clearFinCanon(); return true; } return false; } catch (_) { return false; } });
+    if (!cleared) fail('clearFinCanon is not reachable from the page — the identity cache cannot be invalidated, so the folding check below would read whatever was cached before the fixture existed');
+  }
+  /* leave the tab and come back, so the Clients body is built fresh from the cleared cache
+     rather than from whatever was on screen when the fixture was still incomplete */
+  await p.evaluate(() => finGo('overview'));
+  await p.waitForTimeout(600);
   await p.evaluate(() => finGo('clients'));
   const tClients = await settle();
   const clientsHtml = await p.evaluate(() => document.querySelector('#view').innerHTML);

@@ -1,0 +1,32 @@
+# Files that REPORT rather than assert — and why each one is allowed to.
+#
+# Written 2026-09-07 (watch cycle 38). These 17 have no failure path at all: they print
+# findings for a person to read and always exit 0. That is legitimate for a diagnostic, and it
+# was never the problem. The problem was that nothing distinguished them from probes, so they
+# were counted, run and reported exactly like guards — six of them sit in the battery, where
+# they made the green count larger without being able to contribute a red.
+#
+# With this list, check-probe-integrity treats NO_FAIL_SIGNAL as a BUILD FAILURE everywhere
+# else, and gates in both directions: a file here that grows a real failure path is a failure
+# too ("this is a probe now — take it out of the list"). run-battery.sh prints them under
+# their own heading instead of among the passes.
+#
+# Format:  <basename> : <what it reports, and why it has nothing to assert>
+
+audit-crm-full : walks the CRM as four different people and prints what each one can see — an inventory for a person, with no fixed expectation to hold it to.
+audit-proposal-client-pickers : prints which records the proposal pickers offer; the correct contents are an owner decision, not a rule the code can be measured against.
+diag-audit-logins : prints who signed in and when, from the live audit log.
+diag-ledger : prints the Ledger's own numbers next to the database's, for reading.
+diag-payload : prints the exact payload a write sends — used when a write is misbehaving, not to decide whether it is.
+diag-tier : prints the tier/role/page-access of each account.
+diag-v48 : prints the team-management screen's state.
+diag-writes : prints which writes a role gets through and which the database refuses.
+manual-visual-sweep : takes screenshots of every page for a human to look at. There is no assertion a screenshot can carry.
+nav-check : prints the navigation each role is offered.
+probe-password-recovery : MISNAMED — it prints what the recovery flow does, and asserts nothing. The name promises a probe. Rename it diag-password-recovery when someone is next in this file; left alone here because renaming it is a change to a file this session does not otherwise touch.
+sweep-buttons : presses all 189 buttons and prints what each did. Costs 363 seconds of every battery run and cannot go red. Round 57 gave it a real use (it found the pipeline chips on a single company's card), which is an argument for keeping it — but as a report someone reads deliberately, not as a battery entry that can only lengthen the run.
+sweep-language : prints every English string found on an Arabic screen, page by page. The assertion version of this is sweep-language-deep + probe-dialog-arabic-attacks, which do go red.
+sweep-nav : prints the navigation tree as rendered.
+sweep-pages : prints each page's rendered length and any console errors.
+verify-pages : prints the per-person page-access matrix as the app draws it.
+verify-savepages : prints what saving the page-access matrix stored.

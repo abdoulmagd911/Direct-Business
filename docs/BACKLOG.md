@@ -1,3 +1,21 @@
+## 2026-09-07 · Watch cycle 38 — NO_FAIL_SIGNAL is a build failure now, and the settings wait was timing out honestly
+
+The Code session had already closed the three reds cycle 37 named (`7d1499f`), and none was about the app — its own summary of the class is the right one: **a probe that waits a fixed number of milliseconds for something it could wait for a condition on is measuring the machine, not the app.** Its `probe-premortem` fix keeps the check's full strength (poll for the value, and if it never arrives fail with the last thing actually seen), which was the part worth checking before accepting it. It also found a real Arabic gap by pressing buttons instead of walking navigation (`cd61e2a`) — three dialogs in daily use sitting in English on a fully Arabic screen, invisible to every previous sweep because a dialog does not exist until someone presses a button.
+
+### The settings wait was right to fail, and wrong about how long to wait
+
+Cycle 37's guard reappeared in this cycle's first battery: `probe-finance-invariants` and `probe-expense-report-capture` red with *"the exclusion list never arrived from app_settings"*. The guard was doing its job — refusing to measure a world where nothing is excluded rather than accusing the app of leaking money — but it was giving up too early. **Measured rather than assumed:** the failing run logs js/35's own `[v59] blob sections loaded from tables (… settings:yes)`, so the settings *were* coming, just later than 25 seconds. js/35 retries its whole batch every 1.5s until a session exists, and under six-way load on two vCPUs that adds up.
+
+**A guard that times out early is a red for the wrong reason, exactly like the ones this work has been removing.** The budget is 90 s now — it returns the instant the predicate holds, so it costs nothing on an idle machine, and the probe's own limit is 600 s. `probe-scale-attacks`' `DB.businesses` hold got the same treatment (15 s → 90 s), which is what had brought back its 120-instead-of-108 client count. Sabotage re-verified: with the marker removed from the served blob it still fails, and says why.
+
+### Attack area (kk) closed: NO_FAIL_SIGNAL is a build failure
+
+The last 17 files that cannot report a failure were never going to be fixed with an exit code — they are diagnostics, and what they needed was a **category**. `scripts/qa/reports.txt` is that category, with a line for each saying what it reports and why it has nothing to assert. `check-probe-integrity` now fails on `NO_FAIL_SIGNAL` **everywhere else**, and gates in both directions: a declared report that grows a real failure path fails the run too, because it is a probe now. Both proved — a canary file that asserts nothing reddens the run; appending an exit path to `nav-check` reddens it the other way; restored byte-identical.
+
+That completes the arc the 2026-09-03 baseline started: **43 files could not report a failure. 7 were lying to the battery (cycle 35), 18 were credential-gated probes that cannot run here at all (cycle 36), and the remaining 17 are declared reports (this cycle).** `NO_FAIL_SIGNAL` now sits beside `CWD_PATH` and `PORT_DUP` as a build failure, and the budget is gone.
+
+`run-battery.sh` prints reports under their own heading instead of among the passes, so the green number counts only things that could actually have failed. **Six of them are in the battery** — `sweep-buttons` costs 363 seconds of every run and can only report. Whether it belongs there is now a visible question rather than a hidden one; `reports.txt` records the argument on both sides (round 57 got a real finding out of it, but by *reading* it).
+
 ## 2026-09-07 · Round 60 — the last three "environmental" reds closed, all three probes measuring themselves
 
 Watch cycle 37 proved the cause of the whole class — a probe that writes or reads `DB.settings`
@@ -239,6 +257,17 @@ client-facing price-offer document, which is authored in the *document's* langua
 producing an English offer is the app working). The sweep now skips the language control, re-reads
 LANG at every scan and discards any reading not taken in Arabic, and exempts document previews and
 language pickers.
+### The one red left, and everything now ruled out about it
+
+`probe-scale-attacks` still reports *"Top clients label reads all 120 clients, top 10 shown; expected all 108"* under six-way load, and is green alone. It is **not** a settings-race instance, and the evidence says it is not the app either. Instrumented under the load that reproduces it, at the moment the label is read:
+
+- `finCanon('Scale Co 000')` and `finCanon('Scale Co 000 LLC')` both return **`Scale Client 000` / `biz:sbz0`** — the twin folds onto its base correctly;
+- both links are present and both carry `business_id: sbz0`;
+- all 108 fixture companies are in `DB.businesses`, and `clearFinCanon` is reachable and was called;
+- a forced round trip through another tab and back — so the Clients body is rebuilt from the cleared cache — changes nothing.
+
+So the app answers the folding question correctly a moment after the rendered label disagrees with it. **The remaining suspect is the probe's own read:** `clientsHtml.match(/all (\d+) clients, top 10 shown/)` takes the FIRST match in the page HTML, and nothing has yet checked whether more than one such string is present. Cycle 39 starts there — count the matches before believing the number — and only then look further. Not called environmental; it reproduces on demand.
+
 
 ## 2026-09-07 · Watch cycle 37 — the "environmental" reds were one harness defect, and it had been accusing the app of leaking excluded money
 

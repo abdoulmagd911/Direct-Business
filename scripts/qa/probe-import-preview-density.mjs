@@ -55,7 +55,7 @@ async function main() {
      appear at all — the exclusion may not have fired", which read as a defect and was a fixture
      that had not arrived yet. Same family as probe-finance-invariants and probe-scale-attacks;
      see the note on settingsLoaded in mock-supabase.mjs. */
-  if (!(await settingsLoaded(p, 25000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('the exclusion list never arrived from app_settings — the preview cannot show an exclusion notice for a rule it does not have, so the checks below would blame the app for the harness');
+  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('the exclusion list never arrived from app_settings — the preview cannot show an exclusion notice for a rule it does not have, so the checks below would blame the app for the harness');
   await p.evaluate(() => { current = 'finance'; if (typeof render === 'function') render(); });
   await p.waitForTimeout(1200);
   await p.evaluate(() => { if (typeof window.finGo === 'function') window.finGo('import'); });

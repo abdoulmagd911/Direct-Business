@@ -84,7 +84,7 @@ async function main() {
      page had rendered before the list arrived, so it measured a world where nothing was
      excluded and blamed the app for it. That is the owner's hardest ruling; a false red on it
      is nearly as costly as a false green. Wait for the list, and say so if it never comes. */
-  if (!(await settingsLoaded(p, 25000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('the exclusion list never arrived from app_settings — every check below would measure a world where nothing is excluded, which is a fact about this run and not about the app');
+  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('the exclusion list never arrived from app_settings — every check below would measure a world where nothing is excluded, which is a fact about this run and not about the app');
   await p.evaluate(() => { current = 'finance'; if (typeof render === 'function') render(); });
   await p.waitForTimeout(1200);
 

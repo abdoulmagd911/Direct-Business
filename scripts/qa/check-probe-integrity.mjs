@@ -67,27 +67,23 @@ const GATE = [
   'probe-service-fees.mjs', 'probe-contract.mjs', 'probe-company-profile.mjs',
 ];
 
-/* Baseline measured 2026-09-03: 43 files cannot report a failure through their exit code.
-   27 of them count and print FAILs and then exit 0 (the dangerous shape — they look like
-   probes); the other 16 are diag-/sweep-/audit- dumps with no assertions at all. Both are
-   listed in the audit report. May go DOWN freely. It going UP means a new probe was written
-   that cannot fail — which is the thing this whole file exists to stop.
-   2026-09-07 (watch cycle 36), 35 → 17: the eighteen remaining files in this shape were fixed
-   the same way. Every one is a LIVE-SYSTEM probe — fifteen import emp-rig, which reads the
-   team's passwords from DB_PW_* and never from the file, so none of them can run in this
-   environment at all. That is why they were never in the battery, and it is also why the exit
-   code mattered less than it looks: they were failing for want of a password and reporting
-   success either way. The rig itself now refuses an empty password (see emp-rig.mjs), so they
-   stop rather than test nothing; the exit codes are fixed for whoever runs them WITH the
-   credentials. The 17 that remain are report tools with no assertions at all, listed in
-   docs/PROBE-WARNINGS-TRIAGE.md — they need a category of their own, not an exit code.
-   2026-09-06 (watch cycle 35), 43 → 35: the seven files in this shape that the BATTERY
-   actually runs — probe-live2, probe-mega, probe-notes, probe-round8, probe-round9,
-   probe-stress, sweep-consistency — now exit on their own failure count. Until today the
-   runner read exit 0 from every one of them, so any regression they could see was recorded
-   as a pass. Ratcheted so the seven cannot quietly go back. The 35 that remain are outside
-   the battery and are classified one by one in docs/PROBE-WARNINGS-TRIAGE.md. */
-const NO_FAIL_SIGNAL_BUDGET = 17;
+/* NO_FAIL_SIGNAL is a BUILD FAILURE from 2026-09-07 (watch cycle 38), with one exception that
+   has to be written down: the files listed in reports.txt, which report rather than assert.
+   The road here: 43 files could not report a failure through their exit code (measured
+   2026-09-03). Cycle 35 fixed the seven the battery runs — they had been telling the runner
+   "pass" for every regression they could see. Cycle 36 fixed the eighteen outside it and found
+   they were all credential-gated live-system probes that cannot run here at all. What was left
+   was 17 genuine report tools, and the answer for those was never an exit code: it was a
+   category. reports.txt is that category, with a line each saying what the file reports and why
+   it has nothing to assert. Gated in both directions — a file in reports.txt that grows a real
+   failure path fails the run too, because it is a probe now and should be treated as one. */
+const REPORTS = (() => {
+  try {
+    return new Set(fs.readFileSync(path.join(ROOT, 'scripts/qa/reports.txt'), 'utf8')
+      .split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
+      .map((l) => l.split(':')[0].trim()));
+  } catch (_) { return null; }
+})();
 
 /* --sabotage: prove this checker really checks. Copy the suite to a scratch tree, blunt one
    gated probe's exit into a constant 0 — the exact regression this file exists to catch —
@@ -299,11 +295,26 @@ if (missing.length) {
   bad += missing.length;
 }
 
-if (noSignal.length > NO_FAIL_SIGNAL_BUDGET) {
-  console.log(`  ✗ ${noSignal.length} probe(s) cannot signal failure, above the recorded baseline of ${NO_FAIL_SIGNAL_BUDGET} — a new probe was written that cannot fail`);
+if (!REPORTS) {
+  console.log('  ✗ scripts/qa/reports.txt is missing — without it there is no way to tell a diagnostic apart from a probe that cannot fail');
   bad += 1;
 } else {
-  console.log(`  ✓ ${noSignal.length} probe(s) cannot signal failure — at or below the ${NO_FAIL_SIGNAL_BUDGET} recorded on 2026-09-07`);
+  const base = (f) => String(f).replace(/^.*\//, '').replace(/\.mjs$/, '');
+  const unexpected = noSignal.filter((x) => !REPORTS.has(base(x.file)));
+  if (unexpected.length) {
+    console.log(`FAILED — ${unexpected.length} file(s) cannot report a failure and are not declared reports:`);
+    for (const h of unexpected) console.log(`  \u2717 ${h.file}:${h.line} — give it a real failure path, or add it to reports.txt with a line saying what it reports`);
+    bad += unexpected.length;
+  }
+  const noSignalNames = new Set(noSignal.map((x) => base(x.file)));
+  const promoted = [...REPORTS].filter((n) => !noSignalNames.has(n));
+  if (promoted.length) {
+    console.log(`  \u2717 declared as reports but they can fail now: ${promoted.join(', ')} — take them out of reports.txt, they are probes`);
+    bad += promoted.length;
+  }
+  if (!unexpected.length && !promoted.length) {
+    console.log(`  \u2713 every file either has a real failure path or is one of the ${REPORTS.size} declared reports — nothing can quietly be written that cannot fail`);
+  }
 }
 
 /* ---- every probe is either in the battery or excluded, with a reason (watch cycle 36) ----

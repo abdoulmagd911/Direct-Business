@@ -392,7 +392,16 @@ function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'applic
    before it arrived and reported four. Detected on `currency`, which only the served blob
    carries — the app never sets it on its own. Returns true if it landed, false on timeout;
    callers must FAIL on false rather than carry on measuring an empty world. */
-export async function settingsLoaded(page, ms = 20000, alsoRequire = null) {
+/* 2026-09-07 (watch cycle 38): the default was 20s and callers passed 25s, and under six-way
+   load that was simply too short — js/35 retries its whole batch every 1.5s until the session
+   exists, so on a busy box the blob can land well past half a minute. Measured: the run that
+   failed the wait logged js/35's own "[v59] blob sections loaded (settings:yes)" anyway, so the
+   settings were coming, just later than the probe was willing to wait. A guard that times out
+   early is a red for the wrong reason exactly like the ones this work has been removing. 90s
+   costs nothing on an idle machine (it returns the moment the predicate holds) and the probe's
+   own budget is 600s. The loud failure is unchanged: if it truly never arrives, the caller
+   still fails and says so. */
+export async function settingsLoaded(page, ms = 90000, alsoRequire = null) {
   /* Two traps, both hit while writing this and both worth naming.
      (a) bare `DB`, not `window.DB` — DB is a top-level binding, a global but NOT a window
          property, so `window.DB` is undefined and the first version answered "never arrived"

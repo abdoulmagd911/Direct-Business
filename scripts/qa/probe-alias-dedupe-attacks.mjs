@@ -62,7 +62,7 @@ async function main() {
      DB.settings whenever it lands. Reading before it lands gave "exclusion → null, expected 7";
      writing before it lands had the write silently replaced. Both were reported as app defects.
      Wait for it once, here, and fail loudly rather than measure a world that has not arrived. */
-  if (!(await settingsLoaded(p, 25000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('DB.settings never arrived from app_settings — the exclusion list and group map below would be measured against an empty object, which is not a finding about the app');
+  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('DB.settings never arrived from app_settings — the exclusion list and group map below would be measured against an empty object, which is not a finding about the app');
 
   /* ---------- 1. alias normalisation ---------- */
   await p.evaluate(() => {
