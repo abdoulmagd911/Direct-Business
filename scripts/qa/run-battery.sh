@@ -55,10 +55,19 @@ while IFS="|" read -r name code rest; do
   PROBE_N=$((PROBE_N+1)); [ "$code" = "0" ] && PROBE_GOOD=$((PROBE_GOOD+1))
 done < "$RES"
 
-BAD=$(awk -F"|" '$2!=0' "$RES" | sort)
+BAD=$(awk -F"|" '$2!=0' "$RES" | sort | while IFS="|" read -r n c r; do is_report "$n" || echo "$n|$c|$r"; done)
+# A report cannot fail an assertion — it has none — but it CAN crash, and then it produced
+# nothing at all. That is worth seeing and is not the same thing as a probe going red, so it
+# gets its own line (watch cycle 40, after sweep-buttons died on a navigation race and appeared
+# under RED while being excluded from the pass count — two statements that contradicted).
+CRASHED=$(awk -F"|" '$2!=0' "$RES" | sort | while IFS="|" read -r n c r; do is_report "$n" && echo "  · $n (exit $c) — a report that did not finish, so it reported nothing: $OUT/$n.log"; done)
 echo "green: $PROBE_GOOD / $PROBE_N probes that can fail"
 if [ -n "$REPORTED" ]; then
   echo "reports (no assertions — read them, they cannot go red):$REPORTED"
+fi
+if [ -n "$CRASHED" ]; then
+  echo "REPORTS THAT DID NOT FINISH:"
+  echo "$CRASHED"
 fi
 if [ -n "$BAD" ]; then
   echo "RED:"

@@ -71,7 +71,12 @@ async function main() {
      did not fire", which is the strongest possible claim about the owner's hardest ruling, and
      it was false: the list simply had not arrived yet. Wait for it, and say so if it never
      comes, rather than accusing the app of writing money onto an excluded client. */
-  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('the exclusion list never arrived from app_settings — the cost-join checks below would run against a world where nothing is excluded, which is a fact about this run and not about the app');
+  /* 2026-09-07 (watch cycle 40): the wait for the exclusion list used to sit HERE, seconds after
+     sign-in, and under six-way load it burned its whole 90s budget while the page was still
+     booting — reddening a probe whose exclusion-dependent check does not run for another minute
+     and a half. Wait for a precondition where it is NEEDED, not at the top of the file: by the
+     time the Takamol check runs, the list has had the entire import flow's worth of time to
+     arrive, and the budget is spent on the one moment it protects. */
   await p.evaluate(() => { current = 'finance'; if (typeof render === 'function') render(); });
   await p.waitForTimeout(1200);
   await p.evaluate(() => { if (typeof window.finGo === 'function') window.finGo('import'); });
@@ -235,6 +240,8 @@ async function main() {
   else ok(`116361006: cost_sar left untouched at ${rows.statusContradiction.cost} — T13\'s status-vs-issued contradiction correctly refused`);
 
   // ---- Excluded client (Takamol): never touched, even though its transaction is clean ----
+  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } })))
+    fail('the exclusion list never arrived from app_settings — the Takamol check below would run against a world where nothing is excluded, which is a fact about this run and not about the app');
   if (!rows.takamol) fail('9999999999 (Takamol, already excluded): row unexpectedly disappeared');
   else if (rows.takamol.cost === 100) fail('9999999999: the excluded Takamol row received a cost write — the exclusion re-check inside the join did not fire');
   else ok('9999999999: the excluded Takamol row was correctly left untouched by the join');

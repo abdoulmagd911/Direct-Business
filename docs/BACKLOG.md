@@ -1,3 +1,57 @@
+## 2026-09-07 · Watch cycle 40 — the number that decides which company record survives a merge
+
+The dialog method found a second real defect, one file over from cycle 39's.
+
+### "2 invoices, 0 SAR"
+
+js/62's merge confirmation reads, for both companies:
+
+> Everything on "Merge A" — contacts, activities, billing profiles, **invoice links (2 invoices, 20,000 SAR)**, transactions, documents — moves to "Merge B" **(1 invoices, 500 SAR)**.
+
+That is the fact a person reads when deciding which of two company records to **keep** and which to **archive**. Nothing had ever checked it. It was computed by `bizFinance()`, which re-implemented `live()`'s three rules by hand — drop deleted, drop excluded, coerce money with a raw `+` — and got the third wrong. `FIN.rows` is only clean as a side effect of `live()` having run, because `live()` sanitises **in place**. The duplicate-companies card is reachable without ever opening Finance, and measured on that path the dialog said:
+
+```
+Merge A (2 invoices, 0 SAR)        ← holding 20,000
+```
+
+**The count is right and the money is zero**, which is worse than an obvious error: it reads as a coherent fact — *this record has invoices but no value* — at the moment someone chooses which record survives. Same hole as cycle 39's invoice modal, on a surface where the number decides an action that looks irreversible.
+
+**Fixed by reading through the chokepoint** rather than by patching the third rule: `bizFinance` now uses `window.finLive()`, which applies all three rules in one place, so this surface cannot drift from every other total again. The hand-rolled loop stays only as a fallback for the case where the ledger layer never loaded — where there is nothing to read anyway.
+
+### And a fail-open on the standing exclusion, on the same dialog
+
+While building the guard, one run in three printed **`Merge B (2 invoices, 889,388 SAR)`** for a company whose own money is 500 — the rest being a standing-**excluded** partner's, summed in silently. `finExclusionCheck()` answers "not excluded" both when a client is not on the list *and* when the list has not loaded yet, so a total computed before `app_settings` lands quietly includes money the owner ruled out. Given that the Takamol incident was 6.7M SAR and 77% of displayed revenue, a merge decided on that number is not a small thing.
+
+**The dialog now refuses rather than guessing:** if the settings blob has not landed at all (an empty `DB.settings`, distinguishable from a workspace that genuinely has no exclusions), the merge is declined in words — *"the exclusion list has not finished loading, so the invoice totals below cannot be checked against it and could include a client this workspace excludes."* M8 applied to a dialog rather than a tile.
+
+New `probe-merge-dialog-money` (8719, 5 checks): both paths print the fixture's own figures; the count is right on the cold path too; a soft-deleted 999,999 reaches neither total; and the excluded client's money reaches neither. It waits for the exclusion list before opening the dialog and **fails with one honest line** if it never arrives, rather than cascading four failures that name the wrong cause.
+
+**A probe-side error of my own, and it is cycle 28's lesson repeated.** The first version of the exclusion check hunted the literal `888,888` — and the excluded money never appears as itself, it is summed into the total (500 + 888,888 = 889,388). **The check passed while the leak it names was on screen.** It tests the total against the fixture now.
+
+### The same fail-open, on the surface that WRITES — open for cycle 41
+
+The battery caught a third instance, and it is the most serious of the three because it does not just display a number, it inserts rows. `probe-importer-scale-attacks` under six-way load:
+
+```
+✗ New = 1020, expected 1000
+✗ Excluded by rule = 3, expected at least 20
+✗ an excluded-client invoice was written
+```
+
+Twenty invoices belonging to a standing-excluded client were imported instead of held back, because the importer's exclusion check ran before `app_settings` landed and `finExclusionCheck()` answers "not excluded" for a list that has not loaded. **That is the shape of the original incident** — ten Takamol invoices entering `finance_invoices` — reached by a different road. Green when run alone, which is exactly why it has not been seen.
+
+Not fixed this cycle, and deliberately not bodged at 11:35 with three hours already on the clock. It is written down with its evidence because the next cycle should start here. The question to settle first is whether the honest answer is the one this cycle applied to the merge dialog — **refuse while the list is unknown, rather than proceed as if there were no exclusions** — applied at the importer's own gate, where refusing costs a retry and proceeding costs a write. That is js/65 and js/41; js/65 is in this lane.
+
+Also still timing out under load at 90 s: `probe-premortem-attacks`' check H. Third cycle running. Worth asking whether the commit it waits for is genuinely slow under contention or whether something in that flow stops making progress.
+
+### Housekeeping
+
+`probe-expense-report-capture`'s wait for the exclusion list sat seconds after sign-in and burned its 90-second budget while the page was still booting — reddening a probe whose exclusion-dependent check does not run for another minute and a half. **Wait for a precondition where it is needed, not at the top of the file.**
+
+`sweep-buttons` crashed on a navigation race and appeared under RED while being excluded from the pass count — two statements that contradicted each other. A report cannot fail an assertion, but it can crash, and then it produced nothing; the runner says that on its own line now: *"reports that did not finish"*.
+
+The cycle-39 delivery note in this file said "saved, not delivered", which was true when written and false by the time it landed. Corrected.
+
 ## 2026-09-07 · Watch cycle 39 — the invoice modal showed a deleted invoice as all zeros, next to its own Restore button
 
 **A real defect in this lane, found by opening a dialog nobody had opened.** The Code session's Arabic round made the point that a dialog does not exist until someone presses a button, which is why nav-driven sweeps had never seen three dialogs in daily use. The same argument applies to numbers: `window.finRow(id)` prints one invoice's whole money — total, cost, revenue, profit, received, outstanding, wallet, and a line table — and **nothing had ever checked what it prints.** Cycle 31 gave it a permission check and stopped there.
@@ -29,7 +83,7 @@ New `probe-invoice-modal-attacks` (8717, 9 checks) guards it and the rest of the
 
 ### Hand-off status
 
-The cycle-39 patch is **saved, not delivered** — the browser extension reported "not connected" at hand-off time and `switch_browser` found no other browser, so the Claude Code tab was unreachable. `oversight-cycle-39.patch` is written and waiting; the next cycle delivers it. Nothing is lost and nothing is stuck: unpushed commits are the normal state for this session.
+The cycle-39 patch was **delayed, then delivered** (corrected here in cycle 40 — the line this replaced said "saved, not delivered", which was true when the patch was written and false by the time it landed). At hand-off the browser extension reported "not connected" and `switch_browser` found no other browser, so the patch was written and held; it went over about an hour later, the moment the browser was reachable again. No work lost, and nothing that needed asking for.
 
 ### Housekeeping settled
 

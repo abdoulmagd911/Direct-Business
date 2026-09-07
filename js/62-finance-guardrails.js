@@ -285,11 +285,41 @@
   function bizUuid(b){ try{ return (window.__bizUuid?__bizUuid(b.id):b.id); }catch(_){ return b.id; } }
   function bizFinance(uuid){
     var groups=((window.FIN&&FIN.groupsByBiz)||{})[uuid]||[]; var n=0,total=0,seen={};
-    if(groups.length&&window.FIN&&FIN.rows){
-      FIN.rows.forEach(function(r){ if(r.deleted_at)return; if(groups.indexOf(r.client_group)<0)return; if(finExclusionCheck(r.client_group))return; if(!seen[r.invoice_no]){seen[r.invoice_no]=1;n++;} total+=(+r.total_incl_vat_sar||0); });
+    /* 2026-09-07 (watch cycle 40): read through js/16's chokepoint. This total is printed in the
+       MERGE CONFIRMATION — "… invoice links (2 invoices, 20,000 SAR) … moves to …" — which is the
+       fact a person reads when deciding which of two company records to KEEP and which to
+       ARCHIVE. It used to re-implement live()'s three rules here (drop deleted, drop excluded,
+       coerce money with a raw `+`) and got the third wrong: FIN.rows is only clean as a side
+       effect of live() having run, because live() sanitises IN PLACE. The duplicate-companies
+       card is reachable without ever opening Finance, and measured that way the dialog read
+       "2 invoices, 0 SAR" for a company holding 20,000 — the COUNT right and the money zero,
+       which reads as a coherent fact rather than an obvious error. Cycle 39 found the same hole
+       in js/16's invoice modal. window.finLive() applies all three rules in one place, so this
+       surface cannot drift from every other total again; the old loop stays as a fallback for
+       the case where the ledger layer never loaded, where there is nothing to read anyway. */
+    if(groups.length){
+      var rows=null;
+      try{ if(typeof window.finLive==='function') rows=window.finLive(); }catch(_){ rows=null; }
+      if(rows){
+        rows.forEach(function(r){ if(groups.indexOf(r.client_group)<0)return; if(!seen[r.invoice_no]){seen[r.invoice_no]=1;n++;} total+=(+r.total_incl_vat_sar||0); });
+        return {n:n,total:total,groups:groups};
+      }
+      if(window.FIN&&FIN.rows){
+        FIN.rows.forEach(function(r){ if(r.deleted_at)return; if(groups.indexOf(r.client_group)<0)return; if(finExclusionCheck(r.client_group))return; try{ if(typeof window.finSanitizeMoney==='function')window.finSanitizeMoney(r); }catch(_){} if(!seen[r.invoice_no]){seen[r.invoice_no]=1;n++;} total+=(+r.total_incl_vat_sar||0); });
+      }
     }
     return {n:n,total:total,groups:groups};
   }
+  /* Has the settings blob (js/35's app_settings read) landed at all? An empty DB.settings means
+     it has not; a populated one with no financeExclusions key means the workspace genuinely has
+     no exclusions. The difference matters here because finExclusionCheck() answers "not
+     excluded" in BOTH cases, so a total computed before the blob arrives silently INCLUDES an
+     excluded client's money — measured 2026-09-07 (watch cycle 40): the merge dialog offered
+     "2 invoices, 889,388 SAR" for a company whose own money is 500, the rest being a standing-
+     excluded partner's. That is a fail-open on the owner's hardest ruling, on the surface that
+     decides which company record survives. The number is not guessed at and not silently
+     wrong: the dialog says the total could not be checked yet. */
+  function settingsLanded(){ try{ return !!(DB.settings&&Object.keys(DB.settings).length); }catch(_){ return false; } }
   function dupDismissed(){ try{ return (DB.settings&&DB.settings.bizDupDismissed)||[]; }catch(_){ return []; } }
   function pairKey(a,b){ return [a,b].sort().join('|'); }
   function dupCandidates(){
@@ -349,6 +379,11 @@
     all.forEach(function(b){ var u=bizUuid(b); if(u===keepU)K=b; if(u===dropU)D=b; });
     if(!K||!D){ alert(fl('Could not find both companies.','تعذّر العثور على الشركتين.')); return; }
     var fd=bizFinance(dropU), fk=bizFinance(keepU);
+    if(!settingsLanded()){
+      alert(fl('Not yet — the exclusion list has not finished loading, so the invoice totals below cannot be checked against it and could include a client this workspace excludes. Give it a moment and try again.',
+               'ليس بعد — لم تكتمل بعد قراءة قائمة الاستبعاد، لذا لا يمكن التحقق من إجماليات الفواتير أدناه مقابلها وقد تشمل عميلاً يستبعده هذا الحساب. أمهله لحظة ثم أعد المحاولة.'));
+      return;
+    }
     var msg=fl('Merge "'+(D.name||'')+'" INTO "'+(K.name||'')+'"?\n\nEverything on "'+(D.name||'')+'" — contacts, activities, billing profiles, invoice links ('+fd.n+' invoices, '+money62(fd.total)+' SAR), transactions, documents — moves to "'+(K.name||'')+'" ('+fk.n+' invoices, '+money62(fk.total)+' SAR). Empty profile fields on the kept record are filled from the merged one. The merged record is archived, not deleted, and this can be undone.',
       'دمج "'+(D.name||'')+'" في "'+(K.name||'')+'"؟\n\nكل ما على "'+(D.name||'')+'" — جهات الاتصال والأنشطة وملفات الفوترة وروابط الفواتير ('+fd.n+' فاتورة، '+money62(fd.total)+' ر.س) والمعاملات والمستندات — ينتقل إلى "'+(K.name||'')+'" ('+fk.n+' فاتورة، '+money62(fk.total)+' ر.س). تُملأ الحقول الفارغة في السجل المُبقى من السجل المدمج. يُؤرشف السجل المدمج ولا يُحذف، ويمكن التراجع.');
     if(!confirm(msg))return;
