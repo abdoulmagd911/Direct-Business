@@ -1,4 +1,5 @@
-/* Password recovery — end-to-end probe (2026-08-22, launch-critical per Abdulrahman).
+/* Password recovery — end-to-end REPORT (renamed from probe-password-recovery, watch cycle 39: it
+asserts nothing and always exits 0; the old name promised a guard where there is a report) (2026-08-22, launch-critical per Abdulrahman).
    Drives all three pieces against the current index.html + js/*.js, via the mock's new
    recovery/updateUser/send_reset_link instrumentation:
      1. The recovery screen (PASSWORD_RECOVERY -> set-new-password card -> clean URL -> app loads)

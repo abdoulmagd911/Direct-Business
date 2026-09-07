@@ -8,6 +8,7 @@
 #   and three of the battery's green rows were modules that cannot fail. Removed.
 check-decisions-wired
 check-structure
+diag-password-recovery
 manual-visual-sweep
 probe-ageing-attacks
 probe-alias-dedupe-attacks
@@ -48,6 +49,7 @@ probe-importer-attacks
 probe-importer-concurrency-attacks
 probe-importer-scale-attacks
 probe-invented-alerts-attacks
+probe-invoice-modal-attacks
 probe-landmines
 probe-leads-counts
 probe-ledger-attacks
@@ -60,7 +62,6 @@ probe-no-vat-display
 probe-notes
 probe-overview-attacks
 probe-page-access-enforce
-probe-password-recovery
 probe-period-bar-attacks
 probe-permissions-attacks
 probe-premortem-attacks

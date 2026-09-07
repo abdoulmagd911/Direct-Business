@@ -1,3 +1,40 @@
+## 2026-09-07 · Watch cycle 39 — the invoice modal showed a deleted invoice as all zeros, next to its own Restore button
+
+**A real defect in this lane, found by opening a dialog nobody had opened.** The Code session's Arabic round made the point that a dialog does not exist until someone presses a button, which is why nav-driven sweeps had never seen three dialogs in daily use. The same argument applies to numbers: `window.finRow(id)` prints one invoice's whole money — total, cost, revenue, profit, received, outstanding, wallet, and a line table — and **nothing had ever checked what it prints.** Cycle 31 gave it a permission check and stopped there.
+
+Two things about how it is written made it worth attacking rather than assuming. It sums the invoice's lines straight off `FIN.rows` with `+x.total_incl_vat_sar||0`, **not** through `live()` — the chokepoint js/16's own comment says every total in the file reads through, precisely because a money field can arrive as the string `"1,250.00"` and `+` on that is `NaN`, which `money()` prints as a clean `0.00`. And `live()` sanitises rows *in place*, so a row it has returned is clean — but it **filters soft-deleted rows out before it sanitises**, so a deleted invoice never passes the chokepoint at all.
+
+**Measured, with a deleted invoice storing `"9,999.00"`:**
+
+```
+Invoice IM-004 | Restore | Open in Direct ↗ | Close
+Flights  B2B   0.00   0.00   0.00
+Invoice total · 1 service(s)  0.00  0.00  0.00
+Received  0.00 SAR      Outstanding  0.00 SAR
+```
+
+Every figure zero, on the one surface with no second number to contradict it, in front of the person deciding whether to bring the invoice back. **Fixed** — `finRow` sanitises the lines before summing (one line, using the exported `finSanitizeMoney`) — and the same modal now reads 9,999.00 / 3,333.00 / 6,666.00. Sabotage-verified: reverting that one line reddens exactly the check that names it, byte-identical restore.
+
+New `probe-invoice-modal-attacks` (8717, 9 checks) guards it and the rest of the modal: a plain invoice's Received and Outstanding as stored; a three-line invoice summing its lines rather than printing one line's figures as the invoice's; a live row carrying formatted strings; the deleted row above; an `integrity_status` the label map has never heard of printed as the stored value rather than left blank; no NaN/undefined/null anywhere; and in Arabic, no English label from the meta table plus all four amounts beside a currency word direction-isolated.
+
+**Two probe-side errors of my own, both the kind that make a check pass while examining nothing.** The modal element is `#finModal`, and gating on `offsetParent !== null` — which is null for it even on screen — made every read fall back to the page *behind* the modal; the "no NaN" check passed that way while looking at nothing. And closing with the app-wide `closeModal()` instead of js/16's own `finCloseModal()` left the previous invoice on screen, so every check after the first read IM-001's numbers and reported them as the next invoice's.
+
+### The open red, one step further
+
+`probe-scale-attacks`' Top-clients label reproduced here **once in five runs** under the same load, with **exactly one occurrence** of the label reading 120 — so round 61's four green runs and this session's red are both right, and the first-match theory is dead on both hosts. What is left is that the page really did render 120 distinct client keys at that moment while `finCanon`, asked a second later, folds the twin correctly. Rare enough that waiting and guessing is the wrong tool, so the probe now prints, **only when the label is already wrong**, the distinct-key count at that instant, both canon answers, the fixture company count, the twin's link, and the same label after one more `clearFinCanon` + render — which will say in its own output whether the app is simply one render behind.
+
+### And one more fixed wait, from the same family
+
+`probe-premortem-attacks` came back red in this cycle's battery on the check round 60 had just fixed — *"the lines-only drop did not resolve — cost is 12605, expected 750"*. Its poll budget was 20 seconds; under six-way load the commit had still not landed. Raised to 90 s, matching the settings wait, for the same reason: **a poll costs nothing when the value is already there, so the budget should fit the slowest honest case rather than the typical one**, and the failure keeps its full strength — if the value never arrives the check still fails with the last thing actually seen. Green alone and under load afterwards.
+
+### Hand-off status
+
+The cycle-39 patch is **saved, not delivered** — the browser extension reported "not connected" at hand-off time and `switch_browser` found no other browser, so the Claude Code tab was unreachable. `oversight-cycle-39.patch` is written and waiting; the next cycle delivers it. Nothing is lost and nothing is stuck: unpushed commits are the normal state for this session.
+
+### Housekeeping settled
+
+`probe-password-recovery` is now `diag-password-recovery`: it asserts nothing and always exits 0, and the old name promised a guard where there is a report. `sweep-buttons` stays in the battery for now — the argument on both sides is recorded in `reports.txt`, and it is a 363-second cost against a report that has produced one real finding.
+
 ## 2026-09-07 · Watch cycle 38 — NO_FAIL_SIGNAL is a build failure now, and the settings wait was timing out honestly
 
 The Code session had already closed the three reds cycle 37 named (`7d1499f`), and none was about the app — its own summary of the class is the right one: **a probe that waits a fixed number of milliseconds for something it could wait for a condition on is measuring the machine, not the app.** Its `probe-premortem` fix keeps the check's full strength (poll for the value, and if it never arrives fail with the last thing actually seen), which was the part worth checking before accepting it. It also found a real Arabic gap by pressing buttons instead of walking navigation (`cd61e2a`) — three dialogs in daily use sitting in English on a fully Arabic screen, invisible to every previous sweep because a dialog does not exist until someone presses a button.

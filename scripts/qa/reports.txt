@@ -23,7 +23,7 @@ diag-v48 : prints the team-management screen's state.
 diag-writes : prints which writes a role gets through and which the database refuses.
 manual-visual-sweep : takes screenshots of every page for a human to look at. There is no assertion a screenshot can carry.
 nav-check : prints the navigation each role is offered.
-probe-password-recovery : MISNAMED — it prints what the recovery flow does, and asserts nothing. The name promises a probe. Rename it diag-password-recovery when someone is next in this file; left alone here because renaming it is a change to a file this session does not otherwise touch.
+diag-password-recovery : prints what the password-recovery flow does, and asserts nothing. Renamed from probe-password-recovery on 2026-09-07 (watch cycle 39) — the old name promised a guard where there is a report, which is the confusion this file exists to end.
 sweep-buttons : presses all 189 buttons and prints what each did. Costs 363 seconds of every battery run and cannot go red. Round 57 gave it a real use (it found the pipeline chips on a single company's card), which is an argument for keeping it — but as a report someone reads deliberately, not as a battery entry that can only lengthen the run.
 sweep-language : prints every English string found on an Arabic screen, page by page. The assertion version of this is sweep-language-deep + probe-dialog-arabic-attacks, which do go red.
 sweep-nav : prints the navigation tree as rendered.

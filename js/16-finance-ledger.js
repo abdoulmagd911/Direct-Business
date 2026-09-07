@@ -1173,6 +1173,17 @@ window.finRow=function(id){
   var delState=!!r.deleted_at;
   var lines=(FIN.rows||[]).filter(function(x){return x.invoice_no===r.invoice_no && (!!x.deleted_at)===delState;})
                           .sort(function(a,b){return (a.line_no||1)-(b.line_no||1);});
+  /* 2026-09-07 (watch cycle 39): sanitise before summing. This modal reads FIN.rows DIRECTLY,
+     not through live() — and live() is where finSanitizeMoney runs. For a row live() has
+     already returned that is harmless, because it sanitises in place. But live() FILTERS
+     soft-deleted rows out BEFORE it sanitises, so a deleted invoice never passes the
+     chokepoint at all — and a deleted invoice is exactly what this modal is opened on, from
+     the Ledger, next to its own Restore button. Measured with a deleted invoice storing
+     "9,999.00": the modal printed Total 0.00, Cost 0.00, Received 0.00 SAR, Outstanding
+     0.00 SAR — every figure a clean zero, because `+"9,999.00"` is NaN and money() coerces
+     NaN to 0. Cycle 2's landmine, on the one surface with no second number to contradict it,
+     in front of the person deciding whether to bring the invoice back. */
+  try{ if(typeof finSanitizeMoney==='function') lines.forEach(function(x){ finSanitizeMoney(x); }); }catch(_){}
   var t={tot:0,cost:0,rev:0,prof:0,rec:0,rem:0,wal:0};
   lines.forEach(function(x){t.tot+=+x.total_incl_vat_sar||0;t.cost+=+x.cost_sar||0;t.rev+=+x.revenue_sar||0;t.prof+=+x.profit_sar||0;t.rec+=+x.amount_received_sar||0;t.rem+=+x.amount_remaining_sar||0;t.wal+=+x.wallet_portion_sar||0;});
   var meta=[[_f('Client','\u0627\u0644\u0639\u0645\u064a\u0644'),r.client_group],[_f('Name on invoice','\u0627\u0644\u0627\u0633\u0645 \u0639\u0644\u0649 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629'),r.customer_raw_name],[_f('ZATCA tax invoice','\u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u064a\u0629 (\u0632\u0627\u062a\u0643\u0627)'),r.zatca_dpin||_f('\u2014 (see notes)','\u2014 (\u0627\u0646\u0638\u0631 \u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a)')],[_f('Date','\u0627\u0644\u062a\u0627\u0631\u064a\u062e'),r.invoice_date+' \u00b7 '+r.month+' \u00b7 '+r.quarter],[_f('Received','\u0627\u0644\u0645\u062d\u0635\u0651\u0644'),money(t.rec)+' SAR'],[_f('Outstanding','\u0627\u0644\u0645\u062a\u0628\u0642\u064a'),money(t.rem)+' SAR'],[_f('Origin','النوع'),(r.origin==='project'?_f('Project — full project with a proposal','مشروع متكامل بعرض'):_f('Booking','حجز عادي'))],[_f('Proposal','العرض'),r.proposal_ref||'—'],[_f('Status','\u0627\u0644\u062d\u0627\u0644\u0629'),(function(st){var M={verified_paid:_f('Paid & verified','مدفوعة ومدققة'),pending:_f('Pending payment','بانتظار السداد'),credit_note:_f('Credit note (refund)','إشعار دائن (استرداد)'),excluded:_f('Excluded','مستبعدة')};return M[st]||st;})(r.integrity_status)],[_f('Notes','\u0645\u0644\u0627\u062d\u0638\u0627\u062a'),r.notes||'\u2014']];

@@ -370,6 +370,37 @@ async function main() {
       running at once, colliding on port 8213 — cycle 34's lesson, made again.) */
   const nAll = clientsHtml.match(/all (\d+) clients, top 10 shown/g) || [];
   console.log('  · Top-clients label occurrences in #view: ' + JSON.stringify(nAll));
+  /* 2026-09-07 (watch cycle 39): round 61's four green runs are confirmed here — and so is the
+     red: it reproduced once in five runs under the same load, with EXACTLY ONE occurrence of the
+     label reading 120. So the first-match theory is dead on both hosts, and what is left is that
+     the page really did render 120 distinct client keys at that moment while finCanon, asked a
+     second later, folds the twin correctly. Rare enough that waiting for it to happen again and
+     guessing is the wrong tool; this block makes the next occurrence answer the question in its
+     own output. It only runs when the label is already wrong, so it costs nothing on a green run
+     and cannot mask anything — the assertion above has already been made. */
+  if (!(nAll.length === 1 && nAll[0] === `all ${WANT.clients} clients, top 10 shown`)) {
+    const atRead = await p.evaluate(() => {
+      try {
+        const V = (window.finLive ? finLive() : []).filter((r) => r.integrity_status === 'verified_paid');
+        const keys = {}; V.forEach((r) => { keys[finCanon(r.client_group).name] = 1; });
+        return {
+          distinctKeysNow: Object.keys(keys).length,
+          canonBase: finCanon('Scale Co 000').name,
+          canonTwin: finCanon('Scale Co 000 LLC').name,
+          fixtureCompanies: (DB.businesses || []).filter((b) => String(b.id || '').startsWith('sbz')).length,
+          linkTwinBiz: ((FIN.linkByGroup || {})['Scale Co 000 LLC'] || {}).business_id || null
+        };
+      } catch (e) { return 'ERR ' + e.message; }
+    });
+    await p.evaluate(() => { try { if (typeof clearFinCanon === 'function') clearFinCanon(); finGo('clients'); } catch (_) {} });
+    await p.waitForTimeout(2500);
+    const afterOneMore = await p.evaluate(() => (document.querySelector('#view').innerHTML.match(/all (\d+) clients, top 10 shown/g) || []));
+    console.log('  · WHY: at the moment the wrong label was read → ' + JSON.stringify(atRead));
+    console.log('  · WHY: the same label after one more clearFinCanon + render → ' + JSON.stringify(afterOneMore)
+      + (afterOneMore.length === 1 && afterOneMore[0] === `all ${WANT.clients} clients, top 10 shown`
+          ? '   ← IT IS RIGHT ONE RENDER LATER: the page painted a stale identity map and nothing repainted it'
+          : '   ← still wrong after a fresh render, so this is not a stale paint'));
+  }
   const nLabel = clientsHtml.match(/all (\d+) clients, top 10 shown/);
   if (nLabel && +nLabel[1] === WANT.clients) ok(`Top clients total is labelled "all ${WANT.clients} clients, top 10 shown" — the twelve alias twins folded into their base client, and the total is not mistaken for the ten rows`);
   else fail(`Top clients label reads ${nLabel ? nLabel[0] : 'nothing'}; expected all ${WANT.clients} clients (120 billing names, 12 of them alias twins)`);

@@ -38,7 +38,13 @@ const inv = async (n) => fetch(BASE + '/rest/v1/finance_invoices?invoice_no=eq.'
    It was not; the probe was early. Poll for the value the app is supposed to reach instead of
    guessing how long it takes, and keep the failure exactly as strong: if it never arrives, the
    check still fails, with the last thing actually seen. */
-const invWhen = async (n, pred, ms = 20000) => {
+/* 2026-09-07 (watch cycle 39): 20s was still too short. It timed out under six-way load and
+   reported the incremental-update promise broken again — the same shape as cycle 38's settings
+   wait, which was right to refuse and wrong about how long. A poll costs nothing when the value
+   is already there, and the probe's own limit is 600s, so the budget should fit the slowest
+   honest case rather than the typical one. The failure keeps its full strength: if the value
+   never arrives, the check still fails with the last thing actually seen. */
+const invWhen = async (n, pred, ms = 90000) => {
   const t0 = Date.now(); let last = {};
   while (Date.now() - t0 < ms) {
     last = await inv(n);
