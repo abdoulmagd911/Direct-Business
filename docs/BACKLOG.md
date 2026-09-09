@@ -10328,12 +10328,49 @@ The delete warning and js/02's deleted-record notice now name the Archive page a
 (probe-recovery-attacks A8 revised). Data: the two `demo_world30` payment receipts (their
 transactions were soft-deleted on 21 Aug) removed with full copies in the backup table (22 rows).
 
-**Still open from the live test, not touched here.** C3 Assigned-to vs Account-manager on one
-card; C5 the /leads/lead/ address for a client card; L7 the FUNNEL column showing the source; L8
-the empty pill; L9 the stray hover card; SH1 the one-click share button; SOP1/SOP2; the Arabic
-gaps; the Events "Del" button; Airlines truncation; BR1 the public Brand Hub; js/02's "saved
-onto a deleted record" notice and js/63's Undo still use the browser's own alert/confirm (same
-family as D1).
+**Second landing, later the same night.** AR1 follow-up — seen live minutes after js/76 went
+up: the company the owner ruled out (`archived_by = owner-ruling-2026-08-23`) was offered a
+Restore button, and two merged rows carry `merged-into:<id> (was: cleanup-…)`; a ruling is not a
+deletion anyone may reverse from a button (probe 8760 extended). C5 — a client's card reads
+`/clients/client/<id>`; and, found on the way, **a card deep link never survived a boot on any
+machine**: js/03 applied the route while `DB.businesses` still held the start-up copy, the card
+render could not find the record and cleared `openLead`, and nothing re-applied the route when
+the rows arrived — it now opens the card when the record is present (probe 8764, five boots).
+SH1 — the Share button opens a panel (js/77): one sentence on what a link does, this person's
+links with Copy / Switch off (every link for an admin), and "Create a new link" behind js/57's
+box; database policy `share_links_update` lets a person switch off a link they made (migration
+`share_links_switch_off_own`); probe-share-and-settings-attacks mints through the panel now and
+its "no revoke control exists" invariant is reversed (probe 8765, writes counted on the wire).
+Arabic — "Contacted" on the Going-cold row and "Expired 9d ago" spoke English; js/14 reads js/21's
+shared stage words and core-04's `offerExpiry` labels in both languages ("Package" and "14-pax"
+were the practice proposals' own text). Events — the row button read "Del" and a real row delete
+went through a native confirm(); full word, js/57's box with "cannot be undone", refusals through
+the toast (probe 8756 extended; probe-events revised for the box). SOP1/SOP2 — an unsized SVG
+drew a 382 px star; the Service Levels table gets a Delete button per row instead of a red ✕
+behind confirm(), non-resizable cells and an Event input that stays inside its cell (probe 8766,
+measured on screen).
+
+L7/C3 — the FUNNEL column (and the card's Funnel line) dressed the SOURCE as a green funnel tag
+when no funnel was set; it prints "— source: X" in small muted text now. A client card read
+"Assigned to: X" beside "Account manager: Y" with nothing saying why two names; it prints "Won by"
+(the lead's owner) and "Account manager" side by side (probe 8754 extended). L9 — after Save the
+table re-rendered under a cursor that had not moved, the new row under it received mouseenter and
+the hover card popped with nobody hovering; js/09 shows the card on real pointer movement only,
+and click / key / scroll put it away (probe 8754, real mouse moves; sabotage red).
+
+Airlines — the Void and Refund cells were cut at 24 characters with an ellipsis; they wrap and
+read in full (probe 8766 extended). D1 family, the last two: js/63's Undo asked through
+window.confirm and answered every result through alert(); the question is js/57's box and the
+answer js/63's own in-page notice (stays until dismissed — a toast is gone in two seconds and
+"Too old to undo" matters); js/02's "saved onto a deleted record" warning uses the same notice.
+probe-audit-undo, probe-audit-events-search-attacks A7 and probe-recovery-attacks D3/D4 read the
+page now and count a native dialog as the failure.
+
+**Still open from the live test, not touched here.** L8 the empty grey pill under a new lead's
+name (not reproduced in the harness — needs the live row that showed it); BR1 the public Brand
+Hub (owner decision); the dead first copies of evDelete/evOpenModal in js/10 (lines ~120–175,
+superseded lower down) still carry alert(); `restoreFromBackup` (Settings) still asks through
+window.confirm.
 
 ---
 
