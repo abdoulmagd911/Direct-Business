@@ -58,6 +58,21 @@ writes only the audit section, and no settings row at all.
   all inside the locked set; 0 duplicate live names; 0 orphaned contacts; 0 client links to a
   missing company; 0 negative/null invoice totals; profit = revenue − cost on every costed row.
 
+### Session-edge drive (two real browsers, one account, real DB) — one known limitation reconfirmed
+- Wrong password → clear message. Restored session (reload at /finance with the token saved) →
+  straight to Finance as admin in 14 ms, matrix + nicknames loaded, no re-login. Sign out in one
+  browser → it shows the login form, the other is unaffected and its next edit still saves. Two
+  people editing DIFFERENT leads at the same moment → both edits reached the server.
+- **Two people editing the SAME lead, different fields, within a second → one field is silently
+  overwritten and nobody is told.** This is the documented last-write-wins on the businesses row
+  (CLAUDE.md's "two people editing the same section" note), reconfirmed against the real database —
+  not a new regression. A second tab also does not see another tab's new/changed lead until it
+  reloads (no background pull of others' rows after load). The safe fix (field-level
+  read-merge-write on the core save path, or a background freshness pull) is a large change to
+  js/02 and was left out of this loop deliberately. Two harmless enablers were kept: a live
+  `trg_touch_updated_at` trigger (the column had a default but no trigger, so it never updated),
+  and the QA mock now honours `?col=gt.<v>` / `?col=in.(...)` GET filters like real PostgREST.
+
 ### Noted, not changed
 - `app_state.data.audit` is 800 entries / 151 KB and the whole section is sent on every save
   (131 KB per save). Bounded at 800, so not growing — but it is the biggest thing every save

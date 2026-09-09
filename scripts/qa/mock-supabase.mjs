@@ -1235,6 +1235,11 @@ export function start(port, seedOverrides){
       else if(k.includes('->>')) { /* handled below */ }
       else if(String(val)==='is.null') { rows=rows.filter(r=>r[k]==null); _handledGet.add(k); }
       else if(String(val)==='not.is.null') { rows=rows.filter(r=>r[k]!=null); _handledGet.add(k); }
+      /* 2026-09-09 (shared-tab freshness, js/02): the pull asks businesses?updated_at=gt.<iso>
+         and the merge-on-save asks businesses?id=in.(a,b). Both are plain PostgREST operators;
+         string comparison is right for ISO timestamps and for ids. */
+      else if(/^gt\./.test(String(val))) { const w=String(val).slice(3); rows=rows.filter(r=>r[k]!=null&&String(r[k])>w); _handledGet.add(k); }
+      else if(/^in\.\(/.test(String(val))) { const set=String(val).replace(/^in\.\(|\)$/g,'').split(',').map(s=>s.trim().replace(/^"|"$/g,'')); rows=rows.filter(r=>set.indexOf(String(r[k]))>=0); _handledGet.add(k); }
     });
     {
       const miss=unhandledFilter(u.query,_handledGet);
