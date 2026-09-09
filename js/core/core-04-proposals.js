@@ -35,7 +35,7 @@ function offerMarginText(o){
 }
 function offerMarginColor(o){var m=offerMargin(o);return m===null?'#B54708':(m>=0?'#16B364':'#F0453A');}
 try{window.offerMargin=offerMargin;window.offerMarginText=offerMarginText;window.offerHasCost=offerHasCost;window.offerNet=offerNet;}catch(_){}
-function offerExpiry(o){if(!o.validUntil)return null;const d=Math.ceil((new Date(o.validUntil).getTime()-Date.now())/864e5);return {days:d,label:d<0?('Expired '+(-d)+'d ago'):(d===0?'Expires today':'Valid '+d+'d'),color:d<0?'#F0453A':d<=2?'#F79009':'#16B364'};}
+function offerExpiry(o){if(!o.validUntil)return null;const d=Math.ceil((new Date(o.validUntil).getTime()-Date.now())/864e5);const _ar=(typeof LANG!=='undefined'&&LANG==='ar');/* 2026-09-09 (live test, Arabic gaps): the label is read on Today and the Offers list in both languages */return {days:d,label:d<0?(_ar?('انتهى قبل '+(-d)+' يوم'):('Expired '+(-d)+'d ago')):(d===0?(_ar?'ينتهي اليوم':'Expires today'):(_ar?('صالح '+d+' يوم'):('Valid '+d+'d'))),color:d<0?'#F0453A':d<=2?'#F79009':'#16B364'};}
 function offerStatusBadge(o){const c=OFFER_STATUS_COLOR[o.status]||'#9AA1B6';return `<span class="tag" style="background:${c}1a;color:${c}">${esc(o.status||'Draft')}</span>`;}
 function o_addOption(){const o=curOffer();if(!o)return;o.options=o.options||[];o.options.push({label:'Option '+(o.options.length+1),provider:'',content:'—',fareFamily:'',base:'',taxes:'',anc:'',fee:'',refundable:'No',baggage:'1 x 23kg'});save();offerEditor(document.getElementById('view'),o.id);}
 function o_setOption(i,k,val){const o=curOffer();if(!o||!o.options[i])return;o.options[i][k]=val;save();const d=document.getElementById('offerDoc');if(d)d.innerHTML=offerHTML(o);}

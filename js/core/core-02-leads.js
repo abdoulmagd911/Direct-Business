@@ -175,8 +175,9 @@ function renderLeadDetail(v,id){
              on screen. Every other row on this panel already had one. -->
         <div class="fact"><span class="k">Category</span><span class="v">${esc(b.category||"—")}</span></div>
         ${b.lostReason?`<div class="fact"><span class="k" style="color:#D92D20">Why we lost it</span><span class="v" style="color:#D92D20;font-weight:600">${esc(b.lostReason)}</span></div>`:""}
-        <div class="fact"><span class="k">Funnel</span><span class="v">${(()=>{const fn=(typeof LANG!=='undefined'&&LANG==='ar'&&b.funnelNameAr)?b.funnelNameAr:b.funnelName;return fn?`<span class="tag" style="background:#EEF0F5;color:#4B5563">${esc(fn)}</span>`:(b.source?`<span class="tag" style="background:${SOURCE_COLOR[b.source]}1a;color:${SOURCE_COLOR[b.source]}">${esc(b.source)}</span>`:"—");})()}</span></div>
-        <div class="fact"><span class="k">Assigned to</span><span class="v">${esc(b.assignedTo||b.owner||"Unassigned")}</span></div>
+        <div class="fact"><span class="k">Funnel</span><span class="v">${(()=>{const fn=(typeof LANG!=='undefined'&&LANG==='ar'&&b.funnelNameAr)?b.funnelNameAr:b.funnelName;return fn?`<span class="tag" style="background:#EEF0F5;color:#4B5563">${esc(fn)}</span>`:(b.source?`<span data-no-funnel="1" style="color:var(--muted)">— <small>${(typeof LANG!=='undefined'&&LANG==='ar')?'المصدر: ':'source: '}${esc(b.source)}</small></span>`:"—");})()}</span></div>
+        ${b.isClient?`<div class="fact"><span class="k" data-k="won-by">${(typeof LANG!=='undefined'&&LANG==='ar')?'كسبها':'Won by'}</span><span class="v">${esc(b.assignedTo||b.owner||"—")}</span></div>
+        <div class="fact"><span class="k" data-k="account-manager">${(typeof LANG!=='undefined'&&LANG==='ar')?'مدير الحساب':'Account manager'}</span><span class="v">${esc(b.accountManager||"—")}</span></div>`:`<div class="fact"><span class="k">Assigned to</span><span class="v">${esc(b.assignedTo||b.owner||"Unassigned")}</span></div>`}
         <div class="fact"><span class="k">Channels</span><span class="v">${(b.channels||[]).length?b.channels.map(esc).join(", "):"—"}</span></div>
         <div class="fact"><span class="k">Last contact</span><span class="v">${b.lastContact?fmtDate(b.lastContact):"—"}</span></div>
         <div class="fact"><span class="k">Next action</span><span class="v">${esc(b.nextAction||"—")}</span></div>
