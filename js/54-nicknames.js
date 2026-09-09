@@ -23,7 +23,13 @@
   function isAr(){ try{ return (typeof LANG!=='undefined'&&LANG==='ar')||document.documentElement.getAttribute('data-lang')==='ar'; }catch(_){ return false; } }
 
   function load(){
-    if(MAP||loading) return; loading=true;
+    if(MAP||loading) return;
+    /* 2026-09-09: not before sign-in. This fired at 0.2 s and 2.5 s after the page loaded,
+       anonymous, and the database refused it (401, "permission denied for function
+       team_nicknames") every time someone was still at the sign-in form. paint() calls load()
+       again after every render, so the map arrives as soon as the person is actually known. */
+    try{ if(window.__roleKnown!==true) return; }catch(_){ return; }
+    loading=true;
     try{
       /* Only ever use a client that already exists. Calling supabase's createClient, called with nothing passed in, with no
      arguments looks harmless — the v44a memoiser is meant to hand back the shared client — but

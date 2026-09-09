@@ -63,7 +63,7 @@
     }).catch(function(){});
   }
 
-  var _syncT=null;
+  var _syncT=null, _settingsRefused=false;
   function syncOps(){
     var c=cli(); if(!c||!SNAP) return; // never write before a successful read (protects against clobbering)
     Object.keys(T).forEach(function(sec){
@@ -94,8 +94,19 @@
     });
     try{
       var sj=JSON.stringify(DB.settings||{});
-      if(SNAP.__settings!==undefined && sj!==SNAP.__settings){
-        c.from('app_settings').upsert({id:'main',data:JSON.parse(sj),updated_at:new Date().toISOString(),updated_by:who()},{onConflict:'id'}).then(function(r){ if(!r.error) SNAP.__settings=sj; }).catch(function(){});
+      /* 2026-09-09 (live drive as a team member): the shared settings row may only be written by
+         admins and managers — the database refuses everyone else, by design. But this tab's copy
+         of the settings drifts from the row on every load (the funnel layer writes its defaults
+         into DB.settings, and the workspace blob carries an older copy of the same keys), so
+         every save an employee made also fired an app_settings write, and every one of them came
+         back 403 "violates row-level security". Nothing was lost — the refusal is right — but
+         it was one wasted, failing request per save, forever. Once refused, stop asking. */
+      if(SNAP.__settings!==undefined && sj!==SNAP.__settings && !_settingsRefused){
+        c.from('app_settings').upsert({id:'main',data:JSON.parse(sj),updated_at:new Date().toISOString(),updated_by:who()},{onConflict:'id'}).then(function(r){
+          if(!r.error){ SNAP.__settings=sj; return; }
+          var m=String((r.error&&(r.error.code+' '+r.error.message))||'');
+          if(/42501|row-level security|permission denied|403/i.test(m)){ _settingsRefused=true; if(window.console) console.info('[v59] settings are read-only for this account; not retrying'); }
+        }).catch(function(){});
       }
     }catch(_){ }
   }

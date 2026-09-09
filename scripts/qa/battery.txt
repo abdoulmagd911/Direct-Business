@@ -35,6 +35,7 @@ probe-events
 probe-events-scale
 probe-exclusion-display-attacks
 probe-exclusion-not-loaded
+probe-employee-signin-shape
 probe-expense-capture-persistence
 probe-expense-report-capture
 probe-export-access-attacks

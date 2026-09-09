@@ -1,3 +1,65 @@
+## Round 69 — 2026-09-09 — heavy testing for real: the live app, the real database, an employee's session
+
+The owner said the app "is not working properly". The harness is fake data, so this round drove
+the LIVE code (commit 1257b5a, what Vercel serves) against the REAL database through a bridge —
+every page and Finance tab in English and Arabic, then real writes (create a lead, log an
+activity that moves its stage, edit, open the card, delete), first as the QA admin and then with
+the same account switched to `team_member` — the role 7 of the 11 live accounts hold. Each write
+was read back from the database by a separate request, not by trusting the screen.
+
+### What is actually working (measured, not assumed)
+- Every page and tab renders with real data in both languages; no JS errors; 67 database calls
+  per session, none slower than 3 s; the server log for real users over 48 h shows zero failed
+  requests except the two 401s below, zero sign-in failures, zero slow queries.
+- Create / activity / stage move / edit / delete all reach the database within seconds, for the
+  admin AND for the team member (the delete archives the row, as designed). The badge said
+  "Synced Ns ago" and the database agreed.
+- Importer preview, Expenses, Payment proofs, Individual bookings, Team & Access, Generator,
+  New request form, Add event form, top search, Export → a real 6 KB CSV, and the phone-sized
+  screen (no sideways scroll on Today/Leads/Clients/Finance/client card, in Arabic too).
+- The full local battery: 113/113 green (one red under `-j` load was a starved boot, green alone).
+
+### Three real defects, all invisible to an admin, all fixed in this round
+1. **The per-person page matrix never loaded on a normal sign-in.** js/56 asked for it 1.2 s and
+   5 s after the PAGE loaded — before anyone had typed a password — anonymous, refused (401,
+   "permission denied for function my_page_access"; 31 of 39 calls in a day in the live log),
+   swallowed, never retried. Whatever the owner sets in Team & Access for a person was not in
+   effect until they happened to reload; js/52 silently used its built-in floor lists instead.
+   js/54 did the same with nicknames. Fix: both wait for js/02's `__roleKnown` before asking, and
+   the matrix retries on error; also re-fetched when a different account signs in without reload.
+2. **"You do not have access to that page" stuck to pages the person IS allowed on.** js/64
+   re-asserted the banner on every render for 8 s after a bounce — including the Leads or Finance
+   they opened next — and never removed it, so on pages that redraw in place it sat there until
+   the next full render. Screenshot: the banner above a team member's Finance dashboard. Pressing
+   "New request" on a lead card (→ Operations) is enough to trigger it. Fix: the banner belongs to
+   Today only and is removed when another page renders or the 8 s end.
+3. **Every employee save fired a write to the shared settings row, refused 403 each time.** The
+   database is right to refuse (policy `can_edit_page('settings')`); js/35 kept asking because
+   the tab's settings drift from the row on every load. Fix: once refused, stop for the session.
+Probe: `probe-employee-signin-shape.mjs` (9034) — seeds the QA account as team_member, sits 7 s
+on the sign-in form, then checks: no anonymous calls before sign-in; matrix + nicknames arrive
+after; bounce shows the banner on Today (control); Leads right after has none; banner gone by
+9 s; exactly one refused settings write across the session. Sabotage: each fix removed → its
+check red; restored byte-identical (md5). The mock now refuses app_settings writes for anyone
+without `settings: editor` (mirrors the live policy) and answers team_nicknames with real rows.
+
+### Live data cleaned (backed up first)
+`app_settings.data` and `app_state.data.settings` both carried junk keys from earlier probes
+against the live database — `probe: "manager"`, `rlsProbe: "manager"` — and `currentUser`
+(the very leak js/02 says nothing writes any more). Because the two stores disagreed, EVERY
+admin session rewrote the settings row on its first save. Removed from both (backups:
+`app_settings_backup_20260909`, `app_state_backup_20260909`); after that an admin session
+writes only the audit section, and no settings row at all.
+
+### Noted, not changed
+- `app_state.data.audit` is 800 entries / 151 KB and the whole section is sent on every save
+  (131 KB per save). Bounded at 800, so not growing — but it is the biggest thing every save
+  carries. A real table would make saves cheaper.
+- The 24 snapshot tables have RLS on with no policy (unreachable by anyone through the API,
+  which is fine for backups); Supabase advisors also flag `pg_net` in public and leaked-password
+  protection off — none of it affects daily use.
+- `probe-live2` still uploads a `live-check.pdf` into the REAL proposals bucket when run.
+
 ## 2026-09-07 · Watch cycle 40 — the number that decides which company record survives a merge
 
 The dialog method found a second real defect, one file over from cycle 39's.

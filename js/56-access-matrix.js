@@ -43,17 +43,39 @@
   function amAdmin(){ try{ return window.__userRole==='admin'; }catch(_){ return false; } }
 
   /* ---------- my own access, loaded once and kept on window for the access-model layer ---------- */
+  /* 2026-09-09 (live drive against the real database, signing in at typing speed): this used
+     to fire at 1.2 s and 5 s after the PAGE loaded — both before anyone had finished typing a
+     password. Each call went out anonymous, the database answered 401 "permission denied for
+     function my_page_access" (31 of the 39 calls in the previous 24 hours of server logs), the
+     error was swallowed, and nothing ever asked again. So on a normal sign-in the per-person
+     matrix simply never arrived: __pageAccessLoaded stayed false, js/52 fell back to its built-in
+     floor lists, and whatever the owner had set in Team & Access for that person was not in
+     effect until they happened to reload. Only a session restored from a saved token (already
+     signed in when the page opened) ever got the matrix.
+     Now: wait until js/02 has confirmed who this is (__roleKnown), then ask — and if the answer
+     is an error, ask again a few times rather than giving up on the first hiccup. */
+  var mineTries=0;
   function loadMine(){
-    var c=client(); if(!c||!c.rpc) return;
+    if(window.__pageAccessLoaded===true) return;
+    if(window.__roleKnown!==true){ if(mineTries++<240) setTimeout(loadMine,500); return; }   /* up to two minutes at the sign-in form */
+    var c=client(); if(!c||!c.rpc){ if(mineTries++<240) setTimeout(loadMine,500); return; }
     c.rpc('my_page_access').then(function(r){
-      if(!r||r.error) return;
+      if(!r||r.error){ if(mineTries++<240) setTimeout(loadMine,3000); return; }
       window.__pageAccess = r.data || null;      // null for admins = no matrix applies
       window.__pageAccessLoaded = true;
       try{ if(typeof render==='function') render(); }catch(_){}
-    }).catch(function(){});
+    }).catch(function(){ if(mineTries++<240) setTimeout(loadMine,3000); });
   }
-  setTimeout(loadMine, 1200);
-  setTimeout(loadMine, 5000);
+  setTimeout(loadMine, 800);
+  /* the same account can sign out and another sign in without a reload — js/02 flips
+     __roleKnown false and true again; when it does, the matrix is the new person's to fetch */
+  try{
+    var lastKnown=null;
+    setInterval(function(){
+      var k=(window.__roleKnown===true);
+      if(k!==lastKnown){ if(k && lastKnown===false){ window.__pageAccessLoaded=false; window.__pageAccess=null; mineTries=0; loadMine(); } lastKnown=k; }
+    },1000);
+  }catch(_){}
 
   /* ---------- the editor, for admins, inside Team & Access ---------- */
   var ROWS=null;

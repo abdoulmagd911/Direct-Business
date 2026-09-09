@@ -47,7 +47,19 @@
      the bounce, so the explanation flashed up and vanished (measured: present at 400 ms, gone
      by 900 ms) and the person was left moved with no reason given. Re-assert it on the renders
      that follow the bounce, for long enough to be read; showBanner() is already idempotent. */
-  var stickUntil=0, STICK_MS=8000;
+  var stickUntil=0, STICK_MS=8000, hideT=null;
+  /* 2026-09-09 (live drive as a team member, real database): the re-assert above had no idea
+     WHICH page it was re-asserting on. Pressing "New request" on a lead card sends an employee
+     to Operations, which bounces them to Today with the banner — correct — and then every
+     render inside the next eight seconds put the same banner back, including the render of
+     Leads or Finance they opened next. And nothing ever took it down: the banner is a child of
+     #view, so on a page that redraws itself in place (Leads redraws only its table) it stayed
+     at the top of an allowed page until the next full render, which can be minutes. Measured:
+     "You do not have access to that page" sitting above the Finance dashboard of a person whose
+     matrix grants Finance. The banner now belongs to Today alone, and it is removed — not just
+     no longer re-added — the moment another page renders or the eight seconds run out. */
+  function hideBanner(){ try{ var d=document.getElementById(BANNER_ID); if(d) d.remove(); }catch(_){} }
+  function armHide(){ try{ clearTimeout(hideT); hideT=setTimeout(function(){ if(Date.now()>=stickUntil) hideBanner(); }, STICK_MS+50); }catch(_){} }
   if(typeof window.render==='function'){
     var _r64=window.render;
     window.render=function(){
@@ -61,14 +73,17 @@
             if(lastLogged!==denied){ lastLogged=denied; logDenied(denied); }
             var out=_r64.apply(this,arguments);
             stickUntil=Date.now()+STICK_MS;
-            showBanner();
+            showBanner(); armHide();
             return out;
           }
         }
       }catch(e){ if(window.console)console.warn('[v64] access guard',e); }
       lastLogged=null;
       var out2=_r64.apply(this,arguments);
-      try{ if(Date.now()<stickUntil) showBanner(); }catch(_){}
+      try{
+        var onToday=(typeof current!=='undefined' && current==='today');
+        if(onToday && Date.now()<stickUntil) showBanner(); else hideBanner();
+      }catch(_){}
       return out2;
     };
   }

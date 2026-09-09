@@ -814,6 +814,15 @@ export function start(port, seedOverrides){
       }
       // page-access enforcement (2026-08-21): log_page_denied(p_page) appends a real row so
       // the harness can prove the client actually calls it, not just that it redirects.
+      /* 2026-09-09: team_nicknames() answered [] here — a stub — so js/54 built an empty map and
+         no probe could tell "nicknames loaded" from "nicknames never asked for". The live
+         function returns one row per active account: full_name, nickname, nickname_ar (display
+         names only — no email, no role — which is why any signed-in caller may run it). */
+      if(fn==='team_nicknames'){
+        const meN=TABLES.app_users.find(u=>u.id===UID && u.active);
+        if(!meN) return send(res,401,{code:'42501',details:null,hint:null,message:'permission denied for function team_nicknames'});
+        return send(res,200, TABLES.app_users.filter(u=>u.active).map(u=>({full_name:u.full_name,nickname:u.nickname||null,nickname_ar:u.nickname_ar||null})));
+      }
       if(fn==='log_page_denied'){
         const me=TABLES.app_users.find(u=>u.id===UID && u.active);
         const nextId=Math.max(0,...TABLES.record_history.map(r=>r.id))+1;
@@ -1020,6 +1029,13 @@ export function start(port, seedOverrides){
         return req.on('end',()=>{
           let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
           if(!Array.isArray(payload)) payload=[payload];
+          /* 2026-09-09: the LIVE write policy is `can_edit_page('settings')` — admins, and anyone
+             whose page_access grants settings as editor. Everyone else gets 42501, which is what
+             the real database answered a team member's every save until js/35 learned to stop
+             asking. Read off pg_policy the same day. */
+          const meS=TABLES.app_users.find(u=>u.id===UID && u.active);
+          const mayS=!!meS && (meS.role==='admin' || (meS.page_access && meS.page_access.settings==='editor'));
+          if(!mayS) return send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "app_settings"'});
           TABLES.app_settings=TABLES.app_settings||[];
           const written=payload.map(row=>{
             const id=row.id==null?'main':String(row.id);

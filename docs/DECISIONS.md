@@ -904,3 +904,25 @@ probe that measures content immediately after a click, without waiting for settl
 false "renders EMPTY" results on tabs still mid-load. Use the right one for what's being
 tested, not one rule for both.
 *Date: 2026-08-22. Status: ACTIVE.*
+
+**A call that needs a signed-in person waits for `window.__roleKnown===true`, never for a
+stopwatch.** `my_page_access()` and `team_nicknames()` have no EXECUTE for `anon`; a layer that
+asked for them N seconds after the PAGE loaded went out before the password was typed, got 401,
+swallowed it, and never asked again — so the owner's Team & Access settings were not in effect
+for anyone who signed in by typing. The live log showed it (31 of 39 calls in a day refused)
+and no probe did, because probes autofill in under a second. Gate on `__roleKnown`, retry on
+error, and give sign-in probes a typing-speed pause (`probe-employee-signin-shape`).
+*Date: 2026-09-09, js/56 + js/54. Status: ACTIVE.*
+
+**A layer that inserts something into `#view` removes it itself; "no longer re-added" is not
+"removed".** Pages that redraw in place (the Leads table) keep whatever an earlier render left
+at the top of `#view`, so js/64's "no access" banner sat above an employee's Finance until the
+next full render. Insert with an id, remove by id on every render where it does not belong, and
+on a timer for the page where it does.
+*Date: 2026-09-09, js/64. Status: ACTIVE.*
+
+**Test as the role most people have.** 7 of 11 live accounts are `team_member`; every live drive
+before 2026-09-09 signed in as the QA admin and could not see any of the three defects that
+round found. The QA account can be switched to `team_member` in `app_users` for a drive and
+switched back — its row is the only thing changed, and it is a QA account.
+*Date: 2026-09-09. Status: ACTIVE.*
