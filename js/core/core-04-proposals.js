@@ -78,7 +78,17 @@ function offerEditor(v,id){
      <h3 style="margin:0 0 10px">${_pl('Proposal','العرض / المقترح')}</h3>
      <div class="grid2">
        <div class="field"><label>${_pl('Type','النوع')}</label><select onchange="o_set('proposalType',this.value)">${PROPOSAL_TYPES.map(t=>`<option value="${t}" ${o.proposalType===t?'selected':''}>${_par?(PROPOSAL_TYPES_AR[t]||t):t}</option>`).join('')}</select></div>
-       <div class="field"><label>${_pl('Client','العميل')}</label><select onchange="o_setClient(this.value)"><option value="">${_pl('— pick a client —','— اختر عميلاً —')}</option>${_clients.map(b=>`<option value="${esc(b.id)}" ${o.linkedLeadId===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>
+       <div class="field"><label>${_pl('Client','العميل')}</label><select onchange="o_setClient(this.value)"><option value="">${_pl('— pick a client —','— اختر عميلاً —')}</option>${(()=>{
+         /* 2026-09-09 (live test, O1): a saved proposal showed "— pick a client —" although it had a
+            client. Two ways that happens: the linked record is a LEAD (this list is clients only),
+            or the linked company is gone from the workspace (every practice proposal of 13 Aug).
+            Show the stored name in both cases, and say which case it is, rather than pretend the
+            proposal has no client. */
+         const linked=(DB.businesses||[]).find(b=>b.id===o.linkedLeadId);
+         const extra=(!linked&&(o.client||o.linkedLeadId))?`<option value="${esc(o.linkedLeadId||'')}" selected data-orphan="1">${esc(o.client||'?')} — ${_pl('company no longer in the list','الشركة لم تعد في القائمة')}</option>`
+           :(linked&&!linked.isClient?`<option value="${esc(linked.id)}" selected data-lead="1">${esc(linked.name)} — ${_pl('lead, not yet a client','عميل محتمل، ليس عميلاً بعد')}</option>`:'');
+         return extra+_clients.map(b=>`<option value="${esc(b.id)}" ${o.linkedLeadId===b.id?'selected':''}>${esc(b.name)}</option>`).join('');
+       })()}</select></div>
      </div>
      <div class="grid2">
        <div class="field"><label>${_pl('Value (SAR)','القيمة (ريال)')}</label><input value="${esc(o.value||o.total||'')}" oninput="o_set('value',this.value)"></div>
@@ -130,7 +140,17 @@ function offerEditor(v,id){
      <div class="field"><label>Additional fees</label><textarea id="of_addFees" rows="2" oninput="o_set('addFees',this.value)">${esc(o.addFees||'')}</textarea></div>
      </details><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn pri" onclick="o_copyText()">⧉ Copy for WhatsApp / Email</button><button class="btn" onclick="o_download()">⭳ Download</button><button class="btn" onclick="o_print()">🖨 Print / PDF</button><button class="btn danger" onclick="o_del('${o.id}')">Delete</button></div>
    </div>
-   <div class="offer-preview"><div class="ch-sub" style="margin-bottom:8px">Live preview — this is what the client sees</div><div id="offerDoc">${offerHTML(o)}</div></div>
+   <div class="offer-preview">${(()=>{
+     /* 2026-09-09 (live test, O4): a "Business solution" proposal (an annual corporate agreement)
+        was previewed as a FLIGHT QUOTE — "Passenger: Corporate travel rates", Airline / Class /
+        Route all "—", a ticket-price table of dashes and fare rules — under the words "this is
+        what the client sees". That preview is the travel quote; for every other proposal type
+        the client-facing document is the branded proposal (the orange button in the head). Say
+        which is which instead of showing the wrong one. */
+     const travel=!o.proposalType||o.proposalType==='Travel — flights'||!!(o.airline||o.route||o.flight||o.ticketPrice);
+     if(travel) return `<div class="ch-sub" style="margin-bottom:8px">${_pl('Live preview — this is what the client sees','معاينة حية — هذا ما يراه العميل')}</div><div id="offerDoc">${offerHTML(o)}</div>`;
+     return `<div id="offerDoc" data-preview="branded"><div class="card" style="padding:16px 18px;border-inline-start:3px solid #FF6B00"><div style="font-weight:800;margin-bottom:6px">${_pl('This is a','هذا')} ${esc(_par?(PROPOSAL_TYPES_AR[o.proposalType]||o.proposalType):o.proposalType)} ${_pl('proposal','عرض')}</div><div style="font-size:13px;line-height:1.6;color:#3C4050">${_pl('The document the client receives is the <b>branded proposal</b> — use “Generate branded proposal” above. The travel-quote fields on the left (airline, route, ticket price, fare rules) are not part of it; the flight-quote preview is shown only for travel quotes.','المستند الذي يستلمه العميل هو <b>العرض المُعنوَن</b> — استخدم «إنشاء عرض مُعنوَن» أعلاه. حقول عرض السفر على اليسار (الطيران، المسار، سعر التذكرة، قواعد الأجرة) ليست جزءاً منه، ومعاينة عرض الطيران تظهر لعروض السفر فقط.')}</div><div style="margin-top:10px"><button class="btn sm pri" onclick="o_genProposal('${o.id}')">🖨 ${_pl('Generate branded proposal','إنشاء عرض مُعنوَن')}</button></div></div></div>`;
+   })()}</div>
   </div>`;
 }
 function offerHTML(o){const cur=esc(o.currency||'SAR');const c=v=>esc(v||'—');

@@ -15,10 +15,12 @@ function getLead(id){return DB.businesses.find(b=>b.id===id);}
    system is the 24 hours hard-coded in undo_change(). House rule: an honest visible
    limitation beats a comforting false one. */
 function _delWarn(){
+  /* 2026-09-09 (live test AR1): the Archive page lists deleted companies and restores one — the
+     warning used to say there was no such screen. */
   var ar=(typeof LANG!=='undefined'&&LANG==='ar');
   return ar
-    ? 'حذف هذه الشركة؟\n\nلا يُمحى شيء — يُؤرشَف السجل في قاعدة البيانات ويختفي من قوائم الجميع. لا توجد شاشة أرشيف للشركات: الطريق الوحيد لإرجاعه داخل التطبيق هو «النشاط والتدقيق ← تراجع» خلال 24 ساعة. بعد ذلك يلزم مسؤول لاستعادته من قاعدة البيانات.'
-    : 'Delete this company?\n\nNothing is erased — the record is archived in the database and stops appearing in anyone\'s lists. There is no Archive screen for companies: the only way back inside the app is Activity & Audit \u2192 Undo, within 24 hours. After that an admin has to restore it in the database.';
+    ? 'حذف هذه الشركة؟\n\nلا يُمحى شيء — يُؤرشَف السجل في قاعدة البيانات ويختفي من قوائم الجميع. تجده في صفحة «الأرشيف» ومنها يمكن استعادته في أي وقت؛ كما يمكن التراجع من «النشاط والتدقيق ← تراجع» خلال 24 ساعة.'
+    : 'Delete this company?\n\nNothing is erased — the record is archived in the database and stops appearing in anyone\'s lists. It is listed on the Archive page, where it can be restored at any time; Activity & Audit \u2192 Undo also reverses it within 24 hours.';
 }
 let leadDetailView="detail";
 function openLeadFn(id){openLead=id;leadDetailView="detail";render();window.scrollTo(0,0);}
@@ -51,7 +53,14 @@ function drawLeads(){var sum=document.getElementById("leadsum");if(leadView==='d
 function drawLeadsDash(){
 const board=document.getElementById("board");board.className="";
 const SL=s=>s==="Won"?"Client":s;
-const B=DB.businesses.filter(matchLead);
+/* 2026-09-09 (live test, L1): with the Lost chip on, this board read "Total leads 2 · Lost 3" —
+   a converted CLIENT whose stage still says Lost was counted as a lost lead while "Total leads"
+   (rightly) leaves clients out. One pool for every tile: leads only, the same rows the table
+   shows (Hide-closed included when no stage is picked); "Became client" counts the clients the
+   same filters match, on their own. */
+const _hc=(typeof leadFilter!=='undefined'&&leadFilter.hideClosed&&(leadFilter.stage==='all'||!leadFilter.stage));
+const _all=DB.businesses.filter(matchLead);
+const B=_all.filter(b=>!b.isClient).filter(b=>!_hc||(leadStage(b)!=="Won"&&leadStage(b)!=="Lost"));
 const open=B.filter(b=>{const s=leadStage(b);return s!=="Won"&&s!=="Lost";});
 const fmax=Math.max(1,...LEAD_STAGES.map(s=>B.filter(b=>leadStage(b)===s).length));
 const byStage=LEAD_STAGES.map(s=>({s,n:B.filter(b=>leadStage(b)===s).length,c:LSTAGE_COLOR[s]}));
@@ -59,14 +68,18 @@ const srcCount={};B.forEach(b=>{const _arF=(typeof LANG!=="undefined"&&LANG==="a
 const bySource=Object.entries(srcCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
 const ownerCount={};B.forEach(b=>{const o=b.assignedTo||b.owner||"Unassigned";ownerCount[o]=(ownerCount[o]||0)+1;});
 const byOwner=Object.entries(ownerCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
-const clients=B.filter(b=>leadStage(b)==="Won").length;
+const clients=_all.filter(b=>b.isClient||leadStage(b)==="Won").length;
 const lost=B.filter(b=>leadStage(b)==="Lost").length;
 /* "Total leads" counts leads. A company that has become a client is no longer one, and
    counting it in both places made the tile read 91 when there were 81 leads and 10 clients.
    The clients keep their own tile next door, so nothing is hidden — it is just not
    double-counted. (2026-08-16, found by the owner testing the live page.) */
 const leadsOnly=B.filter(b=>!b.isClient);
-board.innerHTML=`<div class="chips" style="margin-bottom:14px"><div class="chip"><div class="v">${leadsOnly.length}</div><div class="l">Total leads</div></div><div class="chip"><div class="v">${open.length}</div><div class="l">In pipeline</div></div><div class="chip"><div class="v">${clients}</div><div class="l">Became client</div></div><div class="chip"><div class="v">${lost}</div><div class="l">Lost</div></div></div>
+/* 2026-09-09 (live test, L4): .chip is styled for the dark hero (white-on-dark, translucent
+   box) — on this white board the four tiles drew as faint outlined strips with a dark number
+   and an unreadable grey label. Light-surface styling, inline, so nothing else changes. */
+const _tile=(v,l)=>`<div class="chip" style="background:#fff;border:1px solid #EFE9DF;color:#1C1E2B;min-width:150px;padding:14px 18px"><div class="v" style="font-size:24px;line-height:1.1">${v}</div><div class="l" style="color:#6B7480;margin-top:4px">${l}</div></div>`;
+board.innerHTML=`<div class="chips leads-dash-tiles" style="margin:0 0 14px">${_tile(leadsOnly.length,'Total leads')}${_tile(open.length,'In pipeline')}${_tile(clients,'Became client')}${_tile(lost,'Lost')}</div>
 <div class="detail-grid"><div><div class="card"><h3>Leads by stage</h3>${byStage.map(f=>`<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:12px"><span style="font-weight:600">${SL(f.s)}</span><span style="color:var(--muted)">${f.n} lead${f.n===1?"":"s"}</span></div><div style="height:10px;background:#eef0f5;border-radius:6px;overflow:hidden;margin-top:3px"><div style="height:100%;width:${Math.round(f.n/fmax*100)}%;background:${f.c}"></div></div></div>`).join("")}</div></div>
 <div><div class="card"><h3>Leads by funnel</h3>${bySource.length?bySource.map(e=>`<div class="fact"><span class="k">${esc(e[0])}</span><span class="v">${e[1]}</span></div>`).join(""):'<div class="empty">No funnels.</div>'}</div>
 <div class="card"><h3>By owner</h3>${byOwner.length?byOwner.map(e=>`<div class="fact"><span class="k">${esc(e[0])}</span><span class="v">${e[1]}</span></div>`).join(""):'<div class="empty">No owners.</div>'}</div></div></div>`;
@@ -104,7 +117,7 @@ function leadDashboard(v,id){
   </div>
   <div class="detail-grid"><div>
     <div class="card"><h3>Work log</h3><div class="ch-sub">Calls, meetings, emails, tasks — the full history with this account.</div>
-      ${acts.length?`<div class="timeline">${acts.map(a=>`<div class="tl-item"><div class="when">${fmtDate(a.date)} · ${fmtAgo(a.date)}${a.by?" · "+esc(a.by):""}</div><div class="what"><b>${esc(((typeof LANG!=='undefined'&&LANG==='ar')?(({note:'ملاحظة',call:'مكالمة',email:'بريد',meeting:'اجتماع',whatsapp:'واتساب',visit:'زيارة'})[a.type]||a.type):a.type))}</b>${a.status?` → <b>${esc(a.status)}</b>`:""}${a.note?": "+esc(a.note):""}</div></div>`).join("")}</div>`:'<div class="empty">No activity yet — click “Log activity”.</div>'}
+      ${acts.length?`<div class="timeline">${acts.map(a=>`<div class="tl-item" data-act-i="${_actIdx(b,a)}"><div class="when">${fmtDate(a.date)} · ${fmtAgo(a.date)}${a.by?" · "+esc(a.by):""}${_actMeta(b,a)}</div><div class="what"><b>${esc(((typeof LANG!=='undefined'&&LANG==='ar')?(({note:'ملاحظة',call:'مكالمة',email:'بريد',meeting:'اجتماع',whatsapp:'واتساب',visit:'زيارة'})[a.type]||a.type):a.type))}</b>${a.status?` → <b>${esc(a.status)}</b>`:""}${a.note?": "+esc(a.note):""}</div></div>`).join("")}</div>`:'<div class="empty">No activity yet — click “Log activity”.</div>'}
       <div style="margin-top:10px"><button class="btn sm" onclick="logActivity('${b.id}')">＋ Log activity</button></div>
     </div>
     ${b.notes?`<div class="card"><h3>Notes</h3><p style="margin:0;font-size:13px;color:#3a4054;line-height:1.6">${esc(b.notes)}</p></div>`:""}
@@ -152,7 +165,7 @@ function renderLeadDetail(v,id){
   <div class="detail-grid">
     <div>
       <div class="card"><h3>Activity &amp; workflow</h3><div class="ch-sub">Every touch with this business — no digging through chats or invoices</div>
-      ${acts.length?`<div class="timeline">${acts.map(a=>`<div class="tl-item"><div class="when">${fmtDate(a.date)} · ${fmtAgo(a.date)}${a.by?" · "+esc(a.by):""}</div><div class="what"><b>${esc(((typeof LANG!=='undefined'&&LANG==='ar')?(({note:'ملاحظة',call:'مكالمة',email:'بريد',meeting:'اجتماع',whatsapp:'واتساب',visit:'زيارة'})[a.type]||a.type):a.type))}</b>${a.status?((typeof LANG!=='undefined'&&LANG==='ar')?` ← نُقل إلى <b>${esc(a.status)}</b>`:` → moved to <b>${esc(a.status)}</b>`):""}${a.note?": "+esc(a.note):""}</div></div>`).join("")}</div>`:'<div class="empty">No activity yet — click “Log activity” after your first contact.</div>'}</div>
+      ${acts.length?`<div class="timeline">${acts.map(a=>`<div class="tl-item" data-act-i="${_actIdx(b,a)}"><div class="when">${fmtDate(a.date)} · ${fmtAgo(a.date)}${a.by?" · "+esc(a.by):""}${_actMeta(b,a)}</div><div class="what"><b>${esc(((typeof LANG!=='undefined'&&LANG==='ar')?(({note:'ملاحظة',call:'مكالمة',email:'بريد',meeting:'اجتماع',whatsapp:'واتساب',visit:'زيارة'})[a.type]||a.type):a.type))}</b>${a.status?((typeof LANG!=='undefined'&&LANG==='ar')?` ← نُقل إلى <b>${esc(a.status)}</b>`:` → moved to <b>${esc(a.status)}</b>`):""}${a.note?": "+esc(a.note):""}</div></div>`).join("")}</div>`:'<div class="empty">No activity yet — click “Log activity” after your first contact.</div>'}</div>
       <div class="card"><h3>Contacts</h3>${(b.contacts||[]).length?b.contacts.map(c=>`<div class="contact-row"><div class="ci">${initials(c.name||c.email||"?")}</div><div style="flex:1;min-width:0"><div style="font-weight:600">${esc(c.name||"—")}${c.role?` <span style="font-weight:400;color:var(--muted);font-size:11.5px">· ${esc(c.role)}</span>`:""}${c.needsConfirm?` <span class="v72-confirm" title="${esc(c.confirmReason||"")}" style="display:inline-block;margin-inline-start:6px;padding:1px 7px;border-radius:9px;background:#FFF3EC;color:#B54708;font-size:10.5px;font-weight:700;cursor:help">⚠ ${(typeof LANG!=="undefined"&&LANG==="ar")?"يحتاج تأكيدًا":"needs confirmation"}</span>`:""}</div><div style="font-size:11.5px;color:var(--muted)">${c.email?`<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`:""}${c.email&&c.phone?" · ":""}${c.phone?`<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a> <a href="https://wa.me/${String(c.phone).replace(/[^0-9]/g,"").replace(/^0/,"966")}" target="_blank" rel="noopener" style="color:#16B364;font-weight:800" title="WhatsApp">WA</a>`:""}</div></div></div>`).join(""):'<div class="empty">No contacts yet.</div>'}</div>${corpCard(b)}
     </div>
     <div>
@@ -185,6 +198,11 @@ function clientHealth(b){
   var last=b.lastContact||(la&&la.date)||0;           // canonical last-touch, ms; 0 = never
   var daysAct=last?Math.floor((Date.now()-last)/864e5):null;
   var reviewOverdue=b.nextReview&&b.nextReview<=today;
+  /* 2026-09-09 (live test EX3): a client whose stage reads Lost sat on the Clients list with
+     Health "Good" and the "Won: converted" line — nothing on the row said the account was lost.
+     Lost outranks every other health reading. */
+  var _stg=(typeof leadStage==='function')?leadStage(b):(b.stage||'');
+  if(_stg==='Lost')return {l:'Lost',c:'#6B7480',why:'Marked Lost — no longer an active client'};
   if(reviewOverdue)return {l:'At risk',c:'#D92D20',why:'Account review overdue'};
   if(daysAct===null)return {l:'New',c:'#6B7480',why:'No activity logged yet'};
   if(daysAct>90)return {l:'At risk',c:'#D92D20',why:'No contact in 90+ days'};
@@ -245,6 +263,22 @@ var _ar=(typeof LANG!=='undefined'&&LANG==='ar');return _n?`<option value="__non
   </tbody></table></div></div>`;
   const cq=document.getElementById("clq");if(cq){cq.oninput=e=>{clFilter.q=e.target.value;render();const n=document.getElementById("clq");if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length);}catch(_){}}};}
 }
+/* 2026-09-09 (live test A2): a logged activity could never be corrected or removed — a wrong
+   note, a duplicate rehearsal call, stayed on the record for good. Each timeline entry now
+   carries its index in the record and, for someone who may edit the page, an edit and a remove
+   control (both timelines: the lead dashboard's and the detail card's). */
+function _actIdx(b,a){return (b.activities||[]).indexOf(a);}
+function _actMeta(b,a){const i=_actIdx(b,a);const _ar=(typeof LANG!=='undefined'&&LANG==='ar');let h='';if(a.edited)h+=` · <span data-act-edited title="${esc((a.edited.by||'')+' '+(a.edited.at?fmtDate(a.edited.at):''))}">${_ar?'(عُدِّل)':'(edited)'}</span>`;const may=(typeof window.mayEditPage==='function')?window.mayEditPage('leads')!==false:true;if(!may||i<0)return h;return h+`<span class="tl-tools" style="margin-inline-start:8px;font-size:11px"><a href="javascript:void 0" data-act-edit="${i}" onclick="event.stopPropagation();editActivity('${b.id}',${i})" style="color:var(--muted)">${_ar?'تعديل':'edit'}</a> · <a href="javascript:void 0" data-act-remove="${i}" onclick="event.stopPropagation();removeActivity('${b.id}',${i})" style="color:var(--muted)">${_ar?'إزالة':'remove'}</a></span>`;}
+/* 2026-09-09 (live test A5): "Last contact" is the newest activity that is still on the record.
+   Logging moved it forward; removing the entry never moved it back, so a deleted note left a
+   contact date that no longer had anything behind it. */
+function recomputeLastContact(b){var mx=0;(b.activities||[]).forEach(function(a){var d=(typeof a.date==='number')?a.date:Date.parse(a.date)||0;if(d>mx)mx=d;});if(mx)b.lastContact=mx;else delete b.lastContact;return mx||null;}
+function editActivity(id,i){const b=getLead(id);if(!b||!b.activities||!b.activities[i])return;const a=b.activities[i];const _ar=(typeof LANG!=='undefined'&&LANG==='ar');const d=new Date(typeof a.date==='number'?a.date:(Date.parse(a.date)||Date.now()));const pad=n=>String(n).padStart(2,'0');const dl=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+  openModal((_ar?'تعديل النشاط — ':'Edit activity — ')+esc(b.name),`<div class="grid2"><div class="field"><label>${_ar?'النوع':'Type'}</label><select id="ae_type">${ACT_TYPES.concat(ACT_TYPES.indexOf(a.type)<0&&a.type?[a.type]:[]).map(t=>`<option ${t===a.type?'selected':''}>${esc(t)}</option>`).join('')}</select></div><div class="field"><label>${_ar?'التاريخ والوقت':'When'}</label><input id="ae_when" type="datetime-local" value="${dl}"></div></div><div class="field"><label>${_ar?'ماذا حدث؟':'What happened?'}</label><textarea id="ae_note" rows="6">${esc(a.note||'')}</textarea></div>${a.status?`<div class="ch-sub">${_ar?'نقل المرحلة المسجّل هنا يبقى كما هو: ':'The stage move recorded here stays as it is: '}<b>${esc(a.status)}</b></div>`:''}`,
+  ()=>{const note=val('ae_note');const t=val('ae_type');const w=Date.parse(val('ae_when'));if(!note.trim()&&!t){toast(_ar?'اكتب ما حدث':'Write what happened','err');return false;}a.type=t||a.type;a.note=note;const _o=(typeof a.date==='number')?a.date:Date.parse(a.date)||0;if(w&&!isNaN(w)&&Math.floor(w/60000)!==Math.floor(_o/60000))a.date=w;/* the picker drops seconds — an untouched date stays exactly as it was */a.edited={by:(typeof me==='function'?me():''),at:Date.now()};recomputeLastContact(b);if(typeof logAudit==='function')logAudit('lead',id,'activity-edited',t);save();render();toast(_ar?'تم تعديل النشاط':'Activity updated');});}
+function removeActivity(id,i){const b=getLead(id);if(!b||!b.activities||!b.activities[i])return;const a=b.activities[i];const _ar=(typeof LANG!=='undefined'&&LANG==='ar');const _go=()=>{b.activities.splice(i,1);const lc=recomputeLastContact(b);if(typeof logAudit==='function')logAudit('lead',id,'activity-removed',a.type||'');save();render();toast(_ar?('أُزيل النشاط · آخر تواصل: '+(lc?fmtDate(lc):'لا يوجد')):('Activity removed · last contact: '+(lc?fmtDate(lc):'none')));};
+  const msg=(_ar?'إزالة هذا النشاط من السجل؟':'Remove this activity from the record?')+'\n'+(a.type||'')+(a.note?': '+String(a.note).slice(0,80):'')+'\n'+(_ar?'يُعاد حساب «آخر تواصل» من النشاطات المتبقية.':'"Last contact" is recomputed from what remains.');
+  if(typeof window.pfConfirm==='function')window.pfConfirm(msg,_go);else _go();}
 function logActivity(id){const b=getLead(id);if(!b)return;
   openModal("Log activity — "+esc(b.name),`<div class="grid2"><div class="field"><label>Type</label><select id="a_type">${ACT_TYPES.map(t=>`<option>${t}</option>`).join("")}</select></div><div class="field"><label>Move stage to</label><select id="a_status"><option value="">— keep ${esc(leadStage(b))} —</option>${LEAD_STAGES.map(s=>`<option>${s}</option>`).join("")}</select></div></div><div class="field"><label>What happened? — paste the conversation or write a summary</label><textarea id="a_note" rows="7" placeholder="e.g. Called Mr. Nasser — interested, sending the proposal Sunday"></textarea></div><div class="field"><label>Next action (optional)</label><input id="a_next" value="${esc(b.nextAction||"")}"></div>`,
   ()=>{const ns=val("a_status");b.activities=b.activities||[];b.activities.push({date:Date.now(),type:val("a_type"),status:ns||"",note:val("a_note"),by:(typeof me==="function"?me():"Abdelrahman")});if(ns){b.stage=ns;b.status=ns;if(ns==="Won")b.isClient=true;}b.lastContact=Date.now();b.nextAction=val("a_next");save();render();});
@@ -267,7 +301,7 @@ function editBusiness(id){
     
     <div class="field"><label>Contacts (same business, multiple people)</label><div id="contacts"></div><button class="btn sm" onclick="addContactRow()">+ Add contact</button></div>
     <div class="field"><label>Notes</label><textarea id="f_notes" rows="2">${esc(b.notes||"")}</textarea></div>
-  `,()=>{b.name=val("f_name");b.nameAr=val("f_ar");b.segment=val("f_seg");b.area=val("f_area");b.category=val("f_cat");b.services=val("f_serv");b.nextAction=val("f_next");b.source=val("f_source");b.sourceSub=(val("f_source")==='Travel Agencies'?val("f_sub"):'');b.assignedTo=val("f_assign")||(window.meName?meName():"")||(typeof me==="function"?me():"");const _fk=val("f_funnel");b.funnelKey=_fk||null;const _fd=(window.__funnelDefs||[]).find(f=>f.key===_fk);b.funnelName=_fd?_fd.name_en:null;b.funnelNameAr=_fd?_fd.name_ar:null;const _wasClient=!!b.isClient;b.stage=val("f_stage");b.status=val("f_stage");b.dueDate=val("f_due");b.channels=[...document.querySelectorAll(".f_ch:checked")].map(e=>e.value);b.isClient=val("f_client")==="yes";if(b.stage==="Won")b.isClient=true;b.isVendor=val("f_vendor")==="yes";b.notes=val("f_notes");b.contacts=readContacts();if(!b.name.trim()){alert("Business name required.");return false;}const i=DB.businesses.findIndex(x=>x.id===b.id);if(i>=0)DB.businesses[i]=b;else DB.businesses.push(b);save();render();if(b.isClient&&!_wasClient&&typeof window.__clientHandover==='function')setTimeout(()=>window.__clientHandover(b.id),250);},isNew?null:()=>{if(confirm(_delWarn())){DB.businesses=DB.businesses.filter(x=>x.id!==id);openLead=null;if(typeof logAudit==='function')try{logAudit('lead',id,'delete',(b&&b.name)||'');}catch(_){}save();render();}});
+  `,()=>{b.name=val("f_name");b.nameAr=val("f_ar");b.segment=val("f_seg");b.area=val("f_area");b.category=val("f_cat");b.services=val("f_serv");b.nextAction=val("f_next");b.source=val("f_source");b.sourceSub=(val("f_source")==='Travel Agencies'?val("f_sub"):'');b.assignedTo=val("f_assign")||(window.meName?meName():"")||(typeof me==="function"?me():"");const _fk=val("f_funnel");b.funnelKey=_fk||null;const _fd=(window.__funnelDefs||[]).find(f=>f.key===_fk);b.funnelName=_fd?_fd.name_en:null;b.funnelNameAr=_fd?_fd.name_ar:null;const _wasClient=!!b.isClient;b.stage=val("f_stage");b.status=val("f_stage");b.dueDate=val("f_due");b.channels=[...document.querySelectorAll(".f_ch:checked")].map(e=>e.value);b.isClient=val("f_client")==="yes";if(b.stage==="Won")b.isClient=true;b.isVendor=val("f_vendor")==="yes";b.notes=val("f_notes");b.contacts=readContacts();if(!b.name.trim()){/* 2026-09-09 (live test, D1): a native alert() froze the whole tab on the owner's own test; say it in the page and put the cursor where the fix goes */try{var _nm=document.getElementById("f_name");if(_nm){_nm.style.borderColor="#D92D20";_nm.focus();}}catch(_){}var _m=(typeof LANG!=="undefined"&&LANG==="ar")?"اسم الجهة مطلوب.":"Business name required.";if(typeof toast==="function")toast(_m,"err");else alert(_m);return false;}const i=DB.businesses.findIndex(x=>x.id===b.id);if(i>=0)DB.businesses[i]=b;else{if(!b.createdAt)b.createdAt=new Date().toISOString();/* 2026-09-09 (live test, L5): a lead made here carried no created date until the next reload, so "New this month" stayed 0 for the person who just made it */DB.businesses.push(b);}save();render();if(b.isClient&&!_wasClient&&typeof window.__clientHandover==='function')setTimeout(()=>window.__clientHandover(b.id),250);},isNew?null:()=>{const _doDel=()=>{DB.businesses=DB.businesses.filter(x=>x.id!==id);openLead=null;if(typeof logAudit==='function')try{logAudit('lead',id,'delete',(b&&b.name)||'');}catch(_){}save();render();};/* D1: in-page confirm (js/57's box) — a native confirm() blocks the tab */if(window.pfConfirm)pfConfirm(_delWarn(),_doDel);else if(confirm(_delWarn()))_doDel();});
   window._contacts=(b.contacts||[]).slice();drawContacts();
 }
 function drawContacts(){const c=document.getElementById("contacts");if(!c)return;c.innerHTML=(window._contacts||[]).map((ct,i)=>`<div class="contact"><input placeholder="Name" value="${esc(ct.name||"")}" oninput="window._contacts[${i}].name=this.value"><input placeholder="Email" value="${esc(ct.email||"")}" oninput="window._contacts[${i}].email=this.value"><input placeholder="Phone" value="${esc(ct.phone||"")}" oninput="window._contacts[${i}].phone=this.value"><span class="x" onclick="window._contacts.splice(${i},1);drawContacts()">✕</span></div>`).join("");}

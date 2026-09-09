@@ -244,8 +244,12 @@ function exportCurrent(scope){
   if(cur==='finance'&&typeof window.finMaySeeMoney==='function'&&!window.finMaySeeMoney()){
     alert((typeof LANG!=='undefined'&&LANG==='ar')?'التصدير غير متاح لهذه الصلاحية.':'Export is not available for this access level.');return;
   }
-  const M={leads:{rows:(typeof leadsView==="function"?leadsView():DB.businesses),list:['name','nameAr','area','source','sourceSub','stage','assignedTo','category','segment','website','contacts','linkedin','facebook','instagram','x_twitter','tiktok','youtube','licenceNumber','licenceStatus','mtActivity','verificationStatus','outreachScore','decisionMakers','totalSAR','notes']},
-    clients:{rows:(typeof clientsView==="function"?clientsView():(DB.businesses||[]).filter(b=>b.isClient)),list:['name','nameAr','area','source','stage','assignedTo','tier','segment','website','contacts','linkedin','licenceNumber','verificationStatus','channels','totalSAR','convertedDate','nextReview','notes']},
+  /* 2026-09-09 (live test, EX2): totalSAR left the app through the Leads and Clients exports —
+     seven amounts in a file anyone with the Clients page could download — while the pages
+     themselves have been money-free since 21 Aug (owner ruling: Finance is the one place a
+     number is read). The column is gone from both lists; Finance's own exports carry money. */
+  const M={leads:{rows:(typeof leadsView==="function"?leadsView():DB.businesses),list:['name','nameAr','area','source','sourceSub','stage','assignedTo','category','segment','website','contacts','linkedin','facebook','instagram','x_twitter','tiktok','youtube','licenceNumber','licenceStatus','mtActivity','verificationStatus','outreachScore','decisionMakers','notes']},
+    clients:{rows:(typeof clientsView==="function"?clientsView():(DB.businesses||[]).filter(b=>b.isClient)),list:['name','nameAr','area','source','stage','assignedTo','tier','segment','website','contacts','linkedin','licenceNumber','verificationStatus','channels','convertedDate','nextReview','notes']},
     airlines:{rows:(typeof supListView==="function"&&current==="airlines"?supListView("air"):(DB.airlines||[])),list:['name','code','icao','stock','ksa','ticketingAuthority','alliance','type','country','gds','providers']},
     vendors:{rows:(typeof supListView==="function"&&current==="vendors"?supListView("prov"):DB.vendors),list:['name','type','source','portal','verdict','apiStatus','settlement']},
     sops:{rows:(DB.sops||[]).concat(DB.sopsWhale||[]),list:['code','title','purpose']},
@@ -267,7 +271,13 @@ function exportCurrent(scope){
   let rows=m.rows.slice();
   const sel=[...document.querySelectorAll('.supchk:checked')].map(c=>c.value);
   if(sel.length&&(cur==='airlines'||cur==='vendors'))rows=rows.filter(r=>sel.indexOf(r.id)>=0);
-  const fields=(cur==='leads'||cur==='clients')?m.list:(fullScope?allKeys(rows):(m.list||allKeys(rows).slice(0,10)));
+  /* 2026-09-09 (live test, EX1): for Leads and Clients "CSV - summary" and "CSV - full details"
+     were byte-identical — this line handed both the summary list. "Full details" now means every
+     field the records carry, minus money (owner ruling 21 Aug — those figures are read on
+     Finance) and minus the internal keys nobody reads (raw copies, ids, sync marks). */
+  const _noMoney=k=>!/sar|total|value|billed|amount|revenue|cost|profit|credit|price|margin/i.test(k);
+  const _noInternal=k=>!/^(_|raw$|id$|legacy_id|scrub_run_id|updatedAt$|updated_at$)/i.test(k)&&!/^_/.test(k);
+  const fields=(cur==='leads'||cur==='clients')?(fullScope?m.list.concat(allKeys(rows).filter(k=>m.list.indexOf(k)<0&&_noMoney(k)&&_noInternal(k))):m.list):(fullScope?allKeys(rows):(m.list||allKeys(rows).slice(0,10)));
   const fname='DirectBusiness-'+cur+'-'+(fullScope?'full':'summary')+(sel.length?'-selected':'');
   if(xls)downloadXLS(fname+'.xls',rows,fields);else downloadCSV(fname+'.csv',rows,fields);
 }

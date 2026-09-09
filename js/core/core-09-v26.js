@@ -280,15 +280,37 @@
       var invoices=(DB.invoices||[]).filter(function(i){return i.status==='Draft'||i.status==='Pending';}).length;
       var bookings=(DB.bookings||[]).filter(function(b){return !b._archived;}).length;
       var parts=[];
-      if(offers>0)parts.push(lang==='ar'?(offers+' عرض للإرسال'):(offers+' '+(offers===1?'quote':'quotes')+' to send'));
-      if(invoices>0)parts.push(lang==='ar'?(invoices+' فاتورة للإرسال إلى Direct Payments'):(invoices+' '+(invoices===1?'invoice':'invoices')+' waiting to go to Direct Payments'));
+      /* 2026-09-09 (live test, T2): "You have 1 quote to send" sat beside "My queue: 0 — all
+         clear" with no way to reach the quote. The two count different things (draft proposals
+         vs bookings due this week) and that is fine — but a sentence that names work must open
+         it. Each part is now a link to the page that holds it. */
+      var _lnk=function(txt,view){return '<a data-today-link="'+view+'" href="javascript:void(0)" onclick="current=\''+view+'\';render();window.scrollTo(0,0);" style="color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px">'+txt+'</a>';};
+      if(offers>0)parts.push(_lnk(lang==='ar'?(offers+' عرض للإرسال'):(offers+' '+(offers===1?'quote':'quotes')+' to send'),'offers'));
+      if(invoices>0)parts.push(_lnk(lang==='ar'?(invoices+' فاتورة للإرسال إلى Direct Payments'):(invoices+' '+(invoices===1?'invoice':'invoices')+' waiting to go to Direct Payments'),'invoices'));
       if(parts.length===0)return lang==='ar'?'لا توجد مهام عاجلة. اليوم هادئ.':'Nothing urgent. Today is calm.';
       return (lang==='ar'?'لديك ':'You have ')+parts.join(lang==='ar'?' و ':' and ')+'.';
     }catch(_){return lang==='ar'?'مرحبًا بعودتك.':'Welcome back.';}
   };
 
   var V26_ACTION_CARDS=[
-    {id:'openQueue',ic:'✅',en:'Open my queue',ar:'افتح قائمتي',sub_en:'See what needs your attention',sub_ar:'اعرض ما يحتاج تدخّلك',color:'#FF6B00',bg:'#FFF3EC',run:function(){current='today';render();}},
+    /* 2026-09-09 (live test, T1): this ran `current='today';render()` — on the Today page, a
+       redraw of the page the person is already on. The card lit up and nothing happened; the
+       owner's own hand found it. "See what needs your attention" is the 📌 My queue group
+       further down this page: scroll to it and light it up for a moment, and if the page has no
+       such group yet (an early render), fall back to the top of the attention list. */
+    {id:'openQueue',ic:'✅',en:'Open my queue',ar:'افتح قائمتي',sub_en:'See what needs your attention',sub_ar:'اعرض ما يحتاج تدخّلك',color:'#FF6B00',bg:'#FFF3EC',run:function(){
+      if(typeof current!=='undefined'&&current!=='today'){current='today';render();}
+      var tries=0;(function go(){
+        var view=document.getElementById('view'); if(!view)return;
+        var groups=[].slice.call(view.querySelectorAll('.v19-today-group'));
+        var target=groups.find(function(g){var h=g.querySelector('h3');return h&&/My queue|قائمتي|قائمة انتظاري/.test(h.textContent||'');})||groups[0]||view.querySelector('.hero');
+        if(!target){ if(tries++<10)setTimeout(go,120); return; }
+        try{target.scrollIntoView({behavior:'smooth',block:'start'});}catch(_){target.scrollIntoView();}
+        target.setAttribute('data-queue-focus','1');
+        var prev=target.style.boxShadow; target.style.transition='box-shadow .3s'; target.style.boxShadow='0 0 0 3px #FF6B00';
+        setTimeout(function(){target.style.boxShadow=prev;target.removeAttribute('data-queue-focus');},1800);
+      })();
+    }},
     {id:'findClient',ic:'🔍',en:'Find a client',ar:'ابحث عن عميل',sub_en:'Search across all clients',sub_ar:'ابحث في جميع العملاء',color:'#B24E00',bg:'#FCEFE4',run:function(){if(typeof openPalette==='function')openPalette();else{var gs=document.getElementById('gsearch');if(gs)gs.focus();}}}
   ];
 
@@ -654,7 +676,17 @@
         if(d.dataset.v26KpiProcessed)return;
         // Never grid-ify the kanban board, its columns/cards, tables or timelines —
         // their card text is full of numbers and false-matches the KPI heuristic.
-        if(d.closest&&d.closest('.board,.col,.reqcard,.lead,.tbl-wrap,table,.timeline,.detail-head,#board,#reqboard'))return;
+        /* 2026-09-09 (live test, T3 + C1 + AU5): this heuristic — "a div with four numbers in it
+           is a KPI strip" — was turning the Today groups and their cards, the lead/client
+           detail grid and every Activity & Audit row into tiles: that is the split "Recently
+           visited" card, the two empty panels on a client card and the four-boxes-per-row log
+           the owner saw. Named structures are never tiles, and a real KPI strip has three or
+           more SHORT children (a number and a label), not one long block of prose. */
+        if(d.closest&&d.closest('.board,.col,.reqcard,.lead,.tbl-wrap,table,.timeline,.detail-head,#board,#reqboard,.detail-grid,.v19-today-group,.v19-today-card,.act-feed,.act-row,.v63-record-hist,.related,.fact,#v26TodayHub,.v31-conv,.leads-dash-tiles'))return;
+        if(d.classList.contains('hero')||d.classList.contains('detail-grid')||d.classList.contains('v19-today-group')||d.classList.contains('v19-today-card')||d.classList.contains('act-row')||d.classList.contains('act-feed')||d.classList.contains('body'))return;
+        if(d.children.length<3)return;
+        var longKid=[].slice.call(d.children).some(function(k){return ((k.textContent||'').replace(/\s+/g,' ').trim().length>80);});
+        if(longKid)return;
         // …and never a container that WRAPS a table/board: turning it into a grid
         // (or letting v26.3 demote it as an "aggregate block") hides real records.
         if(d.querySelector&&d.querySelector('table,.board,.tbl-wrap,.col'))return;
@@ -1092,8 +1124,13 @@
          the stage chips no longer matched All). Apply it once, before either branch reads B,
          so every chip — All included — is counting the exact same pool. */
       var hideClosed=(typeof leadFilter!=='undefined'&&leadFilter.hideClosed);
-      if(hideClosed){B=B.filter(function(b){var s=st(b);return s!=='Won'&&s!=='Lost';});}
-      if(filter==='all')return B.length;
+      /* 2026-09-09 (live test, L1): the table (leadTableList, core-10) applies Hide-closed ONLY
+         when no stage is picked — choosing the Lost chip shows the lost leads regardless. This
+         count applied it to every chip, so the Lost chip read 0 while clicking it listed 2. The
+         badge must say what the click shows: All follows Hide-closed; a stage chip counts its
+         stage in full. (So with Hide-closed on the stage chips can add up to more than All —
+         that is the setting doing its job, and the Won/Lost chips say so in their title.) */
+      if(filter==='all'){ if(hideClosed)B=B.filter(function(b){var s=st(b);return s!=='Won'&&s!=='Lost';}); return B.length; }
       return B.filter(function(b){return st(b)===filter;}).length;
     }catch(_){return null;}
   };

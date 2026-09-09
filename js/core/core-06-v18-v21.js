@@ -463,7 +463,15 @@ const _origSave=save;save=function(){_origSave();if(window._silentSave)return;
   toast((typeof LANG!=='undefined'&&LANG==='ar')?'جارٍ الحفظ…':'Saving…','wait');};
 function silentSave(fn){window._silentSave=true;try{fn();}finally{window._silentSave=false;}}
 /* recently-visited */
-function pushRecent(kind,id){DB.recents=DB.recents||[];DB.recents=DB.recents.filter(r=>!(r.kind===kind&&r.id===id));DB.recents.unshift({kind:kind,id:id,ts:Date.now()});if(DB.recents.length>8)DB.recents=DB.recents.slice(0,8);silentSave(()=>_origSave());}
+/* 2026-09-09 (live test N2): "Recently visited" used to live in the shared workspace blob
+   (DB.recents) and every visit — every RENDER of a detail page, in fact, via v19WireExtras — called
+   save(), which js/02 turns into a cloud write. Opening a card with nothing changed sent a save;
+   and the list itself was one list for the whole team, so a colleague's browsing showed up under
+   your "Recently visited". The list is now per person, per browser (localStorage), and a visit
+   writes nothing to the cloud. The old DB.recents key is simply no longer read. */
+function _recentsRead(){try{var s=localStorage.getItem('db_recents');var a=s?JSON.parse(s):null;if(Array.isArray(a))return a;}catch(_){}return [];}
+function recentsList(){return _recentsRead();}
+function pushRecent(kind,id){var list=_recentsRead().filter(r=>!(r.kind===kind&&r.id===id));list.unshift({kind:kind,id:id,ts:Date.now()});if(list.length>8)list=list.slice(0,8);try{localStorage.setItem('db_recents',JSON.stringify(list));}catch(_){}}
 function recentLabel(r){if(r.kind==='lead'){const b=getLead(r.id);return b?{n:b.name,i:'👤'}:null;}if(r.kind==='booking'){const b=getBooking(r.id);return b?{n:b.ref,i:'🧳'}:null;}if(r.kind==='invoice'){const b=getInvoice(r.id);return b?{n:b.number,i:'🧾'}:null;}if(r.kind==='offer'){const o=(DB.offers||[]).find(x=>x.id===r.id);return o?{n:o.ref||o.subject||'Offer',i:'📄'}:null;}if(r.kind==='airline'){const a=(DB.airlines||[]).find(x=>x.id===r.id);return a?{n:a.name,i:'✈'}:null;}if(r.kind==='provider'){const v=(DB.vendors||[]).find(x=>x.id===r.id);return v?{n:v.name,i:'🔌'}:null;}return null;}
 function jumpRecent(kind,id){if(kind==='lead'){openLead=id;current='leads';}else if(kind==='booking'){openBooking=id;current='bookings';}else if(kind==='invoice'){openInvoice=id;current='invoices';}else if(kind==='offer'){openOffer=id;current='offers';}else if(kind==='airline'){openSup=id;supKind='air';supView='dash';current='airlines';}else if(kind==='provider'){openSup=id;supKind='prov';supView='dash';current='vendors';}pushRecent(kind,id);render();}
 /* smart defaults */
@@ -536,7 +544,7 @@ const queueMine=B.filter(b=>(b.queueAssignee==='Abdelrahman'||!b.queueAssignee)&
 // QC incomplete & ticketed
 const qcMiss=B.filter(b=>b.status==='Ticketed'&&qcScore(b).pct<100).slice(0,5);
 // recents
-const recents=(DB.recents||[]).map(r=>({r:r,m:recentLabel(r)})).filter(x=>x.m);
+const recents=recentsList().map(r=>({r:r,m:recentLabel(r)})).filter(x=>x.m);
 function card(opts){const{cls,ic,ti,meta,v,click}=opts;return `<div class="v19-today-card ${cls||''}" onclick="${click}"><div class="ic" style="background:rgba(255,255,255,.65)">${ic}</div><div class="body"><div class="ti">${esc(ti)}</div><div class="meta">${meta}</div></div>${v?`<div class="v">${esc(v)}</div>`:''}</div>`;}
 function emptyCard(msg){return `<div class="v19-today-card empty">✓ ${esc(msg)}</div>`;}
 /* 2026-09-02 (round 29): pending-approval and no-cost offers were folded into lowOffers; they
@@ -1356,8 +1364,10 @@ const V21_VERB_MAP={
   'Submit to ZATCA':'Push to ZATCA Fatoora',
   'Generate invoice':'Draft invoice → push to Direct Payment',
   'Mark paid':'Mark paid (confirm in Direct Payment)',
-  'Issue':'Push to source',
-  'Convert to booking':'Draft booking (push to source on confirm)'
+  /* 2026-09-09 (live test, O3): "push to source" is developer wording — the source has a name.
+     The rule (master brief) is that a money button names the system it calls into. */
+  'Issue':'Issue in Direct Payments',
+  'Convert to booking':'Draft booking — confirmed later in Direct Payments'
 };
 // DOM-pass: walk every button + link after each render and relabel
 function v21RelabelVerbs(){const root=document.getElementById('view');if(!root)return;const targets=root.querySelectorAll('button, .btn, a.btn');targets.forEach(el=>{if(el.dataset.v21relabeled)return;
