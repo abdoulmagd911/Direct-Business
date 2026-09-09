@@ -1286,7 +1286,6 @@
       '</div>';
     }).join('');
 
-    var recognizedCount=results.filter(function(r){return r.recognized;}).length;
     var writeCount=totals.isNew+totals.updated;
     var stillStreaming=results.some(function(r){return r.streaming;});
     // M17 premortem finding (2026-08-26): a capture-only drop — the gate file alone, or
@@ -1303,8 +1302,16 @@
       else if(capCount) btnHtml='<button class="btn pri sm" style="margin-top:10px" onclick="v65Commit()">'+fl('Save captured expense facts — ','حفظ وقائع المصروفات الملتقطة — ')+capCount+' '+fl('row(s), no invoice changes yet','صف/صفوف، دون تغييرات على الفواتير بعد')+'</button>'+
         '<div style="font-size:11.5px;color:var(--muted);margin-top:4px">'+fl('Saving keeps these facts for a later import — drop the matching file another day and the cost resolves without re-supplying this one.','الحفظ يُبقي هذه الوقائع لاستيراد لاحق — أسقط الملف المقابل في يوم آخر وستُحلّ التكلفة دون إعادة هذا الملف.')+'</div>';
     }
+    /* 2026-09-09 (live test, F3): one file dropped, and the headline read "Files dropped: 2 ·
+       recognized: 2". The second "file" was the expense-join summary (sigKey 'expense_join'),
+       a result this code builds itself — it is not a file anyone dropped, and counting it as one
+       makes a person look for a second file. Count the person's files; name the join separately. */
+    var _joinN=results.filter(function(r){return r&&r.sigKey==='expense_join';}).length;
+    var _fileResults=results.filter(function(r){return !(r&&r.sigKey==='expense_join');});
+    var _fileRecognized=_fileResults.filter(function(r){return r.recognized;}).length;
     var h='<div style="font-size:13px;line-height:1.7">'+
-      '<b>'+fl('Files dropped: ','الملفات المُسقطة: ')+results.length+' · '+fl('recognized: ','معروف: ')+recognizedCount+'</b>'+
+      '<b id="v65-files-line" data-files="'+_fileResults.length+'" data-joins="'+_joinN+'">'+fl('Files dropped: ','الملفات المُسقطة: ')+_fileResults.length+' · '+fl('recognized: ','معروف: ')+_fileRecognized+
+        (_joinN?(' · '+fl('plus the cost join built from them','بالإضافة إلى دمج التكلفة المبني منها')):'')+'</b>'+
       rowsHtml+
       btnHtml+
     '</div>';

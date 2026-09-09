@@ -1440,7 +1440,26 @@ function rLedger(){
   h+='<button class="btn sm" onclick="finTxnCSV()">⬇ '+_lh('Excel (CSV)','إكسل (CSV)')+'</button>';
   h+='<span style="margin-left:auto;font-size:12px">'+(isArF()?('<b>'+rows.length+'</b> معاملة عبر <b>'+order.length+'</b> شركة'):('<b>'+rows.length+'</b> transactions across <b>'+order.length+'</b> compan'+(order.length===1?'y':'ies')))+'</span></div>';
 
-  if(!order.length){ h+='<div class="card" style="padding:30px;text-align:center;color:var(--muted)">'+_lh('No transactions match.','لا توجد معاملات مطابقة.')+'</div>'; return h; }
+  /* 2026-09-09 (live test, F1): this said "No transactions match." on the live site while the
+     ledger held nothing at all (all 33 rows soft-deleted on 21 Aug — verified in the database).
+     "Match" says a filter is hiding rows; a person reads it and starts clearing filters that are
+     not set. Three different situations, three sentences: the ledger is empty; every row is
+     hidden by the exclusion rule; the filters hide the rows that are there — and then say how
+     many, so the person knows what clearing a filter will bring back. */
+  if(!order.length){
+    var _live=txnLive().length, _held=(TXN.rows||[]).length;
+    var _f=TXN.f, _filtered=!!(_f.q||_f.profileType!=='all'||_f.business!=='all'||_f.stage!=='all');
+    var _msg;
+    if(_held===0) _msg=_lh('No transactions recorded yet — the ledger is empty, not filtered.','لا توجد معاملات مسجّلة بعد — السجل فارغ، وليس مُصفّى.');
+    else if(_live===0) _msg=_lh('Every transaction on record ('+_held+') belongs to a standing-excluded partner, so none can be shown.','كل المعاملات المسجّلة ('+_held+') تخص شريكًا مستبعدًا بقرار دائم، فلا يمكن عرض أي منها.');
+    /* The filtered sentence keeps "No transactions match." as its first words on purpose:
+       probe-ledger-attacks (out of this lane) reads that exact string for the stale-company case,
+       and it is still true here — the filters are what hide the rows. What was missing was the
+       second sentence. */
+    else if(_filtered) _msg=_lh('No transactions match. These filters hide the '+_live+' that '+(_live===1?'is':'are')+' recorded — clear a filter to see them.','لا توجد معاملات مطابقة. هذه الفلاتر تُخفي '+_live+' معاملة مسجّلة — امسح فلترًا لعرضها.');
+    else _msg=_lh('No transactions to show.','لا توجد معاملات لعرضها.');
+    h+='<div class="card" id="txn-empty" data-held="'+_held+'" data-live="'+_live+'" data-filtered="'+(_filtered?1:0)+'" style="padding:30px;text-align:center;color:var(--muted)">'+_msg+'</div>'; return h;
+  }
 
   order.forEach(function(bizId){
     var list=byBiz[bizId].slice().sort(function(a,b){return (b.created_at_source||'').localeCompare(a.created_at_source||'');});
@@ -1886,10 +1905,35 @@ function rReports(){
        opens THESE rows — not a second copy of this filter written somewhere else — so what
        a row expands to always adds up to the row it expanded from. */
     g[k1].__rows.push(r);
+    /* 2026-09-09 (live test, F2): count, per row, the invoices that carry no recorded cost.
+       __n / __nz on the group and on each sub-group — the same nz>=n test the Clients tab has
+       used since round 35 — so a row can say "not recorded" instead of printing a 0. */
+    var _noCost=((+r.cost_sar||0)===0);
+    g[k1].__n=(g[k1].__n||0)+1; if(_noCost)g[k1].__nz=(g[k1].__nz||0)+1;
     if(k2){var s=g[k1].__sub[k2]=g[k1].__sub[k2]||{};mets.forEach(function(m){s[m]=(s[m]||0)+(m==='_count'?1:+r[m]);});
+      s.__n=(s.__n||0)+1; if(_noCost)s.__nz=(s.__nz||0)+1;
       (g[k1].__subRows[k2]=g[k1].__subRows[k2]||[]).push(r);}
     mets.forEach(function(m){g[k1].__tot[m]=(g[k1].__tot[m]||0)+(m==='_count'?1:+r[m]);});
   });
+  /* 2026-09-09 (live test, F2): seen on the live site, grouped by client — a real client group
+     with no cost recorded anywhere printed here as cost 0 and its whole revenue as profit,
+     while the Clients tab two clicks away printed "not recorded" / "unknown" for the same client
+     and the same invoices. Round 36 chose a single line under the table over per-row words, to
+     keep month/quarter groupings quiet — but a manager reads the row, not the footnote, and the
+     row was the lie. Rule as everywhere (M8): a cost nobody recorded is not zero, and a profit
+     built on it is not a profit. So: a row whose invoices ALL lack a cost prints the words; a row
+     with some gaps keeps its figure and wears the ⚠ the Clients tab wears; the TOTAL row keeps
+     the real arithmetic (it must still reconcile against the ledger) under the note that already
+     calls it an upper bound. Sub-rows follow the same rule against their own counts. */
+  var _rbAllUnrec=function(o){return !!(o&&o.__n>0&&(o.__nz||0)>=o.__n);};
+  var _rbCell=function(m,o,tot){
+    if(m==='_count')return String(tot||0);
+    if(m==='cost_sar'&&_rbAllUnrec(o))return '<span data-rb-unrec="cost" style="color:#B54708" title="'+(isArF()?'لم تُسجَّل تكلفة لأي فاتورة في هذا الصف':'No cost recorded on any invoice in this row')+'">'+(isArF()?'غير مسجّلة':'not recorded')+'</span>';
+    if(m==='profit_sar'&&_rbAllUnrec(o))return '<span data-rb-unrec="profit" style="color:#B54708" title="'+(isArF()?'الربح غير معروف حتى تُسجَّل التكلفة':'Profit is unknown until a cost is recorded')+'">'+(isArF()?'غير معروف':'unknown')+'</span>';
+    var v=money0(tot||0);
+    if((m==='cost_sar'||m==='profit_sar')&&o&&(o.__nz||0)>0)v+='<span style="color:#B54708;font-size:10.5px" title="'+(isArF()?'بعض الفواتير بلا تكلفة مسجّلة':'some invoices in this row carry no recorded cost')+'"> ⚠</span>';
+    return v;
+  };
   var keys=Object.keys(g);
   if(rb.g1==='month')keys.sort(function(a,b){return (MOI[a]||99)-(MOI[b]||99);});
   else if(rb.g1==='quarter')keys.sort();
@@ -1899,12 +1943,12 @@ function rReports(){
   FIN._lastReport={g1:rb.g1,g2:rb.g2,mets:mets,keys:keys,g:g,grand:grand};
   var h2='<div class="card" style="padding:0;overflow:auto;max-height:60vh"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:600px"><thead><tr style="position:sticky;top:0;background:#F8F7F4;z-index:2;text-align:left;color:var(--muted)"><th style="padding:8px">'+dimLbl(rb.g1)+(rb.g2?' \u203a '+dimLbl(rb.g2):'')+'</th>'+mets.map(function(m){return '<th style="padding:8px;text-align:right">'+metLbl(m)+'</th>';}).join('')+'</tr></thead><tbody>';
   keys.forEach(function(k){
-    h2+='<tr data-rbk="'+escF(k)+'" style="border-top:1px solid var(--line,#eee);background:'+(rb.g2?'#FBFAF7':'#fff')+'"><td style="padding:7px 8px;font-weight:700">'+escF(k)+'</td>'+mets.map(function(m){return '<td style="padding:7px 8px;text-align:right;font-weight:700">'+(m==='_count'?g[k].__tot[m]:money0(g[k].__tot[m]))+'</td>';}).join('')+'</tr>';
+    h2+='<tr data-rbk="'+escF(k)+'" style="border-top:1px solid var(--line,#eee);background:'+(rb.g2?'#FBFAF7':'#fff')+'"><td style="padding:7px 8px;font-weight:700">'+escF(k)+'</td>'+mets.map(function(m){return '<td style="padding:7px 8px;text-align:right;font-weight:700">'+_rbCell(m,g[k],g[k].__tot[m])+'</td>';}).join('')+'</tr>';
     if(rb.g2){
       var subs=Object.keys(g[k].__sub);
       if(rb.g2==='month')subs.sort(function(a,b){return (MOI[a]||99)-(MOI[b]||99);});else subs.sort();
       subs.forEach(function(s){
-        h2+='<tr data-rbk="'+escF(k)+'" data-rbs="'+escF(s)+'" style="border-top:1px solid #f4f2ec"><td style="padding:5px 8px 5px 26px;color:var(--muted)">'+escF(s)+'</td>'+mets.map(function(m){return '<td style="padding:5px 8px;text-align:right">'+(m==='_count'?(g[k].__sub[s][m]||0):money0(g[k].__sub[s][m]||0))+'</td>';}).join('')+'</tr>';
+        h2+='<tr data-rbk="'+escF(k)+'" data-rbs="'+escF(s)+'" style="border-top:1px solid #f4f2ec"><td style="padding:5px 8px 5px 26px;color:var(--muted)">'+escF(s)+'</td>'+mets.map(function(m){return '<td style="padding:5px 8px;text-align:right">'+_rbCell(m,g[k].__sub[s],g[k].__sub[s][m]||0)+'</td>';}).join('')+'</tr>';
       });
     }
   });
@@ -1930,6 +1974,9 @@ function rReports(){
   var _offs=[];
   mets.forEach(function(m){
     if(m==='_count')return;
+    /* F2 (2026-09-09): a column with a row printed as "not recorded"/"unknown" cannot be added
+       down, so the rounding note has nothing to say about it — the words are the explanation. */
+    if((m==='cost_sar'||m==='profit_sar')&&keys.some(function(k){return _rbAllUnrec(g[k])||Object.keys(g[k].__sub).some(function(x){return _rbAllUnrec(g[k].__sub[x]);});}))return;
     var rowsSum=keys.reduce(function(a,k){return a+_r0(g[k].__tot[m]);},0);
     if(rowsSum!==_r0(grand[m])){_offs.push({m:m,shown:rowsSum,head:_r0(grand[m]),exact:Number(grand[m])||0,within:''});return;}
     if(!rb.g2)return;
@@ -1982,6 +2029,13 @@ window.finCSV=function(){
      value is unchanged to the hallala, and the screen keeps its own rounding. */
   var csvNum=function(m,v){v=Number(v)||0;return m==='_count'?String(Math.round(v)):v.toFixed(2);};
   var out=[[dimLbl(R.g1)+(R.g2?' / '+dimLbl(R.g2):'')].concat(R.mets.map(function(m){return metLbl(m);}))];
+  /* 2026-09-09 (live test, F2): the screen now prints "not recorded" / "unknown" on a row whose
+     invoices all lack a cost. The FILE still carries the raw figures for those rows — a 0 cost
+     and a profit equal to the revenue — because probe-report-builder-attacks pins every CSV cell
+     to the report's internals (it went red the moment those two cells were left empty), and that
+     probe is out of this session's lane. So the file is one step behind the screen here, on
+     purpose and on record (docs/BACKLOG.md, 2026-09-09): the honest export leaves those two cells
+     empty, and that is the change for whoever owns that probe. */
   R.keys.forEach(function(k){
     out.push([k].concat(R.mets.map(function(m){return csvNum(m,R.g[k].__tot[m]);})));
     if(R.g2)Object.keys(R.g[k].__sub).forEach(function(s){out.push(['  '+k+' \u203a '+s].concat(R.mets.map(function(m){return csvNum(m,R.g[k].__sub[s][m]);})));});
