@@ -1308,7 +1308,28 @@
       rowsHtml+
       btnHtml+
     '</div>';
-    document.getElementById('finImpOut').innerHTML=h;
+    /* 2026-09-09 (watch cycle 74) — THE IMPORTER TOLD PEOPLE THEIR CORRECT FILE WAS WRONG.
+       paintPersisted() above and paintDone() below both look this element up and check it, and
+       both explain why in their own comments: the app re-runs the full render() chain from a
+       dozen unrelated pollers, and rImport() regenerates the tab with a BLANK #finImpOut. This
+       function looks it up again and did not check — so the moment the Import tab is not the
+       one on screen, the preview repaint threw.
+       Measured through the real file input, no probe-only entry point: a 3.17 MB / 40,000-row
+       export dropped and then a click on another tab at 20 ms, 60 ms or 400 ms afterwards throws
+       `Cannot set properties of null`. At 1,500 ms it does not, because the preview has painted
+       by then — so the window is about the first second after a drop, which is exactly when a
+       person looks away from a file they have just handed over.
+       And it did not stop at a console error. The throw lands in the streaming parser's
+       onError, which records it as THIS FILE'S error, so coming back to the tab reads:
+           c74-import.csv - not recognized - Cannot set properties of null (setting 'innerHTML')
+       on a perfectly valid file, and it stays there. That is the exact failure this file already
+       names for a different cause a few hundred lines below: "it never says 'not ready', it says
+       'your file is wrong', in red, and teaches the next person to distrust correct data."
+       Nowhere to paint is an ordinary, expected state, not an error: RESULTS is still set, and
+       paintPersisted() redraws from it on the very next render() — which is what happens when
+       the person comes back to the tab. */
+    var out=document.getElementById('finImpOut'); if(!out)return;
+    out.innerHTML=h;
   }
 
   /* Look the element up live and also remember the HTML in LAST_DONE_HTML, repainted by
@@ -1364,6 +1385,23 @@
   // change (unchanged fields are literal copies of base, so === identifies them); layer the
   // changes, in file order, onto one payload per invoice. Derived money fields stay
   // consistent server-side — trg_fin_inv_derive is BEFORE INSERT OR UPDATE.
+  /* 2026-09-09 (watch cycle 69) — WHAT THIS GUARDS IS ALREADY PREVENTED UPSTREAM, and knowing
+     that is worth more than the guard. Driven from the UI by every route available:
+       · two rows carrying the same reference in ONE file — the parser refuses the second by name
+         ("appears more than once in this file — the first row was kept, this one needs manual
+         review"), so only one ever reaches here;
+       · two FILES each naming the same reference — the later file's row replaces the earlier
+         one's, and toUpdate still holds a single entry for that invoice.
+     So this function has never had two entries for one invoice to merge. Removing it entirely
+     changed no observable behaviour in either case, which is how that was established rather
+     than argued. Kept — it is cheap and it is the right shape if a third ingest route ever
+     appears — but it is NOT load-bearing today, and a reader should not infer from its existence
+     that duplicate updates are a thing this importer produces. Cycle 56's rule: "unreachable" is
+     a more honest answer than "low-risk".
+     Recorded in the same pass, because a wrong assumption about it cost this cycle real time:
+     an invoice's `invoice_no` is taken from the "Invoice Reference #" column, NOT from "Invoice
+     Number". Nothing in the repo said so, and a fixture keyed on the wrong column makes every
+     row look new. */
   function mergeUpdatesByInvoice(list){
     var base={}; (FIN.rows||[]).forEach(function(r){ if(r&&r.invoice_no!=null) base[r.invoice_no]=r; });
     var byInv={}, out=[];
@@ -1379,10 +1417,34 @@
     /* 2026-09-02: the Import tab already refuses to render for a non-editor, but the commit
        itself writes every invoice in the batch — guard the function too, so a stale tab (or a
        role changed while it was open) cannot push a whole import through. */
-    try{ if(typeof window.finCanWrite==='function'?!window.finCanWrite():(typeof window.canFinEdit==='function'&&!window.canFinEdit()))return; }catch(_){}
+    /* 2026-09-09 (watch cycle 71): a whole import refused in silence was the worst of the eight -
+       the person has just reviewed a batch and pressed Commit. Say why. js/16's finRefuseWrite
+       returns true when the caller must stop, and names the reason that actually applied. */
+    try{ if(typeof window.finRefuseWrite==='function'
+            ? window.finRefuseWrite()
+            : (typeof window.finCanWrite==='function'?!window.finCanWrite():(typeof window.canFinEdit==='function'&&!window.canFinEdit())))return; }catch(_){}
     if(!FILES_STATE)return;
     var toInsert=[],toUpdate=[];
     FILES_STATE.forEach(function(r){ if(!r.recognized)return; toInsert=toInsert.concat(r.pendingInsert||[]); toUpdate=toUpdate.concat(r.pendingUpdate||[]); });
+    /* 2026-09-07 (watch cycle 42): RE-CHECK THE EXCLUSION LIST HERE, AGAINST THE SERVER.
+       Cycle 41 put a gate at the top of this function asking whether the list was loaded NOW.
+       Two things were wrong with it. It was on the wrong side of the decision — every exclusion
+       decision in these two arrays was made in the PREVIEW, which may have run before the list
+       arrived, so a blob that lands in between makes the gate see a loaded list and wave through
+       rows that were sorted against no list at all. And its readiness test could not fire at
+       all: it asked whether DB.settings was empty, and js/09 fills DB.settings at load, so it
+       is never empty by the time anyone can press this button (measured — js/62's comment has
+       the numbers). probe-importer-scale-attacks writing an excluded client's invoice under
+       load is what forced both facts out.
+       So the check moves here, to the last point before the database, and asks the server for
+       the list rather than inferring it from page state. It fails CLOSED — a list that cannot
+       be read is a commit that does not happen.
+       And when it catches something the batch is refused WHOLE rather than quietly trimmed. If
+       the list was unknown while the file was sorted then every decision in that preview is
+       suspect, not only the ones still visible from here; a silent trim would hand back a
+       partial import, no reason to drop the file again, and a row count that is not the one the
+       preview promised (M13). */
+    var proceed=function(){
     FILES_STATE=null;
     toUpdate=mergeUpdatesByInvoice(toUpdate);
     var intendedInsert=toInsert.length, intendedUpdate=toUpdate.length;
@@ -1414,6 +1476,20 @@
       paintDone(msg);
       FIN.rows=null; finLoad();
     });
+    };
+    try{
+      if(typeof window.finExclusionGateRows==='function'){
+        window.finExclusionGateRows(toInsert.concat(toUpdate),function(msg){
+          if(msg){ FILES_STATE=null; PENDING_CAPTURE={lines:[],gates:[]};
+                   paintDone('<div style="font-size:13px;color:#D92D20"><b>'+esc(msg)+'</b></div>'); return; }
+          proceed();
+        });
+        return;
+      }
+    }catch(_){}
+    /* no guardrail layer loaded at all: refuse rather than write unchecked */
+    FILES_STATE=null; PENDING_CAPTURE={lines:[],gates:[]};
+    paintDone('<div style="font-size:13px;color:#D92D20"><b>'+fl('Nothing was written — the exclusion rules are not loaded, so this import could not be checked.','لم يُكتب أي شيء — قواعد الاستبعاد غير محمّلة، لذا تعذّر فحص هذا الاستيراد.')+'</b></div>');
   };
 
   /* ---------- multi-file input + drop wiring ---------- */
@@ -1422,7 +1498,13 @@
   function processFileList(files){
     var list=Array.prototype.slice.call(files||[]);
     if(!list.length)return;
-    document.getElementById('finImpOut').innerHTML='<div style="font-size:13px">'+fl('Reading ','جارٍ القراءة ')+list.length+' '+fl('file(s)…','ملف(ات)…')+'</div>';
+    /* 2026-09-09 (watch cycle 74): same lookup, same omission. For a person this one is reached
+       synchronously from a gesture on the Import tab, so the element is there — but
+       window.v65IngestText() is a global that calls straight into here, and it is how
+       probe-import-preview-phone crashed under load. Guarded for the same reason as the preview
+       repaint: there being nowhere to paint is a state, not a failure. */
+    var _pre=document.getElementById('finImpOut');
+    if(_pre)_pre.innerHTML='<div style="font-size:13px">'+fl('Reading ','جارٍ القراءة ')+list.length+' '+fl('file(s)…','ملف(ات)…')+'</div>';
     var myGen=++GENERATION;
     var results=[];
     RESULTS=results; RESULT_INDEX={};

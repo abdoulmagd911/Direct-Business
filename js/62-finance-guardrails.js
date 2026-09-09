@@ -51,9 +51,49 @@
   // null. Matches by normalised name against each entry's matchNames — the honest bridge
   // until a real client-ID-bearing export exists (see file header). Callers must show the
   // match, never swallow it silently.
+  /* 2026-09-07 (watch cycle 43) — A PREDICATE THAT CAN ACTUALLY BE FALSE.
+     Cycle 42 found that `Object.keys(DB.settings).length` is never 0 in the running app (js/09
+     fills DB.settings at load), so every guard resting on it — cycle 40's merge-dialog refusal
+     and cycle 41's importer gate — could not fire. Cycle 42 fixed the importer by asking the
+     server at commit time. This is the same fact made available to the surfaces that only
+     DISPLAY, which cannot afford a network round trip on every render.
+     Two independent ways to know the list has arrived, because neither alone covers both cases:
+       · DB.settings.financeExclusions is an ARRAY — the blob landed carrying the key. Instant,
+         free, and true for any workspace that has ever configured an exclusion.
+       · a one-shot read of app_settings at startup — the only thing that can distinguish "no
+         exclusions configured" from "not loaded yet" in a workspace that has none, since the
+         key is simply absent in both.
+     Until one of them answers, the honest report is "not known", and the standing rule applies:
+     a display may degrade to "not checked yet"; it may not present an excluded partner's money
+     as an ordinary client's. */
+  var EXCL={known:false,list:null,tries:0};
+  function exclLoad(){
+    if(EXCL.known||EXCL.tries>5)return;
+    EXCL.tries++;
+    var c=client62(); if(!c){ setTimeout(exclLoad,1500); return; }
+    try{
+      c.from('app_settings').select('data').eq('id','main').then(function(r){
+        if(r&&!r.error&&r.data&&r.data.length){
+          var blob=r.data[0].data||{};
+          EXCL.list=blob.financeExclusions||[]; EXCL.known=true;
+          try{ if(typeof render==='function'&&window.current==='finance')render(); }catch(_){}
+          return;
+        }
+        setTimeout(exclLoad,1500);
+      }).catch(function(){ setTimeout(exclLoad,1500); });
+    }catch(_){ setTimeout(exclLoad,1500); }
+  }
+  try{ setTimeout(exclLoad,300); }catch(_){}
+  window.finExclusionsKnown=function(){
+    try{ if(Array.isArray(DB.settings&&DB.settings.financeExclusions))return true; }catch(_){}
+    return !!EXCL.known;
+  };
+
   window.finExclusionCheck=function(name){
     var n=norm62(name); if(!n)return null;
-    var list=exclusions();
+    /* the page's own copy first, then the authoritative one read at startup — the second covers
+       the window before js/35 merges the blob, where the page copy is still empty */
+    var list=exclusions(); if(EXCL.list&&EXCL.list.length)list=list.concat(EXCL.list);
     for(var i=0;i<list.length;i++){
       var e=list[i], names=e.matchNames||[];
       for(var j=0;j<names.length;j++){ if(norm62(names[j])===n) return e; }
@@ -61,6 +101,88 @@
     return null;
   };
   window.finExclusionList=exclusions;
+
+  /* 2026-09-07 (watch cycle 41, CORRECTED BY CYCLE 42) — "not on the list" and "no list yet"
+     are not the same answer, and finExclusionCheck() returns the same null for both. Six call
+     sites across four files (js/16, js/31, js/41, js/62, js/65) read that null as "safe to
+     proceed". The rule that follows still stands and is the reason any of this exists:
+     DISPLAYING a number may degrade to "not checked yet"; WRITING rows must refuse. A read that
+     is briefly wrong is corrected by the next render. A row written under a list that had not
+     loaded is in the database until someone finds it by hand.
+
+     CYCLE 41 GOT THE MECHANISM WRONG AND THE BATTERY CAUGHT IT. It discriminated on
+     `Object.keys(DB.settings).length` — empty meaning "the blob has not landed". Measured
+     directly in cycle 42, with the app_settings response held back 25 seconds:
+
+         DB.settings keys  ["lang","currency","funnels","funnelSubs"]
+         finExclusionsReady()      true
+         finExclusionCheck(...)    false
+
+     js/09's ensureFunnel() writes `funnels`/`funnelSubs` unconditionally at load, and the app
+     sets lang and currency for itself, so DB.settings is NEVER empty by the time anyone can
+     press a button. The gate could not fire in the running app; it only passed its own probe
+     because the probe forced `DB.settings = {}` by hand — a state the app is never in. A guard
+     verified against a world constructed to suit it is the exact failure this whole arc has
+     been removing, and it happened here.
+
+     So stop inferring. There is no local fact that answers "has the exclusion list loaded" —
+     js/35 merges the blob key by key and leaves no marker — and adding one means editing js/35,
+     which is outside this lane. Ask the server instead. A write is about to make a round trip
+     anyway, so one authoritative read of app_settings before it costs nothing that matters and
+     replaces a guess with the actual list. It fails CLOSED: if the list cannot be read, the
+     write does not happen. */
+  function matchIn(list,name){
+    var n=norm62(name); if(!n)return null;
+    for(var i=0;i<(list||[]).length;i++){
+      var e=list[i], names=e.matchNames||[];
+      for(var j=0;j<names.length;j++){ if(norm62(names[j])===n) return e; }
+    }
+    return null;
+  }
+  /* Reads the exclusion list from app_settings itself and checks the rows about to be written
+     against it. cb(null) means proceed; cb(message) is the reason not to, in the reader's own
+     language, ready to show. Callers must not proceed on anything but an explicit null. */
+  window.finExclusionGateRows=function(rows,cb){
+    var done=false, finish=function(m){ if(done)return; done=true; try{cb(m);}catch(_){} };
+    var c=client62();
+    if(!c){ finish(fl('Not connected, so this import could not be checked against the exclusion list. Nothing was written.',
+                      'لا يوجد اتصال، لذا تعذّر فحص هذا الاستيراد مقابل قائمة الاستبعاد. لم يُكتب أي شيء.')); return; }
+    /* a read that hangs must not hang the commit — it must refuse */
+    var timer=setTimeout(function(){ finish(fl('The exclusion list could not be read in time, so this import was not checked against it. Nothing was written. Try again.',
+                                               'تعذّرت قراءة قائمة الاستبعاد في الوقت المناسب، لذا لم يُفحص هذا الاستيراد مقابلها. لم يُكتب أي شيء. حاول مجددًا.')); },20000);
+    try{
+      c.from('app_settings').select('data').eq('id','main').then(function(r){
+        clearTimeout(timer);
+        if(r&&r.error){ finish(fl('The exclusion list could not be read, so this import was not checked against it. Nothing was written. ',
+                                  'تعذّرت قراءة قائمة الاستبعاد، لذا لم يُفحص هذا الاستيراد مقابلها. لم يُكتب أي شيء. ')+((r.error&&r.error.message)||'')); return; }
+        var rowsBack=(r&&r.data)||[];
+        if(!rowsBack.length){ finish(fl('The workspace settings could not be read, so the exclusion list is unknown. Nothing was written.',
+                                        'تعذّرت قراءة إعدادات مساحة العمل، لذا قائمة الاستبعاد غير معروفة. لم يُكتب أي شيء.')); return; }
+        /* THE UNION OF BOTH LISTS, not the server's alone. Each knows something the other does
+           not. The server is authoritative for what the PREVIEW may have missed — a list that
+           had not loaded when the file was sorted. The page is authoritative for what the
+           SERVER has not caught up with — an exclusion the owner added a moment ago whose save
+           has not flushed. Trusting either one alone writes a row the other would have stopped;
+           probe-importer-scale-attacks holds the page half, probe-stale-preview-exclusion the
+           server half. Neither is a fallback for the other. */
+        var blob=rowsBack[0].data||{}, list=(blob.financeExclusions||[]).concat(exclusions()), hits=[];
+        (rows||[]).forEach(function(x){
+          if(!x)return;
+          var e=matchIn(list,x.client_group)||matchIn(list,x.customer_raw_name);
+          var nm=x.client_group||x.customer_raw_name;
+          if(e&&hits.indexOf(nm)<0)hits.push(nm);
+        });
+        if(!hits.length){ finish(null); return; }
+        finish(fl('Nothing was written. This file was sorted before the exclusion list had loaded, so ',
+                  'لم يُكتب أي شيء. جرى فرز هذا الملف قبل اكتمال تحميل قائمة الاستبعاد، لذا ')+
+               hits.join('، ')+
+               fl(' came through as an ordinary client. Every other decision in that preview was made the same way, so the whole file is refused rather than partly imported. Drop the file again — it will be checked properly this time.',
+                  ' مرّ كعميل عادي. وكل قرار آخر في تلك المعاينة اتُّخذ بالطريقة نفسها، لذا رُفض الملف كاملًا بدل استيراده جزئيًا. أعد إسقاط الملف — سيُفحص فحصًا سليمًا هذه المرة.'));
+      }).catch(function(e){ clearTimeout(timer); finish(fl('The exclusion list could not be read, so this import was not checked against it. Nothing was written. ',
+                                                          'تعذّرت قراءة قائمة الاستبعاد، لذا لم يُفحص هذا الاستيراد مقابلها. لم يُكتب أي شيء. ')+String((e&&e.message)||e)); });
+    }catch(e){ clearTimeout(timer); finish(fl('The exclusion list could not be read, so this import was not checked against it. Nothing was written.',
+                                              'تعذّرت قراءة قائمة الاستبعاد، لذا لم يُفحص هذا الاستيراد مقابلها. لم يُكتب أي شيء.')); }
+  };
 
   window.v62AddExclusion=function(){
     if(!canEdit62())return;
@@ -121,10 +243,17 @@
     return null;
   };
   window.finGroupList=groupMap;
+  window.finGroupCandidates=function(){ return groupCandidates(); };
 
   // Every distinct client_group value currently live, with its own invoice count and total —
   // the real preview behind the alias picker and the suggestion pass, not a blind text field.
+  /* 2026-09-07 (cycle 43): refuses while the list is unknown. An entry in the alias picker is
+     an OFFER TO MERGE two company records, and merging is a write — so this sits on the write
+     side of the standing rule, not the display side. Returning nothing makes the picker say it
+     cannot check yet, which is true; listing everything would quietly offer a standing-excluded
+     partner on the screen that decides which company record survives. */
   function groupCandidates(){
+    if(!window.finExclusionsKnown())return {};
     // js/16's live() is IIFE-scoped and never reaches window, so the window.live branch never
     // ran and the fallback listed EXCLUDED clients (Takamol, with its totals) as merge
     // candidates — found by hands-on driving 2026-08-26. Apply the exclusion here directly:
@@ -189,6 +318,14 @@
 
   window.v62OpenAddGrouping=function(prefillAliases,prefillName){
     if(!canEdit62())return;
+    /* 2026-09-07 (cycle 43): say it, rather than showing an empty list that looks like "no
+       clients". The person is one click from merging two company records; "I could not check
+       this against the exclusion list yet" is the only honest thing to put on that screen. */
+    if(!window.finExclusionsKnown()){
+      alert(fl('The exclusion list has not finished loading, so the merge candidates could not be checked against it. Nothing is being offered yet — give it a moment and try again.',
+               'لم تكتمل بعد قراءة قائمة الاستبعاد، لذا تعذّر فحص خيارات الدمج مقابلها. لا يُعرض أي خيار الآن — أمهله لحظة ثم أعد المحاولة.'));
+      return;
+    }
     var cands=groupCandidates();
     var already={}; groupMap().forEach(function(e){ if(e.active===false)return; (e.aliases||[]).forEach(function(a){already[a]=1;}); });
     var names=Object.keys(cands).sort(function(a,b){return cands[b].total-cands[a].total;});
@@ -224,6 +361,25 @@
   window.v62OpenGrouping=function(){
     if(!canEdit62())return;
     if(!window.CP||CP.rows==null){ if(typeof cpLoad==='function')cpLoad(function(){ v62OpenGrouping(); }); return; }
+    /* 2026-09-08 (watch cycle 56) — THIS DIALOG WAITED FOR THE PROFILES AND NOT FOR THE COMPANIES.
+       The line above is the right instinct: if the profiles are not loaded, load them and come
+       back. Nothing did the equivalent for DB.businesses, which fills the "group them under"
+       dropdown — so the dialog opened onto an EMPTY list, let the person choose profiles and a
+       name, and only at Save said "Choose the company to group them under": an instruction
+       nobody can follow, about a list that was never there. Measured with probe-grouping-dialog-
+       readiness — a workspace with no client companies opens the dialog with nothing in it and
+       says nothing at all.
+       The same blank list appears whether no client company exists or the list simply has not
+       arrived, and one refusal covers both — which is why this does not try to tell them apart.
+       It says what is true either way: there is nothing to group under yet. This is the screen
+       that decides which company record a client's money ends up under (cycles 40 and 43), so
+       it should not be enterable in a state where that choice cannot be made. */
+    var _bizReady=(DB.businesses||[]).filter(function(b){return b&&b.isClient;}).length;
+    if(!_bizReady){
+      alert(fl('There are no client companies to group these profiles under yet — either the company list has not finished loading, or none is marked as a client. Nothing was changed. Give it a moment, or add a client company first.',
+               'لا توجد شركات عملاء لتجميع هذه الملفات تحتها بعد — إما أن قائمة الشركات لم تكتمل بعد، أو لا توجد شركة معلَّمة كعميل. لم يتغيّر شيء. أمهله لحظة، أو أضف شركة عميل أولًا.'));
+      return;
+    }
     var ar=(typeof LANG!=='undefined'&&LANG==='ar');
     var rows=(CP.rows||[]).slice().sort(function(a,b){return String(a.direct_client_id).localeCompare(String(b.direct_client_id),undefined,{numeric:true});});
     var opts=rows.map(function(p){
@@ -319,7 +475,10 @@
      excluded partner's. That is a fail-open on the owner's hardest ruling, on the surface that
      decides which company record survives. The number is not guessed at and not silently
      wrong: the dialog says the total could not be checked yet. */
-  function settingsLanded(){ try{ return !!(DB.settings&&Object.keys(DB.settings).length); }catch(_){ return false; } }
+  /* 2026-09-07 (cycle 43): was `Object.keys(DB.settings).length`, which cycle 42 measured as
+     never false in the running app — so this dialog's refusal, added in cycle 40, had never
+     once fired. It rests on a fact now rather than on an assumption. */
+  function settingsLanded(){ try{ return !!window.finExclusionsKnown(); }catch(_){ return false; } }
   function dupDismissed(){ try{ return (DB.settings&&DB.settings.bizDupDismissed)||[]; }catch(_){ return []; } }
   function pairKey(a,b){ return [a,b].sort().join('|'); }
   function dupCandidates(){
@@ -446,12 +605,47 @@
     if(ms.length){
       h+='<div style="overflow-x:auto"><table class="v62-merges" style="width:100%;font-size:12.5px;border-collapse:collapse"><thead><tr style="background:#303848;color:#fff;text-align:'+(ar?'right':'left')+'"><th style="padding:6px 8px">'+fl('Kept','المُبقى')+'</th><th style="padding:6px 8px">'+fl('Merged away','المدمج')+'</th><th style="padding:6px 8px">'+fl('When · by','متى · بواسطة')+'</th><th style="padding:6px 8px"></th></tr></thead><tbody>'
         +ms.map(function(m){
-          var keptName=(function(){ var all=((typeof DB!=='undefined')&&DB.businesses)||[]; for(var i=0;i<all.length;i++){ if(bizUuid(all[i])===m.kept_id)return all[i].name; } return m.kept_id; })();
+          /* 2026-09-08 (watch cycle 66): the kept company is often ARCHIVED by a later merge, and
+             an archived company is not in DB.businesses — so this fell through to printing a raw
+             uuid in the Kept column. The later merge holds its name in its own snapshot; use it. */
+          var nameOfBiz=function(uuid){
+            var all=((typeof DB!=='undefined')&&DB.businesses)||[];
+            for(var i=0;i<all.length;i++){ if(bizUuid(all[i])===uuid)return all[i].name; }
+            for(var j=0;j<ms.length;j++){ if(ms[j]&&ms[j].dropped_id===uuid&&ms[j].dropped_snapshot&&ms[j].dropped_snapshot.name)return ms[j].dropped_snapshot.name; }
+            return uuid;
+          };
+          var keptName=nameOfBiz(m.kept_id);
           var dropName=(m.dropped_snapshot&&m.dropped_snapshot.name)||m.dropped_id;
           var undone=!!m.undone_at;
+          /* 2026-09-08 (watch cycle 66) — MERGES CAN CHAIN, AND UNDO IS ORDER-DEPENDENT.
+             Merge B into A, then A into C, and both sit here with an Undo button each. Undo the
+             FIRST and its moved-list puts B's records back on B — but they are on C by then;
+             undo the second afterwards and ITS moved-list (which still names those records,
+             because they were on A when A was merged) puts them on A. Which company ends up with
+             the money depends on which button is pressed first, and nothing said so.
+             Checked read-only before writing this: the database functions already refuse a double
+             undo (`where id = p_merge_id and undone_at is null`) and refuse merging into an
+             archived company — so those two are NOT defects. Order is the one nobody guards, and
+             it is guarded here rather than in the functions, which are not this session's to
+             change (P4) and do not need to be: the chain is visible in rows this file already has.
+             The later merge keeps its Undo — it is the one that is safe, and taking the whole
+             chain away would leave no way back at all. */
+          var blocker=null;
+          if(!undone){
+            for(var bi=0;bi<ms.length;bi++){
+              var o=ms[bi];
+              if(o&&!o.undone_at&&o.id!==m.id&&o.dropped_id===m.kept_id){ blocker=o; break; }
+            }
+          }
+          var action;
+          if(undone) action='';
+          else if(blocker) action='<span style="color:#B54708;font-size:11.5px">'+fl(
+              'Undo "'+esc62(((blocker.dropped_snapshot&&blocker.dropped_snapshot.name)||blocker.dropped_id))+' \u2192 '+esc62(nameOfBiz(blocker.kept_id))+'" first \u2014 '+esc62(keptName)+' has since been merged away, so undoing this one now would be reversed by that one.',
+              '\u062a\u0631\u0627\u062c\u0639 \u0623\u0648\u0644\u0627\u064b \u0639\u0646 \u00ab'+esc62(((blocker.dropped_snapshot&&blocker.dropped_snapshot.name)||blocker.dropped_id))+' \u2192 '+esc62(nameOfBiz(blocker.kept_id))+'\u00bb \u2014 \u0641\u0640 '+esc62(keptName)+' \u062f\u064f\u0645\u0650\u062c\u064e\u062a \u0628\u0639\u062f \u0630\u0644\u0643\u060c \u0641\u0627\u0644\u062a\u0631\u0627\u062c\u0639 \u0647\u0646\u0627 \u0627\u0644\u0622\u0646 \u0633\u064a\u064f\u0644\u063a\u064a\u0647 \u0630\u0644\u0643 \u0627\u0644\u062a\u0631\u0627\u062c\u0639.')+'</span>';
+          else action='<button class="btn ghost sm" onclick="v62UnmergeBiz(\''+esc62(m.id)+'\')">'+fl('Undo','تراجع')+'</button>';
           return '<tr'+(undone?' style="opacity:.55"':'')+'><td style="padding:6px 8px;font-weight:700">'+esc62(keptName)+'</td><td style="padding:6px 8px">'+esc62(dropName)+'</td>'
             +'<td style="padding:6px 8px;color:var(--muted);font-size:11px">'+esc62(String(m.merged_at||'').slice(0,10))+' · '+esc62(m.actor||'')+(undone?(' · '+fl('undone','أُلغي')+' '+esc62(String(m.undone_at).slice(0,10))):'')+'</td>'
-            +'<td style="padding:6px 8px">'+(undone?'':('<button class="btn ghost sm" onclick="v62UnmergeBiz(\''+esc62(m.id)+'\')">'+fl('Undo','تراجع')+'</button>'))+'</td></tr>';
+            +'<td style="padding:6px 8px">'+action+'</td></tr>';
         }).join('')+'</tbody></table></div>';
     } else if(MERGES===null){
       h+='<div style="font-size:11.5px;color:var(--muted)">'+fl('Loading merge history…','جارٍ تحميل سجل الدمج…')+'</div>';

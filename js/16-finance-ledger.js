@@ -23,6 +23,46 @@ function isArF(){try{return (typeof LANG!=='undefined'&&LANG==='ar')||(document.
 function money(n){n=Number(n)||0;return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 /* Table views show whole numbers (owner 2026-08-12); the exact value with fractions stays in storage, the invoice card and CSV exports. */
 function money0(n){n=Number(n)||0;return Math.round(n).toLocaleString('en-US');}
+/* 2026-09-08 (watch cycle 50) — THE EXACT FIGURE, WHERE A PHONE CAN READ IT.
+   Cycle 49 put this under the ageing buckets, which rounded money with nothing exact anywhere.
+   Asking the remaining moneyS() callers one at a time turned up a sharper rule than "which of
+   these matter", because this file has already answered that question: several carry
+   title="…exact…" on the element. Somebody looked at each and decided the rounded form was not
+   enough. That judgement is made; it is simply delivered through a hover, and the owner reads
+   Finance on a phone, where there is no hover — so on the device he actually uses "8.76M" is the
+   whole answer and the exact figure he asked for is unreachable.
+   The rule, which needs no per-tile argument: IF A NUMBER WAS JUDGED TO NEED ITS EXACT VALUE, IT
+   NEEDS IT ON A PHONE TOO. probe-hover-only-money holds it by SCANNING for money titles rather
+   than naming tiles, so a sixth added later is caught without anyone remembering.
+   Printed only when the short form is a DIFFERENT NUMBER — compared as numbers, not as strings.
+   Cycle 49 said it did this and did not: its numeric version was lost when a patch rolled back
+   on a failed assert, leaving a string comparison that prints "4,000" under "4.0K". That is
+   noise, and the commit message claiming otherwise was wrong. */
+/* 2026-09-08 (watch cycle 62): the predicate below — "does the short form hide anything?" — is
+   now needed twice: once to decide whether to print the exact line, and once to know WHICH figure
+   a reader ends up with, so six of them can be checked against the total they belong to. One
+   definition, two callers; a second copy would drift the day either is touched. */
+function finShortBack(val){
+  var short=moneyS(val);
+  var back=Number(String(short).replace(/,/g,'').replace(/M$/,'e6').replace(/K$/,'e3'));
+  return isFinite(back)?back:null;
+}
+function finShortHides(val){
+  var back=finShortBack(val);
+  return back!==null&&Math.round(back)!==Math.round(Number(val)||0);
+}
+/* The number the person actually reads off the card: the exact line when one is printed, and the
+   shortened form when it is not. Not the stored value — that is the whole point. */
+function finPrintedValue(val){
+  if(finShortHides(val))return Math.round(Number(val)||0);
+  var back=finShortBack(val);
+  return back===null?0:back;
+}
+function finExactUnder(val){
+  var full=money0(val);
+  if(!finShortHides(val))return '';
+  return '<div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:1px">'+full+' SAR</div>';
+}
 function moneyS(n){n=Number(n)||0;if(Math.abs(n)>=1e6)return (n/1e6).toFixed(2)+'M';if(Math.abs(n)>=1e3)return (n/1e3).toFixed(1)+'K';return n.toFixed(0);}
 function canFinEdit(){return !window.__isShareView && (window.__userTier==='admin'||window.__userTier==='manager');}
 /* 2026-09-02 (overnight cycle, scripts/qa/probe-permissions-attacks.mjs) — js/52's access model
@@ -43,12 +83,91 @@ function canFinEdit(){return !window.__isShareView && (window.__userTier==='admi
    delete and restore by number, delete and restore by id, and the origin editor. finMaySeeMoney()
    already covers the share view, so asking it first is a superset of the old rule, and every path
    that routes through finCanWrite is covered at once rather than one guard at a time. */
-function finCanWrite(){
-  try{ if(typeof finMaySeeMoney==='function'&&!finMaySeeMoney()) return false; }catch(_){}
-  try{ if(window.__isShareView) return false; }catch(_){}
-  try{ return (typeof window.canFinEdit==='function')?!!window.canFinEdit():false; }catch(_){ return false; }
+/* 2026-09-09 (watch cycle 71) - THE REFUSAL WAS CORRECT AND SILENT.
+   Every Finance write routes through finCanWrite(), and all eight callers did the same thing when
+   it said no: `return`. No row changed - and nothing was said. The database is safe and the person
+   is told nothing at all.
+   That state is not theoretical. js/65's own guard names it - "a stale tab (or a role changed
+   while it was open)" - and it is the session cycle 32 measured: a TIER that still reads 'admin'
+   (so canFinEdit says yes) while the person's page access no longer includes Finance. The page
+   refuses that session IN WORDS. The buttons already drawn on it refuse in silence. Someone who
+   presses Delete and sees the invoice still sitting there cannot tell "you may not" from "it is
+   broken", so they press it again, and the app has taught them nothing either time.
+   The reason is derived from the SAME three questions, in the same order, by the same function:
+   finWriteBlock() returns '' when the write may proceed and a reason code when it may not, and
+   finCanWrite() is that answer read as a boolean. Keeping them apart would let the guard and the
+   sentence drift, which is how a person gets told "only admins may do this" while they are an
+   admin - cycle 68's rule: put the change in the thing the callers share.
+   The buttons are deliberately NOT re-gated to this predicate. Hiding them would make a stale tab
+   quietly lose its controls with nothing said - the same silence moved somewhere harder to
+   notice. A control that answers when pressed tells the person more than one that disappears. */
+var FIN_BLOCK_ACCESS='access', FIN_BLOCK_SHARE='share', FIN_BLOCK_TIER='tier', FIN_BLOCK_UNKNOWN='unknown';
+/* 2026-09-09 (watch cycle 72) - A TIER THAT IS NOT YET KNOWN WAS BEING READ AS A TIER THAT IS NOT
+   ENOUGH. canFinEdit() is `__userTier==='admin'||__userTier==='manager'`, so an unloaded tier reads
+   as no, and cycle 71's new sentence then told the person "Changing Finance data is limited to
+   admins and managers" - which for an actual admin in that window is FALSE, and points them at the
+   wrong fix. Cycle 71 made the refusal audible; that is how this became visible at all.
+   Measured, not assumed (scripts/qa/probe-write-refusal-speaks, and a throwaway harness that timed
+   the boot): on a healthy sign-in the Finance write functions exist 141 ms before __roleKnown turns
+   true. With one transient error on the role lookup - the path js/02 built on purpose, "let them in
+   on the floor, keep trying", hideOverlay() then setTimeout(fetchRole,5000) - the window is 5.2
+   SECONDS of a fully drawn Finance page, and it repeats on every retry. Throughout it __userTier is
+   `undefined`, never a string, so the two states ARE distinguishable.
+   The app already knows how to make this distinction and says so in its own words: js/49's can() -
+   "role not known yet - never block a real user by accident" - and js/52's known(), which js/53,
+   js/55 and js/64 all gate on. Finance was the one place that collapsed them.
+   The guard is NOT widened. An unknown tier still refuses, and finCanWrite() returns false in
+   exactly the cases it did before: every state that reaches this question with no tier would have
+   fallen through to FIN_BLOCK_TIER anyway. Only the sentence changes - from something false to
+   something the person can act on. Letting an unknown tier through would be widening a write guard
+   to tidy up a message, which is not a trade this lane makes. */
+function finTierKnown(){
+  try{ if(window.__userTier) return true; }catch(_){}        /* any tier at all is an answer - the test js/10, js/45 and js/57 already use */
+  try{ if(window.__roleKnown===true) return true; }catch(_){} /* settled, per js/02, even if the tier arrived by another route */
+  return false;
 }
-try{ window.finCanWrite=finCanWrite; }catch(_){}
+function finWriteBlock(){
+  /* The share view is asked FIRST, and the order matters for the sentence even though it never
+     mattered for the boolean. finMaySeeMoney() asks canFinView(), which IS `!__isShareView` — so
+     with the old order (inherited from finCanWrite, where every no was the same no) a share link
+     was refused as "your access no longer includes Finance", and the reason for the share link
+     could never be reached at all. Measured by probe-write-refusal-speaks on its first run: all
+     eight paths read out the access sentence to a share view. Asking the narrower question first
+     changes no answer, only which true thing gets said. */
+  try{ if(window.__isShareView) return FIN_BLOCK_SHARE; }catch(_){}
+  try{ if(typeof finMaySeeMoney==='function'&&!finMaySeeMoney()) return FIN_BLOCK_ACCESS; }catch(_){}
+  /* asked before the tier rule, and only when there is no answer to read: a person with a real
+     tier of 'viewer' or 'team' is told the tier rule, because that IS why they were refused */
+  try{ if(!finTierKnown()) return FIN_BLOCK_UNKNOWN; }catch(_){}
+  try{ if(!((typeof window.canFinEdit==='function')&&window.canFinEdit())) return FIN_BLOCK_TIER; }catch(_){ return FIN_BLOCK_TIER; }
+  return '';
+}
+/* Name the reason that actually applied. Telling an admin "only admins may do this" is worse than
+   saying nothing: it is a sentence they can prove wrong, and it sends them to the wrong person. */
+function finBlockMsg(why){
+  var ar=isArF();
+  if(why===FIN_BLOCK_SHARE)
+    return ar?'\u0647\u0630\u0627 \u0631\u0627\u0628\u0637 \u0645\u0634\u0627\u0631\u0643\u0629 \u0644\u0644\u0642\u0631\u0627\u0621\u0629 \u0641\u0642\u0637\u060c \u0641\u0644\u0645 \u064a\u064f\u0646\u0641\u0651\u0630 \u0647\u0630\u0627 \u0627\u0644\u062a\u063a\u064a\u064a\u0631 \u0648\u0644\u0645 \u064a\u062a\u063a\u064a\u0651\u0631 \u0634\u064a\u0621 \u0641\u064a \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a.'
+            :'This is a read-only share link, so the change was not made and nothing in the data changed.';
+  if(why===FIN_BLOCK_UNKNOWN)
+    return ar?'\u0644\u0645 \u064a\u0646\u062a\u0647 \u062a\u062d\u0645\u064a\u0644 \u0645\u0633\u062a\u0648\u0649 \u0635\u0644\u0627\u062d\u064a\u062a\u0643 \u0628\u0639\u062f\u060c \u0641\u0644\u0645 \u064a\u064f\u0646\u0641\u0651\u0630 \u0647\u0630\u0627 \u0627\u0644\u062a\u063a\u064a\u064a\u0631 \u0648\u0644\u0645 \u064a\u062a\u063a\u064a\u0651\u0631 \u0634\u064a\u0621 \u0641\u064a \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a. \u0623\u0639\u062f \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0628\u0639\u062f \u0644\u062d\u0638\u0629 - \u0648\u0625\u0646 \u062a\u0643\u0631\u0631 \u0630\u0644\u0643 \u0641\u0623\u0639\u062f \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0641\u062d\u0629.'
+            :'Your access level has not finished loading, so the change was not made and nothing in the data changed. Try again in a moment - if it keeps happening, reload the page.';
+  if(why===FIN_BLOCK_ACCESS)
+    return ar?'\u0644\u0645 \u062a\u0639\u062f \u0635\u0641\u062d\u0629 \u0627\u0644\u0645\u0627\u0644\u064a\u0629 \u0645\u062a\u0627\u062d\u0629 \u0644\u0647\u0630\u0647 \u0627\u0644\u062c\u0644\u0633\u0629\u060c \u0641\u0644\u0645 \u064a\u064f\u0646\u0641\u0651\u0630 \u0647\u0630\u0627 \u0627\u0644\u062a\u063a\u064a\u064a\u0631 \u0648\u0644\u0645 \u064a\u062a\u063a\u064a\u0651\u0631 \u0634\u064a\u0621 \u0641\u064a \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a. \u0635\u0644\u0627\u062d\u064a\u0627\u062a \u062f\u062e\u0648\u0644\u0643 \u0644\u0645 \u062a\u0639\u062f \u062a\u0634\u0645\u0644 \u0627\u0644\u0645\u0627\u0644\u064a\u0629 - \u0627\u0637\u0644\u0628 \u0625\u0639\u0627\u062f\u062a\u0647\u0627 \u062b\u0645 \u0623\u0639\u062f \u0641\u062a\u062d \u0627\u0644\u0635\u0641\u062d\u0629.'
+            :'The Finance page is no longer open to this session, so the change was not made and nothing in the data changed. Your access no longer includes Finance - ask for it back, then reopen the page.';
+  return ar?'\u062a\u0639\u062f\u064a\u0644 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0645\u0627\u0644\u064a\u0629 \u0645\u062a\u0627\u062d \u0644\u0644\u0645\u062f\u0631\u0627\u0621 \u0648\u0627\u0644\u0645\u0633\u0624\u0648\u0644\u064a\u0646 \u0641\u0642\u0637\u060c \u0641\u0644\u0645 \u064a\u064f\u0646\u0641\u0651\u0630 \u0647\u0630\u0627 \u0627\u0644\u062a\u063a\u064a\u064a\u0631 \u0648\u0644\u0645 \u064a\u062a\u063a\u064a\u0651\u0631 \u0634\u064a\u0621 \u0641\u064a \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a.'
+          :'Changing Finance data is limited to admins and managers, so the change was not made and nothing in the data changed.';
+}
+function finCanWrite(){ return finWriteBlock()===''; }
+/* Ask, and SAY SO when the answer is no. Returns true when the caller must stop, so a caller reads
+   `if(finRefuseWrite())return;` - the same shape as the silent guard it replaces. */
+function finRefuseWrite(){
+  var why=finWriteBlock();
+  if(!why) return false;
+  try{ alert(finBlockMsg(why)); }catch(_){}
+  return true;
+}
+try{ window.finCanWrite=finCanWrite; window.finWriteBlock=finWriteBlock; window.finRefuseWrite=finRefuseWrite; }catch(_){}
 function canFinView(){return !window.__isShareView;}
 /* 2026-09-06 (round 50) — watch cycle 30 gave the three CSV exports a guard, and it closed half
    the case it described. canFinView() asks ONE question: is this a read-only share link. But the
@@ -222,16 +341,56 @@ function verified(){return live().filter(function(r){return r.integrity_status==
 FIN.p=FIN.p||{year:'all',part:'all',sector:'all'};
 FIN.p.cmp=FIN.p.cmp||'none'; // blueprint step 5 (2026-08-27): compare-to mode, in-memory only — same storage doctrine as the rest of FIN.p, nothing per-period is ever saved.
 function finYearOf(r){return r.year||(r.invoice_date?+String(r.invoice_date).slice(0,4):null);}
+/* 2026-09-08 (watch cycle 65): finYearOf has always fallen back to the invoice date when a row
+   carries no year, and it has to — js/16's OWN B2B import writes invoice_date, month and quarter
+   and never a year, so without the fallback every row it wrote would drop out of every year.
+   That same import writes `month:o.month, quarter:o.quarter` straight off the parsed file, so a
+   file with no Month/Quarter column produces a row that HAS a date and no quarter. Quarter and
+   month had no fallback, so that row counted in "All periods" and in its year and vanished from
+   every quarter, half and month: Q1+Q2+Q3+Q4 came to less than the year they partition, with
+   nothing saying which money went missing. One field defended, two not, from the same source.
+   Derived from the date, never invented: a row with NO date still belongs to no period, which is
+   rule M8 and is what the probe's fourth check holds this to. A stored value always wins — this
+   only fills a gap, it never overrules what the row says about itself. */
+/* 2026-09-09 (watch cycle 70): the derivation itself, named once. finMonthOf/finQuarterOf answer
+   "which period does this row belong to" (stored first — see cycle 65); these two answer "what does
+   the DATE say", which is a different question and the only way to notice the two disagreeing.
+   One definition, three callers; a second copy would drift the day either is touched (cycle 68). */
+function finMonthFromDate(date){
+  if(!date)return null;
+  var mi=+String(date).slice(5,7);
+  return (mi>=1&&mi<=12)?['January','February','March','April','May','June','July','August','September','October','November','December'][mi-1]:null;
+}
+function finQuarterFromDate(date){
+  if(!date)return null;
+  var mi=+String(date).slice(5,7);
+  return (mi>=1&&mi<=12)?('Q'+(Math.floor((mi-1)/3)+1)):null;
+}
+function finMonthOf(r){ return r.month||finMonthFromDate(r.invoice_date); }
+function finQuarterOf(r){ return r.quarter||finQuarterFromDate(r.invoice_date); }
+/* A row that carries BOTH a date and a stored period which disagree with it. The stored value
+   wins everywhere (cycle 65 decided that deliberately: overruling it would move money on the
+   say-so of a date that might be the wrong field), so this only ever counts — it never changes
+   what any figure includes. */
+function finPeriodDisagrees(r){
+  if(!r||!r.invoice_date)return false;
+  var dm=finMonthFromDate(r.invoice_date), dq=finQuarterFromDate(r.invoice_date);
+  if(!dm||!dq)return false;
+  return !!((r.month&&r.month!==dm)||(r.quarter&&r.quarter!==dq));
+}
+try{ window.finPeriodDisagrees=finPeriodDisagrees; window.finMonthFromDate=finMonthFromDate; window.finQuarterFromDate=finQuarterFromDate; }catch(_){}
 function finPeriodMatch(r,p){
   if(p.year!=='all'&&String(finYearOf(r))!==String(p.year))return false;
   var pt=p.part||'all';
   if(pt==='all')return true;
-  if(pt==='H1')return r.quarter==='Q1'||r.quarter==='Q2';
-  if(pt==='H2')return r.quarter==='Q3'||r.quarter==='Q4';
-  if(/^Q[1-4]$/.test(pt))return r.quarter===pt;
-  if(pt.indexOf('M:')===0)return r.month===pt.slice(2);
+  var q=finQuarterOf(r);
+  if(pt==='H1')return q==='Q1'||q==='Q2';
+  if(pt==='H2')return q==='Q3'||q==='Q4';
+  if(/^Q[1-4]$/.test(pt))return q===pt;
+  if(pt.indexOf('M:')===0)return finMonthOf(r)===pt.slice(2);
   return true;
 }
+try{ window.finMonthOf=finMonthOf; window.finQuarterOf=finQuarterOf; }catch(_){}
 function finInPeriod(r){
   return finPeriodMatch(r,FIN.p||{year:'all',part:'all'});
 }
@@ -311,7 +470,7 @@ function finTargetNum(sv){
 }
 try{ window.finTargetNum=finTargetNum; }catch(_){}
 window.finSetTargets=function(y){try{
-  if(!finCanWrite())return;   // the button is already gated; guard the function too, like finDelInv
+  if(finRefuseWrite())return;   // the button is already gated; guard the function too, like finDelInv
   var t=(FIN.targets||[]).find(function(x){return +x.year===+y;})||{};
   var e=prompt(isArF()?('الإيراد المتوقع لسنة '+y+' (ريال):'):('Expected revenue for '+y+' (SAR):'), t.expected_sar||''); if(e===null)return;
   var cf=prompt(isArF()?('الإيراد المؤكد (عقود موقعة) لسنة '+y+':'):('Confirmed revenue (signed contracts) for '+y+' (SAR):'), t.confirmed_sar||''); if(cf===null)return;
@@ -367,7 +526,23 @@ function _finTargetWrite(c,y,_e,_c){
   });
 }
 try{ window._finTargetWrite=_finTargetWrite; }catch(_){}
-/* Ledger's own row-level export. Named finLedgerCSV (not finCSV) on purpose — this file also
+/* UNREACHABLE FROM THE UI (established 2026-09-08, watch cycle 61). No button, no menu and no
+   other file calls window.finLedgerCSV — the whole repo mentions the name only in comments and
+   in one probe. The Ledger tab's own "Excel (CSV)" button is finTxnCSV (transactions), and the
+   Records page's finance export reads FIN._csvRows directly rather than calling this. So this
+   function's role guard, its Arabic header path and the probe coverage on it are all about a
+   file nobody can produce by pressing anything. Cycle 56's rule applies: "unreachable" is a more
+   honest answer than "low-risk", and saying so is cheaper than leaving the next reader to
+   rediscover it. Kept, not deleted — probe-access-truth exercises it, and it is the obvious
+   thing to wire up if the Ledger is ever asked for a row-level invoice export.
+   ONE THING TO FIX FIRST IF IT IS EVER WIRED UP: FIN._csvRows is live().filter(finInPeriod) —
+   the period bar ONLY. It does not carry the client scope or any other filter the person has
+   set, so a button on it would export more than the screen is showing, which is this very
+   function's oldest defect (see below). The same applies today to the Records page's finance
+   export, whose own comment claims FIN._csvRows is "the currently-filtered Ledger rows". It is
+   not. That file is not this session's to edit; the claim is logged in docs/BACKLOG.md.
+
+   Ledger's own row-level export. Named finLedgerCSV (not finCSV) on purpose — this file also
    defines the Report Builder's export further down, and until 2026-08-20 both were called
    window.finCSV, so the second definition silently replaced this one and the Ledger's own
    "Excel (CSV)" button either did nothing or downloaded the Report Builder's grouped summary
@@ -627,13 +802,80 @@ function finPeriodBar(){
    +'<span style="margin-inline-start:auto;font-size:11px;color:var(--muted)">'+(isArF()?'\u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629 \u0641\u0642\u0637':'Paid invoices only')+' \u00b7 <b>'+finPeriodLabel()+'</b></span></div>';
   return s;
 }
+/* 2026-09-09 (watch cycle 73) — CYCLE 43'S RULE WAS APPLIED TO ONE TAB OF THE FOUR.
+   rFinClients refuses while the exclusion list is outstanding, and the reason it gives is general:
+   "a display may degrade to 'not checked yet'; it may not present money the owner ruled out as
+   somebody's revenue." Nothing else in this file mentions the list. Measured with the
+   app_settings response held back 4 seconds, one ordinary client at 100,000 SAR beside a standing-
+   excluded partner at 900,000 (a 90% share, chosen near the real Takamol case — 6.7M SAR, 77% of
+   displayed revenue — so a wrong total cannot be read as rounding):
+
+     Overview   shows 1,000,000, says nothing, and silently corrects itself to 100,000 later
+     Reports    shows 1,000,000 AND NAMES the excluded partner in its table, says nothing
+     Clients    refuses, in words                                        (cycle 43)
+     Ledger     reads finance_transactions, a different source — outside this finding either way
+
+   So Reports commits exactly the fault cycle 43 named, on a tab cycle 43 did not visit, and the
+   Overview quotes a figure inflated tenfold on the tab everyone lands on.
+
+   THE TWO ARE TREATED DIFFERENTLY, ON PURPOSE.
+   Reports refuses. Its default grouping is BY CLIENT: it puts the excluded partner's name and its
+   money in a row of its own, which is the attribution cycle 43 forbade, and grouping by month
+   instead only moves the money into May's revenue rather than nobody's.
+   The Overview does NOT blank. It names no one — every figure there is a total — and it is the
+   landing tab, so blanking it would hide the whole page behind a caveat card. That matters more
+   than it looks: exclLoad() gives up after five tries, so finExclusionsKnown() can be false
+   PERMANENTLY in a workspace whose app_settings never answers. Cycle 43 accepted a permanently
+   refusing Clients tab; a permanently blank Finance page is a different bargain. So the Overview
+   keeps its figures and says, unmissably, that they have not been checked yet.
+   What would change this: if the Overview ever starts naming a client — a "top clients" block, a
+   per-client tile — the refusal is the right answer there too, because the fault is attribution,
+   not size. Today it does not; rFinClients owns the only such table in this file. */
+function finUncheckedNotice(){
+  try{ if(typeof window.finExclusionsKnown!=='function')return ''; }catch(_){ return ''; }
+  try{ if(window.finExclusionsKnown())return ''; }catch(_){ return ''; }
+  var ar=isArF();
+  return '<div id="ov-unchecked" class="card" style="padding:12px 14px;margin-bottom:12px;background:#FFF7E6;border:1px solid #F2C879;border-top:3px solid #F59E0B;font-size:12.5px">'
+    +'<b>'+(ar?'\u0644\u0645 \u062a\u064f\u0641\u062d\u0635 \u0628\u0639\u062f':'Not checked yet')+'</b> \u00b7 '
+    +(ar
+      ?'\u0644\u0645 \u062a\u0643\u062a\u0645\u0644 \u0628\u0639\u062f \u0642\u0631\u0627\u0621\u0629 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0627\u0633\u062a\u0628\u0639\u0627\u062f\u060c \u0641\u0642\u062f \u062a\u0634\u0645\u0644 \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0623\u062f\u0646\u0627\u0647 \u0634\u0631\u064a\u0643\u064b\u0627 \u0645\u0633\u062a\u0628\u0639\u062f\u064b\u0627. \u0633\u062a\u064f\u0635\u062d\u064e\u0651\u062d \u062a\u0644\u0642\u0627\u0626\u064a\u064b\u0627 \u062e\u0644\u0627\u0644 \u0644\u062d\u0638\u0627\u062a \u2014 \u0644\u0627 \u062a\u0646\u0642\u0644 \u0631\u0642\u0645\u064b\u0627 \u0645\u0646 \u0647\u0630\u0647 \u0627\u0644\u0634\u0627\u0634\u0629 \u0642\u0628\u0644 \u0630\u0644\u0643.'
+      :'The exclusion list has not finished loading, so the figures below may still include a partner this workspace excludes. They will correct themselves in a moment \u2014 do not quote a number from this screen until they do.')
+    +'</div>';
+}
+try{ window.finUncheckedNotice=finUncheckedNotice; }catch(_){}
+/* The refusal card the Clients tab has used since cycle 43, now shared with Reports so the two
+   cannot drift into saying different things about the same state. `what` names the tab's own risk
+   in its own terms; everything else is one sentence in one place. */
+function finUncheckedRefusal(whatEn,whatAr){
+  var ar=isArF();
+  return finPeriodBar()+'<div class="card" style="padding:18px;border-top:3px solid #F59E0B">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:4px">'+(ar?'\u0644\u0645 \u062a\u064f\u0641\u062d\u0635 \u0628\u0639\u062f':'Not checked yet')+'</div>'
+    +'<div style="font-size:12px;color:var(--muted)">'+(ar?whatAr:whatEn)+'</div></div>';
+}
 function rFinClients(){
   clearFinCanon();
+  /* 2026-09-07 (watch cycle 43): this whole tab is money grouped BY CLIENT, and the grouping
+     rests on finExclusionCheck(), which answers the same null for "not on the list" and "no
+     list yet". Built before app_settings lands, the table shows a standing-excluded partner as
+     an ordinary client with its money counted — measured directly with the blob held back, and
+     caught by probe-clients-attacks under six-way load ("excluded partner leaked into
+     Clients"). The standing rule: a display may degrade to "not checked yet"; it may not
+     present money the owner ruled out as somebody's revenue. So say so and render nothing —
+     js/62's own load re-renders this page the moment the list arrives. */
+  try{
+    if(typeof window.finExclusionsKnown==='function'&&!window.finExclusionsKnown()){
+      /* 2026-09-09 (watch cycle 73): the wording moved into finUncheckedRefusal, unchanged, so
+         Reports says the same thing about the same state instead of a second version of it. */
+      return finUncheckedRefusal(
+        'The exclusion list has not finished loading, so these figures cannot be grouped by client without risking showing a standing-excluded partner as an ordinary one. They will appear on their own in a moment.',
+        'لم تكتمل بعد قراءة قائمة الاستبعاد، لذا لا يمكن عرض هذه الأرقام مجمّعة حسب العميل دون المخاطرة بإظهار شريك مستبعَد كعميل عادي. ستظهر تلقائيًا خلال لحظات.');
+    }
+  }catch(_){}
   var V=verified().filter(finInPeriod);
   var h=finPeriodBar();
   var credit=0;(FIN.links||[]).forEach(function(l){credit+=+l.credit_balance_sar||0;});
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px">'
-    +'<div class="card" style="padding:14px 16px;border-top:3px solid #10B981"><div style="font-size:11px;color:var(--muted)">'+(isArF()?'رصيد العملاء (لدينا)':'Client credit (held)')+'</div><div style="font-size:19px;font-weight:800;color:#10B981" title="'+money(credit)+' SAR">'+moneyS(credit)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'
+    +'<div class="card" style="padding:14px 16px;border-top:3px solid #10B981"><div style="font-size:11px;color:var(--muted)">'+(isArF()?'رصيد العملاء (لدينا)':'Client credit (held)')+'</div><div style="font-size:19px;font-weight:800;color:#10B981" title="'+money(credit)+' SAR">'+moneyS(credit)+' <span style="font-size:10px;font-weight:400">SAR</span>'+finExactUnder(credit)+'</div></div>'
     +'</div>';
   // ---- Collections & ageing (days to collect · % overdue · ageing buckets) — from all live invoices, no name matching ----
   var _fl=function(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;};
@@ -674,16 +916,45 @@ function rFinClients(){
      measure, say so instead of showing zeros. */
   var _noUnpaidData=LV.length>0&&!LV.some(function(r){return (+r.amount_remaining_sar||0)>0;})&&LV.every(function(r){return r.integrity_status==='verified_paid';});
   var _mini=function(lbl,val,col){return '<div style="flex:1;min-width:110px"><div style="font-size:11px;color:var(--muted)">'+lbl+'</div><div style="font-size:19px;font-weight:800;color:'+col+'">'+val+'</div></div>';};
-  var _agc=function(lbl,val){return '<div style="flex:1;min-width:90px;background:#F9FAFB;border-radius:8px;padding:8px 10px"><div style="font-size:10.5px;color:var(--muted)">'+lbl+'</div><div style="font-weight:800;font-size:14px">'+moneyS(val)+' <span style="font-size:9px;font-weight:400">SAR</span></div></div>';};
+  /* 2026-09-07 (watch cycle 49) — THESE FOUR NUMBERS ARE WHO GETS CHASED, AND THEY WERE ROUNDED.
+     moneyS() renders anything over a million as "8.76M" and anything over a thousand as
+     "999.9K", so a 90+ bucket holding 8,755,055 SAR read as "8.76M" — a band ten thousand riyals
+     wide — and 999,999 read as "1000.0K", which is a different million from the one it is. The
+     credit tile eight lines above carries its exact figure in a title attribute; these carried
+     nothing at all. Two standards on one screen, and the rounded one is the screen somebody
+     works from when deciding who to call about a late invoice.
+     A title would not have fixed it. The owner reads Finance on a phone, where there is no hover
+     — so the exact figure goes ON the card, under the short one. The short form stays as the
+     headline: four full-length numbers is not an improvement on a 390px screen, and the point is
+     to be able to read it exactly, not to stop being able to read it at a glance. */
+  var _exact=function(val){ return finExactUnder(val); };   // one definition of the rule, hoisted in cycle 50
+
+  var _agc=function(lbl,val){return '<div style="flex:1;min-width:90px;background:#F9FAFB;border-radius:8px;padding:8px 10px"><div style="font-size:10.5px;color:var(--muted)">'+lbl+'</div><div style="font-weight:800;font-size:14px">'+moneyS(val)+' <span style="font-size:9px;font-weight:400">SAR</span>'+_exact(val)+'</div></div>';};
   h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 class="finh" style="margin:0 0 10px">'+_fl('Collections & ageing','التحصيل والتقادم')+'</h3>'+
      (_noUnpaidData
        ? ('<div style="font-size:12.5px;color:var(--muted)">'+_fl('Not tracked yet — only paid invoices are imported, so nothing here can show as unpaid.','لم يُتتبَّع بعد — لا تُستورد إلا الفواتير المدفوعة، لذا لا يظهر أي مبلغ غير محصَّل.')+'</div>')
        : ('<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:'+(arOut>0?'14px':'0')+'">'+
        _mini(_fl('Days to collect','مدة التحصيل (أيام)'),dso,'#175CD3')+
        _mini(_fl('% overdue','٪ المتأخر'),pctOver+'%',pctOver>0?'#D92D20':'#0F6E56')+
-       _mini(_fl('Outstanding','إجمالي المستحق'),moneyS(arOut)+' SAR',arOut>0?'#D92D20':'#667085')+
+       _mini(_fl('Outstanding','إجمالي المستحق'),moneyS(arOut)+' SAR'+_exact(arOut),arOut>0?'#D92D20':'#667085')+
      '</div>'+
      (arOut>0?('<div style="display:flex;gap:8px;flex-wrap:wrap">'+_agc(_fl('0–30 days','0–30 يوم'),ag.b030)+_agc(_fl('31–60 days','31–60 يوم'),ag.b3160)+_agc(_fl('61–90 days','61–90 يوم'),ag.b6190)+_agc(_fl('90+ days','90+ يوم'),ag.b90)+(ag.nodate>0?_agc(_fl('No invoice date','بدون تاريخ فاتورة'),ag.nodate):'')+(ag.future>0?_agc(_fl('Dated in the future','بتاريخ مستقبلي'),ag.future):'')+'</div>'+
+       /* 2026-09-08 (watch cycle 62): the fourth surface in the class cycles 59-61 opened, and the
+          one where reading down is the whole job — every riyal in Outstanding is in exactly one of
+          these six by construction, so a person deciding who to chase expects them to come to the
+          figure above. Cycle 49 made each amount legible on its own (moneyS hid 8,755,055 inside
+          "8.76M"); it did not make six of them add up to a seventh. The gap is quieter than the
+          one cycle 49 fixed: moneyS(1000.40) is "1.0K", finExactUnder stays silent because to the
+          nearest riyal nothing is hidden, and six such silences are two and a half riyals the
+          reader cannot see. Say it, with the exact total, and only when it shows. */
+       (function(){
+         var _bk=[ag.b030,ag.b3160,ag.b6190,ag.b90].concat(ag.nodate>0?[ag.nodate]:[],ag.future>0?[ag.future]:[]);
+         var _ps=_bk.reduce(function(a,v){return a+finPrintedValue(v);},0), _po=finPrintedValue(arOut);
+         if(_ps===_po)return '';
+         return '<div style="font-size:11.5px;color:#444;margin-top:8px">'+_fl(
+           'These amounts are shortened to fit, so reading down them comes to '+money0(_ps)+' where Outstanding reads '+money0(_po)+'. Every riyal outstanding is in exactly one of them — the exact total is '+(Number(arOut)||0).toFixed(2)+' SAR.',
+           '\u0647\u0630\u0647 \u0627\u0644\u0645\u0628\u0627\u0644\u063a \u0645\u062e\u062a\u0635\u0631\u0629 \u0644\u062a\u0646\u0627\u0633\u0628 \u0627\u0644\u0639\u0631\u0636\u060c \u0644\u0630\u0627 \u064a\u0628\u0644\u063a \u0645\u062c\u0645\u0648\u0639\u0647\u0627 '+money0(_ps)+' \u0628\u064a\u0646\u0645\u0627 \u064a\u0638\u0647\u0631 \u0627\u0644\u0645\u0633\u062a\u062d\u0642 '+money0(_po)+'. \u0643\u0644 \u0631\u064a\u0627\u0644 \u0645\u0633\u062a\u062d\u0642 \u0645\u0648\u062c\u0648\u062f \u0641\u064a \u0648\u0627\u062d\u062f \u0645\u0646\u0647\u0627 \u0641\u0642\u0637 \u2014 \u0648\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u062f\u0642\u064a\u0642 '+(Number(arOut)||0).toFixed(2)+' \u0631\u064a\u0627\u0644.')+'</div>';
+       })()+
        (arNoDue>0?('<div style="font-size:11.5px;color:var(--muted);margin-top:8px">'+_fl(
          '% overdue is measured on the '+moneyS(arOut-arNoDue)+' SAR that carries a collection due date. The other '+moneyS(arNoDue)+' SAR has none, so it can never count as overdue however old it is.',
          'تُحتسب نسبة المتأخر على '+moneyS(arOut-arNoDue)+' ريال تحمل تاريخ استحقاق. أما '+moneyS(arNoDue)+' ريال المتبقية فبلا تاريخ استحقاق، فلا يمكن احتسابها متأخرة مهما تقادمت.')+'</div>'):''))
@@ -713,9 +984,36 @@ function rFinClients(){
   var _tcNote=_tc.gaps?('<div style="font-size:11px;color:#B54708;font-weight:600;margin-top:8px">⚠ '+(isArF()
     ?(_tc.gaps+' من العملاء لديهم فواتير بلا تكلفة مسجّلة — إجمالي الربح أعلاه حدّ أقصى وليس رقمًا نهائيًا.')
     :(_tc.gaps+' of these clients have invoices with no recorded cost — the profit total above is an upper bound, not a final figure.'))+'</div>'):'';
+  /* 2026-09-08 (watch cycle 63): fifth surface in the class cycles 59-62 opened. Every cell in
+     this table is money0() — each row rounded to the whole riyal separately from the Total under
+     it — so five clients billing 1,000.40 print five rows of 1,000 above a Total of 5,002. This is
+     the table where a manager decides which client is worth the effort, and reading a column down
+     is how they check it.
+     TWO reasons this table's columns may legitimately not add up are already declared on screen,
+     and neither is this one — so neither may be restated as rounding:
+       · only the top 10 rows are shown while the Total covers every client (said in the header),
+         so this says nothing at all unless every client is on screen;
+       · a client with no recorded cost anywhere prints the WORDS "not recorded"/"unknown" rather
+         than a 0 (M8), which makes those two columns unaddable — skipped, and _tcNote already
+         explains that case. */
+  var _rnote=(function(){
+    if(top.length!==Object.keys(byC).length)return '';
+    var anyWords=top.some(function(k){return byC[k].nz>=byC[k].n;});
+    var cols=[['r',isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',true],['c',isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',!anyWords],['p',isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',!anyWords]];
+    var offs=[];
+    cols.forEach(function(c){
+      if(!c[2])return;
+      var rws=top.reduce(function(a,k){return a+Math.round(Number(byC[k][c[0]])||0);},0), tot=Math.round(Number(_tc[c[0]])||0);
+      if(rws!==tot)offs.push({lbl:c[1],rows:rws,tot:tot,exact:Number(_tc[c[0]])||0});
+    });
+    if(!offs.length)return '';
+    return '<div style="font-size:11px;color:#444;margin-top:8px">'+(isArF()
+      ?('\u0643\u0644 \u0631\u0642\u0645 \u0647\u0646\u0627 \u0645\u064f\u0642\u0631\u064e\u0651\u0628 \u0625\u0644\u0649 \u0623\u0642\u0631\u0628 \u0631\u064a\u0627\u0644 \u0639\u0644\u0649 \u062d\u062f\u0629\u060c \u0644\u0630\u0627 \u0642\u062f \u0644\u0627 \u064a\u0628\u0644\u063a \u062c\u0645\u0639 \u0627\u0644\u0639\u0645\u0648\u062f \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a. '+offs.map(function(o){return o.lbl+': \u0645\u062c\u0645\u0648\u0639 \u0627\u0644\u0635\u0641\u0648\u0641 '+money0(o.rows)+'\u060c \u0648\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a '+money0(o.tot)+'\u060c \u0648\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u062f\u0642\u064a\u0642 '+o.exact.toFixed(2)+' \u0631\u064a\u0627\u0644';}).join('\u061b ')+'.')
+      :('Each figure here is rounded to the nearest riyal on its own, so reading a column down does not always reach the Total. '+offs.map(function(o){return o.lbl+': the rows read '+money0(o.rows)+', the Total reads '+money0(o.tot)+', and the exact figure is '+o.exact.toFixed(2)+' SAR';}).join('; ')+'.'))+'</div>';
+  })();
   h+='<div class="card" style="padding:16px"><h3 class="finh" style="margin:0 0 10px">'+(isArF()?'أعلى العملاء':'Top clients by revenue')+'<i>'+finPeriodLabel()+'</i></h3><div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:480px"><tr style="background:#303848;color:#fff;text-align:'+(isArF()?'right':'left')+'"><th style="padding:7px 9px">'+(isArF()?'العميل':'Client')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الإيرادات':'Revenue')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'التكلفة':'Cost')+'</th><th style="padding:7px 9px;text-align:right">'+(isArF()?'الربح':'Profit')+'</th></tr>'+top.map(function(k){
     return '<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" onclick="finClient(\''+escF(byC[k].key).replace(/'/g,"\\'")+'\',\''+escF(k).replace(/'/g,"\\'")+'\')"><td style="padding:6px 9px;font-weight:600">'+escF(k)+(byC[k].directId?(' <span style="color:var(--muted);font-size:10.5px">#'+escF(byC[k].directId)+'</span>'):'')+'</td><td style="padding:6px 9px;text-align:right;font-weight:700">'+money0(byC[k].r)+'</td><td style="padding:6px 9px;text-align:right;color:#B54708">'+_cCell(byC[k])+'</td><td style="padding:6px 9px;text-align:right;color:#0F6E56;font-weight:700">'+_pCell(byC[k])+'</td></tr>';
-  }).join('')+'<tr style="background:#303848;color:#fff;font-weight:800"><td style="padding:7px 9px">'+(isArF()?'الإجمالي الكلي':'Total')+(Object.keys(byC).length>top.length?(' <span style="font-weight:400;font-size:10.5px;opacity:.85">'+(isArF()?('— كل العملاء ('+Object.keys(byC).length+')، أعلى 10 معروضون'):('— all '+Object.keys(byC).length+' clients, top 10 shown'))+'</span>'):'')+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.r)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.c)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.p)+'</td></tr></table></div>'+_tcNote+'</div>';
+  }).join('')+'<tr style="background:#303848;color:#fff;font-weight:800"><td style="padding:7px 9px">'+(isArF()?'الإجمالي الكلي':'Total')+(Object.keys(byC).length>top.length?(' <span style="font-weight:400;font-size:10.5px;opacity:.85">'+(isArF()?('— كل العملاء ('+Object.keys(byC).length+')، أعلى 10 معروضون'):('— all '+Object.keys(byC).length+' clients, top 10 shown'))+'</span>'):'')+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.r)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.c)+'</td><td style="padding:7px 9px;text-align:right">'+money0(_tc.p)+'</td></tr></table></div>'+_tcNote+_rnote+'</div>';
   return h;
 }
 function rOverview(){
@@ -735,23 +1033,57 @@ function rOverview(){
   rem=0; live().filter(finInPeriod).forEach(function(r){ rem+=+r.amount_remaining_sar||0; });
   var invCount=new Set(V.map(function(r){return r.invoice_no;})).size; // distinct invoices, not service lines
   /* Period bar \u2014 the executive-dashboard structure: year \u00b7 All/Q1\u2013Q4/H1/H2 \u00b7 month */
-  var h=finPeriodBar();
+  /* 2026-09-09 (watch cycle 73): above the cards, not under them — it qualifies every figure on
+     the tab, and a caveat below the number it qualifies is read after the number is believed. */
+  var h=finPeriodBar()+finUncheckedNotice();
 
   var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3'],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a (\u0645\u0641\u0648\u062a\u0631)':'Outstanding (invoiced)',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',invCount,'#1C1E2B']];
   h+='<h3 class="finh">'+(isArF()?'\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u0623\u062f\u0627\u0621 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629':'Key indicators')+'<i>'+finPeriodLabel()+' \u00b7 '+(isArF()?'\u0641\u0639\u0644\u064a \u2014 \u0645\u0646 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629':'actual \u2014 from verified invoices')+'</i></h3>';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
-    return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+'</div></div>';
+    return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+(i===cards.length-1?'':finExactUnder(c[1]))+'</div></div>';
   }).join('')+'</div>';
   /* A7, 2026-08-26 (landmine sweep) — the newest month always flattered itself: August showed a
      63.5% margin only because most of its cost had not arrived yet, and nothing marked the gap.
      When the filtered period contains verified invoices carrying no cost, say so right under the
      KPIs, with the count — factual either way (a commission invoice genuinely has no cost; a
      held-back one just doesn't have it YET), so the wording states the fact and hedges the risk. */
+  /* 2026-09-08 (watch cycle 64): the sixth and last surface in the class cycles 59-63 opened, and
+     the one people look at first. These six cards are NOT a column that sums — Outstanding is
+     deliberately measured over ALL live invoices while the other five are verified-only (see the
+     comment above; cycle 4 fixed the opposite bug), and Invoices is a count. Exactly ONE relation
+     holds across them, and it is the first thing anybody checks: Profit = Revenue − Cost.
+     Each of the three is moneyS() with an exact line only when the short form hides a whole riyal,
+     so all three can be individually defensible and jointly wrong: Revenue 3,000.30, Cost 1,201.80
+     and Profit 1,798.50 print as 3,000 − 1,202 = 1,798 beside a Profit of 1,799. It does not
+     happen for most figures — round(a)−round(b) and round(a−b) usually agree — which is exactly
+     why it needs saying when it does rather than being left for someone to hit alone. */
+  (function(){
+    var _pr=finPrintedValue(rev), _pc=finPrintedValue(cost), _pp=finPrintedValue(prof);
+    if(_pr-_pc===_pp)return;
+    h+='<div id="ov-rounding" style="font-size:12px;color:#444;margin:-6px 0 14px">'+(isArF()
+      ?('\u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0623\u0639\u0644\u0627\u0647 \u0645\u064f\u0642\u0631\u064e\u0651\u0628 \u0643\u0644 \u0645\u0646\u0647\u0627 \u0639\u0644\u0649 \u062d\u062f\u0629\u060c \u0644\u0630\u0627 \u0641\u0625\u0646 '+money0(_pr)+' \u0646\u0627\u0642\u0635 '+money0(_pc)+' \u062a\u0639\u0637\u064a '+money0(_pr-_pc)+' \u0628\u064a\u0646\u0645\u0627 \u064a\u0638\u0647\u0631 \u0627\u0644\u0631\u0628\u062d '+money0(_pp)+'. \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0627\u0644\u062f\u0642\u064a\u0642\u0629: \u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a '+(Number(rev)||0).toFixed(2)+' \u0631\u064a\u0627\u0644\u060c \u0627\u0644\u062a\u0643\u0644\u0641\u0629 '+(Number(cost)||0).toFixed(2)+' \u0631\u064a\u0627\u0644\u060c \u0627\u0644\u0631\u0628\u062d '+(Number(prof)||0).toFixed(2)+' \u0631\u064a\u0627\u0644.')
+      :('Each figure above is rounded on its own, so '+money0(_pr)+' minus '+money0(_pc)+' reads as '+money0(_pr-_pc)+' where Profit reads '+money0(_pp)+'. Exactly: revenue '+(Number(rev)||0).toFixed(2)+' SAR, cost '+(Number(cost)||0).toFixed(2)+' SAR, profit '+(Number(prof)||0).toFixed(2)+' SAR.'))+'</div>';
+  })();
   var _badMoney=live().filter(finInPeriod).filter(function(r){return r._badMoney;}).length;
   if(_badMoney>0){
     h+='<div style="font-size:12px;color:#B54708;margin:-6px 0 14px">⚠ '+(isArF()
       ? (_badMoney+' صف/صفوف في هذه الفترة تحمل مبالغ غير قابلة للقراءة (ليست أرقامًا) — حُسبت كصفر هنا. راجع الاستيراد.')
       : (_badMoney+' row'+(_badMoney>1?'s':'')+' in this period carr'+(_badMoney>1?'y':'ies')+' an unreadable amount (not a number) — counted as 0 here. Check the import.'))+'</div>';
+  }
+  /* 2026-09-09 (watch cycle 70) — SURFACE THE DISAGREEMENT, DO NOT RESOLVE IT.
+     Cycle 65 gave month and quarter the same date-fallback that finYearOf has always had, so a row
+     with a date and no stored period no longer vanishes from every quarter. It deliberately left
+     the other case alone: a row whose stored quarter says Q2 while its date says March is still
+     counted as Q2, because overruling a stored value on the say-so of a date that might itself be
+     the wrong field would move money silently — and which field is authoritative is the owner's
+     call, not this code's. What was wrong was that NOTHING said the two disagree. Checked
+     read-only on 8 Sep: zero live invoices disagree today, so this is a watch, not an alarm — it
+     shows only when it has something to show, and it changes no figure on any screen. */
+  var _perDis=live().filter(finInPeriod).filter(finPeriodDisagrees).length;
+  if(_perDis>0){
+    h+='<div style="font-size:12px;color:#B54708;margin:-6px 0 14px">⚠ '+(isArF()
+      ?(_perDis+' فاتورة/فواتير تحمل شهرًا أو ربعًا لا يطابق تاريخ الفاتورة. تُحتسب حسب القيمة المخزَّنة كما هي — لم يتغير أي رقم — لكن شريط الفترة أعلاه يتبع المخزَّن، لا التاريخ.')
+      :(_perDis+' invoice'+(_perDis>1?'s':'')+' carr'+(_perDis>1?'y':'ies')+' a month or quarter that does not match its invoice date. They are counted under the stored value as they always were — no figure has changed — but the period bar above follows what is stored, not the date.'))+'</div>';
   }
   var _noCost=V.filter(function(r){return (+r.cost_sar||0)===0;}).length;
   if(_noCost>0){
@@ -1071,9 +1403,9 @@ function rLedger(){
   TXN._csvRows=rows.map(function(r){var p=TXN.profiles[r.client_profile_id];return Object.assign({},r,{company:bizName(r.business_id)||r.business_id,profile_type:p?p.profile_type:'',direct_client_id:p?p.direct_client_id:'',stage:txnStage(r)});});
 
   var h=_drillNote+'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">'
-    +'<div class="card" style="padding:12px 14px;border-top:3px solid #0F6E56"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed revenue','الإيراد المؤكد')+'</div><div style="font-size:18px;font-weight:800;color:#0F6E56" title="'+money(cRev)+' SAR">'+moneyS(cRev)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'
-    +'<div class="card" style="padding:12px 14px;border-top:3px solid #B54708"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed cost','التكلفة المؤكدة')+'</div><div style="font-size:18px;font-weight:800;color:#B54708" title="'+money(cCost)+' SAR">'+moneyS(cCost)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'
-    +'<div class="card" style="padding:12px 14px;border-top:3px solid #175CD3"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed profit','الربح المؤكد')+'</div><div style="font-size:18px;font-weight:800;color:#175CD3" title="'+money(cProf)+' SAR">'+moneyS(cProf)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'
+    +'<div class="card" style="padding:12px 14px;border-top:3px solid #0F6E56"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed revenue','الإيراد المؤكد')+'</div><div style="font-size:18px;font-weight:800;color:#0F6E56" title="'+money(cRev)+' SAR">'+moneyS(cRev)+' <span style="font-size:10px;font-weight:400">SAR</span>'+finExactUnder(cRev)+'</div></div>'
+    +'<div class="card" style="padding:12px 14px;border-top:3px solid #B54708"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed cost','التكلفة المؤكدة')+'</div><div style="font-size:18px;font-weight:800;color:#B54708" title="'+money(cCost)+' SAR">'+moneyS(cCost)+' <span style="font-size:10px;font-weight:400">SAR</span>'+finExactUnder(cCost)+'</div></div>'
+    +'<div class="card" style="padding:12px 14px;border-top:3px solid #175CD3"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed profit','الربح المؤكد')+'</div><div style="font-size:18px;font-weight:800;color:#175CD3" title="'+money(cProf)+' SAR">'+moneyS(cProf)+' <span style="font-size:10px;font-weight:400">SAR</span>'+finExactUnder(cProf)+'</div></div>'
     +'<div class="card" style="padding:12px 14px;border-top:3px solid #B54708"><div style="font-size:11px;color:var(--muted)">'+_lh('Pending (est. only)','بانتظار المصاريف (تقديري)')+'</div><div style="font-size:18px;font-weight:800;color:#8b5b1f">'+pendCount+' <span style="font-size:10px;font-weight:400">· '+moneyS(pendEst)+' '+_lh('est.','تقديري')+'</span></div></div>'
     +'<div class="card" style="padding:12px 14px;border-top:3px solid '+(overdueCount?'#D92D20':'#E5E7EB')+'"><div style="font-size:11px;color:var(--muted)">'+_lh('Overdue','متأخر')+'</div><div style="font-size:18px;font-weight:800;color:'+(overdueCount?'#D92D20':'#667085')+'">'+overdueCount+'</div></div>'
     +'</div><div class="ch-sub" style="margin:-4px 0 10px">'+_lh('Confirmed = it has an invoice number, or its expense is marked Ready. A pending row only shows an early estimate — that number is not included above.','المؤكد = له رقم فاتورة، أو مصروفه بحالة جاهز. الصف المعلّق يعرض تقديرًا مبكرًا فقط — هذا الرقم غير مُدرج أعلاه.')+'</div>';
@@ -1167,7 +1499,7 @@ window.finClientClear=function(){FIN.f.clientKey=null;FIN.f.clientName='';render
 window.finServiceClear=function(){FIN.f.serviceDrill=null;render();};
 /* Strategic & quality teams: jump from a project invoice to the proposal behind it. */
 window.finSetOrigin=function(invNo){try{
-  if(!finCanWrite())return;   // 2026-09-02: the editor block is gated, guard the function too (finDelInv's pattern)
+  if(finRefuseWrite())return;   // 2026-09-02: the editor block is gated, guard the function too (finDelInv's pattern)
   var o=(document.getElementById('fin_origin')||{}).value||'booking';
   var p=((document.getElementById('fin_pref')||{}).value||'').trim();
   var c=fc(); if(!c)return;
@@ -1181,15 +1513,47 @@ window.finSetOrigin=function(invNo){try{
   }).catch(function(){});
 }catch(e){if(window.console)console.warn('finSetOrigin',e);}};
 window.finOpenProposal=function(ref){try{
-  var o=(DB.offers||[]).find(function(x){return (x.ref||'')===ref;});
-  var m=document.getElementById('finModal'); if(m)m.remove();
-  if(o){openOffer=o.id;current='offers';render();window.scrollTo(0,0);}
-  else if(typeof toast==='function')toast(isArF()?('لا يوجد عرض بالمرجع '+ref):('No proposal with ref '+ref));
+  /* 2026-09-08 (watch cycle 55) — "NO PROPOSAL WITH REF X", SAID ABOUT ONE THAT EXISTS.
+     DB.offers is filled by js/35 from app_offers, on the same lazy schedule as the exclusion
+     list that cycles 41–43 were spent on. Before it lands the list is empty, and this function
+     used to answer in the definite: the proposal does not exist. Same mistake as
+     finExclusionCheck()'s null meaning both "not on the list" and "no list yet" — except this
+     one says the wrong half out loud, to a person, as a fact about their own records.
+     The discriminator is specific to this call site and does not need a network read: THIS
+     BUTTON ONLY EXISTS WHEN THE INVOICE CARRIES A proposal_ref, so a proposal was created at
+     some point. An empty offers list here therefore means "not loaded yet", not "none exist" —
+     a workspace with no proposals would have no invoice carrying a ref to click from.
+     And the card is no longer closed before the answer is known. It used to be removed first, so
+     "not yet" arrived with nowhere to go back to: the invoice being read was gone and the person
+     was told, wrongly, that its proposal was missing. Now it closes only when there is somewhere
+     to go. */
+  var loaded=Array.isArray(DB.offers)&&DB.offers.length>0;
+  var o=loaded?DB.offers.find(function(x){return (x.ref||'')===ref;}):null;
+  if(o){ var m=document.getElementById('finModal'); if(m)m.remove(); openOffer=o.id;current='offers';render();window.scrollTo(0,0); return; }
+  if(typeof toast==='function'){
+    if(!loaded) toast(isArF()
+      ?('لم تكتمل بعد قراءة قائمة العروض، لذا لا يمكن التحقق من المرجع '+ref+' الآن. أمهله لحظة ثم أعد المحاولة.')
+      :('The proposals list has not finished loading, so '+ref+' cannot be checked yet. Give it a moment and try again.'));
+    else toast(isArF()?('لا يوجد عرض بالمرجع '+ref):('No proposal with ref '+ref));
+  }
 }catch(e){if(window.console)console.warn('finOpenProposal',e);}};
 /* Structure for linking into the Direct system (payments.directksa.com).
    The URL pattern is a setting so it can be corrected the moment we see the real
    Direct screens — placeholders: {invoice_no} {dpin} {client_id}. */
 window.pdInvoiceLink=function(r){
+  /* 2026-09-08 (watch cycle 55) — THE DEEP-LINK BRANCH BELOW IS UNREACHABLE BY IMPORT, and that
+     is established rather than assumed. direct_uuid is in js/65's WRITABLE_INVOICE_FIELDS, so it
+     would be carried if a file supplied it — but nothing supplies it: no CSV column maps to it,
+     no builder assigns it, and the real Direct Payments invoice-export signature (Type, Product,
+     Customer Name, Invoice Reference #, Invoice Number, Invoice Create Date, Invoice Status,
+     Name, Item Is Taxable, Item Discount, Item Total, Invoice Total, Sale Branch, Salesman) has
+     no uuid column at all. Measured live on 2026-09-08: direct_uuid is present on 0 of 46
+     finance_invoices and 0 of 33 finance_transactions.
+     So this branch fires only if someone writes a uuid in by hand. It is kept, not deleted — it
+     is correct, and the day Direct Payments' export carries an id it starts working — but it
+     must not be read as "the deep link works". It does not; cycle 54's honest label is what
+     people actually get. Making it real needs a uuid (or id) column in that export, which is a
+     question for the owner, not a change that can be made here. */
   // Confirmed from the real system (2026-08-12): admin invoice pages live at
   // /en/admin/invoices/view/{uuid}. When we hold the uuid, deep-link straight to it.
   if(r&&r.direct_uuid){
@@ -1198,6 +1562,28 @@ window.pdInvoiceLink=function(r){
   }
   var tpl=(typeof DB!=='undefined'&&DB.settings&&DB.settings.pdInvoiceUrl)||'https://payments.directksa.com/en/admin/invoices';
   return tpl.replace('{invoice_no}',encodeURIComponent(r.invoice_no||'')).replace('{dpin}',encodeURIComponent(r.zatca_dpin||'')).replace('{client_id}',encodeURIComponent(r.direct_client_id||''));
+};
+/* 2026-09-08 (watch cycle 54) — A LINK MAY FAIL TO BE A DEEP LINK; IT MAY NOT SAY IT IS ONE.
+   pdInvoiceLink deep-links when the row carries a direct_uuid and otherwise falls back to a
+   template whose default — 'https://payments.directksa.com/en/admin/invoices' — contains no
+   {invoice_no}, {dpin} or {client_id}, so every replace() below is a no-op and the href is the
+   generic invoice LIST. Measured against the live database on 2026-09-08: of 46 live invoices,
+   direct_uuid is present on ZERO. The deep-link branch has never run in production, and the
+   button labelled "Open in Direct ↗" has been opening the list of every invoice, for every
+   invoice, every time — while saying it opens this one. Somebody following it to check an amount
+   lands on a list of hundreds and searches by hand, or reads whichever invoice is on top.
+   The href is NOT invented here. Adding a ?q= or /search/ this system may not support would be
+   guessing at another product's behaviour to make a number look right, which is the one thing
+   this project never does (M8). The list page is where it really goes; what changes is that the
+   button says so. A workspace that has configured a template carrying {invoice_no} keeps its
+   deep link and its original label — this only speaks for the case where there is nothing to
+   deep-link with. */
+window.pdInvoiceLinkIsDeep=function(r){
+  try{
+    if(r&&r.direct_uuid)return true;
+    var tpl=(typeof DB!=='undefined'&&DB.settings&&DB.settings.pdInvoiceUrl)||'https://payments.directksa.com/en/admin/invoices';
+    return /\{(invoice_no|dpin|client_id)\}/.test(tpl);
+  }catch(_){ return false; }
 };
 window.pdClientLink=function(directClientId){
   var tpl=(typeof DB!=='undefined'&&DB.settings&&DB.settings.pdClientUrl)||'https://payments.directksa.com/customers/{client_id}';
@@ -1251,7 +1637,7 @@ window.finRow=function(id){
     '<tr style="border-top:2px solid #1C1E2B;background:#F3F1EA;font-weight:800"><td style="padding:7px 8px" colspan="2">'+_f('Invoice total','\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629')+' \u00b7 '+lines.length+' '+_f('service(s)','\u062e\u062f\u0645\u0629')+'</td><td style="padding:7px 8px;text-align:right">'+money(t.tot)+'</td><td style="padding:7px 8px;text-align:right;color:#B54708">'+money(t.cost)+'</td><td style="padding:7px 8px;text-align:right;color:#0F6E56">'+money(t.prof)+'</td></tr>'+/* VAT is stored (vat_sar) but NEVER shown — owner rule 2026-08-12: no VAT in any view or report */''+
     '</tbody></table></div>';
   var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(20,20,30,.45);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px';ov.dir=ar?'rtl':'ltr';
-  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:660px;width:100%;max-height:85vh;overflow:auto;padding:22px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h3 style="margin:0">'+_f('Invoice','\u0641\u0627\u062a\u0648\u0631\u0629')+' '+escF(r.invoice_no)+'</h3><div style="margin-'+(ar?'right':'left')+':auto;display:flex;gap:6px">'+(canFinEdit()&&!delState?'<button class="btn ghost sm" style="color:#D92D20" onclick="finDelInv(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Delete invoice','\u062d\u0630\u0641 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629')+'</button>':'')+(canFinEdit()&&delState?'<button class="btn ghost sm" onclick="finRestoreInv(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Restore','\u0627\u0633\u062a\u0631\u062c\u0627\u0639')+'</button>':'')+(r.proposal_ref?('<button class="btn ghost sm" onclick="finOpenProposal(\''+escF(r.proposal_ref).replace(/\x27/g,"\\\x27")+'\')">'+_f('Open proposal','فتح العرض')+'</button>'):'')+'<a class="btn ghost sm" target="_blank" rel="noopener" href="'+escF(pdInvoiceLink(r))+'" style="text-decoration:none">'+_f('Open in Direct ↗','فتحها في دايركت ↗')+'</a>'+'<button class="btn sm" onclick="finCloseModal()">'+_f('Close','\u0625\u063a\u0644\u0627\u0642')+'</button></div></div>'+
+  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:660px;width:100%;max-height:85vh;overflow:auto;padding:22px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h3 style="margin:0">'+_f('Invoice','\u0641\u0627\u062a\u0648\u0631\u0629')+' '+escF(r.invoice_no)+'</h3><div style="margin-'+(ar?'right':'left')+':auto;display:flex;gap:6px">'+(canFinEdit()&&!delState?'<button class="btn ghost sm" style="color:#D92D20" onclick="finDelInv(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Delete invoice','\u062d\u0630\u0641 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629')+'</button>':'')+(canFinEdit()&&delState?'<button class="btn ghost sm" onclick="finRestoreInv(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Restore','\u0627\u0633\u062a\u0631\u062c\u0627\u0639')+'</button>':'')+(r.proposal_ref?('<button class="btn ghost sm" onclick="finOpenProposal(\''+escF(r.proposal_ref).replace(/\x27/g,"\\\x27")+'\')">'+_f('Open proposal','فتح العرض')+'</button>'):'')+'<a class="btn ghost sm" target="_blank" rel="noopener" href="'+escF(pdInvoiceLink(r))+'" style="text-decoration:none">'+(window.pdInvoiceLinkIsDeep(r)?_f('Open in Direct ↗','فتحها في دايركت ↗'):_f('Find in Direct ↗','ابحث عنها في دايركت ↗'))+'</a>'+'<button class="btn sm" onclick="finCloseModal()">'+_f('Close','\u0625\u063a\u0644\u0627\u0642')+'</button></div></div>'+
     lineTbl+
     meta.map(function(x){return '<div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid #f0efe9;font-size:13px"><div style="min-width:150px;color:var(--muted)">'+escF(x[0])+'</div><div style="font-weight:600;word-break:break-word">'+escF(x[1]==null?'\u2014':x[1])+'</div></div>';}).join('')+
     (canFinEdit()&&!delState?('<div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;border-top:1px solid #f0efe9;padding-top:10px"><b style="font-size:12.5px">'+_f('This invoice is:','هذه الفاتورة:')+'</b>'+
@@ -1304,7 +1690,7 @@ function finZeroRowMsg(col,val,wantDeleted,cb){
 }
 try{ window.finZeroRowMsg=finZeroRowMsg; }catch(_){}
 window.finDelInv=function(invNo){
-  if(!finCanWrite())return;
+  if(finRefuseWrite())return;
   var ar=isArF();
   finConfirm(ar?('\u062d\u0630\u0641 \u0643\u0644 \u0628\u0646\u0648\u062f \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 '+invNo+'\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639.'):('Soft-delete all lines of invoice '+invNo+'? It disappears from totals but stays recoverable.'), function(){
     fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('invoice_no',invNo).is('deleted_at',null).select().then(function(r){
@@ -1315,17 +1701,51 @@ window.finDelInv=function(invNo){
   });
 };
 window.finRestoreInv=function(invNo){
-  if(!finCanWrite())return;   // 2026-09-02: delete guarded itself, restore did not — the pair now matches
+  if(finRefuseWrite())return;   // 2026-09-02: delete guarded itself, restore did not — the pair now matches
   var ar=isArF();
-  fc().from('finance_invoices').update({deleted_at:null}).eq('invoice_no',invNo).not('deleted_at','is',null).select().then(function(r){
-    if(r.error){alert('Could not restore: '+r.error.message);return;}
-    if(!r.data||!r.data.length){ finZeroRowMsg('invoice_no',invNo,false,function(m,raced){ alert(m); if(raced){ finCloseModal(); FIN.rows=null; finLoad(); } }); return; }
-    finCloseModal(); FIN.rows=null;finLoad();
+  /* 2026-09-07 (watch cycle 46) — RESTORE WAS NOT THE INVERSE OF DELETE.
+     The unique key is (invoice_no, line_no), so one invoice number legitimately holds several
+     rows. finDelInv is careful about that: `.is('deleted_at',null)` means it only takes rows
+     that are currently live, and a line deleted last month is left where it is. This function
+     had no such limit — `.not('deleted_at','is',null)` un-deleted EVERY deleted row for the
+     number, whenever it was deleted and whoever deleted it.
+     So a duplicate line deleted deliberately in August came back when somebody deleted the
+     invoice in September and pressed Restore to undo it. Measured by
+     probe-restore-scope-attacks: the round trip put 100,000 SAR back that nobody asked for,
+     into every total, with nothing on screen saying three rows had been restored where two
+     were removed.
+     Restore the LAST deletion, not all of them. finDelInv stamps one timestamp across the
+     batch it takes, so rows sharing the newest deleted_at are exactly the action being undone.
+     Anything older was a separate decision and stays made — and is named, so "why is that line
+     still gone?" is answered on screen rather than in the database. */
+  fc().from('finance_invoices').select('id,line_no,deleted_at').eq('invoice_no',invNo).not('deleted_at','is',null).then(function(q){
+    if(q.error){alert('Could not restore: '+q.error.message);return;}
+    /* filter here as well as in the query: the server filter is what production relies on, and
+       this makes the function correct even where a caller or a harness answers the filter
+       loosely — cycle 46 found the mock ignoring `deleted_at=not.is.null` on a GET. */
+    var dead=((q.data)||[]).filter(function(x){return x&&x.deleted_at!=null;});
+    if(!dead.length){ finZeroRowMsg('invoice_no',invNo,false,function(m,raced){ alert(m); if(raced){ finCloseModal(); FIN.rows=null; finLoad(); } }); return; }
+    var newest=dead.map(function(x){return String(x.deleted_at||'');}).sort().pop();
+    var batch=dead.filter(function(x){return String(x.deleted_at||'')===newest;});
+    var older=dead.filter(function(x){return String(x.deleted_at||'')!==newest;});
+    var ids=batch.map(function(x){return x.id;});
+    fc().from('finance_invoices').update({deleted_at:null}).in('id',ids).select().then(function(r){
+      if(r.error){alert('Could not restore: '+r.error.message);return;}
+      if(!r.data||!r.data.length){ finZeroRowMsg('invoice_no',invNo,false,function(m,raced){ alert(m); if(raced){ finCloseModal(); FIN.rows=null; finLoad(); } }); return; }
+      if(older.length){
+        var oldest=older.map(function(x){return String(x.deleted_at||'');}).sort()[0].slice(0,10);
+        var lines=older.map(function(x){return x.line_no;}).filter(function(x){return x!=null;}).join(', ');
+        alert(ar
+          ? ('تم استرجاع '+r.data.length+' بند. وتُرك '+older.length+' بند'+(lines?(' (رقم '+lines+')'):'')+' محذوفًا كما هو — فقد حُذف في وقت سابق ('+oldest+') بقرار منفصل، وهذا الاسترجاع يتراجع عن الحذف الأخير فقط.')
+          : ('Restored '+r.data.length+' line(s). '+older.length+' older line(s)'+(lines?(' (line '+lines+')'):'')+' were left deleted on purpose — they were removed earlier ('+oldest+') as a separate decision, and this restore only undoes the most recent delete.'));
+      }
+      finCloseModal(); FIN.rows=null;finLoad();
+    });
   });
 };
 window.finCloseModal=function(){var m=document.getElementById('finModal');if(m)m.remove();};
 window.finDel=function(id){
-  if(!finCanWrite())return;   // 2026-09-03: was canFinEdit(), the wrapper cycle 12 showed can say yes in a share view
+  if(finRefuseWrite())return;   // 2026-09-03: was canFinEdit(), the wrapper cycle 12 showed can say yes in a share view
   var ar=isArF();
   finConfirm(ar?'\u062d\u0630\u0641 \u0647\u0630\u0647 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0643\u0644 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639 \u0645\u0646 \u00ab\u0627\u0644\u0645\u062d\u0630\u0648\u0641\u0629 \u0645\u0624\u062e\u0631\u0627\u064b\u00bb.':'Soft-delete this invoice? It disappears from all totals but stays recoverable under "Recently deleted".', function(){
     fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('id',id).select().then(function(r){
@@ -1336,7 +1756,7 @@ window.finDel=function(id){
   });
 };
 window.finRestore=function(id){
-  if(!finCanWrite())return;   /* 2026-09-03 (watch cycle 15): this one had NO permission check at
+  if(finRefuseWrite())return;   /* 2026-09-03 (watch cycle 15): this one had NO permission check at
      all — cycle 12 guarded the by-invoice-number pair and missed the by-id pair, and the probe
      that claimed to cover "all ten write paths" used a LIVE invoice, where restore sets
      deleted_at from null to null and nothing changes whatever the guard does. Pointed at an
@@ -1386,6 +1806,18 @@ function rbActivePreset(){
 }
 function rReports(){
   var rb=FIN.rb; clearFinCanon();
+  /* 2026-09-09 (watch cycle 73): the Report Builder groups BY CLIENT by default, so while the
+     exclusion list is outstanding it printed the excluded partner's name beside its money —
+     measured, with the blob held back. That is cycle 43's rule exactly, and the answer is the one
+     cycle 43 gave the Clients tab. Grouping by month rather than client is not a way out: it only
+     moves the money from nobody's row into May's revenue. */
+  try{
+    if(typeof window.finExclusionsKnown==='function'&&!window.finExclusionsKnown()){
+      return finUncheckedRefusal(
+        'The exclusion list has not finished loading, so this report cannot be built without risking a standing-excluded partner appearing in it — by name when it is grouped by client, and inside the totals when it is not. It will appear on its own in a moment.',
+        'لم تكتمل بعد قراءة قائمة الاستبعاد، لذا لا يمكن بناء هذا التقرير دون المخاطرة بظهور شريك مستبعَد فيه — باسمه عند التجميع حسب العميل، وداخل الإجماليات في غير ذلك. سيظهر تلقائيًا خلال لحظات.');
+    }
+  }catch(_){}
   var base=(rb.verifiedOnly?verified():live()).filter(function(r){return rb.quarter==='all'||r.quarter===rb.quarter;});
   var active=rbActivePreset();
   var h='<div class="card" style="padding:14px 16px;margin-bottom:12px;font-size:13px">';
@@ -1429,7 +1861,23 @@ function rReports(){
     +'<b>'+(isArF()?'\u0645\u0627 \u0627\u0644\u0630\u064a \u064a\u064f\u062d\u0633\u0628 \u0647\u0646\u0627':'What this report counts')+':</b> '+_capScope+' \u00b7 '+_capPeriod+', '+_capTail+' <span style="color:var(--muted)">('+_rbN+' '+(isArF()?'\u0641\u0627\u062a\u0648\u0631\u0629':'invoice'+(_rbN===1?'':'s'))+')</span></div>';
   h+='</div>';
   var mets=Object.keys(rb.metrics).filter(function(k){return rb.metrics[k];});
-  if(!mets.length)mets=['revenue_sar'];
+  /* 2026-09-08 (watch cycle 57): this used to read `if(!mets.length)mets=['revenue_sar'];` — untick
+     every box in the Metrics row and the table did not go quiet, it showed Revenue. Six checkboxes
+     said no figure was chosen while a money column stood next to them, and FIN._lastReport carried
+     that column into the CSV, so a file sent to an accountant had a Revenue total nobody ticked.
+     Same family as cycles 41–43, 55 and 56: the app answering with more confidence than its own
+     state supports — here a default worn as a choice. Say what is missing and let one click fix
+     it; the controls above stay on screen, so the report is one tick away, not switched off.
+     _lastReport is cleared in the same breath, because an export built from a report that is no
+     longer on screen is the same lie one step later. */
+  if(!mets.length){
+    FIN._lastReport=null;
+    return h+'<div id="rb-nometrics" class="card" style="padding:16px;font-size:13px;color:#444;line-height:1.6">'
+      +(isArF()
+        ?'<b>\u0644\u0645 \u062a\u064f\u062d\u062f\u064e\u0651\u062f \u0623\u064a \u0642\u064a\u0645\u0629.</b> \u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0627 \u064a\u064f\u062c\u0645\u064e\u0639 \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u062a\u0642\u0631\u064a\u0631 \u062d\u062a\u0649 \u062a\u062e\u062a\u0627\u0631 \u0642\u064a\u0645\u0629 \u0648\u0627\u062d\u062f\u0629 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644 \u0645\u0646 \u0645\u0631\u0628\u0639\u0627\u062a \u00ab\u0627\u0644\u0642\u064a\u0645\u00bb \u0623\u0639\u0644\u0627\u0647. \u0627\u0644\u0635\u0641\u0648\u0641 \u0644\u0645 \u062a\u064f\u0641\u0642\u064e\u062f \u2014 \u0641\u0642\u0637 \u0644\u0645 \u064a\u064f\u0637\u0644\u064e\u0628 \u0645\u0646\u0647\u0627 \u0634\u064a\u0621 \u0628\u0639\u062f.'
+        :'<b>No figure is selected.</b> There is nothing to total in this report until you tick at least one of the boxes under <b>Metrics</b> above — Revenue, Cost, Profit, Received, Outstanding or Service lines. The invoices are still here; nothing has been asked of them yet.')
+      +'</div>';
+  }
   var g={};
   base.forEach(function(r){
     var k1=dimVal(r,rb.g1),k2=rb.g2?dimVal(r,rb.g2):null;
@@ -1467,6 +1915,37 @@ function rReports(){
      groups by month and quarter, where a marker says nothing useful), and the TOTAL must keep
      reconciling against the ledger for the report-builder probe — so the honest move is one
      line under the table, shown only when a profit or cost metric is actually on. */
+  /* 2026-09-08 (watch cycle 60): the same defect cycle 59 found one level down, on the surface a
+     manager actually reads. Every group row prints money0(__tot[m]) and the TOTAL prints
+     money0(grand[m]), where grand sums the RAW values and rounds once — so three clients billing
+     100.40 each print as three rows of 100 under a TOTAL of 301, and reading down the column does
+     not reach the figure at the bottom of it. Sub-rows against their own group row have the same
+     shape, on the very view the owner asked for by name ("<client> January total").
+     probe-report-builder-attacks proves this table's arithmetic to the hallala at four groupings
+     and never compared two PRINTED figures to each other, which is exactly how this stood in
+     plain sight. House pattern from cycles 49/50/59: keep the rounded headline, say the exact
+     figure when the rounding shows. Only when it actually shows — on whole-riyal data, which is
+     most of this file, nothing appears. */
+  var _r0=function(n){return Math.round(Number(n)||0);};
+  var _offs=[];
+  mets.forEach(function(m){
+    if(m==='_count')return;
+    var rowsSum=keys.reduce(function(a,k){return a+_r0(g[k].__tot[m]);},0);
+    if(rowsSum!==_r0(grand[m])){_offs.push({m:m,shown:rowsSum,head:_r0(grand[m]),exact:Number(grand[m])||0,within:''});return;}
+    if(!rb.g2)return;
+    for(var i=0;i<keys.length;i++){
+      var k=keys[i],subs=Object.keys(g[k].__sub);
+      var ss=subs.reduce(function(a,x){return a+_r0(g[k].__sub[x][m]);},0);
+      if(ss!==_r0(g[k].__tot[m])){_offs.push({m:m,shown:ss,head:_r0(g[k].__tot[m]),exact:Number(g[k].__tot[m])||0,within:k});break;}
+    }
+  });
+  if(_offs.length){
+    h2+='<div id="rb-rounding" style="font-size:11.5px;color:#444;padding:8px 10px;background:#F8F7F4;line-height:1.5">'+(isArF()
+      ?('\u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0647\u0646\u0627 \u0645\u064f\u0642\u0631\u064e\u0651\u0628\u0629 \u0625\u0644\u0649 \u0623\u0642\u0631\u0628 \u0631\u064a\u0627\u0644\u060c \u0648\u0643\u0644 \u0625\u062c\u0645\u0627\u0644\u064a \u064a\u064f\u0642\u0631\u064e\u0651\u0628 \u0639\u0644\u0649 \u062d\u062f\u0629\u060c \u0644\u0630\u0627 \u0642\u062f \u0644\u0627 \u064a\u0637\u0627\u0628\u0642 \u062c\u0645\u0639 \u0627\u0644\u0639\u0645\u0648\u062f \u0627\u0644\u0631\u0642\u0645 \u0623\u0633\u0641\u0644\u0647. '
+         +_offs.map(function(o){return metLbl(o.m)+(o.within?(' \u062f\u0627\u062e\u0644 '+escF(o.within)):'')+': \u0645\u062c\u0645\u0648\u0639 \u0627\u0644\u0635\u0641\u0648\u0641 '+money0(o.shown)+'\u060c \u0648\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a '+money0(o.head)+'\u060c \u0648\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u062f\u0642\u064a\u0642 '+o.exact.toFixed(2)+' \u0631\u064a\u0627\u0644';}).join('\u061b ')+'.')
+      :('The figures here are rounded to the nearest riyal and each total is rounded separately, so adding a column up may not land on the figure below it. '
+         +_offs.map(function(o){return metLbl(o.m)+(o.within?(' within '+escF(o.within)):'')+': the rows read '+money0(o.shown)+', the total reads '+money0(o.head)+', and the exact figure is '+o.exact.toFixed(2)+' SAR';}).join('; ')+'. The exported CSV carries the exact figures.'))+'</div>';
+  }
   if(mets.indexOf('profit_sar')>=0||mets.indexOf('cost_sar')>=0){
     var _rbNo=base.filter(function(r){return (+r.cost_sar||0)===0;}).length;
     if(_rbNo>0) h2+='<div style="font-size:11.5px;color:#B54708;font-weight:600;padding:8px 10px">⚠ '+(isArF()
@@ -1489,15 +1968,25 @@ window.finCSV=function(){
      in the tab — only that pressing something must not produce Finance's file for a person
      Finance is refused to. */
   if(typeof finMayExport==='function'&&!finMayExport()){alert(isArF()?'التصدير غير متاح لهذه الصلاحية.':'Export is not available for this access level.');return;}
-  var R=FIN._lastReport;if(!R)return;
+  /* 2026-09-08 (watch cycle 57): this was `if(!R)return;` — a button that did nothing, in silence.
+     It was nearly unreachable only because of the Revenue fallback removed above; now that no
+     figure means no report, it is one click away, and a dead button is how a person concludes the
+     export is broken. */
+  var R=FIN._lastReport;
+  if(!R){alert(isArF()?'\u0644\u0627 \u064a\u0648\u062c\u062f \u062a\u0642\u0631\u064a\u0631 \u0644\u062a\u0635\u062f\u064a\u0631\u0647 \u0628\u0639\u062f \u2014 \u0627\u062e\u062a\u0631 \u0642\u064a\u0645\u0629 \u0648\u0627\u062d\u062f\u0629 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644 \u0645\u0646 \u00ab\u0627\u0644\u0642\u064a\u0645\u00bb \u0623\u0639\u0644\u0627\u0647.':'There is no report to export yet — tick at least one figure under Metrics above.');return;}
   /* 2026-09-02 (attack round 9): the file used the English DIMS/METS words and "TOTAL" even in
      Arabic while the table on screen was Arabic \u2014 same labels as the screen now (dimLbl/metLbl). */
+  /* 2026-09-08 (watch cycle 60): these were raw JS numbers, so a column of fractions exported as
+     301.20000000000005 — binary floating point, written into the file an accountant works from.
+     Money goes out at two decimals, counts as integers. This is a formatting change only: the
+     value is unchanged to the hallala, and the screen keeps its own rounding. */
+  var csvNum=function(m,v){v=Number(v)||0;return m==='_count'?String(Math.round(v)):v.toFixed(2);};
   var out=[[dimLbl(R.g1)+(R.g2?' / '+dimLbl(R.g2):'')].concat(R.mets.map(function(m){return metLbl(m);}))];
   R.keys.forEach(function(k){
-    out.push([k].concat(R.mets.map(function(m){return R.g[k].__tot[m]||0;})));
-    if(R.g2)Object.keys(R.g[k].__sub).forEach(function(s){out.push(['  '+k+' \u203a '+s].concat(R.mets.map(function(m){return R.g[k].__sub[s][m]||0;})));});
+    out.push([k].concat(R.mets.map(function(m){return csvNum(m,R.g[k].__tot[m]);})));
+    if(R.g2)Object.keys(R.g[k].__sub).forEach(function(s){out.push(['  '+k+' \u203a '+s].concat(R.mets.map(function(m){return csvNum(m,R.g[k].__sub[s][m]);})));});
   });
-  out.push([isArF()?'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a':'TOTAL'].concat(R.mets.map(function(m){return R.grand[m]||0;})));
+  out.push([isArF()?'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a':'TOTAL'].concat(R.mets.map(function(m){return csvNum(m,R.grand[m]);})));
   var csv='\ufeff'+out.map(function(r){return r.map(function(c){c=csvGuard(c);return (c.indexOf(',')>=0||c.indexOf('"')>=0||c.charCodeAt(0)===39)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',');}).join('\r\n');
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='Direct-Finance-Report-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 };

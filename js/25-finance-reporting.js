@@ -124,8 +124,44 @@
 
   /* (a) selector on the invoice card, next to the origin editor */
   window.finSetWay=function(invNo){try{
-    if(typeof window.finCanWrite==='function'?!window.finCanWrite():(typeof window.canFinEdit==='function'&&!window.canFinEdit()))return;   // 2026-09-02: guard the function, not just the button (share views included)
+    /* 2026-09-09 (watch cycle 71): the guard was right and said nothing. js/16 now owns both
+       halves - may this session write, and if not, why - so this asks the one function and the
+       person hears the same sentence here as on every other Finance write. The old test is kept
+       as the fallback for a tree where js/16 predates it. */
+    if(typeof window.finRefuseWrite==='function'
+        ? window.finRefuseWrite()
+        : (typeof window.finCanWrite==='function'?!window.finCanWrite():(typeof window.canFinEdit==='function'&&!window.canFinEdit())))return;
     var w=(document.getElementById('fin_way')||{}).value||'invoice';
+    /* 2026-09-07 (watch cycle 44) — THIS DROPDOWN DECIDES MEMBERSHIP OF A PAGE IT KNOWS
+       NOTHING ABOUT. js/58's own header says it: "revenue_way='b2c_manual' and
+       record_type='b2c' are the only things that mark it as this pattern" — and js/58 then
+       lists the hand-entered B2C bookings with .eq('revenue_way','b2c_manual') alone. So the
+       two fields must agree, and until now nothing made them.
+       Measured both ways with probe-revenue-way-attacks:
+         · a hand-entered booking moved to any other way VANISHES from the only page that
+           lists it. The row is still there, still counted in every total, and unreachable
+           from the screen built to manage it. One dropdown, no warning, nothing on screen
+           afterwards to say where it went.
+         · an ordinary b2b invoice moved TO b2c_manual APPEARS among the hand-entered
+           bookings, on a page whose whole purpose is rows somebody typed in by hand.
+       Refuse both, and say which page and what would have happened — the alternative is a
+       Save button that looks like it worked and quietly moved a booking out of sight. The
+       record_type is the fixed fact here (js/58 sets it once at creation and never offers it
+       for editing), so it is what the way is checked against. */
+    try{
+      var _row=((window.FIN&&FIN.rows)||[]).find(function(x){return x&&x.invoice_no===invNo&&!x.deleted_at;});
+      var _rt=_row&&_row.record_type;
+      if(_rt==='b2c'&&w!=='b2c_manual'){
+        alert(fl('This is a hand-entered B2C booking, and the B2C page finds it by exactly this setting. Changing it would leave the booking in the database, still counted, but off the only page that lists it. Nothing was changed. If this really should become an ordinary invoice, its record type has to change with it, and this editor does not do that.',
+                 'هذا حجز B2C مُدخل يدويًا، وصفحة B2C تجده بهذا الإعداد تحديدًا. تغييره سيُبقي الحجز في قاعدة البيانات ومحسوبًا، لكن خارج الصفحة الوحيدة التي تعرضه. لم يتغيّر شيء. وإن كان يجب فعلًا أن يصبح فاتورة عادية، فيجب تغيير نوع السجل معه، وهذا المحرر لا يفعل ذلك.'));
+        return;
+      }
+      if(w==='b2c_manual'&&_rt&&_rt!=='b2c'){
+        alert(fl('That setting is what puts a booking on the hand-entered B2C page, and this is a '+String(_rt).toUpperCase()+' invoice — it was not entered there by hand. It would appear on that page as something nobody created. Nothing was changed.',
+                 'هذا الإعداد هو ما يضع الحجز في صفحة B2C المُدخلة يدويًا، وهذه فاتورة '+String(_rt).toUpperCase()+' — لم تُدخل هناك يدويًا. ستظهر في تلك الصفحة كسجل لم ينشئه أحد. لم يتغيّر شيء.'));
+        return;
+      }
+    }catch(_){}
     var c=(typeof fc==='function')?fc():null; if(!c)return;
     c.from('finance_invoices').update({revenue_way:w}).eq('invoice_no',invNo).is('deleted_at',null).select('id').then(function(r){
       if(r.error){alert(fl('Could not save: ','تعذر الحفظ: ')+r.error.message);return;}
@@ -325,6 +361,31 @@
           });
           if(src.length>CAP) frag.appendChild(note(fl('Showing the first '+CAP+' of '+src.length+' invoices — use Export CSV for all of them.',
                                                      'يتم عرض أول '+CAP+' من '+src.length+' فاتورة — استخدم تصدير CSV للكل.')));
+          /* 2026-09-08 (watch cycle 59): the reconcile loop above compares the RAW numbers and
+             passes to the hallala — but the group row prints money0(total) and each line prints
+             m0(value), rounded independently, so three invoices of 100.40 print 100+100+100
+             under a total printed 301. The internal guard was satisfied while the only
+             arithmetic a person can actually do was wrong, and adding these lines up is the one
+             thing this feature exists for. Costs here carry real fractions (the approved expense
+             lines total 1,935,461.74) and profit is revenue minus cost, so this is ordinary, not
+             contrived. Say it, and give the exact figure — the house pattern from cycle 49/50:
+             keep the rounded headline, print the exact number underneath when they differ.
+             Only when the whole set is on screen; past the cap the note above already explains
+             why these lines cannot sum to the total. The metric's name is read from the table's
+             own header rather than a second copy of the label map, so it cannot drift from the
+             column it is talking about. */
+          if(src.length<=CAP){
+            var rnd=function(n){return Math.round(Number(n)||0);};
+            var _th=view.querySelector('table thead tr'), offs=[];
+            (R.mets||[]).forEach(function(m,i){
+              if(m==='_count')return;
+              var shown=src.reduce(function(a,r){return a+rnd(r[m]);},0), head=rnd((tot&&tot[m])||0);
+              if(shown!==head) offs.push({lbl:(_th&&_th.cells[i+1])?_th.cells[i+1].textContent.trim():m, shown:shown, head:head, exact:Number((tot&&tot[m])||0)});
+            });
+            if(offs.length) frag.appendChild(note(fl(
+              'These lines are rounded to the nearest riyal, so adding them up does not land on the total above. '+offs.map(function(o){return o.lbl+': the lines read '+m0(o.shown)+', the total reads '+m0(o.head)+', and the exact figure is '+o.exact.toFixed(2)+' SAR';}).join('; ')+'.',
+              '\u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0641\u064a \u0647\u0630\u0647 \u0627\u0644\u0633\u0637\u0648\u0631 \u0645\u064f\u0642\u0631\u064e\u0651\u0628\u0629 \u0625\u0644\u0649 \u0623\u0642\u0631\u0628 \u0631\u064a\u0627\u0644\u060c \u0644\u0630\u0627 \u0644\u0627 \u064a\u0637\u0627\u0628\u0642 \u0645\u062c\u0645\u0648\u0639\u0647\u0627 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0623\u0639\u0644\u0627\u0647. '+offs.map(function(o){return o.lbl+': \u0645\u062c\u0645\u0648\u0639 \u0627\u0644\u0633\u0637\u0648\u0631 '+m0(o.shown)+'\u060c \u0648\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a '+m0(o.head)+'\u060c \u0648\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u062f\u0642\u064a\u0642 '+o.exact.toFixed(2)+' \u0631\u064a\u0627\u0644';}).join('\u061b')+'.')));
+          }
         }
       }
       if(tr.parentNode) tr.parentNode.insertBefore(frag,tr.nextSibling);
