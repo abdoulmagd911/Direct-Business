@@ -120,3 +120,6 @@ probe-period-disagreement-visible
 probe-write-refusal-speaks
 probe-exclusion-unchecked-surfaces
 probe-import-preview-tab-switch
+probe-report-unrecorded-cost-rows
+probe-ledger-empty-speaks
+probe-import-files-count

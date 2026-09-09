@@ -90,7 +90,10 @@ await page.waitForTimeout(1200);
 const ledgerMs = Date.now() - t0;
 const ledgerTxt = await page.evaluate(() => (document.getElementById('view') || {}).innerText || '');
 STEP('S4a the Ledger says it has nothing to list rather than hanging or going blank',
-  ledgerMs < 12000 && /No transactions match|لا توجد معاملات مطابقة/.test(ledgerTxt),
+  /* 2026-09-09 (live test F1): an EMPTY ledger now says "No transactions recorded yet — the
+     ledger is empty, not filtered" instead of "match" — the honest sentence for this fixture,
+     which holds no transactions. Any of the three empty-state sentences counts as "said so". */
+  ledgerMs < 12000 && /No transactions (match|recorded yet|to show)|لا توجد معاملات/.test(ledgerTxt),
   `${ledgerMs}ms · "${ledgerTxt.replace(/\s+/g, ' ').slice(0, 90)}"`);
 await SHOT('ledger-loaded');
 const t1 = Date.now();
