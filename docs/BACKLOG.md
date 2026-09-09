@@ -1,3 +1,24 @@
+## Container reprovisioned 2026-09-09 ~20:12 UTC — recovery recipe (durable)
+The web-session container was rebuilt mid-run: the working tree AND `/tmp/node_modules` were lost,
+leaving only `.git` (origin intact). NOTHING was lost — all work was already pushed. Recovery that
+worked, in order:
+1. `git fetch origin claude/new-session-9fhlp1 && git checkout -B claude/new-session-9fhlp1 origin/claude/new-session-9fhlp1`
+2. The QA harness deps are NOT in the repo — reinstall them:
+   `cd /tmp && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright@1.55.0 @supabase/supabase-js`
+   (Chromium build 1194 is pre-installed at /opt/pw-browsers; probes launch it by executablePath.)
+3. Verify: check-structure / check-probe-integrity / check-decisions-wired — all green on the
+   restored+merged tree (69 layers incl. the new js/76 archive layer, 173 probes). Live site
+   serves the merged HEAD (js/76 present on directksab2b.com).
+
+KNOWN BLOCKER in this reprovisioned sandbox: a standalone Chromium launch succeeds, but a FULL
+app-boot probe (mock server + 69-script boot, sustained CPU) hangs and/or is signal-killed
+(exit 144 / SIGSTKFLT) — a CPU/resource limit in this container, NOT an app defect (a 35s idle
+node process is fine; the standalone launch renders a page and exits 0). The browser battery
+therefore could not run this fire. OUTSTANDING for a healthier container: the 12 new oversight
+probes, and the `-j1` re-run of the 16 probes that flaked on port-contention under `-j4` earlier.
+Static verification (parse, structure, integrity, decisions, SQL data invariants) is complete and
+green; the three employee-sign-in fixes and all Round-69 work are present, pushed, and live.
+
 ## Round 69 — 2026-09-09 — heavy testing for real: the live app, the real database, an employee's session
 
 The owner said the app "is not working properly". The harness is fake data, so this round drove
