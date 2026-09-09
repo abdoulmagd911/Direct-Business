@@ -892,6 +892,18 @@ export function start(port, seedOverrides){
       // stripped, i.e. 64 hex characters — so a probe measuring token length/alphabet measures
       // the real shape. RLS live is `authenticated ALL true`, so this is deliberately open to
       // any signed-in caller here too; that IS one of the findings under test.
+      /* 2026-09-09 (live test A3): a probe may plant a record_history row the way the live
+         trigger would, so a screen that re-reads the log can be driven; the app itself never
+         inserts here (only the database does). */
+      if(t==='record_history'&&req.method==='POST'){
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(!Array.isArray(payload)) payload=[payload];
+          const written=payload.map(row=>{ const nextId=(TABLES.record_history.length?Math.max(...TABLES.record_history.map(x=>+x.id||0)):0)+1; const nr=Object.assign({id:nextId,at:new Date().toISOString(),actor:UID,actor_name:'QA Test Account',undone_at:null,undone_by:null},row); TABLES.record_history.push(nr); return nr; });
+          return send(res,201,written);
+        });
+      }
       if(t==='share_links'&&req.method==='POST'){
         let body=''; req.on('data',c=>body+=c);
         return req.on('end',()=>{

@@ -148,12 +148,14 @@ async function main() {
   await p.evaluate(() => { openLead = null; current = 'leads'; leadDetailView = 'detail'; render(); const l = DB.businesses.find((x) => !x.isClient); l.contacts = []; });
   await p.waitForTimeout(700);
   const rowBox = await p.evaluate(() => { const tr = document.querySelector('#view table tbody tr'); const r = tr.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-  await p.mouse.move(rowBox.x, rowBox.y); await p.mouse.move(rowBox.x + 6, rowBox.y + 2); await p.waitForTimeout(300);
+  await p.mouse.move(rowBox.x, rowBox.y); await p.mouse.move(rowBox.x + 6, rowBox.y + 2);
+  await p.waitForFunction(() => document.querySelectorAll('.v46-leadpop').length > 0, { timeout: 3000 }).catch(() => {});   // under battery load the paint can take longer than a fixed wait
   const hov1 = await p.evaluate(() => document.querySelectorAll('.v46-leadpop').length);
   await p.evaluate(() => editBusiness()); await p.waitForSelector('#f_name', { timeout: 5000 });
   await p.evaluate(() => { document.getElementById('f_name').value = 'Probe Hover Lead'; document.getElementById('mSave').click(); }); await p.waitForTimeout(1200);
   const hov2 = await p.evaluate(() => document.querySelectorAll('.v46-leadpop').length);
-  await p.mouse.move(rowBox.x + 10, rowBox.y + 3); await p.waitForTimeout(300);
+  await p.mouse.move(rowBox.x + 10, rowBox.y + 3);
+  await p.waitForFunction(() => document.querySelectorAll('.v46-leadpop').length > 0, { timeout: 3000 }).catch(() => {});
   const hov3 = await p.evaluate(() => document.querySelectorAll('.v46-leadpop').length);
   await p.keyboard.press('Shift'); await p.waitForTimeout(200);
   const hov4 = await p.evaluate(() => document.querySelectorAll('.v46-leadpop').length);

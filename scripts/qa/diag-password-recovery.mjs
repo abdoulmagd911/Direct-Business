@@ -168,6 +168,8 @@ async function runAdminPass() {
     if (out.resetBtnCount > 0) {
       await p.evaluate(() => { window.confirm = () => true; });
       await p.click('[data-rst]');
+      /* 2026-09-09: the question is js/57's in-page box now */
+      await p.waitForTimeout(300); await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
       await p.waitForTimeout(800);
       out.sentConfirmationText = await p.$eval('#v48res', el => el.textContent.trim()).catch(() => null);
     }

@@ -159,6 +159,14 @@ async function main() {
   if (!dialogs.length && d7.box && d7.still && d7b && !d7c) ok('delete proposal: in-page box, Cancel keeps it, Confirm removes it — no native dialog');
   else fail(`delete proposal: ${JSON.stringify({ d7, d7b, d7c })} dialogs=${JSON.stringify(dialogs)}`);
 
+  /* ---- 8. Team & Access "Send reset link" asks in the page (js/31) ---- */
+  await p.evaluate(() => { try { closeModal(); } catch (_) { } v48Users(); });
+  await p.waitForSelector('#v48list [data-rst]', { timeout: 15000 }).catch(() => fail('Team & Access never listed a Send-reset button'));
+  await p.evaluate(() => { const b = document.querySelector('#v48list [data-rst]'); if (b) b.click(); }); await p.waitForTimeout(400);
+  const r8 = await p.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ').slice(0, 80) }));
+  if (!dialogs.length && r8.box && /password reset link/.test(r8.txt)) ok(`Send reset link asks in the page: "${r8.txt.slice(0, 60)}"`); else fail(`Send reset link: ${JSON.stringify(r8)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); const o = document.getElementById('v48ov'); if (o) o.remove(); });
+
   if (!errors.length) ok('no JavaScript errors'); else fail('JavaScript errors: ' + errors.join(' | '));
   await b.close(); srv.close();
   if (failures) { console.log(`\nFAILED — ${failures} check(s) did not pass.`); process.exit(1); }
