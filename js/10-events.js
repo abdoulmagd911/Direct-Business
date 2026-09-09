@@ -329,6 +329,7 @@ var EV_VERT_AR={Travel:'سفر',Tech:'تقنية',Study:'دراسة',Other:'أخ
 /* Same convention as the other layers: whole-string Arabic, chosen at render time. */
 function isAr(){try{return (typeof LANG!=='undefined'&&LANG==='ar')||document.documentElement.getAttribute('data-lang')==='ar';}catch(_){return false;}}
 function L(en,ar){return isAr()?ar:en;}
+function evSay(m){ try{ if(typeof toast==='function'){ toast(m,'err'); return; } }catch(_){} try{ console.warn('[events]',m); }catch(_){} }
 var MOVE_EN={stand:['Have a stand','#ffe6d5','#c2560a'],attend:['Go & meet','#dff5e1','#1e7a34'],mine:['Mine the website','#dceeff','#1a5c9e'],skip:['Skip','#e9e9e9','#666'],undecided:['Not decided','#fff8ec','#8b5b1f']};
 var MOVE_AR={stand:['جناح','#ffe6d5','#c2560a'],attend:['حضور ولقاءات','#dff5e1','#1e7a34'],mine:['جمع من الموقع','#dceeff','#1a5c9e'],skip:['تخطّي','#e9e9e9','#666'],undecided:['لم يُحدَّد','#fff8ec','#8b5b1f']};
 var MOVE=MOVE_EN; /* kept for the lookups below; the label is chosen by mv() at render */
@@ -538,7 +539,7 @@ window.renderEvents=function(v){
     h+='<td data-l="'+L('When','متى')+'" style="padding:9px 10px">'+evDate(e)+(rel?'<div style="font-size:10.5px;color:'+(rel[0]==='happening now'?'#1e7a34;font-weight:600':'var(--muted)')+'">'+esc(rel[0])+'</div>':'')+'</td>';
     h+='<td data-l="'+L('City','المدينة')+'" style="padding:9px 10px;white-space:nowrap">'+esc(e.city||'—')+'</td>';
     h+='<td style="padding:9px 10px;max-width:260px;font-size:11.5px;color:var(--muted)"><div style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden" title="'+esc(e.notes||'')+'">'+esc(e.notes||'')+'</div></td>';
-    h+='<td data-act="1" style="padding:9px 10px;white-space:nowrap">'+(canEdit()?'<button class="btn ghost sm" onclick="evOpenModal(\''+esc(e.id)+'\')">'+L('Edit','تعديل')+'</button> <button class="btn ghost sm" style="color:#a3242c" onclick="evDelete(\''+esc(e.id)+'\')">'+L('Del','حذف')+'</button>':'')+'</td>';
+    h+='<td data-act="1" style="padding:9px 10px;white-space:nowrap">'+(canEdit()?'<button class="btn ghost sm" onclick="evOpenModal(\''+esc(e.id)+'\')">'+L('Edit','تعديل')+'</button> <button class="btn ghost sm" style="color:#a3242c" onclick="evDelete(\''+esc(e.id)+'\')">'+L('Delete','حذف')+'</button>':'')+'</td>';
     h+='</tr>';
   });
   h+='</tbody></table></div>';
@@ -600,19 +601,27 @@ function evExport(scope){
   try{
     if(scope==='xlsList'||scope==='xlsFull')downloadXLS(name+'.xls',rows,fields);
     else downloadCSV(name+'.csv',rows,fields);
-  }catch(err){ alert(L('Could not export: ','تعذّر التصدير: ')+err.message); }
+  }catch(err){ evSay(L('Could not export: ','تعذّر التصدير: ')+err.message); }
 }
 
 window.evDelete=function(id){
   if(!canEdit())return;
   var e=(DB.ksaEvents||[]).find(function(x){return x.id===id;});
   if(!e)return;
-  if(!confirm(L('Delete "'+(e.name_en||'this event')+'"? This removes it for the whole team.','حذف «'+(e.name_en||'')+'»؟ سيُحذف للفريق بالكامل.')))return;
-  client().from('ksa_events').delete().eq('id',id).select('id').then(function(r){
-    if(r.error){alert(L('Could not delete: ','تعذّر الحذف: ')+r.error.message);return;}
-    if(!r.data||!r.data.length){alert(L('Not deleted — the database refused it (no permission?). Nothing changed.','لم يُحذف — رفضته قاعدة البيانات (لا صلاحية؟). لم يتغير شيء.'));return;}   // M13
-    DB.ksaEvents=DB.ksaEvents.filter(function(x){return x.id!==id;});render();
-  });
+  /* 2026-09-09 (live test: Events "Del" + D1): a native confirm() froze the owner's tabs, and
+     the button read "Del". js/57's in-page box, the full word, and the honest sentence — this is
+     a real delete of the row, not an archive. Refusals speak through the toast, not alert(). */
+  var _say=function(m){ try{ if(typeof toast==='function'){ toast(m,'err'); return; } }catch(_){} try{ console.warn('[events]',m); }catch(_){} };
+  var _go=function(){
+    client().from('ksa_events').delete().eq('id',id).select('id').then(function(r){
+      if(r.error){_say(L('Could not delete: ','تعذّر الحذف: ')+r.error.message);return;}
+      if(!r.data||!r.data.length){_say(L('Not deleted — the database refused it (no permission?). Nothing changed.','لم يُحذف — رفضته قاعدة البيانات (لا صلاحية؟). لم يتغير شيء.'));return;}
+      DB.ksaEvents=DB.ksaEvents.filter(function(x){return x.id!==id;});render();
+      try{ if(typeof toast==='function') toast(L('Event deleted.','حُذفت الفعالية.')); }catch(_){}
+    });
+  };
+  var _msg=L('Delete "'+(e.name_en||'this event')+'"?\nThis removes it for the whole team and cannot be undone.','حذف «'+(e.name_en||'')+'»؟\nسيُحذف للفريق بالكامل ولا يمكن التراجع.');
+  if(typeof window.pfConfirm==='function') window.pfConfirm(_msg,_go); else _go();
 };
 
 window.evOpenModal=function(id){
@@ -669,16 +678,14 @@ window.evOpenModal=function(id){
   try{ document.getElementById('ev_n').focus(); }catch(_){}
   document.getElementById('ev_save').onclick=function(){
     var gv=function(fid){var el=document.getElementById(fid);return el?el.value.trim():'';};
-    var name=gv('ev_n'); if(!name){alert(L('Event name is required.','اسم الفعالية مطلوب.'));return;}
-    if(!id){
-      var clash=(DB.ksaEvents||[]).filter(function(x){return normName(x.name_en)===normName(name);});
-      if(clash.length&&!confirm(L('"'+name+'" is already on the calendar. Add it again anyway?','«'+name+'» موجودة بالفعل في التقويم. هل تضيفها مرة أخرى؟')))return;
-    }
+    var name=gv('ev_n'); if(!name){evSay(L('Event name is required.','اسم الفعالية مطلوب.'));return;}
+    var _clash=!id&&(DB.ksaEvents||[]).some(function(x){return normName(x.name_en)===normName(name);});
+    var _save=function(){
     var start=gv('ev_start')||null, end=gv('ev_end')||null;
-    if(start&&end&&end<start){alert(L('End date cannot be before start date.','تاريخ النهاية لا يمكن أن يسبق البداية.'));return;}
+    if(start&&end&&end<start){evSay(L('End date cannot be before start date.','تاريخ النهاية لا يمكن أن يسبق البداية.'));return;}
     var link=gv('ev_link'), listurl=gv('ev_listurl');
-    if(link&&!/^https?:\/\//i.test(link)){alert(L('Official link must start with http:// or https://','الرابط الرسمي يجب أن يبدأ بـ http:// أو https://'));return;}
-    if(listurl&&!/^https?:\/\//i.test(listurl)){alert(L('Companies list link must start with http:// or https://','رابط قائمة الشركات يجب أن يبدأ بـ http:// أو https://'));return;}
+    if(link&&!/^https?:\/\//i.test(link)){evSay(L('Official link must start with http:// or https://','الرابط الرسمي يجب أن يبدأ بـ http:// أو https://'));return;}
+    if(listurl&&!/^https?:\/\//i.test(listurl)){evSay(L('Companies list link must start with http:// or https://','رابط قائمة الشركات يجب أن يبدأ بـ http:// أو https://'));return;}
     var data={name_en:name,name_ar:gv('ev_nar')||null,start_date:start,end_date:end,
       city:gv('ev_city')||null,venue:gv('ev_venue')||null,
       vertical:document.getElementById('ev_vert').value,status:document.getElementById('ev_stat').value,
@@ -691,20 +698,22 @@ window.evOpenModal=function(id){
     var q=id?c.from('ksa_events').update(data).eq('id',id).select('id').single()
             :c.from('ksa_events').insert(data).select('id').single();
     q.then(function(r){
-      if(r.error){alert(L('Could not save: ','تعذّر الحفظ: ')+r.error.message);return;}
+      if(r.error){evSay(L('Could not save: ','تعذّر الحفظ: ')+r.error.message);return;}
       var savedId=(r.data&&r.data.id)||id;
       var s={event_id:savedId,login_email:gv('ev_su_email')||null,login_password:gv('ev_su_pass')||null,signed_up_by:gv('ev_su_by')||null,updated_at:new Date().toISOString()};
       var had=!!SIGNUPS[savedId], has=s.login_email||s.login_password||s.signed_up_by;
       var done=function(){close();loaded=false;loadAll();};
       if(savedId&&(has||had)){
         c.from('ksa_event_signups').upsert(s).select('event_id').then(function(r2){
-          if(r2.error)alert(L('Event saved, but the site login did not save: ','حُفظت الفعالية، لكن حساب الموقع لم يُحفظ: ')+r2.error.message);
-          else if(!r2.data||!r2.data.length)alert(L('Event saved, but the site login was refused by the database (no permission?).','حُفظت الفعالية، لكن قاعدة البيانات رفضت حفظ حساب الموقع (لا صلاحية؟).'));   // M13
+          if(r2.error)evSay(L('Event saved, but the site login did not save: ','حُفظت الفعالية، لكن حساب الموقع لم يُحفظ: ')+r2.error.message);
+          else if(!r2.data||!r2.data.length)evSay(L('Event saved, but the site login was refused by the database (no permission?).','حُفظت الفعالية، لكن قاعدة البيانات رفضت حفظ حساب الموقع (لا صلاحية؟).'));   // M13
           else SIGNUPS[savedId]=s;
           done();
         });
       } else done();
     });
+    };
+    if(_clash){ var _cm=L('"'+name+'" is already on the calendar. Add it again anyway?','«'+name+'» موجودة بالفعل في التقويم. هل تضيفها مرة أخرى؟'); if(typeof window.pfConfirm==='function') window.pfConfirm(_cm,_save); else _save(); } else _save();
   };
 };
 }catch(e){console.warn('v64 events layer',e);}})();

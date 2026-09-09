@@ -15,10 +15,14 @@
      See docs/DEEPLINK-BOOT-RACE.md. */
   try{ window.__bootPath=boot; }catch(_){}
   var ready=false, lastPath=null, restoring=false;
-  function parse(path){var m=String(path||'').match(/^\/([a-zA-Z]+)(?:\/(lead|offer|invoice)\/([^\/?#]+))?/);return m?{sec:m[1],dk:m[2],dv:m[3]}:null;}
+  /* 2026-09-09 (live test C5): a CLIENT's card is the same screen as a lead's (openLead under the
+     Leads section), so its address read /leads/lead/<id>. The address now says what the person
+     opened — /clients/client/<id> — and both shapes are understood on the way back in. */
+  function parse(path){var m=String(path||'').match(/^\/([a-zA-Z]+)(?:\/(lead|client|offer|invoice)\/([^\/?#]+))?/);return m?{sec:m[1],dk:m[2],dv:m[3]}:null;}
+  function isClientId(id){try{var b=(typeof getLead==='function')?getLead(id):null;return !!(b&&b.isClient);}catch(_){return false;}}
   function curSafe(){try{return current;}catch(_){return undefined;}}
   function leadSafe(){try{return (typeof openLead!=='undefined')?openLead:'';}catch(_){return '';}}
-  function buildPath(){var c=curSafe();if(typeof c==='undefined')return null;var p='/'+c;try{if(typeof openLead!=='undefined'&&openLead)p+='/lead/'+openLead;else if(typeof openOffer!=='undefined'&&openOffer)p+='/offer/'+openOffer;else if(typeof openInvoice!=='undefined'&&openInvoice)p+='/invoice/'+openInvoice;}catch(_){}return p;}
+  function buildPath(){var c=curSafe();if(typeof c==='undefined')return null;var p='/'+c;try{if(typeof openLead!=='undefined'&&openLead){if(c==='leads'&&isClientId(openLead))p='/clients/client/'+openLead;else p+='/lead/'+openLead;}else if(typeof openOffer!=='undefined'&&openOffer)p+='/offer/'+openOffer;else if(typeof openInvoice!=='undefined'&&openInvoice)p+='/invoice/'+openInvoice;}catch(_){}return p;}
   // ---- the sub-state that Back should step through, per section (search text is left out on purpose,
   //      so Back never has to walk back through every keystroke) ----
   function snapFilters(){try{var c=curSafe();
@@ -48,7 +52,21 @@
   // was accepted as valid, set current='providers' — a view that does not exist — and the app
   // quietly showed Today under a /providers address. The page's real id is `vendors`.
   var ALIAS={providers:'vendors',operations:'ops',dashboard:'today'};
-  function applyRoute(r){if(!r)return false;if(r.sec&&ALIAS[r.sec])r.sec=ALIAS[r.sec];if(VALID.indexOf(r.sec)<0&&!r.dk)return false;try{if(r.dk==='lead'&&r.dv){current='leads';openLead=r.dv;}else if(r.dk==='offer'&&r.dv){current='offers';openOffer=r.dv;}else if(r.dk==='invoice'&&r.dv){current='invoices';openInvoice=r.dv;}else{if(VALID.indexOf(r.sec)>=0)current=r.sec;try{openLead='';}catch(_){}}}catch(_){return false;}return true;}
+  function applyRoute(r){if(!r)return false;if(r.sec&&ALIAS[r.sec])r.sec=ALIAS[r.sec];if(VALID.indexOf(r.sec)<0&&!r.dk)return false;try{if((r.dk==='lead'||r.dk==='client')&&r.dv){current='leads';openWhenPresent(r.dv);}else if(r.dk==='offer'&&r.dv){current='offers';openOffer=r.dv;}else if(r.dk==='invoice'&&r.dv){current='invoices';openInvoice=r.dv;}else{if(VALID.indexOf(r.sec)>=0)current=r.sec;try{openLead='';}catch(_){}}}catch(_){return false;}return true;}
+  /* 2026-09-09 (live test C5, found while giving client cards their address): a card deep link
+     (/leads/lead/<id>) never survived a boot, on any machine. The route was applied a few
+     hundred ms in, while DB.businesses still held the start-up copy; the card render could not
+     find the record and cleared openLead, and nothing re-applied the route once the table rows
+     arrived. Open the card when the record is actually there; the list shows meanwhile. */
+  var pendingRec=null;
+  function openWhenPresent(id){
+    try{ if(typeof getLead==='function'&&getLead(id)){ openLead=id; return true; } }catch(_){}
+    pendingRec=id; var n=0;
+    var iv=setInterval(function(){ n++; if(pendingRec!==id){ clearInterval(iv); return; }
+      try{ if(typeof getLead==='function'&&getLead(id)){ clearInterval(iv); pendingRec=null; current='leads'; openLead=id; if(typeof render==='function')render(); } }catch(_){}
+      if(n>240){ clearInterval(iv); if(pendingRec===id)pendingRec=null; } },250);
+    return false;
+  }
   function restoreBoot(){var r=parse(boot);if(applyRoute(r)){try{if(typeof render==='function')render();}catch(_){}}ready=true;lastPath=buildPath();try{if(lastPath)history.replaceState({p:lastPath,f:snapFilters()},'',lastPath);}catch(_){}}
   // wrap render AND the filter re-draws (renderLeads/drawLeads) so a filter change records history too
   function wrapFn(name){try{var f=window[name];if(typeof f==='function'&&!f.__pathWrap){var _f=f;window[name]=function(){var o=_f.apply(this,arguments);writeURL();return o;};window[name].__pathWrap=true;}}catch(_){}}
@@ -56,7 +74,7 @@
   var tries=0;var iv=setInterval(function(){tries++;var ok=false;try{ok=(typeof render==='function'&&typeof DB!=='undefined');}catch(_){ok=false;}if(ok){wrap();clearInterval(iv);restoreBoot();}else if(tries>75){clearInterval(iv);wrap();restoreBoot();}},200);
   window.addEventListener('popstate',function(e){if(!ready)return;var r=parse(location.pathname);if(!r)return;
     var st=(e&&e.state)||history.state||{};
-    var secChanged=r.sec!==curSafe()||(r.dk==='lead'&&r.dv!==leadSafe())||(!r.dk&&leadSafe());
+    var secChanged=(r.dk==='client'?'leads':r.sec)!==curSafe()||((r.dk==='lead'||r.dk==='client')&&r.dv!==leadSafe())||(!r.dk&&leadSafe());
     restoring=true;
     try{
       if(secChanged)applyRoute(r);

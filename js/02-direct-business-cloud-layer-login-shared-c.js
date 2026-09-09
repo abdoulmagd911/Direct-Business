@@ -480,9 +480,10 @@
             saveRetryN=0;
             var _aAr=(typeof LANG!=='undefined'&&LANG==='ar');
             setPill(_aAr?('حُفظ على سجل محذوف ('+archivedHit.length+')'):('Saved onto a deleted record ('+archivedHit.length+')'),'#B54708');
-            try{ alert(_aAr
+            /* 2026-09-09 (live test D1): js/63's in-page notice when it is loaded (always, in the app); the native box only as a last resort */
+            try{ var _msgA=(_aAr
               ? ('حُفظ تعديلك، لكن '+archivedHit.length+' من هذه الشركات حذفها شخص آخر أثناء فتحها لديك. التعديل مكتوب على سجل مؤرشف لن يظهر في أي قائمة بعد إعادة التحميل. استعدها من صفحة «الأرشيف»، أو من «النشاط والتدقيق ← تراجع» خلال 24 ساعة.')
-              : ('Your change was saved, but '+archivedHit.length+' of these companies was deleted by someone else while you had it open. The edit is on an archived record that will not appear in any list after a reload. Restore it from the Archive page, or with Activity & Audit \u2192 Undo within 24 hours.')); }catch(_){}
+              : ('Your change was saved, but '+archivedHit.length+' of these companies was deleted by someone else while you had it open. The edit is on an archived record that will not appear in any list after a reload. Restore it from the Archive page, or with Activity & Audit \u2192 Undo within 24 hours.')); if(typeof window.v63Notice==='function') window.v63Notice(_msgA); else alert(_msgA); }catch(_){}
           }
           else { saveRetryN=0; setPill(ups.length?('Saved · '+ups.length+' lead'+(ups.length===1?'':'s')+' updated'):'Saved to cloud','#16B364'); }
           sb.from('app_state').select('updated_at').eq('id',1).maybeSingle().then(function(u){ try{ if(u&&u.data&&u.data.updated_at) localStorage.setItem('db_cloud_ts', String(u.data.updated_at)); }catch(e){} });

@@ -211,6 +211,9 @@ console.info('%c[v40 lead lifecycle] loaded','color:#FF6B00;font-weight:700');
   function ownLead(b){return (b.assignedTo||b.owner||'');}
   function ownCli(b){return (b.accountManager||b.assignedTo||b.owner||'');}
   function lastTouch(b){var la=(b.activities||[]).slice().sort(function(x,y){return (y.date||0)-(x.date||0);})[0];return b.lastContact||(la&&la.date)||0;}
+  /* 2026-09-09 (live test, Arabic gaps): the stage word on a Going-cold row stayed English in
+     Arabic ("Contacted"); js/21 publishes the stage words it uses on the pills. */
+  function stageWord(st){ try{ if(ar()&&window.__STAGE_AR&&window.__STAGE_AR[st]) return window.__STAGE_AR[st]; }catch(_){} return st; }
   function closedLead(b){var s=(typeof leadStage==='function')?leadStage(b):(b.stage||'');return s==='Won'||s==='Lost';}
 
   function buildYourDay(){
@@ -255,7 +258,7 @@ console.info('%c[v40 lead lifecycle] loaded','color:#FF6B00;font-weight:700');
     if(due.length){ body+='<h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:6px 0 6px">'+(ar()?'متابعات مستحقة':'Follow-ups due')+'</h3>';
       due.slice(0,8).forEach(function(b){ var od=String(b.nextActionDate).slice(0,10)<td; body+=row(od?'red':'amber','📞',(window.nmMain?nmMain(b):b.name),(b.nextAction||(ar()?'متابعة':'Follow up'))+' · '+b.nextActionDate,(od?(ar()?'متأخرة':'Overdue'):(ar()?'اليوم':'Due')),openL(b.id)); }); }
     if(cold.length){ body+='<h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:12px 0 6px">'+(ar()?'تبرد — تحتاج تواصل':'Going cold')+'</h3>';
-      cold.slice(0,6).forEach(function(b){ var lt=lastTouch(b); var days=lt?Math.floor((nowMs-lt)/864e5):null; body+=row('amber','❄️',(window.nmMain?nmMain(b):b.name),(typeof leadStage==='function'?leadStage(b):(b.stage||''))+' · '+(days===null?(ar()?'لا تواصل بعد':'never contacted'):(days+(ar()?' يوم':'d')+' '+(ar()?'بلا تواصل':'no contact'))),'',openL(b.id)); }); }
+      cold.slice(0,6).forEach(function(b){ var lt=lastTouch(b); var days=lt?Math.floor((nowMs-lt)/864e5):null; body+=row('amber','❄️',(window.nmMain?nmMain(b):b.name),stageWord(typeof leadStage==='function'?leadStage(b):(b.stage||''))+' · '+(days===null?(ar()?'لا تواصل بعد':'never contacted'):(days+(ar()?' يوم':'d')+' '+(ar()?'بلا تواصل':'no contact'))),'',openL(b.id)); }); }
     if(exp.length){ body+='<h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:12px 0 6px">'+(ar()?'عروض تنتهي قريبًا':'Proposals expiring')+'</h3>';
       /* Owner ruling 2026-08-21 (docs/DECISIONS.md → "Money belongs to Finance only"): no amounts
          outside Finance. The card names the proposal and the client; the value stays on Finance. */

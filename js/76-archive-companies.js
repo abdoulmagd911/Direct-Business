@@ -85,12 +85,17 @@
     if(STATE.err){ body='<div class="empty" data-v76-err>'+esc(fl('Could not read the deleted companies: ','تعذّر قراءة الشركات المحذوفة: ')+STATE.err)+'</div>'; }
     else if(!rows.length){ body='<div class="empty" data-v76-empty>'+esc(fl('No company has been deleted.','لم تُحذف أي شركة.'))+'</div>'; }
     else body=rows.map(function(x){
-      var by=String(x.archived_by||''); var merged=/^merged-into:/.test(by); var keep=merged?by.slice('merged-into:'.length):''; var keepName=merged?nameByUuid(keep):'';
+      /* Seen live (9 Sep): archived_by can be 'merged-into:<id> (was: cleanup-…)' — read the id
+         token only — and 'owner-ruling-2026-08-23' on the company the owner ruled out of the
+         app for good. A ruling is not a deletion anyone may reverse from a button. */
+      var by=String(x.archived_by||''); var merged=/^merged-into:/.test(by); var keep=merged?by.slice('merged-into:'.length).trim().split(/\s/)[0]:''; var keepName=merged?nameByUuid(keep):'';
+      var ruled=/^owner-ruling/i.test(by);
       var who=merged
         ? fl('merged into '+(keepName||'another company')+' — its records live there now; undo the merge from Activity & Audit','دُمجت في '+(keepName||'شركة أخرى')+' — سجلاتها هناك الآن؛ التراجع عن الدمج من النشاط والتدقيق')
+        : ruled ? fl('removed by owner ruling ('+by.replace(/^owner-ruling-?/i,'')+') — not restorable from here','أُزيلت بقرار المالك ('+by.replace(/^owner-ruling-?/i,'')+') — لا تُستعاد من هنا')
         : fl('deleted by '+(by||'unknown'),'حذفها '+(by||'غير معروف'));
-      var btn=(!merged&&edit)?'<button class="btn sm" data-v76-restore="'+esc(x.id)+'" onclick="v76RestoreCompany(\''+esc(x.id)+'\')">↺ '+esc(fl('Restore','استعادة'))+'</button>':'';
-      return '<div class="fact" data-v76-row="'+esc(x.id)+'" data-v76-kind="'+(merged?'merged':'deleted')+'"><span class="k archived-row"><b>'+esc(x.name||'')+'</b>'+(x.is_client?' · '+esc(fl('client','عميل')):'')+'<span style="color:var(--muted);font-size:12px"> · '+esc(who)+' · '+esc(when(x.archived_at))+'</span></span><span class="v">'+btn+'</span></div>';
+      var btn=(!merged&&!ruled&&edit)?'<button class="btn sm" data-v76-restore="'+esc(x.id)+'" onclick="v76RestoreCompany(\''+esc(x.id)+'\')">↺ '+esc(fl('Restore','استعادة'))+'</button>':'';
+      return '<div class="fact" data-v76-row="'+esc(x.id)+'" data-v76-kind="'+(merged?'merged':ruled?'ruled':'deleted')+'"><span class="k archived-row"><b>'+esc(x.name||'')+'</b>'+(x.is_client?' · '+esc(fl('client','عميل')):'')+'<span style="color:var(--muted);font-size:12px"> · '+esc(who)+' · '+esc(when(x.archived_at))+'</span></span><span class="v">'+btn+'</span></div>';
     }).join('');
     card.innerHTML='<h3>'+esc(fl('Deleted companies','الشركات المحذوفة'))+' · '+rows.length+'</h3>'+body;
     /* the footnote that said nothing could be listed — replace its words with what is true now */

@@ -51,9 +51,26 @@
     "You can undo your own changes; an admin or manager can undo anyone's.":'يمكنك التراجع عن تغييراتك الخاصة؛ ويمكن للمسؤول أو المدير التراجع عن تغييرات أي شخص.',
     'Bringing back a fully deleted record is an admin action.':'استعادة سجل محذوف بالكامل إجراء يقتصر على المسؤول.'
   };
+  /* 2026-09-09 (live test D1): alert()/confirm() froze the owner's tabs. The answer to an Undo is
+     shown in a small in-page notice that stays until dismissed (a toast is gone in two seconds
+     and these sentences matter), and the question goes through js/57's box. */
+  window.v63Notice=function(text){
+    try{
+      var old=document.getElementById('v63Notice'); if(old)old.remove();
+      var d=document.createElement('div'); d.id='v63Notice';
+      /* a card at the top of the screen, NOT a full-screen overlay: it stays until dismissed but
+         never blocks the rest of the page (the old alert() did, and so did the first cut of this) */
+      d.style.cssText='position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:1000000001;max-width:min(420px,92vw);background:var(--card,#fff);border:1px solid #E3DCCF;border-radius:12px;padding:16px 18px;box-shadow:0 12px 40px rgba(0,0,0,.25)';
+      d.innerHTML='<div data-v63-text style="font-size:13.5px;line-height:1.5;margin-bottom:12px">'+esc(text)+'</div><div style="display:flex;justify-content:'+(isAr()?'flex-start':'flex-end')+'"><button class="btn sm pri" id="v63NoticeOk">'+fl('OK','حسنًا')+'</button></div>';
+      document.body.appendChild(d);
+      var close=function(){ try{ d.remove(); }catch(_){} };
+      document.getElementById('v63NoticeOk').onclick=close;
+      setTimeout(function(){ try{ document.getElementById('v63NoticeOk').focus(); }catch(_){} },30);
+    }catch(_){ try{ if(typeof toast==='function') toast(text); }catch(__){} }
+  };
   function showResult(msg){
     var text=(isAr()&&REFUSAL_AR[msg])?REFUSAL_AR[msg]:msg;
-    alert(text);
+    window.v63Notice(text);
   }
 
   /* The one shared Undo call. p_id is record_history.id (bigint), not the record's own id.
@@ -61,9 +78,8 @@
      computed here — so a stale tab can't offer an undo that the database will refuse anyway
      once clicked, and can't offer one that quietly turns out to have expired mid-click either. */
   window.undoRecordChange=function(historyId,onDone){
-    var c=client(); if(!c||!c.rpc){ alert(fl('Not connected — try again in a moment.','غير متصل — حاول مرة أخرى بعد لحظة.')); return; }
-    if(!confirm(fl('Undo this change?','التراجع عن هذا التغيير؟')))return;
-    c.rpc('undo_change',{p_id:historyId}).then(function(r){
+    var c=client(); if(!c||!c.rpc){ showResult(fl('Not connected — try again in a moment.','غير متصل — حاول مرة أخرى بعد لحظة.')); return; }
+    var go=function(){ c.rpc('undo_change',{p_id:historyId}).then(function(r){
       if(r&&r.error){ showResult(r.error.message||String(r.error)); return; }
       var msg=r&&r.data;
       if(msg==='ok'){
@@ -72,7 +88,8 @@
       } else {
         showResult(msg||fl('No answer from the database.','لا يوجد رد من قاعدة البيانات.'));
       }
-    }).catch(function(e){ showResult(String((e&&e.message)||e)); });
+    }).catch(function(e){ showResult(String((e&&e.message)||e)); }); };
+    if(typeof window.pfConfirm==='function') window.pfConfirm(fl('Undo this change?','التراجع عن هذا التغيير؟'),go); else go();
   };
 
   /* ---------- Activity & Audit — now reading record_history, not DB.audit ---------- */

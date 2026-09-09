@@ -213,11 +213,16 @@
     try{
       var list=DB.businesses.filter(matchLead).slice().sort(function(a,b){var va=leadSortVal(a,leadSort.k),vb=leadSortVal(b,leadSort.k);return va<vb?-1*leadSort.dir:va>vb?1*leadSort.dir:0;});
       var rows=document.querySelectorAll('#board table tbody tr');
+      /* 2026-09-09 (live test L9): after Save the table re-rendered under a cursor that had not
+         moved, the new row under it received mouseenter, and the hover card popped over the
+         table with nobody hovering. A card is shown only once the pointer actually MOVES over a
+         row, and any click, key or scroll puts it away. */
       rows.forEach(function(tr,i){
         var b=list[i];if(!b)return;
-        tr.addEventListener('mouseenter',function(){showPop(b,tr);});
+        tr.addEventListener('mousemove',function(){ if(!pop||pop.__row!==tr) showPop(b,tr); });
         tr.addEventListener('mouseleave',hidePop);
       });
+      if(!window.__v33PopGuards){ window.__v33PopGuards=true; ['click','keydown','scroll'].forEach(function(ev){ document.addEventListener(ev,hidePop,true); }); }
     }catch(e){}
   };
   function showPop(b,tr){
@@ -238,6 +243,7 @@
     pop.className='v46-leadpop';
     pop.style.cssText='position:fixed;z-index:2147480000;max-width:390px;background:#fff;border:1px solid #E3DCCF;border-radius:12px;box-shadow:0 16px 40px -12px rgba(0,0,0,.25);padding:12px 15px;pointer-events:none';
     pop.innerHTML='<div style="font-size:10.5px;font-weight:800;color:'+(FCOLOR[(f||{}).color]||'#5F5E5A')+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">'+((f&&f.name_en)||'Lead')+' \u00b7 '+String(b.name||'').replace(/</g,'&lt;')+'</div>'+rowsH+extra;
+    pop.__row=tr;
     document.body.appendChild(pop);
     var r=tr.getBoundingClientRect();
     var top=r.bottom+6;
