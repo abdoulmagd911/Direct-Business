@@ -7290,3 +7290,2816 @@ display. Every one fingerprinted before, diffed after, and proven against the re
 not the mock — with the money always landing back on the exact same baseline once each
 probe's test data was removed. Next open item, not urgent: the export-freeze report (§15e)
 that couldn't be reproduced despite a real stress test.
+
+## Watch cycle 41 — a write must refuse while the exclusion list is unknown
+
+**Landed.** `finExclusionsReady()` and `finExclusionGate()` in js/62; `v65Commit` in js/65 now
+refuses and says why when the list has not loaded. Guarded by
+`scripts/qa/probe-exclusion-not-loaded.mjs` (port 8720, added to `battery.txt`). Sabotage —
+removing the gate call — reddens 2 of its 4 checks with the excluded client's invoice written.
+
+**Open, and the reason cycle 42 exists — the gate is on the wrong side of the decision.**
+`probe-importer-attacks` went red under six-way battery load this cycle (green standalone, green
+in cycles 39 and 40, green standalone again with this cycle's diff in the tree — so this is the
+defect surfacing, not a regression). What it caught:
+
+    ✗ Excluded by rule count not 3   (preview named 2 — only the two bad-date rows)
+    ✗ exclusion not named in preview
+    ✗ excluded partner row was written
+
+The excluded partner **was written** — so `finExclusionGate()` did not fire, so `DB.settings` was
+non-empty at commit time. The exclusion decisions had already been made in the **preview**, before
+the blob landed. The gate asks "is the list loaded *now*"; the rows being written were sorted
+under a list that was not loaded *then*. A stale preview passes a gate that only looks at the
+present.
+
+The fix is the chokepoint principle, not a bigger predicate: re-run the exclusion check at commit
+over the pending rows, so the decision that gets written is the decision made against the loaded
+list. Stamping readiness at preview time and comparing at commit is the weaker alternative — it
+refuses correctly but re-checking is what makes the preview and the write agree.
+
+**Also still open:** js/41 shares the same `finExclusionCheck()` fail-open and is outside this
+lane. Six call sites across four files (js/16, js/31, js/41, js/62, js/65) read the same null as
+"safe to proceed".
+
+**Closed this cycle:** `probe-premortem-attacks` check H, which timed out in cycles 38, 39 and 40,
+passed here at the 90s budget set in cycle 39 — including under six-way load. The flow does make
+progress; it was genuinely slow, not stuck. No further budget increase, and the item is done.
+
+## Watch cycle 42 — cycle 41's guard could not fire, and the battery proved it
+
+**Cycle 41's gate was inert in the running app.** It discriminated on
+`Object.keys(DB.settings).length`, treating an empty object as "the app_settings blob has not
+landed". Measured directly this cycle, with the `app_settings` response held back 25 seconds:
+
+    DB.settings keys        ["lang","currency","funnels","funnelSubs"]
+    finExclusionsReady()    true
+    finExclusionCheck(...)  false
+
+js/09's `ensureFunnel()` writes `funnels`/`funnelSubs` unconditionally at load and the app sets
+`lang`/`currency` for itself, so `DB.settings` is never empty by the time anyone can press a
+button. **The guard read "loaded" at exactly the moment the list was absent.** Cycle 41's probe
+passed only because it forced `DB.settings = {}` by hand — a state the app is never in. A guard
+verified against a world constructed to suit it is the failure this whole arc has been removing,
+and it happened here.
+
+What forced it out: `probe-importer-scale-attacks` red under six-way load with *"an
+excluded-client invoice was written"* — the gate had not fired, so `DB.settings` was already
+non-empty at commit.
+
+**Fixed by asking the server instead of inferring.** `finExclusionGateRows(rows, cb)` in js/62
+reads `app_settings` and checks the rows about to be written against the server's own list;
+`v65Commit` routes through it and refuses the batch **whole** on a match, on a read error, on no
+settings row, and on a read that never answers (its own 20 s timeout). Fail-closed. No page state
+is trusted to answer the question, and the check now sits at the last point before the database
+rather than at the top of the function, so a preview made blind cannot be committed later.
+
+`probe-stale-preview-exclusion` (8718) holds the stale-preview case; `probe-exclusion-not-loaded`
+(8720) was **rewritten** around the real guarantee. Both sabotage-verified, restored byte-identical.
+
+**Two of my own probe checks passed for the wrong reason and were hardened:**
+- the hang check waited 4 s after Confirm, but the gate gives the read 20 s — it read "nothing
+  written" from a commit that had not got there yet, and passed while the guard was disabled. It
+  outlasts the timeout now, and the sabotage reddens it.
+- a flat 2500 ms wait for the login form: twice the control failed with `preview="dropped"`
+  because the 68 blocking scripts had not finished. Waits on conditions now, 90 s.
+
+### Open for cycle 43
+
+**`probe-premortem-attacks` check H — cycle 41 closed this too early, on one green run.** It is
+red again under six-way load (green standalone). More importantly the failure was mischaracterised
+for four cycles: *"cost is 12605, expected 750"* is a **wrong value arriving, not a late one**, so
+raising the poll budget was never going to be the fix and must not be tried a fourth time. Find
+where 12605 comes from — the invoice carries it from an earlier attack in the same run, so the
+question is whether session 2's lines-only drop fails to apply or whether the read is stale.
+
+**`probe-client-group-map` — a new surface with the same fail-open.** Red in this cycle's first
+battery: *"EXCLUSION LEAK: the alias picker offers excluded client(s) as merge candidates —
+`groupCandidates()` is not applying finExclusionCheck"*. It is a display surface, so the standing
+rule says it may degrade to "not checked yet" rather than refuse — but it must not silently offer
+an excluded client for merging. Green in the verification battery, so it is load-dependent, which
+is the tell for this whole family.
+
+**Still outside the lane:** js/41's `finExclusionCheck()` fail-open. Note that the write path is
+now covered regardless — the invoice-export signature is parsed by js/41 and committed by js/65,
+and the commit-time re-check catches anything js/41's preview let through.
+
+## Watch cycle 43 — the display half, and a predicate that can actually be false
+
+**One wrong idea had been holding up two guards.** Cycle 42 found that
+`Object.keys(DB.settings).length` is never 0 in the running app (js/09's `ensureFunnel()` fills
+`DB.settings` at load) and fixed the importer by asking the server at commit time. It left the
+same dead predicate behind `settingsLanded()` in js/62 — so **cycle 40's merge-dialog refusal had
+never fired either**. Measured with the `app_settings` response held back from boot:
+
+    DB.settings keys        ["lang","currency","funnels","funnelSubs"]
+    finExclusionCheck(...)  null        ← the list is genuinely absent
+    settingsLanded()        true        ← the guard says it has landed
+
+**Landed.** js/62 gains `finExclusionsKnown()`, answered two independent ways because neither
+alone covers both cases: `DB.settings.financeExclusions` being an **array** (the blob landed
+carrying the key — instant, free, true for any workspace that has configured an exclusion), or a
+one-shot read of `app_settings` at startup (the only thing that separates *no exclusions
+configured* from *not loaded yet* in a workspace that has none). `settingsLanded()` now rests on
+it, and `finExclusionCheck()` also consults the authoritative copy, so it answers correctly in
+the window before js/35 merges the blob.
+
+Two surfaces caught red under load in cycle 42, both fixed and both verified against a real slow
+boot rather than a hand-built state:
+- **The alias picker** (`groupCandidates`, js/62) returns nothing while the list is unknown, and
+  `v62OpenAddGrouping` says why. An entry in that list is an **offer to merge two company
+  records**, and merging is a write — so it sits on the write side of the standing rule, not the
+  display side. Listing everything would offer a standing-excluded partner on the screen that
+  decides which record survives.
+- **The Clients tab** (`rFinClients`, js/16) renders a "not checked yet" card instead of the
+  table. It is money grouped *by client*; built before the list lands it showed the excluded
+  partner as an ordinary client with its money counted. js/62's own load re-renders the page the
+  moment the list arrives, so the degraded state clears itself.
+
+`probe-exclusion-display-attacks` (8714) holds all of it, including a control proving the guard
+lets go once the blob lands. Sabotage — `finExclusionsKnown()` returning true unconditionally —
+reddens three checks. Restored byte-identical.
+
+**My own cycle-42 probe stopped setting itself up, which was the app getting better.**
+`probe-stale-preview-exclusion` blinded the preview by emptying `DB.settings`; with js/62 holding
+its own copy that no longer blinds anything. Reshaped to hold the `app_settings` response back
+from boot so **neither** copy exists — and then a second trap: a fresh *page* in the same browser
+context starts life already knowing the list, so the attack needs its own **context**. Two
+mechanisms that each made the attack silently stop being an attack.
+
+Its fixture-marker boot guard also produced a false red twice on runs where the list had
+demonstrably arrived (the control below it passed both times, and cannot pass without one). It
+waits on the fact the probe actually depends on now, and the control carries the assertion.
+
+### Open for cycle 44
+
+**`probe-premortem-attacks` check H — diagnosed, not yet fixed.** 12605 is invoice 116361012's
+own seeded cost, and 116361012 appears nowhere else in that probe. So the value is not
+contamination from an earlier attack: **session 2's lines-only drop simply never applies**, and
+the invoice keeps what it started with. Three cycles of budget increases were treating a write
+that does not happen as a read that is late. It is an existing `probe-*-attacks` file outside
+this lane, so this is a write-up: the question is whether the gate row from session 1 is found
+after the reload, or whether the commit is refused.
+
+**Watch: cycle 42's gate refuses on a slow `app_settings` read.** It allows 20 s and then writes
+nothing. That is the intended fail-closed trade, but it means a genuinely slow morning turns a
+legitimate import into a refusal the person must retry. If that is ever seen in the wild the
+answer is a longer wait, not a fall-through.
+
+**Load-only flake to watch:** `probe-crm-attacks` went red in this cycle's first battery on four
+Arabic checks (an Arabic switch that did not complete under contention); green standalone, green
+in three prior batteries.
+
+## Watch cycle 44 — the dropdown that decides membership of a page it knows nothing about
+
+**A new area, and a real defect on the first attack.** "How did this revenue arrive?" (js/25) is
+the only write in that file and nothing had ever attacked it. It is careful about everything this
+session has taught it — guards the function and not just the button, chains `.select()` and
+refuses to claim a save the database did not confirm, never offers a value the row does not hold.
+Nothing had asked what the value *means* once written.
+
+js/58's own header says it: *"`revenue_way='b2c_manual'` and `record_type='b2c'` are the only
+things that mark it as this pattern"* — and js/58 then lists the hand-entered B2C bookings with
+`.eq('revenue_way','b2c_manual')` **alone**. So the dropdown decides membership of that page, in
+both directions, and nothing made the two fields agree. Measured:
+
+- a hand-entered booking moved to any other way **vanishes from the only page that lists it**.
+  The row is still there, still counted in every total, and unreachable from the screen built to
+  manage it. One dropdown, no warning, and nothing on screen afterwards to say where it went.
+- an ordinary b2b invoice moved **to** `b2c_manual` appears among the hand-entered bookings while
+  `record_type` still says `b2b` — a row on that page nobody entered there.
+
+**Fixed** in js/25: both transitions are refused, naming the B2C page, what would have happened,
+and — for the away direction — that a real conversion needs the record type to change too, which
+this editor does not do. `probe-revenue-way-attacks` (8715) holds it, testing js/58's **own
+query** rather than its rendering, so what is measured is the page's definition of its contents.
+Sabotage reddens all three checks; restored byte-identical.
+
+**A restore that quietly undid the fix.** The sabotage baseline was taken *before* the fix, so
+`cp` put the pre-fix file back and `md5sum -c` cheerfully confirmed it. Caught by checking the
+file for the fix's own comment rather than trusting the checksum — the checksum was right about
+the wrong question. Baseline the file **after** the fix, not before.
+
+### Open for cycle 45
+
+**`probe-stale-preview-exclusion`'s setup loses its race under battery load** — it fails once,
+honestly, with the diagnosis (cycle 43's reshaping doing its job), but it is still a red every
+few runs. The evidence says `app_settings` reached the page while the route was holding it:
+`DB.settings` already carried `__mockSettingsLanded` and `financeExclusions` at the moment the
+file was sorted. The probe now counts app_settings requests **held versus let through** while the
+hold is on, and prints both in the failure. A non-zero "through" means the response arrives by a
+route the probe is not intercepting — find that route.
+
+**js/58's query is the other half of cycle 44's defect, and it is out of lane.** It selects on
+`revenue_way` alone while its own header names two fields. Adding `.eq('record_type','b2c')`
+would make the page match its documentation and make the guard belt-and-braces rather than the
+only thing standing between a booking and disappearing.
+
+**Load-only flakes:** `probe-merge-dialog-money` (its own settings-race guard — cycle 37 family,
+green standalone and in cycle 43's batteries). `probe-premortem-attacks` check H passed here.
+
+## Watch cycle 45 — the harness was answering 201 to writes it never made
+
+**Three cycles of red traced to a probe trick, and the trick was the wrong idea from the start.**
+`probe-stale-preview-exclusion` needed a preview sorted without the exclusion list. Cycle 42
+emptied `DB.settings` by hand; cycle 43 gave js/62 its own copy, so that stopped blinding
+anything. Cycle 43 then held the `app_settings` response back from boot; measured under CPU load
+this cycle, **2 requests held and the page knew the exclusion anyway**. Both were ways to
+manufacture a state the app does not normally reach.
+
+The guarantee does not need one. **The owner adds an exclusion between the preview and the
+Confirm** — a file is previewed, someone rules a partner out, the file is confirmed. Same stale
+preview, nothing held back, no timing to lose, and it is an ordinary Tuesday rather than a
+laboratory. Cycle 42's server-read gate holds against it.
+
+**And building that found a defect in the harness itself.** Writing the exclusion into
+`app_settings` returned **201** and changed nothing — so the probe went on to report a defect in
+the importer that did not exist. `mock-supabase`'s honest PATCH was gated behind an **allow-list
+of seven tables** added on 2026-09-02; every other table fell through to a blanket `201 []`, an
+insert-shaped no-op that reads like success. The comment above that code already named the
+hazard — *"a .select()+row-count check could never fail here"* — and it had been left standing
+for every table nobody had happened to need yet.
+
+**The allow-list was the problem, not the implementation.** Honest UPDATE is the default now for
+any table the mock holds, and a PATCH to a table it does not hold answers **501 by name** rather
+than pretending. A harness may be incomplete; it may not be encouraging.
+
+The probe now **reads its setup back** before drawing any conclusion. A setup step is a claim
+like any other, and this one was false while looking true.
+
+**Battery: 84 / 84 — every probe that can fail, green.** The first clean run across this arc.
+
+### Open for cycle 46
+
+**The new attack area cycle 45 was asked for, deferred on purpose.** The PATCH change touches
+every probe in the battery, so shipping it on a fully green run is a safer unit of work than
+bundling an app fix underneath it. Still untouched since cycle 36: notifications/reminders, phone
+and tablet layout beyond width (numbers readable, tap targets opening the right row), the
+Operations board end to end.
+
+**Worth a look now that PATCH is honest:** any probe that PATCHed a table outside the old
+allow-list was previously writing nothing and being told 201. Nothing reddened, which means
+either those paths were not exercised or they were checked loosely. `probe-integrity` cannot see
+this. A grep for PATCH-driven assertions would say which.
+
+**Still out of lane:** js/58 selects the B2C page on `revenue_way` alone while its own header
+names two fields; js/41 shares the `finExclusionCheck` fail-open. `sweep-buttons` crashed again
+(a report — it reports nothing when it does not finish, and the runner says so on its own line).
+
+## Watch cycle 46 — Restore was not the inverse of Delete
+
+**The unique key is (invoice_no, line_no)**, verified against the live schema, so one invoice
+number legitimately holds several rows. The invoice card's two buttons both key on the number,
+and only one of them was careful about it:
+
+    finDelInv(invNo)      .eq('invoice_no',invNo).is('deleted_at',null)      ← only live rows
+    finRestoreInv(invNo)  .eq('invoice_no',invNo).not('deleted_at','is',null) ← every deleted row
+
+So a duplicate line deleted deliberately in August came back the moment somebody deleted the
+invoice in September and pressed Restore to undo it. Measured: **the round trip put 100,000 SAR
+back that nobody asked for**, into every total, with nothing on screen saying three rows had been
+restored where two were removed.
+
+**Fixed** in js/16: restore the LAST deletion, not all of them. `finDelInv` stamps one timestamp
+across the batch it takes, so rows sharing the newest `deleted_at` are exactly the action being
+undone; anything older was a separate decision, stays made, and is **named on screen** so "why is
+that line still gone?" has an answer. `probe-restore-scope-attacks` (8716) holds it — control,
+the August line surviving, the money agreeing, and the message. Sabotage reddens three checks;
+restored from a **post-fix** baseline and verified by hash *and* by grepping the fix's own
+comment (cycle 44's lesson, applied).
+
+**And the harness lied again, in the same shape as cycle 45 — one day later.** The fix relies on
+reading the deleted rows first, and `mock-supabase` honoured `is.null` / `not.is.null` on a GET
+for **`archived_at` only**; every other column's null filter was silently ignored, so the read
+came back with all rows, deleted or not. The scoping was deliberate — its own comment says "every
+other is.null GET keeps the old unfiltered behaviour it was written against" — which is exactly
+the cycle-45 pattern: **a narrow scope chosen to avoid disturbing anyone, which then answers the
+wrong thing confidently for everyone else.** Generalised to any column.
+
+Two things that only came out by running the battery rather than the probe:
+- `probe-concurrency-attacks` caught it, not `probe-restore-scope-attacks`. A *different* probe
+  is what noticed that my new read was being answered loosely.
+- widening the branch then broke `probe-events`: the json-path keys (`funnel_details->>event_name`)
+  are not plain columns, so the generic filter read `undefined` on every row and dropped the whole
+  table. Excluded and left to the loop that handles them.
+
+js/16 now filters client-side **as well as** in the query — the server filter is what production
+relies on; the local one makes the function correct even where a caller or a harness answers the
+filter loosely.
+
+**Cycle 45's other question, answered:** nothing in the battery was relying on PATCH being
+dishonest. Every battery probe that PATCHes targets a table already on the old allow-list
+(`businesses`, `app_users`, `finance_targets`, `finance_invoices`). The only off-list PATCH was
+`probe-rls-matrix`, which runs against the live database and is excluded as credential-gated.
+
+### Open for cycle 47
+
+**A third harness gap of the same family is likely.** Two have now been found one day apart — PATCH
+answering 201 without writing, GET ignoring a null filter — both scoped narrowly on purpose, both
+found only when something happened to depend on them. Worth one deliberate pass over
+`mock-supabase`'s query handling asking, for each filter operator PostgREST supports, whether this
+mock honours it or silently ignores it, and making the ignored ones say so.
+
+**Still out of lane:** js/58 selects the B2C page on `revenue_way` alone while its own header names
+two fields; js/41 shares the `finExclusionCheck` fail-open.
+
+## Watch cycle 47 — going looking for the third harness lie, and finding two
+
+Cycles 45 and 46 each tripped over a query feature scoped narrowly on purpose that then answered
+the wrong thing confidently. This cycle went looking rather than waiting, and the pattern turned
+out to be the point: **an unimplemented filter was indistinguishable from an implemented one.**
+
+**Fixed at that level, not case by case.** After the operators `mock-supabase` really does apply,
+anything left that is *shaped* like a PostgREST operator now stops the request with **501 naming
+itself** — on GET and, more importantly, on PATCH, where an ignored filter does not merely show
+too many rows, it **writes to every row the filter was meant to exclude**. Proved by hand: `eq`
+and `is.null` pass; `gte`, `ilike` and `in.` on a GET all 501 with the operator quoted. Adding an
+operator is deliberately cheap — implement it in the loop and it stops reaching the check.
+
+**The third lie was the one its own comment admitted to**, three lines above the code:
+*"everything else keeps the old no-op 201,[] stub … Widening this to every table is a bigger,
+riskier change some other probe might be unknowingly relying on — not done here."* Every POST and
+DELETE to a table the mock does not persist answered `201 []`, which reads exactly like a
+successful write that returned no representation.
+
+**And the first attempt to fix that was wrong, in an instructive way.** Making it 501 reddened
+four probes — not because they asserted a write had worked, but because **the app logged a failed
+request and they check for console errors.** That is the harness punishing the app for the
+harness's own gap: in production the write succeeds, and the app is behaving correctly. The lie
+is not told to the app, which cannot tell the difference and should not have to; it is told to
+whoever reads the probe's output later. So the wire stays `201` and the truth goes to **stderr**,
+where the probe's log keeps it, plus a counter any probe can assert on:
+
+    GET /__mock/ignored-writes  →  {"app_settings": 8, …}
+
+**It earned itself on the first run.** The battery reports **8 unpersisted POSTs to
+`app_settings`** — the app saving its own settings, going nowhere, silently, for as long as this
+harness has existed. That is the table cycle 45's probe had to write to by hand.
+
+**Battery: 82 / 85.** No probe was relying on an ignored *filter* — the two gaps found in 45 and
+46 were the ones being depended on. Both remaining reds plus the two new ones are load-only and
+green standalone.
+
+### Open for cycle 48
+
+**One red is worth reproducing deliberately rather than filing as a flake.**
+`probe-guardrails-both-halves-attacks`: *"under a read-only share view: adding an exclusion …
+CHANGED the stored exclusions"*. Green standalone and in four prior batteries — **but that check
+could not fail before this arc**: the write it watches went nowhere until cycle 45 made PATCH
+honest. It is now genuinely testing something, and under load it says a share view changed the
+standing exclusion list. If that is real it is a fail-open on the owner's hardest ruling, on a
+read-only surface. Reproduce it with the share view forced, not by waiting for contention.
+
+**Also new and load-only:** `sweep-dialogs-phone` reported a 3,000px dialog whose Save button was
+unreachable on a 390×844 screen; standalone the same forced case passes with the footer staying
+put. Worth one deliberate look at whether the dialog's layout depends on timing.
+
+**Still out of lane:** js/58 selects the B2C page on `revenue_way` alone; js/41 shares the
+`finExclusionCheck` fail-open. `probe-premortem-attacks` check H unchanged (do not raise the
+budget).
+
+## Watch cycle 48 — the share-view red was the probe's stopwatch, and the check meant to settle it could not fail
+
+**The suspicion, tested rather than filed.** Cycle 47's battery said *"under a read-only share
+view: adding an exclusion … CHANGED the stored exclusions"*. If real, that is a fail-open on the
+owner's hardest ruling from a surface that may not edit anything.
+
+**It is the probe's own fixture, and the mechanism is named.** `probe-guardrails-both-halves-attacks`
+compares `DB.settings` — the **page's** copy — before and after, and seeds that copy in the page
+only. Its setup then waits a flat **2500 ms** for something it could wait on a condition for; its
+own comment says what: *"let the merge control's own settings reload finish before anything is
+measured against it."* Under load that reload lands later, replaces `DB.settings`, and takes the
+page-only fixture with it. The same check reports the dialog **did not open**, so the guard held.
+What moved was the fixture, not the list. Measured directly: the seed is stable for 15 s idle and
+under four CPU burners, so it does not drift on its own — it is that specific reload.
+
+That probe is not this session's to edit. The one-line fix for whoever owns it: wait for the
+reload to have landed, not for 2500 ms.
+
+**The property itself is now measured where it lives** — added to
+`probe-exclusion-display-attacks` (8714): under a read-only share view the exclusion dialog does
+not open at all, because the guard is on the function. Sabotage (removing `canEdit62` from
+`v62AddExclusion`) reddens it.
+
+**And the half of that check that was supposed to be the real proof cannot fail — so it is a
+report, and says so.** The intent was to compare the **server's** copy of the list, which is the
+guarantee; the page copy is only a rendering. With the guard deliberately removed, the dialog
+opens, Save is pressed, and **15 seconds of polling still shows the stored list byte-identical**:
+js/35 saves settings on its own diff-and-upsert pass, and that pass is not reachable from a probe
+in this state. A check that cannot fail is the thing this whole arc removes, so it prints as a
+REPORT with its own limitation named, and the dialog assertion carries the guarantee.
+
+**Cycle 47's counter closed its own finding.** Those 8 unpersisted POSTs to `app_settings` were
+the app saving its own settings into nothing; `mock-supabase` persists that upsert now
+(`{id:'main', data}`, `onConflict: id`). This battery reports **zero** ignored writes.
+
+**An honest consequence to record:** persisting `app_settings` gives the settings reload a real
+server copy to bring back, so the guardrails probe's page-only fixture is now *more* likely to be
+replaced under load, not less. Its red is expected to recur until its stopwatch is fixed.
+
+### Open for cycle 49
+
+**Make the stored-list check able to fail.** It needs js/35's settings save reachable from a probe
+— either a way to force that pass, or a probe-visible signal that it ran. Until then the strongest
+statement about share views and the exclusion list is "the dialog does not open", which is true
+but weaker than "the stored list cannot change".
+
+**Environmental, not a defect:** `probe-stress` crashed with `EADDRINUSE` on 8921 — a transient
+bind conflict inside a six-way run, green standalone. `check-probe-integrity` gates duplicate port
+*declarations*, which this is not.
+
+**Still out of lane:** js/58 selects the B2C page on `revenue_way` alone; js/41 shares the
+`finExclusionCheck` fail-open; `probe-premortem-attacks` check H (do not raise the budget).
+
+## Watch cycle 49 — the four numbers that decide who gets chased were rounded off
+
+**A new area at last, and a real defect in it.** Finance's "Collections & ageing" card prints four
+buckets — 0-30, 31-60, 61-90, 90+ — through `moneyS()`, which renders anything over a million as
+`8.76M` and anything over a thousand as `999.9K`. Measured:
+
+    90+ days   holding 8,755,055 SAR   read as  "8.76M"      a band ten thousand riyals wide
+    61-90      holding   999,999 SAR   read as  "1000.0K"    a different million from the one it is
+
+The credit tile eight lines above in the same file carries its exact figure in a `title`
+attribute. These carried nothing at all. Two standards on one screen — and the rounded one is the
+screen somebody works from when deciding who to call about a late invoice.
+
+**A `title` would not have fixed it.** The owner reads Finance on a phone, where there is no
+hover. So the exact figure goes **on the card**, under the short one, which stays as the headline:
+four full-length numbers is not an improvement on a 390px screen. `probe-ageing-money-legibility`
+(port **8721** — the 8701–8720 block is full; recorded so the next cycle does not rediscover
+that) measures it at 390×844 *and* at desktop width.
+
+**Two things caught only because the work was checked, not because it was written carefully.**
+
+1. **The first sabotage silently did not apply, and the probe reported zero failures.** The script
+   printed "sabotaged" unconditionally — it never asserted its anchor matched. A guard was one
+   step from being recorded as verified while nothing had been broken. This is cycle 44's lesson
+   in a new costume: it is not enough to baseline after the fix; **the sabotage itself is a claim
+   and must be asserted**, and a sabotage that reddens nothing is far more likely to be a failed
+   edit than a robust app.
+2. **A different probe caught the markup.** `probe-b2c-manual-attacks` reads the ageing chips with
+   `d.children.length === 2` — label and value. A third sibling made every chip it watches
+   invisible to it, and a bucket it asserts on came back `null`. The chip's shape is a contract
+   another probe depends on, so the exact line went **inside** the value rather than beside it.
+
+**And a rule that came from that same run:** show the exact figure only when the short form is a
+different number — compared as numbers, not as strings, so the test is "did rounding lose
+anything". "4,000" under "4.0K" is noise.
+
+**Battery: 86 / 86 — every probe that can fail, green.**
+
+### Open for cycle 50
+
+**The same rounding exists elsewhere and was deliberately not swept.** `moneyS()` has 14 callers
+in js/16. This cycle fixed the two on the collections card that are acted on — the ageing buckets
+and Outstanding. The rest are headline tiles where a glance is the point; each deserves the same
+question asked individually ("is this number acted on, or read?") rather than a blanket change.
+
+**Still out of lane:** js/58 selects the B2C page on `revenue_way` alone; js/41 shares the
+`finExclusionCheck` fail-open; `probe-premortem-attacks` check H — do not raise the budget.
+`probe-guardrails-both-halves-attacks` red is expected to recur until its 2500 ms stopwatch
+becomes a condition (cycle 48).
+
+## Watch cycle 50 — the file had already decided; it just said so where a phone cannot hear
+
+**Asking the remaining `moneyS()` callers one at a time turned up a better rule than "which of
+these matter", because js/16 has already answered that question.** Several of them carry
+`title="…exact…"` on the element — Client credit, the Key-indicators cards, Confirmed
+revenue/cost/profit. Somebody looked at each and decided the rounded form was not enough. That
+judgement is made; it is simply **delivered through a hover**, and the owner reads Finance on a
+phone. On the device he actually uses, "8.76M" is the whole answer and the exact figure he asked
+for is unreachable.
+
+**The rule, which needs no per-tile argument:** if a number was judged to need its exact value, it
+needs it on a phone too. `probe-hover-only-money` (port **8722**) holds it by **scanning the DOM
+for money titles** rather than naming tiles, so a sixth added later is caught without anyone
+remembering to update the probe. It found **nine**, not the five predicted from reading the source.
+
+**Three things this cycle got wrong and caught by checking.**
+
+1. **Cycle 49's commit message claimed a refinement the code never had.** Its "compare as numbers,
+   not strings" version of the helper was lost when a patch rolled back on a failed assert, leaving
+   a string comparison that prints "4,000" under "4.0K". The commit said otherwise. Fixed here, and
+   the correction is written into the code comment rather than only into a log nobody re-reads.
+2. **The probe's first rule was stricter than the defect.** It demanded an exact line wherever a
+   money title existed — but "51.5K" *is* exactly 51,500; the title merely carries `.00` decimals.
+   Three "failures" were the probe inventing a defect. It now round-trips the abbreviation the same
+   way the app does, so the two cannot drift apart.
+3. **Sabotage on the Confirmed tiles reddened nothing, and the first explanation for that was
+   wrong.** Written down first as "the tile never renders"; checking rather than believing it showed
+   the tile is on screen, and the real reason is duller — its values abbreviate **losslessly** in
+   this fixture, so the fix is inert there with or without sabotage. **The edit on those three
+   tiles is real but unexercised**, and the probe now says so in a REPORT on every run rather than
+   letting a green line imply cover it does not have.
+
+**Battery: 87 / 87 — every probe that can fail, green.**
+
+### Open for cycle 51
+
+**Make the three Confirmed tiles fail-able.** They need a fixture whose confirmed revenue/cost/
+profit actually round — the current one lands on 51,500 / 42,600 / 8,900, all exact when
+abbreviated. Until then `probe-hover-only-money` proves six of the nine and says which three it
+does not.
+
+**Still out of lane:** js/58 selects the B2C page on `revenue_way` alone; js/41 shares the
+`finExclusionCheck` fail-open; `probe-premortem-attacks` check H — do not raise the budget.
+`probe-guardrails-both-halves-attacks` until its 2500 ms stopwatch becomes a condition.
+
+## Watch cycle 51 — the unproven tiles, proven
+
+**Cycle 50's own probe output named a gap; this closes it.** `probe-hover-only-money` proved six
+of the nine money titles it finds and REPORTED the other three — Confirmed revenue / cost /
+profit — as **unexercised**: sabotaging the fix on them reddened nothing.
+
+The reason turned out to be one layer below where cycle 50 looked. Those tiles sum
+`finance_TRANSACTIONS`, not invoices, and the mock's default rows total **51,500 / 42,600 /
+8,900** — every one of them exact when abbreviated, so `finExactUnder` returned nothing for them
+with or without the fix. The probe seeds its own transactions with awkward amounts now, and the
+proof is the failure: removing `finExactUnder` from the Confirmed revenue tile fails the run **by
+name** — *"ledger · shows 7.22M SAR · title says 7,222,221.00 SAR"* — on both viewports.
+
+**The REPORT that named the gap was kept, not deleted.** It stays silent while every tile rounds
+and speaks again the moment a fixture stops exercising one. A note that only ever described one
+run would have been worth deleting; one that re-detects the condition is worth keeping.
+
+### Open for cycle 52 — two load-only reds with the same shape, and it is not the usual one
+
+Both were green standalone and green in prior batteries, and neither is a timing wobble of the
+familiar kind:
+
+    probe-csv-injection       "legitimate negative amount was altered: expected -1500.50, got 6554"
+                              "a normal string was altered: expected Normal Client Name, got Test Company 2"
+    probe-restore-scope       "before 1500, after delete 1500" — the delete wrote nothing
+
+`Test Company 2` and `6554` are the mock's **default seed**, not that probe's fixture. So under
+six-way load a probe appears to have read a world it did not set up. That is worse than the
+EADDRINUSE crash cycle 48 saw in `probe-stress`, because it does not crash — **it measures the
+wrong fixture and reports the app as broken.** Every conclusion drawn from such a run is wrong in
+both directions.
+
+Do not guess the mechanism — cycle 51 deliberately did not. **Instrument it:** have `start()`
+stamp each mock instance with a random id and expose it (`/__mock/whoami`), and have the failing
+probes print which instance answered them alongside the fixture they expected. One battery with
+that in place says whether this is a port collision, a seed that did not take, or something else.
+If it is real it invalidates any red from a six-way run until it is fixed, which makes it the most
+load-bearing open item this session has.
+
+**Still out of lane:** js/58 selects the B2C page on `revenue_way` alone; js/41 shares the
+`finExclusionCheck` fail-open; `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks` until its 2500 ms stopwatch becomes a condition.
+
+## Watch cycle 52 — cycle 51's hypothesis was wrong, and the code says so without instrumenting anything
+
+Cycle 51 called the cross-probe-contamination theory "the most load-bearing open item this
+session has" and asked cycle 52 to instrument `mock-supabase` — stamp each instance, expose
+`/__mock/whoami`, run batteries until it reproduced. **That instrumentation was not built, because
+reading the two probes answered the question first.** Building a diagnostic for a hypothesis the
+source already refutes is the same waste as raising a poll budget against the wrong diagnosis
+(cycles 38–41).
+
+**The evidence, in the probes themselves.**
+
+`probe-csv-injection` calls **`start(PORT)` with no seed at all** — it runs on the default tables
+on purpose. So "Test Company 2" and 6554 are not another probe's world leaking in; they are its
+*own* world, the one it chose. It then plants hostile rows into `FIN._csvRows` in the page and
+reads the export back **positionally**:
+
+    const creditRow = dataLines[HOSTILE.length];
+
+Under load the app repopulates `FIN._csvRows` before the export runs, the planted rows are gone,
+and index `HOSTILE.length` lands on an ordinary seeded invoice. That is cycle 37's lesson exactly
+— *a fixture written into page state that the app owns and refills* — and the "leak" was a
+positional read finding a real row where it expected a planted one.
+
+`start()` also rules the rest out on inspection: the seed is a **full replace** (`TABLES[k] =
+seedOverrides[k]`), and `listen()` has carried an `error` handler since 2026-09-03 that prints the
+port and **exits 1** on EADDRINUSE. A port collision cannot present as quiet wrong data; it
+crashes, exactly as `probe-stress` did in cycle 48.
+
+**So: no evidence of cross-probe contamination, and the two reds have separate, ordinary causes.**
+Recorded plainly rather than left as a standing suspicion, because an unexplained load-only red
+that stays on the list quietly devalues every red beside it.
+
+**Fixed, in this session's own probe.** `probe-restore-scope-attacks` waited a flat 2500 ms after
+each delete/restore, so under load "before 1500, after delete 1500" was the probe reading before
+the write landed and calling it an app defect. `drive()` now takes the condition it is actually
+waiting for and polls up to 30 s; each of its four calls passes its own. Still fails when it
+should: sabotaging `finRestoreInv` to pick the *oldest* deletion batch reddens it with the August
+line resurrected and the money out by 95,000.
+
+**Battery: 85 / 87** — both reds known and expected (`probe-expense-report-capture`'s
+settings-arrival guard, which fails loudly and says it is a fact about the run rather than the
+app; and `probe-premortem-attacks` check H).
+
+### Open for cycle 53
+
+**`probe-csv-injection`'s positional read — out of lane, so a write-up.** Two lines would settle
+it: plant the hostile rows and then assert they are still in `FIN._csvRows` immediately before
+firing the export (a setup step is a claim — cycle 45), and locate the credit-note row **by its
+client_group** rather than by `dataLines[HOSTILE.length]`. Until then it will keep reporting the
+app as broken on a busy machine.
+
+**Still out of lane:** js/58 (`revenue_way` alone); js/41 (`finExclusionCheck` fail-open);
+`probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks` until its 2500 ms stopwatch becomes a condition.
+
+## Watch cycle 53 — the money-entry screen on a phone: no defect, and two checks of mine that could not have found one
+
+**New ground, and the app passed.** Every riyal in Finance arrives through the importer, and its
+preview is the last thing anyone reads before pressing Confirm. Cycle 47 found a dialog whose Save
+button was unreachable at 390px; nothing had ever asked the same question of the screen that
+actually writes invoices. `probe-import-preview-phone` (port **8723**) drops a real Direct Payments
+export that holds four rows back — so the preview is long by design — and checks, at 390×844 and
+820×1180, that the counts and reasons render, that the Confirm button passes a real actionability
+check, that nothing in the preview overflows without somewhere to scroll, and that the page does
+not scroll sideways. **All green on both viewports.** No defect here.
+
+**Three things this cycle wrote that were wrong, each caught before it could be believed.**
+
+1. **The setup called a function that does not exist.** `window.v65Ingest` is not the export;
+   `window.v65IngestText(fileName, csvText)` is. The preview came back empty and a read-back
+   diagnostic said so immediately, instead of four checks failing against nothing.
+2. **The control demanded something the app never promised.** It required every held-back client
+   by name; the app *summarises* a rule that catches several rows — "Excluded by rule 4 — 4
+   invoices: no readable invoice date" — which is the better choice on a small screen. The probe
+   would have reported a design decision as a defect (cycle 50's lesson, again).
+3. **The Confirm-button check could not fail, and the first sabotage could not prove it.** It
+   compared `getBoundingClientRect()` to the viewport and asked `elementFromPoint` what sat at the
+   centre. Clipping `#finImpOut` to `height:120px;overflow:hidden` — which hides the button
+   entirely from a person — left it **green**, because a clipped element still reports real
+   coordinates and a rect test knows nothing about a clipping ancestor. Replaced, not patched,
+   with Playwright's own actionability check (`click({trial:true})` — visible, stable, receives
+   events, not covered), which is what a finger is subject to.
+
+   And the clip was not a fair sabotage either: Chromium scrolls `overflow:hidden` boxes
+   programmatically, so the button really was reachable. The honest sabotage is the real phone
+   failure — a fixed bar covering the lower screen, as a sticky footer would — and that reddens
+   the check by name.
+
+**A fourth, smaller one worth recording:** the restore was verified by grepping `z-index:99999`,
+which **already existed** in js/16 for the modal overlay. The marker was not unique to the
+sabotage, so the check said "still sabotaged" about a clean file. Sabotage markers now carry a
+`data-c53-sabotage` attribute, and the restore is confirmed by `git status` as well.
+
+**Battery: 87 / 88.** The single red is `probe-alias-dedupe-attacks`' settings-arrival guard doing
+its job — it refuses to measure a world where nothing is excluded and says that is a fact about
+the run, not about the app.
+
+### Open for cycle 54
+
+**Still untouched since cycle 36:** notifications/reminders and the Operations board end to end —
+both outside this session's lane, so they need either a lane extension or a write-up naming what
+to attack.
+
+**Still out of lane:** `probe-csv-injection`'s positional read; js/58 (`revenue_way` alone); js/41
+(`finExclusionCheck` fail-open); `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch.
+
+## Watch cycle 54 — a button that says it opens this invoice, and opens the list of all of them
+
+**Found by enumerating the lane's exports and checking each against the battery.** `pdClientLink`
+had **no probe touching it at all**; reading it led to its neighbour `pdInvoiceLink`, the href
+behind "Open in Direct ↗" on the invoice card and every ledger row.
+
+    if(r && r.direct_uuid) → https://payments.directksa.com/en/admin/invoices/view/{uuid}
+    otherwise             → https://payments.directksa.com/en/admin/invoices
+                            .replace('{invoice_no}', …)   ← a template with no placeholder in it
+
+The fallback default contains no `{invoice_no}`, `{dpin}` or `{client_id}`, so every `replace()`
+is a no-op and the href is the generic invoice **list**. **Measured against the live database on
+2026-09-08: of 46 live invoices, `direct_uuid` is present on ZERO.** The deep-link branch has
+never run in production. The button has been opening the list of every invoice, for every invoice,
+every time — while saying it opens this one. Somebody following it to check an amount lands on a
+list of hundreds and searches by hand, or reads whichever invoice is on top.
+
+**The href was deliberately not invented.** Adding a `?q=` or `/search/` that the real system may
+not support would be guessing at another product's behaviour to make a link look right — the one
+thing this project never does (M8: never fabricate a number, or here a route, to fill a gap). The
+list page is where it really goes; what changes is that the button **says so**: `Find in Direct ↗`
+/ `ابحث عنها في دايركت ↗` when there is nothing to deep-link with, and the original label
+untouched when there is. A workspace that has configured a template carrying `{invoice_no}` keeps
+both its deep link and its original wording — `pdInvoiceLinkIsDeep()` tests the template, not just
+the uuid.
+
+`probe-direct-link-honesty` (port **8724**) holds it: the deep-link control, the honest fallback,
+the configured-template case, and that the invoice number is on the card beside the link so a
+person sent to a list has the thing to search for. Sabotage — restoring the unconditional label,
+marked `c54sab` so the marker is unique to it — reddens the run; restore confirmed by marker
+count **and** md5.
+
+**Battery: 89 / 89 — every probe that can fail, green.**
+
+### Open for cycle 55
+
+**The enumeration is worth finishing.** This cycle checked twelve exports and stopped at the first
+unexamined one that led somewhere. The full list is in the commit; `pdClientLink` itself is still
+untouched by any probe — it is *used* only by js/27 (out of lane) but *defined* here, and it has
+the same shape of defect available to it: `pdClientLink(undefined)` returns
+`…/customers/` with an empty id and no indication.
+
+**Also worth asking now:** `direct_uuid` is null on every live invoice, which means the importer
+has never populated it. If Direct Payments' export carries a uuid column that is being dropped on
+import, that is a bigger fix than the label — and it would make the deep link real rather than
+honest about being absent.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch.
+
+## Watch cycle 55 — "No proposal with ref X", said about one that exists
+
+**The enumeration finished, and it pointed at the right thing.** Of every `window.*` export in
+this session's lane, five had no probe driving them: `finF`, `finQ`, `finRBM`, `finOpenProposal`,
+and cycle 54's own `pdInvoiceLinkIsDeep`. `finOpenProposal` is the one with something riding on
+it — the jump from an invoice to the proposal that priced it.
+
+    var o=(DB.offers||[]).find(x => (x.ref||'')===ref);
+    var m=document.getElementById('finModal'); if(m)m.remove();      ← the card, closed FIRST
+    if(o){ … } else toast('No proposal with ref '+ref);              ← stated as fact
+
+`DB.offers` is filled by js/35 from `app_offers`, on **the same lazy schedule as the exclusion
+list** that cycles 41–43 were spent on. Before it lands the list is empty, and this answered in the
+definite: the proposal does not exist. Same mistake as `finExclusionCheck()`'s null meaning both
+"not on the list" and "no list yet" — **except this one says the wrong half out loud, to a person,
+as a fact about their own records.** And it removed the card before looking, so the answer arrived
+with nowhere to go back to: the invoice being read was gone, and the person was told, wrongly,
+that its proposal was missing.
+
+**The discriminator needed no network read.** This button only exists when the invoice carries a
+`proposal_ref` — so a proposal was created at some point, and an empty offers list *here* means
+"not loaded yet", not "none exist". A workspace with no proposals would have no invoice carrying a
+ref to click from. The card now closes only when there is somewhere to go, and the honest "no" for
+a genuinely absent ref is untouched — a control holds that, because a fix that silences a true
+answer is not a fix.
+
+`probe-proposal-link-honesty` (port **8725**) drives the ordinary-Tuesday version: open Finance on
+a slow morning, click an invoice, press "Open proposal" before `app_offers` has arrived. Sabotage
+(`c55sab`, a marker unique to it) reddens it; restore confirmed by marker count, md5 and
+`git status`.
+
+**And cycle 54's open question is settled, from the source and the live data rather than guessed.**
+`direct_uuid` is in js/65's `WRITABLE_INVOICE_FIELDS`, so it would be carried if a file supplied
+it — **but nothing supplies it**: no CSV column maps to it, no builder assigns it, and the real
+Direct Payments invoice-export signature has no uuid column. Live on 2026-09-08: `direct_uuid` is
+present on **0 of 46** `finance_invoices` and **0 of 33** `finance_transactions`. The deep-link
+branch fires only if someone writes a uuid in by hand. It is **kept, not deleted** — it is correct,
+and the day that export carries an id it starts working — but js/16 now says so where the next
+reader will see it, so nobody reads it as "the deep link works".
+
+**Battery: 89 / 90.** The one red is the 120/108 alias-twin label, load-only and open since cycle 38.
+
+### Open for cycle 56
+
+**For the owner, when there is something worth interrupting for:** a real deep link from an invoice
+to its record in Direct Payments needs that export to carry a uuid or id column. It does not today,
+which is why the button says "Find in Direct" rather than "Open in Direct". Worth one question to
+whoever maintains that export — it is a small change there and a large convenience here.
+
+**Still uncovered by any probe:** `finF`, `finQ`, `finRBM` — the ledger's filter, quarter and
+report-builder-metric setters. All three are one-line state writes followed by `render()`, so the
+risk is lower than `finOpenProposal`'s, but "lower" is not "none" and none of them has ever been
+driven.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch.
+
+## Watch cycle 56 — the dialog that waited for one of its two lists
+
+**The enumeration's tail closed honestly: two of the three uncovered names are dead code.**
+`finQ` is called from nowhere and `FIN.f.quarter` is read by nothing — one occurrence in the whole
+tree, its own definition. `finF` is called from nowhere either. They are not "low-risk setters
+not worth a probe"; they are unreachable, and a probe for them would guard something no person can
+touch. `finRBM` has one caller (the report-builder checkbox) and stays open.
+
+**Then the real one, found by grepping the lane for definite claims.** `v62OpenGrouping` — the
+screen that decides which client profiles are grouped under one company, the same family of
+decision as cycles 40 and 43 — already knows how to wait for data:
+
+    if(!window.CP||CP.rows==null){ cpLoad(function(){ v62OpenGrouping(); }); return; }
+
+It does that for the **profiles**. Nothing did the equivalent for **DB.businesses**, which fills
+the "group them under" dropdown. So the dialog opened onto an empty list, let the person choose
+profiles and type a canonical name, and only at Save said *"Choose the company to group them
+under"* — an instruction nobody can follow, about a list that was never there.
+
+Refused now, with what is true either way: there is nothing to group under yet, either because the
+list has not finished loading or because none is marked as a client. One refusal covers both, which
+is why it does not try to tell them apart. `probe-grouping-dialog-readiness` (port **8727**) holds
+it; sabotage (`c56sab`) reddens it; restore confirmed by marker count, md5 and `git status`.
+
+**A probe was written this cycle and deleted, and the integrity gate is what noticed.**
+`probe-empty-filter-honesty` was built on the premise that a quarter filter matching nothing leaves
+the ledger silently empty. Its own control refused to conclude anything — the Ledger tab reads
+`finance_transactions`, not the invoices it seeded — and the premise died with `finQ` turning out
+to be dead code. It was left in the tree undeclared, and `check-probe-integrity` failed the run
+with *"1 probe in neither battery.txt nor battery-excluded.txt — nobody has decided whether these
+run"*. Exactly what that gate exists for. Deleted rather than excluded: a probe that never passed
+its own control, built on a premise that turned out false, should not sit in the tree looking like
+coverage.
+
+**The question it was asking is still good, and is not answered:** when a filter excludes every
+row, does the screen say so, or does it read as "you have no invoices"? It needs the right surface —
+the invoice-backed views, not the transaction-backed Ledger — and a filter that something actually
+reads.
+
+**Battery: 91 / 91 — every probe that can fail, green.**
+
+### Open for cycle 57 — CLOSED, see cycle 57 below
+
+Both items were one defect: the Report Builder's metric checkboxes, reached through `finRBM`.
+
+---
+
+## Watch cycle 57 — six boxes that said "nothing", above a column that said "Revenue"
+
+**2026-09-08.** Both candidates left open for this cycle turned out to be the same defect. The
+empty-vs-filtered question, asked of the Report Builder's Metrics row, is `finRBM`.
+
+### What was wrong
+
+The Metrics row is six checkboxes — Revenue, Cost, Profit, Received, Outstanding, Service lines —
+each wired to `finRBM(key, checked)`. Untick the last one and the table did not go quiet. It showed
+Revenue, because `rReports()` did this:
+
+```js
+var mets=Object.keys(rb.metrics).filter(function(k){return rb.metrics[k];});
+if(!mets.length)mets=['revenue_sar'];
+```
+
+So the screen held two answers at once: every box off, and a money column on, with nothing saying
+the report had chosen that column itself. This is the family cycles 41–43, 55 and 56 kept finding —
+the app answering with more confidence than its own state supports — except here it is not "not
+found" standing in for "not loaded yet". It is a **default worn as a choice**.
+
+It did not stop at the screen. The fallback rode into `FIN._lastReport`, so **Export CSV handed
+over a file with a Revenue total nobody ticked**. Someone reading the checkboxes to know what is in
+the file they are about to send an accountant would have been wrong about it.
+
+Underneath, in the same square inch, `finCSV()` opened with `var R=FIN._lastReport;if(!R)return;` —
+a button that did nothing, in silence. It was nearly unreachable *only because* of the fallback
+above. Fixing one without the other would have traded a wrong file for a dead button.
+
+### What it does now
+
+No figure selected means no report, said in words, with the controls still on screen so it is one
+tick away rather than switched off:
+
+> **No figure is selected.** There is nothing to total in this report until you tick at least one
+> of the boxes under **Metrics** above — Revenue, Cost, Profit, Received, Outstanding or Service
+> lines. The invoices are still here; nothing has been asked of them yet.
+
+`FIN._lastReport` is cleared in the same breath — an export built from a report no longer on screen
+is the same lie one step later — and `finCSV()` now says *"There is no report to export yet — tick
+at least one figure under Metrics above."* Both bilingual. The drill-down in js/25 already read
+`_lastReport` null-safely, so nothing else needed touching.
+
+### The probe, and the false green it started as
+
+`scripts/qa/probe-report-metrics-honesty.mjs` (port 8728, verified free). Four checks: a control
+with two boxes ticked; the defect; the export; and recovery, because a "fix" that leaves the report
+dead would pass the middle two and be worthless.
+
+**The first draft passed under sabotage.** Two reasons, both worth keeping:
+
+1. Its "does the screen say why" test scanned the whole page for words like *choose*, *select*,
+   *figure*, *metric* — and the Finance page is full of them. A check that could not fail
+   (cycle 48). It now diffs the page's sentences against the same page with metrics ticked and
+   requires a genuinely **new** one.
+2. Even after that, it still passed — because **one of this probe's own fixture clients was named
+   "Metric Co"**, and the table blob containing it counted as the new sentence. A probe must not
+   hand the app a word the probe is about to search for. Renamed to Alpha/Beta Trading.
+
+It also accepted "falls back to Revenue but says so on screen" as a pass. That is a design this
+cycle rejected; leaving the branch in the probe is what let the sabotage through. Removed. The
+standard is now the app's own promise: the boxes say which figures the table shows, so zero ticked
+must mean zero money columns.
+
+Sabotage — the old fallback restored behind a marker unique to it — turns checks 2 and 3 red with
+the exact wording of the defect, and only those two. Restore verified by `md5sum -c` against a
+baseline taken **after** the fix (cycle 44), a marker count of 0, and `git status`.
+
+### The battery, and something the battery is starting to say about itself
+
+Two full runs. **92 probes that can fail; every one of them green** — but not in a single run:
+
+| | `-j 6` | `-j 4` |
+|---|---|---|
+| green | 90 / 92 | 89 / 92 |
+| red | `probe-premortem-attacks` (check H), `sweep-language-deep` | `probe-alias-dedupe-attacks`, `probe-import-preview-phone`, `probe-importer-scale-attacks` |
+
+No probe was red in both runs, and each red was green when re-run alone. Their failure texts say
+what the cause was: `sweep-language-deep` drove **1** sub-tab under load and **9** alone;
+`probe-alias-dedupe-attacks` refused to conclude at all because `DB.settings` never arrived
+("which is not a finding about the app" — a probe behaving exactly as it should);
+`probe-importer-scale-attacks` counted 20 rows as new that the exclusion list would have caught,
+which is the same starved `app_settings`; `sweep-buttons` died on "execution context was destroyed".
+All contention, none of it about this cycle's change — but cycle 56 ran 91/91 in one shot at `-j 6`
+and this tree no longer does. **That is a finding about the harness**, logged below.
+
+Commit — "Watch cycle 57: six boxes that said nothing, above a column that said Revenue"
+(the hash is recorded in the build log, not here: a commit cannot honestly name itself).
+Patch at `/mnt/user-data/outputs/oversight-cycle-57.patch`.
+
+## Open for cycle 58 — CLOSED, see cycle 58 below
+
+
+**The battery's own contention floor.** Five different probes went red once each across two runs
+and none of them twice; every one recovered alone. The harness now starves `app_settings` and the
+page load under parallelism, which means a red result can no longer be read at face value without
+a serial re-run. This is in lane (`scripts/qa`) and it is the thing most likely to hide a real
+defect next: a genuine failure is now indistinguishable from a busy machine. Candidates: make
+`run-battery.sh` re-run its own reds serially before reporting, so the summary states a fact rather
+than a race; or give the mock a readiness signal the probes can wait on instead of a timeout.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 58 — the instrument, not the app: a summary line that was reporting a race
+
+**2026-09-08.** Nothing in this cycle is about the Direct app. It is about whether the thing that
+judges the app can tell *this is broken* from *the machine was busy*.
+
+### What was wrong
+
+Cycle 57 ran the whole battery twice on an unchanged tree and got **two different sets of reds**.
+Five probes went red once each, none of them twice, and every one was green when re-run alone.
+Their own texts named the cause — one drove 1 sub-tab under load and 9 alone; two never received
+`app_settings` at all; one died on "execution context was destroyed". So `green: 90 / 92` was a
+statement about contention wearing the clothes of a statement about the code, and a red could no
+longer be read at face value. That is exactly how a real defect hides: among excuses that are
+usually true.
+
+Diagnosing it cost cycle 57 a second full battery plus four serial re-runs by hand — twenty-odd
+minutes of judgement that the runner should have been making itself.
+
+### What it does now
+
+`scripts/qa/run-battery.sh` re-runs **only** its non-zero results, **one at a time**, before it
+prints anything, and reports the two outcomes as different things:
+
+```
+re-running 1 non-zero result(s) one at a time — a red under load is not a fact until it reproduces alone
+  · probe-audit-events-search-attacks — did not reproduce alone
+
+green: 93 / 93 probes that can fail (every red above was re-run alone before this line was printed)
+DID NOT REPRODUCE ALONE — went red under -j 4, green on their own: probe-audit-events-search-attacks
+  These are counted green because they passed with the machine to themselves, and that is
+  the honest reading of one run. It is NOT a clean bill: a probe that lands here run after
+  run is a race in the app or the harness, not a busy machine.
+```
+
+Three properties, each deliberate. **Greens are never re-run**, so the retry costs what was
+already failing rather than doubling a 25-minute run. **A red that reproduces alone is still red
+and still exits 1** — a retry that forgave everything would be worse than no retry. And **both
+attempts stay on disk**, `<probe>.log` crowded and `<probe>.retry.log` quiet: cycle 36 wrote this
+runner in the first place because six cycles of moving reds had been diagnosed from a summary line
+with the real output already thrown away, and a retry that clobbered the first log would walk
+straight back into that.
+
+Two new options, `-l <list>` and `-d <dir>`, exist so the script can be driven against fakes.
+
+### The probe
+
+`scripts/qa/probe-battery-retry-honesty.mjs` — no port; it drives a shell script, not a browser.
+It writes three fakes into a temp folder (never into `scripts/qa`, where an undeclared probe is
+caught by `check-probe-integrity` — cycle 56): one that always passes, one that always fails, and
+one that **fails the first time it is ever run and passes afterwards**, which is what contention
+looks like from the outside. Each fake records that it ran, so "was this re-run?" is a count and
+not an inference.
+
+Five checks: the contention red is kept out of RED *and* named in its own section (swallowing it
+would be the other half of the same defect); the genuine red survives and the run still exits 1;
+`fake-green` runs once while the two non-zero ones run twice; both logs survive; and a clean list
+retries nothing and still says "battery OK".
+
+Sabotage — the serial re-run block removed behind a marker unique to it — turns checks 1, 3 and 5
+red and leaves 2 and 4 green, which is right: a genuine red is genuinely red either way. Worth
+noting what the sabotaged run printed: *"every red above was re-run alone before this line was
+printed"*, on a script that no longer did. Restore verified by `md5sum -c` against a baseline
+taken **after** the fix, a marker count of 0, and `git status`.
+
+### The battery
+
+**93 / 93 probes that can fail, green, in a single run** — the first single-run all-green since
+cycle 56, and this time the number is the runner's own verdict rather than one assembled by hand.
+One probe, `probe-audit-events-search-attacks`, went red under `-j 4` with four checks failing
+(A1, A2, A3, A6 — its A3 line even printed the site's marketing strapline where the cap notice
+should have been, the signature of a page that had not finished rendering) and passed **47 of 47**
+alone. Under the old runner that would have been an eighth cycle of "moving reds".
+
+Commit — "Watch cycle 58: a summary line that was reporting a race"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 59 — CLOSED, see cycle 59 below
+
+
+**The non-reproducer list is now a measurement — start reading it.** Every run from here names the
+probes that went red under load and passed alone. One appearance is a busy machine. The same probe
+appearing three runs running is a race in the app or the harness, and this list is the only place
+it will ever show up. Cycle 59 should record which probes land there and start a tally, because
+that tally is the thing most likely to surface a genuine intermittent defect — the class this
+project has never yet caught.
+
+**`probe-audit-events-search-attacks` is candidate number one for that tally** — it starved
+under `-j 4` today (cycle 57 starved `probe-alias-dedupe-attacks`, `probe-import-preview-phone`
+and `probe-importer-scale-attacks` the same way). All four fail on data that has not arrived. If
+the same probes keep landing there, the second candidate from cycle 58's brief — a readiness
+signal in `mock-supabase` that probes can wait on instead of a timeout — is the fix, and it is in
+lane.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 59 — the drill-down's promise, checked against the screen instead of the data
+
+**2026-09-08.** js/25 opens the invoices behind a Report Builder total, and its entire reason for
+existing is that *what a row expands to adds up to the row it expanded from*. It guards that with
+a reconcile loop, and `probe-drilldown-attacks` (cycle 22) proves the guard works.
+
+Both of them compare `src.reduce(...)` against `tot[m]` — the raw numbers held in
+`FIN._lastReport`. **Nobody had ever compared the numbers a person can see.**
+
+### What was wrong
+
+They are not the same numbers. The group row prints `money0(total)`; each detail line prints
+`m0(value)`; both are `Math.round(n).toLocaleString()`, rounded **independently**. So three
+invoices of 100.40 print as
+
+```
+▾ Quill Partners                    301
+      2026-03-03 · PA-F1 · Flights  100
+      2026-03-03 · PA-F2 · Flights  100
+      2026-03-03 · PA-F3 · Flights  100
+```
+
+The internal check passes to the hallala. The visible arithmetic is out by a riyal. This matters
+here more than anywhere in the app, because **adding the lines up is the one thing this feature is
+for** — the owner's original ask was "expandable down to the invoices and services under it" so a
+figure could be checked.
+
+Not contrived, either: the approved expense lines total 1,935,461.74, and profit is revenue minus
+cost, so fractions are ordinary on every cost and profit column.
+
+### What it does now
+
+The house pattern from cycles 49 and 50 — keep the rounded headline, print the exact number
+underneath when they differ:
+
+> These lines are rounded to the nearest riyal, so adding them up does not land on the total above.
+> Revenue: the lines read 300, the total reads 301, and the exact figure is 301.20 SAR.
+
+Only when the whole set is on screen; past the 200-row cap the existing note already explains why
+the lines cannot sum to the total. The metric's name is read from **the table's own header**
+rather than a second copy of the label map, so it cannot drift from the column it describes.
+Nothing about any figure changed — the underlying total is still 301.20 and the row still prints
+301, proved by its own check.
+
+### The probe
+
+`scripts/qa/probe-drilldown-printed-arithmetic.mjs` (port 8729, verified free). Its reading is
+strictly DOM text — no `FIN` internals in the measurement, which is the whole point, since reading
+the internals is what let this sit unnoticed through a dedicated drill-down probe. Four checks: a
+whole-riyal control (proving the probe can read the screen at all); the defect; that the figure
+behind the row and the printed headline are untouched; and that the genuine reconcile refusal
+still fires when a total is poisoned by 5,000 — a rounding explanation that could also cover a
+real disagreement would be far worse than the defect.
+
+Fixture clients are named Zephyr Holdings and Quill Partners: no word this probe later searches
+the screen for (cycle 57, where a fixture called "Metric Co" made the probe's own text search pass
+under sabotage). Sabotage — the note's list emptied behind a marker unique to it — turns check 2
+red alone, exactly as predicted. Restored, `md5sum -c` OK, marker count 0, `git status` clean.
+
+### The battery, and the first entries in the new tally
+
+**94 / 94 probes that can fail, green, in one run.** The runner's own re-run caught two
+non-reproducers: `probe-mega` (its refresh came back to a blank page under load) and
+`probe-restore-scope-attacks` (its control never set itself up — 1500 before, 1500 after delete,
+1500 after restore, i.e. its own writes had not landed). Both passed alone.
+
+**Contention tally, running (cycle 58 introduced the list; this is the point of keeping it):**
+
+| cycle | did not reproduce alone |
+|---|---|
+| 57 | probe-premortem-attacks, sweep-language-deep, probe-alias-dedupe-attacks, probe-import-preview-phone, probe-importer-scale-attacks |
+| 58 | probe-audit-events-search-attacks |
+| 59 | probe-mega, probe-restore-scope-attacks |
+
+**Eight distinct probes, and not one has appeared twice.** That is the useful reading so far: this
+is not a race in one probe or one screen, it is whichever probes happen to be co-scheduled when
+the machine is short — every failure text is a page or a write that had not arrived. A repeat is
+what would change the diagnosis, and there is still no repeat.
+
+Commit — "Watch cycle 59: three invoices of 100.40, printed as 100 + 100 + 100 = 301"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 60 — CLOSED, see cycle 60 below
+
+
+**Keep the tally, and watch for the first repeat.** Three cycles in, eight probes, zero repeats.
+If a probe lands in that list twice, that is a race worth chasing and the readiness-signal work in
+`scripts/qa/mock-supabase.mjs` becomes the target. Until a repeat appears, the evidence says the
+machine is short, not that the app is racing — do not build the readiness signal on the strength
+of eight one-offs.
+
+**The same "read the internals, not the screen" question, asked elsewhere.** This cycle's defect
+survived a dedicated probe because the probe measured `FIN`, not the DOM. That is a class, not an
+incident: `probe-report-builder-attacks`, `probe-client-profit-honest` and the ageing probes all
+reconcile against internals. Cycle 60 should pick one surface and re-ask its promise in printed
+text only.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 60 — the same rounding, one level up, on the surface a manager reads
+
+**2026-09-08.** Cycle 59 said its finding was a class, not an incident. This cycle asked the same
+question of the Report Builder table itself and got the same answer, plus a second defect nobody
+was looking for.
+
+### What was wrong, part one: the column does not reach the number at the bottom of it
+
+`rReports()` prints every group row with `money0(g[k].__tot[m])` and the TOTAL row with
+`money0(grand[m])`, where `grand` sums the **raw** values and rounds once. So:
+
+```
+Zephyr Holdings     100
+Orchard Freight     100
+Vellum Group        100
+TOTAL               301
+```
+
+Three clients billing 100.40 each. Sub-rows under a second grouping have the identical shape
+against their own group row — on the very view the owner asked for by name, *"<client> January
+total"*.
+
+`probe-report-builder-attacks` proves this table's arithmetic to the hallala at four groupings and
+has never compared two **printed** figures to each other. That is exactly how this stood in plain
+sight since the table was built.
+
+### What was wrong, part two: found while proving nothing moved
+
+The probe's last check asserts the export still carries exact figures — a guard against "fixing"
+the screen by rounding the file. It printed what the file actually said:
+
+```
+TOTAL,301.20000000000005
+```
+
+Binary floating point, written into the document an accountant works from. `finCSV` pushed raw JS
+numbers straight into the CSV. Nobody had ever looked at the file's own text either.
+
+### What it does now
+
+Screen: the house pattern from cycles 49, 50 and 59 — keep the rounded headline, state the exact
+figure when the rounding shows, and only when it shows. On whole-riyal data, which is most of this
+file, nothing appears at all.
+
+> The figures here are rounded to the nearest riyal and each total is rounded separately, so
+> adding a column up may not land on the figure below it. Revenue: the rows read 300, the total
+> reads 301, and the exact figure is 301.20 SAR. The exported CSV carries the exact figures.
+
+File: money goes out at two decimals, counts as integers. A formatting change only — the value is
+unchanged to the hallala, and `TOTAL,301.20` is what the file now says.
+
+### The probe
+
+`scripts/qa/probe-report-table-printed-arithmetic.mjs` (port 8730, verified free). Reads printed
+table text only; `FIN` appears once, in the check that proves no figure moved. Four checks: a
+whole-riyal control, the column against its TOTAL, the sub-rows against their group row, and the
+export still exact. Fixtures are named Zephyr Holdings, Orchard Freight and Vellum Group — no word
+the probe later searches the screen for (cycle 57).
+
+Sabotage — the offending-metric list emptied behind a marker unique to it — turns checks 2 and 3
+red and leaves the control and the export check green. Restored, `md5sum -c` OK, marker count 0,
+`git status` clean.
+
+### The battery, and the tally
+
+**95 / 95 probes that can fail, green, in one run.** One non-reproducer:
+`probe-exclusion-not-loaded`, starved under `-j 4`, green alone.
+
+**Contention tally:**
+
+| cycle | did not reproduce alone |
+|---|---|
+| 57 | probe-premortem-attacks, sweep-language-deep, probe-alias-dedupe-attacks, probe-import-preview-phone, probe-importer-scale-attacks |
+| 58 | probe-audit-events-search-attacks |
+| 59 | probe-mega, probe-restore-scope-attacks |
+| 60 | probe-exclusion-not-loaded |
+
+**Nine distinct probes over four cycles. Still not one repeat.** The reading holds: a short
+machine, not a race in the app. Nothing should be built on this list until a name appears twice.
+
+Commit — "Watch cycle 60: a column of 100s under a total of 301, and a CSV saying 301.20000000000005"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 61 — CLOSED, see cycle 61 below
+
+
+**The class is not exhausted.** Two cycles, two surfaces, two versions of the same defect, both
+invisible to probes that read internals. The remaining money surfaces whose promise is arithmetic
+by eye: the ageing buckets (cycle 49 gave them an exact-figure helper — do the buckets sum to
+Outstanding *on screen*?), the per-client table's Revenue/Cost/Profit columns, and the Overview
+cards against the ledger they claim to summarise. Pick one and read only what is printed.
+
+**Also worth one look: every other export.** The CSV float defect was found by accident, in a
+check written for something else. `finLedgerCSV`, the Records finance export and the B2C export
+were never read as text either. That is a half-cycle of work and it is in lane.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 61 — the other exports, read as files: mostly a negative result, and two things that were not
+
+**2026-09-08.** Cycle 60 found `TOTAL,301.20000000000005` in the Report Builder's CSV by accident,
+in a check written to prove a fix had moved nothing. That was the first time any of these files
+had been read as text. This cycle read the other two.
+
+### The negative result, which is the main finding
+
+`finLedgerCSV` (invoice rows) and `finTxnCSV` (transactions) **do not have cycle 60's defect, and
+there is a reason worth writing down**: they write stored values, and every write path in the app
+rounds before storing — js/65 stores `Math.round((rev-cost)*100)/100`, js/41 the same, the mapped
+importer path takes the file's own figure or rounds it. A value with more than two decimals never
+reaches a stored row. `finCSV` broke because it is **the one export that sums**, and a sum of
+clean two-decimal doubles routinely is not one.
+
+That distinction mattered while writing the probe. Its first fixture wrote `100.4 - 33.35` straight
+into a row and duly caught `profit_sar="67.05000000000001"` in the ledger export — a defect the app
+cannot produce, because nothing writes an unrounded figure. That is cycle 50's trap exactly, and it
+was one small step from a commit "fixing" a file that was already right. The fixture now writes
+what the app's own paths would write, and the check asks the only question that can honestly be
+asked of an export: **does it add float noise of its own?**
+
+### Two things that were not negative
+
+**`window.finLedgerCSV` is unreachable from the UI.** No button, no menu, no caller: the whole repo
+mentions the name in comments and in one probe. The Ledger tab's "Excel (CSV)" is `finTxnCSV`, and
+the Records page's finance export reads `FIN._csvRows` directly rather than calling it. Its role
+guard, its Arabic header path and the probe coverage on it are all about a file nobody can produce
+by pressing anything. Cycle 56's rule: "unreachable" is a more honest answer than "low-risk". Kept
+rather than deleted — `probe-access-truth` exercises it and it is the obvious thing to wire up if
+the Ledger is ever asked for a row-level invoice export — but now labelled as what it is.
+
+**A false claim about what an export contains.** `FIN._csvRows` is `live().filter(finInPeriod)` —
+the period bar **only**. It does not carry the client scope or any other filter the person has set.
+The Records page's finance export reads it under a comment saying it is *"the currently-filtered
+Ledger rows (set by rLedger())"*. It is not, and `rLedger()` has not set it since it was refactored
+onto the transactions table. Today that means a person who has scoped Finance to one client and
+exports from Records gets **every client in the period**. `js/core/core-05-records.js` is not this
+session's file to edit (P4), so this is logged rather than changed; the warning is written at the
+definition of `finLedgerCSV`, which is the other thing that would inherit it the moment anyone
+wires a button to it.
+
+### The probe
+
+`scripts/qa/probe-export-files-as-text.mjs` (port 8731, verified free) holds all three Finance
+exports to what a money file must satisfy, and names which file fails which: every data row has the
+header's cell count; no cell carries a binary-float artifact; every filled money cell parses as a
+number; and the file holds exactly the rows the page is showing. It reads the bytes with its own
+deliberately literal CSV parser. `FIN` is consulted once, to know how many rows the screen has —
+the thing the file is compared *to*.
+
+Sabotage — cycle 60's `csvNum` reverted behind a marker unique to it — was the useful part. The
+first attempt at it **stayed green**, because the fixture had no client with several fractional
+invoices, so nothing in the report actually summed. Three invoices of 100.40 under one client were
+added for the express purpose of making check B able to fail; with them, sabotage turns it red on
+`Revenue` and `Profit` at exactly the group that sums. Restored, `md5sum -c` OK, marker count 0,
+`git status` clean.
+
+### The battery
+
+**96 / 96 probes that can fail, green, in one run.** One non-reproducer,
+`probe-expense-report-capture`, green alone.
+
+**Contention tally:**
+
+| cycle | did not reproduce alone |
+|---|---|
+| 57 | probe-premortem-attacks, sweep-language-deep, probe-alias-dedupe-attacks, probe-import-preview-phone, probe-importer-scale-attacks |
+| 58 | probe-audit-events-search-attacks |
+| 59 | probe-mega, probe-restore-scope-attacks |
+| 60 | probe-exclusion-not-loaded |
+| 61 | probe-expense-report-capture |
+
+**Ten distinct probes over five cycles. Still not one repeat.** Whatever is short under load, it is
+not one place.
+
+Commit — "Watch cycle 61: the other two exports are clean, and here is why — plus a button that does not exist"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 62 — CLOSED, see cycle 62 below
+
+
+**For whoever owns `js/core/core-05-records.js`:** its finance export's comment claims
+`FIN._csvRows` is the currently-filtered Ledger rows. It is the period filter only. Either scope
+the rows to what the Finance page is showing, or say in the file what the file contains — but the
+comment as it stands will mislead the next person who reads it, and the export as it stands
+misleads the person who opens it.
+
+**The class is still open, and one surface in it is untested:** the ageing buckets. Do
+0–30 / 31–60 / 61–90 / 90+ / No invoice date / Dated in the future sum to Outstanding **on screen**?
+Cycle 49 gave that area an exact-figure helper, so the pattern is to hand. The per-client
+Revenue/Cost/Profit columns and the Overview cards against the ledger are the two after it.
+
+**A rule this cycle earned, worth applying before every "fix":** ask whether the app can actually
+produce the value the probe is failing on. Twice now (cycle 50, cycle 61) a probe has demanded
+something the app never promised or caught something the app cannot do. Both times the tell was the
+same — the fixture, not the app, put the offending value there.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 62 — six amounts that do not come to the total above them, and a quieter kind of rounding
+
+**2026-09-08.** Fourth surface in the class cycles 59–61 opened, and the one where reading down is
+the entire job. The Collections & ageing card shows Outstanding, then six amounts under it:
+0–30, 31–60, 61–90, 90+, and where they exist "No invoice date" and "Dated in the future". Every
+riyal in Outstanding is in exactly one of those six **by construction** — the loop adds `out` to
+`arOut` and then to exactly one bucket — so a person deciding who to chase reads down them and
+expects the figure above to be their sum.
+
+### What was wrong, and why cycle 49 did not already fix it
+
+Cycle 49 fought a rounding battle on this very card and won it: `moneyS()` renders 8,755,055 as
+"8.76M", so `finExactUnder()` now prints the exact figure underneath whenever the short form hides
+something. That makes each number legible **on its own**. It says nothing about six of them adding
+up to a seventh.
+
+And the gap here is quieter than the one cycle 49 fixed. `moneyS(1000.40)` is `"1.0K"`;
+`finExactUnder` stays **silent**, because to the nearest riyal nothing is hidden. Six such silences
+are two and a half riyals the reader cannot see anywhere:
+
+```
+Outstanding   10,752            ← its exact line fires: 10.8K hides too much
+  0–30 days    1.0K             ← silent: 1,000.40 rounds to 1,000
+  31–60 days   2.0K
+  61–90 days   3.0K
+  90+ days     4.0K
+  No invoice date  500
+  Dated in the future  250
+                    ─────
+  reading down       10,750
+```
+
+### What it does now
+
+One line, only when it shows:
+
+> These amounts are shortened to fit, so reading down them comes to 10,750 where Outstanding reads
+> 10,752. Every riyal outstanding is in exactly one of them — the exact total is 10,752.40 SAR.
+
+The interesting part of the change is underneath it. Deciding whether the buckets add up requires
+knowing **which figure a reader actually ends up with** — the exact line where one is printed, the
+shortened form where it is not. That predicate already existed inside `finExactUnder`, so rather
+than copy it, it is now `finShortHides()` / `finShortBack()` / `finPrintedValue()`, with
+`finExactUnder` rewritten to use them. One definition, two callers; the chokepoint rule this
+codebase keeps relearning.
+
+### The probe
+
+`scripts/qa/probe-ageing-printed-arithmetic.mjs` (port 8732, verified free). Reads the card's
+printed text and adds up what a person would add up. Four checks: a whole-riyal control; the
+hallala case; that "No invoice date" and "Dated in the future" are both shown **and** counted
+inside Outstanding (cycles 6 and 28 put those rows there deliberately — this holds them to it in
+printed text); and that no figure moved.
+
+Fixtures are seeded through `Math.round(x*100)/100`, exactly as js/65 and js/41 store — cycle 61's
+rule, applied before rather than after the fact. Two decimals is what makes the question real: a
+hallala is below the riyal the card prints.
+
+**One correction inside the probe itself.** Its "did the card say why" test first searched the
+prose for words like *rounded* and *nearest riyal* — and my fix says "shortened to fit", so a
+correct fix read as a failure. Rewriting the check around the wording would have been the wrong
+repair: a word-search is satisfied by any sentence containing the word (cycle 57). It now requires
+the prose to carry **the exact outstanding total**, which is the substantive thing a reader needs
+and cannot be satisfied by furniture.
+
+**And one arithmetic error, mine, not the app's.** The "nothing moved" check asserted the seeded
+rows summed to 10,754.40. They sum to 10,752.40. The app was right and the check was wrong —
+the same shape as the 3 Sep go-live lesson (*test the property, not what you assumed the number
+was*), and it was the app's own answer that exposed it.
+
+Sabotage — the note suppressed behind a marker unique to it — turns check 2 red alone. Restored,
+`md5sum -c` OK, marker count 0, `git status` clean.
+
+### The battery
+
+**97 / 97 probes that can fail, green, and for the first time since the tally began, ZERO
+non-reproducers** — no probe went red under `-j 4` at all, so nothing needed a serial re-run.
+
+**Contention tally:**
+
+| cycle | did not reproduce alone |
+|---|---|
+| 57 | probe-premortem-attacks, sweep-language-deep, probe-alias-dedupe-attacks, probe-import-preview-phone, probe-importer-scale-attacks |
+| 58 | probe-audit-events-search-attacks |
+| 59 | probe-mega, probe-restore-scope-attacks |
+| 60 | probe-exclusion-not-loaded |
+| 61 | probe-expense-report-capture |
+| 62 | *(none)* |
+
+Ten distinct probes over six cycles, no repeat, and now a clean run. Nothing here supports building
+a readiness signal.
+
+Commit — "Watch cycle 62: six amounts that do not come to the total above them"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 63 — CLOSED, see cycle 63 below
+
+
+**Two surfaces left in the class.** The per-client table's Revenue / Cost / Profit columns against
+their own totals, and the Overview cards against the ledger they claim to summarise. After those,
+the class is genuinely exhausted and the honest thing is to say so rather than keep looking.
+
+**A pattern worth naming now that it has happened four times.** Cycles 59, 60 and 62 each found the
+same defect on a different surface, and each time the existing probe had verified the numbers
+*behind* the screen. The general lesson is not about rounding: **a probe that reads the model
+cannot see a defect that lives in the view.** That belongs in `scripts/qa/README.md` as a standing
+instruction for whoever writes the next probe, and writing it there is a fair half-cycle.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch. For whoever owns
+`js/core/core-05-records.js`: its finance export's comment claims `FIN._csvRows` is "the
+currently-filtered Ledger rows"; it is the period filter only.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 63 — the fifth surface, the standing rule, and the first repeat in the tally
+
+**2026-09-08.** Three things this cycle: the last untested money table in the printed-arithmetic
+class, the lesson written down where the next probe-writer will read it, and a name that appeared
+in the contention list for the second time.
+
+### The fifth surface
+
+"Top clients by revenue" — the table where a manager decides which client is worth the effort.
+Every cell is `money0()`: each row rounded to the whole riyal **separately** from the Total under
+it. Five clients billing 1,000.40 print five rows of 1,000 above a Total of 5,002, and the Cost
+column does the same.
+
+This table already had a probe — `probe-client-profit-honest`, which guards something genuinely
+important (a client with no recorded cost must not show a 0 and a profit equal to its whole
+revenue). It reads `FIN`. It could not see this.
+
+The fix is the house pattern, with two exclusions that matter more here than anywhere else,
+because this table has **two legitimate reasons its columns may not add up and both are already
+declared on screen**:
+
+- only the top 10 rows are shown while the Total covers every client — said in the header, so the
+  new note stays silent unless every client is on screen;
+- a client with no recorded cost anywhere prints the *words* "not recorded" / "unknown" rather than
+  a 0 (rule M8), which makes those columns unaddable — skipped, and the existing `_tcNote` already
+  explains that case.
+
+Restating either of those as a rounding artefact would have been a new lie in place of an old one.
+The probe holds the fix to both: check 3 fails if the no-cost client's words ever become numbers.
+
+### The standing rule, written down
+
+Five surfaces in a row, each with a probe that passed, each with a defect visible on screen. That
+is no longer a run of incidents. `scripts/qa/README.md` now opens its probe-writing guidance with
+it:
+
+> **A probe that reads the model cannot see a defect that lives in the view.**
+
+with the table of all five, the mechanism (*every figure is formatted independently, so any two of
+them can disagree by the width of the formatting, and no amount of correctness in the data prevents
+it*), and the two traps that cost real time: **do not test for a word the fix might use** (cycle 57
+passed under sabotage on its own fixture name; cycle 62 failed a *correct* fix that said "shortened
+to fit" instead of "rounded"), and **ask whether the app can produce the value you are failing on**
+(cycles 50 and 61; the latter came one step from "fixing" a correct file).
+
+### The battery — and the first repeat
+
+**98 / 98 probes that can fail, green in one run.** One non-reproducer: `sweep-buttons`.
+
+**That is the first name to appear twice.** It also died under load in cycle 57 — recorded then
+under "REPORTS THAT DID NOT FINISH", before the retry mechanism existed, which is why it did not
+look like a repeat until now. Both times, the same cause, and it is worth being precise about it:
+
+```
+page.evaluate: Execution context was destroyed, most likely because of a navigation
+    at goto (scripts/qa/sweep-buttons.mjs:69)
+```
+
+**This does not trigger the readiness-signal work, and saying why matters.** The rule was "a name
+appearing twice justifies building it" — but the reason for that rule was that repeated starvation
+would point at `mock-supabase` not telling probes when data has arrived. `sweep-buttons` is not
+starved of data: it navigates while a previous evaluate is still in flight, and loses its execution
+context. That is a race in **that file's own navigation handling**, in a report with no assertions,
+and the fix belongs there rather than in the mock. Building a readiness signal on this evidence
+would be answering a question nobody asked.
+
+**Contention tally:**
+
+| cycle | did not reproduce alone |
+|---|---|
+| 57 | probe-premortem-attacks, sweep-language-deep, probe-alias-dedupe-attacks, probe-import-preview-phone, probe-importer-scale-attacks, *(sweep-buttons — crashed, recorded separately at the time)* |
+| 58 | probe-audit-events-search-attacks |
+| 59 | probe-mega, probe-restore-scope-attacks |
+| 60 | probe-exclusion-not-loaded |
+| 61 | probe-expense-report-capture |
+| 62 | *(none)* |
+| 63 | **sweep-buttons — second appearance** |
+
+Ten probes still with a single appearance each; one file now with two, for a reason of its own.
+
+Commit — "Watch cycle 63: five rows of 1,000 above a total of 5,002, and the rule written down"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 64 — CLOSED, see cycle 64 below
+
+
+**The class has one surface left: the Overview cards against the ledger they claim to summarise.**
+After that it is genuinely exhausted, and the honest thing will be to say so and go elsewhere
+rather than keep hunting the same shape.
+
+**`sweep-buttons` navigation race — in lane, and now evidenced twice.** It calls `goto()` while a
+previous `page.evaluate` can still be in flight, and dies with "execution context was destroyed".
+It is a report, so it never goes red — it just silently produces nothing, which is the worse
+failure. Worth half a cycle: await the navigation properly, and give it a failure path so a run
+that produced nothing says so. **Note it is `sweep-buttons.mjs`, not a `probe-*-attacks.mjs` file,
+so it is writable by this session.**
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch. For whoever owns
+`js/core/core-05-records.js`: its finance export's comment claims `FIN._csvRows` is "the
+currently-filtered Ledger rows"; it is the period filter only.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 64 — the last surface, and the report that could only ever be silent
+
+**2026-09-08.** Two things, and the class is finished.
+
+### The sixth surface: the one equation these cards exist to show
+
+Six cards head the Finance Overview. They are **not** a column that sums, and this cycle's care went
+into not pretending otherwise — two things about them are deliberate and documented, and reporting
+either as a defect would have been the mistake:
+
+- **Outstanding** is measured over ALL live invoices while the other five are verified-only, because
+  an invoice is only verified-paid once nothing is left to pay. Cycle 4 fixed the opposite bug;
+  narrowing it to make the cards tie would re-break it.
+- **Invoices** is a count of distinct invoice numbers, not money.
+
+Exactly one relation holds across them, and it is the first thing anybody checks: **Profit =
+Revenue − Cost.** All three are `moneyS()` with an exact line only when the short form hides a whole
+riyal — so all three can be individually defensible and jointly wrong:
+
+```
+Revenue  3,000        (3,000.30 — the short form hides nothing to the riyal, so no exact line)
+Cost     1,202        (1,201.80 — exact line printed)
+Profit   1,799        (1,798.50 — exact line printed)
+         3,000 − 1,202 = 1,798
+```
+
+The Overview now says so when it happens, with all three exact figures. It does **not** happen for
+most numbers — `round(a) − round(b)` and `round(a − b)` usually agree — which is exactly why it
+needs saying when it does.
+
+**The probe's first fixture was benign and proved nothing.** 1,000.40 against 400.60 renders
+consistently, so the check passed on a defect that was really there. The values are now chosen for
+the property that exposes it (the cost's fraction the larger one, the difference landing on a half)
+and the reason is written into the probe, because a check that cannot fail is not a check — cycle 48,
+and cycle 63 had to do the same thing deliberately.
+
+**THE CLASS IS NOW EXHAUSTED.** Six surfaces, six cycles: drill-down (59), Report Builder table and
+its CSV (60), the other two exports — clean, with a reason (61), the ageing card (62), Top clients
+(63), the Overview cards (64). Every money figure a person can read off this app has now been added
+up the way they would add it up. The standing rule is in `scripts/qa/README.md`. **Stop hunting this
+shape** — the next cycle that goes looking for it is looking for something that is no longer there.
+
+### The report that could only ever be silent
+
+`sweep-buttons` presses about 190 controls and prints what each did. It died under load in cycles 57
+**and** 63 — the first name to appear twice in the contention tally — both times with
+`page.evaluate: Execution context was destroyed, most likely because of a navigation`: the previous
+click had started a navigation still settling when the next `evaluate` ran.
+
+`alive()` already knew how to survive that. `goto()` and `state()` did not, so the process died with
+a raw stack **and produced nothing** — and because the file always ended `process.exit(0)`, a run
+that examined zero buttons was indistinguishable from a clean one. The battery could only say "did
+not finish", with no idea how far it got.
+
+Both are now routed through one guard that recovers from a torn-down context, retries once, and
+counts it. And the file has a real failure path — **but only for silence**:
+
+> `FAILED — the sweep did not complete (2 reason(s)). The button verdicts above are a report and
+> never fail a run; this is about the sweep itself.`
+
+That distinction is the whole design. The 189 button verdicts are judgements about controls, not
+assertions; a `NO-OP?` line must never redden a battery. What reddens it is a page that produced no
+result, fewer than 40 buttons pressed, or a page abandoned mid-sweep. Sabotage — the page loop made
+to skip everything behind a marker unique to it — produces exactly those lines and exit 1.
+
+Removed from `scripts/qa/reports.txt` in the same commit: a file with a real failure path is not a
+report, and `check-probe-integrity` holds that count so it can only go down. It is now one of the
+probes that can fail.
+
+### The battery
+
+**100 / 100 probes that can fail, green, zero non-reproducers** — the second clean parallel run in
+three cycles. The count rose by two: the new probe, and `sweep-buttons` joining the probes from the
+reports.
+
+**Contention tally:** unchanged from cycle 63 — 57: probe-premortem-attacks, sweep-language-deep,
+probe-alias-dedupe-attacks, probe-import-preview-phone, probe-importer-scale-attacks,
+(sweep-buttons, crashed); 58: probe-audit-events-search-attacks; 59: probe-mega,
+probe-restore-scope-attacks; 60: probe-exclusion-not-loaded; 61: probe-expense-report-capture;
+62: none; 63: sweep-buttons; **64: none**.
+
+Commit — "Watch cycle 64: the last surface in the class, and a report that could only ever be silent"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 65 — CLOSED, see cycle 65 below
+
+
+**The printed-arithmetic class is closed. Go somewhere else.** Candidates that have never been
+attacked from this session and are in lane:
+
+- **`js/62`'s merge/undo path** beyond the readiness guard cycle 56 added — what happens when a
+  merge is undone twice, or undone after the target has itself been merged.
+- **`js/65`'s preview-to-commit gap under a changing file** — the preview is computed from one read
+  of the file and the commit from another; nothing has ever changed the input between them.
+- **The period bar's own arithmetic** — `finPeriodMatch` decides what every Finance figure counts,
+  and no probe drives it directly across year/quarter/half/month/sector combinations.
+
+**Do not** re-attack the drill-down, the report table, the exports, the ageing card, the client
+table or the Overview cards.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch. For whoever owns
+`js/core/core-05-records.js`: its finance export's comment claims `FIN._csvRows` is "the
+currently-filtered Ledger rows"; it is the period filter only.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 65 — money that is in a year and in none of its quarters
+
+**2026-09-08.** First cycle after the printed-arithmetic class closed. New target: `finPeriodMatch`,
+four lines through which every money figure on the Finance page passes, and which no probe had ever
+driven directly.
+
+### What was wrong
+
+```js
+function finYearOf(r){return r.year||(r.invoice_date?+String(r.invoice_date).slice(0,4):null);}
+...
+if(/^Q[1-4]$/.test(pt))return r.quarter===pt;
+if(pt.indexOf('M:')===0)return r.month===pt.slice(2);
+```
+
+`finYearOf` falls back to the invoice date when a row carries no year, and **it has to**: js/16's own
+B2B import writes `invoice_date`, `month` and `quarter` and **never a year**, so without that
+fallback every row it wrote would drop out of every year filter.
+
+That same import writes `month:o.month, quarter:o.quarter` straight off the parsed file. A file with
+no Month or Quarter column therefore produces a row that **has a date and no quarter** — and quarter
+and month had no fallback at all. Such a row counts in "All periods" and in its year, and vanishes
+from every quarter, every half and every month:
+
+```
+2026 total        3,100
+  Q1 + Q2 + Q3 + Q4 = 1,500
+  H1 + H2           = 1,500
+```
+
+1,600 SAR in the year and in no quarter, with nothing on any card saying which money went missing or
+why. **One field defended, two not, from the same source.**
+
+### Live or latent
+
+Checked against the live database before writing a line of the fix (read-only): all 46 live invoices
+carry a date, a month and a quarter, and every one agrees with its date. So this is **latent, not
+live** — and it is reachable through the app's own import path, which is the test cycle 61 set for
+whether a defect is real rather than invented. Recorded that way rather than dressed up.
+
+### What it does now
+
+`finMonthOf()` and `finQuarterOf()` derive from the invoice date **only when the row carries no
+value of its own** — a stored value always wins, so this fills a gap and never overrules what a row
+says about itself. Derived, never invented: a row with no date at all still belongs to no period,
+which is rule M8, and the probe's fourth check holds the fix to exactly that.
+
+### The probe
+
+`scripts/qa/probe-period-partition.mjs` (port 8735, verified free). Its header says why it asserts on
+the model rather than the screen, since the README's standing rule from cycles 59–64 says the
+opposite: **this defect lives in the model** — it is about which rows a period counts at all — so the
+model is the right place to assert, and the screen is checked once at the end for the consequence a
+person actually meets (the Revenue card for a year against its four quarters).
+
+Five checks: a fully populated row lands in its year, half, quarter and month and nowhere else; the
+four quarters and two halves each partition the year; the stripped row does not vanish; an undated
+row is still never given a period; and the year's Revenue card equals its quarters'. Fixtures are
+written exactly as js/16's import writes them — **no `year` field** — because that is the shape that
+makes this reachable.
+
+Sabotage — the quarter fallback removed behind a marker unique to it — turns checks 3 and 5 red and
+leaves the control and the M8 check green. Restored, `md5sum -c` OK, marker count 0, `git status`
+clean.
+
+### The battery
+
+**101 / 101 probes that can fail, green, zero non-reproducers** — third clean parallel run in four
+cycles. Tally unchanged: 57 (five, plus sweep-buttons crashed); 58 one; 59 two; 60 one; 61 one;
+62 none; 63 sweep-buttons (fixed in 64); 64 none; **65 none**.
+
+Commit — "Watch cycle 65: money that is in a year and in none of its quarters"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 66 — CLOSED, see cycle 66 below
+
+
+**The disagreement case, deliberately not fixed this cycle.** A row whose stored `quarter` says Q2
+while its `invoice_date` says March is now *still* counted as Q2 — the stored value wins, by design,
+because overruling it would silently move money on the say-so of a date that might be the wrong
+field. But nothing anywhere says the two disagree. Zero live rows do today (checked). The honest next
+step is to surface it, not to resolve it silently: a count on the Finance page, or a line in the
+importer's preview, saying "N invoices carry a month or quarter that does not match their date".
+That is a decision about which field is authoritative, and it may be the owner's to make.
+
+**Two fresh targets left from cycle 65's brief, neither started:**
+- `js/62`'s merge/undo path beyond cycle 56's readiness guard — a merge undone twice, or undone
+  after the target has itself been merged. Company-identity money; the family of cycles 40, 43, 56.
+- `js/65`'s preview-to-commit gap — the preview is computed from one read of the file and the commit
+  from another, and nothing has ever changed the input between them.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H — do not raise the budget;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch. For whoever owns
+`js/core/core-05-records.js`: its finance export's comment claims `FIN._csvRows` is "the
+currently-filtered Ledger rows"; it is the period filter only.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 66 — merges chain, and undo is order-dependent; plus the tally's first real repeat
+
+**2026-09-08.** Company identity — the family of cycles 40, 43 and 56, where the wrong answer puts
+one company's money on another company's record.
+
+### Two of the three scenarios were already guarded, and that is the finding
+
+Both scenarios this cycle's brief named were checked against the live database functions first
+(read-only, `pg_get_functiondef`), before a line was written. **Both are already refused
+server-side:**
+
+- **double undo** — `fn_unmerge_businesses` selects `where id = p_merge_id and undone_at is null
+  for update` and raises *"merge not found or already undone"*;
+- **merging into an archived company** — `fn_merge_businesses` raises *"the company to keep is
+  archived — keep the live one"*, and refuses an already-archived drop unless explicitly allowed.
+
+Neither is a defect. Recording that is the point: cycle 61's rule is to ask whether the thing can
+happen before fixing it, and here the answer came from the functions themselves rather than from
+argument.
+
+### What nobody guards is ORDER
+
+Merge B into A. Then merge A into C. Both sit in the history with an Undo button each, and nothing
+says they are related.
+
+Undo the **first** and its `moved` list puts B's records back on B — but those records are on C by
+then. Undo the **second** afterwards and its own list (which still names those records, because
+they were on A when A was merged) puts them on A. **Which company ends up with the money depends on
+which button is pressed first**, and the screen gave no way to know that.
+
+The fix is here rather than in the functions — they are not this session's to change (P4) and do not
+need to be, because the chain is visible in rows js/62 already holds. A merge whose kept company is
+the dropped company of a later, still-live merge now says so instead of offering a button:
+
+> Undo "Ashcombe Holdings → Cotwell Group" first — Ashcombe Holdings has since been merged away, so
+> undoing this one now would be reversed by that one.
+
+The **later** merge keeps its Undo: it is the one that is safe, and freezing the whole chain would
+leave no way back at all. Once it is undone, the earlier row offers Undo again — the guard reads the
+chain as it stands, it does not stamp a row.
+
+**A second defect, found while reading the output.** The Kept column was printing a raw UUID
+whenever the kept company had been archived by a later merge — because an archived company is not in
+`DB.businesses`, and the lookup had no other source. The later merge holds that name in its own
+snapshot; it now uses it. Without this the guard's own message would have named a UUID.
+
+### The sabotage that applied and did nothing
+
+First attempt wrapped the chain search in `if(false){…} else if(!undone){…}` — the marker was
+present, `grep -c` said 1, and **the probe stayed green**, because the `else if` still ran the
+original branch. Cycle 41's inert-guard trap, this time in the sabotage itself: *the marker being
+present is not the same as the sabotage taking effect.* Redone as `blocker=null;` after the search,
+which turns check 2 red alone and leaves the other three green.
+
+Check 4 also failed once on its own setup — it called a `window.v62ReloadMerges()` that does not
+exist, so the in-memory history never changed. It now reloads the page, which is what
+`v62UnmergeBiz` itself does. That check is a regression guard on the *shape* of the fix rather than
+an independent finding, and the probe says so.
+
+### The battery — and the first repeat that means what the rule meant
+
+**102 / 102 probes that can fail, green.** One non-reproducer: **`probe-alias-dedupe-attacks`, and
+it is its second appearance** (cycle 57). Unlike `sweep-buttons` — whose repeat turned out to be its
+own navigation race — this one failed **both times on the same thing**:
+
+> ✗ DB.settings never arrived from app_settings — the exclusion list and group map below would be
+> measured against an empty object, which is not a finding about the app
+
+That is precisely the condition the readiness-signal rule was written for: *a probe that repeatedly
+fails on data that had not arrived.* The rule is now met, for the first time, on a real starvation.
+
+**Contention tally:**
+
+| cycle | did not reproduce alone |
+|---|---|
+| 57 | probe-premortem-attacks, sweep-language-deep, **probe-alias-dedupe-attacks**, probe-import-preview-phone, probe-importer-scale-attacks, (sweep-buttons, crashed) |
+| 58 | probe-audit-events-search-attacks |
+| 59 | probe-mega, probe-restore-scope-attacks |
+| 60 | probe-exclusion-not-loaded |
+| 61 | probe-expense-report-capture |
+| 62 | none |
+| 63 | sweep-buttons (own navigation race — fixed in 64) |
+| 64 | none |
+| 65 | none |
+| 66 | **probe-alias-dedupe-attacks — second appearance, same cause both times** |
+
+Commit — "Watch cycle 66: merges chain, and undo is order-dependent"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 67 — CLOSED, see cycle 67 below
+
+
+**THE READINESS SIGNAL IS NOW JUSTIFIED — build it.** The condition held since cycle 58 has been met:
+`probe-alias-dedupe-attacks` starved on `app_settings` in cycles 57 and 66, the same failure text
+both times. Two others starved on the same table once each (`probe-importer-scale-attacks` counted
+20 rows as new that the exclusion list would have caught; `probe-exclusion-not-loaded` could not run
+at all). The work: give `scripts/qa/mock-supabase.mjs` a readiness signal a probe can WAIT on
+instead of a timeout — and note what it must not become: a blanket sleep, or a way for a probe to
+pass without the data. The probes that guard the exclusion list are the ones that must never be
+allowed to conclude from an empty object.
+
+**Not started, still in lane:** `js/65`'s preview-to-commit gap — the preview is computed from one
+read of the file and the commit from another, and nothing has ever changed the input between them.
+
+**Left open from cycle 65, unchanged:** a row whose stored `quarter` disagrees with its
+`invoice_date` is still counted as stored. Surface it, do not pick a winner in code — deciding which
+field is authoritative is likely the owner's call. Zero live rows disagree today.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H; `probe-guardrails-both-halves-attacks`'
+2500 ms stopwatch. For whoever owns `js/core/core-05-records.js`: its finance export's comment claims
+`FIN._csvRows` is "the currently-filtered Ledger rows"; it is the period filter only.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 67 — the readiness signal, and the line it must not cross
+
+**2026-09-08.** Cycle 58 wrote the condition for building this and then refused to build it for
+nine cycles: **not until a probe repeatedly fails on data that had not arrived.** Cycle 66 met it.
+
+`probe-alias-dedupe-attacks` starved on `app_settings` in cycles 57 **and** 66, with the same
+sentence both times. `probe-importer-scale-attacks` and `probe-exclusion-not-loaded` starved on the
+same table once each. `sweep-buttons` also repeated and was deliberately **not** counted — its
+repeat was its own navigation race, fixed in cycle 64 — which is why the rule asked for the same
+cause twice rather than any two reds.
+
+### What was actually wrong
+
+The probe's own words were careful and correct:
+
+> ✗ DB.settings never arrived from app_settings — the exclusion list and group map below would be
+> measured against an empty object, which is not a finding about the app
+
+And that sentence is the end of the road. A probe waiting on a guessed number of milliseconds
+**cannot tell whether the app never asked for the table or asked and the answer was late**, so all
+it can do is give up and say something vague. The mock knows the one fact neither the probe nor the
+page can see: whether the request was made and answered.
+
+### What was built
+
+`scripts/qa/mock-supabase.mjs` now counts responses per table — reads and writes separately, with a
+timestamp — exposed at `GET /__mock/served`, counted at the point the table is known and **before**
+the answer is built, so a table that exists but returns nothing still counts as served. An empty
+answer is an answer.
+
+`scripts/qa/wait-ready.mjs` is the waiter, and its entire design is one separation:
+
+- `waitServed()` — a fact about the **wire**: the mock answered a request for this table.
+- `waitInApp()` — a fact about the **page**: the app has the data and put it where the feature
+  reads it from.
+- `waitReady()` — both, wire first, so a timeout says which half failed.
+
+**Neither ever resolves true on timeout.** They return `{ok:false, why}` naming what did not happen:
+*"…was never requested at all in 1200ms — the app did not ask for it, so this is not a slow answer"*
+versus *"…was served 2 reads in 1200ms, fewer than the 2 needed"*. That distinction is the whole
+reason the thing exists.
+
+### The line it must not cross, and the check that holds it there
+
+A readiness signal that says "ready" when the app has nothing is **worse than a timeout**. The
+probes that starve are precisely the ones guarding the exclusion list, and their whole job is to
+refuse to conclude from an empty object; a helper that treated "served" as "ready" would hand them
+exactly that failure.
+
+So `probe-mock-readiness.mjs` (port 8737) is mostly about the danger rather than the feature. Five
+checks: the counter rises for a table the app really reads; **on timeout it returns false**; it says
+which of the two things went wrong; it is per-table, so busy traffic elsewhere satisfies nothing;
+and — the one that matters — `waitReady()` with a page condition that is never true fails at the
+**app** stage and says *"the answer arrived and the app did not use it."* A probe can never pass on
+the strength of the wire alone.
+
+`wait-ready.mjs` is declared as a support file in `check-probe-integrity.mjs`, with the reason
+written where the list is: it asserts nothing about the app, so it belongs beside the mock rather
+than among the files that must be able to fail. The probe is what holds it to its promises.
+
+### The sabotage, done the way cycle 66 taught
+
+Cycle 66's first sabotage was **present and inert** — the marker was in the file, `grep -c` said 1,
+and the probe stayed green. So this one was checked for effect, not just presence: `waitServed()`
+made to return `ok:true` on timeout turns **three** checks red (never-asked, the timeout property,
+and per-table), leaving the control and the wire-vs-page check green — the last correctly, because
+`waitReady` still fails at the app stage. Restored, `md5sum -c` OK, marker count 0, `git status`
+clean.
+
+### Not adopted yet, deliberately
+
+**No `probe-*-attacks.mjs` file was touched.** They are not this session's to write, and rewriting
+three of them to use a helper written in the same cycle would be changing the thing and the measure
+of it together. The waiter exists, is proven, and is available; adopting it belongs to whoever owns
+those probes, or to a later cycle that takes one at a time. Said here so it is a decision rather
+than an omission.
+
+### The battery
+
+**103 / 103 probes that can fail, green, zero non-reproducers.** Fourth clean parallel run in six
+cycles. Tally unchanged from cycle 66.
+
+Commit — "Watch cycle 67: a probe can now wait on a fact instead of a guess"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 68 — CLOSED, see cycle 68 below
+
+
+**Adopt the waiter, one probe at a time.** `probe-alias-dedupe-attacks` is the obvious first — it is
+the one that starved twice — but it is a `probe-*-attacks.mjs` file this session did not write, so
+the honest options are: leave it to whoever owns it, or take it as a deliberate exception with the
+reason recorded. `probe-exclusion-not-loaded` was written by this session (cycle 42) and is fair
+game today. Whichever is taken: the adoption must keep both halves — served, then in the app — and
+must not become a reason to weaken what the probe asserts.
+
+**Still in lane, not started:** js/65's preview-to-commit gap — the preview is computed from one
+read of the file and the commit from another, and nothing has ever changed the input between them.
+
+**Left open from cycle 65:** a row whose stored `quarter` disagrees with its `invoice_date` is
+counted as stored. Surface it, do not pick a winner in code. Zero live rows disagree today.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch. For whoever owns
+`js/core/core-05-records.js`: its finance export's comment claims `FIN._csvRows` is "the
+currently-filtered Ledger rows"; it is the period filter only.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 68 — adopting the signal at the one place seven probes already share
+
+**2026-09-08.** Cycle 67 built the readiness signal and deliberately adopted it nowhere. This
+cycle adopts it, and the interesting part is *where*.
+
+### The obvious way would have been wrong
+
+The brief offered `probe-exclusion-not-loaded` (written by this session, cycle 42) as the safe
+first adopter, and `probe-alias-dedupe-attacks` — the one that actually starved twice — as a file
+this session does not own. Both framings assumed the change belongs *in a probe*.
+
+It does not. Seven probes already wait on the same helper, `settingsLoaded()` in
+`mock-supabase.mjs`:
+
+```
+probe-alias-dedupe-attacks      ← starved cycles 57 and 66
+probe-expense-report-capture    ← starved cycle 61
+probe-exclusion-not-loaded      ← starved cycle 60
+probe-finance-invariants · probe-import-preview-density
+probe-merge-dialog-money · probe-received-outstanding-attacks
+```
+
+**All three probes that have ever starved on `app_settings` are callers of it.** Putting the wire
+check inside the helper gives every one of them the diagnosis without editing a single
+`probe-*-attacks.mjs` file — no ownership question to take an exception on, and no seven copies of
+the same logic to drift apart. The chokepoint principle this codebase keeps relearning, applied
+before the copies existed rather than after.
+
+### What changed, and what deliberately did not
+
+`settingsLoaded()` now checks the **wire** first — reading `SERVED` directly, same module, no HTTP
+and no second source of truth — and only then does everything it did before. Its hard-won page
+logic is untouched: the `__mockSettingsLanded` marker, the caller's own `alsoRequire` predicate, and
+the rule that both must hold **twice, 700 ms apart** because `DB.settings` can be replaced more than
+once during boot. Adoption must not weaken what a probe asserts, so nothing was removed.
+
+The return value stays a plain boolean, so the four probes this session does not own behave exactly
+as before. The reason goes on `settingsLoaded.lastWhy`, and the difference is the whole point:
+
+- *"app_settings was never requested at all in 90000ms — the app did not ask for it, so this is not
+  a slow answer"*
+- *"app_settings was served 3 time(s), but the app never held the settings the probe needs — the
+  answer arrived and the page did not end up with it"*
+
+Three cycles of "never arrived" could not tell those apart. `probe-exclusion-not-loaded` — mine, so
+fair game — now prints it.
+
+### The sabotage, and what it revealed about the old message
+
+Skipping the wire check turns check 6 red, and the failure text is worth keeping:
+
+> lastWhy: "app_settings was served **0 time(s)**, but the app never held the settings — **the
+> answer arrived** and the page did not end up with it"
+
+Served zero times, and the message says the answer arrived. That is precisely the misdiagnosis this
+cycle removes, produced on demand. Marker asserted **and** effect confirmed (cycle 66). Restored,
+`md5sum -c` OK, marker count 0, `git status` clean.
+
+`probe-mock-readiness` gained a sixth check rather than a new probe and a new port: it calls
+`settingsLoaded()` **before the page has loaded anything**, so `app_settings` genuinely has not been
+requested, and the helper must say so quickly instead of spending its whole budget waiting on a page
+that was never going to receive it.
+
+### The battery
+
+**103 / 103 probes that can fail, green, zero non-reproducers.** Fifth clean parallel run in seven
+cycles.
+
+Commit — "Watch cycle 68: the readiness signal adopted where seven probes already share a waiter"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 69 — CLOSED, see cycle 69 below
+
+
+**Whether this actually helped is now measurable, and should be checked rather than assumed.** The
+next time a probe lands in "DID NOT REPRODUCE ALONE" on `app_settings`, its log should say which
+half failed. That is the test of this cycle's work, and it cannot be run to order — it happens when
+it happens. Record the wording when it does.
+
+**Still in lane, not started:** js/65's preview-to-commit gap — the preview is computed from one
+read of the file and the commit from another, and nothing has ever changed the input between them.
+
+**Left open from cycle 65:** a row whose stored `quarter` disagrees with its `invoice_date` is
+counted as stored. Surface it, do not pick a winner in code. Zero live rows disagree today.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch. For whoever owns
+`js/core/core-05-records.js`: its finance export's comment claims `FIN._csvRows` is "the
+currently-filtered Ledger rows"; it is the period filter only.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 69 — a defect that is not there, established rather than assumed
+
+**2026-09-09.** Target: js/65's preview-to-commit gap — "a person approves what they were shown,
+and something else is written", the family this project cares about most. The answer is that the
+gap does not exist, and every step of establishing that is worth more than the fix would have been.
+
+### Three things checked before writing a line of code
+
+Read from the live database, read-only (`pg_get_functiondef`, `pg_indexes`):
+
+- **A row previewed as NEW that someone else inserts in between cannot silently duplicate.**
+  `finance_invoices` carries a UNIQUE index on `(invoice_no, line_no)`, so the insert raises,
+  `fn_commit_finance_import` rolls the whole transaction back, and the app says *"FAILED — nothing
+  landed"*. Honest already.
+- **The success message already reports the database's own counts**, not the app's hopes (M13).
+- **The update path is an upsert on `id`**, and `deleted_at` is not in its column list, so an
+  update cannot quietly resurrect a soft-deleted invoice.
+
+### The hypothesis, and how it died
+
+`v65Commit` runs `mergeUpdatesByInvoice(toUpdate)` **after** the preview counted, so several file
+rows touching one invoice collapse into a single write — the button could promise 3 updates and the
+database perform 2, and on success nothing compares the two. A real-looking gap.
+
+It is not reachable. Driven from the UI by every route there is:
+
+- **Two rows carrying the same reference in one file** — the parser refuses the second *by name*:
+  *"appears more than once in this file — the first row was kept, this one needs manual review."*
+  Only one ever reaches the merge.
+- **Two files each naming the same reference** — the later file's row replaces the earlier one's,
+  and `toUpdate` still holds a single entry.
+
+Then the decisive test: **`mergeUpdatesByInvoice` was removed entirely and nothing observable
+changed** in either case. It guards a case the parser already prevents. Cycle 56's rule —
+*"unreachable" is a more honest answer than "low-risk"* — so it is now documented as such at the
+function, kept because it is cheap and correctly shaped, but explicitly not load-bearing.
+
+### Two mistakes of mine, both instructive
+
+**The fixture was keyed on the wrong column.** Every seeded row looked new, and the control
+"passed" while exercising nothing. Reading back the row the importer actually wrote gave the
+answer: **`invoice_no` comes from "Invoice Reference #", not "Invoice Number".** Nothing in the
+repo said so; it does now, at the function that depends on it.
+
+**The "nothing moved" check asserted the wrong number** — 1,500, the first file's figure, when two
+files naming one reference correctly end at 1,750, the later one's. The app was right and my check
+was wrong. Third time this session that the check written to prove a fix moved nothing has been the
+thing that was broken (60, 62, 66).
+
+### The probe was written and then deleted
+
+`probe-import-promise-vs-write.mjs` reached all-green — and then failed its own sabotage twice. A
+marker that swapped the database's counts for the app's intent was **inert**, because in this
+fixture the two numbers are equal. Removing the merge outright was **also inert**, because the
+merge never has two entries to collapse. A probe that cannot fail is not a probe (48, 61), so it
+was deleted rather than declared, exactly as cycle 56 deleted `probe-empty-filter-honesty`. What
+survives is the knowledge, written where the next reader will hit it.
+
+### The battery, and cycle 64's fix earning itself under load
+
+**103 / 103 probes that can fail, green.** One non-reproducer: `sweep-buttons`, its **third**
+appearance (57, 63, 69) — and this time it said so:
+
+```
+✗ some pages produced no result at all: Client detail, Clients list, Finance, Settings
+FAILED — the sweep did not complete (1 reason(s)). The button verdicts above are a report and
+never fail a run; this is about the sweep itself.
+```
+
+In cycles 57 and 63 it died with a raw stack and produced **nothing**, and the battery could only
+say "did not finish". Cycle 64 gave it a failure path for silence alone; this is that change
+working on real contention rather than on a sabotage. The distinction it draws is exactly the one
+intended: the 189 button verdicts stayed a report, and what failed the run was the sweep not
+finishing.
+
+**No probe starved on `app_settings` this cycle**, so cycle 68's wire-versus-page wording has still
+not been exercised by a real starvation. Recorded as untested rather than assumed working.
+
+Commit — "Watch cycle 69: the preview-to-commit gap is not reachable, and here is how that was established"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 70 — CLOSED, see cycle 70 below
+
+
+**Cycle 68's readiness wording is still unproven in the wild.** Keep watching the runner's
+"DID NOT REPRODUCE ALONE" section; when a probe next starves on `app_settings`, read the log and
+record which half it named. Do not manufacture one.
+
+**Cycle 65's open item, still untouched:** a row whose stored `quarter` disagrees with its
+`invoice_date` is counted as stored. Surface it — a count on the Finance page or a line in the
+importer preview — and do not pick a winner in code. Zero live rows disagree today.
+
+**A fresh target, given the importer is now well understood:** `js/65`'s "appears more than once in
+this file" path. It refuses the second row and counts it under `excludedByRule` — but does the
+person see WHICH row was dropped and why, or only a number? That is the same
+"say what happened, not just how many" family as cycles 55–57, and it is in lane.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch. For whoever owns
+`js/core/core-05-records.js`: its finance export's comment claims `FIN._csvRows` is "the
+currently-filtered Ledger rows"; it is the period filter only.
+
+**For the owner:** the go-live question was put to Abdulrahman again on 9 September (a fresh day
+since the first ask). Unchanged besides that: a real deep link into Direct Payments needs that
+export to carry a uuid or id column; it does not today.
+
+---
+
+## Watch cycle 70 — telling the owner two fields disagree, without deciding which one is right
+
+**2026-09-09.** Two candidates were offered. The first was checked and turned out to be already
+done, which is worth recording before the second.
+
+### The candidate that was already built
+
+js/65's "appears more than once in this file" path: does the person see WHICH row was dropped, or
+only a count? Read before writing anything — `renderCombinedPreview` groups
+`excludedDetail.costCaptureDetail` by reason and prints the invoice numbers, collapsing into a
+`<details>` when there are more than three:
+
+```
+3 — REF-A, REF-B, REF-C: appears more than once in this file — the first row was kept,
+    this one needs manual review
+```
+
+Nothing to fix. Two cycles running now that a candidate has proved already-handled (66's server-side
+guards, 69's unreachable merge), which is a reasonable sign the obvious gaps in this area are
+closed.
+
+### The one that was real
+
+Cycle 65 gave month and quarter the same date-fallback `finYearOf` has always had, so a row with a
+date and no stored period stopped vanishing from every quarter. It deliberately left the other case
+alone: **a row whose stored quarter says Q2 while its date says March is still counted as Q2.**
+That was the right call and this cycle does not change it — overruling a stored value on the say-so
+of a date that might itself be the wrong field would move money silently, and which of the two is
+authoritative is Abdulrahman's decision, not this code's.
+
+What was wrong is that **nothing said the two disagree**. The Finance page now does:
+
+> ⚠ 1 invoice carries a month or quarter that does not match its invoice date. They are counted
+> under the stored value as they always were — no figure has changed — but the period bar above
+> follows what is stored, not the date.
+
+Checked read-only on 8 September: **zero live invoices disagree today**, so this is a watch rather
+than an alarm. It appears only when it has something to show.
+
+The derivation is now named once — `finMonthFromDate()` / `finQuarterFromDate()`, with
+`finMonthOf`/`finQuarterOf` calling them and `finPeriodDisagrees()` as the third caller. Those are
+two different questions ("which period does this row belong to" versus "what does the date say")
+and a second copy of the second one would drift the day either is touched — cycle 68's rule applied
+before the copies existed.
+
+### The probe
+
+`scripts/qa/probe-period-disagreement-visible.mjs` (port 8738 — free again since cycle 69's probe
+was written, found unable to fail, and deleted). Four checks, and the third is the one that matters:
+**the disagreeing invoice is still counted in Q2, the quarter it stores.** A "fix" that quietly
+re-sorted it on the date's say-so would pass the other three and be exactly the thing this cycle
+refused to do. Also: an undated row is not counted as a disagreement — there is nothing to
+contradict, and inventing one would be M8 in a new place.
+
+Fixture values are chosen for the property (March stored as June/Q2), not at random: with zero live
+rows disagreeing, a benign fixture would prove nothing (cycles 63, 64).
+
+Sabotage — the count forced to zero behind a marker unique to it — turns check 2 red alone, with
+the other three green. Marker asserted **and** effect confirmed (66, 69). Restored, `md5sum -c` OK,
+marker count 0, `git status` clean.
+
+### The battery
+
+**104 / 104 probes that can fail, green.** One non-reproducer: `probe-restore-scope-attacks`, its
+second appearance (59, 70), failing both times on its own setup — *"the attack did not set itself
+up… 5000 after the delete (expected 0)"*, i.e. its writes had not landed. Not an `app_settings`
+starvation, so it does not exercise cycle 68's wire-versus-page wording; **that is still untested in
+the wild** and is recorded as untested rather than assumed working.
+
+Commit — "Watch cycle 70: say the two fields disagree, do not decide which one wins"
+(the hash is recorded here, not in the repo: a commit cannot honestly name itself).
+
+## Open for cycle 71 — CLOSED, see cycle 71 below
+
+**`probe-restore-scope-attacks` is now the second name to appear twice** (59, 70), and both times
+its own writes had not landed when its control ran. Unlike `probe-alias-dedupe-attacks` this is not
+`app_settings` — it is the probe's own setup — so cycle 67's readiness signal does not cover it. It
+is a `probe-*-attacks.mjs` file this session did not write; the honest options are to leave it to
+whoever owns it, or to take it as a deliberate exception with the reason recorded. Do not do it
+silently.
+
+**Cycle 68's readiness wording remains untested in the wild.** Keep watching; do not manufacture a
+starvation to test it.
+
+**A question for the owner, not for code, now that it is visible:** if invoices ever do start
+carrying a month or quarter that contradicts their date, which field should win? The app currently
+counts the stored value and now says when the two differ. Do not raise this until there is at least
+one real row — today there are none, and asking about a hypothetical is not worth his time.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; `probe-premortem-attacks` check H;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch. For whoever owns
+`js/core/core-05-records.js`: its finance export's comment claims `FIN._csvRows` is "the
+currently-filtered Ledger rows"; it is the period filter only.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 71 — the refusal was right, and it said nothing
+
+**2026-09-09.** Cycle 32 closed the correctness half of the Finance write guard: eight paths ask
+both questions — is this a read-only share view, and does this person's role still allow the
+Finance page — and under either refusal not one row changes.
+`probe-write-paths-both-halves-attacks` holds that, and it also *recorded*, without asking anything
+of it, what the app said while refusing. Its own output line is
+`under a role that denies the Finance page: delete an invoice changed nothing` — with the optional
+`— "…"` that would have carried the message printed empty, every time. Six of the eight write paths
+did the same thing when `finCanWrite()` said no: `return`. No alert, no console line, nothing on
+screen. **The database was safe and the person was told nothing at all.**
+
+That session is ordinary, not hypothetical. js/65's own guard names it — *"a stale tab (or a role
+changed while it was open)"* — and it is the shape cycle 32 measured: a TIER that still reads
+`admin`, so `canFinEdit()` says yes, while the person's page access no longer includes Finance. The
+Finance page refuses that session **in words**. The buttons already drawn on it refused in silence.
+Someone who presses Delete and sees the invoice still sitting there cannot tell *"you may not"*
+from *"this button is broken"*, so they press it again and learn nothing either time.
+
+**The change (js/16, adopted in js/25 and js/65).** `finWriteBlock()` answers one question with two
+uses: `''` when the write may proceed, a reason code when it may not. `finCanWrite()` is that answer
+read as a boolean — same three questions, same order, same catch semantics, so no caller's behaviour
+moved. `finRefuseWrite()` is the same answer read out loud, returning `true` when the caller must
+stop, so a guard reads `if(finRefuseWrite())return;` — the shape it replaces. Splitting the guard
+from the sentence would let the two drift, which is how a person gets told *"only admins may do
+this"* while they are an admin. Cycle 68's rule: put the change in the thing the callers share.
+
+**Three reasons, named separately**, because the wrong true sentence is worse than none: a share
+link is told it is a share link, a revoked page access is told to ask for the page back, and a
+non-editor is told the tier rule. Telling an admin *"only admins and managers may change Finance
+data"* is a claim they can disprove at a glance and it sends them to the wrong person.
+
+**The probe found a defect in the fix, on its first run.** The reason for a share view could never
+be reached: `finMaySeeMoney()` asks `canFinView()`, which *is* `!__isShareView`, so with the order
+inherited from `finCanWrite` — where every no was the same no — all eight paths read the *access*
+sentence to a share link. Asking the narrower question first changes no answer, only which true
+thing gets said.
+
+**And a defect in the probe, which is the README's own trap.** Its first run reported
+`finSetTargets` and `finSetWay` as silent. They are not: **js/49 wraps exactly those two**
+(`guardFn`, its finance list) and refuses them with a modal *before the function body is entered*.
+The probe was listening to `window.alert` and js/49 draws `#v70box` — *a probe that reads the model
+cannot see what lives in the view*, verbatim the lesson cycles 59–64 wrote into
+`scripts/qa/README.md`. It reads both places now and accepts either vocabulary, as long as the words
+name the reason that applied. js/49 governs every page and is not this lane's to rewrite, so the two
+mechanisms are **recorded, not merged** — the app now speaks on all eight paths, in two voices.
+
+**New `probe-write-refusal-speaks.mjs` (port 8739), 5 things:** (1) control — as an allowed admin
+every path really writes *and* says nothing, because a refusal read out to someone who is allowed is
+a worse fault than the silence being closed; (2) the load-bearing one — under a role that no longer
+allows Finance, all eight paths say so; (3) the words name the access, and must not tell an admin
+that only admins may do this; (4) under a share view the words name the share link; (5) and nothing
+is written under either refusal — a regression guard on cycle 32, so *"it speaks now"* can never be
+bought by loosening the guard that made it refuse.
+
+**Sabotage** (`finRefuseWrite()` returns true without alerting): 12 red — the six paths this lane
+gave a voice, across both halves — while the controls and check 5 stayed green, and
+`finSetTargets`/`finSetWay` stayed green because js/49 speaks for them. That asymmetry was predicted
+before the run, which is the point of cycle 66's rule: assert the marker *and* that the expected
+checks turn red.
+
+**Where this came from.** `probe-restore-scope-attacks` was the second name to appear twice in the
+contention tally (cycles 59 and 70) and both times it failed on its own setup with the same words —
+*"before 1500, after delete 1500"*, and nothing said. That is not a slow write. It is
+`finDelInv`'s `if(!finCanWrite())return;` firing before the role had loaded and returning in
+silence, which the probe can only read as *"the app ignored the click"* — exactly what a person
+would read. The probe is a `probe-*-attacks.mjs` this session did not write and it has **not** been
+edited; the app it is pointed at now answers, which is the honest end of that thread.
+
+**And on the very first battery run after the change, the app named the cause of a two-cycle-old
+mystery — in the wild, without the probe being touched.** `probe-restore-scope-attacks` went red
+under `-j 4` for the third time (cycles 59, 70, 71), always with the same two lines: *"before 1500,
+after delete 1500"* — the delete had no effect — and nothing said. This run its fourth line carried
+the app's own explanation:
+
+> `Changing Finance data is limited to admins and managers, so the change was not made and nothing in the data changed.`
+
+`window.__userTier` had not loaded when the probe pressed Delete. That is the whole of it, and it
+was invisible for two cycles because the refusal was silent. **The probe was not edited.** The app
+it is pointed at answers now, which is the honest end of that thread — and it opens the next one.
+
+## Open for cycle 72 — CLOSED, see cycle 72 below
+
+**A TIER THAT IS NOT YET KNOWN IS BEING READ AS A TIER THAT IS NOT ENOUGH.** `canFinEdit()` is
+`__userTier==='admin'||__userTier==='manager'`, so an unloaded tier reads as *no*, and the person is
+now told — in words, which is the improvement — *"Changing Finance data is limited to admins and
+managers"*. For an actual admin in the first moment after load, that sentence is **false**. js/49
+already has the rule for exactly this and states it in its own comment: *"role not known yet — never
+block a real user by accident"*, and `mayOpen()` likewise returns true on an unknown answer. Finance
+has no such distinction: unknown and insufficient are the same `false`. Two candidate shapes, and
+the choice matters — a fourth reason code that says *"still loading, try again in a moment"* keeps
+the refusal (safe, honest, and a person can act on it), whereas letting an unknown tier through
+would be widening a write guard, which this lane does not do without a much better reason than a
+tidier sentence. **Measure first**: how long is that window in a real load, and is `__userTier` ever
+simply absent rather than late? `probe-restore-scope-attacks`' crowded log is the standing evidence
+that it is reachable.
+
+**The two voices.** All eight Finance write paths now refuse in words, but two of them do it through
+js/49's modal and six through this lane's alert, with different wording for the same state. Merging
+them means editing js/49, which governs every page — out of lane. Recorded here for whoever owns it.
+
+**Untested in the wild, still:** cycle 68's wire-versus-page wording inside `settingsLoaded()`. Watch
+for it; do not manufacture a starvation to test it.
+
+**Not carried forward:** the shared "my write is readable" waiter floated for cycle 71.
+`probe-restore-scope-attacks` already polls the table for the effect with a 30-second budget; the
+poll was never the problem. Building a waiter for it would have been infrastructure for a cause that
+had been diagnosed away.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; js/49's refusal wording; `probe-premortem-attacks` check H;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch.
+
+**A question for the owner, not for code:** if invoices ever do start carrying a month or quarter
+that contradicts their date, which field should win? Do not raise it until there is at least one
+real row — today there are none.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 72 — a tier that had not arrived was being read as a tier that was not enough
+
+**2026-09-09.** Cycle 71 gave the Finance write refusal a voice. Within one battery run the voice
+said something false. `canFinEdit()` is `__userTier==='admin'||__userTier==='manager'`, so a tier
+that has not **loaded** reads as a tier that is not **enough**, and the app told an actual admin:
+
+> `Changing Finance data is limited to admins and managers, so the change was not made and nothing in the data changed.`
+
+That is a claim the person can disprove at a glance, and it sends them to ask for a permission they
+already hold. It was invisible for two cycles because the refusal used to be silent.
+
+### Measured before anything was changed
+
+A throwaway harness timed the boot against the mock — not inspection, and not the probe's own
+simulation:
+
+| boot | write functions exist | `__roleKnown` true | window | `__userTier` inside it |
+|---|---|---|---|---|
+| healthy | 141 ms after sign-in | 289 ms | **~150 ms** | `undefined`, every sample |
+| role lookup delayed 3 s | 78 ms | 3,175 ms | **~3.1 s** | `undefined`, every sample |
+| **one transient 500 on the role lookup** | 127 ms | 5,237 ms | **~5.2 s** | `undefined`, every sample |
+
+The third row is not a contrivance. It is the path js/02 built deliberately and documents in its own
+comment — *"let them in on the floor, keep trying"* — `hideOverlay()` then `setTimeout(fetchRole,5000)`.
+The Finance page is **fully drawn and interactive** for those 5.2 seconds, and the window repeats on
+every retry. So this is reachable by a person on a flaky connection, not only by a loaded probe.
+
+The two states are **distinguishable**: `__userTier` is `undefined` throughout, never a string. The
+app already knows how to make exactly this distinction and says so in its own words — js/49's
+`can()`: *"role not known yet — never block a real user by accident"* — and js/52's `known()`, which
+js/53, js/55 and js/64 all gate on. Finance was the one place that collapsed them.
+
+### The change, which does not widen the guard
+
+A fourth reason code, `FIN_BLOCK_UNKNOWN`, asked before the tier rule and only when there is no
+answer to read (`finTierKnown()`: any tier at all is an answer — the `!!window.__userTier` test js/10,
+js/45 and js/57 already use — or js/02's settled `__roleKnown===true`). **An unknown tier still
+refuses**, and `finCanWrite()` returns false in exactly the cases it did before: every state that
+reaches this question with no tier would have fallen through to `FIN_BLOCK_TIER` anyway. Only the
+sentence changes — from something false to *"Your access level has not finished loading… try again
+in a moment; if it keeps happening, reload the page."* Letting an unknown tier through would have
+been widening a write guard to tidy up a message, which is not a trade this lane makes. The probe
+asserts `finCanWrite()===false` in the new state and that nothing is written, so the better sentence
+cannot have been bought with a weaker guard.
+
+### The probe, and the anchor that stops it being a simulation
+
+`probe-write-refusal-speaks` (8739) gains a third half — the measured boot state reproduced exactly
+(`__userTier` and `__roleKnown` both deleted) across all eight write paths — and a final section
+that **boots the app in a fresh browser context with the role lookup failing once** and presses a
+write inside the real window. Everything else in the probe describes a state; this one stands in it.
+
+**Sabotage** (`finTierKnown()` returns true unconditionally, so an unknown tier falls back to the
+tier rule): **9 red, exactly as predicted before the run** — the eight paths under the loading half,
+each reporting the tier sentence rather than silence, plus the anchor reporting that a real boot told
+the admin only admins may do this. Every other check stayed green.
+
+### Three faults in my own check, before it worked
+
+The anchor is the fifth time the thing written to prove something has itself been the broken thing
+(60, 62, 69, 71, and now three ways in one cycle):
+
+1. **It matched the wrong request.** `app_users` + `role` also matches js/50's periodic recheck
+   (`select('role,active')`), which ate the single injected failure; js/02's lookup then succeeded
+   and the window never opened. Narrowed to `must_change_password`, which only js/02 asks for.
+2. **It re-navigated the page it had been driving all along**, which does not re-run the sign-in
+   flow — no role lookup was issued at all, so nothing could be failed. It boots a fresh context now.
+3. **It broke out of its wait too early.** js/16 defines the write functions at page load, long
+   before sign-in, so the very first sample already read *"functions present, no tier, role not
+   known"* — a window the role lookup had not yet opened. It now waits for the failure to have been
+   **sent**.
+
+Each of those three produced a check that reported *"the page never reached that moment"* about a
+page that had. A setup that has quietly stopped setting up still looks like a check.
+
+### One clean run is not a fixed race
+
+Battery 105/105 at `-j 4` with **no reds at all** — the first run since cycle 58 with an empty
+"DID NOT REPRODUCE ALONE" section, and `probe-restore-scope-attacks` among the green. **Do not read
+that as the flake being fixed.** Cycle 72 changed what the app *says* in that window, not how long
+the window lasts: a write fired before the tier loads is still refused, so the probe can still go
+red the same way. One quiet run is one quiet run.
+
+## Open for cycle 73 — CLOSED, see cycle 73 below
+
+**The two voices, unchanged from cycle 71.** All eight Finance write paths refuse in words, but two
+of them through js/49's modal and six through this lane's alert, with different wording for the same
+state — and js/49 has no equivalent of the new loading sentence, so `finSetTargets` and `finSetWay`
+under a role denial still say *"You do not have access to that page"* where the other six say why in
+Finance's own terms. Merging means editing js/49, which governs every page. Out of lane; recorded.
+
+**Checked and closed rather than carried:** `finTierKnown()` treats any tier string as an answer, so
+the obvious way to reintroduce the falsehood under a new name would be a path that sets a
+*placeholder* tier before the real role lands. There is none. `window.__userTier` is written in
+exactly two places — js/02's `applyRolePerms(roleTier(myRole))`, reached only after `fetchRole()` has
+a row with a real `d.role` (a missing or inactive role goes to `showPending()` instead), and js/50's
+live re-check, likewise from a fetched `d.role`. `'team'` is js/02's mapping for a role that is not
+admin/manager/viewer, never a stand-in for "not yet known", so a person holding it is correctly told
+the tier rule. Established by reading every assignment, not assumed.
+
+**Untested in the wild, still:** cycle 68's wire-versus-page wording inside `settingsLoaded()`. Watch
+for it; do not manufacture a starvation to test it.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; js/49's refusal wording; `probe-premortem-attacks` check H;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch.
+
+**A question for the owner, not for code:** if invoices ever do start carrying a month or quarter
+that contradicts their date, which field should win? Do not raise it until there is at least one
+real row — today there are none.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 73 — cycle 43's rule had been applied to one tab of four
+
+**2026-09-09.** Cycle 43 gave the Clients tab a refusal while the exclusion list is still
+outstanding, and the reason it gave was general: *"a display may degrade to 'not checked yet'; it
+may not present money the owner ruled out as somebody's revenue."* Nothing else in js/16 mentioned
+the list. `probe-exclusion-display-attacks` holds the Clients tab and the alias picker. **Nothing
+held the other two money tabs.**
+
+### Measured before anything was changed
+
+The app_settings response held back 4 seconds, one ordinary client at 100,000 SAR beside a
+standing-excluded partner at 900,000 — a 90% share, chosen near the real case behind the rule
+(Takamol: 6.7M SAR, 77% of displayed revenue) so a wrong total cannot be read as rounding:
+
+| tab | in the window | says anything? |
+|---|---|---|
+| **Overview** | shows **1,000,000** — ten times the truth | no; corrects itself silently later |
+| **Reports** | shows 1,000,000 **and names the excluded partner** in its table | no |
+| Clients | refuses, in words | yes (cycle 43) |
+| Ledger | reads `finance_transactions`, a different source | outside this finding either way |
+
+Reports commits exactly the fault cycle 43 named, on a tab cycle 43 did not visit — and Reports has
+an Export CSV button beside it. The Overview quotes a figure inflated tenfold on the tab everyone
+lands on, and it is the number people repeat.
+
+### The two tabs are treated differently, on purpose
+
+**Reports refuses.** Its default grouping is *by client*, so it attributes the money to a named
+partner — the attribution cycle 43 forbade. Grouping by month instead is not a way out: it only
+moves the money from nobody's row into May's revenue.
+
+**The Overview does not blank.** It names no one — every figure there is a total — it is the landing
+tab, and `exclLoad()` gives up after five tries, so `finExclusionsKnown()` can be false
+**permanently** in a workspace whose app_settings never answers. Cycle 43 accepted a permanently
+refusing Clients tab; a permanently blank Finance page is a different bargain. So the Overview keeps
+its figures and says, above them, that they have not been checked — *"do not quote a number from
+this screen until they do."* **Above** matters: a caveat read after the number is read after the
+number is believed, and the probe asserts the position, not just the presence.
+
+This is a judgement, and what would change it is written into the code: **if the Overview ever
+starts naming a client** — a top-clients block, a per-client tile — the refusal is right there too,
+because the fault is attribution, not size. Today it does not; `rFinClients` owns the only
+per-client table in the file.
+
+Cycle 43's wording moved into a shared `finUncheckedRefusal()` rather than being copied, so the two
+refusing tabs cannot drift into describing the same state differently.
+
+### New `probe-exclusion-unchecked-surfaces.mjs` (port 8740), six things
+
+Controls that all three tabs are correct and uncaveated with the list loaded; **the load-bearing
+check** — Reports names no partner and prints none of its money in the window; that it says why
+rather than going quietly blank; that the Overview keeps its figures, says they are unchecked, and
+puts that **above** the first money card; that Clients still refuses (a regression guard on cycle
+43); and that once the list lands all three come back to the right answer with no caveat — *a
+refusal that does not lift is an outage.* The state is produced by holding the app_settings answer
+back, never by emptying `DB.settings` by hand: cycle 42 established that a hand-built state proves a
+guard that cannot fire in the running app.
+
+**Sabotage** (`rReports`' gate made unable to fire): **exactly 2 red, the two predicted checks and
+the predicted kind** — Reports named the partner and printed its 900,000, and said nothing. Every
+other check stayed green, because the Overview and Clients hold their own gates.
+
+### Two faults in the probe, both caught by its own controls
+
+1. **It knew only one of the app's two money formats.** The Overview's cards go through `moneyS()`
+   and read `1.00M` / `100.0K`; the Reports table uses `money0()` and reads `1,000,000` / `100,000`.
+   Knowing only the long form, the probe failed its own Overview control on a correct screen.
+2. **Its second boot waited 60 seconds for a login form that never comes.** The session is already
+   in storage, so it threw *after* passing all three controls — the same trap cycle 72's anchor fell
+   into, twelve hours earlier, in a different file.
+
+### The battery run itself produced two findings, and neither is weather
+
+106/106 at `-j 4`, but with **four** non-reproducers — the most since cycle 57. Reading their
+crowded logs rather than counting them:
+
+- `probe-expense-report-capture` failed **honestly**, naming its own cause: *"the exclusion list
+  never arrived from app_settings — a fact about this run and not about the app."* That is the
+  cycle-67/68 readiness guard doing exactly its job. Nothing to fix.
+- `probe-crm-attacks` never got the page far enough to render its cards. Ordinary starvation.
+- **`probe-role-nav` died on `EADDRINUSE`, port 8974.** It picks `8700 + Math.floor(random()*500)`,
+  so it can collide with any fixed battery port and with its own spawned children. This is not
+  weather, it is arithmetic, and it will recur. It also means **`check-probe-integrity.mjs`'s
+  "all 155 probes that open a port use a port of their own" is blind to the one probe that does not
+  declare a port** — the gate certifies uniqueness it cannot actually see. Both are in this lane.
+- **`probe-import-preview-phone` crashed inside the app**, not the harness:
+  `TypeError: Cannot set properties of null (setting 'innerHTML')` at
+  `js/65-universal-importer.js:1480` — `document.getElementById('finImpOut').innerHTML=…` in
+  `processFileList`, with no null check, reached before the Import tab's container was in the DOM.
+  Whether the app should degrade or the probe drove too early is precisely the cycles-71/72
+  question, and it is answerable by measurement.
+
+## Open for cycle 74 — CLOSED, see cycle 74 below
+
+**Two candidates from this run's own battery, both in lane, both with evidence already in hand:**
+the port-integrity hole (`probe-role-nav`'s random port, and the gate that cannot see it), and
+js/65's unguarded `finImpOut` write. Measure before fixing either; the second needs establishing
+whether a person can reach that state or only a probe under load can.
+
+**A question worth measuring, not guessing:** the Overview's caveat says the figures may include an
+excluded partner. It does not say **which** figures moved once the list lands, and a person who read
+1.00M and comes back to 100.0K has no way to connect the two. Whether that is worth saying — and
+whether it can be said without storing a pre-exclusion total, which the storage doctrine forbids —
+is the open question. Do not build it before establishing the person can actually be in that
+position long enough to notice.
+
+**The two voices, unchanged from cycles 71-72.** All eight Finance write paths refuse in words, but
+two go through js/49's modal and six through js/16's alert, and js/49 has no equivalent of the
+"still loading" sentence. Out of lane; recorded for whoever owns js/49.
+
+**Out of lane but worth someone's attention:** `js/31-v48-team-access…` line 388 builds a
+per-client revenue rollup filtered by `finExclusionCheck()` with **no** `finExclusionsKnown()` gate
+— the same fail-open shape, on a page this lane does not own. Not measured, only read.
+
+**Untested in the wild, still:** cycle 68's wire-versus-page wording inside `settingsLoaded()`.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; js/49's refusal wording; `probe-premortem-attacks` check H;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch.
+
+**A question for the owner, not for code:** if invoices ever do start carrying a month or quarter
+that contradicts their date, which field should win? Do not raise it until there is at least one
+real row — today there are none.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
+
+---
+
+## Watch cycle 74 — the importer told people their correct file was wrong
+
+**2026-09-09.** Cycle 73's battery threw `TypeError: Cannot set properties of null (setting
+'innerHTML')` inside `probe-import-preview-phone`, at `js/65-universal-importer.js:1311`. The brief
+said measure before fixing: can a person reach that, or only a probe under load?
+
+**A person can, and what they get is worse than a console error.**
+
+### Measured through the real file input, no probe-only entry point
+
+A 3.17 MB / 40,000-row export dropped on the Import tab, then a click on another tab:
+
+| switch after | result |
+|---|---|
+| 20 ms | `Cannot set properties of null (setting 'innerHTML')` |
+| 60 ms | same |
+| 400 ms | same |
+| 1,500 ms | no error — the preview has painted by then |
+
+So the window is about the first second after a drop — exactly when someone looks away from a file
+they have just handed over. A *small* file finishes parsing before a person could switch at all,
+which is how this survived every previous import probe.
+
+**And the throw is caught in the wrong place.** It lands in the streaming parser's `onError`, which
+records it as *this file's* error. Returning to the tab reads:
+
+> `c74-import.csv — not recognized — Cannot set properties of null (setting 'innerHTML')`
+
+on a perfectly valid export — and it stays there. The import never happens and the person is told
+their data is bad. js/65 already names this exact failure, for a different cause, a few hundred
+lines further down: *"it never says 'not ready', it says 'your file is wrong', in red, and teaches
+the next person to distrust correct data."* Same lie, different cause, same tab.
+
+### The fix
+
+`paintPersisted()` and `paintDone()` both look `#finImpOut` up and check it, and both explain why
+in their own comments — the app re-runs the full `render()` chain from a dozen unrelated pollers,
+and `rImport()` regenerates the tab with a blank `#finImpOut`. `renderCombinedPreview()` looked it
+up again and did not check. It does now: **nowhere to paint is an ordinary state, not an error.**
+`RESULTS` stays set, and `paintPersisted()` redraws from it on the next render — which is what
+happens when the person comes back. `processFileList` got the same guard; for a person it is
+reached synchronously from a gesture, but `window.v65IngestText()` calls straight into it, which is
+how the probe hit it.
+
+Measured after: the file is recognized, 20,000 rows previewed, no errors.
+
+New **`probe-import-preview-tab-switch.mjs` (port 8741)**, five things, including that the importer
+says nothing about the file being wrong — no "not recognized", no JavaScript error text where a
+sentence about a file should be. The 60 ms switch is not a guess at a tight race: it is one of the
+three delays measured to throw, against 1,500 ms which did not. **Sabotage** (drop the element
+check): **4 red, exactly the predicted checks** — control green.
+
+## The port check was vouching for a field it had only half looked at
+
+Cycle 73 also recorded `probe-role-nav` dying on `EADDRINUSE` at port 8974: it picked
+`8700 + Math.floor(Math.random()*500)`. `check-probe-integrity`'s port block — written in cycle 34,
+whose own comment says the symptom *"was written off as 'environmental, red in a batch and green
+alone' for six cycles across three probes; it was never the environment"* — matched `PORT = <digits>`
+and nothing else. **Seven of the files it was certifying were outside the fence entirely:**
+
+- `probe-role-nav` and `probe-page-access-enforce` — both picking a **random** port from a range
+  that covers the whole battery. Two files, not one.
+- three probes writing `const PORT = REFUSE ? 8304 : 8303` — honest literals in a ternary, never
+  compared against anyone else's.
+- three probes passing the port at the call site, `run(8471, …)`, never named `PORT` at all.
+
+The check now collects every port a file could bind — ternaries, call-site arguments, and named
+constants — and separates the two failures that matter: a port it cannot see, and a port
+**computed at run time**, which no static check can ever vouch for. It went from watching 156 ports
+to **184 across 163 probes**, and found three real collisions the old shape could not:
+`probe-audit-undo`↔`probe-modals-ar` on 8389, and `probe-crm-attacks`↔`probe-m13-remaining` on both
+8303 and 8304. All reassigned to declared literals; the two random ports replaced.
+
+**And the new check was itself the broken thing first — the sixth cycle running (60, 62, 69, 71,
+72, 73).** Its first version reported *seven* clashes, every one of them a number sitting in a
+comment on the same line: three probes carry `PORT = 8991 /* … was 8301, the port probe-crm-attacks
+also binds … */` from an earlier meta-audit, and the year **2026** inside those notes was collected
+as a port shared by three probes. It strips comments before reading digits now. Each of the three
+surviving findings was verified by opening the file before being believed.
+
+### The run afterwards
+
+Battery **107/107 at `-j 4` with no reds at all**, after a run with four non-reproducers. Two of
+those four were the port collisions closed above, so some of the quiet is earned — but cycle 72's
+note stands: one quiet run is one quiet run, and the other two (`probe-crm-attacks`,
+`probe-expense-report-capture`) were starvation, which a fixed port does nothing about.
+
+## Open for cycle 75
+
+**js/16 has four more unguarded `#finImpOut` writes** (lines ~2005, 2055, 2082, 2086 — the legacy
+single-file checker and its import loop), the same shape as the one measured above. Read, not
+measured: `v65WireImportPanel` redirects the Check-file button to `v65CheckFiles()` **only when
+`inp && !inp.multiple`**, so whether the legacy path is still reachable at all is the first
+question, and `probe-import-tab-wiring` already covers that wiring race. Establish reachability
+before writing anything.
+
+**The mis-attribution itself, unfixed on purpose.** `repaint()` throwing lands in the streaming
+parser's `onError`, which records *any* exception as the file's error. Cycle 74 removed the one
+cause it had measured rather than wrapping `repaint()` in a bare catch, which would hide real
+render bugs behind the same silence. Whether the parser should distinguish "this file's columns do
+not match" from "something went wrong while drawing" is a real question with a real cost, and it
+wants its own cycle.
+
+**Also open, unchanged:** whether the Overview should say *which* figures moved once the exclusion
+list lands (needs a pre-exclusion total, which the storage doctrine forbids — establish the person
+can notice before building). The two voices (js/49's modal vs js/16's alert). js/31-v48 line 388's
+ungated `finExclusionCheck()` rollup — out of lane, read but not measured. Cycle 68's
+wire-versus-page wording in `settingsLoaded()`, still untested in the wild.
+
+**Still out of lane:** notifications/reminders; the Operations board; `probe-csv-injection`'s
+positional read; js/58; js/41; js/49's refusal wording; `probe-premortem-attacks` check H;
+`probe-guardrails-both-halves-attacks`' 2500 ms stopwatch.
+
+**A question for the owner, not for code:** if invoices ever do start carrying a month or quarter
+that contradicts their date, which field should win? Do not raise it until there is at least one
+real row — today there are none.
+
+**For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
+uuid or id column; it does not today.
