@@ -51,6 +51,13 @@ admin session rewrote the settings row on its first save. Removed from both (bac
 `app_settings_backup_20260909`, `app_state_backup_20260909`); after that an admin session
 writes only the audit section, and no settings row at all.
 
+### After the fix went live (fd0e5ae, confirmed served by directksab2b.com)
+- Team member, real DB, typed sign-in: matrix loaded, no stray banner, 0 errors, all writes land.
+- Manager (the one manager account's exact 10-page matrix), in Arabic: same — 0 findings.
+- Database integrity sweep on the live tables: `is_client` vs `raw.isClient` 0 mismatches; stages
+  all inside the locked set; 0 duplicate live names; 0 orphaned contacts; 0 client links to a
+  missing company; 0 negative/null invoice totals; profit = revenue − cost on every costed row.
+
 ### Noted, not changed
 - `app_state.data.audit` is 800 entries / 151 KB and the whole section is sent on every save
   (131 KB per save). Bounded at 800, so not growing — but it is the biggest thing every save
