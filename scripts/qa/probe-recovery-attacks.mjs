@@ -312,8 +312,12 @@ async function phaseC() {
   const beforeCount = await p.evaluate(() => (DB.businesses || []).length);
   const dlgBefore = dialogs.length;
   await p.evaluate(() => restoreFromBackup('inc', 92));
+  await p.waitForTimeout(400);
+  /* 2026-09-09 (live test D1): the question is js/57's in-page box; read it, answer yes there */
+  const restoreMsg = await p.evaluate(() => { const b = document.getElementById('pfConfirmBox'); return b ? b.innerText : ''; });
+  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
   await p.waitForTimeout(1500);
-  const restoreMsg = (dialogs[dlgBefore] || {}).message || '';
+  check('C1x the restore question is the in-page box, not a native confirm()', dialogs.length === dlgBefore, dialogs.slice(dlgBefore));
   check('C2 the restore confirmation warns that leads and clients are not part of a snapshot',
     /Leads and clients are NOT part of a snapshot/i.test(restoreMsg), restoreMsg.slice(0, 240));
 

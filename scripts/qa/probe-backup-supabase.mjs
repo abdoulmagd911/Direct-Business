@@ -98,7 +98,10 @@ async function main() {
       // actually carries) rather than whatever was on screen at click time.
       const before = await p.evaluate(() => DB.agency.name);
       await p.evaluate(() => { DB.agency.name = 'CHANGED-BEFORE-RESTORE'; });
+      /* 2026-09-09 (live test D1): the question is js/57's in-page box now — answer yes there */
+      const yes = async () => { await p.waitForSelector('#pfConfirmYes', { timeout: 5000 }).catch(() => {}); await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }); };
       await p.evaluate((id) => restoreFromBackup('tag', id), tagged.id);
+      await yes();
       await p.waitForTimeout(700);
       const after = await p.evaluate(() => DB.agency.name);
       if (after !== before) fail(`restoreFromBackup('tag', ...) did not restore the tagged data — DB.agency.name is "${after}", expected "${before}"`);
@@ -107,6 +110,7 @@ async function main() {
       // Delete: confirm the row is actually gone via a fresh fetch, not just removed from a
       // stale in-memory cache.
       await p.evaluate((id) => deleteTag(id), tagged.id);
+      await yes();
       await p.waitForTimeout(500);
       const stillThere = await p.evaluate((id) => {
         BK_CACHE.loaded = false;

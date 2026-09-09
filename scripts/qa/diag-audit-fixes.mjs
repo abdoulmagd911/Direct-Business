@@ -31,6 +31,8 @@ if (offerId) {
         const okConfirm = window.confirm; window.confirm = ()=>true;
         o_removeFile(id);
         window.confirm = okConfirm;
+        /* 2026-09-09: o_removeFile asks through js/57's in-page box now */
+        setTimeout(()=>{ const y=document.getElementById('pfConfirmYes'); if(y)y.click(); }, 300);
       }, offerId);
       await page.waitForTimeout(2000);
       uploadResult.afterRemove = await page.evaluate((id)=>{

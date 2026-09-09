@@ -21,6 +21,8 @@
      5. Events (added the same evening): the row button reads "Delete" not "Del"; deleting asks in
         the page and says it cannot be undone; Cancel keeps it, Confirm removes the table row; the
         form's empty-name refusal is a toast.
+     6. Won (same night): convertToClient asks in the page; Cancel keeps the lead; Confirm converts
+        it and the client handover still opens (js/14 now listens for 'lead-converted').
 
    Run:  node scripts/qa/probe-no-native-dialogs.mjs        (port 8756)
    Sabotage: in core-02 put `alert("Business name required.")` back — check 1 goes red (a
@@ -129,6 +131,33 @@ async function main() {
   const t5 = await toastText();
   if (!dialogs.length && /name is required|مطلوب/i.test(t5)) ok(`event form, empty name: toast "${t5.slice(0, 40)}", no native alert`); else fail(`event form empty name: dialogs=${JSON.stringify(dialogs)} toast="${t5}"`);
   await p.evaluate(() => { const c = document.getElementById('ev_close') || [...document.querySelectorAll('button')].find((b) => /^(Cancel|إلغاء)$/.test(b.textContent.trim())); if (c) c.click(); });
+
+  /* ---- 6. Won (2026-09-09): the busiest question in the app asks in the page; the handover still opens ---- */
+  const wonId = await p.evaluate(() => { const l = DB.businesses.find((x) => !x.isClient); openLead = l.id; current = 'leads'; leadDetailView = 'detail'; render(); return l.id; });
+  await p.waitForTimeout(600);
+  await p.evaluate((id) => convertToClient(id), wonId); await p.waitForTimeout(400);
+  const w1 = await p.evaluate((id) => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ').slice(0, 100), client: !!getLead(id).isClient }), wonId);
+  if (!dialogs.length && w1.box && /won client/.test(w1.txt) && !w1.client) ok(`Won asks in the page ("${w1.txt.slice(0, 50)}…"); nothing converted yet`);
+  else fail(`Won: dialogs=${JSON.stringify(dialogs)} ${JSON.stringify(w1)} — the live-site native confirm() on the Won path`);
+  await p.evaluate(() => document.getElementById('pfConfirmNo').click()); await p.waitForTimeout(300);
+  const w2 = await p.evaluate((id) => !!getLead(id).isClient, wonId);
+  if (!w2) ok('…Cancel keeps it a lead'); else fail('Cancel converted the lead');
+  await p.evaluate((id) => convertToClient(id), wonId); await p.waitForTimeout(400); await p.evaluate(() => document.getElementById('pfConfirmYes').click()); await p.waitForTimeout(900);
+  const w3 = await p.evaluate((id) => ({ client: !!getLead(id).isClient, handover: !!document.getElementById('c_ln'), title: (document.querySelector('#modal .mh h3') || { textContent: '' }).textContent }), wonId);
+  if (!dialogs.length && w3.client && w3.handover && /handover/i.test(w3.title)) ok(`…Confirm converts it and the client handover opens ("${w3.title.slice(0, 40)}") — no native dialog`);
+  else fail(`Confirm: ${JSON.stringify(w3)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.evaluate(() => { try { closeModal(); } catch (_) { } });
+
+  /* ---- 7. the proposal delete, one of ten confirm() sites moved to askInPage() ---- */
+  const offId = await p.evaluate(() => { DB.offers = DB.offers || []; DB.offers.push({ id: 'o-nd-del', ref: 'PR-DEL', client: 'Quill Meadow Probe', subject: 'delete probe', status: 'Draft', date: '2026-09-01' }); current = 'offers'; openOffer = 'o-nd-del'; render(); return 'o-nd-del'; });
+  await p.waitForTimeout(500); await p.evaluate((id) => o_del(id), offId); await p.waitForTimeout(300);
+  const d7 = await p.evaluate((id) => ({ box: !!document.getElementById('pfConfirmBox'), still: DB.offers.some((o) => o.id === id) }), offId);
+  await p.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); }); await p.waitForTimeout(200);
+  const d7b = await p.evaluate((id) => DB.offers.some((o) => o.id === id), offId);
+  await p.evaluate((id) => o_del(id), offId); await p.waitForTimeout(300); await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }); await p.waitForTimeout(400);
+  const d7c = await p.evaluate((id) => DB.offers.some((o) => o.id === id), offId);
+  if (!dialogs.length && d7.box && d7.still && d7b && !d7c) ok('delete proposal: in-page box, Cancel keeps it, Confirm removes it — no native dialog');
+  else fail(`delete proposal: ${JSON.stringify({ d7, d7b, d7c })} dialogs=${JSON.stringify(dialogs)}`);
 
   if (!errors.length) ok('no JavaScript errors'); else fail('JavaScript errors: ' + errors.join(' | '));
   await b.close(); srv.close();
