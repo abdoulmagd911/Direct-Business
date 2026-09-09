@@ -200,10 +200,16 @@ async function phaseA() {
 
   const dlgMark = dialogs.length;
   await p.evaluate(() => { window.undoRecordChange(900, function () { }); });
+  await p.waitForTimeout(500);
+  /* 2026-09-09 (live test D1): the question and the refusal are in-page now (js/57 box, js/63
+     notice) — read them from the page, and count a native dialog as the failure it is. */
+  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
   await p.waitForTimeout(1500);
-  const refusal = dialogs.slice(dlgMark).map(d => d.message).join(' | ');
-  check('A7 · a team_member cannot undo an actor-null entry — the database refusal reaches the screen',
-    /You can undo your own changes/.test(refusal), refusal || '(no dialog)');
+  const refusal = await p.evaluate(() => { const n = document.querySelector('#v63Notice [data-v63-text]'); return n ? n.textContent : ''; });
+  const nativeAfter = dialogs.slice(dlgMark).map(d => d.message).join(' | ');
+  check('A7 · a team_member cannot undo an actor-null entry — the database refusal reaches the screen (in the page)',
+    /You can undo your own changes/.test(refusal) && !nativeAfter, refusal || ('(no notice; native=' + nativeAfter + ')'));
+  await p.evaluate(() => { const o = document.getElementById('v63NoticeOk'); if (o) o.click(); });
 
   const stillOpen = await p.evaluate(async () => {
     const c = window.fc(); const r = await c.from('record_history').select('*').eq('id', 900);

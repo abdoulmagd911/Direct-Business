@@ -135,3 +135,6 @@ probe-archive-lists-companies
 probe-visit-writes-nothing
 probe-yourday-waits-for-rows
 probe-activity-edit-remove
+probe-client-card-address
+probe-share-button-asks
+probe-sop-sla-tidy

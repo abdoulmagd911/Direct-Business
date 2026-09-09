@@ -75,11 +75,14 @@ let A=await newPage();
 await signIn(A.p,'/leads');                       // create the link while standing on LEADS
 const shareBtn=await A.p.evaluate(()=>{ const b=document.getElementById('cl_share'); return b?{text:b.textContent.trim(),visible:!!b.offsetParent}:null; });
 ok('header carries a "Share (view-only)" button', shareBtn && /view-only/i.test(shareBtn.text));
-await A.p.evaluate(()=>{ window.__toasts=[]; if(typeof toast==='function'){const t=toast; window.toast=function(m){window.__toasts.push(String(m)); return t.apply(this,arguments);};} document.getElementById('cl_share').click(); });
-await A.p.waitForTimeout(2500);
+/* 2026-09-09 (live test SH1, js/77): the button opens a panel now; a link is minted only after
+   "Create a new link" and a yes in js/57's in-page box (probe-share-button-asks drives that). */
+const mintViaPanel=async(pg)=>{ await pg.evaluate(()=>document.getElementById('cl_share').click()); await pg.waitForSelector('#shareBox [data-share-new]',{timeout:15000}).catch(()=>{}); await pg.evaluate(()=>{ const b=document.querySelector('#shareBox [data-share-new]'); if(b)b.click(); }); await pg.waitForSelector('#pfConfirmYes',{timeout:5000}).catch(()=>{}); await pg.evaluate(()=>{ const y=document.getElementById('pfConfirmYes'); if(y)y.click(); }); await pg.waitForTimeout(2500); await pg.evaluate(()=>{ const b=document.getElementById('shareBox'); if(b)b.remove(); }); };
+await A.p.evaluate(()=>{ window.__toasts=[]; if(typeof toast==='function'){const t=toast; window.toast=function(m){window.__toasts.push(String(m)); return t.apply(this,arguments);};} });
+await mintViaPanel(A.p);
 const promise=await A.p.evaluate(()=>({toasts:window.__toasts||[]}));
 const links=await api('/rest/v1/share_links');
-ok('clicking Share creates exactly one share_links row', Array.isArray(links)&&links.length===1);
+ok('Share → Create → yes creates exactly one share_links row', Array.isArray(links)&&links.length===1);
 const TOKEN=(links[0]||{}).token||'';
 ok('token is 64 chars (two UUIDs, hyphens stripped — the live column default)', TOKEN.length===64);
 ok('token alphabet is hex only — no short/guessable alphabet', /^[0-9a-f]{64}$/.test(TOKEN));
@@ -89,9 +92,12 @@ ok('share_links row has scope "all" — never the page it was created from', (li
 ok('share_links row has NO expiry column (no expires_at / valid_until)',
    !('expires_at' in (links[0]||{})) && !('valid_until' in (links[0]||{})));
 /* revoke: is there any way, anywhere in the app, to switch a link off again? */
-const src=['js/10-events.js','index.html'].map(f=>fs.readFileSync(repoFile(f),'utf8')).join('\n');
+/* 2026-09-09 (live test SH1): the gap is CLOSED — js/77 lists the links and switches one off
+   (update active=false, own rows or admin). The invariant is reversed; probe-share-button-asks
+   drives the control itself. */
+const src=['js/10-events.js','js/77-share-links-panel.js','index.html'].map(f=>fs.readFileSync(repoFile(f),'utf8')).join('\n');
 const HAS_REVOKE=/share_links[\s\S]{0,160}(update|delete)\s*\(/i.test(src);
-ok('KNOWN GAP recorded: no revoke/expire control exists in the UI', HAS_REVOKE===false);
+ok('a switch-off control exists in the app (js/77)', HAS_REVOKE===true);
 if(!HAS_REVOKE) notes.push('share links cannot be revoked or listed from the app — only by hand in SQL');
 /* what the toast PROMISES the holder can see */
 const promiseText=(promise.toasts||[]).join(' ');
@@ -108,7 +114,7 @@ let RO=await newPage();
 await signIn(RO.p,'/today');
 const roShare=await RO.p.evaluate(()=>{ const b=document.getElementById('cl_share');
   return {tier:window.__userTier, shown:!!(b&&b.offsetParent)}; });
-if(roShare.shown){ await RO.p.evaluate(()=>document.getElementById('cl_share').click()); await RO.p.waitForTimeout(2500); }
+if(roShare.shown){ await mintViaPanel(RO.p); }
 const linksAfterViewer=await api('/rest/v1/share_links');
 ok('OWNER DECISION recorded: a read-only account is offered the Share button', roShare.shown===true);
 ok('OWNER DECISION recorded: a read-only account can actually mint a link', linksAfterViewer.length===2);

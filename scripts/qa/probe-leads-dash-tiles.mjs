@@ -122,6 +122,44 @@ async function main() {
     res({ found: !!tr, health: tr ? tr.getAttribute('data-health') : null, txt: tr ? tr.innerText.replace(/\s+/g, ' ').slice(0, 120) : null }); }, 800); }));
   if (r5.found && r5.health === 'Lost' && /Lost/.test(r5.txt)) ok(`a client whose stage is Lost reads "Lost" on the Clients list, not "Good": "${r5.txt}"`);
   else fail(`Lost client on the Clients list: ${JSON.stringify(r5)} — the live-site Health "Good" beside "Won: converted"`);
+  /* ---- L7 + C3 (2026-09-09): no funnel is not a funnel; a client card names both owners ---- */
+  const r6 = await p.evaluate(() => new Promise((res) => {
+    const c = DB.businesses.find((x) => x.isClient); c.assignedTo = 'Probe Rep A'; c.accountManager = 'Probe Manager B'; c.funnelName = ''; c.funnelKey = ''; c.source = 'Direct outreach';
+    const l = DB.businesses.find((x) => !x.isClient); l.funnelName = ''; l.funnelKey = ''; l.source = 'Direct outreach';
+    openLead = null; current = 'leads'; leadDetailView = 'detail'; render();
+    setTimeout(() => {
+      const tr = [...document.querySelectorAll('#view table tbody tr')].find((x) => x.innerText.includes(l.name));
+      const cell = tr && tr.querySelector('[data-no-funnel]'); const tagged = tr && [...tr.querySelectorAll('.tag')].some((t) => /Direct outreach/.test(t.textContent));
+      openLead = c.id; render();
+      setTimeout(() => {
+        const ks = [...document.querySelectorAll('#view .detail-grid .fact .k')].map((k) => k.textContent.trim());
+        const won = [...document.querySelectorAll('#view .fact')].find((f) => /Won by/.test(f.innerText)); const am = [...document.querySelectorAll('#view .detail-grid .fact')].find((f) => f.querySelector('[data-k="account-manager"]'));
+        const cardNoFunnel = !!document.querySelector('#view .detail-grid [data-no-funnel]');
+        res({ listCell: cell ? cell.innerText.replace(/\s+/g, ' ') : null, listTagged: !!tagged, hasAssignedTo: ks.includes('Assigned to'), won: won ? won.innerText.replace(/\s+/g, ' ') : null, am: am ? am.innerText.replace(/\s+/g, ' ') : null, cardNoFunnel });
+      }, 800);
+    }, 800);
+  }));
+  if (r6.listCell && /source: Direct outreach/.test(r6.listCell) && !r6.listTagged) ok(`FUNNEL column with no funnel reads "${r6.listCell}" — the source in small muted text, not a green funnel tag`);
+  else fail(`L7 list: ${JSON.stringify({ listCell: r6.listCell, listTagged: r6.listTagged })} — the live-site source dressed as a funnel`);
+  if (r6.cardNoFunnel && !r6.hasAssignedTo && r6.won && /Probe Rep A/.test(r6.won) && r6.am && /Probe Manager B/.test(r6.am)) ok(`client card: "${r6.won}" and "${r6.am}" — both owners named for what they are`);
+  else fail(`C3 card: ${JSON.stringify(r6)} — the live-site "Assigned to" vs "Account manager" on one card with no explanation`);
+
+  /* ---- L9 (2026-09-09): the hover card follows a real pointer, not a re-render under a still cursor ---- */
+  await p.evaluate(() => { openLead = null; current = 'leads'; leadDetailView = 'detail'; render(); const l = DB.businesses.find((x) => !x.isClient); l.contacts = []; });
+  await p.waitForTimeout(700);
+  const rowBox = await p.evaluate(() => { const tr = document.querySelector('#view table tbody tr'); const r = tr.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await p.mouse.move(rowBox.x, rowBox.y); await p.mouse.move(rowBox.x + 6, rowBox.y + 2); await p.waitForTimeout(300);
+  const hov1 = await p.evaluate(() => document.querySelectorAll('.v46-leadpop').length);
+  await p.evaluate(() => editBusiness()); await p.waitForSelector('#f_name', { timeout: 5000 });
+  await p.evaluate(() => { document.getElementById('f_name').value = 'Probe Hover Lead'; document.getElementById('mSave').click(); }); await p.waitForTimeout(1200);
+  const hov2 = await p.evaluate(() => document.querySelectorAll('.v46-leadpop').length);
+  await p.mouse.move(rowBox.x + 10, rowBox.y + 3); await p.waitForTimeout(300);
+  const hov3 = await p.evaluate(() => document.querySelectorAll('.v46-leadpop').length);
+  await p.keyboard.press('Shift'); await p.waitForTimeout(200);
+  const hov4 = await p.evaluate(() => document.querySelectorAll('.v46-leadpop').length);
+  if (hov1 >= 1 && hov2 === 0 && hov3 >= 1 && hov4 === 0) ok('the hover card shows when the pointer moves over a row, does NOT pop after a save with the cursor still, and a key puts it away');
+  else fail(`L9 hover card: moved=${hov1} afterSave=${hov2} movedAgain=${hov3} afterKey=${hov4} — the live-site stray card after saving`);
+
   if (!errors.length) ok('no JavaScript errors'); else fail('JavaScript errors: ' + errors.join(' | '));
   await b.close(); srv.close();
   if (failures) { console.log(`\nFAILED — ${failures} check(s) did not pass.`); process.exit(1); }

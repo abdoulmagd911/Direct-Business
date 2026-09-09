@@ -389,7 +389,12 @@ async function phaseD() {
     { archived_at: rowAfterB.archived_at, notes: rowAfterB.notes });
 
   const pill = await B.p.evaluate(() => { const el = document.getElementById('cl_pill') || document.querySelector('[id*="pill"]'); return el ? el.textContent.trim() : null; });
-  const warned = B.dialogs.slice(dlgBefore).map(d => d.message).join(' | ');
+  /* 2026-09-09 (live test D1): the warning is js/63's in-page notice now; a native dialog here
+     would be the old freeze coming back, so it is read from the page and the native list must
+     stay empty. */
+  const warnedNative = B.dialogs.slice(dlgBefore).map(d => d.message).join(' | ');
+  const warned = await B.p.evaluate(() => { const n = document.querySelector('#v63Notice [data-v63-text]'); return n ? n.textContent : ''; });
+  check('D2x the warning is an in-page notice, not a native alert()', !warnedNative, warnedNative.slice(0, 120));
   check('D3 B is TOLD their change went onto a record someone else deleted — no silent green "Saved"',
     /deleted by someone else/i.test(warned) && !/^Saved to cloud$/.test(String(pill)),
     { warned: warned.slice(0, 220), pill });

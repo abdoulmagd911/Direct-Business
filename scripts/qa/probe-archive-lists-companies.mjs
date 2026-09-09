@@ -13,8 +13,9 @@
      1. Two archived rows in the table (one deleted from a card, one folded in by a merge) → the
         Archive page shows a "Deleted companies · 2" card naming both; the old "Archived leads 0"
         tile now reads "Deleted companies 2".
-     2. The deleted one says who deleted it and carries a Restore button; the merged one names
-        the company it was merged into and carries NO Restore button.
+     2. The deleted one says who deleted it and carries a Restore button; the merged one (whose
+        archived_by carries the live "(was: …)" suffix) names the company it was merged into and
+        carries NO Restore button; the one archived by owner ruling says so and has NO Restore.
      3. Restore → the in-page box (no native confirm) → confirm → the row's archived_at is null in
         the table, the page reloads, and the company is back in DB.businesses on screen.
      4. A company that is NOT archived never appears on the page (the query is archived_at IS NOT
@@ -42,7 +43,8 @@ const getRow = (id) => fetch(`${BASE}/rest/v1/businesses?id=eq.${id}&select=id,a
 async function main() {
   /* archive two seed companies straight in the table — the app's loader must never fetch them */
   await patch('b57', { archived_at: '2026-09-01T09:00:00Z', archived_by: 'colleague@example.com' });
-  await patch('b58', { archived_at: '2026-09-02T09:00:00Z', archived_by: 'merged-into:b3' });
+  await patch('b58', { archived_at: '2026-09-02T09:00:00Z', archived_by: 'merged-into:b3 (was: cleanup-2026-08-22-duplicate-of-direct-import)' });   // the live suffix shape
+  await patch('b59', { archived_at: '2026-08-23T05:51:00Z', archived_by: 'owner-ruling-2026-08-23' });   // the company the owner ruled out of the app
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
   const p = await (await b.newContext({ viewport: { width: 1400, height: 900 } })).newPage();
   const errors = []; p.on('pageerror', (e) => errors.push(e.message));
@@ -65,7 +67,7 @@ async function main() {
   await p.waitForFunction(() => typeof DB !== 'undefined' && typeof render === 'function' && Array.isArray(DB.businesses) && DB.businesses.some((x) => x.id === 'L3') && window.__roleKnown === true, { timeout: 90000 }).catch(() => fail('the app never loaded the table rows and the role'));
   await p.waitForTimeout(1500);
   await p.evaluate(() => { openLead = null; current = 'archive'; render(); });
-  await p.waitForFunction(() => { const c = document.querySelector('#view .v76-archived-companies'); return c && c.getAttribute('data-count') === '2'; }, { timeout: 30000 }).catch(() => {});
+  await p.waitForFunction(() => { const c = document.querySelector('#view .v76-archived-companies'); return c && c.getAttribute('data-count') === '3'; }, { timeout: 30000 }).catch(() => {});
   const a = await p.evaluate(() => {
     const c = document.querySelector('#view .v76-archived-companies');
     const rows = c ? [...c.querySelectorAll('[data-v76-row]')].map((r) => ({ id: r.getAttribute('data-v76-row'), kind: r.getAttribute('data-v76-kind'), txt: r.innerText.replace(/\s+/g, ' ').trim(), restore: !!r.querySelector('[data-v76-restore]') })) : null;
@@ -77,15 +79,17 @@ async function main() {
     const inList = (id) => DB.businesses.some((x) => x.id === id || x.id === id.replace(/^b/, 'L'));   // the app keys companies by legacy_id (L57), the table by id (b57)
     return { count: c && c.getAttribute('data-count'), rows, tileN, oldTile, note: !!note, promise, b57: inList('b57'), b58: inList('b58'), b3: inList('b3') };
   });
-  const del = a.rows && a.rows.find((r) => r.id === 'b57'), mer = a.rows && a.rows.find((r) => r.id === 'b58');
-  if (a.count === '2' && a.rows && a.rows.length === 2 && del && mer && /Test Company 57/.test(del.txt) && /Test Company 58/.test(mer.txt)) ok('the Archive page lists the two deleted companies by name');
+  const del = a.rows && a.rows.find((r) => r.id === 'b57'), mer = a.rows && a.rows.find((r) => r.id === 'b58'), rul = a.rows && a.rows.find((r) => r.id === 'b59');
+  if (a.count === '3' && a.rows && a.rows.length === 3 && del && mer && rul && /Test Company 57/.test(del.txt) && /Test Company 58/.test(mer.txt) && /Test Company 59/.test(rul.txt)) ok('the Archive page lists the three archived companies by name');
   else fail(`the list: ${JSON.stringify(a)} — the live-site "Archived leads 0"`);
-  if (a.tileN === '2' && !a.oldTile) ok('the tile reads "Deleted companies 2" — the old "Archived leads 0" is gone');
+  if (a.tileN === '3' && !a.oldTile) ok('the tile reads "Deleted companies 3" — the old "Archived leads 0" is gone');
   else fail(`tile: ${JSON.stringify({ tileN: a.tileN, oldTile: a.oldTile })}`);
   if (del && del.kind === 'deleted' && del.restore && /deleted by colleague@example.com/.test(del.txt)) ok(`the deleted company says who deleted it and offers Restore: "${del.txt.slice(0, 90)}"`);
   else fail(`deleted row: ${JSON.stringify(del)}`);
   if (mer && mer.kind === 'merged' && !mer.restore && /merged into Test Company 3/.test(mer.txt) && /Activity & Audit/.test(mer.txt)) ok(`the merged company names its survivor and has NO Restore: "${mer.txt.slice(0, 110)}"`);
   else fail(`merged row: ${JSON.stringify(mer)} — a plain Restore here would resurrect the duplicate the merge removed`);
+  if (rul && rul.kind === 'ruled' && !rul.restore && /owner ruling/.test(rul.txt) && /not restorable from here/.test(rul.txt)) ok(`the company the owner ruled out says so and has NO Restore: "${rul.txt.slice(0, 100)}"`);
+  else fail(`ruled-out row: ${JSON.stringify(rul)} — a Restore button here would put the excluded company back on the list`);
   if (a.note && !a.promise) ok('the footnote no longer promises that nothing can be listed');
   else fail(`footnote: note=${a.note} oldPromise=${a.promise}`);
   if (!a.b57 && !a.b58 && a.b3) ok('control: the archived rows are not in the workspace list; the survivor is');
@@ -110,9 +114,9 @@ async function main() {
   if (back) ok('after the reload the company is back on the list');
   await p.waitForTimeout(1500);
   await p.evaluate(() => { openLead = null; current = 'archive'; render(); });
-  await p.waitForFunction(() => { const c = document.querySelector('#view .v76-archived-companies'); return c && c.getAttribute('data-count') === '1'; }, { timeout: 30000 }).catch(() => {});
+  await p.waitForFunction(() => { const c = document.querySelector('#view .v76-archived-companies'); return c && c.getAttribute('data-count') === '2'; }, { timeout: 30000 }).catch(() => {});
   const after = await p.evaluate(() => { const c = document.querySelector('#view .v76-archived-companies'); return c ? c.getAttribute('data-count') : null; });
-  if (after === '1') ok('the Archive page now lists only the merged one');
+  if (after === '2') ok('the Archive page now lists only the merged one and the ruled-out one');
   else fail(`Archive after restore: count=${after}`);
   if (!dialogs.length) ok('no native dialog at any point'); else fail('native dialogs: ' + dialogs.join(','));
   if (!errors.length) ok('no JavaScript errors'); else fail('JavaScript errors: ' + errors.join(' | '));

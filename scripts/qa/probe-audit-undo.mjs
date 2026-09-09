@@ -138,12 +138,19 @@ async function main() {
       if (!row) return 'no-undoable-row';
       row.querySelector('button').click(); return 'clicked';
     });
-    await p.waitForTimeout(2200);
+    await p.waitForTimeout(600);
     if (clicked !== 'clicked') { fail('no undoable entry to click'); return; }
-    if (dialogs.some((d) => /Undo this change\?/.test(d))) ok('clicking Undo asks for confirmation before touching anything');
-    else fail('Undo fired with no confirmation: ' + JSON.stringify(dialogs));
-    if (dialogs.some((d) => /Undone\./.test(d))) ok('…and reports back that it was undone');
-    else fail('no result was reported after the undo: ' + JSON.stringify(dialogs));
+    /* 2026-09-09 (live test D1): the question is js/57's in-page box and the answer js/63's own
+       notice — a native dialog here is a failure, not the thing being waited for. */
+    const ask = await p.evaluate(() => { const b = document.getElementById('pfConfirmBox'); return b ? b.innerText.replace(/\s+/g, ' ') : ''; });
+    if (/Undo this change\?/.test(ask) && !dialogs.length) ok('clicking Undo asks for confirmation in the page before touching anything');
+    else fail('Undo confirmation: box="' + ask.slice(0, 60) + '" native=' + JSON.stringify(dialogs));
+    await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
+    await p.waitForTimeout(2200);
+    const told = await p.evaluate(() => { const n = document.querySelector('#v63Notice [data-v63-text]'); return n ? n.textContent : ''; });
+    if (/Undone\./.test(told)) ok('…and reports back in the page that it was undone');
+    else fail('no result was reported after the undo: notice="' + told + '" native=' + JSON.stringify(dialogs));
+    await p.evaluate(() => { const o = document.getElementById('v63NoticeOk'); if (o) o.click(); });
     const after = await fetch(BASE + '/rest/v1/record_history?select=id,undone_at').then((r) => r.json()).catch(() => null);
     const afterUndone = (after || []).filter((r) => r.undone_at).length;
     if (afterUndone === beforeUndone + 1) ok('the database recorded exactly one more undone entry — the undo really went to the server, it was not a screen-only effect');

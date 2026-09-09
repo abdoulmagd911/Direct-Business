@@ -136,9 +136,13 @@ check('modal: Escape closes it', await p.evaluate(()=>!document.getElementById('
 
 await p.evaluate(()=>evOpenModal()); await p.waitForTimeout(400);
 await p.fill('#ev_n','Event 1');            // a name already on the calendar
+/* 2026-09-09 (live test D1): the duplicate-name question is js/57's in-page box now, never a
+   native confirm() — a native one is a failure here, not the thing being waited for. */
 let asked=false; p.once('dialog', d=>{ asked=true; d.dismiss(); });
 await p.evaluate(()=>document.getElementById('ev_save').click()); await p.waitForTimeout(700);
-check('adding a duplicate name asks first', asked, true);
+const dupBox=await p.evaluate(()=>{ const b=document.getElementById('pfConfirmBox'); return b?b.innerText.replace(/\s+/g,' ').slice(0,120):''; });
+check('adding a duplicate name asks first, in the page', /already on the calendar/.test(dupBox) && !asked, true);
+await p.evaluate(()=>{ const n=document.getElementById('pfConfirmNo'); if(n)n.click(); }); await p.waitForTimeout(300);
 check('duplicate declined → nothing saved, dialog stays open', await p.evaluate(()=>!!document.getElementById('ev_move')), true);
 await p.keyboard.press('Escape'); await p.waitForTimeout(300);
 

@@ -105,6 +105,19 @@ async function main() {
   if (r3.links === 0 && /calm|Welcome|هادئ/i.test(r3.txt)) ok('with nothing to send the greeting has no links and says the day is calm');
   else fail(`greeting with no work: ${JSON.stringify(r3)}`);
 
+  /* ---- 4. Arabic (2026-09-09, live test Arabic gaps): the Your-day card's Going-cold stage word
+          and the expiry label speak Arabic ---- */
+  const r4 = await p.evaluate(() => new Promise((res) => {
+    const me = (window.__userName || 'QA Test Account');
+    const cold = DB.businesses.find((x) => !x.isClient && x.id === 'L7'); cold.stage = 'Contacted'; cold.assignedTo = me; cold.nextActionDate = ''; cold.activities = []; delete cold.lastContact; cold.createdAt = '2026-06-01';
+    DB.offers = DB.offers || []; DB.offers.push({ id: 'o-exp-ar', ref: 'PR-EXP', client: 'Quill Meadow Probe', subject: 'expiry probe', status: 'Sent', owner: me, validUntil: new Date(Date.now() - 9 * 864e5).toISOString().slice(0, 10), date: '2026-08-20', currency: 'SAR' });
+    if (typeof LANG !== 'undefined' && LANG !== 'ar') toggleLang();
+    current = 'today'; render();
+    setTimeout(() => { const c = document.querySelector('#view .v57-yourday'); const t = c ? c.innerText.replace(/\s+/g, ' ') : ''; res({ card: !!c, hasCold: /تبرد/.test(t), stageEn: /\bContacted\b/.test(t), stageAr: /تم التواصل/.test(t), expEn: /Expired \d+d ago/.test(t), expAr: /انتهى قبل 9 يوم/.test(t), txt: t.slice(0, 200) }); if (typeof LANG !== 'undefined' && LANG === 'ar') toggleLang(); }, 1500);
+  }));
+  if (r4.card && r4.hasCold && r4.stageAr && !r4.stageEn && r4.expAr && !r4.expEn) ok('in Arabic the Going-cold row says تم التواصل and the expiring proposal says انتهى قبل 9 يوم — no English left');
+  else fail(`Arabic on the Your-day card: ${JSON.stringify(r4)} — the live-site "Contacted" and "Expired 9d ago"`);
+
   if (!errors.length) ok('no JavaScript errors'); else fail('JavaScript errors: ' + errors.join(' | '));
   await b.close(); srv.close();
   if (failures) { console.log(`\nFAILED — ${failures} check(s) did not pass.`); process.exit(1); }
