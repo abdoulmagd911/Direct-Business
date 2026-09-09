@@ -10366,11 +10366,24 @@ answer js/63's own in-page notice (stays until dismissed — a toast is gone in 
 probe-audit-undo, probe-audit-events-search-attacks A7 and probe-recovery-attacks D3/D4 read the
 page now and count a native dialog as the failure.
 
-**Still open from the live test, not touched here.** L8 the empty grey pill under a new lead's
-name (not reproduced in the harness — needs the live row that showed it); BR1 the public Brand
-Hub (owner decision); the dead first copies of evDelete/evOpenModal in js/10 (lines ~120–175,
-superseded lower down) still carry alert(); `restoreFromBackup` (Settings) still asks through
-window.confirm.
+**Third landing, the same night — the D1 family across the app.** The Won question
+(`convertToClient`, the busiest path there is) asked through window.confirm; it asks through js/57's
+box now and announces `lead-converted`, which js/14 listens for to open the client handover (it
+used to check synchronously after the call). core-01 gains `askInPage(msg, yes)` and ten more
+sites use it: promote proposal → project, delete proposal, remove its file (core-04); delete
+bundle template, credit note, the `n` shortcut's blank proposal, restore from backup, delete
+tagged backup (core-06); archive project (core-08); resume an on-hold lead (js/14).
+probe-backup-supabase and probe-recovery-attacks answer the box (C1x counts a native dialog as
+the failure); probe-no-native-dialogs gains the Won and proposal-delete blocks. L8 was looked for
+on the live Leads page (78 rows) — no empty pill anywhere; the row that showed it was the test
+lead, since deleted; closed as not reproducible.
+
+**Still using window.confirm / alert, deliberately left for a later pass:** the two "send a
+password reset link" questions (js/02, js/31), `resetData` and `v21WipeLocalData` (developer
+tools), the five finance-guardrail questions in js/62 (exclusion remove, grouping undo, merge,
+merge undo — probes pin their wording), js/45's fallback, and the dead first copies of
+evDelete/evOpenModal in js/10 (lines ~120–175, superseded lower down). BR1 the public Brand Hub
+is the owner's decision.
 
 ---
 
