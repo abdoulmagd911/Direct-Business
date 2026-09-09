@@ -193,6 +193,9 @@ input.cell:focus,textarea.cell:focus{border-color:var(--orange);background:#fff;
 .vs .box.mkt{background:#fafbfd}
 .vs .box.edge{background:linear-gradient(135deg,#FFF6EE,#FFF1E6);border-color:#FBD9B8}
 .vs .box .h{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.vs .box .h svg{width:13px;height:13px;flex:0 0 13px}  /* 2026-09-09 (live test SOP1): an unsized icon filled half the screen */
+.sla-table textarea.cell{resize:none;min-height:44px}  /* 2026-09-09 (live test SOP2): a table of resize handles */
+.sla-table input.cell{flex:1;min-width:0}
 .vs .box.mkt .h{color:var(--muted)} .vs .box.edge .h{color:#C2691A}
 .vs .box p{margin:0 !important;font-size:12.5px;line-height:1.55}
 
@@ -584,6 +587,7 @@ body{letter-spacing:-.012em}
 <script src="/js/74-phone-search.js"></script>
 <script src="/js/75-honest-sync-badge.js"></script>
 <script src="/js/76-archive-companies.js"></script>
+<script src="/js/77-share-links-panel.js"></script>
 
 <!-- The v46/v47/v48 identity layers used to be pasted inline here AS WELL AS existing
      as the extracted files js/46-v70, js/47-v71 and js/48-v72 above. Both copies ran:
