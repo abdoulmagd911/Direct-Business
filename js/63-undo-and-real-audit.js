@@ -96,29 +96,71 @@
   function actionLabel(a){ return { create:fl('Created','أُنشئ'), edit:fl('Edited','عُدِّل'), delete:fl('Deleted','حُذف'), archive:fl('Archived','أُرشف'), restore:fl('Restored','استُعيد') }[a] || a; }
   function tableLabel(t){ return { businesses:fl('Lead / client','عميل محتمل / عميل'), finance_invoices:fl('Invoice','فاتورة'), finance_transactions:fl('Transaction','معاملة'), client_profiles:fl('Client profile','ملف العميل'), contacts:fl('Contact','جهة اتصال') }[t] || t; }
   function fmtWhen(iso){ try{ return new Date(iso).toLocaleString(isAr()?'ar':'en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(_){ return iso||''; } }
+  /* 2026-09-09 (live test, AU2 + AU3): every row read "Lead / client · Edited — unknown — raw"
+     — no record named, and the column names of the database as the description. A person
+     cannot tell WHICH client changed or WHAT about it. Now: the record's own name (or invoice
+     number, transaction reference, contact name) sits on the row, and each changed column is
+     said in words; a change inside the `raw` record is opened up to the fields that moved
+     inside it. The database column stays available as a tooltip for anyone who needs it. */
+  var FIELD_WORDS={
+    raw:['record details','تفاصيل السجل'], stage:['stage','المرحلة'], status:['status','الحالة'], tier:['tier','الفئة'], name:['name','الاسم'], name_ar:['Arabic name','الاسم بالعربية'],
+    segment:['segment','القطاع'], category:['category','التصنيف'], notes:['notes','الملاحظات'], archived_by:['archived by','أُرشف بواسطة'], archived_at:['archived','تاريخ الأرشفة'],
+    converted_date:['became a client on','تاريخ التحول إلى عميل'], is_client:['client flag','علامة العميل'], assigned_to:['owner','المسؤول'], account_manager:['account manager','مدير الحساب'],
+    business_id:['linked company','الشركة المرتبطة'], client_profile_id:['linked profile','الملف المرتبط'], contract_start:['contract start','بداية العقد'], contract_end:['contract end','نهاية العقد'],
+    payment_terms:['payment terms','شروط الدفع'], credit_limit:['credit limit','حد الائتمان'], closed_at:['closed on','تاريخ الإغلاق'], confirmation_reason:['confirmation note','ملاحظة التأكيد'],
+    needs_manual_confirmation:['needs manual confirmation','بحاجة إلى تأكيد يدوي'], cost_sar:['cost','التكلفة'], profit_sar:['profit','الربح'], revenue_sar:['revenue','الإيراد'], cost_confirmed_sar:['confirmed cost','التكلفة المؤكدة'],
+    cost_estimate_sar:['estimated cost','التكلفة التقديرية'], amount_sar:['amount','المبلغ'], invoice_no:['invoice number','رقم الفاتورة'], client_group:['client group','مجموعة العميل'], integrity_status:['status','الحالة'],
+    email:['email','البريد'], phone:['phone','الهاتف'], role:['role','الدور'], next_action_date:['next action date','تاريخ الإجراء التالي'], next_action_note:['next action','الإجراء التالي'], funnel_details:['funnel answers','إجابات القناة'],
+    activities:['activity log','سجل النشاط'], lastContact:['last contact','آخر تواصل'], contacts:['contacts','جهات الاتصال'], isClient:['client flag','علامة العميل'], assignedTo:['owner','المسؤول'], nextAction:['next action','الإجراء التالي'],
+    dueDate:['due date','تاريخ الاستحقاق'], services:['services','الخدمات'], channels:['channels','القنوات'], nameAr:['Arabic name','الاسم بالعربية'], source:['source','المصدر'], funnelKey:['funnel','القناة'], website:['website','الموقع']
+  };
+  function fieldWord(k){ var w=FIELD_WORDS[k]; if(w) return isAr()?w[1]:w[0]; return String(k).replace(/_sar$/,'').replace(/_/g,' '); }
+  function diffKeys(b,a){
+    var out=[]; try{ Object.keys(Object.assign({},b||{},a||{})).forEach(function(k){ if(k==='id'||k==='updated_at'||k==='created_at')return; if(JSON.stringify((b||{})[k])!==JSON.stringify((a||{})[k]))out.push(k); }); }catch(_){}
+    return out;
+  }
   function whatChanged(row){
     if(row.action!=='edit'||!row.before_row||!row.after_row)return '';
-    var b=row.before_row,a=row.after_row,changed=[];
-    Object.keys(a).forEach(function(k){
-      if(k==='id'||k==='updated_at'||k==='created_at')return;
-      var bv=JSON.stringify(b[k]),av=JSON.stringify(a[k]);
-      if(bv!==av)changed.push(k);
+    var b=row.before_row,a=row.after_row,changed=diffKeys(b,a),words=[];
+    changed.forEach(function(k){
+      if(k==='raw'&&b.raw&&a.raw&&typeof b.raw==='object'&&typeof a.raw==='object'){
+        var inner=diffKeys(b.raw,a.raw).filter(function(x){return !/^_/.test(x);});
+        inner.slice(0,4).forEach(function(x){ words.push(fieldWord(x)); });
+        if(inner.length>4) words.push('…'); if(!inner.length) words.push(fieldWord('raw'));
+      } else words.push(fieldWord(k));
     });
-    if(!changed.length)return '';
-    return changed.slice(0,6).join(', ')+(changed.length>6?' …':'');
+    if(!words.length)return '';
+    var seen={}; words=words.filter(function(w){ if(seen[w])return false; seen[w]=1; return true; });
+    return words.slice(0,6).join(', ')+(words.length>6?' …':'');
   }
+  function columnsChanged(row){ try{ return diffKeys(row.before_row,row.after_row).join(', '); }catch(_){ return ''; } }
+  function recordName(row){
+    var r=row.after_row||row.before_row||{}; var raw=(r.raw&&typeof r.raw==='object')?r.raw:{};
+    var n=r.name||raw.name||r.full_name||r.invoice_no||r.transaction_ref||r.receipt_ref||r.client_group||r.customer_raw_name||r.profile_type||r.direct_client_id||'';
+    if(!n&&row.table_name==='client_profiles'&&r.business_id)n=fl('a client profile','ملف عميل');
+    if(!n&&row.table_name==='contacts'&&(r.email||r.phone))n=r.email||r.phone;
+    return n?String(n):'';
+  }
+  var KNOWN_TABLES={businesses:1,finance_invoices:1,finance_transactions:1,client_profiles:1,contacts:1};
   function histRow(row){
-    var canUndoAtAll = row.action!=='create' && !row.undone_at;
+    /* 2026-09-09 (live test, AU4): "Undo" was offered on 18-day-old deletions while the text
+       promised 24 hours, and on rows no function can undo (an access log line). A button that
+       will be refused is a lie in a button. Past the window, or on a row of an unknown kind, the
+       row says so instead. */
     var age=Date.now()-new Date(row.at).getTime();
     var withinWindow = age < 24*3600*1000;
-    var btn = canUndoAtAll
-      ? '<button class="btn sm" onclick="undoRecordChange('+row.id+',window.histRefresh)">'+fl('Undo','تراجع')+'</button>'
-      : (row.undone_at ? '<span class="tag" style="background:#EEF0F5;color:#5b6178">'+fl('Undone','تم التراجع')+'</span>' : '');
-    var changed=whatChanged(row);
-    return '<div class="act-row"><span class="ts" title="'+(withinWindow?'':fl('Over 24h — Undo will likely be refused; click to see why','مضى أكثر من 24 ساعة — على الأرجح سيُرفض التراجع؛ اضغط لمعرفة السبب'))+'">'+esc(fmtWhen(row.at))+'</span>'+
-      '<span class="ent">'+esc(tableLabel(row.table_name))+' · '+esc(actionLabel(row.action))+'</span>'+
-      '<span>'+esc(row.actor_name||'—')+(changed?' <span style="color:var(--muted)">— '+esc(changed)+'</span>':'')+'</span>'+
-      '<span>'+btn+'</span></div>';
+    var undoable = row.action!=='create' && !row.undone_at && KNOWN_TABLES[row.table_name] && row.before_row;
+    var btn;
+    if(row.undone_at) btn='<span class="tag" style="background:#EEF0F5;color:#5b6178">'+fl('Undone','تم التراجع')+'</span>';
+    else if(undoable&&withinWindow) btn='<button class="btn sm" onclick="undoRecordChange('+row.id+',window.histRefresh)">'+fl('Undo','تراجع')+'</button>';
+    else if(undoable) btn='<span data-undo-expired="1" style="font-size:11px;color:var(--muted)" title="'+fl('Undo works for 24 hours after a change; after that an admin restores it in the database.','يعمل التراجع لمدة 24 ساعة بعد التغيير؛ بعدها يستعيده مسؤول من قاعدة البيانات.')+'">'+fl('past the 24-hour undo window','انقضت مهلة التراجع (24 ساعة)')+'</span>';
+    else btn='';
+    var changed=whatChanged(row), name=recordName(row), cols=columnsChanged(row);
+    return '<div class="act-row" data-hist-id="'+row.id+'" style="display:grid;grid-template-columns:150px minmax(0,1.1fr) minmax(0,1.4fr) auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line,#EFE9DF);font-size:12.5px">'+
+      '<span class="ts" style="color:var(--muted);font-size:11.5px">'+esc(fmtWhen(row.at))+'</span>'+
+      '<span class="ent"><b>'+esc(tableLabel(row.table_name))+'</b> · '+esc(actionLabel(row.action))+(name?' · <span data-hist-name="1" style="font-weight:700">'+esc(name)+'</span>':'')+'</span>'+
+      '<span><span style="font-weight:600">'+esc(row.actor_name||'—')+'</span>'+(changed?' <span data-hist-fields="1" style="color:var(--muted)" title="'+esc(cols)+'">— '+esc(changed)+'</span>':'')+'</span>'+
+      '<span style="text-align:end">'+btn+'</span></div>';
   }
   window.renderActivity=function(v){
     if(HIST.rows==null){ histLoad(function(){ if(typeof render==='function')render(); }); }

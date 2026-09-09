@@ -58,7 +58,7 @@
          system banners, which must still win if ever shown at the same time as this. */
       d.style.cssText='position:fixed;inset:0;z-index:1000000000;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center';
       d.innerHTML='<div style="background:var(--card,#fff);border-radius:12px;padding:20px 22px;max-width:360px;box-shadow:0 12px 40px rgba(0,0,0,.25)">'+
-        '<div style="font-size:13.5px;margin-bottom:16px;line-height:1.5">'+esc(msg)+'</div>'+
+        '<div style="font-size:13.5px;margin-bottom:16px;line-height:1.5;white-space:pre-line">'+esc(msg)+'</div>'+
         '<div style="display:flex;gap:8px;justify-content:'+(ar?'flex-start':'flex-end')+'">'+
         '<button class="btn sm ghost" id="pfConfirmNo">'+fl('Cancel','إلغاء')+'</button>'+
         '<button class="btn sm pri" id="pfConfirmYes">'+fl('Confirm','تأكيد')+'</button>'+

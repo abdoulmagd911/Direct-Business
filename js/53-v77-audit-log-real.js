@@ -48,19 +48,13 @@
   }
   try{ window.__note=note; }catch(_){}
 
-  /* 2 — signing in. Recorded once per session, when the app learns who you are. */
-  try{
-    var signedIn=false;
-    setInterval(function(){
-      try{
-        if(signedIn) return;
-        if(window.__roleKnown!==true) return;
-        signedIn=true;
-        note('session', (window.__userEmail||whoAmI()), 'sign in', (window.__userRole||''));
-        if(typeof save==='function') save();
-      }catch(_){}
-    }, 2000);
-  }catch(_){}
+  /* 2 — signing in. RETIRED 2026-09-09 (live test N2). This used to append a "sign in" entry to
+     DB.audit and call save() the moment the role was known — so every reload of the app sent a
+     cloud write with nothing changed (the owner watched "Saving…" appear on a plain page open).
+     Nobody reads that entry any more: js/63 replaced Activity & Audit with the database's own
+     record_history, and DB.audit is a dead array that this line kept growing (capped at 800) and
+     re-uploading with every session. Sign-ins are the auth system's record, not the workspace
+     blob's. Kept as a comment so the next reader knows why there is no "signed in" line here. */
 
   /* 3 — the working day. Watch the lead list itself rather than every button that touches it:
      buttons come and go with each layer, but a company appearing, changing stage, becoming a

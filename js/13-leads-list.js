@@ -140,7 +140,10 @@ console.info('%c[v39 guard rails] loaded','color:#FF6B00;font-weight:700');
     return '<div class="card v31-conv" style="display:flex;gap:18px;flex-wrap:wrap;padding:14px 18px;margin-bottom:14px">'+
       tile(newThis,fl('New this month','جديد هذا الشهر'),'#175CD3')+
       tile(active,fl('In pipeline','قيد المتابعة'),'#7A5AF8')+
-      tile(conv+'%',fl('Conversion rate','نسبة التحويل'),conv>=30?'#16B364':'#F79009')+
+      /* 2026-09-09 (live test, L2): "26 %" stood beside stage chips reading Won 0. The rate is
+         clients-out-of-everyone (the standard one) — say so, with the two numbers, so nobody
+         hunts for the 26 % among the chips. */
+      tile(conv+'%',fl('Became clients','أصبحوا عملاء')+' · '+won.length+' '+fl('of','من')+' '+all.length,conv>=30?'#16B364':'#F79009')+
       tile(avg==null?'—':(avg+' '+fl('days','يوم')),fl('Avg time to win','متوسط وقت الكسب'),'#0F6E56')+
     '</div>';
   }

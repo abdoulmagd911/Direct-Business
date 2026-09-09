@@ -274,6 +274,11 @@ console.info('%c[v40 lead lifecycle] loaded','color:#FF6B00;font-weight:700');
     if(typeof current==='undefined'||current!=='today') return;
     var v=document.getElementById('view'); if(!v) return;
     if(v.querySelector('.v57-yourday')) return;
+    /* 2026-09-09 (live test T5): with a remembered session the page is on screen before the
+       businesses table has arrived, and this card was built from the start-up copy — "never
+       contacted" for four seconds, then "23d no contact". A not-loaded-yet state is not a fact:
+       wait for js/02's flag; the render() that follows the load calls inject() again. */
+    if(window.__bizTableLoaded!==true) return;
     var card=buildYourDay(); if(!card) return;
     var _sh=v.querySelector('.v26_3-chips')||v.querySelector('.v26_3-section-head');if(_sh)v.insertBefore(card,_sh.nextSibling);else v.insertBefore(card, v.firstChild);
   }catch(_){} }

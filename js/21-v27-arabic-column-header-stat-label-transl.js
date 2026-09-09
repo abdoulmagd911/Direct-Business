@@ -44,7 +44,7 @@
     'Tickets due soon':'تذاكر يقترب موعد إصدارها','Nothing urgent right now — all clear.':'لا شيء عاجل الآن — كل شيء على ما يرام.','Overdue invoices':'فواتير متأخرة','Being chased':'قيد التحصيل',
     'Low-profit offers':'عروض ربح منخفض','My queue':'قائمتي',
     'Total sale':'إجمالي المبيعات','QC complete':'اكتمال الفحص',
-    'New':'جديد','Good':'جيد','Watch':'مراقبة','At risk':'معرّض للخطر',
+    'New':'جديد','Good':'جيد','Watch':'مراقبة','At risk':'معرّض للخطر','Lost':'مفقود',
     '0–30 days':'0–30 يومًا','31–60 days':'31–60 يومًا','61–90 days':'61–90 يومًا','90+ days':'90+ يومًا',
     'Total clients':'إجمالي العملاء','Key accounts':'حسابات رئيسية','Total won (SAR)':'إجمالي المكسوب (ريال)',
     'Clients in view':'العملاء المعروضون','Won leads not yet converted':'صفقات مكسوبة لم تُحوَّل بعد',
@@ -67,7 +67,7 @@
     // were English. Whole-string matches on <label>/<summary>/.ch-sub (selectors added below);
     // the client-facing preview document itself is deliberately left as authored. ----
     '← Offers':'← العروض','Live preview — this is what the client sees':'معاينة حية — هذا ما يراه العميل',
-    '🧳 Convert to booking':'🧳 حجز مبدئي (يُدفع إلى المصدر عند التأكيد)','🧳 Draft booking (push to source on confirm)':'🧳 حجز مبدئي (يُدفع إلى المصدر عند التأكيد)',
+    '🧳 Convert to booking':'🧳 حجز مبدئي — يُؤكَّد لاحقاً في Direct Payments','🧳 Draft booking (push to source on confirm)':'🧳 حجز مبدئي — يُؤكَّد لاحقاً في Direct Payments','🧳 Draft booking — confirmed later in Direct Payments':'🧳 حجز مبدئي — يُؤكَّد لاحقاً في Direct Payments','Issue in Direct Payments':'الإصدار في Direct Payments',
     '📤 Send for review (Email + WhatsApp)':'📤 إرسال للمراجعة (بريد + واتساب)','📤 Send for review':'📤 إرسال للمراجعة',
     'Pricing':'التسعير','Fare options — compare 2–3 fares':'خيارات الأسعار — قارن 2–3 أسعار',
     'Add 2–3 fare families / sources to compare — they appear in the client quote with NDC/EDIFACT badges.':'أضف 2–3 عائلات أسعار / مصادر للمقارنة — تظهر في عرض العميل مع شارات NDC/EDIFACT.',

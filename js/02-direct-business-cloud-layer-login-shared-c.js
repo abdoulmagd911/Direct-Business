@@ -327,6 +327,10 @@
         try{
           Object.keys(blob).forEach(function(k){ if(k!=='businesses'){ try{ DB[k]=blob[k]; }catch(_){}} });
           DB.businesses=rows.map(rowToApp);
+          /* 2026-09-09 (live test T5): the one flag that says "these are the real rows". Before this
+             point DB.businesses is whatever the page started with, and a card computed from it
+             (js/14's Your day: "never contacted") is a not-loaded-yet state shown as a fact. */
+          try{ window.__bizTableLoaded=true; }catch(_){}
           SNAP={}; DB.businesses.forEach(function(b){ try{ SNAP[b.id]=JSON.stringify(appToRow(b)); }catch(_){}});
           try{ Object.keys(localStorage).forEach(function(k){ if(/^directBusinessData_v\d+$/.test(k)){ localStorage.removeItem(k); } }); }catch(e){}
           try{ localStorage.setItem('db_cloud_ts', String((r.data&&r.data.updated_at)||'')); }catch(e){}
@@ -477,8 +481,8 @@
             var _aAr=(typeof LANG!=='undefined'&&LANG==='ar');
             setPill(_aAr?('حُفظ على سجل محذوف ('+archivedHit.length+')'):('Saved onto a deleted record ('+archivedHit.length+')'),'#B54708');
             try{ alert(_aAr
-              ? ('حُفظ تعديلك، لكن '+archivedHit.length+' من هذه الشركات حذفها شخص آخر أثناء فتحها لديك. التعديل مكتوب على سجل مؤرشف لن يظهر في أي قائمة بعد إعادة التحميل. استخدم «النشاط والتدقيق ← تراجع» لإلغاء الحذف خلال 24 ساعة.')
-              : ('Your change was saved, but '+archivedHit.length+' of these companies was deleted by someone else while you had it open. The edit is on an archived record that will not appear in any list after a reload. Use Activity & Audit \u2192 Undo to reverse the delete, within 24 hours.')); }catch(_){}
+              ? ('حُفظ تعديلك، لكن '+archivedHit.length+' من هذه الشركات حذفها شخص آخر أثناء فتحها لديك. التعديل مكتوب على سجل مؤرشف لن يظهر في أي قائمة بعد إعادة التحميل. استعدها من صفحة «الأرشيف»، أو من «النشاط والتدقيق ← تراجع» خلال 24 ساعة.')
+              : ('Your change was saved, but '+archivedHit.length+' of these companies was deleted by someone else while you had it open. The edit is on an archived record that will not appear in any list after a reload. Restore it from the Archive page, or with Activity & Audit \u2192 Undo within 24 hours.')); }catch(_){}
           }
           else { saveRetryN=0; setPill(ups.length?('Saved · '+ups.length+' lead'+(ups.length===1?'':'s')+' updated'):'Saved to cloud','#16B364'); }
           sb.from('app_state').select('updated_at').eq('id',1).maybeSingle().then(function(u){ try{ if(u&&u.data&&u.data.updated_at) localStorage.setItem('db_cloud_ts', String(u.data.updated_at)); }catch(e){} });

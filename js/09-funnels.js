@@ -103,21 +103,52 @@
     _rl(v);
     try{addTabs(v);}catch(e){console.warn('v33 tabs',e);}
   };
+  /* 2026-09-09 (live test, L3): the strip is built once per Leads render and left alone by the
+     Hide-closed / stage / search re-draws (drawLeads), so its counts froze at whatever was true
+     when it was built — the same "stale build" the stage chips had on 22 Aug. Each tab now
+     carries its key, and a re-draw updates the numbers in place. */
+  function refreshTabs(){
+    try{
+      var strip=document.getElementById('funnelTabs'); if(!strip||window.openLead)return;
+      var pool=leadPoolNow();
+      var counts={all:pool.length};
+      F().forEach(function(f){counts[f.key]=pool.filter(function(b){return b.funnelKey===f.key;}).length;});
+      [].slice.call(strip.querySelectorAll('button[data-funnel-key]')).forEach(function(b){
+        var k=b.getAttribute('data-funnel-key'); if(!(k in counts))return;
+        b.textContent=b.getAttribute('data-funnel-label')+' \u00b7 '+(counts[k]||0);
+      });
+    }catch(_){}
+  }
+  function leadPoolNow(){
+    var pool=(DB.businesses||[]).filter(function(b){return !b.isClient&&!b.archivedAt&&!b._archived;});
+    try{ if(typeof leadFilter!=='undefined'&&leadFilter.hideClosed&&(leadFilter.stage==='all'||!leadFilter.stage)) pool=pool.filter(function(b){var s=(typeof leadStage==='function')?leadStage(b):(b.stage||'');return s!=='Won'&&s!=='Lost';}); }catch(_){}
+    return pool;
+  }
+  try{
+    var _dl=window.drawLeads;
+    if(typeof _dl==='function'&&!_dl.__v33tabs){ window.drawLeads=function(){var o=_dl.apply(this,arguments); try{refreshTabs();}catch(_){} return o;}; window.drawLeads.__v33tabs=true; }
+  }catch(_){}
   function addTabs(v){
     if(window.openLead)return;
-    var tb=v.querySelector('.toolbar');if(!tb||document.getElementById('funnelTabs'))return;
+    var tb=v.querySelector('.toolbar');if(!tb)return;
+    if(document.getElementById('funnelTabs')){ refreshTabs(); return; }
     var strip=document.createElement('div');
     strip.id='funnelTabs';
     strip.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px';
     /* 2026-08-22 owner catch: this used to count DB.businesses outright, which includes
        clients and archived rows — a 79-row leads table showed a funnel "All" tab reading
        118 because it was silently counting the 30 live clients too. Leads only. */
-    var leadPool=function(){return (DB.businesses||[]).filter(function(b){return !b.isClient&&!b.archivedAt&&!b._archived;});};
+    /* 2026-09-09 (live test, L3): these tabs read "All · 80" while the stage chips read "All 78"
+       and the table said "78 leads in view" — the 2 were Lost leads the table hides under
+       "Hide closed". Same pool as the table: when Hide closed is on and no stage is picked,
+       Won/Lost stay out of every tab's count. */
+    var leadPool=leadPoolNow;
     var counts={all:leadPool().length};
     F().forEach(function(f){counts[f.key]=leadPool().filter(function(b){return b.funnelKey===f.key;}).length;});
     function chip(key,label,color){
       var on=window.__funnelTab===key;
       var b=document.createElement('button');
+      b.setAttribute('data-funnel-key',key); b.setAttribute('data-funnel-label',label);
       b.textContent=label+' \u00b7 '+(counts[key]||0);
       b.style.cssText='border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:999px;background:'+(on?(color||'#1C1E2B'):'#eef0f5')+';color:'+(on?'#fff':'#3a3f52');
       b.onclick=function(){window.__funnelTab=key;renderLeads(v);};
@@ -164,7 +195,7 @@
         var c=(b.contacts&&b.contacts[0])||{};
         var f=fdef(b);
         var det=b.funnelDetails||{};
-        var detTxt=Object.keys(det).map(function(k){return k+': '+det[k];}).join(' | ');
+        var detTxt=Object.keys(det).map(function(k){return k+': '+(fnIsMoney({key:k})?'recorded':det[k]);}).join(' | ');
         var st=(typeof leadStage==='function'?leadStage(b):b.stage);
         if(ar&&typeof st==='string'){ try{ if(window.__STAGE_AR&&window.__STAGE_AR[st])st=window.__STAGE_AR[st]; }catch(_){} }
         lines.push([q(b.name),q(b.nameAr),q(f?((ar&&f.name_ar)?f.name_ar:f.name_en):''),q(st),q(b.source),q(b.assignedTo||b.owner),q(b.isClient?(ar?'نعم':'Yes'):(ar?'لا':'No')),q(b.website),q(b.nextActionDate),q(b.nextAction||b.nextActionNote),q(c.name),q(c.phone),q(c.email),q(detTxt),q(b.notes)].join(','));
@@ -194,7 +225,8 @@
     var f=fdef(b),det=b.funnelDetails||{},rowsH='';
     if(f)(f.field_template||[]).forEach(function(fl){
       if(!fl.hover)return;var val=det[fl.key];if(val==null||val==='')return;
-      if(typeof val==='boolean')val=val?'Yes':'No';
+      if(fnIsMoney(fl))val=fnMoneyMask(val);
+      else if(typeof val==='boolean')val=val?'Yes':'No';
       rowsH+='<div style="margin:3px 0;font-size:12px;line-height:1.5"><span style="color:#7C8194">'+fl.label_en+':</span> '+String(val).replace(/</g,'&lt;').slice(0,240)+'</div>';
     });
     var extra='';
@@ -221,6 +253,15 @@
       try{addDetailCard(v,id);}catch(e){console.warn('v33 detail',e);}
     };
   }
+  /* 2026-09-09 (live test, C2) — owner ruling of 21 Aug: no deal value, billing total or other
+     money figure on the Leads or Clients page; Finance is the one place a number is read. Two
+     funnel answers are money — Partners & Tenders' "Tender value (SAR)" and Past Invoices'
+     "Lifetime billed (SAR)" — and this card printed them on the lead/client card (150,000 SAR on a
+     client card, seen live). The answer stays stored and stays editable in the form (an input,
+     like js/14's credit-limit box); the card, the hover pop and the CSV export say only that a
+     figure is recorded. A field is money when its key ends in _sar or its label says SAR. */
+  function fnIsMoney(fl){ try{ return /_sar$/i.test(String(fl.key||''))||/\bSAR\b|ريال/.test(String(fl.label_en||'')+' '+String(fl.label_ar||'')); }catch(_){ return false; } }
+  function fnMoneyMask(val){ return (val==null||val==='')?'\u2014':fnL('recorded \u2014 read on Finance','مسجّلة \u2014 تُقرأ في المالية'); }
   function addDetailCard(v,id){
     if(document.getElementById('funnelCard'))return;
     var b=getLead(id);if(!b)return;var f=fdef(b);if(!f)return;
@@ -230,9 +271,10 @@
     var inner='<h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="color:'+(FCOLOR[f.color]||'#5F5E5A')+'">'+E(fnL(fnTitle(f)+' details',fnTitle(f)+' \u2014 \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644'))+'</span>'+
       (fnMayEdit()?('<button class="btn ghost sm" onclick="window.__editFunnelDetails(\''+String(b.id).replace(/'/g,"\\'")+'\')">'+fnL('Edit','\u062a\u0639\u062f\u064a\u0644')+'</button>'):'')+'</h3>';
     (f.field_template||[]).forEach(function(fl){
-      var val=det[fl.key];if(val==null||val==='')val='\u2014';
-      if(typeof val==='boolean')val=val?fnL('Yes','\u0646\u0639\u0645'):fnL('No','\u0644\u0627');
-      inner+='<div class="fact"><span class="k">'+E(fnLabel(fl))+'</span><span class="v" style="max-width:58%;text-align:right;white-space:normal">'+E(val)+'</span></div>';
+      var val=det[fl.key];
+      if(fnIsMoney(fl)) val=fnMoneyMask(val);
+      else { if(val==null||val==='')val='\u2014'; if(typeof val==='boolean')val=val?fnL('Yes','\u0646\u0639\u0645'):fnL('No','\u0644\u0627'); }
+      inner+='<div class="fact"'+(fnIsMoney(fl)?' data-money-masked="1"':'')+'><span class="k">'+E(fnLabel(fl))+'</span><span class="v" style="max-width:58%;text-align:right;white-space:normal">'+E(val)+'</span></div>';
     });
     card.innerHTML=inner;
     var grid=v.querySelector('.detail-grid');

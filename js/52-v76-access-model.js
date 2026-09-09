@@ -123,14 +123,15 @@
 
   /* and if someone lands on one anyway, they are sent back with a plain explanation */
   var lastTold=0;
-  function gate(){
+  /* 2026-09-09 (live test, N1): typing /reports, /settings or /ops into the address bar landed
+     on Today — for an ADMIN. While the role is still unknown allowedPages() holds to the employee
+     floor, so this gate moved the person to Today "for now"; by the time the role arrived the
+     address had already been rewritten to /today and the page they asked for was gone. Finance
+     survived only because js/16 re-applies its own deep link. Now: a page refused while the role
+     is unknown is REMEMBERED, and the moment the role is known and allows it, the person is put
+     back on it. A refusal that stands once the role is known is handled exactly as before. */
+  function refuse(was){   // a refusal that stands once the role is known — say it once, in words
     try{
-      if(typeof current==='undefined') return;
-      if(mayOpen(current)) return;
-      var was=current;
-      current='today';
-      try{ if(typeof render==='function') render(); }catch(_){}
-      if(!known()) return;          // still checking — move them, but say nothing yet
       var now=Date.now();
       if(now-lastTold<4000) return;           // don't stack messages
       lastTold=now;
@@ -140,6 +141,25 @@
         : fl('Your account covers Leads, Clients and Finance. That page is not part of it.','حسابك يشمل العملاء المحتملين والعملاء والمالية. تلك الصفحة ليست ضمنه.');
       if(window.__v70box) window.__v70box(fl('Not part of your access','خارج نطاق صلاحيتك'), msg, fl('Ask an admin if you need it.','اطلب من المسؤول إن احتجتها.'));
       else if(typeof toast==='function') toast(msg);
+    }catch(_){}
+  }
+  function restorePending(){
+    try{
+      var pend=window.__pendingDeepPage; if(!pend||!known()) return;
+      window.__pendingDeepPage=null;
+      if(mayOpen(pend)){ if(typeof current!=='undefined'&&current!==pend){ current=pend; try{ if(typeof render==='function') render(); }catch(_){} } }
+      else refuse(pend);   // they asked for it by address and may not have it — the same sentence an in-app click gets
+    }catch(_){}
+  }
+  function gate(){
+    try{
+      if(typeof current==='undefined') return;
+      if(mayOpen(current)) return;
+      var was=current;
+      current='today';
+      try{ if(typeof render==='function') render(); }catch(_){}
+      if(!known()){ if(!window.__pendingDeepPage) window.__pendingDeepPage=was; return; }   // still checking — move them, say nothing, and remember where they asked to go
+      refuse(was);
     }catch(_){}
   }
 
@@ -242,7 +262,7 @@
     }catch(_){}
   }
 
-  function pass(){ tagNav(); hideNav(); gate(); teamEntry(); trimRolePickers(); watchTeamScreen(); }
+  function pass(){ tagNav(); hideNav(); restorePending(); gate(); teamEntry(); trimRolePickers(); watchTeamScreen(); }
   try{
     var _r=window.render;
     window.render=function(){ var o=_r.apply(this,arguments); try{ pass(); }catch(_){} return o; };
