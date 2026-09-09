@@ -99,7 +99,7 @@ async function run(port, rows, fn) {
 
 async function main() {
   // ---- a normal log, well under the cap
-  await run(8389, hist(6, true), async (p, dialogs, BASE) => {
+  await run(8743, hist(6, true), async (p, dialogs, BASE) => {   /* 2026-09-09 (cycle 74): was 8389, which probe-modals-ar declares as its PORT. Invisible to the old port check because this one is written at the call site rather than assigned to a PORT name. */
     const feed = await p.evaluate(() => {
       const rows = [...document.querySelectorAll('#view .act-row')];
       return {

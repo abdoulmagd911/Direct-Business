@@ -65,12 +65,36 @@ const signInIfNeeded = async () => {
   }
 };
 const recover = async () => { await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(2500); await signInIfNeeded(); };
+/* 2026-09-08 (watch cycle 64): this and state() were the only two unguarded page.evaluate calls
+   left, and they killed the whole sweep twice — cycles 57 and 63, both
+   "page.evaluate: Execution context was destroyed, most likely because of a navigation". The
+   previous click had started a navigation that was still settling when the next evaluate ran.
+   alive() already knew how to survive that and report it; these did not, so the process died with
+   a raw stack and the run produced NOTHING — and because this file is a report that always exited
+   0, the battery said only "did not finish" with no idea how far it got.
+   The context being torn down is not a finding about the app, so it is recovered from rather than
+   reported as one — but it is counted, and a run that could not get going says so at the end. */
+const evalSafe = async (fn, arg, what) => {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try { return { ok: true, v: await page.evaluate(fn, arg) }; }
+    catch (e) {
+      const why = String(e && e.message || e).split('\n')[0];
+      if (!/Execution context was destroyed|Target closed|Most likely the page has been closed/i.test(why) || attempt === 1)
+        return { ok: false, why: what + ': ' + why.slice(0, 90) };
+      lostContexts++;
+      await recover();
+    }
+  }
+  return { ok: false, why: what + ': unreachable' };
+};
+let lostContexts = 0, abandoned = [];
 const goto = async (spec) => {
-  await page.evaluate(spec => {
+  const r = await evalSafe(spec => {
     try { if (typeof closeModal === 'function') closeModal(); } catch (e) {} try { document.querySelectorAll('#modal,.modal-back').forEach(m => m.classList.remove('show','open')); } catch (e) {}
     openLead = spec.lead || null; current = spec.page; render();
-  }, spec);
+  }, spec, 'goto ' + spec.page);
   await page.waitForTimeout(900);
+  return r.ok;
 };
 /* 2026-09-06 (round 52): `current` is a script-scoped binding inside the app, so the moment a
    button navigates away or reloads the tab it stops existing — and this read threw
@@ -93,7 +117,8 @@ const alive = async () => {
    markup SHORTER. The fingerprint now notices what those controls actually change — the text, the
    open/closed cards, the row count, the clicked button's own state — so a "NO-OP" line means the
    page really did not react. */
-const state = () => page.evaluate(() => ({
+const state = async () => { const r = await evalSafe(_stateFn, undefined, 'state'); return r.ok ? r.v : null; };
+const _stateFn = (() => ({
   page: (typeof current !== 'undefined' ? current : '(app gone)'), lead: (typeof openLead !== 'undefined' && openLead) || '', body: document.body.innerHTML.length,
   /* openModal() puts the class on #ov, not on #modal — so every quick-edit dialog in the app was
      invisible to this detector and reported as a dead button (round 57). */
@@ -122,13 +147,16 @@ const PAGES = [
 const results = [];
 for (const P of PAGES) {
   await goto(P.spec);
-  const labels = await page.evaluate(() => [...document.querySelectorAll('#view button, #view a.btn, .v26_3-chips button, .v26_3-section-head button')]
-    .filter(b => b.offsetParent !== null).map(b => (b.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 40)));
+  const labelsR = await evalSafe(() => [...document.querySelectorAll('#view button, #view a.btn, .v26_3-chips button, .v26_3-section-head button')]
+    .filter(b => b.offsetParent !== null).map(b => (b.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 40)), undefined, 'labels ' + P.name);
+  if (!labelsR.ok) { abandoned.push(P.name + ' (' + labelsR.why + ')'); continue; }
+  const labels = labelsR.v;
   for (let i = 0; i < Math.min(labels.length, 55); i++) {
     const label = labels[i];
     if (!label || SKIP.test(label)) { results.push([P.name, label || '(blank)', 'skipped']); continue; }
     await goto(P.spec);
     const before = await state(); errs = []; popups = 0;
+    if (!before) { abandoned.push(P.name + ' / ' + label + ' (state unreadable)'); continue; }
     /* An <a target="_blank"> hands the click to the browser, which the harness suppresses — the
        action is real and verifiable from the element itself, so it is read before clicking rather
        than inferred from a page that correctly did not change. */
@@ -150,6 +178,7 @@ for (const P of PAGES) {
       continue;
     }
     const after = await state();
+    if (!after) { results.push([P.name, label, 'LEFT THE APP: the page could not be read after the click']); await recover(); continue; }
     let verdict;
     if (errs.length || clicked === 'threw') verdict = 'ERROR: ' + (errs[0] || 'click threw');
     else if (popups) verdict = 'ok: opens print/new window';
@@ -171,8 +200,29 @@ for (const P of PAGES) {
   }
 }
 const bad = results.filter(r => /ERROR|NO-OP|LEFT THE APP/.test(r[2]));
-console.log('TOTAL buttons clicked:', results.filter(r => r[2] !== 'skipped').length, '| skipped(destructive):', results.filter(r => r[2] === 'skipped').length);
+const clickedN = results.filter(r => r[2] !== 'skipped').length;
+console.log('TOTAL buttons clicked:', clickedN, '| skipped(destructive):', results.filter(r => r[2] === 'skipped').length);
 console.log('--- problems ---'); bad.forEach(r => console.log(r.join(' | ')));
 fs.writeFileSync('button-sweep-results.txt', results.map(r => r.join(' | ')).join('\n'));
 console.log('full list -> button-sweep-results.txt');
-await browser.close(); process.exit(0);
+if (lostContexts) console.log(`recovered from ${lostContexts} torn-down execution context(s) — a click had started a navigation that was still settling`);
+
+/* 2026-09-08 (watch cycle 64): this file used to end `process.exit(0)` unconditionally, which made
+   it a report — and a report that crashes produces NOTHING while claiming nothing is wrong. That
+   is how it sat on the "did not finish" line in cycles 57 and 63 with nobody able to say how far
+   it got. It now fails when it did not do its job, and ONLY then: the button verdicts above stay a
+   report to read (they are judgements about 189 controls, not assertions), so a NO-OP line never
+   reddens a battery run. What reddens it is silence.
+   Removed from scripts/qa/reports.txt in the same commit — a file with a real failure path is not
+   a report, and check-probe-integrity holds that count so it can only go down. */
+let sweepFail = 0;
+if (!PAGES.every(P => results.some(r => r[0] === P.name))) {
+  console.log('✗ some pages produced no result at all: ' + PAGES.filter(P => !results.some(r => r[0] === P.name)).map(P => P.name).join(', '));
+  sweepFail++;
+}
+if (clickedN < 40) { console.log(`✗ only ${clickedN} button(s) were actually clicked — this sweep exists to press about 190, so a run this short examined almost nothing`); sweepFail++; }
+if (abandoned.length) { console.log('✗ abandoned mid-sweep: ' + abandoned.slice(0, 5).join(' | ') + (abandoned.length > 5 ? ` (+${abandoned.length - 5} more)` : '')); sweepFail++; }
+await browser.close();
+if (sweepFail) { console.log(`\nFAILED — the sweep did not complete (${sweepFail} reason(s)). The button verdicts above are a report and never fail a run; this is about the sweep itself.`); process.exit(1); }
+console.log('\nbutton sweep complete — every page reached, every reachable button pressed');
+process.exit(0);

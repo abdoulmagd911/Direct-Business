@@ -13,7 +13,7 @@ import fs from 'fs';
 
 const REFUSE = !!(process.env.MOCK_REFUSE_TABLES || '').trim();
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-const PORT = REFUSE ? 8304 : 8303;
+const PORT = REFUSE ? 8745 : 8744;   /* 2026-09-09 (cycle 74): was 8304/8303, both of which probe-crm-attacks binds. Invisible to the old port check, which read only `PORT = <digits>` and not a ternary. */
 const srv = start(PORT);
 const BASE = 'http://localhost:' + PORT;
 let failures = 0;

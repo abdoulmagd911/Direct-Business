@@ -356,6 +356,59 @@ function finUniqueClash(table,row,ignoreId){
     details:'Key (invoice_no, line_no)=('+row.invoice_no+', '+(ln==null?'null':ln)+') already exists.',
     hint:null};
 }
+
+/* 2026-09-07 (watch cycle 47) — WHAT THIS MOCK DOES NOT UNDERSTAND, IT MUST SAY.
+   Cycles 45 and 46 each found the same failure a day apart: a query feature scoped narrowly on
+   purpose (PATCH honest for seven tables; is.null honoured for archived_at only), which then
+   answered the wrong thing confidently for every case nobody had happened to need yet. A PATCH
+   returned 201 without writing; a GET for the DELETED rows came back with all of them. Both were
+   found only because something eventually depended on them, and in both cases a DIFFERENT probe
+   than the one being written is what noticed.
+   The pattern is not "these two features were incomplete". It is that an unimplemented filter
+   was indistinguishable from an implemented one. So: after the operators this mock really does
+   apply, anything left that is SHAPED like a PostgREST operator stops the request with 501 and
+   names itself. A harness may be incomplete; it may not be encouraging.
+   Adding an operator here is deliberately cheap — implement it in the loop above and it stops
+   reaching this check. */
+const IGNORED_WRITES={};
+/* 2026-09-08 (watch cycle 67) — THE READINESS SIGNAL.
+   Three probes have now failed because a table they depend on had not been served in time, and one
+   of them twice with the same words: probe-alias-dedupe-attacks, cycles 57 and 66 —
+   "DB.settings never arrived from app_settings — the exclusion list and group map below would be
+   measured against an empty object, which is not a finding about the app".
+   That sentence is careful and right, and it is also the end of the road: the probe cannot tell
+   whether the app never ASKED for the table or whether it asked and the answer was late, so all it
+   can do is wait a guessed number of milliseconds and give up.
+   The mock knows the one fact neither the probe nor the app can see: whether the request was made
+   and answered. SERVED counts responses per table (reads and writes separately), so a probe can
+   wait on a FACT instead of a timeout, and — when it does time out — can say which of the two
+   things went wrong.
+   WHAT THIS IS NOT, and must never become: it is not proof that the APP has the data. The counter
+   says the wire carried it; whether js/02 assigned it to DB.settings is a separate question the
+   probe must still ask of the page. A helper that conflated the two would let a probe guarding the
+   exclusion list pass while measuring an empty object, which is the exact failure those probes
+   exist to prevent. scripts/qa/wait-ready.mjs keeps that separation and says so. */
+const SERVED={};
+function markServed(table,method){
+  if(!table)return;
+  const k=String(table).split('?')[0];
+  const e=SERVED[k]=SERVED[k]||{reads:0,writes:0,lastAt:null};
+  if(String(method||'GET').toUpperCase()==='GET')e.reads++; else e.writes++;
+  e.lastAt=new Date().toISOString();
+}
+const PGRST_OP=/^(eq|neq|gt|gte|lt|lte|like|ilike|match|imatch|in|is|isdistinct|fts|plfts|phfts|wfts|cs|cd|ov|sl|sr|nxr|nxl|adj|not|or|and|all|any)\./;
+const NON_FILTER_PARAMS=new Set(['select','order','limit','offset','on_conflict','columns']);
+function unhandledFilter(query,handled){
+  for(const k of Object.keys(query||{})){
+    if(NON_FILTER_PARAMS.has(k))continue;
+    if(k.includes('->>'))continue;              // json-path keys have their own loop
+    if(handled.has(k))continue;
+    let val=query[k]; if(Array.isArray(val))val=val[0];
+    if(PGRST_OP.test(String(val||''))) return {key:k,val:String(val)};
+  }
+  return null;
+}
+
 // 2026-09-02 (watch cycle 5): mirror of the LIVE trigger finance_derive_fields() (BEFORE INSERT OR
 // UPDATE on finance_invoices, read from pg_trigger the same day) — month/quarter from the date,
 // revenue = total − wallet, profit = revenue − cost, remaining = 0 on excluded/credit rows. Without
@@ -418,6 +471,33 @@ export async function settingsLoaded(page, ms = 90000, alsoRequire = null) {
   const marker = () => page.evaluate(() => { try { return !!(DB && DB.settings && DB.settings.__mockSettingsLanded); } catch (_) { return false; } });
   const extra = alsoRequire ? () => page.evaluate(alsoRequire) : async () => true;
   const t0 = Date.now();
+  /* 2026-09-08 (watch cycle 68) — ADOPTING THE READINESS SIGNAL, at the one place all seven
+     callers already share rather than in each of them.
+     Everything above this line is about the PAGE: has the app got the blob and kept it. What it
+     could never say is WHY not, and that is what has actually been costing cycles —
+     probe-alias-dedupe-attacks starved here in cycles 57 and 66, probe-exclusion-not-loaded in
+     60, probe-import-preview-phone in 61, all of them reporting some version of "never arrived"
+     with no way to tell a request that was never made from an answer that was late.
+     SERVED (this module, cycle 67) holds the missing fact, and being in the same module it is
+     read directly — no HTTP, no second source of truth. The wire is checked FIRST because it is
+     the cheaper and more diagnostic failure: if app_settings was never requested at all, no
+     amount of waiting on the page will help, and saying so is the whole point.
+     This ADDS to the page check, it does not replace it. Serving the blob is not the app having
+     it — the probes that wait here are the ones guarding the exclusion list, and letting "served"
+     stand for "ready" would hand them exactly the empty object they exist to refuse. `lastWhy`
+     carries the reason for callers that want to print it; the return value stays a plain boolean
+     so the four probes this session does not own are untouched and behave as before. */
+  settingsLoaded.lastWhy = '';
+  let wireSeen = false;
+  while (Date.now() - t0 < ms) {
+    const e = SERVED['app_settings'];
+    if (e && (e.reads || 0) >= 1) { wireSeen = true; break; }
+    await page.waitForTimeout(100);
+  }
+  if (!wireSeen) {
+    settingsLoaded.lastWhy = `app_settings was never requested at all in ${ms}ms — the app did not ask for it, so this is not a slow answer`;
+    return false;
+  }
   while (Date.now() - t0 < ms) {
     if (await marker() && await extra()) {
       await page.waitForTimeout(700);
@@ -426,6 +506,8 @@ export async function settingsLoaded(page, ms = 90000, alsoRequire = null) {
     }
     await page.waitForTimeout(200);
   }
+  const e = SERVED['app_settings'];
+  settingsLoaded.lastWhy = `app_settings was served ${(e && e.reads) || 0} time(s), but the app never held the settings the probe needs — the answer arrived and the page did not end up with it`;
   return false;
 }
 
@@ -454,6 +536,9 @@ export function start(port, seedOverrides){
    TABLES[k]=seedOverrides[k];
  });
  return http.createServer((req,res)=>{
+    try{ if(String(req.url||'').split('?')[0]==='/__mock/ignored-writes'){ res.writeHead(200,{'Content-Type':'application/json'}); return res.end(JSON.stringify(IGNORED_WRITES)); } }catch(_){}
+    try{ if(String(req.url||'').split('?')[0]==='/__mock/served'){ res.writeHead(200,{'Content-Type':'application/json'}); return res.end(JSON.stringify(SERVED)); } }catch(_){}
+
   const u=url.parse(req.url,true); const path=u.pathname;
   if(req.method==='OPTIONS') return send(res,204,'');
   if(path==='/__lib') { res.writeHead(200,{'Content-Type':'application/javascript'}); return res.end(fs.readFileSync(UMD)); }
@@ -766,6 +851,10 @@ export function start(port, seedOverrides){
   }
   if(path.startsWith('/rest/v1/')){
     const t=path.replace('/rest/v1/','').split('?')[0];
+    /* Counted at the point the table is known and BEFORE the answer is built, so a table that
+       exists but returns nothing still counts as served — "asked and answered" is the fact a
+       probe needs, and an empty answer is an answer. */
+    markServed(t,req.method);
     let rows=TABLES[t]||[];
     if(LAPSED&&req.method==='GET') return send(res,200,[]);   // RLS shows an anonymous caller nothing
     if(anonWall){                                             // see MOCK_ANON_ENFORCE above
@@ -876,24 +965,69 @@ export function start(port, seedOverrides){
       // update and previously fell through to the blanket `201 []`.
       // 2026-09-02 attack round 6: the same honest UPDATE for the tables the Leads/Events/linker
       // layers update, so their new row-count checks can be exercised here too.
-      if(req.method==='PATCH'&&(t==='finance_invoices'||t==='finance_targets'||t==='client_profiles'||t==='ksa_events'||t==='businesses'||t==='finance_client_links'||t==='app_users')){
+      // 2026-09-07 (watch cycle 45): THE ALLOW-LIST WAS THE PROBLEM, NOT THE IMPLEMENTATION.
+      // The note above fixed PATCH for seven named tables and left every other table falling
+      // through to the blanket `201 []` below — an insert-shaped no-op that answers 201 with a
+      // body that reads like success. Found by writing an exclusion into app_settings from a
+      // probe: the PATCH returned 201, the row was untouched, and the probe went on to report a
+      // defect in the app that did not exist. Exactly the hazard this comment already names —
+      // "a .select()+row-count check could never fail here" — left standing for every table
+      // nobody had happened to need yet.
+      // So the honest UPDATE is the default now, for ANY table the mock holds, and a PATCH to a
+      // table it does not hold answers 501 by name rather than pretending. A harness may be
+      // incomplete; it may not be encouraging.
+      if(req.method==='PATCH'&&!TABLES[t]){
+        return send(res,501,{message:'mock-supabase: PATCH on unknown table "'+t+'" — this mock does not hold that table, so the update was NOT applied. Seed it via start(PORT,{'+t+':[...]}) rather than reading a 2xx here as a write.',code:'MOCK501'});
+      }
+      if(req.method==='PATCH'){
         let body=''; req.on('data',c=>body+=c);
         return req.on('end',()=>{
           let patch={}; try{ patch=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
           if(Object.prototype.hasOwnProperty.call(patch,'year')) return send(res,400,{message:'cannot insert a non-DEFAULT value into column "year"',code:'428C9'});
           const table=TABLES[t]||[];
           let rows=table.slice();
+          const _handledPatch=new Set();
           Object.keys(u.query||{}).forEach(k=>{
             if(k==='select'||k==='order'||k==='limit'||k==='offset'||k==='on_conflict')return;
             let val=u.query[k]; if(Array.isArray(val))val=val[0]; val=String(val||'');
             let m;
-            if((m=val.match(/^eq\.(.*)$/))) rows=rows.filter(r=>String(r[k])===m[1]);
-            else if(val==='is.null') rows=rows.filter(r=>r[k]==null);
-            else if(val==='not.is.null') rows=rows.filter(r=>r[k]!=null);
-            else if((m=val.match(/^in\.\((.*)\)$/))){ const set=m[1].split(',').map(x=>x.replace(/^"|"$/g,'')); rows=rows.filter(r=>set.includes(String(r[k]))); }
+            if((m=val.match(/^eq\.(.*)$/))) { rows=rows.filter(r=>String(r[k])===m[1]); _handledPatch.add(k); }
+            else if(val==='is.null') { rows=rows.filter(r=>r[k]==null); _handledPatch.add(k); }
+            else if(val==='not.is.null') { rows=rows.filter(r=>r[k]!=null); _handledPatch.add(k); }
+            else if((m=val.match(/^in\.\((.*)\)$/))){ const set=m[1].split(',').map(x=>x.replace(/^"|"$/g,'')); rows=rows.filter(r=>set.includes(String(r[k]))); _handledPatch.add(k); }
           });
+          /* An UPDATE is the worse half of this. A filter that is silently ignored here does not
+             merely show too many rows — it WRITES to every row the filter was meant to exclude,
+             which is the shape of cycle 46's Restore defect arriving from the harness side. */
+          {
+            const miss=unhandledFilter(u.query,_handledPatch);
+            if(miss) return send(res,501,{code:'MOCK501',
+              message:'mock-supabase: this mock does not implement the filter "'+miss.key+'='+miss.val+'" on a PATCH. The update was NOT applied — applying it would have written to rows that filter was meant to exclude. Implement the operator in mock-supabase.mjs, or use one this mock applies (eq, in, is.null, not.is.null).'});
+          }
           rows.forEach(r=>{ Object.assign(r,patch); if(t==='finance_invoices')deriveFinanceInvoice(r); });
           return send(res,200, rows);
+        });
+      }
+      /* 2026-09-07 (watch cycle 48): app_settings upserts are persisted now. Cycle 47's new
+         counter reported EIGHT unpersisted POSTs to this table in a single battery — the app
+         saving its own settings, going nowhere, for as long as this harness has existed. It
+         mattered immediately: a probe checking "a read-only share view must not change the
+         STORED exclusion list" could not fail on that half, because no write to app_settings
+         ever landed. The guard was proved by the dialog not opening, and the stored-list
+         assertion was decoration. js/35 sends upsert({id:'main',data},{onConflict:'id'}). */
+      if(t==='app_settings'&&req.method==='POST'){
+        let body=''; req.on('data',c=>body+=c);
+        return req.on('end',()=>{
+          let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+          if(!Array.isArray(payload)) payload=[payload];
+          TABLES.app_settings=TABLES.app_settings||[];
+          const written=payload.map(row=>{
+            const id=row.id==null?'main':String(row.id);
+            const ix=TABLES.app_settings.findIndex(r=>String(r.id)===id);
+            if(ix>=0){ TABLES.app_settings[ix]=Object.assign({},TABLES.app_settings[ix],row,{id}); return TABLES.app_settings[ix]; }
+            const fresh=Object.assign({},row,{id}); TABLES.app_settings.push(fresh); return fresh;
+          });
+          return send(res,201,written);
         });
       }
       if(t==='finance_targets'&&req.method==='POST'){
@@ -1035,22 +1169,62 @@ export function start(port, seedOverrides){
           return send(res,201,written);
         });
       }
+      /* 2026-09-07 (watch cycle 47): THE THIRD ONE, AND ITS OWN COMMENT ABOVE ADMITS IT.
+         "everything else keeps the old no-op 201,[] stub … Widening this to every table is a
+         bigger, riskier change some other probe might be unknowingly relying on — not done
+         here." Same reasoning that left cycle 45's PATCH allow-list and cycle 46's is.null
+         scoping standing, and both of those were answering the wrong thing confidently.
+         FIRST ATTEMPT, AND WHY IT WAS WRONG: this answered 501. Four probes went red — and not
+         because they asserted a write had worked, but because the APP logged a failed request
+         and they check for console errors. That is the harness punishing the app for the
+         harness's own gap. In production the write succeeds; the app is behaving correctly, and
+         a 501 makes it look otherwise.
+         The lie is not told to the app — it cannot tell the difference and should not have to.
+         It is told to whoever reads the probe's output later. So the wire stays 201 (what the
+         app would see if the row had been stored) and the harness says what it did on STDERR,
+         where the probe's log keeps it, plus a counter any probe can assert on:
+             GET /__mock/ignored-writes  →  {"finance_expenses":3, …}
+         Silence became a sentence, addressed to the person who can act on it. */
+      try{
+        IGNORED_WRITES[t]=(IGNORED_WRITES[t]||0)+1;
+        if(IGNORED_WRITES[t]===1) console.warn('[mock-supabase] NOT PERSISTED: '+req.method+' to "'+t+'" — this mock does not store that table, so nothing was written and 201 [] was returned. If a check below depends on that write, it is measuring nothing. Persist the table in mock-supabase.mjs, or seed it with start(PORT,{'+t+':[...]}). Counter: GET /__mock/ignored-writes');
+      }catch(_){}
       return send(res,201,[]);
     }
     // apply simple eq filters from the query string (e.g. id=eq.<uuid>) like real PostgREST,
     // so .eq(...).maybeSingle() returns exactly the matching row (not row[0] of the whole table).
+    const _handledGet=new Set();
     Object.keys(u.query||{}).forEach(k=>{
       if(k==='select'||k==='order'||k==='limit'||k==='offset')return;
       let val=u.query[k]; if(Array.isArray(val))val=val[0];
       const m=String(val||'').match(/^eq\.(.*)$/);
-      if(m){ const want=m[1]; rows=rows.filter(r=>String(r[k])===want); }
+      if(m){ const want=m[1]; rows=rows.filter(r=>String(r[k])===want); _handledGet.add(k); }
       // 2026-09-02 (reversibility round): the loader really does send
       // businesses?archived_at=is.null, and ignoring it meant an archived company came back on
       // reload here but not in production. Scoped to archived_at ONLY — every other is.null GET
       // in the harness keeps the old unfiltered behaviour it was written against.
-      else if(k==='archived_at'&&String(val)==='is.null') rows=rows.filter(r=>r[k]==null);
-      else if(k==='archived_at'&&String(val)==='not.is.null') rows=rows.filter(r=>r[k]!=null);
+      // 2026-09-07 (watch cycle 46): the scoping above was archived_at ONLY, and every other
+      // column's null filter on a GET was silently ignored — so a read asking for the DELETED
+      // rows of an invoice came back with all of them, deleted or not. Found the hard way: a
+      // js/16 change relied on `deleted_at=not.is.null` and behaved correctly against real
+      // PostgREST while this mock handed it live rows, and it was a DIFFERENT probe
+      // (probe-concurrency-attacks) that noticed. Same shape as cycle 45's PATCH allow-list —
+      // a narrow scope chosen to avoid disturbing anyone, which then answers the wrong thing
+      // confidently for everyone else. Honour it for any column; the battery says what was
+      // relying on the old behaviour.
+      // json-path keys (funnel_details->>event_name) are NOT plain columns and are handled by
+      // the loop below — filtering them here reads r['funnel_details->>event_name'], which is
+      // undefined for every row, and drops the whole table. Found by probe-events losing its
+      // lead count the moment this branch was widened.
+      else if(k.includes('->>')) { /* handled below */ }
+      else if(String(val)==='is.null') { rows=rows.filter(r=>r[k]==null); _handledGet.add(k); }
+      else if(String(val)==='not.is.null') { rows=rows.filter(r=>r[k]!=null); _handledGet.add(k); }
     });
+    {
+      const miss=unhandledFilter(u.query,_handledGet);
+      if(miss) return send(res,501,{code:'MOCK501',
+        message:'mock-supabase: this mock does not implement the filter "'+miss.key+'='+miss.val+'" on a GET, so the rows it would have removed are NOT removed. Refusing rather than answering with an unfiltered table. Implement the operator in mock-supabase.mjs, or use one this mock applies (eq, is.null, not.is.null).'});
+    }
     // json-path filter used by the events layer: funnel_details->>event_name=not.is.null
     Object.keys(u.query||{}).forEach(k=>{
       if(!k.includes('->>'))return;

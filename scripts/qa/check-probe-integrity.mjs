@@ -46,6 +46,11 @@ const DIRS = ['scripts/qa', 'scripts/generator-qa'];
 const SUPPORT = new Set([
   'emp-rig.mjs', 'mock-supabase.mjs', 'mock-seed.mjs', 'mock-seed-live.mjs',
   'stress-data.mjs', 'check-probe-integrity.mjs',
+  /* 2026-09-08 (watch cycle 67): the readiness waiter. It asserts nothing about the app — it
+     reports whether the mock answered a request and whether the page then used it — so it belongs
+     here rather than among the files that must be able to fail. probe-mock-readiness is the probe
+     that holds it to its promises. */
+  'wait-ready.mjs',
 ]);
 
 /* MUST BE ABLE TO FAIL. Every entry below was sabotage-proven on 2026-09-03: the thing it
@@ -360,21 +365,72 @@ if (!REPORTS) {
    alone" for six cycles across three probes. It was never the environment. This check makes the
    mistake impossible to repeat quietly: a duplicate port is a build failure, not a mystery. */
 {
+  /* ---- watch cycle 74: this block used to read one shape and vouch for everything ----
+     It matched `PORT = <digits>` and nothing else, so any file that expressed its port
+     differently was not in `ports` at all — and the success line then certified a uniqueness
+     it had never examined. Seven of the 156 files were outside the fence while the fence
+     reported the field clear:
+
+       probe-role-nav          `8700 + Math.floor(Math.random()*500)` — a range covering every
+                               port the battery uses. In cycle 73's run it drew 8974, collided,
+                               died with EADDRINUSE, and was counted a non-reproducer: exactly
+                               the "environmental, red in a batch and green alone" reading this
+                               block was built to end.
+       three probes            `const PORT = REFUSE ? 8304 : 8303` — two honest literals in a
+                               ternary, invisible to the old regex, so their ports were never
+                               checked against anybody else's.
+       three probes            the port passed at the call site — `run(8471, …)` — never
+                               assigned to a PORT name at all.
+
+     So it collects every port a file could bind, from wherever it is written, and separates
+     the two failures that matter: a port it cannot see at all, and a port that is COMPUTED at
+     run time, which no static check can ever make safe. */
   const ports = new Map();
+  const computed = [], undeclared = [];
+  const COMPUTED_RE = /Math\.|random|Date\.now|process\.env|process\.argv/;
   for (const f of files) {
-    const m = f.src.match(/PORT\s*=\s*(\d+)/);
-    if (!m) continue;
-    const port = +m[1];
-    if (!ports.has(port)) ports.set(port, []);
-    ports.get(port).push(f.base);
+    if (SUPPORT.has(f.base)) continue;
+    const opensMock = /\bstart\s*\(/.test(f.src);
+    const found = new Set();
+    let isComputed = false;
+    for (const m of f.src.matchAll(/\bPORT\s*=\s*([^;\n]+)/g)) {
+      /* Comments first, or the collector reads the wrong numbers. The first version of this did
+         not strip them and reported SEVEN clashes, every one of them a number sitting in a note
+         on the same line — three files carry `PORT = 8991 /* … was 8301, the port
+         probe-crm-attacks also binds … *​/` from an earlier meta-audit, and the year 2026 inside
+         those notes was collected as a port shared by three probes. The check written to prove
+         the ports are clean was itself the unclean thing, which is now the sixth cycle running
+         (60, 62, 69, 71, 72, 73). */
+      const expr = m[1].replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/.*$/, ' ');
+      if (COMPUTED_RE.test(expr)) isComputed = true;
+      for (const d of expr.matchAll(/\b(\d{4,5})\b/g)) found.add(+d[1]);
+    }
+    /* ports written straight into the call rather than named first */
+    for (const m of f.src.matchAll(/\b(?:start|run)\s*\(\s*(\d{4,5})\b/g)) found.add(+m[1]);
+    if (!opensMock && !found.size) continue;
+    if (isComputed) { computed.push(f.base); continue; }
+    if (opensMock && !found.size) { undeclared.push(f.base); continue; }
+    for (const port of found) {
+      if (!ports.has(port)) ports.set(port, []);
+      if (!ports.get(port).includes(f.base)) ports.get(port).push(f.base);
+    }
   }
   const clashes = [...ports.entries()].filter(([, fsx]) => fsx.length > 1);
   if (clashes.length) {
-    clashes.forEach(([port, fsx]) => console.log(`  ✗ port ${port} is used by ${fsx.length} probes: ${fsx.join(', ')} — the battery runs six at a time, so these will kill each other with EADDRINUSE at an unpredictable point`));
+    clashes.forEach(([port, fsx]) => console.log(`  ✗ port ${port} is used by ${fsx.length} probes: ${fsx.join(', ')} — the battery runs several at a time, so these will kill each other with EADDRINUSE at an unpredictable point`));
     bad += clashes.length;
   } else {
-    console.log(`  ✓ all ${ports.size} probes that open a port use a port of their own`);
+    console.log(`  ✓ all ${ports.size} ports across ${new Set([...ports.values()].flat()).size} probes are unique — ternaries and call-site ports included, not only \`PORT = <digits>\``);
   }
+  if (computed.length) {
+    computed.forEach((n) => console.log(`  ✗ ${n} computes its mock port at run time — no static check can vouch for it, and a collision reads as weather rather than as the arithmetic it is`));
+    bad += computed.length;
+  }
+  if (undeclared.length) {
+    undeclared.forEach((n) => console.log(`  ✗ ${n} opens a mock but writes no port this check can find, so the line above cannot include it`));
+    bad += undeclared.length;
+  }
+  if (!computed.length && !undeclared.length) console.log('  ✓ and every file that opens a mock writes its port where this check can read it');
 }
 
 if (bad) { console.log(`\nprobe-integrity FAILED — ${bad} problem(s).`); process.exit(1); }

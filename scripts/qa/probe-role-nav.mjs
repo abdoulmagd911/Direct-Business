@@ -47,7 +47,14 @@ async function childRun(role) {
   const { start } = await import('./mock-supabase.mjs');
   const fs = await import('fs');
   const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
-  const PORT = 8700 + Math.floor(Math.random() * 500);
+  /* 2026-09-09 (watch cycle 74): was `8700 + Math.floor(Math.random()*500)` — a range covering
+     every port the battery uses, including its own. In cycle 73's run it drew 8974, collided,
+     and died with EADDRINUSE, and the battery counted it as a non-reproducer: exactly the
+     "environmental, red in a batch and green alone" misreading that check-probe-integrity's
+     port block was built to end, on the one file that block could not see. A literal, so it
+     can be seen. The children below run one at a time and each is its own process, so one port
+     is enough for all six roles. */
+  const PORT = 8742;
   const srv = start(PORT);
   const BASE = 'http://localhost:' + PORT;
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });

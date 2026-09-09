@@ -35,7 +35,11 @@ async function run(role, pageAccess) {
   // around it.
   const { start } = await import('./mock-supabase.mjs?run=' + (++importSeq));
 
-  const PORT = 8900 + Math.floor(Math.random() * 400);
+  /* 2026-09-09 (cycle 74): was `8900 + Math.floor(Math.random()*400)` — the second file in the
+     tree picking a port at random, after probe-role-nav drew 8974 in cycle 73's battery, collided,
+     and was written off as a non-reproducer. run() is awaited twice and each call closes its own
+     server, so two declared literals cover it and both are now visible to the duplicate check. */
+  const PORT = (importSeq === 1) ? 8746 : 8747;
   const srv = start(PORT);
   const BASE = 'http://localhost:' + PORT;
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
