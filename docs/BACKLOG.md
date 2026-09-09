@@ -10401,12 +10401,21 @@ the failure); probe-no-native-dialogs gains the Won and proposal-delete blocks. 
 on the live Leads page (78 rows) — no empty pill anywhere; the row that showed it was the test
 lead, since deleted; closed as not reproducible.
 
-**Still using window.confirm / alert, deliberately left for a later pass:** the two "send a
-password reset link" questions (js/02, js/31), `resetData` and `v21WipeLocalData` (developer
-tools), the five finance-guardrail questions in js/62 (exclusion remove, grouping undo, merge,
-merge undo — probes pin their wording), js/45's fallback, and the dead first copies of
-evDelete/evOpenModal in js/10 (lines ~120–175, superseded lower down). BR1 the public Brand Hub
-is the owner's decision.
+**Fourth landing.** The two "send a password reset link" questions (js/02, js/31) and the
+superseded v38 copy of evDelete/evOpenModal in js/10 moved off window.confirm/alert
+(probe-no-native-dialogs gains the reset-link block; diag-password-recovery answers the box).
+A3 — "Recent changes" on a company card said "No logged changes yet" straight after a save: the
+card is drawn by the render() that follows the save, but the row is written by the database
+trigger when the cloud save lands ~1 s later; js/63 chains js/02's status pill and re-reads the
+card on "Saved" (probe 8767; the mock lets a probe plant a history row the way the trigger
+would). Seen on the way and traced: opening a company card renders a second time when js/38's finance
+card has loaded the finance tables (first open of a session only) — by design, not a defect;
+the probe waits for those reads to land before it measures.
+
+**Still using window.confirm / alert, deliberately left for a later pass:** `resetData` and
+`v21WipeLocalData` (developer tools), the five finance-guardrail questions in js/62 (exclusion
+remove, grouping undo, merge, merge undo — probes pin their wording), js/45's fallback. BR1 the
+public Brand Hub is the owner's decision.
 
 ---
 
