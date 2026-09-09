@@ -58,6 +58,16 @@ writes only the audit section, and no settings row at all.
   all inside the locked set; 0 duplicate live names; 0 orphaned contacts; 0 client links to a
   missing company; 0 negative/null invoice totals; profit = revenue − cost on every costed row.
 
+### SQL data-spotless sweep (2026-09-09, Supabase-side, no browser)
+Ran when the sandbox's headless-Chromium was degraded (every probe exited 144, not OOM). Direct
+SQL over the live tables: finance_invoices (46) — revenue/cost never negative, profit=revenue−cost
+on every costed row, NO row where revenue equals total-incl-VAT while VAT>0 (M1 holds), zero
+Takamol/Techtic leak, revenue_way always valid, month/quarter never null. promo_codes (200) — no
+duplicate or blank codes. finance_client_links (26) — the 5 with confirmed_by=null are the owner's
+alias-variant client_groups (created by the alias-grouping path, not auto-match); benign. Expense
+capture (223 lines / 155 gates) keys on the Direct Payments transaction id, a separate keyspace
+from invoice_no (cost join covered by the passing capture probes). No data defect found.
+
 ### Session-edge drive (two real browsers, one account, real DB) — one known limitation reconfirmed
 - Wrong password → clear message. Restored session (reload at /finance with the token saved) →
   straight to Finance as admin in 14 ms, matrix + nicknames loaded, no re-login. Sign out in one
