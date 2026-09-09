@@ -322,9 +322,13 @@ async function phaseA() {
   /* ---------------- 4. quick edit ---------------- */
   await p.evaluate(() => { leadFilter.hideClosed = true; leadFilter.stage = 'all'; drawLeads(); });
   dlg.mode = 'accept';
-  const emptyName = await p.evaluate(async () => { editBusiness('qa_due'); await new Promise(r => setTimeout(r, 300)); document.getElementById('f_name').value = '   '; document.getElementById('mSave').click(); await new Promise(r => setTimeout(r, 300)); const open = document.getElementById('ov').classList.contains('show'); const name = getLead('qa_due').name; closeModal(); return { open, name }; });
-  const emptyAlert = (dialogs.filter(d => d.type === 'alert').slice(-1)[0] || {}).message || '';
-  check('4a saving a lead with an empty name is refused (alert, modal stays open, name unchanged)', emptyName.open && emptyName.name === 'Due Today Co' && /name required/i.test(emptyAlert), { emptyName, emptyAlert });
+  /* 2026-09-09 (live test D1): the refusal moved from a native alert() — which froze the owner's
+     tab — to the app's own toast, so the message is read from the page, not from a dialog, and a
+     native dialog here is now itself a failure. */
+  const nBefore4a = dialogs.length;
+  const emptyName = await p.evaluate(async () => { editBusiness('qa_due'); await new Promise(r => setTimeout(r, 300)); document.getElementById('f_name').value = '   '; document.getElementById('mSave').click(); await new Promise(r => setTimeout(r, 300)); const open = document.getElementById('ov').classList.contains('show'); const name = getLead('qa_due').name; const toast = (document.getElementById('v19toast') || {}).textContent || ''; closeModal(); return { open, name, toast }; });
+  const emptyAlert = emptyName.toast;
+  check('4a saving a lead with an empty name is refused (in-page toast, no native dialog, modal stays open, name unchanged)', emptyName.open && emptyName.name === 'Due Today Co' && /name required/i.test(emptyAlert) && dialogs.length === nBefore4a, { emptyName, emptyAlert, nativeDialogs: dialogs.length - nBefore4a });
   const won = await p.evaluate(async () => { leadQuickEdit('qa_due'); await new Promise(r => setTimeout(r, 300)); document.getElementById('qe_stage').value = 'Won'; document.getElementById('mSave').click(); await new Promise(r => setTimeout(r, 700)); const b = getLead('qa_due'); const r = { isClient: b.isClient, stage: leadStage(b), inLeads: leadTableList().some(x => x.id === 'qa_due'), inClients: clientsView().some(x => x.id === 'qa_due'), handover: !!document.getElementById('c_did') }; closeModal(); return r; });
   check('4b quick-edit stage → Won flips isClient and the record moves from Leads to Clients (handover opens)', won.isClient === true && won.stage === 'Won' && !won.inLeads && won.inClients && won.handover, won);
   dlg.mode = 'dismiss';
@@ -339,13 +343,13 @@ async function phaseA() {
   dlg.mode = 'accept';
   const back3 = await p.evaluate(async () => { const b = getLead('qa_due'); b.stage = 'Won'; b.status = 'Won'; leadQuickEdit('qa_due'); await new Promise(r => setTimeout(r, 300)); document.getElementById('qe_stage').value = 'Proposal'; document.getElementById('mSave').click(); await new Promise(r => setTimeout(r, 500)); const x = getLead('qa_due'); return { isClient: x.isClient, stage: leadStage(x), inLeads: leadTableList().some(y => y.id === 'qa_due') }; });
   check('4d ...and OK moves it back to the pipeline (isClient false, listed under Leads again)', back3.isClient === false && back3.stage === 'Proposal' && back3.inLeads, back3);
-  dlg.mode = 'dismiss'; const nd2 = dialogs.length;
-  const del1 = await p.evaluate(async () => { editBusiness('qa_over'); await new Promise(r => setTimeout(r, 300)); document.getElementById('mDel').click(); await new Promise(r => setTimeout(r, 400)); return { exists: !!getLead('qa_over') }; });
-  const delConfirm = dialogs.slice(nd2).find(d => d.type === 'confirm');
-  check('4e Delete asks with confirm() and a "Cancel" answer leaves the company in place', !!delConfirm && /Delete this company/.test(delConfirm.message) && del1.exists === true, { del1, delConfirm });
-  dlg.mode = 'accept';
-  const del2 = await p.evaluate(async () => { editBusiness('qa_over'); await new Promise(r => setTimeout(r, 300)); document.getElementById('mDel').click(); await new Promise(r => setTimeout(r, 400)); return { exists: !!getLead('qa_over') }; });
-  check('4f ...and an "OK" answer removes it', del2.exists === false, del2);
+  /* 2026-09-09 (live test D1): Delete asks through js/57's in-page box (#pfConfirmBox), not a
+     native confirm() — a native dialog here is now itself a failure. */
+  const nd2 = dialogs.length;
+  const del1 = await p.evaluate(async () => { editBusiness('qa_over'); await new Promise(r => setTimeout(r, 300)); document.getElementById('mDel').click(); await new Promise(r => setTimeout(r, 400)); const box = document.getElementById('pfConfirmBox'); const msg = box ? box.innerText : ''; const no = document.getElementById('pfConfirmNo'); if (no) no.click(); await new Promise(r => setTimeout(r, 300)); return { exists: !!getLead('qa_over'), box: !!box, msg }; });
+  check('4e Delete asks with the in-page box and a "Cancel" answer leaves the company in place', del1.box && /Delete this company/.test(del1.msg) && del1.exists === true && dialogs.length === nd2, { del1, nativeDialogs: dialogs.length - nd2 });
+  const del2 = await p.evaluate(async () => { editBusiness('qa_over'); await new Promise(r => setTimeout(r, 300)); document.getElementById('mDel').click(); await new Promise(r => setTimeout(r, 400)); const yes = document.getElementById('pfConfirmYes'); if (yes) yes.click(); await new Promise(r => setTimeout(r, 500)); return { exists: !!getLead('qa_over') }; });
+  check('4f ...and a "Confirm" answer removes it', del2.exists === false && dialogs.length === nd2, del2);
 
   /* ---------------- 5. clients ---------------- */
   await go(p, 'clients', 1200);

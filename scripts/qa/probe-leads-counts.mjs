@@ -14,12 +14,24 @@
         refreshed after — v26_3InjectSectionHead returned early whenever the head already
         existed. Toggling Hide-closed re-rendered the table but left the chip numbers stale.
 
+   2026-09-09 (live test, L1 + L3) — the invariant in fix 3 was revised. The owner saw, on the
+   live page with Hide-closed on: the Lost chip reading 0 while clicking it listed 2 leads, and
+   the funnel "All · 80" beside a stage "All 78" and "78 leads in view". The table
+   (leadTableList) applies Hide-closed only when no stage is picked, so a stage chip's badge
+   must count its stage in full — a chip that says 0 and lists 2 is the worse lie. The rule is
+   now: every "All" on the page (funnel tab, stage chip, "in view") counts the rows the table
+   shows; each stage chip counts what clicking it shows; with Hide-closed on the OPEN stages
+   add up to All and Won/Lost keep their real counts.
+
    This probe asserts the invariants directly, against the rendered DOM and the real in-page
    data — not against a fixed expected number, since the fixture's exact counts aren't the
    point: internal agreement is. It fails if:
-     - the funnel "All" tab does not equal the real lead count (fix 1 — clients leaking back
-       into the tab is exactly what silently regresses if leadPool() is ever removed again)
-     - the chip "All" count does not equal the sum of the six stage chips (fix 3)
+     - the funnel "All" tab does not equal the lead count the table shows (fix 1 — clients
+       leaking back into the tab is exactly what silently regresses if leadPool() is removed)
+     - the chip "All" count does not equal the funnel "All" tab
+     - Hide-closed OFF: chip All != sum of the six stage chips
+     - Hide-closed ON: chip All != sum of the four open stage chips, or Won/Lost read 0 while
+       the data holds closed leads (the live-site defect)
      - a chip filtering on "New" exists, in either language (fix 2)
      - toggling Hide-closed does not change the chip numbers in place, in EITHER direction —
        i.e. the chips are still showing a stale build (fix 4) */
@@ -40,7 +52,11 @@ async function readCounts(p) {
   return p.evaluate(() => {
     const out = { realLeads: null, funnelAll: null, chips: {}, chipCount: 0, hasNewChip: false };
     try {
-      out.realLeads = (DB.businesses || []).filter(b => !b.isClient && !b.archivedAt && !b._archived).length;
+      const pool = (DB.businesses || []).filter(b => !b.isClient && !b.archivedAt && !b._archived);
+      const hc = typeof leadFilter !== 'undefined' && leadFilter.hideClosed && (leadFilter.stage === 'all' || !leadFilter.stage);
+      out.realLeads = (hc ? pool.filter(b => { const st = leadStage(b); return st !== 'Won' && st !== 'Lost'; }) : pool).length;
+      out.closedLeads = pool.filter(b => { const st = leadStage(b); return st === 'Won' || st === 'Lost'; }).length;
+      out.hideClosed = !!hc;
     } catch (e) {}
     try {
       const tabs = document.getElementById('funnelTabs');
@@ -75,11 +91,13 @@ function assertConsistent(c, label) {
   if (c.hasNewChip) fail(`${label}: a dead "New" chip is present — C2S never emits a "New" screen stage`);
   else ok(`${label}: no dead "New" chip`);
 
-  const stageKeys = ['Prospect', 'Contacted', 'Qualified', 'Proposal', 'Won', 'Lost'];
+  const stageKeys = c.hideClosed ? ['Prospect', 'Contacted', 'Qualified', 'Proposal'] : ['Prospect', 'Contacted', 'Qualified', 'Proposal', 'Won', 'Lost'];
   const sum = stageKeys.reduce((s, k) => s + (c.chips[k] || 0), 0);
   if (c.chips.all == null) fail(`${label}: chip "All" count not found`);
-  else if (c.chips.all !== sum) fail(`${label}: chip All (${c.chips.all}) != stage-chip sum (${sum}) [${stageKeys.map(k => k + '=' + c.chips[k]).join(', ')}]`);
-  else ok(`${label}: chip All (${c.chips.all}) matches stage-chip sum`);
+  else if (c.chips.all !== sum) fail(`${label}: chip All (${c.chips.all}) != sum of the ${c.hideClosed ? 'open' : 'six'} stage chips (${sum}) [${stageKeys.map(k => k + '=' + c.chips[k]).join(', ')}]`);
+  else ok(`${label}: chip All (${c.chips.all}) matches the ${c.hideClosed ? 'open-stage' : 'stage-chip'} sum`);
+  if (c.chips.all != null && c.funnelAll != null && c.chips.all !== c.funnelAll) fail(`${label}: chip All (${c.chips.all}) != funnel All tab (${c.funnelAll}) — two "All"s on one screen (the live-site 78-vs-80)`);
+  else if (c.chips.all != null) ok(`${label}: chip All and funnel All agree (${c.chips.all})`);
 }
 
 async function main() {
@@ -130,8 +148,8 @@ async function main() {
   await p.waitForTimeout(500);
   c = await readCounts(p);
   assertConsistent(c, 'EN hideClosed=ON');
-  if (c.chips.Won !== 0 || c.chips.Lost !== 0) fail(`EN hideClosed=ON: Won/Lost should read 0 (got Won=${c.chips.Won}, Lost=${c.chips.Lost})`);
-  else ok('EN hideClosed=ON: Won and Lost correctly read 0');
+  if (c.closedLeads > 0 && (c.chips.Won || 0) + (c.chips.Lost || 0) !== c.closedLeads) fail(`EN hideClosed=ON: Won+Lost chips read ${(c.chips.Won || 0) + (c.chips.Lost || 0)} while ${c.closedLeads} closed leads exist — a chip must say what clicking it lists (the live-site defect: "Lost 0" listing 2)`);
+  else ok(`EN hideClosed=ON: Won=${c.chips.Won}, Lost=${c.chips.Lost} — the closed chips keep their real counts, as clicking them lists`);
   if (c.chips.all === offAll) fail(`EN hideClosed=ON: chip All did not actually change from the OFF baseline (${offAll}) — looks like a stale, un-refreshed count`);
   else ok(`EN hideClosed=ON: chip All changed from ${offAll} (OFF) to ${c.chips.all} (ON) — refresher fired`);
   const onAll = c.chips.all;

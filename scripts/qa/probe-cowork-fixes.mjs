@@ -85,7 +85,10 @@ for (const k of ['othman','business']) {
   });
   S('the log gains entries as work happens', res.after>res.before, JSON.stringify({before:res.before,after:res.after}));
   S('it records creating, changing a stage and deleting', ['create','stage','delete'].every(a=>res.actions.includes(a)), JSON.stringify(res.actions));
-  S('it records the sign-in', res.signIn);
+  /* 2026-09-09 (live test N2): the sign-in line was RETIRED — js/53 wrote it into DB.audit, an
+     array nothing has read since js/63 pointed Activity & Audit at record_history, and saved it to
+     the cloud on every page load with nothing else changed. The invariant is now the reverse. */
+  S('it no longer writes a sign-in line into the dead DB.audit array on load', !res.signIn);
   S('entries carry the real person, not a hard-coded name', !res.users.includes('Abdelrahman') && res.users.length>0, JSON.stringify(res.users));
   S('no javascript errors', errs.length===0, errs.slice(0,2).join(' | '));
   await browser.close();

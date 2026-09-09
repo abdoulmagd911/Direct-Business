@@ -1013,7 +1013,14 @@ export function start(port, seedOverrides){
             if(miss) return send(res,501,{code:'MOCK501',
               message:'mock-supabase: this mock does not implement the filter "'+miss.key+'='+miss.val+'" on a PATCH. The update was NOT applied — applying it would have written to rows that filter was meant to exclude. Implement the operator in mock-supabase.mjs, or use one this mock applies (eq, in, is.null, not.is.null).'});
           }
-          rows.forEach(r=>{ Object.assign(r,patch); if(t==='finance_invoices')deriveFinanceInvoice(r); });
+          /* 2026-09-09 (live test D1 / AU4): the live database's trigger writes a record_history
+             row for every businesses change — an archive included — and the app's Undo control
+             reads that row. Until now this mock wrote none, so the only "archive" row a probe
+             ever saw was a 19 Aug fixture already marked Undone, and A12 in
+             probe-recovery-attacks passed only because js/63 used to draw an Undo button on rows
+             the server would refuse (past 24 h). Mirror the trigger for the archive case. */
+          rows.forEach(r=>{ const before=JSON.parse(JSON.stringify(r)); Object.assign(r,patch); if(t==='finance_invoices')deriveFinanceInvoice(r);
+            if(t==='businesses'&&patch.archived_at&&!before.archived_at){ try{ const me=TABLES.app_users.find(x=>x.id===UID); const nextId=(TABLES.record_history.length?Math.max(...TABLES.record_history.map(x=>+x.id||0)):0)+1; TABLES.record_history.unshift({id:nextId,at:new Date().toISOString(),actor:UID,actor_name:(me&&me.full_name)||'unknown',table_name:'businesses',record_id:r.id,action:'archive',before_row:before,after_row:JSON.parse(JSON.stringify(r)),undone_at:null,undone_by:null}); }catch(_){} } });
           return send(res,200, rows);
         });
       }

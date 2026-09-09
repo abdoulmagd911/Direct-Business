@@ -134,10 +134,14 @@ async function phaseA(TABLES) {
   await go(p, 'leads');
   await p.evaluate((id) => editBusiness(id), TARGET);
   await p.waitForTimeout(400);
+  /* 2026-09-09 (live test D1): Delete asks through js/57's in-page box (#pfConfirmBox), not a
+     native confirm() — the text is read from that box and its Confirm button is pressed; a
+     native dialog here would be a regression of its own. */
   const dlgBefore = dialogs.length;
   await p.click('#mDel');
   await p.waitForTimeout(600);
-  const confirmMsg = (dialogs[dlgBefore] || {}).message || '';
+  const confirmMsg = await p.evaluate(() => { const b = document.getElementById('pfConfirmBox'); const t = b ? b.innerText : ''; const y = document.getElementById('pfConfirmYes'); if (y) y.click(); return t; });
+  if (dialogs.length !== dlgBefore) check('A1x the delete confirmation is the in-page box, not a native confirm()', false, dialogs.slice(dlgBefore));
   check('A1 the delete confirmation does not promise a 30-day restore window (nothing enforces one)',
     !!confirmMsg && !/30\s*(days|يوم)/i.test(confirmMsg), confirmMsg);
   check('A2 the delete confirmation names the real way back (Activity & Audit, 24 hours)',
@@ -172,15 +176,21 @@ async function phaseA(TABLES) {
 
   /* --- THE PROMISE: can an admin restore it? --- */
   await go(p, 'archive', 1000);
+  /* 2026-09-09 (live test AR1, js/76): the Archive page now READS the archived rows and lists
+     them with Restore — wait for that card rather than reading the page mid-load. */
+  await p.waitForFunction(() => { const c = document.querySelector('#view .v76-archived-companies'); return c && c.getAttribute('data-count') !== null; }, { timeout: 15000 }).catch(() => {});
   const archPage = await p.evaluate(() => ({
     text: document.getElementById('view').innerText,
     restoreButtons: [...document.querySelectorAll('#view button')].filter(b => /restore|استعادة|↺/i.test(b.textContent)).length,
     namesTargetCompany: document.getElementById('view').innerHTML.indexOf('Recover Target Co') >= 0,
   }));
-  report('Archive page after deleting a company: ' + archPage.restoreButtons + ' restore button(s), company listed = ' + archPage.namesTargetCompany
-       + '  →  there is NO restore path for companies anywhere in the product.');
-  check('A8 the Archive page does not silently pretend nothing was deleted — it says companies are not listed here',
-    /not listed here/i.test(archPage.text) && /Activity/i.test(archPage.text), archPage.text.slice(0, 260));
+  report('Archive page after deleting a company: ' + archPage.restoreButtons + ' restore button(s), company listed = ' + archPage.namesTargetCompany);
+  /* A8 REVISED 2026-09-09 (live test AR1): until today this asserted the footnote that admitted
+     "Deleted companies are not listed here". js/76 now lists them from the table with a Restore
+     button (probe-archive-lists-companies drives the restore itself), so the honest page is the
+     one that NAMES the deleted company and offers the way back. */
+  check('A8 the Archive page lists the deleted company by name and offers Restore',
+    archPage.namesTargetCompany && archPage.restoreButtons >= 1, archPage.text.slice(0, 260));
   check('A9 the Archive page no longer claims a 30-day restore window',
     !/30\s*(days|يوم)/i.test(archPage.text), archPage.text.slice(0, 260));
 
@@ -358,6 +368,8 @@ async function phaseD() {
   await A.p.evaluate(() => editBusiness('qa_two_tab'));
   await A.p.waitForTimeout(400);
   await A.p.click('#mDel');
+  await A.p.waitForTimeout(400);
+  await A.p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });   // D1 (9 Sep): in-page box, not confirm()
   await A.p.waitForTimeout(2600);
   const rowNow = TABLES.businesses.find(b => b.id === 'qa_two_tab');
   check('D1 person A\'s delete archived the row', rowNow.archived_at != null);

@@ -123,3 +123,15 @@ probe-import-preview-tab-switch
 probe-report-unrecorded-cost-rows
 probe-ledger-empty-speaks
 probe-import-files-count
+probe-today-queue-card
+probe-deeplink-survives-role-wait
+probe-leads-dash-tiles
+probe-money-off-ops-and-cards
+probe-no-native-dialogs
+probe-audit-names-and-words
+probe-kpi-heuristic-scope
+probe-proposal-editor-honesty
+probe-archive-lists-companies
+probe-visit-writes-nothing
+probe-yourday-waits-for-rows
+probe-activity-edit-remove

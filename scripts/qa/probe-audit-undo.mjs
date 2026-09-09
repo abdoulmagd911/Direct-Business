@@ -15,8 +15,11 @@
      - EVERY refusal string the function can return has an Arabic translation. js/63 claims its
        list is "the exact, exhaustive set"; this asserts that claim instead of trusting it, by
        feeding each string through the app's own translator.
-     - a change older than 24h still offers the button (the server decides) but warns first,
-       which is deliberate — the app does not duplicate the server's rules, it explains them
+     - a change older than 24h offers NO button — it says "past the 24-hour undo window" — because
+       undo_change refuses unconditionally past 24 h (read from the live function 9 Sep: `if
+       now() - h.at > win then return 'Too old to undo…'`). A button the server always refuses
+       is a lie in a button (live test AU4, 9 Sep — 18-day-old deletions all wore one). Revised
+       from "offer it and warn" on 2026-09-09.
      - the 500-row cap says so WHEN IT IS HIT, and stays quiet when it is not
 
    The cap check is the one behaviour change this round: the tile was always honestly labelled
@@ -122,10 +125,10 @@ async function main() {
     if (undone && !undone.undo) ok('an already-undone entry reads "Undone" and offers no second Undo');
     else fail('an already-undone entry still offers Undo: ' + JSON.stringify(undone));
 
-    // the >24h entry: button still offered (server decides), but warned
-    const warned = await p.evaluate(() => [...document.querySelectorAll('#view .act-row .ts')].map((x) => x.getAttribute('title') || '').filter(Boolean));
-    if (warned.some((t) => /Over 24h/.test(t))) ok('a change older than 24h still offers the button but warns first — the app explains the server\'s rule instead of duplicating it');
-    else fail('the >24h entry carries no warning: ' + JSON.stringify(warned));
+    // the >24h entry: no button (the server refuses unconditionally past 24 h), said in words
+    const oldRow = await p.evaluate(() => { const r = document.querySelector('#view .act-row[data-hist-id="1002"]'); return r ? { btn: !!r.querySelector('button'), expired: !!r.querySelector('[data-undo-expired]'), txt: r.innerText.replace(/\s+/g, ' ') } : null; });
+    if (oldRow && !oldRow.btn && oldRow.expired && /24-hour/.test(oldRow.txt)) ok('a change older than 24h offers no button and says "past the 24-hour undo window" — the server would refuse it anyway');
+    else fail('the >24h entry still offers a button the server will refuse, or says nothing: ' + JSON.stringify(oldRow));
 
     // ---- drive a real Undo
     const before = await fetch(BASE + '/rest/v1/record_history?select=id,undone_at').then((r) => r.json()).catch(() => null);
