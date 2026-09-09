@@ -10172,3 +10172,88 @@ real row — today there are none.
 
 **For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
 uuid or id column; it does not today.
+
+---
+
+## 2026-09-09 — live hands-on test of www.directksab2b.com (owner's browser, signed in as admin)
+
+**What was done.** Every page opened and used as an employee would, with the database checked
+after each action rather than the screen believed: a real activity note written and removed, a
+real lead created → quick-edited → deleted, every export captured inside the page (nothing
+downloaded), the Share button pressed once, and the permission gates tried at the database door as
+a team member (inside a rolled-back transaction — nothing changed). The full findings list is in
+the project note "LIVE TEST — the whole system used by hand (Sep 9)"; this entry records what
+landed in the repo and what is parked.
+
+**Fixed here, in lane (js/16 `rReports` + `finCSV`, probe `probe-report-unrecorded-cost-rows`,
+port 8748).** F2: the Report Builder grouped by client printed cost 0 and profit = revenue for
+clients whose invoices carry no recorded cost (four real client groups, measured live — names and
+amounts stay in the database, rule 7), while the Clients tab printed
+"not recorded" / "unknown" for the same invoices. Round 36 had chosen one footnote under the table
+over per-row words; the row was still the lie. Now: a row whose invoices ALL lack a cost prints
+the words (group rows and sub-rows alike, marked `data-rb-unrec`); a row with some gaps keeps its
+figure and wears the Clients tab's ⚠; the TOTAL keeps the raw arithmetic under the existing
+upper-bound note; the rounding note skips a column that carries words. **The CSV is unchanged** — it still writes
+0.00 and the whole revenue on such a row, because `probe-report-builder-attacks` pins every CSV
+cell to the report's internals and went red the moment those two cells were left empty; that
+probe is out of this lane. The honest file leaves the two cells empty: a decision for whoever
+owns that probe, recorded here so the next change to the file is a choice. Sabotage (`_rbAllUnrec` → false) turned
+checks 1 and 3 red; restored, marker count 0.
+
+**Also fixed, in lane.** F1 (js/16 `rLedger`, probe `probe-ledger-empty-speaks`, port 8749): the
+Ledger read "No transactions match." while it held nothing at all (all 33 rows soft-deleted on
+21 Aug — verified). Three situations, three sentences now: the ledger is empty and not filtered;
+every recorded row belongs to a standing-excluded partner; the filters hide the N that are
+recorded — clear one to see them. The filtered sentence keeps "No transactions match." as its
+first words because `probe-ledger-attacks` (out of lane) reads that exact string for its
+stale-company case and it is still true there. Sabotage (override `_msg` after the chain — a
+first attempt that broke the if/else syntax proved nothing, the page never loaded) turned five
+lines red; restored. F3 (js/65 `renderCombinedPreview`, probe `probe-import-files-count`, port
+8750): one file dropped read "Files dropped: 2 · recognized: 2" because the cost-join summary
+(sigKey `expense_join`), a result the code builds itself, was counted as a file. The headline now
+counts the person's files and names the join ("plus the cost join built from them"); the join
+card is unchanged. Note learned writing the probe: each drop previews its own files — the earlier
+file's capture lives on in the join, but its card does not; whether the headline should also say
+"and 1 file from an earlier drop" is a fair question, not answered here. Sabotage (`_fileResults
+= results`) turned two checks red; restored.
+
+**Cycle-74 leftover, measured and closed without a change.** The four remaining `#finImpOut`
+writes in js/16 (`finParse` ×2, `finCommit` ×2) sit on the legacy single-file path. Its only
+callers: the "Check file" button's `onclick="finParse()"` (rewritten to `v65CheckFiles()` by
+`v65WireImportPanel`, which runs on every `render()` and every `finGo()`), js/16's own
+`#finFile.onchange` (replaced by js/65's), and js/41's wrapper of `finParse` (out of lane). None
+survive the first paint of the Import tab, and `probe-import-tab-wiring` already holds the race.
+Unreachable in practice; a guard there would protect a path nobody can take. Left as is.
+
+**Out of lane, recorded for the owner's other sessions (Today / Leads / Clients / Ops / core).**
+T1 "Open my queue" does nothing · T2 "1 quote to send" beside "My queue: all clear" · T3 empty
+"Today · 9 Sept" card and the split "Recently visited" layout · T5 "never contacted" painted
+before activity loads · L1 Lost 0 / 2 / 3 on one screen · L2 26 % conversion and 26-day
+time-to-win with Won 0 · L5 "New this month" never counts a lead created in the app (no
+created-date written) · L6 `stage` / `assigned_to` columns disagree with the record's own values
+(new vs Prospect; empty vs Abdulrahman) · L7 the FUNNEL column shows the SOURCE when no funnel is
+set · C1 two empty panels on the client card · C3 Assigned-to vs Account-manager disagree · O1
+saved proposal's client shows "— pick a client —" · O4 business proposal rendered in the
+flight-quote template · N1 deep links to /reports and /settings bounce to Today · N2 a page visit
+triggers a cloud save · D1 create/delete forms still use native alert()/confirm() (freezes the
+tab; the later chapters already use in-page confirms) · A2 no way to correct or remove a logged
+activity · A4/AU2/AU3 audit rows name no record and speak in column names ("raw", "business_id")
+· AU1 245 audit events, nearly all by "unknown" · AR1 Archive page lists 0 while 4 companies are
+archived · SOP1 giant star icon on SOP 1 · EX1 "summary" and "full details" exports identical for
+Leads/Clients · SH1 Share creates a permanent whole-workspace link on one click, no confirmation,
+no list, no revoke.
+
+**Money outside Finance (owner rulings of 21 Aug / M-rules), measured live.** C2 a tender value in SAR on a client card · OPS1 pipeline / margin / per-card SAR on the Operations board ·
+EX2 the Clients CSV export carries a totalSAR column with seven amounts. All out of lane; recorded.
+
+**Owner decisions, answered the same day.** S1 the QA admin account stays as it is, password in
+`CLAUDE.md` included — owner ruling, do not re-raise. ACC1 anyone on the team may edit money —
+owner ruling, every team member keeps finance = "editor". Share links: all four switched off and
+the `share_links` policies replaced (`security_share_links_own_rows_only`: read own rows or
+admin; insert only as a listed team member and as oneself; update/delete admin) — proven by
+impersonation, the Share button keeps working; SH1 (one click, no confirm, no revoke screen)
+stays open, js/10, out of lane. Practice data: the practice expense and the probe's payment
+proof soft-deleted; the seven 13 Aug practice requests removed from `app_requests` (Operations
+board now 0 / 0 / 0 SAR); the "live-check.pdf" attachment cleared from all five proposals (the
+scheduled task's live checks had attached it to every one) — full copies of all 14 items in
+`public.practice_cleanup_backup_20260909`. BR1 (Brand Hub public) — not answered, not pressed.
