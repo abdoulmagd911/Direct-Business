@@ -906,12 +906,13 @@ tested, not one rule for both.
 *Date: 2026-08-22. Status: ACTIVE.*
 
 **A call that needs a signed-in person waits for `window.__roleKnown===true`, never for a
-stopwatch.** `my_page_access()` and `team_nicknames()` have no EXECUTE for `anon`; a layer that
-asked for them N seconds after the PAGE loaded went out before the password was typed, got 401,
-swallowed it, and never asked again — so the owner's Team & Access settings were not in effect
-for anyone who signed in by typing. The live log showed it (31 of 39 calls in a day refused)
-and no probe did, because probes autofill in under a second. Gate on `__roleKnown`, retry on
-error, and give sign-in probes a typing-speed pause (`probe-employee-signin-shape`).
+stopwatch.** The RPCs my_page_access and team_nicknames have no EXECUTE for anon; a layer that
+asked for them N seconds after the PAGE loaded (`js/56-access-matrix.js`, `js/54-nicknames.js`)
+went out before the password was typed, got 401, swallowed it, and never asked again — so the
+owner's Team & Access settings were not in effect for anyone who signed in by typing. The live
+log showed it (31 of 39 calls in a day refused) and no probe did, because probes autofill in
+under a second. Gate on __roleKnown, retry on error, and give sign-in probes a typing-speed
+pause (`scripts/qa/probe-employee-signin-shape.mjs`).
 *Date: 2026-09-09, js/56 + js/54. Status: ACTIVE.*
 
 **A layer that inserts something into `#view` removes it itself; "no longer re-added" is not
