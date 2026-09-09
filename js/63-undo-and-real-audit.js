@@ -226,13 +226,25 @@
         card.style.cssText='margin:0 0 14px';
         card.innerHTML='<h3>'+fl('Recent changes','التغييرات الأخيرة')+'</h3><div class="act-feed">'+fl('Loading…','جارٍ التحميل…')+'</div>';
         head.insertAdjacentElement('afterend',card);
-        c.from('record_history').select('*').eq('table_name','businesses').eq('record_id',bizUuid).order('at',{ascending:false}).limit(5).then(function(r){
-          var feed=card.querySelector('.act-feed'); if(!feed)return;
-          var rows=(!r.error&&Array.isArray(r.data))?r.data:[];
-          feed.innerHTML=rows.length?rows.map(histRow).join(''):'<div class="empty">'+fl('No logged changes yet for this record.','لا توجد تغييرات مسجَّلة لهذا السجل بعد.')+'</div>';
-        }).catch(function(){ var feed=card.querySelector('.act-feed'); if(feed)feed.innerHTML='<div class="empty">'+fl('Could not load.','تعذّر التحميل.')+'</div>'; });
+        card.setAttribute('data-rec',String(bizUuid));
+        fillRecordHistory(card,bizUuid);
       }catch(e){ if(window.console)console.warn('[v63] record history card',e); }
     }
+    function fillRecordHistory(card,bizUuid){
+      var c=client(); if(!c)return;
+      c.from('record_history').select('*').eq('table_name','businesses').eq('record_id',bizUuid).order('at',{ascending:false}).limit(5).then(function(r){
+        var feed=card.querySelector('.act-feed'); if(!feed)return;
+        var rows=(!r.error&&Array.isArray(r.data))?r.data:[];
+        feed.innerHTML=rows.length?rows.map(histRow).join(''):'<div class="empty">'+fl('No logged changes yet for this record.','لا توجد تغييرات مسجَّلة لهذا السجل بعد.')+'</div>';
+        card.setAttribute('data-filled',String(Date.now()));
+      }).catch(function(){ var feed=card.querySelector('.act-feed'); if(feed)feed.innerHTML='<div class="empty">'+fl('Could not load.','تعذّر التحميل.')+'</div>'; });
+    }
+    /* 2026-09-09 (live test A3): "No logged changes yet" straight after a save. The card is drawn
+       by the render() that follows a save, but the row it is looking for is written by the
+       database trigger when the cloud save lands ~1 s later. Re-read the card once the pill says
+       Saved (js/02 announces every real round trip through __pillHook; chained here like js/75). */
+    window.v63RefreshRecordHistory=function(){ try{ var card=document.querySelector('#view .v63-record-hist'); var id=card&&card.getAttribute('data-rec'); if(card&&id) fillRecordHistory(card,id); }catch(_){} };
+    try{ var _prevPill=window.__pillHook; window.__pillHook=function(text,colour){ try{ if(/^Saved/i.test(String(text||''))) setTimeout(window.v63RefreshRecordHistory,400); }catch(_){} if(_prevPill) return _prevPill.apply(this,arguments); }; }catch(_){}
     if(typeof render==='function'){ var _r63=render; window.render=function(){ var o=_r63.apply(this,arguments); injectRecordHistory(); return o; }; }
   })();
 }catch(e){ if(window.console)console.warn('[v63] init',e); }})();

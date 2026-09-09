@@ -111,7 +111,7 @@ window.renderEvents=function(v){
     h+='<td style="padding:9px 10px;white-space:nowrap">'+(e.opportunity_sales?evPill('Sales','#dceeff','#1a5c9e')+' ':'')+(e.opportunity_partner?evPill('Partner','#ffe6d5','#a35216'):'')+((!e.opportunity_sales&&!e.opportunity_partner)?'—':'')+'</td>';
     h+='<td style="padding:9px 10px;text-align:center;font-weight:700">'+(e.priority||'—')+'</td>';
     h+='<td style="padding:9px 10px;max-width:240px;font-size:11.5px;color:var(--muted)">'+esc2(e.notes||'')+'</td>';
-    h+='<td style="padding:9px 10px;white-space:nowrap">'+(canEditEvents()?'<button class="btn ghost sm" onclick="evOpenModal(\''+e.id+'\')">Edit</button> <button class="btn ghost sm" style="color:#a3242c" onclick="evDelete(\''+e.id+'\')">Del</button>':'')+'</td>';
+    h+='<td style="padding:9px 10px;white-space:nowrap">'+(canEditEvents()?'<button class="btn ghost sm" onclick="evOpenModal(\''+e.id+'\')">Edit</button> <button class="btn ghost sm" style="color:#a3242c" onclick="evDelete(\''+e.id+'\')">Delete</button>':'')+'</td>';
     h+='</tr>';
   });
   h+='</tbody></table></div>';
@@ -126,12 +126,17 @@ window.evDelete=function(id){
   if(!canEditEvents())return;
   var e=(DB.ksaEvents||[]).find(function(x){return x.id===id;});
   if(!e)return;
-  if(!confirm('Delete "'+(e.name_en||'this event')+'"? This removes it for the whole team.'))return;
-  client().from('ksa_events').delete().eq('id',id).select('id').then(function(r){
-    if(r.error){alert('Could not delete: '+r.error.message);return;}
-    if(!r.data||!r.data.length){alert('Not deleted — the database refused it (no permission?). Nothing changed.');return;}   // M13
+  /* 2026-09-09: this v38 copy is superseded by the v64 evDelete further down (window.evDelete is
+     reassigned there), kept only so nothing between here and there loses its neighbours; it asks
+     in the page like the live one, so even a stale cache never shows a native box. */
+  var _say=function(m){ try{ if(typeof toast==='function'){ toast(m,'err'); return; } }catch(_){} };
+  var _go=function(){ client().from('ksa_events').delete().eq('id',id).select('id').then(function(r){
+    if(r.error){_say('Could not delete: '+r.error.message);return;}
+    if(!r.data||!r.data.length){_say('Not deleted — the database refused it (no permission?). Nothing changed.');return;}   // M13
     DB.ksaEvents=DB.ksaEvents.filter(function(x){return x.id!==id;});render();
-  });
+  }); };
+  var _m='Delete "'+(e.name_en||'this event')+'"?\nThis removes it for the whole team and cannot be undone.';
+  if(typeof window.pfConfirm==='function')window.pfConfirm(_m,_go);else _go();
 };
 
 window.evOpenModal=function(id){
@@ -164,12 +169,12 @@ window.evOpenModal=function(id){
   document.getElementById('em_x').onclick=function(){ov.remove();};
   document.getElementById('em_ok').onclick=function(){
     var g=function(i){var x=document.getElementById(i);return x?x.value.trim():'';};
-    if(!g('em_ne')){alert('The English name is required.');return;}
+    if(!g('em_ne')){evSay('The English name is required.');return;}
     var row={name_en:g('em_ne'),name_ar:g('em_na')||null,vertical:g('em_v'),status:g('em_s'),start_date:g('em_sd')||null,end_date:g('em_ed')||null,city:g('em_c')||null,venue:g('em_ve')||null,organiser:g('em_o')||null,link:g('em_l')||null,priority:Number(g('em_p'))||3,opportunity_sales:document.getElementById('em_os').checked,opportunity_partner:document.getElementById('em_op').checked,notes:g('em_n')||null,updated_at:new Date().toISOString()};
     var q=id?client().from('ksa_events').update(row).eq('id',id).select('id'):client().from('ksa_events').insert(row).select('id');
     q.then(function(r){
-      if(r.error){alert('Could not save: '+r.error.message);return;}
-      if(!r.data||!r.data.length){alert('Not saved — the database refused it (no permission?). Nothing changed.');return;}   // M13
+      if(r.error){evSay('Could not save: '+r.error.message);return;}
+      if(!r.data||!r.data.length){evSay('Not saved — the database refused it (no permission?). Nothing changed.');return;}   // M13
       ov.remove(); evLoaded=false; loadEvents();
     });
   };

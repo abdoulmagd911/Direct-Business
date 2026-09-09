@@ -155,12 +155,15 @@
       lb.querySelectorAll('[data-tog]').forEach(function(b){ b.onclick=function(){ call({action:'set_active',id:b.getAttribute('data-tog'),active:b.getAttribute('data-act')==='1'}).then(function(r){ if(r.error){alert(r.error);return;} load(); }); }; });
       lb.querySelectorAll('[data-rst]').forEach(function(b){ b.onclick=function(){
         var email=b.getAttribute('data-email')||'';
-        if(!confirm((A?'إرسال رابط إعادة تعيين كلمة المرور إلى ':'Send a password reset link to ')+email+'?'))return;
+        /* 2026-09-09 (live test D1 family): ask in the page, never window.confirm */
+        var _ask=function(m,y){ if(typeof window.askInPage==='function')window.askInPage(m,y); else if(confirm(m))y(); };
+        _ask((A?'إرسال رابط إعادة تعيين كلمة المرور إلى ':'Send a password reset link to ')+email+'?',function(){
         b.disabled=true; var was=b.textContent; b.textContent=A?'…':'Sending…';
         call({action:'send_reset_link',id:b.getAttribute('data-rst'),origin:location.origin}).then(function(r){
           b.disabled=false; b.textContent=was;
-          if(r.error){alert(r.error);return;}
+          if(r.error){(window.v63Notice||alert)(r.error);return;}
           showSent(email);
+        });
         });
       }; });
     }

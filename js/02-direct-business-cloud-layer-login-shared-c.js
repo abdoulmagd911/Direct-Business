@@ -665,12 +665,15 @@
       box.querySelectorAll('[data-rst]').forEach(function(b){
         b.onclick=function(){
           var email=b.getAttribute('data-email')||'';
-          if(!confirm('Send a password reset link to '+email+'?'))return;
+          /* 2026-09-09 (live test D1 family): ask in the page, never window.confirm */
+          var _ask=function(m,y){ if(typeof window.askInPage==='function')window.askInPage(m,y); else if(confirm(m))y(); };
+          _ask('Send a password reset link to '+email+'?',function(){
           b.disabled=true;var was=b.textContent;b.textContent='…';
           callAdmin({action:'send_reset_link',id:b.getAttribute('data-rst'),origin:location.origin}).then(function(r2){
             b.disabled=false;b.textContent=was;
-            if(r2.error){alert(r2.error);return;}
-            alert('Reset link sent to '+email+'. They choose the new password themselves — nobody else sees it.');
+            if(r2.error){(window.v63Notice||alert)(r2.error);return;}
+            (window.v63Notice||alert)('Reset link sent to '+email+'. They choose the new password themselves — nobody else sees it.');
+          });
           });
         };
       });
