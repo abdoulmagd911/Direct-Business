@@ -1,3 +1,26 @@
+## Routine fire #3 (2026-09-09 22:11 UTC) — verified the oversight core refactor; one D1-extension found
+Fast-forwarded to the oversight session's HEAD (`0bf8459`, 70 layers / 176 probes) — their big
+9-Sep sweep landed a native-dialog→in-page-box refactor across core-01…core-10, js/76, new js/77
+(share panel). Verified it browser-free (the container still cannot run a full app-boot probe — see
+the reprovision note below; two experiments, probe-events and a minimal goto test with
+background-networking disabled, both hang with zero output):
+- Every one of the 24 files the 9 commits touched PARSES; check-structure / check-probe-integrity /
+  check-decisions-wired all green on the merged tree.
+- The refactor is SOUND: js/10 has two `window.evDelete` definitions; the LATER one (line 607, the
+  in-page `pfConfirm` box) wins at load order (comment at line 312 documents the supersession), so
+  the native-`confirm()` copy at line 125 is dead/superseded, not a live path — their
+  probe-no-native-dialogs check 5 passes for the right reason.
+- Live site serves the new HEAD (js/77 present on directksab2b.com).
+
+FINDING (small, real, NOT yet fixed — flagged for the core lane, not shipped unverified):
+**`editSupplier()` (core-03-reference-ops.js:215) — the Airlines / Suppliers / Providers editor —
+still raises native `alert("Name required")` and `confirm("Delete this record?")` at line 247.**
+Same tab-freeze class the owner hit in D1, but outside D1's stated scope (leads/requests/events/Won).
+Natural D1 extension: swap to the existing `askInPage()` (core-01:458) + a toast, and extend
+probe-no-native-dialogs to cover the supplier/airline delete + empty-name paths. Left for the core
+lane because (a) core-03 is in the oversight session's active sweep and (b) a dialog change must be
+browser-verified, which this container cannot do right now.
+
 ## Container reprovisioned 2026-09-09 ~20:12 UTC — recovery recipe (durable)
 The web-session container was rebuilt mid-run: the working tree AND `/tmp/node_modules` were lost,
 leaving only `.git` (origin intact). NOTHING was lost — all work was already pushed. Recovery that
