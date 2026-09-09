@@ -62,9 +62,9 @@ const PROPOSAL_TYPES_AR={'Price offer':'عرض سعر','Technical proposal':'ع�
 function o_setClient(id){const o=curOffer();if(!o)return;o.linkedLeadId=id;var b=(DB.businesses||[]).find(x=>x.id===id);o.client=b?b.name:o.client;save();offerEditor(document.getElementById('view'),o.id);}
 function o_promoteProject(id){const o=(DB.offers||[]).find(x=>x.id===id);if(!o)return;if(o.promotedToProject){if(typeof toast==='function')toast('Already a project');return;}
   const _ar=(typeof LANG!=='undefined'&&LANG==='ar');
-  if(!confirm(_ar?('تحويل هذا العرض إلى مشروع؟'):('Promote this proposal to a project?')))return;
+  askInPage(_ar?('تحويل هذا العرض إلى مشروع؟'):('Promote this proposal to a project?'),()=>{
   DB.projects=DB.projects||[];DB.projects.push({id:uid('prj'),name:o.subject||o.ref||'Project',nameAr:'',client:o.client||'',linkedClientId:o.linkedLeadId||'',value:o.value||o.total||'',status:'Active',fromOfferId:o.id,owner:o.owner||'',createdAt:Date.now(),notes:o.scope||''});
-  o.promotedToProject=true;save();offerEditor(document.getElementById('view'),o.id);if(typeof toast==='function')toast(_ar?'تم إنشاء مشروع':'Project created');}
+  o.promotedToProject=true;save();offerEditor(document.getElementById('view'),o.id);if(typeof toast==='function')toast(_ar?'تم إنشاء مشروع':'Project created');});}
 function curOffer(){return (DB.offers||[]).find(x=>x.id===openOffer);}
 function o_set(k,val){const o=curOffer();if(!o)return;o[k]=val;save();const d=document.getElementById('offerDoc');if(d)d.innerHTML=offerHTML(o);}
 function o_calc(){const o=curOffer();if(!o)return;const num=s=>parseFloat(String(s).replace(/[^0-9.]/g,''))||0;o.total=String(num(o.ticketPrice)+num(o.partnerFees)+num(o.serviceFees)+num(o.vat)+num(o.dip));save();offerEditor(document.getElementById('view'),o.id);}
@@ -195,7 +195,7 @@ function o_copyText(){const o=curOffer();if(!o)return;const t=offerText(o);if(na
 function o_styleBlock(){return '<style>:root{--orange:#FF6B00;--orange-2:#FF9D45;--ink:#1C1E2B;--muted:#7C8194;--line:#EEE8DE}body{font-family:Inter,Arial,sans-serif;background:#fff;padding:24px;color:#1C1E2B}.odoc-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FF6B00;padding-bottom:12px;margin-bottom:14px}.odoc-row{font-size:13px;margin:7px 0;color:#33384a}.odoc-tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:12.5px}.odoc-tbl th,.odoc-tbl td{border:1px solid #e2ddd2;padding:8px 9px;text-align:left}.odoc-tbl th{background:#faf7f2}.odoc-tbl .k{font-weight:700;background:#faf7f2;width:130px}.odoc-note{background:#FFF1E6;border:1px solid #FBD9B8;color:#9A560F;padding:10px;border-radius:8px;font-size:12px;margin-top:10px}.odoc-foot{margin-top:14px;border-top:1px solid #eee;padding-top:9px;font-size:11px;color:#888}</style>';}
 function o_download(){const o=curOffer();if(!o)return;const html='<!DOCTYPE html><meta charset="utf-8"><title>Offer '+(o.ref||'')+'</title>'+o_styleBlock()+'<body>'+offerHTML(o)+'</body>';const b=new Blob([html],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Offer-'+(o.ref||'direct')+'.html';a.click();}
 function o_print(){const o=curOffer();if(!o)return;const w=window.open('','_blank');if(!w)return;w.document.write('<!DOCTYPE html><meta charset="utf-8"><title>Offer '+(o.ref||'')+'</title>'+o_styleBlock()+'<body>'+offerHTML(o)+'</body>');w.document.close();w.focus();setTimeout(function(){w.print();},250);}
-function o_del(id){if(confirm('Delete this offer?')){DB.offers=(DB.offers||[]).filter(x=>x.id!==id);openOffer=null;save();render();}}
+function o_del(id){const _ar=(typeof LANG!=='undefined'&&LANG==='ar');askInPage(_ar?'حذف هذا العرض؟':'Delete this proposal?',()=>{DB.offers=(DB.offers||[]).filter(x=>x.id!==id);openOffer=null;save();render();});}
 /* Proposal file library — the file itself lives in the app (Supabase storage bucket "proposals"). */
 window.o_uploadFile=function(id){
   var o=(DB.offers||[]).find(function(x){return x.id===id;});if(!o)return;
@@ -223,11 +223,11 @@ window.o_uploadFile=function(id){
 window.o_removeFile=function(id){
   var o=(DB.offers||[]).find(function(x){return x.id===id;});if(!o)return;
   var _ar=(typeof LANG!=='undefined'&&LANG==='ar');
-  if(!confirm(_ar?'إزالة الملف من هذا العرض؟':'Remove the file from this proposal?'))return;
+  askInPage(_ar?'إزالة الملف من هذا العرض؟':'Remove the file from this proposal?',function(){
   var p=o.filePath;
   o.fileUrl='';o.fileName='';o.filePath='';save();
   if(p){try{ var c=window.fc?fc():null; if(c) c.storage.from('proposals').remove([p]).then(function(){}); }catch(_e){}}
-  offerEditor(document.getElementById('view'),id);
+  offerEditor(document.getElementById('view'),id);});
 };
 
 /* Branded proposal generator — pours a proposal record into a Direct-branded, bilingual,

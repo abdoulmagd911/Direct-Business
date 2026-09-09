@@ -452,6 +452,10 @@ const KEY="directBusinessData_v29";
 let DB=load();try{migrate(DB);save();}catch(e){console.warn('migrate fail',e);}
 function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r);const prev=localStorage.getItem("directBusinessData_v24")||localStorage.getItem("directBusinessData_v22")||localStorage.getItem("directBusinessData_v21")||localStorage.getItem("directBusinessData_v20")||localStorage.getItem("directBusinessData_v19")||localStorage.getItem("directBusinessData_v18")||localStorage.getItem("directBusinessData_v17")||localStorage.getItem("directBusinessData_v16")||localStorage.getItem("directBusinessData_v15");if(prev)return JSON.parse(prev);}catch(e){}return JSON.parse(JSON.stringify(SEED));}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));window.__quotaWarned=false;}catch(e){if(!window.__quotaWarned){window.__quotaWarned=true;console.warn("Storage full - changes kept in memory only. Export a JSON backup and clear old data.",e);try{if(typeof toast==="function")toast("Storage full - export a backup! Changes not saved to disk.");}catch(_){}}}}
+/* 2026-09-09 (live test D1 family): the one way to ask "are you sure" — js/57's in-page box,
+   never window.confirm (which freezes the tab and every automated driver of it). The answer
+   arrives later, so callers pass what to do on yes. */
+function askInPage(msg,yes){if(typeof window.pfConfirm==='function')window.pfConfirm(msg,yes);else if(confirm(msg))yes();}
 function resetData(){if(confirm("Reset all data to the seeded version? Edits will be lost.")){DB=JSON.parse(JSON.stringify(SEED));save();render();}}
 function exportData(){const b=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="direct-business-data.json";a.click();}
 function importData(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{DB=JSON.parse(r.result);save();render();alert("Imported.");}catch(e){alert("Invalid file.");}};r.readAsText(f);}

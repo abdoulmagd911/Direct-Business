@@ -1028,7 +1028,7 @@
       if(typeof logActivity==='function')logActivity('Project edited: '+p.name);
       render();
     },function(){
-      if(confirm('Archive project "'+p.name+'"?')){p.status='Archived';try{if(typeof saveDB==='function')saveDB();}catch(_){}render();}
+      askInPage('Archive project "'+p.name+'"?',function(){p.status='Archived';try{if(typeof saveDB==='function')saveDB();}catch(_){}render();});
     });
   };
 

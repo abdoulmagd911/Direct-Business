@@ -189,7 +189,14 @@ function renderLeadDetail(v,id){
   </div>`;
 }
 
-function convertToClient(id){const b=getLead(id);if(!b)return;if(!b.accountManager&&b.assignedTo)b.accountManager=b.assignedTo;var _ar=(typeof LANG!=='undefined'&&LANG==='ar');if(!confirm(_ar?("اعتماد «"+b.name+"» كعميل رابح؟ سينتقل إلى قائمة عملائك."):("Mark “"+b.name+"” as a won client? It moves into your Clients book of business.")))return;b.isClient=true;b.status="Won";b.convertedDate=Date.now();b.lastContact=Date.now();b.activities=b.activities||[];b.activities.push({date:Date.now(),type:"Won",status:"Won",note:"Converted from lead to client",by:(typeof me==="function"?me():"Abdelrahman")});save();render();}
+/* 2026-09-09 (live test D1 family): the Won question went through window.confirm — the box that
+   froze the owner's tabs — on the busiest path in the app. It asks through js/57's in-page box
+   now; because the answer arrives later, the conversion announces itself with a 'lead-converted'
+   event, which js/14 listens for to open the client handover (it used to check synchronously). */
+function convertToClient(id){const b=getLead(id);if(!b)return;if(!b.accountManager&&b.assignedTo)b.accountManager=b.assignedTo;var _ar=(typeof LANG!=='undefined'&&LANG==='ar');
+  const _go=()=>{b.isClient=true;b.status="Won";b.convertedDate=Date.now();b.lastContact=Date.now();b.activities=b.activities||[];b.activities.push({date:Date.now(),type:"Won",status:"Won",note:"Converted from lead to client",by:(typeof me==="function"?me():"Abdelrahman")});save();render();try{document.dispatchEvent(new CustomEvent('lead-converted',{detail:{id:id}}));}catch(_){}};
+  const _msg=_ar?("اعتماد «"+b.name+"» كعميل رابح؟ سينتقل إلى قائمة عملائك."):("Mark “"+b.name+"” as a won client? It moves into your Clients book of business.");
+  if(typeof window.pfConfirm==='function')window.pfConfirm(_msg,_go);else _go();}
 // Client health — one scannable status from engagement + review governance.
 // Red is reserved for a real problem (overdue review, or contact that HAS happened but has gone stale).
 // A client with no logged history yet is "New", not "At risk" — we don't manufacture alarms from empty data.
