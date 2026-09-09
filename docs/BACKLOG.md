@@ -10198,6 +10198,122 @@ real row — today there are none.
 **For the owner, unchanged:** a real deep link into Direct Payments needs that export to carry a
 uuid or id column; it does not today.
 
+
+---
+
+## 2026-09-09 (evening) — the live-test sweep, lane widened by the owner
+
+The owner said "fix them here" for the pages other sessions own, and "continue unstop". Another
+session (Round 69, 14:26 UTC) had pushed to js/35, js/54, js/56, js/64 and the mock the same
+afternoon; those files were left alone and everything below was rebased on top of them. Every
+fix has its own probe, sabotage-tested (the count of reds is in each commit message), and the
+whole battery was run on the batch before it went live.
+
+**Today.** T1 "Open my queue" ran `current='today';render()` — a redraw of the page you are on;
+it now scrolls to and lights up the My-queue group (core-09). T2 the greeting's "N quotes to send"
+is a link to Proposals; invoices to Invoices (core-09). T3 the split "Today · 9 Sept" card and the
+split "Recently visited" were core-09's KPI heuristic tiling the hero and the groups — see the
+heuristic note below. Probes 8751, 8758.
+
+**Deep links (N1).** /reports, /settings, /ops bounced an ADMIN to Today: js/52's gate moved the
+person while the role was still unknown (employee floor) and nothing moved them back; js/03 had
+rewritten the address by then. A refused page is now remembered and restored the moment the role
+allows it; a refusal that stands is told once, by address or by click. Probe 8752/8753 drives it
+as admin and as an employee (who is still held on Today, and now told). Finance never needed
+this because js/16 re-applies its own deep link.
+
+**Leads.** L1 the Lost chip read 0 while clicking it listed 2: core-09's badge applied Hide-closed
+to every chip while core-10's table applies it only when no stage is picked. The badge now says
+what the click shows; probe-leads-counts' 22 Aug invariant ("All = sum of six chips under
+Hide-closed") was revised with the reason. L3 funnel tabs (js/09) counted closed leads the table
+hid, and never refreshed on a redraw — same pool, refreshed in place. L1-dash / L4 the Dashboard
+view counted a client whose stage reads Lost as a lost lead and drew its tiles in the dark-hero
+.chip style on a white board — one leads-only pool and light styling (core-02). L2 the "26 %"
+tile names its numerator and denominator (js/13). L5 a lead saved through the form now carries
+createdAt at once, so "New this month" moves without a reload (core-02). Probes 8139 (revised),
+8754.
+
+**Money outside Finance (owner ruling 21 Aug, measured live).** OPS1 the Operations board's
+"Pipeline value" / "Booked margin" tiles and the per-card "25k SAR · △3k" line are gone; a
+"Needs a cost recorded" count and a "no cost yet" mark replace them; sell and cost stay in the
+request form where they are entered (core-03). C2 a funnel answer whose key ends in _sar or whose
+label says SAR prints "recorded — read on Finance" on the card, the hover pop and the funnel CSV;
+the edit form keeps the value (js/09). EX2 totalSAR removed from the Leads and Clients export
+columns; EX1 "full details" is now every non-money, non-internal field, so it differs from
+"summary" (core-05). Probe 8755, three sabotages.
+
+**Native dialogs (D1).** The New-business empty-name refusal and the lead Delete, and the
+request form's pair, used alert()/confirm() — which froze two of the owner's tabs. They use the
+app's toast (error style, cursor on the field) and js/57's box now; the box wraps multi-line
+text. Probe 8756 treats any native dialog as a failure. probe-crm-attacks 4a/4e/4f and
+probe-recovery-attacks A1/A2/D1 were driven through the old dialogs and now drive the box; the
+mock writes a record_history row on an archive (the live trigger does), which is what A12 was
+really relying on.
+
+**Activity & Audit.** AU2/AU3 every row names its record (company, invoice number, transaction
+reference, contact) and says what changed in words — a change inside `raw` is opened up to the
+fields that moved; the column names stay as a tooltip (js/63). AU4 Undo is offered only inside
+the 24-hour window `undo_change` enforces (read from the live function); past it the row says
+so. probe-audit-undo's "offer it and warn" invariant revised with the reason. AU5 the
+four-boxes-per-row look was the KPI heuristic again. Probe 8757.
+
+**The KPI heuristic (core-09 v26FixKpiLayouts).** "A div with four numbers in it is a KPI strip"
+tiled the Today hero, the lead/client detail grid (C1's two empty panels) and every audit row (a
+date and a time are two numbers already). Named structures are excluded and a real strip must
+have three or more short children. Probe 8758 proves the hero, the cards and the log stay whole
+while the counters row stays a strip.
+
+**Proposals.** O1 the Client box showed "— pick a client —" on a proposal that had one: the
+linked company was a practice record no longer in the workspace (all five live proposals were —
+the proposal the morning's report called real was practice data too; corrected there). The box
+now shows the stored name with "company no longer in the list", or the lead's name with "lead,
+not yet a client" (core-04). O4 a non-travel proposal previewed as a flight quote; the preview
+now says the client's document is the branded proposal and offers the button; travel quotes keep
+the flight preview (core-04). O3 "push to source" retired for "Draft booking — confirmed later in
+Direct Payments" / "Issue in Direct Payments", Arabic too (core-06, js/21). Probe 8759.
+
+**Data, with the owner's "do what's best".** The five practice proposals and the one practice
+project were removed from `app_offers` / `app_projects` (full copies in
+`practice_cleanup_backup_20260909`, now 20 rows) — they linked to companies that no longer exist
+and drove Today's "1 quote to send".
+
+**Archive (AR1, open item 16).** The Archive page read "Archived leads 0" over four archived
+companies and its footnote admitted no screen could restore one. New layer js/76 reads the rows
+the loader deliberately never fetches (`archived_at` set), lists them with who deleted them and
+when, and offers Restore — clears `archived_at`, the database trigger logs a `restore`, the page
+reloads so the loader brings the row back. A company removed by a MERGE (`archived_by =
+merged-into:<id>`, three of the four live) is listed without Restore and names its survivor:
+bringing it back alone would resurrect the duplicate; the merge is undone from Activity & Audit.
+Probe 8760, two sabotages.
+
+**Looking is not changing (N2).** Measured on the wire in the harness: js/53 appended a "sign in"
+line to `DB.audit` — an array nothing has read since js/63 moved Activity & Audit to
+`record_history` — and called save() on every page load, so each open sent a save_state_patch
+carrying seven sections with nothing changed. Retired. core-06's "Recently visited" pushed every
+render of a detail page into the shared `DB.recents` (one list for the whole team) and saved; it
+is per person in the browser now and a visit writes nothing. probe-cowork-fixes' "records the
+sign-in" invariant reversed with the reason. Probe 8761 counts save_state and businesses writes
+during a start-up window and a six-page tour (both zero) and proves a real change still saves.
+
+**Later the same evening.** T5 — with a remembered session the page is on screen before the
+businesses table arrives and js/14 built the Your-day card from the start-up copy ("never
+contacted" for four seconds); js/02 now sets `__bizTableLoaded` when the rows land and the card
+waits for it (probe 8762 holds the table back on the wire and samples the page). A2/A5 — every
+timeline entry on the lead/client card carries edit and remove controls for someone who may
+edit the page; remove asks in the page, both recompute "Last contact" from what remains and
+write an audit line (probe 8763). EX3 — a client whose stage is Lost read Health "Good" beside
+its old "Won: converted" activity line; `clientHealth` returns Lost first (probe 8754 extended).
+The delete warning and js/02's deleted-record notice now name the Archive page as the way back
+(probe-recovery-attacks A8 revised). Data: the two `demo_world30` payment receipts (their
+transactions were soft-deleted on 21 Aug) removed with full copies in the backup table (22 rows).
+
+**Still open from the live test, not touched here.** C3 Assigned-to vs Account-manager on one
+card; C5 the /leads/lead/ address for a client card; L7 the FUNNEL column showing the source; L8
+the empty pill; L9 the stray hover card; SH1 the one-click share button; SOP1/SOP2; the Arabic
+gaps; the Events "Del" button; Airlines truncation; BR1 the public Brand Hub; js/02's "saved
+onto a deleted record" notice and js/63's Undo still use the browser's own alert/confirm (same
+family as D1).
+
 ---
 
 ## 2026-09-09 — live hands-on test of www.directksab2b.com (owner's browser, signed in as admin)
