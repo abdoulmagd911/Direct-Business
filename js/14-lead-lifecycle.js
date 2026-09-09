@@ -54,10 +54,10 @@ window.v40Hold=function(id){
   var b=getLead(id); if(!b||!canEdit())return;
   var ar=isAr();
   if(b.onHold){
-    if(!confirm(ar?'استئناف العمل على هذه الفرصة؟':'Resume working this lead?'))return;
+    askInPage(ar?'استئناف العمل على هذه الفرصة؟':'Resume working this lead?',function(){
     b.activities=b.activities||[];
     b.activities.push({date:Date.now(),type:ar?'استئناف':'Resumed',status:'',note:'',by:meName()});
-    b.onHold=null; save();render(); return;
+    b.onHold=null; save();render(); }); return;
   }
   openModal((ar?'إيقاف مؤقت — ':'Put on hold — ')+esc4(b.name),
     '<div class="field"><label>'+(ar?'السبب':'Reason')+'</label><input id="h_reason"></div>'+
@@ -119,11 +119,10 @@ try{ if(typeof convertToClient==='function'&&!window.__v40conv){
       }
     }catch(_){}
   };
-  window.convertToClient=function(id){
-    var before=(getLead(id)||{}).isClient;
-    _cv.apply(this,arguments);
-    try{ var b=getLead(id); if(b&&b.isClient&&!before)window.__clientHandover(id); }catch(_){}
-  };
+  /* 2026-09-09: core-02's convertToClient asks in the page now and finishes later, so the
+     handover opens on its 'lead-converted' event instead of a synchronous check after the call. */
+  window.convertToClient=function(id){ _cv.apply(this,arguments); };
+  document.addEventListener('lead-converted',function(e){ try{ var id=e&&e.detail&&e.detail.id; var b=id&&getLead(id); if(b&&b.isClient)window.__clientHandover(id); }catch(_){} });
   window.__v40conv=true;
 }}catch(_){}
 
