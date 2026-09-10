@@ -147,6 +147,7 @@ async function main() {
     window.__said = [];
     window.confirm = function () { return true; };
     window.prompt = function () { return '123456'; };
+    window.pfPrompt = function (q, d, cb) { cb('123456'); };   // 2026-09-10: the targets ask in the page
     window.alert = function (m) { window.__said.push(String(m)); };
     if (window.pfConfirm) window.pfConfirm = function (msg, onYes) { onYes(); };
     /* clear any modal left over from the previous attempt, or the next one inherits its words */
@@ -323,7 +324,7 @@ async function main() {
       note(`inside the real window: __userTier ${JSON.stringify(st2.tier)} · __roleKnown ${st2.roleKnown} · finWriteBlock() '${st2.block}'`);
       const said2 = await p2.evaluate(() => {
         const out = [];
-        window.confirm = () => true; window.prompt = () => '123456';
+        window.confirm = () => true; window.prompt = () => '123456'; window.pfPrompt = (q, d, cb) => cb('123456');
         window.alert = (m) => out.push(String(m));
         if (window.pfConfirm) window.pfConfirm = (msg, onYes) => onYes();
         try { window.finDelInv('RF-1'); } catch (e) { out.push('THREW ' + e.message); }

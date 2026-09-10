@@ -115,6 +115,7 @@ async function main() {
     window.__probeAlert = null;
     window.confirm = function () { return true; };
     window.prompt = function () { return '123456'; };
+    window.pfPrompt = function (q, d, cb) { cb('123456'); };   // 2026-09-10: the targets ask in the page
     window.alert = function (m) { window.__probeAlert = String(m); };
     if (window.pfConfirm) window.pfConfirm = function (msg, onYes) { onYes(); };
   });

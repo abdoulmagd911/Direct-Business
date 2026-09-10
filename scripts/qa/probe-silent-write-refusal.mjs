@@ -13,6 +13,7 @@
    handlers without them) — every refusal check must fail. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
+import { tapNotices } from './notice-tap.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const PORT = 8183; const srv = start(PORT); const BASE = 'http://localhost:' + PORT;
@@ -29,6 +30,9 @@ async function main() {
   p.on('pageerror', (e) => errors.push('JS: ' + e.message));
   p.on('dialog', async (d) => { dialogs.push({ type: d.type(), msg: d.message() }); if (d.type() === 'prompt') await d.accept(PROMPT_ANSWER); else await d.accept(); });
   let PROMPT_ANSWER = '';
+  // 2026-09-10: alert() is js/63's in-page card and the targets ask through js/57 pfPrompt — read the card, answer the box
+  await tapNotices(p, (m) => dialogs.push({ type: 'alert', msg: m }));
+  await p.exposeFunction('__qaPromptAnswer', () => PROMPT_ANSWER);
   let REFUSE = false; // when true, every PATCH/POST to the tables under test answers 200 [] (RLS-refused shape)
   let REFUSE_BIZ = false; // the same shape for `businesses` — the table the app's global save() writes
   await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
@@ -56,6 +60,7 @@ async function main() {
   await p.waitForTimeout(1500);
   const settle = async () => { let last = '', same = 0; for (let i = 0; i < 30; i++) { const h = await p.evaluate(() => document.querySelector('#view') ? document.querySelector('#view').innerHTML.length : 0); if (h === last) { same++; if (same >= 2) return; } else same = 0; last = h; await p.waitForTimeout(150); } };
   await settle();
+  await p.evaluate(() => { window.pfPrompt = async (q, d, cb) => cb(await window.__qaPromptAnswer()); });
   // Toast capture: wrap window.toast so we can see what the app claimed.
   await p.evaluate(() => { window.__toasts = []; const t = window.toast; window.toast = function (m) { window.__toasts.push(String(m)); return t ? t.apply(this, arguments) : undefined; }; });
 

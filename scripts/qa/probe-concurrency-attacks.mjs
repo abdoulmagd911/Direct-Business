@@ -239,8 +239,8 @@ async function main() {
   else fail('the second tab said: ' + JSON.stringify(bOut.replace(/\n/g, ' | ').slice(0, 220)));
 
   /* ---------- 6. targets from two tabs ---------- */
-  await A.p.evaluate(() => { window.prompt = function () { return '1000000'; }; });
-  await B.p.evaluate(() => { window.prompt = function () { return '2000000'; }; });
+  await A.p.evaluate(() => { window.prompt = function () { return '1000000'; }; window.pfPrompt = function (q, d, cb) { cb('1000000'); }; });   // 2026-09-10: the targets ask in the page
+  await B.p.evaluate(() => { window.prompt = function () { return '2000000'; }; window.pfPrompt = function (q, d, cb) { cb('2000000'); }; });
   await A.p.evaluate(() => window.finSetTargets(2026));
   await new Promise(r => setTimeout(r, 1500));
   await B.p.evaluate(() => window.finSetTargets(2026));

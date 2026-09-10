@@ -54,13 +54,14 @@ async function main() {
      green on a page that did nothing. */
   const setT = async (expected, confirmed) => p.evaluate(async ({ expected, confirmed }) => {
     const answers = [expected, confirmed]; let i = 0; let alerted = null, asked = null;
-    const op = window.prompt, oa = window.alert, oc = window.pfConfirm, ow = window.confirm;
+    const op = window.prompt, oa = window.alert, oc = window.pfConfirm, ow = window.confirm, opp = window.pfPrompt;
     window.prompt = () => answers[i++];
+    window.pfPrompt = (q, d, cb) => cb(answers[i++]);   // 2026-09-10: the targets ask in the page (js/57 pfPrompt)
     window.alert = (m) => { alerted = String(m); };
     window.pfConfirm = (m, onYes) => { asked = String(m); onYes(); };
     window.confirm = (m) => { asked = String(m); return true; };
     try { finSetTargets(2026); await new Promise(r => setTimeout(r, 1600)); }
-    finally { window.prompt = op; window.alert = oa; window.pfConfirm = oc; window.confirm = ow; }
+    finally { window.prompt = op; window.alert = oa; window.pfConfirm = oc; window.confirm = ow; window.pfPrompt = opp; }
     return { alerted, asked, inMemory: (FIN.targets || []).find(t => +t.year === 2026) || null };
   }, { expected: expected, confirmed: confirmed });
   const stored = async () => (await targets()).find((t) => +t.year === 2026) || null;
@@ -83,7 +84,7 @@ async function main() {
   /* ---------- 2. cancel writes nothing ---------- */
   await setT('2000000', '1000000');
   const beforeCancel = await stored();
-  const cancelled = await p.evaluate(async () => { const op = window.prompt; window.prompt = () => null; try { finSetTargets(2026); await new Promise(r => setTimeout(r, 700)); } finally { window.prompt = op; } return true; });
+  const cancelled = await p.evaluate(async () => { const op = window.prompt, opp = window.pfPrompt; window.prompt = () => null; window.pfPrompt = (q, d, cb) => cb(null); try { finSetTargets(2026); await new Promise(r => setTimeout(r, 700)); } finally { window.prompt = op; window.pfPrompt = opp; } return true; });
   const afterCancel = await stored();
   if (JSON.stringify(beforeCancel) === JSON.stringify(afterCancel)) ok('cancelling the first prompt writes nothing'); else fail('cancel changed the stored target');
 
@@ -164,8 +165,8 @@ async function main() {
     renderFinance(document.getElementById('view')); await new Promise(r => setTimeout(r, 400));
     const c = [...document.querySelectorAll('#view .card')].find(e => /Plan vs actual|الخطة/.test(e.textContent));
     const hasBtn = !!(c && [...c.querySelectorAll('button')].some(b => /Set targets|تعديل الأرقام/.test(b.textContent)));
-    let called = false; const op = window.prompt; window.prompt = () => { called = true; return '999'; };
-    try { finSetTargets(2026); await new Promise(r => setTimeout(r, 500)); } finally { window.prompt = op; window.__userTier = t; window.__userRole = ro; window.__pageAccess = pa; }
+    let called = false; const op = window.prompt, opp = window.pfPrompt; window.prompt = () => { called = true; return '999'; }; window.pfPrompt = (q, d, cb) => { called = true; cb('999'); };
+    try { finSetTargets(2026); await new Promise(r => setTimeout(r, 500)); } finally { window.prompt = op; window.pfPrompt = opp; window.__userTier = t; window.__userRole = ro; window.__pageAccess = pa; }
     return { hasBtn, called };
   });
   if (!viewer.hasBtn) ok('a viewer sees no "Set targets" button'); else fail('viewer was offered the editor');

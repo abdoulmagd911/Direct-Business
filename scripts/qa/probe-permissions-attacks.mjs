@@ -134,11 +134,11 @@ async function main() {
     for (const [name, expr] of CALLS) {
       try {
         await p.evaluate(async ({ expr, LIVE, DEL }) => {
-          const op = window.prompt, oc = window.confirm, oa = window.alert, ol = window.location.reload;
-          window.prompt = () => '999999'; window.confirm = () => true; window.alert = () => {};
+          const op = window.prompt, oc = window.confirm, oa = window.alert, ol = window.location.reload, opp = window.pfPrompt;
+          window.prompt = () => '999999'; window.pfPrompt = (q, d, cb) => cb('999999'); window.confirm = () => true; window.alert = () => {};
           try { window.location.reload = () => { throw new Error('reload blocked by probe'); }; } catch (_) {}
           try { eval(expr); await new Promise(r => setTimeout(r, 900)); }
-          finally { window.prompt = op; window.confirm = oc; window.alert = oa; try { window.location.reload = ol; } catch (_) {} }
+          finally { window.prompt = op; window.pfPrompt = opp; window.confirm = oc; window.alert = oa; try { window.location.reload = ol; } catch (_) {} }
         }, { expr, LIVE: liveNo, DEL: delNo });
       } catch (e) { thrown.push(name + ': ' + String(e.message).split('\n')[0]); }
       const survived = await p.evaluate(() => window.__probeSentinel === 1).catch(() => false);
@@ -158,10 +158,10 @@ async function main() {
   /* ---------- 4. an admin can still work ---------- */
   await asAdmin();
   const adminWorks = await p.evaluate(async ({ delNo }) => {
-    const op = window.prompt, oc = window.confirm, oa = window.alert;
-    window.prompt = () => '1234567'; window.confirm = () => true; window.alert = () => {};
+    const op = window.prompt, oc = window.confirm, oa = window.alert, opp = window.pfPrompt;
+    window.prompt = () => '1234567'; window.pfPrompt = (q, d, cb) => cb('1234567'); window.confirm = () => true; window.alert = () => {};
     try { finSetTargets(2026); await new Promise(r => setTimeout(r, 1200)); finRestoreInv(delNo); await new Promise(r => setTimeout(r, 1500)); }
-    finally { window.prompt = op; window.confirm = oc; window.alert = oa; }
+    finally { window.prompt = op; window.pfPrompt = opp; window.confirm = oc; window.alert = oa; }
     return true;
   }, { delNo });
   const t2026 = (await fetch(BASE + '/rest/v1/finance_targets').then(r => r.json())).find(t => +t.year === 2026);

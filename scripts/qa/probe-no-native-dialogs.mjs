@@ -29,12 +29,19 @@
      12. The prompt() boxes (2026-09-10): the Lost reason (core-01 captureLostReason) and quick
         edit's "add a team member" (core-10 qeAddOwner) ask in js/57's pfPrompt box; Enter/OK
         saves the answer, Cancel leaves the lead Lost with no reason.
+     13. Finance "Set targets" (js/16): the two typed questions ask in the page one after the other;
+        Cancel on the second saves nothing.
+     14. The backup tag name and the bundle-template name (core-06) ask in the page; Cancel
+        resolves the tag call; Enter saves the template and its message is the card.
+     15. The legacy ingest form's "duplicate invoice — add anyway?" (core-06) asks in the page;
+        the form stays open until answered; Cancel adds nothing; Confirm adds and closes.
 
    Run:  node scripts/qa/probe-no-native-dialogs.mjs        (port 8756)
    Sabotage: in core-02 put `alert("Business name required.")` back — check 1 goes red (a
    native dialog fired); put `if(confirm(_delWarn()))` back — check 2 goes red; in core-10 put
    `if(!confirm('Delete this achievement?'))return;` back — check 11 goes red; in core-01 put
-   `prompt(q,…)` back in captureLostReason — block 12's first checks go red. Assert the
+   `prompt(q,…)` back in captureLostReason — block 12's first checks go red; in js/16 make finAsk()
+   skip pfPrompt — block 13 goes red. Assert the
    sabotage APPLIED with a marker unique to it; confirm the restore by marker count and git
    status.  */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
@@ -244,6 +251,51 @@ async function main() {
   const r12e = await p.evaluate(() => ({ inTeam: (typeof teamList === 'function' ? teamList() : []).indexOf('Probe Person') >= 0, formOpen: document.getElementById('ov').classList.contains('show'), owner: (document.getElementById('qe_owner') || {}).value }));
   if (r12e.inTeam && r12e.formOpen && r12e.owner === 'Probe Person') ok('…OK adds the person to the team and re-opens the quick edit with them selected'); else fail(`add owner OK: ${JSON.stringify(r12e)}`);
   await p.evaluate(() => { try { closeModal(); } catch (_) { } });
+
+  /* ---- 13. Finance "Set targets" (js/16 finSetTargets): the two typed questions ask in the page, one after the other ---- */
+  await p.evaluate(() => { openLead = null; current = 'finance'; render(); }); await p.waitForTimeout(1200);
+  await p.evaluate(() => { try { FIN.targets = FIN.targets || []; } catch (_) { } finSetTargets(2031); }); await p.waitForTimeout(400);
+  const r13 = await p.evaluate(() => ({ box: !!document.getElementById('pfPromptBox'), q: (document.querySelector('#pfPromptBox [data-pf-prompt-text]') || { textContent: '' }).textContent }));
+  if (!dialogs.length && r13.box && /Expected revenue for 2031|المتوقع لسنة 2031/.test(r13.q)) ok(`Set targets: the first question asks in the page ("${r13.q.slice(0, 40)}")`); else fail(`Set targets first ask: ${JSON.stringify(r13)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.fill('#pfPromptInput', '1,000,000'); await p.keyboard.press('Enter'); await p.waitForTimeout(400);
+  const r13b = await p.evaluate(() => ({ box: !!document.getElementById('pfPromptBox'), q: (document.querySelector('#pfPromptBox [data-pf-prompt-text]') || { textContent: '' }).textContent }));
+  if (!dialogs.length && r13b.box && /Confirmed revenue.*2031|المؤكد.*2031/.test(r13b.q)) ok(`…then the second ("${r13b.q.slice(0, 44)}")`); else fail(`Set targets second ask: ${JSON.stringify(r13b)}`);
+  await p.evaluate(() => { const n = document.getElementById('pfPromptNo'); if (n) n.click(); }); await p.waitForTimeout(600);
+  const r13c = await p.evaluate(() => ({ box: !!document.getElementById('pfPromptBox'), stored: (FIN.targets || []).some((t) => +t.year === 2031) }));
+  if (!dialogs.length && !r13c.box && !r13c.stored) ok('…Cancel on the second question: nothing saved for 2031, no box left'); else fail(`Set targets cancel: ${JSON.stringify(r13c)}`);
+
+  /* ---- 14. the backup tag name and the bundle-template name (core-06) ask in the page ---- */
+  await p.evaluate(() => { openLead = null; current = 'settings'; render(); }); await p.waitForTimeout(600);
+  const tagP = p.evaluate(() => tagCurrentState());   // no preset name → asks
+  await p.waitForTimeout(400);
+  const r14 = await p.evaluate(() => ({ box: !!document.getElementById('pfPromptBox'), q: (document.querySelector('#pfPromptBox [data-pf-prompt-text]') || { textContent: '' }).textContent }));
+  if (!dialogs.length && r14.box && /Tag name/.test(r14.q)) ok(`backup tag: the name is asked in the page ("${r14.q.slice(0, 30)}…")`); else fail(`backup tag ask: ${JSON.stringify(r14)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.evaluate(() => { const n = document.getElementById('pfPromptNo'); if (n) n.click(); }); await p.waitForTimeout(300);
+  const tagRes = await Promise.race([tagP.then(() => 'resolved'), new Promise((r) => setTimeout(() => r('hung'), 3000))]);
+  if (tagRes === 'resolved') ok('…Cancel resolves the tag call with nothing written'); else fail('Cancel left the tag call hanging');
+  await p.evaluate(() => { DB.offers = DB.offers || []; DB.offers.push({ id: 'qa_off_1', ref: 'QA-OFF-1', clientId: DB.businesses[0] && DB.businesses[0].id, title: 'QA offer', options: [{ name: 'Opt', items: [{ desc: 'x', qty: 1, unit: 1 }] }] }); openOffer = 'qa_off_1'; saveBundleTemplate(0); }); await p.waitForTimeout(400);
+  const r14b = await p.evaluate(() => ({ box: !!document.getElementById('pfPromptBox'), q: (document.querySelector('#pfPromptBox [data-pf-prompt-text]') || { textContent: '' }).textContent, def: (document.getElementById('pfPromptInput') || {}).value }));
+  if (!dialogs.length && r14b.box && /bundle template/i.test(r14b.q) && /^Bundle /.test(r14b.def || '')) ok(`bundle template: the name is asked in the page with today's default ("${r14b.def}")`); else fail(`bundle template ask: ${JSON.stringify(r14b)}`);
+  await p.fill('#pfPromptInput', 'QA bundle'); await p.keyboard.press('Enter'); await p.waitForTimeout(500);
+  const r14c = await p.evaluate(() => ({ saved: (DB.bundleTemplates || []).some((t) => t.name === 'QA bundle'), card: !!document.getElementById('v63Notice') }));
+  if (!dialogs.length && r14c.saved && r14c.card) ok('…Enter saves the template and the "Saved template" message is the in-page card'); else fail(`bundle template save: ${JSON.stringify(r14c)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.evaluate(() => { const o = document.getElementById('v63NoticeOk'); if (o) o.click(); DB.offers = DB.offers.filter((x) => x.id !== 'qa_off_1'); DB.bundleTemplates = (DB.bundleTemplates || []).filter((t) => t.name !== 'QA bundle'); });
+
+  /* ---- 15. the legacy ingest form's duplicate-invoice question (core-06) asks in the page; the form stays open until answered ---- */
+  await p.evaluate(() => { DB.invoices = DB.invoices || []; DB.invoices.push({ id: 'qa_inv_dup', number: 'INV-QA-DUP', clientId: DB.businesses[0] && DB.businesses[0].id, date: '2026-09-01', status: 'Issued', total: 100 }); ingestModal('invoice', ''); });
+  await p.waitForSelector('#ig_num', { timeout: 5000 }).catch(() => fail('the ingest form never opened'));
+  const n15 = await p.evaluate(() => DB.invoices.length);
+  await p.evaluate(() => { document.getElementById('ig_num').value = 'INV-QA-DUP'; document.getElementById('ig_total').value = '50'; document.getElementById('mSave').click(); }); await p.waitForTimeout(400);
+  const r15 = await p.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ').slice(0, 80), formOpen: document.getElementById('ov').classList.contains('show'), n: DB.invoices.length }));
+  if (!dialogs.length && r15.box && /Duplicate detected/.test(r15.txt) && r15.formOpen && r15.n === n15) ok(`ingest duplicate: asks in the page ("${r15.txt.slice(0, 40)}…"), form still open, nothing added yet`); else fail(`ingest duplicate: ${JSON.stringify(r15)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); }); await p.waitForTimeout(300);
+  const r15b = await p.evaluate(() => ({ n: DB.invoices.length, formOpen: document.getElementById('ov').classList.contains('show') }));
+  if (r15b.n === n15 && r15b.formOpen) ok('…Cancel adds nothing and keeps the form open'); else fail(`ingest duplicate cancel: ${JSON.stringify(r15b)}`);
+  await p.evaluate(() => { document.getElementById('mSave').click(); }); await p.waitForTimeout(300);
+  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }); await p.waitForTimeout(500);
+  const r15c = await p.evaluate(() => ({ n: DB.invoices.length, formOpen: document.getElementById('ov').classList.contains('show') }));
+  if (!dialogs.length && r15c.n === n15 + 1 && !r15c.formOpen) ok('…Confirm adds it anyway and closes the form — no native dialog'); else fail(`ingest duplicate confirm: ${JSON.stringify(r15c)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.evaluate(() => { DB.invoices = DB.invoices.filter((i) => i.number !== 'INV-QA-DUP'); });
 
   if (!errors.length) ok('no JavaScript errors'); else fail('JavaScript errors: ' + errors.join(' | '));
   await b.close(); srv.close();
