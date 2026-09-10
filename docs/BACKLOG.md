@@ -10550,6 +10550,24 @@ restorePending() now wait for the matrix (`settled()`, 20 s cap if the RPC never
 full-details export (js/73 labels); probe-access-truth and probe-modals-ar had stale
 native-dialog / untranslated-option expectations. The 44 are in battery.txt (180 entries).
 
+**Ninth landing (10 Sep, ~05:30 UTC) — the rest of the live pass.** Finance's eight tabs,
+Operations, Reports, Settings, Events, Airlines, Providers, SOPs, Archive, Activity and the
+Generator page, English then Arabic: no NaN/undefined, no sideways scroll. Found and fixed:
+**Activity & Audit** in Arabic read "createdAt, funnelDetails, nextActionDate" for a record edit,
+"access · denied" for js/64's page-refusal rows and the literal "unknown" actor — a second word
+list for the record's camelCase fields (with a camelCase fallback), "Page access · Refused ·
+Operations" with the page named through PAGES, and "غير معروف" / "تلقائي" for the actors the
+trigger could not name (probe-audit-names-and-words block 6). **Providers** in Arabic carried an
+English "Open ›" chip on every row (js/21 scans .chiplink; probe-reference-pages). **Today** greeted
+the owner a second time with "You have 1 quote to send" over a blank draft — the record
+"+ New offer" makes on the click itself, made by the QA account during the other session's live
+checks; a quote to send now names a client or has a subject or a priced option (core-09;
+probe-today-queue-card 3b). Data, with backups in `practice_cleanup_backup_20260909` (53 rows
+now): the 29 audit rows of the 9 Sep QA live probes (QA-LIVE-PROBE-*) that sat at the top of the
+log, and the second blank draft. Left as it is: the Providers rows' source-type cells ("Direct
+supplier / API", "Benchmark only") are table values js/21 does not touch by design; Settings and
+SOP titles are data.
+
 ---
 
 ## 2026-09-09 — live hands-on test of www.directksab2b.com (owner's browser, signed in as admin)
