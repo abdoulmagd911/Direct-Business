@@ -1,3 +1,17 @@
+## Routine fire #13 (2026-09-10 18:11 UTC) — merged app driven against the REAL database in a browser, clean
+With the blocker beaten, did what the owner actually asks for: drove the merged app in a browser
+against the REAL Supabase (read-only), not the mock. Technique (scratchpad/live-fullwalk.mjs): chromium
+`proxy:{server:'direct://'}` so localhost doesn't hang, predicate route matchers for the CDN/font stubs,
+and the supabase.co host bridged to the real project via Node fetch — Node KEEPS the proxy env (its
+external fetch works) while chromium goes direct and never needs external. Walked every page + Finance
+tab, EN and AR.
+RESULT — clean: signed in as admin, the per-person matrix loaded and 9 nicknames arrived (my fire-#3
+fix confirmed working LIVE), 108 businesses / 28 clients, 63–64 DB calls, 0 slow (>3s), 0 bridge errors,
+0 page/console errors, no NaN/undefined on any page in either language. The single "finding" — the
+finance landing at 27 chars — is the legitimate "Loading the finance ledger…" state caught mid-load
+(real-DB latency > the probe's 700ms settle; every Finance tab rendered fine once data arrived). Not a
+defect. No new oversight commits this fire.
+
 ## Routine fire #12 (2026-09-10 16:12 UTC) — FIRST in-browser verification of the merged app in this container
 Applied the fire-#11 fix in a NEW probe rather than editing the 176 shared globbed probes:
 `scripts/qa/probe-fullwalk.mjs` (port 8790) uses PREDICATE route matchers and is run with the proxy
