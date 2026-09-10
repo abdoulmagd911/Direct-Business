@@ -10515,6 +10515,41 @@ them). And the other way: 3 live rows carry a tier and segment in the column onl
 showed them blank (rowToApp read neither). Now written on save and read as a fallback; both
 loaded into the object so nothing phantom is written. `probe-columns-follow-record` (8769).
 
+## 2026-09-10 (03:00–04:00 UTC) — second hands-on pass of the live site, and 48 dormant probes
+
+**Live pass (owner's browser, read-only; English restored afterwards).** Today said "You have
+1 quote to send": the only proposal in the table was a blank draft (no client, no title, no
+options) made by the QA account on 9 Sep — removed, copy in `practice_cleanup_backup_20260909`
+(23 rows now). **L3, second look:** with Hide-closed on, the Leads "In view" strip still read
+"80 · Lost 2" over 78 rows — `renderLeadSummary` never applied Hide-closed (the tiles and chips
+did); probe-leads-counts now asserts the strip equals the rows drawn. **Card timeline:** a row
+bridged from the activities TABLE (the trigger's `stage_change: new → contacted` by `system`)
+read "systemedit · remove / stage_change: new → contacted" — no separator before the tools,
+tools that would not persist on a bridged row, and column names. Now "Stage changed: Prospect
+→ Contacted · automatic", no tools on bridged rows, " · edit · remove" on the record's own
+(probe-activity-edit-remove block 6). **Arabic:** the strip's stage badges, "← Back to
+pipeline", the stage picker's seven words (value attributes added so js/21 translates the label
+and keeps the English key), "★ Convert to client", "Last contact", "Services", "Website",
+"Legal name / CR·VAT", the pricing sub-head and empty state, the airline-deals empty state and
+the Direct Payments chip (probe-client-card-ar). Seen and left as data: 20 clients with no
+account manager; one company listed as a client while its stage says Lost (a decision, not a bug).
+
+**48 dormant probes.** `battery-excluded.txt` listed 49 probes as "live-system — talks to the
+production database"; 48 of them route every Supabase call to the mock (only verify-literal
+does not). They had never run in a battery. Run alone: 40 green, 8 red. Four re-labelled with
+honest reasons (audit-ui-golive's chip rule predates the Hide-closed rule and it flags the
+mock's seed names; probe-ops-board and probe-ops-margin-honest want the margin tiles the 21 Aug
+ruling removed; probe-newfeatures clicks a "Proposals" sidebar entry that no longer exists).
+Four fixed — and one of them found a real defect: **js/52's gate refused a page a person had
+been given.** The role arrives from js/02 before the per-person matrix arrives from js/56; in
+between allowedPages() fell back to the floor lists, so a team member or manager granted
+Operations / Projects / Events, opening one by address or reloading on it, was told "Not part
+of your access — ask an admin", moved to Today, and never brought back. gate() and
+restorePending() now wait for the matrix (`settled()`, 20 s cap if the RPC never answers);
+`probe-granted-page-survives-load` (8770/8771). Also: six bare keys on the Arabic Leads
+full-details export (js/73 labels); probe-access-truth and probe-modals-ar had stale
+native-dialog / untranslated-option expectations. The 44 are in battery.txt (180 entries).
+
 ---
 
 ## 2026-09-09 — live hands-on test of www.directksab2b.com (owner's browser, signed in as admin)
