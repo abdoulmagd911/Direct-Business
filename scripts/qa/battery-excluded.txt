@@ -64,3 +64,4 @@ verify-manager : credential-gated — signs in as a real member of staff; emp-ri
 verify-pages : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 verify-savepages : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 verify-teamscreen : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
+probe-fullwalk : special-run — needs the proxy stripped (env -u HTTPS_PROXY ...) and uses predicate route matchers, so it is not a standard -j battery probe; run it by hand when a container can drive Chromium

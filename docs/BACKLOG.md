@@ -1,3 +1,20 @@
+## Routine fire #12 (2026-09-10 16:12 UTC) — FIRST in-browser verification of the merged app in this container
+Applied the fire-#11 fix in a NEW probe rather than editing the 176 shared globbed probes:
+`scripts/qa/probe-fullwalk.mjs` (port 8790) uses PREDICATE route matchers and is run with the proxy
+stripped (`env -u HTTPS_PROXY … node scripts/qa/probe-fullwalk.mjs`). It walks every page + every
+Finance tab in English AND Arabic as the admin, failing on JS errors, blank views, or NaN/undefined.
+**Result: ALL PASS — 56 checks.** This is the first time the merged app (13 oversight landings deep)
+has actually been driven in a browser in a reprovisioned web container — every page renders clean in
+both languages, no JS/console errors. Registered in battery-excluded.txt (special-run: needs the
+proxy stripped, so it is not a standard -j battery probe).
+MY OWN MISTAKE, caught and fixed same fire: the probe first flagged 4 "VAT on a Finance surface"
+failures. That was wrong — a text-scan for the word "VAT", which is exactly the discredited approach
+probe-no-vat-display was rewritten away from on 2026-08-23 (owner verbatim: "I dont care weither vat
+shows or not, what i want is a clean cost, profit, and revenue"). The hits were the client's
+VAT-registration NUMBER in js/62's link waterfall — a legitimate matching identifier, not VAT in a
+money figure. Removed the text-scan; M1 stays guarded numerically by probe-no-vat-display (which
+passes). Re-ran → ALL PASS. check-probe-integrity green.
+
 ## Routine fires #10–#11 (2026-09-10 12–14 UTC) — CRACKED the browser-battery blocker (root cause + fix)
 No new app defects to fix (oversight idle ~4h after the 13th landing; 12th/13th batches — proposal
 Remove + contract clause buttons ask in-page — parse clean, gates green). Spent the fires running

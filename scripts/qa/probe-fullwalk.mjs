@@ -13,6 +13,12 @@
    NaN/undefined/[object Object] on screen, or VAT shown on a Finance surface (owner rule M1). The
    point is to give the merged app (13 landings deep) real in-browser coverage in a container where
    the glob-based battery cannot run. Exits non-zero on any failure.
+   NOTE: this probe deliberately does NOT scan for the word "VAT". M1 (docs/DECISIONS.md) is about
+   cost/profit/revenue being clean, NOT about the glyph appearing — owner verbatim: "I dont care
+   weither vat shows or not". The numeric M1 guard lives in probe-no-vat-display.mjs; a "VAT" on the
+   Clients & collections / Report Builder tabs is the client's VAT-registration NUMBER (a legitimate
+   matching identifier), not VAT in a money figure. An earlier version of this file scanned for the
+   word and raised four false positives; that check was removed.
    PORT: 8790 (verified free by scanning every PORT= in scripts/qa). */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
@@ -52,23 +58,22 @@ async function walk(lang) {
   await p.waitForTimeout(6000);
   if (lang === 'ar') { await p.evaluate(() => { try { if (typeof toggleLang === 'function' && LANG !== 'ar') toggleLang(); } catch (_) { } }); await p.waitForTimeout(1500); }
 
-  const inspect = async (label, isFin) => {
+  const inspect = async (label) => {
     await p.waitForTimeout(600);
-    const v = await p.evaluate(() => { const el = document.getElementById('view'); const t = (el && el.innerText || '').replace(/\s+/g, ' ').trim(); return { len: t.length, bad: [...new Set((t.match(/\b(NaN|undefined|\[object Object\])\b/g) || []))], vat: /\bVAT\b|ضريبة القيمة/.test(t) }; }).catch((e) => ({ len: -1, bad: ['EVAL:' + e.message], vat: false }));
+    const v = await p.evaluate(() => { const el = document.getElementById('view'); const t = (el && el.innerText || '').replace(/\s+/g, ' ').trim(); return { len: t.length, bad: [...new Set((t.match(/\b(NaN|undefined|\[object Object\])\b/g) || []))] }; }).catch((e) => ({ len: -1, bad: ['EVAL:' + e.message] }));
     if (v.len < 40) fail(`${lang} ${label}: blank/near-blank (${v.len} chars)`);
     else if (v.bad.length) fail(`${lang} ${label}: shows ${JSON.stringify(v.bad)}`);
-    else if (isFin && v.vat) fail(`${lang} ${label}: VAT shown on a Finance surface (M1)`);
     else ok(`${lang} ${label} clean (${v.len} chars)`);
   };
 
   for (const pg of PAGES) {
     const r = await p.evaluate((pg) => { try { current = pg; openLead = null; render(); return true; } catch (e) { return 'THREW ' + e.message; } }, pg).catch((e) => 'EVAL ' + e.message);
     if (r !== true) { fail(`${lang} ${pg}: render threw — ${r}`); continue; }
-    await inspect(pg, pg === 'finance');
+    await inspect(pg);
     if (pg === 'finance') for (const tab of FIN_TABS) {
       const t = await p.evaluate((t) => { try { if (typeof finGo === 'function') { finGo(t); return true; } return 'no finGo'; } catch (e) { return 'THREW ' + e.message; } }, tab).catch((e) => 'EVAL ' + e.message);
       if (t !== true) { fail(`${lang} finance/${tab}: ${t}`); continue; }
-      await inspect('finance/' + tab, true);
+      await inspect('finance/' + tab);
     }
   }
   if (errs.length) [...new Set(errs)].slice(0, 12).forEach((e) => fail(`${lang} page error: ${e}`));
