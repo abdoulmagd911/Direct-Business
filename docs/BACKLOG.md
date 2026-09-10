@@ -10476,12 +10476,28 @@ because they assign it later. Then the prompt() boxes on the everyday paths: js/
 "add a team member / add a funnel" names ask through it (probe-lifecycle5 answers the box;
 probe-no-native-dialogs block 12; sabotage-tested).
 
-**Still using a browser box, deliberately left:** the prompt() sites in js/16 `finSetTargets`
-(two chained prompts; five probes stub `window.prompt` for it — convert them together), the
-backup tag name and bundle-template name in core-06, and the lock passphrase; `resetData` /
-`v21WipeLocalData` (developer tools); js/45's fallback (only if js/57 is absent); the legacy
-Bookings / Invoices / Tickets editors' confirm() questions (their nav group is hidden by js/41;
-reached only by address). BR1 the public Brand Hub is the owner's decision.
+**Seventh landing (10 Sep, ~02:00 UTC).** The last of D1. Every prompt() box asks in the page:
+js/16 `finSetTargets` asks its two questions one after the other through pfPrompt
+(`finSetTargetsWith(y,e,cf)` is the unchanged remainder; the five probes that stub
+`window.prompt` for it now stub `pfPrompt` beside it); core-06's bundle-template name, backup
+tag name (`tagCurrentState` returns a Promise that resolves after the answer), lock passphrase
+and invoice dunning stage; core-04's copy-by-hand fallback. And the legacy Bookings / Invoices
+editors' confirm() questions (delete, archive, bulk-archive, the two ingest "duplicate — add
+anyway?" — the form stays open until answered). probe-no-native-dialogs blocks 13–15; every
+conversion sabotage-tested.
+
+**What still uses a browser box:** `resetData` and `v21WipeLocalData` (developer tools; the wipe
+deliberately types WIPE) and the js/57-absent fallbacks — nothing a person meets in daily use.
+BR1 the public Brand Hub is the owner's decision.
+
+**L6 — the table's columns say what the record says (same batch).** Measured live first: the
+`stage` half of L6 is not a defect — the column holds the canonical key (`new`) and the blob the
+app's word (`Prospect`), mapped both ways by js/02. The `assigned_to` half was real: appToRow
+never wrote `assigned_to`, `account_manager`, `tier` or `segment`, so a lead assigned in the app
+kept an empty column (88 of 108 live rows carry the owner in both places only because SQL set
+them). And the other way: 3 live rows carry a tier and segment in the column only, and the app
+showed them blank (rowToApp read neither). Now written on save and read as a fallback; both
+loaded into the object so nothing phantom is written. `probe-columns-follow-record` (8769).
 
 ---
 
