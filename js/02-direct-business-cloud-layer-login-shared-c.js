@@ -140,10 +140,15 @@
        column is only a fallback for a record the app has never saved. */
     if(!o.assignedTo&&r.assigned_to!=null&&String(r.assigned_to).trim()!=='')o.assignedTo=String(r.assigned_to).trim();
     if(!o.accountManager&&r.account_manager!=null&&String(r.account_manager).trim()!=='')o.accountManager=String(r.account_manager).trim();
+    /* 2026-09-10 (live test L6): tier and segment the same way — three live rows carry a tier and
+       a segment in the column only (set by SQL), and the app showed them blank. */
+    if((o.tier==null||o.tier==='')&&r.tier!=null&&String(r.tier).trim()!=='')o.tier=String(r.tier).trim();
+    if((o.segment==null||o.segment==='')&&r.segment!=null&&String(r.segment).trim()!=='')o.segment=String(r.segment).trim();
     // Direct client ID — the link key to Direct Payments. Real column wins over any raw copy.
     if(r.direct_client_id!=null&&r.direct_client_id!=='')o.directClientId=String(r.direct_client_id);
     return o;
   }
+  function _col(v){ return (v!=null&&String(v).trim()!=='')?String(v).trim():null; }
   function appToRow(o){
     var row={
       legacy_id:String(o.id),
@@ -156,6 +161,14 @@
       next_action_note:o.nextActionNote||null,
       lost_reason:(o.lostReason&&String(o.lostReason).trim())||null,
       direct_client_id:(o.directClientId!=null&&String(o.directClientId).trim()!=='')?String(o.directClientId).trim():null,
+      /* 2026-09-10 (live test L6): who works it, the tier and the segment are written to their
+         columns as well as the raw blob. Before this the app never wrote assigned_to /
+         account_manager / tier / segment — a lead assigned in the app kept an empty column, so
+         anything reading the table (SQL, the KPI project, an export outside the app) saw
+         "unassigned" over a name that was sitting in the blob. Read side: the blob still wins,
+         the column is the fallback; both are loaded into the object, so the row compares equal
+         on the next save and nothing phantom is written. */
+      assigned_to:_col(o.assignedTo), account_manager:_col(o.accountManager), tier:_col(o.tier), segment:_col(o.segment),
       raw:stripBridged(o)
     };
     // Persist the client handover fields to real columns too (not just raw), so a lead

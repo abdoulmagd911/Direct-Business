@@ -469,11 +469,22 @@ function finTargetNum(sv){
   var n=parseFloat(s); return isFinite(n)?n:null;
 }
 try{ window.finTargetNum=finTargetNum; }catch(_){}
+/* 2026-09-10 (live test D1 family): the two typed questions ask in the page through js/57's
+   pfPrompt (Enter submits, Cancel/Escape → null exactly as prompt() returned). The browser's
+   prompt() box froze the tab like the rest; it stays only as the fallback if js/57 is absent.
+   finSetTargets asks; finSetTargetsWith(y, e, cf) is everything that follows the answers, unchanged. */
+function finAsk(q,def,cb){ if(typeof window.pfPrompt==='function'){ window.pfPrompt(q,def,cb); return; } var r=null; try{ r=prompt(q,def); }catch(_){} cb(r===null?null:String(r)); }
 window.finSetTargets=function(y){try{
   if(finRefuseWrite())return;   // the button is already gated; guard the function too, like finDelInv
   var t=(FIN.targets||[]).find(function(x){return +x.year===+y;})||{};
-  var e=prompt(isArF()?('الإيراد المتوقع لسنة '+y+' (ريال):'):('Expected revenue for '+y+' (SAR):'), t.expected_sar||''); if(e===null)return;
-  var cf=prompt(isArF()?('الإيراد المؤكد (عقود موقعة) لسنة '+y+':'):('Confirmed revenue (signed contracts) for '+y+' (SAR):'), t.confirmed_sar||''); if(cf===null)return;
+  finAsk(isArF()?('الإيراد المتوقع لسنة '+y+' (ريال):'):('Expected revenue for '+y+' (SAR):'), t.expected_sar||'', function(e){ if(e===null)return;
+    finAsk(isArF()?('الإيراد المؤكد (عقود موقعة) لسنة '+y+':'):('Confirmed revenue (signed contracts) for '+y+' (SAR):'), t.confirmed_sar||'', function(cf){ if(cf===null)return;
+      window.finSetTargetsWith(y,e,cf);
+    });
+  });
+}catch(e){ console.warn('[fin] targets ask',e); }};
+window.finSetTargetsWith=function(y,e,cf){try{
+  if(finRefuseWrite())return;
   var _e=finTargetNum(e), _c=finTargetNum(cf);
   if(_e===null||_c===null){
     var _bad=(_e===null)?(isArF()?'«الإيراد المتوقع»':'"Expected revenue"'):(isArF()?'«الإيراد المؤكد»':'"Confirmed revenue"');
