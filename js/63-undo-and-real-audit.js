@@ -133,8 +133,14 @@
   // computed per call, not cached at parse time — LANG can change after this file loads,
   // and a module-level object built once would freeze these labels in whatever language was
   // active on first render
-  function actionLabel(a){ return { create:fl('Created','أُنشئ'), edit:fl('Edited','عُدِّل'), delete:fl('Deleted','حُذف'), archive:fl('Archived','أُرشف'), restore:fl('Restored','استُعيد') }[a] || a; }
-  function tableLabel(t){ return { businesses:fl('Lead / client','عميل محتمل / عميل'), finance_invoices:fl('Invoice','فاتورة'), finance_transactions:fl('Transaction','معاملة'), client_profiles:fl('Client profile','ملف العميل'), contacts:fl('Contact','جهة اتصال') }[t] || t; }
+  /* 2026-09-10 (second live pass): the page-denied rows js/64 logs (table 'access', action
+     'denied', after_row {page}) read "access · denied" in both languages; an actor the trigger
+     could not name is stored as the literal 'unknown'; and a field that moved inside the record
+     but is not in FIELD_WORDS was printed as its camelCase key (createdAt, funnelDetails). */
+  function actionLabel(a){ return { create:fl('Created','أُنشئ'), edit:fl('Edited','عُدِّل'), delete:fl('Deleted','حُذف'), archive:fl('Archived','أُرشف'), restore:fl('Restored','استُعيد'), denied:fl('Refused','رُفض') }[a] || a; }
+  function tableLabel(t){ return { businesses:fl('Lead / client','عميل محتمل / عميل'), finance_invoices:fl('Invoice','فاتورة'), finance_transactions:fl('Transaction','معاملة'), client_profiles:fl('Client profile','ملف العميل'), contacts:fl('Contact','جهة اتصال'), activities:fl('Activity','نشاط'), access:fl('Page access','الوصول إلى صفحة'), app_users:fl('Team account','حساب فريق'), share_links:fl('Share link','رابط مشاركة') }[t] || t; }
+  function actorWord(n){ var s=String(n==null?'':n).trim(); if(!s||s==='—')return '—'; if(s.toLowerCase()==='unknown'||s.toLowerCase()==='system')return fl(s.toLowerCase()==='system'?'automatic':'unknown', s.toLowerCase()==='system'?'تلقائي':'غير معروف'); return s; }
+  function pageWord(k){ try{ var P=(window.PAGES||[]).find(function(x){return x[0]===k;}); if(P) return isAr()?(P[2]||P[1]):P[1]; }catch(_){} return String(k||''); }
   function fmtWhen(iso){ try{ return new Date(iso).toLocaleString(isAr()?'ar':'en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(_){ return iso||''; } }
   /* 2026-09-09 (live test, AU2 + AU3): every row read "Lead / client · Edited — unknown — raw"
      — no record named, and the column names of the database as the description. A person
@@ -154,7 +160,12 @@
     activities:['activity log','سجل النشاط'], lastContact:['last contact','آخر تواصل'], contacts:['contacts','جهات الاتصال'], isClient:['client flag','علامة العميل'], assignedTo:['owner','المسؤول'], nextAction:['next action','الإجراء التالي'],
     dueDate:['due date','تاريخ الاستحقاق'], services:['services','الخدمات'], channels:['channels','القنوات'], nameAr:['Arabic name','الاسم بالعربية'], source:['source','المصدر'], funnelKey:['funnel','القناة'], website:['website','الموقع']
   };
-  function fieldWord(k){ var w=FIELD_WORDS[k]; if(w) return isAr()?w[1]:w[0]; return String(k).replace(/_sar$/,'').replace(/_/g,' '); }
+  var FIELD_WORDS_MORE={ createdAt:['created date','تاريخ الإنشاء'], updatedAt:['last update','آخر تحديث'], funnelDetails:['funnel details','تفاصيل المسار'], funnelKey:['funnel','المسار'], funnelName:['funnel','المسار'], funnelNameAr:['funnel','المسار'],
+    nextActionDate:['next action date','تاريخ الإجراء التالي'], nextAction:['next action','الإجراء التالي'], nextActionNote:['next action','الإجراء التالي'], lostReason:['lost reason','سبب الخسارة'],
+    accountManager:['account manager','مدير الحساب'], directClientId:['Direct client ID','رقم عميل Direct'], legalName:['legal name','الاسم القانوني'], crVat:['CR / VAT','السجل / الضريبة'],
+    paymentTerms:['payment terms','شروط الدفع'], creditLimit:['credit limit','حد الائتمان'], contractScope:['contract scope','نطاق العقد'], convertedDate:['became a client on','تاريخ التحول إلى عميل'],
+    edited:['edit mark','علامة التعديل'], priority:['priority','الأولوية'], area:['area','المنطقة'], website:['website','الموقع الإلكتروني'], sourceSub:['source detail','تفصيل المصدر'], tier:['tier','الفئة'], segment:['segment','القطاع'] };
+  function fieldWord(k){ var w=FIELD_WORDS[k]||FIELD_WORDS_MORE[k]; if(w) return isAr()?w[1]:w[0]; return String(k).replace(/_sar$/,'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/_/g,' ').toLowerCase(); }
   function diffKeys(b,a){
     var out=[]; try{ Object.keys(Object.assign({},b||{},a||{})).forEach(function(k){ if(k==='id'||k==='updated_at'||k==='created_at')return; if(JSON.stringify((b||{})[k])!==JSON.stringify((a||{})[k]))out.push(k); }); }catch(_){}
     return out;
@@ -179,6 +190,7 @@
     var n=r.name||raw.name||r.full_name||r.invoice_no||r.transaction_ref||r.receipt_ref||r.client_group||r.customer_raw_name||r.profile_type||r.direct_client_id||'';
     if(!n&&row.table_name==='client_profiles'&&r.business_id)n=fl('a client profile','ملف عميل');
     if(!n&&row.table_name==='contacts'&&(r.email||r.phone))n=r.email||r.phone;
+    if(!n&&row.table_name==='access'&&r.page)n=pageWord(r.page);
     return n?String(n):'';
   }
   var KNOWN_TABLES={businesses:1,finance_invoices:1,finance_transactions:1,client_profiles:1,contacts:1};
@@ -199,7 +211,7 @@
     return '<div class="act-row" data-hist-id="'+row.id+'" style="display:grid;grid-template-columns:150px minmax(0,1.1fr) minmax(0,1.4fr) auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line,#EFE9DF);font-size:12.5px">'+
       '<span class="ts" style="color:var(--muted);font-size:11.5px">'+esc(fmtWhen(row.at))+'</span>'+
       '<span class="ent"><b>'+esc(tableLabel(row.table_name))+'</b> · '+esc(actionLabel(row.action))+(name?' · <span data-hist-name="1" style="font-weight:700">'+esc(name)+'</span>':'')+'</span>'+
-      '<span><span style="font-weight:600">'+esc(row.actor_name||'—')+'</span>'+(changed?' <span data-hist-fields="1" style="color:var(--muted)" title="'+esc(cols)+'">— '+esc(changed)+'</span>':'')+'</span>'+
+      '<span><span style="font-weight:600">'+esc(actorWord(row.actor_name))+'</span>'+(changed?' <span data-hist-fields="1" style="color:var(--muted)" title="'+esc(cols)+'">— '+esc(changed)+'</span>':'')+'</span>'+
       '<span style="text-align:end">'+btn+'</span></div>';
   }
   window.renderActivity=function(v){
