@@ -205,9 +205,10 @@
   window.v62RemoveExclusion=function(id){
     if(!canEdit62())return;
     var ar=(typeof LANG!=='undefined'&&LANG==='ar');
-    if(!confirm(fl('Remove this exclusion? Rows matching it will import normally from now on.','إزالة هذا الاستبعاد؟ ستُستورد الصفوف المطابقة له بشكل طبيعي من الآن.')))return;
+    askInPage(fl('Remove this exclusion? Rows matching it will import normally from now on.','إزالة هذا الاستبعاد؟ ستُستورد الصفوف المطابقة له بشكل طبيعي من الآن.'),function(){
     DB.settings.financeExclusions=(DB.settings.financeExclusions||[]).filter(function(e){return e.id!==id;});
     if(typeof save==='function')save(); if(typeof render==='function')render();
+    });
   };
 
   /* ---------- Part 1.5: client name aliases — collapse spelling/language variants of one
@@ -300,12 +301,13 @@
 
   window.v62UndoGrouping=function(id){
     if(!canEdit62())return;
-    if(!confirm(fl('Undo this grouping? Totals split back apart immediately — nothing is deleted, this can be redone.','التراجع عن هذا الدمج؟ ستنفصل الإجماليات فورًا — لا يُحذف شيء، ويمكن إعادته لاحقًا.')))return;
+    askInPage(fl('Undo this grouping? Totals split back apart immediately — nothing is deleted, this can be redone.','التراجع عن هذا الدمج؟ ستنفصل الإجماليات فورًا — لا يُحذف شيء، ويمكن إعادته لاحقًا.'),function(){
     var list=groupMap(), e=list.filter(function(x){return x.id===id;})[0]; if(!e)return;
     e.active=false; e.undoneBy=who62(); e.undoneAt=new Date().toISOString();
     DB.settings.financeGroupMap=list;
     if(typeof clearFinCanon==='function')clearFinCanon();
     if(typeof save==='function')save(); if(typeof render==='function')render();
+    });
   };
   window.v62RedoGrouping=function(id){
     if(!canEdit62())return;
@@ -346,14 +348,19 @@
         var dupe=sel.filter(function(g){return already[g];});
         if(dupe.length){ alert(fl('Already grouped: ','مُدمَجة بالفعل: ')+dupe.join(', ')+'. '+fl('Undo that grouping first.','تراجع عن ذلك الدمج أولًا.')); return false; }
         var n=0,total=0; sel.forEach(function(g){ var c=cands[g]; if(c){n+=c.n;total+=c.total;} });
-        if(!confirm(fl('Merge '+sel.length+' values into "'+name+'" — '+n+' invoices, '+money62(total)+' SAR combined. Reversible anytime. Continue?','دمج '+sel.length+' قيم ضمن "'+name+'" — '+n+' فاتورة، '+money62(total)+' ريال إجمالًا. قابل للتراجع دائمًا. متابعة؟')))return false;
+        askInPage(fl('Merge '+sel.length+' values into "'+name+'" — '+n+' invoices, '+money62(total)+' SAR combined. Reversible anytime. Continue?','دمج '+sel.length+' قيم ضمن "'+name+'" — '+n+' فاتورة، '+money62(total)+' ريال إجمالًا. قابل للتراجع دائمًا. متابعة؟'),function(){
         DB.settings=DB.settings||{}; DB.settings.financeGroupMap=DB.settings.financeGroupMap||[];
         DB.settings.financeGroupMap.push({id:'fg'+Date.now(),canonicalName:name,aliases:sel,note:note||null,addedBy:who62(),addedAt:new Date().toISOString(),active:true,undoneBy:null,undoneAt:null});
         if(typeof clearFinCanon==='function')clearFinCanon();
         if(typeof save==='function')save(); if(typeof render==='function')render();
+        try{ closeModal(); }catch(_){}
+        });
+        return false;   // the box answers later; the modal closes on yes
       });
   };
 
+  /* 2026-09-09 (live test D1 family): the five questions on this card ask through core-01's
+     askInPage (js/57's box), never window.confirm; failures speak through js/63's notice. */
   /* ---------- Part 2: company grouping — reassign client_profiles.business_id ---------- */
   function bizName62(uuid){ try{ var list=(DB.businesses||[]); for(var i=0;i<list.length;i++){ var uu=(window.__bizUuid?window.__bizUuid(list[i].id):list[i].id); if(uu===uuid)return list[i].name||uuid; } }catch(_){} return uuid; }
   var TYPE_LBL62={prepaid:['Prepaid','مسبق الدفع'],postpaid:['Postpaid','آجل الدفع'],tender:['Tender','مناقصة']};
@@ -545,22 +552,24 @@
     }
     var msg=fl('Merge "'+(D.name||'')+'" INTO "'+(K.name||'')+'"?\n\nEverything on "'+(D.name||'')+'" — contacts, activities, billing profiles, invoice links ('+fd.n+' invoices, '+money62(fd.total)+' SAR), transactions, documents — moves to "'+(K.name||'')+'" ('+fk.n+' invoices, '+money62(fk.total)+' SAR). Empty profile fields on the kept record are filled from the merged one. The merged record is archived, not deleted, and this can be undone.',
       'دمج "'+(D.name||'')+'" في "'+(K.name||'')+'"؟\n\nكل ما على "'+(D.name||'')+'" — جهات الاتصال والأنشطة وملفات الفوترة وروابط الفواتير ('+fd.n+' فاتورة، '+money62(fd.total)+' ر.س) والمعاملات والمستندات — ينتقل إلى "'+(K.name||'')+'" ('+fk.n+' فاتورة، '+money62(fk.total)+' ر.س). تُملأ الحقول الفارغة في السجل المُبقى من السجل المدمج. يُؤرشف السجل المدمج ولا يُحذف، ويمكن التراجع.');
-    if(!confirm(msg))return;
-    var c=client62(); if(!c){ alert(fl('Not connected.','غير متصل.')); return; }
+    askInPage(msg,function(){
+    var c=client62(); if(!c){ (window.v63Notice||alert)(fl('Not connected.','غير متصل.')); return; }
     c.rpc('fn_merge_businesses',{p_keep:keepU,p_drop:dropU,p_reason:'duplicate company (guardrails card)'}).then(function(r){
-      if(r&&r.error){ alert(fl('Merge failed: ','فشل الدمج: ')+(r.error.message||'')); return; }
+      if(r&&r.error){ (window.v63Notice||alert)(fl('Merge failed: ','فشل الدمج: ')+(r.error.message||'')); return; }
       try{ if(typeof toast==='function')toast(fl('Merged. Reloading…','تم الدمج. جارٍ إعادة التحميل…')); }catch(_){}
       setTimeout(function(){ location.reload(); },600);
+    });
     });
   };
   window.v62UnmergeBiz=function(id){
     if(!canEdit62())return;
-    if(!confirm(fl('Undo this merge? Every moved record goes back to the restored company, which is un-archived.','التراجع عن هذا الدمج؟ يعود كل سجل منقول إلى الشركة المستعادة، وتُلغى أرشفتها.')))return;
+    askInPage(fl('Undo this merge? Every moved record goes back to the restored company, which is un-archived.','التراجع عن هذا الدمج؟ يعود كل سجل منقول إلى الشركة المستعادة، وتُلغى أرشفتها.'),function(){
     var c=client62(); if(!c)return;
     c.rpc('fn_unmerge_businesses',{p_merge_id:id}).then(function(r){
-      if(r&&r.error){ alert(fl('Undo failed: ','فشل التراجع: ')+(r.error.message||'')); return; }
+      if(r&&r.error){ (window.v63Notice||alert)(fl('Undo failed: ','فشل التراجع: ')+(r.error.message||'')); return; }
       try{ if(typeof toast==='function')toast(fl('Merge undone. Reloading…','تم التراجع. جارٍ إعادة التحميل…')); }catch(_){}
       setTimeout(function(){ location.reload(); },600);
+    });
     });
   };
   window.v62DismissDup=function(key){
