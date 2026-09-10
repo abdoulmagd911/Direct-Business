@@ -76,7 +76,10 @@
     var a=allowedPages(); if(!a) return true;
     return a.indexOf(view)>=0;
   }
-  try{ window.mayOpenPage=mayOpen; window.myAllowedPages=allowedPages; window.__accessKnown=known; }catch(_){}
+  /* 2026-09-10: js/64's bounce gates on __accessKnown(); exporting settled() rather than known()
+     means it never fires in the window between the role and the matrix (the other session's
+     observation) — the page is never bounced, never logged as refused, never banner-ed. */
+  try{ window.mayOpenPage=mayOpen; window.myAllowedPages=allowedPages; window.__accessKnown=settled; window.__accessRoleKnown=known; }catch(_){}
   /* known() exported (2026-08-21) so a page-access ENFORCEMENT layer (js/64) can tell "role
      confirmed, this decision is final" apart from "still loading, using the floor" — acting
      on mayOpenPage() during the unknown-role window would-be-admin included would bounce

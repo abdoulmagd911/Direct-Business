@@ -636,7 +636,13 @@ window.evOpenModal=function(id){
   var fld=function(label,inner){return '<div><label style="display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.02em">'+label+'</label>'+inner+'</div>';};
   var inp=function(fid,val,ph){return '<input id="'+fid+'" value="'+esc(val==null?'':val)+'" placeholder="'+esc(ph||'')+'" style="width:100%;padding:8px 10px;border:1px solid var(--line,#e6e8ec);border-radius:8px;font:inherit">';};
   var selHtml=function(fid,opts,cur){return '<select id="'+fid+'" style="width:100%;padding:8px 10px;border:1px solid var(--line,#e6e8ec);border-radius:8px;font:inherit">'+opts.map(function(o){return '<option value="'+esc(o[0])+'" '+(String(cur)===String(o[0])?'selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select>';};
-  var ov=document.createElement('div');
+  /* 2026-09-10 (second live pass): a second Edit click while a form was up (a double-click, or a
+     form left open) stacked a second overlay whose Cancel and Save did nothing — every handler
+     was wired through document.getElementById, which answers the FIRST form's buttons. One form
+     at a time now, and every lookup is scoped to this form. */
+  try{ document.querySelectorAll('[data-ev-form]').forEach(function(x){ x.remove(); }); }catch(_){}
+  var ov=document.createElement('div'); ov.setAttribute('data-ev-form','1');
+  var $id=function(i){ return ov.querySelector('#'+i); };
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto';
   ov.innerHTML='<div class="card" style="max-width:640px;width:100%;padding:22px 24px;background:var(--card,#fff)">'
     +'<div style="font-size:17px;font-weight:800;margin-bottom:2px">'+(id?L('Edit event','تعديل فعالية'):L('Add event','إضافة فعالية'))+'</div>'
@@ -679,10 +685,10 @@ window.evOpenModal=function(id){
   function close(){ try{ov.remove();}catch(_){} document.removeEventListener('keydown',onEsc); }
   document.addEventListener('keydown',onEsc);
   ov.addEventListener('click',function(x){if(x.target===ov)close();});
-  document.getElementById('ev_cancel').onclick=close;
-  try{ document.getElementById('ev_n').focus(); }catch(_){}
-  document.getElementById('ev_save').onclick=function(){
-    var gv=function(fid){var el=document.getElementById(fid);return el?el.value.trim():'';};
+  $id('ev_cancel').onclick=close;
+  try{ $id('ev_n').focus(); }catch(_){}
+  $id('ev_save').onclick=function(){
+    var gv=function(fid){var el=$id(fid);return el?el.value.trim():'';};
     var name=gv('ev_n'); if(!name){evSay(L('Event name is required.','اسم الفعالية مطلوب.'));return;}
     var _clash=!id&&(DB.ksaEvents||[]).some(function(x){return normName(x.name_en)===normName(name);});
     var _save=function(){
@@ -693,11 +699,11 @@ window.evOpenModal=function(id){
     if(listurl&&!/^https?:\/\//i.test(listurl)){evSay(L('Companies list link must start with http:// or https://','رابط قائمة الشركات يجب أن يبدأ بـ http:// أو https://'));return;}
     var data={name_en:name,name_ar:gv('ev_nar')||null,start_date:start,end_date:end,
       city:gv('ev_city')||null,venue:gv('ev_venue')||null,
-      vertical:document.getElementById('ev_vert').value,status:document.getElementById('ev_stat').value,
-      priority:parseInt(document.getElementById('ev_pri').value,10),organiser:gv('ev_org')||null,link:link||null,
-      approach:document.getElementById('ev_move').value,approach_status:document.getElementById('ev_prog').value,
+      vertical:$id('ev_vert').value,status:$id('ev_stat').value,
+      priority:parseInt($id('ev_pri').value,10),organiser:gv('ev_org')||null,link:link||null,
+      approach:$id('ev_move').value,approach_status:$id('ev_prog').value,
       exhibitor_list_url:listurl||null,
-      opportunity_sales:document.getElementById('ev_opps').checked,opportunity_partner:document.getElementById('ev_oppp').checked,
+      opportunity_sales:$id('ev_opps').checked,opportunity_partner:$id('ev_oppp').checked,
       notes:gv('ev_notes')||null};
     var c=client();
     var q=id?c.from('ksa_events').update(data).eq('id',id).select('id').single()
