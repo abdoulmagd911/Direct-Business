@@ -12,6 +12,7 @@
    (the code they concern lives outside the lane this probe was written for).             */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
+import { tapNotices } from './notice-tap.mjs';
 import fs from 'fs'; import os from 'os'; import path from 'path';
 
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
@@ -127,6 +128,7 @@ async function openApp(BASE, opts = {}) {
   const errors = []; p.on('pageerror', e => errors.push(String(e.message || e).slice(0, 300)));
   const adminCalls = []; const dialogs = []; const dlg = { mode: 'accept' };
   p.on('dialog', async d => { dialogs.push({ type: d.type(), message: d.message() }); if (dlg.mode === 'accept') await d.accept('QA'); else await d.dismiss(); });
+  await tapNotices(p, (m) => dialogs.push({ type: 'alert', message: m }));   // 2026-09-10: alert() is js/63's in-page card now
   await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
     const rq = r.request(); const u = new URL(rq.url());
     if (u.pathname === '/rest/v1/rpc/team_nicknames') { return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(NICKS) }); }

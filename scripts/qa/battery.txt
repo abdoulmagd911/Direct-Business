@@ -139,3 +139,4 @@ probe-client-card-address
 probe-share-button-asks
 probe-sop-sla-tidy
 probe-recent-changes-refresh
+probe-alerts-in-page

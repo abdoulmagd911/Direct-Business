@@ -27,6 +27,7 @@
    Restore byte-identical (md5). */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
+import { tapNotices } from './notice-tap.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const PORT = 8702;
@@ -71,6 +72,7 @@ async function session(browser, label) {
   const errors = []; const alerts = [];
   p.on('pageerror', (e) => errors.push(label + ' JS: ' + e.message));
   p.on('dialog', async (d) => { alerts.push(d.message()); await d.accept(); });
+  await tapNotices(p, (m) => alerts.push(m));   // 2026-09-10: alert() is js/63's in-page card now
   await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
     try {

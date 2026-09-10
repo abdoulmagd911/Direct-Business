@@ -51,6 +51,10 @@ const SUPPORT = new Set([
      here rather than among the files that must be able to fail. probe-mock-readiness is the probe
      that holds it to its promises. */
   'wait-ready.mjs',
+  /* 2026-09-10: the notice tap. alert() is an in-page card now (js/63); this hands each notice's
+     text to a probe the way the browser's dialog event used to. It asserts nothing itself —
+     probe-alerts-in-page is the probe that proves the card and the event it listens for. */
+  'notice-tap.mjs',
 ]);
 
 /* MUST BE ABLE TO FAIL. Every entry below was sabotage-proven on 2026-09-03: the thing it

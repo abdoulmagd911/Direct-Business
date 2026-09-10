@@ -1,5 +1,6 @@
 /* Owner-notes sweep: verify every standing rule on the running app, EN + AR. */
 import { start } from './mock-seed-live.mjs';
+import { tapNotices } from './notice-tap.mjs';
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
 const PORT = 8961, BASE = `http://127.0.0.1:${PORT}`;
@@ -8,6 +9,7 @@ const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromi
 const page = await (await browser.newContext({ viewport:{width:1440,height:1000} })).newPage();
 let errs=[]; page.on('pageerror',e=>errs.push(String(e).slice(0,150)));
 page.on('dialog',d=>d.accept());
+const notices=[]; await tapNotices(page,(m)=>notices.push(m));   // 2026-09-10: alert() is js/63's in-page card now
 const route = async r => { const u=r.request().url();
   if(u.includes('cdn.jsdelivr.net')){ if(u.includes('supabase-js')) return r.fulfill({status:200,contentType:'application/javascript',body:fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js')}); return r.fulfill({status:200,contentType:'application/javascript',body:''}); }
   const url=new URL(u); const resp=await fetch(BASE+url.pathname+url.search,{method:r.request().method(),headers:r.request().headers(),body:r.request().postDataBuffer()||undefined});
@@ -50,9 +52,9 @@ await page.evaluate(()=>{ FIN.tab='ledger'; render(); });
 await page.waitForFunction(()=>window.TXN&&Array.isArray(TXN._csvRows)&&TXN._csvRows.length>0,null,{timeout:15000}).catch(()=>null);
 await page.waitForTimeout(400);
 const dl=page.waitForEvent('download',{timeout:8000}).catch(()=>null);
-const csvDialogs=[]; const onDlg=d=>{ csvDialogs.push(d.message()); }; page.on('dialog',onDlg);
+const csvDialogs=[]; const onDlg=d=>{ csvDialogs.push(d.message()); }; page.on('dialog',onDlg); const n0=notices.length;
 await page.evaluate(()=>{ const b=[...document.querySelectorAll('#view button')].find(x=>/CSV/.test(x.textContent)); if(b)b.click(); });
-const got=await dl; page.off('dialog',onDlg);
+const got=await dl; page.off('dialog',onDlg); csvDialogs.push(...notices.slice(n0));
 if (got) {
   const p='/tmp/notes-csv-test.csv'; await got.saveAs(p);
   const head=fs.readFileSync(p,'utf8').split('\n')[0];

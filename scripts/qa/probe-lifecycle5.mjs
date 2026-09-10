@@ -261,9 +261,14 @@ await page.evaluate(() => { current = 'leads'; render(); });
 await page.waitForTimeout(700);
 await page.evaluate(id => { leadQuickEdit(id); }, id5);
 await page.waitForTimeout(500);
-nextDialog = 'They signed with a competitor offering credit terms we could not match this quarter';
+// 2026-09-10 (D1 family): the Lost reason is asked in the page (js/57 pfPrompt) — answer it there, never a native prompt
 await page.evaluate(() => { document.getElementById('qe_stage').value = 'Lost'; });
 await page.locator('#mSave').click();
+await page.waitForTimeout(500);
+const lostBox = await page.evaluate(() => ({ box: !!document.getElementById('pfPromptBox'), q: (document.querySelector('#pfPromptBox [data-pf-prompt-text]') || { textContent: '' }).textContent }));
+await STEP('Lost asks for the reason in the page', lostBox.box && /Why did we lose|لماذا خسرنا/.test(lostBox.q), JSON.stringify(lostBox).slice(0, 120));
+await page.fill('#pfPromptInput', 'They signed with a competitor offering credit terms we could not match this quarter');
+await page.keyboard.press('Enter');
 await page.waitForTimeout(1000);
 const lost = await page.evaluate(id => { const b = getLead(id); return { stage: leadStage(b), reason: b.lostReason || (b.raw && b.raw.lostReason) || '' }; }, id5);
 await STEP('Lost captured WITH the reason', lost.stage === 'Lost' && /competitor/.test(lost.reason), JSON.stringify(lost).slice(0, 90));

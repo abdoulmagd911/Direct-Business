@@ -26,11 +26,15 @@
      7–10. proposal delete, Team reset link, guardrails exclusion, supplier editor (see the blocks).
      11. Reports: the achievement form's empty-title refusal is a toast (was alert()); deleting an
         achievement (core-10 rptDelAch) asks in the page; Cancel keeps it, Confirm removes it.
+     12. The prompt() boxes (2026-09-10): the Lost reason (core-01 captureLostReason) and quick
+        edit's "add a team member" (core-10 qeAddOwner) ask in js/57's pfPrompt box; Enter/OK
+        saves the answer, Cancel leaves the lead Lost with no reason.
 
    Run:  node scripts/qa/probe-no-native-dialogs.mjs        (port 8756)
    Sabotage: in core-02 put `alert("Business name required.")` back — check 1 goes red (a
    native dialog fired); put `if(confirm(_delWarn()))` back — check 2 goes red; in core-10 put
-   `if(!confirm('Delete this achievement?'))return;` back — check 11 goes red. Assert the
+   `if(!confirm('Delete this achievement?'))return;` back — check 11 goes red; in core-01 put
+   `prompt(q,…)` back in captureLostReason — block 12's first checks go red. Assert the
    sabotage APPLIED with a marker unique to it; confirm the restore by marker count and git
    status.  */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
@@ -217,6 +221,29 @@ async function main() {
   await p.evaluate((id) => rptDelAch(id), achId); await p.waitForTimeout(300);
   await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }); await p.waitForTimeout(400);
   if (!dialogs.length && (await achCount()) === 0) ok('…Confirm removes it — no native dialog'); else fail(`Confirm: count=${await achCount()} dialogs=${JSON.stringify(dialogs)}`);
+
+  /* ---- 12. the browser's prompt() boxes: the Lost reason (core-01) and quick edit's "add a team member" (core-10) ask in the page ---- */
+  const lostId = await p.evaluate(() => { const l = DB.businesses.find((x) => !x.isClient && leadStage(x) !== 'Lost'); return l ? l.id : null; });
+  await p.evaluate((id) => { openLead = null; current = 'leads'; render(); leadQuickEdit(id); }, lostId); await p.waitForTimeout(400);
+  await p.evaluate(() => { document.getElementById('qe_stage').value = 'Lost'; document.getElementById('mSave').click(); }); await p.waitForTimeout(500);
+  const r12 = await p.evaluate(() => ({ box: !!document.getElementById('pfPromptBox'), q: (document.querySelector('#pfPromptBox [data-pf-prompt-text]') || { textContent: '' }).textContent, focused: document.activeElement && document.activeElement.id }));
+  if (!dialogs.length && r12.box && /Why did we lose|لماذا خسرنا/.test(r12.q)) ok(`Lost: the reason is asked in the page ("${r12.q.slice(0, 40)}…"), no native prompt`); else fail(`Lost reason: ${JSON.stringify(r12)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.fill('#pfPromptInput', 'Budget cut, probe reason'); await p.keyboard.press('Enter'); await p.waitForTimeout(600);
+  const r12b = await p.evaluate((id) => { const b = getLead(id); return { stage: leadStage(b), reason: b.lostReason || '', act: (b.activities || []).some((a) => /probe reason/.test(a.note || '')), box: !!document.getElementById('pfPromptBox') }; }, lostId);
+  if (r12b.stage === 'Lost' && r12b.reason === 'Budget cut, probe reason' && r12b.act && !r12b.box) ok('…Enter saves the reason on the record with a Lost activity; the box is gone'); else fail(`Lost reason saved: ${JSON.stringify(r12b)}`);
+  const lostId2 = await p.evaluate(() => { const l = DB.businesses.find((x) => !x.isClient && leadStage(x) !== 'Lost'); return l ? l.id : null; });
+  await p.evaluate((id) => { leadQuickEdit(id); }, lostId2); await p.waitForTimeout(400);
+  await p.evaluate(() => { document.getElementById('qe_stage').value = 'Lost'; document.getElementById('mSave').click(); }); await p.waitForTimeout(500);
+  await p.evaluate(() => { const n = document.getElementById('pfPromptNo'); if (n) n.click(); }); await p.waitForTimeout(400);
+  const r12c = await p.evaluate((id) => { const b = getLead(id); return { stage: leadStage(b), reason: b.lostReason || '' }; }, lostId2);
+  if (!dialogs.length && r12c.stage === 'Lost' && r12c.reason === '') ok('…Cancel: the lead is still Lost, with no reason — what the old box\'s Cancel did'); else fail(`Lost + Cancel: ${JSON.stringify(r12c)}`);
+  await p.evaluate((id) => { qeAddOwner(id); }, lostId2); await p.waitForTimeout(400);
+  const r12d = await p.evaluate(() => ({ box: !!document.getElementById('pfPromptBox'), q: (document.querySelector('#pfPromptBox [data-pf-prompt-text]') || { textContent: '' }).textContent }));
+  if (!dialogs.length && r12d.box && /team member/i.test(r12d.q)) ok('quick edit "add a team member": asks the name in the page'); else fail(`add owner: ${JSON.stringify(r12d)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.fill('#pfPromptInput', 'Probe Person'); await p.evaluate(() => document.getElementById('pfPromptOk').click()); await p.waitForTimeout(500);
+  const r12e = await p.evaluate(() => ({ inTeam: (typeof teamList === 'function' ? teamList() : []).indexOf('Probe Person') >= 0, formOpen: document.getElementById('ov').classList.contains('show'), owner: (document.getElementById('qe_owner') || {}).value }));
+  if (r12e.inTeam && r12e.formOpen && r12e.owner === 'Probe Person') ok('…OK adds the person to the team and re-opens the quick edit with them selected'); else fail(`add owner OK: ${JSON.stringify(r12e)}`);
+  await p.evaluate(() => { try { closeModal(); } catch (_) { } });
 
   if (!errors.length) ok('no JavaScript errors'); else fail('JavaScript errors: ' + errors.join(' | '));
   await b.close(); srv.close();
