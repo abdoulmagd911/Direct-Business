@@ -29,3 +29,4 @@ sweep-nav : prints the navigation tree as rendered.
 sweep-pages : prints each page's rendered length and any console errors.
 verify-pages : prints the per-person page-access matrix as the app draws it.
 verify-savepages : prints what saving the page-access matrix stored.
+diag-two-tabs-one-record : REPORT — measures what two tabs saving the same company leave in the table (LANDMINES B.1, parked by ruling); prints whether the first tab's note survived the second tab's stale save. Nothing to assert until the owner decides on row versioning.

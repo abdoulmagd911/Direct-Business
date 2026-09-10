@@ -133,6 +133,17 @@ await p.evaluate(()=>evOpenModal('e2')); await p.waitForTimeout(400);
 check('modal: first field is focused on open', await p.evaluate(()=>document.activeElement&&document.activeElement.id), 'ev_n');
 await p.keyboard.press('Escape'); await p.waitForTimeout(400);
 check('modal: Escape closes it', await p.evaluate(()=>!document.getElementById('ev_move')), true);
+/* 2026-09-10 (second live pass): Edit pressed twice (a double-click) stacked two forms and the
+   top one's Cancel and Save were dead — wired through document.getElementById, which answered
+   the first form. One form at a time; its buttons scoped to it. */
+await p.evaluate(()=>{ evOpenModal('e2'); evOpenModal('e2'); }); await p.waitForTimeout(500);
+check('modal: a second Edit click leaves exactly one form on screen', await p.evaluate(()=>document.querySelectorAll('[data-ev-form]').length), 1);
+await p.evaluate(()=>{ const c=document.querySelector('[data-ev-form] #ev_cancel'); if(c) c.click(); }); await p.waitForTimeout(400);
+check('modal: Cancel on that form closes it', await p.evaluate(()=>document.querySelectorAll('[data-ev-form]').length), 0);
+await p.evaluate(()=>{ evOpenModal('e2'); evOpenModal('e2'); }); await p.waitForTimeout(500);
+await p.evaluate(()=>{ const n=document.querySelector('[data-ev-form] #ev_n'); n.value='Event 2 renamed by the second form'; const s=document.querySelector('[data-ev-form] #ev_save'); s.click(); }); await p.waitForTimeout(1200);
+check('modal: Save on that form saves', await p.evaluate(()=>(DB.ksaEvents.find(x=>x.id==='e2')||{}).name_en), 'Event 2 renamed by the second form');
+check('modal: …and closes it', await p.evaluate(()=>document.querySelectorAll('[data-ev-form]').length), 0);
 
 await p.evaluate(()=>evOpenModal()); await p.waitForTimeout(400);
 await p.fill('#ev_n','Event 1');            // a name already on the calendar

@@ -186,3 +186,7 @@ probe-today-no-money
 probe-two-tabs
 probe-viewer-writes
 probe-granted-page-survives-load
+probe-forms-single-instance
+diag-two-tabs-one-record
+probe-import-json-safe
+probe-golive-reset-retired
