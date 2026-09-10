@@ -1,3 +1,25 @@
+## Routine fire #5 (2026-09-10 02:11 UTC) — verified the alert()-override strategy; enumerated remaining confirm()
+Synced to `c0d9b42` (oversight's 6th landing: `alert()` is now an in-page card app-wide via js/63's
+`window.alert` override, plus `pfPrompt` in js/57, Lost-reason + quick-edit-name converted). All 20
+newly-touched files parse; check-structure + check-decisions-wired green.
+Verified the strategy is sound (browser-free): js/63 overrides `window.alert` ONLY (line 92) — correct,
+because `confirm()` returns a boolean synchronously and can't be a transparent async card, so each
+confirm() must be converted per-site (probe-alerts-in-page's own header confirms this: "moved into
+js/57's box one by one across four landings").
+
+FLAG for the core lane — enumeration of raw `confirm()` still in the tree after 6 landings (js/63's
+alert-override does NOT cover confirm, so any *reachable* one still freezes the tab). Triaged:
+- Intentional/dead/handled (NO action): js/45-expenses:148 (documented pfConfirm fallback);
+  core-01 resetData:468 (wired to nothing); core-06 v21WipeLocalData:1189 (admin/dev wipe).
+- **Verify reachability in-browser** (I can't — the harness doesn't run in this container): core-05
+  `editBooking`:111 / `editInvoice`:138 delete callbacks (`confirm('Delete this booking/invoice?')`),
+  reached only if the Bookings/Invoices pages expose the core-05 Edit path — but those pages read
+  "🔒 read-only, create/edit disabled" live, so probably a later read-only layer wins and these are
+  unreachable. Also core-06 invBulkAction:163 (bulk-archive) and invoice ingest-duplicate:291. If any
+  IS reachable, convert to `askInPage`; if the pages are genuinely read-only, no action.
+Data unchanged this fire (code-only landings) — the fire-#4 SQL invariant sweep still stands.
+Browser harness still cannot run here (probe-events produces no output; /tmp flaky).
+
 ## Routine fire #4 (2026-09-10 00:11 UTC) — my fire-#3 flag was actioned; data still spotless
 Synced to `b6eee20` (oversight's 5th 9-Sep landing). **The `editSupplier` native-dialog flag I
 raised in fire #3 was picked up and fixed by the core lane** (commit `011ea6c` — the supplier/
