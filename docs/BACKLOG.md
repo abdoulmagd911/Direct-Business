@@ -1,3 +1,20 @@
+## Routine fire #15 (2026-09-10 22:12 UTC) — EMPLOYEE access model verified LIVE in-browser (fire-#3 + #7 fixes)
+Set the QA account to team_member (grant: today/leads/clients/finance; reversed to admin right after)
+and drove it in a browser against the REAL database, signing in at TYPING speed (8s on the form) — the
+exact window my fire-#3 matrix fix + the fire-#7 settled() gate cover. Result, clean:
+- role=team_member, **matrix loaded (fire-#3 fix confirmed LIVE for an employee)**, 9 nicknames, allowed
+  = [today,leads,clients,finance].
+- The sidebar exposes ONLY the four granted pages — no leak of ungranted ones.
+- All 11 UNGRANTED pages (settings, offers, events, ops, reports, airlines, vendors, sopsla, activity,
+  archive, documents) bounce to Today WITH the access banner — the fire-#7 settled() gate + my js/64
+  banner working correctly for an employee, against real data.
+- granted today/leads/clients render clean; the one "finding" (finance 27 chars) is the same known
+  probe load-race as fire #13 ("Loading the finance ledger…" caught before the real-DB rows arrived),
+  not a defect.
+Zero real defects. The access model — the thing the owner's original "not working properly" turned out
+to be about — is now confirmed working end-to-end for the majority role, live, in a browser.
+No new oversight commits this fire.
+
 ## Routine fire #14 (2026-09-10 20:11 UTC) — real detail cards driven in-browser; the empty Ledger explained
 Went deeper than the page-walk: opened 6 real leads + 6 real clients as DETAIL cards (where the
 v33–v36 + people-bridge + client-address injection layers stack) and the ledger, EN and AR, against
