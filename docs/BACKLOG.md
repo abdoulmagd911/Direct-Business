@@ -1,3 +1,17 @@
+## Routine fire #4 (2026-09-10 00:11 UTC) — my fire-#3 flag was actioned; data still spotless
+Synced to `b6eee20` (oversight's 5th 9-Sep landing). **The `editSupplier` native-dialog flag I
+raised in fire #3 was picked up and fixed by the core lane** (commit `011ea6c` — the supplier/
+airline editor now uses `toast(…,"err")` for empty-name and `askInPage(…)` for delete; `0e7d90f`
+removed the dead js/10 evDelete copy). Confirmed: no native `confirm()`/`alert()` remain in
+core-03's action paths. The verify→flag→core-lane-fixes loop is working as intended.
+Verified the 4th/5th landings browser-free: all 20 newly-touched js/mjs files parse; check-structure
++ check-decisions-wired green. SQL data-invariant re-check: 46 invoices (profit=revenue−cost
+throughout, zero M1 VAT breach, zero Takamol/Techtic leak, revenue_way all valid), 108 live
+businesses (is_client consistent, stages inside the locked set) — nothing regressed.
+Browser harness STILL cannot run in this reprovisioned container (probe-events produces no output
+even with an internal 130s cap; /tmp itself is flaky) — accepted, not re-litigated each fire. The
+full browser battery remains outstanding for a container that can sustain Chromium.
+
 ## Routine fire #3 (2026-09-09 22:11 UTC) — verified the oversight core refactor; one D1-extension found
 Fast-forwarded to the oversight session's HEAD (`0bf8459`, 70 layers / 176 probes) — their big
 9-Sep sweep landed a native-dialog→in-page-box refactor across core-01…core-10, js/76, new js/77
