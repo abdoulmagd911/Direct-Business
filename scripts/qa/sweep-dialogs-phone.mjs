@@ -177,6 +177,11 @@ async function main() {
       /* js/31's Team & Access panel is built fresh and REMOVED to close (z-index 2147481600),
          so there is no class to strip — it has to be removed the way its own close button does. */
       try { const v = document.getElementById('v48ov'); if (v) v.remove(); } catch (_) { }
+      /* 2026-09-09: the questions that used to be window.confirm now stand in the page (js/57's
+         #pfConfirmBox, answered No here so nothing is applied), js/62's results in js/63's notice
+         card, and the Share button opens js/77's panel — all three are removed to close. */
+      try { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); } catch (_) { }
+      try { ['pfConfirmBox', 'v63Notice', 'shareBox'].forEach((id) => { const x = document.getElementById(id); if (x) x.remove(); }); } catch (_) { }
     });
     await p.waitForTimeout(200);
   };

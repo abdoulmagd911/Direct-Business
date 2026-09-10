@@ -23,10 +23,14 @@
         form's empty-name refusal is a toast.
      6. Won (same night): convertToClient asks in the page; Cancel keeps the lead; Confirm converts
         it and the client handover still opens (js/14 now listens for 'lead-converted').
+     7–10. proposal delete, Team reset link, guardrails exclusion, supplier editor (see the blocks).
+     11. Reports: the achievement form's empty-title refusal is a toast (was alert()); deleting an
+        achievement (core-10 rptDelAch) asks in the page; Cancel keeps it, Confirm removes it.
 
    Run:  node scripts/qa/probe-no-native-dialogs.mjs        (port 8756)
    Sabotage: in core-02 put `alert("Business name required.")` back — check 1 goes red (a
-   native dialog fired); put `if(confirm(_delWarn()))` back — check 2 goes red. Assert the
+   native dialog fired); put `if(confirm(_delWarn()))` back — check 2 goes red; in core-10 put
+   `if(!confirm('Delete this achievement?'))return;` back — check 11 goes red. Assert the
    sabotage APPLIED with a marker unique to it; confirm the restore by marker count and git
    status.  */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
@@ -166,6 +170,53 @@ async function main() {
   const r8 = await p.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ').slice(0, 80) }));
   if (!dialogs.length && r8.box && /password reset link/.test(r8.txt)) ok(`Send reset link asks in the page: "${r8.txt.slice(0, 60)}"`); else fail(`Send reset link: ${JSON.stringify(r8)} dialogs=${JSON.stringify(dialogs)}`);
   await p.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); const o = document.getElementById('v48ov'); if (o) o.remove(); });
+
+  /* ---- 9. the Finance guardrails card (js/62): removing an exclusion asks in the page ---- */
+  await p.evaluate(() => { DB.settings = DB.settings || {}; DB.settings.financeExclusions = DB.settings.financeExclusions || []; DB.settings.financeExclusions.push({ id: 'fx-nd', clientId: 'x', matchNames: ['Probe Excluded Co'], reason: 'probe', addedBy: 'QA', addedAt: new Date().toISOString() }); v62RemoveExclusion('fx-nd'); });
+  await p.waitForTimeout(400);
+  const r9 = await p.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ').slice(0, 80), still: (DB.settings.financeExclusions || []).some((e) => e.id === 'fx-nd') }));
+  if (!dialogs.length && r9.box && /Remove this exclusion/.test(r9.txt) && r9.still) ok(`guardrails: removing an exclusion asks in the page ("${r9.txt.slice(0, 50)}…"), nothing removed yet`);
+  else fail(`guardrails exclusion: ${JSON.stringify(r9)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }); await p.waitForTimeout(400);
+  const r9b = await p.evaluate(() => (DB.settings.financeExclusions || []).some((e) => e.id === 'fx-nd'));
+  if (!r9b) ok('…Confirm removes the exclusion'); else fail('Confirm did not remove the exclusion');
+
+  /* ---- 10. the Airlines / Suppliers editor (core-03 editSupplier, flagged by the other session) ---- */
+  await p.evaluate(() => { openLead = null; current = 'airlines'; render(); editSupplier('air'); });
+  await p.waitForSelector('#x_name', { timeout: 5000 }).catch(() => fail('the supplier editor never opened'));
+  await p.evaluate(() => { document.getElementById('x_name').value = ''; document.getElementById('mSave').click(); }); await p.waitForTimeout(500);
+  const t10 = await toastText();
+  if (!dialogs.length && /Name required|الاسم/.test(t10)) ok(`supplier editor, empty name: toast "${t10.slice(0, 30)}", no native alert`); else fail(`supplier editor empty name: dialogs=${JSON.stringify(dialogs)} toast="${t10}"`);
+  await p.evaluate(() => { try { closeModal(); } catch (_) { } });
+  const airId = await p.evaluate(() => (DB.airlines || [])[0] && DB.airlines[0].id);
+  await p.keyboard.press('Escape'); await p.waitForTimeout(300);   // the event form from block 5 may still be up
+  await p.evaluate((id) => editSupplier('air', id), airId); await p.waitForSelector('#mDel', { timeout: 5000 }).catch(() => fail('no Delete on the supplier editor'));
+  await p.evaluate(() => document.getElementById('mDel').click()); await p.waitForTimeout(400);
+  const r10 = await p.evaluate((id) => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ').slice(0, 80), still: (DB.airlines || []).some((a) => a.id === id) }), airId);
+  if (!dialogs.length && r10.box && /Delete "/.test(r10.txt) && r10.still) ok(`delete airline: in-page box ("${r10.txt.slice(0, 50)}…"), nothing removed yet`); else fail(`delete airline: ${JSON.stringify(r10)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); }); await p.waitForTimeout(200);
+  const r10b = await p.evaluate((id) => (DB.airlines || []).some((a) => a.id === id), airId);
+  if (r10b) ok('…Cancel keeps the airline'); else fail('Cancel removed the airline');
+
+  /* ---- 11. Reports: the achievement form's empty-title refusal is a toast; deleting an achievement (core-10 rptDelAch) asks in the page ---- */
+  await p.evaluate(() => { try { closeModal(); } catch (_) { } openLead = null; current = 'reports'; render(); rptOpenAch(); });
+  await p.waitForSelector('#rf_title', { timeout: 5000 }).catch(() => fail('the achievement form never opened'));
+  await p.evaluate(() => { document.getElementById('rf_title').value = ''; document.getElementById('mSave').click(); }); await p.waitForTimeout(500);
+  const t11 = await toastText();
+  const f11 = await p.evaluate(() => ({ open: document.getElementById('ov').classList.contains('show'), focused: document.activeElement && document.activeElement.id }));
+  if (!dialogs.length && /what was achieved/i.test(t11) && f11.open) ok(`achievement form, empty title: toast "${t11.slice(0, 36)}", form stays open, no native alert`);   // focus is not asserted: headless Chromium drops it under load else fail(`achievement form empty title: dialogs=${JSON.stringify(dialogs)} toast="${t11}" ${JSON.stringify(f11)}`);
+  await p.evaluate(() => { document.getElementById('rf_title').value = 'QA probe achievement'; document.getElementById('mSave').click(); }); await p.waitForTimeout(500);
+  const achId = await p.evaluate(() => { try { const d = JSON.parse(localStorage.getItem('directReportsData_v1')); const a = (d.achievements || []).find((x) => x.title === 'QA probe achievement'); return a && a.id; } catch (_) { return null; } });
+  if (achId) ok('…with a title, the achievement is logged'); else fail('the achievement was not logged');
+  const achCount = () => p.evaluate(() => { try { return JSON.parse(localStorage.getItem('directReportsData_v1')).achievements.filter((x) => x.title === 'QA probe achievement').length; } catch (_) { return -1; } });
+  await p.evaluate((id) => rptDelAch(id), achId); await p.waitForTimeout(400);
+  const r11 = await p.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ').slice(0, 80) }));
+  if (!dialogs.length && r11.box && /Delete this achievement/.test(r11.txt) && (await achCount()) === 1) ok(`delete achievement: in-page box ("${r11.txt.slice(0, 40)}…"), nothing removed yet`); else fail(`delete achievement: ${JSON.stringify(r11)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); }); await p.waitForTimeout(200);
+  if ((await achCount()) === 1) ok('…Cancel keeps the achievement'); else fail('Cancel removed the achievement');
+  await p.evaluate((id) => rptDelAch(id), achId); await p.waitForTimeout(300);
+  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }); await p.waitForTimeout(400);
+  if (!dialogs.length && (await achCount()) === 0) ok('…Confirm removes it — no native dialog'); else fail(`Confirm: count=${await achCount()} dialogs=${JSON.stringify(dialogs)}`);
 
   if (!errors.length) ok('no JavaScript errors'); else fail('JavaScript errors: ' + errors.join(' | '));
   await b.close(); srv.close();

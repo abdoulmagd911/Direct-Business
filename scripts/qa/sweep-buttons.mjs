@@ -160,15 +160,25 @@ for (const P of PAGES) {
     /* An <a target="_blank"> hands the click to the browser, which the harness suppresses — the
        action is real and verifiable from the element itself, so it is read before clicking rather
        than inferred from a page that correctly did not change. */
-    const isExternalLink = await page.evaluate(i => {
-      const btns = [...document.querySelectorAll('#view button, #view a.btn, .v26_3-chips button, .v26_3-section-head button')].filter(b => b.offsetParent !== null);
-      const b = btns[i];
-      return !!(b && b.tagName === 'A' && b.getAttribute('target') === '_blank' && (b.getAttribute('href') || '').length > 1);
-    }, i);
-    const clicked = await page.evaluate(i => {
-      const btns = [...document.querySelectorAll('#view button, #view a.btn, .v26_3-chips button, .v26_3-section-head button')].filter(b => b.offsetParent !== null);
-      if (!btns[i]) return false; try { btns[i].click(); return true; } catch (e) { window.__clickErr = String(e); return 'threw'; }
-    }, i);
+    /* 2026-09-09: the same torn-down-context guard as the reads below — a reload started by an
+       earlier button (a refused save reloads 4.5 s later) can land between state() and this read,
+       and an unguarded evaluate here killed the whole sweep in battery b11. */
+    let isExternalLink = false, clicked;
+    try {
+      isExternalLink = await page.evaluate(i => {
+        const btns = [...document.querySelectorAll('#view button, #view a.btn, .v26_3-chips button, .v26_3-section-head button')].filter(b => b.offsetParent !== null);
+        const b = btns[i];
+        return !!(b && b.tagName === 'A' && b.getAttribute('target') === '_blank' && (b.getAttribute('href') || '').length > 1);
+      }, i);
+      clicked = await page.evaluate(i => {
+        const btns = [...document.querySelectorAll('#view button, #view a.btn, .v26_3-chips button, .v26_3-section-head button')].filter(b => b.offsetParent !== null);
+        if (!btns[i]) return false; try { btns[i].click(); return true; } catch (e) { window.__clickErr = String(e); return 'threw'; }
+      }, i);
+    } catch (e) {
+      lostContexts++;
+      results.push([P.name, label, 'LEFT THE APP: ' + String(e && e.message || e).split('\n')[0].slice(0, 90) + ' (before the click — an earlier button\'s navigation was still settling)']);
+      await recover(); continue;
+    }
     await page.waitForTimeout(700);
     const liv = await alive();
     if (!liv.ok) {

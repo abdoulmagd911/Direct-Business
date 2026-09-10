@@ -138,6 +138,8 @@ async function main() {
   await p.selectOption('#g2_aliases', [ALIAS_EN, ALIAS_AR]);
   await p.fill('#g2_name', CANONICAL);
   await p.click('#mSave');
+  /* 2026-09-09 (live test D1 family): js/62 asks through js/57's in-page box now — answer yes there */
+  await p.waitForSelector('#pfConfirmYes', { timeout: 5000 }).catch(() => {}); await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
   await p.waitForTimeout(600);
 
   const afterMerge = await clientsTableText();
@@ -171,6 +173,7 @@ async function main() {
     return true;
   });
   if (!undone) fail('could not find the active grouping entry to undo');
+  await p.waitForSelector('#pfConfirmYes', { timeout: 5000 }).catch(() => {}); await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
   await p.waitForTimeout(500);
   const afterUndo = await clientsTableText();
   if (afterUndo.includes(CANONICAL)) fail(`after undo: "${CANONICAL}" still appears — undo did not actually take effect`);

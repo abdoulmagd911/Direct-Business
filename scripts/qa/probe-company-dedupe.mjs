@@ -159,13 +159,17 @@ async function main() {
     btn.click(); return 'clicked';
   }, [NEW_BIZ]);
   if (merged !== 'clicked') fail('MERGE: could not drive the Merge button: ' + merged);
+  /* 2026-09-09 (live test D1 family): js/62 asks through js/57's in-page box now — answer yes there */
+  await p.waitForSelector('#pfConfirmBox', { timeout: 5000 }).catch(() => {});
+  const boxMsg = await p.evaluate(() => { const b = document.getElementById('pfConfirmBox'); return b ? b.innerText : ''; }); if (boxMsg) dialogs.push(boxMsg);
+  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
   await p.waitForTimeout(2500);
   const mergeCall = rpcCalls.find((c) => c.fn === 'fn_merge_businesses');
   if (!mergeCall) fail('MERGE: no fn_merge_businesses RPC call went out');
   else if (mergeCall.args.p_keep !== NEW_BIZ || mergeCall.args.p_drop !== FIXTURE_BIZ) fail(`MERGE: RPC carried the wrong pair — ${JSON.stringify(mergeCall.args)}`);
   else ok(`MERGE: one RPC call with exactly keep=${NEW_BIZ}, drop=${FIXTURE_BIZ}`);
   if (!dialogs.some((d) => /Merge .* INTO/i.test(d) && /invoices/.test(d) && /undone/i.test(d))) fail('MERGE: the confirm dialog should name both records, the invoices moving, and that it can be undone — got ' + JSON.stringify(dialogs));
-  else ok('MERGE: the confirm dialog previewed both names, what moves, and the undo promise');
+  else ok('MERGE: the in-page confirmation previewed both names, what moves, and the undo promise');
 
   const linksAfter = await fetch(BASE + '/rest/v1/finance_client_links').then((r) => r.json());
   const movedLink = linksAfter.find((l) => l.client_group === 'Test Company 4');
@@ -206,6 +210,7 @@ async function main() {
   });
   if (undoBtn !== 'clicked') fail('UNDO: merge history / Undo not available after reload: ' + undoBtn);
   else ok('UNDO: the merge appears in history with an Undo button');
+  await p.waitForSelector('#pfConfirmYes', { timeout: 5000 }).catch(() => {}); await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
   await p.waitForTimeout(2500);
   const unmergeCall = rpcCalls.find((c) => c.fn === 'fn_unmerge_businesses');
   if (!unmergeCall) fail('UNDO: no fn_unmerge_businesses RPC call went out');

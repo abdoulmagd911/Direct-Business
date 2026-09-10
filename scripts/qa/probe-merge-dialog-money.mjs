@@ -117,11 +117,12 @@ async function dialogFigures(b, renderFinanceFirst, forceRaw) {
     await p.evaluate((seed) => { try { FIN.rows = JSON.parse(JSON.stringify(seed)); } catch (_) { } }, SEED);
     await p.waitForTimeout(200);
   }
-  const msg = await p.evaluate(() => {
-    let captured = null; const oc = window.confirm; window.confirm = (m) => { captured = m; return false; };
+  /* 2026-09-09 (live test D1 family): the question is js/57's in-page box now — read it, then Cancel */
+  const msg = await p.evaluate(() => new Promise((res) => {
+    let captured = null;
     try { window.v62MergeBiz('bizB', 'bizA'); } catch (e) { captured = 'THREW ' + e.message; }
-    window.confirm = oc; return captured;
-  });
+    setTimeout(() => { const b = document.getElementById('pfConfirmBox'); if (b && !captured) captured = b.innerText; const n = document.getElementById('pfConfirmNo'); if (n) n.click(); res(captured); }, 300);
+  }));
   await ctx.close();
   if (!exclReady) return { msg: '(the exclusion list never arrived — this run could not measure the dialog against the standing exclusion)', pairs: [], exclReady: false };
   const pairs = String(msg || '').match(/\((\d+) invoices, ([\d,\.]+) SAR\)/g) || [];

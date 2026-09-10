@@ -86,6 +86,10 @@ async function main() {
     window.confirm = function () { return true; };
     window.prompt = function () { return 'x'; };
     window.alert = function (m) { window.__a = String(m); };
+    /* 2026-09-09 (live test D1 family): js/62 asks through askInPage (js/57's box) and reports
+       through js/63's notice now — stub both the same way the native pair is stubbed above */
+    window.askInPage = function (m, y) { y(); };
+    window.v63Notice = function (m) { window.__a = String(m); };
     try { window.__reloads = (window.__reloads || 0); const L = window.location; if (!L.__stubbed) { Object.defineProperty(L, 'reload', { configurable: true, value: function () { window.__reloads++; } }); L.__stubbed = true; } } catch (_) { }
   });
   const modalOpen = () => p.evaluate(() => {

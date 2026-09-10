@@ -86,11 +86,15 @@ STEP('L3 handover Cancel: stays a client, Direct ID simply empty (add later)', a
 // ===== L4 · Un-Won: change a client back — confirm moves it back to leads =====
 await page.evaluate(id => { current = 'clients'; openLead = null; render(); }, hid);
 await page.waitForTimeout(700);
-nextDialogAction = 'accept';
+// 2026-09-09 (D1 family): the question asks in the page (js/57's box) — answer it there, never a native dialog
 await page.evaluate(id => leadQuickEdit(id), hid);
 await page.waitForTimeout(600);
 await page.evaluate(() => { document.getElementById('qe_stage').value = 'Contacted'; });
 await page.locator('#mSave').click();
+await page.waitForTimeout(500);
+const askedL4 = await page.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), formOpen: document.getElementById('ov').classList.contains('show') }));
+STEP('L4 un-Won asks in the page, form still open', askedL4.box && askedL4.formOpen, JSON.stringify(askedL4));
+await page.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
 await page.waitForTimeout(1000);
 const unwon = await page.evaluate(id => { const b = getLead(id); return { client: b.isClient, stage: b.stage, logged: (b.activities || []).some(a => /back from clients|أُعيدت/.test(a.note || '')) }; }, hid);
 STEP('L4 un-Won + OK: back to the pipeline, with an activity note', unwon.client === false && unwon.stage === 'Contacted' && unwon.logged, JSON.stringify(unwon));
@@ -102,14 +106,26 @@ await page.locator('#mSave').click();
 await page.waitForTimeout(1100);
 await page.locator('.modal button, #modal button').filter({ hasText: /Cancel|إلغاء/ }).first().click().catch(() => {});
 await page.waitForTimeout(500);
-nextDialogAction = 'dismiss';
 await page.evaluate(id => leadQuickEdit(id), hid);
 await page.waitForTimeout(600);
 await page.evaluate(() => { document.getElementById('qe_stage').value = 'Qualified'; });
 await page.locator('#mSave').click();
+await page.waitForTimeout(500);
+await page.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); });
+await page.waitForTimeout(400);
+// Cancel saves nothing: still a client, still Won, the form is still open for a different answer (was: stage change kept — the old half-save)
+const unwon2 = await page.evaluate(id => { const b = getLead(id); return { client: b.isClient, stage: b.stage, formOpen: document.getElementById('ov').classList.contains('show') }; }, hid);
+STEP('L5 un-Won + Cancel: stays a client, nothing saved, form still open', unwon2.client === true && unwon2.stage === 'Won' && unwon2.formOpen, JSON.stringify(unwon2));
+await page.evaluate(() => { try { closeModal(); } catch (_) { } });
+await page.waitForTimeout(300);
+// bring it to Qualified for L5b's baseline: move it back to the pipeline, this time with Yes
+await page.evaluate(id => leadQuickEdit(id), hid);
+await page.waitForTimeout(600);
+await page.evaluate(() => { document.getElementById('qe_stage').value = 'Qualified'; });
+await page.locator('#mSave').click();
+await page.waitForTimeout(500);
+await page.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
 await page.waitForTimeout(900);
-const unwon2 = await page.evaluate(id => { const b = getLead(id); return { client: b.isClient, stage: b.stage }; }, hid);
-STEP('L5 un-Won + Cancel: stays a client (stage change kept)', unwon2.client === true && unwon2.stage === 'Qualified', JSON.stringify(unwon2));
 // L5b an out-of-list stage (empty select) must never be persisted
 await page.evaluate(id => leadQuickEdit(id), hid);
 await page.waitForTimeout(600);
