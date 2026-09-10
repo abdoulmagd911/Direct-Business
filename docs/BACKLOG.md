@@ -1,3 +1,15 @@
+## Routine fires #10–#11 (2026-09-10 12–14 UTC) — CRACKED the browser-battery blocker (root cause + fix)
+No new app defects to fix (oversight idle ~4h after the 13th landing; 12th/13th batches — proposal
+Remove + contract clause buttons ask in-page — parse clean, gates green). Spent the fires running
+the browser blocker to ground with isolation experiments. RESULT: the 9-fire "browser hangs" is now
+fully explained and has a proven fix — see the "BROWSER-BATTERY BLOCKER — ROOT CAUSE FOUND" section
+below. In short: (1) chromium routes localhost through the egress proxy and hangs → strip the proxy
+env; (2) the probes' `**host/**` route globs don't intercept in the installed Playwright (proven vs
+both 1.52 and 1.55) and chromium can't reach the real CDN, so supabase-js never loads and the login
+form never renders → the fix is predicate route matchers (proven: window.supabase loads, #cl_email
+renders). The harness-wide conversion is flagged for Claude Code (100+ shared files, must be
+browser-verified). This is the definitive answer to what's blocked the battery every fire.
+
 ## Routine fire #9 (2026-09-10 10:11 UTC) — my fire-#7 observation actioned; native-dialog work fully closed
 Synced to `4ca9257` (10th + 11th landings). **My fire-#7 load-window observation was actioned**
 (commit `a250d0d`): js/52 now exports `window.__accessKnown=settled` (was `known`), keeping
@@ -133,14 +145,35 @@ worked, in order:
    restored+merged tree (69 layers incl. the new js/76 archive layer, 173 probes). Live site
    serves the merged HEAD (js/76 present on directksab2b.com).
 
-KNOWN BLOCKER in this reprovisioned sandbox: a standalone Chromium launch succeeds, but a FULL
-app-boot probe (mock server + 69-script boot, sustained CPU) hangs and/or is signal-killed
-(exit 144 / SIGSTKFLT) — a CPU/resource limit in this container, NOT an app defect (a 35s idle
-node process is fine; the standalone launch renders a page and exits 0). The browser battery
-therefore could not run this fire. OUTSTANDING for a healthier container: the 12 new oversight
-probes, and the `-j1` re-run of the 16 probes that flaked on port-contention under `-j4` earlier.
-Static verification (parse, structure, integrity, decisions, SQL data invariants) is complete and
-green; the three employee-sign-in fixes and all Round-69 work are present, pushed, and live.
+BROWSER-BATTERY BLOCKER — ROOT CAUSE FOUND 2026-09-10 (fire #11), supersedes the earlier
+"CPU/SIGSTKFLT" guess which was WRONG. In these reprovisioned web-session containers the QA
+browser probes cannot run, for TWO independent reasons, both now proven:
+  (1) PROXY vs localhost. Chromium picks up the egress proxy (HTTPS_PROXY env) and routes even
+      http://localhost through it, where it HANGS — so `page.goto(localhost-mock)` never resolves
+      and the probe sits forever with no output (this is what looked like "hang/144"; the real 144s
+      were long FOREGROUND `sleep`s, which this sandbox blocks — unrelated). FIX: run the probe with
+      the proxy stripped — `env -u HTTPS_PROXY -u HTTP_PROXY -u https_proxy -u http_proxy node …`
+      (or launch chromium with `proxy:{server:'direct://'}`). Proven: goto-localhost then resolves
+      in ~70 ms.
+  (2) ROUTE GLOBS don't intercept + external CDN unreachable. Every probe stubs its externals with
+      `page.route('**cdn.jsdelivr.net/**', …)` (and fonts, and the supabase.co host). Those GLOB
+      patterns do NOT match in the installed Playwright — tested 1.52.0 AND 1.55.0, both give
+      cdnHits=0; a PREDICATE matcher `page.route(u=>u.href.includes('cdn.jsdelivr.net'), …)` DOES
+      intercept (cdnHits=1, window.supabase loads, #cl_email renders). The glob never actually
+      intercepted in these PW versions; it only "worked" originally because the old (non-reprovisioned)
+      container could REACH cdn.jsdelivr for real. Here chromium can't reach external HTTPS at all
+      (proxy hangs it; direct → ERR_CERT_AUTHORITY_INVALID, since the proxy does TLS interception with
+      a CA chromium lacks). So the un-intercepted supabase-js `<script>` never loads → the app can't
+      init its client → the login form never renders → every probe times out on `#cl_email`.
+  PROVEN FIX (diag2): predicate route matchers make the battery fully offline — all externals served
+      from the Node-read local files, zero chromium external network.
+HARNESS FIX for Claude Code / the owner (a browser CAN verify it there, chicken-and-egg here): convert
+the probes' `page.route('**host/**', …)` globs to predicate matchers `page.route(u=>u.href.includes('host'), …)`
+— or vendor supabase-js + the font CSS locally so no CDN interception is needed — and pin the Playwright
+version. That one change unblocks all ~176 probes in a no-external-network container. NOT done from here:
+it is a harness-wide edit (100+ files) on the shared scripts/qa tree the oversight session is actively
+adding probes to, and it must be browser-verified, which this container cannot do. Until then, verification
+each fire is static (parse, structure, probe-integrity, decisions) + SQL data invariants — all green.
 
 ## Round 69 — 2026-09-09 — heavy testing for real: the live app, the real database, an employee's session
 
