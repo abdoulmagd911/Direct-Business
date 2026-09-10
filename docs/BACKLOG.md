@@ -1,3 +1,19 @@
+## Routine fire #14 (2026-09-10 20:11 UTC) — real detail cards driven in-browser; the empty Ledger explained
+Went deeper than the page-walk: opened 6 real leads + 6 real clients as DETAIL cards (where the
+v33–v36 + people-bridge + client-address injection layers stack) and the ledger, EN and AR, against
+the REAL database (scratchpad/live-details.mjs, same direct-proxy + predicate-matcher + bridge). All
+12 cards rendered clean — 1600–1900 chars each, real names, no NaN/undefined/blank, no JS errors.
+0 defects.
+RESOLVED a question the browser surfaced: the Ledger tab shows "No transactions recorded yet — the
+ledger is empty" with Confirmed revenue/cost/profit all 0, WHILE the Performance tab shows 46 invoices
+/ 2.03M. Not a bug — the two read different tables: Performance = finance_invoices (46 live); Ledger =
+finance_transactions, which has 33 rows ALL soft-deleted in one bulk operation at 2026-08-22 15:08 UTC
+(the importer-consolidation migration when finance_invoices became the live source). The ledger reads
+`deleted_at is null`, so it honestly shows empty. Recorded so no future session re-flags it. (Open
+PRODUCT question for the owner, NOT a defect: the Ledger tab is empty for users while Performance shows
+2.03M — is that the intended long-term shape, or should the ledger derive from invoices? His call.)
+No new oversight commits this fire.
+
 ## Routine fire #13 (2026-09-10 18:11 UTC) — merged app driven against the REAL database in a browser, clean
 With the blocker beaten, did what the owner actually asks for: drove the merged app in a browser
 against the REAL Supabase (read-only), not the mock. Technique (scratchpad/live-fullwalk.mjs): chromium
