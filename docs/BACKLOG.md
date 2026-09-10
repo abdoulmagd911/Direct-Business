@@ -10702,6 +10702,17 @@ carries anything; a blank option (just added) still goes at once. probe-proposal
 (8776); sabotage-tested. Line-level removals (an item, a freebie, a tier, an upsell) stay
 instant — one row each, re-typed in seconds.
 
+**Thirteenth batch (10 Sep, ~11:00 UTC, the owner's "finalise now") — the contract clause
+buttons.** In the Generator's contract tab (js/70), once a clause is reworded for one contract,
+"Reset to template" threw the typed wording away on one click, and "Save to shared template"
+(admin/manager) overwrote on one click the clause every future contract for the whole team
+starts from — `contract_clauses` keeps no history (record_history covers six tables; not this
+one), so the company's own wording from the 2 Sep CONTRACT CLAUSES note had no way back. Both
+now ask in the page (EN/AR) and say what they do. probe-clause-template-asks (8777);
+sabotage-tested. Landed on the owner's instruction with the structure/integrity checks, the new
+probe and probe-generator-attacks green alone; the full battery (b23) runs after the landing and
+its result is reported in the LIVE TEST note.
+
 ---
 
 ## 2026-09-09 — live hands-on test of www.directksab2b.com (owner's browser, signed in as admin)
