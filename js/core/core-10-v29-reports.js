@@ -334,7 +334,7 @@ window.rptOpenAch=function(id){
  function(){
    const g=i=>document.getElementById(i).value;
    const rec={date:g('rf_date'),member:g('rf_member'),title:g('rf_title').trim(),desc:g('rf_desc').trim(),objective:g('rf_obj'),kpi:g('rf_kpi'),value:g('rf_value'),client:g('rf_client').trim()};
-   if(!rec.title){alert('Please write what was achieved.');return false;}
+   if(!rec.title){toast('Please write what was achieved.','err');try{document.getElementById('rf_title').focus();}catch(_){}return false;}
    if(!rec.objective&&rec.kpi){const k=RPT_KPIS.find(x=>x.n===Number(rec.kpi));if(k)rec.objective=String(k.obj);}
    if(id){Object.assign(RDB.achievements.find(x=>x.id===id),rec);}else{rec.id=rptUid();rec.createdAt=new Date().toISOString();RDB.achievements.push(rec);}
    rptSave();render();
@@ -347,7 +347,7 @@ window.rptSyncKpiList=function(sel){
  const list=on?RPT_KPIS.filter(k=>k.obj===Number(on)):RPT_KPIS;
  document.getElementById('rf_kpi').innerHTML='<option value="">— none —</option>'+list.map(k=>'<option value="'+k.n+'" '+(String(sel)===String(k.n)?'selected':'')+'>KPI '+k.n+' — '+esc(k.t.slice(0,46))+' (target '+rfmtTarget(k)+')</option>').join('');
 };
-window.rptDelAch=function(id){if(!confirm('Delete this achievement?'))return;RDB.achievements=RDB.achievements.filter(x=>x.id!==id);rptSave();render();};
+window.rptDelAch=function(id){askInPage('Delete this achievement?',function(){RDB.achievements=RDB.achievements.filter(x=>x.id!==id);rptSave();render();});};
 window.rptToggleObj=function(n){rptOpenObjs[n]=!rptOpenObjs[n];render();};
 window.rptSetOverride=function(n,val){RDB.overrides[n]=val;rptSave();render();};
 function rptObj(v){
@@ -782,13 +782,16 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
     var ns=val('qe_stage')||leadStage(b); // an empty stage must never be saved
     try{if(ns==='Lost'&&leadStage(b)!=='Lost'&&typeof captureLostReason==='function')captureLostReason(b);}catch(_){}
     var _newWon=(ns==='Won'&&!b.isClient);
-    if(b.isClient&&ns!=='Won'&&leadStage(b)==='Won'){
-      var _arQ=(typeof LANG!=='undefined'&&LANG==='ar');
-      if(confirm(_arQ?'هذه الشركة عميل حاليًا. الرجوع بها إلى قائمة العملاء المحتملين؟\nموافق = تعود عميلاً محتملاً (يبقى سجلها وماليتها). إلغاء = تبقى عميلاً.':'This company is currently a client. Move it back to the leads pipeline?\nOK = becomes a lead again (its history and finance links stay). Cancel = stays a client.')){
+    /* 2026-09-09 (live test D1 family): the client → pipeline question asked through window.confirm
+       inside the save. It asks through askInPage now; the form stays open until the answer, and
+       on yes the whole save runs. Cancel leaves the form open with nothing saved. */
+    var _demote=(b.isClient&&ns!=='Won'&&leadStage(b)==='Won');
+    var _arQ=(typeof LANG!=='undefined'&&LANG==='ar');
+    var _applyAll=function(demote){
+      if(demote){
         b.isClient=false;
         b.activities=b.activities||[];b.activities.push({date:Date.now(),type:'Stage change',status:ns,note:_arQ?'أُعيدت من العملاء إلى المحتملين':'Moved back from clients to the pipeline',by:(typeof me==='function'?me():'Team')});
       }
-    }
     b.stage=ns;b.status=ns;if(ns==='Won')b.isClient=true;
     var ov=val('qe_owner');if(ov!=='__add__')b.assignedTo=ov;
     var fv=val('qe_funnel');b.funnelKey=fv||null;var _fd=(window.__funnelDefs||[]).find(function(f){return f.key===fv;});b.funnelName=_fd?_fd.name_en:null;b.funnelNameAr=_fd?_fd.name_ar:null;
@@ -798,6 +801,9 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
     if(note){b.activities=b.activities||[];b.activities.push({date:Date.now(),type:'Note',status:'',note:note,by:(typeof me==='function'?me():'Team')});b.lastContact=Date.now();}
     save();render();
     if(_newWon&&typeof window.__clientHandover==='function')setTimeout(function(){window.__clientHandover(b.id);},250);
+    };
+    if(_demote){ askInPage(_arQ?'هذه الشركة عميل حاليًا. الرجوع بها إلى قائمة العملاء المحتملين؟\nموافق = تعود عميلاً محتملاً (يبقى سجلها وماليتها). إلغاء = تبقى عميلاً.':'This company is currently a client. Move it back to the leads pipeline?\nOK = becomes a lead again (its history and finance links stay). Cancel = stays a client.',function(){ _applyAll(true); try{ closeModal(); }catch(_){} }); return false; }
+    _applyAll(false);
    });
  };
 
