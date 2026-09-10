@@ -159,7 +159,18 @@
     'Generate service-fee proposal':'إنشاء عرض رسوم الخدمة','— Pick a client —':'— اختر عميلاً —',
     'Fee card':'بطاقة الرسوم','Effective from':'سارٍ من','Notes / scope':'ملاحظات / النطاق',
     'Generate project proposal':'إنشاء عرض المشروع','Project':'المشروع',
-    '— Pick a project —':'— اختر مشروعًا —','Executive summary':'الملخص التنفيذي','📥 Both':'📥 كليهما'
+    '— Pick a project —':'— اختر مشروعًا —','Executive summary':'الملخص التنفيذي','📥 Both':'📥 كليهما',
+    // 2026-09-10 (live Arabic pass) — the lead / client card's own chrome, seen in English on an
+    // otherwise Arabic card: the convert button, key-fact labels, the empty states, the pricing
+    // sub-heading and the Direct Payments chip. Whole-string matches; the record's data is untouched.
+    '★ Convert to client':'★ تحويل إلى عميل','Convert to client':'تحويل إلى عميل',
+    'Last contact':'آخر تواصل','Services':'الخدمات','Website':'الموقع الإلكتروني',
+    'Legal name / CR·VAT':'الاسم القانوني / السجل·الضريبة','Legal name':'الاسم القانوني',
+    'Pricing scheme — markup / fees per service':'نظام التسعير — هامش / رسوم لكل خدمة',
+    '⚠ No pricing scheme set — add before quoting this client.':'⚠ لم يُحدَّد نظام تسعير — أضِفه قبل تقديم عرض لهذا العميل.',
+    'No negotiated airline deals recorded.':'لا توجد اتفاقيات طيران متفاوض عليها مسجَّلة.',
+    'Open invoices in Direct Payments ↗':'الفواتير المفتوحة في Direct Payments ↗',
+    'Sheet owner':'مسؤول الشيت','Existing relationship':'علاقة قائمة','Map ↗':'الخريطة ↗'
   };
   // ---- Reference drill-downs (2026-09-02, attack round 19 — the first Arabic drive of an airline
   // detail/dashboard and a provider detail/dashboard WITH a record; the harness had carried zero
@@ -333,7 +344,7 @@
     // label / summary / .ch-sub added 2026-09-02 for the proposal editor — whole-string matches only,
     // and a label wrapping an input/select/textarea is skipped, so free text is never touched
     // .empty added 2026-09-02 (round 24) for the Reports empty states — whole-string matches only
-    var els=scope.querySelectorAll('.kl,.l,button,a.btn,.tag,label,summary,.ch-sub,.empty,.sub-h,.fopflag,.bk-nocost-note'),j;
+    var els=scope.querySelectorAll('.kl,.l,button,a.btn,a.chiplink,.tag,label,summary,.ch-sub,.empty,.sub-h,.fopflag,.bk-nocost-note'),j;   // a.chiplink added 2026-09-10: the card's Direct Payments chip is chrome, not data
     for(j=0;j<els.length;j++){ var el=els[j]; if(el.getAttribute('data-v27')||el.querySelector('input,select,textarea'))continue; translateDecorated(el,V27_AR); }
     // fact-row labels (.fact > .k) added 2026-09-02 for the Reference drill-downs — the label half of
     // a key/value row only, whole-string matches only, and a label that wraps markup (a tag pill in

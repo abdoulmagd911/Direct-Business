@@ -18,6 +18,26 @@
 
   function role(){ try{ return window.__userRole || (window.__userTier==='admin'?'admin':window.__userTier==='manager'?'manager':null); }catch(_){ return null; } }
   function known(){ try{ return window.__roleKnown===true && !!role(); }catch(_){ return false; } }
+  /* 2026-09-10 (found by probe-viewer-writes, dormant until today): the role arrives from js/02
+     first and the per-person page matrix from js/56 a moment later. In between, allowedPages()
+     falls back to the built-in floor lists — so a team member or manager who HAS been given
+     Operations / Projects / Events in Team & Access, opening one of those pages by address or
+     sitting on it during a reload, was told "Not part of your access — ask an admin" and moved
+     to Today, and nothing brought them back when the matrix landed. settled() is "we know the
+     role AND the matrix has answered (admins have none)"; until then a refused page is moved
+     from silently and remembered, exactly as while the role itself was unknown. If the matrix
+     never answers (the RPC failing), 20 s after the role is known the floor lists apply and a
+     standing refusal is said in words, as before. */
+  var roleKnownAt=0;
+  function settled(){
+    try{
+      if(!known()) return false;
+      if(!roleKnownAt) roleKnownAt=Date.now();
+      if(role()==='admin') return true;
+      if(window.__pageAccessLoaded===true) return true;
+      return (Date.now()-roleKnownAt)>20000;
+    }catch(_){ return known(); }
+  }
   function allowedPages(){
     /* Until we know who this is, hold to the floor everyone has — Today, Leads, Clients,
        Finance. The app used to show EVERYTHING in this window, because "role unknown" was
@@ -145,7 +165,7 @@
   }
   function restorePending(){
     try{
-      var pend=window.__pendingDeepPage; if(!pend||!known()) return;
+      var pend=window.__pendingDeepPage; if(!pend||!settled()) return;
       window.__pendingDeepPage=null;
       if(mayOpen(pend)){ if(typeof current!=='undefined'&&current!==pend){ current=pend; try{ if(typeof render==='function') render(); }catch(_){} } }
       else refuse(pend);   // they asked for it by address and may not have it — the same sentence an in-app click gets
@@ -158,7 +178,7 @@
       var was=current;
       current='today';
       try{ if(typeof render==='function') render(); }catch(_){}
-      if(!known()){ if(!window.__pendingDeepPage) window.__pendingDeepPage=was; return; }   // still checking — move them, say nothing, and remember where they asked to go
+      if(!settled()){ if(!window.__pendingDeepPage) window.__pendingDeepPage=was; return; }   // still checking (role or matrix) — move them, say nothing, and remember where they asked to go
       refuse(was);
     }catch(_){}
   }

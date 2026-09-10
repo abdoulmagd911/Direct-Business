@@ -28,6 +28,12 @@
     convertedDate:'تاريخ التحويل', nextReview:'المراجعة القادمة', isClient:'عميل؟', funnel:'المسار',
     priority:'الأولوية', nextAction:'الإجراء التالي', nextActionDate:'تاريخ الإجراء التالي',
     email:'البريد', phone:'الهاتف', city:'المدينة', createdAt:'تاريخ الإنشاء', updatedAt:'آخر تحديث',
+    // 2026-09-10: the funnel fields and the two newer lead fields came out as bare keys on the Arabic
+    // Leads "full details" export (probe-export-records, dormant until today)
+    funnelKey:'رمز المسار', funnelName:'المسار', funnelNameAr:'المسار (عربي)', funnelDetails:'تفاصيل المسار',
+    nextActionNote:'ملاحظة الإجراء التالي', activities:'النشاطات', lostReason:'سبب الخسارة', lastContact:'آخر تواصل',
+    accountManager:'مدير الحساب', directClientId:'رقم عميل Direct', legalName:'الاسم القانوني', crVat:'السجل التجاري / الضريبة',
+    paymentTerms:'شروط الدفع', creditLimit:'سقف الائتمان', contractScope:'نطاق العقد', customerType:'نوع العميل', entityType:'نوع الجهة',
     // airlines / providers
     code:'الرمز', icao:'رمز ICAO', stock:'رمز التذاكر', ksa:'BSP السعودية', ticketingAuthority:'صلاحية الإصدار',
     alliance:'التحالف', type:'النوع', country:'الدولة', gds:'GDS', providers:'الموردون', portal:'البوابة',
