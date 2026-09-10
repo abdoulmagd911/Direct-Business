@@ -348,19 +348,31 @@
     S.editKey=null; S.editBuf=null; repaint();
     toast(fl('Changed in this contract only — the shared template is untouched','عُدِّل في هذا العقد فقط — القالب المشترك لم يتغير'));
   };
+  /* 2026-09-10 (second live pass): both buttons below acted on one click. "Reset to template"
+     threw away the wording typed for this contract; "Save to shared template" overwrote the
+     clause every future contract starts from — and contract_clauses keeps no history, so
+     neither had a way back. Each now asks in the page and says what it will do. */
   window.ctClauseReset=function(key){
     var c=clause(key); var t=(S.tpl||[]).find(function(x){return x.key===key;});
     if(!c||!t)return;
-    c.title_en=t.title_en; c.title_ar=t.title_ar;
-    c.body_en=t.body_en; c.body_ar=t.body_ar; c.override=false;
-    if(S.editKey===key)S.editBuf=null;
-    repaint(); toast(fl('Reset to the shared template','أُعيد إلى القالب المشترك'));
+    var go=function(){
+      c.title_en=t.title_en; c.title_ar=t.title_ar;
+      c.body_en=t.body_en; c.body_ar=t.body_ar; c.override=false;
+      if(S.editKey===key)S.editBuf=null;
+      repaint(); toast(fl('Reset to the shared template','أُعيد إلى القالب المشترك'));
+    };
+    var q=fl('Reset "'+(c.title_en||key)+'" to the shared template?\n\nThe wording written for this contract is discarded and cannot be brought back.',
+             'إعادة «'+(c.title_ar||c.title_en||key)+'» إلى القالب المشترك؟\n\nتُحذف الصياغة المكتوبة لهذا العقد ولا يمكن استرجاعها.');
+    if(typeof askInPage==='function')askInPage(q,go); else go();
   };
   /* the ONLY path that writes the shared template (explicit, admin/manager) */
   window.ctClauseSaveTemplate=function(key){
     if(!canEditTemplate())return;
     var c=clause(key); if(!c)return;
     var cl=client(); if(!cl)return;
+    var q=fl('Save "'+(c.title_en||key)+'" to the shared template?\n\nEvery future contract starts from this wording, for the whole team. The previous template text is replaced and there is no history to bring it back.',
+             'حفظ «'+(c.title_ar||c.title_en||key)+'» في القالب المشترك؟\n\nكل عقد مستقبلي يبدأ من هذه الصياغة، لكل الفريق. يُستبدل نص القالب السابق ولا يوجد سجل لاسترجاعه.');
+    var go=function(){
     cl.from('contract_clauses')
       .update({title_en:c.title_en,title_ar:c.title_ar,body_en:c.body_en,body_ar:c.body_ar,
                updated_at:new Date().toISOString(),updated_by:(window.__userEmail||null)})
@@ -369,6 +381,8 @@
         c.override=false; loadTemplates(true);
         toast(fl('Saved to the shared template — future contracts start from this text','حُفظ في القالب المشترك — العقود المستقبلية تبدأ من هذا النص'));
       });
+    };
+    if(typeof askInPage==='function')askInPage(q,go); else go();
   };
 
   /* ---------- fee annex (same data shape as js/68) ---------- */
