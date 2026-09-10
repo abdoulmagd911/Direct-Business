@@ -1,3 +1,19 @@
+## Routine fire #6 (2026-09-10 04:11 UTC) — native-dialog refactor COMPLETE; my fire-#5 flag actioned
+Synced to `0da10fd` (oversight's 7th landing — "the last browser boxes"). **The legacy `confirm()`
+sites I flagged in fire #5 were actioned by the core lane** (commit `a9b8d1a`): core-05 booking/
+invoice delete and core-06 bulk-archive/ingest-duplicate confirms are gone (now in-page). Second
+consecutive fire where a fire-flag was picked up and fixed — the verify→flag→core-lane-fixes loop is
+solid.
+Enumerated what remains: exactly 7 raw `confirm(`/`prompt(` in the tree, and every one is a
+non-issue — two are comments (js/16:474, core-01:281), three are documented fallbacks guarded behind
+`pfConfirm`/`pfPrompt` (js/45:148 expConfirm, js/57:100, core-01:288 Lost-reason: `if(pfPrompt){…;
+return;} apply(prompt(…))`), and two are dead/admin (`resetData`:468 wired to nothing, `v21WipeLocalData`
+:1191 dev wipe). So the D1 native-dialog refactor is essentially COMPLETE — every user-reachable
+alert/confirm/prompt is in-page (alert globally via js/63, confirm/prompt converted per-site over 7
+landings), with native calls kept only as fallbacks.
+7th-landing files parse; check-structure + check-decisions-wired green. Browser harness still
+unusable in this container (probe produces no output). Data unchanged (code-only landings).
+
 ## Routine fire #5 (2026-09-10 02:11 UTC) — verified the alert()-override strategy; enumerated remaining confirm()
 Synced to `c0d9b42` (oversight's 6th landing: `alert()` is now an in-page card app-wide via js/63's
 `window.alert` override, plus `pfPrompt` in js/57, Lost-reason + quick-edit-name converted). All 20
