@@ -10693,6 +10693,15 @@ test companies, bookings, invoices, refunds, expenses, saved) — retired the sa
 gone, cards say why EN/AR, functions explain and stop, `_harness` variants keep the report
 screens; the Wipe buttons stay). Held by the same probe.
 
+**Twelfth batch (10 Sep, ~10:00 UTC) — a proposal option was one click from gone.** In the
+proposal editor every option (a whole priced package: items, tiers, freebies, base fare,
+provider) carries a red "Remove" that took it at once with no question and no way back (options
+live in the app_state blob; only a whole-workspace snapshot restore could bring one back).
+o_delOption now asks in the page (EN/AR), naming the option and its line count, when the option
+carries anything; a blank option (just added) still goes at once. probe-proposal-option-remove
+(8776); sabotage-tested. Line-level removals (an item, a freebie, a tier, an upsell) stay
+instant — one row each, re-typed in seconds.
+
 ---
 
 ## 2026-09-09 — live hands-on test of www.directksab2b.com (owner's browser, signed in as admin)
