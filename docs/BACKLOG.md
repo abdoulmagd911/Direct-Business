@@ -1,3 +1,14 @@
+## Routine fire #8 (2026-09-10 08:11 UTC) — quiet fire: no new code; extended cross-table data sweep clean
+No new oversight commits (they've been idle ~2h; my fire-#7 load-window observation is not yet
+actioned — `__accessKnown` still = `known()`, a nuanced call left for the core lane). Browser
+harness still unusable in this container (8th consecutive fire; probe produces no output).
+Used the fire for a DEEPER SQL data sweep beyond the finance-only checks of fires #1/#4 — all clean:
+contacts 45 · 0 orphaned activities · 0 businesses with a funnel_id absent from funnels · every
+invoice's client_group has a finance_client_link · 11 active app_users, all roles inside the valid
+set. The only notable count — 20 live businesses with no funnel_id — is the known funnel-coverage
+gap (CLAUDE.md: funnel data only partially filled), not an integrity defect. Finance invariants
+from fire #4 still stand (code-only landings since).
+
 ## Routine fire #7 (2026-09-10 06:14 UTC) — 8th/9th landings verified; a load-window observation for the core lane
 Synced to `06ed7c1` (8th + 9th landings: 44 dormant probes reinstated, "granted page survives the
 load window", Today no longer counts a blank draft as a quote, Arabic audit/provider wording). All
