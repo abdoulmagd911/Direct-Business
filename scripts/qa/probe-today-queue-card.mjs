@@ -14,6 +14,7 @@
         (data-queue-focus) — the page reacts to the click.
      2. With a Draft proposal in the workspace the greeting sentence carries a LINK on the
         "quote to send" part; clicking it opens the Proposals page.
+     3b. (2026-09-10) A blank draft — no client, no subject, no option — is not a quote to send.
      3. With no drafts and no pending invoices the greeting has no links and says the day is
         calm — the links appear only when there is work to open.
      4. No JavaScript errors while doing any of it.
@@ -104,6 +105,15 @@ async function main() {
   }));
   if (r3.links === 0 && /calm|Welcome|هادئ/i.test(r3.txt)) ok('with nothing to send the greeting has no links and says the day is calm');
   else fail(`greeting with no work: ${JSON.stringify(r3)}`);
+
+  /* ---- 3b. (2026-09-10, second live pass) a BLANK draft — what "+ New offer" makes on the click — is not a quote to send ---- */
+  const r3b = await p.evaluate(() => new Promise((res) => {
+    DB.offers = (DB.offers || []).filter((o) => o.id !== 'probe_blank_1').concat([{ id: 'probe_blank_1', ref: 'DB-000001', client: '', subject: '', status: 'Draft', options: [], date: new Date().toISOString().slice(0, 10), owner: 'QA Test Account' }]);
+    current = 'today'; render();
+    setTimeout(() => { const hub = document.querySelector('#v26TodayHub'); res({ links: hub ? hub.querySelectorAll('a[data-today-link]').length : -1, txt: hub ? hub.innerText.replace(/\s+/g, ' ').slice(0, 160) : '' }); }, 700);
+  }));
+  if (r3b.links === 0 && !/quote/i.test(r3b.txt)) ok('a blank draft (no client, no subject, no option) is not counted as a quote to send'); else fail(`blank draft counted: ${JSON.stringify(r3b)} — the live-site "You have 1 quote to send" over an empty form`);
+  await p.evaluate(() => { DB.offers = (DB.offers || []).filter((o) => o.id !== 'probe_blank_1'); });
 
   /* ---- 4. Arabic (2026-09-09, live test Arabic gaps): the Your-day card's Going-cold stage word
           and the expiry label speak Arabic ---- */

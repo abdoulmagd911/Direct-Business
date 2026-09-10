@@ -92,6 +92,9 @@ async function main() {
     if (!missing.length) ok('AR ' + name + ': chrome translated (' + words.length + ' labels checked)');
     else fail('AR ' + name + ': still English — missing ' + JSON.stringify(missing));
   }
+  /* 2026-09-10 (second live pass): every Providers row carried an English "Open ›" chip on the Arabic page */
+  if ((seen['ar:providers list'] || '').indexOf('Open ›') < 0 && (seen['ar:providers list'] || '').indexOf('فتح ›') >= 0) ok('AR providers list: the row chip reads "فتح ›", not "Open ›"');
+  else fail('AR providers list: the row chip still reads English — the live-site "Open ›" on every row');
   const leftovers = ['Back to airlines', 'Ticketing rules', 'Ticket stock', 'Servicing capability matrix', 'Account manager', 'Content providers', 'Cost per booking', 'Dashboard view', 'Where we get availability'];
   const leak = leftovers.filter((w) => ['airline detail', 'airline dashboard', 'provider detail', 'provider dashboard'].some((n) => (seen['ar:' + n] || '').indexOf(w) >= 0));
   if (!leak.length) ok('AR drill-downs: none of the known English chrome labels survive');

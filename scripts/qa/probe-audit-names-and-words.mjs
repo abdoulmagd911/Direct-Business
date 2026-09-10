@@ -17,6 +17,10 @@
      4. The database column names are still there as a tooltip on the words (for whoever needs
         them) but are not the visible text.
      5. Rows are laid out as one line each on a hairline — not four separate boxes.
+     6. (2026-09-10) raw-field keys outside the word list read as words (created date, funnel
+        details, next action date); js/64's page-denied row reads "Page access · Refused ·
+        Operations"; in Arabic the 'unknown' actor reads "غير معروف" — never "access · denied",
+        "createdAt" or "unknown" on the Arabic page.
 
    Run:  node scripts/qa/probe-audit-names-and-words.mjs        (port 8757)
    Sabotage: in js/63 make recordName() return '' — checks 1–3 lose the name and go red; make
@@ -40,6 +44,12 @@ const ROWS = [
     before_row: { id: 'inv-1', invoice_no: 'QA-INV-77', client_group: 'Quill Meadow Probe', cost_sar: 0, profit_sar: 1000 }, after_row: { id: 'inv-1', invoice_no: 'QA-INV-77', client_group: 'Quill Meadow Probe', cost_sar: 400, profit_sar: 600 }, undone_at: null, undone_by: null },
   { id: 5003, at: new Date(now - 180e3).toISOString(), actor: null, actor_name: 'unknown', table_name: 'contacts', record_id: 'c-1', action: 'edit',
     before_row: { id: 'c-1', name: 'Delegations Office Probe', business_id: 'rec-old' }, after_row: { id: 'c-1', name: 'Delegations Office Probe', business_id: 'rec-a' }, undone_at: null, undone_by: null },
+  /* 2026-09-10 (second live pass): a raw-field edit whose keys are not in the word list, a page-denied row, a delete by 'unknown' */
+  { id: 5004, at: new Date(now - 240e3).toISOString(), actor: 'u-qa', actor_name: 'QA Test Account', table_name: 'businesses', record_id: 'rec-b', action: 'edit',
+    before_row: { id: 'rec-b', name: 'Cedar Compass Probe', raw: { name: 'Cedar Compass Probe', createdAt: 1, funnelDetails: {}, nextActionDate: null } },
+    after_row: { id: 'rec-b', name: 'Cedar Compass Probe', raw: { name: 'Cedar Compass Probe', createdAt: 2, funnelDetails: { a: 1 }, nextActionDate: '2026-10-01' } }, undone_at: null, undone_by: null },
+  { id: 5005, at: new Date(now - 300e3).toISOString(), actor: 'u-qa', actor_name: 'QA Test Account', table_name: 'access', record_id: 'ops', action: 'denied', before_row: null, after_row: { page: 'ops' }, undone_at: null, undone_by: null },
+  { id: 5006, at: new Date(now - 360e3).toISOString(), actor: null, actor_name: 'unknown', table_name: 'businesses', record_id: 'rec-c', action: 'delete', before_row: { id: 'rec-c', name: 'Willow Gate Probe' }, after_row: null, undone_at: null, undone_by: null },
 ];
 const srv = start(PORT, { record_history: ROWS });
 const BASE = 'http://localhost:' + PORT;
@@ -88,6 +98,19 @@ async function main() {
   else fail(`tooltip with the column names missing: ${JSON.stringify({ a: a && a.tip, c: c && c.tip })}`);
   if (a && a.display === 'grid' && a.boxes === 0) ok('each row is one gridded line on a hairline — no boxed cells');
   else fail(`row layout: ${JSON.stringify({ display: a && a.display, boxes: a && a.boxes })} — the live-site four-boxes-per-row look`);
+  /* ---- 6. (2026-09-10) keys outside the word list, the page-denied row, the 'unknown' actor — EN then AR ---- */
+  const more = await p.evaluate(() => { const g = (id) => { const r = document.querySelector('#view .act-row[data-hist-id="' + id + '"]'); return r ? r.innerText.replace(/\s+/g, ' ').trim() : null; }; return { k: g(5004), d: g(5005), u: g(5006) }; });
+  if (more.k && /created date/.test(more.k) && /funnel details/.test(more.k) && /next action date/.test(more.k) && !/createdAt|funnelDetails|nextActionDate/.test(more.k)) ok(`raw-field keys read as words: "${more.k.slice(0, 110)}"`); else fail(`raw-field keys: ${JSON.stringify(more.k)} — the live-site "createdAt, funnelDetails, nextActionDate"`);
+  if (more.d && /Page access · Refused · Operations/.test(more.d)) ok(`a page-denied row reads "${more.d.slice(0, 80)}"`); else fail(`page-denied row: ${JSON.stringify(more.d)} — the live-site "access · denied"`);
+  await p.evaluate(() => { toggleLang(); }); await p.waitForTimeout(1500);
+  await p.evaluate(() => { openLead = null; current = 'activity'; render(); });
+  await p.waitForFunction(() => document.querySelector('#view .act-row[data-hist-id="5006"]'), { timeout: 30000 }).catch(() => {});
+  const ar = await p.evaluate(() => { const g = (id) => { const r = document.querySelector('#view .act-row[data-hist-id="' + id + '"]'); return r ? r.innerText.replace(/\s+/g, ' ').trim() : null; }; return { k: g(5004), d: g(5005), u: g(5006) }; });
+  if (ar.u && /غير معروف/.test(ar.u) && !/unknown/.test(ar.u)) ok('AR: the actor the trigger could not name reads "غير معروف", not "unknown"'); else fail(`AR unknown actor: ${JSON.stringify(ar.u)}`);
+  if (ar.d && /الوصول إلى صفحة · رُفض · العمليات/.test(ar.d)) ok(`AR: the page-denied row reads "${ar.d.slice(0, 60)}"`); else fail(`AR page-denied row: ${JSON.stringify(ar.d)}`);
+  if (ar.k && !/createdAt|funnelDetails|nextActionDate/.test(ar.k) && /تاريخ الإنشاء/.test(ar.k)) ok('AR: raw-field keys read as Arabic words'); else fail(`AR raw-field keys: ${JSON.stringify(ar.k)}`);
+  await p.evaluate(() => { toggleLang(); });
+
   if (!errors.length) ok('no JavaScript errors'); else fail('JavaScript errors: ' + errors.join(' | '));
   await b.close(); srv.close();
   if (failures) { console.log(`\nFAILED — ${failures} check(s) did not pass.`); process.exit(1); }
