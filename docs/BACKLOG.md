@@ -1,3 +1,26 @@
+## Routine fire #7 (2026-09-10 06:14 UTC) — 8th/9th landings verified; a load-window observation for the core lane
+Synced to `06ed7c1` (8th + 9th landings: 44 dormant probes reinstated, "granted page survives the
+load window", Today no longer counts a blank draft as a quote, Arabic audit/provider wording). All
+16 touched files parse; check-structure / probe-integrity / decisions-wired green. My fire-#3 files
+(js/56, js/54, js/64, js/35) were NOT touched — those fixes are intact.
+
+The 8th landing (71c5109) is a direct follow-on to my fire-#3 page-matrix work: even with the matrix
+now loading, there's a window between role-known and matrix-landed where js/52's `allowedPages()`
+returns the floor list, so a team member granted Operations who opens /ops in that window would be
+bounced. Their fix: a new `settled()` predicate (js/52:32 — true for admin / once matrix loaded /
+20 s fail-safe) driving a `__pendingDeepPage` restore (js/52:168) that re-applies the deep-linked
+page once settled.
+
+OBSERVATION for the core lane (not shipped — cross-lane + can't browser-verify here): my js/64
+bounce still gates on `window.__accessKnown()`, which js/52 line 79 still assigns to `known()`
+(true the instant the role arrives), NOT the new `settled()`. So js/64 can still fire a premature
+bounce during the load window, and the granted-page fix works by RESTORING the page afterwards
+(`__pendingDeepPage`) rather than preventing the bounce. That's fine for the deep-link boot the new
+probe tests, but gating js/64 on `settled()` (export it as `__accessKnown`, or have js/64 read it)
+would prevent the bounce outright — simpler and also covers mid-window in-app navigation / reload,
+which the restore path may not. Worth confirming probe-granted-page-survives-load exercises those
+cases, not just the deep-link boot. Browser harness still unusable this container; data unchanged.
+
 ## Routine fire #6 (2026-09-10 04:11 UTC) — native-dialog refactor COMPLETE; my fire-#5 flag actioned
 Synced to `0da10fd` (oversight's 7th landing — "the last browser boxes"). **The legacy `confirm()`
 sites I flagged in fire #5 were actioned by the core lane** (commit `a9b8d1a`): core-05 booking/
