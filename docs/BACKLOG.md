@@ -10412,10 +10412,27 @@ would). Seen on the way and traced: opening a company card renders a second time
 card has loaded the finance tables (first open of a session only) — by design, not a defect;
 the probe waits for those reads to land before it measures.
 
-**Still using window.confirm / alert, deliberately left for a later pass:** `resetData` and
-`v21WipeLocalData` (developer tools), the five finance-guardrail questions in js/62 (exclusion
-remove, grouping undo, merge, merge undo — probes pin their wording), js/45's fallback. BR1 the
-public Brand Hub is the owner's decision.
+**Fifth landing.** The last user-flow questions still asked through window.confirm moved into
+the page: the five finance-guardrail questions in js/62 (exclusion remove, undo grouping, merge
+values, merge businesses, unmerge — probe-guardrails-both-halves-attacks stubs askInPage in
+arm(); js/62's result alerts go through v63Notice); the Airlines / Suppliers editor (core-03
+editSupplier: empty name → toast, Delete → box — flagged by the other session);
+quick-edit's "this company is currently a client — move it back to the pipeline?" (core-10:
+the form stays open until the answer because the save callback returns false; Cancel saves
+nothing; probe-crm-attacks 4c/4d read js/57's box); the Reports achievement delete
+(rptDelAch) and the achievement form's empty-title alert (probe-no-native-dialogs block 11).
+Every conversion was sabotage-tested: the native dialog put back turns the matching check red.
+The other probes that drive leadQuickEdit / editSupplier (attack-day, attack-wave3, lifecycle5,
+landmines, mega, modals-ar, newfeatures, roles, sweep-buttons) never take the demote path or
+pin the old dialog, so none needed a change.
+
+**Still using window.confirm / alert, deliberately left:** `resetData` and `v21WipeLocalData`
+(developer tools); js/45's fallback (only if js/57 is absent); the legacy Bookings / Invoices /
+Tickets editors (core-05/core-06 delete, archive, bulk-archive, duplicate-invoice questions) —
+their nav group "From Direct (read-only)" is hidden by js/41 and the pages are reached only by
+address, so they are not in anyone's daily flow; and ~120 informational alert() sites that report a
+result rather than ask a question (a v63Notice pass, one file at a time, is the next lane). BR1
+the public Brand Hub is the owner's decision.
 
 ---
 
