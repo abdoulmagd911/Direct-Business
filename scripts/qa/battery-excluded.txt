@@ -6,13 +6,9 @@
 # if a probe is in neither list or in both, so a new probe cannot be written and quietly never run.
 #
 # Format:  <probe basename> : <reason>
-attack-day : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-attack-wave2 : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-attack-wave3 : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
 audit-crm-full : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
-audit-finance-tabs : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
 audit-proposal-client-pickers : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
-audit-ui-golive : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
+audit-ui-golive : stale — its chip-contradiction rule predates the 2026-09-09 Hide-closed rule (All counts open stages only) and its latin-leak check flags the mock's own seed names; superseded by probe-leads-counts and sweep-language
 diag-abumajd : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 diag-audit-fixes : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 diag-audit-logins : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
@@ -38,67 +34,27 @@ diag-v48 : credential-gated — signs in as a real member of staff; emp-rig read
 diag-wallet-guard : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 diag-writes : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 nav-check : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
-probe-access-truth : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-alias-autolink : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-ar-finance-display : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-audit-undo : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-bookings-invoices-rows : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-client-card-ar : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-client-documents : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-client-profit-honest : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-company-dedupe : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
 probe-company-profile : generator-qa — the document Generator track's own battery; that task runs it, this one does not. Nobody in this session has ever run these; the Generator task should confirm they still pass and say who runs them.
-probe-compare-to : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
 probe-contract : generator-qa — the document Generator track's own battery; that task runs it, this one does not. Nobody in this session has ever run these; the Generator task should confirm they still pass and say who runs them.
 probe-cowork-fixes : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 probe-delete : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
-probe-delete-sticks : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-documents-print : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-export-arabic : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-export-records : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-export-reference : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-finance-tab-honest : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
 probe-firstlogin : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 probe-freeze : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
-probe-funnel-details : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
 probe-generator-brand : generator-qa — the document Generator track's own battery; that task runs it, this one does not. Nobody in this session has ever run these; the Generator task should confirm they still pass and say who runs them.
 probe-golive : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 probe-handover : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
-probe-import-hostile-shapes : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-m13-remaining : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-modals-ar : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-multi-file-single-drop : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-newfeatures : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-no-invented-cost : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-no-phantom-writes : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-ops-board : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-ops-margin-honest : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-option-values-are-data : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-outstanding-split : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-ownership-visible : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-people-bridge : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
+probe-newfeatures : stale — clicks a 'Proposals' sidebar entry that no longer exists (proposals live under the Generator / at /offers); its features are covered by probe-access-truth, probe-client-documents and probe-proposal-link-honesty
+probe-ops-board : superseded by the 21 Aug ruling 'money belongs to Finance' — it wants margin tiles the Operations board no longer carries; probe-money-off-ops-and-cards holds the ruling
+probe-ops-margin-honest : superseded by the same ruling — the 'Booked margin' tile it looks for was removed on purpose; probe-money-off-ops-and-cards holds the ruling
 probe-phone : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 probe-price-offer : generator-qa — the document Generator track's own battery; that task runs it, this one does not. Nobody in this session has ever run these; the Generator task should confirm they still pass and say who runs them.
-probe-projects-ar : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
 probe-race-final : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
-probe-reference-pages : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-report-presets : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-reports-phone-ar : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
 probe-rls-matrix : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 probe-roles : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 probe-round11 : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
-probe-save-confirms-rows : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-search-phone : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
 probe-service-fees : generator-qa — the document Generator track's own battery; that task runs it, this one does not. Nobody in this session has ever run these; the Generator task should confirm they still pass and say who runs them.
-probe-session-lapse : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-silent-write-refusal : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-sopsla-sync : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
 probe-teamwork : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 probe-tender : generator-qa — the document Generator track's own battery; that task runs it, this one does not. Nobody in this session has ever run these; the Generator task should confirm they still pass and say who runs them.
-probe-tier-filter-bilingual : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-today-no-money : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-two-tabs : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
-probe-viewer-writes : live-system — talks to the production database; running it six-at-a-time every cycle is not safe
 verify-audit-fixes : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 verify-audit-round2-fixes : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 verify-audit-round3-fixes : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository

@@ -55,9 +55,14 @@ async function main() {
   const arMust = ['كل تواصل مع هذه الجهة', 'نوع الجهة', 'شروط الدفع', 'اتفاقيات الشركات مع الطيران', 'ملاحظة', 'قبل '];
   let missing = arMust.filter((w) => t.indexOf(w) < 0);
   if (!missing.length) ok('AR client card: sub-lines, corporate labels, deals sub-head, activity type and time stamp are Arabic'); else fail('AR client card missing ' + JSON.stringify(missing));
-  const leftovers = ['Every touch with this business', 'Entity type', 'Payment terms', 'Airline corporate deals', 'd ago', 'h ago', 'm ago', 'agents check before quoting'];
+  /* 2026-09-10 (live Arabic pass): the card's own chrome that was still English — Back link, key-fact
+     labels, pricing sub-head, empty states, the Direct Payments chip, the stage picker's words */
+  const leftovers = ['Every touch with this business', 'Entity type', 'Payment terms', 'Airline corporate deals', 'd ago', 'h ago', 'm ago', 'agents check before quoting',
+    'Back to pipeline', 'Last contact', 'Legal name', 'Pricing scheme', 'No negotiated airline deals', 'No pricing scheme set', 'Open invoices in Direct Payments'];
   const leak = leftovers.filter((w) => t.indexOf(w) >= 0);
   if (!leak.length) ok('AR client card: no known English chrome anywhere on the card'); else fail('AR client card: English survives ' + JSON.stringify(leak));
+  const sel = await p.evaluate(() => { const s = [...document.querySelectorAll('#view select')].find((x) => /setLeadStage/.test(x.getAttribute('onchange') || '')); if (!s) return null; return { labels: [...s.options].map((o) => o.textContent.trim()), values: [...s.options].map((o) => o.value) }; });
+  if (sel && sel.labels.every((l) => !/^[A-Za-z]/.test(l)) && sel.values.join(',') === 'Prospect,Contacted,Qualified,Proposal,Negotiation,Won,Lost') ok('AR stage picker: every option reads Arabic while its saved value stays the English stage key'); else fail('AR stage picker: ' + JSON.stringify(sel) + ' — the live-site English stepper on the Arabic card');
   const typeWord = await p.evaluate(() => { const b = document.querySelector('#view .tl-item .what b'); return b ? b.textContent : null; });
   if (typeWord === 'ملاحظة') ok('AR timeline: the seeded "note" activity reads "ملاحظة"'); else fail('AR timeline type word → ' + JSON.stringify(typeWord));
   const when = await p.evaluate(() => { const w = document.querySelector('#view .tl-item .when'); return w ? w.textContent : null; });

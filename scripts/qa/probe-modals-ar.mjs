@@ -62,11 +62,10 @@ async function main() {
   if (!missing.length) ok('AR Log activity: labels are Arabic'); else fail('AR Log activity labels ' + JSON.stringify(ls) + ' missing ' + JSON.stringify(missing));
   const typeOpts = await optionTexts('a_type');
   if (typeOpts && typeOpts[0] === 'Call' && typeOpts.includes('Note')) ok('AR Log activity: the type dropdown keeps its English option words (they ARE the stored values)'); else fail('AR Log activity type options → ' + JSON.stringify(typeOpts));
-  // the "Move stage to" options are the stage words themselves (Prospect … Won) — every one of them
-  // is in the stage dictionary, and the select carries no value attributes: an Arabic word here
-  // would be SAVED as the lead's stage
-  const stOpts = await optionTexts('a_status');
-  if (stOpts && stOpts.includes('Prospect') && stOpts.includes('Won') && !stOpts.some((o) => /[؀-ۿ]/.test(o) && !/^— /.test(o))) ok('AR Log activity: the "Move stage to" options keep the English stage words (they are the stored values)'); else fail('AR Log activity stage options → ' + JSON.stringify(stOpts) + ' (an Arabic word here would be stored as the stage)');
+  // 2026-09-10: the "Move stage to" options now carry value attributes (core-02), so js/21
+  // translates their labels while the SAVED value stays the English stage key — the safe shape
+  const stSel = await p.evaluate(() => { const s = document.getElementById('a_status'); return s ? { labels: [...s.options].map((o) => o.textContent.trim()), values: [...s.options].map((o) => o.value) } : null; });
+  if (stSel && stSel.values.includes('Prospect') && stSel.values.includes('Won') && stSel.labels.slice(1).every((l) => /[؀-ۿ]/.test(l))) ok('AR Log activity: the "Move stage to" options read Arabic and keep the English stage keys as their values'); else fail('AR Log activity stage options → ' + JSON.stringify(stSel));
   await p.evaluate(() => { document.getElementById('a_type').value = 'Call'; const n = document.getElementById('a_note'); if (n) n.value = 'QA probe — Arabic dialog save'; });
   await p.evaluate(() => { const s = document.getElementById('mSave'); if (s) s.click(); }); await p.waitForTimeout(1500);
   const savedType = await p.evaluate(() => { const c = (DB.businesses || []).find((x) => x.id === openLead); const a = ((c && c.activities) || []).find((y) => /QA probe — Arabic dialog save/.test(y.note || '')); return a ? a.type : null; });
@@ -77,10 +76,11 @@ async function main() {
   must = ['العميل / الجهة', 'الخدمة', 'تفاصيل الطلب', 'الأولوية', 'قيمة البيع (ر.س)', 'التكلفة (ر.س)'];
   missing = must.filter((w) => !ls.includes(w));
   if (!missing.length) ok('AR New request: labels are Arabic'); else fail('AR New request labels ' + JSON.stringify(ls.slice(0, 8)) + ' missing ' + JSON.stringify(missing));
-  const prio = await p.evaluate(() => { const s = [...document.querySelectorAll('#modal select, #ov select')].find((x) => [...x.options].some((o) => o.textContent.trim() === 'Urgent')); return s ? [...s.options].map((o) => o.textContent.trim()) : null; });
-  if (prio && prio.includes('Urgent') && prio.includes('Low')) ok('AR New request: priority options stay English (no value attributes)'); else fail('AR New request priority options → ' + JSON.stringify(prio));
-  const rst = await p.evaluate(() => { const s = [...document.querySelectorAll('#modal select, #ov select')].find((x) => [...x.options].some((o) => o.textContent.trim() === 'Quoting')); return s ? [...s.options].map((o) => o.textContent.trim()) : null; });
-  if (rst && rst.includes('New') && rst.includes('Quoting') && !rst.some((o) => /[؀-ۿ]/.test(o))) ok('AR New request: the stage options keep their English words ("New" is a dictionary word)'); else fail('AR New request stage options → ' + JSON.stringify(rst) + ' (an Arabic word here would be stored as the request stage)');
+  // 2026-09-10: r_priority / r_stage carry value attributes (core-03), so their labels are Arabic and their values English
+  const prio = await p.evaluate(() => { const s = document.getElementById('r_priority'); return s ? { labels: [...s.options].map((o) => o.textContent.trim()), values: [...s.options].map((o) => o.value) } : null; });
+  if (prio && prio.values.includes('Urgent') && prio.values.includes('Low') && prio.labels.every((l) => /[؀-ۿ]/.test(l))) ok('AR New request: priority options read Arabic with English values'); else fail('AR New request priority options → ' + JSON.stringify(prio));
+  const rst = await p.evaluate(() => { const s = document.getElementById('r_stage'); return s ? { labels: [...s.options].map((o) => o.textContent.trim()), values: [...s.options].map((o) => o.value) } : null; });
+  if (rst && rst.values.includes('New') && rst.values.includes('Quoting') && rst.labels.every((l) => /[؀-ۿ]/.test(l))) ok('AR New request: stage options read Arabic with English values'); else fail('AR New request stage options → ' + JSON.stringify(rst));
   await close();
   // New business (leads list)
   await p.evaluate(() => { openLead = null; current = 'leads'; render(); }); await p.waitForTimeout(700);

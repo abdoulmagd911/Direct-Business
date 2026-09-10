@@ -34,7 +34,9 @@
        the data holds closed leads (the live-site defect)
      - a chip filtering on "New" exists, in either language (fix 2)
      - toggling Hide-closed does not change the chip numbers in place, in EITHER direction —
-       i.e. the chips are still showing a stale build (fix 4) */
+       i.e. the chips are still showing a stale build (fix 4)
+     - (2026-09-10, L3 second look) the "In view" strip does not equal the rows the table draws,
+       or lists Lost while Hide-closed is on — the strip never applied Hide-closed */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
@@ -57,6 +59,15 @@ async function readCounts(p) {
       out.realLeads = (hc ? pool.filter(b => { const st = leadStage(b); return st !== 'Won' && st !== 'Lost'; }) : pool).length;
       out.closedLeads = pool.filter(b => { const st = leadStage(b); return st === 'Won' || st === 'Lost'; }).length;
       out.hideClosed = !!hc;
+    } catch (e) {}
+    try {
+      /* 2026-09-10 (live test L3, second look): the "In view" strip and the rows the table draws */
+      const ls = document.getElementById('leadsum');
+      const m0 = ls ? ls.innerText.replace(/\s+/g, ' ').match(/(?:In view|ضمن العرض)\s*(\d+)/) : null;
+      out.inView = m0 ? parseInt(m0[1], 10) : null;
+      out.inViewLost = ls ? /Lost\s*\d|خسارة\s*\d/.test(ls.innerText) : null;
+      out.tableRows = document.querySelectorAll('#view table tbody tr').length;
+      out.stripLatin = ls ? [...ls.querySelectorAll('.statusbadge')].map((x) => x.textContent.trim()).filter((t) => /^[A-Za-z]/.test(t)).join(', ') : '';
     } catch (e) {}
     try {
       const tabs = document.getElementById('funnelTabs');
@@ -87,6 +98,14 @@ function assertConsistent(c, label) {
   if (c.realLeads == null) { fail(`${label}: could not compute real lead count from DB.businesses`); return; }
   if (c.funnelAll !== c.realLeads) fail(`${label}: funnel All tab (${c.funnelAll}) != real leads (${c.realLeads}) — it is counting clients`);
   else ok(`${label}: funnel All tab (${c.funnelAll}) matches real leads`);
+
+  if (c.inView == null) fail(`${label}: the "In view" strip count not found`);
+  else if (c.inView !== c.tableRows) fail(`${label}: the "In view" strip says ${c.inView} while the table draws ${c.tableRows} rows — the live-site "80 in view" over 78 rows`);
+  else ok(`${label}: the "In view" strip (${c.inView}) equals the rows drawn`);
+  if (/^AR/.test(label) && c.stripLatin) fail(`${label}: the "In view" strip still names stages in English (${c.stripLatin}) — the live-site "Prospect 53 · Contacted 25" on the Arabic page`);
+  else if (/^AR/.test(label)) ok(`${label}: the "In view" strip names its stages in Arabic`);
+  if (c.hideClosed && c.inViewLost) fail(`${label}: Hide-closed is on but the "In view" strip still lists Lost`);
+  else if (c.hideClosed) ok(`${label}: with Hide-closed on the strip lists no Lost`);
 
   if (c.hasNewChip) fail(`${label}: a dead "New" chip is present — C2S never emits a "New" screen stage`);
   else ok(`${label}: no dead "New" chip`);

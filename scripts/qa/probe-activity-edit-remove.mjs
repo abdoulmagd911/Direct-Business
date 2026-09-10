@@ -19,6 +19,10 @@
         words and an "(edited)" mark; the date is kept.
      4. Cancel on the remove box keeps the entry.
      5. Control: a viewer (mayEditPage false) sees the entries but no controls.
+     6. (2026-09-10) A row bridged in from the activities TABLE (_fromTable, e.g. the trigger's
+        "stage_change: new → contacted" by "system") reads "Stage changed: Prospect → Contacted ·
+        automatic" and carries no edit / remove (they would not persist); the record's own rows
+        keep theirs, separated " · edit · remove".
 
    Run:  node scripts/qa/probe-activity-edit-remove.mjs        (port 8763)
    Sabotage: in core-02 make recomputeLastContact() a no-op — check 2 goes red (lastContact stays
@@ -96,6 +100,13 @@ async function main() {
   const v = await p.evaluate(() => { window.__pageAccess = { leads: 'viewer' }; window.__userRole = 'team_member'; render(); return new Promise((res) => setTimeout(() => res({ items: document.querySelectorAll('#view .timeline .tl-item').length, ctrls: document.querySelectorAll('#view [data-act-edit],#view [data-act-remove]').length }), 700)); });
   if (v.items === 1 && v.ctrls === 0) ok('control: a viewer sees the entry but no edit / remove control');
   else fail(`viewer: ${JSON.stringify(v)}`);
+
+  /* ---- 6. (2026-09-10, second pass) a row bridged from the activities TABLE reads in words and carries no tools ---- */
+  const r6 = await p.evaluate(() => { window.__pageAccess = { leads: 'editor' }; window.__userRole = 'admin'; const l = getLead('L5'); l.activities.push({ _fromTable: true, _tid: 'act-probe-1', date: Date.now() - 86400e3, type: 'stage_change', status: '', note: 'new → contacted', by: 'system' }); render(); return new Promise((res) => setTimeout(() => { const items = [...document.querySelectorAll('#view .timeline .tl-item')]; const row = items.find((x) => /Stage changed|stage_change/.test(x.innerText)); res({ txt: row ? row.innerText.replace(/\s+/g, ' ') : '', tools: row ? row.querySelectorAll('[data-act-edit],[data-act-remove]').length : -1, others: items.filter((x) => x !== row).map((x) => x.querySelectorAll('[data-act-edit],[data-act-remove]').length) }); }, 500)); });
+  if (/Stage changed: Prospect → Contacted/.test(r6.txt) && /automatic/.test(r6.txt) && !/stage_change|system/.test(r6.txt) && r6.tools === 0 && r6.others.every((n) => n === 2)) ok(`a bridged stage row reads "${r6.txt.slice(0, 70)}" — words, not column names; no edit / remove on it; the record's own rows keep theirs`);
+  else fail(`bridged row: ${JSON.stringify(r6)} — the live-site "systemedit · remove / stage_change: new → contacted"`);
+  const r6b = await p.evaluate(() => { const items = [...document.querySelectorAll('#view .timeline .tl-item')]; const own = items.find((x) => x.querySelector('[data-act-edit]')); return own ? own.querySelector('.when').innerText.replace(/\s+/g, ' ') : ''; });
+  if (/ · edit · remove$/.test(r6b)) ok(`the record's own row separates the tools: "${r6b.slice(-40)}"`); else fail(`tools separator: "${r6b}" — the live-site "QAedit · remove"`);
 
   if (!dialogs.length) ok('no native dialog at any point'); else fail('native dialogs: ' + dialogs.join(','));
   if (!errors.length) ok('no JavaScript errors'); else fail('JavaScript errors: ' + errors.join(' | '));

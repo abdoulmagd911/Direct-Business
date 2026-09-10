@@ -181,18 +181,22 @@ async function main() {
   await p.evaluate(() => document.body.focus());
   await p.keyboard.press('n');
   await p.waitForTimeout(600);
+  // 2026-09-09 (D1 family): the question asks in the page (js/57's box), never through a native dialog
+  const nBox = await p.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ') }));
+  await p.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); }); await p.waitForTimeout(300);
   const afterKey = await p.evaluate(() => (DB.offers || []).length);
-  if (lastDialog && /blank proposal|عرض جديد فارغ/i.test(lastDialog.message)) ok('pressing "n" on Proposals ASKS first: "' + lastDialog.message + '"');
-  else fail('pressing "n" asked nothing (dialog: ' + JSON.stringify(lastDialog) + ')');
-  if (afterKey === keyed) ok('…and because the question was dismissed, no blank proposal was written — the old code saved one on the keystroke alone');
-  else fail('a proposal was created despite the question being dismissed (' + keyed + ' → ' + afterKey + ')');
+  if (!lastDialog && nBox.box && /blank proposal|عرض جديد فارغ/i.test(nBox.txt)) ok('pressing "n" on Proposals ASKS first, in the page: "' + nBox.txt.slice(0, 60) + '"');
+  else fail('pressing "n": box=' + JSON.stringify(nBox) + ' native=' + JSON.stringify(lastDialog));
+  if (afterKey === keyed) ok('…and because the question was cancelled, no blank proposal was written — the old code saved one on the keystroke alone');
+  else fail('a proposal was created despite the question being cancelled (' + keyed + ' → ' + afterKey + ')');
 
   // saying yes still works
   p.removeAllListeners('dialog');
   p.on('dialog', (d) => d.accept());
   await p.evaluate(() => document.body.focus());
   await p.keyboard.press('n');
-  await p.waitForTimeout(900);
+  await p.waitForTimeout(500);
+  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }); await p.waitForTimeout(600);
   const accepted = await p.evaluate(() => (DB.offers || []).length);
   if (accepted === keyed + 1) ok('answering yes creates exactly one, so the shortcut still works');
   else fail('answering yes created ' + (accepted - keyed) + ' (expected 1)');

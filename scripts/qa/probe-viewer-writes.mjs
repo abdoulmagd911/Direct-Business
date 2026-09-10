@@ -18,6 +18,12 @@ let importSeq = 0;
 
 async function run(role) {
   process.env.MOCK_ROLE = role; delete process.env.MOCK_PAGE_ACCESS;
+  /* 2026-09-10: under the v76 access model a page is a whitelist — a team member with no
+     page_access row for Operations / Projects is refused there ("You do not have access to
+     that page"), exactly as on the live site where the seven team members hold leads / today /
+     clients / finance only. The "goes through" half of this probe is about a team member WHO
+     HAS the page, so grant it here; the viewer half keeps the default. */
+  if (role === 'team_member') process.env.MOCK_PAGE_ACCESS = JSON.stringify({ today: 'editor', leads: 'editor', clients: 'editor', ops: 'editor', projects: 'editor', offers: 'editor', finance: 'editor' });
   // MOCK_ROLE is read once at module import — a fresh query string forces a fresh evaluation
   const { start } = await import('./mock-supabase.mjs?run=' + (++importSeq) + '-' + role);
   const PORT = 8320 + importSeq;
@@ -49,7 +55,8 @@ async function run(role) {
   for (let i = 0; i < 25; i++) { await p.waitForTimeout(400); const n = await p.evaluate(() => (DB.requests || []).length).catch(() => 0); if (n >= 7) break; }
   await p.evaluate(() => { current = 'ops'; render(); }); await p.waitForTimeout(1200);
   const seenRole = await p.evaluate(() => window.__userRole || window.__userTier || null);
-  console.log(`\n[${role}] app sees role: ${seenRole}`);
+  const seenPA = await p.evaluate(() => JSON.stringify(window.__pageAccess || null));
+  console.log(`\n[${role}] app sees role: ${seenRole} · page access: ${seenPA}`);
   const boxShown = () => p.evaluate(() => { const b = document.getElementById('v70box'); const t = b ? b.innerText : ''; if (b) b.remove(); return t; });
   const viewer = role === 'viewer';
 
