@@ -277,7 +277,16 @@ const LEAD_STAGES=["Prospect","Contacted","Qualified","Proposal","Negotiation","
 const LSTAGE_COLOR={Prospect:"#9AA1B6",Contacted:"#2E90FA",Qualified:"#7A5AF8",Proposal:"#F79009",Negotiation:"#FF6B00",Won:"#16B364",Lost:"#F0453A"};
 const STATUS_TO_STAGE={New:"Prospect","To contact":"Prospect",Contacted:"Contacted","In discussion":"Qualified","Proposal sent":"Proposal",Won:"Won",Lost:"Lost","On hold":"Qualified"};
 function leadStage(b){return b.stage||(b.isClient?"Won":(STATUS_TO_STAGE[b.status]||"Prospect"));}
-window.captureLostReason=function(b){try{var ar=(typeof LANG!=='undefined'&&LANG==='ar');var r=prompt(ar?('لماذا خسرنا «'+b.name+'»؟ (سبب مختصر — يُحفظ للتعلم منه)'):('Why did we lose "'+b.name+'"? (short reason — kept so we learn from it)'),b.lostReason||'');if(r!=null&&String(r).trim()!==''){b.lostReason=String(r).trim();b.activities=b.activities||[];b.activities.push({date:Date.now(),type:'Lost',status:'Lost',note:'Lost — '+b.lostReason,by:(window.meName?meName():'Team')});}}catch(_){}};
+/* 2026-09-10 (live test D1 family): the Lost reason is asked in the page (js/57 pfPrompt) instead
+   of the browser's prompt() box. The caller sets the stage and saves at once, as before; the
+   reason arrives when the person answers and is saved again then — a Lost lead without a reason
+   is what Cancel means, exactly as the old box's Cancel did. */
+window.captureLostReason=function(b){try{var ar=(typeof LANG!=='undefined'&&LANG==='ar');
+  var q=ar?('لماذا خسرنا «'+b.name+'»؟ (سبب مختصر — يُحفظ للتعلم منه)'):('Why did we lose "'+b.name+'"? (short reason — kept so we learn from it)');
+  var apply=function(r){ if(r!=null&&String(r).trim()!==''){b.lostReason=String(r).trim();b.activities=b.activities||[];b.activities.push({date:Date.now(),type:'Lost',status:'Lost',note:'Lost — '+b.lostReason,by:(window.meName?meName():'Team')});return true;} return false; };
+  if(typeof window.pfPrompt==='function'){ window.pfPrompt(q,b.lostReason||'',function(r){ try{ if(apply(r)){ if(typeof save==='function')save(); if(typeof render==='function')render(); } }catch(_){} }); return; }
+  apply(prompt(q,b.lostReason||''));
+}catch(_){}};
 function setLeadStage(id,s){const b=getLead(id);if(!b)return;if(s==='Lost')captureLostReason(b);b.stage=s;b.status=s;b.activities=b.activities||[];b.activities.push({date:Date.now(),type:"Stage change",status:s,note:"",by:(typeof me==="function"?me():"Abdelrahman")});b.lastContact=Date.now();if(s==="Won")b.isClient=true;save();render();}
 const DIRECT_LINK={Anchor:{l:"Key client",c:"#16B364"},Convert:{l:"Warm conversion",c:"#FF6B00"},"Re-engage":{l:"Re-engage",c:"#2E90FA"},Dormant:{l:"Dormant",c:"#9AA1B6"},Vendor:{l:"Commission vendor",c:"#7A5AF8"},Partner:{l:"Partner / supplier",c:"#15B8A6"}};
 function directLink(b){if(b.isClient)return{l:"Client",c:"#16B364"};if(b.b2c)return{l:"B2C-hidden",c:"#7A5AF8"};return DIRECT_LINK[b.category]||{l:b.category||"—",c:"#9AA1B6"};}

@@ -757,8 +757,10 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
 (function(){try{
  // ----- editable funnel list (built-in SOURCES + custom) -----
  window.funnelList=function(){var custom=(DB.settings&&DB.settings.funnels)||[];return (typeof SOURCES!=='undefined'?SOURCES:[]).concat(custom.filter(function(f){return SOURCES.indexOf(f)<0;}));};
- window.qeAddOwner=function(leadId){var n=prompt('New team member name:');if(n&&n.trim()){DB.settings=DB.settings||{};DB.settings.team=(typeof teamList==='function'?teamList():[]).slice();if(DB.settings.team.indexOf(n.trim())<0)DB.settings.team.push(n.trim());save();leadQuickEdit(leadId,{owner:n.trim()});}else{leadQuickEdit(leadId);}};
- window.qeAddFunnel=function(leadId){var n=prompt('New funnel name:');if(n&&n.trim()){DB.settings=DB.settings||{};DB.settings.funnels=((DB.settings.funnels)||[]).slice();if(funnelList().indexOf(n.trim())<0)DB.settings.funnels.push(n.trim());if(typeof SOURCE_COLOR!=='undefined'&&!SOURCE_COLOR[n.trim()])SOURCE_COLOR[n.trim()]='#7C8194';save();leadQuickEdit(leadId,{funnel:n.trim()});}else{leadQuickEdit(leadId);}};
+ /* 2026-09-10 (live test D1 family): the two name questions ask in the page (js/57 pfPrompt), not through the browser's prompt() box */
+ function qeAsk(q,cb){ if(typeof window.pfPrompt==='function')window.pfPrompt(q,'',cb); else cb(prompt(q)); }
+ window.qeAddOwner=function(leadId){qeAsk('New team member name:',function(n){if(n&&n.trim()){DB.settings=DB.settings||{};DB.settings.team=(typeof teamList==='function'?teamList():[]).slice();if(DB.settings.team.indexOf(n.trim())<0)DB.settings.team.push(n.trim());save();leadQuickEdit(leadId,{owner:n.trim()});}else{leadQuickEdit(leadId);}});};
+ window.qeAddFunnel=function(leadId){qeAsk('New funnel name:',function(n){if(n&&n.trim()){DB.settings=DB.settings||{};DB.settings.funnels=((DB.settings.funnels)||[]).slice();if(funnelList().indexOf(n.trim())<0)DB.settings.funnels.push(n.trim());if(typeof SOURCE_COLOR!=='undefined'&&!SOURCE_COLOR[n.trim()])SOURCE_COLOR[n.trim()]='#7C8194';save();leadQuickEdit(leadId,{funnel:n.trim()});}else{leadQuickEdit(leadId);}});};
 
  // ----- redefined quick-edit with add-new owner + funnel -----
  window.leadQuickEdit=function(id,preset){
