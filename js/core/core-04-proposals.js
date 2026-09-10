@@ -39,7 +39,17 @@ function offerExpiry(o){if(!o.validUntil)return null;const d=Math.ceil((new Date
 function offerStatusBadge(o){const c=OFFER_STATUS_COLOR[o.status]||'#9AA1B6';return `<span class="tag" style="background:${c}1a;color:${c}">${esc(o.status||'Draft')}</span>`;}
 function o_addOption(){const o=curOffer();if(!o)return;o.options=o.options||[];o.options.push({label:'Option '+(o.options.length+1),provider:'',content:'—',fareFamily:'',base:'',taxes:'',anc:'',fee:'',refundable:'No',baggage:'1 x 23kg'});save();offerEditor(document.getElementById('view'),o.id);}
 function o_setOption(i,k,val){const o=curOffer();if(!o||!o.options[i])return;o.options[i][k]=val;save();const d=document.getElementById('offerDoc');if(d)d.innerHTML=offerHTML(o);}
-function o_delOption(i){const o=curOffer();if(!o)return;o.options.splice(i,1);save();offerEditor(document.getElementById('view'),o.id);}
+/* 2026-09-10 (second live pass): the red "Remove" beside an option took the whole package — its
+   items, tiers, freebies and prices — on one click with no question, and nothing brings it
+   back. An option that carries anything now asks in the page first (EN/AR); a blank one still
+   goes at once. */
+function o_delOption(i){const o=curOffer();if(!o||!o.options[i])return;const op=o.options[i];const _ar=(typeof LANG!=='undefined'&&LANG==='ar');
+  const go=()=>{o.options.splice(i,1);save();offerEditor(document.getElementById('view'),o.id);};
+  const n=(op.items||[]).length+(op.tiers||[]).length+(op.freebies||[]).length;
+  const filled=n>0||String(op.base||'').trim()!==''||String(op.provider||'').trim()!==''||(String(op.content||'').trim()!==''&&String(op.content).trim()!=='—');
+  if(!filled){go();return;}
+  const name=String(op.label||op.name||(_ar?'هذا الخيار':'this option'));
+  askInPage(_ar?('حذف الخيار «'+name+'»؟\n\nتُحذف بنوده وأسعاره'+(n?' ('+n+')':'')+' من العرض ولا يمكن استرجاعها من هنا.'):('Remove the option "'+name+'"?\n\nIts lines and prices'+(n?' ('+n+')':'')+' go with it, and there is no undo here.'),go);}
 function o_logToLead(){const o=curOffer();if(!o)return;if(!o.linkedLeadId){alert('Link a lead/client first (Deal & workflow section).');return;}const b=getLead(o.linkedLeadId);if(!b){alert('Linked lead not found.');return;}b.activities=b.activities||[];b.activities.push({date:Date.now(),type:'Offer',status:'',note:'Offer '+(o.ref||'')+' ('+(o.status||'Draft')+')'+(o.subject?' — '+o.subject:'')+(o.total?(' · '+o.total+' '+(o.currency||'')):''),by:o.owner||'Abdelrahman'});b.lastContact=Date.now();save();alert('Logged to '+b.name+'’s work log.');}
 function renderOffers(v){
   if(openOffer)return offerEditor(v,openOffer);
