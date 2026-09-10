@@ -70,6 +70,35 @@
       document.getElementById('pfConfirmYes').onclick=function(){ close(); onYes(); };
     }catch(e){ console.warn('[proof] confirm',e); onYes(); }
   };
+  /* 2026-09-10 (live test D1 family): the one-line question with a text answer, in the page —
+     the twin of pfConfirm for the places that used the browser's prompt() box (the Lost reason,
+     a new team member's name, a new funnel's name). onDone(value) on OK — value is the trimmed
+     text, possibly '' — and onDone(null) on Cancel / Escape / a click outside, exactly the
+     null the old prompt() returned. Enter submits. */
+  window.pfPrompt=function(msg,def,onDone){
+    try{
+      var old=document.getElementById('pfPromptBox'); if(old)old.remove();
+      var ar=(typeof LANG!=='undefined'&&LANG==='ar');
+      var d=document.createElement('div'); d.id='pfPromptBox';
+      d.style.cssText='position:fixed;inset:0;z-index:1000000000;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center';
+      d.innerHTML='<div style="background:var(--card,#fff);border-radius:12px;padding:20px 22px;width:min(420px,92vw);box-shadow:0 12px 40px rgba(0,0,0,.25)">'+
+        '<div style="font-size:13.5px;margin-bottom:10px;line-height:1.5;white-space:pre-line" data-pf-prompt-text>'+esc(msg)+'</div>'+
+        '<input id="pfPromptInput" type="text" style="width:100%;box-sizing:border-box;margin-bottom:14px" value="'+esc(def==null?'':String(def))+'">'+
+        '<div style="display:flex;gap:8px;justify-content:'+(ar?'flex-start':'flex-end')+'">'+
+        '<button class="btn sm ghost" id="pfPromptNo">'+fl('Cancel','إلغاء')+'</button>'+
+        '<button class="btn sm pri" id="pfPromptOk">'+fl('OK','حسنًا')+'</button>'+
+        '</div></div>';
+      document.body.appendChild(d);
+      var done=false;
+      var finish=function(v){ if(done)return; done=true; try{d.remove();}catch(_){} try{ onDone(v); }catch(e){ console.warn('[proof] prompt cb',e); } };
+      var inp=document.getElementById('pfPromptInput');
+      document.getElementById('pfPromptNo').onclick=function(){ finish(null); };
+      document.getElementById('pfPromptOk').onclick=function(){ finish(String(inp.value).trim()); };
+      d.addEventListener('click',function(e){ if(e.target===d)finish(null); });
+      inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); finish(String(inp.value).trim()); } else if(e.key==='Escape'){ finish(null); } });
+      setTimeout(function(){ try{ inp.focus(); inp.select(); }catch(_){} },30);
+    }catch(e){ console.warn('[proof] prompt',e); var r=null; try{ r=prompt(msg,def==null?'':def); }catch(_){} onDone(r==null?null:String(r).trim()); }
+  };
 
   function load(cb){
     if(PRX.loading)return; PRX.loading=true;

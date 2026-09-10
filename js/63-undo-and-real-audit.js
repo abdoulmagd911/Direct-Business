@@ -55,8 +55,15 @@
      shown in a small in-page notice that stays until dismissed (a toast is gone in two seconds
      and these sentences matter), and the question goes through js/57's box. */
   window.v63Notice=function(text){
+    /* every notice is also announced as a document event, so a test (or any later layer) can
+       read what the person was told without listening for a browser dialog that no longer exists */
+    try{ document.dispatchEvent(new CustomEvent('v63-notice',{detail:{text:String(text)}})); }catch(_){}
     try{
-      var old=document.getElementById('v63Notice'); if(old)old.remove();
+      var old=document.getElementById('v63Notice');
+      if(old){ /* two messages in a row stack in the one card — the first is not lost under the second */
+        var extra=document.createElement('div'); extra.setAttribute('data-v63-text',''); extra.style.cssText='font-size:13.5px;line-height:1.5;margin-bottom:12px;border-top:1px solid #EEE8DC;padding-top:10px';
+        extra.textContent=String(text); var row=old.lastElementChild; old.insertBefore(extra,row); return;
+      }
       var d=document.createElement('div'); d.id='v63Notice';
       /* a card at the top of the screen, NOT a full-screen overlay: it stays until dismissed but
          never blocks the rest of the page (the old alert() did, and so did the first cut of this) */
@@ -65,6 +72,7 @@
       document.body.appendChild(d);
       var close=function(){ try{ d.remove(); }catch(_){} };
       document.getElementById('v63NoticeOk').onclick=close;
+      d.addEventListener('keydown',function(e){ if(e.key==='Escape'){ close(); } });
       setTimeout(function(){ try{ document.getElementById('v63NoticeOk').focus(); }catch(_){} },30);
     }catch(_){ try{ if(typeof toast==='function') toast(text); }catch(__){} }
   };
@@ -72,6 +80,21 @@
     var text=(isAr()&&REFUSAL_AR[msg])?REFUSAL_AR[msg]:msg;
     window.v63Notice(text);
   }
+  /* 2026-09-10 (live test D1 family, the last of it): the browser's own alert() box is replaced
+     app-wide by the notice card above. About 120 places in the app report a result through
+     alert() — "Not saved", "No rows to export", "Could not restore: …" — and each one froze the
+     tab until dismissed. The questions (confirm) were moved one by one because each needs a
+     callback; a report needs none, so one shim covers them all and the call sites keep their
+     wording. The real box stays as the fallback when the card cannot be drawn. */
+  try{
+    var nativeAlert=window.alert;
+    window.__nativeAlert=nativeAlert;
+    window.alert=function(m){
+      var text=(m===undefined)?'':String(m);
+      try{ window.v63Notice(text); if(document.getElementById('v63Notice')) return; }catch(_){}
+      try{ nativeAlert.call(window,text); }catch(__){}
+    };
+  }catch(_){}
 
   /* The one shared Undo call. p_id is record_history.id (bigint), not the record's own id.
      The 24-hour window and every permission rule are answered by the function itself — never
