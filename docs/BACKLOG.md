@@ -10602,6 +10602,83 @@ log, and the second blank draft. Left as it is: the Providers rows' source-type 
 supplier / API", "Benchmark only") are table values js/21 does not touch by design; Settings and
 SOP titles are data.
 
+**Tenth landing (10 Sep, ~06:30 UTC).** Reports' four tabs, the Events edit form, an Airlines
+detail, Settings → Team & Access and the Generator page, English then Arabic — clean, except one
+real defect found by an accident of the walk itself: **the Events edit form, opened while one was
+already up, drew a second form whose Cancel and Save did nothing.** Every handler was wired
+through `document.getElementById`, which answers the FIRST form's buttons — a double-click on
+Edit, or a form left open, was enough. evOpenModal removes any open form before drawing and
+scopes every lookup to its own form (probe-events; sabotage-tested). The other overlays wired the
+same way (js/02 team modal, js/09 funnel details, js/31 Team & Access) already remove their
+predecessor. **And the other session's fire-#7 observation, actioned:** js/64's bounce gated on
+`__accessKnown()`, which js/52 exported as `known()` — true the instant the role arrives — so a
+render inside the load window (an in-app click, a re-render) could still bounce a granted page,
+show the banner and log a false "page refused" row, with js/52 only restoring the page afterwards.
+`__accessKnown` now exports `settled()` (`__accessRoleKnown` keeps the role-only answer);
+probe-granted-page-survives-load forces a render inside the window and asserts no banner and no
+`log_page_denied` call — red with the old export, green with the new. Harness: the 47 "credential-gated" exclusions really do sign in as staff through
+emp-rig — correctly excluded; reports.txt entries are honest.
+
+**For the owner (E1, not changed):** the Events form stores the event-site sign-up e-mail AND
+PASSWORD in plain text (`ksa_event_signups.login_password`), readable by the whole team (policy
+`true`); the form itself says so ("team can see it"). The table is empty today. That is a
+deliberate shared-credentials design for the "mine the website" move; it should be a decision
+he has made knowingly, not one he inherits.
+
+**For the owner (LANDMINES B.1, measured — not changed):** "two people editing the same record at
+the same moment → last save wins … the real fix (row versioning) is deliberately parked — revisit
+only if it actually bites." Measured today with two tabs on one company in the harness: tab A
+logs a note and a next action and saves; tab B, opened earlier, changes only the segment and
+saves 2.5 s later — B's whole-row upsert carries its stale copy and **A's note and next action
+are gone from the table**, with nothing on either screen saying so (record_history keeps the
+before-image, so an admin can Undo — but nobody is told). It bites. `diag-two-tabs-one-record`
+(8773, a report) reproduces it in one command. The fix is a stale check on the row upsert
+(compare `updated_at` with the copy this tab loaded; on conflict re-read the row, re-apply only
+the fields this tab changed — js/02's SNAP already knows them — and merge the activity log by
+union), which is a change to the riskiest path in the app and is the owner's call to schedule.
+
+**Eleventh batch (10 Sep, ~08:30 UTC) — Settings' "Import JSON" was a one-click data-destroyer.**
+Found by reading the Backup & restore card after the 2 Sep snapshot-restore hardening: the "⬆
+Import JSON" button beside "Browse snapshots" had none of it. `importFullState()` did `DB = file`
+with no question, and kept the live companies only when the FILE had none — and every "⬇ Export
+JSON" file carries all of them. Measured in the harness before touching the code: import a file
+with 3 renamed companies, then any save → **57 of 60 companies archived** and the file's names
+written over the live ones, nobody asked, nobody told (the auto-tag before import is the only
+recovery, and it does not restore companies). The import now asks in the page with the same words
+as the restore ("Leads and clients are NOT imported — they live in their own table and are left
+exactly as they are"), tags first, always keeps the live company list, tells the person in a
+toast, and clears the file input so the same file can be picked twice; an invalid file is an
+in-page notice. The console-only legacy `importData()`/`resetData()` (no button) keep the table
+and ask the same way. And "🗑 Wipe local data" — the last browser confirm()/prompt() pair on a
+button — said "This cannot be undone" about a browser cache: it now asks its two questions in the
+page and says what happens (the browser copy is cleared, the page reloads the workspace from the
+cloud, nothing in the cloud is touched). probe-import-json-safe (8774) holds all of it on the
+wire: zero archive PATCHes after the import, all 60 rows live, no write to businesses/app_state
+and no DELETE across the wipe, no native dialog. Sabotage-tested both ways.
+
+**Same batch — the v22 card on Settings: "🔄 Reset for go-live" and "🚀 Run workflow test suite",
+retired.** Visible to every admin and manager. The reset (a browser confirm() plus a typed
+"GO LIVE") dropped every company that was not a client from DB.businesses, cleared the kept
+ones' activities / deal value / wallet, emptied offers, bookings, invoices, expenses, refunds and
+the audit, and saved — the next push archived every lead and prospect in the table. Its safety
+net was empty: the "Pre-go-live snapshot" it wrote first was localStorage's copy of the
+workspace, which js/02 removes on every load, so the snapshot's data was ''. The suite pushed a
+test company, offers, bookings and invoices into DB and saved them — practice data written into
+the live workspace by one click, the kind the owner had removed the day before. The workspace
+went live on 22 Aug; both tools now explain in the page and change nothing, the buttons are gone
+from the card (the card says why, EN/AR; "Wipe v22 test data" stays — it only filters _v22test
+rows), the v24 wrapper that logged a "backup-scheduled" audit line before the reset is gone with
+it, and the suite's report screen is kept as `v22OpenWorkflowSuite_harness` for the harness. The
+originals are in git history before this commit. probe-golive-reset-retired (8775): the card,
+both functions called directly (zero writes to businesses / app_state / save_state, no browser
+box, DB unchanged), Arabic. Sabotage-tested both ways. **Decision recorded:** no path in the app
+may replace or filter `DB.businesses` wholesale; the company table is restored row by row only.
+The two other one-click practice-data writers on Settings — "🧪 Run a day" (core-06: a test lead,
+offer, booking, draft invoice and sync events, saved) and "🟢 Run v23 scenario suite" (core-07:
+test companies, bookings, invoices, refunds, expenses, saved) — retired the same way (buttons
+gone, cards say why EN/AR, functions explain and stop, `_harness` variants keep the report
+screens; the Wipe buttons stay). Held by the same probe.
+
 ---
 
 ## 2026-09-09 — live hands-on test of www.directksab2b.com (owner's browser, signed in as admin)
