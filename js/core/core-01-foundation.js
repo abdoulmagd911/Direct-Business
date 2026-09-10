@@ -465,9 +465,12 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));window.__quotaW
    never window.confirm (which freezes the tab and every automated driver of it). The answer
    arrives later, so callers pass what to do on yes. */
 function askInPage(msg,yes){if(typeof window.pfConfirm==='function')window.pfConfirm(msg,yes);else if(confirm(msg))yes();}
-function resetData(){if(confirm("Reset all data to the seeded version? Edits will be lost.")){DB=JSON.parse(JSON.stringify(SEED));save();render();}}
+/* 2026-09-10: these two legacy tools have no button (console only). Leads and clients live in their
+   own table since v32 — a whole-DB replace followed by save() would archive every company not in
+   the replacement. Both now ask in the page and keep the live company list. */
+function resetData(){askInPage("Reset all data to the seeded version? Edits will be lost. Leads and clients are kept as they are.",function(){const _kb=Array.isArray(DB.businesses)?DB.businesses:[];DB=JSON.parse(JSON.stringify(SEED));DB.businesses=_kb;save();render();});}
 function exportData(){const b=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="direct-business-data.json";a.click();}
-function importData(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{DB=JSON.parse(r.result);save();render();alert("Imported.");}catch(e){alert("Invalid file.");}};r.readAsText(f);}
+function importData(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{let d;try{d=JSON.parse(r.result);if(!d||typeof d!=="object"||Array.isArray(d))throw new Error("not a workspace file");}catch(e){alert("Invalid file.");return;}askInPage("Import this file? Settings and records are replaced by the file's. Leads and clients are NOT imported — they stay exactly as they are.",function(){const _kb=Array.isArray(DB.businesses)?DB.businesses:[];DB=d;DB.businesses=_kb;save();render();alert("Imported — leads and clients untouched.");});try{inp.value="";}catch(_){}};r.readAsText(f);}
 const money=n=>(n||0).toLocaleString("en-US")+" SAR";
 const moneyShort=n=>{n=n||0;if(n>=1e6)return(n/1e6).toFixed(2)+"M";if(n>=1e3)return Math.round(n/1e3)+"k";return""+n;};
 const uid=p=>p+"_"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
