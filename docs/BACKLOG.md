@@ -1,3 +1,17 @@
+## Routine fire #9 (2026-09-10 10:11 UTC) — my fire-#7 observation actioned; native-dialog work fully closed
+Synced to `4ca9257` (10th + 11th landings). **My fire-#7 load-window observation was actioned**
+(commit `a250d0d`): js/52 now exports `window.__accessKnown=settled` (was `known`), keeping
+`__accessRoleKnown=known` separately — so my js/64 bounce now gates on `settled()` and no longer
+fires during the role-known-but-matrix-not-loaded window at all (prevent, not restore-after — exactly
+the recommendation). Verified sound. Third consecutive fire where a flag/observation of mine was
+picked up and implemented by the core lane (editSupplier → confirms → this).
+Also this landing: the dead/admin `confirm()` sites I noted in fire #5 are RESOLVED — `resetData` and
+the go-live reset + three test suites were retired from the live app, and `v21WipeLocalData` now asks
+in the page. Remaining raw confirm/prompt is down to 5, every one a comment or a documented guarded
+fallback (`if(pfPrompt){…;return;} apply(prompt(…))`); the native-dialog refactor is fully closed.
+All 11 touched files parse; check-structure / probe-integrity / decisions-wired green. Browser harness
+still unusable in this container. Data unchanged (code-only landings).
+
 ## Routine fire #8 (2026-09-10 08:11 UTC) — quiet fire: no new code; extended cross-table data sweep clean
 No new oversight commits (they've been idle ~2h; my fire-#7 load-window observation is not yet
 actioned — `__accessKnown` still = `known()`, a nuanced call left for the core lane). Browser
