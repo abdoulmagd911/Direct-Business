@@ -10440,13 +10440,26 @@ The other probes that drive leadQuickEdit / editSupplier (attack-day, attack-wav
 landmines, mega, modals-ar, newfeatures, roles, sweep-buttons) never take the demote path or
 pin the old dialog, so none needed a change.
 
-**Still using window.confirm / alert, deliberately left:** `resetData` and `v21WipeLocalData`
-(developer tools); js/45's fallback (only if js/57 is absent); the legacy Bookings / Invoices /
-Tickets editors (core-05/core-06 delete, archive, bulk-archive, duplicate-invoice questions) —
-their nav group "From Direct (read-only)" is hidden by js/41 and the pages are reached only by
-address, so they are not in anyone's daily flow; and ~120 informational alert() sites that report a
-result rather than ask a question (a v63Notice pass, one file at a time, is the next lane). BR1
-the public Brand Hub is the owner's decision.
+**Sixth landing (10 Sep, after midnight).** The browser's alert() box is gone app-wide: js/63
+replaces `window.alert` with its notice card (the ~120 call sites keep their wording; two
+messages in a row stack in one card; Escape closes it; every notice is announced as a
+`v63-notice` document event; the native function is kept as `window.__nativeAlert` for the
+fallback). The questions had to move one by one because each needs a callback — a report needs
+none, so one shim covers them all. New `probe-alerts-in-page` (8768; shim removed → red) and
+`scripts/qa/notice-tap.mjs` for probes that used to read the browser's dialog event — battery
+b12 found exactly three (probe-notes, probe-crm-attacks 6e, probe-concurrency-attacks), all
+green after the tap; the probes that stub `window.alert` in the page still win over the shim
+because they assign it later. Then the prompt() boxes on the everyday paths: js/57 gains
+`pfPrompt(msg, default, onDone)`; the Lost reason (core-01 `captureLostReason`) and quick edit's
+"add a team member / add a funnel" names ask through it (probe-lifecycle5 answers the box;
+probe-no-native-dialogs block 12; sabotage-tested).
+
+**Still using a browser box, deliberately left:** the prompt() sites in js/16 `finSetTargets`
+(two chained prompts; five probes stub `window.prompt` for it — convert them together), the
+backup tag name and bundle-template name in core-06, and the lock passphrase; `resetData` /
+`v21WipeLocalData` (developer tools); js/45's fallback (only if js/57 is absent); the legacy
+Bookings / Invoices / Tickets editors' confirm() questions (their nav group is hidden by js/41;
+reached only by address). BR1 the public Brand Hub is the owner's decision.
 
 ---
 
