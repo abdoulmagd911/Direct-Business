@@ -276,7 +276,13 @@
   var v26TodaySummary=function(){
     var lang=v26GetLang();
     try{
-      var offers=(DB.offers||[]).filter(function(o){return o.status==='Draft'||o.status==='Pending';}).length;
+      /* 2026-09-10 (second live pass, T2 again): a blank draft — the record "+ New offer" makes on
+         the click itself, before anyone has picked a client or written a line — was counted as
+         "1 quote to send". Twice in one night the owner's Today greeted him with a quote to send
+         that was an empty form. A quote to send is a draft that names a client (or is linked to
+         one) or has at least a subject or a priced option; a blank draft is not work to do. */
+      var _isRealQuote=function(o){ try{ return !!((o.client&&String(o.client).trim())||o.linkedLeadId||(o.subject&&String(o.subject).trim())||(o.title&&String(o.title).trim())||(Array.isArray(o.options)&&o.options.length)); }catch(_){ return true; } };
+      var offers=(DB.offers||[]).filter(function(o){return (o.status==='Draft'||o.status==='Pending')&&_isRealQuote(o);}).length;
       var invoices=(DB.invoices||[]).filter(function(i){return i.status==='Draft'||i.status==='Pending';}).length;
       var bookings=(DB.bookings||[]).filter(function(b){return !b._archived;}).length;
       var parts=[];
