@@ -1,3 +1,20 @@
+## Routine fire #20 (2026-09-11 08:11 UTC) — runnable regression net re-run (all green) + Reports surface verified EN+AR
+Two parts. (1) Re-ran every probe that CAN run in this reprovisioned container:
+- check-structure ✓ · check-probe-integrity ✓ · check-decisions-wired ✓ (38 ACTIVE rules, 134 code
+  citations all resolve) · probe-battery-retry-honesty ✓ · probe-fullwalk ✓ (ALL PASS 56, full page +
+  Finance-tab walk EN+AR against the mock).
+- Of the 186-line battery, only these + the 3 pure-Node checks run here. The rest are correctly either
+  credential-gated (sign in as real staff; emp-rig reads DB_PW_* which are never in this repo) or browser
+  probes still blocked by the known Playwright route-GLOB issue in reprovisioned containers — that fix is
+  100+ shared files needing in-browser verification, i.e. Claude Code's lane, not this session's. So the
+  net that CAN run is fully green; the blocked part is a known infra item, not a new defect.
+(2) New surface — the Reports page (primary nav, walked in #13 but never reconciled). Overview renders a
+  correct EMPTY state: 14 strategic objectives all at 0%, "0/30 KPIs with data", 0 achievements, 0% avg to
+  2026 targets, "No achievements yet" — an unpopulated in-app KPI/objectives module reading THIS app's own
+  DB (vkxoeeoauexyfpzqufqd), NOT the out-of-scope directksa-performance project (rule 8 — not touched).
+  Verified in BOTH languages: AR is clean RTL with all 14 objectives + all tiles + the empty-state fully
+  translated. **0 defects.** No new oversight commits this fire (HEAD 6ccdf17).
+
 ## Routine fire #19 (2026-09-11 06:13 UTC) — the money surface in ARABIC: RTL + translation + numbers spotless (extends #17)
 Took fire #17's EN money verification into the AR dimension the mandate demands. Reviewed the Arabic
 Performance + Clients & collections renders (live-DB screenshots). Everything the EN pass guaranteed holds
