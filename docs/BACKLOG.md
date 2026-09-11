@@ -1,3 +1,23 @@
+## Routine fire #23 (2026-09-11 14:13 UTC) — half-conversion landmine probed on real DB: precondition present on 1 record, mitigation confirmed working (benign)
+Probed the documented lead/client half-conversion landmine (the app reads is_client from BOTH the column AND
+raw->>'isClient'; changing one without the other half-converts a record). Live DB (112 businesses = 80 leads +
+32 clients):
+- 32 clients by column; 31 carry raw->>'isClient'='true'; **1 record has is_client=true (column) but raw = NULL**
+  entirely (so no raw->>'isClient'). 0 records mismatch the other way. That 1 record (id 51bf44fe…, stage won,
+  created 2026-08-23, untouched since) also has converted_date NULL and no funnel_id.
+- Verdict: NOT a defect. rowToApp (js/02:117) derives o.isClient = (r.is_client===true) || base.isClient===true —
+  it reads the COLUMN as a fallback, which is precisely the dual-read that neutralises this landmine. base
+  defaults to {} when raw is NULL (js/02:107), so nothing crashes / goes NaN. The record renders consistently as
+  a client everywhere (all downstream code uses the mapped o.isClient, never raw->>'isClient' directly), so it is
+  never half-shown. Only cosmetic: converted "since" date prints '—', no funnel section, no contacts — because it
+  was created OUTSIDE the app (a direct insert/import wrote the column and left raw empty — the exact pattern the
+  js/02:132-140 comment already describes).
+- So the landmine's precondition exists on exactly 1 live record and the app's mitigation demonstrably absorbs it.
+MINOR HYGIENE NOTE for the owner (NOT actioned — real-data mutation is his call, and it's cosmetic only): that
+one client could be tidied by backfilling raw->>'isClient'='true' + converted_date so its "since" date shows and
+it stops being the lone column/raw divergence. No functional impact today.
+**0 functional defects.** No code/data changed (read-only). No new oversight commits (HEAD 04a8a2f).
+
 ## Routine fire #22 (2026-09-11 12:13 UTC) — funnel data integrity (funnel_id + template + answer alignment) on real DB: CLEAN
 Verified the lead-funnel data end to end against the REAL DB — the layer that feeds the funnel section on every
 lead detail card:
