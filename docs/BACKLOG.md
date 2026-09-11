@@ -1,3 +1,21 @@
+## Routine fire #16 (2026-09-11 00:11 UTC) — Leads SEARCH + STAGE-FILTER CHIPS driven by real DOM events vs the REAL DB
+Went past the read-only page-walk into the core daily interaction that has been silently broken before
+(the 2026-08-09 chip no-op bug, where clicking a chip highlighted it but filtered nothing). Drove the
+actual DOM against the REAL database (scratchpad/live-leadfilter.mjs, same direct-proxy + predicate-matcher
++ bridge): typed into #lq, clicked every stage chip, and reconciled the visible row count against
+matchLead over the live 80-lead dataset. **The filters work correctly — 0 defects.**
+Reconciled exactly against SQL on the real DB (leads=80: new:53, contacted:25, lost:2; 0 QA-probe
+leftovers — the DB is clean):
+- search "DirectFN" → 1 row = matchLead's 1 (search narrows correctly; clearing returns to base).
+- chip Prospect → 53, Contacted → 25, Lost → 2 — all match the real per-stage counts.
+- The 6 raw "findings" the probe first flagged are naive-probe artifacts, NOT app bugs, and were run
+  down to their cause: (a) `hideClosed` DEFAULTS true (js/core-10-v29-reports.js:692), so the 2 `lost`
+  leads are hidden at rest → 78 of 80 shown; the "all" chip keeps hideClosed on (78), and leadClearFilters
+  turns it off → 80. Intended. (b) Qualified/Proposal/Won have 0 real leads, so the table renders a single
+  empty-state placeholder `<tr>` — the probe counted it as "1 row". Not a defect.
+Takeaway: the historically-broken chip filter is confirmed genuinely working, live, against real data.
+No new oversight commits this fire (HEAD be02fcd).
+
 ## Routine fire #15 (2026-09-10 22:12 UTC) — EMPLOYEE access model verified LIVE in-browser (fire-#3 + #7 fixes)
 Set the QA account to team_member (grant: today/leads/clients/finance; reversed to admin right after)
 and drove it in a browser against the REAL database, signing in at TYPING speed (8s on the form) — the
