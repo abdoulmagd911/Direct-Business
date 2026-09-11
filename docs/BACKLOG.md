@@ -1,3 +1,25 @@
+## Routine fire #17 (2026-09-11 02:11 UTC) — the MONEY surface (Finance Performance + Clients) reconciled to SQL; M1/M8 honest-gap doctrine confirmed rendering LIVE
+Went at the highest-stakes area: does the Finance money the app SHOWS match the real finance_invoices,
+and is the unknown-cost gap handled honestly (M1 clean cost/profit/revenue; M8 never fabricate a cost)?
+SQL ground truth over the 46 live invoices (deleted_at is null): revenue 2,030,764.29 · cost 1,538,141.70
+· profit 492,622.59 · **VAT 0.00 · wallet 0.00** (so revenue==total here) · profit_sar == revenue−cost on
+every row (0 mismatches). The DB is clean of QA-probe leftovers.
+The one thing worth the dig: the "19 of 46 with no cost" that CLAUDE.md calls an honest gap are stored as
+`cost_sar = 0` (NOT null), so their profit_sar == full revenue — 214,550 SAR, i.e. **43.6% of the headline
+profit comes from unknown-cost invoices.** That is the exact M8/M1 trap. Verified the app does NOT fall into
+it — it renders the gap honestly at all three levels (confirmed against the live-DB screenshots):
+- Performance/overview headline is the stored figure (Rev 2.03M / Cost 1.54M / Profit 492.6K, matching SQL
+  to the SAR, with an exact rounding-reconciliation note) BUT carries the flag
+  "⚠ 19 of 46 invoices in this period carry no recorded cost — margin may read higher than reality."
+- Clients & collections: a client with no cost on ANY invoice prints cost "not recorded" / profit "unknown"
+  (js/16 _cCell/_pCell) instead of booking full revenue as profit; partial-cost clients carry a ⚠; the total
+  row reconciles (2,030,764 / 1,538,142 / 492,623) and the footer warns the profit total is "an upper bound,
+  not a final figure."
+- No VAT enters any of the three money figures anywhere on the surface (sum_vat is 0 in the data too).
+Conclusion: the money surface is exemplary — numerically exact against the real DB and honest about the
+unknown-cost gap at row, client and period level. **0 defects.** M1 ACTIVE and satisfied; the M8 doctrine is
+not just documented but implemented and rendering. No new oversight commits this fire (HEAD 766b054).
+
 ## Routine fire #16 (2026-09-11 00:11 UTC) — Leads SEARCH + STAGE-FILTER CHIPS driven by real DOM events vs the REAL DB
 Went past the read-only page-walk into the core daily interaction that has been silently broken before
 (the 2026-08-09 chip no-op bug, where clicking a chip highlighted it but filtered nothing). Drove the
