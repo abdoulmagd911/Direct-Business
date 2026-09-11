@@ -1,3 +1,20 @@
+## Routine fire #18 (2026-09-11 04:11 UTC) — cross-company data-smuggling audit on real contacts: CLEAN
+Tested the locked "no cross-company data smuggling" decision (every email/phone/domain on a record must
+attach to the SAME company by a stable key; mismatches flagged, never silently merged) directly in SQL
+against the real DB. The app renders contacts embedded in businesses.raw->contacts (15 contacts across 13
+records; a separate 45-row `contacts` table exists but is not the rendered source).
+Findings, all clean:
+- 15 embedded contacts, all with corporate-domain emails — 0 personal webmail (gmail/hotmail/…), 0 carrying
+  needsConfirm (nothing needs confirming, so no ⚠ badge — correct).
+- 4 email + 4 phone values appear on more than one business record. Inspected every collision: each is the
+  SAME company held under a duplicate spelling (a "Name" vs "Name — full legal name" pair, etc.), and the
+  shared contact's email domain matches that company's own domain. That is NOT smuggling (one company's data
+  on a DIFFERENT company) — it is the already-documented duplicate-spelling situation. No collision crossed a
+  real company boundary.
+So the no-smuggling invariant holds on the live data. The 3 duplicate company records this surfaced are the
+kind CLAUDE.md already flags as the owner's to merge; merging real records is his call, so noted, not touched
+(rule 2/7 — no unasked real-data mutation). **0 defects.** No new oversight commits this fire (HEAD 65739cf).
+
 ## Routine fire #17 (2026-09-11 02:11 UTC) — the MONEY surface (Finance Performance + Clients) reconciled to SQL; M1/M8 honest-gap doctrine confirmed rendering LIVE
 Went at the highest-stakes area: does the Finance money the app SHOWS match the real finance_invoices,
 and is the unknown-cost gap handled honestly (M1 clean cost/profit/revenue; M8 never fabricate a cost)?
