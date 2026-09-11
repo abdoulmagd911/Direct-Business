@@ -1,3 +1,18 @@
+## Routine fire #22 (2026-09-11 12:13 UTC) — funnel data integrity (funnel_id + template + answer alignment) on real DB: CLEAN
+Verified the lead-funnel data end to end against the REAL DB — the layer that feeds the funnel section on every
+lead detail card:
+- 7 funnels (inbound/outreach/travel_trade/partners_tenders/website_form_b2b/website_form_entity/past_invoices),
+  each field_template a well-formed array of bilingual fields {key,type,label_en,label_ar} — 0 malformed
+  templates, 0 missing English or Arabic labels.
+- All 80 leads carry a valid funnel_id (FK into funnels) — 0 orphans — and all 80 have non-empty funnel_details.
+  (Assignment is via the funnel_id column + funnel_details, not raw->>'funnelKey', which is empty on every lead;
+  the app maps funnel_id→funnelKey. source is "Contact Submission" on all 80.)
+- Alignment (the check that decides whether the card's funnel section renders): every lead's funnel_details keys
+  intersect its funnel's template keys — 0 leads with zero overlap (so no funnel section renders empty despite
+  holding data) — and 0 leads carry an answer key outside its funnel's template (so nothing is silently dropped).
+So the funnel feature is sound both in data (aligned, bilingual) and — with fire #14's in-browser detail-card
+pass — in rendering. **0 defects.** No code/data changed (read-only). No new oversight commits (HEAD 9b9fb5b).
+
 ## Routine fire #21 (2026-09-11 10:12 UTC) — FLAGGED: latent M1 hazard in the finance_derive_fields trigger (NOT a live violation; needs owner/Claude-Code, not my lane)
 First substantive finding of the sweep. Verified the write-path guardrails on the REAL DB: the businesses
 triggers (trg_lead_won→lead_won_to_client, log_stage_change, record_history, touch_updated_at), the
