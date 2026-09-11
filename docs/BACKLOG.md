@@ -1,3 +1,20 @@
+## Routine fire #24 (2026-09-11 16:12 UTC) — the app_state blob audited on real DB: structurally clean, M1-clean
+Audited the single app_state JSON row — the last big untested data store (still holds settings + reference data
++ the offer/booking/etc. arrays). Findings:
+- 1 row, valid JSON, every top-level key well-typed. The entity arrays that MOVED to real tables are correctly
+  empty here: businesses(0), bookings(0), invoices(0), projects(0), requests(0), refundRequests(0),
+  travelerProfiles(0), syncEvents(0) — no stale duplicates fighting the real tables.
+- Live sub-data: offers(1), audit(800), airlines(136), vendors(23), slas(14), sops(12), sopsWhale(10),
+  ndcProviders(6), ksaEvents(80), serviceFeePricing(3), bundleTemplates(3), recents(8), plus settings/agency/
+  integrations/templateLibrary objects. The reference sets render clean (fire #13 page walk).
+- The one live offer is a valid EMPTY Draft: status Draft, no client, linkedLeadId "" (no-link, NOT dangling),
+  and every money field (total/value/ttl/cost/serviceFees) empty — 0 non-numeric values, so no NaN risk on the
+  offers page. Its `vat` field is M1-LEGAL: an offer/proposal is a client-facing document where VAT is legally
+  expected (DECISIONS M1 explicitly permits this).
+- M1 on the internal service-fee table: serviceFeePricing fields are {id,name,currency,perItem} — NO vat field,
+  0 rows containing "vat". The internal revenue/fee figure is not VAT-computed. Clean.
+**0 defects.** No code/data changed (read-only). No new oversight commits (HEAD 120dd5d).
+
 ## Routine fire #23 (2026-09-11 14:13 UTC) — half-conversion landmine probed on real DB: precondition present on 1 record, mitigation confirmed working (benign)
 Probed the documented lead/client half-conversion landmine (the app reads is_client from BOTH the column AND
 raw->>'isClient'; changing one without the other half-converts a record). Live DB (112 businesses = 80 leads +
