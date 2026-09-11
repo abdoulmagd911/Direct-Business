@@ -1,3 +1,33 @@
+## Routine fire #21 (2026-09-11 10:12 UTC) — FLAGGED: latent M1 hazard in the finance_derive_fields trigger (NOT a live violation; needs owner/Claude-Code, not my lane)
+First substantive finding of the sweep. Verified the write-path guardrails on the REAL DB: the businesses
+triggers (trg_lead_won→lead_won_to_client, log_stage_change, record_history, touch_updated_at), the
+finance_invoices triggers (trg_fin_inv_derive→finance_derive_fields, touch, record_history), and the stage
+CHECK constraint (exactly new/contacted/in_discussion/proposal/won/lost/on_hold) are all present and correct.
+lead_won_to_client correctly sets is_client + converted_date on the won transition.
+THE FINDING — a latent (not live) M1 risk in finance_derive_fields:
+- The trigger computes `revenue := round(total_incl_vat_sar - wallet_portion_sar, 2)` and then
+  `profit := round(revenue - cost_sar, 2)`. It NEVER subtracts vat_sar. It also OVERRIDES whatever the
+  importer wrote (it recomputes whenever the stored revenue disagrees by >0.01 — js/65:488 already notes
+  "the trigger silently corrected it on disk").
+- So for any row where vat_sar>0 the trigger bakes VAT INTO revenue and therefore profit — an M1 violation
+  ("none of Revenue/Cost/Profit may be VAT-inclusive or VAT-computed", DECISIONS M1).
+- Evidence on the real DB: of 91 total finance_invoices rows, 28 carry vat_sar<>0 (max 2,608.70); on ALL 28,
+  revenue == total_incl_vat − wallet (VAT included), on 0 does revenue exclude VAT.
+- WHY IT IS NOT A LIVE VIOLATION: all 28 VAT-bearing rows are SOFT-DELETED synthetic training data
+  (source_batch world-2026-08-13). Every one of the 46 LIVE rows has vat_sar=0, so live revenue/cost/profit
+  are clean (matches fire #17). The reason live data is clean is that the live importer FORCES vat_sar=0
+  (js/65:506 "recorded as unknown (0), never guessed at 15%") — i.e. the M1 guarantee rests on an importer
+  CONVENTION, not on the trigger. A different write path (manual insert, a future import variant, or a data
+  restore) that sets vat_sar>0 would silently violate M1 with no guard catching it.
+RECOMMENDED FIX (owner / Claude Code — this is a PRODUCTION money-trigger migration + money doctrine, so I did
+NOT change it myself; rule 9 carve-out + "money → DECISIONS first"):
+  (A) make the derive doctrine-self-enforcing: revenue := round(total_incl_vat_sar - coalesce(vat_sar,0) -
+      wallet_portion_sar, 2) — then even a VAT-carrying row yields clean revenue; confirm first that
+      total_incl_vat_sar is semantically VAT-INCLUSIVE in the live import before applying, and/or
+  (B) add an enforced invariant (CHECK or a live-data probe) that no non-deleted finance_invoices row may have
+      vat_sar<>0, encoding today's convention so a regression is caught rather than merely currently-true.
+No code/data changed this fire (read-only). No new oversight commits (HEAD 9dfe43a).
+
 ## Routine fire #20 (2026-09-11 08:11 UTC) — runnable regression net re-run (all green) + Reports surface verified EN+AR
 Two parts. (1) Re-ran every probe that CAN run in this reprovisioned container:
 - check-structure ✓ · check-probe-integrity ✓ · check-decisions-wired ✓ (38 ACTIVE rules, 134 code
