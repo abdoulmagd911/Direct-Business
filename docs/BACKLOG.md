@@ -1,3 +1,20 @@
+## Routine fire #19 (2026-09-11 06:13 UTC) — the money surface in ARABIC: RTL + translation + numbers spotless (extends #17)
+Took fire #17's EN money verification into the AR dimension the mandate demands. Reviewed the Arabic
+Performance + Clients & collections renders (live-DB screenshots). Everything the EN pass guaranteed holds
+in Arabic:
+- Full RTL layout, clean — nav/logo right, content flows right-to-left, no broken wrapping.
+- Every UI label translated: المالية · الأداء · العملاء والتحصيل · السجل · منشئ التقارير · المصروفات ·
+  مستندات الدفع · الحجوزات الفردية · استيراد; key indicators الإيرادات/التكلفة/الربح/المحصّل/المتبقي/عدد الفواتير.
+- Numbers identical to EN and to SQL: revenue 2,030,764 · cost 1,538,142 · profit 492,623 · 46 invoices; the
+  monthly chart and Plan-vs-actual (13.50M/11.45M/2.03M) match.
+- The M8 honest-gap treatment is translated, not just present: the rounding-reconciliation note reads in exact
+  Arabic; the period warning "⚠ 19 من 46 فاتورة … بلا تكلفة مسجلة — قد يظهر الهامش أعلى من الحقيقة"; a
+  no-cost client prints cost "غير مسجّلة" / profit "غير معروف" (js/16 _cCell/_pCell AR branch) instead of full
+  revenue; the clients footer "⚠ 7 من العملاء … إجمالي الربح أعلاه حدّ أقصى وليس رقمًا نهائيًا."
+- No VAT in any money figure (AR side too).
+So the highest-stakes surface is spotless in BOTH languages — numbers exact, RTL clean, doctrine warnings
+fully localized. **0 defects.** No new oversight commits this fire (HEAD 2f121e5).
+
 ## Routine fire #18 (2026-09-11 04:11 UTC) — cross-company data-smuggling audit on real contacts: CLEAN
 Tested the locked "no cross-company data smuggling" decision (every email/phone/domain on a record must
 attach to the SAME company by a stable key; mismatches flagged, never silently merged) directly in SQL
