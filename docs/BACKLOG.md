@@ -1,3 +1,17 @@
+## Routine fire #27 (2026-09-13 12:11 UTC) — clientHealth() attention signal reconciled against real data: correct, "no manufactured alarms" rule holds
+Verified the Clients-page health/attention tag (New/Good/Watch/At risk/Lost) — the daily "which accounts need me"
+signal — computes correctly against the real 28 live clients. Logic (js/core-02:208): Lost stage outranks all →
+review-overdue → no-activity="New" → 90d stale="At risk" → 45d="Watch" → else "Good".
+Reconciled the health INPUTS on the real DB for the 28 live (non-archived) clients:
+- 1 lost → "Lost"; 2 with an overdue nextReview → "At risk" (a real overdue review is a legitimate red, per the
+  function's own comment — not a manufactured alarm); 17 with zero activity AND no lastContact AND no overdue
+  review → "New" (NOT "At risk"); the remaining ~8 carry real activity and fall into Good/Watch/stale by recency.
+- The rule that matters (js/core-02:207 "a client with no logged history yet is New, not At risk — we don't
+  manufacture alarms from empty data") HOLDS: all 17 empty-data clients resolve to New, none is falsely flagged
+  At risk. Distribution matches the fire-13 screenshot (mostly New, a couple with activity Good/Watch, 1 Lost).
+**0 defects** — the attention signal is honest: red is reserved for a real overdue review or genuinely stale
+contact, never for absence of data. Read-only. No new oversight commits (HEAD 1f1192e).
+
 ## Routine fire #26 (2026-09-13 10:11 UTC) — chased a Clients-count discrepancy (32 in DB vs 28 shown): traced to the reversible archive/merge, NOT data loss
 Noticed the Clients page reads "CLIENTS IN VIEW 28" while the DB has 32 is_client=true rows (fire #23). A
 4-client gap looked like it could be real clients silently dropped from the list — so I ran it down:
