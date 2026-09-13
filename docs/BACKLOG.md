@@ -1,3 +1,16 @@
+## Routine fire #28 (2026-09-13 14:11 UTC) — per-user page-access matrix audited for EVERY role on real DB: correct, no mis-grant, no lockout
+Closed the "every role" dimension at the data level (fire #15 tested team_member behaviourally; fire #25 the
+users/auth mapping). Read my_page_access() on the real DB: admins get NULL (⇒ all pages); every other user gets
+their own app_users.page_access object — so access is PER-USER, not per-role-default. Audited all 8 non-admin
+users (avoiding a false alarm: the values are access LEVELS like "editor", not booleans):
+- manager (1): exactly 10 pages (today/leads/clients/finance/offers/events/airlines/activity/archive/settings),
+  all "editor" — appropriate managerial breadth, correctly the only non-admin holding settings/archive.
+- team_member (7): ALL exactly the 4-page employee floor (today/leads/clients/finance), all "editor" — matches
+  fire #15's LIVE behavioural result (those 4 granted, all else bounced). **0 team_members over-granted settings.**
+- 0 users locked out (min pages = 4), 0 malformed/odd access levels (only "editor" present), 0 null page_access.
+So the access grants are correct and consistent for every role, at the data level as well as behaviourally.
+**0 defects.** Read-only. No new oversight commits (HEAD 6f64d93).
+
 ## Routine fire #27 (2026-09-13 12:11 UTC) — clientHealth() attention signal reconciled against real data: correct, "no manufactured alarms" rule holds
 Verified the Clients-page health/attention tag (New/Good/Watch/At risk/Lost) — the daily "which accounts need me"
 signal — computes correctly against the real 28 live clients. Logic (js/core-02:208): Lost stage outranks all →
