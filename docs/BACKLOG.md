@@ -1,3 +1,19 @@
+## Routine fire #26 (2026-09-13 10:11 UTC) — chased a Clients-count discrepancy (32 in DB vs 28 shown): traced to the reversible archive/merge, NOT data loss
+Noticed the Clients page reads "CLIENTS IN VIEW 28" while the DB has 32 is_client=true rows (fire #23). A
+4-client gap looked like it could be real clients silently dropped from the list — so I ran it down:
+- Ruled out a stale screenshot: 0 clients were created/converted/updated after the 09-10 screenshot date, so
+  there were 32 on that date too. The gap is real, not timing.
+- Ruled out the finance alias-merge (js/62 Part 1.5): that collapses finance_invoices.client_group TEXT for
+  the Finance rollups (why Finance shows 15 client-groups), not the Clients page, which reads DB.businesses.
+- Found the actual cause: businesses has an `archived_at` column and the main loader DELIBERATELY never fetches
+  archived rows (js/76 header), so DB.businesses — and renderClients' `filter(b=>b.isClient)` — exclude them.
+- Confirmed on the real DB EXACTLY: 32 is_client rows = 28 archived_at NULL (shown) + **4 archived**. Of the 4,
+  3 were archived by a MERGE (archived_by 'merged-into:<id>', reasons "cleanup-2026-08-22-duplicate-of-direct-
+  import" ×2 + one more) and 1 by "owner-ruling-2026-08-23". 32 − 4 = 28, matching the tile precisely.
+Verdict: the 28 is CORRECT. The 4 are reversibly archived duplicate/merged records (M18, non-destructive —
+restorable from the Archive page, js/76), not lost clients. **0 defects** — a real-looking discrepancy fully
+run down to intended, reversible behaviour. Read-only. No new oversight commits (HEAD 95fc45a).
+
 ## Routine fire #25 (2026-09-13 08:11 UTC, after a ~14h idle — 20 mandate fires queued during container churn, drained; one consolidated round) — users & access DATA foundation on real DB: CLEAN
 Audited the users/roles/auth layer that underpins the whole access model (verified behaviourally in #15, never
 at the data level). Live DB:
