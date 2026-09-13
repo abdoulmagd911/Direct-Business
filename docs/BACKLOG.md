@@ -1,3 +1,14 @@
+## Routine fire #29 (2026-09-13 16:11 UTC) — Operations (Projects board) verified EN+AR — the last unverified primary nav page
+Examined the Operations page (walked but never inspected). It is the request/projects kanban: tiles Open requests
+/ SLA overdue / Awaiting client / Needs a cost recorded / Delivered-closed, and 7 columns NEW→QUOTING→AWAITING
+CLIENT→BOOKED→TICKETED→DELIVERED→CLOSED. All 0 — a correct EMPTY state, matching app_state.requests being empty
+(fire #24); the board is wired to real data, not broken. Correctly carries NO money margin tiles (the 2026-08-21
+"money belongs to Finance" ruling — probe-money-off-ops-and-cards holds it). AR render clean: full RTL, every tile
+and all 7 columns translated (طلبات مفتوحة/تأخّر مستوى الخدمة/بانتظار العميل/بلا تكلفة مسجّلة/مُسلّم-مغلق; جديد→مغلق).
+No NaN/blank in either language. With this, every PRIMARY nav page (Today, Leads, Clients, Generator/offers,
+Operations, Reports, Finance, Settings) has been verified this session. **0 defects.** Read-only. No new oversight
+commits (HEAD 203f1bc).
+
 ## Routine fire #28 (2026-09-13 14:11 UTC) — per-user page-access matrix audited for EVERY role on real DB: correct, no mis-grant, no lockout
 Closed the "every role" dimension at the data level (fire #15 tested team_member behaviourally; fire #25 the
 users/auth mapping). Read my_page_access() on the real DB: admins get NULL (⇒ all pages); every other user gets
