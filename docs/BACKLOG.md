@@ -1,3 +1,22 @@
+## Routine fire #30 (2026-09-13 18:11 UTC) — FLAGGED (enhancement, not a defect): the Direct Payments deep-link ignores direct_client_id, name-searches for 18/28 clients
+Checked the "Direct Payments ↗" deep-link — a daily action (jump from a client to their invoices in the real
+money system). pdLink() (js/core-01:457, overridden js/core-10:504) and the client-card directHref (js/38:97,
+which just calls pdLink) build
+  https://payments.directksa.com/en/admin/invoices?customer_identifier=<phone → else email → else NAME>.
+So the link ALWAYS builds — never empty/broken. Real-data precision on the 28 live clients:
+- 10 resolve via a contact PHONE (precise), 0 email-only, **18 fall back to the company NAME** (a fuzzy search on
+  Direct Payments, potentially ambiguous for similar names).
+- BUT **20 of 28 clients carry a `direct_client_id`** — the documented cross-system LINK KEY (DIRECT_SYSTEMS_MAP:
+  "the link key: Direct client ID") — which pdLink never uses. Many name-fallback clients have a precise id sitting
+  unused.
+This is an ENHANCEMENT, not a functional defect: the link works today via name search. I did NOT change it, for two
+reasons that make it owner/Claude-Code work, not mine: (1) pdLink is money-adjacent core, and (2) the sandbox cannot
+reach payments.directksa.com to verify what its `customer_identifier` param actually accepts — swapping to an
+unverified direct_client_id format could land users on NOTHING, worse than a name search. RECOMMENDATION: confirm
+what customer_identifier accepts, then prefer direct_client_id when present (fall back to phone→email→name), for a
+precise landing on the 20 clients that have the key. Low priority — nothing is broken today.
+**0 functional defects; 1 flagged precision enhancement.** Read-only. No new oversight commits (HEAD c6eacd5).
+
 ## Routine fire #29 (2026-09-13 16:11 UTC) — Operations (Projects board) verified EN+AR — the last unverified primary nav page
 Examined the Operations page (walked but never inspected). It is the request/projects kanban: tiles Open requests
 / SLA overdue / Awaiting client / Needs a cost recorded / Delivered-closed, and 7 columns NEW→QUOTING→AWAITING
