@@ -1,3 +1,20 @@
+## Routine fire #32 (2026-09-13 22:11 UTC) — the audit/history trail (record_history) verified on real DB: sound and fully attributed
+Checked the undo + accountability backbone (record_history_write trigger; M13/M16; js/53 + js/63). record_history
+holds 269 entries (2026-08-22→09-10, all within 30 days) across 6 tables (businesses, contacts, finance_invoices,
+finance_transactions, client_profiles, access), with a real action vocab (create/edit/delete/archive/denied/
+reset_link_sent) and before_row/after_row snapshots.
+Investigated an 80% null-actor rate (216/269) — and it is NOT an attribution gap: **null_actor_and_name = 0 for
+EVERY action**, i.e. every entry that lacks an actor UUID still carries an actor_name label. So each change is
+attributed either to a signed-in user (actor UUID) or to a system/import/migration label (actor_name) — the null
+UUIDs are exactly the bulk import/cleanup/soft-delete operations run outside an auth session (e.g. the 72 deletes,
+the Aug import creates), correctly labelled by name.
+- All 20 `denied` access-enforcement events carry a REAL actor UUID — the security audit (js/64) attributes who was
+  denied what, fully.
+- 0 edit/delete/create rows with neither actor nor name; 0 UPDATEs missing a before/after snapshot (undo intact);
+  0 rows undone (nothing needed reverting).
+**0 defects** — the audit trail records who/what/when for every change and keeps reversible snapshots. Read-only.
+No new oversight commits (HEAD 38f8827).
+
 ## Routine fire #31 (2026-09-13 20:11 UTC) — deep-link / deep-reload robustness (the "relative src breaks /leads" landmine): CLEAN
 Verified the documented landmine that a single RELATIVE <script src> breaks the app on a deep-address reload
 (e.g. bookmarking /leads and refreshing), plus the deploy config that makes deep URLs resolve:
