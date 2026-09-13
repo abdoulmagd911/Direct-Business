@@ -1,3 +1,18 @@
+## Routine fire #25 (2026-09-13 08:11 UTC, after a ~14h idle — 20 mandate fires queued during container churn, drained; one consolidated round) — users & access DATA foundation on real DB: CLEAN
+Audited the users/roles/auth layer that underpins the whole access model (verified behaviourally in #15, never
+at the data level). Live DB:
+- 11 app_users, all active. Roles: admin:3, manager:1, team_member:7 — 0 invalid roles, 0 missing emails, 0
+  duplicate emails. (bd/operations/viewer exist in the enum but are unused — fine.)
+- **Perfect 1:1 between auth.users (11) and app_users (11)** — 0 app_users without an auth identity, 0 auth users
+  without a profile. So every person who can sign in has exactly one role, and no profile grants phantom access.
+- access_allowlist has 10 rows (auto-approve on signup).
+- Both functions the access model depends on exist: app_role() (every RLS rule calls it) and my_page_access()
+  (the per-person matrix RPC js/56 loads — proven returning a working matrix live in #15).
+So the access foundation is sound in data as well as behaviour. **0 defects.** Read-only. No new oversight
+commits (HEAD 91b1aff). NOTE for the record: the auto-continue Routine queued 20 identical fires while the
+session was idle across container reprovisions on 09-11→09-13; drained them and ran one consolidated round
+rather than 20 (they carry one standing instruction, not 20 distinct tasks).
+
 ## Routine fire #24 (2026-09-11 16:12 UTC) — the app_state blob audited on real DB: structurally clean, M1-clean
 Audited the single app_state JSON row — the last big untested data store (still holds settings + reference data
 + the offer/booking/etc. arrays). Findings:
