@@ -1,3 +1,17 @@
+## Routine fire #31 (2026-09-13 20:11 UTC) — deep-link / deep-reload robustness (the "relative src breaks /leads" landmine): CLEAN
+Verified the documented landmine that a single RELATIVE <script src> breaks the app on a deep-address reload
+(e.g. bookmarking /leads and refreshing), plus the deploy config that makes deep URLs resolve:
+- All 71 <script src> in index.html are ABSOLUTE: 10 /js/core/* + the supabase CDN (https) + 60 /js/NN-*.js
+  numbered layers. **0 relative srcs** — so a reload at any deep path still loads every layer. (Matches
+  check-structure's "70 script files"; load order is core → supabase → ascending layers.)
+- vercel.json closes the other half: domain redirects canonicalize the *.vercel.app hosts →
+  www.directksab2b.com; rewrites send /brand, /brand/proposal, /brand/identity to their static pages, then the
+  SPA catch-all /(.*) → /index.html serves the app for every other deep path. So /leads reload → Vercel returns
+  index.html → absolute scripts load → js/03 clean-url routing renders the right view. End-to-end sound.
+- /events is the KSA Events Hub's own events/index.html (served by filesystem precedence, confirmed live in
+  fire #13's walk) — not swallowed by the catch-all.
+**0 defects.** Read-only. No new oversight commits (HEAD a6f0462).
+
 ## Routine fire #30 (2026-09-13 18:11 UTC) — FLAGGED (enhancement, not a defect): the Direct Payments deep-link ignores direct_client_id, name-searches for 18/28 clients
 Checked the "Direct Payments ↗" deep-link — a daily action (jump from a client to their invoices in the real
 money system). pdLink() (js/core-01:457, overridden js/core-10:504) and the client-card directHref (js/38:97,
