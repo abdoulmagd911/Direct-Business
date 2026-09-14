@@ -1,3 +1,21 @@
+## Routine fire #44 (2026-09-14 18:11 UTC) — PHONE WIDTH driven live for the first time (400px, EN+AR, real DB): fits everywhere, v75 title regression absent
+An untested AXIS rather than a page: every live drive this session ran at 1440px, yet js/51 (v75 phone-fit) exists
+because "most of the team opens this on a phone", and its two past defects (an 18px-wide page title, a crowded top
+bar) only ever showed in a screenshot. So: the merged app at 400×850 (isMobile, touch, 2× DPR) against the REAL
+database, EN then AR, all 15 pages, read-only (scratchpad/live-phone.mjs).
+- **30 of 30 renders fit**: scrollWidth == clientWidth == 400px on every page in both languages — the body never
+  scrolls sideways; 0 blank views, 0 NaN/undefined, 0 JS errors. The login form fits too.
+- The phone layout is engaged on every page: sidebar off-canvas (0px on screen) behind a menu button.
+- The v75 regression closed BY EYE, exactly as that layer's header says it must be: EN Finance at 400px shows the
+  menu button, the title "Finance" at full readable width, search, language toggle and avatar — nothing crowded
+  or clipped; the 8 finance tabs wrap into rows, KPI tiles stack two-per-row, and the money figures are the same
+  as desktop (2.03M / 1.54M / 492.6K / 46 — M1-clean). AR Clients at 400px mirrors correctly for RTL (menu on the
+  right, "العملاء" full width, toggle/avatar on the left), stat tiles/chips/filters stack and wrap cleanly, the
+  client list renders right-aligned with Arabic names prominent. (My numeric title-width probe used a guessed
+  selector that did not match — hence the visual close; recorded so the next person does not repeat it.)
+**0 defects.** Screenshots stay in the ephemeral scratchpad; nothing real committed (rule 7). No new oversight
+commits (HEAD e6ce555).
+
 ## Routine fire #43 (2026-09-14 16:11 UTC) — the MANAGER role driven LIVE for the first time: grants, bounces and the "manager can't touch an admin" rule all hold
 Closed the last "every role" gap. Fire #15 drove a team_member live; fire #28 verified the manager's grants at the
 data level; no manager session had ever been driven in a browser — and js/31 carries a security-relevant rule for
