@@ -2,7 +2,7 @@
 // 80 events, 18 already ended, 21 with no date yet, 25 not decided. Names are synthetic;
 // only the shape matters. Screenshots so the page can be judged by eye, not by counts.
 // Run: node scripts/qa/probe-events-scale.mjs
-import { chromium } from 'playwright';
+import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 

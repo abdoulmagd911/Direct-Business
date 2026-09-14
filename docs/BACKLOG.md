@@ -27,13 +27,22 @@ past the login/CDN blocker (so the conversion worked for them):
   weeks. FIXED: the seed now dates the 7 live events at today+(i+1) days and the ended one at today−30 — same
   ids/flags/shape, stable on any day. **probe-events re-run: exit 0, 0 fails.** The 4 sibling probes that read
   ksa_events (share-and-settings, forms-single-instance, no-native-dialogs, audit-events-search) were re-run in the
-  same job to guard against regression from the seed change: at the time of this commit 1 of them
-  (probe-share-and-settings-attacks) ended in an uncaught Node exception with 0 failed checks — cause under
-  investigation (an over-short 170s timeout is the leading suspect, as with generator-attacks below); the other 3
-  were still running. Follow-up entry records the outcome.
-- probe-generator-attacks — exit 124 = my own 170s per-probe timeout, NOT a hang: re-run with a 420s cap it
-  progresses cleanly through its attack rounds (A1…A8 all PASS at the time of this commit, still running).
-  Verdict recorded when it finishes.
+  same job to guard against regression from the seed change. FINAL: **all 3 that could load passed**
+  (forms-single-instance OK, no-native-dialogs OK, audit-events-search 47/47) — no regression from the relative
+  dates. The 4th, probe-share-and-settings-attacks, was NOT a seed regression and NOT a timeout: re-run at 300s it
+  died identically at MODULE LOAD, before a single check — `ERR_MODULE_NOT_FOUND: Cannot find package 'playwright'`.
+  Root cause: it imports playwright by BARE name (`from 'playwright'`); this container has playwright only at
+  /tmp/node_modules, and the repo has no node_modules/playwright, so the bare import cannot resolve — while the other
+  177 battery probes import the absolute `/tmp/node_modules/playwright/index.mjs` and load fine. Same class of
+  container-portability defect as the globs, hidden the same way. Sized it: exactly **5** battery probes used the
+  bare import (probe-events-scale, probe-share-and-settings-attacks, sweep-language, sweep-pages,
+  probe-today-no-money). FIXED all 5 to the absolute path the rest already use (mechanical, reversible); 0 bare
+  imports remain; check-structure + check-probe-integrity OK. A re-run of those 5 was in progress at this commit —
+  verdict recorded in the next entry when it lands.
+- probe-generator-attacks — exit 124 = my own 170s per-probe timeout, NOT a hang. Re-run with a 420s cap:
+  **114 passed, 0 failed, exit 0.** It simply needs longer than the other probes (it drives every Generator editor
+  through many attack rounds). So the sample stands at 10 of 11 passing outright; the 11th is the bare-import crash
+  above, fixed and re-running.
 
 ## Fire #38 (2026-09-14, owner "Continue") — Settings → Team & Access driven LIVE: the admin-users EDGE FUNCTION reconciled row-for-row to app_users
 Inspected the Settings hub (renders clean: Team & Access, Admin & history, printables, daily-use tiles, view

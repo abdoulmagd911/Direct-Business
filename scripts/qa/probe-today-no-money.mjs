@@ -4,7 +4,7 @@
    names the proposal and the client but prints no amount and no currency.
    Sabotage-tested: with the old line 248 (value + currency in the meta) this exits 1.
    Run: node scripts/qa/probe-today-no-money.mjs                                               */
-import { chromium } from 'playwright';
+import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB=fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js','utf8');

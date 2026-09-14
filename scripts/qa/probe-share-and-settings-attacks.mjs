@@ -11,7 +11,7 @@
    Run: node scripts/qa/probe-share-and-settings-attacks.mjs
    Notes: touches scripts/qa/mock-supabase.mjs ADDITIVELY (share_links INSERT, share_view RPC,
    MOCK_ANON_ENFORCE) — nothing existing changed.                                            */
-import { chromium } from 'playwright';
+import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 /* 2026-09-03 — a guard that goes red because of where you stand is worse than no guard:
    it trains people to ignore reds. These source reads used to be relative to the current
    directory, so the probe passed from the repo root and failed from scripts/qa with an
