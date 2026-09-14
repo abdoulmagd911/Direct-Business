@@ -1,3 +1,24 @@
+## POST-FIX BATTERY (2026-09-14, run 10:25→11:56 UTC): 186/186 ran, 184 green — today's 3 fixes confirmed; 2 new reds run down (1 flake, 1 borderline perf guard — flagged)
+Re-ran the whole battery AFTER all of today's fixes to get the definitive log (pre-fix log kept separately).
+- **186/186 ran, 0 missing, 184 green.** The 3 pre-fix reds (targets-attacks, backup-supabase, people-bridge) are
+  now GREEN in a full run — the unroute-identity and no-network-noise fixes are confirmed at battery scale.
+- 2 NEW reds, both of which had passed in the pre-fix run. Isolated re-runs settle them:
+  · probe-leads-dash-tiles — **passes in isolation (exit 0, 9/9)**. Two passes, one fail: a TIMING FLAKE. The probe
+    creates a lead and relies on a hard-coded 22s wait around js/35's "re-asserts table copies for ~20s" window
+    before checking "New this month" — a race that can flip on a slow moment. Not an app defect. Recorded as
+    known-flaky; NOT altered (the exact race window is the probe author's call, not a blind wait bump).
+  · audit-finance-tabs — **fails deterministically on exactly one check**: "EN expenses: slow tab switch — 828ms
+    (freeze-class regression)". The guard is `elapsed > 800ms` (line 171), built after real tab-freeze regressions.
+    EN Expenses FIRST open measured 823–828ms both times (28ms / 3.5% over); every other tab settles in 130–450ms
+    and the SAME Expenses tab's second (Arabic) open is 140ms — i.e. a cold-open cost sitting at the guard's edge
+    in this shared sandbox. FLAGGED, deliberately NOT silenced: raising the threshold would weaken a guard that
+    exists for a reason, and the live site cannot be profiled from here. For the owner / Claude Code: measure the
+    Expenses tab's first open on directksab2b.com; if it is ~0.8s there too, the js/45 + S5 expense-rollup cold
+    path has grown and deserves a look; if it is well under, this is sandbox speed and the guard is fine as is.
+    Either way it is a 28ms margin, not a freeze.
+Net: the app is clean; the battery is lit; one small, honest performance question is open for a human with a
+stopwatch on the real site.
+
 ## FULL BATTERY — FINAL REPORT (2026-09-14, run 08:52→10:24 UTC): 186/186 ran; effectively 186/186 GREEN after today's fixes
 The first complete run of the whole battery in this environment (per the mandate: "if nothing is left to test,
 re-run the full battery and report"). Counting by each probe's own exit code (the only honest signal — see the
