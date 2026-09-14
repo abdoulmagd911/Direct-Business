@@ -37,8 +37,15 @@ past the login/CDN blocker (so the conversion worked for them):
   container-portability defect as the globs, hidden the same way. Sized it: exactly **5** battery probes used the
   bare import (probe-events-scale, probe-share-and-settings-attacks, sweep-language, sweep-pages,
   probe-today-no-money). FIXED all 5 to the absolute path the rest already use (mechanical, reversible); 0 bare
-  imports remain; check-structure + check-probe-integrity OK. A re-run of those 5 was in progress at this commit —
-  verdict recorded in the next entry when it lands.
+  imports remain; check-structure + check-probe-integrity OK. RE-RUN VERDICT: **all 5 load and pass, 0 load errors,
+  0 failed checks** — probe-share-and-settings-attacks (the crasher) 74/74, probe-today-no-money PASS / no JS errors,
+  sweep-language 0 errors, sweep-pages 0 distinct errors, probe-events-scale 0 page errors.
+FINAL TALLY for this fire: the diverse sample is **11 of 11 green** (10 outright + share-and-settings once its import
+was fixed), including the M1 money guard and the 114-check Generator attack suite. Three real, previously-hidden
+test-infrastructure defects were found and FIXED today (globs ×183 files, the events time-bomb, bare imports ×5) —
+none of them app defects, all of them things that had made the safety net silently blind. The battery can now run in
+this container: `env -u HTTPS_PROXY -u HTTP_PROXY node scripts/qa/<probe>.mjs`, with a per-probe timeout of ≥420s
+for the long Generator suite.
 - probe-generator-attacks — exit 124 = my own 170s per-probe timeout, NOT a hang. Re-run with a 420s cap:
   **114 passed, 0 failed, exit 0.** It simply needs longer than the other probes (it drives every Generator editor
   through many attack rounds). So the sample stands at 10 of 11 passing outright; the 11th is the bare-import crash
