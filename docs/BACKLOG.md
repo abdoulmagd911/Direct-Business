@@ -16,10 +16,11 @@ The 2 genuine reds, run down to cause:
   probes that unroute — targets-attacks (2 unroutes), backup-supabase (1), and probe-false-success-commit (1),
   which carried the same latent bug without yet having failed. 0 inline predicates remain in those files; syntax
   checked; check-structure + check-probe-integrity OK.
-- VERIFIED SO FAR: **probe-targets-attacks re-run: ALL PASS, exit 0** (the worst case, previously 6 failures).
-  backup-supabase and false-success-commit re-runs were still in progress at this commit — verdict in the next
-  entry. NOTE: the running battery executed the OLD versions of these files; its final tally must be read with
-  that in mind (its 2 reds are the pre-fix runs).
+- VERIFIED — all 3 re-runs green, 0 failures, exit 0 each: **probe-targets-attacks ALL PASS** (previously 6
+  failures), **probe-backup-supabase OK** ("tag/restore/delete are real Supabase writes, migration never loses
+  local data"; previously 4 failures), **probe-false-success-commit OK** (the latent third, confirmed). Both
+  battery reds are therefore resolved. NOTE: the running battery executed the OLD versions of these files; its
+  final tally must be read with that in mind (its 2 reds are the pre-fix runs).
 No app change. Test files only. No new oversight commits (HEAD c41389c).
 
 ## Fire #39 (2026-09-14, owner "whats next? are you sure you fixed all?") — FIXED: the dark regression battery — 183 probes converted from glob routes to predicate matchers
