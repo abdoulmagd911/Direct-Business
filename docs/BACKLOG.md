@@ -1,3 +1,24 @@
+## Routine fire #45 (2026-09-14 20:11 UTC) — two never-driven daily paths live vs the real DB: ARABIC-FIRST BOOT and GLOBAL SEARCH — both clean
+Two paths no drive had ever exercised (scratchpad/live-search-arboot.mjs, read-only, real database):
+(A) ARABIC-FIRST BOOT — localStorage.dbLang='ar' set BEFORE the page loads (an Arabic-first colleague, or a browser
+    auto-detected as Arabic by core-06's autoDetectLang). Result: the login screen is already LANG=ar, dir=rtl,
+    lang=ar — no English flash; after sign-in the first render is Arabic RTL (sidebar in Arabic, 108 businesses
+    loaded, view populated). Clean.
+(B) GLOBAL SEARCH (#gsearch → runGlobalSearch → #gres, gGo) against real data:
+    · a 6-letter fragment of a real company name → 1 result, a Lead whose label contains it;
+    · gGo(0) navigated to exactly that record (page=leads, openLead = the searched id, the card shows its name,
+      dropdown closed) — the search-to-record path is correct;
+    · a nonsense query → 0 results and the Arabic no-match line (the 2026-09-02 "chrome in Arabic" fix holds);
+    · a broad query → 277 matches, and the dropdown ends with the Arabic cap hint "يُعرض 14 من 277 — أضف كلمات
+      للبحث لتضييق النتائج" — the 2026-09-03 "show the cap, say how many are left" fix holds.
+    0 JS errors. **0 findings, 0 defects.**
+LESSON, recorded so it is not repeated: my probe first flagged the cap hint as MISSING — twice. First cause: a
+guessed wording regex (/أكثر|المزيد|more/) that never included the real "يُعرض … من …"/"showing … of …"; second
+cause: a 160-character truncation of the dropdown text that cut off the hint, which is appended AFTER the 14
+items. Both were probe bugs, caught by reading the code and then the literal text before believing the flag.
+Rule 7 note: the console dropdown tail contained real company names; only the Arabic chrome fragment is quoted
+here. No new oversight commits (HEAD 7bcccfe).
+
 ## Routine fire #44 (2026-09-14 18:11 UTC) — PHONE WIDTH driven live for the first time (400px, EN+AR, real DB): fits everywhere, v75 title regression absent
 An untested AXIS rather than a page: every live drive this session ran at 1440px, yet js/51 (v75 phone-fit) exists
 because "most of the team opens this on a phone", and its two past defects (an 18px-wide page title, a crowded top
