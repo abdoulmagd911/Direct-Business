@@ -1,3 +1,16 @@
+## Routine fire #46 (2026-09-14 22:11 UTC) — phone width, deeper: real DETAIL CARDS and all 8 FINANCE TABS at 400px, EN+AR, real DB — all fit, 0 defects
+Fire #44 proved every PAGE fits at phone width; this opened what a colleague on a phone actually taps into
+(scratchpad/live-phone-deep.mjs, 400×850, isMobile, real database, read-only):
+- 6 real lead cards + 6 real client cards (the v33–v36 + people-bridge + client-address injection stack, wide
+  tables, long bilingual names) — **12/12 fit in EN and 12/12 in AR**: scrollWidth == clientWidth == 400px on every
+  card, 1,686–2,938 chars of real content each, 0 NaN/undefined, no widest-element overflow reported.
+- All 8 Finance tabs (overview/clients/ledger/reports/import/expenses/proofs/b2c) — **8/8 fit in EN and 8/8 in
+  AR**, 525–1,747 chars each; the KPI tiles, tables and tab bars wrap rather than overflow.
+- 0 JS errors across all 40 renders.
+Together with #44, the phone experience is now verified end to end on real data: every page, every card, every
+finance tab, both languages. **0 defects.** Screenshots stay in the ephemeral scratchpad; nothing real committed
+(rule 7). No new oversight commits (HEAD 6fad136).
+
 ## Routine fire #45 (2026-09-14 20:11 UTC) — two never-driven daily paths live vs the real DB: ARABIC-FIRST BOOT and GLOBAL SEARCH — both clean
 Two paths no drive had ever exercised (scratchpad/live-search-arboot.mjs, read-only, real database):
 (A) ARABIC-FIRST BOOT — localStorage.dbLang='ar' set BEFORE the page loads (an Arabic-first colleague, or a browser
