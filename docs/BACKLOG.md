@@ -1,3 +1,18 @@
+## Routine fire #37 (2026-09-14 08:11 UTC) — FRESH live end-to-end browser drive against the REAL DB (first since #13/09-10): clean
+After ~15 SQL/screenshot rounds, did the thing the mandate most emphasises: drove the merged app in a real browser
+against the REAL Supabase again (scratchpad/live-fullwalk.mjs — proxy:direct:// + predicate matchers + Node bridge),
+EN and AR, to catch any regression across the many container reprovisions since the 09-10 walk. Result:
+- EN: bridged=65 real-DB requests, slow=0, bridgeErr=0, **pageErr=0**. AR: bridged=49, slow=0, bridgeErr=0, pageErr=0.
+- role=admin, DB.businesses=108 (= 80 leads + 28 live clients, matching every SQL round; archived excluded),
+  per-person matrix loaded, 9 nicknames — access + naming layers healthy live.
+- All 18 pages + 8 Finance tabs rendered substantial real-data content in both languages (Activity shows the live
+  269-row audit trail; Clients "28 من 108"; Finance AR overview 1328 chars, etc.). No NaN/undefined/blank.
+- The ONLY finding — "en finance: 27 chars" — is the known async load-race (the "Loading the finance ledger…"
+  placeholder caught before the bridged fetch returned); the AR finance pass immediately after rendered fully
+  (overview 1328, all tabs 500–1670 chars), same artifact confirmed in #13/#15. Not an app defect.
+So the whole app is re-confirmed rendering clean against the live database today, EN+AR, every page — no regression.
+**0 real defects.** Read-only. No new oversight commits (HEAD 132eac1).
+
 ## Routine fire #36 (2026-09-14 06:13 UTC) — reference data (airlines + providers) integrity on real DB: CLEAN
 Checked the reference data that feeds the Airlines page and the offer/booking airline picker.
 - airlines table: 139 rows, **0 missing IATA code, 0 missing name, 0 duplicate codes, 0 malformed** (every code
