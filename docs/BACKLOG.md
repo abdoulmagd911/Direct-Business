@@ -37,9 +37,9 @@ HARDENING of the same latent bug: 56 more battery probes carried the identical n
 only because they never load that unstubbed asset — the next one would fail the same way). Applied the one safe
 generic change — prepend the single alternation `net::ERR_|` to whichever noise regex already contains
 TUNNEL_CONNECTION, leaving every other alternation and variable name intact (the lines were NOT uniform, so no
-blind copy). 56 files, 0 syntax breaks (node --check on each), 0 narrow filters remain, gates OK. A 5-probe
-diverse sample re-run (no-vat-display, csv-injection, finance-invariants, leads-counts, client-card-ar) was in
-progress at this commit — verdict in the next entry.
+blind copy). 56 files, 0 syntax breaks (node --check on each), 0 narrow filters remain, gates OK. VERIFIED: the
+5-probe diverse sample re-run is **5/5 green, exit 0 each** — no-vat-display (M1 guard), csv-injection,
+finance-invariants, leads-counts, client-card-ar. The hardening broke nothing.
 
 ## Fire #39 (2026-09-14, owner "whats next? are you sure you fixed all?") — FIXED: the dark regression battery — 183 probes converted from glob routes to predicate matchers
 Honest answer to the owner: no, nothing had been FIXED by this sweep — 38 rounds verified the app clean and flagged
