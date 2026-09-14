@@ -1,3 +1,22 @@
+## Routine fire #41 (2026-09-14 12:13 UTC) — the Expenses-tab timing flag CLOSED with real-data evidence: cold 441ms / warm 64ms, nothing over the guard
+The post-fix battery left one open question: audit-finance-tabs tripped its 800ms freeze guard on the EN Expenses
+first open (828ms) — real regression or sandbox noise? I had written "needs a stopwatch on the live site"; in fact
+it can be measured in-browser against the REAL database through the live bridge, so this fire did exactly that
+(scratchpad/live-fin-timing.mjs — same settle-to-stable method as the probe, elapsed from finGo() to stable
+content, all 8 Finance tabs, EN cold → EN warm → AR, read-only). Real data, this container:
+- **EN cold Expenses: 441ms** (45% under the guard) · EN warm Expenses: 64ms · AR Expenses: 66ms.
+- Cold opens: overview 186, clients 74, ledger 67, reports 70, import 245, expenses 441, proofs 488, b2c 437 ms —
+  every warm/AR open 63–124ms. The last three tabs carry a normal one-time first-open cost (js/45 + S5 expense
+  rollup initialising), then settle to ~65ms.
+- **0 of 24 measurements over the 800ms guard. 0 JS errors.**
+VERDICT: the 828ms was NOT the live app. It came from the mock harness's heavier synthetic finance seed plus
+shared sandbox CPU, landing at the guard's edge (823–828 both times) — a harness/environment property, not a
+js/45 regression. The flag is CLOSED: no app change warranted. audit-finance-tabs is deliberately left UNTOUCHED —
+its guard is real (built after genuine tab freezes) and retuning a freeze guard on sandbox mock numbers is the
+owner's / Claude Code's call, not mine; the honest note for them: in this sandbox that probe will read ~825ms on
+the mock Expenses cold open and stay borderline-red until either the guard is made environment-aware or the mock
+seed is lightened. Read-only. No new oversight commits (HEAD af0bdc7).
+
 ## POST-FIX BATTERY (2026-09-14, run 10:25→11:56 UTC): 186/186 ran, 184 green — today's 3 fixes confirmed; 2 new reds run down (1 flake, 1 borderline perf guard — flagged)
 Re-ran the whole battery AFTER all of today's fixes to get the definitive log (pre-fix log kept separately).
 - **186/186 ran, 0 missing, 184 green.** The 3 pre-fix reds (targets-attacks, backup-supabase, people-bridge) are
