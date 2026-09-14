@@ -47,7 +47,7 @@ async function setupPage(b) {
   p.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
   const dialogs = [];
   p.on('dialog', (d) => { dialogs.push(d.message()); d.accept(); });
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
     try {
       const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
@@ -55,9 +55,9 @@ async function setupPage(b) {
       await r.fulfill({ status: resp.status, headers: h, body });
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   });
-  await p.route('**cdn.jsdelivr.net/**', (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await p.route('**fonts.googleapis.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await p.route('**fonts.gstatic.com/**', (r) => r.abort());
+  await p.route(u=>u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await p.route(u=>u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await p.route(u=>u.href.includes('fonts.gstatic.com'), (r) => r.abort());
   await p.goto(BASE + '/today', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await p.waitForTimeout(2000);
   await p.fill('#cl_email', 'test@directksa.com');
@@ -142,7 +142,7 @@ async function main() {
 
     // Block the live route on purpose — this is the exact scenario the owner named: "fail
     // loudly rather than fall back silently to local."
-    await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/app_state_bak*', (r) => r.abort());
+    await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/app_state_bak'), (r) => r.abort());
     const dialogsSeen = [];
     p.on('dialog', (d) => { dialogsSeen.push(d.message()); });
     const consoleErrors = [];
@@ -166,7 +166,7 @@ async function main() {
     else ok('a blocked migration surfaced loudly (console.error and/or a visible alert/toast)');
 
     // Now unblock and let it actually migrate.
-    await p.unroute('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/app_state_bak*');
+    await p.unroute(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/app_state_bak'));
     await p.evaluate(() => bkMigrateLocalToSupabase());
     await p.waitForTimeout(1500);
 

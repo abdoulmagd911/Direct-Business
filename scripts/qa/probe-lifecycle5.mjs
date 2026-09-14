@@ -25,8 +25,8 @@ const route = async r => {
   const headers = {}; resp.headers.forEach((v, k) => headers[k] = v);
   return r.fulfill({ status: resp.status, headers, body });
 };
-await page.route('**cdn.jsdelivr.net/**', route);
-await page.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', route);
+await page.route(u=>u.href.includes('cdn.jsdelivr.net'), route);
+await page.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), route);
 
 const LOG = [];
 let shotN = 0;

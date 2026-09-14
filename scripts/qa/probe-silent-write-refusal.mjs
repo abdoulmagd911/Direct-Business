@@ -35,7 +35,7 @@ async function main() {
   await p.exposeFunction('__qaPromptAnswer', () => PROMPT_ANSWER);
   let REFUSE = false; // when true, every PATCH/POST to the tables under test answers 200 [] (RLS-refused shape)
   let REFUSE_BIZ = false; // the same shape for `businesses` — the table the app's global save() writes
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
     if (REFUSE && ['PATCH', 'POST'].includes(rq.method()) && /\/rest\/v1\/(finance_invoices|finance_targets|client_profiles)/.test(u.pathname)) {
       return r.fulfill({ status: rq.method() === 'POST' ? 201 : 200, headers: { 'content-type': 'application/json' }, body: '[]' });
@@ -49,9 +49,9 @@ async function main() {
       await r.fulfill({ status: resp.status, headers: h, body });
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   });
-  await p.route('**cdn.jsdelivr.net/**', (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await p.route('**fonts.googleapis.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await p.route('**fonts.gstatic.com/**', (r) => r.abort());
+  await p.route(u=>u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await p.route(u=>u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await p.route(u=>u.href.includes('fonts.gstatic.com'), (r) => r.abort());
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await p.waitForTimeout(2000);
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');

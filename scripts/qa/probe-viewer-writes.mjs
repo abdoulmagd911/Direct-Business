@@ -34,7 +34,7 @@ async function run(role) {
   const errors = []; p.on('pageerror', (e) => errors.push('JS: ' + e.message));
   const writes = [];
   p.on('dialog', (d) => d.accept());
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
     if (/^\/rest\/v1\/app_(requests|projects|offers)$/.test(u.pathname) && rq.method() !== 'GET') writes.push(rq.method() + ' ' + u.pathname);
     if (u.pathname === '/rest/v1/client_profiles' && rq.method() === 'POST') writes.push('POST client_profiles');
@@ -44,9 +44,9 @@ async function run(role) {
       await r.fulfill({ status: resp.status, headers: h, body });
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   });
-  await p.route('**cdn.jsdelivr.net/**', (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await p.route('**fonts.googleapis.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await p.route('**fonts.gstatic.com/**', (r) => r.abort());
+  await p.route(u=>u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await p.route(u=>u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await p.route(u=>u.href.includes('fonts.gstatic.com'), (r) => r.abort());
 
   await p.goto(BASE + '/ops', { waitUntil: 'domcontentloaded', timeout: 60000 }); await p.waitForTimeout(1500);
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');

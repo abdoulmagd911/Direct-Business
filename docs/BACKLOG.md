@@ -1,3 +1,25 @@
+## Fire #39 (2026-09-14, owner "whats next? are you sure you fixed all?") — FIXED: the dark regression battery — 183 probes converted from glob routes to predicate matchers
+Honest answer to the owner: no, nothing had been FIXED by this sweep — 38 rounds verified the app clean and flagged
+3 items, all outside my lane. The biggest real gap was the safety net itself: **183 of the 186 battery probes could
+not run in this container**, so most "sabotage-verified guards" were not guarding. Root cause (re-established today,
+correcting an earlier note that said "14 probes"): chromium here has no external network, so a probe only gets a
+login form if it STUBS the supabase-js CDN with a route that actually intercepts — and Playwright glob routes
+('**host/**') do NOT intercept in this Playwright, while predicate routes (u=>u.href.includes(host)) do. All 183
+browser probes used globs (731 route calls across 4 hosts + a few table paths); 0 used predicates.
+What was done (test files only — scripts/qa; the deployed app is untouched; fully reversible in git):
+- PROVED first on a temp copy of probe-landmines: identical file, globs→predicates, went from hard TimeoutError to
+  **PASS 23/23, 0 page errors**; temp removed.
+- Applied the same transform to every battery probe: 731 glob routes → 0 (183 files). The 2 internal-star forms
+  (probe-deeplink-boot-race '**/js/66-*.js', probe-generator-attacks '**/brand/*.css') hand-converted to pathname
+  regex predicates.
+- Gates on the final tree: check-structure OK, check-probe-integrity OK ("every gated probe can still fail").
+- Run them with the proxy stripped, as probe-fullwalk's header already documents (chromium otherwise routes
+  localhost through the egress proxy and hangs): env -u HTTPS_PROXY -u HTTP_PROXY node scripts/qa/<probe>.mjs
+STATUS AT COMMIT: a background sample run of 11 diverse converted probes (incl. the M1 guard probe-no-vat-display
+and both hand-fixed files) was still in progress — committed on the strength of the single-probe proof + gates,
+NOT on a claimed sample pass; the sample verdict is recorded in the next entry when it lands. Any probe the sample
+shows red gets fixed in a follow-up commit.
+
 ## Fire #38 (2026-09-14, owner "Continue") — Settings → Team & Access driven LIVE: the admin-users EDGE FUNCTION reconciled row-for-row to app_users
 Inspected the Settings hub (renders clean: Team & Access, Admin & history, printables, daily-use tiles, view
 presets; the "CR, VAT, IBAN, Wakeel" tile is the company's VAT REGISTRATION number — an identifier, M1-legal).

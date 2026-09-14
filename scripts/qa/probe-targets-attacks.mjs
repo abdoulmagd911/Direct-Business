@@ -29,7 +29,7 @@ async function main() {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
   const p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
   const errors = []; p.on('pageerror', (e) => errors.push('JS: ' + e.message));
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
     try {
       const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
@@ -37,9 +37,9 @@ async function main() {
       await r.fulfill({ status: resp.status, headers: h, body });
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   });
-  await p.route('**cdn.jsdelivr.net/**', (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await p.route('**fonts.googleapis.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await p.route('**fonts.gstatic.com/**', (r) => r.abort());
+  await p.route(u=>u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await p.route(u=>u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await p.route(u=>u.href.includes('fonts.gstatic.com'), (r) => r.abort());
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 60000 }); await p.waitForTimeout(2000);
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
   await p.waitForTimeout(5000);
@@ -93,7 +93,7 @@ async function main() {
      first, to notice a target someone else changed while this screen was open, so a stub that
      matched any request to this table was swallowed by that read and the refusal path was never
      reached — the probe would have gone quietly green on a broken refusal message. */
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/finance_targets**', async (route) => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/finance_targets'), async (route) => {
     // the GET is the courtesy pre-read; relay it to the mock exactly as the outer handler does,
     // so only the WRITE is refused
     const rq = route.request(); const u = new URL(rq.url());
@@ -109,7 +109,7 @@ async function main() {
   if (!afterRefusal || +afterRefusal.expected_sar !== 7777777) ok('…and the screen keeps the old number rather than showing one the database never took'); else fail('the refused number was kept on screen');
 
   /* ---------- 3b. a target someone else moved is not overwritten in silence ---------- */
-  await p.unroute('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/finance_targets**');
+  await p.unroute(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/finance_targets'));
   await setT('1000000', '400000');
   // another session changes the stored row while this screen still shows the old one
   await fetch(BASE + '/rest/v1/finance_targets?year=eq.2026', {
@@ -123,7 +123,7 @@ async function main() {
   if (afterRace && +afterRace.expected_sar === 1200000) ok('…and saying yes does write the new number, so the warning does not block real work'); else fail('after confirming, the stored target is ' + JSON.stringify(afterRace && afterRace.expected_sar));
 
   /* ---------- 4. the card's arithmetic ---------- */
-  await p.unroute('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/finance_targets**');
+  await p.unroute(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/finance_targets'));
   await setT('1000000', '500000');
   const card = async (year, part) => p.evaluate(async ({ year, part }) => {
     FIN.p = { year: String(year), part: part, sector: 'all', cmp: 'none' }; FIN.tab = 'overview';

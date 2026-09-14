@@ -23,8 +23,8 @@ const route = async r => {
   const headers = {}; resp.headers.forEach((v, k) => headers[k] = v);
   return r.fulfill({ status: resp.status, headers, body });
 };
-await page.route('**cdn.jsdelivr.net/**', route);
-await page.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', route);
+await page.route(u=>u.href.includes('cdn.jsdelivr.net'), route);
+await page.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), route);
 const LOG = []; const STEP = (n, ok, d = '') => LOG.push(`${ok ? 'PASS' : 'FAIL'} · ${n}${d ? ' — ' + d : ''}`);
 const REPORT = (n, d = '') => LOG.push(`REPORT · ${n}${d ? ' — ' + d : ''}`);
 /* A check whose precondition the seed did not produce has not passed — it did not run.

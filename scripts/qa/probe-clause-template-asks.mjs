@@ -48,7 +48,7 @@ async function main() {
   const p = await (await b.newContext({ viewport: { width: 1600, height: 950 } })).newPage();
   const errors = []; p.on('pageerror', (e) => errors.push(e.message));
   const dialogs = []; p.on('dialog', async (d) => { dialogs.push(d.type()); await d.dismiss(); });
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
     try {
       const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
@@ -56,11 +56,11 @@ async function main() {
       await r.fulfill({ status: resp.status, headers: h, body });
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   });
-  await p.route('**cdn.jsdelivr.net/**', (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await p.route('**fonts.googleapis.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await p.route('**fonts.gstatic.com/**', (r) => r.abort());
+  await p.route(u=>u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await p.route(u=>u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await p.route(u=>u.href.includes('fonts.gstatic.com'), (r) => r.abort());
   const json = (r, body, status = 200) => r.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/contract_clauses**', (r) => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/contract_clauses'), (r) => {
     const rq = r.request();
     if (rq.method() === 'PATCH') { let body = {}; try { body = JSON.parse(rq.postData() || '{}'); } catch (_) { } patches.push(body); Object.assign(CLAUSES[0], body); return json(r, [CLAUSES[0]]); }
     return json(r, CLAUSES);

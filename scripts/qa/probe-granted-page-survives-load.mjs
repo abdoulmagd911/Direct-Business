@@ -46,7 +46,7 @@ async function boot(role, pageAccess, PORT) {
   /* js/52's box AND js/64's banner — the other session's observation: js/64 gated on the role alone
      and could still bounce (and log a refusal) inside the window, with js/52 only restoring the page afterwards */
   await p.addInitScript(() => { const iv = setInterval(() => { const b = document.getElementById('v70box'); if (b && !b.__seen) { b.__seen = true; try { window.__qaBox(b.innerText.replace(/\s+/g, ' ')); } catch (_) { } } const n = document.getElementById('v64-access-denied'); if (n && !n.__seen) { n.__seen = true; try { window.__qaBox('BANNER: ' + n.innerText.replace(/\s+/g, ' ')); } catch (_) { } } }, 100); });
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
     try {
       /* the matrix answers a beat after the role, as it does live */
@@ -57,9 +57,9 @@ async function boot(role, pageAccess, PORT) {
       await r.fulfill({ status: resp.status, headers: h, body });
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   });
-  await p.route('**cdn.jsdelivr.net/**', (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await p.route('**fonts.googleapis.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await p.route('**fonts.gstatic.com/**', (r) => r.abort());
+  await p.route(u=>u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await p.route(u=>u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await p.route(u=>u.href.includes('fonts.gstatic.com'), (r) => r.abort());
   await p.goto(BASE + '/ops', { waitUntil: 'domcontentloaded', timeout: 60000 });
   try { await p.waitForSelector('#cl_email', { timeout: 60000 }); await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go'); } catch (_) { }
   await p.waitForFunction(() => typeof DB !== 'undefined' && window.__roleKnown === true, { timeout: 90000 }).catch(() => fail('the app never loaded as ' + role));

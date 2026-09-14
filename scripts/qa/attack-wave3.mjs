@@ -41,8 +41,8 @@ const route = async r => {
   const headers = {}; resp.headers.forEach((v, k) => headers[k] = v);
   return r.fulfill({ status: resp.status, headers, body });
 };
-await page.route('**cdn.jsdelivr.net/**', route);
-await page.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', route);
+await page.route(u=>u.href.includes('cdn.jsdelivr.net'), route);
+await page.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), route);
 const LOG = []; const STEP = (n, ok, d = '') => LOG.push(`${ok ? 'PASS' : 'FAIL'} · ${n}${d ? ' — ' + d : ''}`);
 const shot = p => page.screenshot({ path: 'shots/atk3-' + p + '.png' }).catch(() => {});
 const closeAll = () => page.evaluate(() => {

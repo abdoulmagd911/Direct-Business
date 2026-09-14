@@ -83,7 +83,7 @@ async function openApp(BASE) {
   const errors = []; p.on('pageerror', e => errors.push(String(e.message || e).slice(0, 300)));
   const dialogs = []; const writes = [];
   p.on('dialog', async d => { dialogs.push({ type: d.type(), message: d.message() }); await d.accept('QA'); });
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async r => {
     const rq = r.request(); const u = new URL(rq.url());
     if (u.pathname === '/rest/v1/rpc/team_nicknames') return r.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
     if (rq.method() !== 'GET' && u.pathname.startsWith('/rest/v1/')) {
@@ -96,10 +96,10 @@ async function openApp(BASE) {
       await r.fulfill({ status: resp.status, headers: h, body });
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   });
-  await p.route('**cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await p.route('**fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await p.route('**fonts.gstatic.com/**', r => r.abort());
-  await p.route('**logo.clearbit.com/**', r => r.abort());
+  await p.route(u=>u.href.includes('cdn.jsdelivr.net'), r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await p.route(u=>u.href.includes('fonts.googleapis.com'), r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await p.route(u=>u.href.includes('fonts.gstatic.com'), r => r.abort());
+  await p.route(u=>u.href.includes('logo.clearbit.com'), r => r.abort());
   await p.goto(BASE + '/today', { waitUntil: 'domcontentloaded', timeout: 60000 });
   return { browser, p, errors, dialogs, writes };
 }

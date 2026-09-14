@@ -43,16 +43,16 @@ async function main() {
   p.on('pageerror', (e) => errors.push('JS: ' + e.message));
   p.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 
-  await p.route('**cdn.jsdelivr.net/**', (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await p.route('**fonts.googleapis.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await p.route('**fonts.gstatic.com/**', (r) => r.abort());
+  await p.route(u=>u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await p.route(u=>u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await p.route(u=>u.href.includes('fonts.gstatic.com'), (r) => r.abort());
 
   let requestArrivedResolve, serverWriteDoneResolve;
   const requestArrived = new Promise((res) => { requestArrivedResolve = res; });
   const serverWriteDone = new Promise((res) => { serverWriteDoneResolve = res; });
   let sawRpcRequest = false;
 
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (route) => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (route) => {
     const rq = route.request(); const u = new URL(rq.url());
     if (rq.method() === 'POST' && u.pathname === '/rest/v1/rpc/fn_commit_finance_import') {
       sawRpcRequest = true;

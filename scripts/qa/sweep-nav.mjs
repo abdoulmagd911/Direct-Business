@@ -6,12 +6,12 @@ start(PORT);
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
 let errs = []; page.on('pageerror', e => errs.push(String(e).slice(0, 100)));
-await page.route('**cdn.jsdelivr.net/**', async r => {
+await page.route(u=>u.href.includes('cdn.jsdelivr.net'), async r => {
   const u = r.request().url();
   if (u.includes('supabase-js')) return r.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js') });
   return r.fulfill({ status: 200, contentType: 'application/javascript', body: '' });
 });
-await page.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
+await page.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async r => {
   const u = new URL(r.request().url());
   const resp = await fetch(BASE + u.pathname + u.search, { method: r.request().method(), headers: r.request().headers(), body: r.request().postData() || undefined });
   const body = Buffer.from(await resp.arrayBuffer());

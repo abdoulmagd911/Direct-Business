@@ -28,7 +28,7 @@ async function main() {
   p.on('pageerror', (e) => errors.push('JS: ' + e.message));
   p.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
   const bizWrites = [], contactPatches = [];
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
     if (u.pathname === '/rest/v1/businesses' && (rq.method() === 'POST' || rq.method() === 'PATCH')) {
       try { bizWrites.push(JSON.parse(rq.postData() || 'null')); } catch (_) {}
@@ -42,9 +42,9 @@ async function main() {
       await r.fulfill({ status: resp.status, headers: h, body });
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   });
-  await p.route('**cdn.jsdelivr.net/**', (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await p.route('**fonts.googleapis.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await p.route('**fonts.gstatic.com/**', (r) => r.abort());
+  await p.route(u=>u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await p.route(u=>u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await p.route(u=>u.href.includes('fonts.gstatic.com'), (r) => r.abort());
 
   await p.goto(BASE + '/leads', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await p.waitForTimeout(2000);

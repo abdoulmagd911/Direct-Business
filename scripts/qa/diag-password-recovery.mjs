@@ -25,7 +25,7 @@ async function fetchJson(base, path) {
 
 function wireRoutes(p, BASE) {
   return Promise.all([
-    p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
+    p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async r => {
       const rq = r.request(); const u = new URL(rq.url());
       try {
         const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
@@ -33,9 +33,9 @@ function wireRoutes(p, BASE) {
         await r.fulfill({ status: resp.status, headers: h, body });
       } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
     }),
-    p.route('**cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB })),
-    p.route('**fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' })),
-    p.route('**fonts.gstatic.com/**', r => r.abort()),
+    p.route(u=>u.href.includes('cdn.jsdelivr.net'), r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB })),
+    p.route(u=>u.href.includes('fonts.googleapis.com'), r => r.fulfill({ status: 200, contentType: 'text/css', body: '' })),
+    p.route(u=>u.href.includes('fonts.gstatic.com'), r => r.abort()),
   ]);
 }
 

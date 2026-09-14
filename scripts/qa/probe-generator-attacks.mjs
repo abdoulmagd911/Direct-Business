@@ -112,13 +112,13 @@ const SCENARIOS = [
 ];
 
 async function wire(p) {
-  await p.route('**/brand/*.css', r => {
+  await p.route((u) => /\/brand\/[^/]*\.css$/.test(u.pathname), r => {
     const u = new URL(r.request().url());
     try { r.fulfill({ status: 200, contentType: 'text/css', body: fs.readFileSync(APP + u.pathname, 'utf8') }); }
     catch (e) { r.fulfill({ status: 404, body: '' }); }
   });
   /* catch-all → the qa mock; specific fixture routes are registered AFTER it and win */
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async r => {
     const rq = r.request(); const u = new URL(rq.url());
     try {
       const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
@@ -126,18 +126,18 @@ async function wire(p) {
       await r.fulfill({ status: resp.status, headers: h, body });
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   });
-  await p.route('**cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await p.route('**fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await p.route('**fonts.gstatic.com/**', r => r.abort());
+  await p.route(u=>u.href.includes('cdn.jsdelivr.net'), r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await p.route(u=>u.href.includes('fonts.googleapis.com'), r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await p.route(u=>u.href.includes('fonts.gstatic.com'), r => r.abort());
   const json = (r, body, status = 200) => r.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/contract_clauses**', r => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/contract_clauses'), r => {
     if (r.request().method() === 'PATCH') { clausePatches++; return json(r, [CLAUSES[0]]); }
     return json(r, CLAUSES);
   });
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r => json(r, IDENTITY));
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_achievements**', r => json(r, ACH));
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/service_fee_scenarios**', r => json(r, SCENARIOS));
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_profile_sections**', r => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity'), r => json(r, IDENTITY));
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_achievements'), r => json(r, ACH));
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/service_fee_scenarios'), r => json(r, SCENARIOS));
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_profile_sections'), r => {
     const rq = r.request(); const u = new URL(rq.url());
     if (rq.method() === 'PATCH') {
       let body = {}; try { body = JSON.parse(rq.postData() || '{}'); } catch (_) {}
@@ -148,18 +148,18 @@ async function wire(p) {
     return json(r, applyFilters(SECTIONS, u.search));
   });
   /* client_service_fees: EMPTY for every client (the live table today) */
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/client_service_fees**', r => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/client_service_fees'), r => {
     const m = r.request().method();
     if (m === 'POST') { try { feePosts.push(JSON.parse(r.request().postData() || 'null')); } catch (_) { feePosts.push('bad-json'); } return json(r, [], 201); }
     return json(r, []);
   });
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/rpc/next_document_number**', async r => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/rpc/next_document_number'), async r => {
     let body = {}; try { body = JSON.parse(r.request().postData() || '{}'); } catch (_) {}
     const fam = body.p_family || '?'; rpc.calls.push(fam); rpc.counters[fam] = (rpc.counters[fam] || 0) + 1;
     if (rpc.delay) await sleep(rpc.delay);
     return json(r, fam + '-2026-' + String(rpc.counters[fam]).padStart(3, '0'));
   });
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**', r => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents'), r => {
     const rq = r.request(); const u = new URL(rq.url()); const m = rq.method();
     if (m === 'POST') {
       let body = null; try { body = JSON.parse(rq.postData() || 'null'); } catch (_) { body = { parseError: true }; }

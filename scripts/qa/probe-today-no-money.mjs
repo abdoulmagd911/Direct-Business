@@ -12,15 +12,15 @@ const PORT=8097; const srv=start(PORT); const BASE='http://localhost:'+PORT;
 const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 const p=await (await b.newContext({viewport:{width:1440,height:900}})).newPage();
 const errors=[]; p.on('pageerror',e=>errors.push(e.message));
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r=>{
+await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async r=>{
   const rq=r.request(); const u=new URL(rq.url());
   try{ const resp=await fetch(BASE+u.pathname+u.search,{method:rq.method(),headers:rq.headers(),body:['GET','HEAD'].includes(rq.method())?undefined:rq.postData()});
     const body=await resp.text(); const h={}; resp.headers.forEach((v,k)=>{if(!['content-encoding','content-length','transfer-encoding'].includes(k))h[k]=v;});
     await r.fulfill({status:resp.status,headers:h,body}); }catch(e){ await r.fulfill({status:500,body:'{}'}); }
 });
-await p.route('**cdn.jsdelivr.net/**', r=>r.fulfill({status:200,contentType:'application/javascript',body:LIB}));
-await p.route('**fonts.googleapis.com/**', r=>r.fulfill({status:200,contentType:'text/css',body:''}));
-await p.route('**fonts.gstatic.com/**', r=>r.abort());
+await p.route(u=>u.href.includes('cdn.jsdelivr.net'), r=>r.fulfill({status:200,contentType:'application/javascript',body:LIB}));
+await p.route(u=>u.href.includes('fonts.googleapis.com'), r=>r.fulfill({status:200,contentType:'text/css',body:''}));
+await p.route(u=>u.href.includes('fonts.gstatic.com'), r=>r.abort());
 await p.goto(BASE+'/today',{waitUntil:'domcontentloaded',timeout:60000});
 await p.waitForTimeout(2000);
 await p.fill('#cl_email','test@directksa.com'); await p.fill('#cl_pw','Dq7nTest-2026-Riyadh'); await p.click('#cl_go');

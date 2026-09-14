@@ -88,10 +88,10 @@ async function main() {
   for (const [label, vp] of [['a phone', { width: 390, height: 844 }], ['desktop', { width: 1500, height: 950 }]]) {
     const ctx = await b.newContext({ viewport: vp });
     const p = await ctx.newPage();
-    await p.route('**cdn.jsdelivr.net/**', (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-    await p.route('**fonts.googleapis.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-    await p.route('**fonts.gstatic.com/**', (r) => r.abort());
-    await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async (r) => {
+    await p.route(u=>u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+    await p.route(u=>u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+    await p.route(u=>u.href.includes('fonts.gstatic.com'), (r) => r.abort());
+    await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
       const rq = r.request(); const u = new URL(rq.url());
       try {
         const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });

@@ -44,8 +44,8 @@ const fwd = async r => {
     return r.fulfill({ status: resp.status, headers: h, body: buf });
   } catch (e) { return r.abort(); }
 };
-await page.route('**cdn.jsdelivr.net/**', fwd);
-await page.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', fwd);
+await page.route(u=>u.href.includes('cdn.jsdelivr.net'), fwd);
+await page.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), fwd);
 
 const LOG = [];
 const STEP = (n, ok, d = '') => LOG.push(`${ok ? 'PASS' : 'FAIL'} · ${n}${d ? ' — ' + d : ''}`);

@@ -28,8 +28,8 @@ const route = async r => {
   const headers = {}; resp.headers.forEach((v, k) => headers[k] = v);
   return r.fulfill({ status: resp.status, headers, body });
 };
-await page.route('**cdn.jsdelivr.net/**', route);
-await page.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', route);
+await page.route(u=>u.href.includes('cdn.jsdelivr.net'), route);
+await page.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), route);
 const LOG = [];
 let shotN = 0;
 const STEP = (name, ok, detail = '') => { LOG.push(`${ok ? 'PASS' : 'FAIL'} · ${name}${detail ? ' — ' + detail : ''}`); };
@@ -185,8 +185,8 @@ STEP('L12 triple-click Confirm: exactly 1000 rows land, not 2000/3000', bulkCoun
 
 // ===== L13 · Two tabs, same company, both save — what really happens =====
 const page2 = await ctx.newPage();
-await page2.route('**cdn.jsdelivr.net/**', route);
-await page2.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', route);
+await page2.route(u=>u.href.includes('cdn.jsdelivr.net'), route);
+await page2.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), route);
 await page2.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
 await page2.waitForTimeout(3500);
 const tid = await page.evaluate(() => DB.businesses.find(x => x.name === 'Rawasi Holding').id);

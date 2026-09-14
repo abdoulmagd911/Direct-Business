@@ -74,7 +74,7 @@ async function openApp(BASE, opts = {}) {
   const writes = [];                 /* every non-GET REST call the app makes */
   const dialogs = []; const dlg = { mode: 'accept' };
   p.on('dialog', async d => { dialogs.push({ type: d.type(), message: d.message() }); if (dlg.mode === 'accept') await d.accept('QA'); else await d.dismiss(); });
-  await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
+  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async r => {
     const rq = r.request(); const u = new URL(rq.url());
     if (rq.method() !== 'GET' && u.pathname.startsWith('/rest/v1/')) {
       const auth = rq.headers()['authorization'] || '';
@@ -93,10 +93,10 @@ async function openApp(BASE, opts = {}) {
       await r.fulfill({ status: resp.status, headers: h, body });
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   });
-  await p.route('**cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await p.route('**fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await p.route('**fonts.gstatic.com/**', r => r.abort());
-  await p.route('**logo.clearbit.com/**', r => r.abort());
+  await p.route(u=>u.href.includes('cdn.jsdelivr.net'), r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await p.route(u=>u.href.includes('fonts.googleapis.com'), r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await p.route(u=>u.href.includes('fonts.gstatic.com'), r => r.abort());
+  await p.route(u=>u.href.includes('logo.clearbit.com'), r => r.abort());
   await p.goto(BASE + (opts.path || '/today'), { waitUntil: 'domcontentloaded', timeout: 60000 });
   return { browser, p, errors, writes, dialogs, dlg };
 }
