@@ -1,3 +1,16 @@
+## Routine fire #36 (2026-09-14 06:13 UTC) — reference data (airlines + providers) integrity on real DB: CLEAN
+Checked the reference data that feeds the Airlines page and the offer/booking airline picker.
+- airlines table: 139 rows, **0 missing IATA code, 0 missing name, 0 duplicate codes, 0 malformed** (every code
+  matches ^[A-Z0-9]{2}$, the valid IATA airline-code format). Clean.
+- providers (GDS): 23 rows, 0 missing name, 0 duplicate names. Clean.
+Minor architecture observation (NOT a defect): the app displays airlines from DB.airlines = app_state.airlines
+(136), augmented at load by a hardcoded AIR_ADD supplement (js/core-01:414-430), NOT from the richer `airlines`
+TABLE (139, which additionally carries contacts/adm_policy/deeplinks). So a ~3-row drift between the two stores
+exists, but it is reference-only and not user-impacting (bookings/offers are empty, and the displayed list is the
+comprehensive 136+supplements). Both stores are internally clean. Left as-is (syncing the two is oversight/owner
+territory, and reference data has no live transaction depending on the 3 rows).
+**0 defects.** Read-only. No new oversight commits (HEAD 779f2cc).
+
 ## Routine fire #35 (2026-09-14 04:11 UTC) — Generator document backbone (numbering + seeds) verified on real DB: race-safe, 0 defects
 Checked the client-facing Document Generator (js/66–71: Price Offer, Service-Fee Proposal, Company Profile,
 Contract, Tender). Its VAT usage is M1-LEGAL by design (these are client-facing documents where VAT 15% is legally
