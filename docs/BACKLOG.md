@@ -1,3 +1,15 @@
+## Routine fire #34 (2026-09-14 02:11 UTC) — finance→client linking (finance_client_links) verified on real DB: fully sound, no orphan/dangling/archived
+Verified the finance→client attribution layer that lets a client's detail card surface its revenue (CLAUDE.md:
+"every finance group is linked to its client, confirmed_by='auto-match', automatic never manual"). Real DB:
+- 26 links, ALL confirmed_by 'auto-match' (matches the "automatic, never manual" doctrine). 18 distinct live
+  client_groups across the 46 live invoices.
+- **0 live client_groups unlinked** — every finance group resolves to a business.
+- **0 links with a null business_id, 0 dangling** (every business_id points to a real businesses row).
+- **0 links point to an ARCHIVED business** — the auto-match binds each group to the surviving PRIMARY record, never
+  a merged-away/archived duplicate (ties fire #26 together: revenue never attributes to a hidden record).
+So the attribution chain is closed and clean: 46 invoices → 18 client_groups → 18 valid live businesses, all
+auto-matched, no orphaned revenue. **0 defects.** Read-only. No new oversight commits (HEAD 5d5ea10).
+
 ## Routine fire #33 (2026-09-14 00:11 UTC) — B2C / individual-bookings separation on real DB: CLEAN, no leak into the B2B pipeline
 Tested the "individuals are not leads — private people belong in finance as individual bookings, not the pipeline"
 rule (CLAUDE.md) against the real DB:
