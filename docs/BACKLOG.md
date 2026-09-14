@@ -1,3 +1,18 @@
+## Routine fire #35 (2026-09-14 04:11 UTC) — Generator document backbone (numbering + seeds) verified on real DB: race-safe, 0 defects
+Checked the client-facing Document Generator (js/66–71: Price Offer, Service-Fee Proposal, Company Profile,
+Contract, Tender). Its VAT usage is M1-LEGAL by design (these are client-facing documents where VAT 15% is legally
+expected — DECISIONS M1). Verified the data/numbering foundation on the real DB:
+- **next_document_number() is genuinely atomic**: access-gated (raises 'not allowed' if app_role() is null) and
+  uses INSERT INTO document_counters (family, year) ... ON CONFLICT (family,year) DO UPDATE SET last_n=last_n+1
+  RETURNING — Postgres serializes concurrent callers on the counter row, so two issued documents can NEVER collide
+  on a number (format FAMILY-YEAR-NNN, resets yearly). This is the correct race-safe pattern, not a read-max-plus-1.
+- generated_documents: 0 rows — the Generator is wired and ready but not yet used in production; hence 0 duplicate
+  numbers and 0 issued-without-number (trivially, and structurally impossible given the atomic minter).
+- service_fee_scenarios: 3 seeded selectable decks (matches the "3 seed scenarios" design / app_state
+  serviceFeePricing:3).
+**0 defects** — the document-generation backbone is correct and duplicate-proof. Read-only. No new oversight
+commits (HEAD a2f82d6).
+
 ## Routine fire #34 (2026-09-14 02:11 UTC) — finance→client linking (finance_client_links) verified on real DB: fully sound, no orphan/dangling/archived
 Verified the finance→client attribution layer that lets a client's detail card surface its revenue (CLAUDE.md:
 "every finance group is linked to its client, confirmed_by='auto-match', automatic never manual"). Real DB:
