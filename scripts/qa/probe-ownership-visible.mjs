@@ -80,7 +80,7 @@ async function run(port, fn) {
   await p.evaluate(() => { openLead = null; current = 'clients'; render(); });
   await p.waitForTimeout(2200);
   try { await fn(p); } finally {
-    const real = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+    const real = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
     if (real.length) fail(real.length + ' JS error(s): ' + JSON.stringify(real.slice(0, 3)));
     await b.close(); srv.close();
   }

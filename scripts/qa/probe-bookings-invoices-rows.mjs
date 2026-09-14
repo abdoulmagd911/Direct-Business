@@ -194,7 +194,7 @@ async function main() {
   else fail('the page scrolls horizontally by ' + overflow + 'px on a phone');
   await p.setViewportSize({ width: 1366, height: 900 });
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

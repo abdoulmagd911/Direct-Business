@@ -62,7 +62,7 @@ async function main() {
   if (real.length === 1 && String(real[0].legacy_id) === String(target)) ok('editing one lead sends exactly that one row');
   else fail('editing one lead sent ' + real.length + ' row(s): ' + real.map((r) => r.legacy_id).join(',') + ' (expected only ' + target + ')');
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

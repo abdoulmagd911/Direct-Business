@@ -160,7 +160,7 @@ async function main() {
   if (!noNewRow) fail('UNKNOWN-TEST-003: a new finance_invoices row was created — tax_invoice_capture must NEVER insert, only update a live invoice (it carries no client name to create one with)');
   else ok('UNKNOWN-TEST-003: correctly never inserted as a new row');
 
-  const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} JS/console error(s) during the run`);
 

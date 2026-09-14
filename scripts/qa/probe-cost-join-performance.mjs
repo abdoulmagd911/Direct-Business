@@ -150,7 +150,7 @@ async function main() {
   if (!/not a live invoice/i.test(preview)) fail('preview does not mention "not a live invoice" at all — the ~40 synthetic invoice groups may not have resolved through Level 2 grouping correctly');
   else ok('all ~40 synthetic invoice groups correctly resolved through Level 2 grouping as "not a live invoice" (expected — none are real fixture rows)');
 
-  const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} JS/console error(s) during the run`);
 

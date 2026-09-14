@@ -22,6 +22,24 @@ The 2 genuine reds, run down to cause:
   battery reds are therefore resolved. NOTE: the running battery executed the OLD versions of these files; its
   final tally must be read with that in mind (its 2 reds are the pre-fix runs).
 No app change. Test files only. No new oversight commits (HEAD c41389c).
+THIRD BATTERY RED (surfaced at 170/186): probe-people-bridge — "5 unexpected JS/console error(s)" while ALL 12 of
+its functional checks passed (the js/72 bridge attaches people from the contacts/activities tables, shows them,
+is idempotent, writes through). Ran it down: every one of the 5 is
+`console: Failed to load resource: net::ERR_NAME_NOT_RESOLVED` — DNS failures for an EXTERNAL asset this probe
+does not stub (the company-logo images; sibling probes abort that host), because chromium in this container has
+no external network. Resource-load failures, NOT JavaScript errors, NOT an app defect — the app degrades
+gracefully without the logos. The probe's noise filter (`!/TUNNEL_CONNECTION/`) predates the no-network
+container and counted them as script errors. FIXED: filter now ignores `net::ERR_*` like probe-fullwalk does;
+`pageerror` (real JS exceptions) is still captured in full. **Re-run: people-bridge OK, exit 0.**
+So all 3 battery reds are resolved: targets-attacks, backup-supabase (unroute identity) and people-bridge
+(no-network noise).
+HARDENING of the same latent bug: 56 more battery probes carried the identical narrow filter (they pass today
+only because they never load that unstubbed asset — the next one would fail the same way). Applied the one safe
+generic change — prepend the single alternation `net::ERR_|` to whichever noise regex already contains
+TUNNEL_CONNECTION, leaving every other alternation and variable name intact (the lines were NOT uniform, so no
+blind copy). 56 files, 0 syntax breaks (node --check on each), 0 narrow filters remain, gates OK. A 5-probe
+diverse sample re-run (no-vat-display, csv-injection, finance-invariants, leads-counts, client-card-ar) was in
+progress at this commit — verdict in the next entry.
 
 ## Fire #39 (2026-09-14, owner "whats next? are you sure you fixed all?") — FIXED: the dark regression battery — 183 probes converted from glob routes to predicate matchers
 Honest answer to the owner: no, nothing had been FIXED by this sweep — 38 rounds verified the app clean and flagged

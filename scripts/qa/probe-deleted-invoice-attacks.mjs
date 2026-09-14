@@ -116,7 +116,7 @@ async function main() {
   if (delSaid) ok('cost join: a transaction issuing into a DELETED invoice is reported as deleted here'); else fail('cost join did not say "deleted": ' + JSON.stringify(joinNote.replace(/\n/g, ' | ')));
   if (missSaid) ok('…and an invoice number this app has never seen is still reported as a likely import gap — two different problems, two messages'); else fail('cost join lost the "not a live invoice" message: ' + JSON.stringify(joinNote.replace(/\n/g, ' | ').slice(0, 400)));
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   if (realErrors.length) fail(realErrors.length + ' page error(s): ' + JSON.stringify(realErrors.slice(0, 3))); else ok('no page errors through the run');
   console.log(failures === 0 ? '\nALL PASS' : '\n' + failures + ' FAILURE(S)');
   await b.close(); srv.close();

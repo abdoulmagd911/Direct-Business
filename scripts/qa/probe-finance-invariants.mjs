@@ -177,7 +177,7 @@ async function main() {
     else scanClean(await readDownload(download), `Export ▾ "${scope}" export`);
   }
 
-  const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} JS/console error(s) during the run`);
 

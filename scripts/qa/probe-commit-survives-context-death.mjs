@@ -138,7 +138,7 @@ async function main() {
     }
   }
 
-  const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION|Target page, context or browser has been closed/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION|Target page, context or browser has been closed/.test(e));
   console.log('\nJS/console errors (context-teardown noise excluded):', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} unexpected JS/console error(s) during the run`);
 

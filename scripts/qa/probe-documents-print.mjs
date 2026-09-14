@@ -167,7 +167,7 @@ async function main() {
   if (!empty) ok('a statement for a client with no invoices opens no document at all — it says so instead of printing an empty form');
   else fail('an empty statement was generated: ' + JSON.stringify(empty.text.slice(0, 120)));
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

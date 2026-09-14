@@ -73,7 +73,7 @@ async function main() {
   if (hasFlag && hasSla) ok("both blob changes landed — A's setting survived B's later save, B's service-level row is there (partial saves)");
   else fail('blob after both saves — A flag present: ' + hasFlag + ', B sla present: ' + hasSla + ' (sections sent by B must not carry its stale settings)');
 
-  const errs = [...A.__errors, ...B.__errors].filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const errs = [...A.__errors, ...B.__errors].filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', errs.length ? JSON.stringify(errs.slice(0, 5)) : 'none');
   if (errs.length) fail(errs.length + ' JS error(s)');
   await b.close(); srv.close();

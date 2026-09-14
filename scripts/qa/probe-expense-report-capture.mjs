@@ -279,7 +279,7 @@ async function main() {
   if (before['116361000'] && before['116361000'][0] === 2000) ok('control: 116361000 carries the 2,000 the first pass applied, so a second application would have had something to double');
   else fail(`control: 116361000 carries ${before['116361000'] && before['116361000'][0]}, not the 2000 the first pass applied — the re-drop check above had nothing to catch`);
 
-  const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} JS/console error(s) during the run`);
 

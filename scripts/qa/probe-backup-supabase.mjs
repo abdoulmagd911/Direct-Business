@@ -122,7 +122,7 @@ async function main() {
       else ok('deleteTag() actually removed the row, confirmed by a fresh fetch');
     }
 
-    const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION/.test(e));
+    const realErrors = errors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION/.test(e));
     if (realErrors.length) fail(`Part 1: ${realErrors.length} JS/console error(s): ${JSON.stringify(realErrors)}`);
     else ok('Part 1: no JS/console errors');
   }
@@ -203,7 +203,7 @@ async function main() {
     // above (the browser logs the network-layer failure itself, separately from our app-level
     // console.error('backup: ...') call) — excluded here as a known artifact of this probe's
     // own setup, not a real app error.
-    const realErrors2 = consoleErrors.filter((e) => !/forEach|TUNNEL_CONNECTION|backup:|ERR_FAILED/.test(e));
+    const realErrors2 = consoleErrors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION|backup:|ERR_FAILED/.test(e));
     if (realErrors2.length) fail(`Part 2: ${realErrors2.length} unexpected JS/console error(s): ${JSON.stringify(realErrors2)}`);
     else ok('Part 2: no unexpected JS/console errors (the intentional migration-failure logs are expected and excluded)');
   }

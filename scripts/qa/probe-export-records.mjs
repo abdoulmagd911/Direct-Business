@@ -101,7 +101,7 @@ async function main() {
   if (!leadsAr) fail('AR leads full CSV did not download');
   else { const bare = bareTitles(leadsAr); const r9 = leadsAr.rows.find((r) => r[0] === 'Test Company 9') || []; if (!bare.length && r9[col(leadsAr, /\(source\)$/)] === 'استيراد' && r9[col(leadsAr, /\(contacts\)$/)] === 'Contact 9 Manager c9@example.com +966500000009') ok('AR leads: titles Arabic, source word Arabic, contact details left as data'); else fail('AR leads: bare ' + JSON.stringify(bare) + ' source ' + JSON.stringify(r9[col(leadsAr, /\(source\)$/)]) + ' contacts ' + JSON.stringify(r9[col(leadsAr, /\(contacts\)$/)])); }
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

@@ -179,7 +179,7 @@ async function main() {
     }
   }
 
-  const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION/.test(e));
   console.log('\nTotal JS/console errors across the run:', realErrors.length ? realErrors.length : 'none');
 
   await b.close();

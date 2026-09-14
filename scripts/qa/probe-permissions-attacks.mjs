@@ -169,7 +169,7 @@ async function main() {
   const restored = (await fetch(BASE + '/rest/v1/finance_invoices?invoice_no=eq.' + encodeURIComponent(delNo)).then(r => r.json()))[0];
   if (restored && !restored.deleted_at) ok('…and can still restore a deleted invoice'); else fail('admin could not restore the deleted invoice');
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   if (realErrors.length) fail(realErrors.length + ' page error(s): ' + JSON.stringify(realErrors.slice(0, 3))); else ok('no page errors through the run');
   console.log(failures === 0 ? '\nALL PASS' : '\n' + failures + ' FAILURE(S)');
   await b.close(); srv.close();

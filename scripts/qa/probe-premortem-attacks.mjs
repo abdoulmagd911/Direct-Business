@@ -215,7 +215,7 @@ async function main() {
   if (Number(rH.cost_sar) !== 750) fail(`H: after reload, the lines-only drop did not resolve — cost is ${rH.cost_sar}, expected 750. The owner would have to re-supply the gate file, breaking the incremental-update promise.`);
   else ok('H: gate captured in session 1, lines dropped in session 2 — cost resolved to 750 with nothing re-supplied');
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5), null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} unexpected JS/console error(s)`);
 

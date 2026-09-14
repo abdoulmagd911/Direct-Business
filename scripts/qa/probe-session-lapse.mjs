@@ -73,7 +73,7 @@ async function main() {
   if (!barAfter) ok('with the session good again, the next check removed the bar');
   else fail('the bar stayed after the session was good again');
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

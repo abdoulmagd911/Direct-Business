@@ -131,7 +131,7 @@ async function main() {
   if (AR.test(head)) ok('the Arabic layer is still translating page chrome (the rule did not switch it off)');
   else fail('the page is no longer Arabic — the rule went too far');
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

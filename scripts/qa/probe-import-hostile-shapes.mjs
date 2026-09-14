@@ -100,7 +100,7 @@ async function main() {
   if (blank === 0) ok('R9: the whitespace-only row created nothing');
   else fail('R9: ' + blank + ' blank-reference row(s) stored');
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors / dialogs:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)/dialog(s)');
   await b.close(); srv.close();

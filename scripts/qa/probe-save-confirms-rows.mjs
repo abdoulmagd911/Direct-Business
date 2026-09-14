@@ -76,7 +76,7 @@ async function main() {
     else ok('REFUSAL: a silent refusal is shown as a save error, never as "Cloud synced"');
   }
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(`${realErrors.length} JS error(s)`);
   await b.close(); srv.close();

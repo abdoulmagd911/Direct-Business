@@ -98,7 +98,7 @@ async function main() {
   if (sum === WANT_REV) ok(`the bookings on the tab add up to ${WANT_REV.toLocaleString()} SAR — an independent recount of every seeded booking agrees, so no total is being computed off a truncated set`);
   else fail(`the tab's bookings sum to ${sum.toLocaleString()}, an independent recount of all ${N} gives ${WANT_REV.toLocaleString()}`);
 
-  const real = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const real = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   if (!real.length) ok('no page error at 1,240 hand-entered bookings');
   else fail(real.length + ' JS error(s): ' + JSON.stringify(real.slice(0, 3)));
 

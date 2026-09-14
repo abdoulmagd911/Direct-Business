@@ -158,7 +158,7 @@ async function main() {
   if (!/New\s+\d/.test(t4)) ok('no preview counts offered for the binary file'); else fail('binary file produced preview counts');
   if ((await inv('ZZ-1')).length === 0) ok('nothing from the binary file reached the table'); else fail('binary file row written');
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   if (realErrors.length) fail(realErrors.length + ' JS error(s)/dialog(s): ' + JSON.stringify(realErrors.slice(0, 3))); else ok('no page errors or dialogs through the whole run');
   console.log(failures === 0 ? '\nALL PASS' : '\n' + failures + ' FAILURE(S)');
   await b.close(); srv.close();

@@ -193,7 +193,7 @@ async function main() {
   if (!f || f.alert) fail('Report Builder "Export CSV" EN: no file');
   else { const rows = parseCSV(f.text); const last = rows[rows.length - 1] || []; if (last[0] === 'TOTAL' && !AR.test(rows[0].join(''))) ok('Report Builder EN: English titles, TOTAL row'); else fail('Report Builder EN: changed — ' + rows[0].slice(0, 3).join(' | ') + ' … ' + last[0]); }
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(`${realErrors.length} JS error(s)`);
   await b.close(); srv.close();

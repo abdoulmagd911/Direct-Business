@@ -167,7 +167,7 @@ async function main() {
   if (!sug) fail(`SUGGESTION: "${SUG_A}" and "${SUG_B}" (ة/ه) were not offered as one duplicate suggestion on the Import card`);
   else ok('SUGGESTION: the ة/ه pair is offered as one "Possible duplicate" suggestion with one click to merge');
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5), null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} unexpected JS/console error(s)`);
 

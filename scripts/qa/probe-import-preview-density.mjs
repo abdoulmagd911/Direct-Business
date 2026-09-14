@@ -95,7 +95,7 @@ async function main() {
   if (!/accounted for elsewhere/i.test(preview)) fail('the exclusion REASON text is missing after collapsing — B6 says shorten the repetition, never the rule itself');
   else ok('the exclusion reason text survives the collapse — B6 held: the rule is shortened in repetition, never deleted');
 
-  const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} JS/console error(s) during the run`);
 

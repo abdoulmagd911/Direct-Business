@@ -180,7 +180,7 @@ async function main() {
   else fail('a junk view id shows the "did not load" placeholder, which claims a failure that did not happen');
   await p.evaluate(() => { openLead = null; current = 'finance'; render(); });
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION|QA forced failure/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION|QA forced failure/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

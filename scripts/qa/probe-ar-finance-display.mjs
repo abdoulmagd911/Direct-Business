@@ -60,7 +60,7 @@ async function main() {
   else if (neg.negs.some((n) => !n.ltr || n.first !== '-')) fail('SIGN: a negative fee is not isolated left-to-right (would render as "18.0K-" in Arabic): ' + JSON.stringify(neg.negs));
   else ok(`SIGN: ${neg.negs.length} negative fee cell(s) isolated left-to-right, sign first`);
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(`${realErrors.length} JS error(s)`);
   await b.close(); srv.close();

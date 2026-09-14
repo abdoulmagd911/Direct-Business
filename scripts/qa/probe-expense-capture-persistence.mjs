@@ -148,7 +148,7 @@ async function main() {
   else if (Number(persisted2[0].amount_sar) !== 1500) fail(`SESSION 2: the persisted line row was not updated to 1500 — got ${JSON.stringify(persisted2)}`);
   else ok('SESSION 2: exactly one persisted line row, holding the new amount — the re-export replaced the stale capture rather than appending to it');
 
-  const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} JS/console error(s) during the run`);
 

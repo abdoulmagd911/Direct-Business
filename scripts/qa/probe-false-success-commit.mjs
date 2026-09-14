@@ -189,7 +189,7 @@ async function main() {
 
   // "status of 400" is the browser's own devtools network log for the exact 400 SCENARIO 2
   // deliberately forces (a real Postgres-shaped rejection) — expected, not a JS/app error.
-  const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION|status of 400/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION|status of 400/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} JS/console error(s) during the run`);
 

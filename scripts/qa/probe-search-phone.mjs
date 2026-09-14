@@ -93,7 +93,7 @@ async function main() {
   const title = await p.evaluate(() => (document.getElementById('v74search') || {}).title);
   if (title === 'بحث') ok('phone AR: the button is labelled in Arabic'); else fail('phone AR: button title ' + JSON.stringify(title));
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

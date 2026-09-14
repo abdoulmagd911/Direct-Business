@@ -126,7 +126,11 @@ async function main() {
   if (after2 && !after2.needsConfirm) fail('WRITE-THROUGH: the removed-then-flagged contact should show the needs-confirmation badge after reload');
   else if (after2) ok('WRITE-THROUGH: the flagged contact carries its badge after reload');
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  /* 2026-09-14: a resource-load failure is not a script error. In a container with no external network,
+     an unstubbed external asset (the company-logo images) fails with net::ERR_NAME_NOT_RESOLVED and logs a
+     console error — 5 of them here, all functional checks green. Ignore net::ERR_* like probe-fullwalk does;
+     `pageerror` (real JS exceptions) is still captured in full. */
+  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION|net::ERR_/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5), null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} unexpected JS/console error(s)`);
   await b.close(); srv.close();

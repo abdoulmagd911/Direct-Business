@@ -150,7 +150,7 @@ async function main() {
   if (Number(withCost.totalCost) === 6000 && withCost.flag === false) ok('a proposal that DOES record a cost passes its real 6,000 through, unflagged');
   else fail('recorded cost did not carry through: ' + JSON.stringify(withCost));
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

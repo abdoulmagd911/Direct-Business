@@ -102,7 +102,7 @@ async function run(port, fn, tier) {
   await p.waitForTimeout(7000);
   if (tier) await p.evaluate((t) => { window.__userTier = t; }, tier);
   try { await fn(p, BASE); } finally {
-    const real = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+    const real = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
     if (real.length) fail(real.length + ' JS error(s): ' + JSON.stringify(real.slice(0, 3)));
     await b.close(); srv.close();
   }

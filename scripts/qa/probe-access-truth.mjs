@@ -219,7 +219,7 @@ async function main() {
   else if (afterBtn === beforeBtn + 1 && !buttonAsked) ok('the "+ New proposal" button still creates one instantly, with no question — only the stray keystroke asks');
   else fail('the button behaved differently: created ' + (afterBtn - beforeBtn) + ', asked=' + buttonAsked);
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

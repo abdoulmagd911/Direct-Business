@@ -94,7 +94,7 @@ async function run(port, rows, fn) {
   await p.evaluate(() => { openLead = null; current = 'activity'; render(); });
   await p.waitForTimeout(2200);
   try { await fn(p, dialogs, BASE); } finally {
-    const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+    const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
     if (realErrors.length) fail(realErrors.length + ' JS error(s): ' + JSON.stringify(realErrors.slice(0, 3)));
     await b.close(); srv.close();
   }

@@ -118,7 +118,7 @@ async function main() {
   else fail('the Arabic tier filter matched nothing — the stored value no longer matches the data');
 
   await p.evaluate(() => { LANG = 'en'; if (typeof applyLang === 'function') applyLang(); clFilter.tier = 'all'; render(); });
-  const real = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const real = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', real.length ? JSON.stringify(real.slice(0, 3)) : 'none');
   if (real.length) fail(real.length + ' JS error(s)');
   await b.close(); srv.close();

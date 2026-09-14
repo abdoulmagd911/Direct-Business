@@ -90,7 +90,7 @@ async function main() {
   await setLang('en'); await go('report'); await p.evaluate(() => rptBuildReport()); await p.waitForTimeout(400); t = await text();
   if (/Build report/.test(t) && /KPI progress vs 2026 targets/.test(t)) ok('EN: the report builds and reads English'); else fail('EN: report build/wording off');
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

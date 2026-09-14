@@ -90,7 +90,7 @@ async function main() {
   if (!ps.hOverflow && ps.active === 1) ok('phone Arabic: board renders with no sideways page scroll');
   else fail('phone Arabic: hOverflow=' + ps.hOverflow + ' active cards ' + ps.active);
 
-  const errs = [...p.__errors, ...ph.__errors].filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const errs = [...p.__errors, ...ph.__errors].filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', errs.length ? JSON.stringify(errs.slice(0, 5)) : 'none');
   if (errs.length) fail(errs.length + ' JS error(s)');
   await b.close(); srv.close();

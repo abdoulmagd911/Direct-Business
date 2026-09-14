@@ -119,7 +119,7 @@ async function main() {
     if (!(await overflow())) ok('phone ' + name + ': no horizontal overflow'); else fail('phone ' + name + ': page scrolls sideways');
   }
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

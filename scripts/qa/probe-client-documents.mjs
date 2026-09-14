@@ -242,7 +242,7 @@ async function main() {
   else fail('editors with no Arabic at all: ' + arBad.join(', '));
   await p.evaluate(() => { LANG = 'en'; if (typeof applyLang === 'function') applyLang(); });
 
-  const real = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const real = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', real.length ? JSON.stringify(real.slice(0, 4)) : 'none');
   if (real.length) fail(real.length + ' JS error(s)');
   await b.close(); srv.close();

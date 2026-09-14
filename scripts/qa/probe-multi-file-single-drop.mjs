@@ -117,7 +117,7 @@ async function main() {
   if (r2.zatca_dpin !== 'DPIN-MFSD-2' || Number(r2.total_incl_vat_sar) !== 7200) fail(`the tax-only invoice 116361001 did not update — got ${JSON.stringify({ dpin: r2.zatca_dpin, total: r2.total_incl_vat_sar })}`);
   else ok('the tax-only invoice updated normally alongside');
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} unexpected JS/console error(s) during the run`);
 

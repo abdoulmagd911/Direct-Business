@@ -115,7 +115,7 @@ async function run(role) {
     else fail(role + ': "Add billing profile" blocked');
   }
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   if (realErrors.length) fail(role + ': ' + realErrors.length + ' JS error(s): ' + realErrors[0]);
   await b.close(); srv.close();
 }

@@ -126,7 +126,7 @@ async function main() {
   if (!/Expense Report — transaction status \(join\)/i.test(preview)) fail(`a real expense_gate_capture file was not recognized after a single navigation: ${preview.slice(0, 300)}`);
   else ok('a real file dropped immediately after one navigation was correctly recognized — the wiring is functional, not just present');
 
-  const realErrors = errors.filter((e) => !/forEach|TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} JS/console error(s) during the run`);
 

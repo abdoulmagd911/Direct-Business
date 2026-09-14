@@ -138,7 +138,7 @@ async function main() {
   if (!defended.includes('qa-del1')) ok('…and re-asserting the table copy still does not resurrect the deleted request');
   else fail('the re-assert brought the deleted request back: ' + JSON.stringify(defended));
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5)) : 'none');
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();

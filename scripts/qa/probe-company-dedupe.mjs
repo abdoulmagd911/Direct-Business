@@ -233,7 +233,7 @@ async function main() {
   if (!rc4 || rc4.business_id !== FIXTURE_BIZ || rc4.needs_manual_confirmation || rc4.confirmation_reason) fail(`UNDO/CONTACTS: the flagged contact should be back on ${FIXTURE_BIZ} with its flag and reason exactly as before — got ${JSON.stringify(rc4)}`);
   else ok('UNDO/CONTACTS: the flagged contact went back with its prior flag and reason restored');
 
-  const realErrors = errors.filter((e) => !/TUNNEL_CONNECTION|Target page, context or browser has been closed/.test(e));
+  const realErrors = errors.filter((e) => !/net::ERR_|TUNNEL_CONNECTION|Target page, context or browser has been closed/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors.slice(0, 5), null, 2) : 'none');
   if (realErrors.length) fail(`${realErrors.length} unexpected JS/console error(s)`);
 
