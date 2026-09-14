@@ -1,3 +1,15 @@
+## Routine fire #33 (2026-09-14 00:11 UTC) — B2C / individual-bookings separation on real DB: CLEAN, no leak into the B2B pipeline
+Tested the "individuals are not leads — private people belong in finance as individual bookings, not the pipeline"
+rule (CLAUDE.md) against the real DB:
+- **0 businesses flagged b2c** — no individual is sitting in the leads/clients table; 0 leaking as an active lead,
+  0 marked as a client. The B2B pipeline holds only real companies.
+- Live finance_invoices carry only record_type b2b + government — **no individual/B2C rows mixed into the B2B
+  revenue** (the 46 live invoices, whose totals were reconciled in #17, are all company/government).
+- B2C has its own dedicated store, `app_bookings` (cols id/data/updated_at/updated_by) — well-formed, currently 0
+  rows (matches the finance B2C tab's clean empty render in fire #13). Kept entirely separate from businesses.
+So the individuals-vs-companies boundary is enforced in the data: nothing crosses it. **0 defects.** Read-only.
+No new oversight commits (HEAD 9f083e7).
+
 ## Routine fire #32 (2026-09-13 22:11 UTC) — the audit/history trail (record_history) verified on real DB: sound and fully attributed
 Checked the undo + accountability backbone (record_history_write trigger; M13/M16; js/53 + js/63). record_history
 holds 269 entries (2026-08-22→09-10, all within 30 days) across 6 tables (businesses, contacts, finance_invoices,
