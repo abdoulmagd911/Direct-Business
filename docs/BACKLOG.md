@@ -1,3 +1,20 @@
+## Routine fire #42 (2026-09-14 14:12 UTC) — deploy pipeline CONFIRMED serving the latest commit (20/20 READY); the Today follow-up queue's "0" verified honest
+Two checks. (1) The mandate's "confirm directksab2b.com serves it" — skipped all day because the sandbox cannot open
+URLs. Done properly this fire via the Vercel deployment record (project prj_LghpWu3B…, team_BMrljqAG…): the latest
+PRODUCTION deployment is READY and its GitHub commit SHA is 31d2262… — exactly the latest push (fire #41) on
+claude/new-session-9fhlp1. All 20 listed deployments are state READY / target production, one per commit pushed
+today, every commit GitHub-"verified" — **20 consecutive auto-deploys, 0 failures**, rollback candidates intact. The
+served app bytes are unchanged (the last index.html/js commit is 1b5cdc6, before today — all of today's commits
+were docs + tests), which is exactly what should be true. Pipeline healthy and current.
+(2) A fresh user-impacting data check: the Today page's "MY QUEUE 0" / "Nothing urgent" — would a silently missed
+follow-up hide behind that zero? Real DB: 78 active leads (80 − 2 lost), **0 carry any next-action date** (0 in the
+next_action_date column, 0 in raw nextActionDate/nextAction) → 0 overdue, 0 due today, nothing to surface. So the
+zero is HONEST — no follow-up is being missed; the app shows 0 rather than inventing urgency (consistent with the
+"no manufactured alarms" doctrine, fire #27). The real observation is ADOPTION, not a defect: the next-action field
+is unused across the whole active pipeline, so the follow-up queue cannot do its job until the team starts
+scheduling next actions on leads. Noted for the owner — a working habit, not an app change.
+**0 defects.** Read-only. No new oversight commits (HEAD 31d2262).
+
 ## Routine fire #41 (2026-09-14 12:13 UTC) — the Expenses-tab timing flag CLOSED with real-data evidence: cold 441ms / warm 64ms, nothing over the guard
 The post-fix battery left one open question: audit-finance-tabs tripped its 800ms freeze guard on the EN Expenses
 first open (828ms) — real regression or sandbox noise? I had written "needs a stopwatch on the live site"; in fact
