@@ -15,10 +15,25 @@ What was done (test files only — scripts/qa; the deployed app is untouched; fu
 - Gates on the final tree: check-structure OK, check-probe-integrity OK ("every gated probe can still fail").
 - Run them with the proxy stripped, as probe-fullwalk's header already documents (chromium otherwise routes
   localhost through the egress proxy and hangs): env -u HTTPS_PROXY -u HTTP_PROXY node scripts/qa/<probe>.mjs
-STATUS AT COMMIT: a background sample run of 11 diverse converted probes (incl. the M1 guard probe-no-vat-display
-and both hand-fixed files) was still in progress — committed on the strength of the single-probe proof + gates,
-NOT on a claimed sample pass; the sample verdict is recorded in the next entry when it lands. Any probe the sample
-shows red gets fixed in a follow-up commit.
+SAMPLE VERDICT (landed after the commit above): **9 of 11 pass outright** — probe-landmines, probe-no-vat-display
+(the M1 money guard: "no live cost/profit/revenue figure is VAT-contaminated, every page + all 8 Finance tabs
+render"), probe-clients-attacks, probe-crm-attacks (63/63), probe-ageing-attacks, probe-dialog-arabic-attacks,
+probe-csv-injection, probe-deeplink-boot-race (hand-fixed file), sweep-nav. The 2 others, both of which DID get
+past the login/CDN blocker (so the conversion worked for them):
+- probe-events — FAILED on count assertions ("7 still ahead, got 4"; "4 we-take-part, got 2"). Root cause: a
+  TIME-BOMB in the mock seed, not the app and not the conversion. mock-supabase.mjs seeded ksa_events with FIXED
+  start dates 2026-09-10…17 (+1 deliberately ended); the probe hardcodes "7 of 8 still ahead", true when written,
+  false once the calendar passed 09-10/11/12 (7−3 = the 4 it got, exactly). The dark battery had hidden this for
+  weeks. FIXED: the seed now dates the 7 live events at today+(i+1) days and the ended one at today−30 — same
+  ids/flags/shape, stable on any day. **probe-events re-run: exit 0, 0 fails.** The 4 sibling probes that read
+  ksa_events (share-and-settings, forms-single-instance, no-native-dialogs, audit-events-search) were re-run in the
+  same job to guard against regression from the seed change: at the time of this commit 1 of them
+  (probe-share-and-settings-attacks) ended in an uncaught Node exception with 0 failed checks — cause under
+  investigation (an over-short 170s timeout is the leading suspect, as with generator-attacks below); the other 3
+  were still running. Follow-up entry records the outcome.
+- probe-generator-attacks — exit 124 = my own 170s per-probe timeout, NOT a hang: re-run with a 420s cap it
+  progresses cleanly through its attack rounds (A1…A8 all PASS at the time of this commit, still running).
+  Verdict recorded when it finishes.
 
 ## Fire #38 (2026-09-14, owner "Continue") — Settings → Team & Access driven LIVE: the admin-users EDGE FUNCTION reconciled row-for-row to app_users
 Inspected the Settings hub (renders clean: Team & Access, Admin & history, printables, daily-use tiles, view
