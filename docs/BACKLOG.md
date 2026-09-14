@@ -1,3 +1,23 @@
+## Routine fire #43 (2026-09-14 16:11 UTC) — the MANAGER role driven LIVE for the first time: grants, bounces and the "manager can't touch an admin" rule all hold
+Closed the last "every role" gap. Fire #15 drove a team_member live; fire #28 verified the manager's grants at the
+data level; no manager session had ever been driven in a browser — and js/31 carries a security-relevant rule for
+exactly that role (a manager gets NO buttons on an admin's row, and "Send reset link" is admin-only, per the
+2026-08-22 password-recovery hardening). Same reversible pattern as #15: the QA account (id 096eec1a…) was set to
+role=manager with the real manager's exact 10-page "editor" grant (fire #28's shape), driven, then restored.
+Live, against the REAL database (scratchpad/live-manager.mjs, typing-speed sign-in, REST + edge-function hosts
+bridged; read-only — nothing clicked on Team & Access):
+- role=manager · matrix loaded · myAllowedPages() = exactly the 10 granted pages · sidebar leaks 0 ungranted pages.
+- All 10 granted pages render (today/leads/clients/finance/offers/events/airlines/activity/archive/settings) — no
+  blank, no NaN. All 5 ungranted pages (documents/ops/reports/vendors/sopsla) bounce to Today.
+- Team & Access as a manager (served by the admin-users edge function): 11 rows (2 admins, 9 others). The js/31
+  rule HELD on every row — **0 toggle/reset buttons on any admin row, admin role selects disabled, "Admin accounts
+  are managed by an admin" shown; 0 "Send reset link" buttons anywhere ("Sending is admin-only" shown); on/off
+  toggles present on non-admin rows.** A manager cannot reach an admin's account or anyone's password reset.
+- 0 JS errors. **0 findings.**
+QA account RESTORED immediately after, verified by the returned row: role=admin, active, page_access NULL —
+identical to before. With #15 (team_member) and the admin sessions throughout, every role in use has now been
+driven live. **0 defects.** No new oversight commits (HEAD 6d78242).
+
 ## Routine fire #42 (2026-09-14 14:12 UTC) — deploy pipeline CONFIRMED serving the latest commit (20/20 READY); the Today follow-up queue's "0" verified honest
 Two checks. (1) The mandate's "confirm directksab2b.com serves it" — skipped all day because the sandbox cannot open
 URLs. Done properly this fire via the Vercel deployment record (project prj_LghpWu3B…, team_BMrljqAG…): the latest
