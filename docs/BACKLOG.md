@@ -1,3 +1,21 @@
+## FULL BATTERY — FINAL REPORT (2026-09-14, run 08:52→10:24 UTC): 186/186 ran; effectively 186/186 GREEN after today's fixes
+The first complete run of the whole battery in this environment (per the mandate: "if nothing is left to test,
+re-run the full battery and report"). Counting by each probe's own exit code (the only honest signal — see the
+false-positive note in fire #40):
+- **186 of 186 probes ran (0 missing files). 183 green in-run. 3 red in-run.**
+- The 3 reds are EXACTLY the pre-fix runs of probe-targets-attacks, probe-backup-supabase and probe-people-bridge
+  — the battery executed the OLD files before each fix landed. All three were run down to cause, fixed, and
+  individually re-run green: targets-attacks ALL PASS, backup-supabase OK, people-bridge OK (exit 0 each).
+- Therefore the effective result after today's work is **186/186 green** — the regression net is, for the first
+  time in a reprovisioned container, fully lit and fully passing.
+Reading the day honestly: NONE of the reds were app defects. Every one was test-infrastructure — things that had
+made the safety net silently blind: dead glob routes (183 probes), the events time-bomb (fixed seed dates), bare
+playwright imports (5), the unroute-identity bug my own conversion introduced (3), and no-network noise counted as
+script errors (people-bridge + 56 hardened). The app itself stayed clean throughout, consistent with the 38
+verification rounds before it.
+How to run it here: `env -u HTTPS_PROXY -u HTTP_PROXY node scripts/qa/<probe>.mjs` (chromium otherwise routes
+localhost through the egress proxy and hangs); give the Generator attack suite ≥420s. Wall clock for all 186: ~91 min.
+
 ## Routine fire #40 (2026-09-14 10:11 UTC) — the FULL 186-probe battery running for the first time here; a 4th hidden defect (my own) found and FIXED: unroute-by-identity
 The full battery (launched at the end of fire #39, per the mandate's "re-run the full battery") reached 165/186 during
 this fire: **163 green, 2 red** — counting by each probe's OWN exit code. (A first glance showed 13 red; 11 of those
