@@ -1,3 +1,20 @@
+## Fire #38 (2026-09-14, owner "Continue") — Settings → Team & Access driven LIVE: the admin-users EDGE FUNCTION reconciled row-for-row to app_users
+Inspected the Settings hub (renders clean: Team & Access, Admin & history, printables, daily-use tiles, view
+presets; the "CR, VAT, IBAN, Wakeel" tile is the company's VAT REGISTRATION number — an identifier, M1-legal).
+Then drove the admin-critical part live (scratchpad/live-team.mjs, same bridge, both the REST host AND
+vkxoeeoauexyfpzqufqd.functions.supabase.co bridged): signed in as the QA admin, opened window.v48Users(), and
+read what the team list actually rendered. That list is served by the DEPLOYED `admin-users` edge function
+(js/31 load() → __callAdmin({action:'list'}) → POST /functions/v1/admin-users), a separate deployment that could
+silently drift from the table — so this is the first live test of it this session.
+- Edge function returned 11 rows: admin:3, manager:1, team_member:7 · 11 active, 0 inactive, 0 temp-password ·
+  0 JS errors · role selects enabled (admin caller) · 0 findings.
+- app_users table: 11 users, 11 active, admin:3 / manager:1 / team_member:7.
+- **Row-for-row identity confirmed**: the sorted sha256-8 hashes of the 11 emails from the browser and from the
+  table are the IDENTICAL set (0dc18484…c80344d5 ×11; hashes only — rule 7, no emails in the repo).
+So the admin manages exactly the real team — no phantom or missing person, no role drift between the edge function
+and the DB. The 2026-08-22 password-recovery hardening (admin-only "Send reset link") rendered as designed.
+**0 defects.** Read-only (no toggle/reset/role change performed). No new oversight commits (HEAD 8aa427a).
+
 ## Routine fire #37 (2026-09-14 08:11 UTC) — FRESH live end-to-end browser drive against the REAL DB (first since #13/09-10): clean
 After ~15 SQL/screenshot rounds, did the thing the mandate most emphasises: drove the merged app in a real browser
 against the REAL Supabase again (scratchpad/live-fullwalk.mjs — proxy:direct:// + predicate matchers + Node bridge),
