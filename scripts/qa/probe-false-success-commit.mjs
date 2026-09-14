@@ -41,6 +41,8 @@
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
+/* route/unroute must receive the SAME predicate object — Playwright unroutes a predicate by identity, a glob by value (2026-09-14) */
+const __rtm={}; const __pred=(s)=>(__rtm[s]||(__rtm[s]=(u)=>u.href.includes(s)));
 
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const PORT = 8237;
@@ -79,10 +81,10 @@ async function main() {
       await r.fulfill({ status: resp.status, headers: h, body });
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   }
-  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), proxyHandler);
-  await p.route(u=>u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await p.route(u=>u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await p.route(u=>u.href.includes('fonts.gstatic.com'), (r) => r.abort());
+  await p.route(__pred('vkxoeeoauexyfpzqufqd.supabase.co'), proxyHandler);
+  await p.route(__pred('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await p.route(__pred('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await p.route(__pred('fonts.gstatic.com'), (r) => r.abort());
 
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await p.waitForTimeout(2000);
@@ -140,8 +142,8 @@ async function main() {
   // success regardless of what the app's own payload contains.
   capturedBodies = [];
   let scenario2Blocked = false;
-  await p.unroute(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'));
-  await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
+  await p.unroute(__pred('vkxoeeoauexyfpzqufqd.supabase.co'));
+  await p.route(__pred('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
     if (rq.method() === 'POST' && u.pathname === '/rest/v1/rpc/fn_commit_finance_import') {
       scenario2Blocked = true;

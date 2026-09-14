@@ -1,3 +1,27 @@
+## Routine fire #40 (2026-09-14 10:11 UTC) — the FULL 186-probe battery running for the first time here; a 4th hidden defect (my own) found and FIXED: unroute-by-identity
+The full battery (launched at the end of fire #39, per the mandate's "re-run the full battery") reached 165/186 during
+this fire: **163 green, 2 red** — counting by each probe's OWN exit code. (A first glance showed 13 red; 11 of those
+were my counter matching the probes' summary line "FAILS: 0 / 23" — they had passed. Exit code is the truth.)
+The 2 genuine reds, run down to cause:
+- probe-targets-attacks (6 failures, all cascading from "after confirming, the stored target is …" — a finance-target
+  save not persisting) and probe-backup-supabase (4 failures — the local→app_state_bak migration never completes:
+  not marked complete, keys not cleared, rows absent).
+- ROOT CAUSE — a defect I introduced in fire #39's conversion: both probes register a table-specific route
+  (finance_targets / app_state_bak) and later call p.unroute(...) to lift it. Playwright lifts a GLOB by string
+  value but a PREDICATE by function identity; my sed produced a fresh arrow function at every site, so the unroute
+  never matched, the stub stayed active, the save/migration kept being intercepted, and every downstream check
+  cascaded. With the original globs it worked; with inline predicates it silently could not.
+- FIX (the correct Playwright idiom): one memoized predicate per host-string, shared by route() and unroute()
+  (`const __rtm={}; const __pred=(s)=>(__rtm[s]||(__rtm[s]=(u)=>u.href.includes(s)))`), applied to ALL 3 battery
+  probes that unroute — targets-attacks (2 unroutes), backup-supabase (1), and probe-false-success-commit (1),
+  which carried the same latent bug without yet having failed. 0 inline predicates remain in those files; syntax
+  checked; check-structure + check-probe-integrity OK.
+- VERIFIED SO FAR: **probe-targets-attacks re-run: ALL PASS, exit 0** (the worst case, previously 6 failures).
+  backup-supabase and false-success-commit re-runs were still in progress at this commit — verdict in the next
+  entry. NOTE: the running battery executed the OLD versions of these files; its final tally must be read with
+  that in mind (its 2 reds are the pre-fix runs).
+No app change. Test files only. No new oversight commits (HEAD c41389c).
+
 ## Fire #39 (2026-09-14, owner "whats next? are you sure you fixed all?") — FIXED: the dark regression battery — 183 probes converted from glob routes to predicate matchers
 Honest answer to the owner: no, nothing had been FIXED by this sweep — 38 rounds verified the app clean and flagged
 3 items, all outside my lane. The biggest real gap was the safety net itself: **183 of the 186 battery probes could
