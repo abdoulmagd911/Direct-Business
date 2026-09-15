@@ -195,3 +195,5 @@ probe-clause-template-asks
 probe-palette-arabic-and-new-lead
 probe-history-actor-and-sync-words
 probe-share-view-tidy
+probe-detail-avatar-centred
+probe-sop-arabic-and-bidi

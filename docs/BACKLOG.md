@@ -1,3 +1,32 @@
+## Routine fire #51 (2026-09-15 08:11 UTC) — reference pages (Airlines · Providers & GDS · SOPs & SLAs) driven live EN+AR: 0 hard defects in the data/rendering; three things seen BY EYE and fixed — detail-card initials sat in the corner (js/80), a logo that fails left an EMPTY avatar (js/80, caught by the new probe), the Arabic SOP page read backwards (js/81)
+scratchpad/live-reference.mjs, real database, read-only (0 save() calls): Airlines list → first 3 airline
+dashboards → their detail view; Providers & GDS the same; SOPs (first 3 expanded) and SLAs — EN then AR. Every
+render: no blank view, no NaN/undefined, 0 JS errors, chrome Arabic on the Arabic pages (the only English chrome
+left: the "Providers & GDS" page heading and the term EMD — noted, not changed; the SOP TITLES and bodies are
+English reference CONTENT, which a translation would be a feature, not a fix).
+1. **Avatar initials in the top-left corner** (every lead, client, airline and provider card, EN+AR). Seen on the
+   real client card and the real airline dashboard, then measured: the 62px `.detail-head .ava` box was
+   display:block (text rect x/y == box x/y). The base stylesheet centres only `.lead .ava` (list rows); nothing
+   centred the detail box. js/80 injects the one centring rule. Live after: text centre == box centre (±1px).
+2. **Empty avatar when a logo cannot load** — found by the guard probe for (1), not by eye: core-10 swaps the
+   initials for a company-logo <img> for any business with a website and, on error, the <img> removes itself —
+   leaving a blank coloured square (text length 0 on the mock's lead and client cards; on the live site it
+   happens whenever the logo service has no logo for that domain, or is blocked). js/80 puts the initials and
+   colour back the moment the logo fails.
+3. **Arabic SOP library read backwards.** The English procedure texts sat in an RTL container, so every
+   sentence's full stop jumped to the left end (".Open and read any booking before acting") and arrows flipped;
+   the two comparison-box headers ("Saudi common practice baseline" / "Our standard" — built by core-08's
+   English rewrite chain, unknown to js/21's Arabic dictionary) and the "Purpose." lead-in were English. js/81:
+   `unicode-bidi:plaintext` on SOP paragraphs/commands/box texts in RTL (each paragraph follows its own first
+   strong character), Arabic headers ("الممارسة الشائعة في السوق السعودي" / "معيارنا"), lead-in "الغرض." with the
+   English sentence after it isolated in a dir="auto" span so it keeps reading left-to-right (the first cut
+   without that isolation flipped the sentence again — caught by eye on the screenshot, fixed, re-verified).
+Guards: scripts/qa/probe-detail-avatar-centred.mjs (8 checks; sabotage: 7 FAIL / exit 1 without js/80; port
+9037) and scripts/qa/probe-sop-arabic-and-bidi.mjs (8 checks incl. "EN page untouched"; sabotage: 4 FAIL /
+exit 1 without js/81; port 9038), both in battery.txt. Gates: structure OK (74 files), probe-integrity OK,
+decisions-wired OK. Live re-runs after the fixes: reference pages 0 hard findings; avatar measured centred on
+the real client card and airline dashboard; Arabic SOP screenshot reads correctly by eye.
+
 ## Routine fire #50 (2026-09-15 06:13 UTC) — the view-only SHARE LINK driven live end to end (an outsider with no sign-in — a role never driven this session): data and writes all safe; three screen defects FIXED (js/79) — banner covered the top bar, Finance offered to a link holder, a colleague's name shown as the guest
 scratchpad/live-share.mjs, real database. A) as the QA admin: the Share button opens js/77's panel (not a bare
 link); the panel listed every existing link (4, all off) with the plain-words note; "Create a new link" asked
