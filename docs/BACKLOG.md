@@ -1,3 +1,40 @@
+## Routine fire #50 (2026-09-15 06:13 UTC) — the view-only SHARE LINK driven live end to end (an outsider with no sign-in — a role never driven this session): data and writes all safe; three screen defects FIXED (js/79) — banner covered the top bar, Finance offered to a link holder, a colleague's name shown as the guest
+scratchpad/live-share.mjs, real database. A) as the QA admin: the Share button opens js/77's panel (not a bare
+link); the panel listed every existing link (4, all off) with the plain-words note; "Create a new link" asked
+first (in-page confirm), then ONE link was minted through the real click path, appeared in the list as ON, and
+its address was on the clipboard. B) a FRESH browser with no session on /s/<token>/leads: no login form, banner
+on, 108 businesses / 28 clients / 78 lead rows loaded through the share_view RPC, 0 primary/danger/editor
+controls, save() neutralised, a direct update through the page's own anon client REFUSED by the database (0
+rows), Arabic toggle works (RTL, Arabic nav, Arabic banner line). Every other section typed into `current`
+(offers, airlines, vendors, sopsla, ops, reports, events, invoices, bookings, settings, documents, activity)
+bounces to Today; no money figures anywhere. C) as the admin: "Switch off" asked first, the row went OFF in the
+panel, and the dead token in a fresh browser shows the plain "This share link is not valid any more…" page
+(DB.businesses reads 65 there — core-01's built-in demo SEED, fake, never rendered; my first check misread it).
+THREE SCREEN DEFECTS, seen on the real shared page and by eye on its screenshot, all fixed in js/79:
+1. **The banner covered the top bar.** The fixed 36px banner sat over the sticky top bar (top:0): page title,
+   search box, language and export buttons were hidden behind it, and the sticky sidebar started under it too.
+   body.paddingTop moves neither. Now `.top{top:36px}` and `.side{top:36px;height:calc(100vh - 36px)}` in a
+   shared view only.
+2. **Finance was offered to a link holder.** With no session js/52 holds to the employee floor (Today · Leads ·
+   Clients · Finance), so the sidebar showed Finance and current='finance' rendered an (empty, 51-char) Finance
+   page — against the panel's own promise ("Today, Leads and Clients"). The entry is now hidden in a shared
+   view and a landing on it is sent to Today. Verified live: nav = Today/Leads/Clients, finance → today.
+3. **The sidebar footer showed the app's placeholder person by name** ("Abdelrahman / Business Development" —
+   the static HTML js/20 replaces only for a signed-in person), as if the outsider were signed in as a
+   colleague. It now reads "View-only guest · Read-only link · nothing can be changed" / "ضيف · عرض فقط — لا
+   تعديل".
+Guard: scripts/qa/probe-share-view-tidy.mjs (10 checks against a seeded active token in the mock; SABOTAGE-
+VERIFIED: with the js/79 script line removed 6 go FAIL and it exits 1; port 9036; in battery.txt). Live re-run
+after the fix: **0 findings** (nav Today/Leads/Clients, banner clear of the top bar, guest footer, all the
+data/write guarantees unchanged). Gates: structure OK (72 files), probe-integrity OK, decisions-wired OK.
+Housekeeping: the two links this round minted (both switched off through the panel) were deleted by SQL;
+share_links is back to exactly its prior state — 4 rows, 0 active, none from today (verified).
+Noted, not changed: (a) the top-bar "Not synced yet" badge and the Export menu are still shown to a link holder —
+harmless (nothing to sync; export is "look", not "change"), the owner may want Export hidden; (b) the clean-URL
+layer rewrites /s/<token>/leads to /leads a moment after boot (an existing, probe-pinned behaviour: the token
+never sits in the address bar), so a RELOAD of a shared page lands on the login form — a link holder must use
+the link again. Both are design calls, recorded here for the owner.
+
 ## Routine fire #49 (2026-09-15 04:11 UTC) — clean-URL deep links driven live for the first time: all 17 checks clean; two wording defects seen by eye on the real card FIXED (history "unknown" actor explained; Arabic sync badge no longer says "not saved")
 Area never driven live: the address bar (js/03 clean-URL routing + js/66 /documents/<tab> sub-addresses). The
 daily path is a colleague pasting /clients/client/<id> into a fresh browser. scratchpad/live-deeplinks.mjs,

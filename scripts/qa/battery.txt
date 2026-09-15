@@ -194,3 +194,4 @@ probe-proposal-option-remove
 probe-clause-template-asks
 probe-palette-arabic-and-new-lead
 probe-history-actor-and-sync-words
+probe-share-view-tidy
