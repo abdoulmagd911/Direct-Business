@@ -3,8 +3,15 @@ New day, and the container's kernel changed overnight (fc-v24 → fc-v33) — th
 battery originally. Checked first: git synced (00bafd0, clean, no oversight commits), and the browser deps
 (/tmp/node_modules playwright + supabase UMD, chromium) plus every scratchpad script and both battery logs
 SURVIVED. So the new-day full battery was launched as the 09-15 baseline (background, new log
-full-battery-day2.txt) — it doubles as the reprovision-resilience test of the fire-#39 conversion. Verdict recorded
-when it lands.
+full-battery-day2.txt) — it doubles as the reprovision-resilience test of the fire-#39 conversion.
+DAY-2 BASELINE VERDICT (00:12→01:45 UTC, 93 min): **186/186 ran, 0 missing, 185 green, 1 red.** All three probes
+fixed on 09-14 (targets-attacks, backup-supabase, people-bridge) green; 09-14's timing flake (leads-dash-tiles)
+green; the 56 hardened probes green. The single red is audit-finance-tabs, confirmed by an isolated re-run to be
+the ONE known check — "EN expenses: slow tab switch — 823ms (freeze-class regression)" — the mock-harness Expenses
+cold open sitting 23ms over the 800ms guard, deterministic and environment-bound, already characterised (fire #40)
+and closed with real-data evidence (fire #41: 441ms cold on the real DB). Not a regression; the guard stays
+untouched (owner's call, per #41). So: the un-darkened battery SURVIVES a container reprovision, and the
+effective day-2 result is 186/186 clean with one documented, borderline guard.
 Fresh slice picked: the standalone KSA Events Hub (`events/index.html`, per CLAUDE.md) — never driven this
 session. It does not exist in the checkout. Ran that down rather than assuming:
 - `git log --diff-filter=D -- events/index.html` → deleted in **47b6c01 "Events move inside the app: v64 layer
