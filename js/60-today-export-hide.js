@@ -1,4 +1,4 @@
-/* ===== Hide the top-bar Export menu on Today (chapter, 2026-08-20) =====
+/* ===== Hide the top-bar Export menu on Today (chapter, 2026-08-20; widened 2026-09-15 to every page with nothing tabular) =====
 
    Found by the QA-admin audit: on Today, all four Export options ("CSV - summary", "CSV -
    full details", "Excel - summary", "Excel - full details") silently downloaded the same
@@ -16,7 +16,14 @@
     try{
       var wrap=document.querySelector('.exp-wrap');
       if(!wrap)return;
-      wrap.style.display=(typeof current!=='undefined'&&current==='today')?'none':'';
+      /* 2026-09-15 (fire #57, live): the same fault on six more pages — Documents (Generator), Reports,
+         Settings, Brand, Activity & Audit, Archive: every labelled CSV/Excel option silently downloaded
+         the 758 KB JSON backup, because exportCurrent() has no column map for them. Same owner ruling
+         as Today: nothing tabular the menu can honestly export, so the menu is hidden there. The list
+         is the pages exportCurrent() DOES know (plus Events, which js/10 exports itself). */
+      var cur=(typeof current!=='undefined')?String(current):'';
+      var tabular=/^(leads|clients|airlines|vendors|sopsla|sops|slas|ops|offers|bookings|invoices|tickets|projects|finance|events)$/.test(cur);
+      wrap.style.display=tabular?'':'none';
     }catch(_){}
   }
   var _r=window.render;

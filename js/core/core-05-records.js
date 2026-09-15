@@ -265,7 +265,13 @@ function exportCurrent(scope){
        "Full backup (JSON)" button. FIN._csvRows is the currently-filtered Ledger rows (set
        by rLedger() — the same source the working finCSV() button already exports from), so
        Summary/Full now differ in column count and CSV/Excel now differ in actual format. */
-    finance:{rows:(typeof FIN!=='undefined'&&FIN._csvRows)||[],list:['invoice_no','invoice_date','client_group','service_type','total_incl_vat_sar','revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','integrity_status']}};
+    finance:{rows:(typeof FIN!=='undefined'&&FIN._csvRows)||[],list:['invoice_no','invoice_date','client_group','service_type','total_incl_vat_sar','revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','integrity_status'],
+      /* 2026-09-15 (fire #57, live): "full details" for Finance dumped EVERY stored column — vat_sar,
+         wallet_portion_sar, discount_sar, internal ids and timestamps — straight into a spreadsheet.
+         M1 (docs/DECISIONS.md): an export speaks in exactly Revenue / Cost / Profit, no fourth money
+         concept. "Full" now means the Ledger tab's own export doctrine (js/16 finLedgerCSV's 18
+         columns) — the same file a person gets from the Finance page itself. */
+      full:['invoice_date','invoice_no','zatca_dpin','client_group','service_type','products','origin','proposal_ref','month','quarter','year','total_incl_vat_sar','revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','integrity_status']}};
   const m=M[cur];if(!m){exportData();return;}
   if(cur==='finance'&&!m.rows.length){alert((typeof LANG!=='undefined'&&LANG==='ar')?'لا صفوف للتصدير — افتح تبويب دفتر القيود أولًا':'No rows to export — open the Ledger tab first');return;}
   let rows=m.rows.slice();
@@ -277,7 +283,10 @@ function exportCurrent(scope){
      Finance) and minus the internal keys nobody reads (raw copies, ids, sync marks). */
   const _noMoney=k=>!/sar|total|value|billed|amount|revenue|cost|profit|credit|price|margin/i.test(k);
   const _noInternal=k=>!/^(_|raw$|id$|legacy_id|scrub_run_id|updatedAt$|updated_at$)/i.test(k)&&!/^_/.test(k);
-  const fields=(cur==='leads'||cur==='clients')?(fullScope?m.list.concat(allKeys(rows).filter(k=>m.list.indexOf(k)<0&&_noMoney(k)&&_noInternal(k))):m.list):(fullScope?allKeys(rows):(m.list||allKeys(rows).slice(0,10)));
+  const fields=(cur==='leads'||cur==='clients')?(fullScope?m.list.concat(allKeys(rows).filter(k=>m.list.indexOf(k)<0&&_noMoney(k)&&_noInternal(k))):m.list):(cur==='finance'&&fullScope&&m.full)?m.full:(fullScope?allKeys(rows).filter(_noInternal):(m.list||allKeys(rows).slice(0,10)));
+  /* 2026-09-15 (fire #57, live): an empty page (Bookings, Invoices, Tickets, Ops with nothing in
+     them) produced a headerless empty file — Finance already says so in words; every page does now. */
+  if(!rows.length){alert((typeof LANG!=='undefined'&&LANG==='ar')?'لا صفوف للتصدير — هذه الصفحة فارغة':'No rows to export — this page is empty');return;}
   const fname='DirectBusiness-'+cur+'-'+(fullScope?'full':'summary')+(sel.length?'-selected':'');
   if(xls)downloadXLS(fname+'.xls',rows,fields);else downloadCSV(fname+'.csv',rows,fields);
 }

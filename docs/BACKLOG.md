@@ -1,3 +1,36 @@
+## Routine fire #57 (2026-09-15 20:12 UTC) — the top-bar "Export ▾" menu driven live on all 20 pages × 4 options × EN+AR (160 real downloads read back): four defect families, all FIXED — six pages handed out the JSON backup under a CSV label; Finance "full details" leaked VAT/wallet/discount columns (M1); Arabic "full details" files carried up to 27 raw column keys; empty pages produced headerless blank files
+scratchpad/live-export.mjs, real database, read-only (0 save() calls). Every sidebar page (incl. the folded
+ones and both SOP/SLA tabs), each of CSV-summary / CSV-full / Excel-summary / Excel-full plus the JSON backup,
+in EN then AR; each downloaded file parsed and checked for name, format, row count vs the screen, dirty
+cells (undefined / [object Object] / NaN — none anywhere), money columns in Leads/Clients (none — the
+2026-09-09 rule holds), Arabic titles, and M1.
+1. **Six pages, every labelled CSV/Excel option silently downloaded the 758 KB JSON backup** — Documents
+   (Generator), Reports, Settings, Brand, Activity & Audit, Archive — because exportCurrent() has no column
+   map for them, the exact fault the owner ruled on for Today on 2026-08-20 ("nothing tabular to export →
+   hide the menu, don't invent a CSV"). js/60 (the Today hide) now hides the menu on every page the exporter
+   does not know; the 13 pages with real tables keep it. Reversible one-liner.
+2. **M1 — Finance "full details" dumped every stored column**: vat_sar, wallet_portion_sar, discount_sar,
+   plus direct_uuid, deleted_at, created/updated_at, exclusion_reason, source_batch, line_no… (38 columns).
+   The Finance page's OWN export (js/16 finLedgerCSV) has always used an 18-column doctrine without any of
+   those; the top-bar "full" now uses that same list (core-05). Summary (11) and full (18) now differ
+   honestly. Verified live: 46 rows × 18 columns, no VAT-ish column.
+3. **Arabic "full details" titles were raw keys** on Leads (8/42), Clients (7/41), Airlines (27/54),
+   Providers (10/37), Proposals (21/51), SLAs (1/5) — js/73's label map stopped at the summary columns.
+   72 labels added; live re-run: 0 raw keys on every page (the only Latin left is "GDS" and "Direct").
+   Also: the generic "full" export now drops the same internal keys Leads already dropped (_flags, raw,
+   ids, sync marks) — Airlines 54→52, Providers 37→36 columns.
+4. **An empty page (Bookings, Invoices, Tickets, Operations — all empty live) produced a headerless
+   0-byte file**; Finance already said "No rows to export" in words — every page does now (core-05), in
+   both languages.
+Guard: scripts/qa/probe-export-menu-honest.mjs (7 checks: hidden on 6 pages / shown on 3, the finance
+doctrine columns, summary≠full, the empty-page refusal via the js/63 notice card, 0 raw Arabic keys on
+Airlines, 0 JS errors; SABOTAGE-VERIFIED: 4 FAIL / exit 1 with the three edits stashed; port 9044; in
+battery.txt). Neighbours re-run green: probe-finance-export, probe-export-records, probe-no-vat-display.
+Gates: structure OK, probe-integrity OK, decisions-wired OK.
+NOTED, not changed: the Events tab's own export (js/10) names its file "…-events-48-rows" and produces the
+same 20 columns for summary and full — one honest shape, by design. If the owner wants a real export for
+Activity & Audit or Archive (both are tables), that is new scope, not a fix.
+
 ## Day-3 full battery verdict (2026-09-15 20:23 UTC, follow-up to fire #56) — ALL 196 probes green at ef5cc82
 Every probe named in scripts/qa/battery.txt ran once (196 named, 196 logged, 0 failures, 0 timeouts, 0 missing
 files). The run started at 18:13 UTC on HEAD 3e901e4 and had reached 38 green probes when the session's
