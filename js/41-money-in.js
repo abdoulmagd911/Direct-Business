@@ -368,6 +368,13 @@
   function pass(){
     if(busy||!canEdit())return;
     var FIN=window.FIN; if(!FIN||!FIN.rows)return;
+    /* 2026-09-15 (fire #58, live): js/16 sets FIN.rows FIRST and fetches finance_client_links
+       AFTERWARDS, while this pass runs 400 ms after every render. In that gap the link map is empty,
+       so every name-matchable group looked unlinked and was upserted again — 13 links rewritten on
+       every visit to Finance by any editor (confirmed_at/updated_at bumped to "now", and a human's
+       later correction of a link would be silently undone by the name match). FIN.links only exists
+       once the links have actually loaded (js/16 finGot), so wait for it. */
+    if(!Array.isArray(FIN.links))return;
     if(!((typeof DB!=='undefined')&&DB.businesses&&DB.businesses.length))return;
     var linkBy=FIN.linkByGroup||{};
     // collect candidate groups: not linked, not already attempted

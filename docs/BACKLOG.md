@@ -1,3 +1,31 @@
+## Routine fire #58 (2026-09-15 22:11 UTC) — Finance's eight tabs and their interactions driven live EN+AR+phone: figures honest to the database, but a plain READ-ONLY visit to Finance was silently REWRITING 13 client-link rows every time — FIXED in js/41
+scratchpad/live-finance-tabs.mjs, real database, EN then AR, plus 400 px. Every write request was counted, not
+just save(). Independent DB truth first: 46 live invoices, revenue 2,030,764 / cost 1,538,142 / profit 492,623,
+every row obeys revenue = total − wallet and profit = revenue − cost, 0 rows with VAT mixed into profit (M1).
+CLEAN: all 8 tabs (Performance, Clients & collections, Ledger, Report Builder, Expenses, Payment proofs,
+Individual bookings, Import) render in both languages with no NaN/undefined/[object Object] and 0 JS errors;
+the Performance figures on screen equal the DB sums; the Clients grand-total row follows the period
+(Q1 = DB 541,288 over 2 invoices, Q2 = 541,275 over 20) in EN and AR; the Report Builder's 3 presets render;
+400 px never scrolls sideways; every tab label is Arabic on the Arabic page (the Latin left is client names
+and stored English reasons — data, not UI).
+THE DEFECT (data integrity, invisible on screen): js/16 loads the invoices FIRST and fetches
+finance_client_links AFTERWARDS; js/41's automatic linking pass runs 400 ms after every render, saw rows
+but an empty link map, and upserted every name-matchable group again — 13 links rewritten on every visit to
+Finance by any editor (verified in the database: 13 rows with confirmed_at/updated_at bumped inside my
+read-only run; 16 write requests counted, 13 of them to finance_client_links). Beyond the churn, a person's
+later correction of one of those links would be silently undone by the name match on the next visit.
+FIX (js/41, one guard): the pass waits until FIN.links exists — js/16 sets it only when the links have
+actually loaded. Live re-run: 0 writes to finance_client_links (the 3 remaining non-GET calls are the
+read-only RPCs my_page_access / team_nicknames).
+Guard: scripts/qa/probe-finance-links-race.mjs (mock seeds every group as already linked BY A PERSON and delays
+the links response 1.5 s so the race is deterministic; 5 checks — 0 link writes, links loaded, no confirmed_by
+overwritten, the pass was live; SABOTAGE-VERIFIED: 2 FAIL / exit 1 with the js/41 edit stashed; port 9045;
+in battery.txt). Gates: structure OK, probe-integrity OK, decisions-wired OK.
+STILL OPEN (owner's product call, recorded fire #12 — not re-flagged as a defect, but now seen from the user's
+side): the Ledger tab reads finance_transactions (33 rows, all soft-deleted 2026-08-22), so it shows "the
+ledger is empty, not filtered" — and clicking a client in "Top clients" lands there, on nothing, while the
+same client's invoices are counted one tab over. If the ledger should list invoices, that is new scope.
+
 ## Routine fire #57 (2026-09-15 20:12 UTC) — the top-bar "Export ▾" menu driven live on all 20 pages × 4 options × EN+AR (160 real downloads read back): four defect families, all FIXED — six pages handed out the JSON backup under a CSV label; Finance "full details" leaked VAT/wallet/discount columns (M1); Arabic "full details" files carried up to 27 raw column keys; empty pages produced headerless blank files
 scratchpad/live-export.mjs, real database, read-only (0 save() calls). Every sidebar page (incl. the folded
 ones and both SOP/SLA tabs), each of CSV-summary / CSV-full / Excel-summary / Excel-full plus the JSON backup,
