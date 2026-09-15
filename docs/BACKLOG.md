@@ -1,3 +1,37 @@
+## Routine fire #49 (2026-09-15 04:11 UTC) — clean-URL deep links driven live for the first time: all 17 checks clean; two wording defects seen by eye on the real card FIXED (history "unknown" actor explained; Arabic sync badge no longer says "not saved")
+Area never driven live: the address bar (js/03 clean-URL routing + js/66 /documents/<tab> sub-addresses). The
+daily path is a colleague pasting /clients/client/<id> into a fresh browser. scratchpad/live-deeplinks.mjs,
+real database, read-only, fresh browser context per case (no session → sign in → must land on the address):
+- client card, lead card, the OLD shape /leads/lead/<clientId> (rewritten to /clients/client/…), /finance,
+  the aliases /providers→vendors and /dashboard→today, /documents/fees (lands in the fees editor — read via the
+  app's own __dgTabProbe/__dgHomeProbe hooks), an unknown address (→ Today, no error), and a card link to a
+  record that does not exist (→ Leads list, no error) — **9/9 land correctly with the address preserved**.
+- reload on a card address keeps the card (both card shapes) — 2/2.
+- history: Back #1 closes the card and keeps the Contacted filter; Back #2 undoes the filter and stays on
+  Leads; Back #3 returns to Today; Forward ×3 replays Leads → filter → the same card; re-rendering an open
+  card adds no history entries — 5/5. Arabic-first boot on a client deep link lands on the card, RTL — 1/1.
+  0 JS errors across every context. Routing: 0 defects.
+TWO DEFECTS FOUND BY EYE on the EN + AR screenshots of that real card, both fixed in this commit:
+1. **"Recent changes" read "unknown — last contact" on two rows** (js/63). Ran it down in the database: 216 of
+   274 record_history rows have actor NULL / actor_name 'unknown' — and they are bursts at identical
+   timestamps (56 invoice creates at one second, 28 deletes at another, 7+6+12 edits at 05:38:46 exactly) —
+   direct SQL / service-role work by sessions and imports, never the app: the businesses write policy needs
+   app_role() (a signed-in account), so an app write always carries auth.uid(). (SELF-CORRECTION: my fire-#32
+   line "record_history fully attributed" was true only of actor_name being non-null; 79% of rows are the
+   literal 'unknown'.) The word "unknown" on a card looks like a ghost edit or an unnamed colleague. It now
+   reads "unknown — changed directly in the database, not via the app" / "غير معروف — تغيير مباشر في قاعدة
+   البيانات، ليس عبر التطبيق" — the word kept so the two probes pinned to it (audit-names-and-words,
+   audit-events-search-attacks) still pass (re-run: both green). Verified live on the real card, EN + AR.
+2. **The sync badge's Arabic said "not yet saved on the server" (لم يُحفظ على الخادم بعد) on a fresh browser
+   with nothing changed** (js/75), where English says the neutral "Not synced yet" — an EN/AR meaning
+   mismatch that reads as unsaved work. Now "لم تتم المزامنة بعد". Verified live at the login screen and after
+   sign-in, EN + AR.
+Guard: scripts/qa/probe-history-actor-and-sync-words.mjs (5 checks; SABOTAGE-VERIFIED: with the two fixes
+stashed, 3 checks FAIL and it exits 1; restored and green; port 9035 — the first pick, 8913, was already
+taken by probe-lifecycle5 and the integrity gate caught it). Gates: structure OK, probe-integrity OK,
+decisions-wired OK. Noted, not changed: field VALUES on the Arabic card ("Government tender", "No", "Won")
+are stored data in English — a bilingual value map would be a feature, not a fix.
+
 ## Routine fire #48 (2026-09-15 02:11 UTC) — the Ctrl/⌘+K command palette driven live for the first time: "New lead" was broken, the whole palette was English in Arabic — both FIXED (js/78), guarded, 0 findings on re-run
 Area never driven this session: the command palette (core-06 v19, extended by core-08 v25 + core-09 v26) — a
 daily path ("Find a client" on Today opens it; the "/", "?", "N", "E" shortcuts live in the same handler).

@@ -139,7 +139,13 @@
      but is not in FIELD_WORDS was printed as its camelCase key (createdAt, funnelDetails). */
   function actionLabel(a){ return { create:fl('Created','أُنشئ'), edit:fl('Edited','عُدِّل'), delete:fl('Deleted','حُذف'), archive:fl('Archived','أُرشف'), restore:fl('Restored','استُعيد'), denied:fl('Refused','رُفض') }[a] || a; }
   function tableLabel(t){ return { businesses:fl('Lead / client','عميل محتمل / عميل'), finance_invoices:fl('Invoice','فاتورة'), finance_transactions:fl('Transaction','معاملة'), client_profiles:fl('Client profile','ملف العميل'), contacts:fl('Contact','جهة اتصال'), activities:fl('Activity','نشاط'), access:fl('Page access','الوصول إلى صفحة'), app_users:fl('Team account','حساب فريق'), share_links:fl('Share link','رابط مشاركة') }[t] || t; }
-  function actorWord(n){ var s=String(n==null?'':n).trim(); if(!s||s==='—')return '—'; if(s.toLowerCase()==='unknown'||s.toLowerCase()==='system')return fl(s.toLowerCase()==='system'?'automatic':'unknown', s.toLowerCase()==='system'?'تلقائي':'غير معروف'); return s; }
+  /* 2026-09-15 (fire #49, live): 216 of 274 history rows carry the literal 'unknown', and on a
+     client card that read "unknown — last contact" like a ghost edit. It is not a ghost: the
+     businesses write policy requires app_role() (a signed-in account), so a row the trigger
+     could not name can only have come from a direct database change (SQL / service role —
+     imports, clean-ups, sessions), never from the app. Say that, in both languages, and keep
+     the word "unknown"/"غير معروف" so the person still sees no colleague is being blamed. */
+  function actorWord(n){ var s=String(n==null?'':n).trim(); if(!s||s==='—')return '—'; var l=s.toLowerCase(); if(l==='system')return fl('automatic','تلقائي'); if(l==='unknown')return fl('unknown — changed directly in the database, not via the app','غير معروف — تغيير مباشر في قاعدة البيانات، ليس عبر التطبيق'); return s; }
   function pageWord(k){ try{ var P=(window.PAGES||[]).find(function(x){return x[0]===k;}); if(P) return isAr()?(P[2]||P[1]):P[1]; }catch(_){} return String(k||''); }
   function fmtWhen(iso){ try{ return new Date(iso).toLocaleString(isAr()?'ar':'en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(_){ return iso||''; } }
   /* 2026-09-09 (live test, AU2 + AU3): every row read "Lead / client · Edited — unknown — raw"

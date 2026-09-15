@@ -66,7 +66,10 @@
       if (S.failing) return { dot: '#D92D20', text: AR() ? 'غير محفوظ على الخادم — محفوظ على هذا الجهاز' : 'Not synced — saved on this device' };
       if (offline) return { dot: '#B54708', text: AR() ? 'لا يوجد اتصال' : 'No connection' };
       if (S.lastOk) return { dot: '#22C55E', text: (AR() ? 'محفوظ ' : 'Synced ') + ago(Date.now() - S.lastOk) };
-      return { dot: '#9AA1B6', text: AR() ? 'لم يُحفظ على الخادم بعد' : 'Not synced yet' };
+      /* 2026-09-15 (fire #49, live): the Arabic here said "not yet saved on the server", which
+         on a fresh browser with nothing changed reads as unsaved work; the English is the
+         neutral "Not synced yet". Same meaning in both languages now. */
+      return { dot: '#9AA1B6', text: AR() ? 'لم تتم المزامنة بعد' : 'Not synced yet' };
     }
 
     function paint() {
