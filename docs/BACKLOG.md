@@ -1,3 +1,29 @@
+## Routine fire #47 (2026-09-15 00:11 UTC) — new-day baseline battery launched; the "Events Hub file" run down: retired by design, docs stale, my fire-#31 note corrected
+New day, and the container's kernel changed overnight (fc-v24 → fc-v33) — the very condition that darkened the
+battery originally. Checked first: git synced (00bafd0, clean, no oversight commits), and the browser deps
+(/tmp/node_modules playwright + supabase UMD, chromium) plus every scratchpad script and both battery logs
+SURVIVED. So the new-day full battery was launched as the 09-15 baseline (background, new log
+full-battery-day2.txt) — it doubles as the reprovision-resilience test of the fire-#39 conversion. Verdict recorded
+when it lands.
+Fresh slice picked: the standalone KSA Events Hub (`events/index.html`, per CLAUDE.md) — never driven this
+session. It does not exist in the checkout. Ran that down rather than assuming:
+- `git log --diff-filter=D -- events/index.html` → deleted in **47b6c01 "Events move inside the app: v64 layer
+  upgrades the Events tab; public page retired; data signed-in only"**. The public hub was RETIRED by design;
+  events live only as the in-app Events tab (js/10-events.js, ksa_events, signed-in) — the page the walks already
+  verified (#13, #16, #37) with its 80 real events.
+- /events still resolves correctly: vercel.json has no /events rewrite, so the catch-all serves the main app,
+  and js/03's VALID list includes 'events' → the deep URL lands on the in-app Events tab after sign-in. Not a
+  broken URL; not a defect.
+- DOCS were stale: CLAUDE.md still named `events/index.html` as a live file (the "consolidated home" line, the
+  ksa-events-hub note "Its page is now in events/", and the links table "Events hub"). Corrected in this commit to
+  say the page was retired in 47b6c01 and where Events live now. (The `ksa-events-hub` in the edge-function list
+  is a real, still-existing function — left alone.)
+- SELF-CORRECTION: my fire-#31 entry stated "/events is the KSA Events Hub's own events/index.html (served by
+  filesystem precedence, confirmed live in fire #13's walk)". Both halves were wrong — the file had already been
+  retired, and fire #13 navigated the IN-APP events page, never the /events URL. I asserted it without checking.
+  The line is corrected in place below (fire #31) so the record is not misleading.
+**0 app defects; 1 stale-documentation fix; 1 self-correction.** No new oversight commits (HEAD 00bafd0).
+
 ## Routine fire #46 (2026-09-14 22:11 UTC) — phone width, deeper: real DETAIL CARDS and all 8 FINANCE TABS at 400px, EN+AR, real DB — all fit, 0 defects
 Fire #44 proved every PAGE fits at phone width; this opened what a colleague on a phone actually taps into
 (scratchpad/live-phone-deep.mjs, 400×850, isMobile, real database, read-only):
@@ -352,8 +378,12 @@ Verified the documented landmine that a single RELATIVE <script src> breaks the 
   www.directksab2b.com; rewrites send /brand, /brand/proposal, /brand/identity to their static pages, then the
   SPA catch-all /(.*) → /index.html serves the app for every other deep path. So /leads reload → Vercel returns
   index.html → absolute scripts load → js/03 clean-url routing renders the right view. End-to-end sound.
-- /events is the KSA Events Hub's own events/index.html (served by filesystem precedence, confirmed live in
-  fire #13's walk) — not swallowed by the catch-all.
+- /events: CORRECTED in fire #47 — this line originally claimed "/events is the KSA Events Hub's own
+  events/index.html (served by filesystem precedence, confirmed live in fire #13's walk)". That was wrong on both
+  counts: the public hub file was retired in commit 47b6c01 (Events moved inside the app), and fire #13 drove the
+  IN-APP events page, never the /events URL. The true behaviour: /events falls to the catch-all → /index.html,
+  and js/03's VALID list includes 'events', so the deep URL lands on the in-app Events tab after sign-in. Correct
+  by design; the earlier wording was an unchecked assertion.
 **0 defects.** Read-only. No new oversight commits (HEAD a6f0462).
 
 ## Routine fire #30 (2026-09-13 18:11 UTC) — FLAGGED (enhancement, not a defect): the Direct Payments deep-link ignores direct_client_id, name-searches for 18/28 clients

@@ -110,8 +110,9 @@ Arabic + English. Used by employees only.
 
 ## Where everything actually lives
 
-This repo is now the consolidated home: `index.html` (the app), `events/index.html`
-(KSA Events Hub), `vercel.json`, `docs/`, `scripts/`. The `index.html` here was verified
+This repo is now the consolidated home: `index.html` (the app), `js/` (its layers),
+`vercel.json`, `docs/`, `scripts/`. (`events/index.html`, the public KSA Events Hub page, was
+retired in commit 47b6c01 — Events are now the in-app tab only.) The `index.html` here was verified
 byte-for-byte identical (SHA-256) to what directksab2b.com was serving on 2026-08-08.
 
 **Deploys are automatic as of 2026-08-08.** The Vercel project `direct-business` (team
@@ -137,7 +138,10 @@ when convenient; they are kept only as history.
 The other two GitHub repos are kept untouched as reference, not deleted:
 - `abdoulmagd911/direct` (private) — 1 commit, 2026-08-08. Its `index.html` is identical to
   the one now in this repo.
-- `abdoulmagd911/ksa-events-hub` (public) — 2 commits, 2026-07-27. Its page is now in `events/`.
+- `abdoulmagd911/ksa-events-hub` (public) — 2 commits, 2026-07-27. Its page was carried into this
+  repo as `events/index.html`, then **retired in commit 47b6c01** ("Events move inside the app: v64
+  layer upgrades the Events tab; public page retired; data signed-in only"). Events now live ONLY as
+  the in-app Events tab (`js/10-events.js`, `ksa_events` table, signed-in). Don't look for the file.
 
 **Supabase project:** `direct-business` — ref `vkxoeeoauexyfpzqufqd` (eu-central-1)
 (A second project, `directksa-performance` / `byhxnmafaumersoaiybq`, also exists.)
@@ -194,7 +198,7 @@ Verified by testing, 2026-08-08 — do not re-litigate, and do not promise what 
 | What | Where |
 |---|---|
 | The internal B2B app (this repo) | https://www.directksab2b.com · https://direct-business.vercel.app |
-| Events hub | https://www.directksab2b.com/events |
+| Events (in-app tab, signed-in; the public hub page was retired in 47b6c01) | https://www.directksab2b.com/events |
 | Public company website | https://directksa.com/ar/ |
 | Corporate B2B site (**not launched yet**) | https://corporate.directksa.com/en/dashboard |
 | Direct Payment — owns all real money | https://payments.directksa.com |
