@@ -199,3 +199,4 @@ probe-detail-avatar-centred
 probe-sop-arabic-and-bidi
 probe-generator-preview-fit
 probe-events-arabic-bidi
+probe-leads-dash-vocabulary

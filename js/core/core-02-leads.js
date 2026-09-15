@@ -62,14 +62,28 @@ const _hc=(typeof leadFilter!=='undefined'&&leadFilter.hideClosed&&(leadFilter.s
 const _all=DB.businesses.filter(matchLead);
 const B=_all.filter(b=>!b.isClient).filter(b=>!_hc||(leadStage(b)!=="Won"&&leadStage(b)!=="Lost"));
 const open=B.filter(b=>{const s=leadStage(b);return s!=="Won"&&s!=="Lost";});
-const fmax=Math.max(1,...LEAD_STAGES.map(s=>B.filter(b=>leadStage(b)===s).length));
-const byStage=LEAD_STAGES.map(s=>({s,n:B.filter(b=>leadStage(b)===s).length,c:LSTAGE_COLOR[s]}));
+/* 2026-09-15 (fire #54, live, by eye): the board listed "Negotiation" — a stage the database
+   cannot hold (the locked list is new/contacted/in_discussion/proposal/won/lost/on_hold, and
+   the chips above the table show Prospect/Contacted/Qualified/Proposal/Won/Lost) — and "Client"
+   (Won relabelled), which for LEADS is always 0 because a won lead becomes a client and is
+   counted in the "Became client" tile. Both bars are gone; the bars now speak the chips'
+   vocabulary. Lost is counted from the leads the filters match BEFORE Hide-closed removes
+   them: with Hide-closed on (the default) the chip said "Lost 2" while this board said
+   "Lost 0" on the same screen. Clients are still never counted as lost leads (L1, 2026-09-09). */
+const _leadsAll=_all.filter(b=>!b.isClient);
+/* the bars' stage words and the "leads" unit follow the page language (the same Arabic words js/21
+   uses for the chips) — the Arabic board used to show English bars under Arabic tiles */
+const _dashAr=(typeof LANG!=='undefined'&&LANG==='ar');
+const _stageN=s=>((s==="Lost"||s==="Won")?_leadsAll:B).filter(b=>leadStage(b)===s).length;
+const _DASH_STAGES=LEAD_STAGES.filter(s=>s!=="Negotiation"&&s!=="Won");
+const fmax=Math.max(1,..._DASH_STAGES.map(_stageN));
+const byStage=_DASH_STAGES.map(s=>({s,n:_stageN(s),c:LSTAGE_COLOR[s]}));
 const srcCount={};B.forEach(b=>{const _arF=(typeof LANG!=="undefined"&&LANG==="ar");const k=(_arF?(b.funnelNameAr||b.funnelName):b.funnelName)||b.source||"Other";srcCount[k]=(srcCount[k]||0)+1;});
 const bySource=Object.entries(srcCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
 const ownerCount={};B.forEach(b=>{const o=b.assignedTo||b.owner||"Unassigned";ownerCount[o]=(ownerCount[o]||0)+1;});
 const byOwner=Object.entries(ownerCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
 const clients=_all.filter(b=>b.isClient||leadStage(b)==="Won").length;
-const lost=B.filter(b=>leadStage(b)==="Lost").length;
+const lost=_stageN("Lost");
 /* "Total leads" counts leads. A company that has become a client is no longer one, and
    counting it in both places made the tile read 91 when there were 81 leads and 10 clients.
    The clients keep their own tile next door, so nothing is hidden — it is just not
@@ -80,7 +94,7 @@ const leadsOnly=B.filter(b=>!b.isClient);
    and an unreadable grey label. Light-surface styling, inline, so nothing else changes. */
 const _tile=(v,l)=>`<div class="chip" style="background:#fff;border:1px solid #EFE9DF;color:#1C1E2B;min-width:150px;padding:14px 18px"><div class="v" style="font-size:24px;line-height:1.1">${v}</div><div class="l" style="color:#6B7480;margin-top:4px">${l}</div></div>`;
 board.innerHTML=`<div class="chips leads-dash-tiles" style="margin:0 0 14px">${_tile(leadsOnly.length,'Total leads')}${_tile(open.length,'In pipeline')}${_tile(clients,'Became client')}${_tile(lost,'Lost')}</div>
-<div class="detail-grid"><div><div class="card"><h3>Leads by stage</h3>${byStage.map(f=>`<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:12px"><span style="font-weight:600">${SL(f.s)}</span><span style="color:var(--muted)">${f.n} lead${f.n===1?"":"s"}</span></div><div style="height:10px;background:#eef0f5;border-radius:6px;overflow:hidden;margin-top:3px"><div style="height:100%;width:${Math.round(f.n/fmax*100)}%;background:${f.c}"></div></div></div>`).join("")}</div></div>
+<div class="detail-grid"><div><div class="card"><h3>Leads by stage</h3>${byStage.map(f=>`<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:12px"><span style="font-weight:600">${_dashAr?({Prospect:'مرتقب',Contacted:'تم التواصل',Qualified:'مؤهل',Proposal:'عرض مقدم',Lost:'مفقود'}[f.s]||SL(f.s)):SL(f.s)}</span><span style="color:var(--muted)">${_dashAr?(f.n+' عميل محتمل'):(f.n+' lead'+(f.n===1?"":"s"))}</span></div><div style="height:10px;background:#eef0f5;border-radius:6px;overflow:hidden;margin-top:3px"><div style="height:100%;width:${Math.round(f.n/fmax*100)}%;background:${f.c}"></div></div></div>`).join("")}</div></div>
 <div><div class="card"><h3>Leads by funnel</h3>${bySource.length?bySource.map(e=>`<div class="fact"><span class="k">${esc(e[0])}</span><span class="v">${e[1]}</span></div>`).join(""):'<div class="empty">No funnels.</div>'}</div>
 <div class="card"><h3>By owner</h3>${byOwner.length?byOwner.map(e=>`<div class="fact"><span class="k">${esc(e[0])}</span><span class="v">${e[1]}</span></div>`).join(""):'<div class="empty">No owners.</div>'}</div></div></div>`;
 }

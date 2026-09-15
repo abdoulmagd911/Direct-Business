@@ -1,3 +1,33 @@
+## Routine fire #54 (2026-09-15 14:12 UTC) — Settings, the Leads "Dashboard" view and the Clients filters driven live EN+AR: Settings and Clients clean; the Leads dashboard contradicted the chips ("Lost 0" under "Lost 2") and listed stages that cannot exist — FIXED in core-02, Arabic bars too
+scratchpad/live-settings-dash-clients.mjs, real database, read-only (0 save() calls), EN then AR.
+SETTINGS: all 18 cards render, the pool-history and template-token pop-ups open and close, no NaN/undefined,
+0 JS errors. CLIENTS filters: the manager dropdown lists exactly the 6 managers in the data + "Unassigned (20)";
+picking a manager leaves only that manager's rows (labelled by nickname, as js/54 paints them — my first check
+compared the raw full name and misfired, corrected); the tier filter narrows to the data's count; a real-name
+search narrows to matching rows and the box keeps its text; "Mine" for the QA account (owns nothing) shows the
+honest "No clients match." placeholder (one colspan row — not a phantom client; corrected in the script).
+LEADS DASHBOARD (the Table/Dashboard toggle, core-02 drawLeadsDash) — three real defects seen by eye:
+1. **"Lost 0" on the board directly under a "Lost 2" chip.** With Hide-closed on (the default) the board's pool
+   excluded lost leads, so the Lost tile and the Lost bar were 0 while 2 lost leads exist. Lost (and Won) are
+   now counted from the leads the filters match BEFORE Hide-closed removes them; the L1 rule of 2026-09-09
+   (a client whose stage says Lost is never a lost lead) still holds and is re-asserted by the guard.
+2. **"Negotiation" bar** — a stage the locked database list cannot hold and the chips never show; always 0.
+   Gone. **"Client" bar** (Won relabelled) — always 0 for leads because a won lead is a client, counted in the
+   "Became client" tile next to it. Gone. The bars now speak exactly the chips' vocabulary.
+3. **Arabic page: English bars under Arabic tiles** ("Prospect: 53 leads"). The bar stage words and the "leads"
+   unit now follow the page language, using js/21's own Arabic stage words ("مرتقب: 53 عميل محتمل").
+Verified live after the fix: EN tiles Total 78 · In pipeline 78 · Became client 28 · Lost 2 (= chip), bars
+Prospect 53 / Contacted 25 / Qualified 0 / Proposal 0 / Lost 2; AR tiles and bars fully Arabic, Lost 2 = chip.
+Guard: scripts/qa/probe-leads-dash-vocabulary.mjs (8 checks incl. the L1 rule and the Arabic bars; SABOTAGE-
+VERIFIED: 4 FAIL / exit 1 with the core-02 edit stashed; port 9041; in battery.txt). probe-leads-dash-tiles
+(the 2026-09-09 guard) still passes. Gates: structure OK, probe-integrity OK, decisions-wired OK.
+NOTED FOR THE OWNER, not changed (a scope call, not a defect): 9 of the 18 Settings cards are developer
+self-checks from the v21–v23 build days — "Performance", "Security & integrity", "Accessibility audit (WCAG 2.1
+AA)", "Internationalization", "Developer / test harness", "Print + PDF (sub-pass 2)", "v21 reconcile with
+Ahmed's sheets", "v22 — Workflow + go-live", "v23 — Scenario sweep" — English-only on the Arabic page, full of
+jargon (rule 1), and one names a colleague. If they are not used day to day, hiding them behind an "Advanced"
+fold (a reversible one-line hide) would leave Settings with the 9 cards a non-developer needs. Owner's call.
+
 ## Routine fire #53 (2026-09-15 12:13 UTC) — Activity & Audit log and the Events tab driven live EN+AR: data/behaviour clean; three Arabic-page defects seen BY EYE and fixed — the events date range read scrambled, English notes read backwards (js/10), three page names showed as raw keys in the audit log (js/63)
 scratchpad/live-activity-events.mjs, real database, read-only (0 save() calls), EN then AR.
 ACTIVITY & AUDIT: all 274 record_history rows render (tile 274 = the table's count; Today 5 / 7-day 32 — the 5
