@@ -1,3 +1,35 @@
+## Routine fire #48 (2026-09-15 02:11 UTC) — the Ctrl/⌘+K command palette driven live for the first time: "New lead" was broken, the whole palette was English in Arabic — both FIXED (js/78), guarded, 0 findings on re-run
+Area never driven this session: the command palette (core-06 v19, extended by core-08 v25 + core-09 v26) — a
+daily path ("Find a client" on Today opens it; the "/", "?", "N", "E" shortcuts live in the same handler).
+scratchpad/live-palette.mjs, real database, read-only (a save()/saveDB() counter proved 0 writes across the run;
+"New offer" and every "View as <preset>" were skipped on purpose because they DO write). EN desktop, AR desktop,
+EN phone (400px). All 28 empty-query rows were run one by one and the landing judged.
+TWO REAL DEFECTS, both reproduced live and now fixed:
+1. **"New lead" in the palette threw `editLead is not defined`.** core-06 line 492 calls a function that never
+   existed anywhere (the real form is `editBusiness()` in core-02). The "N" shortcut on the Leads page checks
+   `typeof editLead==='function'` for the same reason — false — so instead of the new-lead form it fell through to
+   the palette, whose "New lead" row then threw. Fix: `editLead(id)` is a thin alias of `editBusiness(id)`.
+   Verified live after the fix: palette "New lead" → "New business" form, no error; "N" on Leads → the form directly.
+2. **In Arabic mode every part of the palette was English**: the search hint ("Search anything — …"), 27 of 28
+   rows, all 28 kind badges, the ↑↓/↵/Esc footer, "No matches." and the "?" cheat sheet. Fix: when LANG is 'ar'
+   the rows are relabelled from a table (English label kept on each row as `en`, so typing "settings" still finds
+   the Settings row), record kinds get Arabic badges, and the chrome is rewritten on open / on every language flip.
+   Verified live: 28/28 rows Arabic, 28/28 badges Arabic, hint/footer/no-match/cheat-sheet Arabic, RTL clean in
+   the screenshot.
+Everything else was clean: Ctrl+K opens/toggles/closes; Esc closes; ↑↓ move the selection; a real 6-letter
+fragment lists the record and Enter opens it (dropdown closed, card 2,912 chars); "/" focuses the global search;
+"?" opens the cheat sheet; the 12 Nav rows all land on a rendered page with a highlighted sidebar entry (including
+the four not in the sidebar — Invoices/Bookings/Tickets/Sync — which render via the "More" group); the 7 form
+Actions open their modal; 0 JS errors; palette fits the phone screen (384×748 inside 400×850).
+Shipped: `js/78-palette-arabic-and-new-lead.js` (+ its script line — a connection step, done alone, structure gate
+green: 71 files, no duplicate ids) and `scripts/qa/probe-palette-arabic-and-new-lead.mjs` (13 checks; SABOTAGE-
+VERIFIED: with the js/78 line removed 11 go FAIL and it exits 1; registered in battery.txt, port 8912).
+Gates: check-structure OK, check-probe-integrity OK, check-decisions-wired OK.
+Noted, not changed (owner's call): the palette's Nav list is the 2026-era one — it offers Invoices/Bookings/
+Tickets/Sync/Projects (all still render) but has no row for Clients, Finance, Events, Documents, Reports, Ops,
+Archive; the global search box covers records, so nothing is unreachable, but "Go to Finance" would be the
+natural row to add if the owner wants the palette to match today's sidebar.
+
 ## Routine fire #47 (2026-09-15 00:11 UTC) — new-day baseline battery launched; the "Events Hub file" run down: retired by design, docs stale, my fire-#31 note corrected
 New day, and the container's kernel changed overnight (fc-v24 → fc-v33) — the very condition that darkened the
 battery originally. Checked first: git synced (00bafd0, clean, no oversight commits), and the browser deps

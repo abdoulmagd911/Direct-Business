@@ -192,3 +192,4 @@ probe-import-json-safe
 probe-golive-reset-retired
 probe-proposal-option-remove
 probe-clause-template-asks
+probe-palette-arabic-and-new-lead
