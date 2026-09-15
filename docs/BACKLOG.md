@@ -1,3 +1,30 @@
+## Routine fire #55 (2026-09-15 16:11 UTC) — Proposals page and Today driven live EN+AR+phone: clean in behaviour; the Arabic proposal editor still carried nine English labels — FIXED (core-04 + core-06); the only live proposal was a blank QA draft with a test PDF — removed through the app's own Delete
+scratchpad/live-proposals.mjs, real database, read-only (0 save() calls), EN, AR and AR-phone (400px).
+TODAY: renders in both languages, no money figures (owner rule), tiles honest — "overdue invoices 0" checked
+against finance_invoices: 0 unpaid, 0 overdue (27 rows carry a due date, all settled); the Arabic page reads
+fully Arabic by eye. PROPOSALS: list = data (1), the search narrows by a real ref fragment and keeps its text,
+"Mine" honest, the editor opens with 22/53 fields filled and no undefined, closes back to the list; the phone
+layout never scrolls sideways. 0 JS errors anywhere.
+1. **Arabic proposal editor: nine English labels** (seen by eye): the "↧ Load a corporate client's negotiated
+   deal & pricing…" option, the "Agency only: Cost · Commission · Margin" note (+ "freebies cost", "net"), the
+   "Fare options — compare 2–3 fares" summary (all core-04, which already had a bilingual helper the note never
+   used), and the bundle-templates panel (core-06 v18): "(reusable service bundles)", its hint, "items ·
+   freebies", "Option 1", "Apply", the tiered-pricing hint. All bilingual now, in place, EN unchanged.
+2. **The only proposal in the live workspace was a blank draft** — DB-334490, no client / subject / value /
+   scope, status Draft, owner = the QA account, dated 2026-09-10 (a "live test" day), with a QA file
+   "live-check.pdf" attached — exactly the accidental-draft shape the 2026-09-02 "N key" fix exists for, sitting
+   as the team's one and only proposal. Removed THROUGH THE APP (its own Delete button + in-page confirm), not
+   by SQL; the list now shows its honest empty state in EN and AR. Verified in the database: offers = 0,
+   businesses 112 and invoices 46 untouched.
+Guard: scripts/qa/probe-proposal-editor-arabic.mjs (5 checks — EN wording intact, 8 English fragments gone from
+the AR editor, 8 Arabic ones present; SABOTAGE-VERIFIED: 2 FAIL / exit 1 with both core edits stashed; port
+9042; in battery.txt). Gates: structure OK, probe-integrity OK, decisions-wired OK. Live after the fix: AR editor
+6/6 Arabic labels present, 0 English.
+NOTED FOR THE OWNER, not changed: the `proposals` storage bucket holds 16 objects of which 15 are QA "live-check"
+uploads from 2026-08-12..19 — all 0 KB, referenced by nothing, invisible in the app. Harmless; a one-time
+bucket tidy in the Supabase dashboard would remove them (storage clean-up is not something a session should do
+by SQL).
+
 ## Routine fire #54 (2026-09-15 14:12 UTC) — Settings, the Leads "Dashboard" view and the Clients filters driven live EN+AR: Settings and Clients clean; the Leads dashboard contradicted the chips ("Lost 0" under "Lost 2") and listed stages that cannot exist — FIXED in core-02, Arabic bars too
 scratchpad/live-settings-dash-clients.mjs, real database, read-only (0 save() calls), EN then AR.
 SETTINGS: all 18 cards render, the pool-history and template-token pop-ups open and close, no NaN/undefined,
