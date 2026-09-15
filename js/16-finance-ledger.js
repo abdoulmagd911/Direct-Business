@@ -239,6 +239,31 @@ try{ window.finPageAll=finPageAll; }catch(_){}
 function finLoad(cb){
   if(FIN.loading)return; FIN.loading=true;
   var c=fc(); if(!c){FIN.loading=false;return;}
+  /* 2026-09-15 (fire #56, driven live as a team member): a /finance ADDRESS opened before sign-in
+     renders Finance 600 ms into boot (line ~2258), which called this loader while the person was
+     still at the sign-in form. With no session the database answers the SELECT with zero rows and
+     no error, that [] was cached as FIN.rows, and nothing reloaded after sign-in — the page then
+     read "0 invoices · data through —" for every role, and only a full reload fixed it. Fire #49's
+     deep-link pass missed it because it checked the landing, not the rows. Now: with no session
+     the loader leaves FIN.rows null (the page keeps saying "Loading the finance ledger…"), waits
+     for the session to appear, then loads once and re-renders. The share view has no session by
+     design and Finance is not reachable there (js/79), so it is left alone. */
+  if(!window.__isShareView&&!window.__finSessionOk){
+    FIN.loading=false;
+    try{
+      c.auth.getSession().then(function(s){
+        if(s&&s.data&&s.data.session){ window.__finSessionOk=true; finLoad(cb); return; }
+        FIN.rows=null;
+        if(!FIN._waitSignIn){ FIN._waitSignIn=setInterval(function(){
+          try{ c.auth.getSession().then(function(s2){
+            if(s2&&s2.data&&s2.data.session){ clearInterval(FIN._waitSignIn); FIN._waitSignIn=null; window.__finSessionOk=true; FIN.rows=null; finLoad(cb);
+              try{ if(typeof current!=='undefined'&&current==='finance'&&typeof render==='function')render(); }catch(_){} }
+          }).catch(function(){}); }catch(_){}
+        },1000); }
+      }).catch(function(){});
+    }catch(_){}
+    return;
+  }
   // The API returns at most 1000 rows per request no matter what limit() asks for,
   // so the ledger MUST page — one big limit() silently drops rows past 1000.
   finPageAll(function(){return c.from('finance_invoices').select('*').order('invoice_date',{ascending:false}).order('id',{ascending:true});}, finGot);

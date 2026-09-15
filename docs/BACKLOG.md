@@ -1,3 +1,30 @@
+## Routine fire #56 (2026-09-15 18:13 UTC) — the team_member role driven live end to end (4-page floor, bounces, editor affordances): 0 role defects; but it exposed a bug that hits EVERY role — open the app at the /finance address, sign in, and the ledger stays empty for the rest of the session ("0 invoices · data through —") — FIXED in js/16
+scratchpad/live-team-member.mjs + live-tm-finance.mjs, real database. The QA account was temporarily flipped to
+team_member with the 4-page grant (leads/today/clients/finance = editor, same as the 7 real team members) and
+RESTORED to admin / page_access null immediately after (verified by the returned row). Read-only otherwise
+(0 save() calls).
+TEAM MEMBER: nav shows exactly Today / Leads / Clients / Finance; every other address (offers, requests, settings,
+team, events, activity, reference…) bounces to Today; the four pages render with the editor affordances the grant
+promises (New lead, edit, stage change, finance add-row visible; canFinEdit true); chip reads "Team member" in
+EN and "عضو فريق" in AR; 0 JS errors; the direct database probe as that user reads 46 invoices (RLS honest).
+THE BUG (not the role's — everyone's): typing directksab2b.com/finance into the address bar BEFORE signing in
+(a bookmark, a link from a colleague, a reload after the token expired) rendered Finance 600 ms into boot —
+before any session existed. Its loader asked the database with no token, got zero rows and no error, cached
+that [] as "the ledger", and never asked again after sign-in. Result: "0 invoices · data through —" until a
+full reload. My first live team-member run showed exactly that blank and I nearly filed it as a permissions
+fault (corrected: the direct-DB probe returned 46 rows for the same user — the app, not the rules).
+FIX (js/16 finLoad, in place, 25 lines): if there is no session yet, the loader does NOT cache an empty answer;
+it leaves the ledger "not loaded", waits for sign-in (1 s poll, cleared once found), then loads for real and
+re-renders Finance if that is the open page. Share-view links (no session by design) are untouched.
+Verified live after the fix as the team member: /finance deep link → sign in → 46 invoices, header correct;
+full team-member drive re-run: 0 findings.
+Guard: scripts/qa/probe-finance-deeplink-signin.mjs (5 checks — rows stay null while signed out at /finance,
+rows > 0 after sign-in from that address, header no longer "0 invoices", the normal sign-in-at-"/" path loads
+the same count, 0 JS errors; SABOTAGE-VERIFIED: 1 FAIL / exit 1 with the js/16 edit stashed; port 9043; in
+battery.txt). Gates: structure OK (75 script files), probe-integrity OK, decisions-wired OK.
+Full battery (day-3 regression run, all of battery.txt, started 18:13 UTC at HEAD 3e901e4) is running in the
+background — verdict logged in the next fire's entry.
+
 ## Routine fire #55 (2026-09-15 16:11 UTC) — Proposals page and Today driven live EN+AR+phone: clean in behaviour; the Arabic proposal editor still carried nine English labels — FIXED (core-04 + core-06); the only live proposal was a blank QA draft with a test PDF — removed through the app's own Delete
 scratchpad/live-proposals.mjs, real database, read-only (0 save() calls), EN, AR and AR-phone (400px).
 TODAY: renders in both languages, no money figures (owner rule), tiles honest — "overdue invoices 0" checked
