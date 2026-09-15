@@ -1,3 +1,14 @@
+## Day-3 full battery verdict (2026-09-15 20:23 UTC, follow-up to fire #56) — ALL 196 probes green at ef5cc82
+Every probe named in scripts/qa/battery.txt ran once (196 named, 196 logged, 0 failures, 0 timeouts, 0 missing
+files). The run started at 18:13 UTC on HEAD 3e901e4 and had reached 38 green probes when the session's
+container was recycled at 18:28 (idle restart — not a probe failure); it was resumed at 19:52 on ef5cc82 and
+completed the remaining 158 in four slices, three probes at a time (each probe owns its own port, so parallel
+is safe; the integrity gate enforces the uniqueness). Nothing red to re-run. The 38 early probes ran on the
+pre-fix js/16 and passed, as expected — none of them covers the /finance-before-sign-in path; the new guard
+(probe-finance-deeplink-signin) ran in the resumed part, on the fixed file.
+Lesson kept for the runner: a detached background battery dies with the container when the session goes idle;
+run it in foreground slices (scratchpad/run-battery-resume.sh, resumable, skips what is already logged).
+
 ## Routine fire #56 (2026-09-15 18:13 UTC) — the team_member role driven live end to end (4-page floor, bounces, editor affordances): 0 role defects; but it exposed a bug that hits EVERY role — open the app at the /finance address, sign in, and the ledger stays empty for the rest of the session ("0 invoices · data through —") — FIXED in js/16
 scratchpad/live-team-member.mjs + live-tm-finance.mjs, real database. The QA account was temporarily flipped to
 team_member with the 4-page grant (leads/today/clients/finance = editor, same as the 7 real team members) and
