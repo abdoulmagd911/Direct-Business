@@ -197,3 +197,4 @@ probe-history-actor-and-sync-words
 probe-share-view-tidy
 probe-detail-avatar-centred
 probe-sop-arabic-and-bidi
+probe-generator-preview-fit

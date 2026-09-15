@@ -1,3 +1,29 @@
+## Routine fire #52 (2026-09-15 10:11 UTC) — the Generator page driven live EN+AR, desktop+phone: home + all six editors clean; ONE real defect seen by eye and measured — the document preview was cut off on both edges on every ordinary laptop screen (js/82 fixes it)
+scratchpad/live-generator.mjs, real database, read-only (0 save() calls): Generator home (document cards + the
+saved-documents list from generated_documents), then dgGo into each of the six editors (assets · offer · fees ·
+profile · contract · tender), the step chips, the phone preview toggle — EN and AR, at 1440px and 400px. Every
+editor renders with its preview column, the address becomes /documents/<tab>, no "coming soon" placeholder, no
+blank view, no NaN/undefined, 0 JS errors, no sideways page scroll on the phone. The remaining English labels on
+the Arabic page are the "English" document-language button and the DOCUMENT's own section headers, which follow
+the document language chosen in the editor, not the app language — by design.
+THE DEFECT (seen on the EN and AR screenshots as a clipped "DRAFT — no number yet" ribbon, then measured at four
+screen widths): the three classic editors (offer / fees / profile) draw real A4 pages, 794px wide, inside a
+centred flex column with overflow-x:auto that is only 866px at 1920, 806 at 1536, **710 at 1440 and 550 at
+1280**. A centred flex child wider than its container overflows BOTH sides, and the left overflow is unreachable
+by any scroll. Live at 1440px the page ran from x=660 to 1454 in a column ending at 1412 — 42px lost on each
+edge, ribbon clipped; at 1280px 122px lost per edge; on a phone far more. It fit at 1920px, which is why it was
+never noticed. (My first width measurement said "cut 0" because scrollWidth never counts left overflow — the
+ribbon's clipped right edge was the tell that led to the real numbers.)
+Fix, js/82: each page is zoomed to fit its wrapper's width (zoom keeps layout in sync, so heights follow),
+recomputed on render / resize / the phone preview toggle; in print media (the editors print with
+window.print()) the pages are back at 1:1; `align-items: safe center` as the belt so nothing can ever be clipped
+on both sides again. Verified live after the fix at 1920/1536/1440/1280: page width == column width everywhere,
+ribbon inside the column at every width, the 1440 and 1280 screenshots show the whole cover. Contract and tender
+editors were already responsive (page width follows the column) and are untouched.
+Guard: scripts/qa/probe-generator-preview-fit.mjs (7 checks at 1280/1440/1920 + print media; SABOTAGE-VERIFIED:
+4 FAIL / exit 1 without the js/82 line; port 9039; in battery.txt). Gates: structure OK (75 files),
+probe-integrity OK, decisions-wired OK. Full Generator live re-run after the fix: 0 hard findings.
+
 ## Routine fire #51 (2026-09-15 08:11 UTC) — reference pages (Airlines · Providers & GDS · SOPs & SLAs) driven live EN+AR: 0 hard defects in the data/rendering; three things seen BY EYE and fixed — detail-card initials sat in the corner (js/80), a logo that fails left an EMPTY avatar (js/80, caught by the new probe), the Arabic SOP page read backwards (js/81)
 scratchpad/live-reference.mjs, real database, read-only (0 save() calls): Airlines list → first 3 airline
 dashboards → their detail view; Providers & GDS the same; SOPs (first 3 expanded) and SLAs — EN then AR. Every
