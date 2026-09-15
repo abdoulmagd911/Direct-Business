@@ -146,7 +146,12 @@
      imports, clean-ups, sessions), never from the app. Say that, in both languages, and keep
      the word "unknown"/"غير معروف" so the person still sees no colleague is being blamed. */
   function actorWord(n){ var s=String(n==null?'':n).trim(); if(!s||s==='—')return '—'; var l=s.toLowerCase(); if(l==='system')return fl('automatic','تلقائي'); if(l==='unknown')return fl('unknown — changed directly in the database, not via the app','غير معروف — تغيير مباشر في قاعدة البيانات، ليس عبر التطبيق'); return s; }
-  function pageWord(k){ try{ var P=(window.PAGES||[]).find(function(x){return x[0]===k;}); if(P) return isAr()?(P[2]||P[1]):P[1]; }catch(_){} return String(k||''); }
+  /* 2026-09-15 (fire #53, live, by eye): js/15's PAGES list predates the Generator (js/66), the
+     Archive (js/76) and this page itself, so a refused visit to any of the three read "documents" /
+     "archive" / "activity" — a raw key — on both language pages while every other page had its
+     name. The three are named here the way the sidebar names them. */
+  var PAGE_EXTRA={documents:['Generator','المولّد'],archive:['Archive','الأرشيف'],activity:['Activity & Audit','النشاط والتدقيق']};
+  function pageWord(k){ try{ var P=(window.PAGES||[]).find(function(x){return x[0]===k;}); if(P) return isAr()?(P[2]||P[1]):P[1]; var X=PAGE_EXTRA[k]; if(X) return isAr()?X[1]:X[0]; }catch(_){} return String(k||''); }
   function fmtWhen(iso){ try{ return new Date(iso).toLocaleString(isAr()?'ar':'en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(_){ return iso||''; } }
   /* 2026-09-09 (live test, AU2 + AU3): every row read "Lead / client · Edited — unknown — raw"
      — no record named, and the column names of the database as the description. A person

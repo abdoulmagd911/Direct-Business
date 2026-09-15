@@ -1,3 +1,29 @@
+## Routine fire #53 (2026-09-15 12:13 UTC) — Activity & Audit log and the Events tab driven live EN+AR: data/behaviour clean; three Arabic-page defects seen BY EYE and fixed — the events date range read scrambled, English notes read backwards (js/10), three page names showed as raw keys in the audit log (js/63)
+scratchpad/live-activity-events.mjs, real database, read-only (0 save() calls), EN then AR.
+ACTIVITY & AUDIT: all 274 record_history rows render (tile 274 = the table's count; Today 5 / 7-day 32 — the 5
+are the fire-#43 manager-test page refusals, which carry no before-state, so 0 Undo buttons is correct);
+every row names its record; no database column names or camelCase keys leak; all 216 "unknown"-actor rows
+carry the fire-#49 explanation; no NaN/undefined; 0 JS errors. (My probe's "tiles disagree" line was an
+artifact — HIST is a closure, not a global — corrected in the script.)
+EVENTS: the 80 real events load; 48 upcoming / 80 with past; "ours" narrows 48 → 21; a real city fragment
+narrows to 25 rows that all contain it and the box keeps its text after re-render; the Edit form opens for
+the first event with 16/20 fields filled, no undefined, Cancel present, closed without saving. 0 JS errors.
+THREE ARABIC-PAGE DEFECTS, seen on the screenshots:
+1. **Event date ranges read scrambled** ("سبتمبر – 16 2026 14"): evDate() forced dir="ltr" on a span that
+   holds Arabic month names, so the day numbers were thrown to the wrong ends. js/10: the span now follows
+   the page direction — "14 سبتمبر – 16 سبتمبر 2026". English unchanged.
+2. **English notes read backwards** in the Arabic table (full stop first, words reordered, "…nly." clipped):
+   free text in an RTL cell. js/10: the notes block is unicode-bidi:plaintext, so each note follows its own
+   language. (Verified by rendered character positions, not computed `direction`, which stays inherited.)
+3. **Three page names as raw keys in the audit log**: a refused visit to the Generator, the Archive or the
+   Activity page read "documents" / "archive" / "activity" on BOTH language pages — js/15's PAGES list
+   predates those three pages. js/63: named the way the sidebar names them (Generator / المولّد, Archive /
+   الأرشيف, Activity & Audit / النشاط والتدقيق).
+Guards: scripts/qa/probe-events-arabic-bidi.mjs (6 checks; SABOTAGE-VERIFIED: 3 FAIL / exit 1 with the js/10
+edits stashed; port 9040; in battery.txt) and two checks added to probe-history-actor-and-sync-words.mjs
+(sabotage: 2 FAIL with the js/63 edit stashed). Gates: structure OK, probe-integrity OK, decisions-wired OK.
+Live re-run after the fixes: 0 hard findings, 0 soft notes; the Arabic events screenshot reads correctly by eye.
+
 ## Routine fire #52 (2026-09-15 10:11 UTC) — the Generator page driven live EN+AR, desktop+phone: home + all six editors clean; ONE real defect seen by eye and measured — the document preview was cut off on both edges on every ordinary laptop screen (js/82 fixes it)
 scratchpad/live-generator.mjs, real database, read-only (0 save() calls): Generator home (document cards + the
 saved-documents list from generated_documents), then dgGo into each of the six editors (assets · offer · fees ·

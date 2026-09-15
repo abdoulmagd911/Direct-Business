@@ -21,6 +21,10 @@ const ROWS = [
   { id: 6001, at: new Date(now - 60e3).toISOString(), actor: null, actor_name: 'unknown', table_name: 'businesses', record_id: 'rec-z', action: 'edit',
     before_row: { id: 'rec-z', name: 'Quiet Harbor Probe', stage: 'new', raw: { name: 'Quiet Harbor Probe', lastContact: 1786352400000 } },
     after_row: { id: 'rec-z', name: 'Quiet Harbor Probe', stage: 'new', raw: { name: 'Quiet Harbor Probe', lastContact: now } }, undone_at: null, undone_by: null },
+  /* 2026-09-15 (fire #53): a refused visit to a page js/15's PAGES list does not know — the Generator —
+     read "documents" (the raw key) in both languages; the row must name the page as the sidebar does */
+  { id: 6002, at: new Date(now - 120e3).toISOString(), actor: 'u-qa', actor_name: 'QA Test Account', table_name: 'access', record_id: '00000000-0000-4000-8000-000000006002', action: 'denied',
+    before_row: null, after_row: { page: 'documents' }, undone_at: null, undone_by: null },
 ];
 const srv = start(PORT, { record_history: ROWS }); const BASE = 'http://localhost:' + PORT;
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -45,10 +49,12 @@ const badgeEn = await p.evaluate(() => (window.__syncBadgeState ? window.__syncB
 await p.evaluate(() => { openLead = null; current = 'activity'; render(); });
 await p.waitForFunction(() => document.querySelector('#view .act-row[data-hist-id="6001"]'), { timeout: 30000 }).catch(() => {});
 const rowEn = await p.evaluate(() => { const r = document.querySelector('#view .act-row[data-hist-id="6001"]'); return r ? r.innerText.replace(/\s+/g, ' ').trim() : null; });
+const pageEn = await p.evaluate(() => { const r = document.querySelector('#view .act-row[data-hist-id="6002"]'); return r ? r.innerText.replace(/\s+/g, ' ').trim() : null; });
 await p.evaluate(() => { toggleLang(); }); await p.waitForTimeout(1500);
 await p.evaluate(() => { openLead = null; current = 'activity'; render(); });
 await p.waitForFunction(() => document.querySelector('#view .act-row[data-hist-id="6001"]'), { timeout: 30000 }).catch(() => {});
 const rowAr = await p.evaluate(() => { const r = document.querySelector('#view .act-row[data-hist-id="6001"]'); return r ? r.innerText.replace(/\s+/g, ' ').trim() : null; });
+const pageAr = await p.evaluate(() => { const r = document.querySelector('#view .act-row[data-hist-id="6002"]'); return r ? r.innerText.replace(/\s+/g, ' ').trim() : null; });
 const badgeAr = await p.evaluate(() => (window.__syncBadgeState ? window.__syncBadgeState().text : ''));
 await p.evaluate(() => { toggleLang(); });
 await b.close(); srv.close?.();
@@ -58,8 +64,10 @@ const checks = [
   ['AR: the same row says it in Arabic, keeping "غير معروف", with no English "unknown"', !!rowAr && /غير معروف — تغيير مباشر في قاعدة البيانات، ليس عبر التطبيق/.test(rowAr) && !/unknown/.test(rowAr)],
   ['EN: fresh-browser sync badge is the neutral "Not synced yet"', badgeEn === 'Not synced yet'],
   ['AR: fresh-browser sync badge is the neutral "لم تتم المزامنة بعد" (not "not saved on the server")', badgeAr === 'لم تتم المزامنة بعد' && !/يُحفظ/.test(badgeAr)],
+  ['EN: a refused visit to the Generator names the page ("Generator"), not the key "documents"', !!pageEn && /Page access · Refused · Generator/.test(pageEn) && !/\bdocuments\b/.test(pageEn)],
+  ['AR: the same row names it "المولّد", not "documents"', !!pageAr && /المولّد/.test(pageAr) && !/\bdocuments\b/.test(pageAr)],
   ['no JS errors', errors.length === 0],
 ];
 let fail = 0; for (const [n, ok] of checks) { console.log((ok ? 'PASS' : 'FAIL') + ' · ' + n); if (!ok) fail++; }
-if (fail) { console.log('detail:', JSON.stringify({ rowEn, rowAr, badgeEn, badgeAr })); if (errors.length) console.log('errors:', errors); }
+if (fail) { console.log('detail:', JSON.stringify({ rowEn, rowAr, pageEn, pageAr, badgeEn, badgeAr })); if (errors.length) console.log('errors:', errors); }
 process.exit(fail ? 1 : 0);

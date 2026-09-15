@@ -449,7 +449,11 @@ function evDate(e){
   if(!e.start_date)return '<span style="color:var(--muted)">'+L('no date yet','لا يوجد تاريخ بعد')+'</span>';
   var s=e.start_date,en=e.end_date;
   var f=function(d){try{return new Date(d+'T00:00:00').toLocaleDateString(isAr()?'ar':'en-GB',{day:'numeric',month:'short'});}catch(_){return d;}};
-  return '<span dir="ltr" style="white-space:nowrap;font-weight:600;display:inline-block">'+f(s)+(en&&en!==s?' – '+f(en):'')+' '+String(s).slice(0,4)+'</span>';
+  /* 2026-09-15 (fire #53, live, by eye): this span was always dir="ltr". With Arabic month names
+     inside it, the Arabic page showed "سبتمبر – 16 2026 14" — the day numbers thrown to the wrong
+     ends of the range. The span now follows the page's direction, so the Arabic range reads
+     right-to-left as written: 14 سبتمبر – 16 سبتمبر 2026. English is unchanged. */
+  return '<span dir="'+(isAr()?'rtl':'ltr')+'" style="white-space:nowrap;font-weight:600;display:inline-block">'+f(s)+(en&&en!==s?' – '+f(en):'')+' '+String(s).slice(0,4)+'</span>';
 }
 function statusLabel(k){return isAr()?(EV_STATUS_AR[k]||k):((EV_STATUS[k]||[k])[0]);}
 function vertLabel(v){return isAr()?(EV_VERT_AR[v]||v):v;}
@@ -543,7 +547,11 @@ window.renderEvents=function(v){
     h+='<td style="padding:9px 10px">'+pill(statusLabel(e.status),stt[1],stt[2])+'</td>';
     h+='<td data-l="'+L('When','متى')+'" style="padding:9px 10px">'+evDate(e)+(rel?'<div style="font-size:10.5px;color:'+(rel[0]==='happening now'?'#1e7a34;font-weight:600':'var(--muted)')+'">'+esc(rel[0])+'</div>':'')+'</td>';
     h+='<td data-l="'+L('City','المدينة')+'" style="padding:9px 10px;white-space:nowrap">'+esc(e.city||'—')+'</td>';
-    h+='<td style="padding:9px 10px;max-width:260px;font-size:11.5px;color:var(--muted)"><div style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden" title="'+esc(e.notes||'')+'">'+esc(e.notes||'')+'</div></td>';
+    /* 2026-09-15 (fire #53, live, by eye): the notes are free text in whichever language the colleague
+       typed — mostly English. In the Arabic table they sat in an RTL cell, so an English note showed its
+       full stop first and its words in the wrong order. unicode-bidi:plaintext lets each note follow its
+       own first strong character: English notes read left-to-right, Arabic ones right-to-left. */
+    h+='<td style="padding:9px 10px;max-width:260px;font-size:11.5px;color:var(--muted)"><div data-ev-notes="1" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;unicode-bidi:plaintext;text-align:start" title="'+esc(e.notes||'')+'">'+esc(e.notes||'')+'</div></td>';
     h+='<td data-act="1" style="padding:9px 10px;white-space:nowrap">'+(canEdit()?'<button class="btn ghost sm" onclick="evOpenModal(\''+esc(e.id)+'\')">'+L('Edit','تعديل')+'</button> <button class="btn ghost sm" style="color:#a3242c" onclick="evDelete(\''+esc(e.id)+'\')">'+L('Delete','حذف')+'</button>':'')+'</td>';
     h+='</tr>';
   });
