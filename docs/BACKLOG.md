@@ -1,3 +1,10 @@
+## Routine fire #67 (2026-09-16 16:11 UTC) — full battery re-run at edda6aa after fires #64–#66: ALL 204 probes green
+Everything in scripts/qa/battery.txt (the 201 of day 4 plus the three guards added since: provider-caps-arabic,
+sla-head-arabic, ingest-title-arabic — 204 named, 204 logged), four foreground slices three at a time, 31 minutes,
+0 failures, 0 timeouts, 0 missing files. probe-live2 (the real-backend probe) ran inside this battery with its
+new self-cleanup step and left nothing behind. Covers the code touched since day 4: core-03 (capability chips,
+SLA head), core-06 (ingest titles), probe-live2. Nothing to re-run. No code change this fire.
+
 ## Routine fire #66 (2026-09-16 14:11 UTC) — the Events add/edit form, the three ingest forms and the Generator's six tabs driven live EN+AR+phone: all honest; the ingest forms' title was English on the Arabic page — FIXED (core-06, the definition that actually runs)
 scratchpad/live-forms-generator.mjs, real database, read-only (0 save() calls, 0 write requests), EN then AR,
 1440 px and 400 px — forms opened, read and closed, never saved.
