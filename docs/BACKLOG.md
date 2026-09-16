@@ -1,3 +1,33 @@
+## Routine fire #59 (2026-09-16 00:11 UTC) — Reports page (4 tabs, the report generator and its 5 outputs) and the Operations page driven live EN+AR+phone: behaviour and files clean; the Arabic Reports page was English wherever core-10 wrote its own words — FIXED (37 strings); the KPI names themselves stay English pending the owner's wording
+scratchpad/live-reports-ops.mjs, real database, read-only (0 save() calls, 0 write requests), EN then AR,
+1440 px and 400 px.
+CLEAN: all four Reports tabs render in both languages with no NaN/undefined/[object Object] and 0 JS errors;
+the report builder produces a preview for monthly and quarterly, both scopes; "Download .html" and "Word
+(.doc)" produce real files (48 KB) carrying the report title; "Print / PDF" opens its window; the objectives
+expand and collapse; OPERATIONS: the board is honest to the (empty) requests list, shows no money figure (the
+21 Aug rule), the "+ New request" form opens with its 11 fields in Arabic and closes without saving; nothing
+scrolls sideways at 400 px in either language.
+NOT A DEFECT: "PowerPoint (.pptx)" produced no file in my sandbox because the slide engine is fetched from a
+CDN the sandbox cannot reach — the app said so in words ("Internet needed once to load the PowerPoint
+engine"); on the real site the CDN is reachable.
+THE DEFECT (AR): everything the Reports page writes itself was English on the Arabic page — the objective
+cards' "Target / Actual / manual / override / INITIATIVES / ACHIEVEMENTS / no KPI / No KPIs linked…", the
+built report's heading ("Quarterly Objectives Review · Q3 2026"), its "Commercial Department · Operational
+Plan 2026" line, "Generated <date>", "No achievements logged in this period", the gaps lines, the copy-text
+heads, the three alerts, the PowerPoint slide labels, the Quarter/Year/Member/Objective form labels and the
+English month names. All bilingual now via one rptAr() switch in core-10; Arabic month names added; the
+generated document is marked dir="rtl" in Arabic; file names stay English (rptTitleEn) so downloads sort the
+same way in both languages. EN output unchanged.
+OWNER DECISION, not changed: the 42 KPI names and their 126 focus lines ("Value of commercial agreements and
+direct sales closed", "Expand new commercial partnerships"…) are the Operational Plan 2026 wording and have
+no Arabic in the code (the 12 objectives DO). One next step: send the Arabic KPI list from the plan (or say
+"translate them") and a session will add them the same way the objectives carry theirs.
+Guard: scripts/qa/probe-reports-arabic-chrome.mjs (7 checks — EN chrome intact, AR objective-card chrome,
+AR report heading with an Arabic month, English file name + dir="rtl" in Arabic, EN file without it, 0 JS
+errors; SABOTAGE-VERIFIED: 3 FAIL / exit 1 with the core-10 edit stashed; port 9046; in battery.txt).
+probe-reports-phone-ar (the earlier Reports guard) still passes. Gates: structure OK, probe-integrity OK,
+decisions-wired OK.
+
 ## Routine fire #58 (2026-09-15 22:11 UTC) — Finance's eight tabs and their interactions driven live EN+AR+phone: figures honest to the database, but a plain READ-ONLY visit to Finance was silently REWRITING 13 client-link rows every time — FIXED in js/41
 scratchpad/live-finance-tabs.mjs, real database, EN then AR, plus 400 px. Every write request was counted, not
 just save(). Independent DB truth first: 46 live invoices, revenue 2,030,764 / cost 1,538,142 / profit 492,623,

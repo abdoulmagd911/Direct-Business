@@ -193,6 +193,12 @@ const RPT_OBJECTIVES=[
 ];
 function rptObjTitle(o){return (typeof LANG!=='undefined'&&LANG==='ar'&&o.tAr)?o.tAr:o.t;}
 function rptDeptLabel(d){return (typeof LANG!=='undefined'&&LANG==='ar'&&RPT_DEPT_AR[d])?RPT_DEPT_AR[d]:d;}
+/* 2026-09-16 (fire #59, live): the Reports page was driven in Arabic — the objective cards, the built
+   report, the copy text, the three alerts and the PowerPoint slide labels were all English. rptAr() is the
+   page's own EN/AR switch; the KPI NAMES and their focus lines stay as written (the owner's plan wording —
+   an owner call, see BACKLOG). File names stay English (rptTitleEn) so downloads sort the same way. */
+function rptAr(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;}
+const RPT_MONTHS_AR=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const RPT_KPIS=[
  {n:1, t:"Improvement of suppliers contracts terms", obj:3, target:20, type:"pct", f:["Improve contract conditions with service suppliers","Reduce operational service costs","Achieve higher discount rates from suppliers"]},
  {n:2, t:"Number of embassies added to the platform", obj:7, target:60, type:"count", f:["Add new embassies to the platform","Expand geographical coverage of embassy services","Develop digital integration with embassy systems"]},
@@ -261,7 +267,8 @@ function rptObjProgress(on){const ks=RPT_KPIS.filter(k=>k.obj===on);if(!ks.lengt
 function rptMonthKey(d){return (d||"").slice(0,7);}
 function rptQuarterOf(d){const m=Number((d||"").slice(5,7));return m?Math.ceil(m/3):0;}
 const RPT_MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
-function rptMonthLabel(mk){if(!mk)return "";const p=mk.split("-");return RPT_MONTHS[Number(p[1])-1]+" "+p[0];}
+function rptMonthLabel(mk){if(!mk)return "";const p=mk.split("-");return ((typeof LANG!=='undefined'&&LANG==='ar')?RPT_MONTHS_AR:RPT_MONTHS)[Number(p[1])-1]+" "+p[0];}
+function rptMonthLabelEn(mk){if(!mk)return "";const p=mk.split("-");return RPT_MONTHS[Number(p[1])-1]+" "+p[0];}
 let rptTab="overview",rptOpenObjs={},rptAchFilter={month:"",member:"",obj:""};
 let rptRep={type:"monthly",month:new Date().toISOString().slice(0,7),quarter:"Q"+Math.ceil((new Date().getMonth()+1)/3),year:new Date().getFullYear(),scope:"dept",member:RPT_TEAM[0],obj:""};
 window.rptGo=function(k){rptTab=k;render();};
@@ -282,11 +289,11 @@ window.renderReports=function(v){
 function rptRowAch(a,withActs){
  const k=RPT_KPIS.find(x=>x.n===Number(a.kpi));
  return '<tr><td style="white-space:nowrap">'+esc(a.date)+'</td>'+
- '<td><b>'+esc(a.title)+'</b>'+(a.desc?'<div class="rpt-small">'+esc(a.desc)+'</div>':'')+(a.client?'<div class="rpt-small">Client: '+esc(a.client)+'</div>':'')+'</td>'+
+ '<td><b>'+esc(a.title)+'</b>'+(a.desc?'<div class="rpt-small">'+esc(a.desc)+'</div>':'')+(a.client?'<div class="rpt-small">'+rptAr('Client: ','العميل: ')+esc(a.client)+'</div>':'')+'</td>'+
  '<td>'+esc(a.member)+'</td>'+
  '<td>'+(a.objective?'<span class="tag">#'+a.objective+'</span>':'')+(k?'<div class="rpt-small">KPI '+k.n+'</div>':'')+'</td>'+
  '<td>'+(a.value!==''&&a.value!=null?rfmtVal(k||{type:a.unit==='SAR'?'sar':'count'},a.value):'—')+'</td>'+
- (withActs?'<td style="text-align:right;white-space:nowrap"><button class="btn ghost sm" onclick="rptOpenAch(\''+a.id+'\')">Edit</button> <button class="btn ghost sm" style="color:#D94B3F" onclick="rptDelAch(\''+a.id+'\')">✕</button></td>':'')+'</tr>';
+ (withActs?'<td style="text-align:right;white-space:nowrap"><button class="btn ghost sm" onclick="rptOpenAch(\''+a.id+'\')">'+rptAr('Edit','تعديل')+'</button> <button class="btn ghost sm" style="color:#D94B3F" onclick="rptDelAch(\''+a.id+'\')">✕</button></td>':'')+'</tr>';
 }
 function rptOverview(v){
  const _ar=(typeof LANG!=='undefined'&&LANG==='ar');
@@ -317,9 +324,9 @@ function rptAch(v){
  '<select onchange="rptSetFilter(\'month\',this.value)"><option value="">All months</option>'+months.map(m=>'<option value="'+m+'" '+(rptAchFilter.month===m?'selected':'')+'>'+rptMonthLabel(m)+'</option>').join('')+'</select>'+
  '<select onchange="rptSetFilter(\'member\',this.value)"><option value="">All members</option>'+RPT_TEAM.map(t=>'<option '+(rptAchFilter.member===t?'selected':'')+'>'+t+'</option>').join('')+'</select>'+
  '<select onchange="rptSetFilter(\'obj\',this.value)"><option value="">All objectives</option>'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(rptAchFilter.obj==o.n?'selected':'')+'>#'+o.n+' — '+esc(rptObjTitle(o).slice(0,40))+'…</option>').join('')+'</select>'+
- '<span class="rpt-small">'+rows.length+' entr'+(rows.length===1?'y':'ies')+'</span><span style="flex:1"></span>'+
- '<button class="btn pri" onclick="rptOpenAch()">＋ Log achievement</button></div>'+
- '<div class="card">'+(rows.length?'<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Achievement</th><th>Member</th><th>Objective / KPI</th><th>Value</th><th></th></tr></thead><tbody>'+rows.map(a=>rptRowAch(a,true)).join('')+'</tbody></table></div>':'<div class="empty">Nothing here yet. Log achievements as they happen — tenders submitted, contracts signed, embassies added, services launched…</div>')+'</div>';
+ '<span class="rpt-small">'+rptAr(rows.length+' entr'+(rows.length===1?'y':'ies'),rows.length+(rows.length===1?' سجل':' سجلات'))+'</span><span style="flex:1"></span>'+
+ '<button class="btn pri" onclick="rptOpenAch()">＋ '+rptAr('Log achievement','تسجيل إنجاز')+'</button></div>'+
+ '<div class="card">'+(rows.length?'<div class="tbl-wrap"><table><thead><tr><th>'+rptAr('Date','التاريخ')+'</th><th>'+rptAr('Achievement','الإنجاز')+'</th><th>'+rptAr('Member','العضو')+'</th><th>'+rptAr('Objective / KPI','الهدف / المؤشر')+'</th><th>'+rptAr('Value','القيمة')+'</th><th></th></tr></thead><tbody>'+rows.map(a=>rptRowAch(a,true)).join('')+'</tbody></table></div>':'<div class="empty">Nothing here yet. Log achievements as they happen — tenders submitted, contracts signed, embassies added, services launched…</div>')+'</div>';
 }
 window.rptSetFilter=function(k,val){rptAchFilter[k]=val;render();};
 window.rptOpenAch=function(id){
@@ -359,17 +366,17 @@ function rptObj(v){
   const open=rptOpenObjs[o.n];
   return '<div class="rpt-obj '+(open?'open':'')+'"><div class="head" onclick="rptToggleObj('+o.n+')">'+
   '<span class="n">'+o.n+'</span><div class="t">'+esc(rptObjTitle(o))+'<div class="meta">'+((typeof LANG!=='undefined'&&LANG==='ar')?('الربط الاستراتيجي '+esc(o.link)+' · '+esc(rptDeptLabel(o.dept))+' · '+ks.length+' مؤشر · '+ach.length+' إنجاز'):('Strategic link '+esc(o.link)+' · '+esc(rptDeptLabel(o.dept))+' · '+ks.length+' KPI'+(ks.length!==1?'s':'')+' · '+ach.length+' achievement'+(ach.length!==1?'s':'')))+'</div></div>'+
-  '<div style="min-width:130px"><div class="rpt-bar"><i class="'+((p>=100)?'ok':(p>=50)?'':'warn')+'" style="width:'+(p||0)+'%"></i></div><div class="rpt-small" style="text-align:right">'+(p==null?'no KPI':p+'%')+'</div></div></div>'+
+  '<div style="min-width:130px"><div class="rpt-bar"><i class="'+((p>=100)?'ok':(p>=50)?'':'warn')+'" style="width:'+(p||0)+'%"></i></div><div class="rpt-small" style="text-align:right">'+(p==null?rptAr('no KPI','بلا مؤشر'):p+'%')+'</div></div></div>'+
   '<div class="body">'+
   (ks.length?ks.map(k=>{
     const act=rptActual(k);const pc=rptPct(k);const ov=RDB.overrides[k.n];
-    return '<div class="rpt-kpirow"><div><div class="kt">KPI '+k.n+' — '+esc(k.t)+(k.draft?' <span class="tag" style="background:#FEF3E2;color:#B54708">draft - confirm target</span>':'')+'</div><div class="kf">'+k.f.map(esc).join(' · ')+'</div></div>'+
-    '<div><div class="rpt-small">Target</div><b>'+rfmtTarget(k)+'</b></div>'+
-    '<div class="pr"><div class="rpt-small">Actual: <b>'+rfmtVal(k,act)+'</b>'+((ov!=null&&ov!=='')?' <span class="tag">manual</span>':'')+'</div><div class="rpt-bar"><i class="'+(pc>=100?'ok':pc>=50?'':'warn')+'" style="width:'+pc+'%"></i></div></div>'+
-    '<div class="ov"><input type="number" placeholder="override" value="'+((ov!=null)?ov:'')+'" style="width:100%" onchange="rptSetOverride('+k.n+',this.value)"></div></div>';
-  }).join(''):'<div class="rpt-small">No KPIs linked to this objective.</div>')+
-  (ins.length?'<div style="margin-top:12px"><div class="rpt-small" style="font-weight:700;margin-bottom:5px">INITIATIVES</div>'+ins.map(i=>'<div class="rpt-small">• '+esc(i.t)+'</div>').join('')+'</div>':'')+
-  (ach.length?'<div style="margin-top:12px"><div class="rpt-small" style="font-weight:700;margin-bottom:5px">ACHIEVEMENTS</div>'+ach.sort((a,b)=>a.date<b.date?1:-1).slice(0,6).map(a=>'<div class="rpt-small">• '+esc(a.date)+' — '+esc(a.title)+' ('+esc(a.member)+')</div>').join('')+'</div>':'')+
+    return '<div class="rpt-kpirow"><div><div class="kt">KPI '+k.n+' — '+esc(k.t)+(k.draft?' <span class="tag" style="background:#FEF3E2;color:#B54708">'+rptAr('draft - confirm target','مسودة — أكّد الهدف')+'</span>':'')+'</div><div class="kf">'+k.f.map(esc).join(' · ')+'</div></div>'+
+    '<div><div class="rpt-small">'+rptAr('Target','الهدف')+'</div><b>'+rfmtTarget(k)+'</b></div>'+
+    '<div class="pr"><div class="rpt-small">'+rptAr('Actual: ','الفعلي: ')+'<b>'+rfmtVal(k,act)+'</b>'+((ov!=null&&ov!=='')?' <span class="tag">'+rptAr('manual','يدوي')+'</span>':'')+'</div><div class="rpt-bar"><i class="'+(pc>=100?'ok':pc>=50?'':'warn')+'" style="width:'+pc+'%"></i></div></div>'+
+    '<div class="ov"><input type="number" placeholder="'+rptAr('override','قيمة يدوية')+'" value="'+((ov!=null)?ov:'')+'" style="width:100%" onchange="rptSetOverride('+k.n+',this.value)"></div></div>';
+  }).join(''):'<div class="rpt-small">'+rptAr('No KPIs linked to this objective.','لا مؤشرات مرتبطة بهذا الهدف.')+'</div>')+
+  (ins.length?'<div style="margin-top:12px"><div class="rpt-small" style="font-weight:700;margin-bottom:5px">'+rptAr('INITIATIVES','المبادرات')+'</div>'+ins.map(i=>'<div class="rpt-small">• '+esc(i.t)+'</div>').join('')+'</div>':'')+
+  (ach.length?'<div style="margin-top:12px"><div class="rpt-small" style="font-weight:700;margin-bottom:5px">'+rptAr('ACHIEVEMENTS','الإنجازات')+'</div>'+ach.sort((a,b)=>a.date<b.date?1:-1).slice(0,6).map(a=>'<div class="rpt-small">• '+esc(a.date)+' — '+esc(a.title)+' ('+esc(a.member)+')</div>').join('')+'</div>':'')+
   '</div></div>';
  }).join('');
 }
@@ -378,10 +385,10 @@ function rptReport(v){
  '<div class="field"><label>Report type</label><select onchange="rptRepSet(\'type\',this.value)"><option value="monthly" '+(rptRep.type==='monthly'?'selected':'')+'>Monthly department report</option><option value="quarterly" '+(rptRep.type==='quarterly'?'selected':'')+'>Quarterly objectives review</option></select></div>'+
  (rptRep.type==='monthly'
   ?'<div class="field"><label>Month</label><input type="month" value="'+rptRep.month+'" onchange="rptRepSet(\'month\',this.value)"></div>'
-  :'<div class="field"><label>Quarter</label><select onchange="rptRepSet(\'quarter\',this.value)">'+['Q1','Q2','Q3','Q4'].map(q=>'<option '+(rptRep.quarter===q?'selected':'')+'>'+q+'</option>').join('')+'</select></div><div class="field"><label>Year</label><input type="number" value="'+rptRep.year+'" onchange="rptRepSet(\'year\',this.value)"></div>')+
+  :'<div class="field"><label>'+rptAr('Quarter','الربع')+'</label><select onchange="rptRepSet(\'quarter\',this.value)">'+['Q1','Q2','Q3','Q4'].map(q=>'<option '+(rptRep.quarter===q?'selected':'')+'>'+q+'</option>').join('')+'</select></div><div class="field"><label>'+rptAr('Year','السنة')+'</label><input type="number" value="'+rptRep.year+'" onchange="rptRepSet(\'year\',this.value)"></div>')+
  '<div class="field"><label>Scope</label><select onchange="rptRepSet(\'scope\',this.value)"><option value="dept" '+(rptRep.scope==='dept'?'selected':'')+'>Whole department</option><option value="member" '+(rptRep.scope==='member'?'selected':'')+'>One member</option><option value="obj" '+(rptRep.scope==='obj'?'selected':'')+'>One objective</option></select></div>'+
- (rptRep.scope==='member'?'<div class="field"><label>Member</label><select onchange="rptRepSet(\'member\',this.value)">'+RPT_TEAM.map(t=>'<option '+(rptRep.member===t?'selected':'')+'>'+t+'</option>').join('')+'</select></div>':'')+
- (rptRep.scope==='obj'?'<div class="field"><label>Objective</label><select onchange="rptRepSet(\'obj\',this.value)">'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(rptRep.obj==o.n?'selected':'')+'>#'+o.n+' — '+esc(rptObjTitle(o).slice(0,40))+'</option>').join('')+'</select></div>':'')+
+ (rptRep.scope==='member'?'<div class="field"><label>'+rptAr('Member','العضو')+'</label><select onchange="rptRepSet(\'member\',this.value)">'+RPT_TEAM.map(t=>'<option '+(rptRep.member===t?'selected':'')+'>'+t+'</option>').join('')+'</select></div>':'')+
+ (rptRep.scope==='obj'?'<div class="field"><label>'+rptAr('Objective','الهدف')+'</label><select onchange="rptRepSet(\'obj\',this.value)">'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(rptRep.obj==o.n?'selected':'')+'>#'+o.n+' — '+esc(rptObjTitle(o).slice(0,40))+'</option>').join('')+'</select></div>':'')+
  '</div><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'+
  '<button class="btn pri" onclick="rptBuildReport()">Build report</button>'+
  '<button class="btn" onclick="rptPrintReport()">Print / PDF</button>'+
@@ -398,10 +405,16 @@ function rptFilterAch(){
  if(rptRep.scope==='obj')rows=rows.filter(a=>String(a.objective)===String(rptRep.obj));
  return rows.sort((a,b)=>a.date<b.date?-1:1);
 }
-function rptTitle(){
- const period=rptRep.type==='monthly'?rptMonthLabel(rptRep.month):rptRep.quarter+' '+rptRep.year;
+function rptTitleEn(){
+ const period=rptRep.type==='monthly'?rptMonthLabelEn(rptRep.month):rptRep.quarter+' '+rptRep.year;
  const scope=rptRep.scope==='member'?(' — '+rptRep.member):rptRep.scope==='obj'?(' — Objective #'+rptRep.obj):'';
  return (rptRep.type==='monthly'?'Monthly Commercial Report':'Quarterly Objectives Review')+' · '+period+scope;
+}
+function rptTitle(){
+ if(!(typeof LANG!=='undefined'&&LANG==='ar'))return rptTitleEn();
+ const period=rptRep.type==='monthly'?rptMonthLabel(rptRep.month):rptRep.quarter+' '+rptRep.year;
+ const scope=rptRep.scope==='member'?(' — '+rptRep.member):rptRep.scope==='obj'?(' — الهدف #'+rptRep.obj):'';
+ return (rptRep.type==='monthly'?'التقرير التجاري الشهري':'مراجعة الأهداف الربعية')+' · '+period+scope;
 }
 function rptHTML(){
  const rows=rptFilterAch();
@@ -411,19 +424,19 @@ function rptHTML(){
   const act=rptActual(k);const pc=rptPct(k);
   return '<tr><td style="'+td+'">KPI '+k.n+'</td><td style="'+td+'">'+esc(k.t)+'</td><td style="'+td+';text-align:right">'+rfmtTarget(k)+'</td><td style="'+td+';text-align:right">'+rfmtVal(k,act)+'</td><td style="'+td+';text-align:right;color:'+(pc>=100?'#1E9E62':pc>=50?'#FF6B00':'#D9920B')+';font-weight:700">'+(act==null?'—':pc+'%')+'</td></tr>';
  }).join('');
- const gaps=objs.flatMap(o=>RPT_KPIS.filter(k=>k.obj===o.n)).filter(k=>rptPct(k)<50).map(k=>'<li>KPI '+k.n+' — '+esc(k.t)+': at '+(rptActual(k)==null?'no data':rptPct(k)+'%')+' of target '+rfmtTarget(k)+'</li>').join('');
+ const gaps=objs.flatMap(o=>RPT_KPIS.filter(k=>k.obj===o.n)).filter(k=>rptPct(k)<50).map(k=>'<li>KPI '+k.n+' — '+esc(k.t)+': '+rptAr('at '+(rptActual(k)==null?'no data':rptPct(k)+'%')+' of target '+rfmtTarget(k),(rptActual(k)==null?'لا بيانات':rptPct(k)+'%')+' من الهدف '+rfmtTarget(k))+'</li>').join('');
  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #FF6B00;padding-bottom:14px;margin-bottom:18px">'+
  '<div>'+(typeof logoSrc==='function'?'<img src="'+logoSrc()+'" style="height:40px;display:block;margin-bottom:6px" alt="Direct">':'')+'<div style="font-weight:800;font-size:21px">'+(typeof brandName==='function'?brandName():'Direct Business')+'</div>'+
- '<div style="color:#7C8194;font-size:12px">Commercial Department · Operational Plan 2026</div></div>'+
- '<div style="text-align:right;font-size:12px;color:#7C8194">Generated '+new Date().toISOString().slice(0,10)+'</div></div>'+
+ '<div style="color:#7C8194;font-size:12px">'+rptAr('Commercial Department · Operational Plan 2026','القسم التجاري · الخطة التشغيلية 2026')+'</div></div>'+
+ '<div style="text-align:'+rptAr('right','left')+';font-size:12px;color:#7C8194">'+rptAr('Generated ','أُنشئ في ')+new Date().toISOString().slice(0,10)+'</div></div>'+
  '<h2 style="font-weight:700;font-size:17px;margin-bottom:14px">'+esc(rptTitle())+'</h2>'+
- '<h3 style="font-weight:700;font-size:13.5px;margin:16px 0 8px;color:#3C4050">1 · Achievements ('+rows.length+')</h3>'+
- (rows.length?'<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#7C8194;text-align:left"><th style="padding:6px;border-bottom:1px solid #EEE8DE">Date</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">Achievement</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">Member</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">Obj.</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">Value</th></tr></thead><tbody>'+
+ '<h3 style="font-weight:700;font-size:13.5px;margin:16px 0 8px;color:#3C4050">'+rptAr('1 · Achievements','1 · الإنجازات')+' ('+rows.length+')</h3>'+
+ (rows.length?'<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#7C8194;text-align:'+rptAr('left','right')+'"><th style="padding:6px;border-bottom:1px solid #EEE8DE">'+rptAr('Date','التاريخ')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">'+rptAr('Achievement','الإنجاز')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">'+rptAr('Member','العضو')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">'+rptAr('Obj.','الهدف')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">Value</th></tr></thead><tbody>'+
  rows.map(a=>{const k=RPT_KPIS.find(x=>x.n===Number(a.kpi));return '<tr><td style="'+td+';white-space:nowrap">'+esc(a.date)+'</td><td style="'+td+'"><b>'+esc(a.title)+'</b>'+(a.client?'<br><span style="color:#7C8194">'+esc(a.client)+'</span>':'')+'</td><td style="'+td+'">'+esc(a.member)+'</td><td style="'+td+'">'+(a.objective?'#'+a.objective:'')+'</td><td style="'+td+';text-align:right">'+(a.value!==''&&a.value!=null?rfmtVal(k||{type:'count'},a.value):'—')+'</td></tr>';}).join('')+'</tbody></table>'
- :'<div style="color:#7C8194;font-size:13px">No achievements logged in this period'+(rptRep.scope!=='dept'?' for this scope':'')+'.</div>')+
- '<h3 style="font-weight:700;font-size:13.5px;margin:18px 0 8px;color:#3C4050">2 · KPI progress vs 2026 targets</h3>'+
- '<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#7C8194;text-align:left"><th style="padding:6px;border-bottom:1px solid #EEE8DE">#</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">KPI</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">Target</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">Actual (YTD)</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">Progress</th></tr></thead><tbody>'+kpiRows+'</tbody></table>'+
- (gaps?'<h3 style="font-weight:700;font-size:13.5px;margin:18px 0 8px;color:#3C4050">3 · Gaps &amp; focus areas (&lt;50% of target)</h3><ul style="font-size:12.5px;padding-left:18px;color:#1C1E2B">'+gaps+'</ul>':'')+
+ :'<div style="color:#7C8194;font-size:13px">'+rptAr('No achievements logged in this period'+(rptRep.scope!=='dept'?' for this scope':'')+'.','لم تُسجَّل إنجازات في هذه الفترة'+(rptRep.scope!=='dept'?' لهذا النطاق':'')+'.')+'</div>')+
+ '<h3 style="font-weight:700;font-size:13.5px;margin:18px 0 8px;color:#3C4050">'+rptAr('2 · KPI progress vs 2026 targets','2 · تقدّم المؤشرات مقابل أهداف 2026')+'</h3>'+
+ '<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#7C8194;text-align:'+rptAr('left','right')+'"><th style="padding:6px;border-bottom:1px solid #EEE8DE">#</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">'+rptAr('KPI','المؤشر')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">'+rptAr('Target','الهدف')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">'+rptAr('Actual (YTD)','الفعلي (منذ بداية السنة)')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">Progress</th></tr></thead><tbody>'+kpiRows+'</tbody></table>'+
+ (gaps?'<h3 style="font-weight:700;font-size:13.5px;margin:18px 0 8px;color:#3C4050">'+rptAr('3 · Gaps &amp; focus areas (&lt;50% of target)','3 · الفجوات ومجالات التركيز (أقل من 50% من الهدف)')+'</h3><ul style="font-size:12.5px;padding-left:18px;color:#1C1E2B">'+gaps+'</ul>':'')+
  '<div style="margin-top:24px;border-top:1px solid #EEE8DE;padding-top:10px;font-size:10.5px;color:#7C8194">AL MOSAFER AL MOBASHER TRAVEL &amp; TOURISM · IATA 71238285 · Amadeus RUHS2234B · PCI-DSS · www.directksa.com · +966 508 434 126</div>';
 }
 window.rptBuildReport=function(){const o=document.getElementById('rptout');if(o)o.innerHTML='<div class="rpt-preview" id="rptdoc">'+rptHTML()+'</div>';
@@ -432,20 +445,20 @@ window.rptBuildReport=function(){const o=document.getElementById('rptout');if(o)
  try{if(typeof window.v27ArHeaders==='function')window.v27ArHeaders();}catch(_){}};
 function rptText(){
  const rows=rptFilterAch();
- let t=rptTitle()+'\n'+'='.repeat(40)+'\n\nACHIEVEMENTS ('+rows.length+')\n';
+ let t=rptTitle()+'\n'+'='.repeat(40)+'\n\n'+rptAr('ACHIEVEMENTS','الإنجازات')+' ('+rows.length+')\n';
  rows.forEach(a=>{t+='• '+a.date+' — '+a.title+(a.client?' ['+a.client+']':'')+' — '+a.member+(a.value?(' — '+a.value):'')+'\n';});
- t+='\nKPI PROGRESS\n';
+ t+='\n'+rptAr('KPI PROGRESS','تقدّم المؤشرات')+'\n';
  const objs=rptRep.scope==='obj'?RPT_OBJECTIVES.filter(o=>String(o.n)===String(rptRep.obj)):RPT_OBJECTIVES;
  objs.flatMap(o=>RPT_KPIS.filter(k=>k.obj===o.n)).forEach(k=>{const a=rptActual(k);t+='• KPI '+k.n+' '+k.t+': '+rfmtVal(k,a)+' / '+rfmtTarget(k)+(a==null?'':' ('+rptPct(k)+'%)')+'\n';});
- t+='\n— Direct Business · Commercial Department · directksa.com';
+ t+='\n— '+rptAr('Direct Business · Commercial Department','دايركت أعمال · القسم التجاري')+' · directksa.com';
  return t;
 }
-window.rptCopyReport=function(){navigator.clipboard.writeText(rptText()).then(()=>alert('Report text copied — paste into WhatsApp or email.'));};
-function rptFullDoc(){return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+esc(rptTitle())+'</title><style>body{font-family:Cairo,Inter,system-ui,sans-serif;color:#1C1E2B;max-width:860px;margin:30px auto;padding:0 20px}</style></head><body>'+rptHTML()+'</body></html>';}
-window.rptPrintReport=function(){const w=window.open('','_blank');if(!w){alert('Allow popups to print.');return;}w.document.write(rptFullDoc());w.document.close();setTimeout(()=>w.print(),400);};
-window.rptDownloadReport=function(){const b=new Blob([rptFullDoc()],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=rptTitle().replace(/[^\w]+/g,'-')+'.html';a.click();};
+window.rptCopyReport=function(){navigator.clipboard.writeText(rptText()).then(()=>alert(rptAr('Report text copied — paste into WhatsApp or email.','تم نسخ نص التقرير — الصقه في واتساب أو البريد.')));};
+function rptFullDoc(){return '<!DOCTYPE html><html'+rptAr('',' dir="rtl" lang="ar"')+'><head><meta charset="UTF-8"><title>'+esc(rptTitle())+'</title><style>body{font-family:Cairo,Inter,system-ui,sans-serif;color:#1C1E2B;max-width:860px;margin:30px auto;padding:0 20px}</style></head><body>'+rptHTML()+'</body></html>';}
+window.rptPrintReport=function(){const w=window.open('','_blank');if(!w){alert(rptAr('Allow popups to print.','اسمح بالنوافذ المنبثقة للطباعة.'));return;}w.document.write(rptFullDoc());w.document.close();setTimeout(()=>w.print(),400);};
+window.rptDownloadReport=function(){const b=new Blob([rptFullDoc()],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=rptTitleEn().replace(/[^\w]+/g,'-')+'.html';a.click();};
 window.rptExportJSON=function(){const b=new Blob([JSON.stringify(RDB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-reports-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();};
-window.rptWord=function(){var b=new Blob([String.fromCharCode(0xFEFF)+rptFullDoc()],{type:"application/msword"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=rptTitle().replace(/[^\w]+/g,"-")+".doc";a.click();};
+window.rptWord=function(){var b=new Blob([String.fromCharCode(0xFEFF)+rptFullDoc()],{type:"application/msword"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=rptTitleEn().replace(/[^\w]+/g,"-")+".doc";a.click();};
 window.rptPpt=function(){
  var go=function(){try{
   var P=new PptxGenJS();P.defineLayout({name:"W",width:13.33,height:7.5});P.layout="W";
@@ -454,28 +467,28 @@ window.rptPpt=function(){
   try{if(typeof logoSrc==="function")s.addImage({data:logoSrc(),x:0.7,y:0.6,h:0.85,w:2.6});}catch(_){}
   s.addText("Direct Business",{x:0.7,y:2.7,w:11,fontSize:44,bold:true,color:"FFFFFF",fontFace:"Cairo"});
   s.addText(rptTitle(),{x:0.7,y:3.8,w:11,fontSize:22,color:"FF9D45",fontFace:"Cairo"});
-  s.addText("Commercial Department - Operational Plan 2026 - directksa.com",{x:0.7,y:6.6,w:11,fontSize:12,color:"B9BDCB",fontFace:"Cairo"});
-  var hdr=[{text:"KPI",options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}},{text:"Target",options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}},{text:"Actual",options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}},{text:"Progress",options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}}];
+  s.addText(rptAr("Commercial Department - Operational Plan 2026","القسم التجاري - الخطة التشغيلية 2026")+" - directksa.com",{x:0.7,y:6.6,w:11,fontSize:12,color:"B9BDCB",fontFace:"Cairo"});
+  var hdr=[{text:rptAr("KPI","المؤشر"),options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}},{text:rptAr("Target","الهدف"),options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}},{text:rptAr("Actual","الفعلي"),options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}},{text:rptAr("Progress","التقدم"),options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}}];
   var all=RPT_KPIS.map(function(k){var act=rptActual(k);var pc=rptPct(k);return [{text:"KPI "+k.n+" - "+k.t,options:{color:INK}},{text:rfmtTarget(k),options:{color:INK,align:"right"}},{text:rfmtVal(k,act),options:{color:INK,align:"right"}},{text:(act==null?"-":pc+"%"),options:{bold:true,align:"right",color:(pc>=100?"1E9E62":pc>=50?ORANGE:"D9920B")}}];});
   for(var i=0;i<all.length;i+=12){
     var sl=P.addSlide();sl.background={color:CREAM};
-    sl.addText("KPI progress vs 2026 targets"+(all.length>12?(" ("+(Math.floor(i/12)+1)+")"):""),{x:0.6,y:0.35,fontSize:20,bold:true,color:INK,fontFace:"Cairo"});
+    sl.addText(rptAr("KPI progress vs 2026 targets","تقدّم المؤشرات مقابل أهداف 2026")+(all.length>12?(" ("+(Math.floor(i/12)+1)+")"):""),{x:0.6,y:0.35,fontSize:20,bold:true,color:INK,fontFace:"Cairo"});
     sl.addTable([hdr].concat(all.slice(i,i+12)),{x:0.6,y:1.0,w:12.1,fontSize:11,fontFace:"Cairo",border:{type:"solid",color:"EEE8DE",pt:0.5},colW:[7.3,1.6,1.6,1.6]});
   }
   var ach=rptFilterAch();
   for(var j=0;j<ach.length;j+=7){
     var sa=P.addSlide();sa.background={color:CREAM};
-    sa.addText("Achievements"+(ach.length>7?(" ("+(Math.floor(j/7)+1)+")"):""),{x:0.6,y:0.35,fontSize:20,bold:true,color:INK,fontFace:"Cairo"});
+    sa.addText(rptAr("Achievements","الإنجازات")+(ach.length>7?(" ("+(Math.floor(j/7)+1)+")"):""),{x:0.6,y:0.35,fontSize:20,bold:true,color:INK,fontFace:"Cairo"});
     sa.addText(ach.slice(j,j+7).map(function(a){return {text:a.date+"  "+a.title+(a.client?" ["+a.client+"]":"")+" - "+a.member+(a.value?(" - "+a.value):""),options:{bullet:true,fontSize:13,color:INK,breakLine:true,fontFace:"Cairo"}};}),{x:0.6,y:1.1,w:12.1,h:5.6});
   }
-  if(!ach.length){var se=P.addSlide();se.background={color:CREAM};se.addText("No achievements logged in this period.",{x:0.6,y:3,fontSize:16,color:MUT,fontFace:"Cairo"});}
+  if(!ach.length){var se=P.addSlide();se.background={color:CREAM};se.addText(rptAr("No achievements logged in this period.","لم تُسجَّل إنجازات في هذه الفترة."),{x:0.6,y:3,fontSize:16,color:MUT,fontFace:"Cairo"});}
   var sf=P.addSlide();sf.background={color:INK};
   sf.addText("AL MOSAFER AL MOBASHER TRAVEL & TOURISM",{x:0.7,y:3.0,w:11,fontSize:18,bold:true,color:"FFFFFF",fontFace:"Cairo"});
   sf.addText("IATA 71238285 - Amadeus RUHS2234B - PCI-DSS - www.directksa.com - +966 508 434 126",{x:0.7,y:3.8,w:11,fontSize:13,color:"FF9D45",fontFace:"Cairo"});
-  P.writeFile({fileName:rptTitle().replace(/[^\w]+/g,"-")+".pptx"});
- }catch(e){alert("PowerPoint export failed: "+(e&&e.message?e.message:e));}};
+  P.writeFile({fileName:rptTitleEn().replace(/[^\w]+/g,"-")+".pptx"});
+ }catch(e){alert(rptAr("PowerPoint export failed: ","تعذّر تصدير PowerPoint: ")+(e&&e.message?e.message:e));}};
  if(window.PptxGenJS){go();return;}
- var sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/pptxgen/3.12.0/pptxgen.bundle.min.js";sc.onload=go;sc.onerror=function(){alert("Internet needed once to load the PowerPoint engine.");};document.head.appendChild(sc);
+ var sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/pptxgen/3.12.0/pptxgen.bundle.min.js";sc.onload=go;sc.onerror=function(){alert(rptAr("Internet needed once to load the PowerPoint engine.","يلزم اتصال بالإنترنت مرة واحدة لتحميل محرك PowerPoint."));};document.head.appendChild(sc);
 };console.info('%c[v29.1] Reports module embedded (storage: directReportsData_v1)','color:#FF6B00;font-weight:700');
 })();
 

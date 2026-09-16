@@ -204,3 +204,4 @@ probe-proposal-editor-arabic
 probe-finance-deeplink-signin
 probe-export-menu-honest
 probe-finance-links-race
+probe-reports-arabic-chrome
