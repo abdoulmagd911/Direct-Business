@@ -11,12 +11,23 @@
 (function(){try{
   function fl(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;}
 
-  /* what each role may WRITE — mirrors the database policies exactly */
+  /* what each role may WRITE — mirrors the database policies exactly.
+     2026-09-16 (fire #68, driven live as an operations account against the real database): this
+     row said operations may write leads and proposals. The database says otherwise — biz_write,
+     con_write, client_profiles_write and app_offers_write all list admin/manager/bd/team_member
+     and NOT operations (read from pg_policies the same day). So an operations person was shown
+     Edit on a company, could move a lead's stage and watch it move, and only then got "That
+     change was not saved" and a reload — the exact lie this layer exists to stop. Activity is 0
+     for the same reason: the app logs activity by pushing onto the company row and saving THAT
+     row (logActivity / v40Touch / setLeadStage all write businesses.raw); the separate
+     `activities` table the database does open to operations is only ever read by the app (js/72
+     bridge). Requests, SOPs/SLAs, suppliers, airlines and expenses stay open to them, as in the
+     database. Guard: scripts/qa/probe-operations-role.mjs. */
   var CAN={
     admin:      {leads:1,proposals:1,requests:1,activities:1,finance:1,promo:1},
     manager:    {leads:1,proposals:1,requests:1,activities:1,finance:1,promo:1},
     bd:         {leads:1,proposals:1,requests:1,activities:1,finance:1,promo:1},
-    operations: {leads:1,proposals:1,requests:1,activities:1,finance:1,promo:0},
+    operations: {leads:0,proposals:0,requests:1,activities:0,finance:1,promo:0},
     team_member:{leads:1,proposals:1,requests:1,activities:1,finance:1,promo:0},
     viewer:     {leads:0,proposals:0,requests:0,activities:0,finance:0,promo:0}
   };
@@ -24,7 +35,7 @@
   var ROLE_AR={admin:'مدير النظام',manager:'مدير',bd:'تطوير الأعمال',operations:'العمليات',team_member:'عضو الفريق',viewer:'قراءة فقط'};
   /* what each role CAN still do — so the message is never a dead end */
   var INSTEAD={
-    operations:['You can create and work requests, and log activity on any company.','يمكنك إنشاء الطلبات ومتابعتها، وتسجيل النشاط على أي شركة.'],
+    operations:['You can create and work requests, and update suppliers, SOPs and service levels.','يمكنك إنشاء الطلبات ومتابعتها، وتحديث المورّدين والإجراءات ومستويات الخدمة.'],
     viewer:    ['Your account is read-only: you can open and read everything, and export reports.','حسابك للقراءة فقط: يمكنك فتح كل شيء وقراءته وتصدير التقارير.'],
     bd:        ['Finance is kept to managers. Everything about leads, clients and proposals is yours.','المالية للمدراء. كل ما يخص العملاء المحتملين والعملاء والعروض متاح لك.'],
     team_member:['Your account covers leads, clients and finance.','حسابك يشمل العملاء المحتملين والعملاء والمالية.']
@@ -124,6 +135,9 @@
   }
   function applyGuards(){
     ['editBusiness','leadQuickEdit','setLeadStage','convertToClient','v40Touch','v40AddComment','v40Hold','v33CycleFit'].forEach(function(f){ guardFn(f,'leads'); });
+    /* 2026-09-16 (fire #68): the activity log's own three entry points write the company row too
+       (they push onto b.activities and save() the business) and were not in the list above. */
+    ['logActivity','editActivity','removeActivity'].forEach(function(f){ guardFn(f,'leads'); });
     ['newOffer','offerEditor','saveOffer'].forEach(function(f){ guardFn(f,'proposals'); });
     ['editRequest'].forEach(function(f){ guardFn(f,'requests'); });
     ['expSave','expDel','finSetWay','finCommit','finSetTargets','finLinkMap'].forEach(function(f){ guardFn(f,'finance'); });
@@ -225,7 +239,7 @@
       d.style.cssText='background:#EEF2FF;border:1px solid #D6DCFF;color:#3A4A8A;border-radius:10px;padding:8px 12px;font-size:12.5px;margin-bottom:12px';
       d.textContent=(r==='viewer')
         ? fl('Read-only account — you can open and read everything, but nothing you do is saved.','حساب للقراءة فقط — يمكنك فتح كل شيء وقراءته، لكن لا يُحفظ أي تعديل.')
-        : fl('Operations account — you work requests and log activity; companies and proposals are edited by the sales team.','حساب العمليات — تعمل على الطلبات وتسجيل النشاط؛ الشركات والعروض يعدّلها فريق المبيعات.');
+        : fl('Operations account — you work requests, suppliers and SOPs; companies, their activity and proposals are edited by the sales team.','حساب العمليات — تعمل على الطلبات والمورّدين والإجراءات؛ الشركات ونشاطها والعروض يعدّلها فريق المبيعات.');
       v.insertBefore(d, v.firstChild);
     }catch(_){}
   }

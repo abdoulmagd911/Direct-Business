@@ -1,3 +1,42 @@
+## Routine fire #68 (2026-09-16 18:11 UTC) — the Operations role driven live EN+AR, screen + database: the screen's own permission table disagreed with the database for this role — FIXED (js/49); the Operations badge now says what the role really covers
+Nobody holds this role today, so it had never been driven. scratchpad/live-operations.mjs: the QA account set to
+role=operations with an 8-page matrix (today/leads/clients/ops/finance/vendors/sopsla editor, activity viewer),
+driven against the REAL database EN then AR, restored to admin afterwards (re-checked: role admin, page_access
+null). What the database says about this role (pg_policies, read the same day): may write requests, activities,
+projects, bookings, SOPs/SLAs, suppliers, airlines, expenses/transactions/receipts; may NOT write businesses,
+contacts, client_profiles, offers, promo codes. Confirmed live from the browser: a companies update matched 0
+rows, a contacts insert and an app_offers insert were refused (403 RLS), an activities insert was accepted (and
+removed again), app_role() = operations.
+THE DEFECT: js/49's CAN table — the one that decides which buttons work — said operations may write leads AND
+proposals. So the company editor and the quick-edit form opened, a stage change moved the lead on screen and
+fired a save, the database refused it, and the person got "That change was not saved" plus a reload: the exact
+screen-lies / database-refuses pattern that layer was written to stop. Worse, the app had already appended a
+"stage change" line to the audit log (which lives in app_state, and app_state IS writable by this role), so the
+Activity & Audit page recorded a change that never happened. Activity logging has the same problem in a
+quieter form: the app logs activity by pushing onto the company row and saving THAT row, so it is refused for
+operations even though the separate `activities` table is open to them (the app only ever reads that table).
+FIXED in js/49: operations = {leads:0, proposals:0, requests:1, activities:0, finance:1 (the per-person matrix
+and can_edit_page decide), promo:0}; the activity log's own three entry points (logActivity / editActivity /
+removeActivity) added to the companies guard (they were never in it — any role restricted on companies could
+reach them); the badge and the "you can still…" sentence now say requests, suppliers, SOPs and service levels
+instead of promising activity logging. Live re-run after the fix: every company / proposal entry point refused
+in words in both languages, the request editor still opens, 0 write requests left the browser, 3 findings that
+were only the script's own stale expectations. The false audit line my drive left ("QA Test Account · stage ·
+<a real company>: Prospect → Contacted", the newest entry) was removed from app_state.audit by its id (799
+entries now; app_state_history rows 2287/2288 hold before/after). NOT a defect: the three granted reference
+pages "missing" from the sidebar were under the collapsed "More (n)" toggle (core-08 buildNav) — the live
+script now opens it first.
+OPEN (owner-level, not changed): (1) the audit log records a change at the moment it is attempted, not when the
+database confirms it — a refused save still leaves an audit line for any role the matrix restricts; the fix
+belongs in the audit layer (write the line after the save succeeds, or mark refused ones), a bigger change
+than this round. (2) `activities` is a table the database opens to operations but the app never writes to; if
+the owner ever wants operations people logging activity, the app's activity log must write to that table
+instead of the company row.
+Guard: scripts/qa/probe-operations-role.mjs (7 checks — canDo agrees with the database; EN and AR refusals in
+words with no editor and no stage move; 0 writes to the companies table; the request editor opens; the badge
+wording; 0 JS errors; SABOTAGE-VERIFIED: 5 FAIL / exit 1 with the js/49 edit stashed; port 9052; in
+battery.txt). Gates: structure OK, probe-integrity OK, decisions-wired OK.
+
 ## Routine fire #67 (2026-09-16 16:11 UTC) — full battery re-run at edda6aa after fires #64–#66: ALL 204 probes green
 Everything in scripts/qa/battery.txt (the 201 of day 4 plus the three guards added since: provider-caps-arabic,
 sla-head-arabic, ingest-title-arabic — 204 named, 204 logged), four foreground slices three at a time, 31 minutes,

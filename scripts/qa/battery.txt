@@ -210,3 +210,4 @@ probe-card-invoice-count
 probe-provider-caps-arabic
 probe-sla-head-arabic
 probe-ingest-title-arabic
+probe-operations-role
