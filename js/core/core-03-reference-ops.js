@@ -86,7 +86,12 @@ function ndcProviderPanel(){
   </tbody></table></div></div>`;
 }
 function setCap(id,cap,v){const x=(DB.vendors||[]).find(s=>s.id===id);if(!x)return;x.caps=x.caps||{};x.caps[cap]=v;save();render();}
-function capMatrixHTML(x){return `<div style="display:flex;flex-wrap:wrap;gap:6px">${PROV_CAPS.map(c=>{const on=x.caps&&x.caps[c];return `<button onclick="event.stopPropagation();setCap('${x.id}','${c}',${!on})" style="border:0;cursor:pointer;border-radius:8px;padding:8px 12px;font:inherit;font-size:12px;font-weight:700;color:${on?'#fff':'var(--muted)'};background:${on?'#16B364':'#eceef4'}">${on?'✓ ':''}${c}</button>`;}).join('')}</div>`;}
+/* 2026-09-16 (fire #64, live): the seven servicing-capability chips (Book, Reissue, Refund, EMD, Seats, Bags,
+   Split PNR) were English on the Arabic provider card and editor. The stored key stays English (caps[c]);
+   only the word on screen follows the page language — the two codes (EMD, PNR) stay as codes. */
+const PROV_CAP_AR={Book:'حجز',Reissue:'إعادة إصدار',Refund:'استرداد',EMD:'EMD',Seats:'مقاعد',Bags:'أمتعة','Split PNR':'تقسيم PNR'};
+function capLabel(c){return (typeof LANG!=='undefined'&&LANG==='ar'&&PROV_CAP_AR[c])?PROV_CAP_AR[c]:c;}
+function capMatrixHTML(x){return `<div style="display:flex;flex-wrap:wrap;gap:6px">${PROV_CAPS.map(c=>{const on=x.caps&&x.caps[c];return `<button onclick="event.stopPropagation();setCap('${x.id}','${c}',${!on})" style="border:0;cursor:pointer;border-radius:8px;padding:8px 12px;font:inherit;font-size:12px;font-weight:700;color:${on?'#fff':'var(--muted)'};background:${on?'#16B364':'#eceef4'}">${on?'✓ ':''}${capLabel(c)}</button>`;}).join('')}</div>`;}
 function apiTag(x){const m={Healthy:"#16B364",Degraded:"#F79009",Down:"#F0453A"};const c=m[x.apiStatus]||"#9AA1B6";return `<span class="tag" style="background:${c}1a;color:${c}">${esc(x.apiStatus||"—")}</span>`;}
 function provCommercialCard(x){return `<div class="card"><h3>Servicing &amp; commercial</h3>
 <div class="fact" style="align-items:flex-start"><span class="k">Servicing</span><span class="v" style="text-align:right">${capMatrixHTML(x)}</span></div>
@@ -232,7 +237,7 @@ function editSupplier(kind,id){
     <div class="grid2"><div class="field"><label>Support SLA</label><input id="p_sla" value="${esc(x.supportSLA||'')}" placeholder="P1 < 1h"></div><div class="field"><label>API status</label><select id="p_api">${PROV_API.map(s=>`<option ${(x.apiStatus||'—')===s?'selected':''}>${s}</option>`).join('')}</select></div></div>
     <div class="grid2"><div class="field"><label>Account manager</label><input id="p_am" value="${esc(x.accountManager||'')}"></div><div class="field"><label>Contract renewal</label><input id="p_renew" type="date" value="${esc(x.renewalDate||'')}"></div></div>
     <div class="field"><label>Use for (route-family recommendation)</label><input id="p_use" value="${esc(x.useFor||'')}" placeholder="Duffel → short-haul EU LCCs"></div>
-    <div class="field"><label>Servicing capabilities</label><div style="display:flex;flex-wrap:wrap;gap:8px">${PROV_CAPS.map(c=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;background:#f6f3ee;padding:6px 10px;border-radius:8px;cursor:pointer"><input type="checkbox" class="p_cap" value="${c}" ${(x.caps&&x.caps[c])?'checked':''}>${c}</label>`).join('')}</div></div>
+    <div class="field"><label>Servicing capabilities</label><div style="display:flex;flex-wrap:wrap;gap:8px">${PROV_CAPS.map(c=>`<label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;background:#f6f3ee;padding:6px 10px;border-radius:8px;cursor:pointer"><input type="checkbox" class="p_cap" value="${c}" ${(x.caps&&x.caps[c])?'checked':''}>${capLabel(c)}</label>`).join('')}</div></div>
     <div class="field"><label>Incident / outage history</label><textarea id="p_inc" rows="2">${esc(x.incidents||'')}</textarea></div>`:''}
     <div class="field"><label>Availability source (where we book)</label><input id="x_source" value="${esc(x.source||'')}" placeholder="GDS / NDC / Direct portal / Aggregator (Travel Fusion)"></div>
     <div class="grid2"><div class="field"><label>Booking / agent portal link</label><input id="x_portal" value="${esc(x.portal||'')}"></div><div class="field"><label>ADM / admin portal link</label><input id="x_admp" value="${esc(x.adminPortal||'')}"></div></div>

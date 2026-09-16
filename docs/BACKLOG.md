@@ -1,3 +1,22 @@
+## Routine fire #64 (2026-09-16 10:11 UTC) — Airlines and Providers INTERACTIONS (search, sort, detail, record dashboard, editor, select-all export) and the top-bar global search driven live EN+AR+phone: all honest; one Arabic gap — the seven provider capability chips were English — FIXED (core-03)
+scratchpad/live-reference-detail.mjs, real database, read-only (0 save() calls, 0 write requests), EN then AR,
+1440 px and 400 px.
+CLEAN: Airlines 136 rows = DB, Providers 23 = DB; the in-page search narrows a real name to exactly the DB's
+match and keeps its text; every sortable head (5 / 3) flips the order and the name sort is alphabetical; a row
+click opens the record (6 / 8 cards), its "Dashboard" view renders, the editor opens with 32 / 30 fields and
+closes without saving; select-all + Export gives "…-summary-selected.csv" with exactly the selected rows (136 /
+23) in both languages; GLOBAL SEARCH: a real fragment lists typed results (Airline + SOP), the type words are
+Arabic on the Arabic page, picking the first result opens that airline's card and clears the box, a nonsense
+query says "No matches" / «لا نتائج»; nothing scrolls sideways at 400 px; 0 JS errors; 0 dirty text.
+THE DEFECT (AR): the provider card's servicing-capability chips and the editor's checkbox labels — Book /
+Reissue / Refund / EMD / Seats / Bags / Split PNR — were English on the Arabic page. The stored key stays
+English (caps[c], nothing about the data changes); the word on screen now follows the page language, the two
+codes (EMD, PNR) stay as codes. EN unchanged (the editor upper-cases its labels by CSS, as before).
+Guard: scripts/qa/probe-provider-caps-arabic.mjs (5 checks — EN chips and labels intact with English checkbox
+values, AR chips and labels Arabic with the English values kept, 0 JS errors; SABOTAGE-VERIFIED: 2 FAIL /
+exit 1 with the core-03 edit stashed; port 9049; in battery.txt). Gates: structure OK, probe-integrity OK,
+decisions-wired OK. Live re-run after the fix: 0 findings.
+
 ## Routine fire #63 (2026-09-16 08:11 UTC) — full battery re-run at bda50f7 after seven fires of changes: ALL 201 probes green
 Everything in scripts/qa/battery.txt (196 from the day-3 run plus the five guards added since: finance-deeplink-
 signin, export-menu-honest, finance-links-race, reports-arabic-chrome, leads-funnel-dropdown, card-invoice-count —
