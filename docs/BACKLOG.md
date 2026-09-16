@@ -1,3 +1,11 @@
+## Routine fire #63 (2026-09-16 08:11 UTC) — full battery re-run at bda50f7 after seven fires of changes: ALL 201 probes green
+Everything in scripts/qa/battery.txt (196 from the day-3 run plus the five guards added since: finance-deeplink-
+signin, export-menu-honest, finance-links-race, reports-arabic-chrome, leads-funnel-dropdown, card-invoice-count —
+201 named, 201 logged), run in four foreground slices three at a time, 32 minutes, 0 failures, 0 timeouts,
+0 missing files. This covers the code touched since day 3: js/16 (sign-in wait), js/41 (links race), js/60 and
+js/73 and core-05 (exports), core-10 (Reports Arabic), core-02 (dashboard, funnel dropdown, empty-activity
+line, invoice count). Nothing to re-run. No code change this fire.
+
 ## Routine fire #62 (2026-09-16 06:12 UTC) — the CLIENT card's own controls and the ARCHIVE page driven live EN+AR+phone: controls clean; the card's "Invoices" key fact was a STORED number, wrong for 22 of the 28 live clients — FIXED (core-02, counted from the ledger)
 scratchpad/live-client-card-archive.mjs, real database, read-only (0 save() calls, 0 write requests), EN then AR,
 1440 px and 400 px, six client cards opened the way the Clients list opens them (row click → the card).
@@ -22,9 +30,9 @@ a candidate for the same merge, by the owner's hand.
 Guard: scripts/qa/probe-card-invoice-count.mjs (5 checks — linked client's fact = ledger count, a client with a
 stored invoices:9 and nothing in the ledger shows 0, EN and AR, 0 JS errors; SABOTAGE-VERIFIED: 2 FAIL / exit 1
 with the core-02 edit stashed; port 9048; in battery.txt). Gates: structure OK, probe-integrity OK,
-decisions-wired OK. Neighbours: probe-client-card-ar green; probe-client-card-address green but now takes ~253 s
-(the same with this fire's edit stashed — pre-existing, above the battery's 170 s cap; it needs the 420 s cap the
-generator probe already gets, or a faster wait inside it — a runner item, not an app defect).
+decisions-wired OK. Neighbours: probe-client-card-ar green; probe-client-card-address green but takes ~253 s
+(the same with this fire's edit stashed — pre-existing; within the repo runner's 600 s default, only my
+scratchpad slice runner capped it at 170 s — corrected there; not an app defect).
 
 ## Routine fire #61 (2026-09-16 04:11 UTC) — the READ-ONLY (viewer) role driven live end to end EN+AR, screen AND database: 0 defects
 scratchpad/live-viewer.mjs, real database. The QA account was set to role=viewer with a 4-page "viewer"
