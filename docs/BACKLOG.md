@@ -1,3 +1,23 @@
+## Routine fire #66 (2026-09-16 14:11 UTC) — the Events add/edit form, the three ingest forms and the Generator's six tabs driven live EN+AR+phone: all honest; the ingest forms' title was English on the Arabic page — FIXED (core-06, the definition that actually runs)
+scratchpad/live-forms-generator.mjs, real database, read-only (0 save() calls, 0 write requests), EN then AR,
+1440 px and 400 px — forms opened, read and closed, never saved.
+CLEAN: EVENTS "Add event" / "Edit event" (20 fields, 21 labels) fully Arabic on the Arabic page («إضافة فعالية»
+/ «تعديل فعالية»), Cancel closes; INGEST invoice (9 fields) / booking (14) / offer (4): every label Arabic on the
+Arabic page; GENERATOR: all six tabs (assets, price offer, service fees, company profile, contract, tender)
+render with 14–54 fields, no NaN/undefined, the price-offer preview draws its page, Home returns home; the
+Latin left on the Arabic Generator is client names in the pickers, the document's own English-language
+column heads (the document language is a separate choice from the page language) and the "English" toggle;
+nothing scrolls sideways at 400 px; 0 JS errors.
+THE DEFECT (AR): the ingest form's TITLE — "Ingest invoice / Ingest booking / Ingest offer" — and its file note
+were English on the Arabic page while every label inside was Arabic. Bilingual now («إدخال فاتورة / إدخال حجز /
+إدخال عرض»). Lesson kept: core-05 defines ingestModal and core-06 (v18) REPLACES it — a first edit to core-05
+changed nothing on screen (the mock probe caught it before commit); the fix lives in core-06 and core-05 was
+left untouched.
+Guard: scripts/qa/probe-ingest-title-arabic.mjs (4 checks — EN titles intact, AR titles Arabic, the fields
+unchanged in both languages, 0 JS errors; SABOTAGE-VERIFIED: 1 FAIL / exit 1 with the core-06 edit stashed;
+port 9051; in battery.txt). Gates: structure OK, probe-integrity OK, decisions-wired OK. Live re-run after the
+fix: 0 findings, Arabic titles on all three forms.
+
 ## Routine fire #65 (2026-09-16 12:12 UTC) — Today's quick-create tiles, the SOP & SLA page and Team & Access driven live EN+AR+phone: all honest; one Arabic head fixed (core-03); and the REAL cause of the blank proposal drafts found — a battery probe that writes to the live workspace — FIXED (probe-live2 now removes what it creates)
 scratchpad/live-today-sop-team.mjs, real database, EN then AR, 1440 px and 400 px.
 CLEAN: the four Today tiles do what their labels say — "Import invoices" lands on Finance → Import, "New
