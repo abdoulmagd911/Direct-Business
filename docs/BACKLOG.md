@@ -1,3 +1,24 @@
+## Routine fire #61 (2026-09-16 04:11 UTC) — the READ-ONLY (viewer) role driven live end to end EN+AR, screen AND database: 0 defects
+scratchpad/live-viewer.mjs, real database. The QA account was set to role=viewer with a 4-page "viewer"
+matrix (today/leads/clients/finance — the shape Team & Access writes) and RESTORED to admin / page_access
+null right after (verified by the returned row). Nobody holds this role today (live: 3 admins, 1 manager,
+7 team members) but Team & Access offers it, so it had to hold.
+SCREEN (EN and AR): the role chip reads "Read only" / "قراءة فقط"; the read-only badge sits on all four
+granted pages in the page language; the nav shows exactly the four; all 11 other addresses bounce to Today;
+mayEditPage and canFinEdit say no; every edit entry point tried — new business, stage change, convert to
+client, new request, edit request — is refused with a box that names the reason in words ("You can’t change
+companies… Your access level is “Read only”" / «لا يمكنك تعديل الشركات… مستوى صلاحيتك «قراءة فقط»») and opens
+no editor; 0 write requests left the browser during the whole drive; the finance figures load (46 invoices)
+and the summary export still produces its file — the promise "you can open and read everything, and export
+reports" holds.
+DATABASE (the part a screen can't fake): from the same signed-in session, a no-op update on a business →
+0 rows; an insert into activities → 403 "violates row-level security policy"; a no-op update on an invoice →
+0 rows; an insert into contacts → 403. The rules hold at the source, not just on screen.
+BY DESIGN, not a defect: the "+ New business" button stays visible for a viewer — js/49 deliberately guards
+the ACTION (refusal in words) instead of blanket-hiding buttons, which once removed harmless read-only ones.
+Guard: the existing scripts/qa/probe-viewer-writes.mjs (battery line 187) re-run green. No code change this
+fire; nothing to sabotage-verify.
+
 ## Routine fire #60 (2026-09-16 02:11 UTC) — the Leads TABLE (search, funnel filter, Mine, paging) and the lead detail card driven live EN+AR+phone: behaviour honest; the funnel dropdown offered two dead raw-key entries that only clients carry — FIXED (core-02); the lead card's "No activity yet…" was English in Arabic — FIXED (core-02)
 scratchpad/live-leads-table.mjs, real database, read-only (0 save() calls, 0 write requests), EN then AR,
 1440 px and 400 px, typing into the real search box and changing the real selects.
