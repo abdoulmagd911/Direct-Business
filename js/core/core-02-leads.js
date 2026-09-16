@@ -4,6 +4,24 @@ let leadGroup="stage";
 let leadView="board";
 let openLead=null;
 function getLead(id){return DB.businesses.find(b=>b.id===id);}
+/* 2026-09-16 (fire #62, live): the "Invoices" key fact printed b.invoices — a number STORED on the record
+   at import time. On the live cards it was wrong for 22 of 28 clients: seven training-world records said
+   1–4 while the ledger holds 0 for them, and fifteen real clients said 0 while the ledger holds 1–17
+   (one holds 17). The card now counts the client's live invoices the same way the finance snapshot card
+   (js/38) does — through finance_client_links, via js/16's exclusion chokepoint — and shows "—" until the
+   ledger has loaded (js/38 triggers that load and re-renders). Never the stored number. */
+function leadInvoiceCount(b){
+  try{
+    var FIN=window.FIN; if(!FIN||!Array.isArray(FIN.rows)) return null;
+    var uuid=(window.__bizUuid?window.__bizUuid(b.id):b.id);
+    var groups=(FIN.groupsByBiz&&FIN.groupsByBiz[uuid])||null;
+    if(!groups||!groups.length) return 0;
+    var g={}; groups.forEach(function(x){g[x]=1;});
+    var src=(typeof window.finLive==='function')?window.finLive():FIN.rows;
+    var inv={}; (src||[]).forEach(function(r){ if(!r||r.deleted_at||!g[r.client_group]) return; inv[r.invoice_no||('row'+Math.random())]=1; });
+    return Object.keys(inv).length;
+  }catch(_){ return null; }
+}
 /* 2026-09-02 (reversibility audit) — this confirm used to promise that the record moves to
    the Archive, stops appearing in anyone's lists, and can be restored by an admin for a month.
    Both halves were untrue. Deleting a company removes it from DB.businesses entirely, so it can never
@@ -147,7 +165,7 @@ function leadDashboard(v,id){
     <div class="card"><h3>Relationship to Direct</h3>
       <div class="fact"><span class="k">Link type</span><span class="v">${directLinkTag(b)}${b.source?'<span class="tag" style="background:'+(SOURCE_COLOR[b.source]||"#9AA1B6")+'1a;color:'+(SOURCE_COLOR[b.source]||"#9AA1B6")+'">'+esc(b.source)+'</span>':""}${b.website?'<a class="tag" style="background:#2E90FA14;color:#2E90FA;text-decoration:none" target="_blank" rel="noopener" href="'+esc(b.website)+'">Website</a>':""}${b.corpEmailFlag?'<span class="tag" style="background:#F0453A14;color:#D92D20" title="Individual using a company email - check">Corp email: '+esc(b.corpEmailFlag)+'</span>':""}</span></div>
       <div class="fact"><span class="k">Category</span><span class="v">${esc(b.category||"—")}</span></div>
-      <div class="fact"><span class="k">Invoices</span><span class="v">${b.invoices||0}</span></div>
+      <div class="fact"><span class="k">Invoices</span><span class="v">${(function(){var n=leadInvoiceCount(b);return n==null?"—":n;})()}</span></div>
       <div class="fact"><span class="k">Is client</span><span class="v">${b.isClient?'<span class="tag" style="background:#16B36418;color:#16B364">Yes</span>':"No"}</span></div>
       <div class="fact"><span class="k">Tickets issued</span><span class="v">${ticketsFor(b.id).length}</span></div>
       <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">${!b.isClient?`<button class="btn sm" style="border-color:#16B364;color:#16B364" onclick="convertToClient('${b.id}')">★ Convert to client</button>`:''}<a class="chiplink" href="${pdLink(b)}" target="_blank" rel="noopener">Direct Payments ↗</a></div>
@@ -192,7 +210,7 @@ function renderLeadDetail(v,id){
     </div>
     <div>
       <div class="card"><h3>Key facts</h3>
-        <div class="fact"><span class="k">Invoices</span><span class="v">${b.invoices||0}</span></div>
+        <div class="fact"><span class="k">Invoices</span><span class="v">${(function(){var n=leadInvoiceCount(b);return n==null?"—":n;})()}</span></div>
         <!-- Category had no fallback here, so a lead without one printed the word "undefined"
              on screen. Every other row on this panel already had one. -->
         <div class="fact"><span class="k">Category</span><span class="v">${esc(b.category||"—")}</span></div>

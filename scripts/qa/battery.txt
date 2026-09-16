@@ -206,3 +206,4 @@ probe-export-menu-honest
 probe-finance-links-race
 probe-reports-arabic-chrome
 probe-leads-funnel-dropdown
+probe-card-invoice-count

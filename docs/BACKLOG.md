@@ -1,3 +1,31 @@
+## Routine fire #62 (2026-09-16 06:12 UTC) — the CLIENT card's own controls and the ARCHIVE page driven live EN+AR+phone: controls clean; the card's "Invoices" key fact was a STORED number, wrong for 22 of the 28 live clients — FIXED (core-02, counted from the ledger)
+scratchpad/live-client-card-archive.mjs, real database, read-only (0 save() calls, 0 write requests), EN then AR,
+1440 px and 400 px, six client cards opened the way the Clients list opens them (row click → the card).
+CLEAN: every card renders its 13 sections with no NaN/undefined and 0 JS errors; the jump bar lists 9 sections
+and every button scrolls to a real card; the Direct Payments links carry the client's Direct id (3 links per
+card, id present); "Edit client profile" opens the local 22-field form and closes without saving; nothing
+scrolls sideways at 400 px. ARCHIVE: header 4 = the 4 archived companies in the database; 0 Restore buttons is
+CORRECT — three were merged into another company (undone from Activity & Audit) and one was removed by owner
+ruling, none of which may be restored from a button.
+THE DEFECT: the "Invoices" row under Key facts printed b.invoices — a number stored on the record at import
+time. Checked against the ledger through finance_client_links for all 28 clients: 7 training-world records
+(the 2026-08-13 world, ids a13e…) said 1–4 while the ledger holds 0 for them; 15 real clients said 0 while the
+ledger holds 1–17 (one holds 17, one 5); only 6 were right. The row now counts the client's live invoices the
+same way the finance snapshot card (js/38) does — through the links, via js/16's exclusion chokepoint — and
+shows "—" until the ledger has loaded (js/38 already triggers that load and re-renders). Verified live after
+the fix: the six cards read 0 where the ledger holds 0; the "10 / 1" still visible on two cards is the Past
+Invoices funnel's own "Invoices issued" field (data entered at import), not the key fact.
+NOTED FOR THE OWNER (data, not code): the 7 training-world client records (a13e…, "Past Invoices" funnel,
+"Invoices issued 10/1/…") reuse the names of real clients whose real invoices sit on the real records; three
+such twins were already merged on 2026-08-22/09-02 (they are the Archive's merged rows). The remaining ones are
+a candidate for the same merge, by the owner's hand.
+Guard: scripts/qa/probe-card-invoice-count.mjs (5 checks — linked client's fact = ledger count, a client with a
+stored invoices:9 and nothing in the ledger shows 0, EN and AR, 0 JS errors; SABOTAGE-VERIFIED: 2 FAIL / exit 1
+with the core-02 edit stashed; port 9048; in battery.txt). Gates: structure OK, probe-integrity OK,
+decisions-wired OK. Neighbours: probe-client-card-ar green; probe-client-card-address green but now takes ~253 s
+(the same with this fire's edit stashed — pre-existing, above the battery's 170 s cap; it needs the 420 s cap the
+generator probe already gets, or a faster wait inside it — a runner item, not an app defect).
+
 ## Routine fire #61 (2026-09-16 04:11 UTC) — the READ-ONLY (viewer) role driven live end to end EN+AR, screen AND database: 0 defects
 scratchpad/live-viewer.mjs, real database. The QA account was set to role=viewer with a 4-page "viewer"
 matrix (today/leads/clients/finance — the shape Team & Access writes) and RESTORED to admin / page_access
