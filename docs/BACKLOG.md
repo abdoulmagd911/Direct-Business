@@ -1,3 +1,29 @@
+## Routine fire #65 (2026-09-16 12:12 UTC) — Today's quick-create tiles, the SOP & SLA page and Team & Access driven live EN+AR+phone: all honest; one Arabic head fixed (core-03); and the REAL cause of the blank proposal drafts found — a battery probe that writes to the live workspace — FIXED (probe-live2 now removes what it creates)
+scratchpad/live-today-sop-team.mjs, real database, EN then AR, 1440 px and 400 px.
+CLEAN: the four Today tiles do what their labels say — "Import invoices" lands on Finance → Import, "New
+booking" opens the ingest form, "New offer" opens a proposal editor, "Search / commands" opens the palette — in
+both languages; SOP & SLA: both tabs render (22 SOPs, 14 service levels = DB), the SOP editor opens with its
+7 fields for an existing and a new SOP and closes without saving, the tab labels and SOP editor are Arabic on
+the Arabic page; TEAM & ACCESS (admin): the overlay lists all 11 active accounts with their roles (my first
+count said 10 — one address is on a different domain; corrected), Arabic role words on the Arabic page, 11
+per-page selects and the toggles present, nothing touched; nothing scrolls sideways at 400 px; 0 JS errors.
+1. **AR: the Service Levels table's brand column read "DIRECT BUSINESS"** while every other head was Arabic.
+   It now reads «دايركت أعمال», the sidebar's own words. EN unchanged.
+2. **The blank proposal drafts came from the battery, not from a person.** "New offer" saves a draft the moment
+   it is clicked (by design — the owner's 2026-09-02 ruling: a click on that button IS the intent; only the
+   stray "N" key asks first), so my two tile clicks left two blank drafts — and a THIRD blank draft was there
+   already, stamped 08:21 today, exactly when battery slice 2 started. scripts/qa/probe-live2.mjs is the one
+   real-backend probe in the battery: when the live workspace has no proposal it creates one to test the
+   storage upload, removes the uploaded file (since round 55), but never removed the DRAFT. Every battery run on
+   an empty proposals list left a blank "DB-xxxxxx" in the owner's real list — the DB-334490 removed in fire
+   #55 was the same. FIXED: the probe now removes the draft it created the way the app's own Delete does and
+   checks against the database that it is gone (22/22 on a real run, "left: 0"). The three blank drafts
+   (DB-554850, DB-907233, DB-933676, all by the QA account, all empty) were removed through the app's delete
+   body; app_offers is 0 again and no live-check file was left in storage today.
+Guard: scripts/qa/probe-sla-head-arabic.mjs (4 checks; SABOTAGE-VERIFIED: 2 FAIL / exit 1 with the core-03
+edit stashed; port 9050; in battery.txt). probe-live2's new step is itself the guard for #2 (it fails if the
+draft is still in the database after removal). Gates: structure OK, probe-integrity OK, decisions-wired OK.
+
 ## Routine fire #64 (2026-09-16 10:11 UTC) — Airlines and Providers INTERACTIONS (search, sort, detail, record dashboard, editor, select-all export) and the top-bar global search driven live EN+AR+phone: all honest; one Arabic gap — the seven provider capability chips were English — FIXED (core-03)
 scratchpad/live-reference-detail.mjs, real database, read-only (0 save() calls, 0 write requests), EN then AR,
 1440 px and 400 px.

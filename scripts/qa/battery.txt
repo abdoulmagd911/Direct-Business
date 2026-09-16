@@ -208,3 +208,4 @@ probe-reports-arabic-chrome
 probe-leads-funnel-dropdown
 probe-card-invoice-count
 probe-provider-caps-arabic
+probe-sla-head-arabic

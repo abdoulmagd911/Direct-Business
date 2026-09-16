@@ -288,7 +288,7 @@ function renderSlas(v){
   const beat=DB.slas.filter(s=>s.rank==="beat").length;
   v.innerHTML=`
   <div class="legend-bar"><span><span class="bench beat">★ Beats market</span></span><span><span class="bench meet">✓ Meets best practice</span></span></div>
-  <div class="card" style="padding:0"><div class="tbl-wrap"><table class="sla-table"><thead><tr><th style="width:26%;min-width:200px">Event</th><th style="width:24%;color:var(--orange)">Direct Business</th><th style="width:22%">Saudi market</th><th style="width:22%">Industry whales</th><th></th></tr></thead><tbody>
+  <div class="card" style="padding:0"><div class="tbl-wrap"><table class="sla-table"><thead><tr><th style="width:26%;min-width:200px">Event</th><th style="width:24%;color:var(--orange)">${(typeof LANG!=='undefined'&&LANG==='ar')?'دايركت أعمال':'Direct Business'}</th><th style="width:22%">Saudi market</th><th style="width:22%">Industry whales</th><th></th></tr></thead><tbody>
   ${DB.slas.map(s=>`<tr>
     <td><div style="display:flex;align-items:center;gap:8px;min-width:0"><span class="bench ${s.rank}" style="flex:0 0 auto">${s.rank==='beat'?'★':'✓'}</span><input class="cell" style="font-weight:600" value="${esc(s.event)}" onchange="setSla('${s.id}','event',this.value)"></div></td>
     <td><textarea class="cell" rows="2" style="font-weight:600;color:#C2691A" onchange="setSla('${s.id}','direct',this.value)">${esc(s.direct)}</textarea></td>

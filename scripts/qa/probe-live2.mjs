@@ -198,7 +198,11 @@ STEP('REAL clients list: the Clients page and the data agree on how many clients
 // Part C #1 — REAL storage upload (fresh world has no proposals yet — create one like a rep would)
 await page.evaluate(() => { openLead = null; current = 'offers'; render(); });
 await page.waitForTimeout(2500);
-await page.evaluate(() => { if (!(DB.offers || []).length && typeof newOffer === 'function') newOffer(); });
+/* 2026-09-16 (fire #65): when the live workspace had no proposal, this created one — and never removed it.
+   Every battery run left a blank "DB-xxxxxx" draft in the owner's REAL proposals list (three were found live,
+   two from one day). The draft it creates is now removed again below, the same way the app's own Delete
+   removes one, and the removal is checked against the database. An existing proposal is never touched. */
+const __createdId = await page.evaluate(() => { if (!(DB.offers || []).length && typeof newOffer === 'function') { newOffer(); return openOffer || null; } return null; });
 await page.waitForTimeout(2000);
 const rowOrEditor = await page.evaluate(() => !!document.getElementById('o_file'));
 if (!rowOrEditor) { await page.locator('#otb tr').first().click().catch(() => {}); await page.waitForTimeout(2500); }
@@ -222,6 +226,15 @@ if (up && up.path) {
     catch (e) { return { ok: false, err: String(e && e.message || e) }; }
   }, up.path);
   STEP('the test upload is removed again — this probe does not leave files in real storage', gone.ok, JSON.stringify(gone));
+}
+if (__createdId) {
+  const __gone = await page.evaluate(async (id) => {
+    try { DB.offers = (DB.offers || []).filter((x) => x.id !== id); openOffer = null; save(); } catch (e) { return { ok: false, err: 'delete body: ' + String(e && e.message || e) }; }
+    await new Promise((r) => setTimeout(r, 6000));
+    try { const c = window.supabase.createClient(); const r = await c.from('app_offers').select('id').eq('id', id); return { ok: !r.error && (r.data || []).length === 0, err: r.error && r.error.message, left: (r.data || []).length }; }
+    catch (e) { return { ok: false, err: String(e && e.message || e) }; }
+  }, __createdId);
+  STEP('the blank draft this probe created is removed again — this probe does not leave proposals in the real workspace', __gone.ok, JSON.stringify(__gone));
 }
 await page.screenshot({ path: 'shots/live-upload-real.png' });
 
