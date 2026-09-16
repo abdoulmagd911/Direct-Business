@@ -120,7 +120,31 @@
   var HIST={rows:null,loading:false,err:null};
   function histLoad(cb){
     var c=client(); if(!c){ setTimeout(function(){histLoad(cb);},400); return; }
-    if(HIST.loading)return; HIST.loading=true;
+    if(HIST.loading)return;
+    /* 2026-09-16 (fire #70, driven live): an /activity ADDRESS opened before sign-in renders this
+       page during boot, so the query below went out with the anonymous key, the database answered
+       [] with no error, that [] was cached as HIST.rows, and the page read "No activity yet." with
+       0 / 0 / 0 tiles for the whole session — 339 rows live — until somebody pressed Refresh.
+       Started from the home page the same session loaded all 339. Same shape as the Finance
+       deep-link bug of fire #56 (js/16 finLoad), same cure: with no session, leave HIST.rows null
+       (the page keeps saying "Loading…"), wait for the session, then load once and re-render.
+       Guard: scripts/qa/probe-activity-deeplink-signin.mjs. */
+    if(!window.__isShareView&&!HIST.sessionOk){
+      try{
+        c.auth.getSession().then(function(s){
+          if(s&&s.data&&s.data.session){ HIST.sessionOk=true; histLoad(cb); return; }
+          HIST.rows=null;
+          if(!HIST.waitSignIn){ HIST.waitSignIn=setInterval(function(){
+            try{ c.auth.getSession().then(function(s2){
+              if(s2&&s2.data&&s2.data.session){ clearInterval(HIST.waitSignIn); HIST.waitSignIn=null; HIST.sessionOk=true; HIST.rows=null; histLoad(cb);
+                try{ if(typeof current!=='undefined'&&current==='activity'&&typeof render==='function')render(); }catch(_){} }
+            }).catch(function(){}); }catch(_){}
+          },1000); }
+        }).catch(function(){});
+      }catch(_){}
+      return;
+    }
+    HIST.loading=true;
     c.from('record_history').select('*').order('at',{ascending:false}).limit(HIST_CAP).then(function(r){
       HIST.loading=false;
       if(r.error){ HIST.err=r.error.message||String(r.error); HIST.rows=[]; }

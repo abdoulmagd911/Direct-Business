@@ -1,3 +1,38 @@
+## Routine fire #70 (2026-09-16 22:11 UTC) — Activity & Audit and the lead card's "Recent changes" driven live EN+AR+phone, read-only: the undo path is honest; the /activity deep link cached an EMPTY log for the whole session — FIXED (js/63)
+scratchpad/live-activity.mjs against the REAL database, read-only by construction: 0 save() calls, 0 write
+requests, and the undo_change RPC intercepted (never reached the database — 0 calls). EN then AR, 1440 px
+and 400 px.
+CLEAN: every one of the 339 history rows names its kind and action (Arabic on the Arabic page), a record
+name where the record has one, and the changed fields in words — no raw column keys, no camelCase, no
+NaN/undefined, no bare "unknown" (the direct-database-change explanation from fire #49 holds); Undo is
+offered exactly on rows younger than 24 h of an undoable kind that are not "create" and not already
+undone (0 mismatches against the raw table, both languages); older undoable rows say "past the 24-hour
+undo window"; the Undo click (exercised directly on the oldest undoable row, since nothing undoable
+happened in the last 24 h) opens js/57's confirm box — «التراجع عن هذا التغيير؟» / Cancel «إلغاء» /
+Confirm «تأكيد» — and Cancel closes it and sends nothing; nothing scrolls sideways at 400 px (rows fit
+their card); the lead card's "Recent changes" / «التغييرات الأخيرة» fills with ≤5 rows under the same rules.
+THE DEFECT: opening the app at the /activity ADDRESS before signing in rendered the page during boot, so
+its history query went out with the anonymous key, the database answered [] with no error, that [] was
+cached, and the page read "No activity yet." with 0 / 0 / 0 tiles for the whole session — 339 rows live —
+until somebody pressed Refresh. Started from the home page the same session loaded all 339 (diagnosed
+with scratchpad/live-activity-diag.mjs: the first record_history request left 797 ms after boot with the
+publishable key and came back 2 bytes; the post-sign-in one came back 643 KB). Same shape as the Finance
+deep-link bug of fire #56, same cure: js/63 histLoad now leaves the rows null while there is no session,
+waits for it, then loads once and re-renders. Live re-run after the fix: 0 findings.
+CORRECTION to fire #68's open item (1): the "stage change" line the refused save left was written to
+DB.audit, the browser-side array in the app_state blob — and js/53's own header says that array is dead:
+js/63 replaced Activity & Audit with the database's record_history, which a trigger writes only when a
+write actually lands. So the visible log never recorded the refused change; the worry was misplaced.
+What remains true, for a later round: js/53 still grows DB.audit (capped at 800, ~142 KB) on every lead
+change and that whole section is re-uploaded each time — dead weight, not a screen defect. Also seen in
+the data: the 43 rows written today are all "Page access · Refused" lines from this session's role
+drives (the QA account bouncing off ungranted pages) — real events, honestly logged, QA noise.
+Guard: scripts/qa/probe-activity-deeplink-signin.mjs (5 checks — signed out at /activity nothing is
+cached as empty; after sign-in from that address the rows appear and the tile counts them; the normal
+path is the control; 0 JS errors; the probe answers an anonymous-key record_history GET with [] the way
+the real database does, since the mock knows no sessions; SABOTAGE-VERIFIED: 3 FAIL / exit 1 with the
+js/63 edit stashed; port 9053; in battery.txt). Gates: structure OK, probe-integrity OK, decisions-wired OK.
+
 ## Routine fire #69, second half (2026-09-16 ~20:50 UTC) — full battery re-run at 039829e after fire #68: ALL 205 probes green
 Everything in scripts/qa/battery.txt (the 204 of fire #67 plus probe-operations-role — 205 named, 205 logged),
 four foreground slices three at a time, ~32 minutes, 0 failures, 0 timeouts, 0 missing files. Covers the
