@@ -1,3 +1,35 @@
+## Routine fire #69, second half (2026-09-16 ~20:50 UTC) — full battery re-run at 039829e after fire #68: ALL 205 probes green
+Everything in scripts/qa/battery.txt (the 204 of fire #67 plus probe-operations-role — 205 named, 205 logged),
+four foreground slices three at a time, ~32 minutes, 0 failures, 0 timeouts, 0 missing files. Covers the
+code touched since #67: js/49 (the Operations row, the activity-log guards, the badge wording). probe-live2
+(the real-backend probe) ran inside the battery with exit 0, but the one output line the slice runner keeps
+was a bare Node version trailer instead of its usual summary; re-run alone straight afterwards it printed
+22/22 PASS, 0 page errors, and both cleanup steps (the upload and the blank draft) confirmed against the
+database — app_offers 0, no live-check file in storage, QA account admin. The scratchpad runner now keeps
+each probe's full output as well as its last line, so a trailer like that can be read next time instead of
+re-run. Nothing to re-run.
+
+## Routine fire #69 (2026-09-16 20:11 UTC) — the Business-development (bd) role driven live EN+AR, screen + database: 0 defects; every role the database knows has now been driven
+scratchpad/live-bd.mjs: the QA account set to role=bd with an 8-page matrix (today/leads/clients/offers/
+documents/ops/finance editor, reports viewer), driven against the REAL database EN then AR, restored to admin
+afterwards (re-checked). The database rule for bd (pg_policies): may write businesses, contacts, client
+profiles, offers, requests, activities, projects, bookings, funnels, promo codes, generated documents; finance
+tables per the page matrix; may NOT write airlines / providers / sops / slas / expenses / transactions /
+receipts — which never bites, because the app keeps those four reference sets in the app_state blob, and
+save_state_patch admits bd. On screen: chip "Business Development" / «تطوير الأعمال»; canDo says yes to leads,
+proposals, requests, activities, finance and promo (matches the database); the company editor, quick-edit,
+Log activity, New request and the request editor all OPEN (closed without saving; the two entry points that
+write on click, setLeadStage and newOffer, were deliberately not called); Proposals offers "New offer";
+Finance loads 91 rows with the Import tab; all 8 granted pages land in both languages with no NaN/undefined
+and no stray read-only badge; the 7 ungranted pages bounce to Today; 0 write requests left the browser.
+Database from the browser: activities insert accepted (removed again), app_role() = bd, can_edit_page
+(finance) = true. NOT a defect: Proposals is granted in the matrix but absent from the sidebar — that is the
+2026-08-25 owner ruling in core-08 (V25_PRIMARY: Proposals left the main menu once the Generator existed; the
+page stays reachable at /offers, and it landed fine here). The one real account that has Proposals granted
+(the manager) is in the same position by the same ruling. No code change this fire. With viewer (#61),
+team_member (#56), operations (#68) and bd (#69) driven live, every role the database understands has now
+been checked screen-against-policy.
+
 ## Routine fire #68 (2026-09-16 18:11 UTC) — the Operations role driven live EN+AR, screen + database: the screen's own permission table disagreed with the database for this role — FIXED (js/49); the Operations badge now says what the role really covers
 Nobody holds this role today, so it had never been driven. scratchpad/live-operations.mjs: the QA account set to
 role=operations with an 8-page matrix (today/leads/clients/ops/finance/vendors/sopsla editor, activity viewer),
