@@ -1,3 +1,28 @@
+## Routine fire #60 (2026-09-16 02:11 UTC) — the Leads TABLE (search, funnel filter, Mine, paging) and the lead detail card driven live EN+AR+phone: behaviour honest; the funnel dropdown offered two dead raw-key entries that only clients carry — FIXED (core-02); the lead card's "No activity yet…" was English in Arabic — FIXED (core-02)
+scratchpad/live-leads-table.mjs, real database, read-only (0 save() calls, 0 write requests), EN then AR,
+1440 px and 400 px, typing into the real search box and changing the real selects.
+CLEAN: 78 rows = the 78 leads the default filters match (80 leads, 2 lost hidden by "Hide closed"); typing a
+real name fragment narrows to exactly the one matching lead and the box keeps its text; the funnel select
+narrows "Website Form — B2B" to 7 = the 9 in the database minus its 2 lost; "Mine" for the QA account (owns
+nothing) shows the honest "No results with the current filters — 78 hidden" row in both languages; paging
+reads 1–20 of 78; six detail cards render all 12 injected cards with no NaN/undefined and 0 JS errors; Back
+returns to the same table; nothing scrolls sideways at 400 px. Arabic column heads, chips, toolbar and card
+labels are Arabic (the Latin left is company names and stored form text — data).
+1. **Funnel dropdown listed raw import tags as funnels** — "corporate_clients_import_20260821" and "Direct
+   Payments import", in both languages, because the list was built from every business including clients,
+   whose import-batch SOURCE tag stood in for a funnel. No lead carries them, so choosing one emptied the
+   table. Built from leads only now (core-02): the live dropdown reads All / Website Form — B2B / Website
+   Form — Entities, exactly the two funnels the 80 leads use.
+2. **"No activity yet — click “Log activity” after your first contact."** on the Arabic lead card (and the
+   shorter variant on the dashboard view) — the one English sentence on an otherwise Arabic card. Bilingual
+   now; EN unchanged.
+NOTED, not changed (scope): the Leads table has no sortable column heads while the Clients table sorts on
+five — adding sorting is new work, the owner's call.
+Guard: scripts/qa/probe-leads-funnel-dropdown.mjs (5 checks — every lead funnel listed, a client-only source
+tag NOT listed, EN sentence intact, AR sentence Arabic, 0 JS errors; SABOTAGE-VERIFIED: 2 FAIL / exit 1 with
+the core-02 edit stashed; port 9047; in battery.txt). Gates: structure OK, probe-integrity OK,
+decisions-wired OK.
+
 ## Routine fire #59 (2026-09-16 00:11 UTC) — Reports page (4 tabs, the report generator and its 5 outputs) and the Operations page driven live EN+AR+phone: behaviour and files clean; the Arabic Reports page was English wherever core-10 wrote its own words — FIXED (37 strings); the KPI names themselves stay English pending the owner's wording
 scratchpad/live-reports-ops.mjs, real database, read-only (0 save() calls, 0 write requests), EN then AR,
 1440 px and 400 px.

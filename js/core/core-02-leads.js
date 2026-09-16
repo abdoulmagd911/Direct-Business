@@ -44,7 +44,10 @@ function renderLeads(v){
   [["all","All"]].concat(CATEGORIES.map(c=>[c,c])).forEach(([k,lab])=>{const b=document.createElement("button");b.textContent=lab;b.className=leadFilter.cat===k?"on":"";b.onclick=()=>{leadFilter.cat=k;renderLeads(v);};seg.appendChild(b);});
   const fns=document.getElementById("fnsel");if(fns){
     const _ar=(typeof LANG!=='undefined'&&LANG==='ar');
-    const _fm={};(DB.businesses||[]).forEach(b=>{const k=b.funnelKey||b.source;if(k&&!_fm[k])_fm[k]=_ar?(b.funnelNameAr||b.funnelName||k):(b.funnelName||k);});
+    /* 2026-09-16 (fire #60, live): the dropdown was built from EVERY business, so the two import-batch
+       source tags that only CLIENTS carry showed up as raw keys ("corporate_clients_import_20260821",
+       "Direct Payments import") — dead entries on a list that shows leads only. Leads only now. */
+    const _fm={};(DB.businesses||[]).filter(b=>!b.isClient).forEach(b=>{const k=b.funnelKey||b.source;if(k&&!_fm[k])_fm[k]=_ar?(b.funnelNameAr||b.funnelName||k):(b.funnelName||k);});
     fns.innerHTML='<option value="all">'+(_ar?'كل القنوات':'All funnels')+'</option>'+Object.keys(_fm).map(k=>'<option value="'+esc(k)+'" '+(leadFilter.funnel===k?"selected":"")+'>'+esc(_fm[k])+'</option>').join("");
     fns.onchange=e=>{leadFilter.funnel=e.target.value;drawLeads();};}const sgs=document.getElementById("stgsel");if(sgs){sgs.innerHTML='<option value="all">All stages</option>'+LEAD_STAGES.map(s=>'<option value="'+s+'" '+(leadFilter.stage===s?"selected":"")+'>'+(s==="Won"?"Client":s)+'</option>').join("");sgs.onchange=e=>{leadFilter.stage=e.target.value;drawLeads();};}document.getElementById("lq").oninput=e=>{leadFilter.q=e.target.value;drawLeads();};
   drawLeads();
@@ -136,7 +139,7 @@ function leadDashboard(v,id){
   </div>
   <div class="detail-grid"><div>
     <div class="card"><h3>Work log</h3><div class="ch-sub">Calls, meetings, emails, tasks — the full history with this account.</div>
-      ${acts.length?`<div class="timeline">${acts.map(a=>`<div class="tl-item" data-act-i="${_actIdx(b,a)}"><div class="when">${fmtDate(a.date)} · ${fmtAgo(a.date)}${_actBy(a)}${_actMeta(b,a)}</div><div class="what">${_actWhat(a,false)}</div></div>`).join("")}</div>`:'<div class="empty">No activity yet — click “Log activity”.</div>'}
+      ${acts.length?`<div class="timeline">${acts.map(a=>`<div class="tl-item" data-act-i="${_actIdx(b,a)}"><div class="when">${fmtDate(a.date)} · ${fmtAgo(a.date)}${_actBy(a)}${_actMeta(b,a)}</div><div class="what">${_actWhat(a,false)}</div></div>`).join("")}</div>`:'<div class="empty">'+((typeof LANG!=='undefined'&&LANG==='ar')?'لا يوجد نشاط بعد — اضغط «تسجيل نشاط».':'No activity yet — click “Log activity”.')+'</div>'}
       <div style="margin-top:10px"><button class="btn sm" onclick="logActivity('${b.id}')">＋ Log activity</button></div>
     </div>
     ${b.notes?`<div class="card"><h3>Notes</h3><p style="margin:0;font-size:13px;color:#3a4054;line-height:1.6">${esc(b.notes)}</p></div>`:""}
@@ -184,7 +187,7 @@ function renderLeadDetail(v,id){
   <div class="detail-grid">
     <div>
       <div class="card"><h3>Activity &amp; workflow</h3><div class="ch-sub">Every touch with this business — no digging through chats or invoices</div>
-      ${acts.length?`<div class="timeline">${acts.map(a=>`<div class="tl-item" data-act-i="${_actIdx(b,a)}"><div class="when">${fmtDate(a.date)} · ${fmtAgo(a.date)}${_actBy(a)}${_actMeta(b,a)}</div><div class="what">${_actWhat(a,true)}</div></div>`).join("")}</div>`:'<div class="empty">No activity yet — click “Log activity” after your first contact.</div>'}</div>
+      ${acts.length?`<div class="timeline">${acts.map(a=>`<div class="tl-item" data-act-i="${_actIdx(b,a)}"><div class="when">${fmtDate(a.date)} · ${fmtAgo(a.date)}${_actBy(a)}${_actMeta(b,a)}</div><div class="what">${_actWhat(a,true)}</div></div>`).join("")}</div>`:'<div class="empty">'+((typeof LANG!=='undefined'&&LANG==='ar')?'لا يوجد نشاط بعد — اضغط «تسجيل نشاط» بعد أول تواصل.':'No activity yet — click “Log activity” after your first contact.')+'</div>'}</div>
       <div class="card"><h3>Contacts</h3>${(b.contacts||[]).length?b.contacts.map(c=>`<div class="contact-row"><div class="ci">${initials(c.name||c.email||"?")}</div><div style="flex:1;min-width:0"><div style="font-weight:600">${esc(c.name||"—")}${c.role?` <span style="font-weight:400;color:var(--muted);font-size:11.5px">· ${esc(c.role)}</span>`:""}${c.needsConfirm?` <span class="v72-confirm" title="${esc(c.confirmReason||"")}" style="display:inline-block;margin-inline-start:6px;padding:1px 7px;border-radius:9px;background:#FFF3EC;color:#B54708;font-size:10.5px;font-weight:700;cursor:help">⚠ ${(typeof LANG!=="undefined"&&LANG==="ar")?"يحتاج تأكيدًا":"needs confirmation"}</span>`:""}</div><div style="font-size:11.5px;color:var(--muted)">${c.email?`<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`:""}${c.email&&c.phone?" · ":""}${c.phone?`<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a> <a href="https://wa.me/${String(c.phone).replace(/[^0-9]/g,"").replace(/^0/,"966")}" target="_blank" rel="noopener" style="color:#16B364;font-weight:800" title="WhatsApp">WA</a>`:""}</div></div></div>`).join(""):'<div class="empty">No contacts yet.</div>'}</div>${corpCard(b)}
     </div>
     <div>
