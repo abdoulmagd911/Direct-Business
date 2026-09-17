@@ -1,3 +1,17 @@
+## Routine fire #73 (2026-09-17 04:11 UTC) — an idle signed-in session and the boot window measured live against the real database: 0 writes, one role check a minute; full battery at 1ee7d1a: ALL 209 probes green
+IDLE (scratchpad/live-idle.mjs, real database, the QA admin, nothing touched after landing): Leads 180 s,
+Finance 150 s, Today 150 s. Each: 0 write requests, 0 save calls, 0 page errors; the only traffic is the
+session watch's app_role() check once a minute (2 bytes back). Fire #58's read-only-visit-rewrites-links
+bug has no sibling on these pages. BOOT (sign-in + the next 20 s on Today): 29 requests, 0 writes, 742 KB
+down — leads, the workspace blob, the four app_* record tables, funnels, contacts/activities (each asked
+twice: once anonymously at boot, once with the session), team_directory, company_identity once WITH the
+session (the fire #71 fix holding live). Chatter worth knowing but not a defect: app_users is asked 5
+times and app_settings 4 times by different layers during those 20 s; a shared one-shot would save four
+small requests per sign-in. No code change this fire.
+BATTERY: everything in scripts/qa/battery.txt (209 named, 209 logged), four foreground slices, 0 failures,
+0 timeouts, 0 missing files; covers js/02 as changed in fire #72; probe-live2's kept line is its own
+summary again ("PAGEERRORS: 0"), so fire #69's odd trailer was a one-off.
+
 ## Routine fire #72 (2026-09-17 02:11 UTC) — full battery at 54edd3d: ALL 208 probes green; the sign-in form and sign-out driven live: honest, except that the form ignored the person's chosen language — FIXED (js/02)
 BATTERY: everything in scripts/qa/battery.txt (208 named, 208 logged), four foreground slices, 0 failures,
 0 timeouts, 0 missing files; covers js/49, js/63, js/66 and core-06 as changed in fires #68–#71.
