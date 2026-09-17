@@ -1,3 +1,26 @@
+## Routine fire #72 (2026-09-17 02:11 UTC) — full battery at 54edd3d: ALL 208 probes green; the sign-in form and sign-out driven live: honest, except that the form ignored the person's chosen language — FIXED (js/02)
+BATTERY: everything in scripts/qa/battery.txt (208 named, 208 logged), four foreground slices, 0 failures,
+0 timeouts, 0 missing files; covers js/49, js/63, js/66 and core-06 as changed in fires #68–#71.
+SIGN-IN, live against the real auth (scratchpad/live-signin.mjs; one deliberately wrong password, the
+reset endpoint intercepted so no email could go out; 0 writes): an empty submit says "Enter your email and
+password."; "Forgot password?" with no email typed explains, on the page and without any network call,
+what to do; a wrong password says "Wrong email or password…" in plain words (never the raw API wording)
+and leaves the button usable; a correct sign-in honours the /leads address; "Sign out" reads «تسجيل
+الخروج» on the Arabic page, returns the form, leaves no workspace on screen and no session behind, and
+signing back in works. The 65 company records in memory before any sign-in are the app's built-in demo
+seed (ids like b_mdd), not real rows — the real 108 arrive only with a session.
+THE DEFECT: the person had chosen Arabic (the app keeps that in localStorage 'dbLang' and was still in
+Arabic after the reload), yet the sign-in form was English apart from the two brand lines — labels, hint,
+button, "Forgot password?", "Working…", and every message. js/02 builds the form before any layer runs,
+but that key is readable then, so the form, the boot splash, the first-login ("Choose your own
+password"), recovery ("Set a new password") and switched-off ("Access not active yet") screens now follow
+it; English stays the default and is unchanged; the email and password boxes stay left-to-right. Live
+re-run after the change: Arabic form after sign-out.
+Guard: scripts/qa/probe-signin-form-arabic.mjs (6 checks — Arabic labels/button/link, RTL card with LTR
+inputs, Arabic messages, default English unchanged, nothing sent to the auth endpoint, 0 JS errors;
+SABOTAGE-VERIFIED: 3 FAIL / exit 1 with the js/02 edit stashed; port 9056; in battery.txt). Gates:
+structure OK, probe-integrity OK, decisions-wired OK.
+
 ## Routine fire #71 (2026-09-17 00:11 UTC) — every page opened by its address BEFORE sign-in, live: two more loaders cached an empty anonymous answer — the Settings backup list (deep link only) and the company identity registry (EVERY session) — both FIXED (core-06, js/66)
 Fires #56 and #70 were the same bug on two pages, so this round asked the question of all of them:
 scratchpad/live-deeplink-sweep.mjs opened the REAL app at each of 16 addresses (events, archive, documents,

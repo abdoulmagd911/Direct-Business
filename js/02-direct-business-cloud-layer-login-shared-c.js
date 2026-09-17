@@ -19,6 +19,14 @@
   try{ window.MIN_PW=MIN_PW; }catch(_){}
 
   function el(tag,css,html){var e=document.createElement(tag);if(css)e.style.cssText=css;if(html!=null)e.innerHTML=html;return e;}
+  /* 2026-09-17 (fire #72, driven live): a person who had chosen Arabic signed out and got the sign-in
+     form in English — labels, button, hint and every message — with only the brand lines in Arabic.
+     The app remembers the language in localStorage ('dbLang', core-06) and that key is readable
+     before anything else loads, so the form and its screens (splash, first-login, recovery, pending)
+     follow it. English stays the default; nothing changes for an English chooser. Inputs stay LTR
+     (an email address reads left-to-right in either language). Guard: probe-signin-form-arabic. */
+  var AR=false; try{ AR=(localStorage.getItem('dbLang')==='ar'); }catch(_){}
+  function L(en,ar){ return AR?ar:en; }
 
   // ---- full-screen login overlay (covers the app until signed in) ----
   var ov=el('div','position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#1C1E2B,#2A2D3E 60%,#3C4050);font-family:Cairo,Inter,system-ui,Arial,sans-serif');
@@ -28,16 +36,16 @@
     '<div style="font-size:12px;color:#7C8194;direction:rtl">دايركت أعمال</div></div>'+
     '<div style="font-size:10.5px;font-weight:800;color:#FF6B00;text-align:center;letter-spacing:.03em;margin-top:9px;text-transform:uppercase">Global supplier power · Saudi service · One partner</div>'+
     '<div style="font-size:11px;color:#9AA1B6;text-align:center;direction:rtl;margin-top:3px">قوة موردين عالمية · خدمة سعودية · شريك واحد</div>'+
-    '<div style="font-size:12.5px;color:#7C8194;text-align:center;margin:12px 0 18px">Sign in to your team workspace</div>'+
+    '<div style="font-size:12.5px;color:#7C8194;text-align:center;margin:12px 0 18px">'+L('Sign in to your team workspace','سجّل الدخول إلى مساحة عمل فريقك')+'</div>'+
     '<div id="cl_err" style="display:none;background:#F0453A14;color:#D92D20;font-size:12.5px;padding:9px 12px;border-radius:10px;margin-bottom:12px"></div>'+
-    '<label style="font-size:12px;font-weight:700;color:#55596A">Email</label>'+
-    '<input id="cl_email" aria-label="Email address" type="email" autocomplete="username" inputmode="email" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:16px">'+
-    '<label style="font-size:12px;font-weight:700;color:#55596A">Password</label>'+
-    '<input id="cl_pw" aria-label="Password" type="password" autocomplete="current-password" style="width:100%;box-sizing:border-box;margin:5px 0 6px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:16px">'+
-    '<div style="text-align:right;margin:0 0 12px"><span id="cl_forgot" style="color:#FF6B00;font-size:12px;font-weight:700;cursor:pointer">Forgot password?</span></div>'+
-    '<button id="cl_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer;box-shadow:0 10px 22px -7px rgba(255,107,0,.5)">Sign in</button>'+
-    '<div style="text-align:center;margin-top:14px;font-size:12px;color:#9AA1B6;line-height:1.6">Accounts are created by your admin.<br>Need access? Ask Abdulrahman.</div>'+
-    '<div id="cl_busy" style="display:none;text-align:center;margin-top:12px;font-size:12px;color:#7C8194">Working...</div>';
+    '<label style="font-size:12px;font-weight:700;color:#55596A">'+L('Email','البريد الإلكتروني')+'</label>'+
+    '<input id="cl_email" aria-label="'+L('Email address','عنوان البريد الإلكتروني')+'" type="email" dir="ltr" autocomplete="username" inputmode="email" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:16px">'+
+    '<label style="font-size:12px;font-weight:700;color:#55596A">'+L('Password','كلمة المرور')+'</label>'+
+    '<input id="cl_pw" aria-label="'+L('Password','كلمة المرور')+'" type="password" dir="ltr" autocomplete="current-password" style="width:100%;box-sizing:border-box;margin:5px 0 6px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:16px">'+
+    '<div style="text-align:'+(AR?'left':'right')+';margin:0 0 12px"><span id="cl_forgot" style="color:#FF6B00;font-size:12px;font-weight:700;cursor:pointer">'+L('Forgot password?','نسيت كلمة المرور؟')+'</span></div>'+
+    '<button id="cl_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer;box-shadow:0 10px 22px -7px rgba(255,107,0,.5)">'+L('Sign in','تسجيل الدخول')+'</button>'+
+    '<div style="text-align:center;margin-top:14px;font-size:12px;color:#9AA1B6;line-height:1.6">'+L('Accounts are created by your admin.<br>Need access? Ask Abdulrahman.','الحسابات ينشئها المسؤول.<br>تحتاج صلاحية؟ اطلبها من عبدالرحمن.')+'</div>'+
+    '<div id="cl_busy" style="display:none;text-align:center;margin-top:12px;font-size:12px;color:#7C8194">'+L('Working...','جارٍ العمل...')+'</div>';
   // Boot splash: shown while we quietly check for an existing session, so a signed-in
   // person who reloads never sees the login form flash before the app appears.
   var splashHTML='<div style="text-align:center;padding:18px 6px 8px">'+
@@ -45,9 +53,10 @@
     '<div style="font-size:22px;font-weight:800;color:#1C1E2B;letter-spacing:-.02em">'+(typeof brandName==='function'?brandName():'Direct Business')+'</div>'+
     '<div style="font-size:12px;color:#7C8194;direction:rtl;margin-top:2px">دايركت أعمال</div>'+
     '<div style="width:26px;height:26px;border:3px solid #EADFCE;border-top-color:#FF6B00;border-radius:50%;margin:24px auto 12px;animation:clspin .8s linear infinite"></div>'+
-    '<div style="font-size:12.5px;color:#7C8194">Loading your workspace…</div></div>';
+    '<div style="font-size:12.5px;color:#7C8194">'+L('Loading your workspace…','جارٍ تحميل مساحة العمل…')+'</div></div>';
   try{if(!document.getElementById('cl_boot_css')){var _bs=document.createElement('style');_bs.id='cl_boot_css';_bs.textContent='@keyframes clspin{to{transform:rotate(360deg)}}';(document.head||document.documentElement).appendChild(_bs);}}catch(_){}
   card.innerHTML=splashHTML;
+  try{ card.style.direction=AR?'rtl':'ltr'; card.style.textAlign=AR?'right':'left'; card.setAttribute('lang',AR?'ar':'en'); }catch(_){}
   ov.appendChild(card);
   function showOverlay(){ if(!document.body.contains(ov)) document.body.appendChild(ov); }
   function hideOverlay(){ if(document.body.contains(ov)) ov.remove(); }
@@ -249,24 +258,24 @@
        visible way to skip straight into the app — the recovery link already IS a valid sign-in,
        so skipping loses nothing except the chance to also set a password right now. */
     var whoEmail=(me&&me.email)||'your account';
-    card.innerHTML='<div style="text-align:center;margin-bottom:6px"><div style="font-size:20px;font-weight:800;color:#1C1E2B">Set a new password</div>'+
-      '<div style="font-size:12.5px;color:#7C8194;margin:8px 0 16px">Choose a new password for <b>'+whoEmail.replace(/[<>&]/g,'')+'</b>.</div></div>'+
+    card.innerHTML='<div style="text-align:center;margin-bottom:6px"><div style="font-size:20px;font-weight:800;color:#1C1E2B">'+L('Set a new password','تعيين كلمة مرور جديدة')+'</div>'+
+      '<div style="font-size:12.5px;color:#7C8194;margin:8px 0 16px">'+L('Choose a new password for <b>'+whoEmail.replace(/[<>&]/g,'')+'</b>.','اختر كلمة مرور جديدة لحساب <b>'+whoEmail.replace(/[<>&]/g,'')+'</b>.')+'</div></div>'+
       '<div id="cl_err" style="display:none;background:#F0453A14;color:#D92D20;font-size:12.5px;padding:9px 12px;border-radius:10px;margin-bottom:12px"></div>'+
-      '<label style="font-size:12px;font-weight:700;color:#55596A">New password</label>'+
-      '<div style="font-size:11.5px;color:#7C8194;margin:2px 0 0">At least '+MIN_PW+' characters.</div>'+
-      '<input id="rp_pw1" type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
-      '<label style="font-size:12px;font-weight:700;color:#55596A">Repeat new password</label>'+
-      '<input id="rp_pw2" type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 16px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
-      '<button id="rp_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer">Save new password</button>'+
-      '<div style="text-align:center;margin-top:14px"><span id="rp_skip" style="color:#9AA1B6;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">Only wanted to sign in — skip this</span></div>';
+      '<label style="font-size:12px;font-weight:700;color:#55596A">'+L('New password','كلمة المرور الجديدة')+'</label>'+
+      '<div style="font-size:11.5px;color:#7C8194;margin:2px 0 0">'+L('At least '+MIN_PW+' characters.',MIN_PW+' أحرف على الأقل.')+'</div>'+
+      '<input id="rp_pw1" type="password" dir="ltr" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
+      '<label style="font-size:12px;font-weight:700;color:#55596A">'+L('Repeat new password','أعد كتابة كلمة المرور الجديدة')+'</label>'+
+      '<input id="rp_pw2" type="password" dir="ltr" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 16px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
+      '<button id="rp_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer">'+L('Save new password','حفظ كلمة المرور الجديدة')+'</button>'+
+      '<div style="text-align:center;margin-top:14px"><span id="rp_skip" style="color:#9AA1B6;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">'+L('Only wanted to sign in — skip this','أردت تسجيل الدخول فقط — تخطَّ هذه الخطوة')+'</span></div>';
     document.getElementById('rp_go').onclick=function(){
       var p1=document.getElementById('rp_pw1').value,p2=document.getElementById('rp_pw2').value;
-      if(!p1||p1.length<MIN_PW){ err('Password must be at least '+MIN_PW+' characters.'); return; }
-      if(p1!==p2){ err('The two passwords do not match.'); return; }
+      if(!p1||p1.length<MIN_PW){ err(L('Password must be at least '+MIN_PW+' characters.','يجب ألا تقل كلمة المرور عن '+MIN_PW+' أحرف.')); return; }
+      if(p1!==p2){ err(L('The two passwords do not match.','كلمتا المرور غير متطابقتين.')); return; }
       sb.auth.updateUser({password:p1}).then(function(r){
         if(r.error){ err(r.error.message); return; }
         var e2=document.getElementById('cl_err');
-        if(e2){ e2.style.display='block'; e2.style.background='#16B36414'; e2.style.color='#0B7A43'; e2.textContent='Password updated — loading your workspace...'; }
+        if(e2){ e2.style.display='block'; e2.style.background='#16B36414'; e2.style.color='#0B7A43'; e2.textContent=L('Password updated — loading your workspace...','تم تحديث كلمة المرور — جارٍ تحميل مساحة العمل...'); }
         setTimeout(function(){ location.href=location.pathname; },1200);
       });
     };
@@ -280,9 +289,9 @@
 
   function showPending(){
     showOverlay();
-    card.innerHTML='<div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#1C1E2B;margin-bottom:8px">Access not active yet</div>'+
-      '<div style="font-size:13px;color:#55596A;line-height:1.7;margin-bottom:18px">This account is switched off.<br>Ask <b>Abdulrahman</b> to switch your access on in <b>Team</b>, then sign in again.</div>'+
-      '<button id="pd_out" style="width:100%;padding:12px;border:1px solid #E3DCCF;border-radius:12px;background:#fff;color:#1C1E2B;font:inherit;font-size:14px;font-weight:700;cursor:pointer">Sign out</button></div>';
+    card.innerHTML='<div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#1C1E2B;margin-bottom:8px">'+L('Access not active yet','الصلاحية غير مفعّلة بعد')+'</div>'+
+      '<div style="font-size:13px;color:#55596A;line-height:1.7;margin-bottom:18px">'+L('This account is switched off.<br>Ask <b>Abdulrahman</b> to switch your access on in <b>Team</b>, then sign in again.','هذا الحساب موقوف.<br>اطلب من <b>عبدالرحمن</b> تفعيل صلاحيتك من <b>الفريق</b>، ثم سجّل الدخول مجددًا.')+'</div>'+
+      '<button id="pd_out" style="width:100%;padding:12px;border:1px solid #E3DCCF;border-radius:12px;background:#fff;color:#1C1E2B;font:inherit;font-size:14px;font-weight:700;cursor:pointer">'+L('Sign out','تسجيل الخروج')+'</button></div>';
     document.getElementById('pd_out').onclick=function(){ sb.auth.signOut().then(function(){ location.reload(); }); };
   }
 
@@ -296,15 +305,15 @@
       function askAdmin(extra){
         if(!e2)return;
         e2.style.display='block'; e2.style.background='#F7900914'; e2.style.color='#B54708';
-        e2.innerHTML=(extra?extra+'<br>':'')+'Ask <b>Abdulrahman</b> to reset your password.<br>He opens <b>Team</b> in the app, clicks <b>Reset password</b> next to your name, and sends you a new temporary one.';
+        e2.innerHTML=(extra?extra+'<br>':'')+L('Ask <b>Abdulrahman</b> to reset your password.<br>He opens <b>Team</b> in the app, clicks <b>Reset password</b> next to your name, and sends you a new temporary one.','اطلب من <b>عبدالرحمن</b> إعادة تعيين كلمة المرور.<br>يفتح <b>الفريق</b> في التطبيق، ويضغط <b>إعادة تعيين كلمة المرور</b> بجانب اسمك، ويرسل لك كلمة مؤقتة جديدة.');
       }
-      if(!email){ askAdmin('Type your email above first if you want a reset link.'); return; }
+      if(!email){ askAdmin(L('Type your email above first if you want a reset link.','اكتب بريدك الإلكتروني أعلاه أولًا إن أردت رابط إعادة تعيين.')); return; }
       busy(true);
       sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin}).then(function(r){
         busy(false);
         if(r.error){ askAdmin(''); return; }
         if(e2){ e2.style.display='block'; e2.style.background='#16B36414'; e2.style.color='#0B7A43';
-          e2.innerHTML='If email is switched on, a reset link is on its way to <b>'+email.replace(/</g,'&lt;')+'</b>.<br>Nothing after a few minutes? Ask Abdulrahman to reset it for you in <b>Team</b>.'; }
+          e2.innerHTML=L('If email is switched on, a reset link is on its way to <b>'+email.replace(/</g,'&lt;')+'</b>.<br>Nothing after a few minutes? Ask Abdulrahman to reset it for you in <b>Team</b>.','إن كان البريد مفعّلًا، فرابط إعادة التعيين في طريقه إلى <b>'+email.replace(/</g,'&lt;')+'</b>.<br>لم يصلك شيء بعد دقائق؟ اطلب من عبدالرحمن إعادة تعيينها لك من <b>الفريق</b>.'); }
       }).catch(function(){ busy(false); askAdmin(''); });
     };
   }
@@ -312,13 +321,13 @@
   function submit(){
     var email=(document.getElementById('cl_email').value||'').trim();
     var pw=document.getElementById('cl_pw').value||'';
-    if(!email||!pw){ err('Enter your email and password.'); return; }
+    if(!email||!pw){ err(L('Enter your email and password.','اكتب بريدك الإلكتروني وكلمة المرور.')); return; }
     busy(true);
     sb.auth.signInWithPassword({email:email,password:pw}).then(function(r){
       busy(false);
       if(r.error){
         if(/invalid login credentials/i.test(r.error.message||'')){
-          err('Wrong email or password. If you forgot it, click "Forgot password?" above — your admin can issue a new one.');
+          err(L('Wrong email or password. If you forgot it, click "Forgot password?" above — your admin can issue a new one.','البريد الإلكتروني أو كلمة المرور غير صحيحة. إن نسيتها، اضغط «نسيت كلمة المرور؟» أعلاه — ويمكن للمسؤول إصدار كلمة جديدة لك.'));
         } else { err(r.error.message); }
         return;
       }
@@ -416,19 +425,19 @@
 
   function showFirstLogin(){
     showOverlay();
-    card.innerHTML='<div style="text-align:center;margin-bottom:6px"><div style="font-size:20px;font-weight:800;color:#1C1E2B">Choose your own password</div>'+
-      '<div style="font-size:12.5px;color:#7C8194;margin:8px 0 16px;line-height:1.6">You signed in with a temporary password.<br>Pick your own now — you will use it from next time.</div></div>'+
+    card.innerHTML='<div style="text-align:center;margin-bottom:6px"><div style="font-size:20px;font-weight:800;color:#1C1E2B">'+L('Choose your own password','اختر كلمة مرور خاصة بك')+'</div>'+
+      '<div style="font-size:12.5px;color:#7C8194;margin:8px 0 16px;line-height:1.6">'+L('You signed in with a temporary password.<br>Pick your own now — you will use it from next time.','سجّلت الدخول بكلمة مرور مؤقتة.<br>اختر كلمتك الخاصة الآن — وستستخدمها من المرة القادمة.')+'</div></div>'+
       '<div id="cl_err" style="display:none;background:#F0453A14;color:#D92D20;font-size:12.5px;padding:9px 12px;border-radius:10px;margin-bottom:12px"></div>'+
-      '<label style="font-size:12px;font-weight:700;color:#55596A">New password</label>'+
-      '<div style="font-size:11.5px;color:#7C8194;margin:2px 0 0">At least '+MIN_PW+' characters.</div>'+
-      '<input id="fl_pw1" type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
-      '<label style="font-size:12px;font-weight:700;color:#55596A">Repeat new password</label>'+
-      '<input id="fl_pw2" type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 16px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
-      '<button id="fl_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer">Save and continue</button>';
+      '<label style="font-size:12px;font-weight:700;color:#55596A">'+L('New password','كلمة المرور الجديدة')+'</label>'+
+      '<div style="font-size:11.5px;color:#7C8194;margin:2px 0 0">'+L('At least '+MIN_PW+' characters.',MIN_PW+' أحرف على الأقل.')+'</div>'+
+      '<input id="fl_pw1" type="password" dir="ltr" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 12px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
+      '<label style="font-size:12px;font-weight:700;color:#55596A">'+L('Repeat new password','أعد كتابة كلمة المرور الجديدة')+'</label>'+
+      '<input id="fl_pw2" type="password" dir="ltr" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 16px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
+      '<button id="fl_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer">'+L('Save and continue','حفظ ومتابعة')+'</button>';
     document.getElementById('fl_go').onclick=function(){
       var p1=document.getElementById('fl_pw1').value,p2=document.getElementById('fl_pw2').value;
-      if(!p1||p1.length<MIN_PW){ err('Use at least '+MIN_PW+' characters.'); return; }
-      if(p1!==p2){ err('The two passwords do not match.'); return; }
+      if(!p1||p1.length<MIN_PW){ err(L('Use at least '+MIN_PW+' characters.','استخدم '+MIN_PW+' أحرف على الأقل.')); return; }
+      if(p1!==p2){ err(L('The two passwords do not match.','كلمتا المرور غير متطابقتين.')); return; }
       sb.auth.updateUser({password:p1}).then(function(r){
         if(r.error){ err(r.error.message); return; }
         callAdmin({action:'clear_must_change'}).then(function(){ location.reload(); });
