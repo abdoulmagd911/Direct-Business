@@ -28,7 +28,14 @@
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function client(){ try{ return window.fc?fc():null; }catch(_){ return null; } }
   function mayEdit(){ try{ return typeof window.mayEditPage==='function'?window.mayEditPage('archive')!==false:true; }catch(_){ return true; } }
-  function when(iso){ try{ var d=new Date(iso); if(isNaN(d))return ''; return d.toLocaleDateString(isAr()?'ar-SA':'en-GB',{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString(isAr()?'ar-SA':'en-GB',{hour:'2-digit',minute:'2-digit'}); }catch(_){ return String(iso||''); } }
+  /* 2026-09-17 (fire #79): these two said 'ar-SA', and that locale prints the HIJRI calendar in
+     Arabic-Indic digits — 14 March 2026 comes out as "٢٥ رمضان ١٤٤٧ هـ". Every other Arabic date in
+     the app uses 'ar' and stays Gregorian (the audit log, the Events tab), so the Archive was the one
+     place showing a different calendar for the same moment: an entry archived on 14 March read as
+     25 Ramadan 1447 here and as 14 مارس 2026 in Activity & Audit, and nothing said they were the same
+     day. 'ar' keeps the Arabic month names and the Arabic meridiem while the number and year match the
+     rest of the app. Guard: scripts/qa/probe-arabic-dates-gregorian.mjs. */
+  function when(iso){ try{ var d=new Date(iso); if(isNaN(d))return ''; return d.toLocaleDateString(isAr()?'ar':'en-GB',{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString(isAr()?'ar':'en-GB',{hour:'2-digit',minute:'2-digit'}); }catch(_){ return String(iso||''); } }
   /* the app's own id for a business may be a legacy id; the database row id is the uuid — walk
      DB.businesses through js/02's map to name the company a merge folded this one into */
   function nameByUuid(u){ try{ var list=(typeof DB!=='undefined'&&DB.businesses)||[]; for(var i=0;i<list.length;i++){ var b=list[i]; if(!b)continue; var id=(window.__bizUuid?window.__bizUuid(b.id):b.id); if(id===u||b.id===u) return b.name||''; } }catch(_){} return ''; }

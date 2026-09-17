@@ -20,7 +20,10 @@
   function fl(en,ar){ return isAr()?ar:en; }
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function client(){ try{ return window.fc?fc():null; }catch(_){ return null; } }
-  function when(iso){ if(!iso)return fl('never','أبدًا'); try{ var d=new Date(iso); if(isNaN(d))return String(iso); return d.toLocaleDateString(isAr()?'ar-SA':'en-GB',{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString(isAr()?'ar-SA':'en-GB',{hour:'2-digit',minute:'2-digit'}); }catch(_){ return String(iso); } }
+  /* 2026-09-17 (fire #79): 'ar-SA' prints the HIJRI calendar in Arabic-Indic digits, so a link made
+     on 14 March 2026 read "٢٥ رمضان ١٤٤٧ هـ" here while the rest of the app's Arabic dates stay
+     Gregorian. 'ar' keeps the Arabic month name and matches every other date on screen. */
+  function when(iso){ if(!iso)return fl('never','أبدًا'); try{ var d=new Date(iso); if(isNaN(d))return String(iso); return d.toLocaleDateString(isAr()?'ar':'en-GB',{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString(isAr()?'ar':'en-GB',{hour:'2-digit',minute:'2-digit'}); }catch(_){ return String(iso); } }
   function base(){ try{ return (/^https?:/.test(location.origin)&&location.host.indexOf('directksab2b.com')>=0)?location.origin:'https://www.directksab2b.com'; }catch(_){ return 'https://www.directksab2b.com'; } }
   function isAdmin(){ try{ return window.__userRole==='admin'; }catch(_){ return false; } }
 

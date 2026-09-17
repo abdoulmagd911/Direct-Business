@@ -1,3 +1,29 @@
+## Routine fire #79 (2026-09-17 16:11 UTC) — two screens were showing Arabic dates in the HIJRI calendar while the rest of the app showed Gregorian — FIXED (js/76, js/77)
+Where it came from: `toLocaleDateString('ar-SA', …)` does not merely translate the month name, it switches
+the CALENDAR. Measured in this browser for one fixed moment, 14 March 2026 09:05 UTC:
+  'ar-SA' → ٢٥ رمضان ١٤٤٧ هـ      (Hijri, Arabic-Indic digits)
+  'ar'    → 14 مارس 2026          (Gregorian, Arabic month name, Latin digits)
+  'en-GB' → 14 Mar 2026
+Every other Arabic date in the app already used 'ar' — the audit log (js/63) and the Events tab (js/10) —
+so two screens were the exception: the Archive list (js/76) and the Share-links panel (js/77), each of
+which formatted BOTH its date and its time with 'ar-SA'. A company archived on 14 March therefore read as
+"25 Ramadan 1447" in the Archive and as "14 مارس 2026" in Activity & Audit, with nothing saying they were
+the same day, and a share link's "created" date was in a different calendar from everything around it.
+Not a translation slip: two calendars inside one screenful, and the Hijri one carried Arabic-Indic digits
+while the app's own numbers are Latin everywhere else.
+FIXED: both files now use 'ar', so the Arabic month name and the Arabic meridiem stay while the day, year
+and digits match the rest of the app. English is untouched. Verified live afterwards on the real database:
+the Archive is clean in Arabic, and the Share-links panel prints "أُنشئ 9 سبتمبر 2026 12:45 م". A live scan
+of Archive, Activity, Events, Leads and Clients in Arabic found no other Hijri date and no Arabic-Indic
+digit run anywhere; the one thing my scanner flagged on the Activity page turned out to be invoice numbers
+(INV-2026-1355), not dates — checked in context rather than assumed.
+Guard: scripts/qa/probe-arabic-dates-gregorian.mjs (6 checks — the Archive and the Share panel each print
+the Gregorian date in Arabic with no Hijri year, era mark or Arabic-Indic digits, English unchanged, 0 JS
+errors; it seeds one archived company and one share link stamped with that same fixed moment;
+SABOTAGE-VERIFIED: 4 FAIL / exit 1 with both edits stashed; port 9059; in battery.txt). Gates green.
+Also confirmed this fire, from the SQL side: no share link is active, which is why the panel reads
+"0 مفعّل" — the same fact fire #78 recorded from the database.
+
 ## Routine fire #78, second half — THE FIRST VERIFIED BATTERY SINCE FIRE #56: 203 of 205 green, 2 real reds, both now fixed
 Run with scripts/qa/run-battery.sh (the runner that captures exit codes properly and re-runs every red on
 its own): 211 entries, 205 that can fail, 6 that only report. **203 green, 2 RED — and both reproduced when
