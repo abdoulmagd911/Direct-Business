@@ -1,3 +1,16 @@
+## Routine fire #74 (2026-09-17 06:12 UTC) — a long session measured live: timers, pending work, page size, memory and request rate over 60 page switches — nothing accumulates; full battery at e342db6: ALL 209 probes green
+scratchpad/live-longsession.mjs against the REAL database, read-only: setInterval / setTimeout wrapped before
+the app loads so live intervals and pending timeouts can be counted; sign in; 60 page switches across 12
+pages (Today, Leads, Clients, Finance, Operations, Reports, Suppliers, Airlines, SOP & SLA, Activity, Events,
+Generator), snapshots after boot, after 20 and after 60 switches, then 60 s idle. Result: live intervals
+29 → 28 → 28 → 28 (nothing re-arms a timer on render); pending timeouts 1 throughout; page nodes 430 →
+761 mid-tour → 431 back at Today (the tree is rebuilt, not accumulated); JS heap 13 MB flat; no overlay or
+notice left behind; 0 write requests; about 5 requests a minute while switching, the role check once a
+minute when idle; 0 page errors. Nothing to fix. Worth knowing: the app keeps 28 permanent timers, six of
+them at one second or faster (js/15 ×3, js/46 ×3 among the owners); that is CPU churn on a phone, not a
+defect, and consolidating them is a later, owner-level tidy-up. Database checked afterwards: QA account
+admin, no drafts, no probe rows, no company row touched in six hours.
+
 ## Routine fire #73 (2026-09-17 04:11 UTC) — an idle signed-in session and the boot window measured live against the real database: 0 writes, one role check a minute; full battery at 1ee7d1a: ALL 209 probes green
 IDLE (scratchpad/live-idle.mjs, real database, the QA admin, nothing touched after landing): Leads 180 s,
 Finance 150 s, Today 150 s. Each: 0 write requests, 0 save calls, 0 page errors; the only traffic is the
