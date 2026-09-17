@@ -117,6 +117,27 @@ no recorded cost" line.
 come from approved expenses... not a VAT computation"), figures refreshed 2026-09-02.
 Status: ACTIVE.*
 
+**Clarification, 2026-09-17 (fire #82): a gap the app WRITES is left null; the 0s already in the
+table are history, and they carry a stored profit nobody verified.** The rule above and
+CLAUDE.md's one-line summary of it had drifted apart — this file said "`cost_sar=0` stays an
+honest gap", CLAUDE.md said "leave it null and say why" — so here is what is true, measured on
+the live ledger the same day.
+Every place the app DECIDES whether a cost was recorded tests `(+r.cost_sar||0)===0`, which is
+true for 0 and for null alike (js/16: the client table's cost and profit cells, the "N of M
+invoices carry no recorded cost" line, the period totals). So on screen the two are already
+identical, and both correctly print the words rather than a number.
+What differs is what is STORED. The database trigger derives profit = revenue − cost, so a cost
+of 0 stores a profit equal to the whole sale, while a null cost leaves profit null. Live today:
+**19 invoices carry `cost_sar = 0`, and all 19 store `profit_sar = revenue_sar` — 214,550 SAR
+of margin nobody has verified, sitting in the table.** The Finance page never shows it as profit;
+anything reading the table directly does (an export, a SQL query, a future report).
+So: anything the app writes from now on leaves an unrecorded cost NULL — done for the individual
+(B2C) booking form on 2026-09-17 (js/58; a 0 the person actually types still means a genuinely
+free booking), guarded by `scripts/qa/probe-b2c-blank-cost-stays-unrecorded.mjs`. The 19 existing
+rows are NOT touched: clearing their `cost_sar`/`profit_sar` to null is one reversible statement
+and the screen would not change, but it is real money data and the owner's call.
+*Status: ACTIVE for new writes. The 19 existing rows are OPEN — owner's decision.*
+
 **M9 — real cost is only FINAL once every contributing transaction's own expenses are done,
 and that is a TWO-LEVEL join, not a one-level one.** Corrected 2026-08-24 — the 2026-08-23
 version of this rule described a one-level join (expense lines → directly to a tax invoice)

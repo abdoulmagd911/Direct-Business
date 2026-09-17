@@ -101,7 +101,19 @@
        to parse at all is rejected here, so this doesn't newly block anything that already
        worked, only closes the silent-wrong-number gap. */
     if(g('bc_cost').trim()&&isNaN(cost)){alert(fl('That cost doesn’t look like a valid amount.','هذه التكلفة ليست مبلغًا صالحًا.'));return;}
+    /* 2026-09-17 (fire #82) — M1, and the rule that matters most here: "cost = approved expenses only,
+       never fabricate a number to fill a gap; leave it null and say why". This used to be
+       `if(isNaN(cost))cost=0;`, so a cost field LEFT BLANK was written as cost_sar = 0. Measured by
+       driving this form live with the write intercepted: a 1,000 SAR booking with the cost box empty
+       sent cost_sar=0, and the database then derives profit = revenue − 0 — the booking reads as 100%
+       margin because nobody had got round to entering the cost. That is the exact defect the ledger
+       already has machinery to avoid: js/16 prints the WORDS "not recorded" for a null cost, and two
+       probes exist to keep it honest, all of which a stored 0 defeats.
+       Blank now stays null. A 0 the person actually TYPES is still 0 — a genuinely free booking — so
+       nothing that worked before is blocked; only the guess is gone. */
+    var costTyped=g('bc_cost').trim()!=='';
     if(isNaN(cost))cost=0;
+    var costOut=costTyped?cost:null;
     /* Overview's "Invoices" tile counts DISTINCT invoice_no among verified rows — a blank
        reference here would either vanish from that count or collapse together with any other
        reference-less row (multiple nulls count as one). Every booking needs its own identity
@@ -114,7 +126,7 @@
       invoice_date:date, /* year is a generated column, derived from invoice_date — never set it explicitly */
       service_type:g('bc_svc')||null, products:g('bc_svc')||null,
       invoice_no:ref,
-      total_incl_vat_sar:amt, wallet_portion_sar:0, cost_sar:cost,
+      total_incl_vat_sar:amt, wallet_portion_sar:0, cost_sar:costOut,
       amount_received_sar: status==='verified_paid'?amt:0,
       amount_remaining_sar: status==='verified_paid'?0:amt,
       integrity_status:status,
@@ -166,7 +178,7 @@
         '<div style="grid-column:span 2"><label style="font-size:11px;color:var(--muted)">'+fl('Individual’s name','اسم الفرد')+'</label><input id="bc_name" class="inp sm" style="width:100%" placeholder="'+fl('e.g. Khalid Al-Otaibi','مثال: خالد العتيبي')+'"></div>'+
         '<div><label style="font-size:11px;color:var(--muted)">'+fl('Service','الخدمة')+'</label><select id="bc_svc" class="inp sm" style="width:100%"><option value="">'+fl('— choose —','— اختر —')+'</option>'+services().map(function(s){return '<option value="'+esc(s)+'">'+esc(svcLbl(s))+'</option>';}).join('')+'</select></div>'+
         '<div><label style="font-size:11px;color:var(--muted)">'+fl('Amount (SAR)','المبلغ (ريال)')+'</label><input id="bc_amt" class="inp sm" inputmode="decimal" style="width:100%" placeholder="0"></div>'+
-        '<div><label style="font-size:11px;color:var(--muted)">'+fl('Cost (SAR, optional)','التكلفة (ريال، اختياري)')+'</label><input id="bc_cost" class="inp sm" inputmode="decimal" style="width:100%" placeholder="0"></div>'+
+        '<div><label style="font-size:11px;color:var(--muted)">'+fl('Cost (SAR)','التكلفة (ريال)')+'</label><input id="bc_cost" class="inp sm" inputmode="decimal" style="width:100%" placeholder="'+fl('leave blank if not known yet','اتركها فارغة إن لم تُعرف بعد')+'"><div style="font-size:10px;color:var(--muted);margin-top:2px">'+fl('Blank means not recorded yet — the profit stays blank too. Type 0 only for a genuinely free booking.','فارغة تعني لم تُسجَّل بعد — ويبقى الربح فارغًا. اكتب 0 فقط للحجز المجاني فعلًا.')+'</div></div>'+
         '<div><label style="font-size:11px;color:var(--muted)">'+fl('Status','الحالة')+'</label><select id="bc_status" class="inp sm" style="width:100%"><option value="verified_paid">'+fl('Paid','مدفوع')+'</option><option value="pending">'+fl('Pending','معلّق')+'</option></select></div>'+
         '<div><label style="font-size:11px;color:var(--muted)">'+fl('Reference # (optional)','رقم مرجعي (اختياري)')+'</label><input id="bc_ref" class="inp sm" style="width:100%"></div>'+
         '<div style="grid-column:span 2"><label style="font-size:11px;color:var(--muted)">'+fl('Notes (optional)','ملاحظات')+'</label><input id="bc_notes" class="inp sm" style="width:100%"></div>'+

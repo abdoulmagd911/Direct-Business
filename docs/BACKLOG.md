@@ -1,3 +1,32 @@
+## Routine fire #82 (2026-09-17 22:11 UTC) — a booking saved with the cost box EMPTY was written as cost = 0, which makes the profit the whole sale — FIXED (js/58); and 214,550 SAR of unverified margin is already stored that way
+The money write paths had never been audited. Driven live with every write intercepted (nothing stored):
+the individual-booking form, the same form with a cost typed in, and an expense.
+CLEAN: no row the app writes carries `vat_sar`, `revenue_sar` or `profit_sar` — all three are left to the
+database trigger, which is exactly M1. A typed cost of 400 is sent as 400. An expense of 250 is sent as 250.
+THE DEFECT: saving an individual booking with the COST BOX LEFT EMPTY sent `cost_sar = 0`. The trigger then
+derives profit = revenue − 0, so a 1,000 SAR booking whose cost nobody had entered becomes a 1,000 SAR
+profit. That is the rule the owner is most exposed by — "never fabricate a number to fill a gap" — broken
+at the point of entry, and it defeats the ledger's own honest-unrecorded machinery.
+FIXED: blank now stays null; a 0 the person actually types is still 0, a genuinely free booking. The form
+also says what blank means, in both languages ("Blank means not recorded yet — the profit stays blank too.
+Type 0 only for a genuinely free booking."). Re-driven live: cost_sar null for blank, 400 for typed.
+WHAT THE MEASUREMENT ALSO SHOWED, and it is bigger than the fix: **19 live invoices carry `cost_sar = 0`,
+and all 19 store `profit_sar = revenue_sar` — 214,550 SAR of margin nobody has verified, sitting in the
+table.** Every screen is honest about it: each place the app decides whether a cost was recorded tests
+`(+cost_sar||0)===0`, which is true for 0 and null alike, so the client table prints the words "no cost
+recorded" and refuses to show a profit. But anything reading the table directly — an export, a SQL query,
+a future report, the owner in Supabase — sees a verified-looking profit. Clearing those 19 rows'
+`cost_sar`/`profit_sar` to null is one reversible statement and would change nothing on screen, but it is
+real money data, so it is the owner's call and is now written up in DECISIONS.md as OPEN rather than done.
+ALSO FIXED, a documentation contradiction this uncovered: DECISIONS.md said "`cost_sar=0` stays an honest
+gap" while CLAUDE.md's summary said "leave it null and say why". Both are now reconciled in DECISIONS.md
+with the measurement: on screen the two are identical, what differs is the stored profit, new writes leave
+it null, and the existing 0s are history awaiting the owner's decision.
+Guard: scripts/qa/probe-b2c-blank-cost-stays-unrecorded.mjs (7 checks — blank sends null, the form says so,
+a typed cost is kept exactly, neither row carries VAT/revenue/profit, the amount and wallet split are
+unchanged, 0 JS errors; SABOTAGE-VERIFIED: 2 FAIL / exit 1 with the js/58 edit stashed; port 9062; in
+battery.txt). Gates green, including decisions-wired over the new entry.
+
 ## Routine fire #81 (2026-09-17 20:11 UTC) — the app's own "mark as won client" button wrote a client whose STAGE said "new" — FIXED (core-02)
 Fire #80's technique — drive a real action live, intercept the write, read what would have been sent —
 turned out to be worth pointing at the rest of the write paths, so this round audited three of them:

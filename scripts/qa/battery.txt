@@ -220,3 +220,4 @@ probe-generator-print-not-blank
 probe-arabic-dates-gregorian
 probe-audit-array-not-reuploaded
 probe-convert-writes-won-stage
+probe-b2c-blank-cost-stays-unrecorded
