@@ -1,3 +1,29 @@
+## Routine fire #75 (2026-09-17 08:11 UTC) — the money doctrine checked row by row on the live ledger: clean; full battery at 67682f9: ALL 209 probes green; the three owner-level tidy-ups gathered into one recommendation
+DATA (M1, read-only SQL on the 46 live finance_invoices): revenue = total − wallet on every row (0 off);
+profit = revenue − cost on every row (0 off); no row carries a profit without a cost, and no cost is null
+any more (the 19 honest gaps noted in CLAUDE.md on 2026-08-29 have since been filled by the owner);
+VAT never equals revenue and never exceeds 15 % of the total (0 rows either way); no negative cost or
+revenue; the stored month ("March" … "August"), quarter ("Q1"–"Q3") and year agree with the invoice date
+on every row; every row has a revenue_way; amount received never exceeds the total and the remaining
+amount is always total − received. Totals: revenue 2,030,764 · cost 1,538,142 · profit 492,623 SAR — the
+same three figures the Finance page showed live in fire #58. Nothing to fix.
+BATTERY: 209 named, 209 logged, four slices, 0 failures, 0 timeouts.
+ONE RECOMMENDATION FOR THE OWNER (nothing here is broken today; each is a small amount of waste this
+sweep measured, and each is a decision, not a fix I should make alone):
+1. The browser-side audit array (DB.audit in the workspace blob, ~800 lines, ~142 KB) is dead — js/63
+   replaced Activity & Audit with the database's own record_history on 2026-08-21, and nothing reads the
+   array any more except two developer self-tests — yet js/53 still appends to it on every lead change
+   and that whole section is re-uploaded each time. Recommended: stop appending (js/53 §3–5) and drop
+   the section from the blob in one clean-up; keep record_history as the only log. Saves ~142 KB per
+   save and ~140 KB of every sign-in download.
+2. During the 20 s after sign-in, app_users is asked 5 times and app_settings 4 times by different layers
+   (js/02, js/15 ×2, js/17, js/20, js/50, js/56, core-06; js/35 and js/62 ×2 for settings). Recommended:
+   one shared read each, the others taking from it. Saves seven small requests per sign-in.
+3. The app keeps 28 permanent timers, six of them at one second or faster (js/15 ×3 and js/46 ×3 are
+   the largest owners). Nothing accumulates (fire #74), but on a phone that is steady CPU churn.
+   Recommended: fold the sub-second timers into a single 2 s tick.
+   Any of the three can be done in one session, each guarded by a probe; none changes what a person sees.
+
 ## Routine fire #74 (2026-09-17 06:12 UTC) — a long session measured live: timers, pending work, page size, memory and request rate over 60 page switches — nothing accumulates; full battery at e342db6: ALL 209 probes green
 scratchpad/live-longsession.mjs against the REAL database, read-only: setInterval / setTimeout wrapped before
 the app loads so live intervals and pending timeouts can be counted; sign in; 60 page switches across 12
