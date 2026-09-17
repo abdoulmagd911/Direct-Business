@@ -1,3 +1,29 @@
+## Routine fire #78, second half — THE FIRST VERIFIED BATTERY SINCE FIRE #56: 203 of 205 green, 2 real reds, both now fixed
+Run with scripts/qa/run-battery.sh (the runner that captures exit codes properly and re-runs every red on
+its own): 211 entries, 205 that can fail, 6 that only report. **203 green, 2 RED — and both reproduced when
+re-run alone, so neither was contention.** This is the first battery verdict in this sweep that was
+actually counted; the six "all green" lines before it came from the runner described in the correction
+above. The two reds had been failing since 2026-09-15 and nothing had been able to say so.
+RED 1 — probe-report-unrecorded-cost-rows (12 checks failing). The same root cause as the five in the
+correction above: the probe seeds its fixture into FIN.rows and fire #56's session-gated ledger load lands
+afterwards and replaces it, so every check read "Test Company …" instead of its own rows. It now waits for
+the ledger to have settled before seeding, and passes. That makes six probes blinded by one change, all
+six now fixed. The app was never wrong here.
+RED 2 — probe-share-and-settings-attacks, one check: "Finance page itself refuses in a shared view". THIS
+ONE WAS A REAL DEFECT, and mine. Fire #50 (js/79) made a share view that landed on Finance bounce silently
+to Today, because at that time the page rendered empty. The page is not empty any more: js/16 answers a
+share view with a sentence of its own, since canFinView() is false there. So the bounce had turned into
+exactly what this sweep exists to prevent — a holder types /s/<token>/finance, lands on Today and is told
+nothing at all. FIXED: js/79 no longer bounces (the sidebar entry stays hidden, so the only way in is by
+address), and js/16's sentence, which was English only on a page reachable in either language, is now
+bilingual and names what the holder CAN open. Probe back to 74/74; SABOTAGE-VERIFIED (1 FAIL with the
+js/79 edit stashed).
+LIVE HALF, stated plainly: there is no active share link in the database today, and creating one publishes
+a URL to real data, so I did not. The share path is therefore verified on the harness only — where the
+probe drives a genuine /s/<token>/ flow end to end — not against the live site. An attempt to simulate it
+live by marking the page a share view before boot was correctly overridden by the app itself (js/10 sets
+that flag from the address), which is itself worth knowing: the flag cannot be forced from outside.
+
 ## Routine fire #78 (2026-09-17 14:11 UTC) — the live data checked against the rules the app relies on: clean; the first trustworthy full battery started with the repo's own runner
 DATA (read-only SQL on the live database; the finance ledger itself was done in fire #75): 112 companies,
 108 live. The invariant CLAUDE.md warns about most — `is_client` and `raw->>'isClient'` drifting apart and

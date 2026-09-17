@@ -61,7 +61,12 @@ async function main() {
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 120000 });
   try { await p.waitForSelector('#cl_email', { timeout: 90000 }); } catch (_) { }
   try { await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go'); } catch (_) { }
-  if (!(await p.waitForFunction(() => typeof window.finRB === 'function' && Array.isArray(FIN.rows), { timeout: 90000 }).then(() => true).catch(() => false)))
+  /* 2026-09-17 (fire #78): waiting for FIN.rows to merely EXIST is not enough. Since the 2026-09-15
+     fix in js/16, a ledger asked for before sign-in is not cached: the loader waits for the session
+     and loads again once it arrives, and that second load lands AFTER this probe seeds its fixture,
+     replacing it with the mock's own rows — which is why every check below read "Test Company …"
+     and failed from 2026-09-15 until today. Wait for the ledger to have SETTLED before seeding. */
+  if (!(await p.waitForFunction(() => typeof window.finRB === 'function' && window.__finSessionOk===true && Array.isArray(FIN.rows) && !FIN.loading && !FIN._waitSignIn, { timeout: 90000 }).then(() => true).catch(() => false)))
     fail('finRB / FIN.rows never appeared, so nothing below examined anything');
 
   /* Three fixture clients, whole riyals so rounding never enters:

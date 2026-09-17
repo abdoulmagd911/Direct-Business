@@ -2233,7 +2233,9 @@ window.finCommit=function(){
 };
 
 window.renderFinance=function(v){
-  if(!canFinView()){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">Finance is not available in shared view-only links.</div>';return;}
+  /* 2026-09-17 (fire #78): this sentence was English only, on a page a share-link holder can reach in
+     either language. Bilingual now; the English wording is unchanged so the existing guard still reads it. */
+  if(!canFinView()){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">'+(isArF()?'المالية غير متاحة في روابط العرض فقط.<div style="font-size:12.5px;margin-top:6px">يمكنك فتح «اليوم» و«العملاء المحتملون» و«العملاء».</div>':'Finance is not available in shared view-only links.<div style="font-size:12.5px;margin-top:6px">Today, Leads and Clients are open to you.</div>')+'</div>';return;}
   if(!FIN.rows){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">Loading the finance ledger\u2026</div>';finLoad();return;}
   if(FIN.loadErr){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:#D92D20">Could not load: '+escF(FIN.loadErr)+'<br><span style="font-size:12px;color:var(--muted)">Make sure you are signed in.</span></div>';return;}
   /* 2026-09-02 (attack round 8): the export rows were only filled by finPeriodBar(), which the

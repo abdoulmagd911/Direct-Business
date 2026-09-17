@@ -37,7 +37,15 @@
         var txt=((b.querySelector('span')||b).textContent||'').trim();
         if(id==='finance'||b.id==='v44FinBtn'||txt==='Finance'||txt==='المالية') b.style.display='none';
       }); }
-      if(typeof current!=='undefined'&&current==='finance'){ current='today'; if(typeof render==='function') render(); return; }
+      /* 2026-09-17 (fire #78): this used to be `current='today'; render(); return;` — a silent bounce.
+         It was added on 2026-09-15 (fire #50) because a share view that landed on Finance rendered an
+         EMPTY page, which broke the banner's promise of Today, Leads and Clients. The page is not empty
+         any more: js/16's renderFinance answers a share view with a sentence of its own ("Finance is not
+         part of a view-only link"), because canFinView() is false here. Bouncing therefore costs the one
+         thing this layer exists to protect — the holder types /s/<token>/finance, lands on Today and is
+         told nothing. Leave Finance alone so it can say why; the sidebar entry above stays hidden, so
+         the only way here is by address. Guard: probe-share-and-settings-attacks (the check that had been
+         failing since 2026-09-15, unseen because the battery runner reported every probe green). */
       /* 3. an honest footer */
       var foot=document.querySelector('.side .foot')||document.querySelector('.foot');
       if(foot){
