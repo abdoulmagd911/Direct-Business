@@ -481,11 +481,23 @@
     '#dgPreviewToggle{display:none;position:fixed;bottom:18px;inset-inline-end:18px;z-index:60;min-height:44px;'+
       'border:0;border-radius:99px;padding:12px 22px;background:var(--accent);color:#fff;font:inherit;'+
       'font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}'+
-    '@media(max-width:900px){'+
+    /* 2026-09-17 (fire #77): this block used to be plain `@media(max-width:900px)`, with no media
+       TYPE — so it applied when printing as well, and printing lays the page out at the width of
+       the PAPER. A4 portrait is 794px, which is under 900, so every print run took the phone
+       branch and set the preview column to display:none. js/67's print rules then made the rest of
+       the app invisible and turned the document pages "visible" — but visibility cannot bring back
+       a display:none parent. The result: pressing the editor's own print button on a normal desktop
+       produced BLANK pages, for all five client-facing documents (price offer, service fees,
+       company profile, contract, tender). Measured: the page box was 0×0 and the PDF 7 KB; with the
+       column shown it is 794×993 and 337 KB. Scoped to `screen` so paper is never treated as a
+       phone; the phone behaviour on screen is unchanged. Guard: probe-generator-print-not-blank. */
+    '@media screen and (max-width:900px){'+
       '#dgPreviewToggle{display:block}'+
       '#dgWrap [id$="PreviewCol"]{display:none}'+
       '#dgWrap.dg-show-preview [id$="PreviewCol"]{display:block;min-width:0;overflow-x:auto}'+
     '}'+
+    /* and on paper the document column is always the thing that prints, whatever the toggle says */
+    '@media print{#dgWrap [id$="PreviewCol"]{display:block!important}#dgPreviewToggle{display:none!important}}'+
     '#dgWrap .dg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}'+
     '#dgWrap .dg-grid>*{min-width:0}'+
     '#dgWrap .dg-cat h3{margin:18px 0 8px;color:var(--accent);font-size:15px}'+

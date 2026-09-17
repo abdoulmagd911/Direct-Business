@@ -1,3 +1,30 @@
+## Routine fire #77 (2026-09-17 12:12 UTC) — EVERY client-facing document printed BLANK from a desktop browser — FIXED (js/66). The worst defect of this sweep
+Fire #76 fixed the app's own lists on paper; this round put the same honest method — lay the page out at
+PAPER width, render a real A4 PDF — on the five documents that go to clients: price offer, service fees,
+company profile, contract, technical+financial pack. All five came out as empty pages.
+THE CAUSE, one missing word. js/66 styles the Generator's phone layout with `@media(max-width:900px)`, a
+width query with no media TYPE — so it applies to paper as well as to screens. Printing lays the page out
+at the width of the PAPER, and A4 portrait is 794px, under 900. So every print run took the phone branch
+and set the document column (`[id$="PreviewCol"]`) to display:none. Each editor's own print rules then hid
+the rest of the app with `visibility:hidden` and marked the document pages visible — but visibility cannot
+bring back a display:none parent. The person sees the document on screen, presses the editor's print
+button, and gets blank paper; the "Save as PDF" file is a 7 KB shell.
+PROOF (scratchpad/diag-docs2.mjs, live): on screen at 1440 the column is `block`; in print at paper width
+it is `none` and the first page box measures 0×0, PDF 7 KB; forcing the column visible in that same print
+state gives a 794×993 page with its text and a 337 KB PDF. Nothing else was changed to get that.
+FIXED in js/66: the phone block is scoped to `@media screen and (max-width:900px)`, plus an explicit
+`@media print` rule that shows the document column and hides the floating phone toggle whatever the
+toggle's state. Re-printed live afterwards, all five: price offer 3 pages / 337 KB, service fees 5 / 394 KB,
+company profile 8 / 680 KB, contract 3 / 516 KB, tender 4 / 665 KB — full paper width, nothing clipped,
+none of the app's own furniture on the page. The phone behaviour on a narrow SCREEN is unchanged.
+WHY IT SURVIVED SO LONG: fire #52 measured the preview's fit on screen and fire #66 counted the editors'
+fields, both at desktop width, where the bug does not exist. It only appears at paper width, which is why
+fire #76's method — lay out at paper width, render a real PDF — is now the standard for anything printable.
+Guard: scripts/qa/probe-generator-print-not-blank.mjs (7 checks — the column shown on paper, the page a real
+size rather than 0×0, the toggle not printed, a narrow screen still behaving like a phone, the PDF not an
+empty shell, 0 JS errors; SABOTAGE-VERIFIED: 4 FAIL / exit 1 with the js/66 edit stashed; port 9058; in
+battery.txt). Gates: structure OK, probe-integrity OK, decisions-wired OK.
+
 ## Routine fire #76 (2026-09-17 10:11 UTC) — what the app actually PRINTS: the lists came out with their right-hand side silently missing — FIXED (new js/83); three tabs at once and browser Back/Forward: clean; full battery at ac8df02: ALL 209 probes green
 THREE TABS AND HISTORY (scratchpad/live-tabs-history.mjs, real database, read-only, 0 writes): three tabs of
 the app open at once in ONE browser — the old five-clients bug silently signed people out — signed in on the
