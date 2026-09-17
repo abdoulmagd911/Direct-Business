@@ -1,3 +1,27 @@
+## Routine fire #78 (2026-09-17 14:11 UTC) — the live data checked against the rules the app relies on: clean; the first trustworthy full battery started with the repo's own runner
+DATA (read-only SQL on the live database; the finance ledger itself was done in fire #75): 112 companies,
+108 live. The invariant CLAUDE.md warns about most — `is_client` and `raw->>'isClient'` drifting apart and
+leaving a record half-converted — holds on all 108. No stage outside the locked list. No client without a
+conversion date, no won-but-not-client, no blank name, no duplicate live name. No orphaned contact,
+activity or finance link; no finance link pointing at an archived or non-client company. Two things are
+true and worth the owner knowing rather than changing: one client sits at stage "Lost" (the app already
+treats that as a client, not a lost lead — fire #54), and 20 live companies carry no funnel, every one of
+them a client, which is right: a funnel describes how a LEAD arrived, and the card prints "—" with the
+source rather than a guess.
+PROMO CODES — checked, and the contradictions reach nobody. The registry holds 200 codes whose flags
+disagree with themselves: 165 are marked active AND expired at once, 167 "active" codes are past their end
+date, 2 carry a percentage outside 0–100 and 1 has a discount larger than its sales. None of it is on
+screen: js/25 carries the promo card behind `SHOW_PROMO_ON_FINANCE=false`, switched off on the owner's own
+instruction (27,304,067 SAR of code sales against 8,755,055 of real revenue does not belong inside
+Finance's performance view), and the card's own status logic already prefers "expired" over "active" if it
+is ever switched on. So this is a data clean-up for whenever the owner wants that page, not a screen defect.
+EVENTS, PROOFS, RECEIPTS, EXPENSES: the event sign-up table and the three finance document tables are
+empty, and each surface shows nothing rather than claiming a zero — the sign-up key and the per-event lead
+count are printed only when they exist. Honest by omission.
+No code change this fire. The full battery is running under scripts/qa/run-battery.sh (the trustworthy
+runner, which re-runs every red alone); it is the first verified verdict since fire #56 and is recorded
+below when it lands.
+
 ## ⚠ Correction (2026-09-17, fire #77) — the "NNN/NNN probes green" lines in fires #56 → #75 were NOT verified. Five probes had been failing for two days and my runner reported them green
 Found while re-running the Generator probes by hand after the print fix: four probes printed
 "FAILED — N check(s) did not pass" on screen, yet the battery log recorded `exit=0` for every one.
