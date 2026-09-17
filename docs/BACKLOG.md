@@ -1,3 +1,33 @@
+## ⚠ Correction (2026-09-17, fire #77) — the "NNN/NNN probes green" lines in fires #56 → #75 were NOT verified. Five probes had been failing for two days and my runner reported them green
+Found while re-running the Generator probes by hand after the print fix: four probes printed
+"FAILED — N check(s) did not pass" on screen, yet the battery log recorded `exit=0` for every one.
+TWO SEPARATE THINGS, both mine:
+1. THE INSTRUMENT. The resumable slice runner I have used for the full battery since fire #56 read each
+   probe's exit code as `out=$(node … | tail -1 | cut …); code=${PIPESTATUS[0]}`. PIPESTATUS is read after
+   the assignment, in the parent shell, so it described the assignment — always 0 — and never node. Every
+   probe was logged green whatever it did. Proven minimally: `out=$(bash -c 'exit 7' | tail -1 | cut -c1-10)`
+   leaves PIPESTATUS[0] at 0. The runner now writes each probe's output to a file and takes `$?` directly.
+   The repo's own runner, scripts/qa/run-battery.sh, never had this flaw — it redirects to a file, captures
+   the code properly and re-runs every red alone. It is the instrument to trust; mine existed only to run
+   the battery in resumable foreground slices, and it should have been checked against a known failure
+   before being believed. The full output of every probe WAS being written correctly all along, so the
+   failures were in the logs in plain words the whole time; only the pass/fail count was wrong.
+2. WHAT IT HID. Fire #56's fix in js/16 (a ledger asked for before sign-in is no longer cached: the loader
+   waits for the session, then loads again) also lands AFTER a probe seeds its own fixture into FIN.rows,
+   replacing it with the mock's rows. Five finance probes seed exactly that way and their control checks
+   started failing on 2026-09-15: report-table-, ageing-, client-table-, overview-cards- and
+   drilldown-printed-arithmetic. Bisected to be certain: all five pass at 3e901e4 (the commit before that
+   change) and fail at ac8df02 and at HEAD. The app is right and unchanged; the probes' waiting was wrong.
+   Each now waits for the ledger to have SETTLED (`__finSessionOk`, nothing in flight, no sign-in watcher
+   armed) before seeding, and all five pass with a true exit 0.
+WHAT THIS MEANS FOR THE RECORD: the battery verdicts in fires #56, #63, #67, #69, #73 and #75 said "all
+green" on a count that could not go red. Every probe's text in those runs is still on disk and can be
+re-read. A true full-battery run with scripts/qa/run-battery.sh is under way; its verdict is the first
+trustworthy one since fire #56 and is logged separately below when it lands. Nothing in the app was
+changed by any of this — the five probes were blind, not lying about the app.
+LESSON, now in the playbook: a QA instrument is code too, and an instrument that has never been shown
+failing has not been tested. Check a runner against a probe that is known to fail before trusting a count.
+
 ## Routine fire #77 (2026-09-17 12:12 UTC) — EVERY client-facing document printed BLANK from a desktop browser — FIXED (js/66). The worst defect of this sweep
 Fire #76 fixed the app's own lists on paper; this round put the same honest method — lay the page out at
 PAPER width, render a real A4 PDF — on the five documents that go to clients: price offer, service fees,

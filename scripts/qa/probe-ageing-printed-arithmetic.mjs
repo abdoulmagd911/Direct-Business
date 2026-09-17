@@ -71,7 +71,14 @@ async function main() {
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 120000 });
   try { await p.waitForSelector('#cl_email', { timeout: 90000 }); } catch (_) { }
   try { await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go'); } catch (_) { }
-  if (!(await p.waitForFunction(() => typeof window.finGo === 'function' && Array.isArray(FIN.rows), { timeout: 90000 }).then(() => true).catch(() => false)))
+  /* 2026-09-17 (fire #77): waiting for FIN.rows to merely EXIST is no longer enough. Since the
+     2026-09-15 fix in js/16, a ledger asked for before sign-in is not cached: the loader waits for
+     the session and loads again once it arrives. That second load lands AFTER a probe has seeded
+     FIN.rows and replaces the fixture with the mock's own rows — which is exactly what happened
+     here: the control check read "Test Company 4" instead of its own three rows and failed, in
+     this probe and four of its siblings, from 2026-09-15 until today. Wait for the ledger to have
+     SETTLED (the session seen, nothing in flight, no sign-in watcher still armed) before seeding. */
+  if (!(await p.waitForFunction(() => typeof window.finGo === 'function' && window.__finSessionOk===true && Array.isArray(FIN.rows) && !FIN.loading && !FIN._waitSignIn, { timeout: 90000 }).then(() => true).catch(() => false)))
     fail('the Finance page never loaded, so nothing below examined anything');
 
   /* Ages chosen to land one row in each bucket, plus the two that are not ages at all. */

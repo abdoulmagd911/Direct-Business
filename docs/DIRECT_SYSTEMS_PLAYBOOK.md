@@ -377,6 +377,14 @@ Practical rules that exist because breaking them has already caused real, confus
   `scratchpad`-style check that finds the next one: open the app at each address before
   signing in, log every read made with the anonymous key, sign in, and see which of those
   tables is never asked for again (fire #71's `live-deeplink-sweep.mjs`).
+- **The QA runner is code too — never trust a count from an instrument you have not seen go red.**
+  On 2026-09-17 five probes had been failing for two days while the session's own battery runner
+  logged every one of them as green: it read the probe's exit code through `${PIPESTATUS[0]}` after
+  a command substitution, which describes the assignment (always 0), not the program. Six "all
+  green" verdicts were reported on a count that could not go red. Use
+  `scripts/qa/run-battery.sh` — it writes each probe's output to a file, takes the real exit code
+  and re-runs every red on its own — and before believing any other runner, point it at a probe
+  you know fails and check it says so.
 - **Run `node scripts/qa/check-structure.mjs` before every deploy.** It catches the exact
   mistakes that have caused real duplication bugs before: logic typed directly into
   `index.html` instead of a `js/` file, the same file loaded twice, two files creating an
