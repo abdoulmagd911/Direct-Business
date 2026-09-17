@@ -58,8 +58,28 @@
 
   /* 3 — the working day. Watch the lead list itself rather than every button that touches it:
      buttons come and go with each layer, but a company appearing, changing stage, becoming a
-     client or leaving the list is the same event however it was triggered. */
-  try{
+     client or leaving the list is the same event however it was triggered.
+
+     RETIRED 2026-09-17 (fire #80). This sweep is what grew DB.audit, and DB.audit is the most
+     expensive dead weight in the app. Measured, not guessed, by driving one real lead change live
+     with every write intercepted so nothing reached the database:
+       · the change sent ONE company row, 1,895 bytes — correct;
+       · and a workspace patch of 131,273 bytes whose ONLY section was `audit`.
+     In the stored workspace that section is 142,211 bytes of 478,462 — 30% of the whole blob,
+     re-uploaded on every lead change and re-downloaded at every sign-in.
+     Nothing reads it any more. Activity & Audit was moved to the database's own record_history on
+     2026-08-21 (js/63), which logs every lead create/edit with the actor and the full before/after
+     row — strictly more than this array ever held, and it cannot be edited from the app. The only
+     other readers are `activityFor('invoice'|'booking', id)` on the invoice and booking cards, and
+     they are inert: the live workspace holds 0 invoices, 0 bookings, 0 offers, 0 requests, and every
+     entry in the array is entity 'lead' or 'session' — there has never been an invoice or booking
+     entry to show. The in-app self-tests that assert the array is non-empty still pass, because the
+     799 existing entries are left exactly where they are: this stops the GROWTH, it deletes nothing.
+     Removing the stored section as well would take ~142 KB off every sign-in, but that is a deletion
+     from the owner's live workspace, so it stays on the recommendation list rather than being done
+     here. logAudit() itself is untouched and still available to any direct caller. */
+  try{ if(!window.__v77SweepRetired){ window.__v77SweepRetired=true; } }catch(_){}
+  if(false)try{
     var seen=null;                       // id → {name, stage, isClient}
     function snapshot(){
       var m={};

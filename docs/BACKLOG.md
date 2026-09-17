@@ -1,3 +1,36 @@
+## Routine fire #80 (2026-09-17 18:11 UTC) — the WRITE path driven live for the first time, with every write intercepted: one lead change was uploading 131 KB of dead weight — FIXED (js/53)
+Every live drive in this sweep so far has been read-only, so the most dangerous path in the app — what it
+SENDS when somebody saves — had never been driven against the real database. It can be, safely: sign in for
+real, perform a real user action, and intercept every non-GET at the network edge, answering it the way the
+database would. The app behaves normally, what it would have sent is captured in full, and nothing is
+stored. Verified afterwards by SQL that the workspace and the company row were untouched.
+WHAT ONE STAGE CHANGE SENT (scratchpad/live-writepath.mjs, a real lead moved Prospect → Contacted):
+  · POST businesses — 1,895 bytes, exactly ONE row, the right one, stage 'contacted', no table-sourced
+    contacts or history written back into it (the stripBridged rule holds), and
+  · POST save_state_patch — 131,273 bytes, whose ONLY section was `audit`.
+So the row write is exemplary and the blob write was 70x its size, carrying one thing: the browser-side
+audit array. In the stored workspace that section is 142,211 bytes of 478,462 — 30% of the whole blob —
+re-uploaded on every lead change and re-downloaded at every sign-in. The sync badge read "Synced 8s ago"
+afterwards, which was true of a save nobody needed.
+WHY IT IS SAFE TO STOP, checked rather than assumed: nothing reads that array any more. Activity & Audit
+moved to the database's own record_history on 2026-08-21 (js/63), which logs every lead create and edit
+with the actor and the full before/after row — strictly more than the array ever held, and not editable
+from the app. The only other readers are the invoice and booking cards via activityFor(), and those are
+inert: the live workspace holds 0 invoices, 0 bookings, 0 offers, 0 requests, and every one of the 799
+entries in the array is entity 'lead' or 'session' — there has never been an invoice or booking entry in
+it. The in-app self-tests that assert the array is non-empty still pass, because the existing entries are
+left exactly where they are.
+FIXED: js/53's 4-second sweep — the only thing that grew it in normal use — is retired, with the
+measurements written into the file. logAudit() itself is untouched and still available to direct callers.
+Re-driven live afterwards: the same stage change now sends the 1,895-byte company row and NOTHING else.
+STILL ON THE LIST, deliberately not done: removing the stored 142 KB section would take that off every
+sign-in too, but it is a deletion from the owner's live workspace, so it stays a recommendation (item 1,
+now with numbers) rather than something I do unasked.
+Guard: scripts/qa/probe-audit-array-not-reuploaded.mjs (6 checks — the drive really happened and the row
+was saved, the array did not grow, no workspace write carried an `audit` section, nothing was deleted,
+Activity & Audit still lists database history, 0 JS errors; SABOTAGE-VERIFIED: the growth check fails,
+exit 1, with the edit stashed; port 9060; in battery.txt). Gates green.
+
 ## Routine fire #79, second half — the battery at the previous commit: 203/205 again, two DIFFERENT reds, both resolved; and a measured performance item for the owner
 Second verified run (scripts/qa/run-battery.sh). 203 green, 2 red — both reproduced alone — plus one that
 went red under load and green on its own (probe-import-files-count, noted to watch).
