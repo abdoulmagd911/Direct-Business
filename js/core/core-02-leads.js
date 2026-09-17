@@ -234,7 +234,19 @@ function renderLeadDetail(v,id){
    now; because the answer arrives later, the conversion announces itself with a 'lead-converted'
    event, which js/14 listens for to open the client handover (it used to check synchronously). */
 function convertToClient(id){const b=getLead(id);if(!b)return;if(!b.accountManager&&b.assignedTo)b.accountManager=b.assignedTo;var _ar=(typeof LANG!=='undefined'&&LANG==='ar');
-  const _go=()=>{b.isClient=true;b.status="Won";b.convertedDate=Date.now();b.lastContact=Date.now();b.activities=b.activities||[];b.activities.push({date:Date.now(),type:"Won",status:"Won",note:"Converted from lead to client",by:(typeof me==="function"?me():"Abdelrahman")});save();render();try{document.dispatchEvent(new CustomEvent('lead-converted',{detail:{id:id}}));}catch(_){}};
+  /* 2026-09-17 (fire #81): this set `status` but never `stage`, and the row builder reads `stage`
+     (appToRow: stage:S2C[o.stage]||'new'). Measured by driving the real button against the live
+     database with the write intercepted: converting a lead sitting at Prospect sent
+     is_client=true, raw.isClient=true, converted_date set — and stage='new'. So the app's own
+     "mark as won client" button produced a client whose stage contradicted its client status,
+     which is the sibling of the half-converted record CLAUDE.md warns about: both copies of the
+     flag agreed, the stage did not. Anything that groups or counts by stage — the pipeline chips,
+     a stage report — then files that client under "New". The other route to the same place,
+     setLeadStage('Won'), sets stage AND status and lets the database trigger set is_client, so the
+     two routes disagreed. Setting the screen stage here makes them agree: S2C maps 'Won' → 'won'.
+     Existing records are untouched; this only changes what a future conversion writes.
+     Guard: scripts/qa/probe-convert-writes-won-stage.mjs */
+  const _go=()=>{b.isClient=true;b.stage="Won";b.status="Won";b.convertedDate=Date.now();b.lastContact=Date.now();b.activities=b.activities||[];b.activities.push({date:Date.now(),type:"Won",status:"Won",note:"Converted from lead to client",by:(typeof me==="function"?me():"Abdelrahman")});save();render();try{document.dispatchEvent(new CustomEvent('lead-converted',{detail:{id:id}}));}catch(_){}};
   const _msg=_ar?("اعتماد «"+b.name+"» كعميل رابح؟ سينتقل إلى قائمة عملائك."):("Mark “"+b.name+"” as a won client? It moves into your Clients book of business.");
   if(typeof window.pfConfirm==='function')window.pfConfirm(_msg,_go);else _go();}
 // Client health — one scannable status from engagement + review governance.

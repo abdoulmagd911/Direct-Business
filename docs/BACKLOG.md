@@ -1,3 +1,33 @@
+## Routine fire #81 (2026-09-17 20:11 UTC) — the app's own "mark as won client" button wrote a client whose STAGE said "new" — FIXED (core-02)
+Fire #80's technique — drive a real action live, intercept the write, read what would have been sent —
+turned out to be worth pointing at the rest of the write paths, so this round audited three of them:
+convert-to-client, a one-field edit, and logging an activity. Nothing was stored (confirmed by SQL after:
+0 rows written, the workspace untouched).
+THE DEFECT. Clicking "mark as won client" on a lead sitting at Prospect sent:
+  is_client=true · raw.isClient=true · converted_date set · **stage='new'** · raw.stage='Prospect'
+convertToClient() set the record's `status` but never its `stage`, and the row builder reads `stage`
+(appToRow: stage:S2C[o.stage]||'new'). So the app's own button produced a client whose stage contradicted
+its client status. This is the sibling of the half-converted record CLAUDE.md warns about: both copies of
+the client FLAG agreed — that rule holds — but the stage did not follow. Anything that groups or counts by
+stage, the pipeline chips or a stage report, would file that client under "New". The other route to the
+same place, setLeadStage('Won'), sets stage AND status and lets the database trigger set is_client, so the
+two ways of converting a lead disagreed with each other.
+FIXED: convertToClient now sets the screen stage to 'Won' as well (S2C maps it to 'won'). Re-driven live:
+the same click sends stage='won', raw.stage='Won', both flag copies true, conversion date set, one row.
+NO DATA REPAIR NEEDED, checked rather than assumed: live clients by stage are won:27 and lost:1 (that one
+is the owner's own, recorded in fire #78), **zero clients sit at stage 'new'**, all 28 carry a conversion
+date, and no record's stored stage disagrees with its column. The existing clients came from imports that
+wrote stage='won' directly, which is why the bug never showed in the data — it was waiting for the next
+person to use the button.
+CLEAN in the same audit: a one-field edit and a logged activity each sent exactly ONE row, the right one,
+with the edit present, the activity appended, and no table-sourced people or history written back into the
+row (the stripBridged rule). No workspace-blob write followed any of the three actions, which is the
+fire #80 retirement holding.
+Guard: scripts/qa/probe-convert-writes-won-stage.mjs (7 checks — the conversion really happened through
+its own confirm, stage='won', raw.stage='Won', the flag in both places, a conversion date, exactly one
+row, 0 JS errors; SABOTAGE-VERIFIED: 2 FAIL / exit 1 with the core-02 edit stashed; port 9061; in
+battery.txt). Gates green.
+
 ## ✅ 2026-09-17, fire #80 follow-up — THE FIRST FULLY GREEN VERIFIED BATTERY: 206 of 206
 scripts/qa/run-battery.sh at HEAD: "battery OK — every probe in the list that can fail exited 0, each red
 re-checked alone". 212 entries, 206 that can fail, 6 that only report. No reds, so nothing needed the
