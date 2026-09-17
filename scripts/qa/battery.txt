@@ -215,3 +215,4 @@ probe-activity-deeplink-signin
 probe-identity-registry-signin
 probe-settings-backups-signin
 probe-signin-form-arabic
+probe-print-tables-fit

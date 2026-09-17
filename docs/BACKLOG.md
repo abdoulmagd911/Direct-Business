@@ -1,3 +1,33 @@
+## Routine fire #76 (2026-09-17 10:11 UTC) — what the app actually PRINTS: the lists came out with their right-hand side silently missing — FIXED (new js/83); three tabs at once and browser Back/Forward: clean; full battery at ac8df02: ALL 209 probes green
+THREE TABS AND HISTORY (scratchpad/live-tabs-history.mjs, real database, read-only, 0 writes): three tabs of
+the app open at once in ONE browser — the old five-clients bug silently signed people out — signed in on the
+first, the other two restored the session with no form, all three still had a session and could still read
+after four minutes idle, none showed a notice, and the token was not refreshed once. Browser Back ×3 and
+Forward ×2 across Leads → Clients → Finance → Operations put the right page, the right address and the app's
+own state together at every step, in English and in Arabic.
+PRINT — THE DEFECT. The lists live in a box that scrolls sideways on screen (.tbl-wrap, overflow-x:auto).
+Paper has no scrollbar. Laid out at A4 text width (680px) with print media on, the browser drew the first
+678px of the Leads table and threw away the remaining 597px of its 1275px — very nearly half, right-hand
+columns gone — and 456px of the Clients table; Finance lost 16px and 72px off two tile rows the same way.
+Nothing on the page or in the PDF says a column is missing: the printout reads as a complete table that
+happens to end early. Someone printing a lead list for a meeting carries an incomplete list and cannot tell.
+FIXED in a new file, js/83-print-tables-fit-the-paper.js (print-only rules, screen untouched): the scrolling
+box stops scrolling on paper, the table fits the paper instead of keeping its natural width, cell text wraps,
+type and padding come down a little, headers repeat at the top of each page and a row is never split across
+two. No column is hidden and nothing is dropped. Re-measured after the fix: 0 clipped, 0 past the edge, on
+Leads, Clients, Finance, Operations and Reports, and the PDFs still build (Leads 3 pages).
+METHOD NOTE, worth keeping: the first measurement pass, taken at a 1440px viewport with print media on,
+reported "14 findings — everything is wider than A4". That was an artifact of the measurement, not the app:
+print emulation does not reflow to paper width, so every full-width element looked oversized. The honest
+check is to lay the page out AT paper width and to render a real A4 PDF, which is what found the true
+defect and cleared the false ones. A first attempt at the fix also pushed Finance's page 55px PAST the
+paper (trading a clipped box for a clipped page); it was narrowed until measured clean.
+Guard: scripts/qa/probe-print-tables-fit.mjs (8 checks — nothing cut off on paper, the last column inside
+the paper, the page no wider than the paper, every column still present, headers repeating, Clients the
+same, the screen unchanged, 0 JS errors; SABOTAGE-VERIFIED: 3 FAIL / exit 1 with the layer and its script
+line removed; port 9057; in battery.txt). Gates: structure OK (76 files), probe-integrity OK,
+decisions-wired OK. BATTERY: 209 named, 209 logged, 0 failures.
+
 ## Routine fire #75 (2026-09-17 08:11 UTC) — the money doctrine checked row by row on the live ledger: clean; full battery at 67682f9: ALL 209 probes green; the three owner-level tidy-ups gathered into one recommendation
 DATA (M1, read-only SQL on the 46 live finance_invoices): revenue = total − wallet on every row (0 off);
 profit = revenue − cost on every row (0 off); no row carries a profit without a cost, and no cost is null
