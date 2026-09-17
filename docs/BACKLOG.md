@@ -1,3 +1,37 @@
+## Routine fire #71 (2026-09-17 00:11 UTC) — every page opened by its address BEFORE sign-in, live: two more loaders cached an empty anonymous answer — the Settings backup list (deep link only) and the company identity registry (EVERY session) — both FIXED (core-06, js/66)
+Fires #56 and #70 were the same bug on two pages, so this round asked the question of all of them:
+scratchpad/live-deeplink-sweep.mjs opened the REAL app at each of 16 addresses (events, archive, documents,
+offers, settings, ops, reports, vendors, sopsla, airlines, projects, today, leads, clients, finance,
+activity) before signing in, logged every database read that went out with the anonymous key and how many
+bytes came back, signed in, landed on the page, and logged which of those tables were asked again with the
+session. Read-only: 0 writes. Every page asks for contacts, activities and app_settings anonymously at boot
+(2 bytes back) and asks again after sign-in — fine. Three tables were asked anonymously and never again:
+company_identity (on every page), app_state_bak (Settings) and ksa_events / ksa_event_signups (Events).
+Measured on screen, deep link vs the normal path (scratchpad/live-deeplink-three.mjs):
+- EVENTS: fine both ways (80 in the table, the same 47 "still ahead" rows on screen) — the tab reloads.
+- SETTINGS (deep link only): "Backup & restore" showed 0 tagged backups and 0 history rows and treated the
+  admin as not-admin for the whole session; from the home page the same account saw 95 tagged, 20 history,
+  admin. core-06's bkFetchAll drew the card during boot with no session — [] and "no user → not admin",
+  both cached. FIXED: with no session nothing is cached (loaded stays false), so the render after sign-in
+  fetches for real; the signed-in half is unchanged (bkFetchAllSigned).
+- COMPANY IDENTITY REGISTRY (every session, however opened): the Generator's "Company assets & registry"
+  read "The registry is empty or could not be read." — 29 rows live — and the AGENCY hydration that puts
+  the VAT number and IBAN on invoice previews (and seeds the ZATCA QR) ran with nothing: VAT 0 chars, IBAN
+  0 chars. js/66's eager timer ticks every 1.5 s from page load, so its first tick came at the sign-in
+  form; the anonymous [] was stored as DG.rows (truthy), the timer stopped, and every later
+  loadRegistry() returned early on "rows already loaded". FIXED: with no session the loader stores nothing
+  and the timer keeps ticking; its 40-tick give-up counts only ticks made with a session. Live re-run:
+  29 rows on the assets page, VAT 15 chars, IBAN 24 chars, on both paths. Fire #66's Generator pass
+  counted editor fields, not registry rows, which is how this was missed then.
+Guards: scripts/qa/probe-settings-backups-signin.mjs (5 checks; port 9055; SABOTAGE-VERIFIED 4 FAIL with the
+core-06 edit stashed) and scripts/qa/probe-identity-registry-signin.mjs (5 checks on the NORMAL sign-in
+path, since that is where it bit; port 9054; SABOTAGE-VERIFIED 4 FAIL with the js/66 edit stashed). Both
+answer an anonymous-key read of their tables with [] the way the real database does, because the mock
+knows no sessions. Both in battery.txt. Gates: structure OK, probe-integrity OK, decisions-wired OK.
+LESSON for the playbook: any loader that can run before sign-in must check the session before caching —
+the database's honest [] for an anonymous caller looks exactly like "no data". Four loaders have now had
+this (js/16, js/63, core-06, js/66); the sweep script above is the way to find the next one.
+
 ## Routine fire #70 (2026-09-16 22:11 UTC) — Activity & Audit and the lead card's "Recent changes" driven live EN+AR+phone, read-only: the undo path is honest; the /activity deep link cached an EMPTY log for the whole session — FIXED (js/63)
 scratchpad/live-activity.mjs against the REAL database, read-only by construction: 0 save() calls, 0 write
 requests, and the undo_change RPC intercepted (never reached the database — 0 calls). EN then AR, 1440 px

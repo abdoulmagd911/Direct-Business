@@ -914,6 +914,19 @@ function bkFetchAll(){
   BK_CACHE.loading=true;
   var c=bkClient();
   if(!c){BK_CACHE.loading=false;BK_CACHE.error='Supabase client unavailable';return Promise.resolve(BK_CACHE);}
+  /* 2026-09-17 (fire #71, driven live): a /settings ADDRESS opened before sign-in drew this card during
+     boot, so the list was fetched with no session — the database answered [] with no error, "is admin"
+     came back false for lack of a user — and both were cached for the whole session: 0 backups on
+     screen against 95 real ones, the admin history hidden from an admin. Started from the home page the
+     same account saw all 95 and 20. Same shape as the Finance (fire #56) and Activity (fire #70)
+     deep-link bugs, same cure: with no session, cache nothing (loaded stays false, so the render that
+     follows sign-in fetches for real). Guard: scripts/qa/probe-settings-backups-signin.mjs. */
+  return c.auth.getSession().then(function(s){
+    if(!(s&&s.data&&s.data.session)){ BK_CACHE.loading=false; return BK_CACHE; }
+    return bkFetchAllSigned(c);
+  }).catch(function(e){BK_CACHE.loading=false;BK_CACHE.error=String(e&&e.message||e);bkFail('could not load the backup list',e);return BK_CACHE;});
+}
+function bkFetchAllSigned(c){
   return (BK_IS_ADMIN===null?bkCheckAdmin().then(function(v){BK_IS_ADMIN=v;return v;}):Promise.resolve(BK_IS_ADMIN)).then(function(isAdmin){
     var histP=isAdmin
       ? c.from('app_state_history').select('hist_id,saved_at,updated_by').order('hist_id',{ascending:false}).limit(20)

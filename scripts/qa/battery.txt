@@ -212,3 +212,5 @@ probe-sla-head-arabic
 probe-ingest-title-arabic
 probe-operations-role
 probe-activity-deeplink-signin
+probe-identity-registry-signin
+probe-settings-backups-signin

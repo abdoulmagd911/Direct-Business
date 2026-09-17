@@ -147,14 +147,32 @@
   /* Eager registry load (audit fix): the AGENCY hydration above must not wait for the
      Generator page to be opened — invoice previews can print before that. Retry until
      the shared client exists (sign-in) and the rows arrive, then stop. */
+  /* 2026-09-17 (fire #71, driven live): this timer's first tick came BEFORE anyone had signed in, the
+     query below went out with the anonymous key, the database answered [] with no error, that [] was
+     stored as DG.rows — which is truthy, so the timer stopped and every later loadRegistry() call
+     returned early on "rows already loaded". Result, in EVERY session however it was opened: the
+     Company Assets page read "The registry is empty or could not be read." (29 rows live) and the
+     AGENCY hydration below never ran, so invoice previews carried an empty VAT number and IBAN.
+     Now: with no session the loader stores nothing and the timer keeps ticking; the 40-tick give-up
+     only counts ticks made WITH a session. Guard: scripts/qa/probe-identity-registry-signin.mjs. */
   (function(){ var tries=0; var t=setInterval(function(){ try{
-    tries++; if(DG.rows||tries>40){ clearInterval(t); return; }
+    if(DG.rows){ clearInterval(t); return; }
+    if(DG.sessionOk && ++tries>40){ clearInterval(t); return; }
     loadRegistry();
   }catch(_){ } },1500); })();
   function loadRegistry(force){
     if(DG.loading)return; if(DG.rows&&!force)return;
     var c=client(); if(!c)return;
     DG.loading=true;
+    if(!DG.sessionOk&&!window.__isShareView){
+      try{
+        c.auth.getSession().then(function(s){
+          if(s&&s.data&&s.data.session){ DG.sessionOk=true; DG.loading=false; loadRegistry(force); }
+          else DG.loading=false;                 /* signed out: store nothing, the timer asks again */
+        }).catch(function(){ DG.loading=false; });
+      }catch(_){ DG.loading=false; }
+      return;
+    }
     c.from('company_identity').select('*').order('sort',{ascending:true}).then(function(r){
       DG.loading=false;
       if(r.error){ console.warn('[dg] registry load',r.error); DG.rows=[]; }

@@ -364,6 +364,19 @@ Practical rules that exist because breaking them has already caused real, confus
 - **`render()` reruns constantly**, driven by several unrelated timers — anything injected
   onto a page after the fact must be able to redraw itself every time, not assume it only
   ever runs once.
+- **A loader that can run before sign-in must check the session before it caches anything.**
+  The app renders pages (and runs eager timers) while the person is still at the sign-in form.
+  A database read made then goes out with the anonymous key, and the database answers an
+  honest empty list with no error — which looks exactly like "no data". Four loaders cached
+  that empty answer for the whole session before this was understood: the Finance ledger
+  (fire #56, "0 invoices"), Activity & Audit (fire #70, "No activity yet."), the Settings
+  backup list (fire #71, 0 backups and "not admin"), and the company identity registry
+  (fire #71 — empty Company Assets and invoice previews with no VAT number or IBAN, in *every*
+  session, because its timer fires 1.5 s after page load). The cure is the same each time:
+  with no session, store nothing and wait; load once the session exists.
+  `scratchpad`-style check that finds the next one: open the app at each address before
+  signing in, log every read made with the anonymous key, sign in, and see which of those
+  tables is never asked for again (fire #71's `live-deeplink-sweep.mjs`).
 - **Run `node scripts/qa/check-structure.mjs` before every deploy.** It catches the exact
   mistakes that have caused real duplication bugs before: logic typed directly into
   `index.html` instead of a `js/` file, the same file loaded twice, two files creating an
