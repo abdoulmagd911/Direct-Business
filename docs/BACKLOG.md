@@ -1,3 +1,13 @@
+## ✅ 2026-09-17, fire #80 follow-up — THE FIRST FULLY GREEN VERIFIED BATTERY: 206 of 206
+scripts/qa/run-battery.sh at HEAD: "battery OK — every probe in the list that can fail exited 0, each red
+re-checked alone". 212 entries, 206 that can fail, 6 that only report. No reds, so nothing needed the
+serial re-run. This is the first clean run counted by an instrument that can actually go red — the three
+verified runs before it were 203/205 (two reds), 203/205 (two different reds) and this one.
+CAVEAT, stated rather than glossed: the run started before the js/53 retirement landed, and the new
+probe-audit-array-not-reuploaded was added to the list mid-run, so neither was covered by it. Both were
+checked by hand instead: all eight audit / activity / history / undo probes plus the new one were re-run
+against the changed layer, 9 of 9 exit 0. The next scheduled full run covers them in the normal way.
+
 ## Routine fire #80 (2026-09-17 18:11 UTC) — the WRITE path driven live for the first time, with every write intercepted: one lead change was uploading 131 KB of dead weight — FIXED (js/53)
 Every live drive in this sweep so far has been read-only, so the most dangerous path in the app — what it
 SENDS when somebody saves — had never been driven against the real database. It can be, safely: sign in for
