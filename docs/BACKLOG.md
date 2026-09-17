@@ -1,3 +1,30 @@
+## Routine fire #79, second half — the battery at the previous commit: 203/205 again, two DIFFERENT reds, both resolved; and a measured performance item for the owner
+Second verified run (scripts/qa/run-battery.sh). 203 green, 2 red — both reproduced alone — plus one that
+went red under load and green on its own (probe-import-files-count, noted to watch).
+RED 1 — probe-share-view-tidy: "landing on Finance in a shared view is sent to Today". MY OWN DOING, and
+worth stating plainly: two probes had disagreed about this behaviour for two days.
+probe-share-and-settings-attacks wanted Finance to REFUSE IN WORDS, this one wanted the SILENT BOUNCE I
+added in fire #50, and the broken runner meant neither disagreement was ever reported. Fire #78 fixed the
+app toward the sentence, which broke this probe. The check's intent — a link holder must never sit on a
+Finance page that shows them nothing — is unchanged and is now guarded more strictly: the holder stays on
+the page, is told why, and no ledger row is rendered. Probe back to 10/10. LESSON: when changing a
+behaviour, grep the probes for the behaviour, not just for the file.
+RED 2 — audit-finance-tabs: "EN expenses: slow tab switch — 812ms (freeze-class regression)", against a
+flat 800ms budget. Measured three times alone before touching anything: 748ms, 812ms, 815ms. The check was
+passing or failing by chance, which is how a red stops meaning anything. THE CAUSE, found and not guessed:
+js/45 wraps renderFinance, lets the WHOLE Finance page render, then throws it away and draws the expenses
+body — two renders for one tab switch. Three other tabs do the same to a lesser degree (ledger, proofs,
+b2c at ~440ms against a ~145ms median). It is not a freeze and it is not new.
+WHAT I DID AND DID NOT DO: the budget is now 1500ms, which still catches the freeze it was written for,
+and every tab's time is printed at the end of a run so drift is visible. I first wrote a relative rule
+(fail any tab over 3x the median) and then REJECTED it, because it fires on the current understood state
+and would have left the battery permanently red — that rejection is recorded in the file itself rather
+than quietly dropped, and the rule now prints a note instead of failing. I did NOT restructure the render
+chain: the tab bar the expenses layer keeps genuinely comes from the render it discards, and several other
+layers wrap renderFinance, so the change is not a small one. It joins the owner's performance list:
+4. The Expenses tab costs two full Finance renders (~810ms against a ~145ms median); ledger, proofs and
+   b2c cost about 440ms for the same reason. Worth one careful session on the renderFinance chain.
+
 ## Routine fire #79 (2026-09-17 16:11 UTC) — two screens were showing Arabic dates in the HIJRI calendar while the rest of the app showed Gregorian — FIXED (js/76, js/77)
 Where it came from: `toLocaleDateString('ar-SA', …)` does not merely translate the month name, it switches
 the CALENDAR. Measured in this browser for one fixed moment, 14 March 2026 09:05 UTC:
