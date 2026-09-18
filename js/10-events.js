@@ -717,10 +717,30 @@ window.evOpenModal=function(id){
     var q=id?c.from('ksa_events').update(data).eq('id',id).select('id').single()
             :c.from('ksa_events').insert(data).select('id').single();
     q.then(function(r){
-      if(r.error){evSay(L('Could not save: ','تعذّر الحفظ: ')+r.error.message);return;}
+      /* 2026-09-18 (live write-path audit): this is the one save in the app that asked for a
+         single row back, so a refusal never arrived as "no rows" — PostgREST answers .single()
+         with error PGRST116, and the app printed its words verbatim: "Could not save: JSON
+         object requested, multiple (or no) rows returned", in both languages. Every other write
+         path here (the delete above, the site-login upsert below) says it plainly. Same rule,
+         same sentence: the row count is what a refusal looks like, whatever shape it arrives in. */
+      if(r.error){
+        var _refused=(r.error.code==='PGRST116')||/multiple \(or no\) rows|contains 0 rows/i.test(r.error.message||'');
+        evSay(_refused
+          ? L('Not saved — the database refused it (no permission?). Nothing changed.','لم يُحفظ — رفضته قاعدة البيانات (لا صلاحية؟). لم يتغير شيء.')
+          : L('Could not save: ','تعذّر الحفظ: ')+r.error.message);
+        return;
+      }
       var savedId=(r.data&&r.data.id)||id;
       var s={event_id:savedId,login_email:gv('ev_su_email')||null,login_password:gv('ev_su_pass')||null,signed_up_by:gv('ev_su_by')||null,updated_at:new Date().toISOString()};
-      var had=!!SIGNUPS[savedId], has=s.login_email||s.login_password||s.signed_up_by;
+      /* 2026-09-18 (same audit): "Who signed up" opens pre-filled with the signed-in person's
+         name as a convenience, so this test was true for EVERY new event — adding one with the
+         site-login box untouched wrote a ksa_event_signups row reading "<name> signed up" with
+         no email and no password. That table means one thing: the account we made on their
+         website. A row with no account on it records a signup that never happened, on every
+         event the team adds (the 80 live ones came from an import, so none exist yet).
+         The account is what makes the row real, so an email or a password is what writes it;
+         the name is still saved alongside one. `had` stays so clearing an existing row works. */
+      var had=!!SIGNUPS[savedId], has=s.login_email||s.login_password;
       var done=function(){close();loaded=false;loadAll();};
       if(savedId&&(has||had)){
         c.from('ksa_event_signups').upsert(s).select('event_id').then(function(r2){

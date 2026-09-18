@@ -1,3 +1,43 @@
+## Routine fire #85 (2026-09-18 ~02:20 UTC) — adding an event recorded a website signup that never happened
+Untested area this round: the Events **write** path. Events had been checked on screen (fire #71) but no
+save had ever been driven. There are **80 real events** live, the table has an audit trigger, and two of
+its columns are enums — so a wrong value would not be a cosmetic slip, it would be a rejected save. Driven
+for real in English and in Arabic: signed in, opened the app's own Add and Edit forms, pressed the app's own
+Save, and intercepted every write at the network edge so the row could be read and a refusal simulated
+without anything being stored. Confirmed afterwards by SQL: still 80 events, still 0 signups, newest
+`updated_at` untouched at 2026-08-13.
+
+CLEAN, both languages: exactly one row per action; the edit filtered to the one event; every column real;
+`vertical` and `status` inside the six/four values the database actually holds; priority a real integer;
+empty boxes sent as null, not `''`; and editing only the notes changed nothing else on the row.
+
+**DEFECT 1 — a signup that never happened.** The site-login box ("the account made on their website") opens
+with "Who signed up" pre-filled with the signed-in person's name, as a convenience. The test for "is there
+anything to save here" counted that name — so adding an event with the box **untouched** also wrote a
+`ksa_event_signups` row reading "<name> signed up", with no email and no password. That table means one
+thing: the account we made on their website. A row with no account on it is a record of something that did
+not happen, and it would have happened on **every event anyone adds**. Nothing is wrong in the live data
+today — the 80 events came from an import, and there are 0 signup rows — so this was caught before it put a
+single false row in. Now an email or a password is what writes the row; the name is still saved alongside
+one, and the pre-fill is kept.
+
+**DEFECT 2 — the database's own words shown to the person.** This is the only save in the app that asks for
+a single row back, so an RLS refusal never arrives as "no rows": PostgREST answers with error PGRST116, and
+the app printed it verbatim — "Could not save: JSON object requested, multiple (or no) rows returned" — in
+both languages. Every other write path in this layer (the delete, the site-login upsert) already says it
+plainly. Now this one does too: "Not saved — the database refused it (no permission?). Nothing changed." /
+«لم يُحفظ — رفضته قاعدة البيانات (لا صلاحية؟). لم يتغير شيء.» The form stays open either way, so nothing
+typed is lost.
+
+Re-driven live after the fix: 0 findings, the signup write gone, the sentence in words in both languages.
+`probe-events-save-honest` added (8 checks) and sabotage-verified — with the fix stashed, 2 go FAIL, exit 1.
+Three gates green (structure 76 files · probe-integrity 224 probes/247 ports · decisions-wired 38 rules).
+
+NOT defects, checked and dismissed: `updated_at` is not sent on an edit, but nothing in the app reads it;
+`alert()` in the Team & Access panel is the app's house style (native `confirm()` is what was banished, and
+it is gone); the Events RLS policy accepts any signed-in writer while the screen gates on role — js/56's
+green-dot list already tells the admin which pages the database enforces, and Events is honestly not on it.
+
 ## Routine fire #84 (2026-09-18 ~01:00 UTC) — the battery's one red run down to its cause: signing in tears down whatever you had open on Finance
 The battery at HEAD came back 208 of 209, with probe-import-files-count red and reproducing alone — the
 same probe fire #79 had noted as "went red under load, green alone, worth watching". It now failed every
