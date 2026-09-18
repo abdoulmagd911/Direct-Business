@@ -1,3 +1,49 @@
+## Routine fire #89 (2026-09-18 ~10:30 UTC) — Today's money chips count an empty box
+**First, a correction to fire #88's own closing note.** It said the Team-access overlay was entirely
+English and needed a round. Driven for real: **the panel a person actually gets is fully Arabic.** Its 72
+strings include 22 English ones, and every single one is a real staff name or email address — data, which
+must never be translated. The panel I had looked at is js/02's `openTeam` (`#teamModal`), and its own
+comment says js/31 repoints the Team button to `v48Users()` within 1.5 s of load, which is why clicking
+that button never produced it. The legacy one is a dormant fallback. It is **deliberately left alone**:
+it is normally unreachable, and js/02 is the sign-in layer, where a mistake locks the whole team out —
+not a file to edit for a panel nobody reaches.
+
+**Then Today, the first thing every employee sees each morning**, driven against the real database in both
+languages with every write blocked. Nothing was saved.
+
+CLEAN, and worth saying: the app's own memory matches the database exactly (108 live companies, 80 leads,
+28 clients); both languages show identical numbers and the same three cards; the page writes nothing when
+opened; and the only English left on the Arabic version is "Direct Payments" and "Ctrl", which are a
+system's name and a keyboard key.
+
+**THE FINDING — four of the five chips count a box that is always empty.** core-06's `renderToday` reads
+`DB.bookings`, `DB.invoices` and `DB.offers` — the workspace blob. Measured live, in both languages:
+**invoices 0, bookings 0, offers 0, requests 0.** The real money is in the `finance_invoices` table — 46
+invoices — which Today never looks at. So "0 Overdue invoices", "0 Tickets due soon", "0 Being chased" and
+"0 Low-profit offers" are not measurements; they are an empty box being counted, under a hero line reading
+"Nothing urgent right now — all clear."
+
+It reads correctly **today** — all 46 invoices are fully received and nothing is outstanding, so zero is
+the true answer — which is exactly why this had gone unnoticed. The moment one is not, Today will still
+say zero.
+
+**What was NOT done, on purpose.** Today was not rewired to read `finance_invoices`. What counts as
+overdue, which due date applies and how aging is read are money decisions with rules attached; the Finance
+page already does all of it properly; and it is the owner's call, not the side effect of a QA round.
+
+**What was done:** a new layer, `js/84`, adds one line under the chips — in both languages — saying they
+count records kept in this app, that invoices and bookings are minted in Direct Payments, and where the
+real ledger is. No number changes and nothing is hidden. **It takes itself away the moment any of those
+collections holds a record**, so if the app ever does start keeping them the note stops appearing without
+anyone removing it — that second half is what stops the note becoming a permanent untruth of its own, and
+the probe checks it.
+
+`probe-today-chips-say-their-source` added (9 checks) and sabotage-verified: with js/84's contents
+neutered, 4 go FAIL. (Deleting the file scores 5, but the fifth is only the 404 from index.html's script
+line — the header says so rather than claiming the higher number.) Three gates green; 16 other probes
+re-run at HEAD: 16 of 16 green, this time with `battery-excluded.txt` subtracted automatically, which is
+the habit fire #88 added to the playbook after tripping over it twice.
+
 ## Routine fire #88 (2026-09-18 ~09:00 UTC) — the coverage gap, corrected; and every error message spoke only English
 Fire #87 ended by naming eight dialogs that "did not open". Running that gap down showed **four of the
 eight were my own list being wrong, not the app** — worth writing down, because a wrong list reads exactly
