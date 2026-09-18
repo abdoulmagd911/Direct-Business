@@ -1,3 +1,48 @@
+## Routine fire #93 (2026-09-18 ~18:30 UTC) — the importer computed revenue with the VAT taken out of it
+Fire #92's static-rule approach worked, so this round went looking for another class a rule could catch,
+starting with the highest one this project has: **M1 — cost, profit and revenue must always be clean; VAT
+must never enter or be mixed into any of the three.**
+
+Searching every layer for a write that carries the derived money fields turned up two. One is js/65,
+**the oversight lane — read, never edited** — and its arithmetic was checked and is **correct**
+(`revenue = total`, `wallet_portion = 0`, and `vat_sar: 0` with an explicit comment that it is recorded as
+unknown rather than guessed at 15%). The other was js/41.
+
+**DEFECT — js/41 computed `revenue = total − VAT`.** That is M1's prohibition, written out. The doctrine,
+the database trigger `finance_derive_fields` (BEFORE INSERT **OR UPDATE**) and js/65's own importer all
+say **revenue = total − wallet**. This was the only place in the whole app that subtracted VAT instead.
+
+**It has never produced a wrong stored figure, for two independent reasons**, and both were verified
+rather than assumed: every VAT value in the live ledger is 0.00, so the two formulas returned the same
+number; and the trigger rewrites revenue whenever it differs from total − wallet by more than a
+hundredth. The live ledger is still exactly 46 invoices, revenue 2,030,764.29, cost 1,538,141.70, profit
+492,622.59, VAT 0.00, with **0 revenue violations and 0 profit violations**.
+
+**But it is a live path, not dead code.** js/65's importer calls js/41's row builder through
+`window.__v65_toRowsDP` — the header of js/41 says it plainly: "these are the only two layers in the app
+that CREATE finance rows". A Direct Payments export carrying real VAT, which every DPIN invoice does,
+would have had the app's own arithmetic disagree with the ledger it was writing into. **A doctrine that
+holds only because a trigger silently corrects it is not being followed**, and it would stop holding the
+moment anyone touched the trigger.
+
+**NOT changed, and now asserted so:** a few lines above, the fee-pair maths divides a VAT-inclusive
+taxable total by 1.15 to get Direct's net service fee and records the VAT separately. That **removes** VAT
+rather than mixing it in, which is exactly what the doctrine wants. **The static rule this round set out
+to add was measured against the real code, would have flagged that correct line, and was rejected for
+that reason** — a gate with a false positive on correct doctrine code is worse than no gate, because it
+teaches people to bypass it. Fire #92's rule worked because Escape has one right answer; M1 does not have
+one statically-visible shape. Recorded so nobody adds it later for symmetry.
+
+`probe-import-revenue-has-no-vat-in-it` added (11 checks) and sabotage-verified: with the js/41 edit
+stashed, 2 go FAIL, exit 1. It feeds the **real parser** a synthetic export carrying a **real 15% VAT
+line** — the case live data cannot produce — so the two formulas finally disagree (1,850 against 1,700)
+and the right one is asserted. Everything in the fixture is invented; no real company, invoice or amount
+appears. Three gates green; 19 money, import and printed-arithmetic probes re-run at HEAD: 19 of 19 green.
+
+One self-correction inside the round: the probe's first version ended with a check that read `true ===
+true`, which can never fail — the exact tautology the integrity gate exists to catch. It now asserts the
+real thing beside it: the wallet top-up in the fixture is still skipped entirely and never becomes a row.
+
 ## Routine fire #92 (2026-09-18 ~16:30 UTC) — stopped hand-picking boxes and made it a rule; the rule found five more
 Fire #91 left one named gap: the share-links panel, the one box of twelve not reached. Closed it — js/77
 exposes its opener as `window.shareLinksPanel` (two earlier passes had guessed a name that does not exist

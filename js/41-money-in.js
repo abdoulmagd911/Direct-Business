@@ -132,7 +132,20 @@
   function toRows(parsed){
     return parsed.map(function(i){
       var integ = i.wallet?'excluded' : i.st==='paid'?'verified_paid' : i.st==='credit'?'credit_note' : 'pending';
-      var rev = i.wallet?0 : Math.round((i.total-i.vat)*100)/100;
+      /* 2026-09-18 (fire #93): this said `(i.total - i.vat)` — revenue with VAT taken out of it, which
+         is M1's exact prohibition: VAT must never enter or be mixed into revenue, cost or profit. The
+         doctrine, the database trigger `finance_derive_fields` (BEFORE INSERT OR UPDATE) and js/65's
+         own importer all agree that revenue = total − wallet. This was the only place in the app that
+         subtracted VAT instead.
+         It has never produced a wrong stored figure, for two independent reasons: every VAT value in
+         the live ledger is 0.00, so the two formulas returned the same number; and the trigger rewrites
+         revenue whenever it differs from total − wallet by more than a hundredth, so the database was
+         never going to keep this one. But the app was computing it wrongly on the live import path —
+         js/65's real importer calls THIS function through window.__v65_toRowsDP — and a Direct Payments
+         export carrying real VAT would have made the app's own arithmetic disagree with the ledger it
+         was writing to. A doctrine that survives only because a trigger silently corrects it is not
+         being followed. Wallet rows stay 0: their wallet_portion is the whole total. */
+      var rev = i.wallet?0 : Math.round(i.total*100)/100;
       return {
         invoice_no:i.ref, zatca_dpin:i.num, client_group:i.cust, customer_raw_name:i.cust,
         invoice_date:i.date,
