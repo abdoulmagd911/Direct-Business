@@ -1,3 +1,40 @@
+## Routine fire #85b (2026-09-18 ~03:00 UTC) — "Role updated" did not take a single page away
+Second untested area this round: the **Team & Access** write path, driven live in English and Arabic
+against the real roster with every write intercepted (the team tools go through an edge function; not one
+call was allowed to reach it). Nothing stored — the app_users fingerprint is byte-identical before and
+after, 11 users, roles unchanged.
+
+CLEAN: a level change sends exactly `{"role":"…"}`, filtered to that one person, one write, no native
+browser box anywhere in the flow.
+
+**DEFECT — the level box does not decide what it looks like it decides.** The database's own
+`page_access(p)` reads ONLY the per-person boxes for anybody who is not an admin; the level plays no part
+at all. js/52 does the same on screen once a matrix exists — and all 8 live non-admins have one. Driven for
+real: changing the one live manager to **Employee** left **all 10 of their pages exactly as they were**,
+including Finance, Settings and Activity & Audit, the three the database itself enforces. The screen said
+"Role updated" and nothing else. An admin demoting somebody to take Settings away would have believed they
+had, and been wrong — the same shape as fire #68, in the dangerous direction.
+
+The level is not cosmetic: it is what the database checks before letting somebody change records or manage
+people (`app_role()`, js/49's table). The two halves of the card do different jobs and the screen never
+said so. So nothing about the behaviour was changed — closing pages by surprise would silently undo access
+an admin granted on purpose, which is the owner's call, not a side effect. What changed is that the screen
+is now honest about it:
+- a standing line in every non-admin card: the level sets what they may change and who they may manage,
+  the boxes set which pages they can open, and changing the level does not close a page;
+- after a level change, a note **in that person's own card** naming the new level, how many pages they
+  still open and which of the database-enforced ones are among them. Not a toast — the app's toast is gone
+  in 2.4 seconds (core-06's v19toast), which is no place for the sentence that matters. Arabic counts
+  3–10 with the plural and 11+ with the singular, so the count reads properly in both.
+
+Also corrected: a load-bearing comment in js/56 said `app_users.role` "has no check constraint". It is the
+six-label enum `user_role` (checked live) — the conclusion the comment drew was right, the reason was not.
+
+`probe-role-change-does-not-close-pages` added (8 checks) and sabotage-verified — with the fix stashed, 3
+go FAIL, exit 1. Three gates green. One instructive self-error: the probe's first version seeded the QA
+admin with a made-up id, so sign-in never resolved the roster row, the panel never painted, and six checks
+went red for a reason that had nothing to do with the app.
+
 ## Routine fire #85 (2026-09-18 ~02:20 UTC) — adding an event recorded a website signup that never happened
 Untested area this round: the Events **write** path. Events had been checked on screen (fire #71) but no
 save had ever been driven. There are **80 real events** live, the table has an audit trigger, and two of

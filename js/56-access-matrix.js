@@ -128,16 +128,44 @@
         if(!r.data||!r.data.length){alert(fl('Nothing was saved — your account was not allowed to.','لم يُحفظ شيء — لا تملك الصلاحية.'));return;}
         u.role=newRole;
         try{ if(window.__note)__note('team',id,'role changed',newRole); }catch(_){}
-        if(typeof toast==='function')toast(fl('Role updated','تم تحديث الدور'));
+        /* 2026-09-18 (live drive of this screen, fire #85): the database's page_access(p) reads
+           ONLY the per-person boxes for anyone who is not an admin — the level plays no part in
+           which pages open — and js/52 does the same on screen once a matrix exists. Every live
+           non-admin has one. So demoting the manager to Employee left all TEN of their pages
+           exactly as they were, INCLUDING the three the database enforces (Finance, Settings,
+           Activity & Audit), and the screen said "Role updated" and nothing more. An admin doing
+           that to take Settings away would have believed they had. The level still matters — it
+           is what the database checks for changing records and managing people — so the honest
+           thing is to say which of the two decides what, not to start closing pages by surprise
+           (that would silently undo access an admin granted on purpose). Nothing behaves
+           differently; the sentence names what the boxes below still hold. */
+        var _kept=[]; try{ var _pa=u.page_access||{}; PAGES.forEach(function(pp){ if(_pa[pp[0]]==='editor'||_pa[pp[0]]==='viewer') _kept.push(pp); }); }catch(_){}
+        if(_kept.length){
+          var _hard=_kept.filter(function(pp){ return HARD.indexOf(pp[0])>=0; }).map(function(pp){ return fl(pp[1],pp[2]); });
+          /* the toast is gone in 2.4 s (core-06's v19toast), which is no place for the sentence
+             that matters — so it goes in the person's own card and stays there. */
+          /* Arabic counts 3–10 with the plural and 11+ with the singular; English just needs an s. */
+          var _nEn=_kept.length+' '+(_kept.length===1?'page':'pages');
+          var _nAr=_kept.length+' '+(_kept.length>=3&&_kept.length<=10?'صفحات مُحدَّدة':'صفحة مُحدَّدة');
+          u.__levelNote=fl('Level changed to '+levelName(newRole)+'. That does not close a page: this person still opens the '+_nEn+' ticked below'+(_hard.length?', including '+_hard.join(' and '):'')+'. Change those boxes if you meant to take access away.',
+                           'تم تغيير المستوى إلى '+levelName(newRole)+'. هذا لا يُغلق أي صفحة: لا يزال يفتح '+_nAr+' أدناه'+(_hard.length?'، منها '+_hard.join(' و'):'')+'. عدّل تلك الخيارات إذا كنت تقصد سحب الصلاحية.');
+          if(typeof toast==='function')toast(fl('Level changed — the pages below are unchanged','تم تغيير المستوى — الصفحات أدناه لم تتغير'));
+        } else {
+          u.__levelNote='';
+          if(typeof toast==='function')toast(fl('Role updated','تم تحديث الدور'));
+        }
         paint();
       });
     }catch(e){console.warn('[matrix] role',e);}
   };
 
   var TIER=[['admin','Admin','مسؤول النظام'],['manager','Manager','مدير'],['team_member','Employee','موظف']];
-  /* 2026-09-02 (round 30): this screen offers three levels, but app_users.role has no check
-     constraint and the database also understands bd / operations / viewer (see js/49's CAN
-     table and app_role()). A user on one of those matched NO option, and a <select> with
+  /* 2026-09-02 (round 30): this screen offers three levels, but app_users.role is the six-label
+     enum user_role — the database also understands bd / operations / viewer (see js/49's CAN
+     table and app_role()). (Checked against the live enum 2026-09-18; the earlier wording here
+     said "no check constraint", which is not why this matters — the enum is a constraint, it
+     just holds three more labels than this screen offers.) A user on one of those matched NO
+     option, and a <select> with
      nothing selected falls back to its first option — which here is "Admin". So the one
      screen whose whole job is to answer "who has admin rights?" would have answered it
      wrongly, in the most dangerous direction, and an admin who "corrected" the dropdown to
@@ -145,6 +173,8 @@
      A role this screen does not offer is now shown by name and marked, rather than guessed:
      nothing is selected by accident, and the discrepancy is visible instead of hidden. */
   var ROLE_NAME={bd:['Business development','تطوير الأعمال'],operations:['Operations','العمليات'],viewer:['Read only','قراءة فقط']};
+  function levelName(r){ var t=TIER.filter(function(x){return x[0]===r;})[0]; if(t) return fl(t[1],t[2]);
+                         var n=ROLE_NAME[r]; return n?fl(n[0],n[1]):String(r||''); }
   function tierOptions(u){
     var known=TIER.some(function(t){return u.role===t[0];});
     var h=TIER.map(function(t){return '<option value="'+t[0]+'"'+(u.role===t[0]?' selected':'')+'>'+fl(t[1],t[2])+'</option>';}).join('');
@@ -168,6 +198,14 @@
         (isAdm?('<span style="color:#0F6E56;font-size:12px;font-weight:700">'+fl('Full access to everything','صلاحية كاملة لكل شيء')+'</span>'):'')+
       '</div>';
     if(isAdm) return h+'</div>';
+    /* 2026-09-18: the two halves of this card do different jobs and the screen never said so —
+       the level is what the database checks before letting somebody change records or manage
+       people; the boxes are what decides which pages open. Changing one does not move the
+       other (see axSetRole above). One line, so nobody has to find that out the hard way. */
+    h+='<div style="font-size:11.5px;color:var(--muted);margin:-4px 0 8px">'+fl(
+        'The level sets what they may change and who they may manage. The boxes below set which pages they can open — changing the level does not close a page.',
+        'المستوى يحدّد ما يمكنه تعديله ومَن يديره. الخيارات أدناه تحدّد الصفحات التي يفتحها — تغيير المستوى لا يُغلق أي صفحة.')+'</div>';
+    if(u.__levelNote) h+='<div class="ax-levelnote" style="font-size:12px;border:1px solid #FBAE16;background:#FFF8E8;color:#6B4E00;border-radius:8px;padding:8px 10px;margin-bottom:9px">'+esc(u.__levelNote)+'</div>';
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px">';
     PAGES.forEach(function(p){
       var cur=pa[p[0]]||'none';
