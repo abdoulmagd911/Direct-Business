@@ -1,3 +1,29 @@
+## Routine fire #85c (2026-09-18 ~03:30 UTC) — the archive path is clean, and it is the one worth checking
+Third area this round, chosen because it is the most destructive-looking thing the app does to real lead
+data: removing a company. It does not delete the row — js/02's `pushCloud` collects everything that
+vanished from memory and sets `archived_at` on it with a single **bulk** `.in('id', …)`. If that id set
+were ever wrong or stale, real leads would disappear from every screen at once. 112 company rows live,
+108 unarchived, 4 archived.
+
+Driven live in English and Arabic with the write intercepted (nothing stored — still 112 rows, still 4
+archived, nothing archived today). **0 findings:**
+- the app holds exactly the 108 unarchived rows, so no archived row leaks into the working list;
+- removing one company sends **one** archive update naming **exactly one** row;
+- it carries `archived_at` and `archived_by` and nothing else — the record itself is untouched, which is
+  what makes it recoverable;
+- the Archive page lists exactly the 4 archived rows.
+
+Also confirmed on live data: **none of the 4 offers a Restore button**, and that is correct — 3 were
+merged into a surviving company and 1 was removed by the owner's own 2026-08-23 ruling. A plain Restore on
+any of them would resurrect a duplicate a merge removed, or undo a ruling. Each row says which it is, in
+words, in both languages. (The restore *write* is already driven on the mock by
+probe-archive-lists-companies, so nothing new was needed here.)
+
+No code change. Two self-errors worth recording, both in my instrument rather than the app: PostgREST
+url-encodes a list filter (`id=in.%28"a","b"%29`), so a regex looking for a literal `(` read **0** ids out
+of a filter that in fact held one — and I first clicked the first archived row expecting a Restore button,
+which by design is not there. Both were caught by the result being implausible on its face.
+
 ## Routine fire #85b (2026-09-18 ~03:00 UTC) — "Role updated" did not take a single page away
 Second untested area this round: the **Team & Access** write path, driven live in English and Arabic
 against the real roster with every write intercepted (the team tools go through an edge function; not one
