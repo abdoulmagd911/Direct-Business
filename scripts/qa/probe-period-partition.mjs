@@ -144,22 +144,38 @@ async function main() {
     fail(`the undated invoice was placed in ${anywhere.join(', ')} — a fix that derives a period from no date at all is worse than the defect it replaces.`);
 
   /* ---- 5. the consequence on screen ---- */
+  /* 2026-09-18 (fire #94): this used to switch period and then read the card after a flat 900ms.
+     A full-battery re-run caught it reading the PREVIOUS period's figure — the four quarters summed
+     to the unfiltered total and the check failed on a healthy app. The card is now read repeatedly
+     until the same number comes back twice in a row, so the reading is of a settled screen. */
   const cardRev = (year, part) => p.evaluate((c) => {
     FIN.p = { year: c.year, part: c.part, sector: 'all' }; FIN.tab = 'overview';
     if (window.finGo) finGo('overview'); else render();
-    return new Promise((res) => setTimeout(() => {
+    const read = () => {
       const unshort = (s) => { s = String(s || '').trim().replace(/,/g, ''); const m = s.match(/^(-?[\d.]+)([KM])?$/); return m ? Number(m[1]) * (m[2] === 'M' ? 1e6 : m[2] === 'K' ? 1e3 : 1) : null; };
       const card = [].slice.call(document.querySelectorAll('#view .card')).find((c2) => /^Revenue/.test((c2.innerText || '').trim()));
-      if (!card) return res(null);
+      if (!card) return undefined;
       const lines = (card.innerText || '').split('\n').map((x) => x.trim()).filter(Boolean);
       const exact = lines.find((l) => /^[\d,]+ SAR$/.test(l));
-      res(exact ? Number(exact.replace(/[^\d]/g, '')) : unshort(String(lines[1]).replace(/SAR/, '')));
-    }, 900));
+      return exact ? Number(exact.replace(/[^\d]/g, '')) : unshort(String(lines[1]).replace(/SAR/, ''));
+    };
+    return new Promise((res) => {
+      let last, tries = 0;
+      const tick = () => {
+        const v = read(); tries++;
+        if (v !== undefined && v === last) return res(v);
+        last = v;
+        if (tries > 24) return res(v === undefined ? null : v);
+        setTimeout(tick, 400);
+      };
+      setTimeout(tick, 600);
+    });
   }, { year, part });
 
   const shownYear = await cardRev('2026', 'all');
   let shownQ = 0;
-  for (const q of ['Q1', 'Q2', 'Q3', 'Q4']) shownQ += (await cardRev('2026', q)) || 0;
+  const qVals = []; for (const q of ['Q1', 'Q2', 'Q3', 'Q4']) { const v = (await cardRev('2026', q)) || 0; qVals.push(q + '=' + v); shownQ += v; }
+  console.log('  · on-screen quarter cards: ' + qVals.join(' '));
   if (shownYear === shownQ)
     ok(`on screen: the Revenue card for 2026 reads ${shownYear} and its four quarters come to the same`);
   else

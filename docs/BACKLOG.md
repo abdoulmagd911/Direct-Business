@@ -54,6 +54,13 @@ empty text**. The ruling would have looked enforced while nothing was being look
 the sleeps are now waits on the real conditions, and the money checks are gated on the card having
 rendered. Re-sabotaged by putting the value and currency back in js/14's row: 2 FAIL.
 
+**A second one of the same shape, found by the clean re-run:** `probe-period-partition` switched the
+Finance period and read the Revenue card after a flat 900ms. It caught the card still showing the
+PREVIOUS period — the four quarters summed to the unfiltered total — and failed on a healthy app. It
+now reads until the same number comes back twice in a row, and prints the four quarter figures so the
+check can be seen to be real (Q1 93,951 · Q2 72,634 · Q3 0 · Q4 0, summing exactly to the year's
+166,585). **Full battery at the final tree: 218 / 218.**
+
 **Open for a later round — 108 of the 224 probes sign in and never wait on a condition**, only on a
 fixed number of seconds. They all pass today. They are the same shape as the one that just broke, and
 they will break the same way as the app grows — quietly, and possibly by passing on absence rather
