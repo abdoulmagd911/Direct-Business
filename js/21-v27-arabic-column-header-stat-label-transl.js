@@ -39,6 +39,50 @@
     'Vendor / commission?':'مورّد / عمولة؟','Next action due':'تاريخ الإجراء التالي',
     'Contacts (same business, multiple people)':'جهات الاتصال (نفس المنشأة، عدة أشخاص)',
     '+ Add contact':'+ إضافة جهة اتصال',
+    /* ---- the rest of the dialogs, 2026-09-18 (fire #87): measured by opening all 23 in Arabic.
+       Client onboarding is the form v36 deliberately collapsed as a duplication of Direct's own client
+       master — hidden, not deleted, so it is still reachable and was still fully English. ---- */
+    'Name (EN)':'الاسم (إنجليزي)','Name (AR)':'الاسم (عربي)','Classification':'التصنيف',
+    'Industry':'القطاع','Branch / HQ':'الفرع / المركز الرئيسي',
+    'Address (EN)':'العنوان (إنجليزي)','Address (AR)':'العنوان (عربي)',
+    'Commercial Registration (CR) #':'رقم السجل التجاري','CR expiry':'انتهاء السجل التجاري',
+    'VAT registration # (15 digits)':'الرقم الضريبي (15 رقمًا)','Buyer IBAN (SA…)':'آيبان المشتري (SA…)',
+    'Payment configuration':'إعداد الدفع','Pricing scheme':'نظام الأسعار',
+    'Credit limit (SAR)':'حد الائتمان (ريال)','Billing cycle day':'يوم دورة الفوترة',
+    'Collections owner':'مسؤول التحصيل','Late fee policy':'سياسة غرامة التأخير',
+    'Minimum volume commitment':'الحد الأدنى للالتزام بالحجم',
+    'Markup (flights / hotels / visas / transfers)':'الهامش (طيران / فنادق / تأشيرات / نقل)',
+    '+ Add signatory':'+ إضافة مفوّض بالتوقيع','+ Add traveler':'+ إضافة مسافر','+ Add':'+ إضافة',
+    /* Chain of command (v24) */
+    /* plain field labels, never data — the chain-of-command form repeats them per row. Safe to put in
+       the main dictionary: an <option> is only translated when it carries a value attribute, so no
+       dropdown can end up storing the Arabic word. WhatsApp keeps its own name. */
+    'Email':'البريد الإلكتروني','Phone':'الهاتف',
+    'National ID / Iqama':'الهوية / الإقامة','Covers when':'يغطي عند','Signing date':'تاريخ التوقيع',
+    'Last review date':'تاريخ آخر مراجعة',
+    '+ Add hierarchy row':'+ إضافة صف في التسلسل','+ Add emergency contact':'+ إضافة جهة اتصال للطوارئ',
+    '+ Add escalation rung':'+ إضافة درجة تصعيد','Re-confirm chain today':'تأكيد التسلسل اليوم',
+    /* the snapshot browser's row action — 117 of them on screen, all English */
+    'Restore':'استعادة',
+    /* ---- Finance and Ops forms, 2026-09-18 (fire #87). These three could not be opened against the
+       live database at all — there are 0 invoices, 0 bookings and 0 requests in it — so they were
+       reached on the mock, which has them seeded. Every industry acronym is KEPT and only the words
+       around it are translated: PNR, RBD, FFN, ADM, BSP, IATA SIS, GDS, NDC, OTA, ZATCA. Nothing about
+       what any field means or stores is changed; these are labels only. ---- */
+    'Invoice type':'نوع الفاتورة','Due date':'تاريخ الاستحقاق','PO number (corporate)':'رقم أمر الشراء (للشركات)',
+    'Dunning stage':'مرحلة التحصيل','Total (subtotal pre-VAT)':'الإجمالي (قبل ضريبة القيمة المضافة)',
+    'VAT rate (line 1)':'نسبة ضريبة القيمة المضافة (السطر 1)','ZATCA status':'حالة هيئة الزكاة والضريبة',
+    'Currency · FX rate':'العملة · سعر الصرف','First line description':'وصف السطر الأول',
+    'Recurring schedule':'جدول التكرار','BSP / IATA SIS bucket':'سلة BSP / IATA SIS',
+    'PNR / Record locator':'PNR / رقم الحجز','Booking source':'مصدر الحجز',
+    'Queue assignee':'المسؤول في قائمة العمل','Queue due by':'موعد قائمة العمل',
+    'RBD / class':'RBD / الدرجة','Fare basis':'أساس الأجرة','FFN (frequent flyer)':'FFN (المسافر الدائم)',
+    'Validity':'مدة الصلاحية','E-ticket status':'حالة التذكرة الإلكترونية','E-ticket #':'رقم التذكرة الإلكترونية',
+    'Refund penalty':'غرامة الاسترداد','Change penalty':'غرامة التغيير',
+    'ADM linked?':'مرتبطة بـ ADM؟','ADM ID':'رقم ADM',
+    'Endorsements / restrictions':'التظهيرات / القيود','Lead ticket':'التذكرة الرئيسية',
+    'Fare':'الأجرة','Taxes':'الضرائب','Total cost':'إجمالي التكلفة',
+    'Amount (SAR)':'المبلغ (ريال)','Method':'طريقة الدفع','Bank/PSP reference':'مرجع البنك / مزوّد الدفع',
     // ---- .tag row badges (priority / tier — see .tag comment above; Import, Unassigned,
     // Standard, Key account, Client already exist above/below for other contexts and are
     // reused here on purpose, same word, same meaning) ----
@@ -361,9 +405,71 @@
     'Name':'الاسم','Email':'البريد الإلكتروني','Phone':'الهاتف',
     'Government / Study-abroad school…':'جهة حكومية / معهد دراسة بالخارج…',
     'Flights, Hotels, Visa, Insurance, Intl driving permit…':'طيران، فنادق، تأشيرات، تأمين، رخصة سياقة دولية…',
-    'e.g. Called Mr. Nasser — interested, sending the proposal Sunday':'مثال: تحدّثت مع الأستاذ ناصر — مهتم، سنرسل العرض الأحد'
+    'e.g. Called Mr. Nasser — interested, sending the proposal Sunday':'مثال: تحدّثت مع الأستاذ ناصر — مهتم، سنرسل العرض الأحد',
+    /* 2026-09-18 (fire #87) — the prose hints found by opening every dialog in Arabic. The supplier
+       form's own hints are NOT here on purpose: 320ms, P1 < 1h, BSP / card / credit / wallet,
+       GDS / NDC / Direct portal / Aggregator (Travel Fusion) and the rest are the airline and GDS
+       vocabulary this team works in, and an IBAN's "SA…" and a link's "https://…" are not words. */
+    'Type or pick a business':'اكتب أو اختر منشأة',
+    'e.g. 50,000 SAR/mo':'مثال: 50,000 ريال/شهر','e.g. 2% / month':'مثال: 2% شهريًا',
+    'filename or URL':'اسم الملف أو الرابط',
+    /* Finance and Ops hints. The code examples keep their codes: a GDS list, a ticket number pair and a
+       VAT-number shape are not words, and "BSP-SA-2026-W22" is a real reference format. */
+    'e.g. BSP-SA-2026-W22':'مثال: BSP-SA-2026-W22',
+    '250 SAR + 50%':'250 ريال + 50%','150 SAR + fare diff':'150 ريال + فرق الأجرة',
+    'Direct Payments / bank txn ID':'Direct Payments / معرّف عملية البنك'
   };
   var CHANNEL_AR={ 'Email':'البريد','Phone':'الهاتف','Portal':'البوابة','In person':'حضور شخصي','Tender portal':'بوابة المناقصات' };
+  /* 2026-09-18 (fire #87): fire #86 fixed one form; opening all 23 dialogs in Arabic showed the same
+     three failures spread across the app, plus a fourth this file had no mechanism for — a dialog
+     TITLE of the shape "<English prefix> — <the record's own name>". The whole string never matched a
+     dictionary entry (it carries live data), and translateDecorated only strips a TRAILING decoration,
+     so "Log activity — <company>" and "Chain of command - <company>" stayed English on every dialog
+     that names its record. Only the prefix is translated here, split on the first em-dash or hyphen
+     separator, and the name after it is never touched — the same care the rest of this file takes
+     about never translating business data.
+     NOT translated, deliberately, and measured as such: a lead's or client's own dialog title (it IS
+     the company name, nothing else), the WhatsApp chip, the supplier form's EMD chip, and that form's
+     seven hints — 320ms, P1 < 1h, BSP / card / credit / wallet, GDS / NDC / Direct portal /
+     Aggregator (Travel Fusion) and the rest are the airline and GDS vocabulary this team works in;
+     rendering them in Arabic would make them harder to read, not easier. */
+  var TITLE_WHOLE_AR={
+    'Sync log':'سجل المزامنة','Browse backup snapshots':'استعراض النسخ الاحتياطية',
+    'ZATCA hash-chain integrity report':'تقرير سلامة سلسلة التجزئة (هيئة الزكاة)','New provider':'مورّد جديد'
+  };
+  var TITLE_PREFIX_AR={
+    'Log activity':'تسجيل نشاط','Chain of command':'تسلسل المسؤولية',
+    '🏛 Client onboarding':'🏛 تسجيل عميل جديد','Client onboarding':'تسجيل عميل جديد',
+    'Record payment':'تسجيل دفعة'
+  };
+  /* "Edit INV-3001" / "Edit BK-2001" — a prefix and a reference, separated by nothing but a space. The
+     word alone is far too common to translate on sight, so the remainder must LOOK like a reference:
+     capitals, digits and dashes only. "Edit client profile (full form)" and anything else wordy is
+     left alone by that test. */
+  var REF_TITLE=/^(Edit|Record payment) ([A-Z][A-Z0-9]*-[A-Za-z0-9-]+)$/;
+  var REF_VERB_AR={ 'Edit':'تعديل','Record payment':'تسجيل دفعة' };
+  function translateDialogTitle(scope){
+    if(!scope)return;
+    var h=scope.querySelector('.mh h3'); if(!h||h.getAttribute('data-v27'))return;
+    var t=(h.textContent||'').trim(); if(!t)return;
+    if(TITLE_WHOLE_AR[t]!==undefined){ setText(h,TITLE_WHOLE_AR[t]); return; }
+    /* Match the KNOWN prefixes against the start of the title, rather than splitting on the first
+       separator: "Chain of command - Mawani — Saudi Ports Authority" separates with a hyphen and then
+       contains an em-dash inside the company's own name, so splitting on the first em-dash produced
+       the prefix "Chain of command - Mawani" and matched nothing. Measured, fixed, re-measured. */
+    var keys=Object.keys(TITLE_PREFIX_AR),i;
+    for(i=0;i<keys.length;i++){
+      var pre=keys[i], seps=[' — ',' - '],s;
+      for(s=0;s<seps.length;s++){
+        if(t.indexOf(pre+seps[s])!==0)continue;
+        setText(h,TITLE_PREFIX_AR[pre]+' — '+t.slice(pre.length+seps[s].length));
+        return;
+      }
+    }
+    var ref=t.match(REF_TITLE);
+    if(ref&&REF_VERB_AR[ref[1]]!==undefined){ setText(h,REF_VERB_AR[ref[1]]+' '+ref[2]); return; }
+    /* a title that is only the record's own name is left exactly as it is */
+  }
   function translatePlaceholders(scope){
     if(!scope)return;
     var ins=scope.querySelectorAll('input[placeholder],textarea[placeholder]'),i;
@@ -387,7 +493,7 @@
   }
   function scopeTranslate(scope,safeOptions){
     if(!scope)return;
-    translatePlaceholders(scope); translateChannelChips(scope);
+    translatePlaceholders(scope); translateChannelChips(scope); translateDialogTitle(scope);
     var heads=scope.querySelectorAll('th,h2,h3'),i;
     for(i=0;i<heads.length;i++){ var hd=heads[i]; if(hd.getAttribute('data-v27')||hd.querySelector('input,select'))continue; translateDecorated(hd,V27_AR); }
     // label / summary / .ch-sub added 2026-09-02 for the proposal editor — whole-string matches only,

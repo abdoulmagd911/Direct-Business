@@ -1,3 +1,56 @@
+## Routine fire #87 (2026-09-18 ~07:00 UTC) — the half-translated form was a class, not one form
+Fire #86 fixed the lead-edit form. Every dialog in the app goes through the same translator, so the same
+three failures were waiting everywhere: it matches whole strings, it skips any label that wraps an input,
+and it had never touched a placeholder. So all 23 dialogs were opened in Arabic, against the real database
+with every write blocked at the network edge, and what was still English in each was counted. Nothing was
+stored — no dialog wrote anything just by being opened.
+
+**Found and fixed, beyond #86:**
+- **Client onboarding** — the form v36 deliberately collapsed as a duplication of Direct's own client
+  master. Hidden is not deleted: it is still reachable, and it was **entirely** English — 19 labels, 3
+  hints, 3 buttons and its title.
+- **Chain of command** — 7 labels (several repeated per row), 4 buttons and its title.
+- **The snapshot browser** — its heading, and **117** English "Restore" buttons.
+- **The Sync log** and the **ZATCA hash-chain report** — their headings.
+- **New supplier** — its "New provider" heading. **New request** — its one prose hint.
+- **A fourth failure this file had no mechanism for at all:** a dialog title of the shape
+  `<English prefix> — <the record's own name>`. The whole string can never match a dictionary (it carries
+  live data) and the existing helper only strips a TRAILING decoration, so "Log activity — «company»" and
+  "Chain of command - «company»" stayed English on every dialog that names its record. Only the prefix is
+  translated now, and the name after it is never touched.
+
+**Three more that the live database cannot reach at all** — it holds 0 invoices, 0 bookings and 0 requests,
+and all three forms look their record up and return early — so they were opened on the mock, which has
+them seeded: **Edit invoice** (11 labels), **Edit booking** (19 labels and 2 hints) and **Record a
+payment** (3 labels, 1 hint), plus the `Edit INV-3001` / `Edit BK-2001` title shape, which is a prefix and
+a reference separated by nothing but a space. The word "Edit" alone is far too common to translate on
+sight, so the remainder has to LOOK like a reference — capitals, digits and dashes — which leaves "Edit
+client profile (full form)" and anything else wordy alone.
+
+**Deliberately left English, and the probe asserts they are STILL there** so nobody "tidies" them later:
+WhatsApp and the supplier form's EMD (names, not words); a lead's or client's own dialog title, which IS
+the company name; the supplier form's own vocabulary — `320ms`, `P1 < 1h`, `BSP / card / credit / wallet`,
+`GDS / NDC / Direct portal / Aggregator (Travel Fusion)`, `60% NDC / 30% EDIFACT / 10% LCC`; the invoice
+and booking examples `300xxxxxxx00003`, `GDS / NDC / OTA / Direct` and `SV-1234567 / EY-5555` (a VAT-number
+shape, a GDS list, and two real airline prefixes — SV Saudia, EY Etihad); `SA…` and `https://…`; and the
+activity types, whose text IS what gets stored. Every industry acronym was kept and only the words around
+it translated — PNR, RBD, FFN, ADM, BSP, IATA SIS, ZATCA. **No field's meaning or stored value changed;
+these are labels only, and M1 is untouched — the invoice form's VAT-rate and pre-VAT-total labels were
+translated as they read, nothing was added to or removed from any money figure.**
+
+**End state, measured twice:** all 18 dialogs that open are clean on the mock, and every English string
+left against live data is one of the deliberate keeps.
+
+`probe-arabic-dialogs-complete` added (12 checks, covering all 20 dialogs including the three live data
+cannot reach) and sabotage-verified — with the fix stashed, 5 go FAIL, exit 1. Three gates green. Because
+this round added broad words to the shared dictionary (Email, Phone, Fare, Taxes, Method, Validity …),
+**30 Arabic, dialog, table and export probes were re-run at HEAD: 30 of 30 green**, the
+option-values-are-data probe among them.
+
+Honest coverage gap: 5 dialogs opened in neither pass — New invoice and New booking (both return early
+without a record, by design), Corporate record, Statement of account, Find a duplicate and the two v40
+request actions. Worth a round of their own with the mock seeded for each.
+
 ## Routine fire #86 (2026-09-18 ~05:00 UTC) — the lead form was half in Arabic and half in English
 Untested area this round: the **contacts** write path, and with it the lead-edit form it lives in. 45 real
 contacts across 36 companies (one has 4, six have 2); js/72 attaches 32 of them to their cards. Driven
