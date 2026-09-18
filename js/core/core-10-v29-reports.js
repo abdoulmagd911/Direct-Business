@@ -330,7 +330,7 @@ function rptAch(v){
 }
 window.rptSetFilter=function(k,val){rptAchFilter[k]=val;render();};
 window.rptOpenAch=function(id){
- const a=id?RDB.achievements.find(x=>x.id===id):{date:new Date().toISOString().slice(0,10),member:RPT_TEAM[0],title:"",desc:"",objective:"",kpi:"",value:"",client:""};
+ const a=id?RDB.achievements.find(x=>x.id===id):{date:todayISO(),member:RPT_TEAM[0],title:"",desc:"",objective:"",kpi:"",value:"",client:""};
  if(!a)return;
  openModal((id?'Edit':'Log')+' achievement',
  '<div class="grid2"><div class="field"><label>Date</label><input type="date" id="rf_date" value="'+esc(a.date)+'"></div><div class="field"><label>Team member</label><select id="rf_member">'+RPT_TEAM.map(t=>'<option '+(a.member===t?'selected':'')+'>'+t+'</option>').join('')+'</select></div></div>'+
@@ -428,7 +428,7 @@ function rptHTML(){
  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #FF6B00;padding-bottom:14px;margin-bottom:18px">'+
  '<div>'+(typeof logoSrc==='function'?'<img src="'+logoSrc()+'" style="height:40px;display:block;margin-bottom:6px" alt="Direct">':'')+'<div style="font-weight:800;font-size:21px">'+(typeof brandName==='function'?brandName():'Direct Business')+'</div>'+
  '<div style="color:#7C8194;font-size:12px">'+rptAr('Commercial Department · Operational Plan 2026','القسم التجاري · الخطة التشغيلية 2026')+'</div></div>'+
- '<div style="text-align:'+rptAr('right','left')+';font-size:12px;color:#7C8194">'+rptAr('Generated ','أُنشئ في ')+new Date().toISOString().slice(0,10)+'</div></div>'+
+ '<div style="text-align:'+rptAr('right','left')+';font-size:12px;color:#7C8194">'+rptAr('Generated ','أُنشئ في ')+todayISO()+'</div></div>'+
  '<h2 style="font-weight:700;font-size:17px;margin-bottom:14px">'+esc(rptTitle())+'</h2>'+
  '<h3 style="font-weight:700;font-size:13.5px;margin:16px 0 8px;color:#3C4050">'+rptAr('1 · Achievements','1 · الإنجازات')+' ('+rows.length+')</h3>'+
  (rows.length?'<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#7C8194;text-align:'+rptAr('left','right')+'"><th style="padding:6px;border-bottom:1px solid #EEE8DE">'+rptAr('Date','التاريخ')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">'+rptAr('Achievement','الإنجاز')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">'+rptAr('Member','العضو')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">'+rptAr('Obj.','الهدف')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">Value</th></tr></thead><tbody>'+
@@ -457,7 +457,7 @@ window.rptCopyReport=function(){navigator.clipboard.writeText(rptText()).then(()
 function rptFullDoc(){return '<!DOCTYPE html><html'+rptAr('',' dir="rtl" lang="ar"')+'><head><meta charset="UTF-8"><title>'+esc(rptTitle())+'</title><style>body{font-family:Cairo,Inter,system-ui,sans-serif;color:#1C1E2B;max-width:860px;margin:30px auto;padding:0 20px}</style></head><body>'+rptHTML()+'</body></html>';}
 window.rptPrintReport=function(){const w=window.open('','_blank');if(!w){alert(rptAr('Allow popups to print.','اسمح بالنوافذ المنبثقة للطباعة.'));return;}w.document.write(rptFullDoc());w.document.close();setTimeout(()=>w.print(),400);};
 window.rptDownloadReport=function(){const b=new Blob([rptFullDoc()],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=rptTitleEn().replace(/[^\w]+/g,'-')+'.html';a.click();};
-window.rptExportJSON=function(){const b=new Blob([JSON.stringify(RDB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-reports-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();};
+window.rptExportJSON=function(){const b=new Blob([JSON.stringify(RDB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-reports-backup-'+todayISO()+'.json';a.click();};
 window.rptWord=function(){var b=new Blob([String.fromCharCode(0xFEFF)+rptFullDoc()],{type:"application/msword"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=rptTitleEn().replace(/[^\w]+/g,"-")+".doc";a.click();};
 window.rptPpt=function(){
  var go=function(){try{
@@ -752,7 +752,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
      '<td><span class="statusbadge" style="background:'+LSTAGE_COLOR[sg]+'1a;color:'+LSTAGE_COLOR[sg]+';cursor:pointer" onclick="openLeadFn(\''+b.id+'\')" title="Open the lead to change stage"><span class="dot" style="background:'+LSTAGE_COLOR[sg]+'"></span>'+(sg==='Won'?'Client':sg)+'</span></td>'+
      '<td>'+(function(){var fn=(typeof LANG!=='undefined'&&LANG==='ar'&&b.funnelNameAr)?b.funnelNameAr:b.funnelName;/* 2026-09-09 (live test L7): no funnel → say so, and name the source in small muted text — never the source dressed as a funnel tag */return fn?'<span class="tag" style="background:#EEF0F5;color:#4B5563">'+esc(fn)+'</span>':(b.source?'<span data-no-funnel="1" style="color:var(--muted)">— <small>'+((typeof LANG!=='undefined'&&LANG==='ar')?'المصدر: ':'source: ')+esc(b.source)+'</small></span>':'-');})()+'</td>'+
      '<td style="color:var(--muted);white-space:nowrap">'+(b.lastContact?fmtAgo(b.lastContact):'—')+'</td>'+
-     '<td style="color:var(--muted);max-width:170px;white-space:normal">'+(function(){var t=b.nextAction||b.nextActionNote||'';var d=b.nextActionDate?String(b.nextActionDate).slice(0,10):'';if(!t&&!d)return '—';var od=d&&d<new Date().toISOString().slice(0,10);return esc(t||((typeof LANG!=='undefined'&&LANG==='ar')?'متابعة':'Follow up'))+(d?' <span style="white-space:nowrap;color:'+(od?'#D92D20':'var(--muted)')+'">· '+d+'</span>':'');})()+'</td>'+
+     '<td style="color:var(--muted);max-width:170px;white-space:normal">'+(function(){var t=b.nextAction||b.nextActionNote||'';var d=b.nextActionDate?String(b.nextActionDate).slice(0,10):'';if(!t&&!d)return '—';var od=d&&d<todayISO();return esc(t||((typeof LANG!=='undefined'&&LANG==='ar')?'متابعة':'Follow up'))+(d?' <span style="white-space:nowrap;color:'+(od?'#D92D20':'var(--muted)')+'">· '+d+'</span>':'');})()+'</td>'+
      '<td style="color:var(--muted)">'+((b.assignedTo||b.owner)?esc(b.assignedTo||b.owner):'<span class="tag" style="background:#F0453A14;color:#D92D20">Unassigned</span>')+'</td>'+
      '<td>'+(function(){var _s=leadScore(b),_sb=scoreBand(_s);return '<span class="tag" style="background:'+_sb.c+'1a;color:'+_sb.c+';font-weight:700" title="Lead score '+_s+'/100">'+_sb.l+'</span>';})()+'</td></tr>';
   }).join('')||(function(){

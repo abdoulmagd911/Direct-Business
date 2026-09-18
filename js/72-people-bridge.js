@@ -115,7 +115,7 @@ try{
           if(SNAP[tid].business_id!==bizOf||seen[tid]||SNAP[tid]._flaggedRemoved)return;
           SNAP[tid]._flaggedRemoved=true;
           var who=''; try{ who=(window.meName&&meName())||''; }catch(_){}
-          c.from('contacts').update({needs_manual_confirmation:true,confirmation_reason:'Removed from the company card'+(who?(' by '+who):'')+' on '+new Date().toISOString().slice(0,10)+' — delete in the database if confirmed, or clear this flag to keep.'}).eq('id',tid).select('id').then(function(){});
+          c.from('contacts').update({needs_manual_confirmation:true,confirmation_reason:'Removed from the company card'+(who?(' by '+who):'')+' on '+todayISO()+' — delete in the database if confirmed, or clear this flag to keep.'}).eq('id',tid).select('id').then(function(){});
         });
       }
     }catch(e){ console.warn('[v72] write-through',e); }

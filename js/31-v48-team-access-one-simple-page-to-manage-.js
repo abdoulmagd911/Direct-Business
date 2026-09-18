@@ -327,7 +327,7 @@
   }
   function heroHTML(){
     var ar=isAr();
-    var dateStr=''; try{ dateStr=new Date().toLocaleDateString(ar?'ar':'en-GB',{weekday:'long',day:'numeric',month:'short',year:'numeric',calendar:'gregory'}); }catch(_){ try{dateStr=new Date().toISOString().slice(0,10);}catch(__){} }
+    var dateStr=''; try{ dateStr=new Date().toLocaleDateString(ar?'ar':'en-GB',{weekday:'long',day:'numeric',month:'short',year:'numeric',calendar:'gregory'}); }catch(_){ try{dateStr=todayISO();}catch(__){} }
     var promise=ar?'قوة موردين عالمية · خدمة سعودية · شريك واحد':'Global supplier power. Saudi service. One partner.';
     var sub=ar?'دايركت أعمال — مساحة عمل الفريق':'Direct Business — team workspace';
     return '<div style="max-width:72%"><div class="hl" style="font-size:20px;line-height:1.32">'+promise+'</div><div class="hs">'+sub+'</div></div>'+

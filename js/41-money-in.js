@@ -160,7 +160,7 @@
         integrity_status:integ,
         exclusion_reason:i.wallet?'wallet top-up — excluded from revenue by definition':null,
         notes:i.st==='draft'?'Draft in Direct Payments':null,
-        source_batch:'dp-import-'+new Date().toISOString().slice(0,10),
+        source_batch:'dp-import-'+todayISO(),
         line_no:1, branch:i.branch, salesman:i.salesman,
         revenue_way:(i.comm?'commission':(!i.num&&i.st!=='credit'&&!i.wallet)?'transaction':'invoice'),
         transaction_ref:i.tx||null

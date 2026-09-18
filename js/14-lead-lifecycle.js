@@ -176,7 +176,7 @@ function holdStrip(){
     if(typeof current==='undefined'||current!=='leads'||window.__isShareView)return;
     var v=document.getElementById('view'); if(!v)return;
     var old=document.getElementById('v40holds'); if(old)old.remove();
-    var today=new Date().toISOString().slice(0,10);
+    var today=todayISO();
     var due=((DB&&DB.businesses)||[]).filter(function(b){return b.onHold&&b.onHold.until&&b.onHold.until<=today;});
     if(!due.length)return;
     var ar=isAr();
@@ -198,7 +198,7 @@ console.info('%c[v40 lead lifecycle] loaded','color:#FF6B00;font-weight:700');
       and client reviews due. Built on ownership (owner === meName()). Self-contained. */
 (function(){try{
   function ar(){return (typeof LANG!=='undefined'&&LANG==='ar');}
-  function today(){return new Date().toISOString().slice(0,10);}
+  function today(){return todayISO();}
   function meN(){return (window.meName?meName():'');}
   /* Owner match: use the same alias-aware comparison the Leads/Clients/Proposals "Mine"
      filters use (js/43 sameOwner), so a rep's own record counts here whatever spelling of

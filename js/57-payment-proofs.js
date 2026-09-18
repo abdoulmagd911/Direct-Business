@@ -228,7 +228,7 @@
              ].map(function(x){x=csvGuard(x);return /[",\n]/.test(x)||x.charCodeAt(0)===39?'"'+x.replace(/"/g,'""')+'"':x;}).join(',');
     })).join('\n');
     var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
-    a.download='direct-payment-proofs-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+    a.download='direct-payment-proofs-'+todayISO()+'.csv';a.click();
   }catch(e){console.warn('[proof] csv',e);}};
 
   window.proofSave=function(){try{
@@ -320,7 +320,7 @@
       h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 10px;font-size:14px">'+fl('Add a payment proof','إضافة مستند دفع')+'</h3>'+
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">'+
         '<div><label style="font-size:11px;color:var(--muted)">'+fl('Type','النوع')+'</label><select id="pf_type" class="inp sm" style="width:100%">'+TYPES.map(function(t){return '<option value="'+t[0]+'">'+fl(t[1],t[2])+'</option>';}).join('')+'</select></div>'+
-        '<div><label style="font-size:11px;color:var(--muted)">'+fl('Date','التاريخ')+'</label><input type="date" id="pf_date" class="inp sm" value="'+new Date().toISOString().slice(0,10)+'" style="width:100%"></div>'+
+        '<div><label style="font-size:11px;color:var(--muted)">'+fl('Date','التاريخ')+'</label><input type="date" id="pf_date" class="inp sm" value="'+todayISO()+'" style="width:100%"></div>'+
         '<div><label style="font-size:11px;color:var(--muted)">'+fl('Client','العميل')+'</label><input id="pf_client" class="inp sm" style="width:100%" list="pf_clients"><datalist id="pf_clients">'+clients.map(function(n){return '<option value="'+esc(n)+'">';}).join('')+'</datalist></div>'+
         '<div><label style="font-size:11px;color:var(--muted)">'+fl('Invoice / tax-invoice #','رقم الفاتورة الضريبية')+'</label><input id="pf_inv" class="inp sm" style="width:100%" placeholder="'+fl('if any','إن وجد')+'"></div>'+
         '<div><label style="font-size:11px;color:var(--muted)">'+fl('Wallet top-up #','رقم تعبئة المحفظة')+'</label><input id="pf_wtu" class="inp sm" style="width:100%" placeholder="'+fl('if any','إن وجد')+'"></div>'+

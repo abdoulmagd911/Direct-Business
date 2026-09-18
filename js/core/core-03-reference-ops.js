@@ -20,8 +20,8 @@ function airNetworkCard(x){return `<div class="card"><h3>Network &amp; commercia
 <div class="fact"><span class="k">SAF / sustainability</span><span class="v">${esc(x.saf||'—')}</span></div>
 <div class="fact"><span class="k">NDC version · env</span><span class="v">${esc(x.ndcVersion||'—')} · ${esc(x.ndcEnv||'—')}</span></div>
 ${x.corpPortal?`<div style="margin-top:10px">${supLink(x.corpPortal,'Corporate self-service portal')}</div>`:''}</div>`;}
-function setNdc(id,prov,field,v){const a=DB.airlines.find(x=>x.id===id);if(!a)return;a.ndc=a.ndc||{};a.ndc[prov]=a.ndc[prov]||{status:"N/A",content:"—",updated:"",notes:""};a.ndc[prov][field]=v;if(field!=="notes")a.ndc[prov].updated=new Date().toISOString().slice(0,10);save();render();}
-function setNdcNotes(id,prov,v){const a=DB.airlines.find(x=>x.id===id);if(!a||!a.ndc[prov])return;a.ndc[prov].notes=v;a.ndc[prov].updated=new Date().toISOString().slice(0,10);save();}
+function setNdc(id,prov,field,v){const a=DB.airlines.find(x=>x.id===id);if(!a)return;a.ndc=a.ndc||{};a.ndc[prov]=a.ndc[prov]||{status:"N/A",content:"—",updated:"",notes:""};a.ndc[prov][field]=v;if(field!=="notes")a.ndc[prov].updated=todayISO();save();render();}
+function setNdcNotes(id,prov,v){const a=DB.airlines.find(x=>x.id===id);if(!a||!a.ndc[prov])return;a.ndc[prov].notes=v;a.ndc[prov].updated=todayISO();save();}
 function ndcMatrixHTML(a){
  const hasData=p=>{const c=a.ndc&&a.ndc[p];return !!(c&&((c.status&&c.status!=="N/A")||(c.notes&&c.notes.trim())));};
  const show=window.ndcShowAll?NDC_PROVIDERS:NDC_PROVIDERS.filter(hasData);

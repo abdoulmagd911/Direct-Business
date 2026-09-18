@@ -201,7 +201,7 @@
         lines.push([q(b.name),q(b.nameAr),q(f?((ar&&f.name_ar)?f.name_ar:f.name_en):''),q(st),q(b.source),q(b.assignedTo||b.owner),q(b.isClient?(ar?'نعم':'Yes'):(ar?'لا':'No')),q(b.website),q(b.nextActionDate),q(b.nextAction||b.nextActionNote),q(c.name),q(c.phone),q(c.email),q(detTxt),q(b.notes)].join(','));
       });
       var blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
-      var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='leads-export-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+      var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='leads-export-'+todayISO()+'.csv';a.click();
     }catch(e){alert('Export failed: '+e.message);}
   }
 

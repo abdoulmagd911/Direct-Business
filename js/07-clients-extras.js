@@ -21,7 +21,7 @@
     var cls=DB.businesses.filter(function(b){return b.isClient;});
     if(!cls.length)return;
     var key=cls.filter(function(b){return b.tier==='Key';}).length;
-    var today=new Date().toISOString().slice(0,10);
+    var today=todayISO();
     var overdue=cls.filter(function(b){return b.nextReview&&b.nextReview<=today;}).length;
     var byArea={}; cls.forEach(function(b){var a=b.area||'—';byArea[a]=(byArea[a]||0)+1;});
     var areas=Object.keys(byArea).sort(function(a,b){return byArea[b]-byArea[a];}).slice(0,6);

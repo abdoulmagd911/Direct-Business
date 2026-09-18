@@ -77,7 +77,7 @@ function drawOffers(q){q=(q||'').toLowerCase();const ar=(typeof LANG!=='undefine
 }
 function openOfferFn(id){openOffer=id;render();window.scrollTo(0,0);}
 function closeOffer(){openOffer=null;render();}
-function newOffer(){const o={id:uid('o'),ref:'DB-'+Date.now().toString().slice(-6),date:new Date().toISOString().slice(0,10),client:'',subject:'',airline:'',route:'',flight:'',cls:'',currency:'SAR',ticketPrice:'',partnerFees:'',serviceFees:'',vat:'',dip:'',total:'',changesBefore:'',changesAfter:'Not permitted',cancelBefore:'',cancelAfter:'Non-Refundable',noShow:'',baggage:'1 piece 23 Kg',lastIssue:'',minStay:'-',maxStay:'-',cheapest:'Yes',remarks:'',addFees:'Partner contractual refund & reissue fees apply. Original handling fees are non-refundable.',status:'Draft',version:1,validUntil:'',ttl:'',linkedLeadId:'',policyStatus:'Not checked',policyReason:'',approvalStatus:'Not required',paxAdt:1,paxChd:0,paxInf:0,cost:'',commission:'',winLoseReason:'',options:[],owner:(window.meName?meName():(typeof me==='function'?me():'')),
+function newOffer(){const o={id:uid('o'),ref:'DB-'+Date.now().toString().slice(-6),date:todayISO(),client:'',subject:'',airline:'',route:'',flight:'',cls:'',currency:'SAR',ticketPrice:'',partnerFees:'',serviceFees:'',vat:'',dip:'',total:'',changesBefore:'',changesAfter:'Not permitted',cancelBefore:'',cancelAfter:'Non-Refundable',noShow:'',baggage:'1 piece 23 Kg',lastIssue:'',minStay:'-',maxStay:'-',cheapest:'Yes',remarks:'',addFees:'Partner contractual refund & reissue fees apply. Original handling fees are non-refundable.',status:'Draft',version:1,validUntil:'',ttl:'',linkedLeadId:'',policyStatus:'Not checked',policyReason:'',approvalStatus:'Not required',paxAdt:1,paxChd:0,paxInf:0,cost:'',commission:'',winLoseReason:'',options:[],owner:(window.meName?meName():(typeof me==='function'?me():'')),
   /* full-proposal fields */ proposalType:'Price offer',docUrl:'',scope:'',value:'',promotedToProject:false};(DB.offers=DB.offers||[]).push(o);save();openOffer=o.id;render();}
 /* Proposal types Direct actually uses (from the real Drive proposals folder). */
 const PROPOSAL_TYPES=['Price offer','Technical proposal','Financial bid','Business solution','Training','Tender','Travel — flights','Other'];
@@ -267,7 +267,7 @@ function o_genProposal(id){
   var typeAr=(typeof PROPOSAL_TYPES_AR!=='undefined'&&PROPOSAL_TYPES_AR[o.proposalType])||typeEn;
   var subject=o.subject||o.scope||typeEn;
   var scope=o.scope||'';
-  var today=new Date().toISOString().slice(0,10);
+  var today=todayISO();
   var ref=o.ref||''; var valid=o.validUntil||''; var cur=o.currency||'SAR';
   var vnum=Number(String(o.value||o.total||'').replace(/[^\d.]/g,'')); var val=vnum?vnum.toLocaleString('en-US'):'';
   var COL={grad1:'#E54525',grad2:'#F26721',orange:'#F06820',svcHead:'#F87020',gold:'#FBAE16',ink:'#303848',muted:'#6B7480',hair:'#E6E8EC',wash:'#F6F7F9',washO:'#FFF3EC'};

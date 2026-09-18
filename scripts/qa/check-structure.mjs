@@ -217,6 +217,45 @@ try {
   problems.push('locale-named check could not run: ' + e.message);
 }
 
+/* ---- "today" must be the user's today, not UTC (added 2026-09-18, fire #95) ----
+   `new Date().toISOString().slice(0,10)` is the date in UTC. The team works in Riyadh, UTC+3, so
+   from midnight to 3am local it is yesterday's date — and it was being used for every "due today /
+   overdue" comparison, every pre-filled date box and every "recorded on" stamp, 70 places in all,
+   while the Today header printed the real local date beside them. Driven live at 01:13 Riyadh: the
+   app called today "2026-09-18" under a header reading "19 Sept 2026".
+   core-01's todayISO() reads the browser's own calendar instead. Like the Escape rule and the
+   named-locale rule above, this class has exactly one right answer, so the gate has no correct code
+   to flag falsely: converting a STORED instant still uses toISOString and is untouched here,
+   because only the no-argument `new Date()` form means "now".
+   js/65 is exempt BY STANDING RULE, not because it is right: it is the oversight lane, which this
+   session may read and test but never edit. Its three uses build a batch LABEL
+   ("dp-import-2026-09-18"), not a business date, so the exemption costs nothing — but it is an
+   exemption, and it is written down here rather than left to look like an oversight. */
+try {
+  const fs4 = fs;
+  const roots = [path.join(ROOT, 'js'), path.join(ROOT, 'js', 'core')];
+  const bad = [];
+  /* only the form that CUTS A DATE OUT of the timestamp. A whole `new Date().toISOString()` is an
+     instant, not a calendar date, and is correct as it stands — flagging it would be a false
+     positive on 39 lines that are perfectly fine, which is exactly what disqualified the M1 rule
+     measured in fire #93. */
+  const RX = /new Date\(\)\.toISOString\(\)\s*\.\s*(?:slice|substr(?:ing)?)\(\s*0\s*,\s*10\s*\)|new Date\(\)\.toISOString\(\)\s*\.\s*split\(\s*['"`]T['"`]\s*\)\s*\[\s*0\s*\]/;
+  for (const dir of roots) {
+    let names = []; try { names = fs4.readdirSync(dir).filter((f) => f.endsWith('.js')); } catch (_) { continue; }
+    for (const f of names) {
+      if (/^js\/6[25]-/.test(path.relative(ROOT, path.join(dir, f)))) continue;   /* the oversight lane */
+      const src = fs4.readFileSync(path.join(dir, f), 'utf8');
+      src.split('\n').forEach((line, i) => {
+        if (/^\s*(\/\*|\*|\/\/)/.test(line)) return;
+        if (RX.test(line)) bad.push(path.relative(ROOT, path.join(dir, f)) + ':' + (i + 1));
+      });
+    }
+  }
+  if (bad.length) problems.push('these lines take today\'s date from UTC instead of the user\'s own calendar (use todayISO()) — in Riyadh that is yesterday from midnight to 3am, on comparisons, pre-filled date boxes and stamps alike: ' + bad.join(', '));
+} catch (e) {
+  problems.push('today-from-UTC check could not run: ' + e.message);
+}
+
 if (problems.length) {
   console.log('STRUCTURE CHECK FAILED — fix these before deploying:\n');
   problems.forEach(p => console.log('  ✗ ' + p));

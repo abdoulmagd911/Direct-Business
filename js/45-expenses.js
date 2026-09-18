@@ -168,7 +168,7 @@
              ].map(function(x){x=csvGuard(x);return /[",\n]/.test(x)||x.charCodeAt(0)===39?'"'+x.replace(/"/g,'""')+'"':x;}).join(',');
     })).join('\n');
     var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
-    a.download='direct-expenses-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+    a.download='direct-expenses-'+todayISO()+'.csv';a.click();
   }catch(e){console.warn('[exp] csv',e);}};
 
   window.expSave=function(){try{
@@ -262,7 +262,7 @@
     if(canAdd()){
       h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 10px;font-size:14px">'+fl('Add a service cost','إضافة تكلفة خدمة')+'</h3>'+
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">'+
-        '<div><label style="font-size:11px;color:var(--muted)">'+fl('Date','التاريخ')+'</label><input type="date" id="xp_date" class="inp sm" value="'+new Date().toISOString().slice(0,10)+'" style="width:100%"></div>'+
+        '<div><label style="font-size:11px;color:var(--muted)">'+fl('Date','التاريخ')+'</label><input type="date" id="xp_date" class="inp sm" value="'+todayISO()+'" style="width:100%"></div>'+
         '<div style="grid-column:span 2"><label style="font-size:11px;color:var(--muted)">'+fl('What was bought?','ما الذي تم شراؤه؟')+'</label><input id="xp_desc" class="inp sm" style="width:100%" placeholder="'+fl('e.g. Makkah hotel — 40 rooms, 3 nights','مثال: فندق مكة — 40 غرفة، 3 ليالٍ')+'"></div>'+
         '<div><label style="font-size:11px;color:var(--muted)">'+fl('Service','الخدمة')+'</label><select id="xp_svc" class="inp sm" style="width:100%"><option value="">'+fl('— choose —','— اختر —')+'</option>'+services().map(function(s){return '<option value="'+esc(s)+'">'+esc(svcLbl(s))+'</option>';}).join('')+'</select></div>'+
         '<div><label style="font-size:11px;color:var(--muted)">'+fl('Transaction / invoice','المعاملة / الفاتورة')+'</label><input id="xp_txn" class="inp sm" style="width:100%" list="xp_txns" placeholder="'+fl('optional','اختياري')+'"><datalist id="xp_txns">'+txns.map(function(t){return '<option value="'+esc(t)+'">';}).join('')+'</datalist></div>'+

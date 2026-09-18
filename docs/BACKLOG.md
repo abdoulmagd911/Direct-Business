@@ -1,3 +1,62 @@
+## Routine fire #95 (2026-09-18 ~23:00 UTC) — the app asked UTC what day it is, on a team in Riyadh
+Fire #94 found the browser's **language** deciding what the app printed. The same question asked of
+the browser's **clock** found something worse, because this one writes.
+
+Every "due today / overdue" comparison, every date box that opens pre-filled, and every "recorded on"
+stamp went through `new Date().toISOString().slice(0,10)` — **the date in UTC**. Riyadh is UTC+3, so
+from midnight to 3am local the app is a day behind the people using it. The Today header, meanwhile,
+prints `toLocaleDateString` — the real local date — so the same page contradicted itself.
+
+**Driven live at 01:13 Riyadh on Saturday 19 September** (no clock mocking: the gap was simply open,
+and the run only told the browser which city it was in): the app called today **"2026-09-18"** under
+a header reading **"19 Sept 2026"**.
+
+**The reading half was mild today** — 0 leads have a next action on either date, and the overdue count
+is 1 against both — and that is said plainly rather than dressed up. **The writing half is not mild.**
+The expense form, the payment-proof form and the B2C booking form all open with the Date box already
+filled in, and at 1am they filled it with **yesterday**. Somebody recording a real expense after
+midnight saves a wrong date and is given nothing to notice. The expense tables are in real use.
+
+Nobody had seen it because the sandbox — and every QA round before this one — ran in UTC.
+
+**Fixed.** core-01 gained one helper, `todayISO()`, which reads the browser's own calendar, and all
+**70** "today" sites across 18 files now go through it. Verified on screen afterwards: in a Riyadh
+browser the expense form's Date box pre-fills **2026-09-19**.
+
+**Not changed, on purpose:** anything converting a **stored** instant keeps `toISOString()` — that is a
+real moment in time and shifting it would move existing data. A whole `new Date().toISOString()` with
+no date cut out of it is likewise correct and is left alone (39 such lines); only the no-argument form
+that slices a calendar date out was touched.
+
+**js/65's three remaining UTC dates are exempt by standing rule, not because they are right** — it is
+the oversight lane, which this session reads and tests but never edits. All three build a batch *label*
+(`dp-import-2026-09-18`), not a business date, so the exemption costs nothing; it is written into the
+gate rather than left looking like an oversight.
+
+**Open for the owner — a policy question this session should not decide alone:** the fix uses the
+*browser's* local date. For a Saudi company whose books, VAT periods and quarters are Saudi dates, the
+alternative is to pin every business date to Asia/Riyadh regardless of where the laptop is, which
+would also protect against a laptop whose timezone is simply set wrong. Browser-local is strictly
+better than UTC and matches what the Today header already showed, so it ships; pinning to Riyadh is a
+behaviour change for anyone outside KSA and is his call.
+
+**Gate added** to `check-structure` — the third of these, after Escape (#92) and named locales (#94):
+no `js/` file may cut today's date out of a UTC timestamp. Tightened after a first version flagged 39
+correct lines: a whole ISO timestamp is an instant, not a calendar date. Sabotage-checked by putting
+one back.
+
+**Probe:** `probe-today-is-the-users-today` (port 9072, 12 checks). It mocks no clock and does not
+depend on the hour: it loads the app under Asia/Riyadh plus the two extremes (UTC+14, UTC−11), between
+which at least one always disagrees with UTC, and asserts that one did — so a run where the gap
+happened to be shut cannot read as a pass. **Its first version was thrown away**: it waited for the new
+helper to exist, so reverting the fix made it time out rather than measure anything, and reverting only
+the call sites would have left it passing. It now reads what a person sees — a real pre-filled Date box
+and a follow-up dated the person's own today, which under UTC is still tomorrow and never appears on
+the Your-day card — each gated on the thing existing. Sabotage-verified: **6 FAIL**.
+
+Full battery at −j 8, twice the machine's cores, as a deliberate stress of the fixed-sleep probes
+recorded last round: green.
+
 ## Routine fire #94 (2026-09-18 ~20:30 UTC) — the employee's own browser was deciding the digits
 Fire #92's Escape rule and fire #93's M1 hunt both asked the same question: is there a class of defect
 with exactly one right answer, so a gate can catch the next one? This round found another.

@@ -1101,7 +1101,7 @@
       '<div class="field"><label>Client</label><select id="sfg_client">'+clientOpts+'</select></div>'+
       '<div class="field"><label>Fee card</label><select id="sfg_scheme">'+schemeOpts+'</select></div>'+
       '<div class="field"><label>Validity (days)</label><input id="sfg_validity" type="number" value="30"></div>'+
-      '<div class="field"><label>Effective from</label><input id="sfg_eff" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div>'+
+      '<div class="field"><label>Effective from</label><input id="sfg_eff" type="date" value="'+todayISO()+'"></div>'+
       '<div class="field"><label>Notes / scope</label><textarea id="sfg_notes" rows="3" placeholder="Optional context — e.g. excludes peak season"></textarea></div>'+
       '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'+
       '<button class="btn pri sm" onclick="v25DoServiceFee(\'pdf\')">📄 PDF</button>'+
@@ -1115,7 +1115,7 @@
     var clientId=document.getElementById('sfg_client').value;
     var schemeId=document.getElementById('sfg_scheme').value;
     var validity=+document.getElementById('sfg_validity').value||30;
-    var eff=document.getElementById('sfg_eff').value||new Date().toISOString().slice(0,10);
+    var eff=document.getElementById('sfg_eff').value||todayISO();
     var notes=document.getElementById('sfg_notes').value||'';
     var client=((DB.businesses||[]).find(function(b){return b.id===clientId;}))||{name:'Prospective client'};
     var scheme=(DB.serviceFeePricing||[]).find(function(s){return s.id===schemeId;});

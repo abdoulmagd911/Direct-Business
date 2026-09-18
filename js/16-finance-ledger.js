@@ -603,7 +603,7 @@ window.finLedgerCSV=function(){
   try{ if(isArF()&&window.__v73&&window.__v73.label) _hdr=_hdr.map(function(c){return window.__v73.label(c);}); }catch(_){}
   var csv='\ufeff'+_hdr.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=csvGuard(r[c]);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');
   var b=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-finance-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-finance-'+todayISO()+'.csv';a.click();
 };
 try{window.finInPeriod=finInPeriod;window.finPeriodLabel=finPeriodLabel;}catch(_){}
 
@@ -1375,7 +1375,7 @@ window.finTxnCSV=function(){
   var cols=['company','profile_type','direct_client_id','transaction_ref','invoice_no','zatca_dpin','service_type','stage','amount_sar','cost_confirmed_sar','cost_estimate_sar','amount_received_sar','amount_remaining_sar','overdue','created_at_source'];
   var csv='\ufeff'+cols.join(',')+'\n'+L.map(function(r){return cols.map(function(c){var v=csvGuard(r[c]);return '"'+v.replace(/"/g,'""')+'"';}).join(',');}).join('\n');   // escaped BOM, not a literal invisible byte (2026-09-02)
   var b=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-ledger-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-ledger-'+todayISO()+'.csv';a.click();
 };
 window.finTxnF=function(k,v){TXN.f[k]=v; if(k==='business'){FIN.f.clientKey=null;FIN.f.clientName='';} render();};
 window.txnToggleCo=function(bizId){TXN.collapsed[bizId]=!TXN.collapsed[bizId];render();};
@@ -2078,7 +2078,7 @@ window.finCSV=function(){
   });
   out.push([isArF()?'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a':'TOTAL'].concat(R.mets.map(function(m){return csvNum(m,R.grand[m]);})));
   var csv='\ufeff'+out.map(function(r){return r.map(function(c){c=csvGuard(c);return (c.indexOf(',')>=0||c.indexOf('"')>=0||c.charCodeAt(0)===39)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',');}).join('\r\n');
-  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='Direct-Finance-Report-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='Direct-Finance-Report-'+todayISO()+'.csv';a.click();
 };
 
 function rImport(){
@@ -2177,7 +2177,7 @@ window.finParse=function(){
       if(org&&org!=='booking'&&org!=='project')probs.push('origin must be booking or project');
       if(org==='project'&&!String(o.proposal_ref||'').trim())probs.push('project rows need a proposal_ref');
       if(probs.length){flagged.push({line:line,no:o.invoice_no,probs:probs});return;}
-      ok.push({invoice_no:o.invoice_no,zatca_dpin:o.zatca_dpin||null,client_group:o.client_group,customer_raw_name:o.customer_raw_name||null,invoice_date:o.invoice_date,month:o.month,quarter:o.quarter,products:o.products||null,service_type:svcType(o.products),record_type:'b2b',total_incl_vat_sar:tot,wallet_portion_sar:wal,revenue_sar:rev,cost_sar:cost,profit_sar:prof,amount_received_sar:st==='verified_paid'?tot:0,amount_remaining_sar:0,integrity_status:st,notes:o.notes||null,origin:org||'booking',proposal_ref:String(o.proposal_ref||'').trim()||null,source_batch:'import '+new Date().toISOString().slice(0,10)});
+      ok.push({invoice_no:o.invoice_no,zatca_dpin:o.zatca_dpin||null,client_group:o.client_group,customer_raw_name:o.customer_raw_name||null,invoice_date:o.invoice_date,month:o.month,quarter:o.quarter,products:o.products||null,service_type:svcType(o.products),record_type:'b2b',total_incl_vat_sar:tot,wallet_portion_sar:wal,revenue_sar:rev,cost_sar:cost,profit_sar:prof,amount_received_sar:st==='verified_paid'?tot:0,amount_remaining_sar:0,integrity_status:st,notes:o.notes||null,origin:org||'booking',proposal_ref:String(o.proposal_ref||'').trim()||null,source_batch:'import '+todayISO()});
     });
     var trev=0,tcost=0,tprof=0;ok.forEach(function(r){trev+=r.revenue_sar;tcost+=r.cost_sar;tprof+=r.profit_sar;});
     var unkRef=ok.filter(function(r){return r.proposal_ref&&!((typeof DB!=='undefined'&&DB.offers)||[]).some(function(o){return o.ref===r.proposal_ref;});}).length;

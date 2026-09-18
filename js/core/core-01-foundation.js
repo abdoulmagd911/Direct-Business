@@ -450,6 +450,18 @@ function migrate(d){
   d.bookings.forEach(b=>{["tickets","hotels","visas","transfers","extras","files"].forEach(k=>{if(!b[k])b[k]=[];});if(b.totalCost===undefined)b.totalCost=0;if(b.totalSale===undefined)b.totalSale=0;if(b.status===undefined)b.status="Confirmed";});
   d.invoices.forEach(i=>{if(!i.items)i.items=[];if(!i.files)i.files=[];if(i.total===undefined)i.total=0;if(i.status===undefined)i.status="Draft";});
 }
+/* 2026-09-18 (fire #95): what day is it? The app asked UTC, and the team works in Riyadh.
+   Every "due today / overdue" comparison, every date box that opens pre-filled and every "recorded
+   on" stamp asked JavaScript for the ISO date, which is the date in UTC. Riyadh is
+   UTC+3, so from midnight to 3am local the app is a day behind the people using it — and the Today
+   header, which prints toLocaleDateString, shows the real local date, so the same page contradicted
+   itself. Driven live at 01:13 Riyadh on 19 September: the app called today "2026-09-18".
+   Nobody had seen it because the sandbox, and every QA round until this one, ran in UTC.
+   todayISO() reads the browser's own calendar — year, month, day as the person's clock shows them —
+   so "today" is the day it is where they are. Anything converting a STORED instant keeps using
+   toISOString: that is a real moment in time and must not be shifted. */
+function todayISO(d){const t=d?new Date(d):new Date();const p2=n=>String(n).padStart(2,'0');return t.getFullYear()+'-'+p2(t.getMonth()+1)+'-'+p2(t.getDate());}
+try{window.todayISO=todayISO;}catch(_){}
 function leadStatus(b){return b.status||(b.isClient||b.isVendor?"Won":"To contact");}
 /* 2026-09-18 (fire #94): this is the app's date printer, and in English it used to pass `undefined`
    as the language — which does not mean English, it means "whatever this laptop is set to". Driven

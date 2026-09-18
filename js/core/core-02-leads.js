@@ -253,7 +253,7 @@ function convertToClient(id){const b=getLead(id);if(!b)return;if(!b.accountManag
 // Red is reserved for a real problem (overdue review, or contact that HAS happened but has gone stale).
 // A client with no logged history yet is "New", not "At risk" — we don't manufacture alarms from empty data.
 function clientHealth(b){
-  var today=new Date().toISOString().slice(0,10);
+  var today=todayISO();
   var la=(b.activities||[]).slice().sort((x,y)=>(y.date||0)-(x.date||0))[0];
   var last=b.lastContact||(la&&la.date)||0;           // canonical last-touch, ms; 0 = never
   var daysAct=last?Math.floor((Date.now()-last)/864e5):null;
@@ -283,7 +283,7 @@ function renderClients(v){
   const sv=(b,k)=>k==="am"?String(b.accountManager||b.assignedTo||"").toLowerCase():k==="tier"?String(b.tier||"Standard"):k==="review"?(b.nextReview||"9999-99"):k==="health"?({"At risk":0,Watch:1,New:2,Good:3}[clientHealth(b).l]):String(b.name||"").toLowerCase();
   cl=cl.slice().sort((a,b)=>{const va=sv(a,clSort.k),vb=sv(b,clSort.k);return va<vb?-1*clSort.dir:va>vb?1*clSort.dir:0;});
   const won=DB.businesses.filter(b=>!b.isClient&&leadStatus(b)==="Won").length;
-  const today=new Date().toISOString().slice(0,10);
+  const today=todayISO();
   const team=teamList();
   const _arCl=(typeof LANG!=='undefined'&&LANG==='ar');
   v.innerHTML=`

@@ -538,6 +538,20 @@ now exists specifically because of each one:
   M1 does not have one statically visible shape, so the rule proposed for it was measured,
   found to flag correct code, and rejected (fire #93). Measure the rule against the current
   tree before adding it; a gate with a false positive on correct code is worse than no gate.
+- **The sandbox runs in UTC and in English. The team does not (2026-09-18, fires #94 and #95).**
+  Two rounds in a row found the environment, not the code, deciding what the app said and did:
+  the browser's language chose the digits on a client-facing quotation, and the browser's clock
+  chose what "today" meant — in Riyadh, UTC+3, that is yesterday from midnight to 3am, on
+  comparisons, on pre-filled date boxes and on "recorded on" stamps alike. Both had been invisible
+  for the whole project because every QA run used a UTC, English machine. **Vary the environment,
+  not just the input:** timezone, language, clock, screen size.
+- **A probe that asks the fix whether it is applied is not a probe (2026-09-18, fire #95).** The
+  first version of the timezone probe waited for the new helper to exist, so reverting the fix made
+  it time out instead of measuring anything — and reverting only the call sites, keeping the
+  helper, would have left it green. Assert on what a person would see (the value in the date box,
+  the row on the card), gated on that thing existing, so it fails for the right reason and catches
+  a half-revert. Same family as the two rig faults found the same day, where checks passed on
+  empty text.
 
 ---
 
