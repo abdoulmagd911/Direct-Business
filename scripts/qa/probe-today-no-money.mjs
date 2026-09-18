@@ -3,6 +3,15 @@
    one expiring proposal owned by the signed-in user, rebuilds the card, and asserts the card
    names the proposal and the client but prints no amount and no currency.
    Sabotage-tested: with the old line 248 (value + currency in the meta) this exits 1.
+
+   2026-09-18 (fire #94) — TWO FAULTS IN THIS PROBE, found by a full-battery re-run, not in the app.
+   It slept a fixed 5 seconds after signing in and then rendered. The card's own layer (js/14) refuses
+   to build until js/02 sets __bizTableLoaded, and with 77 script files the app no longer reaches that
+   inside five seconds, so the card was simply not there yet and three checks failed on a healthy app.
+   Worse, the two checks that matter — that no amount and no currency appear — read a card that did
+   not exist, so they PASSED on empty text. A ruling would have looked enforced while nothing at all
+   was being looked at. Fixed sleeps are now waits on the real conditions, and the money checks are
+   gated on the card actually having rendered, so they can never pass by absence again.
    Run: node scripts/qa/probe-today-no-money.mjs                                               */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
@@ -22,9 +31,11 @@ await p.route(u=>u.href.includes('cdn.jsdelivr.net'), r=>r.fulfill({status:200,c
 await p.route(u=>u.href.includes('fonts.googleapis.com'), r=>r.fulfill({status:200,contentType:'text/css',body:''}));
 await p.route(u=>u.href.includes('fonts.gstatic.com'), r=>r.abort());
 await p.goto(BASE+'/today',{waitUntil:'domcontentloaded',timeout:60000});
-await p.waitForTimeout(2000);
+await p.waitForSelector('#cl_email',{timeout:60000});
 await p.fill('#cl_email','test@directksa.com'); await p.fill('#cl_pw','Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
-await p.waitForTimeout(5000);
+/* wait for what the card actually needs, not for a guessed number of seconds */
+await p.waitForFunction(()=>typeof render==='function'&&window.__bizTableLoaded===true&&(DB.businesses||[]).length>0,{timeout:90000});
+await p.waitForTimeout(1500);
 
 const res=await p.evaluate(()=>{
   const me=(window.meName?meName():'')||'';
@@ -37,7 +48,7 @@ const res=await p.evaluate(()=>{
     const txt=card?card.innerText:'';
     res({me, hasCard:!!card, mentionsRef:/OFR-PROBE-1/.test(txt), mentionsClient:/Probe Client Co/.test(txt),
          showsAmount:/120[, ]?000/.test(txt), showsCurrency:/\bSAR\b|ر\.س|ريال/.test(txt), excerpt:txt.slice(0,400)});
-  },900));
+  },2500));
 });
 await b.close(); srv.close?.();
 
@@ -46,8 +57,9 @@ const checks=[
   ['Your-day card rendered', res.hasCard],
   ['card names the proposal', res.mentionsRef],
   ['card names the client', res.mentionsClient],
-  ['card prints NO amount', !res.showsAmount],
-  ['card prints NO currency', !res.showsCurrency],
+  /* gated on hasCard: an absent card is not a card that hides money */
+  ['card prints NO amount', res.hasCard && !res.showsAmount],
+  ['card prints NO currency', res.hasCard && !res.showsCurrency],
   ['no JS errors', errors.length===0],
 ];
 let fail=0; for(const [n,ok] of checks){ console.log((ok?'PASS':'FAIL')+' · '+n); if(!ok)fail++; }

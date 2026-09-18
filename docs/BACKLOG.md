@@ -44,6 +44,22 @@ Gregorian, and asserts the gate still exists. Its first check proves the Arabic 
 Arabic, so a run that proves nothing cannot read as a pass. Sabotage-verified: 7 FAIL with the fixes
 stashed. Three gates green.
 
+**And the full battery re-run found a fault in the QA rig itself, not the app.**
+`probe-today-no-money` — the one guarding the 2026-08-21 owner ruling that money belongs to Finance
+only — failed three checks at HEAD and at the commit before it. It was not the app: the probe slept a
+fixed 5 seconds after signing in, and with 77 script files the app no longer reaches
+`__bizTableLoaded` in five seconds, so js/14 had not built the card yet. **The worse half:** its two
+real checks — no amount, no currency — were reading a card that did not exist, so they **passed on
+empty text**. The ruling would have looked enforced while nothing was being looked at. Both fixed:
+the sleeps are now waits on the real conditions, and the money checks are gated on the card having
+rendered. Re-sabotaged by putting the value and currency back in js/14's row: 2 FAIL.
+
+**Open for a later round — 108 of the 224 probes sign in and never wait on a condition**, only on a
+fixed number of seconds. They all pass today. They are the same shape as the one that just broke, and
+they will break the same way as the app grows — quietly, and possibly by passing on absence rather
+than by failing. Worth converting to `waitForFunction` on what each one actually needs, and worth
+checking each one's assertions cannot pass when the thing under test is missing.
+
 ## Routine fire #93 (2026-09-18 ~18:30 UTC) — the importer computed revenue with the VAT taken out of it
 Fire #92's static-rule approach worked, so this round went looking for another class a rule could catch,
 starting with the highest one this project has: **M1 — cost, profit and revenue must always be clean; VAT
