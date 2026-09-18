@@ -46,8 +46,16 @@
       '</div>'+
       '<div id="v48list" style="font-size:13px;color:var(--muted,#6B7480)">'+(A?'جارٍ التحميل…':'Loading…')+'</div>';
     ov.appendChild(box); document.body.appendChild(ov);
-    ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
-    document.getElementById('v48x').onclick=function(){ov.remove();};
+    /* 2026-09-18 (fire #91): driven with the real Escape key against every box the app opens. The nine
+       built on #modal obey it — js/35's global handler, 2026-08-08, looks only at #modal — and so does
+       the events form, which wired its own. This overlay ignored it in both languages. Escape now does
+       exactly what its Close button and a click outside already did, and the listener is removed with
+       the overlay so it cannot outlive it or stack if the panel is reopened. */
+    var v48close=function(){ try{ document.removeEventListener('keydown',v48esc); }catch(_){} try{ ov.remove(); }catch(_){} };
+    var v48esc=function(e){ if(e.key==='Escape'){ v48close(); } };
+    document.addEventListener('keydown',v48esc);
+    ov.addEventListener('click',function(e){if(e.target===ov)v48close();});
+    document.getElementById('v48x').onclick=v48close;
     document.getElementById('v48create').onclick=addUser;
     load();
 
@@ -437,7 +445,12 @@
     });
 
     document.body.appendChild(ov);
-    function close(){ ov.remove(); try{ FIN.rows=null; if(typeof finLoad==='function')finLoad(function(){ if(typeof render==='function')render(); }); }catch(_){} }
+    /* 2026-09-18 (fire #91): the same Escape gap as the team overlay above. close() also reloads the
+       ledger, so Escape must go through it rather than just removing the element — otherwise leaving
+       by keyboard would skip the refresh that leaving by button does. */
+    function close(){ try{ document.removeEventListener('keydown',onEsc53); }catch(_){} ov.remove(); try{ FIN.rows=null; if(typeof finLoad==='function')finLoad(function(){ if(typeof render==='function')render(); }); }catch(_){} }
+    var onEsc53=function(e){ if(e.key==='Escape'){ close(); } };
+    document.addEventListener('keydown',onEsc53);
     xBtn.onclick=close; ov.addEventListener('click',function(e){ if(e.target===ov)close(); });
   };
 

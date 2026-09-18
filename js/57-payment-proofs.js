@@ -64,7 +64,16 @@
         '<button class="btn sm pri" id="pfConfirmYes">'+fl('Confirm','تأكيد')+'</button>'+
         '</div></div>';
       document.body.appendChild(d);
-      var close=function(){ try{d.remove();}catch(_){} };
+      /* 2026-09-18 (fire #91): driven with the real Escape key against every box the app opens. The
+         nine built on #modal all obey it (js/35's global handler, 2026-08-08, which only ever looks
+         at #modal), and so does the events form, which wired its own — but THIS box ignored it, in
+         both languages. It is the box behind every "are you sure" in the app, so Escape is the
+         reflex, and js/10's own comment already called the gap app-wide. Escape takes exactly the
+         same path as Cancel and as a click outside: it closes and onYes is never called. The
+         listener is removed with the box, so it cannot outlive it or stack across boxes. */
+      var onEsc=function(e){ if(e.key==='Escape'){ close(); } };
+      var close=function(){ try{ document.removeEventListener('keydown',onEsc); }catch(_){} try{d.remove();}catch(_){} };
+      document.addEventListener('keydown',onEsc);
       document.getElementById('pfConfirmNo').onclick=close;
       d.addEventListener('click',function(e){ if(e.target===d)close(); });
       document.getElementById('pfConfirmYes').onclick=function(){ close(); onYes(); };

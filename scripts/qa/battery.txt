@@ -227,3 +227,4 @@ probe-arabic-lead-form
 probe-arabic-dialogs-complete
 probe-messages-bilingual
 probe-today-chips-say-their-source
+probe-escape-closes-every-box

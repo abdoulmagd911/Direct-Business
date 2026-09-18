@@ -1,3 +1,47 @@
+## Routine fire #91 (2026-09-18 ~14:30 UTC) — could you get out of every box? Two of them ignored the Escape key
+Area chosen after checking BACKLOG first, per the rule fire #90 added: **keyboard escape from dialogs.**
+js/10 has carried a comment since 2026-09-10 saying "the missing-Escape gripe is app-wide; at least this
+dialog obeys", and nobody had driven it. Reading the code explains why it would be: js/35 added a global
+Escape handler on 2026-08-08, but it only ever looks at `#modal` and calls `closeModal()` — so every
+overlay any layer builds outside that one element is on its own.
+
+Driven with the **real Escape key** against every box a person can open, in both languages, read-only
+against the real database with every write blocked. Nothing was saved.
+
+CLEAN: the nine boxes built on the shared dialog (lead form, log activity, corporate profile, chain of
+command, client onboarding, new supplier, new SOP, the snapshot browser) all obey Escape AND a click
+outside — js/35's handler doing its job — and so does the events form, which wired its own in September.
+
+**DEFECT — two overlays ignored the key**, identically in English and Arabic:
+- **`#pfConfirmBox`** — the in-page confirm box, which is the box behind **every "are you sure" in the
+  app**. It exists because a native `confirm()` freezes the whole tab, so everything destructive routes
+  through it. Escape did nothing.
+- **`#v48ov`** — the Team & Access overlay. Its sibling `#v53ov` in the same file had the same gap and
+  was fixed with it.
+
+Both already closed on a click outside, so nobody was ever trapped — Escape is simply the reflex, and on
+a confirm box it is the universal one. Escape now takes exactly the path the Cancel button and the
+outside click already took, and each listener is removed with its own box so it cannot outlive it or
+stack when the box is reopened. `#v53ov`'s close also reloads the ledger, so Escape goes through `close()`
+rather than just removing the element — otherwise leaving by keyboard would skip the refresh that leaving
+by button does.
+
+**The check that matters most is not that Escape closes the confirm box — it is that Escape CANCELS it.**
+Since pfConfirm gates every destructive action, an Escape that confirmed instead of cancelling would be
+far worse than one that did nothing. The probe presses Escape on a live confirm box and asserts the
+yes-callback never ran, twice in a row.
+
+`probe-escape-closes-every-box` added (9 checks) and sabotage-verified — with both edits stashed, 3 go
+FAIL, exit 1. Three gates green; 21 dialog, confirm, delete and role probes re-run at HEAD: 21 of 21
+green, with the excluded list subtracted.
+
+Two self-errors, both the instrument, both caught by the result being implausible: the first pass read
+"is there a visible way out" from `document.body` **after** the box had already been dismissed, and duly
+reported that almost every dialog in the app has no ✕ and no Cancel — which `openModal` visibly renders;
+and the share-links panel was opened by a guessed function name (`v77Open`, which does not exist), so it
+never opened. **Honest gap: the share-links panel was not reached in either pass** and is the one box of
+the twelve still unmeasured for this.
+
 ## Routine fire #90 (2026-09-18 ~12:30 UTC) — a fully green battery, and a round that correctly found nothing
 **THE BATTERY, AT HEAD: 215 of 215 probes that can fail exited 0 — and not one went red even under
 load.** No probe needed re-running alone; the "did not reproduce" line never printed. That is the
