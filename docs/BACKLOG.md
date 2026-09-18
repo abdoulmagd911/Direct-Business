@@ -1,3 +1,49 @@
+## Routine fire #90 (2026-09-18 ~12:30 UTC) — a fully green battery, and a round that correctly found nothing
+**THE BATTERY, AT HEAD: 215 of 215 probes that can fail exited 0 — and not one went red even under
+load.** No probe needed re-running alone; the "did not reproduce" line never printed. That is the
+cleanest run of this session. 221 entries, 6 of them declared reports with no assertions.
+
+This run carries **no caveat**, unlike fire #85's: it started at `05bbe06` with a clean tree, so it
+includes every change of fires #85–#89 — js/10, js/56, js/21 (three rounds of it), six core files and the
+new js/84 — and all six probes added in those rounds. The only edit since it started is this document and
+the playbook.
+
+**The area picked for this round — Reports — turned out to be already covered, and that is the finding.**
+Driven live in both languages across all four tabs (Overview, Achievements, Objectives & KPIs, Generate
+Report), against the real ledger: 46 invoices, revenue 2,030,764.29, cost 1,538,141.70, profit 492,622.59,
+VAT 0.00 on every row. The page is clean: both languages show the same numbers and the same cards, nothing
+is written by opening it, the tab bar and every objective card read Arabic, and the generated report's
+"Actual (year to date)" column shows **—** rather than inventing a figure, which is the cost rule working
+exactly as written.
+
+Three things worth recording:
+1. **Rule 8 was checked and is not violated.** Reports shows objectives, KPI progress and achievements —
+   the appraisal project's vocabulary — which looked alarming. It is this app's own small feature:
+   `DB.achievements` in this app's own workspace blob, and **nothing anywhere in the repo references
+   `byhxnmafaumersoaiybq` or `directksa-performance`**. Checked without reading that project.
+2. **The KPI table being English is an OWNER DECISION, already recorded.** Fire #59 drove this same page
+   on 2026-09-16, fixed 37 Arabic strings, and deliberately left the 42 KPI names and their 126 focus
+   lines in English because they are the owner's own plan wording — BACKLOG line 1053, and a comment
+   directly above the code says so. I re-found it as a "defect" and was one step from overwriting a
+   recorded decision. **Two lessons went into the playbook:** grep BACKLOG for an area before calling it
+   untested, and read the comment above the function before changing it.
+3. **Two findings this round were my instrument, not the app**, and are named as such: KPI *targets*
+   (20,000,000 and 6,000,000 SAR, labelled «الهدف») read as money larger than the whole ledger, and a
+   digit-run regex that welded separate numbers into "71,238,285".
+
+Coverage is now genuinely broad — fires #45–#89 have driven every page, every role, both languages, the
+phone widths, print, deep links, share links, the write paths, the money doctrine and the dialogs. A round
+that finds nothing is a result; the playbook now says so rather than leaving the next session to invent
+work.
+
+**The two decisions still waiting on the owner, re-measured today rather than repeated from memory:**
+- **19 invoices carry no cost** (all of them a stored `0`, none null) and between them hold
+  **214,550.00 SAR** of profit that nobody has verified. Clearing those to null is reversible and changes
+  no screen — the screens already read 0 and null the same way.
+- **The promo registry contradicts itself:** 200 codes, of which **165 are marked active AND expired**,
+  and 29 active only. The card that would show them is switched off by the owner's own ruling, so nothing
+  is displayed wrongly today.
+
 ## Routine fire #89 (2026-09-18 ~10:30 UTC) — Today's money chips count an empty box
 **First, a correction to fire #88's own closing note.** It said the Team-access overlay was entirely
 English and needed a round. Driven for real: **the panel a person actually gets is fully Arabic.** Its 72

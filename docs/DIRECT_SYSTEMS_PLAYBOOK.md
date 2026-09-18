@@ -377,6 +377,19 @@ Practical rules that exist because breaking them has already caused real, confus
   `scratchpad`-style check that finds the next one: open the app at each address before
   signing in, log every read made with the anonymous key, sign in, and see which of those
   tables is never asked for again (fire #71's `live-deeplink-sweep.mjs`).
+- **Before choosing an "untested area", grep BACKLOG.md for it.** On 2026-09-18 (fire #90) a round
+  drove the whole Reports page, all four tabs, and reported the KPI table as an English-only defect —
+  which fire #59 had already driven on 2026-09-16, fixed 37 strings on, and deliberately left the 42 KPI
+  names in English because they are the owner's own plan wording, recorded as an owner decision. The
+  file itself said so in a comment right above the code. Two minutes of `grep -o "^## Routine fire" `
+  would have shown the area was covered; the comment above the function would have shown the decision.
+  Re-covering ground is cheap; "fixing" a recorded owner decision is not.
+
+- **A round that finds nothing is a result, not a failure.** The same round produced two findings that
+  were both the instrument: KPI TARGETS (20,000,000 / 6,000,000 SAR, labelled "الهدف") read as money
+  figures larger than the whole ledger, and a digit-run regex that concatenated separate numbers into
+  "71,238,285". Report the clean result and the false alarms; do not go looking for something to change.
+
 - **Before hand-picking probes to re-run, subtract `scripts/qa/battery-excluded.txt`.** Twice now
   (2026-09-18, fires #85 and #88) an ad-hoc re-run list swept up a probe that is excluded on purpose —
   `probe-freeze` and `probe-golive`, both credential-gated: they sign in as a real member of staff, and
