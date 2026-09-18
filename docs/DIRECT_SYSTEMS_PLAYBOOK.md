@@ -524,6 +524,20 @@ now exists specifically because of each one:
   letting them choose a new password — a race between two pieces of code that reading either
   one in isolation would not have revealed. It only surfaced because the recovery flow was
   driven start to finish in the test harness, not reviewed as a diff.
+- **The test machine's own settings are part of the test (2026-09-18, fire #94).** Every QA
+  round until then had driven the app in one browser, set to English, and called the English
+  side clean. Drive the same English app in a browser set to Arabic and a lead's dates come
+  out as the Hijri year in Arabic-Indic digits, and a client-facing quotation prints two
+  number systems at once. `toLocaleString()` and friends with no language named do not mean
+  English — they mean "whatever this laptop is set to", which is never the app's business.
+  When a language, a currency, a time zone or a date could come from the environment rather
+  than from the app, change the environment and run it again.
+- **A gate is worth adding when the class has exactly one right answer.** Escape always
+  closes a dialog (fire #92); a formatter always names its language (fire #94) — both became
+  rules in `check-structure` and both immediately found more instances than the hunt had.
+  M1 does not have one statically visible shape, so the rule proposed for it was measured,
+  found to flag correct code, and rejected (fire #93). Measure the rule against the current
+  tree before adding it; a gate with a false positive on correct code is worse than no gate.
 
 ---
 

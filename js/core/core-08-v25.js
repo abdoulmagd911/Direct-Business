@@ -711,7 +711,8 @@
   window.v25PoolCompute=v25PoolCompute;
 
   var v25PoolColor=function(util){return util<70?'#16B364':util<90?'#F79009':'#F0453A';};
-  var v25Money=function(n){try{return (typeof moneyShort==='function'?moneyShort(n):(Math.round(n).toLocaleString()+' SAR'));}catch(_){return n+' SAR';}};
+  /* 2026-09-18 (fire #94): named the language on the fallback — see fmtDate in core-01. */
+  var v25Money=function(n){try{return (typeof moneyShort==='function'?moneyShort(n):(Math.round(n).toLocaleString('en-US')+' SAR'));}catch(_){return n+' SAR';}};
 
 
   /* ===== Track D.1: Render the Pool widget HTML ===== */

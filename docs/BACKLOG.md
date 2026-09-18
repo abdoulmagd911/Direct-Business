@@ -1,3 +1,49 @@
+## Routine fire #94 (2026-09-18 ~20:30 UTC) — the employee's own browser was deciding the digits
+Fire #92's Escape rule and fire #93's M1 hunt both asked the same question: is there a class of defect
+with exactly one right answer, so a gate can catch the next one? This round found another.
+
+`toLocaleString()`, `toLocaleDateString(undefined, …)` and `toLocaleTimeString([], …)` **do not mean
+English.** They mean "whatever language this laptop is set to". The app has its own language switch
+(the EN/AR button), and the two had nothing to do with each other.
+
+**Driven against the real database, app in ENGLISH, browser set to Arabic:**
+
+* a lead's detail page printed its dates as **«٣٠ … ١٤٤٨»** — the **Hijri** year, in Arabic-Indic
+  digits, on an English screen, beside Gregorian dates printed by other layers;
+* `fmtDate` returned «٢٥ رمضان ١٤٤٧ هـ» and `fmtTime` «٠٩:٠٥ ص»;
+* the **client-facing quotation** printed its option totals and its per-passenger figure as
+  «١٬٢٣٤٬٥٦٧٫٥» while the headline Total on the same document stayed Western, because that one is
+  printed straight from what was typed. **One price document, two number systems**, decided by whose
+  machine opened it — and the same split reached the WhatsApp text an agent copies out to a client.
+
+Everything else on screen was already clean, because money elsewhere goes through `moneyShort` or an
+`'en-US'` formatter. Ten bare calls in the proposal layer and two printers in the foundation layer were
+the whole leak.
+
+**Fixed.** `core-04` got one `omoney()` helper and every price now goes through it; `core-01`'s `fmtDate`
+and `fmtTime` name `'en-GB'` in English — what the Today header, Team & Access, Archive and the share
+panel had already settled on, the last three after the same Hijri surprise on 2026-09-17 — and both
+branches plus the fallbacks now state `calendar:'gregory'`, so no browser setting can put a Hijri year on
+a screen again. English dates now read "14 Mar 2026", day first, the same order Arabic already used. Four
+smaller fallbacks named their language too (js/07, js/14, core-06, core-08).
+
+**Not changed, and why:** `core-08`'s two `toLocaleDateString('en')` calls sit inside English-only
+sentences ("Generated …", "Last learned …"), so naming English there is correct, not a leak. The
+quotation's **VAT column stays** — VAT is legally expected on a client-facing document; M1 forbids it
+entering cost, profit or revenue, which is a different thing.
+
+**Gate added** to `check-structure`: no file under `js/` may call `toLocaleString` /
+`toLocaleDateString` / `toLocaleTimeString` without naming a locale. Unlike the M1 rule measured and
+rejected last round, this one has no false positive to worry about — correct code always names a
+language. Sabotage-checked by putting one bare call back: the gate fails and names the line.
+
+**Probe:** `probe-dates-and-money-name-their-language` (port 9071, 12 checks) loads the app twice in
+English — once in a browser set to `en-US`, once set to `ar-SA` — and requires the two to agree on the
+lead page, the quotation and the copy-out text, checks the Arabic app is still Arabic and still
+Gregorian, and asserts the gate still exists. Its first check proves the Arabic browser really was
+Arabic, so a run that proves nothing cannot read as a pass. Sabotage-verified: 7 FAIL with the fixes
+stashed. Three gates green.
+
 ## Routine fire #93 (2026-09-18 ~18:30 UTC) — the importer computed revenue with the VAT taken out of it
 Fire #92's static-rule approach worked, so this round went looking for another class a rule could catch,
 starting with the highest one this project has: **M1 — cost, profit and revenue must always be clean; VAT

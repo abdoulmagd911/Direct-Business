@@ -10,7 +10,9 @@
 /* ---------- part 1 — clients aggregate dashboard (was js/07) ---------- */
 /* Clients aggregate dashboard on the main Clients page (mirrors the Leads dashboard) */
 (function(){try{
-  function money(n){try{return (typeof moneyShort==='function')?moneyShort(n):(n||0).toLocaleString();}catch(_){return n;}}
+  /* 2026-09-18 (fire #94): the fallback said toLocaleString() with no language, which means the
+     employee's laptop picks the digits. Named, like every other money figure in the app. */
+  function money(n){try{return (typeof moneyShort==='function')?moneyShort(n):(n||0).toLocaleString('en-US');}catch(_){return n;}}
   function clientsDash(){try{
     if(typeof current==='undefined'||current!=='clients')return;
     if(typeof openLead!=='undefined'&&openLead)return;

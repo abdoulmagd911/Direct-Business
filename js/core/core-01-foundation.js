@@ -451,9 +451,24 @@ function migrate(d){
   d.invoices.forEach(i=>{if(!i.items)i.items=[];if(!i.files)i.files=[];if(i.total===undefined)i.total=0;if(i.status===undefined)i.status="Draft";});
 }
 function leadStatus(b){return b.status||(b.isClient||b.isVendor?"Won":"To contact");}
-function fmtDate(ms){if(!ms)return"—";const _ar=(typeof LANG!=='undefined'&&LANG==='ar');try{return new Date(ms).toLocaleDateString(_ar?'ar':undefined,_ar?{day:"numeric",month:"short",year:"numeric",calendar:"gregory"}:{day:"numeric",month:"short",year:"numeric"});}catch(_){return new Date(ms).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});}}
+/* 2026-09-18 (fire #94): this is the app's date printer, and in English it used to pass `undefined`
+   as the language — which does not mean English, it means "whatever this laptop is set to". Driven
+   for real against the live database: with the app in ENGLISH in a browser set to Arabic, a lead's
+   detail page printed its dates as "٣٠ … ١٤٤٨" — the HIJRI year, in Arabic-Indic digits, on an
+   English screen, next to Gregorian dates printed by other layers. The Arabic branch was already
+   safe because it named 'ar' and forced the Gregorian calendar; English named nothing.
+   'en-GB' is what the rest of the app already settled on for English dates — the Today header
+   (core-06), the Team & Access page (js/31), Archive (js/76) and the share panel (js/77) all say it,
+   the last three after the same kind of Hijri surprise on 2026-09-17. It also puts the day first,
+   the way the Arabic branch does, so the two languages finally read in the same order.
+   calendar:'gregory' is now stated on BOTH branches and on the fallback, so no browser setting can
+   put a Hijri year on a screen again. */
+function fmtDate(ms){if(!ms)return"—";const _ar=(typeof LANG!=='undefined'&&LANG==='ar');try{return new Date(ms).toLocaleDateString(_ar?'ar':'en-GB',{day:"numeric",month:"short",year:"numeric",calendar:"gregory"});}catch(_){return new Date(ms).toLocaleDateString('en-GB',{day:"numeric",month:"short",year:"numeric",calendar:"gregory"});}}
 function fmtAgo(ms){if(!ms)return"";const _ar=(typeof LANG!=='undefined'&&LANG==='ar');const h=(Date.now()-ms)/3600e3;if(h<1){const m=Math.max(1,Math.round(h*60));return _ar?('قبل '+m+' د'):(m+"m ago");}if(h<24){const hh=Math.round(h);return _ar?('قبل '+hh+' س'):(hh+"h ago");}const d=Math.round(h/24);return _ar?('قبل '+d+' ي'):(d+"d ago");}
-function fmtTime(ms){return new Date(ms).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
+/* 2026-09-18 (fire #94): same leak as fmtDate above — `[]` means "whatever this laptop is set to",
+   so an Arabic-set browser printed "٠٩:٠٥ ص" inside the English app. Named locales now, matching
+   js/76 and js/77. */
+function fmtTime(ms){const _ar=(typeof LANG!=='undefined'&&LANG==='ar');try{return new Date(ms).toLocaleTimeString(_ar?'ar':'en-GB',{hour:"2-digit",minute:"2-digit"});}catch(_){return new Date(ms).toLocaleTimeString('en-GB',{hour:"2-digit",minute:"2-digit"});}}
 function pdLink(b){const cs=b.contacts||[];let ph="";for(const c of cs){if(c.phone){ph=String(c.phone).replace(/[^0-9+]/g,"");break;}}if(ph){if(ph.indexOf("00")===0)ph="+"+ph.slice(2);else if(ph.indexOf("05")===0)ph="+966"+ph.slice(1);else if(ph.indexOf("966")===0)ph="+"+ph;else if(ph.indexOf("5")===0&&ph.length===9)ph="+966"+ph;return "https://payments.directksa.com/en/admin/invoices?customer_identifier="+encodeURIComponent(ph);}const em=(cs.find(c=>c.email)||{}).email;return "https://payments.directksa.com/en/admin/invoices?customer_identifier="+encodeURIComponent(em||b.name);}
 
 /* ================= STORE ================= */

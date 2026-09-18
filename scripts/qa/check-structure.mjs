@@ -186,6 +186,37 @@ try {
   problems.push('overlay-escape check could not run: ' + e.message);
 }
 
+/* ---- every date, time and number must name its language (added 2026-09-18, fire #94) ----
+   toLocaleString(), toLocaleDateString(undefined, …) and toLocaleTimeString([], …) do not mean
+   English. They mean "whatever language this laptop is set to". Driven for real against the live
+   database: with the app in ENGLISH in a browser set to Arabic, a lead's detail page printed its
+   dates as the HIJRI year in Arabic-Indic digits, and the client-facing quotation printed its option
+   totals as "١٬٢٣٤٬٥٦٧٫٥" beside a headline total in Western digits — one price document, two number
+   systems, chosen by whose machine opened it.
+   The app has its own language switch; the browser's is nobody's business. So every one of these
+   three calls must name a locale. Like the Escape rule above, this has one right answer, which is
+   why it can be a gate at all: correct code always names a language, so there is nothing for it to
+   flag falsely. Files under js/ only — scripts/ and docs are not shipped to a browser. */
+try {
+  const fs3 = fs;
+  const roots = [path.join(ROOT, 'js'), path.join(ROOT, 'js', 'core')];
+  const bad = [];
+  const RX = /\.toLocale(?:String|DateString|TimeString)\(\s*(?:\)|undefined\b|\[\s*\])/;
+  for (const dir of roots) {
+    let names = []; try { names = fs3.readdirSync(dir).filter((f) => f.endsWith('.js')); } catch (_) { continue; }
+    for (const f of names) {
+      const src = fs3.readFileSync(path.join(dir, f), 'utf8');
+      src.split('\n').forEach((line, i) => {
+        if (/^\s*(\/\*|\*|\/\/)/.test(line)) return;   /* a comment explaining the rule is not a breach of it */
+        if (RX.test(line)) bad.push(path.relative(ROOT, path.join(dir, f)) + ':' + (i + 1));
+      });
+    }
+  }
+  if (bad.length) problems.push('these lines format a date, time or number without naming a language, so the employee\'s own browser decides the digits — an Arabic-set laptop prints Hijri dates and Arabic-Indic numerals inside the English app: ' + bad.join(', '));
+} catch (e) {
+  problems.push('locale-named check could not run: ' + e.message);
+}
+
 if (problems.length) {
   console.log('STRUCTURE CHECK FAILED — fix these before deploying:\n');
   problems.forEach(p => console.log('  ✗ ' + p));

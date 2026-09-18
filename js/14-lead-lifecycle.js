@@ -157,7 +157,7 @@ function inject(){
     var list=(b.comments||[]).slice().sort(function(x,y){return y.ts-x.ts;});
     cm.innerHTML='<h3>'+(ar?'التعليقات':'Comments')+'</h3><div class="ch-sub">'+(ar?'نقاش الفريق حول هذه الفرصة — منفصل عن سجل العمل الرسمي.':'Team discussion on this lead — separate from the formal work log.')+'</div>'+
       (list.length?list.map(function(c){
-        return '<div style="border-top:1px solid #eef0f5;padding:8px 0"><div style="font-size:11px;color:var(--muted)">'+esc4(c.by||'')+' · '+(typeof fmtDate==='function'?fmtDate(c.ts):new Date(c.ts).toLocaleString())+'</div><div style="font-size:13px;white-space:pre-wrap">'+esc4(c.text)+'</div></div>';
+        return '<div style="border-top:1px solid #eef0f5;padding:8px 0"><div style="font-size:11px;color:var(--muted)">'+esc4(c.by||'')+' · '+(typeof fmtDate==='function'?fmtDate(c.ts):new Date(c.ts).toLocaleString('en-GB'))+'</div><div style="font-size:13px;white-space:pre-wrap">'+esc4(c.text)+'</div></div>';
       }).join(''):'<div class="empty">'+(ar?'لا توجد تعليقات بعد.':'No comments yet.')+'</div>')+
       (ce?'<div style="display:flex;gap:6px;margin-top:10px"><input id="v40cmt" placeholder="'+(ar?'اكتب تعليقاً…':'Write a comment…')+'" style="flex:1;padding:8px 10px;border:1px solid var(--line-2,#e3dccf);border-radius:9px;font:inherit;font-size:13px"><button class="btn pri sm" onclick="v40AddComment(\''+b.id+'\')">'+(ar?'إضافة':'Add')+'</button></div>':'');
     wrap.appendChild(cm);
