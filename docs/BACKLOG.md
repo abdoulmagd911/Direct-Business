@@ -1,3 +1,50 @@
+## Routine fire #88 (2026-09-18 ~09:00 UTC) — the coverage gap, corrected; and every error message spoke only English
+Fire #87 ended by naming eight dialogs that "did not open". Running that gap down showed **four of the
+eight were my own list being wrong, not the app** — worth writing down, because a wrong list reads exactly
+like missing coverage:
+- `findDuplicate(kind, fields)` is a LOOKUP that returns a record. It is not a dialog at all.
+- `editCorporate` wants a LEAD id, `genStatementOfAccount` a client, `v40Hold`/`v40Touch` a lead. All four
+  had been called with an empty string.
+- "New invoice" and "New booking" are `newInvoice` / `newBooking`, not `editInvoice('')` — and those, with
+  `recordPayment` and a dozen more, sit in core-08's v25 HIDE list. They are hidden **on purpose**,
+  because Direct Payments is the system of record for money. Not a gap; the doctrine working.
+
+**Fixed: the Corporate profile.** The last reachable dialog still in English — 8 labels, 4 prose hints and
+its title, identical whether opened from a client's card or a lead's. Both entry points now read Arabic.
+The **Statement of account** needed one more title prefix, visible only once it opens, which it never does
+against live data (0 invoices — it says "no invoices for this client" and returns before building itself).
+
+**And that sentence is what opened the second half of this round.** It is what a person actually gets when
+they ask for a statement, and it was English, in an Arabic session. Counting the class found **seventeen
+English-only messages** across core-01, core-04, core-06, core-08, core-10 and js/02 — a blocked pop-up, an
+unlinked proposal, a file that would not import, no invoices selected, a missing email address, "pick a
+project", "generator unavailable". These are the last thing somebody reads when something does not work,
+and every one of them spoke only English. All seventeen are now bilingual, in the app's own established
+inline form. **This is about the words, not the box:** a native `alert()` is this app's house style for a
+message and is used about 150 times; what was banished, and stays banished, is native `confirm()`, which
+freezes the tab. Nothing here changes which box is used, and probe-no-native-dialogs still passes.
+
+Two probes: `probe-arabic-dialogs-complete` extended to 24 dialogs (14 checks, sabotage 5 FAIL), and
+`probe-messages-bilingual` added (5 checks, sabotage 3 FAIL). That second one **reads the source rather
+than driving, and says so in its own header rather than implying otherwise**: each of these messages sits
+behind a state that cannot be manufactured honestly — a browser that really blocks a pop-up, a file that
+really fails to parse — and three separate drives against the seeded data produced not one of them. The
+defect itself IS the source, so the source is what is checked, across all eleven core and login files,
+which catches every message including the ones no drive could reach.
+
+Three gates green. 24 other Arabic, dialog and attack probes re-run at HEAD: 24 of 24 green.
+
+**Repeat self-error, now written into the playbook:** `probe-golive` exited 1 in that sweep and looked like
+a regression. It is credential-gated and listed in `battery-excluded.txt` — it signs in as a real member of
+staff and the rig refuses without the password. This is the **second** time an ad-hoc re-run list has swept
+up an excluded probe (fire #85 did it with `probe-freeze`), so the playbook now says to subtract
+`battery-excluded.txt` before hand-picking probes, and to look there first when one fails.
+
+Named for a later round, not done here: js/02's own Team-access overlay (`#teamModal` — "Team access",
+"Add a teammate", "Full name", "Close") is built as inline HTML outside `#view`, `.top` and `#modal`, so
+js/21's passes cannot reach it at all — the same shape as the skip-links note already in that file. It
+needs its own bilingual pass in js/02, which has an `L()` helper already.
+
 ## Routine fire #87 (2026-09-18 ~07:00 UTC) — the half-translated form was a class, not one form
 Fire #86 fixed the lead-edit form. Every dialog in the app goes through the same translator, so the same
 three failures were waiting everywhere: it matches whole strings, it skips any label that wraps an input,

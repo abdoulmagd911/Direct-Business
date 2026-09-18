@@ -83,6 +83,12 @@
     'Endorsements / restrictions':'التظهيرات / القيود','Lead ticket':'التذكرة الرئيسية',
     'Fare':'الأجرة','Taxes':'الضرائب','Total cost':'إجمالي التكلفة',
     'Amount (SAR)':'المبلغ (ريال)','Method':'طريقة الدفع','Bank/PSP reference':'مرجع البنك / مزوّد الدفع',
+    /* Corporate profile (2026-09-18, fire #88) — the last reachable dialog still in English. It is
+       opened from a client's card AND from a lead's, and it was the same 12 strings either way. */
+    'CR / VAT number':'رقم السجل التجاري / الرقم الضريبي',
+    'Contract start':'بداية العقد','Contract end':'نهاية العقد','Contract scope':'نطاق العقد',
+    'Agreed SLA':'مستوى الخدمة المتفق عليه','Travel policy & preferences':'سياسة السفر والتفضيلات',
+    'Pricing scheme (per service)':'نظام الأسعار (لكل خدمة)','+ Add service pricing':'+ إضافة سعر خدمة',
     // ---- .tag row badges (priority / tier — see .tag comment above; Import, Unassigned,
     // Standard, Key account, Client already exist above/below for other contexts and are
     // reused here on purpose, same word, same meaning) ----
@@ -417,7 +423,12 @@
        VAT-number shape are not words, and "BSP-SA-2026-W22" is a real reference format. */
     'e.g. BSP-SA-2026-W22':'مثال: BSP-SA-2026-W22',
     '250 SAR + 50%':'250 ريال + 50%','150 SAR + fare diff':'150 ريال + فرق الأجرة',
-    'Direct Payments / bank txn ID':'Direct Payments / معرّف عملية البنك'
+    'Direct Payments / bank txn ID':'Direct Payments / معرّف عملية البنك',
+    /* the corporate profile's own prose hints (fire #88) */
+    'Air, hotel, transfer, visa':'طيران، فندق، نقل، تأشيرة',
+    'Pre-paid / Post-paid 30d':'دفع مسبق / آجل 30 يومًا',
+    'Quote ≤4h · 24/7':'عرض سعر خلال 4 ساعات · على مدار الساعة',
+    'Cabin rules, preferred carriers/hotels, approval workflow, who may book…':'قواعد الدرجة، الناقلون والفنادق المفضّلة، مسار الموافقات، من يحق له الحجز…'
   };
   var CHANNEL_AR={ 'Email':'البريد','Phone':'الهاتف','Portal':'البوابة','In person':'حضور شخصي','Tender portal':'بوابة المناقصات' };
   /* 2026-09-18 (fire #87): fire #86 fixed one form; opening all 23 dialogs in Arabic showed the same
@@ -440,7 +451,10 @@
   var TITLE_PREFIX_AR={
     'Log activity':'تسجيل نشاط','Chain of command':'تسلسل المسؤولية',
     '🏛 Client onboarding':'🏛 تسجيل عميل جديد','Client onboarding':'تسجيل عميل جديد',
-    'Record payment':'تسجيل دفعة'
+    'Record payment':'تسجيل دفعة','Corporate profile':'الملف المؤسسي',
+    /* only visible once the dialog opens, and it never opens against live data — there are 0 invoices,
+       and genStatementOfAccount says "no invoices for this client" and returns before building it */
+    'Statement of account':'كشف حساب'
   };
   /* "Edit INV-3001" / "Edit BK-2001" — a prefix and a reference, separated by nothing but a space. The
      word alone is far too common to translate on sight, so the remainder must LOOK like a reference:

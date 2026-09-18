@@ -1059,7 +1059,7 @@
     var tpl=v25TemplateFor(templateBucket);
     var palette=tpl.palette||['#FF6B00','#1C1E2B','#FFFFFF','#7C8194'];
     var w=window.open('','_blank','width=900,height=1200');
-    if(!w){alert('Pop-up blocked — allow pop-ups to download the PDF.');return;}
+    if(!w){alert((typeof LANG!=='undefined'&&LANG==='ar')?'النوافذ المنبثقة محجوبة — اسمح بها لتنزيل ملف PDF.':'Pop-up blocked — allow pop-ups to download the PDF.');return;}
     w.document.write('<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>'+v25EscHTML(title)+'</title>'+
       '<style>@page{size:A4;margin:18mm} body{font-family:Inter,Tajawal,system-ui,sans-serif;color:#1C1E2B;margin:0;padding:0;line-height:1.5;background:#fff}'+
       'h1{font-size:24px;margin:0 0 8px;color:'+palette[1]+';letter-spacing:-.02em}'+
@@ -1118,7 +1118,7 @@
     var notes=document.getElementById('sfg_notes').value||'';
     var client=((DB.businesses||[]).find(function(b){return b.id===clientId;}))||{name:'Prospective client'};
     var scheme=(DB.serviceFeePricing||[]).find(function(s){return s.id===schemeId;});
-    if(!scheme){alert('Pick a fee card.');return;}
+    if(!scheme){alert((typeof LANG!=='undefined'&&LANG==='ar')?'اختر بطاقة أتعاب.':'Pick a fee card.');return;}
     var items=scheme.perItem||{};
     if(fmt==='pdf'||fmt==='both'){
       var rows=Object.keys(items).map(function(k){
@@ -1197,7 +1197,7 @@
     var p=(DB&&DB.projects||[]).find(function(x){return x.id===id;});
     if(!p)return;
     // direct path
-    if(typeof openModal!=='function'){alert('Generator unavailable');return;}
+    if(typeof openModal!=='function'){alert((typeof LANG!=='undefined'&&LANG==='ar')?'المولّد غير متاح':'Generator unavailable');return;}
     document.getElementById('ov')&&document.getElementById('ov').classList.add('show');
     setTimeout(function(){var sel=document.getElementById('ppg_proj');if(sel)sel.value=id;},50);
     window.v25OpenProjectProposalGen();
@@ -1207,7 +1207,7 @@
     var pid=document.getElementById('ppg_proj').value;
     var summary=document.getElementById('ppg_summary').value||'';
     var p=(DB&&DB.projects||[]).find(function(x){return x.id===pid;});
-    if(!p){alert('Pick a project.');return;}
+    if(!p){alert((typeof LANG!=='undefined'&&LANG==='ar')?'اختر مشروعًا.':'Pick a project.');return;}
     var bodyHtml=''+
       '<h1>'+v25EscHTML(p.name)+'</h1>'+
       (p.nameAr?'<p dir="rtl" style="font-size:16px;font-family:Tajawal;color:#7C8194">'+v25EscHTML(p.nameAr)+'</p>':'')+

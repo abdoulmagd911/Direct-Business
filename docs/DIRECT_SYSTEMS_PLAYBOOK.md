@@ -377,6 +377,13 @@ Practical rules that exist because breaking them has already caused real, confus
   `scratchpad`-style check that finds the next one: open the app at each address before
   signing in, log every read made with the anonymous key, sign in, and see which of those
   tables is never asked for again (fire #71's `live-deeplink-sweep.mjs`).
+- **Before hand-picking probes to re-run, subtract `scripts/qa/battery-excluded.txt`.** Twice now
+  (2026-09-18, fires #85 and #88) an ad-hoc re-run list swept up a probe that is excluded on purpose —
+  `probe-freeze` and `probe-golive`, both credential-gated: they sign in as a real member of staff, and
+  `emp-rig` reads those passwords from `DB_PW_*`, which are never in this repository, so the rig refuses
+  rather than testing nothing. Both times the exit 1 looked exactly like a regression for a minute. The
+  exclusion file is the first place to look when a probe outside the battery fails, not the last.
+
 - **The QA runner is code too — never trust a count from an instrument you have not seen go red.**
   On 2026-09-17 five probes had been failing for two days while the session's own battery runner
   logged every one of them as green: it read the probe's exit code through `${PIPESTATUS[0]}` after

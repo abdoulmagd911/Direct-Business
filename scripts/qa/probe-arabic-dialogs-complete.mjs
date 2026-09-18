@@ -77,6 +77,16 @@ const DIALOGS = [
   ['Add a link', 'leads', 'v41AddLink', 'lead'],
   ['Client onboarding', 'clients', 'v22OpenClientOnboarding', 'client'],
   ['Chain of command', 'clients', 'v24OpenChainOfCommand', 'client'],
+  /* 2026-09-18 (fire #88): the coverage gap #87 named, with the entries corrected. Four of the eight
+     that "did not open" were this list being wrong, not the app — editCorporate wants a LEAD id,
+     genStatementOfAccount a client, v40Hold/v40Touch a lead, and findDuplicate(kind, fields) is a
+     LOOKUP that returns a record, not a dialog at all. "New invoice"/"New booking" are newInvoice /
+     newBooking, and those, with recordPayment and a dozen more, sit in core-08's v25 HIDE list —
+     hidden on purpose, because Direct Payments is the system of record for money. */
+  ['Corporate profile', 'clients', 'editCorporate', 'client'],
+  ['Corporate profile from a lead', 'leads', 'editCorporate', 'lead'],
+  ['Statement of account', 'finance', 'genStatementOfAccount', 'client'],
+  ['Hold a lead', 'leads', 'v40Hold', 'lead'],
   ['Sync log', 'sync', 'openSyncLog', null],
   ['Restore list', 'settings', 'v21OpenRestoreList', null],
   ['Hash report', 'settings', 'v21OpenHashReport', null],
@@ -129,6 +139,8 @@ const checks = [
   ['Chain of command reads Arabic, title included', !!byName('Chain of command') && leftOf(byName('Chain of command')).length === 0],
   ['the snapshot browser\'s Restore buttons read Arabic', !!byName('Restore list') && leftOf(byName('Restore list')).length === 0],
   ['the Finance and Ops forms read Arabic — invoice, booking and payment, which live data cannot reach', ['Edit invoice', 'Edit booking', 'Record a payment'].every((n) => !!byName(n) && leftOf(byName(n)).length === 0)],
+  ['the corporate profile reads Arabic from BOTH the client card and the lead card', ['Corporate profile', 'Corporate profile from a lead'].every((n) => !!byName(n) && leftOf(byName(n)).length === 0)],
+  ['the statement of account reads Arabic — it needs invoices, which only the mock has', !!byName('Statement of account') && leftOf(byName('Statement of account')).length === 0],
   /* js/42 links finance groups to their clients on its own at boot; that is the app working. What no
      dialog may do is write a record just by being OPENED. */
   ['opening every dialog wrote no record of its own', wrote.filter((w) => !/finance_client_links/.test(w)).length === 0],

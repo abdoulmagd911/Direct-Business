@@ -646,7 +646,7 @@
     var email=(document.getElementById('tm_email').value||'').trim();
     var role=document.getElementById('tm_role').value;
     var btn=document.getElementById('tm_add');
-    if(!email){ alert('Enter their email address.'); return; }
+    if(!email){ alert((typeof LANG!=='undefined'&&LANG==='ar')?'أدخل بريده الإلكتروني.':'Enter their email address.'); return; }
     btn.disabled=true; btn.textContent='Creating…';
     callAdmin({action:'create',email:email,full_name:name,role:role}).then(function(r){
       btn.disabled=false; btn.textContent='Create';

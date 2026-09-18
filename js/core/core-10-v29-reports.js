@@ -59,7 +59,7 @@
      '<h2>At a glance · لمحة</h2><table>'+rows.map(function(r){return '<tr><td class="k">'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('')+'</table>'+
      '<h2>Key clients · أبرز العملاء</h2><div class="row">'+clients.map(function(c){return '<span class="b">'+c+'</span>';}).join('')+'</div>'+
      '<h2>Awards &amp; accreditations · الجوائز والاعتمادات</h2><div class="row">'+awards.map(function(c){return '<span class="b">'+c+'</span>';}).join('')+'</div>';
-    var w=window.open('','_blank'); if(!w){alert('Allow popups to view the one-pager.');return;} w.document.write(html); w.document.close();
+    var w=window.open('','_blank'); if(!w){alert((typeof LANG!=='undefined'&&LANG==='ar')?'اسمح بالنوافذ المنبثقة لعرض الصفحة الواحدة.':'Allow popups to view the one-pager.');return;} w.document.write(html); w.document.close();
   };
   window.directTenderPage=function(){window.directAboutPage(true);};
 
