@@ -1,3 +1,29 @@
+## Routine fire #84 (2026-09-18 ~01:00 UTC) — the battery's one red run down to its cause: signing in tears down whatever you had open on Finance
+The battery at HEAD came back 208 of 209, with probe-import-files-count red and reproducing alone — the
+same probe fire #79 had noted as "went red under load, green alone, worth watching". It now failed every
+time, always on its FIRST file drop (the one right after sign-in) and never on the two later ones.
+NOT a regression from this week's changes: it fails at c4b9deb too, the commit whose battery reported
+206/206 green. It is an intermittent that has become consistent, which is exactly when a watched flake
+must be run to ground rather than re-noted.
+MEASURED, after a wrong first theory. The first theory was that the Import tab shows its file input before
+js/65's own processing functions exist, so an early drop is swallowed — plausible, and wrong: dumping the
+page state at the moment of failure showed all five __v65_* functions already defined. What it also showed
+is the real answer: at that moment there is no #finFile and no #finImpOut at all, the whole view is down to
+214 characters with no import card, while FIN.tab still says 'import'. The import screen had been torn down
+and replaced by the Finance page's "Loading the finance ledger…" card.
+THE CAUSE is fire #56's own fix. A ledger asked for before sign-in is no longer cached: the loader waits
+for the session and then loads again — and that second load nulls FIN.rows and re-renders, which rebuilds
+the Finance page from scratch. Anything the person had open on Finance at that moment is rebuilt under
+them; here it detached the file input the probe had just used, so the drop went nowhere.
+FIXED IN THE PROBE (my lane): wait for the ledger to have settled, then open Import, then drop. Three runs,
+three passes. That makes seven probes in total corrected for this one race — the six on 2026-09-17 and this.
+FOR THE OWNER, an observation rather than a defect: for about a second after signing in, opening Finance
+shows its loading card again and rebuilds the page. Nothing is lost and nothing is written — the ledger is
+simply loaded once properly instead of being cached empty — but if it is ever worth polishing, the place is
+js/16's post-session reload, not the importer. Not changed here: the fire #56 behaviour is correct and the
+flash is cosmetic.
+Gates green. No app code changed this fire.
+
 ## Routine fire #83 (2026-09-18 00:11 UTC) — one client, four surfaces: do the figures agree? They do — and the Finance card is a model of the standard this sweep keeps asking for
 Every surface has been checked on its own; nothing had yet asked whether the SAME client reads the same
 way on all of them. Driven live and read-only (0 writes), comparing for the three largest clients: the

@@ -76,6 +76,18 @@ async function main() {
 
   /* ---- 1. one expense file ---- */
   await openImport();
+  /* 2026-09-18 (fire #84): this probe went red intermittently and then consistently, always on THIS first
+     drop — the one right after sign-in — and never on the later ones. Measured rather than guessed: right
+     after the drop the import screen is GONE. No #finFile, no #finImpOut, the whole view down to 214
+     characters and no import card, while FIN.tab still says 'import'. That is the Finance page showing its
+     "Loading the finance ledger…" card again, because the session-gated load added in fire #56 lands a
+     moment after sign-in, nulls FIN.rows and re-renders — tearing down the import screen and detaching the
+     file input this probe had just used, so the drop goes nowhere. (A first theory, that the file input
+     appears before js/65's own __v65_* functions exist, was wrong: all five were already defined.) The same
+     class as the six probes fixed on 2026-09-17 — wait for the ledger to have SETTLED, then open Import. */
+  await p.waitForFunction(() => window.__finSessionOk === true && Array.isArray(FIN.rows) && !FIN.loading && !FIN._waitSignIn, { timeout: 60000 }).catch(() => {});
+  await p.evaluate(() => { try { finGo('import'); } catch (_) { } });
+  await p.waitForSelector('#finFile', { timeout: 30000 });
   await p.setInputFiles('#finFile', { name: 'expense-lines.csv', mimeType: 'text/csv', buffer: Buffer.from(linesCsv) });
   await p.waitForFunction(() => /Files dropped:/.test((document.getElementById('finImpOut') || {}).innerText || ''), { timeout: 30000 }).catch(() => {});
   await p.waitForTimeout(800);
