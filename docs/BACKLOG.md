@@ -1,3 +1,27 @@
+## Routine fire #83 (2026-09-18 00:11 UTC) — one client, four surfaces: do the figures agree? They do — and the Finance card is a model of the standard this sweep keeps asking for
+Every surface has been checked on its own; nothing had yet asked whether the SAME client reads the same
+way on all of them. Driven live and read-only (0 writes), comparing for the three largest clients: the
+ledger's own totals, the Finance → Clients card, the exported file, and the client's card in Leads. Real
+names are not printed here (rule 7); the clients are identified by their position in the ledger.
+RESULT: agreement everywhere. For each of the three, the card printed exactly the ledger's revenue, cost
+and profit to the riyal (e.g. 599,347 / 485,734 / 113,613 and 179,799 / 147,189 / 32,610), and the two
+client cards checked in Leads printed Key-facts invoice counts of 3 and 2 against ledger distinct-invoice
+counts of 3 and 2. The card's own Total line reads "Total — all 15 clients, top 10 shown ·
+2,030,764 · 1,538,142 · 492,623" — it names how many clients the total covers and how many rows are
+shown, and those three figures are the same ones the database returns for the whole ledger (verified by
+SQL in fire #75). That is precisely the honesty this sweep has been enforcing elsewhere, already in place.
+THREE FALSE ALARMS, all mine, recorded because the habit matters more than the result:
+  1. "the export's figures do not contain the ledger revenue" — the Finance export is the LEDGER file, one
+     line per invoice (46 + header = 47 lines), not a per-client file. Comparing per-client totals against
+     invoice lines was my error.
+  2 & 3. "the ledger has rows for this client but the table has no line for it" — for the SECOND and THIRD
+     largest clients, which should have been impossible and was the tell. The card prints decorated names
+     ("… #3", "The Performance (dha …)", a hyphenated spelling) while the ledger holds the raw
+     client_group, so my exact string match missed rows that were sitting at positions 2 and 3. Matching on
+     a normalised prefix shows all three.
+The scratchpad script now carries all three corrections in its own comments, so a later run does not
+re-raise them. No code change this fire: nothing in the app was wrong.
+
 ## Routine fire #82 (2026-09-17 22:11 UTC) — a booking saved with the cost box EMPTY was written as cost = 0, which makes the profit the whole sale — FIXED (js/58); and 214,550 SAR of unverified margin is already stored that way
 The money write paths had never been audited. Driven live with every write intercepted (nothing stored):
 the individual-booking form, the same form with a cost typed in, and an expense.
