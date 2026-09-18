@@ -31,6 +31,14 @@
     'Subtotal':'المجموع الفرعي','TTL':'مهلة','Tickets':'التذاكر','Tier':'الفئة','Total':'الإجمالي',
     'Type':'النوع','Valid':'صالح حتى','Venue':'المكان','Vertical':'القطاع',
     'Void':'الإبطال','Deal value (SAR)':'المكسوب (ريال)',
+    /* ---- lead-edit form labels, 2026-09-18 (fire #86): measured live, 11 of 24 were English.
+       The other six of the eleven are the channel chips, which wrap a checkbox and are handled by
+       translateChannelChips above. Exact whole strings, question marks included — translateDecorated
+       tries the full string before it tries stripping a trailing "?". ---- */
+    'Channels of communication':'قنوات التواصل','Existing client?':'عميل حالي؟',
+    'Vendor / commission?':'مورّد / عمولة؟','Next action due':'تاريخ الإجراء التالي',
+    'Contacts (same business, multiple people)':'جهات الاتصال (نفس المنشأة، عدة أشخاص)',
+    '+ Add contact':'+ إضافة جهة اتصال',
     // ---- .tag row badges (priority / tier — see .tag comment above; Import, Unassigned,
     // Standard, Key account, Client already exist above/below for other contexts and are
     // reused here on purpose, same word, same meaning) ----
@@ -337,8 +345,49 @@
       el.setAttribute('data-v27','1');
     }
   }
+  /* 2026-09-18 (fire #86, found by driving the lead-edit form live in Arabic): the form was HALF
+     translated — 11 of its 24 labels and every one of its 8 placeholders stayed English, so a person
+     working in Arabic read a form in two languages. Two reasons, both structural rather than an
+     oversight:
+       · the communication-channel chips are <label><input type=checkbox>Email</label>, and the label
+         pass above deliberately skips a label that wraps an input (that rule is what stops free text
+         being flattened). The chips are a fixed enum whose STORED value is the value attribute, never
+         the text, so their wording is safe to translate on its own narrow pass;
+       · placeholders are attributes, and this file only ever patched one of them (#gsearch, by id).
+     The activity-type options (Call / Meeting / Note …) are NOT touched and must not be: they carry no
+     value attribute, so their text IS what gets stored — the universal rule in the option pass below.
+     Both passes here are whole-string and remember the English for a clean switch back. */
+  var PLACEHOLDER_AR={
+    'Name':'الاسم','Email':'البريد الإلكتروني','Phone':'الهاتف',
+    'Government / Study-abroad school…':'جهة حكومية / معهد دراسة بالخارج…',
+    'Flights, Hotels, Visa, Insurance, Intl driving permit…':'طيران، فنادق، تأشيرات، تأمين، رخصة سياقة دولية…',
+    'e.g. Called Mr. Nasser — interested, sending the proposal Sunday':'مثال: تحدّثت مع الأستاذ ناصر — مهتم، سنرسل العرض الأحد'
+  };
+  var CHANNEL_AR={ 'Email':'البريد','Phone':'الهاتف','Portal':'البوابة','In person':'حضور شخصي','Tender portal':'بوابة المناقصات' };
+  function translatePlaceholders(scope){
+    if(!scope)return;
+    var ins=scope.querySelectorAll('input[placeholder],textarea[placeholder]'),i;
+    for(i=0;i<ins.length;i++){ var el=ins[i]; if(el.hasAttribute('data-v27phen'))continue;
+      var t=el.getAttribute('placeholder'); if(!t)continue; var ar=PLACEHOLDER_AR[t.trim()];
+      if(ar===undefined)continue; el.setAttribute('data-v27phen',t); el.setAttribute('placeholder',ar); }
+  }
+  function translateChannelChips(scope){
+    if(!scope)return;
+    /* only the chips this app generates for the channel enum — found by their own class, so no
+       other label that happens to wrap a checkbox is ever reached. WhatsApp keeps its own name. */
+    var boxes=scope.querySelectorAll('label > input.f_ch'),i;
+    for(i=0;i<boxes.length;i++){ var lab=boxes[i].parentNode; if(!lab||lab.getAttribute('data-v27'))continue;
+      var t=(lab.textContent||'').trim(); var ar=CHANNEL_AR[t]; if(ar===undefined)continue;
+      lab.setAttribute('data-v27en',t); replaceLeadText(lab,ar); lab.setAttribute('data-v27','1'); }
+  }
+  function restorePlaceholders(){
+    var ins=document.querySelectorAll('[data-v27phen]'),i;
+    for(i=0;i<ins.length;i++){ var el=ins[i]; if(el.id==='gsearch')continue;   // that one has its own pair
+      el.setAttribute('placeholder',el.getAttribute('data-v27phen')); el.removeAttribute('data-v27phen'); }
+  }
   function scopeTranslate(scope,safeOptions){
     if(!scope)return;
+    translatePlaceholders(scope); translateChannelChips(scope);
     var heads=scope.querySelectorAll('th,h2,h3'),i;
     for(i=0;i<heads.length;i++){ var hd=heads[i]; if(hd.getAttribute('data-v27')||hd.querySelector('input,select'))continue; translateDecorated(hd,V27_AR); }
     // label / summary / .ch-sub added 2026-09-02 for the proposal editor — whole-string matches only,
@@ -431,6 +480,7 @@
       if(LANG!=='ar'){ // restore any surviving translated element (e.g. persistent top bar) to English
         var stale=document.querySelectorAll('[data-v27en]');
         for(var s=0;s<stale.length;s++){ stale[s].textContent=stale[s].getAttribute('data-v27en'); stale[s].removeAttribute('data-v27en'); stale[s].removeAttribute('data-v27'); }
+        restorePlaceholders();
         patchGlobalSearchPlaceholder(false);
         patchSkipLinks(false);
         return;
@@ -451,6 +501,25 @@
   }
   window.v27TranslateModal=translateModal;
   try{ if(typeof window.openModal==='function'&&!window.openModal.__v27){ var _om=window.openModal; var w=function(){ var out=_om.apply(this,arguments); translateModal(); setTimeout(translateModal,80); return out; }; w.__v27=1; window.openModal=w; } }catch(_){}
+  /* 2026-09-18 (fire #86): the contact rows are the one part of a dialog that is rebuilt AFTER the
+     dialog's own pass — core-05's openModal calls drawContacts(), core-02 calls it again with the
+     company's people, and addContactRow() and the ✕ call it on every add and remove. Each rebuild
+     replaces the inputs with fresh English ones, so the pass above translated rows that no longer
+     existed: measured live, calling the translator by hand right afterwards produced الاسم / البريد
+     الإلكتروني / الهاتف, which is how this was identified as timing rather than matching. Wrapping
+     the redraw is what makes it hold — including after somebody adds or deletes a row. */
+  (function wrapDrawContacts(n){
+    try{
+      if(typeof window.drawContacts==='function'&&!window.drawContacts.__v27){
+        var _dc=window.drawContacts;
+        var wd=function(){ var out=_dc.apply(this,arguments);
+          try{ if(typeof LANG!=='undefined'&&LANG==='ar'){ var h=document.getElementById('contacts'); if(h){ translatePlaceholders(h); } } }catch(_){}
+          return out; };
+        wd.__v27=1; window.drawContacts=wd; return;
+      }
+    }catch(_){}
+    if((n||0)<40)setTimeout(function(){ wrapDrawContacts((n||0)+1); },500);
+  })(0);
   if(typeof render==='function'){ var _r27=render; window.render=function(){ var out=_r27.apply(this,arguments); v27ArHeaders(); setTimeout(v27ArHeaders,80); return out; }; }
   v27ArHeaders();
 }catch(e){ if(window.console)console.warn('[v27] init',e); }})();

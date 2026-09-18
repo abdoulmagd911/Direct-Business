@@ -1,3 +1,47 @@
+## Routine fire #86 (2026-09-18 ~05:00 UTC) — the lead form was half in Arabic and half in English
+Untested area this round: the **contacts** write path, and with it the lead-edit form it lives in. 45 real
+contacts across 36 companies (one has 4, six have 2); js/72 attaches 32 of them to their cards. Driven
+live in both languages with every write intercepted — nothing stored, confirmed after: still 45 contacts,
+still 2 flagged, no QA phone number, and the "removed from the card" flag still never fired.
+
+**The write path is CLEAN.** Opening a company's real edit form, changing one contact's phone and pressing
+the real Save sends exactly one contact write, filtered to that one contact, carrying only name / email /
+phone; nothing the person did not touch is rewritten; nobody is flagged as removed when nobody was
+removed; and no table-sourced contact is written back into the company's own row, which would have made it
+exist twice. Layout is correctly right-to-left in Arabic.
+
+**DEFECT — the form read in two languages at once.** Measured in the Arabic form: **11 of 24 labels and
+all 8 placeholders were English**. A half-translated form is worse than an untranslated one; somebody
+filling it in Arabic met English half way down. Three structural causes, not one oversight:
+- the communication-channel chips are `<label><input type=checkbox>Email</label>`, and js/21's label pass
+  deliberately skips a label that wraps an input — that rule is what stops free text being flattened. The
+  chips are a fixed list whose STORED value is the value attribute, never the text, so they now get their
+  own narrow pass, found by their own class. WhatsApp keeps its own name.
+- placeholders are attributes, and this file had only ever patched one of them (the global search box, by
+  id). There is now a pass for them, with the English remembered for a clean switch back.
+- the contact rows are the one part of a dialog rebuilt **after** the dialog's own pass: `openModal` calls
+  `drawContacts()`, core-02 calls it again with the company's people, and adding or deleting a row calls it
+  again. Each rebuild replaced the inputs with fresh English ones. Identified as timing rather than
+  matching by calling the translator by hand right afterwards, which produced the Arabic correctly. js/21
+  now wraps the redraw, so it also holds after somebody adds or removes a row.
+
+After: 24 labels with **one** English left — WhatsApp, which is right — and **zero** English placeholders.
+The English form is untouched.
+
+**Deliberately NOT changed:** the activity types (Call / Meeting / Note …) stay English. They carry no
+`value` attribute, so their text IS what gets stored — js/21's own universal rule, written there after a
+2026-09-02 round found an Arabic word saved as a service-bundle type. The probe asserts they stay English,
+so nobody "fixes" this later.
+
+`probe-arabic-lead-form` added (11 checks) and sabotage-verified — with the fix stashed, 7 go FAIL, exit 1.
+Three gates green. 20 other Arabic, dialog and translation probes re-run at HEAD: 20 of 20 green.
+
+Self-errors this round, all in the instrument: blocking the load RPCs left the app on its 65-record demo
+seed and made a first reading worthless; `readContacts()` takes no argument (it reads the edit form's
+working list, not a company's), so a per-company measurement of it meant nothing; and the probe first
+called `openLeadForm`, which does not exist — the real opener is core-02's `editBusiness` — and reported
+an empty form as a translation failure. Each was caught by the result being implausible on its face.
+
 ## Routine fire #85d (2026-09-18 ~04:30 UTC) — full battery green, plus a hand re-run of everything this round touched
 **209 of 209 probes that can fail exited 0**, run with the repo's own `run-battery.sh` (the trustworthy
 one — it writes each probe's output to a file, takes the real exit code, and re-runs every red on its own
