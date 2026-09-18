@@ -89,8 +89,16 @@
         '<div style="font-size:13.5px;color:#55596A;line-height:1.7">'+line1+'</div>'+
         (line2?'<div style="font-size:12.5px;color:#7C8194;margin-top:8px">'+line2+'</div>':'');
       var b=document.createElement('button'); b.className='btn pri sm'; b.style.cssText='margin-top:16px;width:100%';
-      b.textContent=fl('OK','حسنًا'); b.onclick=function(){ov.remove();};
+      /* 2026-09-18 (fire #92): found by the new overlay-Escape check in check-structure, which exists
+       because three separate overlays were caught ignoring the key in two consecutive rounds. js/35's
+       global handler (2026-08-08) only ever looks at `#modal`, so an overlay built as its own element
+       has to wire the key itself. Escape does exactly what this box's own cancel path already did, and
+       the listener is removed with the box so it cannot outlive it or stack when reopened. */
+      var v70esc=function(e){ if(e.key==='Escape'){ v70close(); } };
+      var v70close=function(){ try{ document.removeEventListener('keydown',v70esc); }catch(_){} try{ ov.remove(); }catch(_){} };
+      b.textContent=fl('OK','حسنًا'); b.onclick=v70close;
       c.appendChild(b); ov.appendChild(c); document.body.appendChild(ov);
+      document.addEventListener('keydown',v70esc);
       shown++;
     }catch(_){ alert(title); }
   }

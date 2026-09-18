@@ -320,8 +320,16 @@
       '<button id="fd_save" style="border:0;background:#FF6B00;color:#fff;border-radius:10px;padding:10px 20px;font:inherit;font-size:13px;font-weight:800;cursor:pointer">'+fnL('Save','\u062d\u0641\u0638')+'</button></div></div>';
     ov.innerHTML=inner;
     document.body.appendChild(ov);
-    document.getElementById('fd_cancel').onclick=function(){ov.remove();};
-    ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+    /* 2026-09-18 (fire #92): found by the new overlay-Escape check in check-structure, which exists
+       because three separate overlays were caught ignoring the key in two consecutive rounds. js/35's
+       global handler (2026-08-08) only ever looks at `#modal`, so an overlay built as its own element
+       has to wire the key itself. Escape does exactly what this box's own cancel path already did, and
+       the listener is removed with the box so it cannot outlive it or stack when reopened. */
+    var fdEsc=function(e){ if(e.key==='Escape'){ fdClose(); } };
+    var fdClose=function(){ try{ document.removeEventListener('keydown',fdEsc); }catch(_){} try{ ov.remove(); }catch(_){} };
+    document.addEventListener('keydown',fdEsc);
+    document.getElementById('fd_cancel').onclick=fdClose;
+    ov.addEventListener('click',function(e){if(e.target===ov)fdClose();});
     document.getElementById('fd_save').onclick=function(){
       if(!fnMayEdit())return;
       /* 2026-09-03 (round 42) — this used to build a FRESH {} from the template and assign it over

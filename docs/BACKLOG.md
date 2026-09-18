@@ -1,3 +1,44 @@
+## Routine fire #92 (2026-09-18 ~16:30 UTC) — stopped hand-picking boxes and made it a rule; the rule found five more
+Fire #91 left one named gap: the share-links panel, the one box of twelve not reached. Closed it — js/77
+exposes its opener as `window.shareLinksPanel` (two earlier passes had guessed a name that does not exist
+and looked for a button by its wording) — and it was **the third overlay ignoring the Escape key**.
+
+Three in two rounds is not three accidents, so this round stopped guessing at boxes and **added the rule
+to `check-structure`**: any file in `js/` that builds a fixed, full-screen element must mention Escape. It
+is deliberately a crude test — the word, in the same file — because the alternative is no test and a
+fourth round finding a fourth box. It ran once and **named five more**:
+
+- **js/09** — the funnel-details editor for a lead. A real form. Fixed.
+- **js/15** — the admin page-access overlay. Fixed.
+- **js/49** — the permission message box. Fixed. It legitimately refuses a stray backdrop click, because
+  its whole job is to be acknowledged; Escape and its own OK both work, which is enough.
+- **js/58** — the fallback confirm box. js/57 loads first and defines the real one, so this never runs in
+  practice, but it is the same shape confirming the same destructive things. Fixed the same way: Escape
+  **cancels**, and the yes-callback is never called.
+- **js/50** — the sign-out banner, which **must not be dismissible**. It is not a dialog: it has no
+  button at all, and a real sign-out follows a moment later. Letting Escape hide it would leave somebody
+  at a login screen with no idea why. It satisfies the rule by saying exactly that in a comment — the
+  escape hatch the check was built with — and the probe asserts both halves: the rule still exists, and
+  this exception is still explained.
+
+Driven live after each fix: **fourteen boxes, both languages, every one closes on Escape**, and all but
+the acknowledge-box also on a click outside. Read-only; nothing written.
+
+**A pre-existing bug found while doing it and fixed:** `check-structure` derived the repo root from the
+*current directory* — it looked for index.html in `.` then `..`, so running it from anywhere else died on
+`ENOENT: /index.html` before checking a single rule. A pre-deploy gate that only works from one directory
+is a gate that can be skipped by accident. It now resolves the root from its own file location, the way
+its two sibling gates already did, and was verified from `/tmp`.
+
+`probe-escape-closes-every-box` extended to 12 checks covering fourteen boxes plus both halves of the new
+rule, and sabotage-verified: with all seven edits and the structure rule stashed, 4 go FAIL, exit 1. Three
+gates green; 15 dialog, share, role and structure probes re-run at HEAD: 15 of 15 green.
+
+Two instrument corrections, both named in the scripts: the "is there a way out" test did not count an
+**OK** button, so js/49's box — which offers OK and nothing else — was reported as having none; and the
+first version of the new rule read `js/` by a path relative to the working directory, which the
+probe-integrity gate caught as CWD_PATH and which is now resolved from the file's own location.
+
 ## Routine fire #91 (2026-09-18 ~14:30 UTC) — could you get out of every box? Two of them ignored the Escape key
 Area chosen after checking BACKLOG first, per the rule fire #90 added: **keyboard escape from dialogs.**
 js/10 has carried a comment since 2026-09-10 saying "the missing-Escape gripe is app-wide; at least this

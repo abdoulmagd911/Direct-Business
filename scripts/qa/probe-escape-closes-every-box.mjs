@@ -1,4 +1,5 @@
-/* probe-escape-closes-every-box.mjs — guards the 2026-09-18 (fire #91) fixes in js/57 and js/31.
+/* probe-escape-closes-every-box.mjs — guards the 2026-09-18 fixes of fires #91 and #92, in js/57,
+   js/31, js/77, js/09, js/15, js/49 and js/58, plus check-structure's new overlay rule.
    js/10 had said in a comment since 2026-09-10 that "the missing-Escape gripe is app-wide", and nobody
    had driven it. js/35 added a global handler on 2026-08-08, but it only ever looks at `#modal` and
    calls closeModal() — so every overlay built outside that one element was on its own.
@@ -11,11 +12,23 @@
    it. pfConfirm gates every destructive action in the app, so an Escape that confirmed instead of
    cancelling would be far worse than one that did nothing. This probe presses Escape on a live confirm
    box and asserts the yes-callback never ran.
-   Sabotage-tested: with the js/57 and js/31 edits stashed, 3 checks go FAIL, exit 1.
+   FIRE #92 turned this from hand-picking into a rule. Rather than guess at more boxes, a check was
+   added to check-structure: any js/ file that builds a fixed full-screen element must mention Escape.
+   It immediately named FIVE more — js/77's share panel, js/09's funnel-details editor, js/15's admin
+   page-access overlay, js/49's permission message box and js/58's fallback confirm. Four were real
+   dialogs and were fixed. The fifth, js/50's sign-out banner, must NOT be dismissible: it has no
+   button at all and a real sign-out follows it a moment later, so letting Escape hide it would leave
+   somebody at a login screen with no idea why. It satisfies the rule by saying that in a comment, and
+   this probe asserts both halves of that — the rule still exists, and the exception is still explained.
+   Sabotage-tested: with all seven edits and the structure rule stashed, 4 checks go FAIL, exit 1.
    Run: node scripts/qa/probe-escape-closes-every-box.mjs                                              */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+/* the repo root, resolved the way check-decisions-wired and check-probe-integrity do it, so the two
+   source reads below work from any working directory */
+const REPO = fileURLToPath(new URL('../..', import.meta.url)).replace(/\/$/, '');
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const PORT = 9069; const srv = start(PORT); const BASE = 'http://localhost:' + PORT;
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -54,6 +67,12 @@ const BOXES = [
   ['new supplier', 'vendors', 'editSupplier', ''],
   ['new SOP', 'sopsla', 'editSop', ''],
   ['events add form', 'events', 'evOpenModal', null],
+  /* 2026-09-18 (fire #92): five MORE overlays, found not by guessing but by the new overlay-Escape
+     rule in check-structure, which reads every js/ file for a full-screen element whose file never
+     mentions the key. Four were real dialogs and were fixed; the fifth is js/50's sign-out banner,
+     which must NOT be dismissible and now says so in a comment — see the source check below. */
+  ['funnel details editor', 'leads', '__editFunnelDetails', 'lead'],
+  ['share links panel', 'settings', 'shareLinksPanel', null],
 ];
 const results = [];
 for (const [name, page, fn, key] of BOXES) {
@@ -69,6 +88,13 @@ for (const [name, page, fn, key] of BOXES) {
   await p.keyboard.press('Escape'); await p.waitForTimeout(900);
   results.push({ name, opened: true, closedByEsc: (await up()) < opened });
 }
+/* js/49's permission message box: Escape must close it, and it legitimately refuses a stray backdrop
+   click because its whole job is to be acknowledged — it offers OK and nothing else. */
+await clear();
+await p.evaluate(() => { try { current = 'leads'; render(); } catch (_) { } }); await p.waitForTimeout(600);
+const boxUp = await p.evaluate(() => { try { if (typeof window.__v70box === 'function') window.__v70box('QA escape test', 'Nothing has changed.', ''); } catch (_) { } return !!document.getElementById('v70box'); });
+await p.keyboard.press('Escape'); await p.waitForTimeout(800);
+const boxGone = await p.evaluate(() => !document.getElementById('v70box'));
 /* the confirm box, and the half that matters: Escape must CANCEL, never confirm */
 await clear();
 await p.evaluate(() => { try { current = 'leads'; render(); } catch (_) { } }); await p.waitForTimeout(700);
@@ -91,6 +117,9 @@ await p.keyboard.press('Escape'); await p.waitForTimeout(900);
 const teamGone = await p.evaluate(() => !document.getElementById('v48ov'));
 await b.close(); srv.close?.();
 
+/* the static half: the rule that found these, and the one documented exception, must both survive */
+const structureSrc = fs.readFileSync(REPO + '/scripts/qa/check-structure.mjs', 'utf8');
+const bannerSrc = fs.readFileSync(REPO + '/js/50-v74-live-access-and-arabic-names.js', 'utf8');
 const drove = results.filter((r) => r.opened);
 const checks = [
   ['the drive really happened — several boxes opened and were closed by key', drove.length >= 4],
@@ -101,6 +130,9 @@ const checks = [
   ['the Team & Access overlay opens and closes on Escape', teamUp === true && teamGone === true],
   ['no native browser dialog was involved', natives.length === 0],
   ['pressing keys wrote nothing of its own', wrote.filter((w) => !/finance_client_links/.test(w)).length === 0],
+  ['js/49\'s permission message box closes on Escape', boxUp === true && boxGone === true],
+  ['check-structure still enforces the rule that found these — a new overlay with no Escape fails the gate', /overlay/i.test(structureSrc) && /Escape/.test(structureSrc) && /position:fixed;inset:0/.test(structureSrc)],
+  ['and the one overlay that must NOT be dismissible still says why, so the gate is satisfied honestly', /DELIBERATELY IGNORES Escape/.test(bannerSrc) && !/keydown/.test(bannerSrc.split('signOutWithReason')[1] || '')],
   ['no JS errors', errors.length === 0],
 ];
 let fail = 0; for (const [n, ok] of checks) { console.log((ok ? 'PASS' : 'FAIL') + ' · ' + n); if (!ok) fail++; }

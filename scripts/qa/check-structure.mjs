@@ -7,8 +7,14 @@
    Chrome's native dropdown. A doc rule did not stop the second occurrence. This does. */
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const ROOT = path.resolve(process.cwd(), fs.existsSync('index.html') ? '.' : '..', fs.existsSync('index.html') ? '.' : '..');
+/* 2026-09-18 (fire #92): this used to derive the repo root from the CURRENT DIRECTORY — it looked for
+   index.html in `.` then `..`, so running it from anywhere else died on "ENOENT: /index.html" before
+   checking a single rule. A pre-deploy gate that only works from one directory is a gate that can be
+   skipped by accident. Its two sibling gates (check-decisions-wired, check-probe-integrity) already
+   resolve the root from the file's OWN location; this now does the same, and works from anywhere. */
+const ROOT = fileURLToPath(new URL('../..', import.meta.url)).replace(/\/$/, '');
 const at = p => path.join(ROOT, p);
 const problems = [];
 
@@ -151,6 +157,33 @@ try {
   if (!/const _wal=0;const _rev=_tot-_wal;const _prof=_rev-_cost;/.test(mockSrc)) problems.push('scripts/qa/mock-supabase.mjs: the generated finance_invoices rows no longer derive revenue = total − wallet and profit = revenue − cost the way the live trigger does.');
 } catch (e) {
   problems.push('money-doctrine check could not run: ' + e.message);
+}
+
+/* ---- every full-screen overlay must have a keyboard way out (added 2026-09-18, fire #92) ----
+   Three separate overlays were found ignoring the Escape key in two consecutive rounds: js/57's
+   confirm box and js/31's two panels (fire #91), then js/77's share panel (fire #92). The cause is
+   structural, so it will keep happening: js/35's global handler, from 2026-08-08, only ever looks at
+   `#modal` and calls closeModal(), so every layer that builds its own element has to wire the key
+   itself — and nothing reminded anyone to.
+   A file that creates a fixed, full-screen overlay of its own must therefore mention Escape. This is
+   deliberately a crude test — the word, in the same file — because the alternative is no test at all
+   and a fourth round finding a fourth box. A layer that genuinely should trap the key can say so in a
+   comment containing "Escape" and satisfy this honestly. */
+try {
+  const fs2 = fs; const jsDir = path.join(ROOT, 'js');
+  const overlayFiles = fs2.readdirSync(jsDir).filter((f) => f.endsWith('.js'));
+  const offenders = [];
+  for (const f of overlayFiles) {
+    const src = fs2.readFileSync(path.join(jsDir, f), 'utf8');
+    /* its own overlay: a fixed element that covers the viewport, built in this file */
+    const makesOverlay = /position:fixed;inset:0/.test(src) && /createElement\('div'\)|createElement\("div"\)/.test(src);
+    if (!makesOverlay) continue;
+    if (/Escape/.test(src)) continue;
+    offenders.push(f);
+  }
+  if (offenders.length) problems.push('these layers build a full-screen overlay of their own but never mention Escape, so a person cannot close it from the keyboard (js/35\'s global handler only covers #modal): ' + offenders.join(', '));
+} catch (e) {
+  problems.push('overlay-escape check could not run: ' + e.message);
 }
 
 if (problems.length) {

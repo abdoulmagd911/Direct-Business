@@ -20,6 +20,14 @@
   var lastRole=null, told=false;
   function client(){ try{ return window.fc?fc():null; }catch(_){ return null; } }
 
+  /* 2026-09-18 (fire #92) — THE ONE OVERLAY THAT DELIBERATELY IGNORES Escape, so the new
+     overlay-Escape check in check-structure sees this reason rather than flagging it.
+     This is not a dialog. It is the banner shown when somebody's access has been changed or switched
+     off underneath them, and it is followed by a real sign-out a moment later — there is no button on
+     it at all, because there is nothing to decide. Letting Escape dismiss it would hide the only
+     explanation the person gets while the sign-out happens anyway, leaving them looking at a login
+     screen with no idea why. It sits in the z-index tier js/57's comment reserves for session and
+     permission banners, which must outrank every dialog; a banner you can dismiss is not that.     */
   function signOutWithReason(title,line){
     try{
       var ov=document.createElement('div');

@@ -28,7 +28,14 @@
   function isAdmin(){ try{ return window.__userRole==='admin'; }catch(_){ return false; } }
 
   var ROWS=null;
-  function close(){ try{ var b=document.getElementById('shareBox'); if(b)b.remove(); }catch(_){} }
+  /* 2026-09-18 (fire #92): the third overlay in this app found ignoring the Escape key, after js/57's
+     confirm box and js/31's two panels (fire #91). js/35's global handler, from 2026-08-08, only ever
+     looks at `#modal` and calls closeModal(), so anything built as its own element has to wire the key
+     itself. Escape does exactly what the Close button and a click outside already did; the listener is
+     removed by close(), so it cannot outlive the box or stack if the panel is reopened. */
+  function onEsc(e){ if(e.key==='Escape'){ close(); } }
+  function close(){ try{ document.removeEventListener('keydown',onEsc); }catch(_){}
+                    try{ var b=document.getElementById('shareBox'); if(b)b.remove(); }catch(_){} }
   function load(cb){
     var c=client(); if(!c){ ROWS=[]; cb(fl('Not connected — try again in a moment.','غير متصل — حاول بعد لحظة.')); return; }
     c.from('share_links').select('token,scope,active,created_by,created_at,last_used_at').order('created_at',{ascending:false}).limit(200).then(function(r){
@@ -66,6 +73,7 @@
       '<div data-share-list><div class="empty">'+esc(fl('Loading…','جارٍ التحميل…'))+'</div></div>'+
       '<div style="display:flex;gap:8px;justify-content:'+(isAr()?'flex-start':'flex-end')+';margin-top:14px"><button class="btn sm ghost" data-share-close>'+esc(fl('Close','إغلاق'))+'</button><button class="btn sm pri" data-share-new>'+esc(fl('Create a new link','إنشاء رابط جديد'))+'</button></div></div>';
     document.body.appendChild(d);
+    document.addEventListener('keydown',onEsc);
     d.addEventListener('click',function(e){
       var t=e.target; if(!t||!t.getAttribute)return;
       if(t===d||t.hasAttribute('data-share-close')){ close(); return; }

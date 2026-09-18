@@ -49,7 +49,14 @@
         '<button class="btn sm pri" id="pfConfirmYes">'+fl('Confirm','تأكيد')+'</button>'+
         '</div></div>';
       document.body.appendChild(d);
-      var close=function(){ try{d.remove();}catch(_){} };
+      /* 2026-09-18 (fire #92): the same Escape gap the new overlay check in check-structure found in
+         four other layers. This box is only a FALLBACK — js/57 loads first and defines pfConfirm, so
+         the line above returns before ever reaching here — but it is the same shape confirming the same
+         destructive things, so it gets the same key. Escape CANCELS: it takes the Cancel path and
+         onYes is never called. The listener is removed with the box. */
+      var onEsc=function(e){ if(e.key==='Escape'){ close(); } };
+      var close=function(){ try{ document.removeEventListener('keydown',onEsc); }catch(_){} try{d.remove();}catch(_){} };
+      document.addEventListener('keydown',onEsc);
       document.getElementById('pfConfirmNo').onclick=close;
       d.addEventListener('click',function(e){ if(e.target===d)close(); });
       document.getElementById('pfConfirmYes').onclick=function(){ close(); onYes(); };

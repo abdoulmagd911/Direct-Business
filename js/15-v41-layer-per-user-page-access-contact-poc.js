@@ -65,9 +65,17 @@ window.v41Access=function(){
     ov.innerHTML='<div style="background:#FBF8F4;border-radius:16px;max-width:760px;width:100%;max-height:88vh;overflow:auto;padding:24px" '+(ar?'dir="rtl"':'')+'>'+
       '<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:17px;font-weight:800">'+(ar?'مستويات الوصول — من يرى ماذا':'Access levels — who sees what')+'</div><button class="btn ghost sm" id="v41x">✕</button></div>'+
       '<div class="ch-sub" style="margin:6px 0 4px">'+(ar?'حدد الصفحات المسموحة لكل زميل. "كل الصفحات" = صلاحية كاملة (المسؤولون).':'Tick the pages each colleague may open. "Everything" = full access (admins).')+'</div>'+rows+'</div>';
-    ov.onclick=function(e){if(e.target===ov)ov.remove();};
+    /* 2026-09-18 (fire #92): found by the new overlay-Escape check in check-structure, which exists
+       because three separate overlays were caught ignoring the key in two consecutive rounds. js/35's
+       global handler (2026-08-08) only ever looks at `#modal`, so an overlay built as its own element
+       has to wire the key itself. Escape does exactly what this box's own cancel path already did, and
+       the listener is removed with the box so it cannot outlive it or stack when reopened. */
+    var v41esc=function(e){ if(e.key==='Escape'){ v41close(); } };
+    var v41close=function(){ try{ document.removeEventListener('keydown',v41esc); }catch(_){} try{ ov.remove(); }catch(_){} };
+    ov.onclick=function(e){if(e.target===ov)v41close();};
     document.body.appendChild(ov);
-    document.getElementById('v41x').onclick=function(){ov.remove();};
+    document.addEventListener('keydown',v41esc);
+    document.getElementById('v41x').onclick=v41close;
     ov.querySelectorAll('[data-save]').forEach(function(btn){
       btn.onclick=function(){
         var i=+btn.getAttribute('data-save'), u=users[i];
