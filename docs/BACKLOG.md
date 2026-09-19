@@ -1,3 +1,41 @@
+## Routine fire #112 (2026-09-20 ~02:30 UTC) — the Arabic report was half English, and only half of it was mine to fix
+
+The Reports page had not been driven this session. Two things came out of it, and they need separating.
+
+**The report itself is honest.** It prints each KPI's target and leaves every actual as "—" rather
+than inventing a zero — 70 dashes, no fabricated numbers — and it carries no VAT anywhere, in either
+language. (Checked on the *word*: an earlier measurement this session counted "VAT" twice on this
+page and both were "pri**vat**e" and "inno**vat**ion". A word boundary settled it.) There is no KPI
+data recorded at all, and the page says so plainly: "0 / 30 KPIs with data".
+
+**The Arabic report is half English.** Your own pre-launch pass on 2026-08-21 gave every objective
+an Arabic title, and the page uses it. The **30 KPIs underneath them never got one — and nothing in
+the code looked for one either.** So an Arabic reader gets Arabic objective headings with 30 English
+KPI lines beneath, and the generated document they would send out reads the same way.
+
+**What I fixed, and what I did not.** The Arabic wording of a KPI is yours to write — it is your
+performance framework, and inventing Arabic for it here is exactly the kind of guess this project
+does not make. What was fixed is the half that is code: **every place a KPI title is printed now
+asks for the Arabic first**, the same way objectives already do — the report table, the KPI list on
+the Objectives tab, the picker, the shortfall list and the copy-out text. Adding the Arabic text is
+now a content edit and nothing else.
+
+**Finding all of them took the probe.** The first pass switched four places and looked done: the
+shortfall list read Arabic. The check that compares *both* directions — the Arabic title present
+**and** that KPI's English title gone — caught that the table above it was still printing English.
+Two more sites turned up that way, including the KPI list on the Objectives tab.
+
+**Guarded.** `probe-the-arabic-report-is-arabic` (port 9085, 11 checks) puts an Arabic title on one
+KPI and requires it to reach the generated report *and* the Objectives tab, requires that KPI's
+English title to be gone from the Arabic side, requires the English report to be untouched, and
+holds the two honesty properties: no VAT, and no actual invented where none is recorded.
+Sabotage-verified: with the titles ignoring Arabic again, 3 checks fail. 3 gates green.
+
+### What is waiting on you
+
+The 30 KPI titles need Arabic wording. The objectives already have theirs. Once you give me the
+Arabic for the KPIs, it drops straight in — the code is ready and the probe proves it lands.
+
 ## Routine fire #111 (2026-09-20 ~01:00 UTC) — the battery caught my own fix, and it was half right
 
 The full battery run after #109 went red on `probe-crm-attacks`. My contacts fix caused it, so the

@@ -192,6 +192,19 @@ const RPT_OBJECTIVES=[
  {n:14,t:"Commercially launch and grow a full suite of luxury travel services", tAr:"إطلاق وتنمية مجموعة كاملة من خدمات السفر الفاخرة تجاريًا", link:"3.1", dept:"NA"}
 ];
 function rptObjTitle(o){return (typeof LANG!=='undefined'&&LANG==='ar'&&o.tAr)?o.tAr:o.t;}
+/* 2026-09-20 (fire #112): the owner's own pre-launch pass on 2026-08-21 gave every OBJECTIVE an
+   Arabic title, and rptObjTitle above uses it. The KPIs under those objectives never got one, and
+   nothing here looked for one either — so the Arabic report prints Arabic objectives with 42
+   English KPI lines beneath them, which is the half-English report a Saudi reader actually gets.
+   The Arabic wording of a KPI is the owner's to write — it is his performance framework, not
+   something to invent here — so this does the half that is code: every place a KPI title is
+   printed now asks for `tAr` first, exactly as objectives do. Adding the Arabic text later is then
+   a content edit and nothing else. */
+function rptKpiTitle(k){return (typeof LANG!=='undefined'&&LANG==='ar'&&k&&k.tAr)?k.tAr:(k?k.t:'');}
+try{ window.rptKpiTitle=rptKpiTitle; }catch(_){}
+/* the KPI list itself, so a driven test can put an Arabic title on one and see it reach the page —
+   the objectives were already reachable through rptObjTitle, these were not */
+try{ setTimeout(function(){ try{ window.RPT_KPIS=RPT_KPIS; }catch(_){} },0); }catch(_){}
 function rptDeptLabel(d){return (typeof LANG!=='undefined'&&LANG==='ar'&&RPT_DEPT_AR[d])?RPT_DEPT_AR[d]:d;}
 /* 2026-09-16 (fire #59, live): the Reports page was driven in Arabic — the objective cards, the built
    report, the copy text, the three alerts and the PowerPoint slide labels were all English. rptAr() is the
@@ -352,7 +365,7 @@ window.rptSyncKpiList=function(sel){
  const onEl=document.getElementById('rf_obj');if(!onEl)return;
  const on=onEl.value;
  const list=on?RPT_KPIS.filter(k=>k.obj===Number(on)):RPT_KPIS;
- document.getElementById('rf_kpi').innerHTML='<option value="">— none —</option>'+list.map(k=>'<option value="'+k.n+'" '+(String(sel)===String(k.n)?'selected':'')+'>KPI '+k.n+' — '+esc(k.t.slice(0,46))+' (target '+rfmtTarget(k)+')</option>').join('');
+ document.getElementById('rf_kpi').innerHTML='<option value="">— none —</option>'+list.map(k=>'<option value="'+k.n+'" '+(String(sel)===String(k.n)?'selected':'')+'>KPI '+k.n+' — '+esc(rptKpiTitle(k).slice(0,46))+' (target '+rfmtTarget(k)+')</option>').join('');
 };
 window.rptDelAch=function(id){askInPage('Delete this achievement?',function(){RDB.achievements=RDB.achievements.filter(x=>x.id!==id);rptSave();render();});};
 window.rptToggleObj=function(n){rptOpenObjs[n]=!rptOpenObjs[n];render();};
@@ -370,7 +383,7 @@ function rptObj(v){
   '<div class="body">'+
   (ks.length?ks.map(k=>{
     const act=rptActual(k);const pc=rptPct(k);const ov=RDB.overrides[k.n];
-    return '<div class="rpt-kpirow"><div><div class="kt">KPI '+k.n+' — '+esc(k.t)+(k.draft?' <span class="tag" style="background:#FEF3E2;color:#B54708">'+rptAr('draft - confirm target','مسودة — أكّد الهدف')+'</span>':'')+'</div><div class="kf">'+k.f.map(esc).join(' · ')+'</div></div>'+
+    return '<div class="rpt-kpirow"><div><div class="kt">KPI '+k.n+' — '+esc(rptKpiTitle(k))+(k.draft?' <span class="tag" style="background:#FEF3E2;color:#B54708">'+rptAr('draft - confirm target','مسودة — أكّد الهدف')+'</span>':'')+'</div><div class="kf">'+k.f.map(esc).join(' · ')+'</div></div>'+
     '<div><div class="rpt-small">'+rptAr('Target','الهدف')+'</div><b>'+rfmtTarget(k)+'</b></div>'+
     '<div class="pr"><div class="rpt-small">'+rptAr('Actual: ','الفعلي: ')+'<b>'+rfmtVal(k,act)+'</b>'+((ov!=null&&ov!=='')?' <span class="tag">'+rptAr('manual','يدوي')+'</span>':'')+'</div><div class="rpt-bar"><i class="'+(pc>=100?'ok':pc>=50?'':'warn')+'" style="width:'+pc+'%"></i></div></div>'+
     '<div class="ov"><input type="number" placeholder="'+rptAr('override','قيمة يدوية')+'" value="'+((ov!=null)?ov:'')+'" style="width:100%" onchange="rptSetOverride('+k.n+',this.value)"></div></div>';
@@ -422,9 +435,9 @@ function rptHTML(){
  const td='padding:6px;border-bottom:1px solid #F5F1E9';
  const kpiRows=objs.flatMap(o=>RPT_KPIS.filter(k=>k.obj===o.n)).map(k=>{
   const act=rptActual(k);const pc=rptPct(k);
-  return '<tr><td style="'+td+'">KPI '+k.n+'</td><td style="'+td+'">'+esc(k.t)+'</td><td style="'+td+';text-align:right">'+rfmtTarget(k)+'</td><td style="'+td+';text-align:right">'+rfmtVal(k,act)+'</td><td style="'+td+';text-align:right;color:'+(pc>=100?'#1E9E62':pc>=50?'#FF6B00':'#D9920B')+';font-weight:700">'+(act==null?'—':pc+'%')+'</td></tr>';
+  return '<tr><td style="'+td+'">KPI '+k.n+'</td><td style="'+td+'">'+esc(rptKpiTitle(k))+'</td><td style="'+td+';text-align:right">'+rfmtTarget(k)+'</td><td style="'+td+';text-align:right">'+rfmtVal(k,act)+'</td><td style="'+td+';text-align:right;color:'+(pc>=100?'#1E9E62':pc>=50?'#FF6B00':'#D9920B')+';font-weight:700">'+(act==null?'—':pc+'%')+'</td></tr>';
  }).join('');
- const gaps=objs.flatMap(o=>RPT_KPIS.filter(k=>k.obj===o.n)).filter(k=>rptPct(k)<50).map(k=>'<li>KPI '+k.n+' — '+esc(k.t)+': '+rptAr('at '+(rptActual(k)==null?'no data':rptPct(k)+'%')+' of target '+rfmtTarget(k),(rptActual(k)==null?'لا بيانات':rptPct(k)+'%')+' من الهدف '+rfmtTarget(k))+'</li>').join('');
+ const gaps=objs.flatMap(o=>RPT_KPIS.filter(k=>k.obj===o.n)).filter(k=>rptPct(k)<50).map(k=>'<li>KPI '+k.n+' — '+esc(rptKpiTitle(k))+': '+rptAr('at '+(rptActual(k)==null?'no data':rptPct(k)+'%')+' of target '+rfmtTarget(k),(rptActual(k)==null?'لا بيانات':rptPct(k)+'%')+' من الهدف '+rfmtTarget(k))+'</li>').join('');
  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #FF6B00;padding-bottom:14px;margin-bottom:18px">'+
  '<div>'+(typeof logoSrc==='function'?'<img src="'+logoSrc()+'" style="height:40px;display:block;margin-bottom:6px" alt="Direct">':'')+'<div style="font-weight:800;font-size:21px">'+(typeof brandName==='function'?brandName():'Direct Business')+'</div>'+
  '<div style="color:#7C8194;font-size:12px">'+rptAr('Commercial Department · Operational Plan 2026','القسم التجاري · الخطة التشغيلية 2026')+'</div></div>'+
@@ -449,7 +462,7 @@ function rptText(){
  rows.forEach(a=>{t+='• '+a.date+' — '+a.title+(a.client?' ['+a.client+']':'')+' — '+a.member+(a.value?(' — '+a.value):'')+'\n';});
  t+='\n'+rptAr('KPI PROGRESS','تقدّم المؤشرات')+'\n';
  const objs=rptRep.scope==='obj'?RPT_OBJECTIVES.filter(o=>String(o.n)===String(rptRep.obj)):RPT_OBJECTIVES;
- objs.flatMap(o=>RPT_KPIS.filter(k=>k.obj===o.n)).forEach(k=>{const a=rptActual(k);t+='• KPI '+k.n+' '+k.t+': '+rfmtVal(k,a)+' / '+rfmtTarget(k)+(a==null?'':' ('+rptPct(k)+'%)')+'\n';});
+ objs.flatMap(o=>RPT_KPIS.filter(k=>k.obj===o.n)).forEach(k=>{const a=rptActual(k);t+='• KPI '+k.n+' '+rptKpiTitle(k)+': '+rfmtVal(k,a)+' / '+rfmtTarget(k)+(a==null?'':' ('+rptPct(k)+'%)')+'\n';});
  t+='\n— '+rptAr('Direct Business · Commercial Department','دايركت أعمال · القسم التجاري')+' · directksa.com';
  return t;
 }

@@ -569,6 +569,17 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **Do the code half, leave the content half (2026-09-20, fire #112).** The Arabic report printed
+  Arabic objectives over 30 English KPI lines. Two different gaps sat inside that: the code never
+  looked for an Arabic KPI title, and no Arabic KPI title exists. The first is a fix; the second is
+  the owner's wording for his own performance framework and must not be invented. Wiring the code
+  so the translation drops straight in — and proving with a probe that it lands — turns a blocked
+  finding into a one-line content edit for him.
+- **Check both directions of a swap (2026-09-20, fire #112).** Switching the KPI titles to Arabic
+  looked finished after four call sites: the shortfall list read Arabic. Asserting only "the Arabic
+  is there" would have shipped it. Asserting *also* "the English of that same item is gone" found
+  two more places still printing it, one of them on another tab. A replacement is only complete when
+  the thing it replaced has disappeared.
 - **A report that names its own remedy should become a check (2026-09-20, fire #111).**
   `probe-crm-attacks` had been printing, as a report rather than a failure, that one person shows
   twice when their number is written locally in one place and internationally in the other — and it
