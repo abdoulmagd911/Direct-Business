@@ -1,3 +1,33 @@
+## Routine fire #118 (2026-09-20 ~10:30 UTC) — the line that stops somebody quoting a client off the top of their head
+
+Continuing #117: which of the app's own on-screen guarantees has nothing watching it? A scan of
+every ⚠ line in the code found 21, and judged each one by whether today's real data can reach it.
+One is reachable on **every client in the app**.
+
+**All 28 live clients have an empty pricing scheme.** So the Corporate account card's own line —
+"⚠ No pricing scheme set — add before quoting this client." / «⚠ لم يُحدَّد نظام تسعير — أضِفه قبل
+تقديم عرض لهذا العميل.» — is on all 28 client cards right now. It is not decoration; it is what
+stops a corporate quote being made up on the spot.
+
+Nothing asserted it, and nothing asserted the card reads in Arabic. The card's labels are hardcoded
+English in core-05 and translated after render by js/21's dictionary — the arrangement that leaks
+the day a label is added and the dictionary is not — and the card only exists once you click into a
+client, so the nav-walking language sweep never sees it.
+
+**Driven live, both languages: the card is correct.** It is present and visible, all eight labels
+read in Arabic, and the warning appears in the right language. This round is a guard around
+something already right, not a fix.
+
+`probe-a-client-says-it-has-no-price-list` (port 9091, 9 checks) holds it: the warning appears for a
+client with no price list and **stays away** from one that has a price list, whose rows are shown
+instead; every label reads in Arabic; and — because this card is one of the places it could break —
+**no money figure reaches it** although eight live clients carry a credit limit, which is the
+owner's ruling of 21 August that money lives on Finance and nowhere else. Sabotage-verified twice:
+2 checks fail with the warning gone, 1 with the credit-limit condition flipped.
+
+Both sabotages ran against a **copy** of the app through the mock's `APP_DIR`, so the repository was
+never edited and the battery running at the same time was unaffected — the habit adopted in #117.
+
 ## Routine fire #117 (2026-09-20 ~09:00 UTC) — the sentence that keeps the profit figure honest had no guard
 
 The money screen, read against the real database with one question: **where the app shows a profit
