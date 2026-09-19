@@ -1,3 +1,34 @@
+## Routine fire #110 (2026-09-20 ~00:15 UTC) — counting every store against the database
+
+Two rounds in a row started the same way: the database holds N, the app holds fewer, so which ones
+and why. That found the airlines gap (#104) and the two hidden people (#109). This round did it
+deliberately, for every store the app mirrors, against the live database.
+
+| store | database | in the app | verdict |
+|---|---|---|---|
+| businesses | 108 live (112 − 4 archived) | 108 | ✅ agree |
+| contacts | 45 | 45 | ✅ agree, and all 36 companies match row for row (fixed in #109) |
+| activities | 65 across 38 companies | 68, nothing missing | ✅ the 3 extra are entries kept in the company record rather than the table |
+| providers → Providers & GDS | 23 | 23 | ✅ agree |
+| SOPs · Service Levels | 12 · 14 | 12 · 14 | ✅ agree |
+| events | 80 | 80 (43 ahead + 37 past) | ✅ agree (verified in #107) |
+| airlines | 139 in the table | 136 | ⚠️ known: the app reads the workspace record, not that table — recorded in #104, your call |
+| master_db_companies | 200 | read by nothing | ✅ intended: the travel-agencies database is built away from the app by your decision of 2026-08-13 |
+| promo codes · funnels | 200 · 7 | read on Finance · loaded at start | ✅ reachable |
+
+**Activities were the obvious next place to look**, since they come through the same bridge that
+hid the two contacts. Their rule is stricter — it needs the note *and* the day to match — and on the
+live data there is no pair that shares both, so nothing is being collapsed. Checked rather than
+assumed, and recorded so it is not re-checked.
+
+**One case from the real data is now written into the guard.** Two companies each record one *name*
+twice with a different email and a different phone on each row. That may be one person whose details
+changed, or two namesakes — the app cannot tell, so it keeps both and the person decides. The
+alternative, quietly picking one, is exactly what threw a working phone number away. The probe now
+asserts it, so it stays a decision rather than an accident. Sabotage-verified at 5 failing checks.
+
+3 gates green. No app code changed this round.
+
 ## Routine fire #109 (2026-09-19 ~23:30 UTC) — two people who share a phone number, and one of them disappeared
 
 Contacts (45 in the database) had not been driven this session. Counting them against the app found

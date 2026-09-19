@@ -22,7 +22,11 @@
    This probe serves its own contact rows through its own route, so the shared mock is untouched
    and the case is exact. Everything in it is invented.
 
-   Sabotage-tested 2026-09-19: with the name guard removed, 4 checks go FAIL, exit 1, and the
+   It also holds the other case the live data has: one NAME on two rows with a different email AND
+   a different phone on each. That may be one person whose details changed or two namesakes; the app
+   cannot tell, so both are kept and the person decides. Asserted so it stays a decision.
+
+   Sabotage-tested 2026-09-19: with the name guard removed, 5 checks go FAIL, exit 1, and the
    detail is the defect itself — the card drops to two people, "Amal Al-Rashid, Dalia Noor",
    having swallowed the colleague on the shared mailbox and the colleague on the shared
    switchboard.
@@ -102,8 +106,24 @@ async function run(lang) {
     const t = (document.getElementById('view') || {}).innerText || '';
     return ['Amal Al-Rashid', 'Bandar Al-Otaibi', 'Christine Haddad', 'Dalia Noor'].filter((n) => t.indexOf(n) >= 0);
   });
+
+  /* The live database holds this case twice: one NAME recorded on two rows with a different email
+     AND a different phone on each. It may be one person whose details changed, or two namesakes —
+     the app cannot tell, and the master brief says a mismatch is flagged, never silently merged.
+     So both are kept and the person decides. Asserted here so it stays a decision rather than an
+     accident: the alternative, picking one, is what threw a working phone number away. */
+  ROWS = ROWS.concat([{ id: 'qa_c6', business_id: target.uuid, name: 'Amal Al-Rashid', role: 'Reception',
+    email: 'a.rashid.new@qa-example.test', phone: '+966 55 999 8888', needs_manual_confirmation: false, confirmation_reason: null }]);
+  await p.evaluate(() => { try { window.v72Apply(function () { }); } catch (_) { } });
+  await p.waitForTimeout(3000);
+  const twice = await p.evaluate((id) => {
+    const b0 = (DB.businesses || []).find((x) => x.id === id) || {};
+    const names = (b0.contacts || []).map((c) => String(c.name || '').trim());
+    return { count: names.length, amal: names.filter((n) => n === 'Amal Al-Rashid').length };
+  }, target.id);
+
   await ctx.close();
-  return { got, onScreen };
+  return { got, onScreen, twice };
 }
 
 const en = await run('en');
@@ -126,6 +146,9 @@ const checks = [
     en.got.count === 4 && ar.got.count === 4, 'EN ' + en.got.count + ' · AR ' + ar.got.count],
   ['all four are readable on the card itself, in both languages',
     en.onScreen.length === 4 && ar.onScreen.length === 4, JSON.stringify({ en: en.onScreen.length, ar: ar.onScreen.length })],
+  ['the same name recorded twice with different details keeps both, rather than throwing one away',
+    en.twice.count === 5 && en.twice.amal === 2 && ar.twice.count === 5,
+    JSON.stringify({ en: en.twice, ar: ar.twice })],
   ['reading the card wrote nothing', wrote.filter((w) => !/finance_client_links|contacts/.test(w)).length === 0],
   ['no JS errors', errors.length === 0],
 ];
