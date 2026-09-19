@@ -131,7 +131,25 @@ export function start(port){
       // never pass here. Minimal honest mirror: inserts land (with ids), updates apply by id.
       if(fn==='fn_commit_finance_import'&&parsed){
         const t=(TABLES.finance_invoices=TABLES.finance_invoices||[]); let inserted=0, updated=0;
-        (Array.isArray(parsed.p_insert)?parsed.p_insert:[]).forEach(row=>{ const r={...row}; delete r.year; r.id=r.id||('seed-fi-'+Math.random().toString(36).slice(2,10)); t.push(r); inserted++; });
+        /* 2026-09-19 (fire #102): this handler pushed every row it was given, so it would happily
+           store the SAME invoice three times — which the real database cannot do. Read live:
+           finance_invoices carries `UNIQUE (invoice_no, line_no)`, and fn_commit_finance_import
+           inserts p_insert with a plain INSERT and no ON CONFLICT, inside one function call. So a
+           clash raises and the WHOLE call lands nothing. Without this, a probe could "prove" a
+           duplication the database prevents — and could never see the failure mode that really
+           happens, which is one duplicate row costing the entire batch. The main mock
+           (mock-supabase.mjs) has always checked this; this one did not. */
+        const pIns=Array.isArray(parsed.p_insert)?parsed.p_insert:[];
+        const key=r=>String(r.invoice_no==null?'':r.invoice_no)+'|'+String(r.line_no==null?1:r.line_no);
+        const seen={}; t.forEach(r=>{ seen[key(r)]=1; });
+        for(const row of pIns){
+          const k=key(row);
+          if(seen[k]) return send(res,409,JSON.stringify({code:'23505',
+            message:'duplicate key value violates unique constraint "finance_invoices_invoice_line_key"',
+            details:'Key (invoice_no, line_no)=('+String(row.invoice_no)+', '+String(row.line_no==null?1:row.line_no)+') already exists.'}));
+          seen[k]=1;
+        }
+        pIns.forEach(row=>{ const r={...row}; delete r.year; r.id=r.id||('seed-fi-'+Math.random().toString(36).slice(2,10)); t.push(r); inserted++; });
         (Array.isArray(parsed.p_update)?parsed.p_update:[]).forEach(row=>{ const i=t.findIndex(r=>r.id===row.id); if(i>=0){ const r={...row}; delete r.year; t[i]={...t[i],...r}; updated++; } });
         return send(res,200,JSON.stringify({inserted,updated,capture_lines:0,capture_gates:0}));
       }

@@ -41,6 +41,31 @@ app reads "New 1 · Confirm import", the owner's original complaint reproduced o
 the stand-down, 4 fail on the fallback. js/65 was run sabotaged and restored byte-for-byte; the
 oversight lane is read and tested, never edited. 3 gates green.
 
+### What the fix exposed in the QA harness itself — and a hazard it closed
+
+Making the older path stand down turned one battery probe red, and that red was worth more than the
+probe was. `probe-landmines` reached the retired importer by calling its function directly, and six
+of its checks were written against that importer's wording. Two things came out of fixing it.
+
+**A hazard, now closed and guarded.** With the stand-down disabled, dropping the app's **own Finance
+ledger export** back onto the Import tab was refused the first time and offered as *"Confirm import
+of 3 rows"* the second — which would have fed the app's own derived revenue, cost and profit back in
+as though they had come from Direct Payments. Refusing that file is exactly what js/65 was built to
+do, and it was being overridden by a second importer on every drop after the first. The probe now
+drops that file twice and requires it to be refused both times, with no Confirm button either time.
+
+**The harness was more permissive than the database.** `mock-seed-live.mjs` stored every row it was
+handed, so hammering the commit three times "landed" 3,000 invoices. The live database cannot do
+that: `finance_invoices` carries `UNIQUE (invoice_no, line_no)` and `fn_commit_finance_import`
+inserts with a plain INSERT inside one call, so a clash lands nothing (both read from the live
+database, not assumed). The mock now answers `23505` the way Postgres does — otherwise a probe can
+prove a duplication that cannot happen, and can never see the failure that does: one duplicate row
+costing the whole batch.
+
+**And no double-submit defect after all.** Driven by hand: once an import succeeds the Confirm button
+is replaced by *"Done. Imported N new"*, so there is nothing left to press. Three commits in one tick
+is not something a person can do — the same lesson as the rest of this round, arriving a third time.
+
 ### Found on the way, measured, not yet fixed — Excel exports whose dates are not dd/mm/yyyy
 
 With both importers no longer fighting, the router's own answer became readable, and it says this

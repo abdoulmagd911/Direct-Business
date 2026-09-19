@@ -1,5 +1,17 @@
 /* Landmine probe — adversarial scenarios: bad files, hostile names, undo paths,
-   double-clicks, Excel-mangled CSVs, Arabic digits, two tabs on one record. */
+   double-clicks, Excel-mangled CSVs, Arabic digits, two tabs on one record.
+
+   2026-09-19 (fire #102) — the import half (L7-L12) was rewritten. It used to call `finParse()`,
+   which reached js/16's legacy ledger-CSV importer. That importer is not something a person can
+   reach any more: js/65's router owns the drop zone, the file input and the button. Worse, it was
+   a path that should not exist — with js/41's stand-down disabled, dropping the app's OWN Finance
+   ledger export back in was refused on the first drop and offered as "Confirm import of 3 rows" on
+   the second, which would have fed the app's derived revenue, cost and profit back in as though
+   Direct Payments had said them. These checks now hand each file to the input the way the picker
+   does, so the router answers, and L10 guards that exact hazard instead of the retired importer's
+   soft warning. L9 moved its Arabic-Indic amount into a Direct Payments export and reads the
+   stored figure back from the database, because in the ledger format the file is refused outright
+   and the money would never have been read at all. */
 import { start } from './mock-seed-live.mjs';
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
@@ -140,48 +152,112 @@ await nav(/^(Finance|المالية)$/);
 await page.waitForTimeout(1400);
 await page.locator('#view button, #view .btn').filter({ hasText: /Import|استيراد/ }).first().click();
 await page.waitForTimeout(800);
-const tryFile = async (name, content) => {
+/* 2026-09-19 (fire #102): these used to call finParse() directly, which reached js/16's legacy
+   ledger-CSV importer. That importer is no longer something a person can reach — js/65's router
+   owns the drop zone, the file input and the button — and reaching it by calling the function was
+   measuring a path nobody has. Worse, it was measuring a path that should not exist: with js/41's
+   stand-down disabled, dropping the app's OWN Finance-ledger export back in was refused on the
+   first drop and offered as "Confirm import of 3 rows" on the second, which would put the app's
+   derived revenue/cost/profit back in as though they were figures from Direct Payments.
+   These now hand the file to the input the way the file picker does, so the router answers, and
+   they wait for its reply rather than a fixed 900ms. */
+const ingest = async (name, content) => {
   fs.writeFileSync('shots/' + name, content);
+  await page.evaluate(() => { const b = document.getElementById('finImpOut'); if (b) b.innerHTML = ''; });
   await page.setInputFiles('#finFile', 'shots/' + name);
-  await page.evaluate(() => finParse());
-  await page.waitForTimeout(900);
-  return await page.evaluate(() => (document.getElementById('finImpOut').textContent || '').replace(/\s+/g, ' '));
+  await page.waitForFunction(() => /Files dropped|Ready to import|Header does not match/.test(
+    (document.getElementById('finImpOut') || {}).textContent || ''), { timeout: 30000 }).catch(() => { });
+  await page.waitForTimeout(1200);
+  return await page.evaluate(() => ({
+    text: (document.getElementById('finImpOut').textContent || '').replace(/\s+/g, ' '),
+    confirm: !![].slice.call(document.querySelectorAll('#finImpOut button')).find(x => /Confirm import|تأكيد الاستيراد/.test(x.textContent || '')),
+  }));
+};
+const tryFile = async (name, content) => (await ingest(name, content)).text;
+/* one Direct Payments export, built the way the real one is shaped: an invoice row and its item
+   row per invoice. This is the format the router imports, so the checks below that need a file it
+   WILL take use this rather than the retired ledger format. */
+const DPHEAD = ['Type', 'Invoice Reference #', 'Invoice Number', 'Invoice Create Date', 'Invoice Status',
+  'Customer Name', 'Product', 'Name', 'Item Is Taxable', 'Item Discount', 'Item Total', 'Invoice Total', 'Sale Branch', 'Salesman'];
+const dpCsv = (invoices) => {
+  const q = (r) => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',');
+  const out = [q(DPHEAD)];
+  invoices.forEach(({ no, cust, date, total }) => {
+    out.push(q(['invoice', no, no, date, 'Paid', cust, 'Direct Flights', '', '', '', '', total, 'QA Branch', 'QA Seller']));
+    out.push(q(['item', no, '', '', '', cust, 'Direct Flights', 'Service fee', 'Yes', '0', total, total, 'QA Branch', 'QA Seller']));
+  });
+  return out.join('\r\n');
 };
 const HDRB = 'client_group,month,quarter,invoice_no,zatca_dpin,customer_raw_name,invoice_date,products,total_incl_vat_sar,wallet_portion_sar,revenue_sar,cost_sar,profit_sar,integrity_status,notes';
 // L6 binary junk pretending to be a CSV
 let out = await tryFile('junk.csv', '%PDF-1.4\x00\x01\x02 binary junk not a csv \xff\xfe');
 STEP('L6 binary junk .csv: clear header error, no crash', /Header does not match/.test(out), out.slice(0, 90));
 // L7 header-only
-out = await tryFile('empty.csv', HDRB);
-STEP('L7 header-only CSV: 0 rows, no confirm button, no crash', /Ready to import: 0/.test(out) && !/Confirm import/.test(out));
+let res = await ingest('empty.csv', HDRB);
+STEP('L7 header-only file: nothing offered for import, no confirm button, no crash',
+  !res.confirm && /not recognized|Ready to import: 0|New 0/.test(res.text), res.text.slice(0, 120));
 // L8 Excel-mangled: semicolons and uppercase
 out = await tryFile('semi.csv', HDRB.replace(/,/g, ';') + '\nA;B');
-const semiOK = /Header does not match/.test(out);
+const semiOK = /Header does not match|not recognized/.test(out);
 out = await tryFile('upper.csv', HDRB.toUpperCase() + '\na,b');
-STEP('L8 semicolon + UPPERCASE headers: both rejected with the found-header shown', semiOK && /Header does not match/.test(out));
-// L9 Arabic-Indic digits in amounts → flagged, never silently zeroed into the ledger
-out = await tryFile('ardigits.csv', HDRB + '\nTest Co,August,Q3,DP-AR01,,Test Co,2026-08-05,Hotel booking,٢٣٠٠٠,0,23000,20000,3000,verified_paid,');
-STEP('L9 Arabic-numeral amount: row FLAGGED (revenue mismatch), not imported wrong', /Flagged for review.*1/.test(out) && /DP-AR01/.test(out), out.slice(0, 160));
-// L10 unknown proposal_ref soft warning
-out = await tryFile('unkref.csv', HDRB + ',origin,proposal_ref\nTest Co,August,Q3,DP-UR01,,Test Co,2026-08-05,Visa run,4600,0,4600,4000,600,verified_paid,,project,DB-DOES-NOT-EXIST');
-STEP('L10 unknown proposal ref: imports but WARNS it does not exist yet', /Ready to import: 1/.test(out) && /not in the app yet/.test(out), out.slice(0, 200));
+STEP('L8 semicolon + UPPERCASE headers: both rejected, and the app says the header did not match',
+  semiOK && /Header does not match|not recognized/.test(out), out.slice(0, 120));
+/* L9 Arabic-Indic digits in an amount. The old fixture put them in a ledger-format file, which is
+   now refused outright, so the money would never have been read at all and the check could not
+   fail for the reason it names. It goes in a Direct Payments export instead, is imported for real,
+   and the stored figure is read back from the database — 23,000, never a silent 0. */
+res = await ingest('ardigits.csv', dpCsv([{ no: 'QA-AR01', cust: 'Arabic Digits Co', date: '05/08/2026', total: '٢٣٠٠٠' }]));
+await page.evaluate(() => { if (typeof v65Commit === 'function') v65Commit(); });
+await page.waitForTimeout(3500);
+const arStored = await page.evaluate(async () => {
+  const r = await fetch('http://127.0.0.1:8919/rest/v1/finance_invoices?invoice_no=eq.QA-AR01').then(x => x.json());
+  return Array.isArray(r) && r.length ? Number(r[0].total_incl_vat_sar) : null;
+});
+STEP('L9 an amount written in Arabic-Indic digits is read as the number it is, never a silent zero',
+  arStored === 23000, 'stored=' + JSON.stringify(arStored));
+/* L10 replaces the old unknown-proposal-ref warning, which belonged to the retired importer. This
+   is the hazard that retirement closed: the app's OWN ledger export, dropped back in. Before
+   2026-09-19 it was refused the first time and offered as "Confirm import" the second, which would
+   have fed the app's derived revenue, cost and profit back in as if Direct Payments had said them.
+   It must be refused EVERY time, with no confirm button either time. */
+const ledgerExport = HDRB + '\r\n' + [0, 1, 2].map(i =>
+  `Ledger Co,August,Q3,QA-LED-${i},,Ledger Co,2026-08-05,Flight ticket,${1000 + i},0,${1000 + i},${800 + i},200,verified_paid,`).join('\r\n');
+const led1 = await ingest('ledger-export.csv', ledgerExport);
+const led2 = await ingest('ledger-export-again.csv', ledgerExport);
+STEP('L10 the app\'s own ledger export, dropped back in, is refused BOTH times and never offers a confirm button',
+  !led1.confirm && !led2.confirm && /report|not recognized/i.test(led1.text) && /report|not recognized/i.test(led2.text),
+  JSON.stringify({ first: led1.confirm, second: led2.confirm }));
 await SHOT('import-warnings');
-// L11 1,000-row file: parses fast, single confirm, double-click cannot double-import
-const big = [HDRB];
-for (let i = 0; i < 1000; i++) big.push(`Bulk Co ${i % 7},August,Q3,DP-BULK-${i},TTIN-B${i},Bulk Co,2026-08-0${(i % 8) + 1},Flight ticket,${1000 + i},0,${1000 + i},${800 + i},200,verified_paid,`);
+// L11 1,000-invoice file: parses fast, single confirm, double-click cannot double-import
+const bulk = []; for (let i = 0; i < 1000; i++) bulk.push({ no: 'QA-BULK-' + i, cust: 'Bulk Co ' + (i % 7), date: '0' + ((i % 8) + 1) + '/08/2026', total: String(1000 + i) });
 const t0 = Date.now();
-out = await tryFile('big.csv', big.join('\r\n'));
+res = await ingest('big.csv', dpCsv(bulk));
 const parseMs = Date.now() - t0;
-STEP('L11 1000-row CSV parses + previews fast', /Ready to import: 1000/.test(out) && parseMs < 8000, parseMs + 'ms');
-await page.evaluate(() => { finCommit(); finCommit(); finCommit(); }); // hammer the button
-await page.waitForTimeout(4000);
+STEP('L11 a 1000-invoice export parses and previews fast', /New 1000|1000 new/.test(res.text) && parseMs < 60000, parseMs + 'ms · ' + res.text.slice(0, 120));
+/* What actually protects a person here is that the Confirm button is REPLACED by "Done. Imported
+   N new…" the moment the import succeeds — driven 2026-09-19: after one commit there is no button
+   left to click, so the double-submit this check is named for cannot be performed by hand at all.
+   Calling the commit function three times in one tick is not something a person can do; it is kept
+   because it drives the invariant underneath — the database's UNIQUE (invoice_no, line_no), which
+   fn_commit_finance_import meets with a plain INSERT inside one transaction, so a clash lands
+   nothing. (Until 2026-09-19 the seed mock pushed every row regardless and this "proved" 3000 rows
+   the real database cannot hold; it now answers 23505 the way Postgres does.) */
+const confirmGone = await page.evaluate(async () => {
+  v65Commit(); await new Promise(r => setTimeout(r, 5000));
+  const btn = [].slice.call(document.querySelectorAll('#finImpOut button')).find(x => /Confirm import|تأكيد الاستيراد/.test(x.textContent || ''));
+  return { gone: !btn, said: (document.getElementById('finImpOut').textContent || '').replace(/\s+/g, ' ').slice(0, 80) };
+});
+STEP('L11b once the import succeeds the Confirm button is gone, so it cannot be pressed twice by hand',
+  confirmGone.gone && /Done|تم/.test(confirmGone.said), JSON.stringify(confirmGone));
+await page.evaluate(() => { v65Commit(); v65Commit(); }); // and the invariant underneath it
+await page.waitForTimeout(6000);
 const bulkCount = await page.evaluate(async () => {
   // page through the API (it caps at 1000 rows per request, like real PostgREST)
   let all = [], from = 0;
   while (true) { const r = await fetch('http://127.0.0.1:8919/rest/v1/finance_invoices', { headers: { Range: from + '-' + (from + 999) } }).then(x => x.json()); all = all.concat(r); if (r.length < 1000) break; from += 1000; }
-  return all.filter(x => String(x.invoice_no || '').startsWith('DP-BULK-')).length;
+  return all.filter(x => String(x.invoice_no || '').startsWith('QA-BULK-')).length;
 });
-STEP('L12 triple-click Confirm: exactly 1000 rows land, not 2000/3000', bulkCount === 1000, 'rows=' + bulkCount);
+STEP('L12 committing the same batch again cannot duplicate it: exactly 1000 rows, not 2000/3000', bulkCount === 1000, 'rows=' + bulkCount);
 
 // ===== L13 · Two tabs, same company, both save — what really happens =====
 const page2 = await ctx.newPage();

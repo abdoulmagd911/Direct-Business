@@ -569,6 +569,12 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **A mock that is kinder than the database is a probe that cannot see (2026-09-19, fire #102).**
+  `mock-seed-live.mjs` stored every row handed to it, so a probe "proved" 3,000 invoices landing
+  from three commits. The live database has `UNIQUE (invoice_no, line_no)` and commits with a plain
+  INSERT in one call, so a clash lands nothing at all. A permissive mock invents failures that
+  cannot happen and hides the one that does — one duplicate row costing the whole batch. When a
+  probe finds something alarming in the harness, read the real constraint before believing it.
 - **Two handlers on one node is a coin toss, not a fallback (2026-09-19, fire #102).** When a layer
   replaces a node to take over an interaction, anything that attaches from a timeout re-attaches to
   the new node afterwards. Both then run. If they disagree — and here one enforced the ledger's
