@@ -16,17 +16,25 @@
           nothing was written
       That is the behaviour on screen today, and the first half of this probe holds it there.
 
-   2. THE FALLBACK. js/41 wraps `window.finParse` — js/16's older single-file checker — and that
-      wrapper is what js/65's wiring supersedes. Its index was built from EVERY row in FIN.rows,
-      deleted ones included, so it answered "↩ Skipped (already in the ledger): 1" for a row that is
-      not in the ledger. Nothing said the number had ever been seen, and nothing said why it had not
-      come back. The line directly below that index already checked `!r.deleted_at` for its own
-      purposes: the distinction was known there and simply not applied.
+   2. THE OLDER PATH, WHICH WAS RUNNING TOO. js/41 wraps `window.finParse` — js/16's older
+      single-file checker. Its index was built from EVERY row in FIN.rows, deleted ones included, so
+      it answered "↩ Skipped (already in the ledger): 1" for a row that is not in the ledger. The
+      line directly below that index already checked `!r.deleted_at` for its own purposes: the
+      distinction was known there and simply not applied.
 
-      This was **not reachable from the Import tab as it is drawn today** — that was measured, by
-      dropping a file, not assumed — so it is a landmine rather than a defect anyone was hitting.
-      It was fixed anyway, because the whole point of a fallback is the day the thing in front of it
-      does not wire, and js/65's wiring is itself only guarded by one probe.
+      A first pass concluded this path was unreachable, because one dropped file produced js/65's
+      answer. **Four dropped files said otherwise.** js/16 attaches its drop listener from a
+      `setTimeout(...,0)` that runs AFTER js/65 has replaced the drop-zone node, so the node carries
+      BOTH handlers and every file was read twice — `finParse` was called on all four drops. Which
+      answer a person read was simply whichever finished last: js/65 on the first Excel file (js/41
+      must fetch SheetJS from a CDN before it can read one at all) and js/41 on every file after it.
+      The two do not agree — js/65 refuses a deleted invoice, holds back a row whose date it cannot
+      read so the rest of the file still lands, and dedupes numbers within a file; js/41 does none
+      of that, and the Confirm button under its preview is a different commit path. So the guards
+      protecting the ledger came and went with the number of files already dropped.
+
+      js/41 now stands down when the router owns the panel, and stays as a genuine fallback for the
+      day the router is not wired.
 
    Deleted numbers are now kept apart on both paths and reported in plain words, never counted as
    ordinary duplicates and never silently resurrected — restoring one is the owner's decision. A
@@ -43,6 +51,9 @@
        oversight lane is not edited): 3 checks FAIL, and the preview reads "New 1 · Excluded by
        rule 0 · Confirm import — 1 new", offering to put the deleted invoice straight back. That
        is the owner's original complaint, reproduced on demand.
+     · stand-down — with js/41's stand-down disabled: 1 check FAILS. Only one, and honestly so:
+       with a CSV both importers still leave js/65's answer on screen, so the visible outcome
+       cannot flip here. See that check's own comment.
    Run: node scripts/qa/probe-import-does-not-call-a-deleted-invoice-present.mjs                    */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
@@ -145,31 +156,44 @@ async function realDrop() {
       d = Object.assign({}, FIN.rows[0], { id: 'qa_del_drop', invoice_no: 'QA-DELETED-DROP', deleted_at: '2026-09-01T00:00:00Z', client_group: 'QA Fixture Company' });
       FIN.rows = FIN.rows.concat([d]); }
     window.__qaNo = d.invoice_no; window.__qaCust = d.client_group || d.customer_raw_name || 'QA Fixture Company';
+    window.__qaDrop = function (fileName) {
+      const no = window.__qaNo, cust = window.__qaCust;
+      const HEAD = ['Type', 'Invoice Reference #', 'Invoice Number', 'Invoice Create Date', 'Invoice Status',
+        'Customer Name', 'Product', 'Name', 'Item Is Taxable', 'Item Discount', 'Item Total', 'Invoice Total', 'Sale Branch', 'Salesman'];
+      const rows = [HEAD,
+        ['invoice', no, no, '14/03/2026', 'Paid', cust, 'Direct Flights', '', '', '', '', '1150.00', 'QA Branch', 'QA Seller'],
+        ['item', no, '', '', '', cust, 'Direct Flights', 'Service fee', 'Yes', '0', '1150.00', '1150.00', 'QA Branch', 'QA Seller']];
+      const csv = rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const dt = new DataTransfer(); dt.items.add(new File([csv], fileName, { type: 'text/csv' }));
+      const dz = document.getElementById('finDrop'); if (!dz) return false;
+      const box = document.getElementById('finImpOut'); if (box) box.innerHTML = '';
+      dz.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+      return true;
+    };
+    window.__qaRead = function () {
+      const el = document.getElementById('finImpOut');
+      let t = (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
+      if (window.__qaNo) t = t.split(window.__qaNo).join('<INVOICE-NO>');   /* rule 7 */
+      return t;
+    };
     return { invented };
   });
 
-  const droppedOk = await p.evaluate(() => {
-    const no = window.__qaNo, cust = window.__qaCust;
-    const HEAD = ['Type', 'Invoice Reference #', 'Invoice Number', 'Invoice Create Date', 'Invoice Status',
-      'Customer Name', 'Product', 'Name', 'Item Is Taxable', 'Item Discount', 'Item Total', 'Invoice Total', 'Sale Branch', 'Salesman'];
-    const rows = [HEAD,
-      ['invoice', no, no, '14/03/2026', 'Paid', cust, 'Direct Flights', '', '', '', '', '1150.00', 'QA Branch', 'QA Seller'],
-      ['item', no, '', '', '', cust, 'Direct Flights', 'Service fee', 'Yes', '0', '1150.00', '1150.00', 'QA Branch', 'QA Seller']];
-    const csv = rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
-    const dt = new DataTransfer(); dt.items.add(new File([csv], 'dp-export.csv', { type: 'text/csv' }));
-    const dz = document.getElementById('finDrop'); if (!dz) return false;
-    dz.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
-    return true;
-  });
+  const drop1 = await p.evaluate(() => window.__qaDrop('dp-export.csv'));
   await p.waitForTimeout(9000);
-  const text = await p.evaluate(() => {
-    const el = document.getElementById('finImpOut');
-    let t = (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
-    if (window.__qaNo) t = t.split(window.__qaNo).join('<INVOICE-NO>');   /* rule 7 */
-    return t;
-  });
+  const text = await p.evaluate(() => window.__qaRead());
+
+  /* 2026-09-19: the SECOND drop is the one that used to change hands. js/16 attaches its own drop
+     listener from a setTimeout that runs after js/65 has replaced the node, so both handlers sit on
+     it and every file was read twice; whichever finished last wrote the box. Driven with four Excel
+     exports in one session, js/65 answered the first and js/41 answered every one after — the
+     guards that protect the ledger appeared or vanished with the number of files already dropped. */
+  const drop2 = await p.evaluate(() => window.__qaDrop('dp-export-again.csv'));
+  await p.waitForTimeout(9000);
+  const second = await p.evaluate(() => ({ text: window.__qaRead(), stoodDown: window.__v41_stoodDown || 0 }));
+
   await ctx.close();
-  return { wiring, seeded, droppedOk, text };
+  return { wiring, seeded, droppedOk: drop1 && drop2, text, second };
 }
 
 const en = await run('en');
@@ -197,6 +221,16 @@ const checks = [
   ['it says what to do about it, and that nothing was written',
     /restore it first/i.test(drop.text) && /nothing was written/i.test(drop.text)],
   ['nothing was imported from that file', /New 0/.test(drop.text)],
+  /* The second file in one session is the drop that used to change hands. Both halves are asserted
+     as ONE check on purpose: with a CSV, js/65 happens to finish last either way, so the visible
+     outcome alone cannot fail here and would be a check that only looks like one — the race was
+     measured with Excel, where js/41 must fetch SheetJS before its first file and is the faster of
+     the two on every file after. What does fail, and what the fix actually is, is the older path
+     being asked and standing down instead of reading the same file a second time. */
+  ['a second file in the same session is answered by the same importer, and the older path was asked and stood down instead of reading it again',
+    /Excluded by rule/i.test(drop.second.text) && /deleted in this app/i.test(drop.second.text)
+    && !/Direct Payments export detected/i.test(drop.second.text)
+    && drop.second.stoodDown >= 2],
   /* the fallback path, driven directly */
   ['the preview really ran in both languages, so nothing below passes by absence', !!en.text && !!ar.text && !en.err && !ar.err],
   ['the one brand-new invoice is the only one offered for import', enReady === 1],

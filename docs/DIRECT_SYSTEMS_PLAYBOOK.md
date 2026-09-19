@@ -560,14 +560,20 @@ now exists specifically because of each one:
   held the same line, unfixed, for another 17 days. A fix written in one layer does not travel to
   the layer it wraps; the question "does any other layer still do the old thing?" is one grep, and
   it is the cheapest defect this project has.
-- **Calling a function is not using the app (2026-09-19, fire #102).** The twin above was found by
-  driving js/41's preview through a test hook, and written up as what a person sees. It is not:
-  js/65 replaces the drop-zone node, sets the file input's own onchange and rewrites the button, so
-  a real drop never reaches it. One actual file drop settled in a minute what a hook could not say
-  at all. **A layer being loaded is not evidence that it runs** — before calling something a live
-  defect, reach it the way a person does. The fix still belongs (a fallback exists for the day the
-  wiring fails), but a landmine and a defect are not the same claim, and the record has to say
-  which one it is.
+- **Calling a function is not using the app — and one use is not using it either (2026-09-19,
+  fire #102).** The twin above was found by driving js/41's preview through a test hook and written
+  up as what a person sees. A single real file drop then showed js/65's answer instead, so it was
+  re-written up as unreachable. **Four drops showed the truth:** js/16 attaches its drop listener
+  from a `setTimeout(...,0)` that runs after js/65 has replaced the drop-zone node, so the node
+  carries both handlers, every file is read twice, and the answer on screen is whichever importer
+  finished last — which changed with the number of files already dropped. A hook proved nothing; one
+  drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
+  order a person would.** State-dependent defects are invisible to a single try.
+- **Two handlers on one node is a coin toss, not a fallback (2026-09-19, fire #102).** When a layer
+  replaces a node to take over an interaction, anything that attaches from a timeout re-attaches to
+  the new node afterwards. Both then run. If they disagree — and here one enforced the ledger's
+  guards and the other did not — the visible answer is a race. A fallback has to check whether the
+  thing in front of it is wired and stand down; being second is not the same as being a fallback.
 - **A soft-deleted row is still in memory, and is not "there" (2026-09-19, fire #102).** `finLoad()`
   reads `finance_invoices` with no deleted filter on purpose, because the Ledger offers Restore. Any
   code that asks "do we already have this?" against `FIN.rows` must say which kind of row it means.

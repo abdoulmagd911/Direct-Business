@@ -290,9 +290,33 @@
     document.head.appendChild(s);
   }
 
+  /* 2026-09-19 (fire #102, second half): TWO IMPORTERS WERE READING EVERY DROPPED FILE.
+     js/16's rImport() attaches its own drop listener from a `setTimeout(...,0)`, which runs AFTER
+     js/65's wiring has cloned and replaced the drop-zone node. Cloning strips js/65's listener from
+     nothing — the new node is bare — so js/65 wires it, and then js/16's timeout finds that same new
+     node, sees no `__wired` flag of its own, and adds its listener too. The node ends up carrying
+     BOTH. Measured by dropping four Excel exports in one session: `finParse` was called on every
+     single drop, alongside js/65's router, and the preview a person reads is simply whichever of the
+     two finished last — js/65 on the first file (this path has to fetch SheetJS from a CDN before it
+     can read an xlsx at all) and THIS path on every file after it.
+     They do not agree. js/65 refuses an invoice the owner deleted and says why, holds back a row
+     whose date it cannot read so the rest of the file still lands, and dedupes numbers inside one
+     file. This path does none of that, and the "Confirm import" button under its preview is a
+     different commit path from js/65's. So the guards that protect the ledger were there or not
+     depending on how many files you had dropped before this one.
+     When the router owns the panel it owns the file too: stand down. This wrapper stays for the day
+     the router is not wired — that is what a fallback is for — and `__v41_stoodDown` lets a probe
+     see which of the two answered without guessing from the wording. */
+  function v65OwnsPanel(){
+    try{
+      var dz=document.getElementById('finDrop'), inp=document.getElementById('finFile');
+      return !!(dz&&dz.__v65&&inp&&typeof inp.onchange==='function'&&typeof window.v65CheckFiles==='function');
+    }catch(_){ return false; }
+  }
   // wrap finParse: Direct Payments files take the new path; the legacy CSV keeps the old one
   var _fp=window.finParse;
   window.finParse=function(){
+    if(v65OwnsPanel()){ window.__v41_stoodDown=(window.__v41_stoodDown||0)+1; return; }
     try{
       var f=document.getElementById('finFile').files[0];
       if(f&&/\.xlsx?$/i.test(f.name)){ readXlsx(f,function(rows2d){ if(rows2d&&rows2d.length&&isDPHeader(rows2d[0]))runDP(rows2d); else document.getElementById('finImpOut').innerHTML='<div style="color:#D92D20;font-size:13px">'+fl('This Excel file is not a Direct Payments invoice export.','هذا الملف ليس تصدير فواتير من Direct Payments.')+'</div>'; }); return; }

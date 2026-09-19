@@ -1,52 +1,61 @@
-## Routine fire #102 (2026-09-19 ~12:30 UTC) — an invoice you deleted, and two import paths that disagreed
+## Routine fire #102 (2026-09-19 ~12:30 UTC) — two importers were reading every file you drop
 
 #101 finished the Leads interactions, so this round went to the one screen that writes money:
-dropping a Direct Payments export onto Finance.
+dropping a Direct Payments export onto Finance. It took three passes to get the story right, and the
+wrong turns are written down because they are the lesson.
 
-**The behaviour on screen today is correct, and that was measured, not assumed.** A file really
-dropped on the Import tab reads:
+**Pass 1 — a real defect, in js/41.** The app's older import path built its "already imported" list
+from *every* invoice in memory, including the ones you had deleted. `finLoad()` reads the ledger with
+no deleted filter **on purpose**, because the Ledger offers Restore, and the live database holds **45
+deleted invoices, none of which also has a live copy**. Fed one of those numbers, that path answered
+*"↩ Skipped (already in the ledger): 1"* — which is not true of an invoice you deleted. js/65 fixed
+exactly this on 2026-09-02, in the owner's own words: *"I deleted it, dropped the file again, it said
+updated, and the invoice never came back."* This path kept the unfixed twin.
 
-> Excluded by rule 1 — <invoice no>: deleted in this app — restore it first, then re-import;
-> nothing was written
+**Pass 2 — I called it unreachable. It was not.** One dropped file produced js/65's answer, so I
+wrote it up as a landmine. Four dropped files told the truth: **js/16 attaches its drop listener from
+a `setTimeout(…,0)` that runs after js/65 has replaced the drop-zone, so the zone ends up carrying
+both handlers and every file is read twice.** `finParse` was called on all four drops. Which answer
+you read is simply whichever finished last — js/65 on the first Excel file (the older path has to
+fetch its Excel reader from the internet first) and **the older path on every file after it**.
 
-That is js/65's doing. It fixed this on 2026-09-02, and its comment records the owner's own words:
-*"I deleted it, dropped the file again, it said updated, and the invoice never came back."*
+**Why that matters.** The two do not agree. js/65 refuses an invoice you deleted and says why, holds
+back a row whose date it cannot read so the rest of the file still lands, and catches a number that
+appears twice in one file. The older path does none of that, and the Confirm button under its preview
+is a different write path. So **the protections on your ledger came and went depending on how many
+files you had already dropped in that sitting.**
 
-**What was wrong was the path behind it.** js/41 wraps the older single-file checker (`finParse`),
-and its "already imported" index was built from *every* row in `FIN.rows`. `finLoad()` reads
-`finance_invoices` with no deleted filter **on purpose** — the Ledger offers Restore — so the
-deleted rows are in memory, and **the live database holds 45 of them, none of which also has a live
-row**. Fed a deleted number, that path answered:
+**Fixed, both parts.** The older path now stands down when the router owns the Import panel, and
+stays only as a fallback for the day the router does not wire. Its deleted-invoice list is corrected
+too, so the fallback is safe if it is ever the one answering: deleted numbers are reported in plain
+words, in both languages — *"Left alone — you deleted these invoice numbers before … Bringing one
+back is your decision — restore it from the Ledger tab."* Never counted as ordinary duplicates, never
+silently resurrected. A number with both a live and a deleted copy still matches the live one. The
+money maths is untouched.
 
-> ↩ Skipped (already in the ledger): 1
+**Guarded.** `probe-import-does-not-call-a-deleted-invoice-present` (port 9079, 14 checks): really
+drops a file on the Import tab and requires the refusal on screen, drops a **second** file and
+requires the same importer to answer it with the older path standing down, and drives the fallback in
+both languages. Sabotage-verified on each part separately — 3 fail on the real drop (the sabotaged
+app reads "New 1 · Confirm import", the owner's original complaint reproduced on demand), 1 fail on
+the stand-down, 4 fail on the fallback. js/65 was run sabotaged and restored byte-for-byte; the
+oversight lane is read and tested, never edited. 3 gates green.
 
-which is not true of a row you deleted. It is not in the ledger. The line directly beneath already
-checked `deleted_at` for its own purposes: the distinction was known there and simply not applied.
+### Found on the way, measured, not yet fixed — Excel exports whose dates are not dd/mm/yyyy
 
-**I first wrote this up as a live defect. It is not one** — js/65 replaces the drop-zone node, sets
-the file input's own `onchange` and rewrites the "Check file" button, so nothing on the Import tab
-routes to js/41's wrapper. I had driven the function through a test hook and called that proof of
-what a person sees; a real drop settled it. **Fixed anyway**, because the point of a fallback is the
-day the thing in front of it does not wire, and that wiring rests on one probe.
+With both importers no longer fighting, the router's own answer became readable, and it says this
+about an Excel export whose date cells *display* as `3/14/26` or `14-Mar-2026`:
 
-**The fix.** Deleted numbers are kept apart from live ones and reported in plain words, in both
-languages — *"Left alone — you deleted these invoice numbers before … They are not in the ledger and
-nothing was written to them. Bringing one back is your decision — restore it from the Ledger tab."*
-Never counted as ordinary duplicates, never silently resurrected. A number with **both** a live and
-a deleted row still matches the live one. The money maths is untouched.
+> Excluded by rule 1 — no readable invoice date — the invoice date is required, so this row was held
+> back; the rest of the file still imports
 
-**Guarded.** `probe-import-does-not-call-a-deleted-invoice-present` (port 9079, 13 checks) covers
-both paths: it really drops a file on the Import tab and requires the refusal on screen, and it
-drives the fallback in both languages requiring 1 ready · 1 already-there · 1 reported-as-deleted,
-with nothing written. Sabotage-verified on each half separately — 3 FAIL on the real drop (the
-sabotaged app offers "New 1 · Confirm import", i.e. the owner's original complaint reproduced), 4
-FAIL on the fallback. js/65 was run sabotaged and restored byte-for-byte; the oversight lane is not
-edited. 3 gates green.
-
-**Recorded for the owner:** the same question — *does another layer still do what js/62 or js/65
-already fixed?* — is worth one pass over every pair. One other candidate is already visible:
-js/41's own date reader accepts only `dd/mm/yyyy` and `yyyy-mm-dd` and does not check the calendar,
-while js/65's was hardened on 2026-09-03 for exactly that. Same fallback caveat applies; next round.
+Every row, held back; the file imports nothing. The date reader accepts only `dd/mm/yyyy` and
+`yyyy-mm-dd`, and an Excel file carries a real date cell whose displayed form depends on the number
+format saved in it — which changes if the file is opened and re-saved, or opened on a machine set to
+another region. The behaviour is honest (it says so, and writes nothing), but it is a dead end for a
+file that is perfectly good. It also does not check the calendar, so `31/02/2026` would pass through
+as a date-shaped string the database will refuse — and one refused row loses the whole batch, a shape
+this project has already lived through twice. **Next round**, with the same live drive that found it.
 
 ## Routine fire #101 (2026-09-19 ~10:30 UTC) — a filter, a chip and a list, and whether they agree
 Fire #100 verified the Leads chips. The obvious next question was what happens to a filter when you
