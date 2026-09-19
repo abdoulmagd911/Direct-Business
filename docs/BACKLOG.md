@@ -1,3 +1,36 @@
+## Routine fire #108 (2026-09-19 ~22:30 UTC) — SOPs & Service Levels, driven live; the page is right, the test was blind
+
+SOPs (12) and Service Levels (14) are real data and had not been driven this session.
+
+**The pages are correct.** Service Levels shows all 14 rows, each carrying its event, our target, the
+common practice and the stretch goal, every cell editable in place; the headers translate; the
+counter reads an honest "Showing 1–14 of 14"; Arabic leaves no English behind. SOPs lists its 12
+procedures. Nothing to fix.
+
+**I nearly reported a serious defect that was not there.** Read the ordinary way, every Service Level
+row came back as a marker and a Delete button with four empty cells — on a page that was plainly
+full. The screenshot said otherwise, and the screenshot wins. The cause: every cell on that table is
+a form control (an `<input>` for the event, `<textarea>`s for the three targets), and a form's value
+is not a text node — so `innerText` **and** `textContent` both read blank. Any test that reads this
+table as text sees an empty page.
+
+**Which is exactly what the test was doing.** `probe-sop-sla-tidy` checked the table's *shape* —
+no stray ✕, nothing resizable, a Delete button per row, no sideways scroll — and **all of it would
+still pass if all 14 rows rendered empty**. Nothing anywhere asserted that a service level shows its
+own wording. It now reads the values properly and requires every row's event and Direct target to be
+present and to match its record. Sabotage-verified by blanking the event field: the structural checks
+sail through, the new one fails.
+
+### For the owner — a content gap, not a bug
+
+**The 12 SOPs have no Arabic text at all.** Their stored fields are body, cmd, code, edge, id,
+market, purpose and title — there is no Arabic title or body anywhere in the data. So on the Arabic
+page the SOP list reads in English, and that is the data being English, not the page failing to
+translate. Writing Arabic SOP text is a content decision and is not something a QA round should
+invent — flagged here for you.
+
+No app code changed this round, so nothing needed deploying. 3 gates green.
+
 ## Routine fire #107 (2026-09-19 ~21:30 UTC) — the Events page, checked against the real calendar and found right
 
 Events holds **80 real entries** and had not been driven this session. After three rounds of

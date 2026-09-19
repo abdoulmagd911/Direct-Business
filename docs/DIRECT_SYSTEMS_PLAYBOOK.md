@@ -569,6 +569,16 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **A form's value is not text (2026-09-19, fire #108).** Every cell of the Service Levels table is
+  an `<input>` or `<textarea>`, so `innerText` and `textContent` both read blank on a table that is
+  plainly full. Reading it the ordinary way looked like a catastrophic defect for several minutes;
+  the screenshot settled it. Any page built from editable cells has to be read through `.value`,
+  and any check that reads it as text is asserting on emptiness without knowing.
+- **Checking the shape of a table is not checking the table (2026-09-19, fire #108).** The existing
+  Service Levels probe asserted no stray ✕, nothing resizable, a Delete per row, no sideways
+  scroll — and every one of those would still pass with all fourteen rows rendered empty. Shape
+  checks are cheap and worth having, but at least one check has to assert that the content is
+  there and is the right content.
 - **"It filtered to something" is not a check (2026-09-19, fire #107).** The Events probe asserted
   that clicking a tile left more than none and fewer than all of the rows. That passes on a tile
   whose number has nothing to do with the list beneath it — which is exactly how the Airlines

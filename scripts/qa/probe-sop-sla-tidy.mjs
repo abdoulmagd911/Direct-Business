@@ -78,6 +78,36 @@ async function main() {
   if (t && t.rows > 0 && t.xs === 0 && t.resizable === 0 && t.overflow === 0 && t.dels === t.rows && !t.wide) ok(`Service Levels: ${t.rows} rows, no ✕, ${t.tas} text boxes none resizable, the Event input inside its cell, a Delete button per row, no sideways scroll`);
   else fail(`Service Levels: ${JSON.stringify(t)} — the live-site cut column, red ✕ and resize handles`);
 
+  /* 2026-09-19 (fire #108): everything above describes the SHAPE of this table — no ✕, nothing
+     resizable, a Delete per row — and all of it would still pass if all 14 rows rendered EMPTY.
+     Nothing anywhere asserted that a service level actually shows its own wording.
+     That gap is easy to miss because every cell here is a form control: an <input> for the event
+     and <textarea>s for the three targets. Form values are not text nodes, so innerText AND
+     textContent both come back blank — reading this table the ordinary way shows nothing while the
+     screen is plainly full, which is exactly what happened when this page was first driven. Read
+     the values. */
+  const words = await p.evaluate(() => {
+    const tbl = document.querySelector('#view table.sla-table'); if (!tbl) return null;
+    const rows = [...tbl.querySelectorAll('tbody tr')];
+    const recs = (typeof DB !== 'undefined' && DB.slas) ? DB.slas : [];
+    const got = rows.map((tr) => {
+      const inp = tr.querySelector('input.cell');
+      const tas = [...tr.querySelectorAll('textarea.cell')];
+      return { event: (inp ? inp.value : '').trim(), first: tas.length ? (tas[0].value || '').trim() : '' };
+    });
+    return { rows: rows.length, recs: recs.length,
+      blankEvent: got.filter((g) => !g.event).length,
+      blankTarget: got.filter((g) => !g.first).length,
+      matchEvent: got.filter((g, i) => recs[i] && g.event === String(recs[i].event || '').trim()).length,
+      matchTarget: got.filter((g, i) => recs[i] && g.first === String(recs[i].direct || '').trim()).length,
+      /* nothing real is printed: just how many characters the first row carries */
+      firstRowChars: got.length ? (got[0].event.length + got[0].first.length) : 0 };
+  });
+  if (words && words.rows === words.recs && words.rows > 0 && words.blankEvent === 0 && words.blankTarget === 0
+      && words.matchEvent === words.rows && words.matchTarget === words.rows)
+    ok(`Service Levels say what they are: all ${words.rows} rows carry their event and their Direct target, each matching its record`);
+  else fail(`Service Levels rows are not carrying their wording: ${JSON.stringify(words)}`);
+
   /* ---- 3. Delete asks in the page ---- */
   const before = await p.evaluate(() => DB.slas.length);
   const firstId = await p.evaluate(() => DB.slas[0].id);
