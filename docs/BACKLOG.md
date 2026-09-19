@@ -1,50 +1,52 @@
-## Routine fire #102 (2026-09-19 ~12:30 UTC) — the importer said an invoice you deleted was "already there"
+## Routine fire #102 (2026-09-19 ~12:30 UTC) — an invoice you deleted, and two import paths that disagreed
 
-#101 finished the Leads interactions, so this round went to the one path that writes money: dropping a
-Direct Payments export onto Finance.
+#101 finished the Leads interactions, so this round went to the one screen that writes money:
+dropping a Direct Payments export onto Finance.
 
-**What it did.** Delete an invoice from the Ledger, then drop the same export again — the preview said
+**The behaviour on screen today is correct, and that was measured, not assumed.** A file really
+dropped on the Import tab reads:
+
+> Excluded by rule 1 — <invoice no>: deleted in this app — restore it first, then re-import;
+> nothing was written
+
+That is js/65's doing. It fixed this on 2026-09-02, and its comment records the owner's own words:
+*"I deleted it, dropped the file again, it said updated, and the invoice never came back."*
+
+**What was wrong was the path behind it.** js/41 wraps the older single-file checker (`finParse`),
+and its "already imported" index was built from *every* row in `FIN.rows`. `finLoad()` reads
+`finance_invoices` with no deleted filter **on purpose** — the Ledger offers Restore — so the
+deleted rows are in memory, and **the live database holds 45 of them, none of which also has a live
+row**. Fed a deleted number, that path answered:
 
 > ↩ Skipped (already in the ledger): 1
 
-That is not true of a row you deleted. It is not in the ledger. Nothing said its number had ever been
-seen, nothing said why it had not come back, and the person is left believing the file was read and the
-invoice is fine.
+which is not true of a row you deleted. It is not in the ledger. The line directly beneath already
+checked `deleted_at` for its own purposes: the distinction was known there and simply not applied.
 
-**Why it happened.** `finLoad()` reads `finance_invoices` with no deleted filter **on purpose** — the
-Ledger offers Restore, so the deleted rows have to be in memory. js/41 built its "already imported"
-index from *every* row in that memory. **The live database holds 45 soft-deleted invoices today, and
-not one of those 45 numbers also has a live row** — so every single one of them hit this path. The
-line directly beneath the broken index already checked `!r.deleted_at` for its own purposes: the
-distinction was known here and simply not applied.
+**I first wrote this up as a live defect. It is not one** — js/65 replaces the drop-zone node, sets
+the file input's own `onchange` and rewrites the "Check file" button, so nothing on the Import tab
+routes to js/41's wrapper. I had driven the function through a test hook and called that proof of
+what a person sees; a real drop settled it. **Fixed anyway**, because the point of a fallback is the
+day the thing in front of it does not wire, and that wiring rests on one probe.
 
-**It had already been fixed once, next door.** js/65 — the oversight lane — fixed exactly this on
-2026-09-02, and its comment records the owner's own words: *"I deleted it, dropped the file again, it
-said updated, and the invoice never came back."* The Direct Payments import path kept the unfixed twin.
+**The fix.** Deleted numbers are kept apart from live ones and reported in plain words, in both
+languages — *"Left alone — you deleted these invoice numbers before … They are not in the ledger and
+nothing was written to them. Bringing one back is your decision — restore it from the Ledger tab."*
+Never counted as ordinary duplicates, never silently resurrected. A number with **both** a live and
+a deleted row still matches the live one. The money maths is untouched.
 
-**Fixed.** Deleted numbers are kept apart from live ones and **reported in plain words**, never counted
-as ordinary duplicates and never silently resurrected:
+**Guarded.** `probe-import-does-not-call-a-deleted-invoice-present` (port 9079, 13 checks) covers
+both paths: it really drops a file on the Import tab and requires the refusal on screen, and it
+drives the fallback in both languages requiring 1 ready · 1 already-there · 1 reported-as-deleted,
+with nothing written. Sabotage-verified on each half separately — 3 FAIL on the real drop (the
+sabotaged app offers "New 1 · Confirm import", i.e. the owner's original complaint reproduced), 4
+FAIL on the fallback. js/65 was run sabotaged and restored byte-for-byte; the oversight lane is not
+edited. 3 gates green.
 
-> 🗑 Left alone — you deleted these invoice numbers before: **1**
-> They are not in the ledger and nothing was written to them. Bringing one back is your decision —
-> restore it from the Ledger tab.
-> «لم تُلمس — أرقام فواتير سبق أن حذفتها: 1 … إعادتها قرارك — استعدها من تبويب «السجل».»
-
-Restoring is the owner's decision, not the importer's. A number that has **both** a live and a deleted
-row still matches on the live one, exactly as before. Nothing about the money maths changed.
-
-**Driven against the real database** before and after — 45 deleted rows / 46 live in memory, a real
-deleted number replayed through the real preview (read in-page, never printed, rule 7), zero writes.
-
-**Guarded.** `probe-import-does-not-call-a-deleted-invoice-present` (port 9079, 8 checks) seeds one
-live / one deleted / one brand-new invoice number, feeds a synthetic export holding all three to the
-real preview, and requires 1 ready · 1 already-there · 1 reported-as-deleted, in both languages, with
-nothing written. Sabotage-verified: with the index reverted, "already in the ledger" reads 2 and the
-deleted line never appears — 4 checks FAIL. 3 gates green.
-
-**Recorded for the owner:** the same twin-fix question is worth asking of every other pair of layers
-where js/62 or js/65 fixed something the original still does. That is one grep, not a guess, and it is
-the cheapest place a defect of this exact shape can still be hiding.
+**Recorded for the owner:** the same question — *does another layer still do what js/62 or js/65
+already fixed?* — is worth one pass over every pair. One other candidate is already visible:
+js/41's own date reader accepts only `dd/mm/yyyy` and `yyyy-mm-dd` and does not check the calendar,
+while js/65's was hardened on 2026-09-03 for exactly that. Same fallback caveat applies; next round.
 
 ## Routine fire #101 (2026-09-19 ~10:30 UTC) — a filter, a chip and a list, and whether they agree
 Fire #100 verified the Leads chips. The obvious next question was what happens to a filter when you

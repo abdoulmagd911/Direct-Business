@@ -556,11 +556,18 @@ now exists specifically because of each one:
   changed nothing on screen, which is how the gap showed. When a probe's sabotage changes nothing,
   the suspicion belongs on the code being guarded, not only on the probe.
 - **When a fix lands in one layer, grep for its twin (2026-09-19, fire #102).** js/65 fixed the
-  "deleted invoice reported as already imported" bug on 2026-09-02, in the owner's own words. The
-  Direct Payments import path in js/41 held the same line, unfixed, for another 17 days — and the
-  live database holds 45 soft-deleted invoices, every one of which hit it. A fix written in the
-  oversight lane does not travel; the same question ("does any other layer still do the old thing?")
-  is one grep, and it is the cheapest defect this project has.
+  "deleted invoice reported as already imported" bug on 2026-09-02, in the owner's own words. js/41
+  held the same line, unfixed, for another 17 days. A fix written in one layer does not travel to
+  the layer it wraps; the question "does any other layer still do the old thing?" is one grep, and
+  it is the cheapest defect this project has.
+- **Calling a function is not using the app (2026-09-19, fire #102).** The twin above was found by
+  driving js/41's preview through a test hook, and written up as what a person sees. It is not:
+  js/65 replaces the drop-zone node, sets the file input's own onchange and rewrites the button, so
+  a real drop never reaches it. One actual file drop settled in a minute what a hook could not say
+  at all. **A layer being loaded is not evidence that it runs** — before calling something a live
+  defect, reach it the way a person does. The fix still belongs (a fallback exists for the day the
+  wiring fails), but a landmine and a defect are not the same claim, and the record has to say
+  which one it is.
 - **A soft-deleted row is still in memory, and is not "there" (2026-09-19, fire #102).** `finLoad()`
   reads `finance_invoices` with no deleted filter on purpose, because the Ledger offers Restore. Any
   code that asks "do we already have this?" against `FIN.rows` must say which kind of row it means.
