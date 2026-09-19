@@ -235,6 +235,12 @@ function finPageAll(mk, cb){
   })(0);
 }
 try{ window.finPageAll=finPageAll; }catch(_){}
+/* 2026-09-19 (fire #97): the error card's Try again. Clears the failed state so renderFinance
+   stops short-circuiting on it, then loads once more and repaints. Guarded so a second press
+   while a load is already in flight does nothing. */
+function finRetryLoad(){ try{ if(FIN.loading) return; FIN.rows=null; FIN.loadErr=null;
+  if(typeof current!=='undefined'&&current==='finance'&&typeof render==='function') render(); }catch(_){} }
+try{ window.finRetryLoad=finRetryLoad; }catch(_){}
 
 function finLoad(cb){
   if(FIN.loading)return; FIN.loading=true;
@@ -2236,8 +2242,28 @@ window.renderFinance=function(v){
   /* 2026-09-17 (fire #78): this sentence was English only, on a page a share-link holder can reach in
      either language. Bilingual now; the English wording is unchanged so the existing guard still reads it. */
   if(!canFinView()){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">'+(isArF()?'المالية غير متاحة في روابط العرض فقط.<div style="font-size:12.5px;margin-top:6px">يمكنك فتح «اليوم» و«العملاء المحتملون» و«العملاء».</div>':'Finance is not available in shared view-only links.<div style="font-size:12.5px;margin-top:6px">Today, Leads and Clients are open to you.</div>')+'</div>';return;}
-  if(!FIN.rows){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">Loading the finance ledger\u2026</div>';finLoad();return;}
-  if(FIN.loadErr){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:#D92D20">Could not load: '+escF(FIN.loadErr)+'<br><span style="font-size:12px;color:var(--muted)">Make sure you are signed in.</span></div>';return;}
+  /* 2026-09-19 (fire #97): these two cards were the last English-only sentences on this page — the
+     one above them was made bilingual in fire #78 and these were left behind. Driven with the
+     ledger read answering 503: the page says "Loading the finance ledger…" for five to eight
+     seconds while supabase-js retries, then shows the error. Both of those sentences reached an
+     Arabic reader in English.
+     And the advice was a GUESS. "Make sure you are signed in" was written in fire #56 for the one
+     cause that really was a missing session. Every other cause — the server refusing, the
+     connection dropping, a company proxy in the way — is far more likely, and the person IS signed
+     in: the sentence sent them off to sign out and back in for nothing, while the real reason went
+     unsaid. It is now only offered when there is genuinely no session; otherwise the card says what
+     happened and gives a button that tries again, which is the thing that actually helps. */
+  if(!FIN.rows){v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">'+(isArF()?'جارٍ تحميل سجل المالية\u2026':'Loading the finance ledger\u2026')+'</div>';finLoad();return;}
+  if(FIN.loadErr){
+    var _noSess=false; try{ _noSess=!window.__finSessionOk; }catch(_){}
+    var _why=_noSess
+      ? (isArF()?'تأكد من تسجيل الدخول.':'Make sure you are signed in.')
+      : (isArF()?'لم يُحمَّل أي شيء — لا تقرأ أي رقم من هذه الصفحة حتى ينجح التحميل.'
+                :'Nothing was loaded \u2014 do not read any figure from this page until it loads.');
+    v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:#D92D20">'+(isArF()?'تعذّر التحميل: ':'Could not load: ')+escF(FIN.loadErr)+
+      '<br><span style="font-size:12px;color:var(--muted)">'+_why+'</span>'+
+      '<br><button class="btn sm" style="margin-top:12px" onclick="finRetryLoad()">'+(isArF()?'إعادة المحاولة':'Try again')+'</button></div>';
+    return;}
   /* 2026-09-02 (attack round 8): the export rows were only filled by finPeriodBar(), which the
      Overview and Clients tabs render but the Ledger tab does not. Arrive at Finance for the first
      time this session straight on the Ledger (a client card's "Open in Finance ledger ↗", a

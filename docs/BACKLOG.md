@@ -1,3 +1,45 @@
+## Routine fire #97 (2026-09-19 ~02:30 UTC) — what the app says when a read simply fails
+The team works on mobile data and behind a company proxy; a request can just not arrive. What the app
+does **when a read fails outright** had never been driven. One table at a time was made to answer 503
+while everything else loaded normally from the real database.
+
+**Three of the four are honest, and that is worth recording so nobody re-tests them:**
+* **leads** — the app does not let anyone in. It stays on the sign-in card and says
+  *"Could not load leads: service unavailable."* No demo data, no zeros.
+* **contacts** — no visible effect; Leads and Today read exactly as the control run.
+* **app_settings** — no visible effect. (And it is the wrong table to worry about: the exclusion
+  list comes from `app_state`, whose failure is caught by the leads path above.)
+
+**Finance reports the failure too, but two things were wrong with how.**
+
+1. **Both its cards were English only.** The sentence directly above them was made bilingual in fire
+   #78 and these two were left behind, so an Arabic reader got "Loading the finance ledger…" and
+   "Could not load: …" in English.
+2. **Its advice was a guess.** *"Make sure you are signed in"* was written in fire #56 for the one
+   cause that really was a missing session. Every other cause — the server refusing, the connection
+   dropping, a proxy in the way — is likelier, and the person **is** signed in: it sent them off to
+   sign out and back in for nothing, while the real reason went unsaid. Guessing at a cause and
+   printing it as advice is the same failure this project treats as unforgivable in a number.
+
+**Fixed.** Both cards are bilingual. The sign-in line is offered only when there genuinely is no
+session; otherwise the card says *"Nothing was loaded — do not read any figure from this page until
+it loads"* and offers a **Try again** button that reloads for real.
+
+**An instrument fault of my own, and the third round running.** The first sweep recorded "Finance sits
+on Loading… forever" — it does not. The error takes **five to eight seconds** because supabase-js
+retries a 503 several times, and the sweep read the page at three. The same sweep also reported the
+app showing its 65-record demo seed as real company data when the leads read failed; the screenshot
+showed the sign-in card with a plain error, and what I had measured was `#view` hidden behind it.
+**Last round's rule — a measurement that disagrees with a screenshot loses — paid for itself twice in
+one round.** Both are written into the probe's header so the next person does not repeat them.
+
+**Probe:** `probe-finance-says-it-could-not-load` (port 9074, 13 checks) drives both languages with the
+ledger read answering 503, waits for the failure to actually reach the screen, and checks it does not
+blame sign-in while a session is alive, that it says plainly nothing loaded, that each language is in
+its own language, that Try again fails again while the read is still down rather than going quiet, and
+that once the read recovers the button really loads the ledger (17 rows, "16 invoices" on screen).
+Sabotage-verified: **7 FAIL**.
+
 ## Routine fire #96 (2026-09-19 ~00:30 UTC) — the window size nobody had ever changed
 Fires #94 and #95 found the browser's language and the browser's clock deciding what the app said and
 did. This round varied the other two environment knobs: the **colour scheme** and the **window size**.

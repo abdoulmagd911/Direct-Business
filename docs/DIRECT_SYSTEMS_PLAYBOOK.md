@@ -545,6 +545,10 @@ now exists specifically because of each one:
   comparisons, on pre-filled date boxes and on "recorded on" stamps alike. Both had been invisible
   for the whole project because every QA run used a UTC, English machine. **Vary the environment,
   not just the input:** timezone, language, clock, screen size.
+- **Give a failing read time to fail (2026-09-19, fire #97).** supabase-js retries a 503 several
+  times before reporting it, so a page that will say "could not load" says "loading…" for five to
+  eight seconds first. A probe or a sweep that reads at three seconds records a defect that is not
+  there. Wait on the error state itself, never on a stopwatch.
 - **A measurement that disagrees with a screenshot loses (2026-09-19, fire #96).** A layout sweep
   reported Today's hero "cut off by 60px", the lists "past the right edge" and the sidebar's Finance
   and Settings "unreachable". The screenshots showed a clean page, tables that scroll inside their
