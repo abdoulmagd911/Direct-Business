@@ -1,3 +1,43 @@
+## Routine fire #121 (2026-09-21 ~15:30 UTC) — a company's website could be shown but never typed
+
+The rule written in #120 — *a field the app prints but no form can write is a gap* — applied to the
+rest of the company record. One more field fails it, and on a much bigger slice of the data.
+
+**Seventy-eight of the 108 live companies carry a website.** The lead card shows it, the leads list
+uses its domain to spot the same company entered twice, and the funnel layer fetches a logo from it.
+**No form in the app wrote it.** The only line that ever assigned `website` is a derivation in
+core-10 that guesses one from the domain of a contact's e-mail. So a website could not be added,
+corrected or removed by anybody.
+
+Fixed: a Website box in the lead form, in the empty half of the Stage row so no layout moves, with
+the label written bilingually in place. Save stores what is typed, putting "https://" in front of a
+bare domain — the card renders it as a link, and "example.com" on its own resolves against this
+app's own address and goes nowhere. Empty stays empty; nothing is invented for a company that has
+none.
+
+`probe-a-company-website-can-be-typed` (port 9094, 10 checks) holds all four behaviours in both
+languages: what is stored is shown, an untouched Save changes nothing, a bare domain becomes a real
+link, emptying the box removes the website, and a company with none is not given one. Sabotage-
+verified twice against a copy of the app: 5 checks fail without the input, 1 without the
+normalisation.
+
+### Checked and clean — the guessed website does not happen
+
+core-10 derives a website from a contact's e-mail domain for any company without one, and then calls
+`save()`. From the contacts table alone, 23 of the 30 companies without a website have a contact on
+a corporate domain, so this looked like the app quietly inventing data. **It does not fire.** Driven
+against the real database with the database's own rows captured before the app could touch them: 78
+had a website and still show it, 30 had none and still show none, **none was invented**, and no
+write was attempted. It reads the contacts held *in the company record*, and it runs before js/72
+brings the contacts table onto them. Recorded so a later round does not chase it again.
+
+### One probe lesson
+
+The first sabotage run made this probe **throw** instead of fail: the box was gone, the check read
+`.value` on a null, and the file stopped at the first assertion with nothing said about the other
+nine. A crash still exits non-zero, so the battery would have gone red — but a red that explains
+nothing is most of the value lost. The checks are now null-safe.
+
 ## Routine fire #120 (2026-09-20 ~13:30 UTC) — the app showed a job title nobody could type
 
 The `contacts` table has a `role` column. Eleven of the 45 live contacts carry one, and the lead
