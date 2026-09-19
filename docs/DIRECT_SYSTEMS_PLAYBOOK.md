@@ -569,6 +569,17 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **A background job must not redraw the whole page (2026-09-19, fire #106).** The layer that looks
+  up your name and role re-rendered everything when it finished, on load, at 3s, at 8s and on every
+  return to the browser tab. That is what made "Next ›" impossible to use on a 136-row list — press
+  it, and a second later you are back at the top — and it is what was wiping the filter buttons in
+  #105. A background refresh should update the thing it fetched and nothing else, and should do
+  even that only when the value actually changed. Where a full redraw is genuinely needed, whatever
+  the person had chosen — page, filter, scroll — has to be put back.
+- **Symptom-level and cause-level fixes are both worth having (2026-09-19, fire #106).** #105
+  taught the chips to survive the re-render; #106 removed the re-render. Sabotaging either one
+  alone flips only one check, because the other still protects the reader — which is the point.
+  Defence in depth is only real if each layer is verified on its own.
 - **A control should only name values the data can hold (2026-09-19, fire #105).** Nine of the
   eleven filter buttons on Bookings, Invoices and Tickets named words that are in no record: the
   Tickets buttons said Issued/Voided/Refunded while booking statuses are Confirmed/Pending/

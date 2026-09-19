@@ -50,13 +50,26 @@
     rows.forEach(function(r,i){r.style.display=(i>=(page-1)*n&&i<page*n)?'':'none';});
     return {pages:pages,page:page,total:total,n:n};
   }
+  /* 2026-09-19 (fire #106): which page each list was left on, so a re-render that has nothing to
+     do with the person — a background identity lookup, a late load — does not quietly put them
+     back at the top of a 136-row list. Keyed by section and position, kept for this page's
+     lifetime only, and cleared the moment the list itself is rebuilt (below), because a changed
+     list means page one. */
+  var PAGE_MEM={};
+  function pageKey(tbl){
+    try{
+      var sec=(typeof current!=='undefined')?String(current):'';
+      var ix=[].slice.call(document.querySelectorAll('#view table')).indexOf(tbl);
+      return sec+'#'+(ix<0?0:ix);
+    }catch(_){ return 'x#0'; }
+  }
   function decorate(tbl){
     try{
     if(tbl.__pg)return;
     if(tbl.closest&&tbl.closest('.v32-svc'))return; // the income-by-service rollup manages its own row visibility (family expand/collapse)
     var tb=tbl.tBodies&&tbl.tBodies[0]; if(!tb)return;
     if(dataRows(tb).length<=10)return;            // small tables don't need a pager
-    tbl.__pg=true; tbl.__page=1;
+    tbl.__pg=true; tbl.__pgKey=pageKey(tbl); tbl.__page=PAGE_MEM[tbl.__pgKey]||1;
     var bar=document.createElement('div'); bar.className='pg-bar';
     bar.style.cssText='display:flex;align-items:center;gap:10px;justify-content:flex-end;margin:10px 2px 4px;font-size:12.5px;color:var(--muted,#7C8194);flex-wrap:wrap';
     var lbl=document.createElement('span');
@@ -75,6 +88,7 @@
       var from=st.total===0?0:((st.page-1)*st.n+1);var to=(sz==='All')?st.total:Math.min(st.page*st.n,st.total);
       var _ar=(typeof LANG!=='undefined'&&LANG==='ar');
       lbl.textContent=_ar?('عرض '+from+'–'+to+' من '+st.total):('Showing '+from+'–'+to+' of '+st.total);
+      try{ PAGE_MEM[tbl.__pgKey]=st.page; }catch(_){}
       prev.disabled=(st.page<=1);next.disabled=(st.page>=st.pages);prev.style.opacity=prev.disabled?'.4':'1';next.style.opacity=next.disabled?'.4':'1';
     }
     sel.addEventListener('change',function(){setSize(sel.value);
@@ -94,7 +108,7 @@
     try{
       var _mo=new MutationObserver(function(){
         if(tbl.__pgQueued)return; tbl.__pgQueued=1;
-        setTimeout(function(){ tbl.__pgQueued=0; tbl.__page=1; try{refresh();}catch(_){} },0);
+        setTimeout(function(){ tbl.__pgQueued=0; tbl.__page=1; try{PAGE_MEM[tbl.__pgKey]=1;}catch(_){} try{refresh();}catch(_){} },0);
       });
       _mo.observe(tb,{childList:true});
       tbl.__pgObserver=_mo;

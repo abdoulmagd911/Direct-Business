@@ -1,3 +1,43 @@
+## Routine fire #106 (2026-09-19 ~20:30 UTC) — you could not get past page 1 of the airlines list
+
+I had just changed the row counter in #104, so I drove the paging controls on real data to check I
+had not broken them. I had not — but something else was broken, and had been all along.
+
+**On Airlines, with 136 real carriers, "Next ›" did not work.** Watched over time rather than read
+once:
+
+| moment | what the screen said |
+|---|---|
+| before the click | page 1 — "Showing 1–20 of 136" |
+| right after the click | page 2 — "Showing 21–40 of 136" |
+| ~0.8s later | **a new table, page 1, "Showing 1–20 of 136"** |
+
+So carriers 21 to 136 could not be reached at all. The only way to see them was to change the page
+size to 50, 100 or Show-all.
+
+**The pager was not at fault.** The layer that looks up your name and role for the sidebar re-rendered
+the *whole page* when it finished — and it runs on load, again at 3 seconds, again at 8 seconds, and
+**every time you switch back to the browser tab**. A full re-render rebuilds the list from scratch,
+taking your place in it with it. This is the same re-render that was wiping the filter buttons in
+#105; that round fixed the symptom for the buttons, this one found the cause.
+
+**Fixed at both levels, on purpose.**
+
+- The identity lookup re-renders only when the name or role actually **changed**. It almost always
+  returns what it returned before, and the sidebar is written directly anyway, so those repeat
+  re-renders were pure loss. Measured after: the page sits idle for six seconds without redrawing
+  itself once.
+- The pager **remembers which page each list was left on**, for the page's lifetime, so a re-render
+  that does have a reason doesn't cost you your place. Rebuilding the list itself still starts at
+  page one, because a changed list is a different list — the #104 rule.
+
+**Guarded.** `probe-the-page-you-are-on-stays` (port 9083, 9 checks) seeds a 44-row list, then
+requires: nothing redraws while the app is left alone, Next really reaches the second page, the
+second page is still there seconds later, a deliberate re-render keeps you there, and searching
+starts again at page one with an honest count — in both languages. Sabotage-verified one fix at a
+time: exactly one check flips each, because with either fix gone the other still protects the
+reader. Only with both removed does the original defect come back. 3 gates green.
+
 ## Routine fire #105 (2026-09-19 ~19:00 UTC) — nine filter buttons that named things the data has never held
 
 My own rule from #102 says that when a fix lands in one place, go and look for its twin. #104 fixed

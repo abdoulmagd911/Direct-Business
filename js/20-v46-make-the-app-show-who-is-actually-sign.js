@@ -36,6 +36,8 @@
     }
   }
 
+  /* what this layer last put on screen — see the note inside fetchWho() */
+  var _painted={name:null,role:null};
   function fetchWho(){
     var c=client(); if(!c) return;
     c.auth.getSession().then(function(s){
@@ -46,7 +48,16 @@
         who.role=d.role||null;
         if(who.name) window.__userName=who.name;
         paintFooter();
-        try{ if(typeof render==='function') render(); }catch(_){}
+        /* 2026-09-19 (fire #106): this re-rendered the WHOLE page every time it ran, and it runs on
+           load, again at 3s, again at 8s, and every time the browser tab is brought back to the
+           front. A full render throws away what the person was looking at: on Airlines — 136 real
+           carriers — pressing "Next ›" showed rows 21–40 and then silently snapped back to page 1
+           about a second later, so pages 2 onward could not be reached at all. The lookup almost
+           always returns the same name and role it returned before, and paintFooter() above has
+           already written them, so re-render only when something actually changed. */
+        var _same=(who.name===_painted.name&&who.role===_painted.role);
+        _painted={name:who.name,role:who.role};
+        if(!_same){ try{ if(typeof render==='function') render(); }catch(_){} }
       });
     }).catch(function(){});
   }
