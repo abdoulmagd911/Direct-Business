@@ -35,9 +35,52 @@
      the original one-liner if js/65 is not there. */
   function money64(x){ if(typeof x==='number')return x; try{ if(typeof window.__v65MoneyG==='function')return window.__v65MoneyG(x); }catch(_){} return parseFloat(String(x==null?'':x).replace(/[^\d.\-]/g,''))||0; }
   function m0(n){return Math.round(Number(n)||0).toLocaleString('en-US');}
-  function isoDate(s){ // "18/06/2026 03:35:42 PM" or "2026-06-18..." → "2026-06-18"
-    s=String(s||'').trim(); var m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/); if(m)return m[3]+'-'+m[2]+'-'+m[1];
-    m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); return m?m[0]:null;
+  /* 2026-09-19 (fire #103): this is the date reader for BOTH import paths — js/65's router parses a
+     Direct Payments export through js/41's parseDP/toRows — and it took exactly two shapes,
+     dd/mm/yyyy and yyyy-mm-dd, with no check that the day it read exists. Driven against the live
+     parser, every one of these is a date a real export can carry:
+         03/14/2026  ->  "2026-14-03"   MONTH 14. Not a rejection — a date-shaped string that goes
+                                        to a real DATE column, which Postgres refuses; and because
+                                        one batch is one statement, that single row loses the WHOLE
+                                        file. The app's own maths reads month 14 as no month and
+                                        quarter "Q5" on the way past.
+         31/02/2026  ->  "2026-02-31"   same shape: February has no 31st.
+         29/02/2026  ->  "2026-02-29"   same: 2026 is not a leap year.
+         3/14/2026 · 14-03-2026 · 2026/03/14 · 14-Mar-2026 · 14 Mar 2026 · ١٤/٠٣/٢٠٢٦  ->  null,
+                                        so the row is held back for having "no readable invoice
+                                        date" and a perfectly good file imports nothing. An Excel
+                                        export carries a real date CELL whose written form is
+                                        whatever number format was saved in it — it changes when the
+                                        file is re-saved, or opened on a machine set to another
+                                        region — so this is not a hypothetical spelling.
+     js/65 hardened its own reader for exactly this on 2026-09-03 and publishes it. This one now
+     defers to it, the same way money64 already defers to its money reader, so the two paths can
+     never read one cell two ways — with month-name spellings handled first, since those are what a
+     spreadsheet produces and js/65's reader does not take them. dd/mm stays the preferred reading,
+     which is what Direct Payments writes; a month above 12 is the only thing that flips it. The
+     fallback below is for a page without js/65, and it now checks the calendar too, so no path can
+     hand the database a day that does not exist. */
+  var AR_DIG64={'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
+    '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
+  var MON64={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+  function calDate64(y,mo,d){
+    if(!(y>=1900&&y<=2999&&mo>=1&&mo<=12&&d>=1&&d<=31))return null;
+    var t=new Date(Date.UTC(y,mo-1,d));
+    if(t.getUTCFullYear()!==y||t.getUTCMonth()!==mo-1||t.getUTCDate()!==d)return null;
+    return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  }
+  function isoDate(s){ // "18/06/2026 03:35:42 PM", "2026-06-18…", "14-Mar-2026" → "2026-06-18"
+    s=String(s==null?'':s).replace(/[٠-٩۰-۹]/g,function(c){return AR_DIG64[c]||c;}).trim();
+    if(!s)return null;
+    var m=s.match(/^(\d{1,2})[-\/. ]([A-Za-zء-ي]{3,})[-\/. ,]*(\d{4})/);   // 14-Mar-2026
+    if(m&&MON64[m[2].slice(0,3).toLowerCase()])return calDate64(+m[3],MON64[m[2].slice(0,3).toLowerCase()],+m[1]);
+    m=s.match(/^([A-Za-z]{3,})[-\/. ](\d{1,2})[-\/. ,]+(\d{4})/);                    // Mar 14, 2026
+    if(m&&MON64[m[1].slice(0,3).toLowerCase()])return calDate64(+m[3],MON64[m[1].slice(0,3).toLowerCase()],+m[2]);
+    try{ if(typeof window.__v65IsoDateG==='function'){ var g=window.__v65IsoDateG(s); if(g)return g; } }catch(_){}
+    m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/); if(m)return calDate64(+m[1],+m[2],+m[3]);
+    m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/);
+    if(m){ var d64=+m[1],mo64=+m[2]; if(mo64>12&&d64<=12){var t64=mo64;mo64=d64;d64=t64;} return calDate64(+m[3],mo64,d64); }
+    return null;
   }
   var SVC64={'Direct Flights':'Flights','Direct Hotels':'Hotels','Direct Visa':'Visas',
     'Direct Course':'Study abroad','Direct Support':'Support services',

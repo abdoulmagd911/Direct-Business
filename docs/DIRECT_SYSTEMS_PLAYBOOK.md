@@ -569,6 +569,17 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **A parser that cannot read a value should say nothing, never something (2026-09-19, fire #103).**
+  The import's date reader turned `03/14/2026` into `2026-14-03` — month 14 — because it assumed
+  dd/mm and never checked the calendar. A refusal is cheap: the row is held back, named, and the
+  rest of the file lands. A wrong answer that still *looks* like a date reaches a real date column,
+  and since one batch is one statement it takes the whole file down, while the app's own maths
+  quietly reports quarter "Q5" on the way. When a reader is unsure, null beats a guess — the same
+  rule the money side already follows (cost stays null rather than being filled in).
+- **The same cell must not be read by two readers (2026-09-19, fire #103).** js/65 hardened its date
+  reader on 2026-09-03; js/41's, which both import paths actually use, kept the old one. The money
+  side had already solved this by delegating to one shared reader. Dates now do the same. Where two
+  layers read the same file, one of them should be calling the other.
 - **A mock that is kinder than the database is a probe that cannot see (2026-09-19, fire #102).**
   `mock-seed-live.mjs` stored every row handed to it, so a probe "proved" 3,000 invoices landing
   from three commits. The live database has `UNIQUE (invoice_no, line_no)` and commits with a plain

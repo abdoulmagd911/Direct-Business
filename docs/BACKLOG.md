@@ -1,3 +1,42 @@
+## Routine fire #103 (2026-09-19 ~16:00 UTC) — a date on an imported invoice has to be a real day
+
+#102 ended by finding, measured but unfixed, that an Excel export whose dates read `3/14/26` or
+`14-Mar-2026` imported nothing. Driving every way a date can be written through the live parser found
+something worse sitting beside it.
+
+**What the date reader did.** It took exactly two spellings, `dd/mm/yyyy` and `yyyy-mm-dd`, and never
+checked that the day it read exists. Every line below is something a real export can carry:
+
+| written in the file | read as | what that means |
+|---|---|---|
+| `03/14/2026` | **`2026-14-03`** | **month 14.** Not refused — a date-shaped string handed to a real date column. The database rejects it, and one batch is one statement, so that single row loses the **whole file**. On the way past, the app's own maths reads it as no month and quarter **"Q5"**. |
+| `31/02/2026` | `2026-02-31` | February has no 31st — same outcome. |
+| `29/02/2026` | `2026-02-29` | 2026 is not a leap year — same outcome. |
+| `3/14/2026` · `14-03-2026` · `2026/03/14` · `14-Mar-2026` · `14 Mar 2026` · `١٤/٠٣/٢٠٢٦` | nothing | every row held back for "no readable invoice date", so a perfectly good file imports nothing. |
+
+That last row is not hypothetical. An Excel file holds a real date *cell*, and what it reads as
+depends on the number format saved inside it — which changes when the file is re-saved, or opened on
+a machine set to another region.
+
+**Fixed.** js/65 hardened its own reader for exactly this on 2026-09-03 and publishes it; js/41 now
+defers to it, the same way its money reader already did, so the two import paths can never read one
+cell two ways. Month-name spellings are handled first, since that is what a spreadsheet produces and
+js/65's reader does not take them. **`dd/mm` stays the preferred reading** — it is what Direct
+Payments writes — and only a month above 12 flips it. Driven after the fix, all seven spellings of
+14 March 2026 now read as 14 March 2026, and the impossible dates read as nothing.
+
+**What that is worth.** An impossible date is now held back **on its own**, with the reason on
+screen in both languages, and the rest of the file still imports. Before, it took the file down with
+it: the sabotage run stores *nothing at all* — not even the rows whose dates the old reader could
+read. That is the failure this project has already lived through twice.
+
+**Guarded.** `probe-an-import-date-is-a-real-day` (port 9080, 9 checks) drops one file holding the
+same day written seven ways plus one day that does not exist, commits it, and reads the stored rows
+back from the database: every spelling must store 14 March 2026, the impossible day must not be
+stored while the other seven are, nothing may reach the database with a month that is not a month or
+a quarter that is not a quarter, and Arabic must read the same days as English. Sabotage-verified: 6
+checks fail, with nothing stored at all. 3 gates green.
+
 ## Routine fire #102 (2026-09-19 ~12:30 UTC) — two importers were reading every file you drop
 
 #101 finished the Leads interactions, so this round went to the one screen that writes money:
