@@ -1,3 +1,38 @@
+## Routine fire #124 (2026-09-21 ~20:00 UTC) — looking at what the last seven rounds changed
+
+Every assertion added between #115 and #121 reads a value out of the DOM. A value can be perfectly
+correct in a control that has been pushed off the side of the screen. This round is the other half
+of the house rule: **look at the screens**, and then make the looking a standing check.
+
+**The visual pass is clean.** Five surfaces, both languages, real data: the lead card, the funnel-
+details form (its dropdowns showing "Government tender · on file", "Won · on file"), the lead form
+(Website box in place, contact rows with their Role box), the corporate profile (in Arabic: «نوع
+الجهة» reading «— غير مسجّل —», every label translated, right-to-left clean) and the airline editor.
+No page scrolls sideways, no control is off-screen, no JS errors.
+
+`probe-the-forms-still-fit` (port 9095, 4 checks) makes it standing: all four forms, **two widths**
+(1500 and 1024) × two languages. Sabotage-verified against a copy: forcing the contact row to five
+200px columns pushes two inputs out of the window **at 1024 and not at 1500** — which is exactly why
+it runs at two widths, since the same fault is invisible on a big screen.
+
+### Two instrument faults of my own, and a false alarm that did not get written up
+
+A composite screenshot showed the funnel box stacked on top of the lead form, and an Escape
+investigation then said a real Escape key closed **nothing**. Both were my tools:
+
+1. The driver closed a box by **removing `#modal`** from the page. `openModal` sets `innerHTML` on
+   that very element and reuses it, so the next form threw. Changed to remove it a different way —
+   setting `display:none` — and the next form then opened **invisibly**, because the app never sets
+   display back. Two faults in a row on the same node. Press Escape and let the app close its box.
+2. The Escape measurement then read `#modal`'s display to decide whether the form had closed. The
+   app shows and hides it with the **`show` class on `#ov`**. Reading the wrong element reported
+   "0 out of 5 closes" for a form that closes every time.
+
+Measured properly, repeating each case five times: the lead form closes on a real Escape 5/5, and
+the funnel box 5/5 at normal timing (4/5 when the key is pressed 300ms after opening, which is
+faster than a person can click Edit and change their mind). **No defect — and no finding written up
+on the strength of a bad instrument.** Both lessons are in the probe's header and the playbook.
+
 ## Routine fire #123 (2026-09-21 ~18:30 UTC) — the sixth one gets judged when it is written
 
 The dropdown defect has now been found five times in this codebase, each by hand, each a round
