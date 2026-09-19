@@ -1,3 +1,36 @@
+## Routine fire #100 (2026-09-19 ~08:30 UTC) — the Leads chips, checked and found right
+Fire #99 found a defect in a sort nobody had driven. The obvious next question was the other untested
+interaction on the same page: the **stage chips and the three toggles**. They were fixed on 2026-08-09
+— the vocabulary was wrong *and* clicking one filtered nothing — and nothing has guarded them since,
+while dozens of layers have been added over that page. Fire #98 found one of those layers rewriting
+the table's own headers on every redraw, so the question was fair.
+
+**Nothing was wrong.** Driven against the real database in both languages, every chip's number equals
+the rows it then shows: All 78, Prospect 53, Contacted 25, Qualified 0, Proposal 0, Won 0, Lost 2 —
+identical counts in Arabic. Each toggle returns the list to 78 when switched back, and Hide closed
+showing 80 with it OFF is 78 open plus the 2 lost, which is right. **Recorded as verified so the next
+round does not spend itself here.**
+
+**Two instrument faults of my own, again caught before they were believed.** Counting `tbody tr`
+treats the "nothing here" line as a lead, so every zero chip read as off-by-one; and the chips' own
+container repeats every label, so a naive sweep sees an eighth "chip" holding all of them at once.
+Both are written into the probe so the next person reading a chip count by hand does not repeat them.
+
+**A guard, with an honest limit.** `probe-lead-chips-count-what-they-show` (port 9077, 8 checks) fixes
+the invariant that matters — **a badge equals the list beneath it, in both languages, and the two
+languages count the same leads.** Sabotage-verified against core-09's `v26_3LeadCount`: 2 FAIL, with
+the printed line showing every badge detached (All 99/33, Prospect 99/12…).
+
+The toggles are **driven and printed but deliberately not asserted on**: in the harness all three
+leave the count unchanged, so a check on them could not fail, and this session's own rule from fire
+#98 is that an unfalsifiable check is worse than none. Live they do move the list (80/78, 71/78,
+0/78); the printed line is there so a person re-running it can see whether that is still true.
+
+**Two earlier sabotage attempts failed to break anything** before the real source was found: the chip
+counts do not come from core-02's `_all`, which is what a reading of the Leads page would suggest.
+They come from `v26_3LeadCount` in core-09. Written down because the next person will look in the
+same wrong place.
+
 ## Routine fire #99 (2026-09-19 ~06:30 UTC) — the Clients table sorted by something you cannot see
 Fire #98's rule — the language sweep only sees each page at rest — kept giving. The Clients table has
 clickable column sorts (Client, Account manager, Tier, Next review, Health) and **nothing had ever

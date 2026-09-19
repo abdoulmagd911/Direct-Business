@@ -235,3 +235,4 @@ probe-topbar-survives-browser-zoom
 probe-finance-says-it-could-not-load
 probe-arabic-survives-a-search
 probe-client-table-sorts-by-what-you-see
+probe-lead-chips-count-what-they-show
