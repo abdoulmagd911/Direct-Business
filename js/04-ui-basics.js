@@ -84,6 +84,21 @@
     prev.addEventListener('click',function(){tbl.__page=Math.max(1,(tbl.__page||1)-1);refresh();});
     next.addEventListener('click',function(){tbl.__page=(tbl.__page||1)+1;refresh();});
     tbl.__refresh=refresh; refresh();
+    /* 2026-09-19 (fire #104): the pager decorated the table once and then described whatever list
+       it saw at that moment, for ever. Any control that rebuilds the body without a full render —
+       the Airlines/Providers search box and alliance chips both call drawSupTable() — replaced the
+       rows underneath it, so every row came back visible (pagination gone) while the label still
+       read "Showing 1–20 of 136". Measured on the real 136 carriers. Re-paginate when the body is
+       actually rebuilt, and go back to page one, which is what a changed list means. refresh()
+       only touches row STYLE, so it cannot retrigger a childList observer. */
+    try{
+      var _mo=new MutationObserver(function(){
+        if(tbl.__pgQueued)return; tbl.__pgQueued=1;
+        setTimeout(function(){ tbl.__pgQueued=0; tbl.__page=1; try{refresh();}catch(_){} },0);
+      });
+      _mo.observe(tb,{childList:true});
+      tbl.__pgObserver=_mo;
+    }catch(_){}
     }catch(_){}
   }
   function scan(){try{document.querySelectorAll('table').forEach(decorate);}catch(_){}}

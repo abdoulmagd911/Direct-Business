@@ -45,13 +45,41 @@ function renderSuppliers(v,kind){
   v.innerHTML+=`<div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th style="width:26px"><input type="checkbox" onclick="supSelectAll(this)"></th><th style="width:32px">#</th>${isAir?`<th style="cursor:pointer" onclick="supSortBy('name')">Airline${supArrow('name')}</th><th style="cursor:pointer" onclick="supSortBy('code')">IATA${supArrow('code')}</th><th style="cursor:pointer" onclick="supSortBy('stock')">Stock${supArrow('stock')}</th><th style="cursor:pointer" onclick="supSortBy('ksa')">KSA BSP${supArrow('ksa')}</th><th style="cursor:pointer" onclick="supSortBy('ticketingAuthority')">Authority${supArrow('ticketingAuthority')}</th><th>NDC</th><th>Void</th><th>Refund to</th>`:`<th style="cursor:pointer" onclick="supSortBy('name')">Provider${supArrow('name')}</th><th style="cursor:pointer" onclick="supSortBy('type')">Type${supArrow('type')}</th><th>API</th><th style="cursor:pointer" onclick="supSortBy('source')">Availability source${supArrow('source')}</th><th>Portal</th><th>Contacts</th>`}${isAir?``:`<th></th>`}</tr></thead><tbody id="suptb"></tbody></table></div></div>`;
   drawSupTable("");
 }
+/* 2026-09-19 (fire #104): the alliance/type chips above these tables used to be applied by a
+   generic handler that hid table ROWS whose visible text did not contain the chip's word. The
+   Airlines table does not show an alliance column at all — it lives behind Insights — so on the
+   real 136 carriers the oneworld, SkyTeam and Unaligned chips matched nothing and left a blank
+   table with no message, while "Star" matched 34 unrelated rows on incidental text (Aer Lingus,
+   Aeroflot, Air Arabia Egypt…). The chip now filters the DATA, here, where the search box and the
+   sort already do, so the table, the Export and the pager all describe the same list.
+   "Unaligned" means "not in one of the three alliances", so the four chips add up to All: an
+   airline with no alliance recorded is not in an alliance as far as this app knows. */
+var SUP_ALLIANCE_PREFIXES=['star','oneworld','skyteam'];
+window.supChip=window.supChip||{air:'all',prov:'all'};
+function supChipMatch(kind,x,f){
+  if(!f||f==='all')return true;
+  var fl=String(f).toLowerCase();
+  if(kind==='air'){
+    var al=String(x.alliance||'').trim().toLowerCase();
+    var inAlliance=SUP_ALLIANCE_PREFIXES.some(function(a){return al.indexOf(a)===0;});
+    return fl==='unaligned' ? !inAlliance : al.indexOf(fl)===0;
+  }
+  var t=String(x.type||'').toLowerCase();
+  return fl==='other' ? !/hotel|gds|aggregator/.test(t) : t.indexOf(fl)>=0;
+}
+try{ window.supChipMatch=supChipMatch; }catch(_){}
 function drawSupTable(q){q=(q||"").toLowerCase();const isAir=supKind==="air";const arr=supArr(supKind);const tb=document.getElementById("suptb");if(!tb)return;
   const _arSt=(typeof LANG!=='undefined'&&LANG==='ar');
-  let rows=arr.filter(x=>!q||(x.name+" "+(x.code||"")+" "+(x.type||"")+" "+(x.stock||"")+" "+(x.ksa||"")+" "+(x.country||"")+" "+(x.source||"")+" "+(x.alliance||"")+" "+(x.ticketingAuthority||"")).toLowerCase().includes(q));
+  const _chip=(window.supChip||{})[supKind]||'all';
+  let rows=arr.filter(x=>supChipMatch(supKind,x,_chip)).filter(x=>!q||(x.name+" "+(x.code||"")+" "+(x.type||"")+" "+(x.stock||"")+" "+(x.ksa||"")+" "+(x.country||"")+" "+(x.source||"")+" "+(x.alliance||"")+" "+(x.ticketingAuthority||"")).toLowerCase().includes(q));
   const k=supSort.k,d=supSort.dir;rows=rows.slice().sort((a,b)=>{const va=(a[k]==null?"":a[k]).toString().toLowerCase(),vb=(b[k]==null?"":b[k]).toString().toLowerCase();return va<vb?-1*d:va>vb?1*d:0;});
   const authTag=x=>{const t=x.ticketingAuthority||'';return t.indexOf('Authorized')===0?'<span class="tag" style="background:#16B36418;color:#16B364">Authorized</span>':t?'<span class="tag" style="background:#F7900918;color:#B54708">Target</span>':'—';};
   /* 2026-09-09 (live test, Airlines truncation): the Void and Refund cells were cut at 24 characters with an ellipsis — the rule now wraps and reads in full */
-  tb.innerHTML=rows.map((x,i)=>`<tr style="cursor:pointer" onclick="openSupFn('${supKind}','${x.id}')"><td onclick="event.stopPropagation()"><input type="checkbox" class="supchk" value="${x.id}"></td><td style="color:var(--muted)">${i+1}</td><td><b>${esc(x.name)}</b>${isAir?` <button class="btn ghost sm" style="padding:1px 7px;font-size:10.5px" onclick="event.stopPropagation();airQuickEdit('${x.id}')">Edit</button>`:``}<div style="font-size:11px;color:var(--muted)">${esc(x.country||'')}${x.country&&x.type?' · ':''}${esc(x.type||'')}</div></td>${isAir?`<td><span class="tag seg">${esc(x.code||'—')}</span></td><td style="font-weight:700;font-variant-numeric:tabular-nums">${esc(x.stock||'—')}</td><td>${x.ksa==='Yes'?'<span class="tag" style="background:#16B36418;color:#16B364">Yes</span>':x.ksa==='No'?'<span class="tag" style="background:#9AA1B618;color:#82868B">No</span>':'—'}</td><td>${authTag(x)}</td><td>${ndcBadge(x)}</td><td style="font-size:11px;color:var(--muted);max-width:190px;white-space:normal;line-height:1.35" title="${esc(x.voidRule||"")}">${esc(String(x.voidRule||"-"))}</td><td style="font-size:11px;color:var(--muted);max-width:190px;white-space:normal;line-height:1.35" title="${esc((x.type==="LCC"?x.lccRefundTo:x.refundRule)||"")}">${esc(String((x.type==="LCC"?x.lccRefundTo:x.refundRule)||"-"))}</td>`:`<td><span class="tag seg">${esc(x.type||'—')}</span></td><td>${apiTag(x)}</td><td style="color:var(--muted)">${esc(x.source||'—')}</td><td>${x.portal?'<span class="chiplink">●</span>':'<span class="muted">—</span>'}</td><td style="color:var(--muted)">${(x.contacts||[]).length||0}</td>`}${isAir?``:`<td style="text-align:right"><span class="chiplink">Open ›</span></td>`}</tr>`).join("")||`<tr><td colspan="9" class="empty">${_arSt?'لا توجد سجلات بعد.':'No records yet.'}</td></tr>`;
+  tb.innerHTML=rows.map((x,i)=>`<tr style="cursor:pointer" onclick="openSupFn('${supKind}','${x.id}')"><td onclick="event.stopPropagation()"><input type="checkbox" class="supchk" value="${x.id}"></td><td style="color:var(--muted)">${i+1}</td><td><b>${esc(x.name)}</b>${isAir?` <button class="btn ghost sm" style="padding:1px 7px;font-size:10.5px" onclick="event.stopPropagation();airQuickEdit('${x.id}')">Edit</button>`:``}<div style="font-size:11px;color:var(--muted)">${esc(x.country||'')}${x.country&&x.type?' · ':''}${esc(x.type||'')}</div></td>${isAir?`<td><span class="tag seg">${esc(x.code||'—')}</span></td><td style="font-weight:700;font-variant-numeric:tabular-nums">${esc(x.stock||'—')}</td><td>${x.ksa==='Yes'?'<span class="tag" style="background:#16B36418;color:#16B364">Yes</span>':x.ksa==='No'?'<span class="tag" style="background:#9AA1B618;color:#82868B">No</span>':'—'}</td><td>${authTag(x)}</td><td>${ndcBadge(x)}</td><td style="font-size:11px;color:var(--muted);max-width:190px;white-space:normal;line-height:1.35" title="${esc(x.voidRule||"")}">${esc(String(x.voidRule||"-"))}</td><td style="font-size:11px;color:var(--muted);max-width:190px;white-space:normal;line-height:1.35" title="${esc((x.type==="LCC"?x.lccRefundTo:x.refundRule)||"")}">${esc(String((x.type==="LCC"?x.lccRefundTo:x.refundRule)||"-"))}</td>`:`<td><span class="tag seg">${esc(x.type||'—')}</span></td><td>${apiTag(x)}</td><td style="color:var(--muted)">${esc(x.source||'—')}</td><td>${x.portal?'<span class="chiplink">●</span>':'<span class="muted">—</span>'}</td><td style="color:var(--muted)">${(x.contacts||[]).length||0}</td>`}${isAir?``:`<td style="text-align:right"><span class="chiplink">Open ›</span></td>`}</tr>`).join("")||`<tr><td colspan="9" class="empty">${
+    (_chip!=='all'||q)
+      ? (_arSt?'لا شيء هنا بهذا التصفية — جرّب «الكل».':'Nothing here with this filter — try “All”.')
+      : (_arSt?'لا توجد سجلات بعد.':'No records yet.')
+  }</td></tr>`;
 }
 
 function supLink(u,label){if(!u)return '<span class="muted" style="font-size:12px">—</span>';const href=u.startsWith("http")?u:"https://"+u;return `<a class="chiplink" href="${esc(href)}" target="_blank" rel="noopener">${label} ↗</a>`;}

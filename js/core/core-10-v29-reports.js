@@ -610,6 +610,11 @@ window.rptPpt=function(){
  };
  window.supListView=function(kind){
   var arr=supArr(kind);var qEl=document.getElementById("sq");var q=(qEl?qEl.value:"").toLowerCase();
+  /* 2026-09-19 (fire #104): this helper exists so Export gives the list the table is showing.
+     The alliance/type chip is part of that list now, so it has to be applied here too — otherwise
+     exporting while a chip is on would quietly hand over every row. */
+  var _chip=(window.supChip||{})[kind]||'all';
+  if(typeof window.supChipMatch==='function') arr=arr.filter(function(x){return window.supChipMatch(kind,x,_chip);});
   var rows=arr.filter(function(x){return !q||((x.name||"")+" "+(x.code||"")+" "+(x.type||"")+" "+(x.stock||"")+" "+(x.ksa||"")+" "+(x.country||"")+" "+(x.source||"")+" "+(x.alliance||"")+" "+(x.ticketingAuthority||"")).toLowerCase().indexOf(q)>=0;});
   var k=supSort.k,d=supSort.dir;
   return rows.slice().sort(function(a,b){var va=(a[k]==null?"":a[k]).toString().toLowerCase(),vb=(b[k]==null?"":b[k]).toString().toLowerCase();return va<vb?-1*d:va>vb?1*d:0;});

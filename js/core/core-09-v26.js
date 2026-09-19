@@ -1343,6 +1343,21 @@
         }catch(e){if(window.console)console.warn('[v26.3] client counters',e);}
         return;
       }
+      if(sec==='airlines'||sec==='vendors'){
+        /* 2026-09-19 (fire #104): these used to fall through to the generic row-text filter below,
+           which hides a row unless its VISIBLE text contains the chip's word. The Airlines table
+           has no alliance column — it is behind Insights — so on the real 136 carriers oneworld,
+           SkyTeam and Unaligned matched nothing and left a blank table with the count above it
+           still reading "Showing 1–20 of 136", and "Star" matched 34 unrelated rows on incidental
+           text. Drive the real list instead, the way the leads branch above already does. */
+        try{
+          window.supChip=window.supChip||{air:'all',prov:'all'};
+          window.supChip[sec==='airlines'?'air':'prov']=(filter==='all')?'all':filter;
+          var _sq=document.getElementById('sq');
+          if(typeof drawSupTable==='function')drawSupTable(_sq?_sq.value:'');
+        }catch(e){if(window.console)console.warn('[v26.3] reference chip filter',e);}
+        return;
+      }
       /* Generic table-row filter */
       view.querySelectorAll('tbody tr').forEach(function(tr){
         if(filter==='all'){tr.style.display='';return;}

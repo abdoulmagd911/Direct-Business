@@ -569,6 +569,21 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **Filter the data, not the pixels (2026-09-19, fire #104).** The Airlines alliance buttons were
+  applied by hiding table rows whose visible text lacked the button's word. The alliance is not a
+  column on that table, so three buttons matched nothing and one matched on coincidence. This is
+  the same shape as the Leads chips fixed on 2026-08-09 (hiding `.lead` cards in a table that has
+  none). Any filter written against the rendered output breaks the moment the column it depends on
+  is moved, renamed or hidden. Filter the list the table is built from.
+- **A counter belongs to a list, not to a table (2026-09-19, fire #104).** The "Showing 1–20 of
+  136" pager decorated a table once and then described that list for ever; every control that
+  rebuilds the body without a full redraw — search boxes, chips — left it announcing a list that no
+  longer existed, and un-paginated every hidden row on the way. If a control can replace the rows,
+  the thing counting them has to be told.
+- **Buckets should add up to the whole (2026-09-19, fire #104).** Making "Unaligned" mean "in none
+  of the three alliances" turned four filters that overlapped-and-lost-rows into a partition:
+  20+12+11+93 = 136. A set of filters whose totals do not reconcile with the unfiltered count is
+  hiding something, and the reconciliation is the cheapest check there is.
 - **A parser that cannot read a value should say nothing, never something (2026-09-19, fire #103).**
   The import's date reader turned `03/14/2026` into `2026-14-03` — month 14 — because it assumed
   dd/mm and never checked the calendar. A refusal is cheap: the row is held back, named, and the

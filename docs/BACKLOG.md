@@ -1,3 +1,59 @@
+## Routine fire #104 (2026-09-19 ~17:30 UTC) — the Airlines filters showed the wrong airlines, or none
+
+Airlines is a real page with **136 carriers in it** and no probe had ever opened it. Driven against
+the live database, in both languages, with nothing written.
+
+**The alliance buttons did not work.** Clicking them:
+
+| button | what you got | what the data holds |
+|---|---|---|
+| Star Alliance | **34 carriers, mostly not Star members** — Aer Lingus, Aeroflot, Air Arabia Egypt, Air Mauritius, Akasa Air | 20 |
+| oneworld | **a completely blank table, with no message at all** | 12 |
+| SkyTeam | blank | 11 |
+| Unaligned | blank | 93 |
+
+Confirmed on screen, not just in a count. The cause: the buttons were applied by a shared handler
+that hides any table row whose **visible text** does not contain the button's word — and the
+Airlines table has no alliance column, it sits behind Insights. So three buttons matched nothing,
+and "Star" matched whatever happened to contain those four letters.
+
+**And the line under the table kept saying "Showing 1–20 of 136" through all of it** — including
+when the table was empty. Clicking "All" made all 136 rows appear at once under that same line.
+The counter is attached to a table once and then describes whatever list it saw at that moment, so
+anything that rebuilds the rows without a full page redraw — these buttons, and **the search box on
+this page and Providers** — left it talking about a list that no longer existed.
+
+**Fixed.** The buttons now filter the data itself, where the search box and the column sorting
+already live, so the table, the counter and the Export all describe one list. "Unaligned" means
+"not in one of the three alliances", so **the four buttons add up to All**: an airline with no
+alliance recorded is not in an alliance as far as this app knows. A button with nothing behind it
+now says so — *"Nothing here with this filter — try 'All'."* / «لا شيء هنا بهذا التصفية» — instead of
+showing an empty table. And the counter recomputes whenever the rows are rebuilt, so it can never
+describe a list that has been replaced.
+
+Measured after the fix on the real 136: **Star Alliance 20 · oneworld 12 · SkyTeam 11 · Unaligned
+93 = 136**, each properly paged, SkyTeam reading Air France, China Eastern, China Southern, Delta,
+Garuda, ITA, Kenya Airways, KLM. Providers keeps working: Hotels 6 · GDS 5 · Aggregators 8 · Other
+5 — those overlap on purpose, since a "Hotel aggregator" is honestly both, and "Other" is whatever
+is in none of them.
+
+**Guarded.** `probe-reference-chips-filter-the-list` (port 9081, 10 checks) seeds its own carriers —
+one bucket bigger than a page, one bucket deliberately empty, because neither case exists in the
+harness — and requires each button's count to match the data, its list to be exactly one page of
+that count, the four to sum to All, the empty one to say so in the reader's language, and searching
+to narrow the counter too. Sabotage-verified in two halves, 5 checks failing each. 3 gates green.
+
+### Also measured on this page, and left alone deliberately
+
+- **Two stores hold airlines and they disagree.** The app reads its 136 from the workspace blob; the
+  `airlines` table in the database holds **139**, and three exist only there — two real carriers and
+  one legacy grouping row. Nothing in the app reads that table. Which store is authoritative is the
+  owner's call, not a QA round's, so nothing was written to either. This is the known "one JSON row
+  holds most entities" issue showing up as drift.
+- **The read-only banner on Bookings / Invoices / Tickets shows both languages at once.** That is
+  deliberate — a 2026-08-22 owner correction put the language being read in bold and left the other
+  as a small grey gloss. Recorded here so a later round does not "fix" it.
+
 ## Routine fire #103 (2026-09-19 ~16:00 UTC) — a date on an imported invoice has to be a real day
 
 #102 ended by finding, measured but unfixed, that an Excel export whose dates read `3/14/26` or
