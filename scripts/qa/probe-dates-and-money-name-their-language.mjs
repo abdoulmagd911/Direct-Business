@@ -23,8 +23,11 @@
    and requires the two to agree. The Arabic half is checked too: Arabic must stay Arabic, and must
    still be Gregorian. The static half asserts the gate that would catch the next one.
 
-   Sabotage-tested: with the core-01 and core-04 edits and the check-structure rule stashed, 7 checks
-   go FAIL, exit 1.
+   Sabotage-tested (re-measured 2026-09-19 after the lead-page check was narrowed): with core-01 and
+   core-04 reverted to before the fix, 5 checks go FAIL, exit 1 — both printers, the Hijri date, the
+   quotation and the copy-out text. The lead-page check does not fail there, because the harness
+   seed's lead shows no date; fmtDate and fmtTime carry that weight, and the live drive is what
+   found the Hijri dates on a real lead in the first place.
    Run: node scripts/qa/probe-dates-and-money-name-their-language.mjs                                */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
@@ -100,7 +103,15 @@ const checks = [
   ['the app\'s own date printer gives the same English date on both machines', enUS.fmtDate === arSA.fmtDate && clean(arSA.fmtDate)],
   ['and its time printer too', enUS.fmtTime === arSA.fmtTime && clean(arSA.fmtTime)],
   ['the date is Gregorian, not Hijri — 14 March 2026 is still 2026', /2026/.test(arSA.fmtDate) && !/144\d/.test(arSA.fmtDate)],
-  ['a lead\'s page, dates and all, reads identically on both machines', enUS.page === arSA.page && clean(arSA.page)],
+  /* 2026-09-19 (fire #100): this check used to require the two pages' whole text to be IDENTICAL.
+     It went red in a full battery, twice, on a healthy app: the lead detail page is assembled by a
+     stack of injection layers (the service-fit map, the Direct-link banner, the suggested-next-step
+     nudge, the managed-in-Direct note), and which of them lands first is not deterministic. Both
+     runs held the same 1556 characters in a different order — nothing to do with the browser's
+     language, which is what this probe is about. The check now asserts what it always meant: no
+     Arabic-Indic digit and no Hijri date leaks onto the English page. The strict equality is kept
+     for the quotation below, which renders in one pass and is the surface the defect was found on. */
+  ['a lead\'s page carries no Arabic-Indic digits and no Hijri date in the English app', clean(arSA.page) && String(arSA.page).length > 50],
   ['the client-facing quotation prints the same prices on both machines', enUS.doc === arSA.doc && clean(arSA.doc) && /1,234,567.5/.test(arSA.doc)],
   ['and so does the text an agent copies out to a client', enUS.text === arSA.text && clean(arSA.text)],
   /* the other direction: the fix must not have flattened Arabic into English */

@@ -26,6 +26,19 @@ leave the count unchanged, so a check on them could not fail, and this session's
 #98 is that an unfalsifiable check is worse than none. Live they do move the list (80/78, 71/78,
 0/78); the printed line is there so a person re-running it can see whether that is still true.
 
+**And the full battery caught one of my own probes being too strict.**
+`probe-dates-and-money-name-their-language` (fire #94) went red twice — under load and on the serial
+re-run — on a healthy app. Its lead-page check required the page's whole text to be **identical**
+between the two browsers. Both runs held the same 1,556 characters in a different order: the lead
+detail page is assembled by a stack of injection layers (service-fit map, Direct-link banner,
+suggested-next-step nudge, managed-in-Direct note) and which lands first is not deterministic. Nothing
+to do with the browser's language, which is what that probe is about.
+
+Narrowed to what it always meant — no Arabic-Indic digit and no Hijri date on the English page — and
+re-sabotaged by reverting core-01 and core-04 to before the fix: **5 FAIL**, both printers, the Hijri
+date, the quotation and the copy-out text. The strict equality stays on the quotation, which renders
+in one pass and is where the defect was actually found. Run twice more since: green both times.
+
 **Two earlier sabotage attempts failed to break anything** before the real source was found: the chip
 counts do not come from core-02's `_all`, which is what a reading of the Leads page would suggest.
 They come from `v26_3LeadCount` in core-09. Written down because the next person will look in the
