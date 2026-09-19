@@ -280,8 +280,28 @@ function renderClients(v){
   if(clFilter.owner==="__none__")cl=cl.filter(b=>!String(b.accountManager||b.assignedTo||"").trim());
   else if(clFilter.owner!=="all")cl=cl.filter(b=>window.sameOwner?sameOwner(b.accountManager||b.assignedTo,clFilter.owner):(b.accountManager||b.assignedTo||"")===clFilter.owner);
   if(clFilter.tier!=="all")cl=cl.filter(b=>(b.tier||"Standard")===clFilter.tier);
-  const sv=(b,k)=>k==="am"?String(b.accountManager||b.assignedTo||"").toLowerCase():k==="tier"?String(b.tier||"Standard"):k==="review"?(b.nextReview||"9999-99"):k==="health"?({"At risk":0,Watch:1,New:2,Good:3}[clientHealth(b).l]):String(b.name||"").toLowerCase();
-  cl=cl.slice().sort((a,b)=>{const va=sv(a,clSort.k),vb=sv(b,clSort.k);return va<vb?-1*clSort.dir:va>vb?1*clSort.dir:0;});
+  /* 2026-09-19 (fire #99), two things driven live on the real 28 clients:
+
+     HEALTH — this map had no entry for 'Lost', which clientHealth() has returned since 2026-09-09.
+     An unknown label gave undefined, and undefined compares equal to everything, so the one Lost
+     client landed in the MIDDLE of the Watch block: At risk ×4, Watch ×3, Lost, Watch ×2, New…
+     The column's own tooltip promises "click to surface at-risk clients", and a health was split in
+     two. Lost is now ranked last — it is the one reading that needs no chasing — and anything this
+     map has never heard of sorts after everything rather than nowhere.
+
+     NAME — the rows show the Arabic name when there is one (js/54's nmMain), but the sort key was
+     always b.name, the stored English one. In Arabic the list therefore read Abdel Hadi… /
+     Al Sharq… / مؤسسة العرض… / نادي الجندل… / alnahla… — Arabic names sitting in the middle of a
+     Latin run, ordered by something the reader cannot see. It now sorts by the name actually on the
+     row, with localeCompare in the language being read, so Arabic collates as Arabic. */
+  const HEALTH_RANK={"At risk":0,Watch:1,New:2,Good:3,Lost:4};
+  const shownName=(b)=>String((window.nmMain?nmMain(b):b.name)||b.name||"");
+  const sv=(b,k)=>k==="am"?String(b.accountManager||b.assignedTo||"").toLowerCase():k==="tier"?String(b.tier||"Standard"):k==="review"?(b.nextReview||"9999-99"):k==="health"?(HEALTH_RANK[clientHealth(b).l]!==undefined?HEALTH_RANK[clientHealth(b).l]:99):shownName(b);
+  const _clLoc=(typeof LANG!=='undefined'&&LANG==='ar')?'ar':'en';
+  cl=cl.slice().sort((a,b)=>{const va=sv(a,clSort.k),vb=sv(b,clSort.k);
+    if(typeof va==='number'&&typeof vb==='number')return (va-vb)*clSort.dir;
+    try{ return String(va).localeCompare(String(vb),_clLoc,{sensitivity:'base',numeric:true})*clSort.dir; }
+    catch(_){ return (va<vb?-1:va>vb?1:0)*clSort.dir; }});
   const won=DB.businesses.filter(b=>!b.isClient&&leadStatus(b)==="Won").length;
   const today=todayISO();
   const team=teamList();

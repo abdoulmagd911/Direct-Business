@@ -550,6 +550,16 @@ now exists specifically because of each one:
   it never types, never filters, never sees an empty list and never sees an error state. Both of the
   last two rounds' language defects lived exactly there. When checking a language, check the states
   a page only reaches by being used.
+- **A map from a label is a bug waiting for the next label (2026-09-19, fire #99).** The Clients
+  health sort ranked four labels through an object literal; a fifth, 'Lost', was added to
+  clientHealth() nine days earlier and nobody updated the map. The lookup gave `undefined`, which
+  compares equal to everything, so the row landed anywhere — a silent wrong ORDER rather than a
+  crash. Any label→number map needs a defined fallback, and the probe has to contain the label the
+  map has never seen.
+- **Sort by what is on the row (2026-09-19, fire #99).** The same table sorted by the stored English
+  name while showing the Arabic one, so in Arabic the order matched nothing visible. If a column
+  displays a derived or translated value, that is the value to sort by, compared with localeCompare
+  in the language being read.
 - **Sabotage is what tells you whether you wrote a check (2026-09-19, fire #98).** Two versions of
   one probe passed against the fix and could not fail without it — first because it typed into the
   wrong input, then because the harness's redraw path differs from the live one. Neither was

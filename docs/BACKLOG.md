@@ -1,3 +1,36 @@
+## Routine fire #99 (2026-09-19 ~06:30 UTC) — the Clients table sorted by something you cannot see
+Fire #98's rule — the language sweep only sees each page at rest — kept giving. The Clients table has
+clickable column sorts (Client, Account manager, Tier, Next review, Health) and **nothing had ever
+driven them.** Two defects, both measured on the real 28 clients.
+
+**1. Sorting by Health splits a health in two.** The rank map read
+`{"At risk":0, Watch:1, New:2, Good:3}` — and `clientHealth()` has also returned **'Lost'** since
+2026-09-09, when a lost account showing "Good" was fixed. An unknown label yields `undefined`, and
+`undefined` compares equal to everything, so it lands wherever the previous order left it. The live
+order was **At risk ×4, Watch ×3, Lost, Watch ×2, New…** — the Watch block cut in half by the one Lost
+client, under a column whose own tooltip promises "click to surface at-risk clients". Not a language
+bug: it did the same in English.
+
+Fixed: Lost ranks **last** — it is the one reading nobody needs to chase — and a label the map has
+never heard of now sorts after everything rather than nowhere.
+
+**2. Sorting by Client name ordered by a name the reader cannot see.** The rows show the Arabic name
+when there is one (js/54's `nmMain`), but the sort key was always `b.name`, the stored English one. In
+Arabic the list read *Abdel Hadi… / Al Sharq… / مؤسسة العرض… / نادي الجندل… / alnahla…* — Arabic names
+sitting in the middle of a Latin alphabetical run. Nothing on screen explained the order, because the
+order was of something else entirely.
+
+Fixed: it sorts by the name actually on the row, with `localeCompare` in the language being read.
+Verified live: Arabic now opens الإدارة العامة… / الغرفة التجارية… / الهيئة العامة… / بايزووتر… /
+بنشمارك…, and English is unchanged. Numbers now count as numbers too, so "company 4" precedes
+"company 12".
+
+**Probe:** `probe-client-table-sorts-by-what-you-see` (port 9076, 10 checks). The harness seed has no
+Lost client and no Arabic client name, so the probe **makes both** — a check that never meets its own
+case is not a check, which is the same lesson the last two rounds produced from the other direction.
+Sabotage-verified: **5 FAIL**, the health order coming back as Watch / New / Lost / New / Lost / Watch
+/ New and the Arabic names out of Arabic order.
+
 ## Routine fire #98 (2026-09-19 ~04:30 UTC) — the Arabic that does not survive a search
 Fire #97 found two English-only cards that `sweep-language` could never reach, because they only
 appear when a read fails. This round went at the same blind spot from the other side: the sweep drives
