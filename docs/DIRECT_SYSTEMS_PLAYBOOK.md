@@ -569,6 +569,14 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **When a round finds a defect, spend the next one looking for its shape everywhere else
+  (2026-09-20, fire #116).** #115 found one form deleting an answer it could not display. Asking the
+  same question of every other fixed list in the app took one afternoon and found it in the form the
+  team uses most: **all 108 companies** held a source outside the sixteen the box offered, so opening
+  any lead and pressing Save rewrote where it came from. Two more boxes had it as well. The sweep
+  also cleared six lists honestly, which is worth as much — it is what stops the next round
+  re-checking them. A defect is rarely alone; the second search is cheaper than the first and usually
+  finds more.
 - **A control that cannot show what is stored will quietly delete it (2026-09-20, fire #115).** The
   funnel form's dropdowns were built from an option list, the answers were written by the importer
   from the source files, and nobody ever made the two agree: seven live answers — "Partner" where

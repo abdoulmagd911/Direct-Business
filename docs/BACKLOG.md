@@ -1,3 +1,50 @@
+## Routine fire #116 (2026-09-20 ~07:30 UTC) — every company was one edit away from losing where it came from
+
+Fire #115 found a form that deleted an answer it could not display. This round went looking for the
+same shape everywhere else, starting with the form people use most — and found it worse.
+
+**The lead form's "Funnel / source" box.** It is built from a fixed list — sixteen entries — and had
+no empty option. The sources the records actually hold are "Contact Submission" (81 companies), an
+import tag (19), "Past Invoices" (3) and five one-offs. **Not one of the 108 live companies holds a
+source that list contains.** A dropdown with no match selects its first entry, and Save reads the box
+and writes it back. Measured against the real database in both languages: open any lead, press Save
+without touching anything, and its source becomes "Old Customers". That field is what the two August
+re-verification rounds were built on.
+
+**The Category box, the same hole from the other side.** 98 of the 108 companies have no category at
+all, and with no empty option the box opened on "Anchor" and Save recorded it.
+
+**The airline form's Type box.** Five of the 136 real carriers hold a type the box never heard of —
+two blank, three plating or GSSA platforms. Editing one would have recorded it as a full-service
+carrier.
+
+All three are fixed the same way as the funnel form: an empty option that says nothing is recorded,
+and, where the record holds something the list does not, that value as its own option, selected and
+marked *on file* / *المسجَّل*. Every standard option is still offered, so changing one stays a
+deliberate choice. Re-driven against the real database — a lead is now byte-for-byte unchanged by
+opening its form and pressing Save.
+
+`probe-a-lead-keeps-where-it-came-from` (port 9089, 13 checks) covers all three boxes in both
+languages, and also checks the ordinary case — a source the list *does* contain is still selected
+normally, with no extra entry. Sabotage-verified three times, one box at a time: 3 checks fail
+without the source fix, 3 without the category fix, 2 without the airline fix.
+
+### Checked and clean
+
+The same question asked of every other fixed list in the app: the Events form (80 real events — every
+stored vertical, status and priority is in its box), the airline Alliance / ADM-risk / KSA-IATA /
+SAF / NDC boxes and the provider Settlement and API-status boxes (all of them already map a blank to
+their own "—" entry), and the lead Stage and Assigned-to boxes (both already have an empty option,
+and every live stage maps to one the box offers). Recorded so a later round does not re-check them.
+
+### One stale expectation, corrected
+
+The full battery after fire #113 went red on `probe-search-phone`: it took the first row of a
+"Test Company 3" search and required it to say *Lead*. The fixture makes every fourth company a
+client, so that row is a client — and since #113 the search says so instead of calling everything a
+lead. The expectation was the stale half, confirmed against the fixture rather than against the
+change. It now asks for the lead row **and** the client row, which is the stronger check.
+
 ## Routine fire #115 (2026-09-20 ~06:00 UTC) — opening the funnel form and pressing Save deleted answers nobody touched
 
 The funnel-details card and its Edit form (js/09) had not been driven this session. Driving them

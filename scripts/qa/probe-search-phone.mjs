@@ -50,7 +50,13 @@ async function main() {
   const inView = (sel) => p.evaluate((sel) => { const e = document.querySelector(sel); if (!e) return null; const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.left >= -1 && r.right <= window.innerWidth + 1; }, sel);
 
   // ---- desktop, EN then AR
-  const TYPES = { en: { airline: 'Airline', provider: 'Provider', sop: 'SOP', lead: 'Lead' }, ar: { airline: 'شركة طيران', provider: 'مورّد', sop: 'إجراء', lead: 'عميل محتمل' } };
+  /* 2026-09-20 (fire #116, from the battery after #113) — this used to take the FIRST row of a
+     'Test Company 3' search and require it to say Lead. The fixture makes every fourth company a
+     client, so that first row is Test Company 36, which IS a client — and since #113 the search
+     says so instead of calling every company a lead. The expectation was the stale half, not the
+     app: checked against the fixture (is_client: i%4===0), not just against the change. It now
+     asks for the lead row AND the client row, which is the stronger check the fix deserves. */
+  const TYPES = { en: { airline: 'Airline', provider: 'Provider', sop: 'SOP', lead: 'Lead', client: 'Client' }, ar: { airline: 'شركة طيران', provider: 'مورّد', sop: 'إجراء', lead: 'عميل محتمل', client: 'عميل' } };
   for (const lang of ['en', 'ar']) {
     await setLang(lang); await p.waitForTimeout(500);
     const T = TYPES[lang];
@@ -58,7 +64,10 @@ async function main() {
     const where = await pick(); if (where === 'airlines/air_qa1') ok(lang.toUpperCase() + ': picking it opens the airline record'); else fail(lang.toUpperCase() + ': pick landed on ' + where);
     const v = await search('QA Global'); if (v.length && v[0].t === T.provider) ok(lang.toUpperCase() + ': provider found, typed "' + T.provider + '"'); else fail(lang.toUpperCase() + ': provider search → ' + JSON.stringify(v.slice(0, 2)));
     const s = await search('Void window'); if (s.length && s[0].t === T.sop) ok(lang.toUpperCase() + ': procedure found, typed "' + T.sop + '"'); else fail(lang.toUpperCase() + ': SOP search → ' + JSON.stringify(s.slice(0, 2)));
-    const l = await search('Test Company 3'); if (l.length && l[0].t === T.lead) ok(lang.toUpperCase() + ': lead found, typed "' + T.lead + '"'); else fail(lang.toUpperCase() + ': lead search → ' + JSON.stringify(l.slice(0, 2)));
+    const l = await search('Test Company 3');
+    const lRow = l.find((r) => /Test Company 37/.test(r.l)), cRow = l.find((r) => /Test Company 36/.test(r.l));
+    if (lRow && lRow.t === T.lead) ok(lang.toUpperCase() + ': the lead is found and typed "' + T.lead + '"'); else fail(lang.toUpperCase() + ': lead search → ' + JSON.stringify(l.slice(0, 2)));
+    if (cRow && cRow.t === T.client) ok(lang.toUpperCase() + ': and the client beside it is typed "' + T.client + '", not as a lead'); else fail(lang.toUpperCase() + ': client search → ' + JSON.stringify(l.slice(0, 2)));
     const n = await search('zzzz-nothing'); const want = lang === 'ar' ? /لا نتائج/ : /No matches/; if (n.length === 1 && want.test(n[0].raw)) ok(lang.toUpperCase() + ': no-match line reads in the right language'); else fail(lang.toUpperCase() + ': no-match line → ' + JSON.stringify(n));
   }
   const btnDesktop = await inView('#v74search');
