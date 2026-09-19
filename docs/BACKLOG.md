@@ -1,3 +1,41 @@
+## Routine fire #123 (2026-09-21 ~18:30 UTC) — the sixth one gets judged when it is written
+
+The dropdown defect has now been found five times in this codebase, each by hand, each a round
+apart. This round stops the sixth needing a person.
+
+**check-structure now finds every dropdown of the shape** — options from a fixed list, selection
+from a record, no empty option — and requires each to carry a written verdict in the new
+`scripts/qa/select-lists-judged.txt`. It gates **both ways**, like `reports.txt`: an unjudged
+dropdown fails the build, and so does a judged one that no longer matches anything, because a stale
+entry is as misleading as a missing one. Verified failing on both branches, then restored. A box
+that gets the fix (an empty option plus the stored value as its own option) drops out of the scan by
+itself — which is how the set went from 45 to 41 as #115, #116, #119 and #121 landed.
+
+### Correcting what #119 said
+
+Fire #119 recorded that the other 41 "carry the same latent defect". **That is not accurate, and the
+classification is the useful part of this round.** Of the 41:
+
+* **13 are filters.** The value compared is a screen filter — the Events vertical and status
+  pickers, the Finance period and company pickers, the audit log's three filters, the report's
+  member / objective / quarter pickers, the expenses and payment-proof month pickers, the Clients
+  owner filter. Nothing is stored, so nothing can be lost; the worst case is a filter starting
+  somewhere else.
+* **5 edit a stored record and are correct.** The three event boxes (all 80 events hold values the
+  boxes offer, and two of those columns are database enums of exactly those values); Team & Access,
+  whose list covers all six roles the enum holds — the screen its twin js/56 got wrong in round 30,
+  and this one was already right; and the objective's team-member picker, whose list is built from
+  the team itself.
+* **23 edit record types the workspace holds zero rows of** — bookings, invoices, proposals,
+  requests. These do carry the defect, and each is marked NO-ROWS with the instruction to fix it the
+  way the lead, funnel, airline and entity boxes were **before that feature is first used**.
+
+### Also closed this round
+
+The `activities` table is read-only in the app by design and the app knows it: an activity that came
+from the table shows no edit or delete control, so the lost-edit problem js/72 had to solve for
+contacts cannot arise. Verified rather than assumed.
+
 ## Routine fire #122 (2026-09-21 ~17:00 UTC) — a check that could not catch the thing it was for
 
 Closing the "printed but not writable" audit, then following it into the Events record.

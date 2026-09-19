@@ -1,0 +1,72 @@
+# Dropdowns built from a fixed list that ALSO show a value out of a record, with no empty option.
+#
+# Why this file exists. A <select> whose option list does not contain the value it was given
+# selects its FIRST option, and a Save that reads the box then writes that first option back. This
+# codebase has been bitten by it five times: round 30 (the access matrix calling unknown roles
+# "Admin"), fire #115 (the funnel form deleting answers), fire #116 (every company losing where it
+# came from), fire #119 (nineteen companies filed as ministries). Each was found by hand, one round
+# apart. check-structure now finds every dropdown of that shape and requires each one to be judged
+# here, so the sixth is judged when it is written instead of years later.
+#
+# Written 2026-09-21 (fire #123) after the whole set was classified against the live database.
+#
+# Format:   <file>:<id or the record field it compares>  :  <verdict, and why>
+#
+# A verdict must be one of:
+#   FILTER      — the compared value is a SCREEN FILTER, not a stored record. Nothing can be lost:
+#                 a value outside the list only means the filter starts somewhere else.
+#   IN-LIST     — it edits a stored record, and every value the live data holds IS in the list.
+#                 Checked against the database; re-check if the list or the data changes.
+#   NO-ROWS     — it edits a record type the workspace holds ZERO rows of. It carries the defect,
+#                 and must be fixed the way the lead/funnel/airline/entity boxes were (an empty
+#                 option, plus the stored value as its own option) BEFORE that feature is first
+#                 used in earnest.
+#   FIXED       — carries an empty option and an on-file fallback. Such a box no longer matches the
+#                 scan at all, so this verdict should never appear here; it is listed for the
+#                 reader's sake.
+#
+# When the check reports a key that is not here, judge it and add a line. When it reports a line
+# here that no longer matches anything, delete the line — a stale entry is as misleading as a
+# missing one.
+
+10-events.js:evF_v                                      : FILTER — the Events page's vertical filter.
+10-events.js:evF_s                                      : FILTER — the Events page's status filter.
+10-events.js:em_v                                       : IN-LIST — event vertical. All 80 live events are Travel/Tech/Study/Other, and the column is a database enum of exactly those four.
+10-events.js:em_s                                       : IN-LIST — event status. All 80 are confirmed/no_date/outside_ksa/needs_verification/stale; the column is an enum of the six the box offers.
+10-events.js:em_p                                       : IN-LIST — event priority. All 80 are 1–5, which is what the box offers.
+16-finance-ledger.js:p.part                             : FILTER — the Finance period (month/quarter) picker.
+16-finance-ledger.js:f.business                         : FILTER — the company picker on the ledger.
+16-finance-ledger.js:rb.g1                              : FILTER — the Report Builder's grouping choice.
+31-v48-team-access-one-simple-page-to-manage-.js:u.role : IN-LIST — Team & Access. Its list covers all SIX roles the database enum holds, so a stored role always matches. This is the screen js/56's twin got wrong; this one was already right.
+45-expenses.js:EXP.month                                : FILTER — the Expenses month picker.
+56-access-matrix.js:u.role                              : IN-LIST — fixed in round 30. Its list offers three levels, and a role outside them is shown by name and marked rather than guessed.
+57-payment-proofs.js:PRX.type                           : FILTER — the payment-proofs type filter.
+57-payment-proofs.js:PRX.month                          : FILTER — the payment-proofs month filter.
+core-02-leads.js:clFilter.owner                         : FILTER — the Clients page's owner filter.
+core-03-reference-ops.js:r_service                      : NO-ROWS — a request's service. The workspace holds 0 requests.
+core-03-reference-ops.js:r_stage                        : NO-ROWS — a request's stage. 0 requests.
+core-03-reference-ops.js:r_priority                     : NO-ROWS — a request's priority. 0 requests.
+core-04-proposals.js:o.proposalType                     : NO-ROWS — proposals. The workspace holds 0.
+core-04-proposals.js:o.status                           : NO-ROWS — proposals. 0 rows.
+core-04-proposals.js:o.policyStatus                     : NO-ROWS — proposals. 0 rows.
+core-04-proposals.js:o.approvalStatus                   : NO-ROWS — proposals. 0 rows.
+core-04-proposals.js:op.content                         : NO-ROWS — a proposal's content lines. 0 rows.
+core-04-proposals.js:it.type                            : NO-ROWS — a bundle item's type. 0 rows.
+core-05-records.js:eb_status                            : NO-ROWS — a booking's status. The workspace holds 0 bookings.
+core-05-records.js:ei_status                            : NO-ROWS — an invoice's status. 0 workspace invoices (the 46 real ones live in finance_invoices, which this form does not edit).
+core-06-v18-v21.js:ei_type                              : NO-ROWS — invoice type. 0 workspace invoices.
+core-06-v18-v21.js:ei_status                            : NO-ROWS — invoice status. 0 rows.
+core-06-v18-v21.js:ei_pt                                : NO-ROWS — invoice payment terms. 0 rows.
+core-06-v18-v21.js:ei_dun                               : NO-ROWS — dunning stage. 0 rows.
+core-06-v18-v21.js:ei_z                                 : NO-ROWS — ZATCA status. 0 rows.
+core-06-v18-v21.js:eb_status                            : NO-ROWS — booking status. 0 bookings.
+core-06-v18-v21.js:eb_fop                               : NO-ROWS — form of payment. 0 bookings.
+core-06-v18-v21.js:eb_estat                             : NO-ROWS — e-ticket status. 0 tickets.
+core-06-v18-v21.js:eb_emd                               : NO-ROWS — EMD type. 0 tickets.
+core-06-v18-v21.js:actFilter.entity                     : FILTER — the audit log's entity filter.
+core-06-v18-v21.js:actFilter.action                     : FILTER — the audit log's action filter.
+core-06-v18-v21.js:actFilter.user                       : FILTER — the audit log's user filter.
+core-10-v29-reports.js:rf_member                        : IN-LIST — the team member an objective is assigned to; the list is built from the team itself, so it cannot hold a name the list lacks.
+core-10-v29-reports.js:rptRep.member                    : FILTER — the report's team-member filter.
+core-10-v29-reports.js:rptRep.obj                       : FILTER — the report's objective filter.
+core-10-v29-reports.js:rptRep.quarter                   : FILTER — the report's quarter picker.

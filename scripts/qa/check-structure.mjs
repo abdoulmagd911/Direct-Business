@@ -256,6 +256,49 @@ try {
   problems.push('today-from-UTC check could not run: ' + e.message);
 }
 
+/* ---- every dropdown that shows a stored value must have been judged (added 2026-09-21, fire #123) ----
+   A <select> whose option list does not contain the value it was handed selects its FIRST option,
+   and a Save that reads the box writes that first option back. This codebase has been bitten by it
+   five times, each found by hand a round apart: round 30 (the access matrix calling unknown roles
+   "Admin"), fire #115 (the funnel form deleting answers), fire #116 (all 108 companies losing where
+   they came from), fire #119 (nineteen companies filed as ministries).
+   The gate does not try to decide which are dangerous — that needs the live data. It finds every
+   dropdown of the shape and requires each to carry a written verdict in
+   scripts/qa/select-lists-judged.txt, so the sixth is judged when it is written. It gates BOTH
+   ways, like reports.txt: an unjudged dropdown fails, and so does a judged one that no longer
+   exists, because a stale entry is as misleading as a missing one.
+   A box that carries an empty option (the fix applied in #115/#116/#119/#121) drops out of the scan
+   by itself, which is how the list shrank from 45 to 41. */
+try {
+  const JUDGED = at('scripts/qa/select-lists-judged.txt');
+  const judged = new Set(fs.readFileSync(JUDGED, 'utf8').split('\n')
+    .map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
+    .map((l) => l.split(':').slice(0, 2).join(':').trim()));
+  const SEL = /<select\b[\s\S]*?<\/select>/g;
+  const found = new Set();
+  const srcFiles = files.filter((f) => /\.js$/.test(f)).concat(['index.html']);
+  for (const rel of srcFiles) {
+    let src = ''; try { src = fs.readFileSync(at(rel), 'utf8'); } catch (_) { continue; }
+    const base = rel.split('/').pop();
+    let m;
+    while ((m = SEL.exec(src))) {
+      const blk = m[0];
+      if (blk.length > 6000 || !blk.includes('selected') || !blk.includes('.map(')) continue;
+      if (/value=(""|'')/.test(blk)) continue;                 /* has an empty option — safe */
+      const fld = blk.match(/\b([a-zA-Z_]\w*\.\w+)\s*(?:===|==)/);
+      if (!fld) continue;                                      /* nothing compared to a record */
+      const idm = blk.match(/id=["']?([a-zA-Z_0-9]+)/);
+      found.add(base + ':' + (idm ? idm[1] : fld[1]));
+    }
+  }
+  const unjudged = [...found].filter((k) => !judged.has(k)).sort();
+  const stale = [...judged].filter((k) => !found.has(k)).sort();
+  if (unjudged.length) problems.push('these dropdowns show a stored value with no empty option and no written verdict — judge each one in scripts/qa/select-lists-judged.txt (is it a FILTER, is every live value IN-LIST, or does it edit a record type with NO-ROWS yet?): ' + unjudged.join(', '));
+  if (stale.length) problems.push('scripts/qa/select-lists-judged.txt judges dropdowns that no longer match — delete these lines, a stale entry is as misleading as a missing one: ' + stale.join(', '));
+} catch (e) {
+  problems.push('judged-dropdowns check could not run: ' + e.message);
+}
+
 if (problems.length) {
   console.log('STRUCTURE CHECK FAILED — fix these before deploying:\n');
   problems.forEach(p => console.log('  ✗ ' + p));
