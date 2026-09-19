@@ -129,16 +129,18 @@ try{
      deleted (never delete a person silently) — it is flagged needs_manual_confirmation with
      the reason, so it shows with the badge until a human decides. */
   var SNAP={};   // _tid → {business_id,name,email,phone} as last seen from the table
-  function snapFrom(rows){ (rows||[]).forEach(function(r){ SNAP[r.id]={business_id:r.business_id,name:r.name||'',email:r.email||'',phone:r.phone||''}; }); }
+  function snapFrom(rows){ (rows||[]).forEach(function(r){ SNAP[r.id]={business_id:r.business_id,name:r.name||'',role:r.role||'',email:r.email||'',phone:r.phone||''}; }); }
   function writeThrough(list){
     try{
       var c=client(); if(!c||!Array.isArray(list))return;
       var seen={}, bizOf=null;
       list.forEach(function(x){ if(!x||!x._tid||!SNAP[x._tid])return; seen[x._tid]=1; bizOf=bizOf||SNAP[x._tid].business_id;
-        var s=SNAP[x._tid], nm=String(x.name||''), em=String(x.email||''), ph=String(x.phone||'');
-        if(nm!==s.name||em!==s.email||ph!==s.phone){
-          c.from('contacts').update({name:nm,email:em,phone:ph}).eq('id',x._tid).select('id').then(function(r){
-            if(r&&r.data&&r.data.length){ SNAP[x._tid].name=nm; SNAP[x._tid].email=em; SNAP[x._tid].phone=ph; }
+        /* 2026-09-20 (fire #120) — role travels with the other three now that the form can write
+           one. It is the same column the card has always printed and the same update statement. */
+        var s=SNAP[x._tid], nm=String(x.name||''), rl=String(x.role||''), em=String(x.email||''), ph=String(x.phone||'');
+        if(nm!==s.name||rl!==(s.role||'')||em!==s.email||ph!==s.phone){
+          c.from('contacts').update({name:nm,role:rl,email:em,phone:ph}).eq('id',x._tid).select('id').then(function(r){
+            if(r&&r.data&&r.data.length){ SNAP[x._tid].name=nm; SNAP[x._tid].role=rl; SNAP[x._tid].email=em; SNAP[x._tid].phone=ph; }
             else { try{ if(typeof toast==='function')toast((typeof LANG!=='undefined'&&LANG==='ar')?'تعذّر حفظ تعديل جهة الاتصال في قاعدة البيانات':'Could not save the contact edit to the database'); }catch(_){} }
           });
         }

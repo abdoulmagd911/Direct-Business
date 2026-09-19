@@ -1,3 +1,40 @@
+## Routine fire #120 (2026-09-20 ~13:30 UTC) — the app showed a job title nobody could type
+
+The `contacts` table has a `role` column. Eleven of the 45 live contacts carry one, and the lead
+card has always printed it beside the name — read off the real database: "Delegations office ·
+Protocol". The edit form's contact rows offered **name, email and phone only**.
+
+So the app displayed a field nobody could write. A wrong title could not be corrected, and the other
+34 people could never be given one — on the screen whose whole purpose is knowing who to call. The
+column is updatable by an authenticated user, so the gap was in the form, not in the permissions.
+
+**Fixed:** a Role box per contact row, in both languages, and js/72 now sends `role` to the contacts
+table alongside name, email and phone for a contact that came from there. Driven live in both
+languages before and after; the layout was screenshotted rather than assumed — four boxes fit at
+126 / 101 / 126 / 126 px with no sideways scroll, and the Arabic row reads right-to-left correctly.
+
+Two deliberate choices, both recorded because they will look odd later. The grid is widened by an
+**inline style** rather than by editing index.html's stylesheet — touching index.html is a
+connection step and this did not need to be one. And the placeholder is written **bilingually in
+place**, while the other three are still translated after render from js/21's dictionary: inline
+cannot fall out of step with a dictionary nobody updated, which is exactly how a label goes English
+on an Arabic screen.
+
+`probe-a-contact-can-be-given-a-job-title` (port 9093, 9 checks) holds it: the card prints a title,
+the form offers four boxes carrying what is stored, the label reads in the page's language, a title
+typed on someone who had none is kept, a person added from scratch gets the same box — and a title
+given to someone who came from the contacts table is **sent to that table**, while a person whose
+details did not change is not written at all. Sabotage-verified twice against a copy of the app: 6
+checks fail without the input, 1 without the write-through.
+
+### A trap worth remembering
+
+The first version of this probe invented a table-sourced contact in the page with a made-up row id.
+js/72 only writes back a row it has actually *seen* in the table, so nothing was ever sent and the
+check failed for a reason that had nothing to do with the app. The second version seeded the row in
+the mock's `contacts` table — and then had to find the company **the bridge attached it to**, since
+the app's id for a business is not the database row id. Both corrections are written into the probe.
+
 ## Routine fire #119 (2026-09-20 ~12:00 UTC) — nineteen companies were one edit away from becoming ministries
 
 The audit begun in #116 and #118, run to its end: every dropdown in the app that is built from a
