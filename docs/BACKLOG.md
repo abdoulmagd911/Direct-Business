@@ -1,3 +1,27 @@
+## Routine fire #125 (2026-09-21 ~21:00 UTC) — the battery caught my own English on an Arabic form
+
+The full battery at the #121 tree came back **239 green, 2 red**, both reproduced alone, both
+Arabic — and both caused by the round before. The Website box I added in #121 shipped with the bare
+placeholder **"example.com"**, which is English sitting on an Arabic form.
+`probe-arabic-lead-form` ("no placeholder in the Arabic form is left in English") and
+`probe-arabic-dialogs-complete` ("no dialog is left carrying English that is not a name, an acronym
+or a technical value") both said so, on three dialogs: New lead, Edit lead, Edit client.
+
+**The probes were right and my code was wrong** — the decision that matters here, and the same call
+as fire #111 made the other way. A bare domain is not a name or an acronym, and every other example
+placeholder in that form is written in Arabic (the activity note reads «مثال: تحدّثت مع الأستاذ
+ناصر — مهتم، سنرسل العرض الأحد»). The domain itself must stay in Latin, so the Arabic side now
+frames it the same way: **«مثال: example.com»**. Both probes are green again.
+
+`probe-a-company-website-can-be-typed` gained an eleventh check for the placeholder, so the thing
+that went wrong is now guarded by the probe that owns the field rather than only by the two Arabic
+sweeps. Sabotage-verified against a copy of the app: putting the bare placeholder back turns **both**
+that probe and `probe-arabic-lead-form` red.
+
+Worth saying plainly: seven rounds of adding fields, and the one defect introduced was caught by the
+battery the same day, by a probe written months earlier for a different reason. That is the battery
+doing exactly its job.
+
 ## Routine fire #124 (2026-09-21 ~20:00 UTC) — looking at what the last seven rounds changed
 
 Every assertion added between #115 and #121 reads a value out of the DOM. A value can be perfectly

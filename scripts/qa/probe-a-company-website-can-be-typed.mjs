@@ -79,7 +79,7 @@ async function run(lang) {
     const box = await p.evaluate(() => {
       const e = document.getElementById('f_web'); if (!e) return null;
       const lab = e.closest('.field') ? (e.closest('.field').querySelector('label') || {}).textContent : '';
-      return { value: e.value, label: String(lab || '').trim() };
+      return { value: e.value, label: String(lab || '').trim(), placeholder: e.placeholder || '' };
     });
     const after = await p.evaluate(({ i, v }) => {
       const e = document.getElementById('f_web');
@@ -113,10 +113,15 @@ console.log('  EN after: untouched', JSON.stringify(en.untouched.after.website),
   '· never had ->', JSON.stringify(en.neverHad.after.website));
 
 const AR_LABEL = 'الموقع الإلكتروني';
+/* 2026-09-21 (fire #125) — the placeholder is checked here too. It shipped as the bare
+   "example.com", which is English on an Arabic form, and the battery went red on TWO Arabic probes
+   the round after. The domain must stay Latin; the Arabic side frames it the way this form frames
+   its other example placeholders. */
+const AR_PLACEHOLDER = '\u0645\u062b\u0627\u0644: example.com';
 /* a missing box must make a check FAIL, not make this file throw: a probe that explodes still
    exits non-zero, but it stops at the first null and says nothing about the rest — which is
    exactly what it did the first time the sabotage was run against it. */
-const bx = (r) => (r && r.box) ? r.box : { value: null, label: '' };
+const bx = (r) => (r && r.box) ? r.box : { value: null, label: '', placeholder: '' };
 const checks = [
   ['the lead form has a website box at all', !!(en.untouched && en.untouched.box) && !!(ar.untouched && ar.untouched.box),
     JSON.stringify({ en: !!(en.untouched && en.untouched.box), ar: !!(ar.untouched && ar.untouched.box) })],
@@ -143,6 +148,9 @@ const checks = [
   ['Save really tried to store the record, and the attempt went no further than this test',
     en.untouched.after.clicked && wrote.filter((w) => /businesses|save_state/.test(w)).length >= 2,
     JSON.stringify(wrote.filter((w) => !/finance_client_links/.test(w)).slice(0, 4))],
+  ['its example hint reads in the page\u2019s language too \u2014 a bare "example.com" is English on an Arabic form',
+    bx(en.untouched).placeholder === 'example.com' && bx(ar.untouched).placeholder === AR_PLACEHOLDER,
+    JSON.stringify({ en: bx(en.untouched).placeholder, ar: bx(ar.untouched).placeholder })],
   ['no JS errors', errors.length === 0],
 ];
 let fail = 0; for (const [n, ok, d] of checks) { console.log((ok ? 'PASS' : 'FAIL') + ' · ' + n + (d ? ' — ' + d : '')); if (!ok) fail++; }
