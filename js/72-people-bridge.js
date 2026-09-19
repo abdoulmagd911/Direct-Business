@@ -19,7 +19,21 @@ try{
   window.__v72=APPLIED;
   function client(){ try{ return window.fc?fc():null; }catch(_){ return null; } }
   function nrm(s){ return String(s==null?'':s).toLowerCase().trim(); }
-  function dig(s){ return String(s==null?'':s).replace(/\D/g,''); }
+  /* 2026-09-20 (fire #111): comparing raw digit strings made the SAME Saudi number in two written
+     forms look like two numbers — "0500000001" against "+966 50 000 0001" is 0500000001 vs
+     966500000001 — so one person recorded locally in the company card and internationally in the
+     contacts table appeared twice. probe-crm-attacks had been reporting this for a while and
+     naming the remedy: reduce both to the nine significant digits, exactly as core-10's
+     pdPhoneId() already does for the Direct Payments link. Same rule here, so the two agree.
+     A number that is not a nine-digit Saudi one is left as its plain digits. */
+  function dig(s){
+    var d=String(s==null?'':s).replace(/\D/g,'');
+    if(d.indexOf('00')===0)d=d.slice(2);
+    if(d.indexOf('966')===0)d=d.slice(3);
+    if(d.indexOf('0')===0)d=d.slice(1);
+    if(d.length>9)d=d.slice(-9);
+    return d;
+  }
   /* a person's name, loosely: case, punctuation and doubled spaces are not a different person */
   function nrmName(s){ return String(s==null?'':s).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim(); }
   function day(v){ try{ var d=(typeof v==='number')?new Date(v):new Date(String(v)); return isNaN(d)?'':d.toISOString().slice(0,10); }catch(_){ return ''; } }

@@ -473,8 +473,17 @@ async function phaseE_peopleBridge() {
   start(PORT, {
     businesses: [biz({ id: 'qa_bridge', name: 'Bridge Test Co', raw: { assignedTo: ME, contacts: [{ name: 'Embedded One', email: 'dup@example.com', phone: '0500000001' }] } })],
     contacts: [
-      rowC({ id: 'tc_spaced', name: 'Dup By Email', email: '  Dup@Example.COM ', phone: '' }),          // same person, e-mail differs only by case + spaces
-      rowC({ id: 'tc_intl', name: 'Dup By Phone', email: '', phone: '+966 50 000 0001' }),               // same person, phone in international format
+      /* 2026-09-20 (fire #111): these two used to carry DIFFERENT names from the embedded
+         contact and 7b asserted they merged into it. Live data says that is wrong: two
+         colleagues who share one switchboard number or one info@ mailbox are two people, and
+         merging them hid one of them completely (fire #109). The same person is the same NAME,
+         so that is what these rows now carry — the case still under test is the spelling of the
+         e-mail and of the phone, which is what 7b and 7c are about. The different-name case is
+         tested straight after, and must NOT merge. */
+      rowC({ id: 'tc_spaced', name: 'Embedded One', email: '  Dup@Example.COM ', phone: '' }),           // same person, e-mail differs only by case + spaces
+      rowC({ id: 'tc_intl', name: 'Embedded One', email: '', phone: '+966 50 000 0001' }),               // same person, phone written internationally
+      rowC({ id: 'tc_share', name: 'Shares The Switchboard', email: '', phone: '0500000001' }),          // a DIFFERENT person on the same number
+      rowC({ id: 'tc_mail', name: 'Shares The Mailbox', email: 'dup@example.com', phone: '' }),          // a DIFFERENT person on the same mailbox
       rowC({ id: 'tc_clean', name: 'Genuinely New', email: 'new@example.com', phone: '+966500000009' }),
     ],
     activities: [], team_directory: ROSTER, app_users: baseUsers(),
@@ -488,9 +497,13 @@ async function phaseE_peopleBridge() {
   const r = await p.evaluate(() => { const b = getLead('qa_bridge'); return { runs: window.__v72 && window.__v72.runs, contacts: (b.contacts || []).map(c => ({ name: c.name, email: c.email, phone: c.phone, fromTable: !!c._fromTable })) }; });
   const names = r.contacts.map(c => c.name);
   check('7a people bridge attached the genuinely new table contact', names.indexOf('Genuinely New') >= 0, r);
-  check('7b people bridge: an e-mail that differs only by case and surrounding spaces is recognised as the same person (not doubled)', names.indexOf('Dup By Email') < 0, r);
-  if (names.indexOf('Dup By Phone') >= 0) report('People bridge (js/72): the same person is shown twice when the embedded phone is local (0500000001) and the table phone is international (+966 50 000 0001) — dig() compares raw digit strings, so 0500000001 ≠ 966500000001. Normalising both to the 9 significant digits (as pdPhoneId() in core-10 already does) would close it. Report only.');
-  else report('People bridge (js/72): local-vs-international phone spelling of one person was de-duplicated.');
+  check('7b people bridge: the same person, whose e-mail differs only by case and surrounding spaces, is not doubled', names.filter((n) => n === 'Embedded One').length === 1, r);
+  /* was a report for weeks, naming its own remedy; js/72 now reduces a number to its nine
+     significant digits exactly as core-10's pdPhoneId() does, so it is a real check */
+  check('7c people bridge: the same person, whose phone is written internationally rather than locally, is not doubled', names.filter((n) => n === 'Embedded One').length === 1, r);
+  /* the live case from fire #109 — a shared line is not proof of being the same person */
+  check('7d people bridge: a DIFFERENT person who shares the switchboard number is kept, not swallowed', names.indexOf('Shares The Switchboard') >= 0, r);
+  check('7e people bridge: a DIFFERENT person who shares the mailbox is kept, not swallowed', names.indexOf('Shares The Mailbox') >= 0, r);
   check('E-end no JavaScript errors during phase E', errors.length === 0, errors.slice(0, 3));
   await browser.close();
 }

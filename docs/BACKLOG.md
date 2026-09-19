@@ -1,3 +1,34 @@
+## Routine fire #111 (2026-09-20 ~01:00 UTC) — the battery caught my own fix, and it was half right
+
+The full battery run after #109 went red on `probe-crm-attacks`. My contacts fix caused it, so the
+first question was which of the two was wrong.
+
+**What the check asserted.** Its fixture gave one company an embedded contact and two table rows
+whose **names were different** — "Dup By Email" and "Dup By Phone" — and required them to merge into
+the embedded one. After #109 they no longer merge, because the names differ.
+
+**The check's expectation was the part that was wrong**, and the live data is why: two colleagues
+who share a switchboard number or an `info@` mailbox are two people, and merging them hid one of
+them completely. The master brief says a mismatch is flagged, never silently merged. So the fixture
+now carries the **same name** where it means "the same person spelled differently", which is what
+those checks are actually about — the spelling of the email and of the phone — and two new checks
+cover the live case: a different person on the same number, and a different person on the same
+mailbox, must both be kept.
+
+**And the check had been telling us about a second defect for weeks.** Sitting in that probe as a
+report, not a failure: *the same person is shown twice when the embedded phone is local
+(0500000001) and the table phone is international (+966 50 000 0001) — dig() compares raw digit
+strings.* It even named the remedy: reduce both to the nine significant digits, as core-10's
+`pdPhoneId()` already does for the Direct Payments link. **Done** — js/72 now normalises the same
+way, so the two agree, and the report is a real check that fails when reverted.
+
+**Re-verified against the live database afterwards**, because normalising numbers makes matching
+stricter and could have re-hidden someone: still all **45** contacts, all **36** companies matching
+row for row, nothing missing.
+
+`probe-crm-attacks` is 66 checks, all passing; sabotage-verified by reverting the phone
+normalisation — 7b and 7c both fail and the same person appears twice. 3 gates green.
+
 ## Routine fire #110 (2026-09-20 ~00:15 UTC) — counting every store against the database
 
 Two rounds in a row started the same way: the database holds N, the app holds fewer, so which ones

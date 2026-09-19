@@ -569,6 +569,18 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **A report that names its own remedy should become a check (2026-09-20, fire #111).**
+  `probe-crm-attacks` had been printing, as a report rather than a failure, that one person shows
+  twice when their number is written locally in one place and internationally in the other — and it
+  said exactly how to fix it. It sat there for weeks because a report cannot go red. If a probe can
+  describe the defect and the fix, the fix is small enough to do and the report is a check waiting
+  to be written.
+- **When a check fails because of a change you made, decide which one is wrong (2026-09-20,
+  fire #111).** The contacts fix turned a check red, and the tempting move is to assume the code is
+  wrong and revert. Here the check's fixture called two differently-named people "the same person"
+  and required them to merge — which is what hid a real person. The evidence, not the failure
+  itself, settles it: live data and the written doctrine beat a fixture written before either.
+  Changing a check to match your own change needs that evidence, or it is just moving the goalposts.
 - **A shared phone number is not the same person (2026-09-19, fire #109).** The people bridge
   decided "already on the card" by matching an email **or** a phone on its own, so two colleagues on
   one switchboard — or one `info@` mailbox — collapsed into one and the second vanished with their
