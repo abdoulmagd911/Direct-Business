@@ -592,6 +592,7 @@ now exists specifically because of each one:
   also cleared six lists honestly, which is worth as much — it is what stops the next round
   re-checking them. A defect is rarely alone; the second search is cheaper than the first and usually
   finds more.
+- **A `<select>` with nothing selected shows its FIRST option — this codebase has been bitten by it five times (round 30; fires #115, #116, #119).** Round 30 found the access matrix calling unknown roles "Admin"; #115 the funnel form deleting answers; #116 every company losing where it came from; #119 nineteen companies filed as ministries. It is not an incident, it is a pattern: **wherever options come from a fixed list and the selection comes from a record, ask the database how many stored values are outside that list before assuming none are.** The scan that finds them is one regex over the source plus one query per list.
 - **A control that cannot show what is stored will quietly delete it (2026-09-20, fire #115).** The
   funnel form's dropdowns were built from an option list, the answers were written by the importer
   from the source files, and nobody ever made the two agree: seven live answers — "Partner" where

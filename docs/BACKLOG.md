@@ -1,3 +1,48 @@
+## Routine fire #119 (2026-09-20 ~12:00 UTC) — nineteen companies were one edit away from becoming ministries
+
+The audit begun in #116 and #118, run to its end: every dropdown in the app that is built from a
+fixed list **and** shows a value out of a record, checked against what the database actually holds.
+45 of them exist. Most sit on bookings, invoices and proposals, of which the workspace holds no rows
+at all. Two hold real records, and both were wrong.
+
+**The Corporate profile editor.** Nineteen live companies carry an entity type — "Small Company" on
+eleven of them, plus "Government", "Semi Government", "Travel Partner", "Big Company" and "Medium
+Company" — and **not one of those is in `ENTITY_TYPES`**, which offers Ministry, Government entity,
+Semi-government, Multinational, Corporate, SME and Charity/NGO. "Semi Government" and
+"Semi-government" are a hyphen apart; "Government" and "Government entity" a word. The editor writes
+the box straight back, so, measured live in both languages: open a client's Corporate profile, press
+Save without touching anything, and **it is filed as a Ministry**. The editor is one click from the
+Corporate account card, which is on every client.
+
+**The client-onboarding form** (collapsed by v36, still reachable through its own link) has three
+boxes of the same shape — classification, pricing scheme, payment configuration. The live payment
+terms are spelled "Post-paid · Monthly · 30 days", which is not one of that box's three options
+either.
+
+All four fixed the way the lead, funnel and airline boxes were: an empty option meaning nothing is
+recorded, plus the stored value as its own option marked *on file* / *المسجَّل* where the list has
+no match. Re-driven live — "Semi Government" now survives the round trip, and a company with no
+entity type stays that way.
+
+`probe-a-company-keeps-what-kind-it-is` (port 9092, 11 checks) holds all of it in both languages,
+including that a type the list *does* contain is still selected normally. Sabotage-verified twice
+against a copy of the app: 5 checks fail without the entity-type fix, 1 without the onboarding fix.
+
+### The same defect, five times, and the first was not ours
+
+Round 30 found it in js/56: the access matrix called unknown roles "Admin", because a `<select>`
+with nothing selected shows its first option — and there it showed it in the most dangerous
+direction. That fix was local to one screen. #115, #116 and now #119 found it in four more places on
+real data. It is recorded in the playbook as a pattern to look for, not an incident.
+
+### Checked and parked
+
+The other 41 dropdowns of this shape render bookings, invoices, proposals, expenses, payment proofs,
+requests and report filters. The workspace holds **zero** rows for every one of those record types,
+so no stored value can currently be outside its list. They carry the same latent defect and should
+be fixed when those features are first used — flagged here rather than churned through now, since
+that is a large edit across core files for a risk nothing can reach today.
+
 ## Routine fire #118 (2026-09-20 ~10:30 UTC) — the line that stops somebody quoting a client off the top of their head
 
 Continuing #117: which of the app's own on-screen guarantees has nothing watching it? A scan of
