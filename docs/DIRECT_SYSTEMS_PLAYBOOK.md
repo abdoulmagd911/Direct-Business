@@ -545,6 +545,16 @@ now exists specifically because of each one:
   comparisons, on pre-filled date boxes and on "recorded on" stamps alike. Both had been invisible
   for the whole project because every QA run used a UTC, English machine. **Vary the environment,
   not just the input:** timezone, language, clock, screen size.
+- **The Arabic sweep only sees each page at rest (2026-09-19, fire #98).** `sweep-language` visits
+  every nav page in Arabic and reports almost nothing, which is true and also not the whole picture:
+  it never types, never filters, never sees an empty list and never sees an error state. Both of the
+  last two rounds' language defects lived exactly there. When checking a language, check the states
+  a page only reaches by being used.
+- **Sabotage is what tells you whether you wrote a check (2026-09-19, fire #98).** Two versions of
+  one probe passed against the fix and could not fail without it — first because it typed into the
+  wrong input, then because the harness's redraw path differs from the live one. Neither was
+  visible from a green run. Run the sabotage before believing a new probe, and read WHICH checks
+  flipped, not just how many.
 - **Give a failing read time to fail (2026-09-19, fire #97).** supabase-js retries a 503 several
   times before reporting it, so a page that will say "could not load" says "loading…" for five to
   eight seconds first. A probe or a sweep that reads at three seconds records a defect that is not

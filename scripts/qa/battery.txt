@@ -233,3 +233,4 @@ probe-dates-and-money-name-their-language
 probe-today-is-the-users-today
 probe-topbar-survives-browser-zoom
 probe-finance-says-it-could-not-load
+probe-arabic-survives-a-search

@@ -1,3 +1,44 @@
+## Routine fire #98 (2026-09-19 ~04:30 UTC) — the Arabic that does not survive a search
+Fire #97 found two English-only cards that `sweep-language` could never reach, because they only
+appear when a read fails. This round went at the same blind spot from the other side: the sweep drives
+every nav page in Arabic — and reports exactly one piece of Latin-only text, a person's name — but it
+only ever sees each page in its **ordinary, full state**. It never types anything, never filters, and
+never sees a list with nothing in it.
+
+Driven in Arabic against the real database, typing a term that cannot match into every list the app
+has. **Two defects, both measured before and after.**
+
+**1. Searching on Leads turns every column header back to English, permanently.** js/21's translation
+pass is hung on `render()`. A list redrawn *without* a render — which is what every search box in the
+app does — writes fresh English headers over the Arabic ones, and nothing puts them back. On the
+busiest page in the app: المنشأة / المرحلة / المسار / آخر نشاط / الإجراء التالي / المسؤول / الأولوية
+before typing, **BUSINESS / STAGE / FUNNEL / LAST ACTIVITY / NEXT ACTION / OWNER / PRIORITY** one
+keystroke later — still English six seconds on, and for the rest of the session.
+
+Fire #86 fixed exactly this shape for the contact rows by wrapping their redraw. Rather than catch the
+next one by hand, **every drawer the app publishes is now wrapped** — drawLeads, drawOffers,
+drawSupTable, drawTable and six more — so a list added later is covered without anyone remembering to.
+Debounced, because a search fires one redraw per keystroke and the pass walks the view.
+
+**2. Clients said "No clients match." in English** under an otherwise fully Arabic page.
+
+**Checked and left alone, with the reason:** supplier names (Travelfusion, Kiwi, Dnata…) are data, and
+IATA / BSP / NDC are the industry vocabulary this project has a standing decision to keep.
+
+**Probe:** `probe-arabic-survives-a-search` (port 9075, 11 checks) drives both pages in Arabic, types
+into the page's own search box and asserts it found one, and requires the headers to be Arabic before,
+immediately after, and seconds later.
+
+**Two instrument faults of my own, both caught by sabotage rather than by luck.** The first version
+typed into "the first visible input", which on these pages is not the list's search at all — so no
+redraw happened and the header checks could not fail even with the fix reverted (1 FAIL instead of 3).
+The second version found the right box, and the checks still could not fail: typing reaches the filter
+(`leadFilter.q` really changes) but in the harness the handler's own no-argument redraw does not always
+rewrite the table head, while against the real database it does. The probe now also calls the page's
+redraw the way the live path calls it, with the term — the call measured to rewrite the head — so the
+check can fail. **Sabotage-verified: 3 FAIL**, with the headers visibly back to BUSINESS / STAGE /
+FUNNEL. A check that cannot fail is not a check, and only the sabotage run says which it is.
+
 ## Routine fire #97 (2026-09-19 ~02:30 UTC) — what the app says when a read simply fails
 The team works on mobile data and behind a company proxy; a request can just not arrive. What the app
 does **when a read fails outright** had never been driven. One table at a time was made to answer 503

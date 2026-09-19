@@ -640,6 +640,34 @@
     }catch(_){}
     if((n||0)<40)setTimeout(function(){ wrapDrawContacts((n||0)+1); },500);
   })(0);
+  /* 2026-09-19 (fire #98): the pass above is hung on render(). A list that is REDRAWN without a
+     render — which is what every search box and filter chip in the app does — writes fresh English
+     headers straight over the Arabic ones, and nothing puts them back.
+     Measured live on Leads, the busiest page, with the app in Arabic: before typing the headers read
+     المنشأة / المرحلة / المسار / آخر نشاط / الإجراء التالي / المسؤول / الأولوية, and one keystroke in
+     the search turned all seven into BUSINESS / STAGE / FUNNEL / LAST ACTIVITY / NEXT ACTION / OWNER
+     / PRIORITY — still English six seconds later, and for the rest of the session.
+     Fire #86 fixed exactly this shape for the contact rows by wrapping their redraw. Rather than
+     chase the next one by hand, every drawer the app publishes is wrapped here: drawLeads,
+     drawOffers, drawSupTable, drawTable and the rest. Debounced, because a search fires one redraw
+     per keystroke and the pass walks the view. */
+  (function wrapEveryDrawer(n){
+    var timer=null;
+    function later(){ if(timer)clearTimeout(timer); timer=setTimeout(function(){ timer=null; v27ArHeaders(); },60); }
+    var names=[]; try{ for(var k in window){ if(/^draw[A-Z]/.test(k)&&typeof window[k]==='function') names.push(k); } }catch(_){}
+    var wrapped=0;
+    names.forEach(function(k){
+      try{
+        var f=window[k]; if(f.__v27draw) return;
+        var w=function(){ var out=f.apply(this,arguments); try{ if(typeof LANG!=='undefined'&&LANG==='ar') later(); }catch(_){} return out; };
+        w.__v27draw=1; try{ w.__v27=f.__v27; }catch(_){}
+        window[k]=w; wrapped++;
+      }catch(_){}
+    });
+    /* the drawers are defined by different layers at different times, so keep looking for a while */
+    if((n||0)<40) setTimeout(function(){ wrapEveryDrawer((n||0)+1); },500);
+    if(wrapped&&window.console&&!(n||0)) try{ console.info('%c[v27] re-translating after '+wrapped+' list redraws','color:#FF6B00'); }catch(_){}
+  })(0);
   if(typeof render==='function'){ var _r27=render; window.render=function(){ var out=_r27.apply(this,arguments); v27ArHeaders(); setTimeout(v27ArHeaders,80); return out; }; }
   v27ArHeaders();
 }catch(e){ if(window.console)console.warn('[v27] init',e); }})();
