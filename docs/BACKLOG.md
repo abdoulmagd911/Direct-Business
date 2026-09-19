@@ -1,3 +1,49 @@
+## Routine fire #105 (2026-09-19 ~19:00 UTC) — nine filter buttons that named things the data has never held
+
+My own rule from #102 says that when a fix lands in one place, go and look for its twin. #104 fixed
+the Airlines filters; the same shared handler still served Bookings, Invoices and Tickets. Of the
+eleven buttons on those three pages, **nine could not work in any data at all**:
+
+- **Bookings — Today · This week · This month.** These are date ranges, applied by searching each
+  row's text for the word "Today". No date cell contains that word, so all three showed an empty
+  table, always, for every possible dataset.
+- **Invoices — "Unpaid".** Not one of the statuses. They are Draft · Issued · Paid · Overdue ·
+  Refunded. Nothing could ever match it.
+- **Tickets — Issued · Voided · Refunded.** A ticket here takes its status from its booking, and
+  the booking words are Confirmed · Pending · Ticketed · Delivered · Cancelled. Not one of those
+  three is in that list — and the Tickets table shows no status column either, so the row text
+  could not have carried it.
+
+And a fourth thing, found only by watching the screen over time: **the filter was undone about a
+second after it was applied**, by a background re-render, while the button stayed lit. Filtered to
+"Today", you got 2 bookings and then silently got all 5 back, under a button still reading "Today".
+
+**Honest about what this cost.** Nothing, on the day it was found — all four of these pages are
+read-only mirrors of Direct Payments and hold zero rows today. It is worth fixing anyway because it
+is not a risk, it is a certainty: the buttons are incapable of matching, so they are wrong on the
+first day the pages fill.
+
+**Fixed.** The buttons filter the record now. "Unpaid" means Issued + Overdue — which is exactly how
+the Invoices page computes the Outstanding figure printed at its own top, read from the code rather
+than invented. The Tickets buttons name the statuses that exist. Non-matching rows are removed
+rather than hidden, so the counter under the table recounts (the #104 lesson). An empty result says
+so in the reader's language. And the choice is remembered per page and re-applied after a
+re-render, with the lit button drawn from that memory, so the highlight and the rows cannot
+disagree.
+
+**Left for the owner, not guessed at:** real ticket-level *issued / voided / refunded* is a Direct
+Payments fact this app has never been given. If those are wanted on the Tickets page, they have to
+arrive as a field on the ticket — the fix names the statuses we actually hold instead of inventing a
+mapping.
+
+**Guarded.** `probe-chips-name-things-that-exist` (port 9082, 12 checks) seeds bookings dated today,
+earlier this week, earlier this month and last year — a date filter only ever shown an empty result
+proves nothing — leaves one button's bucket deliberately empty, and checks the counts, the survival
+of the filter after the re-render, and that **no button names a word outside the app's own status
+vocabulary**. That last check is the one that would have caught this years earlier. Sabotage-verified
+in two halves: 5 checks fail with the record branch removed, 1 with the memory removed — and its
+detail is the defect itself, "Today: 2 → 5" under a button still reading "Today". 3 gates green.
+
 ## Routine fire #104 (2026-09-19 ~17:30 UTC) — the Airlines filters showed the wrong airlines, or none
 
 Airlines is a real page with **136 carriers in it** and no probe had ever opened it. Driven against

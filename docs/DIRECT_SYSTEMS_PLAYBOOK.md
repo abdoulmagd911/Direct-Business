@@ -569,6 +569,20 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **A control should only name values the data can hold (2026-09-19, fire #105).** Nine of the
+  eleven filter buttons on Bookings, Invoices and Tickets named words that are in no record: the
+  Tickets buttons said Issued/Voided/Refunded while booking statuses are Confirmed/Pending/
+  Ticketed/Delivered/Cancelled, and Invoices offered "Unpaid", which is not a status. Checking a
+  control's vocabulary against the app's own constants is a two-line test and would have caught all
+  of it the day it shipped; the probe now does exactly that. Where the word people want does not
+  exist in the data — real ticket-level issued/voided — say so and ask for the field, rather than
+  inventing a mapping.
+- **A filter that does not survive the next render is not a filter (2026-09-19, fire #105).** The
+  app re-renders in the background. A list filtered to "Today" came back whole about a second
+  later, under a button still lit — the screen disagreeing with itself, the exact thing fire #101
+  set out to make impossible, and invisible to any check that reads once and moves on. Read the
+  screen again a beat later; and whatever state a control sets has to be re-applied by whatever
+  rebuilds the page, highlight included.
 - **Filter the data, not the pixels (2026-09-19, fire #104).** The Airlines alliance buttons were
   applied by hiding table rows whose visible text lacked the button's word. The alliance is not a
   column on that table, so three buttons matched nothing and one matched on coincidence. This is

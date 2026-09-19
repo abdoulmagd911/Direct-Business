@@ -1104,7 +1104,13 @@
     },
     bookings:{ chipsEn:[{label:'All',filter:'all',active:true},{label:'Today',filter:'Today'},{label:'This week',filter:'Week'},{label:'This month',filter:'Month'}], chipsAr:[{label:'الكل',filter:'all',active:true},{label:'اليوم',filter:'Today'},{label:'هذا الأسبوع',filter:'Week'},{label:'هذا الشهر',filter:'Month'}] },
     invoices:{ chipsEn:[{label:'All',filter:'all',active:true},{label:'Unpaid',filter:'Unpaid'},{label:'Paid',filter:'Paid'},{label:'Overdue',filter:'Overdue'}], chipsAr:[{label:'الكل',filter:'all',active:true},{label:'غير مدفوع',filter:'Unpaid'},{label:'مدفوع',filter:'Paid'},{label:'متأخر',filter:'Overdue'}] },
-    tickets:{ chipsEn:[{label:'All',filter:'all',active:true},{label:'Issued',filter:'Issued'},{label:'Voided',filter:'Voided'},{label:'Refunded',filter:'Refunded'}], chipsAr:[{label:'الكل',filter:'all',active:true},{label:'مُصدرة',filter:'Issued'},{label:'مُلغاة',filter:'Voided'},{label:'مستردة',filter:'Refunded'}] }
+    /* 2026-09-19 (fire #105): these used to read Issued / Voided / Refunded. A ticket here takes its
+       status from its booking (allTickets() copies it across), and the booking vocabulary is
+       Confirmed · Pending · Ticketed · Delivered · Cancelled — so not one of those three words
+       could ever match a record, in any data. They are now the statuses that exist.
+       Real ticket-level issued/voided/refunded is a Direct Payments fact this app has never been
+       given; if it is wanted here it has to arrive as a field on the ticket, not be guessed at. */
+    tickets:{ chipsEn:[{label:'All',filter:'all',active:true},{label:'Ticketed',filter:'Ticketed'},{label:'Delivered',filter:'Delivered'},{label:'Cancelled',filter:'Cancelled'}], chipsAr:[{label:'الكل',filter:'all',active:true},{label:'صدرت التذكرة',filter:'Ticketed'},{label:'مُسلّمة',filter:'Delivered'},{label:'ملغاة',filter:'Cancelled'}] }
   };
   window.V26_3_SECTIONS=V26_3_SECTIONS;
 
@@ -1238,11 +1244,20 @@
           var count=null;
           if(sec==='leads')count=v26_3LeadCount(c.filter);
           else if(sec==='projects')count=v26_3ProjectCount(c.filter);
+          /* 2026-09-19 (fire #105): the app re-renders in the background — a booking filtered to
+             "Today" came back to the full list about a second later while the button stayed lit,
+             which is the one thing a screen must never do. The choice is remembered per section so
+             the re-render can put it back, and the lit button below is driven from that memory
+             rather than from the config's default, so the highlight and the rows cannot disagree.
+             It is remembered for this page's lifetime only, like every other filter here. */
+          if(V26_ACTIVE_CHIP[sec]!==undefined) _act=(V26_ACTIVE_CHIP[sec]===c.filter);
+          btn.className='v26_3-chip'+(_act?' active':'');
           btn.innerHTML=c.label+(count!=null?'<span class="count">'+count+'</span>':'');
           btn.onclick=function(){
             /* Toggle active */
             chipsEl.querySelectorAll('.v26_3-chip').forEach(function(x){x.classList.remove('active');});
             btn.classList.add('active');
+            V26_ACTIVE_CHIP[sec]=c.filter;
             v26_3ApplyChipFilter(sec,c.filter);
           };
           chipsEl.appendChild(btn);
@@ -1296,6 +1311,52 @@
   window.v26_3ApplyInsightsState=v26_3ApplyInsightsState;
 
   /* ===== 8. Chip filter on the rendered list/board ===== */
+  /* 2026-09-19 (fire #105): how a row on these three pages is matched back to the record behind it,
+     and what each button actually means. Every status word below is read from the app's own
+     vocabularies (BK_STATUS_COLOR / INV_STATUS_COLOR) — none is invented. */
+  /* which button is currently chosen on each page, so a background re-render can put it back */
+  var V26_ACTIVE_CHIP={};
+  try{ window.V26_ACTIVE_CHIP=V26_ACTIVE_CHIP; }catch(_){}
+
+  var V26_RECORD_CHIPS={
+    bookings:{
+      rec:function(tr){ var m=(tr.getAttribute('onclick')||'').match(/openBookingFn\('([^']+)'\)/);
+        return m?((typeof DB!=='undefined'&&DB.bookings)||[]).filter(function(b){return b.id===m[1];})[0]:null; },
+      test:function(b,f){
+        if(!b)return false;
+        var d=String(b.date||'').slice(0,10); if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return false;
+        var t=(typeof todayISO==='function')?todayISO():'';
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(t))return false;
+        if(f==='Today')return d===t;
+        if(f==='Month')return d.slice(0,7)===t.slice(0,7);
+        if(f==='Week'){
+          /* the Saudi week runs Sunday to Saturday — the weekend here is Friday and Saturday */
+          var now=new Date(t+'T00:00:00Z'); var start=new Date(now);
+          start.setUTCDate(now.getUTCDate()-now.getUTCDay());
+          var end=new Date(start); end.setUTCDate(start.getUTCDate()+6);
+          var iso=function(x){return x.toISOString().slice(0,10);};
+          return d>=iso(start)&&d<=iso(end);
+        }
+        return true;
+      }
+    },
+    invoices:{
+      rec:function(tr){ var m=(tr.getAttribute('onclick')||'').match(/openInvoice='([^']+)'/);
+        return m?((typeof DB!=='undefined'&&DB.invoices)||[]).filter(function(i){return i.id===m[1];})[0]:null; },
+      /* "Unpaid" is Issued + Overdue — the same two statuses renderInvoices() adds up to get the
+         Outstanding figure printed at the top of that very page. */
+      test:function(i,f){ if(!i)return false; var s=String(i.status||'');
+        return f==='Unpaid' ? (s==='Issued'||s==='Overdue') : s===f; }
+    },
+    tickets:{
+      /* a ticket row links to its booking, and its status IS the booking's (allTickets copies it) */
+      rec:function(tr){ var m=(tr.getAttribute('onclick')||'').match(/openBookingFn\('([^']+)'\)/);
+        return m?((typeof DB!=='undefined'&&DB.bookings)||[]).filter(function(b){return b.id===m[1];})[0]:null; },
+      test:function(b,f){ return !!b&&String(b.status||'')===f; }
+    }
+  };
+  try{ window.V26_RECORD_CHIPS=V26_RECORD_CHIPS; }catch(_){}
+
   var v26_3ApplyChipFilter=function(sec,filter){
     try{
       var view=document.getElementById('view');
@@ -1341,6 +1402,41 @@
           setv('cl_kv_count', String(n));
           setv('cl_kv_key',   String(key));
         }catch(e){if(window.console)console.warn('[v26.3] client counters',e);}
+        return;
+      }
+      /* 2026-09-19 (fire #105): Bookings, Invoices and Tickets fell through to the row-text filter
+         below, and their buttons named things that are not in the row — or not in the data at all:
+           · Bookings' Today / This week / This month are DATE RANGES. A substring search for the
+             word "Today" can never match a date cell, so all three showed an empty table.
+           · Invoices' "Unpaid" is not one of the statuses (Draft · Issued · Paid · Overdue ·
+             Refunded). The app's own outstanding figure is computed from Issued + Overdue, so that
+             is what Unpaid means here — taken from the code, not invented.
+           · Tickets had no status column at all, and its three words were not booking statuses
+             either. See the chip list above.
+         Nine of those eleven buttons could not work in any data. They are filtered on the RECORD
+         now, and the rows that do not match are removed rather than hidden, so the counter under
+         the table (js/04) recounts and cannot go on describing the unfiltered list. The full set is
+         kept on the tbody so "All" restores it without a re-render. */
+      var RC=V26_RECORD_CHIPS[sec];
+      if(RC){
+        try{
+          var tbody=view.querySelector('tbody');
+          if(tbody){
+            if(!tbody.__v26Rows) tbody.__v26Rows=[].slice.call(tbody.rows).map(function(r){return r.cloneNode(true);});
+            var src=tbody.__v26Rows;
+            var keep=(filter==='all')?src:src.filter(function(r){
+              if(r.querySelector('td[colspan]'))return false;
+              try{ return RC.test(RC.rec(r),filter); }catch(_){ return false; }
+            });
+            var cols=(view.querySelectorAll('thead th')||[]).length||9;
+            tbody.innerHTML='';
+            if(!keep.length){
+              var _arRc=(typeof LANG!=='undefined'&&LANG==='ar');
+              tbody.innerHTML='<tr><td colspan="'+cols+'" class="empty">'+
+                (_arRc?'لا شيء هنا بهذا التصفية — جرّب «الكل».':'Nothing here with this filter — try “All”.')+'</td></tr>';
+            } else keep.forEach(function(r){ tbody.appendChild(r.cloneNode(true)); });
+          }
+        }catch(e){if(window.console)console.warn('[v26.3] record chip filter',e);}
         return;
       }
       if(sec==='airlines'||sec==='vendors'){
@@ -1422,6 +1518,11 @@
       try{ v26_3InjectSyncPill(); }catch(_){}
       try{ v26_3InjectTopBarPlus(); }catch(_){}
       try{ v26_3InjectSectionHead(); }catch(_){}
+      /* 2026-09-19 (fire #105): put the chosen filter back after the re-render rebuilt the list */
+      try{
+        var _sec=(typeof current!=='undefined')?current:null;
+        if(_sec&&V26_ACTIVE_CHIP[_sec]&&V26_ACTIVE_CHIP[_sec]!=='all') v26_3ApplyChipFilter(_sec,V26_ACTIVE_CHIP[_sec]);
+      }catch(_){}
       try{ v26_3TagDemoted(); }catch(_){}
       try{ v26_3ApplyInsightsState(); }catch(_){}
       return r;
