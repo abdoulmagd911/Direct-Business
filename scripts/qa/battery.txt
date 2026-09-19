@@ -248,3 +248,4 @@ probe-search-says-lead-or-client
 probe-settings-has-no-developer-tools
 probe-an-answer-on-file-survives-save
 probe-a-lead-keeps-where-it-came-from
+probe-the-profit-says-what-it-does-not-know

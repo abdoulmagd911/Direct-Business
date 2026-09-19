@@ -569,6 +569,21 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **Sabotage a copy, not the repository (2026-09-20, fire #117).** The mock server takes `APP_DIR`,
+  so a sabotage run is `cp -r index.html js <scratch>` + edit the copy + `APP_DIR=<scratch> node
+  scripts/qa/probe-….mjs`. The repository is never edited, so there is nothing to restore and
+  nothing to get wrong, and a battery running at the same time cannot be disturbed — which is
+  exactly what happened earlier in this session, when a mid-battery sabotage put a probe red for a
+  reason that had nothing to do with the tree. Use this in preference to edit-and-restore.
+- **The sentence that makes a number allowed to be shown needs a guard as much as the number does
+  (2026-09-20, fire #117).** 43.6% of the profit figure on the Finance page comes from nineteen
+  invoices whose cost nobody has recorded; `cost_sar = 0` is permitted to stay an honest gap
+  (DECISIONS M8) *only because* the page prints "N of M invoices in this period carry no recorded
+  cost". That sentence was one `if` inside a several-hundred-line render function, asserted
+  nowhere — a probe elsewhere even called it, in a comment, the headline that "already warns
+  honestly". A comment is not a check. **Where a rule says a figure may be published as long as a
+  caveat accompanies it, the caveat is part of the figure: guard it, and guard that it stays away
+  when it is not true**, or "always printed" passes for "correct".
 - **When a round finds a defect, spend the next one looking for its shape everywhere else
   (2026-09-20, fire #116).** #115 found one form deleting an answer it could not display. Asking the
   same question of every other fixed list in the app took one afternoon and found it in the form the

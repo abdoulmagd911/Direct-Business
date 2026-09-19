@@ -1,3 +1,41 @@
+## Routine fire #117 (2026-09-20 ~09:00 UTC) — the sentence that keeps the profit figure honest had no guard
+
+The money screen, read against the real database with one question: **where the app shows a profit
+or a margin, does it say what it does not know?**
+
+It matters more than it sounds. The database holds 46 live invoices — revenue 2,030,764.29, cost
+1,538,141.70, profit 492,622.59 — and **nineteen of them carry `cost_sar = 0`**. The trigger derives
+profit as revenue minus cost, so each of those nineteen stores its whole sale as profit: 214,550 SAR,
+**43.6% of the profit figure on that screen**, from invoices whose cost nobody has recorded. Each one
+reads as a 100% margin.
+
+**The app is honest about it.** js/16 prints, under the KPIs: *"N of M invoices in this period carry
+no recorded cost — margin may read higher than reality until their expenses arrive."* That sentence
+is the reason the figure may be shown at all — DECISIONS M8 permits `cost_sar = 0` to stay an honest
+gap precisely *because* the screen says so.
+
+**Nothing asserted it.** The Report Builder's version of the caveat is guarded by
+`probe-client-profit-honest`; the Finance overview's is one `if` inside a render function several
+hundred lines long. A probe elsewhere even refers to it in a comment as the headline that "already
+warns honestly" — a comment is not a check. One refactor of that function and 43.6% of the profit
+number goes back to standing there unqualified, with nothing going red.
+
+`probe-the-profit-says-what-it-does-not-know` (port 9090, 8 checks) now holds it, in both languages:
+the sentence appears where costs are missing, carries the right count **and** the right total, reads
+in Arabic on the Arabic page with no English left in, and — the half that makes it a real check —
+**stays away** from a period where every cost is recorded, which still shows its profit. Sabotage-
+verified by removing the block.
+
+### Checked and clean — every other surface that prints a profit
+
+Driven live, both languages: the Finance overview, Performance, Clients & collections, Link finance
+to clients and the Report Builder all carry the caveat. Reports, Today and Clients print no profit
+figure at all. Two that looked bare on a first pass were not, and the difference was only visible by
+reading the page rather than the match: the **Ledger** tab is the *transaction* ledger, empty today,
+so its zeros are true and its own line explains what "confirmed" means; **Individual bookings**
+already says, in its own words, that a blank cost leaves the profit blank and that 0 should be typed
+only for a genuinely free booking. Recorded so a later round does not re-check them.
+
 ## Routine fire #116 (2026-09-20 ~07:30 UTC) — every company was one edit away from losing where it came from
 
 Fire #115 found a form that deleted an answer it could not display. This round went looking for the
