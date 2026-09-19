@@ -1,3 +1,34 @@
+## Routine fire #126 (2026-09-21 ~23:00 UTC) — typing into the card behind the form
+
+A dimension never checked in this project: **can the app be used without a mouse?** Driven against
+the real database with real clicks and real Tab keys — never by calling a function — in both
+languages.
+
+**The shared modal is excellent.** Click a company's Edit button and the keyboard moves into the
+dialog; fifty-two Tab presses never leave it; Save is reachable. core-06's `v21TrapFocus` has been
+doing that since v21 and nothing had ever measured it.
+
+**The funnel-details box did not.** It is js/09's own overlay rather than the shared modal, so the
+trap never reached it. Opening it from the card left the keyboard on the **Edit button behind it**,
+and ten Tab presses all walked the page underneath — somebody working without a mouse was typing
+into the card behind the form, in English and in Arabic. js/09 now calls the same trap by hand,
+releases it on close, and puts the keyboard back where it came from, which is the courtesy the
+shared modal already did. Re-driven: focus lands in the first field and Tab cycles city → note →
+Cancel → Save → city.
+
+`probe-the-keyboard-can-do-it` (port 9096, 9 checks) holds both boxes in both languages.
+Sabotage-verified twice against a copy of the app, and the two results say something worth keeping:
+removing the trap's own `first.focus()` fails the **funnel** checks and not the modal's, because the
+modal's first control is its close button and clicking Edit leaves the keyboard next to it. The trap
+earns its keep on the box that has no other way in.
+
+### A check of mine that was wrong
+
+The first version asserted the Tab order "comes back round within twelve tabs". The lead form has
+more than twelve controls, so it does not — the check was being clever, not finding a defect. What
+matters is that the keyboard never leaves the box however long somebody tabs, and that is now
+measured over twelve presses and then another forty.
+
 ## Routine fire #125 (2026-09-21 ~21:00 UTC) — the battery caught my own English on an Arabic form
 
 The full battery at the #121 tree came back **239 green, 2 red**, both reproduced alone, both

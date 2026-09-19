@@ -357,8 +357,19 @@
        has to wire the key itself. Escape does exactly what this box's own cancel path already did, and
        the listener is removed with the box so it cannot outlive it or stack when reopened. */
     var fdEsc=function(e){ if(e.key==='Escape'){ fdClose(); } };
-    var fdClose=function(){ try{ document.removeEventListener('keydown',fdEsc); }catch(_){} try{ ov.remove(); }catch(_){} };
+    /* 2026-09-21 (fire #126) — this box did not take the keyboard. Measured against the real
+       database: opening it from the card left focus on the Edit button BEHIND it, and ten Tab
+       presses all walked the page under the overlay — a person working without a mouse was typing
+       into the card behind the form. The shared modal has had a focus trap since v21; this box is
+       js/09's OWN overlay, so the trap never reached it. Same trap, called by hand, plus the
+       courtesy the shared one already does: put the keyboard back where it was on the way out. */
+    var fdPrevFocus=null; try{ fdPrevFocus=document.activeElement; }catch(_){ }
+    var fdClose=function(){ try{ document.removeEventListener('keydown',fdEsc); }catch(_){}
+      try{ if(window.v21ReleaseTrap) v21ReleaseTrap(ov); }catch(_){}
+      try{ ov.remove(); }catch(_){}
+      try{ if(fdPrevFocus&&fdPrevFocus.focus) fdPrevFocus.focus(); }catch(_){} };
     document.addEventListener('keydown',fdEsc);
+    try{ if(window.v21TrapFocus) v21TrapFocus(ov); }catch(_){}
     document.getElementById('fd_cancel').onclick=fdClose;
     ov.addEventListener('click',function(e){if(e.target===ov)fdClose();});
     document.getElementById('fd_save').onclick=function(){
