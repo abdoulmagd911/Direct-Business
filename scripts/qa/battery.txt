@@ -237,3 +237,4 @@ probe-arabic-survives-a-search
 probe-client-table-sorts-by-what-you-see
 probe-lead-chips-count-what-they-show
 probe-a-filter-survives-going-back
+probe-import-does-not-call-a-deleted-invoice-present

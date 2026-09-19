@@ -1,3 +1,51 @@
+## Routine fire #102 (2026-09-19 ~12:30 UTC) — the importer said an invoice you deleted was "already there"
+
+#101 finished the Leads interactions, so this round went to the one path that writes money: dropping a
+Direct Payments export onto Finance.
+
+**What it did.** Delete an invoice from the Ledger, then drop the same export again — the preview said
+
+> ↩ Skipped (already in the ledger): 1
+
+That is not true of a row you deleted. It is not in the ledger. Nothing said its number had ever been
+seen, nothing said why it had not come back, and the person is left believing the file was read and the
+invoice is fine.
+
+**Why it happened.** `finLoad()` reads `finance_invoices` with no deleted filter **on purpose** — the
+Ledger offers Restore, so the deleted rows have to be in memory. js/41 built its "already imported"
+index from *every* row in that memory. **The live database holds 45 soft-deleted invoices today, and
+not one of those 45 numbers also has a live row** — so every single one of them hit this path. The
+line directly beneath the broken index already checked `!r.deleted_at` for its own purposes: the
+distinction was known here and simply not applied.
+
+**It had already been fixed once, next door.** js/65 — the oversight lane — fixed exactly this on
+2026-09-02, and its comment records the owner's own words: *"I deleted it, dropped the file again, it
+said updated, and the invoice never came back."* The Direct Payments import path kept the unfixed twin.
+
+**Fixed.** Deleted numbers are kept apart from live ones and **reported in plain words**, never counted
+as ordinary duplicates and never silently resurrected:
+
+> 🗑 Left alone — you deleted these invoice numbers before: **1**
+> They are not in the ledger and nothing was written to them. Bringing one back is your decision —
+> restore it from the Ledger tab.
+> «لم تُلمس — أرقام فواتير سبق أن حذفتها: 1 … إعادتها قرارك — استعدها من تبويب «السجل».»
+
+Restoring is the owner's decision, not the importer's. A number that has **both** a live and a deleted
+row still matches on the live one, exactly as before. Nothing about the money maths changed.
+
+**Driven against the real database** before and after — 45 deleted rows / 46 live in memory, a real
+deleted number replayed through the real preview (read in-page, never printed, rule 7), zero writes.
+
+**Guarded.** `probe-import-does-not-call-a-deleted-invoice-present` (port 9079, 8 checks) seeds one
+live / one deleted / one brand-new invoice number, feeds a synthetic export holding all three to the
+real preview, and requires 1 ready · 1 already-there · 1 reported-as-deleted, in both languages, with
+nothing written. Sabotage-verified: with the index reverted, "already in the ledger" reads 2 and the
+deleted line never appears — 4 checks FAIL. 3 gates green.
+
+**Recorded for the owner:** the same twin-fix question is worth asking of every other pair of layers
+where js/62 or js/65 fixed something the original still does. That is one grep, not a guess, and it is
+the cheapest place a defect of this exact shape can still be hiding.
+
 ## Routine fire #101 (2026-09-19 ~10:30 UTC) — a filter, a chip and a list, and whether they agree
 Fire #100 verified the Leads chips. The obvious next question was what happens to a filter when you
 leave the page and come back — `js/03` is literally named "clean URL routing, **filter memory** each

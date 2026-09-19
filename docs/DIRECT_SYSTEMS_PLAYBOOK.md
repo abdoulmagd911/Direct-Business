@@ -555,6 +555,17 @@ now exists specifically because of each one:
   page is alive — the one case where nothing needed restoring. Neutering its restore function
   changed nothing on screen, which is how the gap showed. When a probe's sabotage changes nothing,
   the suspicion belongs on the code being guarded, not only on the probe.
+- **When a fix lands in one layer, grep for its twin (2026-09-19, fire #102).** js/65 fixed the
+  "deleted invoice reported as already imported" bug on 2026-09-02, in the owner's own words. The
+  Direct Payments import path in js/41 held the same line, unfixed, for another 17 days — and the
+  live database holds 45 soft-deleted invoices, every one of which hit it. A fix written in the
+  oversight lane does not travel; the same question ("does any other layer still do the old thing?")
+  is one grep, and it is the cheapest defect this project has.
+- **A soft-deleted row is still in memory, and is not "there" (2026-09-19, fire #102).** `finLoad()`
+  reads `finance_invoices` with no deleted filter on purpose, because the Ledger offers Restore. Any
+  code that asks "do we already have this?" against `FIN.rows` must say which kind of row it means.
+  Deleted is its own answer, and it has to be said out loud — never folded into "already there", and
+  never quietly undone by an import.
 - **A map from a label is a bug waiting for the next label (2026-09-19, fire #99).** The Clients
   health sort ranked four labels through an object literal; a fifth, 'Lost', was added to
   clientHealth() nine days earlier and nobody updated the map. The lookup gave `undefined`, which

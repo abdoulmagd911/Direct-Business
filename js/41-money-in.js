@@ -168,7 +168,7 @@
     });
   }
 
-  function preview(rows,skipped,supCount){
+  function preview(rows,skipped,supCount,deletedSkipped){
     var paid=0,pend=0,cred=0,comm=0,tx=0,tot=0,wal=_walletSkipped;
     rows.forEach(function(r){
       if(r.integrity_status==='verified_paid'){paid++;tot+=r.total_incl_vat_sar;}
@@ -189,6 +189,10 @@
       (_verifSkipped?' · '+fl('verification services skipped (accounted for elsewhere)','تم تجاوز خدمات التوثيق (تُحتسب في نظام آخر)')+' <b>'+_verifSkipped+'</b>':'')+
       (_clientExcluded?('<br>🚫 '+fl('Excluded by rule:','مستبعد بحسب القاعدة:')+' <b>'+_clientExcluded+'</b> — '+esc64(_clientExcludedDetail.map(function(d){return d.name+' (#'+d.clientId+(d.reason?(': '+d.reason):'')+')';}).join('; '))):'')+
       (skipped?('<br>↩ '+fl('Skipped (already in the ledger):','تم تجاوزها (موجودة مسبقًا):')+' <b>'+skipped+'</b>'):'')+
+      /* said separately and in plain words: these are NOT in the ledger, they were deleted */
+      (deletedSkipped?('<br>🗑 '+fl('Left alone — you deleted these invoice numbers before:','لم تُلمس — أرقام فواتير سبق أن حذفتها:')+' <b>'+deletedSkipped+'</b>'+
+        '<div style="font-size:12px;color:var(--muted)">'+fl('They are not in the ledger and nothing was written to them. Bringing one back is your decision — restore it from the Ledger tab.',
+                                                             'ليست في السجل ولم يُكتب إليها شيء. إعادتها قرارك — استعدها من تبويب «السجل».')+'</div>'):'')+
       (supCount?('<br>🔗 '+fl('Already-recorded transactions that now have their tax invoice — the old pending transaction will retire, this invoice replaces it:','معاملات مسجّلة سابقًا صدرت لها الآن فاتورة ضريبية — سيتقاعد سجل المعاملة المعلّق القديم وتحل محله هذه الفاتورة:')+' <b>'+supCount+'</b>'):'')+
       '</div>'+
       (rows.length?('<button class="btn pri sm" style="margin-top:8px" onclick="finCommit()">'+fl('Confirm import of '+rows.length+' rows','تأكيد استيراد '+rows.length+' صف')+'</button>'):'');
@@ -199,7 +203,22 @@
   function runDP(rows2d){
     try{
       var parsed=parseDP(rows2d);
-      var existing={}; ((window.FIN&&FIN.rows)||[]).forEach(function(r){existing[r.invoice_no]=1;});
+      /* 2026-09-19 (fire #102): this index counted SOFT-DELETED rows as "already in the ledger".
+         finLoad() selects finance_invoices with no deleted_at filter on purpose — the Ledger offers
+         Restore — so FIN.rows carries them, and the live database holds 45 of them today. Drop the
+         same export again after deleting an invoice and the preview said "↩ Skipped (already in the
+         ledger)", which is not true of a row that was deleted: it is not in the ledger, and nothing
+         said its number had ever been seen.
+         js/65 fixed exactly this on 2026-09-02, in the owner's own words — "I deleted it, dropped
+         the file again, it said updated, and the invoice never came back" — and this import path,
+         the Direct Payments one, kept the unfixed twin. The line directly below already checked
+         !r.deleted_at for its own index, so the distinction was known here and simply not applied.
+         Deleted numbers are kept apart and REPORTED now, never counted as ordinary duplicates and
+         never silently resurrected: restoring one is the owner's decision, not the importer's. A
+         number with BOTH a live and a deleted row is matched on the live one, exactly as before. */
+      var existing={}, deletedOnly={};
+      ((window.FIN&&FIN.rows)||[]).forEach(function(r){ if(r.invoice_no&&!r.deleted_at) existing[r.invoice_no]=1; });
+      ((window.FIN&&FIN.rows)||[]).forEach(function(r){ if(r.invoice_no&&r.deleted_at&&!existing[r.invoice_no]) deletedOnly[r.invoice_no]=1; });
       /* Cross-import twin resolution (S4, 2026-08-20). parseDP()'s twin pairing above only
          matches a numbered invoice to its unnumbered transaction WITHIN one file — but the
          normal way this app gets used is: import an export today (a transaction still
@@ -217,9 +236,10 @@
         }
       });
       var supersede=[]; // old pending-transaction row ids to retire once the new rows commit
-      var fresh=[],skipped=0;
+      var fresh=[],skipped=0,deletedSkipped=0;
       toRows(parsed).forEach(function(r){
         if(existing[r.invoice_no]){skipped++;return;}
+        if(deletedOnly[r.invoice_no]){deletedSkipped++;return;}
         if(r.revenue_way==='invoice'&&!r.transaction_ref){
           var tw=openTx[r.client_group+'|'+(+r.total_incl_vat_sar).toFixed(2)];
           if(tw){ r.transaction_ref=tw.invoice_no; supersede.push(tw.id); }
@@ -227,7 +247,7 @@
         fresh.push(r);
       });
       FIN._supersede=supersede.length?supersede:null;
-      preview(fresh,skipped,supersede.length);
+      preview(fresh,skipped,supersede.length,deletedSkipped);
     }catch(e){
       document.getElementById('finImpOut').innerHTML='<div style="color:#D92D20;font-size:13px">'+fl('Could not read this export: ','تعذر قراءة الملف: ')+esc64(e.message)+'</div>';
     }
@@ -330,6 +350,10 @@
   // the five-count preview live in js/65; the row-level parsing rules (twin pairing, wallet/
   // verification/client exclusions, the fee-pair math) stay here, unchanged.
   window.__v65_isDPHeader=isDPHeader; window.__v65_parseDP=parseDP; window.__v65_toRowsDP=toRows;
+  /* 2026-09-19 (fire #102): the preview itself is now reachable for a driven test, the same way
+     parseDP and toRows already are. Without it the only way in is a real dropped File, and the
+     deleted-number path — the one this round fixed — could not be driven at all. */
+  window.__v41_runDP=runDP;
   window.__v65_csvParse=csvParse64; window.__v65_readXlsx=readXlsx;
   window.__v65_exclusionCounts=function(){ return {wallet:_walletSkipped,verif:_verifSkipped,clientExcluded:_clientExcluded,clientExcludedDetail:_clientExcludedDetail}; };
 
