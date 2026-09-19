@@ -1,3 +1,38 @@
+## Routine fire #101 (2026-09-19 ~10:30 UTC) — a filter, a chip and a list, and whether they agree
+Fire #100 verified the Leads chips. The obvious next question was what happens to a filter when you
+leave the page and come back — `js/03` is literally named "clean URL routing, **filter memory** each
+section" and keeps each section's filters in `history.state`, and nothing had driven it.
+
+**Measured against the real database, in both languages:**
+
+| what you do | the filter | the highlighted chip | the rows |
+|---|---|---|---|
+| click a stage chip | Prospect | Prospect 53 | 53 |
+| switch page inside the app, press Back | Prospect | Prospect 53 | 53 |
+| **leave for real and press Back** | **all** | All 78 | 78 |
+| **full reload** | **all** | All 78 | 78 |
+
+So **the memory only holds within one page lifetime** — the case where nothing needed restoring,
+because the filter object never left memory. A real navigation or a reload reboots the app and the
+filter resets. The first version of the guard "proved" the memory worked; neutering `restoreFilters()`
+changed nothing, which is what exposed that it had never been doing the work.
+
+**Recorded as behaviour, not fixed.** Nothing on screen ever disagrees with itself; a fresh load
+starting clean is defensible and is what the reload already does; and making the restore real would
+touch routing for a payoff of one re-click. Whether the filter *should* come back is the owner's
+call, not a QA round's — it is written into the probe's header so the next session does not re-derive
+it or quietly "fix" it.
+
+**What is guarded instead is the part that would be a real failure: a screen that lies about itself.**
+`probe-a-filter-survives-going-back` (port 9078, 9 checks) requires, in all four states above, that
+the highlighted chip's own number equals the rows underneath it — in both languages, with an explicit
+check that every state actually rendered a list so none of it can pass on an empty page.
+
+**Sabotage-verified** by leaving the `active` class on the wrong chip: the filtered state reads
+**"All 33" above 12 rows** and the probe fails. Only one check flips, because a later re-render puts
+the highlight back — so the moment that matters is the one right after the click, which is exactly
+when a person looks.
+
 ## Routine fire #100 (2026-09-19 ~08:30 UTC) — the Leads chips, checked and found right
 Fire #99 found a defect in a sort nobody had driven. The obvious next question was the other untested
 interaction on the same page: the **stage chips and the three toggles**. They were fixed on 2026-08-09

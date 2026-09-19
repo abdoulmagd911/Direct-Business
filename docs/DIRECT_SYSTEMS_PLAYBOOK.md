@@ -550,6 +550,11 @@ now exists specifically because of each one:
   it never types, never filters, never sees an empty list and never sees an error state. Both of the
   last two rounds' language defects lived exactly there. When checking a language, check the states
   a page only reaches by being used.
+- **A layer's name is not evidence that it works (2026-09-19, fire #101).** js/03 is called "filter
+  memory each section" and keeps filters in history.state. Driven, the memory only holds while the
+  page is alive — the one case where nothing needed restoring. Neutering its restore function
+  changed nothing on screen, which is how the gap showed. When a probe's sabotage changes nothing,
+  the suspicion belongs on the code being guarded, not only on the probe.
 - **A map from a label is a bug waiting for the next label (2026-09-19, fire #99).** The Clients
   health sort ranked four labels through an object literal; a fifth, 'Lost', was added to
   clientHealth() nine days earlier and nobody updated the map. The lookup gave `undefined`, which
