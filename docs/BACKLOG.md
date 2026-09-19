@@ -1,3 +1,35 @@
+## Routine fire #109 (2026-09-19 ~23:30 UTC) — two people who share a phone number, and one of them disappeared
+
+Contacts (45 in the database) had not been driven this session. Counting them against the app found
+**43**, so two people were missing. Tracked down company by company: **one company has four people
+recorded and its card showed two.**
+
+**Why.** People reach a company card from two places — the company's own record and the `contacts`
+table — so the app has to decide whether a row it is about to add is already there. It decided by
+matching the **email or the phone, on their own**. Of the two people it swallowed:
+
+- one **shares a mailbox** with a colleague, and
+- one **shares the switchboard number** with a colleague.
+
+Different names in both cases. Neither is bad data — a shared `info@` address and a main office
+number are exactly what a company's contact list looks like. Their name, role, email and phone were
+simply absent from the app, so anyone going to call that person had no way to know they existed.
+The master brief's own rule says a mismatch is **flagged, never silently merged**.
+
+**Fixed.** A shared line now counts as the same person only when the **name agrees too** — or when
+one side has no name to compare, which is the case the de-duplication was written for (the same
+person stored once in the company record and once in the contacts table). Nothing else changed.
+
+**Verified against the live database after the fix:** the app holds all **45** contacts, and every
+one of the **36** companies with contacts matches the database exactly — nothing missing, nothing
+duplicated.
+
+**Guarded.** `probe-two-people-one-phone-number` (port 9084, 9 checks) builds the exact situation —
+a shared mailbox, a shared switchboard, the same person stored in both places, and a nameless row on
+that same line — and requires four people on the card, the repeated one shown once, and all four
+readable in both languages. Sabotage-verified: with the name guard removed the card drops to two
+people, exactly as the live one did. 3 gates green.
+
 ## Routine fire #108 (2026-09-19 ~22:30 UTC) — SOPs & Service Levels, driven live; the page is right, the test was blind
 
 SOPs (12) and Service Levels (14) are real data and had not been driven this session.

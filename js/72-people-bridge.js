@@ -20,6 +20,8 @@ try{
   function client(){ try{ return window.fc?fc():null; }catch(_){ return null; } }
   function nrm(s){ return String(s==null?'':s).toLowerCase().trim(); }
   function dig(s){ return String(s==null?'':s).replace(/\D/g,''); }
+  /* a person's name, loosely: case, punctuation and doubled spaces are not a different person */
+  function nrmName(s){ return String(s==null?'':s).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim(); }
   function day(v){ try{ var d=(typeof v==='number')?new Date(v):new Date(String(v)); return isNaN(d)?'':d.toISOString().slice(0,10); }catch(_){ return ''; } }
   function uuidOf(b){ try{ return (window.__ROWID&&window.__ROWID[b.id])||b.id; }catch(_){ return b.id; } }
   function attach(contacts,activities){
@@ -33,8 +35,25 @@ try{
          overwrite window on rows nobody touched. Mark the keys this layer created so js/02's
          strip can take them back out and the row compares equal to what was loaded. */
       if(!Array.isArray(b.contacts)){ b.contacts=[]; b._v72mc=1; }
-      var em=nrm(r.email), ph=dig(r.phone);
-      var have=b.contacts.some(function(c){ if(!c)return false; if(c._tid&&c._tid===r.id)return true; return (em&&nrm(c.email)===em)||(ph&&dig(c.phone)===ph); });
+      var em=nrm(r.email), ph=dig(r.phone), nm=nrmName(r.name);
+      /* 2026-09-19 (fire #109): this asked "is this person already on the card?" by matching the
+         EMAIL or the PHONE alone, and answered yes for two different people who share either one.
+         Measured on the live database: one company has four people recorded and the card showed
+         two. Of the two it swallowed, one shares a mailbox with a colleague and one shares a phone
+         number — different names in both cases, and neither is an accident: a switchboard number
+         and an info@ address are exactly what a company's contacts look like. Their name, role,
+         email and phone were simply gone from the app, and the master brief's rule is explicit
+         that a mismatch is flagged, never silently merged.
+         A shared line is now only evidence of the same person when the NAME agrees too — or when
+         one side has no name to compare, which is the case this de-duplication was written for
+         (the same person stored once in the company record and once in the contacts table). */
+      var have=b.contacts.some(function(c){
+        if(!c)return false;
+        if(c._tid&&c._tid===r.id)return true;
+        var cn=nrmName(c.name);
+        if(nm&&cn&&nm!==cn)return false;                 // two different people — never merge them
+        return (em&&nrm(c.email)===em)||(ph&&dig(c.phone)===ph);
+      });
       if(have){
         // keep the badge honest on an already-attached row
         b.contacts.forEach(function(c){ if(c&&c._tid===r.id){ c.needsConfirm=!!r.needs_manual_confirmation; c.confirmReason=r.confirmation_reason||''; } });

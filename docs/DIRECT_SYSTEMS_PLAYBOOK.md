@@ -569,6 +569,17 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **A shared phone number is not the same person (2026-09-19, fire #109).** The people bridge
+  decided "already on the card" by matching an email **or** a phone on its own, so two colleagues on
+  one switchboard — or one `info@` mailbox — collapsed into one and the second vanished with their
+  name, role, email and phone. On the live data that hid two people on one company. Identity needs
+  the name to agree as well; a shared line is evidence only when there is no name to compare. The
+  master brief already said it: a mismatch is flagged, never silently merged.
+- **Count the stores against each other (2026-09-19, fires #104 and #109).** Both of these started
+  the same way — the database holds N, the app holds fewer, so ask which ones and why. For airlines
+  it was two stores nobody reconciles; for contacts it was a merge rule that was too eager. A
+  one-line count comparison is the cheapest defect-finder in this project, and it works on any
+  table the app mirrors.
 - **A form's value is not text (2026-09-19, fire #108).** Every cell of the Service Levels table is
   an `<input>` or `<textarea>`, so `innerText` and `textContent` both read blank on a table that is
   plainly full. Reading it the ordinary way looked like a catastrophic defect for several minutes;
