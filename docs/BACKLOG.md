@@ -1,3 +1,43 @@
+## Routine fire #122 (2026-09-21 ~17:00 UTC) — a check that could not catch the thing it was for
+
+Closing the "printed but not writable" audit, then following it into the Events record.
+
+**The company record is now complete.** Every column of `businesses` that holds real data can be
+edited somewhere in the app: website was the last gap and #121 closed it. `prefs`, `airline_deals`,
+`contract_scope`, `corp_email_flag` and `channels` hold **zero** rows, and the first two are editable
+anyway. `direct_client_id` — the key that links a company to Direct Payments — is editable in the
+client-handover form; `tier` and `next_review` in the quick-edit. Recorded so the audit is not run
+again.
+
+**The Events record is complete too, and its editor is right.** js/10 defines two event editors and
+only the later one runs: driven live, `evOpenModal` offers a control for every column including the
+plan (`approach`), its progress (`approach_status`) and the exhibitor list — and the save carries
+them. All 80 real events have a plan: undecided 25, attend 27, stand 12, mine 13, skip 3.
+
+**What was wrong was the check.** `probe-events-save-honest` guarded the payload with
+`Object.keys(row).every(k => COLS.includes(k))` — every key sent must be a real column. That is a
+**subset** check. A save that stopped carrying `approach` entirely would still have passed it, while
+the Events page's five tiles went on filtering by that column and an event's move silently never
+changed. The probe now fills the form with a plan and a progress that are **not** the defaults and
+requires the payload to carry both, with those values. Sabotage-verified against a copy of the app:
+removing the two columns from the save fails the new checks — **and leaves the old one green**,
+which is the whole point.
+
+### An instrument fault, caught before it was written up
+
+The first measurement said the save did **not** carry the plan. It did. The capture truncated the
+request body at 140 characters and `approach` sits past that. Recorded because it is the same class
+of mistake as the hidden-element reads in #108 and #114: the tool was wrong, not the app.
+
+### For the owner — one thing to know, nothing to do today
+
+`ksa_event_signups` is the table that holds the login the team creates on an event's website. It is
+**empty**, and its access rule is "any signed-in user, all operations" — so when logins do start
+being stored there, everyone who can open the app, including a read-only viewer, will be able to
+read and delete them. Not touched: changing an access rule on the live database is the kind of
+change that can lock people out, and nothing is at risk while the table is empty. Worth a decision
+before the first login is saved.
+
 ## Routine fire #121 (2026-09-21 ~15:30 UTC) — a company's website could be shown but never typed
 
 The rule written in #120 — *a field the app prints but no form can write is a gap* — applied to the

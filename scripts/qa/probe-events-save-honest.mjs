@@ -17,8 +17,19 @@
 
    The probe fills the real form three times — login boxes empty, an email typed, and once with the save
    answered by a real PostgREST refusal — and reads what was sent and what the person was told.
+   2026-09-21 (fire #122) — TWO CHECKS ADDED, because the one that guarded the payload only asked
+   that every key SENT is a real column. That is a subset check: a save that stopped carrying the
+   event's PLAN entirely would have passed it, while the Events page's five tiles went on filtering
+   by that very column and an event's move silently never changed. The form is now filled with a
+   plan and a progress that are NOT the defaults, and the payload must carry both, with those
+   values. (Driven against the real database the same day: all 80 events carry an approach —
+   undecided 25, attend 27, stand 12, mine 13, skip 3 — and the live editor does send it. The gap
+   was in the check, not in the app.)
+
    Sabotage-tested: with the js/10 edit stashed, 2 checks go FAIL, exit 1 (the phantom row is written,
-   and the refusal comes out in the database's own words).
+   and the refusal comes out in the database's own words). And 2026-09-21, against a COPY of the app
+   (APP_DIR, repository untouched): with `approach` and `approach_status` removed from the payload,
+   the two new checks FAIL and the old subset check stays green — which is the whole point.
    Run: node scripts/qa/probe-events-save-honest.mjs                                                    */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
@@ -28,6 +39,10 @@ const PORT = 9063; const srv = start(PORT); const BASE = 'http://localhost:' + P
 /* the real shape of ksa_events and its two enum columns, as the live database defines them */
 const COLS = ['name_en', 'name_ar', 'vertical', 'status', 'start_date', 'end_date', 'city', 'venue', 'organiser', 'link', 'opportunity_sales', 'opportunity_partner', 'priority', 'notes', 'approach', 'approach_status', 'exhibitor_list_url', 'updated_at'];
 const VERT = ['Travel', 'Tech', 'Study', 'Other'];
+/* the plan the team sets on an event, and how far it has got. Deliberately NOT the defaults
+   ('undecided' / 'not_started'), so a save that quietly dropped these columns could not pass by
+   accident. */
+const MOVE_PICKED = 'stand', PROG_PICKED = 'signed_up';
 const STAT = ['confirmed', 'needs_verification', 'stale', 'outside_window', 'outside_ksa', 'no_date'];
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const p = await (await b.newContext({ viewport: { width: 1366, height: 950 } })).newPage();
@@ -63,7 +78,11 @@ const add = async (name, login) => { sent = [];
   await p.evaluate((a) => { const f = document.querySelector('[data-ev-form]');
     f.querySelector('#ev_n').value = a.name; if (a.login) f.querySelector('#ev_su_email').value = a.login;
     f.querySelector('#ev_vert').value = 'Tech'; f.querySelector('#ev_stat').value = 'confirmed'; f.querySelector('#ev_pri').value = '5';
-    f.querySelector('#ev_save').click(); }, { name, login: login || '' });
+    /* 2026-09-21 (fire #122) — the PLAN and its PROGRESS are set here too. They are what the Events
+       page's five tiles filter by, and every one of the 80 real events carries both. */
+    const mv = f.querySelector('#ev_move'), pg = f.querySelector('#ev_prog');
+    if (mv) mv.value = a.move; if (pg) pg.value = a.prog;
+    f.querySelector('#ev_save').click(); }, { name, login: login || '', move: MOVE_PICKED, prog: PROG_PICKED });
   await p.waitForTimeout(3000);
   const parse = (t) => sent.filter((s) => s.table === t).flatMap((s) => { try { const j = JSON.parse(s.body); return Array.isArray(j) ? j : [j]; } catch (_) { return []; } });
   return { opened, events: parse('ksa_events'), signups: parse('ksa_event_signups') };
@@ -91,6 +110,16 @@ const checks = [
   ['a refused save is said in plain words, not in the database\'s own ("no rows returned")', /refused it|رفضته قاعدة البيانات/.test(said) && !/rows returned|JSON object requested|PGRST/i.test(said)],
   ['a refused save leaves the form open, so the typed work is not lost', !!refused && refused.formStillOpen === true],
   ['the event row carries only real columns, with values the enum columns actually hold', shapeOk],
+  /* 2026-09-21 (fire #122) — shapeOk only asks that every key SENT is a real column. It is a subset
+     check, so a save that stopped carrying the plan entirely would still have passed it, and an
+     event's move would silently never change while the page's own tiles went on filtering by it.
+     Both directions now: the columns must be THERE, and carry what the form was set to. */
+  ['the save carries the plan and its progress, not only the columns it happens to send',
+    !!row && 'approach' in row && 'approach_status' in row,
+    JSON.stringify(row ? Object.keys(row) : null)],
+  ['\u2026and carries the values the form was set to, rather than the defaults',
+    !!row && row.approach === MOVE_PICKED && row.approach_status === PROG_PICKED,
+    JSON.stringify(row ? { approach: row.approach, approach_status: row.approach_status } : null)],
   ['no JS errors', errors.length === 0],
 ];
 let fail = 0; for (const [n, ok] of checks) { console.log((ok ? 'PASS' : 'FAIL') + ' · ' + n); if (!ok) fail++; }
