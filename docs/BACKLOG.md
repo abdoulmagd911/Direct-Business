@@ -1,3 +1,35 @@
+## Routine fire #114 (2026-09-20 ~05:00 UTC) — the developer scaffolding on Settings had nothing holding it back
+
+Settings and Archive had not been driven this session. Both are correct — and the round turned into
+putting a guard around something that was quietly doing important work with nothing watching it.
+
+**Settings and Archive are clean.** Both are fully translated; Archive shows the 4 deleted companies
+with the reason each was removed and explains that an archived company is kept, not erased; the
+Team & Access table lists the eleven accounts with their level and per-page permissions, in Arabic.
+
+**What has no guard is the removal of ten developer cards.** js/31 hides, by heading, the leftovers
+from earlier versions of this app: a ZATCA/XSS/PII audit read-out, a generator-token dump, a
+performance overlay, a WCAG audit, translation-coverage stats, the **"Run a day" / "Wipe test
+records" test harness**, developer print notes, a one-off import note pointing at a `Q:\`
+spreadsheet, a "Workflow + go-live" suite carrying **"reset for go-live"**, and a scenario-sweep
+runner. It is one loop setting `display:none` after each render. If that layer stops running, a
+heading is reworded, or the render wrapper changes, all ten reappear on the page the whole team
+uses — two of them with buttons that destroy data.
+
+Nothing anywhere asserted they stay hidden. Now something does:
+`probe-settings-has-no-developer-tools` (port 9087, 6 checks) requires, in both languages, that not
+one of the ten is on screen, that no wipe-or-reset button can be reached, and — so the check cannot
+pass on an empty page — that the cards the team *does* use are present. Sabotage-verified: disable
+the hiding and the audit read-out and the token dump appear.
+
+### An instrument fault, the same one as fire #108
+
+A first pass through this page reported three English headings left untranslated on the Arabic
+Settings page. There were none. The hidden cards are still in the DOM, and reading an element that
+is not rendered gives its raw text back, so all ten headings read as if they were on screen. A
+screenshot settled it in seconds. The probe asks each card for its box and its computed style, never
+for text alone, and says so in its own header.
+
 ## Routine fire #113 (2026-09-20 ~04:00 UTC) — the search called every client a lead
 
 The Today page and the search box had not been driven this session.

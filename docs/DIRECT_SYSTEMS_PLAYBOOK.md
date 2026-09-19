@@ -569,6 +569,12 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **A deliberate hiding needs a guard as much as a feature does (2026-09-20, fire #114).** Ten
+  developer cards are kept off Settings by one loop setting `display:none` — including a "Wipe test
+  records" harness and a "reset for go-live" suite. Nothing asserted they stay hidden, so any change
+  to that layer, to a heading's wording, or to the render wrapper would put them in front of the
+  team with no failing test anywhere. Where the safety comes from something being hidden, the probe
+  has to say so out loud.
 - **Two things that do the same job should agree (2026-09-20, fire #113).** The command palette
   labelled a company "Client" and the top-bar search labelled the same company "Lead", because one
   read `isClient` and the other had the word hardcoded. Neither looks wrong on its own; driving both
