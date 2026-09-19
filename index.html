@@ -507,6 +507,41 @@ body{letter-spacing:-.012em}
 }
 </style>
 
+<style id="v85-midwidth">
+/* v85 (2026-09-19) — the gap between "phone" and "big screen", which nothing had ever looked at.
+   v46 above fixed the top bar for phones at 640px and under. Above about 1060px it was always
+   fine. In between — which is exactly a 1366 laptop at Chrome's 125% or 150% zoom, a 1280 screen
+   at 125%, a half-screen window, or anyone who has made their text bigger — the bar is one
+   non-wrapping row holding the page title, the global search and ~500px of tool buttons. The
+   title and the search have no floor, so the tools win and squeeze them to nothing. Measured
+   across the range: at 1050px the title is already clipped, and from 1020px down to the phone
+   breakpoint it is ZERO PIXELS WIDE — the word "Leads" painting over a search box that has itself
+   collapsed to a 52px circle with no usable input. You cannot see which page you are on, and the
+   search everyone uses is gone, with nothing to say why.
+   The fix is the same idea v46 uses for phones, applied to the band nobody had checked: let the
+   bar wrap, stop anything being squeezed to nothing, and give the search a real minimum width so
+   it drops onto its own line rather than shrinking away. Nothing here touches a screen wider than
+   1060px or narrower than 641px, so the desktop and phone layouts are exactly as they were. */
+@media(min-width:641px){
+  /* The bar may use a second row rather than crushing its contents. It is written `.top.top` and
+     marked important on purpose: core-09 injects `.top{height:56px; padding:0 20px!important}` at
+     runtime, and a runtime-injected rule comes after this file in the cascade, so an ordinary
+     `.top` here would lose. Doubling the class wins on specificity instead of on order. Without
+     this the bar keeps its fixed 56px, the wrapped row falls straight through the orange divider
+     and lands on top of the page — which is what the first version of this fix did. */
+  .top.top{ flex-wrap:wrap !important; row-gap:8px;
+            height:auto !important; min-height:56px;
+            padding-top:8px !important; padding-bottom:8px !important; }
+  /* nothing in it may be squeezed out of existence — the title keeps its own width */
+  .top > *{ flex-shrink:0; }
+  /* and the search keeps a floor it can actually be typed into. Only a FLOOR: its flex-basis and
+     its 480px cap are left exactly as they were, so a full-size desktop looks identical and the
+     band that was broken is lifted to a usable width with no jump at the join. */
+  .top .gsearch-wrap{ min-width:170px; }
+  .top .tools{ margin-left:auto; flex-wrap:wrap; justify-content:flex-end; gap:6px; }
+}
+</style>
+
 <style id="v47-declutter">
 /* v47 — declutter. The team already knows what each page is, so strip the explanatory chrome
    that only added visual noise on phone and desktop alike:

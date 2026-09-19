@@ -545,6 +545,17 @@ now exists specifically because of each one:
   comparisons, on pre-filled date boxes and on "recorded on" stamps alike. Both had been invisible
   for the whole project because every QA run used a UTC, English machine. **Vary the environment,
   not just the input:** timezone, language, clock, screen size.
+- **A measurement that disagrees with a screenshot loses (2026-09-19, fire #96).** A layout sweep
+  reported Today's hero "cut off by 60px", the lists "past the right edge" and the sidebar's Finance
+  and Settings "unreachable". The screenshots showed a clean page, tables that scroll inside their
+  own box, and a sidebar that had correctly become a drawer. All three were the instrument. Look at
+  the picture before changing anything on a number's word — and the defect that WAS real in that
+  round was also found by looking.
+- **A runtime-injected style beats index.html (2026-09-19, fire #96).** core-09 injects
+  `.top{height:56px}` after the page's own stylesheet, so an ordinary `.top{...}` rule in index.html
+  loses on order however sensible it looks. Win on specificity (`.top.top`) rather than assuming
+  source order, and check the result on screen — the first version of that fix dropped a wrapped
+  row through the divider onto the page.
 - **A probe that asks the fix whether it is applied is not a probe (2026-09-18, fire #95).** The
   first version of the timezone probe waited for the new helper to exist, so reverting the fix made
   it time out instead of measuring anything — and reverting only the call sites, keeping the

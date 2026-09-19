@@ -1,3 +1,57 @@
+## Routine fire #96 (2026-09-19 ~00:30 UTC) — the window size nobody had ever changed
+Fires #94 and #95 found the browser's language and the browser's clock deciding what the app said and
+did. This round varied the other two environment knobs: the **colour scheme** and the **window size**.
+
+**Dark mode: verified clean, nothing to fix.** The app declares no `color-scheme` and has no
+`prefers-color-scheme` rule anywhere, so what a dark laptop shows was genuinely unknown. Driven in
+dark mode across eight pages: byte-identical to light, body background still cream, computed
+`color-scheme: normal`. Recorded so the next round does not spend time on it again.
+
+**Window size: a real defect, on a very ordinary machine.** Every QA round until now used a big screen
+at 100% zoom. A 1366×768 laptop at Chrome's **150% zoom is 911 CSS pixels wide**; at 125% it is 1093.
+So is a half-screen window, and so is anyone who has made their text bigger for their eyes.
+
+In that band the top bar is one non-wrapping row holding the page title, the global search and about
+500px of tool buttons. The title and the search have no floor, so the tools win. Measured across the
+whole range: at 1050px the title is already clipped, and **from 1020px down to the phone breakpoint it
+is ZERO PIXELS WIDE** — the word "Leads" painting over a search box that has itself collapsed to a
+52px circle with no usable input. You cannot see which page you are on, and the search everyone uses
+is gone, with nothing to say why. Below 641px the phone rules take over and it is fine again.
+
+**Fixed** in a new `v85-midwidth` block in index.html: above the phone breakpoint the bar may wrap,
+nothing in it may be squeezed out of existence, and the search keeps a 170px floor. Only a *floor* —
+its flex-basis and its existing 480px cap are untouched, so a full-size desktop is pixel-identical and
+there is no jump at the join.
+
+**The first version of that fix was wrong, and the way it was wrong is worth keeping.** `core-09`
+injects `.top{height:56px; padding:0 20px!important}` at **runtime**, and a runtime-injected rule comes
+after index.html in the cascade — so an ordinary `.top{...}` here loses. The bar kept its fixed 56px,
+the wrapped row fell straight through the orange divider and landed on top of the page. Caught by
+looking at a screenshot, not by a measurement. The rule is now written `.top.top` and marked important,
+winning on specificity instead of on order.
+
+**Three instrument faults this round, all caught before anything was changed on their word**, and all
+the same shape as the two probe faults found yesterday:
+* the overflow sweep reported Today's hero as "cut off by 60px" at every width — the screenshot showed
+  nothing cut. A `scrollWidth`/`clientWidth` gap on a padded box is not a visible defect;
+* it reported the Leads/Clients/Vendors tables as running past the right edge at 150% — they do, and
+  `.tbl-wrap` scrolls, so every column is reachable. Not a defect;
+* it reported the sidebar's Finance and Settings as "unreachable" below 560px tall — the nav scrolls
+  (index.html already handles this) and both come into view. The click that "failed" was hitting a
+  sidebar that had correctly become an off-canvas drawer at ≤860px.
+  **A measurement that disagrees with a screenshot loses.**
+
+**Probe:** `probe-topbar-survives-browser-zoom` (port 9073, 11 checks) drives five widths in both
+languages, requires the title to have a real on-screen width and to stay inside the bar, the search to
+stay wide enough to type in, the wrapped tools row to be **inside** the bar and the bar to have grown
+to hold it, Arabic to be no worse off, and a 1366 desktop to be exactly as it was. Every check is
+gated on the element existing. Sabotage-verified: **5 FAIL**, including the one at 700px — which is
+how the broken band turned out to reach all the way down to the phone breakpoint.
+
+**No static gate for this one.** Unlike Escape (#92), named locales (#94) and today-from-UTC (#95),
+"an element in a flex row may be squeezed to zero" has no single statically-visible shape — the same
+reason the M1 rule was measured and rejected in #93. Said here so nobody adds one later for symmetry.
+
 ## Routine fire #95 (2026-09-18 ~23:00 UTC) — the app asked UTC what day it is, on a team in Riyadh
 Fire #94 found the browser's **language** deciding what the app printed. The same question asked of
 the browser's **clock** found something worse, because this one writes.
