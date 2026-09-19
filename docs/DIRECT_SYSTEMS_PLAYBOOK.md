@@ -569,6 +569,16 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **Two things that do the same job should agree (2026-09-20, fire #113).** The command palette
+  labelled a company "Client" and the top-bar search labelled the same company "Lead", because one
+  read `isClient` and the other had the word hardcoded. Neither looks wrong on its own; driving both
+  in the same session is what showed it. Where the app has two ways to do one thing — search, open,
+  format, count — drive them side by side and compare the answers.
+- **A count taken too early is indistinguishable from a real loss (2026-09-20, fire #113).** A
+  measurement run the moment the first companies arrived reported "8 clients" and "this client
+  cannot be found", and both were false — the list loads a page at a time. Before reporting that
+  data is missing, wait for the load and take the number twice. This is the mirror image of
+  "count the stores against each other": that rule finds real losses, this one stops inventing them.
 - **Do the code half, leave the content half (2026-09-20, fire #112).** The Arabic report printed
   Arabic objectives over 30 English KPI lines. Two different gaps sat inside that: the code never
   looked for an Arabic KPI title, and no Arabic KPI title exists. The first is a fix; the second is

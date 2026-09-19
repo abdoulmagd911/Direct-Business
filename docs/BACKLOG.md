@@ -1,3 +1,41 @@
+## Routine fire #113 (2026-09-20 ~04:00 UTC) — the search called every client a lead
+
+The Today page and the search box had not been driven this session.
+
+**Today is honest.** Everything on it reads zero — no tickets due, no overdue invoices, nobody being
+chased, nothing in the queue — and that is true: all 46 live invoices have nothing outstanding, so
+"All caught up" is the right thing to say. The date reads correctly in both languages.
+
+**The search box called every company a lead.** The label was hardcoded, so all **28 clients** came
+back as "Lead" — on the one distinction this whole app is built around, and the one you spent two
+rounds of re-verification getting right in August. The command palette had been saying
+"Client / عميل" correctly all along, which is what made the difference visible when both were
+driven on the same day. Fixed: the row says which it is, and Arabic needed the word too (its list of
+result types had no entry for Client, so an Arabic search would have fallen back to English).
+
+Clicking was **not** changed — the Clients page opens its own rows exactly the same way, the two
+share one detail page — so only the label moved.
+
+**And a phone number only found its company if you typed the spacing right.** "+966 50 777 6543" was
+not found by `7776543`, and the person looking it up has no way to know which spelling is stored.
+Same lesson as the people bridge two rounds ago: a number written differently is the same number.
+When the query is mostly digits, the digits are now compared — five digits minimum, so a short
+number inside a name or a licence code does not drag in half the list.
+
+**Guarded.** `probe-search-says-lead-or-client` (port 9086, 10 checks): a client must be announced
+as a client and a lead as a lead, in both languages, with the Arabic words actually different
+("عميل" is a prefix of "عميل محتمل", so they are compared exactly); a company must be findable by
+the name **and** the phone number of a person on its card; and clicking the row must open that
+company. Sabotage-verified in two halves — 3 checks fail with the label hardcoded, 1 with the digits
+comparison removed.
+
+### One instrument fault worth recording
+
+A first pass reported "the app only holds 8 clients" and "a client's name finds nothing". Both were
+wrong, and for the same reason: the companies arrive a page at a time, and that measurement ran the
+moment the first rows landed. With the load finished it is 28 clients, all findable. The probe now
+waits, and says why in a comment — a count taken too early is indistinguishable from a real loss.
+
 ## Routine fire #112 (2026-09-20 ~02:30 UTC) — the Arabic report was half English, and only half of it was mine to fix
 
 The Reports page had not been driven this session. Two things came out of it, and they need separating.

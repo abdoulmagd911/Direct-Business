@@ -603,7 +603,16 @@ function runGlobalSearch(q){
   q=(q||'').toLowerCase().trim();const box=document.getElementById('gres');if(!box)return;
   if(!q){box.style.display='none';box.innerHTML='';return;}
   const res=[];
-  DB.businesses.forEach(b=>{if((b.name+' '+(b.nameAr||'')+' '+(b.segment||'')+' '+(b.contacts||[]).map(c=>c.name+' '+c.email+' '+c.phone).join(' ')).toLowerCase().includes(q))res.push({t:'Lead',label:b.name,sub:b.segment||'',go:()=>{openSup=null;openLead=b.id;current='leads';render();}});});
+  /* 2026-09-20 (fire #113): a phone number only found its company when you typed the spacing
+     exactly as it happens to be stored — "+966 50 777 6543" was not found by 7776543, and the
+     person looking it up has no way to know which spelling is in there. Same lesson as the people
+     bridge two rounds ago: a number written differently is the same number. When the query is
+     mostly digits, the digits are compared. Five digits minimum, so a short number in a name or a
+     licence code does not drag in half the list. */
+  const _qDigits=q.replace(/\D/g,'');
+  const _byDigits=(_qDigits.length>=5&&_qDigits.length>=q.replace(/\s/g,'').length-2);
+  const _phoneHay=(b)=>(b.contacts||[]).map(c=>String(c.phone||'').replace(/\D/g,'')).join(' ');
+  DB.businesses.forEach(b=>{if((b.name+' '+(b.nameAr||'')+' '+(b.segment||'')+' '+(b.contacts||[]).map(c=>c.name+' '+c.email+' '+c.phone).join(' ')).toLowerCase().includes(q)||(_byDigits&&_phoneHay(b).includes(_qDigits)))res.push({t:b.isClient?'Client':'Lead',label:b.name,sub:b.segment||'',go:()=>{openSup=null;openLead=b.id;current='leads';render();}});});
   (DB.requests||[]).forEach(r=>{if((r.client+' '+r.service+' '+r.detail+' '+(r.owner||'')+' '+(r.pnr||'')).toLowerCase().includes(q))res.push({t:'Request',label:r.client+' · '+r.service,sub:r.stage,go:()=>{openLead=null;openSup=null;current='ops';render();editRequest(r.id);}});});
   (DB.airlines||[]).forEach(a=>{if((a.name+' '+(a.code||'')+' '+(a.source||'')).toLowerCase().includes(q))res.push({t:'Airline',label:a.name+(a.code?' ('+a.code+')':''),sub:a.source||'',go:()=>{openLead=null;supKind='air';openSup=a.id;current='airlines';render();}});});
   DB.vendors.forEach(v=>{if((v.name+' '+(v.type||'')+' '+(v.source||'')).toLowerCase().includes(q))res.push({t:'Provider',label:v.name,sub:v.type||'',go:()=>{openLead=null;supKind='prov';openSup=v.id;current='vendors';render();}});});
@@ -612,7 +621,14 @@ function runGlobalSearch(q){
   // The result-type word and the no-match line are chrome, not data — Arabic in Arabic
   // (2026-09-02, attack round 21: they read "Airline / Provider / SOP / No matches" in Arabic).
   const _gAr=(typeof LANG!=='undefined'&&LANG==='ar');
-  const _gT={Lead:'عميل محتمل',Request:'طلب',Airline:'شركة طيران',Provider:'مورّد',SOP:'إجراء'};
+  /* 2026-09-20 (fire #113): every company came back from this search labelled "Lead", including
+     all 28 that are clients — so searching for a client told you it was a lead, on the one
+     distinction this whole app is built around. The row now says which it is, and Arabic needs the
+     word for it; the command palette in js/78 has said Client/عميل correctly all along, which is
+     what made the difference visible. The click still opens the company the same way the Clients
+     page opens its own rows (openLead + the leads view share one detail page), so only the label
+     changed. */
+  const _gT={Lead:'عميل محتمل',Client:'عميل',Request:'طلب',Airline:'شركة طيران',Provider:'مورّد',SOP:'إجراء'};
   /* 2026-09-03 (audit/events/search attack round): the dropdown has always shown the first 14
      matches and said nothing about the rest — search "Zed" against 31 matching companies and
      you were shown 14 with no hint that 17 more existed, which reads as "that is all of them".
