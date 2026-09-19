@@ -267,6 +267,19 @@
      like js/14's credit-limit box); the card, the hover pop and the CSV export say only that a
      figure is recorded. A field is money when its key ends in _sar or its label says SAR. */
   function fnIsMoney(fl){ try{ return /_sar$/i.test(String(fl.key||''))||/\bSAR\b|ريال/.test(String(fl.label_en||'')+' '+String(fl.label_ar||'')); }catch(_){ return false; } }
+  /* 2026-09-20 (fire #115, found by driving the real database) — a stored answer this control
+     cannot represent. Seven live answers are in that state: "Partner" where the template's
+     options read partner_target, "Won" where they read won, "Government tender", "Verified", and
+     three yes/no fields holding the words "No" and "Yes — same day". The importer wrote what the
+     source file said; the option lists were written separately, and the two were never made to
+     agree. A <select> with no matching option opens on "—", and Save reads an empty control as
+     "cleared on purpose" and DELETES the key — so opening the form and pressing Save with nothing
+     touched took three of one real lead's six answers away, silently, in both languages.
+     The answer is what a person actually recorded; the option list is only the app's idea of the
+     field. So the form carries the stored answer as its own option, selected and marked as what
+     is on file, and Save writes it back unchanged. Picking a standard option instead is still a
+     choice the person makes on purpose. */
+  function fnOnFileOpt(val){ return '<option value="'+E(val)+'" selected>'+E(val)+' · '+E(fnL('on file','المسجَّل'))+'</option>'; }
   function fnMoneyMask(val){ return (val==null||val==='')?'\u2014':fnL('recorded \u2014 read on Finance','مسجّلة \u2014 تُقرأ في المالية'); }
   function addDetailCard(v,id){
     if(document.getElementById('funnelCard'))return;
@@ -279,7 +292,13 @@
     (f.field_template||[]).forEach(function(fl){
       var val=det[fl.key];
       if(fnIsMoney(fl)) val=fnMoneyMask(val);
-      else { if(val==null||val==='')val='\u2014'; if(typeof val==='boolean')val=val?fnL('Yes','\u0646\u0639\u0645'):fnL('No','\u0644\u0627'); }
+      else { if(val==null||val==='')val='\u2014'; if(typeof val==='boolean')val=val?fnL('Yes','\u0646\u0639\u0645'):fnL('No','\u0644\u0627');
+        /* a yes/no field whose answer is stored as the WORD, which three live answers are: the
+           card printed "No" to an Arabic reader. Only an exact yes or no is translated \u2014 an
+           answer that carries more than that ("Yes \u2014 same day") is somebody's own wording and
+           stays as written. */
+        else if(String(fl.type||'')==='boolean'&&/^(yes|no)$/i.test(String(val).trim()))
+          val=(/^yes$/i.test(String(val).trim()))?fnL('Yes','\u0646\u0639\u0645'):fnL('No','\u0644\u0627'); }
       inner+='<div class="fact"'+(fnIsMoney(fl)?' data-money-masked="1"':'')+'><span class="k">'+E(fnLabel(fl))+'</span><span class="v" style="max-width:58%;text-align:right;white-space:normal">'+E(val)+'</span></div>';
     });
     card.innerHTML=inner;
@@ -308,12 +327,24 @@
       inner+='<label style="display:block;font-size:12px;font-weight:700;color:#55596A;margin:10px 0 4px">'+_l1+(_l2&&_l2!==_l1?' \u00b7 '+_l2:'')+'</label>';
       var t=String(fl.type||'text');
       if(t==='textarea')inner+='<textarea id="'+fid+'" style="width:100%;box-sizing:border-box;min-height:74px;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px">'+String(val).replace(/</g,'&lt;')+'</textarea>';
-      else if(t==='boolean')inner+='<select id="'+fid+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px"><option value=""'+(val===''?' selected':'')+'>\u2014</option><option value="true"'+(val===true?' selected':'')+'>'+fnL('Yes','\u0646\u0639\u0645')+'</option><option value="false"'+(val===false?' selected':'')+'>'+fnL('No','\u0644\u0627')+'</option></select>';
+      else if(t==='boolean')inner+='<select id="'+fid+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px"><option value=""'+(val===''?' selected':'')+'>\u2014</option><option value="true"'+(val===true?' selected':'')+'>'+fnL('Yes','\u0646\u0639\u0645')+'</option><option value="false"'+(val===false?' selected':'')+'>'+fnL('No','\u0644\u0627')+'</option>'+((val!==''&&val!==true&&val!==false)?fnOnFileOpt(val):'')+'</select>';
       else if(t.indexOf('select:')===0){
         var opts=t.slice(7).split(',');
-        inner+='<select id="'+fid+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px"><option value="">\u2014</option>'+opts.map(function(o){return '<option value="'+o+'"'+(val===o?' selected':'')+'>'+o.replace(/_/g,' ')+'</option>';}).join('')+'</select>';
+        inner+='<select id="'+fid+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px"><option value="">\u2014</option>'+opts.map(function(o){return '<option value="'+E(o)+'"'+(String(val)===o?' selected':'')+'>'+E(o.replace(/_/g,' '))+'</option>';}).join('')+((val!==''&&opts.indexOf(String(val))<0)?fnOnFileOpt(val):'')+'</select>';
       }
-      else inner+='<input id="'+fid+'" type="'+(t==='date'?'date':t==='number'?'number':'text')+'" value="'+String(val).replace(/"/g,'&quot;')+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px">';
+      else {
+        var itype=(t==='date'?'date':t==='number'?'number':'text');
+        /* 2026-09-20 (fire #115) — the same trap as the dropdowns above, in the other kind of
+           control: a number or date box silently REFUSES a value it does not consider valid, so
+           it comes up empty and Save reads that as "cleared on purpose" and deletes the answer.
+           Today's live numbers and dates are all well-formed, so nothing is being lost here right
+           now — but it is the same Save, fed by the same importer that put "Partner" and
+           "Government tender" into the dropdowns. A plain text box keeps the answer visible and
+           keeps it stored; Save already leaves a non-number as the words it was written in. */
+        if(itype==='number'&&val!==''&&isNaN(Number(val)))itype='text';
+        if(itype==='date'&&val!==''&&!/^\d{4}-\d{2}-\d{2}$/.test(String(val)))itype='text';
+        inner+='<input id="'+fid+'" type="'+itype+'" value="'+String(val).replace(/"/g,'&quot;')+'" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #E3DCCF;border-radius:10px;font:inherit;font-size:13px">';
+      }
     });
     inner+='<div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">'+
       '<button id="fd_cancel" style="border:1px solid #E3DCCF;background:#fff;border-radius:10px;padding:10px 18px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">'+fnL('Cancel','\u0625\u0644\u063a\u0627\u0621')+'</button>'+
@@ -346,8 +377,13 @@
         var v2=e.value;
         if(v2===''||v2==null){delete out[fl.key];return;}   // emptied on purpose = cleared
         var t=String(fl.type||'text');
-        if(t==='boolean')out[fl.key]=(v2==='true');
-        else if(t==='number')out[fl.key]=Number(v2);
+        /* 2026-09-20 (fire #115) — only the two words this control writes itself become true/false.
+           An answer kept from the file ("No", "Yes — same day") goes back exactly as it was: the
+           second one is a yes WITH a detail, and flattening it to a boolean would throw the detail
+           away just as surely as deleting the key did. Same for a number field holding something
+           that is not a number — Number('TBD') is NaN, which is not an answer anybody recorded. */
+        if(t==='boolean')out[fl.key]=(v2==='true')?true:(v2==='false')?false:v2;
+        else if(t==='number'){var _n=Number(v2);out[fl.key]=isNaN(_n)?v2:_n;}
         else out[fl.key]=v2;
       });
       b.funnelDetails=out;

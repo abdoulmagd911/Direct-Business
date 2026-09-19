@@ -569,6 +569,24 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **A control that cannot show what is stored will quietly delete it (2026-09-20, fire #115).** The
+  funnel form's dropdowns were built from an option list, the answers were written by the importer
+  from the source files, and nobody ever made the two agree: seven live answers — "Partner" where
+  the list says `partner_target`, "Won" where it says `won` — had no matching option. A `<select>`
+  with no match opens on "—", and Save treats an empty control as *cleared on purpose*. So opening
+  the form and pressing Save with nothing touched took three of one real lead's six answers away.
+  The same shape is in every strict control: a number box refuses "about 40", a date box refuses
+  "March 2026", both come up empty, both end in the same deletion. **Whenever a form is about to
+  read a control back, ask first whether that control could even hold what is on file — and where
+  it cannot, show the stored answer rather than a blank.** Emptiness that the person did not cause
+  must never be read as an instruction.
+- **An option list and the data it describes are written by different hands (2026-09-20, fire
+  #115).** The templates were authored in the funnels table; the answers came in through an
+  importer reading spreadsheets. Each was reasonable alone and neither ever saw the other. The
+  cheap check — for every field with a fixed set of values, ask the database how many stored
+  answers are outside that set — took one query and found all seven. It is the same family as
+  counting the stores against each other (fire #109/#110), and it belongs in every round that
+  touches a dropdown, a stage list or a status chip.
 - **A deliberate hiding needs a guard as much as a feature does (2026-09-20, fire #114).** Ten
   developer cards are kept off Settings by one loop setting `display:none` — including a "Wipe test
   records" harness and a "reset for go-live" suite. Nothing asserted they stay hidden, so any change

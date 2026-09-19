@@ -1,3 +1,51 @@
+## Routine fire #115 (2026-09-20 ~06:00 UTC) — opening the funnel form and pressing Save deleted answers nobody touched
+
+The funnel-details card and its Edit form (js/09) had not been driven this session. Driving them
+against the real database found the most damaging defect of this sweep so far: **a person could
+lose a lead's recorded answers by opening the form and pressing Save without typing anything.**
+
+**How it happened.** Every funnel carries a field template. Five of its fields are dropdowns with a
+fixed list of options and three are yes/no. The answers were written by the importer, from the
+source files; the option lists were written separately, and nobody ever compared the two. Seven live
+answers do not match their own list — a "Partner" where the list reads `partner_target`, a "Won"
+where it reads `won`, a "Government tender", a "Verified", and three yes/no fields holding the words
+"No" and "Yes — same day".
+
+A dropdown with no matching option opens on "—". Save reads an empty control as *cleared on
+purpose* and removes the answer. So the sequence is ordinary and the loss is invisible: the card
+shows the answers correctly, you open **Edit** to change the tender deadline, you press **Save**,
+and three of that lead's six answers are gone. Measured on a real lead, in English and in Arabic:
+`has_app`, `partner_type` and `tender_status` all disappeared, with nothing on screen to say so.
+
+**Fixed, in three places, because the same trap is in three kinds of control.** A dropdown now
+carries the stored answer as its own option, selected and marked *on file* / *المسجَّل*, so Save
+writes it back unchanged — and the standard options are all still there, so changing it stays a
+choice made on purpose. A yes/no control turns only the two words it writes itself into true/false,
+so "Yes — same day" keeps its detail instead of collapsing into a bare *no*. And a number or date
+box falls back to a plain text box when the stored answer is not something it would accept: a
+strict box refuses the value, comes up empty, and lands in exactly the same deletion. Re-driven
+against the real database afterwards: nothing lost, nothing changed.
+
+Today's live numbers and dates are all well-formed, so that third part is the same defect in a
+field type where the data happens to be clean — fed by the same importer as the dropdowns, where it
+is not.
+
+`probe-an-answer-on-file-survives-save` (port 9088, 16 checks) puts all of those shapes on one lead
+and presses Save with nothing touched, in both languages. It also keeps round 42's rule — an answer
+whose field has since left the template survives too — because both are one Save. Sabotage-verified
+three times, one part at a time: 5 checks fail without the on-file option (and the lead loses the
+same three answers the live one did), 2 without the boolean guard, 3 without the number/date
+fallback.
+
+### For the owner — a wording decision, not a bug
+
+The dropdown options are the raw keys from the template: an Arabic reader picking a partner type
+sees `bnpl`, `fintech`, `esim`, `insurance`, `integration`, `tender`, `other` — English code words,
+in an otherwise Arabic form. Writing the Arabic (and the proper English) for those options is a
+content decision and not something a QA round should invent, the same call as the KPI titles in
+fire #112. Five fields are affected: partner type, tender status, competitor-or-partner, planned
+approach, research status.
+
 ## Routine fire #114 (2026-09-20 ~05:00 UTC) — the developer scaffolding on Settings had nothing holding it back
 
 Settings and Archive had not been driven this session. Both are correct — and the round turned into
