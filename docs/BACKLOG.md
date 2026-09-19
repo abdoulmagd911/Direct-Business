@@ -1,3 +1,34 @@
+## Routine fire #107 (2026-09-19 ~21:30 UTC) — the Events page, checked against the real calendar and found right
+
+Events holds **80 real entries** and had not been driven this session. After three rounds of
+filter buttons that lied, this one went looking for the same shape and **did not find it**. That is
+the result, and it is written down so a later round does not spend itself here.
+
+**Measured against the live database, in English and Arabic:**
+
+| tile | says | shows when you click it |
+|---|---|---|
+| Still ahead | 43 | 20 of 43, with an honest "Showing 1–20 of 43" |
+| Have a stand | 7 | 7 |
+| Go & meet | 10 | 10 |
+| Mine the website | 8 | 8 |
+| Not decided | 16 | 16 |
+
+Every tile shows exactly what it promises. The dropdown's fifth move, **Skip, holds the other 2**,
+so 7 + 10 + 8 + 16 + 2 = 43 — every upcoming event accounted for. Skip deliberately has no tile,
+which is why the four visible numbers add to 41 rather than 43; that is a choice, not a gap, and it
+is recorded here so nobody "corrects" it. Arabic shows the same counts with translated labels, and
+the filters survive the re-render (the #106 fix at work).
+
+**What was weak was the check, not the page.** `probe-events-scale` asserted only that a tile
+filtered to *something* — "more than none and fewer than all" — which passes even when a tile's
+number has nothing to do with the list beneath it. That is precisely how the Airlines buttons went
+wrong in #104 without anything noticing. It now clicks **every** tile, compares its number with the
+rows it produces, and requires the four moves plus the skipped ones to account for every event still
+ahead. Sabotage-verified by making one tile claim 13 while showing 10: both new checks fail.
+
+No app code changed this round, so nothing needed deploying. 3 gates green.
+
 ## Routine fire #106 (2026-09-19 ~20:30 UTC) — you could not get past page 1 of the airlines list
 
 I had just changed the row counter in #104, so I drove the paging controls on real data to check I

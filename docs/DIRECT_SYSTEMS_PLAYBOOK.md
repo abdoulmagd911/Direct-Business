@@ -569,6 +569,12 @@ now exists specifically because of each one:
   finished last — which changed with the number of files already dropped. A hook proved nothing; one
   drop proved the wrong thing; the repeat proved it. **Drive the thing more than once, and in the
   order a person would.** State-dependent defects are invisible to a single try.
+- **"It filtered to something" is not a check (2026-09-19, fire #107).** The Events probe asserted
+  that clicking a tile left more than none and fewer than all of the rows. That passes on a tile
+  whose number has nothing to do with the list beneath it — which is exactly how the Airlines
+  buttons were wrong for months with a probe watching. Where a control shows a number, compare the
+  number with what the control produces; anything looser is a check that cannot see the defect it
+  is there for.
 - **A background job must not redraw the whole page (2026-09-19, fire #106).** The layer that looks
   up your name and role re-rendered everything when it finished, on load, at 3s, at 8s and on every
   return to the browser tab. That is what made "Next ›" impossible to use on a 136-row list — press

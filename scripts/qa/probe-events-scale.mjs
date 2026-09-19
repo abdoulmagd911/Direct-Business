@@ -141,6 +141,42 @@ await p.screenshot({path:'scripts/qa/shot-events-scale-undecided.png',fullPage:t
 await p.evaluate(()=>document.querySelector('[data-evstat="undecided"]').click());
 await p.waitForTimeout(500);
 
+/* 2026-09-19 (fire #107): the check above only asked that the tile filtered to SOMETHING —
+   "more than none and fewer than all" passes even when a tile shows a number that has nothing to
+   do with the list under it. That is exactly how the Airlines alliance buttons went wrong (fire
+   #104): the button said one thing, the rows said another, and nothing noticed. Every tile here is
+   a promise of a number, so each one is now clicked and the rows counted, and the four move tiles
+   plus the skip bucket have to account for every event still ahead. Driven against the real
+   database the same day: 43 still ahead = 7 stand + 10 attend + 8 mine + 16 undecided + 2 skip,
+   each tile matching its list exactly, in both languages. */
+const tileTruth = await (async () => {
+  const keys = await p.evaluate(()=>[...document.querySelectorAll('[data-evstat]')].map(t=>t.getAttribute('data-evstat')));
+  const out = {};
+  for (const k of keys) {
+    await p.evaluate(kk=>{ const t=document.querySelector('[data-evstat="'+kk+'"]'); if(t)t.click(); }, k);
+    await p.waitForTimeout(700);
+    const said = await p.evaluate(kk=>{ const t=document.querySelector('[data-evstat="'+kk+'"]'); return t?Number((t.querySelector('div')||{}).textContent):null; }, k);
+    out[k] = { says: said, shows: await visRows() };
+    await p.evaluate(kk=>{ const t=document.querySelector('[data-evstat="'+kk+'"]'); if(t)t.click(); }, k);
+    await p.waitForTimeout(400);
+  }
+  return out;
+})();
+console.log('tiles →', JSON.stringify(tileTruth));
+/* "all" is the whole list and pages at 20, so it is compared against its own promise, capped */
+check('every tile shows exactly the number it promises',
+  Object.keys(tileTruth).every(k => tileTruth[k].shows === Math.min(tileTruth[k].says, 20)), true);
+const skipRows = await (async () => {
+  await p.evaluate(()=>{ const s=document.getElementById('evF_m'); if(s){ s.value='skip'; s.dispatchEvent(new Event('change',{bubbles:true})); } });
+  await p.waitForTimeout(700);
+  const n = await visRows();
+  await p.evaluate(()=>{ const s=document.getElementById('evF_m'); if(s){ s.value='all'; s.dispatchEvent(new Event('change',{bubbles:true})); } });
+  await p.waitForTimeout(500);
+  return n;
+})();
+check('the move tiles plus the skipped ones account for every event still ahead',
+  (tileTruth.stand.says + tileTruth.attend.says + tileTruth.mine.says + tileTruth.undecided.says + skipRows) === tileTruth.all.says, true);
+
 // Undated events must not pretend to be first in a date-sorted list
 const order = await p.evaluate(()=>[...document.querySelectorAll('#view tbody tr')].map(r=>r.textContent.slice(0,40)));
 check('undated events sit at the end, not the top', /Undated/.test(order[order.length-1]||''), true);
