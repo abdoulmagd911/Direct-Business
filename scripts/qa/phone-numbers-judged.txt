@@ -14,7 +14,12 @@
 # A named individual's number belongs on the supplier's record in the `providers` table — visible
 # to the team, invisible to the public — never in the code.
 #
+# 2026-09-21 (fire #162): the company's own published number came OFF this list because it came out
+# of the code. It used to sit in core-06's AGENCY constant and print on documents; the report footer
+# now takes the contact number from the company_identity registry, where it is a field somebody can
+# correct — and where it turned out the code's copy was the older number, not the licence phone.
+# One fewer real number in a public repository, and one fewer copy to drift.
+#
 # Format: <number, no spaces><TAB><what it is>
-+966508434126	The company's own published contact number (AGENCY.phone, core-06). Printed on the company's own documents by design.
 +966122252371	Amadeus Saudi's agency-support line — a corporate support desk on the Amadeus provider record, not a person.
 +966507776543	An example number used in help text to show how a phone is stored and searched (core-01).

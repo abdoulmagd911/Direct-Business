@@ -23,7 +23,10 @@
         registered identifiers belong in the database, not in a public repository — rule 7.)
      4. the notice is in Arabic on the Arabic side;
      5. with the registry reachable there is no notice, and both numbers print — the fix must not
-        cost the document its footer.
+        cost the document its footer;
+     6. the IATA-wakeel disclosure keeps its owner-approved wording, with the number filled from the
+        registry — and is left out entirely when the registry has no number, because a disclosure
+        you cannot complete is not one you may make.
 
    Check 5 is the one that keeps it honest: the cheap way to pass 1-3 is to stop printing the footer.
 
@@ -39,12 +42,13 @@ const PORT = 9111; const BASE = 'http://localhost:' + PORT;
 const APP = process.env.APP_DIR || path.resolve(new URL('../..', import.meta.url).pathname);
 
 /* synthetic values — the real ones stay in the database */
-const UNN = '7000000001', LIC = '70000001';
+const UNN = '7000000001', LIC = '70000001', IATA = '99000022';
 const IDENTITY = [
   { id: 'ci1', key: 'legal_name', category: 'legal', value_en: 'QA Placeholder Trading Co.', value_ar: 'شركة اختبار', sort: 1, expires_on: null, proof_path: null, show_on_documents: true, sensitive: false, label_en: 'Legal name', label_ar: 'الاسم القانوني' },
   { id: 'ci2', key: 'cr_number', category: 'legal', value_en: '0000000000', value_ar: null, sort: 2, expires_on: '2027-01-31', proof_path: null, show_on_documents: true, sensitive: false, label_en: 'CR', label_ar: 'السجل' },
   { id: 'ci3', key: 'vat_number', category: 'tax', value_en: '300000000000003', value_ar: null, sort: 3, expires_on: null, proof_path: null, show_on_documents: true, sensitive: false, label_en: 'VAT', label_ar: 'الضريبي' },
   { id: 'ci8', key: 'unified_number', category: 'legal', value_en: UNN, value_ar: null, sort: 8, expires_on: null, proof_path: null, show_on_documents: true, sensitive: false, label_en: 'Unified number', label_ar: 'الرقم الموحد' },
+  { id: 'ci10', key: 'iata', category: 'membership', value_en: IATA, value_ar: null, sort: 10, expires_on: null, proof_path: null, show_on_documents: true, sensitive: false, label_en: 'IATA', label_ar: 'إياتا' },
   { id: 'ci9', key: 'mot_licence', category: 'legal', value_en: LIC, value_ar: null, sort: 9, expires_on: null, proof_path: null, show_on_documents: true, sensitive: false, label_en: 'Tourism licence', label_ar: 'رقم الترخيص' },
 ];
 
@@ -124,6 +128,10 @@ const checks = [
     brokeAr.notice && /[؀-ۿ]/.test(brokeAr.noticeText), brokeAr.noticeText.slice(0, 70)],
   ['with the registry reachable there is no notice, and both numbers print',
     !fine.notice && fine.doc.indexOf(UNN) >= 0 && fine.doc.indexOf(LIC) >= 0, fine.doc.slice(-90)],
+  ['the IATA disclosure carries its exact wording with the registry\'s number, and vanishes without one',
+    fine.doc.indexOf('IATA-accredited agent (Wakeel) No. ' + IATA + ' acting as agent for the carriers.') >= 0
+      && broke.doc.indexOf('IATA-accredited agent') < 0,
+    (fine.doc.match(/Direct is an IATA[^.]{0,70}\./) || ['(missing)'])[0]],
   ['no JS errors', errors.length === 0, errors.slice(0, 2).join(' | ')],
 ];
 let bad = 0;

@@ -71,6 +71,35 @@
     return hit;
   }
   // About one-pager (bilingual, printable)
+  /* 2026-09-21 (fire #162) — the strip printed at the foot of the monthly report and on the last
+     slide of the PowerPoint export. It used to be one hardcoded string, and it said three things it
+     had no right to say: it claimed **PCI-DSS**, which this company's own registry records as
+     EXPIRED (2026-07-14) and marked "not on documents" — the exact claim fire #139 stripped out of
+     the one-pager, still printing here, on a report that goes to clients and into tenders; it
+     carried an IATA number and an Amadeus office as literals in a public repository (rule 7); and
+     its phone number was the older one, not the licence phone the registry holds.
+     Now every part is asked of the registry and every credential is put through the same filter the
+     one-pager uses, so the answer to "may we print this?" is the owner's own instrument, in one
+     place, for every document. A part with no value, or one the registry blocks, simply is not
+     printed — the strip never invents and never over-claims. */
+  function rptFootBits(){
+    var idv=function(k){ try{ return (typeof window.dgIdentityValue==='function')?String(window.dgIdentityValue(k,'en')||'').trim():''; }catch(_){ return ''; } };
+    var facts=v29CredFacts(), out=[];
+    var push=function(label,val){
+      if(!val) return;
+      if(facts.loaded && label && v29Blocked(label,facts)) return;      /* expired, or not for documents */
+      out.push(label?(label+' '+val):val);
+    };
+    push('', idv('legal_name'));
+    push('IATA', idv('iata'));
+    push('Amadeus', idv('amadeus'));
+    push('', idv('website'));
+    push('', idv('phone_licence'));
+    return out.join(' \u00b7 ');
+  }
+  /* the report builder below lives at the file's top level, outside this block — it reaches the
+     helper (and, through it, the registry filter) the same way everything else here is reached */
+  try{ window.rptFootBits=rptFootBits; }catch(_){}
   window.directAboutPage=function(tender){
     var A=(typeof AGENCY!=='undefined')?AGENCY:{};
     /* 2026-09-21 (fire #161) — every identifier on this page used to come from a literal written
@@ -139,7 +168,15 @@
      _notice+
      '<h1>Direct Travel · DirectKSA</h1>'+
      '<div class="ar" style="font-size:18px;font-weight:700">دايركت للسفر والسياحة</div>'+
-     '<p>Legal entity: <b>Al-Masafer Al-Mubashar for Travel &amp; Tourism</b><br><span class="ar">الاسم النظامي: المسافر المباشر للسفر والسياحة</span></p>'+
+     /* fire #162: the legal entity is the registry's to state, in each language, and the line is
+        left out entirely when the registry has not answered — better a missing line than a
+        remembered name that has been superseded. */
+     (function(){
+       var en='', ar='';
+       try{ if(typeof window.dgIdentityValue==='function'){ en=String(window.dgIdentityValue('legal_name','en')||'').trim(); ar=String(window.dgIdentityValue('legal_name','ar')||'').trim(); } }catch(_){ }
+       if(!en&&!ar) return '';
+       return '<p>Legal entity: <b>'+esc(en||ar)+'</b>'+((ar&&ar!==en)?('<br><span class="ar">الاسم النظامي: '+esc(ar)+'</span>'):'')+'</p>';
+     })()+
      awardsStrip()+tenderBlock+
      '<h2>At a glance · لمحة</h2><table>'+rows.map(function(r){return '<tr><td class="k">'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('')+'</table>'+
      '<h2>Key clients · أبرز العملاء</h2><div class="row">'+clients.map(function(c){return '<span class="b">'+c+'</span>';}).join('')+'</div>'+
@@ -537,7 +574,7 @@ function rptHTML(){
  '<h3 style="font-weight:700;font-size:13.5px;margin:18px 0 8px;color:#3C4050">'+rptAr('2 · KPI progress vs 2026 targets','2 · تقدّم المؤشرات مقابل أهداف 2026')+'</h3>'+
  '<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#7C8194;text-align:'+rptAr('left','right')+'"><th style="padding:6px;border-bottom:1px solid #EEE8DE">#</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">'+rptAr('KPI','المؤشر')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">'+rptAr('Target','الهدف')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">'+rptAr('Actual (YTD)','الفعلي (منذ بداية السنة)')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">Progress</th></tr></thead><tbody>'+kpiRows+'</tbody></table>'+
  (gaps?'<h3 style="font-weight:700;font-size:13.5px;margin:18px 0 8px;color:#3C4050">'+rptAr('3 · Gaps &amp; focus areas (&lt;50% of target)','3 · الفجوات ومجالات التركيز (أقل من 50% من الهدف)')+'</h3><ul style="font-size:12.5px;padding-left:18px;color:#1C1E2B">'+gaps+'</ul>':'')+
- '<div style="margin-top:24px;border-top:1px solid #EEE8DE;padding-top:10px;font-size:10.5px;color:#7C8194">AL MOSAFER AL MOBASHER TRAVEL &amp; TOURISM · IATA 71238285 · Amadeus RUHS2234B · PCI-DSS · www.directksa.com · +966 508 434 126</div>';
+ (function(){var _f=(typeof window.rptFootBits==='function')?window.rptFootBits():''; return _f?('<div style="margin-top:24px;border-top:1px solid #EEE8DE;padding-top:10px;font-size:10.5px;color:#7C8194">'+esc(_f)+'</div>'):'';})();
 }
 window.rptBuildReport=function(){const o=document.getElementById('rptout');if(o)o.innerHTML='<div class="rpt-preview" id="rptdoc">'+rptHTML()+'</div>';
  // the preview is injected without a render() pass, so the Arabic chrome layer (js/21) never saw
@@ -583,8 +620,10 @@ window.rptPpt=function(){
   }
   if(!ach.length){var se=P.addSlide();se.background={color:CREAM};se.addText(rptAr("No achievements logged in this period.","لم تُسجَّل إنجازات في هذه الفترة."),{x:0.6,y:3,fontSize:16,color:MUT,fontFace:"Cairo"});}
   var sf=P.addSlide();sf.background={color:INK};
-  sf.addText("AL MOSAFER AL MOBASHER TRAVEL & TOURISM",{x:0.7,y:3.0,w:11,fontSize:18,bold:true,color:"FFFFFF",fontFace:"Cairo"});
-  sf.addText("IATA 71238285 - Amadeus RUHS2234B - PCI-DSS - www.directksa.com - +966 508 434 126",{x:0.7,y:3.8,w:11,fontSize:13,color:"FF9D45",fontFace:"Cairo"});
+  var _ppName=''; try{ if(typeof window.dgIdentityValue==='function') _ppName=String(window.dgIdentityValue('legal_name','en')||'').trim(); }catch(_){ }
+  if(_ppName) sf.addText(_ppName,{x:0.7,y:3.0,w:11,fontSize:18,bold:true,color:"FFFFFF",fontFace:"Cairo"});
+  var _ppFoot=((typeof window.rptFootBits==='function')?window.rptFootBits():'').replace(/\u00b7/g,'-');
+  if(_ppFoot) sf.addText(_ppFoot,{x:0.7,y:3.8,w:11,fontSize:13,color:"FF9D45",fontFace:"Cairo"});
   P.writeFile({fileName:rptTitleEn().replace(/[^\w]+/g,"-")+".pptx"});
  }catch(e){alert(rptAr("PowerPoint export failed: ","تعذّر تصدير PowerPoint: ")+(e&&e.message?e.message:e));}};
  if(window.PptxGenJS){go();return;}

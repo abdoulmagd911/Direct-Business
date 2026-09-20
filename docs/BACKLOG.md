@@ -1,3 +1,49 @@
+## Routine fire #162 (2026-09-21 ~16:15 UTC) — the report footer was still advertising a lapsed certification
+
+Finished the three literals #161 named, and one of them was not a tidy-up at all.
+
+### ⚠ The monthly report and the PowerPoint deck both claimed PCI-DSS
+
+Fire #139 taught the About one-pager to obey the company registry: a credential the owner's own
+instrument records as **expired**, or marks **"not on documents"**, is stripped from the document.
+Two places it never reached were the **footer of the monthly report** and the **last slide of the
+PowerPoint export** — each one hardcoded string, and that string said:
+
+> … · IATA \<number\> · Amadeus \<office\> · **PCI-DSS** · \<website\> · \<old phone\>
+
+Checked against the live registry the same day: **PCI-DSS expired 2026-07-14 and is marked not for
+documents.** So a report printed for a client and a deck attached to a tender both advertised a
+certification the company no longer holds — the same claim, in the same words, that #139 had already
+removed from the one-pager. The Amadeus office is marked not-for-documents too, and the phone was
+the older mobile rather than the licence phone.
+
+Both are built from the registry now and put through the **same filter**, so "may we print this?"
+has one answer, in one place, for every document. Measured after the change, the live footer reads
+the registry's legal name, the IATA number and the licence phone — **and no PCI-DSS**.
+
+### The rest of the sweep
+
+- The offer's **IATA-wakeel disclosure** — marked in the code "owner-approved, EXACT text, never
+  rephrased" — keeps its wording exactly; only the *number* moved into the registry, and the sentence
+  is **left out entirely** when the registry has no number. A disclosure you cannot complete is not
+  one you may make.
+- The **legal entity line** on the one-pager and the deck's title slide now come from the registry
+  too.
+- `js/`, `index.html`: **no company identifier remains anywhere in the code** — CR, VAT, unified
+  number, trade licence, IATA, DUNS, Zakat/Tax ID, Amadeus office/PIN, address, phone. The last one
+  was inside a *comment*, quoted as an example, and went with the rest.
+- `scripts/qa/phone-numbers-judged.txt` lost its first entry — the company's own published number —
+  because check-structure reads that list **both ways** and failed the moment the number left the
+  code. The gate written in fire #140 caught the tail of fire #162's own change.
+
+Guarded by `scripts/qa/probe-the-report-footer-obeys-the-registry.mjs` (5 checks), plus a new check
+in the #160 probe for the disclosure. Both source checks **name no number**. Sabotage-verified:
+putting PCI-DSS and a hardcoded IATA number back fails three checks, and one of them shows both
+printing onto a report built while the registry was unreachable. 3 gates green, battery 274 entries;
+five document and report probes re-run clean.
+
+---
+
 ## Routine fire #161 (2026-09-21 ~15:15 UTC) — the company one-pager was printing the code's memory, not the registry
 
 Straight on from #160, at the other copy of the same data. The **About Direct Travel** one-pager —

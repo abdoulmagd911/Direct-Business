@@ -1146,7 +1146,9 @@ setTimeout(()=>{try{bkMigrateLocalToSupabase();}catch(e){}},1500); // also try o
         matching none of the real accounts). The real values are hydrated asynchronously from
         the company_identity registry by js/66, on a poll that retries for a minute. Print
         before it lands — or if it never lands — and the header rendered dangling labels:
-        "CR · VAT  · IATA Wakeel 71238285 · IBAN  · ". A Saudi tax invoice without the seller's
+        "CR · VAT  · IATA Wakeel <the one value that was hard-coded> · IBAN  · " — the real number is
+        not repeated here either (fire #162: it belongs in the registry, not in this repository).
+        A Saudi tax invoice without the seller's
         VAT number is not a valid tax invoice, and a blank IBAN is an invoice nobody can pay.
    Now each part is emitted only when it HAS a value, and if the statutory identity is missing
    the document says so in both languages instead of quietly leaving gaps. Round 34's probe

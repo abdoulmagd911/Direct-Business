@@ -286,11 +286,17 @@
         draftPill:'DRAFT',thanksLine:'We look forward to serving you.',
         addEmpty:'Add services above — they will appear here.',wm:'DRAFT',
         tag:'Global supplier power. Saudi service. One partner.',
-        /* owner-approved IATA Wakeel disclosure — EXACT text, never rephrased */
-        iata:'Direct is an IATA-accredited agent (Wakeel) No. 71238285 acting as agent for the carriers.',
+        /* owner-approved IATA Wakeel disclosure — EXACT text, never rephrased. 2026-09-21 (fire
+           #162): the WORDING is untouched; only the number moved. It used to be written into this
+           string — a real registered identifier in a public repository (rule 7), and a second copy
+           that drifts, which is exactly what fires #160/#161 caught printing onto client documents.
+           {n} is filled from the company_identity registry at print time, and when the registry has
+           no number the sentence is left out rather than printed with a gap where the number goes:
+           a disclosure you cannot complete is not one you may make. */
+        iata:'Direct is an IATA-accredited agent (Wakeel) No. {n} acting as agent for the carriers.',
         defTerms:'Prices are service fees per person/ticket/document unless stated otherwise, and exclude supplier, airline, hotel, embassy and government charges unless the line says "Total".\nThis offer is valid until the date shown; after that, prices are subject to reconfirmation.\nTax invoices are issued by Direct Payment upon confirmation.'},
     ar:{cover:'عرض سعر',coverSub:'خدمات السفر والسياحة',prepFor:'مقدم إلى',
-        iata:'دايركت وكيل معتمد من الاتحاد الدولي للنقل الجوي (إياتا) رقم 71238285 ويعمل بصفته وكيلاً عن الناقلين.',
+        iata:'دايركت وكيل معتمد من الاتحاد الدولي للنقل الجوي (إياتا) رقم {n} ويعمل بصفته وكيلاً عن الناقلين.',
         offerNo:'رقم العرض',date:'التاريخ',valid:'صالح حتى',by:'إعداد',draft:'مسودة — بلا رقم بعد',
         pricing:'تفاصيل الأسعار',num:'#',svc:'الخدمة',unit:'الوحدة / الكمية',
         orig:'السعر الأصلي',amount:'الإجمالي (ريال)',
@@ -630,7 +636,10 @@
       totalsHtml+
       '<div class="po-terms"><b>'+t.termsHead+'</b>'+esc(terms)+'</div>'+
       /* owner-approved IATA Wakeel line — near the closing/footer of the body */
-      '<div class="po-iata">'+esc(t.iata)+'</div>'+
+      (function(){
+        var n=''; try{ if(typeof window.dgIdentityValue==='function') n=String(window.dgIdentityValue('iata','en')||'').trim(); }catch(_){ }
+        return n?('<div class="po-iata">'+esc(String(t.iata).replace('{n}',n))+'</div>'):'';
+      })()+
       footHtml()+
     '</div></div>';
 
