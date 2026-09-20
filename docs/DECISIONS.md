@@ -1266,6 +1266,27 @@ provenance added in #177 came out in a lead's contacts cell as a bare trailing w
 any flagged contact. CLAUDE.md already carried this warning; it was read and not applied.
 *Date: 2026-09-20. Status: ACTIVE.*
 
+**M38 — two searches over the same records must use the same haystack, and "is it visible?" is not
+`offsetParent`.** Found 2026-09-20 (fire #179).
+**The search.** The Ctrl/Cmd+K command palette matched a company on `b.name` alone, so the same
+company found by its English name answered "No matches." to its **Arabic** name — 18 of the 108 live
+companies have one — and was equally deaf to the Direct client ID, the CR/VAT number and the contact
+person. Fire #148 had already widened the **Clients page** search to exactly those fields; nobody
+widened the palette, so the app's two searches disagreed about what a company is called and the
+faster one was the worse one. The rule: **when a second surface searches the same records, it shares
+the first one's haystack** — one helper, not two lists that drift. Widening is guarded at both ends:
+nonsense must still answer "No matches." and an archived company must still never be offered.
+**The measurement.** The first run of the new probe reported that the palette **never opened**,
+which would have been a much larger finding. It was false: the overlay is `position:fixed`, and a
+fixed element reports `offsetParent === null` **whether it is open or not**, so the usual visibility
+test cannot see it. Its real state is the `show` class the app sets. Generally: **before reporting
+that a control does not work, confirm the test can see it working** — check the state the app itself
+keeps, and be suspicious of a negative result that would be a bigger story than the bug you went
+looking for.
+Guard: `scripts/qa/probe-the-palette-knows-the-arabic-name.mjs`, whose header carries the
+`offsetParent` note so the next person does not lose the same hour.
+*Date: 2026-09-20. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

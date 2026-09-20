@@ -92,6 +92,44 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #179 (2026-09-20 ~17:00 UTC) — the keyboard search could not read Arabic
+
+Ctrl/Cmd+K opens a command palette that promises *"Search anything — leads, clients, bookings,
+invoices, airlines, actions…"*. Driven against the real database, it matched a company on its
+**English name only**.
+
+| you type | what happened |
+|---|---|
+| the company's English name | found |
+| the **same company's Arabic name** | **"No matches."** |
+| its Direct client ID | "No matches." |
+| its CR/VAT number | "No matches." |
+| the name of the person you deal with there | "No matches." |
+
+**Eighteen of your 108 companies have an Arabic name.** For an Arabic-speaking colleague, the
+fastest search in the app — the one behind a keyboard shortcut — could not find them by the name
+they actually use.
+
+Fire #148 fixed exactly this for the **Clients page** search back in the day. The palette was never
+given the same treatment, so the app's two searches disagreed about what a company is called, and
+the better one was the slower one. The palette now uses the same haystack: English name, Arabic
+name, legal name, Direct client ID, CR/VAT, and the people who work there.
+
+Guarded by `scripts/qa/probe-the-palette-knows-the-arabic-name.mjs` (8 checks). Two brakes, because
+widening a search is the easiest way to break it: **nonsense must still answer "No matches."** and
+**an archived company must still never be offered**. Sabotage-verified: restoring the name-only
+filter fails exactly the four new ways of finding a company.
+
+**A note on how nearly this was missed.** The first measurement said the palette *never opened at
+all* — which would have been a far bigger story. It was wrong: the overlay is positioned in a way
+that makes the usual "is it visible?" test report nothing, even while it is open on screen. The app
+tracks its own state, and reading that showed it opening perfectly. That is the sixth time this
+session that checking before claiming stopped a false alarm.
+
+3 gates green, battery 288 entries.
+
+---
+
 ## Routine fire #178 (2026-09-20 ~16:00 UTC) — the full battery, and what it caught in my own work
 
 The first complete battery run since twenty probes were added. **Three reds, and not one of them was
