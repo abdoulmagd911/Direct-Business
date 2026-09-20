@@ -23,7 +23,7 @@
   // merge verdict onto EXISTING vendor records only (no new records -> suites unaffected)
   try{(DB.vendors||[]).forEach(function(x){var nm=(x.name||'');var k=Object.keys(PV).find(function(p){return p.toLowerCase()===nm.toLowerCase();});if(k&&!x.verdict){x.verdict=PV[k].verdict;x.verdictNote=PV[k].note;if(PV[k].connection&&!x.connection)x.connection=PV[k].connection;}});}catch(e){}
   var keepL=[],upL=[],depL=[];Object.keys(PV).forEach(function(p){if(PV[p].verdict==='Keep')keepL.push(p);else if(PV[p].verdict==='Upgrade')upL.push(p);else depL.push(p);});
-  /* one source for the verdicts — js/96 reads this rather than keeping a second copy that drifts */
+  /* one source for the verdicts — js/96 reads this rather than keeping a second copy that drifts (#182) */
   try{window.DT_PROVIDER_VERDICTS=PV;window.DT_PROVIDERS_PHASING_OUT=depL.slice();}catch(_){}
 
   // helpers

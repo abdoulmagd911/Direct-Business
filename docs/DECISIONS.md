@@ -1337,6 +1337,26 @@ Guard: `scripts/qa/probe-a-supplier-we-are-leaving-keeps-its-name.mjs`, whose br
 supplier NOT being retired is untouched and that the retired one's stored value is unchanged.
 *Date: 2026-09-20, js/96 + js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M41 — a confidence score, a match, a risk score: if nothing measured it, do not print it.** Found
+2026-09-20 (fire #183). The ingest forms were dressed as a document reader and read nothing but the
+file NAME. Three fabrications, all on screen or in the record:
+**(a)** every field label carried a colour-coded percentage from `confidencePill(p)`, with `p` a
+literal typed at each call site — driven live, "Ingest invoice" **with no file at all** showed nine,
+including a green *"Subtotal (pre-VAT) 94%"* over an empty box and *"Status 100%"* over an untouched
+dropdown; **(b)** *"📋 Recognised: Amadeus IUR invoice template"*, and the document language beside
+it, came from matching a word in the file name; **(c)** every booking saved through the form was
+stamped `fraudScore: Math.floor(Math.random()*15)`.
+This is the same rule the money doctrine already states for cost — *never fabricate a number to fill
+a gap* — and it generalises to every number that asserts evidence. Say what was actually derived and
+where from (`js/97` marks the reference "taken from the file name", **and proves it**: the digits in
+the box must appear in the file name, so with no file there is no mark), and say plainly what was
+not read. Two traps that come with it: **a half-fixed fabrication is still a fabrication** — round 65
+fixed (c) in the migration path, left a comment saying nothing here scores fraud, and the creation
+path kept rolling the die for four months; and **a mark that always appears is the same untruth in a
+smaller font**, which is why the probe's brakes are the two cases where the mark must be absent.
+Guard: `scripts/qa/probe-the-ingest-form-says-what-it-read.mjs`.
+*Date: 2026-09-20, js/97 + js/core/core-06-v18-v21.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

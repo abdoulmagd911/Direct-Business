@@ -98,6 +98,43 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #183 (2026-09-20 ~21:30 UTC) — the "drop a file here" form was pretending to read your documents
+
+Drove the ingest forms — the ones behind **+ Booking**, **+ Invoice** and dropping a file onto the
+page. They are dressed up as a document reader. They read the **file name** and nothing else.
+
+Three things on that form were invented:
+
+- **A confidence percentage beside every single field.** Green above 90, amber below. Opening
+  *Ingest invoice* **with no file at all** showed nine of them — including a green **"Subtotal
+  (pre-VAT) 94%"** sitting over an empty box, and **"Status 100%"** over a dropdown nobody had
+  touched. Every one of those numbers was typed into the source code. Nothing measured anything.
+  On a money form, that is the worst possible place for a number that means "trust this".
+- **"📋 Recognised: Amadeus IUR invoice template"**, with the document's language printed next to
+  it. Both came from spotting the word "amadeus" in the file name. The document was never opened.
+- **A fraud score rolled from a random number**, written onto every booking saved through the form.
+  A round back in June found that exact line in one place, fixed it, and wrote *"nothing scores
+  fraud here, so do not invent a score"* in the code — and missed the other place, which has been
+  rolling a die ever since.
+
+All three are gone. In their place the form now says one plain line at the top: **"The file is kept
+exactly as you sent it. Nothing inside it has been read — every value below is yours to fill in and
+check."** (Arabic likewise.) The badge now reads **"📎 The name looks like: …"**, which is what it
+actually knows. And the one value the app really does take from the file — the digits it pulls out
+of the name for the reference — is now marked **"taken from the file name"**, *only when that is
+genuinely where it came from*: the digits in the box have to appear in the name, so a form opened
+with no file gets no mark.
+
+Nothing else on the form changed — same fields, same Save.
+
+Guarded by `scripts/qa/probe-the-ingest-form-says-what-it-read.mjs` (10 checks). Brakes: the "taken
+from the file name" mark must be **absent** with no file and absent when the name has no digits — a
+mark that always shows is the same untruth in a smaller font — and the form must still have all its
+fields. Sabotage-verified: putting the percentages and the random score back fails five, one of them
+reporting a rolled fraud score of 11. New rule **M41**.
+
+---
+
 ## Routine fire #182 (2026-09-20 ~20:30 UTC) — a supplier you are leaving had its name deleted from every dropdown
 
 Drove the pages nobody had touched this session — SOPs, Service Levels, **Providers & GDS**, Tickets,
