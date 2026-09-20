@@ -1,3 +1,53 @@
+## Routine fire #135 (2026-09-20 ~13:00 UTC) — what each role actually sees, measured against the real maps
+
+The mandate says "every role", and this session could not sign in as anybody but the QA admin —
+`scripts/qa/emp-rig.mjs` needs the staff's real passwords, which are not in this repository and
+never will be. So the roles were driven a different way: **hold the real database for everything
+else, and answer only the access questions the way the database would for each real account.**
+
+**What the database actually holds** (the source of truth, no passwords needed): page access is a
+per-user JSON map on `app_users`, and `page_access(p)` short-circuits to `editor` for an admin.
+- **3 admins** — no map at all, so editor everywhere. By design.
+- **1 manager** — 10 pages: today, leads, clients, offers, finance, events, airlines, activity,
+  archive, settings.
+- **7 team members** — exactly **4** pages: today, leads, clients, **finance**.
+- **Every single entry is `editor`. Nobody, anywhere, is a viewer.** (js/16 already said "verified
+  0 non-editors"; still true.)
+
+**Driven, and the gate is honest.** Admin opens everything. The manager is **refused** Reports and
+Operations. A **team member is refused** Settings, Events, Airlines, Reports and Operations — so no
+team member can open Team & Access. A viewer-level map loses money completely: `finMaySeeMoney()`
+false, `canFinEdit()` false, no revenue or profit total anywhere on the Finance page, and a
+read-only banner saying nothing they do is saved. Already guarded by `probe-access-truth` since
+round 30; this confirms it still holds on today's real maps.
+
+**A design choice worth recording rather than "fixing":** the sidebar offers all 18 entries to
+everyone and refuses on open, instead of hiding what you cannot use. That is the more honest of the
+two — a page that silently vanishes is how the Finance ledger sat "live but unreachable" for two
+days — so it is left alone.
+
+**For the owner, plainly:** all 7 team members have **finance = editor**. That means seven people
+can see every number and can delete an invoice. It is recoverable (deletes are soft, and
+`finance_invoices` carries a history trigger), and it is your configuration rather than a defect —
+but it is worth knowing it is seven, not one.
+
+### Two instrument faults of mine, caught before either was written up
+
+1. The first run rewrote only the `app_role()` RPC — and **the app does not read its role from
+   there**; it reads it from a `SELECT` on `app_users`. Every role came back "admin". Had that been
+   reported it would have read as "every role sees everything".
+2. The second run fixed that, and still showed all 18 pages and `canFinEdit = true` for a viewer —
+   because the page gate is **per user**, through `my_page_access` / `page_access` /
+   `can_see_page` / `can_edit_page`, which were still answering for the real admin account. Only
+   after those four answered from each role's real map did the true picture appear.
+
+Same family as #124's Escape measurement and #122's truncated payload: the tool was wrong, not the
+app. Both are in the loop log so the next session does not repeat them.
+
+3 gates green. No code change — a verification round.
+
+---
+
 ## Routine fire #134 (2026-09-20 ~12:00 UTC) — anyone could have overwritten any company or contact, with no sign-in
 
 **The most serious finding of this sweep, and the destroying half is now closed.**
