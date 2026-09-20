@@ -1,3 +1,45 @@
+## Routine fire #152 (2026-09-21 ~08:15 UTC) — a sweep that found nothing to fix, and two piles of real work nobody can reach
+
+Read-only round. After three rounds of "the database holds it and no screen shows it", this asked
+the question of the whole database rather than one card, and then drove the screens that had not
+been driven this session. **No code changed.**
+
+### Verified clean — so nobody re-opens these
+
+- **Row-level security, all 93 tables.** Every one has RLS on. The snapshot and backup tables carry
+  **zero policies**, which is the safe end state: with RLS on and no policy, nothing but the service
+  role can read them. M20 is fully satisfied; the two tables fixed earlier have not drifted back.
+- **`app_state` holds no secrets.** The twelve `integrations` entries every signed-in account can
+  read contain only status placeholders — no key, token or password anywhere in the blob.
+- **Team & Access**, driven in both languages against the eleven real accounts: fully Arabic apart
+  from names and e-mail addresses, and the role picker is sound. It offers three levels, and a person
+  whose stored role is one of the three older ones keeps their own option, shown and **disabled**,
+  with the value restored after the trim — so nobody can be silently redrawn as an Admin. That was
+  the one thing worth checking on that screen and it was already handled.
+- **Today** (every zero tile honest; the credit-pool card matches the ledger — remaining is 0.00
+  across all 46 invoices), **Events** (past hidden by default, undated sorted last, the counts
+  describe what is still ahead), **SOPs & Service Levels** (the SLA grid is live inputs, fully
+  Arabic; SOP titles are *data* and correctly left untranslated), **Operations**, **Reports**,
+  **Tickets** — whose two-language read-only banner is the owner's own 2026-08-22 correction, not a
+  bug. **Settings** renders in full.
+
+### ⚠ Two piles of real work that no screen can reach
+
+Neither is a defect — nothing is broken and nothing is lying. They are **parked work sitting in the
+database**, and they are worth naming because nobody would find them by using the app.
+
+| Table | What is in it | State |
+|---|---|---|
+| `contact_submissions_review` | 58 contact-form submissions, all with an e-mail | **55 unreviewed** — 38 marked *vendor*, 13 *review*, 4 *suspicious*. Only 3 carry an outcome, and all three say "already imported as a lead". **No code in the app reads this table.** |
+| `master_db_companies` | 200 travel agencies — 182 with an official licence number, plus VAT, IATA, IBAN, phones and cities | `linked_business_id` is **null on all 200**, and no code reads the table. This is the travel-agencies project already parked in this file. |
+
+**One next step, and it is yours to pick:** the 38 *vendor* submissions are suppliers, not leads —
+they belong in `providers`, not in the pipeline, and moving them is a decision about real companies
+rather than a code change. Say the word and that batch gets a screen to triage from; until then they
+stay exactly where they are. (Real names and addresses stay in the database — rule 7.)
+
+---
+
 ## Routine fire #151 (2026-09-21 ~07:30 UTC) — one record was asking not to be called, and nothing said so
 
 The last open question from fire #147, answered by doing it (standing rule 9). Every company row
