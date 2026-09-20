@@ -1162,13 +1162,25 @@ an event with no `start_date`, because `relDay` returns null when there is nothi
 80 events — 22 dated in the future, 37 finished, **21 with no date at all** — and the headline read
 **43**. One of the 21 carried its own note saying there is no 2026 edition and the next confirmed
 one is March 2027.
-Any "how many are coming up" built on *not finished* will swallow every undated record. Ask instead
-whether the record **has a date and that date is ahead**, and give the undated ones their own count.
 The general form: **a null date is a third state, not a quiet member of either other one** — and it
 usually names a real job (chase the organiser for dates), so it needs somewhere to live rather than
 hiding. Undated records are never removed to make a headline smaller: they keep their place in the
 list and get a tile that is a real filter, since a tile that looks clickable and is not would be its
 own defect.
+
+> **CORRECTED the same day (fire #177), by the battery.** The first version of this rule said to fix
+> such a count by asking whether the record **has a date and that date is ahead**. Applied to this
+> tile that was the wrong remedy, and two existing probes caught it within the hour:
+> `probe-events-scale` requires that **the move tiles plus the skipped ones add up to the headline**,
+> and `probe-audit-events-search-attacks` requires the headline to equal the count of unfinished
+> events. Shrinking the headline to the dated ones while the tiles below still counted all of them
+> broke that arithmetic — a reader adding up the tiles got 43 under a headline of 22.
+> **The tile is also the "show everything" filter, so its number has to stay the whole live list.**
+> What was actually wrong was the **word**: "Still ahead" is false for 21 events with no date. So the
+> count stays whole and the label tells the truth ("Not finished"), with the undated ones given their
+> own tile beside it. The lesson is narrower and more useful than the first draft: **before changing
+> what a number counts, find out what else on the screen has to add up to it** — a headline that is
+> also a filter is not free to mean something narrower than the list it opens.
 Guard: `scripts/qa/probe-undated-events-are-not-counted-as-coming.mjs`. Three brakes: the two counts
 must still account for every live record, the undated ones must still be listed, and **the tile must
 not be drawn at all when every record has a date**, so it can never settle into a permanent "0".

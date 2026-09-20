@@ -15,10 +15,11 @@
    answer than over-counting them — they get their own tile and their own filter.
 
    What this holds:
-     1. "Still ahead" counts only events whose date is in the future;
+     1. the headline tile is not labelled "still ahead" while it counts events with no date;
      2. there is a separate "No date yet" tile carrying the undated count;
-     3. the two together still account for every live event — nothing was dropped to make the
-        headline smaller;
+     3. the headline still counts EVERY unfinished event — it is also the "show everything" filter,
+        and the move tiles below it have to keep adding up to it (probe-events-scale guards that
+        arithmetic, and it is what caught the first, half-right version of this fix);
      4. the undated events are still listed, not hidden;
      5. the new tile really filters — tapping it shows exactly the undated ones, and tapping it
         again clears, because a tile that looks clickable and is not would be its own defect;
@@ -141,12 +142,13 @@ const undatedShown = (o) => o.names.filter((n) => /QA Undated/.test(n)).length;
 const hasArabic = (s) => /[؀-ۿ]/.test(s || '');
 
 const checks = [
-  ['"Still ahead" counts only events whose date is in the future', num(before.ahead) === 2, 'tile said ' + (before.ahead && before.ahead.value)],
+  ['the headline is not labelled "still ahead" while counting undated events',
+    !/still ahead/i.test((before.ahead && before.ahead.label) || ''), 'label: ' + (before.ahead && before.ahead.label)],
   ['there is a separate "No date yet" tile with the undated count',
     !!before.nodate && num(before.nodate) === 3, JSON.stringify(before.nodate)],
-  ['the two together still account for every live event — nothing was dropped',
-    num(before.ahead) + num(before.nodate) === 5 && before.rows === 5,
-    JSON.stringify({ ahead: num(before.ahead), nodate: num(before.nodate), rows: before.rows })],
+  ['the headline counts every unfinished event, undated included',
+    num(before.ahead) === 5 && before.rows === 5,
+    JSON.stringify({ headline: num(before.ahead), rows: before.rows })],
   ['the undated events are still listed, not hidden', undatedShown(before) === 3, String(undatedShown(before))],
   ['the new tile really filters, and tapping it again clears',
     filtered.rows === 3 && undatedShown(filtered) === 3 && cleared.rows === 5,

@@ -70,10 +70,10 @@ try{
       });
       if(have){
         // keep the badge honest on an already-attached row
-        b.contacts.forEach(function(c){ if(c&&c._tid===r.id){ c.needsConfirm=!!r.needs_manual_confirmation; c.confirmReason=r.confirmation_reason||''; } });
+        b.contacts.forEach(function(c){ if(c&&c._tid===r.id){ c.needsConfirm=!!r.needs_manual_confirmation; c.confirmReason=r.confirmation_reason||''; c.verificationSource=r.verification_source||''; } });
         return;
       }
-      b.contacts.push({_fromTable:true,_tid:r.id,name:r.name||'',role:r.role||'',email:r.email||'',phone:r.phone||'',needsConfirm:!!r.needs_manual_confirmation,confirmReason:r.confirmation_reason||''});
+      b.contacts.push({_fromTable:true,_tid:r.id,name:r.name||'',role:r.role||'',email:r.email||'',phone:r.phone||'',needsConfirm:!!r.needs_manual_confirmation,confirmReason:r.confirmation_reason||'',verificationSource:r.verification_source||''});
       addedC++;
     });
     (activities||[]).forEach(function(r){
@@ -128,7 +128,11 @@ try{
       }
       page(0);
     }
-    pageAll('contacts','id,business_id,name,role,email,phone,needs_manual_confirmation,confirmation_reason','contacts');
+    /* 2026-09-20 (fire #177): verification_source added. Ten of the 45 people carry a sentence
+       saying where the record came from — "Contact-form submission, classified with the owner
+       2026-08-16" — the same provenance #151 surfaced for companies. It was never fetched, so it
+       reached nobody. js/95 draws it. */
+    pageAll('contacts','id,business_id,name,role,email,phone,needs_manual_confirmation,confirmation_reason,verification_source','contacts');
     pageAll('activities','id,business_id,type,note,by_user,at','activities');
   }
   window.v72Apply=function(cb){ run(cb); };

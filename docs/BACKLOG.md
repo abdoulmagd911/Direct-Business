@@ -92,6 +92,48 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #177 (2026-09-20 ~15:00 UTC) — what we know about a person, and a fix of my own the battery caught
+
+**Two things this round. The second matters more than the first.**
+
+**1 · People had the same hidden fields companies had.** Fire #151 put three things on a company's
+card: where the record came from, whether it needs confirming, and why. The **people** table carries
+the same three, and they had never been carried across. Counted live: of your 45 contacts, **10
+carry a source** — the same sentence the companies carry, *"Contact-form submission, classified with
+the owner 2026-08-16"* — and **2 are flagged**, both left behind by a company merge.
+
+What was on screen before: the source, **nothing at all** — the app never even asked the database
+for that column, so ten people already vetted with you looked like a name typed in yesterday. And
+the reason for a flag lived in a **hover tooltip** on a small badge: invisible on a phone, invisible
+to anyone not hovering, invisible in print. #151's rule was that a warning nobody passes is not a
+warning; a hover is not passing it.
+
+`js/95` puts both in words under the person: the reason first, because it changes what someone does
+next, then the quiet grey source line. The badge and its tooltip are untouched. Guarded by
+`scripts/qa/probe-a-person-says-where-they-came-from.mjs` (9 checks) with three brakes — a person
+with neither field gets **no** line, the badge still exists, and a share-link holder sees none of it.
+Sabotage-verified: five checks fail without the layer.
+
+**2 · The battery caught a mistake of mine from #172, and it was right.** Two probes that already
+existed went red: one requires the move tiles plus the skipped ones to **add up** to the headline,
+the other requires the headline to equal the count of unfinished events. My #172 change had shrunk
+the headline to the 22 dated events while the tiles below still counted all 43 — so the arithmetic
+broke, and anyone adding up the tiles got 43 under a headline of 22. That tile is also the
+**show-everything filter**; it opens a list of 43, so its number was never free to mean something
+narrower.
+
+The diagnosis was right and the remedy was wrong. **The count stays whole; the label is what
+changed** — the tile now reads **"Not finished"** with **"No date yet 21"** beside it. Both old
+probes pass again, my #172 probe was rewritten to the corrected model, and **rule M34 carries the
+correction in place** rather than being quietly reworded.
+
+The general lesson, now in M34: **before changing what a number counts, find out what else on the
+screen has to add up to it.**
+
+3 gates green, battery 287 entries. A full battery run is in progress against the corrected tree.
+
+---
+
 ## Routine fire #176 (2026-09-20 ~14:00 UTC) — five suspicions chased, five came back clean
 
 A round spent trying to break the pipeline data and failing. **No code changed.** Written down so
@@ -254,6 +296,15 @@ becomes real; leave it and it keeps saying plainly that it is not reading the le
 ---
 
 ## Routine fire #172 (2026-09-20 ~10:00 UTC) — "43 Still ahead" when 22 had a date
+
+> **Corrected an hour later by fire #177 — the battery caught me.** The fix below shrank the
+> headline to the 22 dated events. That was the wrong half: the tiles underneath ("Have a stand",
+> "Go & meet"…) still counted all 43, so they stopped adding up to the headline, and that tile is
+> also the **show-everything filter** — it opens a list of 43. Two probes that already existed
+> failed within the hour and were right to. The headline now keeps the **whole** count of unfinished
+> events and the **label** is what changed: **"Not finished"**, with **"No date yet 21"** beside it.
+> The diagnosis in this entry stands; the remedy was replaced.
+
 
 The Events page opens on what is still ahead and puts a number on it. That number counted every
 event that had not ended — and an event with **no start date at all** counts as "not ended", because

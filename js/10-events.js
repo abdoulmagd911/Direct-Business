@@ -524,7 +524,6 @@ window.renderEvents=function(v){
      undated ones keep their place in the list and get their own tile — losing them would be a
      worse answer than over-counting them. */
   var LIVE=E.filter(function(e){return !hasEnded(e);});
-  var AHEAD=LIVE.filter(function(e){return !!e.start_date;});
   var UNDATED=LIVE.filter(function(e){return !e.start_date;});
   var n=function(k){return LIVE.filter(function(e){return moveOf(e)===k;}).length;};
   var endedCount=E.length-LIVE.length;
@@ -550,7 +549,16 @@ window.renderEvents=function(v){
       +'<div style="font-size:11px;color:var(--muted)">'+label+'</div></div>';
   };
   h+='<div class="card" style="margin-bottom:12px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:14px 18px">';
-  h+=tile('all',AHEAD.length,L('Still ahead','القادمة'),'');
+  /* 2026-09-20, corrected the same day (fire #177). The first attempt at #172 made this tile count
+     only DATED unfinished events, which fixed the wrong half: the move tiles below still counted
+     every unfinished event, so "Have a stand + Go & meet + Mine + Not decided + Skip" no longer
+     added up to the headline — the exact arithmetic probe-events-scale exists to protect, and it
+     caught it. This tile is also the "show everything" filter, so its NUMBER has to stay the whole
+     live list. What was actually wrong was the WORD: 21 of the 43 have no date at all and are not
+     "ahead" of anything — one of them says in its own note that its next edition is 2027. So the
+     count stays whole and the label tells the truth, with the undated ones given their own tile
+     and their own filter beside it. */
+  h+=tile('all',LIVE.length,L('Not finished','لم تنتهِ بعد'),'');
   if(UNDATED.length)h+=tile('nodate',UNDATED.length,L('No date yet','بلا تاريخ'),'#8a6d1a');
   h+=tile('stand',n('stand'),mv('stand')[0],'#c2560a');
   h+=tile('attend',n('attend'),mv('attend')[0],'#1e7a34');
