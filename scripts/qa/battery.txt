@@ -256,3 +256,4 @@ probe-a-company-website-can-be-typed
 probe-the-forms-still-fit
 probe-the-keyboard-can-do-it
 probe-every-box-takes-the-keyboard
+probe-a-document-obeys-the-registry

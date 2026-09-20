@@ -34,6 +34,40 @@
     return ''; /* v29: talking-points card hidden for now */ var __v29dead='<div class="card"><h3>x</h3><div class="ch-sub" style="color:#7C8194;font-size:12px;margin-bottom:6px">For cold calls &amp; first-contact messages - pulled from the company profile</div><ul style="margin:0;padding-inline-start:18px;font-size:13px;line-height:1.7">'+pts.map(function(p){return '<li>'+p+'</li>';}).join('')+'</ul></div>';
   }
 
+  /* 2026-09-20 (fire #139) — the badge list and the Compliance row below are HARD-CODED, and this
+     page is sent to clients and attached to tenders. The company_identity registry — the owner's
+     own instrument, shown on the Generator's Renewals radar — said on the day this was written that
+     PCI DSS expired 2026-07-14 and DUNS expired 2025-09-10, and that BOTH carry
+     show_on_documents = false. The document advertised them anyway, because nothing here ever asked.
+     A hard-coded list was overriding an explicit instruction in the database.
+     Now every credential named below is checked against the registry and dropped if the registry
+     says it has expired or must not appear on documents. Two deliberate choices:
+       · the person GENERATING the document is told what was dropped and why, in a .noprint box, so
+         a registry row that is merely out of date can be corrected — the client never sees it;
+       · if the registry has not loaded, nothing is silently filtered and the box says the list
+         could not be checked, the same way v21AgencyHeader refuses to pretend (core-06, round 41).
+     Deliberately NOT touched: nothing is ever ADDED to the document from the registry. Leaving a
+     true claim off is a small loss; putting a false one on a tender is not. */
+  function v29CredFacts(){
+    try{ return (typeof window.dgCredentialFacts==='function')?window.dgCredentialFacts():{loaded:false,rows:[]}; }
+    catch(_){ return {loaded:false,rows:[]}; }
+  }
+  function v29Compact(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+  /* returns the registry row that forbids this text, or null. Matching is by compacted name in
+     either direction, with a 4-character floor so a short token like "CR" cannot match a long
+     label by accident. */
+  function v29Blocked(text,facts){
+    var c=v29Compact(text); if(c.length<4) return null;
+    var hit=null;
+    (facts.rows||[]).forEach(function(r){
+      if(hit) return;
+      var rc=v29Compact(r.label_en); if(rc.length<4) return;
+      if(c.indexOf(rc)<0 && rc.indexOf(c)<0) return;
+      if(r.expired) hit={row:r,why:'expired '+r.expires_on};
+      else if(!r.show_on_documents) hit={row:r,why:'marked "not on documents" in the registry'};
+    });
+    return hit;
+  }
   // About one-pager (bilingual, printable)
   window.directAboutPage=function(tender){
     var A=(typeof AGENCY!=='undefined')?AGENCY:{};
@@ -48,10 +82,44 @@
       ['Contact',(A.website||'www.directksa.com')+' · '+(A.phone||'+966 508 434 126')]];
     var clients=['Saudi Red Crescent',"Ma'aden",'Saudi Ports Authority','Roads General Authority','Saudi Fund for Development','Ministry of Industry','Islamic University of Madinah'];
     var awards=['World Travel Award 2023','World Travel Award 2024','World Travel Award 2025','Great Place to Work x3','ICEF','English UK','British Council','IATA PAX 2026','PCI-DSS'];
+    /* fire #139 — make the document obey the registry (see the note above this function) */
+    var _facts=v29CredFacts(), _dropped=[];
+    if(_facts.loaded){
+      awards=awards.filter(function(a){ var b=v29Blocked(a,_facts); if(b){_dropped.push(a+' — '+b.why);} return !b; });
+      rows=rows.map(function(r){
+        if(String(r[0])!=='Compliance') return r;
+        var parts=String(r[1]).split(' · ').filter(function(pt){
+          var b=v29Blocked(pt,_facts); if(b){_dropped.push(pt+' — '+b.why);} return !b; });
+        return [r[0], parts.join(' · ')];
+      }).filter(function(r){ return !(String(r[0])==='Compliance' && !String(r[1]).trim()); });
+    }
+    /* the same credential can be dropped from two places (a badge and the Compliance line); the
+       person reading the box wants it named once */
+    _dropped=_dropped.filter(function(d,i){ return _dropped.indexOf(d)===i; });
+    /* the box is bilingual like everything else a person reads here. Fire #125's lesson, made the
+       hard way on a placeholder: a notice that only speaks English is a defect on an Arabic screen,
+       and this one appears above an Arabic document. */
+    var _nAr=(typeof LANG!=='undefined'&&LANG==='ar');
+    var _box=function(inner){ return '<div class="noprint" dir="'+(_nAr?'rtl':'ltr')+'" style="background:#FFF8E6;border:1px solid #F4C892;border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:13px;color:#7a5c00;text-align:'+(_nAr?'right':'left')+'">'+inner+'</div>'; };
+    var _notice = !_facts.loaded
+      ? _box(_nAr
+          ? '<b>⚠ تعذّر التحقق من قائمة الاعتمادات.</b> سجل الشركة لم يُحمّل، لذلك لم يُراجَع شيء في هذه الصفحة مقابله. افتح المولّد مرة ثم اطبع من جديد.'
+          : '<b>⚠ The accreditation list could not be checked.</b> The company registry has not loaded, so nothing on this page has been verified against it. Open the Generator once, then print again.')
+      : (_dropped.length
+        ? _box((_nAr
+            ? '<b>أُسقطت من هذه الوثيقة، لأن سجل شركتك يقول ذلك:</b>'
+            : '<b>Left off this document, because your company registry says so:</b>')
+          + '<br>'+_dropped.map(function(d){return '• '+d;}).join('<br>')+'<br><span style="color:#8a6d1a">'
+          + (_nAr
+            ? 'إن جُدّد أحدها، حدّثه في المولّد ← أصول الشركة والسجل ثم اطبع من جديد. العميل لا يرى هذا المربع.'
+            : 'If one of these has been renewed, update it in Generator → Company assets &amp; registry and print again. The client does not see this box.')
+          + '</span>')
+        : '');
     var tenderBlock=tender?'<h2>Why Direct for your tender · لماذا دايركت</h2><p>A Saudi-accredited TMC with 10+ years of government & enterprise travel operations, 600+ airline agreements, 24/7 servicing, ZATCA-compliant invoicing, and an in-house technology subsidiary (TECHTIC). Trusted by Saudi Red Crescent, Ma\'aden and Saudi Ports Authority.</p>':'';
     var html='<!DOCTYPE html><meta charset="utf-8"><title>'+(tender?'Direct Travel — Tender One-Pager':'About Direct Travel')+'</title>'+
      '<style>body{font-family:Inter,Arial,sans-serif;color:#1C1E2B;max-width:820px;margin:24px auto;padding:0 24px;line-height:1.6}h1{color:#FF6B00;margin:0 0 2px;font-size:26px}h2{border-bottom:2px solid #FF6B00;padding-bottom:4px;margin-top:22px;font-size:16px}.ar{direction:rtl;text-align:right;font-family:Tajawal,Arial}.row{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}.b{background:#FFF1E6;color:#A9781A;border:1px solid #F4C892;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700}table{width:100%;border-collapse:collapse;font-size:13px}td{border:1px solid #eee;padding:7px 9px}.k{background:#faf7f2;font-weight:700;width:38%}@media print{.noprint{display:none}}</style>'+
      '<button class="noprint" onclick="window.print()" style="background:#FF6B00;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;margin-bottom:14px">🖨 Print / Save as PDF</button>'+
+     _notice+
      '<h1>Direct Travel · DirectKSA</h1>'+
      '<div class="ar" style="font-size:18px;font-weight:700">دايركت للسفر والسياحة</div>'+
      '<p>Legal entity: <b>Al-Masafer Al-Mubashar for Travel &amp; Tourism</b><br><span class="ar">الاسم النظامي: المسافر المباشر للسفر والسياحة</span></p>'+

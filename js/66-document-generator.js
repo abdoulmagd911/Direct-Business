@@ -137,6 +137,34 @@
     }catch(_){}
   }
   /* QA hooks: which tab the page believes is open, and the whole navigation state */
+  /* 2026-09-20 (fire #139) — the Renewals radar on this page already knows which of the company's
+     credentials have lapsed, and every row carries the owner's own `show_on_documents` flag. Until
+     today that knowledge stopped here: core-10's client-facing one-pager printed a HARD-CODED badge
+     list, so it advertised "PCI-DSS" and "DUNS registered" on a document sent to clients and
+     attached to tenders while this very screen listed both as EXPIRED and the registry said
+     show_on_documents = false for them. A hard-coded list was overriding an explicit instruction in
+     the database. The facts are exposed here so anything that PRINTS a credential can obey it.
+     `loaded` matters as much as the rows: a consumer that cannot tell "nothing is blocked" from
+     "the registry has not answered yet" would quietly print the old claims again. */
+  window.dgCredentialFacts=function(){
+    /* todayISO() reads the browser's own calendar. The UTC date is NOT a safe stand-in — in Riyadh
+       it is yesterday from midnight to 3am (check-structure enforces this, fire #94), and "expired"
+       is exactly the kind of comparison that would flip. With no way to know today, this reports
+       loaded:false so the consumer says it could not check rather than filtering on a wrong date. */
+    var today=''; try{ if(typeof todayISO==='function') today=todayISO(); }catch(_){ today=''; }
+    var loaded=!!(DG.rows&&DG.rows.length&&today);
+    var rows=[];
+    try{
+      (DG.rows||[]).forEach(function(r){
+        if(!r) return;
+        var exp=r.expires_on?String(r.expires_on).slice(0,10):'';
+        rows.push({ key:r.key||'', label_en:r.label_en||r.key||'', label_ar:r.label_ar||'',
+                    expires_on:exp, expired:!!(exp&&exp<today),
+                    show_on_documents:(r.show_on_documents===true) });
+      });
+    }catch(_){}
+    return { loaded:loaded, rows:rows };
+  };
   window.__dgTabProbe=function(){ return DG.tab; };
   window.__dgHomeProbe=function(){
     var out={view:(DG.view==='home'?'home':'editor'), editor:(DG.view==='editor'?DG.tab:null), cards:0, savedRows:0};
