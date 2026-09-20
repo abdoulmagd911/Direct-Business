@@ -92,14 +92,26 @@
   /* 2026-09-02 — js/72-people-bridge.js shows the people and history stored in the `contacts`
      and `activities` TABLES on each card (tagged _fromTable). They already live in those
      tables, so they must never be written back into the row's raw JSON: strip them on save. */
+  /* 2026-09-21 (fire #164) — the three fields the scrub pipeline owns go the same way, for a
+     sharper reason. They are COLUMN-owned: rowToApp always takes them from the column and never
+     from the blob, so a copy in the blob can only ever be noise — and it is reachable noise. The
+     share-link loader (js/10's shareRowToApp) copies a record's whole raw blob to the outsider
+     holding the link. Nothing leaks today, because that loader carries none of these columns and no
+     blob holds the keys yet; one in-app save of any company would have put them there, and an
+     outsider would then have read "confirm this company before reaching out — organisation inferred
+     from the email domain only": our own unfinished judgement about a third party, on a page we
+     handed out. Out of the blob at the source, and js/85 and js/86 stay silent in a share view
+     regardless — two locks, because this one is not the kind of thing you want to be clever about. */
+  var SCRUB_KEYS=['verificationSource','needsManualConfirmation','confirmationReason'];
   function stripBridged(o){
     try{
       if(!o||typeof o!=='object')return o;
       var hasC=Array.isArray(o.contacts)&&o.contacts.some(function(c){return c&&c._fromTable;});
       var hasA=Array.isArray(o.activities)&&o.activities.some(function(a){return a&&a._fromTable;});
       var mc=o._v72mc===1, ma=o._v72ma===1;   // arrays the bridge itself created (js/72)
-      if(!hasC&&!hasA&&!mc&&!ma)return o;
-      var c={}; for(var k in o){ if(k==='_v72mc'||k==='_v72ma')continue; c[k]=o[k]; }
+      var hasScrub=SCRUB_KEYS.some(function(k){ return o[k]!==undefined; });
+      if(!hasC&&!hasA&&!mc&&!ma&&!hasScrub)return o;
+      var c={}; for(var k in o){ if(k==='_v72mc'||k==='_v72ma'||SCRUB_KEYS.indexOf(k)>=0)continue; c[k]=o[k]; }
       if(hasC)c.contacts=o.contacts.filter(function(x){return !(x&&x._fromTable);});
       if(hasA)c.activities=o.activities.filter(function(x){return !(x&&x._fromTable);});
       /* 2026-09-02 (attack round 10): an array the bridge created on a record that had none is

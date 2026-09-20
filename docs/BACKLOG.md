@@ -1,3 +1,33 @@
+## Routine fire #164 (2026-09-21 ~17:45 UTC) — what we say to ourselves, nearly handed to an outsider
+
+Asked of the two lines added earlier today: **who else can open the card they sit on?** A view-only
+share link puts Today, Leads and Clients in front of somebody outside the company, and a card opens
+from that list. Both lines are notes to ourselves about a third party:
+
+- `js/85` — *"The same person is on another company"*, which **names the other company**;
+- `js/86` — *"Confirm this company before reaching out — organisation inferred from the email domain
+  only"*, our own unfinished judgement about a business we have not checked.
+
+**Neither appeared — and only by luck.** The share loader copies a record's **whole raw blob** to
+the link holder, and fire #151 had just started putting those three fields onto the app's record
+object. **One in-app save of any company** would have written them into that blob and handed them
+out with it. Measured, not reasoned: with the guards removed in a sandbox, the share view prints
+*"Confirm this company before reaching out — Organisation inferred from the email domain only"* to
+an outsider.
+
+**Two locks.** `js/02` keeps those fields out of the blob at the source — they are column-owned, the
+column always wins on read, so a copy there was only ever noise — and **both layers return early in
+a share view**, whatever the data says. Recorded as **M28**, with the part that outlives these two
+lines: *before putting anything on a company card, ask who else can open that card.*
+
+Guarded by `scripts/qa/probe-a-share-link-sees-no-internal-notes.mjs` (6 checks). Its fourth seeds
+the blob with all three fields — the state one save would create — and its fifth proves a signed-in
+colleague still sees everything, so this is a wall and not a deletion. Sabotage-verified: removing
+either guard leaks, and the failure line names the other company. 3 gates green, battery 276 entries;
+no-phantom-writes, share-view-tidy and the two card probes re-run clean.
+
+---
+
 ## Routine fire #163 (2026-09-21 ~17:00 UTC) — four company papers have lapsed, and the CR is next
 
 Chasing the PCI-DSS finding to its source: **what else does the registry say, and who ever sees it?**

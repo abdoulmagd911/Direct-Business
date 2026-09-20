@@ -960,6 +960,28 @@ Guards: `scripts/qa/probe-a-failed-load-does-not-say-nobody.mjs`,
 tabs' source, so a fallback literal cannot quietly come back.
 *Date: 2026-09-21. Status: ACTIVE.*
 
+**M28 — a note we write to ourselves about a third party must never reach a share link.**
+Found 2026-09-21 (fire #164), the same day the two notes were added, by opening a view-only link and
+asking what it shows. A share link puts Today, Leads and Clients in front of somebody **outside the
+company**, and a company card opens from that list. Two lines on that card are internal judgements:
+js/85's "the same person is on another company", which **names the other company**, and js/86's
+"confirm this company before reaching out — organisation inferred from the email domain only", which
+is our own unfinished assessment of a business we have not checked.
+Neither appeared at the time, and only by luck: the share loader (`shareRowToApp`, js/10) copies a
+record's **whole raw blob** to the link holder, and fire #151 had just begun putting those fields on
+the app's record object — **one in-app save of any company** would have written them into that blob
+and handed them out with it.
+Two locks, because this is not the kind of thing to be clever about: `stripBridged` (js/02) keeps
+those fields out of the blob at the source — they are column-owned, the column always wins on read,
+so a copy in the blob was only ever noise — and **both layers return early when
+`window.__isShareView` is set**, whatever the data says.
+The rule generalises past these two: **before putting anything on a company card, ask who else can
+open that card.** A share link is the answer nobody remembers.
+Guard: `scripts/qa/probe-a-share-link-sees-no-internal-notes.mjs`, whose fourth check seeds the blob
+with all three fields — the state one save would create — and whose fifth proves a signed-in
+colleague still sees everything, so this is a wall and not a deletion.
+*Date: 2026-09-21. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

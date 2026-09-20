@@ -273,3 +273,4 @@ probe-a-document-never-invents-the-company
 probe-the-one-pager-asks-the-registry
 probe-the-report-footer-obeys-the-registry
 probe-todays-renewals-line
+probe-a-share-link-sees-no-internal-notes

@@ -58,6 +58,11 @@
   }
 
   function enhance(){try{
+    /* 2026-09-21 (fire #164): never in a share view. This line NAMES ANOTHER COMPANY — it is an
+       internal question about our own records, and the person holding a view-only link is outside
+       the company. js/02 also keeps the fields it reads out of the shared payload; this is the
+       second lock, on the side that does the talking. */
+    if(window.__isShareView) return;
     if(typeof current==='undefined'||current!=='leads') return;
     if(typeof openLead==='undefined'||!openLead) return;
     var b=(typeof getLead==='function')?getLead(openLead):null; if(!b) return;

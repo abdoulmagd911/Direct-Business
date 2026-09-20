@@ -52,6 +52,11 @@
   }
 
   function enhance(){try{
+    /* 2026-09-21 (fire #164): never in a share view. "Confirm this company before reaching out —
+       organisation inferred from the email domain only" is our own unfinished judgement about a
+       third party; a view-only link holder is outside the company and has no business reading it.
+       js/02 keeps these fields out of the shared payload too — two locks. */
+    if(window.__isShareView) return;
     if(typeof current==='undefined'||current!=='leads') return;
     if(typeof openLead==='undefined'||!openLead) return;
     var b=(typeof getLead==='function')?getLead(openLead):null; if(!b) return;
