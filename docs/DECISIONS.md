@@ -885,6 +885,26 @@ visible to the team, invisible to the public. **Still open and the owner's call:
 code does not remove it from git history.**
 *Date: 2026-09-20. Status: ACTIVE (code clean; history untouched — awaiting the owner's decision).*
 
+**M25 — the audit log is a copy of the records, so it must obey the same access rules they do.**
+Found 2026-09-20 (fire #141). `record_history`'s read policy was `using (true)`: any signed-in
+account could read every entry, and **137 of them carry a full row snapshot** of a finance record in
+`before_row`/`after_row`. The app's page-access model exists precisely so somebody can be given
+Leads without Finance — and the audit screen walked straight around it. Money rows now require
+`can_see_page('finance')`; non-money rows are untouched. **Proved both ways rather than assumed**, on
+the QA account (`test@directksa.com`, created for QA and not a staff login), moved to a
+finance-less map and restored exactly: without Finance, `can_see_page` false and **0 money rows**
+while the rest of the log still read; with it, the rows come back. The Activity & Audit screen was
+then driven in both languages — 353 events, no errors. It changed nothing for anyone today, which is
+why it was safe to do now: all eleven live accounts carry finance access.
+**Checked in the same pass and found already sound, so nobody re-opens it:** the database function undo_change (SQL, not js/) is
+SECURITY DEFINER and builds SQL from the `table_name` and `before_row` it reads out of
+`record_history`, which would be an arbitrary-write path if that table could be written to. It
+cannot — a crafted insert from a signed-in session is **refused by RLS** ("new row violates
+row-level security policy"), 0 rows written, measured. The function is also gated properly on its
+own: signed-in with an active account, a 24-hour window, never an "undo" of a create, money
+restricted to admin/manager, and a full restore admin-only.
+*Date: 2026-09-20. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

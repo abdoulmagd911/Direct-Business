@@ -1,3 +1,54 @@
+## Routine fire #141 (2026-09-20 ~21:00 UTC) — the audit log handed out money to people who cannot open Finance
+
+**Fixed on the live database, proved in both directions.** `record_history` — the audit log behind
+Activity & Audit and the undo button — had a read policy of `using (true)`. Any signed-in account
+could read every entry, and **137 of them carry a full row snapshot** of a finance record in
+`before_row`/`after_row`. The app has a page-access model precisely so somebody can be given Leads
+without Finance; the audit screen walked straight around it.
+
+Money rows now require `can_see_page('finance')` — the same function the app's own gate uses.
+Non-money rows are untouched.
+
+**Proved, not assumed.** The QA account (`test@directksa.com`, created for QA on 2026-08-08, not a
+staff login) was moved onto a finance-less team_member map and restored exactly afterwards:
+
+| | with Finance | without Finance |
+|---|---|---|
+| `can_see_page('finance')` | true | false |
+| money rows readable | **2** | **0** |
+| the rest of the audit log | readable | **still readable** |
+
+Then the Activity & Audit screen itself was driven in both languages: **353 events, bilingual, no
+JS errors**. It changes nothing for anyone today — all eleven live accounts carry finance access —
+which is exactly why it was safe to do now rather than after the first hire who should not see money.
+
+### Checked in the same pass and found already sound — recorded so nobody re-opens it
+
+- **`undo_change()` cannot be pointed at a table of your choosing.** It is SECURITY DEFINER and
+  builds its SQL from the `table_name` and `before_row` it reads out of `record_history`, so a
+  craftable audit entry would be an arbitrary write into any table. **Measured:** a crafted insert
+  from a signed-in session is **refused by RLS**, 0 rows written.
+- **The function's own gates are right:** signed-in with an active account (with an explicit note in
+  its source about the null-role trap that used to let a caller with no account through), a 24-hour
+  window, never an "undo" of a create, money restricted to admin/manager, a full restore admin-only,
+  and generated columns excluded so the database recomputes them.
+- **The log saying "unknown" for most entries is honest, not broken.** 56 invoice creations, 38
+  deletions and 39 transaction edits carry no actor — they were service-role imports and clean-ups
+  from 22–25 August, where nobody was signed in. The 27 entries made by a person in the app do carry
+  their name.
+- **No undo buttons appear on today's screen** — every entry is older than the 24-hour window. That
+  is the rule working, not a missing feature.
+
+**An instrument fault of mine, caught before it was written up:** my first before/after check read
+`before_row` from an unordered `limit(1)`, and many finance entries are *create* rows where
+`before_row` is legitimately null — so the "after" reading was luck, not the policy. Re-measured by
+asking the database directly what it thought of the signed-in account.
+
+Recorded as **DECISIONS M25**. 3 gates green. No app code changed — one policy, reversible with one
+statement.
+
+---
+
 ## Routine fire #140 (2026-09-20 ~20:00 UTC) — a supplier's analyst had their personal mobile in a public repository
 
 Audited what this repository actually contains against **standing rule 7** — the rule this session
