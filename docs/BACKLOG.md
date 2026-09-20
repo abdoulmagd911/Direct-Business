@@ -1,3 +1,53 @@
+## Routine fire #130 (2026-09-20 ~07:00 UTC) — cancelled money could have entered cost with every check still green
+
+Two things this round, one a guard and one a fact the owner should have.
+
+**The guard.** The live expense capture holds three statuses: **183 Approved lines, 24 Cancelled and
+16 Pending.** js/65 counts Approved only — `status.toLowerCase()!=='approved'` — which is right. But
+the probe guarding it only ever proved **Pending** is excluded. Rewrite that allow-list as a
+blacklist of "pending" and real **cancelled money (9,408.25 SAR in the live data)** walks into cost,
+with the whole battery still green. Not argued — **measured**: the identical sabotage passes with
+yesterday's probe and fails with today's. The fixture now carries a Cancelled and an Under Review
+line on a transaction that already lands on an invoice whose cost must stay 2000, and the failure
+message names what each wrong total would mean (2300 = Pending counted, 2400 = Cancelled, 2600 =
+Under Review, 3300 = everything). js/65 is the oversight lane — read and tested, never edited.
+
+**Checked and clean, against the real database, nothing written:**
+- **No live invoice's cost includes cancelled or pending money** — 0 of the 40 invoices matched to
+  the capture, and 35 of those 40 match the approved-only sum to the halala.
+- **Finance does not show an empty month as a computed zero.** The newest invoice is 2026-08-20 and
+  today is 2026-09-20, so "this month" is empty — the page opens on **all years** and says
+  "46 invoices · data through 2026-08-20". The month list only offers the months the data has.
+- **Today's "✓ No overdue invoices" is true** — every one of the 46 live invoices is fully collected
+  (outstanding 0.00).
+- **The Brand entry in the sidebar is not broken.** An empty-state sweep flagged it because clicking
+  it leaves the page where it was; it opens `/brand/` in a new tab, which is a real page served from
+  this repo (200, the Direct Brand Hub). Instrument, not defect — recorded so it is not chased again.
+- SOPs & SLAs renders 12 SOPs and 14 SLAs as cards rather than table rows; Operations shows "—" per
+  column because requests, offers, bookings, invoices and projects all hold **zero rows**.
+
+### ⚠ For the owner — 305,128.81 SAR of approved cost is captured but carried by no invoice
+
+Read out of the database, not guessed. The expense capture (one import batch, 2026-08-25) holds
+approved cost that never reached an invoice:
+
+- **276,130.63 SAR against four invoice numbers this app has never imported.** They exist in Direct
+  Payments' export and have real cost behind them; `finance_invoices` has no row for them. The
+  importer reports this rather than inventing an invoice — correct, and the same invoice-import gap
+  first noted on 2026-08-24 (three then, four now).
+- **28,998.18 SAR against one live invoice whose cost still reads zero** — one of the 19 honest
+  "no cost recorded" gaps that stand for 43.6% of the stated profit. Its single transaction is
+  clean by the importer's own rules (blank status = issued, lines present, no malformed amounts), so
+  this one looks closable from data **already in the database** — the cost only lands during a
+  confirmed import run, and nothing has been imported since 2026-08-25.
+
+Nothing was written. The next import of the transaction-status and expense-line files should close
+the 28,998.18; the four missing invoices need their tax invoices imported first.
+
+3 gates green. Commit 3de9986 (probe only — no app change, so nothing to verify on the live site).
+
+---
+
 ## Routine fire #129 (2026-09-20 ~05:00 UTC) — a comment about a different box satisfied the gate
 
 Fire #127 named ten files that build a full-screen box of their own and #128 closed all but two.
