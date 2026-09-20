@@ -1,3 +1,52 @@
+## Routine fire #136 (2026-09-20 ~15:00 UTC) — an old copy of the app was still live, and it could overwrite everyone's work
+
+**Fixed.** The `app` edge function was still serving `site/app.html` out of Storage: a **working,
+sign-in-capable copy of the app, 1,042,705 bytes**, reachable by anyone with no login. CLAUDE.md has
+called that Storage path dead since 2026-08-08 — but the door was open, and what was behind it was
+not merely stale, it was **dangerous**.
+
+Measured before changing anything. That copy carries **none** of the current layers — no `v44a`
+(the single shared Supabase client, the fix for five clients fighting over token refresh and
+silently signing people out), no `v45`, no finance money gate, no promo codes — and, decisively:
+
+> it calls **`save_state`** and never `save_state_patch`.
+
+`save_state` writes the **whole shared workspace blob**. So any colleague who still had that address
+bookmarked could sign in, change one thing, and **overwrite everything every other person had
+changed since** — the exact bug v45 exists to prevent, from a page nobody thought was still
+running. That is not exposure; it is a live path to destroying real work.
+
+It is now a **302 to the real app**, which asks for the team login — kept redirecting rather than
+deleted, so an old bookmark still lands somewhere useful, the same thing `ksa-events-hub` already
+does for the retired events page. Verified: the old address returns 302 → the current app (76,495
+bytes, the split `/js/` build), and `directksab2b.com` itself is untouched.
+
+**The deployed source is now in this repo** at `supabase/functions/app/index.ts`, with a README
+explaining why. Edge functions deploy straight to the project, so a change to one is invisible to
+anyone reading the repo — and an invisible change that later behaves oddly is the exact pattern
+that cost this project months. From now on: change a function, commit its source in the same commit.
+
+### The rest of the edge-function sweep — all seven, judged
+
+- **`admin-users`** — the only one that requires a token (`verify_jwt = true`). Correct.
+- **`ksa-events-hub`** — a clean 302 to the in-app Events tab. Correct.
+- **`hi`** — a three-line "hello html" test page. Harmless; already on the backlog to delete.
+- **`gs`** — the owner's personal habit tracker. Touches only its own `gs_*` tables, **none of this
+  app's**, and those tables no longer exist, so it cannot write anything at all.
+- **`gstest`** — holds the **service-role key** and writes one fixed file into the `app` storage
+  bucket on **every unauthenticated request**. The blast radius is that single placeholder file, so
+  it is small — but it is precisely the shape DECISIONS M22 warns about, and it is already on the
+  backlog to delete. Deliberately not called during this sweep, because calling it *is* the write.
+- **`manual-confirm`** — handled in #134; its write path is bounded by a database trigger.
+- **The five one-shot deploy/import scripts CLAUDE.md warns about** — `promote-v41`,
+  `promote-v42-finance`, `patch-v42-attention-fix`, `verify-v42`, `v30-import-businesses` — **are
+  no longer deployed.** That warning can be read as history. Seven functions remain, all judged
+  above.
+
+3 gates green.
+
+---
+
 ## Routine fire #135 (2026-09-20 ~13:00 UTC) — what each role actually sees, measured against the real maps
 
 The mandate says "every role", and this session could not sign in as anybody but the QA admin —
