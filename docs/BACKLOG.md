@@ -1,3 +1,51 @@
+## Routine fire #156 (2026-09-21 ~11:15 UTC) — corrected the map, and named two more places that go quiet
+
+Docs round while the full battery runs (editing app files mid-run makes its result untrustworthy —
+that has happened here before).
+
+### `CLAUDE.md` said this session cannot reach the app or the database. It can.
+
+The last two rows of "What this session can and cannot reach" describe the **chat** sandbox. A
+Claude Code session in the remote container reaches both — measured the same day:
+`www.directksab2b.com` answers **200**, and the Supabase REST root answers **401**, which is a
+refusal for want of a key, not a block. That one line is the difference between trusting the QA
+harness — which serves **fake data**, the warning at the top of that file — and driving the real app
+against the real database, which is how every defect in fires #148-#155 was found. The recipe is now
+written down beside it: strip the proxy variables, launch Chromium with `direct://`, route the
+Supabase host to a node `fetch`, **block only table writes and `save_state` — never all non-GET**
+(the app *loads* through POST rpcs), and cache-bust the deploy check or the CDN will hand you
+yesterday's file and you will "prove" a push failed.
+
+Also added to "How the data actually works": the two-places problem, with the live counts, and the
+two rules that now cover it (**M26**, and column-wins for fields only a pipeline writes). Four of
+this session's rounds were the same bug wearing different clothes; the next session should meet it
+as a paragraph rather than as four days of work.
+
+### Two more places that go quiet when a fetch fails
+
+Same family as #155, found by reading every `r.data || []` in `js/`. **Neither is fixed** — both are
+named here with the one-line change each would take, because one is rare and the other is currently
+harmless, and inventing a fix for a hypothesis is how this project got its landmines:
+
+- **The four client-document tabs** (`js/67` line ~161, `js/69` ~89, `js/70` ~115, `js/71` ~171) all
+  treat a failed `company_identity` load as an **empty registry** (`r.error ? [] : …`). A quotation,
+  contract or tender built in that window goes out **missing its legal name, CR and VAT number** —
+  a client-facing document with an empty identity block. Rare (it needs the fetch to fail *and* a
+  document to be finished in that window), which is why it is recorded rather than patched blind:
+  the honest fix is to keep "not loaded" distinct from "loaded and empty" and refuse to build the
+  document until it loads.
+- **The Events tab** (`js/10` line ~382) keeps whatever is already in `DB.ksaEvents` when its fetch
+  fails — which is the copy inside the `app_state` blob — and says nothing. Measured: with the fetch
+  failing the page looks **identical**, 80 events either way, because the blob copy is rewritten on
+  every save and currently agrees with the table. So it is a silent fallback to a mirror rather than
+  a lie today.
+
+**Checked and found careful, so nobody re-opens them:** `js/77` (share links) passes its error to the
+panel, `js/58` passes it through, and `js/02`'s archive step forgets **only** the rows the database
+confirms — a silent refusal there would otherwise resurrect records.
+
+---
+
 ## Routine fire #155 (2026-09-21 ~10:30 UTC) — "No contacts yet" about a company that has one
 
 Asked what the app says when the data does not arrive — by failing one request at a time against

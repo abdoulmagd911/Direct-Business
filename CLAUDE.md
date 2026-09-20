@@ -177,6 +177,24 @@ The other two GitHub repos are kept untouched as reference, not deleted:
 
 Verified by testing, 2026-08-08 — do not re-litigate, and do not promise what is blocked.
 
+> **2026-09-21 — the last two rows of this table describe the CHAT sandbox. A Claude Code session
+> running in the remote container reaches BOTH.** Measured the same day: `https://www.directksab2b.com/`
+> answers `200`, and `https://vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/` answers `401` — refused for
+> want of a key, which is a reply, not a block. That difference is worth a lot: it is what lets a
+> session drive **the real app against the real database** instead of trusting the harness, and the
+> harness serves fake data (the warning at the top of this file). The recipe, learned the hard way:
+> - run node with the proxy variables stripped — `env -u HTTPS_PROXY -u HTTP_PROXY -u https_proxy -u http_proxy node …`;
+> - launch Chromium with `proxy:{server:'direct://'}` and `args:['--no-proxy-server']`;
+> - serve the repo from a tiny local HTTP server and `page.route()` the Supabase host to a node
+>   `fetch(REAL + pathname + search)`, passing the headers through;
+> - **block only table writes and `save_state`/`save_state_patch` — never all non-GET.** The app
+>   LOADS through POST rpcs, so blocking every POST gives you an app with no data and a day lost.
+> - drive the live site itself with `curl` and a cache-buster (`?cb=$(date +%s%N)`) when confirming
+>   a deploy: the CDN will otherwise hand you the previous file and you will "prove" a push failed.
+>
+> Everything a session writes this way must still respect rule 7: real names, amounts and invoice
+> numbers stay in the database and in the scratchpad, never in a commit.
+
 | | |
 |---|---|
 | **Google Drive** | ✅ Works. Connected to `aboelmagd@directksa.com`. Search by title, content, type, folder, date. Reads Docs, Sheets, Slides, PDF, Word, Excel, PNG/JPEG. **Best way to hand over files.** |
@@ -211,6 +229,20 @@ Verified by testing, 2026-08-08 — do not re-litigate, and do not promise what 
 - **Leads and clients are the same table** (`businesses`). `is_client` flags which — and the
   app reads **both** the column and `raw->>'isClient'`, so changing one without the other
   leaves records half-converted. Change both.
+- **Every company field lives in TWO places, and that is the single richest source of bugs here.**
+  A real column, and a copy inside the record's `raw` blob. `rowToApp`/`appToRow` in
+  `js/02-…-shared-c.js` are the whole of the conversion, and whether a field is read back at all is
+  decided line by line. Counted live on 2026-09-21: **payment terms sat in the column with nothing
+  in the blob on 20 of the 28 clients, both contract dates on 19, credit limit on 8, CR/VAT, legal
+  name and entity type on 1 each — and none of them was read, so the card showed a dash over the
+  answer.** Anything that arrives by SQL or by import writes the column only; anything typed into
+  the app writes the blob. Two rules now cover it, both in `docs/DECISIONS.md`:
+  **M26 — a column the app reads back must also be one the app can clear** (the writer used to only
+  ever *set* these, so a value you deleted came back on the next reload), and the reader's ordering
+  rule: the blob wins for fields a person edits, the **column wins outright** for fields only a
+  pipeline writes (`verification_source`, `needs_manual_confirmation`, `confirmation_reason`).
+  Before adding a field to the app object, ask what the export does with it — six of them came out
+  of the Arabic export as bare camelCase keys until `js/73` was given the words.
 - **A lead's screen stage is not its database stage.** `C2S` converts database → screen,
   `S2C` converts back, and `stageToApp` keeps a record's original wording when it maps to
   the same database stage. That is why 740 leads read "New" and 202 read "Prospect" while
