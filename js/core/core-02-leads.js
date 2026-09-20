@@ -271,7 +271,19 @@ function clientHealth(b){
 }
 function renderClients(v){
   let cl=DB.businesses.filter(b=>b.isClient);
-  if(clFilter.q){const q=clFilter.q.toLowerCase();cl=cl.filter(b=>((b.name||"")+" "+(b.nameAr||"")+" "+((b.contacts||[]).map(c=>String(c.email||"")+String(c.phone||"")).join(" "))).toLowerCase().includes(q));}
+  /* 2026-09-21 (fire #148) — the Clients search used to look at the company name, its Arabic name,
+     and contacts' e-mail and phone. Measured live against the real database, three things a person
+     would actually type could not find their client:
+       · THE CONTACT PERSON'S NAME — you can find a LEAD by the person's name (matchLead includes
+         it) and you could not find a CLIENT by the same person. You remember the person.
+       · THE DIRECT CLIENT ID — the link key to Direct Payments, on 20 clients. Worse than missing:
+         searching it returned TWO matches and NEITHER was the right company, because the digits
+         happened to appear inside other records' phone numbers. A confidently wrong answer.
+       · THE CR / VAT NUMBER — nothing.
+     All three are in the haystack now. The parts are also joined with SPACES: e-mail and phone used
+     to be concatenated with nothing between them, so a search could match across the seam of two
+     different values and hit a record that contains neither. */
+  if(clFilter.q){const q=clFilter.q.toLowerCase().trim();cl=cl.filter(b=>((b.name||"")+" "+(b.nameAr||"")+" "+(b.legalName||"")+" "+(b.directClientId||"")+" "+(b.crVat||"")+" "+((b.contacts||[]).map(c=>String(c.name||"")+" "+String(c.email||"")+" "+String(c.phone||"")).join(" "))).toLowerCase().includes(q));}
   /* 2026-09-03 (round 43): "__none__" lists the clients nobody owns. The dropdown was built from
      the names actually present and .filter(Boolean), so there was no way to ASK for the unowned
      ones — you could only spot the red "Unassigned" tags by scrolling. Live that day: 20 of

@@ -1,3 +1,36 @@
+## Routine fire #148 (2026-09-21 ~04:30 UTC) — you could not find a client by the person you know
+
+Drove the live Clients search. Three things a person would reach for could not find their client,
+and one of them was worse than missing:
+
+- **The contact person's name.** You can find a *lead* by the person's name — the Leads search reads
+  its contacts. The Clients search did not. People remember the person, not the legal entity.
+- **The Direct client ID** — the link key to Direct Payments, carried by 20 clients. Searching one
+  returned **two matches and neither was the right company**: those digits happened to sit inside
+  other records' phone numbers. A confidently wrong answer is worse than an empty one.
+- **The CR / VAT number** — nothing at all.
+
+There was also a **seam**: contacts' e-mail and phone were glued together with nothing between them,
+so a search could match across the join of two different values and land on a record containing
+neither. The parts are joined with spaces now.
+
+### The CR / VAT miss had a deeper cause, and it was showing on the card
+
+`cr_vat` and `legal_name` are **written** to their own columns and were **never read back**. A
+company that received them any way other than by being typed into this app — a SQL update, an
+import — showed **"Legal name / CR·VAT —"** on its own card, over a number the database was
+holding. **One live company is in exactly that state today.** Same shape as the `assigned_to` /
+`tier` / `segment` fallbacks already in that file; raw still wins, the column is only a fallback.
+
+**Fixed** in `js/core/core-02-leads.js` (the haystack) and `js/02-…-shared-c.js` (the two column
+fallbacks). Guarded by `scripts/qa/probe-you-can-find-a-client.mjs` — 8 checks, both languages,
+including one that a term belonging to nobody still finds nobody, so the fix did not simply match
+everything. Sabotage-verified twice against a copy of the app: the old haystack fails checks 1, 2, 3
+and 7; removing the two fallbacks fails 3 and 4, and check 4 then prints the defect itself. 3 gates
+green, battery now 263 entries. Four neighbouring probes re-run clean.
+
+---
+
 ## Routine fire #147 (2026-09-21 ~03:00 UTC) — what the database keeps that no screen ever shows
 
 The mirror of the #120/#121 audit ("a field the app PRINTS but no form can WRITE"). This asks the

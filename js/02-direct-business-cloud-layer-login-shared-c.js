@@ -153,6 +153,13 @@
        a segment in the column only (set by SQL), and the app showed them blank. */
     if((o.tier==null||o.tier==='')&&r.tier!=null&&String(r.tier).trim()!=='')o.tier=String(r.tier).trim();
     if((o.segment==null||o.segment==='')&&r.segment!=null&&String(r.segment).trim()!=='')o.segment=String(r.segment).trim();
+    /* 2026-09-21 (fire #148): the CR / VAT number and the legal name were WRITTEN to their columns
+       by appToRow below and never read back here. A record that received them any other way than by
+       being typed into this app — a SQL update, an import — shows "—" on its own company card over
+       a number the database is holding, and the Clients search cannot find it. One live company is
+       in exactly that state today. Same shape as tier and segment above; raw still wins. */
+    if((o.crVat==null||o.crVat==='')&&r.cr_vat!=null&&String(r.cr_vat).trim()!=='')o.crVat=String(r.cr_vat).trim();
+    if((o.legalName==null||o.legalName==='')&&r.legal_name!=null&&String(r.legal_name).trim()!=='')o.legalName=String(r.legal_name).trim();
     // Direct client ID — the link key to Direct Payments. Real column wins over any raw copy.
     if(r.direct_client_id!=null&&r.direct_client_id!=='')o.directClientId=String(r.direct_client_id);
     return o;
