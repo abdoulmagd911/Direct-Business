@@ -78,6 +78,15 @@ function attention(){
   var now=Date.now(), cut=now-STALE_DAYS*864e5;
   B.forEach(function(b){
     if(b.isVendor)return;
+    /* 2026-09-20 (fire #145): CLIENTS were counted here, on the LEADS page, under the words
+       "worked leads with no owner". Measured against the real database: the strip read
+       "20 worked leads with no owner" and ALL TWENTY were clients — not one of them was in the
+       78-row list underneath it. Somebody acting on that line had nothing to click. It is the same
+       shape as the stage chips that counted one population and filtered another (fixed 2026-08-09).
+       This strip renders only when current==='leads' and speaks of leads, so it counts leads.
+       Unowned CLIENTS are a real thing worth knowing and there is no clients-side equivalent today
+       — that gap is recorded in docs/BACKLOG.md rather than answered by mislabelling it here. */
+    if(b.isClient)return;
     var worked=b.stage&&b.stage!=='new'&&b.stage!=='Prospect';
     var owner=(b.assignedTo||b.accountManager||'').trim();
     if(worked&&!owner)unassigned.push(b);

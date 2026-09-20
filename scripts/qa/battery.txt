@@ -258,3 +258,4 @@ probe-the-keyboard-can-do-it
 probe-every-box-takes-the-keyboard
 probe-a-document-obeys-the-registry
 probe-one-company-or-two
+probe-the-leads-strip-counts-leads
