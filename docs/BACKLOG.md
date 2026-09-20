@@ -1,3 +1,48 @@
+## Routine fire #140 (2026-09-20 ~20:00 UTC) — a supplier's analyst had their personal mobile in a public repository
+
+Audited what this repository actually contains against **standing rule 7** — the rule this session
+has leaned on all day without once verifying it.
+
+**Most of it is clean, and that is worth stating:** every IBAN in the tree is synthetic
+(`SA0000…`, `SA9999…`), every VAT number is a test value, and the Saudi company e-mail addresses
+that *look* real — `admin@alyusrclinics.sa`, `gm@nadeemtravel.sa` and the rest — are all inside
+`mock-seed.mjs` / `mock-seed-live.mjs` / `probe-lifecycle5.mjs`, which is exactly where CLAUDE.md
+requires QA fixtures to live. Checked each one's file before concluding anything.
+
+**One thing was not clean.** `js/core/core-09-v26.js` carried, as Gulf Air's escalation contact, a
+**named analyst with their job title and personal mobile number**, and `core-10` repeated the number
+in its ADM-risk line. A real person's direct line, in a **public** repository, and not the owner's
+to publish — the same class as the customer PII found here on 2026-08-27.
+
+**What made it findable is that it was the only one.** Every other escalation contact in that file
+is a corporate desk or mailbox — Saudia RUH Sales, flynas, the KU-RUH desk, Turkish Riyadh
+marketing. Both entries now escalate through **the airline's own Riyadh sales mailbox**, which was
+already sitting beside the mobile, so nothing operational is lost.
+
+**Gated, because that small honest set makes it affordable:** check-structure now requires every
+Saudi number in `js/` to be judged in `scripts/qa/phone-numbers-judged.txt` with what it is — read
+both ways like the other judged lists — with the obvious placeholders (`+9665000000NN`,
+`05000000NN`) exempt without being listed. Three entries survive: the company's own published
+number, **Amadeus Saudi's agency-support desk** and an example in help text. Sabotage-verified both
+directions: a personal mobile added back to a layer fails and names the file; a judged number that
+has left the code fails too. Recorded as **DECISIONS M24**.
+
+### ⚠ One thing I did not do, because it is yours to decide
+
+**Removing the number from the code does not remove it from git history** — it still sits in one
+earlier commit, and this repository is public. Rewriting history is not something to do unasked:
+it is irreversible and it breaks every other session's clone. Say the word if you want it done, and
+whether to tell Gulf Air. The 2026-08-22 clean-up of the real-data branch is the precedent.
+
+Also worth your eye while we are here: the client-facing one-pager names **seven real client
+organisations** in a hardcoded list (`core-10`). If those are reference clients you already publish,
+it is fine; if not, they are real client data in a public repo. Left alone pending your word,
+because deleting them would gut a legitimate marketing document.
+
+3 gates green. Commit 67409d3, confirmed live — the served files no longer contain the number.
+
+---
+
 ## Routine fire #139 (2026-09-20 ~18:00 UTC) — a tender document claimed a certification the registry says lapsed
 
 **The app contradicted itself, and the version a client reads was the wrong one.**

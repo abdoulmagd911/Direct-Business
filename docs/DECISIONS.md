@@ -866,6 +866,25 @@ table with row-level security off, created and dropped the same minute, made it 
 table.
 *Date: 2026-09-20. Status: ACTIVE.*
 
+**M24 — a third party's personal contact detail never goes in the code, even when it is useful.**
+Found 2026-09-20 (fire #140). `js/core/core-09-v26.js` carried, as Gulf Air's escalation contact, a
+named analyst with their job title and **personal mobile number**, and `js/core/core-10-v29-reports.js`
+repeated the number in its ADM-risk line. A real person's direct line, in a **public** repository,
+and not the owner's to publish — the same class as the customer PII found here on 2026-08-27, and
+not covered by standing rule 7's wording, which talks about company and client data. It is covered
+now. Both entries escalate through the airline's own Riyadh sales mailbox instead, which was already
+sitting beside the mobile. **What made it findable was that it was the only one:** every other
+`escalationContact` in that file is a corporate desk or mailbox — Saudia RUH Sales, flynas, the
+KU-RUH desk, Turkish Riyadh marketing — which is the right pattern, and which is why the gate below
+can afford to be strict. **`scripts/qa/check-structure.mjs` now requires every Saudi number in `js/`
+to be judged in `scripts/qa/phone-numbers-judged.txt` with what it is**, read both ways like the
+other judged lists, with the obvious placeholders (`+9665000000NN`, `05000000NN`) exempt. Three
+entries survive: the company's own published number, Amadeus Saudi's agency-support desk, and an
+example in help text. A named individual belongs on the supplier's record in the `providers` table —
+visible to the team, invisible to the public. **Still open and the owner's call: removing it from the
+code does not remove it from git history.**
+*Date: 2026-09-20. Status: ACTIVE (code clean; history untouched — awaiting the owner's decision).*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
