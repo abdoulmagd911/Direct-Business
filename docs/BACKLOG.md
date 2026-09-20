@@ -1,3 +1,25 @@
+## Routine fire #157 (2026-09-21 ~11:45 UTC) — is the thing I edited the thing being served?
+
+The question behind months of this project's dead ends, asked properly for once. Every round of this
+sweep ends by curling **one** file to confirm a push landed. One file is a sample.
+
+**All 80 checked: every one of the 79 script files `index.html` asks for, and `index.html` itself,
+is served by `www.directksab2b.com` and is byte-for-byte (SHA-256) identical to this repository.**
+No file missing, none stale, none serving something the repo did not produce.
+
+Made permanent as `scripts/qa/check-live-matches-repo.mjs` — one command, and it separates the three
+kinds of trouble because they mean different things: **not served** (a layer that silently does not
+exist for anybody using the app), **different** (a deploy still in flight, or something this repo did
+not produce), and **missing locally** (the page asks for a file the repo has not got). It reaches
+production, so it is excluded from the battery with its reason, beside `check-public-surface`, and
+run by hand at the end of a sweep. Proven able to fail by pointing it at a site that does not host
+the app: it names all 80.
+
+It also bakes in the lesson that cost time twice today — **the cache-buster is mandatory**, or the
+CDN hands back the previous version and the check "proves" a push failed.
+
+---
+
 ## Routine fire #156 (2026-09-21 ~11:15 UTC) — corrected the map, and named two more places that go quiet
 
 Docs round while the full battery runs (editing app files mid-run makes its result untrustworthy —
