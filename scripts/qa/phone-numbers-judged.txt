@@ -1,0 +1,20 @@
+# Saudi phone numbers that may appear in js/ — one line each, with what the number IS.
+#
+# Written 2026-09-20 (fire #140), after a third party's name and PERSONAL MOBILE NUMBER were found
+# committed in js/core/core-09-v26.js and js/core/core-10-v29-reports.js — a Gulf Air analyst's
+# direct line, in a PUBLIC repository. It was the only escalation contact in the app naming a
+# person; every other one is a corporate desk or mailbox, which is the right pattern and is why
+# this gate can afford to be strict.
+#
+# check-structure reads this BOTH ways: an unjudged number in js/ fails the build, and a judged
+# number that is no longer in js/ fails too, so the list cannot quietly rot.
+#
+# Obvious placeholders are exempt without being listed: +9665000000NN and 05000000NN.
+#
+# A named individual's number belongs on the supplier's record in the `providers` table — visible
+# to the team, invisible to the public — never in the code.
+#
+# Format: <number, no spaces><TAB><what it is>
++966508434126	The company's own published contact number (AGENCY.phone, core-06). Printed on the company's own documents by design.
++966122252371	Amadeus Saudi's agency-support line — a corporate support desk on the Amadeus provider record, not a person.
++966507776543	An example number used in help text to show how a phone is stored and searched (core-01).

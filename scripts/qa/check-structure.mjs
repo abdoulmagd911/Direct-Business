@@ -211,6 +211,45 @@ try {
   problems.push('overlay-escape check could not run: ' + e.message);
 }
 
+/* ---- no third party's personal number in the code (added 2026-09-20, fire #140) ----
+   js/core/core-09-v26.js carried "<a named analyst>, Pricing & Distribution Analyst, <personal
+   mobile>" as Gulf Air's escalation contact, and core-10 repeated the mobile — a real person's
+   direct line, in a PUBLIC repository, and not the owner's to publish. It was the ONLY escalation
+   contact in the app naming a person; every other one is a corporate desk or mailbox. That is what
+   makes this gate affordable: the honest set of real numbers in js/ is tiny, so each one is judged
+   in scripts/qa/phone-numbers-judged.txt with what it is, and the obvious placeholders
+   (+9665000000NN, 05000000NN) are exempt without being listed. Read both ways, like the other
+   judged lists: an unjudged number fails, and a judged number that has left the code fails too. */
+try {
+  const jsDir3 = path.join(ROOT, 'js');
+  const listP = path.join(ROOT, 'scripts', 'qa', 'phone-numbers-judged.txt');
+  const known = new Map();
+  try {
+    for (const line of fs.readFileSync(listP, 'utf8').split('\n')) {
+      const t = line.trim(); if (!t || t.startsWith('#')) continue;
+      const [n, ...rest] = t.split('\t');
+      known.set(n.replace(/[^+0-9]/g, ''), rest.join('\t').trim());
+    }
+  } catch (_) { problems.push('phone-numbers-judged.txt is missing — the personal-number rule needs it'); }
+  const walk3 = (dir, pre) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) =>
+    d.isDirectory() ? walk3(path.join(dir, d.name), pre + d.name + '/') : (d.name.endsWith('.js') ? [pre + d.name] : []));
+  const seenNums = new Set(); const bad = [];
+  for (const f of walk3(jsDir3, '')) {
+    const src = fs.readFileSync(path.join(jsDir3, f), 'utf8');
+    for (const raw of (src.match(/\+966[ 0-9-]{8,14}|\b05[0-9]{8}\b/g) || [])) {
+      const n = raw.replace(/[^+0-9]/g, '');
+      if (/^\+9665000000\d\d$/.test(n) || /^05000000\d\d$/.test(n)) continue;   /* placeholders */
+      seenNums.add(n);
+      if (!known.has(n)) bad.push('js/' + f + ' contains the number ' + n.slice(0, 7) + '… which nobody has judged. If it belongs to a PERSON it must not be in this public repository at all — put it on the supplier\'s record in `providers`. If it is a corporate desk, add it to scripts/qa/phone-numbers-judged.txt with what it is');
+      else if (!(known.get(n) || '').length) bad.push('the number ' + n.slice(0, 7) + '… is listed in phone-numbers-judged.txt with no explanation beside it');
+    }
+  }
+  for (const n of known.keys()) if (!seenNums.has(n)) bad.push('the number ' + n.slice(0, 7) + '… is judged in phone-numbers-judged.txt but no longer appears in js/ — remove the stale entry');
+  if (bad.length) problems.push('phone numbers in the code: ' + [...new Set(bad)].join(' · '));
+} catch (e) {
+  problems.push('personal-number check could not run: ' + e.message);
+}
+
 /* ---- a money document is never served by a permanent public address (added 2026-09-20, #133) ----
    payment-proofs and expenses — the buckets holding proof of real payments and real receipts —
    were marked public AND had a read policy with no condition, so an unauthenticated caller could
