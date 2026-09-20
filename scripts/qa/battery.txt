@@ -268,3 +268,4 @@ probe-new-surfaces-hostile-data
 probe-no-button-throws
 probe-a-failed-load-does-not-say-nobody
 probe-the-ledger-says-it-could-not-load
+probe-the-events-list-says-it-is-a-copy

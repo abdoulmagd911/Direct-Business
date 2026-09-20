@@ -942,9 +942,12 @@ offer a retry. Where the missing thing is money, draw nothing at all rather than
 Finance page's own outage card is the standard ("do not read any figure from this page until it
 loads"). And keep the honest empty state intact: "none" and "unknown" must look different **in both
 directions**, or the fix is just a different lie.
-Known and deliberately NOT yet fixed, listed in `docs/BACKLOG.md` fire #156 so nobody thinks they
-were missed: the four client-document tabs treat a failed `company_identity` load as an empty
-registry, and the Events tab falls back to the copy in the workspace blob without saying so.
+Known and deliberately NOT yet fixed, listed in `docs/BACKLOG.md` fire #156 so nobody thinks it was
+missed: the four client-document tabs treat a failed `company_identity` load as an empty registry,
+so a quotation or contract built in that window loses its legal name, CR and VAT number.
+*(The Events tab was the other one and was closed in fire #159 — and it shows the shape of the
+judgement: money draws nothing rather than zeros, but a calendar the browser already holds is still
+worth showing, with a line saying it is a copy.)*
 Guards: `scripts/qa/probe-a-failed-load-does-not-say-nobody.mjs`,
 `scripts/qa/probe-the-ledger-says-it-could-not-load.mjs`.
 *Date: 2026-09-21. Status: ACTIVE.*

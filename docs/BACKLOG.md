@@ -1,3 +1,29 @@
+## Routine fire #159 (2026-09-21 ~13:15 UTC) — a stale list is fine; a stale list pretending to be fresh is not
+
+The first of the two places **M27** named as known-and-not-yet-fixed, now closed. The Events tab
+keeps a copy of the calendar inside the workspace blob, and when its refresh failed it served that
+copy without a word. Measured live in fire #156: the page looked **identical** either way, 80 events
+both times, because the copy is rewritten on every save and agrees with the table today. Not a lie
+yet — it becomes one the moment somebody adds or changes an event anywhere else, and nothing on
+screen would ever say which list you are reading.
+
+**The answer here is deliberately not the one the Ledger got.** Money is the case where nothing is
+drawn at all; a calendar you already hold is genuinely useful with no connection. So the cached list
+still shows — with a line above it saying it is a copy, what failed, and a **Try again**.
+
+`js/10` also gained one small door: `window.__evReload()`. Its `loaded` / `loadAll` live inside the
+layer's closure, so nothing outside could ask for a refresh — including the probe, whose first
+attempt set a *new global* of the same name and silently did nothing. One hook, used by both the
+retry link and the test, beats a probe poking at globals that quietly create themselves.
+
+Guarded by `scripts/qa/probe-the-events-list-says-it-is-a-copy.mjs` (6 checks, both languages). Its
+third check is the one that keeps the fix honest: **the notice must not cost you the list** — the
+cheap way to pass the others is to replace the page with an error and take away the only copy of the
+calendar the browser has. Sabotage-verified. 3 gates green, battery 271 entries; five events probes
+and the people bridge re-run clean.
+
+---
+
 ## Routine fire #158 (2026-09-21 ~12:30 UTC) — the money screen's most reassuring sentence, said about a ledger nobody read
 
 Two findings, one read-only and one fixed.

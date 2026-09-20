@@ -350,7 +350,7 @@ function progOf(e){var p=(e&&e.approach_status)||'not_started';return PROG[p]?p:
 /* past:false — the calendar opens on what is still ahead. Events that have
    already finished are one click away, never the first thing anyone reads. */
 var F={vertical:'all',status:'all',move:'all',ours:false,past:false,q:''};
-var loaded=false, loading=false;
+var loaded=false, loading=false, loadError=null;
 var SIGNUPS={};            /* event_id -> row from ksa_event_signups (team-only table) */
 var LEADS={};              /* normalised event name -> lead count from businesses */
 var extrasLoaded=false;
@@ -380,8 +380,15 @@ function loadAll(){
   var c=client(); if(!c){loading=false;return;}
   c.from('ksa_events').select('*').order('start_date',{ascending:true,nullsFirst:false}).then(function(r){
     loading=false;
-    if(r.error){console.warn('v64 events load',r.error);DB.ksaEvents=DB.ksaEvents||[];}
-    else DB.ksaEvents=r.data||[];
+    /* 2026-09-21 (fire #159, M27): a failed refresh used to keep whatever was already in
+       DB.ksaEvents — the copy inside the app_state blob — and say nothing, so the page looked
+       exactly as it does when the fetch worked. Measured live: identical, 80 events either way,
+       because that copy is rewritten on every save and currently agrees with the table. So this is
+       not a lie today; it is a silent fallback to a mirror, and the moment somebody edits an event
+       in another tab it becomes one. The cached copy is still shown — it is genuinely useful with
+       no connection — but the page now says it is a copy. */
+    if(r.error){console.warn('v64 events load',r.error);DB.ksaEvents=DB.ksaEvents||[];loadError=(r.error&&r.error.message)||'load failed';}
+    else { DB.ksaEvents=r.data||[]; loadError=null; }
     loaded=true;
     try{if(current==='events')render();}catch(_){}
   });
@@ -463,6 +470,9 @@ function sel(id,opts,cur,allLabel){
   return h+'</select>';
 }
 
+/* one way in for a refresh, so the page is not the only thing that can ask for one: the retry link
+   below, and a probe that needs to watch a refresh fail, use the same door (fire #159). */
+window.__evReload=function(){ try{ loaded=false; loadError=null; loadAll(); }catch(_){} };
 window.renderEvents=function(v){
   if(!loaded){ v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">'+L('Loading events…','جاري تحميل الفعاليات…')+'</div>'; loadAll(); return; }
   var E=(DB.ksaEvents||[]);
@@ -485,6 +495,17 @@ window.renderEvents=function(v){
   var n=function(k){return AHEAD.filter(function(e){return moveOf(e)===k;}).length;};
   var endedCount=E.length-AHEAD.length;
   var h='';
+  /* 2026-09-21 (fire #159, M27): the list below is the last copy this browser had, not a fresh
+     read. Say so — and keep showing it, because a cached list is genuinely useful and refusing to
+     draw anything would be worse here. Money is the case where nothing is drawn at all; this is a
+     calendar. */
+  if(loadError){
+    h+='<div class="card" style="margin-bottom:12px;padding:11px 15px;background:#FFF3EC;border:1px solid #F4C892;color:#7a5c00;font-size:12.5px;line-height:1.6">'
+      +'<b>'+L('Could not refresh the events: ','تعذّر تحديث الفعاليات: ')+esc(loadError)+'</b><br>'
+      +L('What you see below is the copy this browser already had — it may be out of date, and anything added or changed elsewhere will not be in it. ',
+         'ما تراه أدناه هو النسخة الموجودة في هذا المتصفح — قد تكون قديمة، ولن تظهر فيها أي إضافة أو تعديل تم في مكان آخر. ')
+      +'<a href="#" id="ev_retry" style="color:#B54708;font-weight:700;text-decoration:underline">'+L('Try again','أعد المحاولة')+'</a></div>';
+  }
   /* Each tile is a filter — tapping "Not decided" is the fastest route to the
      events still waiting on a decision. */
   var tile=function(key,val,label,color){
@@ -558,6 +579,8 @@ window.renderEvents=function(v){
   h+='</tbody></table></div>';
   v.innerHTML=h;
   var b;
+  (b=document.getElementById('ev_retry'))&&(b.onclick=function(e){ try{e.preventDefault();}catch(_){}
+    loaded=false; loadError=null; loadAll(); try{render();}catch(_){} return false; });
   (b=document.getElementById('evF_ours'))&&(b.onclick=function(){F.ours=!F.ours;render();});
   (b=document.getElementById('evF_past'))&&(b.onclick=function(){F.past=!F.past;render();});
   Array.prototype.forEach.call(document.querySelectorAll('[data-evstat]'),function(el){
