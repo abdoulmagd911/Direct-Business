@@ -1,4 +1,4 @@
-# ⬆ Waiting on you — ten decisions, most urgent first
+# ⬆ Waiting on you — eleven decisions, most urgent first
 
 *Written 2026-09-21. These built up one at a time across the sweep, each buried at the bottom of the
 round that found it, which means none of them ever arrived anywhere you'd see. This is the whole
@@ -58,11 +58,63 @@ currently picks a partner type from raw English keys. This is a content decision
 speaks, not something a QA round should invent. Send the wording and it goes in the same day.
 *Raised #121 and earlier.*
 
+**11 · Where should the company's KPIs and achievements actually live?** The Reports page shows
+"N / 30 KPIs with data" and a percentage against each 2026 objective — and every bit of it is saved
+in whichever browser typed it, not in the database and not in the backup (#170). Three honest
+options: leave it per-person, if these are personal working notes; move it into this app's database
+so the team shares one set; or accept that it belongs in your separate appraisal/KPI system and take
+the tab out of this app. Until you say, the page now warns people rather than misleading them.
+*Raised #170.*
+
 **10 · A supplier analyst's personal mobile is still in this repository's history.** The live files
 were cleaned in #140. Removing it from the *history* means rewriting the repository's past, which
 breaks any other session's work in flight and cannot be undone. I will not do that without you
 saying so explicitly. The number belongs to someone outside Direct, which is the only reason it is
 on this list at all. *Raised #140.*
+
+---
+
+## Routine fire #170 (2026-09-20 ~08:30 UTC) — the Reports page is one person's private notebook
+
+The Reports page has four tabs and shows what reads as the company's position: **Achievements
+logged**, **N / 30 KPIs with data**, **Avg progress to 2026 targets**, and a percentage against each
+of your 2026 objectives.
+
+**All of it is saved in the browser it was typed into.** Not the database. Not the "Full backup
+(JSON)" in Settings. Nowhere else in the app even refers to it.
+
+Measured with two browsers on the same account against the same live database, rather than read off
+the code:
+
+| | |
+|---|---|
+| Browser A, after one achievement recorded | *1 Achievements logged · 1 This month · 1 / 30 KPIs with data · **3% Avg progress to 2026 targets*** |
+| Browser B, same account, same moment | *0 Achievements logged · 0 This month · 0 / 30 KPIs with data · **0%*** |
+| Database writes attempted while A saved | **none** |
+
+So: fill in thirty KPIs at the office desktop, and the same page on a laptop reads zero. A colleague
+opening Reports sees zero. Clear the browser's data and it is gone, with no copy anywhere. Nothing
+on the page said any of this — it just showed confident percentages.
+
+**I have not moved the data, on purpose.** Where the company's KPIs should live is your call, not a
+QA round's — and you already run a separate appraisal/KPI system, so quietly copying them into this
+database could be exactly the wrong answer. That is question 11 below.
+
+What is fixed is the misleading part. `js/91` puts one plain line above the tabs: these figures are
+in this browser only, they are not in the backup, and **Generate Report** is how to take a copy out
+before relying on them. A warning with something to do beside it.
+
+Guarded by `scripts/qa/probe-reports-say-they-are-local.mjs` (8 checks, including Arabic with no
+English left behind). Two brakes, because a banner is the easiest thing to over-apply: **the page
+still works** — four tabs, figures still drawn — and **the line appears only on Reports**, since the
+same warning on Leads or Clients would itself be a lie. Sabotage-verified: unhooking js/91 fails
+five checks. **New rule M32.** 3 gates green, battery 282 entries.
+
+**New question for you — 11 · Where should the company's KPIs and achievements actually live?**
+Three honest options: leave them per-person (fine if they are personal working notes — the new line
+now says so); move them into this app's database so the team shares one set; or accept that they
+belong in your separate appraisal/KPI system and take the tab out of this app entirely. Tell me
+which and I will do it.
 
 ---
 

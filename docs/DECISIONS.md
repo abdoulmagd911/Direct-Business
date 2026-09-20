@@ -1105,6 +1105,33 @@ not longer**: both live inside the collapsed Reference group, so the fix cannot 
 Report: `scripts/qa/diag-pages-with-no-way-in.mjs` re-runs the whole sweep.
 *Date: 2026-09-21. Status: ACTIVE.*
 
+**M32 — a screen that shows company numbers must say so when they are one person's private copy.**
+Found 2026-09-21 (fire #170). The Reports page has four tabs and presents company-level figures:
+"Achievements logged", "N / 30 KPIs with data", "Avg progress to 2026 targets", and a percentage
+against each of the company's 2026 objectives. All of it lives in `localStorage` under
+`directReportsData_v1` (core-10's `rptLoad`/`rptSave`). **Nothing else in the app touches that key**
+— not the database, not Settings' "Full backup (JSON)".
+Measured with two browser profiles, the same account, the same live database: after one achievement
+was recorded, profile A read *"1 Achievements logged · 1 / 30 KPIs with data · 3% Avg progress to
+2026 targets"* and profile B, at the same moment, read **zeros** — with **no database write
+attempted**. So thirty KPIs entered on the office desktop are invisible on a laptop, invisible to a
+colleague, and erased with the browser's site data. Nothing on the page said so.
+This is the mirror of M27 (*"a read that FAILED must never be drawn as a result that came back
+empty"*): there the screen dressed a failure as a fact; here it dresses a private note as the
+company's position. Same rule underneath — **the screen must not be more confident than the data
+it is drawing.**
+**Deliberately NOT moved to the database.** Where company KPIs belong is a real decision, and rule 8
+already puts a separate appraisal/KPI system out of this project's scope — quietly duplicating them
+into this database could be exactly the wrong answer. It is an open question for the owner
+(docs/BACKLOG.md), not a fix a QA round should make alone.
+What was fixed is the misleading part: js/91 puts one plain line above the tabs saying the figures
+are in this browser only, that they are not in the backup, and that **Generate Report** is how to
+take a copy out — a warning with something to do beside it.
+Guard: `scripts/qa/probe-reports-say-they-are-local.mjs`. Two brakes, because a banner is the
+cheapest thing in the world to over-apply: **the page still works** (four tabs, the figures still
+drawn) and **it appears only on Reports** — the same line on Leads or Clients would itself be a lie.
+*Date: 2026-09-21. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
