@@ -1,3 +1,50 @@
+## Routine fire #145 (2026-09-21 ~00:30 UTC) — the Leads page warned about 20 leads that were all clients
+
+The warning strip at the top of **Leads** read:
+
+> ⚠️ **20 worked leads with no owner** · 25 with no movement for 14+ days
+
+Measured against the real database: **all twenty of the first number were CLIENTS.** Not one of them
+appeared in the 78-row list underneath it. Somebody acting on that line had nothing to click and no
+way to find out why.
+
+`attention()` skipped vendors and never skipped clients, while the strip renders **only** on the
+Leads page and speaks of "worked **leads**". It is the same shape as the stage chips that counted
+one population and filtered another (found and fixed 2026-08-09): **a count that names a population
+the page does not show.** It counts leads now.
+
+**The other half was right and stays right.** 25 leads whose newest activity is older than 14 days —
+which matches the database exactly: every one of the 25 in-play leads has an activity row, and every
+one is past the line. Re-driven after the change, the strip reads *"25 with no movement for 14+
+days"* and the companies it names are in the list below it.
+
+**Guard:** `probe-the-leads-strip-counts-leads` (9100, **7 checks**, both languages), including the
+one that would have caught the original on its own — *every company the strip names must be one the
+page actually lists*. Sabotage-verified against a copy with the client guard removed: **four checks
+fail** and the report shows the client's name back in the strip.
+
+**A worthwhile detail about how the stale half works**, since it looked broken at first glance and
+is not: a lead with no contact date can never be "stale", because the rule is `if(last && last <
+cut)`. That is deliberate — it stops the strip nagging about leads created yesterday. **Not one of
+the 27 worked leads has a `lastContact` value at all**; their "last touched" comes entirely from the
+`activities` table, merged onto the record by js/72 as a millisecond timestamp, which is exactly
+what the rule compares. Checked before concluding anything.
+
+### Recorded, not invented — for the owner
+
+**20 of your clients have no owner recorded**, and there is no clients-side equivalent of this
+strip. That is a real thing worth knowing; it was simply being said on the wrong page, about the
+wrong kind of record. It is written here rather than answered by mislabelling it on Leads. Say the
+word if you want the same warning built for Clients.
+
+**An instrument fault, caught:** `probe-lifecycle5` went red while I was checking this fix and it
+was **not** the fix — `EADDRINUSE` on port 8913, because the background battery held that port. Run
+alone, 67/67 pass. Running probes by hand alongside a battery is my own trap, not a defect.
+
+3 gates green. Commit 308cd75, confirmed live (first check read a stale CDN copy again).
+
+---
+
 ## Routine fire #144 (2026-09-20 ~23:30 UTC) — "show me only my leads" works, and CLAUDE.md said it couldn't
 
 CLAUDE.md's "Known structural issues" said ownership is free text **"so 'show me only my leads'
