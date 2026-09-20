@@ -1,3 +1,43 @@
+## Routine fire #138 (2026-09-20 ~17:00 UTC) — how long the team actually waits, measured
+
+Every driver written this session sleeps 20–24 seconds after sign-in before reading anything, and
+nobody had ever checked whether that was the app or the driver being careful. **It was the driver.**
+
+Measured against the real database, fresh browser, nothing cached, twice:
+
+| | |
+|---|---|
+| page markup ready | **~0.5 s** |
+| sign-in box on screen | **~0.5 s** |
+| companies on screen after pressing Sign in | **~0.1 s** |
+| Finance numbers on the Finance page | **1.7 s** |
+| everything loaded | ~27 calls, **0.71 MB** |
+
+The app is fast. The "30 seconds" an earlier run of the timing driver reported was itself an
+instrument fault: that run landed on **Today**, where the finance rows fill in later because nobody
+is looking at them. Opening **Finance** — which is what a person does when they want the numbers —
+has them in 1.7 seconds. Recorded so the next session does not "fix" a slowness that is not there,
+and so nobody copies the 20-second sleeps out of this session's drivers.
+
+**One real observation from the call list, recorded not fixed.** In the first three seconds after
+sign-in the app asks the database for the same thing twice about ten times over: `team_directory`
+(at 567 ms and 669 ms), `finance_invoices` (725 / 1401), `finance_client_links` (1016 / 1701),
+`client_profiles` (1194 / 1860), `finance_targets` (1194 / 1861), `my_page_access` (1679 / 1879),
+`promo_codes` (1406 / 2014), `app_users` (1401 / 2853) and `app_settings` **three times** (182 /
+1068 / 2005). Nothing is wrong on screen and it costs about a second of a fast connection — but
+this project's history is largely two layers quietly doing the same job, and a doubled
+`finance_invoices` load is the shape that produces a stale tab. Measured and written down so the
+next person starts from evidence rather than suspicion; not touched, because nothing is broken
+today and unpicking which layer should own each read is a change with real risk.
+
+Also noted: `app_state` is a **472 KB single row** — 66% of everything downloaded at sign-in. That
+is the known structural issue (one JSON row holding bookings, invoices, offers, requests, projects
+and settings), not a new finding.
+
+3 gates green. No change — a measurement round.
+
+---
+
 ## Routine fire #137 (2026-09-20 ~16:00 UTC) — the search that found four open doors, turned into one command
 
 Fires #131, #133, #134 and #136 each found a door standing open to somebody who had **not signed
