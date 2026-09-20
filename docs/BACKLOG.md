@@ -1,3 +1,46 @@
+## Routine fire #147 (2026-09-21 ~03:00 UTC) — what the database keeps that no screen ever shows
+
+The mirror of the #120/#121 audit ("a field the app PRINTS but no form can WRITE"). This asks the
+other question: **what does the database hold that nothing in the app reads?** Read-only; nothing
+changed.
+
+**The Clients chips are correct, and the way one of them is correct is a trap worth knowing.**
+"Key accounts: 2" matches the `tier` **column** exactly. "Reviews overdue: 3" matches too — but
+**not from the column**:
+
+- `next_review` **column**: set on **0 records**, client or lead. Empty everywhere.
+- `raw->>'nextReview'`: set on **7 clients**, of which **3 are in the past** — exactly the 3 the
+  chip shows.
+
+**Nothing in `js/` mentions `next_review` at all.** The app keeps that fact in the record's `raw`,
+and the column is dead weight. The chip is right; anyone who later writes a database-side report,
+export or view against `next_review` will get **nothing** and have no idea why. Same family as the
+documented `is_client` vs `raw.isClient` split. Recorded, not "fixed" — dropping a column is
+destructive and pointless, and the app is consistent with itself.
+
+**No data is hidden in the empty containers.** `airline_deals`, `prefs`, `pricing` and `channels`
+are set on all 108 records and hold **`[]` / `{}` on every one** — a first pass counted them as
+"columns with data", which they are not. Checked before writing it down.
+
+### ⚠ One real gap — 81 companies carry provenance no screen shows
+
+**`verification_source` is set on 81 of the 108 live companies**, and it is not a code — it reads:
+
+> *"Contact-form submission, classified with the owner 2026-08-16"*
+
+That is where the record came from **and** the fact that you vetted it. **Nothing in the app reads
+it** — not by that name, not by any camelCase alias, not on the card, not in any list. The team is
+working those 81 leads without being able to see that they were already classified with you.
+
+This sits inside an ACTIVE rules area (DECISIONS → *Data provenance*), which is why it is raised
+rather than filed away. It is **informational rather than harmful**, so I have not built a third new
+surface this session on my own judgement: say the word and the line goes on the company card next to
+where the lead came from, bilingual, read-only — a small change.
+
+3 gates green. No code changed.
+
+---
+
 ## Routine fire #146 (2026-09-21 ~02:00 UTC) — a chip on the Clients page just said "—: 28"
 
 Asked fire #145's question of the other pages: **does every number on screen describe the records
