@@ -1,4 +1,4 @@
-# ⬆ Waiting on you — twelve decisions, most urgent first
+# ⬆ Waiting on you — thirteen decisions, most urgent first
 
 *Written 2026-09-21. These built up one at a time across the sweep, each buried at the bottom of the
 round that found it, which means none of them ever arrived anywhere you'd see. This is the whole
@@ -58,6 +58,12 @@ currently picks a partner type from raw English keys. This is a content decision
 speaks, not something a QA round should invent. Send the wording and it goes in the same day.
 *Raised #121 and earlier.*
 
+**13 · What counts as "extended credit"?** The Commercial Credit Pool card on the morning screen
+shows how much of a 1.25M cap is in use — counted from invoices held inside the app, of which there
+are none, not from the finance ledger's 46 (#173). Its zeros are right today only by coincidence. To
+compute it for real I need your rule: which invoices count as credit extended, what a wallet
+deduction does to the figure, and whether the cap really is per calendar month. *Raised #173.*
+
 **12 · Should the Airlines page read the real airline register?** It currently reads a copy inside
 the settings record that is three airlines behind — including one the register says operates in
 Saudi Arabia — and four contact lists behind (#171). Moving it across also means its Edit button
@@ -77,6 +83,54 @@ were cleaned in #140. Removing it from the *history* means rewriting the reposit
 breaks any other session's work in flight and cannot be undone. I will not do that without you
 saying so explicitly. The number belongs to someone outside Direct, which is the only reason it is
 on this list at all. *Raised #140.*
+
+---
+
+## Routine fire #173 (2026-09-20 ~11:00 UTC) — a green "0% credit used" on the morning screen, computed from nothing
+
+The Today page carries a **Commercial Credit Pool** card. Driven live against the real database it
+reads:
+
+> Cap 1.25M · headroom 1.25M — **EXTENDED 0 · RECEIVED (this month) 0 · OUTSTANDING 0 ·
+> UTILIZATION 0.0%** — with a green bar, an aging panel (0-30 / 31-60 / 61-90 / 90+) and
+> *"None — all paid up"*.
+
+Every one of those figures is counted from the invoices **held inside this app**. That list is
+**empty**. The company's real invoices are in the finance ledger — **46 of them** — and this card
+does not read it.
+
+**Said precisely, because I got a claim wrong four rounds ago and will not do it again:** the card
+is **not showing a wrong number today.** The ledger's outstanding really is 0.00 SAR, so the zeros
+happen to be correct. What it cannot do is ever be right on purpose — it would show the same green
+0.0% with a million riyals owed to you.
+
+**I have not wired it to the ledger.** What counts as "extended credit" has to be defined against
+the finance rules — which invoices count, what a wallet deduction does, which statuses are real —
+and that is your definition to give, not mine to invent. This is the money, where a confident wrong
+number is worse than none. That is question 13 below.
+
+What `js/93` does is make the card name its source and put the ledger's own figure beside it: quiet
+and grey while the two agree, **marked the moment they diverge**. Anyone who may not open Finance is
+told the card does not read the ledger and is shown **no amount** — the rule from #141, where the
+audit log handed money figures to people without Finance access.
+
+**A mistake of mine, caught by driving and worth recording.** The first version of this layer stored
+whatever its first query returned and never asked again. That query goes out before sign-in, the
+database answers with an empty list and no error, and the card then reported the ledger as holding
+**zero** invoices — while it holds 46. That is exactly the bug fire #71 found in the registry
+loader, rebuilt from scratch by me. It now refuses to store an empty or failed answer, and the guard
+checks the real count so it cannot come back.
+
+Guarded by `scripts/qa/probe-the-credit-pool-names-its-source.mjs` (9 checks), including that
+soft-deleted invoices are not counted and that the no-Finance path shows no money. The brake: **the
+card's own figures are still drawn** — this adds a line, it does not replace the card.
+Sabotage-verified: unhooking js/93 fails seven checks. 3 gates green, battery 285 entries.
+
+**New question for you — 13 · What counts as "extended credit"?** The pool card wants to show how
+much of the 1.25M cap is in use. To compute that from the real ledger I need your rule: which
+invoices count as credit extended (unpaid? past due only?), what a wallet deduction does to the
+figure, and whether the cap is per calendar month as the setting says. Answer that and the card
+becomes real; leave it and it keeps saying plainly that it is not reading the ledger.
 
 ---
 

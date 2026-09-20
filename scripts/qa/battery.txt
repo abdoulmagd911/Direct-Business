@@ -282,3 +282,4 @@ probe-you-can-click-to-the-undo-screens
 probe-reports-say-they-are-local
 probe-the-airline-list-admits-it-is-a-copy
 probe-undated-events-are-not-counted-as-coming
+probe-the-credit-pool-names-its-source

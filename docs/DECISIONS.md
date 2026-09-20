@@ -1174,6 +1174,36 @@ must still account for every live record, the undated ones must still be listed,
 not be drawn at all when every record has a date**, so it can never settle into a permanent "0".
 *Date: 2026-09-20. Status: ACTIVE.*
 
+**M35 — a money figure must name the store it was counted from, and a loader must never cache an
+empty answer as the answer.** Found 2026-09-20 (fire #173), in two halves that belong together
+because the second was created while fixing the first.
+**The figure.** The Today page injects a "Commercial Credit Pool" card whose EXTENDED / RECEIVED /
+OUTSTANDING / UTILIZATION, aging panel and green bar all come from `v25PoolCompute`, which counts
+**`DB.invoices`** — the invoices array inside the settings record. That array is **empty**; the
+company's invoices are in `finance_invoices` (46 live). Stated exactly: the card is **not wrong
+today** — the ledger's outstanding really is 0.00 SAR — but it cannot be right on purpose, and would
+show the same green 0.0% with a million riyals outstanding. A green all-clear on receivables that is
+true by coincidence is what M32 exists to stop.
+Not wired to the ledger here: "extended credit" must be defined against the finance doctrine (which
+invoices count, what a wallet deduction does, which integrity statuses are real) and that is the
+owner's definition, M1 territory where a confident wrong number is worse than none. js/93 names the
+source and prints the ledger's own figure beside it, marked when the two diverge, and — per M25 /
+fire #141 — shows **no amount at all** to anyone who may not open Finance.
+**The loader.** js/93's first version stored whatever its first query returned and set a flag so it
+never asked again. That query fires **before the session is ready**, the database answers `[]` with
+no error, and the card then reported the ledger as holding **zero** invoices while it holds 46 —
+fire #71's registry bug, rebuilt from scratch by the session fixing a different bug. The rule, now
+twice-earned: **an empty or failed result is not an answer — never store it, always allow a retry,
+and bound the retries so a genuinely empty table cannot spin.**
+**And a third thing, for guards:** the first version of the probe detected "the line is marked" by
+matching the hex colour in the element's `style`. The browser rewrites a hex colour into its rgb
+form when it serialises that attribute, so that check could never fire. A guard tests a **stated fact** — the layer now sets
+`data-v93-diverged="1"` — not a rendered colour.
+Guard: `scripts/qa/probe-the-credit-pool-names-its-source.mjs`, whose third check (the ledger's real
+count, soft-deleted rows excluded) is the one that catches the caching bug coming back. Brake: the
+card's own figures must still be drawn.
+*Date: 2026-09-20. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
