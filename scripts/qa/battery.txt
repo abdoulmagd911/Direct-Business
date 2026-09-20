@@ -262,3 +262,4 @@ probe-the-leads-strip-counts-leads
 probe-a-chip-says-what-it-counts
 probe-you-can-find-a-client
 probe-the-card-shows-what-the-database-holds
+probe-the-sync-page-says-where-to-go

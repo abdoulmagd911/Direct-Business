@@ -1095,8 +1095,15 @@
     sync:{
       /* Health hero stays. Demote the placeholder "stale / failed / webhook" empty cards. */
       demoteSelectors:['.empty'],
-      chipsEn:[{label:'All sources',filter:'all',active:true},{label:'Connected',filter:'Connected'},{label:'Needs attention',filter:'NeedsAttention'}],
-      chipsAr:[{label:'الكل',filter:'all',active:true},{label:'متّصل',filter:'Connected'},{label:'بحاجة',filter:'NeedsAttention'}]
+      /* 2026-09-21 (fire #150): "Connected" and "Needs attention" are gone, and this is the same
+         family as #104 (Airlines) and #105 (Bookings/Invoices/Tickets) — a button that cannot work
+         in any data. Sync has no source grid any more: renderSync lists where to go in Direct
+         Payments, and not one of those rows carries a connection status. Both chips fell through to
+         the generic row-text filter, which hides a row unless its visible text contains the chip's
+         word, so clicking either left the page with nothing but the table header — and both showed
+         exactly the same empty table, two opposite filters agreeing. Measured live. There is no
+         filter to put back, so the strip goes; "All sources" alone would filter nothing. */
+      chipsEn:[],chipsAr:[]
     },
     settings:{
       demoteSelectors:[],

@@ -1,3 +1,39 @@
+## Routine fire #150 (2026-09-21 ~06:30 UTC) — two buttons on the Sync page emptied it
+
+Drove the Sync page live, in both languages. It is no longer an integration screen — it is a list of
+where to go in Direct Payments, plus the three sources the team works in by hand. Two things were
+wrong with it.
+
+**Two chips blanked the page.** "Connected" and "Needs attention" are left over from the source grid
+that used to be there. Nothing on this page carries a connection status, so both fell through to the
+generic row-text filter — which hides a row unless its visible text contains the chip's own word —
+and clicking either left **nothing but the table header, with no line saying why**. Both produced the
+*same* empty table: two opposite filters agreeing. Same family as fire #104 (Airlines) and #105
+(Bookings / Invoices / Tickets), missed by the chip probes because those check pages that have
+records and this page has none. There was no filter to put back, so the strip is gone.
+
+**The Arabic side was half English.** The area names were translated and nothing beside them was:
+all nine "what lives there" lines, one area name nobody had added, and the page's own heading, which
+read "Sync" while every other page's heading is Arabic. The six buttons said «مفتوحة» — "open" as a
+*state* — because one dictionary serves the whole app and a ticket status claimed the word first.
+Here it is an instruction: «فتح». Company and product names stay as they are.
+
+Fixed in `js/core/core-09-v26.js` (the chips) and `js/21-…-transl.js` (the Arabic), guarded by
+`scripts/qa/probe-the-sync-page-says-where-to-go.mjs` — 8 checks. The durable one clicks **every**
+button on the page and requires the rows to survive each: it does not care what a future control is
+called, only that nothing here can leave a person staring at an empty table. Sabotage-verified twice:
+the chips back fails it and prints «"Connected" left 0 rows»; the dictionary lines out fails the
+Arabic checks and prints «مفتوحة» back on the buttons. 3 gates green, battery 265 entries. Four chip
+and Arabic neighbours re-run clean.
+
+**Checked and clean, so nobody re-opens it:** the twelve `integrations` entries in `app_state` hold
+only status placeholders — **no keys, tokens or passwords** anywhere in that blob, which every
+signed-in account can read. Worth knowing: `v20TestConnection` still flips a source to "connected"
+and logs "Connection test OK" without testing anything, but **no button on any screen calls it any
+more**, so it is a dead function rather than a live lie. Left alone rather than quietly rewritten.
+
+---
+
 ## Routine fire #149 (2026-09-21 ~05:30 UTC) — twenty clients showed "Payment terms —" over the answer
 
 Fire #148 found one company whose CR/VAT was in the database and not on screen. This asked how far

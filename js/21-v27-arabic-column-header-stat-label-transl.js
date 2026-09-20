@@ -305,7 +305,23 @@
     'This workspace is a read-and-follow-up layer. All payment, invoice, tax and client actions happen in the Direct system - open the right page below. Live two-way sync arrives with the hosted backend phase.':'مساحة العمل هذه طبقة للقراءة والمتابعة. كل إجراءات الدفع والفواتير والضرائب والعملاء تتم داخل نظام Direct — افتح الصفحة المناسبة أدناه. المزامنة الحية في الاتجاهين تأتي مع مرحلة الخادم المستضاف.',
     'Deep links into payments.directksa.com (admin login required)':'روابط مباشرة إلى payments.directksa.com (يلزم تسجيل دخول المشرف)',
     'Corporate clients':'عملاء الشركات','Refund requests':'طلبات الاسترداد','Receipts and settlements':'الإيصالات والتسويات','Pricing settings':'إعدادات التسعير','Mailboxes':'صناديق البريد',
-    'Open in your Amadeus session':'افتح في جلسة Amadeus لديك','Read-only':'للقراءة فقط','Open':'فتح'
+    'Open in your Amadeus session':'افتح في جلسة Amadeus لديك','Read-only':'للقراءة فقط','Open':'فتح',
+    /* 2026-09-21 (fire #150) — first Arabic drive of this page since it was rewritten into a list
+       of where to go. The area names were translated and NOTHING in the second column was: every
+       "what lives there" line, the one area name nobody had added, and the page's own heading were
+       still English on the Arabic side. Company and product names (Direct, Amadeus, DPIN/TTIN,
+       Google Drive, payments.directksa.com, the mailbox addresses, the Amadeus office code) stay
+       as they are — they are names, not words. */
+    'Sync':'المزامنة','Expenses':'المصروفات','Other working sources':'مصادر عمل أخرى',
+    'Client records, credit limits, payment terms':'سجلات العملاء وحدود الائتمان وشروط الدفع',
+    'DPIN/TTIN invoices, tax view, publishing':'فواتير DPIN/TTIN والعرض الضريبي والنشر',
+    'Expense submissions and approvals':'طلبات المصروفات واعتمادها',
+    'Refund queue with assignee and approver':'قائمة طلبات الاسترداد مع المسؤول والمعتمِد',
+    'Balance/payment receipts applied to invoices':'إيصالات الرصيد والدفع المطبّقة على الفواتير',
+    'Per-client price overrides':'أسعار خاصة لكل عميل',
+    'Office RUHS2234B - live reservations and ticketing':'مكتب RUHS2234B — الحجوزات وإصدار التذاكر المباشر',
+    'business@ / ticketing@ / accounting1@ - mined read-only for airline cases and BSP/ADM intel':'business@ / ticketing@ / accounting1@ — تُقرأ فقط لاستخراج حالات شركات الطيران ومعلومات BSP/ADM',
+    'Provider evaluations and operations sheets':'تقييمات المورّدين وجداول التشغيل'
   };
   Object.keys(SLA_SYNC_AR).forEach(function(k){ if(V27_AR[k]===undefined) V27_AR[k]=SLA_SYNC_AR[k]; });
   // ---- Reports: Generate Report tab, Achievements filters, the built report's heads (2026-09-02,
@@ -530,6 +546,19 @@
     if(typeof current!=='undefined'&&current==='sync'){
       var sb=scope.querySelectorAll('td>b'),si;
       for(si=0;si<sb.length;si++){ var nb=sb[si]; if(nb.getAttribute('data-v27')||nb.children.length)continue; translateDecorated(nb,V27_AR); }
+      /* 2026-09-21 (fire #150): and the SECOND column with them. "What lives there" was English on
+         the Arabic side for all nine rows — the area name was translated and the sentence next to
+         it was not, which reads worse than leaving both. Safe here for the same reason the line
+         above is: on this page a <td> is chrome, not a record. Whole-string matches only, so
+         anything not in the dictionary is left exactly as it is. */
+      var sd=scope.querySelectorAll('td'),sdi;
+      for(sdi=0;sdi<sd.length;sdi++){ var nd=sd[sdi]; if(nd.getAttribute('data-v27')||nd.children.length)continue; translateDecorated(nd,V27_AR); }
+      /* The six "Open" buttons read «مفتوحة» — "open" as a STATE, because one dictionary serves the
+         whole app and a ticket status claimed the word first ('Open':'مفتوحة', with Used and
+         Refunded beside it). Here it is an instruction, so it is «فتح». The English is already
+         remembered on the element by the pass above, so switching back restores it. */
+      var sl=scope.querySelectorAll('a.btn[data-v27en="Open"]'),sli;
+      for(sli=0;sli<sl.length;sli++){ sl[sli].textContent='فتح'; }
       var note=scope.querySelector('.note.v29-connections');
       if(note&&!note.getAttribute('data-v27')){ var nt=(note.textContent||'').replace(/\s+/g,' ').trim(); if(V27_AR[nt]!==undefined){ note.setAttribute('data-v27en',nt); note.textContent=V27_AR[nt]; note.setAttribute('data-v27','1'); } }
     }
