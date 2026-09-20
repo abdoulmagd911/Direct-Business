@@ -1132,6 +1132,29 @@ cheapest thing in the world to over-apply: **the page still works** (four tabs, 
 drawn) and **it appears only on Reports** — the same line on Leads or Clients would itself be a lie.
 *Date: 2026-09-21. Status: ACTIVE.*
 
+**M33 — when a screen draws from a copy, it must say how far behind the copy is; and two backup
+schemas that look wide open are not.** Found 2026-09-20 (fire #171).
+**The copy.** Airlines exist in two places: `app_state.data.airlines` (**136 airlines, 26 with
+contact people**) and the `airlines` table (**139 airlines, 30 with contact people**, contacts
+stamped 2026-06-28). **No code in the app fetches the table.** Measured live: `DB.airlines` holds
+136 and the register holds 139, so three airlines have never reached a screen — Sereen Air (6Y), the
+legacy XX bucket row, and **Air Sial (PF), which the register marks as operating in Saudi Arabia**.
+A list that ends early in silence is worse than a short list, because the reader cannot tell "we
+have no deal with them" from "they are not in here". Same family as M32 and #159's Events rule: a
+copy is fine; a copy presenting itself as the whole truth is not.
+Not moved onto the table, deliberately — the page's Edit button writes to the copy, so moving the
+read without the write breaks saving, and "move these into real tables" is already a known
+structural job. js/92 makes the page state the gap instead, with both numbers and the missing names.
+**The guard's brake is that the line must vanish when the two agree**, so the fix cannot rot into
+decoration once the real move happens: `scripts/qa/probe-the-airline-list-admits-it-is-a-copy.mjs`
+adds the missing airlines mid-run and requires the line to disappear.
+**The backup schemas, so nobody raises this twice.** `bak_20260725` and `bak_20260805` hold ten
+tables of real company data with **RLS off and zero policies**. A sweep that checks `relrowsecurity`
+alone will call that an exposure; it is not. Neither `anon` nor `authenticated` has schema USAGE or
+table SELECT on them, so nothing reachable through the API or the app can read them. **The GRANT is
+the lock there, not RLS** — check both before reporting a table as open.
+*Date: 2026-09-20. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

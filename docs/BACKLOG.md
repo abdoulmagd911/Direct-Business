@@ -1,4 +1,4 @@
-# ⬆ Waiting on you — eleven decisions, most urgent first
+# ⬆ Waiting on you — twelve decisions, most urgent first
 
 *Written 2026-09-21. These built up one at a time across the sweep, each buried at the bottom of the
 round that found it, which means none of them ever arrived anywhere you'd see. This is the whole
@@ -58,6 +58,12 @@ currently picks a partner type from raw English keys. This is a content decision
 speaks, not something a QA round should invent. Send the wording and it goes in the same day.
 *Raised #121 and earlier.*
 
+**12 · Should the Airlines page read the real airline register?** It currently reads a copy inside
+the settings record that is three airlines behind — including one the register says operates in
+Saudi Arabia — and four contact lists behind (#171). Moving it across also means its Edit button
+starts writing to the register. One round, a probe either side. The page now admits the gap
+meanwhile. *Raised #171.*
+
 **11 · Where should the company's KPIs and achievements actually live?** The Reports page shows
 "N / 30 KPIs with data" and a percentage against each 2026 objective — and every bit of it is saved
 in whichever browser typed it, not in the database and not in the backup (#170). Three honest
@@ -71,6 +77,54 @@ were cleaned in #140. Removing it from the *history* means rewriting the reposit
 breaks any other session's work in flight and cannot be undone. I will not do that without you
 saying so explicitly. The number belongs to someone outside Direct, which is the only reason it is
 on this list at all. *Raised #140.*
+
+---
+
+## Routine fire #171 (2026-09-20 ~09:15 UTC) — the Airlines list quietly ends three short
+
+There are two stores of airlines, and the page reads the smaller one.
+
+| | |
+|---|---|
+| The copy inside the settings record | **136 airlines**, 26 with contact people — **this is what the page draws** |
+| The `airlines` register (a real table) | **139 airlines**, 30 with contact people, contacts last touched 28 June |
+
+No code in the app ever reads that table. So three airlines are in the company's register and have
+never appeared on the screen: **Sereen Air (6Y)**, the legacy **XX** bucket row, and — the one that
+matters — **Air Sial (PF)**, which the register itself marks as **operating in Saudi Arabia**. The
+register also holds contact people for **four** airlines that the list does not carry.
+
+Nothing said so. The list just ended at 136, and a list that ends early without saying so is worse
+than a short list: you cannot tell the difference between "we have no deal with them" and "they are
+not in here".
+
+**I have not moved the page onto the register.** Doing that means moving its saves too — editing an
+airline currently writes to the copy — and this project already carries "move these into real
+tables" as a known structural job. Starting it halfway in a QA round is how things break. That is
+question 12 below.
+
+What `js/92` does is make the page admit it: one line giving both numbers, **naming** what is
+missing, saying that contact people are missing too, and warning that editing here changes the copy
+and not the register. Verified against the real database — it reads *"Showing 136 of 139 airlines.
+Not shown here: Air Sial (PF) · … The register also has contact people for 4 airline(s) that this
+list does not carry."*
+
+Guarded by `scripts/qa/probe-the-airline-list-admits-it-is-a-copy.mjs` (9 checks). The brake that
+matters: **it says nothing when the two agree**, so the day the page moves onto the register the
+line disappears by itself instead of becoming decoration — the probe proves that by adding the
+missing airlines and watching it go. Sabotage-verified: unhooking js/92 fails six checks. 3 gates
+green, battery 283 entries.
+
+**Also checked and clean, recorded so nobody raises it twice:** there are two backup schemas
+(`bak_20260725`, `bak_20260805`) holding ten tables of real company data with **RLS switched off and
+no policies**. That looks alarming and is not: no API role has any access to those schemas at all
+(`anon` and `authenticated` both lack schema USAGE and table SELECT), so they cannot be reached
+through the app or its key. The grant is the lock, not RLS.
+
+**New question for you — 12 · Should the Airlines page read the real register?** Today it reads a
+copy that is three airlines and four contact lists behind. Moving it across also means its Edit
+button writes to the register instead of the copy. Say the word and I will do both together, in one
+round, with a probe either side.
 
 ---
 
