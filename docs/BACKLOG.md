@@ -92,6 +92,47 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #175 (2026-09-20 ~13:00 UTC) — three pages reporting zeros in Direct's name
+
+Bookings, Invoices and Tickets mirror records that Direct owns. Each one prints a row of confident
+totals:
+
+| | |
+|---|---|
+| **Invoices** | INVOICES 0 · **BILLED 0 SAR** · PAID 0 · **OUTSTANDING 0** · ZATCA CLEARED 0/0 · AR aging 0–30 days 0 |
+| **Bookings** | BOOKINGS 0 · TICKETS 0 · **TOTAL SALE 0 SAR** · MARGIN — |
+| **Tickets** | TICKETS 0 · OPEN 0 · USED 0 · REFUNDED 0 · ADM-FLAGGED 0 |
+
+…under a banner that read **"🔒 Live from the Direct system — read-only."**
+
+**Nothing is live.** Your own Sync page says it in plain words: *"Live two-way sync arrives with the
+hosted backend phase."* There is no connection to Direct. Those three lists are empty because
+nothing has ever been brought into them — and the app's own finance ledger holds 46 invoices, so
+"BILLED 0 SAR" was not even this app's answer, let alone Direct's.
+
+So somebody opening Invoices was told the figures come live from the system that holds your money,
+and that that system has billed **nothing**. Both halves wrong, and the second is the kind of thing
+that gets repeated in a meeting.
+
+**Fixed in two places, because there were two faults.** "Live" is a claim about a connection, so the
+banner now says what is true either way — **"Direct is the system of record — read-only here"**. And
+`js/94` puts one line **above the totals** on each of the three pages while they hold nothing: the
+zeros are this page's own count of what it has, which is nothing, and they are **not Direct's
+figures** — open Direct for the real ones.
+
+Guarded by `scripts/qa/probe-empty-mirrors-do-not-speak-for-direct.mjs` (8 checks). The brake: **the
+line disappears the moment a page holds records**, so it cannot become furniture when an import or a
+real sync finally arrives — and a second check stops the banner fix from throwing out the useful
+half with the false half. Sabotage-verified: unhooking js/94 *and* restoring the old banner fails
+six checks. **New rule M36.** 3 gates green, battery 286 entries.
+
+**How this was found, since it matters:** reading the three mirror pages alone would have shown
+nothing wrong — they look consistent. It only came apart when the Sync page was read next to them
+and said the opposite. When two screens in the same app disagree about whether something is
+connected, one of them is lying to somebody.
+
+---
+
 ## Routine fire #174 (2026-09-20 ~12:00 UTC) — a round that found nothing to fix, and one thing to ask
 
 Three areas swept against the real database. **No code changed**, because nothing was wrong. Recorded

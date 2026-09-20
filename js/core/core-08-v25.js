@@ -375,8 +375,15 @@
            bold with a small Arabic gloss beside it, so an Arabic-mode screen still read as
            English-first. Now the language actually being used gets the bold/primary slot;
            the other language stays as the small gloss. */
-        var enTx="<b>Live from the Direct system — read-only.</b> Create, edit &amp; billing happen in Direct.";
-        var arTx="<b>مباشر من نظام دايركت — للعرض فقط.</b> الإنشاء والتعديل والفوترة تتم داخل دايركت.";
+        /* 2026-09-20 (fire #175): this said "LIVE from the Direct system", on three pages that
+           are not connected to Direct at all — the Sync page in this same app says in plain words
+           that "live two-way sync arrives with the hosted backend phase". Read together with the
+           zeros these pages print (BILLED 0 SAR, OUTSTANDING 0, ZATCA CLEARED 0/0) the word "live"
+           turned an empty mirror into a statement about the company's billing. What is true either
+           way is that Direct owns these records and nothing here can change them, so that is what
+           it says now. */
+        var enTx="<b>Direct is the system of record — read-only here.</b> Create, edit &amp; billing happen in Direct.";
+        var arTx="<b>نظام دايركت هو المرجع — هنا للعرض فقط.</b> الإنشاء والتعديل والفوترة تتم داخل دايركت.";
         var secondaryDir=_roAr?"ltr":"rtl";
         b.innerHTML="<span class='ro-ic'>🔒</span><span class='ro-tx'>"+(_roAr?arTx:enTx)+"</span><span class='ro-ar' style='direction:"+secondaryDir+"'>"+(_roAr?enTx.replace(/<\/?b>/g,''):arTx.replace(/<\/?b>/g,''))+"</span><a class='ro-link' target='_blank' rel='noopener' href='"+href+"'>"+_roBtnLab+"</a>";
         view.insertBefore(b, view.firstChild);

@@ -1204,6 +1204,31 @@ count, soft-deleted rows excluded) is the one that catches the caching bug comin
 card's own figures must still be drawn.
 *Date: 2026-09-20. Status: ACTIVE.*
 
+**M36 — a page never reports a number in another system's name, and "live" is a claim that must be
+true.** Found 2026-09-20 (fire #175). Bookings, Invoices and Tickets mirror records Direct owns.
+Each printed a row of confident totals — "INVOICES 0 · BILLED 0 SAR · PAID 0 · OUTSTANDING 0 · ZATCA
+CLEARED 0/0", "BOOKINGS 0 · TOTAL SALE 0 SAR", "TICKETS 0 · OPEN 0 · REFUNDED 0" — under a banner
+reading **"Live from the Direct system — read-only."**
+Nothing was live. The **Sync page of this same app** says so in plain words: *"Live two-way sync
+arrives with the hosted backend phase."* There is no connection to Direct; those lists are empty
+because nothing has ever been brought in. The company's own finance ledger holds 46 invoices, so
+"BILLED 0 SAR" was not even this app's own answer. A person opening Invoices was told the figures
+came live from the system of record, and that the system of record had billed nothing — both false,
+and the second is the sort of thing somebody repeats in a meeting.
+Two halves, because the defect had two. **The word "live" is a factual claim about a connection**:
+the banner now says Direct is the system of record and this page is read-only, which is true whether
+or not anything is ever connected. And **an empty mirror must say it is empty before it shows a
+total**, so a zero cannot be read as the other system's answer (js/94, above the totals, naming the
+exact wrong conclusion — "these are not Direct's figures").
+The general rule: **when one screen in the app contradicts another about whether something is
+connected, at least one of them is lying to somebody.** The Sync page's honesty is what exposed this;
+a sweep that only read the three mirror pages would have found nothing wrong.
+Guard: `scripts/qa/probe-empty-mirrors-do-not-speak-for-direct.mjs`. The brake is that **the line
+disappears once the page holds records**, so it cannot become furniture the day an import or a real
+sync arrives; and a second check keeps the useful half of the banner from being thrown out with the
+false half.
+*Date: 2026-09-20. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
