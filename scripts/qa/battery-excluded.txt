@@ -9,6 +9,7 @@
 audit-crm-full : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 audit-proposal-client-pickers : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 audit-ui-golive : stale — its chip-contradiction rule predates the 2026-09-09 Hide-closed rule (All counts open stages only) and its latin-leak check flags the mock's own seed names; superseded by probe-leads-counts and sweep-language
+check-public-surface : reaches the LIVE project rather than the mock — it asks, as a caller with no sign-in, whether any table, money-document bucket or the app function hands out anything. It needs network and must not be run 250-at-a-time against production. Run it by hand during a sweep, alongside get_advisors(security); DECISIONS M20 says when. Proven able to fail: a table with row-level security off makes it exit 1 and name the table (verified 2026-09-20 with a throwaway canary table, created and dropped the same minute).
 diag-abumajd : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 diag-audit-fixes : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 diag-audit-logins : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
@@ -40,6 +41,7 @@ probe-cowork-fixes : credential-gated — signs in as a real member of staff; em
 probe-delete : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 probe-firstlogin : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 probe-freeze : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
+probe-fullwalk : special-run — needs the proxy stripped (env -u HTTPS_PROXY ...) and uses predicate route matchers, so it is not a standard -j battery probe; run it by hand when a container can drive Chromium
 probe-generator-brand : generator-qa — the document Generator track's own battery; that task runs it, this one does not. Nobody in this session has ever run these; the Generator task should confirm they still pass and say who runs them.
 probe-golive : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 probe-handover : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
@@ -64,4 +66,3 @@ verify-manager : credential-gated — signs in as a real member of staff; emp-ri
 verify-pages : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 verify-savepages : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
 verify-teamscreen : credential-gated — signs in as a real member of staff; emp-rig reads the passwords from DB_PW_*, which are never in this repository
-probe-fullwalk : special-run — needs the proxy stripped (env -u HTTPS_PROXY ...) and uses predicate route matchers, so it is not a standard -j battery probe; run it by hand when a container can drive Chromium

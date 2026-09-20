@@ -1,0 +1,10 @@
+# Doors that ARE open to somebody who has not signed in, each with the reason it is allowed to be.
+# Read BOTH ways by scripts/qa/check-public-surface.mjs: an unjudged open door fails the check, and
+# a judged one that has since closed fails too, because a stale entry is as misleading as a missing
+# one. Format: name<TAB>reason.
+#
+# A table entry is written as  table:<name>.  Anything else is a note the check prints but does not
+# test — used for doors that are open by decision rather than by accident.
+
+manual-confirm /data	Serves three flagged records — one company and two contacts, two of them with a real e-mail and phone — to anyone with no sign-in. Its WRITE path was closed on 2026-09-20 by the trg_guard_manual_confirm trigger (DECISIONS M22). The read path is the owner's decision: closing it means deleting the function or redeploying it behind a sign-in, and the app shows a "needs confirmation" badge it cannot clear, so that page is the only thing that can. See fire #134.
+proposals bucket	Still public, and deliberately so: a proposal's public address is stored inside the offer record (o.fileUrl in js/core/core-04-proposals.js) and a proposal is a client-facing document that may be meant to open from a link. Making it private would break every stored address. Nothing is at risk today — all 16 files in it are zero-byte placeholders and the workspace holds 0 offers. See fire #133.

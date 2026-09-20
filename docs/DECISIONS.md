@@ -846,6 +846,26 @@ holds, and bound that — obscurity of the address is not a bound, since the pro
 printed in the app's own public page.
 *Date: 2026-09-20. Status: ACTIVE (write half closed; read half OPEN — awaiting the owner's call).*
 
+**M23 — the battery cannot see the live project, so the live project gets its own check, run by
+hand.** Added 2026-09-20 (fire #137) after one sweep found four separate doors open to somebody who
+had not signed in — two RLS-off backup tables (M20), two money-document buckets (M21), an
+unauthenticated service-role write path (M22), and a 1 MB sign-in-capable copy of the app served
+out of Storage that called the whole-blob `save_state`. Every one was found by hand with curl, and
+250 green probes said nothing about any of them, because every probe in the battery drives the app
+against a mock. `scripts/qa/check-public-surface.mjs` is that search as one command: it reads the
+publishable key out of the app's own page — no secret, exactly an outsider's position — then asks
+every table in `scripts/qa/public-surface-tables.txt`, the three money-document buckets and the
+`app` function whether they hand anything to a caller with no sign-in. Doors open by DECISION are
+judged in `scripts/qa/public-surface-judged.txt` with a written reason, gated both ways like
+`scripts/qa/reports.txt`. It sits in `scripts/qa/battery-excluded.txt` on purpose: it touches
+production and needs network, so it is run during a sweep, not 250-at-a-time. **Its own blind spot,
+stated inside the file: the API refuses to list its tables to that key, so the list is a snapshot
+and a table added later is not covered — `get_advisors(security)` is the check for that, and the
+two together cover what neither does alone.** Proven able to fail rather than assumed: a throwaway
+table with row-level security off, created and dropped the same minute, made it exit 1 and name the
+table.
+*Date: 2026-09-20. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

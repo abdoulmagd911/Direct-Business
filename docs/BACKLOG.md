@@ -1,3 +1,42 @@
+## Routine fire #137 (2026-09-20 ~16:00 UTC) — the search that found four open doors, turned into one command
+
+Fires #131, #133, #134 and #136 each found a door standing open to somebody who had **not signed
+in** — two backup tables with row-level security off, the two storage buckets holding documents for
+real money, an unauthenticated service-role write path, and a 1 MB sign-in-capable copy of the app
+served out of Storage. Every one was found **by hand, with curl, one at a time**. And **250 green
+probes said nothing about any of them**, because every probe in the battery drives the app against
+a mock and cannot see the live project's own settings.
+
+**`scripts/qa/check-public-surface.mjs`** is that search as one command. It reads the publishable
+key **out of the app's own page** — no secret of any kind, which is exactly an outsider's position —
+then asks, as a caller with no sign-in:
+
+- every one of the **95 tables** the public schema holds → each must return nothing (**it does: 0 of
+  95 answer**);
+- the three money-document buckets (`payment-proofs`, `expenses`, `company-docs`) → none may list;
+- the `app` function → it must redirect, never serve a copy of the application again (#136).
+
+**Doors that are open by decision are judged in writing** in `scripts/qa/public-surface-judged.txt`,
+gated both ways like `reports.txt`: an unjudged open door fails, and a judged one that has since
+closed fails too. Two entries today — manual-confirm's `/data` (the owner's call, #134) and the
+`proposals` bucket (its address is stored in the offer record, #133).
+
+**Proven able to fail, not assumed.** A check that has never been seen to fail is not a check, so a
+throwaway table with row-level security off was created and dropped the same minute: it made the
+check **exit 1 and name the table**. A deliberately stale judged entry fails it too.
+
+**Its blind spot is written inside it**, because a check that hides what it cannot see is worse than
+none: the API refuses to list its own tables to that key (401 — itself correct), so the table list
+is a **snapshot**, and a table created later is not covered. `get_advisors(security)` is the check
+for that. The two together cover what neither does alone — that is recorded as **DECISIONS M23**.
+
+It is in `battery-excluded.txt` **on purpose**, with the reason written there: it touches production
+and needs network, so it is run by hand during a sweep, not 250-at-a-time.
+
+3 gates green (41 ACTIVE rules, 143 citations), and the new check green.
+
+---
+
 ## Routine fire #136 (2026-09-20 ~15:00 UTC) — an old copy of the app was still live, and it could overwrite everyone's work
 
 **Fixed.** The `app` edge function was still serving `site/app.html` out of Storage: a **working,
