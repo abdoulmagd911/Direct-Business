@@ -1,3 +1,37 @@
+## Routine fire #151 (2026-09-21 ~07:30 UTC) — one record was asking not to be called, and nothing said so
+
+The last open question from fire #147, answered by doing it (standing rule 9). Every company row
+carries three fields the import and scrub pipeline writes and nobody in this app edits — and none
+of the three was ever read:
+
+- **`verification_source` — 81 of the 108 live companies.** Not a code, a sentence: *"Contact-form
+  submission, classified with the owner 2026-08-16."* The team has been working those 81 leads
+  unable to see that they were already classified with you.
+- **`needs_manual_confirmation` — true on one company**, with **`confirmation_reason`** saying why:
+  *"Organisation inferred from the email domain only — confirm the company before any outreach."*
+  That record looked exactly like every other record. The warning reached nobody, and the outreach
+  it asks you to hold off on was one click away.
+
+**And the app already had a place for it.** `js/09`'s "needs attention" filter tests
+`needsManualConfirmation` — somebody meant this to work. No record's raw blob has ever held that key
+(0 of 108, checked live), so that branch could never fire. Bridging the column makes the filter
+start working on its own, and the flagged company now turns up where a person would look.
+
+`js/02` reads the three columns (the column wins outright — the app never edits them, so a stale
+copy in a raw blob must never outlive it, per **M26**). New layer **`js/86-where-this-came-from.js`**
+adds the visible half: a quiet grey line saying where the record came from, and, when flagged, an
+amber line with the reason **above** it, because that is the line that changes what a person does
+next. It is read-only by construction — there is no way to clear the flag from a card, because
+clearing it is a judgement about a real company. Verified against the live database: 81 bridged, the
+warning on exactly one, silent on the 27 with neither.
+
+Guarded by `scripts/qa/probe-a-record-says-where-it-came-from.mjs` — 8 checks, including that a
+company with neither shows nothing, that nothing is written, and that the flagged company reaches
+the attention filter while an identical unflagged one does not. Sabotage-verified twice. 3 gates
+green, battery 266 entries; three neighbours re-run clean.
+
+---
+
 ## Routine fire #150 (2026-09-21 ~06:30 UTC) — two buttons on the Sync page emptied it
 
 Drove the Sync page live, in both languages. It is no longer an integration screen — it is a list of

@@ -171,6 +171,19 @@
     if((o.contractSLA==null||o.contractSLA==='')&&r.contract_sla!=null&&String(r.contract_sla).trim()!=='')o.contractSLA=String(r.contract_sla).trim();
     if((o.contractStart==null||o.contractStart==='')&&r.contract_start)o.contractStart=String(r.contract_start).slice(0,10);
     if((o.contractEnd==null||o.contractEnd==='')&&r.contract_end)o.contractEnd=String(r.contract_end).slice(0,10);
+    /* 2026-09-21 (fire #151): where the record came from, and whether it still needs confirming.
+       These three are written by the import and scrub pipeline, never by a person in this app, and
+       none of them was read: 81 live companies carry a sentence saying where they came from and
+       that they were classified with the owner, and ONE carries a warning — "Organisation inferred
+       from the email domain only — confirm the company before any outreach" — that reached nobody.
+       js/09's own "needs attention" test already asks for `needsManualConfirmation`, and no record's
+       raw blob has ever held that key (0 of 108, checked live), so that branch could never fire.
+       The COLUMN wins outright here, with no raw fallback, precisely because the app never edits
+       these: a stale copy left in a raw blob by a later save must never outlive the column
+       (M26 — a value the app cannot clear must not be one the app prefers). */
+    o.verificationSource=(r.verification_source!=null&&String(r.verification_source).trim()!=='')?String(r.verification_source).trim():null;
+    o.needsManualConfirmation=(r.needs_manual_confirmation===true);
+    o.confirmationReason=(r.confirmation_reason!=null&&String(r.confirmation_reason).trim()!=='')?String(r.confirmation_reason).trim():null;
     // Direct client ID — the link key to Direct Payments. Real column wins over any raw copy.
     if(r.direct_client_id!=null&&r.direct_client_id!=='')o.directClientId=String(r.direct_client_id);
     return o;
