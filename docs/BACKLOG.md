@@ -66,6 +66,46 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #168 (2026-09-21 ~21:00 UTC) — a form that took your corrections and threw them away
+
+The thing #167 measured and left. The company's identity is stored **twice**: the registry every
+document has read since 2026-08-24, and an older block inside the settings record. **Seven of the
+thirteen comparable fields disagree**, including the **VAT registration number** and a **bank IBAN**.
+
+On `/dashboard` sits a card, "🇸🇦 Agency profile — KSA settings", with six boxes — trade name, VAT
+number, IBAN, bank, IATA Wakeel — under the line *"Used on every invoice header, ZATCA QR seed, and
+BSP payout reconciliation."* Driven live against the real database, here is what it really did:
+
+- it **showed** the registry's values, which are the right ones;
+- each box **wrote** to the older block, which nothing reads any more;
+- and the next page load **read the registry again and threw the typed value away**.
+
+That sentence stopped being true on 2026-08-24. So somebody who went in to correct the company's
+VAT number would watch it accept the change, believe the company's VAT number was now right
+everywhere, and have changed nothing at all. Nothing on the screen would say otherwise.
+
+**The card is not deleted — it is made honest.** `js/89` turns it into plain read-only values from
+the registry, says where they are kept and that they are not changed here, and gives a button
+straight to **Company assets & registry**, shown only to somebody who may open that page (a button
+that bounces is its own small lie — the lesson of #165's jump chips). Remove the file and the boxes
+come back; `DB.agency` is untouched.
+
+It also **names the three values the registry has no key for** — the IATA Wakeel / agent number, the
+Zakat / Tax ID and the bank name — instead of drawing three empty boxes. An empty box reads as
+"nobody filled this in"; the truth is "this app has nowhere to keep it", and that is question 8 in
+the list at the top of this file.
+
+Guarded by `scripts/qa/probe-the-identity-card-does-not-pretend.mjs` (8 checks). Two brakes, because
+simply deleting the card would pass most of them: **the card is still there**, and **the values are
+still shown**. Sabotage-verified: unhooking js/89 fails five checks and prints the false sentence
+back, word for word. One honest note on the probe itself — the check that the claim is gone first
+read `innerText`, which skips the very element the sentence lives in, so it **passed against the
+broken copy**; the sabotage run caught that, and it now reads `textContent`. **New rule M30:** a
+migration is finished when the old writer is shut, not when the new reader works. 3 gates green,
+battery 280 entries; six neighbouring document, registry and renewals probes re-run clean.
+
+---
+
 ## Routine fire #167 (2026-09-21 ~20:15 UTC) — the link was handed the filing cabinet, not just the pipeline
 
 Third and last of the share-link rounds. #165 asked what a link holder can **read** off a card;

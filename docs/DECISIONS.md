@@ -1024,6 +1024,38 @@ to hand over nothing: the shared pages still carry rows, Clients still renders, 
 colleague still gets the whole blob.
 *Date: 2026-09-21. Status: ACTIVE.*
 
+**M30 — when a value moves to a new home, the old form that edits it must be closed the same day.**
+Found 2026-09-21 (fire #168). The company's identity moved to the `company_identity` registry: js/66
+hydrates the legacy `AGENCY` block from it (2026-08-24) and #160-#162 pointed every document at it.
+What nobody closed was the **form on the other side**. On `/dashboard`, "🇸🇦 Agency profile — KSA
+settings" still offered six boxes — trade name, VAT number, IBAN, bank, IATA Wakeel — under
+*"Used on every invoice header, ZATCA QR seed, and BSP payout reconciliation."* Driven live: it
+**showed** the registry's values (correct — AGENCY is hydrated before it renders), each box **wrote**
+to `DB.agency`, the older store nothing reads, and the next page load **re-hydrated from the
+registry and threw the typed value away**. Its sentence had been false since 2026-08-24. Somebody
+correcting the VAT number there would believe they had corrected it everywhere and have changed
+nothing — and the two stores have drifted: **seven of the thirteen comparable fields disagree,
+including the VAT registration number and a bank IBAN** (`scripts/qa/diag-agency-profile-card.mjs`,
+a live read-only report).
+The rule is the mirror of #120-#121's *"a field the app prints but no form can write is a gap"*:
+**a form the app offers but that writes nowhere is worse than a gap, because a gap is visible and
+this is not.** So a migration is not finished when the new reader works — it is finished when the
+old writer is shut, or is made to write to the new home.
+Shut, not deleted: js/89 turns the card into read-only values from the registry, says where they are
+kept and that they are not changed here, and links to the page that does change them (shown only to
+somebody who may open it — a button that bounces is its own small lie, the lesson of #165's jump
+chips). `renderDash` still builds its card and `DB.agency` is untouched, so removing js/89 puts the
+boxes straight back.
+It also **names the three values the registry has no key for** — the IATA Wakeel number, the
+Zakat/Tax ID and the bank name — rather than drawing them as empty boxes, because an empty box reads
+as "nobody filled it in" when the truth is "this app has nowhere to keep it".
+Guard: `scripts/qa/probe-the-identity-card-does-not-pretend.mjs`. Two brakes, because deleting the
+card outright would pass most of it: **the card is still there** and **the values are still shown,
+and they are the registry's**. The check that the false claim is gone reads `textContent`, not
+`innerText` — the sentence lived in a `.ch-sub` that `innerText` skips, so the first version of that
+check passed against the broken copy and could not have caught anything.
+*Date: 2026-09-21. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

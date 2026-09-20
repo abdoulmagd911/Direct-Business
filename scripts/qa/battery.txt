@@ -277,3 +277,4 @@ probe-a-share-link-sees-no-internal-notes
 probe-a-shared-card-keeps-our-notes-inside
 probe-a-view-only-link-cannot-take-a-copy
 probe-a-share-link-is-not-handed-the-settings
+probe-the-identity-card-does-not-pretend
