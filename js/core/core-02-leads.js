@@ -283,7 +283,8 @@ function renderClients(v){
      All three are in the haystack now. The parts are also joined with SPACES: e-mail and phone used
      to be concatenated with nothing between them, so a search could match across the seam of two
      different values and hit a record that contains neither. */
-  if(clFilter.q){const q=clFilter.q.toLowerCase().trim();cl=cl.filter(b=>((b.name||"")+" "+(b.nameAr||"")+" "+(b.legalName||"")+" "+(b.directClientId||"")+" "+(b.crVat||"")+" "+((b.contacts||[]).map(c=>String(c.name||"")+" "+String(c.email||"")+" "+String(c.phone||"")).join(" "))).toLowerCase().includes(q));}
+  /* fire #180: was its own copy of this list. Now the shared recordHay (core-01) — see M38. */
+  if(clFilter.q){const q=clFilter.q.toLowerCase().trim();cl=cl.filter(b=>recordHay(b).includes(q));}
   /* 2026-09-03 (round 43): "__none__" lists the clients nobody owns. The dropdown was built from
      the names actually present and .filter(Boolean), so there was no way to ASK for the unowned
      ones — you could only spot the red "Unassigned" tags by scrolling. Live that day: 20 of

@@ -92,6 +92,38 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #180 (2026-09-20 ~18:00 UTC) — three searches, three different answers
+
+Following the rule the last round earned, to every place it applies. This app searches companies
+from **three** places, and each had grown its own list of fields:
+
+| you type | Clients page | Ctrl/Cmd+K palette | top-bar box |
+|---|---|---|---|
+| English name | ✅ | ✅ | ✅ |
+| **Arabic name** | ✅ | ✅ *(only since #179)* | ✅ |
+| **legal name** | ✅ | ✅ *(since #179)* | ❌ |
+| **Direct client ID** | ✅ | ✅ *(since #179)* | ❌ |
+| **CR/VAT number** | ✅ | ✅ *(since #179)* | ❌ |
+| a person who works there | ✅ | ✅ *(since #179)* | ✅ |
+
+So typing a company's **Direct client ID** or **CR/VAT number** into the box in the top bar — the
+one that says *"Search leads, clients, requests, airlines, providers, SOPs"* — found **nothing**,
+while the very same text found it on the Clients page. Three lists drift apart; one cannot.
+
+All three now share a single haystack (`recordHay`). The top-bar box keeps the one thing it had that
+the others lacked — **matching a phone number by its digits**, whatever spacing it was stored with
+(fire #113) — because that is a different mechanism, not a field.
+
+Guarded by `scripts/qa/probe-every-search-agrees.mjs` (14 checks): the same company, found five
+different ways, on both surfaces. Three brakes, because merging searches is the easiest way to break
+them — **nonsense still finds nothing**, **an archived company is offered by neither**, and
+**phone-digit matching still works**. Sabotage-verified: narrowing the shared haystack back to the
+name alone fails all ten field checks and leaves the brakes standing.
+
+3 gates green, battery 289 entries; six existing search and phone probes re-run.
+
+---
+
 ## Routine fire #179 (2026-09-20 ~17:00 UTC) — the keyboard search could not read Arabic
 
 Ctrl/Cmd+K opens a command palette that promises *"Search anything — leads, clients, bookings,

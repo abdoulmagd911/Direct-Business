@@ -286,3 +286,4 @@ probe-the-credit-pool-names-its-source
 probe-empty-mirrors-do-not-speak-for-direct
 probe-a-person-says-where-they-came-from
 probe-the-palette-knows-the-arabic-name
+probe-every-search-agrees

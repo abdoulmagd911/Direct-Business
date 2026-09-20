@@ -1266,8 +1266,8 @@ provenance added in #177 came out in a lead's contacts cell as a bare trailing w
 any flagged contact. CLAUDE.md already carried this warning; it was read and not applied.
 *Date: 2026-09-20. Status: ACTIVE.*
 
-**M38 — two searches over the same records must use the same haystack, and "is it visible?" is not
-`offsetParent`.** Found 2026-09-20 (fire #179).
+**M38 — every search over the same records shares ONE haystack, and "is it visible?" is not
+`offsetParent`.** Found 2026-09-20 (fire #179), and completed by #180 the next round.
 **The search.** The Ctrl/Cmd+K command palette matched a company on `b.name` alone, so the same
 company found by its English name answered "No matches." to its **Arabic** name — 18 of the 108 live
 companies have one — and was equally deaf to the Direct client ID, the CR/VAT number and the contact
@@ -1283,8 +1283,19 @@ test cannot see it. Its real state is the `show` class the app sets. Generally: 
 that a control does not work, confirm the test can see it working** — check the state the app itself
 keeps, and be suspicious of a negative result that would be a bigger story than the bug you went
 looking for.
-Guard: `scripts/qa/probe-the-palette-knows-the-arabic-name.mjs`, whose header carries the
-`offsetParent` note so the next person does not lose the same hour.
+**Completed 2026-09-20 (fire #180): there was a THIRD surface.** The top-bar box — "Search leads,
+clients, requests, airlines, providers, SOPs" — searched name, Arabic name, segment and the people,
+but **not** the legal name, the Direct client ID or the CR/VAT number. So that ID found the company
+on the Clients page and nothing in the top bar. All three now call one helper, `recordHay`
+(core-01); the rule is not "widen the one that is wrong" but **"there is one haystack"**, because
+two correct lists still drift on the third change. What does NOT go in it: the top-bar box's
+phone-DIGIT matching (fire #113), which is a mechanism rather than a field and is guarded
+separately so the merge cannot quietly drop it.
+Guards: `scripts/qa/probe-the-palette-knows-the-arabic-name.mjs`, whose header carries the
+`offsetParent` note so the next person does not lose the same hour; and
+`scripts/qa/probe-every-search-agrees.mjs`, which asks both surfaces for the same company five
+different ways and holds three brakes — nonsense finds nothing, an archived company is offered by
+neither, and phone-digit matching still works.
 *Date: 2026-09-20. Status: ACTIVE.*
 
 ## Session & GitHub-push access — read before assuming a session can push

@@ -599,6 +599,28 @@ function renderDash(v){
 function kpi(ic,col,bg,l,v,s,tr){return `<div class="kpi"><div class="ic" style="background:${bg};color:${col}">${ic}</div><div class="trend ${tr}">${tr==='up'?'● live':'—'}</div><div class="l">${l}</div><div class="v">${v}</div><div class="ch-sub" style="margin:4px 0 0">${s}</div></div>`;}
 
 /* ----- Global search & cross-module actions ----- */
+/* ===== one haystack for every company search (fire #180) =====
+   This app searches companies from three places, and each had grown its own list of fields:
+     · the Clients page filter (widened by fire #148),
+     · the Ctrl/Cmd+K palette (widened by fire #179),
+     · this top-bar box.
+   They disagreed. Typing a company's Direct client ID, its CR/VAT number or its legal name into
+   the top-bar box found nothing, while the very same text found it on the Clients page — and
+   before #179 the palette could not even read an Arabic name. Three lists drift; one does not.
+   M38: when a second surface searches the same records, it shares the first one's haystack.
+   Joined with SPACES so an e-mail and a phone cannot run together into a word that matches
+   neither. Phone-DIGIT matching stays separate — it is a different mechanism (fire #113), not a
+   field. */
+function recordHay(b){
+  try{
+    return ((b.name||'')+' '+(b.nameAr||'')+' '+(b.legalName||'')+' '+(b.directClientId||'')+' '+
+      (b.crVat||'')+' '+(b.segment||'')+' '+
+      ((b.contacts||[]).map(function(c){ return String(c&&c.name||'')+' '+String(c&&c.email||'')+' '+String(c&&c.phone||''); }).join(' '))
+    ).toLowerCase();
+  }catch(_){ return String((b&&b.name)||'').toLowerCase(); }
+}
+try{ window.recordHay=recordHay; }catch(_){}
+
 function runGlobalSearch(q){
   q=(q||'').toLowerCase().trim();const box=document.getElementById('gres');if(!box)return;
   if(!q){box.style.display='none';box.innerHTML='';return;}
@@ -612,7 +634,7 @@ function runGlobalSearch(q){
   const _qDigits=q.replace(/\D/g,'');
   const _byDigits=(_qDigits.length>=5&&_qDigits.length>=q.replace(/\s/g,'').length-2);
   const _phoneHay=(b)=>(b.contacts||[]).map(c=>String(c.phone||'').replace(/\D/g,'')).join(' ');
-  DB.businesses.forEach(b=>{if((b.name+' '+(b.nameAr||'')+' '+(b.segment||'')+' '+(b.contacts||[]).map(c=>c.name+' '+c.email+' '+c.phone).join(' ')).toLowerCase().includes(q)||(_byDigits&&_phoneHay(b).includes(_qDigits)))res.push({t:b.isClient?'Client':'Lead',label:b.name,sub:b.segment||'',go:()=>{openSup=null;openLead=b.id;current='leads';render();}});});
+  DB.businesses.forEach(b=>{if(recordHay(b).includes(q)||(_byDigits&&_phoneHay(b).includes(_qDigits)))res.push({t:b.isClient?'Client':'Lead',label:b.name,sub:b.segment||'',go:()=>{openSup=null;openLead=b.id;current='leads';render();}});});
   (DB.requests||[]).forEach(r=>{if((r.client+' '+r.service+' '+r.detail+' '+(r.owner||'')+' '+(r.pnr||'')).toLowerCase().includes(q))res.push({t:'Request',label:r.client+' · '+r.service,sub:r.stage,go:()=>{openLead=null;openSup=null;current='ops';render();editRequest(r.id);}});});
   (DB.airlines||[]).forEach(a=>{if((a.name+' '+(a.code||'')+' '+(a.source||'')).toLowerCase().includes(q))res.push({t:'Airline',label:a.name+(a.code?' ('+a.code+')':''),sub:a.source||'',go:()=>{openLead=null;supKind='air';openSup=a.id;current='airlines';render();}});});
   DB.vendors.forEach(v=>{if((v.name+' '+(v.type||'')+' '+(v.source||'')).toLowerCase().includes(q))res.push({t:'Provider',label:v.name,sub:v.type||'',go:()=>{openLead=null;supKind='prov';openSup=v.id;current='vendors';render();}});});
