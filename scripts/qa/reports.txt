@@ -30,3 +30,4 @@ sweep-pages : prints each page's rendered length and any console errors.
 verify-pages : prints the per-person page-access matrix as the app draws it.
 verify-savepages : prints what saving the page-access matrix stored.
 diag-two-tabs-one-record : REPORT — measures what two tabs saving the same company leave in the table (LANDMINES B.1, parked by ruling); prints whether the first tab's note survived the second tab's stale save. Nothing to assert until the owner decides on row versioning.
+diag-agency-profile-card : REPORT — drives the LIVE database and measures the Dashboard's "Agency profile — KSA settings" card: which of the two identity stores it shows (the registry), which one its six input boxes write to (the older app_state block, which nothing reads), and which fields disagree between them. Prints lengths and agreement, never the numbers — this repository is public. Nothing to assert until the card is either made read-only or wired to the registry.

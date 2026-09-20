@@ -293,7 +293,30 @@ if(SHARE){
       if(!j||!j.ok){ document.body.innerHTML='<div style="max-width:460px;margin:110px auto;text-align:center;font-family:Cairo,Inter,system-ui,Arial;color:#1C1E2B"><h2 style="color:#FF6B00">Direct Business</h2><p style="font-size:14.5px;line-height:1.7">This share link is not valid any more.<br>Ask the person who sent it for a fresh link.</p></div>'; return; }
       try{
         var d=j.data||{};
-        Object.keys(d.blob||{}).forEach(function(k){ if(k!=='businesses'){try{DB[k]=d.blob[k];}catch(_){}}});
+        /* 2026-09-21 (fire #167): this line used to copy EVERY key of the app_state blob into DB.
+           A share link promises Today, Leads and Clients; the blob also carries the company's
+           `agency` block (bank IBAN, Amadeus office PIN, Zakat/Tax ID), the 799-row `audit` trail,
+           the `serviceFeePricing` scheme, the supplier `integrations` config, the SOPs, the SLAs
+           and the 23 vendors. None of that is the pipeline, and a link holder is outside Direct.
+           Now an ALLOW-LIST: a key nobody named is simply not copied, so a blob key added later
+           does not leak by being forgotten. The `settings` block is trimmed the same way — its
+           finance map, its exclusions and the commercial pool are internal.
+           This is the second of two locks; `share_view` in the database no longer sends the rest
+           at all, so it is not merely hidden from the screen. Guarded by
+           scripts/qa/probe-a-share-link-is-not-handed-the-settings.mjs. */
+        var SHARE_BLOB_KEYS={ meta:1, schemaVersion:1 };
+        var SHARE_SETTINGS_KEYS={ funnels:1, funnelSubs:1, viewPresets:1 };
+        Object.keys(d.blob||{}).forEach(function(k){
+          if(k==='businesses')return;
+          try{
+            if(SHARE_BLOB_KEYS[k]){ DB[k]=d.blob[k]; return; }
+            if(k==='settings'){
+              var s=d.blob.settings||{}, out={};
+              Object.keys(s).forEach(function(sk){ if(SHARE_SETTINGS_KEYS[sk])out[sk]=s[sk]; });
+              DB.settings=out;
+            }
+          }catch(_){}
+        });
         var FBYID={};(d.funnels||[]).forEach(function(f){FBYID[f.id]=f;});
         window.__FUNNELS=d.funnels||[];
         DB.businesses=(d.businesses||[]).map(function(r){return shareRowToApp(r,FBYID);});

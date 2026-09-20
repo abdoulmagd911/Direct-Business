@@ -46,10 +46,12 @@ official licence number, plus VAT, IATA, IBAN, phones and cities. Every row's li
 empty, and no code reads the table. This is the travel-agencies project already parked here — the
 question is whether to start it. *Raised #152.*
 
-**8 · The company registry has no Zakat / Tax ID, so the one-pager cannot print one.** Since #161
-every document prints only what the registry actually holds, and that number is not in it. Give me
-the number and it appears everywhere it belongs; leave it and the documents correctly stay silent.
-*Raised #161.*
+**8 · Is the Zakat / Tax ID the app already holds still current?** Since #161 every document prints
+only what the company registry holds, and the registry has no Zakat / Tax ID — so the one-pager
+correctly stays silent. But #167 found the number **is** in the app, in an older store nothing reads
+any more, along with an IATA Wakeel / agent number and a bank name. Confirm those three are current
+and I move them into the registry, where the documents will pick them up. *Raised #161, answered
+halfway by #167.*
 
 **9 · Arabic wording is needed for 30 KPI titles and five funnel dropdown lists.** An Arabic reader
 currently picks a partner type from raw English keys. This is a content decision about how Direct
@@ -61,6 +63,63 @@ were cleaned in #140. Removing it from the *history* means rewriting the reposit
 breaks any other session's work in flight and cannot be undone. I will not do that without you
 saying so explicitly. The number belongs to someone outside Direct, which is the only reason it is
 on this list at all. *Raised #140.*
+
+---
+
+## Routine fire #167 (2026-09-21 ~20:15 UTC) — the link was handed the filing cabinet, not just the pipeline
+
+Third and last of the share-link rounds. #165 asked what a link holder can **read** off a card;
+#166 what they can **take** away. This asks what the page was **given** in the first place — and it
+turned out neither of the first two touched it.
+
+`share_view` is the database function a share link calls **with no sign-in**. It returned the
+**entire settings record** of the app, and the page copied every key of it into memory. On the live
+row that is **35 keys and 86,801 bytes**, of which a link legitimately needs three. The rest:
+
+| | |
+|---|---|
+| `agency` (25 fields) | the company's **bank IBAN**, its **Amadeus office and PIN**, its **Zakat/Tax ID** |
+| `audit` | **799 rows** of who-did-what-when — the same trail #141 kept from colleagues who cannot open Finance |
+| `serviceFeePricing` | how Direct prices its own service fee |
+| `integrations`, `sops`, `slas`, `vendors` | supplier configuration, 12 SOPs, 14 SLAs, 23 vendors |
+| inside `settings` | the finance group map, the finance exclusions, the commercial pool |
+
+None of that is Today, Leads or Clients. It never showed on a screen, which is why three rounds of
+looking at screens did not find it — it was in the answer behind the page, readable by anyone who
+opened the link and looked at what arrived.
+
+**All four share links are switched off**, so nothing was exposed. Same as #165: that is exactly
+when to fix it.
+
+**Fixed in both places, because they fail differently.** The database function now builds an
+**allow-list** — keep `meta`, `schemaVersion`, and `settings` trimmed to the funnel list, the funnel
+sub-lists and the view presets. **35 keys → 3, 86,801 bytes → 836.** That is the lock that stops the
+data leaving at all. The app then allow-lists again on the way in, which survives an older cached
+copy of the function and catches a key its author forgets later. Allow-list and not a block-list on
+purpose: the failure that matters is the block nobody thought of, and it must be **absent by
+default**. The function carries its own undo in a comment — one line puts the old behaviour back.
+
+Guarded by `scripts/qa/probe-a-share-link-is-not-handed-the-settings.mjs` (7 checks), with one
+marker per internal block so a failure **names which block leaked**. Sabotage-verified: putting the
+old copy back fails two checks and prints all eight — the bank IBAN, the Zakat ID and the Amadeus
+PIN among them. Three brakes, because the cheap way to pass is to hand over nothing: the shared
+pages still carry rows, Clients still renders, and a signed-in colleague still gets everything.
+**New rule M29.** 3 gates green, battery 279 entries; the three earlier share probes re-run clean.
+
+**Also measured, not yet fixed — for the next round.** The company's identity is stored **twice**:
+the registry (which every document has read since #160-#162) and an older block inside the settings
+record. Seven of the thirteen comparable fields **disagree**, including the VAT number and a bank
+IBAN. Driven live: the "Agency profile — KSA settings" card on `/dashboard` shows the **registry**
+values — correct — but its six input boxes write to the **older block, which nothing reads**, and
+the next page load throws the edit away. Its own subtitle still says *"Used on every invoice header,
+ZATCA QR seed, and BSP payout reconciliation"*, which stopped being true on 2026-08-24. So somebody
+correcting the VAT number there would believe they had corrected it everywhere and have changed
+nothing. Report: `scripts/qa/diag-agency-profile-card.mjs`.
+
+**This also answers question 8 in the list above.** The Zakat / Tax ID is **already in the app** —
+it is in that older block, not in the registry. So the question is no longer "send me the number",
+it is "is the number in the old block still current?" Same for the IATA Wakeel / agent number, which
+the card shows as **blank** although the old block has one.
 
 ---
 

@@ -996,6 +996,34 @@ colleague still sees everything, so this is a wall and not a deletion;
 `scripts/qa/probe-a-view-only-link-cannot-take-a-copy.mjs` (both export routes).
 *Date: 2026-09-21. Status: ACTIVE.*
 
+**M29 — a share link is given only what the link promises, and the allow-list is written twice.**
+Found 2026-09-21 (fire #167), finishing the question M28 started: #165 asked what a link holder can
+**read**, #166 what they can **take**, and this asks what the page was **handed** in the first
+place. `share_view` — the `SECURITY DEFINER` database function a link calls with **no sign-in** —
+returned the **whole `app_state` blob**, and js/10 copied every key of it into `DB`. On the live row
+that is **35 keys and 86,801 bytes**, of which a link needs three. The rest included the `agency`
+block (the company's **bank IBAN**, its **Amadeus office and PIN**, its **Zakat/Tax ID**), the
+**799-row `audit` trail** — the same trail #141 kept from colleagues who cannot open Finance — the
+**`serviceFeePricing` scheme**, the supplier `integrations`, the SOPs, the SLAs, the 23 vendors, and
+the finance group map inside `settings`. None of it is Today, Leads or Clients. All four live links
+were switched off when this was found, as in #165 — which is exactly when to fix it.
+**Allow-list, never deny-list**, because the failure mode that matters is the key nobody thought of:
+a block added to `app_state` next month must be *absent by default*, not leak because it was
+forgotten. Kept: `meta`, `schemaVersion`, and `settings` trimmed to `funnels` / `funnelSubs` /
+`viewPresets`. Result 35 keys → 3, 86,801 bytes → 836.
+**Twice**, in both places, because they fail differently: the **database function** stops the data
+leaving at all, which is the only lock that helps against someone reading the network response
+rather than the screen; the **app's own allow-list (js/10)** survives an older cached function and
+catches a key the function's author forgets. Restoring either alone is a regression.
+The function carries its own undo in a comment (replace the built object with `v_blob := v_all;`),
+so the change reverses in one line without a migration.
+Guard: `scripts/qa/probe-a-share-link-is-not-handed-the-settings.mjs` — one marker per internal
+block, so a failure **names which block leaked**; the mock deliberately still answers with the whole
+blob, so what is under test is the app refusing it. Three brakes, because the cheap way to pass is
+to hand over nothing: the shared pages still carry rows, Clients still renders, and a signed-in
+colleague still gets the whole blob.
+*Date: 2026-09-21. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

@@ -836,6 +836,13 @@ export function start(port, seedOverrides){
       // app_state row, businesses is every non-archived row, and last_used_at is stamped.
       // Anon may execute it live (verified: has_function_privilege('anon',…)='t'), so the
       // handler deliberately does NOT check the caller's session — that is the point of the test.
+      // 2026-09-21 (fire #167): the LIVE function no longer returns the whole blob — it builds an
+      // allow-list one (meta, schemaVersion, and settings trimmed to funnels/funnelSubs/viewPresets;
+      // 35 keys → 3, 86,801 bytes → 836), so the agency block, the audit trail, the service-fee
+      // pricing and the supplier integrations never leave the database. This handler still answers
+      // with the WHOLE blob ON PURPOSE: the app's own allow-list in js/10 is the second lock, and a
+      // mock that trimmed too would make that lock untestable. probe-a-share-link-is-not-handed-
+      // the-settings measures the app refusing what this hands it.
       if(fn==='share_view'){
         const tok=parsed&&parsed.p_token;
         if(!tok||String(tok).length<16) return send(res,200,{ok:false,error:'bad token'});
