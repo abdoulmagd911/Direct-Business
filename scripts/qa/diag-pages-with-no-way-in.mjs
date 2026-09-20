@@ -2,16 +2,25 @@
 
    "This is how the finance ledger sat live-but-unreachable for two days" — CLAUDE.md. The app
    routes by address (js/03 keeps a list of valid ones) but builds its sidebar from a DIFFERENT
-   list (`VIEWS`, core-01). Nothing keeps the two in step, so a page can render perfectly and have
-   no button anywhere that opens it.
+   list (`VIEWS`, core-01). Nothing keeps the two in step, so a page can render perfectly and be
+   missing from the sidebar entirely.
 
    That is not hypothetical here: four real companies are archived in the live database, and the
    Archive page — the only screen that can bring one back (js/76, fire from 2026-09-09) — is not in
-   `VIEWS`.
+   `VIEWS`. (It is linked from the Settings page; see the warning below before calling anything
+   unreachable.)
 
    This asks, signed in as an admin (who may open everything, so nothing is hidden by permission):
-   for every routable address, does it draw real content, and is there a visible button that opens
-   it? A page with content and no button is a page nobody will find.
+   for every routable address, does it draw real content, and does the SIDEBAR offer it?
+
+   *** READ THIS BEFORE QUOTING THIS REPORT. ***
+   The "sidebar?" column is about the sidebar and top bar ONLY. It says nothing about links that
+   live INSIDE a page, and this app keeps an admin index on the Settings page which links to
+   several of them. On 2026-09-21 this report was read as proof that Activity & Audit and Archive
+   "had no button anywhere"; they are in fact linked from Settings -> "Admin & history", with
+   working buttons, and the claim had to be retracted (DECISIONS M31). A "no" here means
+   "not offered by the sidebar" and nothing more. To claim a page is genuinely unreachable you must
+   search every visible control on every page, which this report does not do.
 
    Writes nothing: every table write and save_state call is blocked at the route.
    Run:  node scripts/qa/diag-pages-with-no-way-in.mjs                                        */
@@ -117,12 +126,12 @@ await b.close(); srv.close();
 console.log('--- every routable address, signed in as an admin (who may open everything) ---');
 console.log('VIEWS (the sidebar is built from this): ' + survey.views.join(', '));
 console.log('');
-console.log('route        | landed on    | button? | cards | rows | length');
+console.log('route        | landed on    | sidebar?| cards | rows | length');
 for (const o of out) {
   console.log('  ' + o.route.padEnd(11) + '| ' + String(o.landedOn).padEnd(13) + '| '
     + (o.button ? 'yes' : 'NO ').padEnd(8) + '| ' + String(o.cards).padEnd(6) + '| ' + String(o.rows).padEnd(5) + '| ' + o.len);
 }
 const orphans = out.filter((o) => !o.button && o.landedOn === o.route && o.len > 120);
 console.log('');
-console.log('PAGES THAT DRAW REAL CONTENT AND HAVE NO BUTTON: ' + (orphans.length ? orphans.map((o) => o.route).join(', ') : 'none'));
+console.log('DRAW REAL CONTENT AND ARE NOT OFFERED BY THE SIDEBAR (they may still be linked from inside a page — check Settings before calling one unreachable): ' + (orphans.length ? orphans.map((o) => o.route).join(', ') : 'none'));
 console.log('JS errors: ' + errs.length + (errs.length ? ' — ' + errs.slice(0, 2).join(' | ') : ''));

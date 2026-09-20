@@ -14,11 +14,17 @@
        after exactly this kind of hunt). **Four companies are archived in the live database right
        now.**
 
-   So somebody who deletes the wrong company has two screens built to rescue them and no way to
-   click to either. Both are first-class everywhere else: js/56's per-person access matrix offers
-   them by name in both languages, js/52 grants both to managers, `activity` is one of the three
-   pages the database itself enforces, and js/63 already writes both names in English and Arabic.
-   Only the sidebar never heard.
+   Both are first-class everywhere else: js/56's per-person access matrix offers them by name in
+   both languages, js/52 grants both to managers, `activity` is one of the three pages the database
+   itself enforces, and js/63 already writes both names in English and Arabic. Only the sidebar
+   never heard.
+
+   **Correction, recorded the same day (see DECISIONS M31).** The first version of this comment said
+   the two pages could only be reached by typing the address. That was wrong: **Settings ->
+   "Admin & history"** links to both, with working buttons, and always has. The sweep that "proved"
+   otherwise looked only at the chrome outside `#view`, so it could never see a link on a page.
+   What this layer actually buys is discoverability: one click from the nav instead of three clicks
+   inside Settings. Worth having, not a rescue.
 
    **Why not just add them to `VIEWS`.** That was tried first and did nothing, which is the useful
    part: core-08's `v25_2RestructureNav` throws the built nav away and rebuilds it from three
@@ -31,7 +37,7 @@
 
    They go INSIDE the collapsed "Reference" group rather than on the rail: these are recovery
    screens, not daily-driver pages, and v25's whole design intent is a 6-8 item nav. One click to
-   expand is discoverable; no button at all is not.
+   expand beats three clicks inside Settings, and costs the rail nothing.
 
    And they are hidden from anyone who may not open them, re-checked after every render — because
    js/15's gate matches nav buttons against its own older PAGES list, which predates both pages and

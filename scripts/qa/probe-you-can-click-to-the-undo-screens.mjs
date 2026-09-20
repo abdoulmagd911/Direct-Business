@@ -1,4 +1,5 @@
-/* probe-you-can-click-to-the-undo-screens.mjs — the two screens that undo a mistake had no button.
+/* probe-you-can-click-to-the-undo-screens.mjs — the two screens that undo a mistake belong in the
+   sidebar, not only in a list inside Settings.
 
    Fire #169. The app routes by address (js/03's list) but the sidebar is built from somewhere else
    entirely, and nothing keeps the two in step — "this is how the finance ledger sat
@@ -13,8 +14,10 @@
      · **Archive** — the only screen that can bring a deleted company back (js/76). **Four
        companies are archived in the live database right now.**
 
-   So somebody who deleted the wrong company had two screens built to rescue them and no way to
-   click to either.
+   They ARE linked from inside Settings -> "Admin & history", with working buttons, and always have
+   been -- the first write-up of this fire wrongly said they were reachable only by typing the
+   address, because the sweep behind it ignored everything inside a page (DECISIONS M31 carries the
+   correction). What was true, and what this probe holds, is that the sidebar did not offer them.
 
    What this holds:
      1. both buttons exist in the sidebar;

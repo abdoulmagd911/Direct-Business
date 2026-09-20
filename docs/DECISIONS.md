@@ -1056,8 +1056,9 @@ and they are the registry's**. The check that the false claim is gone reads `tex
 check passed against the broken copy and could not have caught anything.
 *Date: 2026-09-21. Status: ACTIVE.*
 
-**M31 — a page is not shipped until something you can click opens it, and the sidebar is not built
-from the list of pages.** Found 2026-09-21 (fire #169) by sweeping every routable address against
+**M31 — the sidebar is not built from the list of pages; and "nothing opens this" is a claim about
+every visible control, not just the chrome.** Found 2026-09-21 (fire #169) by sweeping every
+routable address against
 the live database as an admin, who may open everything, so nothing was hidden by permission. The
 app routes from js/03's list of valid addresses; the sidebar is built from `VIEWS` (core-01), then
 **thrown away and rebuilt** by core-08's `v25_2RestructureNav` from three hardcoded lists
@@ -1065,14 +1066,29 @@ app routes from js/03's list of valid addresses; the sidebar is built from `VIEW
 matter how correct it is — and adding it to `VIEWS` alone does nothing, which is the trap, because
 it looks like the fix. CLAUDE.md already records the cost: *"this is how the finance ledger sat
 live-but-unreachable for two days."*
-Two pages were in exactly that state, and they are the two that undo a mistake: **Activity & Audit**
-(41,636 characters of page on live data — the audit trail and the Undo screen, js/63, the only place
-a change made in the last 24 hours can be reversed) and **Archive** (js/76, the only screen that
-brings a deleted company back — and **four companies are archived in the live database**). Both are
-first-class everywhere else: js/56's access matrix offers them by name in both languages, js/52
-grants both to managers, and `activity` is one of the three pages the database itself enforces.
-Only the sidebar never heard. So somebody who deleted the wrong company had two rescue screens and
-no way to click to either.
+Two pages were missing from the sidebar, and they are the two that undo a mistake: **Activity &
+Audit** (41,636 characters of page on live data — the audit trail and the Undo screen, js/63, the
+only place a change made in the last 24 hours can be reversed) and **Archive** (js/76, the only
+screen that brings a deleted company back — and **four companies are archived in the live
+database**). Both are first-class everywhere else: js/56's access matrix offers them by name in both
+languages, js/52 grants both to managers, and `activity` is one of the three pages the database
+itself enforces.
+
+> **CORRECTION, same day, before this rule had been acted on twice.** The first version of this rule
+> said both pages had **no button anywhere** and could only be reached by typing the address. **That
+> was wrong**, and the error is worth more than the finding. Both are reachable by clicking today:
+> **Settings → "Admin & history" → Activity & Audit / Archive**, two working buttons that land
+> correctly (measured). The sweep that "proved" otherwise —
+> `scripts/qa/diag-pages-with-no-way-in.mjs` — deliberately examined only the chrome **outside**
+> `#view`, so it could never see a link that lives on a page. Its own header even called its
+> detection crude, and a strong conclusion was drawn from it anyway.
+> **The lesson this rule actually earns: "no button" is a claim about the whole app, and a sweep
+> that excludes page bodies cannot make it.** Before saying a page is unreachable, search every
+> visible control including the ones inside pages — Settings in particular, which is where this app
+> keeps its admin index.
+> What survives is smaller and still true: the two recovery screens were **absent from the sidebar**,
+> so finding them meant knowing to look inside Settings. js/90 puts them one click from the nav
+> instead of three clicks deep. That is a discoverability improvement, not a rescue.
 The way to add one is js/18's Finance pattern — **inject the button after the rebuild and re-inject
 after every render**, never touch `VIEWS` (that rebuild matches old buttons to views BY INDEX, and
 js/52 records what counting positions already cost: *"what hid Finance from an employee and showed

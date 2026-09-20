@@ -66,19 +66,37 @@ on this list at all. *Raised #140.*
 
 ---
 
-## Routine fire #169 (2026-09-21 ~21:45 UTC) — the two screens that undo a mistake had no button
+## Routine fire #169 (2026-09-21 ~21:45 UTC) — two recovery screens missing from the sidebar (and a claim I got wrong)
+
+> **Read this first — I overstated this one, and caught it an hour later.** The original write-up
+> below said the two screens had **no button anywhere** and could only be reached by typing the
+> address. **That is not true.** Both are reachable by clicking today: **Settings → "Admin &
+> history" → Activity & Audit / Archive**. I drove it: two working buttons, both land on the right
+> page. The sweep I trusted only looked at the sidebar and top bar — it deliberately ignored
+> anything inside a page, so it could never have seen a link that lives on the Settings page. I had
+> even written in its own notes that its detection was crude, and then drew a confident conclusion
+> from it.
+>
+> **What is actually true:** the two recovery screens were **missing from the sidebar**, so finding
+> them meant already knowing to look inside Settings. `js/90` now puts them one click from the nav
+> instead of three clicks deep. That is a genuine improvement to how easily they are found — it is
+> **not** the rescue-from-nowhere I described. The rest of the round (the buttons, the Arabic, the
+> permission gating, the probe, the two bugs I found in my own layer) stands as written.
+
+
 
 Swept every address the app will open, against the real database, signed in as an admin — who may
 open everything, so nothing could be hidden by permission. Two pages draw real content and appear
-**nowhere in the sidebar**: not on the rail, not inside either collapsed group.
+**nowhere in the sidebar**: not on the rail, not inside either collapsed group. (They *are* linked
+from inside Settings — see the correction above.)
 
 | | |
 |---|---|
 | **Activity & Audit** | 41,636 characters of page on the live data. It is the audit trail **and the Undo screen** — the only place a change made in the last 24 hours can be reversed. |
 | **Archive** | The only screen that can bring back a deleted company. **Four companies are archived in the live database right now.** |
 
-So somebody who deletes the wrong company on Monday and notices on Wednesday has two screens built
-to rescue them, and no way to click to either. The only way in was typing the address.
+So finding either one meant already knowing to look inside Settings, under "Admin & history" — the
+app's admin index, which is where both have always been linked. Nothing in the sidebar said so.
 
 Both pages are first-class everywhere else — the Team & Access screen offers them by name in both
 languages, managers are granted both by default, and the database itself enforces access to the
