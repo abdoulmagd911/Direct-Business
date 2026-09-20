@@ -1,3 +1,69 @@
+# ⬆ Waiting on you — ten decisions, most urgent first
+
+*Written 2026-09-21. These built up one at a time across the sweep, each buried at the bottom of the
+round that found it, which means none of them ever arrived anywhere you'd see. This is the whole
+list in one place. Nothing here is broken software — every one is a judgement only you can make.
+Answer them in any order; each is independent. When one is settled, it moves out of this list and
+into the round that closes it.*
+
+**1 · Four company certificates have lapsed, and the commercial registration expires 2026-12-14.**
+ISO 9001 (Feb 2025), DUNS (Sep 2025), Saudization (Jan 2026), PCI DSS (Jul 2026). The CR is 85 days
+out. Nothing in the app can renew a certificate — this is a real-world deadline, and the only
+software part is done: since #163 the morning screen tells admins and managers when something is
+lapsed or due inside sixty days, so nobody finds out by accident. *Raised #163.*
+
+**2 · One page on the internet still serves three real records with no sign-in.** The
+`manual-confirm` page's `/data` address. It is also the only thing that can clear a "needs
+confirmation" flag, and there are exactly 3 records left flagged (1 company, 2 contacts).
+**Recommended: review those 3, then delete the page** — I can clear the flags directly afterwards.
+Say the word and I do both. If you'd rather keep it, the alternative is putting it behind a sign-in.
+*Raised #134, still open.*
+
+**3 · A view-only share link still shows OWNER, NEXT ACTION, PRIORITY, TIER and HEALTH.** Since #165
+and #166 a link holder can no longer read our call notes, comments or free notes, and can no longer
+download the pipeline. Those five columns are the remaining question: they are internal judgements,
+but they are arguably part of "the pipeline" the link promises. It depends entirely on who you send
+these links to. One line each to take them off. *Raised #166.*
+
+**4 · Where the team's event-website logins will be stored is readable by everyone.** The table is
+**empty today**, so nothing is at risk. But its access rule is "any signed-in user, all operations",
+so the first login saved there is readable — and deletable — by every account including a read-only
+viewer. Worth deciding before the first one is saved, not after. I have not touched it because
+changing a live access rule is how people get locked out. *Raised #120-era, still open.*
+
+**5 · Two client records share one person — are they one company or two?** The app now says so on
+both cards instead of staying quiet. I cannot answer it: merging two real companies that are
+actually one, or keeping two that are actually one, are both wrong in ways only you can see. *Raised
+#142.*
+
+**6 · 58 contact-form submissions are sitting in a table no screen reads.** 55 never reviewed; 38 of
+those are marked *vendor*, 13 *review*, 4 *suspicious*. Only 3 carry an outcome. Either they are
+worth a screen — and I will build one — or they are dead and the table should be archived so it
+stops looking like pending work. *Raised #152.*
+
+**7 · A 200-row registry of travel agencies is in the database, linked to nothing.** 182 carry an
+official licence number, plus VAT, IATA, IBAN, phones and cities. Every row's link to a lead is
+empty, and no code reads the table. This is the travel-agencies project already parked here — the
+question is whether to start it. *Raised #152.*
+
+**8 · The company registry has no Zakat / Tax ID, so the one-pager cannot print one.** Since #161
+every document prints only what the registry actually holds, and that number is not in it. Give me
+the number and it appears everywhere it belongs; leave it and the documents correctly stay silent.
+*Raised #161.*
+
+**9 · Arabic wording is needed for 30 KPI titles and five funnel dropdown lists.** An Arabic reader
+currently picks a partner type from raw English keys. This is a content decision about how Direct
+speaks, not something a QA round should invent. Send the wording and it goes in the same day.
+*Raised #121 and earlier.*
+
+**10 · A supplier analyst's personal mobile is still in this repository's history.** The live files
+were cleaned in #140. Removing it from the *history* means rewriting the repository's past, which
+breaks any other session's work in flight and cannot be undone. I will not do that without you
+saying so explicitly. The number belongs to someone outside Direct, which is the only reason it is
+on this list at all. *Raised #140.*
+
+---
+
 ## Routine fire #166 (2026-09-21 ~19:15 UTC) — and it could take a copy away
 
 Same link, one step further. The panel that mints one promises: *"A link opens Today, Leads and
