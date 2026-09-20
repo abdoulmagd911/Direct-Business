@@ -1,3 +1,59 @@
+## Routine fire #134 (2026-09-20 ~12:00 UTC) — anyone could have overwritten any company or contact, with no sign-in
+
+**The most serious finding of this sweep, and the destroying half is now closed.**
+
+The `manual-confirm` edge function runs with `verify_jwt = false` — no sign-in of any kind, which
+is deliberate; it is a page the owner opens in a browser — **and it holds the service-role key,
+which bypasses every access rule in the database.** Its `/save` endpoint PATCHed `businesses` or
+`contacts` **by id** with whatever fields the caller sent, so it was never limited to the records
+the page exists to fix.
+
+**Measured, with no key at all** (not reasoned from the code): the page answered (9,364 bytes),
+`/counts` answered, `/data` returned **3 real records including two contacts with a real e-mail and
+phone**, and a POST to `/save` returned **HTTP 200**. It changed nothing only because the test
+deliberately aimed at an id that matches no row — verified straight afterwards that no row carried
+the marker and the flags were untouched. With a real id, **which `/data` itself hands out**, any
+column of any of the 112 companies or 45 contacts could have been overwritten.
+
+A 2026-08 note in §12 of this file already said "runs with no login and can edit any lead or
+contact — fine while it is unknown". That is security by obscurity, and **the project reference is
+printed inside the app's own public page**, so the address is not really unknown.
+
+**What was done — and why it is a trigger, not a policy.** No RLS policy can stop this: the service
+role bypasses policies. A trigger does not. `trg_guard_manual_confirm` on `businesses` and
+`contacts` now refuses any update that stamps `confirmed_by`/`confirmed_at` on a row that is **not
+still flagged** for manual confirmation. That is exactly this function's fingerprint: it always
+stamps both, and it is the **only** writer of those two columns on these two tables — verified by
+reading every writer in `js/` (the app sets them on `finance_client_links` only, in js/31 and
+js/41) and by checking that not one row in either table carries a value in them today.
+
+**Verified both ways, inside a block that always aborts so nothing could be written either way:**
+an unflagged row is **blocked** with a plain message naming the table and id; a flagged row is
+**allowed**, so the page still does its job; and an ordinary company edit and an ordinary contact
+edit — the exact updates the app sends — are both **ALLOWED**, untouched.
+
+### ⚠ One decision for Abdulrahman — the reading half is still open
+
+I closed what could destroy data. I did **not** close what can be read: `/data` still hands three
+real records, two of them with an e-mail and phone, to anyone who opens that address with no login.
+Closing that means either deleting the function or redeploying it behind a sign-in, and **I did not
+do it blind**: redeploying means reproducing 9 KB of that page's HTML exactly, and if I mistyped it
+the page would break — and my rollback would carry the same risk.
+
+**The trade-off you need to know:** the app **shows** a "⚠ needs confirmation" badge on a flagged
+contact but has **no way to clear it**. That page is the only thing that can. There are 3 flagged
+records left (1 company, 2 contacts).
+
+**Recommended: delete `manual-confirm`.** Its whole job is those 3 records, and once they are
+reviewed the flag can be cleared directly — say the word and I will do that part. If you would
+rather keep the page, the alternative is a redeploy behind a sign-in, which I can prepare with the
+source in the repository so the change is reviewable instead of invisible.
+
+3 gates green. No app code changed; the change is on the database and reverses by dropping one
+trigger.
+
+---
+
 ## Routine fire #133 (2026-09-20 ~11:00 UTC) — a payment proof's address worked for anyone, for ever, with no sign-in
 
 **Fixed, in the app and on the live database, verified both ways.** The two buckets holding

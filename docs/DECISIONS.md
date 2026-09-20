@@ -824,6 +824,28 @@ must open its tab inside the click and fill it in afterwards or the browser bloc
 a client-facing document, so that is the owner's call, not a QA fix.
 *Date: 2026-09-20. Status: ACTIVE.*
 
+**M22 — a function that runs without a sign-in must never hold a key that bypasses the database's
+access rules, unless what it can write is itself bounded.** Found 2026-09-20 (fire #134). The
+`manual-confirm` edge function runs with `verify_jwt = false` — deliberate, it is a page opened in
+a browser — while holding the service-role key, and its `/save` endpoint patched `businesses` or
+`contacts` BY ID with whatever fields the caller sent. Measured with no key at all: the page
+answered, `/data` returned three real records including two contacts with a real e-mail and phone,
+and a POST to `/save` returned HTTP 200 (it changed nothing only because the test used an id
+matching no row). No RLS policy can stop this — the service role bypasses policies — so the bound
+is a TRIGGER: `trg_guard_manual_confirm` on both tables refuses any update that stamps
+`confirmed_by`/`confirmed_at` on a row that is not still flagged for manual confirmation, which is
+that function's exact fingerprint and nothing else's (the app writes those two columns on
+`finance_client_links` only — `js/31-v48-team-access-one-simple-page-to-manage-.js` and
+`js/41-money-in.js`). Verified both ways in an always-aborting block: unflagged row blocked,
+flagged row allowed, ordinary company and contact edits untouched. **The reading half is left
+open on purpose and is the owner's decision** — `/data` still serves three records to anyone with
+no login; closing it means deleting the function or redeploying it behind a sign-in, and a blind
+redeploy would mean reproducing 9 KB of its HTML exactly, with the same risk in the rollback. The
+general rule: before trusting `verify_jwt = false`, ask what the function can WRITE with the key it
+holds, and bound that — obscurity of the address is not a bound, since the project reference is
+printed in the app's own public page.
+*Date: 2026-09-20. Status: ACTIVE (write half closed; read half OPEN — awaiting the owner's call).*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
