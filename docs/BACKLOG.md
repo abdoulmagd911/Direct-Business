@@ -1,3 +1,44 @@
+## Routine fire #132 (2026-09-20 ~10:00 UTC) — who can destroy what, and what comes back
+
+Read-only follow-on to #131, and the point of it is the distinction the owner asked for: what is
+actually broken versus what only sounds alarming. **Nothing needed changing.**
+
+**Every real-data table names the roles allowed to delete from it** — businesses and contacts
+(admin, manager, bd, team_member), activities (+ operations), sops/slas/airlines/providers (their
+own lists), finance_invoices and finance_client_links (`can_edit_page('finance')`), app_users
+(admin only), share_links (admin only).
+
+**One table is the exception: `ksa_events`.** Its rule is simply `true`, so at the database level any
+signed-in account — including a read-only viewer — could delete all **80 real events** (the team's
+plan: 25 undecided, 27 attend, 12 stand, 13 mine, 3 skip). The app's own screens gate this, but the
+database does not.
+
+**It is recoverable, which is what decides how urgent it is.** `ksa_events` carries its own audit
+trigger (`trg_ksa_events_audit` → `log_ksa_events_audit()`) writing **the whole row** into
+`ksa_events_audit` on every insert, update and delete — **139 rows there today**, one of them a
+recorded delete. So an accidental wipe is undoable from the database:
+
+```sql
+insert into ksa_events select * from jsonb_populate_record(null::ksa_events, old_data)
+from ksa_events_audit where operation = 'DELETE' and changed_at > '<the moment it happened>';
+```
+
+Two honest caveats, recorded rather than acted on: the app's own undo screen reads `record_history`,
+which events do not write to, so the recovery above is a database job, not a button; and the audit
+table's own policy is `true` as well, so a *deliberate* wipe could take the trail with it. Against
+the real threat here — somebody's accident on an internal tool used by eleven known colleagues —
+the trail survives, so this stays a recorded note, not a change. **Deliberately not "fixed":**
+tightening that policy is exactly the kind of edit that can lock the Events editor out for everyone,
+and fire #122 declined the same class of change for the same reason.
+
+Also swept: only businesses, contacts and finance_invoices have a `record_history` trigger, so the
+app's undo covers those three and nothing else. Recorded so it is not mistaken for wider coverage.
+
+3 gates green. No code and no database change this round — the one change that was needed was made
+in #131.
+
+---
+
 ## Routine fire #131 (2026-09-20 ~09:00 UTC) — a full workspace snapshot was readable with no sign-in at all
 
 **Fixed on the live database, verified before and after.** Two leftover tables from a 2026-09-09
