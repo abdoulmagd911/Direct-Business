@@ -165,23 +165,48 @@ try {
    structural, so it will keep happening: js/35's global handler, from 2026-08-08, only ever looks at
    `#modal` and calls closeModal(), so every layer that builds its own element has to wire the key
    itself — and nothing reminded anyone to.
-   A file that creates a fixed, full-screen overlay of its own must therefore mention Escape. This is
-   deliberately a crude test — the word, in the same file — because the alternative is no test at all
-   and a fourth round finding a fourth box. A layer that genuinely should trap the key can say so in a
-   comment containing "Escape" and satisfy this honestly. */
+   A file that creates a fixed, full-screen overlay of its own must therefore wire the key.
+   TIGHTENED 2026-09-20 (fire #129), because the crude version of this rule was satisfied by a
+   comment: it looked for the WORD "Escape" anywhere in the file, and js/16 contains "Cancel/Escape"
+   in a note about js/57's pfPrompt twelve hundred lines above its own invoice box — the box with the
+   Delete invoice button on it, which was measured live ignoring the key completely. A comment about a
+   different box is not a handler. The test is now a real key comparison, and a box that genuinely
+   must NOT be dismissible is judged in scripts/qa/overlays-without-escape.txt with its reason. That
+   list gates both ways, like reports.txt and select-lists-judged.txt: an unlisted box with no handler
+   fails, and a listed box that has since grown one fails too. */
 try {
   const fs2 = fs; const jsDir = path.join(ROOT, 'js');
-  const overlayFiles = fs2.readdirSync(jsDir).filter((f) => f.endsWith('.js'));
-  const offenders = [];
+  const listPath = path.join(ROOT, 'scripts', 'qa', 'overlays-without-escape.txt');
+  const judged = new Map();
+  try {
+    for (const line of fs2.readFileSync(listPath, 'utf8').split('\n')) {
+      const t = line.trim(); if (!t || t.startsWith('#')) continue;
+      const [name, ...rest] = t.split('\t');
+      judged.set(name.trim(), rest.join('\t').trim());
+    }
+  } catch (_) { problems.push('overlays-without-escape.txt is missing — the overlay rule needs it to know which boxes are deliberately not dismissible'); }
+  const walk = (dir, pre) => fs2.readdirSync(dir, { withFileTypes: true }).flatMap((d) =>
+    d.isDirectory() ? walk(path.join(dir, d.name), pre + d.name + '/') : (d.name.endsWith('.js') ? [pre + d.name] : []));
+  const overlayFiles = walk(jsDir, '');
+  const offenders = []; const seen = new Set();
   for (const f of overlayFiles) {
     const src = fs2.readFileSync(path.join(jsDir, f), 'utf8');
     /* its own overlay: a fixed element that covers the viewport, built in this file */
     const makesOverlay = /position:fixed;inset:0/.test(src) && /createElement\('div'\)|createElement\("div"\)/.test(src);
     if (!makesOverlay) continue;
-    if (/Escape/.test(src)) continue;
-    offenders.push(f);
+    const key = f.includes('/') ? f : 'js/' + f;
+    const name = f.includes('/') ? f.split('/').pop() : f;
+    const handler = /key\s*===\s*['"]Escape['"]|keyCode\s*===\s*27/.test(src);
+    const listedAs = judged.has(name) ? name : (judged.has(key) ? key : null);
+    if (listedAs) { seen.add(listedAs);
+      if (handler) offenders.push(key + ' is listed in overlays-without-escape.txt as a box that must NOT be dismissible, but it now wires the key — the entry is stale, remove it or the handler');
+      if (!(judged.get(listedAs) || '').length) offenders.push(key + ' is listed in overlays-without-escape.txt with no reason written beside it');
+      continue; }
+    if (handler) continue;
+    offenders.push(key + ' builds a full-screen overlay of its own and never compares a key to Escape, so a person cannot close it from the keyboard (js/35\'s global handler only covers #modal) — wire it, or judge it in scripts/qa/overlays-without-escape.txt');
   }
-  if (offenders.length) problems.push('these layers build a full-screen overlay of their own but never mention Escape, so a person cannot close it from the keyboard (js/35\'s global handler only covers #modal): ' + offenders.join(', '));
+  for (const name of judged.keys()) if (!seen.has(name)) offenders.push(name + ' is judged in overlays-without-escape.txt but no longer builds a full-screen overlay — remove the stale entry');
+  if (offenders.length) problems.push('overlay Escape rule: ' + offenders.join(' · '));
 } catch (e) {
   problems.push('overlay-escape check could not run: ' + e.message);
 }

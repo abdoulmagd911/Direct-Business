@@ -1706,8 +1706,23 @@ window.finRow=function(id){
       '<input id="fin_pref" value="'+escF(r.proposal_ref||'')+'" placeholder="'+_f('Proposal ref — e.g. DB-500101','مرجع العرض')+'" style="padding:6px 8px;border:1px solid var(--line-2,#e6e8ec);border-radius:8px;font:inherit;font-size:12.5px;min-width:170px">'+
       '<button class="btn sm" onclick="finSetOrigin(\''+escF(r.invoice_no).replace(/\x27/g,"\\\x27")+'\')">'+_f('Save','حفظ')+'</button></div>'):'')+'</div>';
   ov.id='finModal';
-  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  /* 2026-09-20 (fire #129) — this box shows one invoice's whole money AND carries the Delete
+     invoice button, and it was the last own-overlay in the app with neither a keyboard way IN nor a
+     keyboard way OUT. Measured live against the real database in both languages: opening it left
+     focus on the page behind (three of six Tab presses walked the page underneath) and the Escape
+     key did nothing at all, so somebody working without a mouse could open it and not leave it.
+     check-structure's overlay rule (fire #92) should have caught the missing Escape and did not: it
+     looked for the word anywhere in the file, and this file says "Cancel/Escape" in a comment about
+     js/57's pfPrompt twelve hundred lines above — a comment about a DIFFERENT box satisfied the
+     gate. The rule is tightened in the same commit to require a real key comparison.
+     Escape is wired on the document rather than on the box (the box is not focused at the moment it
+     is built), and finCloseModal is now the single close path: it releases the trap, unbinds the
+     key and puts the keyboard back where it came from. */
+  ov.onclick=function(e){if(e.target===ov)window.finCloseModal();};
+  _finPrevFocus=document.activeElement;
+  _finBindEsc();
   document.body.appendChild(ov);
+  try{ if(window.v21TrapFocus) v21TrapFocus(ov); }catch(_){}
 };
 /* In-page confirm, not window.confirm() \u2014 a native dialog blocks the whole tab on its own
    modal loop, which froze the owner's own hands-on QA of this exact button (same failure the
@@ -1804,7 +1819,26 @@ window.finRestoreInv=function(invNo){
     });
   });
 };
-window.finCloseModal=function(){var m=document.getElementById('finModal');if(m)m.remove();};
+/* fire #129 — the keyboard's way in and out of the invoice box (see the note in finRow above).
+   Only one listener can be bound at a time, and it unbinds itself if the box was taken off the page
+   by one of the other layers that remove it directly (js/25's revenue-way save, finSetOrigin,
+   finOpenProposal), so a stale key handler cannot outlive the box it belonged to. */
+var _finEscCur=null, _finPrevFocus=null;
+function _finBindEsc(){
+  if(_finEscCur){ try{ document.removeEventListener('keydown',_finEscCur); }catch(_){} _finEscCur=null; }
+  var h=function(e){
+    if(!document.getElementById('finModal')){ try{ document.removeEventListener('keydown',h); }catch(_){} if(_finEscCur===h)_finEscCur=null; return; }
+    if(e.key==='Escape'){ window.finCloseModal(); }
+  };
+  _finEscCur=h; document.addEventListener('keydown',h);
+}
+window.finCloseModal=function(){
+  var m=document.getElementById('finModal');
+  try{ if(m&&window.v21ReleaseTrap) v21ReleaseTrap(m); }catch(_){}
+  if(m)m.remove();
+  try{ if(_finEscCur){ document.removeEventListener('keydown',_finEscCur); _finEscCur=null; } }catch(_){}
+  try{ var f=_finPrevFocus; _finPrevFocus=null; if(f&&f.focus) setTimeout(function(){ try{ f.focus(); }catch(_){} },20); }catch(_){}
+};
 window.finDel=function(id){
   if(finRefuseWrite())return;   // 2026-09-03: was canFinEdit(), the wrapper cycle 12 showed can say yes in a share view
   var ar=isArF();

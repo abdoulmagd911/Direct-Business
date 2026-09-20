@@ -22,7 +22,9 @@
    the event editor behind a row — so after the crawl each is opened through its own entry point and
    measured the same way. That is second best to clicking and is marked as such in the output: what
    is being measured is the BOX, not the path to it. Fire #128 found four of them losing the
-   keyboard, including the box behind every "are you sure" in the app.
+   keyboard, including the box behind every "are you sure" in the app. Fire #129 closed the list with
+   the last two — js/16's invoice box, which carries the Delete invoice button and ignored the Escape
+   key entirely as well, and js/77's share panel.
 
    It is a crawl, so it is not instant: about four minutes, most of it waiting for pages to settle
    between clicks. That is the price of a check that covers boxes nobody has written yet.
@@ -118,10 +120,14 @@ async function run(lang) {
     ['evOpenModal', `if(window.evOpenModal) evOpenModal((DB.ksaEvents||[])[0] && (DB.ksaEvents||[])[0].id);`],
     ['v41Access', `if(window.v41Access) v41Access();`],
     ['permission box', `if(window.__v70box) __v70box('QA keyboard check');`],
+    /* fire #129 — the last two on #127's list. Nothing is deleted: the invoice box is only opened
+       and read, and the share panel is closed before anything on it is pressed. */
+    ['finRow (the invoice box)', `(function(){ var r=((window.FIN&&FIN.rows)||[])[0]; if(r&&window.finRow) window.finRow(r.id); })();`],
+    ['shareLinksPanel', `if(window.shareLinksPanel) window.shareLinksPanel();`],
   ];
   for (const [name, code] of DIRECT) {
     await p.evaluate(() => { [].slice.call(document.querySelectorAll('body > div')).forEach((e) => {
-      if (/^(pfConfirmBox|pfPromptBox|v70box|qa-temp-box)$/.test(e.id)) e.remove(); }); });
+      if (/^(pfConfirmBox|pfPromptBox|v70box|finModal|shareBox|qa-temp-box)$/.test(e.id)) e.remove(); }); });
     await p.waitForTimeout(250);
     const ran = await p.evaluate((c) => { try { eval(c); return true; } catch (e) { return false; } }, code);
     if (!ran) continue;
@@ -159,7 +165,7 @@ all.forEach((x) => console.log('  ' + (x.focusInside && x.tabsOutside === 0 ? 'o
 
 const checks = [
   ['the crawl really opened boxes of a layer’s own — otherwise this passes by finding nothing',
-    all.length >= 8, all.length + ' box(es): ' + JSON.stringify([...new Set(all.map((x) => x.box))])],
+    all.length >= 12, all.length + ' box(es): ' + JSON.stringify([...new Set(all.map((x) => x.box))])],
   ['every one of them takes the keyboard when it opens',
     all.every((x) => x.focusInside), JSON.stringify(bad.filter((x) => !x.focusInside).map((x) => x.box + ' from "' + x.button + '" (focus on ' + x.focusOn + ')'))],
   ['and keeps it — six tabs, none landing on the page behind',

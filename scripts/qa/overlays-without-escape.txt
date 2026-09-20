@@ -1,0 +1,14 @@
+# Overlays that deliberately have NO Escape key — judged, one line each (fire #129, 2026-09-20)
+#
+# check-structure requires every js/ file that builds a full-screen box of its own to carry a REAL
+# Escape key comparison — `key === 'Escape'` or `keyCode === 27` — not merely the word somewhere in
+# the file. The word-anywhere version of this rule (fire #92) passed js/16 for two days on the
+# strength of a comment about a DIFFERENT box twelve hundred lines away, while its invoice box —
+# the one with the Delete invoice button on it — ignored the key completely.
+#
+# A box that genuinely must not be dismissible is listed here with the reason. The gate reads this
+# file BOTH WAYS: an unlisted box with no handler fails, and a listed box that has since grown one
+# (or stopped being an overlay) fails too, because a stale exemption is as misleading as a missing
+# one. Format: filename<TAB>reason.
+#
+js/50-v74-live-access-and-arabic-names.js	The sign-out banner. It has no button at all and a real sign-out follows it a moment later, so letting Escape hide it would leave somebody at a login screen with no idea why. It must stay on the page.

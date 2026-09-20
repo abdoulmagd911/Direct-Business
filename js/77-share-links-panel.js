@@ -34,8 +34,16 @@
      itself. Escape does exactly what the Close button and a click outside already did; the listener is
      removed by close(), so it cannot outlive the box or stack if the panel is reopened. */
   function onEsc(e){ if(e.key==='Escape'){ close(); } }
+  /* 2026-09-20 (fire #129): Escape was wired here in #92, but the keyboard could not get INTO the
+     panel in the first place — opening it left focus on the skip link at the top of the page and all
+     six Tab presses walked the page behind, in both languages. Same cause as #126/#127/#128: a layer
+     that builds its own box does not get the shared modal's protections. core-06's own trap is called
+     by hand, released on close, and the keyboard is put back where it came from. */
+  var sharePrevFocus=null;
   function close(){ try{ document.removeEventListener('keydown',onEsc); }catch(_){}
-                    try{ var b=document.getElementById('shareBox'); if(b)b.remove(); }catch(_){} }
+                    try{ var b=document.getElementById('shareBox'); if(b&&window.v21ReleaseTrap) v21ReleaseTrap(b); }catch(_){}
+                    try{ var b2=document.getElementById('shareBox'); if(b2)b2.remove(); }catch(_){}
+                    try{ if(sharePrevFocus&&sharePrevFocus.focus) setTimeout(function(){ try{ sharePrevFocus.focus(); }catch(_){} },20); sharePrevFocus=null; }catch(_){} }
   function load(cb){
     var c=client(); if(!c){ ROWS=[]; cb(fl('Not connected — try again in a moment.','غير متصل — حاول بعد لحظة.')); return; }
     c.from('share_links').select('token,scope,active,created_by,created_at,last_used_at').order('created_at',{ascending:false}).limit(200).then(function(r){
@@ -62,6 +70,7 @@
   }
   function open(){
     close();
+    try{ sharePrevFocus=document.activeElement; }catch(_){ sharePrevFocus=null; }
     var d=document.createElement('div'); d.id='shareBox';
     d.style.cssText='position:fixed;inset:0;z-index:999999999;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center';
     var note=fl('A link opens Today, Leads and Clients read-only to anyone holding it — no sign-in needed — until it is switched off here. Nothing can be edited through it.',
@@ -73,6 +82,7 @@
       '<div data-share-list><div class="empty">'+esc(fl('Loading…','جارٍ التحميل…'))+'</div></div>'+
       '<div style="display:flex;gap:8px;justify-content:'+(isAr()?'flex-start':'flex-end')+';margin-top:14px"><button class="btn sm ghost" data-share-close>'+esc(fl('Close','إغلاق'))+'</button><button class="btn sm pri" data-share-new>'+esc(fl('Create a new link','إنشاء رابط جديد'))+'</button></div></div>';
     document.body.appendChild(d);
+    try{ if(window.v21TrapFocus) v21TrapFocus(d); }catch(_){}
     document.addEventListener('keydown',onEsc);
     d.addEventListener('click',function(e){
       var t=e.target; if(!t||!t.getAttribute)return;

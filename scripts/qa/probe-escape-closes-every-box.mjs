@@ -58,7 +58,7 @@ const lead = await p.evaluate(() => ((DB.businesses || []).find((x) => !x.isClie
 const up = () => p.evaluate(() => Array.from(document.querySelectorAll('body > *, #ov')).filter((e) => {
   try { const s = getComputedStyle(e); if (s.position !== 'fixed' || s.display === 'none' || s.visibility === 'hidden') return false;
     const r = e.getBoundingClientRect(); return r.width > 300 && r.height > 200; } catch (_) { return false; } }).length);
-const clear = async () => { await p.evaluate(() => { try { closeModal(); } catch (_) { } try { document.querySelectorAll('[data-ev-form],#pfConfirmBox,#v48ov,#v53ov,#teamModal').forEach((x) => x.remove()); } catch (_) { } }); await p.waitForTimeout(400); };
+const clear = async () => { await p.evaluate(() => { try { closeModal(); } catch (_) { } try { document.querySelectorAll('[data-ev-form],#pfConfirmBox,#v48ov,#v53ov,#teamModal,#finModal,#shareBox').forEach((x) => x.remove()); } catch (_) { } }); await p.waitForTimeout(400); };
 
 /* every box, opened the way a person opens it */
 const BOXES = [
@@ -115,6 +115,19 @@ await p.waitForTimeout(2500);
 const teamUp = await p.evaluate(() => !!document.getElementById('v48ov'));
 await p.keyboard.press('Escape'); await p.waitForTimeout(900);
 const teamGone = await p.evaluate(() => !document.getElementById('v48ov'));
+/* 2026-09-20 (fire #129) — js/16's invoice box, the LAST own-overlay in the app with no Escape key
+   at all, and the one that carries the Delete invoice button. It slipped through the rule below for
+   two days because that rule looked for the WORD "Escape" anywhere in the file and js/16 says
+   "Cancel/Escape" in a comment about js/57's pfPrompt twelve hundred lines above its own box. The
+   gate now demands a real key comparison; this drives the key itself. */
+await clear();
+await p.evaluate(() => { try { current = 'finance'; render(); if (typeof finGo === 'function') finGo('ledger'); } catch (_) { } });
+await p.waitForTimeout(1500);
+await p.waitForFunction(() => (((window.FIN || {}).rows) || []).length > 0, { timeout: 40000 }).catch(() => { });
+const invUp = await p.evaluate(() => { const r = (((window.FIN || {}).rows) || [])[0];
+  try { if (r && window.finRow) window.finRow(r.id); } catch (_) { } return !!document.getElementById('finModal'); });
+await p.keyboard.press('Escape'); await p.waitForTimeout(900);
+const invGone = await p.evaluate(() => !document.getElementById('finModal'));
 await b.close(); srv.close?.();
 
 /* the static half: the rule that found these, and the one documented exception, must both survive */
@@ -131,7 +144,13 @@ const checks = [
   ['no native browser dialog was involved', natives.length === 0],
   ['pressing keys wrote nothing of its own', wrote.filter((w) => !/finance_client_links/.test(w)).length === 0],
   ['js/49\'s permission message box closes on Escape', boxUp === true && boxGone === true],
+  ['js/16\'s invoice box — the one with Delete invoice on it — opens and closes on Escape', invUp === true && invGone === true],
   ['check-structure still enforces the rule that found these — a new overlay with no Escape fails the gate', /overlay/i.test(structureSrc) && /Escape/.test(structureSrc) && /position:fixed;inset:0/.test(structureSrc)],
+  ['and the gate now demands a real key comparison, not just the word somewhere in the file', /key\\s\*===\\s\*\['"\]Escape/.test(structureSrc) && /overlays-without-escape/.test(structureSrc)],
+  ['the one box that must not be dismissible is judged in writing, with a reason', (() => { try {
+    const l = fs.readFileSync(REPO + '/scripts/qa/overlays-without-escape.txt', 'utf8');
+    const row = l.split('\n').find((x) => x.trim() && !x.startsWith('#') && x.includes('js/50'));
+    return !!row && (row.split('\t')[1] || '').trim().length > 30; } catch (_) { return false; } })()],
   ['and the one overlay that must NOT be dismissible still says why, so the gate is satisfied honestly', /DELIBERATELY IGNORES Escape/.test(bannerSrc) && !/keydown/.test(bannerSrc.split('signOutWithReason')[1] || '')],
   ['no JS errors', errors.length === 0],
 ];
