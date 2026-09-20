@@ -1,3 +1,20 @@
+## Routine fire #143 (2026-09-20 ~22:30 UTC) — the money reaches the right company, checked
+
+A short verification round on the layer everything in Finance rests on, and it is **clean**:
+
+- **18 invoice groups, all 18 linked to a company.** Nothing is unattributed — `0.00 SAR` of revenue
+  sits in a group with no client behind it.
+- **26 links, none broken:** no link points at a company that no longer exists, none has an empty
+  company, and none points at a company that is not marked a client.
+- **3 companies are reached by more than one group** — which matches the three client-name alias
+  groups the owner set himself. Aliasing working, not duplication.
+- **28 clients; 15 have at least one invoice**, the rest have none yet, which is what a new client
+  looks like.
+
+Recorded so the next session does not re-derive it. Nothing changed.
+
+---
+
 ## Routine fire #142 (2026-09-20 ~22:00 UTC) — two client records share one person, and nothing in the app said so
 
 Checked rule **M18 — one company, one record** against today's data. No two live companies share a
