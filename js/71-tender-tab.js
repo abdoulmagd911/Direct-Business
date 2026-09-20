@@ -168,7 +168,7 @@
     var c=client(); if(!c)return;
     S.identity=[];
     c.from('company_identity').select('key,label_en,label_ar,value_en,value_ar,category,proof_path,sensitive,sort')
-     .order('sort',{ascending:true}).then(function(r){ S.identity=r.error?[]:(r.data||[]); repaint(); });
+     .order('sort',{ascending:true}).then(function(r){ try{window.__identityLoadError=(r&&r.error)?((r.error.message)||'load failed'):null;}catch(_){} S.identity=r.error?[]:(r.data||[]); repaint(); });
   }
   function idv(key,lang){
     var r=(S.identity||[]).find(function(x){return x.key===key;})||{};
@@ -213,21 +213,28 @@
   /* real-design footer strip (2026-08-25): QR · email/site · branches · AR legal
      block. Unified/licence numbers hydrate from the registry when rows exist;
      the printed-footer literals are the text fallback (public footer text). */
-  function regNum(keys,fb){
+  /* 2026-09-21 (fire #160, M27): these two used to fall back to literals written into the code,
+     and the literals had drifted — each was ONE DIGIT SHORT of what the registry holds. So a
+     document built while company_identity had not loaded printed a unified number and a tourism
+     licence number that are not the company's. A missing identifier is a gap somebody notices; a
+     wrong one goes out. Nothing is invented here now: no value, no line. It also keeps the
+     company's own registered numbers where they belong — in the database, not in a public repo
+     (rule 7). The registry is the only source, and js/87 says so on screen when it did not load. */
+  function regNum(keys){
     for(var i=0;i<keys.length;i++){ var v=idv(keys[i],'en'); if(v)return v; }
-    return fb;
+    return '';
   }
   function footHtml(){
     var mail=idv('email','en')||'business@directksa.com';
     var site=idv('website','en')||'www.directksa.com';
-    var unn=regNum(['unified_number','unified_national_number','unn'],'700782406');
-    var lic=regNum(['mot_licence','tourism_licence','licence_number'],'7310322');
+    var unn=regNum(['unified_number','unified_national_number','unn']);
+    var lic=regNum(['mot_licence','tourism_licence','licence_number']);
     return '<div class="td-foot">'+
       '<img class="fq" src="/brand/direct_qr_directksa.png" alt="" onerror="this.style.display=\'none\'">'+
       '<div class="fc">'+esc(mail)+'<br>'+esc(site)+'</div>'+
       '<div class="fb">You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam</div>'+
       '<div class="fl" dir="rtl">الاسم التجاري: شركة المسافر المباشر للسفر والسياحة<br>'+
-        'الرقم الموحد '+esc(unn)+' · رقم الترخيص '+esc(lic)+'</div>'+
+        [(unn?('الرقم الموحد '+esc(unn)):''),(lic?('رقم الترخيص '+esc(lic)):'')].filter(Boolean).join(' · ')+'</div>'+
     '</div>';
   }
   function loadList(force){

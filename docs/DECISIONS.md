@@ -942,14 +942,22 @@ offer a retry. Where the missing thing is money, draw nothing at all rather than
 Finance page's own outage card is the standard ("do not read any figure from this page until it
 loads"). And keep the honest empty state intact: "none" and "unknown" must look different **in both
 directions**, or the fix is just a different lie.
-Known and deliberately NOT yet fixed, listed in `docs/BACKLOG.md` fire #156 so nobody thinks it was
-missed: the four client-document tabs treat a failed `company_identity` load as an empty registry,
-so a quotation or contract built in that window loses its legal name, CR and VAT number.
-*(The Events tab was the other one and was closed in fire #159 — and it shows the shape of the
-judgement: money draws nothing rather than zeros, but a calendar the browser already holds is still
-worth showing, with a line saying it is a copy.)*
+Both places this rule first named are now closed, and each answers differently on purpose — the
+judgement is part of the rule:
+- **money draws nothing rather than zeros** (the Ledger, fire #158);
+- **a calendar the browser already holds is still worth showing**, with a line saying it is a copy
+  (Events, fire #159);
+- **an identifier is never invented** (the five client-document tabs, fire #160). That one was the
+  worst of the three: the fallback literals in the code had drifted a digit from the registry, so a
+  failed read did not lose the company's unified and licence numbers — it printed **two numbers that
+  are not the company's** onto a quotation or a contract. No value, no line, and `js/87` says so on
+  screen before anybody sends it. It also keeps those numbers in the database rather than in a public
+  repo (rule 7).
 Guards: `scripts/qa/probe-a-failed-load-does-not-say-nobody.mjs`,
-`scripts/qa/probe-the-ledger-says-it-could-not-load.mjs`.
+`scripts/qa/probe-the-ledger-says-it-could-not-load.mjs`,
+`scripts/qa/probe-the-events-list-says-it-is-a-copy.mjs`,
+`scripts/qa/probe-a-document-never-invents-the-company.mjs` — the last of which also reads the five
+tabs' source, so a fallback literal cannot quietly come back.
 *Date: 2026-09-21. Status: ACTIVE.*
 
 ## Session & GitHub-push access — read before assuming a session can push

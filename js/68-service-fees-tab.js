@@ -94,7 +94,7 @@
     S.identity=[]; /* in-flight marker */
     c.from('company_identity').select('key,category,label_en,label_ar,value_en,value_ar,show_on_documents,sensitive,sort')
      .order('sort',{ascending:true}).then(function(r){
-        S.identity=r.error?[]:(r.data||[]); repaint();
+        try{window.__identityLoadError=(r&&r.error)?((r.error.message)||'load failed'):null;}catch(_){} S.identity=r.error?[]:(r.data||[]); repaint();
      });
   }
   function idv(key,lang){
@@ -143,21 +143,26 @@
   /* real-design footer strip (2026-08-25): QR · email/site · branches · AR legal
      block. Unified/licence numbers hydrate from the registry when rows exist;
      the printed-footer literals are the text fallback (public footer text). */
-  function regNum(keys,fb){
+  /* 2026-09-21 (fire #160, M27): the fallback literals were each ONE DIGIT SHORT of what the
+     registry holds, so a document built before company_identity loaded printed a unified number
+     and a tourism licence number that are not the company's. A missing identifier is a gap
+     somebody notices; a wrong one goes out. No value, no line — and the company's own numbers
+     stay in the database rather than in a public repo (rule 7). Same change in js/67, 69-71. */
+  function regNum(keys){
     for(var i=0;i<keys.length;i++){ var v=idv(keys[i],'en'); if(v)return v; }
-    return fb;
+    return '';
   }
   function footHtml(){
     var mail=idv('email','en')||'business@directksa.com';
     var site=idv('website','en')||'www.directksa.com';
-    var unn=regNum(['unified_number','unified_national_number','unn'],'700782406');
-    var lic=regNum(['mot_licence','tourism_licence','licence_number'],'7310322');
+    var unn=regNum(['unified_number','unified_national_number','unn']);
+    var lic=regNum(['mot_licence','tourism_licence','licence_number']);
     return '<div class="sf-foot">'+
       '<img class="fq" src="/brand/direct_qr_directksa.png" alt="" onerror="this.style.display=\'none\'">'+
       '<div class="fc">'+esc(mail)+'<br>'+esc(site)+'</div>'+
       '<div class="fb">You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam</div>'+
       '<div class="fl" dir="rtl">الاسم التجاري: شركة المسافر المباشر للسفر والسياحة<br>'+
-        'الرقم الموحد '+esc(unn)+' · رقم الترخيص '+esc(lic)+'</div>'+
+        [(unn?('الرقم الموحد '+esc(unn)):''),(lic?('رقم الترخيص '+esc(lic)):'')].filter(Boolean).join(' · ')+'</div>'+
     '</div>';
   }
   function docClientName(lang){

@@ -1,3 +1,41 @@
+## Routine fire #160 (2026-09-21 ~14:15 UTC) — every client document had two numbers that were not the company's
+
+The second of **M27**'s named gaps, closed — and it turned out to be worse than "a document loses
+its identity block".
+
+All five client-document tabs (price offer, service fees, company profile, contract, tender) print a
+footer with the company's legal name, its **unified number** and its **tourism-licence number**, all
+read from the `company_identity` registry. Each treated a **failed** read as an empty one and filled
+the gap from literals written into the code — and **those literals had drifted: each was one digit
+short of what the registry holds.**
+
+Measured, not deduced. With the registry reachable the footer printed the registry's values; with
+that single request failing, the same footer printed **two different, shorter numbers**. So a
+quotation, a contract or a tender built during one bad request went out with a unified number and a
+tourism-licence number **that are not the company's**. A missing identifier is a gap somebody
+notices. A wrong one is sent.
+
+**Fixed in all five tabs: no value, no line.** The fallbacks are gone, the label goes with the
+value (no dangling "unified number:" with nothing after it), and nothing is filled in from memory.
+It also moves the company's own registered numbers back where they belong — the database, not a
+public repository (**rule 7**). New layer **`js/87`** is the other half of M27: when the registry
+did not load, a `.noprint` line at the top of the Documents page tells whoever is building the
+document, before they send it. It never blocks the editor — a draft is still worth working on.
+
+Guarded by `scripts/qa/probe-a-document-never-invents-the-company.mjs` (6 checks). One of them reads
+the **source** of all five tabs and fails if a fallback literal ever comes back — and it names no
+numbers, because the company's identifiers stay in the database. Sabotage-verified: putting one
+literal back fails two checks and prints the invented number. 3 gates green, battery 272 entries;
+six document and generator probes re-run clean.
+
+**Noted, not touched:** `AGENCY` in `js/core/core-06` still holds a hardcoded copy of the same
+identity (CR, unified number, licence, address, phone, legal name). A round in August already pulled
+the *wrong* values out of it — the outdated VAT number and an IBAN matching no company account — and
+left the rest. It is the same two-sources-of-truth shape that caused today's defect; it is used in
+more places than these five tabs, so it is named here rather than changed in passing.
+
+---
+
 ## Routine fire #159 (2026-09-21 ~13:15 UTC) — a stale list is fine; a stale list pretending to be fresh is not
 
 The first of the two places **M27** named as known-and-not-yet-fixed, now closed. The Events tab
