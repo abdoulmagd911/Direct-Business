@@ -92,6 +92,44 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #176 (2026-09-20 ~14:00 UTC) — five suspicions chased, five came back clean
+
+A round spent trying to break the pipeline data and failing. **No code changed.** Written down so
+the next session does not chase the same five things.
+
+**1 · "Two leads are missing from the Leads page."** The page drew **78** rows while **80**
+non-client companies exist. That is exactly the shape of #171, so I went after it — and it is
+correct: both missing leads are stage **Lost**, and the page carries a **ticked "✓ Hide closed"**
+control with **"Lost 2"** right beside it. The two are one click away and the page says so. Not a
+defect.
+
+**2 · The half-converted-record landmine is clean.** This project's oldest warning is that a company
+is a client in two places at once — a column and a copy inside the record — and changing one without
+the other leaves it half-converted. Checked all 108: **28 clients by the column, 28 by the copy, and
+zero disagreements in either direction.**
+
+**3 · Clients with real money show no money — and that is fine.** Fifteen clients are linked to
+**2,030,764.29 SAR** of ledger revenue while their company record's own value field reads 0. That
+sounds bad and is not: **the Clients table has no money column at all** (Client · Account manager ·
+Tier · Client since · Next review · Health), and that field is used only as a fallback sort key with
+no column to sort by. Nothing wrong is shown to anybody. The field is dormant, not lying.
+
+**4 · No duplicate companies.** Three different tests — same normalised name, same website domain,
+same first twelve characters — found **zero** groups across the 108. The duplicate spellings this
+project fought in August are gone.
+
+**5 · The one real oddity, for you rather than for me.** Exactly **one of your 28 clients is marked
+Lost**, and it has no invoices in the ledger and no recorded value. Every other client is Won. The
+app already handles it honestly — the Clients table shows its Health as "Lost" rather than hiding it
+— so nothing is broken. But a client we lost, with nothing ever billed, is more likely a mis-click
+than a customer. Worth thirty seconds of your eyes; I have not touched it because deciding whether a
+company is a client is yours.
+
+**Also re-run clean this round:** the click-through probe, the events-copy probe, the airline-copy
+probe and the credit-pool probe, all after #175's changes. 3 gates green.
+
+---
+
 ## Routine fire #175 (2026-09-20 ~13:00 UTC) — three pages reporting zeros in Direct's name
 
 Bookings, Invoices and Tickets mirror records that Direct owns. Each one prints a row of confident
