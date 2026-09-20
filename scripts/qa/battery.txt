@@ -264,3 +264,4 @@ probe-you-can-find-a-client
 probe-the-card-shows-what-the-database-holds
 probe-the-sync-page-says-where-to-go
 probe-a-record-says-where-it-came-from
+probe-new-surfaces-hostile-data

@@ -1,3 +1,32 @@
+## Routine fire #153 (2026-09-21 ~09:00 UTC) — the new surfaces, fed bad data
+
+Fires #148-#151 all did the same thing: take a value the **database** holds and put it on a screen.
+Every one of them widened what reaches the page, and none of those values is typed into this app —
+they arrive by import and by SQL. So this round asked what those rounds did not: **what happens when
+one of them is hostile, enormous, or simply not what the column promises?**
+
+Answer: they hold. `scripts/qa/probe-new-surfaces-hostile-data.mjs` (8 checks) feeds an image tag
+with an `onerror`, a script tag, a 5,300-character sentence, a right-to-left override inside a
+company name, mark-up inside a CR/VAT number, and a search term made of regex characters — and
+checks a **canary** the page sets only if something executed. Nothing executed, nothing was written,
+no horizontal scroll at phone width, no error. The sabotage proves it is the escaping doing the
+work: with `esc86()` replaced by a pass-through, **the canary fires and two injected nodes appear
+in the card**.
+
+Two judgement calls worth recording:
+- **Bidi marks are not stripped, on purpose.** U+202E silently reverses everything after it, but a
+  bilingual app needs bidi characters for real Arabic. So the check holds the *behaviour* — such a
+  record stays findable by the readable part of its name and breaks nothing — rather than banning a
+  character the app legitimately needs.
+- **The probe was made deterministic before it was trusted.** Its first run went green, its second
+  red, on unchanged code: `js/86` injects from a `setTimeout` and a fixed wait had been reporting
+  "no mark-up on the page" for a card that simply had not been drawn yet. It now waits for the line
+  itself. A probe that changes colour with the machine's mood is worse than no probe.
+
+3 gates green, battery 267 entries.
+
+---
+
 ## Routine fire #152 (2026-09-21 ~08:15 UTC) — a sweep that found nothing to fix, and two piles of real work nobody can reach
 
 Read-only round. After three rounds of "the database holds it and no screen shows it", this asked
