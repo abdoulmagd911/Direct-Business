@@ -24,7 +24,22 @@
   function fl(en,ar){ return isAr()?ar:en; }
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function client(){ try{ if(window.fc){ var c=fc(); if(c) return c; } }catch(_){} return null; }
-  function canWrite(){ try{ return ['admin','manager','bd','team_member'].indexOf(window.__userRole)>=0; }catch(_){ return false; } }
+  /* 2026-09-20 (fire #184): the role alone was not the whole answer. "Generator" is one of the
+     fifteen pages in the owner's Team & Access matrix, with a Viewer/Editor setting per person —
+     and every editor here ignored it, so somebody set to VIEWER on the Generator was still
+     offered "Save draft" and "Issue …", which takes a document number and puts a document out
+     under Direct's name. The database does not enforce this page (only Finance, Settings and
+     Activity are enforced there), so the screen is the enforcement. Ask the matrix too. */
+  function mayEditDocs(){ try{
+    /* Wait for the matrix before withholding anything. It lands a moment AFTER the page has
+       drawn, and js/52's mayEditPage answers from whatever __pageAccess happens to hold — so
+       without this the buttons could be taken away during the load while js/98's banner, which
+       does wait, said nothing: a page that refuses in silence. The probe's brake caught exactly
+       that. Not loaded yet = no opinion = the old behaviour. */
+    if(window.__pageAccessLoaded!==true) return true;
+    return (typeof window.mayEditPage==='function') ? window.mayEditPage('documents')!==false : true;
+  }catch(_){ return true; } }
+  function canWrite(){ try{ return ['admin','manager','bd','team_member'].indexOf(window.__userRole)>=0 && mayEditDocs(); }catch(_){ return false; } }
   function toast(msg){ try{ if(window.__toast){__toast(msg);return;} }catch(_){}
     var t=document.createElement('div');
     t.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink,#333);color:#fff;padding:10px 16px;border-radius:10px;z-index:9999;font-size:14px';

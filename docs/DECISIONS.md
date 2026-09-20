@@ -1357,6 +1357,32 @@ smaller font**, which is why the probe's brakes are the two cases where the mark
 Guard: `scripts/qa/probe-the-ingest-form-says-what-it-read.mjs`.
 *Date: 2026-09-20, js/97 + js/core/core-06-v18-v21.js. Status: ACTIVE.*
 
+**M42 — a permission the owner sets has to be the permission the screen applies, and a screen that
+withholds something must say so.** Found 2026-09-20 (fire #184). "Generator" is one of the fifteen
+pages in the Team & Access matrix, with a Viewer/Editor setting per person. Driven live with the
+matrix saying **Viewer**, all five document editors still offered **"Save draft" and "Issue …"** —
+and "Issue" is not a draft: it takes a document number from the server and puts a document out
+under Direct's name. Each editor gated on the coarse role (`admin/manager/bd/team_member`) and
+never asked the matrix. The database does not enforce this page — only Finance, Settings and
+Activity are enforced there, which `js/56`'s own header states — **so on the other twelve pages the
+screen IS the enforcement**, and a control that gates on role alone silently voids the owner's
+setting. `js/66`–`js/71` now ask `mayEditPage('documents')` too, and `js/98` says why in one line.
+Two things this round taught, both worth more than the fix:
+**(a) the gate and the explanation must agree about WHEN the matrix counts.** The matrix lands
+*after* the page has drawn. The first version took the buttons away as soon as `mayEditPage`
+answered while the banner waited for `__pageAccessLoaded===true` — a page that refuses in silence.
+Both now wait; not loaded means no opinion. This is the same shape as the `__roleKnown` rule above.
+**(b) withhold the write, never the read.** Print / PDF and Copy stay for a Viewer, and the probe
+holds that as a brake alongside "an admin still has Save", "an Editor still has Save" and "nothing
+is withheld while the matrix is in flight".
+**Measured the same day:** of the 11 live accounts, **nobody is set to Viewer on any page** — every
+matrix entry is Editor — so nothing was wrong on anyone's screen; the setting was waiting to
+mislead the first time it was used. **Nine other pages still ignore `mayEditPage`** (Leads, Clients,
+Proposals, Operations, Reports, Events, Airlines, Suppliers, SOP & SLA — Airlines offering 139
+editable fields to a Viewer, Leads 83). That is recorded for the owner in `docs/BACKLOG.md` rather
+than fixed blind. Guard: `scripts/qa/probe-view-only-on-the-generator-means-it.mjs`.
+*Date: 2026-09-20, js/98 + js/66–js/71. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

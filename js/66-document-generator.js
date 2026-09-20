@@ -33,7 +33,18 @@
   function fl(en,ar){ return isAr()?ar:en; }
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function client(){ try{ if(window.fc){ var c=fc(); if(c) return c; } }catch(_){} return null; }
-  function canEdit(){ try{ var r=window.__userRole; return r==='admin'||r==='manager'; }catch(_){ return false; } }
+  /* fire #184: the Team & Access matrix has a Viewer/Editor setting for the Generator and this
+     registry ignored it. An admin is outside the matrix; a manager set to Viewer is not. */
+  function mayEditDocs(){ try{
+    /* Wait for the matrix before withholding anything. It lands a moment AFTER the page has
+       drawn, and js/52's mayEditPage answers from whatever __pageAccess happens to hold — so
+       without this the buttons could be taken away during the load while js/98's banner, which
+       does wait, said nothing: a page that refuses in silence. The probe's brake caught exactly
+       that. Not loaded yet = no opinion = the old behaviour. */
+    if(window.__pageAccessLoaded!==true) return true;
+    return (typeof window.mayEditPage==='function') ? window.mayEditPage('documents')!==false : true;
+  }catch(_){ return true; } }
+  function canEdit(){ try{ var r=window.__userRole; return (r==='admin'||r==='manager') && mayEditDocs(); }catch(_){ return false; } }
   function toast(msg){ try{ if(window.__toast){__toast(msg);return;} }catch(_){}
     var t=document.createElement('div');
     t.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink,#333);color:#fff;padding:10px 16px;border-radius:10px;z-index:9999;font-size:14px';

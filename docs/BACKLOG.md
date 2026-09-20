@@ -1,4 +1,4 @@
-# ⬆ Waiting on you — fifteen decisions, most urgent first
+# ⬆ Waiting on you — sixteen decisions, most urgent first
 
 *Written 2026-09-21. These built up one at a time across the sweep, each buried at the bottom of the
 round that found it, which means none of them ever arrived anywhere you'd see. This is the whole
@@ -58,6 +58,13 @@ currently picks a partner type from raw English keys. This is a content decision
 speaks, not something a QA round should invent. Send the wording and it goes in the same day.
 *Raised #121 and earlier.*
 
+**16 · Nine pages ignore the "Viewer" setting in Team & Access — which of them matter?** Nobody is
+set to Viewer today, so nothing is wrong on anyone's screen; the setting is waiting to mislead you
+the first time you use it. The Generator was fixed in #184; Airlines (139 typeable fields), Leads
+(83), Suppliers, Events, Clients, SOP & SLA, Proposals, Operations, Reports and Projects still let a
+"Viewer" change things. Name the ones you care about and I will do each the same careful way. Not
+done unasked: a blunt fix across ten pages is how a working screen gets broken. *Raised #184.*
+
 **15 · Three of your 23 suppliers look like the same supplier twice.** *Travelfusion* and *Travel
 Fusion*, *RateHawk* and *Rate Hawk*, *Travelport* and *Galileo / Travelport* — six records, probably
 three suppliers. Each pair holds different details, so merging means deciding which side is right;
@@ -95,6 +102,64 @@ were cleaned in #140. Removing it from the *history* means rewriting the reposit
 breaks any other session's work in flight and cannot be undone. I will not do that without you
 saying so explicitly. The number belongs to someone outside Direct, which is the only reason it is
 on this list at all. *Raised #140.*
+
+---
+
+## Routine fire #184 (2026-09-20 ~22:30 UTC) — "Viewer" in Team & Access was not stopping anyone
+
+Drove the **Generator** as somebody you had set to **Viewer** on that page in Team & Access.
+
+All five document editors still offered **Save draft** and **Issue** — and "Issue" is not a draft:
+it takes a document number from the server and puts a document out under Direct's name, to a client.
+
+| Editor | offered to a Viewer | fields they could type in |
+|---|---|---|
+| Financial proposal | Save draft · Issue offer | 18 |
+| Service fees | Save draft · Issue proposal | 17 |
+| Technical + financial | Save both drafts · Issue technical · Issue financial | 54 |
+| Company profile | Save draft · Issue profile | 3 |
+| Contract | Save draft · Issue contract | 28 |
+
+Nothing on screen said otherwise. Each editor was checking only the person's **role** — admin,
+manager, BD or team member — and never looking at the per-person setting you made. The Generator is
+one of the twelve pages where the screen is the only enforcement (the database enforces only
+Finance, Settings and Activity), so that setting did nothing at all.
+
+**Fixed.** The five editors now check your setting, and the page says one line: *"You have view-only
+access to the Generator. You can open any document, print it and copy it — saving and issuing are
+not yours to do. Ask an admin to change it in Team & Access."* Printing and copying stay — looking
+was never what you were withholding. Admins and anyone set to Editor are untouched.
+
+**How bad is it right now? It isn't — yet.** I counted your 11 accounts: **nobody is set to Viewer
+on any page.** Every entry is Editor. So nothing was wrong on anyone's screen; the setting was
+simply waiting to mislead you the first time you used it.
+
+**But nine other pages still ignore it**, and those are for you to decide on rather than for me to
+change blind. With the matrix set to Viewer everywhere, these still offer write controls:
+
+| Page | still offered to a "Viewer" | typeable fields |
+|---|---|---|
+| Airlines | + New airline · Edit | **139** |
+| Leads | Convert · + New business · Edit | **83** |
+| Suppliers | + New provider | 26 |
+| Events | + Add event · Edit · Delete | 5 |
+| Clients | Edit | 4 |
+| SOP & SLA | + New SOP · Edit | 1 |
+| Proposals | + New proposal | 2 |
+| Operations | + New request | 1 |
+| Reports | Generate Report · + Log achievement | 0 |
+| Projects | + New project | 1 |
+
+Honoured correctly today: Today, Finance, Settings, Activity & Audit, Archive — and now the
+Generator. **Tell me which of those nine matter and I will do them the same way.** I have not done
+them unasked because each one needs driving page by page to be sure nothing legitimate is taken
+away, and a blunt fix across ten pages is exactly how a working screen gets broken.
+
+Guarded by `scripts/qa/probe-view-only-on-the-generator-means-it.mjs` (9 checks). Brakes: an admin
+must still have Save, someone set to Editor must still have Save, printing must survive, and
+**nothing may be withheld while the setting is still loading** — that last one caught a flaw in my
+own first attempt, where the buttons vanished a moment before the explanation was allowed to appear.
+New rule **M42**.
 
 ---
 
