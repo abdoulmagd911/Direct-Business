@@ -1250,7 +1250,7 @@ window.finClient=function(key,name){FIN.tab='ledger';FIN.f.clientKey=key||null;F
        null (not yet mirrored) shows nothing, never "not overdue" (Round 11).
        An invoiced row can be overdue too — the tile/filter/marker count the flag,
        not the stage label (2026-09-02, scripts/qa/probe-ledger-attacks.mjs). */
-var TXN={rows:null,profiles:null,loading:false,collapsed:{},
+var TXN={rows:null,profiles:null,loading:false,loadError:null,collapsed:{},
   f:{q:'',profileType:'all',business:'all',stage:'all'}};
 function txnLoad(cb){
   if(TXN.loading)return; TXN.loading=true;
@@ -1263,8 +1263,13 @@ function txnLoad(cb){
      many transactions — so this was a matter of when, not if. Both page now. */
   finPageAll(function(){return c.from('finance_transactions').select('*').is('deleted_at',null).order('created_at_source',{ascending:false}).order('id',{ascending:true});}, function(r){
     TXN.loading=false;
-    if(r.error){ if(window.console)console.warn('finance_transactions load',r.error); TXN.rows=[]; }
-    else TXN.rows=r.data||[];
+    /* 2026-09-21 (fire #158, found by failing this request on purpose against the real database):
+       an error used to become TXN.rows=[], and the empty-state below then said "the ledger is
+       empty, not filtered" — a sentence written to reassure, printed about a ledger nobody had
+       managed to read, beside three money figures of zero. Remember the failure and say it.
+       Same shape as js/72's people bridge (fire #155). */
+    if(r.error){ if(window.console)console.warn('finance_transactions load',r.error); TXN.rows=[]; TXN.loadError=(r.error&&r.error.message)||'load failed'; }
+    else { TXN.rows=r.data||[]; TXN.loadError=null; }
     finPageAll(function(){return c.from('client_profiles').select('id,business_id,direct_client_id,profile_type,payment_terms,billing_cycle,status').order('id',{ascending:true});}, function(pr){
       TXN.profiles={}; FIN.profileTypeByBiz=FIN.profileTypeByBiz||{};
       ((pr&&!pr.error&&pr.data)||[]).forEach(function(p){
@@ -1388,6 +1393,17 @@ window.txnToggleCo=function(bizId){TXN.collapsed[bizId]=!TXN.collapsed[bizId];re
 function rLedger(){
   var _lh=function(en,ar){return isArF()?ar:en;};
   if(TXN.rows==null||TXN.profiles==null){ txnLoad(); return '<div class="card" style="padding:40px;text-align:center;color:var(--muted)">'+_lh('Loading the ledger…','جارِ تحميل السجل…')+'</div>'; }
+  /* The fourth situation (fire #158). The three sentences further down each describe a ledger that
+     WAS read; this one was not. Nothing is shown rather than zeros, because a zero here is a money
+     figure and the page's own rule — set when the invoices fail — is that nothing on it should be
+     read until it loads. */
+  if(TXN.loadError){
+    return '<div class="card" style="padding:18px 20px;border-color:#F0453A;background:#FDECEB;color:#B42318">'
+      +'<div style="font-weight:800;margin-bottom:6px">'+_lh('Could not load the transactions: ','تعذّر تحميل المعاملات: ')+escF(TXN.loadError)+'</div>'
+      +'<div style="font-size:12.5px;line-height:1.6">'+_lh('Nothing is shown here rather than zeros — a zero on this page is a money figure, and none of it was read.','لا يُعرض هنا شيء بدلًا من أصفار — الصفر هنا رقم مالي، ولم تتم قراءة أي منها.')+'</div>'
+      +'<button class="btn sm" style="margin-top:10px" onclick="TXN.rows=null;TXN.profiles=null;TXN.loadError=null;txnLoad(function(){try{render();}catch(_){}});">'+_lh('Try again','أعد المحاولة')+'</button>'
+      +'</div>';
+  }
   var bizName=_finBizName;
   /* 2026-09-02 (watch cycle 6): a drill-down from a Clients row whose client has no linked
      company (or is an alias group) used to open the WHOLE ledger with nothing saying so. Say

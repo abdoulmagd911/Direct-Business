@@ -1,3 +1,42 @@
+## Routine fire #158 (2026-09-21 ~12:30 UTC) — the money screen's most reassuring sentence, said about a ledger nobody read
+
+Two findings, one read-only and one fixed.
+
+### The 19 invoices with no cost are an honest gap — provably
+
+Checked the whole cost chain in the live database, because M1 turns on it:
+
+- **None of the 46 live invoices carries a transaction reference at all.** So the 19 with no cost
+  cannot be matched to a captured expense: there is nothing being ignored, and nobody is sitting on
+  the missing 214,550 SAR of profit backing. **The app leaving those costs null is correct.**
+- **But there is a landmine beside it.** `finance_expense_lines_capture` holds **223 lines from one
+  import batch (`dp-import-2026-08-25`), 183 of them Approved, 1,935,461.74 SAR** — and **all 75 of
+  its transaction references match nothing live**. The 33 rows in `finance_transactions` are **all
+  soft-deleted**. So anyone who later writes "roll the captured expenses into cost" would be rolling
+  a previous world's numbers into today's profit. Recorded here before somebody does.
+
+### "The ledger is empty, not filtered" — said after the request failed
+
+The Ledger tab already distinguishes three situations with care, one sentence each. There is a
+fourth, and it was wearing the first one's words: `txnLoad` turned an error into `TXN.rows=[]` —
+**exactly the shape fixed in js/72 three rounds ago** — so a ledger nobody managed to read announced
+itself as *empty, **not** filtered*, with **"Confirmed revenue 0 · Confirmed cost 0 · Confirmed
+profit 0"** printed beside it. Three money figures of zero, presented as facts, because a request
+did not come back.
+
+The Finance page already knows the right answer — when the *invoices* fail it says "Nothing was
+loaded — do not read any figure from this page until it loads" and shows nothing else. The Ledger
+tab now meets the same standard: the failure is remembered, the tab says what happened and offers
+**Try again**, and **nothing** is drawn rather than zeros — because a zero here is a money figure.
+Guarded by `scripts/qa/probe-the-ledger-says-it-could-not-load.mjs` (7 checks, both languages, all
+three states: failed, genuinely empty, and with rows). Sabotage-verified: forgetting the failure
+again fails 4 checks and check 1 prints the sentence it should not have said.
+
+3 gates green, battery 270 entries; `probe-ledger-attacks` and `probe-finance-says-it-could-not-load`
+re-run clean.
+
+---
+
 ## Routine fire #157 (2026-09-21 ~11:45 UTC) — is the thing I edited the thing being served?
 
 The question behind months of this project's dead ends, asked properly for once. Every round of this
