@@ -1,3 +1,37 @@
+## Routine fire #154 (2026-09-21 ~09:45 UTC) — press everything, and be an employee for a while
+
+Two dimensions the standing sweep names and this session had only half covered: **every role**, and
+**does anything simply break when pressed**. Both came back clean, and one of them is now guarded.
+
+**Pressed everything, twice.** Eleven pages, every visible button that is not destructive by name,
+against the **real database** — 132 presses in English and 132 in Arabic. **Zero page errors, zero
+console errors.** A layer that throws inside a click handler leaves no trace on screen: the button
+just does nothing and the person presses it again. Seventy-nine script files wrap each other's
+`render()`, so this was worth asking bluntly. New guard:
+`scripts/qa/probe-no-button-throws.mjs` (4 checks, both languages, ~90 presses each under the
+harness). Its first check counts the presses, because the failure mode of a probe like this is
+passing while clicking nothing. Sabotage-verified by making one layer throw on click.
+
+**Was an employee for a while.** Drove the app as a `team_member` — the role 7 of the 11 live
+accounts hold — against the real database, by rewriting only what the app is told about *itself*.
+The access model is correct end to end: the sidebar shows **4 of its 18 entries**, exactly the four
+that role may open; Today, Leads (78 rows), Clients (28) and Finance all render in full; Offers and
+Settings bounce to Today; there is no Team button; no errors.
+
+**Two measurement lessons, worth more than the results:**
+- A first pass reported "the sidebar offers all 18 pages to an employee". It does not — the other
+  fourteen are `display:none`, and the reading had not filtered on visibility. `probe-role-nav.mjs`
+  records that exact mistake in its own header from 2026-08-21; it was made again here from the
+  other direction.
+- A second pass reported "an employee cannot open Leads at all". Also false: the simulated access
+  matrix used `true` where the live one uses `'editor'`, and the app's filter keeps only `editor`
+  and `viewer`, so the fake matrix collapsed to Today alone. **Simulate a role with the shape the
+  database actually stores**, or the simulation invents the defect it then reports.
+
+3 gates green, battery 268 entries.
+
+---
+
 ## Routine fire #153 (2026-09-21 ~09:00 UTC) — the new surfaces, fed bad data
 
 Fires #148-#151 all did the same thing: take a value the **database** holds and put it on a screen.
