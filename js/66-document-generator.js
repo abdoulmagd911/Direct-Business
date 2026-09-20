@@ -146,6 +146,24 @@
      the database. The facts are exposed here so anything that PRINTS a credential can obey it.
      `loaded` matters as much as the rows: a consumer that cannot tell "nothing is blocked" from
      "the registry has not answered yet" would quietly print the old claims again. */
+  /* 2026-09-21 (fire #161) — the VALUES, beside the facts about them. The About one-pager printed
+     the company's DUNS, Zakat/Tax ID, trade licence, Amadeus office and PIN, head-office address and
+     phone from literals written into core-06's AGENCY constant: real registered identifiers sitting
+     in a PUBLIC repository (rule 7), and a second copy that can drift from the registry exactly as
+     the document tabs' copies did (fire #160 — each was a digit short). The registry is the one
+     source; this is how a document asks it for a value rather than remembering one.
+     Returns '' when the key is absent AND when the registry has not loaded — the caller must use
+     dgIdentityLoaded() to tell those apart, the same way dgCredentialFacts' `loaded` works. */
+  window.dgIdentityLoaded=function(){ try{ return !!(DG.rows&&DG.rows.length); }catch(_){ return false; } };
+  window.dgIdentityValue=function(key,lang){
+    try{
+      var r=(DG.rows||[]).find(function(x){ return x&&x.key===key; });
+      if(!r) return '';
+      var en=(r.value_en==null?'':String(r.value_en)).trim();
+      var ar=(r.value_ar==null?'':String(r.value_ar)).trim();
+      return (lang==='ar')?(ar||en):(en||ar);
+    }catch(_){ return ''; }
+  };
   window.dgCredentialFacts=function(){
     /* todayISO() reads the browser's own calendar. The UTC date is NOT a safe stand-in — in Riyadh
        it is yesterday from midnight to 3am (check-structure enforces this, fire #94), and "expired"

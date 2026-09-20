@@ -1,3 +1,43 @@
+## Routine fire #161 (2026-09-21 ~15:15 UTC) — the company one-pager was printing the code's memory, not the registry
+
+Straight on from #160, at the other copy of the same data. The **About Direct Travel** one-pager —
+printed for clients, attached to tenders — took **every identifier on it** from literals in
+`core-06`'s `AGENCY` constant: CR, unified number, trade licence, DUNS, Zakat/Tax ID, Amadeus office
+and PIN, head-office address, phone. And the drift was there too, as it was in #160: rewiring the
+page to the registry changed **the postcode in the address** and **the phone number**. The literals
+were simply older than the company.
+
+**Every one of those values now comes from `company_identity`,** through a new accessor
+`window.dgIdentityValue(key)` beside the credential facts js/66 already publishes. A fact the
+registry does not hold **does not appear at all** — no label with a dash after it. The `AGENCY`
+constant is now **empty of data**: eight fields, all blank until js/66 fills them at sign-in, which
+is what a round in August started when it pulled out an outdated VAT number and an IBAN matching no
+company account. What was removed today: the CR, the unified number, the trade licence, the DUNS,
+the Zakat/Tax ID, the Amadeus office, PIN and org, the head-office address, the phone, the CEO's
+name and the legal English name — **real registered identifiers, out of a public repository**
+(rule 7), and one fewer copy to drift.
+
+Also removed: a dead "talking points" card (hidden by v29, everything below its `return` unreachable)
+that still carried a hardcoded IATA number — a digit short of the real one. Dead code is not a reason
+to keep a real identifier in the repo, and a hidden card is not a reason to keep a wrong number where
+someone might un-hide it.
+
+Guarded by `scripts/qa/probe-the-one-pager-asks-the-registry.mjs` (5 checks). The durable one **names
+no number at all**: it reads the `AGENCY` line and fails if any long digit string is written back
+into it. Sabotage-verified by hardcoding two identifiers into the page again. 3 gates green, battery
+273 entries; the document, registry and report probes re-run clean.
+
+**Two things for the owner, both one line each:**
+1. **The one-pager no longer shows a Zakat / Tax ID**, because the registry has no key for it. If it
+   belongs on that document, add it in **Generator → Company assets & registry** and it appears by
+   itself. Nothing was invented to fill the gap.
+2. **Three hardcoded identifiers are still in the code** and are the next ones out, named so they are
+   not forgotten: the IATA-wakeel sentence in the price-offer terms (`js/67`, EN + AR) and two footer
+   lines in `js/core/core-10` (an IATA number, an Amadeus office and a phone). They print correct
+   values today; they are the same drift shape.
+
+---
+
 ## Routine fire #160 (2026-09-21 ~14:15 UTC) — every client document had two numbers that were not the company's
 
 The second of **M27**'s named gaps, closed — and it turned out to be worse than "a document loses

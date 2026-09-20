@@ -28,11 +28,13 @@
   // helpers
   function awardsStrip(){return '';return '<div class="dt-awards-row" style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:10px 0">'+
     [].map(function(a){return '<span style="background:#FFF1E6;color:#A9781A;border:1px solid #F4C892;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">'+a+'</span>';}).join('')+'</div>';}
-  function talkingPoints(){
-    var A=(typeof AGENCY!=='undefined')?AGENCY:{};
-    var pts=['10+ years in Saudi B2B travel','600+ airline agreements','2.5M+ accommodation options','IATA '+(A.iata||'7123828')+' - PAX accredited','Amadeus production + NDC content','PCI-DSS certified, Bank Guarantee 750K SAR','World Travel Award x3 + Great Place to Work x3',"Clients: Saudi Red Crescent, Ma'aden, Saudi Ports"];
-    return ''; /* v29: talking-points card hidden for now */ var __v29dead='<div class="card"><h3>x</h3><div class="ch-sub" style="color:#7C8194;font-size:12px;margin-bottom:6px">For cold calls &amp; first-contact messages - pulled from the company profile</div><ul style="margin:0;padding-inline-start:18px;font-size:13px;line-height:1.7">'+pts.map(function(p){return '<li>'+p+'</li>';}).join('')+'</ul></div>';
-  }
+  /* 2026-09-21 (fire #161): this card was hidden by v29 ("talking-points card hidden for now") and
+     everything below the return was already dead — but its list still carried a hardcoded IATA
+     number, a digit short of the company's real one, in a public repository. Dead code is not a
+     reason to keep real identifiers in the repo, and a hidden card is not a reason to keep a wrong
+     number where somebody might one day un-hide it. The function keeps its shape and its silence. */
+  function talkingPoints(){ return ''; }
+
 
   /* 2026-09-20 (fire #139) — the badge list and the Compliance row below are HARD-CODED, and this
      page is sent to clients and attached to tenders. The company_identity registry — the owner's
@@ -71,15 +73,30 @@
   // About one-pager (bilingual, printable)
   window.directAboutPage=function(tender){
     var A=(typeof AGENCY!=='undefined')?AGENCY:{};
-    var rows=[['Trade name',(A.tradeName||'Direct Travel / DirectKSA')],
+    /* 2026-09-21 (fire #161) — every identifier on this page used to come from a literal written
+       into core-06's AGENCY constant: the company's DUNS, Zakat/Tax ID, trade licence, Amadeus
+       office and PIN, head-office address and phone, all sitting in a PUBLIC repository (rule 7),
+       and all a second copy of what the registry already holds. Fire #160 showed where that ends —
+       two of those copies had drifted a digit and were printing onto client documents. So: the
+       registry is asked, and a fact with no value in it simply does not appear. Nothing here is
+       remembered. When the registry has not loaded at all, the notice built below already says so
+       in both languages and tells the person to open the Generator once and print again. */
+    var _idv=function(k){ try{ return (typeof window.dgIdentityValue==='function')?window.dgIdentityValue(k,'en'):''; }catch(_){ return ''; } };
+    var _row=function(label,val){ return String(val||'').trim()?[label,String(val).trim()]:null; };
+    var _amadeus=_idv('amadeus');
+    var _iata=_idv('iata')||A.iataWakeel||'';
+    var _site=_idv('website'), _tel=_idv('phone_licence');
+    var rows=[_row('Trade name',_idv('brand_name')||A.name_en),
       ['Experience','10+ years in Saudi B2B travel'],
       ['Scale','600+ airline agreements · 2.5M+ stays · TECHTIC tech subsidiary'],
-      ['IATA',(A.iata||'7123828')+' — PAX accredited (2024/25/26)'],
-      ['Amadeus','Office '+(A.amadeusOffice||'RUHS2234B')+' · Web Services '+(A.amadeusWS||'WSMSMTBS')+' (DCS PLUS integration)'],
-      ['CR',(A.cr||'-')],['VAT',(A.vat||'-')],['DUNS',(A.duns||'-')],['Zakat / Tax ID',(A.zakatId||'-')],['Trade License',(A.tradeLicense||'-')],['Amadeus org / PIN',((A.org||'-')+' / PIN '+(A.amadeusPin||'-'))],
+      _row('IATA',_iata?(_iata+' — PAX accredited'):''),
+      _row('Amadeus',_amadeus),
+      _row('CR',_idv('cr_number')||A.cr), _row('VAT',_idv('vat_number')||A.vat),
+      _row('DUNS',_idv('duns')), _row('Trade License',_idv('mot_licence')),
+      _row('Unified number',_idv('unified_number')),
       ['Compliance','PCI-DSS · Bank Guarantee 750K SAR · DUNS registered'],
-      ['Address',(A.address||'Saif Plaza, Jeddah Road, Al-Hada District, Riyadh 12321')],
-      ['Contact',(A.website||'www.directksa.com')+' · '+(A.phone||'+966 508 434 126')]];
+      _row('Address',_idv('hq_address')),
+      _row('Contact',[_site,_tel].filter(Boolean).join(' · '))].filter(Boolean);
     var clients=['Saudi Red Crescent',"Ma'aden",'Saudi Ports Authority','Roads General Authority','Saudi Fund for Development','Ministry of Industry','Islamic University of Madinah'];
     var awards=['World Travel Award 2023','World Travel Award 2024','World Travel Award 2025','Great Place to Work x3','ICEF','English UK','British Council','IATA PAX 2026','PCI-DSS'];
     /* fire #139 — make the document obey the registry (see the note above this function) */
