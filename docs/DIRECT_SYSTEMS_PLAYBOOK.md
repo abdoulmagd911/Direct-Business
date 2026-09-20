@@ -807,6 +807,12 @@ now exists specifically because of each one:
   share panel lists its links when the database answers — then had a trap pinned to controls that
   were no longer its edges, and Shift-Tab off the real first control walked out of the box. Anything
   that captures the shape of a dialog at open time is wrong for every dialog that loads its contents.
+- **No probe in the battery can see the database's own settings (2026-09-20, fire #131).** Every probe
+  here drives the app; none of them can tell you that a table has row-level security switched off. Two
+  leftover backup tables from 2026-09-09 held a full workspace snapshot readable by anyone with the
+  publishable key that ships in the app's own page — no sign-in — and 250 green probes could not have
+  said so. Supabase's own security advisor flagged both at ERROR level. Read `get_advisors(security)`
+  during a sweep the way check-structure is read before a deploy; see DECISIONS M20.
 
 ---
 

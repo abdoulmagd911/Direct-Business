@@ -1,3 +1,53 @@
+## Routine fire #131 (2026-09-20 ~09:00 UTC) — a full workspace snapshot was readable with no sign-in at all
+
+**Fixed on the live database, verified before and after.** Two leftover tables from a 2026-09-09
+clean-up — `app_state_backup_20260909` (a full workspace snapshot) and
+`app_settings_backup_20260909` — were the **only** tables in the public schema with row-level
+security switched off. Proven rather than assumed: a plain request carrying the publishable key
+**that ships inside the app's own page** — no sign-in, no password — returned both rows, while the
+same request against `businesses`, `finance_invoices` and `ksa_events` returned nothing at all.
+
+Every one of their **23 sibling snapshot tables** was already set up correctly (RLS on, no policies,
+so only the service role and the dashboard can read them). These two were an oversight at the moment
+they were created. Supabase's own security advisor flags exactly these two, at ERROR level.
+
+Both now match their siblings. Re-tested with the same unauthenticated request: **0 rows**. The
+backups themselves are untouched and still hold their row, and the app's own tables behave exactly
+as before. Nothing in the app, the probes or the docs ever referred to either table, so nothing can
+break; one statement reverses it if ever needed.
+
+This is **not** the public-repo question standing rule 7 settles, and not the accepted in-app
+exposure of standing rule 5 — both of those are about data behind a login. This was real company
+data readable by anyone, with no login at all, which is squarely inside the "flag it if it could
+destroy real data" carve-out.
+
+**New rule, DECISIONS M20:** any table created outside a migration — a snapshot, a "just in case"
+backup, a scratch table — gets `enable row level security` in the same statement that creates it.
+And since **no probe in this battery can see the live database's settings**, the check that catches
+this is the security advisor: read it during a sweep, the way check-structure is read before a
+deploy. 250 green probes could not have found this.
+
+**Also checked, read-only, and clean — the money doctrine end to end:**
+- The trigger is still there and still right: `trg_fin_inv_derive` → `finance_derive_fields()`,
+  enabled, deriving revenue = total − wallet and profit = revenue − cost, and **never touching VAT**.
+- It cannot be side-stepped by a NULL: every money column feeding it is NOT NULL DEFAULT 0.
+- All **46 live rows obey it** — 0 breaking revenue, 0 breaking profit, 0 with a cost above revenue,
+  and **no row stores VAT at all**.
+- The cost-gap wording is honest: "some invoices carry no recorded cost", "profit is a maximum, not
+  a final number", "the margin may look higher than it is until their expenses arrive".
+
+**One structural note, verified harmless today.** `cost_sar` is NOT NULL DEFAULT 0, so the column
+**cannot express "unknown"** — the app has to read a zero as "not yet known", which is how the 19-gap
+flag works. Checked: all 19 are ordinary B2B invoices via the invoice route, none of the routes
+(promo code, commission) where a genuine zero cost would be expected. So the flag is correct on
+today's data. The day a genuinely zero-cost invoice arrives it will be counted as an unknown gap —
+recorded, not churned, because nothing can reach it now.
+
+3 gates green (39 ACTIVE rules, 136 citations). No app code changed, so nothing to verify on the
+live site.
+
+---
+
 ## Routine fire #130 (2026-09-20 ~07:00 UTC) — cancelled money could have entered cost with every check still green
 
 Two things this round, one a guard and one a fact the owner should have.

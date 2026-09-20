@@ -780,6 +780,29 @@ touching those three files, and update the ownership list above in the same comm
 just fix the symptom and leave the ownership question open again for the next person.
 *Date: 2026-08-27. Status: OPEN — CONTESTED (ownership, not the underlying finding).*
 
+**M20 — a table made by hand in the database is reachable from the internet the moment it
+exists, and only row-level security stops it; a one-off backup is not exempt.** Found
+2026-09-20 (fire #131). Two leftover tables from a 2026-09-09 clean-up —
+`app_state_backup_20260909` (a full workspace snapshot) and `app_settings_backup_20260909` —
+were the ONLY tables in the public schema with row-level security switched off. Proven, not
+assumed: a plain request carrying the publishable key that ships inside the app's own page —
+no sign-in, no password — returned both rows, while the same request against `businesses`,
+`finance_invoices` and `ksa_events` returned nothing. Every one of their 23 sibling snapshot
+tables (`businesses_snapshot_*`, `world30_*`, and the rest) was already set up correctly:
+RLS on, no policies, so only the service role and the dashboard can read them. These two were
+an oversight at the moment they were created, and nothing in the app, the probes or the docs
+ever referred to them. Both now match their siblings; the backups themselves are untouched
+and still hold their row. **The rule: any table created outside a migration — a snapshot, a
+"just in case" backup, a scratch table — gets `enable row level security` in the same
+statement that creates it. And because no probe in this battery can see the live database's
+settings, the check that catches this is Supabase's own security advisor
+(`get_advisors(security)`, which flagged exactly these two at ERROR level): read it during a
+sweep, the same way `scripts/qa/check-structure.mjs` is read before a deploy.** This is not
+the public-repo question rule 7 settles and not the accepted in-app exposure of standing rule
+5 — both of those are about data behind a login. This was real company data readable by
+anyone, with no login at all.
+*Date: 2026-09-20. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
