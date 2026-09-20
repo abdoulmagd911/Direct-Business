@@ -1155,6 +1155,25 @@ table SELECT on them, so nothing reachable through the API or the app can read t
 the lock there, not RLS** — check both before reporting a table as open.
 *Date: 2026-09-20. Status: ACTIVE.*
 
+**M34 — "no date on file" is its own answer everywhere, not just on the renewals radar.**
+Found 2026-09-20 (fire #172), applying #163's rule to the screen that was breaking it hardest. The
+Events page's headline counted everything that had not ended, and `hasEnded` answers **false** for
+an event with no `start_date`, because `relDay` returns null when there is nothing to compare. Live:
+80 events — 22 dated in the future, 37 finished, **21 with no date at all** — and the headline read
+**43**. One of the 21 carried its own note saying there is no 2026 edition and the next confirmed
+one is March 2027.
+Any "how many are coming up" built on *not finished* will swallow every undated record. Ask instead
+whether the record **has a date and that date is ahead**, and give the undated ones their own count.
+The general form: **a null date is a third state, not a quiet member of either other one** — and it
+usually names a real job (chase the organiser for dates), so it needs somewhere to live rather than
+hiding. Undated records are never removed to make a headline smaller: they keep their place in the
+list and get a tile that is a real filter, since a tile that looks clickable and is not would be its
+own defect.
+Guard: `scripts/qa/probe-undated-events-are-not-counted-as-coming.mjs`. Three brakes: the two counts
+must still account for every live record, the undated ones must still be listed, and **the tile must
+not be drawn at all when every record has a date**, so it can never settle into a permanent "0".
+*Date: 2026-09-20. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

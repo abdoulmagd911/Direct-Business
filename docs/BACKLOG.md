@@ -80,6 +80,45 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #172 (2026-09-20 ~10:00 UTC) — "43 Still ahead" when 22 had a date
+
+The Events page opens on what is still ahead and puts a number on it. That number counted every
+event that had not ended — and an event with **no start date at all** counts as "not ended", because
+there is nothing to compare it to.
+
+The live calendar holds **80 events: 22 with a date in the future, 37 finished, and 21 with no date
+whatsoever.** The headline read **43**. One of the 21 carries its own note saying there is no 2026
+edition and the next confirmed one is **March 2027** — and it was being counted as coming up.
+
+This is the rule #163 already set for the company's certificates: *something with no date on file is
+never counted as due.* The Events page was breaking it on the biggest number on the screen.
+
+It now reads **"22 Still ahead"** and, beside it, **"21 No date yet"**. Nothing is hidden — all 43
+are still in the list, because losing 21 real events would be a worse answer than over-counting
+them — and the new tile is a real filter: tap it and you get exactly those 21, tap again and it
+clears. An event with no date is a job (chase the organiser for dates), not a mistake, and it now
+has somewhere to live.
+
+Verified against the real calendar: the headline went from 43 to 22 with the list still showing 43
+rows. Guarded by `scripts/qa/probe-undated-events-are-not-counted-as-coming.mjs` (8 checks). Three
+brakes, because the cheap way to shrink a headline is to drop records: **the two counts still
+account for every live event**, **the undated ones are still listed**, and **the tile is not drawn
+at all when every event has a date**, so it can never become a permanent "0". Sabotage-verified:
+restoring the old count fails five checks and the tile reads 5 again. 3 gates green, battery 284
+entries; both events probes re-run clean.
+
+**Worth saying about the rest of that page:** it is the best-built screen in the app. Undated rows
+already said "no date yet" in the date column, statuses distinguish Confirmed / Needs check / Stale
+/ No date, and one row records a conflict in the owner's own words — *"Owner file said 4-6 May …
+official site says 29 Sep-1 Oct 2026 — kept official; re-verify before booking."* The count was the
+one thing out of step with it.
+
+**Also checked and in step, so nobody re-opens #171 wider than it is:** suppliers (23/23), SOPs
+(12/12), SLAs (14/14) and events (80/80) all match between the settings copy and their real tables.
+Airlines was the only store out of step.
+
+---
+
 ## Routine fire #171 (2026-09-20 ~09:15 UTC) — the Airlines list quietly ends three short
 
 There are two stores of airlines, and the page reads the smaller one.

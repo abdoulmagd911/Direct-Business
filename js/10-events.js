@@ -372,7 +372,7 @@ function progOf(e){var p=(e&&e.approach_status)||'not_started';return PROG[p]?p:
 
 /* past:false — the calendar opens on what is still ahead. Events that have
    already finished are one click away, never the first thing anyone reads. */
-var F={vertical:'all',status:'all',move:'all',ours:false,past:false,q:''};
+var F={vertical:'all',status:'all',move:'all',ours:false,past:false,q:'',nodate:false};
 var loaded=false, loading=false, loadError=null;
 var SIGNUPS={};            /* event_id -> row from ksa_event_signups (team-only table) */
 var LEADS={};              /* normalised event name -> lead count from businesses */
@@ -503,6 +503,7 @@ window.renderEvents=function(v){
     if(F.vertical!=='all'&&e.vertical!==F.vertical)return false;
     if(F.status!=='all'&&e.status!==F.status)return false;
     if(!F.past&&hasEnded(e))return false;
+    if(F.nodate&&e.start_date)return false;      /* the "No date yet" tile (fire #172) */
     if(F.move!=='all'&&moveOf(e)!==F.move)return false;
     if(F.ours&&moveOf(e)!=='stand'&&moveOf(e)!=='attend')return false;
     if(F.q){var q=F.q.toLowerCase();if(((e.name_en||'')+' '+(e.name_ar||'')+' '+(e.city||'')+' '+(e.venue||'')+' '+(e.organiser||'')).toLowerCase().indexOf(q)<0)return false;}
@@ -514,9 +515,19 @@ window.renderEvents=function(v){
   window.__v64LastList=list;   /* Export ships exactly what is on screen */
   /* Counts describe the LIVE calendar (what is still ahead), so the tiles never
      promise more than the list below them shows. */
-  var AHEAD=E.filter(function(e){return !hasEnded(e);});
-  var n=function(k){return AHEAD.filter(function(e){return moveOf(e)===k;}).length;};
-  var endedCount=E.length-AHEAD.length;
+  /* 2026-09-20 (fire #172): "Still ahead" used to count every event that had not ended — and
+     `hasEnded` answers false for an event with NO start date, because `relDay` returns null. So
+     21 of the 80 live events, with no date at all, were being counted as coming up: the headline
+     read 43 when 22 had a date in the future. One of the 21 carries its own note saying its next
+     edition is March 2027.
+     #163's rule, applied here: something with no date on file is never counted as due. The
+     undated ones keep their place in the list and get their own tile — losing them would be a
+     worse answer than over-counting them. */
+  var LIVE=E.filter(function(e){return !hasEnded(e);});
+  var AHEAD=LIVE.filter(function(e){return !!e.start_date;});
+  var UNDATED=LIVE.filter(function(e){return !e.start_date;});
+  var n=function(k){return LIVE.filter(function(e){return moveOf(e)===k;}).length;};
+  var endedCount=E.length-LIVE.length;
   var h='';
   /* 2026-09-21 (fire #159, M27): the list below is the last copy this browser had, not a fresh
      read. Say so — and keep showing it, because a cached list is genuinely useful and refusing to
@@ -532,13 +543,15 @@ window.renderEvents=function(v){
   /* Each tile is a filter — tapping "Not decided" is the fastest route to the
      events still waiting on a decision. */
   var tile=function(key,val,label,color){
-    var on=(key==='undecided'||key==='stand'||key==='attend'||key==='mine')&&F.move===key;
+    var on=(key==='nodate')?(F.nodate===true)
+      :((key==='undecided'||key==='stand'||key==='attend'||key==='mine')&&F.move===key);
     return '<div data-evstat="'+key+'" role="button" tabindex="0" aria-pressed="'+(on?'true':'false')+'" title="'+L('Show only these','اعرض هذه فقط')+'" style="cursor:pointer;padding:2px 8px;border-radius:8px;'+(on?'background:var(--wash-orange,#fff3ec);':'')+'">'
       +'<div style="font-size:22px;font-weight:800;'+(color?'color:'+color:'')+'">'+val+'</div>'
       +'<div style="font-size:11px;color:var(--muted)">'+label+'</div></div>';
   };
   h+='<div class="card" style="margin-bottom:12px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:14px 18px">';
   h+=tile('all',AHEAD.length,L('Still ahead','القادمة'),'');
+  if(UNDATED.length)h+=tile('nodate',UNDATED.length,L('No date yet','بلا تاريخ'),'#8a6d1a');
   h+=tile('stand',n('stand'),mv('stand')[0],'#c2560a');
   h+=tile('attend',n('attend'),mv('attend')[0],'#1e7a34');
   h+=tile('mine',n('mine'),mv('mine')[0],'#1a5c9e');
@@ -609,6 +622,8 @@ window.renderEvents=function(v){
   Array.prototype.forEach.call(document.querySelectorAll('[data-evstat]'),function(el){
     var hit=function(){
       var k=el.getAttribute('data-evstat');
+      if(k==='nodate'){ F.nodate=!F.nodate; if(F.nodate){F.move='all';F.ours=false;} render(); return; }
+      F.nodate=false;
       F.move=(k==='all'||F.move===k)?'all':k;  /* tapping the active tile clears it */
       if(k!=='all')F.ours=false;
       render();
