@@ -1241,6 +1241,31 @@ sync arrives; and a second check keeps the useful half of the banner from being 
 false half.
 *Date: 2026-09-20. Status: ACTIVE.*
 
+**M37 — a probe that records a hole must be written so it fails when the hole is fixed, and a
+"did this reach the browser?" check must measure VALUES, never key names or row counts.**
+Found 2026-09-20 (fire #178), by the first full battery run since twenty probes were added.
+**The inverted probe.** `probe-share-and-settings-attacks` contained a block that asserted the
+agency profile, the audit trail, the blob's invoices and the export controls **DO** reach an
+anonymous share-link holder — labelled "EXPOSED:" and "OWNER DECISION recorded:". It passed while
+the app leaked and went red the day fires #166 and #167 closed those holes. Recording an accepted
+hole is legitimate; asserting it as a passing check is not, because the probe then defends the hole.
+**Write such a record as a note, or as a check that holds the fix** — the block is now inverted and
+guards against the holes coming back.
+**The measurement.** Inverting it was not enough: the checks asked whether `DB.agency` **has the key
+`iban`** and whether `DB.invoices.length > 0`. The app seeds its own empty `agency` object and empty
+money arrays, so those answer about the app's defaults, not about what the link delivered — and
+the old assertions and their inversions could **both fail at once**, which is exactly what happened.
+A "did it reach the browser?" check must look for a **value only the sender could have supplied**:
+the fixture's own marked IBAN, Amadeus PIN, invoice number and audit line. This is the second time
+the same trap has been met (fire #167 solved it with markers in a new probe; this one had it in an
+old probe), so it is a rule now, not an anecdote.
+**And the third, from the same run:** adding a field to an app object changes what the CSV/Excel
+export prints, because the export joins every non-bookkeeping value of a nested object. The contact
+provenance added in #177 came out in a lead's contacts cell as a bare trailing word. Fixed in
+`exportFlat` with a named set of record-note keys — which also closed the identical leak waiting for
+any flagged contact. CLAUDE.md already carried this warning; it was read and not applied.
+*Date: 2026-09-20. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

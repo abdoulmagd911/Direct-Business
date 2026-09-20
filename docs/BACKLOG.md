@@ -92,6 +92,48 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #178 (2026-09-20 ~16:00 UTC) — the full battery, and what it caught in my own work
+
+The first complete battery run since twenty probes were added. **Three reds, and not one of them was
+the app breaking on its own.**
+
+**1 · A real regression I caused, one round earlier.** Adding the contact provenance field leaked it
+into the **exported spreadsheet**: a lead's contacts cell read *"Contact 9 Manager
+c9@example.com +966500000009 manual"*. This project's own notes warn about exactly this — *before
+adding a field to the app object, ask what the export does with it* — and I did it anyway. The
+export joins every value of a contact that is not bookkeeping. Fixed there, and it turned out **the
+same leak was already waiting** for any *flagged* contact, whose cell would have read
+*"… true <the reason>"*. One fix closed both, and the guard that caught it is the one written after
+the last time this happened.
+
+**2 · A label assertion I invalidated.** A probe checked for the literal words "7 Still ahead" after
+I deliberately relabelled that tile to "Not finished". Its real intent — 7 unfinished of 8, the
+ended one excluded — is unchanged, so the wording moved and the count assertion stayed identical.
+
+**3 · Two years of accepted holes, now closed and guarded.** `probe-share-and-settings-attacks` was
+written to **record open holes as facts**. It asserted that your agency profile, the audit trail,
+the blob's invoices and the export controls **do** reach an anonymous link holder — so it passed
+while the app leaked, and went red the day the holes were closed. Fires #166 and #167 closed them.
+Those assertions are now **inverted into guards** against the holes returning.
+
+Inverting them exposed a second problem worth writing down. The checks measured **key names and row
+counts** — and the app seeds its own empty agency object and empty invoice arrays, so the old
+assertions *and* their inversions could fail at the same time. They now key off the fixture's own
+**marked values** (a seeded IBAN, Amadeus PIN, invoice number and audit line), which is the only way
+to tell what the link delivered from what the app made up. Result: **73/73 checks pass**, and the
+line that matters reads *"nothing the blob carried reaches the browser — no seeded invoice,
+proposal, booking, IBAN, Amadeus PIN or audit line."* That is a stronger confirmation of #167 than
+existed before, because the mock it runs against still hands over the whole blob on purpose.
+
+**The honest summary: three rounds running, the guards caught me rather than the app** — a half-done
+fix (#177), an export leak (#178) and a check that could never fire (#173). That is the system
+working, and it is the argument for running the whole battery rather than only the probes that look
+related.
+
+3 gates green, battery 287 entries, full run confirming.
+
+---
+
 ## Routine fire #177 (2026-09-20 ~15:00 UTC) — what we know about a person, and a fix of my own the battery caught
 
 **Two things this round. The second matters more than the first.**
