@@ -1,3 +1,43 @@
+## Routine fire #128 (2026-09-20 ~03:00 UTC) — the box that asks "are you sure" could not be answered from the keyboard
+
+Fire #127 left a list: ten files build a full-screen overlay of their own, three had been given the
+keyboard, seven had not been reached. This round opened those seven through their own entry points
+and measured them. **Four more were losing the keyboard, and one of them matters more than all the
+rest put together.**
+
+* **`pfConfirm` (js/57) — the box behind every "are you sure" in the app.** Opening it left focus on
+  the page behind and four of six Tab presses stayed there. A person working without a mouse was
+  being asked a question whose **Yes and No they could not reach**.
+* **`pfPrompt` (js/57)** — took focus but never trapped it; four of six tabs walked out. And once
+  the keyboard had wandered out, **Escape stopped working too**, because its Escape was wired on the
+  input rather than on the document. One cause, two symptoms — recorded that way rather than as two
+  defects, because it is one fix.
+* **The permission box (js/49)** — the box that tells somebody they may not do something. Focus
+  stayed outside, five of six tabs outside; its single OK button could not be reached.
+* **The page-access panel (js/15)** — the screen that decides which pages each person may open.
+  Focus stayed outside. Six tabs did stay inside, but only because it holds over two hundred
+  controls: the keyboard had simply not arrived yet.
+
+All four fixed the same way, and **the event editor (js/10) was measured and found already correct**
+— worth saying, because it is the one with 80 real events behind it.
+
+js/58's confirm box got the same treatment for consistency, with a note in the code that it is a
+**fallback that never runs** while js/57 is loaded, so it is kept in step by reading rather than by
+testing. That is said out loud rather than left to look like coverage.
+
+`probe-every-box-takes-the-keyboard` now measures fifteen boxes per run — the ones a crawl can click
+plus the five that must be opened directly — and requires at least eight, so it cannot pass by
+finding nothing. Sabotage-verified twice against a copy: removing js/31's trap and removing js/57's
+each turn the same two checks red, naming the box and reporting focus on BODY with four of six tabs
+outside, which is exactly what the live measurement said before the fix.
+
+### An instrument fault, caught before it was written up
+
+The first run of the measuring driver reported **every** box as broken. It was not: Escape had not
+closed the previous box, so `pfPromptBox` was still on the page and each later case measured **that
+leftover** instead of the box it had just opened. The driver now refuses to measure a box that was
+already there and says so, and removes each box itself between cases.
+
 ## Routine fire #127 (2026-09-20 ~01:00 UTC) — two more boxes that did not take the keyboard
 
 Fire #126 found one overlay ignoring the keyboard and wrote the rule: **a layer that builds its own

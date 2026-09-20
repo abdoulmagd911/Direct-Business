@@ -95,10 +95,20 @@
        has to wire the key itself. Escape does exactly what this box's own cancel path already did, and
        the listener is removed with the box so it cannot outlive it or stack when reopened. */
       var v70esc=function(e){ if(e.key==='Escape'){ v70close(); } };
-      var v70close=function(){ try{ document.removeEventListener('keydown',v70esc); }catch(_){} try{ ov.remove(); }catch(_){} };
+      /* 2026-09-20 (fire #128) — Escape came in fire #92; the keyboard did not. Measured against
+         the real database, both languages: this box opened with focus still on the page behind and
+         five of six Tab presses stayed there, so its single OK button could not be reached without
+         a mouse. It is the box that tells somebody they may not do something — being unable to
+         dismiss it is the whole of the problem. */
+      var v70prev=null; try{ v70prev=document.activeElement; }catch(_){ }
+      var v70close=function(){ try{ document.removeEventListener('keydown',v70esc); }catch(_){}
+        try{ if(window.v21ReleaseTrap) v21ReleaseTrap(ov); }catch(_){}
+        try{ ov.remove(); }catch(_){}
+        try{ if(v70prev&&v70prev.focus) v70prev.focus(); }catch(_){} };
       b.textContent=fl('OK','حسنًا'); b.onclick=v70close;
       c.appendChild(b); ov.appendChild(c); document.body.appendChild(ov);
       document.addEventListener('keydown',v70esc);
+      try{ if(window.v21TrapFocus) v21TrapFocus(ov); }catch(_){}
       shown++;
     }catch(_){ alert(title); }
   }

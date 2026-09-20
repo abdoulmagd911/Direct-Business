@@ -71,9 +71,18 @@ window.v41Access=function(){
        has to wire the key itself. Escape does exactly what this box's own cancel path already did, and
        the listener is removed with the box so it cannot outlive it or stack when reopened. */
     var v41esc=function(e){ if(e.key==='Escape'){ v41close(); } };
-    var v41close=function(){ try{ document.removeEventListener('keydown',v41esc); }catch(_){} try{ ov.remove(); }catch(_){} };
+    /* 2026-09-20 (fire #128) — Escape came in fire #92; the keyboard did not. Measured against the
+       real database, both languages: this panel opened with focus still on the page behind it. Six
+       tabs did stay inside, but only because it holds over two hundred controls — the keyboard had
+       simply not arrived yet. It is the screen that decides which pages each person may open. */
+    var v41prev=null; try{ v41prev=document.activeElement; }catch(_){ }
+    var v41close=function(){ try{ document.removeEventListener('keydown',v41esc); }catch(_){}
+      try{ if(window.v21ReleaseTrap) v21ReleaseTrap(ov); }catch(_){}
+      try{ ov.remove(); }catch(_){}
+      try{ if(v41prev&&v41prev.focus) v41prev.focus(); }catch(_){} };
     ov.onclick=function(e){if(e.target===ov)v41close();};
     document.body.appendChild(ov);
+    try{ if(window.v21TrapFocus) v21TrapFocus(ov); }catch(_){}
     document.addEventListener('keydown',v41esc);
     document.getElementById('v41x').onclick=v41close;
     ov.querySelectorAll('[data-save]').forEach(function(btn){

@@ -72,8 +72,18 @@
          same path as Cancel and as a click outside: it closes and onYes is never called. The
          listener is removed with the box, so it cannot outlive it or stack across boxes. */
       var onEsc=function(e){ if(e.key==='Escape'){ close(); } };
-      var close=function(){ try{ document.removeEventListener('keydown',onEsc); }catch(_){} try{d.remove();}catch(_){} };
+      /* 2026-09-20 (fire #128) — Escape was wired in fire #91, but the KEYBOARD was not. Measured
+         against the real database in both languages: opening this box left focus on the page behind
+         and four of six Tab presses landed there too. This is the box behind every "are you sure"
+         in the app, so a person working without a mouse was being asked a question whose Yes and No
+         they could not reach. Same trap the shared modal has used since v21. */
+      var pfPrev=null; try{ pfPrev=document.activeElement; }catch(_){ }
+      var close=function(){ try{ document.removeEventListener('keydown',onEsc); }catch(_){}
+        try{ if(window.v21ReleaseTrap) v21ReleaseTrap(d); }catch(_){}
+        try{d.remove();}catch(_){}
+        try{ if(pfPrev&&pfPrev.focus) pfPrev.focus(); }catch(_){} };
       document.addEventListener('keydown',onEsc);
+      try{ if(window.v21TrapFocus) v21TrapFocus(d); }catch(_){}
       document.getElementById('pfConfirmNo').onclick=close;
       d.addEventListener('click',function(e){ if(e.target===d)close(); });
       document.getElementById('pfConfirmYes').onclick=function(){ close(); onYes(); };
@@ -104,8 +114,20 @@
       document.getElementById('pfPromptNo').onclick=function(){ finish(null); };
       document.getElementById('pfPromptOk').onclick=function(){ finish(String(inp.value).trim()); };
       d.addEventListener('click',function(e){ if(e.target===d)finish(null); });
-      inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); finish(String(inp.value).trim()); } else if(e.key==='Escape'){ finish(null); } });
-      setTimeout(function(){ try{ inp.focus(); inp.select(); }catch(_){} },30);
+      inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); finish(String(inp.value).trim()); } });
+      /* 2026-09-20 (fire #128) — two changes, one cause. This box took focus but never TRAPPED it:
+         four of six Tab presses walked the page behind. And its Escape was wired on the INPUT only,
+         so once the keyboard had wandered out, Escape stopped working too — one defect showing as
+         two. The trap keeps the keyboard in; Escape is moved to the document so it works wherever
+         focus happens to be, and the listener is removed with the box. */
+      var pfpEsc=function(e){ if(e.key==='Escape'){ finish(null); } };
+      document.addEventListener('keydown',pfpEsc);
+      var _pfpFinish=finish; finish=function(v){ try{ document.removeEventListener('keydown',pfpEsc); }catch(_){}
+        try{ if(window.v21ReleaseTrap) v21ReleaseTrap(d); }catch(_){} _pfpFinish(v); };
+      document.getElementById('pfPromptNo').onclick=function(){ finish(null); };
+      document.getElementById('pfPromptOk').onclick=function(){ finish(String(inp.value).trim()); };
+      try{ if(window.v21TrapFocus) v21TrapFocus(d); }catch(_){}
+      setTimeout(function(){ try{ inp.focus(); inp.select(); }catch(_){} },60);
     }catch(e){ console.warn('[proof] prompt',e); var r=null; try{ r=prompt(msg,def==null?'':def); }catch(_){} onDone(r==null?null:String(r).trim()); }
   };
 

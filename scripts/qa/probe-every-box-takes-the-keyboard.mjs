@@ -18,12 +18,21 @@
 
    Buttons whose words suggest deleting, wiping or resetting are never clicked.
 
+   Some boxes cannot be reached by clicking a top-level button — a confirm raised by another action,
+   the event editor behind a row — so after the crawl each is opened through its own entry point and
+   measured the same way. That is second best to clicking and is marked as such in the output: what
+   is being measured is the BOX, not the path to it. Fire #128 found four of them losing the
+   keyboard, including the box behind every "are you sure" in the app.
+
    It is a crawl, so it is not instant: about four minutes, most of it waiting for pages to settle
    between clicks. That is the price of a check that covers boxes nobody has written yet.
 
-   Sabotage-tested 2026-09-20 against a COPY of the app (APP_DIR — the repository is untouched):
-   with js/31's call to the trap removed, 2 checks FAIL and the report names the box and the page it
-   was opened from.
+   Sabotage-tested against a COPY of the app (APP_DIR — the repository is untouched):
+     · js/31's call to the trap removed: 2 checks FAIL, naming the box and the page it was opened
+       from.
+     · js/57's pfConfirm call removed: the same 2 checks FAIL, naming pfConfirmBox and reporting
+       focus on BODY with four of six tabs outside — which is exactly what the live measurement
+       said before it was fixed.
    Run: node scripts/qa/probe-every-box-takes-the-keyboard.mjs                                     */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
@@ -102,6 +111,40 @@ async function run(lang) {
       await p.waitForTimeout(500);
     }
   }
+  /* the boxes a top-level click cannot reach, opened by their own entry point */
+  const DIRECT = [
+    ['pfConfirm', `if(window.pfConfirm) pfConfirm('QA keyboard check', function(){});`],
+    ['pfPrompt', `if(window.pfPrompt) pfPrompt('QA keyboard check', '', function(){});`],
+    ['evOpenModal', `if(window.evOpenModal) evOpenModal((DB.ksaEvents||[])[0] && (DB.ksaEvents||[])[0].id);`],
+    ['v41Access', `if(window.v41Access) v41Access();`],
+    ['permission box', `if(window.__v70box) __v70box('QA keyboard check');`],
+  ];
+  for (const [name, code] of DIRECT) {
+    await p.evaluate(() => { [].slice.call(document.querySelectorAll('body > div')).forEach((e) => {
+      if (/^(pfConfirmBox|pfPromptBox|v70box|qa-temp-box)$/.test(e.id)) e.remove(); }); });
+    await p.waitForTimeout(250);
+    const ran = await p.evaluate((c) => { try { eval(c); return true; } catch (e) { return false; } }, code);
+    if (!ran) continue;
+    await p.waitForTimeout(1300);
+    const ov = await p.evaluate(() => {
+      const hit = [].slice.call(document.querySelectorAll('body > div')).find((e) => {
+        const cs = getComputedStyle(e); if (cs.position !== 'fixed' || cs.display === 'none') return false;
+        const r = e.getBoundingClientRect();
+        return e.id !== 'ov' && r.width > window.innerWidth * 0.5 && r.height > window.innerHeight * 0.4; });
+      if (!hit) return null; if (!hit.id) hit.id = 'qa-temp-box';
+      return { id: hit.id, controls: hit.querySelectorAll('input,select,textarea,button,a[href]').length };
+    });
+    if (!ov || !ov.controls) continue;
+    const f = await focusIn(ov.id);
+    let outside = 0;
+    for (let i = 0; i < 6; i++) { await p.keyboard.press('Tab'); await p.waitForTimeout(70);
+      const w = await focusIn(ov.id); if (!w.inside) outside++; }
+    seen.push({ page: 'opened directly', button: name, box: ov.id, controls: ov.controls,
+      focusInside: f.inside, focusOn: f.el, tabsOutside: outside });
+    await p.keyboard.press('Escape'); await p.waitForTimeout(400);
+    await p.evaluate((i) => { const o = document.getElementById(i); if (o) o.remove(); }, ov.id);
+  }
+
   await ctx.close();
   return seen;
 }
@@ -116,7 +159,7 @@ all.forEach((x) => console.log('  ' + (x.focusInside && x.tabsOutside === 0 ? 'o
 
 const checks = [
   ['the crawl really opened boxes of a layer’s own — otherwise this passes by finding nothing',
-    all.length >= 2, all.length + ' box(es): ' + JSON.stringify([...new Set(all.map((x) => x.box))])],
+    all.length >= 8, all.length + ' box(es): ' + JSON.stringify([...new Set(all.map((x) => x.box))])],
   ['every one of them takes the keyboard when it opens',
     all.every((x) => x.focusInside), JSON.stringify(bad.filter((x) => !x.focusInside).map((x) => x.box + ' from "' + x.button + '" (focus on ' + x.focusOn + ')'))],
   ['and keeps it — six tabs, none landing on the page behind',

@@ -55,8 +55,17 @@
          destructive things, so it gets the same key. Escape CANCELS: it takes the Cancel path and
          onYes is never called. The listener is removed with the box. */
       var onEsc=function(e){ if(e.key==='Escape'){ close(); } };
-      var close=function(){ try{ document.removeEventListener('keydown',onEsc); }catch(_){} try{d.remove();}catch(_){} };
+      /* 2026-09-20 (fire #128) — and the focus trap for the same reason the Escape key is here: this
+         copy is a FALLBACK that never runs while js/57 is loaded (the line at the top of this
+         function returns first), so it could not be measured from the outside at all. It is kept in
+         step with the real one by reading, not by testing, which is worth saying out loud. */
+      var b2cPrev=null; try{ b2cPrev=document.activeElement; }catch(_){ }
+      var close=function(){ try{ document.removeEventListener('keydown',onEsc); }catch(_){}
+        try{ if(window.v21ReleaseTrap) v21ReleaseTrap(d); }catch(_){}
+        try{d.remove();}catch(_){}
+        try{ if(b2cPrev&&b2cPrev.focus) b2cPrev.focus(); }catch(_){} };
       document.addEventListener('keydown',onEsc);
+      try{ if(window.v21TrapFocus) v21TrapFocus(d); }catch(_){}
       document.getElementById('pfConfirmNo').onclick=close;
       d.addEventListener('click',function(e){ if(e.target===d)close(); });
       document.getElementById('pfConfirmYes').onclick=function(){ close(); onYes(); };
