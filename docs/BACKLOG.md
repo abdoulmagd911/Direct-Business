@@ -1,3 +1,36 @@
+## Routine fire #146 (2026-09-21 ~02:00 UTC) — a chip on the Clients page just said "—: 28"
+
+Asked fire #145's question of the other pages: **does every number on screen describe the records
+that page actually lists?**
+
+**Leads: yes.** "All 78" against 78 rows listed, with 80 leads in the data — the missing two are the
+Lost ones, excluded by the documented Hide-closed rule (2026-09-09). The chip, the rows and the rule
+agree. Recorded so it is not re-investigated.
+
+**Clients: one chip was meaningless.** The page groups clients by city and fell back to the **em
+dash** when a client has none. No client in the live data has a city recorded, so the whole strip
+rendered exactly one tag:
+
+> **—: 28**
+
+That tells a person nothing and reads like a broken label rather than a fact. `area` is a **real
+writable field** — the lead form's "Area (city)" dropdown — so the breakdown is worth keeping; the
+unknown bucket simply had to say what it means. It now reads **"No city recorded: 28"** /
+«**بلا مدينة مسجّلة: 28**». Driven live before and after.
+
+**Guard:** `probe-a-chip-says-what-it-counts` (9101, **6 checks**, both languages), including the
+quiet one — *the buckets must add up to the number of clients* — because the cheap way to pass the
+rest is to relabel the dash and stop thinking. Sabotage-verified against a copy with the dash
+restored: two checks fail and print the dash they found.
+
+**Worth knowing, and it is really a data point for you:** none of your 28 clients has a city
+recorded. The field exists on the lead form; nothing has filled it. The chip now says that plainly
+instead of hiding it behind a dash.
+
+3 gates green. Commit 1b13009, confirmed live.
+
+---
+
 ## Routine fire #145 (2026-09-21 ~00:30 UTC) — the Leads page warned about 20 leads that were all clients
 
 The warning strip at the top of **Leads** read:
