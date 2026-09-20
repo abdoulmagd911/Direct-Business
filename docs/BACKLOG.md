@@ -1,3 +1,33 @@
+## Routine fire #166 (2026-09-21 ~19:15 UTC) — and it could take a copy away
+
+Same link, one step further. The panel that mints one promises: *"A link opens Today, Leads and
+Clients read-only to anyone holding it — no sign-in needed — until it is switched off here. Nothing
+can be edited through it."* On Leads and on Clients the holder was also offered:
+
+- the top bar's **Export ▾** menu — CSV / Excel, summary / full details, **always ALL records**;
+- and the Leads page's own **"↓ Export this view (CSV)"**, whose file carries **every lead's owner,
+  next action and contact details**.
+
+Downloading the pipeline is not editing, so the promise was kept to the letter and broken in
+substance. "View-only" does not mean "take a copy of the company's pipeline away with you".
+
+Both are off a shared view now, in `js/79` — the layer that owns that promise — by one stylesheet
+rule, which is also why it cannot be missed by a later render. The in-view button got a class so it
+can be named rather than matched by its words.
+
+Guarded by `scripts/qa/probe-a-view-only-link-cannot-take-a-copy.mjs` (6 checks), with the same two
+brakes as the last round: **the pages still read** (33 leads, 15 clients on screen), and **signed in
+both controls are back**. Sabotage-verified: dropping the rule puts both back in front of the guest.
+3 gates green, battery 278 entries; four export and share probes re-run clean. **M28 extended** with
+what #165 and #166 found, so the next session meets it as a rule rather than as three discoveries.
+
+**Left as a question, deliberately:** the shared Leads and Clients tables still show **OWNER**,
+**NEXT ACTION**, **PRIORITY**, **TIER** and **HEALTH** — internal judgements, but arguably part of
+"the pipeline" the link promises. That is a call about who these links go to, and it is yours, not
+mine. Say the word and those columns come off a shared view in one line each.
+
+---
+
 ## Routine fire #165 (2026-09-21 ~18:30 UTC) — a view-only link was handing out the file we keep on a company
 
 M28 said: *before putting anything on a company card, ask who else can open that card.* #164 asked

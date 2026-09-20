@@ -24,7 +24,15 @@
     var st=document.createElement('style'); st.id='v79shareCss';
     st.textContent='body[data-share="1"] .top{top:36px}'+
       'body[data-share="1"] .side{top:36px;height:calc(100vh - 36px)}'+
-      'body[data-share="1"] #nav button[data-view="finance"],body[data-share="1"] #v44FinBtn{display:none!important}';
+      'body[data-share="1"] #nav button[data-view="finance"],body[data-share="1"] #v44FinBtn{display:none!important}'+
+      /* 2026-09-21 (fire #166): no export from a view-only link. Measured on a real link: the
+         top bar's Export menu (CSV/Excel, summary/full, always ALL records) and the Leads page's
+         own "Export this view (CSV)" were both offered to the holder. The panel that mints a link
+         promises "read-only … nothing can be edited through it"; downloading the pipeline is not
+         editing, and it is not what view-only means to anybody either. The file is the point: the
+         Leads one carries every lead's owner, next action and contact details. Reading a screen is
+         what the link is for; taking a copy away is not. */
+      'body[data-share="1"] .exp-wrap,body[data-share="1"] .v33-export-view{display:none!important}';
     (document.head||document.documentElement).appendChild(st);
   }catch(_){}
   var ALLOWED=['today','dashboard','leads','clients'];

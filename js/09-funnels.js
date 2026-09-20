@@ -176,6 +176,9 @@
        action and contact info that the top-bar export doesn't carry. Not touching the
        top-bar menu itself \u2014 it's shared by every page in the app. */
     var ex=document.createElement('button');
+    /* 2026-09-21 (fire #166): a class, so the share-view layer can take this off a view-only link —
+       the file it writes carries every lead's owner, next action and contact details. */
+    ex.className='v33-export-view';
     var _arEx=(typeof LANG!=='undefined'&&LANG==='ar');
     ex.textContent=_arEx?'\u2193 \u062a\u0635\u062f\u064a\u0631 \u0647\u0630\u0627 \u0627\u0644\u0639\u0631\u0636 (CSV)':'\u2193 Export this view (CSV)';
     ex.title=_arEx?'\u064a\u0635\u062f\u0651\u0631 \u0628\u0627\u0644\u0636\u0628\u0637 \u0645\u0627 \u0647\u0648 \u0645\u0639\u0631\u0648\u0636 \u0647\u0646\u0627 \u2014 \u0627\u0644\u062a\u0628\u0648\u064a\u0628 \u0627\u0644\u0646\u0634\u0637 \u0648\u0627\u0644\u0641\u0644\u0627\u062a\u0631 \u0627\u0644\u062d\u0627\u0644\u064a\u0629 \u0645\u0639 \u0628\u064a\u0627\u0646\u0627\u062a \u0643\u0644 \u0642\u0645\u0639 \u0648\u0627\u0644\u0625\u062c\u0631\u0627\u0621 \u0627\u0644\u062a\u0627\u0644\u064a \u0648\u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0627\u0644\u0627\u062a\u0635\u0627\u0644. \u0644\u0643\u0644 \u0639\u0645\u064a\u0644 \u0645\u062d\u062a\u0645\u0644 \u0628\u063a\u0636 \u0627\u0644\u0646\u0638\u0631 \u0639\u0646 \u0627\u0644\u0641\u0644\u062a\u0631\u0629\u060c \u0627\u0633\u062a\u062e\u062f\u0645 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u062a\u0635\u062f\u064a\u0631 \u0641\u064a \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0639\u0644\u0648\u064a \u0628\u062f\u0644\u0627\u064b \u0645\u0646 \u0630\u0644\u0643.':'Exports exactly what\u2019s shown here \u2014 the active funnel tab and filters, with each funnel\u2019s own detail fields, next action and contact info. For every lead regardless of filter, use the Export \u25be menu in the top bar instead.';

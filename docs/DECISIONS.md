@@ -977,9 +977,23 @@ so a copy in the blob was only ever noise — and **both layers return early whe
 `window.__isShareView` is set**, whatever the data says.
 The rule generalises past these two: **before putting anything on a company card, ask who else can
 open that card.** A share link is the answer nobody remembers.
-Guard: `scripts/qa/probe-a-share-link-sees-no-internal-notes.mjs`, whose fourth check seeds the blob
+**Followed through the same day (fires #165 and #166), and it was worse than the two lines.** A link
+holder could read the **activity log** (our call notes, with edit and remove beside each one), the
+**comments**, and the **notes** — free text on 100 of the 108 live companies — and could take a
+**copy** away: the top bar's Export menu (CSV/Excel, all records) and the Leads page's own
+"Export this view", whose file carries every lead's owner, next action and contact details. None of
+it is what the link is for; the panel that mints one promises Today, Leads and Clients — the
+pipeline, not the file we keep on a company, and not a download of either. All of it now stops at
+`js/79`, the layer whose whole job is that promise, with one line telling the holder that internal
+material is not shared. Two brakes in the guards, because the cheap way to pass this rule is to hide
+everything: **what the link is for still works**, and **a signed-in colleague still sees all of it**.
+Nothing was exposed when this was found — all four live links were switched off — which is exactly
+when to fix it.
+Guards: `scripts/qa/probe-a-share-link-sees-no-internal-notes.mjs`, whose fourth check seeds the blob
 with all three fields — the state one save would create — and whose fifth proves a signed-in
-colleague still sees everything, so this is a wall and not a deletion.
+colleague still sees everything, so this is a wall and not a deletion;
+`scripts/qa/probe-a-shared-card-keeps-our-notes-inside.mjs` (the card's own three internal sections);
+`scripts/qa/probe-a-view-only-link-cannot-take-a-copy.mjs` (both export routes).
 *Date: 2026-09-21. Status: ACTIVE.*
 
 ## Session & GitHub-push access — read before assuming a session can push
