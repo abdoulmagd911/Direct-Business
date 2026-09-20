@@ -101,6 +101,13 @@ async function main() {
     'T1,750,Approved',
     'T2,500,Approved',
     'T2,300,Pending',
+    /* 2026-09-20 (fire #130): this probe proved Pending never counts, and nothing proved the same
+       of the other two. The live capture holds 24 CANCELLED lines worth 9,408.25 SAR — the status
+       the real data actually carries most, after Approved — so a filter rewritten as a blacklist of
+       "pending" would have let real cancelled money into cost with every check still green. Both are
+       on T2 deliberately: T2 already lands on invoice 116361000, whose cost must stay 2000. */
+    'T2,400,Cancelled',
+    'T2,600,Under Review',
     'T4,999999,Approved',
     'T6,1000,Approved',
     'T7,abc,Approved',
@@ -204,7 +211,7 @@ async function main() {
   // ---- Invoice 116361000: TWO transactions (T1 blank-status, T2 Ready-status) both issue
   // into it — proves multi-transaction aggregation AND that blank==Issued (not "not ready") ----
   if (!rows.multiTxnApplied) fail('116361000: row went missing entirely');
-  else if (rows.multiTxnApplied.cost !== 2000) fail(`116361000: cost_sar is ${rows.multiTxnApplied.cost}, expected 2000 (T1: 750+750 blank-status Approved = 1500; T2: 500 Ready-status Approved, 300 Pending excluded = 500; 1500+500=2000 across two transactions)`);
+  else if (rows.multiTxnApplied.cost !== 2000) fail(`116361000: cost_sar is ${rows.multiTxnApplied.cost}, expected 2000 (T1: 750+750 blank-status Approved = 1500; T2: 500 Ready-status Approved, with 300 Pending, 400 Cancelled and 600 Under Review all excluded = 500; 1500+500=2000 across two transactions). 2300 means Pending counted, 2400 Cancelled, 2600 Under Review, 3300 everything — cost is approved expenses ONLY`);
   else ok('116361000: cost_sar = 2000 — correctly summed across TWO transactions, and T1\'s blank status was correctly treated as done (not "not ready")');
 
   // ---- Invoice 116361001: no transaction issues into it — must stay exactly as seeded ----
