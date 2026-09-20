@@ -803,6 +803,27 @@ the public-repo question rule 7 settles and not the accepted in-app exposure of 
 anyone, with no login at all.
 *Date: 2026-09-20. Status: ACTIVE.*
 
+**M21 — a document that proves money lives in a PRIVATE bucket behind a link that expires, never
+at a permanent public address.** Found 2026-09-20 (fire #133). `payment-proofs` and `expenses` —
+proof of real payments, and real receipts — were marked public AND carried a read policy with no
+condition at all (`bucket_id = 'expenses'`). Measured before changing anything: an anonymous list
+call carrying only the publishable key that ships inside the app's own page returned HTTP 200 on
+both, so a file's address did not even have to be guessed. Nothing real was exposed — every file in
+both is a zero-byte placeholder today, and the real documents live in `company-docs`, which was
+already private and returned nothing to the same caller. The door was open in front of a feature
+about to hold receipts for real money. `js/66-document-generator.js` already had the right pattern
+and says so in its own comment: a private bucket read through `createSignedUrl(path, 600)`, a link
+that dies in ten minutes. `js/45-expenses.js` and `js/57-payment-proofs.js` now do the same, and
+both buckets match `company-docs` (private, `app_role() IS NOT NULL` on read). Verified both ways
+afterwards: anonymous list returns 0 entries, and a signed-in employee still lists, signs and
+fetches from all three. **The code half is gated — `scripts/qa/check-structure.mjs` refuses
+`getPublicUrl` on `payment-proofs`, `expenses` or `company-docs`** — because that one call silently
+re-opens the door. Two notes kept deliberately: a signed link is FETCHED, not computed, so a preview
+must open its tab inside the click and fill it in afterwards or the browser blocks it; and the
+`proposals` bucket is NOT covered — its address is stored inside the offer record and a proposal is
+a client-facing document, so that is the owner's call, not a QA fix.
+*Date: 2026-09-20. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

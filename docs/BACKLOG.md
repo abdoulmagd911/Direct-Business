@@ -1,3 +1,46 @@
+## Routine fire #133 (2026-09-20 ~11:00 UTC) — a payment proof's address worked for anyone, for ever, with no sign-in
+
+**Fixed, in the app and on the live database, verified both ways.** The two buckets holding
+documents for real money — `payment-proofs` (proof a client paid) and `expenses` (receipts) — were
+marked **public** *and* carried a read policy with **no condition at all** (`bucket_id = 'expenses'`).
+Measured rather than assumed: an anonymous list call, carrying only the publishable key that ships
+inside the app's own page, returned **HTTP 200 on both**, so a file's address did not even have to
+be guessed.
+
+**Nothing real was exposed** — and that is the honest framing, not a softener. Every file in both
+buckets today is a **zero-byte placeholder** (16 in `proposals`, 1 in `payment-proofs`, 2 in
+`expenses`, all downloading as 0 bytes), and the 7 MB of real company documents lives in
+`company-docs`, which was already private and returned nothing to the same caller. The door was
+simply standing open in front of a feature that is about to hold receipts for real money.
+
+**The app already knew the right answer.** `js/66-document-generator.js`, written later, keeps
+`company-docs` private and hands out `createSignedUrl(path, 600)` — a link that dies in ten minutes
+— and says so in its own comment. `js/45` and `js/57` now do exactly the same, and both buckets
+match `company-docs` (private, `app_role() IS NOT NULL` on read).
+
+**Order mattered and was deliberate:** the code changed *before* the buckets did, so there was never
+a moment when the app could not open its own files. One subtlety kept in the code: a signed link is
+*fetched*, not computed, so `proofPreview` opens its tab inside the click and fills it in when the
+link arrives — a browser blocks a window opened from an async callback.
+
+**Verified afterwards, both directions:** the anonymous list now returns **0 entries** on both
+buckets, and a signed-in employee can still list, sign and fetch from `payment-proofs`, `expenses`
+**and** `company-docs` — HTTP 200 in all three, driven live.
+
+**Gated:** `check-structure` now refuses `getPublicUrl` on any of those three buckets — the half
+that could silently come back the moment somebody writes that one call. Sabotage-verified by putting
+the public URL back in a copy. New rule **DECISIONS M21**.
+
+**Deliberately NOT touched — for the owner to decide:** the `proposals` bucket is still public. Its
+public address is **stored inside the offer record** (`o.fileUrl`), and a proposal is a client-facing
+document that may be meant to open from a link. Making it private would break every stored address
+and change how proposals are shared, so it is a design decision, not a QA fix. Nothing is at risk
+today: all 16 files there are zero-byte placeholders and the workspace holds **0 offers**.
+
+3 gates green (40 ACTIVE rules, 140 citations). Commit 96a66ab, confirmed live.
+
+---
+
 ## Routine fire #132 (2026-09-20 ~10:00 UTC) — who can destroy what, and what comes back
 
 Read-only follow-on to #131, and the point of it is the distinction the owner asked for: what is
