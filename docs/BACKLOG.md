@@ -1,3 +1,43 @@
+## Routine fire #144 (2026-09-20 ~23:30 UTC) — "show me only my leads" works, and CLAUDE.md said it couldn't
+
+CLAUDE.md's "Known structural issues" said ownership is free text **"so 'show me only my leads'
+can't be built until that's fixed."** That is out of date, and stale guidance in the file every
+session reads first is worth more than most defects. **Measured, then corrected in place.**
+
+**The data first.** All 7 ownership values in the live companies match an **active account's full
+name exactly** — checked row by row, not sampled. 20 of the 108 records carry no owner at all, and
+every one of those is a client.
+
+**Then the app**, driven against the real database by answering only *"what is this person called"*
+differently — no writes:
+
+| told the account is… | Leads → Mine shows |
+|---|---|
+| the person who owns the most | **70** — exactly their lead count (their 71st record is a client, and the Leads list shows leads only) |
+| the QA account, which owns nothing | **none**, and it says so: *"No results with the current filters — 108 record(s) hidden. Show all"* |
+
+**It is also sturdier than a string match, which matters before anyone "fixes" it.** `ownerCanon` /
+`sameOwner` (js/43) map a person's full name, Arabic name, nickname, e-mail prefix and — when it is
+unique in the team — their first name onto one canonical identity, so a record assigned to any of
+those still counts as theirs. `probe-crm-attacks` already guards that, which is why this round added
+no probe: the behaviour was covered, only the documentation was wrong.
+
+**What is still fragile, and is now written down:** a spelling that is none of those. Assignments
+made in the app come from a dropdown fed by the real roster, so drift cannot start there — but an
+**import** writing an unfamiliar variant would silently drop that record out of its owner's "Mine"
+with nothing on screen to say so.
+
+**An instrument fault of mine, caught before it was written up:** the first run reported "Mine shows
+1 lead" for an account that owns nothing. That row was the **empty-state row** — the app was
+behaving correctly and saying so honestly; my driver was counting `<tr>` elements. And my first
+draft of the CLAUDE.md correction claimed Mine "works because the strings happen to agree", which
+was too pessimistic — I found `ownerCanon` afterwards and rewrote it rather than ship a note that
+would mislead the next session in the opposite direction.
+
+3 gates green. CLAUDE.md corrected in place; no code changed.
+
+---
+
 ## Routine fire #143 (2026-09-20 ~22:30 UTC) — the money reaches the right company, checked
 
 A short verification round on the layer everything in Finance rests on, and it is **clean**:

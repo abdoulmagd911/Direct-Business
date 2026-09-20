@@ -456,8 +456,24 @@ twice, two layers creating the same element id, hidden-option trimming, hard-cod
 - **No version control on the app.** Changes are made by find-and-replace scripts against
   the live HTML, with manual backup copies as the only undo. This is the main source of
   the dead ends.
-- **Ownership is free text.** `assigned_to` / `account_manager` are plain names, not links
-  to real users — so "show me only my leads" can't be built until that's fixed.
+- **Ownership is free text — but "show me only my leads" WORKS, and was measured on 2026-09-20
+  (fire #144).** `assigned_to` / `account_manager` are still plain names rather than links to real
+  users, and the second half of this note used to say that made "my leads" impossible. It is built
+  and it is correct: "Mine" compares the signed-in person's display name to the ownership field
+  (js/33), and **every one of the 7 ownership values in the live data matches an active account's
+  full name exactly** — checked row by row. Driven against the real database by answering only
+  "what is this person called" differently: told the account belongs to the person who owns the
+  most, Leads → Mine showed **70**, which is exactly their lead count (their 71st record is a
+  client, and the Leads list shows leads only); told it is the QA account, which owns nothing,
+  Mine showed **none** and said so — "No results with the current filters — 108 record(s) hidden.
+  Show all". **And it is sturdier than a string match**, which is worth
+  knowing before anyone "fixes" it: `ownerCanon` / `sameOwner` (js/43) map a person's full name,
+  their Arabic name, their nickname, their e-mail prefix and — when it is unique in the team —
+  their first name, all onto one canonical identity, so a record assigned to any of those still
+  counts as theirs. `probe-crm-attacks` guards that. **What is still fragile:** a spelling that is
+  none of those. Assignments made in the app come from a dropdown fed by the real roster (js/33 via
+  `team_directory`), so drift cannot start there — but an IMPORT that writes an unfamiliar variant
+  would silently drop that record out of its owner's "Mine" with nothing on screen to say so.
 - ~~**The Leads stage filters miss almost every lead.**~~ **FIXED 2026-08-09.** Two
   separate problems were resolved. (1) The chip vocabulary was expanded to match the real
   data — chips now read All / New / Prospect / Contacted / Qualified / Proposal / Won / Lost
