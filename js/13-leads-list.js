@@ -145,6 +145,7 @@ console.info('%c[v39 guard rails] loaded','color:#FF6B00;font-weight:700');
     var active=all.filter(function(b){var s=stg(b);return s!=='Won'&&s!=='Lost'&&!b.isClient;}).length;
     var wt=won.map(function(b){var c=created(b),cv=b.convertedDate||b.convertDate;if(!c||!cv)return null;var d=(new Date(cv).getTime()-new Date(c).getTime())/864e5;return (isFinite(d)&&d>=0)?d:null;}).filter(function(x){return x!=null;});
     var avg=wt.length?Math.round(wt.reduce(function(a,x){return a+x;},0)/wt.length):null;
+    var skipped=won.length-wt.length;   /* how many the average could not use (fire #181) */
     var tile=function(v,l,c){return '<div style="flex:1;min-width:118px;border-inline-start:3px solid #FF6B00;padding-inline-start:12px"><div style="font-size:20px;font-weight:800;color:'+(c||'#1C1E2B')+'">'+v+'</div><div style="font-size:11px;color:var(--muted)">'+l+'</div></div>';};
     return '<div class="card v31-conv" style="display:flex;gap:18px;flex-wrap:wrap;padding:14px 18px;margin-bottom:14px">'+
       tile(newThis,fl('New this month','جديد هذا الشهر'),'#175CD3')+
@@ -153,8 +154,21 @@ console.info('%c[v39 guard rails] loaded','color:#FF6B00;font-weight:700');
          clients-out-of-everyone (the standard one) — say so, with the two numbers, so nobody
          hunts for the 26 % among the chips. */
       tile(conv+'%',fl('Became clients','أصبحوا عملاء')+' · '+won.length+' '+fl('of','من')+' '+all.length,conv>=30?'#16B364':'#F79009')+
-      tile(avg==null?'—':(avg+' '+fl('days','يوم')),fl('Avg time to win','متوسط وقت الكسب'),'#0F6E56')+
-    '</div>';
+      /* 2026-09-20 (fire #181): this tile read "26 days · Avg time to win" as if it described every
+         client. It does not, and cannot: the average is taken over the won records whose
+         conversion date is ON OR AFTER the day the record was created, and on the live data that
+         is 8 of the 28 clients. The other 20 converted BEFORE this app ever held them — they were
+         imported after the fact — so the wait is unmeasurable for them and is correctly skipped.
+         Skipping it silently is the problem. The tile beside this one already learned exactly this
+         on 2026-09-09 ("Became clients · 28 of 108"); this one never did. Same treatment: carry
+         the basis in the label, and say once, underneath, why the rest are not counted. */
+      tile(avg==null?'—':(avg+' '+fl('days','يوم')),
+           fl('Avg time to win','متوسط وقت الكسب')+' · '+wt.length+' '+fl('of','من')+' '+won.length,'#0F6E56')+
+    '</div>'+
+    (skipped>0?('<div class="v31-basis" style="margin:-8px 0 14px;font-size:11.5px;color:#6B7480;line-height:1.55">'+
+      fl(skipped+' of the '+won.length+' are not counted in that average: their conversion date is earlier than the day this app first held the record, so the wait cannot be measured.',
+         'لا يُحتسب '+skipped+' من '+won.length+' في هذا المتوسط: تاريخ تحوّلهم أسبق من يوم إنشاء السجل في هذا التطبيق، فلا يمكن قياس المدة.')+
+      '</div>'):'');
   }
   function inject(){
     try{
@@ -163,7 +177,12 @@ console.info('%c[v39 guard rails] loaded','color:#FF6B00;font-weight:700');
       var view=document.getElementById('view'); if(!view||view.querySelector('.v31-conv'))return;
       var html=stripHtml(); if(!html)return;
       var wrap=document.createElement('div'); wrap.innerHTML=html;
-      if(wrap.firstChild) view.insertBefore(wrap.firstChild,view.firstChild);
+      /* 2026-09-20 (fire #181): this inserted only wrap.firstChild, so anything after the card was
+         built and then silently dropped — which is exactly what happened to the basis line added
+         this round. Insert every node the builder produced, keeping their order, anchored above
+         whatever was already at the top of the page. */
+      var anchor=view.firstChild;
+      while(wrap.firstChild) view.insertBefore(wrap.firstChild, anchor);
     }catch(e){ if(window.console)console.warn('[v31] conv strip',e); }
   }
   window.v31Conv=inject;

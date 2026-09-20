@@ -92,6 +92,45 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #181 (2026-09-20 ~19:00 UTC) — "26 days to win" was the average of 8 clients, not 28
+
+Opened the collapsed **📊 Insights** panels, which nobody had this session. The Leads one carries
+four headline figures, and one read **"26 days · Avg time to win"**.
+
+Checked against the database: of your **28 clients, only 8** have a conversion date on or after the
+day this app first held the record. The other **20 had already become clients before the app ever
+had them** — they were imported after the fact — so for them the wait genuinely *cannot* be
+measured, and the code was right to skip them.
+
+**Skipping them silently was the problem.** 26 days is the honest average of 8 records, presented as
+the company's time to win. Say the sales team quotes it in a meeting: it describes under a third of
+your clients.
+
+The tile immediately beside it already learned this exact lesson on 2026-09-09 — it reads *"Became
+clients · 28 of 108"* precisely so nobody has to guess what it counted. This one never got the same
+treatment. It now reads **"26 days · Avg time to win · 8 of 28"**, with one line underneath:
+*"20 of the 28 are not counted in that average: their conversion date is earlier than the day this
+app first held the record, so the wait cannot be measured."*
+
+Verified on your real data — the tile and the line both say exactly that.
+
+Guarded by `scripts/qa/probe-the-average-says-what-it-averaged.mjs` (8 checks). Two brakes: **it says
+nothing when nothing is excluded** (a clean dataset gets no apology), and **when nothing at all can
+be measured the tile shows a dash, never a made-up 0**. Sabotage-verified: the bare label fails five.
+
+**A bug of mine, caught by driving.** The basis line built correctly and then **vanished**, because
+this card's injector inserted only the *first* element it produced and dropped everything after it.
+Reading the code would not have shown that; opening the page did. Fixed so it inserts every element.
+
+**Also checked this round:** the other Insights panels (Clients, Airlines, Sync) open and show
+correct figures — Clients in view 28, Key accounts 2 — and the Leads stage chips match the database
+exactly (Prospect 53 · Contacted 25 · Lost 2). "0 New this month" is also correct: nothing has been
+created since 23 August.
+
+3 gates green, battery 290 entries.
+
+---
+
 ## Routine fire #180 (2026-09-20 ~18:00 UTC) — three searches, three different answers
 
 Following the rule the last round earned, to every place it applies. This app searches companies

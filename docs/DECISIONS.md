@@ -1298,6 +1298,25 @@ different ways and holds three brakes — nonsense finds nothing, an archived co
 neither, and phone-digit matching still works.
 *Date: 2026-09-20. Status: ACTIVE.*
 
+**M39 — an average must say how many records it averaged, and a card that drops rows must say how
+many it dropped.** Found 2026-09-20 (fire #181). The Leads page's headline read **"26 days · Avg
+time to win"**. It is computed over won records whose conversion date is on or after `created_at`,
+and on the live data that is **8 of the 28 clients** — the other 20 converted *before* this app ever
+held them (imported after the fact), so their wait is genuinely unmeasurable and skipping them is
+correct. **Skipping them silently is not:** the figure describes under a third of the clients and
+reads as the company's number.
+The precedent was already in the same card — its neighbour was given "Became clients · 28 of 108" on
+2026-09-09 for exactly this reason. So the rule generalises: **when a computed figure excludes rows,
+the count it used goes in the label and the count it dropped is explained once underneath.** Two
+brakes, always: **silence when nothing is excluded** (a clean dataset must not be apologised for),
+and **a dash rather than 0 when nothing can be measured** — 0 days is a claim, "—" is the truth.
+Guard: `scripts/qa/probe-the-average-says-what-it-averaged.mjs`.
+**And a mechanical trap worth knowing:** this card's injector inserted only the FIRST node its
+builder produced, so the explanatory line was built and silently dropped. An injection layer that
+emits more than one element must insert them all — and this is invisible to reading, found only by
+opening the page.
+*Date: 2026-09-20. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

@@ -287,3 +287,4 @@ probe-empty-mirrors-do-not-speak-for-direct
 probe-a-person-says-where-they-came-from
 probe-the-palette-knows-the-arabic-name
 probe-every-search-agrees
+probe-the-average-says-what-it-averaged
