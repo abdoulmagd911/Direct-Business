@@ -1383,6 +1383,32 @@ editable fields to a Viewer, Leads 83). That is recorded for the owner in `docs/
 than fixed blind. Guard: `scripts/qa/probe-view-only-on-the-generator-means-it.mjs`.
 *Date: 2026-09-20, js/98 + js/66–js/71. Status: ACTIVE.*
 
+**M43 — when a value is in the registry, no document may type it out; and a bilingual document
+takes BOTH languages from it.** Found 2026-09-20 (fire #185), in the same footer M-rule #160 had
+already been through. #160 removed the invented unified-number and licence literals and left two
+more behind, identical in all five client-facing documents: the **branch list as an English
+sentence** and the **trade name as an Arabic one**. Both are `company_identity` rows with
+`value_en` *and* `value_ar`, both flagged `show_on_documents` — the registry was being ignored for
+exactly the two values it holds. Read off the produced document: the **Arabic quotation carried an
+English branches sentence**, and the **English quotation carried the Arabic trade name and never the
+English one**. The two numeric labels beside them were Arabic-only for the same reason, so an
+English document printed Arabic words around its own registered numbers.
+Three things worth keeping:
+**(a)** the cost is not only language — the registry's English branch value names **one more site**
+than the hand-typed sentence did, so the documents had silently gone stale; a value typed into five
+files does not change when the owner changes it in the registry;
+**(b)** the footer follows the **document's** language (`S.cur.lang`), never the app's — those are
+different, and the Contract and the Tender deliberately open in Arabic while the app is in English;
+**(c)** #160's doctrine holds — **no literal fallback.** If the registry is silent the line is left
+out, label and all. A gap somebody notices beats a stale name nobody checks.
+A note for whoever writes the next source-level guard: strip comments before scanning. This round's
+own check flagged all five files because the fix's comment quotes the literals it removed — the same
+trap check-structure's money rule already documents. Guard:
+`scripts/qa/probe-the-footer-is-not-typed-out-by-hand.mjs`, whose brakes are that a registry serving
+different values must change the footer, that a silent registry must leave no dangling label, and
+that #160's numbers must still print.
+*Date: 2026-09-20, js/67–js/71. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

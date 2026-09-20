@@ -105,6 +105,44 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #185 (2026-09-20 ~23:30 UTC) — your Arabic quotations carried an English sentence, and your English ones carried the Arabic company name
+
+Built an actual document end to end and read what came out — the quotation, in both languages.
+
+The footer at the bottom of every client-facing document (quotation, service fees, company profile,
+contract, tender — all five share it) had two lines **typed into the code** rather than read from
+your company registry:
+
+- the **branch list**, in English only. So an Arabic quotation sent to an Arabic-speaking client
+  carried one English sentence in its footer.
+- the **company trade name**, in Arabic only. So an English quotation carried the Arabic name — and
+  never the English one, which your registry has had all along.
+
+Both of those are already in **Company assets & registry**, in both languages, both ticked to show on
+documents. The documents simply were not looking.
+
+**And they had gone stale.** Your registry's English branch list names **one more location than the
+typed-out sentence did**. Every English document you have sent has been missing it.
+
+Two smaller ones in the same footer: the labels around your unified number and licence number were
+Arabic-only, so an English document had Arabic words wrapped around its own registered numbers.
+
+All fixed — the footer now reads the registry, in whichever language the document is written in, and
+if the registry ever has nothing for a line the line is simply left out rather than falling back to
+something out of date. (That rule came from fire #160 three rounds ago, which fixed the *numbers* in
+this same footer and left these two behind.)
+
+**One thing for you to look at:** your registry's Arabic branch list does not mention that extra
+location while the English one does. I have not touched either value — which is right is yours to
+say, and it is two edits in Company assets & registry.
+
+Guarded by `scripts/qa/probe-the-footer-is-not-typed-out-by-hand.mjs` (10 checks). Brakes: a registry
+serving different values must change the document (so a fix cannot just be a nicer set of typed-out
+words), a registry with nothing must leave no dangling label, and fire #160's numbers must still
+print. Sabotage-verified: putting the typed-out lines back fails eight. New rule **M43**.
+
+---
+
 ## Routine fire #184 (2026-09-20 ~22:30 UTC) — "Viewer" in Team & Access was not stopping anyone
 
 Drove the **Generator** as somebody you had set to **Viewer** on that page in Team & Access.

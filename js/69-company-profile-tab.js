@@ -169,14 +169,34 @@
   function footHtml(){
     var mail=idv('email','en')||'business@directksa.com';
     var site=idv('website','en')||'www.directksa.com';
+    /* the footer follows the DOCUMENT's language, not the app's (fire #185) */
+    var fLang=((S.cur||{}).lang)||'en', fAr=(fLang==='ar');
+    var brs=idv('branches',fLang);
+    var legal=idv('legal_name',fLang);
+    var legalLabel=fAr?'الاسم التجاري':'Legal name';
     var unn=regNum(['unified_number','unified_national_number','unn']);
     var lic=regNum(['mot_licence','tourism_licence','licence_number']);
     return '<div class="cp-foot">'+
       '<img class="fq" src="/brand/direct_qr_directksa.png" alt="" onerror="this.style.display=\'none\'">'+
       '<div class="fc">'+esc(mail)+'<br>'+esc(site)+'</div>'+
-      '<div class="fb">You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam</div>'+
-      '<div class="fl" dir="rtl">الاسم التجاري: شركة المسافر المباشر للسفر والسياحة<br>'+
-        [(unn?('الرقم الموحد '+esc(unn)):''),(lic?('رقم الترخيص '+esc(lic)):'')].filter(Boolean).join(' · ')+'</div>'+
+      /* 2026-09-20 (fire #185) — these two lines used to be literals:
+           '<div class="fb">You can visit our branches in Riyadh - Jeddah - Buraydah - Dammam</div>'
+           '<div class="fl" dir="rtl">[the Arabic trade name, typed out]<br>'
+         Fire #160 took the invented NUMBERS out of this same footer a round earlier and left the
+         trade name and the branch list behind. Both are in the `company_identity` registry, in both
+         languages, both flagged show_on_documents — so the registry was being ignored for exactly
+         the two values it holds. Measured on the produced document: the ARABIC quotation carried the
+         English branches sentence, and the ENGLISH quotation carried the Arabic trade name and never
+         the English one. And a trade name typed into five files does not change when the owner
+         changes it in the registry.
+         Per #160's doctrine: no literal fallback. If the registry is silent the line is left out —
+         a gap somebody notices beats a stale name nobody checks. */
+      (brs?('<div class="fb">'+esc(brs)+'</div>'):'')+
+      (legal?('<div class="fl" dir="'+(fAr?'rtl':'ltr')+'">'+esc(legalLabel)+': '+esc(legal)+'<br>'):'<div class="fl" dir="'+(fAr?'rtl':'ltr')+'">')+
+        /* fire #185: these two labels were Arabic-only, so an ENGLISH document carried Arabic
+           words around its own registered numbers. #160 fixed the numbers and left the labels. */
+        [(unn?((fAr?'الرقم الموحد':'Unified number')+' '+esc(unn)):''),
+         (lic?((fAr?'رقم الترخيص':'Licence number')+' '+esc(lic)):'')].filter(Boolean).join(' · ')+'</div>'+
     '</div>';
   }
 
