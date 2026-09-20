@@ -23,7 +23,8 @@
   // merge verdict onto EXISTING vendor records only (no new records -> suites unaffected)
   try{(DB.vendors||[]).forEach(function(x){var nm=(x.name||'');var k=Object.keys(PV).find(function(p){return p.toLowerCase()===nm.toLowerCase();});if(k&&!x.verdict){x.verdict=PV[k].verdict;x.verdictNote=PV[k].note;if(PV[k].connection&&!x.connection)x.connection=PV[k].connection;}});}catch(e){}
   var keepL=[],upL=[],depL=[];Object.keys(PV).forEach(function(p){if(PV[p].verdict==='Keep')keepL.push(p);else if(PV[p].verdict==='Upgrade')upL.push(p);else depL.push(p);});
-  var depLower=depL.map(function(s){return s.toLowerCase();});
+  /* one source for the verdicts — js/96 reads this rather than keeping a second copy that drifts */
+  try{window.DT_PROVIDER_VERDICTS=PV;window.DT_PROVIDERS_PHASING_OUT=depL.slice();}catch(_){}
 
   // helpers
   function awardsStrip(){return '';return '<div class="dt-awards-row" style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:10px 0">'+
@@ -202,7 +203,15 @@
         '<div><span style="color:#F0453A;font-weight:700">'+(_arPv?'إيقاف تدريجي:':'Deprecated (phasing out):')+'</span> '+depL.join(', ')+'</div></div>';
       v.insertBefore(b,v.firstChild);
     }
-    try{if(depLower.length)document.querySelectorAll('select option').forEach(function(o){if(depLower.indexOf((o.textContent||'').trim().toLowerCase())>-1)o.remove();});}catch(e){}
+    /* 2026-09-20 (fire #182) — this line used to be:
+         document.querySelectorAll('select option').forEach(o => { if (deprecated) o.remove(); })
+       It ran on EVERY render, over EVERY <select> in the document, and silently deleted the option.
+       Driven live: the "Provider / GDS" box opened with 24 suppliers including Dnata, and one
+       render() later it held 23 — the supplier vanished mid-form with nothing said. Worse, a
+       booking already recorded against that supplier read back as an EMPTY provider, and a Save
+       would have written the blank. Phasing a supplier out is the right intent; deleting the word
+       for it is not. js/96 now marks those options instead: disabled and labelled, and left
+       selectable on a record that already holds one. */
     if(cur==='settings'&&!v.querySelector('.dt-about-btns')){
       var s=document.createElement('div');s.className='dt-about-btns card';s.style.cssText='margin-bottom:12px;border-left:3px solid #FF6B00';
       s.innerHTML='<h3>Company profile — printables</h3><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="btn pri" onclick="directAboutPage()">About Direct Travel (one-pager)</button><button class="btn" onclick="directTenderPage()">Tender one-pager</button></div>';

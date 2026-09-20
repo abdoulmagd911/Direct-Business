@@ -1,4 +1,4 @@
-# ⬆ Waiting on you — fourteen decisions, most urgent first
+# ⬆ Waiting on you — fifteen decisions, most urgent first
 
 *Written 2026-09-21. These built up one at a time across the sweep, each buried at the bottom of the
 round that found it, which means none of them ever arrived anywhere you'd see. This is the whole
@@ -58,6 +58,12 @@ currently picks a partner type from raw English keys. This is a content decision
 speaks, not something a QA round should invent. Send the wording and it goes in the same day.
 *Raised #121 and earlier.*
 
+**15 · Three of your 23 suppliers look like the same supplier twice.** *Travelfusion* and *Travel
+Fusion*, *RateHawk* and *Rate Hawk*, *Travelport* and *Galileo / Travelport* — six records, probably
+three suppliers. Each pair holds different details, so merging means deciding which side is right;
+that is your call, not a session's. Say which of each pair to keep and I will fold the other in and
+leave the old record recoverable. *Raised #182.*
+
 **14 · Should all seven employees be able to *edit* Finance, or only read it?** They are meant to
 reach Finance — it is in the built-in floor every account gets — but all seven are set to **Editor**,
 so they can change and delete money records (#174). That may be right for a team this size; if not,
@@ -89,6 +95,50 @@ were cleaned in #140. Removing it from the *history* means rewriting the reposit
 breaks any other session's work in flight and cannot be undone. I will not do that without you
 saying so explicitly. The number belongs to someone outside Direct, which is the only reason it is
 on this list at all. *Raised #140.*
+
+---
+
+## Routine fire #182 (2026-09-20 ~20:30 UTC) — a supplier you are leaving had its name deleted from every dropdown
+
+Drove the pages nobody had touched this session — SOPs, Service Levels, **Providers & GDS**, Tickets,
+Bookings, Projects — in English and Arabic. Arabic came back clean on all of them (what English is
+left is codes: SOP 1, GDS, API, EMD). The Providers page is where the defect was.
+
+You are phasing out three suppliers, and one of them is **Dnata**, which is still in your provider
+list as a normal supplier. The way the app expressed "phasing out" was to **delete the name**: on
+every single redraw of any screen, it went through every dropdown in the whole page and removed any
+option that matched one of the three.
+
+What that actually did, measured on your live data:
+
+- The **Provider / GDS** box on a new booking opened with 24 suppliers including Dnata. One redraw
+  later it held 23. The supplier disappeared out of a form you had open, with nothing said.
+- Worse, and this is the part that could have cost you data: **a booking already recorded against
+  that supplier read back with no supplier at all.** A dropdown handed a value it has no entry for
+  reports nothing — so opening such a booking and pressing Save would have written the blank over
+  the real supplier. Nothing on screen would have told you.
+- And the page itself never agreed with the card above it: the list showed Dnata as an ordinary
+  supplier, the card said it was being phased out, and the dropdowns pretended it did not exist.
+  Three answers about one supplier.
+
+**Your intent was right and is kept** — nobody should pick a retired supplier for new work. What
+changed is how it is said. The supplier now stays in the list, greyed out and unpickable, labelled
+**"Dnata — being phased out"** (Arabic: «Dnata — قيد الإيقاف التدريجي»), and it stays **pickable on a
+record that already holds it**, so editing an old booking cannot blank its supplier. The Providers
+list now carries the same small "phasing out" mark the card above it claims.
+
+Verified against your real database: the box stays at 24, the label and the greying are there, the
+stored value is unchanged, and an existing record round-trips whole.
+
+Guarded by `scripts/qa/probe-a-supplier-we-are-leaving-keeps-its-name.mjs` (10 checks). Two brakes: a
+supplier **not** being retired must be untouched, and the retired one's **stored value must not
+change** (relabelling a dropdown entry can silently change what Save writes — that trap is now
+written down). Sabotage-verified: putting the old deletion back fails seven checks, including the
+one that catches the blanked supplier. New rule **M40**.
+
+**Worth knowing while you are in that list:** the 23 providers contain three near-duplicate pairs —
+*Travelfusion* / *Travel Fusion*, *RateHawk* / *Rate Hawk*, and *Travelport* / *Galileo / Travelport*.
+Not fixed here: merging supplier records is your call, not a session's.
 
 ---
 

@@ -1317,6 +1317,26 @@ emits more than one element must insert them all — and this is invisible to re
 opening the page.
 *Date: 2026-09-20. Status: ACTIVE.*
 
+**M40 — retire a choice by MARKING it, never by deleting the word for it; and a record already
+holding that choice keeps it.** Found 2026-09-20 (fire #182). Direct is phasing out three
+suppliers, and the app expressed that by deleting their names: `js/core/core-10` wrapped
+`render()` and, on every render, walked **every `<select>` in the whole document** and removed any
+option whose text matched one of the three. Driven live: the "Provider / GDS" box opened with 24
+suppliers and held 23 one render later — the supplier vanished out of an open form with nothing
+said — and a booking already recorded against it **read back as an empty provider**, because a
+`<select>` handed a value with no matching option reports nothing, so a Save would have written the
+blank over the real supplier. The intent was right and is kept; the mechanism was not. The option
+now stays, `disabled` and labelled "— being phased out" / «— قيد الإيقاف التدريجي», and stays
+**enabled** when it is the value the record already holds. Three traps that go with it:
+**(a)** never `hidden` — the OS dropdown shows hidden options anyway (check-structure already
+forbids it); **(b)** an `<option>` with no `value` attribute takes its value *from its text*, so
+relabelling one changes what a Save writes — pin the value first; **(c)** one source for the list
+(`window.DT_PROVIDERS_PHASING_OUT`, exported by the layer that owns the verdicts) so the dropdown,
+the Providers list and the verdict card cannot give three different answers about one supplier.
+Guard: `scripts/qa/probe-a-supplier-we-are-leaving-keeps-its-name.mjs`, whose brakes are that a
+supplier NOT being retired is untouched and that the retired one's stored value is unchanged.
+*Date: 2026-09-20, js/96 + js/core/core-10-v29-reports.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
