@@ -926,6 +926,29 @@ only when they really are a date, and otherwise left exactly as they are.
 Guard: `scripts/qa/probe-the-card-shows-what-the-database-holds.mjs`.
 *Date: 2026-09-21. Status: ACTIVE.*
 
+**M27 — a read that FAILED must never be drawn as a result that came back empty.**
+Found three times in two days (fires #155 and #158), always the same line of code:
+`rows = (r && r.data) || []`, which turns an error into an empty list because `r.data` is null on a
+failure. What the screen then says is not "we could not reach it" but the most confident sentence it
+owns:
+- the company card said **"No contacts yet."** about a company with a contact in the database — and
+  the app's own "needs attention" rule, which counts a company with no people, named the entire
+  pipeline (`v72Notice`, js/72);
+- the Finance → Ledger tab said **"No transactions recorded yet — the ledger is empty, not
+  filtered"** about a ledger nobody had managed to read, with **Confirmed revenue / cost / profit
+  all 0** beside it (`txnLoad`, js/16).
+The rule: **remember which read failed, say so in the place that would otherwise speak for it, and
+offer a retry. Where the missing thing is money, draw nothing at all rather than zeros** — the
+Finance page's own outage card is the standard ("do not read any figure from this page until it
+loads"). And keep the honest empty state intact: "none" and "unknown" must look different **in both
+directions**, or the fix is just a different lie.
+Known and deliberately NOT yet fixed, listed in `docs/BACKLOG.md` fire #156 so nobody thinks they
+were missed: the four client-document tabs treat a failed `company_identity` load as an empty
+registry, and the Events tab falls back to the copy in the workspace blob without saying so.
+Guards: `scripts/qa/probe-a-failed-load-does-not-say-nobody.mjs`,
+`scripts/qa/probe-the-ledger-says-it-could-not-load.mjs`.
+*Date: 2026-09-21. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
