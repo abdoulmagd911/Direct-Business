@@ -1,3 +1,59 @@
+## Routine fire #139 (2026-09-20 ~18:00 UTC) — a tender document claimed a certification the registry says lapsed
+
+**The app contradicted itself, and the version a client reads was the wrong one.**
+
+The Generator's **Renewals radar** — driven live — correctly lists four of the company's credentials
+as **EXPIRED**: ISO 9001:2015 (2025-02-14), DUNS (2025-09-10), Saudization certificate (2026-01-06)
+and **PCI DSS (2026-07-14)**. It names them, dates them, counts days left for the ones still valid,
+and honestly says "date not on file" for two others. That screen is excellent.
+
+Meanwhile `core-10`'s one-pager — the document **sent to clients and attached to tenders** —
+printed a **hard-coded** badge list still advertising **"PCI-DSS"**, and a hard-coded line reading
+**"Compliance: PCI-DSS · Bank Guarantee 750K SAR · DUNS registered"**. And the registry does not
+merely record an expiry: every one of those rows carries the owner's own **`show_on_documents =
+false`**. A hard-coded list was overriding an explicit instruction in the database, on a tender.
+
+**Fixed.** Every credential named on that document is now checked against the registry and dropped
+if the registry says it has expired **or** must not appear on documents. Driven live before and
+after: the document a client reads now carries neither claim.
+
+Three deliberate choices, each recorded because they will look like omissions later:
+
+1. **The person generating it is told.** A box the print stylesheet hides lists what was left off
+   and why — "PCI-DSS — expired 2026-07-14" — and says to update the registry and print again if it
+   has been renewed. The client never sees it. Silently obeying a registry row that is merely out of
+   date would trade one wrong document for another.
+2. **Nothing is ever ADDED to the document from the registry.** Leaving a true claim off is a small
+   loss; putting a false one on a tender is not.
+3. **Bilingual.** An English-only notice above an Arabic document is fire #125's defect again, so
+   the box speaks the page's language.
+
+If the registry has not loaded, **nothing is filtered on a guess** and the box says the list could
+not be checked — the same refusal to pretend `v21AgencyHeader` has made since round 41.
+
+**check-structure caught my own first attempt** taking today's date from UTC — exactly the
+comparison that flips in Riyadh between midnight and 3am, and "expired" is the worst place for it.
+With no way to know the date, it now reports "not loaded" rather than filtering on a wrong one.
+
+**Guard:** `probe-a-document-obeys-the-registry` (9098, **9 checks**, both languages), including
+that a credential the registry does *not* object to is still printed — the fix must not quietly
+strip real accreditations. Sabotage-verified against a copy with the filter disabled: **five checks
+fail and quote the document claiming PCI-DSS and DUNS back**.
+
+### For the owner — two things
+
+- **Four credentials are recorded as expired**, the oldest since February 2025. If any has been
+  renewed, updating it in **Generator → Company assets & registry** puts it back on your documents
+  automatically. If they really have lapsed, they are now correctly off them.
+- **A judgement call I did not make for you:** the at-a-glance table still prints the **DUNS number**
+  as an identifier. Dropping identifier rows on the same flag would also drop the **VAT and Zakat
+  numbers**, which a tender needs — so that one is yours to decide, not a silent change.
+
+3 gates green. Commit d9f89cb, confirmed live (the first check read a stale CDN copy; cache-busted
+it is there).
+
+---
+
 ## Routine fire #138 (2026-09-20 ~17:00 UTC) — how long the team actually waits, measured
 
 Every driver written this session sleeps 20–24 seconds after sign-in before reading anything, and
