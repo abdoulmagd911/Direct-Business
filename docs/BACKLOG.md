@@ -1,3 +1,53 @@
+## Routine fire #155 (2026-09-21 ~10:30 UTC) — "No contacts yet" about a company that has one
+
+Asked what the app says when the data does not arrive — by failing one request at a time against
+the **real database**. Two of the three answers were good, and the third was a lie with consequences.
+
+**Finance is exemplary.** With the invoice fetch failing, the page says: *"Could not load: simulated
+outage. Nothing was loaded — do not read any figure from this page until it loads."* Nothing else on
+screen. That is the standard the rest should meet.
+
+**The sign-in gate holds too.** If the companies fail to load, the sign-in card stays up with
+"Could not load leads: …" and the app is never entered. (A first reading of this looked like a
+serious defect — the app appeared to show its built-in demo pipeline as if it were the real
+workspace. It does not: that was rendering *behind* a full-screen blocker because the driver forced
+it. Checked before believing it.)
+
+### ⚠ The contacts bridge said the opposite of the truth
+
+`js/72` loads the people from the `contacts` table. On a failed request, `r.data` is null, the rows
+become an empty list, and **a refused load became indistinguishable from an empty table**. The
+company card then said **"No contacts yet."** about a company with a contact sitting in the
+database — *the same six words it uses for one that genuinely has nobody*. Two consequences, both
+worse than the wrong line:
+
+1. somebody reads it and **adds the person again**, creating a duplicate on a real company;
+2. the app's own **"needs attention"** rule counts a company with no people, so with the load broken
+   it names **the entire pipeline** — the one list meant to say what to do next says "all of it".
+
+Unknown is not the same as none. `js/72` now remembers which table failed; the card says *"Could not
+load the people on this record — there may well be some. Do not add anyone until this loads."* with
+a **Try again** that re-runs the bridge, and `js/09`'s rule drops the people term while the load is
+broken. A company that genuinely has nobody still gets the ordinary line — the two states must stop
+looking the same **in both directions**. Guarded by
+`scripts/qa/probe-a-failed-load-does-not-say-nobody.mjs` (8 checks, both languages, both the broken
+and the healthy case). Sabotage-verified: restoring the old line fails 4 checks, and check 3 prints
+the second half of the defect — **every company flagged as needing attention**.
+
+### The battery caught a regression from my own change
+
+The full run at the #150 tree came back with **one real red**, reproduced alone: `probe-export-records`
+found six **bare camelCase keys** in the Arabic export — `contractStart`, `contractEnd`,
+`contractSLA`, `verificationSource`, `needsManualConfirmation`, `confirmationReason`. They are the
+fields fires #149 and #151 started bridging onto every record: a column a person can now see is a
+column they can now export, and the export had no Arabic word for any of them. Labelled in `js/73`
+and re-verified green. Two other probes went red under load and passed alone (`probe-share-view-tidy`,
+`probe-the-forms-still-fit`) — the familiar contention, not a finding.
+
+3 gates green, battery 269 entries.
+
+---
+
 ## Routine fire #154 (2026-09-21 ~09:45 UTC) — press everything, and be an employee for a while
 
 Two dimensions the standing sweep names and this session had only half covered: **every role**, and

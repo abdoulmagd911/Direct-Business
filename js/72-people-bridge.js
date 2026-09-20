@@ -89,6 +89,10 @@ try{
     APPLIED.contacts+=addedC; APPLIED.activities+=addedA; APPLIED.runs++;
     return addedC+addedA;
   }
+  /* which of the two tables did not answer on the last run — read by the card notice below and by
+     js/09's "needs attention" rule, which must not read a failed load as "this company has nobody" */
+  var FAILED={contacts:false,activities:false};
+  try{ window.__v72Failed=function(k){ return k?FAILED[k]===true:(FAILED.contacts===true||FAILED.activities===true); }; }catch(_){}
   function run(cb){
     var c=client(); if(!c||BUSY){ if(cb)cb(0); return; }
     if(!(DB&&Array.isArray(DB.businesses)&&DB.businesses.length)){ if(cb)cb(0); return; }
@@ -105,14 +109,22 @@ try{
     var pending=2;
     // page through in 1,000s (Supabase's default cap) — a hard .limit() would silently drop
     // everyone past it once the tables grow; the loop stops on the first short page.
+    /* 2026-09-21 (fire #155, found by failing this request on purpose against the real database):
+       a refused or failed page used to be indistinguishable from an empty table. r.data is null on
+       an error, rows became [], and the card then said "No contacts yet." about a company that has
+       a contact in the database — the same words it uses for one that genuinely has none. Somebody
+       reading that adds the person again, and the app's own "needs attention" rule counts every
+       company as missing its people. The failure is remembered now, and the two places that speak
+       about it say so instead. */
     function pageAll(table,cols,key){
       var acc=[];
       function page(from){
         c.from(table).select(cols).order('id',{ascending:true}).range(from,from+999).then(function(r){
+          if(r&&r.error){ FAILED[key]=true; got[key]=acc; if(--pending===0)done(); return; }
           var rows=(r&&r.data)||[]; acc=acc.concat(rows);
           if(rows.length===1000&&from<50000){ page(from+1000); return; }
-          got[key]=acc; if(--pending===0)done();
-        }, function(){ got[key]=acc; if(--pending===0)done(); });
+          FAILED[key]=false; got[key]=acc; if(--pending===0)done();
+        }, function(){ FAILED[key]=true; got[key]=acc; if(--pending===0)done(); });
       }
       page(0);
     }
@@ -163,6 +175,49 @@ try{
     }
     if((n||0)<40)setTimeout(function(){hookRead((n||0)+1);},500);
   })(0);
+  /* ---- say it on the card (fire #155) ----
+     Only the empty line is replaced, and only while that table's last load failed. A company that
+     really has nobody keeps its ordinary "No contacts yet." — which is the point: the two states
+     must stop looking the same. The notice carries a Try again that re-runs the bridge, because
+     the honest answer to "we could not reach it" is usually one more attempt. */
+  function v72Notice(){
+    try{
+      var view=document.getElementById('view'); if(!view) return;
+      var ar=(typeof LANG!=='undefined'&&LANG==='ar');
+      var WORDS={
+        contacts:[ar?'تعذّر تحميل الأشخاص المسجّلين على هذه الجهة — قد يكون هناك من هو مسجَّل فعلًا. لا تُضف شخصًا قبل نجاح التحميل.'
+                     :'Could not load the people on this record — there may well be some. Do not add anyone until this loads.',/contact|جهات|الاتصال/i],
+        activities:[ar?'تعذّر تحميل سجل النشاط — قد يكون هناك نشاط مسجَّل بالفعل.'
+                      :'Could not load the activity log — there may well be activity on this record.',/activity|workflow|النشاط|سجل/i]
+      };
+      Object.keys(WORDS).forEach(function(k){
+        if(FAILED[k]!==true) return;
+        var re=WORDS[k][1], msg=WORDS[k][0];
+        [].slice.call(view.querySelectorAll('.card')).forEach(function(card){
+          var h=card.querySelector('h3'); if(!h||!re.test(h.textContent||'')) return;
+          [].slice.call(card.querySelectorAll('.empty')).forEach(function(em){
+            if(em.getAttribute('data-v72notice')) return;
+            em.setAttribute('data-v72notice','1');
+            em.style.cssText='background:#FFF3EC;border:1px solid #F4C892;border-radius:10px;padding:9px 12px;color:#7a5c00;font-weight:600';
+            em.textContent=msg+' ';
+            var a=document.createElement('a');
+            a.href='#'; a.style.cssText='color:#B54708;font-weight:700;text-decoration:underline';
+            a.textContent=ar?'أعد المحاولة':'Try again';
+            a.onclick=function(e){ try{ e.preventDefault(); }catch(_){ } try{ window.v72Apply(function(){ if(typeof render==='function')render(); }); }catch(_){ } return false; };
+            em.appendChild(a);
+          });
+        });
+      });
+    }catch(e){ if(window.console)console.warn('[v72] notice',e); }
+  }
+  try{
+    if(typeof window.render==='function'&&!window.render.__v72notice){
+      var _r72=window.render;
+      window.render=function(){ var out=_r72.apply(this,arguments); setTimeout(v72Notice,40); return out; };
+      window.render.__v72notice=true;
+    }
+  }catch(_){}
+
   // first run once the businesses are in; re-run whenever the list is replaced (a reload)
   function tick(){
     try{

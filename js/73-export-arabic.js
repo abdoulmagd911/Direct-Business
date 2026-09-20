@@ -34,6 +34,13 @@
     nextActionNote:'ملاحظة الإجراء التالي', activities:'النشاطات', lostReason:'سبب الخسارة', lastContact:'آخر تواصل',
     accountManager:'مدير الحساب', directClientId:'رقم عميل Direct', legalName:'الاسم القانوني', crVat:'السجل التجاري / الضريبة',
     paymentTerms:'شروط الدفع', creditLimit:'سقف الائتمان', contractScope:'نطاق العقد', customerType:'نوع العميل', entityType:'نوع الجهة',
+    /* 2026-09-21 (fires #149/#151, caught by probe-export-records in the same battery): six fields
+       started reaching the record object — the contract dates and SLA the app had been writing to
+       their columns and never reading back, and the three provenance fields the import writes — and
+       every one of them came out of the Arabic export as a bare camelCase key. A column a person
+       can now see on screen is a column they can now export. */
+    contractStart:'بداية العقد', contractEnd:'نهاية العقد', contractSLA:'مستوى الخدمة المتفق عليه',
+    verificationSource:'مصدر السجل', needsManualConfirmation:'بحاجة إلى تأكيد يدوي', confirmationReason:'سبب التأكيد',
     // airlines / providers
     code:'الرمز', icao:'رمز ICAO', stock:'رمز التذاكر', ksa:'BSP السعودية', ticketingAuthority:'صلاحية الإصدار',
     alliance:'التحالف', type:'النوع', country:'الدولة', gds:'GDS', providers:'الموردون', portal:'البوابة',

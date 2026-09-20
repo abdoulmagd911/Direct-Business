@@ -88,7 +88,13 @@
      to be writable in Finance, fixed the day before this). */
   function fnMayEdit(){try{ if(window.__isShareView)return false; if(window.__userTier==='viewer')return false; return true; }catch(_){return true;}}
   function overdue(b){return b.nextActionDate&&(new Date(b.nextActionDate+'T23:59:59')<new Date());}
-  function attention(b){return !(b.contacts&&b.contacts.length)||overdue(b)||b.needsManualConfirmation===true;}
+  /* 2026-09-21 (fire #155): "this company has nobody on it" is only true if the people actually
+     loaded. When js/72's contacts fetch fails, every company looks contactless and this filter
+     names all of them — a list of the whole pipeline, with nothing to act on. Unknown is not the
+     same as none, so that term drops out while the load is broken; overdue and the confirmation
+     flag still stand on their own. */
+  function noPeople(b){ try{ if(window.__v72Failed&&window.__v72Failed('contacts')) return false; }catch(_){ } return !(b.contacts&&b.contacts.length); }
+  function attention(b){return noPeople(b)||overdue(b)||b.needsManualConfirmation===true;}
 
   var _match=window.matchLead;
   window.matchLead=function(b){
