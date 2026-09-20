@@ -1,3 +1,40 @@
+## Routine fire #127 (2026-09-20 ~01:00 UTC) — two more boxes that did not take the keyboard
+
+Fire #126 found one overlay ignoring the keyboard and wrote the rule: **a layer that builds its own
+full-screen box does not get the shared modal's protections.** This round stopped finding them by
+hand. A crawler walks the app the way a person does — click a visible button, see whether a
+full-screen box appears — and asks of each one: did the keyboard go in, and does Tab stay there.
+
+It found two more, both on real data:
+
+* **Team & Access (js/31)** — the panel that manages the eleven real staff accounts and what each of
+  them may open. Opening it left focus on the button behind, and **every one of six Tab presses
+  landed on the Settings page underneath**. In both languages.
+* **The command palette (core-06)** — and this one is worth noting for a different reason. The
+  comment above the trap has always read *"Focus trap inside modals (#ov + #v19palette +
+  #v20confirm)"*. The palette wrapper set the ARIA attributes and stopped there; five of six tabs
+  walked the page behind the open palette. **The comment described the intention, not the code.**
+
+Both fixed the way #126 fixed the funnel box: call core-06's own trap, release it on close, put the
+keyboard back where it came from. The palette re-focuses its search box afterwards, because the trap
+focuses the first control and typing must still land in the search. Re-crawled: every box now takes
+the keyboard and keeps it, 0 of 6 tabs outside, in both languages.
+
+`probe-every-box-takes-the-keyboard` (port 9097, 4 checks) is deliberately **not a probe for these
+two boxes**. It crawls, so a box written next month is covered without anyone remembering to add it,
+and it refuses to pass by finding nothing. It costs about four minutes — the price of a check that
+covers what has not been written yet. Sabotage-verified against a copy: removing js/31's call turns
+two checks red and the report names the box and the button it was opened from.
+
+### Still open, and recorded rather than fixed
+
+Ten files build an overlay of their own. Three now take the keyboard (js/09, js/31, core-06's
+palette). The other seven — js/10, js/15, js/16, js/49, js/50, js/57, js/58, js/77 — were not
+reached by the crawl, because their boxes open from places a top-level button crawl does not get to.
+They all mention Escape (fire #92's gate sees to that) but none mentions the trap. The crawler will
+catch them as soon as a path to them is added to it; until then they are named here so the next
+round does not have to rediscover the list.
+
 ## Routine fire #126 (2026-09-21 ~23:00 UTC) — typing into the card behind the form
 
 A dimension never checked in this project: **can the app be used without a mouse?** Driven against

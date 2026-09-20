@@ -51,11 +51,22 @@
        the events form, which wired its own. This overlay ignored it in both languages. Escape now does
        exactly what its Close button and a click outside already did, and the listener is removed with
        the overlay so it cannot outlive it or stack if the panel is reopened. */
-    var v48close=function(){ try{ document.removeEventListener('keydown',v48esc); }catch(_){} try{ ov.remove(); }catch(_){} };
+    /* 2026-09-20 (fire #127) — and the same gap one layer down: this box took the Escape key in
+       fire #91 but never took the KEYBOARD. Driven against the real database: opening it left focus
+       on the button behind, and every one of six Tab presses landed on the Settings page underneath
+       — on the one screen that manages eleven real staff accounts and what each of them may open.
+       core-06's trap is called by hand, released on close, and the keyboard goes back where it was,
+       exactly as fire #126 did for the funnel box. */
+    var v48prevFocus=null; try{ v48prevFocus=document.activeElement; }catch(_){ }
+    var v48close=function(){ try{ document.removeEventListener('keydown',v48esc); }catch(_){}
+      try{ if(window.v21ReleaseTrap) v21ReleaseTrap(ov); }catch(_){}
+      try{ ov.remove(); }catch(_){}
+      try{ if(v48prevFocus&&v48prevFocus.focus) v48prevFocus.focus(); }catch(_){} };
     var v48esc=function(e){ if(e.key==='Escape'){ v48close(); } };
     document.addEventListener('keydown',v48esc);
     ov.addEventListener('click',function(e){if(e.target===ov)v48close();});
     document.getElementById('v48x').onclick=v48close;
+    try{ if(window.v21TrapFocus) v21TrapFocus(ov); }catch(_){}
     document.getElementById('v48create').onclick=addUser;
     load();
 
