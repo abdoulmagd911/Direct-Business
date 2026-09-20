@@ -1,4 +1,4 @@
-# ⬆ Waiting on you — thirteen decisions, most urgent first
+# ⬆ Waiting on you — fourteen decisions, most urgent first
 
 *Written 2026-09-21. These built up one at a time across the sweep, each buried at the bottom of the
 round that found it, which means none of them ever arrived anywhere you'd see. This is the whole
@@ -58,6 +58,12 @@ currently picks a partner type from raw English keys. This is a content decision
 speaks, not something a QA round should invent. Send the wording and it goes in the same day.
 *Raised #121 and earlier.*
 
+**14 · Should all seven employees be able to *edit* Finance, or only read it?** They are meant to
+reach Finance — it is in the built-in floor every account gets — but all seven are set to **Editor**,
+so they can change and delete money records (#174). That may be right for a team this size; if not,
+it is four clicks each in Team & Access. Not urgent: deletions are soft and Activity & Audit can undo
+them. *Raised #174.*
+
 **13 · What counts as "extended credit"?** The Commercial Credit Pool card on the morning screen
 shows how much of a 1.25M cap is in use — counted from invoices held inside the app, of which there
 are none, not from the finance ledger's 46 (#173). Its zeros are right today only by coincidence. To
@@ -83,6 +89,40 @@ were cleaned in #140. Removing it from the *history* means rewriting the reposit
 breaks any other session's work in flight and cannot be undone. I will not do that without you
 saying so explicitly. The number belongs to someone outside Direct, which is the only reason it is
 on this list at all. *Raised #140.*
+
+---
+
+## Routine fire #174 (2026-09-20 ~12:00 UTC) — a round that found nothing to fix, and one thing to ask
+
+Three areas swept against the real database. **No code changed**, because nothing was wrong. Recorded
+so the next session does not spend the same hour.
+
+**Arabic — clean.** The whole app driven in Arabic: one piece of Latin text on any page, and it is a
+person's name, which should stay as it is. In the real data only **18 of 108 companies** carry an
+Arabic name — and the app does the right thing with the other 90: it shows the English name rather
+than a blank or a dash. Same for events (61 of 80 named in Arabic). Every column header, stage,
+funnel name, owner and priority on the Leads list reads in Arabic. The company registry has an
+Arabic label on all 29 entries.
+
+*A wrong turn worth recording:* my first measurement said all 78 Arabic lead rows had a **blank
+company name**, which would have been a serious defect. It was my own selector reading the table's
+empty checkbox column. Checked before saying anything — the third time this session that checking
+first stopped a false alarm.
+
+**On a phone — clean.** Ten pages driven at 390px against the real data: **no page pushes the screen
+sideways**. The wide tables sit inside scrolling wrappers, which is the correct answer, and the
+Events list turns into stacked cards. No errors on any page.
+
+**Two pages that look empty and are not.** Generator renders a tidy six-way picker ("What do you
+want to create?"). Operations shows a request pipeline of zeros because there are genuinely zero
+open requests, with "+ New request" right there. Both correct.
+
+**New question for you — 14 · Should all seven employees be able to *edit* Finance?** Not an alarm,
+and nothing is broken: employees are *meant* to reach Finance — it is in the built-in floor of pages
+everyone gets. But every one of the seven is set to **Editor** on it, not Viewer, so they can change
+and delete money records, not just read them. That may be exactly what you want in a team this size.
+If it is not, it is four clicks each in Team & Access. Deletions are recoverable — finance rows are
+soft-deleted and Activity & Audit can undo them — which is why this is a question and not a fire.
 
 ---
 
