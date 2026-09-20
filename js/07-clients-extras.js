@@ -23,14 +23,26 @@
     var key=cls.filter(function(b){return b.tier==='Key';}).length;
     var today=todayISO();
     var overdue=cls.filter(function(b){return b.nextReview&&b.nextReview<=today;}).length;
-    var byArea={}; cls.forEach(function(b){var a=b.area||'—';byArea[a]=(byArea[a]||0)+1;});
+    /* 2026-09-21 (fire #146): the fallback here was the em dash itself, so with no city recorded on
+       any client this strip rendered the single tag "—: 28" — a chip that tells a person nothing and
+       looks like a broken label rather than a fact. `area` IS a real writable field (the lead form's
+       "Area (city)" dropdown), so the strip is worth keeping; the unknown bucket just has to say
+       what it means, in the page's own language. Measured live before changing it: all 28 clients
+       land in that bucket. */
+    var UNSET='__no_city__';
+    var byArea={}; cls.forEach(function(b){var a=(b.area&&String(b.area).trim())||UNSET;byArea[a]=(byArea[a]||0)+1;});
     var areas=Object.keys(byArea).sort(function(a,b){return byArea[b]-byArea[a];}).slice(0,6);
     // No money here — the Clients page is identity only (owner ruling 2026-08-21); the
     // billed/received/outstanding figures live on the Finance page, per company.
     var chips='<div class="chip"><div class="v">'+cls.length+'</div><div class="l">Total clients</div></div>'+
       '<div class="chip"><div class="v">'+key+'</div><div class="l">Key accounts</div></div>'+
       '<div class="chip"><div class="v" style="color:'+(overdue?'#D92D20':'inherit')+'">'+overdue+'</div><div class="l">Reviews overdue</div></div>';
-    var areaBars=areas.map(function(a){return '<span class="tag" style="background:#EEF0F5;color:#5b6178;margin:0 6px 6px 0">'+a+': <b>'+byArea[a]+'</b></span>';}).join('');
+    var _arA=(typeof LANG!=='undefined'&&LANG==='ar');
+    var areaBars=areas.map(function(a){
+      var label=(a===UNSET)?(_arA?'بلا مدينة مسجّلة':'No city recorded')
+                           :String(a).replace(/[<>&]/g,'');
+      return '<span class="tag" style="background:#EEF0F5;color:#5b6178;margin:0 6px 6px 0">'+label+': <b>'+byArea[a]+'</b></span>';
+    }).join('');
     var d=document.createElement('div'); d.id='cl_dash'; d.style.cssText='margin:0 0 16px';
     d.innerHTML='<div class="chips" style="margin-bottom:10px">'+chips+'</div>'+(areaBars?'<div style="display:flex;flex-wrap:wrap;align-items:center">'+areaBars+'</div>':'');
     var host=document.querySelector('.toolbar')||document.querySelector('table');
