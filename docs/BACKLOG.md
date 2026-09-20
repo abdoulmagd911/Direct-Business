@@ -1,3 +1,53 @@
+## Routine fire #142 (2026-09-20 ~22:00 UTC) — two client records share one person, and nothing in the app said so
+
+Checked rule **M18 — one company, one record** against today's data. No two live companies share a
+name or a website domain. But **one e-mail and one phone each appear on two companies, and it is
+the same two companies**:
+
+- both are **clients**, both stage **won**;
+- one arrived from the **corporate client list import**, the other from **Inbound**;
+- three contact rows between them, sharing a person's e-mail *and* phone;
+- they map to **two different finance client groups**, so their money is counted apart;
+- **no merge recorded, nothing flagged**, and no screen in the app said a word.
+
+**Why the app was silent, which is the actual defect.** js/13's duplicate check is a good one — it
+compares contact e-mails as well as names. It never ran on this pair for two structural reasons:
+it only fires **after an in-app save**, and neither record was ever typed into the app; and it
+speaks in a **toast**, gone a moment later and findable by nobody afterwards. Both are fine for
+somebody typing a new lead, and useless for how records actually arrive here — **by import**.
+
+**js/85 adds the missing half, and only that half:** a quiet, persistent line on the company's own
+card — *"The same person is on another company"* — naming the other company and the detail that
+matched, so the claim is checkable rather than asserted. It **never merges, writes or changes
+anything**: deciding two records are one company is the owner's call, and a wrong merge is
+expensive to undo. Driven against the real database: **exactly 2 of 108 companies flagged**, one
+line each, inside the Contacts card, both languages, zero writes, no JS errors.
+
+**Guard:** `probe-one-company-or-two` (9099, **9 checks**) — including the one that matters most
+over time: *a company that shares nobody is NOT flagged*, because the cheap way to pass every other
+check is to flag everything, and a warning on every card is a warning on none. Sabotage-verified
+twice against a copy: removing the phone comparison fails the phone check; removing the skip-myself
+guard fails the not-flagged check.
+
+**Two instrument faults of mine, both written into the probe so they are not repeated:**
+1. My first duplicate-name query had a **six-character floor**, so it skipped exactly this pair —
+   their names are short. The contact-based check is what found them.
+2. The probe's first version picked *the first six companies by position* and got L0, L9, L18, L27,
+   L36, L45 — **the app's id is the legacy_id and its list is not in seed order** — so half the
+   fixture was never looked at and the pair's other half counted as unflagged. Same family as the
+   #120 lesson. It now picks companies by the contact seeded on them.
+
+### For the owner — one question
+
+Those two client records may be one company entered twice, or two real companies in a group sharing
+one contact. **I have not merged anything.** If they are one company, their invoices are currently
+counted as two separate clients; if they are two, the new line is simply a note you can ignore. The
+app has an alias mechanism you have already used three times for exactly this.
+
+3 gates green. Commit f34805c, confirmed live (js/85 served and loaded by index.html).
+
+---
+
 ## Routine fire #141 (2026-09-20 ~21:00 UTC) — the audit log handed out money to people who cannot open Finance
 
 **Fixed on the live database, proved in both directions.** `record_history` — the audit log behind
