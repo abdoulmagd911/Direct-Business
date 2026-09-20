@@ -211,6 +211,37 @@ try {
   problems.push('overlay-escape check could not run: ' + e.message);
 }
 
+/* ---- a money document is never served by a permanent public address (added 2026-09-20, #133) ----
+   payment-proofs and expenses — the buckets holding proof of real payments and real receipts —
+   were marked public AND had a read policy with no condition, so an unauthenticated caller could
+   list them and fetch anything in them for ever. Measured before it was changed: the anonymous list
+   call returned 200 on both. Nothing real was exposed, because every file in them was a zero-byte
+   placeholder; the door was simply open in front of a feature about to hold real receipts.
+   company-docs, written later, already had the right shape and js/66 says so in its own comment:
+   a private bucket and a link that expires. The buckets are fixed; this stops the CODE half coming
+   back, because `getPublicUrl` on one of these three silently re-opens it the moment somebody
+   writes it. Other buckets (site, app, ksa-events-app, and proposals, whose address is stored in
+   the offer record by design) are untouched by this rule. */
+try {
+  const PRIVATE_BUCKETS = ['payment-proofs', 'expenses', 'company-docs'];
+  const jsDir2 = path.join(ROOT, 'js');
+  const walk2 = (dir, pre) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) =>
+    d.isDirectory() ? walk2(path.join(dir, d.name), pre + d.name + '/') : (d.name.endsWith('.js') ? [pre + d.name] : []));
+  const bad = [];
+  for (const f of walk2(jsDir2, '')) {
+    const src = fs.readFileSync(path.join(jsDir2, f), 'utf8');
+    for (const line of src.split('\n')) {
+      if (line.trim().startsWith('/*') || line.trim().startsWith('*') || line.trim().startsWith('//')) continue;
+      if (!/getPublicUrl/.test(line)) continue;
+      const hit = PRIVATE_BUCKETS.find((b) => line.includes("'" + b + "'") || line.includes('"' + b + '"'));
+      if (hit) bad.push('js/' + f + " builds a permanent public address for the '" + hit + "' bucket — that bucket holds documents for real money and is private; use createSignedUrl(path, 600) the way js/66 does");
+    }
+  }
+  if (bad.length) problems.push('money-document buckets: ' + bad.join(' · '));
+} catch (e) {
+  problems.push('private-bucket check could not run: ' + e.message);
+}
+
 /* ---- every date, time and number must name its language (added 2026-09-18, fire #94) ----
    toLocaleString(), toLocaleDateString(undefined, …) and toLocaleTimeString([], …) do not mean
    English. They mean "whatever language this laptop is set to". Driven for real against the live

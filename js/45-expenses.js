@@ -88,8 +88,21 @@
       String(r.id||'').replace(/-/g,'').slice(-4)];
     return parts.filter(Boolean).join('_').slice(0,120)+'.'+extOf(r.proof_name);
   };
-  function proofUrl(r){
-    try{ var c=client(); if(!c||!r.proof_path) return ''; var p=c.storage.from('expenses').getPublicUrl(r.proof_path); return (p&&p.data&&p.data.publicUrl)||''; }catch(_){ return ''; }
+  /* 2026-09-20 (fire #133): was getPublicUrl on a bucket marked PUBLIC — an expense receipt's
+     address worked for anybody holding it, with no sign-in, for ever, and an anonymous caller could
+     already list the bucket to find it. Nothing real was exposed (every file there today is a
+     zero-byte placeholder), but this is the bucket every future receipt lands in. js/66 already
+     had the right pattern for company documents — a PRIVATE bucket and a link that expires in ten
+     minutes — and this now matches it, as js/57's payment proofs do in the same commit. A signed
+     link is fetched rather than computed, hence the callback. */
+  function proofUrl(r,cb){
+    cb=cb||function(){};
+    try{
+      var c=client(); if(!c||!r.proof_path){ cb(''); return; }
+      c.storage.from('expenses').createSignedUrl(r.proof_path,600).then(function(res){
+        cb((res&&res.data&&res.data.signedUrl)||'');
+      },function(){ cb(''); });
+    }catch(_){ cb(''); }
   }
 
   /* ---------- attaching the proof ---------- */
@@ -132,11 +145,13 @@
      a file that comes from another host — the browser ignores the download name. */
   window.expDownload=function(id){try{
     var r=(EXP.rows||[]).find(function(x){return x.id===id;}); if(!r||!r.proof_path)return;
-    var url=proofUrl(r); if(!url)return;
-    fetch(url).then(function(res){return res.blob();}).then(function(b){
-      var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=expFileName(r);
-      document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
-    }).catch(function(e){ alert(fl('Could not download: ','تعذر التنزيل: ')+e); });
+    proofUrl(r,function(url){
+      if(!url){ alert(fl('Could not download that file.','تعذر تنزيل الملف.')); return; }
+      fetch(url).then(function(res){return res.blob();}).then(function(b){
+        var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=expFileName(r);
+        document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
+      }).catch(function(e){ alert(fl('Could not download: ','تعذر التنزيل: ')+e); });
+    });
   }catch(e){console.warn('[exp] download',e);}};
 
   /* In-page confirm, not window.confirm() — a native dialog blocks the whole tab on its own

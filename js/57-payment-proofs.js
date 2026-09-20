@@ -160,8 +160,24 @@
       String(r.id||'').replace(/-/g,'').slice(-4)];
     return parts.filter(Boolean).join('_').slice(0,140)+'.'+extOf(r.file_name);
   };
-  function fileUrl(r){
-    try{ var c=client(); if(!c||!r.file_path) return ''; var p=c.storage.from('payment-proofs').getPublicUrl(r.file_path); return (p&&p.data&&p.data.publicUrl)||''; }catch(_){ return ''; }
+  /* 2026-09-20 (fire #133): this was getPublicUrl on a bucket marked PUBLIC, so a payment proof's
+     address worked for anybody who had it, with no sign-in, for ever — and an anonymous caller
+     could already LIST the bucket, so the address did not even have to be guessed (measured: the
+     list call returns 200 without a key of any kind beyond the publishable one that ships in this
+     page). Nothing real was exposed, because every file in there today is a zero-byte placeholder;
+     the door was simply open in front of a feature that is about to hold receipts for real money.
+     js/66 already had the right pattern for company documents — a PRIVATE bucket and a link that
+     expires in ten minutes — and this now matches it. The callback is because a signed link is
+     FETCHED, not computed: that is the whole difference, and it is why the two callers below open
+     their tab first and fill it in afterwards. */
+  function fileUrl(r,cb){
+    cb=cb||function(){};
+    try{
+      var c=client(); if(!c||!r.file_path){ cb(''); return; }
+      c.storage.from('payment-proofs').createSignedUrl(r.file_path,600).then(function(res){
+        cb((res&&res.data&&res.data.signedUrl)||'');
+      },function(){ cb(''); });
+    }catch(_){ cb(''); }
   }
 
   /* ---------- attaching the file ---------- */
@@ -203,16 +219,25 @@
      A plain link cannot rename a file hosted elsewhere — the browser ignores the download name. */
   window.proofPreview=function(id){try{
     var r=(PRX.rows||[]).find(function(x){return x.id===id;}); if(!r||!r.file_path)return;
-    var url=fileUrl(r); if(url) window.open(url,'_blank');
+    /* the tab is opened HERE, inside the click, because a browser blocks a window opened from an
+       asynchronous callback — then the signed link is put into it when it arrives */
+    var w=null; try{ w=window.open('','_blank'); }catch(_){ }
+    fileUrl(r,function(url){
+      if(!url){ try{ if(w)w.close(); }catch(_){ } alert(fl('Could not open that file.','تعذر فتح الملف.')); return; }
+      if(w){ try{ w.location=url; return; }catch(_){ } }
+      window.open(url,'_blank');
+    });
   }catch(e){console.warn('[proof] preview',e);}};
 
   window.proofDownload=function(id){try{
     var r=(PRX.rows||[]).find(function(x){return x.id===id;}); if(!r||!r.file_path)return;
-    var url=fileUrl(r); if(!url)return;
-    fetch(url).then(function(res){return res.blob();}).then(function(b){
-      var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=proofFileName(r);
-      document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
-    }).catch(function(e){ alert(fl('Could not download: ','تعذر التنزيل: ')+e); });
+    fileUrl(r,function(url){
+      if(!url){ alert(fl('Could not download that file.','تعذر تنزيل الملف.')); return; }
+      fetch(url).then(function(res){return res.blob();}).then(function(b){
+        var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=proofFileName(r);
+        document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
+      }).catch(function(e){ alert(fl('Could not download: ','تعذر التنزيل: ')+e); });
+    });
   }catch(e){console.warn('[proof] download',e);}};
 
   /* ---------- selection, for bulk download ---------- */
