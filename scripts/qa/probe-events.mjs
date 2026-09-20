@@ -40,8 +40,12 @@ await p.waitForTimeout(2500);
 
 const txt=await viewText();
 check('events page renders with rows', (await rows())>0, true);
-check('stat tiles count only what is still ahead (7 of 8; the ended one is out)',
-  txt.includes('7\nStill ahead')&&txt.includes('2\nHave a stand')&&txt.includes('2\nGo & meet')&&txt.includes('2\nMine the website'), true);
+/* 2026-09-20 (fire #178): the headline tile was relabelled from "Still ahead" to "Not finished" —
+   21 of the live events have no date at all and are not ahead of anything (fires #172/#177). The
+   NUMBER this check cares about is unchanged, and so is what it proves: 7 of the 8 are counted and
+   the ended one is left out. Only the wording moved. */
+check('the headline tile counts only unfinished events (7 of 8; the ended one is out)',
+  txt.includes('7\nNot finished')&&txt.includes('2\nHave a stand')&&txt.includes('2\nGo & meet')&&txt.includes('2\nMine the website'), true);
 check('move pill visible on rows', txt.includes('MINE THE WEBSITE')||txt.includes('Mine the website'), true);
 check('event-site login line shows (🔑 who signed up)', txt.includes('🔑')&&txt.includes('Abdulrahman'), true);
 check('lead count line shows on Event 0', txt.includes('3 leads in the app'), true);

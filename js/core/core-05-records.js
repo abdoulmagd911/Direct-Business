@@ -202,7 +202,16 @@ function exportFlat(v,k){
   // Round 23 additions: keys that start with "_" are the app's own bookkeeping (the people
   // bridge's _fromTable / _tid marks) and never belong in a person's spreadsheet; a 13-digit
   // number on a time column (createdAt, updatedAt, ts) is an epoch and reads as a date-time.
-  const one=x=>{if(x==null)return '';if(typeof x!=='object')return String(x);const vals=Object.keys(x).filter(kk=>kk.charAt(0)!=='_').map(kk=>x[kk]).filter(y=>y!==''&&y!=null&&y!==false&&typeof y!=='object');return vals.join(' ');};
+  /* 2026-09-20 (fire #178): the "_" rule above catches the bridge's own marks but not the notes it
+     carries ABOUT a record — where it came from, whether it needs confirming and why. Those are
+     real data, they just are not part of a person's contact details, and joining them into the
+     contacts cell produced "Contact 9 Manager c9@example.com +966500000009 manual". Found by
+     probe-export-records the moment verificationSource was added in #177 — and the same leak was
+     already waiting for any FLAGGED contact, whose cell would have read "… true <the reason>".
+     Named here rather than underscore-prefixed at the source, because js/95 and the card both read
+     these by name and one list in one place is easier to keep true than three renames. */
+  const NOTE_KEYS={verificationSource:1,needsConfirm:1,confirmReason:1};
+  const one=x=>{if(x==null)return '';if(typeof x!=='object')return String(x);const vals=Object.keys(x).filter(kk=>kk.charAt(0)!=='_'&&!NOTE_KEYS[kk]).map(kk=>x[kk]).filter(y=>y!==''&&y!=null&&y!==false&&typeof y!=='object');return vals.join(' ');};
   if(typeof v==='number'&&k&&/(At|_at|Date|date|Ts|ts)$/.test(String(k))&&v>1e11&&v<1e13){try{const d=new Date(v);return d.toISOString().slice(0,10)+' '+d.toISOString().slice(11,16);}catch(_){return v;}}
   if(Array.isArray(v))return v.map(one).filter(Boolean).join(' | ');
   if(typeof v==='object'){

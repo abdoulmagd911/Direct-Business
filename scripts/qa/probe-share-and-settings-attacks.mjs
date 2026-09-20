@@ -169,6 +169,14 @@ const anon=await B.p.evaluate(()=>{
             requests:money(D.requests),projects:money(D.projects),audit:money(D.audit),vendors:money(D.vendors),
             airlines:money(D.airlines),travelerProfiles:money(D.travelerProfiles),events:money(D.ksaEvents)},
     agencyKeys:Object.keys(D.agency||{}),
+    /* 2026-09-20 (fire #178): KEYS cannot answer "did the link deliver this?" — the app seeds its
+       own empty `agency` object, so iban/bank/amadeusPin are present as keys whether or not
+       anything arrived. The seeded fixture uses marked VALUES, so look for those instead. */
+    blobMarkers:(function(){ try{
+      var hay=JSON.stringify({a:D.agency,i:D.invoices,o:D.offers,k:D.bookings,u:D.audit})||'';
+      return ['SA00QA0000000000000000','QAPIN1','QA Test Bank','INV-QA-9001','OFR-QA-31','BKG-QA-77','stage \u2192 contacted']
+        .filter(function(m){ return hay.indexOf(m)>=0; });
+    }catch(_){ return ['(unreadable)']; } })(),
     settingsKeys:Object.keys(D.settings||{}),
     bizFields:Object.keys(biz[0]||{}),
     bizSample:biz[0]?{name:biz[0].name,owner:biz[0].assigned_to||biz[0].account_manager,cr:biz[0].cr_vat,total:biz[0].total_sar}:null,
@@ -188,17 +196,27 @@ const urlNow=await B.p.evaluate(()=>location.pathname);
 ok('the token is rewritten out of the address bar by the clean-URL layer', !urlNow.startsWith('/s/'));
 notes.push('address after the share view settles: '+urlNow);
 ok('Share and Sign-out controls are hidden from the anonymous holder', anon.shareBtnGone && anon.signOutGone);
-ok('anonymous holder receives the WHOLE company workspace, not one page',
-   anon.counts.businesses>0 && anon.agencyKeys.length>0);
-/* the exposure itself — recorded as facts, each asserted so the report has evidence */
-ok('EXPOSED: every non-archived company row (leads + clients)', anon.counts.businesses>0);
-ok('EXPOSED: the invoices/proposals/bookings from the blob reach the browser too',
-   anon.counts.invoices>0 && anon.counts.offers>0 && anon.counts.bookings>0);
-ok('EXPOSED: the agency profile — bank, IBAN and the Amadeus office/PIN reach the browser',
-   anon.agencyKeys.includes('iban') && anon.agencyKeys.includes('amadeusPin'));
-ok('EXPOSED: the who-did-what audit trail with real staff names', anon.counts.audit>0);
+/* 2026-09-20 (fire #178). These five lines used to RECORD AN OPEN HOLE: each one asserted that the
+   thing DID reach an anonymous link holder, so the probe passed while the app leaked and would have
+   gone red the day somebody fixed it. It has now been fixed — fire #167 trimmed `share_view` in the
+   database to an allow-list (35 keys and 86,801 bytes down to 3 and 836) and js/10 allow-lists
+   again on the way in — so this whole block is inverted: it is a guard against the hole coming
+   back, not a description of it.
+   The company rows are NOT in the list: handing over Leads and Clients is exactly what a share link
+   is for, and the checks further down are what keep that honest. */
+ok('the anonymous holder still receives the pipeline — otherwise the link is pointless',
+   anon.counts.businesses>0);
+/* measured by the fixture's own marked values, not by counts or key names: the app seeds empty
+   invoice/booking arrays and an empty agency object of its own, so "is the key there" and "is the
+   count above zero" both answer about the app's defaults rather than about the link. */
+ok('nothing the blob carried reaches the browser — no seeded invoice, proposal, booking, IBAN, Amadeus PIN or audit line',
+   anon.blobMarkers.length===0);
+ok('and specifically not the bank details', anon.blobMarkers.indexOf('SA00QA0000000000000000')<0
+   && anon.blobMarkers.indexOf('QAPIN1')<0);
+ok('and specifically not the audit trail', anon.blobMarkers.indexOf('stage \u2192 contacted')<0);
 notes.push('anon DB counts: '+JSON.stringify(anon.counts));
 notes.push('anon agency keys: '+JSON.stringify(anon.agencyKeys));
+notes.push('blob markers that reached the anonymous browser: '+JSON.stringify(anon.blobMarkers));
 
 /* 2c. FIX (2026-09-02): the guard must treat a share view as a decided "no", not as an
        unknown role, and no row-level edit control may be offered at all. Run on LEADS,
@@ -223,7 +241,11 @@ const guard=await B.p.evaluate(async ()=>{
    changed: removing it makes the share feature less useful and is the owner's call. */
 const exports_=await B.p.evaluate(()=>[...document.querySelectorAll('#view button,.tools button')]
   .filter(e=>e.offsetParent && /export/i.test(e.textContent||'')).map(e=>(e.textContent||'').trim()));
-ok('OWNER DECISION recorded: export controls are offered to an anonymous holder', exports_.length>0);
+/* 2026-09-20 (fire #178): this also recorded the behaviour as accepted rather than guarding it,
+   and fire #166 then removed it — "view-only" cannot mean "take a copy of the pipeline away with
+   you". Inverted to hold the fix. probe-a-view-only-link-cannot-take-a-copy carries the detail and
+   the brake (signed in, both export routes are back). */
+ok('no export control is offered to an anonymous holder', exports_.length===0);
 notes.push('export controls offered anonymously: '+JSON.stringify(exports_));
 ok('FIX: canDo() answers no for every write in a shared view', guard.canDo===false);
 ok('FIX: no row carries an Edit control in a shared view', guard.editControls===0);
