@@ -1,3 +1,42 @@
+## Routine fire #149 (2026-09-21 ~05:30 UTC) — twenty clients showed "Payment terms —" over the answer
+
+Fire #148 found one company whose CR/VAT was in the database and not on screen. This asked how far
+that went, and counted it in the live table:
+
+| On the company's own Corporate account card | In the database, not on screen |
+|---|---|
+| Payment terms | **20 companies** |
+| Contract start **and** contract end | **19 companies each** |
+| Credit limit | 8 |
+| Entity type / CR·VAT / legal name | 1 each |
+
+Same cause every time: `appToRow` **writes** these columns and `rowToApp` never **read them back**,
+so anything that arrived by SQL or by the August import was invisible. Twenty of the app's 28
+clients had a payment term on file and a dash on the card.
+
+### Reading a column back has a trap, and it is half the fix
+
+The writer only ever *set* those columns — it never cleared one. So the moment the reader prefers a
+column, **a value you delete in the form comes back on the next reload**, because the column still
+holds it. A field you cannot empty is worse than a field that was never shown. `appToRow` now writes
+an explicit empty for a field somebody emptied, which is safe *because* the reader loads the column
+first. Contract dates are the exception and are treated as one: the form takes free text, a date
+column rejects anything that is not a date, and a rejected column fails the whole row's save — so
+they are cleared, or written when they really are a date, and otherwise left alone.
+
+Both halves in `js/02-…-shared-c.js`, guarded by
+`scripts/qa/probe-the-card-shows-what-the-database-holds.mjs` — 8 checks, including that the raw
+blob still wins where both disagree, and that clearing one field does not null its neighbours.
+Sabotage-verified twice: taking the reader out fails checks 1 and 7, **and check 7 shows the save
+wiping both contract dates** — which is exactly why the two halves belong in one change; putting the
+old writer back fails 4 and 5, and check 5 prints the deleted value back on the card. New rule
+**M26** in `docs/DECISIONS.md`. 3 gates green, battery 264 entries. probe-no-phantom-writes,
+probe-lifecycle5 (67/67) and two others re-run clean.
+
+**Full battery at the #145 tree finished while this ran: 247/247 green, no flaky re-runs.**
+
+---
+
 ## Routine fire #148 (2026-09-21 ~04:30 UTC) — you could not find a client by the person you know
 
 Drove the live Clients search. Three things a person would reach for could not find their client,

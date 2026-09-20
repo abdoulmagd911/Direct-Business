@@ -160,6 +160,17 @@
        in exactly that state today. Same shape as tier and segment above; raw still wins. */
     if((o.crVat==null||o.crVat==='')&&r.cr_vat!=null&&String(r.cr_vat).trim()!=='')o.crVat=String(r.cr_vat).trim();
     if((o.legalName==null||o.legalName==='')&&r.legal_name!=null&&String(r.legal_name).trim()!=='')o.legalName=String(r.legal_name).trim();
+    /* 2026-09-21 (fire #149): the rest of the same family, counted live the same day — payment_terms
+       sits in the column with nothing in the raw blob on 20 companies, contract_start and
+       contract_end on 19 each, credit_limit on 8, entity_type on 1. Every one of them read
+       "Payment terms —" and "Contract —" on its own Corporate account card, over the answer. */
+    if((o.entityType==null||o.entityType==='')&&(o.customerType==null||o.customerType==='')&&r.entity_type!=null&&String(r.entity_type).trim()!=='')o.entityType=String(r.entity_type).trim();
+    if((o.paymentTerms==null||o.paymentTerms==='')&&r.payment_terms!=null&&String(r.payment_terms).trim()!=='')o.paymentTerms=String(r.payment_terms).trim();
+    if((o.creditLimit==null||o.creditLimit==='')&&r.credit_limit!=null&&Number(r.credit_limit))o.creditLimit=Number(r.credit_limit);
+    if((o.contractScope==null||o.contractScope==='')&&r.contract_scope!=null&&String(r.contract_scope).trim()!=='')o.contractScope=String(r.contract_scope).trim();
+    if((o.contractSLA==null||o.contractSLA==='')&&r.contract_sla!=null&&String(r.contract_sla).trim()!=='')o.contractSLA=String(r.contract_sla).trim();
+    if((o.contractStart==null||o.contractStart==='')&&r.contract_start)o.contractStart=String(r.contract_start).slice(0,10);
+    if((o.contractEnd==null||o.contractEnd==='')&&r.contract_end)o.contractEnd=String(r.contract_end).slice(0,10);
     // Direct client ID — the link key to Direct Payments. Real column wins over any raw copy.
     if(r.direct_client_id!=null&&r.direct_client_id!=='')o.directClientId=String(r.direct_client_id);
     return o;
@@ -189,12 +200,28 @@
     };
     // Persist the client handover fields to real columns too (not just raw), so a lead
     // converted in-app writes the same shape my SQL seed does and external reads can use them.
-    if(o.legalName!=null&&o.legalName!=='')row.legal_name=o.legalName;
-    var _crv=o.crVat||o.vatNumber||o.crNumber; if(_crv)row.cr_vat=String(_crv);
-    if(o.customerType||o.entityType)row.entity_type=o.customerType||o.entityType;
-    if(o.paymentTerms!=null&&o.paymentTerms!=='')row.payment_terms=o.paymentTerms;
-    if(o.creditLimit!=null&&o.creditLimit!=='')row.credit_limit=Number(o.creditLimit)||0;
-    if(o.contractScope!=null&&o.contractScope!=='')row.contract_scope=o.contractScope;
+    /* 2026-09-21 (fire #149): these used to be written ONLY when they had a value, so the column
+       could be set and never cleared. That was invisible while nothing read them back; the moment
+       the reader above prefers the column, a value you DELETE in the form comes back on the next
+       reload, because the column still holds it. A field you cannot empty is worse than a field
+       that was never shown. Writing null is safe precisely because the reader loads the column into
+       the object first: the only way one of these is empty here is that somebody emptied it.
+       The contract DATES are the exception — the form takes free text, and a date column rejects
+       anything that is not a date, which would fail the whole row's save. They are cleared, or
+       written when they really are a date, and otherwise left exactly as they are. */
+    row.legal_name=_col(o.legalName);
+    row.cr_vat=_col(o.crVat||o.vatNumber||o.crNumber);
+    row.entity_type=_col(o.customerType||o.entityType);
+    row.payment_terms=_col(o.paymentTerms);
+    row.credit_limit=(o.creditLimit!=null&&o.creditLimit!=='')?(Number(o.creditLimit)||0):null;
+    row.contract_scope=_col(o.contractScope);
+    row.contract_sla=_col(o.contractSLA);
+    [['contractStart','contract_start'],['contractEnd','contract_end']].forEach(function(p){
+      var v=o[p[0]];
+      if(v==null||String(v).trim()===''){ row[p[1]]=null; return; }
+      v=String(v).trim();
+      if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!isNaN(new Date(v).getTime()))row[p[1]]=v;
+    });
     if(o.isClient===true&&o.convertedDate){try{row.converted_date=new Date(o.convertedDate).toISOString().slice(0,10);}catch(_){}}
     if(o.funnelKey&&FBYKEY[o.funnelKey])row.funnel_id=FBYKEY[o.funnelKey].id;
     if(ROWID[o.id])row.id=ROWID[o.id];

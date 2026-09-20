@@ -905,6 +905,27 @@ own: signed-in with an active account, a 24-hour window, never an "undo" of a cr
 restricted to admin/manager, and a full restore admin-only.
 *Date: 2026-09-20. Status: ACTIVE.*
 
+**M26 — a column the app reads back must also be a column the app can clear.**
+Found 2026-09-21 (fires #148/#149). The client handover fields — legal name, CR/VAT, entity type,
+payment terms, credit limit, contract scope, contract dates — are written to real columns in
+`businesses` and most of them were never read back, so a company that received them any way other
+than by being typed into this app (a SQL update, the August import) showed a dash on its own card
+over the answer: **payment terms on 20 live companies, both contract dates on 19, credit limit on 8,
+CR/VAT, legal name and entity type on 1 each**. The fix is a fallback in `rowToApp` (js/02 —
+`o.paymentTerms=String(r.payment_terms)`), with the raw blob still winning, exactly like the
+`assigned_to` / `tier` / `segment` fallbacks added before it.
+**The second half is the rule.** The writer only ever SET those columns (`if(value) row.x=value`),
+so once the reader prefers a column, a value you DELETE comes back on the next reload — the column
+still holds it. `appToRow` now writes `null` for an emptied field (`row.payment_terms=_col(...)`),
+which is safe *because* the reader loads the column first: the only way one of them is empty at save
+time is that somebody emptied it. Take one half without the other and it is worse than either — the
+probe proves it by removing the reader and watching the writer wipe both contract dates.
+The contract dates are the one exception: the form takes free text and a `date` column rejects
+anything that is not a date, which would fail the whole row's save, so they are cleared or written
+only when they really are a date, and otherwise left exactly as they are.
+Guard: `scripts/qa/probe-the-card-shows-what-the-database-holds.mjs`.
+*Date: 2026-09-21. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
