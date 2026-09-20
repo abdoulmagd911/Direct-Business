@@ -1056,6 +1056,39 @@ and they are the registry's**. The check that the false claim is gone reads `tex
 check passed against the broken copy and could not have caught anything.
 *Date: 2026-09-21. Status: ACTIVE.*
 
+**M31 — a page is not shipped until something you can click opens it, and the sidebar is not built
+from the list of pages.** Found 2026-09-21 (fire #169) by sweeping every routable address against
+the live database as an admin, who may open everything, so nothing was hidden by permission. The
+app routes from js/03's list of valid addresses; the sidebar is built from `VIEWS` (core-01), then
+**thrown away and rebuilt** by core-08's `v25_2RestructureNav` from three hardcoded lists
+(`V25_PRIMARY` / `V25_REFERENCE` / `V25_READONLY`). A page in none of those three has no button, no
+matter how correct it is — and adding it to `VIEWS` alone does nothing, which is the trap, because
+it looks like the fix. CLAUDE.md already records the cost: *"this is how the finance ledger sat
+live-but-unreachable for two days."*
+Two pages were in exactly that state, and they are the two that undo a mistake: **Activity & Audit**
+(41,636 characters of page on live data — the audit trail and the Undo screen, js/63, the only place
+a change made in the last 24 hours can be reversed) and **Archive** (js/76, the only screen that
+brings a deleted company back — and **four companies are archived in the live database**). Both are
+first-class everywhere else: js/56's access matrix offers them by name in both languages, js/52
+grants both to managers, and `activity` is one of the three pages the database itself enforces.
+Only the sidebar never heard. So somebody who deleted the wrong company had two rescue screens and
+no way to click to either.
+The way to add one is js/18's Finance pattern — **inject the button after the rebuild and re-inject
+after every render**, never touch `VIEWS` (that rebuild matches old buttons to views BY INDEX, and
+js/52 records what counting positions already cost: *"what hid Finance from an employee and showed
+them Projects instead"*).
+Two further things this fire settled. **A new nav button must be hidden from anyone who may not open
+that page**, re-checked after every render: js/15's gate matches buttons against its own older list
+and silently covers nothing added since, so a button that bounces you back to Today is the default
+outcome, not an edge case. And **one page gets one name**: `T('activity')` answers "Activity feed", a
+second older string that wins in `I18N`, while the access matrix, the refusal message and the page
+title all say "Activity & Audit" — the sidebar now says what the matrix says.
+Guard: `scripts/qa/probe-you-can-click-to-the-undo-screens.mjs`. The brake is check 5 — **the rail is
+not longer**: both live inside the collapsed Reference group, so the fix cannot quietly undo the
+6-8 item sidebar the v25 layer exists to produce.
+Report: `scripts/qa/diag-pages-with-no-way-in.mjs` re-runs the whole sweep.
+*Date: 2026-09-21. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

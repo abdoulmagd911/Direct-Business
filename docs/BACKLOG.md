@@ -66,6 +66,46 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #169 (2026-09-21 ~21:45 UTC) — the two screens that undo a mistake had no button
+
+Swept every address the app will open, against the real database, signed in as an admin — who may
+open everything, so nothing could be hidden by permission. Two pages draw real content and appear
+**nowhere in the sidebar**: not on the rail, not inside either collapsed group.
+
+| | |
+|---|---|
+| **Activity & Audit** | 41,636 characters of page on the live data. It is the audit trail **and the Undo screen** — the only place a change made in the last 24 hours can be reversed. |
+| **Archive** | The only screen that can bring back a deleted company. **Four companies are archived in the live database right now.** |
+
+So somebody who deletes the wrong company on Monday and notices on Wednesday has two screens built
+to rescue them, and no way to click to either. The only way in was typing the address.
+
+Both pages are first-class everywhere else — the Team & Access screen offers them by name in both
+languages, managers are granted both by default, and the database itself enforces access to the
+audit page. **Only the sidebar never heard.** It is built from one list, then thrown away and
+rebuilt from three others, and nothing keeps any of them in step with the list of real pages. This
+is the same fault that, in the project's own words, *"is how the finance ledger sat
+live-but-unreachable for two days."*
+
+`js/90` gives them a button, **inside the collapsed "Reference" group** with the other
+non-daily-driver pages — one click to expand. Not on the main rail: that rail is deliberately eight
+items and this fix has no business quietly making it ten. The buttons are hidden from anyone who may
+not open those pages, re-checked after every render, because a button that bounces you back to Today
+is its own small lie.
+
+Two smaller things fixed on the way, both found by **driving** the nav rather than reading it:
+my first attempt wrote each label into the icon's slot, so every name came out **twice**
+("Activity & AuditActivity & Audit"); and the app's own translation table answers "Activity feed"
+for that page while the access screen, the refusal message and the page title all say
+"Activity & Audit". The sidebar now says what the access screen says — one page, one name.
+
+Guarded by `scripts/qa/probe-you-can-click-to-the-undo-screens.mjs` (6 checks), including Arabic on
+both buttons and the brake that the rail did not get longer. Sabotage-verified: unhooking js/90
+fails four checks, and the click test lands back on Today. **New rule M31.** 3 gates green, battery
+281 entries. Report: `scripts/qa/diag-pages-with-no-way-in.mjs` re-runs the whole sweep.
+
+---
+
 ## Routine fire #168 (2026-09-21 ~21:00 UTC) — a form that took your corrections and threw them away
 
 The thing #167 measured and left. The company's identity is stored **twice**: the registry every
