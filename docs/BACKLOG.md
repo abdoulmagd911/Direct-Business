@@ -1,3 +1,45 @@
+## Routine fire #163 (2026-09-21 ~17:00 UTC) — four company papers have lapsed, and the CR is next
+
+Chasing the PCI-DSS finding to its source: **what else does the registry say, and who ever sees it?**
+Driven live against the Renewals radar, which is a good instrument and tells the truth:
+
+| | |
+|---|---|
+| ISO 9001:2015 | **EXPIRED** 2025-02-14 |
+| DUNS | **EXPIRED** 2025-09-10 |
+| Saudization certificate | **EXPIRED** 2026-01-06 |
+| PCI DSS (SAQ A 4.0.1) | **EXPIRED** 2026-07-14 |
+| Monsha'at certificate | 50 days left |
+| **Commercial Registration (CR)** | **85 days left** (2026-12-14) |
+| Riyadh Chamber membership | 85 days left |
+| Ministry of Tourism licence · IATA accreditation | date not on file |
+
+Four lapsed, and **the CR itself inside three months**. Everything above is correct and already in
+the app — but only on **Generator → Company assets & registry**, a page nobody opens unless they
+already suspect something. A warning nobody passes is not a warning.
+
+**New layer `js/88`: one line on Today**, and only when there is something to say — a paper already
+expired, or expiring within sixty days. Three choices worth keeping:
+- **Admins and managers only.** Seven of the eleven live accounts are employees; a lapsed
+  Saudization certificate is not their job and putting it on their morning screen is noise.
+- **At most three, most urgent first**, then "and N more" and a link to the radar. The radar stays
+  the instrument; this is the doorbell.
+- **Nothing is invented.** A paper with no expiry date on file is not counted as anything — the
+  radar already shows those as "date not on file".
+
+Verified on live data: the line appears for the admin account and reads the three lapsed ones plus
+"and 2 more". Guarded by `scripts/qa/probe-todays-renewals-line.mjs` (9 checks). Sabotage-verified:
+counting undated papers makes the line appear on a morning when **nothing is due** — which is how a
+warning stops being read — and removing the role gate puts it on every employee's screen. 3 gates
+green, battery 275 entries; role-nav, page-access and the click-through probe re-run clean.
+
+**For the owner, plainly:** four certificates need renewing, and **the commercial registration
+expires on 2026-12-14**. The CR is 85 days out, so it is not on the Today line yet — it appears on
+its own when it reaches sixty days. Nothing in the app can renew these; the line only makes sure
+nobody finds out by accident.
+
+---
+
 ## Routine fire #162 (2026-09-21 ~16:15 UTC) — the report footer was still advertising a lapsed certification
 
 Finished the three literals #161 named, and one of them was not a tidy-up at all.
