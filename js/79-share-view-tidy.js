@@ -46,6 +46,53 @@
          told nothing. Leave Finance alone so it can say why; the sidebar entry above stays hidden, so
          the only way here is by address. Guard: probe-share-and-settings-attacks (the check that had been
          failing since 2026-09-15, unseen because the battery runner reported every probe green). */
+      /* 4. INTERNAL APPARATUS OFF A SHARED CARD (2026-09-21, fire #165, measured on a real link).
+         M28 asks who else can open a card. The answer on this path is "somebody outside the
+         company", and what they were being shown, on a company's own card, was:
+           · the ACTIVITY LOG — our own call notes, with "edit · remove" beside each one
+             ("call: their finance man is difficult, push the discount" in the test that found it);
+           · COMMENTS — internal discussion about the account;
+           · NOTES — free text, on 100 of the 108 live companies.
+         None of it is data the link is for: the panel that mints a link promises Today, Leads and
+         Clients — the pipeline, not the file we keep on a company. Nothing was exposed when this was
+         found (all four live links were switched off), which is exactly when to fix it.
+         Hidden, not deleted: a signed-in colleague is untouched, and the holder is told once, in
+         words, so a missing card is never mistaken for an empty one. */
+      var view=document.getElementById('view');
+      if(view){
+        var INTERNAL=[/activity|workflow|النشاط|سير العمل/i, /^comments\b|التعليقات/i, /^notes\b|^ملاحظات/i];
+        var hid=0;
+        [].slice.call(view.querySelectorAll('.card')).forEach(function(c){
+          try{
+            var h=c.querySelector('h3'); if(!h) return;
+            var t=(h.textContent||'').replace(/\s+/g,' ').trim();
+            if(!INTERNAL.some(function(re){ return re.test(t); })) return;
+            if(c.style.display!=='none'){ c.style.display='none'; }
+            hid++;
+          }catch(_){}
+        });
+        /* the suggested next step is coaching for our own team, and reads as nonsense to a guest */
+        [].slice.call(view.querySelectorAll('.v35-next')).forEach(function(n){ n.style.display='none'; });
+        /* v60's jump bar is built from whatever cards exist when it runs, 80ms after render — the
+           same moment this is hiding them. Rather than race it, take the chips for the hidden
+           sections back out: a button that scrolls to nothing is its own small lie. */
+        var jump=document.getElementById('v60jump');
+        if(jump){ [].slice.call(jump.querySelectorAll('button')).forEach(function(bt){
+          var t=(bt.textContent||'').replace(/\s+/g,' ').trim();
+          if(INTERNAL.some(function(re){ return re.test(t); })) bt.style.display='none';
+        }); }
+        if(hid && !view.querySelector('.v79-internal-note')){
+          var note=document.createElement('div');
+          note.className='v79-internal-note card';
+          note.setAttribute('dir', isAr()?'rtl':'ltr');
+          note.style.cssText='background:#F6F7F9;border:1px solid #E6E8EC;color:#4B5563;font-size:12.5px;'+
+            'padding:10px 13px;margin:10px 0;text-align:'+(isAr()?'right':'left');
+          note.textContent=isAr()
+            ? 'الملاحظات الداخلية والتعليقات وسجل النشاط ليست جزءًا من الرابط المشارك.'
+            : 'Internal notes, comments and the activity log are not part of a shared link.';
+          view.appendChild(note);
+        }
+      }
       /* 3. an honest footer */
       var foot=document.querySelector('.side .foot')||document.querySelector('.foot');
       if(foot){

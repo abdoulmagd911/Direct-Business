@@ -1,3 +1,38 @@
+## Routine fire #165 (2026-09-21 ~18:30 UTC) — a view-only link was handing out the file we keep on a company
+
+M28 said: *before putting anything on a company card, ask who else can open that card.* #164 asked
+it of two lines added the same day. This asked it of **everything else on the card** — and the
+answer was worse.
+
+A person holding a **view-only share link** could open a company's card and read:
+
+- **the activity log** — our own call notes, each with **"edit · remove"** beside it. The record
+  used to find this carried *"call: their finance man is difficult, push the discount"*;
+- **comments** — internal discussion about the account;
+- **notes** — free text, which **100 of the 108 live companies have**.
+
+None of that is what the link is for. The panel that mints one promises **Today, Leads and
+Clients** — the pipeline, not the file we keep on a company. And 11 live records already carry their
+activity log inside the blob the share loader copies out wholesale.
+
+**Nothing was exposed when this was found — all four live share links are switched off** — which is
+exactly when to fix it rather than after somebody makes the next one.
+
+`js/79` (the layer whose whole job is "the view-only link keeps its own promise") now takes the
+three cards off a shared card, hides the suggested-next-step nudge (coaching for our own team, which
+reads as nonsense to a guest), **and takes the matching chips out of the jump bar** — a button that
+scrolls to nothing is its own small lie. The holder is told once, in words: *"Internal notes,
+comments and the activity log are not part of a shared link."* A missing card must never be mistaken
+for an empty one.
+
+Guarded by `scripts/qa/probe-a-shared-card-keeps-our-notes-inside.mjs` (8 checks). Two of them are
+the brakes: **what the link IS for still works** (the company, its stage, its key facts), and
+**signed in, all three cards are back** — a wall, not a deletion. Sabotage-verified: removing the
+block fails five checks and prints the call note it should never have shown. 3 gates green, battery
+277 entries; six share and card probes re-run clean.
+
+---
+
 ## Routine fire #164 (2026-09-21 ~17:45 UTC) — what we say to ourselves, nearly handed to an outsider
 
 Asked of the two lines added earlier today: **who else can open the card they sit on?** A view-only
