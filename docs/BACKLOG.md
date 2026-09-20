@@ -1,3 +1,46 @@
+## Routine fire #129 (2026-09-20 ~05:00 UTC) — a comment about a different box satisfied the gate
+
+Fire #127 named ten files that build a full-screen box of their own and #128 closed all but two.
+This round measured those two, live against the real database, in both languages. **Both were losing
+the keyboard, and one of them had no keyboard way out at all.**
+
+- **js/16's invoice box** — one invoice's whole money, with the **Delete invoice** button on it.
+  Opening it left focus on the page behind (three of six Tab presses walked the page underneath) and
+  **the Escape key did nothing whatsoever**. Somebody working without a mouse could open it and not
+  leave it.
+- **js/77's share panel** — focus landed on the skip link at the top of the page and six of six tabs
+  stayed outside.
+
+**The missing Escape should have been caught two days ago, and the reason it was not is the finding
+worth keeping.** check-structure's overlay rule (fire #92) reads every layer that builds its own box
+for the WORD "Escape", anywhere in the file. js/16 says "Cancel/Escape" in a comment about js/57's
+pfPrompt twelve hundred lines above its own box — **a comment about a different box satisfied the
+gate.** That is the same shape as #127's command palette, whose comment claimed a focus trap the code
+never called. The rule now requires a **real key comparison**, and a box that genuinely must not be
+dismissible is judged in writing in `scripts/qa/overlays-without-escape.txt`, which gates both ways:
+an unlisted box with no handler fails, and a listed box that has since grown one fails too. js/50's
+sign-out banner is the single entry, with its reason.
+
+**A second defect, in the shared trap itself.** core-06 worked out the first and last control once,
+at the moment the trap was applied. A box that fills itself in afterwards — the share panel lists its
+links when the database answers — then carried a trap pinned to controls that were no longer its
+edges. Both edges are now read when Tab is pressed; behaviour is identical for a box whose contents
+do not change, which is every box the trap covered before today.
+
+**Guards.** `probe-every-box-takes-the-keyboard` now measures **nineteen boxes a run** (was fifteen)
+and requires twelve, so it still cannot pass by finding nothing; `probe-escape-closes-every-box`
+drives the real key on the invoice box and asserts the tightened gate and the judged list. Sabotage-
+verified against a **copy** (APP_DIR), the repository untouched: js/16's Escape handler removed turns
+exactly one check red — the new one; its trap call removed fails the focus check in both languages;
+and the gate fails all three ways — handler gone, stale exemption, empty list.
+
+**The overlay list is now closed.** Ten files build their own box; nine take the keyboard and keep
+it; the tenth is js/50's sign-out banner, which must not be dismissible and is judged as such.
+
+3 gates green. Commit 3eb0e1b, live on directksab2b.com.
+
+---
+
 ## Routine fire #128 (2026-09-20 ~03:00 UTC) — the box that asks "are you sure" could not be answered from the keyboard
 
 Fire #127 left a list: ten files build a full-screen overlay of their own, three had been given the

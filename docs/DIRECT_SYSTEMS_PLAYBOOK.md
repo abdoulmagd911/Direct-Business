@@ -794,6 +794,19 @@ now exists specifically because of each one:
   the row on the card), gated on that thing existing, so it fails for the right reason and catches
   a half-revert. Same family as the two rig faults found the same day, where checks passed on
   empty text.
+- **A gate that reads for a WORD is satisfied by a comment about something else (2026-09-20, fire
+  #129).** check-structure's overlay rule required every layer that builds its own full-screen box to
+  "mention Escape" — the word, anywhere in the file. js/16 passed it on the strength of
+  "Cancel/Escape" in a comment about js/57's pfPrompt twelve hundred lines above, while its own
+  invoice box — the one with the Delete invoice button on it — ignored the key completely. Same
+  shape as #127's command palette, where a comment claimed a trap the code never called. When a gate
+  can only afford a crude test, make the crude test something a comment cannot satisfy — a real key
+  comparison, a real call — and put the genuine exceptions in a judged list that gates BOTH ways.
+- **A focus trap must read the box as it is NOW (2026-09-20, fire #129).** core-06's trap worked out
+  the first and last control once, when it was applied. A box that fills itself in afterwards — the
+  share panel lists its links when the database answers — then had a trap pinned to controls that
+  were no longer its edges, and Shift-Tab off the real first control walked out of the box. Anything
+  that captures the shape of a dialog at open time is wrong for every dialog that loads its contents.
 
 ---
 
