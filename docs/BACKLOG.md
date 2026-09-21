@@ -105,6 +105,45 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #186 (2026-09-21 ~00:30 UTC) — your documents had the app's page controls printed on them, and were quietly dropping rows
+
+Read all five produced documents against your real data, in both languages. Two things, one visible
+and one silent.
+
+**The visible one.** Your Arabic technical proposal carried this, inside the document page itself:
+
+> Showing 1–15 of 15 · [10 / page ▾] · ‹ Prev · Next ›
+
+That is the app's own table-paging bar — the thing that helps you flip through a long list on screen.
+It had attached itself to the tables inside your client documents, in English, on an Arabic document,
+and it prints. A client opening the PDF would see it.
+
+**The silent one, which matters more.** That bar does not just display a number — it *hides rows*.
+The page size is remembered in your browser, so **anyone who had ever picked "10 / page" on the Leads
+list was generating documents cut down to ten rows.** A fifteen-row fee table would print ten and
+drop five, and the only sign would be that English line, which a client would read as part of the
+document. Nothing on screen said anything was missing.
+
+The cause: the paging code was told to decorate *every* table on the page, and your documents are
+built out of tables. It now leaves document pages alone. Your normal lists keep their pager exactly
+as before — Airlines still reads "Showing 1–20 of 136".
+
+**Also fixed in the same round:** two lines on the service-fee document ("Pick a scenario or add
+services…" and the identity note) followed the *app's* language instead of the *document's*, so an
+Arabic document carried English instructions. Same mistake as fire #185's footer, different lines.
+
+Guarded by `scripts/qa/probe-a-document-is-not-a-data-table.mjs` (8 checks). Brakes: an ordinary list
+must still get its pager, and that pager must still count and truncate correctly.
+
+**Worth telling you, because it nearly went wrong:** my first version of that guard could not
+actually catch this. It only looked at documents the test harness can build, and those all have short
+tables — and the paging bar only appears above ten rows. It **passed against an app I had
+deliberately re-broken.** A check that cannot fail is worse than no check. The guard now builds a
+twelve-row quotation and measures that; re-broken, it fails four checks including the row-dropping
+one. New rule **M44** records both the fix and that lesson.
+
+---
+
 ## Routine fire #185 (2026-09-20 ~23:30 UTC) — your Arabic quotations carried an English sentence, and your English ones carried the Arabic company name
 
 Built an actual document end to end and read what came out — the quotation, in both languages.

@@ -1409,6 +1409,30 @@ different values must change the footer, that a silent registry must leave no da
 that #160's numbers must still print.
 *Date: 2026-09-20, js/67–js/71. Status: ACTIVE.*
 
+**M44 — a client-facing document is not a data table: nothing that helps you browse a list may
+attach to one, and a document must show every row it has.** Found 2026-09-21 (fire #186). js/04's
+pager decorates tables via `document.querySelectorAll('table')` — *every* table on the page — and
+the Generator's five documents are built out of tables. Read off the live database, the **Arabic
+technical proposal carried "Showing 1–15 of 15", a "10 / page" dropdown, "Show all", "‹ Prev" and
+"Next ›" inside `div.td-page.ar`** — English controls on an Arabic document, on the copy a client
+receives, and they print. The worse half is silent: page size lives in `localStorage.db_pageSize`,
+so anyone who once chose "10 / page" on the Leads list had **every document they generated cut to
+ten rows**, the only clue an English line a client would read as part of the document. js/04 now
+excludes the document page containers (`#poPages` … `#tdPages`, `.po-page` … `.td-page`,
+`[data-doc-page]`), which is the seam to add to if another document family is ever built.
+Alongside it, the same round's smaller lesson, which is #185's rule again: **a string inside a
+document builder must not use the app-language helper.** Two empty-state lines in `js/68` used
+`fl()`, which reads the app's `LANG`, so an Arabic document carried an English instruction. Inside a
+document the language is the document's (`S.cur.lang`), always.
+**And the probe lesson, which is the important one:** the first version of this guard judged only the
+documents the harness can build, whose tables are all under eleven rows — and the pager only
+attaches above ten. It **passed against a deliberately re-broken app.** A check that cannot fire is
+worse than no check, and the only reason it was caught is that sabotage-testing is mandatory here.
+The guard now builds a twelve-row quotation and judges that. Brakes: an ordinary data table must
+still get its pager, and that pager must still count and still truncate.
+Guard: `scripts/qa/probe-a-document-is-not-a-data-table.mjs`.
+*Date: 2026-09-21, js/04-ui-basics.js + js/68-service-fees-tab.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

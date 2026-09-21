@@ -67,6 +67,16 @@
     try{
     if(tbl.__pg)return;
     if(tbl.closest&&tbl.closest('.v32-svc'))return; // the income-by-service rollup manages its own row visibility (family expand/collapse)
+    /* 2026-09-21 (fire #186) — this scanned EVERY table on the page, and the Generator's five
+       client-facing documents are built out of tables. Measured on the live database: the Arabic
+       technical proposal carried "Showing 1–15 of 15", a "10 / page" dropdown, "Show all",
+       "‹ Prev" and "Next ›" INSIDE div.td-page.ar, i.e. on the document a client receives —
+       English controls on an Arabic document, and they print.
+       The worse half is silent: page size is remembered per browser (db_pageSize), so anyone who
+       once chose "10 / page" on the Leads list had every generated document cut to ten rows, with
+       nothing but that English line to say so. A document must show every row it has.
+       A document page is not a data table. Leave them alone. */
+    if(tbl.closest&&tbl.closest('#poPages,#sfPages,#cpPages,#ctPages,#tdPages,.po-page,.sf-page,.cp-page,.ct-page,.td-page,[data-doc-page]'))return;
     var tb=tbl.tBodies&&tbl.tBodies[0]; if(!tb)return;
     if(dataRows(tb).length<=10)return;            // small tables don't need a pager
     tbl.__pg=true; tbl.__pgKey=pageKey(tbl); tbl.__page=PAGE_MEM[tbl.__pgKey]||1;

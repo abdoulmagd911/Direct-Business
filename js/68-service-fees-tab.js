@@ -577,7 +577,7 @@
         var v=ar&&r.value_ar?r.value_ar:(r.value_en||r.value_ar||'—');
         return '<tr><td class="k">'+esc(lb)+'</td><td class="v">'+esc(v)+'</td></tr>';
       }).join('')+'</table>')
-      :'<div class="sf-lead" style="color:var(--muted)">'+fl('Company identity rows marked "show on documents" appear here.','تظهر هنا بيانات الشركة المحددة للعرض على المستندات.')+'</div>';
+      :'<div class="sf-lead" style="color:var(--muted)">'+/* fire #186: same as line 631 - the document's language, not the app's */(ar?'تظهر هنا بيانات الشركة المحددة للعرض على المستندات.':'Company identity rows marked "show on documents" appear here.')+'</div>';
     var about=
     '<div class="sf-page '+dirCls+'">'+wm+'<div class="sf-content">'+
       '<div class="sf-head"><img src="/brand/direct_logo_color.png" alt="Direct">'+
@@ -628,7 +628,7 @@
         '<div class="m">'+t.no+' '+esc(issued?no:t.draftPill)+'</div></div>'+
       '<h2 class="sf-h2"><span class="dia">◆</span> '+t.fees+' <span class="dia">◆</span></h2>'+
       '<p class="sf-sub">'+esc(cn||'')+(S.cur.year?' · '+esc(S.cur.year):'')+'</p>'+
-      (secsHtml||'<div class="sf-lead" style="color:var(--muted);text-align:center">'+fl('Pick a scenario or add services — the tables appear here.','اختر سيناريو أو أضف خدمات — تظهر الجداول هنا.')+'</div>')+
+      (secsHtml||'<div class="sf-lead" style="color:var(--muted);text-align:center">'+/* fire #186: fl() follows the APP's language; a document follows its OWN (ar, from S.cur.lang) */(ar?'اختر سيناريو أو أضف خدمات — تظهر الجداول هنا.':'Pick a scenario or add services — the tables appear here.')+'</div>')+
       '<div class="sf-terms"><b>'+t.termsHead+'</b>'+esc(t.terms)+
         (S.cur.notes?'<div style="margin-top:8px"><b>'+t.notesHead+'</b>'+esc(S.cur.notes)+'</div>':'')+'</div>'+
       footer+

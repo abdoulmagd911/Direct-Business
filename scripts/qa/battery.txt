@@ -292,3 +292,4 @@ probe-a-supplier-we-are-leaving-keeps-its-name
 probe-the-ingest-form-says-what-it-read
 probe-view-only-on-the-generator-means-it
 probe-the-footer-is-not-typed-out-by-hand
+probe-a-document-is-not-a-data-table
