@@ -357,7 +357,7 @@ var _ar=(typeof LANG!=='undefined'&&LANG==='ar');return _n?`<option value="__non
     })()}</select>
   </div>
   <div class="card" style="padding:0"><div class="tbl-wrap"><table><thead><tr><th style="cursor:pointer" onclick="clSortBy('name')">Client${clArrow('name')}</th><th style="cursor:pointer" onclick="clSortBy('am')">Account manager${clArrow('am')}</th><th style="cursor:pointer" onclick="clSortBy('tier')">Tier${clArrow('tier')}</th><th>Client since</th><th style="cursor:pointer" onclick="clSortBy('review')">Next review${clArrow('review')}</th><th style="cursor:pointer" onclick="clSortBy('health')" title="Client health — Good / Watch / At risk. Click to surface at-risk clients.">Health${clArrow('health')}</th><th></th></tr></thead><tbody>
-  ${cl.map(b=>{const am=b.accountManager||b.assignedTo;const overdue=b.nextReview&&b.nextReview<=today;const la=(b.activities||[]).slice().sort((x,y)=>(y.date||0)-(x.date||0))[0];const since=b.convertedDate||b.convertDate||'';const _h=clientHealth(b);return `<tr data-health="${_h.l}" data-client-row="1" data-key="${b.tier==="Key"?1:0}" style="cursor:pointer" onclick="openLead='${b.id}';current='leads';render()"><td><b>${window.nmMain?esc(nmMain(b)):esc(b.name)}</b>${b.directClientId?` <span style="color:var(--muted);font-size:10.5px">#${esc(b.directClientId)}</span>`:''}${window.nmSubHTML?nmSubHTML(b):''}${la?`<div style="font-size:11px;color:#0F6E56;margin-top:2px">↪ ${esc(String((((typeof LANG!=='undefined'&&LANG==='ar')?({note:'ملاحظة',call:'مكالمة',email:'بريد',meeting:'اجتماع',whatsapp:'واتساب',visit:'زيارة',Activity:'نشاط'})[la.type||'Activity']:null)||la.type||'Activity')+(la.note?': '+la.note:'')).slice(0,46))}</div>`:''}</td><td>${am?esc(am):'<span class="tag" style="background:#F0453A14;color:#D92D20">Unassigned</span>'}</td><td>${(b.tier==="Key")?'<span class="tag" style="background:#A9781A1a;color:#A9781A;font-weight:800">KEY</span>':'<span class="tag" style="background:#EEF0F5;color:#5b6178">Standard</span>'}</td><td style="white-space:nowrap;color:var(--muted);font-size:12px">${since?esc(typeof since==='number'?new Date(since).toISOString().slice(0,10):String(since)):'<span style="color:#C9C2B6">—</span>'}</td><td style="white-space:nowrap;${overdue?'color:#D92D20;font-weight:700':'color:var(--muted)'}">${b.nextReview?esc(b.nextReview):'-'}</td>${(function(){var h=_h;return '<td><span class="tag" style="background:'+h.c+'1a;color:'+h.c+';font-weight:700" title="'+h.why+'">'+h.l+'</span></td>';})()}<td><button class="btn ghost sm" style="padding:1px 7px;font-size:10.5px" onclick="event.stopPropagation();leadQuickEdit('${b.id}')">Edit</button></td></tr>`;}).join("")||('<tr><td colspan="7" class="empty">'+((typeof LANG!=='undefined'&&LANG==='ar')?'لا يوجد عملاء مطابقون.':'No clients match.')+'</td></tr>')}
+  ${cl.map(b=>{const am=b.accountManager||b.assignedTo;const overdue=b.nextReview&&b.nextReview<=today;const la=(b.activities||[]).slice().sort((x,y)=>(y.date||0)-(x.date||0))[0];const since=b.convertedDate||b.convertDate||'';const _h=clientHealth(b);return `<tr data-health="${_h.l}" data-client-row="1" data-key="${b.tier==="Key"?1:0}" style="cursor:pointer" onclick="openLead='${b.id}';current='leads';render()"><td><b>${window.nmMain?esc(nmMain(b)):esc(b.name)}</b>${b.directClientId?` <span style="color:var(--muted);font-size:10.5px">#${esc(b.directClientId)}</span>`:''}${window.nmSubHTML?nmSubHTML(b):''}${la?`<div style="font-size:11px;color:#0F6E56;margin-top:2px">↪ ${esc(String(actTypeLabel(la.type)+(la.note?': '+la.note:'')).slice(0,46))}</div>`:''}</td><td>${am?esc(am):'<span class="tag" style="background:#F0453A14;color:#D92D20">Unassigned</span>'}</td><td>${(b.tier==="Key")?'<span class="tag" style="background:#A9781A1a;color:#A9781A;font-weight:800">KEY</span>':'<span class="tag" style="background:#EEF0F5;color:#5b6178">Standard</span>'}</td><td style="white-space:nowrap;color:var(--muted);font-size:12px">${since?esc(typeof since==='number'?new Date(since).toISOString().slice(0,10):String(since)):'<span style="color:#C9C2B6">—</span>'}</td><td style="white-space:nowrap;${overdue?'color:#D92D20;font-weight:700':'color:var(--muted)'}">${b.nextReview?esc(b.nextReview):'-'}</td>${(function(){var h=_h;return '<td><span class="tag" style="background:'+h.c+'1a;color:'+h.c+';font-weight:700" title="'+h.why+'">'+h.l+'</span></td>';})()}<td><button class="btn ghost sm" style="padding:1px 7px;font-size:10.5px" onclick="event.stopPropagation();leadQuickEdit('${b.id}')">Edit</button></td></tr>`;}).join("")||('<tr><td colspan="7" class="empty">'+((typeof LANG!=='undefined'&&LANG==='ar')?'لا يوجد عملاء مطابقون.':'No clients match.')+'</td></tr>')}
   </tbody></table></div></div>`;
   const cq=document.getElementById("clq");if(cq){cq.oninput=e=>{clFilter.q=e.target.value;render();const n=document.getElementById("clq");if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length);}catch(_){}}};}
 }
@@ -374,9 +374,41 @@ function _actIdx(b,a){return (b.activities||[]).indexOf(a);}
 const _ACT_STAGE_WORD={new:'Prospect',contacted:'Contacted',in_discussion:'Qualified',proposal:'Proposal',won:'Won',lost:'Lost',on_hold:'On hold'};
 function _actStageWord(k){const w=_ACT_STAGE_WORD[String(k||'').trim().toLowerCase()]||String(k||'').trim();const _ar=(typeof LANG!=='undefined'&&LANG==='ar');return (_ar&&window.__STAGE_AR&&window.__STAGE_AR[w])||w;}
 function _actBy(a){if(!a.by)return '';const _ar=(typeof LANG!=='undefined'&&LANG==='ar');const who=String(a.by).toLowerCase()==='system'?(_ar?'تلقائي':'automatic'):a.by;return ' · '+esc(who);}
+/* 2026-09-21 (fire #197) — ONE list of activity words, and it matches the data.
+   Two copies of the same map lived here: this function's, and another inline in the Clients table
+   above. Both keyed on lowercase — `{note:…, call:…, meeting:…}` — while **every activity in the
+   live data is capitalised**: measured the same day, 68 of 68 rows across 38 companies carry
+   `Note` (15), `stage_change` (28), `Won` (10), `Call` (8), `Task` (4), `Meeting` (2),
+   `Proposal` (1). Not one of them could ever hit a key. So in Arabic the Clients list read
+   "↪ Note: …" on 11 of 11 rows, and a client's own timeline read Call / Task / Note / Won in
+   English down its whole length — the history screen, in the language half the team reads.
+   Three faults, one helper: the lookup is case-insensitive, the words people actually log are in
+   it, and `stage_change` — a database identifier, never a label — gets a phrase in both languages
+   instead of leaking through the fallback. Stage-shaped words (Won, Lost, Proposal) are taken from
+   `window.__STAGE_AR`, the map the stage chips and the Arabic export already share, so the same
+   thing cannot come out worded two ways. An unrecognised type still falls through to its stored
+   value, which is the honest answer when we genuinely do not know the word. */
+const _ACT_WORD={
+  note:['Note','ملاحظة'], call:['Call','مكالمة'], email:['Email','بريد'], meeting:['Meeting','اجتماع'],
+  whatsapp:['WhatsApp','واتساب'], visit:['Visit','زيارة'], task:['Task','مهمة'],
+  activity:['Activity','نشاط'], stage_change:['Stage changed','تغيّرت المرحلة']
+};
+function actTypeLabel(type){
+  try{
+    const raw=String(type||'Activity').trim();
+    const k=raw.toLowerCase();
+    const _ar=(typeof LANG!=='undefined'&&LANG==='ar');
+    if(_ACT_WORD[k]) return _ACT_WORD[k][_ar?1:0];
+    /* Won / Lost / Proposal and anything else the stage vocabulary already names */
+    const cap=raw.charAt(0).toUpperCase()+raw.slice(1).toLowerCase();
+    if(_ar){ try{ if(window.__STAGE_AR&&window.__STAGE_AR[cap]) return window.__STAGE_AR[cap]; }catch(_){} }
+    return _ar?raw:cap;
+  }catch(_){ return String(type||'Activity'); }
+}
+try{ window.actTypeLabel=actTypeLabel; }catch(_){}
 function _actWhat(a,moved){const _ar=(typeof LANG!=='undefined'&&LANG==='ar');const t=String(a.type||'');
-  if(t==='stage_change'){const m=String(a.note||'').match(/^\s*(\S.*?)\s*(?:→|->)\s*(\S.*?)\s*$/);const from=m?_actStageWord(m[1]):'';const to=m?_actStageWord(m[2]):_actStageWord(a.note);return `<b>${_ar?'تغيّرت المرحلة':'Stage changed'}</b>${from?': '+esc(from)+' → '+esc(to):(to?': '+esc(to):'')}`;}
-  const label=_ar?(({note:'ملاحظة',call:'مكالمة',email:'بريد',meeting:'اجتماع',whatsapp:'واتساب',visit:'زيارة'})[t]||t):t;
+  if(String(t).toLowerCase()==='stage_change'){const m=String(a.note||'').match(/^\s*(\S.*?)\s*(?:→|->)\s*(\S.*?)\s*$/);const from=m?_actStageWord(m[1]):'';const to=m?_actStageWord(m[2]):_actStageWord(a.note);return `<b>${_ar?'تغيّرت المرحلة':'Stage changed'}</b>${from?': '+esc(from)+' → '+esc(to):(to?': '+esc(to):'')}`;}
+  const label=actTypeLabel(t);   /* fire #197: was its own lowercase-keyed copy — see actTypeLabel */
   const st=a.status?(moved?(_ar?` ← نُقل إلى <b>${esc(a.status)}</b>`:` → moved to <b>${esc(a.status)}</b>`):` → <b>${esc(a.status)}</b>`):'';
   return `<b>${esc(label)}</b>${st}${a.note?": "+esc(a.note):""}`;}
 function _actMeta(b,a){const i=_actIdx(b,a);const _ar=(typeof LANG!=='undefined'&&LANG==='ar');let h='';if(a._fromTable)return h;if(a.edited)h+=` · <span data-act-edited title="${esc((a.edited.by||'')+' '+(a.edited.at?fmtDate(a.edited.at):''))}">${_ar?'(عُدِّل)':'(edited)'}</span>`;const may=(typeof window.mayEditPage==='function')?window.mayEditPage('leads')!==false:true;if(!may||i<0)return h;return h+` · <span class="tl-tools" style="font-size:11px"><a href="javascript:void 0" data-act-edit="${i}" onclick="event.stopPropagation();editActivity('${b.id}',${i})" style="color:var(--muted)">${_ar?'تعديل':'edit'}</a> · <a href="javascript:void 0" data-act-remove="${i}" onclick="event.stopPropagation();removeActivity('${b.id}',${i})" style="color:var(--muted)">${_ar?'إزالة':'remove'}</a></span>`;}

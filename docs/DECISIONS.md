@@ -1678,6 +1678,37 @@ Guard: `scripts/qa/probe-an-empty-answer-is-not-a-zero.mjs`, whose two brakes ar
 stays away while the rows are still loading and that a legitimately empty period never raises it.
 *Date: 2026-09-21, js/16-finance-ledger.js. Status: ACTIVE.*
 
+**M54 — a translation map is keyed against the data, not against how someone imagined the data
+would look; and a database identifier never reaches a screen.** Found 2026-09-21 (fire #197) by
+driving the live app **in Arabic** over the four pages every team member can open. Two copies of one
+activity-type map lived in `js/core/core-02` — one inline in the Clients table, one in `_actWhat`
+for the record timeline — and **both keyed on lowercase** (`{note:…, call:…, meeting:…}`) while
+every activity in the live data is capitalised. Counted the same day across 38 companies:
+`Note` 15, `stage_change` 28, `Won` 10, `Call` 8, `Task` 4, `Meeting` 2, `Proposal` 1 — **68 of 68
+rows that could never hit a key in either map.** On screen: the Arabic Clients list read
+"↪ Note: …" on 11 of 11 rows, and a client's own timeline ran Call / Task / Note / Won down its
+whole length in English — the history screen, in the language half the team reads.
+Three faults in one place, and each is its own lesson:
+**(a) case.** A lookup keyed `note` against data that is always `Note` fails silently and
+completely — it does not degrade, it never matches once. Lowercase the key, or better, measure the
+distinct values in the live table before writing the map at all (`select type, count(*) … group by
+1` took seconds and answered it outright).
+**(b) coverage.** Four types people actually log — Won, Task, Proposal, stage_change — were in
+neither map in any case, so even a case-insensitive lookup would have missed 43 of the 68.
+**(c) a stored identifier is not a label.** `stage_change` is a column value, and the fallback
+prints the stored value verbatim, so it would have gone to a person's screen as `stage_change` in
+both languages. Anything that can fall through to raw data needs the identifiers named explicitly.
+The fix is one helper, `actTypeLabel`, case-insensitive, with stage-shaped words (Won, Lost,
+Proposal) taken from `window.__STAGE_AR` — the map the stage chips and the Arabic export already
+share — so the same thing cannot come out worded two ways. This is M38's rule ("a second surface
+searching the same records shares the first one's haystack") in its translation costume: **two
+copies of a word list is one copy too many, whatever the list is for.**
+Guard: `scripts/qa/probe-the-activity-words-match-the-data.mjs`, which seeds the exact shapes the
+live data holds plus one nobody logs, and reads both surfaces in both languages. Its brakes are
+that an unrecognised type must still fall through to its stored value rather than be guessed at,
+and that the list and the timeline must word the same activity identically.
+*Date: 2026-09-21, js/core/core-02-leads.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

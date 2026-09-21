@@ -114,6 +114,46 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #197 (2026-09-21 ~18:00 UTC) — in Arabic, every record's history was written in English
+
+**What was wrong.** When someone logs a call, a note or a task against a company, the app shows that
+word on two screens: the one-line summary on the Clients list, and the full history on the company's
+own page. In Arabic, both were showing the English word.
+
+Not some of them. **All 68 activities on all 38 companies that have any**, because of a detail
+worth explaining once: the app held a list saying `note` means «ملاحظة», `call` means «مكالمة», and
+so on — all in small letters. Every activity your team has ever logged is stored with a capital
+letter: `Note`, `Call`, `Task`, `Won`. To a computer those are different words, so the list never
+matched a single one and the English fell straight through.
+
+On top of that, four of the words people actually use — Won, Task, Proposal, and the one the app
+writes itself when a lead changes stage — were not in the list at all, in any spelling.
+
+So the Arabic Clients list read "↪ Note: …" on **11 of 11** rows, and a client's history page ran
+Call / Task / Note / Won down its whole length in English.
+
+**One more thing hiding behind it.** When a lead moves stage the app records that as
+`stage_change` — a word meant for the database, not for a person. It was one step away from being
+printed on screen exactly like that, in both languages. It now reads "Stage changed" / «تغيّرت
+المرحلة».
+
+**Fixed.** There is now one list of these words instead of two, it ignores capital letters, and it
+takes the stage words (Won, Lost, Proposal) from the same place the rest of the app takes them, so
+the same thing can't end up worded two different ways on two screens. Re-measured against your real
+data straight after: 11 of 11 lines Arabic on the list, and the only Latin word left on the history
+page is the company's own name — which is data, and correct.
+
+English is untouched: Note still reads Note.
+
+**Guarded.** The new test plants one activity of each kind your data actually contains, plus one
+invented type nobody logs, and reads both screens in both languages. Its two traps: a word the app
+doesn't know must be shown as stored rather than guessed at, and the two screens must word the same
+activity identically — which is the fault itself, since what went wrong was having two lists. Both
+sabotage runs failed exactly the right checks; one of them put the raw `stage_change` straight back
+on screen, which is a good demonstration of what the test is holding.
+
+---
+
 ## Routine fire #196 (2026-09-21 ~17:00 UTC) — most of your team opens Finance and is told the company earned nothing
 
 **This is the one to read today.** Seven of your eleven accounts are team members. I signed in as
