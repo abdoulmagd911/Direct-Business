@@ -107,6 +107,42 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #191 (2026-09-21 ~11:00 UTC) — on a phone, tapping beside a tick box did nothing at all
+
+Eleven new pieces have gone into the app this session and none of them had been looked at on a
+phone. So I drove every page they touch at phone size (390 px, touch), in English and Arabic.
+
+**Most of it is fine.** No page scrolls sideways. The wide tables — Leads, Clients, Suppliers,
+Finance — scroll inside their own boxes exactly as they are meant to. No errors in either language.
+
+**One thing was not fine, on the two pages with tick boxes.**
+
+The tick box for selecting a row on Leads and Suppliers is **13 × 13 pixels** — the browser's
+default, never made bigger. The app's own standard, written into the paging controls, is 26 px,
+"because these are the controls the team hits most on a long list from a phone."
+
+Worse than the size: the **cell** around it is a comfortable 52 × 59 px and was built to swallow your
+tap so you don't accidentally open the record. Good instinct — but swallowing was all it did. Miss
+that 13 px square on a moving bus and **nothing happens at all**. No tick, no record opening, no
+message. You can't tell a miss from a slow app, so you tap again. And again.
+
+**Fixed, and the fix changes nothing you can see.** The cell that was already swallowing the tap now
+ticks the box. Nothing moved, nothing was restyled, no new styling at all — the target you were
+already aiming at is now four times the size it needed to be. It works the same on Suppliers, and it
+deliberately keeps its hands off any cell that holds something else, so a tap meant for a link is
+never turned into a tick.
+
+Guarded by `scripts/qa/probe-a-tap-beside-the-tick-box-counts.mjs` (8 checks). Brakes: it must still
+not open the record, a tap on the box itself must tick once rather than twice, and a cell with a link
+in it must be left alone. Sabotage-verified both ways. New rule **M49**.
+
+**Two things I got wrong first, worth recording:** my first reading was "the checkbox is too small",
+which would have led me to restyle it — measuring the *cell* instead found the real problem and a far
+smaller fix. And my first test reported a failure that wasn't one: ticking a box redraws the row, so
+the test was reading a piece of the page that no longer existed.
+
+---
+
 ## Routine fire #190 (2026-09-21 ~09:00 UTC) — Finance was leaving 45 records out of every figure without saying so
 
 The Finance page header reads **"46 invoices · data through 2026-08-20"**. Driven against your live

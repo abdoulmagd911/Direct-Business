@@ -1528,6 +1528,33 @@ gets no sentence, that the page's own figures are unchanged, and that the senten
 you to another page.
 *Date: 2026-09-21, js/99-finance-says-what-it-held-back.js. Status: ACTIVE.*
 
+**M49 — an area that absorbs a tap must do something with it.** Found 2026-09-21 (fire #191) by
+driving every page this session touched at **390 px with touch**, in both languages. Most held up:
+nothing scrolled sideways, the wide tables scrolled inside their own boxes as designed, no JS errors
+either side. The row-selection column did not. The tick box on Leads and Suppliers is **13 × 13 px**
+— the browser default, never styled, half the 26 px floor `js/04`'s pager set for itself with the
+words *"these are the controls the team hits most on a long list from a phone"*. Its cell is a
+comfortable **52 × 59 px** and carries `onclick="event.stopPropagation()"` so a stray tap does not
+open the record — the right instinct, but stopping the row handler was **all** it did. The result is
+the worst of both: an area that looks tappable, swallows the tap and produces nothing at all — no
+tick, no navigation, no feedback — so a miss is indistinguishable from a slow app and you tap again.
+`js/100` makes the absorbing cell perform the obvious action. Nothing moves, nothing is restyled, no
+CSS is added: the effective target becomes the 52 × 59 px already there. It is **delegated on the
+document**, not written into the two markup sites, so a third checkbox column inherits it — and it
+declines any cell holding more than the box, because hijacking a tap meant for a link would be a
+worse bug than the silence.
+**Two testing lessons from the same round:**
+**(a) measure the effective target, not the control.** The first reading of this was "the checkbox is
+13 px", which would have led to restyling it. Measuring the *cell* — 52 × 59, stopPropagation, no
+action — found the real defect and a much smaller fix.
+**(b) a toggle redraws its row, so a DOM reference held across an interaction goes stale.** The
+probe's first run reported an untick that had actually worked, because it was reading a detached
+node. Re-find the element after every interaction.
+Guard: `scripts/qa/probe-a-tap-beside-the-tick-box-counts.mjs`, whose brakes are that the record must
+still not open, that a tap on the box must toggle once rather than twice, and that a cell containing
+anything else is left alone.
+*Date: 2026-09-21, js/100-a-tap-beside-the-tick-box-counts.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
