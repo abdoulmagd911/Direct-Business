@@ -881,8 +881,7 @@
         if(V26_2_PROJECT_AR[p.id]){p.nameAr=V26_2_PROJECT_AR[p.id];}
       });
       try{if(typeof saveDB==='function')saveDB();}catch(_){}
-      try{localStorage.setItem('directBusinessData_v25',JSON.stringify(DB));}catch(_){}
-      try{localStorage.setItem('directBusinessData_v24',JSON.stringify(DB));}catch(_){}
+      /* fire #193: dead write removed — v25 is never read anywhere and v24 only as a one-time upgrade fallback when v29 is absent; the live key is v29 */
       if(typeof logActivity==='function')logActivity('[v26.2] Self-healed mojibake in '+(DB.projects||[]).length+' project Arabic names');
       console.info('[v26.2] Healed project Arabic names mojibake');
     }

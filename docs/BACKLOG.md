@@ -107,6 +107,51 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #193 (2026-09-21 ~14:00 UTC) — the app was keeping three copies of your workspace in every browser, and a fix of mine that turned out to do nothing
+
+**What was wrong.** Your browser keeps a working copy of the workspace on the computer, so the app
+can draw a page before the database answers. It should keep **one**. I measured a browser that had
+used the app before, sitting on the sign-in screen, and it was holding **three**: the real one
+(about 290 KB) and two leftovers from old versions of the app (about 205 KB each) — roughly **700 KB
+where 290 KB was needed**.
+
+The two leftovers are dead weight in the plainest sense: one of them is never read by any part of
+the app at all, and the other only ever gets read by a browser opening a version of the app it has
+never seen before. They were being rewritten from scratch **on every single page load**, by nine
+leftover instructions from the migrations the app went through in June.
+
+**Why it matters, in your terms.** A browser only gives a website a few megabytes of room. The app
+already has a message it shows when that room runs out — *"Storage full — changes kept in memory
+only"* — and when that message appears, someone can carry on working for an hour while none of it is
+actually being written down. Carrying the workspace three times over brings that moment three times
+closer. This wasn't tidying; it was the app's own worst failure, moved closer.
+
+**Fixed.** The nine leftover instructions are gone. Same browser, same test, now: **290 KB, one
+copy.** 418 KB handed back, on every computer that uses the app. Nothing about what you see changed.
+
+**The part I want to be straight about.** I also wrote a new cleanup routine to scrub the two
+leftovers out of browsers that already had them, wired it in, and measured it reporting 528 KB
+reclaimed. Then the test I wrote to protect it failed in a way that made no sense — so I measured
+again, properly, with the new routine taken back out. **The storage came out byte-for-byte
+identical.** The app has done this cleanup by itself since June: every time anyone signs in, it
+already clears out old copies. My new routine was doing a job that was already being done.
+
+I deleted it rather than ship it. A second thing doing the first thing's job is not free — it is one
+more place to read, one more place to break, and a claim in the notes that isn't true. What actually
+fixed this was removing the nine writes; the check now says so, and the rule written from it
+(**M51**) says to measure with a new file removed before believing the new file is what fixed it.
+
+**Guarded.** A new test drives two browsers — one at the sign-in screen, one signed in against your
+real database — and fails if the store grows past one copy. Deliberately, it also fails on the lazy
+version of this fix: I wrote that version too (just wipe the browser's storage) and ran it against
+the test, and it fails on three counts, because it destroys the working copy and signs the person
+out. Putting the old writes back fails the test on three counts as well, at 711,508 characters
+against a 500,000 ceiling.
+
+Structure check, probe-integrity check and decisions check all green; 93 app files, 301 probes.
+
+---
+
 ## Routine fire #192 (2026-09-21 ~13:00 UTC) — a clean verification round, one real thing for you, and a test that was fighting the app
 
 Two jobs this round. Neither found a fault in the app itself, which is worth saying plainly rather

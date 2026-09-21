@@ -460,8 +460,7 @@
         DB.schemaVersion=25;
       }
       // Write to both keys for safety
-      try{ localStorage.setItem(V25_KEY,JSON.stringify(DB)); }catch(_){}
-      try{ localStorage.setItem(V24_KEY,JSON.stringify(DB)); }catch(_){}
+      /* fire #193: dead write removed — v25 is never read anywhere and v24 only as a one-time upgrade fallback when v29 is absent; the live key is v29 */
     }
   }catch(e){console.warn('[v25.2] storage migration failed',e);}
 
@@ -799,7 +798,7 @@
         DB.settings.commercialPool.history=DB.settings.commercialPool.history||[];
         DB.settings.commercialPool.history.push({ts:Date.now(),cap:newCap,prevCap:prev,by:'user',note:reason});
         try{if(typeof saveDB==='function')saveDB();}catch(_){}
-        try{localStorage.setItem(V25_KEY,JSON.stringify(DB));}catch(_){}
+        /* fire #193: dead write removed — v25 is never read anywhere and v24 only as a one-time upgrade fallback when v29 is absent; the live key is v29 */
         if(typeof logActivity==='function')logActivity('Credit pool cap changed from '+prev+' to '+newCap+' SAR. Reason: '+reason);
         render();
       }
@@ -834,7 +833,7 @@
       DB.settings.viewPresets.active=name;
       localStorage.setItem('v25_activePreset',name);
       if(typeof saveDB==='function')saveDB();
-      localStorage.setItem(V25_KEY,JSON.stringify(DB));
+      /* fire #193: dead write removed — v25 is never read anywhere and v24 only as a one-time upgrade fallback when v29 is absent; the live key is v29 */
     }catch(_){}
     if(typeof logActivity==='function')logActivity('View preset changed to: '+name);
     render();
@@ -981,7 +980,7 @@
         };
         DB.projects=DB.projects||[];
         DB.projects.push(p);
-        try{if(typeof saveDB==='function')saveDB();localStorage.setItem(V25_KEY,JSON.stringify(DB));}catch(_){}
+        try{if(typeof saveDB==='function')saveDB();}catch(_){}/* fire #193: dead write removed — v25 is never read anywhere and v24 only as a one-time upgrade fallback when v29 is absent; the live key is v29 */
         if(typeof logActivity==='function')logActivity('Project created: '+p.name);
         render();
       }
@@ -1032,7 +1031,7 @@
       p.owner=document.getElementById('ep_owner').value;
       p.status=document.getElementById('ep_status').value;
       p.notes=document.getElementById('ep_notes').value;
-      try{if(typeof saveDB==='function')saveDB();localStorage.setItem(V25_KEY,JSON.stringify(DB));}catch(_){}
+      try{if(typeof saveDB==='function')saveDB();}catch(_){}/* fire #193: dead write removed — v25 is never read anywhere and v24 only as a one-time upgrade fallback when v29 is absent; the live key is v29 */
       if(typeof logActivity==='function')logActivity('Project edited: '+p.name);
       render();
     },function(){
@@ -1314,7 +1313,7 @@
       tl.statement={palette:['#1C1E2B','#FF6B00','#16B364','#F0453A'],font:'Inter',header:'invoice-style',footer:'ZATCA QR',signatureBlock:'none',source:V25_TEMPLATE_SOURCES[1]};
       tl.learnedFrom=V25_TEMPLATE_SOURCES.slice();
       tl.learnedAt=Date.now();
-      try{if(typeof saveDB==='function')saveDB();localStorage.setItem(V25_KEY,JSON.stringify(DB));}catch(_){}
+      try{if(typeof saveDB==='function')saveDB();}catch(_){}/* fire #193: dead write removed — v25 is never read anywhere and v24 only as a one-time upgrade fallback when v29 is absent; the live key is v29 */
       if(typeof logActivity==='function')logActivity('Template learning ran. Tokens refreshed from '+V25_TEMPLATE_SOURCES.length+' source folders.');
       return tl;
     }catch(e){console.warn('[v25.2] template learn failed',e);return null;}

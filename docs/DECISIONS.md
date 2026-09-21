@@ -1580,6 +1580,33 @@ Guard: `scripts/qa/probe-export-menu-honest.mjs` itself, re-run under concurrenc
 neighbours, 6/6 green.
 *Date: 2026-09-21, scripts/qa/probe-export-menu-honest.mjs. Status: ACTIVE.*
 
+**M51 — the browser keeps ONE copy of the workspace, and a new layer is only shipped once it is
+measured doing something the app does not already do.** Found 2026-09-21 (fire #193). A browser
+sitting at the sign-in screen, having used the app before, held **711,825 characters** across three
+keys — `directBusinessData_v29` (293,366, the live one), `_v25` (209,362, never read anywhere) and
+`_v24` (209,067, read only as `load()`'s fallback when v29 is absent). Traced with a `setItem`
+stack trace to js/core/core-08's v25.2 migration block, which wrote a full copy into **both** dead
+keys on every page load, plus `v25TemplateLearn` writing v25 again. Nine such writes survived the
+June v24 → v25 → v29 migrations; all nine are gone, and the same browser now holds **293,396** —
+418 KB back. It is not tidiness: `save()` in core-01 has a named failure for exactly this —
+*"Storage full - changes kept in memory only"* — and when it fires a person keeps working while
+nothing reaches disk. Tripling the footprint brings that moment three times closer.
+**The part worth keeping as a rule is what happened next.** A cleanup layer — a js/101, written to
+sweep the two dead keys out of browsers that already carried them — was written, wired, and reported
+528 KB reclaimed. The probe written to guard it then failed in a way that made no sense, and measuring
+properly showed why: **js/02's cloud layer already removes every `directBusinessData_v<n>` key on
+every successful sign-in** (line ~416, since the v32 row-by-row load). Running the live app with the
+layer and without it produced **byte-identical** storage. It was deleted rather than shipped. A
+layer that duplicates an existing one is not free — it is a second place to read, a second place to
+break, and a claim in the repo that is not true. Measure the app with the new file removed before
+believing the new file is what fixed it.
+Guard: `scripts/qa/probe-one-workspace-copy-not-three.mjs` — two browsers (the sign-in screen and a
+signed-in session against the live database), a character-count ceiling rather than a key list, and
+a source sweep of all of `js/`. Its brakes are that the live copy must still parse and carry the
+workspace, that the auth token must survive, and that neighbouring keys are untouched; the lazy
+version of this fix (`localStorage.clear()`) was run against it and failed all three.
+*Date: 2026-09-21, js/core/core-08-v25.js + js/core/core-09-v26.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
