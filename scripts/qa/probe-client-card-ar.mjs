@@ -61,8 +61,30 @@ async function main() {
     'Back to pipeline', 'Last contact', 'Legal name', 'Pricing scheme', 'No negotiated airline deals', 'No pricing scheme set', 'Open invoices in Direct Payments'];
   const leak = leftovers.filter((w) => t.indexOf(w) >= 0);
   if (!leak.length) ok('AR client card: no known English chrome anywhere on the card'); else fail('AR client card: English survives ' + JSON.stringify(leak));
-  const sel = await p.evaluate(() => { const s = [...document.querySelectorAll('#view select')].find((x) => /setLeadStage/.test(x.getAttribute('onchange') || '')); if (!s) return null; return { labels: [...s.options].map((o) => o.textContent.trim()), values: [...s.options].map((o) => o.value) }; });
-  if (sel && sel.labels.every((l) => !/^[A-Za-z]/.test(l)) && sel.values.join(',') === 'Prospect,Contacted,Qualified,Proposal,Negotiation,Won,Lost') ok('AR stage picker: every option reads Arabic while its saved value stays the English stage key'); else fail('AR stage picker: ' + JSON.stringify(sel) + ' — the live-site English stepper on the Arabic card');
+  /* 2026-09-21 (fire #200's battery): this check used to compare the values against the literal
+     'Prospect,Contacted,Qualified,Proposal,Negotiation,Won,Lost'. Fire #198 stopped the pickers
+     offering Negotiation — a word the save cannot keep, since it stores as in_discussion and reads
+     back as Qualified — and this check went red on a correct app. What it is FOR is the Arabic
+     card: every option must read Arabic while the value saved underneath stays the English stage
+     key. That intent is restored here without a copied list: the values are compared against what
+     the app itself says is pickable, so the next legitimate change to the vocabulary does not turn
+     this red again, and a picker that quietly emptied or filled with the wrong words still does. */
+  const sel = await p.evaluate(() => {
+    const s = [...document.querySelectorAll('#view select')].find((x) => /setLeadStage/.test(x.getAttribute('onchange') || ''));
+    if (!s) return null;
+    const values = [...s.options].map((o) => o.value);
+    let expected = null;
+    try { if (typeof window.pickableStages === 'function') expected = window.pickableStages(s.value); } catch (_) {}
+    let known = null;
+    try { known = (typeof LEAD_STAGES !== 'undefined') ? LEAD_STAGES.slice() : null; } catch (_) {}
+    return { labels: [...s.options].map((o) => o.textContent.trim()), values, expected, known };
+  });
+  const arabicLabels = !!sel && sel.labels.length > 0 && sel.labels.every((l) => !/^[A-Za-z]/.test(l));
+  const englishKeys = !!sel && sel.values.length >= 5 && sel.values.every((v) => /^[A-Za-z]/.test(v)) &&
+    (!sel.known || sel.values.every((v) => sel.known.indexOf(v) >= 0));
+  const matchesApp = !!sel && (!sel.expected || sel.values.join(',') === sel.expected.join(','));
+  if (arabicLabels && englishKeys && matchesApp) ok('AR stage picker: every option reads Arabic while its saved value stays the English stage key, and the list is the one the app says is pickable');
+  else fail('AR stage picker: ' + JSON.stringify(sel) + ' — arabicLabels=' + arabicLabels + ' englishKeys=' + englishKeys + ' matchesApp=' + matchesApp);
   const typeWord = await p.evaluate(() => { const b = document.querySelector('#view .tl-item .what b'); return b ? b.textContent : null; });
   if (typeWord === 'ملاحظة') ok('AR timeline: the seeded "note" activity reads "ملاحظة"'); else fail('AR timeline type word → ' + JSON.stringify(typeWord));
   const when = await p.evaluate(() => { const w = document.querySelector('#view .tl-item .when'); return w ? w.textContent : null; });
