@@ -114,6 +114,53 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #198 (2026-09-21 ~19:00 UTC) — one of the seven stages didn't stick, and a fix of mine last round had a hole in it
+
+**What was wrong.** A lead's page offers seven stages to move it to. Six of them save properly.
+**"Negotiation" does not.** Pick it, and the next time anyone opens that lead it says **"Qualified"**
+instead — silently, with nothing to say the word was changed.
+
+The reason is simple once seen: the database only knows seven stage names of its own, and it has no
+separate one for Negotiation — both Negotiation and Qualified are stored as the same thing. When the
+record is read back, the app has to pick one word for that stored value, and it picks Qualified. So
+Negotiation can be chosen but never kept.
+
+I checked this by driving the real app and reading exactly what it tried to send to the database,
+with every save intercepted so nothing was actually written to your data.
+
+**Fixed.** The question "will this word survive being saved?" now lives next to the translation
+between screen words and database words, and the three places you can set a stage only offer words
+that pass. You still get Prospect, Contacted, Qualified, Proposal, Won, Lost — the six that work.
+
+**Worth knowing:** "On hold" has the same problem (it comes back as "Prospect", and a later save
+would lose the hold entirely). No lead is on hold today, so nothing is affected right now — but it
+is the same fault, and the fix covers it.
+
+**A decision for you if you want it:** if "Negotiation" should be a real step in your pipeline
+rather than another word for Qualified, that means giving the database a stage of its own. It's a
+small change and I can do it — say the word. Right now the app simply stops pretending it can.
+
+**The part about my own work.** The first version of this fix was wrong in a way the test caught
+before it reached you. By removing Negotiation from the dropdown, a lead that was *already* on
+Negotiation lost its own stage from the list — so its page showed **"Prospect"**, which is a
+different lie than the one I was fixing, and a worse one. A record's current stage is now always
+shown even when it's a word you can no longer choose. Limiting what can be picked must never change
+what is displayed.
+
+**And a hole in last round's fix.** Last round I made the activity words (Note, Call, Task…) read
+properly in Arabic, keyed against the words in your database. The app writes its *own* stage-change
+entries with a slightly different spelling — a space where the database uses an underscore — so
+those particular entries were still going to come out in English, the first time anyone moved a lead.
+Nobody had moved one since the data was rebuilt, which is exactly why it wasn't visible. Fixed, and
+both spellings now count as the same word.
+
+**Guarded.** Eight checks, including three traps: a record already carrying an awkward stage must
+still show it, the picker must still offer the real stages, and if the new check ever fails to load
+the list must fall back to everything rather than to nothing. Both sabotage runs failed exactly the
+right checks.
+
+---
+
 ## Routine fire #197 (2026-09-21 ~18:00 UTC) — in Arabic, every record's history was written in English
 
 **What was wrong.** When someone logs a call, a note or a task against a company, the app shows that

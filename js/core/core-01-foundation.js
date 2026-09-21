@@ -275,6 +275,35 @@ const STATUS_COLOR={New:"#9AA1B6","To contact":"#FF6B00",Contacted:"#2E90FA","In
 /* ----- Lead pipeline stages (the headline pipeline) ----- */
 const LEAD_STAGES=["Prospect","Contacted","Qualified","Proposal","Negotiation","Won","Lost"];
 const LSTAGE_COLOR={Prospect:"#9AA1B6",Contacted:"#2E90FA",Qualified:"#7A5AF8",Proposal:"#F79009",Negotiation:"#FF6B00",Won:"#16B364",Lost:"#F0453A"};
+/* 2026-09-21 (fire #198) — the stages a person may CHOOSE, which is not the same list as the
+   stages the app can DISPLAY. LEAD_STAGES stays exactly as it is: it is the ordering vocabulary
+   (leadSortVal and leadScore both read positions out of it, so removing an entry would quietly
+   move every later stage's score), and a record that already carries "Negotiation" must still
+   draw with its own colour and its own place in the row of buttons.
+   What changes is what a picker offers. `stageKeepable` (js/02, beside the two conversion maps)
+   answers whether a word survives a save and a reload; a word that does not is dropped from the
+   three places a person can set a stage. If js/02 has not loaded yet the full list is returned —
+   this is called at render time, so that window never actually arises, and failing open keeps the
+   pickers working rather than emptying them.
+   The record's CURRENT stage is always included, even when it is one of the words that cannot be
+   kept. The first version of this left it out, and the probe's own brake caught what that does: a
+   lead actually sitting on "Negotiation" drew a dropdown whose options no longer contained it, so
+   the browser fell back to the first option and the screen said **Prospect** — the control
+   misreporting the record it belongs to, which is worse than the defect being fixed. Dropping a
+   choice is not the same as hiding a fact. */
+function pickableStages(current){
+  var out;
+  try{ out=(typeof window.stageKeepable==='function')?LEAD_STAGES.filter(window.stageKeepable):LEAD_STAGES.slice(); }
+  catch(_){ out=LEAD_STAGES.slice(); }
+  try{
+    if(current && LEAD_STAGES.indexOf(current)>=0 && out.indexOf(current)<0){
+      /* put it back in its own place in the pipeline, not on the end */
+      out=LEAD_STAGES.filter(function(s){ return out.indexOf(s)>=0 || s===current; });
+    }
+  }catch(_){}
+  return out;
+}
+try{ window.pickableStages=pickableStages; }catch(_){}
 const STATUS_TO_STAGE={New:"Prospect","To contact":"Prospect",Contacted:"Contacted","In discussion":"Qualified","Proposal sent":"Proposal",Won:"Won",Lost:"Lost","On hold":"Qualified"};
 function leadStage(b){return b.stage||(b.isClient?"Won":(STATUS_TO_STAGE[b.status]||"Prospect"));}
 /* 2026-09-10 (live test D1 family): the Lost reason is asked in the page (js/57 pfPrompt) instead

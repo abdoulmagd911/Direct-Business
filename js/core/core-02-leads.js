@@ -158,7 +158,7 @@ function leadDashboard(v,id){
   </div>
   <div class="chips" style="margin-bottom:14px">${tiles.map(t=>`<div class="chip"><div class="v">${esc(String(t[1]))}</div><div class="l">${t[0]}</div></div>`).join("")}</div>
   <div class="card" style="margin-bottom:14px"><h3>Pipeline stage</h3><div class="ch-sub">Click a stage to move the deal — syncs to the table, board and dashboard.</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${LEAD_STAGES.map((s,i)=>`<button onclick="setLeadStage('${b.id}','${s}')" style="flex:1;min-width:84px;border:0;cursor:pointer;border-radius:9px;padding:11px 8px;font:inherit;font-size:12px;font-weight:700;color:${i<=stageIdx&&sg!=='Lost'?'#fff':s===sg?'#fff':'var(--muted)'};background:${s===sg?LSTAGE_COLOR[s]:(i<stageIdx&&sg!=='Lost'?LSTAGE_COLOR[s]+'cc':'#eceef4')}">${s}</button>`).join("")}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${pickableStages(sg).map((s,i)=>`<button onclick="setLeadStage('${b.id}','${s}')" style="flex:1;min-width:84px;border:0;cursor:pointer;border-radius:9px;padding:11px 8px;font:inherit;font-size:12px;font-weight:700;color:${i<=stageIdx&&sg!=='Lost'?'#fff':s===sg?'#fff':'var(--muted)'};background:${s===sg?LSTAGE_COLOR[s]:(i<stageIdx&&sg!=='Lost'?LSTAGE_COLOR[s]+'cc':'#eceef4')}">${s}</button>`).join("")}</div>
   </div>
   <div class="detail-grid"><div>
     <div class="card"><h3>Work log</h3><div class="ch-sub">Calls, meetings, emails, tasks — the full history with this account.</div>
@@ -203,7 +203,7 @@ function renderLeadDetail(v,id){
     <div class="ava" style="background:${avaColor(b.id)}">${initials(b.name)}</div>
     <div style="flex:1;min-width:0"><div style="font-size:21px;font-weight:800;letter-spacing:-.02em">${window.nmMain?esc(nmMain(b)):esc(b.name)}</div>${window.nmSubHTML?nmSubHTML(b):''}<div class="tags" style="margin-top:8px">${tags.join("")}<span class="tag seg">${esc(b.segment||"")}</span></div></div>
     <div style="text-align:right">
-      <select onchange="setLeadStage('${b.id}',this.value)" style="padding:9px 12px;border-radius:10px;border:1px solid ${LSTAGE_COLOR[st]};color:${LSTAGE_COLOR[st]};font-weight:700;background:${LSTAGE_COLOR[st]}12;font-family:inherit;cursor:pointer">${LEAD_STAGES.map(s=>`<option value="${s}" ${s===st?"selected":""}>${s}</option>`).join("")}</select>
+      <select onchange="setLeadStage('${b.id}',this.value)" style="padding:9px 12px;border-radius:10px;border:1px solid ${LSTAGE_COLOR[st]};color:${LSTAGE_COLOR[st]};font-weight:700;background:${LSTAGE_COLOR[st]}12;font-family:inherit;cursor:pointer">${pickableStages(st).map(s=>`<option value="${s}" ${s===st?"selected":""}>${s}</option>`).join("")}</select>
       <div style="margin-top:8px;display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap"><button class="btn sm" style="display:none" onclick="setLeadView('dash')">📊 Dashboard view</button>${!b.isClient?`<button class="btn sm" style="border-color:#16B364;color:#16B364" onclick="convertToClient('${b.id}')">★ Convert to client</button>`:''}<button class="btn pri sm" onclick="logActivity('${b.id}')">＋ Log activity</button><button class="btn sm" onclick="newRequestForLead('${b.id}')">＋ Request</button><button class="btn sm" onclick="editBusiness('${b.id}')">Edit</button></div>
     </div>
   </div>
@@ -396,7 +396,16 @@ const _ACT_WORD={
 function actTypeLabel(type){
   try{
     const raw=String(type||'Activity').trim();
-    const k=raw.toLowerCase();
+    /* 2026-09-21 (fire #198) — fire #197 keyed this against the values in the `activities` TABLE,
+       where a stage change is written `stage_change`. The app writes its OWN stage changes into
+       the record's blob as `"Stage change"` — a space, not an underscore — so the fix of one round
+       ago missed the very entries the app creates itself. Nobody had moved a stage through the app
+       since the data was rebuilt, so the live table held none of them and the gap stayed invisible:
+       it would have appeared in Arabic the first time anyone advanced a lead. Separators are
+       normalised here so the space, the underscore and the hyphen are one key. The lesson #197
+       wrote down was "key against the data"; the completion of it is that the same fact can be
+       spelled differently by different writers, and a normalised key is what covers all of them. */
+    const k=raw.toLowerCase().replace(/[\s\-]+/g,'_');
     const _ar=(typeof LANG!=='undefined'&&LANG==='ar');
     if(_ACT_WORD[k]) return _ACT_WORD[k][_ar?1:0];
     /* Won / Lost / Proposal and anything else the stage vocabulary already names */
@@ -407,7 +416,8 @@ function actTypeLabel(type){
 }
 try{ window.actTypeLabel=actTypeLabel; }catch(_){}
 function _actWhat(a,moved){const _ar=(typeof LANG!=='undefined'&&LANG==='ar');const t=String(a.type||'');
-  if(String(t).toLowerCase()==='stage_change'){const m=String(a.note||'').match(/^\s*(\S.*?)\s*(?:→|->)\s*(\S.*?)\s*$/);const from=m?_actStageWord(m[1]):'';const to=m?_actStageWord(m[2]):_actStageWord(a.note);return `<b>${_ar?'تغيّرت المرحلة':'Stage changed'}</b>${from?': '+esc(from)+' → '+esc(to):(to?': '+esc(to):'')}`;}
+  /* fire #198: same normalisation as actTypeLabel — the app's own entries say "Stage change" */
+  if(String(t).toLowerCase().replace(/[\s\-]+/g,'_')==='stage_change'){const m=String(a.note||'').match(/^\s*(\S.*?)\s*(?:→|->)\s*(\S.*?)\s*$/);const from=m?_actStageWord(m[1]):'';const to=m?_actStageWord(m[2]):_actStageWord(a.note);return `<b>${_ar?'تغيّرت المرحلة':'Stage changed'}</b>${from?': '+esc(from)+' → '+esc(to):(to?': '+esc(to):'')}`;}
   const label=actTypeLabel(t);   /* fire #197: was its own lowercase-keyed copy — see actTypeLabel */
   const st=a.status?(moved?(_ar?` ← نُقل إلى <b>${esc(a.status)}</b>`:` → moved to <b>${esc(a.status)}</b>`):` → <b>${esc(a.status)}</b>`):'';
   return `<b>${esc(label)}</b>${st}${a.note?": "+esc(a.note):""}`;}
@@ -423,7 +433,7 @@ function removeActivity(id,i){const b=getLead(id);if(!b||!b.activities||!b.activ
   const msg=(_ar?'إزالة هذا النشاط من السجل؟':'Remove this activity from the record?')+'\n'+(a.type||'')+(a.note?': '+String(a.note).slice(0,80):'')+'\n'+(_ar?'يُعاد حساب «آخر تواصل» من النشاطات المتبقية.':'"Last contact" is recomputed from what remains.');
   if(typeof window.pfConfirm==='function')window.pfConfirm(msg,_go);else _go();}
 function logActivity(id){const b=getLead(id);if(!b)return;
-  openModal("Log activity — "+esc(b.name),`<div class="grid2"><div class="field"><label>Type</label><select id="a_type">${ACT_TYPES.map(t=>`<option>${t}</option>`).join("")}</select></div><div class="field"><label>Move stage to</label><select id="a_status"><option value="">— keep ${esc(leadStage(b))} —</option>${LEAD_STAGES.map(s=>`<option value="${s}">${s}</option>`).join("")}</select></div></div><div class="field"><label>What happened? — paste the conversation or write a summary</label><textarea id="a_note" rows="7" placeholder="e.g. Called Mr. Nasser — interested, sending the proposal Sunday"></textarea></div><div class="field"><label>Next action (optional)</label><input id="a_next" value="${esc(b.nextAction||"")}"></div>`,
+  openModal("Log activity — "+esc(b.name),`<div class="grid2"><div class="field"><label>Type</label><select id="a_type">${ACT_TYPES.map(t=>`<option>${t}</option>`).join("")}</select></div><div class="field"><label>Move stage to</label><select id="a_status"><option value="">— keep ${esc(leadStage(b))} —</option>${pickableStages(leadStage(b)).map(s=>`<option value="${s}">${s}</option>`).join("")}</select></div></div><div class="field"><label>What happened? — paste the conversation or write a summary</label><textarea id="a_note" rows="7" placeholder="e.g. Called Mr. Nasser — interested, sending the proposal Sunday"></textarea></div><div class="field"><label>Next action (optional)</label><input id="a_next" value="${esc(b.nextAction||"")}"></div>`,
   ()=>{const ns=val("a_status");b.activities=b.activities||[];b.activities.push({date:Date.now(),type:val("a_type"),status:ns||"",note:val("a_note"),by:(typeof me==="function"?me():"Abdelrahman")});if(ns){b.stage=ns;b.status=ns;if(ns==="Won")b.isClient=true;}b.lastContact=Date.now();b.nextAction=val("a_next");save();render();});
 }
 

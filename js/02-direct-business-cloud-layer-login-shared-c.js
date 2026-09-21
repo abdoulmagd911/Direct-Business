@@ -89,6 +89,23 @@
   var S2C={'Prospect':'new','New':'new','Contacted':'contacted','Qualified':'in_discussion','Negotiation':'in_discussion','Proposal':'proposal','Won':'won','Lost':'lost','On hold':'on_hold'};
   var C2S={'new':'Prospect','contacted':'Contacted','in_discussion':'Qualified','proposal':'Proposal','won':'Won','lost':'Lost','on_hold':'Prospect'};
   function stageToApp(canon, prev){ if(prev && S2C[prev]===canon) return prev; return C2S[canon]||'Prospect'; }
+  /* 2026-09-21 (fire #198) — a missing key is not the only way a stage fails to survive a save.
+     A key that EXISTS but whose database stage maps back to a DIFFERENT word is just as lossy, and
+     it is reachable from the screen: the record page offers seven stages, and "Negotiation" is one
+     of them. Picking it writes `in_discussion` (captured on the wire), and `in_discussion` reads
+     back as "Qualified" — so the word a person deliberately chose is replaced by another on the
+     next load, with nothing said. It cannot be rescued by `stageToApp`'s `prev` argument either:
+     the save writes `stage` to the COLUMN only, never into the record's raw blob, so on a fresh
+     load there is no previous wording to keep. Measured, not assumed — 27 of the 108 live records
+     carry a stage word in their blob and all of them read `Won`/`won`/`Lost`, never a round-trip
+     word like Negotiation.
+     "On hold" is the same shape (`on_hold` → "Prospect"), which is what the note above is really
+     describing; no live record is on hold today, so it is latent rather than live.
+     This answers the question once, here, where the two maps live, so a picker cannot offer a word
+     the save cannot keep. Anything already carrying such a word still displays it — this only
+     governs what a person may newly choose. */
+  function stageKeepable(word){ try{ var c=S2C[word]; return !!c && C2S[c]===word; }catch(_){ return true; } }
+  try{ window.stageKeepable=stageKeepable; }catch(_){}
   /* 2026-09-02 — js/72-people-bridge.js shows the people and history stored in the `contacts`
      and `activities` TABLES on each card (tagged _fromTable). They already live in those
      tables, so they must never be written back into the row's raw JSON: strip them on save. */

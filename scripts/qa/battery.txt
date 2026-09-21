@@ -302,3 +302,4 @@ probe-one-haystack-for-every-search-box
 probe-the-cost-gap-says-how-much
 probe-an-empty-answer-is-not-a-zero
 probe-the-activity-words-match-the-data
+probe-a-stage-you-pick-is-the-stage-you-get

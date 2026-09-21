@@ -1709,6 +1709,40 @@ that an unrecognised type must still fall through to its stored value rather tha
 and that the list and the timeline must word the same activity identically.
 *Date: 2026-09-21, js/core/core-02-leads.js. Status: ACTIVE.*
 
+**M55 — never offer a choice the save cannot keep; and dropping a choice is not the same as hiding
+a fact.** Found 2026-09-21 (fire #198) by driving the live app with every write intercepted and
+logged rather than forwarded — which is how the wire answer was read without touching a real row.
+The record page offered seven stages. Picking **Negotiation** sends `in_discussion`, and
+`in_discussion` reads back as **"Qualified"**: the word a person deliberately chose is replaced by
+another on the next load, silently. `stageToApp`'s `prev` argument cannot save it, because the save
+writes `stage` to the **column only** and never into the record's raw blob — measured, not assumed:
+27 of the 108 live records carry a stage word in their blob and every one reads Won/won/Lost, never
+a round-trip word. "On hold" is the same shape (`on_hold` → "Prospect"), latent only because no
+live record is on hold.
+The existing comment beside the two conversion maps warned that a **missing** key silently saves as
+`new`. This is the sibling it did not cover: **a key that exists but whose database stage maps back
+to a different word.** The question now lives beside the maps as `stageKeepable(word)`, and the
+three places a person can SET a stage offer only words that pass it. `LEAD_STAGES` is deliberately
+untouched — `leadSortVal` and `leadScore` both read positions out of it, so dropping an entry would
+quietly move every later stage's score.
+**The second half of the rule was taught by the probe's own brake, on the first run.** The first fix
+filtered the dropdown without exception, so a lead actually sitting on "Negotiation" drew options
+that no longer contained its own stage — the browser fell back to the first one and the screen said
+**Prospect**. The control misreported the record it belonged to, which is worse than the defect being
+fixed. A record's current value is always included, in its own place in the order. Restricting what
+can be chosen must never change what is shown.
+**Also this round, and it is M54 finishing its own sentence:** fire #197 keyed the activity words
+against the `activities` TABLE, where a stage change is `stage_change`. The app writes its own into
+the record's blob as `"Stage change"` — a space, not an underscore — so the fix of one round earlier
+missed the very entries the app creates, and would have shown English in Arabic the first time
+anyone advanced a lead. Invisible because nobody had moved a stage through the app since the data
+was rebuilt. Separators are normalised now. **The same fact can be spelled differently by different
+writers; keying against one writer's spelling is only half of keying against the data.**
+Guard: `scripts/qa/probe-a-stage-you-pick-is-the-stage-you-get.mjs`, whose brakes are that a record
+already carrying an unkeepable word still displays it, that the pickers still offer the real stages,
+and that a missing `stageKeepable` makes them fall back to the full list rather than to nothing.
+*Date: 2026-09-21, js/02 + js/core/core-01 + js/core/core-02. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
