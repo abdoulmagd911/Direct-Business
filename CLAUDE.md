@@ -39,8 +39,13 @@
 > in `*_snapshot_*` tables): the app holds **real data** — `businesses` 112 rows, **108 live / 4
 > archived**, of which **28 are clients** (27 at stage `won` plus one deliberate exception, and the
 > `is_client` column and the `raw.isClient` blob agree on all 108 — no half-converted records); 91
-> `finance_invoices` rows, **46 live / 45 soft-deleted**, **every one of the 46 now has a cost
-> recorded** (the "19 with no cost" this line used to report is closed), all `revenue_way='invoice'`,
+> `finance_invoices` rows, **46 live / 45 soft-deleted**, every one of the 46 has a **non-null**
+> `cost_sar` — but **19 of them record it as 0, not as a real figure** (re-counted 2026-09-21,
+> fire #195: this line previously read "every one now has a cost recorded … the 19 with no cost is
+> closed", which is true of nulls and false of the gap. A zero cost makes profit equal revenue, so
+> those 19 carry **214,550 SAR of the 492,622.59 SAR profit total — 44%**, and the app's own Finance
+> page says so on screen. Do not read that sentence as "the cost gap is closed"; it is not),
+> all `revenue_way='invoice'`,
 > all `integrity_status='verified_paid'`, **no VAT figure on any row**, and the doctrine holds exactly
 > — revenue = total − wallet and profit = revenue − cost on all 46, checked row by row. Also live:
 > `record_history` 360 rows (216 with no actor — bulk SQL work in Aug/Sep, and the page says so),

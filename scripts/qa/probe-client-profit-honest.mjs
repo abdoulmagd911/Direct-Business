@@ -99,7 +99,12 @@ async function main() {
       const card = table.closest('.card');
       return {
         rows: [...table.querySelectorAll('tr')].map((tr) => [...tr.children].map((td) => (td.textContent || '').replace(/\s+/g, ' ').trim())),
-        note: (card.textContent || '').replace(/\s+/g, ' ').match(/⚠[^⚠]{0,150}/g) || [],
+        /* 2026-09-21 (fire #196's battery): this capture was 150 characters, and fire #195 made the
+           Total-row caveat longer — it now names the riyals and the share before reaching the words
+           "upper bound", which fell outside the window. The check below was right, the ruler was
+           short: the note read correctly on screen and this probe reported it missing. Widened to
+           400, which holds the whole sentence in both languages with room to spare. */
+        note: (card.textContent || '').replace(/\s+/g, ' ').match(/⚠[^⚠]{0,400}/g) || [],
       };
     });
   }
