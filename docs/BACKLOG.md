@@ -107,6 +107,45 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #190 (2026-09-21 ~09:00 UTC) — Finance was leaving 45 records out of every figure without saying so
+
+The Finance page header reads **"46 invoices · data through 2026-08-20"**. Driven against your live
+data, the page actually **had 91 records loaded and was dropping 45 of them** — out of revenue, out
+of cost, out of profit, out of the client tables, out of the report builder. The words "excluded",
+"held back" and "deleted" appeared nowhere on the page.
+
+Those 45 split into two very different groups:
+
+- **10 have a reason recorded** — the Takamol / Techtic verification revenue that is accounted for in
+  another system and must never appear here. Correctly held back.
+- **35 have no reason recorded at all.** They were soft-deleted during the data work on 20, 22 and 23
+  August. They are still in the database, but a month past the 24-hour undo window, and the Archive
+  page only covers companies — so nothing in the app mentioned they existed.
+
+Finance now says it, once, at the top: **"45 finance records are held back from this page and are in
+none of the figures above — 10 with a reason recorded and 35 with none. They are still in the
+database; nothing has been erased."**
+
+Three things I deliberately did **not** do:
+
+- **no restore button.** These are money records. Bringing one back is your decision, not a session's.
+- **no change to a single figure.** Your revenue, cost and profit read exactly as before — the point
+  is that the page now tells you what it left out, not that it counts differently.
+- **no sentence when there is nothing to report.** A clean ledger gets no apology.
+
+**Something for you, and it is the reason this is worth your attention:** those 35 without a reason.
+If they were meant to go, nothing needs doing and the sentence just keeps you informed. If any of
+them should be counted, tell me and I will show you what they are — I can list them without changing
+anything.
+
+Guarded by `scripts/qa/probe-finance-says-what-it-held-back.mjs` (9 checks). Brakes: nothing said when
+nothing is held back, the page's own figures unchanged, and the sentence must not follow you to
+another page. Sabotage-verified both ways. New rule **M48**, which also records a trap I walked into:
+the version that lumped all 45 into "no reason recorded" **still passed the adds-up check**, because
+0 + 3 sums to 3 just as 2 + 1 does. Arithmetic that adds up is not arithmetic that is right.
+
+---
+
 ## Routine fire #189 (2026-09-21 ~07:00 UTC) — Team & Access offered "Viewer" on nine pages where it does nothing
 
 Fire #184 fixed the Generator. This round I went to the screen where you make the choice.

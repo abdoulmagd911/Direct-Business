@@ -1505,6 +1505,29 @@ honoured page must NOT be marked, that Editor rows must not be marked, and that 
 list must silence every mark rather than leave a stale second copy.
 *Date: 2026-09-21, js/52-v76-access-model.js + js/56-access-matrix.js. Status: ACTIVE.*
 
+**M48 — M39 applies to the money page, and "held back" is said out loud with the reason split.**
+Found 2026-09-21 (fire #190). The Finance header read **"46 invoices · data through 2026-08-20"**.
+Driven live, the page had **91 rows in memory and was dropping 45 of them** — from revenue, cost,
+profit, the client tables and the report builder alike — and the words *excluded*, *held back* and
+*deleted* appeared **nowhere on it**. `FIN.showDeleted` existed in the state object and was wired to
+nothing. Of the 45: **10 carry a recorded `exclusion_reason`** (the Takamol / Techtic verification
+revenue CLAUDE.md says belongs to another system — correctly held back) and **35 carry none**,
+soft-deleted during the August data work; a month past the 24-hour undo window, with the Archive page
+covering companies only, nothing in the app said they existed. `js/99` now says the count at the top
+of Finance, **split by whether a reason was recorded**, and adds that the rows are still in the
+database so a held-back row is never read as a loss. It costs no query — the loader already fetches
+every row and filters afterwards, so this only reports what the page knew and was not saying.
+Three things deliberately NOT done: no restore button (money records; the owner's call, not a
+session's), no change to any figure, and no sentence when nothing is held back.
+**And a probe lesson worth more than the fix:** the sabotage that lumps all 45 into "no reason
+recorded" still **passes** the adds-up check, because 0 + 3 sums to 3 exactly as 2 + 1 does.
+**Arithmetic that adds up is not arithmetic that is right** — a total and its parts need separate
+checks, or a guard proves only that someone did the addition.
+Guard: `scripts/qa/probe-finance-says-what-it-held-back.mjs`, whose brakes are that a clean ledger
+gets no sentence, that the page's own figures are unchanged, and that the sentence does not follow
+you to another page.
+*Date: 2026-09-21, js/99-finance-says-what-it-held-back.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
