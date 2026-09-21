@@ -1,14 +1,24 @@
 /* probe-one-workspace-copy-not-three.mjs — the browser keeps ONE copy of the workspace, so the
    app's own "storage full" failure stays three times further away.
 
-   Fire #193. Measured against the pre-fix code, in a browser that had used the app before and was
-   sitting at the sign-in screen:
+   Fire #193. Measured against the pre-fix code, driving the app against the REAL database
+   (108 businesses, 28 clients), in a browser that had used the app before and was sitting at the
+   sign-in screen:
 
-       directBusinessData_v29   293,366 characters   ← the live key, the one `load()` reads first
-       directBusinessData_v25   209,362 characters   ← never read ANYWHERE in the codebase
-       directBusinessData_v24   209,067 characters   ← read once, and only when v29 is absent
+       directBusinessData_v29   768,721 characters   ← the live key, the one `load()` reads first
+       directBusinessData_v25   767,970 characters   ← never read ANYWHERE in the codebase
+       directBusinessData_v24   767,970 characters   ← read once, and only when v29 is absent
        ------------------------------------------
-       711,825 characters carried where 293,396 was needed.
+       2,304,723 characters carried where 768,783 was needed — about 2.3 MB of a cap that is
+       commonly 5 MB. After the fix, the same browser against the same database: 768,783.
+
+   THIS PROBE RUNS AGAINST THE QA MOCK, not that database — it is a battery probe and has to be
+   hermetic and fast. The mock's workspace is smaller (one copy ≈ 293 KB, three ≈ 712 KB), so the
+   ceiling below is sized for the mock. The defect is in the app's own code and is data-independent;
+   the live figures above cost four times more and were measured separately, with the bridge recipe
+   in CLAUDE.md (`proxy:{server:'direct://'}` and a fetch to the real host). The first draft of this
+   header called the signed-in half of the probe a live-database session. It is not, and the gap
+   between 712,000 and 2,304,723 characters is exactly why that sentence had to go.
 
    Traced to source: js/core/core-08's v25.2 storage-migration block wrote a full copy of the
    workspace into BOTH dead keys on every single page load, and `v25TemplateLearn` wrote v25 again.
@@ -23,8 +33,8 @@
    Note on who cleans up after the fix: js/02's cloud layer already removes every
    `directBusinessData_v<n>` key on each successful sign-in, so a browser that still carries the two
    dead copies today is emptied the next time its owner signs in. Nothing extra was added for that —
-   a second layer doing js/02's job was written, measured against the live app, found to change
-   nothing, and deleted rather than shipped.
+   a second layer doing js/02's job was written, then measured with itself removed, found to change
+   the stored bytes not at all, and deleted rather than shipped.
 
    What this holds:
      1. at the sign-in screen, a browser that has used the app before holds the live key and
@@ -33,7 +43,7 @@
         thing it is protecting;
      3. the whole store stays near one copy, not three — measured in characters, so a write that
         comes back in a different shape is still caught;
-     4. after a real signed-in session against the live database, the dead keys are absent there too,
+     4. after a signed-in session, the dead keys are absent there too,
         and a session that arrives carrying them has them cleared;
      5. the signed-in browser still holds its live key and its auth token — nobody is signed out to
         save space;

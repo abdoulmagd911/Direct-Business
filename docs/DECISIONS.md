@@ -1581,27 +1581,35 @@ neighbours, 6/6 green.
 *Date: 2026-09-21, scripts/qa/probe-export-menu-honest.mjs. Status: ACTIVE.*
 
 **M51 — the browser keeps ONE copy of the workspace, and a new layer is only shipped once it is
-measured doing something the app does not already do.** Found 2026-09-21 (fire #193). A browser
-sitting at the sign-in screen, having used the app before, held **711,825 characters** across three
-keys — `directBusinessData_v29` (293,366, the live one), `_v25` (209,362, never read anywhere) and
-`_v24` (209,067, read only as `load()`'s fallback when v29 is absent). Traced with a `setItem`
+measured doing something the app does not already do.** Found 2026-09-21 (fire #193). Driving the
+app against the **real database** (108 businesses, 28 clients), a browser sitting at the sign-in
+screen, having used the app before, held **2,304,723 characters** across three keys —
+`directBusinessData_v29` (768,721, the live one), `_v25` (767,970, never read anywhere) and
+`_v24` (767,970, read only as `load()`'s fallback when v29 is absent). Traced with a `setItem`
 stack trace to js/core/core-08's v25.2 migration block, which wrote a full copy into **both** dead
 keys on every page load, plus `v25TemplateLearn` writing v25 again. Nine such writes survived the
-June v24 → v25 → v29 migrations; all nine are gone, and the same browser now holds **293,396** —
-418 KB back. It is not tidiness: `save()` in core-01 has a named failure for exactly this —
+June v24 → v25 → v29 migrations; all nine are gone, and the same browser against the same database
+now holds **768,783** — about **1.5 MB back**, out of a browser allowance commonly 5 MB.
+It is not tidiness: `save()` in core-01 has a named failure for exactly this —
 *"Storage full - changes kept in memory only"* — and when it fires a person keeps working while
 nothing reaches disk. Tripling the footprint brings that moment three times closer.
 **The part worth keeping as a rule is what happened next.** A cleanup layer — a js/101, written to
 sweep the two dead keys out of browsers that already carried them — was written, wired, and reported
 528 KB reclaimed. The probe written to guard it then failed in a way that made no sense, and measuring
 properly showed why: **js/02's cloud layer already removes every `directBusinessData_v<n>` key on
-every successful sign-in** (line ~416, since the v32 row-by-row load). Running the live app with the
+every successful sign-in** (line ~416, since the v32 row-by-row load). Running the app with the
 layer and without it produced **byte-identical** storage. It was deleted rather than shipped. A
 layer that duplicates an existing one is not free — it is a second place to read, a second place to
 break, and a claim in the repo that is not true. Measure the app with the new file removed before
 believing the new file is what fixed it.
+**And one more correction, worth as much as the rule:** the first version of that guard said it drove
+"a signed-in session against the live database". It did not — it ran against the QA mock, whose
+workspace is a quarter the size, and the header was written from the mock's numbers (711,825). The
+real figure is 2,304,723. A battery probe SHOULD be hermetic; what was wrong was the claim, and the
+understatement it carried. Re-measured through the real bridge, corrected everywhere, same round.
 Guard: `scripts/qa/probe-one-workspace-copy-not-three.mjs` — two browsers (the sign-in screen and a
-signed-in session against the live database), a character-count ceiling rather than a key list, and
+signed-in session, both on the QA mock, with the live figures recorded in its header), a
+character-count ceiling rather than a key list, and
 a source sweep of all of `js/`. Its brakes are that the live copy must still parse and carry the
 workspace, that the auth token must survive, and that neighbouring keys are untouched; the lazy
 version of this fix (`localStorage.clear()`) was run against it and failed all three.

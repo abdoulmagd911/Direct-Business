@@ -110,24 +110,25 @@ on this list at all. *Raised #140.*
 ## Routine fire #193 (2026-09-21 ~14:00 UTC) — the app was keeping three copies of your workspace in every browser, and a fix of mine that turned out to do nothing
 
 **What was wrong.** Your browser keeps a working copy of the workspace on the computer, so the app
-can draw a page before the database answers. It should keep **one**. I measured a browser that had
-used the app before, sitting on the sign-in screen, and it was holding **three**: the real one
-(about 290 KB) and two leftovers from old versions of the app (about 205 KB each) — roughly **700 KB
-where 290 KB was needed**.
+can draw a page before the database answers. It should keep **one**. Driving the app against your
+real data, I measured a browser that had used it before, sitting on the sign-in screen, and it was
+holding **three**: the real one (about 750 KB) and two leftovers from old versions of the app (about
+750 KB each) — **2.3 MB where 750 KB was needed**.
 
 The two leftovers are dead weight in the plainest sense: one of them is never read by any part of
 the app at all, and the other only ever gets read by a browser opening a version of the app it has
 never seen before. They were being rewritten from scratch **on every single page load**, by nine
 leftover instructions from the migrations the app went through in June.
 
-**Why it matters, in your terms.** A browser only gives a website a few megabytes of room. The app
-already has a message it shows when that room runs out — *"Storage full — changes kept in memory
+**Why it matters, in your terms.** A browser typically gives a website about **5 MB** of room. The
+app already has a message it shows when that room runs out — *"Storage full — changes kept in memory
 only"* — and when that message appears, someone can carry on working for an hour while none of it is
-actually being written down. Carrying the workspace three times over brings that moment three times
-closer. This wasn't tidying; it was the app's own worst failure, moved closer.
+actually being written down. Your app was sitting at **roughly half that allowance**, two thirds of
+it holding copies nothing reads, and it grows every time you add companies and invoices. This wasn't
+tidying; it was the app's own worst failure, moved a lot closer.
 
-**Fixed.** The nine leftover instructions are gone. Same browser, same test, now: **290 KB, one
-copy.** 418 KB handed back, on every computer that uses the app. Nothing about what you see changed.
+**Fixed.** The nine leftover instructions are gone. Same browser, same real data, now: **750 KB, one
+copy.** About **1.5 MB handed back** on every computer that uses the app. Nothing you see changed.
 
 **The part I want to be straight about.** I also wrote a new cleanup routine to scrub the two
 leftovers out of browsers that already had them, wired it in, and measured it reporting 528 KB
@@ -141,8 +142,16 @@ more place to read, one more place to break, and a claim in the notes that isn't
 fixed this was removing the nine writes; the check now says so, and the rule written from it
 (**M51**) says to measure with a new file removed before believing the new file is what fixed it.
 
-**Guarded.** A new test drives two browsers — one at the sign-in screen, one signed in against your
-real database — and fails if the store grows past one copy. Deliberately, it also fails on the lazy
+**A second thing I got wrong, and fixed in the same round.** The first version of that test said it
+was driving your real database. It wasn't — it was running against the practice copy, which is a
+quarter the size, and I had written the numbers up from it. That is the exact trap your own notes
+warn about, and it cost this round its first set of figures: the practice copy said 700 KB, your
+real data says 2.3 MB. I re-measured through the real connection, and every number above is from
+that. The test itself stays on the practice copy on purpose — it has to run 300 times in a row
+without touching your data — but it now says so plainly instead of claiming otherwise.
+
+**Guarded.** A new test drives two browsers — one at the sign-in screen, one signed in — and fails
+if the store grows past one copy. Deliberately, it also fails on the lazy
 version of this fix: I wrote that version too (just wipe the browser's storage) and ran it against
 the test, and it fails on three counts, because it destroys the working copy and signs the person
 out. Putting the old writes back fails the test on three counts as well, at 711,508 characters
