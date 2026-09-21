@@ -1555,6 +1555,31 @@ still not open, that a tap on the box must toggle once rather than twice, and th
 anything else is left alone.
 *Date: 2026-09-21, js/100-a-tap-beside-the-tick-box-counts.js. Status: ACTIVE.*
 
+**M50 — a probe that fights one of the app's own safety features is a broken probe, not a flaky
+one.** Found 2026-09-21 (fire #192). The full battery came back **285/285 green** with one probe
+red under load and green alone — `probe-export-menu-honest`, and its failing check was *"an empty
+page says 'No rows to export' and downloads nothing"*. The runner's honest note says a red that does
+not reproduce alone is usually a busy machine; the detail line said otherwise: under load the probe
+had **downloaded a real file**, meaning the page was not empty when Export was clicked.
+The probe emptied Operations with `DB.requests = []`. `js/35` carries a deliberate **re-assert
+guard** that watches that array's *identity* and restores the loaded rows when something replaces it
+wholesale — built in round 32 because a late blob loader was clobbering deletes, and its own comment
+records the distinction: *"an edit assigns in place and keeps the identity; only a delete replaced
+the array"*. So the probe's setup looked exactly like the clobber the guard exists to undo, and the
+guard correctly put the rows back ~1.5 s later. On a quiet machine the click landed first; under
+load it did not. **The app was right every time.**
+Emptying **in place** (`length = 0`) keeps the identity, the guard stays quiet, and the check now
+holds under `-j 3`. Two things go with it:
+**(a) assert the precondition, not just the outcome.** The check now reads the row count at click
+time and fails if the page was not actually empty — otherwise a passing run proves nothing, which is
+the same fault M46 named in a different costume.
+**(b) my first attempt made it worse.** "Hardening" it with a `render()` after the emptying fired
+the refill on a *quiet* machine too — a fix aimed at a symptom, before the mechanism was understood.
+Read the guard before out-waiting it.
+Guard: `scripts/qa/probe-export-menu-honest.mjs` itself, re-run under concurrency alongside five
+neighbours, 6/6 green.
+*Date: 2026-09-21, scripts/qa/probe-export-menu-honest.mjs. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

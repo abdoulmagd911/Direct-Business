@@ -46,7 +46,29 @@ const DOCTRINE = ['invoice_date', 'invoice_no', 'zatca_dpin', 'client_group', 's
 /* 3. empty page */
 /* the mock seeds bookings/invoices/projects (js/35 loads them on open), so Operations is emptied in-page
    (no save) to stand in for a page with nothing on it; js/63 turns alert() into an in-page notice card */
-const emptyPg = 'ops'; await go(emptyPg); await p.evaluate(() => { DB.requests = []; });
+/* 2026-09-21 (fire #192): this used to empty the array and click Export straight after. Under
+   load the Operations page's own load finished AFTER the emptying and put the rows back, so
+   Export correctly produced a file and the check read as a failure — the full battery on
+   2026-09-21 caught exactly that, with emptyFile = "DirectBusiness-ops-summary.csv" and no
+   notice at all. The assertion was right; the ARRANGEMENT was racy, and a check that only holds
+   on a quiet machine cries wolf on every busy one.
+   Now: wait for the page's own load to settle (the length stops changing), then empty, re-render,
+   and confirm the screen really is showing nothing before clicking Export. */
+const emptyPg = 'ops'; await go(emptyPg);
+await p.waitForFunction(() => {
+  try {
+    const n = (DB.requests || []).length;
+    if (window.__expSettleLast === n) return true;     /* unchanged since the last look */
+    window.__expSettleLast = n; return false;
+  } catch (_) { return true; }
+}, { timeout: 20000, polling: 700 }).catch(() => {});
+/* And empty it IN PLACE. `DB.requests = []` swaps the array's identity, which js/35's re-assert
+   guard treats as "a late loader clobbered this" and correctly puts the rows straight back — a
+   real safety feature the probe was fighting, not a flake. js/35's own comment says it: an edit
+   keeps the identity, only a replacement looked like a clobber. Truncating keeps it. */
+await p.evaluate(() => { try { (DB.requests || []).length = 0; } catch (_) {} });
+await p.waitForTimeout(1800);   /* long enough for the guard's ~1.5 s re-assert to have had its say */
+const emptyRowsOnScreen = await p.evaluate(() => { try { return (DB.requests || []).length; } catch (_) { return -1; } });
 const emptyFile = await grab('list'); await p.waitForTimeout(400);
 const emptyDialog = dialogs[0] || await p.evaluate(() => (document.getElementById('v63Notice') || {}).innerText || '');
 /* 4. Arabic airlines full: no raw keys */
@@ -60,10 +82,13 @@ const checks = [
   ['Export menu shown on Leads, Finance, Airlines', ['leads', 'finance', 'airlines'].every((k) => vis[k] === true)],
   ['Finance "full details" = the Ledger doctrine (18 columns, no vat_sar / wallet / discount / ids)', hf.length === DOCTRINE.length && DOCTRINE.every((c, i) => hf[i] === c)],
   ['Finance summary (11) and full (18) differ', hs.length === 11 && hf.length === 18],
-  ['an empty page says "No rows to export" and downloads nothing', !emptyFile && /No rows to export|لا صفوف/.test(emptyDialog)],
+  /* the row count is asserted too: if the page was not actually empty this check proves nothing,
+     and reading it as a pass would be the worse failure (fire #192) */
+  ['an empty page says "No rows to export" and downloads nothing',
+    emptyRowsOnScreen === 0 && !emptyFile && /No rows to export|لا صفوف/.test(emptyDialog)],
   ['Arabic Airlines "full details": every column title is Arabic (0 raw keys)', ha.length > 20 && rawAr.length === 0],
   ['no JS errors', errors.length === 0],
 ];
 let fail = 0; for (const [n, ok] of checks) { console.log((ok ? 'PASS' : 'FAIL') + ' · ' + n); if (!ok) fail++; }
-if (fail) { console.log('detail:', JSON.stringify({ vis, hs, hf, emptyPg, emptyFile: emptyFile && emptyFile.name, emptyDialog, haLen: ha.length, rawAr })); if (errors.length) console.log('errors:', errors); }
+if (fail) { console.log('detail:', JSON.stringify({ vis, hs, hf, emptyPg, emptyRowsOnScreen, emptyFile: emptyFile && emptyFile.name, emptyDialog, haLen: ha.length, rawAr })); if (errors.length) console.log('errors:', errors); }
 process.exit(fail ? 1 : 0);

@@ -107,6 +107,53 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #192 (2026-09-21 ~13:00 UTC) — a clean verification round, one real thing for you, and a test that was fighting the app
+
+Two jobs this round. Neither found a fault in the app itself, which is worth saying plainly rather
+than dressing something up.
+
+**1. I re-checked the thing your notes call the richest source of bugs here.** Every company field
+is stored twice — in a proper database column and in a copy inside the record. Rules were written in
+September because the client card used to show a dash over values that were sitting in the column
+all along.
+
+Re-measured on your 28 clients, the split is exactly as recorded: payment terms in the column with
+nothing in the copy on 20 clients, both contract dates on 19, credit limit on 8, CR/VAT, legal name
+and entity type on 1 each — and **no cases at all** of the reverse, or of the two disagreeing. Then I
+opened a real client card: the app now carries all seven values and **six of the seven print on
+screen**. The fix holds.
+
+The seventh is the credit limit, and not showing it is **deliberate** — the credit line is one of the
+things Direct's own client master owns. I left it alone rather than pre-empt your open question about
+what counts as extended credit.
+
+**2. The one real finding, and it is about your data, not the software: 20 of your 28 clients have
+nobody assigned to them.** Nineteen of those twenty arrived in a single import on 21 August; the
+twentieth came from the Direct Payments import. **Every client that came in through a funnel or a
+person has an owner.** So this is an import that never set ownership, not people forgetting.
+
+It matters because "Mine" works by matching a person's name against the owner field — so roughly
+seven in ten of your clients sit in nobody's list. **The app is not hiding it**: the owner filter on
+the Clients page already reads "Unassigned (20)". Tell me who should own which and I will set them in
+one go.
+
+**3. A full test run, and a test that was wrong about the app.** 291 checks, 285 of them able to
+fail, **all 285 green** — including everything touched by the eleven pieces added this session.
+
+One test went red under load and green alone. Normally that means a busy machine. This time it
+didn't: the detail showed it had **downloaded a real file**, so the page it claimed was empty wasn't.
+The test emptied a page by replacing its list — and the app has a deliberate safeguard that spots a
+list being replaced from outside and puts the rows back, built after a real bug where deleted rows
+reappeared. **The app was right every time; the test was fighting a safety feature.** It now empties
+the list in place, which the safeguard is designed to allow, and it checks the page really is empty
+before judging. Re-run alongside five others at once: 6 of 6 green.
+
+My own first attempt at that fix made it worse — I added a redraw that triggered the very refill I
+was trying to avoid, which then failed on a quiet machine too. Recorded as rule **M50**: read the
+safeguard before trying to out-wait it.
+
+---
+
 ## Routine fire #191 (2026-09-21 ~11:00 UTC) — on a phone, tapping beside a tick box did nothing at all
 
 Eleven new pieces have gone into the app this session and none of them had been looked at on a
