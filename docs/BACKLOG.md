@@ -105,6 +105,43 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #187 (2026-09-21 ~02:30 UTC) — the "Today" figure on Activity & Audit was not today
+
+Opened **Activity & Audit** against your real log — 360 changes, written by the database itself.
+
+The three figures across the top read **Events loaded 360 · Today 21 · 7-day 91**. But it was
+half past two in the morning on the 21st, and **every one of those "21 changes today" was dated the
+20th.** Today's real figure was nought.
+
+The tile said "Today" and was counting *the last twenty-four hours*. You work at UTC+3, so at nine
+in the morning in Riyadh that window reaches back to nine o'clock **yesterday** — anyone checking
+what changed today was reading most of yesterday's work, with nothing on screen to say so. The
+7-day figure had the same fault and was reaching into an eighth day; corrected, it reads 86, not 91.
+
+Both now count calendar days, starting at midnight, which is what both labels say.
+
+And because a bare **0** reads as "this thing is broken", the tile now says why when there is
+nothing yet: **"Today 0 — nothing yet today, last change yesterday."** When there *is* activity
+today, that line doesn't appear.
+
+**Verified clean while I was in there,** so you know it was looked at: the log correctly explains
+its own gaps. 216 of the 360 entries have no name against them — they are the bulk database work
+from 22 August, 2 September and 9 September — and the page already says *"unknown — changed
+directly in the database, not via the app"* and *"past the 24-hour undo window"* rather than
+pretending. That is right, and I left it alone.
+
+Guarded by `scripts/qa/probe-today-on-the-audit-log-means-today.mjs` (8 checks). Brakes: a change
+made today must still count, the "nothing yet" line must vanish when there is activity, and the
+total must not shrink. Sabotage-verified: the old rolling windows fail five, with Today reading 1
+when the only change was yesterday. New rule **M45**.
+
+**Second round running, the same probe lesson:** my first fixture could not tell the two ways of
+counting apart, so that check passed against the app I had deliberately re-broken. It now carries a
+change dated seven days ago but five minutes inside a rolling window — the only shape that
+distinguishes them.
+
+---
+
 ## Routine fire #186 (2026-09-21 ~00:30 UTC) — your documents had the app's page controls printed on them, and were quietly dropping rows
 
 Read all five produced documents against your real data, in both languages. Two things, one visible

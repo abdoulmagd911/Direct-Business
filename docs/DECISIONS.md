@@ -1433,6 +1433,27 @@ still get its pager, and that pager must still count and still truncate.
 Guard: `scripts/qa/probe-a-document-is-not-a-data-table.mjs`.
 *Date: 2026-09-21, js/04-ui-basics.js + js/68-service-fees-tab.js. Status: ACTIVE.*
 
+**M45 — "Today" means today. A figure labelled with a calendar word is counted from local
+midnight, never as a rolling window.** Found 2026-09-21 (fire #187). Activity & Audit's Today and
+7-day tiles were both `Date.now() - at < N` rolling windows. Read off the live log at 02:30 UTC on
+the 21st, **the Today tile said 21 and every one of those 21 changes was dated the 20th** — it
+claimed today while today's real figure was nought. Direct works at **UTC+3**, so at 09:00 in
+Riyadh a rolling twenty-four hours reaches back to 09:00 *yesterday*: somebody asking "what changed
+today" was reading most of yesterday's work with nothing to say so. The 7-day figure had the same
+shape and fell from 91 to 86 once corrected, because the rolling version was reaching into an
+eighth day. Both are now calendar days from local midnight. Two things that travel with it:
+**(a)** a bare `0` under a figure reads as *the thing is broken*, so when nothing has happened today
+and the log is not empty the tile says **"nothing yet today — last change yesterday"**, and says
+nothing when there IS activity (M39's brake, again);
+**(b)** the honest window must not shrink the TOTAL — "Events loaded" still counts every row.
+**Probe lesson, the second round running:** the first fixture could not tell the two readings apart —
+its rows fell the same side of both windows — so **check 3 passed against the deliberately re-broken
+app**. It now carries a row dated *seven days ago but five minutes inside a rolling 168 hours*,
+which is the only shape that discriminates. Build the fixture from `Date.now()` at run time, not
+from written dates, or the guard goes stale by the calendar.
+Guard: `scripts/qa/probe-today-on-the-audit-log-means-today.mjs`.
+*Date: 2026-09-21, js/63-undo-and-real-audit.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

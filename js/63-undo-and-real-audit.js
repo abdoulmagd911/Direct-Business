@@ -252,8 +252,29 @@
   window.renderActivity=function(v){
     if(HIST.rows==null){ histLoad(function(){ if(typeof render==='function')render(); }); }
     var rows=HIST.rows||[];
-    var today=rows.filter(function(r){return Date.now()-new Date(r.at).getTime()<86400000;}).length;
-    var week=rows.filter(function(r){return Date.now()-new Date(r.at).getTime()<7*86400000;}).length;
+    /* 2026-09-21 (fire #187) — these two were rolling windows: "< 86400000 ms ago" under a tile
+       labelled "Today". Measured live at 02:30 UTC on the 21st, the Today tile read 21 and every
+       one of those 21 changes was dated the 20th: the tile said "Today" and today's real figure
+       was nought. The team works at UTC+3, so at 09:00 Riyadh a rolling 24 hours reaches back to
+       09:00 YESTERDAY — somebody checking what changed today was reading most of yesterday's work.
+       Both are now calendar days from local midnight, which is what both labels say, and which
+       keeps the pair readable on one basis. */
+    var dayStart=(function(){ var d=new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+    var weekStart=dayStart-6*86400000;   /* today and the six days before it = seven calendar days */
+    var tms=rows.map(function(r){ return new Date(r.at).getTime(); }).filter(function(n){ return n===n; });
+    var today=tms.filter(function(n){ return n>=dayStart; }).length;
+    var week=tms.filter(function(n){ return n>=weekStart; }).length;
+    /* a nought under "Today" must not read as "the log is broken" — say when the last change was */
+    var newest=tms.length?Math.max.apply(null,tms):0;
+    var quietNote='';
+    if(!today&&newest){
+      try{
+        var days=Math.max(1,Math.round((dayStart-new Date(newest).setHours(0,0,0,0))/86400000));
+        quietNote='<div style="font-size:10.5px;font-weight:600;color:#7C8194;margin-top:2px">'+
+          fl('nothing yet today \u2014 last change '+(days===1?'yesterday':(days+' days ago')),
+             '\u0644\u0627 \u0634\u064a\u0621 \u0627\u0644\u064a\u0648\u0645 \u0628\u0639\u062f \u2014 \u0622\u062e\u0631 \u062a\u063a\u064a\u064a\u0631 '+(days===1?'\u0623\u0645\u0633':('\u0642\u0628\u0644 '+days+' \u0623\u064a\u0627\u0645'))+'')+'</div>';
+      }catch(_){}
+    }
     /* 2026-09-02 (round 37): the query above asks for the most recent HIST_CAP entries. The
        tile has always been honestly labelled "Events loaded" rather than "Total events", and
        Today / 7-day are exact as long as the window fits inside the cap — which it does today
@@ -264,7 +285,7 @@
     v.innerHTML=
       '<div class="card" style="display:flex;flex-wrap:wrap;gap:18px;padding:14px 20px;margin-bottom:14px">'+
         '<div><div class="kl">'+fl('Events loaded','الأحداث المحمّلة')+'</div><div class="kv">'+rows.length+'</div>'+(atCap?('<div style="font-size:10.5px;font-weight:600;color:#B54708;margin-top:2px">'+fl('the most recent '+HIST_CAP+' — there are older ones','أحدث '+HIST_CAP+' فقط — توجد سجلات أقدم')+'</div>'):'')+'</div>'+
-        '<div><div class="kl">'+fl('Today','اليوم')+'</div><div class="kv" style="color:#2E90FA">'+today+'</div></div>'+
+        '<div><div class="kl">'+fl('Today','اليوم')+'</div><div class="kv" style="color:#2E90FA">'+today+'</div>'+quietNote+'</div>'+
         '<div><div class="kl">'+fl('7-day','٧ أيام')+'</div><div class="kv" style="color:#16B364">'+week+(atCap?'+':'')+'</div>'+(atCap?('<div style="font-size:10.5px;font-weight:600;color:#B54708;margin-top:2px">'+fl('at least — the log was capped','على الأقل — السجل مقطوع')+'</div>'):'')+'</div>'+
         '<div style="flex:1"></div><button class="btn sm ghost" onclick="histRefresh()">'+fl('↻ Refresh','↻ تحديث')+'</button>'+
       '</div>'+
