@@ -114,6 +114,58 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #199 (2026-09-21 ~20:00 UTC) — the morning card was hiding the only certificate you can still save
+
+**Two things I checked and found clean, then one worth changing.**
+
+**Clean: your contacts.** I opened all 36 companies that have people on file, against your real
+data, and checked every address on every card against the database. No person shows on a company
+they don't belong to, and no company is hiding contacts it holds. That was worth checking properly
+because it's one of your standing rules.
+
+Along the way I twice thought I'd found something and hadn't — once because the contacts are filed
+under a different kind of ID than the one the app uses on screen, once because a company's general
+address legitimately appears in its own form details. Both would have been false alarms; I've
+written down what they look like so the next round doesn't chase them again.
+
+**Clean: Events.** 80 events, of which 43 are unfinished — 22 still to come and 21 with no date
+yet, and the page says exactly that, in both languages.
+
+**Changed: the "Company papers needing attention" card on your morning screen.** It shows three
+items, most urgent first, then "and 2 more". Read against your real registry this morning, the three
+it showed were certificates that lapsed **584, 376 and 258 days ago** — and the two it hid were
+PCI DSS (lapsed 69 days ago) and **Monsha'at, which expires in 49 days.**
+
+Monsha'at is the only one of the five you can still renew before it lapses. It was the one the card
+didn't show you.
+
+That's what sorting purely by "how overdue" does: the longer something has been dead, the more of
+the card it takes. After nineteen months a lapsed certificate is a standing fact, not news. A
+deadline 49 days out is news.
+
+So the card still shows three, still most urgent first, still says how many more — but when
+something hasn't lapsed yet, the nearest one of those now always gets the third place. This morning
+it reads:
+
+> • ISO 9001:2015 — expired 2025-02-14
+> • DUNS — expired 2025-09-10
+> • **Monsha'at certificate — 49 days left (2026-11-09)**
+> and 2 more
+
+**This is a judgement call, not a bug fix** — the card was doing exactly what it was built to do.
+If you'd rather it stayed strictly by how overdue things are, say so and I'll put it back; it's one
+block of code.
+
+**Guarded.** Eight checks over five different shapes of registry, including three traps: nothing may
+be invented when everything has lapsed, nothing beyond the sixty-day window may be pulled in to fill
+space, and the card must stay admin-and-manager only. Both sabotage runs failed checks I hadn't
+predicted, which is the argument for running them rather than reasoning about them.
+
+**Still on your list:** four lapsed certificates and the CR. The software side is now as loud as it
+can honestly be; the renewals themselves are in the world.
+
+---
+
 ## Routine fire #198 (2026-09-21 ~19:00 UTC) — one of the seven stages didn't stick, and a fix of mine last round had a hole in it
 
 **What was wrong.** A lead's page offers seven stages to move it to. Six of them save properly.

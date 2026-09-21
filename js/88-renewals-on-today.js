@@ -82,7 +82,29 @@
     if(view.querySelector('.v88-renewals')) return;          /* once per render */
     var list=due(); if(!list||!list.length) return;
     var ar=(typeof LANG!=='undefined'&&LANG==='ar');
-    var shown=list.slice(0,3), rest=list.length-shown.length;
+    /* 2026-09-21 (fire #199) — "most urgent first" by days remaining is right until it isn't.
+       Read verbatim off the live card that day: the three on show had lapsed 584, 376 and 258 days
+       ago, and "and 2 more" was hiding the Monsha'at certificate with **49 days left** — the only
+       item on the whole list that could still be renewed before it lapsed. Sorting purely by days
+       puts the longest-dead first, so the further past saving a document is, the more of the card
+       it occupies. After nineteen months a lapse is a standing state, not news; a deadline you can
+       still meet is news, and this card exists precisely because "a warning nobody passes is not a
+       warning" (see the header above).
+       So the sort stands and the cap stands — but if anything on the list has NOT lapsed yet, the
+       nearest one of those always takes the last of the three places. Nothing is hidden that was
+       not hidden before: the count of the rest still says how many, and the radar still holds the
+       full list. This is a judgement about what to surface first, and it is reversible by deleting
+       this block. */
+    var shown=list.slice(0,3);
+    (function(){
+      try{
+        var upcoming=list.filter(function(x){ return x.days>=0; });
+        if(!upcoming.length) return;                                  /* everything has lapsed */
+        if(shown.some(function(x){ return x.days>=0; })) return;      /* one is already on show */
+        shown=shown.slice(0,2).concat([upcoming[0]]);
+      }catch(_){}
+    })();
+    var rest=list.length-shown.length;
     var anyExpired=list.some(function(x){ return x.days<0; });
     var d=document.createElement('div');
     d.className='v88-renewals';

@@ -1743,6 +1743,38 @@ already carrying an unkeepable word still displays it, that the pickers still of
 and that a missing `stageKeepable` makes them fall back to the full list rather than to nothing.
 *Date: 2026-09-21, js/02 + js/core/core-01 + js/core/core-02. Status: ACTIVE.*
 
+**M56 — when a short list stands in for a long one, sort by what the reader can still act on, not
+only by size of the number.** Found 2026-09-21 (fire #199). The morning card (js/88) shows at most
+three company papers needing attention, most urgent first, with the count of the rest — a good
+design, and it was working exactly as written. Read verbatim off the live registry, "most urgent
+first" produced three certificates that had lapsed **584, 376 and 258 days ago**, and put behind
+"and 2 more" the Monsha'at certificate with **49 days left** — the one item on the whole list that
+could still be renewed before it lapsed. Sorting purely by days remaining means the further past
+saving a document is, the more of the card it occupies. After nineteen months a lapse is a standing
+state; a deadline you can still meet is news, and that card exists because *"a warning nobody
+passes is not a warning."* The sort and the cap both stand; when anything on the list has not
+lapsed, the nearest of those now takes the last of the three places. Nothing is hidden that was not
+hidden before — the count of the rest is unchanged and the full radar is a click away.
+This is a judgement about surfacing, not a defect, and it is recorded as a rule because the same
+shape recurs wherever the app shows "top N of many": ask what the reader could do about each row
+before deciding which N.
+Guard: `scripts/qa/probe-the-renewal-you-can-still-make.mjs`, whose brakes are that nothing may be
+invented when everything has lapsed, that nothing beyond the sixty-day window may be pulled in to
+fill space, and that the card stays admin-and-manager only.
+*Date: 2026-09-21, js/88-renewals-on-today.js. Status: ACTIVE.*
+
+**Verified clean 2026-09-21 (fire #199), so the next session need not re-do it:** every contact
+shown on a company card belongs to that company — all 36 companies that have contacts were opened
+against the live database and checked row by row, with no cross-company leakage and no company
+hiding contacts it holds. Two false alarms came out of that sweep, both worth knowing because they
+will recur: the `contacts` table keys on the **database uuid** while `DB.businesses` keys on the
+app's own id (`window.__ROWID` maps between them), so comparing the two directly "finds" 19
+companies with missing contacts that are simply records you never opened; and a company's own
+general address legitimately appears in its funnel details, so any address on a card that is not in
+the `contacts` table is not thereby a stranger. The Events tab was driven the same day and is also
+clean: 80 rows, 43 unfinished = 22 upcoming + 21 undated, the undated ones labelled as such in both
+languages.
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
