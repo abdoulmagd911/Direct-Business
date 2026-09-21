@@ -1652,6 +1652,32 @@ were on screen first**, which the first version did not and which the first sabo
 (M50 in a fresh costume) — and that the amount named is the part, not the whole profit total.
 *Date: 2026-09-21, js/16-finance-ledger.js. Status: ACTIVE.*
 
+**M53 — a row-level-security refusal arrives as HTTP 200 and an empty list, so "no rows" is never
+by itself a fact about the business.** Found 2026-09-21 (fire #196) by driving the live app signed
+in as a **team_member** — the role 7 of the 11 real accounts have, which is what M-"test as the role
+most people have" was written for, and this is the first thing that rule has caught that no admin
+drive could. Finance is offered in that role's navigation. Opening it showed `0 invoices · data
+through —`, Revenue/Cost/Profit/Received all `0 SAR`, a twelve-month chart of zeros, and
+**"Of expected achieved · 0%" against a real, correctly-loaded target** — while the book held 46
+invoices and 2,030,764 SAR. Captured on the wire during the drive: `GET finance_invoices -> 200
+rows: 0 bytes: 2`, eight times, with `finance_targets` returning 2 rows, which is exactly why the
+page could draw a target and report nothing achieved against it.
+Nothing errored, so every M27 guard in the app was satisfied. **RLS does not refuse, it filters** —
+PostgREST answers with 200 and `[]`, and a response that means "not yours to read" is byte-identical
+to one that means "there are none". The page cannot tell them apart, so **it must not pick one**: it
+now says both, and the attainment percentage — pure inference from an absent numerator — stands down
+to "—" with its reason.
+This is the signed-in twin of fire #56, which found the same empty answer being cached *before*
+sign-in and fixed it by keeping `FIN.rows` null until a session exists. The trigger here is
+deliberately **`FIN.rows` being an empty ARRAY** — the load finished and brought nothing — and never
+"the totals are zero": a period filter matching no invoices is a true zero, and labelling an
+owner's quiet quarter a permissions problem would be the same fault in the other direction.
+Generally: before drawing a count, a total or a percentage from a list that came back empty, ask
+whether the reader could tell an empty result from an empty permission. If not, say so.
+Guard: `scripts/qa/probe-an-empty-answer-is-not-a-zero.mjs`, whose two brakes are that the notice
+stays away while the rows are still loading and that a legitimately empty period never raises it.
+*Date: 2026-09-21, js/16-finance-ledger.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

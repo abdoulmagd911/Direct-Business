@@ -1,10 +1,17 @@
-# ⬆ Waiting on you — sixteen decisions, most urgent first
+# ⬆ Waiting on you — seventeen decisions, most urgent first
 
 *Written 2026-09-21. These built up one at a time across the sweep, each buried at the bottom of the
 round that found it, which means none of them ever arrived anywhere you'd see. This is the whole
 list in one place. Nothing here is broken software — every one is a judgement only you can make.
 Answer them in any order; each is independent. When one is settled, it moves out of this list and
 into the round that closes it.*
+
+**0 · Should team members see Finance at all?** Seven of your eleven accounts are team members;
+Finance sits in their menu, and the database will not let them read a single invoice. Until today
+that combination told them the company had earned 0 SAR and achieved 0% of its target — now it tells
+them plainly that nothing reached their browser and to ask an admin. Two clean answers: **take
+Finance out of their menu**, or **let them read the ledger**. The middle is the only bad option, and
+it is where you are. Either takes me minutes. *Raised #196.*
 
 **1 · Four company certificates have lapsed, and the commercial registration expires 2026-12-14.**
 ISO 9001 (Feb 2025), DUNS (Sep 2025), Saudization (Jan 2026), PCI DSS (Jul 2026). The CR is 85 days
@@ -104,6 +111,55 @@ were cleaned in #140. Removing it from the *history* means rewriting the reposit
 breaks any other session's work in flight and cannot be undone. I will not do that without you
 saying so explicitly. The number belongs to someone outside Direct, which is the only reason it is
 on this list at all. *Raised #140.*
+
+---
+
+## Routine fire #196 (2026-09-21 ~17:00 UTC) — most of your team opens Finance and is told the company earned nothing
+
+**This is the one to read today.** Seven of your eleven accounts are team members. I signed in as
+one against your real data and opened Finance — which their menu offers them — and this is what the
+page said:
+
+> 0 invoices · data through —
+> **Revenue 0 SAR · Cost 0 SAR · Profit 0 SAR · Received 0 SAR**
+> Of expected achieved · **0%**
+> and a twelve-month revenue chart of zeros
+
+At that same moment your book held **46 invoices and 2,030,764 SAR**.
+
+**Why it happened, in plain terms.** The database is set up so a team member cannot read the finance
+records — which is presumably what you want. But the way a database refuses is not by saying "no".
+It answers *"here you are"* and hands back an empty list. From the app's side that looks exactly like
+a company that has not invoiced anyone. So the page did its arithmetic on nothing and reported
+nothing, confidently, including working out that 0% of the year's target had been achieved — because
+the target itself loaded perfectly well.
+
+Nothing was broken. Every existing safeguard was satisfied, because nothing failed.
+
+**Fixed.** The Finance page now tells the difference it can tell — that nothing arrived — and refuses
+to turn that into a claim about the business:
+
+> **No finance rows reached this browser** · Every figure below therefore reads zero because nothing
+> arrived, not because nothing was earned. If you expect figures here, your account may not be
+> permitted to read the finance ledger — ask an admin. Do not quote a number from this screen.
+
+And "Of expected achieved" now reads "—" with "Cannot be worked out — no invoices reached this
+browser" instead of a fabricated 0%.
+
+**What did not change:** your own view. I re-checked as an admin straight after — 46 invoices, all
+the real figures, and no notice anywhere. The notice only appears when the browser genuinely
+received nothing at all.
+
+**A decision for you, and it is a real one.** Should team members see Finance in their menu at all?
+Right now they can open it and the honest answer they get is "ask an admin". Two clean options:
+take Finance out of their menu, or let them read the ledger. Either is fine; the current middle is
+the only bad one, and it is now at least honest. Say which and I will do it.
+
+**Guarded.** The new test checks the notice appears when the load brings nothing, in both languages,
+and that the percentage stands down. Its two traps are the ones that matter: the notice must *not*
+appear while the page is still loading, and it must *not* appear when you pick a quarter nobody
+invoiced in — a quiet quarter of yours must never be dressed up as a permissions problem. Both
+sabotage runs failed exactly the checks they should.
 
 ---
 

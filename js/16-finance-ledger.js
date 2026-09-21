@@ -885,6 +885,32 @@ function finUncheckedNotice(){
     +'</div>';
 }
 try{ window.finUncheckedNotice=finUncheckedNotice; }catch(_){}
+/* 2026-09-21 (fire #196, driven live as a team_member — the role 7 of the 11 accounts have):
+   Finance is offered in that role's navigation, and opening it showed "0 invoices · data through
+   —", Revenue 0 SAR, Profit 0 SAR, a twelve-month chart of zeros and "Of expected achieved · 0%"
+   against a real target — while the book held 46 invoices and 2,030,764 SAR. The rows were never
+   refused in any way the page could see: PostgREST answers a row-level-security refusal with
+   **HTTP 200 and an empty list**, no error, so the loader stored [] and every figure derived from
+   it is a claim about the company rather than about what reached the browser.
+   Fire #56 found the signed-OUT twin of this and fixed it by keeping FIN.rows null until a session
+   exists. This is the signed-IN one: the session is real, the answer is final, and it is empty
+   because of who is asking. The page cannot tell "nothing was earned" from "not yours to read" —
+   nothing in the response distinguishes them — so it must not pick one. It says both.
+   Deliberately gated on FIN.rows being an EMPTY ARRAY, i.e. the load finished and brought nothing
+   at all. A period filter that happens to match no invoices leaves FIN.rows full, and a zero there
+   is a true zero that this notice must not appear over. */
+function finNoRowsAtAll(){ try{ return Array.isArray(FIN.rows)&&FIN.rows.length===0; }catch(_){ return false; } }
+function finNoRowsNotice(){
+  if(!finNoRowsAtAll())return '';
+  var ar=isArF();
+  return '<div id="ov-norows" class="card" data-fin-norows="1" style="padding:12px 14px;margin-bottom:12px;background:#FDECEB;border:1px solid #F0453A;border-top:3px solid #D92D20;font-size:12.5px">'
+    +'<b>'+(ar?'لم تصل أي سجلات مالية إلى هذا المتصفّح':'No finance rows reached this browser')+'</b> · '
+    +(ar
+      ?'لذلك تظهر كل الأرقام أدناه أصفارًا لأنّه لم يصل شيء، لا لأنّه لم يُكتسب شيء. إن كنت تتوقع أرقامًا هنا فقد لا يُسمح لحسابك بقراءة سجل المالية — اسأل أحد المسؤولين. لا تنقل رقمًا من هذه الشاشة.'
+      :'Every figure below therefore reads zero because nothing arrived, not because nothing was earned. If you expect figures here, your account may not be permitted to read the finance ledger — ask an admin. Do not quote a number from this screen.')
+    +'</div>';
+}
+try{ window.finNoRowsAtAll=finNoRowsAtAll; window.finNoRowsNotice=finNoRowsNotice; }catch(_){}
 /* The refusal card the Clients tab has used since cycle 43, now shared with Reports so the two
    cannot drift into saying different things about the same state. `what` names the tab's own risk
    in its own terms; everything else is one sentence in one place. */
@@ -1080,7 +1106,7 @@ function rOverview(){
   /* Period bar \u2014 the executive-dashboard structure: year \u00b7 All/Q1\u2013Q4/H1/H2 \u00b7 month */
   /* 2026-09-09 (watch cycle 73): above the cards, not under them — it qualifies every figure on
      the tab, and a caveat below the number it qualifies is read after the number is believed. */
-  var h=finPeriodBar()+finUncheckedNotice();
+  var h=finPeriodBar()+finNoRowsNotice()+finUncheckedNotice();
 
   var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3'],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a (\u0645\u0641\u0648\u062a\u0631)':'Outstanding (invoiced)',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',invCount,'#1C1E2B']];
   h+='<h3 class="finh">'+(isArF()?'\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u0623\u062f\u0627\u0621 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629':'Key indicators')+'<i>'+finPeriodLabel()+' \u00b7 '+(isArF()?'\u0641\u0639\u0644\u064a \u2014 \u0645\u0646 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629':'actual \u2014 from verified invoices')+'</i></h3>';
@@ -1213,7 +1239,12 @@ function rOverview(){
         +_pm(isArF()?'متوقع':'Expected',_exp,'#B54708')
         +_pm(isArF()?'مؤكد (عقود)':'Confirmed (signed)',_conf,'#175CD3')
         +_pm(isArF()?'فعلي (مدقق)':'Actual (verified)',rev,'#0F6E56')
-        +'<div style="flex:2;min-width:180px"><div style="font-size:11px;color:var(--muted)">'+(isArF()?'نسبة تحقق المتوقع':'Of expected achieved')+' · '+_attT+'%'+(_attT>100?(isArF()?' · فوق الخطة ✓':' · above plan ✓'):'')+'</div><div style="background:#EEF0F5;border-radius:8px;height:14px;margin-top:8px;overflow:hidden"><div style="height:100%;width:'+_att+'%;background:linear-gradient(90deg,#E54525,#F26721)"></div></div></div>'
+        /* fire #196: with no rows in the browser, "Of expected achieved · 0%" is not a measurement
+           of the year — it is the empty list wearing a percentage. The bar and the number stand
+           down and say why; the target itself still shows, because that IS known. */
+        +(finNoRowsAtAll()
+          ? ('<div style="flex:2;min-width:180px"><div style="font-size:11px;color:var(--muted)">'+(isArF()?'نسبة تحقق المتوقع':'Of expected achieved')+' · —</div><div style="font-size:11px;color:#D92D20;margin-top:6px">'+(isArF()?'لا يمكن حسابها — لم تصل أي فاتورة إلى هذا المتصفّح.':'Cannot be worked out — no invoices reached this browser.')+'</div></div>')
+          : ('<div style="flex:2;min-width:180px"><div style="font-size:11px;color:var(--muted)">'+(isArF()?'نسبة تحقق المتوقع':'Of expected achieved')+' · '+_attT+'%'+(_attT>100?(isArF()?' · فوق الخطة ✓':' · above plan ✓'):'')+'</div><div style="background:#EEF0F5;border-radius:8px;height:14px;margin-top:8px;overflow:hidden"><div style="height:100%;width:'+_att+'%;background:linear-gradient(90deg,#E54525,#F26721)"></div></div></div>'))
         +'</div>';
     } else {
       h+='<div class="ch-sub" style="margin-top:8px">'+(isArF()?'لا توجد أرقام خطة لهذه السنة بعد — اضغط «تعديل الأرقام».':'No plan numbers for this year yet — click Set targets.')+'</div>';
