@@ -392,6 +392,8 @@ if (!REPORTS) {
   const ports = new Map();
   const computed = [], undeclared = [];
   const COMPUTED_RE = /Math\.|random|Date\.now|process\.env|process\.argv/;
+  const COMPUTED_OFFSET_SPAN = 7;   /* fire #188: how far a computed `PORT + n + i` is assumed to reach */
+  const computedSpan = new Set();
   for (const f of files) {
     if (SUPPORT.has(f.base)) continue;
     const opensMock = /\bstart\s*\(/.test(f.src);
@@ -411,6 +413,29 @@ if (!REPORTS) {
     }
     /* ports written straight into the call rather than named first */
     for (const m of f.src.matchAll(/\b(?:start|run)\s*\(\s*(\d{4,5})\b/g)) found.add(+m[1]);
+    /* 2026-09-21 (fire #188) — and the ports a probe binds by OFFSET. This collector recorded
+       only literal numbers, so a probe calling `start(PORT + 1, …)` bound a second port that no
+       check ever knew about. Five probes added in one session were given base ports that sat
+       inside another probe's offset range, this check said "all ports are unique", and the FULL
+       BATTERY found it instead — three reds whose reason was EADDRINUSE, not contention. A gate
+       whose success line overstates its own coverage is worse than no gate.
+       An offset with a literal step reserves exactly that port. An offset whose step is computed
+       (`PORT + 4 + i`) cannot be counted from the source, so the file must declare its span as
+       `PORTS_RESERVED: <lo>-<hi>`; without one, a conservative block is reserved and said out
+       loud, because over-reserving can only cause a false clash — never a false clean. */
+    const declared = f.src.match(/PORTS_RESERVED:\s*(\d{4,5})\s*-\s*(\d{4,5})/);
+    if (declared) {
+      for (let q = +declared[1]; q <= +declared[2]; q++) found.add(q);
+    } else {
+      const bases = [...found];
+      for (const m of f.src.matchAll(/\bPORT\s*\+\s*(\d{1,3})(\s*\+\s*[A-Za-z_$])?/g)) {
+        const step = +m[1], computed = !!m[2];
+        for (const base of bases) {
+          if (computed) { for (let k = 0; k <= COMPUTED_OFFSET_SPAN; k++) found.add(base + step + k); computedSpan.add(f.base); }
+          else found.add(base + step);
+        }
+      }
+    }
     if (!opensMock && !found.size) continue;
     if (isComputed) { computed.push(f.base); continue; }
     if (opensMock && !found.size) { undeclared.push(f.base); continue; }
@@ -424,7 +449,8 @@ if (!REPORTS) {
     clashes.forEach(([port, fsx]) => console.log(`  ✗ port ${port} is used by ${fsx.length} probes: ${fsx.join(', ')} — the battery runs several at a time, so these will kill each other with EADDRINUSE at an unpredictable point`));
     bad += clashes.length;
   } else {
-    console.log(`  ✓ all ${ports.size} ports across ${new Set([...ports.values()].flat()).size} probes are unique — ternaries and call-site ports included, not only \`PORT = <digits>\``);
+    console.log(`  ✓ all ${ports.size} ports across ${new Set([...ports.values()].flat()).size} probes are unique — literals, ternaries, call-site ports AND the ports bound by offset (\`start(PORT + 1, …)\`), which is what fire #188 found this check had never counted`);
+    if (computedSpan.size) console.log(`    · ${computedSpan.size} probe(s) bind a computed offset and had ${COMPUTED_OFFSET_SPAN + 1} ports reserved rather than counted: ${[...computedSpan].join(', ')} — declare \`PORTS_RESERVED: <lo>-<hi>\` to make it exact`);
   }
   if (computed.length) {
     computed.forEach((n) => console.log(`  ✗ ${n} computes its mock port at run time — no static check can vouch for it, and a collision reads as weather rather than as the arithmetic it is`));

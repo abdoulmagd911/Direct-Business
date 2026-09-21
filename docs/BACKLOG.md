@@ -105,6 +105,41 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #188 (2026-09-21 ~05:00 UTC) — full test run: 282 of 282 green, and it caught a fault in my own testing
+
+Seven fixes had landed since the last full run of the whole test suite, one of them in a shared piece
+of code every table on every page uses. So I ran the lot: **288 entries, 282 of them able to fail,
+and all 282 green.** Nothing those seven fixes touched has broken anything else.
+
+**But the run found something the individual checks had missed, and it was mine.**
+
+Three tests went red when run together and green when run alone. The suite is honest about that
+distinction — it automatically re-runs its own failures one at a time before reporting — and normally
+"green alone" means the machine was simply busy. Not this time: their stated reason was that **two
+tests were trying to use the same network port**. That is a standing fault, not a busy machine, and
+it would have happened on every single run from now on.
+
+The cause: some tests open several mock servers at once, on their own port plus the next few. The
+checker that guarantees no two tests share a port only ever counted the *first* one. So **five tests
+I added over the last six rounds were given ports sitting inside another test's range**, while the
+checker printed "all 319 ports are unique". It had been extended twice before for exactly this kind
+of blind spot and still claimed to be complete.
+
+Fixed both halves: the five tests moved to a clear band, and the checker now counts the extra ports
+too — 332 of them rather than 319. Where it genuinely cannot work a number out from the code, it
+reserves a block and **says out loud that it guessed**, so the message never overstates what it
+checked again. I proved it works by putting one of the old ports back: it now names both files and
+fails. And I ran all nine affected tests together, under the same conditions that exposed the
+problem — 9 of 9 green.
+
+**Also tightened:** a timer I added two rounds ago kept checking every 1.5 seconds for the life of
+the page. It now stops as soon as it has its answer. This is an app people leave open all day.
+
+New rule **M46**, written as a general one: *when a check reports a clean result, its message must
+describe what it actually examined.*
+
+---
+
 ## Routine fire #187 (2026-09-21 ~02:30 UTC) — the "Today" figure on Activity & Audit was not today
 
 Opened **Activity & Audit** against your real log — 360 changes, written by the database itself.

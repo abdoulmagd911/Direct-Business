@@ -1454,6 +1454,30 @@ from written dates, or the guard goes stale by the calendar.
 Guard: `scripts/qa/probe-today-on-the-audit-log-means-today.mjs`.
 *Date: 2026-09-21, js/63-undo-and-real-audit.js. Status: ACTIVE.*
 
+**M46 — a port a probe binds by OFFSET is a port it owns, and a gate whose success line overstates
+its coverage is worse than no gate.** Found 2026-09-21 (fire #188) by the **full battery**, not by
+the gate that was supposed to prevent it. `check-probe-integrity`'s port collector recorded only
+literal numbers — `PORT = 9169` and ports written into a `start(…)` call — and never expanded
+`start(PORT + 1, …)`. Four probes bind extra mocks that way, one of them reaching seven ports. So
+**five probes added across rounds #182–#187 were given base ports sitting inside another probe's
+offset range** (9170, 9171, 9172 inside 9169–9172; 9174 and 9175–9177 inside 9173–9179), the gate
+printed *"all 319 ports across 296 probes are unique — ternaries and call-site ports included"*, and
+the battery reported three reds whose stated reason was **EADDRINUSE, not contention**. The runner's
+own honesty note was what made them readable: it re-runs reds alone and says so, and a red that
+"did not reproduce alone" for a *resource* reason is a standing fault, not a busy machine.
+The collector now expands literal offsets, and for a computed one (`PORT + 4 + i`, whose step cannot
+be read from the source) it **reserves a conservative block and says out loud that it did** — over-
+reserving can only cause a false clash, never a false clean. A probe can replace the guess with an
+exact `PORTS_RESERVED: <lo>-<hi>` declaration; `probe-the-footer-is-not-typed-out-by-hand` carries
+one. The count went from 319 to 332, and putting one old port back now fails the gate by name.
+**The general lesson, which is why this is a rule and not just a fix:** when a check reports a clean
+result, its message must describe what it actually examined. This one had been extended twice before
+for exactly this reason (ternaries, then call-site ports) and still claimed completeness it did not
+have. New probes now belong in the **9200+** band.
+Guard: the gate is its own guard — `node scripts/qa/check-probe-integrity.mjs`, verified by
+re-introducing a collision and watching it name both files.
+*Date: 2026-09-21, scripts/qa/check-probe-integrity.mjs. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

@@ -64,8 +64,20 @@
         return out;
       };
     }
-    /* the matrix lands on its own timer, after the page has already drawn */
-    try { setInterval(pass, 1500); } catch (_) {}
+    /* The matrix lands on its own timer, after the page has already drawn, so one recurring check
+       is needed to catch that moment. It is BOUNDED: once the matrix has answered the render
+       wrapper above covers everything after, and a timer that runs for the life of the page on an
+       internal tool people leave open all day is the shape of fire #173. Stops on the answer, and
+       gives up after two minutes either way. */
+    try {
+      var tries = 0;
+      var iv = setInterval(function () {
+        try { pass(); } catch (_) {}
+        var settled = false;
+        try { settled = (window.__pageAccessLoaded === true); } catch (_) {}
+        if (settled || ++tries > 80) { try { clearInterval(iv); } catch (_) {} }
+      }, 1500);
+    } catch (_) {}
     try { window.v98ViewOnlyPass = pass; } catch (_) {}
   } catch (e) { try { console.warn('v98', e); } catch (_) {} }
 })();

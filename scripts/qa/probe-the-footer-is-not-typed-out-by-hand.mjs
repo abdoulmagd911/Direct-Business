@@ -51,6 +51,10 @@ import fs from 'fs';
 import path from 'path';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const APP = process.env.APP_DIR || process.cwd();
+/* PORTS_RESERVED: 9173-9179 — this probe opens seven mocks: PORT, PORT+1, PORT+2, PORT+3 and
+   PORT+4+i for three tabs. The step of that last one is computed, so check-probe-integrity
+   cannot count it from the source; declaring the span here makes it exact instead of reserved
+   conservatively. Fire #188 exists because those offset ports were counted by nothing at all. */
 const PORT = 9173; const BASE = 'http://localhost:' + PORT;
 
 /* synthetic — deliberately unlike anything the company actually uses */
