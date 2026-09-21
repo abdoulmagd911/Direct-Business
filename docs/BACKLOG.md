@@ -59,11 +59,13 @@ speaks, not something a QA round should invent. Send the wording and it goes in 
 *Raised #121 and earlier.*
 
 **16 · Nine pages ignore the "Viewer" setting in Team & Access — which of them matter?** Nobody is
-set to Viewer today, so nothing is wrong on anyone's screen; the setting is waiting to mislead you
-the first time you use it. The Generator was fixed in #184; Airlines (139 typeable fields), Leads
-(83), Suppliers, Events, Clients, SOP & SLA, Proposals, Operations, Reports and Projects still let a
-"Viewer" change things. Name the ones you care about and I will do each the same careful way. Not
-done unasked: a blunt fix across ten pages is how a working screen gets broken. *Raised #184.*
+set to Viewer today, so nothing is wrong on anyone's screen. **Since #189 the app tells you this
+itself**: choose Viewer on one of the nine and the row says "not enforced yet", with a line naming all
+nine. The Generator was fixed in #184; Leads (83 typeable fields), Clients, Proposals, Operations,
+Reports, Events (it still offers Delete), Airlines (139 fields), Suppliers and SOP & SLA still let a
+"Viewer" change things. Name the ones you care about and I will do each the same careful way. Not done
+unasked: a blunt fix across nine pages is how a working screen gets broken. *Raised #184, made visible
+in the app #189.*
 
 **15 · Three of your 23 suppliers look like the same supplier twice.** *Travelfusion* and *Travel
 Fusion*, *RateHawk* and *Rate Hawk*, *Travelport* and *Galileo / Travelport* — six records, probably
@@ -102,6 +104,51 @@ were cleaned in #140. Removing it from the *history* means rewriting the reposit
 breaks any other session's work in flight and cannot be undone. I will not do that without you
 saying so explicitly. The number belongs to someone outside Direct, which is the only reason it is
 on this list at all. *Raised #140.*
+
+---
+
+## Routine fire #189 (2026-09-21 ~07:00 UTC) — Team & Access offered "Viewer" on nine pages where it does nothing
+
+Fire #184 fixed the Generator. This round I went to the screen where you make the choice.
+
+Team & Access lets you set each person to **No access / Viewer / Editor** on each of fifteen pages.
+The dropdown looks the same on all fifteen. It isn't: **nine of them ignore "Viewer" completely.**
+Set someone to Viewer on Airlines and they can still add a carrier and type into 139 fields. On
+Leads, 83 fields plus Convert. On Events they can still press **Delete**.
+
+The only thing on that screen hinting at any of this was a small green dot whose explanation appeared
+only if you hovered a mouse over it — so invisible on a phone — and it answered a different question
+anyway: it named the three pages the *database* also enforces, not the nine your choice doesn't reach.
+
+**Now it says so plainly.** A page set to Viewer that doesn't honour it is marked **"not enforced
+yet"** on its own row, and one line underneath names them: *"9 of the pages set to Viewer do not check
+that setting yet, so this person can still change things there: Leads, Clients, Proposals,
+Operations, Reports, Events, Airlines, Suppliers, SOP & SLA. The setting is saved and will take effect
+as each page is taught to honour it."*
+
+Three things keep it from becoming noise:
+
+- it only marks a page you have actually set to **Viewer** — Editor and No access rows stay clean;
+- **on your screens today nothing is marked at all**, because nobody is currently set to Viewer. I
+  drove the real Team & Access page against your live roster: 11 people, 131 page dropdowns, zero
+  marks. It appears the moment you choose Viewer on one of the nine;
+- the list of pages that *do* honour it lives in one place next to the code that decides, so when a
+  page is fixed its warning disappears by editing one line — it cannot drift into telling you the
+  wrong thing.
+
+This replaces guesswork with a promise you can act on: **BACKLOG item 16 is now visible inside the
+app, on the screen where it matters**, instead of only in this file.
+
+**Verified and left alone in the same pass,** so you know they were looked at: the two "🧹 Wipe test
+data" buttons still on Settings are harmless — they only remove records tagged as test data and
+cannot touch a real one. Reports is honest (it carries its "kept in this browser only" banner and
+reads zero because nothing is logged). The Events tiles add up: 43 not finished + 37 past = your 80
+events.
+
+Guarded by `scripts/qa/probe-the-access-editor-admits-what-it-enforces.mjs` (9 checks). Brakes: a page
+that *does* honour the setting must not be marked, Editor rows must not be marked, and emptying the
+source list must silence every mark. Sabotage-verified both ways — marking everything fails two
+checks, marking nothing fails three. New rule **M47**.
 
 ---
 

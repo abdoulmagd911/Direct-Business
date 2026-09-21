@@ -1478,6 +1478,33 @@ Guard: the gate is its own guard — `node scripts/qa/check-probe-integrity.mjs`
 re-introducing a collision and watching it name both files.
 *Date: 2026-09-21, scripts/qa/check-probe-integrity.mjs. Status: ACTIVE.*
 
+**M47 — a control that offers a setting is promising the setting works; where it does not yet, the
+control says so in words.** Found 2026-09-21 (fire #189), following #184. Team & Access offers
+**No access / Viewer / Editor** on each of fifteen pages, and fire #184 measured that **nine of the
+fifteen ignored "Viewer" entirely** — Airlines still offering 139 typeable fields and `+ New airline`
+to a Viewer, Leads 83 fields plus Convert, Events even offering **Delete**. The only hint on the
+editor was a green dot whose meaning lived in a **`title` tooltip**, naming the three pages the
+*database* enforces — invisible on a phone, and answering a different question from the one the admin
+is asking. A warning trapped in a hover has already been a defect here once (fire #95).
+The editor now marks a Viewer row that is not honoured, in visible text, and names the whole set in
+one sentence underneath. Three things make it right rather than merely louder:
+**(a) one source** — the list of pages that DO hold lives in `js/52` beside `mayEditPage`, the thing
+that decides, and the editor reads it; teaching a page to honour the setting clears its warning by
+editing one array (the M40 lesson);
+**(b) only where it is relied on** — a page set to Editor or No access is not marked, and a screen
+with no Viewer anywhere says nothing at all. On the live roster today that means **no marks appear**,
+because nobody is set to Viewer; it arrives the moment one is;
+**(c) silence on ignorance** — if `js/52` has not published the list, nothing is marked, because
+warning on a guess is its own untruth.
+**Also recorded:** the same round confirmed the two "🧹 Wipe … test data" buttons still sitting on
+Settings are safe — they filter on `_v22test`/`_v23test` flags and cannot touch a real record — and
+that Reports and the Events tiles are honest as they stand (Reports carries its browser-only banner
+from fire #91; the Events tiles' arithmetic checks out at 43 live + 37 past = 80).
+Guard: `scripts/qa/probe-the-access-editor-admits-what-it-enforces.mjs`, whose brakes are that an
+honoured page must NOT be marked, that Editor rows must not be marked, and that emptying `js/52`'s
+list must silence every mark rather than leave a stale second copy.
+*Date: 2026-09-21, js/52-v76-access-model.js + js/56-access-matrix.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

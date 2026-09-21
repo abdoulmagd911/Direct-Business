@@ -28,6 +28,21 @@
   /* the three the database also enforces — worth saying on screen so nobody assumes the rest
      are watertight */
   var HARD=['finance','settings','activity'];
+  /* 2026-09-21 (fire #189) — and the pages whose SCREENS hold a Viewer to looking. The green dot
+     below already said which three the database enforces, but it said it in a `title` tooltip —
+     invisible on a phone, and this project has been bitten by a warning trapped in a hover before
+     (fire #95). Worse, it answered the wrong question: the owner is choosing "Viewer", and on nine
+     of these fifteen pages that choice did nothing at all (measured in fire #184 — Airlines still
+     offered 139 typeable fields to a Viewer, Leads 83, Events even offered Delete).
+     The list lives in js/52 beside mayEditPage, which is the thing that decides; read it, never
+     copy it. If js/52 has not loaded, say nothing rather than guess. */
+  function viewerHolds(pageId){
+    try{
+      var l=window.PAGES_VIEWER_ENFORCED;
+      if(!l||!l.length) return true;          /* unknown — do not warn on a guess */
+      return l.indexOf(pageId)>=0;
+    }catch(_){ return true; }
+  }
 
   function isAr(){ try{ return (typeof LANG!=='undefined'&&LANG==='ar'); }catch(_){ return false; } }
   function fl(en,ar){ return isAr()?ar:en; }
@@ -79,6 +94,8 @@
 
   /* ---------- the editor, for admins, inside Team & Access ---------- */
   var ROWS=null;
+  try{ window.__axCardProbe=card; }catch(_){}
+
   window.axLoad=function(cb){
     var c=client(); if(!c) return;
     c.from('app_users').select('id,full_name,email,role,active,page_access').order('role').then(function(r){
@@ -185,6 +202,9 @@
     return h;
   }
 
+  /* Probe seam (fire #189), the same pattern as window.__poCalcProbe and window.__dgBrandProbe:
+     card() is the real markup this editor renders, and a guard for the "not enforced yet" marks has
+     to measure THAT, not a copy of it. Exported read-only; it renders a string and touches nothing. */
   function card(u){
     var isAdm=u.role==='admin';
     var pa=u.page_access||{};
@@ -215,9 +235,26 @@
            '<option value="none"'+(cur==='none'?' selected':'')+'>'+fl('No access','لا يوجد')+'</option>'+
            '<option value="viewer"'+(cur==='viewer'?' selected':'')+'>'+fl('Viewer','مشاهدة')+'</option>'+
            '<option value="editor"'+(cur==='editor'?' selected':'')+'>'+fl('Editor','تعديل')+'</option>'+
-         '</select></div>';
+         '</select>'+
+         /* fire #189: in WORDS, on the row, and only where it is true and being relied on */
+         ((cur==='viewer'&&!viewerHolds(p[0]))
+           ? '<span data-ax-notheld="'+esc(p[0])+'" title="'+fl('This page does not yet check the Viewer setting','هذه الصفحة لا تتحقق من إعداد المشاهدة بعد')+'" style="flex:0 0 auto;background:#FDECEC;color:#A3242C;border:1px solid #F2C4C4;border-radius:9px;padding:1px 7px;font-size:10px;font-weight:700;white-space:nowrap">'+fl('not enforced yet','غير مُطبّق بعد')+'</span>'
+           : '')+
+         '</div>';
     });
-    h+='</div><button class="btn pri sm" style="margin-top:10px" onclick="axSave(\''+u.id+'\')">'+fl('Save access','حفظ الصلاحيات')+'</button></div>';
+    h+='</div>';
+    /* fire #189: name the total once, so the marks above are not read as isolated oddities */
+    try{
+      var _nh=PAGES.filter(function(pp){ return (pa[pp[0]]||'none')==='viewer' && !viewerHolds(pp[0]); });
+      if(_nh.length){
+        h+='<div data-ax-notheld-note="1" style="font-size:11.5px;border:1px solid #F2C4C4;background:#FDECEC;color:#7a2028;border-radius:8px;padding:8px 10px;margin-top:9px;line-height:1.6">'+
+          esc(fl(_nh.length+' of the pages set to Viewer do not check that setting yet, so this person can still change things there: '+
+                   _nh.map(function(pp){ return fl(pp[1],pp[2]); }).join(', ')+'. The setting is saved and will take effect as each page is taught to honour it.',
+                 'عدد '+_nh.length+' من الصفحات المحددة كـ«مشاهدة» لا تتحقق من هذا الإعداد بعد، لذلك لا يزال بإمكان هذا الشخص التعديل فيها: '+
+                   _nh.map(function(pp){ return fl(pp[1],pp[2]); }).join('، ')+'. الإعداد محفوظ وسيسري عند تعليم كل صفحة احترامه.'))+'</div>';
+      }
+    }catch(_){}
+    h+='<button class="btn pri sm" style="margin-top:10px" onclick="axSave(\''+u.id+'\')">'+fl('Save access','حفظ الصلاحيات')+'</button></div>';
     return h;
   }
 

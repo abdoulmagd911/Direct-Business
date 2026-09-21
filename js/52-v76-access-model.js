@@ -80,6 +80,20 @@
      means it never fires in the window between the role and the matrix (the other session's
      observation) — the page is never bounced, never logged as refused, never banner-ed. */
   try{ window.mayOpenPage=mayOpen; window.myAllowedPages=allowedPages; window.__accessKnown=settled; window.__accessRoleKnown=known; }catch(_){}
+  /* 2026-09-21 (fire #189) — WHICH pages actually hold a Viewer to looking.
+     mayEditPage() answers for any page, but a page only HONOURS that answer if its own screen asks.
+     Measured on 2026-09-20 (fire #184) by setting the matrix to Viewer on every page and counting
+     the write controls still offered: Leads still offered Convert / + New business / Edit over 83
+     typeable fields, Airlines 139, Suppliers 26, and Events even offered Delete. So the Team &
+     Access editor was offering "Viewer" on fifteen pages while nine of them ignored it.
+     This is the list of the ones that do hold, and it is the ONE source for that fact — the editor
+     reads it rather than keeping a second copy that drifts (the M40 lesson). Fixing a page means
+     adding its id here in the same commit, and the editor's warning clears itself.
+       · finance / settings / activity — the DATABASE enforces these too (can_edit_page)
+       · documents — the five Generator editors ask mayEditPage (fire #184)
+       · archive   — js/76 asks it
+       · today     — nothing on it changes a record, so there is nothing to withhold  */
+  try{ window.PAGES_VIEWER_ENFORCED=['today','finance','settings','activity','archive','documents']; }catch(_){}
   /* known() exported (2026-08-21) so a page-access ENFORCEMENT layer (js/64) can tell "role
      confirmed, this decision is final" apart from "still loading, using the floor" — acting
      on mayOpenPage() during the unknown-role window would-be-admin included would bounce
