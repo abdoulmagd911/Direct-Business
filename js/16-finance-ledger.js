@@ -1009,7 +1009,7 @@ function rFinClients(){
      groups and 131,871 SAR presented as 100% margin. Same rule as everywhere else (M8): a cost
      nobody has recorded is not zero, and a profit derived from it is not a profit.
      nz counts the invoices in each group with no cost recorded. */
-  var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,nz:0,_i:{},key:cc.key,directId:cc.directId};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;if((+r.cost_sar||0)===0)byC[k].nz++;byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
+  var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,nz:0,nzp:0,_i:{},key:cc.key,directId:cc.directId};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;if((+r.cost_sar||0)===0){byC[k].nz++;byC[k].nzp+=(+r.profit_sar||0);/* fire #195: carry the AMOUNT, not only the count */}byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
   function _cCell(x){ // cost cell: a group with NO cost on any invoice shows the words, not a 0
     if(x.nz>=x.n) return '<span style="color:#B54708" title="'+(isArF()?'لم تُسجَّل تكلفة لأي فاتورة لهذا العميل':'No cost recorded on any of this client\'s invoices')+'">'+(isArF()?'غير مسجّلة':'not recorded')+'</span>';
     return money0(x.c)+(x.nz?('<span style="color:#B54708;font-size:10.5px" title="'+(isArF()?'بعض الفواتير بلا تكلفة مسجّلة':'some invoices carry no recorded cost')+'"> ⚠</span>'):'');
@@ -1019,13 +1019,16 @@ function rFinClients(){
     return money0(x.p)+(x.nz?'<span style="color:#B54708;font-size:10.5px"> ⚠</span>':'');
   }
   var top=Object.keys(byC).sort(function(a,b){return byC[b].r-byC[a].r;}).slice(0,10);
-  var _tc={r:0,c:0,p:0,gaps:0};Object.keys(byC).forEach(function(k){_tc.r+=byC[k].r;_tc.c+=byC[k].c;_tc.p+=byC[k].p;if(byC[k].nz)_tc.gaps++;});
+  var _tc={r:0,c:0,p:0,gaps:0,gapP:0};Object.keys(byC).forEach(function(k){_tc.r+=byC[k].r;_tc.c+=byC[k].c;_tc.p+=byC[k].p;if(byC[k].nz){_tc.gaps++;_tc.gapP+=(byC[k].nzp||0);}});
   /* The Total row keeps the real arithmetic — it must still reconcile against the ledger — but
      a total built partly on unrecorded costs is an upper bound on profit, not a profit, and it
      now says so rather than leaving the reader to infer it from the rows above. */
-  var _tcNote=_tc.gaps?('<div style="font-size:11px;color:#B54708;font-weight:600;margin-top:8px">⚠ '+(isArF()
-    ?(_tc.gaps+' من العملاء لديهم فواتير بلا تكلفة مسجّلة — إجمالي الربح أعلاه حدّ أقصى وليس رقمًا نهائيًا.')
-    :(_tc.gaps+' of these clients have invoices with no recorded cost — the profit total above is an upper bound, not a final figure.'))+'</div>'):'';
+  /* fire #195: how far above the real figure that upper bound might sit is the whole question, and
+     the count of clients does not answer it. The riyals resting on unrecorded cost are named. */
+  var _tcSh=(_tc.p>0&&_tc.gapP>0)?Math.round(100*_tc.gapP/_tc.p):null;
+  var _tcNote=_tc.gaps?('<div style="font-size:11px;color:#B54708;font-weight:600;margin-top:8px" data-cl-gap-clients="'+_tc.gaps+'" data-cl-gap-profit="'+Math.round(_tc.gapP)+'">⚠ '+(isArF()
+    ?(_tc.gaps+' من العملاء لديهم فواتير بلا تكلفة مسجّلة، وتُحتسب '+money0(_tc.gapP)+' ريال منها ربحًا كاملًا'+(_tcSh!==null?('، أي '+_tcSh+'% من إجمالي الربح أعلاه'):'')+' — فهو حدّ أقصى وليس رقمًا نهائيًا.')
+    :(_tc.gaps+' of these clients have invoices with no recorded cost, and '+money0(_tc.gapP)+' SAR of them counts as pure profit'+(_tcSh!==null?(' — '+_tcSh+'% of the profit total above'):'')+', so that total is an upper bound, not a final figure.'))+'</div>'):'';
   /* 2026-09-08 (watch cycle 63): fifth surface in the class cycles 59-62 opened. Every cell in
      this table is money0() — each row rounded to the whole riyal separately from the Total under
      it — so five clients billing 1,000.40 print five rows of 1,000 above a Total of 5,002. This is
@@ -1127,11 +1130,24 @@ function rOverview(){
       ?(_perDis+' فاتورة/فواتير تحمل شهرًا أو ربعًا لا يطابق تاريخ الفاتورة. تُحتسب حسب القيمة المخزَّنة كما هي — لم يتغير أي رقم — لكن شريط الفترة أعلاه يتبع المخزَّن، لا التاريخ.')
       :(_perDis+' invoice'+(_perDis>1?'s':'')+' carr'+(_perDis>1?'y':'ies')+' a month or quarter that does not match its invoice date. They are counted under the stored value as they always were — no figure has changed — but the period bar above follows what is stored, not the date.'))+'</div>';
   }
-  var _noCost=V.filter(function(r){return (+r.cost_sar||0)===0;}).length;
+  /* 2026-09-21 (fire #195): this line named the COUNT and not the SIZE, and the two are not the
+     same warning. Measured on the live book the same day: 19 of 46 invoices carry no recorded
+     cost, which sounds like a minority — but those 19 contribute 214,550 SAR of profit against a
+     492,623 SAR total, because a cost of zero makes profit equal revenue. So 44% of the headline
+     profit figure was resting on cost nobody has entered yet, and "19 of 46" gave a reader no way
+     to know whether that share was 2% or half. The rows are wildly unequal in size; a count cannot
+     stand in for an amount. Both numbers now appear, and the share is computed, never assumed. */
+  var _noCostRows=V.filter(function(r){return (+r.cost_sar||0)===0;});
+  var _noCost=_noCostRows.length;
   if(_noCost>0){
-    h+='<div style="font-size:12px;color:#B54708;margin:-6px 0 14px">⚠ '+(isArF()
-      ?(_noCost+' من '+V.length+' فاتورة في هذه الفترة بلا تكلفة مسجلة — قد يظهر الهامش أعلى من الحقيقة حتى تصل مصروفاتها.')
-      :(_noCost+' of '+V.length+' invoices in this period carry no recorded cost — margin may read higher than reality until their expenses arrive.'))+'</div>';
+    var _ncProfit=_noCostRows.reduce(function(s,r){return s+(+r.profit_sar||0);},0);
+    var _allProfit=V.reduce(function(s,r){return s+(+r.profit_sar||0);},0);
+    /* the share is only meaningful when the total is a positive number to take a share OF */
+    var _ncShare=(_allProfit>0&&_ncProfit>0)?Math.round(100*_ncProfit/_allProfit):null;
+    var _ncAmt=money0(_ncProfit);
+    h+='<div style="font-size:12px;color:#B54708;margin:-6px 0 14px" data-fin-nocost="'+_noCost+'" data-fin-nocost-profit="'+Math.round(_ncProfit)+'"'+(_ncShare!==null?(' data-fin-nocost-share="'+_ncShare+'"'):'')+'>⚠ '+(isArF()
+      ?(_noCost+' من '+V.length+' فاتورة في هذه الفترة بلا تكلفة مسجلة. تُحتسب '+_ncAmt+' ريال منها ربحًا كاملًا'+(_ncShare!==null?('، أي '+_ncShare+'% من الربح المعروض أعلاه'):'')+' — قد يظهر الهامش أعلى من الحقيقة حتى تصل مصروفاتها.')
+      :(_noCost+' of '+V.length+' invoices in this period carry no recorded cost. '+_ncAmt+' SAR of them counts as pure profit here'+(_ncShare!==null?(' — '+_ncShare+'% of the profit shown above'):'')+', so margin may read higher than reality until their expenses arrive.'))+'</div>';
   }
   /* Compare to (blueprint step 5, 2026-08-27): revenue/cost/profit/margin against the previous
      period or the same period last year. Needs one concrete year selected above — spanning
@@ -2086,10 +2102,18 @@ function rReports(){
          +_offs.map(function(o){return metLbl(o.m)+(o.within?(' within '+escF(o.within)):'')+': the rows read '+money0(o.shown)+', the total reads '+money0(o.head)+', and the exact figure is '+o.exact.toFixed(2)+' SAR';}).join('; ')+'. The exported CSV carries the exact figures.'))+'</div>';
   }
   if(mets.indexOf('profit_sar')>=0||mets.indexOf('cost_sar')>=0){
-    var _rbNo=base.filter(function(r){return (+r.cost_sar||0)===0;}).length;
-    if(_rbNo>0) h2+='<div style="font-size:11.5px;color:#B54708;font-weight:600;padding:8px 10px">⚠ '+(isArF()
-      ?(_rbNo+' من '+base.length+' بند في هذا التقرير بلا تكلفة مسجّلة — أرقام الربح هنا حدّ أقصى وليست نهائية.')
-      :(_rbNo+' of '+base.length+' rows in this report carry no recorded cost — the profit figures here are an upper bound, not final.'))+'</div>';
+    /* fire #195: the count alone cannot tell a reader whether the gap is 2% of the profit or half
+       of it — see the note on the ledger's own warning. The amount rides along here too. */
+    var _rbNoRows=base.filter(function(r){return (+r.cost_sar||0)===0;});
+    var _rbNo=_rbNoRows.length;
+    if(_rbNo>0){
+      var _rbP=_rbNoRows.reduce(function(s,r){return s+(+r.profit_sar||0);},0);
+      var _rbAll=base.reduce(function(s,r){return s+(+r.profit_sar||0);},0);
+      var _rbSh=(_rbAll>0&&_rbP>0)?Math.round(100*_rbP/_rbAll):null;
+      h2+='<div style="font-size:11.5px;color:#B54708;font-weight:600;padding:8px 10px" data-rb-nocost="'+_rbNo+'" data-rb-nocost-profit="'+Math.round(_rbP)+'">⚠ '+(isArF()
+        ?(_rbNo+' من '+base.length+' بند في هذا التقرير بلا تكلفة مسجّلة، وتُحتسب '+money0(_rbP)+' ريال منها ربحًا كاملًا'+(_rbSh!==null?('، أي '+_rbSh+'% من الربح المعروض'):'')+' — أرقام الربح هنا حدّ أقصى وليست نهائية.')
+        :(_rbNo+' of '+base.length+' rows in this report carry no recorded cost, and '+money0(_rbP)+' SAR of them counts as pure profit'+(_rbSh!==null?(' — '+_rbSh+'% of the profit shown'):'')+', so the profit figures here are an upper bound, not final.'))+'</div>';
+    }
   }
   return h+h2;
 }

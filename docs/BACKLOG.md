@@ -107,6 +107,56 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #195 (2026-09-21 ~16:00 UTC) — "19 of 46 invoices have no cost recorded" was true, and still understated it badly
+
+**What I checked, and what held.** I went looking for money going wrong and found the opposite:
+the Finance page is careful. Revenue is total minus wallet on every one of your 46 live invoices,
+profit is revenue minus cost on every one, and VAT appears in none of the three — the rule you set.
+A client with no cost recorded anywhere shows the words "not recorded" and "unknown" rather than a
+zero and a profit equal to their whole bill. Three separate places warn you about missing cost.
+None of that needed fixing.
+
+**What was missing was the size.** The warning read:
+
+> ⚠ 19 of 46 invoices in this period carry no recorded cost — margin may read higher than reality
+> until their expenses arrive.
+
+True, and it reads like a minority worth noting later. Here is what those 19 invoices actually are:
+
+| | |
+|---|---|
+| Profit the page shows for the period | **492,623 SAR** |
+| Of which rests on invoices with no cost recorded | **214,550 SAR** |
+| Share of the headline profit figure | **44%** |
+
+Nearly half your profit figure is waiting on expenses nobody has entered yet. Your invoices are very
+unequal in size, so "19 of 46" could equally have meant 2% — the sentence would have been identical.
+The count was never the number you needed.
+
+**Fixed.** All three warnings now name the riyals and the share:
+
+> ⚠ 19 of 46 invoices in this period carry no recorded cost. 214,550 SAR of them counts as pure
+> profit here — 44% of the profit shown above, so margin may read higher than reality until their
+> expenses arrive.
+
+Same on the Clients & collections table and in Report Builder, and in Arabic. The share is worked
+out from the figures actually on screen, so it stays right as expenses arrive — it is not a number
+I typed in.
+
+**Nothing was invented.** The missing costs are still missing and still shown as missing; no figure
+moved. This only tells you how much is riding on them.
+
+**Guarded.** The new test adds up the same thing independently and compares, in both languages, on
+all three screens. Its traps: give every one of those invoices a cost and all three warnings must
+disappear — *having been on screen first*, which I only added after a sabotage run passed that check
+against a build where the warnings never appeared at all — and the amount named must be the part,
+not the whole profit total. Both sabotage runs failed exactly the checks they should.
+
+**Still for you:** the 19 invoices themselves. They are an honest gap, not a bug — but 214,550 SAR
+of margin is worth someone's afternoon.
+
+---
+
 ## Routine fire #194 (2026-09-21 ~15:00 UTC) — four search boxes, four different ideas of what a company is called
 
 **What was wrong.** The app has four places you can type a company's name: the Leads page, the

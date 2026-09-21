@@ -1633,6 +1633,25 @@ workspace, that the auth token must survive, and that neighbouring keys are unto
 version of this fix (`localStorage.clear()`) was run against it and failed all three.
 *Date: 2026-09-21, js/core/core-08-v25.js + js/core/core-09-v26.js. Status: ACTIVE.*
 
+**M52 — a warning about missing data names the AMOUNT at stake, not only the count of rows.**
+Found 2026-09-21 (fire #195). The money page is careful about unrecorded cost — three places warn
+about it, a client with no cost on any invoice prints the words *"not recorded"* and *"unknown"*
+instead of a zero and a full-revenue profit, and there are per-row ⚠ marks. Every one of those
+warnings named a count. On the live book that count read **"19 of 46 invoices carry no recorded
+cost"**, which sounds like a minority. Those 19 contribute **214,550 SAR of a 492,623 SAR profit
+total — 44% of the headline figure** — because a cost of zero makes profit equal revenue. The same
+sentence would have been printed if the exposure were 2%. Invoice rows are wildly unequal in size,
+so **a count cannot stand in for an amount**: name the riyals, and compute the share from the
+figures on screen rather than stating it. This is M8 and M39 taken one step further — it is not
+enough to refuse to invent the missing number, the reader also has to be told how much of what they
+are looking at depends on it.
+Guard: `scripts/qa/probe-the-cost-gap-says-how-much.mjs`, which checks all three warnings against a
+sum it computes itself over exactly the rows the headline covers, in both languages. Its brakes are
+that giving every no-cost row a cost makes all three warnings disappear — **having asserted they
+were on screen first**, which the first version did not and which the first sabotage run exposed
+(M50 in a fresh costume) — and that the amount named is the part, not the whole profit total.
+*Date: 2026-09-21, js/16-finance-ledger.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
