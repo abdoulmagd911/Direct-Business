@@ -1296,7 +1296,25 @@ Guards: `scripts/qa/probe-the-palette-knows-the-arabic-name.mjs`, whose header c
 `scripts/qa/probe-every-search-agrees.mjs`, which asks both surfaces for the same company five
 different ways and holds three brakes — nonsense finds nothing, an archived company is offered by
 neither, and phone-digit matching still works.
-*Date: 2026-09-20. Status: ACTIVE.*
+**Finished 2026-09-21 (fire #194): there was a FOURTH surface, and it was the busiest one.** #180
+unified three boxes and did not touch the **Leads page filter** — `matchLead` in core-02 — which had
+carried its own field list the whole time. Measured against the live database (108 records), the two
+lists disagreed in both directions, and each gap has a count: a word from a company's own **notes**
+(100 of 108) and the **person it is assigned to** (88) were searchable on the Leads page and
+**nowhere else**; its **CR/VAT** (20) was searchable everywhere **except** the Leads page; and its
+own **website domain** (25 records whose domain word is not already in their name, of 78 carrying a
+website) was in neither list, so a company could not be found by its domain anywhere in the app —
+the one thing you hold when a stranger writes to you from a company address. `recordHay` now carries
+source, assignedTo, notes and website; `matchLead` calls it, which also ends that box's private copy
+of the run-together bug #180 fixed here (contacts joined as name+email+phone with no spaces).
+**The thing to take from #180 and #194 together: unifying three of four is not unifying.** When this
+rule is applied, count the surfaces first and name the ones left out, in the commit, or the fourth
+one sits there for a round wearing the rule as a badge.
+Guard: `scripts/qa/probe-one-haystack-for-every-search-box.mjs`, which seeds one record carrying a
+unique token per field and asks all four boxes for each token, with two brakes — a word in no field
+finds nothing anywhere (a haystack that matched everything would otherwise pass), and name, Arabic
+name and a contact e-mail must still work (adopting a shared list must not drop what a box had).
+*Date: 2026-09-20, extended 2026-09-21. Status: ACTIVE.*
 
 **M39 — an average must say how many records it averaged, and a card that drops rows must say how
 many it dropped.** Found 2026-09-20 (fire #181). The Leads page's headline read **"26 days · Avg

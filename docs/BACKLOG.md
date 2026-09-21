@@ -107,6 +107,46 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #194 (2026-09-21 ~15:00 UTC) — four search boxes, four different ideas of what a company is called
+
+**What was wrong.** The app has four places you can type a company's name: the Leads page, the
+Clients page, the box in the top bar, and the quick-jump window (Ctrl+K). Three of them were made to
+agree back in September. The fourth — the Leads page, the one your team uses most — was never
+included, and had quietly kept its own idea of which details count as "the company".
+
+Measured against your real records, here is what that cost, and how many records each one touches:
+
+| If you typed… | Where it found the company | Records affected |
+|---|---|---|
+| a word from the company's own **notes** | Leads page only — nowhere else | **100 of 108** |
+| **who the record belongs to** | Leads page only — nowhere else | **88 of 108** |
+| its **CR / VAT number** | everywhere **except** the Leads page | **20 of 108** |
+| its own **website address** | nowhere at all, in any box | **25 of 108** |
+
+That last row is the one I'd feel daily. Someone writes to you from `name@theircompany.com` and the
+only thing you have is the domain. Typing it found nothing — on a book where 78 of your 108 records
+have a website saved. (The count is 25 rather than 78 because for the other 53 the domain word
+already appears in the company's name, so those were findable by accident.)
+
+**Fixed.** All four boxes now read one shared list of details, and that list has gained the notes,
+the owner, where the record came from, and the website. Re-measured on your real data straight after:
+a word from a client's note now finds that client on the Clients page (it found nothing before), and
+so does their owner's name. Nothing that worked before stopped working — I check that explicitly.
+
+While doing it, the Leads box also stopped running a contact's name, e-mail and phone together into
+one unbroken word — a small bug the other three boxes had already had fixed in September.
+
+**Guarded.** The new test plants one made-up company carrying a different unique word in each detail
+— notes, owner, website, CR number, Arabic name, contact e-mail — and asks all four boxes for each
+word. It has two deliberate traps: a word that is in none of those details must find nothing
+anywhere (otherwise a search that simply matched everything would look like a pass), and the
+familiar searches must still work. I broke the fix three different ways to be sure the test notices:
+each break failed exactly the checks it should, including both traps.
+
+Structure, test-integrity and decisions checks green; full battery running.
+
+---
+
 ## Routine fire #193 (2026-09-21 ~14:00 UTC) — the app was keeping three copies of your workspace in every browser, and a fix of mine that turned out to do nothing
 
 **What was wrong.** Your browser keeps a working copy of the workspace on the computer, so the app

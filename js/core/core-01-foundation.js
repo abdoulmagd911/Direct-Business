@@ -610,11 +610,24 @@ function kpi(ic,col,bg,l,v,s,tr){return `<div class="kpi"><div class="ic" style=
    M38: when a second surface searches the same records, it shares the first one's haystack.
    Joined with SPACES so an e-mail and a phone cannot run together into a word that matches
    neither. Phone-DIGIT matching stays separate — it is a different mechanism (fire #113), not a
-   field. */
+   field.
+
+   2026-09-21 (fire #194): #180 unified three of the FOUR boxes. The one it left out is the one
+   the team uses most — the Leads page filter, whose `matchLead` (core-02) still carried its own
+   list. Measured against the live database, the two lists disagreed in BOTH directions, and the
+   count of records each gap covers is the reason this is not a tidy-up:
+     · `notes` (100 of 108 records), `assignedTo` (88) and `source` were in the Leads list and NOT
+       here — so a word from a client's own note found it on the Leads page and found NOTHING on
+       the Clients page, in the palette, or in the top-bar box. Same for the person who owns it.
+     · `legalName` / `directClientId` / `crVat` were here and not in the Leads list.
+     · `website` (78 of 108) was in NEITHER, so a company could not be found by its own domain
+       anywhere in the app — the one thing you have when a stranger e-mails you.
+   All of them live here now, and `matchLead` reads this function instead of its own copy. */
 function recordHay(b){
   try{
     return ((b.name||'')+' '+(b.nameAr||'')+' '+(b.legalName||'')+' '+(b.directClientId||'')+' '+
-      (b.crVat||'')+' '+(b.segment||'')+' '+
+      (b.crVat||'')+' '+(b.segment||'')+' '+(b.source||'')+' '+(b.assignedTo||'')+' '+
+      (b.notes||'')+' '+(b.website||'')+' '+
       ((b.contacts||[]).map(function(c){ return String(c&&c.name||'')+' '+String(c&&c.email||'')+' '+String(c&&c.phone||''); }).join(' '))
     ).toLowerCase();
   }catch(_){ return String((b&&b.name)||'').toLowerCase(); }

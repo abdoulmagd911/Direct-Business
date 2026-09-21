@@ -137,7 +137,12 @@ function renderLeadSummary(){
   el.innerHTML=`<div class="card" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:13px 18px;margin-bottom:14px"><div><div style="font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">${_arLS?'ضمن العرض':'In view'}</div><div style="font-size:17px;font-weight:800;letter-spacing:-.02em">${list.length} ${_arLS?'عميل محتمل':(list.length===1?"lead":"leads")}</div></div><div style="flex:1;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end">${byStage.map(x=>`<span class="statusbadge" style="background:${LSTAGE_COLOR[x.s]}1a;color:${LSTAGE_COLOR[x.s]}"><span class="dot" style="background:${LSTAGE_COLOR[x.s]}"></span>${esc(_actStageWord(x.s))} ${x.n}</span>`).join("")}</div></div>`;
 }
 /* base drawTable deleted 2026-08-10 — superseded by the v30 window.drawTable override (bulk-select + priority table) */
-function matchLead(b){if(leadFilter.stage&&leadFilter.stage!=="all"&&leadStage(b)!==leadFilter.stage)return false;if(leadFilter.funnel&&leadFilter.funnel!=="all"&&(b.funnelKey||b.source||"")!==leadFilter.funnel)return false;const q=leadFilter.q.toLowerCase().trim();if(leadGroup==="category"&&leadFilter.cat!=="all"&&b.category!==leadFilter.cat)return false;if(!q)return true;const hay=(b.name+" "+(b.nameAr||"")+" "+(b.segment||"")+" "+(b.source||"")+" "+(b.assignedTo||"")+" "+(b.notes||"")+" "+(b.contacts||[]).map(c=>c.name+c.email+c.phone).join(" ")).toLowerCase();return hay.includes(q);}
+function matchLead(b){if(leadFilter.stage&&leadFilter.stage!=="all"&&leadStage(b)!==leadFilter.stage)return false;if(leadFilter.funnel&&leadFilter.funnel!=="all"&&(b.funnelKey||b.source||"")!==leadFilter.funnel)return false;const q=leadFilter.q.toLowerCase().trim();if(leadGroup==="category"&&leadFilter.cat!=="all"&&b.category!==leadFilter.cat)return false;if(!q)return true;
+  /* fire #194: was its own field list — the fourth and last copy, and the one the team uses most.
+     Now the shared recordHay (core-01), which is what M38 asks for. It also ends this box's own
+     version of the run-together bug #180 fixed here: contacts used to be joined as
+     name+email+phone with no spaces. */
+  return recordHay(b).includes(q);}
 
 
 function leadDashboard(v,id){
