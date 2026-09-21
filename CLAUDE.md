@@ -34,12 +34,20 @@
 > Then read this file and `docs/DIRECT_IDENTITY.md`. (`docs/HANDOFF_2026-08-09.md` is the detailed
 > chronological log.)
 >
-> Quick current state (re-verified live 2026-08-29 — the older "assumption/test data" and
-> "30-lead training world" descriptions further down are history, kept in `*_snapshot_*`
-> tables): the app now holds **real data** — 80 leads / 32 clients in `businesses`, 46 live
-> `finance_invoices` (19 still with no cost recorded — an honest gap, flagged on screen, never
-> filled with a guess), 3 client-name alias groups set by the owner himself, and the M15
-> expense-capture tables in real use. Treat every row as real for rule 7 purposes.
+> Quick current state (**re-counted against the live database 2026-09-21**; the older
+> "assumption/test data" and "30-lead training world" descriptions further down are history, kept
+> in `*_snapshot_*` tables): the app holds **real data** — `businesses` 112 rows, **108 live / 4
+> archived**, of which **28 are clients** (27 at stage `won` plus one deliberate exception, and the
+> `is_client` column and the `raw.isClient` blob agree on all 108 — no half-converted records); 91
+> `finance_invoices` rows, **46 live / 45 soft-deleted**, **every one of the 46 now has a cost
+> recorded** (the "19 with no cost" this line used to report is closed), all `revenue_way='invoice'`,
+> all `integrity_status='verified_paid'`, **no VAT figure on any row**, and the doctrine holds exactly
+> — revenue = total − wallet and profit = revenue − cost on all 46, checked row by row. Also live:
+> `record_history` 360 rows (216 with no actor — bulk SQL work in Aug/Sep, and the page says so),
+> `providers` 23, `airlines` 136, `ksa_events` 80, `sops` 12, `slas` 14, `company_identity` 29,
+> 3 client-name alias groups set by the owner himself, and the M15 expense-capture tables in real
+> use. Exactly 1 record is still flagged `needs_manual_confirmation`. Treat every row as real for
+> rule 7 purposes.
 > The app has been **re-skinned to Direct's real product UI** (cream `#FBF5F0` + `#ff6b00`).
 > **Critical:** the QA harness serves FAKE data — verify UI against real Supabase rows or a
 > screenshot, never the mock alone (that gap wasted a sub-session).
