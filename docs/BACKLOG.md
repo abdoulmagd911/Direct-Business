@@ -136,6 +136,36 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #215 (2026-09-23 ~02:00 UTC) — full battery after nine files changed, and what your lead list actually contains
+
+**All 310 checks re-run from scratch: 304 of 304 green.** One went red while three ran at once and
+passed when given the machine to itself — the view-only share link. That is a race, not a broken
+feature: after a redraw there is a fraction of a second before the guest view is tidied, and on a
+busy device a guest could glimpse the sidebar's Finance entry and the footer showing *your* name and
+job title instead of "View-only guest". I narrowed that window rather than leaving it to luck.
+
+**A false alarm I chased and dropped, worth recording.** I thought the client list in Arabic was
+sorting by the English name nobody can see. It isn't — an earlier round already fixed exactly that,
+and my "evidence" was that I had clicked the column header myself and was reading a *descending*
+list. Checked again properly: ascending and descending are both correct, in both languages, and the
+Arabic names collate as Arabic. Also confirmed: **no lead has an Arabic name at all** (all 18 are on
+clients), so the Leads list is English in both languages and sorts correctly.
+
+**What the data says about your pipeline, plainly.** While the checks ran I counted what is actually
+in the records:
+
+- **71 of your 80 leads have no contact person on them at all.** No name, no phone, no email —
+  nothing to act on. That is the same fact Today reports as "71 going cold": they are not neglected
+  follow-ups, they are companies nobody has a way into yet.
+- Every lead does have a source recorded, so nothing is unattributed.
+- Contacts themselves are clean: 45 of them, every one has a name, every one has at least a phone or
+  an email, and none is attached to a company that no longer exists.
+- 27 of your 28 clients have no website recorded — small, but it is the thing you have when a
+  stranger emails you.
+
+Nothing there is a software fault. It is the honest shape of the list, and the single most useful
+thing in it: **nine of your eighty leads are actually contactable today.**
+
 ## Routine fire #214 (2026-09-23 ~00:00 UTC) — an Arabic name typed the normal way found nothing
 
 **This one only shows up if you search in Arabic.** I searched for every company in your data by

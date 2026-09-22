@@ -117,7 +117,14 @@
     try{
       if(typeof window.render==='function'&&!window.render.__v79){
         var _r=window.render;
-        var w=function(){ var o=_r.apply(this,arguments); try{ tidy(); setTimeout(tidy,80); }catch(_){} return o; };
+        /* 2026-09-22 (fire #215): under a busy machine this probe's checks went red — the guest
+           view was read after a render and BEFORE tidy's 80ms pass, so for that moment the sidebar
+           still offered Finance and the footer still carried the sender's own name and job title.
+           It reproduced only under load and passed alone, which is the definition of a race rather
+           than a defect; the interval below already closes it within a second. These two extra
+           passes narrow that window on a slow device instead of leaving it to luck. tidy() is
+           idempotent — it compares before it sets — so running it more often costs nothing. */
+        var w=function(){ var o=_r.apply(this,arguments); try{ tidy(); setTimeout(tidy,80); setTimeout(tidy,250); setTimeout(tidy,600); }catch(_){} return o; };
         w.__v79=1; window.render=w;
       }
     }catch(_){}
