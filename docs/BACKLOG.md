@@ -136,6 +136,40 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #212 (2026-09-22 ~20:00 UTC) — a link to a company that was merged away went nowhere, silently
+
+**Why this one matters practically.** Three of the four companies in your Archive were removed by a
+**merge** — two on 22 August, one on 2 September. Their records now live on another company's card.
+That means every link to one of them is dead: a bookmark, a line in an old email, a message to a
+colleague, a note in another system.
+
+**What happened when you opened one.** You landed on the Leads list. The address quietly changed to
+`/leads`. Two thousand characters of page, and not one word about the company you asked for. The
+same for a client link, and the same for a mistyped or made-up address — deleted, merged, renamed
+and typo all looked identical.
+
+**Fixed.** Opening a link to a company that is no longer in the list now tells you which of the
+three things happened:
+
+- **Merged** — *"'X' was merged into 'Y'. Its records are on that company's card now — the link you
+  followed points at the old one."* with a button that opens Y.
+- **Removed by your own ruling** (the one company you took out of the app in August) — it says so,
+  and says plainly that it is **not** brought back from the Archive page. The app already refuses to
+  offer a Restore button for that one; the message now agrees with it instead of promising
+  something it won't do.
+- **Never existed** — *"There is no record at that address. It may have been deleted long ago, or
+  the link may be wrong."*
+
+Both languages. A link to a company that is still there opens the card and says nothing at all —
+that's the check I guard hardest, because a message on every normal link would be worse than the
+silence I started with.
+
+**One thing I got wrong and the guard caught.** The archive stores a merge as
+`merged-into:<id> (was: …)` — with a trailing note. My first version read the whole tail as the id,
+so it couldn't find the surviving company and said "merged into another company". The Archive page
+had always handled that correctly; my new message did not. There is now one piece of code that
+reads it, used by both.
+
 ## Routine fire #211 (2026-09-22 ~18:00 UTC) — Today told you the day was calm while listing 71 things to do
 
 **What was wrong.** I opened Today as the person who owns the most records in your data. The top of

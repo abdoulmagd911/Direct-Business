@@ -53,6 +53,36 @@
     }).catch(function(e){ STATE.err=String((e&&e.message)||e); STATE.rows=[]; done(); });
   }
 
+  /* 2026-09-22 (fire #212): a bookmark or a pasted link to a company that has since been merged or
+     deleted lands on the Leads list with nothing said. js/103 answers that, and it needs the one
+     thing this file already fetches — the archived row — so it asks here rather than running a
+     second query with a second idea of what "archived" means (M51). Answers null when the id is
+     not an archived company (unknown, or simply wrong). */
+  window.v76LookupArchived=function(id,cb){
+    if(!id||typeof cb!=='function')return;
+    var find=function(){
+      var rows=STATE.rows||[];
+      var uuid=null; try{ uuid=window.__bizUuid?window.__bizUuid(id):null; }catch(_){}
+      for(var i=0;i<rows.length;i++){ var r=rows[i]; if(!r)continue; if(r.id===id||(uuid&&r.id===uuid)) return r; }
+      return null;
+    };
+    if(STATE.rows) { cb(find()); return; }
+    load(function(){ cb(find()); });
+  };
+  /* What a merge left behind, in words the next screen can use. ONE parser, because archived_by is
+     seen live as 'merged-into:<uuid> (was: cleanup-…)': the id is the FIRST token and nothing
+     else. A straight slice() carries that suffix into the lookup and the name never resolves — my
+     own first cut of this helper did exactly that (fire #212), so the row renderer below calls
+     this rather than repeating the parse. */
+  window.v76MergedInto=function(row){
+    try{
+      var by=String((row&&row.archived_by)||'');
+      if(!/^merged-into:/.test(by)) return null;
+      var uuid=by.slice('merged-into:'.length).trim().split(/\s/)[0];
+      return { uuid:uuid, name:nameByUuid(uuid) };
+    }catch(_){ return null; }
+  };
+
   window.v76RestoreCompany=function(id){
     var row=(STATE.rows||[]).filter(function(x){ return x.id===id; })[0]; if(!row)return;
     var msg=fl('Bring "'+(row.name||'')+'" back to the list?\nIt returns exactly as it was when it was deleted, and the change is logged in Activity & Audit.',
@@ -95,7 +125,7 @@
       /* Seen live (9 Sep): archived_by can be 'merged-into:<id> (was: cleanup-…)' — read the id
          token only — and 'owner-ruling-2026-08-23' on the company the owner ruled out of the
          app for good. A ruling is not a deletion anyone may reverse from a button. */
-      var by=String(x.archived_by||''); var merged=/^merged-into:/.test(by); var keep=merged?by.slice('merged-into:'.length).trim().split(/\s/)[0]:''; var keepName=merged?nameByUuid(keep):'';
+      var by=String(x.archived_by||''); var _mi=window.v76MergedInto(x); var merged=!!_mi; var keep=merged?_mi.uuid:''; var keepName=merged?_mi.name:'';
       var ruled=/^owner-ruling/i.test(by);
       var who=merged
         ? fl('merged into '+(keepName||'another company')+' — its records live there now; undo the merge from Activity & Audit','دُمجت في '+(keepName||'شركة أخرى')+' — سجلاتها هناك الآن؛ التراجع عن الدمج من النشاط والتدقيق')
