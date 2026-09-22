@@ -154,7 +154,19 @@
     // ---- funnel / count chips + dropdowns ----
     'Default':'افتراضي','Old Customers':'عملاء سابقون','Conferences':'مؤتمرات',
     'All':'الكل','All funnels':'كل المسارات','All stages':'كل المراحل','All managers':'كل المدراء',
-    'All tiers':'كل الفئات','Key':'رئيسي','Standard':'قياسي','Unassigned':'غير معيّن',
+    /* 2026-09-22 (fire #218, found by reading every page in Arabic against the real database):
+       'Key' was already here and the screen still said KEY. The Clients table's tier badge is
+       written SHOUTED — `<span class="tag">KEY</span>` — and this dictionary matches whole strings
+       exactly, so «قياسي» appeared beside an untranslated KEY in the same column: the standard
+       clients read Arabic and the important ones read English. The shouted spelling is added here
+       rather than making the whole dictionary case-insensitive, which would start matching words
+       this layer has deliberately kept out of it. */
+    'All tiers':'كل الفئات','Key':'رئيسي','KEY':'رئيسي','Standard':'قياسي','Unassigned':'غير معيّن',
+    /* and the two plainest words in the app were never in it at all: the Airlines list's "on Saudi
+       BSP" column is a Yes/No badge, so 136 rows carried an English word on the Arabic page, and
+       the airline card's own fact row repeated it. Whole-string matches on chrome only — a record's
+       own name lives in a <td><b> this pass never touches. */
+    'Yes':'نعم','No':'لا',
     '10 / page':'10 / صفحة','20 / page':'20 / صفحة','50 / page':'50 / صفحة','100 / page':'100 / صفحة','Show all':'عرض الكل',
     // ---- lead category chips ----
     'Anchor':'مرتكز','Convert':'للتحويل','Re-engage':'إعادة تفعيل','Dormant':'خامل','Vendor':'مورّد','Partner':'شريك',

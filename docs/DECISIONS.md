@@ -2101,6 +2101,32 @@ Guard: `scripts/qa/probe-a-date-in-the-file-is-a-date.mjs`, whose two brakes are
 12-digit numbers. `probe-export-records` continues to hold the named columns.
 *Date: 2026-09-22, js/core/core-05-records.js. Status: ACTIVE.*
 
+**M67 — the Arabic dictionary matches whole strings EXACTLY, so a word the screen shouts is a word
+the screen keeps in English.** Found 2026-09-22 (fire #218) by reading every page in Arabic against
+the live database and looking only at the app's own furniture — buttons, headings, table headings,
+badges — while ignoring anything that is a record's data. Twenty pages came back clean except two
+badges:
+
+    Clients → tier      «قياسي» for a standard client, and  KEY  for a key one
+    Airlines → BSP السعودية      Yes, in Latin, on all 136 rows
+
+js/21 already held `'Key':'رئيسي'`. The Clients table writes the badge as `<span class="tag">KEY</span>`,
+so the standard clients read Arabic and the important ones read English **in the same column** —
+the worst of the three possible states, because a half-translated column reads as a mistake rather
+than as a language. `Yes` and `No` were never in the dictionary at all.
+Fixed by adding the shouted spelling and the two words. **Not** by making the dictionary
+case-insensitive: that layer deliberately keeps words like `New` and `Closed` out of the shared
+dictionary (they mean different things on the Operations board and on a lead), and a looser match
+would start catching exactly those.
+The other half of the rule, and the reason the fix is safe: **the pass is scoped to chrome, never
+to a record's own name.** A `<td><b>` is a company name and is not touched on any page but Sync.
+The guard's brake is an airline actually called "Yes", which must still read "Yes" on the Arabic
+page; the sabotage that translates every `<td>` renames it to «نعم» and fails.
+Left in English on purpose and re-checked: ZATCA, EMD, IATA, NDC, API, GDS — acronyms that are the
+same word in Arabic usage.
+Guard: `scripts/qa/probe-a-key-client-reads-arabic-too.mjs`.
+*Date: 2026-09-22, js/21-v27-arabic-column-header-stat-label-transl.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

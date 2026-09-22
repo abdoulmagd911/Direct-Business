@@ -136,6 +136,36 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #218 (2026-09-23 ~06:00 UTC) — I read all twenty pages in Arabic; two words were still English
+
+**I went through every page of the app in Arabic against your real data, looking only at the app's
+own wording** — the buttons, the column headings, the little coloured badges — and deliberately
+ignoring anything that is a company's own name or a note someone typed, because those stay as they
+were written. Twenty pages, and only two things were wrong:
+
+- **On Clients, the tier column.** An ordinary client read «قياسي» and an important one read `KEY`,
+  in Latin letters, in the same column. The Arabic word was already in the app; the badge is written
+  in capitals and the translation only matched the ordinary spelling. So your key accounts were the
+  one row on the page that read in English.
+- **On Airlines, the "on Saudi BSP" column.** `Yes` on all 136 rows. That word had simply never been
+  translated.
+
+Both now read «رئيسي» and «نعم»/«لا», and the English page is unchanged. The check that holds this
+also proves the app can still tell a badge from a company name: there is a real airline called
+"Yes", and it must keep its name on the Arabic page.
+
+**Left in English on purpose:** ZATCA, IATA, NDC, EMD, API, GDS. Those are the words your team uses
+in Arabic too.
+
+**One thing I did not change, and need a word from you on.** On the Providers page, the "type" column
+shows the supplier's category in English — Aggregator, Hotels, Payments, GDS/agency, NDC aggregator,
+Hotels (bedbank), Aggregator / virtual interlining, and six more. These are values in your data, not
+labels in the app, and several are trade jargon where a wrong Arabic word would be worse than the
+English one. Tell me the Arabic you want for them and I will put them in; this is the same open
+question as the four tender-status words below.
+
+---
+
 ## Routine fire #217 (2026-09-23 ~05:00 UTC) — a date in your exported spreadsheet read as a 13-digit number
 
 **I took your real Clients export apart column by column.** Two cells in it were unreadable: the
