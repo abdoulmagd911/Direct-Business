@@ -127,6 +127,45 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #205 (2026-09-22 ~08:00 UTC) — Reports counted every KPI you haven't filled in as a zero
+
+**What was wrong.** The Reports page tracks 14 objectives and 30 KPIs, and the figures are typed in
+by hand. It was treating "nobody has recorded a number yet" as "the number is zero". I proved it by
+recording **one** KPI at exactly its target — 20,000,000 SAR on "value of commercial agreements and
+direct sales closed" — and touching nothing else. The page then said:
+
+> Avg progress to 2026 targets — **3%**
+> #1 Increase revenue from commercial contracts and direct sales — **17%**
+
+Both of those are the one real measurement divided by every KPI in the list, including the 29 that
+have never been filled in. The honest reading of that moment is "100% of the one thing we have
+measured", not 3%.
+
+**The printed report was worse.** Section 3 is titled *Gaps & focus areas (under 50% of target)*.
+With that single measurement recorded, it listed **29 gaps** — and every one of the 29 said
+"no data". A report you could hand to management naming 29 shortfalls when there was not a single
+measured shortfall.
+
+**Fixed.** Averages are now taken over the KPIs that actually have a figure, and — this is the
+other half — the screen says what it is speaking for, so a good number can't be read as covering
+more than it does:
+
+- the headline now reads **100%** with the label *"of the 1 measured, not all 30"*;
+- objective #1 reads **100%**, with *"1 of 6 KPIs measured"* beside its name;
+- an objective with nothing recorded reads **—**, not 0%, and says *"none of its 3 KPIs measured"*;
+- the report's section 3 now lists only genuinely measured shortfalls, and underneath it states
+  *"29 of 30 KPIs have no figure recorded for this period and are not counted as gaps"* — so a
+  short list can never be mistaken for good news.
+
+Both languages, checked on screen.
+
+**What did not change, deliberately.** A KPI that *is* recorded and *is* below half its target is
+still called a gap and still pulls its objective's average down — that is the trap in a fix like
+this, and it is the check I guard hardest. My sabotage run proves it both ways.
+
+**Still true and unchanged:** everything on this page lives in your browser only, which the page
+already says in a banner at the top. Nothing here is in the company database.
+
 ## Routine fire #204 (2026-09-22 ~06:00 UTC) — one page's title was English in Arabic, and the reason was a missing "&"
 
 **What was wrong.** I checked the *title* at the top of all nineteen pages, in Arabic, against your

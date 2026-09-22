@@ -409,7 +409,29 @@ function rptActual(k){
   return rows.reduce((s,a)=>s+Number(a.value),0);
 }
 function rptPct(k){const a=rptActual(k);return a==null?0:Math.min(100,Math.round(a/k.target*100));}
-function rptObjProgress(on){const ks=RPT_KPIS.filter(k=>k.obj===on);if(!ks.length)return null;const withData=ks.filter(k=>rptActual(k)!=null);if(!withData.length)return 0;return Math.round(ks.reduce((s,k)=>s+rptPct(k),0)/ks.length);}
+/* 2026-09-22 (fire #205): a KPI nobody has recorded a number for is NOT a KPI at zero, and this
+   page used to say it was. rptPct() returns 0 for "no data" — right for a progress bar, which
+   cannot be drawn as null — and three places read that 0 as a measurement:
+     · an objective's progress divided the sum by ALL its KPIs. Measured live: one KPI recorded at
+       exactly its 20,000,000 SAR target made objective #1 read **17%** (100 ÷ 6) instead of 100%
+       of what has actually been measured;
+     · the headline "Avg progress to 2026 targets" divided by all 30 KPIs — the same run read 3%;
+     · the printed report's "Gaps & focus areas (<50% of target)" listed **29 shortfalls, every one
+       of them saying "no data"**, on a report that goes to management.
+   The author was aware — the `withData` guard below was already here — but the denominator stayed
+   the full list, so awareness never reached the arithmetic. These two now average over what was
+   measured and return null when nothing was, and every caller prints "not measured" and the
+   fraction it is speaking for. House rule: never fill a gap with a number; leave it empty and say
+   why (CLAUDE.md, and M53's "an empty answer is not a zero" in its third costume). */
+function rptMeasuredOf(ks){return ks.filter(k=>rptActual(k)!=null);}
+function rptAvgPct(ks){const m=rptMeasuredOf(ks);if(!m.length)return null;return Math.round(m.reduce((s,k)=>s+rptPct(k),0)/m.length);}
+function rptObjProgress(on){const ks=RPT_KPIS.filter(k=>k.obj===on);if(!ks.length)return null;return rptAvgPct(ks);}
+function rptObjMeasured(on){const ks=RPT_KPIS.filter(k=>k.obj===on);return {n:rptMeasuredOf(ks).length,of:ks.length};}
+/* "1 KPIs" and «1 مؤشرات» are how a counted noun goes wrong in each language: English needs the
+   singular at one, Arabic needs a different word at one, two, 3-10 and 11+. */
+function rptNKpi(n){return (typeof LANG!=='undefined'&&LANG==='ar')
+ ?(n===1?'مؤشر واحد':n===2?'مؤشرين':n<=10?(n+' مؤشرات'):(n+' مؤشرًا'))
+ :(n+' KPI'+(n===1?'':'s'));}
 function rptMonthKey(d){return (d||"").slice(0,7);}
 function rptQuarterOf(d){const m=Number((d||"").slice(5,7));return m?Math.ceil(m/3):0;}
 const RPT_MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -447,16 +469,25 @@ function rptOverview(v){
  const nowMk=new Date().toISOString().slice(0,7);
  const thisM=RDB.achievements.filter(a=>rptMonthKey(a.date)===nowMk).length;
  const tracked=RPT_KPIS.filter(k=>rptActual(k)!=null).length;
- const avg=RPT_KPIS.length?Math.round(RPT_KPIS.reduce((s,k)=>s+rptPct(k),0)/RPT_KPIS.length):0;
+ const avg=rptAvgPct(RPT_KPIS);   /* null while nothing is measured — never 0 */
  const recent=RDB.achievements.slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,8);
- const objBars=RPT_OBJECTIVES.map(o=>{const p=rptObjProgress(o.n);return {o:o,p:p==null?0:p};}).sort((a,b)=>b.p-a.p);
+ /* an unmeasured objective sinks to the bottom rather than sitting among the genuine zeros */
+ const objBars=RPT_OBJECTIVES.map(o=>{const p=rptObjProgress(o.n);const m=rptObjMeasured(o.n);return {o:o,p:p,bar:(p==null?0:p),m:m};}).sort((a,b)=>(b.p==null?-1:b.p)-(a.p==null?-1:a.p));
  v.innerHTML='<div class="chips" style="margin-bottom:14px">'+
  '<div class="chip"><div class="v">'+tot+'</div><div class="l">'+(_ar?'الإنجازات المسجّلة':'Achievements logged')+'</div></div>'+
  '<div class="chip"><div class="v">'+thisM+'</div><div class="l">'+(_ar?'هذا الشهر':'This month')+'</div></div>'+
  '<div class="chip"><div class="v">'+tracked+' / '+RPT_KPIS.length+'</div><div class="l">'+(_ar?'مؤشرات لها بيانات':'KPIs with data')+'</div></div>'+
- '<div class="chip"><div class="v">'+avg+'%</div><div class="l">'+(_ar?'متوسط التقدم نحو أهداف 2026':'Avg progress to 2026 targets')+'</div></div></div>'+
+ '<div class="chip"><div class="v">'+(avg==null?'—':avg+'%')+'</div><div class="l">'+(avg==null
+   ?(_ar?'لا مؤشر مقيس بعد — لا متوسط':'No KPI measured yet — no average')
+   :(_ar?('متوسط التقدم نحو أهداف 2026 — للمؤشرات المقيسة ('+tracked+' من '+RPT_KPIS.length+')')
+        :('Avg progress to 2026 targets — of the '+tracked+' measured, not all '+RPT_KPIS.length)))+'</div></div></div>'+
  '<div class="card"><h3>'+(_ar?'تقدّم الأهداف <span class="rpt-small">— متوسط تقدّم مؤشرات كل هدف</span>':'Objective progress <span class="rpt-small">— average of each objective\'s KPI progress</span>')+'</h3>'+
- objBars.map(x=>'<div style="display:flex;gap:10px;align-items:center;margin:7px 0"><span class="tag" style="min-width:34px;text-align:center">#'+x.o.n+'</span><div style="flex:1"><div style="font-size:12.5px;margin-bottom:3px">'+esc(rptObjTitle(x.o))+'</div><div class="rpt-bar"><i class="'+(x.p>=100?'ok':x.p>=50?'':'warn')+'" style="width:'+x.p+'%"></i></div></div><b style="min-width:42px;text-align:right">'+x.p+'%</b></div>').join('')+'</div>'+
+ objBars.map(x=>'<div style="display:flex;gap:10px;align-items:center;margin:7px 0"><span class="tag" style="min-width:34px;text-align:center">#'+x.o.n+'</span><div style="flex:1"><div style="font-size:12.5px;margin-bottom:3px">'+esc(rptObjTitle(x.o))+
+ ' <span class="rpt-small">'+(x.m.of===0?(_ar?'· بلا مؤشر':'· no KPI')
+   :x.m.of===1?(x.m.n?(_ar?'· مؤشره الوحيد مقيس':'· its only KPI is measured'):(_ar?'· لم يُقَس مؤشره الوحيد':'· its only KPI is not measured'))
+   :x.m.n===0?(_ar?('· لم يُقَس أي من '+rptNKpi(x.m.of)):('· none of its '+rptNKpi(x.m.of)+' measured'))
+   :(_ar?('· قيس '+x.m.n+' من '+rptNKpi(x.m.of)):('· '+x.m.n+' of '+rptNKpi(x.m.of)+' measured')))+'</span>'+
+ '</div><div class="rpt-bar"><i class="'+(x.p>=100?'ok':x.p>=50?'':'warn')+'" style="width:'+x.bar+'%"></i></div></div><b style="min-width:42px;text-align:right">'+(x.p==null?'—':x.p+'%')+'</b></div>').join('')+'</div>'+
  '<div class="card"><h3>'+(_ar?'أحدث الإنجازات':'Recent achievements')+' <button class="btn pri sm" onclick="rptOpenAch()">＋ '+(_ar?'تسجيل إنجاز':'Log achievement')+'</button></h3>'+
  (recent.length?'<div class="tbl-wrap"><table><thead><tr><th>'+(_ar?'التاريخ':'Date')+'</th><th>'+(_ar?'الإنجاز':'Achievement')+'</th><th>'+(_ar?'العضو':'Member')+'</th><th>'+(_ar?'الهدف':'Objective')+'</th><th>'+(_ar?'القيمة':'Value')+'</th></tr></thead><tbody>'+recent.map(a=>rptRowAch(a,false)).join('')+'</tbody></table></div>':'<div class="empty">'+(_ar?'لا إنجازات بعد — سجّل أول إنجاز.':'No achievements yet — log the first one.')+'</div>')+'</div>';
 }
@@ -511,8 +542,9 @@ function rptObj(v){
   const p=rptObjProgress(o.n);
   const open=rptOpenObjs[o.n];
   return '<div class="rpt-obj '+(open?'open':'')+'"><div class="head" onclick="rptToggleObj('+o.n+')">'+
-  '<span class="n">'+o.n+'</span><div class="t">'+esc(rptObjTitle(o))+'<div class="meta">'+((typeof LANG!=='undefined'&&LANG==='ar')?('الربط الاستراتيجي '+esc(o.link)+' · '+esc(rptDeptLabel(o.dept))+' · '+ks.length+' مؤشر · '+ach.length+' إنجاز'):('Strategic link '+esc(o.link)+' · '+esc(rptDeptLabel(o.dept))+' · '+ks.length+' KPI'+(ks.length!==1?'s':'')+' · '+ach.length+' achievement'+(ach.length!==1?'s':'')))+'</div></div>'+
-  '<div style="min-width:130px"><div class="rpt-bar"><i class="'+((p>=100)?'ok':(p>=50)?'':'warn')+'" style="width:'+(p||0)+'%"></i></div><div class="rpt-small" style="text-align:right">'+(p==null?rptAr('no KPI','بلا مؤشر'):p+'%')+'</div></div></div>'+
+  '<span class="n">'+o.n+'</span><div class="t">'+esc(rptObjTitle(o))+'<div class="meta">'+((typeof LANG!=='undefined'&&LANG==='ar')?('الربط الاستراتيجي '+esc(o.link)+' · '+esc(rptDeptLabel(o.dept))+' · '+rptNKpi(ks.length)+' ('+rptMeasuredOf(ks).length+' مقيس) · '+ach.length+' إنجاز'):('Strategic link '+esc(o.link)+' · '+esc(rptDeptLabel(o.dept))+' · '+rptNKpi(ks.length)+' ('+rptMeasuredOf(ks).length+' measured) · '+ach.length+' achievement'+(ach.length!==1?'s':'')))+'</div></div>'+
+  '<div style="min-width:130px"><div class="rpt-bar"><i class="'+((p>=100)?'ok':(p>=50)?'':'warn')+'" style="width:'+(p||0)+'%"></i></div><div class="rpt-small" style="text-align:right">'+
+  (p!=null?(p+'%'):ks.length?rptAr('not measured','لم يُقَس'):rptAr('no KPI','بلا مؤشر'))+'</div></div></div>'+
   '<div class="body">'+
   (ks.length?ks.map(k=>{
     const act=rptActual(k);const pc=rptPct(k);const ov=RDB.overrides[k.n];
@@ -570,7 +602,16 @@ function rptHTML(){
   const act=rptActual(k);const pc=rptPct(k);
   return '<tr><td style="'+td+'">KPI '+k.n+'</td><td style="'+td+'">'+esc(rptKpiTitle(k))+'</td><td style="'+td+';text-align:right">'+rfmtTarget(k)+'</td><td style="'+td+';text-align:right">'+rfmtVal(k,act)+'</td><td style="'+td+';text-align:right;color:'+(pc>=100?'#1E9E62':pc>=50?'#FF6B00':'#D9920B')+';font-weight:700">'+(act==null?'—':pc+'%')+'</td></tr>';
  }).join('');
- const gaps=objs.flatMap(o=>RPT_KPIS.filter(k=>k.obj===o.n)).filter(k=>rptPct(k)<50).map(k=>'<li>KPI '+k.n+' — '+esc(rptKpiTitle(k))+': '+rptAr('at '+(rptActual(k)==null?'no data':rptPct(k)+'%')+' of target '+rfmtTarget(k),(rptActual(k)==null?'لا بيانات':rptPct(k)+'%')+' من الهدف '+rfmtTarget(k))+'</li>').join('');
+ /* a KPI nobody has recorded is not a shortfall. Before this, a report with ONE measurement on it
+    listed 29 "gaps", all 29 reading "no data" — see the note on rptObjProgress. Gaps are now the
+    MEASURED ones under half their target, and the unmeasured are counted out loud underneath so
+    the shorter list cannot be read as "everything else is fine". */
+ const scoped=objs.flatMap(o=>RPT_KPIS.filter(k=>k.obj===o.n));
+ const unmeasured=scoped.filter(k=>rptActual(k)==null).length;
+ const gaps=scoped.filter(k=>rptActual(k)!=null&&rptPct(k)<50).map(k=>'<li>KPI '+k.n+' — '+esc(rptKpiTitle(k))+': '+rptAr('at '+rptPct(k)+'% of target '+rfmtTarget(k),rptPct(k)+'% من الهدف '+rfmtTarget(k))+'</li>').join('');
+ const gapsNote=unmeasured?('<div style="font-size:12px;color:#7C8194;margin-top:6px">'+rptAr(
+   unmeasured+' of '+scoped.length+' KPIs have no figure recorded for this period and are not counted as gaps — see the table above.',
+   unmeasured+' من '+scoped.length+' مؤشرًا بلا رقم مسجّل لهذه الفترة، ولا تُحتسب ضمن الفجوات — انظر الجدول أعلاه.')+'</div>'):'';
  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #FF6B00;padding-bottom:14px;margin-bottom:18px">'+
  '<div>'+(typeof logoSrc==='function'?'<img src="'+logoSrc()+'" style="height:40px;display:block;margin-bottom:6px" alt="Direct">':'')+'<div style="font-weight:800;font-size:21px">'+(typeof brandName==='function'?brandName():'Direct Business')+'</div>'+
  '<div style="color:#7C8194;font-size:12px">'+rptAr('Commercial Department · Operational Plan 2026','القسم التجاري · الخطة التشغيلية 2026')+'</div></div>'+
@@ -582,7 +623,9 @@ function rptHTML(){
  :'<div style="color:#7C8194;font-size:13px">'+rptAr('No achievements logged in this period'+(rptRep.scope!=='dept'?' for this scope':'')+'.','لم تُسجَّل إنجازات في هذه الفترة'+(rptRep.scope!=='dept'?' لهذا النطاق':'')+'.')+'</div>')+
  '<h3 style="font-weight:700;font-size:13.5px;margin:18px 0 8px;color:#3C4050">'+rptAr('2 · KPI progress vs 2026 targets','2 · تقدّم المؤشرات مقابل أهداف 2026')+'</h3>'+
  '<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#7C8194;text-align:'+rptAr('left','right')+'"><th style="padding:6px;border-bottom:1px solid #EEE8DE">#</th><th style="padding:6px;border-bottom:1px solid #EEE8DE">'+rptAr('KPI','المؤشر')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">'+rptAr('Target','الهدف')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">'+rptAr('Actual (YTD)','الفعلي (منذ بداية السنة)')+'</th><th style="padding:6px;border-bottom:1px solid #EEE8DE;text-align:right">Progress</th></tr></thead><tbody>'+kpiRows+'</tbody></table>'+
- (gaps?'<h3 style="font-weight:700;font-size:13.5px;margin:18px 0 8px;color:#3C4050">'+rptAr('3 · Gaps &amp; focus areas (&lt;50% of target)','3 · الفجوات ومجالات التركيز (أقل من 50% من الهدف)')+'</h3><ul style="font-size:12.5px;padding-left:18px;color:#1C1E2B">'+gaps+'</ul>':'')+
+ ((gaps||gapsNote)?'<h3 style="font-weight:700;font-size:13.5px;margin:18px 0 8px;color:#3C4050">'+rptAr('3 · Gaps &amp; focus areas (&lt;50% of target)','3 · الفجوات ومجالات التركيز (أقل من 50% من الهدف)')+'</h3>'+
+ (gaps?'<ul style="font-size:12.5px;padding-left:18px;color:#1C1E2B">'+gaps+'</ul>'
+      :'<div style="font-size:12.5px;color:#1C1E2B">'+rptAr('No measured KPI is below half its target.','لا يوجد مؤشر مقيس دون نصف هدفه.')+'</div>')+gapsNote:'')+
  (function(){var _f=(typeof window.rptFootBits==='function')?window.rptFootBits():''; return _f?('<div style="margin-top:24px;border-top:1px solid #EEE8DE;padding-top:10px;font-size:10.5px;color:#7C8194">'+esc(_f)+'</div>'):'';})();
 }
 window.rptBuildReport=function(){const o=document.getElementById('rptout');if(o)o.innerHTML='<div class="rpt-preview" id="rptdoc">'+rptHTML()+'</div>';

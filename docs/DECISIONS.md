@@ -1885,6 +1885,37 @@ heading on any of the 19 pages in Arabic, no section heading with a double space
 language, and a brake that the English headings stay English.
 *Date: 2026-09-22, js/core/core-09-v26.js. Status: ACTIVE.*
 
+**M60 — an average is taken over what was measured, and it says how much of the plan that is; an
+unmeasured item is never a zero and never a shortfall.** Found 2026-09-22 (fire #205) on the
+Reports page, which carries 14 objectives and 30 KPIs whose figures are entered by hand. `rptPct()`
+answers **0** for a KPI with no figure — correct for a progress bar, which cannot be drawn as null
+— and three separate places read that 0 as a measurement. Driven with **one** KPI recorded at
+exactly its 20,000,000 SAR target and nothing else touched:
+  · the objective it belongs to read **17%** — 100 ÷ its 6 KPIs, five of which nobody had recorded;
+  · the headline "Avg progress to 2026 targets" read **3%** — 100 ÷ all 30;
+  · and the printed report's "Gaps & focus areas (&lt;50% of target)" listed **29 shortfalls, every
+    one of them reading "no data"**, on a document that goes to management.
+The author was aware of the distinction — a `withData` guard was already in the function — but the
+denominator stayed the full list, so the awareness never reached the arithmetic. That is the shape
+to watch for: **a null-check that guards the wrong step is worse than none, because it reads as
+handled.**
+The rule has two halves and both are load-bearing:
+  1. average over the measured ones, and return **null** (shown "—") when none is measured;
+  2. **say what the number speaks for.** A correct average over 1 of 30 KPIs is still misleading if
+     it is printed as if it covered the plan, so the screen now reads "of the 1 measured, not all
+     30", "1 of 6 KPIs measured", and the report states "29 of 30 KPIs have no figure recorded for
+     this period and are not counted as gaps". Shortening a list without saying what was left out
+     just moves the lie (same reason as M52, and the reason the gaps section is still printed when
+     there are no gaps at all).
+Same family as M53 (an RLS refusal is HTTP 200 + `[]`, not zero) and CLAUDE.md's standing rule
+"never fabricate a number to fill a gap; leave it null and say why" — which is now three different
+mechanisms producing one mistake, so treat "empty rendered as zero" as a thing to look for rather
+than a thing to notice.
+Guard: `scripts/qa/probe-a-kpi-nobody-measured-is-not-a-zero.mjs`, whose brake is that a KPI that
+IS measured and IS below half its target must still be named a gap and still pull its objective's
+average down — the failure mode a careless fix would introduce.
+*Date: 2026-09-22, js/core/core-10-v29-reports.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
