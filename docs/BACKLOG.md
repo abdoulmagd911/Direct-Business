@@ -136,6 +136,27 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #220 (2026-09-23 ~08:00 UTC) — all 308 checks re-run from scratch: every one green
+
+Four rounds of changes had gone in since the last full run, touching six files including the Leads
+list, the shared exporter, the Arabic wording layer and the Settings page. I re-ran the entire
+battery — 308 checks that can fail, three at a time — and **every single one passed, with no
+failures at any point.** The previous two full runs each had one or two checks go red under load and
+pass when re-run alone; this one had none.
+
+**One correction to my own earlier note.** In the Arabic round I wrote "`Yes` on all 136 airlines".
+That number came from the project notes, not from counting. Your airlines register actually holds
+**139**, and the page shows the 136-row copy it already tells you about on screen. The wording is
+fixed everywhere it appeared.
+
+**And a false alarm I chased and dropped.** I read the Service Levels page as fourteen rows of empty
+cells. It isn't — all 56 cells are filled. The cells are editable boxes, and the way I was reading
+the page cannot see what is typed inside a box. That is the third time in this stretch the *test*
+was wrong rather than the app (the other two: a panel that opens outside the page area, and two
+buttons that open a new tab). I have written the lesson into the rules so it does not cost a fourth.
+
+---
+
 ## Routine fire #219 (2026-09-23 ~07:00 UTC) — seven buttons on your Settings page did nothing at all
 
 **I pressed every control on the Settings page, one at a time, each from a freshly loaded page.**
