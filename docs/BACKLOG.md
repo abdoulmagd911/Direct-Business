@@ -127,6 +127,50 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #204 (2026-09-22 ~06:00 UTC) — one page's title was English in Arabic, and the reason was a missing "&"
+
+**What was wrong.** I checked the *title* at the top of all nineteen pages, in Arabic, against your
+real data. Eighteen were Arabic. One was not — the Providers page read:
+
+> **Providers  GDS**
+
+English on an otherwise fully Arabic screen. And look at the gap between the two words: there are
+**two spaces** there. That is where the "&" should be.
+
+**Why it happened, and it is more interesting than a missing translation.** The code that draws that
+title runs the words through a safety step that strips out a few characters that could break the
+page — and it *deleted* the "&" instead of writing it safely. So the title stopped being
+"Providers & GDS" and became "Providers  GDS".
+
+The Arabic translation is looked up by the exact words. "Providers & GDS" has an Arabic translation
+saved, and always had. "Providers  GDS" has none, because no such title was ever supposed to exist.
+So the lookup found nothing and left the English standing.
+
+Nobody forgot to translate this page. **The title was renamed after it was translated.** That is the
+lesson worth keeping, and it is now a written rule: anything that edits a word *after* the Arabic
+was matched to it will quietly un-translate it, and it fails silently — you get English on screen,
+not an error.
+
+**Fixed.** The safety step now writes the character safely instead of deleting it. Two things
+changed on screen, not one:
+- in **Arabic** the page title now reads «الموردون و GDS»;
+- in **English** it reads "Providers & GDS" again, with the ampersand — it had been wrong there too,
+  in plain sight, and nobody had cause to look twice at a heading.
+
+**Guarded.** Seven checks, the main one being a rule rather than a single page: *on all nineteen
+pages, in Arabic, no title on screen may be in English.* Titles are the one place that test is safe
+to run — a title is always the app's own words, never a company name or something a person typed. My
+sabotage run (putting the deletion back) failed four of the seven, and printed the double space
+rather than describing it.
+
+**Two false leads this round, worth recording so the next session doesn't re-walk them.** I first
+tried to find English text by reading *every* word on every page. That approach flagged the Settings
+page — wrongly: those sections are developer cards the app deliberately keeps hidden, and a person
+never sees them. It also flagged supplier and company names, which are data, not translation gaps. A
+second attempt looked for unused entries in the Arabic dictionary; that cannot tell a genuinely dead
+entry from one whose text is built on the fly or comes from your database. Both dead ends; the
+titles-only sweep is the one that gives a trustworthy answer.
+
 ## Routine fire #203 (2026-09-22 ~04:00 UTC) — the card that pops up on a lead row was still in English
 
 **What was wrong.** Rest your mouse on a lead in the list and a small card appears with that lead's

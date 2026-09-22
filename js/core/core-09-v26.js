@@ -1191,6 +1191,18 @@
   };
   window.v26_3RefreshChipCounts=v26_3RefreshChipCounts;
 
+  /* 2026-09-22 (fire #204, found by sweeping every page's headings in Arabic): the section head
+     below used to sanitise its title with .replace(/[<>&]/g,'') — it DELETED the character instead
+     of escaping it. Only one of the twelve titles contains one, and it broke twice over:
+       · in English the Providers page read "Providers  GDS" — the ampersand gone, two spaces left
+         where it had been;
+       · in Arabic it stayed English, alone among all 19 pages. The Arabic pass (js/21) looks the
+         heading up word-for-word and holds 'Providers & GDS'; the deletion had turned the heading
+         into "Providers  GDS", a string no dictionary anywhere has, so the lookup missed.
+     Escaping keeps the character and the lookup finds it. Same helper for the subtitle, which was
+     sanitised the same way. */
+  var v26_3Esc=function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+
   /* ===== 6. Build the section-head + chip strip + insights panel for current section ===== */
   var v26_3InjectSectionHead=function(){
     try{
@@ -1222,9 +1234,9 @@
       var head=document.createElement('div');
       head.className='v26_3-section-head';
       head.innerHTML=
-        '<div class="title-block"><h2>'+(titleText.replace(/[<>&]/g,''))+
+        '<div class="title-block"><h2>'+v26_3Esc(titleText)+
         ' <button class="help-dot" type="button" title="What is this section?" aria-label="What is this section?" onclick="var t=document.getElementById(\'v26TipBtn\');if(t&&t.onclick)t.click();">?</button></h2>'+
-        (subText?'<div class="sub">'+(subText.replace(/[<>&]/g,''))+'</div>':'')+'</div>'+
+        (subText?'<div class="sub">'+v26_3Esc(subText)+'</div>':'')+'</div>'+
         ((cfg.demoteSelectors&&cfg.demoteSelectors.length)?'<button class="v26_3-insights-btn'+(insightsOpen?' active':'')+'" type="button" data-v26_3-toggle="1">'+insightsLbl+' <span style="opacity:.6">'+(insightsOpen?'▴':'▾')+'</span></button>':'');
       /* Wire the toggle */
       var ibtn=head.querySelector('[data-v26_3-toggle]');

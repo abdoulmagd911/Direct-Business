@@ -1858,6 +1858,33 @@ boolean-declared field holding a sentence is left exactly as stored and that a t
 never translated.
 *Date: 2026-09-22, js/09-funnels.js. Status: ACTIVE.*
 
+**M59 — sanitising is escaping, never deleting: a character removed from a heading renames it,
+and the rename is what breaks the translation.** Found 2026-09-22 (fire #204) by sweeping the
+HEADINGS of all 19 pages in Arabic against the live database. 18 came back clean; the Providers
+page came back `Providers  GDS ?` — Latin on an otherwise fully Arabic screen, with **two spaces**
+where the ampersand had been. The section head (`js/core/core-09-v26.js`, `v26_3InjectSectionHead`)
+sanitised its title with `.replace(/[<>&]/g,'')`, deleting the character instead of escaping it.
+Only one of its twelve titles contains one, and losing it broke the page twice over:
+  · in English the heading simply read wrong — "Providers  GDS", the ampersand gone;
+  · in Arabic it stayed English, alone among all 19 pages, because the Arabic pass (`js/21`) looks a
+    heading up **word-for-word** and holds `'Providers & GDS'`. The deletion had renamed the heading
+    to a string no dictionary anywhere has, so the lookup missed and the English stood.
+The Arabic was never missing. Nobody had failed to translate this heading — the heading had been
+renamed after it was translated. That is the general shape and the reason this is a rule rather
+than a one-line fix: **any transform applied to a string AFTER a word-for-word map is built will
+silently un-translate it**, and it fails open (English text on screen), not loudly.
+So: escape (`&amp;`), never strip. And when a translation is missing for exactly one item out of
+twelve, look for what edits the string before assuming the dictionary is short.
+Corollary worth keeping: a **heading** is the one element where "is there Latin here?" has no data
+false positives — it is always the app's own words, never a company name or an answer somebody
+typed. A sweep over every text node is not safe that way (it flags supplier names and SOP titles),
+and it must also respect visibility, or it flags cards `js/31` deliberately hides — both of those
+were false leads in this same round before the heading sweep gave a clean answer.
+Guard: `scripts/qa/probe-a-page-heading-is-never-english-in-arabic.mjs` — no Latin-only visible
+heading on any of the 19 pages in Arabic, no section heading with a double space in either
+language, and a brake that the English headings stay English.
+*Date: 2026-09-22, js/core/core-09-v26.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
