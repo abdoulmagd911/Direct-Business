@@ -1830,6 +1830,34 @@ Policies are OR-ed, so a team member may write the revenue target while being un
 single invoice. Nothing is broken — `canFinEdit()` is admin/manager, so no screen offers it — and
 permissions are the owner's to set, so it is an owner note rather than a change.
 
+**M58 — a value may be translated only when the app owns its vocabulary; a label always may.**
+Found 2026-09-22 (fire #203). The funnel card that appears when you rest on a lead row read, in
+Arabic: the funnel's English name, then six of six English field labels, then `No` — while the money
+line beside them translated correctly. A half-finished pass, not a missing translation: somebody
+localised the money mask and the two warnings and stopped. The Arabic was never missing — all 7
+funnels carry a real `name_ar` and all 51 template fields a `label_ar`, counted in the table. And
+`fnLabel`/`fnTitle` **already existed in the same file**, built by round 42 when it made the funnel
+CARD bilingual; the popup was simply the second surface that never called them (M38's rule in its
+third costume, and the reason the fix reuses them rather than inlining the same choice).
+**The line the rule draws is where the fix stops.** A LABEL is the app's own word and is always
+translatable. A VALUE is only translatable when the app owns its vocabulary, and that has to be
+checked against the data rather than assumed:
+  · the three fields the template DECLARES boolean (`has_app`, `iata`, `replied`) hold **strings**
+    in the live data, so only an exact yes/no token is translated. `replied` reads
+    **"Yes — same day"** — somebody's own sentence — and a prefix match would have rewritten it to
+    «نعم». That is not a hypothetical: it is what the sabotage run did, and the failure line shows
+    the sentence destroyed.
+  · a `text` field whose value happens to read "No" is free text and is left exactly as typed.
+  · `tender_status` is `select:preparing,applied,won,lost`, a closed list the app owns — but there
+    is **no Arabic for those four options anywhere in the data**, so translating them means
+    inventing the owner's wording. The value shows as stored and the gap is an owner note.
+Generally: before translating a value, ask who wrote it. If the answer is "a person", render it
+verbatim.
+Guard: `scripts/qa/probe-the-lead-hover-card-speaks-arabic.mjs`, whose brakes are that a
+boolean-declared field holding a sentence is left exactly as stored and that a text field's value is
+never translated.
+*Date: 2026-09-22, js/09-funnels.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

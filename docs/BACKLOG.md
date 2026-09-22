@@ -1,4 +1,4 @@
-# ⬆ Waiting on you — eighteen decisions, most urgent first
+# ⬆ Waiting on you — nineteen decisions, most urgent first
 
 *Written 2026-09-21. These built up one at a time across the sweep, each buried at the bottom of the
 round that found it, which means none of them ever arrived anywhere you'd see. This is the whole
@@ -19,6 +19,12 @@ says admin and manager, the other says admin, manager and team member. No screen
 button is admin-and-manager — so nothing is wrong today. But it is the opposite of the Finance
 question above, on the same role, and the two should probably be settled together. Tell me which
 way and I'll set it. *Raised #201.*
+
+**0c · Four dropdown words have no Arabic, and I won't invent them.** The tender-status field
+offers exactly four choices — preparing, applied, won, lost — and unlike every other funnel word,
+those four have no Arabic saved anywhere. So in Arabic the field label now reads «حالة المناقصة»
+correctly and the value beside it still reads "Won". Give me the four Arabic words and it's done in
+a minute; I'm not guessing at wording you'd have to live with on screen. *Raised #203.*
 
 **1 · Four company certificates have lapsed, and the commercial registration expires 2026-12-14.**
 ISO 9001 (Feb 2025), DUNS (Sep 2025), Saudization (Jan 2026), PCI DSS (Jul 2026). The CR is 85 days
@@ -120,6 +126,48 @@ saying so explicitly. The number belongs to someone outside Direct, which is the
 on this list at all. *Raised #140.*
 
 ---
+
+## Routine fire #203 (2026-09-22 ~04:00 UTC) — the card that pops up on a lead row was still in English
+
+**What was wrong.** Rest your mouse on a lead in the list and a small card appears with that lead's
+funnel answers. In Arabic, it looked like this:
+
+> **PARTNERS & TENDERS** · <company>
+> Partner type: Government tender
+> Has mobile app: No
+> API / partner program: No
+> Tender value (SAR): مسجّلة — تُقرأ في المالية
+> Tender deadline: 2026-02-01
+> Tender status: Won
+
+Six of six field names, and the funnel's own name, in English — on the Arabic card. The money line
+gives the game away: that one *did* translate. Somebody localised the money wording and the warnings
+underneath and stopped before the labels.
+
+**The Arabic was never missing.** All seven funnels have an Arabic name saved, and all fifty-one
+field names have an Arabic label saved. The card just never asked for them. Worse, the two helpers
+that pick the right language already existed in the same file — written months ago when the *full*
+funnel card was made bilingual. This popup was simply a second place that never used them.
+
+**Fixed.** It now reads the Arabic name and labels, and reuses those same two helpers rather than
+adding a third copy of the same decision. English is untouched.
+
+**Where I stopped, deliberately.** Three things on that card are still English in Arabic, and each
+is a value somebody typed rather than a word the app owns:
+
+- "Government tender" and "No" in the free-text fields — those are answers a person wrote. Changing
+  them would be rewriting your data.
+- **"Won" on tender status** — that field offers exactly four choices, and those four are the only
+  funnel words with **no Arabic saved anywhere**. That's decision **0c** on your list: give me the
+  four words and it's a minute's work. I'm not inventing wording you'd have to live with.
+
+One field *was* the app's own vocabulary and is now Arabic: a yes/no field showing "No" reads «لا».
+But only when it says exactly that — one of your records answers the same kind of field with
+**"Yes — same day"**, and that sentence is left exactly as typed. My sabotage run proved the point
+by matching loosely and turning it into «نعم»: the person's own words gone.
+
+**Guarded.** Eight checks. The two that matter most are the traps: a yes/no field holding a sentence
+must survive untouched, and a free-text value must never be translated.
 
 ## Routine fire #202 (2026-09-22 ~02:00 UTC) — two more stages showed the wrong word, and my fix three rounds ago should have caught them
 

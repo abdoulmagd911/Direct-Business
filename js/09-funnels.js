@@ -237,11 +237,41 @@
   function showPop(b,tr){
     hidePop();
     var f=fdef(b),det=b.funnelDetails||{},rowsH='';
+    /* 2026-09-22 (fire #203) — this card was half-translated, and the half it left was the labels.
+       Driven in Arabic against the live database it read: "PARTNERS & TENDERS · <company>" over
+       "Partner type:", "Has mobile app: No", "API / partner program: No", "Tender deadline:",
+       "Tender status:" — 6 of 6 field labels and the funnel's own name in English, and booleans as
+       Yes/No, while the money line beside them DID translate ("recorded — read on Finance" became
+       «مسجّلة — تُقرأ في المالية»). Somebody localised the two warnings below and the money mask and
+       stopped there.
+       The words were never missing: all 7 funnels carry a real `name_ar` and all 51 template fields
+       carry a `label_ar`, checked in the table. This card simply never asked for them.
+       (The `hover` key stays exactly what it was — a FLAG deciding which fields appear here. Its
+       text is English-only in the data, which looked like a second leak until it turned out nothing
+       renders it.) */
     if(f)(f.field_template||[]).forEach(function(fl){
       if(!fl.hover)return;var val=det[fl.key];if(val==null||val==='')return;
+      var _arF=fnAr();
       if(fnIsMoney(fl))val=fnMoneyMask(val);
-      else if(typeof val==='boolean')val=val?'Yes':'No';
-      rowsH+='<div style="margin:3px 0;font-size:12px;line-height:1.5"><span style="color:#7C8194">'+fl.label_en+':</span> '+String(val).replace(/</g,'&lt;').slice(0,240)+'</div>';
+      else if(typeof val==='boolean')val=val?(_arF?'نعم':'Yes'):(_arF?'لا':'No');
+      else if(String(fl.type||'')==='boolean'){
+        /* fire #203: the three fields the template DECLARES boolean (has_app, iata, replied) hold
+           STRINGS in the live data, so the branch above never fires for them and the Arabic card
+           read "No". Only an exact yes/no token is translated — `replied` currently holds
+           **"Yes — same day"**, which is somebody's own wording and is left exactly as typed. A
+           looser match would have rewritten that sentence, which is why the tokens are listed
+           rather than tested with a prefix. */
+        var _sv=String(val).trim().toLowerCase();
+        if(_sv==='yes'||_sv==='true'||_sv==='y'||_sv==='1') val=_arF?'نعم':'Yes';
+        else if(_sv==='no'||_sv==='false'||_sv==='n'||_sv==='0') val=_arF?'لا':'No';
+      }
+      /* fnLabel/fnTitle already exist in this file — round 42 built them when it made the funnel
+         CARD bilingual, and this popup is the second surface that never used them. Reusing them
+         rather than inlining the same choice keeps one answer to "what is this field called", and
+         inherits their fallback: a template row with no Arabic shows the English rather than a
+         blank. (M38's rule, in its third costume.) */
+      var lbl=fnLabel(fl);
+      rowsH+='<div style="margin:3px 0;font-size:12px;line-height:1.5"><span style="color:#7C8194">'+lbl+':</span> '+String(val).replace(/</g,'&lt;').slice(0,240)+'</div>';
     });
     var extra='';
     var _ar=(typeof LANG!=='undefined'&&LANG==='ar');
@@ -251,7 +281,11 @@
     pop=document.createElement('div');
     pop.className='v46-leadpop';
     pop.style.cssText='position:fixed;z-index:2147480000;max-width:390px;background:#fff;border:1px solid #E3DCCF;border-radius:12px;box-shadow:0 16px 40px -12px rgba(0,0,0,.25);padding:12px 15px;pointer-events:none';
-    pop.innerHTML='<div style="font-size:10.5px;font-weight:800;color:'+(FCOLOR[(f||{}).color]||'#5F5E5A')+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">'+((f&&f.name_en)||'Lead')+' \u00b7 '+String(b.name||'').replace(/</g,'&lt;')+'</div>'+rowsH+extra;
+        /* fire #203: the funnel's own name, in the reader's language. uppercase/letter-spacing are
+       left as they are — they do nothing to Arabic script and removing them would change the
+       English card for no reason. */
+    var _fname=(f?fnTitle(f):'')||(_ar?'عميل محتمل':'Lead');
+    pop.innerHTML='<div style="font-size:10.5px;font-weight:800;color:'+(FCOLOR[(f||{}).color]||'#5F5E5A')+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">'+_fname+' \u00b7 '+String(b.name||'').replace(/</g,'&lt;')+'</div>'+rowsH+extra;
     pop.__row=tr;
     document.body.appendChild(pop);
     var r=tr.getBoundingClientRect();
