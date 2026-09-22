@@ -136,6 +136,41 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #219 (2026-09-23 ~07:00 UTC) — seven buttons on your Settings page did nothing at all
+
+**I pressed every control on the Settings page, one at a time, each from a freshly loaded page.**
+Seven of them did nothing when clicked:
+
+- **"👤 View preset"** — the five buttons Commercial, Finance, CFO, Everything and B2B snapshot,
+  under a line that told you "Each preset shapes the sidebar and Today KPIs."
+- **"👤 View as — Change preset"** — the card next to Language.
+
+The sentence was not true. I switched between all five and measured the screen each time: the same
+twenty entries in the sidebar, the same cards, the same Today, down to the character. The lists that
+were supposed to shape the sidebar are read by nothing in the app, and the one thing a preset still
+controls is a credit-pool widget that the calm-Today redesign already hides. The "View as" card
+clicked a dropdown that was deleted a long time ago.
+
+**I took both away rather than making them work, and I want to be clear about why.** Who can see
+which page is already decided in one place — Team & Access → "Who can open what", which is a card
+on that same page. A second control that also hides sidebar entries could take a page away from
+someone your access settings say may open it. Nothing is deleted: the machinery is still in the
+code and putting the card back is a one-line change if you want it.
+
+**A third one was pointing at the wrong place.** The card that says "Company profile — CR, VAT,
+IBAN, Wakeel" was looking for a company record of *ours* among your companies. There isn't one —
+there are 108 companies and none of them is Direct — so it fell back to scrolling down the page and
+flashing an orange outline round the one-pager buttons. It now opens the Generator's "Company assets
+& registry", which is where your CR, VAT and IBAN actually live.
+
+**Two it turned out I was wrong about.** The two one-pager buttons looked dead and are not — they
+open in a new tab, which my first test could not see. I corrected the test rather than the app.
+
+After the change every control on that page goes somewhere, and there is a check that will fail if
+one ever stops.
+
+---
+
 ## Routine fire #218 (2026-09-23 ~06:00 UTC) — I read all twenty pages in Arabic; two words were still English
 
 **I went through every page of the app in Arabic against your real data, looking only at the app's

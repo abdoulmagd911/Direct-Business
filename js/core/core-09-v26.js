@@ -621,9 +621,24 @@
       // Create simple cards for each Daily action
       var dailyCards=[
         {label:V26_DAILY_LABELS.language,sub:lang==='ar'?'بدّل بين EN و AR':'Switch between EN and AR',onClick:function(){if(typeof toggleLang==='function')toggleLang();}},
-        {label:V26_DAILY_LABELS.viewAs,sub:lang==='ar'?'غيّر نمط العرض':'Change preset',onClick:function(){var b=document.getElementById('v25PresetBtn');if(b)b.click();}},
+        /* 2026-09-22 (fire #219): the "👤 View as · Change preset" card is GONE from this list.
+           It clicked `#v25PresetBtn` — a dropdown that v25RenderPresetDropdown deletes and returns
+           early from ("preset dropdown removed — was emoji clutter the team doesn't need"). The
+           button has not existed for a long time, so `if(b)` quietly did nothing and the card sat
+           on the Settings page looking like a choice. The preset card it pointed at is hidden in
+           the same fire (core-08, with the reasoning); one dead control should not outlive the
+           other. Reversible: this line is the whole of it. */
         {label:V26_DAILY_LABELS.pool,sub:lang==='ar'?'حرّر السقف وراجع التاريخ':'Edit cap, see history',onClick:function(){if(typeof v25OpenPoolSettings==='function')v25OpenPoolSettings();}},
-        {label:V26_DAILY_LABELS.company,sub:lang==='ar'?'الرقم التجاري، الضريبي، IBAN، Wakeel':'CR, VAT, IBAN, Wakeel',onClick:function(){if(typeof editBusiness==='function'){var me=(DB.businesses||[]).find(function(b){return b.id==='b_directbusiness'||b.isSelf;});if(me){editBusiness(me.id);return;}}var cs=Array.prototype.slice.call(document.querySelectorAll('#view .card'));var c=null;for(var i=0;i<cs.length;i++){if(/printables|للطباعة/.test(cs[i].textContent||'')){c=cs[i];break;}}if(c){c.scrollIntoView({behavior:'smooth',block:'center'});c.style.outline='2px solid #FF6B00';setTimeout(function(){c.style.outline='';},1600);}}},
+        /* 2026-09-22 (fire #219): this card says "CR, VAT, IBAN, Wakeel" and used to look for a
+           company record of our own (`b_directbusiness` / `isSelf`) that has never existed in the
+           live data — 108 companies, none of them us — and then fell back to scrolling the page to
+           the PRINTABLES card and flashing an orange outline round it. A person who clicks "CR,
+           VAT, IBAN" and gets a one-pager button highlighted has not been taken to CR, VAT and
+           IBAN. Those values live in the company_identity registry, and the app already has the
+           screen for them: the Generator's "Company assets & registry" editor (js/66, dgGo). It
+           goes there now. The old scroll-and-flash stays as the fallback for the case where the
+           Generator layer did not load, because a highlight is still better than nothing. */
+        {label:V26_DAILY_LABELS.company,sub:lang==='ar'?'الرقم التجاري، الضريبي، IBAN، Wakeel':'CR, VAT, IBAN, Wakeel',onClick:function(){if(typeof window.dgGo==='function'){try{current='documents';openLead=null;window.dgGo('assets');return;}catch(_){}}var cs=Array.prototype.slice.call(document.querySelectorAll('#view .card'));var c=null;for(var i=0;i<cs.length;i++){if(/printables|للطباعة/.test(cs[i].textContent||'')){c=cs[i];break;}}if(c){c.scrollIntoView({behavior:'smooth',block:'center'});c.style.outline='2px solid #FF6B00';setTimeout(function(){c.style.outline='';},1600);}}},
         {label:V26_DAILY_LABELS.chain,sub:lang==='ar'?'من يوافق على ماذا':'Who approves what',onClick:function(){var m=(lang==='ar'?'تتم إدارة قواعد التسلسل داخل ملف كل عميل (افتح العميل ثم «التسلسل الإداري»).':'Chain-of-command lives inside each client (open a client → Chain of command).');if(typeof toast==='function')toast(m);else alert(m);}},
         {label:V26_DAILY_LABELS.team,sub:lang==='ar'?'الأعضاء، الأدوار، الصلاحيات':'Members, roles, page access',onClick:function(){if(typeof window.v48Users==='function')window.v48Users();else if(typeof toast==='function')toast('Team & Access');}}
       ];

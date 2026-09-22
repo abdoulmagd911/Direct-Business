@@ -2127,6 +2127,39 @@ same word in Arabic usage.
 Guard: `scripts/qa/probe-a-key-client-reads-arabic-too.mjs`.
 *Date: 2026-09-22, js/21-v27-arabic-column-header-stat-label-transl.js. Status: ACTIVE.*
 
+**M68 — a control that offers a choice must make one; when the thing it chose is owned elsewhere,
+take the control away rather than build a second owner.** Found 2026-09-22 (fire #219) by pressing
+every control on the Settings page, each from a clean page. Seven did nothing:
+
+    👤 View preset → 🎯 Commercial · 💰 Finance · 📊 CFO · 🌐 Everything · 📈 B2B snapshot
+    👤 View as · "Change preset"
+
+under the sentence **"Each preset shapes the sidebar and Today KPIs."** Measured live, all five
+presets gave the identical screen: the same 20 sidebar entries, the same two visible cards, the same
+1,084 characters of Today. Every preset's `nav` and `todoKpis` list is read by nothing at all, and
+the one flag still consumed (`sections.showPool`) drives the Commercial Credit Pool widget on Today
+— which v26.3's calm-Today redesign demotes out of sight (`demoteSelectors` in core-09). The "View
+as" card clicked `#v25PresetBtn`, a dropdown `v25RenderPresetDropdown` deletes and returns early
+from; `if(b)` then did nothing, quietly, for months.
+**Hidden, not rebuilt, and that is the rule.** Who sees which page already belongs to Team & Access
+→ "Who can open what" (js/52 + js/64) — a card on the same page. A preset that also shaped the
+sidebar would be a second owner of one decision (the trap v36 was written about) and could hide a
+page from somebody the access matrix says may open it. What Today shows already belongs to the
+calm-Today redesign. Reversible: `V25_PRESETS`, `v25GetPreset` and `v25SetPreset` are untouched.
+Carried with it, a third control that was mislabelled rather than dead: **"Company profile · CR,
+VAT, IBAN, Wakeel"** looked for a company record of our own (`b_directbusiness` / `isSelf`) that has
+never existed in the live data — 108 companies, none of them us — and fell back to scrolling to the
+PRINTABLES card and flashing an outline round it. A scroll-and-flash is indistinguishable from doing
+nothing (the sabotage run proves it: the probe reports the control inert). It opens the Generator's
+"Company assets & registry" now, which is where those values live.
+**And a method note, because this round got it wrong first:** a control is not inert because the
+page did not change. Two Settings controls open a new tab through `window.open`, and the Team &
+Access panel is a fixed overlay outside `#view` that changes neither the url nor `#view` — and once
+open it masked every later click. Measure the whole document, watch for popups and dialogs, and put
+the page back between clicks.
+Guard: `scripts/qa/probe-a-settings-button-does-what-it-says.mjs`.
+*Date: 2026-09-22, js/core/core-08-v25.js + js/core/core-09-v26.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

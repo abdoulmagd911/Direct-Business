@@ -1381,20 +1381,30 @@
         try{__v25_origRenderSettings(v);}catch(_){v.innerHTML='';}
       }
       var cap=(DB&&DB.settings&&DB.settings.commercialPool&&DB.settings.commercialPool.capSAR)||1250000;
-      var preset=v25GetPreset();
-      var presetLabel=(V25_PRESETS[preset]||{}).label||preset;
-      var tplStatus=v25TemplateStatus();
+      var tplStatus=v25TemplateStatus();   /* preset/presetLabel dropped with the hidden card below */
       var html='<div class="card v25-settings-pool" style="margin-bottom:14px">'+
         '<h3>Commercial Credit Pool</h3>'+
         '<div class="ch-sub">Cap currently <b>'+v25Money(cap)+'</b>. Calendar (Gregorian) month is the billing period. Over-limit is informational only and logged to audit.</div>'+
         '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" onclick="v25OpenPoolSettings()">Edit cap…</button>'+
         '<button class="btn ghost sm" onclick="v25ShowPoolHistory()">History</button></div></div>'+
-        '<div class="card v25-settings-presets" style="margin-bottom:14px">'+
-        '<h3>👤 View preset</h3>'+
-        '<div class="ch-sub">Active preset: <b>'+v25EscHTML(presetLabel)+'</b>. Each preset shapes the sidebar and Today KPIs.</div>'+
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">';
-      Object.keys(V25_PRESETS).forEach(function(k){var pp=V25_PRESETS[k];html+='<button class="btn sm'+(k===preset?' pri':'')+'" onclick="v25SetPreset(\''+k+'\')">'+pp.ic+' '+pp.label+'</button>';});
-      html+='</div></div>'+
+        /* 2026-09-22 (fire #218/#219): the "👤 View preset" card is HIDDEN here. It offered five
+           buttons — Commercial · Finance · CFO · Everything · B2B snapshot — under a sentence that
+           read "Each preset shapes the sidebar and Today KPIs." Driven live against the real
+           database, all five produced the identical screen: the same 20 sidebar entries, the same
+           two visible cards, the same 1,084 characters of Today. Each preset's `nav` and `todoKpis`
+           lists are read by nothing at all; the one flag anything still consumes (sections.showPool)
+           drives the Commercial Credit Pool widget on Today, and v26.3's calm-Today redesign
+           demotes that widget out of sight (core-09's demoteSelectors). So the card was five
+           buttons that changed nothing a person could see, above a sentence that was not true.
+           NOT rebuilt into a working preset, deliberately: both halves of what it promises already
+           belong to something else. Who sees which page is Team & Access → "Who can open what",
+           a card on THIS page (js/52 + js/64); what Today shows is the calm-Today redesign. A
+           second mechanism shaping the sidebar would be the duplication trap that v36 was written
+           about, and it could hide a page from someone the access matrix says may open it.
+           A reversible hide, like v36: V25_PRESETS, v25GetPreset and v25SetPreset are untouched and
+           still reachable, so restoring the card is deleting this comment and un-commenting below.
+           Guard: probe-a-settings-button-does-what-it-says. */
+        /* '<div class="card v25-settings-presets" …>👤 View preset … v25SetPreset(k) …</div>'+ */
         '<div class="card v25-settings-tpl" style="margin-bottom:14px">'+
         '<h3>🎨 Generator templates</h3>'+
         '<div class="ch-sub">Design tokens (colors, fonts, layout) used by PDF + PPTX generators. '+v25EscHTML(tplStatus)+'.</div>'+
