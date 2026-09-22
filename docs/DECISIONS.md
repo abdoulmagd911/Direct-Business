@@ -1916,6 +1916,38 @@ IS measured and IS below half its target must still be named a gap and still pul
 average down — the failure mode a careless fix would introduce.
 *Date: 2026-09-22, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M61 — the local copy is not a recovery path, so nothing on screen may promise that it is; a
+refused save is remembered where a reload cannot erase it, and told.** Found 2026-09-22 (fire #206)
+by driving the app against the real database with **every write answered 500**. The moment of
+failure is handled well and none of it changed: red pill "Save issue: …", red badge, retry with
+backoff, a browser warning on closing the tab, and the edit genuinely in localStorage
+(`directBusinessData_v29`, checked at that second). **One reload later**:
+
+    AFTER RELOAD: {"editStillInApp":false,"editStillOnDevice":false,"badge":"Synced 9h ago"}
+
+The workspace loads from the cloud, the change is gone from the app **and** from the device, nothing
+on the screen says so, and the badge is green again — because the last confirmed save really is the
+last confirmed save; the badge has no way to know a change was just lost. The badge had been saying
+**"Not synced — saved on this device"**, which is true at that instant and false as a promise: it
+invites the one action that destroys the work.
+Three parts, and they only work together:
+  1. the badge says where the change actually is — "Not synced — in this tab only" (js/75 owns the
+     wording; it is not restated anywhere else);
+  2. js/02 records the refusal in `db_unsent_v1` — when, how many, the record names, the database's
+     own reason — and **deletes it on the next confirmed save**, including the automatic retry, so
+     the key exists only while a change genuinely never landed;
+  3. js/102 reads it once on the way back in and says what was lost, through the app's existing
+     notice card (js/63's `v63Notice`, not a second one), then deletes it so it is said once.
+**What it deliberately does NOT do:** re-apply the change. This app is not the system of record, and
+a change the database refused may since have been overwritten by someone else — replaying it could
+destroy a colleague's work to rescue yours. It names the records instead.
+The distinction to carry: *saved on this device* and *recoverable* are not the same claim, and the
+app may only make the one it can keep.
+Guard: `scripts/qa/probe-a-refused-save-is-not-forgotten.mjs`, whose brake is that the app's own
+retry landing must FORGET the refusal — otherwise the next visit cries wolf about work that is
+safe, which would be this fix causing its own kind of dishonesty.
+*Date: 2026-09-22, js/02-…-shared-c.js + js/75-honest-sync-badge.js + js/102. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

@@ -127,6 +127,45 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #206 (2026-09-22 ~10:00 UTC) — a change the server refused was quietly thrown away on the next reload
+
+**What I did.** I made the database refuse every single save, then used the app normally and
+watched what it told me. This is the failure that costs real work, so it is worth knowing exactly
+what happens.
+
+**The good half — and it is genuinely good.** The moment a save is refused, the app tells you: a red
+"Save issue" marker, the badge in the top bar turns red, it keeps retrying by itself, and if you try
+to close the tab the browser stops you and says your last change is still saving. Your change really
+is on your computer at that moment. Nothing there needed fixing.
+
+**The bad half.** One reload later, the change was gone — out of the app *and* off the computer —
+with **nothing on screen to say a change had been lost**. The badge was green again ("Synced 9h
+ago"), because as far as it knows the last successful save was hours ago and still is.
+
+And the badge had been saying, in red: **"Not synced — saved on this device"**. That sentence is
+true at the moment it appears and is a promise the app cannot keep. It invites exactly the thing
+that loses the work — closing or reloading the tab, confident it is safe somewhere.
+
+**Fixed, in three pieces that only work together.**
+
+1. The badge now says where the change actually is: **"Not synced — in this tab only"** (and the
+   Arabic to match). Keep the tab open; it is still trying.
+2. When a save is refused, the app now writes down — where a reload cannot wipe it — how many
+   changes, which companies, and the database's own words for why.
+3. The next time you open the app, it tells you plainly: *"A change you made on <date> at <time>
+   never reached the server, and it is not in the app now… It was this company: <name>. Please make
+   the change again."* Said once, not on every load.
+
+**What I deliberately did not build.** It does not re-apply the change for you. Direct Payments and
+this app are not the system of record for each other, and a change the database refused may since
+have been overwritten by a colleague — replaying it automatically could wipe out their work to
+rescue yours. It names the record so you can redo it in seconds, and leaves the decision to a
+person.
+
+**The check that matters most** is the opposite case: when the app's own retry succeeds a few
+seconds later, the change *did* get through, and you must not be told anything at all. My sabotage
+run proves both directions.
+
 ## Routine fire #205 (2026-09-22 ~08:00 UTC) — Reports counted every KPI you haven't filled in as a zero
 
 **What was wrong.** The Reports page tracks 14 objectives and 30 KPIs, and the figures are typed in

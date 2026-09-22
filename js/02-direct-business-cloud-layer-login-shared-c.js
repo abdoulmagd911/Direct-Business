@@ -557,6 +557,30 @@
      with backoff (3s,6s,...,30s cap, max 8 tries), and a successful save resets it. */
   function scheduleSaveRetry(){ if(saveRetryN>=8)return; saveRetryN++; if(t)clearTimeout(t);
     t=setTimeout(function(){ pushCloud(); }, Math.min(30000, 3000*saveRetryN)); }
+  /* 2026-09-22 (fire #206) — what a refused save actually costs, measured end to end with the
+     database answering 500 to every write:
+       · the red pill and the badge both say so, correctly, AND the local copy really does hold the
+         edit (localStorage `directBusinessData_v29`, checked at that moment);
+       · but the next RELOAD loads the workspace from the cloud and the edit is gone from both the
+         app and the device — silently. Nothing on the screen afterwards says a change was lost,
+         and the badge goes back to a GREEN "Synced 9h ago", because the last confirmed save is
+         still the last confirmed save.
+     The local copy is therefore not a recovery path; it is overwritten at the next load. So the
+     failure is remembered where a reload cannot erase it, and js/102 tells the person on the way
+     back in. Names are kept in the browser only — never in this repository (rule 7). */
+  function rememberUnsent(rows,msg){
+    try{
+      var names=[],i,b;
+      for(i=0;i<(rows||[]).length;i++){
+        try{ var key=String(rows[i].legacy_id||rows[i].id||'');
+          b=(DB.businesses||[]).filter(function(x){return String(x.id)===key;})[0];
+          if(b&&b.name&&names.indexOf(b.name)<0)names.push(b.name); }catch(_){}
+      }
+      localStorage.setItem('db_unsent_v1',JSON.stringify({at:new Date().toISOString(),
+        n:(rows||[]).length, names:names.slice(0,8), why:String(msg||'').slice(0,160)}));
+    }catch(_){}
+  }
+  function clearUnsent(){ try{ localStorage.removeItem('db_unsent_v1'); }catch(_){} }
   function pushCloud(){
     try{
       pendingSave=false;
@@ -580,9 +604,10 @@
       var rest={}; Object.keys(DB).forEach(function(k){ if(k!=='businesses')rest[k]=DB[k]; });
       var finish=function(errMsg){
         sb.rpc('save_state',{payload:rest}).then(function(r2){
-          if(errMsg||(r2&&r2.error)){ pendingSave=true; setPill('Save issue: '+(errMsg||r2.error.message),'#D92D20'); scheduleSaveRetry(); }
+          if(errMsg||(r2&&r2.error)){ pendingSave=true; setPill('Save issue: '+(errMsg||r2.error.message),'#D92D20'); scheduleSaveRetry();
+            rememberUnsent(ups,errMsg||(r2&&r2.error&&r2.error.message)); }
           else if(archivedHit.length){
-            saveRetryN=0;
+            saveRetryN=0; clearUnsent();
             var _aAr=(typeof LANG!=='undefined'&&LANG==='ar');
             setPill(_aAr?('حُفظ على سجل محذوف ('+archivedHit.length+')'):('Saved onto a deleted record ('+archivedHit.length+')'),'#B54708');
             /* 2026-09-09 (live test D1): js/63's in-page notice when it is loaded (always, in the app); the native box only as a last resort */
@@ -590,7 +615,7 @@
               ? ('حُفظ تعديلك، لكن '+archivedHit.length+' من هذه الشركات حذفها شخص آخر أثناء فتحها لديك. التعديل مكتوب على سجل مؤرشف لن يظهر في أي قائمة بعد إعادة التحميل. استعدها من صفحة «الأرشيف»، أو من «النشاط والتدقيق ← تراجع» خلال 24 ساعة.')
               : ('Your change was saved, but '+archivedHit.length+' of these companies was deleted by someone else while you had it open. The edit is on an archived record that will not appear in any list after a reload. Restore it from the Archive page, or with Activity & Audit \u2192 Undo within 24 hours.')); if(typeof window.v63Notice==='function') window.v63Notice(_msgA); else alert(_msgA); }catch(_){}
           }
-          else { saveRetryN=0; setPill(ups.length?('Saved · '+ups.length+' lead'+(ups.length===1?'':'s')+' updated'):'Saved to cloud','#16B364'); }
+          else { saveRetryN=0; clearUnsent(); setPill(ups.length?('Saved · '+ups.length+' lead'+(ups.length===1?'':'s')+' updated'):'Saved to cloud','#16B364'); }
           sb.from('app_state').select('updated_at').eq('id',1).maybeSingle().then(function(u){ try{ if(u&&u.data&&u.data.updated_at) localStorage.setItem('db_cloud_ts', String(u.data.updated_at)); }catch(e){} });
         });
       };

@@ -63,7 +63,14 @@
     function state() {
       var offline = false;
       try { offline = navigator.onLine === false; } catch (_) { }
-      if (S.failing) return { dot: '#D92D20', text: AR() ? 'غير محفوظ على الخادم — محفوظ على هذا الجهاز' : 'Not synced — saved on this device' };
+      /* 2026-09-22 (fire #206): this used to read "saved on this device", and the device copy is
+         real — the edit is in localStorage the moment the save is refused. It is not a RECOVERY
+         path, though: the next reload loads the workspace from the cloud and the change is gone
+         from the app and from the device, silently. Driven end to end with every write answered
+         500. "Saved on this device" invites the one action that loses the work — closing the tab —
+         so the badge now says where the change actually is. What was lost is told on the way back
+         in, by js/102. */
+      if (S.failing) return { dot: '#D92D20', text: AR() ? 'غير محفوظ على الخادم — في هذا التبويب فقط' : 'Not synced — in this tab only' };
       if (offline) return { dot: '#B54708', text: AR() ? 'لا يوجد اتصال' : 'No connection' };
       if (S.lastOk) return { dot: '#22C55E', text: (AR() ? 'محفوظ ' : 'Synced ') + ago(Date.now() - S.lastOk) };
       /* 2026-09-15 (fire #49, live): the Arabic here said "not yet saved on the server", which
