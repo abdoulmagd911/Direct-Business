@@ -136,6 +136,31 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #217 (2026-09-23 ~05:00 UTC) — a date in your exported spreadsheet read as a 13-digit number
+
+**I took your real Clients export apart column by column.** Two cells in it were unreadable: the
+"last contact" column showed `1758000000000` instead of a date, on 11 of your 28 clients, and the
+activity history cell on those same 11 began every line with the same kind of number. The rest of
+the file was clean — the row count matches what is on screen, the filters are respected, the Arabic
+file has Arabic column titles, and there is no money or VAT anywhere in the Leads or Clients
+exports, which is how it should be.
+
+The cause was small and worth knowing because it will come back otherwise: the app decided whether
+something was a date by looking at the **name** of the column. "createdAt" was recognised; "last
+contact" was not; and a date buried inside a combined cell was never looked at. It now judges by the
+value itself. Carefully: a company registration number (10 digits) and a phone number written as
+bare digits (12) are deliberately left alone — the check that guards this deliberately tries to
+break it both ways.
+
+**Two facts about the exports, while I was in there, that are about your data rather than the
+software.** In the Leads export, 17 of the 24 columns are blank for every one of the 78 leads —
+Arabic name, region, sub-source, category, segment, the six social links, licence number and status,
+verification status, outreach score, decision makers. They are not broken columns; nobody has filled
+them. If those fields are not ones the team will ever fill, say so and I will take them out of the
+file so the export is the seven columns you actually use. On the Clients side it is 6 of 17.
+
+---
+
 ## Routine fire #216 (2026-09-23 ~04:00 UTC) — one "Needs attention" button, not two, and it now says why
 
 **Your Leads page had two buttons with the same words a few centimetres apart** — `⚠ Needs

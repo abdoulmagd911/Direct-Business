@@ -2078,6 +2078,29 @@ leaves** — and its brake is that a lead needing nothing is filtered out, becau
 matches every row is the same as no filter.
 *Date: 2026-09-22, js/09-funnels.js + js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M66 — an exported date is recognised by its VALUE, not by the name of its column, and the same
+rule applies inside a flattened cell.** Found 2026-09-22 (fire #217) by taking the Clients "full
+details" export off the live database and reading it column by column. `exportFlat` (core-05) only
+converted a millisecond timestamp when its key ended `At` / `_at` / `Date` / `date` / `Ts` / `ts`,
+and the nested path — a list of activities joined into one cell — never looked at dates at all. So:
+
+    lastContact   1758…                        bare, on 11 of the 28 clients
+    activities    "1758… Call Completed …"     the same 11, once per logged activity
+
+Nobody can read that, and a spreadsheet cannot sort it as a date either. The narrow reading of the
+2026-09-02 fire (which fixed `createdAt` on Operations and Projects) was "convert the columns named
+like dates"; the rule is "an epoch is an epoch".
+The window matters and is deliberately **exactly 13 digits (1e12 … 1e13)** for a column that is not
+named like a date: a Saudi mobile written as bare digits with its country code is 12 digits and a
+company registration number is 10, so neither can be mistaken for a date. A column that *is* named
+like a date keeps the older, wider window. The sabotage run that widens it to 1e9 rewrites a
+registration number as a date in 1970 — the careless version of this fix is worse than the defect.
+Measured after the change against the live Clients export: 0 cells holding a machine number, 47
+columns, 28 rows, both languages.
+Guard: `scripts/qa/probe-a-date-in-the-file-is-a-date.mjs`, whose two brakes are the 10- and
+12-digit numbers. `probe-export-records` continues to hold the named columns.
+*Date: 2026-09-22, js/core/core-05-records.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

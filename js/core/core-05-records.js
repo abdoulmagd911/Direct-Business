@@ -197,6 +197,18 @@ function supSelectAll(cb){document.querySelectorAll('.supchk').forEach(c=>c.chec
    that is an object → its non-empty values joined " "); an object of objects → "key: status" (or
    the first text value) joined " | "; an object of yes/no flags → the keys that are on, joined
    ", "; any other object → its non-empty values joined " ". Scalars pass through. */
+/* 2026-09-22 (fire #217, driven live against the real database): a date was recognised by the NAME
+   of the column it sat in, so a millisecond timestamp under any other name went into the
+   spreadsheet as a 13-digit number. Measured in the Clients "full details" export: `lastContact`
+   read as a bare 1758… on 11 of the 28 clients, and the same 11 carried an epoch inside every line
+   of their flattened `activities` cell ("1758… Call Completed …"), because the nested path never
+   looked at dates at all. Nobody can read that, and a spreadsheet cannot sort it as a date either.
+   An epoch is now recognised by its VALUE, at the top level and nested, so the name no longer
+   matters. The window is deliberately exactly 13 digits (1e12 … 1e13) for the unnamed case — a
+   Saudi mobile written as a bare number (966…) is 12 digits and a CR number is 10, so neither can
+   be mistaken for a date; a column that IS named like a date keeps its older, wider window. */
+function _expIsMs(v){ return typeof v==='number'&&isFinite(v)&&Math.floor(v)===v&&v>=1e12&&v<1e13; }
+function _expMsText(v){ try{ var d=new Date(v); return d.toISOString().slice(0,10)+' '+d.toISOString().slice(11,16); }catch(_){ return String(v); } }
 function exportFlat(v,k){
   if(v==null)return '';
   // Round 23 additions: keys that start with "_" are the app's own bookkeeping (the people
@@ -211,8 +223,8 @@ function exportFlat(v,k){
      Named here rather than underscore-prefixed at the source, because js/95 and the card both read
      these by name and one list in one place is easier to keep true than three renames. */
   const NOTE_KEYS={verificationSource:1,needsConfirm:1,confirmReason:1};
-  const one=x=>{if(x==null)return '';if(typeof x!=='object')return String(x);const vals=Object.keys(x).filter(kk=>kk.charAt(0)!=='_'&&!NOTE_KEYS[kk]).map(kk=>x[kk]).filter(y=>y!==''&&y!=null&&y!==false&&typeof y!=='object');return vals.join(' ');};
-  if(typeof v==='number'&&k&&/(At|_at|Date|date|Ts|ts)$/.test(String(k))&&v>1e11&&v<1e13){try{const d=new Date(v);return d.toISOString().slice(0,10)+' '+d.toISOString().slice(11,16);}catch(_){return v;}}
+  const one=x=>{if(x==null)return '';if(typeof x!=='object')return _expIsMs(x)?_expMsText(x):String(x);const vals=Object.keys(x).filter(kk=>kk.charAt(0)!=='_'&&!NOTE_KEYS[kk]).map(kk=>x[kk]).filter(y=>y!==''&&y!=null&&y!==false&&typeof y!=='object').map(y=>_expIsMs(y)?_expMsText(y):y);return vals.join(' ');};
+  if(typeof v==='number'&&v>1e11&&v<1e13&&((k&&/(At|_at|Date|date|Ts|ts)$/.test(String(k)))||_expIsMs(v))){try{const d=new Date(v);return d.toISOString().slice(0,10)+' '+d.toISOString().slice(11,16);}catch(_){return v;}}
   if(Array.isArray(v))return v.map(one).filter(Boolean).join(' | ');
   if(typeof v==='object'){
     const ks=Object.keys(v);if(!ks.length)return '';
