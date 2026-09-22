@@ -1,4 +1,4 @@
-# ⬆ Waiting on you — seventeen decisions, most urgent first
+# ⬆ Waiting on you — eighteen decisions, most urgent first
 
 *Written 2026-09-21. These built up one at a time across the sweep, each buried at the bottom of the
 round that found it, which means none of them ever arrived anywhere you'd see. This is the whole
@@ -12,6 +12,13 @@ that combination told them the company had earned 0 SAR and achieved 0% of its t
 them plainly that nothing reached their browser and to ask an admin. Two clean answers: **take
 Finance out of their menu**, or **let them read the ledger**. The middle is the only bad option, and
 it is where you are. Either takes me minutes. *Raised #196.*
+
+**0b · A team member can set the revenue target, but cannot see a single invoice.** The database
+carries two separate permissions for the targets table and they add up rather than narrowing: one
+says admin and manager, the other says admin, manager and team member. No screen offers it — the
+button is admin-and-manager — so nothing is wrong today. But it is the opposite of the Finance
+question above, on the same role, and the two should probably be settled together. Tell me which
+way and I'll set it. *Raised #201.*
 
 **1 · Four company certificates have lapsed, and the commercial registration expires 2026-12-14.**
 ISO 9001 (Feb 2025), DUNS (Sep 2025), Saudization (Jan 2026), PCI DSS (Jul 2026). The CR is 85 days

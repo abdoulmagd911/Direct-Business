@@ -1775,6 +1775,48 @@ the `contacts` table is not thereby a stranger. The Events tab was driven the sa
 clean: 80 rows, 43 unfinished = 22 upcoming + 21 undated, the undated ones labelled as such in both
 languages.
 
+**M57 — a guard asks the app; it does not keep its own copy of the app's answer.** Earned three
+times in one day (2026-09-21, fires #196, #198 and #200), each time the same way: a correct change
+to the app turned a guard red, and the guard was wrong.
+  · **#196** — `probe-client-profit-honest` captured each on-screen warning through a 150-character
+    window. Fire #195 made the caveat longer, so the words it tested for fell outside the window.
+    The sentence read correctly on screen; the ruler was short.
+  · **#198** — a check asked whether the page text contained "Stage change". The fix made it read
+    "Stage changed", which **contains** that string, so a working build was reported broken.
+  · **#200** — `probe-client-card-ar` compared the stage picker against the literal
+    `Prospect,Contacted,Qualified,Proposal,Negotiation,Won,Lost`. Fire #198 correctly stopped
+    offering Negotiation, and the guard went red on a correct app.
+A guard that copies a list, a length or a phrase is coupled to a decision it does not own. Where the
+app exposes the answer — `pickableStages`, `stageKeepable`, `finLive`, `finInPeriod`,
+`dgCredentialFacts`, `recordHay` — **ask it**, and the guard keeps testing the property while the
+vocabulary is free to change. Where the literal IS the assertion (the sign-in form must read
+"Email | Password | Sign in" in English) a literal is right; the test is whether the guard owns the
+value or is merely repeating it. Prefer *inclusion* to *equality* for vocabulary: the four probes
+that mention the stage words all use `.every(s => labels.includes(s))` and none of them went red.
+Swept 2026-09-22 (fire #201): the suite has **no** probe coupled to a live-database count — the
+`=== 108` hits are probes asserting rows they seeded themselves — and after #200 no exact-equality
+comparison against a copied app list remains.
+*Date: 2026-09-21, scripts/qa/. Status: ACTIVE.*
+
+**Verified 2026-09-22 (fire #201), so no session re-derives it:** the M53 class — an RLS refusal
+arriving as HTTP 200 and an empty list, drawn as a fact — is **confined to Finance**. Read every
+SELECT policy on the tables behind every page: only `finance_invoices`, `finance_client_links` and
+the finance rows of `record_history` gate reads on `can_see_page('finance')`. Every other table
+(`businesses`, `contacts`, `activities`, `airlines`, `providers`, `sops`, `slas`, `company_identity`,
+`funnels`, `finance_targets`, `finance_transactions`, `generated_documents`) reads on
+`app_role() IS NOT NULL` — any signed-in person — so no other page can show one role a different
+count and call it the truth. **And there is no anonymous exposure**: the `qual: true` policies on
+`ksa_events`, `ksa_event_signups` and `promo_codes` apply to `{authenticated}` only, confirmed both
+in the policy definition and empirically — an anon request with the publishable key returns
+`content-range: */0` on every one of those tables and on `businesses` and `finance_invoices` too.
+A first reading of the policy text alone suggested anyone could delete the 80 real event rows; the
+measurement showed otherwise, which is why the measurement is the record.
+*One inconsistency found and deliberately not changed:* `finance_targets` carries two write
+policies, `finance_targets_write` (admin/manager) and `fin_tgt_write` (admin/manager/**team_member**).
+Policies are OR-ed, so a team member may write the revenue target while being unable to read a
+single invoice. Nothing is broken — `canFinEdit()` is admin/manager, so no screen offers it — and
+permissions are the owner's to set, so it is an owner note rather than a change.
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
