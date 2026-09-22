@@ -136,6 +136,35 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #213 (2026-09-22 ~22:00 UTC) — the phone check, and two claims I re-measured
+
+**A checking round.** Most of the team opens this on a phone, and six of the things I changed today
+are new furniture on pages they use — so I put the app on an iPhone-sized screen (390 points wide)
+and walked all twenty pages, in Arabic and in English.
+
+**Everything fits.** No page slides sideways. Nothing hangs off the edge except wide tables, and
+those sit inside their own side-scrollers, which is the correct shape: the table moves, the page
+stays still. The message card the app now uses to explain a dead link fits the screen with both its
+buttons a comfortable size. Zero errors.
+
+That was true but unguarded in a way the battery could check: the existing phone pass signs in as
+each real employee, so it needs the staff passwords and can't run automatically. There is now a
+phone check that can — all twenty pages, both languages, every run.
+
+**Two things I re-measured rather than trusted.**
+
+1. **The audit log's counters are honest.** It says "Events loaded 378" — and the database holds
+   exactly 378. The wording is deliberate ("loaded", not "total"), and if it ever hits its 500-entry
+   ceiling it says so. I confirmed the ceiling logic is there rather than assuming it.
+2. **The 216 entries with no name attached are labelled, every one.** The database has 216 changes
+   made directly in the database rather than through the app (the bulk cleanup work in August and
+   September). The page prints *"unknown — changed directly in the database, not via the app"* on
+   exactly 216 entries. The number on screen and the number in the data match.
+
+**One thing worth knowing about the audit page, not a defect:** it lists all 378 entries with no
+filter and no search — on a phone that's a very long scroll. Adding a filter is a feature, not a
+fix, so I've left it. Say the word if you want one.
+
 ## Routine fire #212 (2026-09-22 ~20:00 UTC) — a link to a company that was merged away went nowhere, silently
 
 **Why this one matters practically.** Three of the four companies in your Archive were removed by a
