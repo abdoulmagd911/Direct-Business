@@ -369,10 +369,35 @@ function renderOps(v){
   v.innerHTML=`
   <div class="toolbar"><div class="search-wrap">${IC.search}<input id="rq" placeholder="${_arOps?'ابحث في الطلبات…':'Search requests…'}" oninput="drawReqBoard(this.value)"></div><div style="flex:1"></div><button class="btn pri" onclick="editRequest()">+ New request</button></div>
   <div class="kpis" style="margin-bottom:18px">${kp.map(([l,vv,c])=>`<div class="kpi"><div class="l">${l}</div><div class="v" style="color:${c}">${vv}</div></div>`).join("")}</div>
+  <div id="reqempty"></div>
   <div id="reqboard"></div>`;
   drawReqBoard("");
 }
 function drawReqBoard(q){q=(q||"").toLowerCase();const board=document.getElementById("reqboard");if(!board)return;board.className="board";
+  /* 2026-09-22 (fire #210): with no requests at all, this board was five tiles reading 0 and five
+     columns holding an em-dash — 210 characters of page and not one word. A person cannot tell
+     "nothing has been created yet" from "it failed to load" or "I am not allowed to see these"
+     (the M53 shape). Every other empty list in the app says which it is: Projects says "No active
+     projects.", Tickets "No tickets yet.", the three Finance capture tabs each say theirs. This
+     board was the last one that did not.
+     Two different silences, two different sentences: nothing created yet, and nothing matching a
+     search — the second must name the search, or a filtered board reads as an empty app. */
+  try{
+    const note=document.getElementById("reqempty");
+    if(note){
+      const _arQ=(typeof LANG!=='undefined'&&LANG==='ar');
+      const total=(DB.requests||[]).length;
+      const matched=(DB.requests||[]).filter(r=>!q||((r.client+" "+r.service+" "+r.detail+" "+(r.owner||"")).toLowerCase().includes(q))).length;
+      const box='padding:14px 16px;border:1px dashed var(--line,#E6E8EC);border-radius:12px;color:var(--muted,#6B7480);font-size:13px;margin-bottom:14px';
+      if(!total) note.innerHTML='<div class="ops-empty" style="'+box+'">'+
+        (_arQ?'لا توجد طلبات بعد — أنشئ أول طلب بزر «+ طلب جديد» أعلاه. الأصفار في الأعلى تعني أنه لم يُنشأ شيء، لا أن شيئًا فشل.'
+             :'No requests yet — create the first with “+ New request” above. The zeros are because nothing has been created, not because anything failed.')+'</div>';
+      else if(!matched) note.innerHTML='<div class="ops-empty" style="'+box+'">'+
+        (_arQ?('لا يوجد طلب يطابق بحثك. الطلبات المسجّلة: '+total+'.')
+             :('No request matches your search. There are '+total+' request'+(total===1?'':'s')+' on the board.'))+'</div>';
+      else note.innerHTML='';
+    }
+  }catch(_){}
   board.innerHTML=STAGES.map(stage=>{const items=(DB.requests||[]).filter(r=>r.stage===stage&&(!q||(r.client+" "+r.service+" "+r.detail+" "+(r.owner||"")).toLowerCase().includes(q)));
     return `<div class="col" ondragover="allowDrop(event,this)" ondragleave="leaveDrop(this)" ondrop="dropOn(event,'req','${stage}',this)"><div class="ch"><span class="t"><span class="pip" style="background:${STAGE_COLOR[stage]}"></span>${stage}</span><span class="n">${items.length}</span></div>${items.map(reqCard).join("")||'<div class="empty">—</div>'}</div>`;}).join("");
 }

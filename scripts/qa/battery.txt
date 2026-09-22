@@ -311,3 +311,4 @@ probe-a-refused-save-is-not-forgotten
 probe-an-empty-finance-tab-says-it-is-empty
 probe-the-funnel-chips-keep-their-language
 probe-the-leads-list-says-what-it-hides
+probe-the-ops-board-says-why-it-is-empty

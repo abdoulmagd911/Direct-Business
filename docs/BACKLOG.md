@@ -136,6 +136,31 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #210 (2026-09-22 ~17:00 UTC) — the Operations board was five zeros and five dashes, and no words
+
+**What was wrong.** Open Operations today and this is the entire page:
+
+> Open requests **0** · SLA overdue **0** · Awaiting client **0** · Needs a cost recorded **0** ·
+> Delivered / closed **0**
+> — — — — —
+
+Two hundred and ten characters, and not one of them a word. You cannot tell from that whether
+nothing has been created yet, whether the page failed to load, or whether you are not allowed to
+see what is there — and this app has been bitten by exactly that confusion before, on Finance.
+
+Every other empty list already answers it: Projects says *"No active projects."*, Tickets *"No
+tickets yet."*, Bookings and Invoices say theirs, and the three Finance capture tabs were checked
+saying theirs last round. Operations was the last board that said nothing.
+
+**Fixed.** It now says, in both languages: *"No requests yet — create the first with '+ New
+request' above. The zeros are because nothing has been created, not because anything failed."*
+
+**And the trap that goes with it.** A board emptied by a *search* is a different thing from an
+empty board, so it gets a different sentence: *"No request matches your search. There are 2
+requests on the board."* Without that, searching for something that isn't there would make the app
+look empty. That case is one of the two brakes in the guard; the other is that the message must
+disappear entirely the moment a real request exists, so it never becomes furniture.
+
 ## Routine fire #209 (2026-09-22 ~16:00 UTC) — in Arabic, the funnel tabs went back to English on every click
 
 **What was wrong, and it is the kind you only find by using the app.** Open Leads in Arabic and the
