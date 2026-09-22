@@ -80,7 +80,16 @@ async function main() {
   missing = ['كل الأشهر', 'كل الأعضاء', 'كل الأهداف', 'لا شيء هنا بعد'].filter((w) => t.indexOf(w) < 0);
   if (!missing.length) ok('AR Achievements: filters and empty state are Arabic'); else fail('AR Achievements missing ' + JSON.stringify(missing));
   await go('objectives'); t = await text();
-  if (t.indexOf('الربط الاستراتيجي') >= 0 && t.indexOf('مؤشر ·') >= 0) ok('AR Objectives: the meta line reads Arabic'); else fail('AR Objectives: meta line still English');
+  /* 2026-09-22 (fire #208, found by the full battery): this used to require the literal «مؤشر ·».
+     Round #205 put the measured count between those two characters — "6 مؤشرات (0 مقيس) · 0 إنجاز"
+     — and a correct, fully Arabic line was reported as English. The check now asks what it actually
+     means: the meta line names the strategic link in Arabic and carries NO Latin letters at all
+     (digits and separators are not letters). That is stronger than the old literal, and it cannot
+     be broken by rewording. Third literal-coupled false red of this sweep — M57. */
+  const metaAr = await p.evaluate(() => [...document.querySelectorAll('#view .rpt-obj .meta')].map((x) => (x.textContent || '').replace(/\s+/g, ' ').trim()));
+  const latinMeta = metaAr.filter((m) => /[A-Za-z]/.test(m));
+  if (metaAr.length >= 10 && t.indexOf('الربط الاستراتيجي') >= 0 && !latinMeta.length) ok('AR Objectives: all ' + metaAr.length + ' meta lines read Arabic, with no Latin left in any of them');
+  else fail('AR Objectives: meta line still English — ' + JSON.stringify({ lines: metaAr.length, latin: latinMeta.slice(0, 3) }));
   const leftovers = ['Build report', 'Report type', 'Whole department', 'All months', 'Strategic link', 'Actual (YTD)', 'Nothing here yet'];
   const allAr = (await Promise.all(['report', 'achievements', 'objectives'].map(async (tab) => { await go(tab); return text(); }))).join('\n');
   const leak = leftovers.filter((w) => allAr.indexOf(w) >= 0);

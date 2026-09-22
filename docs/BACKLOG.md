@@ -136,6 +136,34 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #208 (2026-09-22 ~14:00 UTC) — full battery: 295 of 297, and both reds were mine
+
+**All 303 checks re-run from scratch.** 295 of the 297 that can fail passed. The two that did not
+were both caused by my own changes earlier today, and neither was a fault in the app:
+
+- A check on the **Reports** page demanded the Arabic line under each objective contain an exact run
+  of characters. Yesterday's fix inserted the measured count into the middle of that line, so a
+  perfectly Arabic line was reported as English. The check now asks the real question — *does any
+  Latin letter survive in any of those fourteen lines?* — which is both stricter and unbreakable by
+  rewording.
+- A check on the **sync badge** demanded it say the work was "saved on this device". That is the
+  exact sentence I removed this morning, because one reload later the change is gone from the
+  device. This one is worth separating from the first: the check wasn't just brittle, it was
+  **holding a false statement in place**. It now fails if the old promise ever comes back.
+
+Both were re-verified by deliberately breaking the app again to confirm they still catch a real
+fault.
+
+**Also confirmed today, read straight from the live database** (no browser, no guessing): 112
+companies / 108 live / 28 clients · 45 contacts · 65 activities · 91 invoices / 46 live · 19 of
+those with cost 0 · **no VAT figure on a single invoice row** · 139 airlines · 80 events · 23
+providers · 12 SOPs · 14 SLAs · 200 registry companies · 46 reconciliation gaps · 11 accounts. Two
+numbers in `CLAUDE.md` had drifted (history rows and promo codes) and are corrected.
+
+**And one more thing checked because the app claims it:** the duplicate-company finder says "no
+likely duplicates found". I verified that independently — normalising all 108 names and all their
+web domains produces **zero** collisions. It is telling the truth.
+
 ## Routine fire #207 (2026-09-22 ~12:00 UTC) — the three capture tabs are correct, and completely unused
 
 **A checking round, and the check passed.** Finance has three tabs that exist to record what

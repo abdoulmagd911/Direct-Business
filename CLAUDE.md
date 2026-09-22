@@ -48,7 +48,8 @@
 > all `revenue_way='invoice'`,
 > all `integrity_status='verified_paid'`, **no VAT figure on any row**, and the doctrine holds exactly
 > — revenue = total − wallet and profit = revenue − cost on all 46, checked row by row. Also live:
-> `record_history` 360 rows (216 with no actor — bulk SQL work in Aug/Sep, and the page says so),
+> `record_history` 378 rows (re-counted 2026-09-22; 216 of them with no actor — bulk SQL work in
+> Aug/Sep, and the page says so),
 > `providers` 23, `airlines` 136, `ksa_events` 80, `sops` 12, `slas` 14, `company_identity` 29,
 > 3 client-name alias groups set by the owner himself. **The M15 expense-capture tables are NOT in
 > real use** (counted 2026-09-22, fire #207: this line used to say they were). `finance_expenses`
@@ -56,7 +57,8 @@
 > (`finance_invoices` where `revenue_way='b2c_manual'`) none at all — so all three capture tabs are
 > empty, and each says so on screen in both languages. Read that next to the 19 invoices whose cost
 > is 0: the tool for recording what those services actually cost is built and has never been used.
-> (`finance_targets` 2 rows, `finance_reconciliation_gaps` 46, `record_history` 378 and growing.)
+> (`finance_targets` 2 rows, `finance_reconciliation_gaps` 46, `promo_codes` 200, `app_users` 11,
+> `access_allowlist` 10 — every count in this block re-read from the live database 2026-09-22.)
 > Exactly 1 record is still flagged `needs_manual_confirmation`. Treat every row as real for
 > rule 7 purposes.
 > The app has been **re-skinned to Direct's real product UI** (cream `#FBF5F0` + `#ff6b00`).
@@ -425,7 +427,7 @@ under a proposal ref, and an aging story (4 overdue invoices, 216,115 SAR outsta
 Services deliberately include Insurance, Intl driving permit, Translation, eSIM, Umrah,
 Study abroad, MICE. Every finance group is linked to its client (`finance_client_links`,
 `confirmed_by='auto-match'`) — linking is now automatic (js/42-v66), never manual.
-The promo-code registry (`promo_codes`, 198 codes) remains as revenue way #4.
+The promo-code registry (`promo_codes`, 200 codes as of 2026-09-22) remains as revenue way #4.
 **Verification services (Takamol / Techtic Support) are accounted for in another system
 and must NEVER appear in this app** — the importer skips them (like wallet top-ups) and
 the legacy CSV import flags them; do not reintroduce them anywhere.

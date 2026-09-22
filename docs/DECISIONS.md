@@ -1809,6 +1809,20 @@ that mention the stage words all use `.every(s => labels.includes(s))` and none 
 Swept 2026-09-22 (fire #201): the suite has **no** probe coupled to a live-database count — the
 `=== 108` hits are probes asserting rows they seeded themselves — and after #200 no exact-equality
 comparison against a copied app list remains.
+**Twice more on 2026-09-22 (fire #208), both caught by the full battery rather than by a sweep,
+which is the lesson: a coupled guard stays quiet until someone changes the wording it copied.**
+  · `probe-reports-phone-ar` required the literal «مؤشر ·» in the objectives meta line. Fire #205
+    put the measured count between those two characters — "6 مؤشرات (0 مقيس) · 0 إنجاز" — and a
+    fully Arabic line was reported as English. It now asks the property: every meta line names the
+    strategic link in Arabic and **carries no Latin letter at all**, which is both stronger and
+    immune to rewording.
+  · `probe-sync-badge-honest` required the badge to say the work was "saved on this device". That
+    one is different in kind and worth separating: the guard was not merely coupled, it was
+    **enforcing a claim that turned out to be false** (M61 — one reload later the change is gone
+    from the device). A guard can hold a defect in place. When a rule changes, the guards that
+    encoded the old rule are part of the change, and the fix is to invert the assertion explicitly
+    (it now fails with "it promises the change is safe on this device, and one reload later it is
+    not") rather than to delete it.
 *Date: 2026-09-21, scripts/qa/. Status: ACTIVE.*
 
 **Verified 2026-09-22 (fire #201), so no session re-derives it:** the M53 class — an RLS refusal

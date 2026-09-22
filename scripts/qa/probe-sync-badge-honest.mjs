@@ -16,7 +16,10 @@
    Under test:
      1. The badge never shows the invented form again — no "Live · <n>s", in either language.
      2. It follows the connection: after a confirmed save it says synced and is green; with saves
-        answering 503 it says NOT synced, names that the work is on the device, and is red.
+        answering 503 it says NOT synced, names where the change actually is — in this tab — and is
+        red. (Until 2026-09-22 this check required it to say the work was "saved on this device".
+        Fire #206 measured what that promise is worth: one reload later the change is gone from the
+        app and from the device, silently. The check now refuses that wording explicitly — M61.)
      3. It recovers: once saves succeed again it returns to synced and green.
      4. The age is real, not random: read twice about ten seconds apart with nothing happening in
         between, the reported age must have GROWN by roughly that much. A random number would not,
@@ -113,8 +116,19 @@ async function main() {
   await p.waitForTimeout(9000);
   const bad = await readBadge(p); seen.push(bad.text);
   const red = /rgb\(217,\s*45,\s*32\)/.test(bad.dot || '');
-  if (/not synced|غير محفوظ/i.test(bad.text || '') && /device|الجهاز/i.test(bad.text || '')) ok(`while saves are failing the badge says "${bad.text}"${red ? ' and its dot is red' : ''}`);
-  else fail(`while saves are failing the badge says "${bad.text}" — the one element that talks about the connection is not reporting that the work has not left the device`);
+  /* 2026-09-22 (fire #206/#208): this used to require the badge to say the work was "on the
+     device". It was — and one reload later it was not: the workspace reloads from the cloud and the
+     change is gone from the app AND the device, silently. "Saved on this device" is true at that
+     instant and false as a promise, and it invites the one action that loses the work. The badge
+     now says where the change actually is — in this tab — and the loss is told on the way back in
+     (js/102). So the check is inverted where it was wrong and kept where it was right: NOT synced,
+     red, names where the change is, and never claims the device holds it. M61. */
+  const saysNotSynced = /not synced|غير محفوظ/i.test(bad.text || '');
+  const saysWhere = /this tab|التبويب/i.test(bad.text || '');
+  const oldPromise = /saved on this device|محفوظ على هذا الجهاز/i.test(bad.text || '');
+  if (saysNotSynced && saysWhere && !oldPromise) ok(`while saves are failing the badge says "${bad.text}"${red ? ' and its dot is red' : ''}`);
+  else if (oldPromise) fail(`while saves are failing the badge says "${bad.text}" — it promises the change is safe on this device, and one reload later it is not (M61)`);
+  else fail(`while saves are failing the badge says "${bad.text}" — the one element that talks about the connection is not reporting that the work has not left this tab`);
   if (red) ok('the dot turns red, so the state is visible at a glance and not only in the words');
   else fail(`the dot stayed ${bad.dot} while saves were failing`);
 
