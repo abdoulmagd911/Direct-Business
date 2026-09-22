@@ -105,7 +105,14 @@
      the save cannot keep. Anything already carrying such a word still displays it — this only
      governs what a person may newly choose. */
   function stageKeepable(word){ try{ var c=S2C[word]; return !!c && C2S[c]===word; }catch(_){ return true; } }
-  try{ window.stageKeepable=stageKeepable; }catch(_){}
+  /* 2026-09-22 (fire #202) — the companions a picker needs to place a word it must show but must
+     not offer. `stageCanon` answers which database stage a screen word belongs to, so two words
+     for one stage ("New" and "Prospect" are both `new`) can be kept next to each other rather than
+     dumped at the end of the list. Both live here beside the maps for the same reason
+     `stageKeepable` does: this is the only place that knows the answer. */
+  function stageCanon(word){ try{ return S2C[word]||''; }catch(_){ return ''; } }
+  function stageIsKnown(word){ try{ return !!S2C[word]; }catch(_){ return false; } }
+  try{ window.stageKeepable=stageKeepable; window.stageCanon=stageCanon; window.stageIsKnown=stageIsKnown; }catch(_){}
   /* 2026-09-02 — js/72-people-bridge.js shows the people and history stored in the `contacts`
      and `activities` TABLES on each card (tagged _fromTable). They already live in those
      tables, so they must never be written back into the row's raw JSON: strip them on save. */

@@ -121,6 +121,47 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #202 (2026-09-22 ~02:00 UTC) — two more stages showed the wrong word, and my fix three rounds ago should have caught them
+
+**First, two pages checked and clean.** Airlines is genuinely well built: 139 airlines in the
+register, 136 on the page, and it says so out loud — *"This list is a copy, and the airline register
+has more · Showing 136 of 139 airlines"* — and then **names the three it isn't showing**, plus notes
+that the register holds contact people for 4 airlines this list doesn't carry. That is exactly the
+standard the rest of the app is held to. Providers is clean too, with the Keep / Upgrade / Phasing
+out verdicts reading correctly. No sideways scroll, no errors, nothing to fix on either.
+
+**Then the real finding, and it is a correction to my own work.** Three rounds ago I fixed a lead's
+stage picker so it stops offering "Negotiation" — a word the app cannot keep, because it saves as
+the same thing as "Qualified" and comes back as "Qualified". Part of that fix was making sure a lead
+*already* on Negotiation still shows Negotiation, since hiding a record's own stage would be worse
+than the original problem.
+
+I scoped that exception too narrowly. I keyed it to the pipeline list I happened to be editing —
+so it covered Negotiation and missed the two stage words that aren't on that list at all:
+
+| A lead whose stage is… | showed itself as… |
+|---|---|
+| **New** | **Prospect** |
+| **On hold** | **Prospect** |
+
+Same fault, same lie: the control on the page misreporting the record it belongs to. To be clear,
+this was **not caused by that fix** — neither word has ever been in the pipeline list, so the picker
+never held them before either. My fix simply should have caught them and didn't.
+
+**Fixed.** A lead's own stage is now always shown whenever the app recognises the word at all, and
+it's placed sensibly — "New" sits next to "Prospect" (they're the same thing underneath), "On hold"
+goes last. I drove all nine stage words against your real data: every one now shows its own record
+correctly, and ordinary leads still get exactly the six choices that stick.
+
+**Guarded** in the same test as before rather than a new one — it's the same property. Two new
+checks, both sabotage-proved: one fails if a record's own word is hidden again, the other fails if
+the borrowed word leaks onto leads that don't carry it. One of my sabotage attempts in between
+turned out to change nothing at all, which proves nothing about the check — so I wrote a real one
+and recorded the dud, because a sabotage that doesn't break anything is a test of my attention, not
+of the guard.
+
+---
+
 ## Routine fire #199 (2026-09-21 ~20:00 UTC) — the morning card was hiding the only certificate you can still save
 
 **Two things I checked and found clean, then one worth changing.**

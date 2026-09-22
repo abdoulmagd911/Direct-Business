@@ -296,9 +296,28 @@ function pickableStages(current){
   try{ out=(typeof window.stageKeepable==='function')?LEAD_STAGES.filter(window.stageKeepable):LEAD_STAGES.slice(); }
   catch(_){ out=LEAD_STAGES.slice(); }
   try{
-    if(current && LEAD_STAGES.indexOf(current)>=0 && out.indexOf(current)<0){
-      /* put it back in its own place in the pipeline, not on the end */
-      out=LEAD_STAGES.filter(function(s){ return out.indexOf(s)>=0 || s===current; });
+    if(current && out.indexOf(current)<0){
+      if(LEAD_STAGES.indexOf(current)>=0){
+        /* a pipeline word held back by stageKeepable — put it back in its own place */
+        out=LEAD_STAGES.filter(function(s){ return out.indexOf(s)>=0 || s===current; });
+      }else if(typeof window.stageIsKnown==='function' && window.stageIsKnown(current)){
+        /* 2026-09-22 (fire #202) — a word the conversion maps know that LEAD_STAGES never listed.
+           Measured on every screen word the maps recognise: a record whose stage is **"New"** or
+           **"On hold"** drew a dropdown without its own stage, so the browser selected the first
+           option and the page said "Prospect" — the control misreporting the record it belongs to.
+           Pre-existing rather than introduced by #198: neither word has ever been in LEAD_STAGES,
+           so the picker never contained them before that round either. It is the same fault M55
+           names, and the rule's second half applies unchanged — restricting what may be CHOSEN
+           must never change what is SHOWN.
+           Placed beside the word that shares its database stage ("New" next to "Prospect", both
+           `new`) rather than dumped at the end, so the order still reads as a pipeline; a word with
+           no sibling ("On hold") goes last, which is where it belongs anyway. */
+        var canon=(typeof window.stageCanon==='function')?window.stageCanon(current):'';
+        var at=-1;
+        if(canon){ for(var i=0;i<out.length;i++){ if(window.stageCanon(out[i])===canon){ at=i; break; } } }
+        if(at>=0) out=out.slice(0,at).concat([current], out.slice(at));
+        else out=out.concat([current]);
+      }
     }
   }catch(_){}
   return out;

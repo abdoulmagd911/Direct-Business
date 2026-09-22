@@ -1738,9 +1738,22 @@ missed the very entries the app creates, and would have shown English in Arabic 
 anyone advanced a lead. Invisible because nobody had moved a stage through the app since the data
 was rebuilt. Separators are normalised now. **The same fact can be spelled differently by different
 writers; keying against one writer's spelling is only half of keying against the data.**
+**Completed 2026-09-22 (fire #202): two more words had the same fault, and #198 did not cover them.**
+Driven over every screen word the conversion maps recognise, a record whose stage is **"New"** or
+**"On hold"** drew a dropdown without its own stage, so the browser selected the first option and
+the page said **"Prospect"**. Pre-existing rather than caused by #198 — neither word has ever been
+in `LEAD_STAGES`, so the picker never held them before that round either; #198 fixed the instance it
+found (Negotiation, which IS in LEAD_STAGES) and left these two, because the exception it added was
+keyed on LEAD_STAGES membership rather than on the maps. A record's current word is now included
+whenever the maps know it at all (`stageIsKnown`), placed beside the word sharing its database stage
+(`stageCanon` puts "New" next to "Prospect", both `new`) so the order still reads as a pipeline, and
+a word with no sibling goes last. **The lesson for the rule: when an exception is added for "the
+value this record already has", scope it to every value the app can produce, not to the list you
+happened to be editing.**
 Guard: `scripts/qa/probe-a-stage-you-pick-is-the-stage-you-get.mjs`, whose brakes are that a record
 already carrying an unkeepable word still displays it, that the pickers still offer the real stages,
-and that a missing `stageKeepable` makes them fall back to the full list rather than to nothing.
+that a missing `stageKeepable` makes them fall back to the full list rather than to nothing, and
+that a word LEAD_STAGES never listed is shown only on the record carrying it.
 *Date: 2026-09-21, js/02 + js/core/core-01 + js/core/core-02. Status: ACTIVE.*
 
 **M56 — when a short list stands in for a long one, sort by what the reader can still act on, not

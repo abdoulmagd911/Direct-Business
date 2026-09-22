@@ -37,7 +37,14 @@
      6. the pickers still offer the real stages — at least five, including Won and Lost;
      7. if `stageKeepable` is unavailable the pickers fall back to the full list rather than
         emptying, so a load-order accident cannot leave someone unable to set any stage at all;
-     8. no JS errors in either language.
+     8. every screen word the conversion maps recognise reports its own record in the picker —
+        added in fire #202, which measured all nine and found **"New" and "On hold"** drawing a
+        dropdown without their own stage, so the browser selected the first option and the page
+        said "Prospect". Pre-existing rather than introduced by #198: neither word has ever been in
+        LEAD_STAGES, so the picker never held them before that round either;
+     9. a word LEAD_STAGES never listed is shown only on the record that carries it, never offered
+        to a record that does not;
+    10. no JS errors in either language.
 
    Checks 3, 6 and 7 are the brakes. Deleting the stage vocabulary outright would pass 1, 2, 4 and
    5 and fail 6 and 7; hiding every record that carries an awkward word would pass 1 and 2 and fail
@@ -51,6 +58,15 @@
        and the reason is worth stating rather than leaving as a surprise: the "Contacted → Qualified"
        text comes from the entry's own note, so it is still on screen even when the LABEL above it
        has fallen back to the raw stored type. Check 5 guards the rendering, check 4 guards the word.
+   Fire #202 added two more runs for checks 8 and 9:
+     · removing the branch that shows a word LEAD_STAGES never listed — fails 8, and the printed
+       line is the defect itself: New and On hold both read "shows: Prospect".
+     · appending "On hold" to every picker unconditionally — fails 9 and also **1**, the deeper
+       reason being that the leaked word does not survive a save at all.
+   One sabotage attempt in between failed to break anything and is recorded because the lesson is
+   the same discipline: it set `current = current || 'On hold'`, and `current` is already truthy on
+   an ordinary record, so nothing leaked. A sabotage that changes nothing proves nothing about the
+   check — read what it actually did before reading the result.
    Run: node scripts/qa/probe-a-stage-you-pick-is-the-stage-you-get.mjs                            */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
@@ -97,6 +113,9 @@ const seeded = await p.evaluate(() => {
     return Object.assign(c, extra);
   };
   B.push(mk('qa_stage_neg', 'QASTAGE neg', { stage: 'Negotiation', activities: [] }));
+  /* fire #202: the two screen words the conversion maps know that LEAD_STAGES never listed */
+  B.push(mk('qa_stage_new', 'QASTAGE new', { stage: 'New', activities: [] }));
+  B.push(mk('qa_stage_hold', 'QASTAGE hold', { stage: 'On hold', activities: [] }));
   B.push(mk('qa_stage_sc', 'QASTAGE sc', { stage: 'Contacted', activities: [
     { date: Date.now(), type: 'Stage change', status: 'Qualified', note: 'Contacted → Qualified', by: 'qa' }] }));
   return { ok: true };
@@ -179,6 +198,25 @@ await p.evaluate(() => { try { window.__keepBackup = window.stageKeepable; delet
 const fallback = await offered('qa_stage_sc');
 await p.evaluate(() => { try { window.stageKeepable = window.__keepBackup; } catch (_) {} });
 
+/* fire #202 — every screen word the maps recognise must report its own record, including the two
+   LEAD_STAGES never listed. Asked of the app (stageIsKnown) rather than from a list copied here. */
+const KNOWN = await p.evaluate(() => {
+  const words = ['Prospect', 'New', 'Contacted', 'Qualified', 'Negotiation', 'Proposal', 'Won', 'Lost', 'On hold'];
+  try { return words.filter((w) => typeof window.stageIsKnown === 'function' ? window.stageIsKnown(w) : true); } catch (_) { return words; }
+});
+const selfReport = [];
+for (const [id, word] of [['qa_stage_new', 'New'], ['qa_stage_hold', 'On hold'], ['qa_stage_neg', 'Negotiation']]) {
+  await openRecord(id);
+  const r = await p.evaluate(() => {
+    const sel = [...document.querySelectorAll('#view select')].find((s) => String(s.getAttribute('onchange') || '').indexOf('setLeadStage') >= 0);
+    const b = (DB.businesses || []).find((x) => x.id === openLead);
+    return { stage: b ? b.stage : null, shows: sel ? sel.value : null, options: sel ? [...sel.options].map((o) => o.value) : [] };
+  });
+  selfReport.push({ word, stage: r.stage, shows: r.shows, ok: r.stage === r.shows, count: r.options.length });
+}
+/* and the borrowed word must not be offered to a record that does not carry it */
+const ordinaryOffers = (await offered('qa_stage_sc')).select || [];
+
 await b.close(); srv.close?.();
 
 const sel = picks.select || [];
@@ -204,6 +242,12 @@ const checks = [
   ['with stageKeepable unavailable the pickers fall back to the full list, not to nothing',
     (fallback.select || []).length >= sel.length && (fallback.select || []).indexOf('Negotiation') >= 0,
     JSON.stringify(fallback.select)],
+  ['every screen word the maps recognise reports its own record in the picker',
+    selfReport.length === 3 && selfReport.every((x) => x.ok),
+    JSON.stringify(selfReport)],
+  ['a word LEAD_STAGES never listed is shown only on the record that carries it',
+    ordinaryOffers.indexOf('New') < 0 && ordinaryOffers.indexOf('On hold') < 0 && ordinaryOffers.indexOf('Negotiation') < 0,
+    JSON.stringify(ordinaryOffers)],
   ['no JS errors', errors.length === 0, errors.slice(0, 2).join(' | ')],
 ];
 let bad = 0;
