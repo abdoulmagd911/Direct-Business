@@ -1962,6 +1962,32 @@ retry landing must FORGET the refusal — otherwise the next visit cries wolf ab
 safe, which would be this fix causing its own kind of dishonesty.
 *Date: 2026-09-22, js/02-…-shared-c.js + js/75-honest-sync-badge.js + js/102. Status: ACTIVE.*
 
+**M62 — text cached in the DOM for a re-draw must not carry a decision another layer owns; cache
+both languages, or cache the key and re-derive.** Found 2026-09-22 (fire #209) by driving the live
+app in Arabic. On a fresh Leads render the eight funnel tabs read Arabic. One click on ANY filter —
+Hide closed, Needs attention, Mine, a stage chip, a keystroke in the search box, all of which call
+`drawLeads()` — and all eight came back **English** and stayed English (sampled at 300ms, 1s, 2.5s
+and 5s). The page sat half-Arabic until the person navigated away and back.
+Nobody wrote a bug. **Two correct fixes cancelled each other:** the tabs are built with `f.name_en`
+and translated afterwards by the Arabic pass (js/21), and a count-refresh added 2026-09-09 (so the
+numbers stop going stale on a re-draw) rebuilt each label from `data-funnel-label` — a stored copy
+of the **English** name. The refresh therefore restored English over the Arabic every time, and it
+did so *correctly by its own logic*.
+That is the general shape, and it is why this is a rule rather than a one-line fix: a value stashed
+in an attribute for later re-use freezes whatever was true when it was stashed. If another layer
+owns that decision — the language, the rounding, the role-dependent wording — the stash silently
+becomes the authority, and the layer that owns it never gets a say again.
+The fix carries both languages (`data-label-en` / `data-label-ar`, the Arabic from the funnel's own
+`name_ar` through js/09's `fnTitle`/`fnL` — the helpers the funnel card and the hover card already
+use, M51) and chooses at re-draw time.
+Related and worth stating once: this is the **fifth** surface where the answer already existed in
+the file and a second surface did not call it (M38's family — the export, the full funnel card, the
+hover card #203, the section head #204, these tabs).
+Guard: `scripts/qa/probe-the-funnel-chips-keep-their-language.mjs`, whose second brake is that the
+counts must still move on a re-draw — deleting the refresh would "fix" the language and quietly
+restore the stale-number bug it was written for.
+*Date: 2026-09-22, js/09-funnels.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

@@ -121,7 +121,18 @@
       F().forEach(function(f){counts[f.key]=pool.filter(function(b){return b.funnelKey===f.key;}).length;});
       [].slice.call(strip.querySelectorAll('button[data-funnel-key]')).forEach(function(b){
         var k=b.getAttribute('data-funnel-key'); if(!(k in counts))return;
-        b.textContent=b.getAttribute('data-funnel-label')+' \u00b7 '+(counts[k]||0);
+        /* 2026-09-22 (fire #209, found by driving the live app in Arabic): this line used to
+           re-apply `data-funnel-label`, which held the ENGLISH name \u2014 so every re-draw
+           (Hide closed, Needs attention, Mine, a stage chip, a search keystroke) put all eight
+           funnel chips back into English on an otherwise Arabic page, and they stayed English
+           until the page was left and re-entered. Measured: Arabic on a fresh render, English
+           300ms after a click and still English 5s later. The count-refresh added on 2026-09-09
+           was quietly undoing the Arabic pass, because the label it restored was a copy of the
+           English one. Both languages are stored at build time and the right one is chosen here,
+           so a re-draw can no longer change the language of the page. */
+        var en=b.getAttribute('data-label-en')||b.getAttribute('data-funnel-label')||'';
+        var ar=b.getAttribute('data-label-ar')||en;
+        b.textContent=fnL(en,ar)+' \u00b7 '+(counts[k]||0);
       });
     }catch(_){}
   }
@@ -151,20 +162,25 @@
     var leadPool=leadPoolNow;
     var counts={all:leadPool().length};
     F().forEach(function(f){counts[f.key]=leadPool().filter(function(b){return b.funnelKey===f.key;}).length;});
-    function chip(key,label,color){
+    /* the label is carried in BOTH languages so a re-draw cannot re-English it (see refreshTabs).
+       The Arabic comes from the funnel's own `name_ar` through fnTitle \u2014 the same helper the
+       funnel card and the hover card use, rather than a fourth copy of the same decision. */
+    function chip(key,labelEn,labelAr,color){
       var on=window.__funnelTab===key;
       var b=document.createElement('button');
-      b.setAttribute('data-funnel-key',key); b.setAttribute('data-funnel-label',label);
-      b.textContent=label+' \u00b7 '+(counts[key]||0);
+      b.setAttribute('data-funnel-key',key);
+      b.setAttribute('data-funnel-label',labelEn);   /* kept: older layers read this */
+      b.setAttribute('data-label-en',labelEn); b.setAttribute('data-label-ar',labelAr||labelEn);
+      b.textContent=fnL(labelEn,labelAr)+' \u00b7 '+(counts[key]||0);
       b.style.cssText='border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:999px;background:'+(on?(color||'#1C1E2B'):'#eef0f5')+';color:'+(on?'#fff':'#3a3f52');
       b.onclick=function(){window.__funnelTab=key;renderLeads(v);};
       return b;
     }
-    strip.appendChild(chip('all','All','#1C1E2B'));
-    F().forEach(function(f){strip.appendChild(chip(f.key,f.name_en,FCOLOR[f.color]||'#5F5E5A'));});
+    strip.appendChild(chip('all','All','\u0627\u0644\u0643\u0644','#1C1E2B'));
+    F().forEach(function(f){strip.appendChild(chip(f.key,f.name_en,f.name_ar||f.name_en,FCOLOR[f.color]||'#5F5E5A'));});
     var attnCount=leadPool().filter(function(b){return attention(b);}).length;
     var na=document.createElement('button');
-    na.textContent='\u26a0 Needs attention \u00b7 '+attnCount;
+    na.textContent=fnL('\u26a0 Needs attention','\u26a0 \u0628\u062d\u0627\u062c\u0629 \u0625\u0644\u0649 \u0627\u0646\u062a\u0628\u0627\u0647')+' \u00b7 '+attnCount;
     na.style.cssText='border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:999px;margin-left:auto;background:'+(window.__needsAttn?'#D92D20':'#F0453A14')+';color:'+(window.__needsAttn?'#fff':'#D92D20');
     na.onclick=function(){window.__needsAttn=!window.__needsAttn;renderLeads(v);};
     strip.appendChild(na);

@@ -136,6 +136,39 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #209 (2026-09-22 ~16:00 UTC) — in Arabic, the funnel tabs went back to English on every click
+
+**What was wrong, and it is the kind you only find by using the app.** Open Leads in Arabic and the
+eight funnel tabs across the top read Arabic. Click **any** filter — Hide closed, Needs attention,
+Mine, one of the stage chips, or just type in the search box — and all eight snap back to English:
+
+> All · 80   Inbound · 0   Outreach & Network · 0   Travel Trade · 0   Partners & Tenders · 0 …
+
+and stay that way. I checked at a third of a second, one second, two and a half, and five seconds
+after the click — still English every time. The page stays half-Arabic until you leave it and come
+back.
+
+**Nobody wrote a bug — two correct fixes cancelled each other.** The tabs are built with the English
+funnel names and translated a moment later. Separately, on 9 September, a fix made the tab numbers
+refresh when you filter, so they stop going stale. That refresh rebuilt each tab's text from a
+stored copy of its label — and the stored copy was the English one. So every filter click restored
+English over the Arabic, perfectly correctly by its own logic.
+
+**Fixed** by storing both languages on the tab and picking the right one when the numbers refresh.
+The Arabic comes from the funnel's own Arabic name in your database — the same source the funnel
+card and the hover card already use, not a new list of translations. The numbers still refresh; the
+refresh just no longer decides the language. "⚠ Needs attention" is now bilingual at the source too.
+
+**And a second, smaller thing on the same page.** The Leads table was drawing 78 rows over 80 leads.
+Nothing was wrong — "Hide closed" is on by default and two of your leads are Lost — but Leads was
+the only list in the app that did not say so. Airlines says *"Showing 136 of 139 airlines"* and then
+names the three; Events says *"43 of 80 shown"*; Leads showed a tick and left you to work it out.
+The strip now reads **"2 closed hidden · Show"**, and Show is one click.
+
+Both are guarded, and both guards have a brake: one proves English stays English, the other proves
+the tab numbers still move when you filter — because the lazy way to "fix" the language would be to
+stop refreshing them, which would quietly bring back the stale-number bug from September.
+
 ## Routine fire #208 (2026-09-22 ~14:00 UTC) — full battery: 295 of 297, and both reds were mine
 
 **All 303 checks re-run from scratch.** 295 of the 297 that can fail passed. The two that did not

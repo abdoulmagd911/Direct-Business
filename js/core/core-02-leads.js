@@ -134,7 +134,19 @@ function renderLeadSummary(){
   const list=DB.businesses.filter(b=>!b.isClient).filter(matchLead).filter(b=>!_hcS||(leadStage(b)!=="Won"&&leadStage(b)!=="Lost"));
   const byStage=LEAD_STAGES.map(s=>({s,n:list.filter(b=>leadStage(b)===s).length})).filter(x=>x.n);
   const _arLS=(typeof LANG!=='undefined'&&LANG==='ar');
-  el.innerHTML=`<div class="card" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:13px 18px;margin-bottom:14px"><div><div style="font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">${_arLS?'ضمن العرض':'In view'}</div><div style="font-size:17px;font-weight:800;letter-spacing:-.02em">${list.length} ${_arLS?'عميل محتمل':(list.length===1?"lead":"leads")}</div></div><div style="flex:1;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end">${byStage.map(x=>`<span class="statusbadge" style="background:${LSTAGE_COLOR[x.s]}1a;color:${LSTAGE_COLOR[x.s]}"><span class="dot" style="background:${LSTAGE_COLOR[x.s]}"></span>${esc(_actStageWord(x.s))} ${x.n}</span>`).join("")}</div></div>`;
+  /* 2026-09-22 (fire #209): counted live, the page drew 78 rows over 80 leads. Nothing was wrong —
+     "Hide closed" is on by default and 2 leads are Lost — but this page was the only list in the
+     app that did not say so. Airlines says "Showing 136 of 139 airlines" and then names the three;
+     Events says "43 of 80 shown"; Leads showed a tick labelled "Hide closed" and left the reader to
+     work out that two records existed at all. Same app, same kind of statement, less information.
+     The strip now names the number it is holding back, and offers the one click that shows them. */
+  const _hiddenClosed=_hcS
+    ? DB.businesses.filter(b=>!b.isClient).filter(matchLead).filter(b=>{const s=leadStage(b);return s==="Won"||s==="Lost";}).length
+    : 0;
+  const _hiddenBadge=_hiddenClosed
+    ? `<span class="statusbadge v209-hidden" style="background:var(--wash,#F6F7F9);color:var(--muted,#6B7480);font-weight:600">${_hiddenClosed} ${_arLS?'مغلقة مخفية':('closed hidden')} · <a href="#" onclick="event.preventDefault();leadFilter.hideClosed=false;drawLeads();" style="color:inherit;text-decoration:underline">${_arLS?'إظهار':'Show'}</a></span>`
+    : '';
+  el.innerHTML=`<div class="card" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:13px 18px;margin-bottom:14px"><div><div style="font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">${_arLS?'ضمن العرض':'In view'}</div><div style="font-size:17px;font-weight:800;letter-spacing:-.02em">${list.length} ${_arLS?'عميل محتمل':(list.length===1?"lead":"leads")}</div></div><div style="flex:1;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end">${byStage.map(x=>`<span class="statusbadge" style="background:${LSTAGE_COLOR[x.s]}1a;color:${LSTAGE_COLOR[x.s]}"><span class="dot" style="background:${LSTAGE_COLOR[x.s]}"></span>${esc(_actStageWord(x.s))} ${x.n}</span>`).join("")}${_hiddenBadge}</div></div>`;
 }
 /* base drawTable deleted 2026-08-10 — superseded by the v30 window.drawTable override (bulk-select + priority table) */
 function matchLead(b){if(leadFilter.stage&&leadFilter.stage!=="all"&&leadStage(b)!==leadFilter.stage)return false;if(leadFilter.funnel&&leadFilter.funnel!=="all"&&(b.funnelKey||b.source||"")!==leadFilter.funnel)return false;const q=leadFilter.q.toLowerCase().trim();if(leadGroup==="category"&&leadFilter.cat!=="all"&&b.category!==leadFilter.cat)return false;if(!q)return true;
