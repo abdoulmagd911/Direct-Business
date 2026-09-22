@@ -182,7 +182,7 @@ were written. Twenty pages, and only two things were wrong:
   in Latin letters, in the same column. The Arabic word was already in the app; the badge is written
   in capitals and the translation only matched the ordinary spelling. So your key accounts were the
   one row on the page that read in English.
-- **On Airlines, the "on Saudi BSP" column.** `Yes` on all 136 rows. That word had simply never been
+- **On Airlines, the "on Saudi BSP" column.** `Yes`, in Latin, on every row of the list. That word had simply never been
   translated.
 
 Both now read «رئيسي» and «نعم»/«لا», and the English page is unchanged. The check that holds this
@@ -193,8 +193,10 @@ also proves the app can still tell a badge from a company name: there is a real 
 in Arabic too.
 
 **One thing I did not change, and need a word from you on.** On the Providers page, the "type" column
-shows the supplier's category in English — Aggregator, Hotels, Payments, GDS/agency, NDC aggregator,
-Hotels (bedbank), Aggregator / virtual interlining, and six more. These are values in your data, not
+shows the supplier's category in English — twelve different phrases across your 23 suppliers:
+Aggregator, Hotels, Payments, GDS/agency, NDC aggregator, Hotels (bedbank), Hotel aggregator,
+Hotels + Transfers, Benchmark / OTA, Aggregator (LCC/NDC), Aggregator / LCC API, and
+Aggregator / virtual interlining. These are values in your data, not
 labels in the app, and several are trade jargon where a wrong Arabic word would be worse than the
 English one. Tell me the Arabic you want for them and I will put them in; this is the same open
 question as the four tender-status words below.

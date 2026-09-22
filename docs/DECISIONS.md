@@ -2108,7 +2108,7 @@ badges — while ignoring anything that is a record's data. Twenty pages came ba
 badges:
 
     Clients → tier      «قياسي» for a standard client, and  KEY  for a key one
-    Airlines → BSP السعودية      Yes, in Latin, on all 136 rows
+    Airlines → BSP السعودية      Yes, in Latin, on every row the page drew
 
 js/21 already held `'Key':'رئيسي'`. The Clients table writes the badge as `<span class="tag">KEY</span>`,
 so the standard clients read Arabic and the important ones read English **in the same column** —

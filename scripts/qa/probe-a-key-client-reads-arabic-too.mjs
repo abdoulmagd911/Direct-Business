@@ -6,7 +6,7 @@
    record's data. Two things came back:
 
      Clients, tier column:   «قياسي»  for a standard client, and  KEY  for a key one.
-     Airlines, "BSP السعودية": Yes, in Latin, on every one of the 136 rows.
+     Airlines, "BSP السعودية": Yes, in Latin, on every row of the list.
 
    The Arabic dictionary (js/21) already held 'Key' → «رئيسي». The Clients table writes the badge
    SHOUTED (`<span class="tag">KEY</span>`) and the dictionary matches whole strings exactly, so the

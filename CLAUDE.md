@@ -50,7 +50,9 @@
 > — revenue = total − wallet and profit = revenue − cost on all 46, checked row by row. Also live:
 > `record_history` 378 rows (re-counted 2026-09-22; 216 of them with no actor — bulk SQL work in
 > Aug/Sep, and the page says so),
-> `providers` 23, `airlines` 136, `ksa_events` 80, `sops` 12, `slas` 14, `company_identity` 29,
+> `providers` 23, `airlines` **139 in the register** (the Airlines page draws the 136-row copy inside
+> `app_state` and says so on screen — see BACKLOG "Showing 136 of 139"), `ksa_events` 80, `sops` 12,
+> `slas` 14, `company_identity` 29,
 > 3 client-name alias groups set by the owner himself. **The M15 expense-capture tables are NOT in
 > real use** (counted 2026-09-22, fire #207: this line used to say they were). `finance_expenses`
 > holds 1 row and it is soft-deleted; `proof_documents` the same; individual bookings

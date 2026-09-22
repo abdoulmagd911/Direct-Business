@@ -163,7 +163,7 @@
        this layer has deliberately kept out of it. */
     'All tiers':'كل الفئات','Key':'رئيسي','KEY':'رئيسي','Standard':'قياسي','Unassigned':'غير معيّن',
     /* and the two plainest words in the app were never in it at all: the Airlines list's "on Saudi
-       BSP" column is a Yes/No badge, so 136 rows carried an English word on the Arabic page, and
+       BSP" column is a Yes/No badge, so every row of the list carried an English word on the Arabic page, and
        the airline card's own fact row repeated it. Whole-string matches on chrome only — a record's
        own name lives in a <td><b> this pass never touches. */
     'Yes':'نعم','No':'لا',
