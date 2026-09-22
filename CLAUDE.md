@@ -50,8 +50,14 @@
 > — revenue = total − wallet and profit = revenue − cost on all 46, checked row by row. Also live:
 > `record_history` 360 rows (216 with no actor — bulk SQL work in Aug/Sep, and the page says so),
 > `providers` 23, `airlines` 136, `ksa_events` 80, `sops` 12, `slas` 14, `company_identity` 29,
-> 3 client-name alias groups set by the owner himself, and the M15 expense-capture tables in real
-> use. Exactly 1 record is still flagged `needs_manual_confirmation`. Treat every row as real for
+> 3 client-name alias groups set by the owner himself. **The M15 expense-capture tables are NOT in
+> real use** (counted 2026-09-22, fire #207: this line used to say they were). `finance_expenses`
+> holds 1 row and it is soft-deleted; `proof_documents` the same; individual bookings
+> (`finance_invoices` where `revenue_way='b2c_manual'`) none at all — so all three capture tabs are
+> empty, and each says so on screen in both languages. Read that next to the 19 invoices whose cost
+> is 0: the tool for recording what those services actually cost is built and has never been used.
+> (`finance_targets` 2 rows, `finance_reconciliation_gaps` 46, `record_history` 378 and growing.)
+> Exactly 1 record is still flagged `needs_manual_confirmation`. Treat every row as real for
 > rule 7 purposes.
 > The app has been **re-skinned to Direct's real product UI** (cream `#FBF5F0` + `#ff6b00`).
 > **Critical:** the QA harness serves FAKE data — verify UI against real Supabase rows or a

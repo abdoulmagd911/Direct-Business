@@ -1,4 +1,4 @@
-# ⬆ Waiting on you — nineteen decisions, most urgent first
+# ⬆ Waiting on you — twenty decisions, most urgent first
 
 *Written 2026-09-21. These built up one at a time across the sweep, each buried at the bottom of the
 round that found it, which means none of them ever arrived anywhere you'd see. This is the whole
@@ -25,6 +25,15 @@ offers exactly four choices — preparing, applied, won, lost — and unlike eve
 those four have no Arabic saved anywhere. So in Arabic the field label now reads «حالة المناقصة»
 correctly and the value beside it still reads "Won". Give me the four Arabic words and it's done in
 a minute; I'm not guessing at wording you'd have to live with on screen. *Raised #203.*
+
+**0d · 44% of your profit line rests on a blank, and the tool for filling it has never been used.**
+19 of the 46 invoices record cost as 0, carrying 214,550 of 492,622.59 SAR of profit. The Expenses
+tab exists for exactly this — it is built, bilingual, and keeps the receipt with each entry — and
+has **zero** entries (counted in the live database today; the one row there was deleted). Two clean
+answers: **use it going forward**, or **decide the cost side lives only in Direct Payments and I
+take the tab out of this app**. The middle is where you are: the app asks for a figure nobody
+supplies, and the profit it prints is the full sale price on 19 sales. Entering the history is real
+work and I am not going to invent the numbers. *Raised #207.*
 
 **1 · Four company certificates have lapsed, and the commercial registration expires 2026-12-14.**
 ISO 9001 (Feb 2025), DUNS (Sep 2025), Saudization (Jan 2026), PCI DSS (Jul 2026). The CR is 85 days
@@ -126,6 +135,37 @@ saying so explicitly. The number belongs to someone outside Direct, which is the
 on this list at all. *Raised #140.*
 
 ---
+
+## Routine fire #207 (2026-09-22 ~12:00 UTC) — the three capture tabs are correct, and completely unused
+
+**A checking round, and the check passed.** Finance has three tabs that exist to record what
+Direct Payments cannot tell us: **Expenses** (what a service actually cost us), **Payment proofs**,
+and **Individual bookings**. I drove all three against your real data, in both languages. They are
+correct: each one says, in words, that nothing has been recorded yet — "No service costs recorded
+yet." and «لا تكاليف خدمات مسجلة بعد.» — rather than showing a bare 0 and letting you guess. That
+is the standard, and it was already met. I have now put a guard on it, because it was unguarded: a
+future change to those tables would have looked like a working page with a shorter list.
+
+**What the check turned up is worth your attention, though, and it is not a bug.**
+
+All three are **completely empty**. The expenses table holds one row and it was deleted. The proofs
+table, the same. Individual bookings, none at all.
+
+Put that next to something you already know: **19 of your 46 invoices record their cost as 0**, and
+those 19 carry **214,550 SAR of the 492,622.59 SAR profit total — 44%**. Every one of those is a
+sale where the profit shown equals the whole amount, because nothing was ever entered on the cost
+side.
+
+The tool for fixing exactly that is built, bilingual, keeps the receipt attached to each entry, and
+has never been used once. That is not something I should decide for you — entering historical costs
+is real work and you may want it done in Direct Payments instead. **Decision for you (added to the
+list at the top): do you want the Expenses tab used going forward, or should the cost side stay in
+Direct Payments and this app stop offering it?** Either answer is fine; what is not fine is the
+current middle, where the app invites a figure that nobody supplies and 44% of your profit line
+rests on a blank.
+
+I also corrected `CLAUDE.md`, which claimed these tables were "in real use" — they are not, and the
+next session would have believed it.
 
 ## Routine fire #206 (2026-09-22 ~10:00 UTC) — a change the server refused was quietly thrown away on the next reload
 
