@@ -136,6 +136,39 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #214 (2026-09-23 ~00:00 UTC) — an Arabic name typed the normal way found nothing
+
+**This one only shows up if you search in Arabic.** I searched for every company in your data by
+its own Arabic name. Typed letter-for-letter as stored: found, 18 times out of 18. Typed the way
+people actually type Arabic:
+
+| What you type | What happens |
+|---|---|
+| «الهيئه العامه» instead of «الهيئة العامة» (ه for ة) | **nothing found** — 0 of 14 |
+| «الادارة» instead of «الإدارة» (no hamza) | **nothing found** |
+| «مستشفي» instead of «مستشفى» | **nothing found** |
+
+Those aren't mistakes — that's ordinary typing. But the app was comparing letters exactly, so it
+treated them as different words and told you the company doesn't exist, while it sat in the list.
+
+The English side never had this problem, which is why nobody caught it: **the app was being tested
+in the language that doesn't need it.**
+
+**Fixed.** Both what's in the record and what you type are now flattened to the same spelling before
+they're compared — the alef forms, ة and ه, ى and ي, the marks nobody types, and Arabic numerals
+(٠٥٥ finds a number stored as 055). One rule, used by all four search boxes: Leads, Clients, the
+Ctrl+K palette and the top-bar box.
+
+**And a second one, found while fixing the first:** a mobile typed the local way (٠٥٠…) never
+matched a number stored the international way (+966 50…). The top-bar box had half of this rule
+since September; the other boxes had none of it. Now every box strips the country code and the
+leading zero from both sides, so the two spellings are the same number.
+
+**Measured after the change, across all 108 records:** Arabic exact 18/18, ه-for-ة 14/14, hamza 3/3,
+ى-for-ي 2/2, English 96/96, email domain 36/36, contact name 36/36, phone by its tail 34/34, phone
+typed locally 34/34 — and a nonsense Arabic word still finds nothing, which is the check I guard
+hardest: a search that matches everything is as useless as one that matches nothing.
+
 ## Routine fire #213 (2026-09-22 ~22:00 UTC) — the phone check, and two claims I re-measured
 
 **A checking round.** Most of the team opens this on a phone, and six of the things I changed today

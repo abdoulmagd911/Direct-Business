@@ -149,12 +149,14 @@ function renderLeadSummary(){
   el.innerHTML=`<div class="card" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:13px 18px;margin-bottom:14px"><div><div style="font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">${_arLS?'ضمن العرض':'In view'}</div><div style="font-size:17px;font-weight:800;letter-spacing:-.02em">${list.length} ${_arLS?'عميل محتمل':(list.length===1?"lead":"leads")}</div></div><div style="flex:1;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end">${byStage.map(x=>`<span class="statusbadge" style="background:${LSTAGE_COLOR[x.s]}1a;color:${LSTAGE_COLOR[x.s]}"><span class="dot" style="background:${LSTAGE_COLOR[x.s]}"></span>${esc(_actStageWord(x.s))} ${x.n}</span>`).join("")}${_hiddenBadge}</div></div>`;
 }
 /* base drawTable deleted 2026-08-10 — superseded by the v30 window.drawTable override (bulk-select + priority table) */
-function matchLead(b){if(leadFilter.stage&&leadFilter.stage!=="all"&&leadStage(b)!==leadFilter.stage)return false;if(leadFilter.funnel&&leadFilter.funnel!=="all"&&(b.funnelKey||b.source||"")!==leadFilter.funnel)return false;const q=leadFilter.q.toLowerCase().trim();if(leadGroup==="category"&&leadFilter.cat!=="all"&&b.category!==leadFilter.cat)return false;if(!q)return true;
+function matchLead(b){if(leadFilter.stage&&leadFilter.stage!=="all"&&leadStage(b)!==leadFilter.stage)return false;if(leadFilter.funnel&&leadFilter.funnel!=="all"&&(b.funnelKey||b.source||"")!==leadFilter.funnel)return false;const q=leadFilter.q.trim();if(leadGroup==="category"&&leadFilter.cat!=="all"&&b.category!==leadFilter.cat)return false;if(!q)return true;
   /* fire #194: was its own field list — the fourth and last copy, and the one the team uses most.
      Now the shared recordHay (core-01), which is what M38 asks for. It also ends this box's own
      version of the run-together bug #180 fixed here: contacts used to be joined as
      name+email+phone with no spaces. */
-  return recordHay(b).includes(q);}
+  /* fire #214: hayHas folds the query the same way recordHay folds the record, so «الهيئه» finds
+     «الهيئة». Both sides must be folded by the same function or neither is. */
+  return hayHas(b,q);}
 
 
 function leadDashboard(v,id){
@@ -301,7 +303,7 @@ function renderClients(v){
      to be concatenated with nothing between them, so a search could match across the seam of two
      different values and hit a record that contains neither. */
   /* fire #180: was its own copy of this list. Now the shared recordHay (core-01) — see M38. */
-  if(clFilter.q){const q=clFilter.q.toLowerCase().trim();cl=cl.filter(b=>recordHay(b).includes(q));}
+  if(clFilter.q){const q=clFilter.q.trim();cl=cl.filter(b=>hayHas(b,q));}
   /* 2026-09-03 (round 43): "__none__" lists the clients nobody owns. The dropdown was built from
      the names actually present and .filter(Boolean), so there was no way to ASK for the unowned
      ones — you could only spot the red "Unassigned" tags by scrolling. Live that day: 20 of

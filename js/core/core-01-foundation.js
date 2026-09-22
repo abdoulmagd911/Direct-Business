@@ -671,19 +671,80 @@ function kpi(ic,col,bg,l,v,s,tr){return `<div class="kpi"><div class="ic" style=
      · `website` (78 of 108) was in NEITHER, so a company could not be found by its own domain
        anywhere in the app — the one thing you have when a stranger e-mails you.
    All of them live here now, and `matchLead` reads this function instead of its own copy. */
+/* 2026-09-22 (fire #214) — ARABIC SPELLING. Measured against the live records: searching a
+   company by its Arabic name found it 18 times out of 18 — as long as every letter was typed the
+   way it happens to be stored. Type it the way people actually type it and the company vanishes:
+
+     ة written as ه   ("الهيئه العامه" for «الهيئة العامة»)   0 found out of 14
+     أ/إ/آ written as ا ("الادارة" for «الإدارة»)              0 found
+     ى written as ي   ("مستشفي" for «مستشفى»)                 0 found
+
+   Those are not typos, they are ordinary Saudi typing, and a plain substring match treats them as
+   different words. Arabic search therefore has to FOLD both the record and the query to the same
+   spelling before comparing — the letters above, the harakat and tatweel nobody types, and the
+   Arabic-Indic digits (٠-٩), so a phone number typed in Arabic numerals finds its contact too.
+   One fold, used by every search box in the app (the four this project unified in fire #194 plus
+   the global box's other collections) — a second copy is how the boxes drifted apart last time. */
+function searchFold(s){
+  try{
+    return String(s==null?'':s).toLowerCase()
+      .replace(/[أإآٱ]/g,'ا')                 /* أ إ آ ٱ → ا */
+      .replace(/ة/g,'ه')                                     /* ة → ه */
+      .replace(/ى/g,'ي')                                     /* ى → ي */
+      .replace(/ؤ/g,'و').replace(/ئ/g,'ي')         /* ؤ → و ، ئ → ي */
+      .replace(/[ً-ْـٰ]/g,'')                      /* harakat, tatweel */
+      .replace(/[٠-٩]/g,function(d){return String(d.charCodeAt(0)-0x0660);})
+      .replace(/[۰-۹]/g,function(d){return String(d.charCodeAt(0)-0x06F0);});
+  }catch(_){ return String(s==null?'':s).toLowerCase(); }
+}
+try{ window.searchFold=searchFold; }catch(_){}
 function recordHay(b){
   try{
-    return ((b.name||'')+' '+(b.nameAr||'')+' '+(b.legalName||'')+' '+(b.directClientId||'')+' '+
+    return searchFold((b.name||'')+' '+(b.nameAr||'')+' '+(b.legalName||'')+' '+(b.directClientId||'')+' '+
       (b.crVat||'')+' '+(b.segment||'')+' '+(b.source||'')+' '+(b.assignedTo||'')+' '+
       (b.notes||'')+' '+(b.website||'')+' '+
       ((b.contacts||[]).map(function(c){ return String(c&&c.name||'')+' '+String(c&&c.email||'')+' '+String(c&&c.phone||''); }).join(' '))
-    ).toLowerCase();
-  }catch(_){ return String((b&&b.name)||'').toLowerCase(); }
+    );
+  }catch(_){ return searchFold((b&&b.name)||''); }
 }
 try{ window.recordHay=recordHay; }catch(_){}
+/* A phone number is the same number however it is written. Fire #113 built that rule for the
+   top-bar box alone (digits-only query, five or more, compared against the contacts' digits);
+   fire #214 found the rest of it and moved it here so every box has it:
+     · the stored number is usually international (+966 5X XXX XXXX) and the number a colleague
+       types is usually local (٠٥X XXX XXXX). Stripping the country code from one side and the
+       leading zero from the other makes them the same nine digits — without that they never meet,
+       which is why searching a mobile the ordinary way found nothing;
+     · searchFold has already turned Arabic-Indic digits into ASCII by the time this runs. */
+function phoneKey(s){
+  try{
+    var d=String(s==null?'':s).replace(/\D/g,'');
+    d=d.replace(/^00/,'');
+    d=d.replace(/^966/,'');
+    d=d.replace(/^0+/,'');
+    return d;
+  }catch(_){ return ''; }
+}
+try{ window.phoneKey=phoneKey; }catch(_){}
+function phoneHay(b){ try{ return (b.contacts||[]).map(function(c){ return phoneKey(c&&c.phone); }).filter(Boolean).join(' '); }catch(_){ return ''; } }
+try{ window.phoneHay=phoneHay; }catch(_){}
+/* the query side of the same rule: fold what was typed before looking for it */
+function hayHas(b,q){
+  try{
+    var f=searchFold(q).trim(); if(!f) return true;
+    if(recordHay(b).indexOf(f)>=0) return true;
+    /* mostly-digits query → treat it as a number, the way fire #113 did in the global box */
+    var d=f.replace(/\D/g,'');
+    if(d.length>=5 && d.length>=f.replace(/\s/g,'').length-2) return phoneHay(b).indexOf(phoneKey(d))>=0;
+    return false;
+  }catch(_){ return false; }
+}
+try{ window.hayHas=hayHas; }catch(_){}
 
 function runGlobalSearch(q){
-  q=(q||'').toLowerCase().trim();const box=document.getElementById('gres');if(!box)return;
+  /* fire #214: the query is folded the same way the records are, so an Arabic name typed with ه
+     for ة (or without its hamza) still finds its company here, not only on the Leads page. */
+  q=searchFold(q).trim();const box=document.getElementById('gres');if(!box)return;
   if(!q){box.style.display='none';box.innerHTML='';return;}
   const res=[];
   /* 2026-09-20 (fire #113): a phone number only found its company when you typed the spacing
@@ -692,14 +753,13 @@ function runGlobalSearch(q){
      bridge two rounds ago: a number written differently is the same number. When the query is
      mostly digits, the digits are compared. Five digits minimum, so a short number in a name or a
      licence code does not drag in half the list. */
-  const _qDigits=q.replace(/\D/g,'');
-  const _byDigits=(_qDigits.length>=5&&_qDigits.length>=q.replace(/\s/g,'').length-2);
-  const _phoneHay=(b)=>(b.contacts||[]).map(c=>String(c.phone||'').replace(/\D/g,'')).join(' ');
-  DB.businesses.forEach(b=>{if(recordHay(b).includes(q)||(_byDigits&&_phoneHay(b).includes(_qDigits)))res.push({t:b.isClient?'Client':'Lead',label:b.name,sub:b.segment||'',go:()=>{openSup=null;openLead=b.id;current='leads';render();}});});
-  (DB.requests||[]).forEach(r=>{if((r.client+' '+r.service+' '+r.detail+' '+(r.owner||'')+' '+(r.pnr||'')).toLowerCase().includes(q))res.push({t:'Request',label:r.client+' · '+r.service,sub:r.stage,go:()=>{openLead=null;openSup=null;current='ops';render();editRequest(r.id);}});});
-  (DB.airlines||[]).forEach(a=>{if((a.name+' '+(a.code||'')+' '+(a.source||'')).toLowerCase().includes(q))res.push({t:'Airline',label:a.name+(a.code?' ('+a.code+')':''),sub:a.source||'',go:()=>{openLead=null;supKind='air';openSup=a.id;current='airlines';render();}});});
-  DB.vendors.forEach(v=>{if((v.name+' '+(v.type||'')+' '+(v.source||'')).toLowerCase().includes(q))res.push({t:'Provider',label:v.name,sub:v.type||'',go:()=>{openLead=null;supKind='prov';openSup=v.id;current='vendors';render();}});});
-  DB.sops.concat(DB.sopsWhale).forEach(s=>{if((s.title+' '+(s.purpose||'')+' '+(s.body||'')).toLowerCase().includes(q))res.push({t:'SOP',label:s.title,sub:s.code,go:()=>{openLead=null;openSup=null;current='sops';render();setTimeout(()=>{const d=[...document.querySelectorAll('.sop')].find(x=>x.querySelector('.ti')&&x.querySelector('.ti').textContent===s.title);if(d){d.open=true;d.scrollIntoView({block:'center'});}},60);}});});
+  /* 2026-09-22 (fire #214): this rule now lives in hayHas (core-01) and every search box uses the
+     same one — the local-vs-international half was missing here too (+966 50… never met 050…). */
+  DB.businesses.forEach(b=>{if(hayHas(b,q))res.push({t:b.isClient?'Client':'Lead',label:b.name,sub:b.segment||'',go:()=>{openSup=null;openLead=b.id;current='leads';render();}});});
+  (DB.requests||[]).forEach(r=>{if(searchFold(r.client+' '+r.service+' '+r.detail+' '+(r.owner||'')+' '+(r.pnr||'')).includes(q))res.push({t:'Request',label:r.client+' · '+r.service,sub:r.stage,go:()=>{openLead=null;openSup=null;current='ops';render();editRequest(r.id);}});});
+  (DB.airlines||[]).forEach(a=>{if(searchFold(a.name+' '+(a.code||'')+' '+(a.source||'')).includes(q))res.push({t:'Airline',label:a.name+(a.code?' ('+a.code+')':''),sub:a.source||'',go:()=>{openLead=null;supKind='air';openSup=a.id;current='airlines';render();}});});
+  DB.vendors.forEach(v=>{if(searchFold(v.name+' '+(v.type||'')+' '+(v.source||'')).includes(q))res.push({t:'Provider',label:v.name,sub:v.type||'',go:()=>{openLead=null;supKind='prov';openSup=v.id;current='vendors';render();}});});
+  DB.sops.concat(DB.sopsWhale).forEach(s=>{if(searchFold(s.title+' '+(s.purpose||'')+' '+(s.body||'')).includes(q))res.push({t:'SOP',label:s.title,sub:s.code,go:()=>{openLead=null;openSup=null;current='sops';render();setTimeout(()=>{const d=[...document.querySelectorAll('.sop')].find(x=>x.querySelector('.ti')&&x.querySelector('.ti').textContent===s.title);if(d){d.open=true;d.scrollIntoView({block:'center'});}},60);}});});
   window._gres=res;
   // The result-type word and the no-match line are chrome, not data — Arabic in Arabic
   // (2026-09-02, attack round 21: they read "Airline / Provider / SOP / No matches" in Arabic).

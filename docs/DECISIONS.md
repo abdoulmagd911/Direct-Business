@@ -2017,6 +2017,37 @@ a rule changes, the guards that encoded the old one are part of the change).
 *Date: 2026-09-22, js/14-lead-lifecycle.js + js/core/core-06-v18-v21.js + js/core/core-09-v26.js.
 Status: ACTIVE.*
 
+**M64 — Arabic search compares FOLDED text on both sides, and a phone number is the same number
+however it is written.** Found 2026-09-22 (fire #214) by searching for every live record by its own
+Arabic name. Exact spelling: 18 found out of 18. Typed the way people actually type:
+
+    ة written as ه     «الهيئه العامه» for «الهيئة العامة»     0 found out of 14
+    أ إ آ written as ا  «الادارة» for «الإدارة»                  0 found out of 3
+    ى written as ي     «مستشفي» for «مستشفى»                    0 found out of 2
+
+Those are not typos; they are ordinary Saudi typing, and a substring match treats them as different
+words — so an Arabic-speaking colleague searching for a company that is sitting right there is told
+it does not exist. The English side never had this problem, which is exactly why it went unnoticed:
+**the app was tested in the language that happens not to need folding.**
+The rule has two halves and half of it is worthless:
+  1. one fold (`searchFold`, core-01) covering the alef forms, ة/ه, ى/ي, ؤ/ئ, the harakat and
+     tatweel nobody types, and the Arabic-Indic digits;
+  2. applied to **both sides** — the record and what was typed. Folding only the record is worse
+     than not folding at all: the sabotage run shows it breaks even the exact spelling, because the
+     record no longer reads the way it is stored.
+Carried with it, because it is the same shape of mistake: **a phone typed locally never met a phone
+stored internationally.** Fire #113 had built the digits rule for the top-bar box alone; the local
+(٠٥…) versus international (+966 5…) half was missing everywhere. `phoneKey` strips `00`, `966` and
+a leading zero from both sides, so the two spellings are the same nine digits, and `hayHas` is now
+the single rule every box uses — the top-bar box included, where the old inline copy has been
+deleted.
+Measured after the change, against all 108 live records: Arabic exact 18/18, ة→ه 14/14, hamza 3/3,
+ى→ي 2/2, English mid-word 96/96, e-mail domain 36/36, contact name 36/36, phone tail 34/34, phone
+typed locally 34/34, and a nonsense Arabic word still returns nothing — the fold did not turn the
+search into a machine that matches anything.
+Guard: `scripts/qa/probe-arabic-spelling-finds-the-company.mjs`, whose brake is that last line.
+*Date: 2026-09-22, js/core/core-01-foundation.js + core-02 + core-06. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
