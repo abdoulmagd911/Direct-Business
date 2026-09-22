@@ -95,6 +95,47 @@
      flag still stand on their own. */
   function noPeople(b){ try{ if(window.__v72Failed&&window.__v72Failed('contacts')) return false; }catch(_){ } return !(b.contacts&&b.contacts.length); }
   function attention(b){return noPeople(b)||overdue(b)||b.needsManualConfirmation===true;}
+  /* 2026-09-22 (fire #216): there were TWO "⚠ Needs attention" controls on the Leads page, with
+     the same words and different meanings — this chip (no contact person, or an overdue next
+     action, or flagged for confirmation) and core-10's toolbar button (no contact person, or no
+     source). They agreed on the live data by luck, not by design, and they kept SEPARATE on/off
+     flags: clicking one filtered the list while the other stayed dark, so nothing on screen said
+     which of the two was doing it. One rule and one flag now, exported from here because this is
+     the richer of the two and the one the chip's count already used. */
+  try{ window.leadAttention=attention; }catch(_){}
+  try{ window.leadAttentionWhy=function(b){ var out=[];
+    try{ if(noPeople(b)) out.push('nocontact'); if(overdue(b)) out.push('overdue');
+         if(b&&b.needsManualConfirmation===true) out.push('confirm'); }catch(_){}
+    return out; }; }catch(_){}
+  /* the same breakdown for whichever control asks — the chip below and core-10's toolbar button
+     both show it, so the count and its explanation can never drift apart (M51). */
+  /* and the same POOL. A rule shared over two different lists is still two answers: measured in
+     the harness right after the rule was unified, the chip said 33 and the toolbar button said 45,
+     because the chip counts the leads the table is actually showing (live, un-archived, and minus
+     Won/Lost while "Hide closed" is on) and the button counted every non-client row in memory.
+     The tooltip had a third pool of its own. One pool, exported, so a number on screen always
+     describes the rows the click will leave behind. */
+  try{ window.leadAttnPool=function(){ try{ return leadPoolNow(); }catch(_){ return []; } }; }catch(_){}
+  try{ window.leadAttnCount=function(){ try{ return window.leadAttnPool().filter(attention).length; }catch(_){ return 0; } }; }catch(_){}
+  try{ window.leadAttentionTitle=function(){
+    try{
+      var ar=fnAr(), why={nocontact:0,overdue:0,confirm:0};
+      window.leadAttnPool().forEach(function(b){
+        if(!b||b.isClient) return; if(!attention(b)) return;
+        window.leadAttentionWhy(b).forEach(function(k){ if(why[k]!==undefined) why[k]++; });
+      });
+      var parts=[];
+      if(why.nocontact) parts.push(why.nocontact+' '+(ar?'بلا جهة اتصال':'with no contact person'));
+      if(why.overdue) parts.push(why.overdue+' '+(ar?'إجراء متأخر':'with an overdue next action'));
+      if(why.confirm) parts.push(why.confirm+' '+(ar?'بحاجة إلى تأكيد':'flagged to confirm'));
+      if(!parts.length) return ar?'لا شيء بحاجة إلى انتباه':'Nothing needs attention';
+      return (ar?'بحاجة إلى انتباه: ':'Needs attention: ')+parts.join(' · ');
+    }catch(_){ return ''; }
+  }; }catch(_){}
+  /* the two flags are kept in step rather than one being deleted: other layers read each of them */
+  try{ window.leadAttnSet=function(on){ on=!!on; window.__needsAttn=on;
+    try{ if(typeof leadFilter!=='undefined') leadFilter.attention=on; }catch(_){}
+    return on; }; }catch(_){}
 
   var _match=window.matchLead;
   window.matchLead=function(b){
@@ -178,11 +219,12 @@
     }
     strip.appendChild(chip('all','All','\u0627\u0644\u0643\u0644','#1C1E2B'));
     F().forEach(function(f){strip.appendChild(chip(f.key,f.name_en,f.name_ar||f.name_en,FCOLOR[f.color]||'#5F5E5A'));});
-    var attnCount=leadPool().filter(function(b){return attention(b);}).length;
+    var attnCount=window.leadAttnCount?window.leadAttnCount():leadPool().filter(function(b){return attention(b);}).length;
     var na=document.createElement('button');
     na.textContent=fnL('\u26a0 Needs attention','\u26a0 \u0628\u062d\u0627\u062c\u0629 \u0625\u0644\u0649 \u0627\u0646\u062a\u0628\u0627\u0647')+' \u00b7 '+attnCount;
     na.style.cssText='border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:999px;margin-left:auto;background:'+(window.__needsAttn?'#D92D20':'#F0453A14')+';color:'+(window.__needsAttn?'#fff':'#D92D20');
-    na.onclick=function(){window.__needsAttn=!window.__needsAttn;renderLeads(v);};
+    try{ na.title=window.leadAttentionTitle?window.leadAttentionTitle():''; }catch(_){}
+    na.onclick=function(){ try{ window.leadAttnSet(!window.__needsAttn); }catch(_){ window.__needsAttn=!window.__needsAttn; } renderLeads(v);};
     strip.appendChild(na);
     /* Distinct wording + a title tooltip on purpose (QA-admin audit, 2026-08-20) \u2014 this sits
        right next to the top bar's own "Export \u25be" menu (CSV/Excel, summary/full, always ALL

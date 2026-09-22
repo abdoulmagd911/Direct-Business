@@ -905,7 +905,11 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
   var list=DB.businesses.filter(matchLead);
   if(leadFilter.mine){var _meN=(window.meName?meName():'');list=list.filter(function(b){return window.sameOwner?sameOwner(b.assignedTo||b.owner,_meN):(b.assignedTo||b.owner||'')===_meN;});}
   if(leadFilter.hideClosed&&(leadFilter.stage==='all'||!leadFilter.stage))list=list.filter(function(b){var s=leadStage(b);return s!=='Won'&&s!=='Lost';});
-  if(leadFilter.attention)list=list.filter(function(b){return !(b.contacts||[]).length||!b.source;});
+  /* 2026-09-22 (fire #216): this used to be its own definition of "needs attention" — no contact
+     person OR no source — while the chip six pixels away used another (no contact person, an
+     overdue next action, or flagged for confirmation). Two controls, the same words, different
+     meanings. js/09 owns the rule now and this asks it. */
+  if(leadFilter.attention)list=list.filter(function(b){ try{ return window.leadAttention?window.leadAttention(b):(!(b.contacts||[]).length||!b.source); }catch(_){ return !(b.contacts||[]).length||!b.source; } });
   return list.slice().sort(function(a,b){var va=leadSortVal(a,leadSort.k),vb=leadSortVal(b,leadSort.k);return va<vb?-1*leadSort.dir:va>vb?1*leadSort.dir:0;});
  };
  // make Export respect the same view
@@ -916,6 +920,17 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
  window.leadSelClear=function(){leadSel.clear();drawTable();};
  window.leadBulkAssign=function(o){if(!o||!leadSel.size)return;var n=0;leadSel.forEach(function(id){var b=getLead(id);if(b){b.assignedTo=o;b.activities=b.activities||[];b.activities.push({date:Date.now(),type:'Assigned',status:'',note:'Bulk-assigned to '+o,by:(typeof me==='function'?me():'Team')});n++;}});save();if(typeof toast==='function')toast(n+' assigned to '+o);drawTable();};
  window.leadBulkStage=function(s){if(!s||!leadSel.size)return;var n=0;leadSel.forEach(function(id){var b=getLead(id);if(b){b.stage=s;b.status=s;if(s==='Won')b.isClient=true;b.lastContact=Date.now();b.activities=b.activities||[];b.activities.push({date:Date.now(),type:'Stage change',status:s,note:'Bulk stage change',by:(typeof me==='function'?me():'Team')});n++;}});save();if(typeof toast==='function')toast(n+' moved to '+(s==='Won'?'Client':s));leadSel.clear();render();};
+ /* 2026-09-22 (fire #216): the button says how many and, in its tooltip, WHY — a warning that
+    flags 71 of 80 leads and gives no reason is furniture. The reasons come from js/09's rule, the
+    same one the filter applies, so the count and the explanation cannot drift apart. */
+    /* and over js/09's POOL, not a second one: counting every non-client row in memory made this
+       button read 45 beside a chip reading 33, because archived rows and the Won/Lost ones "Hide
+       closed" is hiding are not leads this page will show you. */
+ function _attnLeads(){ try{ var pool=window.leadAttnPool?window.leadAttnPool():(DB.businesses||[]).filter(function(b){ return !b.isClient; });
+   return pool.filter(function(b){ try{ return window.leadAttention?window.leadAttention(b):(!(b.contacts||[]).length||!b.source); }catch(_){ return false; } }); }catch(_){ return []; } }
+ function _attnCount(){ try{ if(window.leadAttnCount) return window.leadAttnCount(); }catch(_){} return _attnLeads().length; }
+ /* js/09 owns the rule, so it owns the wording too — this asks rather than keeping a second copy */
+ function _attnTitle(){ try{ return window.leadAttentionTitle?window.leadAttentionTitle():''; }catch(_){ return ''; } }
  window.drawTable=function(){
   var board=document.getElementById('board');if(!board)return;board.className='';
   var list=leadTableList();
@@ -924,7 +939,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
   var selStyle='border:1px solid var(--line-2);border-radius:9px;padding:7px 9px;font:inherit;font-size:12px;background:#fff;cursor:pointer';
   var ctrl='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'+
     '<button class="btn sm '+(leadFilter.hideClosed?'pri':'ghost')+'" onclick="leadFilter.hideClosed=!leadFilter.hideClosed;drawLeads()">'+(leadFilter.hideClosed?'✓ ':'')+'Hide closed</button>'+
-    '<button class="btn sm '+(leadFilter.attention?'pri':'ghost')+'" onclick="leadFilter.attention=!leadFilter.attention;drawLeads()">⚠ Needs attention</button>'+
+    '<button class="btn sm '+(leadFilter.attention?'pri':'ghost')+'" title="'+esc(_attnTitle())+'" onclick="(window.leadAttnSet?window.leadAttnSet(!leadFilter.attention):leadFilter.attention=!leadFilter.attention);drawLeads()">⚠ '+((typeof LANG!=="undefined"&&LANG==="ar")?"بحاجة إلى انتباه":"Needs attention")+' · '+_attnCount()+'</button>'+
     '<button class="btn sm '+(leadFilter.mine?'pri':'ghost')+'" onclick="leadFilter.mine=!leadFilter.mine;drawLeads()">'+(leadFilter.mine?'✓ ':'')+'👤 '+((typeof LANG!=="undefined"&&LANG==="ar")?"خاص بي":"Mine")+'</button>'+
     (sel?('<span style="flex:1"></span><span class="tag" style="background:#7A5AF81a;color:#7A5AF8;font-weight:700">'+sel+' selected</span>'+
       '<select onchange="leadBulkAssign(this.value);this.value=\'\'" style="'+selStyle+'"><option value="">Assign to…</option>'+team.map(function(t){return '<option>'+esc(t)+'</option>';}).join('')+'</select>'+

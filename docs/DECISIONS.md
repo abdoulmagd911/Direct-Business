@@ -2048,6 +2048,36 @@ search into a machine that matches anything.
 Guard: `scripts/qa/probe-arabic-spelling-finds-the-company.mjs`, whose brake is that last line.
 *Date: 2026-09-22, js/core/core-01-foundation.js + core-02 + core-06. Status: ACTIVE.*
 
+**M65 — two controls that ask the same question share the rule, the POOL, the count and the
+on/off state — or they are two questions wearing one word.** Found 2026-09-22 (fire #216) by
+driving the live Leads page: it carried two controls reading `⚠ Needs attention` a few centimetres
+apart — js/09's chip (with a count) and core-10's toolbar button (without one). They used different
+rules (chip: no contact person, or an overdue next action, or flagged for confirmation; button: no
+contact person, or no source) and kept **separate flags** (`window.__needsAttn`,
+`leadFilter.attention`), so clicking the chip filtered 78 rows to 71 and left the button dark, and
+switching that one off left the other still holding the filter. The two rules agreed on the live
+data by luck: no lead lacks a source today, and the one record flagged for confirmation also has no
+contact person. Either fact changing would have put two different answers to one question on one
+screen.
+Unifying the rule was **not enough**, and that is the half worth remembering: with one rule and one
+flag in place, the harness immediately showed the chip reading 33 and the button reading 45. They
+were counting different **pools** — the chip counts the leads the table is showing (live,
+un-archived, minus Won/Lost while "Hide closed" is on), the button counted every non-client row in
+memory, and the tooltip had a third pool of its own. A shared rule over three lists is still three
+answers. js/09 now exports all six pieces — `leadAttention`, `leadAttentionWhy`,
+`leadAttentionTitle`, `leadAttnPool`, `leadAttnCount`, `leadAttnSet` — and core-10 asks rather than
+keeps a copy.
+Carried with it (M51's wording rule, applied): a warning that flags **71 of 80 leads** and gives no
+reason is furniture. Both controls now carry the same breakdown — "71 with no contact person · 1
+flagged to confirm" / «71 بلا جهة اتصال · 1 بحاجة إلى تأكيد».
+Measured live after the change, EN and AR: both read 71 over a pool of 78, either click filters to
+71 rows and lights the other, either click again restores 78, no writes, no JS errors.
+Guard: `scripts/qa/probe-one-needs-attention-not-two.mjs`. Its first check is the one that catches a
+second pool rather than a second rule — **the count on the control must equal the rows the filter
+leaves** — and its brake is that a lead needing nothing is filtered out, because a filter that
+matches every row is the same as no filter.
+*Date: 2026-09-22, js/09-funnels.js + js/core/core-10-v29-reports.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

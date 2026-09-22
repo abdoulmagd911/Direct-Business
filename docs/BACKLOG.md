@@ -136,6 +136,34 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #216 (2026-09-23 ~04:00 UTC) — one "Needs attention" button, not two, and it now says why
+
+**Your Leads page had two buttons with the same words a few centimetres apart** — `⚠ Needs
+attention · 71` in the chip strip and `⚠ Needs attention` in the toolbar above the table. They were
+not the same button and they did not mean the same thing. One counted companies with nobody to call,
+an overdue next step, or a record flagged for checking; the other counted companies with nobody to
+call or no recorded source. Worse, each remembered its own on/off: clicking the first one filtered
+the list to 71 while the second stayed unlit, so nothing on screen told you which of the two was
+doing the filtering — and switching that one off left the other still holding it.
+
+They happened to give the same answer on today's data, by luck rather than design: no lead is
+missing a source right now, and the one record flagged for checking also has nobody on it. The first
+lead recorded without a source would have made one page show two different answers to one question.
+
+Now there is one rule, one count and one switch: press either control and both light up and the list
+filters; press either again and both clear. **And both now tell you what the warning means** —
+hovering either one says "71 with no contact person · 1 flagged to confirm", in Arabic on the Arabic
+page. A warning on nine tenths of your list that gives no reason is furniture; a warning that names
+the reason is a to-do list.
+
+Checked on your real data in both languages: 71 over a pool of 78, filters to 71 rows, restores to
+78, nothing written to the database, no errors. Held by a new automated check that also catches the
+subtler version of this — the two controls counting the same rule over *different lists*, which is
+exactly what happened once the rule was unified and is why the check compares the number on the
+button against the rows the filter actually leaves.
+
+---
+
 ## Routine fire #215 (2026-09-23 ~02:00 UTC) — full battery after nine files changed, and what your lead list actually contains
 
 **All 310 checks re-run from scratch: 304 of 304 green.** One went red while three ran at once and
