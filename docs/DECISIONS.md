@@ -2160,6 +2160,35 @@ the page back between clicks.
 Guard: `scripts/qa/probe-a-settings-button-does-what-it-says.mjs`.
 *Date: 2026-09-22, js/core/core-08-v25.js + js/core/core-09-v26.js. Status: ACTIVE.*
 
+**M69 — M65 again, on a second page, with the twist that matters: a stored CODE is not the fact it
+is named after.** Found 2026-09-22 (fire #221) by driving the Events page in both languages. Two
+controls that both mean "events with no date on file", a few centimetres apart:
+
+    tile   «21 No date yet»        → filtered to 21
+    status dropdown "No date"      → filtered to 18
+
+The tile asks the event (fire #172's computed `UNDATED`); the dropdown asked the stored `status`
+code. `status` **conflates two independent facts** — how verified an event is (confirmed / needs
+check / stale / outside KSA / outside window) and whether it has a date — and one column can hold
+only one of them. Three undated events carrying "Needs check" (2) and "Stale" (1) were therefore
+missing from the answer to the very question the option is named after: 14% of the events a person
+opens that filter to fix.
+Fixed with one predicate, `isUndated(e)`, used by the tile, the dropdown and the count. The other
+five options still read the stored code, so those three events now appear under **both** "No date"
+and their own status — which is what they are. The option is named after a fact about the event, so
+it answers about the event.
+**The generalisation, and the reason this is its own rule rather than a second copy of M65:** where
+one column doubles as two facts, a filter named after one of them must compute that fact, not read
+the column. Look for the same shape wherever a status enum contains a value that is really a *data
+condition* — `no_date` here; the same question is worth asking of `needs_manual_confirmation` and
+of any future "missing X" status.
+Guard: `scripts/qa/probe-no-date-means-no-date.mjs`. Two things in its design are the point:
+it compares the two answers' **events, not their totals** (the sabotage that reverts the dropdown
+produces two different sets of the same size, which a count check would pass), and it keeps two
+brakes separate from the agreement check, because the sabotage that makes both controls share the
+same *wrong* rule makes them agree perfectly.
+*Date: 2026-09-22, js/10-events.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

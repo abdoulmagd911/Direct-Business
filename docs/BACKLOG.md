@@ -136,6 +136,32 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #221 (2026-09-23 ~09:00 UTC) — "No date" on Events was missing three of them
+
+On the Events page there are two ways to ask for the events that have no date yet: the tile at the
+top that reads **"21 No date yet"**, and the "No date" choice in the status dropdown. They gave
+different answers — the tile 21, the dropdown 18. Three events with no date were missing from the
+dropdown's answer.
+
+The reason is worth knowing because it will come up again. That status field is being asked to hold
+two unrelated things at once: how sure we are the event is real (confirmed, needs check, stale,
+outside KSA) *and* whether it has a date. An event can easily be both "needs check" and undated —
+but the field only has room for one, so those three were filed under "needs check" and vanished from
+the list of undated ones. Which is exactly the list you would open to go and find their dates.
+
+Now both ways of asking give 21, in English and Arabic. The three events show up under "No date"
+*and* under their own status, because they genuinely are both.
+
+**Everything else on that page I checked and it is right:** all five "our move" filters, all four
+verticals, the other five statuses, the past/upcoming split (37 past, correct to the day), and the
+page-size control. The totals add up exactly.
+
+**Also verified and left alone this round:** the lead and client cards (twenty of them opened in
+Arabic — the only English left is the word "WhatsApp" and the free-text industry descriptions you
+typed yourself), and the SOPs and Service Levels pages.
+
+---
+
 ## Routine fire #220 (2026-09-23 ~08:00 UTC) — all 308 checks re-run from scratch: every one green
 
 Four rounds of changes had gone in since the last full run, touching six files including the Leads

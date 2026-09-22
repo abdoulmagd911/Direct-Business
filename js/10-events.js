@@ -457,6 +457,10 @@ function relDay(e){
   return [n===1?L('tomorrow','غدًا'):L('in '+n+' days','بعد '+n+' يوم'),false];
 }
 function hasEnded(e){ var r=relDay(e); return !!(r&&r[1]); }
+/* One answer to "does this event have a date?" (fire #221). It was written out twice — the tile
+   computed it, the status dropdown asked a stored code instead — and the two disagreed on screen,
+   21 against 18. Everything that asks the question now asks here. */
+function isUndated(e){ return !String((e&&e.start_date)||'').trim() && !String((e&&e.end_date)||'').trim(); }
 /* Two events we COMMITTED to (a stand or going in person) that overlap in time but
    sit in different cities mean somebody has to be in two places at once. Same-city
    overlaps are fine — two people cover them. Computed per render over the loaded set. */
@@ -501,9 +505,22 @@ window.renderEvents=function(v){
   var E=(DB.ksaEvents||[]);
   var list=E.filter(function(e){
     if(F.vertical!=='all'&&e.vertical!==F.vertical)return false;
-    if(F.status!=='all'&&e.status!==F.status)return false;
+    /* 2026-09-22 (fire #221, driven live in both languages): this page carried TWO controls that
+       both mean "events with no date" and gave different answers — the tile said «21 No date yet»
+       and filtered to 21, while the status dropdown's "No date" filtered to 18. The tile asks the
+       EVENT (fire #172's computed UNDATED); the dropdown was asking the stored `status` code, and
+       `status` conflates two independent facts — how verified an event is (confirmed / needs check
+       / stale / outside KSA / outside window) and whether it has a date. An event can be both
+       "needs check" AND undated, and one column can only hold one of them: three undated events
+       carried "Needs check" (2) and "Stale" (1), so they were missing from the answer to the very
+       question the option names. M65: two controls asking the same question share the rule.
+       The option now means what it says, so the two agree at 21; the other five options are
+       untouched and still read the stored code. Those three events now appear under BOTH "No date"
+       and their own status, which is honest — they really are both. */
+    if(F.status==='no_date'){ if(!isUndated(e))return false; }
+    else if(F.status!=='all'&&e.status!==F.status)return false;
     if(!F.past&&hasEnded(e))return false;
-    if(F.nodate&&e.start_date)return false;      /* the "No date yet" tile (fire #172) */
+    if(F.nodate&&!isUndated(e))return false;     /* the "No date yet" tile (fire #172) */
     if(F.move!=='all'&&moveOf(e)!==F.move)return false;
     if(F.ours&&moveOf(e)!=='stand'&&moveOf(e)!=='attend')return false;
     if(F.q){var q=F.q.toLowerCase();if(((e.name_en||'')+' '+(e.name_ar||'')+' '+(e.city||'')+' '+(e.venue||'')+' '+(e.organiser||'')).toLowerCase().indexOf(q)<0)return false;}
@@ -524,7 +541,7 @@ window.renderEvents=function(v){
      undated ones keep their place in the list and get their own tile — losing them would be a
      worse answer than over-counting them. */
   var LIVE=E.filter(function(e){return !hasEnded(e);});
-  var UNDATED=LIVE.filter(function(e){return !e.start_date;});
+  var UNDATED=LIVE.filter(isUndated);
   var n=function(k){return LIVE.filter(function(e){return moveOf(e)===k;}).length;};
   var endedCount=E.length-LIVE.length;
   var h='';
