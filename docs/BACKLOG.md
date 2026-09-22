@@ -136,6 +136,39 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #211 (2026-09-22 ~18:00 UTC) — Today told you the day was calm while listing 71 things to do
+
+**What was wrong.** I opened Today as the person who owns the most records in your data. The top of
+the page said, in two separate places:
+
+> **Nothing urgent right now — all clear.**
+> **Nothing urgent. Today is calm.**
+
+Six lines below, on the same screen, was his own card: **"☀️ Your day — 71"**, six companies listed
+as never contacted, and a client review two days overdue. Above all of it, the banner about two
+expired company certificates.
+
+**Why.** Both of those sentences were counting only invoices, bookings, offers and the queue — and
+in this app those four are permanently empty, because real invoices and bookings are created in
+Direct Payments, not here. So the page could never say anything but "all clear", no matter how much
+work was on it. A previous round had noticed this and written it down, but left it alone because
+re-pointing Today at the real invoices is a money decision that's yours to make.
+
+That reasoning was right about the money and wrong about the sentence. The leads going cold are
+**this app's own data**, sitting on the same screen. No money decision is needed to count them.
+
+**Fixed.** Both lines now ask the card that's already doing the counting. As that person, Today now
+reads *"71 items need your attention."* and *"Your day below has 71 items to act on."* — in Arabic
+too. Nothing about invoices or Direct Payments changed.
+
+**What did not change:** when there genuinely is nothing — no drafts, nothing going cold, no review
+due — you still get "all clear", "Today is calm", and "All caught up 🎉" on the card. That's the
+guard's brake, because the lazy version of this fix is one that shouts at everyone every day.
+
+I also had to correct an older check that had encoded the old behaviour: it emptied the drafts and
+then demanded the page call the day calm — while 33 leads sat on the card. Same lesson as last
+round: when a rule changes, the tests that enforced the old rule are part of the change.
+
 ## Routine fire #210 (2026-09-22 ~17:00 UTC) — the Operations board was five zeros and five dashes, and no words
 
 **What was wrong.** Open Operations today and this is the entire page:

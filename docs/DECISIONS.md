@@ -1988,6 +1988,35 @@ counts must still move on a re-draw — deleting the refresh would "fix" the lan
 restore the stale-number bug it was written for.
 *Date: 2026-09-22, js/09-funnels.js. Status: ACTIVE.*
 
+**M63 — a verdict may not ignore what its own screen is showing.** Found 2026-09-22 (fire #211) by
+opening Today, live, as the person who owns the most records. At the top of the page, twice:
+
+    hero      "Nothing urgent right now — all clear."
+    greeting  "Nothing urgent. Today is calm."
+
+Six lines below, on the same screen: **"☀️ Your day — <name>  71"**, six never-contacted prospects
+under GOING COLD, and a CLIENT REVIEW two days overdue — and at the very top, a banner naming two
+expired company certificates.
+Both verdicts counted only the workspace-blob collections (offers, invoices, bookings, the queue),
+and **all four are structurally empty in this app** because invoices and bookings are minted in
+Direct Payments. js/84 had already measured that (0, 0, 0, 0) and even wrote down that the line
+above its own note would keep saying "all clear" — it was left as an owner-facing note because
+rewiring Today to `finance_invoices` is a money decision. That reasoning was right about the money
+and wrong about the verdict: the leads going cold are **this app's own data**, on the same screen,
+and needed no money decision at all.
+The rule: a summary line answers for the page it sits on. If the page can show work the summary
+does not count, the summary is not a summary — it is a second opinion, and it will be the one
+people read first. Where another layer already decides what counts, the summary asks it (js/14's
+`v57YourDay` here) rather than keeping its own idea (M51).
+Kept deliberately: the day is still called calm when it genuinely is, which is what stops this
+becoming "shout at everyone always" — the guard's brake.
+Guard: `scripts/qa/probe-today-does-not-say-calm-while-it-lists-work.mjs`. `probe-today-queue-card`
+was updated in the same commit: its "no work" fixture emptied the drafts only, so after this change
+it was asking the app to call a day calm while 33 items sat on the card (M57's lesson again — when
+a rule changes, the guards that encoded the old one are part of the change).
+*Date: 2026-09-22, js/14-lead-lifecycle.js + js/core/core-06-v18-v21.js + js/core/core-09-v26.js.
+Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

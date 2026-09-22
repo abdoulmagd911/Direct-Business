@@ -215,7 +215,15 @@ console.info('%c[v40 lead lifecycle] loaded','color:#FF6B00;font-weight:700');
   function stageWord(st){ try{ if(ar()&&window.__STAGE_AR&&window.__STAGE_AR[st]) return window.__STAGE_AR[st]; }catch(_){} return st; }
   function closedLead(b){var s=(typeof leadStage==='function')?leadStage(b):(b.stage||'');return s==='Won'||s==='Lost';}
 
-  function buildYourDay(){
+  /* 2026-09-22 (fire #211): the counting is split out from the drawing because Today's TWO verdict
+     lines — core-06's hero ("N items need your attention" / "all clear") and core-09's greeting
+     ("Nothing urgent. Today is calm.") — were computed only from the workspace-blob collections
+     (offers/invoices/bookings/queue), which are structurally empty in this app: the real invoices
+     live in Direct Payments (js/84 measured that and said so). So both lines said everything was
+     calm while this very card, six lines below them, listed 71 leads going cold and a client
+     review two days overdue. The verdicts now ASK for this number rather than each keeping its own
+     idea of what counts (M51), and this stays the one place that decides what "to act on" means. */
+  function yourDayLists(){
     var me=meN(); if(!me) return null;
     var B=(typeof DB!=='undefined'&&DB.businesses)?DB.businesses:[];
     var O=(typeof DB!=='undefined'&&DB.offers)?DB.offers:[];
@@ -238,7 +246,16 @@ console.info('%c[v40 lead lifecycle] loaded','color:#FF6B00;font-weight:700');
     var rev=mineClients.filter(function(b){return b.nextReview && String(b.nextReview).slice(0,10)<=td;})
       .sort(function(a,b){return String(a.nextReview).localeCompare(String(b.nextReview));});
 
-    var n=due.length+cold.length+exp.length+rev.length;
+    return {me:me,due:due,cold:cold,exp:exp,rev:rev,n:due.length+cold.length+exp.length+rev.length};
+  }
+  /* what Today's two verdict lines ask. Returns null when nobody is signed in or the roster has
+     not landed yet — the callers keep their old behaviour in that case rather than guessing. */
+  try{ window.v57YourDay=yourDayLists; }catch(_){}
+
+  function buildYourDay(){
+    var L=yourDayLists(); if(!L) return null;
+    var me=L.me, due=L.due, cold=L.cold, exp=L.exp, rev=L.rev, n=L.n;
+    var td=today(), nowMs=Date.now();
     var esc=(typeof window.esc==='function')?window.esc:function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
     function openL(id){return "openLead='"+id+"';current='leads';leadDetailView='detail';render()";}
     function openO(id){return "openOffer='"+id+"';current='offers';render()";}

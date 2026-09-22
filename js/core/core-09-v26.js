@@ -293,6 +293,19 @@
       var _lnk=function(txt,view){return '<a data-today-link="'+view+'" href="javascript:void(0)" onclick="current=\''+view+'\';render();window.scrollTo(0,0);" style="color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px">'+txt+'</a>';};
       if(offers>0)parts.push(_lnk(lang==='ar'?(offers+' عرض للإرسال'):(offers+' '+(offers===1?'quote':'quotes')+' to send'),'offers'));
       if(invoices>0)parts.push(_lnk(lang==='ar'?(invoices+' فاتورة للإرسال إلى Direct Payments'):(invoices+' '+(invoices===1?'invoice':'invoices')+' waiting to go to Direct Payments'),'invoices'));
+      /* 2026-09-22 (fire #211): "Today is calm" was decided by the three collections above, and
+         all three are structurally empty in this app — the real invoices and bookings live in
+         Direct Payments (js/84). So this line told the owner the day was calm while the card
+         directly below it listed 71 of his leads going cold and a client review two days overdue.
+         A verdict may not ignore what the same screen is showing. js/14 owns the definition of
+         "to act on"; this asks it rather than keeping a second opinion. */
+      try{
+        var _yd=(typeof window.v57YourDay==='function')?window.v57YourDay():null;
+        if(_yd&&_yd.n>0&&parts.length===0)
+          return (lang==='ar'
+            ? ('يومك أدناه يحتوي '+_yd.n+' عنصرًا للعمل عليه.')
+            : ('Your day below has '+_yd.n+' item'+(_yd.n===1?'':'s')+' to act on.'));
+      }catch(_){}
       if(parts.length===0)return lang==='ar'?'لا توجد مهام عاجلة. اليوم هادئ.':'Nothing urgent. Today is calm.';
       return (lang==='ar'?'لديك ':'You have ')+parts.join(lang==='ar'?' و ':' and ')+'.';
     }catch(_){return lang==='ar'?'مرحبًا بعودتك.':'Welcome back.';}

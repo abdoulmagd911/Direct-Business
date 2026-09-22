@@ -96,15 +96,35 @@ async function main() {
   if (r2b.current === 'offers' && r2b.offersOnScreen) ok('clicking it opens the Proposals page with the draft on it');
   else fail(`clicking the link did not open Proposals: ${JSON.stringify(r2b)}`);
 
-  /* ---- 3. no work → no links, calm sentence ---- */
+  /* ---- 3. no work → no links, calm sentence ----
+     2026-09-22 (fire #211): "no work" used to mean only "no drafts to send", and this check
+     emptied the two draft collections and expected the calm line. Since #211 the greeting also
+     counts what the Your-day card is showing — leads going cold, follow-ups due, client reviews —
+     because saying "Today is calm" over a card listing 33 of them was the defect. So the fixture
+     now removes BOTH kinds of work: the drafts, and the ownership that puts leads on the card.
+     Without that, this check asks the app to call a day calm while it is showing 33 things to do. */
   const r3 = await p.evaluate(() => new Promise((res) => {
     DB.offers = (DB.offers || []).filter((o) => o.status !== 'Draft' && o.status !== 'Pending');
     DB.invoices = (DB.invoices || []).filter((i) => i.status !== 'Draft' && i.status !== 'Pending');
+    window.__qaPrevName = window.__userName;
+    window.__userName = 'Qanoone Ownsnothing';   /* a person with not one record to their name */
     current = 'today'; render();
     setTimeout(() => { const hub = document.querySelector('#v26TodayHub'); res({ links: hub ? hub.querySelectorAll('a[data-today-link]').length : -1, txt: hub ? hub.innerText.replace(/\s+/g, ' ').slice(0, 160) : '' }); }, 700);
   }));
-  if (r3.links === 0 && /calm|Welcome|هادئ/i.test(r3.txt)) ok('with nothing to send the greeting has no links and says the day is calm');
+  if (r3.links === 0 && /calm|Welcome|هادئ/i.test(r3.txt)) ok('with nothing to send and nothing on the card, the greeting has no links and says the day is calm');
   else fail(`greeting with no work: ${JSON.stringify(r3)}`);
+  /* and the other half of the same rule: give that person work on the card and the calm line must go */
+  const r3cold = await p.evaluate(() => new Promise((res) => {
+    const B = DB.businesses || []; const src = B.find((x) => !x.isClient) || B[0];
+    if (src) { const c = JSON.parse(JSON.stringify(src)); c.id = 'qa_queue_cold'; c.isClient = false; c.name = 'QAQUEUE Cold';
+      c.stage = 'Contacted'; c.status = 'Contacted'; c.assignedTo = 'Qanoone Ownsnothing'; c.owner = 'Qanoone Ownsnothing';
+      c.activities = []; c.lastContact = 0; c.nextActionDate = ''; if (c.raw) c.raw = {}; B.push(c); }
+    current = 'today'; render();
+    setTimeout(() => { const hub = document.querySelector('#v26TodayHub'); res({ txt: hub ? hub.innerText.replace(/\s+/g, ' ').slice(0, 160) : '' }); }, 700);
+  }));
+  if (!/calm|هادئ/i.test(r3cold.txt) && /act on|للعمل/i.test(r3cold.txt)) ok('one lead going cold is enough to stop the greeting calling the day calm');
+  else fail(`the greeting still called the day calm with a cold lead on the card: ${JSON.stringify(r3cold)}`);
+  await p.evaluate(() => { try { window.__userName = window.__qaPrevName; DB.businesses = (DB.businesses || []).filter((b) => b.id !== 'qa_queue_cold'); } catch (_) {} });
 
   /* ---- 3b. (2026-09-10, second live pass) a BLANK draft — what "+ New offer" makes on the click — is not a quote to send ---- */
   const r3b = await p.evaluate(() => new Promise((res) => {
