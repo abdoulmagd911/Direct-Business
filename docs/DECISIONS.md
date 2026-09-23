@@ -2350,6 +2350,31 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M78 — a sweep is only as wide as its list, so the list is every route the app answers.**
+Found 2026-09-23 (fire #232). `probe-a-page-heading-is-never-english-in-arabic` has guarded the
+headings since #204 and was green — over **19 routes, while the app answers 25**. Widening it to all
+25 turned it red immediately on the six it had never visited: **/dashboard**'s "Agency profile — KSA
+settings" card, whose every other word js/89 writes in both languages, carried an **English heading
+above Arabic text**, and four more headings on the same page ("Top relationships by lifetime value",
+"Pipeline by category", "Conversion funnel", "Standard of service") were English in Arabic too. Five
+defects sitting behind a green check, on a page reachable by address and from Settings.
+The list now comes from the same place the reachability diagnostic gets it, so a page cannot be
+outside the sweep merely by being outside somebody's memory.
+On where each fix went, because the two halves went to different owners on purpose: the card's
+heading is written in **js/89**, which already writes every other word in that card and where the
+phrase appears nowhere else; the four generic headings went into **js/21's shared dictionary**,
+which is what M38 is for. Splitting one card's wording across two owners is how the halves drift
+apart; keeping a word used in several places in two dictionaries is the same mistake from the other
+side.
+Two things checked on the way and worth not re-testing: **every page that draws real content can be
+reached by clicking** — the sidebar carries 20 entries including Activity & Audit and Archive, and
+the Sync page, which the reachability diagnostic lists as having no way in, is opened by
+**Settings → Connections** (M31's lesson again: a sweep of the chrome cannot see a link that lives
+inside a page). And the Agency card itself is now exactly right — read-only, sourced, naming the
+three fields the registry has no key for, with one button.
+Guard: `scripts/qa/probe-a-page-heading-is-never-english-in-arabic.mjs` (now 25 routes).
+*Date: 2026-09-23, js/89 + js/21-v27-arabic-column-header-stat-label-transl.js. Status: ACTIVE.*
+
 **M77 — when two people had the same company open, the second one is told.** Found by re-running
 `scripts/qa/diag-two-tabs-one-record.mjs` on 2026-09-23 (fire #231): it has reported this since
 2026-09-10 and still reproduces. Tab A logs a call note and sets a next action and saves; tab B,

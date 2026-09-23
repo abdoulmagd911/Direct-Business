@@ -71,6 +71,28 @@
     if(!card) return;
     var ar=(typeof LANG!=='undefined'&&LANG==='ar');
 
+    /* 2026-09-23 (fire #232) — the heading was the one string in this card that this layer left
+       alone, and on the Arabic page it was the only English left on it: everything underneath is
+       written here in both languages, and the title above it still read "🇸🇦 Agency profile — KSA
+       settings (ZATCA · IATA Wakeel · Saudi IBAN)".
+       Why here and not in js/21's dictionary: every other word in this card is written by this
+       file, and this phrase appears nowhere else in the app — the shared dictionary is for words
+       used in several places (M38), and splitting one card's wording across two owners is how the
+       halves drift apart. The Arabic follows the words already agreed elsewhere: ZATCA is «هيئة
+       الزكاة والضريبة» as in js/21, IATA is «إياتا» and IBAN «آيبان» as in the rows below.
+       The ENGLISH is never touched, so whatever renderDash calls this card is what English readers
+       keep seeing; and the English is kept on the element, because the lookup above finds this card
+       by its English heading and must still work on the next render. */
+    (function(){
+      try{
+        var hd=card.querySelector('h3'); if(!hd||!ar) return;
+        if(hd.getAttribute('data-v89-ar')==='1') return;
+        if(!hd.getAttribute('data-v89-en')) hd.setAttribute('data-v89-en',hd.textContent||'');
+        hd.textContent='🇸🇦 ملف الوكالة — الإعدادات السعودية (هيئة الزكاة والضريبة · وكيل إياتا · آيبان سعودي)';
+        hd.setAttribute('data-v89-ar','1');
+      }catch(_){}
+    })();
+
     /* the old body goes away, the card and its heading stay */
     var sub=card.querySelector('.ch-sub'); if(sub)sub.remove();
     var tbl=card.querySelector('.tbl-wrap'); if(tbl)tbl.remove();

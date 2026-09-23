@@ -108,6 +108,14 @@
     'Clients in view':'العملاء المعروضون','Won leads not yet converted':'صفقات مكسوبة لم تُحوَّل بعد',
     'Reviews overdue':'مراجعات متأخرة','Open requests':'طلبات مفتوحة','SLA overdue':'تأخّر مستوى الخدمة',
     'Awaiting client':'بانتظار العميل','Pipeline value':'قيمة المسار','Booked margin':'هامش المحجوز',
+    /* 2026-09-23 (fire #232) — four headings on /dashboard that stayed English on the Arabic
+       page. They were missed for one reason only: probe-a-page-heading-is-never-english-in-arabic
+       swept 19 routes and the app answers 25, and /dashboard was one of the six it never
+       visited. The wording follows what is already agreed here — «المسار» for pipeline, as in
+       'Pipeline value' just above. */
+    'Top relationships by lifetime value':'أهم العلاقات حسب القيمة التراكمية',
+    'Pipeline by category':'المسار حسب الفئة','Conversion funnel':'مسار التحوّل',
+    'Standard of service':'مستوى الخدمة',
     'Delivered / closed':'مُسلّم / مغلق',
     // ---- filter + action buttons ----
     'Table':'جدول','Dashboard':'لوحة','By stage':'حسب المرحلة','By category':'حسب الفئة','By funnel':'حسب المسار',

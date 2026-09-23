@@ -1,14 +1,15 @@
 /* probe-a-page-heading-is-never-english-in-arabic.mjs — every page's own heading is Arabic on an
    Arabic screen, and the English one keeps the character it is written with.
 
-   Fire #204. Swept all 19 pages in Arabic against the live database, reading only the HEADINGS
+   Fire #204, widened in #232 from 19 routes to all 25 the app answers. Swept in Arabic against
+   the live database, reading only the HEADINGS
    inside #view. A heading is always the app's own words — never a company name, never an answer
    somebody typed — so "is there Latin here?" has no data false positives on a heading, which is
    what makes this measurable at all. (The same sweep over every text node does not: it flags
    supplier names, SOP titles and company names, and an earlier run of it also walked cards that
    js/31 deliberately hides, so it "found" English nobody can see.)
 
-   18 of the 19 pages came back clean. One did not:
+   18 of the 19 pages swept then came back clean. One did not:
 
        vendors     headings   2 | Latin-only headings:  1  -> ["Providers  GDS ?"]
 
@@ -16,7 +17,7 @@
    .replace(/[<>&]/g,'') — it DELETED the character rather than escaping it. Only one of the twelve
    titles contains one, "Providers & GDS", and losing it broke the page twice over:
      · in English the heading read "Providers  GDS" — the ampersand gone, its space left behind;
-     · in Arabic it stayed English, alone among all 19 pages, because the Arabic pass (js/21) looks
+     · in Arabic it stayed English, alone among the pages swept then, because the Arabic pass (js/21) looks
        a heading up word-for-word and holds 'Providers & GDS'. The deletion had turned the heading
        into a string no dictionary anywhere has, so the lookup missed and the heading stood.
    The words were never missing. The heading had been renamed before anyone could translate it.
@@ -47,9 +48,14 @@ const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/su
 /* PORTS_RESERVED: 9234 — one mock. */
 const PORT = 9234; const BASE = 'http://localhost:' + PORT;
 
-const PAGES = ['today', 'leads', 'clients', 'finance', 'ops', 'offers', 'bookings', 'invoices',
-  'projects', 'airlines', 'vendors', 'sops', 'events', 'settings', 'activity', 'archive',
-  'documents', 'tickets', 'reports'];
+/* 2026-09-23 (fire #232): this list was 19 routes and the app has 25. The six it never visited
+   were exactly where an English heading was still sitting — /dashboard's "Agency profile — KSA
+   settings" card, whose every other word is written in both languages, read English above Arabic
+   on the Arabic page and no check here had ever looked at it. A sweep is only as wide as its list,
+   so the list is now every route the app answers, taken from diag-pages-with-no-way-in. */
+const PAGES = ['today', 'dashboard', 'leads', 'clients', 'finance', 'ops', 'operations', 'offers',
+  'bookings', 'invoices', 'projects', 'airlines', 'vendors', 'providers', 'sops', 'slas', 'sopsla',
+  'events', 'settings', 'activity', 'archive', 'documents', 'tickets', 'reports', 'sync'];
 
 const srv = start(PORT, {});
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -123,7 +129,7 @@ const enVendors = (EN.vendors || {}).sec || '';
 const enStillEnglish = enSecs.filter((pg) => !latin((EN[pg] || {}).sec) || arabic((EN[pg] || {}).sec));
 
 const checks = [
-  ['in Arabic no visible heading on any of the 19 pages is Latin-only',
+  ['in Arabic no visible heading on any of the ' + PAGES.length + ' pages is Latin-only',
     arOffenders.length === 0, JSON.stringify(arOffenders.slice(0, 5))],
   ['in Arabic the Providers heading is Arabic and carries no double space',
     arabic(arVendors) && !/\s\s/.test(arVendors), JSON.stringify(arVendors)],

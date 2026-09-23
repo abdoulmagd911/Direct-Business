@@ -136,6 +136,35 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #232 (2026-09-23 ~23:00 UTC) — five English headings on the Arabic side, hiding behind a green check
+
+A check written in an earlier round makes sure no page heading is left in English when the app is in
+Arabic. It has been passing. It was passing because it only ever looked at **19 of your 25 screens**.
+
+I widened it to all 25, and it went red at once — all five on the **Dashboard**:
+
+- The **"Agency profile — KSA settings"** card, where every single word underneath is in Arabic and
+  the title above it was in English.
+- **"Top relationships by lifetime value"**, **"Pipeline by category"**, **"Conversion funnel"** and
+  **"Standard of service"** — four more headings, all English on the Arabic page.
+
+All five are fixed, and the check now sweeps every address the app answers, so a screen cannot be
+missed simply by not being on somebody's list.
+
+**Two things I checked and found correct, so you don't need to wonder about them:**
+
+- **Every page that has something on it can be reached by clicking.** The sidebar carries 20 entries
+  including Activity & Audit and Archive. One diagnostic claims the **Sync** page has no way in —
+  that is wrong: **Settings → Connections** opens it. (Worth knowing what that page is: it lists
+  where each kind of real work lives — corporate clients, invoices, expenses, refunds, receipts,
+  pricing — with a link straight into Direct Payments for each, plus the Amadeus office, the shared
+  mailboxes and Drive. It is the best orientation page in the app for somebody new.)
+- **The Agency profile card is now exactly right** — it shows the registered details, says plainly
+  that they are shown and not edited there, names the three fields the registry has no place for
+  yet (IATA Wakeel number, Zakat/Tax ID, bank name), and offers one button to the real registry.
+
+---
+
 ## Routine fire #231 (2026-09-23 ~21:00 UTC) — two people, one company, and one of them loses their work silently
 
 I re-ran a test this project wrote back on 10 September and parked. It still does exactly what it
