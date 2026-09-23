@@ -2350,6 +2350,33 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M76 — a refused page visit is not a change to a record, and a page that counts both must say
+which is which.** Found 2026-09-23 (fire #230), driven against the real log. `record_history` holds
+378 events, **131 of them refused page visits** written by the access trigger. Activity & Audit
+counted the two kinds together under labels that promise the second: the **7-day tile read a green
+39, and all thirty-nine were refusals** — the honest figure for the week was nought records changed
+— and the feed opened with twelve consecutive "Page access · Refused" rows, 129 of the 250 most
+recent entries. The page whose whole job is to say what changed was mostly saying what did not.
+This is M74 again (a number true of what it counts and false to its reader) on the one page where
+it matters most, so it gets its own rule rather than a line in that one.
+Each tile now says how much of itself is refusals — "all N were refused page visits — no record
+changed" when a window is entirely them — and the feed hides them behind a badge naming the count,
+the "N hidden · Show" pattern the Leads list already uses. **Nothing is deleted and nothing is
+dropped from the counts: this is a view.** That matters twice over. The log belongs to the database
+and is not ours to edit — that is the point of an audit trail — and a real person being refused a
+page repeatedly is something the owner must still be able to see, so the count stays on screen
+whether the rows are shown or not, and a log holding nothing but refusals says so instead of
+reading as empty.
+**Worth knowing about where these come from:** they are this QA account's own sweeps. Driving the
+live app as a restricted role — which is how several of these fires were found — makes the database
+write a refusal row. A session that does it is adding to the owner's audit log, and should say so
+rather than leave him wondering who was being turned away.
+Fixed in the same commit, found while reading the page in Arabic: the quiet note under Today said
+«قبل 2 أيام». Arabic counts two of anything with a **dual** form — «قبل يومين» — and past ten takes
+the singular accusative; all four cases are now handled.
+Guard: `scripts/qa/probe-a-refused-visit-is-not-a-change.mjs`.
+*Date: 2026-09-23, js/63-undo-and-real-audit.js. Status: ACTIVE.*
+
 **M75 addendum — the sweep, 2026-09-23 (fire #229).** With the rule written, every remaining
 clickable column in the app was driven the same way: the **Airlines** and **Providers** tables are
 the rest of them, and two of their columns break the rule. **AUTHORITY** collapses whatever

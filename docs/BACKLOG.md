@@ -136,6 +136,37 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #230 (2026-09-23 ~19:00 UTC) — all 322 checks green, and the Activity page was mostly reporting my own testing
+
+**First: the full battery. 322 checks that can fail, every one passed, no failures at any point.**
+That is the fourth clean run in a row, and it covers the nine rounds of changes made since the last
+one.
+
+**Then the Activity & Audit page, which turned out to be counting the wrong thing.** Its tiles read
+**378 events loaded · 0 today · 39 this week**, and the green 39 looks like a week's work. All
+thirty-nine were **refused page visits** — somebody opening a page they are not allowed to open —
+and not one record changed in those seven days. Of the whole log, **131 of 378 events are
+refusals**, and the feed opened with twelve of them in a row, so the page whose job is to tell you
+what changed was mostly telling you what didn't.
+
+**Those refusals are mine.** They are the test account, on the days these sweeps ran: when a session
+drives the app as a restricted role to check that blocking works, the database records each refusal.
+Nobody on your team is being turned away. I have not deleted them, and I would not — the log is
+written by the database precisely so that nothing can edit it, and that is worth more than a tidy
+screen.
+
+What changed instead: **every tile now says how much of its number is refusals** ("all 39 were
+refused page visits — no record changed"), and **the feed hides them by default behind a line that
+names the count** — "131 refused page visits hidden · Show" — the same pattern your Leads list uses
+for closed leads. One click brings them back. The counts never hide anything: if a real person ever
+does start getting refused, the number is on screen whether the rows are shown or not.
+
+**One more thing, found while reading the page in Arabic.** The line under "Today" said «قبل 2
+أيام». Arabic counts two of anything with a dual form — «قبل يومين» — and past ten it changes again.
+All four cases now read properly.
+
+---
+
 ## Routine fire #229 (2026-09-23 ~17:00 UTC) — the same fault on the Airlines page, in Arabic only
 
 Having fixed it on Leads and (earlier) on Clients, I went through every remaining clickable column

@@ -153,6 +153,20 @@
     }).catch(function(e){ HIST.loading=false; HIST.err=String((e&&e.message)||e); HIST.rows=[]; try{if(typeof cb==='function')cb();}catch(_){} });
   }
   window.histRefresh=function(){ HIST.rows=null; if(typeof render==='function')render(); };
+  /* fire #230 — the feed answers "what changed" by default and says what it is holding back.
+     Nothing is deleted and nothing is filtered out of the counts above; this is a view. */
+  window.histToggleDenied=function(){ HIST.showDenied=!HIST.showDenied; if(typeof render==='function')render(); };
+  function histDeniedBadge(n){
+    if(!n) return '';
+    var fl2=fl;
+    if(HIST.showDenied) return '<div class="ch-sub" data-hist-denied="shown" style="margin:-4px 0 8px">'+
+      fl2('Refused page visits are shown too.','تُعرض الزيارات المرفوضة للصفحات أيضًا.')+
+      ' <button class="btn sm ghost" onclick="histToggleDenied()">'+fl2('Hide them','إخفاؤها')+'</button></div>';
+    return '<div class="ch-sub" data-hist-denied="hidden" style="margin:-4px 0 8px">'+
+      fl2(n+' refused page visit'+(n===1?'':'s')+' hidden — they are attempts to open a page, not changes to a record.',
+          n+' زيارة مرفوضة لصفحات مخفية — وهي محاولات لفتح صفحة، وليست تغييرات على السجلات.')+
+      ' <button class="btn sm ghost" onclick="histToggleDenied()">'+fl2('Show','إظهار')+'</button></div>';
+  }
 
   // computed per call, not cached at parse time — LANG can change after this file loads,
   // and a module-level object built once would freeze these labels in whatever language was
@@ -264,15 +278,48 @@
     var tms=rows.map(function(r){ return new Date(r.at).getTime(); }).filter(function(n){ return n===n; });
     var today=tms.filter(function(n){ return n>=dayStart; }).length;
     var week=tms.filter(function(n){ return n>=weekStart; }).length;
+    /* 2026-09-23 (fire #230, driven live) — a refused page visit is not a change to a record, and
+       this page counted the two together under labels that promise the second. Measured on the
+       real log that day: 378 events, of which 131 were refused visits; the 7-day tile read a green
+       39 and ALL THIRTY-NINE were refusals, so the honest figure for the week was nought records
+       changed; and the feed opened with twelve consecutive "Page access · Refused" rows, 129 of
+       the 250 most recent entries. (They are this QA account's own sweeps — driving the live app
+       as a restricted role makes the database write one — which is exactly why they must be
+       separable rather than deleted: the log is the database's, not ours to edit.)
+       Same family as the Archive's zeros (M74): the number is true of what it counts and false to
+       the person reading it. Each tile now says how much of itself is refusals, and the feed hides
+       them by default behind a badge that names the count — the "N closed hidden · Show" pattern
+       the Leads list already uses, so nothing is concealed and one click brings it back. */
+    var isAccess=function(r){ return r&&r.table_name==='access'; };
+    var accRows=rows.filter(isAccess);
+    var accIn=function(from){ return accRows.filter(function(r){ var n=new Date(r.at).getTime(); return n===n&&n>=from; }).length; };
+    var accToday=accIn(dayStart), accWeek=accIn(weekStart);
+    var small=function(txt,col){ return '<div style="font-size:10.5px;font-weight:600;color:'+(col||'#7C8194')+';margin-top:2px">'+txt+'</div>'; };
+    var accNote=function(n,total){
+      if(!n) return '';
+      if(n===total) return small(fl('all '+n+' were refused page visits — no record changed',
+                                    'جميعها '+n+' زيارات مرفوضة لصفحات — لم يتغيّر أي سجل'),'#B54708');
+      return small(fl(n+' of these were refused page visits, not record changes',
+                      n+' منها زيارات مرفوضة لصفحات، وليست تغييرات على السجلات'));
+    };
     /* a nought under "Today" must not read as "the log is broken" — say when the last change was */
     var newest=tms.length?Math.max.apply(null,tms):0;
+    /* 2026-09-23 (fire #230) — this line read «\u0642\u0628\u0644 2 \u0623\u064a\u0627\u0645» live. Arabic counts two of anything with a
+       DUAL form, not a number and a plural, and past ten it takes the singular accusative. Four
+       cases, which is all Arabic needs: yesterday, two days, three-to-ten, eleven and up. */
+    var arDaysAgo=function(n){
+      if(n===1) return '\u0623\u0645\u0633';                                   /* yesterday */
+      if(n===2) return '\u0642\u0628\u0644 \u064a\u0648\u0645\u064a\u0646';                   /* two days ago (dual) */
+      if(n<=10) return '\u0642\u0628\u0644 '+n+' \u0623\u064a\u0627\u0645';                    /* 3-10: plural */
+      return '\u0642\u0628\u0644 '+n+' \u064a\u0648\u0645\u064b\u0627';                       /* 11+: singular accusative */
+    };
     var quietNote='';
     if(!today&&newest){
       try{
         var days=Math.max(1,Math.round((dayStart-new Date(newest).setHours(0,0,0,0))/86400000));
         quietNote='<div style="font-size:10.5px;font-weight:600;color:#7C8194;margin-top:2px">'+
           fl('nothing yet today \u2014 last change '+(days===1?'yesterday':(days+' days ago')),
-             '\u0644\u0627 \u0634\u064a\u0621 \u0627\u0644\u064a\u0648\u0645 \u0628\u0639\u062f \u2014 \u0622\u062e\u0631 \u062a\u063a\u064a\u064a\u0631 '+(days===1?'\u0623\u0645\u0633':('\u0642\u0628\u0644 '+days+' \u0623\u064a\u0627\u0645'))+'')+'</div>';
+             '\u0644\u0627 \u0634\u064a\u0621 \u0627\u0644\u064a\u0648\u0645 \u0628\u0639\u062f \u2014 \u0622\u062e\u0631 \u062a\u063a\u064a\u064a\u0631 '+arDaysAgo(days))+'</div>';
       }catch(_){}
     }
     /* 2026-09-02 (round 37): the query above asks for the most recent HIST_CAP entries. The
@@ -284,15 +331,26 @@
     var atCap=rows.length>=HIST_CAP;
     v.innerHTML=
       '<div class="card" style="display:flex;flex-wrap:wrap;gap:18px;padding:14px 20px;margin-bottom:14px">'+
-        '<div><div class="kl">'+fl('Events loaded','الأحداث المحمّلة')+'</div><div class="kv">'+rows.length+'</div>'+(atCap?('<div style="font-size:10.5px;font-weight:600;color:#B54708;margin-top:2px">'+fl('the most recent '+HIST_CAP+' — there are older ones','أحدث '+HIST_CAP+' فقط — توجد سجلات أقدم')+'</div>'):'')+'</div>'+
-        '<div><div class="kl">'+fl('Today','اليوم')+'</div><div class="kv" style="color:#2E90FA">'+today+'</div>'+quietNote+'</div>'+
-        '<div><div class="kl">'+fl('7-day','٧ أيام')+'</div><div class="kv" style="color:#16B364">'+week+(atCap?'+':'')+'</div>'+(atCap?('<div style="font-size:10.5px;font-weight:600;color:#B54708;margin-top:2px">'+fl('at least — the log was capped','على الأقل — السجل مقطوع')+'</div>'):'')+'</div>'+
+        '<div><div class="kl">'+fl('Events loaded','الأحداث المحمّلة')+'</div><div class="kv">'+rows.length+'</div>'+(atCap?('<div style="font-size:10.5px;font-weight:600;color:#B54708;margin-top:2px">'+fl('the most recent '+HIST_CAP+' — there are older ones','أحدث '+HIST_CAP+' فقط — توجد سجلات أقدم')+'</div>'):'')+accNote(accRows.length,rows.length)+'</div>'+
+        '<div><div class="kl">'+fl('Today','اليوم')+'</div><div class="kv" style="color:#2E90FA">'+today+'</div>'+quietNote+accNote(accToday,today)+'</div>'+
+        '<div><div class="kl">'+fl('7-day','٧ أيام')+'</div><div class="kv" style="color:#16B364">'+week+(atCap?'+':'')+'</div>'+(atCap?('<div style="font-size:10.5px;font-weight:600;color:#B54708;margin-top:2px">'+fl('at least — the log was capped','على الأقل — السجل مقطوع')+'</div>'):'')+accNote(accWeek,week)+'</div>'+
         '<div style="flex:1"></div><button class="btn sm ghost" onclick="histRefresh()">'+fl('↻ Refresh','↻ تحديث')+'</button>'+
       '</div>'+
       (HIST.err?'<div class="card" style="border-color:#F0453A"><b style="color:#D92D20">'+fl('Could not load the log:','تعذّر تحميل السجل:')+'</b> '+esc(HIST.err)+'</div>':'')+
       '<div class="card"><h3>'+fl('Activity & Audit','النشاط والتدقيق')+'</h3>'+
       '<div class="ch-sub">'+fl('Written by the database on every change — cannot be edited from here, and an undo is itself logged.','تكتبها قاعدة البيانات مع كل تغيير — لا يمكن تعديلها من هنا، والتراجع نفسه يُسجَّل أيضًا.')+'</div>'+
-      '<div class="act-feed">'+(rows.length?rows.map(histRow).join(''):'<div class="empty">'+(HIST.loading?fl('Loading…','جارٍ التحميل…'):fl('No activity yet.','لا يوجد نشاط بعد.'))+'</div>')+'</div>'+
+      histDeniedBadge(accRows.length)+
+      '<div class="act-feed">'+(function(){
+        var list=HIST.showDenied?rows:rows.filter(function(r){ return !isAccess(r); });
+        if(list.length) return list.map(histRow).join('');
+        if(HIST.loading) return '<div class="empty">'+fl('Loading…','جارٍ التحميل…')+'</div>';
+        /* a log that holds nothing BUT refusals must not read as an empty log */
+        if(!HIST.showDenied&&accRows.length) return '<div class="empty">'+
+          fl('No record was changed — every one of the '+accRows.length+' events here is a refused page visit.',
+             'لم يتغيّر أي سجل — كل الأحداث الـ'+accRows.length+' هنا زيارات مرفوضة لصفحات.')+
+          ' <button class="btn sm ghost" onclick="histToggleDenied()">'+fl('Show them','إظهارها')+'</button></div>';
+        return '<div class="empty">'+fl('No activity yet.','لا يوجد نشاط بعد.')+'</div>';
+      })()+'</div>'+
       '</div>';
   };
 

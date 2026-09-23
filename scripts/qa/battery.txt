@@ -328,3 +328,4 @@ probe-one-arabic-word-per-thing
 probe-the-archive-says-what-its-zeros-count
 probe-a-column-sorts-by-what-is-in-it
 probe-the-reference-tables-sort-in-arabic-too
+probe-a-refused-visit-is-not-a-change
