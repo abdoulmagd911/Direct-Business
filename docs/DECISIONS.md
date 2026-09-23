@@ -2325,6 +2325,31 @@ live row can exercise, since all four archived companies are merges or an owner 
 Guard: `scripts/qa/probe-the-archive-says-what-its-zeros-count.mjs`.
 *Date: 2026-09-23, js/76-archive-companies.js. Status: ACTIVE.*
 
+**M75 — a column sorts by the text that is in it, collated in the language being read.** Set for the
+Clients table on 2026-09-19 (fire #99); found again on the Leads table 2026-09-23 (fire #227's
+successor, #228), so it is written down as a rule rather than a fix. Two of that table's six
+clickable headers sorted by something that is not on the screen. **FUNNEL** sorted by `b.source`,
+the raw import tag — and all 80 live leads carry the same tag, so every row's key was identical and
+the tie-break (the company name) decided the order. The 78 rows drawn hold exactly **two** funnels
+and came out in **thirteen blocks**, the seven "Website Form — B2B" rows scattered through the
+"Website Form — Entities" ones, ascending and descending, in English and in Arabic alike: the column
+headed FUNNEL did nothing to the funnel. **OWNER** sorted by the stored full name while the cell
+shows the nickname js/54 paints in; live in Arabic it read عبدالرحمن / أبو ناصر / أبو سليمان, which
+is back to front — ع sorts after أ. Both now key off the text in the cell.
+Two things this rule carries with it. **A text column whose comparator is a string comparison gets a
+RANK, not the raw text**: the three sorters here compare the zero-padded strings `leadSortNum` makes,
+so each text column is ranked among its own distinct on-screen values with `localeCompare` (base
+sensitivity, numeric) and the rank is padded like any other number — no numeric column changes, and
+Arabic collates as Arabic. **And an empty cell sorts last, not as whatever the data happens to hold
+underneath it**: a lead with no funnel shows "— source: x" and must not be filed under a funnel
+called by its import tag.
+Grouping alone does not prove it: a hidden key that maps one-to-one onto the visible one still
+groups correctly and still orders wrongly, which is why the guard checks the order of the blocks and
+not just their number.
+Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half is
+`scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
+*Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

@@ -730,14 +730,76 @@ window.rptPpt=function(){
  window.leadSortTieBreak=function(b){return "\0"+String(b.name||"").toLowerCase()+"\0"+String(b.createdAt||b.created_at||"");};
  window.leadSortNum=function(n){n=Math.round((Number(n)||0)*100); var neg=n<0; if(neg)n=-n;
    return (neg?"-":"0")+String(n).padStart(15,"0");};
+ /* 2026-09-23 (fire #228) — two columns of this table sorted by something that is not in the
+    cell. Both were found by clicking the headers against the real 80 leads, in both languages.
+
+    FUNNEL sorted by `b.source`, the raw import tag. Live, all 80 records carry the same tag
+    ("Contact Submission"), so every row's key was identical and the tie-break — the company name —
+    decided the order. The column headed FUNNEL therefore did nothing to the funnel: 78 rows
+    holding exactly two funnels came out in THIRTEEN blocks, the seven "Website Form — B2B" rows
+    scattered all through the "Website Form — Entities" ones, ascending and descending alike, in
+    English and in Arabic. It now sorts by the funnel text that is actually in the cell. A row with
+    no funnel — the one that reads "— source: x" — sorts last instead of passing its import tag off
+    as a funnel name.
+
+    OWNER sorted by the stored full name while the cell shows the nickname js/54 paints in. Live in
+    Arabic the column read عبدالرحمن / أبو ناصر / أبو سليمان; in Arabic that is back to front, ع
+    sorting after أ. Same defect #99 fixed one table over on Clients, and the same remedy.
+
+    HOW, given this comparator: the three sorters that call this function compare the returned
+    strings with < and >, and the numeric columns rely on leadSortNum's zero-padding to do it. So a
+    text column is turned into a RANK among its own distinct on-screen values first — localeCompare
+    in the language being read, base sensitivity, numeric so "company 4" precedes "company 12" —
+    and that rank is padded like any other number. The numeric columns are untouched.
+    (nickOf's map arrives just after sign-in; until it does it returns the full name, so a sort
+    clicked in the first moment ranks on that. The next click re-sorts with the map in hand.) */
+ var _lsRank=null,_lsRankKey="";
+ window.leadShownName=function(b){ return String((window.nmMain?nmMain(b):b.name)||b.name||""); };
+ window.leadShownFunnel=function(b){
+   var ar=(typeof LANG!=="undefined"&&LANG==="ar");
+   var fn=(ar&&b.funnelNameAr)?b.funnelNameAr:b.funnelName;
+   return fn?String(fn):"";
+ };
+ window.leadShownOwner=function(b){
+   var n=String(b.assignedTo||b.owner||"").trim(); if(!n) return "";
+   try{ return String(window.nickOf?nickOf(n):n); }catch(_){ return n; }
+ };
+ function _lsBuild(){
+   var loc=(typeof LANG!=="undefined"&&LANG==="ar")?"ar":"en";
+   var pool=((typeof DB!=="undefined"&&DB.businesses)||[]);
+   var out={};
+   [["name",window.leadShownName],["funnel",window.leadShownFunnel],["owner",window.leadShownOwner]]
+     .forEach(function(p){
+       var seen={},list=[];
+       pool.forEach(function(b){ var t=p[1](b); if(t&&!seen[t]){seen[t]=1;list.push(t);} });
+       try{ list.sort(function(x,y){ return x.localeCompare(y,loc,{sensitivity:"base",numeric:true}); }); }
+       catch(_){ list.sort(); }
+       var idx={}; list.forEach(function(t,i){ idx[t]=i; });
+       out[p[0]]=idx;
+     });
+   _lsRank=out; _lsRankKey=loc+"|"+pool.length;
+   return out;
+ }
+ /* A value the table shows but the rank has never seen (a funnel renamed, a person added, since
+    the ranks were built) rebuilds them once rather than landing at an arbitrary position. An
+    EMPTY cell is not that case: it sorts last on purpose, which is what 9e6 is for. */
+ window.leadSortRank=function(k,text){
+   if(!text) return 9e6;
+   var loc=(typeof LANG!=="undefined"&&LANG==="ar")?"ar":"en";
+   var pool=((typeof DB!=="undefined"&&DB.businesses)||[]);
+   if(!_lsRank||_lsRankKey!==loc+"|"+pool.length) _lsBuild();
+   var i=_lsRank[k]?_lsRank[k][text]:undefined;
+   if(i===undefined){ _lsBuild(); i=_lsRank[k]?_lsRank[k][text]:undefined; }
+   return (i===undefined)?(9e6-1):i;
+ };
  window.leadSortVal=function(b,k){
    var v;
    switch(k){
-     case "name":   v=String(b.name||"").toLowerCase(); break;
+     case "name":   v=leadSortNum(leadSortRank("name",leadShownName(b))); break;
      case "stage":  v=leadSortNum(LEAD_STAGES.indexOf(leadStage(b))); break;
-     case "funnel": v=String(b.source||"").toLowerCase(); break;
+     case "funnel": v=leadSortNum(leadSortRank("funnel",leadShownFunnel(b))); break;
      case "last":   v=leadSortNum(b.lastContact||0); break;
-     case "owner":  v=String(b.assignedTo||b.owner||"").toLowerCase(); break;
+     case "owner":  v=leadSortNum(leadSortRank("owner",leadShownOwner(b))); break;
      case "score":  v=leadSortNum(leadScore(b)); break;
      default:       v=leadSortNum(b.totalSAR||0);
    }

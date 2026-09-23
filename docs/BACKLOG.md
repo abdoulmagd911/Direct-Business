@@ -136,6 +136,41 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #228 (2026-09-23 ~16:00 UTC) — the Leads table's "Funnel" column sorted by something that isn't on the screen
+
+I clicked every column header on the Leads list against your real 80 leads, in English and in
+Arabic. Four of the six sort correctly. Two did not.
+
+**Funnel.** Clicking it did nothing to the funnel. Your 78 visible leads sit in exactly two funnels
+— Website Form — Entities and Website Form — B2B — and after clicking "Funnel" they came out in
+**thirteen separate blocks**, the seven B2B rows scattered all through the others. The reason: it
+was ordering by the raw import tag each record came in with, and every one of your leads carries the
+same tag, so the column had nothing to order by and fell back to the company name. Same in both
+languages, both directions.
+
+**Owner, in Arabic.** It ordered by the person's stored full name while the cell shows the nickname.
+In Arabic the column read عبدالرحمن / أبو ناصر / أبو سليمان — back to front, since ع comes after أ
+in the alphabet.
+
+Both now sort by the words actually in the cell, in the language you are reading, so Arabic sorts as
+Arabic. A lead with no funnel at all now goes to the bottom of a funnel sort instead of being filed
+under its import tag. This is the same fix made on the **Clients** table in fire #99; it is now a
+written rule (M75) so the next table gets it right the first time.
+
+**Two things I noticed while measuring, both facts rather than faults — you may want to act on
+them:**
+
+- **The "Priority" column says "Cool" on all 78 leads.** The sort works, but there is nothing to
+  sort — every lead scores the same, so the column that is meant to tell you what to work first is
+  currently telling you nothing. It is driven by things like recent contact and deal value, and the
+  leads have neither on file yet.
+- **"Last activity" is "—" on all 78.** No lead has a contact date recorded. That is also why the
+  "no touch in 14 days" highlight never appears on this list.
+
+Nothing was written to the database at any point, and the page threw no errors in either language.
+
+---
+
 ## Routine fire #227 (2026-09-23 ~15:00 UTC) — the Archive page said three zeros, and 45 deleted invoices were sitting somewhere else
 
 The Archive page opens with four counts: **archived invoices 0 · archived bookings 0 · archived
