@@ -172,8 +172,22 @@
     o.stage=stageToApp(r.stage, base.stage);
     var f=FBYID[r.funnel_id]; o.funnelKey=f?f.key:null; o.funnelName=f?f.name_en:null; o.funnelNameAr=f?f.name_ar:null;
     o.funnelDetails=r.funnel_details||{};
-    o.nextActionDate=r.next_action_date||o.nextAction||null;
-    o.nextActionNote=r.next_action_note||null;
+    /* 2026-09-23 (fire #234) — these two broke the reader's own ordering rule, the one CLAUDE.md
+       states and M26 exists for: the blob wins for a field a PERSON edits, the column wins only
+       for fields a pipeline writes. Both of these are typed by a person on the lead card, and both
+       ended in `||null`, so a blob value was overwritten with nothing whenever the column was
+       empty — the next action a colleague typed, gone on the next load, silently.
+       Measured live the same day before changing anything: exactly ONE record carries a next
+       action, it has both the column and the blob, and it is a client — so nothing is losing
+       anything today. This is a latent fault fixed while it is cheap, not a live one; that is
+       said plainly rather than dressed up.
+       The date also fell back to `o.nextAction`, which is the note TEXT, not a date — a stray
+       "Call the finance team" could land in a field the app then renders and compares as a date
+       (drawLeads marks it overdue against todayISO()). A note is not a date; the fallback is gone. */
+    if(r.next_action_date!=null&&String(r.next_action_date).trim()!=='')o.nextActionDate=r.next_action_date;
+    else if(o.nextActionDate==null)o.nextActionDate=null;
+    if(r.next_action_note!=null&&String(r.next_action_note).trim()!=='')o.nextActionNote=r.next_action_note;
+    else if(o.nextActionNote==null)o.nextActionNote=null;
     if(r.lost_reason&&!o.lostReason)o.lostReason=r.lost_reason;
     // Map the record's own dates onto the app object (the strip + score read these).
     if(r.created_at&&!o.createdAt)o.createdAt=r.created_at;

@@ -2350,6 +2350,24 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M80 — a field a person types follows the blob-wins rule, and a note is never allowed to be a
+date.** Found 2026-09-23 (fire #234) while cross-checking the Leads table's empty columns.
+`rowToApp` mapped the two next-action fields as `o.nextActionDate = r.next_action_date ||
+o.nextAction || null` and `o.nextActionNote = r.next_action_note || null`. Both end in `|| null`,
+so a value sitting in the blob was **overwritten with nothing** whenever the column was empty —
+exactly the ordering this project already wrote down (the blob wins for what a person edits, the
+column wins only for what a pipeline writes; M26 and the reader note in CLAUDE.md). And the date
+fell back to the note TEXT, so "Call the finance team" could land in a field the Leads table renders
+as a date and compares against today to decide whether it is overdue.
+**Stakes, measured before changing anything: nothing is losing anything today.** Exactly one record
+in the database carries a next action, it has both the column and the blob, and it is a client. This
+is a latent fault fixed while it is cheap, and it is recorded as latent rather than dressed up as a
+live one — the distinction rule 4 asks for.
+Guard: `scripts/qa/probe-a-typed-next-action-survives-a-reload.mjs`, which drives four rows through
+the real load path rather than calling the conversion directly: exposing it on `window` just to test
+it would be changing the app to suit the probe.
+*Date: 2026-09-23, js/02-direct-business-cloud-layer-login-shared-c.js. Status: ACTIVE.*
+
 **M79 — a value derived for display is marked with the value, and stripped only while it still
 equals it.** Found 2026-09-23 (fire #233). The Leads list read "—" under LAST ACTIVITY on **all 78
 rows**, and the "no touch in 14 days" highlight fired on **0 of 78** — while **25 of those leads

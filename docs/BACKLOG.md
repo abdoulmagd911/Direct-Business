@@ -136,6 +136,38 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #234 (2026-09-24 ~03:00 UTC) — a full cross-check of every number on screen, and one quiet fault fixed before it bites
+
+**I checked every count the app puts on screen against the database itself.** Eleven pages, and
+**every single number agrees**: 28 clients, 78 leads shown of 80 (two closed ones hidden, and the
+page says so), 43 of 80 events, 136 of 139 airlines (the page says that too), 23 providers, 14
+service levels, 378 log entries, 4 deleted companies, and Finance's "19 of 46 invoices". Nothing on
+any screen is inventing or mis-stating a figure.
+
+**Also checked and correct, so you need not wonder:**
+
+- **The Clients table** is filled in on every column except "Next review", which 21 of your 28
+  clients have never had set. Everything else — account manager, tier, client since, health —
+  reads on all 28.
+- **The Events page in Arabic.** Nineteen of your 80 events have no Arabic name on file, and not one
+  row comes out blank or English-only — each shows both names. The event editor is fully Arabic:
+  21 field labels, 25 dropdown choices, both buttons. Event rows are not clickable by design; they
+  carry their own Edit and Delete buttons.
+- **"Next action" being empty on every lead is correct** — exactly one record in the whole database
+  has a next action set, and it is a client, so the Leads list is right to show nothing.
+
+**The one fault, and I want to be straight about its size: it is not hurting you today.** When the
+app reads a company back from the database, the "next action" note and date were written in a way
+that would **wipe a value a colleague had typed** if it had not also been copied to a second place.
+Measured before touching it: only one record has a next action at all, and it has both copies, so
+nothing has been lost. Fixed now while it costs nothing to fix.
+
+The same line had a second flaw that would have been wrong with any data: if no date was set, it
+put the **note text into the date field** — so "Call the finance team" could end up where a date
+belongs, on a screen that then works out whether that date is overdue. That is gone.
+
+---
+
 ## Routine fire #233 (2026-09-24 ~01:00 UTC) — the Leads list said nobody had been contacted, and 25 of them had
 
 I counted, column by column, how much of your Leads list is actually filled in. Of the seven
