@@ -2229,6 +2229,31 @@ live workspace was actually carrying, and its brake is that with no brand styles
 fallback is still the document orange.
 *Date: 2026-09-23, js/core/core-08-v25.js + core-09 + core-10. Status: ACTIVE.*
 
+**M71 — a load that failed must be said where the number it spoiled is READ, not only where the
+missing data would have been shown.** Found 2026-09-23 (fire #223) by refusing each major table's
+fetch in turn against the real database and reading every dependent page. One case was silent in the
+way that costs something. With `contacts` refused, the Leads page read:
+
+    ⚠ Needs attention · 1        (it normally reads 71)
+
+The count is *right*: fire #155 made the rule drop "this company has nobody on it" while the load is
+broken, because unknown is not none. But #155 put the explanation only on a **record's card** — and
+the list is where the team spends its day. Somebody who knows that number is usually 71 sees 1 and
+concludes the pipeline was tidied up overnight. **Making a number honest is only half the job; the
+other half is saying why it moved, on the screen where it is read.**
+Fixed with one line at the top of Leads and Clients, only while that load is broken, carrying the
+same "Try again" the card offers, removed by the next render once it works.
+The brake matters as much as the notice, and it is in the guard: **when the contacts load fine there
+is no notice.** A warning permanently on screen is not a warning, and this one would sit on the
+busiest page in the app.
+Measured across the sweep, and worth not re-testing: Finance, Events and Activity already say
+"Could not …" when their own load fails (#196's work); a failing `app_users` leaves Today whole and
+greets the signed-in person normally; `ksa_events`, `airlines`, `providers` and `record_history` are
+not fetched by those paths at all, so refusing them proves nothing — check what the app actually
+requests before concluding a refusal was tested.
+Guard: `scripts/qa/probe-a-broken-contacts-load-says-so-on-the-list.mjs`.
+*Date: 2026-09-23, js/72-people-bridge.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

@@ -136,6 +136,25 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #223 (2026-09-23 ~11:00 UTC) — when the contacts don't load, the Leads page now says so
+
+I spent this round breaking things on purpose: I cut off each part of your data in turn, one at a
+time, and looked at what the app told me. Most of it behaved well — Finance, Events and Activity all
+say "Could not load…" and offer to try again, rather than showing zeros.
+
+**One case was quietly misleading.** If the contact people fail to load, the Leads page's "Needs
+attention" button drops from **71 to 1** — and said nothing about why. The number itself is correct:
+the app deliberately stops counting "this company has nobody on it" when it can't tell, because not
+knowing is not the same as nobody. But if you know that number is usually 71 and you see 1, the
+natural conclusion is that the team had a very good week.
+
+There was already an explanation, but only on an individual company's card — which you'd see after
+you went looking. Now the Leads and Clients lists say it at the top, with a "Try again" link, and it
+disappears the moment the contacts load properly. The check that holds this fails if the warning ever
+shows when nothing is wrong, because a warning that is always on screen is not a warning.
+
+---
+
 ## Routine fire #222 (2026-09-23 ~10:00 UTC) — your client PDFs were printing a made-up CR number
 
 **This is the one to read.** Every PDF the app generates for a client — the service-fee proposal,

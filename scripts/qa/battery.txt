@@ -322,3 +322,4 @@ probe-a-key-client-reads-arabic-too
 probe-a-settings-button-does-what-it-says
 probe-no-date-means-no-date
 probe-a-document-carries-no-invented-facts
+probe-a-broken-contacts-load-says-so-on-the-list

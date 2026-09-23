@@ -212,6 +212,34 @@ try{
           });
         });
       });
+      /* ---- and say it on the LIST, not only on a card (fire #223) ----
+         #155 made the card honest and the "needs attention" rule honest, and stopped there. Driven
+         live with the contacts fetch refused, the Leads page then read "⚠ Needs attention · 1"
+         where it normally reads 71 — because the rule correctly drops "this company has nobody" when
+         the load is broken — and the page said nothing at all about why. A person who knows that
+         number is usually 71 sees 1 and concludes the pipeline was cleaned up overnight. The list is
+         where the team spends its day; the card is where they end up afterwards, if they go looking.
+         One line at the top of Leads and Clients, only while that load is broken, with the same
+         Try again the card already offers. It is removed by the next render once the load works. */
+      if(FAILED.contacts===true&&(current==='leads'||current==='clients')&&!window.openLead){
+        if(!view.querySelector('.v72-list-notice')){
+          var bar=document.createElement('div');
+          bar.className='v72-list-notice';
+          bar.setAttribute('dir', ar?'rtl':'ltr');
+          bar.style.cssText='background:#FFF3EC;border:1px solid #F4C892;border-radius:10px;'+
+            'padding:9px 13px;margin:0 0 12px;color:#7a5c00;font-weight:600;font-size:12.5px;text-align:'+(ar?'right':'left');
+          bar.textContent=(ar?'تعذّر تحميل جهات الاتصال، فما يظهر عن «بلا جهة اتصال» ناقص — قد يكون لدى هذه الجهات أشخاص مسجَّلون. '
+                             :'The contacts did not load, so anything here about "no contact person" is incomplete — these companies may well have people on file. ');
+          var a2=document.createElement('a');
+          a2.href='#'; a2.style.cssText='color:#B54708;font-weight:700;text-decoration:underline';
+          a2.textContent=ar?'أعد المحاولة':'Try again';
+          a2.onclick=function(e){ try{ e.preventDefault(); }catch(_){ } try{ window.v72Apply(function(){ if(typeof render==='function')render(); }); }catch(_){ } return false; };
+          bar.appendChild(a2);
+          view.insertBefore(bar, view.firstChild);
+        }
+      } else {
+        [].slice.call(view.querySelectorAll('.v72-list-notice')).forEach(function(n){ n.remove(); });
+      }
     }catch(e){ if(window.console)console.warn('[v72] notice',e); }
   }
   try{
