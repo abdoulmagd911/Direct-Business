@@ -136,6 +136,45 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #235 (2026-09-24 ~05:00 UTC) — when your companies fail to load, the app was showing you 65 invented ones
+
+This is the most serious thing I have found in this stretch, and it is fixed.
+
+I made the database refuse one request — the one that fetches your companies — and signed in. The
+Leads page came up looking completely normal:
+
+> **0** New this month · **57** In pipeline · **12%** · Became clients · **8 of 65**
+
+Sixty-five companies, a full pipeline, stage counts, rows you can open. **Not one of them is real.**
+They are the demo records the app ships with — "Falcon Conferences Group", "Crestline Minerals" —
+sample data meant for a first look at an empty app. Your database has 108 real companies and not one
+of them was on the screen.
+
+The app did print a red line saying "Could not load leads". But it sat above a page that looked
+entirely ordinary, and everything below it was invented. Miss that one line — and it is one line
+above a screenful — and you are reading a fictional pipeline. Worse, those rows behave like real
+records: you can open one and start editing it.
+
+I checked that this is genuinely visible and not hidden behind the login box: it is. The login
+overlay is gone, the page is full height, and what is painted in the middle of your screen is that
+fake pipeline.
+
+**What happens now:** if your companies have not loaded, the list shows **nothing** and says so —
+"Your companies are not loaded — this list is empty for that reason, not because you have none" —
+and it repeats the app's own explanation, so a permissions problem reads differently from a server
+fault. The demo records are kept aside and put straight back the moment the real ones arrive, so a
+slow connection costs you nothing.
+
+**Two things I was careful about, because a false alarm would be its own problem:** on a normal load
+this does nothing at all — no message, all 108 companies present — and a workspace that genuinely
+has no companies yet is *not* told its data failed to load.
+
+**Worth knowing:** the app already had a flag marking "these are the real records", added in
+September with a note warning about exactly this — but it had only ever been used on one card on the
+Today screen. Every list in the app was still drawing the samples.
+
+---
+
 ## Routine fire #234 (2026-09-24 ~03:00 UTC) — a full cross-check of every number on screen, and one quiet fault fixed before it bites
 
 **I checked every count the app puts on screen against the database itself.** Eleven pages, and

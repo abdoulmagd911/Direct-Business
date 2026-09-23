@@ -2350,6 +2350,36 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M81 — the examples this app ships with are never shown as the company's data.** Found
+2026-09-24 (fire #235) by failing one request against the real database. With the `businesses` read
+answering 500 — or 403, which is what a permission refusal looks like — the Leads page came up
+reading **"0 New this month · 57 In pipeline · 12% · Became clients · 8 of 65"**: sixty-five
+companies, a full pipeline, stage chips with counts, rows that open. **Not one of them real.** They
+are the demo records hardcoded in core-01 ("Falcon Conferences Group", ids `b_mdd`, `b_maaden`)
+while the database holds 108 companies, none of them on the screen. The app did print
+"Could not load leads: …" above it, and everything under that line was fiction.
+**That a person can actually see it was measured, not assumed**: on the failing page the sign-in
+overlay is `display:none`, the working area is 2424px tall, and `elementFromPoint` at the centre of
+the screen returns app content. Nothing covers it.
+**The flag for this already existed and its own comment named the hazard.** js/02 sets
+`window.__bizTableLoaded` only once the real rows arrive — *"the one flag that says 'these are the
+real rows' … a card computed from it is a not-loaded-yet state shown as a fact"* — and it had been
+applied to a single card on Today. Every list still drew the demo set.
+Now, while that flag is not set and the app is on screen, the company lists show **nothing** and say
+why, quoting the app's own reason when there is one. The demo records are held aside and restored
+the instant the real rows arrive, so a slow load costs nothing, and emptying the list cannot cause a
+write — js/02 only archives rows that were in its SNAP, which a failed load never fills.
+Two brakes carry as much weight as the fix: **a normal load is untouched** (no banner, all 108
+records), and **a workspace that genuinely has no companies is not told its data failed** — the
+difference M27 is about, in the other direction.
+On gates and what not to use for one: `__roleKnown` is the wrong test, because the failure this
+guards stops js/02 ever fetching the role; and `#cl_email` is the wrong test too — measured on the
+failing page it is still in the document, 43px tall, while the overlay holding it is `display:none`,
+because the app emits that form in two places. What is actually being asked is "is the app on screen
+in front of somebody", so that is what is measured.
+Guard: `scripts/qa/probe-not-loaded-is-not-your-data.mjs`.
+*Date: 2026-09-24, js/105-not-loaded-is-not-your-data.js. Status: ACTIVE.*
+
 **M80 — a field a person types follows the blob-wins rule, and a note is never allowed to be a
 date.** Found 2026-09-23 (fire #234) while cross-checking the Leads table's empty columns.
 `rowToApp` mapped the two next-action fields as `o.nextActionDate = r.next_action_date ||

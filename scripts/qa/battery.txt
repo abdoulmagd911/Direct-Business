@@ -332,3 +332,4 @@ probe-a-refused-visit-is-not-a-change
 probe-two-people-one-record-are-told
 probe-a-logged-call-reaches-the-list
 probe-a-typed-next-action-survives-a-reload
+probe-not-loaded-is-not-your-data
