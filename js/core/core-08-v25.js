@@ -449,9 +449,13 @@
       }
       if(!DB.templateLibrary){
         DB.templateLibrary={
-          serviceFee:{palette:['#FF6B00','#1C1E2B','#FFFFFF','#7C8194'],font:'Inter',header:'centered-logo',footer:'IATA + VAT',signatureBlock:'right-align'},
-          projectProposal:{palette:['#FF6B00','#2A2D3E','#FBF8F4','#16B364'],font:'Tajawal + Inter',header:'cover-page',footer:'page-numbers',signatureBlock:'two-column'},
-          statement:{palette:['#1C1E2B','#FF6B00','#16B364','#F0453A'],font:'Inter',header:'invoice-style',footer:'ZATCA QR',signatureBlock:'none'},
+          /* fire #222 — the seeded copy carried the logo-mark orange on documents; the accent is
+             overridden from the brand at print time anyway (v25DocPalette), and re-learning writes
+             the brand's own value. Seeded with the document orange so a fresh workspace is right
+             from the first print rather than only after a refresh. */
+          serviceFee:{palette:['#F06820','#303848','#FFFFFF','#6B7480'],font:'Inter',header:'centered-logo',footer:'IATA + VAT',signatureBlock:'right-align'},
+          projectProposal:{palette:['#F06820','#2A2D3E','#FBF8F4','#16B364'],font:'Tajawal + Inter',header:'cover-page',footer:'page-numbers',signatureBlock:'two-column'},
+          statement:{palette:['#303848','#F06820','#16B364','#F0453A'],font:'Inter',header:'invoice-style',footer:'ZATCA QR',signatureBlock:'none'},
           learnedFrom:[],
           learnedAt:null
         };
@@ -1061,10 +1065,73 @@
   var v25TemplateFor=function(bucket){
     try{ return (DB.templateLibrary&&DB.templateLibrary[bucket])||{}; }catch(_){return {};}
   };
+  /* 2026-09-23 (fire #222). Where a document's orange came from, before this: three hard-coded
+     literals. `v25TemplateLearn` — the thing behind Settings' "🔄 Refresh proposal templates" —
+     does not read anything; it writes `#FF6B00` (the LOGO-MARK orange) and calls it "curated
+     tokens observed in existing decks". The copy sitting in the live app_state is older still and
+     holds `#F47A1F` (the APP orange), which is what a client's PDF was actually printed in —
+     measured on the real workspace. Meanwhile js/67's on-screen preview of the same document is
+     styled only with var(--…) under data-identity="classic", where brand/tokens.css defines
+     --accent #F06820 and --accent-strong #F87020 ("service-fee table header", in that file's own
+     words). So one document had two oranges depending on whether the client opened the preview or
+     the PDF, and neither route agreed with brand/index.html's one-line rule.
+     The colour now comes from the brand at print time, like the preview, instead of from a stored
+     literal nobody will refresh. Everything else a template carries — font, header style, footer,
+     signature block — is still the template's own. */
+  var v25DocPalette=function(){
+    var fall=['#F06820','#303848','#FFFFFF','#6B7480','#F87020'];
+    try{
+      var d=document.createElement('div');
+      d.setAttribute('data-identity','classic');
+      d.style.cssText='position:absolute;left:-9999px;width:0;height:0';
+      document.body.appendChild(d);
+      var cs=getComputedStyle(d);
+      var pick=function(name,f){ var v=(cs.getPropertyValue(name)||'').trim(); return v||f; };
+      var out=[pick('--accent',fall[0]),pick('--ink',fall[1]),pick('--surface',fall[2]),
+               pick('--muted',fall[3]),pick('--accent-strong',fall[4])];
+      d.remove();
+      return out;
+    }catch(_){ return fall; }
+  };
+  window.v25DocPalette=v25DocPalette;
 
+  /* 2026-09-23 (fire #222). This header printed, on every PDF that leaves here for a client:
+         IATA Wakeel · ZATCA Phase 2 · CR 7000000000
+     That CR number is INVENTED. Checked against the live company_identity registry, which holds a
+     real ten-digit cr_number: the repo's literal is not it, and appears nowhere in the registry.
+     A made-up commercial registration number on a document going out under Direct's name is the
+     same mistake fire #160/#161 found on the one-pagers — a literal in the code drifting away from
+     the registry — except this one was never right to begin with. The footer had the same shape:
+     "direct.com.sa", a domain the registry does not contain (the site is in the registry's
+     `website` key). The registry even carries a `show_on_documents` flag per fact, so it already
+     knows what may appear here.
+     Fixed the way #161 fixed the one-pagers: ask the registry, and a fact with no value simply does
+     not appear. When the registry has not loaded at all — this can be printed from Settings without
+     ever opening the Generator, which is what loads it — the strip says so in the page's language
+     instead of inventing anything. Nothing is remembered. */
+  var v25DocFacts=function(){
+    var idv=function(k){ try{ return (typeof window.dgIdentityValue==='function')?String(window.dgIdentityValue(k,'en')||'').trim():''; }catch(_){ return ''; } };
+    var loaded=false; try{ loaded=(typeof window.dgIdentityLoaded==='function')&&window.dgIdentityLoaded()===true; }catch(_){ loaded=false; }
+    var ar=(typeof LANG!=='undefined'&&LANG==='ar');
+    if(!loaded) return ar?'افتح صفحة «المولّد» مرة واحدة ثم اطبع، لتظهر بيانات الشركة من السجل.'
+                        :'Open the Generator page once and print again — the company details come from the registry.';
+    var bits=[];
+    var iata=idv('iata'); if(iata) bits.push('IATA '+iata);
+    var cr=idv('cr_number'); if(cr) bits.push('CR '+cr);
+    var vat=idv('vat_number'); if(vat) bits.push('VAT '+vat);
+    return bits.join(' · ');
+  };
+  var v25DocSite=function(){ try{ return (typeof window.dgIdentityValue==='function')?String(window.dgIdentityValue('website','en')||'').trim():''; }catch(_){ return ''; } };
+  window.v25DocFacts=v25DocFacts;   /* the probe reads these rather than a copy of the rule */
+  window.v25DocSite=v25DocSite;
   var v25OpenPrintPdf=function(title,htmlBody,templateBucket){
     var tpl=v25TemplateFor(templateBucket);
-    var palette=tpl.palette||['#FF6B00','#1C1E2B','#FFFFFF','#7C8194'];
+    /* fire #222: the accent and the ink come from the brand, not from the stored literal — see
+       v25DocPalette above for why the stored one cannot be trusted. A template's remaining
+       choices are untouched. */
+    var brand=v25DocPalette();
+    var stored=tpl.palette||[];
+    var palette=[brand[0],brand[1],stored[2]||brand[2],stored[3]||brand[3]];
     var w=window.open('','_blank','width=900,height=1200');
     if(!w){alert((typeof LANG!=='undefined'&&LANG==='ar')?'النوافذ المنبثقة محجوبة — اسمح بها لتنزيل ملف PDF.':'Pop-up blocked — allow pop-ups to download the PDF.');return;}
     w.document.write('<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>'+v25EscHTML(title)+'</title>'+
@@ -1086,9 +1153,11 @@
       '@media print{button,.no-print{display:none!important}}'+
       '</style></head><body>'+
       '<div style="position:fixed;top:8px;right:14px" class="no-print"><button onclick="window.print()" style="padding:10px 16px;background:'+palette[0]+';color:#fff;border:0;border-radius:8px;cursor:pointer;font-weight:700">🖨 Print / Save as PDF</button></div>'+
-      '<div class="header"><div class="brand"><b>Direct</b> Business</div><div style="font-size:11px;color:#7C8194">IATA Wakeel · ZATCA Phase 2 · CR 7000000000</div></div>'+
+      '<div class="header"><div class="brand"><b>Direct</b> Business</div><div style="font-size:11px;color:#7C8194">'+v25EscHTML(v25DocFacts())+'</div></div>'+
       htmlBody+
-      '<div class="footer">Generated '+new Date().toLocaleDateString('en')+' · Direct Business · direct.com.sa · This document was machine-generated; for billing queries reference the source invoice in the Direct system.</div>'+
+      '<div class="footer">Generated '+new Date().toLocaleDateString('en')+' · Direct Business'+
+      (v25DocSite()?(' · '+v25EscHTML(v25DocSite())):'')+
+      ' · This document was machine-generated; for billing queries reference the source invoice in the Direct system.</div>'+
       '</body></html>');
     w.document.close();
     setTimeout(function(){try{w.focus();}catch(_){}},150);
@@ -1150,22 +1219,33 @@
     if(fmt==='pptx'||fmt==='both'){
       v25LoadPptx().then(function(P){
         var p=new P();
+        /* 2026-09-23 (fire #222): these decks go to a CLIENT, and they were painted in the app's
+           orange. brand/index.html states the rule in one line — "Documents use #F06820 · tiny
+           marks & favicons use #FF6C00 · the app uses #F47A1F. They are siblings — don't fix one
+           to match another" — and brand/tokens.css carries it as --accent on
+           [data-identity="classic"], with --accent-strong #F87020 named, in the file, "service-fee
+           table header". The screen already obeys it: js/67's preview is styled only with those
+           vars under data-identity="classic". A PPTX cannot read a stylesheet, so these literals
+           were written by hand and the wrong sibling was picked. Same document, two oranges
+           depending on whether the client opened the PDF or the deck. */
+        var DOC_ORANGE='F06820';   /* --accent on [data-identity="classic"] */
+        var SVC_HEADER='F87020';   /* --accent-strong — the service-fee table header */
         p.title='Service-Fee Proposal — '+client.name;
         // Cover
         var s1=p.addSlide();
         s1.background={color:'1C1E2B'};
-        s1.addText('Direct Business',{x:0.5,y:0.5,fontSize:32,bold:true,color:'F47A1F',fontFace:'Inter'});
+        s1.addText('Direct Business',{x:0.5,y:0.5,fontSize:32,bold:true,color:DOC_ORANGE,fontFace:'Inter'});
         s1.addText('Service-Fee Proposal',{x:0.5,y:1.5,fontSize:28,color:'FFFFFF',fontFace:'Inter'});
         s1.addText('Prepared for: '+client.name,{x:0.5,y:2.4,fontSize:18,color:'AEB4CC'});
         s1.addText('Effective '+eff+' · Valid '+validity+' days',{x:0.5,y:3.0,fontSize:14,color:'7C8194'});
         // Scope
         var s2=p.addSlide();
-        s2.addText('Scope',{x:0.5,y:0.4,fontSize:22,bold:true,color:'F47A1F'});
+        s2.addText('Scope',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});
         s2.addText('Per-service transaction fee charged in addition to net costs (ticket fare, hotel rate, etc.). VAT 15% applies in addition.'+(notes?'\n\nNotes: '+notes:''),{x:0.5,y:1.2,w:9,h:4.5,fontSize:14,color:'1C1E2B'});
         // Fee table
         var s3=p.addSlide();
-        s3.addText('Fee Schedule — '+scheme.name,{x:0.5,y:0.4,fontSize:22,bold:true,color:'F47A1F'});
-        var tblRows=[[{text:'Service',options:{bold:true,fill:'F47A1F',color:'FFFFFF'}},{text:'Fee (SAR)',options:{bold:true,fill:'F47A1F',color:'FFFFFF'}},{text:'Basis',options:{bold:true,fill:'F47A1F',color:'FFFFFF'}}]];
+        s3.addText('Fee Schedule — '+scheme.name,{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});
+        var tblRows=[[{text:'Service',options:{bold:true,fill:SVC_HEADER,color:'FFFFFF'}},{text:'Fee (SAR)',options:{bold:true,fill:SVC_HEADER,color:'FFFFFF'}},{text:'Basis',options:{bold:true,fill:SVC_HEADER,color:'FFFFFF'}}]];
         Object.keys(items).forEach(function(k){
           var label={flight:'Flight ticketing',hotel:'Hotel booking',transfer:'Transfer / chauffeur',visa:'Visa processing',daytour:'Day tour booking',insurance:'Travel insurance',lounge:'Lounge access'}[k]||k;
           tblRows.push([label,items[k]+'',  'per transaction']);
@@ -1173,7 +1253,7 @@
         s3.addTable(tblRows,{x:0.5,y:1.3,w:9,fontSize:13,border:{type:'solid',color:'E5DED2',pt:1}});
         // Terms + sigs
         var s4=p.addSlide();
-        s4.addText('Terms & Signatures',{x:0.5,y:0.4,fontSize:22,bold:true,color:'F47A1F'});
+        s4.addText('Terms & Signatures',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});
         s4.addText('• Fees billed monthly with the underlying service\n• VAT 15% applies in addition\n• Credit terms per master agreement\n• Either party may renegotiate after the validity period',{x:0.5,y:1.2,w:9,fontSize:13,color:'1C1E2B'});
         s4.addText('Direct Business — Authorised signatory',{x:0.5,y:5.5,fontSize:11,color:'7C8194'});
         s4.addText(client.name+' — Authorised signatory',{x:5.5,y:5.5,fontSize:11,color:'7C8194'});
@@ -1237,22 +1317,24 @@
     if(fmt==='pptx'||fmt==='both'){
       v25LoadPptx().then(function(P){
         var pres=new P();
+        /* fire #222 — the same rule as the service-fee deck above: a document is #F06820. */
+        var DOC_ORANGE='F06820';
         pres.title='Project Proposal — '+p.name;
         var s1=pres.addSlide();s1.background={color:'1C1E2B'};
-        s1.addText('Direct Business',{x:0.5,y:0.5,fontSize:30,bold:true,color:'F47A1F'});
+        s1.addText('Direct Business',{x:0.5,y:0.5,fontSize:30,bold:true,color:DOC_ORANGE});
         s1.addText(p.name,{x:0.5,y:1.6,fontSize:26,color:'FFFFFF'});
         if(p.nameAr)s1.addText(p.nameAr,{x:0.5,y:2.3,fontSize:18,color:'AEB4CC',rtl:true,fontFace:'Tajawal'});
         s1.addText((p.start||'TBD')+' → '+(p.end||'TBD')+' · '+(p.pax||0)+' pax · '+v25Money(p.budget||0),{x:0.5,y:3.5,fontSize:14,color:'7C8194'});
         var s2=pres.addSlide();
-        s2.addText('Project at a glance',{x:0.5,y:0.4,fontSize:22,bold:true,color:'F47A1F'});
+        s2.addText('Project at a glance',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});
         s2.addTable([
-          [{text:'Field',options:{bold:true,fill:'F47A1F',color:'FFFFFF'}},{text:'Value',options:{bold:true,fill:'F47A1F',color:'FFFFFF'}}],
+          [{text:'Field',options:{bold:true,fill:DOC_ORANGE,color:'FFFFFF'}},{text:'Value',options:{bold:true,fill:DOC_ORANGE,color:'FFFFFF'}}],
           ['Status',p.status||''],['Dates',(p.start||'')+' → '+(p.end||'')],['Pax',(p.pax||0)+''],['Budget',v25Money(p.budget||0)],['Owner',p.owner||'']
         ],{x:0.5,y:1.2,w:9,fontSize:13});
-        if(summary){var s3=pres.addSlide();s3.addText('Executive summary',{x:0.5,y:0.4,fontSize:22,bold:true,color:'F47A1F'});s3.addText(summary,{x:0.5,y:1.2,w:9,h:5,fontSize:14,color:'1C1E2B'});}
-        if(p.notes){var s4=pres.addSlide();s4.addText('Scope',{x:0.5,y:0.4,fontSize:22,bold:true,color:'F47A1F'});s4.addText(p.notes,{x:0.5,y:1.2,w:9,h:5,fontSize:14,color:'1C1E2B'});}
+        if(summary){var s3=pres.addSlide();s3.addText('Executive summary',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});s3.addText(summary,{x:0.5,y:1.2,w:9,h:5,fontSize:14,color:'1C1E2B'});}
+        if(p.notes){var s4=pres.addSlide();s4.addText('Scope',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});s4.addText(p.notes,{x:0.5,y:1.2,w:9,h:5,fontSize:14,color:'1C1E2B'});}
         var s5=pres.addSlide();
-        s5.addText('Itinerary outline',{x:0.5,y:0.4,fontSize:22,bold:true,color:'F47A1F'});
+        s5.addText('Itinerary outline',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});
         s5.addTable([
           [{text:'Date',options:{bold:true,fill:'1C1E2B',color:'FFFFFF'}},{text:'Service',options:{bold:true,fill:'1C1E2B',color:'FFFFFF'}},{text:'Pax',options:{bold:true,fill:'1C1E2B',color:'FFFFFF'}},{text:'Cost',options:{bold:true,fill:'1C1E2B',color:'FFFFFF'}}],
           [(p.start||'-'),'Outbound flights + arrivals',(p.pax||0)+'','TBC'],
@@ -1260,7 +1342,7 @@
           [(p.end||'-'),'Return + handover',(p.pax||0)+'','TBC']
         ],{x:0.5,y:1.2,w:9,fontSize:12});
         var s6=pres.addSlide();
-        s6.addText('Terms & signatures',{x:0.5,y:0.4,fontSize:22,bold:true,color:'F47A1F'});
+        s6.addText('Terms & signatures',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});
         s6.addText('• 30% deposit to confirm\n• Cancellation per IATA + supplier rules\n• VAT 15% applies on service fees\n• Valid 30 days from issue',{x:0.5,y:1.2,w:9,fontSize:13,color:'1C1E2B'});
         s6.addText('Direct Business signatory',{x:0.5,y:5.6,fontSize:11,color:'7C8194'});
         s6.addText('Client signatory',{x:5.5,y:5.6,fontSize:11,color:'7C8194'});
@@ -1308,9 +1390,13 @@
     try{
       var tl=DB.templateLibrary=DB.templateLibrary||{};
       // Curated tokens that reflect the Direct brand observed in existing decks
-      tl.serviceFee={palette:['#FF6B00','#1C1E2B','#FFFFFF','#7C8194'],font:'Inter',header:'centered-logo',footer:'IATA + VAT',signatureBlock:'right-align',source:V25_TEMPLATE_SOURCES[0]};
-      tl.projectProposal={palette:['#FF6B00','#2A2D3E','#FBF8F4','#16B364'],font:'Tajawal + Inter',header:'cover-page',footer:'page-numbers',signatureBlock:'two-column',source:V25_TEMPLATE_SOURCES[0]};
-      tl.statement={palette:['#1C1E2B','#FF6B00','#16B364','#F0453A'],font:'Inter',header:'invoice-style',footer:'ZATCA QR',signatureBlock:'none',source:V25_TEMPLATE_SOURCES[1]};
+      /* fire #222: the orange here was #FF6B00, the logo-mark sibling, written by hand and called
+         "curated tokens observed in existing decks". A document's colour belongs to the brand, so
+         it is asked for rather than typed; everything else below is unchanged. */
+      var _b=v25DocPalette();
+      tl.serviceFee={palette:[_b[0],_b[1],'#FFFFFF',_b[3]],font:'Inter',header:'centered-logo',footer:'IATA + VAT',signatureBlock:'right-align',source:V25_TEMPLATE_SOURCES[0]};
+      tl.projectProposal={palette:[_b[0],'#2A2D3E','#FBF8F4','#16B364'],font:'Tajawal + Inter',header:'cover-page',footer:'page-numbers',signatureBlock:'two-column',source:V25_TEMPLATE_SOURCES[0]};
+      tl.statement={palette:[_b[1],_b[0],'#16B364','#F0453A'],font:'Inter',header:'invoice-style',footer:'ZATCA QR',signatureBlock:'none',source:V25_TEMPLATE_SOURCES[1]};
       tl.learnedFrom=V25_TEMPLATE_SOURCES.slice();
       tl.learnedAt=Date.now();
       try{if(typeof saveDB==='function')saveDB();}catch(_){}/* fire #193: dead write removed — v25 is never read anywhere and v24 only as a one-time upgrade fallback when v29 is absent; the live key is v29 */
@@ -1343,7 +1429,7 @@
     {url:'https://commercial-objectives.lovable.app/business-development',label:'Lovable · Business Development',maps:'Maps to → Leads view with BD pipeline filter',role:'Commercial'}
   ];
   var V25_SYNC_SOURCES=[
-    {id:'direct_payments',label:'Direct Payments (source of truth)',ic:'💳',status:'Connected',owner:'Finance',direction:'Bidirectional',freshness:'15 min',deepLink:'https://payments.direct.com.sa/'},
+    {id:'direct_payments',label:'Direct Payments (source of truth)',ic:'💳',status:'Connected',owner:'Finance',direction:'Bidirectional',freshness:'15 min',deepLink:'https://payments.directksa.com/'},
     {id:'amadeus',label:'Amadeus GDS',ic:'✈⚙️',status:'Connected',owner:'Operations',direction:'Inbound',freshness:'5 min'},
     {id:'sabre',label:'Sabre GDS',ic:'✈⚙️',status:'Connected',owner:'Operations',direction:'Inbound',freshness:'5 min'},
     {id:'ratehawk',label:'RateHawk aggregator',ic:'🏨',status:'Connected',owner:'Operations',direction:'Inbound',freshness:'15 min'},

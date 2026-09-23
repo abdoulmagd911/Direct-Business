@@ -136,6 +136,45 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #222 (2026-09-23 ~10:00 UTC) — your client PDFs were printing a made-up CR number
+
+**This is the one to read.** Every PDF the app generates for a client — the service-fee proposal,
+the project proposal, the statement — carried this line across the top:
+
+> IATA Wakeel · ZATCA Phase 2 · CR 7000000000
+
+**That commercial registration number is invented.** It is not yours. I checked it against the
+company registry inside the app, which holds your real ten-digit CR, and the number in the code
+matches nothing there. It was a placeholder somebody typed years ago and it has been going out on
+documents ever since. The footer had the same problem: it said *direct.com.sa*, which is not your
+domain.
+
+Both now come from the registry — the same place the one-pagers already read from. If a detail
+isn't on file, it simply doesn't appear rather than being made up. And if the registry hasn't
+loaded, the document says so in words instead of printing anything.
+
+**Two more things on the same documents.**
+
+- **The orange was the wrong one.** Your brand notes say it plainly: documents are `#F06820`, tiny
+  marks and favicons are `#FF6C00`, the app itself is `#F47A1F` — three siblings, not a mistake to
+  be tidied up. The on-screen preview of a proposal already gets this right. The printed PDF did
+  not: it was coming out in the app's orange. So the same proposal looked like two different
+  documents depending on whether the client opened the preview or the file. The colour now comes
+  from your brand file at the moment of printing, and the PowerPoint decks are corrected the same
+  way, including the service-fee table header, which has its own shade.
+- **"Refresh proposal templates" on the Settings page does not read anything.** Despite the name it
+  just re-writes a few colours that were typed into the code. I have not removed it — it does now
+  write your brand's real colour — but it is worth knowing it is not learning from your actual
+  proposal files. If you want it to, that is a real piece of work and I would need your template
+  folder.
+
+**And four dead buttons.** The "Open in Direct ↗" button on the empty Bookings, Invoices and Tickets
+pages, plus the Direct Payments link on the Connections page, all pointed at *payments.direct.com.sa*
+— which is dead; I tested it and it returns an error. Your live hub is *payments.directksa.com*,
+which every other link in the app already uses. Fixed.
+
+---
+
 ## Routine fire #221 (2026-09-23 ~09:00 UTC) — "No date" on Events was missing three of them
 
 On the Events page there are two ways to ask for the events that have no date yet: the tile at the

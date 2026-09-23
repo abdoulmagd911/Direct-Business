@@ -651,7 +651,12 @@ window.rptWord=function(){var b=new Blob([String.fromCharCode(0xFEFF)+rptFullDoc
 window.rptPpt=function(){
  var go=function(){try{
   var P=new PptxGenJS();P.defineLayout({name:"W",width:13.33,height:7.5});P.layout="W";
-  var ORANGE="F47A1F",INK="1C1E2B",CREAM="FBF8F4",MUT="7C8194";
+  /* 2026-09-23 (fire #222): this deck is a DOCUMENT, and brand/index.html puts the rule in one
+     line — "Documents use #F06820 · tiny marks & favicons use #FF6C00 · the app uses #F47A1F. They
+     are siblings — don't fix one to match another." It was painted in the app's orange because a
+     PPTX cannot read brand/tokens.css and the literal was written by hand. The same correction is
+     applied to the two client-facing decks in core-08. */
+  var ORANGE="F06820",INK="1C1E2B",CREAM="FBF8F4",MUT="7C8194";
   var s=P.addSlide();s.background={color:INK};
   try{if(typeof logoSrc==="function")s.addImage({data:logoSrc(),x:0.7,y:0.6,h:0.85,w:2.6});}catch(_){}
   s.addText("Direct Business",{x:0.7,y:2.7,w:11,fontSize:44,bold:true,color:"FFFFFF",fontFace:"Cairo"});

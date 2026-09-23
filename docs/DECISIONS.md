@@ -2189,6 +2189,46 @@ brakes separate from the agreement check, because the sabotage that makes both c
 same *wrong* rule makes them agree perfectly.
 *Date: 2026-09-22, js/10-events.js. Status: ACTIVE.*
 
+**M70 — a client-facing document states no fact and uses no colour that is written as a literal in
+this repository. Both come from a source: identifiers from the `company_identity` registry, colour
+from `brand/tokens.css`.** Found 2026-09-23 (fire #222) by driving the Generator's Price Offer and
+Service-Fee editors. The shared print/PDF builder `v25OpenPrintPdf` — which the Service-Fee
+Proposal, the Project Proposal and the statement all go out through — printed in the header of
+every document:
+
+    IATA Wakeel · ZATCA Phase 2 · CR 7000000000
+
+**That CR number is invented.** Checked against the live registry, which holds a real ten-digit
+`cr_number`: the repository's literal is not it and appears nowhere in the registry. A made-up
+commercial registration number on a document going out under Direct's name is fire #160/#161's
+mistake — a literal drifting from the registry — except this one was never right to begin with. The
+footer carried `direct.com.sa`, a domain the registry does not contain. Both now come from the
+registry through `dgIdentityValue`, a fact with no value simply does not appear (#161's rule), and
+when the registry has not loaded the document says so rather than inventing.
+**The colour, same shape.** `brand/index.html` states the rule in one line — *"Documents use
+#F06820 · tiny marks & favicons use #FF6C00 · the app uses #F47A1F. They are siblings — don't fix
+one to match another"* — and `brand/tokens.css` encodes it as `--accent` under
+`data-identity="classic"`, with `--accent-strong` `#F87020` labelled, in that file, "service-fee
+table header". js/67's on-screen preview obeys it. The PDF did not: its accent came from
+`DB.templateLibrary`, written by `v25TemplateLearn`, which **despite its name reads nothing** and
+types `#FF6B00` (the logo-mark sibling); the copy in the live workspace was older still and held
+`#F47A1F`, so a client's PDF printed in the app's dashboard orange. Measured on the real workspace:
+`rgb(244,122,31)` before, `rgb(240,104,32)` after. The two PPTX decks in core-08 and the report deck
+in core-10 had the same literal and are corrected too, the service-fee table header to `#F87020`.
+The accent is now resolved from the brand at print time; a template's font, header style, footer and
+signature block are still its own.
+**Note the three oranges are NOT to be unified** — that is the brand's explicit instruction, and
+CLAUDE.md's older line about "the #F47A1F mismatch is fixed" must not be read as licence to. The app
+keeps `#F47A1F`; only documents were wrong.
+Carried with it: **four "Open in Direct" buttons pointed at `payments.direct.com.sa`, which answers
+503.** The live host is `payments.directksa.com` (200) — measured, both — and every other link in
+the app already used it. Three of the four are the button a person presses from an empty Bookings,
+Invoices or Tickets page, which is exactly when they want the real system.
+Guard: `scripts/qa/probe-a-document-carries-no-invented-facts.mjs`. It seeds the stale palette the
+live workspace was actually carrying, and its brake is that with no brand stylesheet at all the
+fallback is still the document orange.
+*Date: 2026-09-23, js/core/core-08-v25.js + core-09 + core-10. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
