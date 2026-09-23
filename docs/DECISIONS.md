@@ -2254,6 +2254,32 @@ requests before concluding a refusal was tested.
 Guard: `scripts/qa/probe-a-broken-contacts-load-says-so-on-the-list.mjs`.
 *Date: 2026-09-23, js/72-people-bridge.js. Status: ACTIVE.*
 
+**M72 — an access change asks first; and before "hardening" a control, find out whether the server
+already refuses it and whether a guard is driving through it.** Found 2026-09-23 (fire #224) on the
+Team & Access panel. Switching a colleague's account off, or changing their level, fired on the
+FIRST click with nothing asked — while this app already asks before deleting something as small as a
+service level. Both now ask, naming the person and the change. `pfConfirm` takes a Yes callback and
+no No, so the select is **put back before the question is asked** and moved again only on Yes; a
+Cancel, an Escape or a click outside then needs no callback and the box never sits showing a level
+nobody chose.
+**The second half of this rule cost a round and is the more useful half.** The panel also offered
+"Switch off" and an editable level on the signed-in person's OWN row and on every admin's row, which
+reads as one click from locking yourself — or the company — out. It is not: **the server already
+refuses both, by name** ("You cannot change your own role." / "You cannot switch off your own
+access."), and because it does, at least one admin always survives, so a "last admin" rule would be
+redundant as well. A first version of this fire hid those controls; `probe-share-and-settings-attacks`
+went from 73/73 to 69/73, because **that guard drives the server's refusal THROUGH those very
+controls** to prove the screen handles a refusal honestly. Hiding them made the panel marginally
+tidier and cost a real protection its only test. It was reverted, and the reasoning left in js/31 so
+it is not built a third time. If it is ever revisited: move the guard's assertions onto the admin API
+first, then change the screen.
+Rule 5 keeps this session out of security alarms, with a carve-out for anything that would break the
+app or lock the team out. This looked like that carve-out and was not — **check whether the server
+already says no before claiming a lock-out.**
+Guard: `scripts/qa/probe-an-access-change-asks-first.mjs`, whose check 5 is the one that matters
+most: confirming must actually send it, or a "fix" that merely swallows the action would pass.
+*Date: 2026-09-23, js/31-v48-team-access-one-simple-page-to-manage-.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

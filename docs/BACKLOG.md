@@ -136,6 +136,30 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #224 (2026-09-23 ~12:00 UTC) — changing someone's access now asks you first
+
+On the Team & Access panel, switching a colleague's account off — or changing what they can do —
+happened on the **first click, with nothing asked**. No "are you sure", no undo. This app already
+asks before you delete something as small as a service level, and an account that has been switched
+off cannot sign in.
+
+Both now ask, and the question names the person and what is about to happen: *"Switch [name]'s
+account off? They will not be able to sign in."* Cancel leaves everything exactly as it was,
+including the level box, which used to be left showing a change nobody agreed to.
+
+**And something I got wrong, which is worth telling you about.** I also noticed that the panel lets
+you switch off *your own* account, and lets the last admin switch off the last admin — which looked
+like one click from locking yourself, or the company, out. So I removed those buttons from your own
+row. Then one of the existing automated checks went from 73 out of 73 to 69.
+
+The reason: **your system already refuses this.** If you try to switch yourself off, the server says
+no and tells you why — and one of the checks deliberately does exactly that, through those buttons,
+to prove the screen handles a refusal honestly. By hiding the buttons I had made a real protection
+untestable while adding nothing. I put them back and wrote down why, so nobody removes them again in
+six months. Your accounts were never at risk.
+
+---
+
 ## Routine fire #223 (2026-09-23 ~11:00 UTC) — when the contacts don't load, the Leads page now says so
 
 I spent this round breaking things on purpose: I cut off each part of your data in turn, one at a

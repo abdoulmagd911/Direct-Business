@@ -433,7 +433,12 @@ ok('a well-formed email is still accepted (the check did not over-tighten)', goo
 /* 5e — switching a person off takes effect, and the screen agrees */
 const before=await api('/functions/v1/admin-users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list'})});
 const target=(before.users||[]).find(u=>u.id!==UID&&u.active!==false);
+/* 2026-09-23 (fire #224): switching a person off now asks first (pfConfirm), so the click alone
+   no longer sends anything — press Confirm, exactly as a person would. The assertions below are
+   unchanged: the write must still land and the roster must still redraw. */
 await M.p.evaluate(id=>{ const b=document.querySelector('[data-tog="'+id+'"]'); if(b)b.click(); }, target.id);
+await M.p.waitForTimeout(900);
+await M.p.evaluate(()=>{ const y=document.getElementById('pfConfirmYes'); if(y)y.click(); });
 await M.p.waitForTimeout(2500);
 const after=await api('/functions/v1/admin-users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list'})});
 const nowOff=(after.users||[]).find(u=>u.id===target.id);
@@ -450,6 +455,10 @@ const selfRole=await M.p.evaluate(async id=>{
   const sel=document.querySelector('select[data-role="'+id+'"]');
   if(!sel) return {missing:true};
   sel.value='team_member'; sel.dispatchEvent(new Event('change'));
+  /* fire #224: the question comes first now. Confirm it — the point of this check is the SERVER's
+     refusal and how the screen handles it, which only happens once the call is actually made. */
+  await new Promise(r=>setTimeout(r,900));
+  { const y=document.getElementById('pfConfirmYes'); if(y)y.click(); }
   await new Promise(r=>setTimeout(r,2600));
   const back=document.querySelector('select[data-role="'+id+'"]');
   const out={alerts:window.__alerts.slice(),valueNow:back?back.value:null}; window.alert=a0; return out;
@@ -461,7 +470,10 @@ ok('after that refusal the roster is redrawn — the level does NOT sit showing 
 const selfOff=await M.p.evaluate(async id=>{
   window.__alerts=[]; const a0=window.alert; window.alert=m=>{window.__alerts.push(String(m));};
   const b=document.querySelector('[data-tog="'+id+'"]'); if(!b) return {missing:true};
-  b.click(); await new Promise(r=>setTimeout(r,2200));
+  b.click();
+  await new Promise(r=>setTimeout(r,900));
+  { const y=document.getElementById('pfConfirmYes'); if(y)y.click(); }   /* fire #224 */
+  await new Promise(r=>setTimeout(r,2200));
   const out={alerts:window.__alerts.slice()}; window.alert=a0; return out;
 }, UID);
 ok('switching YOURSELF off is refused, and the refusal says why',

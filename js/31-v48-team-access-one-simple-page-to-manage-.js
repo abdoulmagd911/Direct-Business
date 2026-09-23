@@ -139,6 +139,18 @@
         /* A manager gets NO buttons on an admin's row: the server refuses those calls
            anyway, so offering them is a confirm-box dead end. */
         var mgrOnAdmin=(window.__v48callerRole==='manager' && u.role==='admin');
+        /* 2026-09-23 (fire #224). A self-lockout guard was BUILT here and then taken out again, and
+           the reason is worth keeping so it is not built a third time. Measured on the live panel:
+           every row, including the signed-in person's own and every admin's, offers "Switch off"
+           and an editable level. That looks like one click from locking yourself — or the company —
+           out. It is not: the SERVER already refuses both, by name ("You cannot change your own
+           role." / "You cannot switch off your own access."), and probe-share-and-settings-attacks
+           drives exactly that refusal THROUGH THESE CONTROLS to prove the screen handles a refusal
+           honestly. Since the server's self-rule also means the last admin can never switch
+           themselves off, at least one admin always survives; a "last admin" rule here would be
+           redundant too. Hiding the controls made the panel marginally tidier and cost the guard its
+           subject — a worse trade. What WAS missing is below: nothing asked before an access change.
+           If this is ever revisited, move the guard's assertions onto the admin API first. */
         var roleSel='<select data-role="'+u.id+'"'+(mgrOnAdmin?' disabled':'')+' style="padding:6px 9px;border:1px solid var(--line-2,#DADDE3);border-radius:8px;font:inherit;font-size:12px;background:#fff">'+Object.keys(RL).map(function(k){return '<option value="'+k+'"'+(u.role===k?' selected':'')+'>'+(A?RL[k][1]:RL[k][0])+'</option>';}).join('')+'</select>';
         var actionsHtml;
         if(mgrOnAdmin){
@@ -170,8 +182,37 @@
     }
     function wire(users){
       var lb=document.getElementById('v48list');
-      lb.querySelectorAll('[data-role]').forEach(function(sel){ sel.onchange=function(){ call({action:'set_role',id:sel.getAttribute('data-role'),role:sel.value}).then(function(r){ if(r.error){alert(r.error);load();} }); }; });
-      lb.querySelectorAll('[data-tog]').forEach(function(b){ b.onclick=function(){ call({action:'set_active',id:b.getAttribute('data-tog'),active:b.getAttribute('data-act')==='1'}).then(function(r){ if(r.error){alert(r.error);return;} load(); }); }; });
+      /* 2026-09-23 (fire #224): both of these used to fire on the first click, with nothing asked.
+         Changing a colleague's access level, or switching their account off, is at least as
+         consequential as deleting an SLA — which this app already asks about (pfConfirm). The
+         question names the person and what is about to happen, and a No puts the box back where it
+         was rather than leaving it showing a level nobody chose. */
+      function byId(id){ for(var i=0;i<users.length;i++){ if(String(users[i].id)===String(id)) return users[i]; } return null; }
+      function who(u){ return (u&&((u.full_name||'').trim()||String(u.email||'').split('@')[0]))||''; }
+      /* pfConfirm takes a Yes callback and nothing else — there is no No to hook. So the box is put
+         back BEFORE the question is asked, and only moved again if the answer is Yes. A Cancel, an
+         Escape or a click outside then needs no callback at all, and the select never sits showing
+         a level nobody chose. */
+      function ask(msg,go){ try{ if(typeof window.pfConfirm==='function'){ window.pfConfirm(msg,go); return; } }catch(_){}
+        if(window.confirm(msg)) go(); }
+      lb.querySelectorAll('[data-role]').forEach(function(sel){
+        sel.setAttribute('data-was',sel.value);
+        sel.onchange=function(){
+          var id=sel.getAttribute('data-role'), was=sel.getAttribute('data-was'), now=sel.value;
+          if(was===now) return;
+          try{ sel.value=was; }catch(_){}
+          var u=byId(id), lbl=(RL[now]?(A?RL[now][1]:RL[now][0]):now);
+          ask((A?('تغيير صلاحية «'+who(u)+'» إلى: '+lbl+'؟'):('Change '+who(u)+"'s access to: "+lbl+'?')),
+            function(){ try{ sel.value=now; }catch(_){} sel.setAttribute('data-was',now);
+              call({action:'set_role',id:id,role:now}).then(function(r){ if(r.error){alert(r.error);load();} }); });
+        };
+      });
+      lb.querySelectorAll('[data-tog]').forEach(function(b){ b.onclick=function(){
+        var id=b.getAttribute('data-tog'), on=(b.getAttribute('data-act')==='1'), u=byId(id);
+        ask(on ? (A?('تفعيل حساب «'+who(u)+'»؟'):('Switch '+who(u)+"'s account back on?"))
+               : (A?('إيقاف حساب «'+who(u)+'»؟ لن يتمكن من تسجيل الدخول.'):('Switch '+who(u)+"'s account off? They will not be able to sign in.")),
+          function(){ call({action:'set_active',id:id,active:on}).then(function(r){ if(r.error){alert(r.error);return;} load(); }); });
+      }; });
       lb.querySelectorAll('[data-rst]').forEach(function(b){ b.onclick=function(){
         var email=b.getAttribute('data-email')||'';
         /* 2026-09-09 (live test D1 family): ask in the page, never window.confirm */
