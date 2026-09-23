@@ -32,7 +32,13 @@ import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const PORT = 9107; const BASE = 'http://localhost:' + PORT;
 
-const PAGES = ['today', 'leads', 'clients', 'finance', 'offers', 'airlines', 'vendors', 'sopsla', 'reports', 'events'];
+/* 2026-09-23 (fire #233): this list was ten routes and the app answers twenty-five. M78 was
+   written one round earlier about exactly this shape — a sweep is only as wide as its list — so
+   the fifteen it had never pressed a button on are in it now: the Dashboard, Sync, Projects, the
+   audit and archive screens, the three read-only mirrors, the Generator and the SOP/SLA pair. */
+const PAGES = ['today', 'dashboard', 'leads', 'clients', 'finance', 'offers', 'airlines', 'vendors',
+  'providers', 'sopsla', 'sops', 'slas', 'reports', 'events', 'ops', 'operations', 'projects',
+  'documents', 'activity', 'archive', 'bookings', 'invoices', 'tickets', 'sync', 'settings'];
 const SKIP = 'sign out|delete|archive|remove|switch off|send reset|حذف|أرشفة|إيقاف|إرسال';
 
 const srv = start(PORT, {});

@@ -133,9 +133,10 @@
       var hasC=Array.isArray(o.contacts)&&o.contacts.some(function(c){return c&&c._fromTable;});
       var hasA=Array.isArray(o.activities)&&o.activities.some(function(a){return a&&a._fromTable;});
       var mc=o._v72mc===1, ma=o._v72ma===1;   // arrays the bridge itself created (js/72)
+      var lc=(typeof o._v72lc==='number'&&o._v72lc>0);   // the last-contact the bridge derived (js/72, fire #233)
       var hasScrub=SCRUB_KEYS.some(function(k){ return o[k]!==undefined; });
-      if(!hasC&&!hasA&&!mc&&!ma&&!hasScrub)return o;
-      var c={}; for(var k in o){ if(k==='_v72mc'||k==='_v72ma'||SCRUB_KEYS.indexOf(k)>=0)continue; c[k]=o[k]; }
+      if(!hasC&&!hasA&&!mc&&!ma&&!lc&&!hasScrub)return o;
+      var c={}; for(var k in o){ if(k==='_v72mc'||k==='_v72ma'||k==='_v72lc'||SCRUB_KEYS.indexOf(k)>=0)continue; c[k]=o[k]; }
       if(hasC)c.contacts=o.contacts.filter(function(x){return !(x&&x._fromTable);});
       if(hasA)c.activities=o.activities.filter(function(x){return !(x&&x._fromTable);});
       /* 2026-09-02 (attack round 10): an array the bridge created on a record that had none is
@@ -145,6 +146,14 @@
          nobody had edited. Guard: scripts/qa/probe-no-phantom-writes.mjs. */
       if(mc&&Array.isArray(c.contacts)&&!c.contacts.length)delete c.contacts;
       if(ma&&Array.isArray(c.activities)&&!c.activities.length)delete c.activities;
+      /* 2026-09-23 (fire #233): the bridge derives lastContact from the activities TABLE so the
+         Leads list stops printing a dash over 25 leads that do have history. It is a DISPLAY
+         value — taken back out here so the row compares equal to what was loaded and nothing is
+         written on its account. The stored field is untouched whenever the record already has one.
+         Only a value that still EQUALS what the bridge derived is dropped: once anything else sets
+         lastContact — logging a call, or the recompute after removing one — the two differ and the
+         real value is saved. probe-activity-edit-remove holds that half. */
+      if(lc&&c.lastContact===o._v72lc)delete c.lastContact;
       return c;
     }catch(_){ return o; }
   }

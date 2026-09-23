@@ -33,9 +33,12 @@ import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 /* PORTS_RESERVED: 9243 — one mock. */
 const PORT = 9243; const BASE = 'http://localhost:' + PORT;
-const PAGES = ['today', 'leads', 'clients', 'finance', 'ops', 'offers', 'bookings', 'invoices',
-  'projects', 'airlines', 'vendors', 'sops', 'events', 'settings', 'activity', 'archive',
-  'documents', 'tickets', 'reports', 'sync'];
+/* 2026-09-23 (fire #233), M78 again: twenty routes were swept and the app answers twenty-five.
+   The five missing were the Dashboard, the SOP/SLA pair's combined page, Service Levels on its
+   own, and the two alias routes. */
+const PAGES = ['today', 'dashboard', 'leads', 'clients', 'finance', 'ops', 'operations', 'offers',
+  'bookings', 'invoices', 'projects', 'airlines', 'vendors', 'providers', 'sops', 'slas', 'sopsla',
+  'events', 'settings', 'activity', 'archive', 'documents', 'tickets', 'reports', 'sync'];
 
 const srv = start(PORT, {});
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });

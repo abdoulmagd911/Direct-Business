@@ -136,6 +136,43 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #233 (2026-09-24 ~01:00 UTC) — the Leads list said nobody had been contacted, and 25 of them had
+
+I counted, column by column, how much of your Leads list is actually filled in. Of the seven
+columns, three said nothing at all:
+
+- **Last activity** — a dash on **all 78 rows**.
+- **Next action** — a dash on all 78.
+- **Priority** — the word "Cool" on all 78 (it is partly worked out from how recently someone was
+  contacted, and that was missing).
+
+And the row highlight that marks a lead nobody has touched for a fortnight had **never once
+appeared**, because it reads the same missing field.
+
+**Twenty-five of those leads do have a logged call or note.** The app was holding the history and
+the list was saying there was none. The reason: those activities live in a separate table that gets
+attached to each company a moment after the page loads, and the rule that works out "last contact"
+had already run, before they arrived.
+
+Fixed. **Last activity now shows a real date on 25 of the 78 rows**, and the "gone quiet" highlight
+marks those same 25 for the first time. Nothing is guessed: a lead with no history still shows a
+dash, and a lead that already has a last-contact date on file keeps it.
+
+**Nothing is written to your database for this.** The date is worked out for display only and is
+deliberately removed again before saving, so no record is touched just because the app showed
+something. That mattered more than it sounds — an earlier version of this same idea once caused 29
+untouched companies to be rewritten.
+
+**And one mistake of mine, caught by your own test suite within minutes.** My first version removed
+the date too eagerly: if you deleted an activity, the app correctly works out a new last-contact
+date from what remains, and my change was throwing that real date away before it could save. A
+check that already existed went red and named it. Fixed and re-verified.
+
+**Still open, and yours to decide:** "Next action" is genuinely empty on every lead — nobody has set
+one — and Priority will stay flat until more leads have contact history behind them.
+
+---
+
 ## Routine fire #232 (2026-09-23 ~23:00 UTC) — five English headings on the Arabic side, hiding behind a green check
 
 A check written in an earlier round makes sure no page heading is left in English when the app is in

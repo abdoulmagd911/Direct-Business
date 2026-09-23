@@ -2350,6 +2350,29 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M79 — a value derived for display is marked with the value, and stripped only while it still
+equals it.** Found 2026-09-23 (fire #233). The Leads list read "—" under LAST ACTIVITY on **all 78
+rows**, and the "no touch in 14 days" highlight fired on **0 of 78** — while **25 of those leads
+have a logged activity**. js/02's rowToApp already carries the rule ("if the raw blob never stored
+lastContact, take the newest logged activity") but runs at load against the blob alone; those
+activities arrive afterwards, from the activities TABLE, through the js/72 bridge. The derivation is
+now applied there too. Live, the column went from 78/78 empty to **53/78**, and the gone-quiet
+highlight now marks 25 rows.
+**The hazard this created, and the shape of the cure.** js/72's own header records what happened the
+last time it created a key on a record: js/02 saw 29 untouched companies as CHANGED and rewrote them
+with that tab's copy. A derived `lastContact` is exactly that, so it is marked and `stripBridged`
+takes it back out at save time — the row still compares equal to what was loaded, and the derived
+value never reaches the database.
+**The mark carries the VALUE, not a flag, and that distinction was not theoretical**: the flag
+version shipped for ten minutes and `probe-activity-edit-remove` went red. Remove an activity and
+the app recomputes lastContact from what is left — a real, person-made value — and a plain flag made
+the save drop it. A value cannot be wrong that way: the moment anything else sets the field, the two
+differ and the real one is saved. Evidence settled which side was wrong, as #111 set down; the probe
+was right and the change was corrected, not the probe.
+Guards: `scripts/qa/probe-a-logged-call-reaches-the-list.mjs` (the display half and the no-write
+brake), `probe-activity-edit-remove` and `probe-no-phantom-writes` (the two that must not break).
+*Date: 2026-09-23, js/72-people-bridge.js + js/02-direct-business-cloud-layer-login-shared-c.js. Status: ACTIVE.*
+
 **M78 — a sweep is only as wide as its list, so the list is every route the app answers.**
 Found 2026-09-23 (fire #232). `probe-a-page-heading-is-never-english-in-arabic` has guarded the
 headings since #204 and was green — over **19 routes, while the app answers 25**. Widening it to all

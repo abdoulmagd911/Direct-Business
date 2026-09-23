@@ -76,6 +76,7 @@ try{
       b.contacts.push({_fromTable:true,_tid:r.id,name:r.name||'',role:r.role||'',email:r.email||'',phone:r.phone||'',needsConfirm:!!r.needs_manual_confirmation,confirmReason:r.confirmation_reason||'',verificationSource:r.verification_source||''});
       addedC++;
     });
+    var touched={};
     (activities||[]).forEach(function(r){
       var b=byUuid[r.business_id]; if(!b)return;
       if(!Array.isArray(b.activities)){ b.activities=[]; b._v72ma=1; }
@@ -84,7 +85,32 @@ try{
       if(have)return;
       var ts=Date.parse(r.at||''); if(isNaN(ts))ts=Date.now();
       b.activities.push({_fromTable:true,_tid:r.id,date:ts,type:r.type||'note',status:'',note:note,by:r.by_user||''});
+      if(!touched[b.id]) touched[b.id]=b;
       addedA++;
+    });
+    /* 2026-09-23 (fire #233) — the Leads list read "—" under LAST ACTIVITY on all 78 rows, and the
+       "no touch in 14 days" highlight fired on 0 of them, while TWENTY-FIVE of those leads have a
+       logged activity. js/02's rowToApp already carries the right rule — "if the raw blob never
+       stored lastContact, take the newest logged activity" — but it runs at load, on the blob
+       alone, and these activities arrive later, from the activities TABLE, through this bridge.
+       So the derivation is applied again here, to the records this run just gave activities to,
+       using the same rule rather than a second copy of the idea: only when lastContact is missing,
+       never overwriting a real one, and only from a date that parses. Display follows from it —
+       the column, the stale highlight, the sort and the lead score all read this one field. */
+    Object.keys(touched).forEach(function(k){
+      var b=touched[k]; if(!b||b.lastContact) return;
+      var mx=0; (b.activities||[]).forEach(function(a){
+        if(!a) return; var d=(typeof a.date==='number')?a.date:Date.parse(a.date)||0; if(d>mx)mx=d; });
+      /* marked like the arrays above: stripBridged (js/02) takes it back out at save time, so the
+         row still compares equal to what was loaded. Without the mark this derived value would
+         both persist into the blob and make 25 untouched records look CHANGED on the next save —
+         the phantom-write window that probe-no-phantom-writes.mjs exists to keep shut.
+         The mark carries the VALUE, not a flag, and js/02 only strips a lastContact that still
+         equals it. probe-activity-edit-remove caught the flag version: remove an activity and the
+         app recomputes lastContact from what is left — a real, person-made value — and a plain
+         flag made the save drop it. A value cannot be wrong in that way: the moment anything else
+         sets the field, the two differ and the real one is saved. */
+      if(mx){ b.lastContact=mx; b._v72lc=mx; }
     });
     APPLIED.contacts+=addedC; APPLIED.activities+=addedA; APPLIED.runs++;
     return addedC+addedA;

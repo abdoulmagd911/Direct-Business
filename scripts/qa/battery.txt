@@ -330,3 +330,4 @@ probe-a-column-sorts-by-what-is-in-it
 probe-the-reference-tables-sort-in-arabic-too
 probe-a-refused-visit-is-not-a-change
 probe-two-people-one-record-are-told
+probe-a-logged-call-reaches-the-list
