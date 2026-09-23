@@ -2280,6 +2280,27 @@ Guard: `scripts/qa/probe-an-access-change-asks-first.mjs`, whose check 5 is the 
 most: confirming must actually send it, or a "fix" that merely swallows the action would pass.
 *Date: 2026-09-23, js/31-v48-team-access-one-simple-page-to-manage-.js. Status: ACTIVE.*
 
+**M73 — one Arabic word per thing. Where the dictionary answers the same English label twice, the
+two answers are identical or somebody has written down why.** Found 2026-09-23 (fire #225) on the
+Leads page in Arabic: the page's primary action button read **«+ عمل جديد»** — "new work", "new
+job" — while the dialog it opens is titled **«جهة جديدة»** and that dialog's first field is
+**«اسم الجهة»**. Three words for one object on the busiest page, and the one on the button was the
+odd one out: a record here is a company, not a job. Scanning the whole dictionary the same way found
+one more — "Chain of command" was «سلسلة القرار» in one place and «تسلسل المسؤولية» in another,
+while the BUTTON a person presses on a client card says «التسلسل الإداري». Both now match the
+button: **the word you click should be the word you read.**
+The rule is deliberately not "no duplicates", which would be wrong — Arabic adjectives agree in
+gender (متأخر / متأخرة), a heading takes the article where a badge does not (العميل / عميل), and a
+verb on a button is not the noun in a column (فتح / مفتوحة). Nine such pairs are legitimate and each
+is listed in the guard with its reason. The rule is **no duplicate that nobody has accounted for**,
+and adding one costs a sentence somebody has to write.
+Guard: `scripts/qa/probe-one-arabic-word-per-thing.mjs` — a source check, not a browser one, so it
+is fast and exact. Its two useful properties: the ALLOWED list is checked for rot (an entry that
+stops matching anything is reported, so it cannot grow into a blanket exemption), and the sabotage
+that proves it holds the whole class introduces a divergence on "Notes" — a word this fire never
+touched — and is caught.
+*Date: 2026-09-23, js/21-v27-arabic-column-header-stat-label-transl.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

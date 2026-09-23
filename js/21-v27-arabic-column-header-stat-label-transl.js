@@ -115,7 +115,11 @@
     'Has app':'له تطبيق','Edit':'تعديل','Del':'حذف','‹ Prev':'‹ السابق','Next ›':'التالي ›',
     '← Leads pipeline':'← مسار العملاء المحتملين','All clients':'كل العملاء','Aggregators':'مجمّعات',
     'All tiers':'كل الفئات','All managers':'كل المدراء','Overdue':'متأخر','Unpaid':'غير مدفوع',
-    '+ New business':'+ عمل جديد','+ New offer':'+ عرض جديد','+ New airline':'+ شركة طيران جديدة',
+    /* 2026-09-23 (fire #225): this button read «+ عمل جديد» — "new work / new job" — while the
+       dialog it opens is titled «جهة جديدة» and the form's own first field is «اسم الجهة». Three
+       words in the app for one object, on the busiest page, and the one on the button was the odd
+       one out: a record here is a company, not a job. «جهة» throughout now. */
+    '+ New business':'+ جهة جديدة','+ New offer':'+ عرض جديد','+ New airline':'+ شركة طيران جديدة',
     '+ New provider':'+ مورّد جديد','+ New SOP':'+ إجراء جديد','+ New request':'+ طلب جديد',
     '+ Booking':'+ حجز','+ Invoice':'+ فاتورة','+ Add event':'+ إضافة فعالية',
     'Share view-only link':'مشاركة رابط للعرض فقط','Projects board':'لوحة المشاريع',
@@ -200,7 +204,10 @@
     '👤 View preset':'👤 نمط العرض','🎯 Commercial':'🎯 تجاري','💰 Finance':'💰 المالية','📊 CFO':'📊 المدير المالي',
     '🌐 Everything':'🌐 الكل','📈 B2B snapshot':'📈 لقطة B2B',
     // ---- Client/lead card header + jump bar (2026-09-02 Arabic drive found these in English) ----
-    'Chain of command':'سلسلة القرار','Chain incomplete':'السلسلة غير مكتملة','Chain ok':'السلسلة مكتملة',
+    /* fire #225: «سلسلة القرار» here and «تسلسل المسؤولية» further down, while the BUTTON a person
+       actually presses on a client card (core-09) says «التسلسل الإداري». Both dictionary entries
+       now match the button — the word you click should be the word you read. */
+    'Chain of command':'التسلسل الإداري','Chain incomplete':'السلسلة غير مكتملة','Chain ok':'السلسلة مكتملة',
     'New booking':'حجز جديد','Create proposal':'إنشاء عرض','Log activity':'تسجيل نشاط','Log activity +':'تسجيل نشاط +',
     'Request':'طلب','Request +':'طلب +','Key facts':'حقائق أساسية','Corporate account':'الحساب المؤسسي',
     'Activity & workflow':'النشاط وسير العمل','Contacts & channels':'جهات الاتصال والقنوات',
@@ -477,7 +484,7 @@
     'ZATCA hash-chain integrity report':'تقرير سلامة سلسلة التجزئة (هيئة الزكاة)','New provider':'مورّد جديد'
   };
   var TITLE_PREFIX_AR={
-    'Log activity':'تسجيل نشاط','Chain of command':'تسلسل المسؤولية',
+    'Log activity':'تسجيل نشاط','Chain of command':'التسلسل الإداري',   /* fire #225 — one wording */
     '🏛 Client onboarding':'🏛 تسجيل عميل جديد','Client onboarding':'تسجيل عميل جديد',
     'Record payment':'تسجيل دفعة','Corporate profile':'الملف المؤسسي',
     /* only visible once the dialog opens, and it never opens against live data — there are 0 invoices,

@@ -136,6 +136,32 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #225 (2026-09-23 ~13:00 UTC) — the Arabic button said "new job" where it meant "new company"
+
+On the Leads page in Arabic, the main button — the one everyone presses to add a company — read
+**«+ عمل جديد»**, which means "new work" or "new job". The dialog it opens is called **«جهة جديدة»**
+and the first thing it asks for is **«اسم الجهة»**. Three words for one thing, on your busiest page,
+and the one on the button was the wrong one: what you are adding is a company, not a job. It now
+says «+ جهة جديدة», matching the dialog.
+
+I then checked the whole Arabic word list the same way — 777 translated labels — and found one more:
+"Chain of command" was written two different ways, neither of them matching the button people
+actually press on a client card («التسلسل الإداري»). All three now agree.
+
+**Everything else it flagged is correct Arabic and I left it alone**, which is worth saying because
+a naive "no word appears twice" rule would have broken it: Arabic adjectives change with the noun
+(متأخر / متأخرة), a heading takes "the" where a small badge does not (العميل / عميل), and a verb on
+a button is not the same as a noun in a column (فتح / مفتوحة). Nine of these are now written down,
+each with its reason, and the check will complain if a *new* inconsistency appears — or if one of
+those nine reasons stops applying.
+
+**Also checked this round and found correct:** the Operations board (empty, and it says so in both
+languages, with the explanation that the zeros mean nothing was created rather than something
+failing), and the three "create new" forms — a request, a company, an SOP. All three refuse an empty
+save, name the field that is missing, and put the cursor in it, in both languages.
+
+---
+
 ## Routine fire #224 (2026-09-23 ~12:00 UTC) — changing someone's access now asks you first
 
 On the Team & Access panel, switching a colleague's account off — or changing what they can do —
