@@ -2350,6 +2350,36 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M77 — when two people had the same company open, the second one is told.** Found by re-running
+`scripts/qa/diag-two-tabs-one-record.mjs` on 2026-09-23 (fire #231): it has reported this since
+2026-09-10 and still reproduces. Tab A logs a call note and sets a next action and saves; tab B,
+holding a stale copy, changes only the segment and saves 2.5 s later. Afterwards the table holds B's
+segment and **A's note and next action are gone** — a green "Saved" on both screens and nothing
+anywhere saying a thing was lost. `docs/LANDMINES.md` B.1 parked this as "revisit only if it
+actually bites"; it bites, so the silence is closed even though the collision itself is not.
+**Why this is a message and not a merge, which matters before anyone calls it half a job.** js/02
+already sends only the rows this tab changed. But each is sent as a whole row, carrying this tab's
+stale copy of every other field — and the obvious cure, sending only the changed fields, does not
+cure it: nearly everything a person edits lives inside the single `raw` blob, which is ONE column,
+so two people editing different things about the same company still collide inside it. A real cure
+is a three-way merge of that blob inside the save path — the one piece of code where a mistake stops
+the whole team saving. That is the owner's call and it is written up in `docs/BACKLOG.md`, not
+something to slip into a QA sweep.
+js/104 therefore asks the database at save time whether that company has been written since it last
+looked, and if so names the company and points at Activity & Audit, where `record_history` holds the
+before-image and Undo can put it back for 24 hours. **It never blocks a save and never writes.**
+Two things the fix had to get right, both of them checked:
+**A false alarm is worse than a missed one**, because the next real one gets ignored — so when
+nothing changed underneath there is no message, and an answer that arrives later than 800 ms is
+discarded rather than guessed at (past that, this tab's own write may already have landed and would
+read back as somebody else's).
+**And a record's id inside the app is `legacy_id || id`.** Measured live, only **21 of the 108**
+companies carry a legacy_id; the other 87 go by their uuid. The first cut of this layer asked only
+by legacy_id and so watched a fifth of the data in silence — caught by driving it against the real
+database rather than the harness, where every id has the same shape.
+Guard: `scripts/qa/probe-two-people-one-record-are-told.mjs`.
+*Date: 2026-09-23, js/104-two-people-one-record.js. Status: ACTIVE.*
+
 **M76 — a refused page visit is not a change to a record, and a page that counts both must say
 which is which.** Found 2026-09-23 (fire #230), driven against the real log. `record_history` holds
 378 events, **131 of them refused page visits** written by the access trigger. Activity & Audit

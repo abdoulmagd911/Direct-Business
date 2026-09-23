@@ -136,6 +136,44 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #231 (2026-09-23 ~21:00 UTC) — two people, one company, and one of them loses their work silently
+
+I re-ran a test this project wrote back on 10 September and parked. It still does exactly what it
+did then, and it is the most serious thing I have found today.
+
+**Two people have the same company open.** One logs a call note and sets a next action, and saves.
+The other — who opened the record earlier and has an older copy on screen — changes only the
+segment, and saves two seconds later. Afterwards the database holds the segment, and **the call note
+and the next action are gone.** Both people saw a green "Saved". Nothing anywhere said anything was
+lost.
+
+The note about it in our own landmines file says "revisit only if it actually bites." It bites.
+
+**What I have done, and what I deliberately have not.** The app now asks the database, at the moment
+you save, whether anybody else has written that company since you last looked. If somebody has, it
+says so, by name: *"Somebody else changed 'X' while you had it open. Your save has just gone out,
+and it may have replaced part of what they did. Open Activity & Audit to see both changes — an undo
+is there for 24 hours."* That is true, it points at where the record really can be recovered, and it
+never blocks or slows a save.
+
+**It does not stop the overwrite, and I would not do that without asking you.** The reason is worth
+knowing: nearly everything a person edits about a company is stored in one single field, so two
+people editing different things still land on the same field. Genuinely merging them means changing
+the one piece of code where a mistake stops the whole team saving. That is your decision to make,
+not something to slip into a testing round — **it is the biggest open item on this list now.**
+
+Two things I made sure of, because a warning that fires wrongly is worse than none: when nobody else
+has touched the record there is no message at all, and if the database answers too slowly to be
+trusted the app says nothing rather than guess.
+
+**And one mistake of my own, caught before it shipped.** The first version asked the database using
+the wrong kind of identifier, and was watching **21 of your 108 companies** while looking perfectly
+healthy in testing — the test data all has one shape, the real data has two. Found by running it
+against the real database. It now watches all 108, and there is a check that fails if that ever
+slips again.
+
+---
+
 ## Routine fire #230 (2026-09-23 ~19:00 UTC) — all 322 checks green, and the Activity page was mostly reporting my own testing
 
 **First: the full battery. 322 checks that can fail, every one passed, no failures at any point.**
