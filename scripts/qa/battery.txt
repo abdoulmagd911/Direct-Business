@@ -325,3 +325,4 @@ probe-a-document-carries-no-invented-facts
 probe-a-broken-contacts-load-says-so-on-the-list
 probe-an-access-change-asks-first
 probe-one-arabic-word-per-thing
+probe-the-archive-says-what-its-zeros-count

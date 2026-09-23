@@ -138,8 +138,23 @@
     /* the footnote that said nothing could be listed — replace its words with what is true now */
     var note=fl('A deleted company is archived, never erased. Restore puts it back on the list exactly as it was and is logged in Activity & Audit; a company removed by a merge is undone from there instead.',
                 'الشركة المحذوفة تُؤرشَف ولا تُمحى. «استعادة» تعيدها إلى القائمة كما كانت ويُسجَّل ذلك في النشاط والتدقيق؛ أما الشركة التي أزالها دمج فيُتراجع عنه من هناك.');
+    /* 2026-09-23 (fire #227): the three tiles at the top of this page — Archived invoices, bookings,
+       offers — count THIS WORKSPACE'S OWN drafts (DB.invoices / DB.bookings / DB.offers), and those
+       are empty, so the page reads "Archived invoices 0". Measured the same day, the finance ledger
+       holds 45 soft-deleted invoices. Somebody who deleted rows on the Finance page and came to the
+       Archive to find them reads that zero as "they are gone". They are not: Finance soft-deletes by
+       setting deleted_at and restores from its own screen. The zero is true of what it counts and
+       false to the person reading it — the same shape as #210's board of zeros and #223's silent
+       count. Today's hub already carries this sentence about these collections; this page did not.
+       No figure is repeated here: the ledger is not loaded on this page, so the line names the
+       place, never a number it would have to keep in step. */
+    var noteFin=fl('These three counts cover this workspace\'s own drafts only. Invoices deleted on the Finance page are not listed here — they are soft-deleted there and restored from that same page.',
+                   'هذه الأعداد تخص مسودات هذا التطبيق وحدها. الفواتير المحذوفة من صفحة «المالية» لا تظهر هنا — تُحذف حذفًا مؤقتًا هناك وتُستعاد من الصفحة نفسها.');
     var cards=v.querySelectorAll(':scope > .card'); var last=cards[cards.length-1];
-    if(last&&/Deleted companies are not listed|الشركات المحذوفة لا تظهر/.test(last.textContent||'')){ last.innerHTML='<div style="font-size:12.5px;color:var(--muted);line-height:1.6" data-v76-note>'+esc(note)+'</div>'; v.insertBefore(card,last); }
+    if(last&&/Deleted companies are not listed|الشركات المحذوفة لا تظهر/.test(last.textContent||'')){
+      last.innerHTML='<div style="font-size:12.5px;color:var(--muted);line-height:1.6" data-v76-note-fin>'+esc(noteFin)+'</div>'+
+                     '<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:8px" data-v76-note>'+esc(note)+'</div>';
+      v.insertBefore(card,last); }
     else v.appendChild(card);
     /* the "Nothing archived yet" empty card is no longer the whole truth once a company is listed */
     if(rows.length){ v.querySelectorAll(':scope > .card > .empty').forEach(function(e){ if(/Nothing archived yet/.test(e.textContent||'')) e.parentNode.remove(); }); }

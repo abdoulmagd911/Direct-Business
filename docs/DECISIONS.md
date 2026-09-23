@@ -2301,6 +2301,30 @@ that proves it holds the whole class introduces a divergence on "Notes" — a wo
 touched — and is caught.
 *Date: 2026-09-23, js/21-v27-arabic-column-header-stat-label-transl.js. Status: ACTIVE.*
 
+**M74 — a counter says what it counts when a reader could reasonably think it counts something
+else.** Found 2026-09-23 (fire #227). The Archive page reads `ARCHIVED INVOICES 0 · ARCHIVED
+BOOKINGS 0 · ARCHIVED OFFERS 0 · DELETED COMPANIES 4`. Those three zeros count **this workspace's
+own drafts** (`DB.invoices` / `DB.bookings` / `DB.offers`), which are empty. Measured the same day,
+the finance ledger holds **45 soft-deleted invoices**. Somebody who deleted rows on the Finance page
+and came to the Archive to find them reads that zero as "they are gone". They are not — Finance
+soft-deletes with `deleted_at` and restores from its own screen. **The zero is true of what it
+counts and false to the person reading it**, which is #210's board of zeros and #223's silent count
+again, on a third page. The page now says what those counts cover and names Finance as the place.
+Two constraints on the wording, both in the guard: it names **the place, never a figure** — the
+ledger is not loaded on this page, so a number here could only be a second copy drifting out of step
+— and it was added **beside** the older sentence about deleted companies, not over it.
+**And a note about where a fix belongs, which cost a wrong edit first:** core-06's `renderArchive`
+still contains the original page, but **js/76 replaces the last card's contents after it draws**, so
+a sentence added in core-06 never reaches the screen. Before editing a page, check whether a later
+layer overwrites the part you are editing — the live page here is js/76's, not core-06's.
+Verified alongside, and worth not re-testing: the renewals radar is exact (4 expired, 3 within 90
+days, undated rows shown as "date not on file" rather than hidden, sorted expired → soonest → no
+date, both languages); the one-pager drops a lapsed credential from the document and tells the
+person printing why; and the Restore path works, asks first and sends nothing on Cancel — a path no
+live row can exercise, since all four archived companies are merges or an owner ruling.
+Guard: `scripts/qa/probe-the-archive-says-what-its-zeros-count.mjs`.
+*Date: 2026-09-23, js/76-archive-companies.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to

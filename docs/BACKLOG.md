@@ -136,6 +136,43 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #227 (2026-09-23 ~15:00 UTC) — the Archive page said three zeros, and 45 deleted invoices were sitting somewhere else
+
+The Archive page opens with four counts: **archived invoices 0 · archived bookings 0 · archived
+offers 0 · deleted companies 4**. The four is right. The three zeros are true of what they count and
+misleading to the person reading them.
+
+Those three count **this app's own drafts** — the invoice, booking and offer drafts the workspace
+keeps for itself. There are none, so they read zero. But the finance ledger, the one you actually
+work in, holds **45 deleted invoices** right now. They are not erased; Finance deletes softly and
+restores from its own screen. Somebody who deleted a row on the Finance page, went looking for it in
+the Archive, and read "archived invoices: 0" would reasonably conclude it was gone for good — and
+might re-key it.
+
+Fixed: the page now says, in both languages, that those three counts cover this app's own drafts
+only, and that invoices deleted on the Finance page are soft-deleted and restored from that same
+page. It deliberately **does not quote the number 45**: the ledger is not loaded on that screen, so
+a figure there could only be a second copy drifting out of step with the real one. It names the
+place, and the place shows the real count.
+
+This is the third page in this sweep where a zero needed to say what it counts (#210's board, #223's
+silent count). It is now a written rule, M74.
+
+**Three things I checked while I was in there and found correct, so you don't need to worry about
+them:**
+
+- **The renewals radar is exact** — four lapsed, three inside 90 days, and the rows with no expiry
+  date on file are shown saying so rather than quietly left out. Correct order, correct in Arabic.
+- **The one-pager refuses to print a lapsed credential.** It drops PCI-DSS and DUNS from the
+  document and tells whoever is printing why, in a box the client does not see.
+- **Restore works and asks first.** It names the company, and pressing Cancel sends nothing. It only
+  offers itself for an ordinary deletion — a company removed as a duplicate keeps its "merged into…"
+  line and no Restore button, so nobody can resurrect a duplicate you already cleaned up. None of
+  your four archived companies is an ordinary deletion (three merges and one you ruled on), so I had
+  to construct that case to test it.
+
+---
+
 ## Routine fire #226 (2026-09-23 ~14:00 UTC) — all 313 checks re-run: every one green, and a date you should know about
 
 Five rounds of changes had gone in since the last full run, touching nine files. I re-ran the whole
