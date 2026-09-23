@@ -136,6 +136,32 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #226 (2026-09-23 ~14:00 UTC) — all 313 checks re-run: every one green, and a date you should know about
+
+Five rounds of changes had gone in since the last full run, touching nine files. I re-ran the whole
+battery — **313 checks that can fail, and every one passed, with no failures at any point.** That is
+the third full run in a row with nothing red.
+
+**While it ran I looked at your company registry, and there is one date worth putting in your
+calendar.** Of the 29 entries, seven carry an expiry date:
+
+- **Four have already lapsed** — ISO 9001, DUNS, the Saudization certificate and PCI-DSS. None of
+  them is set to appear on documents, so nothing expired is being printed at a client. They are the
+  same four already on the list below.
+- **Three expire soon** — Monshaat in about seven weeks, and **your commercial registration and the
+  Chamber membership on 14 December**.
+
+The CR is the one that matters, because it is the *only* expiring entry marked to appear on
+documents — and since last round it is the number printed at the top of every client PDF. If it is
+not renewed (or the registry not updated) those documents would start carrying an expired
+registration number in December.
+
+The other 22 entries have no expiry recorded at all, including the VAT number, the IATA and MoT
+licences and the bank guarantee. So the renewals picture is only as complete as those seven dates —
+if you want it to be a real radar, those are the gaps to fill.
+
+---
+
 ## Routine fire #225 (2026-09-23 ~13:00 UTC) — the Arabic button said "new job" where it meant "new company"
 
 On the Leads page in Arabic, the main button — the one everyone presses to add a company — read
