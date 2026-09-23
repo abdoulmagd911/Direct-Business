@@ -136,6 +136,40 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #229 (2026-09-23 ~17:00 UTC) — the same fault on the Airlines page, in Arabic only
+
+Having fixed it on Leads and (earlier) on Clients, I went through every remaining clickable column
+in the app. Airlines and Providers are the rest of them — nine columns — and I clicked all nine in
+both languages against your real register of 136 carriers.
+
+**Seven are correct.** One is wrong, in Arabic only: **Authority**. It sorted by the wording stored
+underneath ("Authorized — BSP KSA", "No authority — target" and so on) while the column shows just
+two words. In English that came out right by accident. In Arabic it read **مصرّح (80) then مستهدف
+(56)**, which is the wrong way round — س comes before ص in the alphabet. The grouping was right and
+the order was back to front.
+
+**KSA BSP** had the same fault and got away with it: it sorted by "No"/"Yes" while showing لا/نعم,
+and those two happen to fall in the same order in both languages. It is now keyed off the words on
+screen as well, so it will stay right if either wording ever changes.
+
+Both columns now take their Arabic from the app's own dictionary rather than a second copy kept
+next to the table — a copy that drifts is one of the recurring faults here.
+
+Two more things came out of doing it:
+
+- **A dash is not a value.** Four low-cost carriers have an em dash stored where the BSP stock
+  number goes. My first version of the fix sorted that dash as if it were text, which put those
+  four at the **top** of the column instead of the bottom. Caught by re-measuring before committing;
+  a dash now sorts with the blanks, and there is a check that fails if that ever changes.
+- **Rows that tie now fall into name order.** With 80 carriers all reading "Authorized", they used
+  to come back in whatever order the previous click happened to leave them in.
+
+While measuring I also confirmed the **Providers "Type" column holds 15 different wordings**, not
+the 12 recorded further down this file — worth knowing if you decide to translate them, which is
+still on your list below.
+
+---
+
 ## Routine fire #228 (2026-09-23 ~16:00 UTC) — the Leads table's "Funnel" column sorted by something that isn't on the screen
 
 I clicked every column header on the Leads list against your real 80 leads, in English and in

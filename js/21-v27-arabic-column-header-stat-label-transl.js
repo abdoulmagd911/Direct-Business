@@ -660,6 +660,19 @@
     }catch(e){ if(window.console)console.warn('[v27] ar-translate',e); }
   }
   window.v27ArHeaders=v27ArHeaders;
+  /* 2026-09-23 (fire #229): one word, one owner. This file translates a cell AFTER it is drawn, so
+     a renderer that needs to know what its own cell will SAY — a sorter ordering by what the reader
+     sees (M75) — had no way to ask, and the only alternative was a second copy of these words
+     somewhere else, which is the M38 family of bugs. Same reasoning as __STAGE_AR and
+     __OPS_STAGE_AR above, generalised: ask here, get the word this file will paint. Returns the
+     English unchanged when the page is English, or when the dictionary has never heard of it. */
+  window.v27Word=function(en){
+    try{
+      var k=String(en==null?'':en);
+      if(!(typeof LANG!=='undefined'&&LANG==='ar')) return k;
+      return (V27_AR[k]!==undefined&&V27_AR[k]!=='')?V27_AR[k]:k;
+    }catch(_){ return en; }
+  };
   // ---- Dialogs (2026-09-02, attack round 26): every modal form (Log activity, New request, New
   // business, airline/provider edit, New SOP …) was English in Arabic because this file only ever
   // scanned #view and .top — the dialog overlay lives beside them. Wrap the dialog opener once and

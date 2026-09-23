@@ -72,7 +72,42 @@ function drawSupTable(q){q=(q||"").toLowerCase();const isAir=supKind==="air";con
   const _arSt=(typeof LANG!=='undefined'&&LANG==='ar');
   const _chip=(window.supChip||{})[supKind]||'all';
   let rows=arr.filter(x=>supChipMatch(supKind,x,_chip)).filter(x=>!q||(x.name+" "+(x.code||"")+" "+(x.type||"")+" "+(x.stock||"")+" "+(x.ksa||"")+" "+(x.country||"")+" "+(x.source||"")+" "+(x.alliance||"")+" "+(x.ticketingAuthority||"")).toLowerCase().includes(q));
-  const k=supSort.k,d=supSort.dir;rows=rows.slice().sort((a,b)=>{const va=(a[k]==null?"":a[k]).toString().toLowerCase(),vb=(b[k]==null?"":b[k]).toString().toLowerCase();return va<vb?-1*d:va>vb?1*d:0;});
+  /* 2026-09-23 (fire #229) — M75 on this table, found by clicking every header of Airlines and
+     Providers against the live register in both languages. Two of these columns do not show the
+     value they were being sorted by. AUTHORITY collapses whatever `ticketingAuthority` holds into
+     one of two words, "Authorized" or "Target", and both are translated on screen; KSA BSP shows a
+     Yes/No tag that is translated too. Ordering the raw value therefore ordered the Arabic page by
+     the English word underneath, and live it came out backwards: the column read مصرّح (80) then
+     مستهدف (56), where Arabic puts مستهدف first — س before ص. The grouping was right and the order
+     was wrong, which is exactly what M75 warns grouping alone cannot prove.
+     The key is now the text in the cell, collated in the language being read. The Arabic words come
+     from js/21's own dictionary through v27Word — never a second copy of them here (M38). An empty
+     cell keeps the behaviour it already had, last when the arrow points up; and rows whose key is
+     equal now fall into name order instead of whatever order the previous sort happened to leave,
+     the same tie-break the Leads table has had since 2026-08-16. */
+  const k=supSort.k,d=supSort.dir;
+  const _supLoc=(typeof LANG!=='undefined'&&LANG==='ar')?'ar':'en';
+  const _supWord=(w)=>{ try{ return (typeof window.v27Word==='function'?window.v27Word(w):w)||w; }catch(_){ return w; } };
+  /* A cell holding nothing but a dash means "nothing here" and belongs with the blanks, not among
+     the values. Four carriers store the em dash itself in `stock` rather than leaving it empty
+     (they are low-cost carriers with no BSP stock number), and collation files punctuation BEFORE
+     digits — so without this they would jump from the bottom of the list to the top. */
+  const _supBlank=(s)=>{ const t=String(s==null?'':s).trim(); return (t===''||t==='—'||t==='–'||t==='-')?'':t; };
+  const _supShown=(x,kk)=>{
+    if(kk==='ticketingAuthority'){ const t=_supBlank(x.ticketingAuthority); return t?_supWord(t.indexOf('Authorized')===0?'Authorized':'Target'):''; }
+    if(kk==='ksa'){ const v=_supBlank(x.ksa); return (v==='Yes'||v==='No')?_supWord(v):''; }
+    return _supBlank(x[kk]);
+  };
+  const _supCmp=(va,vb)=>{ try{ return va.localeCompare(vb,_supLoc,{sensitivity:'base',numeric:true}); }
+    catch(_){ const a2=va.toLowerCase(),b2=vb.toLowerCase(); return a2<b2?-1:a2>b2?1:0; } };
+  rows=rows.slice().sort((a,b)=>{
+    const va=_supShown(a,k),vb=_supShown(b,k);
+    if(!va&&vb) return 1*d;
+    if(va&&!vb) return -1*d;
+    const c=(!va&&!vb)?0:_supCmp(va,vb);
+    if(c) return c*d;
+    return _supCmp(String(a.name||''),String(b.name||''));
+  });
   const authTag=x=>{const t=x.ticketingAuthority||'';return t.indexOf('Authorized')===0?'<span class="tag" style="background:#16B36418;color:#16B364">Authorized</span>':t?'<span class="tag" style="background:#F7900918;color:#B54708">Target</span>':'—';};
   /* 2026-09-09 (live test, Airlines truncation): the Void and Refund cells were cut at 24 characters with an ellipsis — the rule now wraps and reads in full */
   tb.innerHTML=rows.map((x,i)=>`<tr style="cursor:pointer" onclick="openSupFn('${supKind}','${x.id}')"><td onclick="event.stopPropagation()"><input type="checkbox" class="supchk" value="${x.id}"></td><td style="color:var(--muted)">${i+1}</td><td><b>${esc(x.name)}</b>${isAir?` <button class="btn ghost sm" style="padding:1px 7px;font-size:10.5px" onclick="event.stopPropagation();airQuickEdit('${x.id}')">Edit</button>`:``}<div style="font-size:11px;color:var(--muted)">${esc(x.country||'')}${x.country&&x.type?' · ':''}${esc(x.type||'')}</div></td>${isAir?`<td><span class="tag seg">${esc(x.code||'—')}</span></td><td style="font-weight:700;font-variant-numeric:tabular-nums">${esc(x.stock||'—')}</td><td>${x.ksa==='Yes'?'<span class="tag" style="background:#16B36418;color:#16B364">Yes</span>':x.ksa==='No'?'<span class="tag" style="background:#9AA1B618;color:#82868B">No</span>':'—'}</td><td>${authTag(x)}</td><td>${ndcBadge(x)}</td><td style="font-size:11px;color:var(--muted);max-width:190px;white-space:normal;line-height:1.35" title="${esc(x.voidRule||"")}">${esc(String(x.voidRule||"-"))}</td><td style="font-size:11px;color:var(--muted);max-width:190px;white-space:normal;line-height:1.35" title="${esc((x.type==="LCC"?x.lccRefundTo:x.refundRule)||"")}">${esc(String((x.type==="LCC"?x.lccRefundTo:x.refundRule)||"-"))}</td>`:`<td><span class="tag seg">${esc(x.type||'—')}</span></td><td>${apiTag(x)}</td><td style="color:var(--muted)">${esc(x.source||'—')}</td><td>${x.portal?'<span class="chiplink">●</span>':'<span class="muted">—</span>'}</td><td style="color:var(--muted)">${(x.contacts||[]).length||0}</td>`}${isAir?``:`<td style="text-align:right"><span class="chiplink">Open ›</span></td>`}</tr>`).join("")||`<tr><td colspan="9" class="empty">${

@@ -2350,6 +2350,31 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M75 addendum — the sweep, 2026-09-23 (fire #229).** With the rule written, every remaining
+clickable column in the app was driven the same way: the **Airlines** and **Providers** tables are
+the rest of them, and two of their columns break the rule. **AUTHORITY** collapses whatever
+`ticketingAuthority` holds into one of two words — "Authorized" or "Target" — and both are
+translated on screen; **KSA BSP** shows a translated Yes / No tag. Ordering the raw value therefore
+ordered the Arabic page by the English word underneath, and live it came out backwards: the column
+read مصرّح (80) then مستهدف (56), where Arabic puts مستهدف first, س before ص. Yes / No survived only
+by luck — لا / نعم happen to fall in the same order as No / Yes. Both now key off the cell text.
+Three things this half added to the rule.
+**A renderer that needs to know what its own cell will say must ASK the dictionary, never keep a
+copy** — js/21 translates a cell after it is drawn, so it now exposes `window.v27Word(en)`
+(alongside the older `__STAGE_AR` / `__OPS_STAGE_AR` exports) and the sorter calls it. A second copy
+of those two words inside the renderer is the M38 family of bugs waiting to happen.
+**A cell holding nothing but a dash belongs with the blanks, not among the values.** Four carriers
+store the em dash itself in `stock` rather than leaving it empty, and collation files punctuation
+BEFORE digits — so the first version of this fix threw them from the bottom of the column to the
+top. Caught by re-measuring, and now a check of its own.
+**And equal keys get a tie-break**, so a column with two values does not leave 80 rows in whatever
+order the previous sort happened to produce; the Leads table has had one since 2026-08-16 and this
+table now does too.
+Measured clean in the same sweep and worth not re-testing: Airline, IATA, Stock, Provider, Type and
+Availability source all show exactly the value they sort by, in both languages.
+Guard: `scripts/qa/probe-the-reference-tables-sort-in-arabic-too.mjs`.
+*Date: 2026-09-23, js/core/core-03-reference-ops.js + js/21-v27-arabic-column-header-stat-label-transl.js. Status: ACTIVE.*
+
 ## Session & GitHub-push access — read before assuming a session can push
 
 **A Claude session that can `git fetch` this repo is not necessarily able to `git push` to
