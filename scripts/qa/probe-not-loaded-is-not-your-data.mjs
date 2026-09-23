@@ -31,12 +31,22 @@
         the fault it guards;
      6. the second brake: a workspace that genuinely has no companies is NOT told its data failed
         to load — the empty list stays empty and quiet;
-     7. nothing is written at any point;
-     8. no JS errors.
+     7. Today stops telling somebody their day is calm when the records behind that verdict did
+        not arrive — fire #236, found by failing the WORKSPACE read instead of the company one;
+     8. the brake for it: on a normal load Today keeps its own verdict word for word;
+     9. it silences the verdict and nothing else — an ordinary sentence beside it survives. Added
+        after a sabotage that silenced every short line on the page passed without it;
+    10. nothing is written at any point;
+    11. no JS errors.
 
    Sabotage-tested against COPIES of the app (APP_DIR — the repository untouched), two real runs:
      · the layer neutered — fails 1, 2, 3 and 4, printing the demo pipeline back on the screen;
-     · the `__bizTableLoaded` test inverted — fails SIX of the eight: it neither catches the real
+     · the Today branch removed — fails 7, the calm verdict back on a page whose records never
+       arrived;
+     · the verdict match widened to every short line — fails 9 only. That sabotage PASSED before
+       check 9 existed, which is why it exists: a fix that empties the page around the thing it
+       was meant to silence would otherwise look identical to a working one;
+     · the `__bizTableLoaded` test inverted — fails SIX of the eight original checks: it neither catches the real
        failure (1-4) nor leaves a healthy page alone (5, 6), and check 6 shows the worst of it, a
        workspace that genuinely has no companies being told its data failed to load.
    Run: node scripts/qa/probe-not-loaded-is-not-your-data.mjs                                      */
@@ -51,7 +61,8 @@ const srv = start(PORT, {});
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 
 /* mode: 'fail' (the read is refused) · 'ok' (a normal load) · 'none' (a real, empty workspace) */
-async function run(lang, mode) {
+async function run(lang, mode, page) {
+  page = page || 'leads';
   const ctx = await b.newContext({ viewport: { width: 1500, height: 1000 }, locale: 'en-GB' });
   await ctx.addInitScript((l) => { try { localStorage.setItem('dbLang', l); } catch (_) {} }, lang);
   const p = await ctx.newPage();
@@ -60,6 +71,8 @@ async function run(lang, mode) {
   await p.route((u) => u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url()); const m = rq.method();
     const isRpc = /\/rpc\//.test(u.pathname);
+    if (mode === 'blobfail' && /app_state/.test(u.pathname)) {
+      await r.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: 'QA forced failure' }) }); return; }
     if (u.pathname === '/rest/v1/businesses' && m === 'GET') {
       if (mode === 'fail') { await r.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ message: 'permission denied for table businesses' }) }); return; }
       if (mode === 'none') { await r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }); return; }
@@ -77,13 +90,38 @@ async function run(lang, mode) {
   await p.route((u) => u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
   await p.route((u) => u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
   await p.route((u) => u.href.includes('fonts.gstatic.com') || u.href.includes('clearbit.com'), (r) => r.abort());
-  await p.goto(BASE + '/leads', { waitUntil: 'domcontentloaded', timeout: 90000 });
+  await p.goto(BASE + '/' + page, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await p.waitForSelector('#cl_email', { timeout: 60000 });
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
   await p.waitForFunction(() => typeof render === 'function', { timeout: 120000 });
   await p.waitForTimeout(9000);
-  await p.evaluate(() => { try { current = 'leads'; openLead = null; render(); } catch (_) {} });
+  await p.evaluate((pg) => { try { current = pg; openLead = null; render(); } catch (_) {} }, page);
   await p.waitForTimeout(3500);
+
+  /* The harness's Today never draws the two verdict lines the live app draws — measured: live they
+     read "Nothing urgent. Today is calm." and "Nothing urgent right now — all clear.", here there
+     are none. A check that never meets its own case is not a check, so the case is made: the exact
+     sentences are put on the page and the layer is asked to run over them again, which is what it
+     does after every render anyway. */
+  if (page === 'today') {
+    await p.evaluate(() => {
+      try {
+        const v = document.getElementById('view'); if (!v) return;
+        const d = document.createElement('p'); d.setAttribute('data-qa236', '1');
+        d.textContent = 'Nothing urgent right now — all clear.';
+        v.appendChild(d);
+        const e = document.createElement('div'); e.setAttribute('data-qa236', '1');
+        e.textContent = 'Nothing urgent. Today is calm.';
+        v.appendChild(e);
+        /* an innocent neighbour: silencing a verdict must not silence the page around it */
+        const k = document.createElement('div'); k.setAttribute('data-qa236-keep', '1');
+        k.textContent = 'QA236 an ordinary sentence that must survive';
+        v.appendChild(k);
+      } catch (_) {}
+    });
+    await p.evaluate(() => { try { window.__v105Run && window.__v105Run(); } catch (_) {} });
+    await p.waitForTimeout(900);
+  }
 
   const seen = await p.evaluate(() => {
     const v = document.getElementById('view');
@@ -93,6 +131,10 @@ async function run(lang, mode) {
       demoOnScreen: /Falcon Conferences|Crestline Minerals|b_mdd/.test(t),
       rows: v ? v.querySelectorAll('table tbody tr').length : -1,
       /* the measurement that decided this was a real defect and not a code reading */
+      calm: ((v && v.innerText) || '').match(/[^\n]*(Today is calm|all clear|اليوم هادئ|على ما يرام)[^\n]*/gi) || [],
+      judged: /cannot be judged|لا يمكن الحكم/i.test((v && v.innerText) || ''),
+      neighbour: (function () { try { const k = document.querySelector('[data-qa236-keep]');
+        return k ? (k.textContent || '').trim() : null; } catch (_) { return null; } })(),
       coveredUp: (function () { try { const ov = document.getElementById('ov');
         if (!ov) return false; const cs = getComputedStyle(ov);
         return cs.display !== 'none' && ov.offsetHeight > 0; } catch (_) { return null; } })() };
@@ -108,9 +150,11 @@ const failEn = await run('en', 'fail');
 const failAr = await run('ar', 'fail');
 const okEn = await run('en', 'ok');
 const noneEn = await run('en', 'none');
+const todayFail = await run('en', 'blobfail', 'today');
+const todayOk = await run('en', 'ok', 'today');
 await b.close(); srv.close?.();
 
-console.log('  four runs: the read refused (EN and AR), a normal load, and a workspace that really is empty');
+
 
 (failEn.seen.probe && failEn.seen.probe.shown === 0 && !failEn.seen.demoOnScreen && failEn.seen.probe.held > 0)
   ? pass('the read is refused: no demo record is shown', 'held ' + failEn.seen.probe.held + ' aside, showing ' + failEn.seen.probe.shown)
@@ -136,11 +180,28 @@ console.log('  four runs: the read refused (EN and AR), a normal load, and a wor
   ? pass('brake: a workspace that really is empty is not told its data failed to load')
   : fail('brake: a workspace that really is empty is not told its data failed to load', JSON.stringify(noneEn.seen.probe));
 
-const wrote = failEn.wrote.concat(failAr.wrote, okEn.wrote, noneEn.wrote).filter((w) => /businesses/.test(w));
+/* fire #236: Today's two verdict lines. They are silenced by the words they say, so this check
+   names them — if the app rephrases one, this goes red instead of the reassurance creeping back. */
+(todayFail.seen.probe && todayFail.seen.probe.banner && todayFail.seen.calm.length === 0 && todayFail.seen.judged)
+  ? pass('Today stops saying the day is calm when the records did not load')
+  : fail('Today stops saying the day is calm when the records did not load', JSON.stringify({ calm: todayFail.seen.calm, judged: todayFail.seen.judged, banner: (todayFail.seen.probe || {}).banner }));
+
+(todayOk.seen.probe && todayOk.seen.probe.banner === false && todayOk.seen.calm.length > 0 && !todayOk.seen.judged)
+  ? pass('brake: on a normal load Today keeps its own verdict, untouched', JSON.stringify(todayOk.seen.calm[0] || '').slice(0, 60))
+  : fail('brake: on a normal load Today keeps its own verdict, untouched', JSON.stringify({ calm: todayOk.seen.calm, banner: (todayOk.seen.probe || {}).banner }));
+
+/* the over-reach brake: sabotage 18 (silence every short line, not just the verdicts) passed
+   without this, which is exactly the kind of fix that quietly empties a page. */
+([todayFail, todayOk].every((r) => r.seen.neighbour === 'QA236 an ordinary sentence that must survive'))
+  ? pass('it silences the verdict and nothing else — an ordinary sentence beside it survives')
+  : fail('it silences the verdict and nothing else — an ordinary sentence beside it survives',
+    JSON.stringify({ whenFailed: todayFail.seen.neighbour, whenOk: todayOk.seen.neighbour }));
+
+const wrote = failEn.wrote.concat(failAr.wrote, okEn.wrote, noneEn.wrote, todayFail.wrote, todayOk.wrote).filter((w) => /businesses/.test(w));
 wrote.length === 0 ? pass('nothing was written at any point')
                    : fail('nothing was written at any point', JSON.stringify(wrote.slice(0, 2)));
 
-const errs = failEn.errors.concat(failAr.errors, okEn.errors, noneEn.errors);
+const errs = failEn.errors.concat(failAr.errors, okEn.errors, noneEn.errors, todayFail.errors, todayOk.errors);
 errs.length === 0 ? pass('no JS errors') : fail('no JS errors', errs.slice(0, 2).join(' | '));
 
 process.exit(bad.length ? 1 : 0);

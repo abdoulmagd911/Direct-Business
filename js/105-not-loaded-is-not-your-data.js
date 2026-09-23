@@ -72,7 +72,7 @@
   function enhance(){try{
     if(window.__isShareView) return;
     if(typeof current==='undefined') return;
-    if(current!=='leads'&&current!=='clients') return;
+    if(current!=='leads'&&current!=='clients'&&current!=='today') return;
     var view=document.getElementById('view'); if(!view) return;
 
     if(loaded()){
@@ -83,8 +83,30 @@
     }
     if(!signedIn()) return;                                  /* still at the sign-in form */
 
+    /* 2026-09-24 (fire #236) — Today has two verdict lines, and with the workspace read failing
+       they both reassured: "Nothing urgent. Today is calm." and "Nothing urgent right now — all
+       clear.", while `__bizTableLoaded` was false. Fire #211 had already made those lines count
+       the RIGHT things (js/14's yourDayLists, M51); what neither of them asks is whether those
+       things are real. That is this flag's whole job, and joining the two is the fix.
+       The banner is the robust half and does not depend on any wording. Silencing the two
+       sentences does — they are found by the words they say, in both languages — so the probe
+       checks for them by name: if the app ever rephrases them, the check goes red rather than the
+       reassurance quietly coming back. */
+    if(current==='today'){
+      try{
+        var calm=/Today is calm|all clear|اليوم هادئ|على ما يرام/i;
+        var said=fl('Today cannot be judged — your records have not loaded.',
+                    'لا يمكن الحكم على اليوم — لم تُحمَّل سجلاتك.');
+        [].slice.call(view.querySelectorAll('p,div,span,h2,h3')).forEach(function(n){
+          try{ if(n.children.length) return; var t=(n.textContent||'').trim();
+            if(t.length<100&&calm.test(t)&&n.getAttribute('data-v105')!=='1'){
+              n.setAttribute('data-v105','1'); n.textContent=said; } }catch(_){}
+        });
+      }catch(_){}
+    }
+
     var list=[]; try{ list=DB.businesses||[]; }catch(_){}
-    if(list.length&&list.every(isSeed)){
+    if(current!=='today'&&list.length&&list.every(isSeed)){
       /* keep them, show none of them — a fictional pipeline is worse than an empty one */
       HELD=list;
       try{ DB.businesses=[]; }catch(_){}
@@ -98,12 +120,20 @@
     d.setAttribute('dir', ar()?'rtl':'ltr');
     d.style.cssText='background:#FDECEB;border:1px solid #F0453A55;border-radius:10px;padding:10px 13px;'+
       'margin:0 0 12px;font-size:12.5px;color:#a4221c;line-height:1.65;text-align:'+(ar()?'right':'left');
-    d.innerHTML='<b>'+fl('Your companies are not loaded — this list is empty for that reason, not because you have none',
-                         'لم تُحمَّل شركاتك — القائمة فارغة لهذا السبب، لا لأنه ليس لديك أي سجل')+'</b><br>'+
-      fl('Until they arrive, nothing is shown here rather than the sample records this app ships with, which are not your data. '+
-         'Reload the page to try again.',
-         'إلى أن تصل، لا يُعرض هنا شيء بدلًا من السجلات التجريبية المرفقة بالتطبيق، وهي ليست بياناتك. '+
-         'أعد تحميل الصفحة للمحاولة مرة أخرى.')+
+    var onToday=(current==='today');
+    d.innerHTML='<b>'+(onToday
+        ? fl('Your records are not loaded — nothing on this page is worked out from your data',
+             'لم تُحمَّل سجلاتك — لا شيء في هذه الصفحة محسوب من بياناتك')
+        : fl('Your companies are not loaded — this list is empty for that reason, not because you have none',
+             'لم تُحمَّل شركاتك — القائمة فارغة لهذا السبب، لا لأنه ليس لديك أي سجل'))+'</b><br>'+
+      (onToday
+        ? fl('Every count and verdict here is computed from records that did not arrive, so none of it describes your day. '+
+             'Reload the page to try again.',
+             'كل عدد وكل حكم هنا محسوب من سجلات لم تصل، فلا شيء منها يصف يومك. أعد تحميل الصفحة للمحاولة مرة أخرى.')
+        : fl('Until they arrive, nothing is shown here rather than the sample records this app ships with, which are not your data. '+
+             'Reload the page to try again.',
+             'إلى أن تصل، لا يُعرض هنا شيء بدلًا من السجلات التجريبية المرفقة بالتطبيق، وهي ليست بياناتك. '+
+             'أعد تحميل الصفحة للمحاولة مرة أخرى.'))+
       (why?('<br><span style="opacity:.85">'+fl('The app reported: ','ما أبلغ عنه التطبيق: ')+
             String(why).replace(/[<>&]/g,'')+'</span>'):'');
     view.insertBefore(d, view.firstChild);

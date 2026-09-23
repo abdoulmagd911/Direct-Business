@@ -2350,7 +2350,8 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
-**M81 — the examples this app ships with are never shown as the company's data.** Found
+**M81 — the examples this app ships with are never shown as the company's data, and no verdict is
+given over records that did not arrive.** Found
 2026-09-24 (fire #235) by failing one request against the real database. With the `businesses` read
 answering 500 — or 403, which is what a permission refusal looks like — the Leads page came up
 reading **"0 New this month · 57 In pipeline · 12% · Became clients · 8 of 65"**: sixty-five
@@ -2377,6 +2378,23 @@ guards stops js/02 ever fetching the role; and `#cl_email` is the wrong test too
 failing page it is still in the document, 43px tall, while the overlay holding it is `display:none`,
 because the app emits that form in two places. What is actually being asked is "is the app on screen
 in front of somebody", so that is what is measured.
+**Extended 2026-09-24 (fire #236), by failing a different read.** With the WORKSPACE read
+(`app_state`) refused instead of the company one, Today came up saying **"Nothing urgent. Today is
+calm."** and, six lines later, **"Nothing urgent right now — all clear."** — while
+`__bizTableLoaded` was false. Fire #211 had already made those two verdicts count the right things
+(js/14's `yourDayLists`, M51); what neither of them asks is whether those things are real. That is
+this flag's whole job, and the two are joined now: on Today the banner appears and both verdicts
+read "Today cannot be judged — your records have not loaded", in both languages.
+The banner does not depend on any wording. **Silencing the two sentences does** — they are found by
+the words they say — so the guard names them: if the app ever rephrases one, the check goes red
+rather than the reassurance quietly coming back.
+And a brake that was missing until a sabotage walked through the gap: **it silences the verdict and
+nothing else.** Widening the match to every short line on the page passed every check that existed
+at the time, which is the shape of a fix that quietly empties the screen it was meant to correct.
+There is a check for it now.
+Measured the same way and found exemplary — recorded so nobody re-tests it: **Finance**. With its
+read refused it prints no figure at all, only *"Could not load: … Nothing was loaded — do not read
+any figure from this page until it loads."* That is the standard the rest of this rule is aiming at.
 Guard: `scripts/qa/probe-not-loaded-is-not-your-data.mjs`.
 *Date: 2026-09-24, js/105-not-loaded-is-not-your-data.js. Status: ACTIVE.*
 

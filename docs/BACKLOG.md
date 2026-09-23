@@ -136,6 +136,37 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #236 (2026-09-24 ~07:00 UTC) — "Today is calm" while the app knew its own data hadn't loaded
+
+Following the same method as last round — break one thing and see what the app claims — I failed the
+request that loads your **workspace** (airlines, procedures, service levels, settings) rather than
+your companies.
+
+The Today screen came up and told you, twice:
+
+> **"Nothing urgent. Today is calm."** … **"Nothing urgent right now — all clear."**
+
+Neither is a judgement about your day. Both were worked out from records that never arrived. The app
+knew — it had already marked internally that the real records were not loaded, and it printed a red
+"Could not load workspace" line at the top — and then reassured you anyway.
+
+An earlier round had already fixed *what* those two lines count. What neither of them asked is
+whether the things being counted are real. Now they do: when your records have not loaded, Today
+says **"Today cannot be judged — your records have not loaded"**, with the same banner and the app's
+own explanation, in both languages. On a normal load nothing changes — both verdicts read exactly as
+before.
+
+**One thing I got wrong and caught:** my first version of the check would have accepted a fix that
+blanked *every* short line on the page, not just those two verdicts. I deliberately built that
+broken version to test my own check, it passed, and I added the missing check. An ordinary sentence
+sitting beside a verdict now has to survive.
+
+**And one page that is already exactly right, so you know it is safe:** the **Finance** page. Fail
+its data and it prints no figure at all — just *"Nothing was loaded — do not read any figure from
+this page until it loads."* That is the standard I am holding the rest of the app to.
+
+---
+
 ## Routine fire #235 (2026-09-24 ~05:00 UTC) — when your companies fail to load, the app was showing you 65 invented ones
 
 This is the most serious thing I have found in this stretch, and it is fixed.
