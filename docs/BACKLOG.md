@@ -170,6 +170,20 @@ September; the rule now says *every* sweep, so that gap can't quietly reopen.
 **Nothing is required from you.** If you ever want it back the way it was, it is one line, written
 down in DECISIONS M87.
 
+**Also settled in this round — the six Generator document tests, and why nobody could say if they
+still pass.** The bulk test list has carried a note for weeks: *"Nobody in this session has ever run
+these; the Generator task should confirm they still pass."* I ran them. Each one passes its
+code-reading checks and then dies waiting for the sign-in form, because the app never boots under
+it: the browser-testing library was updated (it is now 1.55) and it stopped recognising the way
+those six files name the addresses they intercept — a pattern starting `**` with no slash after it.
+So their request for the Supabase library goes to the real internet, hits the sandbox's certificate
+wall, and the sign-in form never appears. Confirmed with a five-second test of the exact pattern:
+`**cdn.jsdelivr.net/**` does not match, `**/cdn.jsdelivr.net/**` does. **The fix is one character in
+each intercept line** across the six files in `scripts/generator-qa/`. I have not made it — that
+folder belongs to the Generator lane, whose session is landing work right now — and I've handed it
+over as a task with the exact cause. Until it's done, those six tests prove only what they can read
+in the code, not what the documents look like.
+
 ---
 
 ## Routine fire #243 (2026-09-24 ~21:00 UTC) — Settings now speaks Arabic all the way down
