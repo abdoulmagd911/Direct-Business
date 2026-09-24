@@ -2364,6 +2364,30 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M85 — an empty mirror page does not say "nothing from Direct" while the ledger holds Direct's
+invoices; it says where they are.** Found 2026-09-24 (fire #242), driven live. The sidebar's
+"Invoices" entry — the obvious name for anyone looking for an invoice — opened on **"Nothing has
+been brought in from Direct yet"** and **"BILLED 0 SAR"**, while two clicks away Finance held the
+**46 invoices captured from the Direct Payments export registry**, over 2 M SAR of revenue. The layer
+printing that line (js/94, from fire #175) even says in its own header that the ledger holds 46
+invoices — and then printed a sentence contradicting it. This is #175's own fault one level up: an
+empty page speaking for a system that is not empty.
+The page now asks the ledger through `finLive()` — the same gate Finance reads through, so the
+number is Finance's own and a soft-deleted invoice is not counted — and answers one of three honest
+ways: the count and a button to Finance when the ledger holds rows; the original line when it is
+empty, because it is then true; and neither claim while the rows are still on their way. The ledger
+is loaded on demand the way the client card (js/38) does it, with a short watch as the fallback for
+the case where a load is already in flight (`finLoad` returns silently then). **Bookings and
+Tickets have no ledger behind them and keep their line** — the change is scoped to the one page
+that has a truer answer available, not sprayed over all three.
+Verified against the live database: the line reads 46, Finance's live count exactly (91 rows,
+45 soft-deleted), in both languages, and the button lands on Finance.
+Guard: `scripts/qa/probe-an-empty-mirror-points-at-the-ledger.mjs` — sabotage-verified twice: the
+ledger not consulted (old sentence back), and the count read from raw rows instead of the live gate
+(five claimed where Finance shows three). `scripts/qa/probe-empty-mirrors-do-not-speak-for-direct.mjs`
+(#175) still holds the rest and stayed green through this change.
+*Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
+
 **M84 — what someone typed into a funnel form can be found by typing it into a search box.**
 Found 2026-09-24 (fire #240) by counting the live database rather than reading the code. The app
 asks each company its funnel's own questions — MoT licence and IATA numbers for a travel-trade

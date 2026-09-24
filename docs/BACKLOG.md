@@ -136,6 +136,31 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #242 (2026-09-24 ~19:00 UTC) — "Invoices" said nothing had come from Direct, while Finance held 46 invoices from Direct
+
+I drove the pages I had not touched this session — Bookings, Tickets, Invoices, Operations,
+Projects — against your real database in both languages. All are honest empty states, no errors,
+nothing printed wrong. One of them, though, was honest about itself and wrong about you.
+
+Click **Invoices** in the sidebar — the obvious place to look for an invoice — and the page opened
+on **"Nothing has been brought in from Direct yet"** above **"BILLED 0 SAR"**. Two clicks away,
+Finance holds **46 invoices captured from Direct Payments**, more than 2 million SAR of revenue.
+A colleague reading that first sentence would reasonably conclude the app has no invoice data. It
+does; it is just on a different page.
+
+The page now says: **"This page holds nothing — the 46 invoices captured from Direct are on the
+Finance page"**, with a button that takes you there. The 46 is Finance's own number, read through
+the same gate Finance uses, so a deleted invoice is never counted here that isn't counted there.
+If the ledger were ever empty, the original sentence comes back — because then it would be true.
+Bookings and Tickets have no ledger behind them, so their wording is unchanged.
+
+Everything else on those five pages is as it should be. Two things I checked and left alone: the
+lock banner on the three Direct-owned pages shows both languages on purpose — you corrected that
+yourself in August, active language first — and the Operations board's dashes sit under a line that
+already explains the zeros.
+
+---
+
 ## Routine fire #241 (2026-09-24 ~17:00 UTC) — I hid a third of your audit log, and the test suite caught me
 
 This one is a correction of my own work, so I want to be plain about it.

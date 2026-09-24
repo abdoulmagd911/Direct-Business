@@ -336,3 +336,4 @@ probe-not-loaded-is-not-your-data
 probe-one-bad-record-costs-one-record
 probe-a-money-gap-is-named-for-what-it-is
 probe-a-funnel-answer-can-be-found
+probe-an-empty-mirror-points-at-the-ledger
