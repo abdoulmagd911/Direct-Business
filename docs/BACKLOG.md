@@ -170,6 +170,19 @@ September; the rule now says *every* sweep, so that gap can't quietly reopen.
 **Nothing is required from you.** If you ever want it back the way it was, it is one line, written
 down in DECISIONS M87.
 
+**Measured while the closing test run was going, and deliberately not acted on** (so the next
+session doesn't re-derive them): every one of the 46 live invoices is linked to a live client, and
+no money sits on a lead; all 45 contacts and 65 activities in the side tables belong to live
+companies and reach the cards through the bridge; the only active account off the sign-up
+allowlist is the test account, by design. Two things worth one line each. `finance_reconciliation_gaps`
+holds 46 rows that nothing in the app reads — a leftover of August's transactions experiment.
+And **one client holds both a tender profile and an ordinary one**; the Finance sector split puts
+its single invoice (33,800 SAR, 1.7% of revenue) under Tenders because that profile happens to sort
+last, not because anyone decided. Which sector a client with both kinds of profile belongs to is
+your call, not a code fix — say the word and it becomes a rule. Three old demo profiles were also
+half-closed on 2 September (closed date set, status still "active"); they resolve to the same
+sector as their live twins, so nothing on screen is wrong today.
+
 **Also settled in this round — the six Generator document tests, and why nobody could say if they
 still pass.** The bulk test list has carried a note for weeks: *"Nobody in this session has ever run
 these; the Generator task should confirm they still pass."* I ran them. Each one passes its
