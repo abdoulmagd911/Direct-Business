@@ -2444,6 +2444,27 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M94 — the signed-in person is called one thing on a screen: every place that writes their name
+asks one helper (`displayName` / `shortName`, js/54) — nickname in the page language, else the
+Arabic name in Arabic, else the full name — and no layer writes that name on its own.** Found
+2026-09-24 (fire #252) by sampling the sidebar footer on the live app in Arabic: it flipped between
+the person's Arabic name and their English legal name three times in five seconds, English 70 % of
+the time. Three layers were taking turns — js/50 swapped the footer to the Arabic name after every
+render, js/12 wrote the legal name back every 1.2 s and js/20 on every render, each "correcting"
+the other. In English the footer read the legal name while the chip beside it read the nickname.
+And js/54, whose one job is the nickname, painted a footer class that does not exist
+(`.sidebar-foot,.side-foot`; the footer is `.side .foot`) and could never match the chip, which
+shows a first word, not the full-name key it swaps on. Ten of the eleven live accounts carry a
+nickname in both languages, four of them two words long ("Abu …"), so the chip showed the first word
+of a legal name for everyone. The same family as M26 and the two-places-for-one-field bug: several
+writers, no owner. Now js/12, js/20 and js/44 write through the helper, js/50 leaves the footer
+alone, the chip shows a nickname whole ("Abu Nasser", not "Abu") and otherwise a first word, and the
+chip's menu head keeps the official full name and e-mail on purpose, as Team & Access does. Guard:
+`scripts/qa/probe-one-person-one-name.mjs` — footer sampled 40 × 100 ms after a render must not
+move; footer and chip must agree in both languages, with and without a nickname on file;
+sabotage-tested twice (js/12 writing the raw name again → the flicker returns; shortName removed →
+the chip falls back to a first word). Status: ACTIVE.
+
 **M93 — every pop-up the app builds of its own takes the keyboard, however small: opening it
 moves the focus in, Escape closes it and puts the focus back on what opened it, and a keyboard
 close is a close, never a press.** Found 2026-09-24 (fire #251) on the top-bar profile menu (js/44:

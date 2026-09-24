@@ -19,11 +19,14 @@
     if(!foot) return;
     var nm=who.name||window.__userName||null;
     if(!nm) return;
+    /* fire #252: the name SHOWN — nickname / Arabic name via displayName() (js/54) — not the raw
+       full name, which fought js/50's Arabic swap and disagreed with the chip (M94) */
+    var shown=(typeof window.displayName==='function')?(window.displayName(nm)||nm):nm;
     var strong=foot.querySelector('b');
     var small=foot.querySelector('span');
     var av=foot.querySelector('.av');
-    if(strong && strong.textContent!==nm) strong.textContent=nm;
-    if(av){ var initial=(nm.trim()[0]||'?').toUpperCase(); if(av.textContent!==initial) av.textContent=initial; }
+    if(strong && strong.textContent!==shown) strong.textContent=shown;
+    if(av){ var initial=(shown.trim()[0]||'?').toUpperCase(); if(av.textContent!==initial) av.textContent=initial; }
     if(small){
       /* Fall back to the role the app already knows. When this layer's own lookup had not
          landed, the label was left as the placeholder text baked into the page — which is how

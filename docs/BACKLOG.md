@@ -136,6 +136,30 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #252 (2026-09-24 ~20:00 UTC) — you are called one name on a screen, and it stops flickering in Arabic
+
+Your name appears twice on every screen: in the sidebar footer at the bottom left and in the chip
+at the top right. I sampled the footer on the live app in Arabic ten times a second: **it flipped
+between the Arabic name and the English legal name three times in five seconds**, showing English
+most of the time. Three separate layers were each "fixing" it back to their own idea of the name.
+In English the footer showed the full legal name while the chip beside it showed the nickname —
+two names for one person. And the nickname feature itself was aiming at a part of the page that
+does not exist, so it never reached the footer, and the chip showed the first word of everyone's
+legal name rather than the nickname (10 of the 11 accounts have one, four of them two words long,
+so "Abu …" became a first name there).
+
+Now one helper decides what a person is called — nickname in the language on screen, else the
+Arabic name in Arabic, else the full name — and every place that writes the signed-in name asks
+it. The footer holds still, footer and chip agree in both languages, a two-word nickname shows
+whole, and the chip's menu still gives the official full name and e-mail underneath, as Team &
+Access does. Verified on the live app against the real database in both languages (50 samples
+each, no movement, nothing written).
+
+The full battery over the previous round's tree came back green (331 of 331; a boot-speed check
+went red under load and green alone).
+
+---
+
 ## Routine fire #251 (2026-09-24 ~18:10 UTC) — the profile menu can now be worked from the keyboard
 
 The little menu behind your name in the top bar — Team, Page access, Sign out — could be opened

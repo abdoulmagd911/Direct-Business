@@ -46,7 +46,10 @@
     var nm=(window.__userName||(typeof meName==='function'&&meName())||'').trim();
     if(!nm)return;
     var arNm=(typeof ownerLabel==='function')?ownerLabel(nm):nm;
-    var shown=fl(nm.split(' ')[0],arNm.split(' ')[0]||arNm);
+    /* fire #252: the chip shows the nickname whole when there is one (js/54's shortName), else the
+       first word — it used to show the first word of the legal name for everyone, so a person the
+       team calls "Abu Nasser" was "Assem" here and the nickname never matched (M94) */
+    var shown=(typeof window.shortName==='function')?(window.shortName(nm)||nm):fl(nm.split(' ')[0],arNm.split(' ')[0]||arNm);
     var chip=document.getElementById('v68me');
     if(!chip){
       chip=document.createElement('button'); chip.id='v68me'; chip.type='button';
@@ -56,7 +59,7 @@
       tools.appendChild(chip);
     }
     var role=myRole(); var roleLbl=role?((fl('x','y')==='y'?ROLE_AR:ROLE_EN)[role]||role):'';
-    chip.innerHTML='<span style="width:26px;height:26px;border-radius:50%;background:#F06820;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">'+esc((arNm.trim()[0]||nm[0]||'?').toUpperCase())+'</span>'+
+    chip.innerHTML='<span style="width:26px;height:26px;border-radius:50%;background:#F06820;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">'+esc((shown.trim()[0]||arNm.trim()[0]||nm[0]||'?').toUpperCase())+'</span>'+
       '<span style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(shown)+'</span>'+
       (roleLbl?'<span style="font-weight:500;color:var(--muted,#6B7480);font-size:11px">· '+esc(roleLbl)+'</span>':'')+
       '<span style="color:var(--muted,#6B7480);font-size:10px">▾</span>';

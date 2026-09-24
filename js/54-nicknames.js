@@ -69,6 +69,32 @@
     }catch(_){ return fullName; }
   };
 
+  /* 2026-09-24 (fire #252) — the ONE name to show for a person, in the page language: their nickname
+     if they have one, else their Arabic name in Arabic (ownerLabel, js/43), else the full name.
+     Found live: the sidebar footer flipped between the Arabic name and the English legal name three
+     times in five seconds — js/50 swapped it to Arabic after every render and js/12 and js/20 wrote
+     the legal name back whenever it differed — and in English the footer read the legal name while
+     the chip beside it read the nickname. Every place that writes the signed-in person's name now
+     asks here, so no two of them can disagree and none of them fights another (M94). */
+  window.displayName=function(fullName){
+    try{
+      var k=String(fullName||'').trim(); if(!k) return fullName;
+      var hit=MAP&&MAP[k]; if(hit){ var n=(isAr()?hit.ar:hit.en); if(n) return n; }
+      if(isAr()&&typeof window.ownerLabel==='function'){ var a=window.ownerLabel(k); if(a) return a; }
+      return k;
+    }catch(_){ return fullName; }
+  };
+  /* the short form for the top-bar chip: a nickname whole (it is already short — "Abu Nasser" is not
+     "Abu"), otherwise the first word of the name shown */
+  window.shortName=function(fullName){
+    try{
+      var k=String(fullName||'').trim(); if(!k) return fullName;
+      var hit=MAP&&MAP[k]; if(hit){ var n=(isAr()?hit.ar:hit.en); if(n) return n; }
+      var base=(isAr()&&typeof window.ownerLabel==='function')?(window.ownerLabel(k)||k):k;
+      return base.split(' ')[0]||base;
+    }catch(_){ return fullName; }
+  };
+
   /* Team & Access shows official names — never rewrite inside it. */
   function inTeamScreen(node){
     try{
@@ -119,7 +145,11 @@
       /* the working area and the top-bar identity chip; the Team screen is filtered out inside */
       var view=document.getElementById('view'); if(view) swapIn(view);
       var chip=document.getElementById('v68me'); if(chip) swapIn(chip);
-      var side=document.querySelector('.sidebar-foot,.side-foot'); if(side) swapIn(side);
+      /* fire #252: this read `.sidebar-foot,.side-foot` for a month — neither class exists; the
+         footer is `.side .foot`, so the nickname never reached it. js/12 and js/20 now write the
+         footer through displayName() above; this pass is the immediate one on the render that
+         first has the map. */
+      var side=document.querySelector('.side .foot'); if(side) swapIn(side);
     }catch(e){ if(window.console) console.warn('[nicknames] paint',e); }
   }
   try{ window.__nickPaint=paint; }catch(_){}

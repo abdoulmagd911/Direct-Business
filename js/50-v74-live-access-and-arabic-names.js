@@ -109,11 +109,10 @@
           if(m[t]){ if(!o.getAttribute('data-en'))o.setAttribute('data-en',t); o.textContent=m[t]; }
         }catch(_){}
       });
-      /* the signed-in person's name in the sidebar footer */
-      try{
-        var foot=document.querySelector('.side .foot b, .foot b');
-        if(foot){ var fn=(foot.textContent||'').trim(); if(m[fn]) foot.textContent=m[fn]; }
-      }catch(_){}
+      /* the signed-in person's name in the sidebar footer — fire #252: no longer written here.
+         js/12 and js/20 write it through displayName() (js/54), which already answers with the
+         Arabic name in Arabic; when this block swapped it too, the three of them took turns and
+         the footer flipped between two names on the live app. One writer per name (M94). */
       /* owner cells in tables */
       document.querySelectorAll('#view td').forEach(function(td){
         try{
