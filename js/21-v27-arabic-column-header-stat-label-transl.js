@@ -563,6 +563,13 @@
     // the ADM-risk distribution, say) is skipped so the pill is never flattened to text
     var fk=scope.querySelectorAll('.fact>.k'),f;
     for(f=0;f<fk.length;f++){ var kl=fk[f]; if(kl.getAttribute('data-v27')||kl.children.length)continue; translateDecorated(kl,V27_AR); }
+    // 2026-09-24 (Build lane sweep, driven live in Arabic): the card's Category row read «الفئة»
+    // over the English "Anchor" — a word this file already carries. Category is a list the app
+    // itself offers (CATEGORIES in core-02), so its value is the app's own vocabulary (M58) and
+    // only THOSE words are translated here; any other .fact value is a person's data and stays.
+    var CATS=(typeof CATEGORIES!=='undefined'&&Array.isArray(CATEGORIES))?CATEGORIES:['Anchor','Convert','Re-engage','Dormant','Vendor','Partner'];
+    var fv=scope.querySelectorAll('.fact>.v'),fvi;
+    for(fvi=0;fvi<fv.length;fvi++){ var vl=fv[fvi]; if(vl.getAttribute('data-v27')||vl.children.length)continue; var vt=(vl.textContent||'').trim(); if(CATS.indexOf(vt)<0||!V27_AR[vt])continue; translateDecorated(vl,V27_AR); }
     // Service Levels legend pills (.bench) — whole-string matches only (2026-09-02, round 20)
     var bn=scope.querySelectorAll('.bench'),bi;
     for(bi=0;bi<bn.length;bi++){ var bp=bn[bi]; if(bp.getAttribute('data-v27')||bp.children.length)continue; translateDecorated(bp,V27_AR); }

@@ -249,6 +249,18 @@
     return n?String(n):'';
   }
   var KNOWN_TABLES={businesses:1,finance_invoices:1,finance_transactions:1,client_profiles:1,contacts:1};
+  /* the audit row's layout: four columns on a desk, one stacked column on a phone. Specificity
+     .act-row.v63-row beats core-06's plain .act-row rule, so the old 90px/110px grid never applies. */
+  (function v63RowCss(){
+    try{
+      if(document.getElementById('v63-row-css'))return;
+      var s=document.createElement('style'); s.id='v63-row-css';
+      s.textContent='.act-row.v63-row{display:grid;grid-template-columns:150px minmax(0,1.1fr) minmax(0,1.4fr) auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line,#EFE9DF);font-size:12.5px}'+
+        '.act-row.v63-row .ts{color:var(--muted);font-size:11.5px}'+
+        '@media(max-width:640px){.act-row.v63-row{grid-template-columns:minmax(0,1fr);gap:3px;padding:10px 0}.act-row.v63-row .ts{white-space:normal}.act-row.v63-row>span:last-child{text-align:start}}';
+      document.head.appendChild(s);
+    }catch(_){}
+  })();
   function histRow(row){
     /* 2026-09-09 (live test, AU4): "Undo" was offered on 18-day-old deletions while the text
        promised 24 hours, and on rows no function can undo (an access log line). A button that
@@ -263,7 +275,13 @@
     else if(undoable) btn='<span data-undo-expired="1" style="font-size:11px;color:var(--muted)" title="'+fl('Undo works for 24 hours after a change; after that an admin restores it in the database.','يعمل التراجع لمدة 24 ساعة بعد التغيير؛ بعدها يستعيده مسؤول من قاعدة البيانات.')+'">'+fl('past the 24-hour undo window','انقضت مهلة التراجع (24 ساعة)')+'</span>';
     else btn='';
     var changed=whatChanged(row), name=recordName(row), cols=columnsChanged(row);
-    return '<div class="act-row" data-hist-id="'+row.id+'" style="display:grid;grid-template-columns:150px minmax(0,1.1fr) minmax(0,1.4fr) auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line,#EFE9DF);font-size:12.5px">'+
+    /* 2026-09-24 (Build lane sweep, phone width): this row was an inline four-column grid —
+       150px + two fractions + the Undo column + three 12px gaps — on every screen. At 400px
+       that leaves each text column a few dozen pixels: on a phone the Activity page and the
+       "Recent changes" card on every company card printed one word per line, overlapping,
+       unreadable in both languages (measured on screen, admin_en_400_activity). The grid now
+       lives in a class (v63RowCss above) and stacks to one column under 640px. M88. */
+    return '<div class="act-row v63-row" data-hist-id="'+row.id+'">'+
       '<span class="ts" style="color:var(--muted);font-size:11.5px">'+esc(fmtWhen(row.at))+'</span>'+
       '<span class="ent"><b>'+esc(tableLabel(row.table_name))+'</b> · '+esc(actionLabel(row.action))+(name?' · <span data-hist-name="1" style="font-weight:700">'+esc(name)+'</span>':'')+'</span>'+
       '<span><span style="font-weight:600">'+esc(actorWord(row.actor_name))+'</span>'+(changed?' <span data-hist-fields="1" style="color:var(--muted)" title="'+esc(cols)+'">— '+esc(changed)+'</span>':'')+'</span>'+
@@ -308,8 +326,14 @@
       return small(fl(n+' of these were refused page visits, not record changes',
                       n+' منها زيارات مرفوضة لصفحات، وليست تغييرات على السجلات'));
     };
-    /* a nought under "Today" must not read as "the log is broken" — say when the last change was */
-    var newest=tms.length?Math.max.apply(null,tms):0;
+    /* a nought under "Today" must not read as "the log is broken" — say when the last change was.
+       2026-09-24 (Build lane sweep, driven live): this took the newest of ALL rows, refusals
+       included, and read "last change 3 days ago" directly above a 7-day tile saying "all 39 were
+       refused page visits — no record changed". The last record anyone changed was fifteen days
+       earlier. M76: a refused page visit is not a change to a record — so the newest is taken over
+       record rows only, and the line says "record change" so it cannot be read as the other thing. */
+    var recTms=rows.filter(function(r){ return !isAccess(r); }).map(function(r){ return new Date(r.at).getTime(); }).filter(function(n){ return n===n; });
+    var newest=recTms.length?Math.max.apply(null,recTms):0;
     /* 2026-09-23 (fire #230) — this line read «\u0642\u0628\u0644 2 \u0623\u064a\u0627\u0645» live. Arabic counts two of anything with a
        DUAL form, not a number and a plural, and past ten it takes the singular accusative. Four
        cases, which is all Arabic needs: yesterday, two days, three-to-ten, eleven and up. */
@@ -323,9 +347,9 @@
     if(!today&&newest){
       try{
         var days=Math.max(1,Math.round((dayStart-new Date(newest).setHours(0,0,0,0))/86400000));
-        quietNote='<div style="font-size:10.5px;font-weight:600;color:#7C8194;margin-top:2px">'+
-          fl('nothing yet today \u2014 last change '+(days===1?'yesterday':(days+' days ago')),
-             '\u0644\u0627 \u0634\u064a\u0621 \u0627\u0644\u064a\u0648\u0645 \u0628\u0639\u062f \u2014 \u0622\u062e\u0631 \u062a\u063a\u064a\u064a\u0631 '+arDaysAgo(days))+'</div>';
+        quietNote='<div data-v63-quiet="'+days+'" style="font-size:10.5px;font-weight:600;color:#7C8194;margin-top:2px">'+
+          fl('nothing yet today \u2014 last record change '+(days===1?'yesterday':(days+' days ago')),
+             '\u0644\u0627 \u0634\u064a\u0621 \u0627\u0644\u064a\u0648\u0645 \u0628\u0639\u062f \u2014 \u0622\u062e\u0631 \u062a\u063a\u064a\u064a\u0631 \u0639\u0644\u0649 \u0633\u062c\u0644 '+arDaysAgo(days))+'</div>';
       }catch(_){}
     }
     /* 2026-09-02 (round 37): the query above asks for the most recent HIST_CAP entries. The

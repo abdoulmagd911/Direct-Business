@@ -40,12 +40,14 @@
 
     function sentence(c) {
       if (ar()) {
-        return c.total + ' سجل مالي محجوب عن هذه الصفحة ولا يدخل في أي رقم أعلاه — '
+        return c.total + ' سجل مالي محجوب عن هذه الصفحة ولا يدخل في أي رقم فيها — '
           + c.withReason + ' منها بسبب مُسجَّل و' + c.without + ' بلا سبب مُسجَّل. '
           + 'ما زالت موجودة في قاعدة البيانات؛ لم يُحذف شيء نهائيًا.';
       }
+      /* 2026-09-24 (Build lane sweep): this sentence said "the figures above" while pass() puts it
+         at the TOP of the page, above every figure it describes. "on this page" is true wherever it sits. */
       return c.total + ' finance records are held back from this page and are in none of the figures '
-        + 'above — ' + c.withReason + ' with a reason recorded and ' + c.without + ' with none. '
+        + 'on this page — ' + c.withReason + ' with a reason recorded and ' + c.without + ' with none. '
         + 'They are still in the database; nothing has been erased.';
     }
 
