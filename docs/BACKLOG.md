@@ -136,6 +136,29 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #249 (2026-09-25 ~05:00 UTC) — every form in the app, opened in Arabic
+
+The last two rounds each found one form that had stayed English — by luck of where I clicked. So
+this time I opened **every form the app has**, sixteen of them, in Arabic against your real data,
+and read the labels. Most were already Arabic. Six were not, and they are now:
+
+- **New project** — the title and its Start / End / Budget labels;
+- the **service-fee offer** — its Validity label and hint;
+- the **three import previews** (booking, ticket, invoice) — Booking ref, Provider / GDS, PNR,
+  Passenger; Subtotal (pre-VAT), VAT rate, Buyer VAT, Line item description — and their hints;
+- the airline editor's GDS label.
+
+The English side reads exactly as before. A few things are left as they are on purpose: brand
+names, codes and format names — WhatsApp, the EMD chip, PDF, PPTX — and the example codes shown
+as hints, which are the same in both languages; the app already had rules saying so, and I
+followed them rather than my first instinct. The booking, invoice and payment forms need a record to open and the pages that
+hold them are empty, so nobody can reach those today.
+
+**Also verified clean this round and recorded:** the log-activity, quick-edit, new-request,
+corporate-profile, client-onboarding, SOP and project-proposal forms were already fully Arabic.
+
+---
+
 ## Routine fire #248 (2026-09-25 ~03:00 UTC) — logging an achievement now lists your whole team, in Arabic
 
 On the Reports page, "Log achievement" is how someone records a win against the objectives. I

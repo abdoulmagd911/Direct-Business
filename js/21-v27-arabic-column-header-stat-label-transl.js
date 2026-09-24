@@ -184,6 +184,18 @@
     'Anchor':'مرتكز','Convert':'للتحويل','Re-engage':'إعادة تفعيل','Dormant':'خامل','Vendor':'مورّد','Partner':'شريك',
     // ---- events filters ----
     'All verticals':'كل القطاعات','Travel':'سفر','Tech':'تقنية','Study':'دراسة',
+    // 2026-09-25 (fire #249): every form the app opens with openModal was driven live in Arabic —
+    // sixteen of them. These are the label and title words this list did not know, so they were the
+    // English left inside #modal: New project, the service-fee generator, the three import previews,
+    // and the airline editor's GDS label. WhatsApp keeps its own name and the provider form's EMD chip
+    // stays a code — both are rules stated further down this file (and fire #64), not omissions.
+    'New project':'مشروع جديد','Start':'البداية','End':'النهاية','Budget (SAR)':'الميزانية (ريال)',
+    'Validity (days)':'الصلاحية (أيام)',
+    'Booking ref':'مرجع الحجز','Provider / GDS':'المورّد / نظام التوزيع (GDS)','PNR':'رقم الحجز (PNR)',
+    'Passenger':'المسافر','Subject / passenger':'الموضوع / المسافر','Class':'الدرجة',
+    'Subtotal (pre-VAT)':'المجموع الفرعي (قبل الضريبة)','VAT rate':'نسبة الضريبة','Buyer VAT (B2B)':'الرقم الضريبي للمشتري (B2B)',
+    'Line item description':'وصف البند',
+    'GDS':'نظام التوزيع (GDS)',
     'Other':'أخرى','All statuses':'كل الحالات','Confirmed':'مؤكدة','Needs check':'بحاجة لتحقق','Stale':'قديمة','No date':'بدون تاريخ',
     'All opportunities':'كل الفرص','Sales prospect':'فرصة مبيعات','Partner / competitor':'شريك / منافس',
     // ---- finance / reports tabs ----
@@ -451,6 +463,12 @@
      value attribute, so their text IS what gets stored — the universal rule in the option pass below.
      Both passes here are whole-string and remember the English for a clean switch back. */
   var PLACEHOLDER_AR={
+    // fire #249 — the example hints on the same forms
+    'e.g. Riyadh Investment Summit':'مثال: قمة الرياض للاستثمار',
+    'Optional context — e.g. excludes peak season':'سياق اختياري — مثال: باستثناء موسم الذروة',
+    'One-paragraph framing of the project':'فقرة واحدة تُؤطّر المشروع',
+    'e.g. 065 (Saudia)':'مثال: 065 (السعودية)','GDS / Hotels / eSIM / Payments':'نظام توزيع / فنادق / eSIM / مدفوعات',
+    'Saudia':'السعودية','Air ticket / hotel / service':'تذكرة طيران / فندق / خدمة',
     'Name':'الاسم','Email':'البريد الإلكتروني','Phone':'الهاتف',
     'Government / Study-abroad school…':'جهة حكومية / معهد دراسة بالخارج…',
     'Flights, Hotels, Visa, Insurance, Intl driving permit…':'طيران، فنادق، تأشيرات، تأمين، رخصة سياقة دولية…',

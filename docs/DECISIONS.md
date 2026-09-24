@@ -2444,6 +2444,36 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M91 — every form the app opens is driven in Arabic, not the ones somebody happened to touch; and a
+word the dialog pass does not know goes into its list, once, for all forms.** Found 2026-09-25
+(fire #249). #243 and #248 each found ONE form that had stayed English inside `#modal`, a round
+apart, by accident of where the sweep happened to click. So this round opened every form the app
+builds with `openModal` — sixteen, live, in Arabic — through their own functions, and read the
+labels. Most were already Arabic: js/21's dialog pass translates a label by its exact text and it
+knew those words. What it did not know was the English left: **New project** (the title and
+START / END / BUDGET), the service-fee generator (VALIDITY), the **three import previews** (BOOKING
+REF, PROVIDER / GDS, PNR, PASSENGER; SUBTOTAL (PRE-VAT), VAT RATE, BUYER VAT, LINE ITEM
+DESCRIPTION), the airline editor's GDS label, and the English example hints on the same forms.
+Booking, invoice and payment forms need a record and the mirror pages hold none, so nobody can
+reach those today.
+The fix went where #243 put the Credit Pool's words — js/21's own `V27_AR` and `PLACEHOLDER_AR` —
+so one file grew instead of five, and the next unknown word has one place to go. **What is not
+translated, on purpose:** brand names, codes and format names. js/21 already states that WhatsApp
+keeps its own name and that the provider form's EMD chip stays a code (fire #64); PDF, PPTX and the
+example codes (RUH-LHR-RUH, Y / J, a VAT-number pattern) are the same in both languages. A first
+version of this round added an Arabic for WhatsApp and one for EMD, and the file's own rules took
+both back out — read the file before adding to it.
+Also learned, again: a `<label>` grep overstates. The SOP editor is full of literal English labels
+in the source and was fully Arabic on screen; the achievement form was not. **Only the live count
+is a finding.** And an instrument note for whoever repeats this: close a form the way a person does
+(Cancel) — emptying `#modal` between forms destroys its shell and every later form reads as
+"could not open" (trap #52).
+Verified live in both languages on the real app.
+Guard: `scripts/qa/probe-every-form-speaks-arabic.mjs` — opens eight forms in Arabic and English;
+two sabotages: the new label words removed (checks 1–4), the new hints removed (check 5 alone).
+The six older modal-Arabic probes stayed green.
+*Date: 2026-09-25, js/21-v27-arabic-column-header-stat-label-transl.js. Status: ACTIVE.*
+
 **M90 — a list of people is the live roster, never a literal; a saved name outlives the roster;
 and a form chooses its words where it is built.** Found 2026-09-25 (fire #248), driven live in
 Arabic: Reports › Achievements › "＋ تسجيل إنجاز" opened a form titled **"Log achievement"** with
