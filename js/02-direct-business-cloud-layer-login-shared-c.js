@@ -194,7 +194,10 @@
     if(r.converted_date&&!o.convertedDate)o.convertedDate=r.converted_date;
     // Last touch: if the raw blob never stored lastContact, take the newest logged activity.
     if(!o.lastContact&&o.activities&&o.activities.length){
-      var _mx=0;o.activities.forEach(function(a){var d=(typeof a.date==='number')?a.date:Date.parse(a.date)||0;if(d>_mx)_mx=d;});
+      /* 2026-09-24 (fire #237): `a` was assumed to be an object. A null inside the array threw
+         here — "Cannot read properties of null (reading 'date')" — and, because this runs inside
+         rows.map(), it took the WHOLE company list down with it. */
+      var _mx=0;o.activities.forEach(function(a){if(!a)return;var d=(typeof a.date==='number')?a.date:Date.parse(a.date)||0;if(d>_mx)_mx=d;});
       if(_mx)o.lastContact=_mx;
     }
     /* Who works it. 2026-09-03 (round 43): this conversion never read assigned_to or
@@ -454,7 +457,20 @@
         var blob=(r.data&&r.data.data)||{};
         try{
           Object.keys(blob).forEach(function(k){ if(k!=='businesses'){ try{ DB[k]=blob[k]; }catch(_){}} });
-          DB.businesses=rows.map(rowToApp);
+          /* 2026-09-24 (fire #237) — this was `rows.map(rowToApp)`, so ONE row the converter could
+             not read threw out of the map and took every other company with it. Measured: five
+             rows came back 200, one carried a null inside its activities array, and the app ended
+             with ZERO companies, `__bizTableLoaded` unset and nothing on screen saying why — the
+             outer try/catch turned it into a console warning nobody sees. 108 real companies would
+             have gone the same way.
+             A row that cannot be read now costs that row. The count is kept so the app can say so
+             rather than quietly showing a shorter list — a silent gap is the thing this codebase
+             keeps paying for. */
+          var _skipped=0;
+          DB.businesses=rows.map(function(r){ try{ return rowToApp(r); }catch(e){ _skipped++;
+            try{ if(window.console&&console.warn) console.warn('[load] a record could not be read and was skipped',e&&e.message); }catch(_){}
+            return null; } }).filter(function(x){ return !!x; });
+          try{ window.__bizSkipped=_skipped; }catch(_){}
           /* 2026-09-09 (live test T5): the one flag that says "these are the real rows". Before this
              point DB.businesses is whatever the page started with, and a card computed from it
              (js/14's Your day: "never contacted") is a not-loaded-yet state shown as a fact. */

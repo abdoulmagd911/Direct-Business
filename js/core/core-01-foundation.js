@@ -524,7 +524,12 @@ function leadStatus(b){return b.status||(b.isClient||b.isVendor?"Won":"To contac
    calendar:'gregory' is now stated on BOTH branches and on the fallback, so no browser setting can
    put a Hijri year on a screen again. */
 function fmtDate(ms){if(!ms)return"—";const _ar=(typeof LANG!=='undefined'&&LANG==='ar');try{return new Date(ms).toLocaleDateString(_ar?'ar':'en-GB',{day:"numeric",month:"short",year:"numeric",calendar:"gregory"});}catch(_){return new Date(ms).toLocaleDateString('en-GB',{day:"numeric",month:"short",year:"numeric",calendar:"gregory"});}}
-function fmtAgo(ms){if(!ms)return"";const _ar=(typeof LANG!=='undefined'&&LANG==='ar');const h=(Date.now()-ms)/3600e3;if(h<1){const m=Math.max(1,Math.round(h*60));return _ar?('قبل '+m+' د'):(m+"m ago");}if(h<24){const hh=Math.round(h);return _ar?('قبل '+hh+' س'):(hh+"h ago");}const d=Math.round(h/24);return _ar?('قبل '+d+' ي'):(d+"d ago");}
+/* 2026-09-24 (fire #237): ms was assumed to be a number. A record carrying anything else — an
+   import writing "soon", a date string that never parsed — made every branch here fall through to
+   Math.round(NaN) and the Leads list read "قبل NaN ي" in Arabic and "NaNd ago" in English. A value
+   that is not a usable instant is not a time ago, so it renders as nothing and the column shows its
+   own dash, which is what "we do not know" already looks like everywhere else. */
+function fmtAgo(ms){if(!ms)return"";var _n=Number(ms);if(!isFinite(_n))return"";ms=_n;const _ar=(typeof LANG!=='undefined'&&LANG==='ar');const h=(Date.now()-ms)/3600e3;if(h<1){const m=Math.max(1,Math.round(h*60));return _ar?('قبل '+m+' د'):(m+"m ago");}if(h<24){const hh=Math.round(h);return _ar?('قبل '+hh+' س'):(hh+"h ago");}const d=Math.round(h/24);return _ar?('قبل '+d+' ي'):(d+"d ago");}
 /* 2026-09-18 (fire #94): same leak as fmtDate above — `[]` means "whatever this laptop is set to",
    so an Arabic-set browser printed "٠٩:٠٥ ص" inside the English app. Named locales now, matching
    js/76 and js/77. */

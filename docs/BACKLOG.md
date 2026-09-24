@@ -136,6 +136,43 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #237 (2026-09-24 ~09:00 UTC) — one bad record could wipe your whole company list
+
+I handed the app five deliberately broken records — the shapes a spreadsheet import or a
+hand-written database edit really produces: a company with no name, a stage that isn't a stage, the
+word "abc" where a credit limit goes, "32/13/2026" as a date, and one record whose history had an
+empty slot in it.
+
+**The app ended up with no companies at all.** Not five, not four — zero. Nothing on screen said
+why; the only trace was a note in the browser's developer console that nobody ever sees. The single
+empty slot in one record's history was enough. **Had that record been one of your 108, you would
+have lost the lot from the screen.**
+
+Fixed three ways:
+
+- The converter no longer trips over an empty slot in a record's history — the specific fault.
+- **A record the app genuinely cannot read now costs that record and nothing else.** The rest load
+  normally.
+- **And the list says so**: "1 record could not be read and is missing from this list. Everything
+  else loaded normally." A quietly shorter list is exactly the kind of thing this app has been
+  bitten by before.
+
+**A second, separate fault fell out of the same test, and it was on screen in both languages.** A
+record with a nonsensical last-contact value made the Leads list print «قبل NaN ي» in Arabic and
+"NaNd ago" in English — literally the letters N-a-N where a number of days should be. It now shows
+the same dash it uses for "we don't know".
+
+I nearly missed the English half: my own check was looking for "NaN" as a separate word, and
+"NaNd ago" runs it together. Widened.
+
+**Four things measured in the same sweep and found already correct**, so you know where the app is
+solid: Finance prints no figure at all when its data fails; documents print "the company details
+come from the registry" rather than an invented CR number; Events says it couldn't *refresh* and
+shows what it already had; and if the app can't read your role it lets you in and retries rather
+than locking you out.
+
+---
+
 ## Routine fire #236 (2026-09-24 ~07:00 UTC) — "Today is calm" while the app knew its own data hadn't loaded
 
 Following the same method as last round — break one thing and see what the app claims — I failed the

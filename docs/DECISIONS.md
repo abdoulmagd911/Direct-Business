@@ -2350,6 +2350,35 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M82 — a record the app cannot read costs that record, not the list; and a shorter list says so.**
+Found 2026-09-24 (fire #237) by handing the app five malformed rows with a 200 — the shapes an
+import or a hand-written SQL update really produces: a null name, a stage that is not a stage, text
+where a number belongs, "32/13/2026" in a date, and **a null inside an activities array**.
+The app ended with **zero companies**. Not five, not four — none. `__bizTableLoaded` was never set
+and nothing on screen said why; the only trace was a console warning nobody reads: *"v32 load merge
+issue TypeError: Cannot read properties of null (reading 'date')"*. `rowToApp` assumed every entry
+in an activities array is an object, the throw escaped `rows.map(rowToApp)`, and the outer try/catch
+swallowed it. **One unreadable row would have taken all 108 real companies with it.**
+Three things were wrong and all three are fixed: the converter no longer assumes an activity is an
+object; the loader maps each row on its own, so a row it cannot read is skipped rather than fatal;
+and a skipped row is **counted and said**, because a quietly shorter list is the fault this codebase
+keeps paying for (M27, M74). The same null also killed a render wrapper in core-02 — two null-unsafe
+copies of the same sort, both guarded now.
+**A second defect fell out of the same run, and it was in both languages**: `fmtAgo` assumed it was
+given a number, so a record carrying "soon" as its last contact made every branch fall through to
+`Math.round(NaN)` and the Leads list read «قبل NaN ي» in Arabic and "NaNd ago" in English. A value
+that is not a usable instant is not a time ago, so it renders as nothing and the column shows its
+own dash. **The English half was nearly missed** because the check looked for NaN with a word
+boundary and "NaNd" has none — the regex is widened, and that is worth remembering for any check
+that hunts for a bad token.
+Recorded from the same sweep, all measured and all honest, so nobody re-tests them: **Finance**
+prints no figure at all when its read fails; **documents** print "the company details come from the
+registry" rather than a CR number when the registry read fails; **Events** says it could not
+*refresh* and shows what it has; and a failed **role** read reveals the app rather than locking
+anyone out, retrying every five seconds — deliberate, and it stays.
+Guard: `scripts/qa/probe-one-bad-record-costs-one-record.mjs`.
+*Date: 2026-09-24, js/02 + js/core/core-01-foundation.js + js/core/core-02-leads.js + js/105. Status: ACTIVE.*
+
 **M81 — the examples this app ships with are never shown as the company's data, and no verdict is
 given over records that did not arrive.** Found
 2026-09-24 (fire #235) by failing one request against the real database. With the `businesses` read

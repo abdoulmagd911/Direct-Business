@@ -79,6 +79,26 @@
       /* the real rows are in — put back anything held and never speak again */
       if(HELD){ HELD=null; }
       var old=view.querySelector('.v105-notloaded'); if(old) old.remove();
+      /* 2026-09-24 (fire #237) — a PARTIAL load is a different thing from a failed one, and it used
+         to be invisible: js/02 now keeps a row the converter cannot read out of the list instead of
+         losing every company with it, and counts them. A shorter list with nothing said is the gap
+         this codebase keeps paying for, so it is said. */
+      try{
+        var sk=Number(window.__bizSkipped||0);
+        var note=view.querySelector('.v105-skipped');
+        if(sk>0&&(current==='leads'||current==='clients')){
+          if(!note){
+            var w=document.createElement('div');
+            w.className='v105-skipped'; w.setAttribute('dir', ar()?'rtl':'ltr');
+            w.style.cssText='background:#FEF3E2;border:1px solid #F4C892;border-radius:10px;padding:9px 12px;'+
+              'margin:0 0 10px;font-size:12.5px;color:#a8650a;line-height:1.6;text-align:'+(ar()?'right':'left');
+            w.textContent=fl(sk+' record'+(sk===1?'':'s')+' could not be read and '+(sk===1?'is':'are')+
+                             ' missing from this list. Everything else loaded normally.',
+                             sk+' من السجلات تعذّرت قراءتها وهي غير موجودة في هذه القائمة. وحُمِّل كل ما عداها بشكل طبيعي.');
+            view.insertBefore(w, view.firstChild);
+          }
+        } else if(note){ note.remove(); }
+      }catch(_){}
       return;
     }
     if(!signedIn()) return;                                  /* still at the sign-in form */
@@ -157,6 +177,9 @@
     return { banner: !!(v&&v.querySelector('.v105-notloaded')),
              text: (v&&v.querySelector('.v105-notloaded'))?(v.querySelector('.v105-notloaded').innerText||'').replace(/\s+/g,' ').trim():null,
              shown: (function(){ try{ return (DB.businesses||[]).length; }catch(_){ return -1; } })(),
+             skipped: (function(){ try{ return Number(window.__bizSkipped||0); }catch(_){ return -1; } })(),
+             skippedNote: (function(){ try{ var v=document.getElementById('view'); var n=v&&v.querySelector('.v105-skipped');
+               return n?(n.textContent||'').trim():null; }catch(_){ return null; } })(),
              held: HELD?HELD.length:0, loaded: loaded() };
   }catch(_){ return null; } }; }catch(_){}
   console.info('%c[v105] not loaded is not your data','color:#D92D20;font-weight:700');
