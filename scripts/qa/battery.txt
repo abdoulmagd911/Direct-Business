@@ -346,3 +346,4 @@ probe-the-profile-menu-takes-the-keyboard
 probe-one-person-one-name
 probe-a-share-link-survives-a-slow-boot
 probe-every-hover-word-speaks-arabic
+probe-every-hint-speaks-arabic

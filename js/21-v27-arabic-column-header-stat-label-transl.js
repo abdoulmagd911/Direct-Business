@@ -514,6 +514,39 @@
   window.v27AttrWord=function(en){ try{ if(!(typeof LANG!=='undefined'&&LANG==='ar')) return en; var k=String(en==null?'':en); var ar=arAttrWord(k); return ar===undefined?k:ar; }catch(_){ return en; } };
   var PLACEHOLDER_AR={
     // fire #249 — the example hints on the same forms
+    /* fire #255 (2026-09-24) — the hints the form sweep (#249) did not reach: the airline and provider
+       editors' rule and source hints, the corporate-deal rows, the offer editor's item and freebie
+       hints and its tier rows, the booking editor's source, the onboarding form's people rows, the
+       team dialog, the lead page's quick note and the Events filter. 22 words; codes and brand
+       names (A320, RUH-LHR-RUH, Y / J, Amadeus / Duffel, Light / Flex / Business, SV-1234567,
+       DIRECT10, SA…, name@directksa.com, a Drive address, "P1 < 1h", "% Δ") stay as they are —
+       they read the same in both languages. */
+    'Same-day before cut-off':'في نفس اليوم قبل الموعد النهائي',
+    'Fare diff + penalty':'فرق السعر + غرامة',
+    'Per fare rules; penalty':'حسب شروط التعرفة؛ غرامة',
+    'Original method / airline wallet':'طريقة الدفع الأصلية / محفظة شركة الطيران',
+    'BSP / card / credit / wallet':'BSP / بطاقة / آجل / محفظة',
+    'GDS / NDC / Direct portal / Aggregator (Travel Fusion)':'GDS / NDC / بوابة مباشرة / مجمّع (Travel Fusion)',
+    'GDS / NDC / OTA / Direct':'GDS / NDC / OTA / مباشر',
+    'Duffel → short-haul EU LCCs':'Duffel → الرحلات القصيرة لشركات الطيران الاقتصادية في أوروبا',
+    'Role':'الدور / المنصب',
+    'Tour/Acct code':'رمز Tour/Acct',
+    'Discount':'الخصم',
+    'Notes (min vol, blackout)':'ملاحظات (الحد الأدنى للحجم، فترات الحظر)',
+    'Markup / fee':'هامش / رسوم',
+    'detail / vendor / pax':'التفاصيل / المورّد / الركاب',
+    'price':'السعر',
+    'e.g. airport transfer / upgrade':'مثال: نقل من المطار / ترقية',
+    'our cost':'تكلفتنا',
+    'from':'من','to':'إلى','threshold':'الحد','suggest…':'اقتراح…',
+    'What happened?':'ماذا حدث؟',
+    'passphrase':'عبارة المرور',
+    'ID number':'رقم الهوية','Passport':'جواز السفر',
+    'Full name':'الاسم الكامل',
+    'Search name, city, venue…':'ابحث بالاسم أو المدينة أو المكان…',
+    'account / deeplink / agreement':'حساب / رابط مباشر / اتفاقية',
+    'version / status / contact':'الإصدار / الحالة / جهة الاتصال',
+    'e.g. Mr. Mohammed Almasar (2 pax)':'مثال: السيد محمد المسار (راكبان)',
     'e.g. Riyadh Investment Summit':'مثال: قمة الرياض للاستثمار',
     'Optional context — e.g. excludes peak season':'سياق اختياري — مثال: باستثناء موسم الذروة',
     'One-paragraph framing of the project':'فقرة واحدة تُؤطّر المشروع',

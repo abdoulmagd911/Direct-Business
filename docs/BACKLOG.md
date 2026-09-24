@@ -136,6 +136,24 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #255 (2026-09-24 ~22:50 UTC) — the example hints inside the boxes speak Arabic on the editors the form sweep missed
+
+The grey example text inside an empty box (a "hint") is translated by the same dictionary as the
+labels, but only for the words it knows. A count of every hint in the app found 50 set in English
+with no entry. Read on the live app in Arabic: the airline editor showed 19 of them ("Same-day
+before cut-off", "Fare diff + penalty", "Per fare rules; penalty", "BSP / card / credit / wallet"
+…), the provider editor 8 ("Role", "Duffel → short-haul EU LCCs" …), the booking editor its source
+hint, and the offer editor its passenger example. About half of the 50 are codes, brand names,
+percentages and dates that read the same in both languages and are left exactly as they are.
+
+The 30 real words are now in the dictionary, so they read Arabic in Arabic and English in English on
+every redraw, with nothing new built. Verified on the live app against the real database, nothing
+written. The onboarding form and team dialog were checked too and show only codes.
+
+The full battery over the previous round's tree was green, 334 of 334 with no red at all.
+
+---
+
 ## Routine fire #254 (2026-09-24 ~22:00 UTC) — the words on hover and for screen readers speak Arabic too
 
 The app translates what you can see, but not the small words that appear when you hover over

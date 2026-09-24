@@ -2581,7 +2581,15 @@ Verified live in both languages on the real app.
 Guard: `scripts/qa/probe-every-form-speaks-arabic.mjs` — opens eight forms in Arabic and English;
 two sabotages: the new label words removed (checks 1–4), the new hints removed (check 5 alone).
 The six older modal-Arabic probes stayed green.
-*Date: 2026-09-25, js/21-v27-arabic-column-header-stat-label-transl.js. Status: ACTIVE.*
+*Date: 2026-09-25, js/21-v27-arabic-column-header-stat-label-transl.js. Status: ACTIVE. *Addendum 2026-09-24 (fire #255):* the same rule reaches the HINTS inside the boxes on the
+editors the sixteen-form sweep did not open. A survey of every placeholder in the layers found 50
+set in English with no dictionary entry; read live in Arabic, the airline editor showed 19 of them,
+the provider editor 8, the offer editor its passenger example. Half are codes and brand names that
+read the same in both languages (A320, RUH-LHR-RUH, Y / J, Amadeus / Duffel, SV-1234567, SA…) and
+stay; the 30 words went into PLACEHOLDER_AR — one dictionary, the existing pass, nothing new.
+Guard: `scripts/qa/probe-every-hint-speaks-arabic.mjs`, which also learned that a dialog read must
+first confirm a NEW dialog opened (an opener that silently does nothing leaves the previous box on
+screen, and its hints read as the new form's).*
 
 **M90 — a list of people is the live roster, never a literal; a saved name outlives the roster;
 and a form chooses its words where it is built.** Found 2026-09-25 (fire #248), driven live in
