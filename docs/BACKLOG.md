@@ -161,6 +161,23 @@ I rewrote my own test to hold the corrected behaviour and wrote down the reasoni
 than just flipping it to agree with the new code — otherwise the next person reads a test that
 looks confident and has no idea it was once wrong.
 
+**Three things I measured in the same round and am deliberately NOT acting on**, recorded so the
+next session doesn't spend a round rediscovering them:
+
+- **The Finance → Transactions tab is empty.** `finance_transactions` holds 33 rows and every one
+  of them was soft-deleted on 2026-08-22 — they came from the old demo world and a one-off
+  promotion. Its search box has a real inconsistency (it doesn't fold Arabic spellings or
+  Arabic-Indic digits the way every other box in the app does), but it is filtering an empty list,
+  so today it costs nobody anything. Worth fixing when that tab carries data, not before.
+- **The SOPs, Service Levels and Providers tables in the database are never read by the app.** Those
+  pages draw from a separate store, so the row counts in the database (12, 14, 23) describe
+  something nobody on the team sees — the SOP page, for instance, shows 22 procedures. Same shape as
+  the Airlines page, which already says "showing 136 of 139" on screen. Nothing is broken; it is a
+  trap for anyone who reads those counts and believes them.
+- **The SOP procedures have no Arabic at all** — not a missing translation in the app, but no Arabic
+  text in the data. The page furniture and the editor are fully translated; the twelve procedures
+  themselves are English only. That is a content decision for you, not a bug.
+
 ---
 
 ## Routine fire #240 (2026-09-24 ~15:00 UTC) — what your team typed into a funnel form could not be searched for
