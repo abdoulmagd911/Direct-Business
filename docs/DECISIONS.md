@@ -2444,6 +2444,34 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M92 — a list of people that could not be loaded says so in the list; a list that is simply not
+there stays quiet; and "failed" is retried before it is announced.** Found 2026-09-25 (fire
+#250) by refusing the roster read (`team_directory`, a 500) on the live app. The lead editor's
+"Assigned to" then offered the four names hard-coded a year ago plus "Unassigned" as if they were
+the team; the achievement form (M90) offered the same; and nothing on screen said the team list
+had not loaded. js/33 ended on the first error reply — `_done`, keep the fallback, say nothing.
+The consequence is CLAUDE.md's own warning made real: a lead assigned to a stale name drops out of
+its real owner's "Mine" and nothing says why. The quietly-wrong-list family (M27, M74), one level
+below the screen: the list itself was wrong and looked fine.
+Three answers the roster can give are told apart now. **Failed** — an error reply or a network
+failure — is retried by the interval js/33 already had (ten tries), and if it stays failed it is
+recorded (`__TEAM_FAIL`) and **every people list puts a disabled first option in the page language:
+"⚠ The team list did not load — these names may be out of date."** A notice in the list, not a
+name: it cannot be chosen. **Absent** — a "relation does not exist" reply, or 200 with nothing,
+which is what the harness answers for a view it does not hold — keeps today's silent fallback, so
+the mock and every older probe are untouched; that brake is checked, because a warning that fires
+whenever the roster is merely missing would be furniture in every test and noise for nobody.
+**Loaded** — rows — clears the record and re-renders, so a roster that fails twice and then answers
+loses the warning on its own. One state function, `teamRosterState()` (loaded | failed | loading),
+and one option builder, `teamRosterWarnOption()`, live in js/33 beside the roster; core-02's
+`#f_assign` and core-10's three member lists (`rptRosterWarn`) prepend it. Found in the same drive
+and fixed in the same commit: that dropdown's "— Unassigned —" placeholder was English in Arabic.
+Guard: `scripts/qa/probe-a-failed-roster-says-so.mjs` — five runs (refused in both languages,
+served, absent, refused twice then served); two sabotages: the failure never recorded (checks 1–4,
+7), absent treated as failed (check 6 alone).
+*Date: 2026-09-25, js/33-v56-ownership-real-users-own-leads-clients.js, js/core/core-02-leads.js,
+js/core/core-10-v29-reports.js. Status: ACTIVE.*
+
 **M91 — every form the app opens is driven in Arabic, not the ones somebody happened to touch; and a
 word the dialog pass does not know goes into its list, once, for all forms.** Found 2026-09-25
 (fire #249). #243 and #248 each found ONE form that had stayed English inside `#modal`, a round

@@ -341,3 +341,4 @@ probe-settings-speaks-arabic-all-the-way-down
 probe-a-sector-chip-says-what-it-scoped
 probe-an-achievement-names-a-real-colleague
 probe-every-form-speaks-arabic
+probe-a-failed-roster-says-so

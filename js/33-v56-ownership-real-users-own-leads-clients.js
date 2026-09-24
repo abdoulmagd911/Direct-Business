@@ -40,15 +40,34 @@
     c.auth.getSession().then(function(s){
       var u=s&&s.data&&s.data.session&&s.data.session.user; if(!u){ return; }
       c.from('team_directory').select('id,email,full_name,role,active').then(function(r){
-        if(r.error||!Array.isArray(r.data)){ _done=true; return; }  // no view (e.g. harness) → keep fallback
+        /* 2026-09-25 (fire #250): an ERROR reply used to end here — _done, keep the fallback, say
+           nothing — so a transient failure left every people list offering the year-old names as if
+           current, and a lead assigned to one of them dropped out of its owner's "Mine" with nothing
+           on screen. Three answers are told apart now: a view that is not there (the harness answers
+           an unknown table with [], production would say 42P01 / PGRST) keeps today's silent
+           fallback; a FAILED read is retried by the interval below and, if it stays failed,
+           recorded in __TEAM_FAIL so the dropdown builders can say so; rows clear it. */
+        if(r.error){
+          var msg=String((r.error&&(r.error.message||r.error.code))||'');
+          if(/42P01|PGRST2|does not exist|not found|schema cache/i.test(msg)){ _done=true; window.__TEAM_FAIL=null; return; }  // absent → silent, as before
+          window.__TEAM_FAIL=msg||'roster read failed';                                                          // failed → retry, then say so
+          return;
+        }
+        if(!Array.isArray(r.data)){ _done=true; return; }
+        window.__TEAM_FAIL=null;
         var seen={}, names=[];
         r.data.forEach(function(x){ if(x.active===false) return; var n=String(x.full_name||'').trim()|| String(x.email||'').split('@')[0]; if(n && !seen[n]){ seen[n]=1; names.push(n); } });
         window.__TEAMU=r.data;
         if(names.length){ window.__TEAM=names.sort(function(a,b){return a.localeCompare(b);}); _done=true; if(typeof render==='function') render(); }
-      }).catch(function(){});
+      }).catch(function(e){ window.__TEAM_FAIL=String((e&&e.message)||'roster read failed'); });   // network → failed
     }).catch(function(){});
   }
-  var _iv=setInterval(function(){ if(_done||_tries>=10){ clearInterval(_iv); return; } loadTeam(); }, 1500);
+  /* loaded | failed | loading — what a people list should say about itself (fire #250) */
+  window.teamRosterState=function(){ try{ if(window.__TEAM&&window.__TEAM.length) return 'loaded'; if(window.__TEAM_FAIL&&(_done||_tries>=10)) return 'failed'; if(window.__TEAM_FAIL) return 'failing'; return 'loading'; }catch(_){ return 'loading'; } };
+  /* the words the dropdown builders prepend, as one disabled option, while the roster is failed */
+  window.teamRosterWarnOption=function(){ try{ if(window.teamRosterState()!=='failed') return ''; var ar=(typeof LANG!=='undefined'&&LANG==='ar');
+    return '<option value="" disabled data-roster-warn="1">'+(ar?'\u26a0 لم تُحمَّل قائمة الفريق — قد تكون هذه الأسماء قديمة':'\u26a0 The team list did not load \u2014 these names may be out of date')+'</option>'; }catch(_){ return ''; } };
+  var _iv=setInterval(function(){ if(_done||_tries>=10){ clearInterval(_iv); if(!_done&&window.__TEAM_FAIL){ _done=true; try{ if(typeof render==='function') render(); }catch(_){} } return; } loadTeam(); }, 1500);
   setTimeout(loadTeam, 700);
   console.info('%c[v56] ownership (real team + Mine) loaded','color:#FF6B00;font-weight:700');
 }catch(e){if(window.console)console.warn('[v56] init',e);}})();

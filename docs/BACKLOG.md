@@ -136,6 +136,27 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #250 (2026-09-25 ~08:00 UTC) — if the team list can't be loaded, the app now says so instead of offering an old one
+
+I made the app's read of your team roster fail on purpose — the kind of thing a bad connection
+does for a few seconds — and opened a lead. The **"Assigned to"** list offered four names typed
+into the code a year ago, plus "Unassigned", as if they were the team. The achievement form did
+the same. **Nothing on screen said the team list hadn't loaded.** Whoever picked one of those
+names would have assigned the lead to someone who isn't on the roster, and it would have vanished
+from its real owner's "Mine" with no explanation — the exact trap your notes already warn about.
+
+Now the app tells the difference between three situations. If the roster read **fails**, it retries
+for about fifteen seconds and then puts a line at the top of every people list — **"⚠ The team list
+did not load — these names may be out of date"** — that can't be selected, in Arabic in Arabic. If
+the roster is simply **not there** (the case for the test rig), it stays quiet as before. If it
+**loads**, any earlier warning disappears by itself. Verified on the live app in both languages
+with the failure injected, and with the roster answering again afterwards.
+
+One small thing fixed in passing: the "— Unassigned —" line at the top of that dropdown was
+English in Arabic.
+
+---
+
 ## Routine fire #249 (2026-09-25 ~05:00 UTC) — every form in the app, opened in Arabic
 
 The last two rounds each found one form that had stayed English — by luck of where I clicked. So
