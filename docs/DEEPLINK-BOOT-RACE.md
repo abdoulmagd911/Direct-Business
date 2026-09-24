@@ -120,3 +120,18 @@ sign-in, so **any** deep link — `/finance`, `/clients/lead/<id>` — is briefl
 most pages recover; only a *sub-address* a later module has to read (the `/documents/<tab>`
 suffix, which `buildPath()` does not reconstruct) is actually lost. Worth a look when someone
 is next in js/03: parking the URL before the user is signed in buys nothing.
+
+## Addendum, 24 Sep 2026 (fire #253) — two more readers, and the share address itself
+
+The same timer found two more scripts reading `location.pathname` for themselves: **js/10**, which
+decides from it whether the page is a view-only share view at all, and **js/79**, which tidies that
+guest view. With js/10's response held back 1.5 s the visitor lands at /today with the sign-in form;
+with js/79's held back, Finance is back in the sidebar and the footer names a colleague. This is the
+slow-phone case for the one link that is opened on a phone. And the rewrite itself threw the share
+token away, so a refresh of a working share view landed on the sign-in form at any speed.
+
+Fixed the other way round from round 58: **js/03 no longer rewrites the address of a share view at
+all** (`IS_SHARE`, read from the boot address it captured itself), which closes the race for every
+later script and keeps the token for a refresh; js/10 and js/79 read `__bootPath` first as the second
+line. Guarded by `scripts/qa/probe-a-share-link-survives-a-slow-boot.mjs` (port 9297), which forces
+the losing order by holding each response back, exactly as this note prescribes. Rule: DECISIONS M95.
