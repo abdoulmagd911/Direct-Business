@@ -162,6 +162,17 @@ there because its client's profile says tender, not by guesswork. Also, all five
 invoices are recorded with zero cost, so "100% of that profit" is the cost gap you already know about,
 wearing a sector label.
 
+**Two more Finance surfaces measured against the database afterwards, both right:** the plan-vs-actual
+card shows your 2026 target correctly — 13.5 M expected, 11.45 M confirmed, **15% achieved** — on the
+default "All years" view as well as on 2026, and the Clients & collections tab's "all 15 clients" is
+exact: your 18 invoice groups collapse onto 15 companies through the alias groups you set, with none
+unlinked. (The 28 on the Clients page are client *records*; 15 is how many have paid invoices — the
+tab's wording could say so, but it is not wrong.) **One line for you:** `finance_targets` holds a
+second row for the year **1999** with 1 SAR expected and 1 SAR confirmed, no note, no author, written
+48 seconds after the real 2026 row on 13 August — a test row. Nothing on screen reads it, because the
+year list comes from your invoices. Say the word and I delete it; I won't remove a row from a money
+table on my own.
+
 ---
 
 ## Routine fire #244 (2026-09-24 ~22:30 UTC) — your audit log could be read without signing in; closed
