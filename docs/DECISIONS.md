@@ -2364,6 +2364,33 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M87 — a read policy granted to `public` is a door open to nobody-signed-in, whether or not row-level
+security is "on"; and the by-hand surface check is run every sweep, not when someone remembers.**
+Found 2026-09-24 (fire #244) by running `check-public-surface` — the first time this session,
+and the first time since 2026-09-20 — which is itself the finding behind the finding. `record_history`,
+the audit log, had row-level security enabled and looked closed; its one read policy,
+`record_history_read`, was `SELECT for public`, and `public` includes `anon`. So every non-finance
+history row — before/after snapshots of real company records, contacts, client profiles, and the
+names of who changed them — answered to anyone holding the app's publishable key, which is printed
+in the page. Supabase's own advisor did **not** flag it: its lint looks for RLS off or RLS on with no
+policy, and this was RLS on with a policy that admitted everyone. Only the surface check, which asks
+the question as an outsider would, saw it. That is the point of M23, and the reason this rule adds
+the word *every*.
+The fix was one reversible statement: the same policy `to authenticated`. It could not break a
+thing, and that was verified before it ran rather than hoped: every writer to the table — the
+`record_history_write` trigger, `log_page_denied`, `undo_change` — is `SECURITY DEFINER`, so a read
+policy cannot touch a write; every reader in the app is a signed-in user; the share view reads
+through a definer function that RLS does not bind. After it ran: the surface check is green, and
+the signed-in Activity page loaded its full log live — 394 events, tiles intact.
+**Two lessons, one per half of the title.** First: "RLS enabled" is not "closed"; read the policy's
+roles. `to public` on a table the app only ever reads signed-in is a mistake in the role, not the
+predicate. Second: the by-hand checks in M23 have no battery to carry them, so a sweep that skips
+them has not swept — `check-live-matches-repo`, `check-public-surface` and `check-live-data-shapes`
+are run and their result logged, each sweep, or the sweep says it did not.
+Undo, if ever needed: `alter policy record_history_read on public.record_history to public;`
+Guard: `scripts/qa/check-public-surface.mjs` (by hand), which named the table and now passes.
+*Date: 2026-09-24, database policy `record_history_read`. Status: ACTIVE.*
+
 **M86 — a sentence that carries a number cannot be translated by a word list; choose the words where
 the sentence is built. And a display translation never reaches an editor.** Found 2026-09-24 (fire
 #243), driven live through every Settings sub-page in Arabic. Two surfaces were half done. The

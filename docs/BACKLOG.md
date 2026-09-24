@@ -136,6 +136,40 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #244 (2026-09-24 ~22:30 UTC) — your audit log could be read without signing in; closed
+
+Your standing rules say to run the by-hand outsider check during every sweep. I ran it — the first
+time this session — and it found one thing: **`record_history`, the Activity & Audit log, answered
+to anyone with no sign-in.** Row-level security was switched on, so it looked closed, but its one
+read rule was granted to *everyone* rather than to signed-in users. That meant the before/after
+snapshots of real company records, contacts and client profiles, and the names of who changed them,
+were readable by anyone holding the app's public key — which is printed in the page itself.
+
+Supabase's own security advisor did not flag it, because it looks for protection that is off or
+missing, and this was protection that was on and let everyone through. Only the outsider check saw
+it. This is exactly the class of thing you asked me to fix rather than raise (your rule 5's
+carve-out is about breaking the app or locking the team out — and the danger with a change like
+this is precisely locking the team out of the audit page), so I checked that first:
+
+- every writer to that log runs with the database's own authority, not the user's — a read rule
+  cannot affect them;
+- every reader in the app is a signed-in user;
+- share links read through a function the rule doesn't bind.
+
+Then I changed the rule to signed-in users only — one reversible line — and verified both sides:
+the outsider check is green, and the Activity page, signed in, still loads its full log live (394
+events, every tile and the refused-visit badge intact).
+
+**Two honest notes.** The log has grown from 378 to 394 since it was last counted, and 16 of the new
+rows are refused page visits written by my own live checks today — the test account being turned
+away from pages as I swept. They're mine, not a person's. And the outsider check had not been run
+since 20 September; the rule now says *every* sweep, so that gap can't quietly reopen.
+
+**Nothing is required from you.** If you ever want it back the way it was, it is one line, written
+down in DECISIONS M87.
+
+---
+
 ## Routine fire #243 (2026-09-24 ~21:00 UTC) — Settings now speaks Arabic all the way down
 
 I opened every Settings sub-page in Arabic against your real database: Team & Access, Connections,
