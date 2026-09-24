@@ -136,6 +136,41 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #238 (2026-09-24 ~11:00 UTC) — the money page explained a real contradiction away as rounding
+
+I fed the Finance page deliberately broken invoice rows — empty money columns, the word "abc" where
+a cost goes, a negative pair, an unreadable date, and one row whose stored profit simply doesn't
+equal its revenue minus its cost.
+
+The page said:
+
+> **"Each figure above is rounded on its own, so -2,100 minus -7,700 reads as 5,600 where Profit
+> reads 5,799."**
+
+That is a **199-riyal contradiction** being explained as a rounding quirk — on the one screen where
+your rule is that cost, profit and revenue must always be clean. The sentence itself was written for
+a real and useful purpose: rounding genuinely can make three correct figures look a riyal apart. But
+it was being used for any mismatch at all, however large.
+
+Now the page tells the two apart. A gap under a riyal still gets the rounding explanation. Anything
+bigger reads: **"The profit shown does not equal revenue minus cost — a gap of 199 SAR, from 1 row
+whose stored figures disagree. This is not rounding; the stored numbers themselves do not
+reconcile."**
+
+**Second fault from the same test:** the header read **"data through 32/13/2026"** — it was taking
+whichever date sorted highest as your data cutoff, so one nonsense date won. It now only considers
+dates it can actually read.
+
+**Neither is happening to you today** — your database refuses to store an invoice whose figures
+don't reconcile, and I re-checked all 46 — so this is the money page refusing to mislead you on the
+day something slips through, not a fire being put out.
+
+**Three things the page already did right**, confirmed in the same run: a row with text where a
+number belongs is counted as zero *and says so* ("Check the import"); nothing anywhere prints NaN or
+a broken date; and no VAT figure appears on the money screen at all.
+
+---
+
 ## Routine fire #237 (2026-09-24 ~09:00 UTC) — one bad record could wipe your whole company list
 
 I handed the app five deliberately broken records — the shapes a spreadsheet import or a

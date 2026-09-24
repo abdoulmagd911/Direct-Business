@@ -803,7 +803,15 @@ function finTabs(){
   if(finCanWrite())tabs.push(['import',isArF()?'\u0627\u0633\u062a\u064a\u0631\u0627\u062f':'Import']);
   return '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'+tabs.map(function(t){
     return '<button class="btn sm '+(FIN.tab===t[0]?'pri':'ghost')+'" onclick="finGo(\''+t[0]+'\')">'+t[1]+'</button>';
-  }).join('')+'<span style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">'+(FIN.rows?(function(){var _ic=new Set(live().map(function(r){return r.invoice_no;})).size;var _d=(live().length?live().map(function(r){return r.invoice_date;}).sort().slice(-1)[0]:'\u2014');return isArF()?(_ic+' \u0641\u0627\u062a\u0648\u0631\u0629 \u00b7 \u062d\u062a\u0649 '+_d):(_ic+' invoices \u00b7 data through '+_d);})():'')+'</span></div>';
+  }).join('')+'<span style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">'+(FIN.rows?(function(){var _ic=new Set(live().map(function(r){return r.invoice_no;})).size;/* 2026-09-24 (fire #238): this took the LAST value after a plain string sort, so one unreadable
+     date won — a row carrying "32/13/2026" made the header claim "data through 32/13/2026", a
+     cutoff the data never had. Only dates the app can actually read are considered now, and if
+     none can be read the header says so rather than quoting a value it cannot parse. */
+    var _d=(function(){ try{
+      var ok=live().map(function(r){ return String(r.invoice_date||''); })
+        .filter(function(v){ return /^\d{4}-\d{2}-\d{2}/.test(v)&&!isNaN(Date.parse(v)); }).sort();
+      return ok.length?ok[ok.length-1]:'\u2014';
+    }catch(_){ return '\u2014'; } })();return isArF()?(_ic+' \u0641\u0627\u062a\u0648\u0631\u0629 \u00b7 \u062d\u062a\u0649 '+_d):(_ic+' invoices \u00b7 data through '+_d);})():'')+'</span></div>';
 }
 /* Freeze found 2026-08-22 (owner reproduced twice): switching a Finance tab called the
    GLOBAL render() — buildNav(), applyLang(), renderTopExtras(), and (since 'finance' isn't a
@@ -1128,9 +1136,32 @@ function rOverview(){
      and Profit 1,798.50 print as 3,000 − 1,202 = 1,798 beside a Profit of 1,799. It does not
      happen for most figures — round(a)−round(b) and round(a−b) usually agree — which is exactly
      why it needs saying when it does rather than being left for someone to hit alone. */
+  /* 2026-09-24 (fire #238) — this note was written for ROUNDING and said so unconditionally, but it
+     fires on ANY disagreement. Driven with a row whose stored profit does not equal its revenue
+     minus its cost, the money screen read "-2,100 minus -7,700 reads as 5,600 where Profit reads
+     5,799" under the words "Each figure above is rounded on its own": a 199-riyal contradiction
+     explained away as a display artifact, on the one page where M1 says the three figures must
+     always be clean. Rounding can move each figure by less than half a riyal and no more, so a gap
+     that large is not rounding — it is the stored numbers disagreeing, and it is named as that,
+     with the count of rows it comes from. (The database trigger keeps every live row honest today,
+     and all 46 were re-checked; this is the page refusing to mislabel the day that changes.) */
   (function(){
     var _pr=finPrintedValue(rev), _pc=finPrintedValue(cost), _pp=finPrintedValue(prof);
     if(_pr-_pc===_pp)return;
+    var _exactGap=(Number(rev)||0)-(Number(cost)||0)-(Number(prof)||0);
+    if(Math.abs(_exactGap)>=1){
+      var _off=0;
+      try{ _off=live().filter(finInPeriod).filter(function(r){
+        var rr=Number(r.revenue_sar)||0, cc=Number(r.cost_sar)||0, pp=Number(r.profit_sar)||0;
+        return Math.abs(rr-cc-pp)>=0.005; }).length; }catch(_){ _off=0; }
+      h+='<div id="ov-mismatch" style="font-size:12px;color:#B54708;font-weight:600;margin:-6px 0 14px">⚠ '+(isArF()
+        ?('الربح المعروض لا يساوي الإيراد ناقص التكلفة — الفارق '+money0(Math.abs(_exactGap))+' ريال'+
+          (_off?(' من '+_off+' صف/صفوف مخزّنة بأرقام غير متسقة'):'')+'. هذا ليس تقريبًا؛ الأرقام المخزّنة نفسها غير متسقة.')
+        :('The profit shown does not equal revenue minus cost — a gap of '+money0(Math.abs(_exactGap))+' SAR'+
+          (_off?(', from '+_off+' row'+(_off>1?'s':'')+' whose stored figures disagree'):'')+
+          '. This is not rounding; the stored numbers themselves do not reconcile.'))+'</div>';
+      return;
+    }
     h+='<div id="ov-rounding" style="font-size:12px;color:#444;margin:-6px 0 14px">'+(isArF()
       ?('\u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0623\u0639\u0644\u0627\u0647 \u0645\u064f\u0642\u0631\u064e\u0651\u0628 \u0643\u0644 \u0645\u0646\u0647\u0627 \u0639\u0644\u0649 \u062d\u062f\u0629\u060c \u0644\u0630\u0627 \u0641\u0625\u0646 '+money0(_pr)+' \u0646\u0627\u0642\u0635 '+money0(_pc)+' \u062a\u0639\u0637\u064a '+money0(_pr-_pc)+' \u0628\u064a\u0646\u0645\u0627 \u064a\u0638\u0647\u0631 \u0627\u0644\u0631\u0628\u062d '+money0(_pp)+'. \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0627\u0644\u062f\u0642\u064a\u0642\u0629: \u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a '+(Number(rev)||0).toFixed(2)+' \u0631\u064a\u0627\u0644\u060c \u0627\u0644\u062a\u0643\u0644\u0641\u0629 '+(Number(cost)||0).toFixed(2)+' \u0631\u064a\u0627\u0644\u060c \u0627\u0644\u0631\u0628\u062d '+(Number(prof)||0).toFixed(2)+' \u0631\u064a\u0627\u0644.')
       :('Each figure above is rounded on its own, so '+money0(_pr)+' minus '+money0(_pc)+' reads as '+money0(_pr-_pc)+' where Profit reads '+money0(_pp)+'. Exactly: revenue '+(Number(rev)||0).toFixed(2)+' SAR, cost '+(Number(cost)||0).toFixed(2)+' SAR, profit '+(Number(prof)||0).toFixed(2)+' SAR.'))+'</div>';

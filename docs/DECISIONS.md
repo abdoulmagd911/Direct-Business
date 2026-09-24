@@ -2350,6 +2350,29 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M83 — a gap between the money figures is named for what it is, and the page never quotes a date
+it cannot read.** Found 2026-09-24 (fire #238) by handing Finance malformed rows with a 200.
+The money screen read: *"Each figure above is rounded on its own, so -2,100 minus -7,700 reads as
+5,600 where Profit reads 5,799."* A **199-riyal** contradiction explained as a display artifact, on
+the one page where M1 says cost, profit and revenue must always be clean. The note was written for
+rounding — which can move each figure by less than half a riyal and no more — but fired on any
+mismatch. A gap of a riyal or more is now named as what it is: the stored numbers disagreeing, with
+its size and the count of rows it comes from. **A genuine rounding gap still gets the rounding
+sentence**, which is true and useful, and that brake is checked — a reworded warning that swallowed
+the real case would be no better than the original.
+The same run had the header claim **"data through 32/13/2026"**: the cutoff was the last value after
+a plain string sort, so one unreadable date won and the page announced a cutoff the data never had.
+Only dates the app can actually parse are considered now.
+**Neither fault is biting today** — the database trigger keeps every live row honest and all 46 were
+re-counted — and that is said plainly rather than dressed up. This is the money page refusing to
+mislabel the day that changes.
+Measured in the same sweep and already right, so nobody re-tests them: a row carrying text where a
+number belongs is counted as zero **and said** ("an unreadable amount (not a number) — counted as 0
+here. Check the import."); nothing prints NaN, undefined or Invalid Date in either language; and no
+VAT figure appears anywhere on the screen.
+Guard: `scripts/qa/probe-a-money-gap-is-named-for-what-it-is.mjs`.
+*Date: 2026-09-24, js/16-finance-ledger.js. Status: ACTIVE.*
+
 **M82 — a record the app cannot read costs that record, not the list; and a shorter list says so.**
 Found 2026-09-24 (fire #237) by handing the app five malformed rows with a 200 — the shapes an
 import or a hand-written SQL update really produces: a null name, a stage that is not a stage, text
