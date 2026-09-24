@@ -864,7 +864,21 @@ and a table added later is not covered — `get_advisors(security)` is the check
 two together cover what neither does alone.** Proven able to fail rather than assumed: a throwaway
 table with row-level security off, created and dropped the same minute, made it exit 1 and name the
 table.
-*Date: 2026-09-20. Status: ACTIVE.*
+**Extended 2026-09-24 (fire #239) — there are now three by-hand live checks, and each answers a
+question the mock structurally cannot.** `check-live-matches-repo` asks *is the thing I edited the
+thing being served?* `check-public-surface` asks *what does a caller with no sign-in get?* The third,
+`scripts/qa/check-live-data-shapes.mjs`, asks *are the broken shapes the app was hardened against
+actually PRESENT in the real data?* — the thirteen shapes behind M82 and M83, among them the null
+inside an `activities` array that emptied the whole company list, a last-contact that is not a
+number, a date nothing can parse, and an invoice whose stored profit does not equal revenue minus
+cost (M1). Hardening answers what happens IF; only the live data answers whether. It reads and never
+writes, prints the count for every shape **including the zeros** — a list of only the problems cannot
+be told apart from a list that failed to look — and exits **2**, not 0, when it cannot reach the
+database, because "could not ask" is not the same answer as "clean". Measured the day it was
+written: 108 companies, 46 invoices, 80 events, **every one of the thirteen counts zero**, which is
+what makes those two fixes preventive rather than firefighting. Proven able to fail: fed six
+synthetic malformed records on top of the real read, it named all six and exited 1.
+*Date: 2026-09-20, extended 2026-09-24. Status: ACTIVE.*
 
 **M24 — a third party's personal contact detail never goes in the code, even when it is useful.**
 Found 2026-09-20 (fire #140). `js/core/core-09-v26.js` carried, as Gulf Air's escalation contact, a
@@ -2349,6 +2363,31 @@ not just their number.
 Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half is
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
+
+**M84 — what someone typed into a funnel form can be found by typing it into a search box.**
+Found 2026-09-24 (fire #240) by counting the live database rather than reading the code. The app
+asks each company its funnel's own questions — MoT licence and IATA numbers for a travel-trade
+lead, tender value and deadline for a tender, the Direct Payments customer number and last invoice
+number for a past-invoices lead, where an outreach lead was met. **88 of the 108 live companies
+carry at least one answer, and 136 of the 142 answers in the fields worth searching could not be
+found by typing them into any box in the app.** Two of the 136 are the link keys to the money
+system — a Direct Payments customer number and an invoice number — so a colleague holding an
+invoice could not get from it to the company that was billed. Re-counted after the fix: **0 of 142**.
+The cause was one function, and that is the point of M38: `recordHay` (core-01) is the single
+haystack the top-bar search, the Leads box, the Clients box and the command palette all share, so
+one omission blinded all four and one line fixed all four. It was built from the company's own
+fields and its contacts; funnel answers live in their own store (`funnelDetails`) and were simply
+never added — the same shape as fires #113 and #214, which added notes, website and the contacts'
+phones. The company's OWN phone has the same story: the Website-Form funnel asks for
+`official_phone`, which is nobody's contact record, so the digits rule in `phoneHay` never saw it
+either. Both read the funnel store now.
+**Only things a person could type are taken.** A yes/no answer would otherwise put the word "true"
+into every record that answered one, and a nested blob would put "[object Object]" there — a box
+that matches everything is worse than one that matches nothing, so booleans and objects are skipped
+and that brake is guarded, not assumed.
+Guard: `scripts/qa/probe-a-funnel-answer-can-be-found.mjs` — sabotage-verified twice: the answers
+taken back out (five boxes blind again) and booleans let in ("true" matching every record).
+*Date: 2026-09-24, js/core/core-01-foundation.js. Status: ACTIVE.*
 
 **M83 — a gap between the money figures is named for what it is, and the page never quotes a date
 it cannot read.** Found 2026-09-24 (fire #238) by handing Finance malformed rows with a 200.

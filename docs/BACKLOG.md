@@ -136,6 +136,65 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #240 (2026-09-24 ~15:00 UTC) — what your team typed into a funnel form could not be searched for
+
+When a colleague opens a company in the app, they answer that funnel's own questions: the MoT
+licence and IATA numbers for a travel agency, the tender value and deadline for a tender, the
+Direct Payments customer number and last invoice number for a company you have billed before,
+where an outreach lead was met.
+
+I counted those answers in your real database. **88 of your 108 companies carry at least one.** Then
+I checked how many could be found by typing them into a search box: **136 of the 142 could not.**
+
+Two of the 136 matter more than the rest — a Direct Payments customer number and an invoice
+number. Somebody holding one of your invoices could not get from it to the company that was billed.
+
+The cause was one function, and that is the good news. All four search boxes — the one at the top
+of the screen, the Leads box, the Clients box and the keyboard palette — ask the same piece of code
+what a company's searchable text is. That code was built from the company's own details and its
+contacts, and nobody had added the funnel answers. One line reaches all four.
+
+Re-counted against your real data after the fix: **0 of 142 unfindable.** I also tested it on the
+live app, not just a stand-in — typing a real invoice number now brings back exactly one company,
+correctly marked as a client.
+
+**The company's own phone had the same problem.** The website-form funnel asks for the company's
+official phone number, which is not any one person's contact record, so the "a number is the same
+number however it's written" rule never looked at it. It does now.
+
+**One thing I deliberately left out:** a yes/no answer, and any answer that is a nested block of
+data rather than words. Including those would have put the word "true" into every record that ever
+answered a yes/no question — a search box that matches everything is worse than one that matches
+nothing. That limit is tested, not just intended.
+
+---
+
+## Routine fire #239 (2026-09-24 ~13:00 UTC) — checking that the broken shapes aren't actually in your data
+
+The last two rounds hardened the app against records it cannot read — a damaged activity entry that
+could empty your whole company list, a date nothing can parse, an invoice whose profit doesn't equal
+revenue minus cost. Hardening answers *what happens if*. It does not answer *is any of it actually
+there*, and no amount of testing against a stand-in can.
+
+So I wrote a check that asks your real database directly, and ran it: **108 companies, 46 invoices,
+80 events, and every one of the thirteen broken shapes came back zero.** Your data is clean. Those
+two fixes are precautions, not repairs — and now that can be confirmed with one command instead of
+an argument.
+
+Three details worth knowing, because they are what makes the answer trustworthy:
+
+- It prints **every** count, including the zeros. A report that lists only problems cannot be told
+  apart from a report that failed to look.
+- If it cannot reach the database it says so and returns a **different** answer from "clean" — no
+  silent green because the network was down.
+- I proved it can fail before trusting it: fed six deliberately broken records alongside the real
+  read, it found all six and named them.
+
+It reads and never writes. It joins the two other checks that have to be run by hand rather than in
+the bulk suite, because they touch the live system.
+
+---
+
 ## Routine fire #238 (2026-09-24 ~11:00 UTC) — the money page explained a real contradiction away as rounding
 
 I fed the Finance page deliberately broken invoice rows — empty money columns, the word "abc" where

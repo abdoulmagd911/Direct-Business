@@ -703,12 +703,40 @@ function searchFold(s){
   }catch(_){ return String(s==null?'':s).toLowerCase(); }
 }
 try{ window.searchFold=searchFold; }catch(_){}
+/* 2026-09-24 (fire #240): the answers a colleague typed into a funnel form — the MoT licence and
+   IATA numbers, the tender value, the Direct Payments customer number and last invoice number,
+   where an outreach lead was met — live in their own store and were never part of the haystack.
+   Counted against the live database that day: 88 of the 108 companies carry at least one funnel
+   answer, and 136 of the 142 answers in the fields worth searching could not be found by typing
+   them into ANY box in the app. Two of them are the link keys to the money system, so somebody
+   holding an invoice could not get from it to the company that was billed.
+   Only things a person could type are taken. A yes/no answer would otherwise put the word "true"
+   into every record that answered one, and a nested blob would put "[object Object]" there — both
+   turn a search box into a machine that matches everything, which is worse than matching nothing. */
+function funnelHay(b){
+  try{
+    var d=b&&b.funnelDetails; if(!d||typeof d!=='object') return '';
+    var out=[];
+    Object.keys(d).forEach(function(k){
+      var v=d[k];
+      if(v===null||v===undefined||typeof v==='boolean') return;
+      if(Array.isArray(v)){ v.forEach(function(x){
+        if(x===null||x===undefined||typeof x==='object'||typeof x==='boolean') return;
+        var s=String(x).trim(); if(s) out.push(s); }); return; }
+      if(typeof v==='object') return;
+      var s=String(v).trim(); if(s) out.push(s);
+    });
+    return out.join(' ');
+  }catch(_){ return ''; }
+}
+try{ window.funnelHay=funnelHay; }catch(_){}
 function recordHay(b){
   try{
     return searchFold((b.name||'')+' '+(b.nameAr||'')+' '+(b.legalName||'')+' '+(b.directClientId||'')+' '+
       (b.crVat||'')+' '+(b.segment||'')+' '+(b.source||'')+' '+(b.assignedTo||'')+' '+
       (b.notes||'')+' '+(b.website||'')+' '+
-      ((b.contacts||[]).map(function(c){ return String(c&&c.name||'')+' '+String(c&&c.email||'')+' '+String(c&&c.phone||''); }).join(' '))
+      ((b.contacts||[]).map(function(c){ return String(c&&c.name||'')+' '+String(c&&c.email||'')+' '+String(c&&c.phone||''); }).join(' '))+
+      ' '+funnelHay(b)
     );
   }catch(_){ return searchFold((b&&b.name)||''); }
 }
@@ -731,7 +759,21 @@ function phoneKey(s){
   }catch(_){ return ''; }
 }
 try{ window.phoneKey=phoneKey; }catch(_){}
-function phoneHay(b){ try{ return (b.contacts||[]).map(function(c){ return phoneKey(c&&c.phone); }).filter(Boolean).join(' '); }catch(_){ return ''; } }
+/* fire #240: the Website-Form funnel asks for the company's OWN phone ("official_phone"), which is
+   not a contact person's, so the digits rule never saw it. Any funnel answer whose field name says
+   it holds a number to ring is folded the same way a contact's is. */
+function phoneHay(b){
+  try{
+    var out=(b.contacts||[]).map(function(c){ return phoneKey(c&&c.phone); }).filter(Boolean);
+    var d=b&&b.funnelDetails;
+    if(d&&typeof d==='object') Object.keys(d).forEach(function(k){
+      if(!/phone|mobile|whats|tel/i.test(k)) return;
+      var v=d[k]; if(v===null||v===undefined||typeof v==='object'||typeof v==='boolean') return;
+      var n=phoneKey(v); if(n) out.push(n);
+    });
+    return out.join(' ');
+  }catch(_){ return ''; }
+}
 try{ window.phoneHay=phoneHay; }catch(_){}
 /* the query side of the same rule: fold what was typed before looking for it */
 function hayHas(b,q){
