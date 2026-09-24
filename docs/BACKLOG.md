@@ -158,6 +158,12 @@ each, no movement, nothing written).
 The full battery over the previous round's tree came back green (331 of 331; a boot-speed check
 went red under load and green alone).
 
+**One thing to know about the deploy:** this round's push reached GitHub but Vercel did not build
+it for twenty minutes, where every earlier push went live in under a minute. A second push with no
+file changes fired the build within seconds and the site now serves the round byte for byte. Most
+likely a missed notification on Vercel's side; if it happens again, the same re-push is the fix,
+and Vercel → Deployments would show whether a build was ever started.
+
 ---
 
 ## Routine fire #251 (2026-09-24 ~18:10 UTC) — the profile menu can now be worked from the keyboard
