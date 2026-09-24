@@ -98,10 +98,17 @@
    PUBLIC.** Other tasks and sessions depend on reaching it, it is internal work that will never
    be "published" as a product, and he has weighed it. Do not recommend making it private
    again, and do not raise it as a finding — rule 7 is exactly how a public repo stays safe.
-8. **OUT OF SCOPE — the appraisal / KPI / task-manager project (Supabase ref
-   `byhxnmafaumersoaiybq`, project `directksa-performance`) is a different project with
-   different work.** Never read it, write to it, document it in this repo, or reference its
-   data. If a task seems to require it, stop and ask.
+8. **Amended by the owner on 2026-09-24 — his one-word answer to the question in the
+   knowledge base (Drive part 08 §89) was "A": the task manager, the KPI actuals, the report
+   registration and the appraisal cycle are built INSIDE this app** — this repo, this Supabase
+   project (`vkxoeeoauexyfpzqufqd`), as new `js/1xx` layers and new tables with row-level
+   security and audit triggers, never as new keys in `app_state`. The other Supabase project
+   (`byhxnmafaumersoaiybq`, `directksa-performance`) is **no longer the home of that work**: it may
+   be read once as a source of past data if the owner hands over an export; it is never written
+   to from this side, and nothing in this repo depends on it. *(Before 2026-09-24 this rule read:
+   "OUT OF SCOPE — the appraisal / KPI / task-manager project is a different project with
+   different work. Never read it, write to it, document it in this repo, or reference its data."
+   The owner's decision record: Drive part 08a and the Cowork note "DECISION 24 Sep — A".)*
 9. **When a session has a clear recommendation, act on it — don't stop to ask "should I?"**
    (2026-08-27, after a session found real customer PII exposed in the repo since 2026-08-08,
    named one clear fix, and paused to ask permission instead of doing it or the reachable part
@@ -212,6 +219,11 @@ Verified by testing, 2026-08-08 — do not re-litigate, and do not promise what 
 >   `fetch(REAL + pathname + search)`, passing the headers through;
 > - **block only table writes and `save_state`/`save_state_patch` — never all non-GET.** The app
 >   LOADS through POST rpcs, so blocking every POST gives you an app with no data and a day lost.
+>   **And block the rpc `log_page_denied` too** (2026-09-24, Build lane sweep): driving the app as a
+>   restricted role makes js/64 log every refused page as an audit row — a read-only walk of twenty
+>   pages as a team member wrote 16 "Page access · Refused" rows to the live log before this line
+>   existed. Those rows are harmless and the Activity page names them as refusals, but a sweep that
+>   promises "read-only" must not be the thing writing.
 > - drive the live site itself with `curl` and a cache-buster (`?cb=$(date +%s%N)`) when confirming
 >   a deploy: the CDN will otherwise hand you the previous file and you will "prove" a push failed.
 >
