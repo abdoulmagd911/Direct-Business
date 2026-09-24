@@ -161,9 +161,11 @@ the outsider check is green, and the Activity page, signed in, still loads its f
 events, every tile and the refused-visit badge intact).
 
 **Two honest notes.** The log has grown from 378 to 394 since it was last counted, and 16 of the new
-rows are refused page visits written by my own live checks today — the test account being turned
-away from pages as I swept. They're mine, not a person's. And the outsider check had not been run
-since 20 September; the rule now says *every* sweep, so that gap can't quietly reopen.
+rows are refused page visits from a test-account walk — I first wrote here that they were mine; the
+log says otherwise: all sixteen are one sixty-second walk at 01:27 UTC by the parallel Build-lane
+session, which has since put the block into the read-only recipe so it cannot happen again. Either
+way they are a test account's, not a person's. And the outsider check had not been run since 20
+September; the rule now says *every* sweep, so that gap can't quietly reopen.
 
 **Nothing is required from you.** If you ever want it back the way it was, it is one line, written
 down in DECISIONS M87.
