@@ -2444,6 +2444,25 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M97 — the small notice that pops up after an action is a message like any other: it reads Arabic
+in Arabic, and its words are owned by js/21's notice dictionary through one wrapper around the app's
+single toast function — no caller writes a notice in English of its own.** Found 2026-09-24 (fire
+#256) by surveying every toast() text in the layers: 31 written in English only, in the core files
+and js/02 — "Please write what was achieved.", "Idle lock enabled · 5 min", "Backup destination set:
+…", "Offer created from …", "Invoice marked paid · …", "Storage full - export a backup!" — and read
+live, the achievement form's empty-title notice said "Please write what was achieved." in an Arabic
+session. A notice is the last thing a person reads after pressing a button; every other class of
+message had been made bilingual (M91 labels and hints, M96 hover words, fire #88's seventeen alert()
+sentences) and this one had not. The fix follows M96's shape rather than fire #88's: instead of
+rewriting 31 call sites in seven files, js/21 holds TOAST_AR (exact texts), TOAST_HEAD_AR (a fixed
+head with a value after it) and two patterns (a value in the middle), and wraps window.toast once at
+the moment of showing, so the callers stay as they are and no second copy of a message exists.
+Guard: `scripts/qa/probe-a-notice-speaks-arabic.mjs` — two notices driven on screen in both
+languages (the achievement form saved with no title; the backup destination, localStorage only),
+and every toast('…') literal in the source scanned and asked of the page's own v27ToastWord(), so a
+text the dictionary does not know fails the probe (44 texts today); sabotage-tested (dictionary and
+wrapper absent → the three Arabic checks red). Status: ACTIVE.
+
 **M96 — a word a person meets on hover (`title`) or a screen reader is handed (`aria-label`) is a
 word like any other: it reads Arabic in Arabic, English in English, follows the language flip both
 ways, and is owned by js/21's dictionary (TITLE_AR beside PLACEHOLDER_AR) — never set in English

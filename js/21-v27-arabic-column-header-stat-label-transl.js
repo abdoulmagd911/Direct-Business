@@ -511,6 +511,60 @@
     for(p=0;p<pairs.length;p++){ var els=document.querySelectorAll('['+pairs[p][1]+']'),i;
       for(i=0;i<els.length;i++){ var el=els[i]; el.setAttribute(pairs[p][0],el.getAttribute(pairs[p][1])); el.removeAttribute(pairs[p][1]); } }
   }
+  /* ---- Pop-up notices (2026-09-24, fire #256). core-06's toast() is the one box every layer uses for
+     "done" / "could not" after an action — 31 of its texts were written in English only, in the core
+     files and js/02: "Please write what was achieved.", "Idle lock enabled · 5 min", "Backup
+     destination set: …", "Offer created from …", "Invoice marked paid · …". They are the last thing a
+     person reads after pressing a button. Same shape as the other dictionaries in this file: exact
+     text, or a fixed head with a value after it (TOAST_HEAD_AR), or a value in the middle
+     (TOAST_PATTERN_AR). The single wrapper below translates at the moment of showing, so the callers
+     stay as they are and no second copy of a message exists anywhere. */
+  var TOAST_AR={
+    'Wrong passphrase':'عبارة المرور غير صحيحة',
+    'Ticket added (auto-defaults from booking)':'أُضيفت التذكرة (قيم افتراضية من الحجز)',
+    'Test records cleared':'حُذفت سجلات الاختبار',
+    'Team & Access':'الفريق والصلاحيات',
+    'Storage full - export a backup! Changes not saved to disk.':'الذاكرة ممتلئة — صدّر نسخة احتياطية! لم تُحفظ التغييرات على القرص.',
+    'Retry succeeded':'نجحت إعادة المحاولة',
+    'Replayed':'أُعيد التشغيل',
+    'Please write what was achieved.':'اكتب ما تم إنجازه من فضلك.',
+    'Idle lock enabled · 5 min':'قفل الخمول مفعّل · 5 دقائق',
+    'Idle lock disabled':'قفل الخمول معطّل',
+    'Exported':'تم التصدير',
+    'Enter a custom path':'أدخل مسارًا مخصصًا',
+    'Copied results JSON':'نُسخت نتائج JSON',
+    'Chain re-confirmed today':'أُعيد تأكيد السلسلة اليوم',
+    'Booking created from offer':'أُنشئ الحجز من العرض',
+    'Already a project':'مشروع بالفعل',
+    'Allow pop-ups to open the proposal':'اسمح بالنوافذ المنبثقة لفتح العرض'
+  };
+  var TOAST_HEAD_AR={
+    'Test OK — ':'الاختبار ناجح — ','Tagged: ':'وُسِم: ','Source accepted · ':'قُبل المصدر · ',
+    'Pending sync to ':'بانتظار المزامنة مع ','Offer created from ':'أُنشئ العرض من ','Logged: sent via ':'سُجّل: أُرسل عبر ',
+    'Logged to ':'سُجّل في ','Invoice marked paid · ':'حُدّدت الفاتورة كمدفوعة · ','Hash chain repaired (':'أُصلحت سلسلة التجزئة (',
+    'Force-sync done — ':'تمت المزامنة الإجبارية — ','Default term: ':'المدة الافتراضية: ',
+    'Backup saved: ':'حُفظت النسخة الاحتياطية: ','Backup destination set: ':'تم تعيين وجهة النسخ الاحتياطي: '
+  };
+  var TOAST_PATTERN_AR=[
+    [/^Noted (.+) as preferred$/, function(m){ return 'سُجّل '+m[1]+' كمفضّل'; }],
+    [/^Added (.+) to preferred$/, function(m){ return 'أُضيف '+m[1]+' إلى المفضّلة'; }]
+  ];
+  function toastWord(msg){
+    var t=String(msg==null?'':msg);
+    if(TOAST_AR[t]!==undefined) return TOAST_AR[t];
+    for(var h in TOAST_HEAD_AR){ if(t.indexOf(h)===0) return TOAST_HEAD_AR[h]+t.slice(h.length); }
+    for(var i=0;i<TOAST_PATTERN_AR.length;i++){ var m=t.match(TOAST_PATTERN_AR[i][0]); if(m) return TOAST_PATTERN_AR[i][1](m); }
+    return undefined;
+  }
+  /* the word this file would show for a notice — for probes and for any layer that wants to ask */
+  window.v27ToastWord=function(msg){ try{ if(!(typeof LANG!=='undefined'&&LANG==='ar')) return msg; var w=toastWord(msg); return w===undefined?msg:w; }catch(_){ return msg; } };
+  try{
+    if(typeof window.toast==='function'&&!window.toast.__v27){
+      var _toast=window.toast;
+      var wrapped=function(msg,kind){ return _toast.call(this, window.v27ToastWord(msg), kind); };
+      wrapped.__v27=1; window.toast=wrapped;
+    }
+  }catch(_){}
   window.v27AttrWord=function(en){ try{ if(!(typeof LANG!=='undefined'&&LANG==='ar')) return en; var k=String(en==null?'':en); var ar=arAttrWord(k); return ar===undefined?k:ar; }catch(_){ return en; } };
   var PLACEHOLDER_AR={
     // fire #249 — the example hints on the same forms

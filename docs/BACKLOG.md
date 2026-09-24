@@ -136,6 +136,24 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #256 (2026-09-24 ~23:40 UTC) — the little notices after a button press speak Arabic
+
+After many actions the app shows a small notice at the bottom for a couple of seconds — "done",
+"could not", "please fill this in". A count found 31 of those texts written in English only. On the
+live app in Arabic, saving an achievement with no title showed "Please write what was achieved." in
+English; the idle-lock switch, the backup destination, "offer created from …", "invoice marked
+paid" and the rest were the same.
+
+Now the one place that shows these notices asks the dictionary first, so every one of them reads
+Arabic in Arabic and English in English, with the value it carries (a folder name, a client) kept.
+Nothing else in the app changed. Verified on the live app against the real database in both
+languages, nothing written; and every notice text in the code is checked against the dictionary by
+the test, so a new English-only notice cannot slip in unnoticed.
+
+The full battery over the previous round's tree was green, 335 of 335 with no red at all.
+
+---
+
 ## Routine fire #255 (2026-09-24 ~22:50 UTC) — the example hints inside the boxes speak Arabic on the editors the form sweep missed
 
 The grey example text inside an empty box (a "hint") is translated by the same dictionary as the
