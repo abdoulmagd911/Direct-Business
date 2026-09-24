@@ -462,6 +462,56 @@
      The activity-type options (Call / Meeting / Note …) are NOT touched and must not be: they carry no
      value attribute, so their text IS what gets stored — the universal rule in the option pass below.
      Both passes here are whole-string and remember the English for a clean switch back. */
+  /* ---- Hover words and screen-reader labels (2026-09-24, fire #254). `title` and `aria-label` are
+     attributes, like placeholders, and this file never touched them: in Arabic every tooltip on the
+     Leads table ("Individual using a company email - check", "WhatsApp"), the Reports table ("Select
+     all in view", "Open the lead to change stage", "Lead score 7"), the top bar's icon buttons
+     ("Toggle language", "Open command palette", "Show keyboard shortcuts", "Open menu", "Menu") and the
+     generic "Icon button" a screen reader is handed stayed English — 23 of them counted across the
+     layers. Same shape as PLACEHOLDER_AR: exact text → Arabic, the English kept on the element so the
+     flip back restores it. TITLE_PREFIX_ATTR_AR covers the two that carry a value after a fixed
+     prefix. Brand names (WhatsApp) and format names keep their own, as everywhere else in this file. */
+  var TITLE_AR={
+    'Android app':'تطبيق أندرويد','iOS app':'تطبيق iOS','Command palette':'لوحة الأوامر',
+    'FX rate to SAR':'سعر الصرف إلى الريال','File upload':'رفع ملف','Hide password':'إخفاء كلمة المرور',
+    'Show password':'إظهار كلمة المرور','Icon button':'زر','Import backup file':'استيراد ملف نسخة احتياطية',
+    'Import full state JSON':'استيراد ملف الحالة الكاملة (JSON)','Input':'حقل إدخال',
+    'Individual using a company email - check':'فرد يستخدم بريد شركة — تحقّق','Menu':'القائمة',
+    'Open menu':'فتح القائمة','Open the lead to change stage':'افتح العميل المحتمل لتغيير المرحلة',
+    'Primary navigation':'التنقّل الرئيسي','Select all in view':'تحديد كل المعروض',
+    'Switch view preset':'تبديل إعداد العرض','Toggle language':'تبديل اللغة',
+    'Open command palette':'فتح لوحة الأوامر','Show keyboard shortcuts':'عرض اختصارات لوحة المفاتيح',
+    'What is this section?':'ما هذا القسم؟',
+    'How hot this lead is (Hot / Warm / Cool / Cold). Click to sort — work the hottest first.':'مدى سخونة هذا العميل المحتمل (ساخن / دافئ / فاتر / بارد). انقر للفرز — ابدأ بالأسخن.',
+    'Client health — Good / Watch / At risk. Click to surface at-risk clients.':'صحة العميل — جيد / مراقبة / في خطر. انقر لإبراز العملاء في خطر.'
+  };
+  var TITLE_PREFIX_ATTR_AR={'Lead score ':'درجة العميل المحتمل ','Source of truth: ':'مصدر الحقيقة: '};
+  function arAttrWord(t){
+    if(TITLE_AR[t]!==undefined) return TITLE_AR[t];
+    for(var pre in TITLE_PREFIX_ATTR_AR){ if(t.indexOf(pre)===0) return TITLE_PREFIX_ATTR_AR[pre]+t.slice(pre.length); }
+    return undefined;
+  }
+  function translateTitles(scope){
+    if(!scope)return;
+    var ATTRS=['title','aria-label'],a;
+    for(a=0;a<ATTRS.length;a++){
+      var attr=ATTRS[a], mark='data-v27'+(attr==='title'?'ttl':'al')+'en';
+      var els=scope.querySelectorAll('['+attr+']'),i;
+      /* no "already marked, skip" here: core-06's labeller writes "Open menu" onto the menu button
+         30 ms after EVERY render, on top of the Arabic this pass had set — a marked element whose
+         value is English again is simply translated again, and the mark keeps the newest English.
+         An element whose value is Arabic is not in the map and falls through untouched. */
+      for(i=0;i<els.length;i++){ var el=els[i];
+        var t=el.getAttribute(attr); if(!t)continue; var ar=arAttrWord(t.trim());
+        if(ar===undefined)continue; el.setAttribute(mark,t); el.setAttribute(attr,ar); }
+    }
+  }
+  function restoreTitles(){
+    var pairs=[['title','data-v27ttlen'],['aria-label','data-v27alen']],p;
+    for(p=0;p<pairs.length;p++){ var els=document.querySelectorAll('['+pairs[p][1]+']'),i;
+      for(i=0;i<els.length;i++){ var el=els[i]; el.setAttribute(pairs[p][0],el.getAttribute(pairs[p][1])); el.removeAttribute(pairs[p][1]); } }
+  }
+  window.v27AttrWord=function(en){ try{ if(!(typeof LANG!=='undefined'&&LANG==='ar')) return en; var k=String(en==null?'':en); var ar=arAttrWord(k); return ar===undefined?k:ar; }catch(_){ return en; } };
   var PLACEHOLDER_AR={
     // fire #249 — the example hints on the same forms
     'e.g. Riyadh Investment Summit':'مثال: قمة الرياض للاستثمار',
@@ -568,7 +618,7 @@
   }
   function scopeTranslate(scope,safeOptions){
     if(!scope)return;
-    translatePlaceholders(scope); translateChannelChips(scope); translateDialogTitle(scope);
+    translatePlaceholders(scope); translateChannelChips(scope); translateDialogTitle(scope); translateTitles(scope);
     var heads=scope.querySelectorAll('th,h2,h3'),i;
     for(i=0;i<heads.length;i++){ var hd=heads[i]; if(hd.getAttribute('data-v27')||hd.querySelector('input,select'))continue; translateDecorated(hd,V27_AR); }
     // label / summary / .ch-sub added 2026-09-02 for the proposal editor — whole-string matches only,
@@ -681,13 +731,15 @@
       if(LANG!=='ar'){ // restore any surviving translated element (e.g. persistent top bar) to English
         var stale=document.querySelectorAll('[data-v27en]');
         for(var s=0;s<stale.length;s++){ stale[s].textContent=stale[s].getAttribute('data-v27en'); stale[s].removeAttribute('data-v27en'); stale[s].removeAttribute('data-v27'); }
-        restorePlaceholders();
+        restorePlaceholders(); restoreTitles();
         patchGlobalSearchPlaceholder(false);
         patchSkipLinks(false);
         return;
       }
       scopeTranslate(document.getElementById('view'));
       scopeTranslate(document.querySelector('.top'));
+      /* fire #254: the shell's own labelled controls outside #view and .top (the phone menu button, the sidebar nav) */
+      translateTitles(document.body);
       patchGlobalSearchPlaceholder(true);
       patchSkipLinks(true);
     }catch(e){ if(window.console)console.warn('[v27] ar-translate',e); }

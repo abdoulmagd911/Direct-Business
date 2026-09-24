@@ -2444,6 +2444,27 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M96 — a word a person meets on hover (`title`) or a screen reader is handed (`aria-label`) is a
+word like any other: it reads Arabic in Arabic, English in English, follows the language flip both
+ways, and is owned by js/21's dictionary (TITLE_AR beside PLACEHOLDER_AR) — never set in English
+by a layer of its own.** Found 2026-09-24 (fire #254) by reading every such attribute on the live
+app in Arabic: 78 rows of the Leads table carried "Open the lead to change stage" and "Lead score
+N/100" in English, 82 controls were announced to a screen reader as "Input", the sign-in eye said
+"Show password" and never changed to "Hide password" while the password was showing, and the top
+bar's menu button said "Open menu" — 25 words in all across seven layers, because js/21 translated
+a cell's text and a placeholder after render but never an attribute. Two things about the
+mechanism are worth keeping. First, a pass that skips what it already marked is wrong when another
+layer rewrites the attribute afterwards: core-06's labeller writes "Open menu" 30 ms after every
+render on top of the Arabic, so the pass translates a marked element again whenever its value is
+English and keeps the newest English in the mark. Second, a control whose words change on a click
+(js/11's eye) cannot be served by a render-time pass at all — it speaks for itself, in the page
+language, and sets aria-pressed so the state is announced too. Brand and format names keep their
+own, as in every other rule of this family (M38, M91). Guard:
+`scripts/qa/probe-every-hover-word-speaks-arabic.mjs` — every title and aria-label on the sign-in
+form, top bar, Leads and Clients read in both languages, the eye clicked twice, the flip back
+checked for leftovers; sabotage-tested twice (dictionary removed → the three attribute checks red;
+the eye's words removed → the eye and the English brake red). Status: ACTIVE.
+
 **M95 — a view-only share address is nobody's to rewrite, and any layer that needs the address
 the page opened at reads `window.__bootPath`, never `location.pathname`.** Found 2026-09-24 (fire
 #253) by forcing the order js/03 already warned about (its own comment, round 58, and

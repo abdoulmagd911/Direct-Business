@@ -136,6 +136,27 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #254 (2026-09-24 ~22:00 UTC) — the words on hover and for screen readers speak Arabic too
+
+The app translates what you can see, but not the small words that appear when you hover over
+something or that a screen reader speaks aloud. Read on the live app in Arabic: every row of the
+Leads table said "Open the lead to change stage" and "Lead score 25/100" in English on hover, 82
+fields were announced as "Input", the little eye on the password box said "Show password" — and
+kept saying it even while the password was showing — and the menu button said "Open menu". Twenty-
+five such words across the app.
+
+Now they follow the language like everything else: the same dictionary that translates the field
+hints has a section for hover and screen-reader words, it is applied on every redraw, and a word
+another part of the app rewrites afterwards (the menu button gets its English label re-stamped a
+moment after each redraw) is translated again. The password eye now says what it will do in the
+page language and tells a screen reader whether the password is showing. Switching back to English
+restores every one of them exactly. Verified on the live app against the real database, in both
+languages, nothing written.
+
+The full battery over the previous round's tree was green, 333 of 333 with no red at all.
+
+---
+
 ## Routine fire #253 (2026-09-24 ~21:00 UTC) — a view-only share link now survives a slow connection and a refresh
 
 The shared-view test had gone red three times in three days whenever the machine was busy, and
