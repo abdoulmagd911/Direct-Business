@@ -157,6 +157,17 @@ hold them are empty, so nobody can reach those today.
 **Also verified clean this round and recorded:** the log-activity, quick-edit, new-request,
 corporate-profile, client-onboarding, SOP and project-proposal forms were already fully Arabic.
 
+**Where the remaining English in the Arabic app actually is — and it is content, not code.** With
+every screen and form now translated, I counted what the *data* holds, so you can see the whole
+gap in one place: **19 of your 80 events** have no Arabic name; **10 of your 28 clients** (and 90
+of 108 companies overall) have none; **none of the 12 SOP titles or 14 service-level metrics** has
+an Arabic version; and the **139 airlines have no Arabic-name field at all** — the app shows
+"Saudia" and "Emirates" in Arabic mode because there is nowhere to put «السعودية» or «طيران
+الإمارات». Provider names (Amadeus, Booking.com) are brands and stay as they are. None of this is
+a defect I can fix from the code side: the first three are words to be written in the app's own
+editors; the airlines would need a new field first (schema-first, your rule). Say which of these
+matter to you and in what order, and that becomes the next piece of work rather than a guess.
+
 ---
 
 ## Routine fire #248 (2026-09-25 ~03:00 UTC) — logging an achievement now lists your whole team, in Arabic
