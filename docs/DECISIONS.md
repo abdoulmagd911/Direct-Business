@@ -2386,7 +2386,9 @@ the signed-in Activity page loaded its full log live — 394 events, tiles intac
 roles. `to public` on a table the app only ever reads signed-in is a mistake in the role, not the
 predicate. Second: the by-hand checks in M23 have no battery to carry them, so a sweep that skips
 them has not swept — `check-live-matches-repo`, `check-public-surface` and `check-live-data-shapes`
-are run and their result logged, each sweep, or the sweep says it did not.
+are run and their result logged, each sweep, or the sweep says it did not. They are one command
+now, `scripts/qa/run-live-checks.sh`, which prints each verdict and fails if any of the three does
+— so "I ran the live checks" means all three, and a forgotten one cannot look like a pass.
 Undo, if ever needed: `alter policy record_history_read on public.record_history to public;`
 Guard: `scripts/qa/check-public-surface.mjs` (by hand), which named the table and now passes.
 *Date: 2026-09-24, database policy `record_history_read`. Status: ACTIVE.*
