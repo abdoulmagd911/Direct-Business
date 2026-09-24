@@ -66,7 +66,5 @@ core-06-v18-v21.js:eb_emd                               : NO-ROWS — EMD type. 
 core-06-v18-v21.js:actFilter.entity                     : FILTER — the audit log's entity filter.
 core-06-v18-v21.js:actFilter.action                     : FILTER — the audit log's action filter.
 core-06-v18-v21.js:actFilter.user                       : FILTER — the audit log's user filter.
-core-10-v29-reports.js:rf_member                        : IN-LIST — the team member an objective is assigned to; the list is built from the team itself, so it cannot hold a name the list lacks.
-core-10-v29-reports.js:rptRep.member                    : FILTER — the report's team-member filter.
 core-10-v29-reports.js:rptRep.obj                       : FILTER — the report's objective filter.
 core-10-v29-reports.js:rptRep.quarter                   : FILTER — the report's quarter picker.
