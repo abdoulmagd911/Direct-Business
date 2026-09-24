@@ -342,3 +342,4 @@ probe-a-sector-chip-says-what-it-scoped
 probe-an-achievement-names-a-real-colleague
 probe-every-form-speaks-arabic
 probe-a-failed-roster-says-so
+probe-the-profile-menu-takes-the-keyboard

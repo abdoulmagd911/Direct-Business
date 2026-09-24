@@ -6,7 +6,17 @@
        your initial + name + role; click it → a small menu with who you are
        (name + email), Team & Access (admins see them), and Sign out at the bottom.
    The original buttons are hidden, not removed — their click handlers still do the
-   work, so nothing about how Team/Access/sign-out behave has changed. Reversible. */
+   work, so nothing about how Team/Access/sign-out behave has changed. Reversible.
+
+   2026-09-24 (fire #251) — the menu takes the keyboard. Driven live: Enter on the chip opened
+   the menu (it is a button), but nothing moved the focus into it, Tab left it behind, and the
+   Escape key did nothing — the only pop-up in the app that ignored it. The full-screen rule in
+   check-structure never sees it because it is a small box, not an overlay, and the Escape probe
+   only counts boxes wider than 300 px. Now: opening moves the focus to the first item, ↑/↓ walk
+   the items, Escape closes and puts the focus back on the chip, Tab closes and carries on from
+   the chip, a click outside still closes it. The chip says it opens a menu (aria-haspopup) and
+   whether it is open (aria-expanded), and every listener the menu adds is removed when it closes
+   — the old close-on-outside-click listener was left behind whenever the chip itself closed it. */
 (function(){try{
   function fl(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;}
   function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
@@ -41,6 +51,7 @@
     if(!chip){
       chip=document.createElement('button'); chip.id='v68me'; chip.type='button';
       chip.style.cssText='display:flex;align-items:center;gap:8px;border:1px solid var(--line,#E6E8EC);background:#fff;border-radius:999px;padding:4px 12px 4px 4px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;margin-inline-start:auto';
+      chip.setAttribute('aria-haspopup','menu'); chip.setAttribute('aria-expanded','false');
       chip.onclick=function(e){e.stopPropagation();toggleMenu();};
       tools.appendChild(chip);
     }
@@ -52,21 +63,30 @@
     if(chip!==tools.lastElementChild)tools.appendChild(chip);   // always at the end of the bar
   }
 
+  /* one way out, whatever opened it: the box goes, its listeners go with it, the chip says "closed" */
+  function closeMenu(){
+    var m=document.getElementById('v68menu'); if(!m)return;
+    try{ if(m.__key)document.removeEventListener('keydown',m.__key,true); }catch(_){}
+    try{ if(m.__out)document.removeEventListener('click',m.__out); }catch(_){}
+    m.remove();
+    var chip=document.getElementById('v68me'); if(chip)chip.setAttribute('aria-expanded','false');
+  }
+
   function toggleMenu(){
-    var m=document.getElementById('v68menu');
-    if(m){m.remove();return;}
+    if(document.getElementById('v68menu')){closeMenu();return;}
     var chip=document.getElementById('v68me'); if(!chip)return;
     var nm=(window.__userName||'').trim();
     var arNm=(typeof ownerLabel==='function')?ownerLabel(nm):nm;
-    m=document.createElement('div'); m.id='v68menu';
+    var m=document.createElement('div'); m.id='v68menu'; m.setAttribute('role','menu');
     var r=chip.getBoundingClientRect();
     var isAr=(typeof LANG!=='undefined'&&LANG==='ar');
     m.style.cssText='position:fixed;top:'+(r.bottom+6)+'px;'+(isAr?('left:'+r.left+'px'):('right:'+(window.innerWidth-r.right)+'px'))+';z-index:2147481000;background:#fff;border:1px solid var(--line,#E6E8EC);border-radius:12px;box-shadow:0 18px 50px -18px rgba(20,22,43,.35);min-width:230px;padding:6px;font-size:13px';
     function item(label,fn,danger){
-      var b=document.createElement('button'); b.type='button';
+      var b=document.createElement('button'); b.type='button'; b.setAttribute('role','menuitem');
       b.style.cssText='display:block;width:100%;text-align:start;background:none;border:0;border-radius:8px;padding:9px 11px;font:inherit;cursor:pointer;'+(danger?'color:#D92D20;font-weight:700':'');
       b.onmouseenter=function(){b.style.background='#F6F7F9';}; b.onmouseleave=function(){b.style.background='none';};
-      b.textContent=label; b.onclick=function(){m.remove();fn&&fn();}; m.appendChild(b); return b;
+      b.onfocus=function(){b.style.background='#F6F7F9';}; b.onblur=function(){b.style.background='none';};
+      b.textContent=label; b.onclick=function(){closeMenu();fn&&fn();}; m.appendChild(b); return b;
     }
     var head=document.createElement('div');
     head.style.cssText='padding:9px 11px 7px;border-bottom:1px solid var(--line,#E6E8EC);margin-bottom:4px';
@@ -76,7 +96,26 @@
     if(hidden.access)item(fl('Page access','صلاحيات الصفحات'),function(){hidden.access.click();});
     if(hidden.signout)item(fl('Sign out','تسجيل الخروج'),function(){hidden.signout.click();},true);
     document.body.appendChild(m);
-    setTimeout(function(){document.addEventListener('click',function close(e){if(!m.contains(e.target)){m.remove();document.removeEventListener('click',close);}});},0);
+    chip.setAttribute('aria-expanded','true');
+    /* the keyboard: focus lands on the first item; ↑/↓ walk; Escape closes and returns to the chip;
+       Tab closes and carries on from the chip (capture phase, so js/35's #modal handler never sees
+       an Escape that was meant for this box) */
+    var items=[].slice.call(m.querySelectorAll('button'));
+    try{ if(items[0])items[0].focus(); }catch(_){}
+    m.__key=function(e){
+      if(!document.getElementById('v68menu'))return;
+      if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); closeMenu(); try{chip.focus();}catch(_){} return; }
+      if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+        if(!items.length)return;
+        var i=items.indexOf(document.activeElement);
+        var n=e.key==='ArrowDown'?(i+1)%items.length:(i<=0?items.length-1:i-1);
+        e.preventDefault(); try{items[n].focus();}catch(_){} return;
+      }
+      if(e.key==='Tab'){ closeMenu(); try{chip.focus();}catch(_){} }   // the browser then tabs on from the chip
+    };
+    document.addEventListener('keydown',m.__key,true);
+    m.__out=function(e){ if(!m.contains(e.target)&&e.target!==chip&&!chip.contains(e.target))closeMenu(); };
+    setTimeout(function(){ if(document.getElementById('v68menu')===m)document.addEventListener('click',m.__out); },0);
   }
 
   // learn my email once (for the menu header + role lookup)

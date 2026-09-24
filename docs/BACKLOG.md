@@ -136,6 +136,33 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #251 (2026-09-24 ~18:10 UTC) — the profile menu can now be worked from the keyboard
+
+The little menu behind your name in the top bar — Team, Page access, Sign out — could be opened
+with the keyboard (it is a button, so Enter opens it) but nothing else about it worked without a
+mouse: the focus stayed on the chip, Tab walked straight past the menu into the page, and **the
+Escape key did nothing at all**. Every other pop-up in the app closes on Escape; this was the one
+that didn't, and both of the guards that should have caught it looked past it — one only reads
+full-screen boxes, the other only counts boxes wider than 300 px, and this one is 230. An older
+test even pressed Escape on it and then removed the menu by hand, so the press was never measured.
+
+Now opening the menu puts the focus on its first item, ↑/↓ walk the items, Escape closes it and
+puts you back on the chip, Tab closes it and carries on, and a click outside still closes it as
+before. The chip also tells a screen reader that it opens a menu and whether it is open. Verified
+on the live app against the real database in English and Arabic, with nothing written and no
+sign-out fired by the close.
+
+**Checked and not a defect:** the "?" tip beside each page title has an English-only pop-up, but
+the "?" itself is hidden app-wide by a rule in the page, so nobody can reach it. And the data
+behind People: all 45 contacts and all 65 activities point at live companies; 27 of your 28
+clients have a contact on file (one does not — a data gap, not a fault).
+
+The full test battery over the previous round's tree came back green (330 of 330). One test —
+the shared-view tidy — went red under load and green on its own, the first time in nine runs;
+noted here so a repeat is read as a race and not a busy machine.
+
+---
+
 ## Routine fire #250 (2026-09-25 ~08:00 UTC) — if the team list can't be loaded, the app now says so instead of offering an old one
 
 I made the app's read of your team roster fail on purpose — the kind of thing a bad connection

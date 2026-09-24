@@ -2444,6 +2444,24 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M93 — every pop-up the app builds of its own takes the keyboard, however small: opening it
+moves the focus in, Escape closes it and puts the focus back on what opened it, and a keyboard
+close is a close, never a press.** Found 2026-09-24 (fire #251) on the top-bar profile menu (js/44:
+Team · Page access · Sign out). Enter opened it — the chip is a button — but the focus stayed on the
+chip, Tab walked past the menu into the page, and Escape did nothing: the one pop-up in the app that
+ignored the key. It fell between two guards, and that is the lesson: check-structure's overlay rule
+reads only files that build a `position:fixed;inset:0` element, and `probe-escape-closes-every-box`
+counts only boxes wider than 300 px — a 230 px menu is invisible to both. `probe-round9` pressed
+Escape on it and then removed the menu by hand, so the press was never measured (trap #54 in the
+loop-log: a cleanup that hides "nothing happened"). The same menu holds Sign out, which is why the
+brake matters as much as the key: a close from the keyboard must run no item. Now js/44's
+`closeMenu` is the one way out — it removes both listeners the open added (the outside-click one
+used to leak whenever the chip itself closed the menu) and sets `aria-expanded` back; opening
+focuses the first item, ↑/↓ walk, Escape returns to the chip (capture phase, so js/35's `#modal`
+handler never sees it), Tab closes and lets the browser carry on from the chip. Guard:
+`scripts/qa/probe-the-profile-menu-takes-the-keyboard.mjs` — red on the unpatched tree, 9/9 after,
+sabotage-tested twice (keydown wiring removed; focus never moved in). Status: ACTIVE.
+
 **M92 — a list of people that could not be loaded says so in the list; a list that is simply not
 there stays quiet; and "failed" is retried before it is announced.** Found 2026-09-25 (fire
 #250) by refusing the roster read (`team_directory`, a 500) on the live app. The lead editor's
