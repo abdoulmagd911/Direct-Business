@@ -849,8 +849,47 @@ function finPeriodBar(){
    +chip('all',isArF()?'\u0627\u0644\u0643\u0644':'All')+chip('Q1','Q1')+chip('Q2','Q2')+chip('Q3','Q3')+chip('Q4','Q4')+chip('H1','H1')+chip('H2','H2')
    +'<select style="'+SS+'" onchange="finPP(this.value)"><option value="all">'+(isArF()?'\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631':'All months')+'</option>'+months.map(function(m){return '<option value="M:'+m+'" '+(FIN.p.part==='M:'+m?'selected':'')+'>'+(isArF()?(MO_AR[m]||m):m)+'</option>';}).join('')+'</select>'
    +SECTORS.map(function(sc){var on=(FIN.p.sector||'all')===sc[0];return '<button class="btn sm '+(on?'pri':'ghost')+'" onclick="finPS(\''+sc[0]+'\')">'+(isArF()?sc[1][1]:sc[1][0])+'</button>';}).join('')
+   +finSectorScopeLine()
    +'<span style="margin-inline-start:auto;font-size:11px;color:var(--muted)">'+(isArF()?'\u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629 \u0641\u0642\u0637':'Paid invoices only')+' \u00b7 <b>'+finPeriodLabel()+'</b></span></div>';
   return s;
+}
+/* 2026-09-24 (fire #246), driven live with the Tenders chip pressed: the tab-bar header still read
+   "46 invoices \u00b7 data through 2026-08-20" \u2014 it is the LEDGER's extent and several probes pin it \u2014
+   while three lines down the cost warning read "5 of 5 invoices in this period". One screen, two
+   counts, for a reader who had just asked for Tenders. And finSectorBasis(), written on 3 Sep "so
+   the page can show" why a row landed in a sector, had no call site at all: under B2B one invoice
+   sits there by default because its client has no profile, and nobody could see that.
+   This line sits beside the chip that was pressed and says what it scoped \u2014 how many of the
+   period's paid invoices are in that sector, and how each was decided: the client's profile, its
+   payment terms (the fallback for a client with no profile), the service itself (School Commission
+   \u2192 Academies), or nothing at all (no profile, no terms \u2192 B2B by default). Nothing under "All
+   sectors": the line answers a question, it is not furniture. The rows are the same rows
+   finPeriodTotals counts, so the number here is the number the tiles are made of. */
+function finSectorScopeLine(){
+  try{
+    var sec=(FIN.p&&FIN.p.sector)||'all'; if(sec==='all')return '';
+    var inPeriod=verified().filter(function(r){return finPeriodMatch(r,FIN.p);});
+    var rows=inPeriod.filter(function(r){return finSectorOf(r)===sec;});
+    var b={profile:0,terms:0,service:0,default:0};
+    rows.forEach(function(r){var k=finSectorBasis(r); b[k]=(b[k]||0)+1;});
+    var def=null; for(var i=0;i<SECTORS.length;i++){ if(SECTORS[i][0]===sec) def=SECTORS[i]; }
+    var name=def?(isArF()?def[1][1]:def[1][0]):sec;
+    var parts=[];
+    if(isArF()){
+      if(b.profile)parts.push(b.profile+' \u062d\u0633\u0628 \u0645\u0644\u0641 \u0627\u0644\u0639\u0645\u064a\u0644');
+      if(b.terms)parts.push(b.terms+' \u062d\u0633\u0628 \u0634\u0631\u0648\u0637 \u0627\u0644\u062f\u0641\u0639 (\u0644\u0627 \u0645\u0644\u0641 \u0644\u0647)');
+      if(b.service)parts.push(b.service+' \u062d\u0633\u0628 \u0646\u0648\u0639 \u0627\u0644\u062e\u062f\u0645\u0629');
+      if(b.default)parts.push(b.default+' \u0627\u0641\u062a\u0631\u0627\u0636\u064a\u064b\u0627 (\u0644\u0627 \u0645\u0644\u0641 \u0648\u0644\u0627 \u0634\u0631\u0648\u0637)');
+      return '<span data-fin-sector-scope="'+sec+'" data-n="'+rows.length+'" style="font-size:11px;color:var(--muted)">'+
+        rows.length+' \u0645\u0646 '+inPeriod.length+' \u0641\u0627\u062a\u0648\u0631\u0629 \u0645\u062f\u0641\u0648\u0639\u0629 \u0641\u064a \u00ab'+escF(name)+'\u00bb'+(parts.length?' \u2014 \u062a\u0642\u0631\u0631: '+parts.join('\u060c '):'')+'</span>';
+    }
+    if(b.profile)parts.push(b.profile+' by the client\u2019s profile');
+    if(b.terms)parts.push(b.terms+' by its payment terms (no profile on file)');
+    if(b.service)parts.push(b.service+' by the service itself');
+    if(b.default)parts.push(b.default+' by default (no profile, no terms)');
+    return '<span data-fin-sector-scope="'+sec+'" data-n="'+rows.length+'" style="font-size:11px;color:var(--muted)">'+
+      rows.length+' of '+inPeriod.length+' paid invoices are '+escF(name)+(parts.length?' \u2014 decided '+parts.join(', '):'')+'</span>';
+  }catch(_){ return ''; }
 }
 /* 2026-09-09 (watch cycle 73) — CYCLE 43'S RULE WAS APPLIED TO ONE TAB OF THE FOUR.
    rFinClients refuses while the exclusion list is outstanding, and the reason it gives is general:

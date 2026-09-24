@@ -338,3 +338,4 @@ probe-a-money-gap-is-named-for-what-it-is
 probe-a-funnel-answer-can-be-found
 probe-an-empty-mirror-points-at-the-ledger
 probe-settings-speaks-arabic-all-the-way-down
+probe-a-sector-chip-says-what-it-scoped

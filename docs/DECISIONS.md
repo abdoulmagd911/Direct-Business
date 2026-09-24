@@ -2444,6 +2444,31 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M89 — a filter chip says what it scoped, beside the chip, and says how each row was decided.**
+Found 2026-09-24 (fire #246), driven live with the Tenders chip pressed on Finance. The tab-bar
+header still read **"46 invoices · data through 2026-08-20"** — it is the LEDGER's extent, and
+several probes pin that wording — while three lines down the cost warning read **"5 of 5 invoices
+in this period"**. One screen, two counts, for a reader who had just asked for Tenders: the money
+tiles followed the chip, no count beside the chip did. M74 again — a number true of what it counts
+and false to its reader — on the money page.
+And `finSectorBasis()` had no call site. It was written on 3 September "so the page can show it
+rather than mixing the two silently", and nothing showed it: under B2B one live invoice sits there
+**by default** — its client has no profile and no payment terms — and nobody could see that.
+The rule has two halves. **A pressed chip gets one line beside it that says what it scoped**, on
+the same rows the tiles are made of (`finPeriodTotals`' rows), so the number can never drift from
+the tiles: "5 of 46 paid invoices are Tenders". **And that line says how each row was decided** —
+the client's profile, its payment terms (the fallback for a client with no profile), the service
+itself (School Commission → Academies), or nothing at all (no profile, no terms → B2B by default)
+— so a reader can tell a decided row from a defaulted one. Nothing under "All sectors": the line
+answers a question, it is not furniture. **The header is deliberately left as the ledger's own
+count** — it is true and several guards depend on it; the fix is the missing line, not a changed
+header — and that is checked as a brake, not assumed.
+Verified live: Tenders "5 of 46 … decided 5 by the client's profile"; B2B "41 of 46 … 40 by the
+client's profile, 1 by default"; the header unchanged under every chip; Arabic right.
+Guard: `scripts/qa/probe-a-sector-chip-says-what-it-scoped.mjs` — three sabotages: the line removed,
+the basis words dropped, and the header made to follow the chip (which fails the brake alone).
+*Date: 2026-09-24, js/16-finance-ledger.js. Status: ACTIVE.*
+
 **M88 — a row laid out as a grid of fixed pixel columns is a phone defect until it has a phone
 rule, and the rule lives in a class, never inline.** Found 2026-09-24 (Build lane sweep, the app
 driven live at 400px): every audit row on Activity & Audit — and the "Recent changes" card js/63

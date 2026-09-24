@@ -136,6 +136,34 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #246 (2026-09-25 ~00:30 UTC) — press "Tenders" on Finance and the page now says what that scoped, and why
+
+I pressed the **Tenders** chip on the Finance page against your real data. The money tiles followed
+it — 120,478 SAR. The line at the top still said **"46 invoices"**, and three lines down the cost
+warning said **"5 of 5 invoices in this period"**. Two counts on one screen for someone who had just
+asked for one sector. The top line is the whole ledger's size, which is true and stays; what was
+missing was any count beside the chip you pressed.
+
+There was a second, quieter gap. Back on 3 September the app learned *how* it decides an invoice's
+sector — from the client's profile, or from its payment terms if there is no profile, or from the
+service itself — and was meant to show that so the two are never mixed silently. It never did.
+Under **B2B**, one of your 41 invoices is there by default: its client has no profile and no payment
+terms on file, so it fell into B2B because nothing said otherwise. Nobody could see that.
+
+Now, beside a pressed chip: **"5 of 46 paid invoices are Tenders — decided 5 by the client's
+profile"**, and under B2B: **"41 of 46 paid invoices are B2B — decided 40 by the client's profile,
+1 by default (no profile, no terms)"**. The number is made from the same rows as the tiles, so it
+can't drift from them. Nothing appears under "All sectors" — it answers a question, it isn't
+decoration. Both languages checked live.
+
+**Verified clean in the same round and recorded so nobody re-tests:** the split itself is exact —
+41 + 5 = 46 invoices, 1,910,286 + 120,478 = 2,030,764 SAR, to the riyal — and every Tenders row is
+there because its client's profile says tender, not by guesswork. Also, all five of your tender
+invoices are recorded with zero cost, so "100% of that profit" is the cost gap you already know about,
+wearing a sector label.
+
+---
+
 ## Routine fire #244 (2026-09-24 ~22:30 UTC) — your audit log could be read without signing in; closed
 
 Your standing rules say to run the by-hand outsider check during every sweep. I ran it — the first
