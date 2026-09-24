@@ -26,7 +26,9 @@ function client(){ if(!sb2&&window.supabase){try{sb2=window.supabase.createClien
 function esc2(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ---------- detect share-view URL: /s/<token> or /s/<token>/<section> ---------- */
-var SHARE=(function(){var m=String(location.pathname||'').match(/^\/s\/([A-Za-z0-9\-]{16,})(?:\/([a-z]+))?/);return m?{token:m[1],sec:m[2]||'dashboard'}:null;})();
+/* fire #253: the address the page OPENED at (js/03 publishes __bootPath) — location.pathname can
+   already have been rewritten by the time this file runs on a slow connection */
+var SHARE=(function(){var m=String(window.__bootPath||location.pathname||'').match(/^\/s\/([A-Za-z0-9\-]{16,})(?:\/([a-z]+))?/);return m?{token:m[1],sec:m[2]||'dashboard'}:null;})();
 window.__isShareView=!!SHARE;
 
 /* ================= EVENTS TAB ================= */

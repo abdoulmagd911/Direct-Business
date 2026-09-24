@@ -2444,6 +2444,27 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M95 — a view-only share address is nobody's to rewrite, and any layer that needs the address
+the page opened at reads `window.__bootPath`, never `location.pathname`.** Found 2026-09-24 (fire
+#253) by forcing the order js/03 already warned about (its own comment, round 58, and
+docs/DEEPLINK-BOOT-RACE.md): js/03 rewrites the address to '/' + current 200 ms after `render` and
+`DB` exist, and every later script that reads location.pathname is racing that timer. Two did. js/10
+decides from it whether this is a share view at all — held back 1.5 s, the visitor lands at /today
+with the sign-in form; js/79 tidies the guest view from it — held back, Finance sits in the sidebar
+and the footer names a colleague, which is exactly what probe-share-view-tidy had been reporting red
+under a busy machine three times in three days and green alone. And the rewrite threw the token
+away even at full speed, so a refresh of a working share view landed on the sign-in form. The
+person a shared link is for opens it on a phone, on the road: this was the slow-connection case, not
+a corner. Now js/03 never writes the address of a share view (its `IS_SHARE` is read from the boot
+address it captured itself), which alone closes the race and keeps the token for a refresh; js/10 and
+js/79 read `__bootPath` first as the second line the boot-race note prescribes. Guard:
+`scripts/qa/probe-a-share-link-survives-a-slow-boot.mjs` — the losing order is forced (the js/10
+response held back, then js/79's) on any machine at 1x; a refresh of the shared page; an Arabic
+guest footer; a control with nothing held; and the brake that a signed-in colleague's addresses
+still move. Sabotage-tested three ways (guard removed: address and refresh red; guard and belt
+removed: the old tree, five red; belt removed alone: green — the belt is documented defence, not a
+claim). Status: ACTIVE.
+
 **M94 — the signed-in person is called one thing on a screen: every place that writes their name
 asks one helper (`displayName` / `shortName`, js/54) — nickname in the page language, else the
 Arabic name in Arabic, else the full name — and no layer writes that name on its own.** Found

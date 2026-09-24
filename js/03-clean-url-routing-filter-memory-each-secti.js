@@ -14,6 +14,13 @@
      link survives at 1x and is lost from 4x up, which is an ordinary mid-range phone.
      See docs/DEEPLINK-BOOT-RACE.md. */
   try{ window.__bootPath=boot; }catch(_){}
+  /* 2026-09-24 (fire #253): a view-only SHARE link (/s/<token>/<section>, js/10) keeps its address.
+     Rewriting it to '/' + current did two things: the token left the bar, so a refresh of a
+     working share view landed on the sign-in form; and the rewrite fired 200 ms into boot, so on
+     a slow connection js/79 (and, further along, js/10 itself) read a bare /leads and did nothing —
+     the guest saw Finance and a colleague's name. The race this file already documents above, on
+     the one address that must survive it. A share view's address is nobody's to rewrite. */
+  var IS_SHARE=/^\/s\/[A-Za-z0-9\-]{16,}(?:\/|$)/.test(boot);
   var ready=false, lastPath=null, restoring=false;
   /* 2026-09-09 (live test C5): a CLIENT's card is the same screen as a lead's (openLead under the
      Leads section), so its address read /leads/lead/<id>. The address now says what the person
@@ -41,7 +48,7 @@
       window.clFilter.owner=o.o||'all';window.clFilter.tier=o.t||'all';
     }
   }catch(_){}}
-  function writeURL(){if(!ready||restoring)return;try{var p=buildPath();if(!p)return;var f=snapFilters();
+  function writeURL(){if(IS_SHARE)return;if(!ready||restoring)return;try{var p=buildPath();if(!p)return;var f=snapFilters();
     var st=history.state||{};var samePath=(location.pathname===p&&!location.hash);
     if(lastPath!==null&&samePath&&st.f===f)return; // nothing meaningful changed → no new history entry
     var entry={p:p,f:f};
@@ -67,7 +74,7 @@
       if(n>240){ clearInterval(iv); if(pendingRec===id)pendingRec=null; } },250);
     return false;
   }
-  function restoreBoot(){var r=parse(boot);if(applyRoute(r)){try{if(typeof render==='function')render();}catch(_){}}ready=true;lastPath=buildPath();try{if(lastPath)history.replaceState({p:lastPath,f:snapFilters()},'',lastPath);}catch(_){}}
+  function restoreBoot(){if(IS_SHARE){ready=true;return;}var r=parse(boot);if(applyRoute(r)){try{if(typeof render==='function')render();}catch(_){}}ready=true;lastPath=buildPath();try{if(lastPath)history.replaceState({p:lastPath,f:snapFilters()},'',lastPath);}catch(_){}}
   // wrap render AND the filter re-draws (renderLeads/drawLeads) so a filter change records history too
   function wrapFn(name){try{var f=window[name];if(typeof f==='function'&&!f.__pathWrap){var _f=f;window[name]=function(){var o=_f.apply(this,arguments);writeURL();return o;};window[name].__pathWrap=true;}}catch(_){}}
   function wrap(){wrapFn('render');wrapFn('renderLeads');wrapFn('drawLeads');}

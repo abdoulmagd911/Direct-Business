@@ -189,11 +189,15 @@ const anon=await B.p.evaluate(()=>{
 ok('share view opens with NO session in storage', anon.shareFlag && anon.sessionKeys.length===0);
 ok('the login overlay never appears (anonymous really does get in)', !anon.loginOverlay);
 ok('the view-only banner is shown in EN and AR', anon.banner && /View-only/.test(anon.bannerText) && /عرض فقط/.test(anon.bannerText));
-/* where the token ends up: js/03's clean-URL layer replaces the address on the first render,
-   so the token leaves the visible bar — but it was still in the request line, the browser
-   history entry and any server access log before that happened. */
+/* where the token ends up. Until 2026-09-24 (fire #253) js/03's clean-URL layer replaced the address
+   on the first render, so the token left the visible bar — and this line recorded that as if it were
+   worth something, while its own note said it bought nothing: the token was already in the request
+   line, the browser history and any access log. What the rewrite actually did was throw the link
+   away — a refresh of a working share view landed on the sign-in form — and race js/10 and js/79 on
+   a slow connection (probe-a-share-link-survives-a-slow-boot). The address of a share view is now
+   left alone (M95), so the token STAYS in the bar and a refresh keeps the guest view. */
 const urlNow=await B.p.evaluate(()=>location.pathname);
-ok('the token is rewritten out of the address bar by the clean-URL layer', !urlNow.startsWith('/s/'));
+ok('the token stays in the address bar, so a refresh keeps the shared view (M95)', urlNow.startsWith('/s/'+TOKEN));
 notes.push('address after the share view settles: '+urlNow);
 ok('Share and Sign-out controls are hidden from the anonymous holder', anon.shareBtnGone && anon.signOutGone);
 /* 2026-09-20 (fire #178). These five lines used to RECORD AN OPEN HOLE: each one asserted that the

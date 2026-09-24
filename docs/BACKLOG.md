@@ -136,6 +136,30 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #253 (2026-09-24 ~21:00 UTC) — a view-only share link now survives a slow connection and a refresh
+
+The shared-view test had gone red three times in three days whenever the machine was busy, and
+green every time it ran alone. That pattern is a race, and the app's own routing notes already
+described it for another kind of link: about a fifth of a second into loading, the address bar is
+rewritten to a plain address like /leads. Anything that loads after that moment and reads the
+address bar reads the wrong thing. Two parts of the share-link feature did exactly that. On a slow
+connection — a phone, which is where a shared link is opened — one of them stops making the page
+a guest view at all (the visitor gets the sign-in form), and the other stops tidying it (Finance
+back in the sidebar, a colleague's name in the footer, the banner over the top bar). And because
+the token was wiped from the address bar, **refreshing a working share link landed on the sign-in
+form** even on a fast connection.
+
+Now the address of a shared view is never rewritten, so the token stays and a refresh works, and
+both parts read the address the page actually opened with. Proven by forcing the slow order on
+purpose rather than waiting for a busy machine, in English and Arabic, with a refresh, and with a
+check that a signed-in colleague's addresses still update as before. On the live app against the
+real database a share address now holds even when the part that decides "this is a share view" is
+delayed, and nothing was written.
+
+The full battery over the previous round's tree was green, 332 of 332 with no red at all.
+
+---
+
 ## Routine fire #252 (2026-09-24 ~20:00 UTC) — you are called one name on a screen, and it stops flickering in Arabic
 
 Your name appears twice on every screen: in the sidebar footer at the bottom left and in the chip

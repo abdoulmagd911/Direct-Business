@@ -16,7 +16,10 @@
    Scoped strictly to the share path — js/10's own test — so nothing here runs for a signed-in
    person. Self-contained, try/catch; rollback = delete this file and its script line. */
 (function(){try{
-  var SHARE=/^\/s\/[A-Za-z0-9\-]{16,}(?:\/|$)/.test(String(location.pathname||''));
+  /* fire #253: read the address the page OPENED at (js/03's __bootPath), never location.pathname —
+     by the time this file runs on a slow connection the address had been rewritten to /leads and
+     this whole layer stayed silent: Finance in the sidebar, a colleague's name in the footer. */
+  var SHARE=/^\/s\/[A-Za-z0-9\-]{16,}(?:\/|$)/.test(String(window.__bootPath||location.pathname||''));
   if(!SHARE) return;
   var isAr=function(){ try{ return typeof LANG!=='undefined'&&LANG==='ar'; }catch(_){ return false; } };
   /* 1. layout below the banner */
