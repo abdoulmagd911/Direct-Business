@@ -136,6 +136,32 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #248 (2026-09-25 ~03:00 UTC) — logging an achievement now lists your whole team, in Arabic
+
+On the Reports page, "Log achievement" is how someone records a win against the objectives. I
+opened it in Arabic against your real accounts. The title read **"Log achievement"**, seven of its
+eight labels were English, and the **"Team member" list held four names typed into the code months
+ago** — while the app has eleven accounts and has kept a live roster since the ownership work in
+August. Seven of your people could only ever be recorded as "Other". The same four names fed the
+filter on that tab and the report's "One member" scope.
+
+Now the list is the live roster — all eleven — in the form, the filter and the report scope; the
+form's title, labels and hints are Arabic in Arabic and unchanged in English; and "Other" reads
+«أخرى» while what it saves stays the same, so nothing already logged stops matching. One guarantee
+worth knowing: if an entry was logged under a person who is no longer on the roster, that person
+**stays in the list and stays selected** on that entry — an old record is never quietly re-pointed
+at whoever happens to be first in a new list.
+
+**Also checked this round, both clean:** the **Leads export** in Arabic (15 columns, every title
+Arabic, no VAT column) and the **Finance ledger export** — its columns are the invoice fields and
+the six money figures, the total is titled "invoice total", and the stored VAT figure is **not**
+exported, which is your rule. The Reports page's other two tabs are fully Arabic.
+
+**One small thing I changed my own mind on:** I first wrote my own Arabic for "Whole department"
+and an existing test caught it — the app already had a word for it. I used the app's.
+
+---
+
 ## Routine fire #246 (2026-09-25 ~00:30 UTC) — press "Tenders" on Finance and the page now says what that scoped, and why
 
 I pressed the **Tenders** chip on the Finance page against your real data. The money tiles followed

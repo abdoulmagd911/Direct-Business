@@ -2444,6 +2444,35 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M90 — a list of people is the live roster, never a literal; a saved name outlives the roster;
+and a form chooses its words where it is built.** Found 2026-09-25 (fire #248), driven live in
+Arabic: Reports › Achievements › "＋ تسجيل إنجاز" opened a form titled **"Log achievement"** with
+seven of its eight labels in English and English placeholders, and a "Team member" list of **four
+hard-coded names plus "Other"** — while the team has eleven accounts and the app has kept a live
+roster since js/33 (`teamList`). Seven colleagues could only ever be logged as "Other". The same
+literal fed the Achievements filter and the report's "One member" scope. The filter LOOKED partly
+Arabic because js/21's option pass re-labels those four names on screen; it never reaches a form
+in `#modal`, which is why the form stayed English for a year of Arabic work.
+Three halves to the rule. **People come from `teamList()`** — the one roster js/33 loads from
+`team_directory` — so a list of colleagues is never a literal again; the old literal stays only as
+the fallback for a session where the roster has not loaded. **A name a saved entry still carries
+is kept in the list** even when it is no longer on the roster: Reports data is browser-local and
+an entry logged under a person who has since left must keep its person, not be silently re-pointed
+at the first name in a new list (rule 5 — never destroy real data — applied to a dropdown).
+**"Other" keeps its stored value and only its label changes** («أخرى»), so nothing already saved
+under it stops matching. And the form's title, labels and placeholders are chosen in core-10 with
+the file's own `rptAr`, not left for a word list that cannot see them.
+One more thing learned the hard way in the same round: the report's scope options already had
+Arabic in js/21 («القسم كاملًا»), and choosing my own wording for the same option put an existing
+guard red — **when a word already has an Arabic in the js/21 list, that is the Arabic**.
+Verified live: title and all eight labels Arabic, eleven real names in the form and the filter,
+«أخرى» last, the English form unchanged.
+Guard: `scripts/qa/probe-an-achievement-names-a-real-colleague.mjs` — plants its own roster
+(`window.__TEAM`, which js/33 reads first) and one saved entry under a name not on it; three
+sabotages: the legacy list back, the legacy-name merge removed, the labels back to English.
+`scripts/qa/probe-reports-phone-ar.mjs` stayed green once the wording was aligned.
+*Date: 2026-09-25, js/core/core-10-v29-reports.js. Status: ACTIVE.*
+
 **M89 — a filter chip says what it scoped, beside the chip, and says how each row was decided.**
 Found 2026-09-24 (fire #246), driven live with the Tenders chip pressed on Finance. The tab-bar
 header still read **"46 invoices · data through 2026-08-20"** — it is the LEDGER's extent, and

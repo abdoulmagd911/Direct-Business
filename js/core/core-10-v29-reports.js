@@ -392,6 +392,24 @@ const RPT_INITIATIVES=[
  {n:12,t:"Explore new payment solutions and nominate the best option", obj:4}
 ];
 const RPT_TEAM=["Abdelrahman","Othman Al Sharafi","Raad","Kareem","Other"];
+/* 2026-09-25 (fire #248), driven live in Arabic: the achievement form's people list was this
+   hard-coded four-name list while the team has eleven accounts and js/33 keeps the live roster
+   (teamList) — seven colleagues could only ever be logged as "Other". The roster is used now, the
+   legacy names kept only where a saved entry still carries one (so nothing already logged loses
+   its person), and "Other" stays last with its STORED value unchanged — only its label speaks
+   Arabic. RPT_TEAM stays as the fallback for a session where the roster has not loaded. */
+function rptTeam(){
+  try{
+    var names=[]; var seen={};
+    var add=function(n){ n=String(n==null?'':n).trim(); if(!n||n==='Other'||seen[n])return; seen[n]=1; names.push(n); };
+    var live=(typeof window.teamList==='function')?(window.teamList()||[]):[];
+    if(live.length){ live.forEach(add); } else { RPT_TEAM.forEach(add); }
+    try{ (RDB.achievements||[]).forEach(function(a){ if(a&&a.member) add(a.member); }); }catch(_){}
+    names.push('Other');
+    return names;
+  }catch(_){ return RPT_TEAM.slice(); }
+}
+function rptMemberOpt(t,sel){ return '<option value="'+esc(t)+'" '+(sel===t?'selected':'')+'>'+(t==='Other'?rptAr('Other','أخرى'):esc(t))+'</option>'; }
 const RPT_KEY="directReportsData_v1";
 function rptLoad(){try{const d=JSON.parse(localStorage.getItem(RPT_KEY));if(d&&d.achievements)return d;}catch(e){}return {achievements:[],overrides:{}};}
 let RDB=rptLoad();
@@ -438,7 +456,7 @@ const RPT_MONTHS=["January","February","March","April","May","June","July","Augu
 function rptMonthLabel(mk){if(!mk)return "";const p=mk.split("-");return ((typeof LANG!=='undefined'&&LANG==='ar')?RPT_MONTHS_AR:RPT_MONTHS)[Number(p[1])-1]+" "+p[0];}
 function rptMonthLabelEn(mk){if(!mk)return "";const p=mk.split("-");return RPT_MONTHS[Number(p[1])-1]+" "+p[0];}
 let rptTab="overview",rptOpenObjs={},rptAchFilter={month:"",member:"",obj:""};
-let rptRep={type:"monthly",month:new Date().toISOString().slice(0,7),quarter:"Q"+Math.ceil((new Date().getMonth()+1)/3),year:new Date().getFullYear(),scope:"dept",member:RPT_TEAM[0],obj:""};
+let rptRep={type:"monthly",month:new Date().toISOString().slice(0,7),quarter:"Q"+Math.ceil((new Date().getMonth()+1)/3),year:new Date().getFullYear(),scope:"dept",member:rptTeam()[0],obj:""};
 window.rptGo=function(k){rptTab=k;render();};
 function rptCss(){
  if(document.getElementById('rptcss'))return;
@@ -498,23 +516,23 @@ function rptAch(v){
  if(rptAchFilter.obj)rows=rows.filter(a=>String(a.objective)===rptAchFilter.obj);
  const months=[...new Set(RDB.achievements.map(a=>rptMonthKey(a.date)))].sort().reverse();
  v.innerHTML='<div class="toolbar">'+
- '<select onchange="rptSetFilter(\'month\',this.value)"><option value="">All months</option>'+months.map(m=>'<option value="'+m+'" '+(rptAchFilter.month===m?'selected':'')+'>'+rptMonthLabel(m)+'</option>').join('')+'</select>'+
- '<select onchange="rptSetFilter(\'member\',this.value)"><option value="">All members</option>'+RPT_TEAM.map(t=>'<option '+(rptAchFilter.member===t?'selected':'')+'>'+t+'</option>').join('')+'</select>'+
- '<select onchange="rptSetFilter(\'obj\',this.value)"><option value="">All objectives</option>'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(rptAchFilter.obj==o.n?'selected':'')+'>#'+o.n+' — '+esc(rptObjTitle(o).slice(0,40))+'…</option>').join('')+'</select>'+
+ '<select onchange="rptSetFilter(\'month\',this.value)"><option value="">'+rptAr('All months','كل الأشهر')+'</option>'+months.map(m=>'<option value="'+m+'" '+(rptAchFilter.month===m?'selected':'')+'>'+rptMonthLabel(m)+'</option>').join('')+'</select>'+
+ '<select onchange="rptSetFilter(\'member\',this.value)"><option value="">'+rptAr('All members','كل الأعضاء')+'</option>'+rptTeam().map(t=>rptMemberOpt(t,rptAchFilter.member)).join('')+'</select>'+
+ '<select onchange="rptSetFilter(\'obj\',this.value)"><option value="">'+rptAr('All objectives','كل الأهداف')+'</option>'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(rptAchFilter.obj==o.n?'selected':'')+'>#'+o.n+' — '+esc(rptObjTitle(o).slice(0,40))+'…</option>').join('')+'</select>'+
  '<span class="rpt-small">'+rptAr(rows.length+' entr'+(rows.length===1?'y':'ies'),rows.length+(rows.length===1?' سجل':' سجلات'))+'</span><span style="flex:1"></span>'+
  '<button class="btn pri" onclick="rptOpenAch()">＋ '+rptAr('Log achievement','تسجيل إنجاز')+'</button></div>'+
  '<div class="card">'+(rows.length?'<div class="tbl-wrap"><table><thead><tr><th>'+rptAr('Date','التاريخ')+'</th><th>'+rptAr('Achievement','الإنجاز')+'</th><th>'+rptAr('Member','العضو')+'</th><th>'+rptAr('Objective / KPI','الهدف / المؤشر')+'</th><th>'+rptAr('Value','القيمة')+'</th><th></th></tr></thead><tbody>'+rows.map(a=>rptRowAch(a,true)).join('')+'</tbody></table></div>':'<div class="empty">Nothing here yet. Log achievements as they happen — tenders submitted, contracts signed, embassies added, services launched…</div>')+'</div>';
 }
 window.rptSetFilter=function(k,val){rptAchFilter[k]=val;render();};
 window.rptOpenAch=function(id){
- const a=id?RDB.achievements.find(x=>x.id===id):{date:todayISO(),member:RPT_TEAM[0],title:"",desc:"",objective:"",kpi:"",value:"",client:""};
+ const a=id?RDB.achievements.find(x=>x.id===id):{date:todayISO(),member:rptTeam()[0],title:"",desc:"",objective:"",kpi:"",value:"",client:""};
  if(!a)return;
- openModal((id?'Edit':'Log')+' achievement',
- '<div class="grid2"><div class="field"><label>Date</label><input type="date" id="rf_date" value="'+esc(a.date)+'"></div><div class="field"><label>Team member</label><select id="rf_member">'+RPT_TEAM.map(t=>'<option '+(a.member===t?'selected':'')+'>'+t+'</option>').join('')+'</select></div></div>'+
- '<div class="field"><label>What was achieved</label><input type="text" id="rf_title" value="'+esc(a.title)+'" placeholder="e.g. Tender submitted to Saudi Ports Authority"></div>'+
- '<div class="field"><label>Details (optional)</label><textarea id="rf_desc" rows="2">'+esc(a.desc||'')+'</textarea></div>'+
- '<div class="grid2"><div class="field"><label>Linked objective</label><select id="rf_obj" onchange="rptSyncKpiList()"><option value="">— none —</option>'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(a.objective==o.n?'selected':'')+'>#'+o.n+' — '+esc(rptObjTitle(o).slice(0,46))+'</option>').join('')+'</select></div><div class="field"><label>Linked KPI</label><select id="rf_kpi"></select></div></div>'+
- '<div class="grid2"><div class="field"><label>Numeric value (counts toward the KPI)</label><input type="number" id="rf_value" value="'+(a.value!=null?a.value:'')+'" placeholder="e.g. 1 tender · 300000 SAR"></div><div class="field"><label>Client / entity (optional)</label><input type="text" id="rf_client" value="'+esc(a.client||'')+'"></div></div>',
+ openModal(id?rptAr('Edit achievement','تعديل الإنجاز'):rptAr('Log achievement','تسجيل إنجاز'),
+ '<div class="grid2"><div class="field"><label>'+rptAr('Date','التاريخ')+'</label><input type="date" id="rf_date" value="'+esc(a.date)+'"></div><div class="field"><label>'+rptAr('Team member','عضو الفريق')+'</label><select id="rf_member">'+rptTeam().map(t=>rptMemberOpt(t,a.member)).join('')+'</select></div></div>'+
+ '<div class="field"><label>'+rptAr('What was achieved','ما الذي تحقق')+'</label><input type="text" id="rf_title" value="'+esc(a.title)+'" placeholder="'+rptAr('e.g. Tender submitted to Saudi Ports Authority','مثال: تقديم مناقصة لهيئة الموانئ')+'"></div>'+
+ '<div class="field"><label>'+rptAr('Details (optional)','التفاصيل (اختياري)')+'</label><textarea id="rf_desc" rows="2">'+esc(a.desc||'')+'</textarea></div>'+
+ '<div class="grid2"><div class="field"><label>'+rptAr('Linked objective','الهدف المرتبط')+'</label><select id="rf_obj" onchange="rptSyncKpiList()"><option value="">'+rptAr('— none —','— لا شيء —')+'</option>'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(a.objective==o.n?'selected':'')+'>#'+o.n+' — '+esc(rptObjTitle(o).slice(0,46))+'</option>').join('')+'</select></div><div class="field"><label>'+rptAr('Linked KPI','المؤشر المرتبط')+'</label><select id="rf_kpi"></select></div></div>'+
+ '<div class="grid2"><div class="field"><label>'+rptAr('Numeric value (counts toward the KPI)','قيمة رقمية (تُحتسب في المؤشر)')+'</label><input type="number" id="rf_value" value="'+(a.value!=null?a.value:'')+'" placeholder="'+rptAr('e.g. 1 tender · 300000 SAR','مثال: مناقصة واحدة · 300000 ريال')+'"></div><div class="field"><label>'+rptAr('Client / entity (optional)','العميل / الجهة (اختياري)')+'</label><input type="text" id="rf_client" value="'+esc(a.client||'')+'"></div></div>',
  function(){
    const g=i=>document.getElementById(i).value;
    const rec={date:g('rf_date'),member:g('rf_member'),title:g('rf_title').trim(),desc:g('rf_desc').trim(),objective:g('rf_obj'),kpi:g('rf_kpi'),value:g('rf_value'),client:g('rf_client').trim()};
@@ -529,7 +547,7 @@ window.rptSyncKpiList=function(sel){
  const onEl=document.getElementById('rf_obj');if(!onEl)return;
  const on=onEl.value;
  const list=on?RPT_KPIS.filter(k=>k.obj===Number(on)):RPT_KPIS;
- document.getElementById('rf_kpi').innerHTML='<option value="">— none —</option>'+list.map(k=>'<option value="'+k.n+'" '+(String(sel)===String(k.n)?'selected':'')+'>KPI '+k.n+' — '+esc(rptKpiTitle(k).slice(0,46))+' (target '+rfmtTarget(k)+')</option>').join('');
+ document.getElementById('rf_kpi').innerHTML='<option value="">'+rptAr('— none —','— لا شيء —')+'</option>'+list.map(k=>'<option value="'+k.n+'" '+(String(sel)===String(k.n)?'selected':'')+'>KPI '+k.n+' — '+esc(rptKpiTitle(k).slice(0,46))+' (target '+rfmtTarget(k)+')</option>').join('');
 };
 window.rptDelAch=function(id){askInPage('Delete this achievement?',function(){RDB.achievements=RDB.achievements.filter(x=>x.id!==id);rptSave();render();});};
 window.rptToggleObj=function(n){rptOpenObjs[n]=!rptOpenObjs[n];render();};
@@ -564,8 +582,8 @@ function rptReport(v){
  (rptRep.type==='monthly'
   ?'<div class="field"><label>Month</label><input type="month" value="'+rptRep.month+'" onchange="rptRepSet(\'month\',this.value)"></div>'
   :'<div class="field"><label>'+rptAr('Quarter','الربع')+'</label><select onchange="rptRepSet(\'quarter\',this.value)">'+['Q1','Q2','Q3','Q4'].map(q=>'<option '+(rptRep.quarter===q?'selected':'')+'>'+q+'</option>').join('')+'</select></div><div class="field"><label>'+rptAr('Year','السنة')+'</label><input type="number" value="'+rptRep.year+'" onchange="rptRepSet(\'year\',this.value)"></div>')+
- '<div class="field"><label>Scope</label><select onchange="rptRepSet(\'scope\',this.value)"><option value="dept" '+(rptRep.scope==='dept'?'selected':'')+'>Whole department</option><option value="member" '+(rptRep.scope==='member'?'selected':'')+'>One member</option><option value="obj" '+(rptRep.scope==='obj'?'selected':'')+'>One objective</option></select></div>'+
- (rptRep.scope==='member'?'<div class="field"><label>'+rptAr('Member','العضو')+'</label><select onchange="rptRepSet(\'member\',this.value)">'+RPT_TEAM.map(t=>'<option '+(rptRep.member===t?'selected':'')+'>'+t+'</option>').join('')+'</select></div>':'')+
+ '<div class="field"><label>'+rptAr('Scope','النطاق')+'</label><select onchange="rptRepSet(\'scope\',this.value)"><option value="dept" '+(rptRep.scope==='dept'?'selected':'')+'>'+rptAr('Whole department','القسم كاملًا')+'</option><option value="member" '+(rptRep.scope==='member'?'selected':'')+'>'+rptAr('One member','عضو واحد')+'</option><option value="obj" '+(rptRep.scope==='obj'?'selected':'')+'>One objective</option></select></div>'+
+ (rptRep.scope==='member'?'<div class="field"><label>'+rptAr('Member','العضو')+'</label><select onchange="rptRepSet(\'member\',this.value)">'+rptTeam().map(t=>rptMemberOpt(t,rptRep.member)).join('')+'</select></div>':'')+
  (rptRep.scope==='obj'?'<div class="field"><label>'+rptAr('Objective','الهدف')+'</label><select onchange="rptRepSet(\'obj\',this.value)">'+RPT_OBJECTIVES.map(o=>'<option value="'+o.n+'" '+(rptRep.obj==o.n?'selected':'')+'>#'+o.n+' — '+esc(rptObjTitle(o).slice(0,40))+'</option>').join('')+'</select></div>':'')+
  '</div><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'+
  '<button class="btn pri" onclick="rptBuildReport()">Build report</button>'+
