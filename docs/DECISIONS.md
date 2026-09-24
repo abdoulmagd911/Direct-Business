@@ -2442,6 +2442,30 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M88 — a row laid out as a grid of fixed pixel columns is a phone defect until it has a phone
+rule, and the rule lives in a class, never inline.** Found 2026-09-24 (Build lane sweep, the app
+driven live at 400px): every audit row on Activity & Audit — and the "Recent changes" card js/63
+puts on every company card — was an inline four-column grid (150px, two fractions, the Undo column,
+three 12px gaps). At phone width each text column got a few dozen pixels, so both screens printed
+one word per line, lines overlapping, unreadable in both languages, on a page whose own probes had
+been green for weeks because every one of them measured at desktop width. An inline `style` cannot
+carry a media query, so a grid written inline has no way to stack on a phone; a class can. The rule:
+a multi-column row is drawn from a class that has a `max-width:640px` rule, and a probe measures it
+at 400px as well as 1500px (`probe-audit-rows-read-on-a-phone`). The same sweep found the Today
+tile's "last change N days ago" counting refused page visits as changes, directly above a 7-day tile
+saying "no record changed" — M76 applied to the one line that had escaped it.
+*(Numbered M88 at landing: the Build lane wrote it as M84 on 2026-09-24 01:34; fires #240, #242, #243
+and #244 took M84–M87 before the patch could land.)*
+*Date: 2026-09-24. Status: ACTIVE.*
+
+**Rule 8 of CLAUDE.md is amended, 2026-09-24, by the owner's word "A".** The task manager, the KPI
+actuals per period, the report registration and the appraisal cycle are built inside THIS app and
+THIS database (new `js/1xx` layers, new tables with RLS and audit triggers, never new keys in
+`app_state`); the other Supabase project (`directksa-performance`) stops being the home of that
+work and is at most a one-time read-only source of past data. Full text in CLAUDE.md rule 8; the
+owner's record is Drive part 08a and the Cowork note "DECISION 24 Sep — A".
+*Date: 2026-09-24. Status: ACTIVE.*
+
 **M84 — what someone typed into a funnel form can be found by typing it into a search box.**
 Found 2026-09-24 (fire #240) by counting the live database rather than reading the code. The app
 asks each company its funnel's own questions — MoT licence and IATA numbers for a travel-trade

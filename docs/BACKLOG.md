@@ -224,6 +224,88 @@ Everything else on those five pages is as it should be. Two things I checked and
 lock banner on the three Direct-owned pages shows both languages on purpose — you corrected that
 yourself in August, active language first — and the Operations board's dashes sit under a line that
 already explains the zeros.
+## Build lane — the sweep before the new pages (2026-09-24, 00:40–04:00 UTC; landed by the reviewer lane)
+
+A new session, started by the owner to (1) sweep the app and then (2) build the task manager, the
+appraisal cycle and the report registration inside it (his decision "A" of 24 Sep — CLAUDE.md rule 8
+is amended in this commit). This entry is the sweep. Nothing of phase 2 is built yet; the schema goes
+to him as one document first.
+
+**What was done.** The full battery on the origin tip (`0d0c66e`), then the REAL app driven against
+the REAL database read-only (every table write and `save_state*` blocked at the route — 0 table writes were
+even attempted, 0 browser dialogs; the one thing that did reach the database was the app's own
+refusal logging: the team-member walk made js/64 write 16 "Page access · Refused" rows — the recipe
+in CLAUDE.md now blocks `log_page_denied` as well) through every page a person can reach — Today, Leads (list, card,
+quick edit, Mine), Clients (list, card), the eight Finance tabs, Proposals, Events, Projects, the four
+Reports tabs, Airlines, Providers, SOPs & SLAs, Operations, the six Generator families, Activity &
+Audit, Archive, Settings, Connections and the three hidden legacy editors — in English then Arabic,
+at 1500px then 400px, plus every address the router answers booted cold. Every count on screen was
+read against the database's own `count=exact`: 108 live companies (28 clients, 80 leads of which 78
+open), 46 live invoices of 91 (19 with cost 0), 80 events (43 shown, and the page says so), 139
+airlines (136 shown, and the page says so), 23 providers, 12 SOPs, 14 SLAs, 378 audit rows, 4 deleted
+companies, 0 generated documents, 0 proposals, 0 requests, 0 projects. **Every number agrees.**
+
+**Found and fixed here (each with a probe and a sabotage test):**
+
+- **The Activity & Audit page, and the "Recent changes" card on every company card, were unreadable
+  on a phone** — one word per line, lines overlapping, in both languages. Every audit row was an
+  inline four-column grid with a 150px first column; at 400px the text columns got a few dozen
+  pixels. The grid now lives in a class that stacks under 640px (js/63; rule M88).
+  `probe-audit-rows-read-on-a-phone` (9271) measures the rows at 400px and 1500px.
+- **"nothing yet today — last change 3 days ago" counted refused page visits as changes** — the line
+  sat directly above a 7-day tile saying "all 39 were refused page visits — no record changed". The
+  last record anyone changed was 9 Sep, fifteen days earlier. The line now reads over record rows
+  only and says "last record change" (js/63; M76). Same probe, both languages.
+- **An empty grey pill under the company name on most cards** — `<span class="tag seg">` was drawn
+  even when the company had no segment, and 98 of the 108 live companies have none (live-test item
+  L8 was closed after a look at the list; the pill was on the card). Drawn only when there is a
+  segment (core-02). `probe-card-pill-and-category-word` (9272).
+- **In Arabic the card's Category read «الفئة» over the English "Anchor"** — a word js/21 already
+  carried. Category is the app's own list (CATEGORIES), so its value is translated when it is exactly
+  one of those words, and only then; a typed value is left alone (M58). Same probe.
+- **Finance's held-back sentence said "the figures above" from the top of the page** — js/99 inserts
+  it before the first child, above every figure it describes. It says "on this page" now, both
+  languages; `probe-finance-says-what-it-held-back` gained the check.
+
+**Measured and found correct, so nobody needs to wonder:** no `NaN` / `undefined` / `[object` on any
+of the ~90 views read; no sideways scroll on any page at 400px; every route boots to its own page
+(`/dashboard` → Today, `/providers` → Providers, `/operations` → Operations, nonsense → Today); the
+only English left on the Arabic side is data (company and event names, city names, SOP bodies, the
+airline register's fare text, provider types, the 30 KPI titles the owner has yet to word) plus the
+document previews, which are in the document's own language by design.
+
+**For the owner — facts, not requests:** (1) **nobody has changed a record through the app since
+9 Sep** — every audit row since then is a QA sweep's refused page visit; the team is not using it
+yet. (2) `client_profiles` rows appear in the audit log under their type ("Client profile · Edited ·
+tender") because a profile has no name of its own — cosmetic, and better fixed when the profile gets a
+company link on screen. (3) At 04:00 Riyadh the English greeting says "Late night" and the Arabic one
+"مساء الخير" — two clocks for one moment; trivial. (4) The team-member walk was done by rewriting the role the app READS (the database still saw an
+admin): the page gate behaved exactly as designed — Today, Leads, Clients and Finance open, every
+other page bounces to Today with the banner — but what the database itself refuses a team member was
+not exercised here; the 9 Sep way (switch the QA row in `app_users` for a drive) needs a write and
+was outside a read-only sweep. (5) The owner's own list of twenty decisions at the top of this file
+stands; item 11 (where KPIs live) is answered by "A" and is what phase 2 builds.
+
+**The battery, honestly.** b1 on the untouched tip: 322 green of 324 that can fail; the two that
+reproduced alone — `probe-audit-names-and-words` and `probe-history-actor-and-sync-words` — were
+both red BEFORE this session touched anything: fire #230 (23 Sep) hid refused page visits behind a
+badge and both probes still expected one visible. Each now asks "Show them" first only when the row
+is not already on the page (fire #241 has since shown the rows by default again, so the click is a
+no-op on this tip); their checks are unchanged. b2 after the fixes: 322 / 324 again — the second
+stale probe (repaired after b2) and this session's own new probe, which started at the `/activity`
+address and so took js/63's anonymous-boot path (fire #70's subject) and lost a race one run in
+three; it starts on Today now and was run four times alone, green each time. b4, the full battery on
+the Build lane's commit (rebased onto fire #238, both stale probes repaired, the new probe on its own
+boot path): **325 / 325 probes that can fail, no red reproduced alone** — five went red under `-j 4`
+and green by themselves (the two share-link probes, a-shared-card-keeps-our-notes-inside,
+the-ops-board-says-why-it-is-empty, two-people-one-record-are-told); the machine has two cores.
+
+**How it landed.** The Build session's `git push` was refused by the proxy ("not in this session's
+authorized repository set"), so its commit was saved as a patch (Drive part 13a, project doc "BUILD
+LANE — patch 24 Sep") and applied here by the reviewer lane on tip `5dcc929`, with two renames
+because the watch session's fires #240–#241 landed in between: its rule M84 became **M88** (fires #240, #242, #243 and #244 took M84–M87 meanwhile) and its probes moved
+to ports **9271** and **9272** (9266, 9267 and 9270 were taken by those fires). The battery was re-run on this
+tip before the push (result in the commit message).
 
 ---
 
