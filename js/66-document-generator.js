@@ -30,6 +30,35 @@
 
   /* ---------- shared helpers ---------- */
   function isAr(){ try{ return (typeof LANG!=='undefined'&&LANG==='ar'); }catch(_){ return false; } }
+  /* 2026-09-24 (fire #243): the registry's `source` — the named document a value was read from —
+     is a free-text column with no Arabic twin, so the page in Arabic printed an English line under
+     every one of its 29 rows ("Official records", "Bank accounts sheet", "Company letterhead"…),
+     the only English left on it. The live registry uses sixteen distinct phrases, all written by
+     the loader, so they are chrome in practice and are given their Arabic here — DISPLAY ONLY: the
+     editor keeps the raw value (dgE_src), and a phrase this list does not know still shows, in
+     English, rather than vanishing. Adding a source_ar column would be schema-first work for the
+     owner to fill 29 times; this is the reversible answer until then. */
+  var SRC_AR={
+    'Official records':'السجلات الرسمية',
+    'Bank accounts sheet':'كشف الحسابات البنكية',
+    'Commercial Registration (CR.pdf)':'السجل التجاري (CR.pdf)',
+    'Company letterhead':'الورق الرسمي للشركة',
+    'Al Rajhi IBAN letter':'خطاب آيبان الراجحي',
+    'Saudi Business Center print':'مطبوعة المركز السعودي للأعمال',
+    'Riyadh Chamber certificate':'شهادة غرفة الرياض',
+    'ZATCA VAT certificate (with branches)':'شهادة ضريبة القيمة المضافة من هيئة الزكاة والضريبة (مع الفروع)',
+    'Ministry of Tourism licence':'ترخيص وزارة السياحة',
+    'IATA certificate 2026':'شهادة إياتا 2026',
+    "Monsha'at certificate":'شهادة منشآت',
+    'ISO 9001 certificate':'شهادة الأيزو 9001',
+    'Qiwa Saudization certificate':'شهادة التوطين من قوى',
+    'SecurityMetrics certificate 2025':'شهادة SecurityMetrics 2025',
+    'D&B DUNS certificate':'شهادة DUNS من D&B',
+    'Darb Pay IBAN certificate':'شهادة آيبان درب باي'
+  };
+  function srcWord(s){
+    try{ var k=String(s==null?'':s).trim(); if(!isAr()||!k) return k; return SRC_AR[k]||k; }catch(_){ return s; }
+  }
   function fl(en,ar){ return isAr()?ar:en; }
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function client(){ try{ if(window.fc){ var c=fc(); if(c) return c; } }catch(_){} return null; }
@@ -615,7 +644,7 @@
     return '<tr><td class="dg-key">'+esc(isAr()&&r.label_ar?r.label_ar:r.label_en)+'</td>'+
       '<td class="dg-val">'+shown+
       (ex?' <span class="dg-pill '+ex.cls+'">'+esc(ex.txt)+(r.expires_on?' · '+esc(r.expires_on):'')+'</span>':'')+
-      '<div class="dg-src">'+esc(r.source||'')+'</div></td>'+
+      '<div class="dg-src">'+esc(srcWord(r.source||''))+'</div></td>'+
       '<td style="white-space:nowrap;text-align:end">'+
       (r.sensitive?'<button class="btn sm ghost dg-mini" onclick="dgReveal(\''+esc(r.key)+'\')">'+(DG.revealed[r.key]?fl('Hide','إخفاء'):fl('Show','عرض'))+'</button> ':'')+
       /* rows WITH a proof no longer show Replace here (it moved into the edit form);

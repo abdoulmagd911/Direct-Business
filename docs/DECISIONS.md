@@ -2364,6 +2364,33 @@ Guard: `scripts/qa/probe-a-column-sorts-by-what-is-in-it.mjs`; the Clients half 
 `scripts/qa/probe-client-table-sorts-by-what-you-see.mjs`.
 *Date: 2026-09-23, js/core/core-10-v29-reports.js. Status: ACTIVE.*
 
+**M86 — a sentence that carries a number cannot be translated by a word list; choose the words where
+the sentence is built. And a display translation never reaches an editor.** Found 2026-09-24 (fire
+#243), driven live through every Settings sub-page in Arabic. Two surfaces were half done. The
+Commercial Credit Pool dialog read **"POOL CAP (SAR)"**, an English placeholder and an English help
+sentence under an Arabic title: js/21 translates by exact text and knew the title and one label,
+nothing else. Its card on Settings had the same fault one level up — the sub-line carries the cap
+figure ("Cap currently 1,250,000 SAR. Calendar (Gregorian) month…"), so no exact-text list could
+ever have matched it. Both now choose their words in core-08 with the same inline language check
+the file already uses, and the English side is checked to read exactly as before.
+The company registry (Generator → Company assets & registry) printed an English provenance line
+under every one of its 29 rows — "Official records", "Bank accounts sheet", "Company letterhead"…
+— the `source` column, which has no Arabic twin. Every row's LABEL was Arabic, which made the
+English stand out more. The live registry uses **sixteen distinct source phrases, all written by
+the loader**, so they are chrome in practice and js/66 gives them their Arabic — **display only**:
+the row's editor keeps the raw stored value, so a save can never write the Arabic word back over
+the English source (M26's family — a translation that becomes a data change is a corruption with a
+friendly face), and a phrase the list does not know still shows, in English, rather than vanishing.
+A `source_ar` column would be the schema-first answer and would need the owner to fill 29 values;
+this is the reversible one until then.
+Verified live: Settings in Arabic went from twelve English lines to none, and the registry page to
+none. The pool card's sub-line is translated in the page but hidden there by an existing style rule
+on `.ch-sub`, so it is claimed as translated, not as visible.
+Guard: `scripts/qa/probe-settings-speaks-arabic-all-the-way-down.mjs` — three sabotages, each
+tripping exactly one check: the source map disabled (check 4), the dialog forced to English (check
+2), and the display word leaked into the editor (check 7, the brake that matters most).
+*Date: 2026-09-24, js/core/core-08-v25.js and js/66-document-generator.js. Status: ACTIVE.*
+
 **M85 — an empty mirror page does not say "nothing from Direct" while the ledger holds Direct's
 invoices; it says where they are.** Found 2026-09-24 (fire #242), driven live. The sidebar's
 "Invoices" entry — the obvious name for anyone looking for an invoice — opened on **"Nothing has

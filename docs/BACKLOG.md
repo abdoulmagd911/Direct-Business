@@ -136,6 +136,36 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #243 (2026-09-24 ~21:00 UTC) — Settings now speaks Arabic all the way down
+
+I opened every Settings sub-page in Arabic against your real database: Team & Access, Connections,
+the Commercial Credit Pool, the company registry, the chain-of-command note. Team & Access is clean
+— all eleven accounts, both languages. Connections is clean. Two surfaces were half done:
+
+- **The Credit Pool dialog** read "POOL CAP (SAR)", an English hint in the reason box, and an
+  English help sentence, under an Arabic title. The card behind it had the same problem in its
+  sub-line, which carries the cap figure — that is why the usual translation list never caught it;
+  a sentence with a number in it can't be matched word-for-word.
+- **The company registry** printed an English provenance line under every one of its 29 rows —
+  "Official records", "Bank accounts sheet", "Company letterhead", and so on. Every row's *name* was
+  Arabic, which made the English stand out more, not less. Sixteen distinct phrases, all written by
+  whoever loaded the registry.
+
+Both are fixed. Settings in Arabic went from twelve English lines to none; the registry page to
+none. Two guarantees worth knowing: the English side reads exactly as it did — I check for that —
+and the registry translation is **display only**. When you edit a row, the box still holds the
+stored English source, so saving can never quietly overwrite it with the Arabic word. A phrase the
+list doesn't know shows in English rather than disappearing.
+
+One honest caveat: the Credit Pool card's sub-line is translated but an existing style rule hides
+that line on the live page, so you won't see it — the dialog and buttons you will.
+
+**Checked and left alone:** the "Open Team & Access" and "Team members + roles" buttons looked dead
+in my first pass; they weren't — they open an overlay my measurement couldn't see. The
+"Chain-of-command" card shows a short notice pointing you to the client card, by design.
+
+---
+
 ## Routine fire #242 (2026-09-24 ~19:00 UTC) — "Invoices" said nothing had come from Direct, while Finance held 46 invoices from Direct
 
 I drove the pages I had not touched this session — Bookings, Tickets, Invoices, Operations,

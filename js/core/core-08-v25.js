@@ -789,10 +789,17 @@
   window.v25OpenPoolSettings=function(){
     if(typeof openModal!=='function')return;
     var cur=(DB&&DB.settings&&DB.settings.commercialPool)||{capSAR:1250000};
-    openModal('Commercial Credit Pool — settings',
-      '<div class="field"><label>Pool cap (SAR)</label><input id="v25PoolCap" type="number" value="'+(cur.capSAR||1250000)+'" min="0" step="10000"></div>'+
-      '<div class="field"><label>Change reason (logged to audit)</label><input id="v25PoolReason" placeholder="Why are you adjusting the cap?"></div>'+
-      '<div style="font-size:12px;color:var(--muted);margin-top:8px">Calendar (Gregorian) month is the billing period. Over-limit is informational only — pushes proceed and are audit-logged.</div>',
+    /* 2026-09-24 (fire #243): driven live in Arabic, this dialog read "POOL CAP (SAR)", an English
+       placeholder and an English help sentence under an Arabic title — the translation layer (js/21)
+       matches the title and one label by exact text and nothing else here. The words are chosen in
+       this file now, so the dialog does not depend on a word list elsewhere knowing about it. */
+    var _pAr=(typeof LANG!=='undefined'&&LANG==='ar');
+    openModal(_pAr?'مجمع الائتمان التجاري — الإعدادات':'Commercial Credit Pool — settings',
+      '<div class="field"><label>'+(_pAr?'سقف المجمع (SAR)':'Pool cap (SAR)')+'</label><input id="v25PoolCap" type="number" value="'+(cur.capSAR||1250000)+'" min="0" step="10000"></div>'+
+      '<div class="field"><label>'+(_pAr?'سبب التغيير (يُسجَّل في التدقيق)':'Change reason (logged to audit)')+'</label><input id="v25PoolReason" placeholder="'+(_pAr?'لماذا تعدّل السقف؟':'Why are you adjusting the cap?')+'"></div>'+
+      '<div style="font-size:12px;color:var(--muted);margin-top:8px">'+(_pAr
+        ?'الشهر الميلادي هو فترة الفوترة. تجاوز السقف للعلم فقط — تمضي عمليات الدفع وتُسجَّل في التدقيق.'
+        :'Calendar (Gregorian) month is the billing period. Over-limit is informational only — pushes proceed and are audit-logged.')+'</div>',
       function(){
         var newCap=+document.getElementById('v25PoolCap').value||1250000;
         var reason=document.getElementById('v25PoolReason').value||'';
@@ -1468,11 +1475,16 @@
       }
       var cap=(DB&&DB.settings&&DB.settings.commercialPool&&DB.settings.commercialPool.capSAR)||1250000;
       var tplStatus=v25TemplateStatus();   /* preset/presetLabel dropped with the hidden card below */
+      /* fire #243: the sub-line carries a number, so no exact-text word list could ever translate
+         it — it read English under an Arabic heading. Chosen here, like the dialog above. */
+      var _cAr=(typeof LANG!=='undefined'&&LANG==='ar');
       var html='<div class="card v25-settings-pool" style="margin-bottom:14px">'+
-        '<h3>Commercial Credit Pool</h3>'+
-        '<div class="ch-sub">Cap currently <b>'+v25Money(cap)+'</b>. Calendar (Gregorian) month is the billing period. Over-limit is informational only and logged to audit.</div>'+
-        '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" onclick="v25OpenPoolSettings()">Edit cap…</button>'+
-        '<button class="btn ghost sm" onclick="v25ShowPoolHistory()">History</button></div></div>'+
+        '<h3>'+(_cAr?'مجمع الائتمان التجاري':'Commercial Credit Pool')+'</h3>'+
+        '<div class="ch-sub">'+(_cAr
+          ?('السقف الحالي <b>'+v25Money(cap)+'</b>. الشهر الميلادي هو فترة الفوترة. تجاوز السقف للعلم فقط ويُسجَّل في التدقيق.')
+          :('Cap currently <b>'+v25Money(cap)+'</b>. Calendar (Gregorian) month is the billing period. Over-limit is informational only and logged to audit.'))+'</div>'+
+        '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" onclick="v25OpenPoolSettings()">'+(_cAr?'تعديل السقف…':'Edit cap…')+'</button>'+
+        '<button class="btn ghost sm" onclick="v25ShowPoolHistory()">'+(_cAr?'السجل':'History')+'</button></div></div>'+
         /* 2026-09-22 (fire #218/#219): the "👤 View preset" card is HIDDEN here. It offered five
            buttons — Commercial · Finance · CFO · Everything · B2B snapshot — under a sentence that
            read "Each preset shapes the sidebar and Today KPIs." Driven live against the real
