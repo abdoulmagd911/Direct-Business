@@ -13,13 +13,26 @@
    belongs to the database, and an audit trail nobody may edit is the point of it.
 
    Same family as the Archive's zeros (M74): a number true of what it counts and false to the person
-   reading it. Each tile now says how much of itself is refusals, and the feed hides them behind a
-   badge that names the count — the "N hidden · Show" pattern the Leads list already uses.
+   reading it. Each tile now says how much of itself is refusals.
+
+   **CORRECTED 2026-09-24 (fire #241), and the correction is the interesting part.** #230 also made
+   the feed HIDE refusals until you press Show, and this probe asserted that as the right answer.
+   The next full battery put two OLDER probes red — probe-audit-names-and-words and
+   probe-history-actor-and-sync-words, both of which plant a refused visit and check it is named
+   properly on the feed. Three things settled it against the newer probe rather than the older two:
+   those guards predate #230 and encode a defect already paid for (fire #53); the live feed holds
+   131 refusals among 378 rows, so the default was dropping a THIRD of an audit log behind a line
+   most people would never click; and a quietly shorter list is the exact fault M27 and M74 exist to
+   stop. #230's real finding was the TILES counting a refusal as a record change — that is fixed by
+   labelling, which is untouched here and still checked. Hiding the rows was scope I added on top of
+   it, and it was wrong. The toggle stays, defaulting to showing everything; anyone who wants record
+   changes only can still press Hide. The checks below were rewritten to hold the corrected
+   behaviour — not inverted to match the code, which is why the reasoning is written down here.
 
    What this holds:
-     1. with refusals in the log, the feed opens on record changes only — no refusal on it;
-     2. a badge says how many are held back, and it is a real count, not a word like "some";
-     3. pressing Show brings back every event, refusals included, and the badge flips to say so;
+     1. the feed opens on the WHOLE log, refusals included — an audit trail is never silently short;
+     2. a badge says they are included and offers to take them out, so the view is not a mystery;
+     3. pressing Hide leaves record changes only, and the badge then names the count held back;
      4. a window that is ENTIRELY refusals says so on the tile — "all N … no record changed" —
         rather than reporting a bare number that reads as work done;
      5. a mixed window says how many of its number were refusals;
@@ -31,8 +44,8 @@
      9. no JS errors, and nothing was written.
 
    Sabotage-tested against COPIES of the app (APP_DIR — the repository untouched), two real runs:
-     · the feed put back to listing every row (badge removed with it) — fails 1, 2, 3, 7 and 8,
-       printing a refusal at the top of the feed;
+     · the feed put back to hiding refusals by default (showDenied left undefined, exactly the #230
+       regression) — fails 1 and 2, a third of the audit log gone from the page on arrival;
      · the tile note removed — fails 4 and 5, leaving exactly the bare "7-DAY 3" that started this
        while every other check still passes, which is why both halves of the fix are checked.
    Run: node scripts/qa/probe-a-refused-visit-is-not-a-change.mjs                                  */
@@ -138,18 +151,18 @@ const pass = (n, d) => console.log('PASS · ' + n + (d ? ' — ' + d : ''));
 console.log('  log seeded: ' + HIST_WITH.length + ' events, ' + HIST_ONLY.length + ' of them refused page visits');
 
 const refusedOnFeed = en.before.rows.filter((r) => REFUSED.test(r)).length;
-(en.before.count === HIST_CLEAN.length && refusedOnFeed === 0)
-  ? pass('the feed opens on record changes only', en.before.count + ' rows, no refusal among them')
-  : fail('the feed opens on record changes only', JSON.stringify({ rows: en.before.count, refused: refusedOnFeed, first: en.before.rows[0] }));
+(en.before.count === HIST_WITH.length && refusedOnFeed === HIST_ONLY.length)
+  ? pass('the feed opens on the whole log, refusals included', en.before.count + ' rows, ' + refusedOnFeed + ' of them refusals')
+  : fail('the feed opens on the whole log, refusals included', JSON.stringify({ rows: en.before.count, refused: refusedOnFeed, first: en.before.rows[0] }));
 
-(en.before.badge && en.before.badge.state === 'hidden' && new RegExp('\\b' + HIST_ONLY.length + '\\b').test(en.before.badge.text))
-  ? pass('a badge names how many are held back', JSON.stringify(en.before.badge.text.slice(0, 70)))
-  : fail('a badge names how many are held back', JSON.stringify(en.before.badge));
+(en.before.badge && en.before.badge.state === 'shown' && /shown too|تُعرض/i.test(en.before.badge.text) && /Hide|إخفاء/i.test(en.before.badge.text))
+  ? pass('a badge says they are included and offers to take them out', JSON.stringify(en.before.badge.text.slice(0, 70)))
+  : fail('a badge says they are included and offers to take them out', JSON.stringify(en.before.badge));
 
-(en.after && en.after.count === HIST_WITH.length && en.after.rows.filter((r) => REFUSED.test(r)).length === HIST_ONLY.length
-  && en.after.badge && en.after.badge.state === 'shown')
-  ? pass('Show brings every event back and the badge flips', en.after.count + ' rows')
-  : fail('Show brings every event back and the badge flips', JSON.stringify({ after: en.after && en.after.count, badge: en.after && en.after.badge }));
+(en.after && en.after.count === HIST_CLEAN.length && en.after.rows.filter((r) => REFUSED.test(r)).length === 0
+  && en.after.badge && en.after.badge.state === 'hidden' && new RegExp('\\b' + HIST_ONLY.length + '\\b').test(en.after.badge.text))
+  ? pass('Hide leaves record changes only, and the badge names the count held back', en.after.count + ' rows · ' + JSON.stringify(en.after.badge.text.slice(0, 60)))
+  : fail('Hide leaves record changes only, and the badge names the count held back', JSON.stringify({ after: en.after && en.after.count, badge: en.after && en.after.badge }));
 
 /* the labels are upper-cased by the stylesheet, so this match must be case-insensitive — the
    first version of this check was reading `undefined` and calling it a failure of the page. */
@@ -168,10 +181,14 @@ const cleanNotes = clean.before.tiles.reduce((a, t) => a.concat(t.notes), []).fi
   ? pass('brake: with no refusals there is no badge and no note', clean.before.count + ' rows, untouched')
   : fail('brake: with no refusals there is no badge and no note', JSON.stringify({ badge: clean.before.badge, notes: cleanNotes, rows: clean.before.count }));
 
-const onlyText = (only.before.rows[0] || '') + ' ' + ((only.before.badge || {}).text || '');
-(only.before.count === 1 && /every one of the \d+ events here is a refused page visit/i.test(only.before.rows[0] || ''))
-  ? pass('a log of nothing but refusals does not read as an empty log', JSON.stringify((only.before.rows[0] || '').slice(0, 80)))
-  : fail('a log of nothing but refusals does not read as an empty log', JSON.stringify({ rows: only.before.rows.slice(0, 2), badge: only.before.badge }));
+/* a log that is nothing but refusals: it arrives showing all of them, and the ONE state where the
+   page would otherwise look empty — after somebody presses Hide — says why instead of showing
+   nothing. That second half is the check worth having, so both are asserted. */
+const onlyHidden = (only.after && only.after.rows[0]) || '';
+(only.before.count === HIST_ONLY.length && only.before.rows.every((r) => REFUSED.test(r))
+  && /every one of the \d+ events here is a refused page visit/i.test(onlyHidden))
+  ? pass('a log of nothing but refusals shows them, and never reads as an empty log when hidden', JSON.stringify(onlyHidden.slice(0, 80)))
+  : fail('a log of nothing but refusals shows them, and never reads as an empty log when hidden', JSON.stringify({ shown: only.before.rows.slice(0, 2), hidden: onlyHidden.slice(0, 90) }));
 
 const arNotes = ar.before.tiles.reduce((a, t) => a.concat(t.notes), []);
 const arOk = ar.before.badge && /[؀-ۿ]/.test(ar.before.badge.text) && arNotes.some((n) => /[؀-ۿ]/.test(n))

@@ -2595,8 +2595,7 @@ recent entries. The page whose whole job is to say what changed was mostly sayin
 This is M74 again (a number true of what it counts and false to its reader) on the one page where
 it matters most, so it gets its own rule rather than a line in that one.
 Each tile now says how much of itself is refusals — "all N were refused page visits — no record
-changed" when a window is entirely them — and the feed hides them behind a badge naming the count,
-the "N hidden · Show" pattern the Leads list already uses. **Nothing is deleted and nothing is
+changed" when a window is entirely them. **Nothing is deleted and nothing is
 dropped from the counts: this is a view.** That matters twice over. The log belongs to the database
 and is not ours to edit — that is the point of an audit trail — and a real person being refused a
 page repeatedly is something the owner must still be able to see, so the count stays on screen
@@ -2609,8 +2608,26 @@ rather than leave him wondering who was being turned away.
 Fixed in the same commit, found while reading the page in Arabic: the quiet note under Today said
 «قبل 2 أيام». Arabic counts two of anything with a **dual** form — «قبل يومين» — and past ten takes
 the singular accusative; all four cases are now handled.
-Guard: `scripts/qa/probe-a-refused-visit-is-not-a-change.mjs`.
-*Date: 2026-09-23, js/63-undo-and-real-audit.js. Status: ACTIVE.*
+**CORRECTED 2026-09-24 (fire #241) — the feed opens showing everything.** #230 also gave the feed a
+toggle and left it defaulting to HIDDEN, so a third of the audit log (131 of 378 rows) was off the
+page on arrival, behind a line most people would never press. The next full battery caught it: two
+OLDER guards went red — `probe-audit-names-and-words` and `probe-history-actor-and-sync-words`, both
+of which plant a refused visit and check it is named properly ON the feed, and both of which predate
+#230 and encode a defect already paid for (fire #53). Three things settled it against the newer
+probe: those guards are older and specific; hiding a third of an audit trail by default is the
+quietly-shorter-list fault M27 and M74 exist to stop; and **#230's actual finding was the TILES
+miscounting**, which labelling fixes and which is untouched. Hiding the rows was scope added on top
+of the real fix, and it was wrong. `showDenied` now starts true; the toggle stays for anyone who
+wants record changes only, and the one state that would otherwise look empty — every row hidden —
+still says why instead of showing nothing.
+**The general lesson, which is why this is written up rather than quietly amended:** when a new
+probe and an older one disagree, the older one is not automatically right, but it is evidence that
+has already been paid for, and a change that turns it red is a finding about the change. Rewriting
+the newer probe to match the new code would have buried that.
+Guard: `scripts/qa/probe-a-refused-visit-is-not-a-change.mjs` — checks 1-3 and 7 rewritten to hold
+the corrected behaviour, sabotage-verified by reinstating the exact regression (`showDenied` left
+undefined), which puts four of them red.
+*Date: 2026-09-23, corrected 2026-09-24, js/63-undo-and-real-audit.js. Status: ACTIVE.*
 
 **M75 addendum — the sweep, 2026-09-23 (fire #229).** With the rule written, every remaining
 clickable column in the app was driven the same way: the **Airlines** and **Providers** tables are

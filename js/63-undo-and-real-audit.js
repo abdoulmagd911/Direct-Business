@@ -117,7 +117,13 @@
 
   /* ---------- Activity & Audit — now reading record_history, not DB.audit ---------- */
   var HIST_CAP=500;   // named so the tile and the query can never drift apart
-  var HIST={rows:null,loading:false,err:null};
+  /* showDenied starts TRUE — fire #241. Fire #230 added this toggle and left it undefined, which is
+     falsy, so refused page visits were hidden by default: 131 of the 378 rows in the live feed
+     vanished behind a line most people would never click. #230's fault was the tiles COUNTING a
+     refused visit as a record change, and that is fixed by saying what the rows are, not by taking
+     them off the page — a quietly shorter list is the fault this codebase keeps paying for
+     (M27, M74). The toggle stays, so anyone who wants only record changes can still get them. */
+  var HIST={rows:null,loading:false,err:null,showDenied:true};
   function histLoad(cb){
     var c=client(); if(!c){ setTimeout(function(){histLoad(cb);},400); return; }
     if(HIST.loading)return;

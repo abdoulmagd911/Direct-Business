@@ -136,6 +136,33 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #241 (2026-09-24 ~17:00 UTC) — I hid a third of your audit log, and the test suite caught me
+
+This one is a correction of my own work, so I want to be plain about it.
+
+Two rounds ago I fixed a real problem on Activity & Audit: the tiles were counting "somebody was
+refused a page" as "a record was changed", so a green 39 for the week actually meant nought records
+changed. That fix was right and it stands.
+
+But I also made the feed **hide** those refused visits until you press Show. On your real log that
+is **131 of 378 rows off the page the moment you open it** — a third of an audit trail behind a line
+most people would never click. An audit log that is quietly short is the exact fault this project
+keeps paying for.
+
+I did not spot it. The full test run did: two *older* tests went red, both of which check that a
+refused visit appears on the feed and is named properly. They were written before my change, for a
+problem already paid for once. That disagreement was the finding.
+
+The feed now opens showing everything. The toggle stays, so anyone who wants only record changes can
+press Hide — and if they do, and the log happens to hold nothing else, the page still says why
+instead of looking empty.
+
+I rewrote my own test to hold the corrected behaviour and wrote down the reasoning in it, rather
+than just flipping it to agree with the new code — otherwise the next person reads a test that
+looks confident and has no idea it was once wrong.
+
+---
+
 ## Routine fire #240 (2026-09-24 ~15:00 UTC) — what your team typed into a funnel form could not be searched for
 
 When a colleague opens a company in the app, they answer that funnel's own questions: the MoT
