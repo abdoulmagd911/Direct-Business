@@ -31,7 +31,7 @@ const ok = (m) => console.log('  ✓ ' + m);
 const allErrors = [];
 
 async function session(tasksLevel, PORT, { lang = 'en', changes = null } = {}) {
-  process.env.MOCK_ROLE = 'team_member';
+  process.env.MOCK_ROLE = 'team_member'; process.env.MOCK_TASKS_ROSTER = '1';
   const grid = { today: 'full', leads: 'full', clients: 'full' };
   if (tasksLevel) grid.tasks = tasksLevel;
   process.env.MOCK_PAGE_ACCESS = JSON.stringify(grid);

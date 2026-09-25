@@ -965,7 +965,11 @@ export function start(port, seedOverrides){
        database (TSK/PRJ-2026-nnn), the owner defaults to the caller, 'done' stamps done_at, and the
        guard's words come back for client work with no company or project. MOCK_NO_MEMBER=1 leaves
        the QA account off team_members (the "not on the team list yet" case). */
-    if(TASKMOCK.tables.has(t)){
+    /* team_directory is answered ONLY when a probe asks for it (MOCK_TASKS_ROSTER=1, the Tasks probe):
+       before release 1 this stand-in never served it (an empty list), and the roster-dependent probes
+       (probe-crm-attacks, probe-no-native-dialogs) are built on that — serving it to everyone turned
+       both red on the release-1 battery, 2026-09-25. */
+    if(TASKMOCK.tables.has(t) && !(t==='team_directory' && process.env.MOCK_TASKS_ROSTER!=='1')){
       const me=TABLES.app_users.find(u=>u.id===UID && u.active);
       const lvl=me ? mockLevelsOf(me).tasks : 'none';
       const myMember=TASKMOCK.members().find(m=>m.user_id===UID && m.active);
