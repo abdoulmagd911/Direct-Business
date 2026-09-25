@@ -2827,6 +2827,8 @@ company owner through the live resolver). Proven by the design's 87 tests plus 6
 local copy corrected to the live truth (`scripts/qa/phase3/run.sh`, 93/93; the 6 go red on the design
 as written). **Release 1 screens:** `js/108-tasks.js` (the Tasks page) and
 `js/109-changes-to-your-tasks.js` (Today), guarded by `scripts/qa/probe-tasks-page.mjs`.
+**Owner's ruling (2026-09-25): Tasks only for release 1 — Reports comes with its own release.** Nobody's
+Reports access changes until then; today's browser-held Reports page stays as it is.
 *Date: 2026-09-25. Status: ACTIVE.*
 
 **D2 — Access is a level per person per page, not a role.** Four levels:
