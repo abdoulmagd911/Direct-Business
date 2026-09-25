@@ -2878,6 +2878,41 @@ Guards: `scripts/qa/access-levels-attacks.sql` (31 attacks as employee and manag
 is always thrown away; sabotaged — `page_level` forced to full — it fails the ones that depend on it),
 `scripts/qa/live-access-levels-drive.mjs` (the working copy against the live database, as admin,
 manager and employee), and the battery probes updated for the four levels.
+**Phase 1b as built (2026-09-25, database, all applied live).** **Every change the app can make now
+answers to the level of the page it belongs to; reading stays open to every signed-in employee**
+("reading is shared, writing is not", ROLES_AND_ACCESS 2026-08-13). Five migrations, each dry-run in
+a discarded transaction, compared old-vs-new for every live person before applying, attacked live
+as an employee and as the manager, and sabotaged (the check forced open) to prove the attacks can
+fail — `scripts/sql/phase1b-{a..e}-*.sql`, each with a rollback, guarded by
+`scripts/qa/access-levels-attacks-1b*.sql`:
+- **A — tables and files by page:** Projects, Bookings, Invoices, Proposals, Operations, the
+  Generator (tables, company-docs files, document numbers), Events (was open to any signed-in
+  account, including an unapproved sign-up), the register tables, backups (adding and reading stay
+  open — the one-time local-backup upload reads back what it wrote), Finance's leftovers.
+- **B — the shared workspace (`app_state`):** `blob_section_pages` maps each section to its page; a
+  section is written only with full control of its page. A save is never refused whole — held-back
+  sections stay as stored and are logged ("Save held back"); the whole-blob fallback cannot delete a
+  section. Before this any team member's browser could overwrite Airlines, Suppliers, SOPs, Settings
+  or the company's bank details.
+- **C — Undo** asks the record's page as well as the role.
+- **D — a person added through Team → Add** gets their role's starting grid (admin-users creates
+  the login before the role; a new employee would have opened Today only — reproduced live first).
+- **E — Leads and Clients:** `businesses.owner_id` is the account behind the owner name, worked out
+  by the database on every write (never taken from the caller), with `owner_name_preference` for the
+  one shared name (the owner's primary address). Full control writes any company; Own work only the
+  caller's, and cannot hand one away, claim one by id, or create one for somebody else; contacts,
+  activities and client profiles follow their company. 91 companies got an owner; 20 clients stay
+  unowned (owner's ruling).
+**Role floors kept on purpose** (the old role rule was stricter than the grid, so lifting it would
+GIVE powers): finance transactions, payment receipts and cost lines stay admin / manager /
+operations; changing or deleting an expense or payment-proof file stays admin / manager; merging
+companies stays admin / manager. Lifting any of these is the owner's call, one line each.
+**Not done in 1b, on purpose:** the screens of Leads, Clients and eight other pages still show their
+editing buttons to someone on View (Team & Access marks them "buttons still show"; the database
+refuses the change); "Own work" is not yet choosable, because a company save goes in batches and one
+refused company fails the batch — it opens on Leads and Clients once those pages stop offering
+changes on other people's companies. The manual-confirm function (no sign-in, one flagged record)
+and the gstest leftover (can only rewrite one fixed test page) were read and left alone.
 *Date: 2026-09-25. Status: ACTIVE.*
 
 **D3 — Quality, Strategy and Integrity have no control over tasks, achievements or proofs** — they

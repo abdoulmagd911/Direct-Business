@@ -667,6 +667,31 @@ Everything else on those five pages is as it should be. Two things I checked and
 lock banner on the three Direct-owned pages shows both languages on purpose — you corrected that
 yourself in August, active language first — and the Operations board's dashes sit under a line that
 already explains the zeros.
+## Phase 1b — the database learns the levels, page by page (2026-09-25, Claude Code)
+
+Done on the owner's word "do what you recommend and keep going" (his rulings: the manager gets the
+Generator — done, logged; the 20 unowned clients stay unowned). All five parts are live in the
+database and listed in DECISIONS D2 "Phase 1b as built": A tables & files by page, B the shared
+workspace section by section, C Undo asks the page, D Team → Add gives the role's grid (a real gap:
+new employees would have opened Today only), E Leads/Clients owner accounts and "own work". Each
+was compared old-vs-new for every live person (the only losses: writes on pages the person cannot
+open, on tables no such person ever wrote), attacked live, and sabotaged. Screen: the lead card's
+"Create proposal" / "New booking" follow the page; Team & Access marks View pages "buttons still show"
+(true since the database refuses); "Own work" not yet choosable (see D2).
+**Waiting on the owner:** merging PR #32 (1a screen + 1b screen bits); after it, the stored-word
+rename (`scripts/sql/phase1a-rename-levels.sql`). The role floors listed in D2 (finance
+transactions/receipts/cost lines, money-file deletes, merges) are his to lift or keep.
+**Next build step:** the Leads and Clients screens withhold changes on companies the person may not
+change (View, and Own on other people's companies) — which also opens "Own work" in Team & Access —
+then the other "buttons still show" pages.
+**Noticed, not acted on:** the admin-users function still checks passwords against 8 characters
+while the Supabase policy (and `MIN_PW`) is 10 — Supabase refuses the short one anyway, so the only
+effect is a less helpful message; it still writes the retired `allowed_pages` list (unread).
+ksa_event_signups has a `login_password` column — a stored password for an event portal; worth a
+look when Events is next touched.
+
+---
+
 ## Phase 1a — one access check, four levels (2026-09-25, Claude Code)
 
 Built as ruled (DECISIONS D2, "Phase 1a as built"). **Database, live now, changed nobody's access**
