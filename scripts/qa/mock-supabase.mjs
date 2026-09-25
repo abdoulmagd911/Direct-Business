@@ -1398,7 +1398,7 @@ export function start(port, seedOverrides){
   let f=path==='/'?'/index.html':path; let body=null;
   try{ body=fs.readFileSync(APP+f); }
   catch(_){ try{ body=fs.readFileSync(APP+'/index.html'); f='/index.html'; }catch(e){ res.writeHead(404); return res.end('nf'); } }
-  res.writeHead(200,{'Content-Type':f.endsWith('.html')?'text/html; charset=utf-8':(f.endsWith('.js')?'application/javascript':'text/plain')}); res.end(body);
+  res.writeHead(200,{'Content-Type':f.endsWith('.html')?'text/html; charset=utf-8':(f.endsWith('.js')?'application/javascript':(f.endsWith('.css')?'text/css':'text/plain'))}); res.end(body);
  }).listen(port).on('error', (e) => {
    /* PROBE-INTEGRITY FIX (meta-audit, 2026-09-03): listen() carried no 'error' handler, so a
       port already held by another probe crashed the run with a bare EADDRINUSE stack trace

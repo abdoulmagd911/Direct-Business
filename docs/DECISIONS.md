@@ -2986,6 +2986,17 @@ warm-brown text, tables, filters and pagination); **orange is for the one main a
 screen**; **DirectFont for both languages**. DirectFont **does not go live** until the owner brings
 written OK from Direct's web/marketing team; until then the fallback is **Inter plus a licensed
 Arabic face**. directksa.com is consulted only where the portal has no example.
+**Phase 1c as built (2026-09-25), step 1.** The one design file is `css/design.css`, loaded by
+index.html LAST (after every inline style block), so it wins without touching the older layers;
+deleting that one line puts the old look back exactly. Step 1 carries: the portal's warm-brown text
+(`#5C4D42`, muted `#827164`) in place of the old slate, its borders and cream table header with a
+warm row hover, quiet warm outline buttons, **orange only on the main action** (`.btn.pri`) and on a
+focused field, and the fonts — **Inter** for English and **Cairo** for Arabic (open licence, already
+the app's font) until DirectFont's written OK arrives; then DirectFont goes first in the two font
+lists in that file and nowhere else. Guarded by `scripts/qa/probe-design-file-on-every-page.mjs`
+(every one of the 20 pages, both languages, reads what the browser computed; sabotage: delete the
+link line → red on every page). Not yet in the file: filter pills, pagination, corner radii,
+and the ~2,500 colour literals inside the layers — each moves into it in later steps, page by page.
 *Date: 2026-09-25. Status: ACTIVE (DirectFont gated on the written OK).*
 
 **D5 — The Executive CRM Dashboard will be replaced by this app** once the new pages are done. Learn

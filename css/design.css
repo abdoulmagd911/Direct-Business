@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* ===== css/design.css — THE design file (Phase 1c, D4). One file, loaded by every page. =====
+
+   The owner's choice (docs/DECISIONS.md D4, 2026-09-25): Direct's corporate portal
+   (corporate.directksa.com) is the base — its warm taupe/brown surfaces and text, its tables — and
+   ORANGE IS FOR THE ONE MAIN ACTION on a screen. Values are the ones measured on 2026-09-25
+   (docs/PHASE0_REVIEW_2026-09-25.md, "the two websites side by side"), copied here, never loaded
+   from Direct's servers (their component library refuses other sites).
+
+   FONT. DirectFont, for both languages, is the owner's choice — but it does NOT go live until the
+   owner brings written OK from Direct's web/marketing team (its own file says "All rights reserved"
+   and restricts embedding). Until then: Inter for English (the portal's own first font) and Cairo for
+   Arabic (open licence, already the app's font). When the OK arrives, DirectFont goes FIRST in the two
+   font lists below and nowhere else.
+
+   HOW IT WINS. index.html loads this file LAST, after every inline style block, so equal rules here
+   take effect; where an older block used !important, so does the matching rule here, and only there.
+   It only sets things; removing the <link> line puts the old look back exactly.
+
+   Guarded by scripts/qa/probe-design-file-on-every-page.mjs.                                        */
+
+:root{
+  --design-file:"1c";                 /* the probe reads this on every page */
+
+  /* text: the portal's warm brown instead of the old cool slate */
+  --ink:#5C4D42; --ink-2:#6E5D51; --ink-3:#827164; --ink-4:#968578;
+  --txt:#5C4D42; --muted:#827164; --muted-2:#A8998D;
+
+  /* surfaces and borders */
+  --bg:#FCF5F0; --card:#FFFFFF; --line:#EDE2DA; --line-2:#E5D6CB;
+
+  /* the portal's main colour, for everything that is not the one main action */
+  --taupe:#AB9A8E; --taupe-hover:#968578; --taupe-pressed:#827164;
+  --taupe-wash:#F2E8E1; --taupe-cream:#FFFCFA;
+
+  /* orange — the main action only (the portal's call-to-action orange; unchanged) */
+  --orange:#FF6B00;
+
+  --font-en:'Inter','Cairo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-ar:'Cairo','Inter',system-ui,sans-serif;
+}
+
+/* fonts — !important only because an older layer (js/core/core-09-v26.js, "Font wiring") injects
+   body and Arabic font rules with !important; this file comes later, so it wins the tie */
+body{font-family:var(--font-en)!important;color:var(--txt)}
+html[dir=rtl] body,html[lang=ar] body,:lang(ar),[dir=rtl]{font-family:var(--font-ar)!important}
+
+/* buttons: plain buttons are quiet warm outlines; orange stays on .pri, the main action */
+.btn{border-color:var(--line);color:var(--txt)}
+.btn:hover{background:var(--taupe-cream)}
+.btn:active{background:var(--taupe-wash)}
+.btn.pri{background:var(--orange)!important;border-color:transparent!important;color:#fff!important}
+.btn.pri:hover{background:#E86100!important}
+.btn.ghost{color:var(--muted)}
+
+/* tables: cream header with brown text, a warm row hover (portal) */
+.tbl-wrap table thead th, th{color:var(--ink-3)}
+.tbl-wrap table thead th{background:var(--bg);border-bottom-color:var(--line)}
+.tbl-wrap table tbody td{border-bottom-color:var(--taupe-wash)}
+.tbl-wrap table tbody tr:hover{background:var(--taupe-cream)}
+
+/* form fields: warm borders, orange only when focused */
+input,select,textarea{border-color:var(--line-2)}
+input:focus,select:focus,textarea:focus{border-color:var(--orange);outline-color:var(--orange)}
