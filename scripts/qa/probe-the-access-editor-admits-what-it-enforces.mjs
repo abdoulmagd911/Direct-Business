@@ -17,7 +17,8 @@
    project has been bitten by a warning trapped in a hover before (fire #95).
 
    The editor now says it in words, on the row, and only where it is true: a page set to Viewer that
-   does not check the setting is marked "not enforced yet", and one sentence underneath names them
+   does not check the setting is marked "buttons still show" (was "not enforced yet" until the
+   database learned the levels in Phase 1b, 2026-09-25), and one sentence underneath names them
    all. The list of pages that DO hold lives in js/52 beside `mayEditPage` — the thing that decides —
    so fixing a page clears the warning by editing one array.
 
@@ -136,7 +137,9 @@ const hasArabic = (s) => /[؀-ۿ]/.test(s || '');
 
 const checks = [
   ['a Viewer page that does not honour the setting is marked in visible text',
-    marked.length > 0 && allViewer.markVisibleText && /not enforced/i.test(allViewer.markText),
+    /* 2026-09-25 (Phase 1b): the database now refuses every change a View person tries, so the old
+       mark "not enforced yet" became untrue; what is still true is that the page shows its buttons */
+    marked.length > 0 && allViewer.markVisibleText && /buttons still show/i.test(allViewer.markText),
     marked.length + ' marked: ' + marked.join(', ')],
   ['a page that DOES honour it is not marked',
     HELD.every((h) => marked.indexOf(h) < 0),
@@ -158,7 +161,7 @@ const checks = [
     (blank.markedPages || []).length === 0 && blank.note === '' && blank.selectCount === ALL.length,
     JSON.stringify({ marks: (blank.markedPages || []).length, note: blank.note.slice(0, 30), selects: blank.selectCount })],
   ['in Arabic the mark and the sentence are Arabic',
-    hasArabic(arab.markText) && hasArabic(arab.note) && !/not enforced/i.test(arab.markText) && !/of the pages/i.test(arab.note),
+    hasArabic(arab.markText) && hasArabic(arab.note) && !/buttons still show/i.test(arab.markText) && !/of the pages/i.test(arab.note),
     (arab.markText + ' | ' + arab.note.slice(0, 50))],
   ['no JS errors', errors.length === 0, errors.slice(0, 2).join(' | ')],
 ];

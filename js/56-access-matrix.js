@@ -41,9 +41,12 @@
   /* pages whose own records know their owner, so "Own work" can be chosen there. Empty until Phase 1b
      teaches a page; adding a page here is part of that page's change, never ahead of it. */
   var OWN_READY=[];
-  /* the pages the database also enforces — worth saying on screen so nobody assumes the rest are
-     watertight */
-  var HARD=['finance','settings','activity'];
+  /* the pages whose CHANGES the database enforces by level. Since Phase 1b (2026-09-25) that is every
+     page that stores anything: each table, file store and workspace section answers to its page's
+     level (scripts/sql/phase1b-*). Today stores nothing of its own; Reports lives in each browser
+     (M32); Tickets has no store of its own. */
+  var HARD=['leads','clients','offers','documents','ops','finance','settings','events','airlines','vendors','sopsla',
+            'activity','archive','projects','bookings','invoices','sync'];
   /* 2026-09-21 (fire #189) — and the pages whose SCREENS hold a View setting. The list lives in js/52
      beside mayEditPage, which is the thing that decides; read it, never copy it. If js/52 has not
      loaded, say nothing rather than guess. */
@@ -267,7 +270,7 @@
            : '<select class="inp sm" data-ax-page="'+esc(p[0])+'" style="max-width:120px;font-size:12px" onchange="axSet(\''+u.id+'\',\''+p[0]+'\',this.value)">'+levelOptions(p[0],cur)+'</select>')+
          /* fire #189: in WORDS, on the row, and only where it is true and being relied on */
          ((cur==='view'&&!viewerHolds(p[0]))
-           ? '<span data-ax-notheld="'+esc(p[0])+'" title="'+fl('This page does not yet check the View setting','هذه الصفحة لا تتحقق من إعداد المشاهدة بعد')+'" style="flex:0 0 auto;background:#FDECEC;color:#A3242C;border:1px solid #F2C4C4;border-radius:9px;padding:1px 7px;font-size:10px;font-weight:700;white-space:nowrap">'+fl('not enforced yet','غير مُطبّق بعد')+'</span>'
+           ? '<span data-ax-notheld="'+esc(p[0])+'" title="'+fl('This page still shows its editing buttons to someone on View; the database refuses the change','هذه الصفحة ما زالت تُظهر أزرار التعديل لصاحب صلاحية المشاهدة؛ وقاعدة البيانات ترفض التغيير')+'" style="flex:0 0 auto;background:#FFF8E8;color:#6B4E00;border:1px solid #FBAE16;border-radius:9px;padding:1px 7px;font-size:10px;font-weight:700;white-space:nowrap">'+fl('buttons still show','الأزرار ما زالت ظاهرة')+'</span>'
            : '')+
          '</div>';
     });
@@ -277,10 +280,10 @@
       var nh=PAGES.filter(function(pp){ return (L[pp[0]]||'none')==='view' && !viewerHolds(pp[0]); });
       if(nh.length){
         h+='<div data-ax-notheld-note="1" style="font-size:11.5px;border:1px solid #F2C4C4;background:#FDECEC;color:#7a2028;border-radius:8px;padding:8px 10px;margin-top:9px;line-height:1.6">'+
-          esc(fl(nh.length+' of the pages set to View do not check that setting yet, so this person can still change things there: '+
-                   nh.map(function(pp){ return fl(pp[1],pp[2]); }).join(', ')+'. The setting is saved and will take effect as each page is taught to honour it.',
-                 'عدد '+nh.length+' من الصفحات المحددة كـ«مشاهدة» لا تتحقق من هذا الإعداد بعد، لذلك لا يزال بإمكان هذا الشخص التعديل فيها: '+
-                   nh.map(function(pp){ return fl(pp[1],pp[2]); }).join('، ')+'. الإعداد محفوظ وسيسري عند تعليم كل صفحة احترامه.'))+'</div>';
+          esc(fl(nh.length+' of the pages set to View still show their editing buttons to this person: '+
+                   nh.map(function(pp){ return fl(pp[1],pp[2]); }).join(', ')+'. The database refuses any change they try there, but the page does not say so until they try. The buttons will be withdrawn as each page is taught.',
+                 'عدد '+nh.length+' من الصفحات المحددة كـ«مشاهدة» ما زالت تُظهر أزرار التعديل لهذا الشخص: '+
+                   nh.map(function(pp){ return fl(pp[1],pp[2]); }).join('، ')+'. قاعدة البيانات ترفض أي تغيير يحاوله هناك، لكن الصفحة لا تقول ذلك إلا عند المحاولة. ستُسحب الأزرار مع تعليم كل صفحة.'))+'</div>';
       }
     }catch(_){}
     if(!locked) h+='<button class="btn pri sm" style="margin-top:10px" onclick="axSave(\''+u.id+'\')">'+fl('Save access','حفظ الصلاحيات')+'</button>';
@@ -306,8 +309,8 @@
           'Four levels per person, page by page: No access · View (sees everything, changes nothing) · Own work (changes only their own) · Full control (changes everyone\'s). Admins are not listed with pages — they always have everything. A green dot means the database enforces that page too.',
           'أربعة مستويات لكل شخص، صفحة بصفحة: لا وصول · مشاهدة (يرى كل شيء ولا يغيّر شيئًا) · عمله فقط (يغيّر عمله فقط) · تحكم كامل (يغيّر عمل الجميع). المسؤولون لديهم كل شيء دائمًا. النقطة الخضراء تعني أن قاعدة البيانات تطبّق ذلك أيضًا.')+'</div>'+
         '<div data-ax-own-note="1" style="font-size:11.5px;color:var(--muted);margin-bottom:10px">'+fl(
-          '"Own work" cannot be chosen yet: each page first has to learn whose records are whose. It opens page by page as that is built.',
-          '«عمله فقط» غير متاح بعد: يجب أولًا أن تعرف كل صفحة لمن كل سجل. سيُتاح صفحةً صفحة عند بناء ذلك.')+'</div>'+
+          '"Own work" cannot be chosen yet. The database already holds it for Leads and Clients (each company has an owner account); it opens there once those pages stop offering changes on other people\'s companies, and on other pages as they learn whose records are whose.',
+          '«عمله فقط» غير متاح بعد. قاعدة البيانات تطبّقه الآن على العملاء المحتملين والعملاء (لكل شركة حساب مالك)؛ ويُتاح هناك عندما تتوقف الصفحتان عن عرض التعديل على شركات الآخرين، وفي بقية الصفحات عندما تعرف لمن كل سجل.')+'</div>'+
         (ROWS||[]).map(card).join('');
     }catch(e){console.warn('[matrix] paint',e);}
   }
