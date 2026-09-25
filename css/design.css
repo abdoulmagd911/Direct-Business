@@ -62,3 +62,51 @@ html[dir=rtl] body,html[lang=ar] body,:lang(ar),[dir=rtl]{font-family:var(--font
 /* form fields: warm borders, orange only when focused */
 input,select,textarea{border-color:var(--line-2)}
 input:focus,select:focus,textarea:focus{border-color:var(--orange);outline-color:var(--orange)}
+
+/* ===================== Phase 1c step 2 — the shared classes (2026-09-25) =====================
+   Every page is built from the same few classes; restyling them here moves the whole app at once,
+   and a page with its own inline colours moves in a later, page-by-page step. Portal values
+   (docs/PHASE0_REVIEW_2026-09-25.md): fields .45rem corners and 42px tall, cards .75rem, dialogs
+   1.25rem, pill buttons, filter pills grey that turn orange when on, pagination current page
+   #F2E8E1 with #6E5D51 text. !important appears only where an older layer set the same property
+   with !important or inline (the pager is styled inline by js/04), and only on that property. */
+:root{
+  --r-field:.45rem; --r-card:.75rem; --r-dialog:1.25rem; --r-pill:9999px;
+  --field-h:42px;
+  --shadow-card:0 1px 2px rgba(92,77,66,.05),0 6px 20px -12px rgba(92,77,66,.16);
+}
+
+/* buttons — pills, as on the portal; the main action stays orange (step 1) */
+.btn{border-radius:var(--r-pill)!important;box-shadow:none}
+.btn.sm{border-radius:var(--r-pill)!important}
+.btn.danger{color:#D90B0B;border-color:#F3C9C6}
+
+/* cards */
+.card{border-radius:var(--r-card)!important;border:1px solid var(--line)!important;box-shadow:var(--shadow-card)!important}
+
+/* filter pills: quiet warm outline; orange when on */
+.v26_3-chip{border-color:var(--line)!important;color:var(--txt)!important;background:#fff!important}
+.v26_3-chip:hover{background:var(--taupe-cream)!important}
+.v26_3-chip.active{background:var(--orange)!important;border-color:var(--orange)!important;color:#fff!important}
+
+/* fields: .field wraps a labelled input; .inp is a bare one */
+.field label{color:var(--ink-3)}
+.field input:not([type=checkbox]):not([type=radio]):not([type=file]),.field select,.inp{border-radius:var(--r-field)!important;border-color:var(--line-2);min-height:var(--field-h)}
+.field textarea{border-radius:var(--r-field)!important;border-color:var(--line-2)}
+.inp.sm{min-height:0}
+.field input:focus,.field select:focus,.field textarea:focus,.inp:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,107,0,.12);outline:none}
+
+/* the shared dialog (openModal): 1.25rem corners, warm header and footer rules */
+.modal{border-radius:var(--r-dialog)!important}
+.modal .mh{border-bottom-color:var(--line)}
+.modal .mf{border-top-color:var(--line)}
+.modal .mh h3{color:var(--txt)}
+
+/* tables — header row and hover were step 1; the rest of the rule lines */
+.tbl-wrap table tbody td{color:var(--txt)}
+.tbl-wrap table thead th{font-weight:700;letter-spacing:.04em}
+
+/* pagination (js/04 builds it with inline styles): current-page wash, warm outline */
+.pg-prev,.pg-next,select.pg-size{border:1px solid var(--line)!important;background:#fff!important;color:var(--ink-2)!important;border-radius:var(--r-field)!important;min-height:32px!important}
+.pg-prev:hover:not(:disabled),.pg-next:hover:not(:disabled){background:var(--taupe-wash)!important;color:#6E5D51!important}
+.pg-prev:disabled,.pg-next:disabled{opacity:.5;cursor:default!important}

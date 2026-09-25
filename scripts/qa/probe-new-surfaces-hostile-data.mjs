@@ -34,6 +34,11 @@
 
    Sabotage-tested against a COPY of the app (APP_DIR — the repository untouched): replacing js/86's
    esc86() with a pass-through fails checks 1 and 2 and the canary fires.
+   2026-09-25 — made reliable: it went red on crowded battery runs only (three runs in a row), because
+   it read the card in the ~70 ms gap after a re-draw removes js/86's line. It now reads while the
+   line is present (see card() below). Reproduced before the fix by forcing a re-draw every 150 ms
+   (3 of 5 red), 8 of 8 green after; with esc86 made a pass-through the canary fires and checks 2–3
+   go red, calm and under the forced re-draws alike.
    Run: node scripts/qa/probe-new-surfaces-hostile-data.mjs                                       */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
@@ -96,16 +101,19 @@ await p.waitForTimeout(1800);
 
 const card = async (id, expectLine) => {
   await p.evaluate((i) => { try { current = 'leads'; openLead = i; render(); } catch (_) { } }, id);
-  /* wait for the line itself rather than a fixed delay — js/86 injects it from a setTimeout after
-     render() returns, and under load a fixed wait reported "no mark-up on the page" for a card that
-     simply had not been drawn yet. A probe that goes green or red with the machine's mood is worse
-     than no probe. */
-  if (expectLine) await p.waitForFunction(() => !!document.querySelector('#view .v86-origin, #view .v86-confirm'), { timeout: 20000 }).catch(() => { });
-  await p.waitForTimeout(700);
-  return p.evaluate(() => {
+  /* Read the card AT A MOMENT the line is on it. Opening a card is followed by a few more re-draws
+     (other layers call render() on their own timers), and js/86 draws its line from a setTimeout
+     after each one — so the line is briefly absent after every re-draw (~70 ms; much longer under
+     load). This probe used to wait for the line once, sleep 700 ms, then read: when the read landed
+     in one of those gaps it saw no line and reported the escaping checks as failed. That is exactly
+     what happened on crowded battery runs (2026-09-25, reproduced on demand by forcing a re-draw
+     every 150 ms: 3 of 5 runs red). Now the snapshot is taken inside the wait, when the line is
+     there; if it never appears in 20 s the snapshot is empty and the checks below fail loudly. */
+  const snap = () => {
     const v = document.getElementById('view');
     const o = v.querySelector('.v86-origin'), w = v.querySelector('.v86-confirm');
     return {
+      present: !!(o || w),
       originText: o ? (o.textContent || '') : '', originHtml: o ? o.innerHTML : '',
       warnText: w ? (w.textContent || '') : '', warnHtml: w ? w.innerHTML : '',
       imgs: v.querySelectorAll('.v86-origin img,.v86-confirm img,.v86-origin script,.v86-confirm script').length,
@@ -113,7 +121,15 @@ const card = async (id, expectLine) => {
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
       pwned: (typeof window.__pwned === 'undefined') ? null : window.__pwned,
     };
-  });
+  };
+  if (expectLine) {
+    const h = await p.waitForFunction((src) => { const s = (0, eval)('(' + src + ')')(); return s.present ? s : false; },
+      snap.toString(), { timeout: 20000, polling: 50 }).catch(() => null);
+    if (h) return h.jsonValue();
+    return Object.assign(await p.evaluate((src) => (0, eval)('(' + src + ')')(), snap.toString()), { missing: true });
+  }
+  await p.waitForTimeout(700);
+  return p.evaluate((src) => (0, eval)('(' + src + ')')(), snap.toString());
 };
 
 const h1 = await card('H1', true);
@@ -143,6 +159,8 @@ await ctx.close(); await b.close(); srv.close?.();
 
 const realWrites = [...new Set(wrote)].filter((w) => !/finance_client_links/.test(w));
 const checks = [
+  ['the provenance line was on both cards when they were read (so the checks below examined something)',
+    !!h1.present && !!h2.present, 'H1 ' + (h1.present ? 'read' : 'NEVER APPEARED in 20 s') + ' · H2 ' + (h2.present ? 'read' : 'NEVER APPEARED in 20 s')],
   ['mark-up in a provenance sentence is TEXT, and nothing executed',
     h1.originText.indexOf('<img') >= 0 && h1.imgs === 0 && final.pwned === null,
     'canary=' + JSON.stringify(final.pwned) + ' injected nodes=' + h1.imgs],
