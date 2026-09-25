@@ -773,6 +773,14 @@ export function start(port, seedOverrides){
       // Phase 1a (2026-09-25) — mirrors page_level() / my_page_levels() / team_access_list() /
       // set_page_levels() (scripts/sql/phase1a-access-levels.sql): four levels, both stored
       // vocabularies read, admins always full, Today at least view, unknown pages none.
+      // D7 (2026-09-25) — mirrors changes_to_my_companies(p_days) (scripts/sql/d7-changes-to-my-companies.sql):
+      // the rows come from MOCK_CHANGES_TO_MINE (a JSON array a probe hands in); MOCK_CHANGES_FAIL=1
+      // answers with an error, as a refused or broken read would. Nothing set = no changes.
+      if(fn==='changes_to_my_companies'){
+        if(process.env.MOCK_CHANGES_FAIL==='1') return send(res,500,{code:'XX000',details:null,hint:null,message:'probe: read failed'});
+        let rows=[]; try{ rows=JSON.parse(process.env.MOCK_CHANGES_TO_MINE||'[]'); }catch(_){}
+        return send(res,200, rows);
+      }
       if(fn==='my_page_levels'){
         if(LAPSED||anonWall) return send(res,200,'null');
         const me=TABLES.app_users.find(u=>u.id===UID && u.active);
@@ -1390,7 +1398,7 @@ export function start(port, seedOverrides){
   let f=path==='/'?'/index.html':path; let body=null;
   try{ body=fs.readFileSync(APP+f); }
   catch(_){ try{ body=fs.readFileSync(APP+'/index.html'); f='/index.html'; }catch(e){ res.writeHead(404); return res.end('nf'); } }
-  res.writeHead(200,{'Content-Type':f.endsWith('.html')?'text/html; charset=utf-8':(f.endsWith('.js')?'application/javascript':'text/plain')}); res.end(body);
+  res.writeHead(200,{'Content-Type':f.endsWith('.html')?'text/html; charset=utf-8':(f.endsWith('.js')?'application/javascript':(f.endsWith('.css')?'text/css':'text/plain'))}); res.end(body);
  }).listen(port).on('error', (e) => {
    /* PROBE-INTEGRITY FIX (meta-audit, 2026-09-03): listen() carried no 'error' handler, so a
       port already held by another probe crashed the run with a bare EADDRINUSE stack trace

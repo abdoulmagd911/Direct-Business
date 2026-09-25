@@ -2884,6 +2884,8 @@ grid: the database gave them nothing while the screen showed them the employee p
 gate (`allowed_pages`, re-checked every 2 s) is retired. **The stored words are renamed**
 (editor → full, viewer → view) **only after the 1a pull request is merged**
 (`scripts/sql/phase1a-rename-levels.sql`), because the live screen reads the old words until then.
+**Done 2026-09-25**, after PR #32 merged and the live site was confirmed serving it: 220 person × page
+checks before and after, 0 differences; no old word left in any grid (39 stored levels, all new words).
 Guards: `scripts/qa/access-levels-attacks.sql` (31 attacks as employee and manager in a transaction that
 is always thrown away; sabotaged — `page_level` forced to full — it fails the ones that depend on it),
 `scripts/qa/live-access-levels-drive.mjs` (the working copy against the live database, as admin,
@@ -2936,6 +2938,19 @@ before and after (activity notes live inside the company row, so they are record
 owner is **told** on Today when someone else changed one of theirs, and Undo puts a change back
 within 24 hours. "Own work" stays available as a tool (a new starter, a trainee, someone outside the
 core team), not the default. Money stays stricter (D2's role floors on Finance).
+**As built (2026-09-25).** "The owner is told" = the database function changes_to_my_companies
+(`scripts/sql/d7-changes-to-my-companies.sql`, runs as the caller, so it shows nothing the caller
+could not already read) drawn on Today by `js/106-changes-to-your-companies.js`: changes someone
+else made in the last 7 days to a company whose owner account is you — the company, its contacts,
+its client profile — naming who, which fields in words, how long ago, one click to open it (where
+"Recent changes" offers Undo). No changes, or a failed read, draws nothing: the card never claims
+"nothing changed". Guarded by `scripts/qa/probe-owner-is-told-of-changes.mjs` (sabotage: break the
+row-id → app-id translation and the open-the-company check goes red). **What "recorded" covers,
+measured:** the history trigger sits on businesses, contacts, client_profiles, finance_invoices and
+finance_transactions. The separate `activities` table has none — but the app no longer writes it
+(no code refers to it; its newest row is 2026-08-16; activity notes are saved inside the company
+record and so are recorded with it). If anything ever writes `activities` again, give it the same
+trigger in the same change.
 *Date: 2026-09-25. Status: ACTIVE.*
 
 **D3 — Quality, Strategy and Integrity have no control over tasks, achievements or proofs** — they
@@ -2973,6 +2988,17 @@ warm-brown text, tables, filters and pagination); **orange is for the one main a
 screen**; **DirectFont for both languages**. DirectFont **does not go live** until the owner brings
 written OK from Direct's web/marketing team; until then the fallback is **Inter plus a licensed
 Arabic face**. directksa.com is consulted only where the portal has no example.
+**Phase 1c as built (2026-09-25), step 1.** The one design file is `css/design.css`, loaded by
+index.html LAST (after every inline style block), so it wins without touching the older layers;
+deleting that one line puts the old look back exactly. Step 1 carries: the portal's warm-brown text
+(`#5C4D42`, muted `#827164`) in place of the old slate, its borders and cream table header with a
+warm row hover, quiet warm outline buttons, **orange only on the main action** (`.btn.pri`) and on a
+focused field, and the fonts — **Inter** for English and **Cairo** for Arabic (open licence, already
+the app's font) until DirectFont's written OK arrives; then DirectFont goes first in the two font
+lists in that file and nowhere else. Guarded by `scripts/qa/probe-design-file-on-every-page.mjs`
+(every one of the 20 pages, both languages, reads what the browser computed; sabotage: delete the
+link line → red on every page). Not yet in the file: filter pills, pagination, corner radii,
+and the ~2,500 colour literals inside the layers — each moves into it in later steps, page by page.
 *Date: 2026-09-25. Status: ACTIVE (DirectFont gated on the written OK).*
 
 **D5 — The Executive CRM Dashboard will be replaced by this app** once the new pages are done. Learn
