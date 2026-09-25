@@ -969,6 +969,67 @@ export function start(port, seedOverrides){
        before release 1 this stand-in never served it (an empty list), and the roster-dependent probes
        (probe-crm-attacks, probe-no-native-dialogs) are built on that — serving it to everyone turned
        both red on the release-1 battery, 2026-09-25. */
+    /* 2026-09-25 — Team & Access → the team list (js/110, scripts/sql/team-list-editing.sql). Only when a
+       probe asks for it (MOCK_TEAMLIST=1): a STATEFUL team list and departments, writes allowed to an admin
+       or a manager only (anyone else: PostgREST's refusal, or no row back on an update — as RLS does),
+       the database's guard sentences word for word, and a record_history row per change. Off by default,
+       so every other probe keeps the fixed list TASKMOCK serves. */
+    if(process.env.MOCK_TEAMLIST==='1' && ['team_members','departments','team_directory'].includes(t)){
+      const TL=globalThis.__TL||(globalThis.__TL=(()=>{
+        const deps=[['commercial','Commercial','التجاري',0],['business','Business','الأعمال',1],['partnership','Partnership','الشراكات',2],['quality','Quality','الجودة',3]]
+          .map(a=>({id:'dep-'+a[0],code:a[0],name_en:a[1],name_ar:a[2],sort:a[3],active:true,parent_id:a[0]==='commercial'?null:'dep-commercial',head_member_id:null}));
+        const people=[{id:'tl-u1',email:'first.person@example.test',full_name:'First Person',name_ar:'الشخص الأول',active:true},
+                      {id:'tl-u2',email:'second.person@example.test',full_name:'Second Person',name_ar:'الشخص الثاني',active:true},
+                      {id:'tl-u3',email:'not.listed@example.test',full_name:'Not Listed Yet',name_ar:'غير مدرج بعد',active:true},
+                      {id:'tl-u4',email:'left.company@example.test',full_name:'Left Company',name_ar:'غادر الشركة',active:false}];
+        const members=[{id:'tm-1',user_id:'tl-u1',department_id:'dep-commercial',active:true,left_on:null},{id:'tm-2',user_id:'tl-u2',department_id:'dep-business',active:true,left_on:null}];
+        deps[0].head_member_id='tm-1';
+        return {deps,people,members,seq:10};
+      })());
+      const me=TABLES.app_users.find(x=>x.id===UID && x.active);
+      const may=!!me && ['admin','manager'].includes(me.role);
+      const dir=()=>TABLES.app_users.map(x=>({id:x.id,email:x.email,full_name:x.full_name,name_ar:x.name_ar||null,active:x.active})).concat(TL.people);
+      const hist=(table,id,before,after)=>{ const nextId=(TABLES.record_history.length?Math.max(...TABLES.record_history.map(x=>+x.id||0)):0)+1;
+        TABLES.record_history.unshift({id:nextId,at:new Date().toISOString(),actor:UID,actor_name:(me&&me.full_name)||'unknown',table_name:table,record_id:id,action:before?'edit':'create',before_row:before,after_row:after,undone_at:null,undone_by:null}); };
+      const pick=(rows)=>{ let out=rows.slice(); Object.keys(u.query||{}).forEach(k=>{ if(['select','order','limit','offset'].includes(k))return; const v=String((Array.isArray(u.query[k])?u.query[k][0]:u.query[k])||''); const m=v.match(/^eq\.(.*)$/); if(m) out=out.filter(r=>String(r[k])===m[1]); }); return out; };
+      const err=(code,msg)=>send(res,code==='42501'?403:400,{code,details:null,hint:null,message:msg});
+      if(req.method==='GET'){
+        if(t==='team_directory') return send(res,200,pick(dir()));
+        return send(res,200,pick(t==='departments'?TL.deps:TL.members));
+      }
+      let body=''; req.on('data',c=>body+=c);
+      return req.on('end',()=>{
+        let payload={}; try{ payload=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+        if(t==='team_directory') return err('42501','permission denied for view team_directory');
+        if(req.method==='POST'){
+          if(t!=='team_members'||!may) return err('42501','new row violates row-level security policy for table "'+t+'"');
+          const r=Object.assign({},Array.isArray(payload)?payload[0]:payload);
+          const login=dir().find(x=>x.id===r.user_id);
+          if(!login||!login.active) return err('P0001','Only an active login can be added to the team list');
+          if(TL.members.some(x=>x.user_id===r.user_id)) return err('23505','duplicate key value violates unique constraint "team_members_user_id_key"');
+          const row={id:'tm-'+(++TL.seq),user_id:r.user_id,department_id:r.department_id,active:true,left_on:null};
+          TL.members.push(row); hist('team_members',row.id,null,row); return send(res,201,[row]);
+        }
+        if(req.method==='PATCH'){
+          if(!may) return send(res,200,[]);                     // RLS: an update you may not make touches no row
+          const rows=pick(t==='departments'?TL.deps:TL.members); const out=[];
+          for(const r of rows){
+            const before=Object.assign({},r), next=Object.assign({},r,payload);
+            if(t==='departments'){
+              if(me.role!=='admin' && ['code','name_en','name_ar','parent_id','active','sort'].some(k=>k in payload && payload[k]!==r[k])) return err('P0001','Only an admin can rename, move or switch off a department; a manager may set who heads it');
+              if(next.head_member_id && next.head_member_id!==r.head_member_id && !TL.members.some(m=>m.id===next.head_member_id&&m.active)) return err('P0001','A department head must be an active person on the team list');
+            } else {
+              if('user_id' in payload && payload.user_id!==r.user_id) return err('P0001','A team-list entry stays with its login; add the other login as its own entry instead');
+              if(r.active && next.active===false){ const heads=TL.deps.filter(d=>d.head_member_id===r.id).map(d=>d.name_en); if(heads.length) return err('P0001','This person heads '+heads.join(', ')+' — choose a new head first, then make them inactive'); if(!next.left_on) next.left_on=new Date().toISOString().slice(0,10); }
+              if(!r.active && next.active===true) next.left_on=null;
+            }
+            Object.assign(r,next); hist(t,r.id,before,Object.assign({},r)); out.push(r);
+          }
+          return send(res,200,out);
+        }
+        return err('42501','mock: '+req.method+' not modelled on '+t);
+      });
+    }
     if(TASKMOCK.tables.has(t) && !(t==='team_directory' && process.env.MOCK_TASKS_ROSTER!=='1')){
       const me=TABLES.app_users.find(u=>u.id===UID && u.active);
       const lvl=me ? mockLevelsOf(me).tasks : 'none';

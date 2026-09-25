@@ -49,6 +49,8 @@
     'Nothing to put back.':'لا يوجد ما يمكن إعادته.',
     'Money records can only be undone by an admin or a manager.':'لا يمكن التراجع عن السجلات المالية إلا من قِبل مسؤول أو مدير.',
     "You can undo your own changes; an admin or manager can undo anyone's.":'يمكنك التراجع عن تغييراتك الخاصة؛ ويمكن للمسؤول أو المدير التراجع عن تغييرات أي شخص.',
+    /* 2026-09-25, the owner's D7 ruling: the owner of a company or task may also undo others' changes to it */
+    "You can undo your own changes, and changes others made to what you own; an admin or manager can undo anyone's.":'يمكنك التراجع عن تغييراتك الخاصة، وعن تغييرات الآخرين على ما تملكه؛ ويمكن للمسؤول أو المدير التراجع عن تغييرات أي شخص.',
     'Bringing back a fully deleted record is an admin action.':'استعادة سجل محذوف بالكامل إجراء يقتصر على المسؤول.'
   };
   /* 2026-09-09 (live test D1): alert()/confirm() froze the owner's tabs. The answer to an Undo is
@@ -190,7 +192,7 @@
      its action, not its table. M103. */
   function isRefusal(r){ return !!r&&r.table_name==='access'&&r.action==='denied'; }
   function entWord(row){ return (row.table_name==='access'&&row.action!=='denied')?fl('Account','الحساب'):tableLabel(row.table_name); }
-  function tableLabel(t){ return { businesses:fl('Lead / client','عميل محتمل / عميل'), finance_invoices:fl('Invoice','فاتورة'), finance_transactions:fl('Transaction','معاملة'), client_profiles:fl('Client profile','ملف العميل'), contacts:fl('Contact','جهة اتصال'), activities:fl('Activity','نشاط'), access:fl('Page access','الوصول إلى صفحة'), app_users:fl('Team account','حساب فريق'), share_links:fl('Share link','رابط مشاركة') }[t] || t; }
+  function tableLabel(t){ return { businesses:fl('Lead / client','عميل محتمل / عميل'), finance_invoices:fl('Invoice','فاتورة'), finance_transactions:fl('Transaction','معاملة'), client_profiles:fl('Client profile','ملف العميل'), contacts:fl('Contact','جهة اتصال'), activities:fl('Activity','نشاط'), access:fl('Page access','الوصول إلى صفحة'), app_users:fl('Team account','حساب فريق'), share_links:fl('Share link','رابط مشاركة'), tasks:fl('Task','مهمة'), projects:fl('Work project','مشروع عمل'), task_checklist:fl('Task checklist','قائمة تحقق المهمة'), task_comments:fl('Task update','تحديث المهمة'), task_people:fl('Task helper','مساعد في المهمة') }[t] || t; }
   /* 2026-09-15 (fire #49, live): 216 of 274 history rows carry the literal 'unknown', and on a
      client card that read "unknown — last contact" like a ghost edit. It is not a ghost: the
      businesses write policy requires app_role() (a signed-in account), so a row the trigger
@@ -250,14 +252,17 @@
   function columnsChanged(row){ try{ return diffKeys(row.before_row,row.after_row).join(', '); }catch(_){ return ''; } }
   function recordName(row){
     var r=row.after_row||row.before_row||{}; var raw=(r.raw&&typeof r.raw==='object')?r.raw:{};
-    var n=r.name||raw.name||r.full_name||r.invoice_no||r.transaction_ref||r.receipt_ref||r.client_group||r.customer_raw_name||r.profile_type||r.direct_client_id||'';
+    var n=r.name||raw.name||r.title||r.full_name||r.invoice_no||r.transaction_ref||r.receipt_ref||r.client_group||r.customer_raw_name||r.profile_type||r.direct_client_id||'';
     if(!n&&row.table_name==='client_profiles'&&r.business_id)n=fl('a client profile','ملف عميل');
     if(!n&&row.table_name==='contacts'&&(r.email||r.phone))n=r.email||r.phone;
     if(!n&&row.table_name==='access'&&r.page)n=pageWord(r.page);
     if(!n&&row.table_name==='access'&&r.target_email)n=String(r.target_email);
     return n?String(n):'';
   }
-  var KNOWN_TABLES={businesses:1,finance_invoices:1,finance_transactions:1,client_profiles:1,contacts:1};
+  /* 2026-09-25 (Phase 3 r1 + D7 ruling): undo_change knows the task tables too, and the owner of a
+     task may undo a colleague's change to it — so task rows get the Undo button like a company's */
+  var KNOWN_TABLES={businesses:1,finance_invoices:1,finance_transactions:1,client_profiles:1,contacts:1,
+                    tasks:1,projects:1,task_checklist:1,task_comments:1,task_people:1};
   /* the audit row's layout: four columns on a desk, one stacked column on a phone. Specificity
      .act-row.v63-row beats core-06's plain .act-row rule, so the old 90px/110px grid never applies. */
   (function v63RowCss(){

@@ -166,6 +166,7 @@ async function main() {
       'Money records can only be undone by an admin or a manager.',
       'Bringing back a fully deleted record is an admin action.',
       "You can undo your own changes; an admin or manager can undo anyone's.",
+      "You can undo your own changes, and changes others made to what you own; an admin or manager can undo anyone's.",
     ];
     /* The layer keeps its map file-private, so the honest check is against the file itself:
        every string the database can return must appear in js/63 with an Arabic counterpart. */
@@ -191,6 +192,20 @@ async function main() {
     const quiet = await p.evaluate(() => (document.getElementById('view') || {}).innerText || '');
     if (!/there are older ones|the log was capped/.test(quiet)) ok('with only six entries the page says nothing about a cap — the note appears only when it is true');
     else fail('the cap note is showing on a log far below the cap');
+  });
+
+  // ---- 2026-09-25 (D7 ruling): a colleague's change to a task is offered for Undo like a company's —
+  // the database lets the task's owner undo it, so the button must be there to press. Sabotage:
+  // take `tasks` out of KNOWN_TABLES in js/63 and this goes red.
+  await run(8781, [{ id: 3001, at: new Date(Date.now() - 5 * 60e3).toISOString(), actor: 'u-colleague', actor_name: 'A Colleague',
+    table_name: 'tasks', record_id: 'task-1', action: 'edit',
+    before_row: { id: 'task-1', code: 'TSK-2026-001', title: 'Call the client back', status: 'todo' },
+    after_row: { id: 'task-1', code: 'TSK-2026-001', title: 'Call the client back', status: 'done' }, undone_at: null, undone_by: null }], async (p) => {
+    const r = await p.evaluate(() => { const row = document.querySelector('#view .act-row[data-hist-id="3001"]'); return row ? { btn: !!row.querySelector('button[onclick*="undoRecordChange"]'), t: row.innerText.replace(/\s+/g, ' ') } : null; });
+    if (r && r.btn) ok('a colleague\'s change to a task offers Undo — the task\'s owner may put it back (D7)');
+    else fail('a task change offers no Undo button: ' + JSON.stringify(r));
+    if (r && /Task/.test(r.t) && /Call the client back/.test(r.t)) ok('…and the entry names it a Task, by its title, not a raw table name');
+    else fail('the task entry is not named in words: ' + JSON.stringify(r));
   });
 
   // ---- a log AT the cap

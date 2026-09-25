@@ -913,6 +913,62 @@ def _(cur):
     as_user(cur, 'u1'); owner = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
     return (owner == 'ok' and 'full control' in (third or ''), f"owner on Own: {owner} · third on Own: {(third or '')[:60]}")
 
+# ======================= Team & Access → the team list (scripts/sql/team-list-editing.sql) =======================
+def new_login(cur, email, active=True):
+    return one(cur, "insert into app_users(email,full_name,role,active) values (%s,%s,'team_member',%s) returning id", (email, email.split('@')[0], active))
+
+@test("T-01 An employee cannot add anyone, move anyone or set a head; a manager can, and each change is in the history with the manager's name")
+def _(cur):
+    newbie = new_login(cur, 'newbie@x.test')
+    as_user(cur, 'u1')
+    a, m = expect_fail(cur, "insert into team_members(user_id,department_id) values (%s,%s)", (newbie, F['dep_bus']), "row-level security")
+    q(cur, "update team_members set department_id=%s where id=%s", (F['dep_par'], F['m2'])); moved_by_emp = one(cur, "select department_id=%s from team_members where id=%s", (F['dep_par'], F['m2']))
+    q(cur, "update departments set head_member_id=%s where id=%s", (F['m1'], F['dep_bus'])); head_by_emp = one(cur, "select head_member_id=%s from departments where id=%s", (F['m1'], F['dep_bus']))
+    q(cur, "reset role"); as_user(cur, 'u4')
+    nm = one(cur, "insert into team_members(user_id,department_id) values (%s,%s) returning id", (newbie, F['dep_bus']))
+    q(cur, "update team_members set department_id=%s where id=%s", (F['dep_par'], F['m2']))
+    q(cur, "update departments set head_member_id=%s where id=%s", (F['m1'], F['dep_bus'])); q(cur, "reset role")
+    moved = one(cur, "select department_id=%s from team_members where id=%s", (F['dep_par'], F['m2'])); head = one(cur, "select head_member_id=%s from departments where id=%s", (F['m1'], F['dep_bus']))
+    hist = one(cur, "select count(*) from record_history where actor=%s and ((table_name='team_members' and record_id in (%s,%s)) or (table_name='departments' and record_id=%s))", (F['u4'], nm, F['m2'], F['dep_bus']))
+    return (a and not moved_by_emp and not head_by_emp and nm and moved and head and hist == 3,
+            f"employee: add refused ({m[:40]}), move took={moved_by_emp}, head took={head_by_emp} · manager: added, moved={moved}, head={head}, history rows as the manager={hist}")
+
+@test("T-02 A manager cannot rename or switch off a department (admin only); an admin can; only an admin removes a team-list row")
+def _(cur):
+    as_user(cur, 'u4')
+    a, m = expect_fail(cur, "update departments set name_en='Renamed' where id=%s", (F['dep_bus'],), "only an admin")
+    b, m2 = expect_fail(cur, "update departments set active=false where id=%s", (F['dep_qua'],), "only an admin")
+    q(cur, "delete from team_members where id=%s", (F['m6'],)); still = one(cur, "select count(*) from team_members where id=%s", (F['m6'],))
+    q(cur, "reset role"); as_user(cur, 'admin')
+    q(cur, "update departments set name_en='Renamed' where id=%s", (F['dep_bus'],)); q(cur, "reset role")
+    renamed = one(cur, "select name_en from departments where id=%s", (F['dep_bus'],))
+    return (a and b and still == 1 and renamed == 'Renamed', f"manager rename: {m[:50]} · switch off refused={b} · manager delete left row={still} · admin renamed → {renamed}")
+
+@test("T-03 Guards: the head must be active; a head cannot be made inactive until replaced; inactive stamps the leaving date and active clears it; an entry never moves to another login; an inactive login is not added")
+def _(cur):
+    as_user(cur, 'u4')
+    q(cur, "update departments set head_member_id=%s where id=%s", (F['m3'], F['dep_par']))
+    a, m1 = expect_fail(cur, "update team_members set active=false where id=%s", (F['m3'],), "choose a new head first")
+    q(cur, "update departments set head_member_id=%s where id=%s", (F['m4'], F['dep_par']))
+    q(cur, "update team_members set active=false where id=%s", (F['m3'],)); left = one(cur, "select left_on=current_date from team_members where id=%s", (F['m3'],))
+    b, m2 = expect_fail(cur, "update departments set head_member_id=%s where id=%s", (F['m3'], F['dep_par']), "active person")
+    q(cur, "update team_members set active=true where id=%s", (F['m3'],)); cleared = one(cur, "select left_on is null from team_members where id=%s", (F['m3'],))
+    c, m3 = expect_fail(cur, "update team_members set user_id=%s where id=%s", (F['u5'], F['m3']), "stays with its login")
+    q(cur, "reset role"); gone = new_login(cur, 'gone@x.test', active=False); as_user(cur, 'u4')
+    d, m4 = expect_fail(cur, "insert into team_members(user_id,department_id) values (%s,%s)", (gone, F['dep_bus']), "active login")
+    return (a and left and b and cleared and c and d, f"{m1[:45]} · left_on stamped={left} · {m2[:40]} · cleared={cleared} · {m3[:30]} · {m4[:35]}")
+
+@test("T-04 Someone on View (Quality) and a signed-out caller change nothing on the team list")
+def _(cur):
+    as_user(cur, 'u6')
+    q(cur, "update team_members set active=false where id=%s", (F['m5'],)); q(cur, "update departments set head_member_id=%s where id=%s", (F['m6'], F['dep_qua']))
+    q(cur, "reset role")
+    act = one(cur, "select active from team_members where id=%s", (F['m5'],)); hd = one(cur, "select head_member_id is null from departments where id=%s", (F['dep_qua'],))
+    q(cur, "set local role anon"); q(cur, "select set_config('request.uid', '', true)")
+    a, m = expect_fail(cur, "update team_members set active=false where id=%s returning id", (F['m5'],), "")
+    q(cur, "reset role"); act2 = one(cur, "select active from team_members where id=%s", (F['m5'],))
+    return (act and hd and act2, f"view: still active={act}, head unchanged={hd} · anon: still active={act2} ({m[:40]})")
+
 w = max(len(n) for n, _, _ in results)
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]
