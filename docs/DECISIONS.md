@@ -2936,6 +2936,19 @@ before and after (activity notes live inside the company row, so they are record
 owner is **told** on Today when someone else changed one of theirs, and Undo puts a change back
 within 24 hours. "Own work" stays available as a tool (a new starter, a trainee, someone outside the
 core team), not the default. Money stays stricter (D2's role floors on Finance).
+**As built (2026-09-25).** "The owner is told" = the database function changes_to_my_companies
+(`scripts/sql/d7-changes-to-my-companies.sql`, runs as the caller, so it shows nothing the caller
+could not already read) drawn on Today by `js/106-changes-to-your-companies.js`: changes someone
+else made in the last 7 days to a company whose owner account is you — the company, its contacts,
+its client profile — naming who, which fields in words, how long ago, one click to open it (where
+"Recent changes" offers Undo). No changes, or a failed read, draws nothing: the card never claims
+"nothing changed". Guarded by `scripts/qa/probe-owner-is-told-of-changes.mjs` (sabotage: break the
+row-id → app-id translation and the open-the-company check goes red). **What "recorded" covers,
+measured:** the history trigger sits on businesses, contacts, client_profiles, finance_invoices and
+finance_transactions. The separate `activities` table has none — but the app no longer writes it
+(no code refers to it; its newest row is 2026-08-16; activity notes are saved inside the company
+record and so are recorded with it). If anything ever writes `activities` again, give it the same
+trigger in the same change.
 *Date: 2026-09-25. Status: ACTIVE.*
 
 **D3 — Quality, Strategy and Integrity have no control over tasks, achievements or proofs** — they
