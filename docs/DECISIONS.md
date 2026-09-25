@@ -60,7 +60,12 @@ other task sends rules across and reads the file, never edits it directly, so th
 never race on the same lines of the same document. A request that touches a file on the
 other side of this line gets a stated "that's not mine, here's whose it is" — never a quiet
 edit anyway because it seemed harmless.
-*Date: 2026-08-23. Status: ACTIVE.*
+**Suspended 2026-09-25 by the owner, conditionally:** while exactly one session writes to this repo
+(the Claude Code build session that opened on 2026-09-25), that session may write any file,
+this one and `/brand/*` included. **P4 returns in full the moment a second writing session is
+started** — the new session is told which files are whose before its first commit.
+*Date: 2026-08-23; suspended 2026-09-25. Status: SUSPENDED while one session writes — returns
+if a second writing session starts.*
 
 **P5 — A correct rule that nothing consults is not a rule.** Hit this exact failure shape
 three times now: the Takamol exclusion list (correct, seeded, wired into every importer —
@@ -2836,6 +2841,22 @@ So "seed from today" means: editor → Full control, missing → No access, nobo
 (whole-section saves in `app_state` — rule 8's "never new keys in `app_state`" points the same
 way), and Own work anywhere while owners are stored as names (`assigned_to`, `account_manager`,
 `created_by` are text) rather than account ids.
+**The owner's rulings on the review (2026-09-25, same day):**
+- **Airlines, Suppliers, SOP & SLA are View / Full control only** — shared reference lists, not
+  anyone's own work. They stay in the shared block for now; no move to their tables in this build.
+- **Projects, Bookings, Invoices, Tickets and Sync join the grid in the same pass** as the other
+  pages (build once), rather than staying admin-only by omission.
+- **Storage buckets, edge functions and triggers are in scope of D2** — the new pages keep their
+  proofs in storage, so a file must obey the same level as the page it belongs to.
+- **"Enforced by the database" is proven by live attack tests** — as an employee and as the
+  manager, each sabotage-verified — never by reading the rules alone.
+- **Order:** 1a one access check (four levels; seeded editor → Full; the screen fails closed while
+  loading; the old js/15 gate retired; Team & Access shows four levels) → 1b the database learns the
+  levels page by page, including owner **accounts** instead of names on Leads and Clients → 1c the
+  design file → Phase 3 the new pages. **The Reports export is not a separate first step**: it is
+  built with the new Reports pages in Phase 3, where exporting and moving the old browser data are
+  one job.
+- **Every phase lands by pull request, reviewed before it goes live.**
 *Date: 2026-09-25. Status: ACTIVE.*
 
 **D3 — Quality, Strategy and Integrity have no control over tasks, achievements or proofs** — they
@@ -2868,7 +2889,12 @@ since the F1 fix, but its values only apply inside `[data-identity=…]`, which 
 sets — so it styles the document previews only. The app itself uses Google **Cairo** and
 `--orange:#FF6B00` / `--ink:#303848` (a cool slate both sites avoid), with about 2,500 colour
 literals and 2,300 inline styles across the layers.
-*Date: 2026-09-25. Status: ACTIVE.*
+**The owner's choice (2026-09-25):** the **corporate portal is the base** (its taupe surfaces,
+warm-brown text, tables, filters and pagination); **orange is for the one main action on a
+screen**; **DirectFont for both languages**. DirectFont **does not go live** until the owner brings
+written OK from Direct's web/marketing team; until then the fallback is **Inter plus a licensed
+Arabic face**. directksa.com is consulted only where the portal has no example.
+*Date: 2026-09-25. Status: ACTIVE (DirectFont gated on the written OK).*
 
 **D5 — The Executive CRM Dashboard will be replaced by this app** once the new pages are done. Learn
 from it and fix what went wrong there; there is no overlap to protect.

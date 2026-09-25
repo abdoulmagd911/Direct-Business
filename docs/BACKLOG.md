@@ -674,10 +674,12 @@ then review (no code) before building the task manager, the four access levels a
 Done: D1–D6 are in `docs/DECISIONS.md` (after the rule 8 entry), each with what was measured; the
 full review is `docs/PHASE0_REVIEW_2026-09-25.md`. **No app code changed.** The hourly QA routine
 was confirmed paused before anything was written (its last run landed 09:23 UTC).
-**Waiting on the owner:** agreement on the proposed order (Reports export first, because that data
-lives only in browsers), the D4 choice of which website wins where (recommended: the corporate
-portal as the base, orange for the main action, DirectFont), the DirectFont licence, and marking P4
-superseded now that one session executes.
+**Answered the same day** (recorded in DECISIONS D2, D4, P4): order 1a → 1b → 1c → Phase 3, with
+the Reports export moved into Phase 3; Airlines/Suppliers/SOP & SLA View or Full only; Projects,
+Bookings, Invoices, Tickets and Sync join the grid; storage, edge functions and triggers in scope;
+live attack tests as employee and manager; the portal is the design base; DirectFont waits for the
+web/marketing team's written OK; P4 suspended while one session writes.
+**Still open:** that written OK for DirectFont (the owner brings it).
 
 ---
 

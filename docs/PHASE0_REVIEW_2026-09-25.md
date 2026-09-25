@@ -181,30 +181,29 @@ they used**, because each browser holds its own copy.
 
 ---
 
-## 5 · Proposed order
+## 5 · Order — as ruled by the owner, 2026-09-25
 
-1. **Phase 2 first — the Reports export button (small, one day).** It is the only item where
-   waiting can lose real work. One button on Reports, a file named with the person and date, the
-   CSV cells escaped (`= + @ -`). Then the owner asks each person to press it once per browser.
-2. **Phase 1a — one access check, seeded from today.** A database function that answers "what
-   level does this person have on this page" (none / view / own / full), the grid migrated
-   (editor → full), the old js/15 gate retired, the screen failing closed while loading, and the
-   Team & Access screen showing four levels. Probes per page per level, run as an employee.
-3. **Phase 1b — the database learns the levels, page by page,** starting where the data is already
-   in real tables: Finance's 5 tables, Events, Generator, Archive, Activity's Undo, Proposals,
-   Operations, then Leads and Clients (with the owner account column). **Airlines, Suppliers and
-   SOP & SLA** move out of the blob into their real tables first — until then they get View/Full
-   only, through a blob-section check.
-4. **Phase 1c — the design file,** once the D4 choice and the font licence are settled: one file
-   linked in `index.html`, a probe that it loads on every page and that DirectFont renders, then
-   the shared classes, then each page's colours as it is touched.
-5. **Phase 3 — the new pages** from the tested design (tasks + projects → achievements + proofs →
-   KPIs → company card → issuing reports), built on the Phase 1 check so they are born with the
-   four levels.
+*(The review proposed the Reports export first; the owner moved it into Phase 3. His rulings are
+recorded in `docs/DECISIONS.md` under D2, D4 and P4.)*
+
+1. **1a — one access check.** Four levels; seeded editor → Full control; the screen fails closed
+   while loading; the old js/15 gate retired; Team & Access shows four levels. Projects, Bookings,
+   Invoices, Tickets and Sync join the grid in the same pass.
+2. **1b — the database learns the levels, page by page,** including owner **accounts** instead of
+   names on Leads and Clients; storage buckets, edge functions and triggers checked against D2;
+   Airlines, Suppliers and SOP & SLA get View / Full control only and stay in the shared block.
+   Proven by live attack tests as an employee and as the manager, each sabotage-verified.
+3. **1c — the design file:** the corporate portal as the base, orange for the one main action,
+   DirectFont for both languages — live only after the web/marketing team's written OK; fallback
+   Inter plus a licensed Arabic face.
+4. **Phase 3 — the new pages,** including the new Reports pages, which carry the export and the
+   move of the old browser-held achievements as one job.
+
+Every phase lands by pull request and is reviewed before it goes live.
 
 ## 6 · Risks, most serious first
 
-1. **Reports data loss** — until everyone exports, one browser clean-up erases real work. (→ step 1)
+1. **Reports data loss** — until the Phase 3 export, one browser clean-up erases real work. The owner accepted that timing.
 2. **Tightening the database can lock people out.** Every rule change is tested as an employee and
    as the manager, not only as admin, and seeded so nobody's day changes (D2).
 3. **Font licence.** DirectFont's own file restricts embedding; without a written OK, the fallback
