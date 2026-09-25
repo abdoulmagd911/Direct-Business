@@ -104,3 +104,12 @@ alter table promo_codes alter column kind set not null, alter column kind set de
   alter column total_sales_sar set not null, alter column total_sales_sar set default 0,
   alter column total_discount_sar set not null, alter column total_discount_sar set default 0,
   alter column active set not null, alter column expired set not null, alter column code set not null;
+-- businesses.owner_id, the owner ACCOUNT (Phase 1b-E, live since 2026-09-25)
+alter table businesses add column if not exists owner_id uuid references app_users(id) on delete set null;
+-- the live history trigger on companies, contacts and client profiles (as on production)
+drop trigger if exists trg_record_history on businesses;
+create trigger trg_record_history after insert or update or delete on businesses for each row execute function record_history_write();
+drop trigger if exists trg_record_history on contacts;
+create trigger trg_record_history after insert or update or delete on contacts for each row execute function record_history_write();
+drop trigger if exists trg_record_history on client_profiles;
+create trigger trg_record_history after insert or update or delete on client_profiles for each row execute function record_history_write();

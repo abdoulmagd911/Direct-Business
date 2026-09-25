@@ -821,20 +821,19 @@ def _(cur):
     as_user(cur, 'u6'); viewer = count(); q(cur, "reset role")
     return (other == 0 and nopage == 0 and owner >= 2 and viewer >= 2, f"colleague on Own={other} · no Tasks page={nopage} · owner={owner} · View={viewer}")
 
-@test("R1-04 Undo knows tasks: the owner undoes their own edit (title comes back); a colleague cannot undo someone else's; a person on Own cannot undo (needs Full)")
+@test("R1-04 Undo knows tasks: the owner undoes their own edit (title comes back); a colleague cannot undo someone else's; a NON-owner on Own cannot undo (needs Full) — the owner on Own may (D7 ruling, U-03)")
 def _(cur):
     t = new_task(cur, company='coA', owner='m1')
     q(cur, "update tasks set title='Original' where id=%s", (t,))
     as_user(cur, 'u1'); q(cur, "update tasks set title='Changed by Raad' where id=%s", (t,)); q(cur, "reset role")
     h = one(cur, "select max(id) from record_history where table_name='tasks' and record_id=%s and actor=%s", (t, F['u1']))
     as_user(cur, 'u2'); other = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
-    own_tasks(cur, 'u1')
-    as_user(cur, 'u1'); on_own = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
-    q(cur, "update app_users set page_access = page_access || '{\"tasks\":\"full\"}' where id=%s", (F['u1'],))
+    own_tasks(cur, 'u3')
+    as_user(cur, 'u3'); on_own = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
     as_user(cur, 'u1'); mine = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
     title = one(cur, "select title from tasks where id=%s", (t,))
     ok = mine == 'ok' and title == 'Original' and 'own changes' in (other or '') and 'full control of the Tasks' in (on_own or '')
-    return (ok, f"owner: {mine} → '{title}' · colleague: {(other or '')[:45]} · on Own: {(on_own or '')[:45]}")
+    return (ok, f"owner: {mine} → '{title}' · colleague: {(other or '')[:45]} · non-owner on Own: {(on_own or '')[:45]}")
 
 @test("R1-05 Company owner through the live resolver: account manager written as an e-mail prefix or an Arabic name resolves; a name two accounts share resolves to nobody")
 def _(cur):
@@ -878,6 +877,41 @@ def _(cur):
     bad, m = expect_fail(cur, "update promo_codes set services = array['spaceflight'] where code='IMP-2'", None, "unknown service")
     return (after_anon == 6 and moved == 2 and svc_ok == ['flights'] and bad,
             f"imported 6 (3 passes, no one signed in) → {after_anon} rows · as admin: ok · merge re-pointed {moved} · services kept {svc_ok} · our column checked: {m[:45]}")
+
+
+# ======================= D7 Undo — owner's ruling 2026-09-25 (scripts/sql/d7-owner-can-undo.sql) =======================
+@test("U-01 Tasks: a colleague changes Raad's task; Raad (an ordinary employee, the OWNER) undoes it; a third colleague cannot; the undo is recorded")
+def _(cur):
+    t = new_task(cur, company='coA', owner='m1')
+    q(cur, "update tasks set title='Original' where id=%s", (t,))
+    as_user(cur, 'u2'); q(cur, "update tasks set title='Changed by Kareem' where id=%s", (t,)); q(cur, "reset role")
+    h = one(cur, "select max(id) from record_history where table_name='tasks' and record_id=%s and actor=%s", (t, F['u2']))
+    as_user(cur, 'u3'); third = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
+    as_user(cur, 'u1'); owner = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
+    title = one(cur, "select title from tasks where id=%s", (t,)); by = one(cur, "select undone_by=%s from record_history where id=%s", (F['u1'], h))
+    return (owner == 'ok' and title == 'Original' and by and 'own changes' in (third or ''), f"owner: {owner} → '{title}' (recorded={by}) · third colleague: {(third or '')[:60]}")
+
+@test("U-02 Companies: a colleague changes a company Raad OWNS (owner_id); Raad undoes it; a third colleague cannot; a contact follows its company")
+def _(cur):
+    b = one(cur, "insert into businesses(name,is_client,owner_id) values ('Owned Co',true,%s) returning id", (F['u1'],))
+    c = one(cur, "insert into contacts(business_id,name) values (%s,'Person') returning id", (b,))
+    as_user(cur, 'u2'); q(cur, "update businesses set name='Renamed by Kareem' where id=%s", (b,)); q(cur, "update contacts set name='Changed person' where id=%s", (c,)); q(cur, "reset role")
+    hb = one(cur, "select max(id) from record_history where table_name='businesses' and record_id=%s and actor=%s", (b, F['u2']))
+    hc = one(cur, "select max(id) from record_history where table_name='contacts' and record_id=%s and actor=%s", (c, F['u2']))
+    as_user(cur, 'u3'); third = one(cur, "select undo_change(%s)", (hb,)); q(cur, "reset role")
+    as_user(cur, 'u1'); ob = one(cur, "select undo_change(%s)", (hb,)); oc = one(cur, "select undo_change(%s)", (hc,)); q(cur, "reset role")
+    name = one(cur, "select name from businesses where id=%s", (b,)); pn = one(cur, "select name from contacts where id=%s", (c,))
+    return (ob == 'ok' and oc == 'ok' and name == 'Owned Co' and pn == 'Person' and 'own changes' in (third or ''), f"owner: company {ob} → '{name}', contact {oc} → '{pn}' · third: {(third or '')[:50]}")
+
+@test("U-03 The owner on Own work (not Full) can still undo a change to their own task; not the owner on Own cannot; money stays admin/manager")
+def _(cur):
+    t = new_task(cur, company='coA', owner='m1')
+    as_user(cur, 'u2'); q(cur, "update tasks set title='Kareem again' where id=%s", (t,)); q(cur, "reset role")
+    h = one(cur, "select max(id) from record_history where table_name='tasks' and record_id=%s and actor=%s", (t, F['u2']))
+    own_tasks(cur, 'u1', 'u3')
+    as_user(cur, 'u3'); third = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
+    as_user(cur, 'u1'); owner = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
+    return (owner == 'ok' and 'full control' in (third or ''), f"owner on Own: {owner} · third on Own: {(third or '')[:60]}")
 
 w = max(len(n) for n, _, _ in results)
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
