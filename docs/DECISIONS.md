@@ -2884,6 +2884,8 @@ grid: the database gave them nothing while the screen showed them the employee p
 gate (`allowed_pages`, re-checked every 2 s) is retired. **The stored words are renamed**
 (editor → full, viewer → view) **only after the 1a pull request is merged**
 (`scripts/sql/phase1a-rename-levels.sql`), because the live screen reads the old words until then.
+**Done 2026-09-25**, after PR #32 merged and the live site was confirmed serving it: 220 person × page
+checks before and after, 0 differences; no old word left in any grid (39 stored levels, all new words).
 Guards: `scripts/qa/access-levels-attacks.sql` (31 attacks as employee and manager in a transaction that
 is always thrown away; sabotaged — `page_level` forced to full — it fails the ones that depend on it),
 `scripts/qa/live-access-levels-drive.mjs` (the working copy against the live database, as admin,

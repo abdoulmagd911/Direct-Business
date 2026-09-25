@@ -709,6 +709,8 @@ six battery probes updated for four levels, each with the reason in the file; th
 new screen code each caught.
 **After the merge (next step, mine):** run `scripts/sql/phase1a-rename-levels.sql` (editor → full,
 viewer → view) with the before/after check.
+**Done 2026-09-25:** PR #32 merged (battery 342/342 on the final tree); the rename ran with 0 differences
+across 220 person × page checks.
 **Found on the way, fixed here:** probe-m13-remaining's refusal run was red on every run — both of its
 refusal checks listened for the browser's own alert box, which js/63 replaced with an in-page notice.
 The Settings card said "the level alone decides which pages they open" — untrue since the per-page
