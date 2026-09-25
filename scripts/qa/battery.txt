@@ -353,3 +353,4 @@ probe-a-question-before-the-act-speaks-arabic
 probe-a-link-built-from-a-stored-value-works
 probe-a-chip-and-the-pager-agree
 probe-a-reset-link-is-not-a-refusal
+probe-lead-shortcuts-follow-the-page

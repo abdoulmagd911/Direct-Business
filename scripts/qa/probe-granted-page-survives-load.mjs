@@ -51,7 +51,8 @@ async function boot(role, pageAccess, PORT) {
     try {
       /* the matrix answers a beat after the role, as it does live */
       if (/\/rpc\/log_page_denied/.test(u.pathname)) denials.push(rq.postData());
-      if (/\/rpc\/my_page_access/.test(u.pathname)) await new Promise((res) => setTimeout(res, 1500));
+      /* 2026-09-25 (Phase 1a): the grid now arrives through my_page_levels — delay whichever is asked, or this window is never exercised */
+      if (/\/rpc\/my_page_(access|levels)/.test(u.pathname)) await new Promise((res) => setTimeout(res, 1500));
       const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
       const body = await resp.text(); const h = {}; resp.headers.forEach((v, k) => { if (!['content-encoding', 'content-length', 'transfer-encoding'].includes(k)) h[k] = v; });
       await r.fulfill({ status: resp.status, headers: h, body });
