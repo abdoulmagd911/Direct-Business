@@ -292,7 +292,29 @@ const TABLES={
   }
 })();
 const MOCK_ACCESS_PAGES=['today','leads','clients','offers','documents','ops','reports','finance','settings',
-  'events','airlines','vendors','sopsla','activity','archive','projects','bookings','invoices','tickets','sync'];
+  'events','airlines','vendors','sopsla','activity','archive','projects','bookings','invoices','tickets','sync','tasks'];
+/* Phase 3 release 1 — the task-manager model the block in the request handler serves */
+const TASKMOCK=(()=>{
+  const lookups={
+    task_statuses:[['backlog','Backlog','مؤجل',false,false,1],['todo','To do','للتنفيذ',false,false,2],['in_progress','In progress','قيد التنفيذ',false,false,3],['waiting','Waiting on others','بانتظار طرف آخر',false,false,4],['done','Done','منجز',true,true,5],['cancelled','Cancelled','ملغي',true,false,6]].map(a=>({code:a[0],name_en:a[1],name_ar:a[2],is_closed:a[3],is_done:a[4],sort:a[5]})),
+    priorities:[['urgent','Urgent','عاجل',1],['high','High','مرتفع',2],['normal','Normal','عادي',3],['low','Low','منخفض',4]].map(a=>({code:a[0],name_en:a[1],name_ar:a[2],sort:a[3]})),
+    work_types:[['sales','Sales & accounts','مبيعات وحسابات',1],['tender','Tender','مناقصة',2],['partnership','Partnership / supplier','شراكة / مزود',3],['booking','Booking & operations','حجوزات وتشغيل',4],['complaint','Complaint / support','شكوى / دعم',5],['quality','Quality','جودة',6],['internal','Internal / admin','داخلي / إداري',7]].map(a=>({code:a[0],name_en:a[1],name_ar:a[2],sort:a[3]}))
+  };
+  const COLLEAGUE='mock-user-colleague';
+  const members=()=>{ const m=[{id:'tm-colleague',user_id:COLLEAGUE,department_id:'dep-commercial',active:true}];
+    if(process.env.MOCK_NO_MEMBER!=='1') m.unshift({id:'tm-qa',user_id:UID,department_id:'dep-commercial',active:true});
+    return m; };
+  const data={
+    projects:[{id:'prj-1',code:'PRJ-2026-001',name:'Seed work project',business_id:'b1',owner_id:'tm-colleague',status:'active',work_type:'sales',due_date:null,created_by:'tm-colleague',created_at:'2026-09-20T09:00:00Z',deleted_at:null}],
+    tasks:[
+      {id:'task-qa',code:'TSK-2026-001',title:'QA seed task',description:null,status:'todo',priority:'normal',work_type:'sales',owner_id:'tm-qa',business_id:'b1',project_id:'prj-1',parent_task_id:null,due_date:'2026-09-30',start_date:null,done_at:null,created_at:'2026-09-21T09:00:00Z',created_by:'tm-qa',assigned_by:null,updated_at:'2026-09-21T09:00:00Z',deleted_at:null},
+      {id:'task-col',code:'TSK-2026-002',title:'Colleague seed task',description:null,status:'in_progress',priority:'high',work_type:'internal',owner_id:'tm-colleague',business_id:null,project_id:null,parent_task_id:null,due_date:'2026-09-01',start_date:null,done_at:null,created_at:'2026-09-19T09:00:00Z',created_by:'tm-colleague',assigned_by:null,updated_at:'2026-09-19T09:00:00Z',deleted_at:null}],
+    task_checklist:[{id:'chk-1',task_id:'task-col',text:'Seed step',is_done:false,sort:1}],
+    task_comments:[]
+  };
+  return { tables:new Set(['tasks','projects','task_statuses','priorities','work_types','team_members','task_checklist','task_comments','team_directory']),
+           lookups, members, data, seq:0, counters:{tasks:2,projects:1}, log:[], COLLEAGUE };
+})();
 const MOCK_RANK={none:0,view:1,own:2,full:3};
 function mockLevelWord(v){ return ({full:'full',editor:'full',own:'own',view:'view',viewer:'view'})[v]||'none'; }
 function mockLevelsOf(u){
@@ -776,6 +798,13 @@ export function start(port, seedOverrides){
       // D7 (2026-09-25) — mirrors changes_to_my_companies(p_days) (scripts/sql/d7-changes-to-my-companies.sql):
       // the rows come from MOCK_CHANGES_TO_MINE (a JSON array a probe hands in); MOCK_CHANGES_FAIL=1
       // answers with an error, as a refused or broken read would. Nothing set = no changes.
+      /* Phase 3 release 1 — mirrors changes_to_my_tasks(p_days): rows from MOCK_TASK_CHANGES (JSON),
+         MOCK_TASK_CHANGES_FAIL=1 answers an error. Nothing set = no changes. */
+      if(fn==='changes_to_my_tasks'){
+        if(process.env.MOCK_TASK_CHANGES_FAIL==='1') return send(res,500,{code:'XX000',details:null,hint:null,message:'probe: read failed'});
+        let rows=[]; try{ rows=JSON.parse(process.env.MOCK_TASK_CHANGES||'[]'); }catch(_){}
+        return send(res,200, rows);
+      }
       if(fn==='changes_to_my_companies'){
         if(process.env.MOCK_CHANGES_FAIL==='1') return send(res,500,{code:'XX000',details:null,hint:null,message:'probe: read failed'});
         let rows=[]; try{ rows=JSON.parse(process.env.MOCK_CHANGES_TO_MINE||'[]'); }catch(_){}
@@ -929,6 +958,67 @@ export function start(port, seedOverrides){
     markServed(t,req.method);
     let rows=TABLES[t]||[];
     if(LAPSED&&req.method==='GET') return send(res,200,[]);   // RLS shows an anonymous caller nothing
+    /* Phase 3 release 1 (2026-09-25) — the task manager's tables, modelled on
+       scripts/sql/phase3-r1-task-manager.sql closely enough for the screens to be driven honestly:
+       reads follow the Tasks page level (none → nothing), writes follow it too (view → the RLS
+       refusal PostgREST sends; own → only your own tasks; full → any), codes come from the
+       database (TSK/PRJ-2026-nnn), the owner defaults to the caller, 'done' stamps done_at, and the
+       guard's words come back for client work with no company or project. MOCK_NO_MEMBER=1 leaves
+       the QA account off team_members (the "not on the team list yet" case). */
+    if(TASKMOCK.tables.has(t)){
+      const me=TABLES.app_users.find(u=>u.id===UID && u.active);
+      const lvl=me ? mockLevelsOf(me).tasks : 'none';
+      const myMember=TASKMOCK.members().find(m=>m.user_id===UID && m.active);
+      const rls=()=>send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "'+t+'"'});
+      const filt=(rowsIn)=>{ let out=rowsIn.slice(); Object.keys(u.query||{}).forEach(k=>{ if(['select','order','limit','offset'].includes(k))return; let val=String((Array.isArray(u.query[k])?u.query[k][0]:u.query[k])||''); let m;
+        if((m=val.match(/^eq\.(.*)$/))) out=out.filter(r=>String(r[k])===m[1]); else if(val==='is.null') out=out.filter(r=>r[k]==null); }); return out; };
+      if(req.method==='GET'){
+        if(t==='team_directory') return send(res,200, filt(TABLES.app_users.map(x=>({id:x.id,email:x.email,full_name:x.full_name,name_ar:x.name_ar||null,nickname:x.nickname||null,role:x.role,active:x.active}))
+          .concat(TABLES.app_users.some(x=>x.id===TASKMOCK.COLLEAGUE)?[]:[{id:TASKMOCK.COLLEAGUE,email:'colleague@example.test',full_name:'Colleague Seed',name_ar:'زميل تجريبي',nickname:null,role:'team_member',active:true}])));
+        if(t==='team_members') return send(res,200, filt(TASKMOCK.members()));
+        if(TASKMOCK.lookups[t]) return send(res,200, TASKMOCK.lookups[t]);
+        if(lvl==='none') return send(res,200,[]);
+        return send(res,200, filt(TASKMOCK.data[t]||[]));
+      }
+      let body=''; req.on('data',c=>body+=c);
+      return req.on('end',()=>{
+        let payload={}; try{ payload=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+        if(!['tasks','projects','task_checklist','task_comments'].includes(t)) return rls();
+        if(lvl!=='own' && lvl!=='full') return rls();
+        const table=TASKMOCK.data[t];
+        const mine=(row)=>myMember && [row.owner_id,row.created_by,row.assigned_by].includes(myMember.id);
+        const taskOf=(id)=>TASKMOCK.data.tasks.find(x=>x.id===id);
+        if(req.method==='POST'){
+          const rowsIn=Array.isArray(payload)?payload:[payload]; const out=[];
+          for(const r0 of rowsIn){
+            const r=Object.assign({},r0);
+            if(t==='tasks'||t==='projects'){
+              if(!myMember) return send(res,400,{code:'23502',message:'null value in column "owner_id" violates not-null constraint'});
+              if(!r.owner_id) r.owner_id=myMember.id;
+              if(lvl==='own' && r.owner_id!==myMember.id && process.env.MOCK_ROLE!=='manager') return rls();
+              if(t==='tasks' && (r.work_type||'sales')!=='internal' && !r.business_id && !r.project_id) return send(res,400,{code:'P0001',message:'Client work needs a company or a project'});
+              if(t==='projects' && (r.work_type||'sales')!=='internal' && !r.business_id) return send(res,400,{code:'23514',message:'new row for relation "projects" violates check constraint "projects_check"'});
+              r.id='mock-'+t+'-'+(++TASKMOCK.seq); r.code=(t==='tasks'?'TSK':'PRJ')+'-2026-'+String(++TASKMOCK.counters[t]).padStart(3,'0');
+              r.created_by=myMember.id; r.created_at=new Date().toISOString(); r.deleted_at=null;
+              if(t==='tasks'){ r.status=r.status||'todo'; r.priority=r.priority||'normal'; r.work_type=r.work_type||'sales'; } else { r.status=r.status||'active'; }
+            } else {
+              const tk=taskOf(r.task_id); if(!tk) return send(res,400,{code:'23503',message:'insert or update violates foreign key constraint'});
+              if(lvl==='own' && !mine(tk)) return rls();
+              r.id='mock-'+t+'-'+(++TASKMOCK.seq); if(t==='task_comments'){ r.created_at=new Date().toISOString(); r.deleted_at=null; r.kind=r.kind||'comment'; if(!myMember||r.author_id!==myMember.id) return rls(); }
+              if(t==='task_checklist'){ r.is_done=!!r.is_done; }
+            }
+            table.push(r); out.push(r); TASKMOCK.log.push({t,op:'insert',id:r.id});
+          }
+          return send(res,201,out);
+        }
+        if(req.method==='PATCH'){
+          const hit=filt(table).filter(r=>{ if(lvl==='full') return true; const tk=t==='tasks'?r:(t==='projects'?r:taskOf(r.task_id)); return mine(tk); });
+          hit.forEach(r=>{ Object.assign(r,payload); if(t==='tasks'){ const st=TASKMOCK.lookups.task_statuses.find(x=>x.code===r.status); r.done_at=st&&st.is_done?(r.done_at||new Date().toISOString()):null; } TASKMOCK.log.push({t,op:'update',id:r.id}); });
+          return send(res,200,hit);
+        }
+        return send(res,405,{message:'mock: '+req.method+' not modelled on '+t});
+      });
+    }
     if(anonWall){                                             // see MOCK_ANON_ENFORCE above
       if(req.method==='GET') return send(res,200,[],{'Content-Range':'0-0/0'});
       req.on('data',()=>{}); return req.on('end',()=>send(res, req.method==='DELETE'?200:201, []));
