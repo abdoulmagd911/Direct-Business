@@ -238,7 +238,7 @@
       var A=ar();
       var card=document.createElement('div'); card.className='card v48-card'; card.style.cssText='border:1px solid #F2C185';
       card.innerHTML='<h3>'+(A?'الفريق والصلاحيات':'Team & Access')+'</h3>'+
-        '<div style="font-size:13px;color:var(--muted,#6B7480);margin:2px 0 12px">'+(A?'أنشئ حسابات الفريق وحدد مستوى كل شخص: مسؤول أو مدير أو موظف. المستوى وحده يحدد الصفحات التي يفتحها وما يمكنه تعديله.':'Create team accounts and set each person’s level — Admin, Manager or Employee. The level alone decides which pages they open and what they may change.')+'</div>'+
+        '<div style="font-size:13px;color:var(--muted,#6B7480);margin:2px 0 12px">'+(A?'أنشئ حسابات الفريق وحدد مستوى كل شخص: مسؤول أو مدير أو موظف. الصفحات التي يفتحها كل شخص وما يمكنه تعديله فيها تُحدَّد صفحةً صفحة في «من يفتح ماذا» أدناه.':'Create team accounts and set each person\'s level — Admin, Manager or Employee. Which pages each person opens, and what they may change there, is set page by page under “Who can open what” below.')+'</div>'+
         '<button class="btn pri" onclick="v48Users()">'+(A?'فتح الفريق والصلاحيات':'Open Team & Access')+'</button>';
       var _sh=v.querySelector('.v26_3-chips')||v.querySelector('.v26_3-section-head');if(_sh)v.insertBefore(card,_sh.nextSibling);else v.insertBefore(card, v.firstChild);
     }catch(_){}
