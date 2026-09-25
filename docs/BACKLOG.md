@@ -136,6 +136,32 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #264 (2026-09-25 ~06:40 UTC) — the Clients "At risk" button and the page-turner under the table were fighting, and Next quietly dropped the filter
+
+Found by pressing the buttons on the live Clients page against the real 28 clients. Press "At risk"
+and the table shows the 6 at-risk accounts and the box above says 6 — right so far. But the line
+under the table still read "Showing 1–20 of 28" with Next lit. Press Next and eight rows of every
+kind appeared (five New, two At risk, one Watch) while the "At risk" button still glowed and the box
+still said 6. Press Prev and all twenty came back, filter gone, button still on. Press "All" and all
+28 rows showed at once while the line still read "Showing 1–20 of 28". Two pieces of code were
+hiding and showing the same rows: the button by health, the page-turner by position, and whichever
+ran last won. Anyone using "At risk" to work a call list could turn the page and phone healthy
+accounts without knowing.
+
+Fixed in core-09: the button now takes the non-matching rows OUT of the table (and puts them back on
+"All") instead of hiding them in place — the same thing the Bookings, Invoices and Tickets buttons
+have done since #105 — so the page-turner sees the list change and recounts. Measured live after the
+fix: "At risk" gives 6 rows, "Showing 1–6 of 6", Next greyed out; "All" gives "Showing 1–20 of 28"
+and Next turns the page. The Offers buttons went through the same old path and are fixed by the same
+change. Guard: `probe-a-chip-and-the-pager-agree` (25 synthetic clients, 12 at risk, page size 10,
+so the filtered list itself needs two pages; EN+AR) — the tree before this fix turns all four
+checks red. Rule M102 in DECISIONS.
+
+*Earlier in this fire: a scout had read the "At risk" button as doing nothing because its count
+included the hidden rows. It was the scout that was wrong, not the button — recorded so the next
+session does not "fix" a working button; the real defect above was found by reading only what is
+on screen and then pressing Next.*
+
 ## Routine fire #260 (2026-09-25 ~04:30 UTC) — the six document-generator tests are alive again (316 checks), and the app was clean under them
 
 The tests for the document generator (price offer, service-fee proposal, company profile, contract,

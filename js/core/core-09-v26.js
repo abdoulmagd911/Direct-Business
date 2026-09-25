@@ -1403,6 +1403,38 @@
   };
   try{ window.V26_RECORD_CHIPS=V26_RECORD_CHIPS; }catch(_){}
 
+  /* 2026-09-25 (fire #264, driven on the live Clients page): a chip that HIDES rows by style and
+     the pager in js/04 that also shows and hides rows by style, by row index, were fighting over
+     the same table. Measured on the real 28 clients: press "At risk" and 6 rows show and the box
+     above says 6 — but the pager under the table still reads "Showing 1–20 of 28" with Next
+     enabled; press Next and EIGHT rows of every health appear (five New, two At risk, one Watch)
+     while the chip still glows "At risk" and the box still says 6; press Prev and all twenty come
+     back. Press "All" and all 28 rows show at once while the pager reads "Showing 1–20 of 28".
+     The record chips (Bookings, Invoices, Tickets — fire #105) had already solved this by
+     REBUILDING the body from a kept full set, because the pager watches the body for a rebuild
+     and recounts. This helper does the same for any chip that filters rows already on the page:
+     it keeps the original row nodes (not copies — inline handlers and any listener survive),
+     re-appends only the ones that match, and the pager's own observer re-pages from page one.
+     "All" re-appends the full set in its original order. */
+  var v26_3KeepRows=function(view,pred){
+    var tbody=view.querySelector('tbody'); if(!tbody) return null;
+    if(!tbody.__v26Keep){
+      tbody.__v26Keep=[].slice.call(tbody.rows).filter(function(r){
+        return !(r.cells&&r.cells.length===1&&r.querySelector('td[colspan]')); /* not the "nothing here" placeholder */
+      });
+    }
+    var src=tbody.__v26Keep, keep=pred?src.filter(pred):src;
+    while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+    if(!keep.length){
+      var cols=(view.querySelectorAll('thead th')||[]).length||9;
+      var _arK=(typeof LANG!=='undefined'&&LANG==='ar');
+      tbody.innerHTML='<tr><td colspan="'+cols+'" class="empty">'+
+        (_arK?'لا شيء هنا بهذا التصفية — جرّب «الكل».':'Nothing here with this filter — try “All”.')+'</td></tr>';
+    } else keep.forEach(function(r){ tbody.appendChild(r); });
+    return keep;
+  };
+  try{ window.v26_3KeepRows=v26_3KeepRows; }catch(_){}
+
   var v26_3ApplyChipFilter=function(sec,filter){
     try{
       var view=document.getElementById('view');
@@ -1430,18 +1462,16 @@
         return;
       }
       if(sec==='clients'&&(filter==='AtRisk'||filter==='all')){
-        /* Robust: match the client-health badge by data attribute, not visible text */
-        view.querySelectorAll('tbody tr').forEach(function(tr){
-          tr.style.display=(filter==='all'||tr.getAttribute('data-health')==='At risk')?'':'none';
-        });
+        /* Robust: match the client-health badge by data attribute, not visible text. Rows are
+           kept or dropped from the body (see v26_3KeepRows above), never hidden by style, so the
+           pager recounts. */
+        var _kept=v26_3KeepRows(view,(filter==='all')?null:function(tr){ return tr.getAttribute('data-health')==='At risk'; })||[];
         /* The counters above the table are written when the page renders, so filtering rows
            here left them showing the all-clients totals — the table said 2 clients while the
            box above it still said 10 and 917K. Recalculate them from what is actually on
            screen. (2026-08-16, found by the owner testing the live page.) */
         try{
-          var vis=[].slice.call(view.querySelectorAll('tbody tr')).filter(function(tr){
-            return tr.style.display!=='none' && tr.hasAttribute('data-client-row');
-          });
+          var vis=_kept.filter(function(tr){ return tr.hasAttribute('data-client-row'); });
           var n=vis.length,
               key=vis.filter(function(tr){return tr.getAttribute('data-key')==='1';}).length;
           var setv=function(id,val){var e=document.getElementById(id); if(e)e.textContent=val;};
@@ -1500,11 +1530,9 @@
         }catch(e){if(window.console)console.warn('[v26.3] reference chip filter',e);}
         return;
       }
-      /* Generic table-row filter */
-      view.querySelectorAll('tbody tr').forEach(function(tr){
-        if(filter==='all'){tr.style.display='';return;}
-        var t=(tr.textContent||'').toLowerCase();
-        tr.style.display=t.indexOf(filter.toLowerCase())>=0?'':'none';
+      /* Generic table-row filter — same keep-or-drop as above, so the pager recounts here too */
+      v26_3KeepRows(view,(filter==='all')?null:function(tr){
+        return (tr.textContent||'').toLowerCase().indexOf(filter.toLowerCase())>=0;
       });
     }catch(e){console.warn('[v26.3] chip filter',e);}
   };

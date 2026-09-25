@@ -2444,6 +2444,19 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M102 — a chip that filters rows already on the page keeps or drops them from the table body
+(core-09 `v26_3KeepRows`, the original nodes, never hidden by style), so the pager in js/04 — which
+also shows and hides rows by style, by position — sees the list change and recounts.** Found
+2026-09-25 (fire #264) on the live Clients page: "At risk" hid 22 of 28 rows by style, the pager
+under the table still read "Showing 1–20 of 28" with Next enabled, and Next re-showed rows by index
+— eight rows of every health under a glowing "At risk" chip and a box saying 6; "All" showed all 28
+at once over "Showing 1–20 of 28". The record chips of #105 had already solved this by rebuilding the
+body; the Clients chip and the generic text chip (Offers) now go through one helper that does the
+same with the original rows (inline handlers and listeners survive; the "nothing here" placeholder
+is filtered out of the kept set). Guard: `scripts/qa/probe-a-chip-and-the-pager-agree.mjs` — 25
+synthetic clients, 12 at risk, page size 10, EN+AR; sabotage-verified against the tree before the
+fix (four checks red). Status: ACTIVE.
+
 **M101 — a probe that crashes before it boots is not excluded, it is revived: the crash is named,
 fixed, and its expectations brought up to the app as it is today — and a test never carries a real
 registered identifier, even to assert its absence.** Found 2026-09-25 (fire #260): the six document
