@@ -155,7 +155,9 @@ fix: "At risk" gives 6 rows, "Showing 1–6 of 6", Next greyed out; "All" gives 
 and Next turns the page. The Offers buttons went through the same old path and are fixed by the same
 change. Guard: `probe-a-chip-and-the-pager-agree` (25 synthetic clients, 12 at risk, page size 10,
 so the filtered list itself needs two pages; EN+AR) — the tree before this fix turns all four
-checks red. Rule M102 in DECISIONS.
+checks red. Rule M102 in DECISIONS. Battery after the change: 346 of 346 green (two probes red
+only under three-at-once load, green alone, as the runner re-checks). Live confirmed: the site served
+the new file on the first poll and the three live checks pass.
 
 *Earlier in this fire: a scout had read the "At risk" button as doing nothing because its count
 included the hidden rows. It was the scout that was wrong, not the button — recorded so the next
