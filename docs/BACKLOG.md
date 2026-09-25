@@ -159,6 +159,13 @@ Today with a plain sentence in the page language ("You do not have access to tha
 admin if you need it"); the read-only and operations accounts carry their own banner; no errors.
 Clean.
 
+**And a last sweep of the language series, on the real data:** every page and both cards in Arabic,
+read for English sentences composed by the app rather than typed by a person. None left in the
+app; what remains English is content — event notes, airline rule texts, provider descriptions, SOP
+titles and the notes staff typed on cards — which is the content list from 25 September and is
+yours to translate when you choose. The read-only banner on the mirror pages shows both languages
+on purpose, Arabic first in Arabic.
+
 The full battery over the previous round's tree was green, 339 of 339 with no red at all.
 
 ---
