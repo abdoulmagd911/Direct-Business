@@ -19680,3 +19680,10 @@ browser-held achievements (the owner's Phase 3 ruling); KPI actuals and targets;
 the company card (client IDs, discount codes, files). The go-live people step (who is in which
 department, the Commercial head) is run once at merge from the oversight chat's 29d — it names real
 staff, so it is never committed here.
+
+**Open question — "the clear doesn't take" (kept open until explained).** In
+`probe-the-card-shows-what-the-database-holds`, clearing a field with `fill('')` sometimes left the
+old value in the box — mostly under a loaded battery, once on a calm machine. The probe now reads
+the field back and retypes (it prints how many retries it needed), so it is reliable, but *why* the
+first clear sometimes does not take is not known. If a person ever reports "I deleted it and it came
+back" on a company card, start here.
