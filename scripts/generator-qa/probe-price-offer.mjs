@@ -89,7 +89,7 @@ await p.route('**/brand/*.css', r => {
 });
 
 /* catch-all supabase route FIRST — fixture REST routes registered AFTER it win */
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
+await p.route('**/vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
   const rq = r.request(); const u = new URL(rq.url());
   try {
     const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
@@ -97,9 +97,9 @@ await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
     await r.fulfill({ status: resp.status, headers: h, body });
   } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
 });
-await p.route('**cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-await p.route('**fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-await p.route('**fonts.gstatic.com/**', r => r.abort());
+await p.route('**/cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+await p.route('**/fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+await p.route('**/fonts.gstatic.com/**', r => r.abort());
 
 /* synthetic fixtures only (D4) — registered AFTER the catch-all so they take precedence */
 const IDENTITY = [
@@ -107,10 +107,13 @@ const IDENTITY = [
   { key: 'cr_number', value_en: '9999999999', value_ar: null },
   { key: 'vat_number', value_en: '399999999900003', value_ar: null },
   { key: 'website', value_en: 'www.example.test', value_ar: null },
+  { key: 'unified_number', label_en: 'Unified number', label_ar: 'الرقم الموحد', value_en: '1000000000', value_ar: null, category: 'legal', proof_path: null, sensitive: false, sort: 8 },
+  { key: 'mot_licence', label_en: 'Tourism licence', label_ar: 'ترخيص السياحة', value_en: 'MOT-000', value_ar: null, category: 'licence', proof_path: null, sensitive: false, sort: 10 },
+  { key: 'iata', label_en: 'IATA licence', label_ar: 'ترخيص إياتا', value_en: 'IATA-000', value_ar: null, category: 'licence', proof_path: null, sensitive: false, sort: 9 },
   { key: 'email', value_en: 'qa@example.test', value_ar: null },
   { key: 'phone_licence', value_en: '000 000 0000', value_ar: null },
 ];
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r =>
+await p.route('**/vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r =>
   r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(IDENTITY) }));
 
 /* standard-rates scenario fixture (quick-add prefills the standard fee). The app asks
@@ -123,11 +126,11 @@ const SCENARIOS = [
       { svc_en: '  domestic FLIGHT booking ', svc_ar: 'حجز طيران داخلي', fees: [25] },
       { svc_en: 'Hotel reservation', svc_ar: 'حجز فندقي', fees: [40] }] }] },
 ];
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/service_fee_scenarios**', r =>
+await p.route('**/vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/service_fee_scenarios**', r =>
   r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SCENARIOS.slice(0, 1)) }));
 
 let draftPost = null;
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**', async r => {
+await p.route('**/vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**', async r => {
   const rq = r.request();
   if (rq.method() === 'POST') {
     try { draftPost = JSON.parse(rq.postData() || 'null'); } catch (_) { draftPost = { parseError: true }; }
@@ -187,20 +190,26 @@ check('A4 preview renders under data-identity="classic"', await p.evaluate(() =>
   });
   check('closing back-cover exists (last page: full-bleed, white logo, QR)', back);
   const all = await p.evaluate(() => document.getElementById('poPages')?.innerText || '');
-  check('footer legal block: trade name + unified no. + licence no.',
-    all.includes('شركة المسافر المباشر للسفر والسياحة') && all.includes('700782406') && all.includes('7310322'));
-  check('footer carries email/site + the branches line',
-    /business@directksa\.com|qa@example\.test/.test(all) &&
-    all.includes('You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam'));
+  /* fire #260 (2026-09-25): the footer is drawn from the company_identity registry (js/87, M-rule
+     "the footer is not typed out by hand"), so it shows what the probe SEEDED — synthetic — and never
+     a registered identifier written into a test. The old check expected the real trade name and the
+     real unified/licence numbers typed into the page, which fire #162 removed from the app for rule 7. */
+  check('footer legal block comes from the registry (seeded synthetic values), never typed by hand',
+    (all.includes('Synthetic Test Co Ltd') || all.includes('شركة اختبار')) && all.includes('1000000000') && all.includes('MOT-000') &&
+    /* no registered identifier typed into the page: every 7–10 digit run is the seeded CR number */
+    (all.match(/\b\d{7,10}\b/g) || []).every((n) => n === '9999999999' || n === '1000000000'),
+    'digit runs seen: ' + JSON.stringify([...new Set(all.match(/\b\d{7,10}\b/g) || [])]));
+  check('footer carries the seeded site, and no hand-typed branches sentence',
+    all.includes('www.example.test') && !all.includes('You can visit our branches'));
   check('IATA Wakeel line (EN, exact owner-approved text) renders on the offer body',
-    all.includes('Direct is an IATA-accredited agent (Wakeel) No. 71238285 acting as agent for the carriers.'));
+    all.includes('Direct is an IATA-accredited agent (Wakeel) No. IATA-000 acting as agent for the carriers.'));
 }
 /* AR document: the AR IATA line renders too */
 await p.evaluate(() => poLang('ar'));
 await p.waitForTimeout(700);
 check('IATA Wakeel line (AR, exact owner-approved text) renders on the AR offer', await p.evaluate(() =>
   (document.getElementById('poPages')?.innerText || '')
-    .includes('دايركت وكيل معتمد من الاتحاد الدولي للنقل الجوي (إياتا) رقم 71238285 ويعمل بصفته وكيلاً عن الناقلين.')));
+    .includes('دايركت وكيل معتمد من الاتحاد الدولي للنقل الجوي (إياتا) رقم IATA-000 ويعمل بصفته وكيلاً عن الناقلين.')));
 check('AR terms heading reads الشروط والأحكام', await p.evaluate(() =>
   (document.getElementById('poPages')?.innerText || '').includes('الشروط والأحكام')));
 await p.evaluate(() => poLang('en'));

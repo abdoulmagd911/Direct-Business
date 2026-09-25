@@ -2444,6 +2444,25 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M101 — a probe that crashes before it boots is not excluded, it is revived: the crash is named,
+fixed, and its expectations brought up to the app as it is today — and a test never carries a real
+registered identifier, even to assert its absence.** Found 2026-09-25 (fire #260): the six document
+Generator probes (scripts/generator-qa/, 316 checks over the price offer, service fees, company
+profile, contract, tender and brand) had sat excluded since 2026-09-24 because their route patterns
+began with `**host`, which Playwright 1.55 never matches unless the `**` is followed by `/` — so the
+app never loaded and each timed out waiting for the sign-in field, and the whole generator went
+unguarded for a day of fires. Fixed to `**/host` in 47 places; then 13 checks were red for three
+reasons worth keeping: the footer checks expected the old hand-typed footer with the real trade name
+and the real unified and licence numbers written into the test (the app draws that footer from the
+company_identity registry since fire #185, and the numbers are exactly what fire #162 took out of
+js/67 under rule 7 — they are now gone from the tests too, with the absence asserted as "every 7–10
+digit run is a seeded value", never by quoting them); the IATA disclosure seeds used a key the live
+registry never had (`iata_licence`; the app and the registry say `iata`); and the contract's reset
+to template asks first since 2026-08-25, so the probe now answers the box. The footers needed
+`unified_number` and `mot_licence` rows seeded, which is what they print — not the CR. Runner:
+`scripts/generator-qa/run-all.sh` (the main runner with -d/-l, same retry-alone rule); sabotage-tested
+(the legal line dropped from js/67's footer in a copy → the price-offer probe red). Status: ACTIVE.
+
 **M100 — a link the app builds from a stored value goes through one builder (core-01: webHref,
 phoneE164, waHref, telHref), never through a copied expression at the call site, and the builder
 knows the shapes the data actually holds.** Found 2026-09-25 (fire #259) by counting the live data

@@ -105,7 +105,7 @@ await p.route('**/brand/*.css', r => {
 });
 
 /* catch-all supabase route FIRST — fixture REST routes registered AFTER it win */
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
+await p.route('**/vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
   const rq = r.request(); const u = new URL(rq.url());
   try {
     const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
@@ -113,9 +113,9 @@ await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
     await r.fulfill({ status: resp.status, headers: h, body });
   } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
 });
-await p.route('**cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-await p.route('**fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-await p.route('**fonts.gstatic.com/**', r => r.abort());
+await p.route('**/cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+await p.route('**/fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+await p.route('**/fonts.gstatic.com/**', r => r.abort());
 
 /* synthetic fixtures only (D4) — registered AFTER the catch-all so they win */
 const CLAUSES = [
@@ -131,7 +131,7 @@ const CLAUSES = [
   { key: 'force_majeure', title_en: 'SYNTH-FM-HIDDEN', title_ar: 'القوة القاهرة المخفية', body_en: 'Must NEVER render while disabled.', body_ar: 'يجب ألا يظهر.', optional: true, enabled: false, sort: 130 },
 ];
 let clausePatches = 0;
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/contract_clauses**', r => {
+await p.route('**/vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/contract_clauses**', r => {
   const m = r.request().method();
   if (m === 'PATCH') {
     clausePatches++;
@@ -145,9 +145,11 @@ const IDENTITY = [
   { key: 'cr_number', label_en: 'CR number', label_ar: 'السجل التجاري', value_en: '9999999999', value_ar: null, show_on_documents: true, sensitive: false, sort: 2 },
   { key: 'vat_number', label_en: 'VAT number', label_ar: 'الرقم الضريبي', value_en: '399999999900003', value_ar: null, show_on_documents: true, sensitive: false, sort: 3 },
   { key: 'website', label_en: 'Website', label_ar: 'الموقع', value_en: 'www.example.test', value_ar: null, show_on_documents: true, sensitive: false, sort: 4 },
+  { key: 'unified_number', label_en: 'Unified number', label_ar: 'الرقم الموحد', value_en: '1000000000', value_ar: null, category: 'legal', proof_path: null, sensitive: false, sort: 8 },
+  { key: 'mot_licence', label_en: 'Tourism licence', label_ar: 'ترخيص السياحة', value_en: 'MOT-000', value_ar: null, category: 'licence', proof_path: null, sensitive: false, sort: 10 },
   { key: 'phone_licence', label_en: 'Phone', label_ar: 'الهاتف', value_en: '000 000 0000', value_ar: null, show_on_documents: true, sensitive: false, sort: 5 },
 ];
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r =>
+await p.route('**/vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r =>
   r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(IDENTITY) }));
 
 /* saved SFP proposal fixture for the same client — the annex import source */
@@ -162,7 +164,7 @@ const SFP_DOC = {
   }
 };
 let draftPost = null;
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**', async r => {
+await p.route('**/vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**', async r => {
   const rq = r.request(); const url = rq.url();
   if (rq.method() === 'POST') {
     try { draftPost = JSON.parse(rq.postData() || 'null'); } catch (_) { draftPost = { parseError: true }; }
@@ -216,10 +218,16 @@ check('unissued contract carries the diagonal DRAFT watermark', await p.evaluate
       !!pg.querySelector('img[src*="direct_logo_white"]') && !!pg.querySelector('img[src*="direct_qr"]');
   }));
   const all = await p.evaluate(() => document.getElementById('ctPages')?.innerText || '');
-  check('footer legal block: trade name + unified no. + licence no.',
-    all.includes('شركة المسافر المباشر للسفر والسياحة') && all.includes('700782406') && all.includes('7310322'));
-  check('footer carries the branches line',
-    all.includes('You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam'));
+  /* fire #260 (2026-09-25): the footer is drawn from the company_identity registry (js/87, M-rule
+     "the footer is not typed out by hand"), so it shows what the probe SEEDED — synthetic — and never
+     a registered identifier written into a test. The old check expected the real trade name and the
+     real unified/licence numbers typed into the page, which fire #162 removed from the app for rule 7. */
+  check('footer legal block comes from the registry (seeded synthetic values), never typed by hand',
+    (all.includes('Synthetic Test Co Ltd') || all.includes('شركة اختبار')) && all.includes('1000000000') && all.includes('MOT-000') &&
+    /* no registered identifier typed into the page: every 7–10 digit run is the seeded CR number */
+    (all.match(/\b\d{7,10}\b/g) || []).every((n) => n === '9999999999' || n === '1000000000'));
+  check('no hand-typed branches sentence — this seed has no branches row in the registry',
+    !all.includes('You can visit our branches'));
 }
 
 /* 3 — AR is the DEFAULT and renders strict RTL */
@@ -285,7 +293,10 @@ check('editing inside a contract sends NO PATCH to contract_clauses (override is
   clausePatches === patchesBefore, 'PATCH count went ' + patchesBefore + ' → ' + clausePatches);
 /* reset restores the template text */
 await p.evaluate(() => ctClauseReset('scope'));
-await p.waitForTimeout(600);
+await p.waitForTimeout(400);
+/* the reset asks first, in the app's own box — answer yes the way a person does */
+await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
+await p.waitForTimeout(700);
 check('reset-to-template restores the shared text and clears the override flag', await p.evaluate(() =>
   !(document.getElementById('ctPages')?.innerText || '').includes('SYNTH-OVERRIDE') &&
   window.__ctProbe().clauses.find(c => c.key === 'scope')?.override === false));

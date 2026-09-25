@@ -139,6 +139,8 @@ const IDENTITY = [
   { key: 'cr_number', label_en: 'CR number', label_ar: 'السجل التجاري', value_en: '9999999999', value_ar: null, show_on_documents: true, sensitive: false, sort: 2 },
   { key: 'vat_number', label_en: 'VAT number', label_ar: 'الرقم الضريبي', value_en: '399999999900003', value_ar: null, show_on_documents: true, sensitive: false, sort: 3 },
   { key: 'website', label_en: 'Website', label_ar: 'الموقع', value_en: 'www.example.test', value_ar: null, show_on_documents: true, sensitive: false, sort: 4 },
+  { key: 'unified_number', label_en: 'Unified number', label_ar: 'الرقم الموحد', value_en: '1000000000', value_ar: null, category: 'legal', proof_path: null, sensitive: false, sort: 8 },
+  { key: 'mot_licence', label_en: 'Tourism licence', label_ar: 'ترخيص السياحة', value_en: 'MOT-000', value_ar: null, category: 'licence', proof_path: null, sensitive: false, sort: 10 },
   { key: 'email', label_en: 'Email', label_ar: 'البريد', value_en: 'qa@example.test', value_ar: null, show_on_documents: true, sensitive: false, sort: 5 },
   { key: 'phone_licence', label_en: 'Phone', label_ar: 'الهاتف', value_en: '000 000 0000', value_ar: null, show_on_documents: true, sensitive: false, sort: 6 },
 ];
@@ -155,7 +157,7 @@ async function wirePage(pg, o = {}) {
     try { r.fulfill({ status: 200, contentType: 'text/css', body: fs.readFileSync(APP + u.pathname, 'utf8') }); }
     catch (e) { r.fulfill({ status: 404, body: '' }); }
   });
-  await pg.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
+  await pg.route('**/vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
     const rq = r.request(); const u = new URL(rq.url());
     try {
       const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
@@ -163,19 +165,19 @@ async function wirePage(pg, o = {}) {
       await r.fulfill({ status: resp.status, headers: h, body });
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   });
-  await pg.route('**cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-  await pg.route('**fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await pg.route('**fonts.gstatic.com/**', r => r.abort());
-  await pg.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_profile_sections**', r =>
+  await pg.route('**/cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+  await pg.route('**/fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await pg.route('**/fonts.gstatic.com/**', r => r.abort());
+  await pg.route('**/vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_profile_sections**', r =>
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SECTIONS) }));
-  await pg.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r =>
+  await pg.route('**/vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r =>
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(IDENTITY) }));
   /* company_achievements fixture — AFTER the catch-all so it wins */
-  await pg.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_achievements**', r =>
+  await pg.route('**/vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_achievements**', r =>
     o.achFail
       ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"synthetic achievements failure"}' })
       : r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ACH) }));
-  await pg.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**', async r => {
+  await pg.route('**/vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**', async r => {
     const rq = r.request();
     if (rq.method() === 'POST') {
       try { draftPost = JSON.parse(rq.postData() || 'null'); } catch (_) { draftPost = { parseError: true }; }
@@ -236,10 +238,16 @@ check('cover + closing pages use the gradient identity', await p.evaluate(() => 
       /Thank You|شكراً لكم/.test(pg.innerText);
   }));
   const all = await p.evaluate(() => document.getElementById('cpPages')?.innerText || '');
-  check('footer legal block: trade name + unified no. + licence no.',
-    all.includes('شركة المسافر المباشر للسفر والسياحة') && all.includes('700782406') && all.includes('7310322'));
-  check('footer carries the branches line',
-    all.includes('You can visit our branches in Riyadh – Jeddah – Buraydah – Dammam'));
+  /* fire #260 (2026-09-25): the footer is drawn from the company_identity registry (js/87, M-rule
+     "the footer is not typed out by hand"), so it shows what the probe SEEDED — synthetic — and never
+     a registered identifier written into a test. The old check expected the real trade name and the
+     real unified/licence numbers typed into the page, which fire #162 removed from the app for rule 7. */
+  check('footer legal block comes from the registry (seeded synthetic values), never typed by hand',
+    (all.includes('Synthetic Test Co Ltd') || all.includes('شركة اختبار')) && all.includes('1000000000') && all.includes('MOT-000') &&
+    /* no registered identifier typed into the page: every 7–10 digit run is the seeded CR number */
+    (all.match(/\b\d{7,10}\b/g) || []).every((n) => n === '9999999999' || n === '1000000000'));
+  check('no hand-typed branches sentence — this seed has no branches row in the registry',
+    !all.includes('You can visit our branches'));
 }
 
 /* 3 — enabled sections in sort order; disabled absent; stats band absent */

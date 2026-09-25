@@ -91,7 +91,7 @@ await p.route('**/brand/*.css', r => {
   catch (e) { r.fulfill({ status: 404, body: '' }); }
 });
 
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
+await p.route('**/vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
   const rq = r.request(); const u = new URL(rq.url());
   try {
     const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
@@ -99,9 +99,9 @@ await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/**', async r => {
     await r.fulfill({ status: resp.status, headers: h, body });
   } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
 });
-await p.route('**cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
-await p.route('**fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-await p.route('**fonts.gstatic.com/**', r => r.abort());
+await p.route('**/cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
+await p.route('**/fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+await p.route('**/fonts.gstatic.com/**', r => r.abort());
 
 /* synthetic registry fixture — invented values only (D4) */
 const FIXTURE = [
@@ -119,7 +119,7 @@ const FIXTURE = [
 ];
 FIXTURE.forEach(r => { if (!('download_name' in r)) r.download_name = null; });
 const patches = [];   /* every PATCH body the app sends, for the edit-save check */
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r => {
+await p.route('**/vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r => {
   const rq = r.request();
   if (rq.method() === 'PATCH') {
     const body = JSON.parse(rq.postData() || '{}'); patches.push(body);
@@ -132,7 +132,7 @@ await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/company_identity**', r
   r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FIXTURE) });
 });
 /* storage sign endpoint — echo a plausible signed path so the client can build the URL */
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/storage/v1/object/sign/**', r =>
+await p.route('**/vkxoeeoauexyfpzqufqd.supabase.co/storage/v1/object/sign/**', r =>
   r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ signedURL: '/object/sign/company-docs/x.pdf?token=qa' }) }));
 
 /* synthetic saved-documents fixture for the unified start-screen list (D4) */
@@ -141,7 +141,7 @@ const DOCS = [
     payload: { titleEn: 'QA Loaded Offer', titleAr: '', attn: '', date: '2026-08-20', valid: 14, by: '', notes: '', lines: [{ svc: 'QA service', qty: 1, fee: 100 }] } },
   { id: 'qa-doc-2', family: 'CTR', doc_number: null, title: 'QA Contract Draft', status: 'draft', business_id: null, created_at: '2026-08-19T10:00:00Z' },
 ];
-await p.route('**vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**', r => {
+await p.route('**/vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/generated_documents**', r => {
   if (r.request().method() === 'GET') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(DOCS) });
   r.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
 });

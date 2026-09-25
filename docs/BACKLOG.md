@@ -136,6 +136,26 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #260 (2026-09-25 ~04:30 UTC) — the six document-generator tests are alive again (316 checks), and the app was clean under them
+
+The tests for the document generator (price offer, service-fee proposal, company profile, contract,
+tender, brand) had been switched off since yesterday: they crashed before the app even loaded, for a
+one-character reason in how they intercept requests. That left the whole generator unwatched through
+a day of changes. They now run again: 316 checks, all green, and one deliberate break (the legal
+line taken out of the price-offer footer in a copy) turns the right test red, so they can still catch
+something.
+
+Thirteen checks were out of date rather than the app being wrong: they expected the footer as it was
+typed by hand months ago, with the company's real registered numbers written into the tests. The
+app has drawn that footer from the company registry since 20 September, and those numbers were
+removed from the app for the same reason on 21 September — they are now out of the tests as well.
+The IATA line's test used a registry key that never existed on the live registry, and the contract
+"reset to template" now asks before it acts, so the test answers.
+
+The full battery over the previous round's tree was green, 339 of 339 with no red at all.
+
+---
+
 ## Routine fire #259 (2026-09-25 ~03:00 UTC) — a company's website link and a contact's WhatsApp link now go where they should
 
 Counting the real data showed two shapes the app did not expect. 78 of your 108 live companies have
