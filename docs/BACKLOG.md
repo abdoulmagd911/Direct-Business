@@ -136,6 +136,34 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #265 (2026-09-25 ~08:15 UTC) — the Activity page called a password-reset link a "refused page visit", printed its raw key, and said "merged into" in English on the Arabic page
+
+Read on the live Activity & Audit page against the real log (394 events) and checked against the
+database row by row. Three things were wrong, all small, all real:
+
+- **Two events were the wrong kind.** When an admin sends someone a password-reset link from the
+  Team page, the database logs it in the same table as a refused page visit. The page counted by
+  table, so it said "147 refused page visits hidden" when 145 were refusals and two were reset links
+  the QA account sent on 22 August. Those two were hidden behind that badge, and when shown they read
+  "Page access · reset_link_sent" — the raw key, in both languages — and named nobody.
+- **One field the dictionary did not know.** A company merged into another has its change described
+  from the fields that moved; the merge writes a field the page had no word for, so the Arabic row
+  read "merged into" in English. Checked against every field the live log has ever recorded: it was
+  the only one missing.
+
+Fixed in js/63: a refusal is decided by what happened, not by which table it sits in; the reset row
+now reads "Account · Password reset link sent · <address>" / «الحساب · أُرسل رابط إعادة تعيين كلمة
+المرور»; the badge and the tiles say 145; and «دُمجت في» is in the dictionary. Measured live after the
+fix in both languages, no writes. Guard: `probe-a-reset-link-is-not-a-refusal` (seven synthetic
+events fed to the page: three refusals, two reset links, one merge, one creation; EN+AR) — the tree
+before the fix turns four of its five checks red. Rule M103 in DECISIONS.
+
+Also read clean this fire: the three tiles agree with the database (394 loaded, 0 today, 55 in the
+week and all 55 refusals, last record change 16 days ago); no Undo button on any row (the newest
+record change is past the 24-hour window and every row says so); no actor printed as a bare
+"unknown"; the Archive page lists the 4 deleted companies (3 merged, 1 removed by owner ruling) with
+their keepers named, no restore button on any of them, in both languages.
+
 ## Routine fire #264 (2026-09-25 ~06:40 UTC) — the Clients "At risk" button and the page-turner under the table were fighting, and Next quietly dropped the filter
 
 Found by pressing the buttons on the live Clients page against the real 28 clients. Press "At risk"

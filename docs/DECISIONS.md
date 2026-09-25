@@ -2444,6 +2444,16 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M103 — on the Activity page a refused page visit is decided by its ACTION (`denied`), never by
+its table (js/63 `isRefusal`); the same access table carries the password-reset links admins send,
+and those are account events with their own words and the address they went to.** Found 2026-09-25
+(fire #265) on the live log: 147 "refused page visits" claimed where 145 were, the two reset-link
+rows hidden with them and printed as their raw key in both languages. In the same pass the field
+dictionary was checked against every field the live log has ever recorded and the one missing word
+(`mergedInto` → «دُمجت في») added — the Arabic page had read "merged into" in English. Guard:
+`scripts/qa/probe-a-reset-link-is-not-a-refusal.mjs` (EN+AR, sabotage-verified against the tree
+before the fix: four of five checks red). Status: ACTIVE.
+
 **M102 — a chip that filters rows already on the page keeps or drops them from the table body
 (core-09 `v26_3KeepRows`, the original nodes, never hidden by style), so the pager in js/04 — which
 also shows and hides rows by style, by position — sees the list change and recounts.** Found

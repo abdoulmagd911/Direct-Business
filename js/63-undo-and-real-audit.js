@@ -181,7 +181,15 @@
      'denied', after_row {page}) read "access · denied" in both languages; an actor the trigger
      could not name is stored as the literal 'unknown'; and a field that moved inside the record
      but is not in FIELD_WORDS was printed as its camelCase key (createdAt, funnelDetails). */
-  function actionLabel(a){ return { create:fl('Created','أُنشئ'), edit:fl('Edited','عُدِّل'), delete:fl('Deleted','حُذف'), archive:fl('Archived','أُرشف'), restore:fl('Restored','استُعيد'), denied:fl('Refused','رُفض') }[a] || a; }
+  function actionLabel(a){ return { create:fl('Created','أُنشئ'), edit:fl('Edited','عُدِّل'), delete:fl('Deleted','حُذف'), archive:fl('Archived','أُرشف'), restore:fl('Restored','استُعيد'), denied:fl('Refused','رُفض'), reset_link_sent:fl('Password reset link sent','أُرسل رابط إعادة تعيين كلمة المرور') }[a] || a; }
+  /* 2026-09-25 (fire #265, driven live): the access table holds two kinds of row — a refused page
+     visit (action 'denied', what js/64 writes) and a password-reset link an admin sent (action
+     'reset_link_sent', what the Team page writes). Both read "Page access", the second printed its
+     raw key in both languages ("Page access · reset_link_sent"), named nobody, and was counted
+     and hidden among the "147 refused page visits" — 145 were refusals. A refusal is decided by
+     its action, not its table. M103. */
+  function isRefusal(r){ return !!r&&r.table_name==='access'&&r.action==='denied'; }
+  function entWord(row){ return (row.table_name==='access'&&row.action!=='denied')?fl('Account','الحساب'):tableLabel(row.table_name); }
   function tableLabel(t){ return { businesses:fl('Lead / client','عميل محتمل / عميل'), finance_invoices:fl('Invoice','فاتورة'), finance_transactions:fl('Transaction','معاملة'), client_profiles:fl('Client profile','ملف العميل'), contacts:fl('Contact','جهة اتصال'), activities:fl('Activity','نشاط'), access:fl('Page access','الوصول إلى صفحة'), app_users:fl('Team account','حساب فريق'), share_links:fl('Share link','رابط مشاركة') }[t] || t; }
   /* 2026-09-15 (fire #49, live): 216 of 274 history rows carry the literal 'unknown', and on a
      client card that read "unknown — last contact" like a ghost edit. It is not a ghost: the
@@ -205,7 +213,7 @@
      inside it. The database column stays available as a tooltip for anyone who needs it. */
   var FIELD_WORDS={
     raw:['record details','تفاصيل السجل'], stage:['stage','المرحلة'], status:['status','الحالة'], tier:['tier','الفئة'], name:['name','الاسم'], name_ar:['Arabic name','الاسم بالعربية'],
-    segment:['segment','القطاع'], category:['category','التصنيف'], notes:['notes','الملاحظات'], archived_by:['archived by','أُرشف بواسطة'], archived_at:['archived','تاريخ الأرشفة'],
+    segment:['segment','القطاع'], category:['category','التصنيف'], notes:['notes','الملاحظات'], archived_by:['archived by','أُرشف بواسطة'], archived_at:['archived','تاريخ الأرشفة'], mergedInto:['merged into','دُمجت في'],
     converted_date:['became a client on','تاريخ التحول إلى عميل'], is_client:['client flag','علامة العميل'], assigned_to:['owner','المسؤول'], account_manager:['account manager','مدير الحساب'],
     business_id:['linked company','الشركة المرتبطة'], client_profile_id:['linked profile','الملف المرتبط'], contract_start:['contract start','بداية العقد'], contract_end:['contract end','نهاية العقد'],
     payment_terms:['payment terms','شروط الدفع'], credit_limit:['credit limit','حد الائتمان'], closed_at:['closed on','تاريخ الإغلاق'], confirmation_reason:['confirmation note','ملاحظة التأكيد'],
@@ -246,6 +254,7 @@
     if(!n&&row.table_name==='client_profiles'&&r.business_id)n=fl('a client profile','ملف عميل');
     if(!n&&row.table_name==='contacts'&&(r.email||r.phone))n=r.email||r.phone;
     if(!n&&row.table_name==='access'&&r.page)n=pageWord(r.page);
+    if(!n&&row.table_name==='access'&&r.target_email)n=String(r.target_email);
     return n?String(n):'';
   }
   var KNOWN_TABLES={businesses:1,finance_invoices:1,finance_transactions:1,client_profiles:1,contacts:1};
@@ -283,7 +292,7 @@
        lives in a class (v63RowCss above) and stacks to one column under 640px. M88. */
     return '<div class="act-row v63-row" data-hist-id="'+row.id+'">'+
       '<span class="ts" style="color:var(--muted);font-size:11.5px">'+esc(fmtWhen(row.at))+'</span>'+
-      '<span class="ent"><b>'+esc(tableLabel(row.table_name))+'</b> · '+esc(actionLabel(row.action))+(name?' · <span data-hist-name="1" style="font-weight:700">'+esc(name)+'</span>':'')+'</span>'+
+      '<span class="ent"><b>'+esc(entWord(row))+'</b> · '+esc(actionLabel(row.action))+(name?' · <span data-hist-name="1" style="font-weight:700">'+esc(name)+'</span>':'')+'</span>'+
       '<span><span style="font-weight:600">'+esc(actorWord(row.actor_name))+'</span>'+(changed?' <span data-hist-fields="1" style="color:var(--muted)" title="'+esc(cols)+'">— '+esc(changed)+'</span>':'')+'</span>'+
       '<span style="text-align:end">'+btn+'</span></div>';
   }
@@ -314,7 +323,7 @@
        the person reading it. Each tile now says how much of itself is refusals, and the feed hides
        them by default behind a badge that names the count — the "N closed hidden · Show" pattern
        the Leads list already uses, so nothing is concealed and one click brings it back. */
-    var isAccess=function(r){ return r&&r.table_name==='access'; };
+    var isAccess=isRefusal; /* fire #265: by action, not by table — see isRefusal above */
     var accRows=rows.filter(isAccess);
     var accIn=function(from){ return accRows.filter(function(r){ var n=new Date(r.at).getTime(); return n===n&&n>=from; }).length; };
     var accToday=accIn(dayStart), accWeek=accIn(weekStart);
@@ -332,7 +341,7 @@
        refused page visits — no record changed". The last record anyone changed was fifteen days
        earlier. M76: a refused page visit is not a change to a record — so the newest is taken over
        record rows only, and the line says "record change" so it cannot be read as the other thing. */
-    var recTms=rows.filter(function(r){ return !isAccess(r); }).map(function(r){ return new Date(r.at).getTime(); }).filter(function(n){ return n===n; });
+    var recTms=rows.filter(function(r){ return r.table_name!=='access'; }).map(function(r){ return new Date(r.at).getTime(); }).filter(function(n){ return n===n; });
     var newest=recTms.length?Math.max.apply(null,recTms):0;
     /* 2026-09-23 (fire #230) — this line read «\u0642\u0628\u0644 2 \u0623\u064a\u0627\u0645» live. Arabic counts two of anything with a
        DUAL form, not a number and a plural, and past ten it takes the singular accusative. Four
