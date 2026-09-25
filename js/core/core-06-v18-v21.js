@@ -909,7 +909,9 @@ function bkRead(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e
 function bkFail(msg,err){
   // The one rule this whole rebuild exists to honor: a backup failure is never silent.
   console.error('backup: '+msg,err||'');
-  try{if(typeof toast==='function')toast('⚠ Backup: '+msg);else alert('Backup: '+msg);}catch(_){try{alert('Backup: '+msg);}catch(__){}}
+  /* fire #257: the notice box's own error kind (red, ⚠) — this used to pass a ⚠ glyph inside the text with
+     no kind, so the box drew its ✓ tick in front of it and a failure wore a success mark */
+  try{if(typeof toast==='function')toast('Backup: '+msg,'err');else alert('Backup: '+msg);}catch(_){try{alert('Backup: '+msg);}catch(__){}}
 }
 // Whether the signed-in user is admin — determines whether app_state_history (admin-only SELECT
 // by RLS) is even worth querying. Cached for the page's lifetime; RLS would just silently return

@@ -543,7 +543,10 @@
     'Pending sync to ':'بانتظار المزامنة مع ','Offer created from ':'أُنشئ العرض من ','Logged: sent via ':'سُجّل: أُرسل عبر ',
     'Logged to ':'سُجّل في ','Invoice marked paid · ':'حُدّدت الفاتورة كمدفوعة · ','Hash chain repaired (':'أُصلحت سلسلة التجزئة (',
     'Force-sync done — ':'تمت المزامنة الإجبارية — ','Default term: ':'المدة الافتراضية: ',
-    'Backup saved: ':'حُفظت النسخة الاحتياطية: ','Backup destination set: ':'تم تعيين وجهة النسخ الاحتياطي: '
+    'Backup saved: ':'حُفظت النسخة الاحتياطية: ','Backup destination set: ':'تم تعيين وجهة النسخ الاحتياطي: ',
+    /* fire #257: the backup screen's failure report is a notice (error kind) — the same head the
+       alert fallback uses */
+    'Backup: ':'النسخة الاحتياطية: '
   };
   var TOAST_PATTERN_AR=[
     [/^Noted (.+) as preferred$/, function(m){ return 'سُجّل '+m[1]+' كمفضّل'; }],
@@ -552,7 +555,8 @@
   function toastWord(msg){
     var t=String(msg==null?'':msg);
     if(TOAST_AR[t]!==undefined) return TOAST_AR[t];
-    for(var h in TOAST_HEAD_AR){ if(t.indexOf(h)===0) return TOAST_HEAD_AR[h]+t.slice(h.length); }
+    /* a known detail sentence after the head (the backup screen's, fire #257) is translated too */
+    for(var h in TOAST_HEAD_AR){ if(t.indexOf(h)===0){ var tail=t.slice(h.length); return TOAST_HEAD_AR[h]+((typeof ALERT_DETAIL_AR!=='undefined'&&ALERT_DETAIL_AR[tail]!==undefined)?ALERT_DETAIL_AR[tail]:tail); } }
     for(var i=0;i<TOAST_PATTERN_AR.length;i++){ var m=t.match(TOAST_PATTERN_AR[i][0]); if(m) return TOAST_PATTERN_AR[i][1](m); }
     return undefined;
   }
@@ -565,6 +569,50 @@
       wrapped.__v27=1; window.toast=wrapped;
     }
   }catch(_){}
+  /* ---- Reports and questions (2026-09-24, fire #257). Twenty sentences the fire-#88 probe could not
+     see because they are not bare literals: a fixed head with the detail after it — alert('Could not
+     delete: '+e), alert('Backup: '+msg), alert('Export failed: '+…), alert('Invalid file: '+…) — and the
+     questions the app asks in its own box — v18Ask('Set a passphrase …'), v18Ask('Move to dunning
+     stage? '), v18Ask('Tag name? (e.g. …'), pfPrompt('Copy the offer:'). A report of a failure is the
+     one message a person reads most carefully, and these read English in Arabic. Same shape as the
+     notices above: exact texts and fixed heads, one word function, and the wrappers below. The alert
+     wrapper is put on LATE, after js/63 has replaced window.alert with its in-page card, so the card
+     draws the Arabic (a wrap put on before js/63 would translate only the native fallback). */
+  var ALERT_HEAD_AR={
+    'Export failed: ':'فشل التصدير: ','Could not delete: ':'تعذّر الحذف: ','Could not restore: ':'تعذّرت الاستعادة: ',
+    'Saved template: ':'حُفظ القالب: ','Backup: ':'النسخة الاحتياطية: ','Invalid file: ':'ملف غير صالح: ',
+    'Logged to ':'سُجّل في ','Logged: ':'سُجّل: ','PPTX generation failed: ':'فشل إنشاء ملف PPTX: ','Conflict ':'تعارض '
+  };
+  var ASK_AR={
+    'Save as bundle template — name?':'حفظ كقالب حزمة — الاسم؟',
+    'Set a passphrase (privacy screen — NOT auth):':'عيّن عبارة مرور (شاشة خصوصية — ليست مصادقة):',
+    'Copy the offer:':'نسخ العرض:'
+  };
+  var ASK_HEAD_AR={'Tag name? (e.g. ':'اسم الوسم؟ (مثال: ','Move to dunning stage? ':'الانتقال إلى مرحلة التحصيل؟ '};
+  /* the detail after a head is usually a value (a file name, a count) — but the backup screen passes
+     a sentence of its own, so a translated head with an English tail would be half a message */
+  var ALERT_DETAIL_AR={
+    'could not load the backup list':'تعذّر تحميل قائمة النسخ الاحتياطية',
+    'no Supabase connection — cannot restore':'لا يوجد اتصال بقاعدة البيانات — لا يمكن الاستعادة',
+    'that snapshot has no data — nothing was restored':'هذه اللقطة لا تحتوي بيانات — لم يُستعد شيء',
+    'could not fetch that snapshot — nothing was restored':'تعذّر جلب تلك اللقطة — لم يُستعد شيء'
+  };
+  function alertWord(msg){
+    var t=String(msg==null?'':msg);
+    if(ASK_AR[t]!==undefined) return ASK_AR[t];
+    var h;
+    for(h in ALERT_HEAD_AR){ if(t.indexOf(h)===0){ var tail=t.slice(h.length); return ALERT_HEAD_AR[h]+(ALERT_DETAIL_AR[tail]!==undefined?ALERT_DETAIL_AR[tail]:tail); } }
+    for(h in ASK_HEAD_AR){ if(t.indexOf(h)===0) return ASK_HEAD_AR[h]+t.slice(h.length); }
+    return undefined;
+  }
+  window.v27AlertWord=function(msg){ try{ if(!(typeof LANG!=='undefined'&&LANG==='ar')) return msg; var w=alertWord(msg); return w===undefined?msg:w; }catch(_){ return msg; } };
+  (function lateWraps(n){
+    try{ if(typeof window.v18Ask==='function'&&!window.v18Ask.__v27){ var _ask=window.v18Ask; var wa=function(q,def,cb){ return _ask.call(this,window.v27AlertWord(q),def,cb); }; wa.__v27=1; window.v18Ask=wa; } }catch(_){}
+    try{ if(typeof window.pfPrompt==='function'&&!window.pfPrompt.__v27){ var _pp=window.pfPrompt; var wp=function(msg,def,cb){ return _pp.call(this,window.v27AlertWord(msg),def,cb); }; wp.__v27=1; window.pfPrompt=wp; } }catch(_){}
+    try{ if(window.__nativeAlert&&typeof window.alert==='function'&&!window.alert.__v27){ var _al=window.alert; var wl=function(m){ return _al.call(window,window.v27AlertWord(m)); }; wl.__v27=1; window.alert=wl; } }catch(_){}
+    var done=false; try{ done=!!(window.v18Ask&&window.v18Ask.__v27&&window.pfPrompt&&window.pfPrompt.__v27&&window.alert&&window.alert.__v27); }catch(_){}
+    if(!done&&(n||0)<80) setTimeout(function(){ lateWraps((n||0)+1); },300);
+  })(0);
   window.v27AttrWord=function(en){ try{ if(!(typeof LANG!=='undefined'&&LANG==='ar')) return en; var k=String(en==null?'':en); var ar=arAttrWord(k); return ar===undefined?k:ar; }catch(_){ return en; } };
   var PLACEHOLDER_AR={
     // fire #249 — the example hints on the same forms

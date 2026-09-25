@@ -2444,6 +2444,26 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M98 — a report of what happened ("Could not delete: …", "Backup: …", "Export failed: …") and a
+question the app asks in its own box ("Set a passphrase …", "Move to dunning stage?", "Copy the
+offer:") are messages like any other: Arabic in Arabic, owned by js/21's dictionary, and a failure
+is shown as a failure.** Found 2026-09-25 (fire #257) by surveying the sentences fire #88's probe
+cannot see: it reads bare alert('…') literals, and twenty more were not bare — a fixed head with the
+detail after it (alert('Could not delete: '+e), alert('Invalid file: '+…), alert('PPTX generation
+failed: '+…)) or the app's own question box (v18Ask, pfPrompt). Read live in Arabic, the idle-lock
+switch asked "Set a passphrase (privacy screen — NOT auth):" in English. js/21 now holds the heads
+and questions (and the four detail sentences the backup screen passes after its head, or the report
+would be half a message) and wraps v18Ask, pfPrompt and — put on LATE, after js/63 has replaced
+window.alert with its in-page card, so the card draws the Arabic — alert itself. Two things learned
+while driving it. bkFail reports through the notice box first and alert() only as its fallback, so a
+head must be in whichever dictionary the path actually uses; and it passed its own ⚠ inside the text
+with no kind, so the box drew "✓ ⚠ Backup: …" — a failure wearing a success mark — which now uses the
+box's error kind. Guard: `scripts/qa/probe-a-report-speaks-arabic.mjs` — the idle-lock question and
+a real restore of a snapshot that does not exist (its question answered, its tag refused by the
+harness, its fetch empty), both languages, no tick on the failure, and every such head or question
+in the source asked of the page's own v27AlertWord(); sabotage-tested (dictionary and wrappers
+absent → the three Arabic checks red). Status: ACTIVE.
+
 **M97 — the small notice that pops up after an action is a message like any other: it reads Arabic
 in Arabic, and its words are owned by js/21's notice dictionary through one wrapper around the app's
 single toast function — no caller writes a notice in English of its own.** Found 2026-09-24 (fire

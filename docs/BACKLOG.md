@@ -136,6 +136,25 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #257 (2026-09-25 ~00:40 UTC) — failure reports and the app's own questions speak Arabic, and a failure no longer wears a tick
+
+Two kinds of message were still English in an Arabic session: the reports of what went wrong
+("Could not delete: …", "Backup: …", "Export failed: …", "Invalid file: …", "PPTX generation failed:
+…") and the questions the app asks in its own box ("Set a passphrase …", "Move to dunning stage?",
+"Tag name?", "Copy the offer:"). Twenty sentences, missed earlier because they carry a detail after a
+fixed head rather than standing alone. On the live app in Arabic, the idle-lock switch asked its
+question in English.
+
+Now they read Arabic in Arabic and English in English, detail included — the backup screen's four
+follow-on sentences too, so a report is never half translated. Found and fixed on the way: a backup
+failure was shown with a green tick in front of its warning sign, because the message carried its
+own sign instead of telling the notice box it was an error; it now shows as a red error. Verified on
+the live app against the real database, nothing written.
+
+The full battery over the previous round's tree was green, 336 of 336 with no red at all.
+
+---
+
 ## Routine fire #256 (2026-09-24 ~23:40 UTC) — the little notices after a button press speak Arabic
 
 After many actions the app shows a small notice at the bottom for a couple of seconds — "done",

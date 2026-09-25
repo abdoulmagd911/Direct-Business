@@ -348,3 +348,4 @@ probe-a-share-link-survives-a-slow-boot
 probe-every-hover-word-speaks-arabic
 probe-every-hint-speaks-arabic
 probe-a-notice-speaks-arabic
+probe-a-report-speaks-arabic
