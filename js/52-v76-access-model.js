@@ -120,8 +120,14 @@
        · finance / settings / activity — the DATABASE enforces these too (can_edit_page)
        · documents — the five Generator editors ask mayEditPage (fire #184)
        · archive   — js/76 asks it
-       · today     — nothing on it changes a record, so there is nothing to withhold  */
-  try{ window.PAGES_VIEWER_ENFORCED=['today','finance','settings','activity','archive','documents']; }catch(_){}
+       · today     — nothing on it changes a record, so there is nothing to withhold
+       · leads, clients, offers, ops, events, airlines, vendors, sopsla, projects, bookings, invoices,
+         tickets, sync, reports — js/107 (2026-09-25): hides the changing buttons, locks the fields
+         that write, opens records read-only and makes the changing functions refuse, all from
+         mayEditPage. Guarded by scripts/qa/probe-view-means-view.mjs.  */
+  try{ window.PAGES_VIEWER_ENFORCED=['today','finance','settings','activity','archive','documents',
+    'leads','clients','offers','ops','events','airlines','vendors','sopsla','projects','bookings','invoices',
+    'tickets','sync','reports']; }catch(_){}
   /* known() exported (2026-08-21) so a page-access ENFORCEMENT layer (js/64) can tell "role
      confirmed, this decision is final" apart from "still loading, using the floor" — acting
      on mayOpenPage() during the unknown-role window would-be-admin included would bounce
