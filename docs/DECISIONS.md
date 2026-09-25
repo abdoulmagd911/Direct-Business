@@ -67,6 +67,16 @@ started** — the new session is told which files are whose before its first com
 *Date: 2026-08-23; suspended 2026-09-25. Status: SUSPENDED while one session writes — returns
 if a second writing session starts.*
 
+**P6 — Once approved, always approved.** The owner, 2026-09-25, verbatim: "Always allow anything
+you asked me for in this session or any other session so don't get back to me for them again as
+long as I'm allowed it once then you can have it all the time." A kind of action the owner has
+approved once — in any session — is approved from then on, and a session does not come back to ask
+again. Read with D2's "every phase lands by pull request": the owner has approved merging (PR #31),
+so a session merges its own pull request once its tests are green, and says so in its report. What
+this does NOT cover: an action of a kind never approved before, and anything that deletes real data
+or cannot be undone — those still go to the owner first (CLAUDE.md rule 9's carve-out).
+*Date: 2026-09-25. Status: ACTIVE.*
+
 **P5 — A correct rule that nothing consults is not a rule.** Hit this exact failure shape
 three times now: the Takamol exclusion list (correct, seeded, wired into every importer —
 and never called anyway, because the real write went in through direct SQL); `MIN_PW` (the
