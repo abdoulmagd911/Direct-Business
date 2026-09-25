@@ -152,6 +152,13 @@ removed from the app for the same reason on 21 September — they are now out of
 The IATA line's test used a registry key that never existed on the live registry, and the contract
 "reset to template" now asks before it acts, so the test answers.
 
+**Also driven this round, live, as every role** (the role answered at the wire, nothing written): a
+manager, business development, operations, a team member and a read-only viewer each get the
+navigation and the menu their role allows; a page reached by address outside the role lands on
+Today with a plain sentence in the page language ("You do not have access to that page — ask an
+admin if you need it"); the read-only and operations accounts carry their own banner; no errors.
+Clean.
+
 The full battery over the previous round's tree was green, 339 of 339 with no red at all.
 
 ---
