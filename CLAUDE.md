@@ -340,8 +340,11 @@ Things it settles that matter constantly:
   normalised name > phone prefix). Mismatches get flagged, never silently merged.
 - ~~Subagents are banned (credits burned, June 2026).~~ **Lifted 2026-08-21 — Abdulrahman
   approved using them again.** Do not re-apply the old ban from this line's history.
-- Abdulrahman's work laptop is locked down — Q drive only, no shell, no installs. His
-  primary account is business@directksa.com; a.hassan@directksa.net is his Team-Member view.
+- Abdulrahman's work laptop is locked down — Q drive only, no shell, no installs. **His admin
+  account — the one on the team list — is aboelmagd@directksa.com** (his own word, 2026-09-25;
+  `docs/DECISIONS.md` D8). business@directksa.com is another login he keeps, not the team-list
+  person; a.hassan@directksa.net is his Team-Member view. ahmed.aboelmagd@directksa.net is a
+  different employee.
 
 ## The lead funnels (live, already built)
 
