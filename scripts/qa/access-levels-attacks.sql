@@ -158,6 +158,13 @@ begin
         (select role::text || ' ' || coalesce(page_access::text, 'null') from public.app_users where id = '00000000-0000-4000-8000-0000000001a0'));
 
   ---------------------------------------------------------------- switched off, and nobody signed in
+  -- G6 (Phase 1b part D): Team → Add creates the login first (sign-up grid) and sets the role SECOND
+  insert into public.app_users(id, email, full_name, role, active, must_change_password)
+    values ('00000000-0000-4000-8000-0000000001a0', 'phase1a-probe@example.invalid', 'Probe', 'team_member', true, false)
+    on conflict (id) do update set role = excluded.role, active = excluded.active;
+  insert into _t values ('G6 a person added through Team → Add as an employee gets the employee starting grid',
+        (select page_access from public.app_users where id = '00000000-0000-4000-8000-0000000001a0') = public.default_page_levels('team_member'),
+        (select page_access::text from public.app_users where id = '00000000-0000-4000-8000-0000000001a0'));
   update public.app_users set active = false, page_access = public.default_page_levels('team_member') where id = qa;
   insert into _t values ('X1 a switched-off account has no access', public.page_level('leads') = 'none', public.page_level('leads'));
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
