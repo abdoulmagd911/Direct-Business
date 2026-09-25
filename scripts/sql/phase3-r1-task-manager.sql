@@ -517,14 +517,18 @@ begin
 end $$;
 create trigger company_documents_guard before insert or update on company_documents for each row execute function company_documents_guard();
 
+-- R1 CHANGE (oversight, 2026-09-25): Direct Payments owns the discount codes (D6). Their own columns —
+-- code, kind, value, dates, sales, active/expired — arrive by import (the 200 live rows came in one SQL batch
+-- on 12–13 Aug, no signed-in person) and are re-pointed by company merges; this guard must never refuse
+-- either. So it checks ONLY this app's new column `services`, and only when `services` itself changes:
+-- an import never writes it, a merge never writes it, and any value Direct Payments sends passes untouched.
+-- (29a also refused unknown kinds, 0 / >100 % and reversed dates — Direct Payments' data, not ours; removed.)
 create or replace function promo_codes_guard() returns trigger language plpgsql security definer set search_path to public as $$
 begin
-  if new.services is not null and exists (select 1 from unnest(new.services) sv where sv not in (select code from service_types)) then
+  if new.services is not null
+     and (tg_op = 'INSERT' or new.services is distinct from old.services)
+     and exists (select 1 from unnest(new.services) sv where sv not in (select code from service_types)) then
     raise exception 'Unknown service on discount code %', new.code; end if;
-  if new.valid_to is not null and new.valid_from is not null and new.valid_to < new.valid_from then
-    raise exception 'Discount code % ends before it starts', new.code; end if;
-  if new.kind not in ('percent','fixed') then raise exception 'Discount is a percentage or a fixed SAR amount'; end if;
-  if new.kind = 'percent' and (new.value_pct <= 0 or new.value_pct > 100) then raise exception 'Percentage must be between 0 and 100'; end if;
   return new;
 end $$;
 create trigger promo_codes_guard before insert or update on promo_codes for each row execute function promo_codes_guard();

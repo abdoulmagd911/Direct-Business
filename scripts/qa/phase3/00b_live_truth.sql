@@ -94,3 +94,13 @@ begin
   update record_history set undone_at = now(), undone_by = me where id = p_id;
   return 'ok';
 end$function$;
+-- promo_codes as it is live (information_schema, 2026-09-25): the columns the 12–13 Aug import wrote
+alter table promo_codes add column if not exists slug text, add column if not exists created_by text,
+  add column if not exists updated_at timestamptz not null default now();
+update promo_codes set kind = 'percent' where kind is null;
+update promo_codes set total_sales_sar = 0 where total_sales_sar is null;
+update promo_codes set total_discount_sar = 0 where total_discount_sar is null;
+alter table promo_codes alter column kind set not null, alter column kind set default 'percent',
+  alter column total_sales_sar set not null, alter column total_sales_sar set default 0,
+  alter column total_discount_sar set not null, alter column total_discount_sar set default 0,
+  alter column active set not null, alter column expired set not null, alter column code set not null;

@@ -57,6 +57,17 @@ own test copy (29e), once on a copy corrected to what the live database says tod
    release, together with the export and the move of the browser-held data (the owner's Phase 3
    ruling).
 
+8. **The discount-code guard could refuse a Direct Payments import** (found in the oversight's review,
+   2026-09-25). 29a's `promo_codes_guard` checked Direct Payments' own columns — kind, a 0–100 % value,
+   date order. Direct Payments owns the codes (D6); the 200 live rows came in one SQL batch on 12–13 Aug
+   with nobody signed in (no history rows; one row already carries no value), and company merges re-point
+   them. Nothing else writes the table: the app only reads it (Finance), no edge function mentions it
+   (all seven read), and there is no scheduler. *Fix:* the guard checks only this app's new `services`
+   column, and only when `services` itself changes. Test R1-07 replays an import — six rows with every
+   awkward value (unknown kind, no value, 0 %, 150 %, reversed dates), imported three times by upsert with
+   nobody signed in and again as an admin, plus a merge re-point: all accepted; an unknown service in
+   `services` is still refused. On 29a's guard R1-07 goes red.
+
 ## Differences that do not matter (recorded so nobody re-checks them)
 
 - The local test server needed two Supabase defaults the live database already has: new tables /

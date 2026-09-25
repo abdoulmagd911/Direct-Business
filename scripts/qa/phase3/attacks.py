@@ -608,15 +608,17 @@ def _(cur):
     sees = one(cur, "select count(*) from tasks where id=%s", (other,))
     q(cur, "reset role"); ok = one(cur, "select status='final' and finalized_by=%s from report_entries where id=%s", (F['m2'], e))
     return (ok and sees == 1, f"finalized Partnership achievement={ok} | sees Partnership task={sees}")
-@test("D05 Discount codes: per company, % or fixed SAR, date window, chosen services, purpose; bad service / reversed dates / 150% → blocked; expiry shown on the card")
+@test("D05 Discount codes: per company, % or fixed SAR, date window, chosen services, purpose; an unknown service → blocked; Direct Payments' own values (reversed dates, 150 %) are NOT refused (D6, R1); expiry shown on the card")
 def _(cur):
-    q(cur, "insert into promo_codes(code,kind,value_pct,valid_from,valid_to,partner_business_id,services,purpose) values ('COA-HAJJ',%s,%s,'2026-05-01','2026-06-30',%s,%s,'Hajj season staff travel')", ('fixed', 150, F['coA'], ['hotels', 'flights']))
+    q(cur, "insert into promo_codes(code,kind,value_pct,valid_from,valid_to,partner_business_id,services,purpose) values ('COA-HAJJ',%s,%s,'2026-05-01','2026-06-30',%s,%s,'Hajj season staff travel')", ('fixed', 150, F['coA'], ['umrah','flights']))
     a, m1 = expect_fail(cur, "insert into promo_codes(code,kind,value_pct,partner_business_id,services) values ('X1','percent',10,%s,%s)", (F['coA'], ['spaceflight']), "unknown service")
-    b, m2 = expect_fail(cur, "insert into promo_codes(code,kind,value_pct,valid_from,valid_to) values ('X2','percent',10,'2026-06-01','2026-05-01')", None, "ends before")
-    c3, m3 = expect_fail(cur, "insert into promo_codes(code,kind,value_pct) values ('X3','percent',150)", None, "between 0 and 100")
+    # R1 CHANGE: these are Direct Payments' columns — the guard must let them through as they come
+    q(cur, "insert into promo_codes(code,kind,value_pct,valid_from,valid_to) values ('X2','percent',10,'2026-06-01','2026-05-01')")
+    q(cur, "insert into promo_codes(code,kind,value_pct) values ('X3','percent',150)")
+    kept = one(cur, "select count(*) from promo_codes where code in ('X2','X3')")
     q(cur, "select set_config('app.today','2026-09-25',true)")
     st = one(cur, "select string_agg((x->>'code')||'='||(x->>'status'), ', ' order by x->>'code') from company_card, jsonb_array_elements(discount_codes) x where business_id=%s", (F['coA'],))
-    return (a and b and c3 and 'COA-HAJJ=expired' in st and 'COA10=active' in st, f"{m1} | {m2} | {m3} | card: {st}")
+    return (a and kept == 2 and 'COA-HAJJ=expired' in st and 'COA10=active' in st, f"{m1} | Direct Payments' reversed dates / 150 %: kept {kept} of 2 | card: {st}")
 
 # ================= row-level security, run as the real signed-in role =================
 @test("R01 Team member on Own sees own tasks, not a colleague's in another department")
@@ -851,6 +853,31 @@ def _(cur):
     e = one(cur, "insert into app_users(email,full_name,role) values ('newemp@x.test','New Employee','team_member') returning page_access")
     ok = m.get('documents') == 'full' and m.get('tasks') == 'full' and e.get('tasks') == 'full' and 'reports' not in m and 'reports' not in e
     return (ok, f"manager documents={m.get('documents')} tasks={m.get('tasks')} reports={m.get('reports')} · employee tasks={e.get('tasks')} reports={e.get('reports')}")
+
+
+@test("R1-07 An import from Direct Payments is never refused: every Direct Payments column, any value (unknown kind, no value, 0 %, 150 %, reversed dates), inserted and re-imported (upsert by code) with no signed-in person AND as a signed-in admin; a company merge re-points codes; only a change to OUR `services` column is checked")
+def _(cur):
+    rows = [('IMP-1','percent',10,'2025-01-01','2025-12-31'), ('IMP-2','fixed',250,'2024-06-01','2024-07-01'), ('IMP-3','percent',None,None,None),
+            ('IMP-4','bogo',5,'2026-01-01','2026-12-31'), ('IMP-5','percent',0,'2026-01-01','2026-12-31'), ('IMP-6','percent',150,'2026-06-01','2026-05-01')]
+    ins = """insert into promo_codes(code,slug,kind,value_pct,valid_from,valid_to,total_sales_sar,total_discount_sar,active,expired,created_by,notes)
+             values (%s,lower(%s),%s,%s,%s,%s,1000,100,true,false,'Import person','import replay')
+             on conflict (code) do update set kind=excluded.kind, value_pct=excluded.value_pct, valid_from=excluded.valid_from, valid_to=excluded.valid_to,
+               total_sales_sar=excluded.total_sales_sar, total_discount_sar=excluded.total_discount_sar, active=excluded.active, expired=excluded.expired, notes=excluded.notes"""
+    q(cur, "select set_config('request.uid', '', true)")                     # the import: nobody signed in
+    for r in rows: q(cur, ins, (r[0], r[0]) + r[1:])
+    for r in rows: q(cur, ins, (r[0], r[0]) + r[1:])                          # the same file imported again
+    q(cur, "update promo_codes set services = array['flights'] where code='IMP-1'")   # our column, set once by the app
+    for r in rows: q(cur, ins, (r[0], r[0]) + r[1:])                          # re-import after the app set services: untouched
+    after_anon = one(cur, "select count(*) from promo_codes where code like 'IMP-%%'")
+    q(cur, "select set_config('request.uid', %s, true)", (str(F['admin']),))  # the same import, run as a signed-in admin
+    for r in rows: q(cur, ins, (r[0], r[0]) + r[1:])
+    q(cur, "update promo_codes set partner_business_id=%s where code in ('IMP-1','IMP-2')", (F['coA'],))
+    q(cur, "update promo_codes set partner_business_id=%s where partner_business_id=%s", (F['coB'], F['coA']))   # what fn_merge_businesses does
+    moved = one(cur, "select count(*) from promo_codes where code in ('IMP-1','IMP-2') and partner_business_id=%s", (F['coB'],))
+    svc_ok = one(cur, "select services from promo_codes where code='IMP-1'")
+    bad, m = expect_fail(cur, "update promo_codes set services = array['spaceflight'] where code='IMP-2'", None, "unknown service")
+    return (after_anon == 6 and moved == 2 and svc_ok == ['flights'] and bad,
+            f"imported 6 (3 passes, no one signed in) → {after_anon} rows · as admin: ok · merge re-pointed {moved} · services kept {svc_ok} · our column checked: {m[:45]}")
 
 w = max(len(n) for n, _, _ in results)
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)

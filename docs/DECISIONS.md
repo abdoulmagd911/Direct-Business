@@ -2823,8 +2823,9 @@ no name clashes, every column present; six differences found and corrected in re
 `R1 CHANGE` in `scripts/sql/phase3-r1-task-manager.sql` (work numbers need Tasks, not the Generator;
 the manager keeps the Generator; Tasks only in the grid — Reports waits for its own release; anon
 cannot call the new functions; task history follows the Tasks page; Undo knows the task tables;
-company owner through the live resolver). Proven by the design's 87 tests plus 6 release-1 tests on a
-local copy corrected to the live truth (`scripts/qa/phase3/run.sh`, 93/93; the 6 go red on the design
+company owner through the live resolver; and — from the oversight's review — the discount-code guard checks
+only this app's `services` column, so a Direct Payments import is never refused). Proven by the design's 87 tests plus 7 release-1 tests on a
+local copy corrected to the live truth (`scripts/qa/phase3/run.sh`, 94/94; the 7 go red on the design
 as written). **Release 1 screens:** `js/108-tasks.js` (the Tasks page) and
 `js/109-changes-to-your-tasks.js` (Today), guarded by `scripts/qa/probe-tasks-page.mjs`.
 **Owner's ruling (2026-09-25): Tasks only for release 1 — Reports comes with its own release.** Nobody's
