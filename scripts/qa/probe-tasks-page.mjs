@@ -81,7 +81,10 @@ const openTask = async (p, title) => {
 /* ---------------- FULL ---------------- */
 {
   const { p, b, srv } = await session('full', 9347);
-  (await navHas(p)) ? ok('full: "Tasks" is in the menu') : fail('full: no Tasks menu button');
+  /* the menu is rebuilt after sign-in by several layers; on a crowded machine the button can arrive a
+     few seconds late — wait for it (up to 15 s) rather than reading at one fixed moment */
+  const navShown = await p.waitForFunction(() => { const b = document.getElementById('v108NavBtn'); return !!(b && getComputedStyle(b).display !== 'none'); }, { timeout: 15000 }).then(() => true).catch(() => false);
+  navShown ? ok('full: "Tasks" is in the menu') : fail('full: no Tasks menu button');
   await openTasks(p);
   const mine = await listTitles(p);
   await p.evaluate(() => v108Mine(false)); const all = await listTitles(p);

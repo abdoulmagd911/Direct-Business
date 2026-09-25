@@ -358,3 +358,4 @@ probe-owner-is-told-of-changes
 probe-design-file-on-every-page
 probe-view-means-view
 probe-tasks-page
+probe-team-list

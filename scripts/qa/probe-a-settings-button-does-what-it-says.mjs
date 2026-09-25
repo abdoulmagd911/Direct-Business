@@ -107,15 +107,20 @@ const labels = await p.evaluate(() => { const v = document.getElementById('view'
     .map((el) => (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 52)); });
 
 const inert = []; let companyUrl = null;
+/* 2026-09-25: two controls can share a label (the team list's "Make inactive", one per person). The
+   n-th time a label comes up, the n-th control with it is clicked — before, the first was clicked every
+   time, so the others were never tried at all */
+const nth = {};
 for (const label of labels) {
   if (!label) continue;
   if (/sign out|logout|save access|^Language/i.test(label)) continue;
   await settle();
   const before = await snap(); const dB = dialogs.length, popB = popups.length;
-  const hit = await p.evaluate((lb) => { const v = document.getElementById('view');
+  const k = nth[label] = (nth[label] || 0) + 1;
+  const hit = await p.evaluate(([lb, k]) => { const v = document.getElementById('view');
     const el = [...v.querySelectorAll('button,a.btn')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2; })
-      .find((e) => ((e.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 52)) === lb);
-    if (!el) return 'missing'; el.click(); return 'clicked'; }, label);
+      .filter((e) => ((e.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 52)) === lb)[k - 1];
+    if (!el) return 'missing'; el.click(); return 'clicked'; }, [label, k]);
   await p.waitForTimeout(2200);
   const after = await snap();
   const moved = before.url !== after.url || Math.abs(before.text - after.text) > 4 ||

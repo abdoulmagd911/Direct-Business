@@ -2972,6 +2972,17 @@ finance_transactions. The separate `activities` table has none — but the app n
 (no code refers to it; its newest row is 2026-08-16; activity notes are saved inside the company
 record and so are recorded with it). If anything ever writes `activities` again, give it the same
 trigger in the same change.
+**Owner's ruling, 2026-09-25 — the owner can undo others' changes to what they own.** Undo within
+24 hours used to be open only to whoever made the change (or an admin/manager); the owner of a
+company or a task was told but could not put it back. Now the owner can: `undo_change` treats the
+caller as owner when the company's `owner_id` is them (and for its contacts, activities and client
+profiles, the parent company's), or the task's / work project's owner is their team-list row (and
+for a task's checklist, comments and links, the parent task's). The undo is recorded
+(`undone_by`), same 24-hour window, and a third colleague who neither made the change nor owns the
+record is still refused. An owner on View on that page still cannot undo (they need Own work or
+Full control). `scripts/sql/d7-owner-can-undo.sql` (+ rollback), applied live 2026-09-25 after a
+rolled-back live run with real ordinary employees: third colleague refused on company and task,
+owner undid both, values back, `undone_by` = owner. Local harness U-01..U-03 (red without the rule).
 *Date: 2026-09-25. Status: ACTIVE.*
 
 **D3 — Quality, Strategy and Integrity have no control over tasks, achievements or proofs** — they

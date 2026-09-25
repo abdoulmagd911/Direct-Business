@@ -821,20 +821,19 @@ def _(cur):
     as_user(cur, 'u6'); viewer = count(); q(cur, "reset role")
     return (other == 0 and nopage == 0 and owner >= 2 and viewer >= 2, f"colleague on Own={other} · no Tasks page={nopage} · owner={owner} · View={viewer}")
 
-@test("R1-04 Undo knows tasks: the owner undoes their own edit (title comes back); a colleague cannot undo someone else's; a person on Own cannot undo (needs Full)")
+@test("R1-04 Undo knows tasks: the owner undoes their own edit (title comes back); a colleague cannot undo someone else's; a NON-owner on Own cannot undo (needs Full) — the owner on Own may (D7 ruling, U-03)")
 def _(cur):
     t = new_task(cur, company='coA', owner='m1')
     q(cur, "update tasks set title='Original' where id=%s", (t,))
     as_user(cur, 'u1'); q(cur, "update tasks set title='Changed by Raad' where id=%s", (t,)); q(cur, "reset role")
     h = one(cur, "select max(id) from record_history where table_name='tasks' and record_id=%s and actor=%s", (t, F['u1']))
     as_user(cur, 'u2'); other = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
-    own_tasks(cur, 'u1')
-    as_user(cur, 'u1'); on_own = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
-    q(cur, "update app_users set page_access = page_access || '{\"tasks\":\"full\"}' where id=%s", (F['u1'],))
+    own_tasks(cur, 'u3')
+    as_user(cur, 'u3'); on_own = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
     as_user(cur, 'u1'); mine = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
     title = one(cur, "select title from tasks where id=%s", (t,))
     ok = mine == 'ok' and title == 'Original' and 'own changes' in (other or '') and 'full control of the Tasks' in (on_own or '')
-    return (ok, f"owner: {mine} → '{title}' · colleague: {(other or '')[:45]} · on Own: {(on_own or '')[:45]}")
+    return (ok, f"owner: {mine} → '{title}' · colleague: {(other or '')[:45]} · non-owner on Own: {(on_own or '')[:45]}")
 
 @test("R1-05 Company owner through the live resolver: account manager written as an e-mail prefix or an Arabic name resolves; a name two accounts share resolves to nobody")
 def _(cur):
@@ -878,6 +877,97 @@ def _(cur):
     bad, m = expect_fail(cur, "update promo_codes set services = array['spaceflight'] where code='IMP-2'", None, "unknown service")
     return (after_anon == 6 and moved == 2 and svc_ok == ['flights'] and bad,
             f"imported 6 (3 passes, no one signed in) → {after_anon} rows · as admin: ok · merge re-pointed {moved} · services kept {svc_ok} · our column checked: {m[:45]}")
+
+
+# ======================= D7 Undo — owner's ruling 2026-09-25 (scripts/sql/d7-owner-can-undo.sql) =======================
+@test("U-01 Tasks: a colleague changes Raad's task; Raad (an ordinary employee, the OWNER) undoes it; a third colleague cannot; the undo is recorded")
+def _(cur):
+    t = new_task(cur, company='coA', owner='m1')
+    q(cur, "update tasks set title='Original' where id=%s", (t,))
+    as_user(cur, 'u2'); q(cur, "update tasks set title='Changed by Kareem' where id=%s", (t,)); q(cur, "reset role")
+    h = one(cur, "select max(id) from record_history where table_name='tasks' and record_id=%s and actor=%s", (t, F['u2']))
+    as_user(cur, 'u3'); third = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
+    as_user(cur, 'u1'); owner = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
+    title = one(cur, "select title from tasks where id=%s", (t,)); by = one(cur, "select undone_by=%s from record_history where id=%s", (F['u1'], h))
+    return (owner == 'ok' and title == 'Original' and by and 'own changes' in (third or ''), f"owner: {owner} → '{title}' (recorded={by}) · third colleague: {(third or '')[:60]}")
+
+@test("U-02 Companies: a colleague changes a company Raad OWNS (owner_id); Raad undoes it; a third colleague cannot; a contact follows its company")
+def _(cur):
+    b = one(cur, "insert into businesses(name,is_client,owner_id) values ('Owned Co',true,%s) returning id", (F['u1'],))
+    c = one(cur, "insert into contacts(business_id,name) values (%s,'Person') returning id", (b,))
+    as_user(cur, 'u2'); q(cur, "update businesses set name='Renamed by Kareem' where id=%s", (b,)); q(cur, "update contacts set name='Changed person' where id=%s", (c,)); q(cur, "reset role")
+    hb = one(cur, "select max(id) from record_history where table_name='businesses' and record_id=%s and actor=%s", (b, F['u2']))
+    hc = one(cur, "select max(id) from record_history where table_name='contacts' and record_id=%s and actor=%s", (c, F['u2']))
+    as_user(cur, 'u3'); third = one(cur, "select undo_change(%s)", (hb,)); q(cur, "reset role")
+    as_user(cur, 'u1'); ob = one(cur, "select undo_change(%s)", (hb,)); oc = one(cur, "select undo_change(%s)", (hc,)); q(cur, "reset role")
+    name = one(cur, "select name from businesses where id=%s", (b,)); pn = one(cur, "select name from contacts where id=%s", (c,))
+    return (ob == 'ok' and oc == 'ok' and name == 'Owned Co' and pn == 'Person' and 'own changes' in (third or ''), f"owner: company {ob} → '{name}', contact {oc} → '{pn}' · third: {(third or '')[:50]}")
+
+@test("U-03 The owner on Own work (not Full) can still undo a change to their own task; not the owner on Own cannot; money stays admin/manager")
+def _(cur):
+    t = new_task(cur, company='coA', owner='m1')
+    as_user(cur, 'u2'); q(cur, "update tasks set title='Kareem again' where id=%s", (t,)); q(cur, "reset role")
+    h = one(cur, "select max(id) from record_history where table_name='tasks' and record_id=%s and actor=%s", (t, F['u2']))
+    own_tasks(cur, 'u1', 'u3')
+    as_user(cur, 'u3'); third = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
+    as_user(cur, 'u1'); owner = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
+    return (owner == 'ok' and 'full control' in (third or ''), f"owner on Own: {owner} · third on Own: {(third or '')[:60]}")
+
+# ======================= Team & Access → the team list (scripts/sql/team-list-editing.sql) =======================
+def new_login(cur, email, active=True):
+    return one(cur, "insert into app_users(email,full_name,role,active) values (%s,%s,'team_member',%s) returning id", (email, email.split('@')[0], active))
+
+@test("T-01 An employee cannot add anyone, move anyone or set a head; a manager can, and each change is in the history with the manager's name")
+def _(cur):
+    newbie = new_login(cur, 'newbie@x.test')
+    as_user(cur, 'u1')
+    a, m = expect_fail(cur, "insert into team_members(user_id,department_id) values (%s,%s)", (newbie, F['dep_bus']), "row-level security")
+    q(cur, "update team_members set department_id=%s where id=%s", (F['dep_par'], F['m2'])); moved_by_emp = one(cur, "select department_id=%s from team_members where id=%s", (F['dep_par'], F['m2']))
+    q(cur, "update departments set head_member_id=%s where id=%s", (F['m1'], F['dep_bus'])); head_by_emp = one(cur, "select head_member_id=%s from departments where id=%s", (F['m1'], F['dep_bus']))
+    q(cur, "reset role"); as_user(cur, 'u4')
+    nm = one(cur, "insert into team_members(user_id,department_id) values (%s,%s) returning id", (newbie, F['dep_bus']))
+    q(cur, "update team_members set department_id=%s where id=%s", (F['dep_par'], F['m2']))
+    q(cur, "update departments set head_member_id=%s where id=%s", (F['m1'], F['dep_bus'])); q(cur, "reset role")
+    moved = one(cur, "select department_id=%s from team_members where id=%s", (F['dep_par'], F['m2'])); head = one(cur, "select head_member_id=%s from departments where id=%s", (F['m1'], F['dep_bus']))
+    hist = one(cur, "select count(*) from record_history where actor=%s and ((table_name='team_members' and record_id in (%s,%s)) or (table_name='departments' and record_id=%s))", (F['u4'], nm, F['m2'], F['dep_bus']))
+    return (a and not moved_by_emp and not head_by_emp and nm and moved and head and hist == 3,
+            f"employee: add refused ({m[:40]}), move took={moved_by_emp}, head took={head_by_emp} · manager: added, moved={moved}, head={head}, history rows as the manager={hist}")
+
+@test("T-02 A manager cannot rename or switch off a department (admin only); an admin can; only an admin removes a team-list row")
+def _(cur):
+    as_user(cur, 'u4')
+    a, m = expect_fail(cur, "update departments set name_en='Renamed' where id=%s", (F['dep_bus'],), "only an admin")
+    b, m2 = expect_fail(cur, "update departments set active=false where id=%s", (F['dep_qua'],), "only an admin")
+    q(cur, "delete from team_members where id=%s", (F['m6'],)); still = one(cur, "select count(*) from team_members where id=%s", (F['m6'],))
+    q(cur, "reset role"); as_user(cur, 'admin')
+    q(cur, "update departments set name_en='Renamed' where id=%s", (F['dep_bus'],)); q(cur, "reset role")
+    renamed = one(cur, "select name_en from departments where id=%s", (F['dep_bus'],))
+    return (a and b and still == 1 and renamed == 'Renamed', f"manager rename: {m[:50]} · switch off refused={b} · manager delete left row={still} · admin renamed → {renamed}")
+
+@test("T-03 Guards: the head must be active; a head cannot be made inactive until replaced; inactive stamps the leaving date and active clears it; an entry never moves to another login; an inactive login is not added")
+def _(cur):
+    as_user(cur, 'u4')
+    q(cur, "update departments set head_member_id=%s where id=%s", (F['m3'], F['dep_par']))
+    a, m1 = expect_fail(cur, "update team_members set active=false where id=%s", (F['m3'],), "choose a new head first")
+    q(cur, "update departments set head_member_id=%s where id=%s", (F['m4'], F['dep_par']))
+    q(cur, "update team_members set active=false where id=%s", (F['m3'],)); left = one(cur, "select left_on=current_date from team_members where id=%s", (F['m3'],))
+    b, m2 = expect_fail(cur, "update departments set head_member_id=%s where id=%s", (F['m3'], F['dep_par']), "active person")
+    q(cur, "update team_members set active=true where id=%s", (F['m3'],)); cleared = one(cur, "select left_on is null from team_members where id=%s", (F['m3'],))
+    c, m3 = expect_fail(cur, "update team_members set user_id=%s where id=%s", (F['u5'], F['m3']), "stays with its login")
+    q(cur, "reset role"); gone = new_login(cur, 'gone@x.test', active=False); as_user(cur, 'u4')
+    d, m4 = expect_fail(cur, "insert into team_members(user_id,department_id) values (%s,%s)", (gone, F['dep_bus']), "active login")
+    return (a and left and b and cleared and c and d, f"{m1[:45]} · left_on stamped={left} · {m2[:40]} · cleared={cleared} · {m3[:30]} · {m4[:35]}")
+
+@test("T-04 Someone on View (Quality) and a signed-out caller change nothing on the team list")
+def _(cur):
+    as_user(cur, 'u6')
+    q(cur, "update team_members set active=false where id=%s", (F['m5'],)); q(cur, "update departments set head_member_id=%s where id=%s", (F['m6'], F['dep_qua']))
+    q(cur, "reset role")
+    act = one(cur, "select active from team_members where id=%s", (F['m5'],)); hd = one(cur, "select head_member_id is null from departments where id=%s", (F['dep_qua'],))
+    q(cur, "set local role anon"); q(cur, "select set_config('request.uid', '', true)")
+    a, m = expect_fail(cur, "update team_members set active=false where id=%s returning id", (F['m5'],), "")
+    q(cur, "reset role"); act2 = one(cur, "select active from team_members where id=%s", (F['m5'],))
+    return (act and hd and act2, f"view: still active={act}, head unchanged={hd} · anon: still active={act2} ({m[:40]})")
 
 w = max(len(n) for n, _, _ in results)
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
