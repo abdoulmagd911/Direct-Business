@@ -2816,6 +2816,17 @@ Business, Partnership, Quality, Complaints, Strategy, Integrity. Only admins, ma
 assign work. An "open visibility" switch is ON for now (everyone signed in can see everyone's work).
 The tested database design (v1.2.3, 85 attack tests) is held by the oversight chat and is handed
 over at Phase 3 — it is not in this repo yet and nothing may be built from memory of it.
+**Handed over 2026-09-25 as v1.2.4** (tasks follow D7: Full by default, the owner told; achievements
+stricter; a colleague closing someone's task drafts the owner's achievement; Quality / Strategy /
+Integrity View). **Checked against the live database before use** — `docs/PHASE3_SCHEMA_CHECK_2026-09-25.md`:
+no name clashes, every column present; six differences found and corrected in release 1, each marked
+`R1 CHANGE` in `scripts/sql/phase3-r1-task-manager.sql` (work numbers need Tasks, not the Generator;
+the manager keeps the Generator; Tasks only in the grid — Reports waits for its own release; anon
+cannot call the new functions; task history follows the Tasks page; Undo knows the task tables;
+company owner through the live resolver). Proven by the design's 87 tests plus 6 release-1 tests on a
+local copy corrected to the live truth (`scripts/qa/phase3/run.sh`, 93/93; the 6 go red on the design
+as written). **Release 1 screens:** `js/108-tasks.js` (the Tasks page) and
+`js/109-changes-to-your-tasks.js` (Today), guarded by `scripts/qa/probe-tasks-page.mjs`.
 *Date: 2026-09-25. Status: ACTIVE.*
 
 **D2 — Access is a level per person per page, not a role.** Four levels:

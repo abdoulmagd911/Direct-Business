@@ -19665,3 +19665,18 @@ proof soft-deleted; the seven 13 Aug practice requests removed from `app_request
 board now 0 / 0 / 0 SAR); the "live-check.pdf" attachment cleared from all five proposals (the
 scheduled task's live checks had attached it to every one) — full copies of all 14 items in
 `public.practice_cleanup_backup_20260909`. BR1 (Brand Hub public) — not answered, not pressed.
+
+## Phase 3 release 1 — tasks and projects (2026-09-25)
+
+**What:** the task manager's first release inside this app (D1, rule 8): the Tasks page (tasks, work
+projects, a task's status / checklist / updates), "changes to your tasks" on Today (D7), and the Tasks
+page in Team & Access with Own work choosable there. Database: `scripts/sql/phase3-r1-task-manager.sql`
+(the design v1.2.4 + six corrections from the live check), rollback beside it.
+**How it lands:** by pull request; the database script is applied at merge, after a live dry run in a
+transaction that always rolls back. Nobody's grid changes except `tasks: full` for the 8 active
+non-admins (measured before/after).
+**Next releases (not built):** report registration + the Reports export and the move of the
+browser-held achievements (the owner's Phase 3 ruling); KPI actuals and targets; the appraisal cycle;
+the company card (client IDs, discount codes, files). The go-live people step (who is in which
+department, the Commercial head) is run once at merge from the oversight chat's 29d — it names real
+staff, so it is never committed here.
