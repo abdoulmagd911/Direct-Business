@@ -132,6 +132,9 @@ const reload = async () => {
 /* A — the save is refused */
 const editedName = await editAndSave('A');
 await p.waitForTimeout(4000);
+/* on a crowded machine the refusal can take longer to come back than 4 s, and the badge still reads
+   "Not synced yet" (in flight) — wait for the answer (up to 20 s more) before reading it */
+for (let i = 0; i < 20 && /Not synced yet/i.test(String(await badge())); i++) await p.waitForTimeout(1000);
 const failBadge = await badge();
 const remembered = await unsent();
 

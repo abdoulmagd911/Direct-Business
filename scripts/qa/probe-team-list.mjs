@@ -59,12 +59,14 @@ const state = (p) => p.evaluate(() => {
   const host = document.getElementById('v110Host');
   if (!host) return null;
   const rows = [...host.querySelectorAll('tr[data-v110-member]')].map((r) => ({ id: r.getAttribute('data-v110-member'), t: r.innerText.replace(/\s+/g, ' ').trim(), dep: (r.querySelector('select') || {}).value }));
-  const msg = host.querySelector('[data-v110-msg]');
+  const msgs = [...host.querySelectorAll('[data-v110-msg]')].map((m) => ({ kind: m.getAttribute('data-v110-msg'), t: m.innerText }));
   const add = document.getElementById('v110AddWho');
-  return { rows, text: host.innerText, msg: msg ? { kind: msg.getAttribute('data-v110-msg'), t: msg.innerText } : null,
+  return { rows, text: host.innerText, msgs,
     addable: add ? [...add.options].map((o) => o.textContent).filter(Boolean) : [] , dir: getComputedStyle(host).direction };
 });
 const settle = (p) => p.waitForTimeout(1200);
+/* the answer that matches, wherever it sits — each answer is drawn beside the person or department it concerns */
+const said = (s, kind, re) => (s.msgs || []).find((m) => m.kind === kind && re.test(m.t)) || null;
 
 async function main() {
   // ---------------- MANAGER ----------------
@@ -79,31 +81,31 @@ async function main() {
       s = await state(p);
       const hist = await fetch(BASE + '/rest/v1/record_history?select=table_name,record_id').then((r) => r.json()).catch(() => []);
       const moved = s.rows.find((r) => r.id === 'tm-2');
-      if (moved && moved.dep === 'dep-partnership' && s.msg && s.msg.kind === 'ok' && /Department changed/.test(s.msg.t) && hist.some((h) => h.table_name === 'team_members' && h.record_id === 'tm-2'))
+      if (moved && moved.dep === 'dep-partnership' && said(s, 'ok', /Department changed/) && hist.some((h) => h.table_name === 'team_members' && h.record_id === 'tm-2'))
         ok('2. moving Second Person to Partnership is saved, said on screen, and recorded in the history');
-      else fail('2. the department move: ' + JSON.stringify({ moved, msg: s.msg, hist: hist.length }));
+      else fail('2. the department move: ' + JSON.stringify({ moved, msgs: s.msgs, hist: hist.length }));
 
       await p.evaluate(() => v110SetActive('tm-1', false)); await settle(p);
       s = await state(p);
       const head = s.rows.find((r) => r.id === 'tm-1');
-      if (s.msg && s.msg.kind === 'err' && /heads Commercial — choose a new head first/.test(s.msg.t) && head && /Active/.test(head.t) && !/Inactive/.test(head.t))
+      if (said(s, 'err', /heads Commercial — choose a new head first/) && head && /Active/.test(head.t) && !/Inactive/.test(head.t))
         ok('3. making the Commercial head inactive is refused in the database\'s words, and they stay active');
-      else fail('3. deactivating a head: ' + JSON.stringify({ msg: s.msg, head }));
+      else fail('3. deactivating a head: ' + JSON.stringify({ msgs: s.msgs, head }));
 
       await p.evaluate(() => v110SetHead('dep-commercial', 'tm-2')); await settle(p);
       await p.evaluate(() => v110SetActive('tm-1', false)); await settle(p);
       s = await state(p);
       const gone = s.rows.find((r) => r.id === 'tm-1'); const newHead = s.rows.find((r) => r.id === 'tm-2');
       if (gone && /Inactive/.test(gone.t) && newHead && /Heads Commercial/.test(newHead.t)) ok('4. with a new Commercial head set, the old head is made inactive — "Inactive" with the leaving date');
-      else fail('4. head change then deactivate: ' + JSON.stringify({ gone, newHead, msg: s.msg }));
+      else fail('4. head change then deactivate: ' + JSON.stringify({ gone, newHead, msgs: s.msgs }));
 
       const offered = s.addable.join(' | ');
       if (/Not Listed Yet/.test(offered) && !/Left Company/.test(offered) && !/First Person|Second Person/.test(offered)) ok('5a. only active logins not yet on the list are offered to add — not an inactive login, not anyone already listed');
       else fail('5a. the add list offers: ' + offered);
       await p.selectOption('#v110AddWho', 'tl-u3'); await p.evaluate(() => v110Add()); await settle(p);
       s = await state(p);
-      if (s.rows.some((r) => /Not Listed Yet/.test(r.t)) && s.msg && /Added to the team list/.test(s.msg.t)) ok('5b. adding them puts them on the list, and says so');
-      else fail('5b. add: ' + JSON.stringify({ n: s.rows.length, msg: s.msg }));
+      if (s.rows.some((r) => /Not Listed Yet/.test(r.t)) && said(s, 'ok', /Added to the team list/)) ok('5b. adding them puts them on the list, and says so');
+      else fail('5b. add: ' + JSON.stringify({ n: s.rows.length, msgs: s.msgs }));
     } finally { await b.close(); srv.close(); }
   }
 
