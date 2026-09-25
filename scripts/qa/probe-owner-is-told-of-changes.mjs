@@ -59,8 +59,13 @@ async function run({ lang = 'en', rows = null, failRead = false, width = 1366, P
   await p.waitForSelector('#cl_email', { timeout: 60000 });
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
   await p.waitForFunction(() => window.__roleKnown === true && typeof render === 'function' && (DB.businesses || []).length > 0, { timeout: 120000 });
+  /* wait for the answer itself, not a fixed time: under load (4 probes at once) a fixed 2.5 s ran out
+     before the card's database call came back, and the Arabic check read "no card" (battery 2026-09-25) */
+  const answered = p.waitForResponse((r) => r.url().includes('/rpc/changes_to_my_companies'), { timeout: 60000 }).catch(() => null);
   await p.evaluate(() => { current = 'today'; render(); });
-  await p.waitForTimeout(2500);
+  await answered;
+  if (rows && rows.length && !failRead) await p.waitForSelector('#view .v106-changes', { timeout: 20000 }).catch(() => null);
+  await p.waitForTimeout(800);
   const card = await p.evaluate(() => {
     const c = document.querySelector('#view .v106-changes');
     if (!c) return null;
