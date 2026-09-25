@@ -156,7 +156,9 @@ now reads "Account · Password reset link sent · <address>" / «الحساب ·
 المرور»; the badge and the tiles say 145; and «دُمجت في» is in the dictionary. Measured live after the
 fix in both languages, no writes. Guard: `probe-a-reset-link-is-not-a-refusal` (seven synthetic
 events fed to the page: three refusals, two reset links, one merge, one creation; EN+AR) — the tree
-before the fix turns four of its five checks red. Rule M103 in DECISIONS.
+before the fix turns four of its five checks red. Rule M103 in DECISIONS. Battery after the change: 347 of 347
+green (one document-generator probe red under three-at-once load, green alone). Live confirmed on the
+second poll; the three live checks pass.
 
 Also read clean this fire: the three tiles agree with the database (394 loaded, 0 today, 55 in the
 week and all 55 refusals, last record change 16 days ago); no Undo button on any row (the newest
