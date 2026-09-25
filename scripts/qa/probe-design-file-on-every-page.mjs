@@ -10,7 +10,10 @@
      2. the text is the portal's warm brown (#5C4D42), not the old slate (#303848);
      3. English runs in Inter, Arabic in Cairo (DirectFont is not live until the owner's written OK);
      4. the main action button (.btn.pri), where a page has one, is orange #FF6B00;
-     5. no JS errors.
+     5. step 2: the shared classes carry the portal's shapes — pill buttons, .75rem cards, the orange
+        active filter pill on white inactive ones, the warm pager outline, the 1.25rem dialog and
+        .45rem / 42px fields (measured on Leads and in the shared dialog);
+     6. no JS errors.
    Screenshots of Today, Leads and Clients in both languages go to $SHOTS (default /tmp/design-shots).
    Sabotage: remove the <link rel="stylesheet" href="/css/design.css"> line from index.html —
    checks 1–3 go red on every page.
@@ -63,8 +66,30 @@ async function walk(lang, PORT) {
     out.push(r);
     if (['today', 'leads', 'clients'].includes(key)) await p.screenshot({ path: `${SHOTS}/${lang}-${key}.png` });
   }
+  /* step 2 — the shared classes, measured on Leads and in the shared dialog */
+  const shared = await p.evaluate(async () => {
+    current = 'leads'; openLead = ''; render(); await new Promise((r) => setTimeout(r, 900));
+    const cs = (el) => el ? getComputedStyle(el) : null;
+    const btn = cs(document.querySelector('#view .btn:not(.pri)'));
+    const card = cs(document.querySelector('#view .card'));
+    const chipOn = cs(document.querySelector('#view .v26_3-chip.active'));
+    const chipOff = cs(document.querySelector('#view .v26_3-chip:not(.active)'));
+    const pg = cs(document.querySelector('.pg-prev'));
+    try { editBusiness(DB.businesses.find((x) => !x.isClient).id); } catch (_) { }
+    await new Promise((r) => setTimeout(r, 400));
+    const modal = cs(document.querySelector('#modal.modal, .modal'));
+    const fin = document.querySelector('#modal .field input:not([type=checkbox])');
+    const field = cs(fin);
+    try { closeModal(); } catch (_) { }
+    return {
+      btnRadius: btn && btn.borderTopLeftRadius, cardRadius: card && card.borderTopLeftRadius,
+      chipOn: chipOn && chipOn.backgroundColor, chipOff: chipOff && chipOff.backgroundColor,
+      pgBorder: pg && pg.borderTopColor, modalRadius: modal && modal.borderTopLeftRadius,
+      fieldRadius: field && field.borderTopLeftRadius, fieldH: fin ? fin.getBoundingClientRect().height : 0,
+    };
+  });
   await b.close(); srv.close?.();
-  return { pages: out, errors };
+  return { pages: out, errors, shared };
 }
 
 for (const [lang, PORT] of [['en', 9339], ['ar', 9340]]) {
@@ -80,6 +105,11 @@ for (const [lang, PORT] of [['en', 9339], ['ar', 9340]]) {
   const priBad = r.pages.filter((x) => x.pri && x.pri !== 'rgb(255, 107, 0)' && x.pri !== 'rgb(232, 97, 0)');
   const priSeen = r.pages.filter((x) => x.pri).length;
   (priSeen > 0 && priBad.length === 0) ? ok(`${lang}: the main action is orange (${priSeen} pages have one)`) : fail(`${lang}: main action not orange on ${priBad.map((x) => x.key + '=' + x.pri).join(', ')} (seen ${priSeen})`);
+  const sh = r.shared || {};
+  (sh.btnRadius === '9999px' && sh.cardRadius === '12px' && sh.chipOn === 'rgb(255, 107, 0)' && sh.chipOff === 'rgb(255, 255, 255)' &&
+   sh.pgBorder === 'rgb(237, 226, 218)' && sh.modalRadius === '20px' && sh.fieldRadius === '7.2px' && sh.fieldH >= 41.5)
+    ? ok(`${lang}: step 2 shared classes — pill buttons, .75rem cards, orange active filter, warm pager, 1.25rem dialog, .45rem 42px fields`)
+    : fail(`${lang}: step 2 shared classes not in effect: ${JSON.stringify(sh)}`);
   r.errors.length === 0 ? ok(`${lang}: no JS errors`) : fail(`${lang}: JS errors: ${r.errors.slice(0, 2).join(' | ')}`);
 }
 console.log(failures ? 'FAILED — ' + failures : 'design-file-on-every-page OK — one design file, loaded and in effect on every page, both languages');
