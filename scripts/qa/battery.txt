@@ -357,3 +357,4 @@ probe-lead-shortcuts-follow-the-page
 probe-owner-is-told-of-changes
 probe-design-file-on-every-page
 probe-view-means-view
+probe-tasks-page

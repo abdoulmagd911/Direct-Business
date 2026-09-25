@@ -33,20 +33,24 @@
     ['airlines','Airlines','شركات الطيران'],['vendors','Suppliers','المورّدون'],['sopsla','SOP & SLA','الإجراءات'],
     ['activity','Activity & Audit','السجل'],['archive','Archive','الأرشيف'],
     ['projects','Projects','المشاريع'],['bookings','Bookings','الحجوزات'],['invoices','Invoices','الفواتير'],
-    ['tickets','Tickets','التذاكر'],['sync','Sync & Integrations','المزامنة والتكاملات']
+    ['tickets','Tickets','التذاكر'],['sync','Sync & Integrations','المزامنة والتكاملات'],
+    /* Phase 3 release 1 (2026-09-25): the task manager's page; the database's access_pages() has it too */
+    ['tasks','Tasks','المهام']
   ];
   try{ window.PAGES=PAGES; window.ACCESS_PAGES=PAGES; }catch(_){}
   var LEVELS=[['none','No access','لا وصول'],['view','View','مشاهدة'],['own','Own work','عمله فقط'],['full','Full control','تحكم كامل']];
   var RANK={none:0,view:1,own:2,full:3};
   /* pages whose own records know their owner, so "Own work" can be chosen there. Empty until Phase 1b
      teaches a page; adding a page here is part of that page's change, never ahead of it. */
-  var OWN_READY=[];
+  /* Tasks (Phase 3 release 1): its rows know their owner, and the database enforces "own work" there
+     (tasks_insert / tasks_update: yours, handed to you, created by you, or one you help on). */
+  var OWN_READY=['tasks'];
   /* the pages whose CHANGES the database enforces by level. Since Phase 1b (2026-09-25) that is every
      page that stores anything: each table, file store and workspace section answers to its page's
      level (scripts/sql/phase1b-*). Today stores nothing of its own; Reports lives in each browser
      (M32); Tickets has no store of its own. */
   var HARD=['leads','clients','offers','documents','ops','finance','settings','events','airlines','vendors','sopsla',
-            'activity','archive','projects','bookings','invoices','sync'];
+            'activity','archive','projects','bookings','invoices','sync','tasks'];
   /* 2026-09-21 (fire #189) — and the pages whose SCREENS hold a View setting. The list lives in js/52
      beside mayEditPage, which is the thing that decides; read it, never copy it. If js/52 has not
      loaded, say nothing rather than guess. */

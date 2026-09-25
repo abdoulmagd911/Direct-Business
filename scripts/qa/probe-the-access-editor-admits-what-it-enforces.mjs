@@ -109,6 +109,7 @@ async function rows(access, port, opts) {
       allSelects: levelSelects,
       levelsPerSelect: selects.length ? [].slice.call(selects[0].options).map((o) => o.value) : [],
       ownOpenAnywhere: selects.some((sel) => [].slice.call(sel.options).some((o) => o.value === 'own' && !o.disabled && !o.selected)),
+      ownOpenOn: selects.filter((sel) => [].slice.call(sel.options).some((o) => o.value === 'own' && !o.disabled)).map((sel) => sel.getAttribute('data-ax-page')),
       hasSave: /axSave/.test(host.innerHTML),
     };
   }, access);
@@ -122,7 +123,7 @@ async function rows(access, port, opts) {
    must read exactly as the database does. */
 const ALL = ['today', 'leads', 'clients', 'offers', 'documents', 'ops', 'reports', 'finance',
   'settings', 'events', 'airlines', 'vendors', 'sopsla', 'activity', 'archive',
-  'projects', 'bookings', 'invoices', 'tickets', 'sync'];
+  'projects', 'bookings', 'invoices', 'tickets', 'sync', 'tasks'];   /* + Tasks (Phase 3 release 1) */
 const viewerEverywhere = {}; ALL.forEach((k) => { viewerEverywhere[k] = 'viewer'; });
 const editorEverywhere = {}; ALL.forEach((k) => { editorEverywhere[k] = 'editor'; });
 
@@ -163,13 +164,15 @@ const checks = [
     new RegExp('^' + marked.length + ' of the pages set to View ').test(allViewer.note) && /Airlines/.test(allViewer.note),
     allViewer.note.slice(0, 120)],
   ['it says nothing when no page is set to View', allEditor.note === '', JSON.stringify(allEditor.note)],
-  ['the editor still works — four levels on every one of the twenty pages, Save still there',
+  ['the editor still works — four levels on every one of the twenty-one pages, Save still there',
     allViewer.selectCount === ALL.length && allViewer.allSelects === ALL.length + 1 &&
     JSON.stringify(allViewer.levelsPerSelect) === JSON.stringify(['none', 'view', 'own', 'full']) &&
     allViewer.hasSave === true,
     JSON.stringify({ selects: allViewer.selectCount, levels: allViewer.levelsPerSelect, save: allViewer.hasSave })],
-  ['"Own work" cannot be chosen on any page yet — no page knows whose records are whose (M55)',
-    allViewer.ownOpenAnywhere === false, String(allViewer.ownOpenAnywhere)],
+  /* Phase 3 release 1 (2026-09-25): Tasks is the first page whose rows know their owner in the
+     database, so "Own work" opens there — and ONLY there (M55: never offer a choice the save cannot keep) */
+  ['"Own work" can be chosen on Tasks and on no other page (M55)',
+    JSON.stringify(allViewer.ownOpenOn) === JSON.stringify(['tasks']), JSON.stringify(allViewer.ownOpenOn)],
   ['the marked set is read from js/52, not copied — emptying that list silences every mark',
     (blank.markedPages || []).length === 0 && blank.note === '' && blank.selectCount === ALL.length,
     JSON.stringify({ marks: (blank.markedPages || []).length, note: blank.note.slice(0, 30), selects: blank.selectCount })],

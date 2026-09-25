@@ -124,10 +124,11 @@
        · leads, clients, offers, ops, events, airlines, vendors, sopsla, projects, bookings, invoices,
          tickets, sync, reports — js/107 (2026-09-25): hides the changing buttons, locks the fields
          that write, opens records read-only and makes the changing functions refuse, all from
-         mayEditPage. Guarded by scripts/qa/probe-view-means-view.mjs.  */
+         mayEditPage. Guarded by scripts/qa/probe-view-means-view.mjs.
+       · tasks — js/108 draws every control from pageLevel('tasks') (Phase 3 release 1).  */
   try{ window.PAGES_VIEWER_ENFORCED=['today','finance','settings','activity','archive','documents',
     'leads','clients','offers','ops','events','airlines','vendors','sopsla','projects','bookings','invoices',
-    'tickets','sync','reports']; }catch(_){}
+    'tickets','sync','reports','tasks']; }catch(_){}
   /* known() exported (2026-08-21) so a page-access ENFORCEMENT layer (js/64) can tell "role
      confirmed, this decision is final" apart from "still loading, using the floor" — acting
      on mayOpenPage() during the unknown-role window would-be-admin included would bounce
