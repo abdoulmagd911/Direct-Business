@@ -78,14 +78,15 @@ async function walk(lang, PORT) {
     try { editBusiness(DB.businesses.find((x) => !x.isClient).id); } catch (_) { }
     await new Promise((r) => setTimeout(r, 400));
     const modal = cs(document.querySelector('#modal.modal, .modal'));
-    const fin = document.querySelector('#modal .field input:not([type=checkbox])');
-    const field = cs(fin);
+    const fin = [...document.querySelectorAll('#modal .field input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file])')].find((x) => x.getBoundingClientRect().height > 0);
+    const field = cs(fin); const fieldRadius0 = field && field.borderTopLeftRadius, fieldH0 = fin ? fin.getBoundingClientRect().height : 0;
+    const modalRadius0 = modal && modal.borderTopLeftRadius;
     try { closeModal(); } catch (_) { }
     return {
       btnRadius: btn && btn.borderTopLeftRadius, cardRadius: card && card.borderTopLeftRadius,
       chipOn: chipOn && chipOn.backgroundColor, chipOff: chipOff && chipOff.backgroundColor,
-      pgBorder: pg && pg.borderTopColor, modalRadius: modal && modal.borderTopLeftRadius,
-      fieldRadius: field && field.borderTopLeftRadius, fieldH: fin ? fin.getBoundingClientRect().height : 0,
+      pgBorder: pg && pg.borderTopColor, modalRadius: modalRadius0,
+      fieldRadius: fieldRadius0, fieldH: fieldH0,
     };
   });
   await b.close(); srv.close?.();
