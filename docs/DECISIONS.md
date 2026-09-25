@@ -2444,6 +2444,24 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M100 — a link the app builds from a stored value goes through one builder (core-01: webHref,
+phoneE164, waHref, telHref), never through a copied expression at the call site, and the builder
+knows the shapes the data actually holds.** Found 2026-09-25 (fire #259) by counting the live data
+and then reading the card it draws: 78 of the 108 live companies store a website with no scheme
+("example.com"), and the row's "Website" tag rendered href="example.com" — a RELATIVE link that
+opens this app's own address with the domain appended, never the company; 8 contacts store a phone
+with no leading 0 or +, and the card rendered wa.me/5xxxxxxxx (no country code) and tel:5xxxxxxxx
+(nothing a phone can dial). The same wa.me expression had been copied into three contact lists and
+the send-for-review flow, and none of the four knew a bare number — the M38 family again, in links.
+Saudi is the builder's default: a leading 0 or a bare 9-digit number becomes +966, 00 becomes +,
+a number already carrying + or 966 is kept, a scheme already present is kept. Guard:
+`scripts/qa/probe-a-link-built-from-a-stored-value-works.mjs` — records planted by the probe (never
+real names or numbers), the card's website link and its six phone shapes read off the screen, the
+builder's own table of a dozen inputs, and a source scan that no naive copy remains; sabotage-tested
+against a copy whose builder keeps the old behaviour (three checks red). Confirmed on the live app
+against the real database: the same card now links https://<domain> and wa.me/966…, nothing
+written. Status: ACTIVE.
+
 **M99 — the yes/no question the app asks before a consequential act ("Delete this invoice?",
 "Archive this booking?", "Reset all data …?") reads Arabic in Arabic, owned by js/21's dictionary
 through one wrapper on pfConfirm, the box every such question goes through.** Found 2026-09-25

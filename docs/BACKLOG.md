@@ -136,6 +136,32 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #259 (2026-09-25 ~03:00 UTC) — a company's website link and a contact's WhatsApp link now go where they should
+
+Counting the real data showed two shapes the app did not expect. 78 of your 108 live companies have
+their website saved as "example.com" without the "https://" in front; the "Website" tag on the row
+and the card used that text as the link, so clicking it opened this app's own address with the
+domain stuck on the end — never the company's site. And 8 contacts have a phone saved as nine digits
+with no leading 0 or "+"; the WhatsApp link was built from those digits alone, without Saudi
+Arabia's country code, so it pointed at the wrong number, and the "call" link had nothing a phone
+could dial. Both were confirmed on the live app.
+
+Now one piece of code builds every such link: a website without a scheme gets "https://"; a phone
+gets "+966" when it is a Saudi number written locally (a leading 0, or nine digits), "00" becomes
+"+", and a number already carrying "+" or "966" is kept as it is. The three contact lists, the two
+Leads rows, the Reports row and the send-for-review WhatsApp button all use it. Verified on the
+live app against the real database: the same company now links to its site and the same contact
+to the right WhatsApp number, nothing written. The data itself was not changed — the stored values
+are fine as they are, the app just reads them properly now.
+
+Also checked this round and clean on the live data, both languages: every page and both cards
+throw no error and make no failed request; at phone width nothing pushes wider than the screen;
+every column header is Arabic except acronyms (IATA, NDC, API, ZATCA, EMD), which stay by design.
+
+The full battery over the previous round's tree was green, 338 of 338 with no red at all.
+
+---
+
 ## Routine fire #258 (2026-09-25 ~01:30 UTC) — the question before a delete or a reset speaks Arabic
 
 Before the app deletes, archives or resets something it asks "are you sure?" in its own box. Twelve

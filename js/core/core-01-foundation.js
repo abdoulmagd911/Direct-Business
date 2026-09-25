@@ -555,6 +555,26 @@ const money=n=>(n||0).toLocaleString("en-US")+" SAR";
 const moneyShort=n=>{n=n||0;if(n>=1e6)return(n/1e6).toFixed(2)+"M";if(n>=1e3)return Math.round(n/1e3)+"k";return""+n;};
 const uid=p=>p+"_"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+/* ---- Links built from stored values (2026-09-25, fire #259). Read live: 78 of the 108 live companies
+   store a website with no scheme ("example.com"), so the row's "Website" tag was a RELATIVE link back
+   into this app; 8 contacts store a phone with no leading 0 or +, so the WhatsApp link had no country
+   code (wa.me/5xxxxxxxx) and the tel: link nothing a phone could dial. One builder for every link the
+   app makes from a stored value — the three contact lists, the two Leads rows, the Reports row and the
+   send-for-review flow all ask here. Saudi is the default country: a leading 0 or a bare 9-digit
+   mobile/landline becomes +966; 00 becomes +; a number already carrying + or 966 is kept. */
+function webHref(u){ var s=String(u==null?'':u).trim(); if(!s) return ''; if(/^[a-z][a-z0-9+.\-]*:/i.test(s)) return s; return 'https://'+s.replace(/^\/+/,''); }
+function phoneE164(p){
+  var raw=String(p==null?'':p).trim(); if(!raw) return '';
+  var plus=raw.charAt(0)==='+'; var d=raw.replace(/[^0-9]/g,''); if(!d) return '';
+  if(plus) return '+'+d;
+  if(d.indexOf('00')===0) return '+'+d.slice(2);
+  if(d.indexOf('0')===0) return '+966'+d.slice(1);
+  if(d.length===9&&/^[15]/.test(d)) return '+966'+d;
+  return '+'+d;
+}
+function waHref(p){ var e=phoneE164(p); return e?'https://wa.me/'+e.slice(1):''; }
+function telHref(p){ var e=phoneE164(p); return e?'tel:'+e:''; }
+
 function val(id){const e=document.getElementById(id);return e?e.value:"";}
 function initials(s){return (s||"?").replace(/[^A-Za-z؀-ۿ ]/g,"").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase()||"·";}
 const AVA=["#FF6B00","#2E90FA","#16B364","#7A5AF8","#15B8A6","#F79009","#EC4899"];

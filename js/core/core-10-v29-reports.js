@@ -1147,7 +1147,7 @@ console.info('%c[v29.8] BSP-SA airline data recovered','color:#16B364;font-weigh
        // website row into Key facts if missing
        var facts=[...v.querySelectorAll('.card h3')].filter(function(h){return h.textContent.trim()==='Key facts';})[0];
        if(facts&&b.website&&!facts.parentNode.querySelector('.dt-webrow')){
-         var row=document.createElement('div');row.className='fact dt-webrow';row.innerHTML='<span class="k">Website</span><span class="v"><a href="'+esc(b.website)+'" target="_blank" rel="noopener" style="color:#2E90FA">'+esc(dom)+' ↗</a></span>';
+         var row=document.createElement('div');row.className='fact dt-webrow';row.innerHTML='<span class="k">Website</span><span class="v"><a href="'+esc(webHref(b.website))+'" target="_blank" rel="noopener" style="color:#2E90FA">'+esc(dom)+' ↗</a></span>';
          var firstFact=facts.parentNode.querySelector('.fact');if(firstFact)firstFact.parentNode.insertBefore(row,firstFact);
        }
      }

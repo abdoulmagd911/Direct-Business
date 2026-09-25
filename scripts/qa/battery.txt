@@ -350,3 +350,4 @@ probe-every-hint-speaks-arabic
 probe-a-notice-speaks-arabic
 probe-a-report-speaks-arabic
 probe-a-question-before-the-act-speaks-arabic
+probe-a-link-built-from-a-stored-value-works
