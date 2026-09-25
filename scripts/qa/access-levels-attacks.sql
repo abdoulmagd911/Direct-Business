@@ -110,7 +110,7 @@ begin
     insert into _t values ('M2 manager cannot change their own access', false, 'accepted');
   exception when others then insert into _t values ('M2 manager cannot change their own access', sqlstate = '42501', sqlerrm); end;
   begin
-    perform public.set_page_levels(emp, '{"documents":"full"}'::jsonb);   -- the manager has no Generator
+    perform public.set_page_levels(emp, '{"reports":"full"}'::jsonb);     -- the manager has no Reports page (the Generator was given to them in 1b)
     insert into _t values ('M3 manager cannot give more than their own level', false, 'accepted');
   exception when others then insert into _t values ('M3 manager cannot give more than their own level', sqlstate = '42501', sqlerrm); end;
   begin
