@@ -3043,6 +3043,19 @@ copied beside a live original.
 *Date: 2026-09-25. Status: ACTIVE.*
 Full measurements: `docs/PHASE0_REVIEW_2026-09-25.md`.
 
+**D8 — Abdulrahman's logins, in his own word (2026-09-25): `aboelmagd@directksa.com` is his admin account
+and the one that belongs on the team list.** `business@directksa.com` is a login he keeps (untouched), not
+the person on the team list; `a.hassan@directksa.net` is his Team-Member test view. One human, one team-list
+entry — and it is aboelmagd@. `ahmed.aboelmagd@directksa.net` is a **separate employee** with his own entry;
+the shared surname is not a second login of the owner.
+**Why this is written down:** CLAUDE.md said business@ was his "primary account", and on 2026-09-25 the team
+list was built on that line (business@ added, aboelmagd@ removed) — then corrected the same day on the owner's
+word. Applied live the same day: aboelmagd@ added to the team list (Commercial), business@ taken off (nothing
+pointed at its entry — no tasks, projects, comments or heads), and the one owner-name preference that sent
+his name to business@ now sends it to aboelmagd@, so the 3 companies assigned to him are owned by aboelmagd@.
+Before changing anything about his accounts again, check here.
+*Date: 2026-09-25. Status: ACTIVE.*
+
 **M84 — what someone typed into a funnel form can be found by typing it into a search box.**
 Found 2026-09-24 (fire #240) by counting the live database rather than reading the code. The app
 asks each company its funnel's own questions — MoT licence and IATA numbers for a travel-trade
