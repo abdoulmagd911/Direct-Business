@@ -2925,6 +2925,19 @@ changes on other people's companies. The manual-confirm function (no sign-in, on
 and the gstest leftover (can only rewrite one fixed test page) were read and left alone.
 *Date: 2026-09-25. Status: ACTIVE.*
 
+**D7 — Helpers, not locks: the owner is responsible, anyone on the team can help, every change is
+recorded, the owner is told, and it can be undone.** The owner's question and ruling, 2026-09-25:
+the team each own their companies and clients but help each other, and "only the owner can edit"
+would make the work harder. So on Leads and Clients everyone stays on **Full control** (as seeded);
+ownership (`assigned_to` / `owner_id`) is **accountability** — whose job it is, "Mine", reminders,
+later tasks, KPIs and appraisals — **not a lock**. What makes that safe is not a wall but a record:
+every change to a company, its contacts and client profiles is in `record_history` with who, when,
+before and after (activity notes live inside the company row, so they are recorded with it), the
+owner is **told** on Today when someone else changed one of theirs, and Undo puts a change back
+within 24 hours. "Own work" stays available as a tool (a new starter, a trainee, someone outside the
+core team), not the default. Money stays stricter (D2's role floors on Finance).
+*Date: 2026-09-25. Status: ACTIVE.*
+
 **D3 — Quality, Strategy and Integrity have no control over tasks, achievements or proofs** — they
 get View. A proof is optional. The task's owner, or whoever manages the task, finalizes it and
 edits, adds or removes its proofs.
