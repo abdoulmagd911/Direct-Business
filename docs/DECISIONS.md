@@ -60,7 +60,12 @@ other task sends rules across and reads the file, never edits it directly, so th
 never race on the same lines of the same document. A request that touches a file on the
 other side of this line gets a stated "that's not mine, here's whose it is" — never a quiet
 edit anyway because it seemed harmless.
-*Date: 2026-08-23. Status: ACTIVE.*
+**Suspended 2026-09-25 by the owner, conditionally:** while exactly one session writes to this repo
+(the Claude Code build session that opened on 2026-09-25), that session may write any file,
+this one and `/brand/*` included. **P4 returns in full the moment a second writing session is
+started** — the new session is told which files are whose before its first commit.
+*Date: 2026-08-23; suspended 2026-09-25. Status: SUSPENDED while one session writes — returns
+if a second writing session starts.*
 
 **P5 — A correct rule that nothing consults is not a rule.** Hit this exact failure shape
 three times now: the Takamol exclusion list (correct, seeded, wired into every importer —
@@ -2784,6 +2789,122 @@ THIS database (new `js/1xx` layers, new tables with RLS and audit triggers, neve
 work and is at most a one-time read-only source of past data. Full text in CLAUDE.md rule 8; the
 owner's record is Drive part 08a and the Cowork note "DECISION 24 Sep — A".
 *Date: 2026-09-24. Status: ACTIVE.*
+
+## Owner decisions of 2026-09-25 — the task manager, access levels, and design
+
+Handed over by the owner's oversight chat ("All In" project) in the brief that opened the Claude
+Code build session of 2026-09-25. D1 restates rule 8; D2–D6 are new. Every one is **ACTIVE**. Where
+the brief stated a fact about today's app, the fact was measured before it was written here — the
+measured figure is what stands, with the brief's wording noted where they differ.
+
+**D1 — The task manager, report registration, KPIs and the appraisal cycle are built inside this
+app** (rule 8, amended 24 Sep — unchanged). The shape agreed so far: **projects → tasks →
+achievements → monthly report → KPI actuals**. Money on any of these pages is **read from Finance,
+never typed** (M1, M35). A **company card** gathers a company's Direct client IDs, discount codes and
+company files. One **Commercial head** (Othman Al Sharafi / Abu Yazan) sits over six departments —
+Business, Partnership, Quality, Complaints, Strategy, Integrity. Only admins, managers and the head
+assign work. An "open visibility" switch is ON for now (everyone signed in can see everyone's work).
+The tested database design (v1.2.3, 85 attack tests) is held by the oversight chat and is handed
+over at Phase 3 — it is not in this repo yet and nothing may be built from memory of it.
+*Date: 2026-09-25. Status: ACTIVE.*
+
+**D2 — Access is a level per person per page, not a role.** Four levels:
+- **No access** — the page does not appear, and a typed address bounces.
+- **View** — sees everything on the page; may sort, filter, export and pull any report; changes
+  nothing.
+- **Own work** — full control over their own work on that page, and only their own.
+- **Full control** — may change everyone's work on that page.
+
+The role (admin / manager / employee — still three, no more) only sets the **starting defaults**;
+an admin or manager adjusts per person. **Seeded from what each person can do today**, so nobody's
+day changes until the owner changes it. This extends the Team & Access matrix of 2026-08-17
+(Viewer/Editor → four levels) and replaces the earlier "viewer role" idea. Tasks and Reports join
+the same matrix. **It is enforced by the database on every page, not by the screen alone** — M42
+already records that on most pages today the screen IS the enforcement.
+**Measured 2026-09-25, before this entry was written** (read-only: code + live policies + counts).
+The brief said "View is enforced on 6 of 15 pages (`PAGES_VIEWER_ENFORCED` in js/52)". That list
+(js/52:96) does name six — today, finance, settings, activity, archive, documents — but it
+overstates both walls. **On screen**, View is honoured on four (today, finance, documents,
+archive); settings and activity ignore it (Activity's Undo, js/63, never asks). **In the
+database**, no page honours View fully: Finance comes closest (page-checked on six tables and on
+reads; `finance_targets`, `finance_transactions`, `finance_cogs_expenses`, `payment_receipts`,
+`promo_codes` check role only), Settings protects one row (`app_settings`) while the same settings
+can still go through `save_state_patch`, which checks role only. The other nine pages ignore View
+in both places. Hiding a page is screen-only: `ksa_events` accepts any signed-in writer, and the
+shared `app_state` blob is written section by section on role alone. Also measured: the screen's
+`mayEditPage` answers **yes while the grid is still loading** (js/52:71) — D2 must fail closed for
+writes; an older second gate (`app_users.allowed_pages`, js/15) still runs beside `page_access`;
+today only three levels exist (none / viewer / editor), **every one of the live grid entries is
+editor**, the 3 admins sit outside the grid, the 1 manager has 10 pages and the 7 employees 4 each.
+So "seed from today" means: editor → Full control, missing → No access, nobody on View or Own work.
+**What D2 cannot do without moving data first:** Own work on Airlines, Suppliers and SOP & SLA
+(whole-section saves in `app_state` — rule 8's "never new keys in `app_state`" points the same
+way), and Own work anywhere while owners are stored as names (`assigned_to`, `account_manager`,
+`created_by` are text) rather than account ids.
+**The owner's rulings on the review (2026-09-25, same day):**
+- **Airlines, Suppliers, SOP & SLA are View / Full control only** — shared reference lists, not
+  anyone's own work. They stay in the shared block for now; no move to their tables in this build.
+- **Projects, Bookings, Invoices, Tickets and Sync join the grid in the same pass** as the other
+  pages (build once), rather than staying admin-only by omission.
+- **Storage buckets, edge functions and triggers are in scope of D2** — the new pages keep their
+  proofs in storage, so a file must obey the same level as the page it belongs to.
+- **"Enforced by the database" is proven by live attack tests** — as an employee and as the
+  manager, each sabotage-verified — never by reading the rules alone.
+- **Order:** 1a one access check (four levels; seeded editor → Full; the screen fails closed while
+  loading; the old js/15 gate retired; Team & Access shows four levels) → 1b the database learns the
+  levels page by page, including owner **accounts** instead of names on Leads and Clients → 1c the
+  design file → Phase 3 the new pages. **The Reports export is not a separate first step**: it is
+  built with the new Reports pages in Phase 3, where exporting and moving the old browser data are
+  one job.
+- **Every phase lands by pull request, reviewed before it goes live.**
+*Date: 2026-09-25. Status: ACTIVE.*
+
+**D3 — Quality, Strategy and Integrity have no control over tasks, achievements or proofs** — they
+get View. A proof is optional. The task's owner, or whoever manages the task, finalizes it and
+edits, adds or removes its proofs.
+*Date: 2026-09-25. Status: ACTIVE.*
+
+**D4 — The app's screens follow Direct's own web design**, taken from **both** directksa.com **and**
+corporate.directksa.com — not only fonts and colours but buttons, clicks, filters, lists/tables and
+views. Printed documents (proposals, profiles) keep their own print identity (Identity A in
+`brand/IDENTITY.md`). **One design file, loaded by every page, with a probe proving it is loaded**
+(P5). This supersedes `DIRECT_SYSTEMS_MAP.md`'s "system fonts only" design cue and its "keep our
+orange" line: the app follows the websites now. The corporate portal's inside is seen only through
+the owner's Drive snapshots — never by signing in. The right to use Direct's own font is the owner's
+to confirm.
+**Measured 2026-09-25** (live sites, public pages only; the portal's inside from the owner's Drive
+snapshots of its admin side). The two websites do **not** share one design: directksa.com's primary
+is orange `#F86D0A` on warm greys (text `#524B45`); corporate.directksa.com's primary is a warm
+**taupe** scale (`#FFFCFA → #5C4D42`, primary `#AB9A8E`) with orange `#FF6B00` only on its main
+call-to-action — so "follow both" needs one written choice of which wins where. Both use
+**DirectFont** (weights 100–800, full Arabic, served from `assets.directksa.com` with open
+cross-site access); its own file says "All rights reserved" and marks embedding as restricted, so
+the owner's confirmation of the right to use it is a real gate, not a formality. **Direct's
+component library cannot be loaded by this app**: `directksa.com/vendor/direct-web-components.es.js`
+refuses other sites (no cross-site header — tested in a browser), holds only the consumer header,
+footer and services widgets (no buttons, inputs or tables), carries no licence or version and is
+cached for two minutes. The durable route is to copy the measured values into our own design file.
+The brief's "`brand/tokens.css` is loaded by nothing" is out of date: js/66 injects it on every page
+since the F1 fix, but its values only apply inside `[data-identity=…]`, which the app shell never
+sets — so it styles the document previews only. The app itself uses Google **Cairo** and
+`--orange:#FF6B00` / `--ink:#303848` (a cool slate both sites avoid), with about 2,500 colour
+literals and 2,300 inline styles across the layers.
+**The owner's choice (2026-09-25):** the **corporate portal is the base** (its taupe surfaces,
+warm-brown text, tables, filters and pagination); **orange is for the one main action on a
+screen**; **DirectFont for both languages**. DirectFont **does not go live** until the owner brings
+written OK from Direct's web/marketing team; until then the fallback is **Inter plus a licensed
+Arabic face**. directksa.com is consulted only where the portal has no example.
+*Date: 2026-09-25. Status: ACTIVE (DirectFont gated on the written OK).*
+
+**D5 — The Executive CRM Dashboard will be replaced by this app** once the new pages are done. Learn
+from it and fix what went wrong there; there is no overlap to protect.
+*Date: 2026-09-25. Status: ACTIVE.*
+
+**D6 — Rule 0 stands: this app fills gaps in Direct's official systems and never duplicates them**
+(`docs/DIRECT_SYSTEMS_MAP.md`). D5 is not an exception: the Executive CRM is being retired, not
+copied beside a live original.
+*Date: 2026-09-25. Status: ACTIVE.*
+Full measurements: `docs/PHASE0_REVIEW_2026-09-25.md`.
 
 **M84 — what someone typed into a funnel form can be found by typing it into a search box.**
 Found 2026-09-24 (fire #240) by counting the live database rather than reading the code. The app

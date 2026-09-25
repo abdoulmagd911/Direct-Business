@@ -667,6 +667,22 @@ Everything else on those five pages is as it should be. Two things I checked and
 lock banner on the three Direct-owned pages shows both languages on purpose — you corrected that
 yourself in August, active language first — and the Operations board's dashes sit under a line that
 already explains the zeros.
+## Phase 0 review — the task manager build starts (2026-09-25, Claude Code)
+
+The owner's oversight chat handed a brief to a new Claude Code session: record decisions D1–D6,
+then review (no code) before building the task manager, the four access levels and the new design.
+Done: D1–D6 are in `docs/DECISIONS.md` (after the rule 8 entry), each with what was measured; the
+full review is `docs/PHASE0_REVIEW_2026-09-25.md`. **No app code changed.** The hourly QA routine
+was confirmed paused before anything was written (its last run landed 09:23 UTC).
+**Answered the same day** (recorded in DECISIONS D2, D4, P4): order 1a → 1b → 1c → Phase 3, with
+the Reports export moved into Phase 3; Airlines/Suppliers/SOP & SLA View or Full only; Projects,
+Bookings, Invoices, Tickets and Sync join the grid; storage, edge functions and triggers in scope;
+live attack tests as employee and manager; the portal is the design base; DirectFont waits for the
+web/marketing team's written OK; P4 suspended while one session writes.
+**Still open:** that written OK for DirectFont (the owner brings it).
+
+---
+
 ## Build lane — the sweep before the new pages (2026-09-24, 00:40–04:00 UTC; landed by the reviewer lane)
 
 A new session, started by the owner to (1) sweep the app and then (2) build the task manager, the
