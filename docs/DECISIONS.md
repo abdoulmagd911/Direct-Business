@@ -2925,6 +2925,13 @@ refuses the change); "Own work" is not yet choosable, because a company save goe
 refused company fails the batch — it opens on Leads and Clients once those pages stop offering
 changes on other people's companies. The manual-confirm function (no sign-in, one flagged record)
 and the gstest leftover (can only rewrite one fixed test page) were read and left alone.
+**Screens done (2026-09-25, `js/107-view-means-view.js`):** on all fourteen pages that said "buttons
+still show", someone on View is offered no change: the changing buttons are hidden, fields that write
+are locked, a record opens read-only in the shared editor (no Save, no Delete, says why), and the
+changing functions themselves refuse — all from mayEditPage, i.e. the database's answer. Where the
+ROLE itself may not (a 'viewer' account, a share link) the refusal is js/49's box, so one refusal
+never has two wordings. js/52's `PAGES_VIEWER_ENFORCED` names every page; Team & Access marks none.
+Guarded by `scripts/qa/probe-view-means-view.mjs` (two sabotages). "Own work" is still not choosable.
 *Date: 2026-09-25. Status: ACTIVE.*
 
 **D7 — Helpers, not locks: the owner is responsible, anyone on the team can help, every change is

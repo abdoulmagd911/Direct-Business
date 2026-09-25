@@ -81,6 +81,7 @@ async function rows(access, port, opts) {
   await p.waitForTimeout(2500);
   if (opts.arabic) { await p.evaluate(() => { try { LANG = 'ar'; if (typeof applyLang === 'function') applyLang(); } catch (_) {} }); await p.waitForTimeout(1000); }
   if (opts.blankList) await p.evaluate(() => { try { window.PAGES_VIEWER_ENFORCED = []; } catch (_) {} });
+  if (opts.without) await p.evaluate((w) => { try { window.PAGES_VIEWER_ENFORCED = (window.PAGES_VIEWER_ENFORCED || []).filter((x) => w.indexOf(x) < 0); } catch (_) {} }, opts.without);
 
   const out = await p.evaluate((acc) => {
     try { window.__userRole = 'admin'; window.__userTier = 'admin'; window.__roleKnown = true; } catch (_) {}
@@ -125,10 +126,16 @@ const ALL = ['today', 'leads', 'clients', 'offers', 'documents', 'ops', 'reports
 const viewerEverywhere = {}; ALL.forEach((k) => { viewerEverywhere[k] = 'viewer'; });
 const editorEverywhere = {}; ALL.forEach((k) => { editorEverywhere[k] = 'editor'; });
 
-const allViewer = await rows(viewerEverywhere, PORT);
+/* 2026-09-25 (js/107): every page with a store now honours View, so the REAL list marks nothing.
+   The mark itself still has to work for the next page added without honouring View — so the checks
+   that need a mark run on the real list with two pages taken out of it (Airlines and Leads), which is
+   exactly the state a new, unfinished page would be in. */
+const UNFINISHED = ['airlines', 'leads'];
+const real = await rows(viewerEverywhere, PORT);
+const allViewer = await rows(viewerEverywhere, PORT + 4, { without: UNFINISHED });
 const allEditor = await rows(editorEverywhere, PORT + 1);
 const blank = await rows(viewerEverywhere, PORT + 2, { blankList: true });
-const arab = await rows(viewerEverywhere, PORT + 3, { arabic: true });
+const arab = await rows(viewerEverywhere, PORT + 3, { arabic: true, without: UNFINISHED });
 await b.close();
 
 const HELD = ['today', 'finance', 'settings', 'activity', 'archive', 'documents'];
@@ -136,6 +143,12 @@ const marked = allViewer.markedPages || [];
 const hasArabic = (s) => /[؀-ۿ]/.test(s || '');
 
 const checks = [
+  ['with the real list every page honours View: nothing is marked and nothing is said (js/107)',
+    (real.markedPages || []).length === 0 && real.note === '' && real.selectCount === ALL.length,
+    JSON.stringify({ marks: real.markedPages, note: (real.note || '').slice(0, 60) })],
+  ['a page not on the list is marked — exactly the two taken out, and nothing else',
+    JSON.stringify(marked.slice().sort()) === JSON.stringify(UNFINISHED.slice().sort()),
+    marked.join(', ')],
   ['a Viewer page that does not honour the setting is marked in visible text',
     /* 2026-09-25 (Phase 1b): the database now refuses every change a View person tries, so the old
        mark "not enforced yet" became untrue; what is still true is that the page shows its buttons */
