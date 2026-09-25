@@ -30,6 +30,12 @@
    Bilingual. Removing this file removes the message and nothing else. */
 (function(){try{
   var KEY='db_unsent_v1';
+  /* 2026-09-25 (why probe-two-people-one-record-are-told failed only under load): the note is read HERE,
+     the moment the page starts, not when the person is signed in. Reading it later meant that on a slow
+     machine a save that failed in THIS page's first seconds was picked up and reported as "the page was
+     loaded again before it could be sent" — false, and it would be false for a person on a slow laptop
+     too. What this page's own failures write is left for the next load, where it is true. */
+  var AT_START=null; try{ AT_START=localStorage.getItem(KEY); }catch(_){ AT_START=null; }
   function fl(en,ar){ try{ return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en; }catch(_){ return en; } }
   function whenWords(iso){
     try{ var d=new Date(iso); if(isNaN(d.getTime())) return '';
@@ -38,11 +44,12 @@
     }catch(_){ return ''; }
   }
   function say(){
-    var raw=null;
-    try{ raw=localStorage.getItem(KEY); }catch(_){ return; }
+    var raw=AT_START;
     if(!raw) return;
     var d=null; try{ d=JSON.parse(raw); }catch(_){ d=null; }
-    try{ localStorage.removeItem(KEY); }catch(_){}   /* said once, never on every load */
+    /* said once, never on every load — but only the note that was there when the page started is
+       removed; one this page wrote since belongs to the next load */
+    try{ if(localStorage.getItem(KEY)===raw) localStorage.removeItem(KEY); }catch(_){}
     if(!d) return;
     var n=Number(d.n||0)||0;
     var names=(d.names||[]).filter(Boolean);

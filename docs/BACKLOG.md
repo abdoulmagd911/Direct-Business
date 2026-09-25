@@ -19687,3 +19687,11 @@ old value in the box — mostly under a loaded battery, once on a calm machine. 
 the field back and retypes (it prints how many retries it needed), so it is reliable, but *why* the
 first clear sometimes does not take is not known. If a person ever reports "I deleted it and it came
 back" on a company card, start here.
+
+**Explained and fixed — probe-two-people-one-record-are-told failed only under load (2026-09-25).** Not the
+probe and not js/104: js/102 (the "a change never reached the server" notice) read its note only once the
+person was signed in, so on a slow machine a save that failed in the page's first seconds was reported as
+"the page was loaded again before it could be sent" — false, and a real person on a slow laptop could have
+seen it too. That notice then sat where the probe's "no message" checks look. js/102 now reads the note
+the moment the page starts and leaves this page's own failures for the next load.
+`probe-a-refused-save-is-not-forgotten` check F holds it deterministically (red on the old file).

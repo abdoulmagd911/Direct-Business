@@ -61,6 +61,18 @@ const errors = []; p.on('pageerror', (e) => errors.push(e.message));
    page, which looks exactly like a hung probe */
 p.on('dialog', (d) => { try { if (d.type() === 'beforeunload') return d.accept(); } catch (_) {} return d.dismiss(); });
 
+/* step F's helper: on a load that asks for it, a refusal note appears AFTER the page has started —
+   exactly what this page's own failed save writes — so js/102 must not report it as a lost reload */
+await p.addInitScript(() => {
+  try {
+    if (localStorage.getItem('qa_write_late') !== '1') return;
+    localStorage.removeItem('qa_write_late');
+    document.addEventListener('DOMContentLoaded', () => {
+      try { localStorage.setItem('db_unsent_v1', JSON.stringify({ at: new Date().toISOString(), n: 1, names: ['QA late company'], why: 'written during this page (QA)' })); } catch (_) {}
+    });
+  } catch (_) {}
+});
+
 const WRITES = { refuse: true };
 await p.route((u) => u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
   const rq = r.request(); const u = new URL(rq.url()); const m = rq.method();
@@ -158,6 +170,19 @@ const okBadge = await badge();
 const okUnsent = await unsent();
 await reload();
 const quiet = await notice();
+
+/* F — 2026-09-25: a note written while THIS page is open (a save that failed in its first seconds) is
+   not "the page was loaded again before it could be sent". js/102 used to read the note only after
+   sign-in, so on a slow machine it caught this page's own failure and reported it as a lost reload —
+   the cause of probe-two-people-one-record-are-told's load-only failures. Now it reads what was there
+   when the page started; this page's note waits for the next load, where it is true. */
+await p.evaluate(() => { try { localStorage.setItem('qa_write_late', '1'); } catch (_) {} });
+await reload();
+const lateSilent = await notice();
+const lateKept = await p.evaluate(() => { try { return !!localStorage.getItem('db_unsent_v1'); } catch (_) { return null; } });
+await p.evaluate(() => { try { const n = document.getElementById('v63Notice'); if (n) n.remove(); } catch (_) {} });
+await reload();
+const lateToldNext = await p.evaluate(() => { const d = document.getElementById('v63Notice'); return d ? (d.innerText || '').indexOf('QA late company') >= 0 : false; });
 await b.close(); srv.close?.();
 
 const checks = [
@@ -182,6 +207,9 @@ const checks = [
     /[؀-ۿ]/.test(String(failBadgeAr)) && String(failBadgeAr).indexOf('في هذا التبويب فقط') >= 0 &&
     String(failBadgeAr).indexOf('محفوظ على هذا الجهاز') < 0,
     JSON.stringify(failBadgeAr)],
+  ['a note written while this page is open is not reported as a lost reload — it waits, and the next load says it',
+    !lateSilent.shown && lateKept === true && lateToldNext === true,
+    JSON.stringify({ shownThisPage: lateSilent.shown, keptForNext: lateKept, toldNextLoad: lateToldNext })],
   ['no JS errors', errors.length === 0, errors.slice(0, 2).join(' | ')],
 ];
 let bad = 0;
