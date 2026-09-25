@@ -291,6 +291,19 @@ const TABLES={
     catch(e){ throw new Error('MOCK_PAGE_ACCESS is not valid JSON: '+e.message); }
   }
 })();
+const MOCK_ACCESS_PAGES=['today','leads','clients','offers','documents','ops','reports','finance','settings',
+  'events','airlines','vendors','sopsla','activity','archive','projects','bookings','invoices','tickets','sync'];
+const MOCK_RANK={none:0,view:1,own:2,full:3};
+function mockLevelWord(v){ return ({full:'full',editor:'full',own:'own',view:'view',viewer:'view'})[v]||'none'; }
+function mockLevelsOf(u){
+  const out={};
+  MOCK_ACCESS_PAGES.forEach(p=>{
+    let l = (u.role==='admin') ? 'full' : mockLevelWord((u.page_access||{})[p]);
+    if(p==='today' && l==='none') l='view';
+    out[p]=l;
+  });
+  return out;
+}
 const RPCLOG=[];
 // Lapsed-session switch (2026-09-02, attack round 18): GET /__lapse?on=1 makes the mock answer
 // like PostgREST does to an anonymous caller — app_role()/my_page_access() null, every table
@@ -757,6 +770,41 @@ export function start(port, seedOverrides){
         const val=(me && me.role!=='admin') ? (me.page_access||null) : null;
         return send(res,200, val);
       }
+      // Phase 1a (2026-09-25) — mirrors page_level() / my_page_levels() / team_access_list() /
+      // set_page_levels() (scripts/sql/phase1a-access-levels.sql): four levels, both stored
+      // vocabularies read, admins always full, Today at least view, unknown pages none.
+      if(fn==='my_page_levels'){
+        if(LAPSED||anonWall) return send(res,200,'null');
+        const me=TABLES.app_users.find(u=>u.id===UID && u.active);
+        return send(res,200, me ? JSON.stringify(mockLevelsOf(me)) : 'null');
+      }
+      if(fn==='team_access_list'){
+        const me=TABLES.app_users.find(u=>u.id===UID && u.active);
+        if(!me||(me.role!=='admin'&&me.role!=='manager')) return send(res,200,[]);
+        return send(res,200, TABLES.app_users.map(u=>({id:u.id,full_name:u.full_name,email:u.email,role:u.role,active:u.active,
+          levels: u.role==='admin'?null:mockLevelsOf(Object.assign({},u,{role:u.role==='admin'?'x':u.role,active:true}))})));
+      }
+      if(fn==='set_page_levels'){
+        const me=TABLES.app_users.find(u=>u.id===UID && u.active);
+        const refuse=(code,msg)=>send(res,code==='42501'?403:400,{code,details:null,hint:null,message:msg});
+        if(!me||(me.role!=='admin'&&me.role!=='manager')) return refuse('42501','Only an admin or a manager can change access.');
+        const target=parsed&&parsed.target, levels=parsed&&parsed.levels;
+        if(target===UID) return refuse('42501','You cannot change your own access.');
+        const t=TABLES.app_users.find(u=>u.id===target); if(!t) return refuse('P0002','No such team account.');
+        if(t.role==='admin') return refuse('42501','Admins have full access to every page. Change their level first.');
+        if(!levels||typeof levels!=='object'||Array.isArray(levels)) return refuse('22023','Access must be a list of pages and levels.');
+        const myL=mockLevelsOf(me), clean={};
+        for(const [k,v] of Object.entries(levels)){
+          if(!MOCK_ACCESS_PAGES.includes(k)) return refuse('22023','Unknown page: '+k);
+          if(!['none','view','own','full'].includes(v)) return refuse('22023','Unknown level "'+v+'" on '+k);
+          const old=mockLevelWord((t.page_access||{})[k]);
+          if(me.role==='manager' && MOCK_RANK[v]>MOCK_RANK[old] && MOCK_RANK[v]>MOCK_RANK[myL[k]]) return refuse('42501','You can only give access up to your own level on '+k+'.');
+          if(v!=='none') clean[k]=v;
+        }
+        for(const [k,v] of Object.entries(t.page_access||{})){ if(!(k in levels) && mockLevelWord(v)!=='none') clean[k]=mockLevelWord(v); }
+        t.page_access=clean;
+        return send(res,200, JSON.stringify(clean));
+      }
       // Spec 8 (2026-08-21): undo_change(p_id) — approximates the real function's own
       // ordering (not in the log / already undone / create entries refused / else mark
       // undone and answer 'ok') closely enough to drive the app's Undo control end to end in
@@ -1060,7 +1108,7 @@ export function start(port, seedOverrides){
              the real database answered a team member's every save until js/35 learned to stop
              asking. Read off pg_policy the same day. */
           const meS=TABLES.app_users.find(u=>u.id===UID && u.active);
-          const mayS=!!meS && (meS.role==='admin' || (meS.page_access && meS.page_access.settings==='editor'));
+          const mayS=!!meS && (meS.role==='admin' || (meS.page_access && mockLevelWord(meS.page_access.settings)==='full'));
           if(!mayS) return send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "app_settings"'});
           TABLES.app_settings=TABLES.app_settings||[];
           const written=payload.map(row=>{

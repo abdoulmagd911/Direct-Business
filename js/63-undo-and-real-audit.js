@@ -181,7 +181,7 @@
      'denied', after_row {page}) read "access · denied" in both languages; an actor the trigger
      could not name is stored as the literal 'unknown'; and a field that moved inside the record
      but is not in FIELD_WORDS was printed as its camelCase key (createdAt, funnelDetails). */
-  function actionLabel(a){ return { create:fl('Created','أُنشئ'), edit:fl('Edited','عُدِّل'), delete:fl('Deleted','حُذف'), archive:fl('Archived','أُرشف'), restore:fl('Restored','استُعيد'), denied:fl('Refused','رُفض'), reset_link_sent:fl('Password reset link sent','أُرسل رابط إعادة تعيين كلمة المرور') }[a] || a; }
+  function actionLabel(a){ return { create:fl('Created','أُنشئ'), edit:fl('Edited','عُدِّل'), delete:fl('Deleted','حُذف'), archive:fl('Archived','أُرشف'), restore:fl('Restored','استُعيد'), denied:fl('Refused','رُفض'), reset_link_sent:fl('Password reset link sent','أُرسل رابط إعادة تعيين كلمة المرور'), levels_changed:fl('Page access changed','تغيّرت صلاحيات الصفحات'), sections_kept:fl('Save held back — no access to that section\'s page','حُجب جزء من الحفظ — لا صلاحية على صفحته') }[a] || a; }
   /* 2026-09-25 (fire #265, driven live): the access table holds two kinds of row — a refused page
      visit (action 'denied', what js/64 writes) and a password-reset link an admin sent (action
      'reset_link_sent', what the Team page writes). Both read "Page access", the second printed its

@@ -67,6 +67,16 @@ started** — the new session is told which files are whose before its first com
 *Date: 2026-08-23; suspended 2026-09-25. Status: SUSPENDED while one session writes — returns
 if a second writing session starts.*
 
+**P6 — Once approved, always approved.** The owner, 2026-09-25, verbatim: "Always allow anything
+you asked me for in this session or any other session so don't get back to me for them again as
+long as I'm allowed it once then you can have it all the time." A kind of action the owner has
+approved once — in any session — is approved from then on, and a session does not come back to ask
+again. Read with D2's "every phase lands by pull request": the owner has approved merging (PR #31),
+so a session merges its own pull request once its tests are green, and says so in its report. What
+this does NOT cover: an action of a kind never approved before, and anything that deletes real data
+or cannot be undone — those still go to the owner first (CLAUDE.md rule 9's carve-out).
+*Date: 2026-09-25. Status: ACTIVE.*
+
 **P5 — A correct rule that nothing consults is not a rule.** Hit this exact failure shape
 three times now: the Takamol exclusion list (correct, seeded, wired into every importer —
 and never called anyway, because the real write went in through direct SQL); `MIN_PW` (the
@@ -2857,6 +2867,75 @@ way), and Own work anywhere while owners are stored as names (`assigned_to`, `ac
   built with the new Reports pages in Phase 3, where exporting and moving the old browser data are
   one job.
 - **Every phase lands by pull request, reviewed before it goes live.**
+**Phase 1a as built (2026-09-25).** The one check is the database function **`page_level(page)`**
+(`scripts/sql/phase1a-access-levels.sql`) — none / view / own / full, admins always full, a
+switched-off account none, an unknown page none, Today never below view. The three older checks
+(`page_access`, `can_see_page`, `can_edit_page`) keep their names and now answer through it, so every
+existing row rule uses it unchanged; `can_edit_page` means **full only** — "own" writes nothing until a
+page learns whose records are whose. The screen draws the database's own answer (`my_page_levels`,
+loaded by js/56, applied by js/52's `pageLevel` / `mayEditPage`) and keeps no level rule of its own;
+**`mayEditPage` fails closed while the answer is in flight** (it used to say yes), and the Generator's
+six editors ask it rather than deciding for themselves. Grids change only through
+**`set_page_levels`**, which refuses a manager raising anyone above the manager's own level, anyone
+changing their own access or an admin's, and any page or level word it does not know, and logs every
+change. A guard trigger refuses an unknown page or word even from the owner, and gives a NEW person —
+or someone moving down from admin — their role's starting grid (before this, a new person had no
+grid: the database gave them nothing while the screen showed them the employee pages). js/15's second
+gate (`allowed_pages`, re-checked every 2 s) is retired. **The stored words are renamed**
+(editor → full, viewer → view) **only after the 1a pull request is merged**
+(`scripts/sql/phase1a-rename-levels.sql`), because the live screen reads the old words until then.
+Guards: `scripts/qa/access-levels-attacks.sql` (31 attacks as employee and manager in a transaction that
+is always thrown away; sabotaged — `page_level` forced to full — it fails the ones that depend on it),
+`scripts/qa/live-access-levels-drive.mjs` (the working copy against the live database, as admin,
+manager and employee), and the battery probes updated for the four levels.
+**Phase 1b as built (2026-09-25, database, all applied live).** **Every change the app can make now
+answers to the level of the page it belongs to; reading stays open to every signed-in employee**
+("reading is shared, writing is not", ROLES_AND_ACCESS 2026-08-13). Five migrations, each dry-run in
+a discarded transaction, compared old-vs-new for every live person before applying, attacked live
+as an employee and as the manager, and sabotaged (the check forced open) to prove the attacks can
+fail — `scripts/sql/phase1b-{a..e}-*.sql`, each with a rollback, guarded by
+`scripts/qa/access-levels-attacks-1b*.sql`:
+- **A — tables and files by page:** Projects, Bookings, Invoices, Proposals, Operations, the
+  Generator (tables, company-docs files, document numbers), Events (was open to any signed-in
+  account, including an unapproved sign-up), the register tables, backups (adding and reading stay
+  open — the one-time local-backup upload reads back what it wrote), Finance's leftovers.
+- **B — the shared workspace (`app_state`):** `blob_section_pages` maps each section to its page; a
+  section is written only with full control of its page. A save is never refused whole — held-back
+  sections stay as stored and are logged ("Save held back"); the whole-blob fallback cannot delete a
+  section. Before this any team member's browser could overwrite Airlines, Suppliers, SOPs, Settings
+  or the company's bank details.
+- **C — Undo** asks the record's page as well as the role.
+- **D — a person added through Team → Add** gets their role's starting grid (admin-users creates
+  the login before the role; a new employee would have opened Today only — reproduced live first).
+- **E — Leads and Clients:** `businesses.owner_id` is the account behind the owner name, worked out
+  by the database on every write (never taken from the caller), with `owner_name_preference` for the
+  one shared name (the owner's primary address). Full control writes any company; Own work only the
+  caller's, and cannot hand one away, claim one by id, or create one for somebody else; contacts,
+  activities and client profiles follow their company. 91 companies got an owner; 20 clients stay
+  unowned (owner's ruling).
+**Role floors kept on purpose** (the old role rule was stricter than the grid, so lifting it would
+GIVE powers): finance transactions, payment receipts and cost lines stay admin / manager /
+operations; changing or deleting an expense or payment-proof file stays admin / manager; merging
+companies stays admin / manager. Lifting any of these is the owner's call, one line each.
+**Not done in 1b, on purpose:** the screens of Leads, Clients and eight other pages still show their
+editing buttons to someone on View (Team & Access marks them "buttons still show"; the database
+refuses the change); "Own work" is not yet choosable, because a company save goes in batches and one
+refused company fails the batch — it opens on Leads and Clients once those pages stop offering
+changes on other people's companies. The manual-confirm function (no sign-in, one flagged record)
+and the gstest leftover (can only rewrite one fixed test page) were read and left alone.
+*Date: 2026-09-25. Status: ACTIVE.*
+
+**D7 — Helpers, not locks: the owner is responsible, anyone on the team can help, every change is
+recorded, the owner is told, and it can be undone.** The owner's question and ruling, 2026-09-25:
+the team each own their companies and clients but help each other, and "only the owner can edit"
+would make the work harder. So on Leads and Clients everyone stays on **Full control** (as seeded);
+ownership (`assigned_to` / `owner_id`) is **accountability** — whose job it is, "Mine", reminders,
+later tasks, KPIs and appraisals — **not a lock**. What makes that safe is not a wall but a record:
+every change to a company, its contacts and client profiles is in `record_history` with who, when,
+before and after (activity notes live inside the company row, so they are recorded with it), the
+owner is **told** on Today when someone else changed one of theirs, and Undo puts a change back
+within 24 hours. "Own work" stays available as a tool (a new starter, a trainee, someone outside the
+core team), not the default. Money stays stricter (D2's role floors on Finance).
 *Date: 2026-09-25. Status: ACTIVE.*
 
 **D3 — Quality, Strategy and Integrity have no control over tasks, achievements or proofs** — they
@@ -2868,7 +2947,7 @@ edits, adds or removes its proofs.
 corporate.directksa.com — not only fonts and colours but buttons, clicks, filters, lists/tables and
 views. Printed documents (proposals, profiles) keep their own print identity (Identity A in
 `brand/IDENTITY.md`). **One design file, loaded by every page, with a probe proving it is loaded**
-(P5). This supersedes `DIRECT_SYSTEMS_MAP.md`'s "system fonts only" design cue and its "keep our
+(P5). This supersedes `docs/DIRECT_SYSTEMS_MAP.md`'s "system fonts only" design cue and its "keep our
 orange" line: the app follows the websites now. The corporate portal's inside is seen only through
 the owner's Drive snapshots — never by signing in. The right to use Direct's own font is the owner's
 to confirm.
@@ -2880,7 +2959,7 @@ call-to-action — so "follow both" needs one written choice of which wins where
 **DirectFont** (weights 100–800, full Arabic, served from `assets.directksa.com` with open
 cross-site access); its own file says "All rights reserved" and marks embedding as restricted, so
 the owner's confirmation of the right to use it is a real gate, not a formality. **Direct's
-component library cannot be loaded by this app**: `directksa.com/vendor/direct-web-components.es.js`
+component library cannot be loaded by this app**: directksa.com/vendor/direct-web-components.es.js
 refuses other sites (no cross-site header — tested in a browser), holds only the consumer header,
 footer and services widgets (no buttons, inputs or tables), carries no licence or version and is
 cached for two minutes. The durable route is to copy the measured values into our own design file.

@@ -667,6 +667,59 @@ Everything else on those five pages is as it should be. Two things I checked and
 lock banner on the three Direct-owned pages shows both languages on purpose — you corrected that
 yourself in August, active language first — and the Operations board's dashes sit under a line that
 already explains the zeros.
+## Phase 1b — the database learns the levels, page by page (2026-09-25, Claude Code)
+
+Done on the owner's word "do what you recommend and keep going" (his rulings: the manager gets the
+Generator — done, logged; the 20 unowned clients stay unowned). All five parts are live in the
+database and listed in DECISIONS D2 "Phase 1b as built": A tables & files by page, B the shared
+workspace section by section, C Undo asks the page, D Team → Add gives the role's grid (a real gap:
+new employees would have opened Today only), E Leads/Clients owner accounts and "own work". Each
+was compared old-vs-new for every live person (the only losses: writes on pages the person cannot
+open, on tables no such person ever wrote), attacked live, and sabotaged. Screen: the lead card's
+"Create proposal" / "New booking" follow the page; Team & Access marks View pages "buttons still show"
+(true since the database refuses); "Own work" not yet choosable (see D2).
+**Waiting on the owner:** merging PR #32 (1a screen + 1b screen bits); after it, the stored-word
+rename (`scripts/sql/phase1a-rename-levels.sql`). The role floors listed in D2 (finance
+transactions/receipts/cost lines, money-file deletes, merges) are his to lift or keep.
+**Next build step:** the Leads and Clients screens withhold changes on companies the person may not
+change (View, and Own on other people's companies) — which also opens "Own work" in Team & Access —
+then the other "buttons still show" pages.
+**Noticed, not acted on:** the admin-users function still checks passwords against 8 characters
+while the Supabase policy (and `MIN_PW`) is 10 — Supabase refuses the short one anyway, so the only
+effect is a less helpful message; it still writes the retired `allowed_pages` list (unread).
+ksa_event_signups has a `login_password` column — a stored password for an event portal; worth a
+look when Events is next touched.
+
+---
+
+## Phase 1a — one access check, four levels (2026-09-25, Claude Code)
+
+Built as ruled (DECISIONS D2, "Phase 1a as built"). **Database, live now, changed nobody's access**
+(220 person × page checks against the stored grids, 0 differences): `page_level` is the one check;
+the three older checks answer through it; `my_page_levels` feeds the screen; `set_page_levels` is
+the one way to change a grid; `team_access_list` lets the manager see the team; a guard trigger
+refuses unknown pages/words and gives new people their role's starting grid. **Screen, in the pull
+request:** js/52 asks the database's answer and fails closed while it loads; js/56 is the four-level
+Team & Access editor for admins and the manager (20 pages; "Own work" shown, not yet choosable); js/15's
+second gate and its old Access window are retired (its button now opens Team & Access); the six
+Generator editors ask the shared check.
+**Tests:** `scripts/qa/access-levels-attacks.sql` 31/31 (sabotaged: fails what depends on the check);
+`scripts/qa/live-access-levels-drive.mjs` as admin, manager and employee against the live database;
+six battery probes updated for four levels, each with the reason in the file; three sabotages of the
+new screen code each caught.
+**After the merge (next step, mine):** run `scripts/sql/phase1a-rename-levels.sql` (editor → full,
+viewer → view) with the before/after check.
+**Found on the way, fixed here:** probe-m13-remaining's refusal run was red on every run — both of its
+refusal checks listened for the browser's own alert box, which js/63 replaced with an in-page notice.
+The Settings card said "the level alone decides which pages they open" — untrue since the per-page
+grid; reworded. The D4 entry of PR #31 cited two paths the decisions guard could not resolve.
+**For 1b (not done here, on purpose):** the "enforced" lists on screen (`PAGES_VIEWER_ENFORCED` in
+js/52, the green-dot list in js/56) still overstate Settings and Activity (Phase 0 §4) — they are
+corrected page by page as each page is taught; js/52's refusal sentence still says "Your account covers
+Leads, Clients and Finance" whatever the grid holds; the unread `allowed_pages` column can be dropped.
+
+---
+
 ## Phase 0 review — the task manager build starts (2026-09-25, Claude Code)
 
 The owner's oversight chat handed a brief to a new Claude Code session: record decisions D1–D6,

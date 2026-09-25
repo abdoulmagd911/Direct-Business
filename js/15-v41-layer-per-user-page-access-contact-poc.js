@@ -1,116 +1,31 @@
 /* ===== v41 layer: per-user page access + contact/POC/link amendments + language polish ===== */
 (function(){try{
-var SUPA_URL='https://vkxoeeoauexyfpzqufqd.supabase.co';
-var SUPA_KEY='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
-var sb3=null;
-function client(){ if(!sb3&&window.supabase){try{sb3=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(_){}} return sb3; }
 function isAr(){try{return (typeof LANG!=='undefined'&&LANG==='ar')||document.documentElement.getAttribute('data-lang')==='ar';}catch(_){return false;}}
 function canEdit(){return !window.__isShareView && window.__userTier!=='viewer';}
 function E(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-var PAGES=window.PAGES=[['today','Today','اليوم'],['leads','Leads','العملاء المحتملون'],['clients','Clients','العملاء'],['finance','Finance','المالية'],['offers','Proposals','العروض المقدمة'],['events','Events','الفعاليات'],['projects','Projects','المشاريع'],['reports','Reports','التقارير'],['airlines','Airlines','شركات الطيران'],['vendors','Providers & GDS','الموردون'],['sopsla','SOPs & SLAs','الإجراءات والمستويات'],['ops','Operations','العمليات'],['bookings','Bookings','الحجوزات'],['invoices','Invoices','الفواتير'],['tickets','Tickets','التذاكر'],['sync','Sync & Integrations','المزامنة'],['settings','Settings','الإعدادات']];
-
-/* ---------- 1. enforce my allowed pages ---------- */
-var myPages=null; /* null = everything */
-function applyGate(){
-  try{
-    if(window.__isShareView)return;
-    if(!myPages)return;
-    var allow={}; myPages.forEach(function(p){allow[p]=1;}); allow['today']=1;
-    /* hide nav buttons for pages I can't open */
-    document.querySelectorAll('#nav button').forEach(function(btn){
-      var label=(btn.textContent||'').trim().toLowerCase();
-      var pg=PAGES.find(function(p){return label.indexOf(p[1].toLowerCase())>=0||label.indexOf(p[2])>=0;});
-      if(pg&&!allow[pg[0]])btn.style.display='none';
-    });
-    /* bounce if I'm on a page I can't open */
-    if(typeof current!=='undefined'&&!allow[current]&&PAGES.some(function(p){return p[0]===current;})){
-      current='today'; try{render();}catch(_){}
-    }
-  }catch(_){}
-}
-function loadMyPages(){
-  var c=client(); if(!c)return;
-  c.auth.getSession().then(function(s){
-    if(!(s&&s.data&&s.data.session))return;
-    c.from('app_users').select('allowed_pages').eq('id',s.data.session.user.id).maybeSingle().then(function(r){
-      if(r.data&&Array.isArray(r.data.allowed_pages)&&r.data.allowed_pages.length){ myPages=r.data.allowed_pages; }
-      applyGate();
-    });
-  });
-}
-setTimeout(loadMyPages,4000);
-setInterval(applyGate,2000);
-/* expose for the Team & Access page (v48) and for tests */
-try{ window.applyGate=applyGate; window.__setMyPages=function(p){ myPages=(p===undefined?myPages:p); applyGate(); }; }catch(_){}
-
-/* ---------- 2. Access manager (admins): who sees which pages ---------- */
+/* ---------- 1–2. RETIRED 2026-09-25 (Phase 1a, D2) ----------
+   This layer used to run a second page gate of its own: every two seconds it read
+   app_users.allowed_pages and hid sidebar buttons by matching their wording, beside the real gate
+   (js/52, fed by the per-person grid) — two lists deciding the same thing, which agreed only because
+   nobody had changed one without the other. It also carried its own "Access" window that wrote
+   allowed_pages, a list nothing else reads. Both are gone: the one check is the database's
+   page_level(), which js/56 loads and js/52 applies, and Team & Access (in Settings) is the one
+   place to change it. The allowed_pages column is left in place, unread, for a later clean-up.
+   v41Access and the "Access" button stay as a door to that one place, so nothing that opened the
+   old window is left pointing at nothing. */
 window.v41Access=function(){
-  var c=client(); if(!c)return;
-  var ar=isAr();
-  c.from('app_users').select('id,full_name,email,role,active,allowed_pages').then(function(r){
-    if(r.error||!r.data){alert(ar?'هذه الشاشة للمسؤولين فقط.':'This screen is for admins only.');return;}
-    var users=r.data;
-    var ov=document.createElement('div');
-    ov.style.cssText='position:fixed;inset:0;z-index:999998;background:rgba(20,22,32,.55);display:flex;align-items:center;justify-content:center;padding:20px';
-    var rows=users.map(function(u,i){
-      var nm=E((u.full_name||'').trim()||u.email.split('@')[0]);
-      var all=!Array.isArray(u.allowed_pages)||!u.allowed_pages.length;
-      var chips=PAGES.map(function(p){
-        var on=all||u.allowed_pages.indexOf(p[0])>=0;
-        return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;background:'+(on?'#FFF3EC':'#f2f2f2')+';border:1px solid '+(on?'#F2C185':'#e3e3e3')+';border-radius:8px;padding:3px 8px;margin:2px;cursor:pointer"><input type="checkbox" data-u="'+i+'" data-p="'+p[0]+'" '+(on?'checked':'')+'> '+(ar?p[2]:p[1])+'</label>';
-      }).join('');
-      return '<div style="border-top:1px solid #EEE8DE;padding:12px 0"><div style="font-weight:800;font-size:13.5px">'+nm+' <span style="font-weight:400;color:#7C8194;font-size:11.5px">'+E(u.email)+' · '+E(u.role||'')+(u.active===false?' · OFF':'')+'</span></div><div style="margin-top:6px">'+chips+'</div><div style="margin-top:6px"><button class="btn sm" data-save="'+i+'">'+(ar?'حفظ صلاحيات هذا المستخدم':'Save this user\'s access')+'</button> <button class="btn ghost sm" data-all="'+i+'">'+(ar?'كل الصفحات':'Everything')+'</button></div></div>';
-    }).join('');
-    ov.innerHTML='<div style="background:#FBF8F4;border-radius:16px;max-width:760px;width:100%;max-height:88vh;overflow:auto;padding:24px" '+(ar?'dir="rtl"':'')+'>'+
-      '<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:17px;font-weight:800">'+(ar?'مستويات الوصول — من يرى ماذا':'Access levels — who sees what')+'</div><button class="btn ghost sm" id="v41x">✕</button></div>'+
-      '<div class="ch-sub" style="margin:6px 0 4px">'+(ar?'حدد الصفحات المسموحة لكل زميل. "كل الصفحات" = صلاحية كاملة (المسؤولون).':'Tick the pages each colleague may open. "Everything" = full access (admins).')+'</div>'+rows+'</div>';
-    /* 2026-09-18 (fire #92): found by the new overlay-Escape check in check-structure, which exists
-       because three separate overlays were caught ignoring the key in two consecutive rounds. js/35's
-       global handler (2026-08-08) only ever looks at `#modal`, so an overlay built as its own element
-       has to wire the key itself. Escape does exactly what this box's own cancel path already did, and
-       the listener is removed with the box so it cannot outlive it or stack when reopened. */
-    var v41esc=function(e){ if(e.key==='Escape'){ v41close(); } };
-    /* 2026-09-20 (fire #128) — Escape came in fire #92; the keyboard did not. Measured against the
-       real database, both languages: this panel opened with focus still on the page behind it. Six
-       tabs did stay inside, but only because it holds over two hundred controls — the keyboard had
-       simply not arrived yet. It is the screen that decides which pages each person may open. */
-    var v41prev=null; try{ v41prev=document.activeElement; }catch(_){ }
-    var v41close=function(){ try{ document.removeEventListener('keydown',v41esc); }catch(_){}
-      try{ if(window.v21ReleaseTrap) v21ReleaseTrap(ov); }catch(_){}
-      try{ ov.remove(); }catch(_){}
-      try{ if(v41prev&&v41prev.focus) v41prev.focus(); }catch(_){} };
-    ov.onclick=function(e){if(e.target===ov)v41close();};
-    document.body.appendChild(ov);
-    try{ if(window.v21TrapFocus) v21TrapFocus(ov); }catch(_){}
-    document.addEventListener('keydown',v41esc);
-    document.getElementById('v41x').onclick=v41close;
-    ov.querySelectorAll('[data-save]').forEach(function(btn){
-      btn.onclick=function(){
-        var i=+btn.getAttribute('data-save'), u=users[i];
-        var picked=[].slice.call(ov.querySelectorAll('input[data-u="'+i+'"]:checked')).map(function(x){return x.getAttribute('data-p');});
-        var payload=(picked.length>=PAGES.length)?null:picked; /* everything = null */
-        c.from('app_users').update({allowed_pages:payload}).eq('id',u.id).select('id').then(function(r2){
-          if(r2.error){alert((ar?'تعذر الحفظ: ':'Could not save: ')+r2.error.message);return;}
-          /* M13 (2026-09-02, attack round 11): no error but no row back = refused silently —
-             never show "Saved ✓" for an access change that did not land. */
-          if(!r2.data||!r2.data.length){alert(ar?'رفضت قاعدة البيانات هذا التغيير — لم يُحفظ شيء (صلاحية؟).':'The database refused this change — nothing was saved (permission?).');return;}
-          btn.textContent=ar?'تم الحفظ ✓':'Saved ✓'; setTimeout(function(){btn.textContent=ar?'حفظ صلاحيات هذا المستخدم':'Save this user\'s access';},1500);
-        });
-      };
-    });
-    ov.querySelectorAll('[data-all]').forEach(function(btn){
-      btn.onclick=function(){var i=+btn.getAttribute('data-all');ov.querySelectorAll('input[data-u="'+i+'"]').forEach(function(x){x.checked=true;});};
-    });
-  });
+  try{
+    if(typeof current!=='undefined'){ current='settings'; if(typeof render==='function') render(); }
+    setTimeout(function(){ try{ var h=document.getElementById('axHost'); if(h&&h.scrollIntoView) h.scrollIntoView({block:'start'}); }catch(_){} },500);
+  }catch(_){}
 };
-/* Access button next to Team for admins */
 (function addAccessBtn(n){
   try{
     if(window.__isShareView)return;
     var tools=document.querySelector('.tools');
-    if(!tools){ if((n||0)<40)setTimeout(function(){addAccessBtn((n||0)+1);},500); return; }
-    if(window.__userTier!=='admin'){ if((n||0)<40)setTimeout(function(){addAccessBtn((n||0)+1);},700); return; }
+    var r=window.__userRole;
+    if(!tools || (r!=='admin' && r!=='manager')){ if((n||0)<40)setTimeout(function(){addAccessBtn((n||0)+1);},700); return; }
     if(!document.getElementById('v41acc')){
       var b=document.createElement('button'); b.id='v41acc'; b.className='btn sm ghost'; b.style.fontWeight='700';
       b.textContent=isAr()?'الصلاحيات':'Access'; b.onclick=function(){v41Access();};

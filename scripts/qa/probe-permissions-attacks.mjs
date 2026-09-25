@@ -70,16 +70,20 @@ async function main() {
   const asTier = async (tier, share) => p.evaluate(({ tier, share }) => {
     window.__userTier = tier; window.__userRole = tier; window.__isShareView = !!share;
     window.__pageAccess = { today: 'viewer', leads: 'viewer', clients: 'viewer', finance: 'viewer' };
+    /* 2026-09-25 (Phase 1a): the screen now reads the database's four-word answer (js/56 loads
+       my_page_levels() into __pageLevels); the older __pageAccess is kept only for layers that
+       still read it. A viewer is therefore both. */
+    window.__pageLevels = { today: 'view', leads: 'view', clients: 'view', finance: 'view' };
     window.__probeSentinel = 1;
   }, { tier, share });
-  const asAdmin = async () => p.evaluate(() => { window.__userTier = 'admin'; window.__userRole = 'admin'; window.__isShareView = false; window.__pageAccess = null; });
+  const asAdmin = async () => p.evaluate(() => { window.__userTier = 'admin'; window.__userRole = 'admin'; window.__isShareView = false; window.__pageAccess = null; window.__pageLevels = null; });
 
   /* Arm the importer as an ADMIN and stop at the preview, so v65Commit has a real batch waiting.
      This is the actual risk it guards: the preview is built by an editor, then the tab is left
      open (or shared, or the person's access changes) and Confirm is pressed. Without a batch
      waiting, v65Commit returns at its own `if(!FILES_STATE)` and proves nothing. */
   await p.evaluate(async () => {
-    window.__userTier = 'admin'; window.__userRole = 'admin'; window.__isShareView = false; window.__pageAccess = null;
+    window.__userTier = 'admin'; window.__userRole = 'admin'; window.__isShareView = false; window.__pageAccess = null; window.__pageLevels = null;
     const header = ['Ref', 'Customer', 'Date', 'Total', 'Cost'];
     DB.settings = DB.settings || {}; DB.settings.importSignatureMappings = DB.settings.importSignatureMappings || [];
     DB.settings.importSignatureMappings.push({ key: header.slice().map(h => h.trim()).sort().join('|'), header, mapping: { invoice_no: 'Ref', customer_raw_name: 'Customer', invoice_date: 'Date', total_incl_vat_sar: 'Total', cost_sar: 'Cost' }, addedBy: 'probe', addedAt: new Date().toISOString() });

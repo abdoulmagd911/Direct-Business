@@ -262,7 +262,7 @@ async function main() {
   const idDeleted = del21 ? del21.id : null;
   const beforeV = await snapshot();
   await A.p.evaluate(([idLive, idDeleted]) => {
-    window.__userTier = 'viewer'; window.__userRole = 'viewer'; window.__pageAccess = {};
+    window.__userTier = 'viewer'; window.__userRole = 'viewer'; window.__pageAccess = {}; window.__pageLevels = { today: 'view' };
     try { window.finDel(idLive); } catch (e) { }
     try { window.finRestore(idDeleted); } catch (e) { }
   }, [idLive, idDeleted]);

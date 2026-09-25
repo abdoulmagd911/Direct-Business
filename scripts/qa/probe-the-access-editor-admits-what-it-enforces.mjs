@@ -17,7 +17,8 @@
    project has been bitten by a warning trapped in a hover before (fire #95).
 
    The editor now says it in words, on the row, and only where it is true: a page set to Viewer that
-   does not check the setting is marked "not enforced yet", and one sentence underneath names them
+   does not check the setting is marked "buttons still show" (was "not enforced yet" until the
+   database learned the levels in Phase 1b, 2026-09-25), and one sentence underneath names them
    all. The list of pages that DO hold lives in js/52 beside `mayEditPage` — the thing that decides —
    so fixing a page clears the warning by editing one array.
 
@@ -106,6 +107,7 @@ async function rows(access, port, opts) {
       selectCount: selects.length,
       allSelects: levelSelects,
       levelsPerSelect: selects.length ? [].slice.call(selects[0].options).map((o) => o.value) : [],
+      ownOpenAnywhere: selects.some((sel) => [].slice.call(sel.options).some((o) => o.value === 'own' && !o.disabled && !o.selected)),
       hasSave: /axSave/.test(host.innerHTML),
     };
   }, access);
@@ -113,8 +115,13 @@ async function rows(access, port, opts) {
   return out;
 }
 
+/* 2026-09-25 (Phase 1a, D2): the grid covers twenty pages (the fifteen plus Projects, Bookings,
+   Invoices, Tickets and Sync) in four levels — none / view / own / full. The person handed to the
+   editor below is still drawn in the older stored words ('viewer' / 'editor'), which the editor
+   must read exactly as the database does. */
 const ALL = ['today', 'leads', 'clients', 'offers', 'documents', 'ops', 'reports', 'finance',
-  'settings', 'events', 'airlines', 'vendors', 'sopsla', 'activity', 'archive'];
+  'settings', 'events', 'airlines', 'vendors', 'sopsla', 'activity', 'archive',
+  'projects', 'bookings', 'invoices', 'tickets', 'sync'];
 const viewerEverywhere = {}; ALL.forEach((k) => { viewerEverywhere[k] = 'viewer'; });
 const editorEverywhere = {}; ALL.forEach((k) => { editorEverywhere[k] = 'editor'; });
 
@@ -130,7 +137,9 @@ const hasArabic = (s) => /[؀-ۿ]/.test(s || '');
 
 const checks = [
   ['a Viewer page that does not honour the setting is marked in visible text',
-    marked.length > 0 && allViewer.markVisibleText && /not enforced/i.test(allViewer.markText),
+    /* 2026-09-25 (Phase 1b): the database now refuses every change a View person tries, so the old
+       mark "not enforced yet" became untrue; what is still true is that the page shows its buttons */
+    marked.length > 0 && allViewer.markVisibleText && /buttons still show/i.test(allViewer.markText),
     marked.length + ' marked: ' + marked.join(', ')],
   ['a page that DOES honour it is not marked',
     HELD.every((h) => marked.indexOf(h) < 0),
@@ -138,19 +147,21 @@ const checks = [
   ['the same pages set to Editor are not marked', (allEditor.markedPages || []).length === 0 && !allEditor.note,
     JSON.stringify({ marks: (allEditor.markedPages || []).length, note: allEditor.note.slice(0, 40) })],
   ['one sentence underneath names how many and which',
-    new RegExp('^' + marked.length + ' of the pages set to Viewer').test(allViewer.note) && /Airlines/.test(allViewer.note),
+    new RegExp('^' + marked.length + ' of the pages set to View ').test(allViewer.note) && /Airlines/.test(allViewer.note),
     allViewer.note.slice(0, 120)],
-  ['it says nothing when no page is set to Viewer', allEditor.note === '', JSON.stringify(allEditor.note)],
-  ['the editor still works — three levels on every page, Save still there',
+  ['it says nothing when no page is set to View', allEditor.note === '', JSON.stringify(allEditor.note)],
+  ['the editor still works — four levels on every one of the twenty pages, Save still there',
     allViewer.selectCount === ALL.length && allViewer.allSelects === ALL.length + 1 &&
-    JSON.stringify(allViewer.levelsPerSelect) === JSON.stringify(['none', 'viewer', 'editor']) &&
+    JSON.stringify(allViewer.levelsPerSelect) === JSON.stringify(['none', 'view', 'own', 'full']) &&
     allViewer.hasSave === true,
     JSON.stringify({ selects: allViewer.selectCount, levels: allViewer.levelsPerSelect, save: allViewer.hasSave })],
+  ['"Own work" cannot be chosen on any page yet — no page knows whose records are whose (M55)',
+    allViewer.ownOpenAnywhere === false, String(allViewer.ownOpenAnywhere)],
   ['the marked set is read from js/52, not copied — emptying that list silences every mark',
     (blank.markedPages || []).length === 0 && blank.note === '' && blank.selectCount === ALL.length,
     JSON.stringify({ marks: (blank.markedPages || []).length, note: blank.note.slice(0, 30), selects: blank.selectCount })],
   ['in Arabic the mark and the sentence are Arabic',
-    hasArabic(arab.markText) && hasArabic(arab.note) && !/not enforced/i.test(arab.markText) && !/of the pages/i.test(arab.note),
+    hasArabic(arab.markText) && hasArabic(arab.note) && !/buttons still show/i.test(arab.markText) && !/of the pages/i.test(arab.note),
     (arab.markText + ' | ' + arab.note.slice(0, 50))],
   ['no JS errors', errors.length === 0, errors.slice(0, 2).join(' | ')],
 ];

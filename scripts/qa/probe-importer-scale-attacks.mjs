@@ -236,7 +236,7 @@ async function main() {
   await drop('viewer-test.csv', freshCsv, 40000);
   const armed = await p.evaluate((ar) => !![...document.querySelectorAll('#finImpOut button')].find(x => /Confirm import/i.test(x.textContent) || x.textContent.indexOf(ar) >= 0), AR_CONFIRM);
   const beforeV = await countAll('finance_invoices');
-  await p.evaluate(() => { window.__userTier = 'viewer'; window.__userRole = 'viewer'; window.__pageAccess = {}; });
+  await p.evaluate(() => { window.__userTier = 'viewer'; window.__userRole = 'viewer'; window.__pageAccess = {}; window.__pageLevels = { today: 'view' }; });
   const pressed = await confirmBtn();
   await p.waitForTimeout(4000);
   const afterV = await countAll('finance_invoices');

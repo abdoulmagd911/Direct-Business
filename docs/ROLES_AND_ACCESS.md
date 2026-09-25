@@ -1,5 +1,13 @@
 # Roles, logins and access — the go-live model, 2026-08-13
 
+> **2026-09-25 — superseded in part by D2 (`docs/DECISIONS.md`).** Access is now a **level per person
+> per page** (No access / View / Own work / Full control), set in Settings → "Who can open what" by an
+> admin or the manager, and **enforced by the database on every page that stores anything** (Phase 1a
+> and 1b). The role still decides who may manage people and sets a new person's starting pages. What
+> below is still true: the three roles, who manages whom, "reading is shared, writing is not", how a
+> new person gets in. What is no longer true: "the database still accepts a proposal written by an
+> employee" (it refuses since 1b), and the page lists per role (they are only the starting grid now).
+
 Abdulrahman set this on 2026-08-13, ahead of handing the app to the team. There are **three
 levels and no more**. Nothing below is read from the code or assumed: all eleven accounts
 signed in for real, worked the live app, and tried to do what they must not do.
