@@ -17,13 +17,14 @@ begin;
 do $$
 declare
   sabotage boolean := false;          -- flip to true for the sabotage run
-  qa uuid; emp uuid; adm uuid; inv text; n int; lv jsonb;
+  qa uuid; emp uuid; adm uuid; inv text; n int; lv jsonb; total_people int;
   pass int := 0; fail int := 0; msg text := '';
 begin
   select id into qa  from public.app_users where email = 'test@directksa.com';
   select id into emp from public.app_users where role = 'team_member' and active and id <> qa order by email limit 1;
   select id into adm from public.app_users where role = 'admin' and active and id <> qa order by email limit 1;
   select id::text into inv from public.finance_invoices order by id limit 1;
+  select count(*) into total_people from public.app_users;
   if qa is null or emp is null or adm is null or inv is null then
     raise exception 'ACCESS-ATTACKS cannot run: a fixture is missing (qa %, employee %, admin %, invoice %)', qa is not null, emp is not null, adm is not null, inv is not null;
   end if;
@@ -63,6 +64,8 @@ begin
   update public.app_users set page_access = '{"settings":"full"}'::jsonb where id = qa;
   get diagnostics n = row_count;
   insert into _t values ('E8 employee cannot write their own grid directly', n = 0, n::text);
+  insert into _t values ('E9 employee cannot read the team''s access list',
+        (select count(*) from public.team_access_list()) = 0, (select count(*) from public.team_access_list())::text);
   reset role;
 
   ---------------------------------------------------------------- VIEW on Finance and Settings
@@ -123,6 +126,8 @@ begin
     insert into _t values ('M6 manager CAN give Proposals and lower Finance for an employee',
           lv->>'offers' = 'full' and lv->>'finance' = 'view' and lv->>'leads' = 'full', lv::text);
   exception when others then insert into _t values ('M6 manager CAN give Proposals and lower Finance for an employee', false, sqlerrm); end;
+  insert into _t values ('M8 manager reads the whole team''s access list', (select count(*) from public.team_access_list()) = total_people,
+        (select count(*) from public.team_access_list())::text || ' of ' || total_people);
   reset role;
   insert into _t values ('M7 the change is in the history log, naming who did it',
         exists(select 1 from public.record_history where table_name = 'access' and action = 'levels_changed'

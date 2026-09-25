@@ -667,6 +667,34 @@ Everything else on those five pages is as it should be. Two things I checked and
 lock banner on the three Direct-owned pages shows both languages on purpose — you corrected that
 yourself in August, active language first — and the Operations board's dashes sit under a line that
 already explains the zeros.
+## Phase 1a — one access check, four levels (2026-09-25, Claude Code)
+
+Built as ruled (DECISIONS D2, "Phase 1a as built"). **Database, live now, changed nobody's access**
+(220 person × page checks against the stored grids, 0 differences): `page_level` is the one check;
+the three older checks answer through it; `my_page_levels` feeds the screen; `set_page_levels` is
+the one way to change a grid; `team_access_list` lets the manager see the team; a guard trigger
+refuses unknown pages/words and gives new people their role's starting grid. **Screen, in the pull
+request:** js/52 asks the database's answer and fails closed while it loads; js/56 is the four-level
+Team & Access editor for admins and the manager (20 pages; "Own work" shown, not yet choosable); js/15's
+second gate and its old Access window are retired (its button now opens Team & Access); the six
+Generator editors ask the shared check.
+**Tests:** `scripts/qa/access-levels-attacks.sql` 31/31 (sabotaged: fails what depends on the check);
+`scripts/qa/live-access-levels-drive.mjs` as admin, manager and employee against the live database;
+six battery probes updated for four levels, each with the reason in the file; three sabotages of the
+new screen code each caught.
+**After the merge (next step, mine):** run `scripts/sql/phase1a-rename-levels.sql` (editor → full,
+viewer → view) with the before/after check.
+**Found on the way, fixed here:** probe-m13-remaining's refusal run was red on every run — both of its
+refusal checks listened for the browser's own alert box, which js/63 replaced with an in-page notice.
+The Settings card said "the level alone decides which pages they open" — untrue since the per-page
+grid; reworded. The D4 entry of PR #31 cited two paths the decisions guard could not resolve.
+**For 1b (not done here, on purpose):** the "enforced" lists on screen (`PAGES_VIEWER_ENFORCED` in
+js/52, the green-dot list in js/56) still overstate Settings and Activity (Phase 0 §4) — they are
+corrected page by page as each page is taught; js/52's refusal sentence still says "Your account covers
+Leads, Clients and Finance" whatever the grid holds; the unread `allowed_pages` column can be dropped.
+
+---
+
 ## Phase 0 review — the task manager build starts (2026-09-25, Claude Code)
 
 The owner's oversight chat handed a brief to a new Claude Code session: record decisions D1–D6,

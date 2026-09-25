@@ -40,7 +40,13 @@ const REAL_MATRIX = {
 };
 const PAGES_MANAGER  = ['today','leads','clients','finance','offers','events','airlines','settings','activity','archive'];
 const PAGES_EMPLOYEE = ['today','leads','clients','finance'];
-const EXPECTED_FALLBACK = { admin: null, manager: PAGES_MANAGER, bd: PAGES_EMPLOYEE, operations: PAGES_EMPLOYEE, viewer: PAGES_EMPLOYEE, team_member: PAGES_EMPLOYEE };
+/* 2026-09-25 (Phase 1a, D2): a person with NO grid used to get the screen's own floor list
+   (Leads, Clients, Finance) while the database's page_access() gave them nothing — the screen
+   offered pages the database then refused. The screen now draws the database's own answer
+   (my_page_levels): no grid = no access but Today. No live account has an empty grid (the three
+   admins are outside the grid; everyone else was seeded), and a new person is now given their
+   role's starting grid by the database itself. */
+const EXPECTED_FALLBACK = { admin: null, manager: PAGES_MANAGER, bd: ['today'], operations: ['today'], viewer: ['today'], team_member: PAGES_EMPLOYEE };
 
 async function childRun(role) {
   const { chromium } = await import('/tmp/node_modules/playwright/index.mjs');

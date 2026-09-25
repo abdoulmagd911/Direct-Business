@@ -88,6 +88,9 @@ function setWho(role, docs, loaded) {
     window.__userTier = (r === 'admin') ? 'admin' : (r === 'manager') ? 'manager' : 'team';
     window.__roleKnown = true;
     window.__pageAccess = d ? { today: 'editor', documents: d } : null;
+    /* 2026-09-25 (Phase 1a): the screen reads the database's four-word levels (__pageLevels,
+       loaded by js/56 from my_page_levels); until they arrive there are none */
+    window.__pageLevels = (l && d) ? { today: 'full', documents: ({ editor: 'full', viewer: 'view' })[d] || d } : null;
     window.__pageAccessLoaded = !!l;
     try { current = 'documents'; render(); } catch (_) {}
     return { role: window.__userRole, may: (typeof window.mayEditPage === 'function') ? window.mayEditPage('documents') : '(none)' };
@@ -160,6 +163,9 @@ const inFlightNull = await openEditor('Financial proposal');
 await setWho('team_member', 'viewer', false);
 await p.waitForTimeout(1800);
 const inFlight = await openEditor('Financial proposal');
+await setWho('admin', null, false);
+await p.waitForTimeout(1800);
+const inFlightAdmin = await openEditor('Financial proposal');
 await b.close(); srv.close?.();
 
 const hasArabic = (s) => /[؀-ۿ]/.test(s || '');
@@ -178,11 +184,17 @@ const checks = [
     JSON.stringify(asAdmin.writeBtns)],
   ['so does somebody set to Editor on the Generator', (asEditor.writeBtns || []).length >= 2 && !asEditor.note,
     JSON.stringify(asEditor.writeBtns)],
-  ['while the matrix has not loaded, nothing is withheld and nothing is said',
-    (inFlightNull.writeBtns || []).length >= 2 && !inFlightNull.note &&
-    (inFlight.writeBtns || []).length >= 2 && !inFlight.note,
+  /* 2026-09-25 (Phase 1a, the owner's ruling): the screen FAILS CLOSED while the levels load. This
+     check used to require the opposite ("nothing is withheld"). The half that stays: nothing is SAID
+     while in flight (the banner waits for a real answer, M42a), and an admin — known at once — is
+     never held back. The Editor case above proves the buttons come back once the answer lands. */
+  ['while the levels have not loaded, a non-admin is offered no Save or Issue, and nothing is said',
+    (inFlightNull.writeBtns || []).length === 0 && !inFlightNull.note &&
+    (inFlight.writeBtns || []).length === 0 && !inFlight.note,
     JSON.stringify({ noMatrix: inFlightNull.writeBtns, unconfirmed: inFlight.writeBtns,
       notes: (inFlightNull.note || '') + (inFlight.note || '') })],
+  ['…while an admin, known at once, still has Save and Issue during that moment',
+    (inFlightAdmin.writeBtns || []).length >= 2 && !inFlightAdmin.note, JSON.stringify(inFlightAdmin.writeBtns)],
   ['the sentence is only on the Generator', elsewhere === false, String(elsewhere)],
   ['in Arabic the sentence is Arabic', hasArabic(arabicNote) && !/view-only/i.test(arabicNote),
     (arabicNote || '(nothing)').slice(0, 60)],

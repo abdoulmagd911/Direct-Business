@@ -160,15 +160,16 @@ async function main() {
        which reads the per-person access matrix (window.__pageAccess). A real viewer has that
        matrix loaded WITHOUT finance:editor, so simulate all three (learned 2026-09-02 in
        scripts/qa/probe-permissions-attacks.mjs; setting only the tier proves nothing). */
-    const t = window.__userTier, ro = window.__userRole, pa = window.__pageAccess;
+    const t = window.__userTier, ro = window.__userRole, pa = window.__pageAccess, pl = window.__pageLevels;
     window.__userTier = 'viewer'; window.__userRole = 'viewer';
     window.__pageAccess = { today: 'viewer', leads: 'viewer', clients: 'viewer', finance: 'viewer' };
+    window.__pageLevels = { today: 'view', leads: 'view', clients: 'view', finance: 'view' };   /* the four-word answer the screen reads since 2026-09-25 */
     FIN.p = { year: '2026', part: 'all', sector: 'all', cmp: 'none' }; FIN.tab = 'overview';
     renderFinance(document.getElementById('view')); await new Promise(r => setTimeout(r, 400));
     const c = [...document.querySelectorAll('#view .card')].find(e => /Plan vs actual|الخطة/.test(e.textContent));
     const hasBtn = !!(c && [...c.querySelectorAll('button')].some(b => /Set targets|تعديل الأرقام/.test(b.textContent)));
     let called = false; const op = window.prompt, opp = window.pfPrompt; window.prompt = () => { called = true; return '999'; }; window.pfPrompt = (q, d, cb) => { called = true; cb('999'); };
-    try { finSetTargets(2026); await new Promise(r => setTimeout(r, 500)); } finally { window.prompt = op; window.pfPrompt = opp; window.__userTier = t; window.__userRole = ro; window.__pageAccess = pa; }
+    try { finSetTargets(2026); await new Promise(r => setTimeout(r, 500)); } finally { window.prompt = op; window.pfPrompt = opp; window.__userTier = t; window.__userRole = ro; window.__pageAccess = pa; window.__pageLevels = pl; }
     return { hasBtn, called };
   });
   if (!viewer.hasBtn) ok('a viewer sees no "Set targets" button'); else fail('viewer was offered the editor');

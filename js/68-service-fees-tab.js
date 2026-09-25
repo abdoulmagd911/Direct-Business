@@ -39,8 +39,10 @@
        without this the buttons could be taken away during the load while js/98's banner, which
        does wait, said nothing: a page that refuses in silence. The probe's brake caught exactly
        that. Not loaded yet = no opinion = the old behaviour. */
-    if(window.__pageAccessLoaded!==true) return true;
-    return (typeof window.mayEditPage==='function') ? window.mayEditPage('documents')!==false : true;
+    /* 2026-09-25 (Phase 1a, owner's ruling): the screen now FAILS CLOSED while the levels load —
+       js/52's mayEditPage answers no until the database has said, and yes at once for an admin.
+       This line used to answer yes itself while loading; it now simply asks. */
+    return (typeof window.mayEditPage==='function') ? window.mayEditPage('documents')===true : true;
   }catch(_){ return true; } }
   function canWrite(){ try{ return ['admin','manager','bd','team_member'].indexOf(window.__userRole)>=0 && mayEditDocs(); }catch(_){ return false; } }
   function toast(msg){ try{ if(window.__toast){__toast(msg);return;} }catch(_){}

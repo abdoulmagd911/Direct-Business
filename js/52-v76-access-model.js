@@ -50,6 +50,17 @@
     /* Since 2026-08-17 access is set per person, per page, in Team & Access. When that matrix
        has loaded it decides; the two lists below remain only as the floor to fall back on if
        it has not arrived yet, and they match what the matrix was seeded with. */
+    /* 2026-09-25 (Phase 1a, D2): the database's page_level() answers every page in four words —
+       none / view / own / full — through my_page_levels(), loaded by js/56 into __pageLevels.
+       Any level but none opens the page. The older grid words are read below only as a fallback. */
+    try{
+      var L=window.__pageLevels;
+      if(L && typeof L==='object'){
+        var lp=Object.keys(L).filter(function(p){ return L[p] && L[p]!=='none'; });
+        if(lp.indexOf('today')<0) lp.push('today');
+        return lp;
+      }
+    }catch(_){}
     try{
       var m=window.__pageAccess;
       if(m && typeof m==='object'){
@@ -61,15 +72,32 @@
     if(r==='manager') return PAGES_MANAGER;
     return PAGES_EMPLOYEE;
   }
-  /* May this person change things on a page, as opposed to only look at it? */
+  /* This person's level on a page — 'none' | 'view' | 'own' | 'full' — as the DATABASE answered it
+     (page_level(), through my_page_levels(); js/56 loads it). null = not known yet. The screen keeps
+     no rule of its own about levels: it asks this (M57). */
+  try{
+    window.pageLevel=function(page){
+      try{
+        if(role()==='admin') return 'full';
+        var L=window.__pageLevels;
+        if(L && typeof L==='object') return L[page]||'none';
+        return null;
+      }catch(_){ return null; }
+    };
+  }catch(_){}
+  /* May this person change things on a page, as opposed to only look at it?
+     2026-09-25 (Phase 1a, owner's ruling): this used to answer YES while the levels were still
+     loading ("the old behaviour"), so for a second or two after sign-in a person set to View was
+     offered every change button. It now FAILS CLOSED: not known yet = no. The levels arrive a
+     moment after sign-in and js/56 re-draws the page when they do, so a person with Full control
+     sees their buttons appear, never a refusal. 'own' does not open the page-wide controls: each
+     page learns what "own work" means for its own records in Phase 1b. */
   try{
     window.mayEditPage=function(page){
       try{
         if(role()==='admin') return true;
-        var m=window.__pageAccess;
-        if(m && typeof m==='object') return m[page]==='editor';
-        return true;                        // matrix not loaded yet — the old behaviour
-      }catch(_){ return true; }
+        return window.pageLevel(page)==='full';
+      }catch(_){ return false; }
     };
   }catch(_){}
   function mayOpen(view){

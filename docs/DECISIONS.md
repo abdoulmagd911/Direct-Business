@@ -2857,6 +2857,27 @@ way), and Own work anywhere while owners are stored as names (`assigned_to`, `ac
   built with the new Reports pages in Phase 3, where exporting and moving the old browser data are
   one job.
 - **Every phase lands by pull request, reviewed before it goes live.**
+**Phase 1a as built (2026-09-25).** The one check is the database function **`page_level(page)`**
+(`scripts/sql/phase1a-access-levels.sql`) — none / view / own / full, admins always full, a
+switched-off account none, an unknown page none, Today never below view. The three older checks
+(`page_access`, `can_see_page`, `can_edit_page`) keep their names and now answer through it, so every
+existing row rule uses it unchanged; `can_edit_page` means **full only** — "own" writes nothing until a
+page learns whose records are whose. The screen draws the database's own answer (`my_page_levels`,
+loaded by js/56, applied by js/52's `pageLevel` / `mayEditPage`) and keeps no level rule of its own;
+**`mayEditPage` fails closed while the answer is in flight** (it used to say yes), and the Generator's
+six editors ask it rather than deciding for themselves. Grids change only through
+**`set_page_levels`**, which refuses a manager raising anyone above the manager's own level, anyone
+changing their own access or an admin's, and any page or level word it does not know, and logs every
+change. A guard trigger refuses an unknown page or word even from the owner, and gives a NEW person —
+or someone moving down from admin — their role's starting grid (before this, a new person had no
+grid: the database gave them nothing while the screen showed them the employee pages). js/15's second
+gate (`allowed_pages`, re-checked every 2 s) is retired. **The stored words are renamed**
+(editor → full, viewer → view) **only after the 1a pull request is merged**
+(`scripts/sql/phase1a-rename-levels.sql`), because the live screen reads the old words until then.
+Guards: `scripts/qa/access-levels-attacks.sql` (31 attacks as employee and manager in a transaction that
+is always thrown away; sabotaged — `page_level` forced to full — it fails the ones that depend on it),
+`scripts/qa/live-access-levels-drive.mjs` (the working copy against the live database, as admin,
+manager and employee), and the battery probes updated for the four levels.
 *Date: 2026-09-25. Status: ACTIVE.*
 
 **D3 — Quality, Strategy and Integrity have no control over tasks, achievements or proofs** — they
@@ -2868,7 +2889,7 @@ edits, adds or removes its proofs.
 corporate.directksa.com — not only fonts and colours but buttons, clicks, filters, lists/tables and
 views. Printed documents (proposals, profiles) keep their own print identity (Identity A in
 `brand/IDENTITY.md`). **One design file, loaded by every page, with a probe proving it is loaded**
-(P5). This supersedes `DIRECT_SYSTEMS_MAP.md`'s "system fonts only" design cue and its "keep our
+(P5). This supersedes `docs/DIRECT_SYSTEMS_MAP.md`'s "system fonts only" design cue and its "keep our
 orange" line: the app follows the websites now. The corporate portal's inside is seen only through
 the owner's Drive snapshots — never by signing in. The right to use Direct's own font is the owner's
 to confirm.
@@ -2880,7 +2901,7 @@ call-to-action — so "follow both" needs one written choice of which wins where
 **DirectFont** (weights 100–800, full Arabic, served from `assets.directksa.com` with open
 cross-site access); its own file says "All rights reserved" and marks embedding as restricted, so
 the owner's confirmation of the right to use it is a real gate, not a formality. **Direct's
-component library cannot be loaded by this app**: `directksa.com/vendor/direct-web-components.es.js`
+component library cannot be loaded by this app**: directksa.com/vendor/direct-web-components.es.js
 refuses other sites (no cross-site header — tested in a browser), holds only the consumer header,
 footer and services widgets (no buttons, inputs or tables), carries no licence or version and is
 cached for two minutes. The durable route is to copy the measured values into our own design file.

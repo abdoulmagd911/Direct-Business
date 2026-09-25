@@ -1,6 +1,8 @@
 /* probe-m13-remaining.mjs — the last three pre-M13 write sites the oversight session listed
    (2026-09-02, attack round 11), driven through their REAL dialogs:
-     A. Team → Access levels (js/15): "Save this user's access" updates app_users.allowed_pages
+     A. Settings → Who can open what (js/56): "Save access" calls set_page_levels() (was js/15's
+        allowed_pages window until 2026-09-25, Phase 1a; that window is retired and v41Access now
+        opens this one — the M13 rule is the same: never say saved for a save that did not land)
      B. Client card → Add billing profile (js/27): inserts a client_profiles row
      C. Finance → Link finance to clients (js/31): upserts a finance_client_links row
    Happy path: each write lands in the table and the screen says so.
@@ -20,6 +22,11 @@ let failures = 0;
 function fail(msg) { failures++; console.log('  ✗ ' + msg); }
 function ok(msg) { console.log('  ✓ ' + msg); }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/* 2026-09-25: the app answers alert() with its OWN in-page notice (js/63, #v63Notice), not the
+   browser's box — so a report can be in either place. Before this, both refusal checks below
+   listened only for the native box and were red on every run in this mode. */
+const noticeText = (p) => p.evaluate(() => { const n = document.getElementById('v63Notice'); return n ? (n.innerText || '').replace(/\s+/g, ' ').trim() : ''; });
+const clearNotice = (p) => p.evaluate(() => { const n = document.getElementById('v63Notice'); if (n) n.remove(); });
 
 async function main() {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -28,6 +35,8 @@ async function main() {
   const dialogs = []; p.on('dialog', (d) => { dialogs.push(d.message()); d.accept(); });
   await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
+    /* refusal run: set_page_levels answers with nothing — the shape of a save that did not land */
+    if (REFUSE && /\/rpc\/set_page_levels$/.test(u.pathname)) { await r.fulfill({ status: 200, contentType: 'application/json', body: 'null' }); return; }
     try {
       const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
       const body = await resp.text(); const h = {}; resp.headers.forEach((v, k) => { if (!['content-encoding', 'content-length', 'transfer-encoding'].includes(k)) h[k] = v; });
@@ -43,27 +52,31 @@ async function main() {
   await p.waitForTimeout(4500);
   const tag = REFUSE ? 'REFUSAL' : 'happy';
 
-  // ---- A. Access levels (js/15)
+  // ---- A. Who can open what (js/56), reached through v41Access as before
   {
-    await p.evaluate(() => { window.v41Access(); }); await p.waitForTimeout(1500);
-    const have = await p.evaluate(() => !!document.querySelector('[data-save="1"]') && !!document.querySelector('input[data-u="1"][data-p="today"]'));
-    if (!have) fail('A: the Access levels dialog did not show a second user with a Today checkbox');
+    await p.evaluate(() => { window.v41Access(); });
+    let have = false; for (let i = 0; i < 20 && !have; i++) { await sleep(500); have = await p.evaluate(() => !!document.querySelector('#axHost select[data-ax-page="reports"]')); }
+    const card = await p.evaluate(() => { const c = [].slice.call(document.querySelectorAll('#axHost .ax-card')).find((x) => /assem\.alsweed/.test(x.innerHTML)); return !!(c && c.querySelector('select[data-ax-page="today"]')); });
+    if (!have || !card) fail('A: the access editor did not show the second user with a Today level');
     else {
-      await p.evaluate(() => { const cb = document.querySelector('input[data-u="1"][data-p="reports"]'); cb.checked = true; });
+      await p.evaluate(() => { const c = [].slice.call(document.querySelectorAll('#axHost .ax-card')).find((x) => /assem\.alsweed/.test(x.innerHTML));
+        const sel = c.querySelector('select[data-ax-page="reports"]'); sel.value = 'full'; sel.dispatchEvent(new Event('change')); });
+      await sleep(300);
       const before = dialogs.length;
-      await p.evaluate(() => { document.querySelector('[data-save="1"]').click(); });
-      let txt = ''; for (let i = 0; i < 10; i++) { await sleep(200); txt = await p.evaluate(() => (document.querySelector('[data-save="1"]') || {}).textContent || ''); if (/Saved/.test(txt) || dialogs.length > before) break; }
+      await p.evaluate(() => { const c = [].slice.call(document.querySelectorAll('#axHost .ax-card')).find((x) => /assem\.alsweed/.test(x.innerHTML));
+        [].slice.call(c.querySelectorAll('button')).find((bt) => /Save access/.test(bt.textContent)).click(); });
+      await clearNotice(p);
+      let txt = ''; for (let i = 0; i < 40; i++) { await sleep(200); txt = await p.evaluate(() => (document.getElementById('v19toast') || {}).innerText || ''); if (/Access saved/.test(txt) || dialogs.length > before || await noticeText(p)) break; }
       const row = await (await fetch(BASE + '/rest/v1/app_users?id=eq.u-assem')).json();
-      const pages = (row[0] || {}).allowed_pages || [];
+      const lvl = ((row[0] || {}).page_access || {}).reports;
       if (!REFUSE) {
-        if (/Saved ✓/.test(txt) && pages.includes('reports')) ok('A (' + tag + '): access change landed in app_users and the button says Saved ✓');
-        else fail('A (' + tag + '): button "' + txt + '", table allowed_pages ' + JSON.stringify(pages));
+        if (/Access saved/.test(txt) && lvl === 'full') ok('A (' + tag + '): access change landed (reports = full) and the screen says Access saved');
+        else fail('A (' + tag + '): toast "' + txt + '", stored reports level ' + JSON.stringify(lvl));
       } else {
-        const said = dialogs.slice(before).join(' | ');
-        if (!/Saved ✓/.test(txt) && /refused/i.test(said) && !pages.includes('reports')) ok('A (' + tag + '): refused write reported — "' + said.slice(0, 70) + '…", no Saved ✓');
-        else fail('A (' + tag + '): button "' + txt + '", dialogs ' + JSON.stringify(dialogs.slice(before)) + ', table ' + JSON.stringify(pages));
+        const said = dialogs.slice(before).concat([await noticeText(p)]).join(' | ');
+        if (!/Access saved/.test(txt) && /Nothing was saved/i.test(said) && lvl !== 'full') ok('A (' + tag + '): an empty answer is reported — "' + said.slice(0, 70) + '…", no "saved"');
+        else fail('A (' + tag + '): toast "' + txt + '", dialogs ' + JSON.stringify(dialogs.slice(before)) + ', stored ' + JSON.stringify(lvl));
       }
-      await p.evaluate(() => { const x = document.getElementById('v41x'); if (x) x.click(); });
     }
   }
 
@@ -76,14 +89,15 @@ async function main() {
     else {
       await p.fill('#cp_id', '777');
       const before = dialogs.length;
+      await clearNotice(p);
       await p.evaluate(() => { document.getElementById('mSave').click(); });
       await sleep(1500);
       const rows = await (await fetch(BASE + '/rest/v1/client_profiles?direct_client_id=eq.777')).json();
       if (!REFUSE) {
-        if (rows.length === 1 && dialogs.length === before) ok('B (' + tag + '): the profile row landed in client_profiles, no error shown');
+        if (rows.length === 1 && dialogs.length === before && !(await noticeText(p))) ok('B (' + tag + '): the profile row landed in client_profiles, no error shown');
         else fail('B (' + tag + '): rows ' + rows.length + ', dialogs ' + JSON.stringify(dialogs.slice(before)));
       } else {
-        const said = dialogs.slice(before).join(' | ');
+        const said = dialogs.slice(before).concat([await noticeText(p)]).join(' | ');
         if (rows.length === 0 && /refused/i.test(said)) ok('B (' + tag + '): refused insert reported — "' + said.slice(0, 70) + '…"');
         else fail('B (' + tag + '): rows ' + rows.length + ', dialogs ' + JSON.stringify(dialogs.slice(before)));
       }

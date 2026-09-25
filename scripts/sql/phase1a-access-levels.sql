@@ -171,3 +171,20 @@ revoke all on function public.set_page_levels(uuid, jsonb) from public, anon;
 grant execute on function public.set_page_levels(uuid, jsonb) to authenticated;
 revoke all on function public.my_page_levels() from public, anon;
 grant execute on function public.my_page_levels() to authenticated;
+
+-- part 2 (same day): the Team & Access editor's list. Admins and managers only; everybody's level
+-- on every page, already in the four words (the screen never translates stored words itself).
+create or replace function public.team_access_list()
+returns table(id uuid, full_name text, email text, role public.user_role, active boolean, levels jsonb)
+language sql stable security definer set search_path to 'public' as $$
+  select u.id, u.full_name, u.email, u.role, u.active,
+         case when u.role = 'admin' then null
+              else (select jsonb_object_agg(p, case when public.level_word(u.page_access->>p) = 'none' and p = 'today'
+                                                    then 'view' else public.level_word(u.page_access->>p) end)
+                      from unnest(public.access_pages()) p) end
+    from public.app_users u
+   where public.app_role() in ('admin','manager')
+   order by case u.role when 'admin' then 0 when 'manager' then 1 else 2 end, lower(coalesce(nullif(u.full_name,''), u.email))
+$$;
+revoke all on function public.team_access_list() from public, anon;
+grant execute on function public.team_access_list() to authenticated;

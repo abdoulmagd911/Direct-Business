@@ -20,6 +20,7 @@ create or replace function public.can_edit_page(p text)
   select coalesce(public.page_access(p) = 'editor', false)
 $function$;
 
+drop function if exists public.team_access_list();
 drop function if exists public.set_page_levels(uuid, jsonb);
 drop function if exists public.my_page_levels();
 drop function if exists public.page_level(text);
