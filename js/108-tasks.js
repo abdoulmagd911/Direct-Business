@@ -127,7 +127,9 @@
     if(!S.loaded){ v.innerHTML=h+'<div class="card">'+fl('Loading tasks…','جارٍ تحميل المهام…')+'</div></div>'; load(); return; }
     var lv=level();
     if(lv==='view') h+='<div class="v107-banner" dir="'+(ar?'rtl':'ltr')+'">'+fl('View only — you can look through Tasks and export them; changes need Own work or Full control.','مشاهدة فقط — يمكنك تصفّح المهام وتصديرها؛ التعديل يحتاج «عمله فقط» أو «تحكم كامل».')+'</div>';
-    if(canWork() && !myMember()) h+='<div class="v107-banner">'+fl('Your login is not on the team list yet, so tasks cannot be assigned to you. An admin adds you under Team & Access.','حسابك غير مضاف إلى قائمة الفريق بعد، لذا لا يمكن إسناد المهام إليك. يضيفك المسؤول من «الفريق والصلاحيات».')+'</div>';
+    /* no screen manages the team list yet (release 1 fills it once, from the logins) — so this says who
+       to ask, not where to click */
+    if(canWork() && !myMember()) h+='<div class="v107-banner">'+fl('Your login is not on the team list yet, so no task can be yours and New is not offered. Ask an admin to add you to the team list.','حسابك غير مضاف إلى قائمة الفريق بعد، لذا لا يمكن أن تُسند إليك مهمة ولا يظهر زر «جديد». اطلب من المسؤول إضافتك إلى قائمة الفريق.')+'</div>';
     h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px">'+
        chip(fl('Tasks','المهام'),S.tab==='tasks',"v108Tab('tasks')",'data-v108-tab="tasks"')+
        chip(fl('Projects','المشاريع'),S.tab==='projects',"v108Tab('projects')",'data-v108-tab="projects"')+'</div>';

@@ -35,6 +35,10 @@
    reader gone and the writer still nulling, the save WIPED both contract dates — which is exactly
    why the two halves belong in the same change. Putting back the old `if(value)` writer in
    appToRow fails checks 4 and 5, and check 5 prints the deleted value back on the card.
+   2026-09-25 — made reliable: it went red on two crowded battery runs (checks 4–5, the stored row
+   still held the old payment terms) after a fixed 2.5 s wait. The edit pass now waits until the
+   page's company saves have actually landed and gone quiet; a red run prints what the form held at
+   Save and every write sent for the company, so the cause is visible rather than guessed.
    Run: node scripts/qa/probe-the-card-shows-what-the-database-holds.mjs                          */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
@@ -92,14 +96,21 @@ async function open(lang, edit) {
   await ctx.addInitScript((l) => { try { localStorage.setItem('dbLang', l); } catch (_) { } }, lang);
   const p = await ctx.newPage();
   p.on('pageerror', (e) => errors.push(lang + ': ' + e.message)); p.on('dialog', (d) => d.accept());
+  let inFlight = 0, lastWriteAt = 0;
   await p.route((u) => u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url()); const m = rq.method();
+    /* 2026-09-25: every company write is counted in and out, and its payment terms noted, so the
+       edit pass can wait until the page's saves have REALLY landed (see below) and a red run can say
+       what was sent */
+    const isBizWrite = /\/rest\/v1\/businesses/.test(u.pathname) && m !== 'GET';
+    if (isBizWrite) { inFlight++; try { const bd = JSON.parse(rq.postData() || 'null'); (Array.isArray(bd) ? bd : [bd]).forEach((x) => { if (x && (x.legacy_id === 'E3' || x.id === 'e3')) SENT.push({ pass: lang + (edit ? '-edit' : ''), payment_terms: x.payment_terms, contract_scope: x.contract_scope }); }); } catch (_) { } }
+    const done = () => { if (isBizWrite) { inFlight--; lastWriteAt = Date.now(); } };
     /* company writes are LET THROUGH here — the mock persists them, and the round trip is the
        whole point of this probe. Only the app_state blob is stubbed. */
     if (/save_state/.test(u.pathname)) { await r.fulfill({ status: 200, contentType: 'application/json', body: '""' }); return; }
     try { const resp = await fetch(BASE + u.pathname + u.search, { method: m, headers: rq.headers(), body: ['GET', 'HEAD'].includes(m) ? undefined : rq.postData() });
       const bd = await resp.text(); const h = {}; resp.headers.forEach((v, k) => { if (!['content-encoding', 'content-length', 'transfer-encoding'].includes(k)) h[k] = v; });
-      await r.fulfill({ status: resp.status, headers: h, body: bd }); } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
+      done(); await r.fulfill({ status: resp.status, headers: h, body: bd }); } catch (e) { done(); await r.fulfill({ status: 500, body: '{}' }).catch(() => { }); }
   });
   await p.route((u) => u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
   await p.route((u) => u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
@@ -119,15 +130,39 @@ async function open(lang, edit) {
     /* delete the payment terms and type a contract scope, through the real form */
     await p.evaluate(() => { try { editCorporate('E3'); } catch (_) { } });
     await p.waitForSelector('#c_pt', { timeout: 30000 });
-    await p.fill('#c_pt', '');
-    await p.fill('#c_scope', SCOPE_TYPED);
+    /* 2026-09-25: on crowded runs the form was found still holding the old payment terms at Save —
+       the clear had not taken (diagnosed by recording the form at Save and every write: one write,
+       carrying the old value; no rebuild of the form, no change to the box ever observed). So the
+       edit is typed, read back, and typed again until the form really holds it (up to 5 tries),
+       and the number of retries is printed — the precondition of this test is "the person
+       cleared the box", and it is now checked rather than assumed. */
+    let refills = 0;
+    for (;;) {
+      await p.fill('#c_pt', '');
+      await p.fill('#c_scope', SCOPE_TYPED);
+      const f = await p.evaluate(() => ({ pt: (document.getElementById('c_pt') || {}).value, scope: (document.getElementById('c_scope') || {}).value }));
+      if ((f.pt === '' && f.scope === SCOPE_TYPED) || refills >= 4) break;
+      refills++; await p.waitForTimeout(300);
+    }
+    FORM = await p.evaluate(() => ({ pt: (document.getElementById('c_pt') || {}).value, scope: (document.getElementById('c_scope') || {}).value }));
+    FORM.refills = refills;
     await p.click('#mSave');
-    await p.waitForTimeout(2500);
+    /* 2026-09-25 — made reliable. This used to wait a fixed 2.5 s and close: on crowded battery runs
+       (twice) the check read the stored row before the page's save had landed. Now: wait until a
+       save for this company has been sent, then until no company write is in flight and none has
+       finished for 1.5 s (up to 30 s). The checks below are unchanged. */
+    const t0 = Date.now();
+    while (Date.now() - t0 < 30000) {
+      await p.waitForTimeout(250);
+      const sentEdit = SENT.some((x) => x.pass === lang + '-edit');
+      if (sentEdit && inFlight === 0 && Date.now() - lastWriteAt > 1500) break;
+    }
   }
   await ctx.close();
   return out;
 }
 
+const SENT = []; let FORM = null;
 const before = await open('en', false);
 const storedBefore = await stored('E3');
 await open('en', true);
@@ -147,7 +182,7 @@ const checks = [
     (storedBefore || {}).payment_terms === TERMS_COL, JSON.stringify((storedBefore || {}).payment_terms)],
   ['deleting it in the form CLEARS the column in the database',
     storedAfter && (storedAfter.payment_terms === null || storedAfter.payment_terms === ''),
-    JSON.stringify((storedAfter || {}).payment_terms)],
+    JSON.stringify((storedAfter || {}).payment_terms) + ' · the form held ' + JSON.stringify(FORM) + ' at Save · writes for this company: ' + JSON.stringify(SENT)],
   ['and a fresh load of the app shows it empty — the round trip a person would see',
     after.e3.indexOf(TERMS_COL) < 0, (after.e3.match(/Payment terms[^|]{0,50}/) || [''])[0]],
   ['a value typed into the form reaches its column, not only the raw blob',
