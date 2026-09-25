@@ -143,6 +143,10 @@
         fl('Nothing was created. Ask an admin if you need it.','لم يُنشأ أي شيء. اطلب من أحد المسؤولين إذا احتجت إليها.'),'');
   }
   try{ window.__v73MayOpen=mayOpen; }catch(_){}
+  /* 2026-09-25: js/107 (View means view) refuses by PAGE LEVEL. When the ROLE itself may not do the
+     thing (a 'viewer' account, a share link) this layer's message is the truer one, so js/107 asks
+     these two and hands the refusal back here — one box, one wording, whichever layer catches it. */
+  try{ window.__v73Can=can; window.__v73Refuse=refuse; }catch(_){}
 
   function guardFn(name,what){
     try{

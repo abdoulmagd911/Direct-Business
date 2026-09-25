@@ -13,8 +13,10 @@
      3. in Arabic the card reads Arabic, right to left;
      4. nothing changed → no card;
      5. the read fails → no card (never a false "nothing changed"), and no JS error;
-     6. at phone width (390 px) the card fits — no sideways scroll.
-   Sabotage: make appId() in js/106 return its argument unchanged — check 2 goes red.
+     6. at phone width (390 px) the card fits — no sideways scroll;
+     7. when Today is rebuilt without window.render (some layers do), the card comes back by itself.
+   Sabotage: make appId() in js/106 return its argument unchanged — check 2 goes red; remove js/106's
+   keep-it-drawn interval — check 7 goes red.
    PORT = 9334 … 9338 (one stand-in per run; free when written).                                       */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
@@ -64,27 +66,47 @@ async function run({ lang = 'en', rows = null, failRead = false, width = 1366, P
   const answered = p.waitForResponse((r) => r.url().includes('/rpc/changes_to_my_companies'), { timeout: 60000 }).catch(() => null);
   await p.evaluate(() => { current = 'today'; render(); });
   await answered;
-  if (rows && rows.length && !failRead) await p.waitForSelector('#view .v106-changes', { timeout: 20000 }).catch(() => null);
-  await p.waitForTimeout(800);
+  /* Today can be rebuilt once more after the first draw (js/106 re-draws within 1.5 s when that
+     happens), so: settle, then wait for the card again. Where no card is expected, wait long enough
+     (3 s, two of js/106's re-draw ticks) for a wrong one to have appeared. */
+  if (rows && rows.length && !failRead) {
+    await p.waitForSelector('#view .v106-changes', { timeout: 20000 }).catch(() => null);
+    await p.waitForTimeout(1600);
+    await p.waitForSelector('#view .v106-changes', { timeout: 20000 }).catch(() => null);
+  } else await p.waitForTimeout(3000);
   const card = await p.evaluate(() => {
     const c = document.querySelector('#view .v106-changes');
     if (!c) return null;
     return { text: c.innerText, dir: c.getAttribute('dir'), right: c.getBoundingClientRect().right,
       scrollW: document.documentElement.scrollWidth, vw: window.innerWidth, links: c.querySelectorAll('[data-v106-open]').length };
   });
+  /* a layer that rebuilds Today without window.render removes the card; js/106 must put it back */
+  let survives = null;
+  if (card) survives = await p.evaluate(async () => {
+    /* pause ordinary re-draws for the check, so only js/106's own recovery can bring the card back
+       (other layers call render every couple of seconds, which would hide whether it works) */
+    const keep = window.render; window.render = function () { };
+    const c = document.querySelector('#view .v106-changes'); if (c) c.remove();
+    await new Promise((r) => setTimeout(r, 2600));
+    const back = !!document.querySelector('#view .v106-changes');
+    window.render = keep;
+    return back;
+  });
   let opened = null;
   if (card && card.links) {
-    await p.click('#view .v106-changes [data-v106-open]');
+    await p.evaluate(() => { current = 'today'; render(); });
+    await p.click('#view .v106-changes [data-v106-open]', { timeout: 15000 }).catch(() => null);
     await p.waitForTimeout(1500);
     opened = await p.evaluate(() => ({ current, openLead, head: !!document.querySelector('#view .detail-head') }));
   }
   await b.close(); srv.close?.();
-  return { card, opened, errors };
+  return { card, opened, survives, errors };
 }
 
 const en = await run({ rows: ROWS, PORT: 9334 });
 (en.card && /Helper One/.test(en.card.text) && /Helper Two/.test(en.card.text) && /Test Company 3/.test(en.card.text) && /\bStage\b/.test(en.card.text) && !/notes|updated/i.test(en.card.text.split('\n').slice(1, 2).join('')))
   ? ok('two colleagues\' changes → one card naming both, the company and the field in words') : fail('English card: ' + JSON.stringify(en.card));
+en.survives === true ? ok('Today rebuilt behind its back → the card comes back by itself within 2.6 s') : fail('card did not come back after a rebuild: ' + en.survives);
 (en.opened && en.opened.current === 'leads' && en.opened.openLead === 'L3' && en.opened.head)
   ? ok('clicking the company opens that company (row id b3 → app id L3)') : fail('opened: ' + JSON.stringify(en.opened));
 

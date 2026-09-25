@@ -138,7 +138,17 @@
     var _r=render;
     window.render=function(){ var out=_r.apply(this,arguments); setTimeout(pass,120); return out; };
   }
-  /* the role arrives after the first render; ask once it has */
-  var tries=0, iv=setInterval(function(){ tries++; if(window.__roleKnown===true){ pass(); clearInterval(iv); } else if(tries>120) clearInterval(iv); },1000);
+  /* Keep it drawn. Some layers re-draw Today WITHOUT going through window.render (found 2026-09-25:
+     after the levels arrive the page is rebuilt and the card was gone until the next ordinary render —
+     measured, not guessed). So while Today is open and the card is missing, draw it again from what
+     was already read (a fresh read at most once a minute, via load()'s cache). Cheap: one lookup. */
+  setInterval(function(){
+    try{
+      if(window.__roleKnown!==true) return;
+      if(typeof current==='undefined'||current!=='today') return;
+      var view=document.getElementById('view'); if(!view||view.querySelector('.v106-changes')) return;
+      pass();
+    }catch(_){}
+  },1500);
   try{ window.__v106Probe={ changedFields:changedFields, what:what }; }catch(_){}
 }catch(e){ if(window.console)console.warn('[v106] init',e); }})();

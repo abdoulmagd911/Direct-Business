@@ -90,7 +90,18 @@
     if(t===HERE){ var h=screenPage(); return (h==='airlines'||h==='vendors')?h:(name==='editSupplier'&&args[0]==='air'?'airlines':'vendors'); }
     return t;
   }
+  /* the role guard's word for each page (js/49 PAGE_OF, the other way round) */
+  var ROLE_WHAT={leads:'leads',clients:'leads',offers:'proposals',projects:'proposals',ops:'requests'};
   function refuse(page){
+    /* when the ROLE itself may not (a 'viewer' account) or this is a share link, js/49's box says the
+       truer reason — hand it over, so a person never gets two different messages for one refusal */
+    try{
+      var what=ROLE_WHAT[page]||'leads';
+      if(typeof window.__v73Refuse==='function' &&
+         (window.__isShareView || (typeof window.__v73Can==='function' && ROLE_WHAT[page] && !window.__v73Can(what)))){
+        window.__v73Refuse(what); return;
+      }
+    }catch(_){}
     var m=fl('You can view '+pname(page)+' but not change it. Ask an admin or your manager for Full control.',
              'يمكنك مشاهدة «'+pname(page)+'» دون تعديلها. اطلب «تحكم كامل» من المدير أو المشرف.');
     try{ if(typeof window.toast==='function'){ window.toast(m); return; } }catch(_){}
