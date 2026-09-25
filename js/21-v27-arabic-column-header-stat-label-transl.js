@@ -613,6 +613,41 @@
     var done=false; try{ done=!!(window.v18Ask&&window.v18Ask.__v27&&window.pfPrompt&&window.pfPrompt.__v27&&window.alert&&window.alert.__v27); }catch(_){}
     if(!done&&(n||0)<80) setTimeout(function(){ lateWraps((n||0)+1); },300);
   })(0);
+  /* ---- The question before the act (2026-09-25, fire #258). Twelve yes/no questions asked through
+     askInPage / pfConfirm — the words in front of the Confirm button that deletes, archives or resets
+     something — were written in English only: "Delete this invoice?", "Archive this booking? (soft
+     delete — restorable)", "Reset all data to the seeded version? …", "Import this file? …". Same
+     shape as the notices and reports above: exact texts, a few patterns with a value in the middle,
+     and one wrapper on pfConfirm (the box every such question goes through), put on late once js/57
+     has defined it. */
+  var CONFIRM_AR={
+    'Delete this achievement?':'حذف هذا الإنجاز؟',
+    'Delete this booking?':'حذف هذا الحجز؟',
+    'Delete this invoice?':'حذف هذه الفاتورة؟',
+    'Delete this bundle template?':'حذف قالب الحزمة هذا؟',
+    'Delete this tagged backup?':'حذف هذه النسخة الاحتياطية الموسومة؟',
+    'Archive this invoice? (soft delete — restorable)':'أرشفة هذه الفاتورة؟ (حذف ناعم — يمكن الاستعادة)',
+    'Archive this booking? (soft delete — restorable)':'أرشفة هذا الحجز؟ (حذف ناعم — يمكن الاستعادة)',
+    'Reset all data to the seeded version? Edits will be lost. Leads and clients are kept as they are.':'إعادة ضبط كل البيانات إلى النسخة الأولية؟ ستُفقد التعديلات. العملاء المحتملون والعملاء يبقون كما هم.',
+    "Import this file? Settings and records are replaced by the file's. Leads and clients are NOT imported — they stay exactly as they are.":'استيراد هذا الملف؟ ستُستبدل الإعدادات والسجلات بمحتوى الملف. العملاء المحتملون والعملاء لا يُستوردون — يبقون كما هم تمامًا.'
+  };
+  var CONFIRM_PATTERN_AR=[
+    [/^Archive (\d+) invoice\(s\)\?$/, function(m){ return 'أرشفة '+m[1]+' فاتورة/فواتير؟'; }],
+    [/^Archive project (.+)$/, function(m){ return 'أرشفة المشروع '+m[1]; }],
+    [/^Create credit note against (.+)$/, function(m){ return 'إنشاء إشعار دائن مقابل '+m[1]; }],
+    [/^Archive (.+)$/, function(m){ return 'أرشفة '+m[1]; }]
+  ];
+  function confirmWord(msg){
+    var t=String(msg==null?'':msg);
+    if(CONFIRM_AR[t]!==undefined) return CONFIRM_AR[t];
+    for(var i=0;i<CONFIRM_PATTERN_AR.length;i++){ var m=t.match(CONFIRM_PATTERN_AR[i][0]); if(m) return CONFIRM_PATTERN_AR[i][1](m); }
+    return undefined;
+  }
+  window.v27ConfirmWord=function(msg){ try{ if(!(typeof LANG!=='undefined'&&LANG==='ar')) return msg; var w=confirmWord(msg); return w===undefined?msg:w; }catch(_){ return msg; } };
+  (function lateConfirmWrap(n){
+    try{ if(typeof window.pfConfirm==='function'&&!window.pfConfirm.__v27){ var _pc=window.pfConfirm; var wc=function(msg,onYes){ return _pc.call(this,window.v27ConfirmWord(msg),onYes); }; wc.__v27=1; window.pfConfirm=wc; return; } }catch(_){}
+    if((n||0)<80) setTimeout(function(){ lateConfirmWrap((n||0)+1); },300);
+  })(0);
   window.v27AttrWord=function(en){ try{ if(!(typeof LANG!=='undefined'&&LANG==='ar')) return en; var k=String(en==null?'':en); var ar=arAttrWord(k); return ar===undefined?k:ar; }catch(_){ return en; } };
   var PLACEHOLDER_AR={
     // fire #249 — the example hints on the same forms

@@ -2444,6 +2444,23 @@ ledger not consulted (old sentence back), and the count read from raw rows inste
 (#175) still holds the rest and stayed green through this change.
 *Date: 2026-09-24, js/94-empty-mirrors-say-they-are-empty.js. Status: ACTIVE.*
 
+**M99 — the yes/no question the app asks before a consequential act ("Delete this invoice?",
+"Archive this booking?", "Reset all data …?") reads Arabic in Arabic, owned by js/21's dictionary
+through one wrapper on pfConfirm, the box every such question goes through.** Found 2026-09-25
+(fire #258): the surveys of fires #254–#257 had patterns for labels, hints, hover words, notices,
+reports and prompts, and none of them matched askInPage / pfConfirm — twelve questions in the core
+files were English only, and read live in Arabic, the Settings reset asked "Reset all data to the
+seeded version? …" in English above a Confirm button. These are the words a person reads before
+deleting something. Exact texts plus four patterns (a count of invoices, a project name, a
+credit-note reference, and a generic "Archive …" fallback), the wrapper put on late once js/57 has
+defined the box. Guard: `scripts/qa/probe-a-question-before-the-act-speaks-arabic.mjs` — the reset
+and an achievement delete asked and cancelled in both languages, the data on screen shown unchanged
+afterwards, and every such literal in the source asked of the page's own v27ConfirmWord();
+sabotage-tested (dictionary and wrapper absent → the three Arabic checks red). With this the
+dictionary in js/21 owns every class of words a person meets: cell text and headers (M38), labels
+and hints (M91), hover and assistive words (M96), notices (M97), reports and prompts (M98), and
+questions (M99) — a survey per class, each guarded by its own probe. Status: ACTIVE.
+
 **M98 — a report of what happened ("Could not delete: …", "Backup: …", "Export failed: …") and a
 question the app asks in its own box ("Set a passphrase …", "Move to dunning stage?", "Copy the
 offer:") are messages like any other: Arabic in Arabic, owned by js/21's dictionary, and a failure

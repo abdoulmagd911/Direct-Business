@@ -136,6 +136,27 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Routine fire #258 (2026-09-25 ~01:30 UTC) — the question before a delete or a reset speaks Arabic
+
+Before the app deletes, archives or resets something it asks "are you sure?" in its own box. Twelve
+of those questions were English only: "Delete this invoice?", "Delete this booking?", "Archive this
+invoice?", "Delete this tagged backup?", "Reset all data to the seeded version? …", "Import this
+file? …" and the rest. On the live app in Arabic, the Settings reset asked its question in English
+above a Confirm button — the one place a wrong reading costs the most.
+
+Now every one of them reads Arabic in Arabic and English in English, with the count or the name it
+carries kept. Verified on the live app against the real database in both languages, cancelled each
+time, nothing written; the test also checks that cancelling really cancels.
+
+This closes the series that began at fire #254: the app's dictionary now owns every kind of word a
+person meets — table text, labels, hints, hover words, notices, failure reports, prompts and
+questions — each kind counted across the whole app and guarded by its own test, so a new English-
+only word of any of those kinds cannot arrive unnoticed.
+
+The full battery over the previous round's tree was green, 337 of 337 with no red at all.
+
+---
+
 ## Routine fire #257 (2026-09-25 ~00:40 UTC) — failure reports and the app's own questions speak Arabic, and a failure no longer wears a tick
 
 Two kinds of message were still English in an Arabic session: the reports of what went wrong
