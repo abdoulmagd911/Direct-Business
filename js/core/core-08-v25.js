@@ -454,7 +454,7 @@
              the brand's own value. Seeded with the document orange so a fresh workspace is right
              from the first print rather than only after a refresh. */
           serviceFee:{palette:['#F06820','#303848','#FFFFFF','#6B7480'],font:'Inter',header:'centered-logo',footer:'IATA + VAT',signatureBlock:'right-align'},
-          projectProposal:{palette:['#F06820','#2A2D3E','#FBF8F4','#16B364'],font:'Tajawal + Inter',header:'cover-page',footer:'page-numbers',signatureBlock:'two-column'},
+          projectProposal:{palette:['#F06820','#2A2D3E','#FBF8F4','#16B364'],font:'DirectFont + Cairo',header:'cover-page',footer:'page-numbers',signatureBlock:'two-column'},
           statement:{palette:['#303848','#F06820','#16B364','#F0453A'],font:'Inter',header:'invoice-style',footer:'ZATCA QR',signatureBlock:'none'},
           learnedFrom:[],
           learnedAt:null
@@ -1146,7 +1146,7 @@
     var w=window.open('','_blank','width=900,height=1200');
     if(!w){alert((typeof LANG!=='undefined'&&LANG==='ar')?'النوافذ المنبثقة محجوبة — اسمح بها لتنزيل ملف PDF.':'Pop-up blocked — allow pop-ups to download the PDF.');return;}
     w.document.write('<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>'+v25EscHTML(title)+'</title>'+
-      '<style>@page{size:A4;margin:18mm} body{font-family:Inter,Tajawal,system-ui,sans-serif;color:#1C1E2B;margin:0;padding:0;line-height:1.5;background:#fff}'+
+      (typeof window.dgDocFontsHead==='function'?window.dgDocFontsHead():'')+'<style>@page{size:A4;margin:18mm} body{font-family:'+(window.DG_DOC_FONT||"'DirectFont','Cairo',sans-serif")+';color:#1C1E2B;margin:0;padding:0;line-height:1.5;background:#fff}'+
       'h1{font-size:24px;margin:0 0 8px;color:'+palette[1]+';letter-spacing:-.02em}'+
       'h2{font-size:18px;margin:18px 0 10px;color:'+palette[0]+'}'+
       'h3{font-size:14px;margin:14px 0 8px;color:'+palette[1]+'}'+
@@ -1310,7 +1310,7 @@
     if(!p){alert((typeof LANG!=='undefined'&&LANG==='ar')?'اختر مشروعًا.':'Pick a project.');return;}
     var bodyHtml=''+
       '<h1>'+v25EscHTML(p.name)+'</h1>'+
-      (p.nameAr?'<p dir="rtl" style="font-size:16px;font-family:Tajawal;color:#7C8194">'+v25EscHTML(p.nameAr)+'</p>':'')+
+      (p.nameAr?'<p dir="rtl" style="font-size:16px;color:#7C8194">'+v25EscHTML(p.nameAr)+'</p>':'')+
       '<div class="row"><span>Status</span><b>'+v25EscHTML(p.status)+'</b></div>'+
       '<div class="row"><span>Dates</span><b>'+v25EscHTML(p.start||'TBD')+' → '+v25EscHTML(p.end||'TBD')+'</b></div>'+
       '<div class="row"><span>Pax</span><b>'+(p.pax||0)+'</b></div>'+
@@ -1337,7 +1337,7 @@
         var s1=pres.addSlide();s1.background={color:'1C1E2B'};
         s1.addText('Direct Business',{x:0.5,y:0.5,fontSize:30,bold:true,color:DOC_ORANGE,fontFace:HF});
         s1.addText(p.name,{x:0.5,y:1.6,fontSize:26,color:'FFFFFF',fontFace:HF});
-        if(p.nameAr)s1.addText(p.nameAr,{x:0.5,y:2.3,fontSize:18,color:'AEB4CC',rtl:true,fontFace:'Tajawal'});
+        if(p.nameAr)s1.addText(p.nameAr,{x:0.5,y:2.3,fontSize:18,color:'AEB4CC',rtl:true,fontFace:HF});
         s1.addText((p.start||'TBD')+' → '+(p.end||'TBD')+' · '+(p.pax||0)+' pax · '+v25Money(p.budget||0),{x:0.5,y:3.5,fontSize:14,color:'7C8194'});
         var s2=pres.addSlide();
         s2.addText('Project at a glance',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE,fontFace:HF});
@@ -1409,7 +1409,7 @@
          it is asked for rather than typed; everything else below is unchanged. */
       var _b=v25DocPalette();
       tl.serviceFee={palette:[_b[0],_b[1],'#FFFFFF',_b[3]],font:'Inter',header:'centered-logo',footer:'IATA + VAT',signatureBlock:'right-align',source:V25_TEMPLATE_SOURCES[0]};
-      tl.projectProposal={palette:[_b[0],'#2A2D3E','#FBF8F4','#16B364'],font:'Tajawal + Inter',header:'cover-page',footer:'page-numbers',signatureBlock:'two-column',source:V25_TEMPLATE_SOURCES[0]};
+      tl.projectProposal={palette:[_b[0],'#2A2D3E','#FBF8F4','#16B364'],font:'DirectFont + Cairo',header:'cover-page',footer:'page-numbers',signatureBlock:'two-column',source:V25_TEMPLATE_SOURCES[0]};
       tl.statement={palette:[_b[1],_b[0],'#16B364','#F0453A'],font:'Inter',header:'invoice-style',footer:'ZATCA QR',signatureBlock:'none',source:V25_TEMPLATE_SOURCES[1]};
       tl.learnedFrom=V25_TEMPLATE_SOURCES.slice();
       tl.learnedAt=Date.now();

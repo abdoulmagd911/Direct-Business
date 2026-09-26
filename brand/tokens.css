@@ -32,13 +32,14 @@
   --surface:       #FFFFFF;
   --ground:        #FFFFFF;
 
-  --font-en: 'Proxima Nova Alt', 'Proxima Nova', 'Segoe UI', -apple-system, sans-serif;
-  --font-ar: 'Zarid Slab', '29LT Zarid Slab', 'Bahij TheSansArabic', serif;
-  /* 2026-09-26 — document HEADINGS are DirectFont (the owner's OK, DECISIONS D4), Cairo when it cannot
-     load. The two lists above stay as written for body text. DirectFont's @font-face lives in
-     css/design.css (loaded from assets.directksa.com — the file is never copied here); a page that
-     does not load it simply draws Cairo. The PowerPoint exports read the first name of this list
-     (window.dgHeadFont, js/66), so a deck and a printed page name the same heading font. */
+  /* 2026-09-26 — a document is DirectFont throughout, Cairo behind it (the owner's pick, DECISIONS D4):
+     headings first (#44), then body text. These two lists used to ask for Proxima Nova and Zarid Slab,
+     which nothing in the app ever loaded, so body text printed in the reader's own system fonts.
+     DirectFont's @font-face lives in css/design.css (in-app) and brand/doc-fonts.css (document windows),
+     loaded from assets.directksa.com — the file is never copied here; a page that cannot reach it draws
+     Cairo. The PowerPoint exports read the first name of --font-head (window.dgHeadFont, js/66). */
+  --font-en: 'DirectFont', 'Cairo', 'Segoe UI', -apple-system, sans-serif;
+  --font-ar: 'DirectFont', 'Cairo', 'Segoe UI', Tahoma, sans-serif;
   --font-head: 'DirectFont', 'Cairo', 'Segoe UI', -apple-system, sans-serif;
 
   --radius-card: 14px;

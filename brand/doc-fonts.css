@@ -1,0 +1,15 @@
+/* brand/doc-fonts.css (2026-09-26) — the fonts a DOCUMENT is drawn in, for the pages the app opens in a window of
+   their own (the proposal, the service-fee and project PDFs, the report print, the brand offer page). Those windows
+   do not load css/design.css, so without this file they asked for Proxima Nova / Zarid Slab / Inter / Tajawal —
+   fonts nothing ever loaded — and printed in whatever the reader's computer had.
+   The owner's pick (2026-09-26, DECISIONS D4): document body text is DirectFont, like the headings, with Cairo
+   behind it. DirectFont comes from Direct's own server (never copied into this repo — its file says "All rights
+   reserved"); Cairo from Google Fonts. The five DirectFont rules are the same five as css/design.css — the probe
+   probe-generator-fonts-in-exports checks the two lists match. A page uses var(--font-doc). */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+@font-face{font-family:DirectFont;src:url(https://assets.directksa.com/direct_font_woff2/400-DirectFont-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:DirectFont;src:url(https://assets.directksa.com/direct_font_woff2/500-DirectFont-Medium.woff2) format("woff2");font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:DirectFont;src:url(https://assets.directksa.com/direct_font_woff2/600-DirectFont-SemiBold.woff2) format("woff2");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:DirectFont;src:url(https://assets.directksa.com/direct_font_woff2/700-DirectFont-Bold.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:DirectFont;src:url(https://assets.directksa.com/direct_font_woff2/800-DirectFont-Black.woff2) format("woff2");font-weight:800;font-style:normal;font-display:swap}
+:root{ --font-doc: 'DirectFont', 'Cairo', 'Segoe UI', Tahoma, sans-serif; }

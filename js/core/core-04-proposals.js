@@ -215,9 +215,9 @@ function offerText(o){const c=o.currency||'SAR';const L=[];
   return L.join('\n');
 }
 function o_copyText(){const o=curOffer();if(!o)return;const t=offerText(o);/* 2026-09-10: the copy-by-hand fallback shows the text in js/57's box, not the browser's prompt() */const show=function(){ if(typeof window.pfPrompt==='function')window.pfPrompt('Copy the offer:',t,function(){}); else prompt('Copy the offer:',t); };if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){alert((typeof LANG!=='undefined'&&LANG==='ar')?'تم نسخ العرض — الصقه في واتساب أو البريد.':'Offer copied — paste into WhatsApp or email.');},show);}else{show();}}
-function o_styleBlock(){return '<style>:root{--orange:#FF6B00;--orange-2:#FF9D45;--ink:#1C1E2B;--muted:#7C8194;--line:#EEE8DE}body{font-family:Inter,Arial,sans-serif;background:#fff;padding:24px;color:#1C1E2B}.odoc-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FF6B00;padding-bottom:12px;margin-bottom:14px}.odoc-row{font-size:13px;margin:7px 0;color:#33384a}.odoc-tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:12.5px}.odoc-tbl th,.odoc-tbl td{border:1px solid #e2ddd2;padding:8px 9px;text-align:left}.odoc-tbl th{background:#faf7f2}.odoc-tbl .k{font-weight:700;background:#faf7f2;width:130px}.odoc-note{background:#FFF1E6;border:1px solid #FBD9B8;color:#9A560F;padding:10px;border-radius:8px;font-size:12px;margin-top:10px}.odoc-foot{margin-top:14px;border-top:1px solid #eee;padding-top:9px;font-size:11px;color:#888}</style>';}
+function o_styleBlock(){return (typeof window.dgDocFontsHead==='function'?window.dgDocFontsHead():'')+'<style>:root{--orange:#FF6B00;--orange-2:#FF9D45;--ink:#1C1E2B;--muted:#7C8194;--line:#EEE8DE}body{font-family:'+(window.DG_DOC_FONT||"'DirectFont','Cairo',sans-serif")+';background:#fff;padding:24px;color:#1C1E2B}.odoc-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FF6B00;padding-bottom:12px;margin-bottom:14px}.odoc-row{font-size:13px;margin:7px 0;color:#33384a}.odoc-tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:12.5px}.odoc-tbl th,.odoc-tbl td{border:1px solid #e2ddd2;padding:8px 9px;text-align:left}.odoc-tbl th{background:#faf7f2}.odoc-tbl .k{font-weight:700;background:#faf7f2;width:130px}.odoc-note{background:#FFF1E6;border:1px solid #FBD9B8;color:#9A560F;padding:10px;border-radius:8px;font-size:12px;margin-top:10px}.odoc-foot{margin-top:14px;border-top:1px solid #eee;padding-top:9px;font-size:11px;color:#888}</style>';}
 function o_download(){const o=curOffer();if(!o)return;const html='<!DOCTYPE html><meta charset="utf-8"><title>Offer '+(o.ref||'')+'</title>'+o_styleBlock()+'<body>'+offerHTML(o)+'</body>';const b=new Blob([html],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Offer-'+(o.ref||'direct')+'.html';a.click();}
-function o_print(){const o=curOffer();if(!o)return;const w=window.open('','_blank');if(!w)return;w.document.write('<!DOCTYPE html><meta charset="utf-8"><title>Offer '+(o.ref||'')+'</title>'+o_styleBlock()+'<body>'+offerHTML(o)+'</body>');w.document.close();w.focus();setTimeout(function(){w.print();},250);}
+function o_print(){const o=curOffer();if(!o)return;const w=window.open('','_blank');if(!w)return;w.document.write('<!DOCTYPE html><meta charset="utf-8"><title>Offer '+(o.ref||'')+'</title>'+o_styleBlock()+'<body>'+offerHTML(o)+'</body>');w.document.close();w.focus();if(typeof window.dgPrintWhenReady==='function')window.dgPrintWhenReady(w);else setTimeout(function(){w.print();},250);}
 function o_del(id){const _ar=(typeof LANG!=='undefined'&&LANG==='ar');askInPage(_ar?'حذف هذا العرض؟':'Delete this proposal?',()=>{DB.offers=(DB.offers||[]).filter(x=>x.id!==id);openOffer=null;save();render();});}
 /* Proposal file library — the file itself lives in the app (Supabase storage bucket "proposals"). */
 window.o_uploadFile=function(id){
@@ -296,9 +296,9 @@ function o_genProposal(id){
   toc.push(['Why Direct','لماذا دايركت']);
   function pageHead(){return '<div class="phead"><img src="'+logo+'" class="plogo" alt="Direct"><span>Directksa.com</span></div>';}
   function secTitle(en,ar2){return '<div class="stitle"><b>'+esc(en)+'</b><i>'+esc(ar2)+'</i></div>';}
-  var doc='<!DOCTYPE html><html lang="'+(rtl?'ar':'en')+'" dir="'+(rtl?'rtl':'ltr')+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc((typeEn+' — '+client))+'</title><style>'
+  var doc='<!DOCTYPE html><html lang="'+(rtl?'ar':'en')+'" dir="'+(rtl?'rtl':'ltr')+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc((typeEn+' — '+client))+'</title>'+(typeof window.dgDocFontsHead==='function'?window.dgDocFontsHead():'')+'<style>'
    +'*{box-sizing:border-box}@page{size:A4;margin:0}'
-   +'body{margin:0;background:#4B4F57;font-family:"Proxima Nova","Proxima Nova Alt","29LT Zarid Slab","Zarid Slab","Segoe UI",Tahoma,Arial,sans-serif;color:'+COL.ink+';line-height:1.55}'
+   +'body{margin:0;background:#4B4F57;font-family:'+(window.DG_DOC_FONT||"'DirectFont','Cairo',sans-serif")+';color:'+COL.ink+';line-height:1.55}'
    +'.page{width:210mm;min-height:296mm;margin:16px auto;background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.4);display:flex;flex-direction:column;overflow:hidden;position:relative}'
    +'.grad{background:linear-gradient(150deg,'+COL.grad1+','+COL.grad2+');color:#fff}'
    +'.cover{justify-content:space-between;padding:20mm 18mm}'
@@ -402,6 +402,6 @@ function o_genProposal(id){
    +'</div>'
    +'</body></html>';
   var w=window.open('','_blank'); if(!w){if(typeof toast==='function')toast('Allow pop-ups to open the proposal');return;}
-  w.document.write(doc); w.document.close(); w.focus(); setTimeout(function(){try{w.print();}catch(_){}} ,350);
+  w.document.write(doc); w.document.close(); w.focus(); if(typeof window.dgPrintWhenReady==='function')window.dgPrintWhenReady(w);else setTimeout(function(){try{w.print();}catch(_){}} ,350);
 }
 

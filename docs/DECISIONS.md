@@ -3081,7 +3081,14 @@ Arabic stays joined because PowerPoint shapes it. The printed PDF has no such li
 DirectFont or Cairo. Guard: `probe-generator-fonts-in-exports`. Body text of the documents is unchanged (Identity A's
 Proxima/Zarid lists, which the app does not load — so body text prints in the computer's own fonts; a separate
 question for the owner, not decided here).
-*Date: 2026-09-25; DirectFont OK 2026-09-26; Generator headings 2026-09-26. Status: ACTIVE.*
+**Body text too (the owner's pick, 2026-09-26, after #44):** a document is DirectFont throughout, Cairo behind it —
+Identity A's two lists in `brand/tokens.css`, and every document the app opens in a window of its own (the client
+proposal, the service-fee and project PDFs, the report print, the invoice / booking / statement prints, the brand
+offer page) loads `brand/doc-fonts.css` and waits for its fonts before printing. The Proxima Nova / Zarid Slab /
+Inter / Tajawal requests that nothing ever loaded are gone from the documents (the brand guide pages keep their
+specimens). The decks name DirectFont for body text as well. Guards: `probe-generator-fonts-in-exports`,
+`probe-real-downloads`.
+*Date: 2026-09-25; DirectFont OK 2026-09-26; Generator headings 2026-09-26; body text 2026-09-26. Status: ACTIVE.*
 
 **D5 — The Executive CRM Dashboard will be replaced by this app** once the new pages are done. Learn
 from it and fix what went wrong there; there is no overlap to protect.

@@ -124,8 +124,9 @@ flyers.
   hairline `#E6E8EC`, wash `#F6F7F9`, wash-orange `#FFF3EC`, white.
 - **Type:** EN Proxima Nova (Alt) 400/600/700 · AR 29LT Zarid Slab 400–900 ·
   Bahij TheSansArabic for price-table emphasis. Arabic always RTL.
-  **Headings (2026-09-26, owner's OK):** DirectFont, Cairo when it cannot load — `--font-head`
-  in `tokens.css`; the Generator's printed documents and the PowerPoint exports both use it.
+  **In the app (2026-09-26, owner's pick):** documents are DirectFont throughout — headings and body — with Cairo
+  when it cannot load (`tokens.css`, and `doc-fonts.css` for documents opened in their own window). Proxima Nova /
+  Zarid Slab remain the print-shop fonts of the brand kit (brand/index.html), not what the app draws.
 - **Shapes:** rounded cards (12–16px) with soft shadows, orange stat numbers in white icon
   tiles, orange section titles top-left, logo top-center, swoosh footer +
   `www.directksa.com`, orange page-number tab on the right edge, solid-orange closing page.

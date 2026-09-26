@@ -123,6 +123,25 @@
       return first||'Cairo';
     }catch(_){ return 'Cairo'; }
   };
+  /* 2026-09-26 — the documents the app opens in a window of their own (proposal, service-fee and project PDFs,
+     the report print) do not load css/design.css. This is what they put in their <head> so their text is
+     DirectFont with Cairo behind it, like the Generator's pages: brand/doc-fonts.css by its full address
+     (the window starts at about:blank, where a relative address means nothing). DG_DOC_FONT is the list. */
+  window.DG_DOC_FONT="'DirectFont','Cairo','Segoe UI',Tahoma,sans-serif";
+  window.dgDocFontsHead=function(){
+    var o=''; try{ o=location.origin||''; }catch(_){}
+    return '<link rel="stylesheet" href="'+o+'/brand/doc-fonts.css">';
+  };
+  /* ...and they printed a quarter of a second after opening, before a web font can arrive — the paper then
+     carries the fallback. This waits for the window to finish loading and its fonts to be ready, and prints
+     after at most 4 s either way, so a slow or blocked font server never stops the print. */
+  window.dgPrintWhenReady=function(w){
+    if(!w)return; var done=false;
+    var go=function(){ if(done)return; done=true; try{ w.focus(); w.print(); }catch(_){} };
+    setTimeout(go,4000);
+    var fonts=function(){ try{ (w.document.fonts&&w.document.fonts.ready?w.document.fonts.ready:Promise.resolve()).then(function(){ setTimeout(go,150); },go); }catch(_){ go(); } };
+    try{ if(w.document.readyState==='complete')fonts(); else w.addEventListener('load',fonts); }catch(_){ go(); }
+  };
 
   /* ---------- part 2 — register the page ---------- */
   var IC_DOCS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>';
