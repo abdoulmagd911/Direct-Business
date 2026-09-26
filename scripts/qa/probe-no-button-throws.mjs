@@ -63,6 +63,9 @@ async function run(lang) {
   });
   await p.route((u) => u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: LIB }));
   await p.route((u) => u.href.includes('fonts.googleapis.com'), (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  /* DirectFont (2026-09-26) is fetched from Direct's server; like Google Fonts above, the test browser gets a stand-in
+     (an empty file only warns, it is not an error) — the real font is proven by probe-design-file-on-every-page */
+  await p.route((u) => u.href.includes('assets.directksa.com'), (r) => r.fulfill({ status: 200, contentType: 'font/woff2', body: '' }));
   await p.route((u) => u.href.includes('fonts.gstatic.com') || u.href.includes('clearbit.com') || u.href.includes('payments.directksa.com'), (r) => r.abort());
   await p.goto(BASE + '/today', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await p.waitForSelector('#cl_email', { timeout: 60000 });
