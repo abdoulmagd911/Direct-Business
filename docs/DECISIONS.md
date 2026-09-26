@@ -2830,7 +2830,24 @@ as written). **Release 1 screens:** `js/108-tasks.js` (the Tasks page) and
 `js/109-changes-to-your-tasks.js` (Today), guarded by `scripts/qa/probe-tasks-page.mjs`.
 **Owner's ruling (2026-09-25): Tasks only for release 1 — Reports comes with its own release.** Nobody's
 Reports access changes until then; today's browser-held Reports page stays as it is.
-*Date: 2026-09-25. Status: ACTIVE.*
+**Release 2 (2026-09-26) — achievements + proofs, as built.** `scripts/sql/phase3-r2-achievements.sql`
+(+ rollback): the Reports page levels land as the design wrote them — employees Own work, managers Full
+control (measured live before/after: 8 people gain `reports`, 7 own + 1 full, no other page and no admin
+moves; new people get it through `default_page_levels`); `report_entries.import_key` so moving a browser's
+achievements in is safe to press twice; the private `proofs` store (proofs/<achievement>/<file>: seen by
+anyone who can see Reports, added only by someone who may edit that achievement, never overwritten or
+deleted). Screens: `js/111-achievements-in-the-database.js` fills core-10's list from the database (Overview,
+Objectives and the exported report now count the company's achievements), logs/edits/deletes/finalizes
+there, attaches and shows proofs, marks drafts from tasks with Finalize, and offers a one-press move of the
+achievements a browser still holds (credited to the named person when the team list knows them, otherwise
+"Logged for: <name>" kept in the text; the browser keeps its copy). The Tasks page gains "count it in the
+monthly report" + its kind, which release 1's trigger turns into the achievement when the task closes. On
+Reports, Own work now opens the controls (js/107: a page that knows whose work is whose); the database
+decides which lines. What stays in the browser: only a KPI "actual" typed by hand on Objectives & KPIs (js/91
+says so). Tests: `scripts/qa/phase3` R2-01..R2-04 (105/105; red without the file), `probe-achievements-in-
+the-database` (10 checks, EN+AR; sabotage-tested), and the five older Reports probes moved onto the new form.
+Live dry run (rolled back): a real employee added a proof to their own achievement; a colleague was refused.
+*Date: 2026-09-25; release 2 2026-09-26. Status: ACTIVE.*
 
 **D2 — Access is a level per person per page, not a role.** Four levels:
 - **No access** — the page does not appear, and a typed address bounces.

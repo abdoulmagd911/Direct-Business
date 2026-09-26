@@ -112,6 +112,16 @@ const openTask = async (p, title) => {
   await p.selectOption('#v108e_status', 'waiting'); await p.click('#mSave'); await p.waitForTimeout(1200);
   const st = await p.evaluate(() => window.__v108State.tasks.find((k) => k.title === 'Colleague seed task').status);
   (col.title === true && col.save && st === 'waiting') ? ok('full: a colleague\'s task opens editable (D7) and the status change is saved') : fail('full: colleague task ' + JSON.stringify(col) + ' status=' + st);
+  /* 4b — release 2 (2026-09-26): "count it in the monthly report" — refused without a kind, saved with one */
+  await openTask(p, 'QA seed task');
+  await p.check('#v108e_rep'); await p.selectOption('#v108e_repcat', ''); toasts.length = 0; await p.click('#mSave'); await p.waitForTimeout(700);
+  const stillOpen = await p.evaluate(() => document.getElementById('ov').classList.contains('show'));
+  const refusedKind = stillOpen && toasts.concat([await p.evaluate(() => (document.querySelector('#modal .note, #modal [data-v108-note]') || {}).textContent || '')]).some((m) => /kind of achievement/i.test(m || ''));
+  await p.selectOption('#v108e_repcat', 'cat-deals'); await p.click('#mSave'); await p.waitForTimeout(1200);
+  const rep = await p.evaluate(() => { const t = window.__v108State.tasks.find((k) => k.title === 'QA seed task'); return t ? { inc: t.include_in_report, cat: t.report_category_id } : null; });
+  (refusedKind && rep && rep.inc === true && rep.cat === 'cat-deals') ? ok('full: "count it in the monthly report" is refused without a kind of achievement and saved with one')
+    : fail('full: report tick ' + JSON.stringify({ refusedKind, stillOpen, rep, toasts }));
+  try { await p.evaluate(() => closeModal()); } catch (_) { }
   /* 5 — checklist and update */
   await openTask(p, 'QA seed task');
   await p.fill('#v108_newcheck', 'Probe step'); await p.evaluate(() => v108AddCheck()); await p.waitForTimeout(900);

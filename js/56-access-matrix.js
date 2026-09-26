@@ -44,7 +44,7 @@
      teaches a page; adding a page here is part of that page's change, never ahead of it. */
   /* Tasks (Phase 3 release 1): its rows know their owner, and the database enforces "own work" there
      (tasks_insert / tasks_update: yours, handed to you, created by you, or one you help on). */
-  var OWN_READY=['tasks'];
+  var OWN_READY=['tasks','reports'];   /* reports: Phase 3 release 2 (2026-09-26) — each achievement knows whose it is */
   /* the pages whose CHANGES the database enforces by level. Since Phase 1b (2026-09-25) that is every
      page that stores anything: each table, file store and workspace section answers to its page's
      level (scripts/sql/phase1b-*). Today stores nothing of its own; Reports lives in each browser

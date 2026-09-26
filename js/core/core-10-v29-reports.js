@@ -415,7 +415,13 @@ function rptMemberOpt(t,sel){ return '<option value="'+esc(t)+'" '+(sel===t?'sel
 const RPT_KEY="directReportsData_v1";
 function rptLoad(){try{const d=JSON.parse(localStorage.getItem(RPT_KEY));if(d&&d.achievements)return d;}catch(e){}return {achievements:[],overrides:{}};}
 let RDB=rptLoad();
-function rptSave(){localStorage.setItem(RPT_KEY,JSON.stringify(RDB));}
+/* 2026-09-26 (Phase 3 release 2): three hooks for js/111, which moves achievements into the company database.
+   This block is sealed, so js/111 cannot reach RDB, rptSave or rptRowAch by name; these are the only doors:
+   the live list (__rptDB), a replaceable writer (__rptSaveHook — js/111 keeps only this browser's own data
+   here), and a row decorator (__rptRowHook — draft / proof marks). Without js/111 all three do nothing. */
+try{ Object.defineProperty(window,'__rptDB',{get:function(){return RDB;},configurable:true}); }catch(_){}
+try{ window.__rptLists={ objectives:RPT_OBJECTIVES, kpis:RPT_KPIS, objTitle:rptObjTitle, kpiTitle:rptKpiTitle }; }catch(_){}
+function rptSave(){ if(typeof window.__rptSaveHook==='function'){ window.__rptSaveHook(RDB); return; } localStorage.setItem(RPT_KEY,JSON.stringify(RDB));}
 const rptUid=()=>"a_"+Date.now()+"_"+Math.floor(Math.random()*1e4);
 const rfmtN=v=>v==null||isNaN(v)?"—":Number(v).toLocaleString("en-US",{maximumFractionDigits:1});
 function rfmtTarget(k){return k.type==="sar"?rfmtN(k.target)+" SAR":k.type==="pct"?k.target+"%":k.type==="score"?k.target:rfmtN(k.target);}
@@ -483,6 +489,9 @@ function rptRowAch(a,withActs){
  '<td>'+(a.value!==''&&a.value!=null?rfmtVal(k||{type:a.unit==='SAR'?'sar':'count'},a.value):'—')+'</td>'+
  (withActs?'<td style="text-align:right;white-space:nowrap"><button class="btn ghost sm" onclick="rptOpenAch(\''+a.id+'\')">'+rptAr('Edit','تعديل')+'</button> <button class="btn ghost sm" style="color:#D94B3F" onclick="rptDelAch(\''+a.id+'\')">✕</button></td>':'')+'</tr>';
 }
+/* the row decorator door (see __rptDB above) */
+const _rptRowAchPlain=rptRowAch;
+rptRowAch=function(a,withActs){ const h=_rptRowAchPlain(a,withActs); try{ if(typeof window.__rptRowHook==='function') return window.__rptRowHook(a,h,withActs); }catch(_){} return h; };
 function rptOverview(v){
  const _ar=(typeof LANG!=='undefined'&&LANG==='ar');
  const tot=RDB.achievements.length;

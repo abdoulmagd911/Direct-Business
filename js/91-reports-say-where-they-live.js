@@ -48,13 +48,13 @@
     d.setAttribute('dir', ar?'rtl':'ltr');
     d.style.cssText='background:#FFF3EC;border:1px solid #F4C892;border-radius:10px;padding:9px 12px;'+
       'margin:0 0 10px;font-size:12.5px;color:#7a5c00;line-height:1.65;text-align:'+(ar?'right':'left');
-    d.innerHTML='<b>'+fl('These figures are kept in this browser only','هذه الأرقام محفوظة في هذا المتصفح فقط')+'</b><br>'+
-      fl('Nothing on this page is saved to the company database, shared with a colleague, or included in the full backup. '+
-         'Open Reports on another device and it reads zero; clearing this browser’s data erases it. '+
-         'Use <b>Generate Report</b> to take a copy out before you rely on any of it.',
-         'لا يُحفظ أي شيء في هذه الصفحة في قاعدة بيانات الشركة، ولا يُشارَك مع زميل، ولا يدخل في النسخة الاحتياطية الكاملة. '+
-         'افتح التقارير على جهاز آخر وستجدها صفرًا؛ ومسح بيانات هذا المتصفح يمحوها. '+
-         'استخدم <b>إنشاء تقرير</b> لأخذ نسخة قبل الاعتماد عليها.');
+    /* 2026-09-26 (Phase 3 release 2): achievements and their proofs now live in the company database
+       (js/111) — shared with the team and in every report. What is still this browser's alone are the KPI
+       "actual" numbers typed by hand on Objectives & KPIs (core-10's overrides): the line now says exactly
+       that, because saying "everything here is local" would be the new misleading sentence. */
+    d.innerHTML='<b>'+fl('Achievements and their proofs are kept in the company database','الإنجازات وإثباتاتها محفوظة في قاعدة بيانات الشركة')+'</b> — '+
+      fl('shared with the team and included in every report. One thing is still kept in this browser only: a KPI\u2019s "actual" number typed by hand on Objectives & KPIs. Another device does not see it, and clearing this browser\u2019s data erases it.',
+         'مشتركة مع الفريق ومضمَّنة في كل تقرير. شيء واحد ما زال محفوظًا في هذا المتصفح فقط: الرقم «الفعلي» لمؤشر يُكتب يدويًا في «الأهداف والمؤشرات». لا يراه جهاز آخر، ومسح بيانات هذا المتصفح يمحوه.');
 
     view.insertBefore(d, view.firstChild);
   }catch(e){ if(window.console)console.warn('[v91]',e); }}

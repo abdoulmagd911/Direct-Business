@@ -99,9 +99,12 @@ async function run(lang, mode) {
   let ach = null;
   await p.evaluate(() => { try { current = 'reports'; openLead = null; render(); } catch (_) {} });
   await p.waitForTimeout(1200);
+  /* 2026-09-26 (Phase 3 release 2): the achievement form is js/111's now (achievements live in the database);
+     its "Credited to" list is the people list this check is about */
+  await p.waitForFunction(() => window.__v111 && window.__v111.loaded, { timeout: 20000 }).catch(() => {});
   await p.evaluate(() => { try { rptOpenAch(); } catch (_) {} });
   await p.waitForTimeout(900);
-  ach = await p.evaluate(() => { const s = document.getElementById('rf_member'); return s ? [].slice.call(s.options).map((o) => ({ v: o.value, t: o.text.trim(), dis: o.disabled, warn: o.hasAttribute('data-roster-warn') })) : null; });
+  ach = await p.evaluate(() => { const s = document.getElementById('v111_member'); return s ? [].slice.call(s.options).map((o) => ({ v: o.value, t: o.text.trim(), dis: o.disabled, warn: o.hasAttribute('data-roster-warn') })) : null; });
   await p.evaluate(() => { try { const x = document.querySelector('#modal .btn.ghost'); if (x) x.click(); if (typeof closeModal === 'function') closeModal(); } catch (_) {} });
   await p.evaluate(() => { try { current = 'leads'; openLead = null; render(); } catch (_) {} });
   await p.waitForTimeout(800);

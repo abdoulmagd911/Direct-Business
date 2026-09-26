@@ -75,10 +75,13 @@ async function run(lang) {
   const toastNow = () => p.evaluate(() => { const t = document.getElementById('v19toast'); return t && t.classList.contains('show') ? (t.textContent || '').trim() : null; });
   /* 1. the achievement form, saved with no title */
   await p.evaluate(() => { try { current = 'reports'; openLead = null; render(); } catch (_) {} }); await p.waitForTimeout(1200);
+  /* 2026-09-26 (Phase 3 release 2): the achievement form is js/111's now (achievements live in the database); its
+     empty-title notice is said inside the form (#v111_msg) rather than as a toast — the same sentence, read there */
+  await p.waitForFunction(() => window.__v111 && window.__v111.loaded, { timeout: 20000 }).catch(() => {});
   await p.evaluate(() => { try { rptOpenAch(); } catch (_) {} }); await p.waitForTimeout(900);
-  await p.evaluate(() => { try { const t = document.getElementById('rf_title'); if (t) t.value = ''; const btns = [...document.querySelectorAll('#modal .btn.pri, #modal button')]; const save = btns.reverse().find((x) => /save|log|add|حفظ|سجّل|تسجيل|إضافة/i.test(x.textContent)); if (save) save.click(); } catch (_) {} });
+  await p.evaluate(() => { try { const t = document.getElementById('v111_title'); if (t) t.value = ''; const btns = [...document.querySelectorAll('#modal .btn.pri, #modal button')]; const save = btns.reverse().find((x) => /save|log|add|حفظ|سجّل|تسجيل|إضافة/i.test(x.textContent)); if (save) save.click(); } catch (_) {} });
   await p.waitForTimeout(400);
-  const ach = await toastNow();
+  const ach = await p.evaluate(() => { const m = document.getElementById('v111_msg'); const t = m ? (m.textContent || '').trim() : ''; return t || null; });
   await p.evaluate(() => { try { const x = document.querySelector('#modal .btn.ghost'); if (x) x.click(); if (typeof closeModal === 'function') closeModal(); } catch (_) {} }); await p.waitForTimeout(2600);
   /* 2. the backup destination (localStorage only) */
   await p.evaluate(() => { try { v24SetBackupDest('qa-folder'); } catch (_) {} }); await p.waitForTimeout(400);

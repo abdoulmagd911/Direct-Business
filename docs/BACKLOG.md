@@ -19688,6 +19688,16 @@ the field back and retypes (it prints how many retries it needed), so it is reli
 first clear sometimes does not take is not known. If a person ever reports "I deleted it and it came
 back" on a company card, start here.
 
+## Phase 3 release 2 — achievements + proofs (2026-09-26)
+
+**What:** achievements move from each browser into the company database (`js/111`, `scripts/sql/phase3-r2-achievements.sql`),
+with proofs, drafts from tasks, and a one-press move of what a browser still holds. Details: `docs/DECISIONS.md` D1.
+**Left for later, on purpose:** the monthly/quarterly report *registration* (issuing a numbered report and locking the month —
+the `reports` table exists, no screen issues one yet); removing a proof from the screen (the database supports it by
+`deleted_at`); the KPI "actual" numbers typed by hand still live in the browser (they belong with the KPI actuals release);
+KPI targets and the appraisal cycle. **Watch after go-live:** the owner's own browser is where the old achievements are — the
+move card appears on his Reports page; once he presses it, count `report_entries where import_key like 'browser:%'`.
+
 **Explained and fixed — probe-two-people-one-record-are-told failed only under load (2026-09-25).** Not the
 probe and not js/104: js/102 (the "a change never reached the server" notice) read its note only once the
 person was signed in, so on a slow machine a save that failed in the page's first seconds was reported as
