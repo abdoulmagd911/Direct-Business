@@ -7,11 +7,12 @@
    (docs/PHASE0_REVIEW_2026-09-25.md, "the two websites side by side"), copied here, never loaded
    from Direct's servers (their component library refuses other sites).
 
-   FONT. DirectFont, for both languages, is the owner's choice — but it does NOT go live until the
-   owner brings written OK from Direct's web/marketing team (its own file says "All rights reserved"
-   and restricts embedding). Until then: Inter for English (the portal's own first font) and Cairo for
-   Arabic (open licence, already the app's font). When the OK arrives, DirectFont goes FIRST in the two
-   font lists below and nowhere else.
+   FONT. DirectFont, for both languages, is the owner's choice, and the owner gave his OK on 2026-09-26
+   (DECISIONS D4 — it replaces the old "written OK from web/marketing" gate). It is loaded from Direct's
+   own server, assets.directksa.com, never copied into this repo (its file says "All rights reserved"),
+   and goes FIRST in the two font lists below and nowhere else; Inter (English, the portal's own first
+   font) and Cairo (Arabic, open licence) stay behind it as the fallback. Until that small PR lands the
+   lists still start with Inter / Cairo.
 
    HOW IT WINS. index.html loads this file LAST, after every inline style block, so equal rules here
    take effect; where an older block used !important, so does the matching rule here, and only there.

@@ -2861,6 +2861,10 @@ gone (the owner's word, D9: those numbers were test data, nothing is moved). `sc
 (D2 — before, any manager could, even one on View). Tests: phase3 R3-01 (106/106; red without the file; the light
 itself is the design's C08), `probe-kpis-and-the-danger-light` (sabotage-tested), and the two Reports probes that
 set figures by hand moved onto the database's figures.
+From the oversight's review of #41: the same rule now covers the plan the KPIs hang on — **objectives and
+initiatives** are changed only by an admin or a manager with Full control on Reports (phase3 R3-02) — and release
+2's condition is closed: **a proof file cannot be stored for an achievement whose month is issued**, refused by the
+store itself (`scripts/sql/proofs-month-lock.sql` + rollback; the same test evidence_month_guard uses; phase3 R2-05).
 *Date: 2026-09-25; release 2 2026-09-26; release 3 2026-09-26. Status: ACTIVE.*
 
 **D2 — Access is a level per person per page, not a role.** Four levels:
@@ -3062,7 +3066,12 @@ lists in that file and nowhere else. Guarded by `scripts/qa/probe-design-file-on
 (every one of the 20 pages, both languages, reads what the browser computed; sabotage: delete the
 link line → red on every page). Not yet in the file: filter pills, pagination, corner radii,
 and the ~2,500 colour literals inside the layers — each moves into it in later steps, page by page.
-*Date: 2026-09-25. Status: ACTIVE (DirectFont gated on the written OK).*
+**The owner's OK on DirectFont (2026-09-26)** replaces the gate above ("written OK from Direct's web/marketing team").
+DirectFont goes live in its own small PR after #41: loaded from `assets.directksa.com` — **never copied into this
+repo** (its file says "All rights reserved") — in the weights actually used, and put FIRST in the two font lists in
+`css/design.css` and nowhere else; Inter (English) and Cairo (Arabic) stay behind it as the fallback, and a run with
+that host blocked must still read Inter/Cairo with no broken text.
+*Date: 2026-09-25; DirectFont OK 2026-09-26. Status: ACTIVE.*
 
 **D5 — The Executive CRM Dashboard will be replaced by this app** once the new pages are done. Learn
 from it and fix what went wrong there; there is no overlap to protect.

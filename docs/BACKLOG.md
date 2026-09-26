@@ -734,7 +734,8 @@ the Reports export moved into Phase 3; Airlines/Suppliers/SOP & SLA View or Full
 Bookings, Invoices, Tickets and Sync join the grid; storage, edge functions and triggers in scope;
 live attack tests as employee and manager; the portal is the design base; DirectFont waits for the
 web/marketing team's written OK; P4 suspended while one session writes.
-**Still open:** that written OK for DirectFont (the owner brings it).
+~~**Still open:** that written OK for DirectFont (the owner brings it).~~ **Closed 2026-09-26:** the owner gave his OK
+(DECISIONS D4); DirectFont goes live in its own small PR after #41 (loaded from assets.directksa.com, never copied here).
 
 ---
 

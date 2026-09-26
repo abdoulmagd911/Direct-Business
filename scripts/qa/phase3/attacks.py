@@ -1043,6 +1043,36 @@ def _(cur):
     name = one(cur, "select name_en from kpi_definitions where id=%s", (F['kpi_ch'],))
     return (set_ok == 12 and after == 12 and a and b and name != 'renamed by view', f"full manager set={set_ok} · view manager: update left {after}, insert refused={a}, rename kept={name != 'renamed by view'} · employee insert refused={b}")
 
+@test("R3-02 Objectives and initiatives (D2): a manager with Full control on Reports adds and edits them; the same manager on View on Reports changes nothing")
+def _(cur):
+    as_user(cur, 'u4')
+    o = one(cur, "insert into objectives(year,n,title_en) values (2031,1,'Full manager objective') returning id")
+    i = one(cur, "insert into initiatives(year,n,title_en,objective_id) values (2031,1,'Full manager initiative',%s) returning id", (o,))
+    q(cur, "update objectives set title_en='Edited by full' where id=%s", (o,)); q(cur, "update initiatives set title_en='Edited by full' where id=%s", (i,))
+    q(cur, "reset role")
+    full_ok = one(cur, "select (select title_en from objectives where id=%s)='Edited by full' and (select title_en from initiatives where id=%s)='Edited by full'", (o, i))
+    q(cur, "update app_users set page_access = page_access || '{\"reports\":\"view\"}' where id=%s", (F['u4'],))
+    as_user(cur, 'u4')
+    a, m1 = expect_fail(cur, "insert into objectives(year,n,title_en) values (2031,2,'View manager objective')", None, "row-level security")
+    b, m2 = expect_fail(cur, "insert into initiatives(year,n,title_en,objective_id) values (2031,2,'View manager initiative',%s)", (o,), "row-level security")
+    q(cur, "update objectives set title_en='Edited by view' where id=%s", (o,)); q(cur, "update initiatives set title_en='Edited by view' where id=%s", (i,))
+    q(cur, "reset role")
+    kept = one(cur, "select (select title_en from objectives where id=%s)='Edited by full' and (select title_en from initiatives where id=%s)='Edited by full'", (o, i))
+    return (full_ok and a and b and kept, f"full manager added+edited={full_ok} · view manager: objective insert refused={a}, initiative insert refused={b}, edits left untouched={kept}")
+
+@test("R2-05 A proof FILE for an achievement in an issued month is refused at the store itself — not only its evidence row")
+def _(cur):
+    e = my_entry(cur)
+    as_user(cur, 'u1'); q(cur, "insert into storage.objects(bucket_id,name) values ('proofs',%s)", (f'proofs/{e}/before-issue.pdf',)); q(cur, "reset role")
+    before = one(cur, "select count(*) from storage.objects where name=%s", (f'proofs/{e}/before-issue.pdf',))
+    q(cur, "update periods set locked_at=now() where id=%s", (F['mar26'],))
+    as_user(cur, 'u1')
+    a, m = expect_fail(cur, "insert into storage.objects(bucket_id,name) values ('proofs',%s)", (f'proofs/{e}/after-issue.pdf',), "row-level security")
+    q(cur, "reset role"); as_user(cur, 'u4')   # a manager with Full control is refused too — the month is closed for everyone
+    b, m2 = expect_fail(cur, "insert into storage.objects(bucket_id,name) values ('proofs',%s)", (f'proofs/{e}/manager-after.pdf',), "row-level security")
+    q(cur, "reset role")
+    return (before == 1 and a and b, f"before the month was issued: stored={before} · after: owner refused={a} ({m[:40]}), full manager refused={b}")
+
 w = max(len(n) for n, _, _ in results)
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]
