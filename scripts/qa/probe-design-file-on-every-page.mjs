@@ -149,12 +149,11 @@ for (const [lang, PORT] of [['en', 9339], ['ar', 9340]]) {
   /* what Chrome drew: the font with most glyphs on the page's first text */
   /* the family Chrome reports can carry the weight ("DirectFont", "Inter ExtraBold", "Cairo Medium") */
   const top = (x) => (x.drawn || []).map((f) => f.split(':')).sort((a, b) => b[1] - a[1]).map((f) => f[0])[0] || '(nothing)';
-  /* ONE named exception, on purpose: the Generator carries Direct's brand tokens (brand/tokens.css, Identity C), whose
-     Arabic list starts with Cairo — DirectFont goes in css/design.css's two lists and nowhere else (the oversight's
-     rule), so the Generator's Arabic chrome stays Cairo until that is decided (reported with #41's follow-up). */
-  const expectOn = (x) => (lang === 'ar' && x.key === 'documents') ? 'Cairo' : 'DirectFont';
-  const drawnBad = r.pages.filter((x) => !top(x).startsWith(expectOn(x)));
-  drawnBad.length === 0 ? ok(`${lang}: Chrome draws the text in DirectFont on every page (${r.pages.length})` + (lang === 'ar' ? ' — the Generator\'s own Arabic chrome aside (Cairo, from its brand tokens)' : '')) : fail(`${lang}: not drawn in DirectFont on ${drawnBad.map((x) => x.key + '=' + top(x)).join(', ')}`);
+  /* No exception any more: the Generator's own Arabic screen used to draw Cairo, from its brand tokens (Identity C in
+     brand/tokens.css). Since 2026-09-26 those tokens start with DirectFont too (the oversight's ask after #43), so every
+     page is held to the same rule; probe-generator-fonts-in-exports covers what the Generator prints and exports. */
+  const drawnBad = r.pages.filter((x) => !top(x).startsWith('DirectFont'));
+  drawnBad.length === 0 ? ok(`${lang}: Chrome draws the text in DirectFont on every page (${r.pages.length})`) : fail(`${lang}: not drawn in DirectFont on ${drawnBad.map((x) => x.key + '=' + top(x)).join(', ')}`);
   const priBad = r.pages.filter((x) => x.pri && x.pri !== 'rgb(255, 107, 0)' && x.pri !== 'rgb(232, 97, 0)');
   const priSeen = r.pages.filter((x) => x.pri).length;
   (priSeen > 0 && priBad.length === 0) ? ok(`${lang}: the main action is orange (${priSeen} pages have one)`) : fail(`${lang}: main action not orange on ${priBad.map((x) => x.key + '=' + x.pri).join(', ')} (seen ${priSeen})`);

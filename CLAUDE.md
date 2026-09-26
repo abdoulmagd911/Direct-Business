@@ -30,7 +30,9 @@ at merge from the merged commit (checksum-checked), after a rolled-back live che
   - release 1 tasks + projects (#36) — live; the D7 undo rule and the team list in Team & Access (#38) — live;
   - release 2 achievements + proofs (#40) — live;
   - release 3 KPIs + the danger light (#41), with the objectives/initiatives rule and the proof month lock — live;
-  - DirectFont, loaded from Direct's own server, first in the two font lists (#42) — live.
+  - DirectFont, loaded from Direct's own server, first in the two font lists (#42) — live; the Generator's
+    headings in DirectFont (Cairo behind it) in the printed PDFs and the PowerPoint exports, and both
+    PowerPoint buttons working again (#44).
 - Next: the company card (client IDs, discount codes, company files), issuing numbered reports, the
   appraisal cycle — and the **go-live reset**, its own release, run only on the owner's explicit go.
 

@@ -1060,7 +1060,11 @@
     if(v25PptxLoading)return v25PptxLoading;
     v25PptxLoading=new Promise(function(res,rej){
       var s=document.createElement('script');
-      s.src='https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.min.js';
+      /* 2026-09-26: the BUNDLE build. pptxgen.min.js expects a global JSZip, which nothing in this app
+         loads — so this loader "succeeded" and the engine then failed on its first line. Measured: the
+         .min build reads JSZip at load; the .bundle build carries its own. The Reports deck (core-10)
+         now loads through this same function. */
+      s.src='https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
       s.onload=function(){v25PptxLoaded=true;res(window.PptxGenJS);};
       s.onerror=function(){rej(new Error('Failed to load PptxGenJS. Open the file from a folder with internet access, or use the PDF download instead.'));};
       document.head.appendChild(s);
@@ -1237,21 +1241,23 @@
            depending on whether the client opened the PDF or the deck. */
         var DOC_ORANGE='F06820';   /* --accent on [data-identity="classic"] */
         var SVC_HEADER='F87020';   /* --accent-strong — the service-fee table header */
+        /* 2026-09-26: headings in the documents' heading font (brand/tokens.css --font-head, via js/66) */
+        var HF=(typeof window.dgHeadFont==='function')?window.dgHeadFont():'Cairo';
         p.title='Service-Fee Proposal — '+client.name;
         // Cover
         var s1=p.addSlide();
         s1.background={color:'1C1E2B'};
-        s1.addText('Direct Business',{x:0.5,y:0.5,fontSize:32,bold:true,color:DOC_ORANGE,fontFace:'Inter'});
-        s1.addText('Service-Fee Proposal',{x:0.5,y:1.5,fontSize:28,color:'FFFFFF',fontFace:'Inter'});
+        s1.addText('Direct Business',{x:0.5,y:0.5,fontSize:32,bold:true,color:DOC_ORANGE,fontFace:HF});
+        s1.addText('Service-Fee Proposal',{x:0.5,y:1.5,fontSize:28,color:'FFFFFF',fontFace:HF});
         s1.addText('Prepared for: '+client.name,{x:0.5,y:2.4,fontSize:18,color:'AEB4CC'});
         s1.addText('Effective '+eff+' · Valid '+validity+' days',{x:0.5,y:3.0,fontSize:14,color:'7C8194'});
         // Scope
         var s2=p.addSlide();
-        s2.addText('Scope',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});
+        s2.addText('Scope',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE,fontFace:HF});
         s2.addText('Per-service transaction fee charged in addition to net costs (ticket fare, hotel rate, etc.). VAT 15% applies in addition.'+(notes?'\n\nNotes: '+notes:''),{x:0.5,y:1.2,w:9,h:4.5,fontSize:14,color:'1C1E2B'});
         // Fee table
         var s3=p.addSlide();
-        s3.addText('Fee Schedule — '+scheme.name,{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});
+        s3.addText('Fee Schedule — '+scheme.name,{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE,fontFace:HF});
         var tblRows=[[{text:'Service',options:{bold:true,fill:SVC_HEADER,color:'FFFFFF'}},{text:'Fee (SAR)',options:{bold:true,fill:SVC_HEADER,color:'FFFFFF'}},{text:'Basis',options:{bold:true,fill:SVC_HEADER,color:'FFFFFF'}}]];
         Object.keys(items).forEach(function(k){
           var label={flight:'Flight ticketing',hotel:'Hotel booking',transfer:'Transfer / chauffeur',visa:'Visa processing',daytour:'Day tour booking',insurance:'Travel insurance',lounge:'Lounge access'}[k]||k;
@@ -1260,7 +1266,7 @@
         s3.addTable(tblRows,{x:0.5,y:1.3,w:9,fontSize:13,border:{type:'solid',color:'E5DED2',pt:1}});
         // Terms + sigs
         var s4=p.addSlide();
-        s4.addText('Terms & Signatures',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});
+        s4.addText('Terms & Signatures',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE,fontFace:HF});
         s4.addText('• Fees billed monthly with the underlying service\n• VAT 15% applies in addition\n• Credit terms per master agreement\n• Either party may renegotiate after the validity period',{x:0.5,y:1.2,w:9,fontSize:13,color:'1C1E2B'});
         s4.addText('Direct Business — Authorised signatory',{x:0.5,y:5.5,fontSize:11,color:'7C8194'});
         s4.addText(client.name+' — Authorised signatory',{x:5.5,y:5.5,fontSize:11,color:'7C8194'});
@@ -1326,22 +1332,23 @@
         var pres=new P();
         /* fire #222 — the same rule as the service-fee deck above: a document is #F06820. */
         var DOC_ORANGE='F06820';
+        var HF=(typeof window.dgHeadFont==='function')?window.dgHeadFont():'Cairo';   /* 2026-09-26 — see the service-fee deck */
         pres.title='Project Proposal — '+p.name;
         var s1=pres.addSlide();s1.background={color:'1C1E2B'};
-        s1.addText('Direct Business',{x:0.5,y:0.5,fontSize:30,bold:true,color:DOC_ORANGE});
-        s1.addText(p.name,{x:0.5,y:1.6,fontSize:26,color:'FFFFFF'});
+        s1.addText('Direct Business',{x:0.5,y:0.5,fontSize:30,bold:true,color:DOC_ORANGE,fontFace:HF});
+        s1.addText(p.name,{x:0.5,y:1.6,fontSize:26,color:'FFFFFF',fontFace:HF});
         if(p.nameAr)s1.addText(p.nameAr,{x:0.5,y:2.3,fontSize:18,color:'AEB4CC',rtl:true,fontFace:'Tajawal'});
         s1.addText((p.start||'TBD')+' → '+(p.end||'TBD')+' · '+(p.pax||0)+' pax · '+v25Money(p.budget||0),{x:0.5,y:3.5,fontSize:14,color:'7C8194'});
         var s2=pres.addSlide();
-        s2.addText('Project at a glance',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});
+        s2.addText('Project at a glance',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE,fontFace:HF});
         s2.addTable([
           [{text:'Field',options:{bold:true,fill:DOC_ORANGE,color:'FFFFFF'}},{text:'Value',options:{bold:true,fill:DOC_ORANGE,color:'FFFFFF'}}],
           ['Status',p.status||''],['Dates',(p.start||'')+' → '+(p.end||'')],['Pax',(p.pax||0)+''],['Budget',v25Money(p.budget||0)],['Owner',p.owner||'']
         ],{x:0.5,y:1.2,w:9,fontSize:13});
-        if(summary){var s3=pres.addSlide();s3.addText('Executive summary',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});s3.addText(summary,{x:0.5,y:1.2,w:9,h:5,fontSize:14,color:'1C1E2B'});}
-        if(p.notes){var s4=pres.addSlide();s4.addText('Scope',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});s4.addText(p.notes,{x:0.5,y:1.2,w:9,h:5,fontSize:14,color:'1C1E2B'});}
+        if(summary){var s3=pres.addSlide();s3.addText('Executive summary',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE,fontFace:HF});s3.addText(summary,{x:0.5,y:1.2,w:9,h:5,fontSize:14,color:'1C1E2B'});}
+        if(p.notes){var s4=pres.addSlide();s4.addText('Scope',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE,fontFace:HF});s4.addText(p.notes,{x:0.5,y:1.2,w:9,h:5,fontSize:14,color:'1C1E2B'});}
         var s5=pres.addSlide();
-        s5.addText('Itinerary outline',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});
+        s5.addText('Itinerary outline',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE,fontFace:HF});
         s5.addTable([
           [{text:'Date',options:{bold:true,fill:'1C1E2B',color:'FFFFFF'}},{text:'Service',options:{bold:true,fill:'1C1E2B',color:'FFFFFF'}},{text:'Pax',options:{bold:true,fill:'1C1E2B',color:'FFFFFF'}},{text:'Cost',options:{bold:true,fill:'1C1E2B',color:'FFFFFF'}}],
           [(p.start||'-'),'Outbound flights + arrivals',(p.pax||0)+'','TBC'],
@@ -1349,7 +1356,7 @@
           [(p.end||'-'),'Return + handover',(p.pax||0)+'','TBC']
         ],{x:0.5,y:1.2,w:9,fontSize:12});
         var s6=pres.addSlide();
-        s6.addText('Terms & signatures',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE});
+        s6.addText('Terms & signatures',{x:0.5,y:0.4,fontSize:22,bold:true,color:DOC_ORANGE,fontFace:HF});
         s6.addText('• 30% deposit to confirm\n• Cancellation per IATA + supplier rules\n• VAT 15% applies on service fees\n• Valid 30 days from issue',{x:0.5,y:1.2,w:9,fontSize:13,color:'1C1E2B'});
         s6.addText('Direct Business signatory',{x:0.5,y:5.6,fontSize:11,color:'7C8194'});
         s6.addText('Client signatory',{x:5.5,y:5.6,fontSize:11,color:'7C8194'});

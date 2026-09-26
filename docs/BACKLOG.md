@@ -736,6 +736,12 @@ live attack tests as employee and manager; the portal is the design base; Direct
 web/marketing team's written OK; P4 suspended while one session writes.
 ~~**Still open:** that written OK for DirectFont (the owner brings it).~~ **Closed 2026-09-26:** the owner gave his OK
 (DECISIONS D4); DirectFont goes live in its own small PR after #41 (loaded from assets.directksa.com, never copied here).
+**Live (#42); the Generator's headings followed on 2026-09-26** — see D4. Found on the way and fixed in the same PR:
+**neither PowerPoint button had ever worked.** Reports → PowerPoint loaded its engine from a cdnjs address that does not
+exist (404), and the Projects decks loaded a build that needs a zip helper the app never loads. The harness hid both —
+it answers every jsdelivr request with a stand-in. **Still open, for the owner:** the documents' BODY text lists fonts
+the app never loads (Proxima Nova, Zarid Slab), so it prints in the reader's own system fonts — DirectFont for body
+text too, or load Zarid Slab (its files are in `brand/fonts/`)? One answer, then a small PR.
 
 ---
 
