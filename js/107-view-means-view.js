@@ -29,7 +29,13 @@
 (function(){try{
   function isAr(){ try{ return (typeof LANG!=='undefined'&&LANG==='ar'); }catch(_){ return false; } }
   function fl(en,ar){ return isAr()?ar:en; }
-  function may(page){ try{ return typeof window.mayEditPage==='function' ? !!window.mayEditPage(page) : false; }catch(_){ return false; } }
+  /* 2026-09-26 (Phase 3 release 2): a page that knows whose work is whose lets someone on Own work make changes —
+     to their OWN records; the database refuses anyone else's (Reports: report_entries' row rules, the credit
+     guard). For those pages Own opens the controls; every other page stays "Full control or nothing" (js/52). */
+  var OWN_WORKS={reports:1};
+  function may(page){ try{
+    if(OWN_WORKS[page] && typeof window.pageLevel==='function' && window.pageLevel(page)==='own') return true;
+    return typeof window.mayEditPage==='function' ? !!window.mayEditPage(page) : false; }catch(_){ return false; } }
   var NAMES={leads:['Leads','العملاء المحتملون'],clients:['Clients','العملاء'],offers:['Proposals','العروض'],ops:['Operations','العمليات'],
     events:['Events','الفعاليات'],airlines:['Airlines','شركات الطيران'],vendors:['Suppliers','المورّدون'],sopsla:['SOP & SLA','الإجراءات'],
     projects:['Projects','المشاريع'],bookings:['Bookings','الحجوزات'],invoices:['Invoices','الفواتير'],tickets:['Tickets','التذاكر'],
@@ -75,7 +81,7 @@
     /* airlines / suppliers — the page follows the screen */
     editSupplier:HERE, airQuickEdit:'airlines', setNdc:HERE, setNdcNotes:HERE, setCap:HERE, supSelectAll:HERE,
     /* SOP & SLA, projects, reports */
-    editSop:'sopsla', v25NewProject:'projects', v25OpenProjectProposalGen:'projects', rptOpenAch:'reports'
+    editSop:'sopsla', v25NewProject:'projects', v25OpenProjectProposalGen:'projects', rptOpenAch:'reports', rptDelAch:'reports', v111Finalize:'reports', v111MoveBrowser:'reports'
   };
   /* opening one of these WITH a record id only shows the record (through openModal, made read-only
      below); without an id it creates one. */

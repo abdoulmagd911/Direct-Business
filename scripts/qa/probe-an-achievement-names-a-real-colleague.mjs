@@ -32,6 +32,12 @@
      · the legacy-name merge removed — fails 2, 5, 6 and 7 as well, because every list is checked
        against roster + legacy and the saved entry's person is what went missing;
      · the form's labels put back to English — fails 1 alone, the roster still right.
+   2026-09-26 (Phase 3 release 2): achievements live in the company database now (js/111). The form is js/111's:
+   its "Credited to" list is the TEAM LIST (team_members, named from team_directory) — still the live people,
+   never hard-coded names — and "Nobody in particular (the department)" replaces "Other" (stored as no person).
+   A legacy name only ever lived in a browser: it is protected by the move — the line arrives in the database
+   with "Logged for: <name>" in its text, so nobody already logged loses their person. The Achievements filter
+   and the report's "One member" scope are still core-10's rptTeam() (roster + the names on saved lines + Other).
    Run: node scripts/qa/probe-an-achievement-names-a-real-colleague.mjs                          */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
@@ -49,6 +55,7 @@ const SEED = { achievements: [{ id: 'qa248-1', date: '2026-09-01', member: LEGAC
    BE the four legacy names, and "not the hard-coded names" could never be told from "the roster". */
 const ROSTER = ['QA Person One', 'QA Person Two', 'QA Person Three'];
 
+process.env.MOCK_TASKS_ROSTER = '1';   /* the team list's names (js/111) */
 const srv = start(PORT, {});
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 
@@ -60,7 +67,7 @@ async function run(lang) {
   await p.route((u) => u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url()); const m = rq.method();
     const isRpc = /\/rpc\//.test(u.pathname);
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(m) && u.pathname.startsWith('/rest/v1/') && (!isRpc || /save_state|log_page_denied/.test(u.pathname))) {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(m) && u.pathname.startsWith('/rest/v1/') && !/\/report_entries$/.test(u.pathname) && (!isRpc || /save_state|log_page_denied/.test(u.pathname))) {
       await r.fulfill({ status: 200, contentType: 'application/json', body: isRpc ? '""' : '[]' }); return; }
     try {
       const resp = await fetch(BASE + u.pathname + u.search, { method: m, headers: rq.headers(), body: ['GET', 'HEAD'].includes(m) ? undefined : rq.postData() });
@@ -91,12 +98,13 @@ async function run(lang) {
     return s ? { first: s.options[0].text.trim(), values: [].slice.call(s.options).map((o) => o.value).slice(1), texts: [].slice.call(s.options).map((o) => o.text.trim()).slice(1) } : null;
   });
 
-  /* the form — new */
+  /* the form — new (js/111's, once the database answered) */
+  await p.waitForFunction(() => window.__v111 && window.__v111.loaded, { timeout: 20000 }).catch(() => {});
   await p.evaluate(() => { try { rptOpenAch(); } catch (_) {} });
   await p.waitForTimeout(1200);
   const form = await p.evaluate(() => {
     const m = document.getElementById('modal'); if (!m || !m.offsetHeight) return null;
-    const sel = document.getElementById('rf_member');
+    const sel = document.getElementById('v111_member');
     return { title: ((m.querySelector('h2,h3,.mt') || {}).innerText || '').trim(),
              labels: [].slice.call(m.querySelectorAll('label')).map((l) => (l.innerText || '').trim()).filter(Boolean),
              placeholders: [].slice.call(m.querySelectorAll('input[placeholder]')).map((i) => i.getAttribute('placeholder')),
@@ -105,12 +113,12 @@ async function run(lang) {
   await p.evaluate(() => { try { const x = document.querySelector('#modal .btn.ghost'); if (x) x.click(); } catch (_) {} });
   await p.waitForTimeout(500);
 
-  /* the form — editing the legacy entry */
-  await p.evaluate(() => { try { rptOpenAch('qa248-1'); } catch (_) {} });
-  await p.waitForTimeout(1200);
-  const edit = await p.evaluate(() => { const sel = document.getElementById('rf_member'); return sel ? { selected: sel.value, has: [].slice.call(sel.options).some((o) => o.value === 'QA Legacy Person') } : null; });
-  await p.evaluate(() => { try { const x = document.querySelector('#modal .btn.ghost'); if (x) x.click(); } catch (_) {} });
-  await p.waitForTimeout(500);
+  /* the legacy entry: moved from this browser into the database, its person kept in the line's text */
+  await p.evaluate(() => { try { v111MoveBrowser(); } catch (_) {} });
+  await p.waitForTimeout(2500);
+  const edit = await fetch(BASE + '/rest/v1/report_entries?select=*').then((r) => r.json()).then((rows) => { const x = rows.find((r) => r.import_key === 'browser:qa248-1'); return x ? { moved: true, text: x.text_en || '', member: x.member_id } : { moved: false }; }).catch(() => null);
+  const listed = await p.evaluate(() => { try { current = 'reports'; render(); rptGo('achievements'); } catch (_) {} return new Promise((res) => setTimeout(() => res((document.getElementById('view') || {}).innerText || ''), 900)); });
+  if (edit) edit.listed = /QA legacy entry/.test(listed) && /QA Legacy Person/.test(listed);
 
   /* the report's One-member scope */
   await p.evaluate(() => { try { rptRepSet('scope', 'member'); } catch (_) {} });
@@ -145,30 +153,34 @@ console.log('  roster the page holds: ' + ar.roster.length + ' name(s); one save
   ? pass('AR: the form\'s title and every label are Arabic', JSON.stringify([ar.form.title].concat(ar.form.labels.slice(0, 3))))
   : fail('AR: the form\'s title and every label are Arabic', JSON.stringify(ar.form && { title: ar.form.title, labels: ar.form.labels, placeholders: ar.form.placeholders }));
 
-(ar.form && ar.roster.length > 0 && same(ar.form.values, expected(ar.roster)) && !same(ar.form.values.slice(0, 4), LEGACY4))
-  ? pass('AR: the member list is the live roster, not the four hard-coded names', JSON.stringify(ar.form.values.slice(0, 4)) + '…')
-  : fail('AR: the member list is the live roster, not the four hard-coded names', JSON.stringify({ roster: ar.roster, values: ar.form && ar.form.values }));
+/* the team list, as the database names it — the two people the stand-in keeps on it, then "nobody in particular" */
+const TEAM = ['QA Test Account', 'زميل تجريبي'];   /* in Arabic a person's Arabic name is shown when they have one */
+(ar.form && ar.form.texts.length === 3 && TEAM.every((n) => ar.form.texts.includes(n)) && !LEGACY4.some((n) => ar.form.texts.includes(n)))
+  ? pass('AR: the "Credited to" list is the live team list, not the four hard-coded names', JSON.stringify(ar.form.texts))
+  : fail('AR: the "Credited to" list is the live team list, not the four hard-coded names', JSON.stringify({ texts: ar.form && ar.form.texts }));
 
-(ar.form && ar.form.values[ar.form.values.length - 1] === 'Other' && ar.form.texts[ar.form.texts.length - 1] === 'أخرى')
-  ? pass('the "Other" option reads «أخرى» while its stored value stays "Other"')
-  : fail('the "Other" option reads «أخرى» while its stored value stays "Other"', JSON.stringify({ values: ar.form && ar.form.values.slice(-2), texts: ar.form && ar.form.texts.slice(-2) }));
+(ar.form && ar.form.values[ar.form.values.length - 1] === '' && ar.form.texts[ar.form.texts.length - 1] === 'لا أحد بعينه (القسم)')
+  ? pass('"Nobody in particular" reads Arabic in Arabic and is stored as no person')
+  : fail('"Nobody in particular" reads Arabic in Arabic and is stored as no person', JSON.stringify({ values: ar.form && ar.form.values.slice(-1), texts: ar.form && ar.form.texts.slice(-1) }));
 
-const EN_LABELS = ['Date', 'Team member', 'What was achieved', 'Details (optional)', 'Linked objective', 'Linked KPI', 'Numeric value (counts toward the KPI)', 'Client / entity (optional)'];
+const EN_LABELS = ['Date', 'Credited to', 'What was achieved', 'Details (optional)', 'Kind of achievement', 'Client / entity (optional)', 'Linked objective', 'KPI', 'Numeric value (counts toward the KPI — never money)'];
 (en.form && en.form.title === 'Log achievement' && EN_LABELS.every((l) => en.form.labels.some((x) => x.toLowerCase() === l.toLowerCase())))
-  ? pass('EN brake: the labels read exactly as they did')
-  : fail('EN brake: the labels read exactly as they did', JSON.stringify(en.form && { title: en.form.title, labels: en.form.labels }));
+  ? pass('EN brake: the labels read as written')
+  : fail('EN brake: the labels read as written', JSON.stringify(en.form && { title: en.form.title, labels: en.form.labels }));
 
-(en.edit && en.edit.has && en.edit.selected === LEGACY && en.form.values.includes(LEGACY))
-  ? pass('a saved entry whose member is a legacy name keeps that person — offered and selected', JSON.stringify(en.edit))
-  : fail('a saved entry whose member is a legacy name keeps that person — offered and selected', JSON.stringify({ edit: en.edit, values: en.form && en.form.values }));
+(en.edit && en.edit.moved && /(Logged for|سُجّل لـ): QA Legacy Person/.test(en.edit.text)   /* moved in the first (Arabic) run — the note is in the mover's language */ && en.edit.listed)
+  ? pass('a browser entry whose person is a legacy name keeps that person — moved into the database with "Logged for: …", and listed', JSON.stringify(en.edit))
+  : fail('a browser entry whose person is a legacy name keeps that person — moved into the database with "Logged for: …", and listed', JSON.stringify(en.edit));
 
-(ar.filter && AR.test(ar.filter.first) && same(ar.filter.values, expected(ar.roster)))
-  ? pass('the Achievements filter draws the same list, with "All members" in Arabic', JSON.stringify(ar.filter.first))
-  : fail('the Achievements filter draws the same list, with "All members" in Arabic', JSON.stringify(ar.filter));
+/* core-10's lists: the roster, the names on the saved (database) lines, and "Other" */
+const expectedLists = (roster) => roster.filter((n) => n !== 'Other').concat(['Other']);
+(ar.filter && AR.test(ar.filter.first) && same(ar.filter.values, expectedLists(ar.roster)))
+  ? pass('the Achievements filter draws the roster, with "All members" in Arabic', JSON.stringify(ar.filter.first))
+  : fail('the Achievements filter draws the roster, with "All members" in Arabic', JSON.stringify(ar.filter));
 
-(en.scope && same(en.scope, expected(en.roster)))
-  ? pass('the report\'s "One member" scope draws the same list')
-  : fail('the report\'s "One member" scope draws the same list', JSON.stringify({ scope: en.scope, expected: expected(en.roster) }));
+(en.scope && en.scope.slice(0, en.roster.length).join('|') === en.roster.join('|') && en.scope[en.scope.length - 1] === 'Other')
+  ? pass('the report\'s "One member" scope draws the roster (plus the people on saved lines) and "Other" last')
+  : fail('the report\'s "One member" scope draws the roster (plus the people on saved lines) and "Other" last', JSON.stringify({ scope: en.scope, roster: en.roster }));
 
 const errs = ar.errors.concat(en.errors);
 errs.length === 0 ? pass('no JS errors') : fail('no JS errors', errs.slice(0, 2).join(' | '));

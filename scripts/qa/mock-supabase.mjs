@@ -326,6 +326,26 @@ function mockLevelsOf(u){
   });
   return out;
 }
+/* 2026-09-26 — Phase 3 release 2: achievements + proofs (js/111, scripts/sql/phase3-r2-achievements.sql).
+   A stateful model of report_entries / evidence_files and the private "proofs" store, with the rules that
+   matter to the screen: reads follow the Reports page level (none → nothing); writes need Own work or Full
+   control (view → PostgREST's refusal); on Own you may only touch your own lines (credited to you or written
+   by you); crediting a colleague is for a manager/admin (the database's own sentence); a KPI calculated from
+   Finance (n=19) takes no typed value; a second insert with the same import_key is a 23505. MOCK_REPORTS_SEED
+   (JSON array of partial rows) pre-loads lines, e.g. a draft from a task. */
+const REPORTMOCK=(()=>{
+  const periods=[]; for(let y=2025;y<=2027;y++) for(let m=1;m<=12;m++){ const last=new Date(Date.UTC(y,m,0)).getUTCDate(); const mm=String(m).padStart(2,'0');
+    periods.push({id:`per-${y}-${mm}`,kind:'month',year:y,month:m,quarter:Math.ceil(m/3),start_date:`${y}-${mm}-01`,end_date:`${y}-${mm}-${String(last).padStart(2,'0')}`,locked_at:null}); }
+  const cats=[['deals','New deals & bookings','صفقات وحجوزات جديدة',1],['tenders','Tenders','المناقصات',2],['partners','Partnerships & suppliers','الشراكات والمزودون',3],['other','Other','أخرى',99]]
+    .map(a=>({id:'cat-'+a[0],code:a[0],name_en:a[1],name_ar:a[2],sort:a[3],active:true}));
+  const objectives=[]; for(let n=1;n<=14;n++) objectives.push({id:'obj-'+n,year:2026,n});
+  const kpis=[]; for(let n=1;n<=30;n++) kpis.push({id:'kpi-'+n,n,code:'K'+String(n).padStart(2,'0'),method:n===19?'finance_revenue':'manual',unit:n===19?'SAR':'count',objective_id:null});
+  let seed=[]; try{ seed=JSON.parse(process.env.MOCK_REPORTS_SEED||'[]'); }catch(_){ seed=[]; }
+  const entries=seed.map((r,i)=>Object.assign({id:'re-seed-'+(i+1),period_id:'per-2026-09',department_id:'dep-commercial',member_id:null,section:'achievement',category_id:'cat-other',title:'Seed',
+    text_en:null,text_ar:null,entry_date:'2026-09-10',business_id:null,objective_id:null,kpi_id:null,value:null,source:'manual',source_id:null,status:'final',import_key:null,created_by:null},r));
+  return { periods, cats, objectives, kpis, entries, files:[], objects:{}, seq:0,
+           tables:new Set(['report_entries','periods','report_categories','objectives','kpi_definitions','evidence_files']) };
+})();
 const RPCLOG=[];
 // Lapsed-session switch (2026-09-02, attack round 18): GET /__lapse?on=1 makes the mock answer
 // like PostgREST does to an anonymous caller — app_role()/my_page_access() null, every table
@@ -948,6 +968,83 @@ export function start(port, seedOverrides){
       // are introduced. Everything else keeps the harmless {} stub.
       const SET_RETURNING=new Set(['team_nicknames']);
       send(res,200, SET_RETURNING.has(fn)?[]:{});
+    });
+  }
+  /* the private "proofs" store (release 2): upload and a signed link; anything else in storage is not modelled */
+  if(path.startsWith('/storage/v1/object/')){
+    const me=TABLES.app_users.find(u=>u.id===UID && u.active); const lvl=me?mockLevelsOf(me).reports:'none';
+    let body=[]; req.on('data',c=>body.push(c));
+    return req.on('end',()=>{
+      const rest=path.replace('/storage/v1/object/','');
+      if(rest.startsWith('sign/proofs/')){ const name=decodeURIComponent(rest.replace('sign/proofs/','')); if(!REPORTMOCK.objects[name]||lvl==='none') return send(res,400,{statusCode:'404',error:'not_found',message:'Object not found'});
+        return send(res,200,{signedURL:'/storage/v1/object/sign/proofs/'+encodeURIComponent(name)+'?token=qa'}); }
+      if(rest.startsWith('proofs/') && req.method==='POST'){
+        const name=decodeURIComponent(rest.replace(/^proofs\//,''));
+        const m=name.match(/^proofs\/([^/]+)\/.+/); const e=m&&REPORTMOCK.entries.find(x=>x.id===m[1]);
+        const myM=TASKMOCK.members().find(x=>x.user_id===UID && x.active);
+        const mine=e&&myM&&(e.member_id===myM.id||e.created_by===myM.id);
+        if(!e || !(lvl==='full' || (lvl==='own' && mine))) return send(res,403,{statusCode:'403',error:'Unauthorized',message:'new row violates row-level security policy'});
+        if(REPORTMOCK.objects[name]) return send(res,409,{statusCode:'409',error:'Duplicate',message:'The resource already exists'});
+        REPORTMOCK.objects[name]={size:Buffer.concat(body).length}; return send(res,200,{Key:'proofs/'+name,Id:'obj-'+(++REPORTMOCK.seq)});
+      }
+      return send(res,400,{statusCode:'400',error:'not_modelled',message:'mock: storage path not modelled'});
+    });
+  }
+  if(path.startsWith('/rest/v1/') && REPORTMOCK.tables.has(path.replace('/rest/v1/','').split('?')[0])){
+    const t=path.replace('/rest/v1/','').split('?')[0]; markServed(t,req.method);
+    const me=TABLES.app_users.find(u=>u.id===UID && u.active);
+    const lvl=me?mockLevelsOf(me).reports:'none';
+    const myM=TASKMOCK.members().find(x=>x.user_id===UID && x.active);
+    const manager=!!me&&['admin','manager'].includes(me.role);
+    const err=(status,code,message)=>send(res,status,{code,details:null,hint:null,message});
+    const filt=(rowsIn)=>{ let out=rowsIn.slice(); Object.keys(u.query||{}).forEach(k=>{ if(['select','order','limit','offset','on_conflict','columns'].includes(k))return; const v=String((Array.isArray(u.query[k])?u.query[k][0]:u.query[k])||''); let m;
+      if((m=v.match(/^eq\.(.*)$/))) out=out.filter(r=>String(r[k])===m[1]); else if(v==='is.null') out=out.filter(r=>r[k]==null);
+      else if((m=v.match(/^in\.\((.*)\)$/))){ const set=m[1].split(',').map(x=>x.replace(/^"|"$/g,'')); out=out.filter(r=>set.includes(String(r[k]))); } }); return out; };
+    const mine=(r)=>myM && (r.member_id===myM.id || r.created_by===myM.id);
+    if(req.method==='GET'){
+      if(t==='periods') return send(res,200,filt(REPORTMOCK.periods));
+      if(t==='report_categories') return send(res,200,REPORTMOCK.cats);
+      if(t==='objectives') return send(res,200,REPORTMOCK.objectives);
+      if(t==='kpi_definitions') return send(res,200,REPORTMOCK.kpis);
+      if(lvl==='none') return send(res,200,[]);
+      if(t==='report_entries') return send(res,200,filt(REPORTMOCK.entries));
+      if(t==='evidence_files') return send(res,200,filt(REPORTMOCK.files.filter(f=>!f.deleted_at)));
+    }
+    let body=''; req.on('data',c=>body+=c);
+    return req.on('end',()=>{
+      let payload={}; try{ payload=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+      const rls=()=>err(403,'42501','new row violates row-level security policy for table "'+t+'"');
+      if(lvl!=='own' && lvl!=='full') return req.method==='POST'?rls():send(res,200,[]);
+      if(t==='evidence_files' && req.method==='POST'){
+        const rows=(Array.isArray(payload)?payload:[payload]).map(r=>Object.assign({id:'ef-'+(++REPORTMOCK.seq),created_at:new Date().toISOString(),deleted_at:null},r,{uploaded_by:myM?myM.id:r.uploaded_by}));
+        for(const r of rows){ const e=REPORTMOCK.entries.find(x=>x.id===r.entry_id); if(!e||!(lvl==='full'||mine(e))) return rls(); }
+        REPORTMOCK.files.push(...rows); return send(res,201,rows);
+      }
+      if(t!=='report_entries') return rls();
+      const check=(r)=>{
+        if(r.section==='achievement' && !r.category_id) return ['23514','new row for relation "report_entries" violates check constraint "achievement_needs_category"'];
+        if(r.member_id && (!myM || r.member_id!==myM.id) && !manager) return ['P0001','Only a manager or the department head can credit an achievement to someone else'];
+        const k=REPORTMOCK.kpis.find(x=>x.id===r.kpi_id); if(k && k.method!=='manual' && r.value!=null) return ['P0001','report_no_typed_money: this KPI is calculated from the system (Finance) — nothing is typed against it'];
+        return null; };
+      if(req.method==='POST'){
+        const out=[];
+        for(const r0 of (Array.isArray(payload)?payload:[payload])){
+          const r=Object.assign({section:'achievement',source:'manual',source_id:null,status:'final',import_key:null},r0);
+          if(lvl==='own' && r.member_id && (!myM || r.member_id!==myM.id) && !manager) return err(400,'P0001','Only a manager or the department head can credit an achievement to someone else');
+          const bad=check(r); if(bad) return err(400,bad[0],bad[1]);
+          if(r.import_key && REPORTMOCK.entries.some(x=>x.import_key===r.import_key)) return err(409,'23505','duplicate key value violates unique constraint "report_entries_import_key"');
+          r.id='re-'+(++REPORTMOCK.seq); r.created_by=myM?myM.id:null; r.created_at=new Date().toISOString();
+          REPORTMOCK.entries.push(r); out.push(r);
+        }
+        return send(res,201,out);
+      }
+      const hit=filt(REPORTMOCK.entries).filter(r=>lvl==='full'||mine(r));
+      if(req.method==='PATCH'){
+        for(const r of hit){ const nx=Object.assign({},r,payload); if(payload.member_id!==undefined && payload.member_id!==r.member_id){ const bad=check(nx); if(bad) return err(400,bad[0],bad[1]); } else { const k=REPORTMOCK.kpis.find(x=>x.id===nx.kpi_id); if(k&&k.method!=='manual'&&nx.value!=null) return err(400,'P0001','report_no_typed_money: this KPI is calculated from the system (Finance) — nothing is typed against it'); } }
+        hit.forEach(r=>Object.assign(r,payload)); return send(res,200,hit);
+      }
+      if(req.method==='DELETE'){ REPORTMOCK.entries=REPORTMOCK.entries.filter(r=>!hit.includes(r)); return send(res,200,hit); }
+      return send(res,405,{message:'mock: '+req.method+' not modelled on '+t});
     });
   }
   if(path.startsWith('/rest/v1/')){

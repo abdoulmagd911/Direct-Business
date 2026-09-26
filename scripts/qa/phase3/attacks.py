@@ -846,11 +846,12 @@ def _(cur):
          one(cur, "select company_owner_member(%s) is null", (b3,))]
     return (r == [True, True, True], f"prefix={r[0]} arabic={r[1]} ambiguous→nobody={r[2]}")
 
-@test("R1-06 Starting grids: a new manager keeps the Generator and gets Tasks; a new employee gets Tasks; nobody gets Reports by default")
+# (release 2, 2026-09-26: "nobody gets Reports by default" was release 1's hold-back, lifted by design — R2-01 checks the Reports level now)
+@test("R1-06 Starting grids: a new manager keeps the Generator and gets Tasks; a new employee gets Tasks")
 def _(cur):
     m = one(cur, "insert into app_users(email,full_name,role) values ('newmgr@x.test','New Manager','manager') returning page_access")
     e = one(cur, "insert into app_users(email,full_name,role) values ('newemp@x.test','New Employee','team_member') returning page_access")
-    ok = m.get('documents') == 'full' and m.get('tasks') == 'full' and e.get('tasks') == 'full' and 'reports' not in m and 'reports' not in e
+    ok = m.get('documents') == 'full' and m.get('tasks') == 'full' and e.get('tasks') == 'full'
     return (ok, f"manager documents={m.get('documents')} tasks={m.get('tasks')} reports={m.get('reports')} · employee tasks={e.get('tasks')} reports={e.get('reports')}")
 
 
@@ -968,6 +969,60 @@ def _(cur):
     a, m = expect_fail(cur, "update team_members set active=false where id=%s returning id", (F['m5'],), "")
     q(cur, "reset role"); act2 = one(cur, "select active from team_members where id=%s", (F['m5'],))
     return (act and hd and act2, f"view: still active={act}, head unchanged={hd} · anon: still active={act2} ({m[:40]})")
+
+# ======================= Release 2 — achievements + proofs (scripts/sql/phase3-r2-achievements.sql) =======================
+def my_entry(cur, who='u1', member='m1', key=None):
+    as_user(cur, who)
+    e = one(cur, "insert into report_entries(period_id,department_id,member_id,section,category_id,title,import_key) values (%s,(select department_id from team_members where id=%s),%s,'achievement',%s,'Mine',%s) returning id",
+            (F['mar26'], F[member], F[member], F['cat'], key))
+    q(cur, "reset role"); return e
+
+@test("R2-01 A new login gets the Reports page at the design's level: employee Own work, manager Full control")
+def _(cur):
+    e = one(cur, "insert into app_users(email,full_name,role) values ('new.emp@x.test','New Emp','team_member') returning page_access->>'reports'")
+    m = one(cur, "insert into app_users(email,full_name,role) values ('new.mgr@x.test','New Mgr','manager') returning page_access->>'reports'")
+    t = one(cur, "select page_access->>'tasks' from app_users where email='new.emp@x.test'")
+    return (e == 'own' and m == 'full' and t == 'full', f"employee reports={e} (tasks still {t}) · manager reports={m}")
+
+@test("R2-02 Moving a browser's achievements in is safe to press twice: the same record id adds nothing the second time")
+def _(cur):
+    my_entry(cur, key='local-a_1')
+    as_user(cur, 'u1')
+    q(cur, "insert into report_entries(period_id,department_id,member_id,section,category_id,title,import_key) values (%s,(select department_id from team_members where id=%s),%s,'achievement',%s,'Again',%s) on conflict (import_key) where import_key is not null do nothing", (F['mar26'], F['m1'], F['m1'], F['cat'], 'local-a_1'))
+    q(cur, "reset role")
+    n = one(cur, "select count(*) from report_entries where import_key='local-a_1'")
+    return (n == 1, f"rows with that record id after two presses = {n}")
+
+@test("R2-03 Proofs: the achievement's own person adds a proof file; a colleague on Own cannot add to it; a stray path is refused")
+def _(cur):
+    e = my_entry(cur)
+    as_user(cur, 'u1'); q(cur, "insert into storage.objects(bucket_id,name) values ('proofs',%s)", (f'proofs/{e}/contract.pdf',)); q(cur, "reset role")
+    own_ok = one(cur, "select count(*) from storage.objects where name=%s", (f'proofs/{e}/contract.pdf',))
+    own_tasks(cur, 'u2'); q(cur, "update app_users set page_access = page_access || '{\"reports\":\"own\"}' where id=%s", (F['u2'],))
+    as_user(cur, 'u2')
+    a, m1 = expect_fail(cur, "insert into storage.objects(bucket_id,name) values ('proofs',%s)", (f'proofs/{e}/sneaky.pdf',), "row-level security")
+    b, m2 = expect_fail(cur, "insert into storage.objects(bucket_id,name) values ('proofs','elsewhere/x.pdf')", None, "row-level security")
+    c, m3 = expect_fail(cur, "insert into storage.objects(bucket_id,name) values ('proofs','proofs/not-a-uuid/x.pdf')", None, "row-level security")
+    q(cur, "reset role")
+    return (own_ok == 1 and a and b and c, f"own added={own_ok} · colleague: {m1[:40]} · stray path refused={b} · bad id refused={c}")
+
+@test("R2-04 Proofs: someone on View reads them but adds none; a signed-out caller reads nothing; nobody overwrites or deletes a stored proof")
+def _(cur):
+    e = my_entry(cur)
+    as_user(cur, 'u1'); q(cur, "insert into storage.objects(bucket_id,name) values ('proofs',%s)", (f'proofs/{e}/p.pdf',)); q(cur, "reset role")
+    as_user(cur, 'u6')
+    seen = one(cur, "select count(*) from storage.objects where bucket_id='proofs'")
+    a, m = expect_fail(cur, "insert into storage.objects(bucket_id,name) values ('proofs',%s)", (f'proofs/{e}/v.pdf',), "row-level security")
+    q(cur, "reset role"); as_user(cur, 'u1')
+    q(cur, "update storage.objects set name=%s where bucket_id='proofs'", (f'proofs/{e}/swapped.pdf',))
+    q(cur, "delete from storage.objects where bucket_id='proofs'")
+    q(cur, "reset role")
+    kept = one(cur, "select count(*) from storage.objects where name=%s", (f'proofs/{e}/p.pdf',))
+    q(cur, "savepoint an"); q(cur, "set local role anon"); q(cur, "select set_config('request.uid', '', true)")
+    try: anon_seen = one(cur, "select count(*) from storage.objects where bucket_id='proofs'")
+    except psycopg2.Error: anon_seen = 0
+    q(cur, "rollback to savepoint an"); q(cur, "reset role")
+    return (seen == 1 and a and kept == 1 and anon_seen == 0, f"view sees={seen}, add refused={a} · owner's overwrite/delete left it in place={kept == 1} · anon sees={anon_seen}")
 
 w = max(len(n) for n, _, _ in results)
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)

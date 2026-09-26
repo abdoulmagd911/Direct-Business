@@ -38,7 +38,7 @@
 
    Run:  node scripts/qa/probe-no-native-dialogs.mjs        (port 8756)
    Sabotage: in core-02 put `alert("Business name required.")` back — check 1 goes red (a
-   native dialog fired); put `if(confirm(_delWarn()))` back — check 2 goes red; in core-10 put
+   native dialog fired); put `if(confirm(_delWarn()))` back — check 2 goes red; in js/111's rptDelAch put
    `if(!confirm('Delete this achievement?'))return;` back — check 11 goes red; in core-01 put
    `prompt(q,…)` back in captureLostReason — block 12's first checks go red; in js/16 make finAsk()
    skip pfPrompt — block 13 goes red. Assert the
@@ -209,24 +209,30 @@ async function main() {
   const r10b = await p.evaluate((id) => (DB.airlines || []).some((a) => a.id === id), airId);
   if (r10b) ok('…Cancel keeps the airline'); else fail('Cancel removed the airline');
 
-  /* ---- 11. Reports: the achievement form's empty-title refusal is a toast; deleting an achievement (core-10 rptDelAch) asks in the page ---- */
-  await p.evaluate(() => { try { closeModal(); } catch (_) { } openLead = null; current = 'reports'; render(); rptOpenAch(); });
-  await p.waitForSelector('#rf_title', { timeout: 5000 }).catch(() => fail('the achievement form never opened'));
-  await p.evaluate(() => { document.getElementById('rf_title').value = ''; document.getElementById('mSave').click(); }); await p.waitForTimeout(500);
-  const t11 = await toastText();
-  const f11 = await p.evaluate(() => ({ open: document.getElementById('ov').classList.contains('show'), focused: document.activeElement && document.activeElement.id }));
-  if (!dialogs.length && /what was achieved/i.test(t11) && f11.open) ok(`achievement form, empty title: toast "${t11.slice(0, 36)}", form stays open, no native alert`);   // focus is not asserted: headless Chromium drops it under load else fail(`achievement form empty title: dialogs=${JSON.stringify(dialogs)} toast="${t11}" ${JSON.stringify(f11)}`);
-  await p.evaluate(() => { document.getElementById('rf_title').value = 'QA probe achievement'; document.getElementById('mSave').click(); }); await p.waitForTimeout(500);
-  const achId = await p.evaluate(() => { try { const d = JSON.parse(localStorage.getItem('directReportsData_v1')); const a = (d.achievements || []).find((x) => x.title === 'QA probe achievement'); return a && a.id; } catch (_) { return null; } });
-  if (achId) ok('…with a title, the achievement is logged'); else fail('the achievement was not logged');
-  const achCount = () => p.evaluate(() => { try { return JSON.parse(localStorage.getItem('directReportsData_v1')).achievements.filter((x) => x.title === 'QA probe achievement').length; } catch (_) { return -1; } });
+  /* ---- 11. Reports: the achievement form's empty-title refusal is said in the page; deleting an achievement asks in the page ----
+     2026-09-26 (Phase 3 release 2): achievements live in the company database now (js/111) — the form is js/111's
+     and the achievement is counted in the database, not in this browser's store. The rule held is the same. */
+  await p.evaluate(() => { try { closeModal(); } catch (_) { } openLead = null; current = 'reports'; render(); });
+  await p.waitForFunction(() => window.__v111 && window.__v111.loaded, { timeout: 20000 }).catch(() => fail('the achievements never loaded from the database'));
+  await p.evaluate(() => rptOpenAch());
+  await p.waitForSelector('#v111_title', { timeout: 5000 }).catch(() => fail('the achievement form never opened'));
+  await p.evaluate(() => { document.getElementById('v111_title').value = ''; document.getElementById('mSave').click(); }); await p.waitForTimeout(500);
+  const t11 = await p.evaluate(() => (document.getElementById('v111_msg') || {}).textContent || '');
+  const f11 = await p.evaluate(() => ({ open: document.getElementById('ov').classList.contains('show') }));
+  if (!dialogs.length && /what was achieved/i.test(t11) && f11.open) ok(`achievement form, empty title: said in the form "${t11.slice(0, 36)}", form stays open, no native alert`);
+  else fail(`achievement form empty title: dialogs=${JSON.stringify(dialogs)} said="${t11}" ${JSON.stringify(f11)}`);
+  await p.evaluate(() => { document.getElementById('v111_title').value = 'QA probe achievement'; const c = document.getElementById('v111_cat'); c.value = c.options[1].value; document.getElementById('mSave').click(); }); await p.waitForTimeout(1500);
+  const achRows = () => fetch(BASE + '/rest/v1/report_entries?select=*').then((r) => r.json()).then((a) => a.filter((x) => x.title === 'QA probe achievement')).catch(() => []);
+  const achId = ((await achRows())[0] || {}).id;
+  if (achId) ok('…with a title and a kind, the achievement is logged (in the database)'); else fail('the achievement was not logged');
+  const achCount = async () => (await achRows()).length;
   await p.evaluate((id) => rptDelAch(id), achId); await p.waitForTimeout(400);
   const r11 = await p.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ').slice(0, 80) }));
   if (!dialogs.length && r11.box && /Delete this achievement/.test(r11.txt) && (await achCount()) === 1) ok(`delete achievement: in-page box ("${r11.txt.slice(0, 40)}…"), nothing removed yet`); else fail(`delete achievement: ${JSON.stringify(r11)} dialogs=${JSON.stringify(dialogs)}`);
-  await p.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); }); await p.waitForTimeout(200);
+  await p.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); }); await p.waitForTimeout(300);
   if ((await achCount()) === 1) ok('…Cancel keeps the achievement'); else fail('Cancel removed the achievement');
   await p.evaluate((id) => rptDelAch(id), achId); await p.waitForTimeout(300);
-  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }); await p.waitForTimeout(400);
+  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }); await p.waitForTimeout(900);
   if (!dialogs.length && (await achCount()) === 0) ok('…Confirm removes it — no native dialog'); else fail(`Confirm: count=${await achCount()} dialogs=${JSON.stringify(dialogs)}`);
 
   /* ---- 12. the browser's prompt() boxes: the Lost reason (core-01) and quick edit's "add a team member" (core-10) ask in the page ---- */

@@ -2830,7 +2830,24 @@ as written). **Release 1 screens:** `js/108-tasks.js` (the Tasks page) and
 `js/109-changes-to-your-tasks.js` (Today), guarded by `scripts/qa/probe-tasks-page.mjs`.
 **Owner's ruling (2026-09-25): Tasks only for release 1 — Reports comes with its own release.** Nobody's
 Reports access changes until then; today's browser-held Reports page stays as it is.
-*Date: 2026-09-25. Status: ACTIVE.*
+**Release 2 (2026-09-26) — achievements + proofs, as built.** `scripts/sql/phase3-r2-achievements.sql`
+(+ rollback): the Reports page levels land as the design wrote them — employees Own work, managers Full
+control (measured live before/after: 8 people gain `reports`, 7 own + 1 full, no other page and no admin
+moves; new people get it through `default_page_levels`); `report_entries.import_key` so moving a browser's
+achievements in is safe to press twice; the private `proofs` store (proofs/<achievement>/<file>: seen by
+anyone who can see Reports, added only by someone who may edit that achievement, never overwritten or
+deleted). Screens: `js/111-achievements-in-the-database.js` fills core-10's list from the database (Overview,
+Objectives and the exported report now count the company's achievements), logs/edits/deletes/finalizes
+there, attaches and shows proofs, marks drafts from tasks with Finalize, and offers a one-press move of the
+achievements a browser still holds (credited to the named person when the team list knows them, otherwise
+"Logged for: <name>" kept in the text; the browser keeps its copy). The Tasks page gains "count it in the
+monthly report" + its kind, which release 1's trigger turns into the achievement when the task closes. On
+Reports, Own work now opens the controls (js/107: a page that knows whose work is whose); the database
+decides which lines. What stays in the browser: only a KPI "actual" typed by hand on Objectives & KPIs (js/91
+says so). Tests: `scripts/qa/phase3` R2-01..R2-04 (105/105; red without the file), `probe-achievements-in-
+the-database` (10 checks, EN+AR; sabotage-tested), and the five older Reports probes moved onto the new form.
+Live dry run (rolled back): a real employee added a proof to their own achievement; a colleague was refused.
+*Date: 2026-09-25; release 2 2026-09-26. Status: ACTIVE.*
 
 **D2 — Access is a level per person per page, not a role.** Four levels:
 - **No access** — the page does not appear, and a typed address bounces.
@@ -3055,6 +3072,19 @@ pointed at its entry — no tasks, projects, comments or heads), and the one own
 his name to business@ now sends it to aboelmagd@, so the 3 companies assigned to him are owned by aboelmagd@.
 Before changing anything about his accounts again, check here.
 *Date: 2026-09-25. Status: ACTIVE.*
+
+**D9 — Everything in the app today is test data; at go-live it is reset to zero and the correct data is loaded
+fresh (the owner's word, 2026-09-26).** Some of today's rows came from Direct Payments and Direct website
+reports, but nothing is in real use yet. After the build is finalised, all business data and logs are wiped and
+the correct data enters fresh — only through the importer and the Direct Payments sync (the provenance rule).
+**What this changes:** nothing old needs carrying over. The achievements still held in a browser and the KPI
+"actual" numbers typed by hand are test data — the owner does not press "Move them" (js/111 keeps the button
+for anyone who wants it, harmless), and release 3 does not move browser KPI numbers.
+**What it does NOT change:** no safety work is skipped because the data is test data — every rule (levels, row
+rules, guards, history, provenance, M1 money doctrine, rule 7) must hold the day real data arrives, and each
+release is still tested as if the data were real. The reset itself is a release of its own (docs/BACKLOG.md
+"Go-live reset"), built and tested like the others and run only on the owner's explicit go, on the day.
+*Date: 2026-09-26. Status: ACTIVE.*
 
 **M84 — what someone typed into a funnel form can be found by typing it into a search box.**
 Found 2026-09-24 (fire #240) by counting the live database rather than reading the code. The app

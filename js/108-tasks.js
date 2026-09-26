@@ -81,16 +81,19 @@
     var q=function(p){ return p.then(function(r){ if(r&&r.error) throw r.error; return (r&&r.data)||[]; }); };
     Promise.all([
       c.auth.getSession().then(function(r){ return r&&r.data&&r.data.session&&r.data.session.user ? r.data.session.user.id : null; }),
-      q(c.from('tasks').select('id,code,title,description,status,priority,work_type,owner_id,business_id,project_id,parent_task_id,due_date,start_date,done_at,created_at,created_by,assigned_by,updated_at').is('deleted_at',null).order('created_at',{ascending:false}).limit(1000)),
+      q(c.from('tasks').select('id,code,title,description,status,priority,work_type,owner_id,business_id,project_id,parent_task_id,due_date,start_date,done_at,created_at,created_by,assigned_by,updated_at,include_in_report,report_category_id').is('deleted_at',null).order('created_at',{ascending:false}).limit(1000)),
       q(c.from('projects').select('id,code,name,business_id,owner_id,status,work_type,due_date,created_by,created_at').is('deleted_at',null).order('created_at',{ascending:false}).limit(500)),
       q(c.from('task_statuses').select('*').order('sort')),
       q(c.from('priorities').select('*').order('sort')),
       q(c.from('work_types').select('*').order('sort')),
       q(c.from('team_members').select('id,user_id,department_id,active')),
-      q(c.from('team_directory').select('id,full_name,name_ar'))
+      q(c.from('team_directory').select('id,full_name,name_ar')),
+      /* release 2: the kinds of achievement, for "count this in the monthly report" */
+      q(c.from('report_categories').select('id,code,name_en,name_ar,active,sort').order('sort')).catch(function(){ return []; })
     ]).then(function(a){
       S.uid=a[0]; S.tasks=a[1]; S.projects=a[2]; S.statuses=a[3]; S.priorities=a[4]; S.workTypes=a[5]; S.members=a[6];
       S.names={}; a[7].forEach(function(u){ S.names[u.id]={en:u.full_name||'', ar:u.name_ar||''}; });
+      S.repCats=a[8]||[];
       S.loaded=true; S.loading=false;
       if(current===PAGE) draw();
     }).catch(function(e){
@@ -278,6 +281,12 @@
       field(fl('Due','الاستحقاق'),'<input id="v108e_due" type="date" value="'+esc8(fmtDate(t.due_date))+'"'+dis+'>')+
       field(fl('Priority','الأولوية'),'<select id="v108e_pri"'+dis+'>'+optionList(S.priorities,t.priority)+'</select>')+
       '</div>'+field(fl('Details','التفاصيل'),'<textarea id="v108e_desc" rows="3"'+dis+'>'+esc8(t.description||'')+'</textarea>')+
+      /* release 2 (2026-09-26): a finished task marked for the report registers its own achievement in the database —
+         final when its owner or whoever manages it closes it, a DRAFT for them to finalize when a helper does (D7) */
+      '<div class="grid2">'+
+      field(fl('Monthly report','التقرير الشهري'),'<label style="display:flex;gap:8px;align-items:center;font-weight:500;text-transform:none;letter-spacing:0"><input type="checkbox" id="v108e_rep"'+(t.include_in_report?' checked':'')+dis+'> '+fl('Count it as an achievement when it is done','احتسبها إنجازًا عند إنجازها')+'</label>')+
+      field(fl('Kind of achievement','نوع الإنجاز'),'<select id="v108e_repcat"'+dis+'><option value="">'+fl('— choose —','— اختر —')+'</option>'+(S.repCats||[]).filter(function(c){ return c.active||c.id===t.report_category_id; }).map(function(c){ return '<option value="'+esc8(c.id)+'"'+(c.id===t.report_category_id?' selected':'')+'>'+esc8(fl(c.name_en,c.name_ar))+'</option>'; }).join('')+'</select>')+
+      '</div>'+
       '<h4 style="margin:14px 0 6px">'+fl('Checklist','قائمة التحقق')+'</h4><div class="v108-checklist">'+
       (d.checklist.length?d.checklist.map(function(i){ return '<label style="display:flex;gap:8px;align-items:center;margin:3px 0"><input type="checkbox" data-v108-check="'+esc8(i.id)+'"'+(i.is_done?' checked':'')+dis+' onchange="v108Tick(\''+esc8(i.id)+'\',this.checked)"> '+esc8(i.text)+'</label>'; }).join('')
                           :'<div style="color:var(--muted);font-size:12.5px">'+fl('Nothing on the checklist.','لا شيء في قائمة التحقق.')+'</div>')+'</div>'+
@@ -290,7 +299,9 @@
     openModal(esc8(t.title),body,function(){
       if(!edit){ note(refusal({code:'42501'}),true); return false; }
       var patch={ title:val('v108e_title'), status:val('v108e_status'), due_date:val('v108e_due')||null, priority:val('v108e_pri'), description:val('v108e_desc')||null };
+      try{ var rep=document.getElementById('v108e_rep'); if(rep){ patch.include_in_report=!!rep.checked; patch.report_category_id=val('v108e_repcat')||null; } }catch(_){}
       if(!patch.title){ note(fl('A task needs a title.','المهمة تحتاج عنوانًا.'),true); return false; }
+      if(patch.include_in_report && !patch.report_category_id){ note(fl('Choose the kind of achievement it will count as.','اختر نوع الإنجاز الذي ستُحتسب به.'),true); return false; }
       var c=client(); if(!c) return false;
       c.from('tasks').update(patch).eq('id',t.id).select('id,status,done_at').then(function(r){
         if(r.error||!r.data||!r.data.length){ note(refusal(r.error||{code:'42501'}),true); S.loaded=false; load(true); return; }

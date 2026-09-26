@@ -91,14 +91,16 @@ const arabic = await onPage('reports');
 await b.close(); srv.close?.();
 
 const hasArabic = (s) => /[؀-ۿ]/.test(s);
-const englishWords = (s) => (s.replace(/Generate Report/g, '').match(/[A-Za-z]{4,}/g) || []);
+const englishWords = (s) => (s.replace(/Generate Report|KPI/g, '').match(/[A-Za-z]{4,}/g) || []);
 
 const checks = [
   ['the line is there on the Reports page', reports.line, String(reports.line)],
-  ['it says the figures are in this browser only', /this browser only/i.test(reports.text), reports.text.slice(0, 80)],
-  ['it warns they are not in the backup', /backup/i.test(reports.text), String(/backup/i.test(reports.text))],
-  ['it points at Generate Report, so the warning comes with something to do',
-    /Generate Report/i.test(reports.text), String(/Generate Report/i.test(reports.text))],
+  /* 2026-09-26 (Phase 3 release 2): achievements and proofs moved into the company database (js/111). The line's
+     facts changed with them — it must now say THAT, and name the one thing still kept in this browser only (a
+     KPI "actual" typed by hand). Saying "everything here is in this browser only" would now be the lie. */
+  ['it says achievements and proofs are in the company database', /company database/i.test(reports.text) && /proofs/i.test(reports.text), reports.text.slice(0, 90)],
+  ['it names the one thing still in this browser only — a KPI "actual" typed by hand', /this browser only/i.test(reports.text) && /actual/i.test(reports.text), reports.text.slice(0, 200)],
+  ['it no longer claims the whole page is private to this browser', !/Nothing on this page is saved to the company database/i.test(reports.text), String(/Nothing on this page is saved/i.test(reports.text))],
   ['in Arabic the line is Arabic — no English left behind',
     arabic.line && hasArabic(arabic.text) && englishWords(arabic.text).length === 0,
     JSON.stringify({ arabic: hasArabic(arabic.text), leftover: englishWords(arabic.text).slice(0, 4) })],
