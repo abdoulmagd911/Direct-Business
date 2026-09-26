@@ -130,22 +130,13 @@ async function open(lang, edit) {
     /* delete the payment terms and type a contract scope, through the real form */
     await p.evaluate(() => { try { editCorporate('E3'); } catch (_) { } });
     await p.waitForSelector('#c_pt', { timeout: 30000 });
-    /* 2026-09-25: on crowded runs the form was found still holding the old payment terms at Save —
-       the clear had not taken (diagnosed by recording the form at Save and every write: one write,
-       carrying the old value; no rebuild of the form, no change to the box ever observed). So the
-       edit is typed, read back, and typed again until the form really holds it (up to 5 tries),
-       and the number of retries is printed — the precondition of this test is "the person
-       cleared the box", and it is now checked rather than assumed. */
-    let refills = 0;
-    for (;;) {
-      await p.fill('#c_pt', '');
-      await p.fill('#c_scope', SCOPE_TYPED);
-      const f = await p.evaluate(() => ({ pt: (document.getElementById('c_pt') || {}).value, scope: (document.getElementById('c_scope') || {}).value }));
-      if ((f.pt === '' && f.scope === SCOPE_TYPED) || refills >= 4) break;
-      refills++; await p.waitForTimeout(300);
-    }
+    /* 2026-09-25 this typed, read back and retyped up to five times, because on crowded runs the clear sometimes did
+       not take. 2026-09-26 — the cause was found and fixed in the app (two layers moved the keyboard to the form's
+       close button 30 ms after opening; the Delete went there — probe-the-form-keeps-your-keyboard), so the edit is
+       typed ONCE, as a person types it, and the form is read back as a check, not retried. */
+    await p.fill('#c_pt', '');
+    await p.fill('#c_scope', SCOPE_TYPED);
     FORM = await p.evaluate(() => ({ pt: (document.getElementById('c_pt') || {}).value, scope: (document.getElementById('c_scope') || {}).value }));
-    FORM.refills = refills;
     await p.click('#mSave');
     /* 2026-09-25 — made reliable. This used to wait a fixed 2.5 s and close: on crowded battery runs
        (twice) the check read the stored row before the page's save had landed. Now: wait until a

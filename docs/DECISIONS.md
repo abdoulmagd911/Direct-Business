@@ -3100,6 +3100,27 @@ copied beside a live original.
 *Date: 2026-09-25. Status: ACTIVE.*
 Full measurements: `docs/PHASE0_REVIEW_2026-09-25.md`.
 
+**D10 — The company card (Phase 3 release 4, 2026-09-26).** One card per client company, built on the existing
+Clients page, with three parts; everyone with Full control of Clients changes it (D7), View only looks, every change is
+in `record_history`, and nothing on it copies Direct Payments (D6):
+- **Client IDs** are `client_profiles` rows (live since Phase 1): 1–3 **open** per company (a closed one is history and
+  does not count — one company holds 2 open + 2 closed today), each Tender / Prepaid / Postpaid, **unique across
+  companies** with spaces trimmed (" 95" is "95"), each a link OUT to Direct Payments. The limit is a database
+  trigger with a per-company lock, so two people adding at once cannot both be the 3rd.
+- **Discount codes** are optional B2C website codes, **linked** in `company_discount_codes` — the 200 `promo_codes`
+  rows and `promo_codes_guard` are never written. One company per code at a time; a link is removed (kept on record),
+  never re-pointed, never deleted. Nothing on the Finance side reads the links: a code is never B2B money.
+- **Company files** (CR, VAT certificate, agreement, IBAN letter, business cards, other) live in the private bucket
+  `company-docs` under `clients/<company>/<file id>/<name>`. The row is written first and names the path; the store
+  then takes the file **once**, at exactly that path, from whoever wrote the row — no overwrite, no rename, no delete.
+  A file is removed (kept on record), never re-pointed, and a removal is final (Undo does not bring it back).
+- **The money rule (approved 2026-09-25): IBAN letters and agreements are readable by managers and admins only —
+  enforced in the database** (the table's read rule AND the store's read rule), not only on screen. Anyone with Full
+  control of Clients may add one; they then see it as "🔒 on file", counted by `company_documents_presence`, and cannot
+  open it. Other files follow the Clients page level. The bucket's old rule ("any signed-in person reads everything in
+  company-docs") no longer reaches `clients/…`; Direct's own assets there keep it.
+*Date: 2026-09-26. Status: ACTIVE (pending the oversight's review of release 4).*
+
 **D8 — Abdulrahman's logins, in his own word (2026-09-25): `aboelmagd@directksa.com` is his admin account
 and the one that belongs on the team list.** `business@directksa.com` is a login he keeps (untouched), not
 the person on the team list; `a.hassan@directksa.net` is his Team-Member test view. One human, one team-list

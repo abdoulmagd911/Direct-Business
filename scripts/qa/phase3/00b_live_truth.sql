@@ -113,3 +113,26 @@ drop trigger if exists trg_record_history on contacts;
 create trigger trg_record_history after insert or update or delete on contacts for each row execute function record_history_write();
 drop trigger if exists trg_record_history on client_profiles;
 create trigger trg_record_history after insert or update or delete on client_profiles for each row execute function record_history_write();
+
+-- ---------- release 4 (2026-09-26): the company-write rules and client_profiles as live, read from the live database ----------
+alter table businesses add column if not exists owner_id uuid;
+alter table client_profiles add column if not exists updated_at timestamptz default now();
+create or replace function public.can_write_company(p_is_client boolean, p_owner uuid) returns boolean language sql stable security definer set search_path to 'public' as $$
+  select case public.page_level(case when coalesce(p_is_client,false) then 'clients' else 'leads' end)
+           when 'full' then true
+           when 'own'  then p_owner is not null and p_owner = auth.uid()
+           else false end
+$$;
+create or replace function public.can_write_company_id(p_business uuid) returns boolean language sql stable security definer set search_path to 'public' as $$
+  select coalesce((select public.can_write_company(b.is_client, b.owner_id) from public.businesses b where b.id = p_business),
+                  public.can_edit_page('leads'))
+$$;
+alter table client_profiles add constraint client_profiles_profile_type_check check (profile_type = any (array['prepaid','postpaid','tender']));
+create unique index if not exists client_profiles_one_open_prepaid_postpaid on client_profiles (business_id, profile_type)
+  where profile_type = any (array['prepaid','postpaid']) and closed_at is null;
+alter table client_profiles enable row level security;
+drop policy if exists client_profiles_read on client_profiles;
+create policy client_profiles_read on client_profiles for select using (app_role() is not null);
+drop policy if exists client_profiles_write on client_profiles;
+create policy client_profiles_write on client_profiles for all using (can_write_company_id(business_id)) with check (can_write_company_id(business_id));
+grant select, insert, update, delete on client_profiles to authenticated;

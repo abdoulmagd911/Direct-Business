@@ -19705,12 +19705,29 @@ the company card (client IDs, discount codes, files). The go-live people step (w
 department, the Commercial head) is run once at merge from the oversight chat's 29d — it names real
 staff, so it is never committed here.
 
-**Open question — "the clear doesn't take" (kept open until explained).** In
-`probe-the-card-shows-what-the-database-holds`, clearing a field with `fill('')` sometimes left the
-old value in the box — mostly under a loaded battery, once on a calm machine. The probe now reads
-the field back and retypes (it prints how many retries it needed), so it is reliable, but *why* the
-first clear sometimes does not take is not known. If a person ever reports "I deleted it and it came
-back" on a company card, start here.
+~~**Open question — "the clear doesn't take" (kept open until explained).**~~ **Explained and fixed 2026-09-26
+(release 4, before building the company card).** Two layers — core-06 `v21TrapFocus` and core-08's `openModal`
+wrapper — each moved the keyboard to the form's first control 30 ms after any form opened, **unconditionally**. On a
+busy machine that timer lands after the person is already in a field: the keyboard jumped to the form's × button, and
+the Delete they pressed went there, so the old value stayed (Enter or Space would even have closed the form). Measured:
+in "Payment terms", 100 ms after opening, the keyboard was on `iconbtn`; select + Delete left "Net 30". Fix: both only
+place the keyboard when it is not already inside the form; core-08 also stopped adding one more Tab-trap listener per
+opening (7 openings had left 11). Guard: `probe-the-form-keeps-your-keyboard` (sabotage: the old code → 10 red). The
+retype loop in `probe-the-card-shows-what-the-database-holds` is gone — it types once, as a person does.
+
+## Phase 3 release 4 — the company card (2026-09-26, PR for the oversight's review — not pre-approved)
+
+**What:** one card on a client's page (`js/113-company-card.js`) with the company's Direct Payments client IDs, its
+discount codes and its files; database `scripts/sql/phase3-r4-company-card.sql` (+ rollback). Rules in DECISIONS D10.
+**Tested:** Postgres harness 116/116 (8 new R4 attack tests: 3 open IDs, unique IDs, View changes nothing, money files
+for managers in the table AND the store, the store takes a file once at its row's path, removed stays removed, codes
+linked not written, everything in history, Direct's own assets keep their rule) — sabotage: 3 protections removed →
+3 red; screen `probe-company-card` EN+AR (sabotage → red); a rolled-back LIVE run with a real team member and the
+real manager (every rule held; rolled back and checked). **Found first and fixed:** "the clear doesn't take" (below).
+**At merge:** apply the SQL from the merged commit (checksum-checked); live check with the QA account.
+**Not in this release (say so if asked):** Own work on Clients is honoured by the database (the owner may change their
+own company's card) but the Clients screen still treats Own as View, as it does everywhere today; the Generator's
+company-assets page keeps its own rules; nothing on the Finance side reads the discount-code links (B2C, by rule).
 
 ## Go-live reset — its own release, run only on the owner's explicit go (owner's word, 2026-09-26; DECISIONS D9)
 
