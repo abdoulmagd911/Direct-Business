@@ -1024,6 +1024,25 @@ def _(cur):
     q(cur, "rollback to savepoint an"); q(cur, "reset role")
     return (seen == 1 and a and kept == 1 and anon_seen == 0, f"view sees={seen}, add refused={a} · owner's overwrite/delete left it in place={kept == 1} · anon sees={anon_seen}")
 
+# ======================= Release 3 — KPIs + danger light (scripts/sql/phase3-r3-kpis.sql) =======================
+@test("R3-01 Targets (D2): a manager with Full control on Reports sets one; a manager set to View on Reports and an employee change nothing")
+def _(cur):
+    per = F['q1_26']
+    as_user(cur, 'u4'); q(cur, "insert into kpi_targets(kpi_id,scope,period_id,target_value) values (%s,'company',%s,12)", (F['kpi_ch'], per)); q(cur, "reset role")
+    set_ok = one(cur, "select target_value from kpi_targets where kpi_id=%s and scope='company' and period_id=%s", (F['kpi_ch'], per))
+    q(cur, "update app_users set page_access = page_access || '{\"reports\":\"view\"}' where id=%s", (F['u4'],))
+    as_user(cur, 'u4')
+    q(cur, "update kpi_targets set target_value=99 where kpi_id=%s and period_id=%s", (F['kpi_ch'], per))
+    a, m = expect_fail(cur, "insert into kpi_targets(kpi_id,scope,period_id,target_value) values (%s,'company',%s,5)", (F['kpi_ch'], F['feb26']), "row-level security")
+    q(cur, "update kpi_definitions set name_en='renamed by view' where id=%s", (F['kpi_ch'],))
+    q(cur, "reset role"); as_user(cur, 'u1')
+    q(cur, "update kpi_targets set target_value=77 where kpi_id=%s and period_id=%s", (F['kpi_ch'], per))
+    b, m2 = expect_fail(cur, "insert into kpi_targets(kpi_id,scope,period_id,target_value) values (%s,'company',%s,5)", (F['kpi_ch'], F['feb26']), "row-level security")
+    q(cur, "reset role")
+    after = one(cur, "select target_value from kpi_targets where kpi_id=%s and scope='company' and period_id=%s", (F['kpi_ch'], per))
+    name = one(cur, "select name_en from kpi_definitions where id=%s", (F['kpi_ch'],))
+    return (set_ok == 12 and after == 12 and a and b and name != 'renamed by view', f"full manager set={set_ok} · view manager: update left {after}, insert refused={a}, rename kept={name != 'renamed by view'} · employee insert refused={b}")
+
 w = max(len(n) for n, _, _ in results)
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]

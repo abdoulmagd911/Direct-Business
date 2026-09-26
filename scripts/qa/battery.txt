@@ -360,3 +360,4 @@ probe-view-means-view
 probe-tasks-page
 probe-team-list
 probe-achievements-in-the-database
+probe-kpis-and-the-danger-light

@@ -98,8 +98,9 @@ const checks = [
   /* 2026-09-26 (Phase 3 release 2): achievements and proofs moved into the company database (js/111). The line's
      facts changed with them — it must now say THAT, and name the one thing still kept in this browser only (a
      KPI "actual" typed by hand). Saying "everything here is in this browser only" would now be the lie. */
-  ['it says achievements and proofs are in the company database', /company database/i.test(reports.text) && /proofs/i.test(reports.text), reports.text.slice(0, 90)],
-  ['it names the one thing still in this browser only — a KPI "actual" typed by hand', /this browser only/i.test(reports.text) && /actual/i.test(reports.text), reports.text.slice(0, 200)],
+  /* release 3 (2026-09-26): the KPI figures moved as well (js/112) — nothing on the page is browser-only any more */
+  ['it says everything on the page is in the company database — achievements, proofs and KPI figures', /company database/i.test(reports.text) && /proofs/i.test(reports.text) && /KPI/i.test(reports.text), reports.text.slice(0, 120)],
+  ['it says KPI actuals are never typed by hand', /nothing is typed by hand/i.test(reports.text), reports.text.slice(0, 260)],
   ['it no longer claims the whole page is private to this browser', !/Nothing on this page is saved to the company database/i.test(reports.text), String(/Nothing on this page is saved/i.test(reports.text))],
   ['in Arabic the line is Arabic — no English left behind',
     arabic.line && hasArabic(arabic.text) && englishWords(arabic.text).length === 0,

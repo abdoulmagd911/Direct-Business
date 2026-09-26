@@ -52,9 +52,11 @@
        (js/111) — shared with the team and in every report. What is still this browser's alone are the KPI
        "actual" numbers typed by hand on Objectives & KPIs (core-10's overrides): the line now says exactly
        that, because saying "everything here is local" would be the new misleading sentence. */
-    d.innerHTML='<b>'+fl('Achievements and their proofs are kept in the company database','الإنجازات وإثباتاتها محفوظة في قاعدة بيانات الشركة')+'</b> — '+
-      fl('shared with the team and included in every report. One thing is still kept in this browser only: a KPI\u2019s "actual" number typed by hand on Objectives & KPIs. Another device does not see it, and clearing this browser\u2019s data erases it.',
-         'مشتركة مع الفريق ومضمَّنة في كل تقرير. شيء واحد ما زال محفوظًا في هذا المتصفح فقط: الرقم «الفعلي» لمؤشر يُكتب يدويًا في «الأهداف والمؤشرات». لا يراه جهاز آخر، ومسح بيانات هذا المتصفح يمحوه.');
+    /* 2026-09-26 (release 3): the KPI figures moved too (js/112 — kpi_actuals / kpi_pace); the hand-typed "actual"
+       box is gone. Nothing on this page lives in the browser any more, and the line says so. */
+    d.innerHTML='<b>'+fl('Everything on this page is kept in the company database','كل ما في هذه الصفحة محفوظ في قاعدة بيانات الشركة')+'</b> — '+
+      fl('achievements, their proofs and the KPI figures are shared with the team and included in every report. KPI actuals come from Finance, finished tasks and final achievements; nothing is typed by hand.',
+         'الإنجازات وإثباتاتها وأرقام المؤشرات مشتركة مع الفريق ومضمَّنة في كل تقرير. الأرقام الفعلية للمؤشرات من المالية والمهام المنجزة والإنجازات المعتمدة؛ لا شيء يُكتب يدويًا.');
 
     view.insertBefore(d, view.firstChild);
   }catch(e){ if(window.console)console.warn('[v91]',e); }}

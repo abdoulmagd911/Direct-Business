@@ -35,8 +35,8 @@
      7. the same two claims read Arabic in Arabic;
      8. no JS errors.
 
-   Nothing here touches the database: every figure is set through the page's own override, which
-   writes to this browser only.
+   Every figure is set in the stand-in database (release 3: the KPI figures are the database's, js/112); nothing
+   touches the real one.
 
    Sabotage-tested against COPIES of the app (APP_DIR — the repository untouched), both real runs:
      · dividing by every KPI again — fails 1, 2, 3, 6 and 7, and prints "17%" and "3%" rather than
@@ -112,7 +112,9 @@ const readReport = async () => {
       text: (d.innerText || '').replace(/\s+/g, ' '), kpiRows: d.querySelectorAll('tbody tr').length };
   });
 };
-const setKpi = async (n, val) => { await p.evaluate(([a, b2]) => { try { window.rptSetOverride(a, b2); } catch (_) {} }, [n, val]); await p.waitForTimeout(1800); };
+/* 2026-09-26 (Phase 3 release 3): a KPI's figure is the database's now (kpi_actuals, drawn by js/112) — the hand-typed
+   box is gone. The figure is set in the stand-in database and the page asked to read again; the rule held is the same. */
+const setKpi = async (n, val) => { await fetch(BASE + '/__kpi_actual?n=' + n + '&v=' + encodeURIComponent(val == null ? '' : val)); await p.evaluate(() => { try { window.v112Reload(); } catch (_) {} }); await p.waitForTimeout(1800); };
 const objRow = (ov, tag) => (ov.rows.find((r) => r.tag === tag) || {});
 const headline = (ov) => ov.chips[3] || {};
 

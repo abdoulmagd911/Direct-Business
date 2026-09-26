@@ -81,21 +81,24 @@ async function run(lang) {
   await p.waitForTimeout(2000);
   /* the KPI lines sit inside an objective that has to be opened first */
   await p.evaluate(() => {
-    if (document.querySelector('.rpt-kpirow')) return;
+    const shown = () => document.querySelector('.rpt-kpirow, #view tr[data-v112-kpi]');   /* release 3: js/112's rows need no opening */
+    if (shown()) return;
     const cands = [].slice.call(document.querySelectorAll('#view [onclick],#view summary,#view .rpt-obj,#view details'));
-    for (const c of cands) { try { c.click(); } catch (_) { } if (document.querySelector('.rpt-kpirow')) return; }
+    for (const c of cands) { try { c.click(); } catch (_) { } if (shown()) return; }
   });
   await p.waitForTimeout(1600);
   const kpiTabText = await p.evaluate(() => {
     const t = ((document.getElementById('view') || {}).innerText || '');
     /* read the ROWS, not the page text: a container that is scrolled or collapsed gives an empty
        innerText while the nodes are plainly there — the lesson from fire #108 */
-    const rowText = [].slice.call(document.querySelectorAll('.rpt-kpirow'))
-      .map((r) => (r.textContent || '').replace(/\s+/g, ' ')).join(' | ');
+    /* 2026-09-26 (Phase 3 release 3): the Objectives & KPIs tab is js/112's — its rows are the database's KPIs, named
+       from kpi_definitions (name_ar in Arabic, else the plan's tAr, else English). KPI 1's row must read Arabic. */
+    const r1 = document.querySelector('#view tr[data-v112-kpi="1"]');
+    const rowText = r1 ? (r1.textContent || '').replace(/\s+/g, ' ') : '';
     void t;
-    return { rows: document.querySelectorAll('.rpt-kpirow').length,
-      hasAr: rowText.indexOf('مؤشر مترجم للاختبار') >= 0,
-      hasEn: /Improvement of suppliers contracts terms/.test(rowText) };
+    return { rows: document.querySelectorAll('#view tr[data-v112-kpi]').length,
+      hasAr: /[\u0600-\u06FF]/.test(rowText.replace(/KPI \d+/, '')),
+      hasEn: /Improvement of suppliers contracts terms|QA KPI 1\b/.test(rowText) };
   });
   void kpiTab;
   await p.evaluate(() => { current = 'reports'; openLead = null; render(); });

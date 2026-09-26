@@ -19710,6 +19710,13 @@ owner says go, on the day** — never on a schedule, never by a session deciding
 4. **After the reset, data enters only through the importer and the Direct Payments sync** (the provenance rule) —
    no hand-loaded SQL rows, no snapshot restores over the fresh tables.
 
+## Phase 3 release 3 — KPIs + the danger light (2026-09-26)
+
+**What:** the Objectives & KPIs tab and a Today card draw the database's KPI figures and danger light (`js/112`); targets are
+set by an admin or a manager with Full control on Reports (`scripts/sql/phase3-r3-kpis.sql`). Details: DECISIONS D1.
+**Left for later:** targets for departments and people exist only once someone sets them (today there are 30 company/year
+targets); 5 of the 30 KPIs are still drafts; KPI definitions are edited by SQL, not yet on screen; the appraisal cycle.
+
 ## Phase 3 release 2 — achievements + proofs (2026-09-26)
 
 **What:** achievements move from each browser into the company database (`js/111`, `scripts/sql/phase3-r2-achievements.sql`),
