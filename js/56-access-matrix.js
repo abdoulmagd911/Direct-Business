@@ -313,8 +313,8 @@
           'Four levels per person, page by page: No access · View (sees everything, changes nothing) · Own work (changes only their own) · Full control (changes everyone\'s). Admins are not listed with pages — they always have everything. A green dot means the database enforces that page too.',
           'أربعة مستويات لكل شخص، صفحة بصفحة: لا وصول · مشاهدة (يرى كل شيء ولا يغيّر شيئًا) · عمله فقط (يغيّر عمله فقط) · تحكم كامل (يغيّر عمل الجميع). المسؤولون لديهم كل شيء دائمًا. النقطة الخضراء تعني أن قاعدة البيانات تطبّق ذلك أيضًا.')+'</div>'+
         '<div data-ax-own-note="1" style="font-size:11.5px;color:var(--muted);margin-bottom:10px">'+fl(
-          '"Own work" cannot be chosen yet. The database already holds it for Leads and Clients (each company has an owner account); it opens there once those pages stop offering changes on other people\'s companies, and on other pages as they learn whose records are whose.',
-          '«عمله فقط» غير متاح بعد. قاعدة البيانات تطبّقه الآن على العملاء المحتملين والعملاء (لكل شركة حساب مالك)؛ ويُتاح هناك عندما تتوقف الصفحتان عن عرض التعديل على شركات الآخرين، وفي بقية الصفحات عندما تعرف لمن كل سجل.')+'</div>'+
+          '"Own work" can be chosen on Tasks and Reports, where every task and achievement knows whose it is. On other pages it opens as each learns whose records are whose — the database already holds it for Leads and Clients, and it opens there once those pages stop offering changes on other people\'s companies.',
+          '«عمله فقط» متاح في المهام والتقارير، حيث تعرف كل مهمة وكل إنجاز لمن هي. وفي بقية الصفحات يُتاح عندما تعرف كل صفحة لمن سجلاتها — وقاعدة البيانات تطبّقه الآن على العملاء المحتملين والعملاء، ويُتاح هناك عندما تتوقف الصفحتان عن عرض التعديل على شركات الآخرين.')+'</div>'+
         (ROWS||[]).map(card).join('');
     }catch(e){console.warn('[matrix] paint',e);}
   }

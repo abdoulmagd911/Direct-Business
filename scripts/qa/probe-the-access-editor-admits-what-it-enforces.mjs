@@ -171,8 +171,9 @@ const checks = [
     JSON.stringify({ selects: allViewer.selectCount, levels: allViewer.levelsPerSelect, save: allViewer.hasSave })],
   /* Phase 3 release 1 (2026-09-25): Tasks is the first page whose rows know their owner in the
      database, so "Own work" opens there — and ONLY there (M55: never offer a choice the save cannot keep) */
-  ['"Own work" can be chosen on Tasks and on no other page (M55)',
-    JSON.stringify(allViewer.ownOpenOn) === JSON.stringify(['tasks']), JSON.stringify(allViewer.ownOpenOn)],
+  /* …and Reports joined in release 2 (2026-09-26): each achievement knows whose it is (report_entries' row rules) */
+  ['"Own work" can be chosen on Reports and Tasks and on no other page (M55)',
+    JSON.stringify(allViewer.ownOpenOn.slice().sort()) === JSON.stringify(['reports', 'tasks']), JSON.stringify(allViewer.ownOpenOn)],
   ['the marked set is read from js/52, not copied — emptying that list silences every mark',
     (blank.markedPages || []).length === 0 && blank.note === '' && blank.selectCount === ALL.length,
     JSON.stringify({ marks: (blank.markedPages || []).length, note: blank.note.slice(0, 30), selects: blank.selectCount })],
