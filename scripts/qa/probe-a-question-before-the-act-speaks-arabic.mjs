@@ -114,7 +114,8 @@ const stuck = ar.words.filter(([, w]) => !AR.test(w));
   ? pass('AR: every such question in the source resolves to Arabic', SAMPLES.length + ' texts')
   : fail('AR: every such question in the source resolves to Arabic', JSON.stringify({ found: SAMPLES.length, stuck: stuck.slice(0, 6).map((x) => x[0]) }));
 
-(en.reset && /^Reset all data to the seeded version\?/.test(en.reset) && en.del === 'Delete this achievement?')
+/* release 2 (2026-09-26): achievements live in the database, and the question says what deleting now means (js/111) */
+(en.reset && /^Reset all data to the seeded version\?/.test(en.reset) && en.del === 'Delete this achievement? It is removed for everyone; the change is recorded.')
   ? pass('EN brake: the same two questions read their English exactly')
   : fail('EN brake: the same two questions read their English exactly', JSON.stringify({ reset: en.reset, del: en.del }));
 
