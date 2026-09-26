@@ -34,8 +34,9 @@ at merge from the merged commit (checksum-checked), after a rolled-back live che
     headings in DirectFont (Cairo behind it) in the printed PDFs and the PowerPoint exports, and both
     PowerPoint buttons working again (#44); document body text in DirectFont too, and every download
     tested for real (#45).
-- Next: the company card (client IDs, discount codes, company files), issuing numbered reports, the
-  appraisal cycle — and the **go-live reset**, its own release, run only on the owner's explicit go.
+  - release 4 the company card (client IDs, discount codes, company files; D10) (#46) — live.
+- Next: issuing numbered reports, the appraisal cycle — and the **go-live reset**, its own release, run only on
+  the owner's explicit go.
 
 **6 · Working habits.** Test with the harness (`scripts/qa/`, fake data) **and** against the live database
 read-only (see "What this session can and cannot reach"); full battery `scripts/qa/run-battery.sh -j 4`

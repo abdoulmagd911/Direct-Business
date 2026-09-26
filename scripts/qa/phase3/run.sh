@@ -12,6 +12,6 @@ dropdb -h "$H" -U "$U" --if-exists "$DB"; createdb -h "$H" -U "$U" "$DB"
 for f in 00a_supabase_defaults.sql 00_test_copy_of_live.sql 00b_live_truth.sql 00c_storage_stub.sql; do psql -h "$H" -U "$U" -d "$DB" -q -v ON_ERROR_STOP=1 -f "$HERE/$f" >/dev/null; done
 psql -h "$H" -U "$U" -d "$DB" -q -v ON_ERROR_STOP=1 -f "$MIG" >/dev/null
 # later changes applied on top, in order (default: every one this repo has shipped since release 1)
-AFTER="${TM_AFTER-$HERE/../../sql/d7-owner-can-undo.sql $HERE/../../sql/team-list-editing.sql $HERE/../../sql/phase3-r2-achievements.sql $HERE/../../sql/phase3-r3-kpis.sql $HERE/../../sql/proofs-month-lock.sql}"
+AFTER="${TM_AFTER-$HERE/../../sql/d7-owner-can-undo.sql $HERE/../../sql/team-list-editing.sql $HERE/../../sql/phase3-r2-achievements.sql $HERE/../../sql/phase3-r3-kpis.sql $HERE/../../sql/proofs-month-lock.sql $HERE/../../sql/phase3-r4-company-card.sql}"
 for x in $AFTER; do psql -h "$H" -U "$U" -d "$DB" -q -v ON_ERROR_STOP=1 -f "$x" >/dev/null; done
 TM_DSN="host=$H user=$U dbname=$DB" python3 "$HERE/attacks.py"

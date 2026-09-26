@@ -155,13 +155,21 @@
         var modal=document.getElementById('modal');
         if(modal){
           var focusables=modal.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
-          if(focusables.length){setTimeout(function(){focusables[0].focus();},30);}
-          modal.addEventListener('keydown',function(ev){
+          /* 2026-09-26 — the root cause of "the clear doesn't take" (BACKLOG). This moved the keyboard to the first
+             control 30 ms after opening, whatever the person was doing — on a busy machine the timer lands after they
+             are already in a field, so their Delete went to the close button and the old value stayed. It now only
+             places the keyboard when it is not in the form already. And the Tab trap is one listener, replaced on each
+             opening, instead of one more added every time a form opened (they piled up, each with an old field list).
+             Guard: probe-the-form-keeps-your-keyboard. */
+          if(focusables.length){setTimeout(function(){ if(modal.contains(document.activeElement))return; focusables[0].focus(); },30);}
+          if(modal._v25TabTrap)modal.removeEventListener('keydown',modal._v25TabTrap);
+          modal._v25TabTrap=function(ev){
             if(ev.key!=='Tab')return;
             var first=focusables[0], last=focusables[focusables.length-1];
             if(ev.shiftKey && document.activeElement===first){ev.preventDefault();last&&last.focus();}
             else if(!ev.shiftKey && document.activeElement===last){ev.preventDefault();first&&first.focus();}
-          });
+          };
+          modal.addEventListener('keydown',modal._v25TabTrap);
         }
       };
     }

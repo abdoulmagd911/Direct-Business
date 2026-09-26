@@ -100,6 +100,12 @@ def achievement(cur, kpi, per, value=None, member='m1', final=True, proof=False)
             (F[per], F[member], F[member], F['cat'], F[kpi], value, F[member], 'final' if final else 'draft'))
     if proof: q(cur, "insert into evidence_files(entry_id,storage_path,file_name,uploaded_by) values (%s,%s,'contract.pdf',%s)", (e, f'proofs/{e}.pdf', F[member]))
     return e
+import uuid as _uuid
+def doc_sql(company_key, doc_type, cp_key=None, valid_to=None, name='f.pdf'):
+    """R4: a company file row the way the app writes it — its path names its company and its own id."""
+    i = str(_uuid.uuid4()); b = F[company_key]
+    return ("insert into company_documents(id,business_id,client_profile_id,doc_type,storage_path,file_name,valid_to) values (%s,%s,%s,%s,%s,%s,%s)",
+            (i, b, F[cp_key] if cp_key else None, doc_type, f'clients/{b}/{i}/{name}', name, valid_to), f'clients/{b}/{i}/{name}', i)
 def blocked_or_zero(cur, sql, args):
     """RLS: an UPDATE the person may not do touches 0 rows; an INSERT raises. Either way = no effect."""
     cur.execute("savepoint s")
@@ -432,8 +438,8 @@ def _(cur):
 # ================= v1.2: company card, the achievement chain, optional proofs, KPI danger =================
 @test("C01 Company card in one place: 3 client IDs (prepaid/postpaid/tender), its discount codes, its files, what's missing")
 def _(cur):
-    q(cur, "insert into company_documents(business_id,doc_type,storage_path,file_name,valid_to) values (%s,'cr','clients/a/cr.pdf','cr.pdf','2026-01-31')", (F['coA'],))
-    q(cur, "insert into company_documents(business_id,client_profile_id,doc_type,storage_path,file_name) values (%s,%s,'agreement','clients/a/tender-agreement.pdf','agr.pdf')", (F['coA'], F['cpA_ten']))
+    sq, a1, _p, _i = doc_sql('coA', 'cr', valid_to='2026-01-31', name='cr.pdf'); q(cur, sq, a1)                 # R4: paths as the app writes them
+    sq, a1, _p, _i = doc_sql('coA', 'agreement', cp_key='cpA_ten', name='tender-agreement.pdf'); q(cur, sq, a1)
     q(cur, "select set_config('app.today','2026-09-25',true)")
     r = q(cur, "select client_id_count, jsonb_array_length(client_ids), jsonb_array_length(discount_codes), documents, missing_documents, expired_documents from company_card where business_id=%s", (F['coA'],))[0]
     types = one(cur, "select string_agg(x->>'type', ',' order by x->>'type') from company_card, jsonb_array_elements(client_ids) x where business_id=%s", (F['coA'],))
@@ -441,9 +447,9 @@ def _(cur):
     return (ok, f"client IDs={r[0]} ({types}), discount codes={r[2]}, files={r[3]}, missing={r[4]}, expired={r[5]}")
 @test("C02 A file tied to another company's client ID, or saved outside the private folder → blocked; files are never hard-deleted")
 def _(cur):
-    a, m1 = expect_fail(cur, "insert into company_documents(business_id,client_profile_id,doc_type,storage_path,file_name) values (%s,%s,'agreement','clients/x.pdf','x')", (F['coA'], F['cpB']), "different company")
-    b, m2 = expect_fail(cur, "insert into company_documents(business_id,doc_type,storage_path,file_name) values (%s,'vat','public/vat.pdf','x')", (F['coA'],), "check")
-    d = one(cur, "insert into company_documents(business_id,doc_type,storage_path,file_name) values (%s,'iban','clients/a/iban.pdf','iban.pdf') returning id", (F['coA'],))
+    sq, a1, _p, _i = doc_sql('coA', 'agreement', cp_key='cpB'); a, m1 = expect_fail(cur, sq, a1, "different company")
+    b, m2 = expect_fail(cur, "insert into company_documents(business_id,doc_type,storage_path,file_name) values (%s,'vat','public/vat.pdf','x')", (F['coA'],), "stored at clients/")   # R4: refused by the path rule, before the check
+    sq, a1, _p, d = doc_sql('coA', 'iban', name='iban.pdf'); q(cur, sq, a1)
     c3, m3 = expect_fail(cur, "delete from company_documents where id=%s", (d,), "never deleted")
     return (a and b and c3, f"{m1} | public path blocked={b} | {m3[:40]}")
 @test("C03 Manager note on a task: a team member → blocked; the department head or a manager → allowed")
@@ -703,7 +709,7 @@ def _(cur):
          blocked_or_zero(cur, "update report_entries set status='draft' where id=%s", (e,)),
          blocked_or_zero(cur, "insert into evidence_files(entry_id,storage_path,file_name,uploaded_by) values (%s,'proofs/v.pdf','v.pdf',%s)", (e, F['m6'])),
          blocked_or_zero(cur, "insert into work_finance_links(invoice_no,project_id) values ('INV-A25',%s)", (p,)),
-         blocked_or_zero(cur, "insert into company_documents(business_id,doc_type,storage_path,file_name) values (%s,'cr','clients/a/cr.pdf','cr.pdf')", (F['coA'],)),
+         blocked_or_zero(cur, *doc_sql('coA', 'cr')[:2]),   # R4: a correct path, so it is the permission rule that refuses
          blocked_or_zero(cur, "insert into kpi_targets(kpi_id,scope,period_id,target_value) values (%s,'company',%s,5)", (F['kpi_ch'], F['apr26']))]
     return (all(x[0] for x in r), " · ".join(x[1][:28] for x in r))
 @test("V03 Levels are per page: a person on View for Tasks but Full on Clients uploads a company file yet can't touch a task; an unknown level word is refused")
@@ -712,7 +718,7 @@ def _(cur):
     t = new_task(cur, company='coA')
     as_user(cur, 'u6')
     a = blocked_or_zero(cur, "update tasks set title='x' where id=%s", (t,))
-    cur.execute("insert into company_documents(business_id,doc_type,storage_path,file_name) values (%s,'cr','clients/a/cr2.pdf','cr2.pdf')", (F['coA'],)); up = cur.rowcount
+    sq, a1, _p, _i = doc_sql('coA', 'cr', name='cr2.pdf'); cur.execute(sq, a1); up = cur.rowcount
     q(cur, "reset role")
     b, m = expect_fail(cur, "update app_users set page_access = page_access || '{\"tasks\":\"boss\"}' where id=%s", (F['u6'],), "Unknown level")
     return (a[0] and up == 1 and b, f"task: {a[1]} · company file uploaded={up == 1} · {m[:40]}")
@@ -1072,6 +1078,142 @@ def _(cur):
     b, m2 = expect_fail(cur, "insert into storage.objects(bucket_id,name) values ('proofs',%s)", (f'proofs/{e}/manager-after.pdf',), "row-level security")
     q(cur, "reset role")
     return (before == 1 and a and b, f"before the month was issued: stored={before} · after: owner refused={a} ({m[:40]}), full manager refused={b}")
+
+
+# ================= release 4 — the company card (2026-09-26) =================
+def store(cur, path):   # a file put in the private store at this path, as whoever is acting
+    q(cur, "insert into storage.objects(bucket_id,name) values ('company-docs',%s)", (path,))
+def seen_file(cur, path): return one(cur, "select count(*) from storage.objects where bucket_id='company-docs' and name=%s", (path,))
+
+@test("R4-01 Client IDs: at most 3 OPEN per company; unique across companies, spaces and all; closing one makes room")
+def _(cur):
+    as_user(cur, 'u1')
+    a, m1 = expect_fail(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'C-1004','tender','active')", (F['coA'],), "at most 3 open")
+    b, m2 = expect_fail(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'C-1001','tender','active')", (F['coB'],), "unique")
+    c, m3 = expect_fail(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'  C-1001 ','tender','active')", (F['coB'],), "unique")
+    d, m4 = expect_fail(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'   ','tender','active')", (F['coB'],), "needs the number")
+    q(cur, "update client_profiles set closed_at=now() where id=%s", (F['cpA_ten'],))
+    q(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,' C-1005 ','tender','active')", (F['coA'],))
+    stored = one(cur, "select direct_client_id from client_profiles where direct_client_id like '%%C-1005%%'")
+    e, m5 = expect_fail(cur, "update client_profiles set closed_at=null where id=%s", (F['cpA_ten'],), "at most 3 open")
+    q(cur, "reset role")
+    return (a and b and c and d and stored == 'C-1005' and e, f"4th open refused={a} · same ID on another company refused={b} · with spaces refused={c} · blank refused={d} · after closing one: added, stored as {stored!r} · reopening the closed one (4 open) refused={e}")
+
+@test("R4-02 View on Clients changes nothing on the company card: no client ID, no file row, no stored file, no discount link")
+def _(cur):
+    code = one(cur, "insert into promo_codes(code,kind,value_pct) values ('B2C-V','percent',5) returning id")
+    sq, a1, path, _i = doc_sql('coA', 'cr')
+    as_user(cur, 'u6')
+    r = [blocked_or_zero(cur, "insert into client_profiles(business_id,direct_client_id,profile_type) values (%s,'V-1','tender')", (F['coB'],)),
+         blocked_or_zero(cur, sq, a1),
+         blocked_or_zero(cur, "insert into storage.objects(bucket_id,name) values ('company-docs',%s)", (path,)),
+         blocked_or_zero(cur, "insert into company_discount_codes(business_id,promo_code_id) values (%s,%s)", (F['coA'], code))]
+    q(cur, "reset role")
+    return (all(x[0] for x in r), " · ".join(x[1][:30] for x in r))
+
+@test("R4-03 IBAN letters and agreements: a team member may file one but can read neither the row nor the file; a manager reads both; a CR is read at the Clients level (View too)")
+def _(cur):
+    sq, a1, iban_path, iban = doc_sql('coA', 'iban', name='iban.pdf')
+    sq2, a2, cr_path, cr = doc_sql('coA', 'cr', name='cr.pdf')
+    as_user(cur, 'u1'); q(cur, sq, a1); store(cur, iban_path); q(cur, sq2, a2); store(cur, cr_path)
+    u1_row, u1_file = one(cur, "select count(*) from company_documents where id=%s", (iban,)), seen_file(cur, iban_path)
+    u1_cr = seen_file(cur, cr_path)
+    agr = doc_sql('coA', 'agreement', name='agr.pdf'); q(cur, agr[0], agr[1]); store(cur, agr[2])
+    u1_agr = seen_file(cur, agr[2]) + one(cur, "select count(*) from company_documents where id=%s", (agr[3],))
+    presence = one(cur, "select company_documents_presence(%s)", (F['coA'],))
+    q(cur, "reset role"); as_user(cur, 'u4')
+    m_row, m_file, m_agr = one(cur, "select count(*) from company_documents where id=%s", (iban,)), seen_file(cur, iban_path), seen_file(cur, agr[2])
+    q(cur, "reset role"); as_user(cur, 'u6')
+    v_cr, v_iban = seen_file(cur, cr_path), seen_file(cur, iban_path)
+    q(cur, "reset role")
+    ok = (u1_row, u1_file, u1_agr, u1_cr, m_row, m_file, m_agr, v_cr, v_iban) == (0, 0, 0, 1, 1, 1, 1, 1, 0) and presence.get('iban') == 1 and presence.get('agreement') == 1
+    return (ok, f"team member: IBAN row={u1_row} file={u1_file}, agreement={u1_agr}, CR file={u1_cr}, sees 'on file' counts={presence} · manager: IBAN row={m_row} file={m_file} agreement={m_agr} · View: CR={v_cr} IBAN={v_iban}")
+
+@test("R4-04 The store takes a client file only at its own row's path, once, from whoever wrote the row — never overwritten, never deleted, never elsewhere")
+def _(cur):
+    sq, a1, path, i = doc_sql('coA', 'cr')
+    as_user(cur, 'u1'); q(cur, sq, a1)
+    a, m1 = expect_fail(cur, "insert into storage.objects(bucket_id,name) values ('company-docs',%s)", (f"clients/{F['coA']}/{_uuid.uuid4()}/stray.pdf",), "row-level security")
+    q(cur, "reset role"); as_user(cur, 'u2')
+    b, m2 = expect_fail(cur, "insert into storage.objects(bucket_id,name) values ('company-docs',%s)", (path,), "row-level security")
+    q(cur, "reset role"); as_user(cur, 'u1'); store(cur, path)
+    c, m3 = expect_fail(cur, "insert into storage.objects(bucket_id,name) values ('company-docs',%s)", (path,), "duplicate")
+    up = blocked_or_zero(cur, "update storage.objects set name=%s where bucket_id='company-docs' and name=%s", (path + '.x', path))
+    de = blocked_or_zero(cur, "delete from storage.objects where bucket_id='company-docs' and name=%s", (path,))
+    q(cur, "reset role"); as_user(cur, 'u4')   # even a manager with Full control on Clients
+    up2 = blocked_or_zero(cur, "update storage.objects set name=%s where bucket_id='company-docs' and name=%s", (path + '.y', path))
+    q(cur, "reset role"); still = one(cur, "select count(*) from storage.objects where name=%s", (path,))
+    return (a and b and c and up[0] and de[0] and up2[0] and still == 1, f"stray path refused={a} · colleague on someone's row refused={b} · second copy refused={c} · overwrite/rename {up[1]} · delete {de[1]} · manager rename {up2[1]} · file still there={still}")
+
+@test("R4-05 A removed file stays removed: not un-removed (even by an admin), not re-pointed, not deleted, not undone; a live file is never moved or retyped")
+def _(cur):
+    sq, a1, path, i = doc_sql('coA', 'cr')
+    as_user(cur, 'u1'); q(cur, sq, a1); q(cur, "update company_documents set deleted_at=now() where id=%s", (i,))
+    q(cur, "reset role")
+    by = one(cur, "select deleted_by=%s and deleted_at is not null from company_documents where id=%s", (F['u1'], i))
+    a, m1 = expect_fail(cur, "update company_documents set deleted_at=null where id=%s", (i,), "stays removed")          # as admin
+    b, m2 = expect_fail(cur, "update company_documents set storage_path=%s where id=%s", (path + '2', i), "stays removed")
+    c, m3 = expect_fail(cur, "delete from company_documents where id=%s", (i,), "never deleted")
+    h = one(cur, "select id from record_history where table_name='company_documents' and record_id=%s and action='delete'", (i,))
+    as_user(cur, 'u4'); u = one(cur, "select undo_change(%s)", (h,)); q(cur, "reset role")
+    still = one(cur, "select deleted_at is not null from company_documents where id=%s", (i,))
+    sq2, a2, p2, j = doc_sql('coA', 'vat')
+    as_user(cur, 'u1'); q(cur, sq2, a2)
+    d, m4 = expect_fail(cur, "update company_documents set business_id=%s where id=%s", (F['coB'], j), "never re-pointed")
+    e, m5 = expect_fail(cur, "update company_documents set doc_type='cr' where id=%s", (j,), "never re-pointed")
+    q(cur, "reset role")
+    return (by and a and b and c and still and u != 'ok' and d and e,
+            f"removed by the remover={by} · un-remove refused={a} · re-point after removal refused={b} · delete refused={c} · undo: {u!r} · still removed={still} · live file moved to another company refused={d} · its type changed refused={e}")
+
+@test("R4-06 Discount codes are LINKED, never written: one company per code, a removed link stays removed, never re-pointed; the codes and their guard untouched")
+def _(cur):
+    code = one(cur, "insert into promo_codes(code,kind,value_pct,valid_to) values ('B2C-1','percent',10,'2026-12-31') returning id")
+    before = one(cur, "select md5(string_agg(to_jsonb(p)::text, '|' order by code)) from promo_codes p")
+    guard = one(cur, "select md5(prosrc) from pg_proc where proname='promo_codes_guard'")
+    as_user(cur, 'u1'); l = one(cur, "insert into company_discount_codes(business_id,promo_code_id,note) values (%s,%s,'staff travel') returning id", (F['coA'], code))
+    q(cur, "reset role"); as_user(cur, 'u2')
+    a, m1 = expect_fail(cur, "insert into company_discount_codes(business_id,promo_code_id) values (%s,%s)", (F['coB'], code), "duplicate")
+    b, m2 = expect_fail(cur, "update company_discount_codes set business_id=%s where id=%s", (F['coB'], l), "never re-pointed")
+    q(cur, "reset role"); q(cur, "select set_config('app.today','2026-09-25',true)")
+    card = one(cur, "select string_agg(x->>'code', ',' order by x->>'code') from company_card, jsonb_array_elements(discount_codes) x where business_id=%s", (F['coA'],))
+    as_user(cur, 'u1'); q(cur, "update company_discount_codes set removed_at=now() where id=%s", (l,))
+    c, m3 = expect_fail(cur, "update company_discount_codes set removed_at=null where id=%s", (l,), "stays removed")
+    dz = blocked_or_zero(cur, "delete from company_discount_codes where id=%s", (l,))   # a team member: nothing deleted
+    q(cur, "reset role"); d, m4 = expect_fail(cur, "delete from company_discount_codes where id=%s", (l,), "never deleted"); d = d and dz[0]   # an admin: refused outright
+    as_user(cur, 'u1')
+    l2 = one(cur, "insert into company_discount_codes(business_id,promo_code_id) values (%s,%s) returning id", (F['coB'], code))   # free again → another company may take it
+    q(cur, "reset role")
+    after = one(cur, "select md5(string_agg(to_jsonb(p)::text, '|' order by code)) from promo_codes p")
+    guard2 = one(cur, "select md5(prosrc) from pg_proc where proname='promo_codes_guard'")
+    return (a and b and c and d and l2 and 'B2C-1' in (card or '') and before == after and guard == guard2,
+            f"second company refused={a} · re-point refused={b} · on the card: {card} · un-remove refused={c} · delete refused={d} · after removal another company linked it={bool(l2)} · promo_codes rows unchanged={before == after} · guard unchanged={guard == guard2}")
+
+@test("R4-07 Every company-card change is in record history with who did it: client ID, file, file removal, discount link")
+def _(cur):
+    code = one(cur, "insert into promo_codes(code,kind,value_pct) values ('B2C-H','percent',5) returning id")
+    sq, a1, path, i = doc_sql('coB', 'cr')
+    as_user(cur, 'u1')
+    q(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'H-1','tender','active')", (F['coB'],))
+    q(cur, sq, a1); q(cur, "update company_documents set deleted_at=now() where id=%s", (i,))
+    q(cur, "insert into company_discount_codes(business_id,promo_code_id) values (%s,%s)", (F['coB'], code))
+    q(cur, "reset role")
+    rows = q(cur, "select table_name, action from record_history where actor=%s and table_name in ('client_profiles','company_documents','company_discount_codes') order by id", (F['u1'],))
+    got = [f"{t}:{a}" for t, a in rows]
+    want = ['client_profiles:create', 'company_documents:create', 'company_documents:delete', 'company_discount_codes:create']
+    return (all(w in got for w in want), ", ".join(got))
+
+@test("R4-08 Direct's own company assets keep their rule (any signed-in reads, the Generator writes) — and that rule no longer reaches client files")
+def _(cur):
+    q(cur, "update app_users set page_access = page_access || '{\"documents\":\"full\",\"clients\":\"view\"}' where id=%s", (F['u3'],))
+    store(cur, 'assets/logo.png')   # as admin, a Direct asset
+    as_user(cur, 'u6'); asset = seen_file(cur, 'assets/logo.png'); q(cur, "reset role")
+    sq, a1, path, i = doc_sql('coA', 'iban'); q(cur, sq, a1); store(cur, path)
+    as_user(cur, 'u3')   # Full on the Generator, only View on Clients
+    gen_asset = blocked_or_zero(cur, "insert into storage.objects(bucket_id,name) values ('company-docs','assets/stamp.png')", None)
+    a, m = expect_fail(cur, "insert into storage.objects(bucket_id,name) values ('company-docs',%s)", (f"clients/{F['coA']}/{_uuid.uuid4()}/x.pdf",), "row-level security")
+    reads = seen_file(cur, path)
+    q(cur, "reset role")
+    return (asset == 1 and not gen_asset[0] and a and reads == 0, f"View user reads Direct's asset={asset} · Generator user writes a Direct asset={not gen_asset[0]} · Generator rule cannot write a client file={a} · nor read the IBAN letter={reads == 0}")
 
 w = max(len(n) for n, _, _ in results)
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)

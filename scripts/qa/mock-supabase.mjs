@@ -326,6 +326,14 @@ function mockLevelsOf(u){
   });
   return out;
 }
+/* 2026-09-26 — Phase 3 release 4: the company card (js/113, scripts/sql/phase3-r4-company-card.sql). A model of
+   company_documents / company_discount_codes / promo_codes and the private company-docs store, with the release's rules:
+   files and links follow the Clients level; IBAN letters and agreements are read by managers and admins only; a file is
+   stored once at its own row's path by whoever wrote the row; a removed file or link stays removed, never re-pointed;
+   one company per code; the codes themselves are never written. */
+const CARDMOCK={ docs:[], links:[], objects:{}, seq:0,
+  codes:[['B2C-SUMMER10','percent',10,'2026-06-01','2026-12-31'],['B2C-STAFF5','percent',5,'2026-01-01','2026-12-31'],['B2C-OLD','fixed',50,'2025-01-01','2025-06-30']]
+    .map((c,i)=>({id:'pc'+i,code:c[0],kind:c[1],value_pct:c[2],valid_from:c[3],valid_to:c[4],active:true,expired:false,partner_business_id:null,services:null,purpose:null})) };
 /* 2026-09-26 — Phase 3 release 2: achievements + proofs (js/111, scripts/sql/phase3-r2-achievements.sql).
    A stateful model of report_entries / evidence_files and the private "proofs" store, with the rules that
    matter to the screen: reads follow the Reports page level (none → nothing); writes need Own work or Full
@@ -843,6 +851,10 @@ export function start(port, seedOverrides){
         let rows=[]; try{ rows=JSON.parse(process.env.MOCK_CHANGES_TO_MINE||'[]'); }catch(_){}
         return send(res,200, rows);
       }
+      if(fn==='company_documents_presence'){   /* release 4: counts of live files per kind, for anyone who can see Clients */
+        const meP=TABLES.app_users.find(x=>x.id===UID && x.active); if(!meP||mockLevelsOf(meP).clients==='none') return send(res,200,null);
+        const a=parsed||{}; const o={}; CARDMOCK.docs.filter(d=>d.business_id===a.p_business&&!d.deleted_at).forEach(d=>{ o[d.doc_type]=(o[d.doc_type]||0)+1; }); return send(res,200,o);
+      }
       if(fn==='my_page_levels'){
         if(LAPSED||anonWall) return send(res,200,'null');
         const me=TABLES.app_users.find(u=>u.id===UID && u.active);
@@ -1000,7 +1012,78 @@ export function start(port, seedOverrides){
         if(REPORTMOCK.objects[name]) return send(res,409,{statusCode:'409',error:'Duplicate',message:'The resource already exists'});
         REPORTMOCK.objects[name]={size:Buffer.concat(body).length}; return send(res,200,{Key:'proofs/'+name,Id:'obj-'+(++REPORTMOCK.seq)});
       }
+      /* release 4 — the company-docs store for client company files */
+      if(rest.startsWith('sign/company-docs/')){ const name=decodeURIComponent(rest.replace('sign/company-docs/','').split('?')[0]);
+        const d=CARDMOCK.docs.find(x=>x.storage_path===name); const meC=TABLES.app_users.find(u=>u.id===UID && u.active); const lvlC=meC?mockLevelsOf(meC).clients:'none';
+        const mgr=!!meC&&['admin','manager'].includes(meC.role);
+        if(!d||!CARDMOCK.objects[name]||lvlC==='none'||(['iban','agreement'].includes(d.doc_type)&&!mgr)) return send(res,400,{statusCode:'404',error:'not_found',message:'Object not found'});
+        return send(res,200,{signedURL:'/storage/v1/object/sign/company-docs/'+encodeURIComponent(name)+'?token=qa'}); }
+      if(rest.startsWith('company-docs/') && req.method==='POST'){
+        const name=decodeURIComponent(rest.replace(/^company-docs\//,''));
+        const d=CARDMOCK.docs.find(x=>x.storage_path===name);
+        if(!d || d.deleted_at || d.created_by!==UID) return send(res,403,{statusCode:'403',error:'Unauthorized',message:'new row violates row-level security policy'});
+        if(CARDMOCK.objects[name]) return send(res,409,{statusCode:'409',error:'Duplicate',message:'The resource already exists'});
+        CARDMOCK.objects[name]={size:Buffer.concat(body).length}; return send(res,200,{Key:'company-docs/'+name,Id:'obj-'+(++CARDMOCK.seq)});
+      }
       return send(res,400,{statusCode:'400',error:'not_modelled',message:'mock: storage path not modelled'});
+    });
+  }
+  /* promo_codes stays with the ordinary table path (a probe may seed 1,200 of them and page through); only when
+     nothing seeded any does the release-4 sample stand in */
+  if(path.startsWith('/rest/v1/promo_codes') && !(TABLES.promo_codes&&TABLES.promo_codes.length)) TABLES.promo_codes=CARDMOCK.codes.slice();
+  if(path.startsWith('/rest/v1/') && ['company_documents','company_discount_codes'].includes(path.replace('/rest/v1/','').split('?')[0])){
+    const t=path.replace('/rest/v1/','').split('?')[0]; markServed(t,req.method);
+    const me=TABLES.app_users.find(u=>u.id===UID && u.active); const lvl=me?mockLevelsOf(me).clients:'none';
+    const mgr=!!me&&['admin','manager'].includes(me.role); const write=lvl==='full';
+    const err=(status,code,message)=>send(res,status,{code,details:null,hint:null,message});
+    const q1=(k)=>{ const v=u.query&&u.query[k]; return v==null?null:String(Array.isArray(v)?v[0]:v); };
+    const filt=(rows)=>{ let out=rows.slice(); Object.keys(u.query||{}).forEach(k=>{ if(['select','order','limit','offset','columns'].includes(k))return; const v=q1(k)||''; let m;
+      if((m=v.match(/^eq\.(.*)$/))) out=out.filter(r=>String(r[k])===m[1]); else if(v==='is.null') out=out.filter(r=>r[k]==null);
+      else if((m=v.match(/^in\.\((.*)\)$/))){ const set=m[1].split(',').map(x=>x.replace(/^"|"$/g,'')); out=out.filter(r=>set.includes(String(r[k]))); } }); return out; };
+    const readable=(d)=> lvl!=='none' && (!['iban','agreement'].includes(d.doc_type) || mgr);
+    const wantsRow=/return=representation/.test(String(req.headers['prefer']||''));
+    if(req.method==='GET'){
+      if(lvl==='none') return send(res,200,[]);
+      if(t==='company_discount_codes') return send(res,200,filt(CARDMOCK.links));
+      return send(res,200,filt(CARDMOCK.docs.filter(readable)));
+    }
+    let body=''; req.on('data',c=>body+=c);
+    return req.on('end',()=>{
+      let payload={}; try{ payload=JSON.parse(body||'{}'); }catch(_){ return err(400,'PGRST102','invalid JSON'); }
+      if(req.method==='POST'){
+        const rows=Array.isArray(payload)?payload:[payload]; const out=[];
+        for(const r of rows){
+          if(!write) return err(403,'42501','new row violates row-level security policy for table "'+t+'"');
+          if(t==='company_discount_codes'){
+            if(CARDMOCK.links.some(l=>l.promo_code_id===r.promo_code_id&&!l.removed_at)) return err(409,'23505','duplicate key value violates unique constraint "company_discount_codes_one_company"');
+            const row={id:'cdc'+(++CARDMOCK.seq),business_id:r.business_id,promo_code_id:r.promo_code_id,note:r.note||null,linked_by:UID,linked_at:new Date().toISOString(),removed_at:null,removed_by:null};
+            CARDMOCK.links.push(row); out.push(row); continue; }
+          const id=r.id||('cd'+(++CARDMOCK.seq));
+          if(!r.storage_path||r.storage_path.indexOf('clients/'+r.business_id+'/'+id+'/')!==0) return err(400,'P0001','A company file is stored at clients/<company>/<file id>/<name>');
+          const row=Object.assign({},r,{id,created_by:UID,created_at:new Date().toISOString(),deleted_at:null,deleted_by:null});
+          CARDMOCK.docs.push(row); out.push(row);
+        }
+        if(!wantsRow) return send(res,201,'');
+        const vis=t==='company_documents'?out.filter(readable):out;
+        if(t==='company_documents'&&vis.length<out.length) return err(403,'42501','new row violates row-level security policy for table "company_documents"');
+        return send(res,201,vis);
+      }
+      if(req.method==='PATCH'){
+        const list=t==='company_discount_codes'?CARDMOCK.links:CARDMOCK.docs;
+        const hit=filt(list).filter(r=>t!=='company_documents'||readable(r));
+        if(!write) return send(res,200,wantsRow?[]:'');
+        for(const r of hit){
+          if(t==='company_discount_codes'){ if(r.removed_at) return err(400,'P0001','A removed link stays removed — link the code again if it is needed');
+            if(('business_id' in payload&&payload.business_id!==r.business_id)||('promo_code_id' in payload&&payload.promo_code_id!==r.promo_code_id)) return err(400,'P0001','A link is never re-pointed — remove it and link again');
+            if(payload.removed_at){ r.removed_at=new Date().toISOString(); r.removed_by=UID; } if('note' in payload) r.note=payload.note; continue; }
+          if(r.deleted_at) return err(400,'P0001','A removed file stays removed — upload it again if it is needed');
+          for(const k of ['business_id','client_profile_id','doc_type','storage_path','file_name','mime_type','size_bytes']) if(k in payload && payload[k]!==r[k]) return err(400,'P0001','A company file is never re-pointed — remove it and upload the right one');
+          if(payload.deleted_at){ r.deleted_at=new Date().toISOString(); r.deleted_by=UID; } if('title' in payload) r.title=payload.title; if('valid_to' in payload) r.valid_to=payload.valid_to;
+        }
+        return send(res,200,wantsRow?hit:'');
+      }
+      if(req.method==='DELETE') return send(res,200,wantsRow?[]:'');   // no delete rule: nothing is deleted
+      return err(405,'PGRST000','not modelled');
     });
   }
   if(path.startsWith('/rest/v1/') && REPORTMOCK.tables.has(path.replace('/rest/v1/','').split('?')[0])){
@@ -1488,6 +1571,11 @@ export function start(port, seedOverrides){
           let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
           if(!Array.isArray(payload)) payload=[payload];
           TABLES.client_profiles=TABLES.client_profiles||[];
+          /* release 4 (client_profiles_card_guard + the unique key): trimmed, unique across companies, at most 3 open */
+          for(const row of payload){ row.direct_client_id=String(row.direct_client_id==null?'':row.direct_client_id).trim();
+            if(!row.direct_client_id) return send(res,400,{code:'P0001',details:null,hint:null,message:'A client ID needs the number Direct Payments gave it'});
+            if(TABLES.client_profiles.some(p=>String(p.direct_client_id).trim()===row.direct_client_id)) return send(res,409,{code:'23505',details:null,hint:null,message:'duplicate key value violates unique constraint "client_profiles_direct_client_id_key"'});
+            if(TABLES.client_profiles.filter(p=>p.business_id===row.business_id&&!p.closed_at).length>=3) return send(res,400,{code:'P0001',details:null,hint:null,message:'A company holds at most 3 open client IDs — close one before adding another'}); }
           const written=payload.map(row=>{ const newRow=Object.assign({id:row.id||('mock-cp-'+Math.random().toString(36).slice(2)),created_at:new Date().toISOString()},row); TABLES.client_profiles.push(newRow); return newRow; });
           return send(res,201,written);
         });
