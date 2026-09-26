@@ -420,7 +420,7 @@ let RDB=rptLoad();
    the live list (__rptDB), a replaceable writer (__rptSaveHook — js/111 keeps only this browser's own data
    here), and a row decorator (__rptRowHook — draft / proof marks). Without js/111 all three do nothing. */
 try{ Object.defineProperty(window,'__rptDB',{get:function(){return RDB;},configurable:true}); }catch(_){}
-try{ window.__rptLists={ objectives:RPT_OBJECTIVES, kpis:RPT_KPIS, objTitle:rptObjTitle, kpiTitle:rptKpiTitle }; }catch(_){}
+try{ window.__rptLists={ objectives:RPT_OBJECTIVES, kpis:RPT_KPIS, objTitle:rptObjTitle, kpiTitle:rptKpiTitle, deptLabel:function(d){ return rptDeptLabel(d); } }; }catch(_){}
 function rptSave(){ if(typeof window.__rptSaveHook==='function'){ window.__rptSaveHook(RDB); return; } localStorage.setItem(RPT_KEY,JSON.stringify(RDB));}
 const rptUid=()=>"a_"+Date.now()+"_"+Math.floor(Math.random()*1e4);
 const rfmtN=v=>v==null||isNaN(v)?"—":Number(v).toLocaleString("en-US",{maximumFractionDigits:1});

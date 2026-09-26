@@ -63,10 +63,12 @@
       q(c.from('departments').select('id,code,name_en,name_ar,active,sort').order('sort')),
       q(c.from('team_members').select('id,user_id,department_id,active')),
       q(c.from('team_directory').select('id,full_name,name_ar')).catch(function(){ return []; }),
-      q(c.from('objectives').select('id,year,n,title_en,title_ar'))
+      q(c.from('objectives').select('id,year,n,title_en,title_ar,strategy_link,owner_text')),
+      /* the plan's initiatives sit under their objective, as the old cards showed them */
+      q(c.from('initiatives').select('id,year,n,title_en,title_ar,objective_id')).catch(function(){ return []; })
     ]).then(function(r){
       S.busy=false; S.err=null;
-      S.defs=r[0]; S.pace=r[1]; S.actuals=r[2]; S.periods=r[3]; S.deps=r[4]; S.members=r[5]; S.people=r[6]; S.objs=r[7];
+      S.defs=r[0]; S.pace=r[1]; S.actuals=r[2]; S.periods=r[3]; S.deps=r[4]; S.members=r[5]; S.people=r[6]; S.objs=r[7]; S.inits=r[8]||[];
       S.byId={}; S.byN={}; S.defs.forEach(function(d){ S.byId[d.id]=d; if(d.n!=null) S.byN[d.n]=d; });
       if(!S.sel.period){ var y=periodOf('year',todayISO_())||planYear(); S.sel.period=y?y.id:null; }
       /* core-10's plan list takes its targets from the database (company, 2026) so every bar on the page agrees */
@@ -148,7 +150,14 @@
     }).join(''); };
     var body=groups.filter(function(g){ return g.defs.length; }).map(function(g){
       var title=g.o?('#'+g.o.n+' — '+(isAr()?(g.o.title_ar||g.o.title_en):g.o.title_en)):fl('Other KPIs','مؤشرات أخرى');
-      return '<div class="card" style="margin-bottom:12px"><h3 style="margin:0 0 8px;font-size:14px">'+esc(title)+'</h3><div class="tbl-wrap"><table><thead><tr><th></th><th>'+fl('KPI','المؤشر')+'</th><th>'+fl('Target','الهدف')+'</th><th>'+fl('Actual','الفعلي')+'</th><th>'+fl('Of target','من الهدف')+'</th><th>'+fl('Light','الضوء')+'</th><th></th></tr></thead><tbody>'+rows(g.defs)+'</tbody></table></div></div>';
+      /* the objective's strategic link and owner, and its initiatives — what the old cards carried */
+      var plan=g.o?((lists().objectives||[]).filter(function(x){ return x.n===g.o.n; })[0]||{}):{};
+      var link=g.o?(g.o.strategy_link||plan.link||''):'', owner=g.o?(plan.dept||g.o.owner_text||''):'';
+      var ownerW=owner?((lists().deptLabel?lists().deptLabel(owner):owner)):'';
+      var meta=g.o?'<div class="meta rpt-small" style="margin:-4px 0 8px">'+(link?esc(fl('Strategic link ','الربط الاستراتيجي ')+link):'')+(link&&ownerW?' · ':'')+esc(ownerW)+'</div>':'';
+      var ins=g.o?(S.inits||[]).filter(function(i){ return i.objective_id===g.o.id; }).sort(function(a,b){ return a.n-b.n; }):[];
+      var insH=ins.length?'<div style="margin-top:8px"><div class="rpt-small" style="font-weight:700;letter-spacing:.04em">'+fl('INITIATIVES','المبادرات')+'</div>'+ins.map(function(i){ return '<div class="rpt-small">• '+esc(isAr()?(i.title_ar||i.title_en):i.title_en)+'</div>'; }).join('')+'</div>':'';
+      return '<div class="card rpt-obj" data-v112-obj="'+esc(g.o?g.o.n:'other')+'" style="margin-bottom:12px"><h3 style="margin:0 0 8px;font-size:14px">'+esc(title)+'</h3>'+meta+'<div class="tbl-wrap"><table><thead><tr><th></th><th>'+fl('KPI','المؤشر')+'</th><th>'+fl('Target','الهدف')+'</th><th>'+fl('Actual','الفعلي')+'</th><th>'+fl('Of target','من الهدف')+'</th><th>'+fl('Light','الضوء')+'</th><th></th></tr></thead><tbody>'+rows(g.defs)+'</tbody></table></div>'+insH+'</div>';
     }).join('');
     var sum='<div class="rpt-small" data-v112-summary="1" style="margin:0 0 10px">'+Object.keys(LIGHTS).filter(function(k){ return counts[k]; }).map(function(k){ return chip(k)+' '+counts[k]; }).join(' · ')+'</div>';
     b.innerHTML=h+sum+body;

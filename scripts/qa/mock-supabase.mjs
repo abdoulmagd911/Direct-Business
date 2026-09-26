@@ -349,8 +349,9 @@ const REPORTMOCK=(()=>{
   let seed=[]; try{ seed=JSON.parse(process.env.MOCK_REPORTS_SEED||'[]'); }catch(_){ seed=[]; }
   const entries=seed.map((r,i)=>Object.assign({id:'re-seed-'+(i+1),period_id:'per-2026-09',department_id:'dep-commercial',member_id:null,section:'achievement',category_id:'cat-other',title:'Seed',
     text_en:null,text_ar:null,entry_date:'2026-09-10',business_id:null,objective_id:null,kpi_id:null,value:null,source:'manual',source_id:null,status:'final',import_key:null,created_by:null},r));
-  return { periods, cats, objectives, kpis, entries, files:[], objects:{}, seq:0, pace, actuals,
-           tables:new Set(['report_entries','periods','report_categories','objectives','kpi_definitions','evidence_files','kpi_pace','kpi_actuals','kpi_targets']) };
+  const initiatives=[]; for(let n=1;n<=12;n++) initiatives.push({id:'ini-'+n,year:2026,n,title_en:'QA initiative '+n,title_ar:'مبادرة تجريبية '+n,objective_id:'obj-'+n});
+  return { periods, cats, objectives, kpis, entries, files:[], objects:{}, seq:0, pace, actuals, initiatives,
+           tables:new Set(['report_entries','periods','report_categories','objectives','kpi_definitions','evidence_files','kpi_pace','kpi_actuals','kpi_targets','initiatives']) };
 })();
 const RPCLOG=[];
 // Lapsed-session switch (2026-09-02, attack round 18): GET /__lapse?on=1 makes the mock answer
@@ -1018,6 +1019,7 @@ export function start(port, seedOverrides){
       if(t==='report_categories') return send(res,200,REPORTMOCK.cats);
       if(t==='objectives') return send(res,200,REPORTMOCK.objectives);
       if(t==='kpi_definitions') return send(res,200,REPORTMOCK.kpis);
+      if(t==='initiatives') return send(res,200,REPORTMOCK.initiatives);
       if(t==='kpi_pace') return send(res,200,lvl==='none'?[]:REPORTMOCK.pace);
       if(t==='kpi_actuals') return send(res,200,lvl==='none'?[]:REPORTMOCK.actuals);
       if(t==='kpi_targets') return send(res,200,REPORTMOCK.pace.map(p=>({id:p.target_id,kpi_id:p.kpi_id,scope:p.scope,period_id:p.period_id,target_value:p.target_value})));
