@@ -8,8 +8,9 @@ keeps; a.hassan@directksa.net is his Team-Member test view). **Ahmed Aboelmagd**
 **different colleague**, not the owner. The Claude account is shared, so "the user" in a session may be the
 owner or the oversight chat — never infer who from the account name. (DECISIONS D8.)
 
-**2 · Home page.** The project's home page on Drive:
-https://docs.google.com/document/d/1756Ldt1th0qLgcBKm62Z5g_UmY8WKoiQoS0QZ8RLo4A/edit
+**2 · Home page.** The Google Doc named **"00 — START HERE (Direct · All In)"** in the Drive KB folder
+`1nfOES1oPdh2y0ShkrPnSN9CnVj1hFtyP` — find it **by name**; its link changes on each update, so none is kept here
+(not the older "00 — README · start here" in the same folder).
 
 **3 · Where the rules live.** `docs/DECISIONS.md` — every binding rule, with why and status; check it before
 any nontrivial action and add what you learn in the same commit. The highest-stakes ones: M1 money is clean
