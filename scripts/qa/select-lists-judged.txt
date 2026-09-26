@@ -68,3 +68,5 @@ core-06-v18-v21.js:actFilter.action                     : FILTER — the audit l
 core-06-v18-v21.js:actFilter.user                       : FILTER — the audit log's user filter.
 core-10-v29-reports.js:rptRep.obj                       : FILTER — the report's objective filter.
 core-10-v29-reports.js:rptRep.quarter                   : FILTER — the report's quarter picker.
+112-kpis-and-the-danger-light.js:sel.kind  :  FILTER — the Objectives & KPIs tab's period kind (Year / Quarter / Month); a screen choice, never stored.
+112-kpis-and-the-danger-light.js:sel.period  :  FILTER — which period the tab shows; a screen choice, never stored.

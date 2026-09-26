@@ -338,13 +338,20 @@ const REPORTMOCK=(()=>{
     periods.push({id:`per-${y}-${mm}`,kind:'month',year:y,month:m,quarter:Math.ceil(m/3),start_date:`${y}-${mm}-01`,end_date:`${y}-${mm}-${String(last).padStart(2,'0')}`,locked_at:null}); }
   const cats=[['deals','New deals & bookings','صفقات وحجوزات جديدة',1],['tenders','Tenders','المناقصات',2],['partners','Partnerships & suppliers','الشراكات والمزودون',3],['other','Other','أخرى',99]]
     .map(a=>({id:'cat-'+a[0],code:a[0],name_en:a[1],name_ar:a[2],sort:a[3],active:true}));
-  const objectives=[]; for(let n=1;n<=14;n++) objectives.push({id:'obj-'+n,year:2026,n});
-  const kpis=[]; for(let n=1;n<=30;n++) kpis.push({id:'kpi-'+n,n,code:'K'+String(n).padStart(2,'0'),method:n===19?'finance_revenue':'manual',unit:n===19?'SAR':'count',objective_id:null});
+  const objectives=[]; for(let n=1;n<=14;n++) objectives.push({id:'obj-'+n,year:2026,n,title_en:'QA objective '+n,title_ar:'هدف تجريبي '+n});
+  const kpis=[]; for(let n=1;n<=30;n++) kpis.push({id:'kpi-'+n,n,code:'K'+String(n).padStart(2,'0'),name_en:'QA KPI '+n,name_ar:'مؤشر تجريبي '+n,method:n===19?'finance_revenue':'manual',unit:n===19?'SAR':'count',aggregation:'sum',direction:'higher',objective_id:'obj-'+(((n-1)%14)+1),is_draft:false,active:true});
+  /* release 3: year periods too, and the danger light's rows (MOCK_KPI_PACE / MOCK_KPI_ACTUALS: JSON arrays) */
+  for(let y=2025;y<=2027;y++){ periods.push({id:`per-${y}`,kind:'year',year:y,month:null,quarter:null,start_date:`${y}-01-01`,end_date:`${y}-12-31`,label_en:String(y),label_ar:String(y),locked_at:null});
+    for(let q=1;q<=4;q++){ const sm=String((q-1)*3+1).padStart(2,'0'), em=String(q*3).padStart(2,'0'), last=new Date(Date.UTC(y,q*3,0)).getUTCDate();
+      periods.push({id:`per-${y}-q${q}`,kind:'quarter',year:y,quarter:q,month:null,start_date:`${y}-${sm}-01`,end_date:`${y}-${em}-${last}`,label_en:`Q${q} ${y}`,label_ar:`الربع ${q} ${y}`,locked_at:null}); } }
+  periods.forEach(p=>{ if(p.kind==='month'){ p.label_en=p.label_en||(p.start_date.slice(0,7)); p.label_ar=p.label_ar||p.start_date.slice(0,7); } });
+  let pace=[], actuals=[]; try{ pace=JSON.parse(process.env.MOCK_KPI_PACE||'[]'); }catch(_){ pace=[]; } try{ actuals=JSON.parse(process.env.MOCK_KPI_ACTUALS||'[]'); }catch(_){ actuals=[]; }
   let seed=[]; try{ seed=JSON.parse(process.env.MOCK_REPORTS_SEED||'[]'); }catch(_){ seed=[]; }
   const entries=seed.map((r,i)=>Object.assign({id:'re-seed-'+(i+1),period_id:'per-2026-09',department_id:'dep-commercial',member_id:null,section:'achievement',category_id:'cat-other',title:'Seed',
     text_en:null,text_ar:null,entry_date:'2026-09-10',business_id:null,objective_id:null,kpi_id:null,value:null,source:'manual',source_id:null,status:'final',import_key:null,created_by:null},r));
-  return { periods, cats, objectives, kpis, entries, files:[], objects:{}, seq:0,
-           tables:new Set(['report_entries','periods','report_categories','objectives','kpi_definitions','evidence_files']) };
+  const initiatives=[]; for(let n=1;n<=12;n++) initiatives.push({id:'ini-'+n,year:2026,n,title_en:'QA initiative '+n,title_ar:'مبادرة تجريبية '+n,objective_id:'obj-'+n});
+  return { periods, cats, objectives, kpis, entries, files:[], objects:{}, seq:0, pace, actuals, initiatives,
+           tables:new Set(['report_entries','periods','report_categories','objectives','kpi_definitions','evidence_files','kpi_pace','kpi_actuals','kpi_targets','initiatives']) };
 })();
 const RPCLOG=[];
 // Lapsed-session switch (2026-09-02, attack round 18): GET /__lapse?on=1 makes the mock answer
@@ -662,6 +669,12 @@ export function start(port, seedOverrides){
   }
   if(path==='/__rpclog') return send(res,200,RPCLOG);
   if(path==='/__lapse'){ LAPSED=String(u.query.on||'')==='1'; return send(res,200,{lapsed:LAPSED}); }
+  /* release 3 test switch: GET /__kpi_actual?n=8&v=20000000 sets the company's 2026 actual for KPI n (v empty = not
+     measured), the way kpi_actuals would report it — the page's hand-typed box is gone, the figure is the database's */
+  if(path==='/__kpi_actual'){ const n=Number(u.query.n), v=String(u.query.v==null?'':u.query.v); const id='kpi-'+n;
+    REPORTMOCK.actuals=REPORTMOCK.actuals.filter(a=>!(a.kpi_id===id&&a.scope==='company'&&a.period_id==='per-2026'));
+    if(v!=='') REPORTMOCK.actuals.push({kpi_id:id,scope:'company',member_id:null,department_id:null,period_id:'per-2026',actual:Number(v),rows_counted:1,lines_cost_missing:null});
+    return send(res,200,{ok:true,n,v}); }
   // MOCK_ANON_ENFORCE=1 (2026-09-02, share-link attack round) — model the LIVE grant/RLS wall
   // for a caller with NO session (the share-link visitor). Read straight off the real project
   // the same day: EXECUTE on share_view and app_role IS granted to `anon`; save_state,
@@ -1006,6 +1019,10 @@ export function start(port, seedOverrides){
       if(t==='report_categories') return send(res,200,REPORTMOCK.cats);
       if(t==='objectives') return send(res,200,REPORTMOCK.objectives);
       if(t==='kpi_definitions') return send(res,200,REPORTMOCK.kpis);
+      if(t==='initiatives') return send(res,200,REPORTMOCK.initiatives);
+      if(t==='kpi_pace') return send(res,200,lvl==='none'?[]:REPORTMOCK.pace);
+      if(t==='kpi_actuals') return send(res,200,lvl==='none'?[]:REPORTMOCK.actuals);
+      if(t==='kpi_targets') return send(res,200,REPORTMOCK.pace.map(p=>({id:p.target_id,kpi_id:p.kpi_id,scope:p.scope,period_id:p.period_id,target_value:p.target_value})));
       if(lvl==='none') return send(res,200,[]);
       if(t==='report_entries') return send(res,200,filt(REPORTMOCK.entries));
       if(t==='evidence_files') return send(res,200,filt(REPORTMOCK.files.filter(f=>!f.deleted_at)));
@@ -1014,6 +1031,16 @@ export function start(port, seedOverrides){
     return req.on('end',()=>{
       let payload={}; try{ payload=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
       const rls=()=>err(403,'42501','new row violates row-level security policy for table "'+t+'"');
+      /* targets (release 3): an admin, or a manager with Full control on Reports — anyone else: refused / no row */
+      if(t==='kpi_targets'){
+        const may=!!me && (me.role==='admin' || (me.role==='manager' && lvl==='full'));
+        if(req.method==='POST'){ if(!may) return rls(); const r=Object.assign({},Array.isArray(payload)?payload[0]:payload,{id:'tg-'+(++REPORTMOCK.seq)});
+          REPORTMOCK.pace.push({target_id:r.id,kpi_id:r.kpi_id,scope:r.scope,member_id:r.member_id||null,department_id:r.department_id||null,period_id:r.period_id,target_value:r.target_value,actual:null,pct_of_target:null,light:'not_measured',lines_cost_missing:null});
+          return send(res,201,[r]); }
+        if(req.method==='PATCH'){ if(!may) return send(res,200,[]); const id=(String((u.query||{}).id||'').match(/^eq\.(.*)$/)||[])[1];
+          const hit=REPORTMOCK.pace.filter(p=>p.target_id===id); hit.forEach(p=>{ p.target_value=payload.target_value; if(p.actual!=null&&p.target_value>0) p.pct_of_target=Math.round(1000*p.actual/p.target_value)/10; });
+          return send(res,200,hit.map(p=>({id:p.target_id}))); }
+      }
       if(lvl!=='own' && lvl!=='full') return req.method==='POST'?rls():send(res,200,[]);
       if(t==='evidence_files' && req.method==='POST'){
         const rows=(Array.isArray(payload)?payload:[payload]).map(r=>Object.assign({id:'ef-'+(++REPORTMOCK.seq),created_at:new Date().toISOString(),deleted_at:null},r,{uploaded_by:myM?myM.id:r.uploaded_by}));

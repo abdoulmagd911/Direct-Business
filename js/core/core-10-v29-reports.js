@@ -420,13 +420,17 @@ let RDB=rptLoad();
    the live list (__rptDB), a replaceable writer (__rptSaveHook — js/111 keeps only this browser's own data
    here), and a row decorator (__rptRowHook — draft / proof marks). Without js/111 all three do nothing. */
 try{ Object.defineProperty(window,'__rptDB',{get:function(){return RDB;},configurable:true}); }catch(_){}
-try{ window.__rptLists={ objectives:RPT_OBJECTIVES, kpis:RPT_KPIS, objTitle:rptObjTitle, kpiTitle:rptKpiTitle }; }catch(_){}
+try{ window.__rptLists={ objectives:RPT_OBJECTIVES, kpis:RPT_KPIS, objTitle:rptObjTitle, kpiTitle:rptKpiTitle, deptLabel:function(d){ return rptDeptLabel(d); } }; }catch(_){}
 function rptSave(){ if(typeof window.__rptSaveHook==='function'){ window.__rptSaveHook(RDB); return; } localStorage.setItem(RPT_KEY,JSON.stringify(RDB));}
 const rptUid=()=>"a_"+Date.now()+"_"+Math.floor(Math.random()*1e4);
 const rfmtN=v=>v==null||isNaN(v)?"—":Number(v).toLocaleString("en-US",{maximumFractionDigits:1});
 function rfmtTarget(k){return k.type==="sar"?rfmtN(k.target)+" SAR":k.type==="pct"?k.target+"%":k.type==="score"?k.target:rfmtN(k.target);}
 function rfmtVal(k,v){if(v==null)return "—";return k.type==="sar"?rfmtN(v)+" SAR":k.type==="pct"?rfmtN(v)+"%":rfmtN(v);}
 function rptActual(k){
+  /* 2026-09-26 (Phase 3 release 3): the KPI's actual comes from the database (kpi_actuals — Finance, tasks and final
+     achievements) when js/112 has it; the hand-typed number and this browser's list are the old way, used only
+     without js/112. undefined = "js/112 has no answer yet", null = "not measured". */
+  try{ if(typeof window.__rptActualHook==='function'){ const v=window.__rptActualHook(k); if(v!==undefined) return v; } }catch(_){}
   const ov=RDB.overrides[k.n];
   if(ov!=null&&ov!=="")return Number(ov);
   const rows=RDB.achievements.filter(a=>Number(a.kpi)===k.n&&a.value!==""&&a.value!=null&&!isNaN(a.value));
@@ -478,7 +482,9 @@ window.renderReports=function(v){
  let html='<div class="rpt-tabs">'+tabs.map(t=>'<button class="'+(rptTab===t[0]?'on':'')+'" onclick="rptGo(\''+t[0]+'\')">'+t[1]+'</button>').join('')+'</div><div id="rptbody"></div>';
  v.innerHTML=html;
  const b=document.getElementById('rptbody');
- ({overview:rptOverview,achievements:rptAch,objectives:rptObj,report:rptReport})[rptTab](b);
+ /* release 3: a tab js/112 draws from the database replaces core-10's own (window.__rptTabs) */
+ const _tabs=Object.assign({overview:rptOverview,achievements:rptAch,objectives:rptObj,report:rptReport},(window.__rptTabs||{}));
+ _tabs[rptTab](b);
 };
 function rptRowAch(a,withActs){
  const k=RPT_KPIS.find(x=>x.n===Number(a.kpi));

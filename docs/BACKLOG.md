@@ -734,7 +734,8 @@ the Reports export moved into Phase 3; Airlines/Suppliers/SOP & SLA View or Full
 Bookings, Invoices, Tickets and Sync join the grid; storage, edge functions and triggers in scope;
 live attack tests as employee and manager; the portal is the design base; DirectFont waits for the
 web/marketing team's written OK; P4 suspended while one session writes.
-**Still open:** that written OK for DirectFont (the owner brings it).
+~~**Still open:** that written OK for DirectFont (the owner brings it).~~ **Closed 2026-09-26:** the owner gave his OK
+(DECISIONS D4); DirectFont goes live in its own small PR after #41 (loaded from assets.directksa.com, never copied here).
 
 ---
 
@@ -19709,6 +19710,13 @@ owner says go, on the day** — never on a schedule, never by a session deciding
    the real run.
 4. **After the reset, data enters only through the importer and the Direct Payments sync** (the provenance rule) —
    no hand-loaded SQL rows, no snapshot restores over the fresh tables.
+
+## Phase 3 release 3 — KPIs + the danger light (2026-09-26)
+
+**What:** the Objectives & KPIs tab and a Today card draw the database's KPI figures and danger light (`js/112`); targets are
+set by an admin or a manager with Full control on Reports (`scripts/sql/phase3-r3-kpis.sql`). Details: DECISIONS D1.
+**Left for later:** targets for departments and people exist only once someone sets them (today there are 30 company/year
+targets); 5 of the 30 KPIs are still drafts; KPI definitions are edited by SQL, not yet on screen; the appraisal cycle.
 
 ## Phase 3 release 2 — achievements + proofs (2026-09-26)
 
