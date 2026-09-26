@@ -2,7 +2,7 @@
 
 ## Current brief (keep it short; last updated 2026-09-26)
 
-**1 · Who's who.** Abdulrahman (the owner, non-technical — plain words) signs in as
+**1 · Who's who.** Abdurahman (the owner, non-technical — plain words) signs in as
 **aboelmagd@directksa.com**, his admin account and the one on the team list (business@ is another login he
 keeps; a.hassan@directksa.net is his Team-Member test view). **Ahmed Aboelmagd** (ahmed.aboelmagd@) is a
 **different colleague**, not the owner. The Claude account is shared, so "the user" in a session may be the
