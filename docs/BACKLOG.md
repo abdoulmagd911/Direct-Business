@@ -19688,6 +19688,28 @@ the field back and retypes (it prints how many retries it needed), so it is reli
 first clear sometimes does not take is not known. If a person ever reports "I deleted it and it came
 back" on a company card, start here.
 
+## Go-live reset — its own release, run only on the owner's explicit go (owner's word, 2026-09-26; DECISIONS D9)
+
+Everything in the app today is test data. After the build is finalised it is reset to zero and the correct data is
+loaded fresh. Built and tested like any other release (a PR, a script + its checks, reviewed), and **run only when the
+owner says go, on the day** — never on a schedule, never by a session deciding it is time.
+
+1. **A written list, table by table, before any code:**
+   - **wiped:** business records (companies/leads/clients, contacts, client profiles, requests, offers, bookings, the
+     finance mirror and its links, discount-code rows), tasks and projects with their checklists/comments/files,
+     achievements and report lines, proofs and company files (the storage objects too), history/logs
+     (record_history, activity, access logs), and numbering back to 001 (document_counters, the TSK/PRJ and report
+     counters);
+   - **stays:** logins (auth + app_users), page levels, the team list and departments, KPI definitions (and the
+     objectives they hang on), the service list and other lookups (statuses, priorities, work types, report
+     categories, periods), settings.
+2. **A full backup/export first, kept outside the database** (rule 7: never in this repo — Drive or local only), and
+   checked restorable before anything is wiped.
+3. **A dry run that rolls back** and reports, per table, how many rows would go and how many stay — reviewed before
+   the real run.
+4. **After the reset, data enters only through the importer and the Direct Payments sync** (the provenance rule) —
+   no hand-loaded SQL rows, no snapshot restores over the fresh tables.
+
 ## Phase 3 release 2 — achievements + proofs (2026-09-26)
 
 **What:** achievements move from each browser into the company database (`js/111`, `scripts/sql/phase3-r2-achievements.sql`),
@@ -19695,8 +19717,8 @@ with proofs, drafts from tasks, and a one-press move of what a browser still hol
 **Left for later, on purpose:** the monthly/quarterly report *registration* (issuing a numbered report and locking the month —
 the `reports` table exists, no screen issues one yet); removing a proof from the screen (the database supports it by
 `deleted_at`); the KPI "actual" numbers typed by hand still live in the browser (they belong with the KPI actuals release);
-KPI targets and the appraisal cycle. **Watch after go-live:** the owner's own browser is where the old achievements are — the
-move card appears on his Reports page; once he presses it, count `report_entries where import_key like 'browser:%'`.
+KPI targets and the appraisal cycle. **Owner's word (2026-09-26, D9):** the old browser achievements and hand-typed KPI numbers are test data — nobody needs
+to press "Move them", and release 3 does not move browser KPI numbers. The button stays, harmless.
 
 **Explained and fixed — probe-two-people-one-record-are-told failed only under load (2026-09-25).** Not the
 probe and not js/104: js/102 (the "a change never reached the server" notice) read its note only once the

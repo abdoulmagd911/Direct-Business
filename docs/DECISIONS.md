@@ -3073,6 +3073,19 @@ his name to business@ now sends it to aboelmagd@, so the 3 companies assigned to
 Before changing anything about his accounts again, check here.
 *Date: 2026-09-25. Status: ACTIVE.*
 
+**D9 — Everything in the app today is test data; at go-live it is reset to zero and the correct data is loaded
+fresh (the owner's word, 2026-09-26).** Some of today's rows came from Direct Payments and Direct website
+reports, but nothing is in real use yet. After the build is finalised, all business data and logs are wiped and
+the correct data enters fresh — only through the importer and the Direct Payments sync (the provenance rule).
+**What this changes:** nothing old needs carrying over. The achievements still held in a browser and the KPI
+"actual" numbers typed by hand are test data — the owner does not press "Move them" (js/111 keeps the button
+for anyone who wants it, harmless), and release 3 does not move browser KPI numbers.
+**What it does NOT change:** no safety work is skipped because the data is test data — every rule (levels, row
+rules, guards, history, provenance, M1 money doctrine, rule 7) must hold the day real data arrives, and each
+release is still tested as if the data were real. The reset itself is a release of its own (docs/BACKLOG.md
+"Go-live reset"), built and tested like the others and run only on the owner's explicit go, on the day.
+*Date: 2026-09-26. Status: ACTIVE.*
+
 **M84 — what someone typed into a funnel form can be found by typing it into a search box.**
 Found 2026-09-24 (fire #240) by counting the live database rather than reading the code. The app
 asks each company its funnel's own questions — MoT licence and IATA numbers for a travel-trade
