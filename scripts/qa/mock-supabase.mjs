@@ -1028,7 +1028,10 @@ export function start(port, seedOverrides){
       return send(res,400,{statusCode:'400',error:'not_modelled',message:'mock: storage path not modelled'});
     });
   }
-  if(path.startsWith('/rest/v1/') && ['company_documents','company_discount_codes','promo_codes'].includes(path.replace('/rest/v1/','').split('?')[0])){
+  /* promo_codes stays with the ordinary table path (a probe may seed 1,200 of them and page through); only when
+     nothing seeded any does the release-4 sample stand in */
+  if(path.startsWith('/rest/v1/promo_codes') && !(TABLES.promo_codes&&TABLES.promo_codes.length)) TABLES.promo_codes=CARDMOCK.codes.slice();
+  if(path.startsWith('/rest/v1/') && ['company_documents','company_discount_codes'].includes(path.replace('/rest/v1/','').split('?')[0])){
     const t=path.replace('/rest/v1/','').split('?')[0]; markServed(t,req.method);
     const me=TABLES.app_users.find(u=>u.id===UID && u.active); const lvl=me?mockLevelsOf(me).clients:'none';
     const mgr=!!me&&['admin','manager'].includes(me.role); const write=lvl==='full';
@@ -1040,15 +1043,13 @@ export function start(port, seedOverrides){
     const readable=(d)=> lvl!=='none' && (!['iban','agreement'].includes(d.doc_type) || mgr);
     const wantsRow=/return=representation/.test(String(req.headers['prefer']||''));
     if(req.method==='GET'){
-      if(lvl==='none' && t!=='promo_codes') return send(res,200,[]);
-      if(t==='promo_codes') return send(res,200,me?filt(CARDMOCK.codes):[]);
+      if(lvl==='none') return send(res,200,[]);
       if(t==='company_discount_codes') return send(res,200,filt(CARDMOCK.links));
       return send(res,200,filt(CARDMOCK.docs.filter(readable)));
     }
     let body=''; req.on('data',c=>body+=c);
     return req.on('end',()=>{
       let payload={}; try{ payload=JSON.parse(body||'{}'); }catch(_){ return err(400,'PGRST102','invalid JSON'); }
-      if(t==='promo_codes') return err(403,'42501','new row violates row-level security policy for table "promo_codes"');   // the codes are never written from here
       if(req.method==='POST'){
         const rows=Array.isArray(payload)?payload:[payload]; const out=[];
         for(const r of rows){
