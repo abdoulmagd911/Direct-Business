@@ -5,20 +5,32 @@
    (corporate.directksa.com) is the base — its warm taupe/brown surfaces and text, its tables — and
    ORANGE IS FOR THE ONE MAIN ACTION on a screen. Values are the ones measured on 2026-09-25
    (docs/PHASE0_REVIEW_2026-09-25.md, "the two websites side by side"), copied here, never loaded
-   from Direct's servers (their component library refuses other sites).
+   from Direct's servers (their component library refuses other sites) — the one exception is the
+   DirectFont files below, which Direct's server does serve to other sites.
 
    FONT. DirectFont, for both languages, is the owner's choice, and the owner gave his OK on 2026-09-26
    (DECISIONS D4 — it replaces the old "written OK from web/marketing" gate). It is loaded from Direct's
    own server, assets.directksa.com, never copied into this repo (its file says "All rights reserved"),
    and goes FIRST in the two font lists below and nowhere else; Inter (English, the portal's own first
-   font) and Cairo (Arabic, open licence) stay behind it as the fallback. Until that small PR lands the
-   lists still start with Inter / Cairo.
+   font) and Cairo (Arabic, open licence) stay behind it as the fallback.
 
    HOW IT WINS. index.html loads this file LAST, after every inline style block, so equal rules here
    take effect; where an older block used !important, so does the matching rule here, and only there.
    It only sets things; removing the <link> line puts the old look back exactly.
 
    Guarded by scripts/qa/probe-design-file-on-every-page.mjs.                                        */
+
+/* DirectFont (the owner's OK, 2026-09-26 — DECISIONS D4). Loaded from Direct's own server, which allows it
+   (access-control-allow-origin: *), exactly as directksa.com declares it — never copied into this repo, whose
+   rule and the font's own "All rights reserved" both forbid it. Only the weights the app's text uses (measured on
+   every page, EN and AR: 400 500 600 700 800; the four elements at 900 take 800, the heaviest there is).
+   font-display:swap — the text shows at once in Inter/Cairo and changes to DirectFont when it arrives; if Direct's
+   server cannot be reached, Inter/Cairo simply stay. */
+@font-face{font-family:DirectFont;src:url(https://assets.directksa.com/direct_font_woff2/400-DirectFont-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:DirectFont;src:url(https://assets.directksa.com/direct_font_woff2/500-DirectFont-Medium.woff2) format("woff2");font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:DirectFont;src:url(https://assets.directksa.com/direct_font_woff2/600-DirectFont-SemiBold.woff2) format("woff2");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:DirectFont;src:url(https://assets.directksa.com/direct_font_woff2/700-DirectFont-Bold.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:DirectFont;src:url(https://assets.directksa.com/direct_font_woff2/800-DirectFont-Black.woff2) format("woff2");font-weight:800;font-style:normal;font-display:swap}
 
 :root{
   --design-file:"1c";                 /* the probe reads this on every page */
@@ -37,8 +49,9 @@
   /* orange — the main action only (the portal's call-to-action orange; unchanged) */
   --orange:#FF6B00;
 
-  --font-en:'Inter','Cairo',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --font-ar:'Cairo','Inter',system-ui,sans-serif;
+  /* DirectFont first (owner's OK 2026-09-26), then the fallback that stood before it */
+  --font-en:'DirectFont','Inter','Cairo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-ar:'DirectFont','Cairo','Inter',system-ui,sans-serif;
 }
 
 /* fonts — !important only because an older layer (js/core/core-09-v26.js, "Font wiring") injects
