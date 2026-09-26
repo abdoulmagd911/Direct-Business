@@ -124,6 +124,8 @@ flyers.
   hairline `#E6E8EC`, wash `#F6F7F9`, wash-orange `#FFF3EC`, white.
 - **Type:** EN Proxima Nova (Alt) 400/600/700 · AR 29LT Zarid Slab 400–900 ·
   Bahij TheSansArabic for price-table emphasis. Arabic always RTL.
+  **Headings (2026-09-26, owner's OK):** DirectFont, Cairo when it cannot load — `--font-head`
+  in `tokens.css`; the Generator's printed documents and the PowerPoint exports both use it.
 - **Shapes:** rounded cards (12–16px) with soft shadows, orange stat numbers in white icon
   tiles, orange section titles top-left, logo top-center, swoosh footer +
   `www.directksa.com`, orange page-number tab on the right edge, solid-orange closing page.
@@ -156,8 +158,9 @@ Anything meant to be *read and decided on* rather than presented.
   hairline + wash surfaces; semantics: green `#16B364`, red `#F0453A` / `#D92D20`,
   amber `#F79009`, blue `#2E90FA`, purple `#7A5AF8`. Semantic colors are for state only —
   orange stays the single accent.
-- **Type:** system fonts (SF Pro / Segoe / -apple-system); Arabic Cairo/Tajawal.
-  No exotic webfonts — matches all three live Direct systems, keeps the app fast.
+- **Type:** DirectFont first (2026-09-26, the owner's OK — Direct's own font, loaded from
+  `assets.directksa.com`, never copied into the repo); behind it Inter / system fonts in English
+  and Cairo/Tajawal in Arabic, which is what draws when DirectFont cannot load.
 - **Shapes:** dense tables, Roles + Status as first-class chip columns, onboarding status
   on companies, KPI stat tiles, toasts for feedback.
 - **House rule (all Direct systems):** proof on every number — every figure links to its

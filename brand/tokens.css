@@ -34,9 +34,26 @@
 
   --font-en: 'Proxima Nova Alt', 'Proxima Nova', 'Segoe UI', -apple-system, sans-serif;
   --font-ar: 'Zarid Slab', '29LT Zarid Slab', 'Bahij TheSansArabic', serif;
+  /* 2026-09-26 — document HEADINGS are DirectFont (the owner's OK, DECISIONS D4), Cairo when it cannot
+     load. The two lists above stay as written for body text. DirectFont's @font-face lives in
+     css/design.css (loaded from assets.directksa.com — the file is never copied here); a page that
+     does not load it simply draws Cairo. The PowerPoint exports read the first name of this list
+     (window.dgHeadFont, js/66), so a deck and a printed page name the same heading font. */
+  --font-head: 'DirectFont', 'Cairo', 'Segoe UI', -apple-system, sans-serif;
 
   --radius-card: 14px;
   --shadow-card: 0 6px 18px -8px rgba(48, 56, 72, .18);
+}
+/* The headings take --font-head whatever language the app is in. !important because the app's
+   design file sets every Arabic element's font with !important ([dir=rtl], :lang(ar)) — without it
+   an Arabic page's headings would stay on --font-ar. The two list variables are pointed at the
+   heading font too, because that same Arabic rule re-fonts every element INSIDE a heading (a
+   heading's words usually sit in a <span>) from var(--font-ar) — measured: "Price Offer" drew in a
+   serif fallback in Arabic mode until this line existed. */
+[data-identity="classic"] :is(h1, h2, h3, h4) {
+  --font-en: var(--font-head);
+  --font-ar: var(--font-head);
+  font-family: var(--font-head) !important;
 }
 
 /* ---------- Identity B · Direct Editorial (internal reading) ---------- */
@@ -98,8 +115,10 @@
   --info:   #2E90FA;
   --extra:  #7A5AF8;
 
-  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-ar: 'Cairo', 'Tajawal', 'Inter', system-ui, sans-serif;
+  /* DirectFont first (2026-09-26, DECISIONS D4), the old lists kept behind it as the fallback */
+  --font-ui: 'DirectFont', 'Inter', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-ar: 'DirectFont', 'Cairo', 'Tajawal', 'Inter', system-ui, sans-serif;
+  --font-head: 'DirectFont', 'Cairo', 'Inter', system-ui, sans-serif;
 
   --radius-card: 10px;
 }

@@ -3070,8 +3070,18 @@ and the ~2,500 colour literals inside the layers — each moves into it in later
 DirectFont goes live in its own small PR after #41: loaded from `assets.directksa.com` — **never copied into this
 repo** (its file says "All rights reserved") — in the weights actually used, and put FIRST in the two font lists in
 `css/design.css` and nowhere else; Inter (English) and Cairo (Arabic) stay behind it as the fallback, and a run with
-that host blocked must still read Inter/Cairo with no broken text.
-*Date: 2026-09-25; DirectFont OK 2026-09-26. Status: ACTIVE.*
+that host blocked must still read Inter/Cairo with no broken text. **Live 2026-09-26 (#42).**
+**Extended the same day (the oversight, after #43): the Generator's headings too, through `brand/tokens.css`.**
+`--font-head` (DirectFont, then Cairo) on Identity A heads every generated document's h1–h4 in both languages, and
+Identity C (the Generator's own screen) starts with DirectFont — the Arabic Generator was the one page still drawn in
+Cairo. The PowerPoint exports name the same heading font, read from that file (`window.dgHeadFont`, js/66); body
+text stays Cairo. **A .pptx names ONE font and cannot carry a fallback list**: on a computer without DirectFont,
+PowerPoint picks its own stand-in (as it already did for Cairo, which standard Windows does not have either); the
+Arabic stays joined because PowerPoint shapes it. The printed PDF has no such limit — Chrome embeds the font it drew,
+DirectFont or Cairo. Guard: `probe-generator-fonts-in-exports`. Body text of the documents is unchanged (Identity A's
+Proxima/Zarid lists, which the app does not load — so body text prints in the computer's own fonts; a separate
+question for the owner, not decided here).
+*Date: 2026-09-25; DirectFont OK 2026-09-26; Generator headings 2026-09-26. Status: ACTIVE.*
 
 **D5 — The Executive CRM Dashboard will be replaced by this app** once the new pages are done. Learn
 from it and fix what went wrong there; there is no overlap to protect.

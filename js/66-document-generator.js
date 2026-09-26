@@ -109,6 +109,20 @@
     };
     el.remove(); return out;
   };
+  /* 2026-09-26 — the heading font of a document, read from the same brand/tokens.css the printed
+     pages use (--font-head on Identity A), for the PowerPoint exports. A .pptx names ONE font and
+     cannot carry a fallback list, so the first name is the one written; the list's second name
+     (Cairo) is the answer when the stylesheet has not loaded at all. */
+  window.dgHeadFont=function(){
+    try{
+      var el=document.createElement('div');
+      el.setAttribute('data-identity','classic');
+      el.style.display='none'; document.body.appendChild(el);
+      var v=getComputedStyle(el).getPropertyValue('--font-head'); el.remove();
+      var first=String(v||'').split(',')[0].trim().replace(/^['"]|['"]$/g,'');
+      return first||'Cairo';
+    }catch(_){ return 'Cairo'; }
+  };
 
   /* ---------- part 2 — register the page ---------- */
   var IC_DOCS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>';

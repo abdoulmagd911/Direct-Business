@@ -686,6 +686,13 @@ window.rptWord=function(){var b=new Blob([String.fromCharCode(0xFEFF)+rptFullDoc
 window.rptPpt=function(){
  var go=function(){try{
   var P=new PptxGenJS();P.defineLayout({name:"W",width:13.33,height:7.5});P.layout="W";
+  /* 2026-09-26: headings in the documents' heading font (brand/tokens.css --font-head, read by js/66 —
+     DirectFont; Cairo if the stylesheet is missing); body text stays Cairo. In an Arabic deck every text
+     box is written right-to-left and set from the right, as the page is — the library's presentation-wide
+     rtlMode only flips the slide order, so it goes on each box (rt). */
+  var HF=(typeof window.dgHeadFont==="function")?window.dgHeadFont():"Cairo";
+  var AR=(typeof LANG!=="undefined"&&LANG==="ar");
+  var rt=function(o){if(AR){o.rtlMode=true;if(!o.align)o.align="right";}return o;};
   /* 2026-09-23 (fire #222): this deck is a DOCUMENT, and brand/index.html puts the rule in one
      line — "Documents use #F06820 · tiny marks & favicons use #FF6C00 · the app uses #F47A1F. They
      are siblings — don't fix one to match another." It was painted in the app's orange because a
@@ -694,32 +701,37 @@ window.rptPpt=function(){
   var ORANGE="F06820",INK="1C1E2B",CREAM="FBF8F4",MUT="7C8194";
   var s=P.addSlide();s.background={color:INK};
   try{if(typeof logoSrc==="function")s.addImage({data:logoSrc(),x:0.7,y:0.6,h:0.85,w:2.6});}catch(_){}
-  s.addText("Direct Business",{x:0.7,y:2.7,w:11,fontSize:44,bold:true,color:"FFFFFF",fontFace:"Cairo"});
-  s.addText(rptTitle(),{x:0.7,y:3.8,w:11,fontSize:22,color:"FF9D45",fontFace:"Cairo"});
-  s.addText(rptAr("Commercial Department - Operational Plan 2026","القسم التجاري - الخطة التشغيلية 2026")+" - directksa.com",{x:0.7,y:6.6,w:11,fontSize:12,color:"B9BDCB",fontFace:"Cairo"});
+  s.addText("Direct Business",rt({x:0.7,y:2.7,w:11,fontSize:44,bold:true,color:"FFFFFF",fontFace:HF}));
+  s.addText(rptTitle(),rt({x:0.7,y:3.8,w:11,fontSize:22,color:"FF9D45",fontFace:HF}));
+  s.addText(rptAr("Commercial Department - Operational Plan 2026","القسم التجاري - الخطة التشغيلية 2026")+" - directksa.com",rt({x:0.7,y:6.6,w:11,fontSize:12,color:"B9BDCB",fontFace:"Cairo"}));
   var hdr=[{text:rptAr("KPI","المؤشر"),options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}},{text:rptAr("Target","الهدف"),options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}},{text:rptAr("Actual","الفعلي"),options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}},{text:rptAr("Progress","التقدم"),options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}}];
   var all=RPT_KPIS.map(function(k){var act=rptActual(k);var pc=rptPct(k);return [{text:"KPI "+k.n+" - "+k.t,options:{color:INK}},{text:rfmtTarget(k),options:{color:INK,align:"right"}},{text:rfmtVal(k,act),options:{color:INK,align:"right"}},{text:(act==null?"-":pc+"%"),options:{bold:true,align:"right",color:(pc>=100?"1E9E62":pc>=50?ORANGE:"D9920B")}}];});
   for(var i=0;i<all.length;i+=12){
     var sl=P.addSlide();sl.background={color:CREAM};
-    sl.addText(rptAr("KPI progress vs 2026 targets","تقدّم المؤشرات مقابل أهداف 2026")+(all.length>12?(" ("+(Math.floor(i/12)+1)+")"):""),{x:0.6,y:0.35,fontSize:20,bold:true,color:INK,fontFace:"Cairo"});
+    sl.addText(rptAr("KPI progress vs 2026 targets","تقدّم المؤشرات مقابل أهداف 2026")+(all.length>12?(" ("+(Math.floor(i/12)+1)+")"):""),rt({x:0.6,y:0.35,fontSize:20,bold:true,color:INK,fontFace:HF}));
     sl.addTable([hdr].concat(all.slice(i,i+12)),{x:0.6,y:1.0,w:12.1,fontSize:11,fontFace:"Cairo",border:{type:"solid",color:"EEE8DE",pt:0.5},colW:[7.3,1.6,1.6,1.6]});
   }
   var ach=rptFilterAch();
   for(var j=0;j<ach.length;j+=7){
     var sa=P.addSlide();sa.background={color:CREAM};
-    sa.addText(rptAr("Achievements","الإنجازات")+(ach.length>7?(" ("+(Math.floor(j/7)+1)+")"):""),{x:0.6,y:0.35,fontSize:20,bold:true,color:INK,fontFace:"Cairo"});
-    sa.addText(ach.slice(j,j+7).map(function(a){return {text:a.date+"  "+a.title+(a.client?" ["+a.client+"]":"")+" - "+a.member+(a.value?(" - "+a.value):""),options:{bullet:true,fontSize:13,color:INK,breakLine:true,fontFace:"Cairo"}};}),{x:0.6,y:1.1,w:12.1,h:5.6});
+    sa.addText(rptAr("Achievements","الإنجازات")+(ach.length>7?(" ("+(Math.floor(j/7)+1)+")"):""),rt({x:0.6,y:0.35,fontSize:20,bold:true,color:INK,fontFace:HF}));
+    sa.addText(ach.slice(j,j+7).map(function(a){return {text:a.date+"  "+a.title+(a.client?" ["+a.client+"]":"")+" - "+a.member+(a.value?(" - "+a.value):""),options:rt({bullet:true,fontSize:13,color:INK,breakLine:true,fontFace:"Cairo"})};}),{x:0.6,y:1.1,w:12.1,h:5.6});
   }
-  if(!ach.length){var se=P.addSlide();se.background={color:CREAM};se.addText(rptAr("No achievements logged in this period.","لم تُسجَّل إنجازات في هذه الفترة."),{x:0.6,y:3,fontSize:16,color:MUT,fontFace:"Cairo"});}
+  if(!ach.length){var se=P.addSlide();se.background={color:CREAM};se.addText(rptAr("No achievements logged in this period.","لم تُسجَّل إنجازات في هذه الفترة."),rt({x:0.6,y:3,fontSize:16,color:MUT,fontFace:"Cairo"}));}
   var sf=P.addSlide();sf.background={color:INK};
   var _ppName=''; try{ if(typeof window.dgIdentityValue==='function') _ppName=String(window.dgIdentityValue('legal_name','en')||'').trim(); }catch(_){ }
-  if(_ppName) sf.addText(_ppName,{x:0.7,y:3.0,w:11,fontSize:18,bold:true,color:"FFFFFF",fontFace:"Cairo"});
+  if(_ppName) sf.addText(_ppName,rt({x:0.7,y:3.0,w:11,fontSize:18,bold:true,color:"FFFFFF",fontFace:"Cairo"}));
   var _ppFoot=((typeof window.rptFootBits==='function')?window.rptFootBits():'').replace(/\u00b7/g,'-');
-  if(_ppFoot) sf.addText(_ppFoot,{x:0.7,y:3.8,w:11,fontSize:13,color:"FF9D45",fontFace:"Cairo"});
+  if(_ppFoot) sf.addText(_ppFoot,rt({x:0.7,y:3.8,w:11,fontSize:13,color:"FF9D45",fontFace:"Cairo"}));
   P.writeFile({fileName:rptTitleEn().replace(/[^\w]+/g,"-")+".pptx"});
  }catch(e){alert(rptAr("PowerPoint export failed: ","تعذّر تصدير PowerPoint: ")+(e&&e.message?e.message:e));}};
  if(window.PptxGenJS){go();return;}
- var sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/pptxgen/3.12.0/pptxgen.bundle.min.js";sc.onload=go;sc.onerror=function(){alert(rptAr("Internet needed once to load the PowerPoint engine.","يلزم اتصال بالإنترنت مرة واحدة لتحميل محرك PowerPoint."));};document.head.appendChild(sc);
+ /* 2026-09-26: this used to load cdnjs.cloudflare.com/ajax/libs/pptxgen/3.12.0/… — cdnjs has no such
+    library (it answers 404; its own search for "pptx" finds nothing), so every press ended in "Internet
+    needed". The Projects decks' loader (core-08, v25LoadPptx) is the one engine address now. */
+ var fail=function(){alert(rptAr("Internet needed once to load the PowerPoint engine.","يلزم اتصال بالإنترنت مرة واحدة لتحميل محرك PowerPoint."));};
+ if(typeof window.v25LoadPptx==="function"){window.v25LoadPptx().then(go,fail);return;}
+ var sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js";sc.onload=go;sc.onerror=fail;document.head.appendChild(sc);
 };console.info('%c[v29.1] Reports module embedded (storage: directReportsData_v1)','color:#FF6B00;font-weight:700');
 })();
 
