@@ -75,7 +75,11 @@ again. Read with D2's "every phase lands by pull request": the owner has approve
 so a session merges its own pull request once its tests are green, and says so in its report. What
 this does NOT cover: an action of a kind never approved before, and anything that deletes real data
 or cannot be undone — those still go to the owner first (CLAUDE.md rule 9's carve-out).
-*Date: 2026-09-25. Status: ACTIVE.*
+**Restated 2026-09-26, verbatim: "Always approve all the previous requests"** — given on release 4 (#46), which had
+gone up for review as a new kind of release. So the pending asks were approved (#46 merged once its full run was
+green, its database change applied from the merged commit); releases are still built and tested exactly as before
+(full run green, a rolled-back live run, the live check after), and the carve-out above still stands.
+*Date: 2026-09-25; restated 2026-09-26. Status: ACTIVE.*
 
 **P5 — A correct rule that nothing consults is not a rule.** Hit this exact failure shape
 three times now: the Takamol exclusion list (correct, seeded, wired into every importer —
@@ -3119,7 +3123,7 @@ in `record_history`, and nothing on it copies Direct Payments (D6):
   control of Clients may add one; they then see it as "🔒 on file", counted by `company_documents_presence`, and cannot
   open it. Other files follow the Clients page level. The bucket's old rule ("any signed-in person reads everything in
   company-docs") no longer reaches `clients/…`; Direct's own assets there keep it.
-*Date: 2026-09-26. Status: ACTIVE (pending the oversight's review of release 4).*
+*Date: 2026-09-26. Status: ACTIVE (approved under P6 as restated 2026-09-26).*
 
 **D8 — Abdulrahman's logins, in his own word (2026-09-25): `aboelmagd@directksa.com` is his admin account
 and the one that belongs on the team list.** `business@directksa.com` is a login he keeps (untouched), not

@@ -19715,7 +19715,7 @@ place the keyboard when it is not already inside the form; core-08 also stopped 
 opening (7 openings had left 11). Guard: `probe-the-form-keeps-your-keyboard` (sabotage: the old code → 10 red). The
 retype loop in `probe-the-card-shows-what-the-database-holds` is gone — it types once, as a person does.
 
-## Phase 3 release 4 — the company card (2026-09-26, PR for the oversight's review — not pre-approved)
+## Phase 3 release 4 — the company card (2026-09-26, #46 — approved under P6 as restated 2026-09-26)
 
 **What:** one card on a client's page (`js/113-company-card.js`) with the company's Direct Payments client IDs, its
 discount codes and its files; database `scripts/sql/phase3-r4-company-card.sql` (+ rollback). Rules in DECISIONS D10.
