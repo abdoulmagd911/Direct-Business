@@ -1,5 +1,47 @@
 # Direct Business — working notes for Claude
 
+## Current brief (keep it short; last updated 2026-09-26)
+
+**1 · Who's who.** Abdulrahman (the owner, non-technical — plain words) signs in as
+**aboelmagd@directksa.com**, his admin account and the one on the team list (business@ is another login he
+keeps; a.hassan@directksa.net is his Team-Member test view). **Ahmed Aboelmagd** (ahmed.aboelmagd@) is a
+**different colleague**, not the owner. The Claude account is shared, so "the user" in a session may be the
+owner or the oversight chat — never infer who from the account name. (DECISIONS D8.)
+
+**2 · Home page.** The project's home page on Drive:
+https://docs.google.com/document/d/1756Ldt1th0qLgcBKm62Z5g_UmY8WKoiQoS0QZ8RLo4A/edit
+
+**3 · Where the rules live.** `docs/DECISIONS.md` — every binding rule, with why and status; check it before
+any nontrivial action and add what you learn in the same commit. The highest-stakes ones: M1 money is clean
+(no VAT in cost/revenue/profit); cost = approved expenses only, never invented; **real company data is never
+committed** (rule 7 below — the repo is public); data enters only through the importer and the Direct
+Payments sync. **All data in the app today is test data** (D9): at go-live it is reset to zero and loaded
+fresh — but no safety work is ever skipped because of it. Also: `docs/BACKLOG.md` (open work).
+
+**4 · Roles.** Claude Code (this session) **builds**: code, SQL, tests, PRs, and switching a merged change on
+live. The owner's **oversight chat reviews** every PR before merge. **P6**: once a flow is approved, it stays
+approved — a green full run on an approved kind of change merges without asking again. Every change lands by
+PR into `claude/new-session-9fhlp1` (production; Vercel deploys it in ~30 s); database changes are applied
+at merge from the merged commit (checksum-checked), after a rolled-back live check.
+
+**5 · Release status** (update this in the same PR at the end of every release):
+- Phase 1 (four access levels, one design file) — live. Phase 3, the task manager built inside this app:
+  - release 1 tasks + projects (#36) — live; the D7 undo rule and the team list in Team & Access (#38) — live;
+  - release 2 achievements + proofs (#40) — live;
+  - release 3 KPIs + the danger light (#41), with the objectives/initiatives rule and the proof month lock — live;
+  - DirectFont (#42) — in review.
+- Next: the company card (client IDs, discount codes, company files), issuing numbered reports, the
+  appraisal cycle — and the **go-live reset**, its own release, run only on the owner's explicit go.
+
+**6 · Working habits.** Test with the harness (`scripts/qa/`, fake data) **and** against the live database
+read-only (see "What this session can and cannot reach"); full battery `scripts/qa/run-battery.sh -j 4`
+before any merge; the QA login is `test@directksa.com`; staff passwords are never in this repo.
+
+---
+
+## History — older notes, kept as written (the brief above supersedes them where they differ)
+
+
 > **2026-08-23 — READ `docs/DECISIONS.md` FIRST, before touching money display, permissions,
 > or data provenance.** The single short file of rules currently binding — not narrative,
 > not a snapshot, edited in place when something is superseded. Built after this project
