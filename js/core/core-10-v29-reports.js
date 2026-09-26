@@ -164,7 +164,7 @@
         : '');
     var tenderBlock=tender?'<h2>Why Direct for your tender · لماذا دايركت</h2><p>A Saudi-accredited TMC with 10+ years of government & enterprise travel operations, 600+ airline agreements, 24/7 servicing, ZATCA-compliant invoicing, and an in-house technology subsidiary (TECHTIC). Trusted by Saudi Red Crescent, Ma\'aden and Saudi Ports Authority.</p>':'';
     var html='<!DOCTYPE html><meta charset="utf-8"><title>'+(tender?'Direct Travel — Tender One-Pager':'About Direct Travel')+'</title>'+
-     '<style>body{font-family:Inter,Arial,sans-serif;color:#1C1E2B;max-width:820px;margin:24px auto;padding:0 24px;line-height:1.6}h1{color:#FF6B00;margin:0 0 2px;font-size:26px}h2{border-bottom:2px solid #FF6B00;padding-bottom:4px;margin-top:22px;font-size:16px}.ar{direction:rtl;text-align:right;font-family:Tajawal,Arial}.row{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}.b{background:#FFF1E6;color:#A9781A;border:1px solid #F4C892;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700}table{width:100%;border-collapse:collapse;font-size:13px}td{border:1px solid #eee;padding:7px 9px}.k{background:#faf7f2;font-weight:700;width:38%}@media print{.noprint{display:none}}</style>'+
+     (typeof window.dgDocFontsHead==='function'?window.dgDocFontsHead():'')+'<style>body{font-family:'+(window.DG_DOC_FONT||"'DirectFont','Cairo',sans-serif")+';color:#1C1E2B;max-width:820px;margin:24px auto;padding:0 24px;line-height:1.6}h1{color:#FF6B00;margin:0 0 2px;font-size:26px}h2{border-bottom:2px solid #FF6B00;padding-bottom:4px;margin-top:22px;font-size:16px}.ar{direction:rtl;text-align:right}.row{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}.b{background:#FFF1E6;color:#A9781A;border:1px solid #F4C892;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700}table{width:100%;border-collapse:collapse;font-size:13px}td{border:1px solid #eee;padding:7px 9px}.k{background:#faf7f2;font-weight:700;width:38%}@media print{.noprint{display:none}}</style>'+
      '<button class="noprint" onclick="window.print()" style="background:#FF6B00;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;margin-bottom:14px">🖨 Print / Save as PDF</button>'+
      _notice+
      '<h1>Direct Travel · DirectKSA</h1>'+
@@ -678,16 +678,16 @@ function rptText(){
  return t;
 }
 window.rptCopyReport=function(){navigator.clipboard.writeText(rptText()).then(()=>alert(rptAr('Report text copied — paste into WhatsApp or email.','تم نسخ نص التقرير — الصقه في واتساب أو البريد.')));};
-function rptFullDoc(){return '<!DOCTYPE html><html'+rptAr('',' dir="rtl" lang="ar"')+'><head><meta charset="UTF-8"><title>'+esc(rptTitle())+'</title><style>body{font-family:Cairo,Inter,system-ui,sans-serif;color:#1C1E2B;max-width:860px;margin:30px auto;padding:0 20px}</style></head><body>'+rptHTML()+'</body></html>';}
-window.rptPrintReport=function(){const w=window.open('','_blank');if(!w){alert(rptAr('Allow popups to print.','اسمح بالنوافذ المنبثقة للطباعة.'));return;}w.document.write(rptFullDoc());w.document.close();setTimeout(()=>w.print(),400);};
+function rptFullDoc(){return '<!DOCTYPE html><html'+rptAr('',' dir="rtl" lang="ar"')+'><head><meta charset="UTF-8"><title>'+esc(rptTitle())+'</title>'+(typeof window.dgDocFontsHead==='function'?window.dgDocFontsHead():'')+'<style>body{font-family:'+(window.DG_DOC_FONT||"'DirectFont','Cairo',sans-serif")+';color:#1C1E2B;max-width:860px;margin:30px auto;padding:0 20px}</style></head><body>'+rptHTML()+'</body></html>';}
+window.rptPrintReport=function(){const w=window.open('','_blank');if(!w){alert(rptAr('Allow popups to print.','اسمح بالنوافذ المنبثقة للطباعة.'));return;}w.document.write(rptFullDoc());w.document.close();if(typeof window.dgPrintWhenReady==='function')window.dgPrintWhenReady(w);else setTimeout(()=>w.print(),400);};
 window.rptDownloadReport=function(){const b=new Blob([rptFullDoc()],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=rptTitleEn().replace(/[^\w]+/g,'-')+'.html';a.click();};
 window.rptExportJSON=function(){const b=new Blob([JSON.stringify(RDB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-reports-backup-'+todayISO()+'.json';a.click();};
 window.rptWord=function(){var b=new Blob([String.fromCharCode(0xFEFF)+rptFullDoc()],{type:"application/msword"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=rptTitleEn().replace(/[^\w]+/g,"-")+".doc";a.click();};
 window.rptPpt=function(){
  var go=function(){try{
   var P=new PptxGenJS();P.defineLayout({name:"W",width:13.33,height:7.5});P.layout="W";
-  /* 2026-09-26: headings in the documents' heading font (brand/tokens.css --font-head, read by js/66 —
-     DirectFont; Cairo if the stylesheet is missing); body text stays Cairo. In an Arabic deck every text
+  /* 2026-09-26: the whole deck in the documents' font (brand/tokens.css --font-head, read by js/66 —
+     DirectFont; Cairo if the stylesheet is missing) — headings first (#44), body text too (the owner's pick). In an Arabic deck every text
      box is written right-to-left and set from the right, as the page is — the library's presentation-wide
      rtlMode only flips the slide order, so it goes on each box (rt). */
   var HF=(typeof window.dgHeadFont==="function")?window.dgHeadFont():"Cairo";
@@ -703,26 +703,26 @@ window.rptPpt=function(){
   try{if(typeof logoSrc==="function")s.addImage({data:logoSrc(),x:0.7,y:0.6,h:0.85,w:2.6});}catch(_){}
   s.addText("Direct Business",rt({x:0.7,y:2.7,w:11,fontSize:44,bold:true,color:"FFFFFF",fontFace:HF}));
   s.addText(rptTitle(),rt({x:0.7,y:3.8,w:11,fontSize:22,color:"FF9D45",fontFace:HF}));
-  s.addText(rptAr("Commercial Department - Operational Plan 2026","القسم التجاري - الخطة التشغيلية 2026")+" - directksa.com",rt({x:0.7,y:6.6,w:11,fontSize:12,color:"B9BDCB",fontFace:"Cairo"}));
+  s.addText(rptAr("Commercial Department - Operational Plan 2026","القسم التجاري - الخطة التشغيلية 2026")+" - directksa.com",rt({x:0.7,y:6.6,w:11,fontSize:12,color:"B9BDCB",fontFace:HF}));
   var hdr=[{text:rptAr("KPI","المؤشر"),options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}},{text:rptAr("Target","الهدف"),options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}},{text:rptAr("Actual","الفعلي"),options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}},{text:rptAr("Progress","التقدم"),options:{bold:true,color:"FFFFFF",fill:{color:ORANGE}}}];
   var all=RPT_KPIS.map(function(k){var act=rptActual(k);var pc=rptPct(k);return [{text:"KPI "+k.n+" - "+k.t,options:{color:INK}},{text:rfmtTarget(k),options:{color:INK,align:"right"}},{text:rfmtVal(k,act),options:{color:INK,align:"right"}},{text:(act==null?"-":pc+"%"),options:{bold:true,align:"right",color:(pc>=100?"1E9E62":pc>=50?ORANGE:"D9920B")}}];});
   for(var i=0;i<all.length;i+=12){
     var sl=P.addSlide();sl.background={color:CREAM};
     sl.addText(rptAr("KPI progress vs 2026 targets","تقدّم المؤشرات مقابل أهداف 2026")+(all.length>12?(" ("+(Math.floor(i/12)+1)+")"):""),rt({x:0.6,y:0.35,fontSize:20,bold:true,color:INK,fontFace:HF}));
-    sl.addTable([hdr].concat(all.slice(i,i+12)),{x:0.6,y:1.0,w:12.1,fontSize:11,fontFace:"Cairo",border:{type:"solid",color:"EEE8DE",pt:0.5},colW:[7.3,1.6,1.6,1.6]});
+    sl.addTable([hdr].concat(all.slice(i,i+12)),{x:0.6,y:1.0,w:12.1,fontSize:11,fontFace:HF,border:{type:"solid",color:"EEE8DE",pt:0.5},colW:[7.3,1.6,1.6,1.6]});
   }
   var ach=rptFilterAch();
   for(var j=0;j<ach.length;j+=7){
     var sa=P.addSlide();sa.background={color:CREAM};
     sa.addText(rptAr("Achievements","الإنجازات")+(ach.length>7?(" ("+(Math.floor(j/7)+1)+")"):""),rt({x:0.6,y:0.35,fontSize:20,bold:true,color:INK,fontFace:HF}));
-    sa.addText(ach.slice(j,j+7).map(function(a){return {text:a.date+"  "+a.title+(a.client?" ["+a.client+"]":"")+" - "+a.member+(a.value?(" - "+a.value):""),options:rt({bullet:true,fontSize:13,color:INK,breakLine:true,fontFace:"Cairo"})};}),{x:0.6,y:1.1,w:12.1,h:5.6});
+    sa.addText(ach.slice(j,j+7).map(function(a){return {text:a.date+"  "+a.title+(a.client?" ["+a.client+"]":"")+" - "+a.member+(a.value?(" - "+a.value):""),options:rt({bullet:true,fontSize:13,color:INK,breakLine:true,fontFace:HF})};}),{x:0.6,y:1.1,w:12.1,h:5.6});
   }
-  if(!ach.length){var se=P.addSlide();se.background={color:CREAM};se.addText(rptAr("No achievements logged in this period.","لم تُسجَّل إنجازات في هذه الفترة."),rt({x:0.6,y:3,fontSize:16,color:MUT,fontFace:"Cairo"}));}
+  if(!ach.length){var se=P.addSlide();se.background={color:CREAM};se.addText(rptAr("No achievements logged in this period.","لم تُسجَّل إنجازات في هذه الفترة."),rt({x:0.6,y:3,fontSize:16,color:MUT,fontFace:HF}));}
   var sf=P.addSlide();sf.background={color:INK};
   var _ppName=''; try{ if(typeof window.dgIdentityValue==='function') _ppName=String(window.dgIdentityValue('legal_name','en')||'').trim(); }catch(_){ }
-  if(_ppName) sf.addText(_ppName,rt({x:0.7,y:3.0,w:11,fontSize:18,bold:true,color:"FFFFFF",fontFace:"Cairo"}));
+  if(_ppName) sf.addText(_ppName,rt({x:0.7,y:3.0,w:11,fontSize:18,bold:true,color:"FFFFFF",fontFace:HF}));
   var _ppFoot=((typeof window.rptFootBits==='function')?window.rptFootBits():'').replace(/\u00b7/g,'-');
-  if(_ppFoot) sf.addText(_ppFoot,rt({x:0.7,y:3.8,w:11,fontSize:13,color:"FF9D45",fontFace:"Cairo"}));
+  if(_ppFoot) sf.addText(_ppFoot,rt({x:0.7,y:3.8,w:11,fontSize:13,color:"FF9D45",fontFace:HF}));
   P.writeFile({fileName:rptTitleEn().replace(/[^\w]+/g,"-")+".pptx"});
  }catch(e){alert(rptAr("PowerPoint export failed: ","تعذّر تصدير PowerPoint: ")+(e&&e.message?e.message:e));}};
  if(window.PptxGenJS){go();return;}

@@ -742,6 +742,23 @@ exist (404), and the Projects decks loaded a build that needs a zip helper the a
 it answers every jsdelivr request with a stand-in. **Still open, for the owner:** the documents' BODY text lists fonts
 the app never loads (Proxima Nova, Zarid Slab), so it prints in the reader's own system fonts — DirectFont for body
 text too, or load Zarid Slab (its files are in `brand/fonts/`)? One answer, then a small PR.
+**Answered 2026-09-26 — DirectFont for body text too, Cairo behind it; done in #45** (DECISIONS D4).
+
+### Downloads are tested for real, and live at every release (2026-09-26, the oversight after #44)
+The two PowerPoint buttons #44 found broken had passed every test for months: the harness answers every
+cdn.jsdelivr.net request with the Supabase library, so the engine "loaded" and nothing ever pressed the button and
+opened the file. **`scripts/qa/probe-real-downloads.mjs`** (in the battery) now presses every download a person has —
+Reports → PowerPoint and → Print/PDF, the Projects proposal deck and PDF, the service-fee proposal deck and PDF, an
+invoice print, the client proposal, and each Generator document's print button — with the REAL engines and fonts
+(only the Supabase library is stood in), in English and Arabic, and opens what comes out: a real .pptx with slides,
+a real PDF in DirectFont with its Arabic in DirectFont. Sabotage-tested: the two #44 bugs put back → 8 red.
+**Every release's live check runs it against the live site:** `LIVE=1 node scripts/qa/probe-real-downloads.mjs`
+(QA account, read-only — the app's writes are answered inside the page and listed at the end; files go to a temp
+folder and are deleted, they carry real data). A path with nothing to print yet on the live data (no project, no
+invoice) says so on screen instead of passing.
+Test-harness finding worth keeping: Playwright holds back every request made by a window opened from an
+intercepted page (its stylesheet arrives only when it closes) — a document window tested that way prints in a
+system font for the test's reason, not the app's. The probe stops intercepting while such a window opens.
 
 ---
 

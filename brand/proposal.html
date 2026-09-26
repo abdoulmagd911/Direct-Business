@@ -7,13 +7,16 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="doc-fonts.css">
 <meta name="theme-color" content="#F06820">
 <style>
   :root{
     --ink:#303848; --muted:#6B7480; --line:#E6E8EC; --wash:#F6F7F9; --wash-o:#FFF3EC;
     --accent:#F06820; --header:#F87020; --gold:#FBAE16;
-    --font-en:'Proxima Nova Alt','Proxima Nova','Segoe UI',-apple-system,sans-serif;
-    --font-ar:'Zarid Slab','29LT Zarid Slab','Bahij TheSansArabic','Segoe UI',Tahoma,sans-serif;
+    /* 2026-09-26 — DirectFont with Cairo behind it (the owner's pick, DECISIONS D4), loaded by doc-fonts.css;
+       these used to ask for Proxima Nova / Zarid Slab, which this page never loaded */
+    --font-en:'DirectFont','Cairo','Segoe UI',-apple-system,sans-serif;
+    --font-ar:'DirectFont','Cairo','Segoe UI',Tahoma,sans-serif;
   }
   *{box-sizing:border-box}
   body{margin:0;background:#EDEEF1;color:var(--ink);

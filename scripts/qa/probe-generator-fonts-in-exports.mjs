@@ -15,7 +15,7 @@
         DirectFont, the Arabic is still joined.
      C. PowerPoint, EN and AR — the Reports deck and the service-fee deck download (the engine address
         works: both used to fail, see core-08/core-10), the heading runs name DirectFont (read from
-        tokens.css by window.dgHeadFont), body text stays Cairo, an Arabic deck is written right-to-left.
+        tokens.css by window.dgHeadFont) — body text too since the owner's pick of 2026-09-26 — and an Arabic deck is written right-to-left.
      D. The Arabic deck opened by LibreOffice: with DirectFont installed the headings come out in
         DirectFont, joined; with DirectFont absent they come out in a substitute — a .pptx names ONE font
         and the viewer's computer picks the stand-in — and the Arabic is STILL joined, not broken letters.
@@ -111,13 +111,16 @@ async function run(lang, PORT, block) {
   await p.waitForFunction(() => typeof window.dgGo === 'function' && typeof window.rptPpt === 'function' && (DB.businesses || []).length > 0, { timeout: 120000 }); await p.waitForTimeout(2000);
   await p.evaluate(() => { current = 'documents'; openLead = null; render(); }); await p.waitForTimeout(1200);
   await p.evaluate(async () => { try { await document.fonts.ready; } catch (_) { } });
-  const res = { chrome: null, heads: {}, pdfs: {}, decks: {}, headFont: await p.evaluate(() => window.dgHeadFont && window.dgHeadFont()), errors };
+  const res = { chrome: null, heads: {}, bodies: {}, pdfs: {}, decks: {}, headFont: await p.evaluate(() => window.dgHeadFont && window.dgHeadFont()), errors };
   if (await mark('#dgWrap .dg-home-h1')) res.chrome = await drawn();
   for (const ed of Object.keys(PRE)) {
     await p.evaluate((e) => dgGo(e), ed); await p.waitForTimeout(2500);
     await p.evaluate(async () => { try { await document.fonts.ready; } catch (_) { } });
     const pg = PRE[ed]; res.heads[ed] = [];
     for (const side of ['en', 'ar']) { const txt = await mark(`#${pg}Pages .${pg}-page.${side} :is(h1,h2,h3,h4)`); if (txt) res.heads[ed].push({ side, txt, font: await drawn() }); }
+    /* body text (2026-09-26, the owner's pick): the first paragraph / cell / list line on each side of the page */
+    res.bodies[ed] = [];
+    for (const side of ['en', 'ar']) { const txt = await mark(`#${pg}Pages .${pg}-page.${side} :is(p,td,li)`); if (txt) res.bodies[ed].push({ side, txt, font: await drawn() }); }
     await p.emulateMedia({ media: 'print' }); await p.waitForTimeout(600);
     const pdf = await p.pdf({ format: 'A4', printBackground: true, margin: { top: '0', bottom: '0', left: '0', right: '0' } });
     await p.emulateMedia({ media: 'screen' });
@@ -184,6 +187,13 @@ try {
     const badH = heads.filter((h) => !wantRe.test(h.font || ''));
     const sides = new Set(heads.map((h) => h.side));
     check(heads.length >= 4 && sides.size === 2 && badH.length === 0, `${k}: every document heading on screen draws ${want} (${heads.map((h) => h.ed + '/' + h.side).join(' ')})`, badH.map((h) => `${h.ed}/${h.side} "${h.txt}"=${h.font}`).join('; ') || 'only ' + heads.length + ' on sides ' + [...sides]);
+    const bodies = Object.entries(r.bodies).flatMap(([ed, hs]) => hs.map((h) => ({ ed, ...h })));
+    const badB = bodies.filter((h) => !wantRe.test(h.font || ''));
+    check(bodies.length >= 4 && new Set(bodies.map((h) => h.side)).size === 2 && badB.length === 0, `${k}: document body text on screen draws ${want} too (${bodies.map((h) => h.ed + '/' + h.side).join(' ')})`, badB.map((h) => `${h.ed}/${h.side} "${h.txt}"=${h.font}`).join('; ') || 'only ' + bodies.length);
+    /* and on paper: every Arabic letter in every printed document is drawn in the document font — no letter left
+       to a system font (they were DejaVu Sans before the owner's pick) */
+    const arStray = Object.keys(PRE).filter((ed) => r.pdfs[ed].some((f) => f.arabicLetters && !wantRe.test(f.name)));
+    check(arStray.length === 0, `${k}: no Arabic in the printed PDFs falls to a system font`, arStray.map((ed) => ed + ': ' + arabicSummary(r.pdfs[ed])).join('; '));
     const withHeads = Object.keys(PRE).filter((ed) => r.heads[ed].length);
     const badPdf = withHeads.filter((ed) => !has(r.pdfs[ed], wantRe) || (block && has(r.pdfs[ed], /^DirectFont/)));
     check(badPdf.length === 0, `${k}: each printed PDF carries the ${want} heading face${block ? ' and no DirectFont' : ''} (${withHeads.join(', ')})`, badPdf.map((ed) => ed + ': ' + r.pdfs[ed].map((f) => f.name).join(' ')).join('; '));
@@ -203,8 +213,8 @@ try {
       const title = runs.find((x) => x.text === 'Direct Business');
       check(title && title.face === 'DirectFont', `${lang}/${deck}: the cover heading names DirectFont`, title ? title.face : 'no cover heading');
       if (deck === 'reports') {
-        const body = runs.filter((x) => x.face === 'Cairo').length;
-        check(body > 0, `${lang}/reports: body text stays Cairo (${body} runs)`);
+        const other = runs.filter((x) => x.face && x.face !== 'DirectFont');
+        check(runs.length > 20 && other.length === 0, `${lang}/reports: every text run names DirectFont, body text included (${runs.length} runs)`, [...new Set(other.map((x) => x.face))].join(', '));
         const rtl = /<a:pPr[^>]*rtl="1"/.test(slides[0]);
         check(lang === 'ar' ? rtl : !rtl, `${lang}/reports: ${lang === 'ar' ? 'written right-to-left' : 'left-to-right'}`);
       }
