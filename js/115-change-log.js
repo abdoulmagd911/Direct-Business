@@ -46,13 +46,28 @@
     var ov=document.getElementById('v115-ov');
     if(!ov){
       ov=document.createElement('div'); ov.id='v115-ov';
+      ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true'); ov.setAttribute('aria-label','Change log');
       ov.style.cssText='position:fixed;inset:0;background:rgba(20,24,33,.45);z-index:10050;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto';
       ov.addEventListener('click',function(e){ if(e.target===ov) closeLog(); });
       document.body.appendChild(ov);
     }
     return ov;
   }
-  function closeLog(){ var ov=document.getElementById('v115-ov'); if(ov){ ov.style.display='none'; ov.innerHTML=''; } }
+  /* the keyboard (probe-every-box-takes-the-keyboard): opening it takes the keyboard into the window (core-06's shared
+     trap, the one every box here uses), Tab stays inside, and closing gives it back to whatever opened it. Each redraw
+     inside (Loading… → the log) puts it back on Close if it had fallen out with the old content. */
+  var prevFocus=null;
+  function setInner(ov,html){
+    ov.innerHTML=html;
+    try{ if(!ov._v21focusH&&typeof v21TrapFocus==='function') v21TrapFocus(ov); }catch(_){}
+    try{ if(!ov.contains(document.activeElement)){ var x=ov.querySelector('[data-v115-close]'); if(x) x.focus(); } }catch(_){}
+  }
+  function closeLog(){
+    var ov=document.getElementById('v115-ov'); if(!ov||ov.style.display==='none') return;
+    try{ if(typeof window.v21ReleaseTrap==='function') window.v21ReleaseTrap(ov); else if(typeof v21ReleaseTrap==='function') v21ReleaseTrap(ov); }catch(_){}
+    ov.style.display='none'; ov.innerHTML='';
+    try{ if(prevFocus&&prevFocus.focus&&document.contains(prevFocus)) prevFocus.focus(); }catch(_){} prevFocus=null;
+  }
   window.closeChangeLog=closeLog;
   document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var ov=document.getElementById('v115-ov'); if(ov&&ov.style.display!=='none'){ e.stopPropagation(); closeLog(); } } },true);
 
@@ -65,7 +80,10 @@
   }
 
   window.openChangeLog=function(targets,title){
-    var ov=overlay(); ov.style.display='flex';
+    var ov=overlay();
+    if(ov.style.display==='none'||!ov.style.display){ try{ prevFocus=document.activeElement; }catch(_){ prevFocus=null; } }
+    ov.style.display='flex';
+    var _ov=ov; ov={ set innerHTML(h){ setInner(_ov,h); } };
     if(!canSee()){ ov.innerHTML=frame(title,'<div class="empty">'+fl('The change log is shown to admins and managers.','سجل التغييرات يظهر للمسؤولين والمدراء فقط.')+'</div>'); return; }
     targets=(targets||[]).filter(function(t){ return t&&t.table&&t.key!=null&&String(t.key)!==''; });
     if(!targets.length){ ov.innerHTML=frame(title,'<div class="empty">'+fl('This record has no saved key yet — nothing to show.','لا يوجد مفتاح محفوظ لهذا السجل بعد — لا شيء لعرضه.')+'</div>'); return; }
