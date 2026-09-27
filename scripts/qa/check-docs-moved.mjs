@@ -127,7 +127,7 @@ function check(root, { quiet = false } = {}) {
   const newIds = new Set(entries.map((b) => b.trim().match(/^\*\*([A-Z]+\d+[a-z]?) —/)[1]));
   const dropped = oldIds.filter((id) => !newIds.has(id));
   say(oldIds.length > 100 && dropped.length === 0, 'IDS', `${oldIds.length} rule IDs in the old DECISIONS.md, ${dropped.length ? 'MISSING from the new one: ' + dropped.join(', ') : 'every one opens an entry in the new one'} (${entries.length} entries)`);
-  const STATUS = /\*\*\s*(ACTIVE|SUSPENDED|OPEN — CONTESTED|SUPERSEDED-BY [^·]+?)\s*·\s*\d{4}-\d\d-\d\d/;
+  const STATUS = /\*\*\s*(ACTIVE|SUSPENDED|OPEN — CONTESTED|SUPERSEDED-BY [^·]+?)\s*·\s*(\d{4}-\d\d-\d\d|undated)/;   // 'undated' only where the original gave no date
   const noStatus = entries.filter((b) => !STATUS.test(b)).map((b) => b.trim().match(/^\*\*([A-Z]+\d+[a-z]?)/)[1]);
   say(entries.length > 0 && noStatus.length === 0, 'IDS', `every entry says its status and date${noStatus.length ? ' — NOT: ' + noStatus.join(', ') : ''}`);
 

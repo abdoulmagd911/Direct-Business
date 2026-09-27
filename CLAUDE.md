@@ -217,7 +217,8 @@ The full old notes (history, the data world of August, funnels, brand, known iss
   (every `/js/` file inlined into the page, D14) and publishes `dist/`; the repo and the tests keep one `<script src>`
   per file. Confirm a deploy with `curl` and a cache-buster (`?cb=$(date +%s%N)`). Rolling back = revert the commit, or
   Vercel → Deployments → Promote. The old Storage patch functions (`promote-v41`, `promote-v42-finance`,
-  `patch-v42-attention-fix`, `verify-v42`, `v30-import-businesses`) are DEAD — running them changes a file nobody reads.
+  `patch-v42-attention-fix`, `verify-v42`, `v30-import-businesses`) patched a file nobody reads; they were found gone
+  from the project on 2026-09-20 — never recreate that path.
 - **Before every deploy:** `node scripts/qa/check-structure.mjs` (inline logic in index.html, a file loaded twice,
   duplicate element ids, hard-coded names …), then the full battery `scripts/qa/run-battery.sh -j 4`.
 - **Testing.** Drive the app, don't read the code: `scripts/qa/` runs `index.html` in a headless browser against a
