@@ -231,6 +231,7 @@ grant select on public.money_rows to authenticated;
 create or replace view public.money_that_counts with (security_invoker = on) as
 select * from public.money_rows where counts;
 grant select on public.money_that_counts to authenticated;
+revoke all on public.money_rows, public.money_that_counts from anon;
 
 create or replace view public.finance_lines with (security_invoker = on) as
 select m.id, m.invoice_no, m.invoice_date, m.client_group, m.business_id, m.revenue_sar, m.cost_sar, m.profit_sar,
