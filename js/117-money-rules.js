@@ -28,7 +28,12 @@
   function e(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function client(){ try{ return window.fc?fc():null; }catch(_){ return null; } }
   function sar(n){ n=Number(n)||0; return Math.round(n).toLocaleString('en-US')+' '+fl('SAR','ر.س'); }
-  function canEdit(){ try{ if(window.__isShareView)return false; return window.__userRole==='admin'||window.__userRole==='manager'; }catch(_){ return false; } }
+  /* admin or manager AND allowed to change Finance (finCanWrite: the page level, share views refused) — the database says the same */
+  /* merges (client IDs, codes, customer names) may also be changed from the company card: admin or manager AND allowed to
+     change Finance OR Clients — the same rule as the database policies */
+  function canMergeMR(){ try{ if(window.__isShareView)return false; if(!(window.__userRole==='admin'||window.__userRole==='manager'))return false;
+    return (typeof window.finCanWrite==='function'&&!!window.finCanWrite())||(typeof window.mayEditPage==='function'&&window.mayEditPage('clients')===true); }catch(_){ return false; } }
+  function canEdit(){ try{ if(window.__isShareView)return false; if(!(window.__userRole==='admin'||window.__userRole==='manager'))return false; return typeof window.finCanWrite==='function'?!!window.finCanWrite():false; }catch(_){ return false; } }
   /* the database's money_norm, mirrored: NFKC, lower case, Arabic alef / yeh / teh-marbuta folded, only letters and digits */
   function normMR(s){ s=String(s==null?'':s); try{ s=s.normalize('NFKC'); }catch(_){}
     s=s.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[\u064B-\u065F\u0670\u0640]/g,'');
@@ -92,7 +97,10 @@
      still ask this question by name; the answer now comes from the typed NAME rules — and it no longer means "skip the
      row": the row is imported and the view leaves it out, so switching the rule off brings it back. */
   window.finExclusionCheck=function(name){ var r=window.moneyRuleFor({name:name}); return r?{id:r.id,clientId:r.value,reason:r.reason,kind:r.kind}:null; };
-  window.finExclusionsKnown=function(){ return MR.rules!=null; };
+  /* invoices are decided by the view (FIN.m, loaded with the rows); the page's copy of the rules only drives this screen
+     and the transactions list, which the view does not cover */
+  window.finExclusionsKnown=function(){ try{ return !!(window.FIN&&FIN.rows&&FIN.m&&!FIN.mErr); }catch(_){ return false; } };
+  window.moneyRulesKnown=function(){ return MR.rules!=null&&!MR.err; };
   window.finExclusionList=function(){ return (MR.rules||[]).slice(); };
   window.finExclusionGateRows=function(rows,cb){ try{ cb(null); }catch(_){} };   // nothing to refuse: the view applies the rules to whatever lands
   window.finGroupCheck=function(){ return null; };                               // name aliases retired — a company is what its typed IDs say
@@ -184,14 +192,14 @@
     } else { var a=aliasOwner(key); if(a){ var ab=bizIndex()[a.business_id]; alert(fl('The name "','الاسم «')+key+fl('" already belongs to ','» مسجّل بالفعل لـ ')+((ab&&ab.name)||fl('another company','شركة أخرى'))+fl('. A name belongs to one company only — remove it there first.','. الاسم لشركة واحدة فقط — أزله من هناك أولًا.')); return; }
       c.from('company_name_aliases').insert({business_id:biz,name:key}).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } if(done)done(); refreshAll(); }); }
   }
-  window.v117Decide=function(ix,kind,keyEnc){ if(!canEdit())return;
+  window.v117Decide=function(ix,kind,keyEnc){ if(!canMergeMR())return;
     var key=decodeURIComponent(keyEnc), biz=val('v117_d'+ix), t=val('v117_t'+ix)||'tender';
     if(!biz){ alert(fl('Choose the company it belongs to — or New company, or Exclude.','اختر الشركة التي يتبعها — أو شركة جديدة، أو استبعاد.')); return; }
     assign(kind,key,biz,t); };
   /* a new company: the app's own company form opens with the Payments name filled in; when the person saves it, this
      decision is applied to it — nothing is created unless the person saves the form */
   var PENDING=null;
-  window.v117NewCompanyFor=function(ix,kind,keyEnc,nameEnc){ if(!canEdit())return;
+  window.v117NewCompanyFor=function(ix,kind,keyEnc,nameEnc){ if(!canMergeMR())return;
     var key=decodeURIComponent(keyEnc), name=decodeURIComponent(nameEnc||'')||key, t=val('v117_t'+ix)||'tender';
     if(typeof window.editBusiness!=='function'&&typeof window.editLead!=='function'){ alert(fl('The company form is not available here.','نموذج الشركة غير متاح هنا.')); return; }
     var before={}; ((typeof DB!=='undefined'&&DB.businesses)||[]).forEach(function(b){ before[b.id]=1; });
@@ -205,12 +213,12 @@
       if(!/^[0-9a-f-]{36}$/i.test(String(u||''))&&!(window.__v117AnyId)) return;   // wait until the database has given it its id
       clearInterval(iv); var p=PENDING; PENDING=null; assign(p.kind,p.key,u,p.type); },500);
   };
-  window.v117RemoveAlias=function(id){ if(!canEdit())return;
+  window.v117RemoveAlias=function(id){ if(!canMergeMR())return;
     var a=(MR.aliases||[]).find(function(x){return x.id===id;}); if(!a)return;
     ask(fl('Take the name "','إزالة الاسم «')+a.name+fl('" out of this company? Its rows stand alone again (Needs a decision).','» من هذه الشركة؟ تعود صفوفه مستقلة («يحتاج قرارًا»).'),function(){
       client().from('company_name_aliases').update({removed_at:new Date().toISOString()}).eq('id',id).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); }); };
   function owner(idText){ var n=normMR(idText); var hit=((window.CP&&CP.rows)||[]).find(function(p){ return normMR(p.direct_client_id)===n; }); return hit||null; }
-  window.v117AddClientId=function(bizUuid,prefill){ if(!canEdit())return;
+  window.v117AddClientId=function(bizUuid,prefill){ if(!canMergeMR())return;
     if(!noCompanies())return;
     openModal(fl('Add a client ID to a company','إضافة معرّف عميل إلى شركة'),
       '<div class="ch-sub">'+fl('Only what is typed here is merged: every transaction carrying this Direct Payments client ID counts under the company. One ID belongs to one company.','لا يُدمج إلا ما يُكتب هنا: كل عملية تحمل معرّف العميل هذا تُحتسب لهذه الشركة. المعرّف الواحد لشركة واحدة.')+'</div>'+
@@ -224,11 +232,11 @@
         client().from('client_profiles').insert({business_id:biz,direct_client_id:cid,profile_type:t,status:'active',source:'manual'}).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } try{ closeModal(); }catch(_){} refreshAll(); });
         return false; });
   };
-  window.v117RemoveClientId=function(profileId){ if(!canEdit())return;
+  window.v117RemoveClientId=function(profileId){ if(!canMergeMR())return;
     var p=((window.CP&&CP.rows)||[]).find(function(x){return x.id===profileId;}); if(!p)return; var b=bizIndex()[p.business_id];
     ask(fl('Take client ID #','إزالة معرّف العميل #')+p.direct_client_id+fl(' out of ',' من ')+((b&&b.name)||'')+fl('? Its transactions stand alone again ("Not merged — review").','؟ تعود عملياته مستقلة («غير مدموج — للمراجعة»).'),function(){
       client().from('client_profiles').delete().eq('id',profileId).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); }); };
-  window.v117AddCode=function(bizUuid){ if(!canEdit())return;
+  window.v117AddCode=function(bizUuid){ if(!canMergeMR())return;
     if(!noCompanies())return;
     openModal(fl('Add a discount code to a company','إضافة رمز خصم إلى شركة'),
       '<div class="ch-sub">'+fl('Sales that used this code count under the company, and leave "Unassigned codes" — never counted twice. One code belongs to one company.','المبيعات التي استخدمت هذا الرمز تُحتسب للشركة وتخرج من «رموز غير مخصّصة» — لا تُحتسب مرتين. الرمز الواحد لشركة واحدة.')+'</div>'+
@@ -243,7 +251,7 @@
         client().from('company_discount_codes').insert({business_id:biz,promo_code_id:p.id}).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } try{ closeModal(); }catch(_){} refreshAll(); });
         return false; });
   };
-  window.v117RemoveCode=function(linkId){ if(!canEdit())return;
+  window.v117RemoveCode=function(linkId){ if(!canMergeMR())return;
     ask(fl('Take this code out of the company? Its sales go back to "Unassigned codes".','إزالة هذا الرمز من الشركة؟ تعود مبيعاته إلى «رموز غير مخصّصة».'),function(){
       client().from('company_discount_codes').update({removed_at:new Date().toISOString()}).eq('id',linkId).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); }); };
   window.v117Log=function(){ if(typeof window.openChangeLog!=='function')return;
@@ -361,7 +369,7 @@
         li(fl('Not paid (imported, not counted): ','غير مدفوع (مستورد ولا يُحتسب): ')+s.unpaid.n+' · '+sar(s.unpaid.sar))+
         (Object.keys(s.loose).length?li(fl('New client IDs not merged — review in Finance → Rules: ','معرّفات عملاء غير مدموجة — راجعها في المالية ← القواعد: ')+Object.keys(s.loose).map(function(k){ return '#'+e(k)+(s.loose[k]?' '+e(s.loose[k]):''); }).join('، ')):'')+
         '</ul>'+(bad?'<div style="color:#B42318;margin-top:6px">'+fl('Part of this summary could not be read: ','تعذّرت قراءة جزء من هذا الملخص: ')+e(bad.error.message||bad.error)+'</div>':'')+'</div>';
-      var box=document.getElementById('finImpOut'); if(box) box.insertAdjacentHTML('beforeend',h);
+      if(typeof window.v65AppendDone==='function') window.v65AppendDone(h); else { var box=document.getElementById('finImpOut'); if(box) box.insertAdjacentHTML('beforeend',h); }
     });
   };
   /* js/62's exclusion and alias editors are retired — their buttons now open this screen */

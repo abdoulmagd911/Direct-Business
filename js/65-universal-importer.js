@@ -1349,6 +1349,9 @@
      (the insert/update loop below is several HTTP round trips long), same reasoning as the
      preview fix above. */
   function paintDone(html){ LAST_DONE_HTML=html; RESULTS=null; var out=document.getElementById('finImpOut'); if(out)out.innerHTML=html; }
+  /* E (2026-09-27): js/117 adds what the rules made of the import under the Done line — kept in LAST_DONE_HTML so the
+     re-render that follows the reload repaints it instead of wiping it */
+  window.v65AppendDone=function(html){ LAST_DONE_HTML=(LAST_DONE_HTML||'')+html; var out=document.getElementById('finImpOut'); if(out)out.insertAdjacentHTML('beforeend',html); };
 
   // M13, 2026-08-25 — real live bug: the owner ran a real import and read "Done. Imported 0
   // new, updated 27." while the database had written NOTHING (the `year` GENERATED-column

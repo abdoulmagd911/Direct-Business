@@ -17,6 +17,13 @@
         table carries the new total and a re-derived profit.
      4. The exclusion rule holds on the mapped path: the excluded partner's row never lands, and the
         preview names it with the client id and the reason.
+        E (2026-09-27, DECISIONS D16): a row a rule catches is now IMPORTED (so switching the rule
+        off brings it back with no re-import) and the database view money_rows leaves it out of
+        every total. So check 4 now reads: the excluded partner's row is written, the view marks it
+        excluded by its rule, Finance does not count it, and the preview names it on its own
+        segment — "Left out by a rule (imported, not counted) 1 — name (#value: reason)" — while
+        "Excluded by rule" counts only rows NOT written (here the two date failures). Every count
+        below that included or skipped IA-3 moves by one accordingly (4 new, 4 unchanged, …).
      5. A row with no usable date lands with a null date and no month/quarter — never a guessed
         period, never a crash; a row with no reference is skipped and creates nothing.
      6. A binary file renamed .csv is refused with the honest message and no preview counts.
@@ -93,20 +100,21 @@ async function main() {
      accepted a null date, and it asserted behaviour production forbids. Worse, sending that null
      lost the WHOLE batch (PostgREST sends one batch as one statement), so the preview promised
      4 new and the database wrote 0. IA-4 is now held back by name and the other three land. */
-  if (c.isNew === 3 && c.updated === 0 && c.unchanged === 0 && c.needsLinking >= 0) ok(`first drop preview: New 3 · Updated 0 · Unchanged 0 (IA-1, IA-2, IA-5) — IA-4 and IA-6 held back, one with no date and one with 30 February`); else fail('first drop preview counts wrong: ' + JSON.stringify(c));
+  if (c.isNew === 4 && c.updated === 0 && c.unchanged === 0 && c.needsLinking >= 0) ok(`first drop preview: New 4 · Updated 0 · Unchanged 0 (IA-1, IA-2, IA-5, and the rule-caught IA-3) — IA-4 and IA-6 held back, one with no date and one with 30 February`); else fail('first drop preview counts wrong: ' + JSON.stringify(c));
   /* 2026-09-03 (watch cycle 20): 30 February passes every "is it shaped like a date" test and is
      rejected by the DATE column itself, taking the whole batch with it. Nothing tested that until
      a mutation audit removed the calendar-day check and no probe noticed. */
   if (/IA-6[\s\S]{0,140}(no readable invoice date|تاريخ فاتورة)/.test(c.text)) ok('30 February is named and held back too — it looks like a date and is not one, and the database would refuse the whole file over it');
   else fail('the impossible date was not held back: ' + JSON.stringify(c.text.slice(0, 500)));
-  if (/Tawthiq Test Services \(#7: Tawthiq/.test(c.text)) ok('excluded partner named in the preview with client id and reason (never silent)'); else fail('exclusion not named in preview: ' + JSON.stringify(c.text.slice(0, 400)));
-  if (/Excluded by rule\s+3\b/.test(c.text)) ok('Excluded by rule = 3 — the excluded partner, the date-less row and the impossible date, each named'); else fail('Excluded by rule count not 3');
+  const LEFT_OUT = /Left out by a rule \(imported, not counted\)\s+1\s+—\s+Tawthiq Test Services \(#Tawthiq Test Services: Tawthiq/;
+  if (LEFT_OUT.test(c.text)) ok('excluded partner named in the preview on its own segment — "Left out by a rule (imported, not counted) 1", with the rule\'s value and reason (never silent)'); else fail('exclusion not named in preview: ' + JSON.stringify(c.text.slice(0, 700)));
+  if (/Excluded by rule\s+2\b/.test(c.text) && !/Excluded by rule[^·]*Tawthiq/.test(c.text)) ok('Excluded by rule = 2 — the date-less row and the impossible date, each named; the rule-caught row is not among the rows NOT written'); else fail('Excluded by rule count not 2 (or it lists the rule-caught row as not written): ' + JSON.stringify(c.excluded));
   if (/IA-4[\s\S]{0,120}(no readable invoice date|تاريخ فاتورة)/.test(c.text)) ok('IA-4 is named in the preview with the reason it was held back'); else fail('IA-4 not named as held back: ' + JSON.stringify(c.text.slice(0, 500)));
   if (!/NaN|undefined|Q5|Invalid Date/.test(c.text)) ok('no NaN / undefined / Q5 in the preview'); else fail('preview carries NaN/undefined/Q5');
   let btn = await confirmBtn();
-  if (btn && /3 new, 0 updated/.test(btn)) ok(`confirm button says what will be written — "${btn}"`); else fail('confirm button text: ' + btn);
+  if (btn && /4 new, 0 updated/.test(btn)) ok(`confirm button says what will be written — "${btn}"`); else fail('confirm button text: ' + btn);
   let done = await clickConfirm();
-  if (/Done\.\s*Imported 3 new, updated 0\./.test(done)) ok('database reported exactly the preview\'s numbers: 3 new, 0 updated (M13) — one unwritable row no longer costs the whole file'); else fail('commit message: ' + JSON.stringify(done.slice(0, 200)));
+  if (/Done\.\s*Imported 4 new, updated 0\./.test(done)) ok('database reported exactly the preview\'s numbers: 4 new, 0 updated (M13) — one unwritable row no longer costs the whole file'); else fail('commit message: ' + JSON.stringify(done.slice(0, 200)));
 
   const r1 = (await inv('IA-1'))[0] || {};
   if (near(r1.total_incl_vat_sar, 1000) && near(r1.revenue_sar, 1000) && near(r1.cost_sar, 100) && near(r1.profit_sar, 900)) ok('IA-1 landed as the database keeps it: total 1000 · revenue 1000 · cost 100 · profit 900 (revenue is never profit)'); else fail(`IA-1 stored total ${r1.total_incl_vat_sar} revenue ${r1.revenue_sar} cost ${r1.cost_sar} profit ${r1.profit_sar}`);
@@ -119,7 +127,15 @@ async function main() {
   // the live fin_nonneg_chk allows a negative total ONLY on a credit note, and forbids a negative
   // amount_remaining — a negative sent as "pending" is refused, and takes the batch with it
   if (r5.integrity_status === 'credit_note' && near(r5.amount_remaining_sar, 0)) ok('IA-5 is stored as a credit note with nothing outstanding — the one shape the database accepts for a negative total'); else fail(`IA-5 status ${r5.integrity_status} remaining ${r5.amount_remaining_sar}`);
-  if ((await inv('IA-3')).length === 0) ok('IA-3 (excluded partner) never reached the table'); else fail('excluded partner row was written');
+  /* E: stored, marked excluded by its rule in the one view, and in no Finance total */
+  const s3 = (await inv('IA-3'))[0];
+  const v3 = ((await fetch(BASE + '/rest/v1/money_rows?invoice_no=eq.IA-3').then((r) => r.json())) || [])[0];
+  if (s3 && v3 && v3.excluded === true && v3.counts === false && v3.rule_kind === 'name' && /Tawthiq/.test(v3.rule_value || '')) ok('IA-3 (excluded partner) is stored — so switching its rule off would bring it back — and the view marks it excluded by its name rule, not counted');
+  else fail(`IA-3 (excluded partner): stored=${!!s3} view=${JSON.stringify(v3 && { excluded: v3.excluded, counts: v3.counts, rule_kind: v3.rule_kind, rule_value: v3.rule_value })}`);
+  await p.waitForTimeout(1500);
+  const fin3 = await p.evaluate(() => { try { return { live: finLive().map((r) => r.invoice_no), ex: (window.finExcludedRows ? finExcludedRows() : []).map((x) => x.row.invoice_no) }; } catch (e) { return { err: e.message }; } });
+  if (fin3.live && !fin3.live.includes('IA-3') && fin3.live.includes('IA-1') && fin3.ex.includes('IA-3')) ok('Finance counts IA-1 and not IA-3; IA-3 sits in the Excluded list');
+  else fail('Finance after the import: ' + JSON.stringify(fin3).slice(0, 300));
   const blank = (await allInv()).filter((r) => !String(r.invoice_no || '').trim()).length;
   if (blank === 0) ok('the reference-less row created nothing'); else fail(blank + ' blank-reference row(s) written');
 
@@ -128,16 +144,16 @@ async function main() {
   await p.evaluate(() => { if (typeof window.finGo === 'function') window.finGo('import'); }); await p.waitForTimeout(600);
   await ingest('mapped-a.csv', fileA);
   c = await counts();
-  if (c.isNew === 0 && c.updated === 0 && c.unchanged === 3) ok('re-dropping the same file: New 0 · Updated 0 · Unchanged 3 — there is no "importing twice"'); else fail('re-drop is not idempotent: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
+  if (c.isNew === 0 && c.updated === 0 && c.unchanged === 4) ok('re-dropping the same file: New 0 · Updated 0 · Unchanged 4 — there is no "importing twice"'); else fail('re-drop is not idempotent: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
   btn = await confirmBtn();
   if (!btn) ok('no Confirm button offered when nothing would change'); else fail('Confirm offered on an unchanged re-drop: ' + btn);
-  if (/Excluded by rule\s+3\b/.test(c.text)) ok('all three held-back rows are still named on the re-drop (every check runs at import, every time)'); else fail('exclusion count missing on re-drop');
+  if (/Excluded by rule\s+2\b/.test(c.text) && LEFT_OUT.test(c.text)) ok('both held-back rows and the rule-caught row are still named on the re-drop (every check runs at import, every time)'); else fail('exclusion count missing on re-drop: ' + JSON.stringify(c.text.slice(0, 500)));
 
   /* ---------- 3. one real change ---------- */
   const fileB = fileA.replace('IA-2,Test Company 2,2026-06-16,500,0', 'IA-2,Test Company 2,2026-06-16,650,120');
   await ingest('mapped-b.csv', fileB);
   c = await counts();
-  if (c.isNew === 0 && c.updated === 1 && c.unchanged === 2) ok('one edited total: New 0 · Updated 1 · Unchanged 2'); else fail('edited-file preview wrong: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
+  if (c.isNew === 0 && c.updated === 1 && c.unchanged === 3) ok('one edited total: New 0 · Updated 1 · Unchanged 3'); else fail('edited-file preview wrong: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
   btn = await confirmBtn();
   if (btn && /0 new, 1 updated/.test(btn)) ok(`confirm button — "${btn}"`); else fail('confirm button text: ' + btn);
   done = await clickConfirm();
@@ -148,7 +164,7 @@ async function main() {
   await p.evaluate(() => { if (typeof window.finGo === 'function') window.finGo('import'); }); await p.waitForTimeout(600);
   await ingest('mapped-b.csv', fileB);
   c = await counts();
-  if (c.isNew === 0 && c.updated === 0 && c.unchanged === 3) ok('and the edited file re-dropped is fully unchanged again'); else fail('edited file not idempotent on second drop: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
+  if (c.isNew === 0 && c.updated === 0 && c.unchanged === 4) ok('and the edited file re-dropped is fully unchanged again'); else fail('edited file not idempotent on second drop: ' + JSON.stringify({ isNew: c.isNew, updated: c.updated, unchanged: c.unchanged }));
 
   /* ---------- 4. binary renamed .csv ---------- */
   const bin = 'PK\x03\x04\x01\x02binary-not-a-csv\x07\x08Ref,Customer,Date,Total,Cost\nZZ-1,Test Company 1,2026-06-15,10,0';

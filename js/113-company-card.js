@@ -14,7 +14,7 @@
   var fl=function(en,ar){ return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en; };
   var e=function(s){ return (typeof esc==='function')?esc(s):String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
   var client=function(){ try{ return window.fc?fc():null; }catch(_){ return null; } };
-  var canMerge=function(){ try{ return !window.__isShareView&&(window.__userRole==='admin'||window.__userRole==='manager'); }catch(_){ return false; } };
+  var canMerge=function(){ try{ return !window.__isShareView&&(window.__userRole==='admin'||window.__userRole==='manager')&&((typeof window.finCanWrite==='function'&&!!window.finCanWrite())||(typeof window.mayEditPage==='function'&&window.mayEditPage('clients')===true)); }catch(_){ return false; } };
   var canWrite=function(){ try{ return typeof window.mayEditPage==='function' && window.mayEditPage('clients')===true; }catch(_){ return false; } };
   var TYPES={prepaid:['Prepaid','مسبق الدفع'],postpaid:['Postpaid','آجل الدفع'],tender:['Tender','مناقصة']};
   var DOCS=[['cr','Commercial registration (CR)','السجل التجاري'],['vat','VAT certificate','شهادة ضريبة القيمة المضافة'],

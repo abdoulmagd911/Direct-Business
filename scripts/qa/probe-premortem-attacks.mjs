@@ -14,6 +14,11 @@
        final row is one consistent pair, nothing crashes.
    E — a tax file targeting an EXCLUDED client's invoice (Tawthiq 9999999999): must not
        touch it.
+       E (2026-09-27, DECISIONS D16): the story is now "a tax file RE-ADMITS an excluded
+       client". A row a rule catches is kept current like any other (so it is right the day its
+       rule is switched off) and the view money_rows leaves it out of every total — so the attack
+       now lands if, after the file is committed, the row is not still excluded by its rule in
+       the view, or its money reaches a Finance total. The write itself is expected.
    H — capture-only drop persistence: drop ONLY the transaction-status (gate) file, no
        invoice write to confirm — then reload and drop ONLY the lines file. If the gate fact
        was not persistable in session 1, the join can never resolve in session 2 and the
@@ -30,6 +35,7 @@ const BASE = 'http://localhost:' + PORT;
 let failures = 0;
 function fail(msg) { failures++; console.log('  ✗ ' + msg); }
 function ok(msg) { console.log('  ✓ ' + msg); }
+function note(msg) { console.log('  · ' + msg); }
 const inv = async (n) => fetch(BASE + '/rest/v1/finance_invoices?invoice_no=eq.' + n).then((r) => r.json()).then((a) => a[0] || {});
 /* 2026-09-07 (round 60): confirm() clicks the commit and waits a FIXED 2 seconds before the
    checks read the database. Under load — six probes on two vCPUs — the commit RPC had not
@@ -179,17 +185,22 @@ async function main() {
   if (!pairOk) fail(`D: expected the LAST file's consistent pair (DPIN-D2/12200), got ${JSON.stringify({ dpin: rD.zatca_dpin, total: rD.total_incl_vat_sar })} — a mixed/torn pair means the merge interleaved two files' fields`);
   else ok('D: last file won cleanly with a consistent dpin/total pair — no torn merge');
 
-  // ================= ATTACK E — excluded client's invoice must stay untouched =================
+  // ================= ATTACK E — a tax file must not re-admit an excluded client (E, D16) =================
   console.log('\nATTACK E — tax file targeting the EXCLUDED Tawthiq invoice');
   fs.writeFileSync(tmpd + '/tax-e.csv', ['invoice_no,tax_code,total_incl_vat_sar,invoice_status,issue_date', '9999999999,DPIN-EVIL,1,Issued,2026-08-01'].join('\n'));
   await p.setInputFiles('#finFile', [tmpd + '/tax-e.csv']);
   await p.waitForTimeout(1500);
-  // commit if anything is offered — the point is what the DATABASE ends up holding
+  // commit if anything is offered — the point is what the DATABASE and Finance end up holding
   await confirm();
   const rE = await inv('9999999999');
-  if (rE.zatca_dpin !== 'TTIN-9999' || Number(rE.total_incl_vat_sar) !== 314159) {
-    fail(`E: the excluded Tawthiq invoice was MODIFIED — got ${JSON.stringify({ dpin: rE.zatca_dpin, total: rE.total_incl_vat_sar })}, expected untouched TTIN-9999/314159`);
-  } else ok('E: the excluded client\'s invoice is untouched — exclusion holds on the import path');
+  const vE = ((await fetch(BASE + '/rest/v1/money_rows?invoice_no=eq.9999999999').then((r) => r.json())) || [])[0] || null;
+  await p.evaluate(() => { try { FIN.loading = false; FIN.rows = null; finLoad(); } catch (_) { } });
+  for (let i = 0; i < 80 && !(await p.evaluate(() => !!(window.FIN && FIN.rows && FIN.rows.length))); i++) await p.waitForTimeout(250);
+  const fE = await p.evaluate(() => ({ inLive: (finLive() || []).some((r) => r.invoice_no === '9999999999'), inExcluded: (window.finExcludedRows ? finExcludedRows() : []).some((x) => x.row.invoice_no === '9999999999') }));
+  if (rE.zatca_dpin !== 'DPIN-EVIL' || Number(rE.total_incl_vat_sar) !== 1) note(`E: the rule-caught Tawthiq invoice was not kept current (got ${JSON.stringify({ dpin: rE.zatca_dpin, total: rE.total_incl_vat_sar })}) — D16 expects it updated like any other row; reported, not an attack landing`);
+  if (!vE || vE.excluded !== true || vE.counts !== false || fE.inLive || !fE.inExcluded)
+    fail(`E: the tax file RE-ADMITTED the excluded Tawthiq invoice — view=${JSON.stringify(vE && { excluded: vE.excluded, counts: vE.counts, rule_kind: vE.rule_kind })} counted-in-Finance=${fE.inLive} in-Excluded-list=${fE.inExcluded}`);
+  else ok('E: after the tax file the excluded client\'s invoice is still excluded by its rule in the view, in no Finance total, and in the Excluded list — a tax code does not re-admit it');
 
   // ================= ATTACK H — capture-only drop must be persistable =================
   console.log('\nATTACK H — gate file today, lines file next session: the gate fact must survive');

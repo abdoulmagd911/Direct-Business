@@ -16,7 +16,19 @@
    row's own `client_group`, exactly like every other cost/revenue import path in this app —
    which is why the sabotage case below feeds a row that would otherwise sail straight through
    (real tax code, final status) and asserts it is refused anyway, purely because of who the
-   existing row belongs to. */
+   existing row belongs to.
+
+   E (2026-09-27, DECISIONS D16): the defence moved from the write to the read. A row a rule
+   catches is now kept up to date like any other (tax code, total and date are written — so the
+   stored copy is current the day the rule is switched off) and the database view money_rows
+   leaves it out of every total. The trap this signature exists for is unchanged — a tax code must
+   never re-admit an excluded client — and the sabotage case now asserts exactly that at the place
+   it is decided: after the update the Tawthiq row is marked excluded by its rule in the view, is
+   in no Finance total (live()), and sits in the Excluded list; the preview names it on its own
+   segment ("Left out by a rule (imported, not counted)") rather than among the rows not written.
+   So the preview's count is 2 updated (116361000 and the rule-caught row), not 1. (The old name
+   check looked for "Takamol", the fixture's name before it was renamed — it could not have
+   passed; it now looks for the fixture's real name.) */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
@@ -93,8 +105,8 @@ async function main() {
   const preview = await p.evaluate(() => { const v = document.getElementById('finImpOut'); return v ? v.innerText : ''; });
   if (!/Tax Invoices — final phase/i.test(preview)) fail(`file was not recognized as tax_invoice_capture: ${preview.slice(0, 300)}`);
   else ok('recognized as "Tax Invoices — final phase" (tax_invoice_capture)');
-  if (!/1 updated/.test(preview)) fail(`expected exactly 1 updated row (116361000): ${preview.slice(0, 400)}`);
-  else ok('exactly 1 updated row — the only genuinely eligible one');
+  if (!/Updated 2\b/.test(preview)) fail(`expected exactly 2 updated rows (116361000, and the rule-caught 9999999999 kept current): ${preview.slice(0, 400)}`);
+  else ok('exactly 2 updated rows — the eligible one, and the rule-caught one kept current (D16)');
   if (!/116361003/.test(preview) || !/no tax code/i.test(preview)) fail('116361003 (blank tax code) not itemized as needing manual review');
   else ok('116361003 itemized — blank tax code correctly routed to manual review');
   if (!/116361006/.test(preview) || !/Waiting for Issuing/i.test(preview)) fail('116361006 ("Waiting for Issuing") not itemized as needing manual review');
@@ -106,8 +118,8 @@ async function main() {
   // exclusion check simply hadn't run.
   // clientExcludedDetail entries carry the client name, not the invoice_no (same shape as
   // every other client-exclusion rendering in this importer) — check for the name.
-  if (!/[Tt]akamol/.test(preview)) fail('SABOTAGE CASE FAILED TO SURFACE: "Tawthiq" does not appear anywhere in the preview — the exclusion re-check may not be running');
-  else ok('SABOTAGE CASE: the excluded Tawthiq client is correctly reported as excluded, despite its invoice carrying a real tax code and a final status');
+  if (!/Left out by a rule \(imported, not counted\)\s+1\s+—\s+Tawthiq Test Services \(#Tawthiq Test Services: /.test(preview)) fail('SABOTAGE CASE FAILED TO SURFACE: the preview does not name "Tawthiq Test Services" on its "Left out by a rule (imported, not counted)" segment — the rule check may not be running: ' + JSON.stringify(preview.slice(0, 700)));
+  else ok('SABOTAGE CASE: the preview names the excluded Tawthiq client as left out by its rule, despite its invoice carrying a real tax code and a final status');
 
   const dialogsBefore = dialogs.length;
   const clicked = await p.evaluate(() => {
@@ -150,11 +162,21 @@ async function main() {
   else if (rows.waitingForIssuing.dpin !== null || rows.waitingForIssuing.total !== 9662) fail(`116361006: a "Waiting for Issuing" row was written anyway — got ${JSON.stringify(rows.waitingForIssuing)}`);
   else ok('116361006: left completely untouched — "Waiting for Issuing" correctly refused, not treated as final');
 
-  // ---- THE SABOTAGE ROW ITSELF: must be byte-for-byte untouched — this is the assertion
-  // that actually fails the build (exit 1) if the exclusion guard is ever removed or bypassed ----
+  // ---- THE SABOTAGE ROW ITSELF (E): kept current, and STILL out of every total — a tax code never re-admits it.
+  // This is the assertion that fails the build if the view stops applying the rule to an updated row. ----
+  const fin = await p.evaluate(() => {
+    const m = (FIN.m || {})[((FIN.rows || []).find((x) => x.invoice_no === '9999999999') || {}).id] || null;
+    return { m: m && { excluded: m.excluded, counts: m.counts, rule_kind: m.rule_kind, rule_value: m.rule_value },
+      inLive: (finLive() || []).some((r) => r.invoice_no === '9999999999'),
+      inExcluded: (window.finExcludedRows ? finExcludedRows() : []).some((x) => x.row.invoice_no === '9999999999'),
+      liveSum: (finLive() || []).reduce((a, r) => a + (Number(r.revenue_sar) || 0), 0) };
+  });
   if (!rows.sabotage) fail('9999999999 (Tawthiq): row unexpectedly disappeared');
-  else if (rows.sabotage.dpin === 'TTIN-SABOTAGE-9999' || rows.sabotage.total === 999999) fail(`SABOTAGE: the excluded Tawthiq row WAS overwritten (${JSON.stringify(rows.sabotage)}) despite carrying a real tax code and a final status — the exclusion-by-client guard did not fire. This is exactly the re-admitted-Tawthiq failure mode this signature exists to prevent.`);
-  else ok(`9999999999 (Tawthiq): completely untouched (${JSON.stringify(rows.sabotage)}) — the exclusion-by-client guard held even though the row would otherwise have qualified automatically`);
+  else if (rows.sabotage.dpin !== 'TTIN-SABOTAGE-9999' || rows.sabotage.total !== 999999) fail(`9999999999 (Tawthiq): not kept current — D16 imports and updates a rule-caught row like any other, so the day its rule is switched off it comes back correct; got ${JSON.stringify(rows.sabotage)}`);
+  else ok(`9999999999 (Tawthiq): kept current like any other row (${JSON.stringify(rows.sabotage)})`);
+  if (fin.m && fin.m.excluded === true && fin.m.counts === false && fin.m.rule_kind === 'name' && !fin.inLive && fin.inExcluded)
+    ok('SABOTAGE: after the update the Tawthiq row is still excluded by its rule in the view, in no Finance total, and in the Excluded list — its real tax code and final status did not re-admit it');
+  else fail(`SABOTAGE: after the tax-invoice update the excluded Tawthiq row is not held out: view=${JSON.stringify(fin.m)} counted-in-Finance=${fin.inLive} in-Excluded-list=${fin.inExcluded} (Finance revenue ${fin.liveSum}). This is exactly the re-admitted-Tawthiq failure mode this signature exists to prevent.`);
 
   const noNewRow = await p.evaluate(() => !(FIN.rows || []).some((r) => r.invoice_no === 'UNKNOWN-TEST-003'));
   if (!noNewRow) fail('UNKNOWN-TEST-003: a new finance_invoices row was created — tax_invoice_capture must NEVER insert, only update a live invoice (it carries no client name to create one with)');
@@ -171,7 +193,7 @@ async function main() {
     console.log(`\nFAILED — ${failures} check(s) did not pass.`);
     process.exit(1);
   }
-  console.log('\ntax invoice capture OK — v65IngestText drives the real path end to end, eligibility gates (tax code + not "Waiting for Issuing") hold, and the sabotage row (a would-otherwise-qualify Tawthiq invoice) is refused purely on client exclusion, never on its tax-code prefix.');
+  console.log('\ntax invoice capture OK — v65IngestText drives the real path end to end, eligibility gates (tax code + not "Waiting for Issuing") hold, and the sabotage row (a would-otherwise-qualify Tawthiq invoice) is kept current yet stays out of every total by its rule, never re-admitted by its tax-code prefix.');
   process.exit(0);
 }
 

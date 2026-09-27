@@ -78,10 +78,11 @@ alter table public.money_exclusion_rules enable row level security;
 drop policy if exists money_rules_read on public.money_exclusion_rules;
 create policy money_rules_read on public.money_exclusion_rules for select to authenticated using (public.can_see_page('finance'));
 drop policy if exists money_rules_insert on public.money_exclusion_rules;
-create policy money_rules_insert on public.money_exclusion_rules for insert to authenticated with check (public.app_role() in ('admin', 'manager'));
+create policy money_rules_insert on public.money_exclusion_rules for insert to authenticated with check (public.app_role() in ('admin', 'manager') and public.can_edit_page('finance'));
 drop policy if exists money_rules_update on public.money_exclusion_rules;
 create policy money_rules_update on public.money_exclusion_rules for update to authenticated
-  using (public.app_role() in ('admin', 'manager')) with check (public.app_role() in ('admin', 'manager'));
+  using (public.app_role() in ('admin', 'manager') and public.can_edit_page('finance'))
+  with check (public.app_role() in ('admin', 'manager') and public.can_edit_page('finance'));
 revoke all on public.money_exclusion_rules from anon;
 grant select, insert, update on public.money_exclusion_rules to authenticated;
 
@@ -100,12 +101,12 @@ end $$;
 
 drop policy if exists client_profiles_write on public.client_profiles;
 create policy client_profiles_write on public.client_profiles for all to authenticated
-  using (public.app_role() in ('admin', 'manager')) with check (public.app_role() in ('admin', 'manager'));
+  using (public.app_role() in ('admin', 'manager') and (public.can_edit_page('finance') or public.can_edit_page('clients'))) with check (public.app_role() in ('admin', 'manager') and (public.can_edit_page('finance') or public.can_edit_page('clients')));
 drop policy if exists cdc_insert on public.company_discount_codes;
-create policy cdc_insert on public.company_discount_codes for insert to authenticated with check (public.app_role() in ('admin', 'manager'));
+create policy cdc_insert on public.company_discount_codes for insert to authenticated with check (public.app_role() in ('admin', 'manager') and (public.can_edit_page('finance') or public.can_edit_page('clients')));
 drop policy if exists cdc_update on public.company_discount_codes;
 create policy cdc_update on public.company_discount_codes for update to authenticated
-  using (public.app_role() in ('admin', 'manager')) with check (public.app_role() in ('admin', 'manager'));
+  using (public.app_role() in ('admin', 'manager') and (public.can_edit_page('finance') or public.can_edit_page('clients'))) with check (public.app_role() in ('admin', 'manager') and (public.can_edit_page('finance') or public.can_edit_page('clients')));
 
 -- 3b. NAME ALIASES — a typed merge for rows that carry no client ID and no code (the old pre-Payments invoices carry only a
 --     customer name): a person types a customer name (any spelling, Arabic or English) into a company, and every row with
@@ -145,10 +146,10 @@ alter table public.company_name_aliases enable row level security;
 drop policy if exists company_alias_read on public.company_name_aliases;
 create policy company_alias_read on public.company_name_aliases for select to authenticated using (public.app_role() is not null);
 drop policy if exists company_alias_insert on public.company_name_aliases;
-create policy company_alias_insert on public.company_name_aliases for insert to authenticated with check (public.app_role() in ('admin', 'manager'));
+create policy company_alias_insert on public.company_name_aliases for insert to authenticated with check (public.app_role() in ('admin', 'manager') and (public.can_edit_page('finance') or public.can_edit_page('clients')));
 drop policy if exists company_alias_update on public.company_name_aliases;
 create policy company_alias_update on public.company_name_aliases for update to authenticated
-  using (public.app_role() in ('admin', 'manager')) with check (public.app_role() in ('admin', 'manager'));
+  using (public.app_role() in ('admin', 'manager') and (public.can_edit_page('finance') or public.can_edit_page('clients'))) with check (public.app_role() in ('admin', 'manager') and (public.can_edit_page('finance') or public.can_edit_page('clients')));
 revoke all on public.company_name_aliases from anon;
 grant select, insert, update on public.company_name_aliases to authenticated;
 

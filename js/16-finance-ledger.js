@@ -1457,8 +1457,9 @@ function txnLive(){
   var rows=(TXN.rows||[]);
   for(var i=0;i<rows.length;i++)txnSanitizeMoney(rows[i]);
   try{
-    /* E (2026-09-27): the typed exclusion rules (js/117), by client ID first, then by name for a row with no ID */
-    if(typeof window.moneyRuleFor!=='function') return rows;
+    /* E (2026-09-27): the typed exclusion rules (js/117), by client ID first, then by name for a row with no ID. The view does
+       not cover transactions, so until the page's copy of the rules is in, nothing is counted (fail closed). */
+    if(typeof window.moneyRuleFor!=='function'||(typeof window.moneyRulesKnown==='function'&&!window.moneyRulesKnown())) return [];
     return rows.filter(function(r){
       var prof=(TXN.profiles||{})[r.client_profile_id];
       if(prof&&prof.direct_client_id!=null&&window.moneyRuleFor({clientId:prof.direct_client_id})) return false;
@@ -1482,7 +1483,7 @@ function txnLive(){
    purpose and noted in docs/BACKLOG.md: the right home for it is finExclusionCheck itself, which
    is the only code that can tell "not excluded" from "cannot answer yet", and that file is the
    oversight lane's. */
-function txnExclusionsKnown(){ try{ return !!(DB.settings&&Object.keys(DB.settings).length); }catch(_){ return false; } }
+function txnExclusionsKnown(){ try{ return typeof window.moneyRulesKnown==='function'?!!window.moneyRulesKnown():false; }catch(_){ return false; } }
 try{ window.txnSanitizeMoney=txnSanitizeMoney; window.txnLive=txnLive; }catch(_){}
 function txnStage(r){
   // Round 8's two-field derivation, plus Round 11's Overdue mirror.

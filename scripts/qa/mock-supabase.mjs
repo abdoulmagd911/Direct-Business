@@ -1333,6 +1333,8 @@ export function start(port, seedOverrides){
     const meMR=(TABLES.app_users||[]).find(x=>x.id===UID&&x.active)||{};
     const mayMR=meMR.role==='admin'||meMR.role==='manager';
     const finLvlMR=meMR.id?mockLevelsOf(meMR).finance:'none';
+    const mayRules=mayMR&&finLvlMR==='full';   // rules: admin/manager AND Full on Finance (as the SQL policies)
+    const mayMerge=mayMR&&(finLvlMR==='full'||(meMR.id?mockLevelsOf(meMR).clients:'none')==='full');
     if(t==='money_rows'&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
     if(t==='money_exclusion_rules'&&req.method!=='GET'){
       let body=''; req.on('data',c=>body+=c);
@@ -1343,7 +1345,7 @@ export function start(port, seedOverrides){
         const list=TABLES.money_exclusion_rules=TABLES.money_exclusion_rules||[];
         const now=new Date().toISOString(), nm=meMR.full_name||meMR.email||null;
         if(req.method==='POST'){
-          if(!mayMR) return rls();
+          if(!mayRules) return rls();
           const rows0=Array.isArray(pl)?pl:[pl], out=[];
           for(const r0 of rows0){
             const v=String(r0.value==null?'':r0.value).trim(), why=String(r0.reason==null?'':r0.reason).trim();
@@ -1359,7 +1361,7 @@ export function start(port, seedOverrides){
           return send(res,201,out);
         }
         if(req.method==='PATCH'){
-          if(!mayMR) return send(res,200,[]);
+          if(!mayRules) return send(res,200,[]);
           const id=(String((u.query||{}).id||'').match(/^eq\.(.*)$/)||[])[1]; const r=list.find(x=>x.id===id); if(!r) return send(res,200,[]);
           if(r.removed_at) return P('P0001','A removed rule stays removed — add it again if it is needed');
           if(('kind' in pl&&pl.kind!==r.kind)||('value' in pl&&String(pl.value).trim()!==r.value)) return P('P0001',"A rule's type and value never change — remove it and add a new one");
@@ -1371,7 +1373,7 @@ export function start(port, seedOverrides){
           (TABLES.record_history=TABLES.record_history||[]).push({id:(TABLES.record_history.length+1000),at:now,actor:UID,actor_name:nm,table_name:'money_exclusion_rules',record_id:r.id,record_key:r.id,action:'edit',before_row:before,after_row:Object.assign({},r),undone_at:null});
           return send(res,200,[r]);
         }
-        if(req.method==='DELETE'){ if(!mayMR) return send(res,200,[]); return P('P0001','money_exclusion_rules rows are never deleted — archive them (set deleted_at) instead'); }
+        if(req.method==='DELETE'){ if(!mayRules) return send(res,200,[]); return P('P0001','money_exclusion_rules rows are never deleted — archive them (set deleted_at) instead'); }
         return send(res,405,{message:'method'});
       });
     }
@@ -1384,7 +1386,7 @@ export function start(port, seedOverrides){
         let pl={}; try{ pl=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON'}); }
         const list=TABLES.company_name_aliases=TABLES.company_name_aliases||[]; const now=new Date().toISOString(), nm=meMR.full_name||meMR.email||null;
         if(req.method==='POST'){
-          if(!mayMR) return send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "company_name_aliases"'});
+          if(!mayMerge) return send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "company_name_aliases"'});
           const out=[]; for(const r0 of (Array.isArray(pl)?pl:[pl])){ const n=String(r0.name||'').trim();
             if(!mockMoneyNorm(n)) return send(res,400,{code:'23514',details:null,hint:null,message:'new row violates check constraint "company_alias_readable"'});
             if(list.some(a=>!a.removed_at&&mockMoneyNorm(a.name)===mockMoneyNorm(n))) return send(res,409,{code:'23505',details:null,hint:null,message:'duplicate key value violates unique constraint "company_name_aliases_one_company"'});
@@ -1394,7 +1396,7 @@ export function start(port, seedOverrides){
           return send(res,201,out);
         }
         if(req.method==='PATCH'){
-          if(!mayMR) return send(res,200,[]);
+          if(!mayMerge) return send(res,200,[]);
           const id=(String((u.query||{}).id||'').match(/^eq\.(.*)$/)||[])[1]; const r=list.find(x=>x.id===id); if(!r) return send(res,200,[]);
           if(r.removed_at) return send(res,400,{code:'P0001',details:null,hint:null,message:'A removed name stays removed — add it again if it is needed'});
           if(pl.removed_at){ r.removed_at=now; r.removed_by=UID; r.removed_by_name=nm; }
@@ -1404,7 +1406,7 @@ export function start(port, seedOverrides){
       });
     }
     if(t==='client_profiles'&&req.method==='DELETE'){
-      if(!mayMR) return send(res,200,[]);
+      if(!mayMerge) return send(res,200,[]);
       const id=(String((u.query||{}).id||'').match(/^eq\.(.*)$/)||[])[1]; const hit=(TABLES.client_profiles||[]).filter(p=>p.id===id);
       TABLES.client_profiles=(TABLES.client_profiles||[]).filter(p=>p.id!==id);
       return send(res,200,hit);

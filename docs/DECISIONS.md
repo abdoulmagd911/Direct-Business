@@ -3753,8 +3753,10 @@ switched back — its row is the only thing changed, and it is a QA account.
 of 2026-09-27; E).** ACTIVE.
 - **Where:** Finance → Rules (js/117), two cards — *Exclusion rules* and *Company merges* — and a greyed *Excluded* list
   naming the rule that caught each row. The company card (js/113) shows the same client IDs and codes for its company and
-  warns when a rule catches them. Admins and managers change things (enforced by the database, not only hidden);
-  everyone with Finance sees. Every add, switch and removal is in the change log (record_history, D13).
+  warns when a rule catches them. Admins and managers change things (enforced by the database, not only hidden): a
+  rule needs Full on Finance; a merge (client ID, code, customer name) needs Full on Finance or on Clients, because the
+  company card makes merges too. Everyone with Finance sees. While the page's copy of the rules is loading, the
+  transactions list (which the view does not cover) counts nothing — fail closed. Every add, switch and removal is in the change log (record_history, D13).
 - **Exclusion rules** (`money_exclusion_rules`): leave out ONLY what is typed; everything else counts. A rule = type +
   value + reason (required) + who + when (stamped by the database, with the name) + on/off. Types: Direct Payments
   client ID; client name or alias (only for rows with no client ID); VAT or CR number (the row's own, or the merged

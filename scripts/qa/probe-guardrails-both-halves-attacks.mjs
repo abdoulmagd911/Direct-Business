@@ -15,7 +15,8 @@
      1. Positive control - as an allowed admin it really does change stored state (read back from the
         database, not from page state). Otherwise the refusals below pass for the wrong reason.
      2. Under a read-only share view it changes nothing.
-     3. Under a session whose Finance page is denied it changes nothing.
+     3. Under a session whose Finance and Clients pages are denied it changes nothing (a rule needs Finance; a merge needs
+        Finance or Clients, since the company card makes merges too).
    The dialog openers (add a rule, add a client ID, add a code) are checked on whether the dialog
    appears; the rule dialog is also filled and saved; the merge pair on whether its RPC is attempted.
    Each phase gets its own fixture rule / name / client ID, because a removal is final.
@@ -194,7 +195,9 @@ async function main() {
   /* ---------- 2 & 3. both halves ---------- */
   const HALVES = [
     ['sv', 'a read-only share view', () => { window.__isShareView = true; }],
-    ['role', 'a session whose Finance page is denied', () => { window.__isShareView = false; window.__userTier = 'admin'; window.__accessKnown = function () { return true; }; window.myAllowedPages = function () { return ['leads']; }; }]
+    /* E (D16): a merge (client ID, code, customer name) may also be made from the company card, so it needs Finance OR
+       Clients; a rule needs Finance. This half denies both — the person may edit Leads only. */
+    ['role', 'a session whose Finance and Clients pages are denied', () => { window.__isShareView = false; window.__userTier = 'admin'; window.__accessKnown = function () { return true; }; window.myAllowedPages = function () { return ['leads']; }; window.mayEditPage = function (pg) { return pg === 'leads'; }; }]
   ];
   for (const [ph, half, setup] of HALVES) {
     await pageLoaded();

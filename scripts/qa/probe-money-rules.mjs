@@ -117,7 +117,7 @@ for (const [lang, PORT] of [['en', 9701], ['ar', 9702]]) {
   await reloadFin(p); const t5b = await three(p); await tab(p, 'rules');
   const nameRow = await p.evaluate(() => { const tr = [...document.querySelectorAll('[data-v117-kind="name"]')].find((x) => /QA|TEST COMPANY 2/i.test(x.innerText)); if (!tr) return null; const sel = tr.querySelector('select[id^="v117_d"]');
     return { key: tr.getAttribute('data-v117-loose'), sel: sel ? sel.value : null, ix: sel ? sel.id.replace('v117_d', '') : null, text: tr.innerText.replace(/\s+/g, ' ') }; });
-  const beforeAlias = await p.evaluate(() => (MR.aliases || []).length);
+  const beforeAlias = await p.evaluate(() => (MR.aliases || []).filter((x) => /test\s*company\s*2$/i.test(String(x.name).trim())).length);   /* none typed for THIS name yet */
   check(nameRow && nameRow.sel === 'b2' && beforeAlias === 0 && (ar ? /مقترح/.test(nameRow.text) : /Suggested/.test(nameRow.text)),
     `${L} 5b: an old invoice with only a customer name waits for a decision with the same-name company SUGGESTED (pre-selected, nothing applied)`, JSON.stringify(nameRow) + ' aliases=' + beforeAlias);
   if (nameRow) { await p.click(`[data-v117-loose="${nameRow.key}"] [data-v117-decide="belongs"]`);

@@ -10,7 +10,7 @@
    database view money_rows, and js/16 does not set FIN.rows until the rows AND the view have both
    answered. So the window is now "the view is outstanding", and the right behaviour is simpler and
    stricter: every tab waits — nothing is shown, so nothing can be wrong — and says it is loading.
-   The page's own copy of the rules (MR.rules, what finExclusionsKnown() now reports) no longer
+   The page's own copy of the rules (MR.rules, what moneyRulesKnown() reports; finExclusionsKnown() now follows the view) no longer
    decides any total; a second window holds THAT back and requires every tab to be right anyway.
 
    The fixture stays 90% excluded on purpose (the real case behind the rule was 77% of revenue): one
@@ -24,7 +24,7 @@
         partner or prints its money (or the inflated 1,000,000) …
      3. … and each says it is loading rather than going quietly blank or showing a zero.
      4. When the view answers, all three show 100,000 — the wait is a moment, not a state.
-     5. With the page's copy of the RULES held back instead (finExclusionsKnown() false): no tab
+     5. With the page's copy of the RULES held back instead (moneyRulesKnown() false): no tab
         shows excluded money (hard), and — since that copy decides no total any more — every tab
         is already right with no "list not loaded" caveat (the old js/16 gates keyed on it).
 
@@ -161,9 +161,9 @@ async function main() {
   /* ---------- 5. the page's copy of the rules held back ---------- */
   hold = 'rules'; held = 0;
   await boot(true);
-  const st = await p.evaluate(() => (typeof window.finExclusionsKnown === 'function') ? window.finExclusionsKnown() : null);
-  note(`money_exclusion_rules held back (${held} request(s) held) · finExclusionsKnown() ${st}`);
-  if (st !== false) fail(`control: finExclusionsKnown() is ${st} with the rules held back — this window is not open and check 5 is not tested`);
+  const st = await p.evaluate(() => (typeof window.moneyRulesKnown === "function") ? window.moneyRulesKnown() : null);
+  note(`money_exclusion_rules held back (${held} request(s) held) · moneyRulesKnown() ${st}`);
+  if (st !== false) fail(`control: moneyRulesKnown() is ${st} with the rules held back — this window is not open and check 5 is not tested`);
   else {
     let bad = 0, stale = [];
     for (const tab of TABS) {
@@ -171,7 +171,7 @@ async function main() {
       if (s.inflated || s.namesExcluded || s.excludedMoney) { bad++; fail(`with only the page's copy of the rules outstanding, ${tab} shows excluded money: inflated=${s.inflated} named=${s.namesExcluded} its-900,000=${s.excludedMoney}`); continue; }
       if (!s.correct || s.saysUnchecked) stale.push(`${tab} (figure shown=${s.correct}, "not loaded" caveat=${s.saysUnchecked})`);
     }
-    if (!bad) ok('with the page\'s copy of the rules outstanding (finExclusionsKnown() false), no tab shows the excluded partner or its money');
+    if (!bad) ok('with the page\'s copy of the rules outstanding (moneyRulesKnown() false), no tab shows the excluded partner or its money');
     if (!stale.length) ok('…and every tab already shows the right 100,000 with no caveat — the rules that decide a total are the database\'s, not the page\'s copy');
     else fail(`with only the page's copy of the rules outstanding — which under E decides no total — these tabs still refuse or caveat on the old "exclusion list has not finished loading" gate: ${stale.join('; ')}. Nothing wrong is shown, but a Finance page that withholds correct figures (permanently, if that read never answers) and tells the reader they "may still include a partner this workspace excludes" is saying something that is no longer true`);
   }

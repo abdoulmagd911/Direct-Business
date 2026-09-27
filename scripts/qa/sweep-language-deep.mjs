@@ -18,7 +18,7 @@
        false leaks on two pages, buttons no employee can see);
      · an <option> has no box, so its <select> is measured instead;
      · industry terms a Riyadh travel or finance professional writes in Latin anyway — NDC, EMD,
-       ZATCA, IATA, PNR — are not leaks, and "translating" them would be wrong, not thorough.
+       ZATCA, IATA, PNR — and brand names the app keeps in Latin (Direct, WhatsApp; js/21 keeps them as is) are not leaks, and "translating" them would be wrong, not thorough.
 
    Under test:
      1. No dialog shows Latin-only user text while the app is in Arabic.
@@ -78,7 +78,7 @@ const SCAN = (rootSel) => {
     if (/[؀-ۿ]/.test(t)) return;              // has Arabic -> translated
     if (!/[A-Za-z]{3}/.test(t)) return;                 // no real words
     if (/^[\d\s.,%+\-\/]+$/.test(t)) return;
-    if (/(SAR|VAT|PNR|GDS|SLA|SOP|IATA|CSV|PDF|PPTX|XLSX|B2B|B2C|ID|KSA|NDC|EMD|ZATCA|API|ADM|BSP|TTL|FOP|RBD|QR|UUID|Direct|DPIN|Test Company|QA Test|Provider \d|Airline \d|Event \d|INV-|https?:|@)/i.test(t)) return;
+    if (/(SAR|VAT|PNR|GDS|SLA|SOP|IATA|CSV|PDF|PPTX|XLSX|B2B|B2C|ID|KSA|NDC|EMD|ZATCA|API|ADM|BSP|TTL|FOP|RBD|QR|UUID|Direct|WhatsApp|DPIN|Test Company|QA Test|Provider \d|Airline \d|Event \d|INV-|https?:|@)/i.test(t)) return;
     if (data.has(t)) return;                            // a name from the data, not a label
     if (exempt(el)) return;                             // a client-facing document, or a language picker
     if (!visible(el)) return;
