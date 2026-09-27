@@ -3766,9 +3766,19 @@ of 2026-09-27; E).** ACTIVE.
   (`company_discount_codes`). One ID or code belongs to one company (unique keys; the screen names the company that
   holds it). Nothing merges by name or automatically any more: the js/41 name auto-linker is switched off, js/62's name
   aliases and billing-profile grouping are retired, `finance_client_links` is no longer read, and the client card no
-  longer matches money by name. A row with a client ID goes by that ID alone; a row with no ID goes by its typed code;
-  otherwise it stands alone — an untyped client ID as its own entry named as Payments names it, flagged "Not merged —
+  longer matches money by name. A row with a client ID goes by that ID alone; a row with no ID goes by its typed code, then
+  its typed customer name; otherwise it stands alone — an untyped client ID as its own entry named as Payments names it, flagged "Not merged —
   review"; an untyped code under "Unassigned codes" (still counted, never twice).
+- **Customer names are a typed merge too** (oversight's design input, 27 Sep — the old pre-Payments invoices carry only a
+  name): `company_name_aliases` — a person types a customer name, any spelling, into a company; rows with no client ID
+  and no code count under it. One company per name however spelled; never re-pointed; a removal is final; logged.
+- **Needs a decision** (Rules tab): every client ID and customer name no company holds yet, largest SAR first, with one
+  control each — *Belongs to [company]* (a same-name company is SUGGESTED and pre-selected, never applied until the
+  person presses it), *New company…* (the app's own company form, the Payments name filled in; the decision is applied
+  only when the person saves it), *Exclude…* (the rule form, filled in; a reason is still required). Each answer is
+  remembered: later imports land under the company with nothing to do. Waiting for D: suggestions by VAT/CR and email
+  domain, similar Arabic/English names, the same question asked in the import preview, and employees proposing with an
+  admin or manager confirming.
 - **Exclusion beats merge.** Rule order: transaction → client ID → VAT/CR → code → name.
 - **One view, live and retroactive:** `money_row_rules()` (security definer, so every Finance viewer gets the same
   company and rule for a row; answers nobody without Finance) → `money_rows` (every live row: company, merge state, the
