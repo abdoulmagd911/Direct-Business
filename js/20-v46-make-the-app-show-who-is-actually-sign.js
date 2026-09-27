@@ -99,7 +99,9 @@
 
   var n=0;
   var t=setInterval(function(){ n++; paintFooter(); if(who.name||n>60) clearInterval(t); },400);
-  fetchWho(); setTimeout(fetchWho,3000); setTimeout(fetchWho,8000);
+  /* 2026-09-27 (speed, finding B): the 3 s and 8 s calls are retries for a first lookup that did not land (a slow
+     sign-in) — they used to ask again even when it had, three identical calls on every page load. */
+  fetchWho(); setTimeout(function(){ if(!_painted.name) fetchWho(); },3000); setTimeout(function(){ if(!_painted.name) fetchWho(); },8000);
   try{ document.addEventListener('visibilitychange',function(){ if(!document.hidden) fetchWho(); }); }catch(_){}
 
   console.info('%c[v46] real signed-in identity + hover-card cleanup','color:#FF6B00;font-weight:700');

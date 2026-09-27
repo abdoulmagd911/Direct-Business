@@ -368,3 +368,5 @@ probe-generator-fonts-in-exports
 probe-real-downloads
 probe-the-form-keeps-your-keyboard
 probe-company-card
+probe-one-question-one-paint
+probe-the-built-site-runs-the-same

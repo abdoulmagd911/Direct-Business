@@ -3203,6 +3203,45 @@ by `scripts/qa/phase3` CL-01..CL-04, R1-03, PT-04; rollback beside it):
   changes" card (it would have read "No logged changes yet", which is false). Guarded by `probe-change-log` (sabotage-tested).
 *Date: 2026-09-27. Status: ACTIVE (built on the owner's decisions; merges on the oversight's review, P6).*
 
+**D14 — Speed: one question one answer, one paint per redraw, the scripts inside the page (oversight's finding B,
+2026-09-27).** Measured live on Today as the QA account before the change: 108 script files requested one by one, 62
+database calls (17 of them the exact same read asked again by another layer), a layout-shift score of about 1.0 (the page
+jumped 24-33 times while loading; under 0.1 counts as good). Three changes, none of which changes what the app does:
+- **One question, one answer** (js/01, the one shared database client): an identical READ — same address and filters, same
+  person, same paging — shares one answer while the first is on its way and for 0.8 s after. Any write (a table, any other
+  function, storage, an edge function) forgets every shared answer, so a read after a save always goes to the database; a
+  failed answer is never shared; sign-in calls are never shared; and "who am I / what may I see" (app_role,
+  my_page_levels) is never shared, because it is how js/55 notices a session that lapsed mid-use. `window.__sharedReads.hits`
+  says how many were shared. **Why 0.8 s and not 2.5 s** (the full battery, 2026-09-27): at 2.5 s four real behaviours broke
+  — a layer that re-asks on purpose because it knows the data just changed (activities arriving after a logged call, a
+  person just invited, a card re-reading its contacts, the lapsed-session check) got the answer from before the change.
+  With the change: those four pass, and a Today load still shares 1-11 of about 50 reads (it depends on how the reads bunch).
+  The layout-shift score with js/116: 0.04-0.39 over 13 runs on the stand-in, against about 2.0 with it switched off — the
+  probe's line is 0.5.
+  js/20 no longer re-asks for the signed-in person at 3 s and 8 s when the first answer landed.
+- **One paint per redraw** (js/116): the short timers (≤ 250 ms) the layers set while a redraw runs — the way they add
+  their pieces after render() — are run in their order and spacing at the end of that task, before the browser paints; so
+  a redraw is painted once, finished, instead of bare and then pushed about. A long timer stays a real timer; a cancelled
+  one does not run; each also stays a real timer until run; an error still reaches the page. It collects until the end
+  of the TASK, not until render() returns, because the layers that attach after js/116 (js/84 at 200 ms, others later)
+  sit outside it — and the global render cannot be taken over (a top-level function is non-configurable).
+- **The scripts inside the page, at deploy only** (`scripts/build/build-site.mjs`, vercel.json `buildCommand` →
+  `outputDirectory: dist`): each `<script src="/js/…">` line becomes an inline script holding that file — one inline
+  script PER FILE, in order, so strict mode, hoisting and a file's own load errors stay exactly as they were (core-01
+  starts with "use strict"; one merged file would have made every file strict and let a later file's functions hoist
+  over an earlier file's code). One request instead of 108, and "unchanged" when nothing changed since the last visit.
+  The repository is untouched — index.html keeps its one line per file and every test runs the files as they are; the
+  build refuses (and Vercel keeps the previous deploy) on a file that does not compile or one holding both "<!--" and
+  "<script". Only css/, brand/ and js/ are published beside the page; docs/, scripts/ and supabase/ no longer are.
+- **Not changed, on purpose:** the five `app_*` tables (requests, offers, projects, bookings, invoices) that Today loads.
+  They are not retired — js/35 keeps those five sections of the app in them (read at sign-in, written on every save), and
+  Today's own note (js/84), Offers, Clients, Reports and the Archive read them. All five are empty since the reset. Whether
+  those sections ARE retired is the owner's call; until then they load.
+After, same conditions: 46 calls; layout shift 0.17-0.31 live and 0.07-0.17 on the stand-in — what is left is the top
+bar and the menu settling in the first second after sign-in. Guarded by `probe-one-question-one-paint` and
+`probe-the-built-site-runs-the-same` (both sabotage-tested).
+*Date: 2026-09-27. Status: ACTIVE (merges on the oversight's review, P6).*
+
 **D8 — Abdulrahman's logins, in his own word (2026-09-25): `aboelmagd@directksa.com` is his admin account
 and the one that belongs on the team list.** `business@directksa.com` is a login he keeps (untouched), not
 the person on the team list; `a.hassan@directksa.net` is his Team-Member test view. One human, one team-list

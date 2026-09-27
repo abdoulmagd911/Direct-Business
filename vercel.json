@@ -1,22 +1,46 @@
 {
+  "buildCommand": "node scripts/build/build-site.mjs",
+  "outputDirectory": "dist",
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "direct-business.vercel.app" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "direct-business.vercel.app"
+        }
+      ],
       "destination": "https://www.directksab2b.com/:path*",
       "permanent": false
     },
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "direct-business-abdoulmagd911s-projects.vercel.app" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "direct-business-abdoulmagd911s-projects.vercel.app"
+        }
+      ],
       "destination": "https://www.directksab2b.com/:path*",
       "permanent": false
     }
   ],
   "rewrites": [
-    { "source": "/brand", "destination": "/brand/index.html" },
-    { "source": "/brand/proposal", "destination": "/brand/proposal.html" },
-    { "source": "/brand/identity", "destination": "/brand/identity.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/brand",
+      "destination": "/brand/index.html"
+    },
+    {
+      "source": "/brand/proposal",
+      "destination": "/brand/proposal.html"
+    },
+    {
+      "source": "/brand/identity",
+      "destination": "/brand/identity.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
