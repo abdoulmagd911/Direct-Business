@@ -433,7 +433,7 @@ function rptActual(k){
   try{ if(typeof window.__rptActualHook==='function'){ const v=window.__rptActualHook(k); if(v!==undefined) return v; } }catch(_){}
   const ov=RDB.overrides[k.n];
   if(ov!=null&&ov!=="")return Number(ov);
-  const rows=RDB.achievements.filter(a=>Number(a.kpi)===k.n&&a.value!==""&&a.value!=null&&!isNaN(a.value));
+  const rows=rptCounted().filter(a=>Number(a.kpi)===k.n&&a.value!==""&&a.value!=null&&!isNaN(a.value));
   if(!rows.length)return null;
   if(k.type==="pct"||k.type==="score"){rows.sort((a,b)=>(a.date>b.date?1:-1));return Number(rows[rows.length-1].value);}
   return rows.reduce((s,a)=>s+Number(a.value),0);
@@ -498,11 +498,16 @@ function rptRowAch(a,withActs){
 /* the row decorator door (see __rptDB above) */
 const _rptRowAchPlain=rptRowAch;
 rptRowAch=function(a,withActs){ const h=_rptRowAchPlain(a,withActs); try{ if(typeof window.__rptRowHook==='function') return window.__rptRowHook(a,h,withActs); }catch(_){} return h; };
+/* 2026-09-27 (Tasks → Achievements ready for real use): what COUNTS — every achievement but a draft. A draft is a task
+   closed by a helper, waiting for its owner or their manager to finalize (D7): it is listed with its Draft tag, but the
+   totals, the objectives, the KPI figures and the generated report count final achievements only (the database's KPI
+   figures already did). */
+function rptCounted(){ return (RDB.achievements||[]).filter(a=>a&&a._status!=='draft'); }
 function rptOverview(v){
  const _ar=(typeof LANG!=='undefined'&&LANG==='ar');
- const tot=RDB.achievements.length;
+ const tot=rptCounted().length;
  const nowMk=new Date().toISOString().slice(0,7);
- const thisM=RDB.achievements.filter(a=>rptMonthKey(a.date)===nowMk).length;
+ const thisM=rptCounted().filter(a=>rptMonthKey(a.date)===nowMk).length;
  const tracked=RPT_KPIS.filter(k=>rptActual(k)!=null).length;
  const avg=rptAvgPct(RPT_KPIS);   /* null while nothing is measured — never 0 */
  const recent=RDB.achievements.slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,8);
@@ -573,7 +578,7 @@ function rptObj(v){
  v.innerHTML=RPT_OBJECTIVES.map(o=>{
   const ks=RPT_KPIS.filter(k=>k.obj===o.n);
   const ins=RPT_INITIATIVES.filter(i=>i.obj===o.n);
-  const ach=RDB.achievements.filter(a=>Number(a.objective)===o.n);
+  const ach=rptCounted().filter(a=>Number(a.objective)===o.n);
   const p=rptObjProgress(o.n);
   const open=rptOpenObjs[o.n];
   return '<div class="rpt-obj '+(open?'open':'')+'"><div class="head" onclick="rptToggleObj('+o.n+')">'+
@@ -611,7 +616,7 @@ function rptReport(v){
 }
 window.rptRepSet=function(k,val){rptRep[k]=val;render();};
 function rptFilterAch(){
- let rows=RDB.achievements.slice();
+ let rows=rptCounted();
  if(rptRep.type==='monthly')rows=rows.filter(a=>rptMonthKey(a.date)===rptRep.month);
  else rows=rows.filter(a=>String(new Date(a.date).getFullYear())===String(rptRep.year)&&'Q'+rptQuarterOf(a.date)===rptRep.quarter);
  if(rptRep.scope==='member')rows=rows.filter(a=>a.member===rptRep.member);

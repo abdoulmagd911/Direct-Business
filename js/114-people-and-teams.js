@@ -98,14 +98,16 @@
       if(!T.deps){ load(); return ''; }
       var m=member(mid), home=m?m.department_id:null, helps=m?assistsOf(m.id):[];
       var act=(T.deps||[]).filter(function(d){ return d.active; });
-      var h=[], a=[], o=[];
-      act.forEach(function(d){ if(d.id===home) h.push(d); else if(helps.indexOf(d.id)>=0) a.push(d); else if(d.parent_id) o.push(d); });
+      var h=[], a=[], o=[], whole=[];
+      act.forEach(function(d){ if(d.id===home) h.push(d); else if(helps.indexOf(d.id)>=0) a.push(d); else if(d.parent_id) o.push(d); else whole.push(d); });
       if(sel && !act.some(function(d){ return d.id===sel; }) && dep(sel)) o.push(dep(sel));   /* a retired team a record already names */
       var opt=function(d){ return '<option value="'+esc(d.id)+'"'+(d.id===(sel||home)?' selected':'')+'>'+esc(dname(d))+(d.active?'':' · '+fl('retired','موقوف'))+'</option>'; };
       var out='';
       if(h.length) out+='<optgroup label="'+esc(fl('Home team','الفريق الأساسي'))+'">'+h.map(opt).join('')+'</optgroup>';
       if(a.length) out+='<optgroup label="'+esc(fl('Teams they assist','فرق يساندها'))+'">'+a.map(opt).join('')+'</optgroup>';
       if(o.length) out+='<optgroup label="'+esc(fl('Other teams','فرق أخرى'))+'">'+o.map(opt).join('')+'</optgroup>';
+      /* the department itself, last — a record may name Commercial as a whole, and an edit must not quietly move it */
+      if(whole.length) out+='<optgroup label="'+esc(fl('The whole department','الإدارة كاملة'))+'">'+whole.map(opt).join('')+'</optgroup>';
       return out;
     }catch(e){ return ''; }
   };

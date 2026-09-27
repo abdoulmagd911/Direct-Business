@@ -1414,7 +1414,27 @@ export function start(port, seedOverrides){
         }
         if(req.method==='PATCH'){
           const hit=filt(table).filter(r=>{ if(lvl==='full') return true; const tk=t==='tasks'?r:(t==='projects'?r:taskOf(r.task_id)); return mine(tk); });
-          hit.forEach(r=>{ Object.assign(r,payload); if(t==='tasks'){ const st=TASKMOCK.lookups.task_statuses.find(x=>x.code===r.status); r.done_at=st&&st.is_done?(r.done_at||new Date().toISOString()):null; } TASKMOCK.log.push({t,op:'update',id:r.id}); });
+          /* 2026-09-27 — a finished task that counts registers its achievement, as the database's trigger does
+             (scripts/sql/tasks-to-achievements.sql): registered when it becomes done or is ticked while done, withdrawn when
+             reopened or unticked (refused in words if its achievement has proofs), and a later title/kind/team change follows */
+          for(const r of hit){
+            const before=Object.assign({},r); Object.assign(r,payload);
+            if(t==='tasks'){ const st=TASKMOCK.lookups.task_statuses.find(x=>x.code===r.status); r.done_at=st&&st.is_done?(r.done_at||new Date().toISOString()):null;
+              const wasDone=before.status==='done', isDone=r.status==='done', wasIn=!!before.include_in_report, isIn=!!r.include_in_report;
+              const e=REPORTMOCK.entries.find(x=>x.source==='task'&&x.source_id===r.id);
+              if(isDone && isIn && !e && (!wasDone||!wasIn)){
+                const day=String(r.done_at).slice(0,10), per=REPORTMOCK.periods.find(x=>x.kind==='month'&&day>=x.start_date&&day<=x.end_date);
+                if(!per){ Object.assign(r,before); return send(res,400,{code:'P0001',message:'No reporting month covers '+day+' — the achievement for task '+r.code+' cannot be registered'}); }
+                REPORTMOCK.entries.push({id:'re-task-'+(++REPORTMOCK.seq),period_id:per.id,department_id:r.department_id||'dep-commercial',member_id:r.owner_id,section:'achievement',category_id:r.report_category_id,
+                  title:r.title,text_en:null,text_ar:null,entry_date:day,business_id:r.business_id||null,objective_id:null,kpi_id:null,value:null,source:'task',source_id:r.id,
+                  status:(myMember&&[r.owner_id,r.created_by,r.assigned_by].includes(myMember.id))||lvl==='full'?'final':'draft',import_key:null,created_by:r.owner_id});
+              } else if(e && ((wasDone&&!isDone)||(isDone&&wasIn&&!isIn))){
+                if(REPORTMOCK.files.some(f=>f.entry_id===e.id&&!f.deleted_at)){ Object.assign(r,before); return send(res,400,{code:'P0001',message:'Task '+r.code+' counts as an achievement with proof files attached — it stays counted; record a correction instead'}); }
+                REPORTMOCK.entries.splice(REPORTMOCK.entries.indexOf(e),1);
+              } else if(e && isDone && isIn){ e.title=r.title; e.category_id=r.report_category_id; if(r.department_id) e.department_id=r.department_id; }
+            }
+            TASKMOCK.log.push({t,op:'update',id:r.id});
+          }
           return send(res,200,hit);
         }
         return send(res,405,{message:'mock: '+req.method+' not modelled on '+t});

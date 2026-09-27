@@ -1341,6 +1341,43 @@ def _(cur):
                                           'report_entries_team_guard','report_entries_guard','members_guard','team_list_guard','tasks_register_achievement')""")
     return (bad is None, f"guards without definer rights: {bad}")
 
+# ================= tasks → achievements, ready for real use (scripts/sql/tasks-to-achievements.sql) =================
+def done_task(cur, include=False, **kw):
+    t = new_task(cur, company='coA', owner='m1', **kw)
+    q(cur, "update tasks set status='done', include_in_report=%s, report_category_id=%s where id=%s", (include, F['cat'] if include else None, t))
+    return t
+def entry_of(cur, t):
+    return one(cur, "select id from report_entries where source='task' and source_id=%s", (t,))
+@test("TA-01 'Count it' ticked on a task that is ALREADY done registers its achievement then; unticked, the achievement is withdrawn")
+def _(cur):
+    t = done_task(cur, include=False); none_yet = entry_of(cur, t) is None
+    q(cur, "update tasks set include_in_report=true, report_category_id=%s where id=%s", (F['cat'], t)); made = entry_of(cur, t) is not None
+    q(cur, "update tasks set include_in_report=false where id=%s", (t,)); gone = entry_of(cur, t) is None
+    return (none_yet and made and gone, f"before tick: none={none_yet} · ticked after done → registered={made} · unticked → withdrawn={gone}")
+@test("TA-02 A later change of the task's title / kind / team reaches its achievement while the month is open; once the month is issued the task can still be edited and the issued line stays as it was")
+def _(cur):
+    t = done_task(cur, include=True)
+    q(cur, "update tasks set title='Renamed deal' where id=%s", (t,)); follows = one(cur, "select title from report_entries where source_id=%s", (t,)) == 'Renamed deal'
+    per = one(cur, "select period_id from report_entries where source_id=%s", (t,))
+    q(cur, "update periods set locked_at=now() where id=%s", (per,))
+    q(cur, "update tasks set title='After issue' where id=%s", (t,))
+    task_ok = one(cur, "select title from tasks where id=%s", (t,)) == 'After issue'
+    kept = one(cur, "select title from report_entries where source_id=%s", (t,)) == 'Renamed deal'
+    return (follows and task_ok and kept, f"follows while open={follows} · task edited after issue={task_ok} · issued line unchanged={kept}")
+@test("TA-03 Reopening (or unticking) a task whose achievement has proof files is refused in plain words — it stays counted; no raw foreign-key error")
+def _(cur):
+    t = done_task(cur, include=True); e = entry_of(cur, t)
+    q(cur, "insert into evidence_files(entry_id,storage_path,file_name,uploaded_by) values (%s,%s,'p.pdf',%s)", (e, f'proofs/{e}/1-p.pdf', F['m1']))
+    a, m1 = expect_fail(cur, "update tasks set status='in_progress' where id=%s", (t,), "proof files attached")
+    b, m2 = expect_fail(cur, "update tasks set include_in_report=false where id=%s", (t,), "proof files attached")
+    still = entry_of(cur, t) is not None
+    return (a and b and still, f"reopen refused={a} ({m1[:60]}) · untick refused={b} · still counted={still}")
+@test("TA-04 A task finished on a date no reporting month covers is refused in words — it no longer finishes with its achievement silently missing")
+def _(cur):
+    t = new_task(cur, company='coA', owner='m1')
+    a, m = expect_fail(cur, "update tasks set status='done', done_at='2031-01-15', include_in_report=true, report_category_id=%s where id=%s", (F['cat'], t), "no reporting month covers")
+    return (a, m[:90])
+
 w = max(len(n) for n, _, _ in results)
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]

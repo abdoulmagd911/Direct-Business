@@ -185,7 +185,10 @@
     if(!cat){ tell(fl('Choose what kind of achievement this is.','اختر نوع الإنجاز.')); return; }
     var per=monthOf(date); if(!per){ tell(fl('Choose a date inside a month the company reports on.','اختر تاريخًا ضمن شهر تُعد له التقارير.')); return; }
     var me=findMe(); var m=mid?S.members.filter(function(x){ return x.id===mid; })[0]:null;
-    var dep=field('v111_team')||(m&&m.department_id)||(me&&me.department_id);
+    /* editing: without a picker on screen (teams not loaded) the achievement KEEPS its own team — never quietly the
+       member's home team (found in the 2026-09-27 review) */
+    var oldDep=null; if(id){ try{ oldDep=(((R()?R().achievements:[]).filter(function(x){ return x.id===id; })[0]||{})._row||{}).department_id||null; }catch(_){} }
+    var dep=field('v111_team')||oldDep||(m&&m.department_id)||(me&&me.department_id);
     if(!dep){ tell(fl('Your login is not on the team list yet, so no achievement can be registered for you. Ask an admin to add you to the team list.','حسابك غير مدرج في قائمة الفريق بعد، فلا يمكن تسجيل إنجاز لك. اطلب من المسؤول إضافتك.')); return; }
     var kN=field('v111_kpi'), oN=field('v111_obj'), val=field('v111_value');
     var k=kN?S.kpiByN[kN]:null;

@@ -162,6 +162,16 @@ non-admin may read only their own login row. The roster is readable by every sig
 "Abdul Aziz") comes out as first "Abdul", last "Aziz …"; correct any such person on the page. Nobody has a team yet
 (everyone's home is still "Commercial") — setting each person's home team is yours or Othman's, on the page.
 
+**3 · Tasks → Achievements — made ready for real use (DECISIONS D12).** Walked page by page as an employee. Fixed: a
+finished task now shows on Reports → Achievements at once (it needed a page reload); "count it" ticked on an already-done
+task now registers it, and unticking withdraws it; renaming a task renames its achievement while the month is open; a
+refused task save keeps the form and what was typed; a task's owner, kind of work and company can be changed after it is
+made (so someone leaving can have their open tasks handed on — the database insists on that first); the task list shows
+and filters by team; reopening a task whose achievement has proofs says so in words; drafts no longer inflate the report's
+totals; the Tasks page's refusals are in Arabic on an Arabic page. **Still missing on screen, next in line:** a project's
+own page (projects are listed but cannot be opened), subtasks, helpers and task files, archiving a task, and a per-team
+view of the monthly report.
+
 ## Bulletproof audit of everything since Phase 1 (2026-09-27, Claude Code) — the Tasks button vanished for every team member
 
 **Asked:** test every step built so far for real — use every feature, assume nothing works until it has been used.

@@ -31,7 +31,7 @@
 
   var S={ loaded:false, loading:false, err:null, uid:null,
           tasks:[], projects:[], statuses:[], priorities:[], workTypes:[], members:[], names:{},
-          tab:'tasks', mine:true, status:'open', q:'', open:null, detail:null };
+          tab:'tasks', mine:true, status:'open', q:'', team:'', open:null, detail:null };
   window.__v108State=S;
 
   function nm(row){ return row ? (isAr() ? (row.name_ar||row.name_en||row.code) : (row.name_en||row.code)) : ''; }
@@ -69,8 +69,25 @@
     var m=String((err&&err.message)||err||'');
     if(/row-level security|permission denied|42501/i.test(m) || (err&&err.code==='42501'))
       return fl('The database refused this — it is not part of your access on Tasks.','رفضت قاعدة البيانات هذا الإجراء — ليس ضمن صلاحيتك على صفحة المهام.');
+    if(isAr()){ for(var i=0;i<AR_SAID.length;i++){ var x=m.match(AR_SAID[i][0]); if(x) return AR_SAID[i][1](x); } }
     return m || fl('The change was not saved.','لم يُحفظ التغيير.');
   }
+  /* the task rules' own sentences, in Arabic for an Arabic reader (2026-09-27 — before this every refusal on the Tasks
+     page came through in English whatever the page language) */
+  var AR_SAID=[
+    [/^Client work needs a company or a project/,function(){ return 'عمل العملاء يحتاج شركة أو مشروعًا'; }],
+    [/^Only an admin, a manager or the department head can assign tasks to someone else/,function(){ return 'إسناد المهام لشخص آخر للمسؤول أو المدير أو رئيس القسم فقط'; }],
+    [/^Owner is not an active team member/,function(){ return 'المسؤول ليس عضوًا نشطًا في الفريق'; }],
+    [/^Choose an active team for this task/,function(){ return 'اختر فريقًا نشطًا لهذه المهمة'; }],
+    [/^Task (\S+) is counted in an issued month/,function(x){ return 'المهمة '+x[1]+' محتسبة في شهر صدر تقريره — سجّل تصحيحًا بدل تعديلها'; }],
+    [/^Task (\S+) is a final achievement/,function(x){ return 'المهمة '+x[1]+' إنجاز نهائي — لا يعيد فتحها إلا مالكها أو من يديرها'; }],
+    [/^Task (\S+) counts as an achievement with proof files attached/,function(x){ return 'المهمة '+x[1]+' محتسبة إنجازًا وله ملفات إثبات — يبقى محتسبًا؛ سجّل تصحيحًا بدلًا من ذلك'; }],
+    [/^No reporting month covers (\S+)/,function(x){ return 'لا يوجد شهر تقارير يغطي '+x[1]+' — لا يمكن تسجيل إنجاز هذه المهمة'; }],
+    [/^Close the open subtasks first/,function(){ return 'أغلق المهام الفرعية المفتوحة أولًا'; }],
+    [/^Task company must match its project's company/,function(){ return 'يجب أن تطابق شركة المهمة شركة مشروعها'; }],
+    [/^That contact belongs to a different company/,function(){ return 'جهة الاتصال هذه تتبع شركة أخرى'; }],
+    [/^Project (\S+) is deleted/,function(x){ return 'المشروع '+x[1]+' محذوف'; }]
+  ];
 
   /* ---------- load ---------- */
   function load(force){
@@ -112,6 +129,7 @@
       if(S.status==='open' && st && st.is_closed) return false;
       if(S.status==='done' && !(st && st.is_done)) return false;
       if(S.status==='overdue' && !overdue(t)) return false;
+      if(S.team && t.department_id!==S.team) return false;
       if(q){ var hay=(t.code+' '+t.title+' '+companyName(t.business_id)+' '+memberName(t.owner_id)).toLowerCase(); if(hay.indexOf(q)<0) return false; }
       return true;
     }).sort(function(a,b){ return String(a.due_date||'9999').localeCompare(String(b.due_date||'9999')) || String(b.created_at).localeCompare(String(a.created_at)); });
@@ -148,6 +166,7 @@
        '<span style="width:10px"></span>'+
        ['open','overdue','done','all'].map(function(k){ var L={open:fl('Open','مفتوحة'),overdue:fl('Overdue','متأخرة'),done:fl('Done','منجزة'),all:fl('All','الكل')}[k];
          return chip(L,S.status===k,"v108Status('"+k+"')",'data-v108-status="'+k+'"'); }).join('')+
+       teamFilter()+
        '<input class="inp" id="v108q" placeholder="'+esc8(fl('Search tasks…','ابحث في المهام…'))+'" value="'+esc8(S.q)+'" oninput="v108Search(this.value)" style="flex:1;min-width:160px">'+
        (canWork()&&myMember()?'<button class="btn pri" data-v108-new="task" onclick="v108NewTask()">'+fl('+ New task','+ مهمة جديدة')+'</button>':'')+
        '</div>';
@@ -157,13 +176,14 @@
       return h;
     }
     h+='<div class="card" style="padding:0"><div class="tbl-wrap"><table class="v108-tasks"><thead><tr>'+
-       '<th>'+fl('Task','المهمة')+'</th><th>'+fl('Company / project','الشركة / المشروع')+'</th><th>'+fl('Owner','المسؤول')+'</th><th>'+fl('Due','الاستحقاق')+'</th><th>'+fl('Status','الحالة')+'</th></tr></thead><tbody>';
+       '<th>'+fl('Task','المهمة')+'</th><th>'+fl('Company / project','الشركة / المشروع')+'</th><th>'+fl('Owner','المسؤول')+'</th><th>'+fl('Team','الفريق')+'</th><th>'+fl('Due','الاستحقاق')+'</th><th>'+fl('Status','الحالة')+'</th></tr></thead><tbody>';
     rows.forEach(function(t){
       var p=t.project_id?projectOf(t.project_id):null, st=statusRow(t.status), pr=S.priorities.filter(function(x){return x.code===t.priority;})[0];
       h+='<tr data-v108-task="'+esc8(t.id)+'" style="cursor:pointer" onclick="v108Open(\''+esc8(t.id)+'\')">'+
          '<td><b>'+esc8(t.title)+'</b><div style="font-size:11.5px;color:var(--muted)">'+esc8(t.code)+(pr&&t.priority!=='normal'?' · '+esc8(nm(pr)):'')+'</div></td>'+
          '<td>'+esc8(companyName(t.business_id))+(p?'<div style="font-size:11.5px;color:var(--muted)">'+esc8(p.code+' · '+p.name)+'</div>':'')+'</td>'+
          '<td>'+esc8(memberName(t.owner_id))+'</td>'+
+         '<td data-v108-team="'+esc8(t.department_id||'')+'">'+esc8(teamName(t.department_id))+'</td>'+
          '<td'+(overdue(t)?' style="color:#D90B0B;font-weight:700"':'')+'>'+esc8(fmtDate(t.due_date))+'</td>'+
          '<td>'+esc8(nm(st)||t.status)+'</td></tr>';
     });
@@ -189,6 +209,20 @@
   window.v108Tab=function(t){ S.tab=t; draw(); };
   window.v108Mine=function(b){ S.mine=!!b; draw(); };
   window.v108Status=function(k){ S.status=k; draw(); };
+  window.v108Team=function(k){ S.team=String(k||''); draw(); };
+  /* people & teams (2026-09-27): each task names the team it is done for — shown, and filterable */
+  function teamsList(){ try{ return (window.__v114&&window.__v114.deps)||[]; }catch(_){ return []; } }
+  function teamName(id){ var d=teamsList().filter(function(x){ return x.id===id; })[0]; return d?(isAr()?(d.name_ar||d.name_en):d.name_en):'—'; }
+  function teamFilter(){
+    var used={}; S.tasks.forEach(function(t){ if(t.department_id) used[t.department_id]=1; });
+    var list=teamsList().filter(function(d){ return d.active||used[d.id]; });
+    if(!list.length) return '';
+    return '<select class="inp" id="v108team" data-v108-teamfilter="1" onchange="v108Team(this.value)" style="max-width:190px"><option value="">'+esc8(fl('All teams','كل الفرق'))+'</option>'+
+      list.map(function(d){ return '<option value="'+esc8(d.id)+'"'+(d.id===S.team?' selected':'')+'>'+esc8(isAr()?(d.name_ar||d.name_en):d.name_en)+'</option>'; }).join('')+'</select>';
+  }
+  /* a finished task can register an achievement and move a KPI: the Reports page's copies are refreshed at once */
+  function refreshReports(){ try{ if(typeof window.v111Reload==='function') window.v111Reload(); }catch(_){} try{ if(typeof window.v112Reload==='function') window.v112Reload(); }catch(_){} }
+  function formSay(t){ var e=document.getElementById('v108_formmsg'); if(e){ e.textContent=t; return; } note(t,true); }
   window.v108Search=function(val){ S.q=String(val||''); var pos=null; try{ pos=document.getElementById('v108q').selectionStart; }catch(_){} draw(); try{ var i=document.getElementById('v108q'); i.focus(); if(pos!=null)i.setSelectionRange(pos,pos); }catch(_){} };
 
   function companyOptions(sel){
@@ -228,19 +262,23 @@
       field(fl('Due','الاستحقاق'),'<input id="v108_due" type="date">')+
       field(fl('Priority','الأولوية'),'<select id="v108_pri">'+optionList(S.priorities,'normal')+'</select>')+
       '</div>'+field(fl('Details','التفاصيل'),'<textarea id="v108_desc" rows="3"></textarea>')+
-      '<div class="note" style="font-size:12px">'+fl('Handing a task to someone else is for managers and department heads — the database checks it.','إسناد مهمة لشخص آخر للمدراء ورؤساء الأقسام — وقاعدة البيانات تتحقق من ذلك.')+'</div>';
+      '<div class="note" style="font-size:12px">'+fl('Handing a task to someone else is for managers and department heads — the database checks it.','إسناد مهمة لشخص آخر للمدراء ورؤساء الأقسام — وقاعدة البيانات تتحقق من ذلك.')+'</div>'+
+      '<div id="v108_formmsg" data-v108-formmsg="1" style="font-size:12.5px;color:#9B1C1C;margin-top:6px"></div>';
     openModal(fl('New task','مهمة جديدة'),body,function(){
       var row={ title:val('v108_title'), work_type:val('v108_type'), business_id:val('v108_biz')||null, project_id:val('v108_proj')||null,
                 owner_id:val('v108_owner')||null, due_date:val('v108_due')||null, priority:val('v108_pri')||'normal', description:val('v108_desc')||null };
       if(val('v108_team')) row.department_id=val('v108_team');
-      if(!row.title){ note(fl('A task needs a title.','المهمة تحتاج عنوانًا.'),true); return false; }
+      if(!row.title){ formSay(fl('A task needs a title.','المهمة تحتاج عنوانًا.')); return false; }
+      if(row.work_type!=='internal' && !row.business_id && !row.project_id){ formSay(fl('Client work needs a company or a project — choose one, or choose Internal as the kind of work.','عمل العملاء يحتاج شركة أو مشروعًا — اختر أحدهما، أو اختر «داخلي» نوعًا للعمل.')); return false; }
       var c=client(); if(!c) return false;
+      /* the form stays open until the database has answered: a refusal no longer throws away what was typed */
       c.from('tasks').insert(row).select('id,code').then(function(r){
-        if(r.error||!r.data||!r.data.length){ note(refusal(r.error||{code:'42501'}),true); return; }
+        if(r.error||!r.data||!r.data.length){ formSay(refusal(r.error||{code:'42501'})); return; }
+        try{ closeModal(); }catch(_){}
         note(fl('Task '+r.data[0].code+' created.','أُنشئت المهمة '+r.data[0].code+'.'));
         S.loaded=false; load(true);
       });
-      return true;
+      return false;
     });
   };
 
@@ -291,6 +329,9 @@
       field(fl('Due','الاستحقاق'),'<input id="v108e_due" type="date" value="'+esc8(fmtDate(t.due_date))+'"'+dis+'>')+
       field(fl('Priority','الأولوية'),'<select id="v108e_pri"'+dis+'>'+optionList(S.priorities,t.priority)+'</select>')+
       teamField('v108e_team',t.owner_id,t.department_id,dis)+
+      field(fl('Owner — who does it','المسؤول — من ينفّذها'),'<select id="v108e_owner"'+dis+'>'+memberOptions(t.owner_id)+'</select>')+
+      field(fl('Kind of work','نوع العمل'),'<select id="v108e_type"'+dis+'>'+optionList(S.workTypes,t.work_type)+'</select>')+
+      field(fl('Company','الشركة'),'<select id="v108e_biz"'+dis+'>'+companyOptions(t.business_id||'')+'</select>')+
       '</div>'+field(fl('Details','التفاصيل'),'<textarea id="v108e_desc" rows="3"'+dis+'>'+esc8(t.description||'')+'</textarea>')+
       /* release 2 (2026-09-26): a finished task marked for the report registers its own achievement in the database —
          final when its owner or whoever manages it closes it, a DRAFT for them to finalize when a helper does (D7) */
@@ -306,20 +347,26 @@
       (d.comments.length?d.comments.map(function(cm){ return '<div style="border-top:1px solid var(--line);padding:6px 0;font-size:12.5px"><b>'+esc8(memberName(cm.author_id))+'</b> <span style="color:var(--muted)">'+esc8(String(cm.created_at||'').slice(0,16).replace('T',' '))+(cm.kind==='weekly_update'?' · '+fl('weekly update','تحديث أسبوعي'):'')+'</span><div>'+esc8(cm.body)+'</div></div>'; }).join('')
                          :'<div style="color:var(--muted);font-size:12.5px">'+fl('No updates yet.','لا توجد تحديثات بعد.')+'</div>')+'</div>'+
       (canWork()&&myMember()?'<div style="display:flex;gap:6px;margin-top:6px"><input class="inp" id="v108_newcomment" placeholder="'+esc8(fl('Write an update…','اكتب تحديثًا…'))+'" style="flex:1"><button class="btn sm" onclick="v108AddComment()">'+fl('Post','نشر')+'</button></div>':'')+
+      '<div id="v108_formmsg" data-v108-formmsg="1" style="font-size:12.5px;color:#9B1C1C;margin-top:6px"></div>'+
       '</div>';
     openModal(esc8(t.title),body,function(){
       if(!edit){ note(refusal({code:'42501'}),true); return false; }
       var patch={ title:val('v108e_title'), status:val('v108e_status'), due_date:val('v108e_due')||null, priority:val('v108e_pri'), description:val('v108e_desc')||null };
       if(val('v108e_team') && val('v108e_team')!==t.department_id) patch.department_id=val('v108e_team');
+      /* reassigning, the kind of work and the company can change after creation (the database decides who may reassign) */
+      if(val('v108e_owner') && val('v108e_owner')!==t.owner_id) patch.owner_id=val('v108e_owner');
+      if(val('v108e_type') && val('v108e_type')!==t.work_type) patch.work_type=val('v108e_type');
+      if(document.getElementById('v108e_biz') && (val('v108e_biz')||null)!==(t.business_id||null)) patch.business_id=val('v108e_biz')||null;
       try{ var rep=document.getElementById('v108e_rep'); if(rep){ patch.include_in_report=!!rep.checked; patch.report_category_id=val('v108e_repcat')||null; } }catch(_){}
-      if(!patch.title){ note(fl('A task needs a title.','المهمة تحتاج عنوانًا.'),true); return false; }
-      if(patch.include_in_report && !patch.report_category_id){ note(fl('Choose the kind of achievement it will count as.','اختر نوع الإنجاز الذي ستُحتسب به.'),true); return false; }
+      if(!patch.title){ formSay(fl('A task needs a title.','المهمة تحتاج عنوانًا.')); return false; }
+      if(patch.include_in_report && !patch.report_category_id){ formSay(fl('Choose the kind of achievement it will count as.','اختر نوع الإنجاز الذي ستُحتسب به.')); return false; }
       var c=client(); if(!c) return false;
       c.from('tasks').update(patch).eq('id',t.id).select('id,status,done_at').then(function(r){
-        if(r.error||!r.data||!r.data.length){ note(refusal(r.error||{code:'42501'}),true); S.loaded=false; load(true); return; }
-        note(fl('Saved.','حُفظ.')); S.loaded=false; load(true);
+        if(r.error||!r.data||!r.data.length){ formSay(refusal(r.error||{code:'42501'})); return; }
+        try{ closeModal(); }catch(_){}
+        note(fl('Saved.','حُفظ.')); S.loaded=false; load(true); refreshReports();
       });
-      return true;
+      return false;
     });
     if(!edit){ try{ var sv=document.getElementById('mSave'); if(sv) sv.style.display='none'; }catch(_){} }
   }

@@ -3149,6 +3149,24 @@ Commercial row; a person's HOME team is `team_members.department_id`; the teams 
   one answer, and js/49 and js/64 now ask it rather than reading the grid list (both had bounced a manager off the page).
 *Date: 2026-09-27. Status: ACTIVE (built on the owner's order; merges on the oversight's review, P6).*
 
+**D12 — A task becomes its achievement the way the day goes (the owner's order of 26 Sep, part 3; 2026-09-27).**
+The database turns a finished task that "counts in the monthly report" into its achievement
+(`tasks_register_achievement`, now in `scripts/sql/tasks-to-achievements.sql`). Walked as an employee on 2026-09-27, it now
+also: registers the achievement when "count it" is ticked on a task that is **already** done (it used to count only the
+moment a task became done); withdraws it when "count it" is unticked; carries a later change of the task's title, kind,
+KPI, company or team to its achievement **while the month is open** (an issued month's line stays as issued, and the task
+can still be edited); refuses, in plain words, to reopen or untick a task whose achievement carries **proof files** (it
+used to fail with a raw database error) — it stays counted, and a correction is recorded instead; and refuses to finish a
+task on a date **no reporting month covers** (it used to finish with its achievement silently missing). On screen: the
+Tasks page refreshes the Reports page's achievements and KPI figures as soon as a task is saved (they used to load once
+per page load); a refused task save keeps the form open with what was typed; a task's owner, kind of work and company can
+be changed after it is created; the list shows each task's team and filters by it; the database's refusals are said in
+Arabic on an Arabic page. **What counts:** a DRAFT (a task closed by a helper, waiting for its owner or their manager, D7)
+is listed with its Draft tag but left out of the Overview totals, the objectives, the KPI figures and the generated report
+— `rptCounted()` in core-10; the database's own KPI figures already counted final lines only. Guarded by
+`probe-tasks-to-achievements` (sabotage-tested) and the harness's TA-01..TA-04.
+*Date: 2026-09-27. Status: ACTIVE (merges on the oversight's review, P6).*
+
 **D8 — Abdulrahman's logins, in his own word (2026-09-25): `aboelmagd@directksa.com` is his admin account
 and the one that belongs on the team list.** `business@directksa.com` is a login he keeps (untouched), not
 the person on the team list; `a.hassan@directksa.net` is his Team-Member test view. One human, one team-list
