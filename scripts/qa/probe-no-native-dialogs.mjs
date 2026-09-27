@@ -183,13 +183,16 @@ async function main() {
   await p.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); const o = document.getElementById('v48ov'); if (o) o.remove(); });
 
   /* ---- 9. the Finance guardrails card (js/62): removing an exclusion asks in the page ---- */
-  await p.evaluate(() => { DB.settings = DB.settings || {}; DB.settings.financeExclusions = DB.settings.financeExclusions || []; DB.settings.financeExclusions.push({ id: 'fx-nd', clientId: 'x', matchNames: ['Probe Excluded Co'], reason: 'probe', addedBy: 'QA', addedAt: new Date().toISOString() }); v62RemoveExclusion('fx-nd'); });
+  /* E (2026-09-27): exclusions are typed rules on Finance → Rules (js/117); removing one asks in the page */
+  await p.evaluate(async () => { await fc().from('money_exclusion_rules').insert({ kind: 'name', value: 'Probe Excluded Co', reason: 'probe' }).select('id'); MR.rules = null; moneyRulesLoad(); });
+  await p.waitForFunction(() => (MR.rules || []).some((r) => r.value === 'Probe Excluded Co'), null, { timeout: 15000 }).catch(() => { });
+  await p.evaluate(() => { const r = MR.rules.find((x) => x.value === 'Probe Excluded Co'); v117RemoveRule(r.id); });
   await p.waitForTimeout(400);
-  const r9 = await p.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ').slice(0, 80), still: (DB.settings.financeExclusions || []).some((e) => e.id === 'fx-nd') }));
-  if (!dialogs.length && r9.box && /Remove this exclusion/.test(r9.txt) && r9.still) ok(`guardrails: removing an exclusion asks in the page ("${r9.txt.slice(0, 50)}…"), nothing removed yet`);
-  else fail(`guardrails exclusion: ${JSON.stringify(r9)} dialogs=${JSON.stringify(dialogs)}`);
-  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }); await p.waitForTimeout(400);
-  const r9b = await p.evaluate(() => (DB.settings.financeExclusions || []).some((e) => e.id === 'fx-nd'));
+  const r9 = await p.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ').slice(0, 80), still: (MR.rules || []).some((e) => e.value === 'Probe Excluded Co') }));
+  if (!dialogs.length && r9.box && /Remove the rule/.test(r9.txt) && r9.still) ok(`rules: removing an exclusion rule asks in the page ("${r9.txt.slice(0, 50)}…"), nothing removed yet`);
+  else fail(`rules exclusion: ${JSON.stringify(r9)} dialogs=${JSON.stringify(dialogs)}`);
+  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }); await p.waitForTimeout(1500);
+  const r9b = await p.evaluate(() => (MR.rules || []).some((e) => e.value === 'Probe Excluded Co'));
   if (!r9b) ok('…Confirm removes the exclusion'); else fail('Confirm did not remove the exclusion');
 
   /* ---- 10. the Airlines / Suppliers editor (core-03 editSupplier, flagged by the other session) ---- */

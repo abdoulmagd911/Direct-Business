@@ -1249,7 +1249,7 @@
       }
       totals.isNew+=r.counts.isNew; totals.updated+=r.counts.updated; totals.unchanged+=r.counts.unchanged;
       totals.needsLinking+=r.counts.needsLinking;
-      var exclLine;
+      var exclLine, ruleLine='';
       if(r.hasClientColumn===false){
         exclLine='<span style="color:#B54708">'+fl('cannot be checked — this file carries no client','لا يمكن التحقق — هذا الملف لا يحتوي على عميل')+'</span>';
       } else {
@@ -1271,7 +1271,10 @@
             }
           });
         }
-        exclLine=String(r.counts.excludedByRule)+((ceParts.length||ccParts.length)?(' — '+ceParts.concat(ccParts).join('; ')):'');
+        exclLine=String(r.counts.excludedByRule)+(ccParts.length?(' — '+ccParts.join('; ')):'');
+        /* E (2026-09-27): rows an exclusion rule catches are imported and left out of the totals by the view — a separate
+           line, so "Excluded by rule" keeps meaning the rows that are NOT written */
+        ruleLine=ceParts.length?(String((r.excludedDetail.clientExcludedDetail||[]).length)+' — '+ceParts.join('; ')):'';
       }
       return '<div class="card" style="margin-top:8px;padding:12px 14px">'+
         '<b>'+esc(r.name)+'</b> — '+esc(r.label)+'<br>'+
@@ -1281,6 +1284,7 @@
           fl('Unchanged','بدون تغيير')+' <b>'+r.counts.unchanged+'</b> · '+
           fl('Excluded by rule','مستبعد بحسب القاعدة')+' <b>'+exclLine+'</b> · '+
           fl('Needs linking','بحاجة لربط')+' <b>'+r.counts.needsLinking+'</b>'+
+          (ruleLine?(' · '+fl('Left out by a rule (imported, not counted)','تستبعدها قاعدة (تُستورد ولا تُحتسب)')+' <b>'+ruleLine+'</b>'):'')+
         '</div>'+
         (r.joinNote?('<div style="font-size:11.5px;color:#B54708;margin-top:4px">'+esc(r.joinNote)+'</div>'):'')+
       '</div>';

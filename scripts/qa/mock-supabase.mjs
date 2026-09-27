@@ -672,15 +672,29 @@ export async function settingsLoaded(page, ms = 90000, alsoRequire = null) {
    fixture and there is no ordering to get wrong:
      start(PORT, { __settings: { financeExclusions: [...], financeGroupMap: [...] } })          */
 export function start(port, seedOverrides){
+ /* E (2026-09-27): the app no longer reads finance_client_links (a name → company link). A probe's links become what a
+    person would now type — a customer name in that company (company_name_aliases) — unless the probe seeds names itself. */
+ const linksToNames=()=>{ if(seedOverrides&&seedOverrides.company_name_aliases) return; const seen=new Set();
+   TABLES.company_name_aliases=(TABLES.finance_client_links||[]).filter(l=>l&&l.business_id&&l.client_group).filter(l=>{ const k=mockMoneyNorm(l.client_group); if(!k||seen.has(k))return false; seen.add(k); return true; })
+     .map((l,i)=>({id:'na-link-'+i,business_id:l.business_id,name:l.client_group,created_by:null,created_by_name:'probe seed',created_at:'2026-08-10T00:00:00Z',removed_by:null,removed_by_name:null,removed_at:null})); };
  if(seedOverrides) Object.keys(seedOverrides).forEach(k=>{
    if(k==='__settings'){
      const row=(TABLES.app_settings&&TABLES.app_settings[0])||{id:'main',data:{}};
      row.data=Object.assign({}, row.data, seedOverrides[k]);
      TABLES.app_settings=[row];
+     /* E (2026-09-27): the app no longer reads the old name list — a probe that still sets one up gets the same exclusion
+        as typed RULES (a name rule per match name, a client-ID rule per client ID), the way a person would now enter it */
+     const fx=(seedOverrides[k]||{}).financeExclusions;
+     if(Array.isArray(fx)){ const list=TABLES.money_exclusion_rules=(TABLES.money_exclusion_rules||[]).slice(); const seen=new Set(list.map(r=>r.kind+'|'+mockMoneyNorm(r.value)));
+       fx.forEach((e,ix)=>{ const add=(kind,v)=>{ const key=kind+'|'+mockMoneyNorm(v); if(!mockMoneyNorm(v)||seen.has(key))return; seen.add(key);
+           list.push({id:'mr-fx-'+ix+'-'+list.length,kind,value:String(v),reason:e.reason||'probe seed',active:true,created_by:null,created_by_name:e.addedBy||'probe seed',created_at:e.addedAt||'2026-08-21T00:00:00Z',updated_by:null,updated_by_name:null,updated_at:null,removed_by:null,removed_by_name:null,removed_at:null}); };
+         (e.matchNames||[]).forEach(n=>add('name',n)); if(e.clientId!=null&&String(e.clientId).trim()) add('client_id',e.clientId); });
+       TABLES.money_exclusion_rules=list; }
      return;
    }
    TABLES[k]=seedOverrides[k];
  });
+ linksToNames();
  return http.createServer((req,res)=>{
     try{ if(String(req.url||'').split('?')[0]==='/__mock/ignored-writes'){ res.writeHead(200,{'Content-Type':'application/json'}); return res.end(JSON.stringify(IGNORED_WRITES)); } }catch(_){}
     try{ if(String(req.url||'').split('?')[0]==='/__mock/served'){ res.writeHead(200,{'Content-Type':'application/json'}); return res.end(JSON.stringify(SERVED)); } }catch(_){}

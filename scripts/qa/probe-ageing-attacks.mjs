@@ -138,9 +138,9 @@ async function main() {
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 90000 }); await p.waitForTimeout(1800);
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
   await p.waitForTimeout(4500);
-  await p.evaluate((g) => {
-    DB.settings = DB.settings || {};
-    DB.settings.financeExclusions = [{ id: 'fx-ag', clientId: 'ag-excl', matchNames: [g], reason: 'QA fixture — standing exclusion', addedBy: 'probe', addedAt: new Date().toISOString() }];
+  await p.evaluate(async (g) => {   /* E (2026-09-27): the standing exclusion is a typed RULE now (Finance → Rules), not a settings list */
+    await fc().from('money_exclusion_rules').insert({ kind: 'name', value: g, reason: 'QA fixture — standing exclusion' }).select('id');
+    if (window.MR) { MR.rules = null; if (typeof moneyRulesLoad === 'function') moneyRulesLoad(); }
   }, EXCLUDED_GROUP);
   await p.evaluate(() => { current = 'finance'; FIN.rows = null; finLoad(); });
   for (let i = 0; i < 140 && !(await p.evaluate(() => window.FIN && FIN.rows && FIN.rows.length)); i++) await p.waitForTimeout(250);
