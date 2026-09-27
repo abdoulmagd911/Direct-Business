@@ -3560,6 +3560,14 @@ when Row-Level Security silently refused the write.** Always chain `.select()` a
 being made a standing rule.
 *Date: 2026-08-22. Status: ACTIVE.*
 
+**A layer that adds a menu button names that button's page on the button itself** (`data-v108-nav`, `data-v90`,
+or the like) — and the access pass in `js/52-v76-access-model.js` reads that name before it reads any label. The pass
+used to name a button by its first `<span>`, which for an icon-first button is the icon: js/108's Tasks (✓) and js/90's
+Activity and Archive (·) were named after their icons, were on nobody's list, and were hidden from every non-admin, a
+moment after they appeared. Test the menu over TIME (several seconds, through a redraw), never at one moment: the old
+test read it inside the second before it was hidden. Guarded by `probe-the-menu-keeps-its-pages`.
+*Date: 2026-09-27 (bulletproof audit). Status: ACTIVE.*
+
 **`is_client` is two flags, not one.** The `businesses.is_client` column and
 `raw->>'isClient'` must both change together — the app reads both, so changing one without
 the other leaves a record half-converted.

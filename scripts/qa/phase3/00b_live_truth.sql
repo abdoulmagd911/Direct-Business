@@ -127,6 +127,9 @@ create or replace function public.can_write_company_id(p_business uuid) returns 
   select coalesce((select public.can_write_company(b.is_client, b.owner_id) from public.businesses b where b.id = p_business),
                   public.can_edit_page('leads'))
 $$;
+-- businesses write rule as live (audit 2026-09-27: the test copy let anyone signed in write any company; live does not)
+drop policy if exists biz_write on businesses;
+create policy biz_write on businesses for all using (can_write_company(is_client, owner_id)) with check (can_write_company(is_client, owner_id));
 alter table client_profiles add constraint client_profiles_profile_type_check check (profile_type = any (array['prepaid','postpaid','tender']));
 create unique index if not exists client_profiles_one_open_prepaid_postpaid on client_profiles (business_id, profile_type)
   where profile_type = any (array['prepaid','postpaid']) and closed_at is null;

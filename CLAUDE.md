@@ -41,7 +41,9 @@ at merge from the merged commit (checksum-checked), after a rolled-back live che
 **6 · Working habits.** Test with the harness (`scripts/qa/`, fake data) **and** against the live database
 read-only (see "What this session can and cannot reach"); full battery `scripts/qa/run-battery.sh -j 4`
 before any merge; every release's live check includes `LIVE=1 node scripts/qa/probe-real-downloads.mjs` (all
-downloads, read-only); the QA login is `test@directksa.com`; staff passwords are never in this repo.
+downloads, read-only), `node scripts/qa/probe-live-walk.mjs` (every page, both languages, read-only) and the
+self-undoing blocks in `scripts/qa/live/phase3-rollback-tests.sql` (the write rules as real people, fingerprint
+identical before and after); the QA login is `test@directksa.com`; staff passwords are never in this repo.
 
 ---
 
