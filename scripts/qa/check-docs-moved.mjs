@@ -12,9 +12,9 @@
                   docs/DECISIONS.md under 40,000 characters; CLAUDE.md at most 22,000
      4. IDS       every rule ID of the old DECISIONS.md (P…, M…, D…) still opens an entry in the new one, and every
                   entry carries a status (ACTIVE / SUSPENDED / OPEN — CONTESTED / SUPERSEDED-BY …)
-     5. QUOTES    every passage in double quotes (15+ characters) in the three short working files exists word for
-                  word in the archived originals — the owner's words are quoted, never reworded (whitespace and line
-                  wrapping aside)
+     5. QUOTES    every passage in double quotes (15+ characters) in the three short working files that was carried
+                  over from the archived originals is there word for word — the owner's words are quoted, never
+                  reworded (whitespace and line wrapping aside); a quote given after the cut is only counted
      6. KB NAMES  no pointer to the old knowledge-base part names ("KB Part 35", "Drive part 08" …) outside the
                   word-for-word archives; the new names are the Drive files 04, 05, 06
 
@@ -52,8 +52,10 @@ function quotes(text) {
   const out = [];
   for (const para of text.split(/\n\s*\n/)) {
     const t = para.replace(/`[^`\n]*`/g, (m) => m.replace(/"/g, '\u0001'));
-    for (const m of t.matchAll(/"([^"]{15,1500}?)"/g)) out.push(m[1].replace(/\u0001/g, '"'));
-    for (const m of t.matchAll(/“([^”]{15,1500}?)”/g)) out.push(m[1].replace(/\u0001/g, '"'));
+    /* pair every mark in order, short quotes included ("A"), and only then keep the long ones — skipping a short pair
+       would shift every pair after it by one mark */
+    for (const m of t.matchAll(/"([^"]*)"/g)) if (m[1].length >= 15 && m[1].length <= 1500) out.push(m[1].replace(/\u0001/g, '"'));
+    for (const m of t.matchAll(/“([^”]*)”/g)) if (m[1].length >= 15 && m[1].length <= 1500) out.push(m[1].replace(/\u0001/g, '"'));
   }
   return out;
 }
@@ -129,11 +131,18 @@ function check(root, { quiet = false } = {}) {
   const noStatus = entries.filter((b) => !STATUS.test(b)).map((b) => b.trim().match(/^\*\*([A-Z]+\d+[a-z]?)/)[1]);
   say(entries.length > 0 && noStatus.length === 0, 'IDS', `every entry says its status and date${noStatus.length ? ' — NOT: ' + noStatus.join(', ') : ''}`);
 
-  /* 5 · quoted words exist, word for word, in the archived originals */
+  /* 5 · quoted words: a passage whose start or end is in the archived originals must be there WHOLE — that is a
+     quote carried over from the old text, and a difference means it was reworded. A passage that shares neither its
+     first nor its last words with the originals is new (a quote given after the cut) and is only counted. */
   const haystack = norm(Object.values(old).join('\n'));
   for (const [name, text] of [['docs/DECISIONS.md', decisions], ['docs/BACKLOG.md', backlog], ['CLAUDE.md', claude]]) {
-    const qs = quotes(text); const bad = qs.filter((q) => !haystack.includes(norm(q)));
-    say(bad.length === 0, 'QUOTES', `${name}: ${qs.length} quoted passage(s), ${bad.length ? bad.length + ' NOT word for word in the originals, first: ' + JSON.stringify(bad[0].slice(0, 90)) : 'every one word for word in the originals'}`);
+    const qs = quotes(text); let fresh = 0; const bad = [];
+    for (const q of qs) {
+      const n = norm(q); if (haystack.includes(n)) continue;
+      const w = n.split(' '); const k = Math.min(5, Math.max(2, Math.floor(w.length / 2)));
+      if (w.length >= 4 && (haystack.includes(w.slice(0, k).join(' ')) || haystack.includes(w.slice(-k).join(' ')))) bad.push(q); else fresh++;
+    }
+    say(bad.length === 0, 'QUOTES', `${name}: ${qs.length} quoted passage(s), ${bad.length ? bad.length + ' REWORDED from the originals, first: ' + JSON.stringify(bad[0].slice(0, 90)) : 'every carried-over one word for word'}${fresh ? ` (${fresh} new, not in the originals)` : ''}`);
   }
 
   /* 6 · no old knowledge-base names outside the word-for-word archives */

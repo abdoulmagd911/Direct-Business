@@ -65,34 +65,21 @@ function countOccurrences(re) {
 
 function main() {
   const md = fs.readFileSync(DECISIONS, 'utf8');
-  // Split into rule blocks: a bolded rule statement through its own "*Date: ... Status: ...*"
-  // line. Only ACTIVE rules are checked — a SUPERSEDED or OPEN-CONTESTED rule describing old
-  // code is expected to point at something that may no longer be wired the same way.
-  const fragments = md.split(/\n(?=\*\*)/).filter((b) => /^\*\*/.test(b));
-  // A single rule can span several bolded paragraphs (e.g. "**M9 — ...**" followed by its own
-  // "**The gate itself has a second correction...**" sub-paragraph) — all sharing ONE
-  // "*Date: ... Status: ...*" marker at the very end. Splitting naively on every "\n**" (as an
-  // earlier version of this script did) fragments a multi-paragraph rule into pieces, and only
-  // the LAST piece carries the Status marker — every citation in the earlier pieces silently
-  // never gets checked. Self-caught 2026-08-24 re-reading this file's own output after adding
-  // the M9 rewrite: it reported the M9 rule's citations as zero, which was the parser's bug, not
-  // a real absence. Fixed by accumulating fragments until one actually contains its own Status
-  // marker — that accumulated span is the real rule block, however many bolded paragraphs it has.
-  const STATUS_RE = /Status:\s*(ACTIVE|OPEN\s*—\s*CONTESTED|SUPERSEDED-BY[^*]*)\.?\*/i;
-  const blocks = [];
-  let acc = [];
-  for (const frag of fragments) {
-    acc.push(frag);
-    if (STATUS_RE.test(frag)) { blocks.push(acc.join('\n')); acc = []; }
-  }
-  // A trailing accumulation with no Status marker at all (malformed rule, or end-of-file
-  // stragglers) is not a rule this script can classify — dropped, not silently treated as ACTIVE.
+  /* 2026-09-27 (docs restructure): DECISIONS.md is now one short paragraph per rule —
+       **M26 — title** ACTIVE · 2026-09-21. body …
+     — with the full original text of every rule archived word for word in docs/history/decisions/. A rule block is
+     a blank-line-separated paragraph that opens with a bold ID; its status is the word right after the bold title.
+     (The old format — bolded paragraphs closed by a "*Date: … Status: …*" line, several paragraphs per rule — lives
+     only in the archive now, which this check does not read: an archived rule describes code as it was then.) */
+  const blocks = md.split(/\n\s*\n/).map((b) => b.trim()).filter((b) => /^\*\*[A-Z]+\d+[a-z]? —/.test(b));
+  const STATUS_RE = /^\*\*[\s\S]*?\*\*\s*(ACTIVE|SUSPENDED|OPEN — CONTESTED|SUPERSEDED-BY [^·]+?)\s*·/;
   let checkedRules = 0, citedSymbols = 0;
 
   for (const block of blocks) {
-    const statusM = block.match(/Status:\s*(ACTIVE|OPEN\s*—\s*CONTESTED|SUPERSEDED-BY[^*]*)\.?\*/i);
-    const status = statusM ? statusM[1].toUpperCase() : null;
-    if (!status || !status.startsWith('ACTIVE')) continue;
+    const statusM = block.match(STATUS_RE);
+    const status = statusM ? statusM[1] : null;
+    if (!status) { fail(`"${block.slice(0, 70)}": an entry with no status after its title — every rule says ACTIVE, SUSPENDED, OPEN — CONTESTED or SUPERSEDED-BY`); continue; }
+    if (!status.startsWith('ACTIVE')) continue;
     const titleM = block.match(/^\*\*([^*]+)\*\*/);
     const title = titleM ? titleM[1].trim().slice(0, 70) : '(untitled rule)';
     checkedRules++;
@@ -133,6 +120,8 @@ function main() {
   }
 
   console.log(`\n${checkedRules} ACTIVE rule(s) scanned, ${citedSymbols} code citation(s) checked.`);
+  /* a parser that finds no rules passes vacuously — the exact failure P5 is about, turned on this script itself */
+  if (checkedRules < 80) fail(`only ${checkedRules} ACTIVE rule(s) found — the file's format and this parser have drifted apart`);
   if (failures) {
     console.log(`\nFAILED — ${failures} citation(s) in docs/DECISIONS.md point at code that is missing or never actually called.`);
     process.exit(1);
