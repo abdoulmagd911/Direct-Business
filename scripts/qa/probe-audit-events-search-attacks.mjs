@@ -138,12 +138,15 @@ function historySeed() {
 }
 
 async function phaseA() {
+  /* 2026-09-27 (owner decision 2, DECISIONS D13): the log is for admins and managers only. The feed checks (A1-A6, A10)
+     now drive it as a MANAGER, its audience; a team member (A7-A9, A11) gets a page that says so, keeps the refused
+     undo, and — the leak A9 used to only REPORT — is handed no line of the log at all, money included. */
   const PORT = 9011, BASE = 'http://localhost:' + PORT;
   process.env.MOCK_UNDO_ACTOR_GATE = '1';
-  process.env.MOCK_ROLE = 'team_member';
+  process.env.MOCK_ROLE = 'manager';
   process.env.MOCK_PAGE_ACCESS = JSON.stringify({ today: 'editor', leads: 'editor', clients: 'editor', events: 'editor', activity: 'viewer' });
-  start(PORT, { businesses: [biz({ id: 'qa_a', name: 'Audit Target Co', name_ar: 'شركة التدقيق' })], record_history: historySeed(), app_users: baseUsers({ role: 'team_member', page_access: { today: 'editor', leads: 'editor', clients: 'editor', events: 'editor', activity: 'viewer' } }) });
-  const { browser, p, errors, dialogs } = await openApp(BASE);
+  start(PORT, { businesses: [biz({ id: 'qa_a', name: 'Audit Target Co', name_ar: 'شركة التدقيق' })], record_history: historySeed(), app_users: baseUsers({ role: 'manager', page_access: { today: 'editor', leads: 'editor', clients: 'editor', events: 'editor', activity: 'viewer' } }) });
+  const { browser, p, errors } = await openApp(BASE);
   await signIn(p); await waitReady(p);
   await go(p, 'activity', 2500);
 
@@ -153,18 +156,15 @@ async function phaseA() {
     return {
       text: v ? v.innerText : '',
       rowCount: rows.length,
-      loaded: (window.HIST_ROWS_FOR_TEST || null),
-      firstRows: rows.slice(0, 3).map(r => r.innerText.replace(/\s+/g, ' ').trim()),
       scripts: v ? v.querySelectorAll('script').length : -1,
       imgs: v ? v.querySelectorAll('img').length : -1,
       xss: !!window.__xss, xss2: !!window.__xss2,
-      undoBtns: [...document.querySelectorAll('.act-row button')].length,
       bounced: !!document.getElementById('v64-access-denied'),
       cur: (typeof current !== 'undefined') ? current : null,
     };
   });
 
-  check('A1 · Activity page opens for a non-admin whose matrix allows it (no access bounce)',
+  check('A1 · Activity page opens for a manager, not an admin, whose matrix allows it (no access bounce)',
     feed.cur === 'activity' && !feed.bounced, { cur: feed.cur, bounced: feed.bounced });
 
   check('A2 · the feed stops at js/63\'s HIST_CAP of 500 rows, not the 614 seeded',
@@ -182,61 +182,72 @@ async function phaseA() {
     return [...v.querySelectorAll('button,a')].map(b => (b.textContent || '').trim()).filter(Boolean);
   });
   const hasPager = (pager || []).some(t => /older|more|next|previous|page|load/i.test(t));
-  report('A4 · Activity & Audit caps at ' + feed.rowCount + ' rows and offers ' + (hasPager ? 'a' : 'NO') + ' control to read older entries. The cap is now stated honestly; paging past it is an owner decision (add a pager, or rename the heading "last 500 changes").');
+  report('A4 · Activity & Audit caps at ' + feed.rowCount + ' rows and offers ' + (hasPager ? 'a' : 'NO') + ' control to read older entries. The cap is now stated honestly; paging past it is an owner decision (add a pager, or rename the heading "last 500 changes"). Each record\'s own change log (the "Log" button, js/115) is not capped this way.');
 
   check('A5 · a hostile actor name / table name is escaped, never executed',
     !feed.xss && !feed.xss2 && feed.scripts === 0 && feed.imgs === 0,
     { xss: feed.xss, xss2: feed.xss2, scripts: feed.scripts, imgs: feed.imgs });
 
-  /* the actor-null row: the page shows "unknown", and undo_change refuses it for a
-     team_member because `h.actor is distinct from me` */
+  /* the actor-null row (older lines; the live ones were backfilled to the QA account, D13): the page still says
+     "unknown", and offers Undo (the database decides; a manager may undo anyone's) */
   const unknownShown = await p.evaluate(() => {
     const rows = [...document.querySelectorAll('.act-row')];
     const r = rows.find(x => /unknown/.test(x.innerText));
-    return r ? { text: r.innerText.replace(/\s+/g, ' ').trim(), hasUndo: !!r.querySelector('button') } : null;
+    return r ? { text: r.innerText.replace(/\s+/g, ' ').trim(), hasUndo: !![...r.querySelectorAll('button')].find(b => /Undo/.test(b.textContent)) } : null;
   });
   check('A6 · an actor-null entry is displayed as "unknown" and still offers Undo',
     !!unknownShown && unknownShown.hasUndo, unknownShown);
 
-  const dlgMark = dialogs.length;
-  await p.evaluate(() => { window.undoRecordChange(900, function () { }); });
-  await p.waitForTimeout(500);
-  /* 2026-09-09 (live test D1): the question and the refusal are in-page now (js/57 box, js/63
-     notice) — read them from the page, and count a native dialog as the failure it is. */
-  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
-  await p.waitForTimeout(1500);
-  const refusal = await p.evaluate(() => { const n = document.querySelector('#v63Notice [data-v63-text]'); return n ? n.textContent : ''; });
-  const nativeAfter = dialogs.slice(dlgMark).map(d => d.message).join(' | ');
-  check('A7 · a team_member cannot undo an actor-null entry — the database refusal reaches the screen (in the page)',
-    /You can undo your own changes/.test(refusal) && !nativeAfter, refusal || ('(no notice; native=' + nativeAfter + ')'));
-  await p.evaluate(() => { const o = document.getElementById('v63NoticeOk'); if (o) o.click(); });
-
-  const stillOpen = await p.evaluate(async () => {
-    const c = window.fc(); const r = await c.from('record_history').select('*').eq('id', 900);
-    return (r.data && r.data[0]) ? r.data[0].undone_at : 'missing';
-  });
-  check('A8 · the refused undo changed nothing — the entry is not marked undone',
-    stillOpen === null, stillOpen);
-
-  /* money leak: the Activity feed pulls before_row/after_row wholesale, so a person with no
-     Finance access is handed every invoice figure in the page's own memory. */
-  const moneyInMemory = await p.evaluate(() => {
-    const c = window.fc();
-    return c.from('record_history').select('*').order('at', { ascending: false }).limit(500).then(r => {
-      const rows = (r.data || []).filter(x => x.table_name === 'finance_invoices');
-      const withMoney = rows.filter(x => x.after_row && ('total_incl_vat_sar' in x.after_row || 'profit_sar' in x.after_row));
-      return { finance: rows.length, withMoney: withMoney.length, sample: withMoney[0] ? withMoney[0].after_row : null };
-    });
-  });
-  /* what the feed PAINTS must stay field-names-only — the day someone renders values,
-     every invoice figure lands on the screen of a person with no Finance page. */
-  const painted = feed.text;
-  check('A9 · the feed prints which fields changed, never the money values themselves',
-    !/12345\.67|54321\.99|999\.99|111\.11/.test(painted), painted.slice(0, 200));
-  if (moneyInMemory.withMoney > 0) report('A9 · but the values ARE fetched: record_history RLS is `SELECT ... USING (true)` for every authenticated user and js/63 selects `*`, so a team_member with no Finance page holds total_incl_vat_sar / profit_sar for every invoice — plus every contact\'s email and phone — in before_row/after_row. Owner decision: narrow the RLS policy, or select only the columns the feed renders.');
+  /* what the feed PAINTS stays field-names-only — values live in the per-record change log (js/115), for admins and
+     managers, one record at a time */
+  check('A9b · the feed prints which fields changed, never the money values themselves',
+    !/12345\.67|54321\.99|999\.99|111\.11/.test(feed.text), feed.text.slice(0, 200));
 
   check('A10 · no page errors while driving Activity & Audit', errors.length === 0, errors.slice(0, 3));
   await browser.close();
+
+  /* ---- the team member ---- */
+  const PORT2 = 9651, BASE2 = 'http://localhost:' + PORT2;
+  process.env.MOCK_ROLE = 'team_member';
+  process.env.MOCK_PAGE_ACCESS = JSON.stringify({ today: 'editor', leads: 'editor', clients: 'editor', events: 'editor', activity: 'viewer' });
+  start(PORT2, { businesses: [biz({ id: 'qa_a', name: 'Audit Target Co', name_ar: 'شركة التدقيق' })], record_history: historySeed(), app_users: baseUsers({ role: 'team_member', page_access: { today: 'editor', leads: 'editor', clients: 'editor', events: 'editor', activity: 'viewer' } }) });
+  const tm = await openApp(BASE2); const p2 = tm.p, dialogs = tm.dialogs;
+  await signIn(p2); await waitReady(p2);
+  await go(p2, 'activity', 2500);
+  const closed = await p2.evaluate(() => { const c = document.querySelector('[data-v63-log-closed]'); return { text: c ? c.innerText.replace(/\s+/g, ' ') : '', rows: document.querySelectorAll('.act-row').length }; });
+  check('A11 · a team member\'s Activity page says the log is for admins and managers — not an empty "No activity"',
+    /shown to admins and managers/.test(closed.text) && closed.rows === 0, closed);
+
+  const dlgMark = dialogs.length;
+  await p2.evaluate(() => { window.undoRecordChange(900, function () { }); });
+  await p2.waitForTimeout(500);
+  /* 2026-09-09 (live test D1): the question and the refusal are in-page now (js/57 box, js/63
+     notice) — read them from the page, and count a native dialog as the failure it is. */
+  await p2.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
+  await p2.waitForTimeout(1500);
+  const refusal = await p2.evaluate(() => { const n = document.querySelector('#v63Notice [data-v63-text]'); return n ? n.textContent : ''; });
+  const nativeAfter = dialogs.slice(dlgMark).map(d => d.message).join(' | ');
+  check('A7 · a team_member cannot undo an actor-null entry — the database refusal reaches the screen (in the page)',
+    /You can undo your own changes/.test(refusal) && !nativeAfter, refusal || ('(no notice; native=' + nativeAfter + ')'));
+  await p2.evaluate(() => { const o = document.getElementById('v63NoticeOk'); if (o) o.click(); });
+
+  /* the refused undo changed nothing: asked again, the database gives the same refusal — not "Already undone." */
+  const again = await p2.evaluate(async () => { const r = await window.fc().rpc('undo_change', { p_id: 900 }); return r.data || (r.error && r.error.message) || ''; });
+  check('A8 · the refused undo changed nothing — asked again, the same refusal, not "Already undone"',
+    /You can undo your own changes/.test(again), again);
+
+  /* the leak A9 used to report (every invoice figure in a Finance-blind person's memory) is closed by the log's rule */
+  const moneyInMemory = await p2.evaluate(() => {
+    const c = window.fc();
+    return c.from('record_history').select('*').order('at', { ascending: false }).limit(500).then(r => {
+      const rows = r.data || [];
+      return { all: rows.length, withMoney: rows.filter(x => x.table_name === 'finance_invoices').length };
+    });
+  });
+  check('A9 · a team member is handed no line of the log — no invoice figure reaches their memory (owner decision 2 closes the leak A9 used to report)',
+    moneyInMemory.all === 0 && moneyInMemory.withMoney === 0, moneyInMemory);
+  check('A12 · no page errors on the team member\'s side', tm.errors.length === 0, tm.errors.slice(0, 3));
+  await tm.browser.close();
   delete process.env.MOCK_UNDO_ACTOR_GATE; delete process.env.MOCK_ROLE; delete process.env.MOCK_PAGE_ACCESS;
 }
 

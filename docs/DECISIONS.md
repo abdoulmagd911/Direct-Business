@@ -3187,7 +3187,7 @@ by `scripts/qa/phase3` CL-01..CL-04, R1-03, PT-04; rollback beside it):
   about the caller's own tasks and companies; Undo was already its own function. (R1-03 used to assert that a task's owner
   and a View login read its history; rewritten to this rule.)
 - **Who:** the signed-in person; a change from a database session (SQL, a migration, an import, seed or bulk edit run from
-  outside the app) is the **QA account, business@directksa.com** (`qa_user_id()`); a service call with no person behind it
+  outside the app) is the **QA account, business@directksa.com** (the database function `qa_user_id`); a service call with no person behind it
   (a sign-up, an edge function's own write) is "system". Every older log line that named nobody was backfilled to the QA
   account, so old data reads as QA-entered.
 - **Managers may edit people and teams, an admin included** — `person_save` no longer refuses a manager on an admin; the
