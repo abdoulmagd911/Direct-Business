@@ -193,8 +193,8 @@ prevent, one level down.
 Direct Payments sources, confirmed by checking, not assumed: `admin.stats.expense-report`
 (`INVOICE #` | `AMOUNT (SAR)` | `STATUS` | `APPROVAL DATE` | `MERCHANT`, 219 corporate rows,
 one row per expense line — `INVOICE #` is the transaction's own reference) joins to
-`/en/admin/corporate_clients/transactions` (`RECEIPT REF.` | `PRODUCT` | `AMOUNT (SAR)` |
-`INVOICE ISSUING` | `CREATED AT` | `EXPENSE STATUS`, 153 rows — the expected
+`/en/admin/corporate_clients/transactions` (columns "RECEIPT REF. | PRODUCT | AMOUNT (SAR) |
+INVOICE ISSUING | CREATED AT | EXPENSE STATUS" — Payments' column headers, not code), 153 rows — the expected
 many-lines-to-one-transaction shape against 219 lines, not a mismatch; "zero orphans" per the
 capturer's own exact page-count math). The join key itself (expense-report's transaction
 reference = transactions' `RECEIPT REF.`) is now proven on a real matching pair, not just
@@ -3822,3 +3822,30 @@ showing its first ten characters showed YESTERDAY for anything saved after 9 pm 
 27 Sep while the change log said 28 Sep). `dayRiyadh(time)` and `todayISO()` (js/core/core-01) give Riyadh's date whatever
 the PC's clock says, and `scripts/qa/check-structure.mjs` refuses a new UTC date cut. A plain date (a contract start, a
 due date) is a calendar day already and is shown as stored.
+
+**D21 — The money model and the invoice import (D1, 28 Sep; oversight-reviewed plan, owner rules quoted from KB 04 and the
+Import Map).** ACTIVE. `scripts/sql/d1-money-model.sql`, `js/41`, `js/65`, `js/119`.
+- **Revenue** = the invoice total as Payments records it. The only part taken off is a wallet TOP-UP part (the "Direct Wallet /
+  Wallet Balance" item lines — money put into the wallet). A sale paid FROM the wallet is a full sale: the wallet shows only as
+  a payment receipt, never as a line. A top-up-only invoice is stored as its own row kind and never counts ("Wallet top-ups
+  (product Direct Wallet) are stored, never revenue" — Import Map rule 9).
+- **Cost** = approved expenses only; a missing cost is EMPTY, never 0, so a row waiting for its cost is left out of cost and
+  profit and said so on screen — never shown as 100% profit. A commission has no cost by nature (profit = revenue). The
+  importer no longer reads cost from the invoice's item lines (it did: the untaxed lines — the "pass-through = cost" the owner
+  ruled out on 22 Aug). The lines are kept (`finance_invoice_lines`); the pass-through amount on them follows an item-name list
+  a person keeps on Finance → Rules and is SHOWN beside the cost, never counted. Whether it may stand in for a missing cost is
+  the owner's open decision (the gap check's own test: 9 of 108 invoices with expenses matched their lines exactly).
+- **Statuses**: Fully Paid counts; "Fully Paid (Audit Required)" counts and is flagged; Pending Payment, Void, Cancelled and
+  Draft are stored and never count; a status nobody has named is held back for a person, never guessed (Import Map rule 10).
+- **Which date sets the month**: the paid date for a paid invoice, else the date it was created (`invoice_date` holds it, so
+  totals, reports, KPIs and the year all follow one date); the creation date is kept (`invoice_created_on`) and Performance can
+  regroup by it (oversight, 28 Sep).
+- **Billing invoices** that re-bill transactions already recorded are a link row with zero revenue (KB 04 §2). No export says
+  which transactions an invoice covers, so the preview PROPOSES a link when its total is exactly the sum of that customer's
+  earlier transactions, and a person ticks it. No import retires or deletes a transaction by itself any more (that path in
+  `js/41` is gone).
+- **Fill, never wipe, in any order** (KB 04 §5 rules 1–4): an update writes only what the new file carries; the newest
+  Payments status wins and an older file cannot roll it back; item lines are replaced per invoice; a row entered by hand is
+  never touched by an import (the preview names it). The same file twice changes nothing.
+- **No VAT** figure is worked out or stored (D18). A cost above revenue is applied and flagged "Loss", never held back.
+Guarded by `scripts/qa/phase3` D1-01…06 and `scripts/qa/probe-d1-invoice-import.mjs` (sabotage-checked).

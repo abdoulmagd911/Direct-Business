@@ -96,7 +96,8 @@ const TABLES={
       {key:'tender_value',label_en:'Tender value',label_ar:'قيمة المناقصة',type:'number'},
       {key:'research_status',label_en:'Research status',label_ar:'حالة البحث',type:'select:pending,done'},
     ]}],
-  finance_invoices:[...Array(15)].map((_,i)=>{const _svc=['Flights','Hotels','Visa','Support Services','Packages'][i%5];const _mo=['January','February','March','April','May','June'][i%6];const _q='Q'+(Math.floor((i%6)/3)+1);const _tot=5000+i*777;const _cost=_svc==='Support Services'?0:Math.round(_tot*0.88);/* 2026-09-02 (round 38): this fixture used to store revenue = total − cost and profit = revenue,
+  money_item_classes:[], finance_invoice_lines:[],
+  finance_invoices:[...Array(15)].map((_,i)=>{const _svc=['Flights','Hotels','Visa','Support Services','Packages'][i%5];const _mo=['January','February','March','April','May','June'][i%6];const _q='Q'+(Math.floor((i%6)/3)+1);const _tot=5000+i*777;const _cost=_svc==='Support Services'?null:Math.round(_tot*0.88);/* D1: no cost recorded is EMPTY (null), never 0 *//* 2026-09-02 (round 38): this fixture used to store revenue = total − cost and profit = revenue,
        which the live database could never produce. The trigger finance_derive_fields defines
        revenue = total − wallet and profit = revenue − cost, and 12 of these 17 rows broke the
        first rule while 13 broke the second. The Performance tiles then showed a Cost LARGER
@@ -452,6 +453,10 @@ function finConstraintViolation(row){
     return bad('23514','new row for relation "finance_invoices" violates check constraint "fin_status_chk"');
   if(row.origin!=null&&['booking','project'].indexOf(row.origin)<0)
     return bad('23514','new row for relation "finance_invoices" violates check constraint "finance_invoices_origin_check"');
+  if(row.row_kind!=null&&['sale','wallet_topup','billing_link','credit_note'].indexOf(row.row_kind)<0)
+    return bad('23514','new row for relation "finance_invoices" violates check constraint "finance_invoices_row_kind_check"');
+  if(row.source!=null&&['import','manual'].indexOf(row.source)<0)
+    return bad('23514','new row for relation "finance_invoices" violates check constraint "finance_invoices_source_check"');
   if(row.revenue_way!=null&&['invoice','transaction','commission','promo_code','b2c_manual'].indexOf(row.revenue_way)<0)
     return bad('23514','new row for relation "finance_invoices" violates check constraint "finance_invoices_revenue_way_check"');
   return null;
@@ -527,14 +532,20 @@ function unhandledFilter(query,handled){
 // same file then reported "updated" rows and wrote a history entry per invoice, for nothing).
 const MONTHS_EN=['January','February','March','April','May','June','July','August','September','October','November','December'];
 function deriveFinanceInvoice(r){
+  /* D1 (2026-09-28): mirrors scripts/sql/d1-money-model.sql — revenue = total − the wallet TOP-UP part (a top-up-only row and
+     a billing link are 0); a missing cost is empty and so is its profit (a commission's profit is its revenue); a row with a
+     revenue and no total keeps its revenue. */
   if(!r||typeof r!=='object')return r;
   if(r.invoice_date&&/^\d{4}-\d{2}-\d{2}/.test(String(r.invoice_date))){ const mo=+String(r.invoice_date).slice(5,7); r.month=MONTHS_EN[mo-1]||null; r.quarter='Q'+(Math.floor((mo-1)/3)+1); }
   else if(r.invoice_date==null){ r.month=null; r.quarter=null; }
   const n=x=>Number(x)||0;
-  const rev=n(r.total_incl_vat_sar)-n(r.wallet_portion_sar);
-  if(Math.abs(rev-n(r.revenue_sar))>0.01) r.revenue_sar=Math.round(rev*100)/100;
-  const prof=n(r.revenue_sar)-n(r.cost_sar);
-  if(Math.abs(prof-n(r.profit_sar))>0.01) r.profit_sar=Math.round(prof*100)/100;
+  if(r.row_kind==null) r.row_kind='sale';
+  if(r.source==null) r.source='import';
+  if(r.audit_required==null) r.audit_required=false;
+  if(r.total_incl_vat_sar==null||r.total_incl_vat_sar==='') r.total_incl_vat_sar=n(r.revenue_sar)+n(r.wallet_portion_sar);
+  r.revenue_sar=(r.row_kind==='wallet_topup'||r.row_kind==='billing_link')?0:Math.round((n(r.total_incl_vat_sar)-n(r.wallet_portion_sar))*100)/100;
+  if(r.cost_sar===undefined||r.cost_sar==='') r.cost_sar=null;
+  r.profit_sar=(r.cost_sar==null)?(r.revenue_way==='commission'?r.revenue_sar:null):Math.round((r.revenue_sar-n(r.cost_sar))*100)/100;
   if(r.integrity_status==='excluded'||r.integrity_status==='credit_note') r.amount_remaining_sar=0;
   return r;
 }
@@ -576,9 +587,25 @@ function mockMoneyRows(){
       company_name:bizId?(b&&b.name)||null:cid?(i.customer_raw_name||i.client_group):code?'Unassigned codes':(i.client_group||i.customer_raw_name),
       merge_state:bizId?'merged':cid?'not_merged':code?'unassigned_code':'no_client_id',profile_type:cp?cp.profile_type:null,
       rule_id:x?x.id:null,rule_kind:x?x.kind:null,rule_value:x?x.value:null,rule_reason:x?x.reason:null,
-      excluded,counts:!excluded&&i.integrity_status==='verified_paid',
-      open_age_days:(!excluded&&rem>0&&from)?Math.max(0,Math.floor((today-new Date(from+'T00:00:00Z'))/86400000)):null};
+      excluded,counts:!excluded&&i.integrity_status==='verified_paid'&&(i.row_kind||'sale')==='sale',
+      open_age_days:(!excluded&&rem>0&&from)?Math.max(0,Math.floor((today-new Date(from+'T00:00:00Z'))/86400000)):null,
+      /* D1 */
+      row_kind:i.row_kind||'sale',payments_status:i.payments_status||null,paid_at:i.paid_at||null,tax_invoice_date:i.tax_invoice_date||null,
+      invoice_created_on:i.invoice_created_on||null,audit_required:!!i.audit_required,source:i.source||'import',billed_by_ref:i.billed_by_ref||null,
+      cost_missing:(i.cost_sar==null&&i.revenue_way!=='commission'),loss:(i.cost_sar!=null&&Number(i.cost_sar)>Number(i.revenue_sar)),
+      pass_through_sar:lt(i.invoice_no).pass_through_sar,fee_sar:lt(i.invoice_no).fee_sar,unclassed_sar:lt(i.invoice_no).unclassed_sar};
   });
+}
+/* D1: money_line_totals — each invoice's lines by the item-name list (the last part of the name, folded) */
+function mockItemKey(n){ return mockMoneyNorm(String(n==null?'':n).replace(/^.*\s[-–—|]\s/,'').trim()); }
+function lt(no){
+  const lines=(TABLES.finance_invoice_lines||[]).filter(l=>l.invoice_no===no&&(l.kind||'item')==='item');
+  if(!lines.length) return {pass_through_sar:null,fee_sar:null,unclassed_sar:null};
+  const cls=(TABLES.money_item_classes||[]).filter(c=>!c.removed_at);
+  const out={pass_through_sar:null,fee_sar:null,unclassed_sar:null};
+  const add=(k,v)=>{ out[k]=(out[k]||0)+(Number(v)||0); };
+  lines.forEach(l=>{ const c=cls.find(x=>mockMoneyNorm(x.name)===mockItemKey(l.name)); add(c?(c.class==='pass_through'?'pass_through_sar':'fee_sar'):'unclassed_sar',l.item_total_sar); });
+  return out;
 }
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
 // start(port) keeps the standard seed; start(port,{table:rows}) swaps a table's rows,
@@ -814,7 +841,9 @@ export function start(port, seedOverrides){
           'month','quarter','products','service_type','record_type','total_incl_vat_sar','wallet_portion_sar',
           'revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','collection_due_date',
           'integrity_status','exclusion_reason','notes','source_batch','line_no','branch','salesman','project_tag',
-          'discount_sar','origin','proposal_ref','items','transaction_ref','direct_uuid','vat_sar','revenue_way'];
+          'discount_sar','origin','proposal_ref','items','transaction_ref','direct_uuid','revenue_way',
+          /* D1 */ 'payments_client_id','customer_tax_no','discount_code','row_kind','payments_status','payments_status_at','paid_at',
+          'tax_invoice_date','invoice_created_on','audit_required','customer_email','billed_by_ref','source'];
         const pick=(row,extra)=>{ const out={}; (extra?WRITABLE.concat(extra):WRITABLE).forEach(k=>{ if(Object.prototype.hasOwnProperty.call(row,k)) out[k]=row[k]; }); return out; };
         const pIns=Array.isArray(parsed.p_insert)?parsed.p_insert:[];
         const pUpd=Array.isArray(parsed.p_update)?parsed.p_update:[];
@@ -838,12 +867,32 @@ export function start(port, seedOverrides){
           fiTable.push(deriveFinanceInvoice(Object.assign({id:'mock-fi-'+(++_finIdSeq)}, clean)));
           inserted++;
         });
+        /* D1: fill, never wipe — a key the payload leaves null keeps its value; Payments' status (and the flags that ride on it)
+           moves only when the payload's status time is not older; a row entered by hand is never touched by an import */
         pUpd.forEach(row=>{
           if(!row.id)return;
           const clean=pick(row);
           const ix=fiTable.findIndex(r=>r.id===row.id);
-          if(ix>=0){ fiTable[ix]=deriveFinanceInvoice(Object.assign({},fiTable[ix],clean,{updated_at:new Date().toISOString()})); updated++; }
+          if(ix<0||(fiTable[ix].source||'import')!=='import') return;
+          const cur=fiTable[ix], next=Object.assign({},cur);
+          const older=clean.payments_status_at&&cur.payments_status_at&&String(clean.payments_status_at)<String(cur.payments_status_at);
+          Object.keys(clean).forEach(k=>{
+            const v=clean[k]; if(v===null||v===undefined) return;
+            if(older&&(k==='integrity_status'||k==='payments_status'||k==='audit_required')) return;
+            if(k==='payments_status_at'||k==='paid_at'){ if(!cur[k]||String(v)>String(cur[k])) next[k]=v; return; }
+            next[k]=v;
+          });
+          next.updated_at=new Date().toISOString();
+          fiTable[ix]=deriveFinanceInvoice(next); updated++;
         });
+        const pLines=Array.isArray(parsed.p_item_lines)?parsed.p_item_lines:[];
+        let itemLines=0;
+        if(pLines.length){
+          const L=TABLES.finance_invoice_lines=TABLES.finance_invoice_lines||[];
+          const refs=[...new Set(pLines.map(l=>l.invoice_no))];
+          for(let i=L.length-1;i>=0;i--){ if(refs.includes(L[i].invoice_no)) L.splice(i,1); }
+          pLines.forEach(l=>{ L.push(Object.assign({id:L.length+1},pick(l,['invoice_no','line_no','kind','product','name','qty','unit_price','discount_sar','taxable','item_total_sar','source_batch']))); itemLines++; });
+        }
         if(pCapLines.length){
           const refs=[...new Set(pCapLines.map(l=>l.transaction_ref))];
           const linesTable=TABLES.finance_expense_lines_capture;
@@ -860,7 +909,7 @@ export function start(port, seedOverrides){
             else gatesTable.push(Object.assign({},g,{captured_at:new Date().toISOString()}));
           });
         }
-        return send(res,200, JSON.stringify({inserted, updated, capture_lines:pCapLines.length, capture_gates:Object.keys(pCapGates.reduce((a,g)=>{a[g.transaction_ref]=1;return a;},{})).length}));
+        return send(res,200, JSON.stringify({inserted, updated, item_lines:itemLines, capture_lines:pCapLines.length, capture_gates:Object.keys(pCapGates.reduce((a,g)=>{a[g.transaction_ref]=1;return a;},{})).length}));
       }
       // M18 (2026-08-29) — mirrors fn_merge_businesses()/fn_unmerge_businesses() (migration
       // business_merges_reversible): repoint child rows to the survivor, archive the dropped
@@ -1378,6 +1427,44 @@ export function start(port, seedOverrides){
       });
     }
     if(t==='money_exclusion_rules'&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
+    /* D1 (28 Sep): the invoice item-name list — admins and managers with Full on Finance write; one entry per name however
+       spelled; a name never changes; a removal is final; nothing is deleted; every change logged (d1-money-model.sql §3) */
+    if(t==='money_item_classes'&&req.method!=='GET'){
+      let body=''; req.on('data',c=>body+=c);
+      return req.on('end',()=>{
+        let pl={}; try{ pl=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON'}); }
+        const list=TABLES.money_item_classes=TABLES.money_item_classes||[]; const now=new Date().toISOString(), nm=meMR.full_name||meMR.email||null;
+        const P=(c,m)=>send(res,400,{code:c,details:null,hint:null,message:m});
+        const log=(r,action,before)=>(TABLES.record_history=TABLES.record_history||[]).push({id:(TABLES.record_history.length+1000),at:now,actor:UID,actor_name:nm,table_name:'money_item_classes',record_id:r.id,record_key:r.id,action,before_row:before||null,after_row:Object.assign({},r)});
+        if(req.method==='POST'){
+          if(!mayRules) return send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "money_item_classes"'});
+          const rows0=Array.isArray(pl)?pl:[pl], out=[];
+          for(const r0 of rows0){
+            const v=String(r0.name==null?'':r0.name).trim();
+            if(!mockMoneyNorm(v)) return P('23514','new row for relation "money_item_classes" violates check constraint "money_item_class_readable"');
+            if(['pass_through','fee'].indexOf(r0.class)<0) return P('23514','new row for relation "money_item_classes" violates check constraint "money_item_classes_class_check"');
+            if(list.some(x=>!x.removed_at&&mockMoneyNorm(x.name)===mockMoneyNorm(v))) return P('23505','duplicate key value violates unique constraint "money_item_classes_one_live"');
+            const row={id:'mic-'+Math.random().toString(36).slice(2),name:v,class:r0.class,note:r0.note||null,created_by:UID,created_by_name:nm,created_at:now,updated_by:null,updated_by_name:null,updated_at:null,removed_by:null,removed_by_name:null,removed_at:null};
+            list.push(row); out.push(row); log(row,'create');
+          }
+          return send(res,201,out);
+        }
+        if(req.method==='PATCH'){
+          if(!mayRules) return send(res,200,[]);
+          const id=(String((u.query||{}).id||'').match(/^eq\.(.*)$/)||[])[1]; const r=list.find(x=>x.id===id); if(!r) return send(res,200,[]);
+          if(r.removed_at) return P('P0001','A removed item name stays removed — add it again if it is needed');
+          if('name' in pl&&String(pl.name).trim()!==r.name) return P('P0001','An item name never changes — remove it and add it again');
+          const before=Object.assign({},r);
+          if('class' in pl) r.class=pl.class; if('note' in pl) r.note=pl.note;
+          if(pl.removed_at){ r.removed_at=now; r.removed_by=UID; r.removed_by_name=nm; }
+          r.updated_at=now; r.updated_by=UID; r.updated_by_name=nm; log(r,'edit',before);
+          return send(res,200,[r]);
+        }
+        if(req.method==='DELETE') return P('P0001','money_item_classes rows are never deleted');
+        return send(res,405,{message:'method'});
+      });
+    }
+    if((t==='money_item_classes'||t==='finance_invoice_lines')&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
     /* company_name_aliases (E, 27 Sep): a customer name typed into a company — admins and managers write, one company per
        name however spelled, a name is never re-pointed, a removal is final */
     if(t==='company_name_aliases'&&req.method!=='GET'){

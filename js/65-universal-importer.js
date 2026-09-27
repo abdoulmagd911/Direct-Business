@@ -316,13 +316,16 @@
       linkByGroup:(window.FIN&&FIN.linkByGroup)||{},
       isNew:[], updated:[], unchangedCount:0,
       excludedByRule:0, excludedDetail:{wallet:0,verif:0,clientExcluded:0,clientExcludedDetail:[],costCaptureDetail:[]},
-      needsLinking:0
+      needsLinking:0,
+      /* D1 (2026-09-28): what the preview says beside the counts, and the item lines the commit sends */
+      itemLines:[], manualKept:[], d1:{topups:0,unpaid:{},audit:0,unknown:[]}
     };
   }
   // zatca_dpin/invoice_date added 2026-08-24 for tax_invoice_capture — without them, a row
   // whose ONLY real change is a newly-attached tax code (nothing else differing) would report
   // as "unchanged" and silently never get its tax code written at all.
-  var CMP_FIELDS=['total_incl_vat_sar','integrity_status','amount_received_sar','amount_remaining_sar','revenue_sar','cost_sar','profit_sar','zatca_dpin','invoice_date'];
+  var CMP_FIELDS=['total_incl_vat_sar','integrity_status','amount_received_sar','amount_remaining_sar','revenue_sar','cost_sar','zatca_dpin','invoice_date',
+    /* D1: a change in any of these is an update too */ 'payments_status','paid_at','row_kind','audit_required','wallet_portion_sar','tax_invoice_date','invoice_created_on','customer_email'];
   // M13, 2026-08-25 — real live bug: `year` on finance_invoices is `GENERATED ALWAYS AS
   // (EXTRACT(year FROM invoice_date))::integer STORED` (verified against the live schema, not
   // guessed) — Postgres refuses ANY statement that assigns it explicitly, even a matching value,
@@ -341,10 +344,20 @@
     'month','quarter','products','service_type','record_type','total_incl_vat_sar','wallet_portion_sar',
     'revenue_sar','cost_sar','profit_sar','amount_received_sar','amount_remaining_sar','collection_due_date',
     'integrity_status','exclusion_reason','notes','source_batch','line_no','branch','salesman','project_tag',
-    'discount_sar','origin','proposal_ref','items','transaction_ref','direct_uuid','vat_sar','revenue_way'];
-  function pickWritable(row){
+    'discount_sar','origin','proposal_ref','items','transaction_ref','direct_uuid','revenue_way',
+    /* D1 (2026-09-28): Payments' status and dates, the row kind, the audit flag, the email that links a client. vat_sar is
+       gone (D18 — never written), and profit is the database's (revenue − cost), so neither is sent. */
+    'row_kind','payments_status','payments_status_at','paid_at','tax_invoice_date','invoice_created_on','audit_required',
+    'customer_email','billed_by_ref','source'];
+  function pickWritable(row,forUpdate){
     var out={};
-    WRITABLE_INVOICE_FIELDS.forEach(function(f){ if(Object.prototype.hasOwnProperty.call(row,f)) out[f]=row[f]; });
+    WRITABLE_INVOICE_FIELDS.forEach(function(f){
+      if(!Object.prototype.hasOwnProperty.call(row,f)) return;
+      /* an update FILLS, never wipes (import rule 2): a field this file leaves blank is not sent at all, so it cannot erase
+         what an earlier file filled — the database does the same (fn_commit_finance_import coalesces) */
+      if(forUpdate&&(row[f]===null||row[f]===undefined||row[f]==='')) return;
+      out[f]=row[f];
+    });
     return out;
   }
   function rowDiffers(oldR,newR){
@@ -383,8 +396,14 @@
         return;
       }
       var ex=state.existingByNo[r.invoice_no];
+      /* D1: a row a person entered by hand is never overwritten by an import — it is named in the preview (D3 lets them choose) */
+      if(ex&&ex.source==='manual'){ state.manualKept.push(r.invoice_no); return; }
+      if(r.row_kind==='wallet_topup') state.d1.topups++;
+      if(r.audit_required) state.d1.audit++;
+      if(r.integrity_status!=='verified_paid'&&r.row_kind!=='wallet_topup'){ var ps=r.payments_status||'—'; state.d1.unpaid[ps]=(state.d1.unpaid[ps]||0)+1; }
+      if(r._lines&&r._lines.length) state.itemLines=state.itemLines.concat(r._lines);
       if(!ex){ var nr=pickWritable(r); state.isNew.push(nr); if(!isLinked(nr,state.linkByGroup))state.needsLinking++; }
-      else if(rowDiffers(ex,r)){ var u=Object.assign({},pickWritable(r),{id:ex.id}); state.updated.push(u); if(!isLinked(u,state.linkByGroup))state.needsLinking++; }
+      else if(rowDiffers(ex,r)){ var u=Object.assign({},pickWritable(r,true),{id:ex.id,invoice_no:r.invoice_no}); state.updated.push(u); if(!isLinked(u,state.linkByGroup))state.needsLinking++; }
       else { state.unchangedCount++; }
     });
   }
@@ -395,7 +414,8 @@
         excludedByRule:state.excludedByRule, needsLinking:state.needsLinking },
       excludedDetail:state.excludedDetail,
       hasClientColumn:hasClientColumn,
-      pendingInsert:state.isNew, pendingUpdate:state.updated
+      pendingInsert:state.isNew, pendingUpdate:state.updated,
+      itemLines:state.itemLines||[], manualKept:state.manualKept||[], d1:state.d1||null
     };
   }
 
@@ -412,6 +432,7 @@
     state.excludedByRule+=xc.wallet+xc.verif+xc.clientExcluded;
     state.excludedDetail.wallet+=xc.wallet; state.excludedDetail.verif+=xc.verif; state.excludedDetail.clientExcluded+=xc.clientExcluded;
     state.excludedDetail.clientExcludedDetail=state.excludedDetail.clientExcludedDetail.concat(xc.clientExcludedDetail||[]);
+    if(state.d1&&xc.unknownStatus&&xc.unknownStatus.length){ state.d1.unknown=state.d1.unknown.concat(xc.unknownStatus); state.excludedByRule+=xc.unknownStatus.length; }
     mergeRowsIntoState(toRows(parsed), state);
   }
 
@@ -866,14 +887,12 @@
       sum=Math.round(sum*100)/100;
       var tot=+existing.total_incl_vat_sar||0;
       if(sum>tot){
-        // The exact shape of the stale-iframe bug this whole path exists to catch: a
-        // well-formed number that is simply impossible for this invoice. May also be a real
-        // loss-making booking rather than a join error (2026-08-24 finding: invoice 1163692466,
-        // cost 28,998.18 over a 26,536.00 total) — either way, never applied, always reported
-        // loudly as needs-review, never silently dropped.
-        state.excludedByRule++;
-        state.excludedDetail.costCaptureDetail.push({invoice_no:invNo,reason:fl('approved cost ('+sum+') exceeds invoice total ('+tot+') across '+refs.length+' transaction(s) — needs review, not applied','التكلفة المعتمدة ('+sum+') أكبر من إجمالي الفاتورة ('+tot+') عبر '+refs.length+' معاملة — تحتاج مراجعة، لم تُطبَّق')});
-        return;
+        /* D1 (2026-09-28, oversight finding 5): a cost above the invoice total is a LOSS to flag, not a row to hold back — the
+           27 Sep exports carry nine of them. The cost is applied (approved expense lines, exactly as Payments records them),
+           the view marks the row "loss", and the preview names each one so a person can check it (a join slip would show
+           here too). Before this, the whole invoice was held back and its cost never landed. */
+        state.excludedDetail.lossDetail=(state.excludedDetail.lossDetail||[]);
+        state.excludedDetail.lossDetail.push({invoice_no:invNo,cost:sum,total:tot});
       }
       var rev=+existing.revenue_sar||0;
       var updated=Object.assign({},pickWritable(existing),{cost_sar:sum,profit_sar:Math.round((rev-sum)*100)/100});
@@ -1231,6 +1250,88 @@
     });
     return order.map(function(k){return groups[k];});
   }
+  /* D1 (2026-09-28): what else this file holds, in plain words — stored and never counted, not paid yet, flagged, held back
+     for a person, kept as entered by hand, loss-making. Nothing here is hidden in a total. */
+  function d1Line(r){
+    var d=r.d1, parts=[];
+    if(d){
+      if(d.topups) parts.push(fl('Wallet top-ups (stored, never revenue): ','تعبئة المحفظة (تُخزَّن ولا تُحتسب إيرادًا): ')+'<b>'+d.topups+'</b>');
+      var up=Object.keys(d.unpaid||{}); if(up.length) parts.push(fl('Not paid yet (stored, not counted): ','غير مدفوعة بعد (تُخزَّن ولا تُحتسب): ')+up.map(function(k){ return esc(k)+' <b>'+d.unpaid[k]+'</b>'; }).join(', '));
+      if(d.audit) parts.push(fl('"Fully Paid (Audit Required)" — counted, flagged: ','«مدفوعة بالكامل (تتطلب تدقيقًا)» — تُحتسب وتُعلَّم: ')+'<b>'+d.audit+'</b>');
+      if(d.unknown&&d.unknown.length) parts.push('<span style="color:#B42318">'+fl('Held back — a status the app does not know (a person decides): ','محجوزة — حالة لا يعرفها التطبيق (يقرر شخص): ')+
+        d.unknown.slice(0,6).map(function(x){ return esc(x.ref+' "'+x.status+'"'); }).join(', ')+(d.unknown.length>6?' …':'')+'</span>');
+    }
+    if(r.manualKept&&r.manualKept.length) parts.push(fl('Entered by hand — left as they are (not overwritten): ','مُدخلة يدويًا — تُركت كما هي (لم تُستبدل): ')+'<b>'+r.manualKept.length+'</b> ('+esc(r.manualKept.slice(0,5).join(', '))+(r.manualKept.length>5?' …':'')+')');
+    var loss=r.excludedDetail&&r.excludedDetail.lossDetail;
+    if(loss&&loss.length) parts.push('<span style="color:#B42318">'+fl('Cost above revenue — applied and flagged "Loss", please check: ','التكلفة أعلى من الإيراد — طُبّقت ووُسمت «خسارة»، يُرجى التحقق: ')+
+      loss.slice(0,6).map(function(x){ return esc(x.invoice_no+' ('+m0(x.cost)+' / '+m0(x.total)+')'); }).join(', ')+(loss.length>6?' …':'')+'</span>');
+    return parts.length?('<div data-v65-d1="1" style="font-size:12px;line-height:1.8;margin-top:6px;color:#475467">'+parts.join('<br>')+'</div>'):'';
+  }
+
+  /* D1 (2026-09-28, KB 04 §2): a BILLING invoice re-bills transactions already recorded — counting both counts the money
+     twice. No export says which transactions an invoice covers, so the preview PROPOSES the link when the invoice's total is
+     exactly the sum of open transactions of the same customer dated on or before it (one such set, no more), and a PERSON
+     ticks it. A ticked link turns the invoice into a link row (zero revenue, never counted) and marks each transaction with
+     the invoice that bills it; nothing is linked unticked. */
+  var BL_PROPOSALS=[];
+  function proposeBillingLinks(results){
+    var all={}, add=function(r,from){ if(!r||!r.invoice_no) return; if(!all[r.invoice_no]||from==='file') all[r.invoice_no]=Object.assign({},r,{_from:from}); };
+    ((window.FIN&&FIN.rows)||[]).forEach(function(r){ if(!r.deleted_at) add(r,'db'); });
+    (results||[]).forEach(function(res){ if(!res.recognized) return; (res.pendingInsert||[]).concat(res.pendingUpdate||[]).forEach(function(r){ add(r,'file'); }); });
+    var rows=Object.keys(all).map(function(k){ return all[k]; });
+    var byCust={};
+    rows.forEach(function(r){ var k=String(r.client_group||r.customer_raw_name||'').trim().toLowerCase(); if(!k) return; (byCust[k]=byCust[k]||[]).push(r); });
+    var out=[];
+    Object.keys(byCust).forEach(function(k){
+      var g=byCust[k];
+      var txns=g.filter(function(r){ return r.revenue_way==='transaction'&&!r.billed_by_ref&&(r.row_kind||'sale')==='sale'&&(+r.total_incl_vat_sar||0)>0; });
+      if(!txns.length) return;
+      g.forEach(function(inv){
+        if(!inv.zatca_dpin||inv.revenue_way==='transaction'||(inv.row_kind||'sale')!=='sale') return;
+        var target=Math.round((+inv.total_incl_vat_sar||0)*100); if(target<=0) return;
+        var cands=txns.filter(function(t){ return t.invoice_no!==inv.invoice_no&&String(t.invoice_date||'')<=String(inv.invoice_date||'9999'); })
+                      .map(function(t){ return {t:t,c:Math.round((+t.total_incl_vat_sar||0)*100)}; }).filter(function(x){ return x.c>0&&x.c<=target; })
+                      .sort(function(a,b){ return b.c-a.c; }).slice(0,24);
+        var sols=[], pick=[];
+        (function dfs(i,left){ if(sols.length>1) return; if(left===0){ sols.push(pick.slice()); return; } if(pick.length>=6) return;
+          for(var j=i;j<cands.length;j++){ if(cands[j].c>left) continue; pick.push(cands[j].t); dfs(j+1,left-cands[j].c); pick.pop(); if(sols.length>1) return; } })(0,target);
+        if(sols.length===1) out.push({inv:inv,members:sols[0]});
+      });
+    });
+    // one transaction is billed once: a proposal that shares a transaction with another is dropped (a person links it by hand, D3)
+    var seen={}, twice={};
+    out.forEach(function(p){ p.members.forEach(function(m){ if(seen[m.invoice_no]) twice[m.invoice_no]=1; seen[m.invoice_no]=1; }); });
+    return out.filter(function(p){ return !p.members.some(function(m){ return twice[m.invoice_no]; }); });
+  }
+  window.v65BlTickAll=function(on){ document.querySelectorAll('[data-v65-bl]').forEach(function(x){ x.checked=!!on; }); };
+  function billingCard(){
+    if(!BL_PROPOSALS.length) return '';
+    return '<div class="card" data-v65-billing="'+BL_PROPOSALS.length+'" style="margin-top:8px;padding:12px 14px;border-left:4px solid #F5A623">'+
+      '<b>'+fl('Invoices that look like they bill transactions already recorded','فواتير يبدو أنها تفوتر معاملات مسجلة مسبقًا')+' ('+BL_PROPOSALS.length+')</b>'+
+      '<div style="font-size:12px;color:#475467;margin:4px 0 8px">'+fl('Each total is exactly the sum of that customer\'s earlier transactions. Tick the ones that are true: the invoice becomes a link (zero revenue) so the money is not counted twice. Unticked ones are imported as sales.',
+        'كل إجمالي يساوي تمامًا مجموع معاملات سابقة للعميل نفسه. ضع علامة على الصحيح منها: تصبح الفاتورة رابطًا (إيراد صفر) فلا يُحتسب المبلغ مرتين. غير المعلَّمة تُستورد كمبيعات.')+
+        ' <button class="btn ghost sm" type="button" onclick="v65BlTickAll(true)">'+fl('Tick all','تحديد الكل')+'</button> <button class="btn ghost sm" type="button" onclick="v65BlTickAll(false)">'+fl('Untick all','إلغاء التحديد')+'</button></div>'+
+      BL_PROPOSALS.map(function(p,i){ return '<label style="display:block;font-size:12.5px;margin:3px 0"><input type="checkbox" data-v65-bl="'+i+'"> '+
+        esc(p.inv.invoice_no+(p.inv.zatca_dpin?' · '+p.inv.zatca_dpin:'')+' · '+(p.inv.client_group||'')+' · '+m0(p.inv.total_incl_vat_sar))+' = '+
+        esc(p.members.map(function(m){ return m.invoice_no+' ('+m0(m.total_incl_vat_sar)+')'; }).join(' + '))+'</label>'; }).join('')+
+    '</div>';
+  }
+  /* the ticked proposals, applied to what is about to be written: the invoice → a link row; each transaction → billed by it */
+  function applyBillingLinks(toInsert,toUpdate){
+    var ticked=[]; document.querySelectorAll('[data-v65-bl]').forEach(function(x){ if(x.checked) ticked.push(BL_PROPOSALS[+x.getAttribute('data-v65-bl')]); });
+    var n=0;
+    ticked.forEach(function(p){ if(!p) return; n++;
+      var mark=function(no,patch){
+        var hit=toInsert.find(function(r){ return r.invoice_no===no; })||toUpdate.find(function(r){ return r.invoice_no===no; });
+        if(hit){ Object.assign(hit,patch); return; }
+        var db=((window.FIN&&FIN.rows)||[]).find(function(r){ return r.invoice_no===no&&!r.deleted_at; });
+        if(db) toUpdate.push(Object.assign({id:db.id,invoice_no:no},patch));
+      };
+      mark(p.inv.invoice_no,{row_kind:'billing_link'});
+      p.members.forEach(function(m){ mark(m.invoice_no,Object.assign({billed_by_ref:p.inv.invoice_no},p.inv.zatca_dpin&&!m.zatca_dpin?{zatca_dpin:p.inv.zatca_dpin}:{})); });
+    });
+    return n;
+  }
   function renderCombinedPreview(results){
     FILES_STATE=results; RESULTS=results;
     var totals={isNew:0,updated:0,unchanged:0,excludedByRule:0,needsLinking:0};
@@ -1287,6 +1388,7 @@
           (ruleLine?(' · '+fl('Left out by a rule (imported, not counted)','تستبعدها قاعدة (تُستورد ولا تُحتسب)')+' <b>'+ruleLine+'</b>'):'')+
         '</div>'+
         (r.joinNote?('<div style="font-size:11.5px;color:#B54708;margin-top:4px">'+esc(r.joinNote)+'</div>'):'')+
+        d1Line(r)+
       '</div>';
     }).join('');
 
@@ -1301,6 +1403,7 @@
     // them through the same atomic RPC with empty insert/update arrays.
     var capCount=PENDING_CAPTURE.lines.length+PENDING_CAPTURE.gates.length;
     var btnHtml='';
+    BL_PROPOSALS=stillStreaming?[]:proposeBillingLinks(results);
     if(!stillStreaming){
       if(writeCount) btnHtml='<button class="btn pri sm" style="margin-top:10px" onclick="v65Commit()">'+fl('Confirm import — ','تأكيد الاستيراد — ')+totals.isNew+' '+fl('new','جديد')+', '+totals.updated+' '+fl('updated','محدَّث')+'</button>';
       else if(capCount) btnHtml='<button class="btn pri sm" style="margin-top:10px" onclick="v65Commit()">'+fl('Save captured expense facts — ','حفظ وقائع المصروفات الملتقطة — ')+capCount+' '+fl('row(s), no invoice changes yet','صف/صفوف، دون تغييرات على الفواتير بعد')+'</button>'+
@@ -1317,6 +1420,7 @@
       '<b id="v65-files-line" data-files="'+_fileResults.length+'" data-joins="'+_joinN+'">'+fl('Files dropped: ','الملفات المُسقطة: ')+_fileResults.length+' · '+fl('recognized: ','معروف: ')+_fileRecognized+
         (_joinN?(' · '+fl('plus the cost join built from them','بالإضافة إلى دمج التكلفة المبني منها')):'')+'</b>'+
       rowsHtml+
+      billingCard()+
       btnHtml+
     '</div>';
     /* 2026-09-09 (watch cycle 74) — THE IMPORTER TOLD PEOPLE THEIR CORRECT FILE WAS WRONG.
@@ -1439,7 +1543,9 @@
             : (typeof window.finCanWrite==='function'?!window.finCanWrite():(typeof window.canFinEdit==='function'&&!window.canFinEdit())))return; }catch(_){}
     if(!FILES_STATE)return;
     var toInsert=[],toUpdate=[];
-    FILES_STATE.forEach(function(r){ if(!r.recognized)return; toInsert=toInsert.concat(r.pendingInsert||[]); toUpdate=toUpdate.concat(r.pendingUpdate||[]); });
+    var itemLines=[];
+    FILES_STATE.forEach(function(r){ if(!r.recognized)return; toInsert=toInsert.concat(r.pendingInsert||[]); toUpdate=toUpdate.concat(r.pendingUpdate||[]); itemLines=itemLines.concat(r.itemLines||[]); });
+    var linked=applyBillingLinks(toInsert,toUpdate);   // D1: only what a person ticked
     /* 2026-09-07 (watch cycle 42): RE-CHECK THE EXCLUSION LIST HERE, AGAINST THE SERVER.
        Cycle 41 put a gate at the top of this function asking whether the list was loaded NOW.
        Two things were wrong with it. It was on the wrong side of the decision — every exclusion
@@ -1467,7 +1573,7 @@
     paintDone('<div style="font-size:13px">'+fl('Importing ','جارٍ الاستيراد ')+(intendedInsert+intendedUpdate)+' '+fl('rows…','صف…')+'</div>');
     var c=fc();
     if(!c){ paintDone('<div style="font-size:13px;color:#D92D20">'+fl('Not connected — try again.','غير متصل — حاول مجددًا.')+'</div>'); return; }
-    c.rpc('fn_commit_finance_import',{p_insert:toInsert, p_update:toUpdate, p_capture_lines:capLines, p_capture_gates:capGates}).then(function(r){
+    c.rpc('fn_commit_finance_import',{p_insert:toInsert, p_update:toUpdate, p_capture_lines:capLines, p_capture_gates:capGates, p_item_lines:itemLines}).then(function(r){
       var failed=!!r.error;
       var got=(r.data)||{};
       // Atomic: on failure NOTHING landed (the whole transaction rolled back) — never report a
@@ -1481,6 +1587,8 @@
            '</div>')
         : ('<div style="font-size:13px;color:#0F6E56"><b>'+fl('Done.','تم.')+'</b> '+
            fl('Imported ','تم استيراد ')+insertedCount+' '+fl('new, updated ','جديد، وتحديث ')+updatedCount+'.'+
+           (linked?(' '+fl('Linked as billing invoices (zero revenue): ','رُبطت كفواتير فوترة (إيراد صفر): ')+linked+'.'):'')+
+           ((+got.item_lines||0)?(' '+fl('Invoice lines kept: ','أسطر الفواتير المحفوظة: ')+(+got.item_lines)+'.'):'')+
            // M17 premortem: a capture-only save would otherwise read "Imported 0 new, updated
            // 0." — say what actually happened, from the database's own counts (M13 doctrine).
            ((!insertedCount&&!updatedCount&&((+got.capture_lines||0)+(+got.capture_gates||0)>0))
