@@ -35,6 +35,12 @@
      · the basis words dropped (counts only) — fails 1, 2, 3 and 7, the numbers right and the
        reasons gone in both languages;
      · the header made to follow the chip — fails 6 alone, proving the brake is a brake.
+   E (2026-09-27, D16): a client group now belongs to a company only through what a person typed, read back from the
+   database view money_rows — finance_client_links is no longer read. This probe used to answer finance_invoices,
+   finance_client_links and client_profiles itself in page.route, so the mock's view (computed from the mock's OWN
+   invoices) knew none of these rows and every group stood alone. It now seeds all three through start(), the links as
+   the typed customer names they have become (company_name_aliases), so the view and the rows agree. Same eight
+   invoices, same expected lines.
    Run: node scripts/qa/probe-a-sector-chip-says-what-it-scoped.mjs                              */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
@@ -56,6 +62,8 @@ const LINKS = [
   { id: 5, client_group: 'QA-G5', business_id: B(5), is_client: true, confirmed_by: 'auto-match' },
   /* QA-G6 has no link at all */
 ];
+/* E: the same links, as a person now types them — a customer name in a company */
+const NAMES = LINKS.map((l, i) => ({ id: 'na-qa246-' + i, business_id: l.business_id, name: l.client_group, created_by: null, created_by_name: 'probe seed', created_at: '2026-08-10T00:00:00Z', removed_at: null }));
 const PROFILES = [
   { id: 'p1', business_id: B(1), profile_type: 'tender', status: 'active' },
   { id: 'p2', business_id: B(2), profile_type: 'tender', status: 'active' },
@@ -76,7 +84,7 @@ const INVOICES = [
   inv(8, 'QA-G5', { service_type: 'School Commission' }),      // academies by the service
 ];
 
-const srv = start(PORT, { businesses: BUSINESSES, contacts: [], activities: [],
+const srv = start(PORT, { businesses: BUSINESSES, contacts: [], activities: [], finance_invoices: INVOICES, client_profiles: PROFILES, company_name_aliases: NAMES, finance_client_links: [],
   app_state: [{ id: 1, data: { bookings: [], invoices: [], meta: { name: 'QA' }, schemaVersion: 3, settings: {} } }] });
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 
@@ -89,9 +97,6 @@ async function run(lang) {
     const rq = r.request(); const u = new URL(rq.url()); const m = rq.method();
     const isRpc = /\/rpc\//.test(u.pathname);
     const serve = (rows) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
-    if (m === 'GET' && u.pathname === '/rest/v1/finance_invoices') return serve(INVOICES);
-    if (m === 'GET' && u.pathname === '/rest/v1/finance_client_links') return serve(LINKS);
-    if (m === 'GET' && u.pathname === '/rest/v1/client_profiles') return serve(PROFILES);
     if (!['GET', 'HEAD', 'OPTIONS'].includes(m) && u.pathname.startsWith('/rest/v1/') && (!isRpc || /save_state|log_page_denied/.test(u.pathname))) {
       await r.fulfill({ status: 200, contentType: 'application/json', body: isRpc ? '""' : '[]' }); return; }
     try {

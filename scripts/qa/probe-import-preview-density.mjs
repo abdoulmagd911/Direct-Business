@@ -1,15 +1,15 @@
 /* probe-import-preview-density.mjs — regression guard for a real density complaint (owner,
-   2026-08-25): the import preview "printed the identical Takamol sentence about twenty times
+   2026-08-25): the import preview "printed the identical Tawthiq sentence about twenty times
    in a row" — one line per excluded row, all byte-identical except the row wasn't even shown,
    just the same client name/id/reason repeated. Collapses to ONE line with a count via
    groupDupes() (js/65-universal-importer.js), never shortening the reason text itself (B6 —
    a sentence stating a rule the user could violate is load-bearing, only the REPETITION goes).
 
    Drives the real tax_invoice_capture path end to end: seeds 5 distinct existing invoices all
-   belonging to the same excluded client (Takamol, #7 — the standing fixture, see
+   belonging to the same excluded client (Tawthiq, #7 — the standing fixture, see
    docs/DECISIONS.md), then imports 5 rows that would each otherwise qualify (real tax code,
    final status) targeting those 5 invoices — each one is excluded individually inside
-   processTaxInvoiceBatch(), and the preview must show ONE collapsed line ("Takamol ... — 5
+   processTaxInvoiceBatch(), and the preview must show ONE collapsed line ("Tawthiq ... — 5
    rows"), never 5 separate near-identical sentences. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start, settingsLoaded } from './mock-supabase.mjs';
@@ -55,7 +55,7 @@ async function main() {
      appear at all — the exclusion may not have fired", which read as a defect and was a fixture
      that had not arrived yet. Same family as probe-finance-invariants and probe-scale-attacks;
      see the note on settingsLoaded in mock-supabase.mjs. */
-  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('the exclusion list never arrived from app_settings — the preview cannot show an exclusion notice for a rule it does not have, so the checks below would blame the app for the harness');
+  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Tawthiq Test Services')); } catch (_) { return false; } }))) fail('the exclusion list never arrived from app_settings — the preview cannot show an exclusion notice for a rule it does not have, so the checks below would blame the app for the harness');
   await p.evaluate(() => { current = 'finance'; if (typeof render === 'function') render(); });
   await p.waitForTimeout(1200);
   await p.evaluate(() => { if (typeof window.finGo === 'function') window.finGo('import'); });
@@ -65,24 +65,24 @@ async function main() {
   await p.evaluate((n) => {
     FIN.rows = FIN.rows || [];
     for (let i = 0; i < n; i++) {
-      FIN.rows.push({ invoice_no: 'QA-TAKAMOL-DUP-' + i, client_group: 'Takamol for Business Services', customer_raw_name: 'Takamol for Business Services', total_incl_vat_sar: 999999, revenue_sar: 999999, cost_sar: 0, profit_sar: 999999, integrity_status: 'excluded', deleted_at: null, invoice_date: '2026-05-01', zatca_dpin: null });
+      FIN.rows.push({ invoice_no: 'QA-TAWTHIQ-DUP-' + i, client_group: 'Tawthiq Test Services', customer_raw_name: 'Tawthiq Test Services', total_incl_vat_sar: 999999, revenue_sar: 999999, cost_sar: 0, profit_sar: 999999, integrity_status: 'excluded', deleted_at: null, invoice_date: '2026-05-01', zatca_dpin: null });
     }
   }, N);
 
   const csvLines = ['invoice_no,tax_code,total_incl_vat_sar,invoice_status,issue_date'];
-  for (let i = 0; i < N; i++) csvLines.push(`QA-TAKAMOL-DUP-${i},TTIN-DUP-${i},999999,Issued,2026-08-01`);
+  for (let i = 0; i < N; i++) csvLines.push(`QA-TAWTHIQ-DUP-${i},TTIN-DUP-${i},999999,Issued,2026-08-01`);
   const csv = csvLines.join('\n');
 
-  const ingested = await p.evaluate((text) => window.v65IngestText('dup-takamol.csv', text), csv);
+  const ingested = await p.evaluate((text) => window.v65IngestText('dup-tawthiq.csv', text), csv);
   if (!ingested) fail('v65IngestText did not run');
   await p.waitForTimeout(800);
 
   const preview = await p.evaluate(() => { const v = document.getElementById('finImpOut'); return v ? v.innerText : ''; });
   console.log('preview:', JSON.stringify(preview.slice(0, 500)));
 
-  // "Takamol" legitimately appears twice within ONE collapsed line (once in the client name,
+  // "Tawthiq" legitimately appears twice within ONE collapsed line (once in the client name,
   // once in the reason text) — the real signal of a collapse failure is the REASON SENTENCE
-  // repeating, which is what "printed the identical Takamol sentence ~20 times" described.
+  // repeating, which is what "printed the identical Tawthiq sentence ~20 times" described.
   const reasonMatches = (preview.match(/accounted for elsewhere/g) || []).length;
   if (reasonMatches === 0) fail('the exclusion reason text does not appear at all in the preview — the exclusion may not have fired');
   else if (reasonMatches > 1) fail(`the exclusion reason sentence appears ${reasonMatches} times in the preview — the ${N} identical exclusion rows were NOT collapsed into one line (the exact density complaint)`);

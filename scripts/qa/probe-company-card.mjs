@@ -4,16 +4,27 @@
    client-ID rules with the release's rules (scripts/sql/phase3-r4-company-card.sql; tested on Postgres by
    scripts/qa/phase3 R4-01..08). Under test, in English and Arabic:
    as an employee with Full control of Clients —
-     1. the card shows the company's client IDs with their type, "N of 3 open", each linking OUT to Direct Payments;
-     2. adding a 3rd ID works; the card then says 3 is the most and offers no more; an ID another company holds is
-        refused in words ("already belongs to a company"), nothing added;
-     3. linking a discount code shows it with its value and status and the B2C note; removing it takes it off;
+     1. the card shows the company's client IDs with their type, "N open", each linking OUT to Direct Payments;
+     2. the employee is offered NO way to change the company's merges (no add-ID, link-code or remove-ID button), and
+        the database refuses a client ID the employee sends anyway; the files button is still there;
      4. adding a CR file shows it (named, openable through a signed link); removing it puts "Missing" back;
      5. adding an IBAN letter works, and the card shows it only as "🔒 On file — managers and admins only" with no link;
-   as a manager — 6. the IBAN letter is a link that opens;
+   as a manager —
+     2a. a 3rd client ID (a tender) is added and the card reads "3 open" and still offers "+ Add client ID" (no cap);
+     2c. a second OPEN prepaid ID on the same company is refused in words, nothing added;
+     2b. an ID another company holds is refused in words ("already belongs to …"), nothing added;
+     3. linking a discount code shows it with its value and status and the "counts under this company" note; removing
+        it takes it off;
+     6. the IBAN letter is a link that opens;
    as someone on VIEW for Clients — 7. the card shows, with no add / link / remove button at all;
    8. in Arabic the card speaks Arabic; 9. no JS errors.
-   Sabotage: make js/113's canWrite() answer true — check 7 goes red.
+   Sabotage: make js/113's canWrite() answer true — check 7 goes red; make its canMerge() answer true — check 2 goes red.
+   E (2026-09-27, D16): client IDs and discount codes are the company's MERGES — admins and managers only (the database
+   enforces it), no cap of 3 (one open prepaid + one open postpaid, tenders unlimited), added through js/117's
+   v117AddClientId / v117AddCode forms. The card's count reads "N open" and the codes note says sales with them count
+   under the company. The ID/code checks moved from the employee session to the manager session, and the employee
+   session now checks the refusal instead; the purpose (IDs linked out, one ID one company, codes linked, files kept,
+   money files for managers, View only looks) is unchanged.
    PORTS 9501 … 9506 (free when written).                                                                          */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
@@ -55,26 +66,14 @@ for (const [lang, base] of [['en', 9501], ['ar', 9504]]) {
   await s.open('b4');
   let t = await s.card();
   const pdHref = await s.p.evaluate(() => [...document.querySelectorAll('.v113-card a.chiplink')].map((a) => a.href));
-  check(/#12/.test(t) && /#13/.test(t) && (ar ? /2 من 3/.test(t) : /2 of 3 open/.test(t)) && pdHref.length === 2 && pdHref.every((h) => /payments\.directksa\.com/.test(h)),
-    `${L} 1: the card shows both client IDs, "2 of 3 open", each linking out to Direct Payments`, t.slice(0, 200) + ' | ' + pdHref.join(' '));
-  await s.p.click('.v113-card .v113-add-id'); await s.p.waitForSelector('#cp_id'); await s.p.fill('#cp_id', 'QA-777'); await s.p.selectOption('#cp_type', 'tender'); await s.modalSave();
-  await s.p.waitForTimeout(800); await s.open('b4'); t = await s.card();
-  check(/#QA-777/.test(t) && (ar ? /3 من 3/.test(t) : /3 of 3 open/.test(t)) && !(await s.has('.v113-add-id')), `${L} 2a: a 3rd ID is added; the card says 3 is the most and offers no more`, t.slice(0, 220));
-  await s.open('b0'); await s.p.click('.v113-card .v113-add-id'); await s.p.waitForSelector('#cp_id'); await s.p.fill('#cp_id', '12'); await s.modalSave();
-  let dupSaid = '';
-  for (let i = 0; i < 30 && !dupSaid; i++) { await s.p.waitForTimeout(200); dupSaid = await s.p.evaluate(() => window.__notices.join(' | ')); }   /* the refusal comes back from the database */
-  const b0ids = await s.p.evaluate(() => (window.CP.byBiz['b0'] || []).map((x) => x.direct_client_id).join(','));
-  check((ar ? /مسجّل لشركة أخرى/ : /already belongs to a company/).test(dupSaid) && b0ids === '95', `${L} 2b: an ID another company holds is refused in words, nothing added`, dupSaid + ' | b0 holds ' + b0ids);
-  try { await s.p.evaluate(() => { closeModal(); const n = document.getElementById('v63Notice'); if (n) n.remove(); }); } catch (_) { }
-  /* discount code */
-  await s.open('b4'); await s.p.click('.v113-card .v113-link'); await s.p.waitForSelector('#v113_code');
-  await s.p.selectOption('#v113_code', 'pc0'); await s.p.fill('#v113_note', 'staff leisure'); await s.modalSave(); await s.p.waitForTimeout(600);
-  t = await s.card();
-  check(/B2C-SUMMER10/.test(t) && /10%/.test(t) && (ar ? /فعّال/ : /active/).test(t) && (ar ? /ليست من مالية الشركة/ : /not part of this company's B2B finance/).test(t), `${L} 3a: a linked discount code shows its value, status and the B2C note`, t.slice(0, 300));
-  await s.p.click('.v113-card .v113-unlink'); await s.p.waitForTimeout(300);
-  await s.p.click('#pfConfirmYes');   /* the app's own "are you sure?" box */
-  await s.p.waitForTimeout(900); t = await s.card();
-  check(!/B2C-SUMMER10/.test(t), `${L} 3b: removing the link takes the code off the card`, t.slice(0, 200));
+  check(/#12/.test(t) && /#13/.test(t) && (ar ? /2 مفتوحة/.test(t) : /2 open/.test(t)) && !/of 3|من 3/.test(t) && pdHref.length === 2 && pdHref.every((h) => /payments\.directksa\.com/.test(h)),
+    `${L} 1: the card shows both client IDs, "2 open", each linking out to Direct Payments`, t.slice(0, 200) + ' | ' + pdHref.join(' '));
+  const empBtn = await s.p.evaluate(() => ({ add: !!document.querySelector('.v113-card .v113-add-id'), link: !!document.querySelector('.v113-card .v113-link'), rm: !!document.querySelector('.v113-card .v113-rm-id'), up: !!document.querySelector('.v113-card .v113-upload') }));
+  const empIns = await s.p.evaluate(async () => { const r = await fc().from('client_profiles').insert({ business_id: 'b4', direct_client_id: 'QA-EMP', profile_type: 'tender', status: 'active', source: 'manual' }).select('id');
+    return { err: r.error ? String(r.error.message || r.error.code) : null, n: (r.data || []).length }; });
+  await s.open('b4'); t = await s.card();
+  check(!empBtn.add && !empBtn.link && !empBtn.rm && empBtn.up && empIns.err && empIns.n === 0 && !/QA-EMP/.test(t),
+    `${L} 2: an employee (Full on Clients) gets no merge button, and the database refuses a client ID sent anyway; files still offered`, JSON.stringify(empBtn) + ' | ' + JSON.stringify(empIns));
   /* a CR file */
   await s.p.click('.v113-card .v113-upload'); await s.p.waitForSelector('#v113_file');
   await s.p.selectOption('#v113_type', 'cr'); await s.p.setInputFiles('#v113_file', { name: 'cr-2026.pdf', mimeType: 'application/pdf', buffer: PDF }); await s.modalSave(); await s.p.waitForTimeout(900);
@@ -101,7 +100,33 @@ for (const [lang, base] of [['en', 9501], ['ar', 9504]]) {
 
   /* ---------------- a manager opens a money file (fresh store: one IBAN letter written by the manager) ---------------- */
   s = await session('manager', 'full', lang, base + 1);
-  await s.open('b4'); await s.p.click('.v113-card .v113-upload'); await s.p.waitForSelector('#v113_file');
+  const notes = () => s.p.evaluate(() => window.__notices.join(' | ')).then((n) => n + (s.alerts.length ? ' | ' + s.alerts.join(' | ') : ''));
+  const said = async (re) => { let x = ''; for (let i = 0; i < 30 && !re.test(x); i++) { await s.p.waitForTimeout(200); x = await notes(); } return x; };
+  const clear = async () => { s.alerts.length = 0; try { await s.p.evaluate(() => { window.__notices = []; closeModal(); const n = document.getElementById('v63Notice'); if (n) n.remove(); }); } catch (_) { } };
+  await s.open('b4');
+  await s.p.click('.v113-card .v113-add-id'); await s.p.waitForSelector('#v117_cid'); await s.p.fill('#v117_cid', 'QA-777'); await s.p.selectOption('#v117_type', 'tender'); await s.modalSave();
+  await s.p.waitForTimeout(800); await s.open('b4'); t = await s.card();
+  check(/#QA-777/.test(t) && (ar ? /3 مفتوحة/.test(t) : /3 open/.test(t)) && (await s.has('.v113-add-id')), `${L} 2a: a manager adds a 3rd ID (tender); the card reads "3 open" and still offers another (no cap)`, t.slice(0, 220));
+  await clear();
+  await s.p.click('.v113-card .v113-add-id'); await s.p.waitForSelector('#v117_cid'); await s.p.fill('#v117_cid', 'QA-778'); await s.p.selectOption('#v117_type', 'prepaid'); await s.modalSave();
+  const preSaid = await said(ar ? /مسبق الدفع \(أو آجل\) مفتوح/ : /already has an open prepaid/);
+  const b4ids = await s.p.evaluate(() => (window.CP.byBiz['b4'] || []).map((x) => x.direct_client_id).sort().join(','));
+  check((ar ? /مسبق الدفع \(أو آجل\) مفتوح/ : /already has an open prepaid/).test(preSaid) && !/QA-778/.test(b4ids), `${L} 2c: a second open prepaid ID on one company is refused in words, nothing added`, preSaid + ' | b4 holds ' + b4ids);
+  await clear();
+  await s.open('b0'); await s.p.click('.v113-card .v113-add-id'); await s.p.waitForSelector('#v117_cid'); await s.p.fill('#v117_cid', '12'); await s.modalSave();
+  const dupSaid = await said(ar ? /مسجّل بالفعل/ : /already belongs to/);
+  const b0ids = await s.p.evaluate(() => (window.CP.byBiz['b0'] || []).map((x) => x.direct_client_id).join(','));
+  check((ar ? /مسجّل بالفعل/ : /already belongs to/).test(dupSaid) && b0ids === '95', `${L} 2b: an ID another company holds is refused in words, nothing added`, dupSaid + ' | b0 holds ' + b0ids);
+  await clear();
+  /* discount code — typed into js/117's form; sales with it then count under the company */
+  await s.open('b4'); await s.p.click('.v113-card .v113-link'); await s.p.waitForSelector('#v117_code');
+  await s.p.fill('#v117_code', 'b2c-summer10'); await s.modalSave(); await s.p.waitForTimeout(900); await s.open('b4');
+  t = await s.card();
+  check(/B2C-SUMMER10/.test(t) && /10%/.test(t) && (ar ? /فعّال/ : /active/).test(t) && (ar ? /تُحتسب لهذه الشركة/ : /count under this company in Finance/).test(t), `${L} 3a: a linked discount code (typed in any case) shows its value, status and the "counts under this company" note`, t.slice(0, 300));
+  await s.p.click('.v113-card .v113-unlink'); await s.p.waitForTimeout(300);
+  await s.p.click('#pfConfirmYes');   /* the app's own "are you sure?" box */
+  await s.p.waitForTimeout(900); t = await s.card();
+  check(!/B2C-SUMMER10/.test(t), `${L} 3b: removing the link takes the code off the card`, t.slice(0, 200)); await s.p.click('.v113-card .v113-upload'); await s.p.waitForSelector('#v113_file');
   await s.p.selectOption('#v113_type', 'iban'); await s.p.setInputFiles('#v113_file', { name: 'iban-mgr.pdf', mimeType: 'application/pdf', buffer: PDF }); await s.modalSave(); await s.p.waitForTimeout(900);
   const mgrIban = await s.p.evaluate(() => { const a = document.querySelector('.v113-doc[data-type="iban"] a'); return a ? a.innerText : null; });
   check(mgrIban === 'iban-mgr.pdf', `${L} 6: a manager sees the IBAN letter as a link to open`, String(mgrIban));

@@ -41,6 +41,13 @@
      4. A workspace with genuinely no client companies still gets a real answer rather than
         silence — a fix that only ever says "still loading" would be its own lie (cycle 55).
 
+   E (2026-09-27, DECISIONS D16): v62OpenGrouping (billing-profile grouping) is retired — it now just opens Finance →
+   Rules. The same decision (which company a client ID belongs to) is now made in js/117's "Add a client ID to a
+   company" form (v117AddClientId), whose company dropdown is built from DB.businesses exactly as the old one was. The
+   defect family is unchanged, so the probe now drives that form: (2) with no companies it must not open onto an
+   empty dropdown and leave "Choose the company." to be discovered at Save; (3) control — with companies it opens
+   with them; plus: v62OpenGrouping lands on the Rules tab.
+
    Run:  node scripts/qa/probe-grouping-dialog-readiness.mjs        (port 8727)
    Sabotage: remove the readiness guard from v62OpenGrouping — check 2 goes red. Assert the
    sabotage APPLIED with a unique marker; confirm the restore by marker count and git status.  */
@@ -75,8 +82,8 @@ async function main() {
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 120000 });
   try { await p.waitForSelector('#cl_email', { timeout: 90000 }); } catch (_) { }
   try { await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go'); } catch (_) { }
-  if (!(await p.waitForFunction(() => typeof window.v62OpenGrouping === 'function', { timeout: 90000 }).then(() => true).catch(() => false)))
-    fail('v62OpenGrouping never appeared, so nothing below examined anything');
+  if (!(await p.waitForFunction(() => typeof window.v117AddClientId === 'function' && window.__roleKnown === true && (DB.businesses || []).length > 0, null, { timeout: 90000 }).then(() => true).catch(() => false)))
+    fail('v117AddClientId never appeared (or the role/companies never loaded), so nothing below examined anything');
   await p.evaluate(() => { current = 'finance'; render(); });
   await p.waitForTimeout(1500);
 
@@ -85,15 +92,15 @@ async function main() {
       try { const ov = document.getElementById('ov'); if (ov && ov.classList) ov.classList.remove('show'); } catch (_) { }
       window.__said = []; const oa = window.alert; window.alert = (m) => window.__said.push(String(m));
       window.__restore = () => { window.alert = oa; };
-      try { window.v62OpenGrouping(); } catch (e) { window.__said.push('THREW ' + e.message); }
+      try { window.v117AddClientId(); } catch (e) { window.__said.push('THREW ' + e.message); }
     });
     await p.waitForTimeout(1500);
     return await p.evaluate(() => {
       try { window.__restore(); } catch (_) { }
       const ov = document.getElementById('ov');
       const shown = !!(ov && ov.classList && ov.classList.contains('show'));
-      const sel = document.getElementById('g_target');
-      const bizCount = sel ? sel.options.length : null;
+      const sel = document.getElementById('v117_biz');
+      const bizCount = sel ? [...sel.options].filter((o) => o.value).length : null;
       return { shown, bizCount, said: (window.__said || []).join(' | '), bizLoaded: Array.isArray(DB.businesses) && DB.businesses.length > 0 };
     });
   };
@@ -103,12 +110,12 @@ async function main() {
     const keep = DB.businesses; DB.businesses = [];
     window.__said2 = []; const oa = window.alert; window.alert = (m) => window.__said2.push(String(m));
     try { const ov = document.getElementById('ov'); if (ov && ov.classList) ov.classList.remove('show'); } catch (_) { }
-    try { window.v62OpenGrouping(); } catch (e) { window.__said2.push('THREW ' + e.message); }
+    try { window.v117AddClientId(); } catch (e) { window.__said2.push('THREW ' + e.message); }
     await new Promise((r) => setTimeout(r, 1200));
     window.alert = oa;
     const ov = document.getElementById('ov');
-    const sel = document.getElementById('g_target');
-    const out = { shown: !!(ov && ov.classList && ov.classList.contains('show')), bizCount: sel ? sel.options.length : null, said: (window.__said2 || []).join(' | ') };
+    const sel = document.getElementById('v117_biz');
+    const out = { shown: !!(ov && ov.classList && ov.classList.contains('show')), bizCount: sel ? [...sel.options].filter((o) => o.value).length : null, said: (window.__said2 || []).join(' | ') };
     DB.businesses = keep;
     try { const o2 = document.getElementById('ov'); if (o2 && o2.classList) o2.classList.remove('show'); } catch (_) { }
     return out;
@@ -116,7 +123,7 @@ async function main() {
   if (!none.shown || none.said)
     ok(`with no client companies to group under, the dialog does not open onto an empty list — it says what is wrong instead: ${JSON.stringify(none)}`);
   else
-    fail(`the grouping dialog opened with an EMPTY company dropdown and said nothing (${JSON.stringify(none)}). Its save handler then says "Choose the company to group them under" — an instruction nobody can follow, discovered only after filling the rest in. This dialog already waits for the profiles (cpLoad) and does nothing equivalent for the companies, so the same blank list appears whether none exist or they simply have not arrived.`);
+    fail(`the "Add a client ID to a company" form (js/117) opened with an EMPTY company dropdown and said nothing (${JSON.stringify(none)}). Its save handler then says "Choose the company." — an instruction nobody can follow, discovered only after typing the ID. The retired grouping window had been fixed for exactly this; the new form inherited the shape without the guard.`);
 
   /* ---- 3. and it still opens normally when there ARE companies ---- */
   const after = await openIt();
@@ -125,9 +132,14 @@ async function main() {
   else
     fail(`control: with companies present the dialog did not open with them (${JSON.stringify(after)}), so nothing above can be concluded`);
 
+  /* ---- the retired window's entry point now lands on the Rules tab ---- */
+  const tabNow = await p.evaluate(async () => { window.v62OpenGrouping(); await new Promise((r) => setTimeout(r, 800)); return { tab: FIN.tab, rules: !!document.querySelector('.v117-merges') }; });
+  if (tabNow.tab === 'rules' && tabNow.rules) ok('v62OpenGrouping (retired) now opens Finance → Rules, where client IDs are typed into companies');
+  else fail('v62OpenGrouping did not land on Finance → Rules: ' + JSON.stringify(tabNow));
+
   await b.close(); srv.close();
   if (failures) { console.log(`\nFAILED — ${failures} check(s) did not pass.`); process.exit(1); }
-  console.log('\ngrouping-dialog-readiness OK — the grouping dialog waits for its own list instead of blaming the reader for it');
+  console.log('\ngrouping-dialog-readiness OK — the client-ID form does not open onto an empty company list');
   process.exit(0);
 }
 main().catch((e) => { console.error(e); try { srv.close(); } catch (_) { } process.exit(1); });

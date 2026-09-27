@@ -74,6 +74,8 @@ inv('INV-X26', 1, 'GRP-X', '2026-03-16', 900, 500, 900)                  # not m
 inv('INV-E26', 1, 'GRP-A', '2026-03-17', 777, 700, 777, excl='Duplicate row')
 inv('INV-D26', 1, 'GRP-A', '2026-03-18', 555, 500, 555, deleted=True)
 inv('INV-U26', 1, 'GRP-A', '2026-03-19', 333, 300, 0, status='unpaid')
+# E (2026-09-27): a row belongs to a company only through a TYPED client ID (client_profiles) — never by its name
+cur.execute("update finance_invoices set payments_client_id = case client_group when 'GRP-A' then 'C-1001' when 'GRP-B' then 'C-2001' end")
 F['cat'] = one(cur, "select id from report_categories where code='deals'")
 def pid(kind, y, m=None, qq=None):
     return one(cur, "select id from periods where kind=%s and year=%s and month is not distinct from %s and (%s::int is null or quarter=%s)", (kind, y, m, qq, qq))
@@ -1096,19 +1098,21 @@ def store(cur, path):   # a file put in the private store at this path, as whoev
     q(cur, "insert into storage.objects(bucket_id,name) values ('company-docs',%s)", (path,))
 def seen_file(cur, path): return one(cur, "select count(*) from storage.objects where bucket_id='company-docs' and name=%s", (path,))
 
-@test("R4-01 Client IDs: at most 3 OPEN per company; unique across companies, spaces and all; closing one makes room")
+@test("R4-01 Client IDs (E): any number per company — a 4th and 5th tender are fine; still one OPEN prepaid and one OPEN postpaid; unique across companies, spaces and all; only an admin or a manager adds one")
 def _(cur):
     as_user(cur, 'u1')
-    a, m1 = expect_fail(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'C-1004','tender','active')", (F['coA'],), "at most 3 open")
+    t, m0 = expect_fail(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'C-1009','tender','active')", (F['coA'],), "row-level security")
+    q(cur, "reset role"); as_user(cur, 'u4')
+    q(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'C-1004','tender','active')", (F['coA'],))
+    q(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,' C-1005 ','tender','active')", (F['coA'],))
+    n = one(cur, "select count(*) from client_profiles where business_id=%s and closed_at is null", (F['coA'],))
+    a, m1 = expect_fail(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'C-1006','prepaid','active')", (F['coA'],), "one_open_prepaid_postpaid")
     b, m2 = expect_fail(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'C-1001','tender','active')", (F['coB'],), "unique")
     c, m3 = expect_fail(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'  C-1001 ','tender','active')", (F['coB'],), "unique")
     d, m4 = expect_fail(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'   ','tender','active')", (F['coB'],), "needs the number")
-    q(cur, "update client_profiles set closed_at=now() where id=%s", (F['cpA_ten'],))
-    q(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,' C-1005 ','tender','active')", (F['coA'],))
     stored = one(cur, "select direct_client_id from client_profiles where direct_client_id like '%%C-1005%%'")
-    e, m5 = expect_fail(cur, "update client_profiles set closed_at=null where id=%s", (F['cpA_ten'],), "at most 3 open")
     q(cur, "reset role")
-    return (a and b and c and d and stored == 'C-1005' and e, f"4th open refused={a} · same ID on another company refused={b} · with spaces refused={c} · blank refused={d} · after closing one: added, stored as {stored!r} · reopening the closed one (4 open) refused={e}")
+    return (t and n == 5 and a and b and c and d and stored == 'C-1005', f"team member refused={t} · manager added a 4th and 5th tender → {n} open · second open prepaid refused={a} · same ID on another company refused={b} · with spaces refused={c} · blank refused={d} · stored as {stored!r}")
 
 @test("R4-02 View on Clients changes nothing on the company card: no client ID, no file row, no stored file, no discount link")
 def _(cur):
@@ -1181,17 +1185,17 @@ def _(cur):
     code = one(cur, "insert into promo_codes(code,kind,value_pct,valid_to) values ('B2C-1','percent',10,'2026-12-31') returning id")
     before = one(cur, "select md5(string_agg(to_jsonb(p)::text, '|' order by code)) from promo_codes p")
     guard = one(cur, "select md5(prosrc) from pg_proc where proname='promo_codes_guard'")
-    as_user(cur, 'u1'); l = one(cur, "insert into company_discount_codes(business_id,promo_code_id,note) values (%s,%s,'staff travel') returning id", (F['coA'], code))
-    q(cur, "reset role"); as_user(cur, 'u2')
+    as_user(cur, 'u4'); l = one(cur, "insert into company_discount_codes(business_id,promo_code_id,note) values (%s,%s,'staff travel') returning id", (F['coA'], code))
+    q(cur, "reset role"); as_user(cur, 'u4')
     a, m1 = expect_fail(cur, "insert into company_discount_codes(business_id,promo_code_id) values (%s,%s)", (F['coB'], code), "duplicate")
     b, m2 = expect_fail(cur, "update company_discount_codes set business_id=%s where id=%s", (F['coB'], l), "never re-pointed")
     q(cur, "reset role"); q(cur, "select set_config('app.today','2026-09-25',true)")
     card = one(cur, "select string_agg(x->>'code', ',' order by x->>'code') from company_card, jsonb_array_elements(discount_codes) x where business_id=%s", (F['coA'],))
-    as_user(cur, 'u1'); q(cur, "update company_discount_codes set removed_at=now() where id=%s", (l,))
+    as_user(cur, 'u4'); q(cur, "update company_discount_codes set removed_at=now() where id=%s", (l,))
     c, m3 = expect_fail(cur, "update company_discount_codes set removed_at=null where id=%s", (l,), "stays removed")
-    dz = blocked_or_zero(cur, "delete from company_discount_codes where id=%s", (l,))   # a team member: nothing deleted
+    q(cur, "reset role"); as_user(cur, 'u1'); dz = blocked_or_zero(cur, "delete from company_discount_codes where id=%s", (l,))   # a team member: nothing deleted
     q(cur, "reset role"); d, m4 = expect_fail(cur, "delete from company_discount_codes where id=%s", (l,), "never deleted"); d = d and dz[0]   # an admin: refused outright
-    as_user(cur, 'u1')
+    q(cur, "reset role"); as_user(cur, 'u4')
     l2 = one(cur, "insert into company_discount_codes(business_id,promo_code_id) values (%s,%s) returning id", (F['coB'], code))   # free again → another company may take it
     q(cur, "reset role")
     after = one(cur, "select md5(string_agg(to_jsonb(p)::text, '|' order by code)) from promo_codes p")
@@ -1203,12 +1207,12 @@ def _(cur):
 def _(cur):
     code = one(cur, "insert into promo_codes(code,kind,value_pct) values ('B2C-H','percent',5) returning id")
     sq, a1, path, i = doc_sql('coB', 'cr')
-    as_user(cur, 'u1')
+    as_user(cur, 'u4')
     q(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'H-1','tender','active')", (F['coB'],))
     q(cur, sq, a1); q(cur, "update company_documents set deleted_at=now() where id=%s", (i,))
     q(cur, "insert into company_discount_codes(business_id,promo_code_id) values (%s,%s)", (F['coB'], code))
     q(cur, "reset role")
-    rows = q(cur, "select table_name, action from record_history where actor=%s and table_name in ('client_profiles','company_documents','company_discount_codes') order by id", (F['u1'],))
+    rows = q(cur, "select table_name, action from record_history where actor=%s and table_name in ('client_profiles','company_documents','company_discount_codes') order by id", (F['u4'],))
     got = [f"{t}:{a}" for t, a in rows]
     want = ['client_profiles:create', 'company_documents:create', 'company_documents:delete', 'company_discount_codes:create']
     return (all(w in got for w in want), ", ".join(got))
@@ -1440,6 +1444,121 @@ def _(cur):
     return (a1 and a2 and a3, f"database session → QA={a1} · service call → system={a2} · signed-in person → themselves={a3}")
 
 w = max(len(n) for n, _, _ in results)
+# ================= E — the money rules (scripts/sql/e-money-rules.sql; owner-approved spec of 2026-09-27) =================
+def mar26(cur):
+    """the same Mar-26 total read three ways: the one view, finance_lines (Finance/Reports' KPI source), and the KPI itself"""
+    v = one(cur, "select coalesce(sum(revenue_sar),0) from money_that_counts where invoice_date between '2026-03-01' and '2026-03-31'")
+    fl = one(cur, "select coalesce(sum(revenue_sar),0) from finance_lines where invoice_date between '2026-03-01' and '2026-03-31'")
+    k = one(cur, "select actual from kpi_actuals where kpi_id=%s and scope='company' and period_id=%s and member_id is null and department_id is null", (F['kpi_rev'], F['mar26']))
+    return (float(v), float(fl), float(k or 0))
+def rule(cur, kind, value, reason='test'):
+    return one(cur, "insert into money_exclusion_rules(kind,value,reason) values (%s,%s,%s) returning id", (kind, value, reason))
+
+@test("E-01 Exclusion rules: only an admin or a manager adds or switches one; everyone with Finance reads them; a reason is required; the type and value never change; a removed rule stays removed and is never deleted; every add and change is in the log with who")
+def _(cur):
+    as_user(cur, 'u1'); t, m1 = expect_fail(cur, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','C-2001','x')", None, "row-level security")
+    q(cur, "reset role"); as_user(cur, 'u4')
+    r = rule(cur, 'client_id', ' C-2001 ', 'test client')
+    a, m2 = expect_fail(cur, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','C-3001','  ')", None, "money_rule_reason_given")
+    b, m3 = expect_fail(cur, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','c 2001','again')", None, "money_exclusion_rules_one_live")
+    c, m4 = expect_fail(cur, "update money_exclusion_rules set value='C-9' where id=%s", (r,), "never change")
+    q(cur, "update money_exclusion_rules set active=false where id=%s", (r,))
+    q(cur, "update money_exclusion_rules set removed_at=now() where id=%s", (r,))
+    d, m5 = expect_fail(cur, "update money_exclusion_rules set removed_at=null, active=true where id=%s", (r,), "stays removed")
+    e = blocked_or_zero(cur, "delete from money_exclusion_rules where id=%s", (r,))[0]   # a manager: nothing deleted
+    q(cur, "reset role"); e2, m6 = expect_fail(cur, "delete from money_exclusion_rules where id=%s", (r,), "never deleted"); e = e and e2   # an admin: refused outright
+    as_user(cur, 'u6'); seen = one(cur, "select count(*) from money_exclusion_rules"); q(cur, "reset role")
+    stored = one(cur, "select value||'|'||(created_by=%s)::text||'|'||(removed_by=%s)::text from money_exclusion_rules where id=%s", (F['u4'], F['u4'], r))
+    log = [x[0] for x in q(cur, "select action from record_history where table_name='money_exclusion_rules' and record_id=%s and actor=%s order by id", (r, F['u4']))]
+    return (t and a and b and c and d and e and seen == 1 and stored == 'C-2001|true|true' and log[:1] == ['create'] and len(log) == 3,
+            f"team member refused={t} · no reason refused={a} · same rule twice (other spelling) refused={b} · value change refused={c} · un-remove refused={d} · delete refused={e} · a View person reads {seen} · stored {stored} · log {log}")
+
+@test("E-02 Every rule kind leaves its rows out of every total at once, and switching it off brings them back — no re-import; the one view, finance_lines and the revenue KPI agree before, during and after")
+def _(cur):
+    base = mar26(cur)
+    q(cur, "update finance_invoices set customer_tax_no='300123456700003', discount_code='SUMMER10', transaction_ref='TX-77' where invoice_no='INV-X26'")
+    q(cur, "update businesses set cr_vat='CR 1010101010 / VAT 311111111100003' where id=%s", (F['coB'],))
+    as_user(cur, 'u4'); out = {}
+    for kind, value, gone in [('client_id', 'C-2001', 5000), ('name', 'grp x', 900), ('tax_no', '300123456700003', 900),
+                              ('tax_no', '311111111100003', 5000), ('discount_code', 'summer10', 900), ('transaction', 'TX-77', 900),
+                              ('transaction', 'INV-B26', 5000)]:
+        r = rule(cur, kind, value); during = mar26(cur)
+        q(cur, "update money_exclusion_rules set active=false where id=%s", (r,)); after = mar26(cur)
+        q(cur, "update money_exclusion_rules set removed_at=now() where id=%s", (r,))
+        out[kind + ':' + value] = (during, after, during == tuple(x - gone for x in base) and after == base)
+    q(cur, "reset role")
+    ok = base == (15900.0, 15900.0, 15900.0) and all(v[2] for v in out.values())
+    return (ok, f"before {base} · " + " · ".join(f"{k} → {v[0][0]:.0f}/{v[0][1]:.0f}/{v[0][2]:.0f}, off → {v[1][0]:.0f}" for k, v in out.items()))
+
+@test("E-03 A name rule is only for rows with NO client ID: a row carrying a client ID is not caught by its name")
+def _(cur):
+    as_user(cur, 'u4'); rule(cur, 'name', 'GRP-B'); v = mar26(cur); q(cur, "reset role")
+    return (v == (15900.0, 15900.0, 15900.0), f"name rule on a row that has a client ID → totals {v} (unchanged)")
+
+@test("E-04 Merges are only what is typed: a row joins a company through its client ID or a typed discount code; an untyped client ID stands alone as 'not merged'; an untyped code stays under 'Unassigned codes' and still counts, never twice")
+def _(cur):
+    code = one(cur, "insert into promo_codes(code,kind,value_pct) values ('CORP-5','percent',5) returning id")
+    q(cur, "update finance_invoices set discount_code='CORP-5' where invoice_no='INV-X26'")
+    before = q(cur, "select company_key, merge_state, counts from money_rows where invoice_no='INV-X26'")[0]
+    total0 = mar26(cur)
+    as_user(cur, 'u4'); q(cur, "insert into company_discount_codes(business_id,promo_code_id) values (%s,%s)", (F['coB'], code)); q(cur, "reset role")
+    after = q(cur, "select company_key, merge_state from money_rows where invoice_no='INV-X26'")[0]
+    total1 = mar26(cur)
+    q(cur, "update finance_invoices set payments_client_id='C-7777' where invoice_no='INV-X26'")
+    alone = q(cur, "select company_key, merge_state, company_name from money_rows where invoice_no='INV-X26'")[0]
+    a_rows = one(cur, "select count(*) from money_rows where business_id=%s", (F['coA'],))
+    return (before[0] == 'codes:unassigned' and before[2] and after == ('biz:' + str(F['coB']), 'merged') and total0 == total1
+            and alone[0] == 'cid:c7777' and alone[1] == 'not_merged' and a_rows == 5,
+            f"untyped code → {before[0]} (counts={before[2]}) · typed into Company B → {after} · total unchanged {total0 == total1} · an untyped client ID → {alone[0]} / {alone[1]} · Company A's rows through its typed IDs = {a_rows}")
+
+@test("E-05 Exclusion beats merge: a client ID typed into a company AND caught by a rule is left out, and the view names the rule")
+def _(cur):
+    as_user(cur, 'u4'); rule(cur, 'client_id', 'C-1001', 'test account'); q(cur, "reset role")
+    r = q(cur, "select business_id=%s, excluded, counts, rule_kind, rule_reason from money_rows where invoice_no='INV-A26' and revenue_sar=6000", (F['coA'],))[0]
+    return (r == (True, True, False, 'client_id', 'test account') and mar26(cur) == (5900.0, 5900.0, 5900.0), f"still the company's row={r[0]} · excluded={r[1]} · counts={r[2]} · rule={r[3]} '{r[4]}' · totals {mar26(cur)}")
+
+@test("E-06 Everyone with Finance sees the same company and rule for a row (the rules never depend on which companies the viewer may read); a person without Finance gets nothing from the resolver")
+def _(cur):
+    as_user(cur, 'u4'); rule(cur, 'tax_no', '311111111100003'); q(cur, "reset role")
+    q(cur, "update businesses set cr_vat='VAT 311111111100003' where id=%s", (F['coB'],))
+    snap = lambda: q(cur, "select invoice_no, line_no_dummy, company_key, rule_kind from (select invoice_no, 0 line_no_dummy, company_key, rule_kind from money_rows) x order by 1,3")
+    as_user(cur, 'u4'); m = snap(); q(cur, "reset role")
+    as_user(cur, 'u6'); v = snap(); q(cur, "reset role")
+    q(cur, "update app_users set page_access = page_access || '{\"finance\":\"none\"}' where id=%s", (F['u5'],))
+    as_user(cur, 'u5'); n = one(cur, "select count(*) from money_row_rules()"); q(cur, "reset role")
+    return (m == v and len(m) > 0 and n == 0, f"manager and View person see identical rows/companies/rules={m == v} ({len(m)} rows) · no Finance → resolver answers {n} rows")
+
+@test("E-07 A customer name typed into a company is a merge for rows with NO client ID (the old invoices): they join it, a row carrying a client ID does not; one company per name however spelled; only admins and managers type one; totals do not move")
+def _(cur):
+    base = mar26(cur)
+    as_user(cur, 'u1'); a, m1 = expect_fail(cur, "insert into company_name_aliases(business_id,name) values (%s,'GRP-X')", (F['coB'],), "row-level security")
+    q(cur, "reset role"); as_user(cur, 'u4')
+    q(cur, "insert into company_name_aliases(business_id,name) values (%s,' grp x ')", (F['coB'],))
+    b, m2 = expect_fail(cur, "insert into company_name_aliases(business_id,name) values (%s,'GRP-X')", (F['coA'],), "company_name_aliases_one_company")
+    q(cur, "insert into company_name_aliases(business_id,name) values (%s,'GRP-B')", (F['coA'],))   # GRP-B rows carry client ID C-2001 → stay with Company B
+    q(cur, "reset role")
+    x = q(cur, "select business_id=%s, merge_state from money_rows where invoice_no='INV-X26'", (F['coB'],))[0]
+    bb = one(cur, "select bool_and(business_id=%s) from money_rows where invoice_no='INV-B26'", (F['coB'],))
+    return (a and b and x == (True, 'merged') and bb and mar26(cur) == base,
+            f"team member refused={a} · same name (other spelling) for a second company refused={b} · the no-ID row joins Company B={x} · a row with a client ID stays with its ID's company={bb} · totals unchanged={mar26(cur) == base}")
+
+@test("E-08 Merging two duplicate company records carries their typed codes and customer names to the kept one (removed there, added here — never re-pointed), and undoing the merge puts them back; name folding ignores Arabic diacritics and the tatweel")
+def _(cur):
+    code = one(cur, "insert into promo_codes(code,kind,value_pct) values ('MRG-1','percent',5) returning id")
+    as_user(cur, 'u4')
+    q(cur, "insert into company_discount_codes(business_id,promo_code_id) values (%s,%s)", (F['coB'], code))
+    q(cur, "insert into company_name_aliases(business_id,name) values (%s,'Old Spelling Co')", (F['coB'],))
+    mid = one(cur, "insert into business_merges(kept_id,dropped_id,moved,reason,actor) values (%s,%s,'{}'::jsonb,'dup','t') returning id", (F['coA'], F['coB']))
+    q(cur, "reset role")
+    after = (one(cur, "select business_id=%s from company_discount_codes where promo_code_id=%s and removed_at is null", (F['coA'], code)),
+             one(cur, "select business_id=%s from company_name_aliases where name='Old Spelling Co' and removed_at is null", (F['coA'],)),
+             one(cur, "select jsonb_array_length(moved->'company_discount_codes') + jsonb_array_length(moved->'company_name_aliases') from business_merges where id=%s", (mid,)))
+    as_user(cur, 'u4'); q(cur, "update business_merges set undone_at=now() where id=%s", (mid,)); q(cur, "reset role")
+    back = (one(cur, "select business_id=%s from company_discount_codes where promo_code_id=%s and removed_at is null", (F['coB'], code)),
+            one(cur, "select business_id=%s from company_name_aliases where name='Old Spelling Co' and removed_at is null", (F['coB'],)))
+    fold = one(cur, "select money_norm('شـركةُ الاختبار') = money_norm('شركه الإختبار')")
+    return (after == (True, True, 2) and back == (True, True) and fold, f"after merge (code, name on the kept company; 2 recorded)={after} · after undo back on the dropped one={back} · tatweel+harakat+ة/ه+أ/ا fold={fold}")
+
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]
 print(f"\n{len(results)-len(fails)}/{len(results)} passed"); sys.exit(1 if fails else 0)

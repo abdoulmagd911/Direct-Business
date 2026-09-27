@@ -23,9 +23,18 @@
    captured yet, a malformed line, a self-conflicting gate row, or a status that contradicts
    its own issued-ness), the WHOLE invoice must be held back — never a partial sum from only
    the transactions that happened to be clean. That silent partial-sum shape is exactly what
-   made the previous single-level design dangerous in the first place, just one level down. */
+   made the previous single-level design dangerous in the first place, just one level down.
+
+   E (2026-09-27, DECISIONS D16): the excluded client's invoice (9999999999, Tawthiq) is no longer
+   skipped by the join. A row a rule catches is kept up to date like any other — its cost is
+   written, so the stored copy is right the day the rule is switched off — and the database view
+   money_rows leaves it out of every total. So the join now resolves to 2 updated rows
+   (116361000 and the rule-caught one), the preview names the rule-caught one on its own
+   "Left out by a rule (imported, not counted)" segment, and the Tawthiq check asserts what now
+   protects the owner's ruling: the cost landed, the view still marks the row excluded by its
+   rule, and neither its money nor its cost reaches a Finance total. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
-import { start, settingsLoaded } from './mock-supabase.mjs';
+import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
@@ -67,7 +76,7 @@ async function main() {
   await p.waitForTimeout(4000);
   /* 2026-09-07 (watch cycle 37): the cost join re-checks the standing exclusion, and that list
      arrives from app_settings on its own schedule. In cycle 36's battery this probe reported
-     "the excluded Takamol row received a cost write — the exclusion re-check inside the join
+     "the excluded Tawthiq row received a cost write — the exclusion re-check inside the join
      did not fire", which is the strongest possible claim about the owner's hardest ruling, and
      it was false: the list simply had not arrived yet. Wait for it, and say so if it never
      comes, rather than accusing the app of writing money onto an excluded client. */
@@ -75,7 +84,7 @@ async function main() {
      sign-in, and under six-way load it burned its whole 90s budget while the page was still
      booting — reddening a probe whose exclusion-dependent check does not run for another minute
      and a half. Wait for a precondition where it is NEEDED, not at the top of the file: by the
-     time the Takamol check runs, the list has had the entire import flow's worth of time to
+     time the Tawthiq check runs, the list has had the entire import flow's worth of time to
      arrive, and the budget is spent on the one moment it protects. */
   await p.evaluate(() => { current = 'finance'; if (typeof render === 'function') render(); });
   await p.waitForTimeout(1200);
@@ -156,8 +165,11 @@ async function main() {
   const preview2 = await p.evaluate(() => { const v = document.getElementById('finImpOut'); return v ? v.innerText : ''; });
   if (!/Expense Report — transaction status \(join\)/i.test(preview2)) fail(`drop 2: gate file was not recognized as expense_gate_capture: ${preview2.slice(0, 300)}`);
   else ok('drop 2: expense-gate.csv recognized as "Expense Report — transaction status (join)"');
-  if (!/1 updated/.test(preview2)) fail(`drop 2: expected exactly 1 updated row (116361000) once both files are present: ${preview2.slice(0, 400)}`);
-  else ok('drop 2: join resolved to exactly 1 updated row — proves EXPENSE_JOIN carried drop 1\'s data forward into this separate drop');
+  const joinPart = preview2.split(/Cost — joined and resolved/)[1] || '';
+  if (!/Updated 2\b/.test(joinPart)) fail(`drop 2: expected exactly 2 updated rows (116361000, and the rule-caught 9999999999 kept current) once both files are present: ${preview2.slice(0, 600)}`);
+  else ok('drop 2: join resolved to exactly 2 updated rows (116361000, and the rule-caught 9999999999 kept current) — proves EXPENSE_JOIN carried drop 1\'s data forward into this separate drop');
+  if (/Left out by a rule \(imported, not counted\)\s+1\s+—\s+Tawthiq Test Services/.test(joinPart)) ok('drop 2: the excluded client\'s invoice is named on its own "Left out by a rule (imported, not counted)" segment');
+  else fail('drop 2: the join preview does not name the rule-caught Tawthiq invoice as left out by its rule: ' + JSON.stringify(joinPart.slice(0, 500)));
   if (!/1 transaction\(s\) are not yet issued into any tax invoice/i.test(preview2)) fail('drop 2: "not yet issued" (T3, "Need to issue") count missing or wrong');
   else ok('drop 2: T3 ("Need to issue") correctly counted as not-yet-issued, nothing to attribute it to');
   if (!/1 transaction\(s\) are already issued into a tax invoice but have no expense lines/i.test(preview2)) fail('drop 2: "issued but no lines yet" (T9) count missing or wrong');
@@ -203,7 +215,7 @@ async function main() {
       malformed: get('116361004'),
       partialContributor: get('116361005'),
       statusContradiction: get('116361006'),
-      takamol: get('9999999999'),
+      tawthiq: get('9999999999'),
     };
   });
   console.log('rows:', JSON.stringify(rows));
@@ -246,12 +258,21 @@ async function main() {
   else if (rows.statusContradiction.cost === 1200) fail('116361006: cost_sar was applied despite T13\'s status ("Pending") contradicting its own issued-ness — this must be refused, not trusted');
   else ok(`116361006: cost_sar left untouched at ${rows.statusContradiction.cost} — T13\'s status-vs-issued contradiction correctly refused`);
 
-  // ---- Excluded client (Takamol): never touched, even though its transaction is clean ----
-  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } })))
-    fail('the exclusion list never arrived from app_settings — the Takamol check below would run against a world where nothing is excluded, which is a fact about this run and not about the app');
-  if (!rows.takamol) fail('9999999999 (Takamol, already excluded): row unexpectedly disappeared');
-  else if (rows.takamol.cost === 100) fail('9999999999: the excluded Takamol row received a cost write — the exclusion re-check inside the join did not fire');
-  else ok('9999999999: the excluded Takamol row was correctly left untouched by the join');
+  // ---- Excluded client (Tawthiq), E: its cost is kept current, and it is STILL out of every total ----
+  const fin = await p.evaluate(() => {
+    let rules = false; try { rules = !!(window.MR && MR.rules && finExclusionCheck('Tawthiq Test Services')); } catch (_) { }
+    const row = (FIN.rows || []).find((x) => x.invoice_no === '9999999999') || {};
+    const m = (FIN.m || {})[row.id] || null;
+    const L = (finLive() || []);
+    return { rules, m: m && { excluded: m.excluded, counts: m.counts, rule_kind: m.rule_kind }, inLive: L.some((r) => r.invoice_no === '9999999999'),
+      liveCost: L.reduce((a, r) => a + (Number(r.cost_sar) || 0), 0), inExcluded: (window.finExcludedRows ? finExcludedRows() : []).some((x) => x.row.invoice_no === '9999999999') };
+  });
+  if (!fin.rules) fail('the Tawthiq name rule is not in the page — the check below would run against a world where nothing is excluded, which is a fact about this run and not about the app');
+  if (!rows.tawthiq) fail('9999999999 (Tawthiq, excluded by rule): row unexpectedly disappeared');
+  else if (rows.tawthiq.cost !== 100) fail(`9999999999: the rule-caught Tawthiq row was not kept current — cost ${rows.tawthiq.cost}, expected the join's 100 (D16: a rule-caught row is updated like any other, so it is right the day its rule is switched off)`);
+  else ok('9999999999: the rule-caught Tawthiq row\'s cost was kept current by the join (100)');
+  if (fin.m && fin.m.excluded === true && fin.m.counts === false && !fin.inLive && fin.inExcluded) ok('9999999999: after the cost write the view still marks it excluded by its rule — its money and its cost are in no Finance total, and it sits in the Excluded list');
+  else fail(`9999999999: after the cost write the excluded Tawthiq row is not held out of Finance: view=${JSON.stringify(fin.m)} counted=${fin.inLive} in-Excluded-list=${fin.inExcluded}`);
 
   // ---- Unknown invoice_no (a real invoice-import gap, per the 2026-08-24 finding): never
   // inserted as a new row, only reported ----

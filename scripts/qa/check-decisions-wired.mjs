@@ -1,7 +1,7 @@
 /* check-decisions-wired.mjs — the mechanical half of docs/DECISIONS.md's P5 ("a correct rule
    that nothing consults is not a rule"), 2026-08-23.
 
-   P5 exists because the same failure shape hit this project three times: the Takamol
+   P5 exists because the same failure shape hit this project three times: the Tawthiq
    exclusion list (correct, seeded, wired into every importer function — and never called
    anyway, because the real write went in through direct SQL that bypassed all of them);
    MIN_PW (the Supabase Auth policy was 10, a screen hardcoded `<8`, so the client silently
@@ -21,7 +21,7 @@
    constants, is referenced from somewhere OTHER than its own definition. A citation that
    fails (a) is a rule pointing at code that was renamed or deleted out from under it — stale
    documentation, caught before it misleads the next session. A citation that fails (b) is the
-   Takamol shape exactly: the thing was built, and nothing else in the codebase ever calls it.
+   Tawthiq shape exactly: the thing was built, and nothing else in the codebase ever calls it.
 
    This is a floor, not a ceiling — a rule can still cite something that's wired but wired
    wrong (the actual bug class the real QA probes exist to catch). But "defined once, called
@@ -110,7 +110,7 @@ function main() {
         const def = countOccurrences(defRe);
         const calls = countOccurrences(callRe);
         if (def.total === 0) fail(`"${title}": cites \`${cite}\` but no function named ${name} is defined anywhere in js/ — stale citation, the code moved or was renamed out from under this rule`);
-        else if (calls.total <= def.total) fail(`"${title}": \`${cite}\` is defined but every occurrence of ${name}( looks like the definition itself — nothing in the codebase calls it. This is the exact Takamol shape: correct, written, never consulted.`);
+        else if (calls.total <= def.total) fail(`"${title}": \`${cite}\` is defined but every occurrence of ${name}( looks like the definition itself — nothing in the codebase calls it. This is the exact Tawthiq shape: correct, written, never consulted.`);
         else ok(`"${title}": ${name}() is defined and called ${calls.total - def.total} time(s) beyond its own definition`);
       } else if ((constM = cite.match(/^([A-Z][A-Z0-9_]{2,})$/))) {
         citedSymbols++;

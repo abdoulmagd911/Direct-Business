@@ -535,11 +535,11 @@
         return;
       }
       state.seenGenericNo[built.invoice_no]=1;
+      /* E (2026-09-27): reported, still imported — the view applies the rule, retroactively */
       var xhit=(typeof window.finExclusionCheck==='function')?window.finExclusionCheck(built.customer_raw_name):null;
       if(xhit){
-        state.excludedByRule++; state.excludedDetail.clientExcluded++;
+        state.excludedDetail.clientExcluded++;
         state.excludedDetail.clientExcludedDetail.push({name:built.customer_raw_name,clientId:xhit.clientId,reason:xhit.reason});
-        return;
       }
       candidates.push(built);
     });
@@ -579,11 +579,12 @@
       // otherwise sail straight through (has a tax code, status is final) must still never
       // touch an excluded client's row — this is the sabotage case
       // scripts/qa/probe-tax-invoice-capture.mjs proves directly.
+      /* E (2026-09-27): an excluded client's row is still kept up to date — the view leaves it out, and if the rule is
+         switched off the row must come back correct, not stale */
       var xhit=(typeof window.finExclusionCheck==='function')?(window.finExclusionCheck(existing.client_group)||window.finExclusionCheck(existing.customer_raw_name)):null;
       if(xhit){
-        state.excludedByRule++; state.excludedDetail.clientExcluded++;
+        state.excludedDetail.clientExcluded++;
         state.excludedDetail.clientExcludedDetail.push({name:existing.client_group,clientId:xhit.clientId,reason:xhit.reason});
-        return;
       }
       // THE OWNER'S RULE, applied literally: a tax code AND a status past "Waiting for
       // Issuing" — anything short of either goes to manual review, never guessed at.
@@ -842,10 +843,9 @@
         return;
       }
       var xhit=(typeof window.finExclusionCheck==='function')?(window.finExclusionCheck(existing.client_group)||window.finExclusionCheck(existing.customer_raw_name)):null;
-      if(xhit){
-        state.excludedByRule++; state.excludedDetail.clientExcluded++;
+      if(xhit){   // E: reported, still kept up to date (see above)
+        state.excludedDetail.clientExcluded++;
         state.excludedDetail.clientExcludedDetail.push({name:existing.client_group,clientId:xhit.clientId,reason:xhit.reason});
-        return;
       }
       // Every contributing transaction must itself be clean — one dirty transaction holds back
       // the whole invoice, never a partial sum from only the clean ones.
@@ -1249,7 +1249,7 @@
       }
       totals.isNew+=r.counts.isNew; totals.updated+=r.counts.updated; totals.unchanged+=r.counts.unchanged;
       totals.needsLinking+=r.counts.needsLinking;
-      var exclLine;
+      var exclLine, ruleLine='';
       if(r.hasClientColumn===false){
         exclLine='<span style="color:#B54708">'+fl('cannot be checked — this file carries no client','لا يمكن التحقق — هذا الملف لا يحتوي على عميل')+'</span>';
       } else {
@@ -1271,7 +1271,10 @@
             }
           });
         }
-        exclLine=String(r.counts.excludedByRule)+((ceParts.length||ccParts.length)?(' — '+ceParts.concat(ccParts).join('; ')):'');
+        exclLine=String(r.counts.excludedByRule)+(ccParts.length?(' — '+ccParts.join('; ')):'');
+        /* E (2026-09-27): rows an exclusion rule catches are imported and left out of the totals by the view — a separate
+           line, so "Excluded by rule" keeps meaning the rows that are NOT written */
+        ruleLine=ceParts.length?(String((r.excludedDetail.clientExcludedDetail||[]).length)+' — '+ceParts.join('; ')):'';
       }
       return '<div class="card" style="margin-top:8px;padding:12px 14px">'+
         '<b>'+esc(r.name)+'</b> — '+esc(r.label)+'<br>'+
@@ -1281,6 +1284,7 @@
           fl('Unchanged','بدون تغيير')+' <b>'+r.counts.unchanged+'</b> · '+
           fl('Excluded by rule','مستبعد بحسب القاعدة')+' <b>'+exclLine+'</b> · '+
           fl('Needs linking','بحاجة لربط')+' <b>'+r.counts.needsLinking+'</b>'+
+          (ruleLine?(' · '+fl('Left out by a rule (imported, not counted)','تستبعدها قاعدة (تُستورد ولا تُحتسب)')+' <b>'+ruleLine+'</b>'):'')+
         '</div>'+
         (r.joinNote?('<div style="font-size:11.5px;color:#B54708;margin-top:4px">'+esc(r.joinNote)+'</div>'):'')+
       '</div>';
@@ -1345,6 +1349,9 @@
      (the insert/update loop below is several HTTP round trips long), same reasoning as the
      preview fix above. */
   function paintDone(html){ LAST_DONE_HTML=html; RESULTS=null; var out=document.getElementById('finImpOut'); if(out)out.innerHTML=html; }
+  /* E (2026-09-27): js/117 adds what the rules made of the import under the Done line — kept in LAST_DONE_HTML so the
+     re-render that follows the reload repaints it instead of wiping it */
+  window.v65AppendDone=function(html){ LAST_DONE_HTML=(LAST_DONE_HTML||'')+html; var out=document.getElementById('finImpOut'); if(out)out.insertAdjacentHTML('beforeend',html); };
 
   // M13, 2026-08-25 — real live bug: the owner ran a real import and read "Done. Imported 0
   // new, updated 27." while the database had written NOTHING (the `year` GENERATED-column
@@ -1481,6 +1488,8 @@
              :'')+
            '</div>');
       paintDone(msg);
+      /* E (2026-09-27): what the rules made of this import, read back from the one view (js/117) */
+      if(!failed&&typeof window.v117ImportSummary==='function'){ try{ window.v117ImportSummary(toInsert.concat(toUpdate).map(function(x){return x&&x.invoice_no;}).filter(Boolean)); }catch(_){} }
       FIN.rows=null; finLoad();
     });
     };

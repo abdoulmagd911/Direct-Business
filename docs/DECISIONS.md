@@ -375,7 +375,7 @@ sibling spelling is a linked Tender client. Fixed: when the name index misses, t
 links to the same business with `confirmed_by='auto-match-alias'` (visible provenance, never
 silent). Guarded by `scripts/qa/probe-alias-autolink.mjs`, sabotage-verified (fallback removed
 → the spelling stays unlinked and no link write goes out), restored byte-identical.
-*Date: 2026-08-25, linking-path addendum 2026-08-29. Status: ACTIVE.*
+*Date: 2026-08-25, linking-path addendum 2026-08-29. Status: SUPERSEDED-BY: D16 (27 Sep) — names now collapse only when a person types them onto a company on Finance → Rules (`company_name_aliases`, read by the `money_rows` view); the settings alias map and the automatic alias linker are retired, and the text above is kept as history.*
 
 **M15 — page-lifetime memory was the right instinct for the cost join, but not enough: the raw
 captured facts must survive a reload and a new session, so a single updated file resolves
@@ -3748,3 +3748,63 @@ before 2026-09-09 signed in as the QA admin and could not see any of the three d
 round found. The QA account can be switched to `team_member` in `app_users` for a drive and
 switched back — its row is the only thing changed, and it is a QA account.
 *Date: 2026-09-09. Status: ACTIVE.*
+
+**D16 — The money rules: exclusion rules and company merges, typed by a person, applied by one view (owner-approved spec
+of 2026-09-27; E).** ACTIVE.
+- **Where:** Finance → Rules (js/117), two cards — *Exclusion rules* and *Company merges* — and a greyed *Excluded* list
+  naming the rule that caught each row. The company card (js/113) shows the same client IDs and codes for its company and
+  warns when a rule catches them. Admins and managers change things (enforced by the database, not only hidden): a
+  rule needs Full on Finance; a merge (client ID, code, customer name) needs Full on Finance or on Clients, because the
+  company card makes merges too. Everyone with Finance sees. While the page's copy of the rules is loading, the
+  transactions list (which the view does not cover) counts nothing — fail closed. Every add, switch and removal is in the change log (record_history, D13).
+- **Exclusion rules** (`money_exclusion_rules`): leave out ONLY what is typed; everything else counts. A rule = type +
+  value + reason (required) + who + when (stamped by the database, with the name) + on/off. Types: Direct Payments
+  client ID; client name or alias (only for rows with no client ID); VAT or CR number (the row's own, or the merged
+  company's `cr_vat`); discount code; one transaction number (matches `transaction_ref` or `invoice_no`). Values match
+  however they are spelled (`money_norm`: NFKC, case, Arabic alef/yeh/teh-marbuta, punctuation and spaces). The type and
+  value of a rule never change (remove and add); a removal is final; nothing is deleted.
+- **Company merges:** a company holds a typed list of client IDs (`client_profiles`: prepaid / postpaid / tender — the
+  cap of 3 is gone; still one open prepaid and one open postpaid, tenders unlimited) and a typed list of discount codes
+  (`company_discount_codes`). One ID or code belongs to one company (unique keys; the screen names the company that
+  holds it). Nothing merges by name or automatically any more: the js/41 name auto-linker is switched off, js/62's name
+  aliases and billing-profile grouping are retired, `finance_client_links` is no longer read, and the client card no
+  longer matches money by name. A row with a client ID goes by that ID alone; a row with no ID goes by its typed code, then
+  its typed customer name; otherwise it stands alone — an untyped client ID as its own entry named as Payments names it, flagged "Not merged —
+  review"; an untyped code under "Unassigned codes" (still counted, never twice).
+- **Customer names are a typed merge too** (oversight's design input, 27 Sep — the old pre-Payments invoices carry only a
+  name): `company_name_aliases` — a person types a customer name, any spelling, into a company; rows with no client ID
+  and no code count under it. One company per name however spelled; never re-pointed; a removal is final; logged.
+- **Needs a decision** (Rules tab): every client ID and customer name no company holds yet, largest SAR first, with one
+  control each — *Belongs to [company]* (a same-name company is SUGGESTED and pre-selected, never applied until the
+  person presses it), *New company…* (the app's own company form, the Payments name filled in; the decision is applied
+  only when the person saves it), *Exclude…* (the rule form, filled in; a reason is still required). Each answer is
+  remembered: later imports land under the company with nothing to do. Waiting for D: suggestions by VAT/CR and email
+  domain, similar Arabic/English names, the same question asked in the import preview, and employees proposing with an
+  admin or manager confirming.
+- **Exclusion beats merge.** Rule order: transaction → client ID → VAT/CR → code → name.
+- **One view, live and retroactive:** `money_row_rules()` (security definer, so every Finance viewer gets the same
+  company and rule for a row; answers nobody without Finance) → `money_rows` (every live row: company, merge state, the
+  rule, `excluded`, `counts` = paid and not excluded, `open_age_days`) → `money_that_counts` → `finance_lines`, so
+  `kpi_actuals`, `finance_as_of`, `finance_credit` and `project_money` read it too. Finance's chokepoint (js/16 `live()`)
+  reads `money_rows` with the rows and drops what it marks excluded; if the view cannot be read, Finance shows no money
+  and says so (fail closed). A rule change moves Finance, the Report Builder (and its exports) and the KPIs at once, with
+  no re-import. Tested: scripts/qa/phase3 E-01..06 (Postgres), probe-money-rules (the screen, three readings equal
+  before and after a rule change).
+- **Imports:** a row a rule catches is imported like any other (the view leaves it out, so switching the rule off
+  brings it back); the preview counts it, and after the write the importer reads back from the view what the rules
+  made of the batch — counted, merged into which company, left out by which rule (count + SAR), not paid, and new client
+  IDs not merged. (The Payments client ID, customer VAT/CR and discount code are new columns on `finance_invoices`,
+  filled by the importer in D.)
+- **Outstanding stays** (owner, 27 Sep, reversing the earlier answer): a separate view, never added to revenue —
+  Clients & collections gains "Who to chase": outstanding per company in 0-30 / 31-60 / 61-90 / 90+ days from the due
+  date (or the invoice date), postpaid first.
+- **Migration:** the 21 Aug name-list entry (`financeExclusions`) and the 26 Aug aliases (`financeGroupMap`) are
+  removed from `app_settings` (backed up first), NOT carried over: the live Rules screen starts empty and the oversight
+  enters every exclusion and merge by hand as the acceptance test. The harness seeds its own rule, with made-up names
+  (the fixture company formerly named after a real one is "Tawthiq Test Services").
+
+**D17 — Only a person creates records in the live database (owner's standing rule, 27 Sep).** ACTIVE. No task,
+invoice, transaction, achievement, company, merge or exclusion is created by code in the live database: no seeding, no
+backfill script, no SQL insert of business data, no background pass that writes on its own (which is why the js/41
+name auto-linker is off). Code makes entry easy — screens, the importer a person runs, validation, the change log. The
+test harness and test databases may seed made-up data. An already-approved cleanup or wipe is allowed, backed up first.

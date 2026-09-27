@@ -39,7 +39,7 @@ const N_MAPPED = 2000;        // rows already in the shape a mapped import produ
 const N_NOISE = 3200;         // ordinary verified rows, so the table really is past every page
 const N_UNCHANGED = 1177, N_UPDATED = 800, N_NEW = 1000, N_EXCL = 20;
 const DELETED = ['SCI-1980', 'SCI-1981', 'SCI-1982'];
-const EXCLUDED_GROUP = 'Takamol Scale QA';
+const EXCLUDED_GROUP = 'Tawthiq Scale QA';
 const JOIN_TXN = 'ZZZ-LATE-TARGET';          // sorts last, so its lines sit past row 1000
 const JOIN_INVOICE = 'SCI-TARGET';
 const JOIN_LINES = [100, 150, 200];          // -> cost 450, comfortably under the invoice total
@@ -133,9 +133,9 @@ async function main() {
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 90000 }); await p.waitForTimeout(2000);
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
   await p.waitForTimeout(5000);
-  await p.evaluate((g) => {
-    DB.settings = DB.settings || {};
-    DB.settings.financeExclusions = [{ id: 'fx-imp-scale', clientId: 'excl', matchNames: [g], reason: 'QA scale fixture', addedBy: 'probe', addedAt: new Date().toISOString() }];
+  await p.evaluate(async (g) => {   /* E (2026-09-27): the standing exclusion is a typed RULE now (Finance → Rules), not a settings list */
+    await fc().from('money_exclusion_rules').insert({ kind: 'name', value: g, reason: 'QA fixture — standing exclusion' }).select('id');
+    if (window.MR) { MR.rules = null; if (typeof moneyRulesLoad === 'function') moneyRulesLoad(); }
   }, EXCLUDED_GROUP);
   await p.evaluate((header) => {
     DB.settings.importSignatureMappings = DB.settings.importSignatureMappings || [];
@@ -170,10 +170,12 @@ async function main() {
   const c1 = counts(pv1);
   if (c1) ok('preview after a ' + (lines.length - 1) + '-row drop: New ' + c1.isNew + ' · Updated ' + c1.updated + ' · Unchanged ' + c1.unchanged + ' · Excluded ' + c1.excluded);
   else fail('no preview counts rendered: ' + JSON.stringify(pv1.replace(/\n/g, ' | ').slice(0, 500)));
-  if (c1 && c1.isNew === N_NEW) ok(N_NEW + ' brand-new invoice numbers counted as new'); else fail('New = ' + (c1 && c1.isNew) + ', expected ' + N_NEW);
+  /* E (2026-09-27): a row an exclusion rule catches is imported (the view leaves it out, retroactively) — so it is new too */
+  if (c1 && c1.isNew === N_NEW + N_EXCL) ok((N_NEW + N_EXCL) + ' brand-new invoice numbers counted as new (' + N_EXCL + ' of them caught by a rule)'); else fail('New = ' + (c1 && c1.isNew) + ', expected ' + (N_NEW + N_EXCL));
   if (c1 && c1.updated === N_UPDATED) ok(N_UPDATED + ' changed invoices counted as updated'); else fail('Updated = ' + (c1 && c1.updated) + ', expected ' + N_UPDATED);
   if (c1 && c1.unchanged === N_UNCHANGED) ok(N_UNCHANGED + ' identical invoices counted as unchanged - not rewritten for nothing'); else fail('Unchanged = ' + (c1 && c1.unchanged) + ', expected ' + N_UNCHANGED);
-  if (c1 && c1.excluded >= N_EXCL) ok('the standing exclusion held ' + c1.excluded + ' rows back at 3,000 rows'); else fail('Excluded by rule = ' + (c1 && c1.excluded) + ', expected at least ' + N_EXCL);
+  const ruleN = (pv1.match(/Left out by a rule \(imported, not counted\)\s*(\d+)/) || [])[1];
+  if (+ruleN >= N_EXCL) ok('the preview says ' + ruleN + ' rows will be left out of the totals by the standing rule, at 3,000 rows'); else fail('Left out by a rule = ' + ruleN + ', expected at least ' + N_EXCL);
   if (tPreview < 60000) ok('the preview arrived in ' + (tPreview / 1000).toFixed(1) + 's against ' + SEED_INV.length + ' existing invoices'); else fail('the preview took ' + (tPreview / 1000).toFixed(1) + 's');
 
   /* ---------- 2. cycle 10's guard with a 5,200-row index ---------- */
@@ -186,13 +188,14 @@ async function main() {
   await confirmBtn();
   await p.waitForTimeout(6000);
   const after = await countAll('finance_invoices');
-  if (after - before === N_NEW) ok('Confirm inserted exactly ' + N_NEW + ' rows - no duplicate, no excluded row, no deleted row resurrected');
-  else fail('the table grew by ' + (after - before) + ', expected ' + N_NEW);
+  if (after - before === N_NEW + N_EXCL) ok('Confirm inserted exactly ' + (N_NEW + N_EXCL) + ' rows - no duplicate, no deleted row resurrected');
+  else fail('the table grew by ' + (after - before) + ', expected ' + (N_NEW + N_EXCL));
   const delRows = await invRow(DELETED[0]);
   if (delRows.length === 1 && +delRows[0].total_incl_vat_sar === totalOf(1980) && delRows[0].deleted_at) ok('the deleted invoice still holds its own total and is still deleted - the drop wrote nothing into it');
   else fail('a deleted invoice was written to or duplicated: ' + JSON.stringify(delRows.map(r => [r.total_incl_vat_sar, !!r.deleted_at])));
   const exRows = await invRow('SCX-1');
-  if (exRows.length === 0) ok('no excluded-client invoice reached the table'); else fail('an excluded-client invoice was written');
+  const exM = await p.evaluate(async () => { const r = await fc().from('money_rows').select('excluded,counts,rule_kind').eq('invoice_no', 'SCX-1'); return r.data || []; });
+  if (exRows.length === 1 && exM.length === 1 && exM[0].excluded && !exM[0].counts) ok('the excluded client\'s invoice is on file and the view leaves it out of every total (rule: ' + exM[0].rule_kind + ')'); else fail('the excluded client\'s invoice: rows ' + exRows.length + ', view ' + JSON.stringify(exM));
   const updRow = await invRow('SCI-' + N_UNCHANGED);
   if (updRow.length === 1 && +updRow[0].total_incl_vat_sar === totalOf(N_UNCHANGED) + 1000) ok('a changed invoice really updated - the guards do not swallow ordinary work at scale');
   else fail('the changed invoice did not update: ' + JSON.stringify(updRow.map(r => r.total_incl_vat_sar)));

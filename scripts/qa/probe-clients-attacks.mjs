@@ -16,6 +16,14 @@
      5. Hostile rows: null client_group → "—" row, HTML in a name escaped, an excluded partner
         never appears, a credit-note-only group never enters the verified table, "Lifetime billed"
         wording never appears (21 Aug ruling), no NaN anywhere.
+   E (2026-09-27, D16): the name-alias map (financeGroupMap) is retired and exclusions are applied by the database view
+   money_rows, not by name in the page. So the alias group is now what a person types — two customer names into ONE
+   company (company_name_aliases, here "Test Company 7", which has no invoices of its own) — and the alias rows and the
+   excluded partner's row are written through the mock's import function (fn_commit_finance_import), so the view the app
+   reads decides their company and their exclusion, exactly as live. The independent recount leaves out what the view
+   marks excluded (FIN.m[id].excluded — the database's answer, D16), not what a name list says. The hostile rows (null
+   name, HTML name, no invoice date) can never be written — the database refuses them — so they are still pushed into
+   the page's own rows AFTER the reload, to prove the screen survives them.
    Run:  node scripts/qa/probe-clients-attacks.mjs     (port 8197)
    Sabotage: in js/16 rFinClients, put date-less outstanding back into ag.b030 → check 3 red;
    drop the >10 label → check 1 red; drop the Ledger drill banner → check 4 red. */
@@ -65,8 +73,8 @@ async function main() {
   // independent recount: verified-paid live rows in period, resolved through finCanon (the page's own resolver, but
   // summed here by us) — and a raw sum by client_group that ignores every alias/link, to prove folding does not double count
   const recount = () => p.evaluate(() => {
-    const ex = window.finExclusionCheck || (() => null);
-    const rows = (FIN.rows || []).filter(r => !r.deleted_at && !(ex(r.client_group) || ex(r.customer_raw_name)) && r.integrity_status === 'verified_paid');
+    const M = FIN.m || {}; const ex = (r) => !!(M[r.id] && M[r.id].excluded);   /* E: the view's verdict */
+    const rows = (FIN.rows || []).filter(r => !r.deleted_at && !ex(r) && r.integrity_status === 'verified_paid');
     const by = {}; let grand = { rev: 0, cost: 0, prof: 0 };
     rows.forEach(r => { const c = window.finCanon(r.client_group); const k = c.name; by[k] = by[k] || { rev: 0, cost: 0, prof: 0, key: c.key }; by[k].rev += +r.revenue_sar || 0; by[k].cost += +r.cost_sar || 0; by[k].prof += +r.profit_sar || 0; grand.rev += +r.revenue_sar || 0; grand.cost += +r.cost_sar || 0; grand.prof += +r.profit_sar || 0; });
     return { by, grand, nClients: Object.keys(by).length };
@@ -81,23 +89,30 @@ async function main() {
     if (!bad.length && body.length) ok(`every one of ${body.length} client rows equals an independent sum of its verified-paid invoices (revenue, cost, profit)`); else fail('client rows disagree with recount: ' + JSON.stringify(bad.map(r => r.name)));
     if (total && near(total.rev, rc.grand.rev) && near(total.cost, rc.grand.cost) && near(total.prof, rc.grand.prof)) ok(`Total row = grand total over all ${rc.nClients} clients`); else fail('Total row mismatch: ' + JSON.stringify(total) + ' vs ' + JSON.stringify(rc.grand));
     if (!body.some(r => /^Test Company 5$/.test(r.name)) && body.some(r => r.name === 'Test Company 4')) ok('seed link: "Test Company 5" (a second spelling linked to the same company) is folded into "Test Company 4" — one row, not two'); else fail('link fold missing: rows ' + body.map(r => r.name).join(' | '));
-    const rawSum = await p.evaluate(() => { const ex = window.finExclusionCheck || (() => null); let s = 0; (FIN.rows || []).filter(r => !r.deleted_at && !(ex(r.client_group) || ex(r.customer_raw_name)) && r.integrity_status === 'verified_paid' && (r.client_group === 'Test Company 4' || r.client_group === 'Test Company 5')).forEach(r => s += +r.revenue_sar || 0); return s; });
+    const rawSum = await p.evaluate(() => { const M = FIN.m || {}; let s = 0; (FIN.rows || []).filter(r => !r.deleted_at && !(M[r.id] && M[r.id].excluded) && r.integrity_status === 'verified_paid' && (r.client_group === 'Test Company 4' || r.client_group === 'Test Company 5')).forEach(r => s += +r.revenue_sar || 0); return s; });
     const folded = body.find(r => r.name === 'Test Company 4');
     if (folded && near(folded.rev, rawSum)) ok(`folded row revenue ${folded.rev} = raw sum of both spellings ${rawSum} (no double count, nothing dropped)`); else fail(`folded row ${folded && folded.rev} vs raw ${rawSum}`);
   }
 
   /* ---------- 2. inject: alias group, hostile rows, >10 clients, unpaid rows for ageing ---------- */
+  /* E: rows whose company or exclusion the database decides go in through the import function, and the two customer
+     names are typed into one company — then Finance reads rows + view again */
+  const viaView = await p.evaluate(async () => {
+    const row = (no, group, rev, cost) => ({ invoice_no: no, client_group: group, customer_raw_name: group, invoice_date: '2026-05-10', month: 'May', quarter: 'Q2', products: 'Flights', service_type: 'Flights', record_type: 'b2b', total_incl_vat_sar: rev, wallet_portion_sar: 0, vat_sar: 0, revenue_sar: rev, cost_sar: cost, profit_sar: rev - cost, amount_received_sar: rev, amount_remaining_sar: 0, integrity_status: 'verified_paid', source_batch: 'probe-clients-attacks' });
+    const r1 = await fc().rpc('fn_commit_finance_import', { p_insert: [row('QA-AL-1', 'Alias Co', 3000, 1000), row('QA-AL-2', 'شركة الاسم البديل', 2000, 500), row('QA-EXCL-1', 'Tawthiq Test Services', 9999, 0)], p_update: [] });
+    const r2 = await fc().from('company_name_aliases').insert([{ business_id: 'b7', name: 'Alias Co' }, { business_id: 'b7', name: 'شركة الاسم البديل' }]).select('id');
+    FIN.rows = null; finLoad();
+    return { imp: r1.error ? String(r1.error.message) : r1.data, names: r2.error ? String(r2.error.message) : (r2.data || []).length };
+  });
+  for (let i = 0; i < 60 && !(await p.evaluate(() => window.FIN && FIN.rows && FIN.m && FIN.m[(FIN.rows.find(r => r.invoice_no === 'QA-EXCL-1') || {}).id])); i++) await p.waitForTimeout(250);
+  const exM = await p.evaluate(() => { const r = (FIN.rows || []).find(x => x.invoice_no === 'QA-EXCL-1'); return r && FIN.m[r.id] ? { excluded: FIN.m[r.id].excluded, rule: FIN.m[r.id].rule_kind } : null; });
+  if (viaView.names === 2 && exM && exM.excluded) ok('the alias rows and the excluded partner\'s row were imported; the view marks the partner excluded (' + exM.rule + ' rule) — stored, not counted'); else fail('seeding through the view: ' + JSON.stringify(viaView) + ' ' + JSON.stringify(exM));
   await p.evaluate(({ d10, d45, d100, due5ago, dueFuture }) => {
     const base = { record_type: 'b2b', wallet_portion_sar: 0, vat_sar: 0, deleted_at: null, year: 2026, quarter: 'Q2', month: 'May', invoice_date: '2026-05-10', service_type: 'Flights', products: 'Flights', amount_received_sar: 0, amount_remaining_sar: 0, collection_due_date: null };
     const paid = (id, group, rev, cost) => Object.assign({}, base, { id, invoice_no: id, client_group: group, customer_raw_name: group, integrity_status: 'verified_paid', total_incl_vat_sar: rev, revenue_sar: rev, cost_sar: cost, profit_sar: rev - cost, amount_received_sar: rev });
-    // alias group: two raw names → one canonical
-    DB.settings = DB.settings || {}; DB.settings.financeGroupMap = DB.settings.financeGroupMap || [];
-    DB.settings.financeGroupMap.push({ id: 'fg-qa', canonicalName: 'Grouped Holding', aliases: ['Alias Co', 'شركة الاسم البديل'], active: true, addedBy: 'probe', addedAt: new Date().toISOString() });
-    FIN.rows.push(paid('QA-AL-1', 'Alias Co', 3000, 1000), paid('QA-AL-2', 'شركة الاسم البديل', 2000, 500));
     // hostile
     FIN.rows.push(paid('QA-NULL-1', null, 400, 100));
     FIN.rows.push(paid('QA-HTML-1', '<img id="qa-xss" src=x onerror="window.__xss=1">', 350, 50));
-    FIN.rows.push(paid('QA-EXCL-1', 'Takamol for Business Services', 9999, 0));
     FIN.rows.push(Object.assign(paid('QA-CN-1', 'Credit Only Co', -600, 0), { integrity_status: 'credit_note', amount_received_sar: 0 }));
     // eight more small clients so there are > 10
     for (let i = 1; i <= 8; i++) FIN.rows.push(paid('QA-SM-' + i, 'Small Client ' + i, 100 + i, 10));
@@ -115,17 +130,17 @@ async function main() {
   const body = rows.filter(r => !r.isTotal), total = rows.find(r => r.isTotal);
   if (v.indexOf('NaN') < 0) ok('no "NaN" anywhere on the tab under hostile rows'); else fail('NaN rendered');
   if (!(await p.evaluate(() => !!document.querySelector('#qa-xss') || window.__xss === 1))) ok('HTML in a client name is escaped, not rendered'); else fail('HTML client name executed/rendered');
-  const g = body.find(r => r.name === 'Grouped Holding');
-  if (g && near(g.rev, 5000) && near(g.cost, 1500) && near(g.prof, 3500) && !body.some(r => /Alias Co|الاسم البديل/.test(r.name))) ok('M14 alias group: "Alias Co" + its Arabic spelling → ONE row "Grouped Holding" = 5,000 / 1,500 / 3,500; neither raw name appears'); else fail('alias fold wrong: ' + JSON.stringify(g) + ' rows ' + body.map(r => r.name).join(' | '));
+  const g = body.find(r => r.name === 'Test Company 7');
+  if (g && near(g.rev, 5000) && near(g.cost, 1500) && near(g.prof, 3500) && !body.some(r => /Alias Co|الاسم البديل/.test(r.name))) ok('typed customer names: "Alias Co" + its Arabic spelling typed into one company → ONE row "Test Company 7" = 5,000 / 1,500 / 3,500; neither raw name appears'); else fail('alias fold wrong: ' + JSON.stringify(g) + ' rows ' + body.map(r => r.name).join(' | '));
   if (body.length === 10 && rc.nClients > 10) ok(`table shows 10 rows while ${rc.nClients} clients exist`); else fail(`rows ${body.length}, clients ${rc.nClients}`);
   const shownSum = body.reduce((a, r) => a + r.rev, 0);
   if (total && near(total.rev, rc.grand.rev) && total.rev > shownSum + 1) ok(`Total row ${total.rev} = all ${rc.nClients} clients, larger than the 10 rows shown (${shownSum})`); else fail('Total row vs recount: ' + JSON.stringify(total) + ' grand ' + JSON.stringify(rc.grand));
   if (total && new RegExp('all\\s+' + rc.nClients + '\\s+clients', 'i').test(total.raw) && /top 10/i.test(total.raw)) ok('…and the Total row SAYS it covers all clients, top 10 shown — the mismatch is labelled'); else fail('Total row unlabelled when it exceeds the visible rows: ' + JSON.stringify(total && total.raw));
-  if (!body.some(r => r.name === 'Takamol for Business Services') && !/9,999/.test(t)) ok('excluded partner never appears on the Clients tab'); else fail('excluded partner leaked into Clients');
+  if (!body.some(r => r.name === 'Tawthiq Test Services') && !/9,999/.test(t)) ok('excluded partner never appears on the Clients tab'); else fail('excluded partner leaked into Clients');
   if (!body.some(r => r.name === 'Credit Only Co')) ok('a credit-note-only group is not in the verified table'); else fail('credit-note group in verified table');
   if (!/Lifetime billed|إجمالي الفوترة/i.test(t)) ok('no "Lifetime billed" wording anywhere (21 Aug ruling)'); else fail('"Lifetime billed" present');
   if (/Paid invoices only/.test(t)) ok('period bar says "Paid invoices only"'); else fail('"Paid invoices only" note missing');
-  const nullRow = await p.evaluate(() => { const ex = window.finExclusionCheck || (() => null); return (FIN.rows || []).some(r => r.invoice_no === 'QA-NULL-1'); });
+  const nullRow = await p.evaluate(() => { return (FIN.rows || []).some(r => r.invoice_no === 'QA-NULL-1'); });
   if (nullRow && near(rc.by['—'] ? rc.by['—'].rev : -1, 400)) ok('a null client_group resolves to the "—" client with its own money, not merged into another client'); else fail('null client_group handling: ' + JSON.stringify(rc.by['—']));
 
   /* ---------- 3. collections & ageing ---------- */

@@ -54,7 +54,7 @@ const SERVICES = ['Flights','Hotels','Visa','Packages','Support Services','Umrah
 const GROUPS = [];
 for (let i = 0; i < 108; i++) GROUPS.push('Scale Co ' + String(i).padStart(3, '0'));
 for (let i = 0; i < 12; i++) GROUPS.push('Scale Co ' + String(i).padStart(3, '0') + ' LLC');   // alias twin
-const EXCLUDED_GROUP = 'Takamol Scale QA';   // standing exclusion must hold at scale too
+const EXCLUDED_GROUP = 'Tawthiq Scale QA';   // standing exclusion must hold at scale too
 
 function invoices() {
   const out = [];
@@ -136,7 +136,7 @@ const srv = start(PORT, {
   /* 2026-09-07 (watch cycle 37): the standing exclusion used to be written into the page with
      p.evaluate AFTER sign-in — which races js/35's app_settings loader, because that loader
      merges the server blob key by key over DB.settings. On a busy machine the loader landed
-     second, replaced 'fx-scale' with the mock's own 'fx-qa-takamol', and this probe reported
+     second, replaced 'fx-scale' with the mock's own 'fx-qa-tawthiq', and this probe reported
      NINE red checks: the excluded 999,999 row counted into Revenue and Profit, an extra
      invoice in the header count, and the twelve alias twins unfolded because the group map
      went with it. Seeded through app_settings now, so the app's own loader delivers it and

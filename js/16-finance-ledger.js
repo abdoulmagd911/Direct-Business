@@ -274,19 +274,32 @@ function finLoad(cb){
   // so the ledger MUST page — one big limit() silently drops rows past 1000.
   finPageAll(function(){return c.from('finance_invoices').select('*').order('invoice_date',{ascending:false}).order('id',{ascending:true});}, finGot);
   function finGot(r){
-    if(r.error){console.warn('finance load',r.error);FIN.rows=[];FIN.loadErr=r.error.message;}
-    else {FIN.rows=r.data||[];FIN.loadErr=null;}
-    // Load the client↔finance links (one row per finance client_group → a real client, or
-    // is_client=false for individuals). This is the join key so a client's money reflects by
-    // ID, not by fuzzy name. Small table; build lookup maps once loaded.
-    finPageAll(function(){return c.from('finance_client_links').select('*').order('id',{ascending:true});}, function(lr){
+    /* E (2026-09-27, the money rules, DECISIONS D16): the rows and the one "what counts" view (money_rows) land
+       TOGETHER — FIN.rows is not set until both have answered, so no render ever sees rows without their rules. The
+       view says, per row, which company it belongs to (only through a typed client ID or discount code — never by
+       name) and which exclusion rule leaves it out. If the view cannot be read, Finance shows NO money and says why
+       (fail closed): a total that silently ignored the rules would be worse than none. */
+    var got=r;
+    finPageAll(function(){return c.from('money_rows').select('id,business_id,company_key,company_name,merge_state,profile_type,rule_id,rule_kind,rule_value,rule_reason,excluded,counts,open_age_days').order('id',{ascending:true});}, function(mr){
+    if(got.error){console.warn('finance load',got.error);FIN.rows=[];FIN.loadErr=got.error.message;}
+    else {FIN.rows=got.data||[];FIN.loadErr=null;}
+    FIN.m={}; FIN.mErr=null;
+    if(!mr||mr.error){ FIN.mErr=(mr&&mr.error&&mr.error.message)||'money_rows'; console.warn('money_rows load',FIN.mErr); }
+    else (mr.data||[]).forEach(function(x){ FIN.m[x.id]=x; });
+    // The company of an invoice group, derived from the rules (not stored, never guessed by name): a group whose
+    // rows all resolved to the same company through a typed client ID or code is that company's; any other group
+    // stays under its own name. finance_client_links is no longer read — nothing is linked by name any more.
+    (function(){
+      FIN.links=[]; FIN.linkByGroup={}; FIN.groupsByBiz={};
+      var byG={};
+      (FIN.rows||[]).forEach(function(row){ if(row.deleted_at)return; var m=FIN.m[row.id]; var g=row.client_group; if(g==null)return;
+        var b=m&&m.business_id?m.business_id:''; (byG[g]=byG[g]||{})[b]=1; });
+      Object.keys(byG).forEach(function(g){ var ks=Object.keys(byG[g]);
+        if(ks.length===1&&ks[0]){ var l={client_group:g,business_id:ks[0],is_client:true,confirmed_by:'rules'}; FIN.links.push(l); FIN.linkByGroup[g]=l;
+          (FIN.groupsByBiz[ks[0]]=FIN.groupsByBiz[ks[0]]||[]).push(g); } });
+    })();
+    (function(){
       FIN.loading=false;
-      FIN.links=(lr&&!lr.error&&lr.data)?lr.data:[];
-      FIN.linkByGroup={}; FIN.groupsByBiz={};
-      FIN.links.forEach(function(l){
-        FIN.linkByGroup[l.client_group]=l;
-        if(l.business_id){ (FIN.groupsByBiz[l.business_id]=FIN.groupsByBiz[l.business_id]||[]).push(l.client_group); }
-      });
       // the sector key: business_id -> profile_type, so finSectorOf can prefer the explicit field
       finPageAll(function(){return c.from('client_profiles').select('id,business_id,profile_type,status').order('id',{ascending:true});}, function(cp){
         FIN.profileTypeByBiz={};
@@ -307,6 +320,7 @@ function finLoad(cb){
           try{if(current==='finance')render();}catch(_){}
         });
       });
+    })();
     });
   }
 }
@@ -355,15 +369,20 @@ function finSanitizeMoney(r){
   return r;
 }
 function live(){
-  var rows=(FIN.rows||[]).filter(function(r){return !r.deleted_at;});
-  if(typeof window.finExclusionCheck==='function'){
-    rows=rows.filter(function(r){return !(finExclusionCheck(r.client_group)||finExclusionCheck(r.customer_raw_name));});
-  }
+  /* E (2026-09-27): the exclusion rules are applied by the database view, not by name here — a row the view marks
+     excluded (a rule caught it, or its own exclusion_reason) is out of every total, export and report that reads
+     through this chokepoint. The view unreadable → no rows (fail closed; js/117 says so on the page). */
+  if(FIN.rows&&FIN.mErr)return [];
+  var M=FIN.m||{};
+  var rows=(FIN.rows||[]).filter(function(r){ if(r.deleted_at)return false; var m=M[r.id]; return !(m&&m.excluded); });
   for(var i=0;i<rows.length;i++)finSanitizeMoney(rows[i]);
   return rows;
 }
 try{ window.finSanitizeMoney=finSanitizeMoney; }catch(_){}
 function verified(){return live().filter(function(r){return r.integrity_status==='verified_paid';});}
+/* the rows the rules leave out, each with the rule that caught it — for the greyed 'Excluded' list (js/117) */
+function finExcludedRows(){ var M=FIN.m||{}; return (FIN.rows||[]).filter(function(r){ var m=M[r.id]; return !r.deleted_at&&m&&m.excluded; }).map(function(r){ finSanitizeMoney(r); return {row:r,m:M[r.id]}; }); }
+try{ window.finExcludedRows=finExcludedRows; }catch(_){}
 
 /* --- Period structure (owner-directed 2026-08-11) ------------------------------------
    Finance is read monthly / quarterly / half-yearly / annually. ONE period state drives
@@ -733,7 +752,7 @@ function finCanon(clientGroup){
   // spelling) always overrides whatever the linked business's own name field says. Consulted
   // live on every resolution, not applied once — a future import carrying the same raw
   // client_group text groups correctly with zero extra work, exactly like finExclusionCheck().
-  var g=(typeof window.finGroupCheck==='function')?window.finGroupCheck(clientGroup):null;
+  var g=null;   // E (2026-09-27): the name-alias map is retired — a company is only what its typed client IDs and codes say
   if(g){
     res={key:'grp:'+g.id,name:g.canonicalName,linked:true,grouped:true};
   }else{
@@ -1438,13 +1457,12 @@ function txnLive(){
   var rows=(TXN.rows||[]);
   for(var i=0;i<rows.length;i++)txnSanitizeMoney(rows[i]);
   try{
-    if(typeof window.finExclusionCheck!=='function') return rows;
-    var list=(typeof window.finExclusionList==='function')?(window.finExclusionList()||[]):[];
-    var ids={},any=false;
-    list.forEach(function(e){ var c=e&&e.clientId; if(c!=null&&String(c).trim()!==''){ ids[String(c).trim()]=1; any=true; } });
+    /* E (2026-09-27): the typed exclusion rules (js/117), by client ID first, then by name for a row with no ID. The view does
+       not cover transactions, so until the page's copy of the rules is in, nothing is counted (fail closed). */
+    if(typeof window.moneyRuleFor!=='function'||(typeof window.moneyRulesKnown==='function'&&!window.moneyRulesKnown())) return [];
     return rows.filter(function(r){
       var prof=(TXN.profiles||{})[r.client_profile_id];
-      if(any&&prof&&prof.direct_client_id!=null&&ids[String(prof.direct_client_id).trim()]) return false;
+      if(prof&&prof.direct_client_id!=null&&window.moneyRuleFor({clientId:prof.direct_client_id})) return false;
       /* _finBizName, not bizName: `bizName` is a LOCAL of the transactions render function
          (var bizName=_finBizName, further down), so at this point in the file it resolves to
          nothing and `typeof bizName==='function'` is false. Written that way first, the name
@@ -1452,7 +1470,7 @@ function txnLive(){
          only because its fixture includes a transaction with no client profile, where the name
          is the only thing that can hold the row. */
       var nm=(typeof _finBizName==='function')?_finBizName(r.business_id):'';
-      if(nm&&window.finExclusionCheck(nm)) return false;
+      if(nm&&!(prof&&prof.direct_client_id)&&window.moneyRuleFor({name:nm})) return false;   // a name rule is only for rows with no client ID
       return true;
     });
   }catch(_){ return rows; }
@@ -1465,7 +1483,7 @@ function txnLive(){
    purpose and noted in docs/BACKLOG.md: the right home for it is finExclusionCheck itself, which
    is the only code that can tell "not excluded" from "cannot answer yet", and that file is the
    oversight lane's. */
-function txnExclusionsKnown(){ try{ return !!(DB.settings&&Object.keys(DB.settings).length); }catch(_){ return false; } }
+function txnExclusionsKnown(){ try{ return typeof window.moneyRulesKnown==='function'?!!window.moneyRulesKnown():false; }catch(_){ return false; } }
 try{ window.txnSanitizeMoney=txnSanitizeMoney; window.txnLive=txnLive; }catch(_){}
 function txnStage(r){
   // Round 8's two-field derivation, plus Round 11's Overdue mirror.
@@ -2346,8 +2364,8 @@ window.finParse=function(){
       // (js/62) — this is the actual fix for the reported bug. Excluding a company (e.g.
       // Takamol) must never rest on which product a given row happens to be for; the old
       // product-only regex let Takamol's non-verification invoices straight through.
-      var xhit16=(typeof window.finExclusionCheck==='function')?window.finExclusionCheck(o.client_group):null;
-      if(xhit16)probs.push('excluded client (#'+xhit16.clientId+(xhit16.reason?(': '+xhit16.reason):'')+') — not imported into this ledger');
+      /* E (2026-09-27): a client an exclusion rule catches is imported like any other — the view (money_rows) leaves it
+         out of every total, and switching the rule off brings it back without a re-import. */
       /* Same rule as the Direct Payments importer (js/41): wallet top-ups are never Finance
          revenue and must never enter this ledger under any label. The Excel importer already
          detects and skips them before they reach a row; this legacy CSV path had no equal

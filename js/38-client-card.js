@@ -49,8 +49,9 @@
         rows=_src.filter(function(r){ return !r.deleted_at && gset[r.client_group]; });
         matchedByLink=true;
       } else {
-        var target=norm(biz.name); if(!target)return;
-        rows=_src.filter(function(r){ if(r.deleted_at)return false; return norm(r.client_group)===target || norm(r.customer_raw_name)===target; });
+        /* E (2026-09-27): no match by name any more — a company's money is only what its typed client IDs and codes bring
+           (Finance → Rules). Nothing typed, nothing shown. */
+        rows=[];
       }
       if(!rows.length)return; // nothing linked or matched -> show nothing (never a wrong match)
       var cg=rows[0].client_group||biz.name,last='',_inv={};
