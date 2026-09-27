@@ -231,6 +231,8 @@
     paymentTerms:['payment terms','شروط الدفع'], creditLimit:['credit limit','حد الائتمان'], contractScope:['contract scope','نطاق العقد'], convertedDate:['became a client on','تاريخ التحول إلى عميل'],
     edited:['edit mark','علامة التعديل'], priority:['priority','الأولوية'], area:['area','المنطقة'], website:['website','الموقع الإلكتروني'], sourceSub:['source detail','تفصيل المصدر'], tier:['tier','الفئة'], segment:['segment','القطاع'] };
   function fieldWord(k){ var w=FIELD_WORDS[k]||FIELD_WORDS_MORE[k]; if(w) return isAr()?w[1]:w[0]; return String(k).replace(/_sar$/,'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/_/g,' ').toLowerCase(); }
+  /* shared with js/115 (the per-record change log), so a field and a person read the same words in both places */
+  window.__histFieldWord=fieldWord; window.__histActorWord=function(n){ return actorWord(n); };
   function diffKeys(b,a){
     var out=[]; try{ Object.keys(Object.assign({},b||{},a||{})).forEach(function(k){ if(k==='id'||k==='updated_at'||k==='created_at')return; if(JSON.stringify((b||{})[k])!==JSON.stringify((a||{})[k]))out.push(k); }); }catch(_){}
     return out;
@@ -288,6 +290,12 @@
     else if(undoable&&withinWindow) btn='<button class="btn sm" onclick="undoRecordChange('+row.id+',window.histRefresh)">'+fl('Undo','تراجع')+'</button>';
     else if(undoable) btn='<span data-undo-expired="1" style="font-size:11px;color:var(--muted)" title="'+fl('Undo works for 24 hours after a change; after that an admin restores it in the database.','يعمل التراجع لمدة 24 ساعة بعد التغيير؛ بعدها يستعيده مسؤول من قاعدة البيانات.')+'">'+fl('past the 24-hour undo window','انقضت مهلة التراجع (24 ساعة)')+'</span>';
     else btn='';
+    /* 2026-09-27 (owner decision 2): every line opens its record's whole change log — field, before, after (js/115) */
+    var rkey=row.record_key||row.record_id;
+    if(rkey&&row.table_name!=='access'&&typeof window.openChangeLog==='function'&&typeof window.__v115Js==='function'){
+      var J=window.__v115Js;
+      btn+=' <button class="btn sm ghost" data-v115-row="1" onclick="openChangeLog([{table:\''+J(row.table_name)+'\',key:\''+J(rkey)+'\'}],\''+J(recordName(row))+'\')">'+fl('Log','السجل')+'</button>';
+    }
     var changed=whatChanged(row), name=recordName(row), cols=columnsChanged(row);
     /* 2026-09-24 (Build lane sweep, phone width): this row was an inline four-column grid —
        150px + two fractions + the Undo column + three 12px gaps — on every screen. At 400px
@@ -302,6 +310,13 @@
       '<span style="text-align:end">'+btn+'</span></div>';
   }
   window.renderActivity=function(v){
+    /* 2026-09-27 (owner decision 2): the log is for admins and managers only — the database gives anyone else no rows,
+       so say that plainly instead of an empty page that reads "nothing has changed" */
+    try{ var rl=window.__userRole; if(window.__roleKnown===true&&rl&&rl!=='admin'&&rl!=='manager'){
+      v.innerHTML='<div class="card" data-v63-log-closed="1"><h3>'+fl('Activity & Audit','النشاط والتدقيق')+'</h3><div class="empty">'+
+        fl('The change log is shown to admins and managers. Changes made to your own tasks and companies are shown to you on Today.',
+           'سجل التغييرات يظهر للمسؤولين والمدراء. أما التغييرات على مهامك وشركاتك فتظهر لك في صفحة اليوم.')+'</div></div>';
+      return; } }catch(_){}
     if(HIST.rows==null){ histLoad(function(){ if(typeof render==='function')render(); }); }
     var rows=HIST.rows||[];
     /* 2026-09-21 (fire #187) — these two were rolling windows: "< 86400000 ms ago" under a tile
@@ -408,6 +423,9 @@
         var view=document.getElementById('view'); if(!view)return;
         var head=view.querySelector('.detail-head'); if(!head)return;
         if(view.querySelector('.v63-record-hist'))return; // already injected this render
+        /* the log is for admins and managers (owner, 27 Sep) — anyone else would get an empty card that reads
+           "No logged changes yet", which is false; so it is not drawn for them */
+        if(typeof window.changeLogVisible==='function'&&window.__roleKnown===true&&!window.changeLogVisible())return;
         var biz=(typeof getLead==='function')?getLead(openLead):null; if(!biz)return;
         var bizUuid=(window.__bizUuid?window.__bizUuid(biz.id):biz.id);
         // legacy_id / non-uuid ids (test data, unsynced rows) have no real database row to
@@ -417,7 +435,10 @@
         var card=document.createElement('div');
         card.className='card v63-record-hist';
         card.style.cssText='margin:0 0 14px';
-        card.innerHTML='<h3>'+fl('Recent changes','التغييرات الأخيرة')+'</h3><div class="act-feed">'+fl('Loading…','جارٍ التحميل…')+'</div>';
+        var J=window.__v115Js||function(s){ return String(s); };
+        card.innerHTML='<div style="display:flex;align-items:center;gap:8px"><h3 style="flex:1">'+fl('Recent changes','التغييرات الأخيرة')+'</h3>'+
+          (typeof window.openChangeLog==='function'?'<button class="btn sm ghost" data-v115-open="1" onclick="openChangeLog([{table:\'businesses\',key:\''+J(bizUuid)+'\'}],\''+J(biz.name||'')+'\')">'+fl('Full change log','سجل التغييرات الكامل')+'</button>':'')+
+          '</div><div class="act-feed">'+fl('Loading…','جارٍ التحميل…')+'</div>';
         head.insertAdjacentElement('afterend',card);
         card.setAttribute('data-rec',String(bizUuid));
         fillRecordHistory(card,bizUuid);

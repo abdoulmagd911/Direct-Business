@@ -1251,6 +1251,34 @@ export function start(port, seedOverrides){
     markServed(t,req.method);
     let rows=TABLES[t]||[];
     if(LAPSED&&req.method==='GET') return send(res,200,[]);   // RLS shows an anonymous caller nothing
+    /* 2026-09-27 (owner decision 2, scripts/sql/change-log-and-qa-account.sql): the log is read by admins and managers
+       only, and record_changes is the log field by field — derived here from record_history the way the live view
+       derives it (one row per changed field; a company's raw record opened one level as raw.<key>; updated_at left out). */
+    if((t==='record_history'||t==='record_changes')&&req.method==='GET'){
+      const meR=(TABLES.app_users||[]).find(x=>x.id===UID)||{};
+      if(meR.role&&meR.role!=='admin'&&meR.role!=='manager') return send(res,200,[],{'Content-Range':'0-0/0'});
+    }
+    if(t==='record_changes'&&req.method==='GET'){
+      const same=(x,y)=>JSON.stringify(x===undefined?null:x)===JSON.stringify(y===undefined?null:y);
+      const isObj=o=>o&&typeof o==='object'&&!Array.isArray(o);
+      const nv=v=>v===undefined?null:v;
+      let out=[];
+      (TABLES.record_history||[]).forEach(h=>{
+        const b=h.before_row||{}, a=h.after_row||{}, bothRaw=isObj(b.raw)&&isObj(a.raw), f=[];
+        new Set([...Object.keys(b),...Object.keys(a)]).forEach(k=>{ if(k==='updated_at'||(k==='raw'&&bothRaw)||same(b[k],a[k]))return; f.push([k,nv(b[k]),nv(a[k])]); });
+        if(bothRaw) new Set([...Object.keys(b.raw),...Object.keys(a.raw)]).forEach(k=>{ if(!same(b.raw[k],a.raw[k])) f.push(['raw.'+k,nv(b.raw[k]),nv(a.raw[k])]); });
+        f.forEach(x=>out.push({history_id:h.id,at:h.at,actor:h.actor,actor_name:h.actor_name,table_name:h.table_name,
+          record_key:h.record_key||(h.record_id!=null?String(h.record_id):null),action:h.action,undone_at:h.undone_at||null,field:x[0],before_value:x[1],after_value:x[2]}));
+      });
+      const qy=u.query||{}, one=k=>{ let v=qy[k]; return Array.isArray(v)?v[0]:v; };
+      ['table_name','record_key','field','action'].forEach(k=>{ const m=String(one(k)||'').match(/^eq\.(.*)$/); if(m) out=out.filter(r=>String(r[k])===m[1]); });
+      const orv=String(one('or')||'');
+      if(orv){ const pairs=[...orv.matchAll(/and\(table_name\.eq\.([^,]+),record_key\.eq\.([^)]+)\)/g)].map(m=>[m[1],m[2]]);
+        out=out.filter(r=>pairs.some(p=>r.table_name===p[0]&&String(r.record_key)===p[1])); }
+      out.sort((x,y)=>(+y.history_id)-(+x.history_id));
+      const lim=parseInt(one('limit')||'0',10); if(lim>0) out=out.slice(0,lim);
+      return send(res,200,out);
+    }
     /* Phase 3 release 1 (2026-09-25) — the task manager's tables, modelled on
        scripts/sql/phase3-r1-task-manager.sql closely enough for the screens to be driven honestly:
        reads follow the Tasks page level (none → nothing), writes follow it too (view → the RLS

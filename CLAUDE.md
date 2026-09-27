@@ -1,10 +1,11 @@
 # Direct Business — working notes for Claude
 
-## Current brief (keep it short; last updated 2026-09-26)
+## Current brief (keep it short; last updated 2026-09-27)
 
 **1 · Who's who.** Abdurahman (the owner, non-technical — plain words) signs in as
-**aboelmagd@directksa.com**, his admin account and the one on the team list (business@ is another login he
-keeps; a.hassan@directksa.net is his Team-Member test view). **Ahmed Aboelmagd** (ahmed.aboelmagd@) is a
+**aboelmagd@directksa.com**, his admin account and the one on the team list (**business@ is now the QA test
+account**, "QA Account", admin, on the team list — every import, bulk edit or seed run from outside the app is logged as
+it, D13; a.hassan@directksa.net is his Team-Member test view). **Ahmed Aboelmagd** (ahmed.aboelmagd@) is a
 **different colleague**, not the owner. The Claude account is shared, so "the user" in a session may be the
 owner or the oversight chat — never infer who from the account name. (DECISIONS D8.)
 
@@ -37,7 +38,12 @@ at merge from the merged commit (checksum-checked), after a rolled-back live che
   - release 4 the company card (client IDs, discount codes, company files; D10) (#46) — live; on hold until after
     month-end (owner, 26 Sep).
 - **Data reset on the owner's order of 26 Sep — done 2026-09-27** (backup stamp 20260927T070142Z in the private bucket
-  `golive-backups`; D9). People & teams (D11) — built, in review. Now: Tasks → Achievements ready for real use.
+  `golive-backups`; D9). People & teams (D11) and Tasks → Achievements (D12) (#47) — live.
+- Owner decisions of 27 Sep: the wipe of world30_finance_invoices / _client_links, master_db_companies and
+  company_achievements, and Strategy + Integrity retired — done (backup stamp 20260927T113348Z); the change log on
+  every record, managers edit people (logged), business@ as the QA account (D13) — built, in review.
+- Then, one PR each: A) the Finance freeze (not reproduced yet), B) speed, C) the login/reset loop, D) the Direct
+  Payments Excel files in the existing Finance import (waits for the oversight's column mapping), E) the simplify list.
 - Next: issuing numbered reports, the appraisal cycle — and the **final go-live reset**, run only on the owner's
   explicit go (`golive_reset`, scripts/sql/golive-reset.sql).
 

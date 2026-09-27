@@ -136,6 +136,25 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Owner's decisions of 27 Sep (relayed by the oversight chat) — the change log, managers edit people, the QA account, the wipe (2026-09-27, Claude Code)
+
+**Done on live:** the wipe — `world30_finance_invoices` (28 rows), `world30_finance_client_links` (10), `master_db_companies`
+(200) and `company_achievements` (34) emptied after a backup (stamp `20260927T113348Z`, private bucket `golive-backups`,
+every table read back and proved restorable); the teams Strategy and Integrity retired (not deleted — nobody deletes a team,
+D11; neither had people or work). Recorded in the log as the QA account.
+**Built, in review (D13):** the change log on every record (who, when, field, before, after), admins and managers only;
+managers may edit people including admins, logged; business@ as the QA account, and every change from a database session
+logged as it. **Still open from the same list, one PR each:** A) the Finance freeze — not reproduced as the QA account
+(every tab, both languages, no stall over 12 ms on the empty live database): needs the time and tab, a browser recording, or
+a test login for business@; B) speed (105 script files, repeated database calls, retired tables still loaded on Today,
+the page jumping while it loads); C) the login/reset loop — the custom mail sender needs the owner's directksa.com mail
+settings; D) the Direct Payments Excel files (View All Invoices non-simplified, corporate Transactions, corporate Expenses) in
+the EXISTING Finance import, with duplicate checks on the Payments invoice id/uuid and the ZATCA number — waits for the
+oversight's column mapping; E) the simplify list — not in this session's notes, asked for again; and decision (5), the
+money model (revenue / cost / profit per company + client ID + account manager, flagged prepaid / postpaid / tender /
+promo code). Note for D and (5): the importer stores revenue as the Invoice Total minus wallet, which includes VAT — against
+the owner's rule (service fee after discount, before VAT); every VAT figure is 0 today, so no stored number is wrong yet.
+
 ## Owner's order of 26 Sep — reset, People & teams, Tasks → Achievements (2026-09-27, Claude Code)
 
 **1 · Reset — done.** Full backup first, outside the database: all 124 tables (12,299 rows) as JSON in the private storage
