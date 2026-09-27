@@ -135,6 +135,11 @@
   }
 
   /* ---------- log / edit ---------- */
+  function teamField(mid,sel){
+    var o=(typeof window.teamOptionsHtml==='function')?window.teamOptionsHtml(mid,sel):'';
+    return o?'<div class="field"><label>'+fl('Team it counts for','الفريق الذي يُحتسب له')+'</label><select id="v111_team">'+o+'</select></div>':'';
+  }
+  window.v111TeamFor=function(mid){ try{ var el=document.getElementById('v111_team'); var me=findMe(); if(el&&typeof window.teamOptionsHtml==='function') el.innerHTML=window.teamOptionsHtml(mid||(me&&me.id),null); }catch(_){} };
   function field(id){ var el=document.getElementById(id); return el?el.value:''; }
   window.rptOpenAch=function(id){
     if(!S.loaded){ say(fl('Achievements are still loading from the database.','لا تزال الإنجازات قيد التحميل من قاعدة البيانات.')); return; }
@@ -156,7 +161,9 @@
     if(S.rosterErr&&!warn) warn='<option value="" disabled data-roster-warn="1">⚠ '+fl('The team list did not load — these names may be out of date','لم تُحمَّل قائمة الفريق — قد تكون هذه الأسماء قديمة')+'</option>';
     openModal(id?fl('Edit achievement','تعديل الإنجاز'):fl('Log achievement','تسجيل إنجاز'),
       '<div class="grid2"><div class="field"><label>'+fl('Date','التاريخ')+'</label><input type="date" id="v111_date" value="'+esc(r.entry_date||'')+'"></div>'+
-      '<div class="field"><label>'+fl('Credited to','يُنسب إلى')+'</label><select id="v111_member">'+warn+memberOpts+'</select></div></div>'+
+      '<div class="field"><label>'+fl('Credited to','يُنسب إلى')+'</label><select id="v111_member" onchange="v111TeamFor(this.value)">'+warn+memberOpts+'</select></div></div>'+
+      /* people & teams (2026-09-27): the team it counts for — the person's home team first, then the teams they assist */
+      teamField(r.member_id||(me&&me.id),r.department_id||null)+
       '<div class="field"><label>'+fl('What was achieved','ما الذي تحقق')+'</label><input type="text" id="v111_title" value="'+esc(r.title||'')+'"></div>'+
       '<div class="field"><label>'+fl('Details (optional)','التفاصيل (اختياري)')+'</label><textarea id="v111_desc" rows="2">'+esc(body)+'</textarea></div>'+
       '<div class="grid2"><div class="field"><label>'+fl('Kind of achievement','نوع الإنجاز')+'</label><select id="v111_cat">'+catOpts+'</select></div>'+
@@ -178,7 +185,10 @@
     if(!cat){ tell(fl('Choose what kind of achievement this is.','اختر نوع الإنجاز.')); return; }
     var per=monthOf(date); if(!per){ tell(fl('Choose a date inside a month the company reports on.','اختر تاريخًا ضمن شهر تُعد له التقارير.')); return; }
     var me=findMe(); var m=mid?S.members.filter(function(x){ return x.id===mid; })[0]:null;
-    var dep=(m&&m.department_id)||(me&&me.department_id);
+    /* editing: without a picker on screen (teams not loaded) the achievement KEEPS its own team — never quietly the
+       member's home team (found in the 2026-09-27 review) */
+    var oldDep=null; if(id){ try{ oldDep=(((R()?R().achievements:[]).filter(function(x){ return x.id===id; })[0]||{})._row||{}).department_id||null; }catch(_){} }
+    var dep=field('v111_team')||oldDep||(m&&m.department_id)||(me&&me.department_id);
     if(!dep){ tell(fl('Your login is not on the team list yet, so no achievement can be registered for you. Ask an admin to add you to the team list.','حسابك غير مدرج في قائمة الفريق بعد، فلا يمكن تسجيل إنجاز لك. اطلب من المسؤول إضافتك.')); return; }
     var kN=field('v111_kpi'), oN=field('v111_obj'), val=field('v111_value');
     var k=kN?S.kpiByN[kN]:null;

@@ -127,6 +127,9 @@ create or replace function public.can_write_company_id(p_business uuid) returns 
   select coalesce((select public.can_write_company(b.is_client, b.owner_id) from public.businesses b where b.id = p_business),
                   public.can_edit_page('leads'))
 $$;
+-- businesses write rule as live (audit 2026-09-27: the test copy let anyone signed in write any company; live does not)
+drop policy if exists biz_write on businesses;
+create policy biz_write on businesses for all using (can_write_company(is_client, owner_id)) with check (can_write_company(is_client, owner_id));
 alter table client_profiles add constraint client_profiles_profile_type_check check (profile_type = any (array['prepaid','postpaid','tender']));
 create unique index if not exists client_profiles_one_open_prepaid_postpaid on client_profiles (business_id, profile_type)
   where profile_type = any (array['prepaid','postpaid']) and closed_at is null;
@@ -136,3 +139,20 @@ create policy client_profiles_read on client_profiles for select using (app_role
 drop policy if exists client_profiles_write on client_profiles;
 create policy client_profiles_write on client_profiles for all using (can_write_company_id(business_id)) with check (can_write_company_id(business_id));
 grant select, insert, update, delete on client_profiles to authenticated;
+
+-- ---------- people & teams (2026-09-27): the login table's rules and the directory view, as live ----------
+-- A signed-in person reads only their own login row (an admin reads all); only an admin writes. The directory view
+-- runs with the caller's rights (security_invoker), so it adds no way around those rules.
+alter table app_users enable row level security;
+drop policy if exists app_users_admin_read on app_users;
+create policy app_users_admin_read on app_users for select using (app_role() = 'admin');
+drop policy if exists app_users_self_read on app_users;
+create policy app_users_self_read on app_users for select using (id = auth.uid() or app_role() = 'admin');
+drop policy if exists app_users_admin_update on app_users;
+create policy app_users_admin_update on app_users for update using (app_role() = 'admin') with check (app_role() = 'admin');
+drop policy if exists app_users_admin_write on app_users;
+create policy app_users_admin_write on app_users for all using (app_role() = 'admin') with check (app_role() = 'admin');
+grant select, insert, update, delete on app_users to authenticated;
+create or replace view public.team_directory with (security_invoker = on) as
+  select id, email, full_name, name_ar, nickname, role, active from public.app_users;
+grant select on public.team_directory to authenticated;

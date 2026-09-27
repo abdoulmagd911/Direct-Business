@@ -136,6 +136,95 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Owner's order of 26 Sep — reset, People & teams, Tasks → Achievements (2026-09-27, Claude Code)
+
+**1 · Reset — done.** Full backup first, outside the database: all 124 tables (12,299 rows) as JSON in the private storage
+bucket `golive-backups`, stamp **20260927T070142Z** (`scripts/ops/golive-backup.mjs` + the admin-only function
+`golive-backup`); every piece was read back from storage and proved to go back into its table row for row. Three earlier
+stamps in the same bucket are incomplete first attempts (a JavaScript round trip changed `123.4500` into `123.45`, and a
+9 MB table timed out) — use 20260927T070142Z. Dry run (`golive_reset(false)`): 1,511 rows would go, 10,788 stay, nothing
+kept would change. Then the wipe. Kept: 11 logins, levels, the team list (8), 7 departments, 30 KPIs and their 30 targets,
+lookups, settings, the 200 discount codes, airlines, suppliers, events, SOPs/SLAs, Direct's own content, the travel-agencies
+register, and every old backup table. The live site was walked after it: all 23 pages and 4 Reports tabs, both languages,
+no errors. **Not wiped, on purpose — say if they should go:** the old `*_snapshot_*`/`world30_*` backup tables (real
+older data, used only for recovery), and 19 empty placeholder files in the expenses/payment-proofs/proposals stores.
+**The final go-live reset still needs your go on the day.**
+
+**2 · People & teams — built, not yet live (merges on review; the database change is applied at merge).** One admin page
+(DECISIONS D11). Teams in the agreed order (Business → Business Development, Partnership → Partnerships, Business Solutions
+and Tenders added); add / rename / retire (open work moves) / bring back; people with first and last names in both
+languages, e-mail, role, page levels, home team, teams they assist, reports-to (everyone → Othman), job title; Invite
+creates the login and saves the rest. The Team list section on Settings now points to the page.
+**Found on the way, fixed in the same change:** every non-admin — the manager included — saw only THEMSELVES in every
+people list (Tasks, achievements, KPIs, "Assigned to"), because the roster view reads with the reader's rights and a
+non-admin may read only their own login row. The roster is readable by every signed-in person again (D11).
+**For you:** names were split into first/last automatically from the full names on file — a compound first name (e.g.
+"Abdul Aziz") comes out as first "Abdul", last "Aziz …"; correct any such person on the page. Nobody has a team yet
+(everyone's home is still "Commercial") — setting each person's home team is yours or Othman's, on the page.
+
+**3 · Tasks → Achievements — made ready for real use (DECISIONS D12).** Walked page by page as an employee. Fixed: a
+finished task now shows on Reports → Achievements at once (it needed a page reload); "count it" ticked on an already-done
+task now registers it, and unticking withdraws it; renaming a task renames its achievement while the month is open; a
+refused task save keeps the form and what was typed; a task's owner, kind of work and company can be changed after it is
+made (so someone leaving can have their open tasks handed on — the database insists on that first); the task list shows
+and filters by team; reopening a task whose achievement has proofs says so in words; drafts no longer inflate the report's
+totals; the Tasks page's refusals are in Arabic on an Arabic page. **Still missing on screen, next in line:** a project's
+own page (projects are listed but cannot be opened), subtasks, helpers and task files, archiving a task, and a per-team
+view of the monthly report.
+
+## Bulletproof audit of everything since Phase 1 (2026-09-27, Claude Code) — the Tasks button vanished for every team member
+
+**Asked:** test every step built so far for real — use every feature, assume nothing works until it has been used.
+**How:** four layers. (1) the full test run and the database harness; (2) the live database compared object by
+object with the harness's copy of it; (3) every write rule of the four Phase 3 releases exercised ON THE LIVE
+DATABASE as real people — a team member, the manager, a View colleague — inside blocks that undo themselves
+(`scripts/qa/live/phase3-rollback-tests.sql`, 48 checks); (4) the real site in a browser against the live database,
+every page and every Reports tab in English and Arabic, writes held back (`scripts/qa/probe-live-walk.mjs`), and
+every download (`LIVE=1 probe-real-downloads`).
+
+**Found and fixed:**
+- **The Tasks button disappeared from the menu for all seven team members and the manager**, a moment after it
+  appeared, and the manager also lost Activity & Audit and Archive. The access layer (js/52) names each menu button by
+  its first word — for these three buttons that was the icon (✓, ·), which is on nobody's list, so it hid them. Admins
+  skip that list, which is why nobody signed in as an admin could see it. The old Tasks test read the menu once, in
+  the second before the button was hidden. js/52 now takes a button's own page name when the layer gives one.
+- **In the same pass:** a menu group the access layer found empty was shut and never opened again, and it checked the
+  menu the instant a redraw rebuilt it — before Activity and Archive had been put back. Now it checks again 150 ms
+  after each redraw and reopens a group it had emptied. New test `probe-the-menu-keeps-its-pages` reads the menu every
+  second for ten seconds, for a team member, a team member without Tasks, the manager, and in Arabic; sabotaged, it goes
+  red on each fix separately.
+- **The database harness let anyone signed in write any company**; the live database only lets someone write a company
+  they may work on (`can_write_company`). The harness now carries the live rule; still 116/116.
+
+**Checked and found sound (not assumed):** every one of the 51 functions, the policies and the triggers of the four
+releases is identical on the live database and in the harness. On the live database, as real people, all undone
+afterwards: a task is numbered, client work without a company is refused, the status change is logged, a checklist step
+and an update are added, View sees but cannot change or create, a task cannot be deleted, the manager's change reaches
+the owner's Today and the owner can undo it (D7), finishing a task registers its achievement; an achievement is your own
+and not a colleague's, a proof goes in on an open month, finalizing stamps who, a View colleague cannot finalize, an
+issued month freezes its proofs (row and file) and its lines; the manager sets a KPI target and a team member cannot; the
+company card's rules — trimmed, unique, at most three open client IDs, a code on one company only, an unlink that stays,
+files only at their own path, an IBAN letter unreadable to a team member and readable to the manager, removal final even
+for an admin, files never overwritten. The fingerprint before and after (history, tasks, IDs, files, codes, achievements,
+proofs, targets, stored files, locks, number counters, everyone's access) was identical.
+
+**Why the live test was undone rather than kept:** the live Tasks table is still empty, so a real test task would have
+taken the number **TSK-2026-001** and the team's first real task would start at 002. Numbers are the company's; the
+test does not spend them.
+
+**Of the six tests that went red under a crowded full run and passed alone:** five were the machine being slow (page
+loads timing out); the sixth, the Tasks-menu check, was the real defect above.
+
+**For you to know, nothing broken:**
+- Your Team-Member test view (a.hassan@) is not on the team list, so from that login the Tasks page says "not on the
+  team list yet" and offers no New. That is correct (it is not a person on the team). If you want to try Tasks from
+  it, add it to the team list in Team & Access.
+- The **Brand** link at the bottom of the menu shows for admins only. The access layer hides anything that is not a
+  page in the access grid, and Brand opens a separate page, so it has always been admin-only. Say if the team
+  should have it.
+
+---
+
 ## Routine fire #265 (2026-09-25 ~08:15 UTC) — the Activity page called a password-reset link a "refused page visit", printed its raw key, and said "merged into" in English on the Arabic page
 
 Read on the live Activity & Audit page against the real log (394 events) and checked against the

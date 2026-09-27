@@ -40,6 +40,7 @@ ADMIN = F['admin'] = ins("insert into app_users(email,full_name,role) values ('a
 cur.execute("select set_config('request.uid', %s, false)", (str(ADMIN),))
 dep = lambda code: one(cur, "select id from departments where code=%s", (code,))
 F['dep_bus'], F['dep_par'], F['dep_qua'] = dep('business'), dep('partnership'), dep('quality')
+F['dep_str'], F['dep_com'] = dep('strategy'), dep('commercial')
 TASKS_PAGE = json.dumps({"tasks": "full", "reports": "own", "finance": "full", "clients": "full", "leads": "full"})   # employee defaults (D7)
 MGR_PAGE = json.dumps({"tasks": "full", "reports": "full", "finance": "full", "clients": "full", "leads": "full"})
 VIEW_PAGE = json.dumps({"tasks": "view", "reports": "view", "finance": "view", "clients": "view"})
@@ -200,10 +201,15 @@ def _(cur):
 def _(cur):
     new_task(cur, company='coA', owner='m2')
     return expect_fail(cur, "update team_members set active=false, left_on='2026-09-01' where id=%s", (F['m2'],), "reassign")
-@test("A09 Department is stamped from the owner (can't be typed wrong)")
+@test("A09 A task's team is the one CHOSEN (people & teams, 2026-09-27): kept if active; none given → the owner's home team; a retired team is refused")
 def _(cur):
     t = one(cur, "insert into tasks(title,business_id,owner_id,work_type,department_id) values ('T',%s,%s,'sales',%s) returning id", (F['coA'], F['m3'], F['dep_bus']))
-    return (one(cur, "select department_id=%s from tasks where id=%s", (F['dep_par'], t)), "stamped Partnership though Business was sent")
+    kept = one(cur, "select department_id=%s from tasks where id=%s", (F['dep_bus'], t))
+    t2 = one(cur, "insert into tasks(title,business_id,owner_id,work_type) values ('T',%s,%s,'sales') returning id", (F['coA'], F['m3']))
+    home = one(cur, "select department_id=%s from tasks where id=%s", (F['dep_par'], t2))
+    q(cur, "update departments set active=false where id=%s", (F['dep_str'],))
+    r, m = expect_fail(cur, "insert into tasks(title,business_id,owner_id,work_type,department_id) values ('T',%s,%s,'sales',%s)", (F['coA'], F['m3'], F['dep_str']), "active team")
+    return (kept and home and r, f"chosen kept={kept} · none → home team={home} · retired refused={r}")
 @test("A10 Link Company B's invoice to Company A's project → blocked")
 def _(cur):
     p = new_project(cur); return expect_fail(cur, "insert into work_finance_links(invoice_no,project_id) values ('INV-B26',%s)", (p,), "different company")
@@ -341,13 +347,13 @@ def _(cur):
 def _(cur):
     pA = new_project(cur); pB = new_project(cur, company='coB'); t = new_task(cur, project=pA)
     return expect_fail(cur, "update tasks set project_id=%s where id=%s", (pB, t), "must match")
-@test("A32 Reassign an open task → department follows; a finished task keeps its department")
+@test("A32 Reassign a task → its team stays: the team is the one the WORK is done for, not the person's (people & teams, 2026-09-27)")
 def _(cur):
     t = new_task(cur, company='coA'); q(cur, "update tasks set owner_id=%s where id=%s", (F['m3'], t))
-    d1 = one(cur, "select department_id=%s from tasks where id=%s", (F['dep_par'], t))
+    d1 = one(cur, "select department_id=%s from tasks where id=%s", (F['dep_bus'], t))
     t2 = new_task(cur, company='coA'); q(cur, "update tasks set status='done' where id=%s", (t2,)); q(cur, "update tasks set owner_id=%s where id=%s", (F['m3'], t2))
     d2 = one(cur, "select department_id=%s from tasks where id=%s", (F['dep_bus'], t2))
-    return (d1 and d2, f"open→Partnership={d1}, done stays Business={d2}")
+    return (d1 and d2, f"open task keeps Business={d1}, done task keeps Business={d2}")
 @test("A33 Reopen / re-date / delete a task counted in an issued month → blocked; title edit allowed")
 def _(cur):
     t = new_task(cur, company='coA'); q(cur, "update tasks set status='done', done_at='2026-03-20 10:00+03' where id=%s", (t,))
@@ -940,17 +946,20 @@ def _(cur):
     return (a and not moved_by_emp and not head_by_emp and nm and moved and head and hist == 3,
             f"employee: add refused ({m[:40]}), move took={moved_by_emp}, head took={head_by_emp} · manager: added, moved={moved}, head={head}, history rows as the manager={hist}")
 
-@test("T-02 A manager cannot rename or switch off a department (admin only); an admin can; only an admin removes a team-list row")
+@test("T-02 Teams (owner's order 2026-09-27): a manager renames a team; nobody switches off a team that still has open work or people, nor deletes one — not even an admin; an employee changes nothing; only an admin removes a team-list row")
 def _(cur):
     as_user(cur, 'u4')
-    a, m = expect_fail(cur, "update departments set name_en='Renamed' where id=%s", (F['dep_bus'],), "only an admin")
-    b, m2 = expect_fail(cur, "update departments set active=false where id=%s", (F['dep_qua'],), "only an admin")
+    q(cur, "update departments set name_en='Renamed' where id=%s", (F['dep_bus'],))
+    renamed = one(cur, "select name_en from departments where id=%s", (F['dep_bus'],))
+    b, m2 = expect_fail(cur, "update departments set active=false where id=%s", (F['dep_bus'],), "use retire")
     q(cur, "delete from team_members where id=%s", (F['m6'],)); still = one(cur, "select count(*) from team_members where id=%s", (F['m6'],))
     q(cur, "reset role"); as_user(cur, 'admin')
-    q(cur, "update departments set name_en='Renamed' where id=%s", (F['dep_bus'],)); q(cur, "reset role")
-    renamed = one(cur, "select name_en from departments where id=%s", (F['dep_bus'],))
-    return (a and b and still == 1 and renamed == 'Renamed', f"manager rename: {m[:50]} · switch off refused={b} · manager delete left row={still} · admin renamed → {renamed}")
-
+    c, m3 = blocked_or_zero(cur, "delete from departments where id=%s", (F['dep_str'],))   # no delete rule: RLS removes nothing
+    c = c and one(cur, "select count(*) from departments where id=%s", (F['dep_str'],)) == 1
+    q(cur, "reset role"); as_user(cur, 'u1')
+    e, _m = blocked_or_zero(cur, "update departments set name_en='Employee rename' where id=%s", (F['dep_par'],))
+    q(cur, "reset role")
+    return (renamed == 'Renamed' and b and still == 1 and c and e, f"manager renamed → {renamed} · retire with people refused={b} · manager delete left row={still} · admin delete refused={c} · employee rename blocked={e}")
 @test("T-03 Guards: the head must be active; a head cannot be made inactive until replaced; inactive stamps the leaving date and active clears it; an entry never moves to another login; an inactive login is not added")
 def _(cur):
     as_user(cur, 'u4')
@@ -1214,6 +1223,160 @@ def _(cur):
     reads = seen_file(cur, path)
     q(cur, "reset role")
     return (asset == 1 and not gen_asset[0] and a and reads == 0, f"View user reads Direct's asset={asset} · Generator user writes a Direct asset={not gen_asset[0]} · Generator rule cannot write a client file={a} · nor read the IBAN letter={reads == 0}")
+
+# ================= people & teams (owner's order 2026-09-27; scripts/sql/people-and-teams.sql) =================
+def teams_ids(cur):
+    return {c: one(cur, "select id from departments where code=%s", (c,)) for c in ('business','business_solutions','partnership','tenders','quality','complaints','strategy','integrity','commercial')}
+@test("PT-01 The teams as agreed on the home page, in its order: Business Development, Business Solutions, Partnerships, Tenders, Quality, Complaints, Strategy, Integrity — all under Commercial")
+def _(cur):
+    names = one(cur, "select string_agg(name_en, ', ' order by sort) from departments where parent_id is not null and active")
+    ar = one(cur, "select string_agg(name_ar, '،' order by sort) from departments where code in ('business','business_solutions','tenders')")
+    want = 'Business Development, Business Solutions, Partnerships, Tenders, Quality, Complaints, Strategy, Integrity'
+    return (names == want and ar == 'تطوير الأعمال،حلول الأعمال،المناقصات', f"{names} | {ar}")
+@test("PT-02 Adding a team: a manager may (code and order filled in, under Commercial); both names needed; a second active team with the same name is refused; an employee cannot")
+def _(cur):
+    as_user(cur, 'u4')
+    i = one(cur, "insert into departments(name_en,name_ar) values ('Key Accounts','الحسابات الرئيسية') returning id")
+    row = one(cur, "select code||'|'||(parent_id=(select id from departments where code='commercial'))::text||'|'||(sort>8)::text from departments where id=%s", (i,))
+    a, m1 = expect_fail(cur, "insert into departments(name_en,name_ar) values ('Solo',' ')", None, "english and in arabic")
+    b, m2 = expect_fail(cur, "insert into departments(name_en,name_ar) values ('key accounts','حسابات')", None, "already has that name")
+    q(cur, "reset role"); as_user(cur, 'u1')
+    c, m3 = expect_fail(cur, "insert into departments(name_en,name_ar) values ('Mine','لي')", None, "row-level security")
+    q(cur, "reset role")
+    return (row == 'key_accounts|true|true' and a and b and c, f"added: {row} · one name refused={a} · duplicate refused={b} · employee refused={c}")
+@test("PT-03 Retire a team: refused straight off while it has open work or people; Retire moves its OPEN tasks, open projects and its people to the chosen team, ends assists, keeps closed work where it was; the department itself cannot be retired; an employee cannot retire")
+def _(cur):
+    T = teams_ids(cur)
+    open_t = new_task(cur, company='coA', owner='m1'); done_t = new_task(cur, company='coA', owner='m1')
+    q(cur, "update tasks set status='done' where id=%s", (done_t,))
+    q(cur, "insert into team_member_assists(member_id,team_id) values (%s,%s)", (F['m3'], T['business']))
+    as_user(cur, 'u1'); e, m0 = expect_fail(cur, "select team_retire(%s,%s)", (T['business'], T['tenders']), "only an admin or a manager"); q(cur, "reset role")
+    as_user(cur, 'u4')
+    a, m1 = expect_fail(cur, "update departments set active=false where id=%s", (T['business'],), "use retire")
+    b, m2 = expect_fail(cur, "select team_retire(%s,%s)", (T['business'], T['business']), "another active team")
+    c, m3 = expect_fail(cur, "select team_retire(%s,%s)", (T['commercial'], T['tenders']), "not a team")
+    r = one(cur, "select team_retire(%s,%s)::text", (T['business'], T['tenders']))
+    q(cur, "reset role")
+    moved = one(cur, "select department_id=%s from tasks where id=%s", (T['tenders'], open_t))
+    kept = one(cur, "select department_id=%s from tasks where id=%s", (T['business'], done_t))
+    people = one(cur, "select count(*) from team_members where department_id=%s", (T['business'],))
+    assists = one(cur, "select count(*) from team_member_assists where team_id=%s", (T['business'],))
+    off = one(cur, "select not active from departments where id=%s", (T['business'],))
+    return (e and a and b and c and moved and kept and people == 0 and assists == 0 and off,
+            f"employee refused={e} · straight off refused={a} · same team refused={b} · department refused={c} · {r} · open moved={moved} · done kept={kept} · people left={people} · assists left={assists} · retired={off}")
+@test("PT-04 Saving a person goes through person_save only: an employee is refused (and cannot write app_users or the team list directly — a user only signs in and out); a manager renames a colleague (first names needed in both languages, full name composed, recorded in history); a manager cannot change an admin; an admin can")
+def _(cur):
+    as_user(cur, 'u1')
+    a, m1 = expect_fail(cur, "select person_save(%s, '{\"first_name_en\":\"X\"}'::jsonb)", (F['u2'],), "only an admin or a manager")
+    own, _m = blocked_or_zero(cur, "update app_users set full_name='Me Myself', role='admin' where id=%s", (F['u1'],))
+    tl, _m2 = blocked_or_zero(cur, "update team_members set department_id=%s where id=%s", (F['dep_par'], F['m1']))
+    q(cur, "reset role"); as_user(cur, 'u4')
+    b, m2 = expect_fail(cur, "select person_save(%s, '{\"first_name_en\":\"Kareem\",\"first_name_ar\":\" \"}'::jsonb)", (F['u2'],), "in english and in arabic")
+    q(cur, "select person_save(%s, '{\"first_name_en\":\"Kareem\",\"last_name_en\":\"Saleh\",\"first_name_ar\":\"كريم\",\"last_name_ar\":\"صالح\"}'::jsonb)", (F['u2'],))
+    q(cur, "reset role"); names = one(cur, "select full_name||' / '||name_ar from app_users where id=%s", (F['u2'],)); as_user(cur, 'u4')
+    hist = one(cur, "select count(*) from record_history where table_name='app_users' and record_id=%s and actor=%s", (F['u2'], F['u4']))
+    c, m3 = expect_fail(cur, "select person_save(%s, '{\"first_name_en\":\"Boss\"}'::jsonb)", (F['admin'],), "only an admin can change an admin")
+    q(cur, "reset role"); as_user(cur, 'admin')
+    q(cur, "select person_save(%s, '{\"first_name_en\":\"Chief\",\"first_name_ar\":\"الرئيس\"}'::jsonb)", (F['admin'],))
+    q(cur, "reset role"); adm = one(cur, "select full_name from app_users where id=%s", (F['admin'],))
+    return (a and own and tl and b and names == 'Kareem Saleh / كريم صالح' and hist == 1 and c and adm == 'Chief',
+            f"employee refused={a} · own login row untouched={own} · team list untouched={tl} · Arabic first name needed={b} · {names} · history={hist} · manager on admin refused={c} · admin renamed admin → {adm}")
+@test("PT-05 Home team, assisted teams, reports-to: assists must be active teams and never the home team; moving the home team onto an assisted team ends that assist; reports-to is an active person, never oneself; a retired team is not a home team")
+def _(cur):
+    T = teams_ids(cur)
+    as_user(cur, 'u4')
+    q(cur, "select person_save(%s, jsonb_build_object('home_team', %s::text, 'assists', jsonb_build_array(%s::text, %s::text), 'reports_to', %s::text))", (F['u1'], T['business'], T['tenders'], T['quality'], str(F['m4'])))
+    n1 = one(cur, "select count(*) from team_member_assists where member_id=%s", (F['m1'],))
+    rep = one(cur, "select reports_to=%s from team_members where id=%s", (F['m4'], F['m1']))
+    a, m1 = expect_fail(cur, "select person_save(%s, jsonb_build_object('assists', jsonb_build_array(%s::text)))", (F['u1'], T['business']), "already their home team")
+    q(cur, "select person_save(%s, jsonb_build_object('home_team', %s::text))", (F['u1'], T['tenders']))
+    n2 = one(cur, "select count(*) from team_member_assists where member_id=%s and team_id=%s", (F['m1'], T['tenders']))
+    b, m2 = expect_fail(cur, "select person_save(%s, jsonb_build_object('reports_to', %s::text))", (F['u1'], str(F['m1'])), "reports to themselves")
+    q(cur, "reset role"); q(cur, "update departments set active=false where id=%s", (T['integrity'],)); as_user(cur, 'u4')
+    c, m3 = expect_fail(cur, "select person_save(%s, jsonb_build_object('home_team', %s::text))", (F['u1'], T['integrity']), "active team")
+    d, m4 = expect_fail(cur, "select person_save(%s, jsonb_build_object('assists', jsonb_build_array(%s::text)))", (F['u1'], T['integrity']), "assist an active team")
+    q(cur, "reset role")
+    return (n1 == 2 and rep and a and n2 == 0 and b and c and d, f"assists set={n1} · reports-to={rep} · home as assist refused={a} · assist ended on becoming home={n2 == 0} · self reports-to refused={b} · retired home refused={c} · retired assist refused={d}")
+@test("PT-06 A task's / an achievement's team: an employee may choose a team they assist or any active team; a retired team is refused for both; none given → home team")
+def _(cur):
+    T = teams_ids(cur)
+    q(cur, "insert into team_member_assists(member_id,team_id) values (%s,%s)", (F['m1'], T['tenders']))
+    as_user(cur, 'u1')
+    t = one(cur, "insert into tasks(title,business_id,owner_id,work_type,department_id) values ('T',%s,%s,'sales',%s) returning id", (F['coA'], F['m1'], T['tenders']))
+    ok = one(cur, "select department_id=%s from tasks where id=%s", (T['tenders'], t))
+    q(cur, "reset role"); q(cur, "update departments set active=false where id=%s", (T['complaints'],)); as_user(cur, 'u1')
+    a, m1 = expect_fail(cur, "update tasks set department_id=%s where id=%s", (T['complaints'], t), "active team")
+    b, m2 = expect_fail(cur, "insert into report_entries(period_id,department_id,member_id,section,category_id,title) values (%s,%s,%s,'achievement',%s,'A')", (F['mar26'], T['complaints'], F['m1'], F['cat']), "active team")
+    e = one(cur, "insert into report_entries(period_id,department_id,member_id,section,category_id,title) values (%s,%s,%s,'achievement',%s,'A') returning id", (F['mar26'], T['tenders'], F['m1'], F['cat']))
+    q(cur, "reset role")
+    return (ok and a and b and e is not None, f"assisted team kept={ok} · task to retired team refused={a} · achievement to retired team refused={b} · achievement for assisted team saved={e is not None}")
+@test("PT-07 Nobody deletes a team (no delete rule for anyone; the trigger refuses even the database owner); history records team changes, assists and people moves")
+def _(cur):
+    T = teams_ids(cur)
+    a, m1 = expect_fail(cur, "delete from departments where id=%s", (T['strategy'],), "never deleted")
+    as_user(cur, 'u4')
+    q(cur, "update departments set name_ar='الاستراتيجية والتخطيط' where id=%s", (T['strategy'],))
+    q(cur, "select person_save(%s, jsonb_build_object('assists', jsonb_build_array(%s::text)))", (F['u3'], T['strategy']))
+    q(cur, "reset role")
+    h = one(cur, "select string_agg(distinct table_name||':'||action, ',' order by table_name||':'||action) from record_history where actor=%s and table_name in ('departments','team_member_assists')", (F['u4'],))
+    return (a and h == 'departments:edit,team_member_assists:create', f"owner delete refused={a} · history: {h}")
+
+@test("PT-08 The team roster: every active signed-in person reads the whole team (names in both languages) through team_directory; nobody writes through it; a signed-out caller reads nothing")
+def _(cur):
+    as_user(cur, 'u1'); n = one(cur, "select count(*) from team_directory"); names = one(cur, "select count(*) from team_directory where full_name is not null")
+    w, _m = blocked_or_zero(cur, "update team_directory set full_name='x' where id=%s", (F['u2'],))
+    q(cur, "reset role"); total = one(cur, "select count(*) from app_users")
+    cur.execute("savepoint an")
+    try:
+        q(cur, "select set_config('request.uid', '', true)"); q(cur, "set local role anon"); anon = one(cur, "select count(*) from team_directory")
+    except Exception as e: anon = 'refused'
+    cur.execute("rollback to savepoint an"); q(cur, "reset role")
+    return (n == total and names == total and w and anon in (0, 'refused'), f"employee sees {n} of {total} · names {names} · write through view blocked={w} · signed-out → {anon}")
+
+@test("PT-09 Every guard (trigger function) of the task manager and of people & teams runs with the definer's rights — a guard must see rows the person cannot (r1's rule; people-and-teams.sql once replaced tasks_guard without it)")
+def _(cur):
+    bad = one(cur, """select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+                      where n.nspname='public' and p.prorettype='trigger'::regtype and not p.prosecdef
+                        and p.proname in ('tasks_guard','projects_guard','departments_guard','team_member_assists_guard','team_members_home_guard',
+                                          'report_entries_team_guard','report_entries_guard','members_guard','team_list_guard','tasks_register_achievement')""")
+    return (bad is None, f"guards without definer rights: {bad}")
+
+# ================= tasks → achievements, ready for real use (scripts/sql/tasks-to-achievements.sql) =================
+def done_task(cur, include=False, **kw):
+    t = new_task(cur, company='coA', owner='m1', **kw)
+    q(cur, "update tasks set status='done', include_in_report=%s, report_category_id=%s where id=%s", (include, F['cat'] if include else None, t))
+    return t
+def entry_of(cur, t):
+    return one(cur, "select id from report_entries where source='task' and source_id=%s", (t,))
+@test("TA-01 'Count it' ticked on a task that is ALREADY done registers its achievement then; unticked, the achievement is withdrawn")
+def _(cur):
+    t = done_task(cur, include=False); none_yet = entry_of(cur, t) is None
+    q(cur, "update tasks set include_in_report=true, report_category_id=%s where id=%s", (F['cat'], t)); made = entry_of(cur, t) is not None
+    q(cur, "update tasks set include_in_report=false where id=%s", (t,)); gone = entry_of(cur, t) is None
+    return (none_yet and made and gone, f"before tick: none={none_yet} · ticked after done → registered={made} · unticked → withdrawn={gone}")
+@test("TA-02 A later change of the task's title / kind / team reaches its achievement while the month is open; once the month is issued the task can still be edited and the issued line stays as it was")
+def _(cur):
+    t = done_task(cur, include=True)
+    q(cur, "update tasks set title='Renamed deal' where id=%s", (t,)); follows = one(cur, "select title from report_entries where source_id=%s", (t,)) == 'Renamed deal'
+    per = one(cur, "select period_id from report_entries where source_id=%s", (t,))
+    q(cur, "update periods set locked_at=now() where id=%s", (per,))
+    q(cur, "update tasks set title='After issue' where id=%s", (t,))
+    task_ok = one(cur, "select title from tasks where id=%s", (t,)) == 'After issue'
+    kept = one(cur, "select title from report_entries where source_id=%s", (t,)) == 'Renamed deal'
+    return (follows and task_ok and kept, f"follows while open={follows} · task edited after issue={task_ok} · issued line unchanged={kept}")
+@test("TA-03 Reopening (or unticking) a task whose achievement has proof files is refused in plain words — it stays counted; no raw foreign-key error")
+def _(cur):
+    t = done_task(cur, include=True); e = entry_of(cur, t)
+    q(cur, "insert into evidence_files(entry_id,storage_path,file_name,uploaded_by) values (%s,%s,'p.pdf',%s)", (e, f'proofs/{e}/1-p.pdf', F['m1']))
+    a, m1 = expect_fail(cur, "update tasks set status='in_progress' where id=%s", (t,), "proof files attached")
+    b, m2 = expect_fail(cur, "update tasks set include_in_report=false where id=%s", (t,), "proof files attached")
+    still = entry_of(cur, t) is not None
+    return (a and b and still, f"reopen refused={a} ({m1[:60]}) · untick refused={b} · still counted={still}")
+@test("TA-04 A task finished on a date no reporting month covers is refused in words — it no longer finishes with its achievement silently missing")
+def _(cur):
+    t = new_task(cur, company='coA', owner='m1')
+    a, m = expect_fail(cur, "update tasks set status='done', done_at='2031-01-15', include_in_report=true, report_category_id=%s where id=%s", (F['cat'], t), "no reporting month covers")
+    return (a, m[:90])
 
 w = max(len(n) for n, _, _ in results)
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)

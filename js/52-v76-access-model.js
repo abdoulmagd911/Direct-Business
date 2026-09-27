@@ -100,7 +100,12 @@
       }catch(_){ return false; }
     };
   }catch(_){}
+  /* pages that belong to a ROLE, not to the per-page grid (2026-09-27): People & teams is for admins and managers —
+     js/114, and the database's own rules (person_save, team_retire, the row rules) say the same */
+  var ROLE_PAGES={ people:['admin','manager'] };
+  try{ window.__rolePages=ROLE_PAGES; }catch(_){}
   function mayOpen(view){
+    if(ROLE_PAGES[view]) return known() && ROLE_PAGES[view].indexOf(role())>=0;
     var a=allowedPages(); if(!a) return true;
     return a.indexOf(view)>=0;
   }
@@ -161,6 +166,12 @@
         try{
           if(b.className && /v25-more-tog|v19-more-toggle/.test(b.className)) return;  /* group headers */
           if(b.id==='v44FinBtn'){ b.setAttribute('data-view','finance'); return; }
+          /* 2026-09-27 (audit): a layer that names its own page is taken at its word. Reading the first
+             <span> read the ICON of js/108's Tasks button ("✓") and js/90's Activity/Archive ("·"), so
+             those three were named "?✓"/"?·", missing from every whitelist, and hidden for everyone
+             but admins — whichever of this and the layer's own redraw ran last won, and this did. */
+          var own=b.getAttribute('data-v108-nav')||b.getAttribute('data-v90')||b.getAttribute('data-v114-nav');
+          if(own){ b.setAttribute('data-view', own); return; }
           var sp=b.querySelector('span');
           var t=((sp?sp.textContent:b.textContent)||'').trim();
           b.setAttribute('data-view', m[t] || ('?'+t));
@@ -178,7 +189,7 @@
       nav.querySelectorAll('button[data-view]').forEach(function(b){
         var id=b.getAttribute('data-view');
         /* anything we could not name is not on the list either — the list is a whitelist */
-        b.style.display = (a.indexOf(id)>=0) ? '' : 'none';
+        b.style.display = mayOpen(id) ? '' : 'none';   /* mayOpen: the grid, or the role for a role page (People & teams) */
       });
       /* group headers with nothing left under them */
       nav.querySelectorAll('.v25-more-tog').forEach(function(tg){
@@ -187,7 +198,12 @@
           var live=[].slice.call(w.querySelectorAll('button')).filter(function(b){return b.style.display!=='none';});
           var show=live.length>0;
           tg.style.display=show?'':'none';
-          if(!show) w.style.display='none';
+          /* 2026-09-27 (audit): a group emptied here was never given back. A layer that adds its entry
+             after this pass (js/90's Activity and Archive, into Reference) found the header back but the
+             group still shut — for a person who keeps Reference open, the header said ▾ over nothing.
+             Remember that it was open, and open it again once it has something in it. */
+          if(!show){ if(w.style.display!=='none') w.setAttribute('data-v76-emptied','1'); w.style.display='none'; }
+          else if(w.getAttribute('data-v76-emptied')==='1'){ w.removeAttribute('data-v76-emptied'); w.style.display='flex'; }
         }catch(_){}
       });
     }catch(_){}
@@ -337,7 +353,7 @@
   function pass(){ tagNav(); hideNav(); restorePending(); gate(); teamEntry(); trimRolePickers(); watchTeamScreen(); }
   try{
     var _r=window.render;
-    window.render=function(){ var o=_r.apply(this,arguments); try{ pass(); }catch(_){} return o; };
+    window.render=function(){ var o=_r.apply(this,arguments); try{ pass(); }catch(_){} setTimeout(function(){ try{ pass(); }catch(_){} },150); return o; };   /* again once js/108 (60 ms) and js/90 (70 ms) have put their buttons back — 2026-09-27 audit */
   }catch(_){}
   [600,1800,4000,8000].forEach(function(d){ setTimeout(pass,d); });
   setInterval(pass, 3000);

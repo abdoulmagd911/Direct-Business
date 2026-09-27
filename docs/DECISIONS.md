@@ -3125,6 +3125,51 @@ in `record_history`, and nothing on it copies Direct Payments (D6):
   company-docs") no longer reaches `clients/…`; Direct's own assets there keep it.
 *Date: 2026-09-26. Status: ACTIVE (approved under P6 as restated 2026-09-26).*
 
+**D11 — People & teams (the owner's order of 26 Sep, part 2; built 2026-09-27).** The words are the Drive home page's
+(§3): the DEPARTMENT is Commercial; a TEAM is a unit inside it — Business Development, Business Solutions, Partnerships,
+Tenders, Quality, Complaints, Strategy, Integrity, in that order. In the tables a team is a `departments` row under the
+Commercial row; a person's HOME team is `team_members.department_id`; the teams they ASSIST are `team_member_assists`;
+"reports to" is `team_members.reports_to` (everyone → the head of Commercial for now). Rules, all in the database
+(`scripts/sql/people-and-teams.sql`, attacked by `scripts/qa/phase3` PT-01..PT-08, A09, A32, T-02):
+- **Teams are a setting**: an admin or a manager adds, renames or retires one; **nobody deletes a team** (no delete rule,
+  and a trigger refuses even the database owner). A team with open work or people cannot be switched off directly —
+  `team_retire(team, move_to)` moves its open tasks and projects and its people to the chosen team, ends assisting it,
+  and leaves closed work where it was; a retired team can be brought back. The department itself is never retired.
+- **People are changed only through `person_save`** (names in English and Arabic — first names required in both —
+  home team, assisted teams, reports-to, job titles), by an admin or a manager; a manager never changes an admin. Role
+  and page levels keep their own guarded paths (admin-users `set_role`, `set_page_levels`). **A user can only sign in and
+  out**: no login row, team-list row, team or assist is theirs to write.
+- **A task's / an achievement's team is CHOSEN** (the team the work is done for) and must be active; none given → the
+  owner's home team. Reassigning a task keeps its team. (Before this, the team was always copied from the owner.) The
+  pickers offer the person's home team first, then the teams they assist, then the rest (`teamOptionsHtml`, js/114).
+- **The roster (`team_directory`) is readable by every active signed-in person** — found in the audit: switched to
+  security_invoker, the view had shown non-admins only THEMSELVES in every people list. It is now a security_invoker view
+  over the definer function `team_roster` (SQL), which answers only an active signed-in person and cannot be written through.
+- The People & teams page (js/114) is a ROLE page (admins and managers), not a grid page: `mayOpenPage` in js/52 is the
+  one answer for it: js/52 publishes its role pages (`__rolePages`) and js/64 answers a role page by `mayOpenPage`, every
+  grid page by the grid list as before (js/64 had bounced a manager off People & teams). js/49 guards grid pages only and
+  is unchanged — a first version routed it through `mayOpenPage` too, which bypassed the grid list the Finance probes set,
+  and six of them went red on the full run; reverted the same day.
+*Date: 2026-09-27. Status: ACTIVE (built on the owner's order; merges on the oversight's review, P6).*
+
+**D12 — A task becomes its achievement the way the day goes (the owner's order of 26 Sep, part 3; 2026-09-27).**
+The database turns a finished task that "counts in the monthly report" into its achievement
+(`tasks_register_achievement`, now in `scripts/sql/tasks-to-achievements.sql`). Walked as an employee on 2026-09-27, it now
+also: registers the achievement when "count it" is ticked on a task that is **already** done (it used to count only the
+moment a task became done); withdraws it when "count it" is unticked; carries a later change of the task's title, kind,
+KPI, company or team to its achievement **while the month is open** (an issued month's line stays as issued, and the task
+can still be edited); refuses, in plain words, to reopen or untick a task whose achievement carries **proof files** (it
+used to fail with a raw database error) — it stays counted, and a correction is recorded instead; and refuses to finish a
+task on a date **no reporting month covers** (it used to finish with its achievement silently missing). On screen: the
+Tasks page refreshes the Reports page's achievements and KPI figures as soon as a task is saved (they used to load once
+per page load); a refused task save keeps the form open with what was typed; a task's owner, kind of work and company can
+be changed after it is created; the list shows each task's team and filters by it; the database's refusals are said in
+Arabic on an Arabic page. **What counts:** a DRAFT (a task closed by a helper, waiting for its owner or their manager, D7)
+is listed with its Draft tag but left out of the Overview totals, the objectives, the KPI figures and the generated report
+— `rptCounted()` in core-10; the database's own KPI figures already counted final lines only. Guarded by
+`probe-tasks-to-achievements` (sabotage-tested) and the harness's TA-01..TA-04.
+*Date: 2026-09-27. Status: ACTIVE (merges on the oversight's review, P6).*
+
 **D8 — Abdulrahman's logins, in his own word (2026-09-25): `aboelmagd@directksa.com` is his admin account
 and the one that belongs on the team list.** `business@directksa.com` is a login he keeps (untouched), not
 the person on the team list; `a.hassan@directksa.net` is his Team-Member test view. One human, one team-list
@@ -3149,6 +3194,13 @@ for anyone who wants it, harmless), and release 3 does not move browser KPI numb
 rules, guards, history, provenance, M1 money doctrine, rule 7) must hold the day real data arrives, and each
 release is still tested as if the data were real. The reset itself is a release of its own (docs/BACKLOG.md
 "Go-live reset"), built and tested like the others and run only on the owner's explicit go, on the day.
+**Owner's order of 26 Sep, carried out 2026-09-27:** "Reset now (approved)" — a full backup first (every public table,
+12,299 rows, in the private storage bucket `golive-backups`, stamp `20260927T070142Z`, each file read back and proved
+restorable row for row; a second copy was kept on the working machine), a dry run with counts per table (1,511 rows
+would go, 10,788 stay, no kept table changed), then the wipe (`scripts/sql/golive-reset.sql`, `golive_reset(true)`):
+business records, the finance mirror, tasks/achievements/reports, and the logs; logins, levels, the team list, KPI
+definitions and targets, lookups, settings, reference registers and every old backup table kept. **The FINAL go-live
+reset still needs the owner's go on the day** — the same function runs it.
 *Date: 2026-09-26. Status: ACTIVE.*
 
 **M84 — what someone typed into a funnel form can be found by typing it into a search box.**
@@ -3559,6 +3611,19 @@ when Row-Level Security silently refused the write.** Always chain `.select()` a
 `finDel`/`finRestoreInv`/`finDel`/`finRestore`/`expSave`/`expDel` in a single session before
 being made a standing rule.
 *Date: 2026-08-22. Status: ACTIVE.*
+
+**A layer that adds a menu button names that button's page on the button itself** (`data-v108-nav`, `data-v90`,
+or the like) — and the access pass in `js/52-v76-access-model.js` reads that name before it reads any label. The pass
+used to name a button by its first `<span>`, which for an icon-first button is the icon: js/108's Tasks (✓) and js/90's
+Activity and Archive (·) were named after their icons, were on nobody's list, and were hidden from every non-admin, a
+moment after they appeared. Test the menu over TIME (several seconds, through a redraw), never at one moment: the old
+test read it inside the second before it was hidden. Guarded by `probe-the-menu-keeps-its-pages`.
+*Date: 2026-09-27 (bulletproof audit). Status: ACTIVE.*
+
+**In a probe, Playwright's `waitForFunction(fn, arg, options)` takes the timeout THIRD** — `waitForFunction(fn, { timeout })`
+passes the object as `arg`, and the wait silently keeps the 30-second default. Four new probes of 2026-09-27 did this; one
+went red under a loaded full run for exactly that reason. Write `waitForFunction(fn, null, { timeout })`.
+*Date: 2026-09-27. Status: ACTIVE.*
 
 **`is_client` is two flags, not one.** The `businesses.is_client` column and
 `raw->>'isClient'` must both change together — the app reads both, so changing one without

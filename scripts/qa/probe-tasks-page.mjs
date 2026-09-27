@@ -105,6 +105,9 @@ const openTask = async (p, title) => {
   await p.fill('#v108_title', 'Probe client task, no company'); await p.selectOption('#v108_type', 'sales'); await p.click('#mSave');
   await p.waitForTimeout(1500);
   const after = await p.evaluate(() => window.__v108State.tasks.length);
+  /* 2026-09-27: a refusal is said INSIDE the form, which stays open with what was typed (it used to close and toast) */
+  const formMsg = await p.evaluate(() => (document.getElementById('v108_formmsg') || {}).textContent || '');
+  toasts.push(formMsg); try { await p.evaluate(() => closeModal()); } catch (_) { }
   (after === before && toasts.some((m) => /Client work needs a company or a project/.test(m)))
     ? ok('full: client work with no company or project is refused in the database\'s words; nothing added') : fail('full: guard — tasks ' + before + '→' + after + ', said ' + JSON.stringify(toasts));
   /* 4 — a colleague's task, edited (D7) */
@@ -116,7 +119,8 @@ const openTask = async (p, title) => {
   await openTask(p, 'QA seed task');
   await p.check('#v108e_rep'); await p.selectOption('#v108e_repcat', ''); toasts.length = 0; await p.click('#mSave'); await p.waitForTimeout(700);
   const stillOpen = await p.evaluate(() => document.getElementById('ov').classList.contains('show'));
-  const refusedKind = stillOpen && toasts.concat([await p.evaluate(() => (document.querySelector('#modal .note, #modal [data-v108-note]') || {}).textContent || '')]).some((m) => /kind of achievement/i.test(m || ''));
+  const refusedKind = stillOpen && toasts.concat([await p.evaluate(() => (document.querySelector('#modal [data-v108-formmsg], #modal .note, #modal [data-v108-note]') || {}).textContent || ''),
+    await p.evaluate(() => (document.getElementById('v108_formmsg') || {}).textContent || '')]).some((m) => /kind of achievement/i.test(m || ''));
   await p.selectOption('#v108e_repcat', 'cat-deals'); await p.click('#mSave'); await p.waitForTimeout(1200);
   const rep = await p.evaluate(() => { const t = window.__v108State.tasks.find((k) => k.title === 'QA seed task'); return t ? { inc: t.include_in_report, cat: t.report_category_id } : null; });
   (refusedKind && rep && rep.inc === true && rep.cat === 'cat-deals') ? ok('full: "count it in the monthly report" is refused without a kind of achievement and saved with one')

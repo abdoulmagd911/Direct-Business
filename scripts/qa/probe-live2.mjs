@@ -61,7 +61,11 @@ await page.locator('input[type="email"]').first().fill('test@directksa.com');
 await page.locator('input[type="password"]').first().fill('Dq7nTest-2026-Riyadh');
 await page.locator('button[type="submit"], button:has-text("Sign in")').first().click();
 await page.waitForTimeout(9000);
-STEP('REAL sign-in works', await page.evaluate(() => !document.querySelector('#view input[type=email]') && typeof DB !== 'undefined' && DB.businesses.length >= 20).catch(() => false), await page.evaluate(() => (typeof DB !== 'undefined' ? DB.businesses.length : 'no DB') + ' businesses').catch(() => '?'));
+/* 2026-09-27: after the owner-ordered data reset (D9) the live database holds no companies and no invoices; a check that
+   needs them is NOT RUN and says why — an empty database is not a broken app, and it is not a pass either */
+const EMPTY = await page.evaluate(() => typeof DB !== 'undefined' && (DB.businesses || []).length === 0).catch(() => false);
+const DSTEP = (n, ok, d = '') => EMPTY ? LOG.push(`NOT RUN · ${n} — the live database holds no companies or invoices yet (data reset 2026-09-27, D9)`) : STEP(n, ok, d);
+STEP('REAL sign-in works', await page.evaluate((empty) => !document.querySelector('#view input[type=email]') && typeof DB !== 'undefined' && (empty || DB.businesses.length >= 20), EMPTY).catch(() => false), await page.evaluate(() => (typeof DB !== 'undefined' ? DB.businesses.length : 'no DB') + ' businesses').catch(() => '?'));
 
 await page.evaluate(() => { current = 'finance'; render(); });
 await page.waitForTimeout(9000);
@@ -77,7 +81,7 @@ const finState = await page.evaluate(() => {
   const live = (typeof window.finLive === 'function') ? finLive() : raw.filter(r => !r.deleted_at);
   return { raw: raw.length, live: live.length, deleted: raw.filter(r => r.deleted_at).length };
 });
-STEP('REAL finance rows load, and the live view is the raw list minus what was deleted',
+DSTEP('REAL finance rows load, and the live view is the raw list minus what was deleted',
   finState.raw > 0 && finState.live === finState.raw - finState.deleted, JSON.stringify(finState));
 /* Through the chokepoint, not the raw list. Reading FIN.rows directly is what made this fail:
    the raw list legitimately holds soft-deleted and excluded rows — on the live database exactly
@@ -92,7 +96,7 @@ STEP('REAL ledger carries no verification or wallet rows in the live view (owner
 const promoN = await page.evaluate(() => (FIN.promos || []).length);
 STEP('REAL promo-code registry loads', promoN > 0, 'promos=' + promoN + ' (a growing registry — the count is reported, not asserted)');
 const ovTxt = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/\s+/g, ' '));
-STEP('Income by service line is FLAT (no group expander counts)', /Income by service line/.test(ovTxt) && !/\(\d+\)\s*[\u25B8\u25BE]/.test(ovTxt));
+DSTEP('Income by service line is FLAT (no group expander counts)', /Income by service line/.test(ovTxt) && !/\(\d+\)\s*[\u25B8\u25BE]/.test(ovTxt));
 /* INVERTED 2026-09-06: this required a promo-codes card ON the Finance overview. The owner ruled
    on 2026-08-22 that the promo-code registry stays OFF the Finance page — so the probe was
    demanding the opposite of the rule, exactly like the money-on-the-client-card check below. */
@@ -124,13 +128,13 @@ await page.waitForTimeout(3500);
 const wDiag = await page.evaluate(() => ({ open: (typeof openLead !== 'undefined' && openLead) || null, finCard: !!document.querySelector('.v29-fin'), linkStrip: !!document.querySelector('.v34-link'), /* the record's NAME is deliberately not carried into the report — rule 7: real company
      names stay out of anything that might be pasted into a doc or a commit */
   head: !!((document.querySelector('.detail-head') || {}).innerText || '').trim(), finLoaded: !!(window.FIN && FIN.rows), links: ((window.FIN || {}).links || []).length }));
-STEP('REAL: the biggest client by billed total can be opened from its finance link', !!wDiag.open && !!wDiag.head, JSON.stringify(wDiag));
+DSTEP('REAL: the biggest client by billed total can be opened from its finance link', !!wDiag.open && !!wDiag.head, JSON.stringify(wDiag));
 const wTxt = await page.evaluate(() => (document.getElementById('view').textContent || '').replace(/\s+/g, ' '));
 /* INVERTED 2026-09-06: money lives on the Finance page ONLY (owner, 2026-08-21) — the client
    card reports the RELATIONSHIP. This check demanded the amount, which probe-money-placement in
    the same battery forbids. The figure is still checked, in the data Finance reads. */
 STEP('REAL client card does NOT print the billed total — money lives on Finance only', !wTxt.includes(bigM), 'looked for ' + bigM);
-STEP('REAL client card does show the finance relationship and a way through to it',
+DSTEP('REAL client card does show the finance relationship and a way through to it',
   /Open in Finance ledger|افتح في سجل المالية/.test(wTxt));
 await page.screenshot({ path: 'shots/live-bigclient-real.png' });
 // invoice card: transactions grouped, NO VAT line anywhere
@@ -150,7 +154,7 @@ const modChk = await page.evaluate(() => {
    about the owner's data, not about the app. Measured first, and the check only runs when there
    is one; otherwise it says so rather than failing for a row that does not exist. */
 const hasTxnWay = await page.evaluate(() => (FIN.rows || []).some(r => r.revenue_way === 'transaction' && !r.deleted_at));
-STEP('invoice card never shows VAT (owner rule)', !!modChk && modChk.noVat, JSON.stringify(modChk));
+DSTEP('invoice card never shows VAT (owner rule)', !!modChk && modChk.noVat, JSON.stringify(modChk));
 if (hasTxnWay) STEP('invoice card opens a pending transaction with its way already selected', !!modChk && modChk.waySel === 'transaction', JSON.stringify(modChk));
 else STEP('no live invoice is stored as revenue_way "transaction" right now, so the way-selected check is not evidence either way', true, 'measurement, not an assertion');
 /* Five ways, not four, since b2c_manual — and the rule that matters is the one watch cycle 27
@@ -162,7 +166,7 @@ const waysOK = await page.evaluate(() => {
   const stored = [...new Set((FIN.rows || []).filter(r => !r.deleted_at && r.revenue_way).map(r => r.revenue_way))];
   return { sel: true, offered, stored, missing: stored.filter(w => offered.indexOf(w) < 0) };
 });
-STEP('invoice card offers every revenue way the live data actually stores', waysOK.sel && waysOK.missing.length === 0, JSON.stringify(waysOK));
+DSTEP('invoice card offers every revenue way the live data actually stores', waysOK.sel && waysOK.missing.length === 0, JSON.stringify(waysOK));
 await page.screenshot({ path: 'shots/live-invoice-card.png' });
 await page.evaluate(() => { const m = document.getElementById('finModal'); if (m) m.remove(); });
 // finance-team screen: AR aging on REAL data (17 unpaid invoices live)
