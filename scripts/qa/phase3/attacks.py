@@ -1333,6 +1333,14 @@ def _(cur):
     cur.execute("rollback to savepoint an"); q(cur, "reset role")
     return (n == total and names == total and w and anon in (0, 'refused'), f"employee sees {n} of {total} · names {names} · write through view blocked={w} · signed-out → {anon}")
 
+@test("PT-09 Every guard (trigger function) of the task manager and of people & teams runs with the definer's rights — a guard must see rows the person cannot (r1's rule; people-and-teams.sql once replaced tasks_guard without it)")
+def _(cur):
+    bad = one(cur, """select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+                      where n.nspname='public' and p.prorettype='trigger'::regtype and not p.prosecdef
+                        and p.proname in ('tasks_guard','projects_guard','departments_guard','team_member_assists_guard','team_members_home_guard',
+                                          'report_entries_team_guard','report_entries_guard','members_guard','team_list_guard','tasks_register_achievement')""")
+    return (bad is None, f"guards without definer rights: {bad}")
+
 w = max(len(n) for n, _, _ in results)
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]

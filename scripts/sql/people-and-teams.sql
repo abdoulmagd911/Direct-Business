@@ -59,7 +59,7 @@ drop policy if exists departments_delete on public.departments;          -- no d
 drop trigger if exists departments_no_delete on public.departments;
 create trigger departments_no_delete before delete on public.departments for each row execute function public.block_hard_delete();
 
-create or replace function public.departments_guard() returns trigger language plpgsql
+create or replace function public.departments_guard() returns trigger language plpgsql security definer
 set search_path to 'public' as $$
 declare top uuid; n int;
 begin
@@ -154,7 +154,7 @@ drop policy if exists tma_delete on public.team_member_assists;
 create policy tma_delete on public.team_member_assists for delete to authenticated using (public.app_role() in ('admin','manager'));
 grant select, insert, delete on public.team_member_assists to authenticated;
 
-create or replace function public.team_member_assists_guard() returns trigger language plpgsql set search_path to 'public' as $$
+create or replace function public.team_member_assists_guard() returns trigger language plpgsql security definer set search_path to 'public' as $$
 begin
   if not exists (select 1 from departments where id = new.team_id and parent_id is not null and active) then
     raise exception 'A person can only assist an active team'; end if;
@@ -173,7 +173,7 @@ create trigger trg_record_history after insert or update or delete on public.tea
   for each row execute function public.record_history_write();
 
 -- a person's home team must be an active team or the department itself
-create or replace function public.team_members_home_guard() returns trigger language plpgsql set search_path to 'public' as $$
+create or replace function public.team_members_home_guard() returns trigger language plpgsql security definer set search_path to 'public' as $$
 begin
   if (tg_op = 'INSERT' or new.department_id is distinct from old.department_id)
      and not exists (select 1 from departments where id = new.department_id and active) then
@@ -267,7 +267,7 @@ grant execute on function public.person_save(uuid, jsonb) to authenticated;
 -- ---------------------------------------------------------------------------------------------------------------
 -- 5. a task's and an achievement's team is CHOSEN: it must be an active team; none given → the owner's home team
 -- ---------------------------------------------------------------------------------------------------------------
-create or replace function public.tasks_guard() returns trigger language plpgsql set search_path to 'public' as $$
+create or replace function public.tasks_guard() returns trigger language plpgsql security definer set search_path to 'public' as $$
 declare p record; parent record; owner_active boolean; v_done boolean;
 begin
   -- who does it: given → project owner → company's account manager → whoever creates it
@@ -330,7 +330,7 @@ begin
   return new;
 end $$;
 
-create or replace function public.report_entries_team_guard() returns trigger language plpgsql set search_path to 'public' as $$
+create or replace function public.report_entries_team_guard() returns trigger language plpgsql security definer set search_path to 'public' as $$
 begin
   if (tg_op = 'INSERT' or new.department_id is distinct from old.department_id)
      and not exists (select 1 from departments where id = new.department_id and active) then

@@ -11,7 +11,7 @@ drop function if exists public.team_retire(uuid, uuid);
 drop table if exists public.team_member_assists;
 drop function if exists public.team_member_assists_guard();
 
-create or replace function public.tasks_guard() returns trigger language plpgsql set search_path to 'public' as $$
+create or replace function public.tasks_guard() returns trigger language plpgsql security definer set search_path to 'public' as $$
 declare p record; parent record; owner_active boolean; v_done boolean;
 begin
   if tg_op='INSERT' and new.owner_id is null then
@@ -69,7 +69,7 @@ begin
   return new;
 end $$;
 
-create or replace function public.departments_guard() returns trigger language plpgsql set search_path to 'public' as $$
+create or replace function public.departments_guard() returns trigger language plpgsql security definer set search_path to 'public' as $$
 begin
   if auth.uid() is not null and public.app_role() is distinct from 'admin'
      and (new.code, new.name_en, new.name_ar, new.parent_id, new.active, new.sort)
