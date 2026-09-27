@@ -197,8 +197,9 @@ The full old notes (history, the data world of August, funnels, brand, known iss
   `<script src="/js/...">` line each, before `</body>`. New feature = NEW file (next number), self-contained, wrapped in
   try/catch; never grow a layer for an unrelated feature. Script paths are ABSOLUTE (`/js/...`) — relative ones break
   on deep addresses like `/leads`. Anything that touches `index.html` itself is a connection step: one session, alone.
-- **A new page needs three registrations** — `window.PAGES` (js/15), a sidebar entry, and the access matrix (js/56) —
-  or it is unreachable or ungrantable (this is how the finance ledger sat live but unreachable for two days).
+- **A new page needs three registrations** — the page list in `js/56-access-matrix.js` (exported as `window.PAGES`),
+  the same page in the database's `access_pages()`, and a sidebar button injected after every render (M31) — or it is
+  unreachable or ungrantable (this is how the finance ledger sat live but unreachable for two days).
 - **One Supabase client.** Never call `window.supabase.createClient` in a new way; the v44a block (js/01) memoises it,
   so every call returns the shared client (five clients once fought over refresh tokens and signed people out).
 - **Saving is partial.** `save_state` calls become `save_state_patch` with only the changed top-level sections; a new

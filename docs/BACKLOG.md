@@ -1,6 +1,6 @@
 # Backlog — open work only
 
-One line per item, most urgent first within each section. Rebuilt 2026-09-27 from the whole 1.5 MB log, each item checked against everything that came after it. The old log is word for word in `docs/history/backlog/` (its README maps dates and fire numbers to pieces); every item found in it, open or closed, with the evidence, is in `docs/history/backlog-triage/`.
+One line per item, most urgent first within each section. Rebuilt 2026-09-27 from the whole 1.5 MB log, each item checked against everything that came after it. The old log is word for word in `docs/history/backlog/` (its README maps dates and fire numbers to pieces); every item found in it, open or closed, with the evidence, is in `docs/history/backlog-triage/` (see `docs/history/README.md`).
 When something here is done, delete its line in the same commit; put the story in the commit message, not here.
 
 ## The owner's open decisions
