@@ -53,11 +53,12 @@
     Promise.all([
       c.from('money_exclusion_rules').select('*').is('removed_at',null).order('created_at',{ascending:true}),
       c.from('company_discount_codes').select('id,business_id,promo_code_id,note,linked_at').is('removed_at',null),
-      c.from('promo_codes').select('id,code,kind,value_pct').order('code',{ascending:true})
+      c.from('promo_codes').select('id,code,kind,value_pct').order('code',{ascending:true}),
+      c.from('company_name_aliases').select('id,business_id,name,created_by_name,created_at').is('removed_at',null)
     ]).then(function(r){
       MR.loading=false;
       MR.err=(r[0]&&r[0].error)?String(r[0].error.message||r[0].error):null;
-      MR.rules=(r[0]&&r[0].data)||[]; MR.links=(r[1]&&r[1].data)||[]; MR.codes=(r[2]&&r[2].data)||[];
+      MR.rules=(r[0]&&r[0].data)||[]; MR.links=(r[1]&&r[1].data)||[]; MR.codes=(r[2]&&r[2].data)||[]; MR.aliases=(r[3]&&r[3].data)||[];
       if(!window.CP||window.CP.rows==null){ if(typeof window.cpLoad==='function') window.cpLoad(function(){ redraw(); }); }
       if(cb)cb(); redraw();
     },function(err){ MR.loading=false; MR.err=String((err&&err.message)||err); MR.rules=[]; redraw(); });
@@ -106,9 +107,9 @@
       if(m.rule_id){ var s=st.rule[m.rule_id]=st.rule[m.rule_id]||{n:0,sar:0}; s.n++; s.sar+=v; }
       if(m.excluded)return;
       if(m.business_id){ var b=st.biz[m.business_id]=st.biz[m.business_id]||{n:0,sar:0}; if(m.counts){ b.n++; b.sar+=v; } }
-      else if(m.merge_state==='not_merged'){ var l=st.loose[m.company_key]=st.loose[m.company_key]||{n:0,sar:0,name:m.company_name,id:r.payments_client_id}; if(m.counts){ l.n++; l.sar+=v; } }
+      else if(m.merge_state==='not_merged'||m.merge_state==='no_client_id'){ var l=st.loose[m.company_key]=st.loose[m.company_key]||{n:0,sar:0,name:m.company_name,id:r.payments_client_id||null,kind:m.merge_state==='not_merged'?'client_id':'name'}; l.n++; if(m.counts) l.sar+=v; }
       else if(m.merge_state==='unassigned_code'){ if(m.counts){ st.unassigned.n++; st.unassigned.sar+=v; } if(r.discount_code) st.unassigned.codes[r.discount_code]=1; }
-      else if(m.counts){ st.noId.n++; st.noId.sar+=v; } });
+      });
     return st;
   }
   /* the rules that catch a company: its typed client IDs, its typed codes, or its VAT/CR number */
@@ -134,11 +135,12 @@
   function ask(msg,yes){ if(typeof window.askInPage==='function') window.askInPage(msg,yes); else if(confirm(msg)) yes(); }
   function val(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; }
 
-  window.v117AddRule=function(){ if(!canEdit())return;
+  window.v117AddRule=function(kindPre,valEnc){ if(!canEdit())return;
+    var vPre=valEnc?decodeURIComponent(valEnc):'';
     openModal(fl('Add an exclusion rule','إضافة قاعدة استبعاد'),
       '<div class="ch-sub">'+fl('Rows that match are left out of every total, KPI, report and export at once — nothing is deleted, and switching the rule off brings them back.','الصفوف المطابقة تُستبعد فورًا من كل إجمالي ومؤشر وتقرير وتصدير — لا يُحذف شيء، وإيقاف القاعدة يعيدها.')+'</div>'+
-      '<div class="field"><label>'+fl('Type','النوع')+'</label><select id="v117_kind">'+KINDS.map(function(k){ return '<option value="'+k[0]+'">'+e(fl(k[1],k[2]))+'</option>'; }).join('')+'</select></div>'+
-      '<div class="field"><label>'+fl('Value','القيمة')+'</label><input id="v117_value" placeholder="'+e(fl('e.g. 7','مثال: 7'))+'"></div>'+
+      '<div class="field"><label>'+fl('Type','النوع')+'</label><select id="v117_kind">'+KINDS.map(function(k){ return '<option value="'+k[0]+'"'+(k[0]===kindPre?' selected':'')+'>'+e(fl(k[1],k[2]))+'</option>'; }).join('')+'</select></div>'+
+      '<div class="field"><label>'+fl('Value','القيمة')+'</label><input id="v117_value" value="'+e(vPre)+'" placeholder=""'+e(fl('e.g. 7','مثال: 7'))+'"></div>'+
       '<div class="field"><label>'+fl('Reason (required)','السبب (مطلوب)')+'</label><input id="v117_reason" placeholder="'+e(fl('e.g. test account in Payments','مثال: حساب تجريبي في المدفوعات'))+'"></div>',
       function(){ var kind=val('v117_kind'), v=val('v117_value'), why=val('v117_reason');
         if(!normMR(v)){ alert(fl('Type the value.','اكتب القيمة.')); return false; }
@@ -155,9 +157,52 @@
     ask(fl('Remove the rule "','إزالة القاعدة «')+r0.value+fl('"? Its rows count again at once. A removal is final — add it again if needed.','»؟ تعود صفوفها للحساب فورًا. الإزالة نهائية — أضفها من جديد عند الحاجة.'),function(){
       client().from('money_exclusion_rules').update({removed_at:new Date().toISOString()}).eq('id',id).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); }); };
 
-  function companyOptions(sel){ var list=((typeof DB!=='undefined'&&DB.businesses)||[]).filter(function(b){ return !b.archived&&!b.archivedAt; }).slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
+  function companyOptions(sel,sug){ var list=((typeof DB!=='undefined'&&DB.businesses)||[]).filter(function(b){ return !b.archived&&!b.archivedAt; }).slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
     return '<option value="">'+fl('— choose the company —','— اختر الشركة —')+'</option>'+list.map(function(b){ var u=(window.__bizUuid?window.__bizUuid(b.id):b.id);
-      return '<option value="'+e(u)+'"'+(u===sel?' selected':'')+'>'+e(b.name||'(unnamed)')+(b.isClient?'':' · '+fl('lead','عميل محتمل'))+'</option>'; }).join(''); }
+      return '<option value="'+e(u)+'"'+(u===sel?' selected':'')+'>'+e(b.name||'(unnamed)')+(b.isClient?'':' · '+fl('lead','عميل محتمل'))+(sug&&sug.biz===u?' · '+fl('suggested','مقترح'):'')+'</option>'; }).join(''); }
+  /* a suggestion, never applied: the same name once spelling is folded (NFKC, case, Arabic letter forms, punctuation and
+     spaces) — against a company's English or Arabic name, its legal name, or a name already typed into it */
+  function suggest(name){ var n=normMR(name); if(!n)return null; var hit=null;
+    ((typeof DB!=='undefined'&&DB.businesses)||[]).some(function(b){ if(b.archived||b.archivedAt)return false;
+      var u=(window.__bizUuid?window.__bizUuid(b.id):b.id);
+      if([b.name,b.nameAr,b.legalName].some(function(x){ return x&&normMR(x)===n; })){ hit={biz:u,name:b.name,why:fl('same name','الاسم نفسه')}; return true; } return false; });
+    if(!hit)(MR.aliases||[]).some(function(a){ if(normMR(a.name)===n){ var b=bizIndex()[a.business_id]; hit={biz:a.business_id,name:(b&&b.name)||'',why:fl('a name already typed into it','اسم مكتوب لها من قبل')}; return true; } return false; });
+    return hit; }
+  window.v117Suggest=suggest;
+  function aliasOwner(name){ var n=normMR(name); return (MR.aliases||[]).find(function(a){ return normMR(a.name)===n; })||null; }
+  /* one decision: this client ID / this customer name belongs to the chosen company (typed, logged, remembered) */
+  function assign(kind,key,biz,type,done){
+    var c=client(), b=bizIndex()[biz];
+    if(kind==='client_id'){ var o=owner(key); if(o){ var ob=bizIndex()[o.business_id]; alert(fl('Client ID #','معرّف العميل #')+o.direct_client_id+fl(' already belongs to ',' مسجّل بالفعل لـ ')+((ob&&ob.name)||fl('another company','شركة أخرى'))+fl('. An ID belongs to one company only — remove it there first.','. المعرّف لشركة واحدة فقط — أزله من هناك أولًا.')); return; }
+      c.from('client_profiles').insert({business_id:biz,direct_client_id:key,profile_type:type||'tender',status:'active',source:'manual'}).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } if(done)done(); refreshAll(); });
+    } else { var a=aliasOwner(key); if(a){ var ab=bizIndex()[a.business_id]; alert(fl('The name "','الاسم «')+key+fl('" already belongs to ','» مسجّل بالفعل لـ ')+((ab&&ab.name)||fl('another company','شركة أخرى'))+fl('. A name belongs to one company only — remove it there first.','. الاسم لشركة واحدة فقط — أزله من هناك أولًا.')); return; }
+      c.from('company_name_aliases').insert({business_id:biz,name:key}).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } if(done)done(); refreshAll(); }); }
+  }
+  window.v117Decide=function(ix,kind,keyEnc){ if(!canEdit())return;
+    var key=decodeURIComponent(keyEnc), biz=val('v117_d'+ix), t=val('v117_t'+ix)||'tender';
+    if(!biz){ alert(fl('Choose the company it belongs to — or New company, or Exclude.','اختر الشركة التي يتبعها — أو شركة جديدة، أو استبعاد.')); return; }
+    assign(kind,key,biz,t); };
+  /* a new company: the app's own company form opens with the Payments name filled in; when the person saves it, this
+     decision is applied to it — nothing is created unless the person saves the form */
+  var PENDING=null;
+  window.v117NewCompanyFor=function(ix,kind,keyEnc,nameEnc){ if(!canEdit())return;
+    var key=decodeURIComponent(keyEnc), name=decodeURIComponent(nameEnc||'')||key, t=val('v117_t'+ix)||'tender';
+    if(typeof window.editBusiness!=='function'&&typeof window.editLead!=='function'){ alert(fl('The company form is not available here.','نموذج الشركة غير متاح هنا.')); return; }
+    var before={}; ((typeof DB!=='undefined'&&DB.businesses)||[]).forEach(function(b){ before[b.id]=1; });
+    PENDING={kind:kind,key:key,type:t,before:before,at:Date.now()};
+    try{ (window.editBusiness||window.editLead)(''); }catch(_){}
+    setTimeout(function(){ var f=document.getElementById('f_name'); if(f&&!f.value){ f.value=name; try{ f.dispatchEvent(new Event('input',{bubbles:true})); }catch(_){} } },60);
+    var tries=0, iv=setInterval(function(){ tries++;
+      if(!PENDING||tries>240){ clearInterval(iv); return; }   // two minutes to save the form
+      var nb=((typeof DB!=='undefined'&&DB.businesses)||[]).find(function(b){ return !PENDING.before[b.id]; }); if(!nb)return;
+      var u=(window.__bizUuid?window.__bizUuid(nb.id):nb.id);
+      if(!/^[0-9a-f-]{36}$/i.test(String(u||''))&&!(window.__v117AnyId)) return;   // wait until the database has given it its id
+      clearInterval(iv); var p=PENDING; PENDING=null; assign(p.kind,p.key,u,p.type); },500);
+  };
+  window.v117RemoveAlias=function(id){ if(!canEdit())return;
+    var a=(MR.aliases||[]).find(function(x){return x.id===id;}); if(!a)return;
+    ask(fl('Take the name "','إزالة الاسم «')+a.name+fl('" out of this company? Its rows stand alone again (Needs a decision).','» من هذه الشركة؟ تعود صفوفه مستقلة («يحتاج قرارًا»).'),function(){
+      client().from('company_name_aliases').update({removed_at:new Date().toISOString()}).eq('id',id).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); }); };
   function owner(idText){ var n=normMR(idText); var hit=((window.CP&&CP.rows)||[]).find(function(p){ return normMR(p.direct_client_id)===n; }); return hit||null; }
   window.v117AddClientId=function(bizUuid,prefill){ if(!canEdit())return;
     openModal(fl('Add a client ID to a company','إضافة معرّف عميل إلى شركة'),
@@ -224,27 +269,40 @@
     var bix=bizIndex(), cx=codeById(), byBiz={};
     ((window.CP&&CP.rows)||[]).forEach(function(p){ (byBiz[p.business_id]=byBiz[p.business_id]||{ids:[],codes:[]}).ids.push(p); });
     (MR.links||[]).forEach(function(l){ (byBiz[l.business_id]=byBiz[l.business_id]||{ids:[],codes:[]}).codes.push(l); });
+    (MR.aliases||[]).forEach(function(a){ var x=byBiz[a.business_id]=byBiz[a.business_id]||{ids:[],codes:[]}; (x.names=x.names||[]).push(a); });
     var comps=Object.keys(byBiz).sort(function(a,b){ return String((bix[a]||{}).name||'').localeCompare(String((bix[b]||{}).name||'')); });
     h+='<div class="card v117-merges" style="padding:18px;margin-bottom:16px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0;flex:1">'+fl('Company merges','دمج الشركات')+'</h3>'+
       (w?'<button class="btn sm pri" data-v117="add-id" onclick="v117AddClientId()">+ '+fl('Client ID','معرّف عميل')+'</button> <button class="btn sm" data-v117="add-code" onclick="v117AddCode()">+ '+fl('Discount code','رمز خصم')+'</button>':'')+'</div>'+
       '<div class="ch-sub" style="margin:4px 0 10px">'+fl('Only what is typed here is merged; nothing is added automatically. A client ID or a code belongs to one company only. Exclusion beats merge.','لا يُدمج إلا ما يُكتب هنا؛ لا يُضاف شيء تلقائيًا. معرّف العميل أو الرمز لشركة واحدة فقط. الاستبعاد يسبق الدمج.')+'</div>';
-    h+=comps.length?table([fl('Company','الشركة'),fl('Client IDs','معرّفات العميل'),fl('Discount codes','رموز الخصم'),fl('Counts','يُحتسب')],comps.map(function(u){ var c=byBiz[u], b=bix[u]||{}, s=st.biz[u]||{n:0,sar:0};
+    h+=comps.length?table([fl('Company','الشركة'),fl('Client IDs and names','المعرّفات والأسماء'),fl('Discount codes','رموز الخصم'),fl('Counts','يُحتسب')],comps.map(function(u){ var c=byBiz[u], b=bix[u]||{}, s=st.biz[u]||{n:0,sar:0};
         var ids=c.ids.map(function(p){ var r=window.moneyRuleFor({clientId:p.direct_client_id});
           return '<div data-v117-cid="'+e(p.direct_client_id)+'"><span class="tag">'+e(typeLabel(p.profile_type))+'</span> <b>#'+e(p.direct_client_id)+'</b>'+(p.closed_at?' <span class="muted">'+fl('closed','مغلق')+'</span>':'')+
             (r?' <span class="tag" style="background:#FDECEC;color:#B42318">'+fl('excluded — ','مستبعد — ')+e(r.reason)+'</span>':'')+
             (w?' <button class="btn ghost sm" style="padding:0 6px" onclick="v117RemoveClientId(\''+e(p.id)+'\')" aria-label="'+e(fl('Remove','إزالة'))+'">×</button>':'')+'</div>'; }).join('');
         var codes=c.codes.map(function(l){ var p=cx[l.promo_code_id]||{}; var r=window.moneyRuleFor({code:p.code});
           return '<div><b>'+e(p.code||'?')+'</b>'+(r?' <span class="tag" style="background:#FDECEC;color:#B42318">'+fl('excluded','مستبعد')+'</span>':'')+(w?' <button class="btn ghost sm" style="padding:0 6px" onclick="v117RemoveCode(\''+e(l.id)+'\')" aria-label="'+e(fl('Remove','إزالة'))+'">×</button>':'')+'</div>'; }).join('');
-        return '<tr data-v117-company="'+e(u)+'"><td style="'+TD+';font-weight:700">'+e(b.name||fl('(company not found)','(الشركة غير موجودة)'))+'</td><td style="'+TD+'">'+(ids||'—')+'</td><td style="'+TD+'">'+(codes||'—')+'</td><td style="'+TD+'">'+s.n+' · '+sar(s.sar)+'</td></tr>'; }))
+        var names=(c.names||[]).map(function(a){ return '<div data-v117-alias="'+e(a.name)+'"><span class="tag">'+fl('name','اسم')+'</span> '+e(a.name)+(w?' <button class="btn ghost sm" style="padding:0 6px" onclick="v117RemoveAlias(\''+e(a.id)+'\')" aria-label="'+e(fl('Remove','إزالة'))+'">×</button>':'')+'</div>'; }).join('');
+        return '<tr data-v117-company="'+e(u)+'"><td style="'+TD+';font-weight:700">'+e(b.name||fl('(company not found)','(الشركة غير موجودة)'))+'</td><td style="'+TD+'">'+((ids+names)||'—')+'</td><td style="'+TD+'">'+(codes||'—')+'</td><td style="'+TD+'">'+s.n+' · '+sar(s.sar)+'</td></tr>'; }))
       :'<div class="empty" data-v117-empty="merges" style="padding:10px 0">'+fl('No merges yet — every client ID stands alone.','لا يوجد دمج بعد — كل معرّف عميل مستقل.')+'</div>';
-    var loose=Object.keys(st.loose);
-    h+='<h4 style="margin:16px 0 6px">'+fl('Not merged — review','غير مدموج — للمراجعة')+' <span class="muted" style="font-weight:400">· '+loose.length+'</span></h4>';
-    h+=loose.length?table([fl('Client ID','معرّف العميل'),fl('Name in Payments','الاسم في المدفوعات'),fl('Counts','يُحتسب'),''],loose.map(function(k){ var l=st.loose[k];
-        return '<tr data-v117-loose="'+e(l.id)+'"><td style="'+TD+';font-weight:700">#'+e(l.id)+'</td><td style="'+TD+'">'+e(l.name||'—')+'</td><td style="'+TD+'">'+l.n+' · '+sar(l.sar)+'</td><td style="'+TD+'">'+(w?'<button class="btn ghost sm" onclick="v117AddClientId(\'\',\''+e(l.id)+'\')">'+fl('Merge into a company…','دمج في شركة…')+'</button>':'')+'</td></tr>'; }))
-      :'<div class="muted" style="font-size:12.5px">'+fl('Every client ID in Finance belongs to a company.','كل معرّف عميل في المالية تابع لشركة.')+'</div>';
+    /* Needs a decision (oversight's design, 27 Sep): every client ID and every customer name that no company holds yet,
+       largest first — one control each: belongs to a company (a suggestion is pre-selected, never applied), a new company,
+       or exclude (reason required). Every answer is typed, logged, and remembered for later imports. */
+    var loose=Object.keys(st.loose).sort(function(x,y){ return (st.loose[y].sar-st.loose[x].sar)||(st.loose[y].n-st.loose[x].n); });
+    h+='<h4 style="margin:16px 0 6px">'+fl('Needs a decision','يحتاج قرارًا')+' <span class="muted" style="font-weight:400">· '+loose.length+' — '+fl('client IDs and customer names no company holds yet, largest first','معرّفات عملاء وأسماء لا تتبع أي شركة بعد، الأكبر أولًا')+'</span></h4>';
+    h+=loose.length?table([fl('Client ID or name','المعرّف أو الاسم'),fl('Name in Payments','الاسم في المدفوعات'),fl('Rows · SAR','صفوف · ر.س'),fl('Decision','القرار')],loose.map(function(k,ix){ var l=st.loose[k];
+        var sug=suggest(l.name), key=l.kind==='client_id'?l.id:l.name;
+        return '<tr data-v117-loose="'+e(key)+'" data-v117-kind="'+e(l.kind)+'"><td style="'+TD+';font-weight:700">'+(l.kind==='client_id'?'#'+e(l.id):'<span class="tag">'+fl('name','اسم')+'</span>')+'</td><td style="'+TD+'">'+e(l.name||'—')+'</td><td style="'+TD+'">'+l.n+' · '+sar(l.sar)+'</td><td style="'+TD+'">'+
+          (w?'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="v117_d'+ix+'" style="max-width:220px" aria-label="'+e(fl('Belongs to','تتبع')+' '+(l.name||key))+'">'+companyOptions(sug?sug.biz:'',sug)+'</select>'+
+            (l.kind==='client_id'?'<select id="v117_t'+ix+'" aria-label="'+e(fl('Type','النوع'))+'"><option value="prepaid">'+typeLabel('prepaid')+'</option><option value="postpaid">'+typeLabel('postpaid')+'</option><option value="tender">'+typeLabel('tender')+'</option></select>':'')+
+            '<button class="btn sm pri" data-v117-decide="belongs" onclick="v117Decide('+ix+',\''+e(l.kind)+'\',\''+encodeURIComponent(key)+'\')">'+fl('Belongs to','تتبع')+'</button>'+
+            '<button class="btn sm ghost" data-v117-decide="new" onclick="v117NewCompanyFor('+ix+',\''+e(l.kind)+'\',\''+encodeURIComponent(key)+'\',\''+encodeURIComponent(l.name||'')+'\')">'+fl('New company…','شركة جديدة…')+'</button>'+
+            '<button class="btn sm ghost" data-v117-decide="exclude" onclick="v117AddRule(\''+(l.kind==='client_id'?'client_id':'name')+'\',\''+encodeURIComponent(key)+'\')">'+fl('Exclude…','استبعاد…')+'</button></div>'+
+            (sug?'<div class="muted" style="font-size:11.5px;margin-top:3px">'+fl('Suggested: ','مقترح: ')+e(sug.name)+' — '+e(sug.why)+' '+fl('(nothing is applied until you press Belongs to)','(لا يُطبَّق شيء حتى تضغط «تتبع»)')+'</div>':'')
+           :'<span class="muted">'+fl('an admin or manager decides','يقرر المسؤول أو المدير')+'</span>')+'</td></tr>'; }))
+      :'<div class="muted" style="font-size:12.5px" data-v117-empty="decisions">'+fl('Nothing waits for a decision — every client ID and name in Finance belongs to a company or is excluded.','لا شيء ينتظر قرارًا — كل معرّف واسم في المالية تابع لشركة أو مستبعد.')+'</div>';
     h+='<div style="margin-top:12px;font-size:12.5px" data-v117="unassigned"><b>'+fl('Unassigned codes','رموز غير مخصّصة')+'</b> · '+st.unassigned.n+' '+fl('rows','صف')+' · '+sar(st.unassigned.sar)+
       (Object.keys(st.unassigned.codes).length?' — '+Object.keys(st.unassigned.codes).map(e).join(', '):'')+' <span class="muted">'+fl('(still counted — just not under a company)','(تُحتسب — لكن دون شركة)')+'</span></div>';
-    if(st.noId.n) h+='<div style="margin-top:6px;font-size:12.5px" class="muted">'+st.noId.n+' '+fl('rows carry no client ID or code — they stand under their own name (','صفًا بلا معرّف عميل أو رمز — تظهر باسمها (')+sar(st.noId.sar)+').</div>';
+    if(false) h+='<div style="margin-top:6px;font-size:12.5px" class="muted">'+st.noId.n+' '+fl('rows carry no client ID or code — they stand under their own name (','صفًا بلا معرّف عميل أو رمز — تظهر باسمها (')+sar(st.noId.sar)+').</div>';
     h+='</div>';
     /* the greyed 'Excluded' list */
     var ex=(typeof window.finExcludedRows==='function')?window.finExcludedRows():[];

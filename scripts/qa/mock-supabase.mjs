@@ -557,7 +557,8 @@ function mockMoneyRows(){
     const cid=N(i.payments_client_id), code=N(i.discount_code), tax=N(i.customer_tax_no);
     const cp=cid?prof.find(p=>N(p.direct_client_id)===cid):null;
     let codeBiz=null; if(code){ const pc=codes.find(c=>N(c.code)===code); const l=pc&&links.find(x=>x.promo_code_id===pc.id); codeBiz=l?l.business_id:null; }
-    const bizId=cp?cp.business_id:(!cid?codeBiz:null); const b=bizId?biz.find(x=>x.id===bizId):null;
+    const al=(!cid&&!codeBiz)?(TABLES.company_name_aliases||[]).find(a=>!a.removed_at&&(N(a.name)===N(i.client_group)||N(a.name)===N(i.customer_raw_name))):null;
+    const bizId=cp?cp.business_id:(!cid?(codeBiz||(al&&al.business_id)||null):null); const b=bizId?biz.find(x=>x.id===bizId):null;
     const bt=N(b&&b.cr_vat)||'';
     const x=rules.find(r=>{ const v=N(r.value); if(!v)return false;
       if(r.kind==='transaction') return v===N(i.transaction_ref)||v===N(i.invoice_no);
@@ -1345,6 +1346,33 @@ export function start(port, seedOverrides){
       });
     }
     if(t==='money_exclusion_rules'&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
+    /* company_name_aliases (E, 27 Sep): a customer name typed into a company — admins and managers write, one company per
+       name however spelled, a name is never re-pointed, a removal is final */
+    if(t==='company_name_aliases'&&req.method!=='GET'){
+      let body=''; req.on('data',c=>body+=c);
+      return req.on('end',()=>{
+        let pl={}; try{ pl=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON'}); }
+        const list=TABLES.company_name_aliases=TABLES.company_name_aliases||[]; const now=new Date().toISOString(), nm=meMR.full_name||meMR.email||null;
+        if(req.method==='POST'){
+          if(!mayMR) return send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "company_name_aliases"'});
+          const out=[]; for(const r0 of (Array.isArray(pl)?pl:[pl])){ const n=String(r0.name||'').trim();
+            if(!mockMoneyNorm(n)) return send(res,400,{code:'23514',details:null,hint:null,message:'new row violates check constraint "company_alias_readable"'});
+            if(list.some(a=>!a.removed_at&&mockMoneyNorm(a.name)===mockMoneyNorm(n))) return send(res,409,{code:'23505',details:null,hint:null,message:'duplicate key value violates unique constraint "company_name_aliases_one_company"'});
+            const row={id:'na-'+Math.random().toString(36).slice(2),business_id:r0.business_id,name:n,created_by:UID,created_by_name:nm,created_at:now,removed_by:null,removed_by_name:null,removed_at:null};
+            list.push(row); out.push(row);
+            (TABLES.record_history=TABLES.record_history||[]).push({id:(TABLES.record_history.length+1000),at:now,actor:UID,actor_name:nm,table_name:'company_name_aliases',record_id:row.id,record_key:row.id,action:'create',before_row:null,after_row:Object.assign({},row),undone_at:null}); }
+          return send(res,201,out);
+        }
+        if(req.method==='PATCH'){
+          if(!mayMR) return send(res,200,[]);
+          const id=(String((u.query||{}).id||'').match(/^eq\.(.*)$/)||[])[1]; const r=list.find(x=>x.id===id); if(!r) return send(res,200,[]);
+          if(r.removed_at) return send(res,400,{code:'P0001',details:null,hint:null,message:'A removed name stays removed — add it again if it is needed'});
+          if(pl.removed_at){ r.removed_at=now; r.removed_by=UID; r.removed_by_name=nm; }
+          return send(res,200,[r]);
+        }
+        return send(res,200,[]);
+      });
+    }
     if(t==='client_profiles'&&req.method==='DELETE'){
       if(!mayMR) return send(res,200,[]);
       const id=(String((u.query||{}).id||'').match(/^eq\.(.*)$/)||[])[1]; const hit=(TABLES.client_profiles||[]).filter(p=>p.id===id);

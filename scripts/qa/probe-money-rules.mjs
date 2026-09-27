@@ -94,22 +94,51 @@ for (const [lang, PORT] of [['en', 9701], ['ar', 9702]]) {
   const t2 = await three(p);
   check(same(t2) && Math.abs(t2.tile - t0.tile) < 0.01, `${L} 4: switched off, every figure is back — ${t2.tile} / ${t2.rb} / ${t2.kpi}`, JSON.stringify(t2));
   /* 5 — a client ID nobody typed */
-  await p.evaluate(async () => { await fc().from('finance_invoices').insert({ invoice_no: 'QA-LOOSE-1', line_no: 1, client_group: 'Loose Test Co', customer_raw_name: 'Loose Test Co', payments_client_id: '777', invoice_date: '2026-05-10', month: 'May', quarter: 'Q2', year: 2026, total_incl_vat_sar: 4321, wallet_portion_sar: 0, revenue_sar: 4321, cost_sar: 1000, profit_sar: 3321, amount_received_sar: 4321, amount_remaining_sar: 0, integrity_status: 'verified_paid', record_type: 'b2b', revenue_way: 'invoice', source_batch: 'qa' }).select('id'); });
+  const ins5 = await p.evaluate(async () => { const r = await fc().from('finance_invoices').insert({ invoice_no: 'QA-LOOSE-1', line_no: 1, client_group: 'Loose Test Co', customer_raw_name: 'Loose Test Co', payments_client_id: '777', invoice_date: '2026-05-10', total_incl_vat_sar: 4321, wallet_portion_sar: 0, cost_sar: 1000, amount_received_sar: 4321, amount_remaining_sar: 0, integrity_status: 'verified_paid', record_type: 'b2b', revenue_way: 'invoice', source_batch: 'qa' }).select('id'); return r.error ? JSON.stringify(r.error) : (r.data || []).length; }); if (ins5 !== 1) console.log('    insert said: ' + ins5);
   await reloadFin(p); const t3 = await three(p);
   await tab(p, 'rules'); const loose = await txt(p, '.v117-merges');
   check(/#777/.test(loose) && /Loose Test Co/.test(loose) && Math.abs(t3.tile - t0.tile - 4321) < 0.01 && same(t3), `${L} 5: an untyped client ID stands alone under "Not merged — review" with its Payments name, and counts`, loose.slice(0, 240) + ' | ' + JSON.stringify(t3));
-  await p.click('[data-v117-loose="777"] button'); await p.waitForSelector('#v117_biz');
-  await p.selectOption('#v117_biz', 'b1'); await p.selectOption('#v117_type', 'tender'); await p.click('#mSave');
+  /* Needs a decision: the row's own control — Belongs to [company] + type */
+  const ix777 = await p.evaluate(() => { const tr = document.querySelector('[data-v117-loose="777"]'); const sel = tr && tr.querySelector('select[id^="v117_d"]'); return sel ? sel.id.replace('v117_d', '') : null; });
+  await p.selectOption('#v117_d' + ix777, 'b1'); await p.selectOption('#v117_t' + ix777, 'tender'); await p.click('[data-v117-loose="777"] [data-v117-decide="belongs"]');
   await p.waitForFunction(() => (CP.rows || []).some((x) => x.direct_client_id === '777'), null, { timeout: 15000 }).catch(() => { });
-  await p.waitForFunction(() => FIN.rows && FIN.m && !FIN.loading && FIN.m && Object.values(FIN.m).some((m) => m.merge_state === 'merged' && m.business_id === 'b1'), null, { timeout: 30000 }).catch(() => { });
+  await p.waitForFunction(() => FIN.rows && FIN.m && !FIN.loading && Object.values(FIN.m).some((m) => m.merge_state === 'merged' && m.business_id === 'b1'), null, { timeout: 30000 }).catch(() => { });
   const t4 = await three(p); await tab(p, 'rules');
   const merged = await p.evaluate(() => { const row = document.querySelector('[data-v117-company="b1"]'); return { row: row ? row.innerText.replace(/\s+/g, ' ') : '', loose: !!document.querySelector('[data-v117-loose="777"]') }; });
-  check(/#777/.test(merged.row) && !merged.loose && Math.abs(t4.tile - t3.tile) < 0.01 && same(t4), `${L} 5: "Merge into a company…" types it in — it leaves the review list, sits under the company, totals unchanged`, JSON.stringify(merged) + ' | ' + JSON.stringify(t4));
+  check(/#777/.test(merged.row) && !merged.loose && Math.abs(t4.tile - t3.tile) < 0.01 && same(t4), `${L} 5: "Belongs to" in Needs a decision types it into the company — it leaves the list, sits under the company, totals unchanged`, JSON.stringify(merged) + ' | ' + JSON.stringify(t4));
   /* 6 — a second company for the same ID */
   const before6 = await p.evaluate(() => CP.rows.length);
   await p.click('[data-v117="add-id"]'); await p.waitForSelector('#v117_biz'); await p.selectOption('#v117_biz', 'b2'); await p.fill('#v117_cid', '777'); await p.click('#mSave'); await p.waitForTimeout(900);
   const n6 = await notices(p), after6 = await p.evaluate(() => CP.rows.length); await p.evaluate(() => { try { closeModal(); } catch (_) { } });
   check(after6 === before6 && (ar ? /مسجّل بالفعل/.test(n6) : /already belongs to/.test(n6)), `${L} 6: the same client ID for a second company is refused in words, nothing added`, n6.slice(-200));
+  /* 5b — a customer name with no client ID (an old invoice): a suggestion is pre-selected, never applied; Belongs to types it */
+  const bizName = await p.evaluate(() => (DB.businesses.find((b) => (window.__bizUuid ? __bizUuid(b.id) : b.id) === 'b2') || {}).name);
+  await p.evaluate(async (nm) => { await fc().from('finance_invoices').insert({ invoice_no: 'QA-OLD-1', line_no: 1, client_group: '  ' + nm.toUpperCase() + ' ', customer_raw_name: nm.toUpperCase(), invoice_date: '2026-02-02', total_incl_vat_sar: 1111, wallet_portion_sar: 0, cost_sar: 0, amount_received_sar: 1111, amount_remaining_sar: 0, integrity_status: 'verified_paid', record_type: 'b2b', revenue_way: 'invoice', source_batch: 'qa' }).select('id'); }, bizName);
+  await reloadFin(p); const t5b = await three(p); await tab(p, 'rules');
+  const nameRow = await p.evaluate(() => { const tr = [...document.querySelectorAll('[data-v117-kind="name"]')].find((x) => /QA|TEST COMPANY 2/i.test(x.innerText)); if (!tr) return null; const sel = tr.querySelector('select[id^="v117_d"]');
+    return { key: tr.getAttribute('data-v117-loose'), sel: sel ? sel.value : null, ix: sel ? sel.id.replace('v117_d', '') : null, text: tr.innerText.replace(/\s+/g, ' ') }; });
+  const beforeAlias = await p.evaluate(() => (MR.aliases || []).length);
+  check(nameRow && nameRow.sel === 'b2' && beforeAlias === 0 && (ar ? /مقترح/.test(nameRow.text) : /Suggested/.test(nameRow.text)),
+    `${L} 5b: an old invoice with only a customer name waits for a decision with the same-name company SUGGESTED (pre-selected, nothing applied)`, JSON.stringify(nameRow) + ' aliases=' + beforeAlias);
+  if (nameRow) { await p.click(`[data-v117-loose="${nameRow.key}"] [data-v117-decide="belongs"]`);
+    await p.waitForFunction(() => (MR.aliases || []).length > 0 && FIN.rows && !FIN.loading, null, { timeout: 20000 }).catch(() => { }); await p.waitForTimeout(800); }
+  const t5c = await three(p); await tab(p, 'rules');
+  const aliasRow = await p.evaluate(() => { const row = document.querySelector('[data-v117-company="b2"]'); return row ? row.innerText.replace(/\s+/g, ' ') : ''; });
+  check(/TEST COMPANY 2/i.test(aliasRow) && Math.abs(t5c.tile - t5b.tile) < 0.01 && same(t5c), `${L} 5b: "Belongs to" types the name into the company — it is listed there, and totals do not move`, aliasRow.slice(0, 200));
+  /* 5c — New company: the company form opens with the Payments name filled in; saving it applies the decision */
+  await p.evaluate(async () => { await fc().from('finance_invoices').insert({ invoice_no: 'QA-NEW-1', line_no: 1, client_group: 'Brand New Test Co', customer_raw_name: 'Brand New Test Co', invoice_date: '2026-02-03', total_incl_vat_sar: 2222, wallet_portion_sar: 0, cost_sar: 0, amount_received_sar: 2222, amount_remaining_sar: 0, integrity_status: 'verified_paid', record_type: 'b2b', revenue_way: 'invoice', source_batch: 'qa' }).select('id'); window.__v117AnyId = true; });
+  await reloadFin(p); await tab(p, 'rules');
+  await p.click('[data-v117-loose="Brand New Test Co"] [data-v117-decide="new"]'); await p.waitForTimeout(400);
+  const prefilled = await p.evaluate(() => { const f = document.getElementById('f_name'); return f ? f.value : null; });
+  await p.click('#mSave').catch(() => { });
+  await p.waitForFunction(() => (MR.aliases || []).some((a) => /Brand New Test Co/.test(a.name)), null, { timeout: 30000 }).catch(() => { });
+  const newCo = await p.evaluate(() => { const a = (MR.aliases || []).find((x) => /Brand New Test Co/.test(x.name)); const b = a && DB.businesses.find((x) => (window.__bizUuid ? __bizUuid(x.id) : x.id) === a.business_id); return { alias: !!a, company: b ? b.name : null }; });
+  check(prefilled === 'Brand New Test Co' && newCo.alias && newCo.company === 'Brand New Test Co', `${L} 5c: "New company…" opens the company form with the Payments name; saving it creates the company (by the person) and types the name into it`, JSON.stringify({ prefilled, newCo }));
+  /* 5d — Exclude… opens the rule form filled in */
+  await tab(p, 'rules'); const exKey = await p.evaluate(() => { const tr = document.querySelector('[data-v117-loose][data-v117-kind]'); return tr ? tr.getAttribute('data-v117-loose') : null; });
+  if (exKey) { await p.click(`[data-v117-loose="${exKey}"] [data-v117-decide="exclude"]`); await p.waitForSelector('#v117_value'); }
+  const pre = await p.evaluate(() => ({ kind: (document.getElementById('v117_kind') || {}).value, value: (document.getElementById('v117_value') || {}).value })); await p.evaluate(() => { try { closeModal(); } catch (_) { } });
+  check(!exKey || (pre.value === exKey && ['client_id', 'name'].includes(pre.kind)), `${L} 5d: "Exclude…" opens the rule form with the type and value filled in (a reason is still required)`, JSON.stringify({ exKey, pre }));
   /* 7 — exclusion beats merge, on the company card */
   await p.evaluate((id) => v117SwitchRule(id, true), rid); await p.waitForTimeout(1500);
   await p.evaluate(() => { const b = DB.businesses.find((x) => (window.__bizUuid ? __bizUuid(x.id) : x.id) === 'b4') || DB.businesses.find((x) => x.id === 'b4'); current = 'leads'; openLead = b.id; render(); });
@@ -118,9 +147,14 @@ for (const [lang, PORT] of [['en', 9701], ['ar', 9702]]) {
   check((ar ? /مستبعدة/.test(card) : /Excluded/.test(card)) && /12/.test(card) && /QA: test client/.test(card) && !(ar ? /من 3/.test(card) : /of 3 open/.test(card)),
     `${L} 7: exclusion beats merge — the company card warns that client ID 12 is excluded (and the cap of 3 is gone)`, card.slice(0, 260));
   /* 8 — who to chase */
-  await p.evaluate(() => { current = 'finance'; render(); }); await tab(p, 'clients');
+  /* an unpaid invoice of the POSTPAID client ID 13, due long ago — outstanding, never revenue */
+  await p.evaluate(() => { current = 'finance'; render(); }); const t7 = await three(p);
+  const ins8 = await p.evaluate(async () => { const r = await fc().from('finance_invoices').insert({ invoice_no: 'QA-OPEN-1', line_no: 1, client_group: 'Test Company 5', customer_raw_name: 'Test Company 5', payments_client_id: '13', invoice_date: '2026-03-01', collection_due_date: '2026-04-01', total_incl_vat_sar: 5000, wallet_portion_sar: 0, cost_sar: 0, amount_received_sar: 0, amount_remaining_sar: 5000, integrity_status: 'pending', record_type: 'b2b', revenue_way: 'invoice', source_batch: 'qa' }).select('id'); return r.error ? JSON.stringify(r.error) : (r.data || []).length; });
+  await p.evaluate(() => { current = 'finance'; render(); }); await reloadFin(p); const t8 = await three(p); await tab(p, 'clients');
   const chase = await txt(p, '.v117-chase');
-  check(/0-30/.test(chase) && /31-60/.test(chase) && /61-90/.test(chase) && /90\+/.test(chase), `${L} 8: Clients & collections shows "Who to chase" with the four age columns`, chase.slice(0, 160));
+  check(ins8 === 1 && /0-30/.test(chase) && /31-60/.test(chase) && /61-90/.test(chase) && /90\+/.test(chase) && /Test Company 4/.test(chase) && (ar ? /آجل الدفع/.test(chase) : /Postpaid/.test(chase)) && /5,000/.test(chase)
+    && Math.abs(t8.tile - t7.tile) < 0.01 && same(t8),
+    `${L} 8: "Who to chase" puts the postpaid client's 5,000 unpaid in its age column — and revenue does not move`, String(ins8) + ' | ' + chase.slice(0, 220) + ' | ' + JSON.stringify(t8));
   /* remove, asked first */
   await tab(p, 'rules'); await p.evaluate((id) => v117RemoveRule(id), rid); await p.waitForTimeout(400);
   const asked = await p.evaluate(() => !!document.getElementById('pfConfirmYes'));

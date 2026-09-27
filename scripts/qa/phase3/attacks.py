@@ -1528,6 +1528,20 @@ def _(cur):
     as_user(cur, 'u5'); n = one(cur, "select count(*) from money_row_rules()"); q(cur, "reset role")
     return (m == v and len(m) > 0 and n == 0, f"manager and View person see identical rows/companies/rules={m == v} ({len(m)} rows) · no Finance → resolver answers {n} rows")
 
+@test("E-07 A customer name typed into a company is a merge for rows with NO client ID (the old invoices): they join it, a row carrying a client ID does not; one company per name however spelled; only admins and managers type one; totals do not move")
+def _(cur):
+    base = mar26(cur)
+    as_user(cur, 'u1'); a, m1 = expect_fail(cur, "insert into company_name_aliases(business_id,name) values (%s,'GRP-X')", (F['coB'],), "row-level security")
+    q(cur, "reset role"); as_user(cur, 'u4')
+    q(cur, "insert into company_name_aliases(business_id,name) values (%s,' grp x ')", (F['coB'],))
+    b, m2 = expect_fail(cur, "insert into company_name_aliases(business_id,name) values (%s,'GRP-X')", (F['coA'],), "company_name_aliases_one_company")
+    q(cur, "insert into company_name_aliases(business_id,name) values (%s,'GRP-B')", (F['coA'],))   # GRP-B rows carry client ID C-2001 → stay with Company B
+    q(cur, "reset role")
+    x = q(cur, "select business_id=%s, merge_state from money_rows where invoice_no='INV-X26'", (F['coB'],))[0]
+    bb = one(cur, "select bool_and(business_id=%s) from money_rows where invoice_no='INV-B26'", (F['coB'],))
+    return (a and b and x == (True, 'merged') and bb and mar26(cur) == base,
+            f"team member refused={a} · same name (other spelling) for a second company refused={b} · the no-ID row joins Company B={x} · a row with a client ID stays with its ID's company={bb} · totals unchanged={mar26(cur) == base}")
+
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]
 print(f"\n{len(results)-len(fails)}/{len(results)} passed"); sys.exit(1 if fails else 0)

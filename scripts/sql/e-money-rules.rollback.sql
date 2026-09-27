@@ -13,6 +13,8 @@ drop view if exists public.money_that_counts;
 drop view if exists public.money_rows;
 drop function if exists public.money_row_rules();
 drop table if exists public.money_exclusion_rules;
+drop table if exists public.company_name_aliases;
+drop function if exists public.company_name_aliases_guard();
 drop function if exists public.money_exclusion_rules_guard();
 
 create or replace function public.client_profiles_card_guard() returns trigger language plpgsql security definer set search_path to public as $$

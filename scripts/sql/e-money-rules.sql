@@ -105,13 +105,58 @@ drop policy if exists cdc_update on public.company_discount_codes;
 create policy cdc_update on public.company_discount_codes for update to authenticated
   using (public.app_role() in ('admin', 'manager')) with check (public.app_role() in ('admin', 'manager'));
 
+-- 3b. NAME ALIASES — a typed merge for rows that carry no client ID and no code (the old pre-Payments invoices carry only a
+--     customer name): a person types a customer name (any spelling, Arabic or English) into a company, and every row with
+--     that name and no client ID counts under it. Same shape as the rules: who is stamped, one company per name however it
+--     is spelled, the name never changes (remove and add), a removal is final, nothing is deleted, every change logged.
+create table if not exists public.company_name_aliases (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid not null references public.businesses(id) on delete restrict,
+  name text not null,
+  name_norm text generated always as (public.money_norm(name)) stored,
+  created_by uuid, created_by_name text, created_at timestamptz not null default now(),
+  removed_by uuid, removed_by_name text, removed_at timestamptz,
+  constraint company_alias_readable check (public.money_norm(name) is not null));
+create unique index if not exists company_name_aliases_one_company on public.company_name_aliases (name_norm) where removed_at is null;
+create index if not exists company_name_aliases_business on public.company_name_aliases (business_id) where removed_at is null;
+create or replace function public.company_name_aliases_guard() returns trigger language plpgsql security definer set search_path to public as $$
+declare who uuid := coalesce(auth.uid(), public.qa_user_id());
+        nm text := (select coalesce(nullif(u.full_name, ''), u.email) from app_users u where u.id = coalesce(auth.uid(), public.qa_user_id()));
+begin
+  if tg_op = 'INSERT' then
+    new.name := btrim(new.name); new.created_by := who; new.created_by_name := nm; new.created_at := now();
+    new.removed_by := null; new.removed_by_name := null; new.removed_at := null; return new; end if;
+  if old.removed_at is not null then raise exception 'A removed name stays removed — add it again if it is needed'; end if;
+  if new.name is distinct from old.name or new.business_id is distinct from old.business_id or new.created_by is distinct from old.created_by
+     or new.created_at is distinct from old.created_at or new.created_by_name is distinct from old.created_by_name then
+    raise exception 'A name is never re-pointed — remove it and add it to the right company'; end if;
+  if new.removed_at is not null then new.removed_at := now(); new.removed_by := who; new.removed_by_name := nm; end if;
+  return new;
+end $$;
+drop trigger if exists company_name_aliases_guard on public.company_name_aliases;
+create trigger company_name_aliases_guard before insert or update on public.company_name_aliases for each row execute function public.company_name_aliases_guard();
+drop trigger if exists company_name_aliases_no_delete on public.company_name_aliases;
+create trigger company_name_aliases_no_delete before delete on public.company_name_aliases for each row execute function public.block_hard_delete();
+drop trigger if exists trg_record_history on public.company_name_aliases;
+create trigger trg_record_history after insert or update or delete on public.company_name_aliases for each row execute function public.record_history_write();
+alter table public.company_name_aliases enable row level security;
+drop policy if exists company_alias_read on public.company_name_aliases;
+create policy company_alias_read on public.company_name_aliases for select to authenticated using (public.app_role() is not null);
+drop policy if exists company_alias_insert on public.company_name_aliases;
+create policy company_alias_insert on public.company_name_aliases for insert to authenticated with check (public.app_role() in ('admin', 'manager'));
+drop policy if exists company_alias_update on public.company_name_aliases;
+create policy company_alias_update on public.company_name_aliases for update to authenticated
+  using (public.app_role() in ('admin', 'manager')) with check (public.app_role() in ('admin', 'manager'));
+revoke all on public.company_name_aliases from anon;
+grant select, insert, update on public.company_name_aliases to authenticated;
+
 -- =====================================================================
 -- 4. WHAT COUNTS — one resolver, one view. The resolver runs with the definer's rights so every person with Finance
 --    sees the SAME company and the same rule for a row (the rules must not depend on which companies a viewer may
 --    read); it answers nobody without Finance. The view is security_invoker, so the rows themselves stay under
 --    finance_invoices' own read rule.
 --    Company, in this order: the company that holds the row's client ID → (for a row with no client ID) the company that
---    holds its discount code → otherwise the row stands alone ("not merged": its own client ID, or 'Unassigned codes', or its own name).
+--    holds its discount code → the company its customer name is typed into → otherwise the row stands alone ("not merged": its own client ID, or 'Unassigned codes', or its own name).
 --    Rule, in this order: transaction → client ID → VAT/CR → discount code → name (name only for rows with no client ID).
 -- =====================================================================
 create or replace function public.money_row_rules()
@@ -125,14 +170,16 @@ begin
   base as (
     select i.id, i.invoice_no, i.transaction_ref, i.client_group, i.customer_raw_name,
            money_norm(i.payments_client_id) cid, money_norm(i.customer_tax_no) tax, money_norm(i.discount_code) code,
-           cp.business_id cid_biz, cp.profile_type ptype, dc.business_id code_biz
+           cp.business_id cid_biz, cp.profile_type ptype, dc.business_id code_biz, na.business_id name_biz
     from finance_invoices i
     left join client_profiles cp on money_norm(cp.direct_client_id) = money_norm(i.payments_client_id)
     left join lateral (select c.business_id from company_discount_codes c join promo_codes p on p.id = c.promo_code_id
                        where c.removed_at is null and money_norm(p.code) = money_norm(i.discount_code) limit 1) dc on true
+    left join lateral (select a.business_id from company_name_aliases a where a.removed_at is null
+                       and a.name_norm in (money_norm(i.client_group), money_norm(i.customer_raw_name)) limit 1) na on true
     where i.deleted_at is null),
   res as (
-    select b.*, coalesce(b.cid_biz, case when b.cid is null then b.code_biz end) biz from base b)   -- a row with its own client ID goes by that ID alone
+    select b.*, coalesce(b.cid_biz, case when b.cid is null then coalesce(b.code_biz, b.name_biz) end) biz from base b)   -- a row with its own client ID goes by that ID alone
   select s.id, s.biz,
          case when s.biz is not null then 'biz:' || s.biz::text
               when s.cid is not null then 'cid:' || s.cid

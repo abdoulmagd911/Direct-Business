@@ -94,6 +94,9 @@
       return '<div class="v113-row'+(p.closed_at?' closed':'')+'"><span class="tag" style="font-weight:700">'+e(fl(tl[0],tl[1]))+'</span> <b>#'+e(p.direct_client_id)+'</b>'+
         (p.closed_at?' <span class="muted">'+fl('closed','مغلق')+'</span>':'')+'<span style="flex:1"></span>'+(wm?'<button class="btn ghost sm v113-rm-id" onclick="v117RemoveClientId(\''+e(p.id)+'\')">'+fl('Remove','إزالة')+'</button> ':'')+'<a class="chiplink" href="'+e(link)+'" target="_blank" rel="noopener">'+fl('Open in Direct Payments ↗','افتح في دايركت للمدفوعات ↗')+'</a></div>'; }).join('')
       :'<div class="muted v113-empty">'+fl('No client ID yet.','لا يوجد معرّف عميل بعد.')+'</div>';
+    /* E: customer names typed into this company (old invoices with no client ID count under it through them) */
+    var al=((window.MR&&window.MR.aliases)||[]).filter(function(x){ return x.business_id===biz; });
+    if(al.length) h+='<div class="v113-names" style="margin-top:6px">'+al.map(function(x){ return '<div class="v113-row"><span class="tag">'+fl('Customer name','اسم العميل')+'</span> '+e(x.name)+'<span style="flex:1"></span>'+(wm?'<button class="btn ghost sm" onclick="v117RemoveAlias(\''+e(x.id)+'\')">'+fl('Remove','إزالة')+'</button>':'')+'</div>'; }).join('')+'</div>';
     if(wm) h+='<button class="btn ghost sm v113-add-id" onclick="v117AddClientId(\''+e(biz)+'\')">'+fl('+ Add client ID','+ إضافة معرّف عميل')+'</button>';
     h+='</div>';
     /* 2 · discount codes */
