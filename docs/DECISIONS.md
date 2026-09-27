@@ -3208,9 +3208,16 @@ by `scripts/qa/phase3` CL-01..CL-04, R1-03, PT-04; rollback beside it):
 database calls (17 of them the exact same read asked again by another layer), a layout-shift score of about 1.0 (the page
 jumped 24-33 times while loading; under 0.1 counts as good). Three changes, none of which changes what the app does:
 - **One question, one answer** (js/01, the one shared database client): an identical READ — same address and filters, same
-  person, same paging — shares one answer while the first is on its way and for 2.5 s after. Any write (a table, any other
+  person, same paging — shares one answer while the first is on its way and for 0.8 s after. Any write (a table, any other
   function, storage, an edge function) forgets every shared answer, so a read after a save always goes to the database; a
-  failed answer is never shared; sign-in calls are never shared. `window.__sharedReads.hits` says how many were shared.
+  failed answer is never shared; sign-in calls are never shared; and "who am I / what may I see" (app_role,
+  my_page_levels) is never shared, because it is how js/55 notices a session that lapsed mid-use. `window.__sharedReads.hits`
+  says how many were shared. **Why 0.8 s and not 2.5 s** (the full battery, 2026-09-27): at 2.5 s four real behaviours broke
+  — a layer that re-asks on purpose because it knows the data just changed (activities arriving after a logged call, a
+  person just invited, a card re-reading its contacts, the lapsed-session check) got the answer from before the change.
+  With the change: those four pass, and a Today load still shares 1-11 of about 50 reads (it depends on how the reads bunch).
+  The layout-shift score with js/116: 0.04-0.39 over 13 runs on the stand-in, against about 2.0 with it switched off — the
+  probe's line is 0.5.
   js/20 no longer re-asks for the signed-in person at 3 s and 8 s when the first answer landed.
 - **One paint per redraw** (js/116): the short timers (≤ 250 ms) the layers set while a redraw runs — the way they add
   their pieces after render() — are run in their order and spacing at the end of that task, before the browser paints; so

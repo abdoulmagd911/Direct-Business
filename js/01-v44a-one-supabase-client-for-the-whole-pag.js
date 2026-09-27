@@ -19,10 +19,16 @@
        shared answer at once, so a read after a save always goes to the database;
      · a failed answer (not 2xx, or the network failing) is never shared;
      · nothing else is touched: the browser's own fetch is called at call time (so a test that wraps window.fetch still
-       sees every real call), and requests to sign in (auth) are not shared. */
+       sees every real call), and requests to sign in (auth) are not shared;
+     · "who am I / what may I see" (app_role, my_page_levels) is NEVER shared — it is how the page notices a session that
+       lapsed mid-use (js/55), and a copied answer from a moment ago would hide exactly that.
+   The window is 0.8 s, not longer (measured in the full battery, 2026-09-27): at 2.5 s four real behaviours broke — a
+   layer that re-asks on purpose because it knows the data just changed (activities arriving after a call is logged, a
+   person just invited, a card re-reading its contacts) got the answer from before the change. 0.8 s still covers one
+   page load's burst of layers asking the same question, and is shorter than any deliberate "ask again". */
 (function(){
-  var SHARE_MS=2500;
-  var READ_RPC=/\/rest\/v1\/rpc\/(my_page_levels|app_role|team_access_list|team_nicknames|team_roster|changes_to_my_tasks|changes_to_my_companies|company_documents_presence)(\?|$)/;
+  var SHARE_MS=800;
+  var READ_RPC=/\/rest\/v1\/rpc\/(team_access_list|team_nicknames|team_roster|changes_to_my_tasks|changes_to_my_companies|company_documents_presence)(\?|$)/;
   function hdr(h,name){
     try{
       if(!h) return '';
