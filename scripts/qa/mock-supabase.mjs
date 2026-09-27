@@ -317,6 +317,42 @@ const TASKMOCK=(()=>{
 })();
 const MOCK_RANK={none:0,view:1,own:2,full:3};
 function mockLevelWord(v){ return ({full:'full',editor:'full',own:'own',view:'view',viewer:'view'})[v]||'none'; }
+
+/* People & teams stand-in (MOCK_PEOPLE=1) — see the table block and the rpc block */
+function PEOPLE(){
+  if(globalThis.__PEOPLE) return globalThis.__PEOPLE;
+  const T=[['commercial','Commercial','التجاري',0],['business','Business Development','تطوير الأعمال',1],['business_solutions','Business Solutions','حلول الأعمال',2],['partnership','Partnerships','الشراكات',3],
+    ['tenders','Tenders','المناقصات',4],['quality','Quality','الجودة',5],['complaints','Complaints','الشكاوى',6],['strategy','Strategy','الاستراتيجية',7],['integrity','Integrity','النزاهة',8]];
+  const deps=T.map(a=>({id:'dep-'+a[0],code:a[0],name_en:a[1],name_ar:a[2],sort:a[3],active:true,parent_id:a[0]==='commercial'?null:'dep-commercial',head_member_id:null}));
+  const extra=[{id:'pp-head',email:'head.person@example.test',full_name:'Head Person',name_ar:'رئيس القسم',role:'manager',active:true,first_name_en:'Head',last_name_en:'Person',first_name_ar:'رئيس',last_name_ar:'القسم'},
+               {id:'pp-sara',email:'sara.one@example.test',full_name:'Sara One',name_ar:'سارة واحد',role:'team_member',active:true,first_name_en:'Sara',last_name_en:'One',first_name_ar:'سارة',last_name_ar:'واحد'},
+               {id:'pp-omar',email:'omar.two@example.test',full_name:'Omar Two',name_ar:'عمر اثنان',role:'team_member',active:true,first_name_en:'Omar',last_name_en:'Two',first_name_ar:'عمر',last_name_ar:'اثنان'}];
+  extra.forEach(x=>{ if(!TABLES.app_users.some(u=>u.id===x.id)) TABLES.app_users.push(Object.assign({created_at:'2026-09-01T00:00:00Z',must_change_password:false,page_access:{today:'full',leads:'full',clients:'full',tasks:'full',reports:'own'}},x)); });
+  const members=[{id:'pm-head',user_id:'pp-head',department_id:'dep-commercial',reports_to:null,job_title_en:'Head of Commercial',job_title_ar:'رئيس الإدارة التجارية',active:true,left_on:null},
+                 {id:'pm-sara',user_id:'pp-sara',department_id:'dep-business',reports_to:'pm-head',job_title_en:null,job_title_ar:null,active:true,left_on:null},
+                 {id:'pm-omar',user_id:'pp-omar',department_id:'dep-partnership',reports_to:'pm-head',job_title_en:null,job_title_ar:null,active:true,left_on:null},
+                 {id:'pm-qa',user_id:UID,department_id:'dep-business',reports_to:'pm-head',job_title_en:null,job_title_ar:null,active:true,left_on:null}];
+  deps[0].head_member_id='pm-head';
+  const P={deps,members,assists:[{member_id:'pm-omar',team_id:'dep-tenders'}],seq:100,tasks:[{id:'pt-1',department_id:'dep-quality',open:true},{id:'pt-2',department_id:'dep-quality',open:false}]};
+  P.roster=()=>TABLES.app_users.map(x=>({id:x.id,email:x.email,full_name:x.full_name,name_ar:x.name_ar||null,nickname:x.nickname||null,role:x.role,active:x.active,
+    first_name_en:x.first_name_en||null,last_name_en:x.last_name_en||null,first_name_ar:x.first_name_ar||null,last_name_ar:x.last_name_ar||null}));
+  P.hist=(table,id,before,after)=>{ const me=TABLES.app_users.find(x=>x.id===UID)||{}; const nextId=(TABLES.record_history.length?Math.max(...TABLES.record_history.map(x=>+x.id||0)):0)+1;
+    TABLES.record_history.unshift({id:nextId,at:new Date().toISOString(),actor:UID,actor_name:me.full_name||'unknown',table_name:table,record_id:id,action:before?(after?'edit':'delete'):'create',before_row:before,after_row:after,undone_at:null,undone_by:null}); };
+  P.guardTeam=(old,patch)=>{
+    const row=Object.assign({},old||{},patch); row.name_en=String(row.name_en||'').trim(); row.name_ar=String(row.name_ar||'').trim();
+    if(!row.name_en||!row.name_ar) return {error:'A team needs a name in English and in Arabic'};
+    if(!old){ row.id='dep-new-'+(++P.seq); row.parent_id='dep-commercial'; row.code=row.name_en.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); row.sort=Math.max(...P.deps.map(d=>d.sort))+1; row.active=true; row.head_member_id=null; }
+    else {
+      if(!old.parent_id && row.active===false) return {error:'The department itself cannot be retired'};
+      if(old.active && row.active===false && (P.members.some(m=>m.department_id===old.id&&m.active) || P.tasks.some(x=>x.department_id===old.id&&x.open)))
+        return {error:'This team still has open work or people — use Retire, which moves them to another team first'};
+      if(row.head_member_id && row.head_member_id!==old.head_member_id && !P.members.some(m=>m.id===row.head_member_id&&m.active)) return {error:'A department head must be an active person on the team list'};
+    }
+    if(row.active && P.deps.some(d=>d.id!==row.id && d.active && (d.name_en.toLowerCase()===row.name_en.toLowerCase() || d.name_ar===row.name_ar))) return {error:'Another active team already has that name'};
+    return {row};
+  };
+  globalThis.__PEOPLE=P; return P;
+}
 function mockLevelsOf(u){
   const out={};
   MOCK_ACCESS_PAGES.forEach(p=>{
@@ -652,6 +688,7 @@ export function start(port, seedOverrides){
       // the client's own refusal path (alert + redraw) could never be exercised here at all.
       if(A==='set_role'){
         const caller0=TABLES.app_users.find(x=>x.id===UID);
+        if((caller0||{}).role==='manager' && p.role==='admin') return send(res,200,{error:'A manager cannot give admin access.'});
         if(p.id===UID && p.role!==(caller0||{}).role) return send(res,200,{error:'You cannot change your own role.'});
         const u=TABLES.app_users.find(x=>x.id===p.id); if(u)u.role=p.role; return send(res,200,{ok:true}); }
       if(A==='set_active'){
@@ -855,12 +892,61 @@ export function start(port, seedOverrides){
         const meP=TABLES.app_users.find(x=>x.id===UID && x.active); if(!meP||mockLevelsOf(meP).clients==='none') return send(res,200,null);
         const a=parsed||{}; const o={}; CARDMOCK.docs.filter(d=>d.business_id===a.p_business&&!d.deleted_at).forEach(d=>{ o[d.doc_type]=(o[d.doc_type]||0)+1; }); return send(res,200,o);
       }
+      if(process.env.MOCK_PEOPLE==='1' && (fn==='person_save'||fn==='team_retire')){
+        const P=PEOPLE(); const me=TABLES.app_users.find(x=>x.id===UID && x.active);
+        const refuse=(code,msg)=>send(res,code==='42501'?403:400,{code,details:null,hint:null,message:msg});
+        if(!me||!['admin','manager'].includes(me.role)) return refuse('42501',fn==='team_retire'?'Only an admin or a manager can change teams':'Only an admin or a manager can change people');
+        const a=parsed||{};
+        if(fn==='team_retire'){
+          const t=P.deps.find(d=>d.id===a.p_team), m=P.deps.find(d=>d.id===a.p_move_to);
+          if(!t||!t.parent_id) return refuse('P0001','That is not a team');
+          if(!t.active) return refuse('P0001','That team is already retired');
+          if(!m||!m.active||m.id===t.id) return refuse('P0001','Choose another active team to move its open work to');
+          let nt=0,nm=0,na=0; P.tasks.forEach(x=>{ if(x.department_id===t.id&&x.open){ x.department_id=m.id; nt++; } });
+          P.members.forEach(x=>{ if(x.department_id===t.id){ const b=Object.assign({},x); x.department_id=m.id; nm++; P.hist('team_members',x.id,b,Object.assign({},x)); } });
+          const keep=P.assists.filter(x=>!(x.team_id===t.id || (x.team_id===m.id && P.members.some(y=>y.id===x.member_id&&y.department_id===m.id)))); na=P.assists.length-keep.length; P.assists.length=0; keep.forEach(x=>P.assists.push(x));
+          const b=Object.assign({},t); t.active=false; P.hist('departments',t.id,b,Object.assign({},t));
+          return send(res,200,{team:t.name_en,moved_to:m.name_en,tasks:nt,projects:0,people:nm,assists_ended:na});
+        }
+        const u=TABLES.app_users.find(x=>x.id===a.p_user); const p=a.p||{};
+        if(!u) return refuse('P0002','No such person');
+        if(u.role==='admin' && me.role!=='admin') return refuse('42501','Only an admin can change an admin\'s details');
+        if(['first_name_en','last_name_en','first_name_ar','last_name_ar'].some(k=>k in p)){
+          const fe=String(p.first_name_en||'').trim(), fa=String(p.first_name_ar||'').trim();
+          if(!fe||!fa) return refuse('P0001','A first name is needed in English and in Arabic');
+          const before={first_name_en:u.first_name_en||null,last_name_en:u.last_name_en||null,first_name_ar:u.first_name_ar||null,last_name_ar:u.last_name_ar||null};
+          u.first_name_en=fe; u.last_name_en=String(p.last_name_en||'').trim()||null; u.first_name_ar=fa; u.last_name_ar=String(p.last_name_ar||'').trim()||null;
+          u.full_name=(fe+' '+(u.last_name_en||'')).trim(); u.name_ar=(fa+' '+(u.last_name_ar||'')).trim();
+          const after={first_name_en:u.first_name_en,last_name_en:u.last_name_en,first_name_ar:u.first_name_ar,last_name_ar:u.last_name_ar};
+          if(JSON.stringify(before)!==JSON.stringify(after)) P.hist('app_users',u.id,before,after);
+        }
+        let m=P.members.find(x=>x.user_id===u.id);
+        if('home_team' in p){
+          const h=P.deps.find(d=>d.id===p.home_team&&d.active); if(!h) return refuse('P0001',p.home_team?'A home team must be an active team':'Choose a home team');
+          if(!m){ m={id:'pm-'+(++P.seq),user_id:u.id,department_id:h.id,reports_to:null,job_title_en:null,job_title_ar:null,active:true,left_on:null}; P.members.push(m); P.hist('team_members',m.id,null,Object.assign({},m)); }
+          else if(m.department_id!==h.id){ const b=Object.assign({},m); m.department_id=h.id; for(let i=P.assists.length-1;i>=0;i--) if(P.assists[i].member_id===m.id&&P.assists[i].team_id===h.id) P.assists.splice(i,1); P.hist('team_members',m.id,b,Object.assign({},m)); }
+        }
+        if(!m && ['reports_to','assists','job_title_en','job_title_ar'].some(k=>k in p)) return refuse('P0001','Choose a home team first — that puts them on the team list');
+        if('reports_to' in p){ const r=p.reports_to||null;
+          if(r===m.id) return refuse('P0001','Nobody reports to themselves');
+          if(r && !P.members.some(x=>x.id===r&&x.active)) return refuse('P0001','Reports-to must be an active person on the team list');
+          if(m.reports_to!==r){ const b=Object.assign({},m); m.reports_to=r; P.hist('team_members',m.id,b,Object.assign({},m)); } }
+        if('job_title_en' in p || 'job_title_ar' in p){ m.job_title_en=String(p.job_title_en||'').trim()||null; m.job_title_ar=String(p.job_title_ar||'').trim()||null; }
+        if('assists' in p){
+          const want=[...new Set(p.assists||[])];
+          for(const tid of want){ if(!P.deps.some(d=>d.id===tid&&d.parent_id&&d.active)) return refuse('P0001','A person can only assist an active team'); if(tid===m.department_id) return refuse('P0001','That is already their home team'); }
+          for(let i=P.assists.length-1;i>=0;i--){ const x=P.assists[i]; if(x.member_id===m.id && want.indexOf(x.team_id)<0){ P.assists.splice(i,1); P.hist('team_member_assists',m.id+':'+x.team_id,x,null); } }
+          want.forEach(tid=>{ if(!P.assists.some(x=>x.member_id===m.id&&x.team_id===tid)){ const x={member_id:m.id,team_id:tid}; P.assists.push(x); P.hist('team_member_assists',m.id+':'+tid,null,x); } });
+        }
+        return send(res,200,{user:u.id,member:m?m.id:null,full_name:u.full_name,name_ar:u.name_ar});
+      }
       if(fn==='my_page_levels'){
         if(LAPSED||anonWall) return send(res,200,'null');
         const me=TABLES.app_users.find(u=>u.id===UID && u.active);
         return send(res,200, me ? JSON.stringify(mockLevelsOf(me)) : 'null');
       }
       if(fn==='team_access_list'){
+        if(process.env.MOCK_PEOPLE==='1') PEOPLE();   /* the People & teams stand-in adds its people before the list is drawn */
         const me=TABLES.app_users.find(u=>u.id===UID && u.active);
         if(!me||(me.role!=='admin'&&me.role!=='manager')) return send(res,200,[]);
         return send(res,200, TABLES.app_users.map(u=>({id:u.id,full_name:u.full_name,email:u.email,role:u.role,active:u.active,
@@ -1181,6 +1267,49 @@ export function start(port, seedOverrides){
        or a manager only (anyone else: PostgREST's refusal, or no row back on an update — as RLS does),
        the database's guard sentences word for word, and a record_history row per change. Off by default,
        so every other probe keeps the fixed list TASKMOCK serves. */
+    /* 2026-09-27 — People & teams (js/114, scripts/sql/people-and-teams.sql). Only when a probe asks (MOCK_PEOPLE=1): a
+       STATEFUL model of the teams (departments under Commercial), the team list with reports-to and job titles, the teams
+       each person assists, and the roster — row rules as live (reads for anyone signed in; team and team-list writes for an
+       admin or a manager; no team is ever deleted), the database's guard sentences word for word, a history row per change.
+       person_save and team_retire are modelled in the rpc section below (PEOPLE). */
+    if(process.env.MOCK_PEOPLE==='1' && ['departments','team_members','team_member_assists','team_directory'].includes(t)){
+      const P=PEOPLE();
+      const me=TABLES.app_users.find(x=>x.id===UID && x.active); const may=!!me && ['admin','manager'].includes(me.role);
+      const pick=(rows)=>{ let out=rows.slice(); Object.keys(u.query||{}).forEach(k=>{ if(['select','order','limit','offset'].includes(k))return; const v=String((Array.isArray(u.query[k])?u.query[k][0]:u.query[k])||''); const m=v.match(/^eq\.(.*)$/); if(m) out=out.filter(r=>String(r[k])===m[1]); }); return out; };
+      const err=(code,msg)=>send(res,code==='42501'?403:400,{code,details:null,hint:null,message:msg});
+      if(req.method==='GET'){
+        if(!me) return send(res,200,[]);
+        if(t==='team_directory') return send(res,200,pick(P.roster()));
+        return send(res,200,pick(t==='departments'?P.deps.slice().sort((a,b)=>a.sort-b.sort):t==='team_members'?P.members:P.assists));
+      }
+      let body=''; req.on('data',c=>body+=c);
+      return req.on('end',()=>{
+        let payload={}; try{ payload=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
+        if(t==='team_directory'||t==='team_member_assists') return err('42501','new row violates row-level security policy for table "'+t+'"');
+        if(req.method==='DELETE'){ if(t==='departments') return send(res,200,[]); return err('42501','mock: delete not modelled'); }
+        if(req.method==='POST'){
+          if(!may) return err('42501','new row violates row-level security policy for table "'+t+'"');
+          const r=Object.assign({},Array.isArray(payload)?payload[0]:payload);
+          if(t==='departments'){ const x=P.guardTeam(null,r); if(x.error) return err('P0001',x.error); P.deps.push(x.row); P.hist('departments',x.row.id,null,x.row); return send(res,201,[x.row]); }
+          return err('42501','mock: insert not modelled on '+t);
+        }
+        if(req.method==='PATCH'){
+          if(!may) return send(res,200,[]);
+          const rows=pick(t==='departments'?P.deps:P.members), out=[];
+          for(const r of rows){
+            const before=Object.assign({},r);
+            if(t==='departments'){ const x=P.guardTeam(r,payload); if(x.error) return err('P0001',x.error); Object.assign(r,x.row); }
+            else { const next=Object.assign({},r,payload);
+              if(r.active && next.active===false){ const heads=P.deps.filter(d=>d.head_member_id===r.id).map(d=>d.name_en); if(heads.length) return err('P0001','This person heads '+heads.join(', ')+' — choose a new head first, then make them inactive'); if(!next.left_on) next.left_on='2026-09-27'; }
+              if(!r.active && next.active===true) next.left_on=null;
+              Object.assign(r,next); }
+            P.hist(t,r.id,before,Object.assign({},r)); out.push(r);
+          }
+          return send(res,200,out);
+        }
+        return err('42501','mock: '+req.method+' not modelled on '+t);
+      });
+    }
     if(process.env.MOCK_TEAMLIST==='1' && ['team_members','departments','team_directory'].includes(t)){
       const TL=globalThis.__TL||(globalThis.__TL=(()=>{
         const deps=[['commercial','Commercial','التجاري',0],['business','Business','الأعمال',1],['partnership','Partnership','الشراكات',2],['quality','Quality','الجودة',3]]

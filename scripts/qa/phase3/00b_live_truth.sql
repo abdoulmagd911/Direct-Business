@@ -139,3 +139,20 @@ create policy client_profiles_read on client_profiles for select using (app_role
 drop policy if exists client_profiles_write on client_profiles;
 create policy client_profiles_write on client_profiles for all using (can_write_company_id(business_id)) with check (can_write_company_id(business_id));
 grant select, insert, update, delete on client_profiles to authenticated;
+
+-- ---------- people & teams (2026-09-27): the login table's rules and the directory view, as live ----------
+-- A signed-in person reads only their own login row (an admin reads all); only an admin writes. The directory view
+-- runs with the caller's rights (security_invoker), so it adds no way around those rules.
+alter table app_users enable row level security;
+drop policy if exists app_users_admin_read on app_users;
+create policy app_users_admin_read on app_users for select using (app_role() = 'admin');
+drop policy if exists app_users_self_read on app_users;
+create policy app_users_self_read on app_users for select using (id = auth.uid() or app_role() = 'admin');
+drop policy if exists app_users_admin_update on app_users;
+create policy app_users_admin_update on app_users for update using (app_role() = 'admin') with check (app_role() = 'admin');
+drop policy if exists app_users_admin_write on app_users;
+create policy app_users_admin_write on app_users for all using (app_role() = 'admin') with check (app_role() = 'admin');
+grant select, insert, update, delete on app_users to authenticated;
+create or replace view public.team_directory with (security_invoker = on) as
+  select id, email, full_name, name_ar, nickname, role, active from public.app_users;
+grant select on public.team_directory to authenticated;

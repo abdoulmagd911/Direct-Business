@@ -39,7 +39,8 @@ for (const lang of ['en', 'ar']) {
   await p.goto(SITE + '/today?cb=' + Date.now(), { waitUntil: 'domcontentloaded', timeout: 90000 });
   await p.waitForSelector('#cl_email', { timeout: 90000 });
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
-  await p.waitForFunction(() => typeof render === 'function' && (DB.businesses || []).length > 0 && window.__pageLevels !== undefined, { timeout: 150000 });
+  /* signed in and loaded — an EMPTY database (after a reset, D9) is a valid state, so no row count is waited for */
+  await p.waitForFunction(() => typeof render === 'function' && window.__pageLevels && !document.getElementById('cl_email') && Array.isArray(DB.businesses), { timeout: 150000 });
   await p.waitForTimeout(6000);
   check(await p.evaluate((l) => document.documentElement.dir === (l === 'ar' ? 'rtl' : 'ltr') || getComputedStyle(document.body).direction === (l === 'ar' ? 'rtl' : 'ltr'), lang), `${L}: the page runs ${lang === 'ar' ? 'right to left' : 'left to right'}`);
   const fontsReady = await p.evaluate(async () => { await document.fonts.ready; return [...document.fonts].filter((f) => /DirectFont/i.test(f.family) && f.status === 'loaded').length; });
@@ -79,23 +80,26 @@ for (const lang of ['en', 'ar']) {
   const tk = await p.evaluate(() => ({ n: (window.__v108State.tasks || []).length, err: window.__v108State.err, text: document.getElementById('view').innerText.slice(0, 2000) }));
   check(!tk.err && (tk.n > 0 || /no task|nothing|لا توجد|لا مهام|ليس/i.test(tk.text)), `${L}: Tasks loads from the live database (${tk.n} task(s)) and says so when there are none`, tk.err || tk.text.slice(0, 200));
 
-  /* 4 — a real client's company card */
+  /* 4 and 5 — a real client's company card and its form; after a reset there is no client, and the walk says so */
   const cid = await p.evaluate(() => { const c = DB.businesses.filter((x) => x.isClient); return c.length ? c[0].id : null; });
-  await p.evaluate((id) => { current = 'leads'; openLead = id; render(); }, cid);   /* what a click on a Clients row does (its onclick sets current='leads') */
-  const card = await p.waitForFunction(() => { const c = document.querySelector('.v113-card'); return c && !/Loading…|جارٍ التحميل/.test(c.innerText) && /of 3 open|من 3 مفتوحة/.test(c.innerText) ? c.innerText.length : false; }, { timeout: 20000 }).then((h) => h.jsonValue()).catch(() => 0);
-  const secs = await p.evaluate(() => [...document.querySelectorAll('.v113-card .v113-sec')].map((s) => s.getAttribute('data-sec')));
-  check(card > 0 && ['ids', 'codes', 'files'].every((s) => secs.includes(s)), `${L}: a real client's company card loads IDs ("of 3 open"), codes and files from the live database`, 'sections ' + secs.join(',') + ' len ' + card);
+  if (!cid) console.log(`  · ${L}: company card and its form not run — the live database holds no client (${await p.evaluate(() => DB.businesses.length)} companies)`);
+  else {
+    await p.evaluate((id) => { current = 'leads'; openLead = id; render(); }, cid);   /* what a click on a Clients row does (its onclick sets current='leads') */
+    const card = await p.waitForFunction(() => { const c = document.querySelector('.v113-card'); return c && !/Loading…|جارٍ التحميل/.test(c.innerText) && /of 3 open|من 3 مفتوحة/.test(c.innerText) ? c.innerText.length : false; }, { timeout: 20000 }).then((h) => h.jsonValue()).catch(() => 0);
+    const secs = await p.evaluate(() => [...document.querySelectorAll('.v113-card .v113-sec')].map((s) => s.getAttribute('data-sec')));
+    check(card > 0 && ['ids', 'codes', 'files'].every((s) => secs.includes(s)), `${L}: a real client's company card loads IDs ("of 3 open"), codes and files from the live database`, 'sections ' + secs.join(',') + ' len ' + card);
 
-  /* 5 — the company card's form keeps the keyboard */
-  const r5 = await p.evaluate(async (id) => { if (typeof editCorporate !== 'function') return { missing: 'editCorporate' };
-    editCorporate(id); const el = document.getElementById('c_pt'); if (!el) return { missing: 'c_pt' };
-    el.value = 'QA-typed'; el.focus(); el.select(); await new Promise((r) => setTimeout(r, 150));
-    const a = document.activeElement; return { now: a ? a.id : null }; }, cid);
-  let v5 = null;
-  if (!r5.missing) { await p.keyboard.press('Delete'); v5 = await p.evaluate(() => document.getElementById('c_pt').value); }
-  await p.evaluate(() => { try { closeModal(); } catch (_) { } });
-  check(!r5.missing && r5.now === 'c_pt' && v5 === '', `${L}: the company form keeps the keyboard in the field and select + Delete empties it (closed without saving)`, JSON.stringify(r5) + ' value=' + v5);
+    /* 5 — the company card's form keeps the keyboard */
+    const r5 = await p.evaluate(async (id) => { if (typeof editCorporate !== 'function') return { missing: 'editCorporate' };
+      editCorporate(id); const el = document.getElementById('c_pt'); if (!el) return { missing: 'c_pt' };
+      el.value = 'QA-typed'; el.focus(); el.select(); await new Promise((r) => setTimeout(r, 150));
+      const a = document.activeElement; return { now: a ? a.id : null }; }, cid);
+    let v5 = null;
+    if (!r5.missing) { await p.keyboard.press('Delete'); v5 = await p.evaluate(() => document.getElementById('c_pt').value); }
+    await p.evaluate(() => { try { closeModal(); } catch (_) { } });
+    check(!r5.missing && r5.now === 'c_pt' && v5 === '', `${L}: the company form keeps the keyboard in the field and select + Delete empties it (closed without saving)`, JSON.stringify(r5) + ' value=' + v5);
 
+  }
   check(errors.length === 0, `${L}: no JS errors anywhere on the walk`, errors.slice(0, 3).join(' | '));
   held.push(...await p.evaluate(() => window.__held || []));
   await ctx.close();

@@ -67,7 +67,9 @@
         if(typeof window.__accessKnown==='function' && window.__accessKnown()
            && typeof window.myAllowedPages==='function' && typeof current!=='undefined' && current){
           var allowed=window.myAllowedPages();
-          if(allowed && allowed.indexOf(current)<0){
+          /* 2026-09-27: js/52's mayOpenPage is the ONE answer (the grid, or the role for a role page such as People &
+             teams); reading the grid list here bounced a manager off People & teams, which is not a grid page */
+          if(typeof window.mayOpenPage==='function' ? !window.mayOpenPage(current) : (allowed && allowed.indexOf(current)<0)){
             var denied=current;
             current='today';
             if(lastLogged!==denied){ lastLogged=denied; logDenied(denied); }

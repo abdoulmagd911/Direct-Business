@@ -100,7 +100,11 @@
       }catch(_){ return false; }
     };
   }catch(_){}
+  /* pages that belong to a ROLE, not to the per-page grid (2026-09-27): People & teams is for admins and managers —
+     js/114, and the database's own rules (person_save, team_retire, the row rules) say the same */
+  var ROLE_PAGES={ people:['admin','manager'] };
   function mayOpen(view){
+    if(ROLE_PAGES[view]) return known() && ROLE_PAGES[view].indexOf(role())>=0;
     var a=allowedPages(); if(!a) return true;
     return a.indexOf(view)>=0;
   }
@@ -165,7 +169,7 @@
              <span> read the ICON of js/108's Tasks button ("✓") and js/90's Activity/Archive ("·"), so
              those three were named "?✓"/"?·", missing from every whitelist, and hidden for everyone
              but admins — whichever of this and the layer's own redraw ran last won, and this did. */
-          var own=b.getAttribute('data-v108-nav')||b.getAttribute('data-v90');
+          var own=b.getAttribute('data-v108-nav')||b.getAttribute('data-v90')||b.getAttribute('data-v114-nav');
           if(own){ b.setAttribute('data-view', own); return; }
           var sp=b.querySelector('span');
           var t=((sp?sp.textContent:b.textContent)||'').trim();
@@ -184,7 +188,7 @@
       nav.querySelectorAll('button[data-view]').forEach(function(b){
         var id=b.getAttribute('data-view');
         /* anything we could not name is not on the list either — the list is a whitelist */
-        b.style.display = (a.indexOf(id)>=0) ? '' : 'none';
+        b.style.display = mayOpen(id) ? '' : 'none';   /* mayOpen: the grid, or the role for a role page (People & teams) */
       });
       /* group headers with nothing left under them */
       nav.querySelectorAll('.v25-more-tog').forEach(function(tg){

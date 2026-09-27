@@ -81,7 +81,7 @@
     var q=function(p){ return p.then(function(r){ if(r&&r.error) throw r.error; return (r&&r.data)||[]; }); };
     Promise.all([
       c.auth.getSession().then(function(r){ return r&&r.data&&r.data.session&&r.data.session.user ? r.data.session.user.id : null; }),
-      q(c.from('tasks').select('id,code,title,description,status,priority,work_type,owner_id,business_id,project_id,parent_task_id,due_date,start_date,done_at,created_at,created_by,assigned_by,updated_at,include_in_report,report_category_id').is('deleted_at',null).order('created_at',{ascending:false}).limit(1000)),
+      q(c.from('tasks').select('id,code,title,description,status,priority,work_type,owner_id,business_id,project_id,parent_task_id,due_date,start_date,done_at,created_at,created_by,assigned_by,updated_at,include_in_report,report_category_id,department_id').is('deleted_at',null).order('created_at',{ascending:false}).limit(1000)),
       q(c.from('projects').select('id,code,name,business_id,owner_id,status,work_type,due_date,created_by,created_at').is('deleted_at',null).order('created_at',{ascending:false}).limit(500)),
       q(c.from('task_statuses').select('*').order('sort')),
       q(c.from('priorities').select('*').order('sort')),
@@ -205,6 +205,12 @@
     return '<option value="">'+fl('— no project —','— بدون مشروع —')+'</option>'+S.projects.filter(function(p){ return p.status!=='done'&&p.status!=='cancelled'; }).map(function(p){ return '<option value="'+esc8(p.id)+'"'+(p.id===sel?' selected':'')+'>'+esc8(p.code+' · '+p.name)+'</option>'; }).join('');
   }
   function val(id){ var e=document.getElementById(id); return e ? String(e.value||'').trim() : ''; }
+  /* the team picker (js/114): nothing to offer yet → no field, and the database fills the owner's home team */
+  function teamField(id,ownerMid,sel,dis){
+    var o=(typeof window.teamOptionsHtml==='function')?window.teamOptionsHtml(ownerMid,sel):'';
+    return o?field(fl('Team — who it is done for','الفريق — لمن يُنجز العمل'),'<select id="'+id+'"'+(dis||'')+'>'+o+'</select>'):'';
+  }
+  window.v108TeamFor=function(mid){ try{ var el=document.getElementById('v108_team'); if(el&&typeof window.teamOptionsHtml==='function') el.innerHTML=window.teamOptionsHtml(mid,null); }catch(_){} };
   function field(label,inner){ return '<div class="field"><label>'+label+'</label>'+inner+'</div>'; }
 
   window.v108NewTask=function(preset){
@@ -215,7 +221,10 @@
       field(fl('Kind of work','نوع العمل'),'<select id="v108_type">'+optionList(S.workTypes,preset.work_type||'sales')+'</select>')+
       field(fl('Company','الشركة'),'<select id="v108_biz">'+companyOptions(preset.business_id||'')+'</select>')+
       field(fl('Project','المشروع'),'<select id="v108_proj">'+projectOptions(preset.project_id||'')+'</select>')+
-      field(fl('Owner — who does it','المسؤول — من ينفّذها'),'<select id="v108_owner">'+memberOptions(me&&me.id)+'</select>')+
+      field(fl('Owner — who does it','المسؤول — من ينفّذها'),'<select id="v108_owner" onchange="v108TeamFor(this.value)">'+memberOptions(me&&me.id)+'</select>')+
+      /* people & teams (2026-09-27): the team the work is done for — the owner's home team first, then the teams they
+         assist (js/114's picker); the database insists only that it is an active team, and fills the home team if none */
+      teamField('v108_team',me&&me.id,null,'')+
       field(fl('Due','الاستحقاق'),'<input id="v108_due" type="date">')+
       field(fl('Priority','الأولوية'),'<select id="v108_pri">'+optionList(S.priorities,'normal')+'</select>')+
       '</div>'+field(fl('Details','التفاصيل'),'<textarea id="v108_desc" rows="3"></textarea>')+
@@ -223,6 +232,7 @@
     openModal(fl('New task','مهمة جديدة'),body,function(){
       var row={ title:val('v108_title'), work_type:val('v108_type'), business_id:val('v108_biz')||null, project_id:val('v108_proj')||null,
                 owner_id:val('v108_owner')||null, due_date:val('v108_due')||null, priority:val('v108_pri')||'normal', description:val('v108_desc')||null };
+      if(val('v108_team')) row.department_id=val('v108_team');
       if(!row.title){ note(fl('A task needs a title.','المهمة تحتاج عنوانًا.'),true); return false; }
       var c=client(); if(!c) return false;
       c.from('tasks').insert(row).select('id,code').then(function(r){
@@ -280,6 +290,7 @@
       field(fl('Status','الحالة'),'<select id="v108e_status"'+dis+'>'+optionList(S.statuses,t.status)+'</select>')+
       field(fl('Due','الاستحقاق'),'<input id="v108e_due" type="date" value="'+esc8(fmtDate(t.due_date))+'"'+dis+'>')+
       field(fl('Priority','الأولوية'),'<select id="v108e_pri"'+dis+'>'+optionList(S.priorities,t.priority)+'</select>')+
+      teamField('v108e_team',t.owner_id,t.department_id,dis)+
       '</div>'+field(fl('Details','التفاصيل'),'<textarea id="v108e_desc" rows="3"'+dis+'>'+esc8(t.description||'')+'</textarea>')+
       /* release 2 (2026-09-26): a finished task marked for the report registers its own achievement in the database —
          final when its owner or whoever manages it closes it, a DRAFT for them to finalize when a helper does (D7) */
@@ -299,6 +310,7 @@
     openModal(esc8(t.title),body,function(){
       if(!edit){ note(refusal({code:'42501'}),true); return false; }
       var patch={ title:val('v108e_title'), status:val('v108e_status'), due_date:val('v108e_due')||null, priority:val('v108e_pri'), description:val('v108e_desc')||null };
+      if(val('v108e_team') && val('v108e_team')!==t.department_id) patch.department_id=val('v108e_team');
       try{ var rep=document.getElementById('v108e_rep'); if(rep){ patch.include_in_report=!!rep.checked; patch.report_category_id=val('v108e_repcat')||null; } }catch(_){}
       if(!patch.title){ note(fl('A task needs a title.','المهمة تحتاج عنوانًا.'),true); return false; }
       if(patch.include_in_report && !patch.report_category_id){ note(fl('Choose the kind of achievement it will count as.','اختر نوع الإنجاز الذي ستُحتسب به.'),true); return false; }

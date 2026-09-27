@@ -143,8 +143,11 @@
         host=document.createElement('div'); host.id='v110Host'; host.style.cssText='margin-top:16px';
         var ax=document.getElementById('axHost'); if(ax&&ax.parentNode===view) view.insertBefore(host,ax); else view.appendChild(host);
       }
-      if(S.members==null) load();
-      host.innerHTML=html();
+      /* 2026-09-27: the team list moved to its own page, People & teams (js/114) — one place for people, their teams,
+         their access. This section points there; the old editor below stays unused (html()), not deleted. */
+      host.innerHTML='<div class="card" data-v110-moved="1" style="padding:12px 14px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">'+
+        '<div><b>'+fl('Team list','قائمة الفريق')+'</b><div class="ch-sub">'+fl('People, their teams, who heads what, reports-to and access now live on one page: People & teams.','الأشخاص وفرقهم ومن يرأس ماذا والتبعية والصلاحيات أصبحت في صفحة واحدة: الأشخاص والفرق.')+'</div></div>'+
+        '<button class="btn pri sm" onclick="try{current=\'people\';openLead=null;render();window.scrollTo(0,0);}catch(_){}">'+fl('Open People & teams','افتح الأشخاص والفرق')+'</button></div>';
     }catch(e){ console.warn('[team-list] paint',e); }
   }
   window.__v110Paint=paint;   /* for the probe: draw now, whatever page the role is allowed to be on */

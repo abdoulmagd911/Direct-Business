@@ -359,7 +359,7 @@ probe-design-file-on-every-page
 probe-view-means-view
 probe-tasks-page
 probe-the-menu-keeps-its-pages
-probe-team-list
+probe-people-and-teams
 probe-achievements-in-the-database
 probe-kpis-and-the-danger-light
 probe-generator-fonts-in-exports

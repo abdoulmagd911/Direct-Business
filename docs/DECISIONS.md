@@ -3125,6 +3125,30 @@ in `record_history`, and nothing on it copies Direct Payments (D6):
   company-docs") no longer reaches `clients/…`; Direct's own assets there keep it.
 *Date: 2026-09-26. Status: ACTIVE (approved under P6 as restated 2026-09-26).*
 
+**D11 — People & teams (the owner's order of 26 Sep, part 2; built 2026-09-27).** The words are the Drive home page's
+(§3): the DEPARTMENT is Commercial; a TEAM is a unit inside it — Business Development, Business Solutions, Partnerships,
+Tenders, Quality, Complaints, Strategy, Integrity, in that order. In the tables a team is a `departments` row under the
+Commercial row; a person's HOME team is `team_members.department_id`; the teams they ASSIST are `team_member_assists`;
+"reports to" is `team_members.reports_to` (everyone → the head of Commercial for now). Rules, all in the database
+(`scripts/sql/people-and-teams.sql`, attacked by `scripts/qa/phase3` PT-01..PT-08, A09, A32, T-02):
+- **Teams are a setting**: an admin or a manager adds, renames or retires one; **nobody deletes a team** (no delete rule,
+  and a trigger refuses even the database owner). A team with open work or people cannot be switched off directly —
+  `team_retire(team, move_to)` moves its open tasks and projects and its people to the chosen team, ends assisting it,
+  and leaves closed work where it was; a retired team can be brought back. The department itself is never retired.
+- **People are changed only through `person_save`** (names in English and Arabic — first names required in both —
+  home team, assisted teams, reports-to, job titles), by an admin or a manager; a manager never changes an admin. Role
+  and page levels keep their own guarded paths (admin-users `set_role`, `set_page_levels`). **A user can only sign in and
+  out**: no login row, team-list row, team or assist is theirs to write.
+- **A task's / an achievement's team is CHOSEN** (the team the work is done for) and must be active; none given → the
+  owner's home team. Reassigning a task keeps its team. (Before this, the team was always copied from the owner.) The
+  pickers offer the person's home team first, then the teams they assist, then the rest (`teamOptionsHtml`, js/114).
+- **The roster (`team_directory`) is readable by every active signed-in person** — found in the audit: switched to
+  security_invoker, the view had shown non-admins only THEMSELVES in every people list. It is now a security_invoker view
+  over the definer function `team_roster` (SQL), which answers only an active signed-in person and cannot be written through.
+- The People & teams page (js/114) is a ROLE page (admins and managers), not a grid page: `mayOpenPage` in js/52 is the
+  one answer, and js/49 and js/64 now ask it rather than reading the grid list (both had bounced a manager off the page).
+*Date: 2026-09-27. Status: ACTIVE (built on the owner's order; merges on the oversight's review, P6).*
+
 **D8 — Abdulrahman's logins, in his own word (2026-09-25): `aboelmagd@directksa.com` is his admin account
 and the one that belongs on the team list.** `business@directksa.com` is a login he keeps (untouched), not
 the person on the team list; `a.hassan@directksa.net` is his Team-Member test view. One human, one team-list
@@ -3149,6 +3173,13 @@ for anyone who wants it, harmless), and release 3 does not move browser KPI numb
 rules, guards, history, provenance, M1 money doctrine, rule 7) must hold the day real data arrives, and each
 release is still tested as if the data were real. The reset itself is a release of its own (docs/BACKLOG.md
 "Go-live reset"), built and tested like the others and run only on the owner's explicit go, on the day.
+**Owner's order of 26 Sep, carried out 2026-09-27:** "Reset now (approved)" — a full backup first (every public table,
+12,299 rows, in the private storage bucket `golive-backups`, stamp `20260927T070142Z`, each file read back and proved
+restorable row for row; a second copy was kept on the working machine), a dry run with counts per table (1,511 rows
+would go, 10,788 stay, no kept table changed), then the wipe (`scripts/sql/golive-reset.sql`, `golive_reset(true)`):
+business records, the finance mirror, tasks/achievements/reports, and the logs; logins, levels, the team list, KPI
+definitions and targets, lookups, settings, reference registers and every old backup table kept. **The FINAL go-live
+reset still needs the owner's go on the day** — the same function runs it.
 *Date: 2026-09-26. Status: ACTIVE.*
 
 **M84 — what someone typed into a funnel form can be found by typing it into a search box.**

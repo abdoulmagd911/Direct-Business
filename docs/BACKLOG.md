@@ -136,6 +136,32 @@ on this list at all. *Raised #140.*
 
 ---
 
+## Owner's order of 26 Sep — reset, People & teams, Tasks → Achievements (2026-09-27, Claude Code)
+
+**1 · Reset — done.** Full backup first, outside the database: all 124 tables (12,299 rows) as JSON in the private storage
+bucket `golive-backups`, stamp **20260927T070142Z** (`scripts/ops/golive-backup.mjs` + the admin-only function
+`golive-backup`); every piece was read back from storage and proved to go back into its table row for row. Three earlier
+stamps in the same bucket are incomplete first attempts (a JavaScript round trip changed `123.4500` into `123.45`, and a
+9 MB table timed out) — use 20260927T070142Z. Dry run (`golive_reset(false)`): 1,511 rows would go, 10,788 stay, nothing
+kept would change. Then the wipe. Kept: 11 logins, levels, the team list (8), 7 departments, 30 KPIs and their 30 targets,
+lookups, settings, the 200 discount codes, airlines, suppliers, events, SOPs/SLAs, Direct's own content, the travel-agencies
+register, and every old backup table. The live site was walked after it: all 23 pages and 4 Reports tabs, both languages,
+no errors. **Not wiped, on purpose — say if they should go:** the old `*_snapshot_*`/`world30_*` backup tables (real
+older data, used only for recovery), and 19 empty placeholder files in the expenses/payment-proofs/proposals stores.
+**The final go-live reset still needs your go on the day.**
+
+**2 · People & teams — built, not yet live (merges on review; the database change is applied at merge).** One admin page
+(DECISIONS D11). Teams in the agreed order (Business → Business Development, Partnership → Partnerships, Business Solutions
+and Tenders added); add / rename / retire (open work moves) / bring back; people with first and last names in both
+languages, e-mail, role, page levels, home team, teams they assist, reports-to (everyone → Othman), job title; Invite
+creates the login and saves the rest. The Team list section on Settings now points to the page.
+**Found on the way, fixed in the same change:** every non-admin — the manager included — saw only THEMSELVES in every
+people list (Tasks, achievements, KPIs, "Assigned to"), because the roster view reads with the reader's rights and a
+non-admin may read only their own login row. The roster is readable by every signed-in person again (D11).
+**For you:** names were split into first/last automatically from the full names on file — a compound first name (e.g.
+"Abdul Aziz") comes out as first "Abdul", last "Aziz …"; correct any such person on the page. Nobody has a team yet
+(everyone's home is still "Commercial") — setting each person's home team is yours or Othman's, on the page.
+
 ## Bulletproof audit of everything since Phase 1 (2026-09-27, Claude Code) — the Tasks button vanished for every team member
 
 **Asked:** test every step built so far for real — use every feature, assume nothing works until it has been used.
