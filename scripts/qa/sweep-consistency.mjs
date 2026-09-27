@@ -2,6 +2,34 @@ import { start } from './mock-seed.mjs';
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
 const PORT = 8890, BASE = `http://127.0.0.1:${PORT}`;
+/* E (2026-09-27, D16): Finance now reads the database view money_rows together with the rows (js/16 finLoad), and a
+   company's money is only what a person typed into it (a client ID, a code or a customer name). mock-seed.mjs has no such
+   view — it answers [] — so every invoice stood alone and no client card found its money. Until that mock models the
+   view, this probe answers money_rows itself, the way the view does for this seed: a row with no client ID belongs to
+   the company its customer name was typed into — the seed's finance_client_links, read as typed names exactly as
+   mock-supabase.mjs does (linksToNames); a row with a client ID goes by client_profiles alone; this seed has no
+   exclusion rules, so only a row's own exclusion_reason leaves it out. */
+const mrNorm = (t) => { let s = String(t == null ? '' : t); try { s = s.normalize('NFKC'); } catch (_) { } s = s.toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[^\p{L}\p{N}]+/gu, ''); return s || null; };
+async function answerMoneyRows(r) {
+  const rq = r.request(); const u = new URL(rq.url());
+  if (u.pathname !== '/rest/v1/money_rows' || rq.method() !== 'GET') return false;
+  const h = {}; const rh = rq.headers(); ['authorization', 'apikey'].forEach((k) => { if (rh[k]) h[k] = rh[k]; });
+  const all = async (t) => { let out = []; for (let o = 0; ; o += 1000) { const x = await fetch(`${BASE}/rest/v1/${t}?select=*&offset=${o}&limit=1000`, { headers: h }); const d = await x.json().catch(() => []); if (!Array.isArray(d)) break; out = out.concat(d); if (d.length < 1000) break; } return out; };
+  const [inv, links, prof, biz] = await Promise.all([all('finance_invoices'), all('finance_client_links'), all('client_profiles'), all('businesses')]);
+  const nameTo = {}; links.forEach((l) => { const k = mrNorm(l.client_group); if (k && l.business_id && !nameTo[k]) nameTo[k] = l.business_id; });
+  const bn = {}; biz.forEach((b) => { bn[b.id] = b.name; });
+  const rows = inv.filter((i) => !i.deleted_at).map((i) => {
+    const cid = mrNorm(i.payments_client_id); const cp = cid ? prof.find((p) => mrNorm(p.direct_client_id) === cid) : null;
+    const bizId = cp ? cp.business_id : (!cid ? (nameTo[mrNorm(i.client_group)] || nameTo[mrNorm(i.customer_raw_name)] || null) : null);
+    const excluded = i.exclusion_reason != null;
+    return { id: i.id, business_id: bizId, company_key: bizId ? 'biz:' + bizId : cid ? 'cid:' + cid : 'name:' + (mrNorm(i.client_group || i.customer_raw_name) || '?'),
+      company_name: bizId ? (bn[bizId] || null) : (i.client_group || i.customer_raw_name), merge_state: bizId ? 'merged' : cid ? 'not_merged' : 'no_client_id',
+      profile_type: cp ? cp.profile_type : null, rule_id: null, rule_kind: null, rule_value: null, rule_reason: null, excluded, counts: !excluded && i.integrity_status === 'verified_paid', open_age_days: null };
+  }).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const off = +(u.searchParams.get('offset') || 0), lim = u.searchParams.get('limit'); const win = rows.slice(off, lim != null ? off + +lim : undefined);
+  await r.fulfill({ status: 200, contentType: 'application/json', headers: { 'content-range': off + '-' + Math.max(off + win.length - 1, 0) + '/' + rows.length, 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range' }, body: JSON.stringify(win) });
+  return true;
+}
 start(PORT);
 const src = fs.readFileSync(new URL('./mock-seed.mjs', import.meta.url), 'utf8');   // path relative to this file, not the cwd (2026-09-02: ran only from scripts/qa before)
 const fin = eval(src.match(/const SEED_FIN=(\[.*?\]);\n/s)[1]);
@@ -18,6 +46,7 @@ await page.route(u=>u.href.includes('cdn.jsdelivr.net'), async r => {
   return r.fulfill({ status: 200, contentType: 'application/javascript', body: '' });
 });
 await page.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async r => {
+  if (await answerMoneyRows(r)) return;
   const u = new URL(r.request().url());
   const resp = await fetch(BASE + u.pathname + u.search, { method: r.request().method(), headers: r.request().headers(), body: r.request().postData() || undefined });
   const body = Buffer.from(await resp.arrayBuffer());

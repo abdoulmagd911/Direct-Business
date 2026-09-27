@@ -9,6 +9,8 @@ from public.finance_invoices i
 left join public.finance_client_links l on l.client_group = i.client_group
 where i.deleted_at is null and i.exclusion_reason is null and i.integrity_status = 'verified_paid';
 
+drop trigger if exists business_merges_carry_typed on public.business_merges;
+drop function if exists public.business_merges_carry_typed();
 drop view if exists public.money_that_counts;
 drop view if exists public.money_rows;
 drop function if exists public.money_row_rules();

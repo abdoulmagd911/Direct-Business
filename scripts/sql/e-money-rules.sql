@@ -22,10 +22,12 @@ alter table public.finance_invoices
   add column if not exists customer_tax_no text,      -- the customer's VAT or CR number, as the export gives it
   add column if not exists discount_code text;        -- the discount code the sale used, if any
 
--- one spelling for matching: NFKC, lower case, Arabic alef / yeh / teh-marbuta folded, everything that is not a letter or
--- a digit dropped (spaces, punctuation, diacritics, tatweel). js/117 mirrors it (normMR) for the on-screen preview.
+-- one spelling for matching: NFKC, lower case, Arabic alef / yeh / teh-marbuta folded, Arabic diacritics and tatweel removed
+-- explicitly (a C-locale database would otherwise keep them), everything else that is not a letter or a digit dropped. js/117 mirrors it (normMR) for the on-screen preview.
 create or replace function public.money_norm(t text) returns text language sql immutable parallel safe as $$
-  select nullif(regexp_replace(lower(translate(normalize(coalesce(t, ''), NFKC), 'أإآىة', 'ااايه')), '[^[:alnum:]]+', '', 'g'), '')
+  select nullif(regexp_replace(regexp_replace(lower(translate(normalize(coalesce(t, ''), NFKC), 'أإآىة', 'ااايه')),
+                                              '[\u064B-\u065F\u0670\u0640]', '', 'g'),   -- harakat + tatweel, whatever the locale says
+                               '[^[:alnum:]]+', '', 'g'), '')
 $$;
 
 -- =====================================================================
@@ -238,6 +240,50 @@ select m.id, m.invoice_no, m.invoice_date, m.client_group, m.business_id, m.reve
        m.amount_received_sar, m.amount_remaining_sar,
        ((m.cost_sar is null) or (m.cost_sar = 0::numeric)) as cost_missing, m.source_batch
 from public.money_that_counts m;
+
+-- =====================================================================
+-- 4b. MERGING TWO DUPLICATE COMPANY RECORDS (fn_merge_businesses, live since August) carries the typed merges with it.
+--     That function moves client_profiles itself; the typed discount codes and customer names are new with E, and their
+--     guards never re-point a link (remove and add). So when a merge is written to business_merges, each live code and
+--     name of the dropped company is removed there and added to the kept one — by the person merging (auth.uid()), all
+--     logged — and recorded in the merge's `moved`; undoing the merge reverses exactly that.
+-- =====================================================================
+create or replace function public.business_merges_carry_typed() returns trigger language plpgsql security definer set search_path to public as $$
+declare x record; nid uuid; codes jsonb := '[]'::jsonb; names jsonb := '[]'::jsonb;
+begin
+  if tg_op = 'INSERT' then
+    for x in select * from company_discount_codes where business_id = new.dropped_id and removed_at is null loop
+      update company_discount_codes set removed_at = now() where id = x.id;
+      if not exists (select 1 from company_discount_codes where promo_code_id = x.promo_code_id and removed_at is null) then
+        insert into company_discount_codes(business_id, promo_code_id, note) values (new.kept_id, x.promo_code_id, x.note) returning id into nid;
+        codes := codes || jsonb_build_object('removed', x.id, 'added', nid, 'promo_code_id', x.promo_code_id, 'note', x.note);
+      end if;
+    end loop;
+    for x in select * from company_name_aliases where business_id = new.dropped_id and removed_at is null loop
+      update company_name_aliases set removed_at = now() where id = x.id;
+      if not exists (select 1 from company_name_aliases where name_norm = x.name_norm and removed_at is null) then
+        insert into company_name_aliases(business_id, name) values (new.kept_id, x.name) returning id into nid;
+        names := names || jsonb_build_object('removed', x.id, 'added', nid, 'name', x.name);
+      end if;
+    end loop;
+    new.moved := coalesce(new.moved, '{}'::jsonb) || jsonb_build_object('company_discount_codes', codes, 'company_name_aliases', names);
+    return new;
+  end if;
+  if old.undone_at is null and new.undone_at is not null then
+    for x in select * from jsonb_array_elements(coalesce(new.moved->'company_discount_codes', '[]'::jsonb)) e(v) loop
+      update company_discount_codes set removed_at = now() where id = (x.v->>'added')::uuid and removed_at is null;
+      insert into company_discount_codes(business_id, promo_code_id, note) values (new.dropped_id, (x.v->>'promo_code_id')::uuid, x.v->>'note');
+    end loop;
+    for x in select * from jsonb_array_elements(coalesce(new.moved->'company_name_aliases', '[]'::jsonb)) e(v) loop
+      update company_name_aliases set removed_at = now() where id = (x.v->>'added')::uuid and removed_at is null;
+      insert into company_name_aliases(business_id, name) values (new.dropped_id, x.v->>'name');
+    end loop;
+  end if;
+  return new;
+end $$;
+drop trigger if exists business_merges_carry_typed on public.business_merges;
+create trigger business_merges_carry_typed before insert or update on public.business_merges
+  for each row execute function public.business_merges_carry_typed();
 
 -- =====================================================================
 -- 5. the old name lists leave the settings store (owner, 27 Sep): nothing re-created from them. Backed up outside the

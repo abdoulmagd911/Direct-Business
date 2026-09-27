@@ -1,6 +1,14 @@
 /* Round-8 probe: auto-link (v66), importer verification-skip, service catalog in dropdowns,
-   Tawthiq absent everywhere, manual link button hidden. */
-import { start } from './mock-seed-live.mjs';
+   Tawthiq absent everywhere, manual link button hidden.
+   E (2026-09-27, DECISIONS D16/D17): the v66 auto-linker is switched off — nothing merges by name and no code writes a
+   record. Checks 1-2 now assert the opposite of what they used to: a Finance row named exactly like a client stays
+   UNMERGED (money_rows merge_state 'no_client_id', not in FIN.linkByGroup), NOTHING is written to any link/name/ID
+   table by the page, and Finance → Rules lists it under "Needs a decision" with the same-name company only SUGGESTED;
+   an individuals-only group is not auto-marked either. The seed moved from mock-seed-live.mjs (which has no money_rows
+   view) to mock-supabase.mjs, whose Tawthiq fixture row is caught by a name rule — so "Tawthiq appears on no page" now
+   runs with the excluded row really in the ledger. The rows are planted through the table (as an import would), not
+   pushed into FIN.rows, because the company now comes from the view. */
+import { start } from './mock-supabase.mjs';
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
 const PORT = 8971, BASE = `http://127.0.0.1:${PORT}`;
@@ -39,28 +47,33 @@ await page.evaluate(() => { current = 'finance'; render(); });
 await page.waitForFunction(() => window.FIN && FIN.rows && FIN.rows.length > 0, null, { timeout: 20000 });
 await page.waitForTimeout(800);
 
-// 1) v66 auto-link: plant an unlinked group matching a client's exact name → link appears without any clicks
-const planted = await page.evaluate(() => {
-  const cl = (DB.businesses || []).find(b => b.isClient && !(FIN.linkByGroup || {})[b.name]);
+// 1) E: no automatic merge by name. Plant (through the table, as an import would) a row named exactly like a client and a
+//    private person's row; reload; render several times past the old linker's timers.
+const WATCH = ['finance_client_links', 'company_name_aliases', 'client_profiles', 'company_discount_codes', 'money_exclusion_rules'];
+const writes = []; page.on('request', (rq) => { const m = rq.url().match(/\/rest\/v1\/([a-z_]+)/); if (m && WATCH.includes(m[1]) && !['GET', 'HEAD'].includes(rq.method())) writes.push(rq.method() + ' ' + m[1]); });
+const planted = await page.evaluate(async () => {
+  const used = new Set((FIN.rows || []).map((r) => r.client_group));
+  const cl = (DB.businesses || []).find(b => b.isClient && b.name && !used.has(b.name) && !(FIN.linkByGroup || {})[b.name]);   // a client with no money yet, so the row is the only thing under its name
   if (!cl) return null;
-  FIN.rows.push({ id: 'qa-al-1', invoice_no: 'QA-AL-1', client_group: cl.name, customer_raw_name: cl.name, invoice_date: '2026-08-01', month: 'August', quarter: 'Q3', revenue_sar: 1000, total_incl_vat_sar: 1000, cost_sar: 800, profit_sar: 200, amount_received_sar: 1000, amount_remaining_sar: 0, integrity_status: 'verified_paid', record_type: 'b2b', service_type: 'Flights', revenue_way: 'invoice' });
-  render();
-  return cl.name;
+  const base = { invoice_date: '2026-08-01', month: 'August', quarter: 'Q3', total_incl_vat_sar: 1000, wallet_portion_sar: 0, revenue_sar: 1000, cost_sar: 800, profit_sar: 200, amount_received_sar: 1000, amount_remaining_sar: 0, integrity_status: 'verified_paid', service_type: 'Flights', revenue_way: 'invoice', deleted_at: null };
+  const r = await fc().from('finance_invoices').insert([
+    Object.assign({ id: 'qa-al-1', invoice_no: 'QA-AL-1', client_group: cl.name, customer_raw_name: cl.name, record_type: 'b2b' }, base),
+    Object.assign({ id: 'qa-al-2', invoice_no: 'QA-AL-2', client_group: 'Ahmed Individual Person', customer_raw_name: 'Ahmed Individual Person', record_type: 'b2c' }, base)]).select('id');
+  FIN.rows = null; finLoad(); return { name: cl.name, wrote: (r.data || []).length };
 });
+const mOf = "(no) => { const r = (FIN.rows || []).find((x) => x.invoice_no === no); return r ? FIN.m[r.id] || null : null; }";
+await page.waitForFunction(() => FIN.rows && FIN.m && !FIN.loading && (FIN.rows || []).some((x) => x.invoice_no === 'QA-AL-1'), null, { timeout: 30000 }).catch(() => {});
+for (let i = 0; i < 4; i++) { await page.waitForTimeout(1200); await page.evaluate(() => { try { render(); } catch (_) {} }); }
 await page.waitForTimeout(2500);
-const linked = await page.evaluate(n => { const l = (FIN.linkByGroup || {})[n]; return l ? { biz: !!l.business_id, by: l.confirmed_by } : null; }, planted);
-STEP('v66: unlinked invoice group auto-links to the client by name (no clicks)', !!linked && linked.biz && linked.by === 'auto-match', planted + ' → ' + JSON.stringify(linked));
-const srvRows = await (await fetch(BASE + '/rest/v1/finance_client_links')).json();
-STEP('v66: auto-link is SAVED to the database (not just on screen)', srvRows.some(r => r.client_group === planted && r.confirmed_by === 'auto-match'));
-
-// 2) v66 variant: pure-B2C group auto-marks as Individuals
-const b2cName = await page.evaluate(() => {
-  FIN.rows.push({ id: 'qa-al-2', invoice_no: 'QA-AL-2', client_group: 'Ahmed Individual Person', customer_raw_name: 'Ahmed Individual Person', invoice_date: '2026-08-02', month: 'August', quarter: 'Q3', revenue_sar: 500, total_incl_vat_sar: 500, cost_sar: 400, profit_sar: 100, amount_received_sar: 500, amount_remaining_sar: 0, integrity_status: 'verified_paid', record_type: 'b2c', service_type: 'Flights', revenue_way: 'invoice' });
-  render(); return 'Ahmed Individual Person';
-});
-await page.waitForTimeout(2500);
-const indiv = await page.evaluate(n => { const l = (FIN.linkByGroup || {})[n]; return l ? l.is_client : undefined; }, b2cName);
-STEP('v66: an individuals-only group auto-marks "Individuals / not a client"', indiv === false);
+const st = await page.evaluate(([n, src]) => { const mOf = eval(src); return ({ link: (FIN.linkByGroup || {})[n] || null, m1: mOf('QA-AL-1'), m2: mOf('QA-AL-2'), indiv: (FIN.linkByGroup || {})['Ahmed Individual Person'] || null }); }, [planted && planted.name, mOf]);
+STEP('E: a row named exactly like a client is NOT merged by name (it stands alone until a person types it)', !!planted && planted.wrote === 2 && !st.link && st.m1 && st.m1.merge_state === 'no_client_id' && !st.m1.business_id, (planted && planted.name) + ' → ' + JSON.stringify({ link: st.link, m: st.m1 && st.m1.merge_state }));
+STEP('E: the page wrote NOTHING to any link, name, client-ID, code or rule table (D17)', writes.length === 0, writes.join(', '));
+STEP('E: an individuals-only group is not auto-marked either — it stands alone, counted', !st.indiv && st.m2 && st.m2.merge_state === 'no_client_id' && st.m2.counts === true);
+await page.evaluate(() => { current = 'finance'; finGo('rules'); });
+await page.waitForTimeout(1200);
+const dec = await page.evaluate((n) => { const tr = [...document.querySelectorAll('tr[data-v117-loose]')].find((x) => x.getAttribute('data-v117-loose') === n); if (!tr) return null;
+  const sel = tr.querySelector('select'); return { sug: /Suggested:/.test(tr.innerText), pre: sel ? sel.value : '' }; }, planted && planted.name);
+STEP('E: Finance → Rules lists it under "Needs a decision", the same-name company only suggested (pre-selected, not applied)', !!dec && dec.sug && !!dec.pre && !st.link, JSON.stringify(dec));
 
 // 3) manual "Link finance to clients" button is hidden
 const btnHidden = await page.evaluate(() => { const b = document.getElementById('v53btn'); return !b || b.style.display === 'none' || b.offsetParent === null; });

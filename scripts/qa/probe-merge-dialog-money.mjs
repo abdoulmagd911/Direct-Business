@@ -28,11 +28,17 @@
      4. A soft-deleted invoice is not counted into either company's total.
      5. An EXCLUDED client's invoices are not counted — the standing exclusion holds here too.
 
+   E (2026-09-27, DECISIONS D16): the standing exclusion is now a typed NAME rule (money_exclusion_rules, loaded by
+   js/117 into MR.rules) applied by the view money_rows, not a list in app_settings — so the readiness wait below waits
+   for the rules and the view (MR.rules + FIN.m) instead of settingsLoaded(), and its failure message says so. The
+   company of each group now comes from the view too: the harness turns this probe's finance_client_links into typed
+   customer names (company_name_aliases), so FIN.groupsByBiz is derived from money_rows. Every check is unchanged.
+
    Run:  node scripts/qa/probe-merge-dialog-money.mjs        (port 8719)
    Sabotage: drop the finSanitizeMoney call from bizFinance in js/62 — check 2 goes red with
    "2 invoices, 0 SAR". Restore byte-identical (md5).                                          */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
-import { start, settingsLoaded } from './mock-supabase.mjs';
+import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const PORT = 8719;
@@ -100,7 +106,7 @@ async function dialogFigures(b, renderFinanceFirst, forceRaw) {
      three the dialog offered "2 invoices, 889,388 SAR" for a company whose own money is 500,
      the rest being the excluded partner's — a real fail-open, guarded by its own check further
      down rather than left to redden these ones at random. */
-  const exclReady = await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Tawthiq Test Services')); } catch (_) { return false; } });
+  const exclReady = await p.waitForFunction(() => { try { if (window.MR && MR.rules == null && !MR.loading && typeof moneyRulesLoad === 'function') moneyRulesLoad(); return !!(window.MR && MR.rules && window.FIN && FIN.m && FIN.m['mm-5'] && typeof finExclusionCheck === 'function' && finExclusionCheck('Tawthiq Test Services')); } catch (_) { return false; } }, null, { timeout: 90000 }).then(() => true).catch(() => false);
   /* 2026-09-07 (round 67, Code session) — THE COLD PATH WAS NOT COLD, so check 2 could not fail.
      Measured: this probe passes in full against the PRE-FIX js/62 (`git show e77ae71^`). The
      reason is that live() sanitises IN PLACE and four other layers call finLive() during ordinary
@@ -124,7 +130,7 @@ async function dialogFigures(b, renderFinanceFirst, forceRaw) {
     setTimeout(() => { const b = document.getElementById('pfConfirmBox'); if (b && !captured) captured = b.innerText; const n = document.getElementById('pfConfirmNo'); if (n) n.click(); res(captured); }, 300);
   }));
   await ctx.close();
-  if (!exclReady) return { msg: '(the exclusion list never arrived — this run could not measure the dialog against the standing exclusion)', pairs: [], exclReady: false };
+  if (!exclReady) return { msg: '(the exclusion rules and the money_rows view never arrived — this run could not measure the dialog against the standing exclusion)', pairs: [], exclReady: false };
   const pairs = String(msg || '').match(/\((\d+) invoices, ([\d,\.]+) SAR\)/g) || [];
   return { msg: String(msg || ''), pairs, exclReady: true };
 }
@@ -138,7 +144,7 @@ async function main() {
   /* If either run never got the exclusion list, no check below can mean anything — say that
      once, plainly, instead of letting it cascade into four failures that name the wrong cause. */
   if (!rendered.exclReady || !cold.exclReady || !raw.exclReady) {
-    fail('the exclusion list never arrived from app_settings in ' + (!rendered.exclReady && !cold.exclReady ? 'either run' : (!rendered.exclReady ? 'the rendered run' : 'the cold run')) + ' — every check here is about whether the merge dialog respects the standing exclusion, so measuring without it would blame the app for the harness');
+    fail('the exclusion rules (MR.rules) and the money_rows view (FIN.m) never arrived in ' + (!rendered.exclReady && !cold.exclReady ? 'either run' : (!rendered.exclReady ? 'the rendered run' : 'the cold run')) + ' — every check here is about whether the merge dialog respects the standing exclusion, so measuring without it would blame the app for the harness');
     await b.close(); srv.close();
     console.log(`\nFAILED — ${failures} check(s) did not pass.`);
     process.exit(1);

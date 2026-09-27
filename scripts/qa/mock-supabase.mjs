@@ -547,7 +547,7 @@ const PWUPDATELOG=[];  // every updateUser({password}) call the mock's PUT /auth
 /* E (2026-09-27) — the one "what counts" view, modelled on scripts/sql/e-money-rules.sql money_row_rules()/money_rows:
    company = the company holding the row's typed client ID, else (no client ID) the company holding its typed discount
    code, else the row stands alone; rule = transaction → client ID → VAT/CR → code → name (name only with no client ID). */
-function mockMoneyNorm(t){ let s=String(t==null?'':t); try{ s=s.normalize('NFKC'); }catch(_){} s=s.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه'); s=s.replace(/[^\p{L}\p{N}]+/gu,''); return s||null; }
+function mockMoneyNorm(t){ let s=String(t==null?'':t); try{ s=s.normalize('NFKC'); }catch(_){} s=s.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[\u064B-\u065F\u0670\u0640]/g,''); s=s.replace(/[^\p{L}\p{N}]+/gu,''); return s||null; }
 function mockMoneyRows(){
   const N=mockMoneyNorm, ORDER=['transaction','client_id','tax_no','discount_code','name'];
   const rules=(TABLES.money_exclusion_rules||[]).filter(r=>r.active&&!r.removed_at).slice().sort((a,b)=>(ORDER.indexOf(a.kind)-ORDER.indexOf(b.kind))||String(a.created_at).localeCompare(String(b.created_at)));
@@ -886,6 +886,17 @@ export function start(port, seedOverrides){
         (TABLES.client_profiles||[]).forEach(p=>{ if(p.business_id!==drop)return;
           if(!p.closed_at&&openOnKeep.has(p.profile_type)){ moved.client_profiles_closed.push({id:p.id,notes:p.notes||null}); p.closed_at=new Date().toISOString(); p.notes=(p.notes?p.notes+'\n':'')+'Closed by merging this company into '+keep+': the kept company already had an open '+p.profile_type+' profile. Undoing the merge reopens it.'; }
           p.business_id=keep; moved.client_profiles.push(p.id); });
+        /* E (2026-09-27, business_merges_carry_typed): the dropped company's typed codes and customer names are removed there
+           and added to the kept one (a link is never re-pointed), recorded for undo */
+        { const now=new Date().toISOString(); moved.company_discount_codes=[]; moved.company_name_aliases=[];
+          (CARDMOCK.links||[]).filter(l=>l.business_id===drop&&!l.removed_at).forEach(l=>{ l.removed_at=now;
+            if((CARDMOCK.links||[]).some(x=>x.promo_code_id===l.promo_code_id&&!x.removed_at))return;
+            const n={id:'mock-cdc-'+Math.random().toString(36).slice(2),business_id:keep,promo_code_id:l.promo_code_id,note:l.note||null,linked_at:now,removed_at:null}; CARDMOCK.links.push(n);
+            moved.company_discount_codes.push({removed:l.id,added:n.id,promo_code_id:l.promo_code_id,note:l.note||null}); });
+          (TABLES.company_name_aliases||[]).filter(a=>a.business_id===drop&&!a.removed_at).forEach(a=>{ a.removed_at=now;
+            if((TABLES.company_name_aliases||[]).some(x=>!x.removed_at&&mockMoneyNorm(x.name)===mockMoneyNorm(a.name)))return;
+            const n={id:'na-'+Math.random().toString(36).slice(2),business_id:keep,name:a.name,created_at:now,removed_at:null}; TABLES.company_name_aliases.push(n);
+            moved.company_name_aliases.push({removed:a.id,added:n.id,name:a.name}); }); }
         const dropRow=(TABLES.businesses||[]).find(b=>b.id===drop);
         if(dropRow){ dropRow.archived_at=new Date().toISOString(); dropRow.archived_by='merged-into:'+keep; }
         const row={id:'mock-merge-'+Math.random().toString(36).slice(2), kept_id:keep, dropped_id:drop, dropped_snapshot:dropRow||{id:drop}, kept_before:{}, moved, reason:(parsed&&parsed.p_reason)||null, actor:'mock', merged_at:new Date().toISOString(), undone_at:null, undone_by:null};
@@ -900,6 +911,11 @@ export function start(port, seedOverrides){
           const c=(row.moved.client_profiles_closed||[]).find(x=>x.id===p.id); if(c){ p.closed_at=null; p.notes=c.notes; } });
         (TABLES.contacts||[]).forEach(c=>{ if((row.moved.contacts||[]).indexOf(c.id)>=0) c.business_id=row.dropped_id;
           const f=(row.moved.contacts_flagged||[]).find(x=>x.id===c.id); if(f){ c.needs_manual_confirmation=f.needs; c.confirmation_reason=f.reason; } });
+        { const now=new Date().toISOString();
+          (row.moved.company_discount_codes||[]).forEach(m=>{ const n=(CARDMOCK.links||[]).find(x=>x.id===m.added); if(n&&!n.removed_at) n.removed_at=now;
+            CARDMOCK.links.push({id:'mock-cdc-'+Math.random().toString(36).slice(2),business_id:row.dropped_id,promo_code_id:m.promo_code_id,note:m.note,linked_at:now,removed_at:null}); });
+          (row.moved.company_name_aliases||[]).forEach(m=>{ const n=(TABLES.company_name_aliases||[]).find(x=>x.id===m.added); if(n&&!n.removed_at) n.removed_at=now;
+            TABLES.company_name_aliases.push({id:'na-'+Math.random().toString(36).slice(2),business_id:row.dropped_id,name:m.name,created_at:now,removed_at:null}); }); }
         const dropRow=(TABLES.businesses||[]).find(b=>b.id===row.dropped_id); if(dropRow){ dropRow.archived_at=null; dropRow.archived_by=null; }
         row.undone_at=new Date().toISOString(); row.undone_by='mock';
         return send(res,200,{merge_id:row.id,restored_id:row.dropped_id,kept_id:row.kept_id});

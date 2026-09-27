@@ -1,47 +1,34 @@
-/* probe-stale-preview-exclusion.mjs (2026-09-07, watch cycle 42) — the gate cycle 41 added is on
-   the WRONG SIDE of the decision. Attack area (oo).
+/* probe-stale-preview-exclusion.mjs (2026-09-07, watch cycle 42; REWRITTEN for E, 2026-09-27) — a
+   client ruled out between the preview and the Confirm must not be counted. Attack area (oo).
 
-   Cycle 41 made v65Commit refuse while the exclusion list is unknown. It asks whether
-   DB.settings is loaded AT COMMIT TIME. But every exclusion decision in the batch was made in
-   the PREVIEW — possibly before the app_settings blob landed. Land the blob in between and the
-   gate sees a loaded list, waves the batch through, and writes rows that were sorted under no
-   list at all.
-
-   This is not hypothetical. probe-importer-attacks went red under six-way battery load in cycle
-   41 with exactly this signature — "Excluded by rule count not 3", "exclusion not named in
-   preview", "excluded partner row was written" — while being green standalone, green in cycles
-   39 and 40, and green standalone with cycle 41's diff in the tree. The excluded partner WAS
-   written, so the gate did not fire, so DB.settings was non-empty by the time Confirm ran. The
-   preview is where it went wrong.
-
-   THREE VERSIONS OF THIS ATTACK, AND THE THIRD IS THE ONLY HONEST ONE.
-   Cycle 42 blinded the preview by emptying DB.settings by hand; cycle 43 gave js/62 its own
-   authoritative copy, so that stopped blinding anything. Cycle 43 then held the app_settings
-   response back from boot; under six-way load the page had the list anyway — measured, 2
-   requests held and the exclusion still known at the moment the file was sorted — and three
-   batteries paid for a red that was never about the app.
-
-   Both of those were tricks: ways to manufacture a state the app does not normally reach. The
-   guarantee under test does not need one. THE OWNER ADDS AN EXCLUSION BETWEEN THE PREVIEW AND
-   THE CONFIRM. That is an ordinary Tuesday — a file is previewed, someone rules a partner out,
-   the file is confirmed — and it produces exactly the same stale preview with nothing held back,
-   nothing emptied, and no timing to lose. The list is written where the app keeps it, and the
-   commit must read it there.
+   E (2026-09-27, DECISIONS D16): until E the importer skipped an excluded client's rows, so this
+   probe held the COMMIT to re-reading the exclusion list as it stood at the moment of writing,
+   because the preview's decision could be stale. Under E a row a rule catches IS imported (so
+   switching the rule off brings it back with no re-import), and the database view money_rows
+   decides on every READ which rows are left out. The staleness this probe was written against
+   cannot reach a total any more — a rule applies to whatever is stored, whenever it was stored —
+   and that is exactly what it now proves, with the same ordinary-Tuesday sequence: a file is
+   previewed, someone rules a partner out (as a typed NAME rule, in money_exclusion_rules, from the
+   page's own session, with the page's copy of the rules left stale), the file is confirmed.
 
    Under test:
-     1. Control — the preview run under a KNOWN list holds the excluded client back, and the
-        ordinary row still imports. (If this fails, nothing below means anything.)
-     2. THE ATTACK — preview under an unknown list, list lands, Confirm: the excluded client's
-        invoice must not reach finance_invoices.
-     3. The refusal is honest about scope: it does not report a count it did not write. Either
-        nothing is written and it says why, or the preview's own numbers are what land.
-     4. The ordinary row in that same batch is not silently kept while the excluded one is
-        dropped — a batch previewed against no list at all is untrustworthy whole, and the
-        person is told to drop the file again rather than handed a partial import.
+     1. Control — the standing rule's client is imported AND left out: the view marks it excluded
+        and Finance counts only the ordinary row. (If this fails, nothing below means anything.)
+     2. Setup — the preview sorted the late client as ordinary and the page still thinks so at
+        Confirm, so only the server knows.
+     3. THE ATTACK FAILS — the late client's invoice is stored (D16: that is what lets the rule be
+        switched off later) but the view marks it excluded BY THE LATE RULE, and Finance counts the
+        two ordinary rows only.
+     4. The import summary, read back from the view after the write, says the late client was left
+        out by that rule — the person is told what the database made of the file, not what the
+        stale preview promised.
+     5. Finance → Rules lists it under Excluded with the late rule and its reason.
+     6. Retroactive both ways, with nothing re-imported: switching the late rule OFF brings its
+        777,000 back into Finance; switching it back ON takes it out again.
 
    Run:  node scripts/qa/probe-stale-preview-exclusion.mjs        (port 8718)
-   Sabotage: remove the commit-time re-check from v65Commit — checks 2 and 4 go red with the
-   excluded client's invoice in the table. Restore byte-identical (md5).                       */
+   Sabotage: SABOTAGE=1 serves js/16 to the browser with live()'s excluded-row filter removed (the
+   file on disk is untouched) — checks 1, 3 and 6 go red with the partner's 777,000 counted.     */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
@@ -56,27 +43,6 @@ const EXCLUDED = 'Tawthiq Test Services';   // the mock seed's standing exclusio
    by the time Confirm is pressed — which is the whole attack. */
 const LATE = 'Late Ruling Partner Co';
 
-/* Write the exclusion where the app keeps it, exactly as v62AddExclusion does: into the
-   app_settings blob. Nothing in the page is touched. */
-async function addExclusionOnServer(name) {
-  const cur = (await fetch(BASE + '/rest/v1/app_settings?id=eq.main&select=data').then((r) => r.json())) || [];
-  const blob = (cur[0] && cur[0].data) || {};
-  const list = (blob.financeExclusions || []).slice();
-  list.push({ id: 'fx-late-ruling', clientId: 'late', matchNames: [name], reason: 'ruled out between preview and confirm (QA)', addedBy: 'probe', addedAt: new Date().toISOString() });
-  blob.financeExclusions = list;
-  await fetch(BASE + '/rest/v1/app_settings?id=eq.main', {
-    method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=representation' },
-    body: JSON.stringify({ data: blob }),
-  });
-  /* Read it back. The first version of this trusted the 201 and the write had not happened at
-     all — the mock answered success for a table its PATCH did not cover — and this probe then
-     reported a defect in the importer that did not exist. A setup step is a claim like any
-     other. */
-  const back = (await fetch(BASE + '/rest/v1/app_settings?id=eq.main&select=data').then((r) => r.json())) || [];
-  const names = (((back[0] || {}).data || {}).financeExclusions || []).map((e) => (e.matchNames || [])[0]);
-  if (!names.includes(name)) { fail(`the setup could not add "${name}" to the exclusion list on the server — the list still reads ${JSON.stringify(names)}, so nothing below is a finding about the app`); return false; }
-  return true;
-}   // the mock seed's own standing exclusion
 const srv = start(PORT, { finance_invoices: [] });
 /* held true only for the attack page's boot — released between its preview and its Confirm */
 
@@ -109,32 +75,42 @@ async function main() {
     } catch (e) { await r.fulfill({ status: 500, body: '{}' }); }
   };
   await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), wire);
+  if (process.env.SABOTAGE) await p.route((u) => u.pathname === '/js/16-finance-ledger.js', async (r) => {
+    const src = fs.readFileSync(new URL('../../js/16-finance-ledger.js', import.meta.url), 'utf8');
+    const cut = src.replace('return !(m&&m.excluded); });', 'return true; });');
+    if (cut === src) console.log('  ! sabotage did not apply — the line moved');
+    await r.fulfill({ status: 200, contentType: 'application/javascript', body: cut });
+  });
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await p.waitForTimeout(2500);
+  try { await p.waitForSelector('#cl_email', { timeout: 90000 }); } catch (_) { }
   try { await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go'); } catch (_) { }
-  await p.waitForTimeout(4000);
-  /* 2026-09-07 (cycle 43): this was settingsLoaded()'s fixture-marker guard, and it produced a
-     false red twice in a row on runs where the list demonstrably HAD arrived (the control right
-     below passed both times, and it cannot pass without one). A guard that fails while the thing
-     it guards is working is noise in front of a real result. Wait for the fact this probe
-     actually depends on instead, and let the control — which fails with the preview and the
-     alerts in hand — be the assertion. */
-  await p.waitForFunction(() => { try { return !!finExclusionCheck('Tawthiq Test Services'); } catch (_) { return false; } }, { timeout: 90000 }).catch(() => { });
-  await p.evaluate(() => { current = 'finance'; render(); });
+  try { await p.waitForFunction(() => typeof window.v65Commit === 'function', { timeout: 90000 }); } catch (_) { }
+  await p.evaluate(() => { try { current = 'finance'; render(); } catch (_) { } });
+  /* wait for the fact this probe depends on: the typed rules in the page (finExclusionCheck answers from them) */
+  await p.waitForFunction((n) => { try { return !!(window.MR && MR.rules && finExclusionCheck(n)); } catch (_) { return false; } }, EXCLUDED, { timeout: 90000 }).catch(() => { });
   await p.waitForTimeout(1200);
 
   const invoicesInDb = async () => (await fetch(BASE + '/rest/v1/finance_invoices?select=invoice_no,client_group,total_incl_vat_sar').then((r) => r.json())) || [];
+  const viewRow = async (inv) => ((await fetch(BASE + '/rest/v1/money_rows?select=invoice_no,excluded,counts,rule_id,rule_kind,rule_value&invoice_no=eq.' + encodeURIComponent(inv)).then((r) => r.json())) || [])[0] || null;
+  const reloadFin = async () => {
+    await p.evaluate(() => { try { FIN.loading = false; FIN.rows = null; finLoad(); } catch (_) { } });
+    try { await p.waitForFunction(() => window.FIN && FIN.rows != null, null, { timeout: 30000 }); } catch (_) { }
+    await p.waitForTimeout(400);
+  };
+  const counted = async () => p.evaluate(() => { try { return (finLive() || []).map((r) => ({ inv: r.invoice_no, rev: Number(r.revenue_sar) || 0 })); } catch (e) { return [{ err: e.message }]; } });
+  const sum = (rows, re) => rows.filter((x) => re.test(x.inv || '')).reduce((a, x) => a + x.rev, 0);
+  /* a rule added (or switched) the way a person would, from a signed-in session — but the page's own copy of the rules
+     (MR.rules) is deliberately NOT refreshed, so the page stays exactly as stale as a colleague's edit would leave it */
+  const addRuleOnServer = (name) => p.evaluate(async (n) => {
+    const r = await fc().from('money_exclusion_rules').insert({ kind: 'name', value: n, reason: 'ruled out between preview and confirm (QA)' }).select('id');
+    return (r && r.data && r.data[0] && r.data[0].id) || ('ERR ' + JSON.stringify(r && r.error));
+  }, name);
+  const switchRule = (id, on) => p.evaluate(async (a) => { const r = await fc().from('money_exclusion_rules').update({ active: a.on }).eq('id', a.id).select('id,active'); return (r && r.data && r.data[0]) || { err: r && r.error }; }, { id, on });
 
-  /* Drive the importer the way the page does. `blindPreview` is the whole attack: the exclusion
-     list is unknown while the file is being sorted, and known again by the time Confirm runs. */
-  const runImport = async (csv, blindPreview) => {
+  const runImport = async (csv, ruleOutLate) => {
     await p.evaluate(() => { try { if (typeof window.finGo === 'function') window.finGo('import'); } catch (_) { } });
     await p.waitForTimeout(800);
-    /* 2026-09-07 (cycle 43): record whether the list really was unknown AT THE MOMENT the file
-       was sorted. Under six-way load the setup sometimes loses its own race, and cycle 35's rule
-       applies — one honest failure naming the cause beats three cascaded reds blaming the app
-       for a run that never set itself up. */
-    const blindAtSort = await p.evaluate((n) => { try { return { chk: !!finExclusionCheck(n), known: window.finExclusionsKnown ? window.finExclusionsKnown() : null }; } catch (e) { return { err: String(e.message) }; } }, LATE);
+    const blindAtSort = await p.evaluate((n) => { try { return { chk: !!finExclusionCheck(n) }; } catch (e) { return { err: String(e.message) }; } }, LATE);
     const preview = await p.evaluate(async (text) => {
       const f = new File([text], 'aug.csv', { type: 'text/csv' });
       if (typeof window.v65Ingest === 'function') { await window.v65Ingest([f]); return 'ingested'; }
@@ -144,74 +120,75 @@ async function main() {
     }, csv);
     await p.waitForTimeout(3500);
     const previewText = await p.evaluate(() => { const el = document.getElementById('finImpOut'); return el ? el.innerText : ''; });
-    /* THE ONLY THING THAT CHANGES BETWEEN THE PREVIEW AND THE CONFIRM: someone rules the client
-       out, in the place the app keeps that decision. No page state is touched and nothing is
-       held back — this is the sequence as a person would produce it. */
-    if (blindPreview) await addExclusionOnServer(LATE);
-    /* the page's own local view at commit time: with the blob restored this reads as a perfectly
-       healthy exclusion list, which is the whole point — nothing local is left to notice that the
-       preview was made blind. */
-    const readyAtCommit = await p.evaluate(() => { try { return !!finExclusionCheck('Tawthiq Test Services'); } catch (_) { return null; } });
+    /* THE ONLY THING THAT CHANGES BETWEEN THE PREVIEW AND THE CONFIRM: someone rules the client out */
+    let ruleId = null; if (ruleOutLate) ruleId = await addRuleOnServer(LATE);
     const pageStillBlind = await p.evaluate((n) => { try { return !finExclusionCheck(n); } catch (_) { return null; } }, LATE);
     await p.evaluate(() => { window.__alerts = []; const oa = window.alert; window.alert = (m) => { window.__alerts.push(String(m)); }; window.__restoreAlert = () => { window.alert = oa; }; });
+    /* watch for the import summary ever being painted, so a summary that appears and is then painted over is told apart
+       from one that never came */
+    await p.evaluate(() => { window.__sawSummary = ''; try { if (window.__sumObs) window.__sumObs.disconnect(); window.__sumObs = new MutationObserver(() => { const el = document.querySelector('.v117-import-summary'); if (el && !window.__sawSummary) window.__sawSummary = el.innerText; }); window.__sumObs.observe(document.body, { childList: true, subtree: true }); } catch (_) { } });
     await p.evaluate(() => { try { if (typeof window.v65Commit === 'function') window.v65Commit(); } catch (e) { window.__alerts.push('THREW ' + e.message); } });
-    await p.waitForTimeout(3000);
+    await p.waitForTimeout(4500);
+    const sawSummary = await p.evaluate(() => window.__sawSummary || '');
     const alerted = await p.evaluate(() => { try { window.__restoreAlert(); } catch (_) { } return window.__alerts || []; });
     const done = await p.evaluate(() => { const el = document.getElementById('finImpOut'); return el ? el.innerText : ''; });
-    return { preview, previewText, readyAtCommit, pageStillBlind, alerted, done, blindAtSort };
+    return { preview, previewText, pageStillBlind, alerted, done, blindAtSort, ruleId, sawSummary };
   };
 
-  /* ---- 1. control: the list is known throughout ---- */
+  /* ---- 1. control: the standing rule, known throughout ---- */
   const before1 = await invoicesInDb();
   const r1 = await runImport(csvFor(1, EXCLUDED), false);
   const after1 = await invoicesInDb();
-  const wrote1 = after1.filter((x) => !before1.some((y) => y.invoice_no === x.invoice_no));
-  const excl1 = wrote1.filter((x) => /tawthiq/i.test(x.client_group || ''));
-  if (wrote1.length && !excl1.length)
-    ok(`control: with the list known throughout, the import writes ${wrote1.length} row(s) and the excluded client is held back — the attack below is measured against a working importer`);
-  else if (excl1.length) fail(`control: the excluded client was written with the list known throughout (${JSON.stringify(excl1)}) — a defect this probe was not written for, but a worse one`);
-  else fail(`control: nothing was written at all — the importer did not run, so nothing below can be concluded. preview=${JSON.stringify(r1.preview)} alerts=${JSON.stringify(r1.alerted)}`);
+  const wrote1 = after1.filter((x) => !before1.some((y) => y.invoice_no === x.invoice_no)).map((x) => x.invoice_no);
+  const v1 = await viewRow('REF-S1');
+  await reloadFin();
+  const c1 = await counted();
+  if (wrote1.includes('REF-S1') && wrote1.includes('REF-N1') && v1 && v1.excluded === true && v1.rule_kind === 'name' && !c1.some((x) => x.inv === 'REF-S1') && sum(c1, /^REF-N/) === 1500)
+    ok('control: the standing rule\'s client is imported (D16) and left out — the view marks it excluded and Finance counts only the ordinary 1,500 — so the attack below is measured against a working importer and view');
+  else fail(`control: expected REF-S1 stored and excluded, REF-N1 counted. wrote=${JSON.stringify(wrote1)} view=${JSON.stringify(v1)} counted=${JSON.stringify(c1)} preview=${JSON.stringify(r1.preview)} alerts=${JSON.stringify(r1.alerted)}`);
 
-  /* ---- 2 + 3 + 4. THE ATTACK: previewed blind, committed sighted ----
-     A fresh page whose app_settings response is held back from boot, so NEITHER the page copy
-     nor js/62's authoritative copy exists while the file is sorted. */
-  const before2 = await invoicesInDb();
+  /* ---- 2..5. THE ATTACK: previewed before the rule, committed after it ---- */
   const r2 = await runImport(csvFor(2, LATE), true);
+  const lateId = r2.ruleId;
+  const setUp = !!(lateId && !/^ERR/.test(lateId) && r2.blindAtSort && r2.blindAtSort.chk === false && r2.pageStillBlind === true && !new RegExp(LATE, 'i').test((r2.previewText.split('Left out by a rule')[1] || '')));
+  if (setUp) ok(`the preview sorted "${LATE}" as an ordinary client and the page still thinks so at Confirm — so the attack is set up: only the server knows the partner has since been ruled out`);
+  else fail(`the attack did not set itself up, so nothing below is a finding about the app: rule=${JSON.stringify(lateId)} at sort ${JSON.stringify(r2.blindAtSort)}, page unaware at commit=${JSON.stringify(r2.pageStillBlind)}. Preview said: ${JSON.stringify((r2.previewText || '').slice(0, 300))}`);
+
   const after2 = await invoicesInDb();
-  const wrote2 = after2.filter((x) => !before2.some((y) => y.invoice_no === x.invoice_no));
-  const excl2 = wrote2.filter((x) => new RegExp(LATE, 'i').test(x.client_group || ''));
+  const stored2 = after2.find((x) => x.invoice_no === 'REF-S2');
+  const v2 = await viewRow('REF-S2');
+  await reloadFin();
+  const c2 = await counted();
+  if (setUp) {
+    if (stored2 && v2 && v2.excluded === true && v2.rule_id === lateId && !c2.some((x) => x.inv === 'REF-S2') && sum(c2, /^REF-N/) === 3000)
+      ok('THE ATTACK FAILS: the late client\'s invoice is stored (so the rule can be switched off later) but the view leaves it out BY THE LATE RULE, and Finance counts the two ordinary rows only (3,000) — the rule that decides is the rule as it stands when the money is read, not the one the preview saw');
+    else fail(`the ruled-out client's money is not left out: stored=${!!stored2} view=${JSON.stringify(v2)} (late rule ${lateId}) counted=${JSON.stringify(c2)}. Someone excluded that partner while the file sat in preview, and Finance counts it anyway — the Tawthiq incident by an ordinary Tuesday.`);
+    const said2 = r2.done || '';
+    const summary = said2.split('What the rules made of this import')[1] || '';
+    if (/Left out by a rule/i.test(summary) && summary.includes(LATE) && /777/.test(summary))
+      ok('the import summary, read back from the view after the write, says the late client was left out by that rule (count and SAR) — the person hears what the database made of the file, not what the stale preview promised');
+    else fail(`the import summary does not say, on the screen after the import, that the late client was left out by its rule. ${r2.sawSummary ? 'It WAS painted (' + JSON.stringify(r2.sawSummary.slice(0, 300)) + ') and then painted over — ' : 'It was never painted — '}the screen now says: ${JSON.stringify(said2.slice(0, 400))}`);
+    const exList = await p.evaluate(() => { try { current = 'finance'; FIN.tab = 'rules'; render(); const el = document.querySelector('#view .v117-excluded'); return el ? el.innerText : ''; } catch (e) { return 'ERR ' + e.message; } });
+    if (/REF-S2/.test(exList) && exList.includes(LATE) && /ruled out between preview and confirm/.test(exList))
+      ok('Finance → Rules lists the late client\'s invoice under Excluded, with the late rule and its reason');
+    else fail(`Finance → Rules' Excluded list does not show REF-S2 with the late rule: ${JSON.stringify(exList.slice(0, 500))}`);
 
-  /* The setup holds when the late-excluded client was ORDINARY while the file was sorted, and
-     the page still thinks so at Confirm — so the only thing that knows better is the server. */
-  const setUp = (r2.blindAtSort && r2.blindAtSort.chk === false && r2.pageStillBlind === true && !new RegExp(LATE, 'i').test(r2.previewText || ''));
-  if (setUp)
-    ok(`the preview sorted "${LATE}" as an ordinary client and the page still thinks so at Confirm — so the attack is set up: only the server knows the partner has since been ruled out`);
-  else
-    fail(`the attack did not set itself up, so nothing below is a finding about the app: at sort time the late-excluded client read as ${JSON.stringify(r2.blindAtSort)} and the page was still unaware of it at commit = ${JSON.stringify(r2.pageStillBlind)}. Preview said: ${JSON.stringify((r2.previewText || '').slice(0, 200))}`);
-
-  if (!setUp)
-    console.log('  · the attack, the refusal and the whole-file rule are REPORTED not asserted this run — the setup above did not hold, and a check that examined nothing has not passed');
-  else if (!excl2.length)
-    ok('THE ATTACK FAILS: a client ruled out AFTER the preview and BEFORE the Confirm still never reaches finance_invoices — the decision that gets written is the decision made against the list as it stands at the moment of writing, not the one the preview happened to see');
-  else
-    fail(`the ruled-out client's invoice WAS written: ${JSON.stringify(excl2.map((x) => x.invoice_no + ' / ' + x.client_group + ' / ' + x.total_incl_vat_sar))}. Someone excluded that partner while the file sat in preview, and the commit wrote it anyway — the preview's decision, not the owner's. The Tawthiq incident by an ordinary Tuesday.`);
-
-  const said2 = ((r2.alerted || []).join(' | ') + ' ' + (r2.done || '')).trim();
-  if (!setUp) { /* reported above */ }
-  else if (!wrote2.length) {
-    if (/exclusion|استبعاد/i.test(said2) && /(again|nothing was written|drop|أعد|لم يُكتب)/i.test(said2))
-      ok('nothing was written and the person is told why, in words naming the exclusion list — a refusal that can be acted on, not a silent no-op');
-    else fail(`nothing was written but nothing explained it either. The screen said: ${JSON.stringify(said2.slice(0, 400))}`);
-    ok('the ordinary row in the same batch was not kept while the excluded one was dropped — a batch sorted against no list at all is untrustworthy whole, so the file is refused rather than half-imported');
-  } else if (!excl2.length) {
-    const ordinary = wrote2.filter((x) => !/tawthiq/i.test(x.client_group || ''));
-    fail(`the excluded row was held back but ${ordinary.length} ordinary row(s) were still written from a preview made against no list at all: ${JSON.stringify(ordinary.map((x) => x.invoice_no))}. Every decision in that preview is suspect, not only the ones still visible — a partial import hides that from the person, who has no reason to drop the file again.`);
-    fail('the preview\'s own numbers are not what landed — M13 requires the database to report exactly what the preview promised, and a silent drop breaks that too');
-  }
+    /* ---- 6. retroactive, both ways, nothing re-imported ---- */
+    const off = await switchRule(lateId, false);
+    await reloadFin();
+    const c3 = await counted();
+    const on = await switchRule(lateId, true);
+    await reloadFin();
+    const c4 = await counted();
+    const nNow = (await invoicesInDb()).length;
+    if (off && off.active === false && c3.some((x) => x.inv === 'REF-S2' && x.rev === 777000) && on && on.active === true && !c4.some((x) => x.inv === 'REF-S2') && nNow === after2.length)
+      ok('retroactive both ways: the late rule switched OFF brings the stored 777,000 back into Finance, switched ON takes it out again — no re-import, the row count unchanged');
+    else fail(`the rule is not retroactive: off=${JSON.stringify(off)} counted-with-rule-off has REF-S2=${c3.some((x) => x.inv === 'REF-S2')}; on=${JSON.stringify(on)} counted-with-rule-on has REF-S2=${c4.some((x) => x.inv === 'REF-S2')}; rows ${after2.length} → ${nNow}`);
+  } else console.log('  · the attack checks are REPORTED not asserted this run — the setup above did not hold');
 
   await b.close(); srv.close();
   if (failures) { console.log(`\nFAILED — ${failures} check(s) did not pass.`); process.exit(1); }
-  console.log('\nstale-preview-exclusion OK — a preview made without the exclusion list cannot be committed once the list arrives');
+  console.log('\nstale-preview-exclusion OK — a client ruled out after the preview is stored and left out of every total, and the rule works retroactively both ways');
   process.exit(0);
 }
 main().catch((e) => { console.error(e); try { srv.close(); } catch (_) { } process.exit(1); });

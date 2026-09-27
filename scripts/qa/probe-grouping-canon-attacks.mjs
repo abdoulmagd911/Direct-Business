@@ -28,6 +28,24 @@
         empties it: change a group's canonical name, clear, and the new answer must appear.
      6. The cache does not survive a language switch with a stale language in it.
 
+   E (2026-09-27, DECISIONS D16): the alias grouping map (js/62 financeGroupMap / finGroupCheck) is retired. Grouping is
+   now a TYPED customer name held by one company (company_name_aliases), applied by the database view money_rows, and
+   finCanon groups through FIN.linkByGroup, which js/16 derives from that view. The purpose — at scale and under
+   hostile names, a client's money never lands under another client's name — is unchanged; the checks now say:
+     1. at scale (1,103 typed names across 54 companies, 308 invoices, 55 buckets) every invoice lands in exactly
+        one client bucket, the buckets equal an independent recount from the fixture (companies, not names), and the
+        Revenue tile equals the total;
+     2. a name cannot be claimed by two companies: the second claim is refused by the database (unique index
+        company_name_aliases_one_company, however spelled) and nothing is added — the old "first in the list wins" is
+        impossible now;
+     3. a REMOVED name never captures money: a name removed from one company and typed into another goes to the other;
+     4. a row named exactly like a company but never typed is NOT merged (D16: nothing merges by name) — asserted now,
+        it used to be only measured;
+     5. finCanon is stable, and clearFinCanon really clears: rename the company, clear, the new name shows;
+     6. a language switch never re-buckets anyone's money.
+   Sabotage (reasoned): make js/16 derive linkByGroup by client_group name instead of money_rows.business_id → 4 red;
+   make clearFinCanon a no-op → 5 red.
+
    Run:  node scripts/qa/probe-grouping-canon-attacks.mjs        (port 8711)
    Sabotage (file-level): make finGroupCheck ignore the active flag; make clearFinCanon a no-op.
    Restore byte-identical (md5). */
@@ -43,38 +61,25 @@ const note = (m) => console.log('  . ' + m);
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const r2 = (v) => Math.round(v * 100) / 100;
 
-/* 300 groups, three aliases each. Every invoice below names an alias, never a canonical name. */
-const GROUPS = [];
-for (let i = 0; i < 300; i++) {
-  GROUPS.push({ id: 'g' + i, canonicalName: 'Canon Co ' + i, active: true,
-    aliases: ['Alias ' + i + ' A', 'Alias ' + i + ' B', 'Alias ' + i + ' C'] });
-}
-/* the hostile shapes, appended so their ORDER in the list is known */
+/* typed customer names (company_name_aliases): name group i → company b(i % 50), three spellings each */
+const NAMES_TYPED = []; let nid = 0;
+const typeName = (name, biz, removed) => NAMES_TYPED.push({ id: 'na-gc-' + (nid++), business_id: biz, name, created_by: null, created_by_name: 'probe seed', created_at: '2026-08-10T00:00:00Z', removed_by: null, removed_by_name: removed ? 'probe seed' : null, removed_at: removed ? '2026-08-11T00:00:00Z' : null });
+for (let i = 0; i < 300; i++) ['A', 'B', 'C'].forEach((x) => typeName('Alias ' + i + ' ' + x, 'b' + (i % 50)));
+for (let i = 0; i < 200; i++) typeName('Big Alias ' + i, 'b50');
+const INACTIVE_ALIAS = 'Contested By Removed';
+typeName(INACTIVE_ALIAS, 'b51', true);   // removed from b51 …
+typeName(INACTIVE_ALIAS, 'b52');         // … and typed into b52
 const AMBIG = 'Shared Alias Name';
-GROUPS.push({ id: 'g-first', canonicalName: 'First Claimant', active: true, aliases: [AMBIG, 'First Only'] });
-GROUPS.push({ id: 'g-second', canonicalName: 'Second Claimant', active: true, aliases: [AMBIG, 'Second Only'] });
-const INACTIVE_ALIAS = 'Contested By Inactive';
-GROUPS.push({ id: 'g-dead', canonicalName: 'Retired Group', active: false, aliases: [INACTIVE_ALIAS] });
-GROUPS.push({ id: 'g-live', canonicalName: 'Live Group', active: true, aliases: [INACTIVE_ALIAS] });
-GROUPS.push({ id: 'g-canon', canonicalName: 'Canonical Only Co', active: true, aliases: ['Some Other Spelling'] });
-const BIG = [];
-for (let i = 0; i < 200; i++) BIG.push('Big Alias ' + i);
-GROUPS.push({ id: 'g-big', canonicalName: 'Two Hundred Aliases Co', active: true, aliases: BIG });
+typeName(AMBIG, 'b53');
+const UNTYPED_CO = 'Test Company 54';    // the exact name of company b54 — never typed as a customer name
 
-/* client_group values the invoices actually carry */
-const NAMES = [];
-for (let i = 0; i < 300; i++) NAMES.push('Alias ' + i + ' ' + 'ABC'[i % 3]);
-NAMES.push(AMBIG, INACTIVE_ALIAS, 'Canonical Only Co', 'Big Alias 7', 'Never Grouped Co');
-/* 2026-09-06 (watch cycle 34): every name above belongs to a DIFFERENT group, so the fixture had
-   exactly one invoice per bucket — and a rollup with grouping switched off entirely would produce
-   the same bucket count and the same total. Sabotaging finCanon's call into the grouping map was
-   caught only incidentally, by the clearFinCanon check. These three names are SECOND aliases of
-   groups already represented, so grouping and no-grouping now give different bucket counts and the
-   claim "grouping actually happened" can be made directly. */
-NAMES.push('Alias 0 B', 'Alias 0 C', 'Big Alias 8');
-
+/* client_group values the invoices carry, and the company each must land in (null = stands alone) */
+const ROWS = [];
+for (let i = 0; i < 300; i++) ROWS.push(['Alias ' + i + ' ' + 'ABC'[i % 3], 'b' + (i % 50)]);
+ROWS.push([AMBIG, 'b53'], [INACTIVE_ALIAS, 'b52'], [UNTYPED_CO, null], ['Big Alias 7', 'b50'], ['Never Grouped Co', null]);
+ROWS.push(['Alias 0 B', 'b0'], ['Alias 0 C', 'b0'], ['Big Alias 8', 'b50']);
 const SEED = [];
-NAMES.forEach((nm, i) => {
+ROWS.forEach(([nm], i) => {
   const mo = (i % 12) + 1;
   SEED.push({
     id: 'gc' + i, invoice_no: 'GC-' + i, line_no: 1, zatca_dpin: null,
@@ -91,12 +96,15 @@ NAMES.forEach((nm, i) => {
 });
 const N_SEED = SEED.length;
 const TOTAL_REV = r2(SEED.reduce((a, r) => a + r.revenue_sar, 0));
+/* the independent recount: one bucket per company, one per untyped name */
+const WANT = {}; ROWS.forEach(([nm, biz], i) => { const k = biz ? 'biz:' + biz : 'raw:' + nm; WANT[k] = r2((WANT[k] || 0) + SEED[i].revenue_sar); });
+const WANT_BUCKETS = Object.keys(WANT).length;
 
-const srv = start(PORT, { finance_invoices: SEED, finance_transactions: [], finance_client_links: [], client_profiles: [] });
+const srv = start(PORT, { finance_invoices: SEED, finance_transactions: [], finance_client_links: [], client_profiles: [], company_name_aliases: NAMES_TYPED });
 const BASE = 'http://localhost:' + PORT;
 
 async function main() {
-  console.log(`fixture: ${GROUPS.length} groups (${GROUPS.reduce((a, g) => a + g.aliases.length, 0)} aliases) and ${N_SEED} invoices worth ${TOTAL_REV.toLocaleString()} SAR`);
+  console.log(`fixture: ${NAMES_TYPED.length} typed names across ${new Set(NAMES_TYPED.map((n) => n.business_id)).size} companies, ${N_SEED} invoices worth ${TOTAL_REV.toLocaleString()} SAR, ${WANT_BUCKETS} buckets expected`);
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
   const p = await (await b.newContext({ viewport: { width: 1440, height: 1100 } })).newPage();
   const errors = []; p.on('pageerror', e => errors.push('JS: ' + e.message));
@@ -113,99 +121,91 @@ async function main() {
   await p.route(u=>u.href.includes('fonts.gstatic.com'), r => r.abort());
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 90000 }); await p.waitForTimeout(1800);
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
-  await p.waitForTimeout(4500);
-  await p.evaluate((gs) => { DB.settings = DB.settings || {}; DB.settings.financeGroupMap = gs; }, GROUPS);
+  await p.waitForFunction(() => window.__roleKnown === true && (DB.businesses || []).length > 0 && window.FIN && typeof finLoad === 'function', null, { timeout: 90000 }).catch(() => {});
   await p.evaluate(() => { current = 'finance'; FIN.rows = null; finLoad(); });
-  for (let i = 0; i < 160 && !(await p.evaluate(() => window.FIN && FIN.rows && FIN.rows.length)); i++) await p.waitForTimeout(250);
+  await p.waitForFunction(() => window.FIN && FIN.rows && FIN.rows.length && FIN.m && !FIN.loading, null, { timeout: 60000 }).catch(() => {});
   await p.evaluate(() => { if (typeof clearFinCanon === 'function') clearFinCanon(); FIN.p.year = 'all'; FIN.p.part = 'all'; FIN.p.sector = 'all'; finGo('overview'); });
   await p.waitForTimeout(1500);
-
   const canonOf = (nm) => p.evaluate((n) => { try { return window.finCanon(n); } catch (e) { return { err: String(e && e.message || e) }; } }, nm);
-  const groupOf = (nm) => p.evaluate((n) => { try { const g = window.finGroupCheck(n); return g ? { id: g.id, name: g.canonicalName, active: g.active } : null; } catch (e) { return { err: String(e && e.message || e) }; } }, nm);
 
   /* ---------- 1. at scale, every client total reconciles ---------- */
   const t0 = Date.now();
   const rollup = await p.evaluate(() => {
     const rows = (window.finLive ? finLive() : []).filter(window.finInPeriod);
     const by = {};
-    rows.forEach(r => { const c = window.finCanon(r.client_group); by[c.key] = (by[c.key] || 0) + (+r.revenue_sar || 0); });
-    return { keys: Object.keys(by).length, total: Math.round(Object.values(by).reduce((a, v) => a + v, 0) * 100) / 100 };
+    rows.forEach(r => { const c = window.finCanon(r.client_group); by[c.key] = Math.round(((by[c.key] || 0) + (+r.revenue_sar || 0)) * 100) / 100; });
+    return by;
   });
   const ms = Date.now() - t0;
-  if (Math.abs(rollup.total - TOTAL_REV) < 0.02) ok(`every one of the ${N_SEED} invoices lands in exactly one client bucket and they sum to ${TOTAL_REV.toLocaleString()} — nothing lost or double-counted across ${GROUPS.length} groups (${ms}ms)`);
-  else fail(`the client rollup sums to ${rollup.total}, an independent recount of the fixture gives ${TOTAL_REV}`);
-  /* the total is the same whether grouping works or not — money moves between buckets, never in or
-     out — so the COUNT is what proves grouping actually happened */
-  const WANT_BUCKETS = N_SEED - 3;   /* the three second-aliases fold into buckets that already exist */
-  if (rollup.keys === WANT_BUCKETS) ok(`${N_SEED} invoices fold into ${WANT_BUCKETS} client buckets — the three invoices naming a SECOND alias of a group already present join it rather than opening a bucket of their own, which is grouping actually happening rather than a total that would look right either way`);
-  else fail(`the rollup produced ${rollup.keys} buckets, ${WANT_BUCKETS} expected — ${rollup.keys === N_SEED ? 'every invoice got its own bucket, so the grouping map is not being consulted at all' : 'the map folded the wrong names together'}`);
-  const gk = await canonOf('Alias 5 A');
-  if (gk && gk.key === 'grp:g5' && gk.grouped === true) ok(`finCanon resolves an alias to its group through the map itself (key ${gk.key}, name "${gk.name}")`);
-  else fail(`finCanon resolved "Alias 5 A" to ${JSON.stringify(gk)}, expected key grp:g5 — the rollup reads through finCanon, so if this is not grouped nothing else is`);
+  const gotTotal = r2(Object.values(rollup).reduce((a, v) => a + v, 0));
+  if (Math.abs(gotTotal - TOTAL_REV) < 0.02) ok(`every one of the ${N_SEED} invoices lands in exactly one client bucket and they sum to ${TOTAL_REV.toLocaleString()} — nothing lost or double-counted (${ms}ms)`);
+  else fail(`the client rollup sums to ${gotTotal}, an independent recount of the fixture gives ${TOTAL_REV}`);
+  const wrong = Object.keys(WANT).filter((k) => Math.abs((rollup[k] || 0) - WANT[k]) > 0.01).concat(Object.keys(rollup).filter((k) => !(k in WANT)));
+  if (Object.keys(rollup).length === WANT_BUCKETS && !wrong.length) ok(`${N_SEED} invoices fold into exactly the ${WANT_BUCKETS} buckets the typed names say — every company's total equals the recount, bucket by bucket`);
+  else fail(`the rollup produced ${Object.keys(rollup).length} buckets, ${WANT_BUCKETS} expected; ${wrong.length} disagree with the recount, e.g. ${JSON.stringify(wrong.slice(0, 4).map((k) => [k, rollup[k], WANT[k]]))}${Object.keys(rollup).length === new Set(ROWS.map((r) => r[0])).size ? ' — one bucket per name, so the typed names are not being applied at all' : ''}`);
+  const gk = await canonOf('Alias 5 C');
+  if (gk && gk.key === 'biz:b5' && gk.linked === true) ok(`finCanon resolves a typed name to its company through the view (key ${gk.key}, name "${gk.name}")`);
+  else fail(`finCanon resolved "Alias 5 C" to ${JSON.stringify(gk)}, expected key biz:b5`);
   const revTile = await p.evaluate(() => {
     const el = [...document.querySelectorAll('#view .card')].find(e => e.firstElementChild && e.firstElementChild.textContent.trim() === 'Revenue');
     const v = el && el.children[1]; const t = v && v.getAttribute('title');
     return t ? +t.replace(/[^\d.-]/g, '') : null;
   });
-  if (revTile != null && Math.abs(revTile - TOTAL_REV) < 0.02) ok(`the Revenue tile agrees with the same recount at ${GROUPS.length} groups — grouping moves money between buckets, never into or out of the total`);
+  if (revTile != null && Math.abs(revTile - TOTAL_REV) < 0.02) ok('the Revenue tile agrees with the same recount — merging moves money between buckets, never into or out of the total');
   else fail(`the Revenue tile reads ${revTile}, the recount gives ${TOTAL_REV}`);
 
-  /* ---------- 3. an inactive group listed FIRST must not win ---------- */
-  const inact = await groupOf(INACTIVE_ALIAS);
-  if (inact && inact.id === 'g-live') ok(`"${INACTIVE_ALIAS}" is claimed by a retired group listed BEFORE a live one, and the live group wins — an archived grouping cannot capture a client's money by being earlier in the list`);
-  else fail(`"${INACTIVE_ALIAS}" resolved to ${JSON.stringify(inact)}; the retired group g-dead is listed first and the live g-live must win`);
+  /* ---------- 3. a removed name never captures money ---------- */
+  const inact = await canonOf(INACTIVE_ALIAS);
+  if (inact && inact.key === 'biz:b52') ok(`"${INACTIVE_ALIAS}" was removed from one company and typed into another — its money is under the live one (b52) only`);
+  else fail(`"${INACTIVE_ALIAS}" resolved to ${JSON.stringify(inact)}; the name was removed from b51 and typed into b52`);
 
-  /* ---------- 2. a name claimed by TWO active groups ---------- */
-  const amb = await groupOf(AMBIG);
-  const ambCanon = await canonOf(AMBIG);
-  note(`"${AMBIG}" is listed as an alias by BOTH g-first and g-second; the app resolves it to ${JSON.stringify(amb)} and canonicalises it as ${JSON.stringify(ambCanon && ambCanon.name)}`);
-  if (amb && amb.id) {
-    const pageSaysSo = await p.evaluate((n) => {
-      const t = (document.getElementById('view') || {}).innerText || '';
-      return /two groups|more than one group|ambiguous|مجموعتين|أكثر من مجموعة/i.test(t);
-    }, AMBIG);
-    if (pageSaysSo) ok('a name claimed by two active groups is flagged on the page rather than resolved silently');
-    else note(`KNOWN AND MEASURED, not asserted: a name claimed by two ACTIVE groups resolves to whichever appears first in the list (${amb.name}) with nothing on screen saying a choice was made. Order in DB.settings.financeGroupMap is not something anyone sets deliberately, so the winner is arbitrary. Recorded for the owner as a question about the DATA (two groups should not claim one alias) rather than fixed as a defect in the code — the resolution itself is deterministic and the totals stay correct either way`);
-  } else fail(`"${AMBIG}" resolved to nothing at all, though two active groups list it`);
+  /* ---------- 2. one name, one company: a second claim is refused ---------- */
+  const second = await p.evaluate(async (n) => { const r = await fc().from('company_name_aliases').insert({ business_id: 'b12', name: '  shared-ALIAS name ' }).select('id');
+    return { err: r.error ? (r.error.code || '') + ' ' + r.error.message : null, rows: (r.data || []).length }; }, AMBIG);
+  const live = (await (await fetch(BASE + '/rest/v1/company_name_aliases?removed_at=is.null&business_id=in.(b53,b12)')).json()).filter((a) => !a.removed_at && a.name.toLowerCase().replace(/[^a-z]/g, '') === 'sharedaliasname');
+  const amb = await canonOf(AMBIG);
+  if (second.err && /company_name_aliases_one_company|23505/.test(second.err) && second.rows === 0 && live.length === 1 && amb && amb.key === 'biz:b53')
+    ok(`a second company cannot claim "${AMBIG}" in another spelling — the database refuses it (one company per name), nothing is added, and the money stays with b53`);
+  else fail(`two companies could hold one name: ${JSON.stringify({ second, live: live.length, amb })}`);
 
-  /* ---------- 4. a canonicalName that is not one of its own aliases ---------- */
-  const canonOnly = await groupOf('Canonical Only Co');
-  if (canonOnly && canonOnly.id === 'g-canon') ok('a row named exactly a group\'s canonical name is matched to that group');
-  else note(`measured, not asserted: a row named exactly "Canonical Only Co" — a group's own canonical name, not listed among its aliases — is NOT matched to it (resolved to ${JSON.stringify(canonOnly)}). js/62 matches on aliases only, which is what its code says it does; recorded so the behaviour is written down rather than discovered by a wrong total`);
+  /* ---------- 4. a company's own name, never typed, merges nothing ---------- */
+  const untyped = await canonOf(UNTYPED_CO);
+  if (untyped && untyped.key === 'raw:' + UNTYPED_CO && !untyped.linked) ok(`a row named exactly like company b54 ("${UNTYPED_CO}") but never typed stands alone — nothing merges by name (D16)`);
+  else fail(`"${UNTYPED_CO}" was merged without anyone typing it: ${JSON.stringify(untyped)}`);
 
   /* ---------- 5. finCanon is stable, and clearFinCanon really clears ---------- */
-  const a1 = await canonOf('Alias 5 A'), a2 = await canonOf('Alias 5 A');
+  const a1 = await canonOf('Alias 5 C'), a2 = await canonOf('Alias 5 C');
   if (JSON.stringify(a1) === JSON.stringify(a2)) ok(`finCanon is stable — the same raw name resolves identically twice (${a1 && a1.name})`);
   else fail(`finCanon gave two different answers for one name: ${JSON.stringify(a1)} vs ${JSON.stringify(a2)}`);
   const renamed = await p.evaluate(() => {
-    const g = (DB.settings.financeGroupMap || []).find(x => x.id === 'g5');
-    if (!g) return { err: 'g5 missing' };
-    g.canonicalName = 'Renamed Co 5';
-    const before = window.finCanon('Alias 5 A').name;      /* still cached */
+    const bz = (DB.businesses || []).find((x) => (window.__bizUuid ? __bizUuid(x.id) : x.id) === 'b5' || x.id === 'b5');
+    if (!bz) return { err: 'b5 missing' };
+    const old = bz.name; bz.name = 'Renamed Co 5';
+    const before = window.finCanon('Alias 5 C').name;      /* still cached */
     if (typeof clearFinCanon === 'function') clearFinCanon();
-    const after = window.finCanon('Alias 5 A').name;        /* must see the new name */
-    return { before, after };
+    const after = window.finCanon('Alias 5 C').name;        /* must see the new name */
+    bz.name = old; if (typeof clearFinCanon === 'function') clearFinCanon();
+    return { old, before, after };
   });
-  if (renamed.before === 'Canon Co 5' && renamed.after === 'Renamed Co 5')
-    ok('clearFinCanon really empties the cache — a renamed group is still the old name until it is cleared, and the new name immediately after');
+  if (renamed.before === renamed.old && renamed.after === 'Renamed Co 5')
+    ok('clearFinCanon really empties the cache — a renamed company keeps the old name until it is cleared, and the new name immediately after');
   else if (renamed.before === renamed.after && renamed.after === 'Renamed Co 5')
     note(`the cache was not holding the old name to begin with (both reads gave "${renamed.after}") — clearFinCanon cannot be shown to do anything by this route`);
-  else fail(`clearFinCanon did not take effect: before "${renamed.before}", after "${renamed.after}", expected "Canon Co 5" then "Renamed Co 5"`);
+  else fail(`clearFinCanon did not take effect: ${JSON.stringify(renamed)}`);
 
   /* ---------- 6. a cached answer must not survive a language switch ---------- */
   await p.evaluate(() => { if (typeof clearFinCanon === 'function') clearFinCanon(); });
-  const enName = await canonOf('Never Grouped Co');
+  const enName = await canonOf('Never Grouped Co'), enBiz = await canonOf('Alias 7 B');
   await p.evaluate(() => { LANG = 'ar'; if (window.applyLang) applyLang(); current = 'finance'; render(); });
   await p.waitForTimeout(1200);
-  const arName = await canonOf('Never Grouped Co');
+  const arName = await canonOf('Never Grouped Co'), arBiz = await canonOf('Alias 7 B');
   const arPage = await p.evaluate(() => ((document.getElementById('view') || {}).innerText || '').slice(0, 400));
-  if (enName && arName && enName.key === arName.key) ok(`an ungrouped client keeps the same identity key across a language switch (${enName.key}) — switching language never re-buckets anyone's money`);
-  else fail(`an ungrouped client changed identity across a language switch: ${JSON.stringify(enName)} vs ${JSON.stringify(arName)}`);
-  const arIsArabic = /[؀-ۿ]/.test(arPage);
-  if (arIsArabic) ok('the page really did switch to Arabic, so the check above was made across a real switch');
+  if (enName && arName && enName.key === arName.key && enBiz && arBiz && enBiz.key === arBiz.key) ok(`an unmerged name and a merged company keep their identity keys across a language switch (${enName.key}, ${enBiz.key}) — switching language never re-buckets anyone's money`);
+  else fail(`identity changed across a language switch: ${JSON.stringify([enName, arName, enBiz, arBiz])}`);
+  if (/[؀-ۿ]/.test(arPage)) ok('the page really did switch to Arabic, so the check above was made across a real switch');
   else fail('the page did not switch to Arabic — the language check proved nothing');
 
-  if (!errors.length) ok('no page error at 300 groups'); else fail('page errors: ' + errors.slice(0, 3).join(' | '));
+  if (!errors.length) ok('no page error at this scale'); else fail('page errors: ' + errors.slice(0, 3).join(' | '));
   console.log('\n' + (failures ? 'FAILED - ' + failures + ' check(s)' : 'ALL PASS'));
   await b.close(); srv.close(); process.exit(failures ? 1 : 0);
 }

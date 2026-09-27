@@ -4,6 +4,34 @@ import { start } from './mock-seed-live.mjs';
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
 const PORT = 8947, BASE = `http://127.0.0.1:${PORT}`;
+/* E (2026-09-27, D16): Finance now reads the database view money_rows together with the rows (js/16 finLoad), and a
+   company's money is only what a person typed into it (a client ID, a code or a customer name). mock-seed-live.mjs has no such
+   view — it answers [] — so every invoice stood alone and no client card found its money. Until that mock models the
+   view, this probe answers money_rows itself, the way the view does for this seed: a row with no client ID belongs to
+   the company its customer name was typed into — the seed's finance_client_links, read as typed names exactly as
+   mock-supabase.mjs does (linksToNames); a row with a client ID goes by client_profiles alone; this seed has no
+   exclusion rules, so only a row's own exclusion_reason leaves it out. */
+const mrNorm = (t) => { let s = String(t == null ? '' : t); try { s = s.normalize('NFKC'); } catch (_) { } s = s.toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[^\p{L}\p{N}]+/gu, ''); return s || null; };
+async function answerMoneyRows(r) {
+  const rq = r.request(); const u = new URL(rq.url());
+  if (u.pathname !== '/rest/v1/money_rows' || rq.method() !== 'GET') return false;
+  const h = {}; const rh = rq.headers(); ['authorization', 'apikey'].forEach((k) => { if (rh[k]) h[k] = rh[k]; });
+  const all = async (t) => { let out = []; for (let o = 0; ; o += 1000) { const x = await fetch(`${BASE}/rest/v1/${t}?select=*&offset=${o}&limit=1000`, { headers: h }); const d = await x.json().catch(() => []); if (!Array.isArray(d)) break; out = out.concat(d); if (d.length < 1000) break; } return out; };
+  const [inv, links, prof, biz] = await Promise.all([all('finance_invoices'), all('finance_client_links'), all('client_profiles'), all('businesses')]);
+  const nameTo = {}; links.forEach((l) => { const k = mrNorm(l.client_group); if (k && l.business_id && !nameTo[k]) nameTo[k] = l.business_id; });
+  const bn = {}; biz.forEach((b) => { bn[b.id] = b.name; });
+  const rows = inv.filter((i) => !i.deleted_at).map((i) => {
+    const cid = mrNorm(i.payments_client_id); const cp = cid ? prof.find((p) => mrNorm(p.direct_client_id) === cid) : null;
+    const bizId = cp ? cp.business_id : (!cid ? (nameTo[mrNorm(i.client_group)] || nameTo[mrNorm(i.customer_raw_name)] || null) : null);
+    const excluded = i.exclusion_reason != null;
+    return { id: i.id, business_id: bizId, company_key: bizId ? 'biz:' + bizId : cid ? 'cid:' + cid : 'name:' + (mrNorm(i.client_group || i.customer_raw_name) || '?'),
+      company_name: bizId ? (bn[bizId] || null) : (i.client_group || i.customer_raw_name), merge_state: bizId ? 'merged' : cid ? 'not_merged' : 'no_client_id',
+      profile_type: cp ? cp.profile_type : null, rule_id: null, rule_kind: null, rule_value: null, rule_reason: null, excluded, counts: !excluded && i.integrity_status === 'verified_paid', open_age_days: null };
+  }).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const off = +(u.searchParams.get('offset') || 0), lim = u.searchParams.get('limit'); const win = rows.slice(off, lim != null ? off + +lim : undefined);
+  await r.fulfill({ status: 200, contentType: 'application/json', headers: { 'content-range': off + '-' + Math.max(off + win.length - 1, 0) + '/' + rows.length, 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range' }, body: JSON.stringify(win) });
+  return true;
+}
 start(PORT);
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
@@ -11,6 +39,7 @@ const page = await ctx.newPage();
 let errs = []; page.on('pageerror', e => errs.push('PAGEERR ' + String(e).slice(0, 160)));
 page.on('dialog', d => d.accept('QA'));
 const route = async r => {
+  if (await answerMoneyRows(r)) return;
   const u = r.request().url();
   if (u.includes('cdn.jsdelivr.net')) {
     if (u.includes('supabase-js')) return r.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js') });
@@ -88,7 +117,10 @@ const picked = await page.evaluate(() => {
   const groups = new Set((FIN.rows || []).map(r => norm(r.client_group)));
   const linked = FIN.groupsByBiz || {};
   const uuid = b => (window.__bizUuid ? window.__bizUuid(b.id) : b.id);
-  const c = (DB.businesses || []).find(b => b.isClient && ((linked[uuid(b)] || []).length || groups.has(norm(b.name))));
+  /* E (2026-09-27, D16): the card no longer matches money by NAME — only a company whose rows the money_rows view
+     resolved to it (a typed client ID / code / customer name → FIN.groupsByBiz) has a snapshot. Picking by a
+     same-name group, as this did, opened a client whose card correctly shows no money. */
+  const c = (DB.businesses || []).find(b => b.isClient && (linked[uuid(b)] || []).length);
   const dbg = 'rows=' + (FIN.rows || []).length + ' linkedBiz=' + Object.keys(linked).length + ' clients=' + (DB.businesses || []).filter(b => b.isClient).length;
   // the detail card renders under the leads route for leads and clients alike (js/38 re-titles it "Clients")
   if (!c) return 'NONE (' + dbg + ')'; openLead = c.id; current = 'leads'; render(); return c.name;

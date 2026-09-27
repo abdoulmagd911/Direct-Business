@@ -31,7 +31,7 @@
   function canEdit(){ try{ if(window.__isShareView)return false; return window.__userRole==='admin'||window.__userRole==='manager'; }catch(_){ return false; } }
   /* the database's money_norm, mirrored: NFKC, lower case, Arabic alef / yeh / teh-marbuta folded, only letters and digits */
   function normMR(s){ s=String(s==null?'':s); try{ s=s.normalize('NFKC'); }catch(_){}
-    s=s.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه');
+    s=s.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[\u064B-\u065F\u0670\u0640]/g,'');
     try{ return s.replace(/[^\p{L}\p{N}]+/gu,''); }catch(_){ return s.replace(/[\s\W_]+/g,''); } }
   window.normMR=normMR;
 
@@ -157,6 +157,12 @@
     ask(fl('Remove the rule "','إزالة القاعدة «')+r0.value+fl('"? Its rows count again at once. A removal is final — add it again if needed.','»؟ تعود صفوفها للحساب فورًا. الإزالة نهائية — أضفها من جديد عند الحاجة.'),function(){
       client().from('money_exclusion_rules').update({removed_at:new Date().toISOString()}).eq('id',id).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); }); };
 
+  /* no company to choose from: say so, rather than open a form with an empty list (the retired grouping window's guard) */
+  function noCompanies(){ var n=((typeof DB!=='undefined'&&DB.businesses)||[]).filter(function(b){ return !b.archived&&!b.archivedAt; }).length;
+    if(n)return true;
+    alert((typeof DB==='undefined'||!DB.businesses)?fl('The company list is still loading — try again in a moment.','قائمة الشركات ما زالت تُحمَّل — حاول بعد لحظة.')
+      :fl('There are no companies yet — add the company first (New company… in Needs a decision, or Leads → New).','لا توجد شركات بعد — أضف الشركة أولًا («شركة جديدة…» في «يحتاج قرارًا»، أو العملاء المحتملون ← جديد).'));
+    return false; }
   function companyOptions(sel,sug){ var list=((typeof DB!=='undefined'&&DB.businesses)||[]).filter(function(b){ return !b.archived&&!b.archivedAt; }).slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
     return '<option value="">'+fl('— choose the company —','— اختر الشركة —')+'</option>'+list.map(function(b){ var u=(window.__bizUuid?window.__bizUuid(b.id):b.id);
       return '<option value="'+e(u)+'"'+(u===sel?' selected':'')+'>'+e(b.name||'(unnamed)')+(b.isClient?'':' · '+fl('lead','عميل محتمل'))+(sug&&sug.biz===u?' · '+fl('suggested','مقترح'):'')+'</option>'; }).join(''); }
@@ -205,6 +211,7 @@
       client().from('company_name_aliases').update({removed_at:new Date().toISOString()}).eq('id',id).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); }); };
   function owner(idText){ var n=normMR(idText); var hit=((window.CP&&CP.rows)||[]).find(function(p){ return normMR(p.direct_client_id)===n; }); return hit||null; }
   window.v117AddClientId=function(bizUuid,prefill){ if(!canEdit())return;
+    if(!noCompanies())return;
     openModal(fl('Add a client ID to a company','إضافة معرّف عميل إلى شركة'),
       '<div class="ch-sub">'+fl('Only what is typed here is merged: every transaction carrying this Direct Payments client ID counts under the company. One ID belongs to one company.','لا يُدمج إلا ما يُكتب هنا: كل عملية تحمل معرّف العميل هذا تُحتسب لهذه الشركة. المعرّف الواحد لشركة واحدة.')+'</div>'+
       '<div class="field"><label>'+fl('Company','الشركة')+'</label><select id="v117_biz">'+companyOptions(bizUuid)+'</select></div>'+
@@ -222,6 +229,7 @@
     ask(fl('Take client ID #','إزالة معرّف العميل #')+p.direct_client_id+fl(' out of ',' من ')+((b&&b.name)||'')+fl('? Its transactions stand alone again ("Not merged — review").','؟ تعود عملياته مستقلة («غير مدموج — للمراجعة»).'),function(){
       client().from('client_profiles').delete().eq('id',profileId).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); }); };
   window.v117AddCode=function(bizUuid){ if(!canEdit())return;
+    if(!noCompanies())return;
     openModal(fl('Add a discount code to a company','إضافة رمز خصم إلى شركة'),
       '<div class="ch-sub">'+fl('Sales that used this code count under the company, and leave "Unassigned codes" — never counted twice. One code belongs to one company.','المبيعات التي استخدمت هذا الرمز تُحتسب للشركة وتخرج من «رموز غير مخصّصة» — لا تُحتسب مرتين. الرمز الواحد لشركة واحدة.')+'</div>'+
       '<div class="field"><label>'+fl('Company','الشركة')+'</label><select id="v117_cbiz">'+companyOptions(bizUuid)+'</select></div>'+

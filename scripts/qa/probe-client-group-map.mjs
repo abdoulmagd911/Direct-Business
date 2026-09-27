@@ -1,37 +1,42 @@
-/* probe-client-group-map.mjs — M14 regression guard for the owner-directed client name
-   alias feature (2026-08-25): a client's short English name and its full Arabic legal spelling (fictional pair here; real one in DB.settings.financeGroupMap) "شركة مدار الذكية لتقنية
-   المعلومات" are the same real company under two spellings, one English one Arabic —
-   currently 507,800.00 SAR (1 invoice) and 134,748.95 SAR (2 invoices) reported as two
-   unrelated clients. Same shape for "...Sons Co" vs "...Sons Company" and the alrajhi pair.
+/* probe-client-group-map.mjs — M14 regression guard for the owner-directed client name merge (2026-08-25): one real
+   company appears in Direct Payments under two spellings — a short English name and its full Arabic legal name — and
+   was reported as two unrelated clients. (Made-up names and amounts here; the real pair stays in the database.)
 
    THE OWNER'S TWO EXPLICIT REQUIREMENTS, both asserted below:
-   (1) Reversible and visible — see both source names and both totals BEFORE the merge
-       applies, undo it after. Nothing in finance_invoices is ever written; the merge is a
-       pure display-time resolution (finGroupCheck() consulted by finCanon()), so undo is
-       instant and lossless — asserted directly by re-checking the split reappears exactly.
-   (2) Consulted by the IMPORT path too, not applied once to existing rows — asserted by
-       proving the SAME synthetic rows (standing in for "a fresh Direct Payments export
-       carrying the same client_group text") group correctly the moment the mapping exists,
-       with no per-row backfill step required — finCanon() is evaluated live on every read.
+   (1) Reversible and visible — see both source names and both totals BEFORE the merge applies, undo it after. Nothing in
+       finance_invoices is ever written by a merge.
+   (2) Consulted by the IMPORT path too, not applied once to existing rows — a later row carrying the same name (in any
+       spelling) lands under the company with nothing to do.
 
-   Drives the real admin UI (js/62-finance-guardrails.js's "+ Add alias" modal), not just the
-   underlying function, so a bug in the modal wiring itself would be caught too. */
+   E (2026-09-27, DECISIONS D16): js/62's alias map and its "+ Add alias" modal are retired. A spelling now joins a company
+   only when a person TYPES it there — Finance → Rules → "Needs a decision" → Belongs to [company], which writes one row
+   in company_name_aliases, applied by the view money_rows. So this probe now drives that control: both spellings sit in
+   Needs a decision before (split, with their totals); pressing Belongs to for each puts both under one company with the
+   combined total; a later import row in a third spelling (ة written ه) lands there at once; "Remove" takes a name out
+   again and the split reappears (a removal is final, so "redo" is typing the name again — a new row, the old stays
+   removed); an EXCLUDED client is never offered for a decision; finance_invoices is byte-identical throughout the merge
+   and the undo; the page itself never writes a name (only the button does). Rows are seeded through the table, because
+   the company now comes from the view, not from FIN.rows. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const PORT = 8241;
+const ALIAS_EN = 'Qamar Test';
+const ALIAS_AR = 'شركة قمر التجريبية للأنظمة';
+const ALIAS_AR_VARIANT = 'شركه قمر التجريبيه للأنظمه';   // the same name with ة written ه — as a later export may carry it
+const TARGET = 'Test Company 8';                          // a harness company with no money of its own
+const inv = (id, no, g, v, d) => ({ id, invoice_no: no, client_group: g, customer_raw_name: g, invoice_date: d, month: 'May', quarter: 'Q2', year: 2026, products: 'Flights', service_type: 'Flights', record_type: 'b2b',
+  total_incl_vat_sar: v, wallet_portion_sar: 0, revenue_sar: v, cost_sar: 0, profit_sar: v, amount_received_sar: v, amount_remaining_sar: 0, integrity_status: 'verified_paid', exclusion_reason: null, notes: null,
+  source_batch: 'qa-cgm', revenue_way: 'invoice', created_at: '2026-05-01T00:00:00Z', updated_at: '2026-05-01T00:00:00Z', deleted_at: null });
 const srv = start(PORT);
 const BASE = 'http://localhost:' + PORT;
+const api = (q) => fetch(BASE + '/rest/v1/' + q).then((r) => r.json());
 
 let failures = 0;
 function fail(msg) { failures++; console.log('  ✗ ' + msg); }
 function ok(msg) { console.log('  ✓ ' + msg); }
-
-const ALIAS_EN = 'Madar';
-const ALIAS_AR = 'شركة مدار الذكية لتقنية المعلومات';
-const CANONICAL = 'Madar - Smart Systems';
 
 async function main() {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -41,6 +46,8 @@ async function main() {
   p.on('pageerror', (e) => errors.push('JS: ' + e.message));
   p.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
   p.on('dialog', (d) => d.accept());
+  const nameWrites = []; let clicking = false;
+  p.on('request', (rq) => { if (/\/rest\/v1\/company_name_aliases/.test(rq.url()) && rq.method() !== 'GET' && !clicking) nameWrites.push(rq.method()); });
 
   await p.route(u=>u.href.includes('vkxoeeoauexyfpzqufqd.supabase.co'), async (r) => {
     const rq = r.request(); const u = new URL(rq.url());
@@ -55,144 +62,113 @@ async function main() {
   await p.route(u=>u.href.includes('fonts.gstatic.com'), (r) => r.abort());
 
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await p.waitForTimeout(2000);
+  await p.waitForSelector('#cl_email', { timeout: 60000 });
   await p.fill('#cl_email', 'test@directksa.com');
   await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh');
   await p.click('#cl_go');
-  await p.waitForTimeout(4000);
-  await p.evaluate(() => { current = 'finance'; if (typeof render === 'function') render(); });
-  await p.waitForTimeout(1200);
+  await p.waitForFunction(() => window.__roleKnown === true && (DB.businesses || []).length > 0 && typeof window.v117Decide === 'function' && window.FIN && typeof finLoad === 'function', null, { timeout: 90000 }).catch(() => {});
 
-  // Inject two synthetic rows standing in for a real Direct Payments export — NOT part of any
-  // finance_client_links business link, so any consolidation seen below can only come from
-  // the alias map, never the pre-existing (and separately correct) business-linking system.
-  await p.evaluate(([enName, arName]) => {
-    FIN.rows = FIN.rows || [];
-    FIN.rows.push(
-      { invoice_no: 'QA-MADAR-EN-1', client_group: enName, customer_raw_name: enName, total_incl_vat_sar: 507800, revenue_sar: 507800, cost_sar: 0, profit_sar: 507800, integrity_status: 'verified_paid', deleted_at: null, invoice_date: '2026-05-01', month: 'May', quarter: 'Q2' },
-      { invoice_no: 'QA-MADAR-AR-1', client_group: arName, customer_raw_name: arName, total_incl_vat_sar: 67374.475, revenue_sar: 67374.475, cost_sar: 0, profit_sar: 67374.475, integrity_status: 'verified_paid', deleted_at: null, invoice_date: '2026-06-01', month: 'June', quarter: 'Q2' },
-      { invoice_no: 'QA-MADAR-AR-2', client_group: arName, customer_raw_name: arName, total_incl_vat_sar: 67374.475, revenue_sar: 67374.475, cost_sar: 0, profit_sar: 67374.475, integrity_status: 'verified_paid', deleted_at: null, invoice_date: '2026-07-01', month: 'July', quarter: 'Q2' },
-    );
-  }, [ALIAS_EN, ALIAS_AR]);
+  // Seed the two spellings through the table (as an import would): one EN invoice, two AR invoices — no client ID, no code.
+  await p.evaluate(async (rows) => { const r = await fc().from('finance_invoices').insert(rows.map((x) => { const y = Object.assign({}, x); delete y.year; return y; })).select('id'); window.__seeded = (r.data || []).length; },
+    [inv('cgm-en-1', 'QA-CGM-EN-1', ALIAS_EN, 400000, '2026-05-01'), inv('cgm-ar-1', 'QA-CGM-AR-1', ALIAS_AR, 55555.5, '2026-06-01'), inv('cgm-ar-2', 'QA-CGM-AR-2', ALIAS_AR, 55555.5, '2026-07-01')]);
+  const reload = async () => { await p.evaluate(() => { FIN.rows = null; if (typeof clearFinCanon === 'function') clearFinCanon(); finLoad(); }); await p.waitForFunction(() => FIN.rows && FIN.m && !FIN.loading, null, { timeout: 30000 }).catch(() => {}); await p.waitForTimeout(500); };
+  await reload();
 
   async function clientsTableText() {
-    await p.evaluate(() => { current = 'finance'; FIN.tab = 'clients'; if (typeof clearFinCanon === 'function') clearFinCanon(); render(); });
-    await p.waitForTimeout(500);
+    await p.evaluate(() => { current = 'finance'; FIN.p = { year: 'all', part: 'all', sector: 'all', cmp: 'none' }; FIN.tab = 'clients'; if (typeof clearFinCanon === 'function') clearFinCanon(); render(); });
+    await p.waitForTimeout(600);
     return p.evaluate(() => { const v = document.getElementById('view'); return v ? v.innerText : ''; });
   }
+  const loose = () => p.evaluate(() => [...document.querySelectorAll('tr[data-v117-loose]')].map((tr) => tr.getAttribute('data-v117-loose')));
+  async function decide(name) {
+    await p.evaluate(() => { current = 'finance'; finGo('rules'); }); await p.waitForTimeout(700);
+    const picked = await p.evaluate(([n, target]) => { const tr = [...document.querySelectorAll('tr[data-v117-loose]')].find((x) => x.getAttribute('data-v117-loose') === n); if (!tr) return 'no row';
+      const sel = tr.querySelector('select'); const o = [...sel.options].find((x) => x.textContent.trim().startsWith(target)); if (!o) return 'no option'; sel.value = o.value; return o.value; }, [name, TARGET]);
+    if (/^no /.test(picked)) return picked;
+    clicking = true;
+    await p.evaluate((n) => { const tr = [...document.querySelectorAll('tr[data-v117-loose]')].find((x) => x.getAttribute('data-v117-loose') === n); tr.querySelector('[data-v117-decide="belongs"]').click(); }, name);
+    await p.waitForTimeout(400); clicking = false;
+    await p.waitForFunction(() => FIN.rows && FIN.m && !FIN.loading && window.MR && MR.rules, null, { timeout: 30000 }).catch(() => {}); await p.waitForTimeout(700);
+    return picked;
+  }
 
-  // ---- BASELINE: prove the two synthetic rows really are split before any grouping exists ----
+  // ---- BASELINE: the two spellings really are split before anyone decides ----
+  if (await p.evaluate(() => window.__seeded) !== 3) fail('setup: the three seed rows did not land');
   const before = await clientsTableText();
-  if (!before.includes(ALIAS_EN)) fail(`baseline: "${ALIAS_EN}" row not found at all — test setup is broken`);
-  if (!/شركة مدار/.test(before)) fail('baseline: the Arabic-name row not found at all — test setup is broken');
-  if (before.includes(CANONICAL)) fail(`baseline: "${CANONICAL}" already appears before any grouping was added — test setup is contaminated`);
-  else ok('baseline: the two synthetic rows show as separate clients, exactly as reported — proves the test is real');
+  if (!before.includes(ALIAS_EN) || !/شركة قمر/.test(before)) fail('baseline: one of the two spellings is missing from the Clients tab — test setup is broken');
+  else if (/511,111/.test(before)) fail('baseline: the combined total already shows before any decision — test setup is contaminated');
+  else ok('baseline: the two spellings show as separate clients with their own totals — proves the test is real');
 
-  // ---- Drive the real admin UI: Finance > Import > "+ Add alias" ----
-  // Settle first: the seeding steps above leave a pending debounced global render() that can
-  // fire moments after finGo and inject the card COINCIDENTALLY, masking a missing finGo hook
-  // (measured 2026-08-26: without the settle, a sabotaged build still passed; with it, the
-  // card stays absent indefinitely). The first-paint check below is only honest after this.
-  await p.waitForTimeout(3000);
-  await p.evaluate(() => { current = 'finance'; if (typeof window.finGo === 'function') window.finGo('import'); });
-  // FIRST-PAINT check (found by hands-on driving 2026-08-26): finGo('import') paints via
-  // renderFinance() directly, and v62 originally hooked only window.render — so the whole
-  // guardrails/alias card was missing on the common first paint of the Import tab (the M12
-  // shape again). The finGo hook must make it appear immediately, not after some later
-  // unrelated global render happens to fire.
+  // ---- FIRST PAINT + the decision list ----
+  await p.waitForTimeout(1500);
+  await p.evaluate(() => { current = 'finance'; if (typeof window.finGo === 'function') window.finGo('rules'); });
   await p.waitForTimeout(400);
-  const firstPaint = await p.evaluate(() => !!document.querySelector('.v62-guardrails'));
-  if (!firstPaint) fail('FIRST-PAINT: the guardrails/alias card is missing right after finGo(\'import\') — the finGo hook is not wired (M12 shape: a tab-switch is not a global render)');
-  else ok('FIRST-PAINT: the guardrails/alias card is present immediately on the finGo(\'import\') paint');
-  await p.waitForTimeout(500);
+  const firstPaint = await p.evaluate(() => !!document.querySelector('.v117-merges'));
+  if (!firstPaint) fail('FIRST-PAINT: the Rules tab (Company merges card) is missing right after finGo(\'rules\') — a tab switch is not a global render (M12 shape)');
+  else ok('FIRST-PAINT: the Company merges card is present immediately on the finGo(\'rules\') paint');
+  const L0 = await loose();
+  if (L0.includes(ALIAS_EN) && L0.includes(ALIAS_AR)) ok('both spellings wait under "Needs a decision" — visible, with their totals, before anything is merged');
+  else fail('both spellings should be under Needs a decision: ' + JSON.stringify(L0));
+  const leaked = L0.filter((v) => /tawthiq|techtic/i.test(v));
+  if (leaked.length) fail('EXCLUSION LEAK: an excluded client is offered for a merge decision: ' + JSON.stringify(leaked));
+  else ok('no excluded client (Tawthiq/Techtic, caught by the harness rule) is offered for a decision');
 
-  // Business-linked auto-suggest: "Test Company 4"/"Test Company 5" are the mock's own
-  // pre-existing fixture — already linked to the SAME business (finance_client_links) but
-  // never yet given an alias mapping. This is the real EN/AR-pair shape exactly (a cross-script rename
-  // that norm62() alone would never catch) — the suggestion must appear without any typing.
-  const suggestionText = await p.evaluate(() => { const c = document.querySelector('.v62-guardrails'); return c ? c.innerText : ''; });
-  if (!/Test Company 4/.test(suggestionText) || !/Test Company 5/.test(suggestionText)) fail(`business-linked auto-suggest missing for the pre-linked "Test Company 4"/"Test Company 5" fixture pair — got: ${suggestionText.slice(0, 500)}`);
-  else ok('business-linked auto-suggest surfaced "Test Company 4" + "Test Company 5" (same business, different client_group text) with zero typing — the MDD shape, caught automatically');
-
-  const opened = await p.evaluate(() => {
-    const btn = [...document.querySelectorAll('.v62-guardrails button')].find((x) => /Add alias/i.test(x.textContent));
-    if (btn) { btn.click(); return true; }
-    return false;
-  });
-  if (!opened) fail('could not find the "+ Add alias" button — the guardrails card did not render or the button text changed');
-  else ok('opened the real "Add client name alias" modal via the admin UI');
-  await p.waitForTimeout(400);
-
-  // EXCLUDED clients must never be offered as merge candidates (found by hands-on driving
-  // 2026-08-26: the picker listed "Tawthiq Test Services" with its totals, because
-  // groupCandidates()'s window.live fallback skipped the exclusion filter — js/16's live() is
-  // IIFE-scoped and never actually reaches window). The mock seeds both the Tawthiq invoice
-  // row and its exclusion entry, so this is the exact standing-invariant fixture. The card's
-  // exclusion-LIST section legitimately shows the name (that is where the rule is managed) —
-  // the assertion is scoped to the picker's options only.
-  const pickerOptions = await p.evaluate(() => [...document.querySelectorAll('#g2_aliases option')].map((o) => o.value));
-  const leakedExcluded = pickerOptions.filter((v) => /tawthiq|techtic/i.test(v));
-  if (leakedExcluded.length) fail(`EXCLUSION LEAK: the alias picker offers excluded client(s) as merge candidates: ${JSON.stringify(leakedExcluded)} — groupCandidates() is not applying finExclusionCheck`);
-  else ok('the alias picker offers no excluded client (Tawthiq/Techtic absent from the candidates)');
-
-  await p.selectOption('#g2_aliases', [ALIAS_EN, ALIAS_AR]);
-  await p.fill('#g2_name', CANONICAL);
-  await p.click('#mSave');
-  /* 2026-09-09 (live test D1 family): js/62 asks through js/57's in-page box now — answer yes there */
-  await p.waitForSelector('#pfConfirmYes', { timeout: 5000 }).catch(() => {}); await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
-  await p.waitForTimeout(600);
-
+  // ---- the merge, through the real control ----
+  const fiBefore = JSON.stringify(await api('finance_invoices?order=id.asc'));
+  const d1 = await decide(ALIAS_EN), d2 = await decide(ALIAS_AR);
+  if (/^no /.test(d1) || /^no /.test(d2)) fail('could not press Belongs to: ' + d1 + ' / ' + d2);
+  else ok('pressed Belongs to "' + TARGET + '" for both spellings in Needs a decision');
+  const typed = (await api('company_name_aliases')).filter((a) => [ALIAS_EN, ALIAS_AR].includes(a.name) && !a.removed_at);
+  if (typed.length === 2 && typed.every((a) => a.business_id === d1)) ok('two typed names landed in company_name_aliases, both in the chosen company');
+  else fail('typed names after the decisions: ' + JSON.stringify(typed));
   const afterMerge = await clientsTableText();
-  if (!afterMerge.includes(CANONICAL)) fail(`after merge: "${CANONICAL}" does not appear — got: ${afterMerge.slice(0, 400)}`);
-  else ok(`after merge: "${CANONICAL}" appears as the canonical name`);
-  // A standalone raw-alias row (tab-separated table cell, not part of the canonical name)
-  // would mean the raw alias is still showing separately alongside the merged one.
-  if (new RegExp('\\n' + ALIAS_EN + '\\t').test(afterMerge)) fail(`after merge: the raw "${ALIAS_EN}" row is still showing separately — not actually consolidated`);
-  else ok(`after merge: no separate "${ALIAS_EN}" row remains — the raw alias is gone from the table`);
-  // money0() rounds 642,548.95 to 642,549 for display — that rounding is the app's own,
-  // expected behavior, not a bug this probe should trip over.
-  if (!/642,549/.test(afterMerge)) fail(`after merge: combined total (642,549, i.e. 507,800 + 134,748.95 rounded) not found — got: ${afterMerge.slice(0, 600)}`);
-  else ok('after merge: the combined total (507,800 + 134,748.95 = 642,548.95, displayed 642,549) shows under one row — a real consolidation, not just a label change');
+  if (!afterMerge.includes(TARGET)) fail(`after merge: "${TARGET}" does not appear — got: ${afterMerge.slice(0, 400)}`);
+  else ok(`after merge: the company "${TARGET}" appears`);
+  if (new RegExp('\\n' + ALIAS_EN + '\\t').test(afterMerge) || /\nشركة قمر[^\n]*\t/.test(afterMerge)) fail('after merge: a raw spelling is still showing as its own client');
+  else ok('after merge: neither raw spelling shows as its own client any more');
+  if (!/511,111/.test(afterMerge)) fail(`after merge: the combined total (400,000 + 111,111 = 511,111) not found — got: ${afterMerge.slice(0, 600)}`);
+  else ok('after merge: the combined total 511,111 shows under the one company — a real consolidation, not a label');
+  if (JSON.stringify(await api('finance_invoices?order=id.asc')) === fiBefore) ok('finance_invoices is byte-identical after the merge — a merge never writes money');
+  else fail('the merge changed finance_invoices');
 
-  // ---- REQUIREMENT (2): consulted live, not a one-time backfill — a THIRD synthetic row
-  // using the SAME already-mapped alias text (standing in for next month's export) must
-  // consolidate immediately, with zero extra steps ----
-  await p.evaluate(([arName]) => {
-    FIN.rows.push({ invoice_no: 'QA-MADAR-AR-3-FUTURE-IMPORT', client_group: arName, customer_raw_name: arName, total_incl_vat_sar: 10000, revenue_sar: 10000, cost_sar: 0, profit_sar: 10000, integrity_status: 'verified_paid', deleted_at: null, invoice_date: '2026-08-01', month: 'August', quarter: 'Q3' });
-  }, [ALIAS_AR]);
-  const afterFutureImport = await clientsTableText();
-  if (!/652,549/.test(afterFutureImport)) fail(`a "future import" row using the same mapped alias text did not consolidate automatically — got: ${afterFutureImport.slice(0, 600)}`);
-  else ok('REQUIREMENT (2) held: a fresh row carrying an already-mapped alias consolidates immediately, live, with no per-row backfill needed');
+  // ---- REQUIREMENT (2): a later import row, in a third spelling, lands under the company with nothing to do ----
+  await p.evaluate(async (row) => { const y = Object.assign({}, row); delete y.year; await fc().from('finance_invoices').insert([y]).select('id'); }, inv('cgm-ar-3', 'QA-CGM-AR-3-FUTURE', ALIAS_AR_VARIANT, 10000, '2026-08-01'));
+  await reload();
+  const afterFuture = await clientsTableText();
+  if (!/521,111/.test(afterFuture)) fail(`a later row spelled "${ALIAS_AR_VARIANT}" (ة written ه) did not join the company — got: ${afterFuture.slice(0, 600)}`);
+  else ok('REQUIREMENT (2) held: a later import row in another spelling (ة/ه) joins the company at once, with no step and no backfill');
+  const fiWithFuture = JSON.stringify(await api('finance_invoices?order=id.asc'));
 
-  // ---- REQUIREMENT (1): undo is instant and lossless — the split must reappear exactly ----
-  const undone = await p.evaluate(() => {
-    const list = (window.finGroupList ? finGroupList() : []);
-    const e = list.find((x) => x.canonicalName === 'Madar - Smart Systems' && x.active !== false);
-    if (!e) return false;
-    v62UndoGrouping(e.id);
-    return true;
-  });
-  if (!undone) fail('could not find the active grouping entry to undo');
-  await p.waitForSelector('#pfConfirmYes', { timeout: 5000 }).catch(() => {}); await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
-  await p.waitForTimeout(500);
+  // ---- REQUIREMENT (1): undo — take both names out; the split reappears ----
+  for (const n of [ALIAS_EN, ALIAS_AR]) {
+    await p.evaluate(() => { current = 'finance'; finGo('rules'); }); await p.waitForTimeout(600);
+    clicking = true;
+    const hit = await p.evaluate((nm) => { const a = (MR.aliases || []).find((x) => x.name === nm); if (!a) return false; v117RemoveAlias(a.id); return true; }, n);
+    await p.waitForSelector('#pfConfirmYes', { timeout: 5000 }).catch(() => {}); await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); });
+    await p.waitForTimeout(400); clicking = false;
+    if (!hit) fail('could not find the typed name "' + n + '" to remove');
+    await p.waitForFunction(() => FIN.rows && FIN.m && !FIN.loading && window.MR && MR.rules, null, { timeout: 30000 }).catch(() => {}); await p.waitForTimeout(700);
+  }
   const afterUndo = await clientsTableText();
-  if (afterUndo.includes(CANONICAL)) fail(`after undo: "${CANONICAL}" still appears — undo did not actually take effect`);
-  else if (!afterUndo.includes(ALIAS_EN) || !/شركة مدار/.test(afterUndo)) fail(`after undo: the two original names did not reappear — got: ${afterUndo.slice(0, 400)}`);
-  else ok('REQUIREMENT (1) held: undo split the totals back apart instantly, byte-for-byte matching the pre-merge baseline shape — nothing in finance_invoices was ever touched');
+  if (/521,111|511,111/.test(afterUndo)) fail('after undo: the combined total still shows — the removal did not take effect');
+  else if (!afterUndo.includes(ALIAS_EN) || !/شركة قمر/.test(afterUndo)) fail(`after undo: the original spellings did not reappear — got: ${afterUndo.slice(0, 400)}`);
+  else ok('REQUIREMENT (1) held: removing the typed names split the totals back apart at once');
+  const removed = (await api('company_name_aliases')).filter((a) => [ALIAS_EN, ALIAS_AR].includes(a.name));
+  if (removed.length === 2 && removed.every((a) => a.removed_at)) ok('the removed names are kept, marked removed (who and when) — nothing is deleted');
+  else fail('removed names: ' + JSON.stringify(removed));
+  if (JSON.stringify(await api('finance_invoices?order=id.asc')) === fiWithFuture) ok('finance_invoices is byte-identical after the undo too');
+  else fail('the undo changed finance_invoices');
 
-  // ---- Redo, to confirm the entry is genuinely reversible both ways, not just deletable ----
-  const redone = await p.evaluate(() => {
-    const list = (window.finGroupList ? finGroupList() : []);
-    const e = list.find((x) => x.canonicalName === 'Madar - Smart Systems' && x.active === false);
-    if (!e) return false;
-    v62RedoGrouping(e.id);
-    return true;
-  });
-  if (!redone) fail('could not find the undone grouping entry to redo');
-  await p.waitForTimeout(500);
+  // ---- redo: a removal is final, so the person types the name again — it merges again ----
+  const r1 = await decide(ALIAS_EN), r2 = await decide(ALIAS_AR);
   const afterRedo = await clientsTableText();
-  if (!afterRedo.includes(CANONICAL)) fail('after redo: the grouping did not re-apply');
-  else ok('redo re-applied the same grouping cleanly — the entry is a real toggle, not a one-shot');
+  const rows2 = (await api('company_name_aliases')).filter((a) => [ALIAS_EN, ALIAS_AR].includes(a.name));
+  if (!/^no /.test(r1) && !/^no /.test(r2) && /521,111/.test(afterRedo) && rows2.length === 4 && rows2.filter((a) => !a.removed_at).length === 2)
+    ok('redo = typing the names again: they merge again as NEW rows, and the removed ones stay removed');
+  else fail('redo did not re-merge cleanly: ' + JSON.stringify({ r1, r2, rows: rows2.length, total: /521,111/.test(afterRedo) }));
+
+  if (nameWrites.length) fail('the page wrote to company_name_aliases without a button being pressed: ' + JSON.stringify(nameWrites));
+  else ok('every typed-name write came from a button a person pressed — nothing written on its own (D17)');
 
   const realErrors = errors.filter((e) => !/net::ERR_|forEach|TUNNEL_CONNECTION/.test(e));
   console.log('\nJS/console errors:', realErrors.length ? JSON.stringify(realErrors, null, 2) : 'none');
@@ -200,12 +176,8 @@ async function main() {
 
   await b.close();
   srv.close();
-
-  if (failures) {
-    console.log(`\nFAILED — ${failures} check(s) did not pass.`);
-    process.exit(1);
-  }
-  console.log('\nclient-group-map OK — the real admin UI merges two client_group aliases into one canonical name, a fresh row using an already-mapped alias consolidates live with no backfill, and undo/redo are lossless and instant.');
+  if (failures) { console.log(`\nFAILED — ${failures} check(s) did not pass.`); process.exit(1); }
+  console.log('\nclient-group-map OK — two spellings merge only when a person types them into a company, a later spelling joins at once, and undo/redo are visible and lossless.');
   process.exit(0);
 }
 

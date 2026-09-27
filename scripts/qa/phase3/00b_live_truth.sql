@@ -163,3 +163,14 @@ alter table finance_invoices add column if not exists customer_raw_name text, ad
   add column if not exists created_at timestamptz default now();
 create table if not exists app_settings (id text primary key, data jsonb not null default '{}'::jsonb, updated_at timestamptz default now());
 alter table app_settings enable row level security;
+-- business_merges as live (information_schema, 2026-09-27) — written by the live-only fn_merge_businesses
+create table if not exists business_merges (id uuid primary key default gen_random_uuid(), kept_id uuid, dropped_id uuid,
+  dropped_snapshot jsonb, kept_before jsonb, moved jsonb, reason text, actor text, merged_at timestamptz default now(),
+  undone_at timestamptz, undone_by text);
+alter table business_merges enable row level security;
+drop policy if exists bm_read on business_merges;
+create policy bm_read on business_merges for select using (app_role() is not null);
+drop policy if exists bm_write on business_merges;
+create policy bm_write on business_merges for all using (app_role() in ('admin','manager') and (can_edit_page('leads') or can_edit_page('clients')))
+  with check (app_role() in ('admin','manager') and (can_edit_page('leads') or can_edit_page('clients')));
+grant select, insert, update on business_merges to authenticated;

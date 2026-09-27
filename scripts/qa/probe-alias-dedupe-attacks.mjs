@@ -22,12 +22,25 @@
         fn_unmerge_businesses puts every one of those back, reopening the closed profile with
         its original note. finance_invoices is byte-identical before and after both.
         A company cannot be merged into itself.
+   E (2026-09-27, DECISIONS D16): js/62's alias map and name list are retired. Rules 1-3 now test their replacements —
+   the typed rules and typed customer names, matched by js/117 moneyRuleFor/normMR (the same folding as the database's
+   money_norm): 1. a typed NAME rule matches however the name is spelled (case, spaces, punctuation, ة/ه, ى/ي, أإآ/ا,
+   tatweel, diacritics, doubled spaces, NFKC presentation forms), and never a different word, an empty or a null name;
+   a rule switched off or removed matches nothing; one rule per type+value however spelled (the second is refused);
+   2. the harness's Tawthiq name rule catches every spelling of that name, never a different name, and never a row that
+   carries a client ID (a name rule is only for rows with no ID); and EXCLUSION BEATS MERGE: with that name typed into a
+   company, its row belongs to the company AND is excluded — in no total, not on the Clients tab, the company's total
+   unchanged; 3. is gone (one name belongs to one company — probe-grouping-canon-attacks asserts the refusal).
+   4 and 5 (duplicate finder, fn_merge_businesses) are unchanged. NOT asserted here because the harness's merge
+   function cannot show it: whether fn_merge_businesses moves the typed names and discount codes of the dropped company
+   (see the E report of 27 Sep: the live function does not move company_discount_codes).
+
    Run:  node scripts/qa/probe-alias-dedupe-attacks.mjs      (port 8201)
    Sabotage: drop the Arabic folding from norm62 → check 1 red; make finGroupCheck ignore
    `active:false` → check 1 red; let the mock's merge skip the profile-collision close → check 5
    red (the undo then has nothing to reopen). */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
-import { start, settingsLoaded } from './mock-supabase.mjs';
+import { start } from './mock-supabase.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 const PORT = 8201; const srv = start(PORT); const BASE = 'http://localhost:' + PORT;
@@ -62,62 +75,72 @@ async function main() {
      DB.settings whenever it lands. Reading before it lands gave "exclusion → null, expected 7";
      writing before it lands had the write silently replaced. Both were reported as app defects.
      Wait for it once, here, and fail loudly rather than measure a world that has not arrived. */
-  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Tawthiq Test Services')); } catch (_) { return false; } }))) fail('DB.settings never arrived from app_settings — the exclusion list and group map below would be measured against an empty object, which is not a finding about the app');
+  /* E: the rules come from money_exclusion_rules now, not app_settings — wait for them and the view */
+  if (!(await p.waitForFunction(() => window.MR && MR.rules && FIN.m && typeof finExclusionCheck === 'function' && !!finExclusionCheck('Tawthiq Test Services'), null, { timeout: 90000 }).then(() => true).catch(() => false))) fail('the exclusion rules never loaded — everything below would be measured against no rules, which is not a finding about the app');
 
-  /* ---------- 1. alias normalisation ---------- */
-  await p.evaluate(() => {
-    DB.settings = DB.settings || {};
-    DB.settings.financeGroupMap = [
-      { id: 'g1', canonicalName: 'Madar - Smart Systems', aliases: ['Madar', 'شركة مدار الذكية لتقنية المعلومات'], active: true },
-      { id: 'g2', canonicalName: 'Old Group (undone)', aliases: ['Retired Alias'], active: false },
-      { id: 'g3', canonicalName: 'Second Group', aliases: ['Madar', 'Only Here'], active: true }   // deliberately re-uses an alias
-    ];
-    if (window.clearFinCanon) clearFinCanon();
-  });
-  const g = (name) => p.evaluate((n) => { const r = window.finGroupCheck(n); return r ? r.canonicalName : null; }, name);
+  /* ---------- 1. the typed NAME rule matches however the name is spelled ---------- */
+  const NAME_EN = 'Qamar Test', NAME_AR = 'شركة قمر التجريبية للأنظمة';
+  const addRule = (kind, value, reason) => p.evaluate(async ([k, v, why]) => { const r = await fc().from('money_exclusion_rules').insert({ kind: k, value: v, reason: why }).select('id');
+    MR.rules = null; await new Promise((res) => moneyRulesLoad(res)); return r.error ? { err: (r.error.code || '') + ' ' + r.error.message } : { id: (r.data || [])[0] && r.data[0].id }; }, [kind, value, reason]);
+  const r1 = await addRule('name', NAME_EN, 'probe: made-up'), r2 = await addRule('name', NAME_AR, 'probe: made-up'), r3 = await addRule('name', 'Retired Alias', 'probe: switched off');
+  if (r1.id && r2.id && r3.id) ok('three name rules typed through the table (as the Rules form does)'); else fail('could not add the name rules: ' + JSON.stringify([r1, r2, r3]));
+  await p.evaluate(async (id) => { await fc().from('money_exclusion_rules').update({ active: false }).eq('id', id).select('id'); MR.rules = null; await new Promise((res) => moneyRulesLoad(res)); }, r3.id);
+  const g = (name) => p.evaluate((n) => { const r = window.moneyRuleFor({ name: n }); return r ? r.value : null; }, name);
+  /* the Arabic name rewritten letter by letter in presentation-form code points (U+FE70-FEFC), which NFKC folds back */
+  const PFMAP = {}; for (let c = 0xFE70; c <= 0xFEFC; c++) { const ch = String.fromCharCode(c), n = ch.normalize('NFKC'); if (n.length === 1 && !(n in PFMAP)) PFMAP[n] = ch; }
+  const PF_AR = [...NAME_AR].map((ch) => PFMAP[ch] || ch).join('');
   const cases = [
-    ['Madar', 'Madar - Smart Systems', 'exact'],
-    ['  madar  ', 'Madar - Smart Systems', 'case + surrounding spaces'],
-    ['M a d a r'.replace(/ /g, ''), 'Madar - Smart Systems', 'no-op control'],
-    ['Ma-dar', null, 'a different word is NOT folded into a match'],
-    ['شركة مدار الذكية لتقنية المعلومات', 'Madar - Smart Systems', 'Arabic exact'],
-    ['شركه مدار الذكيه لتقنية المعلومات', 'Madar - Smart Systems', 'Arabic ة written as ه'],
-    ['شركة مدار الذكية لتقنيه المعلومات', 'Madar - Smart Systems', 'the other way round (ه written as ة)'],
-    ['شـركة مـدار الذكية لتقنية المعلومات', 'Madar - Smart Systems', 'tatweel (ـ) inside the words'],
-    ['شَركة مدار الذكية لتقنية المعلومات', 'Madar - Smart Systems', 'diacritics'],
-    ['شركة   مدار  الذكية لتقنية المعلومات', 'Madar - Smart Systems', 'doubled spaces'],
-    ['Retired Alias', null, 'an inactive (undone) group is ignored'],
+    ['Qamar Test', NAME_EN, 'exact'],
+    ['  qamar  TEST ', NAME_EN, 'case + surrounding and doubled spaces'],
+    ['Qamar-Test.', NAME_EN, 'punctuation folded'],
+    ['Qamar Tests', null, 'a different word is NOT folded into a match'],
+    [NAME_AR, NAME_AR, 'Arabic exact'],
+    ['شركه قمر التجريبيه للأنظمه', NAME_AR, 'Arabic ة written as ه'],
+    ['شركة قمر التجريبية للانظمة', NAME_AR, 'أ written as ا'],
+    ['شـركة قـمر التجريبية للأنظمة', NAME_AR, 'tatweel (ـ) inside the words'],
+    ['شَركة قمر التجريبية للأنظمة', NAME_AR, 'diacritics'],
+    ['شركة   قمر  التجريبية للأنظمة', NAME_AR, 'doubled spaces'],
+    [PF_AR, NAME_AR, 'NFKC presentation forms'],
+    ['Retired Alias', null, 'a rule switched off matches nothing'],
     ['', null, 'empty name matches nothing'],
     [null, null, 'null matches nothing'],
-    ['Only Here', 'Second Group', 'the second active group still works'],
   ];
   for (const [inp, want, why] of cases) {
+    if (why === 'NFKC presentation forms' && (inp === NAME_AR || inp.normalize('NFKC') !== NAME_AR)) { fail('probe fixture: the presentation-form string is not a real presentation-form spelling — fix the fixture, not the app'); continue; }
     const got = await g(inp);
-    if (got === want) ok(`alias "${String(inp).slice(0, 34)}" → ${want || 'no match'} (${why})`);
-    else fail(`alias "${String(inp).slice(0, 34)}" → ${got}, expected ${want} (${why})`);
+    if (got === want) ok(`name rule "${String(inp).slice(0, 34)}" → ${want || 'no match'} (${why})`);
+    else fail(`name rule "${String(inp).slice(0, 34)}" → ${got}, expected ${want} (${why})`);
   }
-  const twice = await Promise.all([g('Madar'), g('Madar'), g('madar ')]);
-  if (twice.every((x) => x === 'Madar - Smart Systems')) ok('an alias present in TWO active groups resolves to the first one, the same way every time (a data fault never moves money around between renders)');
-  else fail('duplicate alias resolves inconsistently: ' + JSON.stringify(twice));
+  const twice = await Promise.all([g('Qamar Test'), g('Qamar Test'), g('qamar test ')]);
+  if (twice.every((x) => x === NAME_EN)) ok('the same name resolves to the same rule every time'); else fail('name rule resolves inconsistently: ' + JSON.stringify(twice));
+  const dupRule = await addRule('name', 'QAMAR  test', 'probe: second spelling');
+  if (dupRule.err && /one_live|23505/.test(dupRule.err)) ok('a second rule of the same type and value in another spelling is refused (one live rule per type + value)');
+  else fail('a duplicate name rule was accepted: ' + JSON.stringify(dupRule));
+  await p.evaluate(async (id) => { await fc().from('money_exclusion_rules').update({ removed_at: new Date().toISOString() }).eq('id', id).select('id'); MR.rules = null; await new Promise((res) => moneyRulesLoad(res)); }, r1.id);
+  if (await g('Qamar Test') === null) ok('a removed rule matches nothing'); else fail('a removed rule still matches');
 
-  /* ---------- 2. exclusion twin + precedence ---------- */
-  const x = (name) => p.evaluate((n) => { const r = window.finExclusionCheck(n); return r ? r.clientId : null; }, name);
+  /* ---------- 2. the exclusion twin, and exclusion beats merge ---------- */
+  const X = 'Tawthiq Test Services';
   const xc = [
-    ['Tawthiq Test Services', '7', 'exact'],
-    ['  tawthiq   for business services ', '7', 'case + spacing'],
-    ['Tawthiq-for.Business,Services', '7', 'punctuation folded'],
-    ['Tawthiq for Business Service', null, 'a genuinely different name is not excluded'],
+    [X, X, 'exact'],
+    ['  tawthiq   TEST services ', X, 'case + spacing'],
+    ['Tawthiq-Test.Services,', X, 'punctuation folded'],
+    ['Tawthiq Test Service', null, 'a genuinely different name is not excluded'],
   ];
-  for (const [inp, want, why] of xc) { const got = await x(inp); if (got === want) ok(`exclusion "${inp.slice(0, 34)}" → ${want ? '#' + want : 'not excluded'} (${why})`); else fail(`exclusion "${inp}" → ${got}, expected ${want}`); }
-  const prec = await p.evaluate(() => {
-    DB.settings.financeGroupMap.push({ id: 'g4', canonicalName: 'Should Never Show', aliases: ['Tawthiq Test Services'], active: true });
-    if (window.clearFinCanon) clearFinCanon();
-    FIN.rows.push({ id: 'qa-x1', invoice_no: 'QA-X1', client_group: 'Tawthiq Test Services', customer_raw_name: 'Tawthiq Test Services', invoice_date: '2026-03-01', year: 2026, month: 'March', quarter: 'Q1', total_incl_vat_sar: 5000, wallet_portion_sar: 0, revenue_sar: 5000, cost_sar: 0, profit_sar: 5000, amount_received_sar: 5000, amount_remaining_sar: 0, integrity_status: 'verified_paid', deleted_at: null, record_type: 'b2b', service_type: 'Flights' });
-    FIN.p = { year: 'all', part: 'all', sector: 'all', cmp: 'none' }; FIN.tab = 'clients'; renderFinance(document.getElementById('view'));
-    return { onScreen: document.querySelector('#view').innerText, grouped: window.finGroupCheck('Tawthiq Test Services') ? true : false };
-  });
-  if (prec.grouped && !/Should Never Show|5,000/.test(prec.onScreen)) ok('a company that is BOTH excluded and grouped never reaches Finance — exclusion wins over the alias group');
-  else fail('excluded+grouped company leaked onto the Clients tab');
+  for (const [inp, want, why] of xc) { const got = await p.evaluate((n) => { const r = window.finExclusionCheck(n); return r ? r.clientId : null; }, inp); if (got === want) ok(`exclusion "${inp.slice(0, 34)}" → ${want ? 'caught by the name rule' : 'not excluded'} (${why})`); else fail(`exclusion "${inp}" → ${got}, expected ${want}`); }
+  const withId = await p.evaluate((n) => !!window.moneyRuleFor({ name: n, clientId: '555' }), X);
+  if (!withId) ok('a NAME rule never catches a row that carries a client ID — the ID decides that row (D16)'); else fail('a name rule caught a row that carries a client ID');
+  const clientsText = () => p.evaluate(() => { FIN.p = { year: 'all', part: 'all', sector: 'all', cmp: 'none' }; FIN.tab = 'clients'; if (window.clearFinCanon) clearFinCanon(); renderFinance(document.getElementById('view')); return document.querySelector('#view').innerText; });
+  const b4Total = () => p.evaluate(() => (FIN.rows || []).filter((r) => !r.deleted_at && FIN.m[r.id] && FIN.m[r.id].business_id === 'b4' && FIN.m[r.id].counts).reduce((a, r) => a + (+r.revenue_sar || 0), 0));
+  const b4Before = await b4Total();
+  const typedIn = await p.evaluate(async (n) => { const r = await fc().from('company_name_aliases').insert({ business_id: 'b4', name: n }).select('id');
+    FIN.rows = null; finLoad(); await new Promise((res) => { const t = setInterval(() => { if (FIN.rows && FIN.m && !FIN.loading) { clearInterval(t); res(); } }, 100); });
+    const row = FIN.rows.find((x) => x.client_group === n); const m = row && FIN.m[row.id]; return { wrote: (r.data || []).length, m: m ? { biz: m.business_id, excluded: m.excluded, counts: m.counts } : null, inLive: (typeof finLive === 'function' ? finLive() : []).some((x) => x.client_group === n) }; }, X);
+  const prec = await clientsText();
+  const b4After = await b4Total();
+  if (typedIn.wrote === 1 && typedIn.m && typedIn.m.biz === 'b4' && typedIn.m.excluded === true && typedIn.m.counts === false && !typedIn.inLive && !/Tawthiq|314,159/.test(prec) && Math.abs(b4After - b4Before) < 0.01)
+    ok('EXCLUSION BEATS MERGE: with the excluded name typed into a company, its row belongs to that company AND is excluded — in no total, not on the Clients tab, the company\'s total unchanged');
+  else fail('an excluded + merged row leaked: ' + JSON.stringify({ typedIn, onClients: /Tawthiq|314,159/.test(prec), b4Before, b4After }));
 
   /* ---------- 3. duplicate finder ---------- */
   const dup = await p.evaluate(() => {

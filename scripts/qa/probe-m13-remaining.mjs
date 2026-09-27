@@ -4,10 +4,16 @@
         allowed_pages window until 2026-09-25, Phase 1a; that window is retired and v41Access now
         opens this one — the M13 rule is the same: never say saved for a save that did not land)
      B. Client card → Add billing profile (js/27): inserts a client_profiles row
-     C. Finance → Link finance to clients (js/31): upserts a finance_client_links row
+     C. Finance → Rules → Add a rule (js/117): inserts a money_exclusion_rules row
    Happy path: each write lands in the table and the screen says so.
-   Refusal path (MOCK_REFUSE_TABLES=app_users,client_profiles,finance_client_links): the database
+   Refusal path (MOCK_REFUSE_TABLES=app_users,client_profiles,money_exclusion_rules): the database
    answers no error and no rows — the screen must say "refused", never "Saved ✓" / a silent reload.
+   E (2026-09-27, DECISIONS D16): C used to drive js/31's "Link finance to clients" window (a finance_client_links
+   upsert). That window is retired — finLinkMap() now opens Finance → Rules, and the equivalent person-typed write is an
+   exclusion rule. C now checks finLinkMap lands on the Rules tab, then adds a rule through its real form: happy = the
+   row lands, the form closes, no notice; refusal = nothing lands and the screen says the database refused. The mock
+   answers money_exclusion_rules in its own handler, ahead of the generic MOCK_REFUSE_TABLES switch, so the probe
+   answers that write with the empty (refused) shape itself, the same way it already does for set_page_levels.
    Sabotage: drop any of the three `.select(...)`+row checks → its refusal check goes red. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import { start } from './mock-supabase.mjs';
@@ -37,6 +43,8 @@ async function main() {
     const rq = r.request(); const u = new URL(rq.url());
     /* refusal run: set_page_levels answers with nothing — the shape of a save that did not land */
     if (REFUSE && /\/rpc\/set_page_levels$/.test(u.pathname)) { await r.fulfill({ status: 200, contentType: 'application/json', body: 'null' }); return; }
+    /* refusal run: an exclusion-rule insert answers no error and no rows (RLS-refused shape) — see the header */
+    if (REFUSE && /\/rest\/v1\/money_exclusion_rules$/.test(u.pathname) && rq.method() === 'POST') { await r.fulfill({ status: 201, contentType: 'application/json', body: '[]' }); return; }
     try {
       const resp = await fetch(BASE + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD'].includes(rq.method()) ? undefined : rq.postData() });
       const body = await resp.text(); const h = {}; resp.headers.forEach((v, k) => { if (!['content-encoding', 'content-length', 'transfer-encoding'].includes(k)) h[k] = v; });
@@ -104,29 +112,34 @@ async function main() {
     }
   }
 
-  // ---- C. Link finance to clients (js/31) — needs the finance rows loaded first
+  // ---- C. Finance → Rules → Add a rule (js/117); finLinkMap (the old link window) must land here
   {
     await p.evaluate(() => { current = 'finance'; render(); });
-    for (let i = 0; i < 20; i++) { await sleep(400); const n = await p.evaluate(() => (typeof FIN !== 'undefined' && FIN.rows) ? FIN.rows.length : 0); if (n > 0) break; }
+    for (let i = 0; i < 30; i++) { await sleep(400); const n = await p.evaluate(() => (typeof FIN !== 'undefined' && FIN.rows && FIN.m && window.MR && MR.rules) ? FIN.rows.length : 0); if (n > 0) break; }
     await sleep(800);
     await p.evaluate(() => { window.finLinkMap(); }); await p.waitForTimeout(1200);
-    const info = await p.evaluate(() => { const sel = document.querySelector('#v53ov select'); if (!sel) return null; const opt = [...sel.options].find((o) => o.value && o.value !== '__indiv__'); const row = sel.parentElement; const nameEl = row && row.firstElementChild && row.firstElementChild.firstElementChild; return { group: nameEl ? nameEl.textContent.trim() : '', groups: [...document.querySelectorAll('#v53ov select')].map((s) => { const r = s.parentElement; const n = r && r.firstElementChild && r.firstElementChild.firstElementChild; return n ? n.textContent.trim() : ''; }), client: opt ? opt.value : null }; });
-    console.log('  · link dialog groups:', JSON.stringify(info && info.groups));
-    if (info && info.groups && info.groups.some((g) => /tawthiq|techtic/i.test(g))) fail('C: an EXCLUDED client (Tawthiq/Techtic) is listed in the Link finance dialog — the standing invariant says it must never appear anywhere');
-    if (!info || !info.client) fail('C: the Link finance dialog showed no group/client to pick');
+    const onRules = await p.evaluate(() => ({ tab: FIN.tab, cards: !!document.querySelector('.v117-rules') && !!document.querySelector('.v117-merges'), oldWin: !!document.getElementById('v53ov') }));
+    if (onRules.tab === 'rules' && onRules.cards && !onRules.oldWin) ok('C: finLinkMap() opens Finance → Rules (both cards), not the retired link-by-name window');
+    else fail('C: finLinkMap() did not land on Finance → Rules: ' + JSON.stringify(onRules));
+    const VAL = 'QA-M13-TXN-' + tag;
+    const opened = await p.evaluate(() => { const bt = document.querySelector('[data-v117="add-rule"]'); if (bt) bt.click(); return !!bt; });
+    await p.waitForTimeout(500);
+    if (!opened || !(await p.evaluate(() => !!document.getElementById('v117_value')))) fail('C: the Add a rule form did not open');
     else {
-      const bodyBefore = await p.evaluate(() => document.body.innerText);
-      await p.evaluate((client) => { const sel = document.querySelector('#v53ov select'); sel.value = client; sel.onchange(); }, info.client);
-      let stat = '', toastSeen = false;
-      for (let i = 0; i < 10; i++) { await sleep(200); const s = await p.evaluate(() => ({ st: (document.querySelector('#v53ov span') || {}).textContent || '', body: document.body.innerText })); stat = s.st; if (/refused the link|رفضت قاعدة البيانات الربط/.test(s.body)) toastSeen = true; if (stat === '✓' || toastSeen) break; }
-      const links = await (await fetch(BASE + '/rest/v1/finance_client_links')).json();
-      const hit = links.find((l) => l.client_group === info.group);
+      await p.selectOption('#v117_kind', 'transaction');
+      await p.fill('#v117_value', VAL); await p.fill('#v117_reason', 'm13 probe: a person-typed rule');
+      const before = dialogs.length; await clearNotice(p);
+      await p.evaluate(() => { document.getElementById('mSave').click(); });
+      let said = ''; for (let i = 0; i < 15; i++) { await sleep(200); said = dialogs.slice(before).concat([await noticeText(p)]).join(' | '); if (said.replace(/\|/g, '').trim()) break; }
+      await sleep(600);
+      const rows = (await (await fetch(BASE + '/rest/v1/money_exclusion_rules')).json()).filter((r) => r.value === VAL);
+      const formOpen = await p.evaluate(() => { const ov = document.getElementById('ov'); return !!(ov && ov.classList.contains('show') && document.getElementById('v117_value')); });
       if (!REFUSE) {
-        if (stat === '✓' && hit) ok('C (' + tag + '): link landed in finance_client_links, ✓ shown');
-        else fail('C (' + tag + '): stat "' + stat + '", table has group: ' + !!hit + ' (group "' + info.group + '")');
+        if (rows.length === 1 && !formOpen && !said.replace(/\|/g, '').trim()) ok('C (' + tag + '): the rule landed in money_exclusion_rules, the form closed, no error shown');
+        else fail('C (' + tag + '): rows ' + rows.length + ', form still open ' + formOpen + ', said ' + JSON.stringify(said));
       } else {
-        if (stat === '⚠' && toastSeen && !hit) ok('C (' + tag + '): refused link reported (⚠ + toast), nothing recorded');
-        else fail('C (' + tag + '): stat "' + stat + '", toast seen ' + toastSeen + ', table has group: ' + !!hit);
+        if (rows.length === 0 && /refused/i.test(said)) ok('C (' + tag + '): refused rule reported — "' + said.slice(0, 70) + '…", nothing recorded');
+        else fail('C (' + tag + '): rows ' + rows.length + ', said ' + JSON.stringify(said));
       }
     }
   }
@@ -136,7 +149,7 @@ async function main() {
   if (realErrors.length) fail(realErrors.length + ' JS error(s)');
   await b.close(); srv.close();
   if (failures) { console.log(`\nFAILED — ${failures} check(s) did not pass.`); process.exit(1); }
-  console.log(`\nm13-remaining OK (${tag}) — access save, billing profile, finance link`);
+  console.log(`\nm13-remaining OK (${tag}) — access save, billing profile, exclusion rule`);
   process.exit(0);
 }
 main().catch((e) => { console.error(e); process.exit(1); });

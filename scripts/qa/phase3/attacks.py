@@ -1542,6 +1542,23 @@ def _(cur):
     return (a and b and x == (True, 'merged') and bb and mar26(cur) == base,
             f"team member refused={a} · same name (other spelling) for a second company refused={b} · the no-ID row joins Company B={x} · a row with a client ID stays with its ID's company={bb} · totals unchanged={mar26(cur) == base}")
 
+@test("E-08 Merging two duplicate company records carries their typed codes and customer names to the kept one (removed there, added here — never re-pointed), and undoing the merge puts them back; name folding ignores Arabic diacritics and the tatweel")
+def _(cur):
+    code = one(cur, "insert into promo_codes(code,kind,value_pct) values ('MRG-1','percent',5) returning id")
+    as_user(cur, 'u4')
+    q(cur, "insert into company_discount_codes(business_id,promo_code_id) values (%s,%s)", (F['coB'], code))
+    q(cur, "insert into company_name_aliases(business_id,name) values (%s,'Old Spelling Co')", (F['coB'],))
+    mid = one(cur, "insert into business_merges(kept_id,dropped_id,moved,reason,actor) values (%s,%s,'{}'::jsonb,'dup','t') returning id", (F['coA'], F['coB']))
+    q(cur, "reset role")
+    after = (one(cur, "select business_id=%s from company_discount_codes where promo_code_id=%s and removed_at is null", (F['coA'], code)),
+             one(cur, "select business_id=%s from company_name_aliases where name='Old Spelling Co' and removed_at is null", (F['coA'],)),
+             one(cur, "select jsonb_array_length(moved->'company_discount_codes') + jsonb_array_length(moved->'company_name_aliases') from business_merges where id=%s", (mid,)))
+    as_user(cur, 'u4'); q(cur, "update business_merges set undone_at=now() where id=%s", (mid,)); q(cur, "reset role")
+    back = (one(cur, "select business_id=%s from company_discount_codes where promo_code_id=%s and removed_at is null", (F['coB'], code)),
+            one(cur, "select business_id=%s from company_name_aliases where name='Old Spelling Co' and removed_at is null", (F['coB'],)))
+    fold = one(cur, "select money_norm('شـركةُ الاختبار') = money_norm('شركه الإختبار')")
+    return (after == (True, True, 2) and back == (True, True) and fold, f"after merge (code, name on the kept company; 2 recorded)={after} · after undo back on the dropped one={back} · tatweel+harakat+ة/ه+أ/ا fold={fold}")
+
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]
 print(f"\n{len(results)-len(fails)}/{len(results)} passed"); sys.exit(1 if fails else 0)
