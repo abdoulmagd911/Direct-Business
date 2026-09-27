@@ -108,7 +108,7 @@ async function main() {
       return {
         n: rows.length,
         text: (document.getElementById('view') || {}).innerText || '',
-        rows: rows.map((r) => ({ t: r.innerText.replace(/\s+/g, ' ').trim(), undo: !!r.querySelector('button'), undone: /Undone/.test(r.innerText) })),
+        rows: rows.map((r) => ({ t: r.innerText.replace(/\s+/g, ' ').trim(), undo: !!r.querySelector('button[onclick^="undoRecordChange"]'), undone: /Undone/.test(r.innerText) })),
       };
     });
     if (feed.n === 6) ok('the log renders all six entries');
@@ -126,7 +126,7 @@ async function main() {
     else fail('an already-undone entry still offers Undo: ' + JSON.stringify(undone));
 
     // the >24h entry: no button (the server refuses unconditionally past 24 h), said in words
-    const oldRow = await p.evaluate(() => { const r = document.querySelector('#view .act-row[data-hist-id="1002"]'); return r ? { btn: !!r.querySelector('button'), expired: !!r.querySelector('[data-undo-expired]'), txt: r.innerText.replace(/\s+/g, ' ') } : null; });
+    const oldRow = await p.evaluate(() => { const r = document.querySelector('#view .act-row[data-hist-id="1002"]'); return r ? { btn: !!r.querySelector('button[onclick^="undoRecordChange"]'), expired: !!r.querySelector('[data-undo-expired]'), txt: r.innerText.replace(/\s+/g, ' ') } : null; });
     if (oldRow && !oldRow.btn && oldRow.expired && /24-hour/.test(oldRow.txt)) ok('a change older than 24h offers no button and says "past the 24-hour undo window" — the server would refuse it anyway');
     else fail('the >24h entry still offers a button the server will refuse, or says nothing: ' + JSON.stringify(oldRow));
 
@@ -134,9 +134,9 @@ async function main() {
     const before = await fetch(BASE + '/rest/v1/record_history?select=id,undone_at').then((r) => r.json()).catch(() => null);
     const beforeUndone = (before || []).filter((r) => r.undone_at).length;
     const clicked = await p.evaluate(() => {
-      const row = [...document.querySelectorAll('#view .act-row')].find((r) => r.querySelector('button') && !/Created/.test(r.innerText));
+      const row = [...document.querySelectorAll('#view .act-row')].find((r) => r.querySelector('button[onclick^="undoRecordChange"]') && !/Created/.test(r.innerText));
       if (!row) return 'no-undoable-row';
-      row.querySelector('button').click(); return 'clicked';
+      row.querySelector('button[onclick^="undoRecordChange"]').click(); return 'clicked';
     });
     await p.waitForTimeout(600);
     if (clicked !== 'clicked') { fail('no undoable entry to click'); return; }

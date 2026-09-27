@@ -3136,7 +3136,8 @@ Commercial row; a person's HOME team is `team_members.department_id`; the teams 
   `team_retire(team, move_to)` moves its open tasks and projects and its people to the chosen team, ends assisting it,
   and leaves closed work where it was; a retired team can be brought back. The department itself is never retired.
 - **People are changed only through `person_save`** (names in English and Arabic — first names required in both —
-  home team, assisted teams, reports-to, job titles), by an admin or a manager; a manager never changes an admin. Role
+  home team, assisted teams, reports-to, job titles), by an admin or a manager; ~~a manager never changes an admin~~
+  (SUPERSEDED-BY D13, 27 Sep: a manager may — it is logged, not refused). Role
   and page levels keep their own guarded paths (admin-users `set_role`, `set_page_levels`). **A user can only sign in and
   out**: no login row, team-list row, team or assist is theirs to write.
 - **A task's / an achievement's team is CHOSEN** (the team the work is done for) and must be active; none given → the
@@ -3170,6 +3171,38 @@ is listed with its Draft tag but left out of the Overview totals, the objectives
 `probe-tasks-to-achievements` (sabotage-tested) and the harness's TA-01..TA-04.
 *Date: 2026-09-27. Status: ACTIVE (merges on the oversight's review, P6).*
 
+**D13 — The change log on every record; managers edit people, logged; business@ is the QA account (owner decisions
+(1)–(3) of 27 Sep, relayed by the oversight chat).** In the database (`scripts/sql/change-log-and-qa-account.sql`, attacked
+by `scripts/qa/phase3` CL-01..CL-04, R1-03, PT-04; rollback beside it):
+- **Every record table is logged** by the one trigger `record_history_write` — who, when, the whole row before and after.
+  The log keeps each record's key as text (`record_key`): its `id`, else its primary key. (The old trigger cast `id` to a
+  uuid; attached to the settings table, keyed by text, or to one of the sixteen tables with no `id`, it would have refused
+  their saves — that is why the table list was short.) Not logged, on purpose: the logs themselves, the old whole-app blob
+  (`app_state`, which has its own history), the document number counter, `share_links` (its secret token; last-used
+  changes on every visit), the retired `app_*` tables and every backup/snapshot copy.
+- **Field by field:** the view `record_changes` gives one row per changed field — who, when, field, before, after; a
+  company's `raw` record is opened one level, so a change inside it reads `raw.stage`, not a blob.
+- **Visible to admins and managers only, for now** — the log's read rule. The two "changes to your …" notices on Today (D7)
+  still work for everyone: `changes_to_my_tasks` / `changes_to_my_companies` now run with their own rights and answer only
+  about the caller's own tasks and companies; Undo was already its own function. (R1-03 used to assert that a task's owner
+  and a View login read its history; rewritten to this rule.)
+- **Who:** the signed-in person; a change from a database session (SQL, a migration, an import, seed or bulk edit run from
+  outside the app) is the **QA account, business@directksa.com** (the database function `qa_user_id`); a service call with no person behind it
+  (a sign-up, an edge function's own write) is "system". Every older log line that named nobody was backfilled to the QA
+  account, so old data reads as QA-entered.
+- **Managers may edit people and teams, an admin included** — `person_save` no longer refuses a manager on an admin; the
+  login table's own history line records it. Unchanged on purpose: nobody changes their own page levels, and only an
+  admin makes someone an admin (who holds power, not record editing).
+- **business@ is the QA account**: renamed "QA Account" / «حساب ضمان الجودة», no nickname (it carried the owner's names and
+  nickname, the same as aboelmagd@ — two accounts answering to one name); on the team list in Commercial. test@ stays the
+  harness's sign-in ("QA Test Account").
+- On screen (js/115, js/63): a **Change log** window — every change, newest first, each with its fields before → after (a
+  creation folded) — from the company page's "Recent changes" card ("Full change log"), every Activity & Audit line
+  ("Log"), a task's window, a person's Edit window and a team's Rename window; it opens on top, so nothing being typed is
+  lost. For anyone else Activity & Audit says the log is for admins and managers, and the company page draws no "Recent
+  changes" card (it would have read "No logged changes yet", which is false). Guarded by `probe-change-log` (sabotage-tested).
+*Date: 2026-09-27. Status: ACTIVE (built on the owner's decisions; merges on the oversight's review, P6).*
+
 **D8 — Abdulrahman's logins, in his own word (2026-09-25): `aboelmagd@directksa.com` is his admin account
 and the one that belongs on the team list.** `business@directksa.com` is a login he keeps (untouched), not
 the person on the team list; `a.hassan@directksa.net` is his Team-Member test view. One human, one team-list
@@ -3181,7 +3214,9 @@ word. Applied live the same day: aboelmagd@ added to the team list (Commercial),
 pointed at its entry — no tasks, projects, comments or heads), and the one owner-name preference that sent
 his name to business@ now sends it to aboelmagd@, so the 3 companies assigned to him are owned by aboelmagd@.
 Before changing anything about his accounts again, check here.
-*Date: 2026-09-25. Status: ACTIVE.*
+**27 Sep (owner decision 3, D13):** business@ is now the **QA test account** — admin, on the team list, renamed "QA Account";
+the rest of D8 (aboelmagd@ is him, one human one team-list entry) stands.
+*Date: 2026-09-25. Status: ACTIVE (business@'s part superseded by D13, 2026-09-27).*
 
 **D9 — Everything in the app today is test data; at go-live it is reset to zero and the correct data is loaded
 fresh (the owner's word, 2026-09-26).** Some of today's rows came from Direct Payments and Direct website

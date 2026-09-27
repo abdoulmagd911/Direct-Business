@@ -819,19 +819,21 @@ def _(cur):
     b, m2 = expect_fail(cur, "select next_work_number('TSK')", None, "permission denied")
     return (a and b, f"changes_to_my_tasks: {m1[:50]} · next_work_number: {m2[:50]}")
 
-@test("R1-03 History follows the Tasks page: with visibility OFF a colleague on Own (not on the task) reads none of its history; no Tasks page → none; the owner and a View login read it")
+@test("R1-03 History is for admins and managers (owner, 27 Sep — superseding 'history follows the Tasks page'): a colleague on Own, one without the Tasks page, the owner and a View login read none of a task's history; the manager reads it; the owner is still told of a colleague's change through changes_to_my_tasks")
 def _(cur):
     t = new_task(cur, company='coA', owner='m1')
-    as_user(cur, 'u1'); q(cur, "update tasks set title='R1 renamed' where id=%s", (t,)); q(cur, "reset role")
+    as_user(cur, 'u4'); q(cur, "update tasks set title='R1 renamed' where id=%s", (t,)); q(cur, "reset role")
     q(cur, "update work_settings set value='false' where key='open_visibility'")
     own_tasks(cur, 'u3')
     count = lambda: one(cur, "select count(*) from record_history where table_name='tasks' and record_id=%s", (t,))
     as_user(cur, 'u3'); other = count(); q(cur, "reset role")
     q(cur, "update app_users set page_access = page_access - 'tasks' where id=%s", (F['u2'],))
     as_user(cur, 'u2'); nopage = count(); q(cur, "reset role")
-    as_user(cur, 'u1'); owner = count(); q(cur, "reset role")
+    as_user(cur, 'u1'); owner = count(); told = one(cur, "select count(*) from changes_to_my_tasks(7) where task_id=%s and action='edit'", (t,)); q(cur, "reset role")
     as_user(cur, 'u6'); viewer = count(); q(cur, "reset role")
-    return (other == 0 and nopage == 0 and owner >= 2 and viewer >= 2, f"colleague on Own={other} · no Tasks page={nopage} · owner={owner} · View={viewer}")
+    as_user(cur, 'u4'); mgr = count(); q(cur, "reset role")
+    return (other == 0 and nopage == 0 and owner == 0 and viewer == 0 and mgr >= 2 and told == 1,
+            f"colleague on Own={other} · no Tasks page={nopage} · owner={owner} · View={viewer} · manager={mgr} · owner told={told}")
 
 @test("R1-04 Undo knows tasks: the owner undoes their own edit (title comes back); a colleague cannot undo someone else's; a NON-owner on Own cannot undo (needs Full) — the owner on Own may (D7 ruling, U-03)")
 def _(cur):
@@ -1264,7 +1266,7 @@ def _(cur):
     off = one(cur, "select not active from departments where id=%s", (T['business'],))
     return (e and a and b and c and moved and kept and people == 0 and assists == 0 and off,
             f"employee refused={e} · straight off refused={a} · same team refused={b} · department refused={c} · {r} · open moved={moved} · done kept={kept} · people left={people} · assists left={assists} · retired={off}")
-@test("PT-04 Saving a person goes through person_save only: an employee is refused (and cannot write app_users or the team list directly — a user only signs in and out); a manager renames a colleague (first names needed in both languages, full name composed, recorded in history); a manager cannot change an admin; an admin can")
+@test("PT-04 Saving a person goes through person_save only: an employee is refused (and cannot write app_users or the team list directly — a user only signs in and out); a manager renames a colleague (first names needed in both languages, full name composed, recorded in history); a manager MAY change an admin too, logged as the manager (owner, 27 Sep: log it, don't block it); an admin can")
 def _(cur):
     as_user(cur, 'u1')
     a, m1 = expect_fail(cur, "select person_save(%s, '{\"first_name_en\":\"X\"}'::jsonb)", (F['u2'],), "only an admin or a manager")
@@ -1275,12 +1277,15 @@ def _(cur):
     q(cur, "select person_save(%s, '{\"first_name_en\":\"Kareem\",\"last_name_en\":\"Saleh\",\"first_name_ar\":\"كريم\",\"last_name_ar\":\"صالح\"}'::jsonb)", (F['u2'],))
     q(cur, "reset role"); names = one(cur, "select full_name||' / '||name_ar from app_users where id=%s", (F['u2'],)); as_user(cur, 'u4')
     hist = one(cur, "select count(*) from record_history where table_name='app_users' and record_id=%s and actor=%s", (F['u2'], F['u4']))
-    c, m3 = expect_fail(cur, "select person_save(%s, '{\"first_name_en\":\"Boss\"}'::jsonb)", (F['admin'],), "only an admin can change an admin")
-    q(cur, "reset role"); as_user(cur, 'admin')
+    q(cur, "select person_save(%s, '{\"first_name_en\":\"Boss\",\"first_name_ar\":\"المدير\"}'::jsonb)", (F['admin'],))
+    q(cur, "reset role")
+    c = one(cur, "select full_name from app_users where id=%s", (F['admin'],)) == 'Boss'
+    by_mgr = one(cur, "select count(*) from record_history where table_name='app_users' and record_id=%s and actor=%s and after_row->>'full_name'='Boss'", (F['admin'], F['u4']))
+    as_user(cur, 'admin')
     q(cur, "select person_save(%s, '{\"first_name_en\":\"Chief\",\"first_name_ar\":\"الرئيس\"}'::jsonb)", (F['admin'],))
     q(cur, "reset role"); adm = one(cur, "select full_name from app_users where id=%s", (F['admin'],))
-    return (a and own and tl and b and names == 'Kareem Saleh / كريم صالح' and hist == 1 and c and adm == 'Chief',
-            f"employee refused={a} · own login row untouched={own} · team list untouched={tl} · Arabic first name needed={b} · {names} · history={hist} · manager on admin refused={c} · admin renamed admin → {adm}")
+    return (a and own and tl and b and names == 'Kareem Saleh / كريم صالح' and hist == 1 and c and by_mgr == 1 and adm == 'Chief',
+            f"employee refused={a} · own login row untouched={own} · team list untouched={tl} · Arabic first name needed={b} · {names} · history={hist} · manager renamed an admin={c}, logged as the manager={by_mgr} · admin renamed admin → {adm}")
 @test("PT-05 Home team, assisted teams, reports-to: assists must be active teams and never the home team; moving the home team onto an assisted team ends that assist; reports-to is an active person, never oneself; a retired team is not a home team")
 def _(cur):
     T = teams_ids(cur)
@@ -1377,6 +1382,62 @@ def _(cur):
     t = new_task(cur, company='coA', owner='m1')
     a, m = expect_fail(cur, "update tasks set status='done', done_at='2031-01-15', include_in_report=true, report_category_id=%s where id=%s", (F['cat'], t), "no reporting month covers")
     return (a, m[:90])
+
+# ---------------- change log + QA account (owner decisions 1-3 of 27 Sep; scripts/sql/change-log-and-qa-account.sql) ----------------
+@test("CL-01 Every record table is logged: a table keyed by text (task statuses) and one never logged before (promo codes) save and log under the record's own key; the logs themselves and the secret share-link token are not logged")
+def _(cur):
+    code = one(cur, "select code from task_statuses order by sort limit 1")
+    q(cur, "update task_statuses set name_en = name_en || ' (x)' where code=%s", (code,))
+    k = one(cur, "select record_key||'|'||coalesce(record_id::text,'-') from record_history where table_name='task_statuses' order by id desc limit 1")
+    pc = one(cur, "select id from promo_codes where code='COA10'")
+    q(cur, "update promo_codes set value_pct=12 where id=%s", (pc,))
+    pk = one(cur, "select record_id=%s and record_key=%s from record_history where table_name='promo_codes' order by id desc limit 1", (pc, str(pc)))
+    nolog = one(cur, "select count(*) from pg_trigger t join pg_proc p on p.oid=t.tgfoid where p.proname='record_history_write' and t.tgrelid::regclass::text in ('record_history','task_status_log','share_links','app_state','document_counters')")
+    return (k == code + '|-' and pk and nolog == 0, f"text-keyed save logged as {k} · promo code logged under its id={pk} · logs/secret tables with the trigger={nolog}")
+
+@test("CL-02 The log is for admins and managers only: an employee reads no line of it (table or field-by-field view), a manager and an admin do; the employee is still told on Today of the manager's change to their task and can undo it (D7)")
+def _(cur):
+    t = new_task(cur, company='coA', owner='m1'); before = one(cur, "select title from tasks where id=%s", (t,))
+    as_user(cur, 'u4'); q(cur, "update tasks set title='Changed by the manager' where id=%s", (t,))
+    mgr = one(cur, "select count(*) from record_history where table_name='tasks' and record_key=%s and actor=%s", (str(t), F['u4']))
+    mgr_f = one(cur, "select count(*) from record_changes where table_name='tasks' and record_key=%s and field='title'", (str(t),))
+    q(cur, "reset role"); as_user(cur, 'u1')
+    emp = one(cur, "select count(*) from record_history"); emp_f = one(cur, "select count(*) from record_changes")
+    told = one(cur, "select count(*) from changes_to_my_tasks(7) where task_id=%s and action='edit'", (t,))
+    h = one(cur, "select history_id from changes_to_my_tasks(7) where task_id=%s and action='edit' order by history_id desc limit 1", (t,))
+    undo = one(cur, "select undo_change(%s)", (h,)) if h else None
+    q(cur, "reset role"); as_user(cur, 'admin')
+    adm = one(cur, "select count(*) from record_history where table_name='tasks' and record_key=%s", (str(t),)); q(cur, "reset role")
+    back = one(cur, "select title from tasks where id=%s", (t,)) == before
+    return (mgr == 1 and mgr_f >= 1 and emp == 0 and emp_f == 0 and told >= 1 and undo == 'ok' and back and adm >= 2,
+            f"manager reads it={mgr} (fields {mgr_f}) · employee reads {emp} lines / {emp_f} fields · employee told={told} · undo={undo} · title back={back} · admin reads {adm}")
+
+@test("CL-03 The change log reads field by field — who, when, field, before, after; a change inside a company's raw record reads as that field (raw.stage), not the whole record")
+def _(cur):
+    q(cur, "alter table businesses add column if not exists raw jsonb")
+    q(cur, "update businesses set raw = '{\"stage\":\"New\",\"notes\":\"a\"}' where id=%s", (F['coA'],))
+    as_user(cur, 'u4')
+    q(cur, "update businesses set name='Company A2', raw = raw || '{\"stage\":\"Contacted\"}' where id=%s", (F['coA'],))
+    rows = q(cur, "select field, before_value#>>'{}', after_value#>>'{}', actor_name from record_changes where table_name='businesses' and record_key=%s and actor=%s order by field", (str(F['coA']), F['u4']))
+    q(cur, "reset role")
+    got = {r[0]: (r[1], r[2], r[3]) for r in rows}
+    ok = got.get('name') == ('Company A', 'Company A2', 'Othman') and got.get('raw.stage') == ('New', 'Contacted', 'Othman') and 'raw' not in got and 'raw.notes' not in got
+    return (ok, f"fields: {sorted(got)} · name {got.get('name')} · raw.stage {got.get('raw.stage')}")
+
+@test("CL-04 Who: a signed-in person is themselves; a change from a database session (an import, seed or bulk edit run from outside the app) is the QA account (business@); a service call with no person behind it is 'system'")
+def _(cur):
+    qa = one(cur, "insert into app_users(email,full_name,role) values ('business@directksa.com','QA Account','admin') returning id")
+    q(cur, "select set_config('request.uid', '', true)")   # a database session: nobody signed in (conn() signs the test in as the admin)
+    q(cur, "update promo_codes set notes='bulk' where code='COA10'")
+    a1 = one(cur, "select actor=%s and actor_name='QA Account' from record_history where table_name='promo_codes' order by id desc limit 1", (qa,))
+    q(cur, "select set_config('request.jwt.claims', '{\"role\":\"service_role\"}', true)")
+    q(cur, "update promo_codes set notes='service' where code='COA10'")
+    a2 = one(cur, "select actor is null and actor_name='system' from record_history where table_name='promo_codes' order by id desc limit 1")
+    q(cur, "select set_config('request.jwt.claims', '', true)"); q(cur, "select set_config('request.uid', %s, true)", (str(F['admin']),))
+    t = new_task(cur, company='coA', owner='m1')
+    as_user(cur, 'u1'); q(cur, "update tasks set title='Mine' where id=%s", (t,)); q(cur, "reset role")
+    a3 = one(cur, "select actor=%s from record_history where table_name='tasks' and record_key=%s order by id desc limit 1", (F['u1'], str(t)))
+    return (a1 and a2 and a3, f"database session → QA={a1} · service call → system={a2} · signed-in person → themselves={a3}")
 
 w = max(len(n) for n, _, _ in results)
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)

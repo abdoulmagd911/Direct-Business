@@ -361,6 +361,7 @@ probe-tasks-page
 probe-the-menu-keeps-its-pages
 probe-people-and-teams
 probe-tasks-to-achievements
+probe-change-log
 probe-achievements-in-the-database
 probe-kpis-and-the-danger-light
 probe-generator-fonts-in-exports
