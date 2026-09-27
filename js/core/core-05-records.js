@@ -208,7 +208,7 @@ function supSelectAll(cb){document.querySelectorAll('.supchk').forEach(c=>c.chec
    Saudi mobile written as a bare number (966…) is 12 digits and a CR number is 10, so neither can
    be mistaken for a date; a column that IS named like a date keeps its older, wider window. */
 function _expIsMs(v){ return typeof v==='number'&&isFinite(v)&&Math.floor(v)===v&&v>=1e12&&v<1e13; }
-function _expMsText(v){ try{ var d=new Date(v); return d.toISOString().slice(0,10)+' '+d.toISOString().slice(11,16); }catch(_){ return String(v); } }
+function _expMsText(v){ try{ var d=new Date(v); return dayRiyadh(d)+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Riyadh'}); }catch(_){ return String(v); } }
 function exportFlat(v,k){
   if(v==null)return '';
   // Round 23 additions: keys that start with "_" are the app's own bookkeeping (the people
@@ -224,7 +224,7 @@ function exportFlat(v,k){
      these by name and one list in one place is easier to keep true than three renames. */
   const NOTE_KEYS={verificationSource:1,needsConfirm:1,confirmReason:1};
   const one=x=>{if(x==null)return '';if(typeof x!=='object')return _expIsMs(x)?_expMsText(x):String(x);const vals=Object.keys(x).filter(kk=>kk.charAt(0)!=='_'&&!NOTE_KEYS[kk]).map(kk=>x[kk]).filter(y=>y!==''&&y!=null&&y!==false&&typeof y!=='object').map(y=>_expIsMs(y)?_expMsText(y):y);return vals.join(' ');};
-  if(typeof v==='number'&&v>1e11&&v<1e13&&((k&&/(At|_at|Date|date|Ts|ts)$/.test(String(k)))||_expIsMs(v))){try{const d=new Date(v);return d.toISOString().slice(0,10)+' '+d.toISOString().slice(11,16);}catch(_){return v;}}
+  if(typeof v==='number'&&v>1e11&&v<1e13&&((k&&/(At|_at|Date|date|Ts|ts)$/.test(String(k)))||_expIsMs(v))){try{const d=new Date(v);return dayRiyadh(d)+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Riyadh'});}catch(_){return v;}}
   if(Array.isArray(v))return v.map(one).filter(Boolean).join(' | ');
   if(typeof v==='object'){
     const ks=Object.keys(v);if(!ks.length)return '';

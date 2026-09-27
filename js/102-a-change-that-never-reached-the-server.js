@@ -39,7 +39,7 @@
   function fl(en,ar){ try{ return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en; }catch(_){ return en; } }
   function whenWords(iso){
     try{ var d=new Date(iso); if(isNaN(d.getTime())) return '';
-      var day=d.toISOString().slice(0,10), hm=d.toTimeString().slice(0,5);
+      var day=dayRiyadh(d), hm=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Riyadh'});
       return fl(' on '+day+' at '+hm, ' يوم '+day+' الساعة '+hm);
     }catch(_){ return ''; }
   }

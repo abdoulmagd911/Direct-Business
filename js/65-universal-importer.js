@@ -515,7 +515,7 @@
       amount_received_sar:0, amount_remaining_sar:(total<0?0:total),
       integrity_status:(total<0?'credit_note':'pending'),
       exclusion_reason:null, notes:String(get('notes')||'').trim()||null,
-      source_batch:'mapped-import-'+new Date().toISOString().slice(0,10),
+      source_batch:'mapped-import-'+todayISO(),
       line_no:1, branch:String(get('branch')||'').trim()||null, salesman:null,
       revenue_way:'invoice', transaction_ref:null
     };
@@ -706,7 +706,7 @@
     var j=ensureExpenseJoin();
     var ixRef=header.indexOf('transaction_ref'), ixAmt=header.indexOf('amount_sar'), ixSt=header.indexOf('expense_status');
     if(ixRef<0||ixAmt<0||ixSt<0)return; // detectSignature() already guarantees these; defensive only
-    var batchTag='dp-import-'+new Date().toISOString().slice(0,10);
+    var batchTag='dp-import-'+todayISO();
     rawRows.forEach(function(row){
       var ref=String(row[ixRef]||'').trim(); if(!ref)return;
       var status=String(row[ixSt]||'').trim();
@@ -737,7 +737,7 @@
     var j=ensureExpenseJoin();
     var ixRef=header.indexOf('transaction_ref'), ixSt=header.indexOf('txn_expense_status'), ixRaw=header.indexOf('invoice_issuing_raw');
     if(ixRef<0||ixSt<0||ixRaw<0)return;
-    var batchTag='dp-import-'+new Date().toISOString().slice(0,10);
+    var batchTag='dp-import-'+todayISO();
     rawRows.forEach(function(row){
       var ref=String(row[ixRef]||'').trim(); if(!ref)return;
       var status=String(row[ixSt]||'').trim();

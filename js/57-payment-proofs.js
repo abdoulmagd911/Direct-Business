@@ -44,8 +44,17 @@
      its own modal loop, which freezes any scripted/automated driver of the page (Playwright
      included, per the owner's own hands-on QA of this exact chapter) — so anything that
      needs a "are you sure" here uses this instead. */
-  window.pfConfirm=function(msg,onYes){
+  /* 2026-09-28 (owner's standing rule, DECISIONS D19): every delete/remove asks in THIS box, naming the item; Cancel is
+     the focused default, so Enter or a stray click on the default never removes anything; the destructive button says what
+     it does ("Delete" / "Remove"), in red, never an orange "Confirm". A question that is not a removal keeps "Confirm".
+     opts (optional): {yes:'label EN', yesAr:'label AR', danger:true|false}. */
+  window.pfConfirm=function(msg,onYes,opts){
     try{
+      opts=opts||{};
+      var rm=/^\s*(remove|delete|take .* out|archive)\b|\b(remove|delete)\b.*\?|^\s*(إزالة|حذف|أرشفة)|(إزالة|حذف).*؟/i.test(String(msg||''));
+      var danger=(opts.danger!=null)?!!opts.danger:rm;
+      var del=/\bdelete\b|حذف/i.test(String(msg||''));
+      var yesLbl=opts.yes?fl(opts.yes,opts.yesAr||opts.yes):(danger?(del?fl('Delete','حذف'):fl('Remove','إزالة')):fl('Confirm','تأكيد'));
       var old=document.getElementById('pfConfirmBox'); if(old)old.remove();
       var ar=(typeof LANG!=='undefined'&&LANG==='ar');
       var d=document.createElement('div'); d.id='pfConfirmBox';
@@ -61,7 +70,7 @@
         '<div style="font-size:13.5px;margin-bottom:16px;line-height:1.5;white-space:pre-line">'+esc(msg)+'</div>'+
         '<div style="display:flex;gap:8px;justify-content:'+(ar?'flex-start':'flex-end')+'">'+
         '<button class="btn sm ghost" id="pfConfirmNo">'+fl('Cancel','إلغاء')+'</button>'+
-        '<button class="btn sm pri" id="pfConfirmYes">'+fl('Confirm','تأكيد')+'</button>'+
+        '<button class="btn sm '+(danger?'':'pri')+'" id="pfConfirmYes"'+(danger?' style="background:#fff;color:#B42318;border:1px solid #B42318"':'')+'>'+esc(yesLbl)+'</button>'+
         '</div></div>';
       document.body.appendChild(d);
       /* 2026-09-18 (fire #91): driven with the real Escape key against every box the app opens. The
@@ -84,10 +93,11 @@
         try{ if(pfPrev&&pfPrev.focus) pfPrev.focus(); }catch(_){} };
       document.addEventListener('keydown',onEsc);
       try{ if(window.v21TrapFocus) v21TrapFocus(d); }catch(_){}
+      try{ document.getElementById('pfConfirmNo').focus(); }catch(_){}   // Cancel is the default (D19)
       document.getElementById('pfConfirmNo').onclick=close;
       d.addEventListener('click',function(e){ if(e.target===d)close(); });
       document.getElementById('pfConfirmYes').onclick=function(){ close(); onYes(); };
-    }catch(e){ console.warn('[proof] confirm',e); onYes(); }
+    }catch(e){ console.warn('[proof] confirm',e); /* never act unasked: a box that could not be drawn is a No */ }
   };
   /* 2026-09-10 (live test D1 family): the one-line question with a text answer, in the page —
      the twin of pfConfirm for the places that used the browser's prompt() box (the Lost reason,
@@ -409,11 +419,12 @@
     try{
       var view=document.getElementById('view'); if(!view)return;
       var bar=view.querySelector('div'); if(!bar)return;
+      var _tb=bar.querySelector('[data-fin-tabs]'); if(_tb) bar=_tb;   // the tabs' own one-line box (js/16, F6 28 Sep)
       var btns=[].slice.call(bar.querySelectorAll('button'));
       if(!btns.length||!/finGo/.test(btns[0].getAttribute('onclick')||''))return;
       var mine=btns.find(function(b){return /finGo\('proofs'\)/.test(b.getAttribute('onclick')||'');});
       if(!mine){
-        mine=document.createElement('button'); mine.className='btn sm ghost';
+        mine=document.createElement('button'); mine.className='btn sm ghost'; mine.style.cssText='white-space:nowrap;flex:0 0 auto';
         mine.setAttribute('onclick',"finGo('proofs')");
         mine.textContent=fl('Payment proofs','مستندات الدفع');
         var expBtn=btns.find(function(b){return /finGo\('expenses'\)/.test(b.getAttribute('onclick')||'');});

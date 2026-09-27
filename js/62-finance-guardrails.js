@@ -653,7 +653,7 @@
               '\u062a\u0631\u0627\u062c\u0639 \u0623\u0648\u0644\u0627\u064b \u0639\u0646 \u00ab'+esc62(((blocker.dropped_snapshot&&blocker.dropped_snapshot.name)||blocker.dropped_id))+' \u2192 '+esc62(nameOfBiz(blocker.kept_id))+'\u00bb \u2014 \u0641\u0640 '+esc62(keptName)+' \u062f\u064f\u0645\u0650\u062c\u064e\u062a \u0628\u0639\u062f \u0630\u0644\u0643\u060c \u0641\u0627\u0644\u062a\u0631\u0627\u062c\u0639 \u0647\u0646\u0627 \u0627\u0644\u0622\u0646 \u0633\u064a\u064f\u0644\u063a\u064a\u0647 \u0630\u0644\u0643 \u0627\u0644\u062a\u0631\u0627\u062c\u0639.')+'</span>';
           else action='<button class="btn ghost sm" onclick="v62UnmergeBiz(\''+esc62(m.id)+'\')">'+fl('Undo','تراجع')+'</button>';
           return '<tr'+(undone?' style="opacity:.55"':'')+'><td style="padding:6px 8px;font-weight:700">'+esc62(keptName)+'</td><td style="padding:6px 8px">'+esc62(dropName)+'</td>'
-            +'<td style="padding:6px 8px;color:var(--muted);font-size:11px">'+esc62(String(m.merged_at||'').slice(0,10))+' · '+esc62(m.actor||'')+(undone?(' · '+fl('undone','أُلغي')+' '+esc62(String(m.undone_at).slice(0,10))):'')+'</td>'
+            +'<td style="padding:6px 8px;color:var(--muted);font-size:11px">'+esc62(dayRiyadh(m.merged_at))+' · '+esc62(m.actor||'')+(undone?(' · '+fl('undone','أُلغي')+' '+esc62(dayRiyadh(m.undone_at))):'')+'</td>'
             +'<td style="padding:6px 8px">'+action+'</td></tr>';
         }).join('')+'</tbody></table></div>';
     } else if(MERGES===null){

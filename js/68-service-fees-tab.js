@@ -722,7 +722,7 @@
       (list.length?fl('— open a saved proposal ('+list.length+') —','— افتح عرضاً محفوظاً ('+list.length+') —')
                   :fl('— no saved proposals yet —','— لا توجد عروض محفوظة بعد —'))+'</option>'+
       list.map(function(o){
-        var label=(o.doc_number||fl('draft','مسودة'))+' · '+(bizName(o.business_id)||o.title||'')+' · '+String(o.created_at||'').slice(0,10);
+        var label=(o.doc_number||fl('draft','مسودة'))+' · '+(bizName(o.business_id)||o.title||'')+' · '+dayRiyadh(o.created_at);
         return '<option value="'+esc(o.id)+'" '+(S.rowId===o.id?'selected':'')+'>'+esc(label)+'</option>';
       }).join('');
   }

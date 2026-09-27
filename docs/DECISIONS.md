@@ -3808,3 +3808,17 @@ invoice, transaction, achievement, company, merge or exclusion is created by cod
 backfill script, no SQL insert of business data, no background pass that writes on its own (which is why the js/41
 name auto-linker is off). Code makes entry easy — screens, the importer a person runs, validation, the change log. The
 test harness and test databases may seed made-up data. An already-approved cleanup or wipe is allowed, backed up first.
+
+**D19 — Every delete or remove asks first, in the app's own box, naming the item; Cancel is the default (owner's standing
+rule, 28 Sep, via the oversight).** ACTIVE. The owner's words, as relayed: "every delete/remove of any item shows the app's
+own confirm dialog (Arabic/English) naming exactly what will be removed, with 'Delete' and 'Cancel', Cancel focused by
+default, and the action logged and undoable where possible." Built into the one shared box (`pfConfirm`, js/57): Cancel
+takes focus when it opens, a removal's button says "Delete" / "Remove" (red), never an orange "Confirm", and a box that
+cannot be drawn counts as No — it used to run the action unasked. Native `confirm()` / `prompt()` stay only as last-resort
+fallbacks; the audit of every delete/remove button against this rule is tracked in BACKLOG until done.
+
+**D20 — Dates are Riyadh's calendar, everywhere (owner, 28 Sep, via the oversight, F1).** ACTIVE. A stored time is UTC;
+showing its first ten characters showed YESTERDAY for anything saved after 9 pm in Riyadh (the Rules "Added" column said
+27 Sep while the change log said 28 Sep). `dayRiyadh(time)` and `todayISO()` (js/core/core-01) give Riyadh's date whatever
+the PC's clock says, and `scripts/qa/check-structure.mjs` refuses a new UTC date cut. A plain date (a contract start, a
+due date) is a calendar day already and is shown as stored.

@@ -297,7 +297,7 @@
       v=String(v).trim();
       if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!isNaN(new Date(v).getTime()))row[p[1]]=v;
     });
-    if(o.isClient===true&&o.convertedDate){try{row.converted_date=new Date(o.convertedDate).toISOString().slice(0,10);}catch(_){}}
+    if(o.isClient===true&&o.convertedDate){try{row.converted_date=dayRiyadh(o.convertedDate);}catch(_){}}
     if(o.funnelKey&&FBYKEY[o.funnelKey])row.funnel_id=FBYKEY[o.funnelKey].id;
     if(ROWID[o.id])row.id=ROWID[o.id];
     return row;

@@ -225,11 +225,12 @@
     try{
       var view=document.getElementById('view'); if(!view)return;
       var bar=view.querySelector('div'); if(!bar)return;
+      var _tb=bar.querySelector('[data-fin-tabs]'); if(_tb) bar=_tb;   // the tabs' own one-line box (js/16, F6 28 Sep)
       var btns=[].slice.call(bar.querySelectorAll('button'));
       if(!btns.length||!/finGo/.test(btns[0].getAttribute('onclick')||''))return;
       var mine=btns.find(function(b){return /finGo\('b2c'\)/.test(b.getAttribute('onclick')||'');});
       if(!mine){
-        mine=document.createElement('button'); mine.className='btn sm ghost';
+        mine=document.createElement('button'); mine.className='btn sm ghost'; mine.style.cssText='white-space:nowrap;flex:0 0 auto';
         mine.setAttribute('onclick',"finGo('b2c')");
         mine.textContent=fl('Individual bookings','الحجوزات الفردية');
         var proofsBtn=btns.find(function(b){return /finGo\('proofs'\)/.test(b.getAttribute('onclick')||'');});

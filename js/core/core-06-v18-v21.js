@@ -978,7 +978,7 @@ function bkDayView(){
   // One entry per calendar day out of the (already at-most-20) history rows — computed on
   // read, no separate storage, since app_state_history is itself already a small rolling cap.
   var seen={},out=[];
-  BK_CACHE.history.forEach(function(r){var d=(r.saved_at||'').slice(0,10);if(d&&!seen[d]){seen[d]=1;out.push(r);}});
+  BK_CACHE.history.forEach(function(r){var d=dayRiyadh(r.saved_at);if(d&&!seen[d]){seen[d]=1;out.push(r);}});
   return out;
 }
 function restoreFromBackup(scope,id){
@@ -1064,7 +1064,7 @@ function v21OpenRestoreList(){
   bkFetchAll().then(()=>{
     const rows=[];
     BK_CACHE.tagged.forEach(b=>rows.push(`<div class="fact"><span class="k">📌 ${esc(b.name)}<br><span style="color:var(--muted);font-size:11px">${esc(b.ts)}</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('tag',${JSON.stringify(b.id)});closeModal()">Restore</button> <button class="btn sm danger" onclick="deleteTag(${JSON.stringify(b.id)});v21OpenRestoreList()">✕</button></span></div>`));
-    bkDayView().forEach(b=>rows.push(`<div class="fact"><span class="k">📅 ${esc((b.saved_at||'').slice(0,10))}<br><span style="color:var(--muted);font-size:11px">${esc(b.updated_by||'')}</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('inc',${JSON.stringify(b.hist_id)});closeModal()">Restore</button></span></div>`));
+    bkDayView().forEach(b=>rows.push(`<div class="fact"><span class="k">📅 ${esc(dayRiyadh(b.saved_at))}<br><span style="color:var(--muted);font-size:11px">${esc(b.updated_by||'')}</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('inc',${JSON.stringify(b.hist_id)});closeModal()">Restore</button></span></div>`));
     BK_CACHE.history.forEach(b=>rows.push(`<div class="fact"><span class="k">⏱ ${esc(fmtRel(new Date(b.saved_at).getTime()))}<br><span style="color:var(--muted);font-size:11px">${esc(b.saved_at)} · ${esc(b.updated_by||'')}</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('inc',${JSON.stringify(b.hist_id)});closeModal()">Restore</button></span></div>`));
     const restrictedNote=BK_CACHE.historyRestricted?'<div class="empty">Incremental snapshots are visible to admins only.</div>':'';
     openModal('Browse backup snapshots','<div style="max-height:60vh;overflow-y:auto">'+(rows.join('')||'<div class="empty">No snapshots yet.</div>')+restrictedNote+'</div>',()=>{});

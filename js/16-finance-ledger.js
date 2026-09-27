@@ -820,9 +820,11 @@ var SS='padding:7px 9px;border:1px solid var(--line,#e6e8ec);border-radius:8px;f
 function finTabs(){
   var tabs=[['overview',isArF()?'\u0627\u0644\u0623\u062f\u0627\u0621':'Performance'],['clients',isArF()?'\u0627\u0644\u0639\u0645\u0644\u0627\u0621 \u0648\u0627\u0644\u062a\u062d\u0635\u064a\u0644':'Clients & collections'],['ledger',isArF()?'\u0627\u0644\u0633\u062c\u0644':'Ledger'],['reports',isArF()?'\u0645\u0646\u0634\u0626 \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631':'Report Builder']];
   if(finCanWrite())tabs.push(['import',isArF()?'\u0627\u0633\u062a\u064a\u0631\u0627\u062f':'Import']);
-  return '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'+tabs.map(function(t){
-    return '<button class="btn sm '+(FIN.tab===t[0]?'pri':'ghost')+'" onclick="finGo(\''+t[0]+'\')">'+t[1]+'</button>';
-  }).join('')+'<span style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">'+(FIN.rows?(function(){var _ic=new Set(live().map(function(r){return r.invoice_no;})).size;/* 2026-09-24 (fire #238): this took the LAST value after a plain string sort, so one unreadable
+  /* 2026-09-28 (F6): the tabs stay on ONE line (they scroll sideways on a narrow screen); the "data through" note is what
+     moves to the next line when space runs out — it used to push Rules and Import onto a second row */
+  return '<div style="display:flex;gap:6px 12px;margin-bottom:14px;flex-wrap:wrap;align-items:center"><div data-fin-tabs="1" style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;max-width:100%">'+tabs.map(function(t){
+    return '<button class="btn sm '+(FIN.tab===t[0]?'pri':'ghost')+'" style="white-space:nowrap;flex:0 0 auto" onclick="finGo(\''+t[0]+'\')">'+t[1]+'</button>';
+  }).join('')+'</div><span style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">'+(FIN.rows?(function(){var _ic=new Set(live().map(function(r){return r.invoice_no;})).size;/* 2026-09-24 (fire #238): this took the LAST value after a plain string sort, so one unreadable
      date won — a row carrying "32/13/2026" made the header claim "data through 32/13/2026", a
      cutoff the data never had. Only dates the app can actually read are considered now, and if
      none can be read the header says so rather than quoting a value it cannot parse. */
@@ -1690,7 +1692,7 @@ function rLedger(){
         var refCell=r.invoice_no
           ?('<a href="'+escF(pdInvoiceLink({invoice_no:r.invoice_no,zatca_dpin:r.zatca_dpin,direct_client_id:p?p.direct_client_id:''}))+'" target="_blank" rel="noopener" style="color:#175CD3;text-decoration:none">'+escF(r.invoice_no)+' ↗</a>')
           :escF(r.transaction_ref);
-        h+='<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:7px 8px;white-space:nowrap">'+escF((r.created_at_source||'').slice(0,10))+'</td>'
+        h+='<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:7px 8px;white-space:nowrap">'+escF(dayRiyadh(r.created_at_source))+'</td>'
           +'<td style="padding:7px 8px">'+badge(_lh(tl[0],tl[1]),'#EEF0F5','#4B5563')+(p&&p.direct_client_id?(' <span style="color:var(--muted);font-size:10.5px">#'+escF(p.direct_client_id)+'</span>'):'')+'</td>'
           +'<td style="padding:7px 8px">'+refCell+_dupMark+'</td>'
           +'<td style="padding:7px 8px">'+escF(svcLabel(r.service_type))+'</td>'
@@ -1960,7 +1962,7 @@ window.finRestoreInv=function(invNo){
       if(r.error){alert('Could not restore: '+r.error.message);return;}
       if(!r.data||!r.data.length){ finZeroRowMsg('invoice_no',invNo,false,function(m,raced){ alert(m); if(raced){ finCloseModal(); FIN.rows=null; finLoad(); } }); return; }
       if(older.length){
-        var oldest=older.map(function(x){return String(x.deleted_at||'');}).sort()[0].slice(0,10);
+        var oldest=dayRiyadh(older.map(function(x){return String(x.deleted_at||'');}).sort()[0]);
         var lines=older.map(function(x){return x.line_no;}).filter(function(x){return x!=null;}).join(', ');
         alert(ar
           ? ('تم استرجاع '+r.data.length+' بند. وتُرك '+older.length+' بند'+(lines?(' (رقم '+lines+')'):'')+' محذوفًا كما هو — فقد حُذف في وقت سابق ('+oldest+') بقرار منفصل، وهذا الاسترجاع يتراجع عن الحذف الأخير فقط.')
