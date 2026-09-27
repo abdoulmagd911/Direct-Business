@@ -3815,7 +3815,7 @@ own confirm dialog (Arabic/English) naming exactly what will be removed, with 'D
 default, and the action logged and undoable where possible." Built into the one shared box (`pfConfirm`, js/57): Cancel
 takes focus when it opens, a removal's button says "Delete" / "Remove" (red), never an orange "Confirm", and a box that
 cannot be drawn counts as No — it used to run the action unasked. Native `confirm()` / `prompt()` stay only as last-resort
-fallbacks; the audit of every delete/remove button against this rule is tracked in BACKLOG until done.
+fallbacks. The audit of every delete/remove button against this rule is its own follow-up PR (named in PR #53).
 
 **D20 — Dates are Riyadh's calendar, everywhere (owner, 28 Sep, via the oversight, F1).** ACTIVE. A stored time is UTC;
 showing its first ten characters showed YESTERDAY for anything saved after 9 pm in Riyadh (the Rules "Added" column said
