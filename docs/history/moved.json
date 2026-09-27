@@ -1,0 +1,111 @@
+{
+  "note": "Written by scripts/docs/archive-docs.mjs; checked by scripts/qa/check-docs-moved.mjs. Each old file, as it stood at `commit`, is the pieces joined in order, byte for byte.",
+  "commit": "9e638cdf694fea113a6b8d83f16184fada6daf62",
+  "files": [
+    {
+      "old": "docs/BACKLOG.md",
+      "archive": "docs/history/backlog",
+      "sha256": "4dcfe6056c5d0c96dc15f6edf244682ce4a1e28c20c9510e0c464f40556ef3a5",
+      "chars": 1488555,
+      "lines": 19885,
+      "pieces": [
+        "backlog-01.md",
+        "backlog-02.md",
+        "backlog-03.md",
+        "backlog-04.md",
+        "backlog-05.md",
+        "backlog-06.md",
+        "backlog-07.md",
+        "backlog-08.md",
+        "backlog-09.md",
+        "backlog-10.md",
+        "backlog-11.md",
+        "backlog-12.md",
+        "backlog-13.md",
+        "backlog-14.md",
+        "backlog-15.md",
+        "backlog-16.md",
+        "backlog-17.md",
+        "backlog-18.md",
+        "backlog-19.md",
+        "backlog-20.md",
+        "backlog-21.md",
+        "backlog-22.md",
+        "backlog-23.md",
+        "backlog-24.md",
+        "backlog-25.md",
+        "backlog-26.md",
+        "backlog-27.md",
+        "backlog-28.md",
+        "backlog-29.md",
+        "backlog-30.md",
+        "backlog-31.md",
+        "backlog-32.md",
+        "backlog-33.md",
+        "backlog-34.md",
+        "backlog-35.md",
+        "backlog-36.md",
+        "backlog-37.md",
+        "backlog-38.md",
+        "backlog-39.md",
+        "backlog-40.md",
+        "backlog-41.md",
+        "backlog-42.md"
+      ]
+    },
+    {
+      "old": "docs/DECISIONS.md",
+      "archive": "docs/history/decisions",
+      "sha256": "a70944c87290fc6e2b5fe52d1179a9fa3dc8b6702b59ea79334254001e6803c6",
+      "chars": 324885,
+      "lines": 3810,
+      "pieces": [
+        "decisions-01.md",
+        "decisions-02.md",
+        "decisions-03.md",
+        "decisions-04.md",
+        "decisions-05.md",
+        "decisions-06.md",
+        "decisions-07.md",
+        "decisions-08.md",
+        "decisions-09.md",
+        "decisions-10.md"
+      ]
+    },
+    {
+      "old": "CLAUDE.md",
+      "archive": "docs/history/claude-md",
+      "sha256": "a1da2537c9e4e361c6f34efecd5be84357d15dad7b719cb3cb383bb2e6befb02",
+      "chars": 46422,
+      "lines": 622,
+      "pieces": [
+        "claude-md-01.md",
+        "claude-md-02.md"
+      ]
+    },
+    {
+      "old": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+      "archive": "docs/reference/playbook",
+      "sha256": "a25e5e1119df3f40a41d9c9808cdf81e3f199524e9ecaa84dd2b1c45b6534e52",
+      "chars": 71294,
+      "lines": 833,
+      "pieces": [
+        "playbook-01.md",
+        "playbook-02.md"
+      ]
+    },
+    {
+      "old": "docs/DIRECT_MASTER_BRIEF.md",
+      "archive": "docs/reference/master-brief",
+      "sha256": "bf1bfe1f95d117acf08629598387289f246bd132da771336111f9e851b5486b8",
+      "chars": 139373,
+      "lines": 877,
+      "pieces": [
+        "master-brief-01.md",
+        "master-brief-02.md",
+        "master-brief-03.md",
+        "master-brief-04.md"
+      ]
+    }
+  ]
+}
