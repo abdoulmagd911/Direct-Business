@@ -32,9 +32,9 @@ await p.route((u) => u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ sta
 await p.route((u) => /fonts\.googleapis|fonts\.gstatic|clearbit|assets\.directksa/.test(u.href), (r) => r.abort());
 await p.goto(BASE + '/today', { waitUntil: 'domcontentloaded', timeout: 120000 }); await p.waitForSelector('#cl_email', { timeout: 120000 });
 await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
-await p.waitForFunction(() => window.__pageLevels && typeof render === 'function' && (DB.businesses || []).length > 0, { timeout: 180000 }); await p.waitForTimeout(2500);
+await p.waitForFunction(() => window.__pageLevels && typeof render === 'function' && (DB.businesses || []).length > 0, null, { timeout: 180000 }); await p.waitForTimeout(2500);
 
-const tasks = async () => { await p.evaluate(() => { current = 'tasks'; openLead = null; render(); }); await p.waitForFunction(() => window.__v108State && window.__v108State.loaded, { timeout: 30000 }); await p.waitForTimeout(400); };
+const tasks = async () => { await p.evaluate(() => { current = 'tasks'; openLead = null; render(); }); await p.waitForFunction(() => window.__v108State && window.__v108State.loaded, null, { timeout: 30000 }); await p.waitForTimeout(400); };
 const achTitles = async () => { await p.evaluate(() => { current = 'reports'; openLead = null; render(); rptGo('achievements'); }); await p.waitForTimeout(1500);
   return p.evaluate(() => document.getElementById('view').innerText); };
 const openTask = async (title) => { await tasks(); await p.evaluate((t) => { const x = window.__v108State.tasks.find((k) => k.title === t); v108Open(x.id); }, title); await p.waitForSelector('#v108e_title', { timeout: 10000 }); };

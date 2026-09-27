@@ -40,7 +40,7 @@ for (const lang of ['en', 'ar']) {
   await p.waitForSelector('#cl_email', { timeout: 90000 });
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
   /* signed in and loaded — an EMPTY database (after a reset, D9) is a valid state, so no row count is waited for */
-  await p.waitForFunction(() => typeof render === 'function' && window.__pageLevels && !document.getElementById('cl_email') && Array.isArray(DB.businesses), { timeout: 150000 });
+  await p.waitForFunction(() => typeof render === 'function' && window.__pageLevels && !document.getElementById('cl_email') && Array.isArray(DB.businesses), null, { timeout: 150000 });
   await p.waitForTimeout(6000);
   check(await p.evaluate((l) => document.documentElement.dir === (l === 'ar' ? 'rtl' : 'ltr') || getComputedStyle(document.body).direction === (l === 'ar' ? 'rtl' : 'ltr'), lang), `${L}: the page runs ${lang === 'ar' ? 'right to left' : 'left to right'}`);
   const fontsReady = await p.evaluate(async () => { await document.fonts.ready; return [...document.fonts].filter((f) => /DirectFont/i.test(f.family) && f.status === 'loaded').length; });
@@ -75,7 +75,7 @@ for (const lang of ['en', 'ar']) {
 
   /* 3 — Tasks on an empty live table */
   await p.evaluate(() => { openLead = null; current = 'tasks'; render(); });
-  await p.waitForFunction(() => window.__v108State && window.__v108State.loaded, { timeout: 30000 }).catch(() => { });
+  await p.waitForFunction(() => window.__v108State && window.__v108State.loaded, null, { timeout: 30000 }).catch(() => { });
   await p.waitForTimeout(1200);
   const tk = await p.evaluate(() => ({ n: (window.__v108State.tasks || []).length, err: window.__v108State.err, text: document.getElementById('view').innerText.slice(0, 2000) }));
   check(!tk.err && (tk.n > 0 || /no task|nothing|لا توجد|لا مهام|ليس/i.test(tk.text)), `${L}: Tasks loads from the live database (${tk.n} task(s)) and says so when there are none`, tk.err || tk.text.slice(0, 200));
@@ -85,7 +85,7 @@ for (const lang of ['en', 'ar']) {
   if (!cid) console.log(`  · ${L}: company card and its form not run — the live database holds no client (${await p.evaluate(() => DB.businesses.length)} companies)`);
   else {
     await p.evaluate((id) => { current = 'leads'; openLead = id; render(); }, cid);   /* what a click on a Clients row does (its onclick sets current='leads') */
-    const card = await p.waitForFunction(() => { const c = document.querySelector('.v113-card'); return c && !/Loading…|جارٍ التحميل/.test(c.innerText) && /of 3 open|من 3 مفتوحة/.test(c.innerText) ? c.innerText.length : false; }, { timeout: 20000 }).then((h) => h.jsonValue()).catch(() => 0);
+    const card = await p.waitForFunction(() => { const c = document.querySelector('.v113-card'); return c && !/Loading…|جارٍ التحميل/.test(c.innerText) && /of 3 open|من 3 مفتوحة/.test(c.innerText) ? c.innerText.length : false; }, null, { timeout: 20000 }).then((h) => h.jsonValue()).catch(() => 0);
     const secs = await p.evaluate(() => [...document.querySelectorAll('.v113-card .v113-sec')].map((s) => s.getAttribute('data-sec')));
     check(card > 0 && ['ids', 'codes', 'files'].every((s) => secs.includes(s)), `${L}: a real client's company card loads IDs ("of 3 open"), codes and files from the live database`, 'sections ' + secs.join(',') + ' len ' + card);
 

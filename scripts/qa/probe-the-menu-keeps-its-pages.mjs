@@ -39,7 +39,7 @@ async function watch(role, grid, PORT, lang) {
   await p.route((u) => /fonts\.googleapis|fonts\.gstatic|clearbit|assets\.directksa/.test(u.href), (r) => r.abort());
   await p.goto(BASE + '/today', { waitUntil: 'domcontentloaded', timeout: 120000 }); await p.waitForSelector('#cl_email', { timeout: 120000 });
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
-  await p.waitForFunction(() => window.__pageLevels && typeof render === 'function' && (DB.businesses || []).length > 0, { timeout: 180000 });
+  await p.waitForFunction(() => window.__pageLevels && typeof render === 'function' && (DB.businesses || []).length > 0, null, { timeout: 180000 });
   await p.waitForTimeout(3000);   /* past js/108's own 900 ms and 2.6 s re-checks, into the part the old probe never looked at */
   const seen = { v108NavBtn: [], v90ActBtn: [], v90ArchBtn: [] }; let label = null;
   for (let s = 0; s < 10; s++) {

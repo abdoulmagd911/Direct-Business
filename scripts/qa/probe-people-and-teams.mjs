@@ -46,11 +46,11 @@ async function session(role, PORT, lang, extra = {}) {
   await p.route((u) => /fonts\.googleapis|fonts\.gstatic|clearbit|assets\.directksa/.test(u.href), (r) => r.abort());
   await p.goto(BASE + '/today', { waitUntil: 'domcontentloaded', timeout: 120000 }); await p.waitForSelector('#cl_email', { timeout: 120000 });
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
-  await p.waitForFunction(() => window.__pageLevels && typeof render === 'function' && (DB.businesses || []).length > 0, { timeout: 180000 });
+  await p.waitForFunction(() => window.__pageLevels && typeof render === 'function' && (DB.businesses || []).length > 0, null, { timeout: 180000 });
   await p.waitForTimeout(2500);
   return { p, b, srv };
 }
-const open = async (p) => { await p.evaluate(() => { current = 'people'; openLead = null; render(); }); await p.waitForFunction(() => document.querySelector('[data-v114-teams]') || document.querySelector('[data-v114-refused]'), { timeout: 20000 }).catch(() => { }); await p.waitForTimeout(400); };
+const open = async (p) => { await p.evaluate(() => { current = 'people'; openLead = null; render(); }); await p.waitForFunction(() => document.querySelector('[data-v114-teams]') || document.querySelector('[data-v114-refused]'), null, { timeout: 20000 }).catch(() => { }); await p.waitForTimeout(400); };
 const text = (p, sel) => p.evaluate((s) => { const e = document.querySelector(s); return e ? e.innerText.replace(/\s+/g, ' ') : ''; }, sel);
 const settle = (p) => p.waitForTimeout(900);
 const navSeries = async (p) => { const out = []; for (let i = 0; i < 6; i++) { out.push(await p.evaluate(() => { const b = document.getElementById('v114NavBtn'); return !!(b && b.offsetParent !== null && getComputedStyle(b).display !== 'none'); })); if (i === 2) await p.evaluate(() => { current = 'leads'; render(); }); await p.waitForTimeout(1000); } return out; };
@@ -148,7 +148,7 @@ const navSeries = async (p) => { const out = []; for (let i = 0; i < 6; i++) { o
 {
   const { p, b, srv } = await session('admin', 9624, 'en', { MOCK_TASKS_ROSTER: '1' });
   await p.evaluate(() => { current = 'tasks'; openLead = null; render(); });
-  await p.waitForFunction(() => window.__v108State && window.__v108State.loaded && window.teamOptionsReady && window.teamOptionsReady(), { timeout: 30000 }).catch(() => { });
+  await p.waitForFunction(() => window.__v108State && window.__v108State.loaded && window.teamOptionsReady && window.teamOptionsReady(), null, { timeout: 30000 }).catch(() => { });
   await p.evaluate(() => v108NewTask()); await p.waitForSelector('#v108_team', { timeout: 10000 }).catch(() => { });
   const first = await p.evaluate(() => { const s = document.getElementById('v108_team'); if (!s) return null; return { groups: [...s.querySelectorAll('optgroup')].map((g) => g.label + ':' + [...g.children].map((o) => o.textContent).join('/')), sel: s.options[s.selectedIndex] && s.options[s.selectedIndex].textContent }; });
   check(first && /^Home team:Business Development$/.test(first.groups[0]) && first.sel === 'Business Development', 'task form: the owner\'s home team comes first and is chosen', JSON.stringify(first));

@@ -3620,6 +3620,11 @@ moment after they appeared. Test the menu over TIME (several seconds, through a 
 test read it inside the second before it was hidden. Guarded by `probe-the-menu-keeps-its-pages`.
 *Date: 2026-09-27 (bulletproof audit). Status: ACTIVE.*
 
+**In a probe, Playwright's `waitForFunction(fn, arg, options)` takes the timeout THIRD** — `waitForFunction(fn, { timeout })`
+passes the object as `arg`, and the wait silently keeps the 30-second default. Four new probes of 2026-09-27 did this; one
+went red under a loaded full run for exactly that reason. Write `waitForFunction(fn, null, { timeout })`.
+*Date: 2026-09-27. Status: ACTIVE.*
+
 **`is_client` is two flags, not one.** The `businesses.is_client` column and
 `raw->>'isClient'` must both change together — the app reads both, so changing one without
 the other leaves a record half-converted.
