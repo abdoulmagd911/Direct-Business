@@ -29,7 +29,7 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **D2 — Access is a level per person per page, not a role** ACTIVE · 2026-09-25. No access, View, Own work or Full control; roles only set defaults. The database decides writes (`page_level(page)`); screens fail closed while loading. Airlines, Suppliers, SOP & SLA: View or Full only; Finance keeps role floors. Proven by live attacks.
 
-**D3 — Quality, Strategy, Integrity: View only on tasks, achievements, proofs** ACTIVE · 2026-09-25. Proofs are optional; the task's owner or manager finalizes it and manages its proofs. Strategy and Integrity retired as teams 2026-09-27.
+**D3 — Quality, Strategy, Integrity: View only on tasks, achievements, proofs** ACTIVE · 2026-09-25. Proofs are optional; the task's owner, or whoever manages the task, finalizes it and manages its proofs. Strategy and Integrity retired as teams 2026-09-27.
 
 **D4 — Corporate-portal design; orange marks the main action** ACTIVE · 2026-09-25. One design file, `css/design.css`, loaded last. DirectFont loads from assets.directksa.com, never copied here ("All rights reserved"); Inter/Cairo behind it. Portal internals: the owner's Drive snapshots.
 
@@ -45,7 +45,7 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **D10 — The company card: IDs, discount codes, files** ACTIVE · 2026-09-26. Full control of Clients edits it; nothing copies Direct Payments. Client IDs are unique across companies (D16). Links and files are removed, kept on record, never re-pointed. IBAN letters and agreements: managers and admins only (database).
 
-**D11 — Commercial is the department; teams sit inside it** ACTIVE · 2026-09-27. People change only via `person_save`, by an admin or manager. Teams are never deleted: `team_retire(team, move_to)` moves open work and people first. A task's team must be chosen and active.
+**D11 — Commercial is the department; teams sit inside it** ACTIVE · 2026-09-27. People change only via `person_save`, by an admin or manager; a user can only sign in and out. Teams are never deleted: `team_retire(team, move_to)` moves open work and people first. A task's team must be chosen and active.
 
 **D12 — A counted finished task becomes its achievement** ACTIVE · 2026-09-27. `tasks_register_achievement` adds or withdraws it as 'count it' is ticked, copying edits while the month is open; a task whose achievement has proofs cannot be reopened or unticked. Drafts don't count. Guard `probe-tasks-to-achievements`.
 
@@ -241,7 +241,7 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **M103 — Activity decides a refusal by its action (`denied`), not its table** ACTIVE · 2026-09-25. js/63's `isRefusal` decides; admin-sent reset-link rows are account events with their own words and address. The field dictionary covers every field the live log records.
 
-**M102 — Filter chips remove rows, never hide them by style** ACTIVE · 2026-09-25. Or js/04's pager miscounts. Chips go through core-09 `v26_3KeepRows`, which keeps the original rows.
+**M102 — A filter chip keeps or drops rows in the table body, never hides them by style** ACTIVE · 2026-09-25. Or js/04's pager miscounts. Chips go through core-09 `v26_3KeepRows`, which keeps the original rows.
 
 **M101 — A probe crashing before boot is revived, not excluded** ACTIVE · 2026-09-25. Name the crash, fix it, update expectations. Tests carry no real registered identifier: assert absence without quoting real numbers. Runner `scripts/generator-qa/run-all.sh`.
 
@@ -299,7 +299,7 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **S4 — Stuck commits: Claude Code, else say so, then ask the owner** ACTIVE · 2026-08-29. CLAUDE.md rule 10. If Claude Code is unreachable, say "saved here, not live yet" and leave them local; never self-serve a push unasked.
 
-**S5 — The owner's ("Go live with whats ready") permits browser upload** SUPERSEDED-BY CLAUDE.md brief §4 · 2026-09-03. Changes now land by reviewed PR from Claude Code.
+**S5 — The owner's "Go live with whats ready" once allowed a browser-upload push** SUPERSEDED-BY CLAUDE.md brief §4 · 2026-09-03. Changes now land by reviewed PR from Claude Code.
 
 **S6 — "don't push" is not "don't talk": hand-offs never wait for the owner** ACTIVE · 2026-08-29. The owner, verbatim: "you have been doing so since the beginning!! what changed!!" Acting ON the repo (push, merge, history) needs push authority; talking TO a session is done at once.
 

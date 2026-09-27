@@ -123,7 +123,7 @@ function main() {
   /* a parser that finds no rules passes vacuously — the exact failure P5 is about, turned on this script itself */
   if (checkedRules < 80) fail(`only ${checkedRules} ACTIVE rule(s) found — the file's format and this parser have drifted apart`);
   if (failures) {
-    console.log(`\nFAILED — ${failures} citation(s) in docs/DECISIONS.md point at code that is missing or never actually called.`);
+    console.log(`\nFAILED — ${failures} problem(s) in docs/DECISIONS.md: an entry with no status, too few active rules found, or a citation pointing at code that is missing or never actually called.`);
     process.exit(1);
   }
   console.log('decisions-wired OK — every ACTIVE rule\'s code citation resolves to something that exists and is actually called.');
