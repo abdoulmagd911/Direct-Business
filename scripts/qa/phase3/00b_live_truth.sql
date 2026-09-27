@@ -156,3 +156,10 @@ grant select, insert, update, delete on app_users to authenticated;
 create or replace view public.team_directory with (security_invoker = on) as
   select id, email, full_name, name_ar, nickname, role, active from public.app_users;
 grant select on public.team_directory to authenticated;
+
+-- ---------- E, the money rules (2026-09-27): finance_invoices columns and app_settings as live ----------
+alter table finance_invoices add column if not exists customer_raw_name text, add column if not exists transaction_ref text,
+  add column if not exists collection_due_date date, add column if not exists record_type text,
+  add column if not exists created_at timestamptz default now();
+create table if not exists app_settings (id text primary key, data jsonb not null default '{}'::jsonb, updated_at timestamptz default now());
+alter table app_settings enable row level security;
