@@ -721,6 +721,8 @@ export function start(port, seedOverrides){
     return req.on('end',()=>{
       let p={}; try{p=JSON.parse(body||'{}');}catch(_){}
       // supabase-js sends redirect_to as a query param on this endpoint, not in the body.
+      /* MOCK_MAIL_LIMIT=1 (2026-09-27): Supabase's own refusal when its email limit is reached (HTTP 429) */
+      if(process.env.MOCK_MAIL_LIMIT==='1') return send(res,429,{code:429,error_code:'over_email_send_rate_limit',msg:'email rate limit exceeded'});
       RECOVERLOG.push({email:p.email||null, redirectTo:u.query.redirect_to||p.redirect_to||null, at:new Date().toISOString()});
       return send(res,200,{});
     });
@@ -733,7 +735,10 @@ export function start(port, seedOverrides){
     return req.on('end',()=>{
       let p={}; try{p=JSON.parse(body||'{}');}catch(_){}
       const A=p.action;
-      if(A==='list') return send(res,200,{users:TABLES.app_users.map(u=>({id:u.id,email:u.email,full_name:u.full_name,role:u.role,active:u.active,must_change_password:u.must_change_password,created_at:u.created_at})),caller_role:(TABLES.app_users.find(x=>x.id===UID)||{}).role||''});
+      /* 2026-09-27 (finding C): the real function now says who has signed in yet (auth's last_sign_in_at) — the signed-in
+         test row has, a row may carry its own last_sign_in_at, everyone else has not */
+      const lastIn=u=>('last_sign_in_at' in u)?u.last_sign_in_at:(u.id===UID?'2026-09-27T09:00:00Z':null);
+      if(A==='list') return send(res,200,{users:TABLES.app_users.map(u=>({id:u.id,email:u.email,full_name:u.full_name,role:u.role,active:u.active,must_change_password:u.must_change_password,created_at:u.created_at,last_sign_in_at:lastIn(u)})),caller_role:(TABLES.app_users.find(x=>x.id===UID)||{}).role||''});
       if(A==='create'){ const nu={id:'u-'+(TABLES.app_users.length),email:String(p.email||'').toLowerCase(),full_name:p.full_name||'',role:p.role||'team_member',active:true,created_at:'2026-08-09T00:00:00Z',must_change_password:true,allowed_pages:['today','leads','clients']}; TABLES.app_users.push(nu); return send(res,200,{ok:true,email:nu.email,temp_password:'Riyadh1234!'}); }
       // 2026-09-02 (share/settings attack round): the two self-lockout guards the REAL
       // admin-users function carries, read from its deployed source the same day —
@@ -753,11 +758,23 @@ export function start(port, seedOverrides){
       // admin-only (server-enforced there via app_users.role, mocked here the same way via
       // the signed-in test row, which MOCK_ROLE can override), never a password in the
       // response, and a record_history row written for the caller to see logged.
-      if(A==='send_reset_link'){
+      /* 2026-09-27: as the real function now reads (supabase/functions/admin-users) — an admin sends to anyone, a manager
+         to anyone but an admin; MOCK_MAIL_LIMIT=1 answers the way Supabase does when its email limit is reached */
+      if(A==='send_reset_link'||A==='send_invite'){
         const caller=TABLES.app_users.find(x=>x.id===UID);
-        if(!caller||caller.role!=='admin') return send(res,200,{error:'Only an admin can send a reset link.'});
+        if(!caller||(caller.role!=='admin'&&caller.role!=='manager')) return send(res,200,{error:'Only an admin or a manager can manage team access.'});
         const target=TABLES.app_users.find(x=>x.id===p.id);
         if(!target) return send(res,200,{error:'Person not found.'});
+        if(caller.role!=='admin'&&target.role==='admin') return send(res,200,{error:A==='send_invite'?'Only an admin can invite an admin.':'Only an admin can send an admin a reset link.'});
+        if(process.env.MOCK_MAIL_LIMIT==='1') return send(res,200,{error:'email rate limit exceeded',rate_limited:true});
+        if(A==='send_invite'){
+          if(target.active!==true) return send(res,200,{error:'This account is switched off — switch it on first.'});
+          if(lastIn(target)) return send(res,200,{error:'They have signed in before — send them a reset link instead.',signed_in_before:true});
+          target.must_change_password=true;
+          RECOVERLOG.push({email:target.email, redirectTo:p.origin||null, at:new Date().toISOString(), via:'admin-users', kind:'invite'});
+          TABLES.record_history.unshift({id:(TABLES.record_history.length?Math.max(...TABLES.record_history.map(r=>r.id)):0)+1,at:new Date().toISOString(),actor:UID,actor_name:caller.full_name||caller.email,table_name:'access',record_id:p.id,action:'invite_sent',before_row:null,after_row:{target_email:target.email},undone_at:null,undone_by:null});
+          return send(res,200,{ok:true});
+        }
         RECOVERLOG.push({email:target.email, redirectTo:p.origin||null, at:new Date().toISOString(), via:'admin-users'});
         TABLES.record_history.unshift({id:(TABLES.record_history.length?Math.max(...TABLES.record_history.map(r=>r.id)):0)+1,at:new Date().toISOString(),actor:UID,actor_name:caller.full_name||caller.email,table_name:'access',record_id:p.id,action:'reset_link_sent',before_row:null,after_row:{target_email:target.email},undone_at:null,undone_by:null});
         return send(res,200,{ok:true});

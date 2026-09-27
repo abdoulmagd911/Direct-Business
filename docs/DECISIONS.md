@@ -3808,3 +3808,15 @@ invoice, transaction, achievement, company, merge or exclusion is created by cod
 backfill script, no SQL insert of business data, no background pass that writes on its own (which is why the js/41
 name auto-linker is off). Code makes entry easy — screens, the importer a person runs, validation, the change log. The
 test harness and test databases may seed made-up data. An already-approved cleanup or wipe is allowed, backed up first.
+**D15 — Sign-in says what happened, the reset screen opens only in the link's tab, 10 characters everywhere (C-lite;
+the oversight's finding C, 27 Sep).** READY, WAITING FOR THE OWNER (C is parked by him). The parts of C that need no email
+sender: (1) the reset ("Set a new password") screen opens only in the tab the reset link opened — Supabase announces a
+recovery to every open tab, and with several accounts in one browser every tab jumped to it (the owner's loop); (2) the
+sign-in admin function (supabase/functions/admin-users, now in the repo as deployed, version 5) refuses passwords under
+10 characters like the rest of the app and like Supabase itself — it accepted 8, so a password set there could be one
+Supabase then refused — and its invented temporary password is 10+ characters; (3) every failure on the sign-in screen
+is red (the shared message box kept the green of a previous success line), Supabase's email limit is said as such, and
+"Forgot password?" never claims a link was sent to an address that may have no account; (4) the new-password screens
+count characters as you type. Parked with the email sender: the per-person "Send reset link" / "Send invite again"
+buttons and the branded email templates (branch login-c). Deploy of the function at merge, from the merged file.
+Tested: probe-sign-in-says-what-happened.
