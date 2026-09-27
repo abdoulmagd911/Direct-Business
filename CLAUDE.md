@@ -41,7 +41,7 @@ at merge from the merged commit (checksum-checked), after a rolled-back live che
   `golive-backups`; D9). People & teams (D11) and Tasks → Achievements (D12) (#47) — live.
 - Owner decisions of 27 Sep: the wipe of world30_finance_invoices / _client_links, master_db_companies and
   company_achievements, and Strategy + Integrity retired — done (backup stamp 20260927T113348Z); the change log on
-  every record, managers edit people (logged), business@ as the QA account (D13) — built, in review.
+  every record, managers edit people (logged), business@ as the QA account (D13) (#48) — live. B) speed (D14) — in review.
 - Then, one PR each: A) the Finance freeze (not reproduced yet), B) speed, C) the login/reset loop, D) the Direct
   Payments Excel files in the existing Finance import (waits for the oversight's column mapping), E) the simplify list.
 - Next: issuing numbered reports, the appraisal cycle — and the **final go-live reset**, run only on the owner's
