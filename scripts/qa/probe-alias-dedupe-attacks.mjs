@@ -62,7 +62,7 @@ async function main() {
      DB.settings whenever it lands. Reading before it lands gave "exclusion → null, expected 7";
      writing before it lands had the write silently replaced. Both were reported as app defects.
      Wait for it once, here, and fail loudly rather than measure a world that has not arrived. */
-  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('DB.settings never arrived from app_settings — the exclusion list and group map below would be measured against an empty object, which is not a finding about the app');
+  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Tawthiq Test Services')); } catch (_) { return false; } }))) fail('DB.settings never arrived from app_settings — the exclusion list and group map below would be measured against an empty object, which is not a finding about the app');
 
   /* ---------- 1. alias normalisation ---------- */
   await p.evaluate(() => {
@@ -103,18 +103,18 @@ async function main() {
   /* ---------- 2. exclusion twin + precedence ---------- */
   const x = (name) => p.evaluate((n) => { const r = window.finExclusionCheck(n); return r ? r.clientId : null; }, name);
   const xc = [
-    ['Takamol for Business Services', '7', 'exact'],
-    ['  takamol   for business services ', '7', 'case + spacing'],
-    ['Takamol-for.Business,Services', '7', 'punctuation folded'],
-    ['Takamol for Business Service', null, 'a genuinely different name is not excluded'],
+    ['Tawthiq Test Services', '7', 'exact'],
+    ['  tawthiq   for business services ', '7', 'case + spacing'],
+    ['Tawthiq-for.Business,Services', '7', 'punctuation folded'],
+    ['Tawthiq for Business Service', null, 'a genuinely different name is not excluded'],
   ];
   for (const [inp, want, why] of xc) { const got = await x(inp); if (got === want) ok(`exclusion "${inp.slice(0, 34)}" → ${want ? '#' + want : 'not excluded'} (${why})`); else fail(`exclusion "${inp}" → ${got}, expected ${want}`); }
   const prec = await p.evaluate(() => {
-    DB.settings.financeGroupMap.push({ id: 'g4', canonicalName: 'Should Never Show', aliases: ['Takamol for Business Services'], active: true });
+    DB.settings.financeGroupMap.push({ id: 'g4', canonicalName: 'Should Never Show', aliases: ['Tawthiq Test Services'], active: true });
     if (window.clearFinCanon) clearFinCanon();
-    FIN.rows.push({ id: 'qa-x1', invoice_no: 'QA-X1', client_group: 'Takamol for Business Services', customer_raw_name: 'Takamol for Business Services', invoice_date: '2026-03-01', year: 2026, month: 'March', quarter: 'Q1', total_incl_vat_sar: 5000, wallet_portion_sar: 0, revenue_sar: 5000, cost_sar: 0, profit_sar: 5000, amount_received_sar: 5000, amount_remaining_sar: 0, integrity_status: 'verified_paid', deleted_at: null, record_type: 'b2b', service_type: 'Flights' });
+    FIN.rows.push({ id: 'qa-x1', invoice_no: 'QA-X1', client_group: 'Tawthiq Test Services', customer_raw_name: 'Tawthiq Test Services', invoice_date: '2026-03-01', year: 2026, month: 'March', quarter: 'Q1', total_incl_vat_sar: 5000, wallet_portion_sar: 0, revenue_sar: 5000, cost_sar: 0, profit_sar: 5000, amount_received_sar: 5000, amount_remaining_sar: 0, integrity_status: 'verified_paid', deleted_at: null, record_type: 'b2b', service_type: 'Flights' });
     FIN.p = { year: 'all', part: 'all', sector: 'all', cmp: 'none' }; FIN.tab = 'clients'; renderFinance(document.getElementById('view'));
-    return { onScreen: document.querySelector('#view').innerText, grouped: window.finGroupCheck('Takamol for Business Services') ? true : false };
+    return { onScreen: document.querySelector('#view').innerText, grouped: window.finGroupCheck('Tawthiq Test Services') ? true : false };
   });
   if (prec.grouped && !/Should Never Show|5,000/.test(prec.onScreen)) ok('a company that is BOTH excluded and grouped never reaches Finance — exclusion wins over the alias group');
   else fail('excluded+grouped company leaked onto the Clients tab');

@@ -12,7 +12,7 @@
        racing a still-streaming first run. 6,000 × 0.25 must land as exactly 1,500.
    D — two tax files in ONE drop disagreeing about the same invoice: last file wins, the
        final row is one consistent pair, nothing crashes.
-   E — a tax file targeting an EXCLUDED client's invoice (Takamol 9999999999): must not
+   E — a tax file targeting an EXCLUDED client's invoice (Tawthiq 9999999999): must not
        touch it.
    H — capture-only drop persistence: drop ONLY the transaction-status (gate) file, no
        invoice write to confirm — then reload and drop ONLY the lines file. If the gate fact
@@ -180,7 +180,7 @@ async function main() {
   else ok('D: last file won cleanly with a consistent dpin/total pair — no torn merge');
 
   // ================= ATTACK E — excluded client's invoice must stay untouched =================
-  console.log('\nATTACK E — tax file targeting the EXCLUDED Takamol invoice');
+  console.log('\nATTACK E — tax file targeting the EXCLUDED Tawthiq invoice');
   fs.writeFileSync(tmpd + '/tax-e.csv', ['invoice_no,tax_code,total_incl_vat_sar,invoice_status,issue_date', '9999999999,DPIN-EVIL,1,Issued,2026-08-01'].join('\n'));
   await p.setInputFiles('#finFile', [tmpd + '/tax-e.csv']);
   await p.waitForTimeout(1500);
@@ -188,7 +188,7 @@ async function main() {
   await confirm();
   const rE = await inv('9999999999');
   if (rE.zatca_dpin !== 'TTIN-9999' || Number(rE.total_incl_vat_sar) !== 314159) {
-    fail(`E: the excluded Takamol invoice was MODIFIED — got ${JSON.stringify({ dpin: rE.zatca_dpin, total: rE.total_incl_vat_sar })}, expected untouched TTIN-9999/314159`);
+    fail(`E: the excluded Tawthiq invoice was MODIFIED — got ${JSON.stringify({ dpin: rE.zatca_dpin, total: rE.total_incl_vat_sar })}, expected untouched TTIN-9999/314159`);
   } else ok('E: the excluded client\'s invoice is untouched — exclusion holds on the import path');
 
   // ================= ATTACK H — capture-only drop must be persistable =================

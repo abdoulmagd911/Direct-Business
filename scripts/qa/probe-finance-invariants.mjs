@@ -1,6 +1,6 @@
 /* probe-finance-invariants.mjs — standing exclusion invariant (docs/DECISIONS.md, 2026-08-23).
 
-   The owner ruled "No takamol what so ever" after ten live Takamol invoices — 6,724,291.12
+   The owner ruled "No tawthiq what so ever" after ten live Tawthiq invoices — 6,724,291.12
    SAR, 77% of the Finance page's displayed revenue — turned out to have entered
    finance_invoices despite a correctly-configured exclusion list existing since 2026-08-21.
    The exclusion check (js/62-finance-guardrails.js's finExclusionCheck) IS correctly wired
@@ -13,8 +13,8 @@
    not satisfied by loading the data and labelling it."
 
    This probe is the regression guard for that filter. scripts/qa/mock-supabase.mjs seeds one
-   extra live, non-deleted, verified_paid finance_invoices row (id 'i-qa-takamol',
-   client_group 'Takamol for Business Services', total 314,159 SAR) alongside the exclusion
+   extra live, non-deleted, verified_paid finance_invoices row (id 'i-qa-tawthiq',
+   client_group 'Tawthiq Test Services', total 314,159 SAR) alongside the exclusion
    entry that names it — exactly the shape a future re-import mistake would produce. If this
    row EVER counts in FIN.rows, any rendered total, or any export, this probe fails the
    build. It does not rely on remembering to check — that is the whole point. */
@@ -29,7 +29,7 @@ const PORT = 8179;
 const srv = start(PORT);
 const BASE = 'http://localhost:' + PORT;
 
-const TELLTALES = [/takamol/i, /techtic/i, /9999999999/, /314[,.]?159/, /TTIN-9999/];
+const TELLTALES = [/tawthiq/i, /techtic/i, /9999999999/, /314[,.]?159/, /TTIN-9999/];
 
 let failures = 0;
 function fail(msg) { failures++; console.log('  ✗ ' + msg); }
@@ -37,7 +37,7 @@ function ok(msg) { console.log('  ✓ ' + msg); }
 
 function scanClean(text, label) {
   const hit = TELLTALES.find((re) => re.test(text));
-  if (hit) fail(`${label}: the excluded Takamol row leaked through — matched ${hit}`);
+  if (hit) fail(`${label}: the excluded Tawthiq row leaked through — matched ${hit}`);
   else ok(`${label}: no trace of the excluded row`);
 }
 
@@ -84,7 +84,7 @@ async function main() {
      page had rendered before the list arrived, so it measured a world where nothing was
      excluded and blamed the app for it. That is the owner's hardest ruling; a false red on it
      is nearly as costly as a false green. Wait for the list, and say so if it never comes. */
-  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } }))) fail('the exclusion list never arrived from app_settings — every check below would measure a world where nothing is excluded, which is a fact about this run and not about the app');
+  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Tawthiq Test Services')); } catch (_) { return false; } }))) fail('the exclusion list never arrived from app_settings — every check below would measure a world where nothing is excluded, which is a fact about this run and not about the app');
   await p.evaluate(() => { current = 'finance'; if (typeof render === 'function') render(); });
   await p.waitForTimeout(1200);
 
@@ -96,15 +96,15 @@ async function main() {
   const state = await p.evaluate(() => ({
     rawRowCount: (typeof FIN !== 'undefined' && FIN.rows) ? FIN.rows.length : null,
     exclusionCheckWired: typeof window.finExclusionCheck === 'function',
-    exclusionListHasTakamol: typeof window.finExclusionCheck === 'function' ? !!window.finExclusionCheck('Takamol for Business Services') : null,
+    exclusionListHasTawthiq: typeof window.finExclusionCheck === 'function' ? !!window.finExclusionCheck('Tawthiq Test Services') : null,
   }));
   console.log('state:', JSON.stringify(state));
 
   if (!state.exclusionCheckWired) fail('window.finExclusionCheck is not a function — js/62 did not load');
   else ok('finExclusionCheck is wired');
-  if (!state.exclusionListHasTakamol) fail('the exclusion list does not name "Takamol for Business Services" — fixture/app_settings mismatch, this probe cannot test anything');
-  else ok('exclusion list correctly names Takamol');
-  if (state.rawRowCount !== 17) fail(`FIN.rows (raw, pre-filter) has ${state.rawRowCount} rows, expected exactly 17 seeded server-side (15 base + Takamol canary + VAT canary) — fixture assumption broke`);
+  if (!state.exclusionListHasTawthiq) fail('the exclusion list does not name "Tawthiq Test Services" — fixture/app_settings mismatch, this probe cannot test anything');
+  else ok('exclusion list correctly names Tawthiq');
+  if (state.rawRowCount !== 17) fail(`FIN.rows (raw, pre-filter) has ${state.rawRowCount} rows, expected exactly 17 seeded server-side (15 base + Tawthiq canary + VAT canary) — fixture assumption broke`);
   else ok('FIN.rows (raw) has all 17 seeded rows — the exclusion is applied on every read, not by dropping data at load');
 
   // ---- 1b. cost_sar must never exceed the invoice's own total_incl_vat_sar — the exact shape
@@ -123,7 +123,7 @@ async function main() {
 
   // ---- 2. Rendered totals — Overview, Clients & collections, Ledger — no visible trace ----
   // Overview shows KPI sums only, no client names anywhere on the tab — a text scan for
-  // "takamol" there can never fail even if the row's MONEY leaked into the total, since
+  // "tawthiq" there can never fail even if the row's MONEY leaked into the total, since
   // there is no name text to find. Caught by adversarial testing (oversight session,
   // 2026-08-23): text-scanning alone passed on Overview even before this numeric check
   // existed, which proved nothing about Overview specifically. Fixed with a genuine
@@ -141,13 +141,13 @@ async function main() {
         const valEl = revCard ? revCard.children[1] : null;
         const shown = valEl ? parseFloat((valEl.getAttribute('title') || '').replace(/[^0-9.\-]/g, '')) : null;
         const expected = (FIN.rows || [])
-          .filter((r) => !r.deleted_at && r.integrity_status === 'verified_paid' && r.id !== 'i-qa-takamol')
+          .filter((r) => !r.deleted_at && r.integrity_status === 'verified_paid' && r.id !== 'i-qa-tawthiq')
           .reduce((s, r) => s + (+r.revenue_sar || 0), 0);
         return { shown, expected };
       });
       if (kpi.shown == null) fail('Finance/overview: could not read the Revenue KPI card at all — DOM shape changed, this check needs updating');
       else if (Math.abs(kpi.shown - kpi.expected) > 0.01) fail(`Finance/overview: Revenue KPI shows ${kpi.shown}, expected ${kpi.expected.toFixed(2)} (excluded row's 314159 SAR would explain the gap) — the exclusion did not hold on the one tab where a name could never prove it either way`);
-      else ok(`Finance/overview: Revenue KPI (${kpi.shown.toFixed(2)}) numerically excludes the Takamol row's 314,159 SAR — not just absent from visible text`);
+      else ok(`Finance/overview: Revenue KPI (${kpi.shown.toFixed(2)}) numerically excludes the Tawthiq row's 314,159 SAR — not just absent from visible text`);
     }
   }
 
@@ -188,7 +188,7 @@ async function main() {
     console.log(`\nFAILED — ${failures} check(s) did not pass.`);
     process.exit(1);
   }
-  console.log('\nfinance invariants OK — the excluded Takamol row never reached FIN.rows, any rendered total, or any export.');
+  console.log('\nfinance invariants OK — the excluded Tawthiq row never reached FIN.rows, any rendered total, or any export.');
   process.exit(0);
 }
 

@@ -102,8 +102,8 @@ const TABLES={
        first rule while 13 broke the second. The Performance tiles then showed a Cost LARGER
        than Revenue — which reads as an app bug and is a fixture bug. Every finance probe in
        the harness was asserting against numbers no real invoice could have. */
-    const _wal=0;const _rev=_tot-_wal;const _prof=_rev-_cost;return {id:'i'+i,invoice_no:'11636'+(1000+i),zatca_dpin:(i%3)?('TTIN-'+(9000+i)):null,client_group:'Test Company '+(i%6),customer_raw_name:'Test Company '+(i%6),invoice_date:'2026-0'+((i%6)+1)+'-15',month:_mo,quarter:_q,year:2026,products:_svc,service_type:_svc,record_type:'b2b',total_incl_vat_sar:_tot,wallet_portion_sar:_wal,revenue_sar:_rev,cost_sar:_cost,profit_sar:_prof,amount_received_sar:_tot,amount_remaining_sar:0,collection_due_date:'2026-07-15',integrity_status:'verified_paid',exclusion_reason:null,notes:null,source_batch:'seed',created_at:'2026-06-01T00:00:00Z',updated_at:'2026-06-01T00:00:00Z',deleted_at:null};})
-    // Standing invariant fixture (2026-08-23, docs/DECISIONS.md — Takamol/Techtic never
+    const _wal=0;const _rev=_tot-_wal;const _prof=_rev-_cost;return {id:'i'+i,invoice_no:'11636'+(1000+i),zatca_dpin:(i%3)?('TTIN-'+(9000+i)):null,client_group:'Test Company '+(i%6),customer_raw_name:'Test Company '+(i%6),payments_client_id:(i%6)===4?'12':(i%6)===5?'13':null,invoice_date:'2026-0'+((i%6)+1)+'-15',month:_mo,quarter:_q,year:2026,products:_svc,service_type:_svc,record_type:'b2b',total_incl_vat_sar:_tot,wallet_portion_sar:_wal,revenue_sar:_rev,cost_sar:_cost,profit_sar:_prof,amount_received_sar:_tot,amount_remaining_sar:0,collection_due_date:'2026-07-15',integrity_status:'verified_paid',exclusion_reason:null,notes:null,source_batch:'seed',created_at:'2026-06-01T00:00:00Z',updated_at:'2026-06-01T00:00:00Z',deleted_at:null};})
+    // Standing invariant fixture (2026-08-23, docs/DECISIONS.md — Tawthiq/Techtic never
     // appear anywhere): a live, non-deleted, verified_paid row for an excluded client,
     // exactly matching the shape a re-import mistake would produce — the exclusion list
     // (app_settings below) carries this exact name. Tests that the belt-and-suspenders
@@ -111,7 +111,7 @@ const TABLES={
     // looks otherwise perfectly normal. scripts/qa/probe-finance-invariants.mjs asserts
     // this row NEVER reaches FIN.rows, any displayed total, or any CSV export — if this
     // one row silently counts anywhere, that probe must fail the build.
-    .concat([{id:'i-qa-takamol',invoice_no:'9999999999',zatca_dpin:'TTIN-9999',client_group:'Takamol for Business Services',customer_raw_name:'Takamol for Business Services',invoice_date:'2026-06-20',month:'June',quarter:'Q2',year:2026,products:'B2B',service_type:'B2B',record_type:'b2b',total_incl_vat_sar:314159,wallet_portion_sar:0,revenue_sar:314159,cost_sar:0,profit_sar:314159,amount_received_sar:314159,amount_remaining_sar:0,collection_due_date:'2026-06-20',integrity_status:'verified_paid',exclusion_reason:null,notes:null,source_batch:'seed-invariant-qa',created_at:'2026-06-20T00:00:00Z',updated_at:'2026-06-20T00:00:00Z',deleted_at:null},
+    .concat([{id:'i-qa-tawthiq',invoice_no:'9999999999',zatca_dpin:'TTIN-9999',client_group:'Tawthiq Test Services',customer_raw_name:'Tawthiq Test Services',invoice_date:'2026-06-20',month:'June',quarter:'Q2',year:2026,products:'B2B',service_type:'B2B',record_type:'b2b',total_incl_vat_sar:314159,wallet_portion_sar:0,revenue_sar:314159,cost_sar:0,profit_sar:314159,amount_received_sar:314159,amount_remaining_sar:0,collection_due_date:'2026-06-20',integrity_status:'verified_paid',exclusion_reason:null,notes:null,source_batch:'seed-invariant-qa',created_at:'2026-06-20T00:00:00Z',updated_at:'2026-06-20T00:00:00Z',deleted_at:null},
     // M1 canary (2026-08-23, docs/DECISIONS.md — "VAT never enters cost, profit or revenue"):
     // a real VAT-bearing row (vat_sar>0, unlike the 15 seed rows above which carry no VAT at
     // all — this app's fixture never actually exercised a VAT-bearing figure before, which is
@@ -273,9 +273,13 @@ const TABLES={
   // Spec 4 (2026-08-21): DB.settings loads from app_settings (v59, js/35), not the
   // app_state blob — the harness needs its own row here or the exclusion list/grouping
   // tool would render against an empty DB.settings.financeExclusions every run.
-  app_settings:[{id:'main',data:{__mockSettingsLanded:1,lang:'en',currency:'SAR',financeExclusions:[
-    {id:'fx-qa-takamol',clientId:'7',matchNames:['Takamol for Business Services','Techtic Support'],reason:'Takamol — verification services, accounted for elsewhere',addedBy:'QA seed',addedAt:'2026-08-21T00:00:00Z'}
-  ]},updated_at:'2026-08-21T00:00:00Z',updated_by:'QA seed'}]
+  /* E (2026-09-27): the old name list (financeExclusions) is retired — the harness seeds the same exclusion as a typed
+     RULE instead (made-up names only; the live Rules screen starts empty and is filled by hand). */
+  money_exclusion_rules:[
+    {id:'mr-seed-1',kind:'name',value:'Tawthiq Test Services',value_norm:null,reason:'Tawthiq — verification services, accounted for elsewhere (harness seed)',active:true,created_by:'mock-user-qa',created_by_name:'QA seed',created_at:'2026-08-21T00:00:00Z',updated_by:null,updated_by_name:null,updated_at:null,removed_by:null,removed_by_name:null,removed_at:null},
+    {id:'mr-seed-2',kind:'name',value:'Techtic Support',value_norm:null,reason:'Tawthiq — verification services, accounted for elsewhere (harness seed)',active:true,created_by:'mock-user-qa',created_by_name:'QA seed',created_at:'2026-08-21T00:00:00Z',updated_by:null,updated_by_name:null,updated_at:null,removed_by:null,removed_by_name:null,removed_at:null}
+  ],
+  app_settings:[{id:'main',data:{__mockSettingsLanded:1,lang:'en',currency:'SAR'},updated_at:'2026-08-21T00:00:00Z',updated_by:'QA seed'}]
 };
 // Spec 7b (2026-08-21): drive the app as any role without a second account. MOCK_ROLE /
 // MOCK_PAGE_ACCESS (a JSON string, e.g. '{"leads":"editor","finance":"editor"}') override
@@ -540,6 +544,41 @@ let _bakIdSeq=0; // new app_state_bak rows inserted through the mock get sequent
 // a probe drains these over HTTP instead of guessing at what the client actually sent.
 const RECOVERLOG=[];   // every resetPasswordForEmail() call the mock's /auth/v1/recover saw
 const PWUPDATELOG=[];  // every updateUser({password}) call the mock's PUT /auth/v1/user saw
+/* E (2026-09-27) — the one "what counts" view, modelled on scripts/sql/e-money-rules.sql money_row_rules()/money_rows:
+   company = the company holding the row's typed client ID, else (no client ID) the company holding its typed discount
+   code, else the row stands alone; rule = transaction → client ID → VAT/CR → code → name (name only with no client ID). */
+function mockMoneyNorm(t){ let s=String(t==null?'':t); try{ s=s.normalize('NFKC'); }catch(_){} s=s.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه'); s=s.replace(/[^\p{L}\p{N}]+/gu,''); return s||null; }
+function mockMoneyRows(){
+  const N=mockMoneyNorm, ORDER=['transaction','client_id','tax_no','discount_code','name'];
+  const rules=(TABLES.money_exclusion_rules||[]).filter(r=>r.active&&!r.removed_at).slice().sort((a,b)=>(ORDER.indexOf(a.kind)-ORDER.indexOf(b.kind))||String(a.created_at).localeCompare(String(b.created_at)));
+  const prof=TABLES.client_profiles||[], links=(CARDMOCK.links||[]).filter(l=>!l.removed_at), codes=CARDMOCK.codes||[], biz=TABLES.businesses||[];
+  const today=new Date(); today.setUTCHours(0,0,0,0);
+  return (TABLES.finance_invoices||[]).filter(i=>!i.deleted_at).map(i=>{
+    const cid=N(i.payments_client_id), code=N(i.discount_code), tax=N(i.customer_tax_no);
+    const cp=cid?prof.find(p=>N(p.direct_client_id)===cid):null;
+    let codeBiz=null; if(code){ const pc=codes.find(c=>N(c.code)===code); const l=pc&&links.find(x=>x.promo_code_id===pc.id); codeBiz=l?l.business_id:null; }
+    const bizId=cp?cp.business_id:(!cid?codeBiz:null); const b=bizId?biz.find(x=>x.id===bizId):null;
+    const bt=N(b&&b.cr_vat)||'';
+    const x=rules.find(r=>{ const v=N(r.value); if(!v)return false;
+      if(r.kind==='transaction') return v===N(i.transaction_ref)||v===N(i.invoice_no);
+      if(r.kind==='client_id') return v===cid;
+      if(r.kind==='tax_no') return v===tax||(v.length>=8&&bt.includes(v));
+      if(r.kind==='discount_code') return v===code;
+      if(r.kind==='name') return !cid&&(v===N(i.client_group)||v===N(i.customer_raw_name));
+      return false; })||null;
+    const excluded=!!x||i.exclusion_reason!=null;
+    const rem=Number(i.amount_remaining_sar)||0, from=i.collection_due_date||i.invoice_date;
+    return {id:i.id,invoice_no:i.invoice_no,invoice_date:i.invoice_date,client_group:i.client_group,customer_raw_name:i.customer_raw_name,payments_client_id:i.payments_client_id||null,
+      discount_code:i.discount_code||null,transaction_ref:i.transaction_ref||null,integrity_status:i.integrity_status,revenue_way:i.revenue_way,
+      revenue_sar:i.revenue_sar,cost_sar:i.cost_sar,profit_sar:i.profit_sar,amount_received_sar:i.amount_received_sar,amount_remaining_sar:i.amount_remaining_sar,collection_due_date:i.collection_due_date||null,source_batch:i.source_batch,
+      business_id:bizId,company_key:bizId?'biz:'+bizId:cid?'cid:'+cid:code?'codes:unassigned':'name:'+(N(i.client_group||i.customer_raw_name)||'?'),
+      company_name:bizId?(b&&b.name)||null:cid?(i.customer_raw_name||i.client_group):code?'Unassigned codes':(i.client_group||i.customer_raw_name),
+      merge_state:bizId?'merged':cid?'not_merged':code?'unassigned_code':'no_client_id',profile_type:cp?cp.profile_type:null,
+      rule_id:x?x.id:null,rule_kind:x?x.kind:null,rule_value:x?x.value:null,rule_reason:x?x.reason:null,
+      excluded,counts:!excluded&&i.integrity_status==='verified_paid',
+      open_age_days:(!excluded&&rem>0&&from)?Math.max(0,Math.floor((today-new Date(from+'T00:00:00Z'))/86400000)):null};
+  });
+}
 function send(res,code,body,extra={}){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Expose-Headers':'content-range','Access-Control-Allow-Methods':'*',...extra});res.end(typeof body==='string'?body:JSON.stringify(body));}
 // start(port) keeps the standard seed; start(port,{table:rows}) swaps a table's rows,
 // so a probe can drive the app at real-world scale without disturbing other probes.
@@ -627,7 +666,7 @@ export async function settingsLoaded(page, ms = 90000, alsoRequire = null) {
    into Revenue, twelve alias twins unfolded), probe-alias-dedupe-attacks lost its exclusions
    and reported 4, and watch cycle 33 met the same thing and patched around it in one probe.
    Reproduced deterministically by holding the app_settings response back: the probe's own
-   'fx-probe-fixture' is 'fx-qa-takamol' 1.5 seconds later, every time.
+   'fx-probe-fixture' is 'fx-qa-tawthiq' 1.5 seconds later, every time.
    `__settings` merges into the app_settings blob the app itself loads, so the app delivers the
    fixture and there is no ordering to get wrong:
      start(PORT, { __settings: { financeExclusions: [...], financeGroupMap: [...] } })          */
@@ -1137,6 +1176,8 @@ export function start(port, seedOverrides){
     return req.on('end',()=>{
       let payload={}; try{ payload=JSON.parse(body||'{}'); }catch(_){ return err(400,'PGRST102','invalid JSON'); }
       if(req.method==='POST'){
+        /* E (2026-09-27): a code typed into a company is a MERGE — admins and managers only */
+        if(t==='company_discount_codes'){ const meL=(TABLES.app_users||[]).find(x=>x.id===UID&&x.active)||{}; if(!(meL.role==='admin'||meL.role==='manager')) return send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "company_discount_codes"'}); }
         const rows=Array.isArray(payload)?payload:[payload]; const out=[];
         for(const r of rows){
           if(!write) return err(403,'42501','new row violates row-level security policy for table "'+t+'"');
@@ -1190,7 +1231,13 @@ export function start(port, seedOverrides){
       if(t==='kpi_definitions') return send(res,200,REPORTMOCK.kpis);
       if(t==='initiatives') return send(res,200,REPORTMOCK.initiatives);
       if(t==='kpi_pace') return send(res,200,lvl==='none'?[]:REPORTMOCK.pace);
-      if(t==='kpi_actuals') return send(res,200,lvl==='none'?[]:REPORTMOCK.actuals);
+      /* E (2026-09-27): with MOCK_KPI_FROM_MONEY=1 the revenue KPI (n=19) reads the one view, the way finance_lines feeds
+         kpi_actuals live — so a probe can hold Finance, the Report Builder and the KPI to the same figure */
+      if(t==='kpi_actuals'){ if(lvl==='none') return send(res,200,[]); let a=REPORTMOCK.actuals.slice();
+        if(process.env.MOCK_KPI_FROM_MONEY==='1'){ const m=mockMoneyRows().filter(r=>r.counts&&String(r.invoice_date||'').slice(0,4)==='2026');
+          a=a.filter(x=>!(x.kpi_id==='kpi-19'&&x.scope==='company'&&x.period_id==='per-2026'));
+          a.push({kpi_id:'kpi-19',scope:'company',member_id:null,department_id:null,period_id:'per-2026',actual:Math.round(m.reduce((s,r)=>s+(Number(r.revenue_sar)||0),0)*100)/100,rows_counted:m.length,lines_cost_missing:null}); }
+        return send(res,200,a); }
       if(t==='kpi_targets') return send(res,200,REPORTMOCK.pace.map(p=>({id:p.target_id,kpi_id:p.kpi_id,scope:p.scope,period_id:p.period_id,target_value:p.target_value})));
       if(lvl==='none') return send(res,200,[]);
       if(t==='report_entries') return send(res,200,filt(REPORTMOCK.entries));
@@ -1249,7 +1296,62 @@ export function start(port, seedOverrides){
        exists but returns nothing still counts as served — "asked and answered" is the fact a
        probe needs, and an empty answer is an answer. */
     markServed(t,req.method);
-    let rows=TABLES[t]||[];
+    /* E (2026-09-27) — the money rules: the rules table (admins and managers write; a reason is required; one live rule per
+       type+value however it is spelled; the type and value never change; a removal is final; who is stamped), and the one
+       view computed on every read, so a rule change moves every figure at once. */
+    const meMR=(TABLES.app_users||[]).find(x=>x.id===UID&&x.active)||{};
+    const mayMR=meMR.role==='admin'||meMR.role==='manager';
+    const finLvlMR=meMR.id?mockLevelsOf(meMR).finance:'none';
+    if(t==='money_rows'&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
+    if(t==='money_exclusion_rules'&&req.method!=='GET'){
+      let body=''; req.on('data',c=>body+=c);
+      return req.on('end',()=>{
+        let pl={}; try{ pl=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON'}); }
+        const rls=()=>send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "money_exclusion_rules"'});
+        const P=(c,m)=>send(res,400,{code:c==='23505'?'23505':c==='23514'?'23514':'P0001',details:null,hint:null,message:m});
+        const list=TABLES.money_exclusion_rules=TABLES.money_exclusion_rules||[];
+        const now=new Date().toISOString(), nm=meMR.full_name||meMR.email||null;
+        if(req.method==='POST'){
+          if(!mayMR) return rls();
+          const rows0=Array.isArray(pl)?pl:[pl], out=[];
+          for(const r0 of rows0){
+            const v=String(r0.value==null?'':r0.value).trim(), why=String(r0.reason==null?'':r0.reason).trim();
+            if(!['client_id','name','tax_no','discount_code','transaction'].includes(r0.kind)) return P('23514','new row for relation "money_exclusion_rules" violates check constraint "money_exclusion_rules_kind_check"');
+            if(!mockMoneyNorm(v)) return P('23514','new row for relation "money_exclusion_rules" violates check constraint "money_rule_value_readable"');
+            if(!why) return P('23514','new row for relation "money_exclusion_rules" violates check constraint "money_rule_reason_given"');
+            if(list.some(x=>!x.removed_at&&x.kind===r0.kind&&mockMoneyNorm(x.value)===mockMoneyNorm(v))) return P('23505','duplicate key value violates unique constraint "money_exclusion_rules_one_live"');
+            const row={id:'mr-'+Math.random().toString(36).slice(2),kind:r0.kind,value:v,reason:why,active:r0.active!==false,created_by:UID,created_by_name:nm,created_at:now,
+              updated_by:null,updated_by_name:null,updated_at:null,removed_by:null,removed_by_name:null,removed_at:null};
+            list.push(row); out.push(row);
+            (TABLES.record_history=TABLES.record_history||[]).push({id:(TABLES.record_history.length+1000),at:now,actor:UID,actor_name:nm,table_name:'money_exclusion_rules',record_id:row.id,record_key:row.id,action:'create',before_row:null,after_row:Object.assign({},row),undone_at:null});
+          }
+          return send(res,201,out);
+        }
+        if(req.method==='PATCH'){
+          if(!mayMR) return send(res,200,[]);
+          const id=(String((u.query||{}).id||'').match(/^eq\.(.*)$/)||[])[1]; const r=list.find(x=>x.id===id); if(!r) return send(res,200,[]);
+          if(r.removed_at) return P('P0001','A removed rule stays removed — add it again if it is needed');
+          if(('kind' in pl&&pl.kind!==r.kind)||('value' in pl&&String(pl.value).trim()!==r.value)) return P('P0001',"A rule's type and value never change — remove it and add a new one");
+          if('reason' in pl&&!String(pl.reason||'').trim()) return P('23514','new row for relation "money_exclusion_rules" violates check constraint "money_rule_reason_given"');
+          const before=Object.assign({},r);
+          if('active' in pl) r.active=!!pl.active; if('reason' in pl) r.reason=String(pl.reason).trim();
+          if(pl.removed_at){ r.removed_at=now; r.removed_by=UID; r.removed_by_name=nm; r.active=false; }
+          r.updated_at=now; r.updated_by=UID; r.updated_by_name=nm;
+          (TABLES.record_history=TABLES.record_history||[]).push({id:(TABLES.record_history.length+1000),at:now,actor:UID,actor_name:nm,table_name:'money_exclusion_rules',record_id:r.id,record_key:r.id,action:'edit',before_row:before,after_row:Object.assign({},r),undone_at:null});
+          return send(res,200,[r]);
+        }
+        if(req.method==='DELETE'){ if(!mayMR) return send(res,200,[]); return P('P0001','money_exclusion_rules rows are never deleted — archive them (set deleted_at) instead'); }
+        return send(res,405,{message:'method'});
+      });
+    }
+    if(t==='money_exclusion_rules'&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
+    if(t==='client_profiles'&&req.method==='DELETE'){
+      if(!mayMR) return send(res,200,[]);
+      const id=(String((u.query||{}).id||'').match(/^eq\.(.*)$/)||[])[1]; const hit=(TABLES.client_profiles||[]).filter(p=>p.id===id);
+      TABLES.client_profiles=(TABLES.client_profiles||[]).filter(p=>p.id!==id);
+      return send(res,200,hit);
+    }
+    let rows=t==='money_rows'?mockMoneyRows():(TABLES[t]||[]);
     if(LAPSED&&req.method==='GET') return send(res,200,[]);   // RLS shows an anonymous caller nothing
     /* 2026-09-27 (owner decision 2, scripts/sql/change-log-and-qa-account.sql): the log is read by admins and managers
        only, and record_changes is the log field by field — derived here from record_history the way the live view
@@ -1748,11 +1850,17 @@ export function start(port, seedOverrides){
           let payload=[]; try{ payload=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON body'}); }
           if(!Array.isArray(payload)) payload=[payload];
           TABLES.client_profiles=TABLES.client_profiles||[];
+          /* E (2026-09-27): only admins and managers add client IDs (the merges); the cap of 3 is gone — still one OPEN
+             prepaid and one OPEN postpaid per company, tenders unlimited */
+          { const meCP=(TABLES.app_users||[]).find(x=>x.id===UID&&x.active)||{};
+            if(!(meCP.role==='admin'||meCP.role==='manager')) return send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "client_profiles"'});
+            for(const row of payload){ if((row.profile_type==='prepaid'||row.profile_type==='postpaid')&&TABLES.client_profiles.some(p=>p.business_id===row.business_id&&p.profile_type===row.profile_type&&!p.closed_at))
+              return send(res,409,{code:'23505',details:null,hint:null,message:'duplicate key value violates unique constraint "client_profiles_one_open_prepaid_postpaid"'}); } }
           /* release 4 (client_profiles_card_guard + the unique key): trimmed, unique across companies, at most 3 open */
           for(const row of payload){ row.direct_client_id=String(row.direct_client_id==null?'':row.direct_client_id).trim();
             if(!row.direct_client_id) return send(res,400,{code:'P0001',details:null,hint:null,message:'A client ID needs the number Direct Payments gave it'});
             if(TABLES.client_profiles.some(p=>String(p.direct_client_id).trim()===row.direct_client_id)) return send(res,409,{code:'23505',details:null,hint:null,message:'duplicate key value violates unique constraint "client_profiles_direct_client_id_key"'});
-            if(TABLES.client_profiles.filter(p=>p.business_id===row.business_id&&!p.closed_at).length>=3) return send(res,400,{code:'P0001',details:null,hint:null,message:'A company holds at most 3 open client IDs — close one before adding another'}); }
+            if(false) return send(res,400,{code:'P0001',details:null,hint:null,message:'A company holds at most 3 open client IDs — close one before adding another'}); }
           const written=payload.map(row=>{ const newRow=Object.assign({id:row.id||('mock-cp-'+Math.random().toString(36).slice(2)),created_at:new Date().toISOString()},row); TABLES.client_profiles.push(newRow); return newRow; });
           return send(res,201,written);
         });

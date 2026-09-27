@@ -39,7 +39,7 @@ const N_MAPPED = 2000;        // rows already in the shape a mapped import produ
 const N_NOISE = 3200;         // ordinary verified rows, so the table really is past every page
 const N_UNCHANGED = 1177, N_UPDATED = 800, N_NEW = 1000, N_EXCL = 20;
 const DELETED = ['SCI-1980', 'SCI-1981', 'SCI-1982'];
-const EXCLUDED_GROUP = 'Takamol Scale QA';
+const EXCLUDED_GROUP = 'Tawthiq Scale QA';
 const JOIN_TXN = 'ZZZ-LATE-TARGET';          // sorts last, so its lines sit past row 1000
 const JOIN_INVOICE = 'SCI-TARGET';
 const JOIN_LINES = [100, 150, 200];          // -> cost 450, comfortably under the invoice total

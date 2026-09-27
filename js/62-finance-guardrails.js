@@ -671,46 +671,12 @@
       var view=document.getElementById('view'); if(!view)return;
       if(view.querySelector('.v62-guardrails'))return;
       var ar=(typeof LANG!=='undefined'&&LANG==='ar');
-      var ex=exclusions();
-      var rows=ex.map(function(e){
-        return '<tr><td style="padding:6px 8px;font-weight:700">#'+esc62(e.clientId)+'</td>'
-          +'<td style="padding:6px 8px">'+esc62((e.matchNames||[]).join(', '))+'</td>'
-          +'<td style="padding:6px 8px;color:var(--muted)">'+esc62(e.reason||'—')+'</td>'
-          +'<td style="padding:6px 8px;color:var(--muted);font-size:11px">'+esc62(e.addedBy||'')+' · '+esc62((e.addedAt||'').slice(0,10))+'</td>'
-          +'<td style="padding:6px 8px"><button class="btn ghost sm" onclick="v62RemoveExclusion(\''+e.id+'\')">'+fl('Remove','إزالة')+'</button></td></tr>';
-      }).join('');
-      var gm=groupMap();
-      var gRows=gm.map(function(e){
-        var active=e.active!==false;
-        return '<tr'+(active?'':' style="opacity:.55"')+'><td style="padding:6px 8px;font-weight:700">'+esc62(e.canonicalName)+'</td>'
-          +'<td style="padding:6px 8px">'+esc62((e.aliases||[]).join(', '))+'</td>'
-          +'<td style="padding:6px 8px;color:var(--muted);font-size:11px">'+esc62(e.addedBy||'')+' · '+esc62((e.addedAt||'').slice(0,10))+(active?'':(' · '+fl('undone','أُلغي')+' '+esc62((e.undoneAt||'').slice(0,10))))+'</td>'
-          +'<td style="padding:6px 8px">'+(active
-            ?('<button class="btn ghost sm" onclick="v62UndoGrouping(\''+e.id+'\')">'+fl('Undo','تراجع')+'</button>')
-            :('<button class="btn ghost sm" onclick="v62RedoGrouping(\''+e.id+'\')">'+fl('Redo','إعادة')+'</button>'))+'</td></tr>';
-      }).join('');
-      var sugg=groupSuggestions();
-      var suggHtml=sugg.length?('<div style="margin-bottom:10px;font-size:12.5px">'+sugg.map(function(s){
-        return '<div style="margin-bottom:4px">'+fl('Possible duplicate: ','احتمال تكرار: ')+esc62(s.aliases.join(' / '))
-          +' <button class="btn ghost sm" onclick=\'v62OpenAddGrouping('+JSON.stringify(s.aliases)+','+JSON.stringify(s.suggestedName)+')\'>'+fl('Group »','دمج »')+'</button></div>';
-      }).join('')+'</div>'):'';
       var card=document.createElement('div'); card.className='card v62-guardrails'; card.style.cssText='padding:18px;max-width:860px;margin-top:16px';
-      card.innerHTML='<h3 style="margin:0 0 4px">'+fl('Exclusion list','قائمة الاستبعاد')+'</h3>'
-        +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Matched by Direct Payments client ID, not name. Applied at import — every match shown, never silent.','مطابقة حسب معرّف العميل في دايركت، لا بالاسم. تُطبَّق عند الاستيراد — كل تطابق يظهر، لا شيء بصمت.')+'</div>'
-        +(rows?('<div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse"><thead><tr style="background:#303848;color:#fff;text-align:'+(ar?'right':'left')+'"><th style="padding:6px 8px">'+fl('Client ID','معرّف العميل')+'</th><th style="padding:6px 8px">'+fl('Match names','الأسماء المطابِقة')+'</th><th style="padding:6px 8px">'+fl('Reason','السبب')+'</th><th style="padding:6px 8px">'+fl('Added','أُضيف بواسطة')+'</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>')
-          :('<div class="empty" style="padding:10px 0">'+fl('No exclusions yet.','لا توجد استبعادات بعد.')+'</div>'))
-        +'<div style="margin-top:10px"><button class="btn sm" onclick="v62AddExclusion()">+ '+fl('Add exclusion','إضافة استبعاد')+'</button></div>'
-        +'<hr style="margin:18px 0;border:none;border-top:1px solid var(--line,#eee)">'
-        +'<h3 style="margin:0 0 4px">'+fl('Client name aliases','أسماء العملاء البديلة')+'</h3>'
-        +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Collapses spelling or language variants into one name, everywhere finance groups by client. Reversible anytime.','يدمج صيغ الاسم المختلفة (لغة أو تهجئة) تحت اسم واحد، أينما تُجمَّع المالية حسب العميل. قابل للتراجع دائمًا.')+'</div>'
-        +suggHtml
-        +(gRows?('<div style="overflow-x:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse"><thead><tr style="background:#303848;color:#fff;text-align:'+(ar?'right':'left')+'"><th style="padding:6px 8px">'+fl('Canonical name','الاسم المعتمد')+'</th><th style="padding:6px 8px">'+fl('Aliases','الأسماء البديلة')+'</th><th style="padding:6px 8px">'+fl('Added','أُضيف بواسطة')+'</th><th></th></tr></thead><tbody>'+gRows+'</tbody></table></div>')
-          :('<div class="empty" style="padding:10px 0">'+fl('No aliases yet.','لا توجد أسماء بديلة بعد.')+'</div>'))
-        +'<div style="margin-top:10px"><button class="btn sm" onclick="v62OpenAddGrouping()">+ '+fl('Add alias','إضافة اسم بديل')+'</button></div>'
-        +'<hr style="margin:18px 0;border:none;border-top:1px solid var(--line,#eee)">'
-        +'<h3 style="margin:0 0 4px">'+fl('Billing-profile grouping','تجميع ملفات الفوترة')+'</h3>'
-        +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Show several billing profiles under one company.','عرض عدة ملفات فوترة تحت شركة واحدة.')+'</div>'
-        +'<button class="btn sm" onclick="v62OpenGrouping()">'+fl('Group profiles…','تجميع الملفات…')+'</button>'
+      /* E (2026-09-27): the name-based exclusion list, the client-name aliases and the billing-profile grouping are retired.
+         Exclusion rules and company merges are typed in Finance → Rules (js/117) and applied by the database view. */
+      card.innerHTML='<h3 style="margin:0 0 4px">'+fl('Exclusion rules and company merges','قواعد الاستبعاد ودمج الشركات')+'</h3>'
+        +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Typed in Finance → Rules, and applied to every row at once — including rows imported before the rule. A row a rule catches is still imported, and shown there as excluded.','تُكتب في المالية ← القواعد، وتُطبَّق على كل الصفوف فورًا — بما فيها ما استُورد قبل القاعدة. الصف الذي تلتقطه قاعدة يُستورد ويظهر هناك مستبعدًا.')+'</div>'
+        +'<button class="btn sm" onclick="finLinkMap()">'+fl('Open Rules','فتح القواعد')+'</button>'
         +dupSectionHtml(ar);
       view.appendChild(card);
       // Part 3's merge history comes from Supabase — load once per page session, then repaint

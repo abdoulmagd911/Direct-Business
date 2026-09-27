@@ -39,7 +39,7 @@ let failures = 0;
 const fail = (m) => { failures++; console.log('  ✗ ' + m); };
 const ok = (m) => console.log('  ✓ ' + m);
 
-const EXCLUDED = 'Takamol for Business Services';   // the mock seed's own standing exclusion
+const EXCLUDED = 'Tawthiq Test Services';   // the mock seed's own standing exclusion
 const srv = start(PORT, { finance_invoices: [] });
 const BREAK = { settings: false, mode: 'error' };
 const BASE = 'http://localhost:' + PORT;
@@ -88,7 +88,7 @@ async function main() {
      by itself mean the run is worthless — check 1 below is the honest guard, and it fails with
      the preview and the alerts in hand. */
   try { await p.waitForFunction(() => typeof window.v65Ingest === 'function', { timeout: 90000 }); } catch (_) { }
-  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } })))
+  if (!(await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Tawthiq Test Services')); } catch (_) { return false; } })))
     fail('the exclusion list never arrived — this probe is entirely about what happens with and without it, so it cannot run. ' + (settingsLoaded.lastWhy || ''));
   await p.evaluate(() => { current = 'finance'; render(); });
   await p.waitForTimeout(1200);
@@ -123,7 +123,7 @@ async function main() {
   const r1 = await runImport(csvFor(1), false);
   const after1 = await invoicesInDb();
   const wrote1 = after1.filter((x) => !before1.some((y) => y.invoice_no === x.invoice_no));
-  const excl1 = wrote1.filter((x) => /takamol/i.test((x.client_group || '')));
+  const excl1 = wrote1.filter((x) => /tawthiq/i.test((x.client_group || '')));
   if (wrote1.length && !excl1.length)
     ok(`control: with the list loaded the import writes ${wrote1.length} row(s) and the excluded client is held back — so the gate below is being measured against a working importer`);
   else if (excl1.length) fail(`control: the excluded client was written even with the list loaded (${JSON.stringify(excl1)}) — a defect this probe was not written for, but a worse one`);
@@ -136,7 +136,7 @@ async function main() {
   const wrote2 = after2.filter((x) => !before2.some((y) => y.invoice_no === x.invoice_no));
   if (!wrote2.length)
     ok('with the exclusion list UNREADABLE (the app_settings read fails at commit time) the commit writes nothing at all — it fails closed rather than importing a batch it could not check');
-  else fail(`with the exclusion list unknown the commit wrote ${wrote2.length} row(s): ${JSON.stringify(wrote2.map((x) => x.invoice_no + ' / ' + x.client_group))}. finExclusionCheck() answers the same null for "not on the list" and "no list yet", so every excluded client in the batch read as ordinary — the Takamol incident by a different road, and this time into the database.`);
+  else fail(`with the exclusion list unknown the commit wrote ${wrote2.length} row(s): ${JSON.stringify(wrote2.map((x) => x.invoice_no + ' / ' + x.client_group))}. finExclusionCheck() answers the same null for "not on the list" and "no list yet", so every excluded client in the batch read as ordinary — the Tawthiq incident by a different road, and this time into the database.`);
 
   const said = ((r2.alerted || []).join(' | ') + ' ' + (r2.done || '')).trim();
   if (/exclusion list|قائمة الاستبعاد/i.test(said) && /nothing was written|لم يُكتب/i.test(said))

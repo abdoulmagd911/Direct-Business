@@ -97,7 +97,7 @@ async function main() {
     // hostile
     FIN.rows.push(paid('QA-NULL-1', null, 400, 100));
     FIN.rows.push(paid('QA-HTML-1', '<img id="qa-xss" src=x onerror="window.__xss=1">', 350, 50));
-    FIN.rows.push(paid('QA-EXCL-1', 'Takamol for Business Services', 9999, 0));
+    FIN.rows.push(paid('QA-EXCL-1', 'Tawthiq Test Services', 9999, 0));
     FIN.rows.push(Object.assign(paid('QA-CN-1', 'Credit Only Co', -600, 0), { integrity_status: 'credit_note', amount_received_sar: 0 }));
     // eight more small clients so there are > 10
     for (let i = 1; i <= 8; i++) FIN.rows.push(paid('QA-SM-' + i, 'Small Client ' + i, 100 + i, 10));
@@ -121,7 +121,7 @@ async function main() {
   const shownSum = body.reduce((a, r) => a + r.rev, 0);
   if (total && near(total.rev, rc.grand.rev) && total.rev > shownSum + 1) ok(`Total row ${total.rev} = all ${rc.nClients} clients, larger than the 10 rows shown (${shownSum})`); else fail('Total row vs recount: ' + JSON.stringify(total) + ' grand ' + JSON.stringify(rc.grand));
   if (total && new RegExp('all\\s+' + rc.nClients + '\\s+clients', 'i').test(total.raw) && /top 10/i.test(total.raw)) ok('…and the Total row SAYS it covers all clients, top 10 shown — the mismatch is labelled'); else fail('Total row unlabelled when it exceeds the visible rows: ' + JSON.stringify(total && total.raw));
-  if (!body.some(r => r.name === 'Takamol for Business Services') && !/9,999/.test(t)) ok('excluded partner never appears on the Clients tab'); else fail('excluded partner leaked into Clients');
+  if (!body.some(r => r.name === 'Tawthiq Test Services') && !/9,999/.test(t)) ok('excluded partner never appears on the Clients tab'); else fail('excluded partner leaked into Clients');
   if (!body.some(r => r.name === 'Credit Only Co')) ok('a credit-note-only group is not in the verified table'); else fail('credit-note group in verified table');
   if (!/Lifetime billed|إجمالي الفوترة/i.test(t)) ok('no "Lifetime billed" wording anywhere (21 Aug ruling)'); else fail('"Lifetime billed" present');
   if (/Paid invoices only/.test(t)) ok('period bar says "Paid invoices only"'); else fail('"Paid invoices only" note missing');

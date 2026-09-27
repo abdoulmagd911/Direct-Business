@@ -59,12 +59,12 @@ const SEED = [
   /* deleted — must reach neither total */
   base({ id: 'mm-4', invoice_no: 'MM-004', client_group: 'Merge A', customer_raw_name: 'Merge A', total_incl_vat_sar: 999999, revenue_sar: 999999, deleted_at: '2026-06-01T00:00:00Z' }),
   /* the standing exclusion, linked to company B — must reach neither total */
-  base({ id: 'mm-5', invoice_no: 'MM-005', client_group: 'Takamol for Business Services', customer_raw_name: 'Takamol for Business Services', total_incl_vat_sar: 888888, revenue_sar: 888888 })
+  base({ id: 'mm-5', invoice_no: 'MM-005', client_group: 'Tawthiq Test Services', customer_raw_name: 'Tawthiq Test Services', total_incl_vat_sar: 888888, revenue_sar: 888888 })
 ];
 const LINKS = [
   { id: 'ml1', client_group: 'Merge A', business_id: 'bizA', is_client: true, confirmed_by: 'auto-match' },
   { id: 'ml2', client_group: 'Merge B', business_id: 'bizB', is_client: true, confirmed_by: 'auto-match' },
-  { id: 'ml3', client_group: 'Takamol for Business Services', business_id: 'bizB', is_client: true, confirmed_by: 'auto-match' }
+  { id: 'ml3', client_group: 'Tawthiq Test Services', business_id: 'bizB', is_client: true, confirmed_by: 'auto-match' }
 ];
 const srv = start(PORT, { finance_invoices: SEED, finance_client_links: LINKS });
 const BASE = 'http://localhost:' + PORT;
@@ -100,7 +100,7 @@ async function dialogFigures(b, renderFinanceFirst, forceRaw) {
      three the dialog offered "2 invoices, 889,388 SAR" for a company whose own money is 500,
      the rest being the excluded partner's — a real fail-open, guarded by its own check further
      down rather than left to redden these ones at random. */
-  const exclReady = await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } });
+  const exclReady = await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Tawthiq Test Services')); } catch (_) { return false; } });
   /* 2026-09-07 (round 67, Code session) — THE COLD PATH WAS NOT COLD, so check 2 could not fail.
      Measured: this probe passes in full against the PRE-FIX js/62 (`git show e77ae71^`). The
      reason is that live() sanitises IN PLACE and four other layers call finLive() during ordinary

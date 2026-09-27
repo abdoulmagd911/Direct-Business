@@ -154,7 +154,9 @@
       // transaction-level export carrying a numeric client ID yet — never silent, the match
       // is recorded so the preview can show exactly which id and why.
       var xhit=(typeof window.finExclusionCheck==='function')?window.finExclusionCheck(inv.cust):null;
-      if(xhit){ _clientExcluded++; _clientExcludedDetail.push({name:inv.cust,clientId:xhit.clientId,reason:xhit.reason}); return; }
+      /* E (2026-09-27): a row a rule catches is still imported — the view leaves it out, so switching the rule off brings it
+         back with no re-import. The preview says how many a rule will leave out. */
+      if(xhit){ _clientExcluded++; _clientExcludedDetail.push({name:inv.cust,clientId:xhit.clientId,reason:xhit.reason}); }
       var svc=Object.keys(svcs).sort().join(' + ')||'Other';
       var st = inv.credit?'credit' : /Fully Paid/i.test(inv.status)?'paid' : /Draft/i.test(inv.status)?'draft' : 'pending';
       out.push({ref:ref,num:inv.num,date:inv.date,cust:inv.cust,total:inv.total,cost:Math.round(cost*100)/100,
@@ -230,7 +232,7 @@
       (cred?' · '+fl('credit notes','إشعارات دائنة')+' <b>'+cred+'</b>':'')+
       (wal?' · '+fl('wallet top-ups skipped (not stored)','تم تجاوز تعبئة المحفظة (لا تُخزن)')+' <b>'+wal+'</b>':'')+
       (_verifSkipped?' · '+fl('verification services skipped (accounted for elsewhere)','تم تجاوز خدمات التوثيق (تُحتسب في نظام آخر)')+' <b>'+_verifSkipped+'</b>':'')+
-      (_clientExcluded?('<br>🚫 '+fl('Excluded by rule:','مستبعد بحسب القاعدة:')+' <b>'+_clientExcluded+'</b> — '+esc64(_clientExcludedDetail.map(function(d){return d.name+' (#'+d.clientId+(d.reason?(': '+d.reason):'')+')';}).join('; '))):'')+
+      (_clientExcluded?('<br>🚫 '+fl('Left out by a rule (imported, not counted):','تستبعدها قاعدة (تُستورد ولا تُحتسب):')+' <b>'+_clientExcluded+'</b> — '+esc64(_clientExcludedDetail.map(function(d){return d.name+' (#'+d.clientId+(d.reason?(': '+d.reason):'')+')';}).join('; '))):'')+
       (skipped?('<br>↩ '+fl('Skipped (already in the ledger):','تم تجاوزها (موجودة مسبقًا):')+' <b>'+skipped+'</b>'):'')+
       /* said separately and in plain words: these are NOT in the ledger, they were deleted */
       (deletedSkipped?('<br>🗑 '+fl('Left alone — you deleted these invoice numbers before:','لم تُلمس — أرقام فواتير سبق أن حذفتها:')+' <b>'+deletedSkipped+'</b>'+
@@ -470,6 +472,9 @@
   function client(){ try{ return window.fc?fc():null; }catch(_){ return null; } }
 
   function pass(){
+    /* E (2026-09-27): retired. This linked invoice groups to companies BY NAME, automatically — the owner's rules of 27 Sep
+       say nothing merges unless a person types it (Finance → Rules), and no code creates records. Kept, switched off. */
+    return;
     if(busy||!canEdit())return;
     var FIN=window.FIN; if(!FIN||!FIN.rows)return;
     /* 2026-09-15 (fire #58, live): js/16 sets FIN.rows FIRST and fetches finance_client_links

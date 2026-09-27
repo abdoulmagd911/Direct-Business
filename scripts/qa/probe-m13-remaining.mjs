@@ -112,7 +112,7 @@ async function main() {
     await p.evaluate(() => { window.finLinkMap(); }); await p.waitForTimeout(1200);
     const info = await p.evaluate(() => { const sel = document.querySelector('#v53ov select'); if (!sel) return null; const opt = [...sel.options].find((o) => o.value && o.value !== '__indiv__'); const row = sel.parentElement; const nameEl = row && row.firstElementChild && row.firstElementChild.firstElementChild; return { group: nameEl ? nameEl.textContent.trim() : '', groups: [...document.querySelectorAll('#v53ov select')].map((s) => { const r = s.parentElement; const n = r && r.firstElementChild && r.firstElementChild.firstElementChild; return n ? n.textContent.trim() : ''; }), client: opt ? opt.value : null }; });
     console.log('  · link dialog groups:', JSON.stringify(info && info.groups));
-    if (info && info.groups && info.groups.some((g) => /takamol|techtic/i.test(g))) fail('C: an EXCLUDED client (Takamol/Techtic) is listed in the Link finance dialog — the standing invariant says it must never appear anywhere');
+    if (info && info.groups && info.groups.some((g) => /tawthiq|techtic/i.test(g))) fail('C: an EXCLUDED client (Tawthiq/Techtic) is listed in the Link finance dialog — the standing invariant says it must never appear anywhere');
     if (!info || !info.client) fail('C: the Link finance dialog showed no group/client to pick');
     else {
       const bodyBefore = await p.evaluate(() => document.body.innerText);

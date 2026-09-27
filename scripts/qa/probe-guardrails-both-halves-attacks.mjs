@@ -131,7 +131,7 @@ async function main() {
   /* The merge control's RPC makes the app re-read app_settings, and that reload can land BETWEEN a
      before-snapshot and its after-snapshot — which is what produced the first "v62RemoveExclusion
      changed stored state" red. The diff gave it away: the exclusion list did not lose fx-seed, it
-     came back holding fx-qa-takamol, the MOCK SEED's own entry, which no guard failure could
+     came back holding fx-qa-tawthiq, the MOCK SEED's own entry, which no guard failure could
      produce. So resetState now verifies the value it wrote is still there, and retries once. */
   const resetState = async () => {
     for (let i = 0; i < 3; i++) {

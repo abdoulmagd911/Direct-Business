@@ -45,7 +45,7 @@ let failures = 0;
 const fail = (m) => { failures++; console.log('  ✗ ' + m); };
 const ok = (m) => console.log('  ✓ ' + m);
 
-const EXCLUDED = 'Takamol for Business Services';
+const EXCLUDED = 'Tawthiq Test Services';
 const srv = start(PORT, {});
 const BASE = 'http://localhost:' + PORT;
 /* held true until we choose to let the blob through */
@@ -98,29 +98,29 @@ async function main() {
     } catch (e) { return { err: String(e.message) }; }
   });
   if (picker.viaFn && Array.isArray(picker.names)) {
-    if (!picker.names.some((n) => /takamol/i.test(n)))
+    if (!picker.names.some((n) => /tawthiq/i.test(n)))
       ok(`the alias picker offers no excluded client while the list is unknown (${picker.names.length} candidate(s) offered) — an entry in that list is an offer to merge two company records, which is a write, so it is not something to guess at`);
-    else fail(`the alias picker offers the excluded client as a merge candidate: ${JSON.stringify(picker.names.filter((n) => /takamol/i.test(n)))}. Whoever picks it merges an excluded partner's money into a real company record, on the screen that decides which record survives.`);
+    else fail(`the alias picker offers the excluded client as a merge candidate: ${JSON.stringify(picker.names.filter((n) => /tawthiq/i.test(n)))}. Whoever picks it merges an excluded partner's money into a real company record, on the screen that decides which record survives.`);
   } else fail(`could not read the picker's candidates (${JSON.stringify(picker)}) — window.finGroupCandidates is not exported, so this check examined nothing`);
 
   /* ---- 4. the Clients tab must not present unchecked money as ordinary ---- */
   await p.evaluate(() => { try { current = 'finance'; FIN.p = { year: 'all', part: 'all', sector: 'all' }; render(); if (window.finGo) finGo('clients'); } catch (_) { } });
   await p.waitForTimeout(2000);
   const clients = await p.evaluate(() => (document.body.innerText || ''));
-  if (!/Takamol/i.test(clients))
+  if (!/Tawthiq/i.test(clients))
     ok('the Clients tab does not show the excluded partner while the list is unknown — it degrades rather than presenting money the owner ruled out as an ordinary client\'s');
   else fail('the excluded partner is listed on the Clients tab as an ordinary client, with its money counted, because the list had not loaded when the table was built');
 
   /* ---- 5. control: it all comes back once the blob lands ---- */
   HOLD.settings = false;
-  await p.waitForFunction(() => { try { return !!finExclusionCheck('Takamol for Business Services'); } catch (_) { return false; } }, { timeout: 90000 }).catch(() => { });
+  await p.waitForFunction(() => { try { return !!finExclusionCheck('Tawthiq Test Services'); } catch (_) { return false; } }, { timeout: 90000 }).catch(() => { });
   await p.waitForTimeout(1500);
   const after = await p.evaluate(() => {
     let names = null;
     try { const c = window.finGroupCandidates ? window.finGroupCandidates() : null; names = c ? Object.keys(c) : null; } catch (_) { }
     return { known: window.finExclusionsKnown ? window.finExclusionsKnown() : 'no fn', names, count: names ? names.length : 0 };
   });
-  if (after.known === true && after.count > 0 && !after.names.some((n) => /takamol/i.test(n)))
+  if (after.known === true && after.count > 0 && !after.names.some((n) => /tawthiq/i.test(n)))
     ok(`once the blob lands the picker works normally again — ${after.count} candidate(s), still no excluded client — so this is a refusal while unknown, not a feature quietly switched off`);
   else fail(`after the list landed the picker did not recover: ${JSON.stringify(after)} — a guard that never lets go is worse than the leak it prevents`);
 

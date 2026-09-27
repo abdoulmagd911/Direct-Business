@@ -51,7 +51,7 @@ let failures = 0;
 const fail = (m) => { failures++; console.log('  ✗ ' + m); };
 const ok = (m) => console.log('  ✓ ' + m);
 
-const EXCLUDED = 'Takamol for Business Services';   // the mock seed's standing exclusion
+const EXCLUDED = 'Tawthiq Test Services';   // the mock seed's standing exclusion
 /* The client nobody has ruled out yet. It is ordinary while the file is previewed, and excluded
    by the time Confirm is pressed — which is the whole attack. */
 const LATE = 'Late Ruling Partner Co';
@@ -119,7 +119,7 @@ async function main() {
      it guards is working is noise in front of a real result. Wait for the fact this probe
      actually depends on instead, and let the control — which fails with the preview and the
      alerts in hand — be the assertion. */
-  await p.waitForFunction(() => { try { return !!finExclusionCheck('Takamol for Business Services'); } catch (_) { return false; } }, { timeout: 90000 }).catch(() => { });
+  await p.waitForFunction(() => { try { return !!finExclusionCheck('Tawthiq Test Services'); } catch (_) { return false; } }, { timeout: 90000 }).catch(() => { });
   await p.evaluate(() => { current = 'finance'; render(); });
   await p.waitForTimeout(1200);
 
@@ -151,7 +151,7 @@ async function main() {
     /* the page's own local view at commit time: with the blob restored this reads as a perfectly
        healthy exclusion list, which is the whole point — nothing local is left to notice that the
        preview was made blind. */
-    const readyAtCommit = await p.evaluate(() => { try { return !!finExclusionCheck('Takamol for Business Services'); } catch (_) { return null; } });
+    const readyAtCommit = await p.evaluate(() => { try { return !!finExclusionCheck('Tawthiq Test Services'); } catch (_) { return null; } });
     const pageStillBlind = await p.evaluate((n) => { try { return !finExclusionCheck(n); } catch (_) { return null; } }, LATE);
     await p.evaluate(() => { window.__alerts = []; const oa = window.alert; window.alert = (m) => { window.__alerts.push(String(m)); }; window.__restoreAlert = () => { window.alert = oa; }; });
     await p.evaluate(() => { try { if (typeof window.v65Commit === 'function') window.v65Commit(); } catch (e) { window.__alerts.push('THREW ' + e.message); } });
@@ -166,7 +166,7 @@ async function main() {
   const r1 = await runImport(csvFor(1, EXCLUDED), false);
   const after1 = await invoicesInDb();
   const wrote1 = after1.filter((x) => !before1.some((y) => y.invoice_no === x.invoice_no));
-  const excl1 = wrote1.filter((x) => /takamol/i.test(x.client_group || ''));
+  const excl1 = wrote1.filter((x) => /tawthiq/i.test(x.client_group || ''));
   if (wrote1.length && !excl1.length)
     ok(`control: with the list known throughout, the import writes ${wrote1.length} row(s) and the excluded client is held back — the attack below is measured against a working importer`);
   else if (excl1.length) fail(`control: the excluded client was written with the list known throughout (${JSON.stringify(excl1)}) — a defect this probe was not written for, but a worse one`);
@@ -194,7 +194,7 @@ async function main() {
   else if (!excl2.length)
     ok('THE ATTACK FAILS: a client ruled out AFTER the preview and BEFORE the Confirm still never reaches finance_invoices — the decision that gets written is the decision made against the list as it stands at the moment of writing, not the one the preview happened to see');
   else
-    fail(`the ruled-out client's invoice WAS written: ${JSON.stringify(excl2.map((x) => x.invoice_no + ' / ' + x.client_group + ' / ' + x.total_incl_vat_sar))}. Someone excluded that partner while the file sat in preview, and the commit wrote it anyway — the preview's decision, not the owner's. The Takamol incident by an ordinary Tuesday.`);
+    fail(`the ruled-out client's invoice WAS written: ${JSON.stringify(excl2.map((x) => x.invoice_no + ' / ' + x.client_group + ' / ' + x.total_incl_vat_sar))}. Someone excluded that partner while the file sat in preview, and the commit wrote it anyway — the preview's decision, not the owner's. The Tawthiq incident by an ordinary Tuesday.`);
 
   const said2 = ((r2.alerted || []).join(' | ') + ' ' + (r2.done || '')).trim();
   if (!setUp) { /* reported above */ }
@@ -204,7 +204,7 @@ async function main() {
     else fail(`nothing was written but nothing explained it either. The screen said: ${JSON.stringify(said2.slice(0, 400))}`);
     ok('the ordinary row in the same batch was not kept while the excluded one was dropped — a batch sorted against no list at all is untrustworthy whole, so the file is refused rather than half-imported');
   } else if (!excl2.length) {
-    const ordinary = wrote2.filter((x) => !/takamol/i.test(x.client_group || ''));
+    const ordinary = wrote2.filter((x) => !/tawthiq/i.test(x.client_group || ''));
     fail(`the excluded row was held back but ${ordinary.length} ordinary row(s) were still written from a preview made against no list at all: ${JSON.stringify(ordinary.map((x) => x.invoice_no))}. Every decision in that preview is suspect, not only the ones still visible — a partial import hides that from the person, who has no reason to drop the file again.`);
     fail('the preview\'s own numbers are not what landed — M13 requires the database to report exactly what the preview promised, and a silent drop breaks that too');
   }

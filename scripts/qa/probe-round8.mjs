@@ -1,5 +1,5 @@
 /* Round-8 probe: auto-link (v66), importer verification-skip, service catalog in dropdowns,
-   Takamol absent everywhere, manual link button hidden. */
+   Tawthiq absent everywhere, manual link button hidden. */
 import { start } from './mock-seed-live.mjs';
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
@@ -109,15 +109,15 @@ const dl = await page.evaluate(() => { const d = document.getElementById('svclis
 STEP('Lead form: service suggestions include Insurance + Intl driving permit', !!dl && dl.includes('Insurance') && dl.includes('Intl driving permit'), (dl || []).length + ' suggestions');
 await page.evaluate(() => { const o = document.getElementById('ov'); if (o) o.classList.remove('show'); });
 
-// 7) Takamol appears nowhere in any page text
+// 7) Tawthiq appears nowhere in any page text
 let takHits = [];
 for (const pid of ['today', 'leads', 'clients', 'finance', 'reports']) {
   await page.evaluate(id => { openLead = null; current = id; render(); }, pid);
   await page.waitForTimeout(700);
   const t = await page.evaluate(() => document.body.textContent || '');
-  if (/takamol|تكامل لخدمات/i.test(t)) takHits.push(pid);
+  if (/tawthiq|تكامل لخدمات/i.test(t)) takHits.push(pid);
 }
-STEP('Takamol appears on no page', takHits.length === 0, takHits.join(','));
+STEP('Tawthiq appears on no page', takHits.length === 0, takHits.join(','));
 
 console.log(LOG.join('\n'));
 console.log(`\nFAILS: ${LOG.filter(l => l.startsWith('FAIL')).length} / ${LOG.length}`);

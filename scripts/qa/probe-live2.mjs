@@ -89,7 +89,7 @@ DSTEP('REAL finance rows load, and the live view is the raw list minus what was 
    codebase already carries this correction in three other places. */
 const cleanWorld = await page.evaluate(() => {
   const live = (typeof window.finLive === 'function') ? finLive() : (FIN.rows || []).filter(r => !r.deleted_at);
-  const bad = live.filter(r => /takamol|techtic|verification|wallet/i.test((r.client_group || '') + ' ' + (r.products || '') + ' ' + (r.service_type || '')) || (+r.wallet_portion_sar > 0));
+  const bad = live.filter(r => /tawthiq|techtic|verification|wallet/i.test((r.client_group || '') + ' ' + (r.products || '') + ' ' + (r.service_type || '')) || (+r.wallet_portion_sar > 0));
   return { n: bad.length, sample: bad.slice(0, 2).map(r => r.invoice_no) };
 });
 STEP('REAL ledger carries no verification or wallet rows in the live view (owner rule)', cleanWorld.n === 0, JSON.stringify(cleanWorld));

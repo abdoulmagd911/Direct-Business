@@ -79,7 +79,7 @@ async function main() {
     'Ref,Customer,Date,Total,Cost',
     'IA-1,Test Company 1,2026-06-15,"1,000.00",100',          // cost → profit 900, revenue must stay 1000
     'IA-2,Test Company 2,2026-06-16,500,0',                    // no cost
-    'IA-3,Takamol for Business Services,2026-06-16,300,0',     // excluded partner (seed exclusion list)
+    'IA-3,Tawthiq Test Services,2026-06-16,300,0',     // excluded partner (seed exclusion list)
     'IA-4,Test Company 2,,250,50',                             // no date at all
     'IA-6,Test Company 3,2026-02-30,410,60',                   // a date that LOOKS valid and is not (watch cycle 20)
     ',Test Company 2,2026-06-17,999,0',                        // no reference → nothing to key
@@ -99,7 +99,7 @@ async function main() {
      a mutation audit removed the calendar-day check and no probe noticed. */
   if (/IA-6[\s\S]{0,140}(no readable invoice date|تاريخ فاتورة)/.test(c.text)) ok('30 February is named and held back too — it looks like a date and is not one, and the database would refuse the whole file over it');
   else fail('the impossible date was not held back: ' + JSON.stringify(c.text.slice(0, 500)));
-  if (/Takamol for Business Services \(#7: Takamol/.test(c.text)) ok('excluded partner named in the preview with client id and reason (never silent)'); else fail('exclusion not named in preview: ' + JSON.stringify(c.text.slice(0, 400)));
+  if (/Tawthiq Test Services \(#7: Tawthiq/.test(c.text)) ok('excluded partner named in the preview with client id and reason (never silent)'); else fail('exclusion not named in preview: ' + JSON.stringify(c.text.slice(0, 400)));
   if (/Excluded by rule\s+3\b/.test(c.text)) ok('Excluded by rule = 3 — the excluded partner, the date-less row and the impossible date, each named'); else fail('Excluded by rule count not 3');
   if (/IA-4[\s\S]{0,120}(no readable invoice date|تاريخ فاتورة)/.test(c.text)) ok('IA-4 is named in the preview with the reason it was held back'); else fail('IA-4 not named as held back: ' + JSON.stringify(c.text.slice(0, 500)));
   if (!/NaN|undefined|Q5|Invalid Date/.test(c.text)) ok('no NaN / undefined / Q5 in the preview'); else fail('preview carries NaN/undefined/Q5');

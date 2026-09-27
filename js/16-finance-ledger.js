@@ -1457,13 +1457,11 @@ function txnLive(){
   var rows=(TXN.rows||[]);
   for(var i=0;i<rows.length;i++)txnSanitizeMoney(rows[i]);
   try{
-    if(typeof window.finExclusionCheck!=='function') return rows;
-    var list=(typeof window.finExclusionList==='function')?(window.finExclusionList()||[]):[];
-    var ids={},any=false;
-    list.forEach(function(e){ var c=e&&e.clientId; if(c!=null&&String(c).trim()!==''){ ids[String(c).trim()]=1; any=true; } });
+    /* E (2026-09-27): the typed exclusion rules (js/117), by client ID first, then by name for a row with no ID */
+    if(typeof window.moneyRuleFor!=='function') return rows;
     return rows.filter(function(r){
       var prof=(TXN.profiles||{})[r.client_profile_id];
-      if(any&&prof&&prof.direct_client_id!=null&&ids[String(prof.direct_client_id).trim()]) return false;
+      if(prof&&prof.direct_client_id!=null&&window.moneyRuleFor({clientId:prof.direct_client_id})) return false;
       /* _finBizName, not bizName: `bizName` is a LOCAL of the transactions render function
          (var bizName=_finBizName, further down), so at this point in the file it resolves to
          nothing and `typeof bizName==='function'` is false. Written that way first, the name
@@ -1471,7 +1469,7 @@ function txnLive(){
          only because its fixture includes a transaction with no client profile, where the name
          is the only thing that can hold the row. */
       var nm=(typeof _finBizName==='function')?_finBizName(r.business_id):'';
-      if(nm&&window.finExclusionCheck(nm)) return false;
+      if(nm&&!(prof&&prof.direct_client_id)&&window.moneyRuleFor({name:nm})) return false;   // a name rule is only for rows with no client ID
       return true;
     });
   }catch(_){ return rows; }
@@ -2365,8 +2363,8 @@ window.finParse=function(){
       // (js/62) — this is the actual fix for the reported bug. Excluding a company (e.g.
       // Takamol) must never rest on which product a given row happens to be for; the old
       // product-only regex let Takamol's non-verification invoices straight through.
-      var xhit16=(typeof window.finExclusionCheck==='function')?window.finExclusionCheck(o.client_group):null;
-      if(xhit16)probs.push('excluded client (#'+xhit16.clientId+(xhit16.reason?(': '+xhit16.reason):'')+') — not imported into this ledger');
+      /* E (2026-09-27): a client an exclusion rule catches is imported like any other — the view (money_rows) leaves it
+         out of every total, and switching the rule off brings it back without a re-import. */
       /* Same rule as the Direct Payments importer (js/41): wallet top-ups are never Finance
          revenue and must never enter this ledger under any label. The Excel importer already
          detects and skips them before they reach a row; this legacy CSV path had no equal

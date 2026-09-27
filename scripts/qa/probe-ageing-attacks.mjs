@@ -38,7 +38,7 @@ const fail = (m) => { failures++; console.log('  ✗ ' + m); };
 const ok = (m) => console.log('  ✓ ' + m);
 const note = (m) => console.log('  · ' + m);
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const EXCLUDED_GROUP = 'Takamol Ageing QA';
+const EXCLUDED_GROUP = 'Tawthiq Ageing QA';
 
 /* Dates are generated from TODAY's UTC day, so the fixture is never stale: a row built at
    "today minus 30 days" is exactly d=30 whatever day this runs. */

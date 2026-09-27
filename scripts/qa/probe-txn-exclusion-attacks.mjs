@@ -1,10 +1,10 @@
 /* probe-txn-exclusion-attacks.mjs (2026-09-07, round 68) — the standing exclusion on the OTHER
    money table.
 
-   js/16's own header states the doctrine, in the words the Takamol incident taught: "a standing
+   js/16's own header states the doctrine, in the words the Tawthiq incident taught: "a standing
    exclusion must hold no matter how a row arrived, so live() — the one chokepoint every total and
    export in this file reads through — re-checks client_group/customer_raw_name against the
-   exclusion list on every call, not just once at load." Ten Takamol invoices had reached
+   exclusion list on every call, not just once at load." Ten Tawthiq invoices had reached
    finance_invoices by a path outside this app entirely and rendered in every total until they were
    found and removed by hand.
 
@@ -61,9 +61,9 @@ let failures = 0;
 const fail = (m) => { failures++; console.log('  x ' + m); };
 const ok = (m) => console.log('  + ' + m);
 
-/* The standing exclusion the harness seeds is clientId '7', matchNames ['Takamol for Business
+/* The standing exclusion the harness seeds is clientId '7', matchNames ['Tawthiq for Business
    Services','Techtic Support'] — the real one, from the real incident. */
-const EXCLUDED_NAME = 'Takamol for Business Services';
+const EXCLUDED_NAME = 'Tawthiq Test Services';
 const PROFILES = [
   { id: 'xp0', business_id: 'xb0', direct_client_id: '55', profile_type: 'postpaid', status: 'active', payment_terms: 'Net 30', billing_cycle: 'Monthly', opened_at: '2026-03-01', closed_at: null },
   { id: 'xp1', business_id: 'xb1', direct_client_id: '7', profile_type: 'postpaid', status: 'active', payment_terms: 'Net 30', billing_cycle: 'Monthly', opened_at: '2026-03-01', closed_at: null },
@@ -119,11 +119,11 @@ async function main() {
     DB.businesses.push(
       { id: 'xb0', name: 'Ordinary Travel Co', isClient: true },
       { id: 'xb1', name: n, isClient: true },
-      { id: 'xb2', name: 'Takamol Business Svcs (other spelling)', isClient: true });
+      { id: 'xb2', name: 'Tawthiq Business Svcs (other spelling)', isClient: true });
   }, EXCLUDED_NAME);
 
   /* 5 — the list must be there before anything is measured */
-  const ready = await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Takamol for Business Services')); } catch (_) { return false; } });
+  const ready = await settingsLoaded(p, 90000, () => { try { return !!(typeof finExclusionCheck === 'function' && finExclusionCheck('Tawthiq Test Services')); } catch (_) { return false; } });
   if (!ready) {
     fail('the exclusion list never arrived from app_settings — every check here is about whether the transactions table respects it, so measuring without it would report a world where nothing is excluded as a pass');
     await b.close(); srv.close(); console.log('\nFAILED - ' + failures + ' check(s)'); process.exit(1);

@@ -15,7 +15,7 @@
      Clients    refuses, in words                                            (cycle 43)
      Ledger     reads finance_transactions, a different source — outside this finding either way
 
-   The fixture is 90% excluded on purpose. The real case behind the rule was Takamol: 6.7M SAR,
+   The fixture is 90% excluded on purpose. The real case behind the rule was Tawthiq: 6.7M SAR,
    77% of displayed revenue. At that share a wrong total cannot be mistaken for rounding, and the
    two figures (1,000,000 and 100,000) cannot be confused with each other on screen.
 

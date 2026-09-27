@@ -3,14 +3,14 @@
    window.v65IngestText (drives every assertion below through it — a real smoke test, not
    just a claim it works).
 
-   THE TRAP THIS SIGNATURE EXISTS TO DEFEND AGAINST — the Takamol mistake's shape, again, on a
+   THE TRAP THIS SIGNATURE EXISTS TO DEFEND AGAINST — the Tawthiq mistake's shape, again, on a
    different column, caught before it shipped: the tax-invoice report carries TWO tax-code
    prefixes, DPIN and TTIN, not one. A first-pass regex that only matched DPIN- reported 21
    invoices as having no code at all — wrong, 10 of those 21 carry TTIN- codes, and all ten
-   are Takamol invoices already `integrity_status`-excluded in `finance_invoices` (the five
+   are Tawthiq invoices already `integrity_status`-excluded in `finance_invoices` (the five
    largest invoices in the whole system, every one over a million SAR). An importer that
    treats "has a tax code" as "safe to import" would have silently re-admitted the entire
-   excluded Takamol book the moment it saw a TTIN- string. TTIN appears to BE the Takamol
+   excluded Tawthiq book the moment it saw a TTIN- string. TTIN appears to BE the Tawthiq
    series on this sample (10 for 10) — but that is a hypothesis, not a rule, so this signature
    does NOT special-case any prefix. It gates on `finExclusionCheck()` against the EXISTING
    row's own `client_group`, exactly like every other cost/revenue import path in this app —
@@ -68,7 +68,7 @@ async function main() {
   //   116361000 (i0, total 5000, zatca_dpin null)  — eligible: real tax code, Issued — applies
   //   116361003 (i3, total 7331, zatca_dpin null)  — blank tax code — manual review, untouched
   //   116361006 (i6, total 9662, zatca_dpin null)  — "Waiting for Issuing" — manual review, untouched
-  //   9999999999 (Takamol, zatca_dpin 'TTIN-9999') — THE SABOTAGE CASE: real tax code, Issued
+  //   9999999999 (Tawthiq, zatca_dpin 'TTIN-9999') — THE SABOTAGE CASE: real tax code, Issued
   //     status, would otherwise sail straight through — must be refused purely on client exclusion
   //   UNKNOWN-TEST-003 — not a live invoice — never inserted
   const csv = [
@@ -106,8 +106,8 @@ async function main() {
   // exclusion check simply hadn't run.
   // clientExcludedDetail entries carry the client name, not the invoice_no (same shape as
   // every other client-exclusion rendering in this importer) — check for the name.
-  if (!/[Tt]akamol/.test(preview)) fail('SABOTAGE CASE FAILED TO SURFACE: "Takamol" does not appear anywhere in the preview — the exclusion re-check may not be running');
-  else ok('SABOTAGE CASE: the excluded Takamol client is correctly reported as excluded, despite its invoice carrying a real tax code and a final status');
+  if (!/[Tt]akamol/.test(preview)) fail('SABOTAGE CASE FAILED TO SURFACE: "Tawthiq" does not appear anywhere in the preview — the exclusion re-check may not be running');
+  else ok('SABOTAGE CASE: the excluded Tawthiq client is correctly reported as excluded, despite its invoice carrying a real tax code and a final status');
 
   const dialogsBefore = dialogs.length;
   const clicked = await p.evaluate(() => {
@@ -152,9 +152,9 @@ async function main() {
 
   // ---- THE SABOTAGE ROW ITSELF: must be byte-for-byte untouched — this is the assertion
   // that actually fails the build (exit 1) if the exclusion guard is ever removed or bypassed ----
-  if (!rows.sabotage) fail('9999999999 (Takamol): row unexpectedly disappeared');
-  else if (rows.sabotage.dpin === 'TTIN-SABOTAGE-9999' || rows.sabotage.total === 999999) fail(`SABOTAGE: the excluded Takamol row WAS overwritten (${JSON.stringify(rows.sabotage)}) despite carrying a real tax code and a final status — the exclusion-by-client guard did not fire. This is exactly the re-admitted-Takamol failure mode this signature exists to prevent.`);
-  else ok(`9999999999 (Takamol): completely untouched (${JSON.stringify(rows.sabotage)}) — the exclusion-by-client guard held even though the row would otherwise have qualified automatically`);
+  if (!rows.sabotage) fail('9999999999 (Tawthiq): row unexpectedly disappeared');
+  else if (rows.sabotage.dpin === 'TTIN-SABOTAGE-9999' || rows.sabotage.total === 999999) fail(`SABOTAGE: the excluded Tawthiq row WAS overwritten (${JSON.stringify(rows.sabotage)}) despite carrying a real tax code and a final status — the exclusion-by-client guard did not fire. This is exactly the re-admitted-Tawthiq failure mode this signature exists to prevent.`);
+  else ok(`9999999999 (Tawthiq): completely untouched (${JSON.stringify(rows.sabotage)}) — the exclusion-by-client guard held even though the row would otherwise have qualified automatically`);
 
   const noNewRow = await p.evaluate(() => !(FIN.rows || []).some((r) => r.invoice_no === 'UNKNOWN-TEST-003'));
   if (!noNewRow) fail('UNKNOWN-TEST-003: a new finance_invoices row was created — tax_invoice_capture must NEVER insert, only update a live invoice (it carries no client name to create one with)');
@@ -171,7 +171,7 @@ async function main() {
     console.log(`\nFAILED — ${failures} check(s) did not pass.`);
     process.exit(1);
   }
-  console.log('\ntax invoice capture OK — v65IngestText drives the real path end to end, eligibility gates (tax code + not "Waiting for Issuing") hold, and the sabotage row (a would-otherwise-qualify Takamol invoice) is refused purely on client exclusion, never on its tax-code prefix.');
+  console.log('\ntax invoice capture OK — v65IngestText drives the real path end to end, eligibility gates (tax code + not "Waiting for Issuing") hold, and the sabotage row (a would-otherwise-qualify Tawthiq invoice) is refused purely on client exclusion, never on its tax-code prefix.');
   process.exit(0);
 }
 

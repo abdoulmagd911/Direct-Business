@@ -185,7 +185,7 @@ async function main() {
       return c ? num(c.children[1]) : null;
     };
     const live = (window.FIN && FIN.rows ? FIN.rows : []).filter((r) => !r.deleted_at
-      && r.integrity_status === 'verified_paid' && r.id !== 'i-qa-takamol');
+      && r.integrity_status === 'verified_paid' && r.id !== 'i-qa-tawthiq');
     const sum = (f) => live.reduce((s, r) => s + (+r[f] || 0), 0);
     return { revShown: pick('Revenue'), profShown: pick('Profit'),
              revClean: sum('revenue_sar'), profClean: sum('profit_sar'), vat: sum('vat_sar') };

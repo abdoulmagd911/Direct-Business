@@ -535,11 +535,11 @@
         return;
       }
       state.seenGenericNo[built.invoice_no]=1;
+      /* E (2026-09-27): reported, still imported — the view applies the rule, retroactively */
       var xhit=(typeof window.finExclusionCheck==='function')?window.finExclusionCheck(built.customer_raw_name):null;
       if(xhit){
-        state.excludedByRule++; state.excludedDetail.clientExcluded++;
+        state.excludedDetail.clientExcluded++;
         state.excludedDetail.clientExcludedDetail.push({name:built.customer_raw_name,clientId:xhit.clientId,reason:xhit.reason});
-        return;
       }
       candidates.push(built);
     });
@@ -579,11 +579,12 @@
       // otherwise sail straight through (has a tax code, status is final) must still never
       // touch an excluded client's row — this is the sabotage case
       // scripts/qa/probe-tax-invoice-capture.mjs proves directly.
+      /* E (2026-09-27): an excluded client's row is still kept up to date — the view leaves it out, and if the rule is
+         switched off the row must come back correct, not stale */
       var xhit=(typeof window.finExclusionCheck==='function')?(window.finExclusionCheck(existing.client_group)||window.finExclusionCheck(existing.customer_raw_name)):null;
       if(xhit){
-        state.excludedByRule++; state.excludedDetail.clientExcluded++;
+        state.excludedDetail.clientExcluded++;
         state.excludedDetail.clientExcludedDetail.push({name:existing.client_group,clientId:xhit.clientId,reason:xhit.reason});
-        return;
       }
       // THE OWNER'S RULE, applied literally: a tax code AND a status past "Waiting for
       // Issuing" — anything short of either goes to manual review, never guessed at.
@@ -842,10 +843,9 @@
         return;
       }
       var xhit=(typeof window.finExclusionCheck==='function')?(window.finExclusionCheck(existing.client_group)||window.finExclusionCheck(existing.customer_raw_name)):null;
-      if(xhit){
-        state.excludedByRule++; state.excludedDetail.clientExcluded++;
+      if(xhit){   // E: reported, still kept up to date (see above)
+        state.excludedDetail.clientExcluded++;
         state.excludedDetail.clientExcludedDetail.push({name:existing.client_group,clientId:xhit.clientId,reason:xhit.reason});
-        return;
       }
       // Every contributing transaction must itself be clean — one dirty transaction holds back
       // the whole invoice, never a partial sum from only the clean ones.
@@ -1481,6 +1481,8 @@
              :'')+
            '</div>');
       paintDone(msg);
+      /* E (2026-09-27): what the rules made of this import, read back from the one view (js/117) */
+      if(!failed&&typeof window.v117ImportSummary==='function'){ try{ window.v117ImportSummary(toInsert.concat(toUpdate).map(function(x){return x&&x.invoice_no;}).filter(Boolean)); }catch(_){} }
       FIN.rows=null; finLoad();
     });
     };

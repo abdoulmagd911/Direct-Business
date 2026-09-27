@@ -43,7 +43,7 @@ const ok = (m) => console.log('  ✓ ' + m);
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const r2 = (n) => Math.round(n * 100) / 100;
 const N_INV = 3200;
-const EXCLUDED_GROUP = 'Takamol Received QA';
+const EXCLUDED_GROUP = 'Tawthiq Received QA';
 
 /* the same repair js/16's finSanitizeMoney performs, written out here independently so the
    recount is not the app's own arithmetic borrowed back */
@@ -153,7 +153,7 @@ async function main() {
   await p.waitForTimeout(4500);
   /* wait for the app's own loader to deliver it, and fail loudly if it never does, rather than
      measuring an unexcluded world and blaming the app for it (see settingsLoaded's note) */
-  if (!(await settingsLoaded(p, 90000, () => { try { return ((DB.settings || {}).financeExclusions || []).some((e) => (e.matchNames || []).includes('Takamol Received QA')); } catch (_) { return false; } })))
+  if (!(await settingsLoaded(p, 90000, () => { try { return ((DB.settings || {}).financeExclusions || []).some((e) => (e.matchNames || []).includes('Tawthiq Received QA')); } catch (_) { return false; } })))
     fail('the standing exclusion never reached DB.settings — every total below would count the excluded 999,999 row, which is a fact about this run and not about the app');
   await p.evaluate(() => { current = 'finance'; FIN.rows = null; finLoad(); });
   for (let i = 0; i < 200 && !(await p.evaluate(() => window.FIN && FIN.rows && FIN.rows.length > 1000)); i++) await p.waitForTimeout(300);

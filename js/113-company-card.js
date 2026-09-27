@@ -14,6 +14,7 @@
   var fl=function(en,ar){ return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en; };
   var e=function(s){ return (typeof esc==='function')?esc(s):String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
   var client=function(){ try{ return window.fc?fc():null; }catch(_){ return null; } };
+  var canMerge=function(){ try{ return !window.__isShareView&&(window.__userRole==='admin'||window.__userRole==='manager'); }catch(_){ return false; } };
   var canWrite=function(){ try{ return typeof window.mayEditPage==='function' && window.mayEditPage('clients')===true; }catch(_){ return false; } };
   var TYPES={prepaid:['Prepaid','مسبق الدفع'],postpaid:['Postpaid','آجل الدفع'],tender:['Tender','مناقصة']};
   var DOCS=[['cr','Commercial registration (CR)','السجل التجاري'],['vat','VAT certificate','شهادة ضريبة القيمة المضافة'],
@@ -23,6 +24,7 @@
   /* the database's refusals, in words a person reads */
   function said(err){
     var m=String((err&&err.message)||err||'');
+    if(/one_open_prepaid_postpaid/i.test(m)) return fl('This company already has an open prepaid (or postpaid) client ID — one of each; tenders are unlimited.','لدى هذه الشركة معرّف مسبق الدفع (أو آجل) مفتوح — واحد من كل منهما؛ والمناقصات بلا حد.');
     if(/at most 3 open/i.test(m)) return fl('This company already has 3 open client IDs — close one in Direct Payments first.','لدى هذه الشركة 3 معرّفات عملاء مفتوحة — أغلق واحدًا في دايركت للمدفوعات أولًا.');
     if(/client_profiles_direct_client_id_key|duplicate key.*direct_client_id/i.test(m)) return fl('That client ID already belongs to a company — each ID belongs to one company only.','معرّف العميل هذا مسجّل لشركة أخرى — كل معرّف لشركة واحدة فقط.');
     if(/one_company|duplicate key.*company_discount_codes/i.test(m)) return fl('That code is already linked to another company.','هذا الرمز مرتبط بشركة أخرى.');
@@ -71,31 +73,39 @@
     if(!st||!st.loaded){ el.querySelector('.v113-body').innerHTML='<div class="muted" style="font-size:12.5px">'+fl('Loading the company card…','جارٍ تحميل بطاقة الشركة…')+'</div>';
       load(biz,function(){ var now=document.querySelector('.v113-card[data-biz="'+biz+'"]'); if(now) draw(now); }); return; }
     var w=canWrite(), h='';
+    /* E (2026-09-27): client IDs and discount codes are the company's MERGES (Finance → Rules shows the same) — only admins
+       and managers change them, and the database enforces it; files keep the Clients-page rule. */
+    var wm=canMerge();
+    /* exclusion beats merge — the card says so when a rule catches this company's IDs, codes or VAT/CR number */
+    try{ if(window.MR&&window.MR.rules==null&&typeof window.moneyRulesLoad==='function') window.moneyRulesLoad(); }catch(_){}
+    try{ var hits=(typeof window.moneyRulesForCompany==='function')?window.moneyRulesForCompany(biz):[];
+      if(hits.length) h+='<div class="v113-excluded" style="background:#FDECEC;color:#B42318;border-radius:8px;padding:8px 10px;font-size:12.5px;margin-bottom:10px">'+
+        fl('Excluded — this company\'s money is left out of every total: ','مستبعدة — أموال هذه الشركة خارج كل الإجماليات: ')+
+        hits.map(function(x){ return e(x.what)+' ('+e(x.rule.reason||'')+')'; }).join('، ')+'</div>'; }catch(_){}
     if(st.error) h+='<div style="color:#B42318;font-size:12.5px;margin-bottom:8px">'+fl('Part of the card could not be read — what shows below may be incomplete.','تعذرت قراءة جزء من البطاقة — قد يكون المعروض ناقصًا.')+'</div>';
     /* 1 · client IDs — js/27 loads them (CP); its loader drops a second caller while it is busy, so this never waits
        on it: while they are not in yet the section says so, and js/27 redraws the page when they arrive */
     if(!window.CP||window.CP.rows==null){ if(window.CP&&typeof window.cpLoad==='function') window.cpLoad(function(){ var now=document.querySelector('.v113-card[data-biz="'+biz+'"]'); if(now) draw(now); }); }
     var ids=((window.CP&&window.CP.byBiz&&window.CP.byBiz[biz])||[]).slice().sort(function(a,b){ return (a.closed_at?1:0)-(b.closed_at?1:0); });
     var open=ids.filter(function(x){return !x.closed_at;});
-    h+='<div class="v113-sec" data-sec="ids"><div class="v113-h">'+fl('Direct Payments client IDs','معرّفات العميل في دايركت للمدفوعات')+' <span class="muted">· '+open.length+' '+fl('of 3 open','من 3 مفتوحة')+'</span></div>';
+    h+='<div class="v113-sec" data-sec="ids"><div class="v113-h">'+fl('Direct Payments client IDs','معرّفات العميل في دايركت للمدفوعات')+' <span class="muted">· '+open.length+' '+fl('open','مفتوحة')+'</span></div>';
     h+=ids.length?ids.map(function(p){ var tl=TYPES[p.profile_type]||[p.profile_type,p.profile_type];
       var link=(typeof window.pdClientLink==='function')?window.pdClientLink(p.direct_client_id):'#';
       return '<div class="v113-row'+(p.closed_at?' closed':'')+'"><span class="tag" style="font-weight:700">'+e(fl(tl[0],tl[1]))+'</span> <b>#'+e(p.direct_client_id)+'</b>'+
-        (p.closed_at?' <span class="muted">'+fl('closed','مغلق')+'</span>':'')+'<span style="flex:1"></span><a class="chiplink" href="'+e(link)+'" target="_blank" rel="noopener">'+fl('Open in Direct Payments ↗','افتح في دايركت للمدفوعات ↗')+'</a></div>'; }).join('')
+        (p.closed_at?' <span class="muted">'+fl('closed','مغلق')+'</span>':'')+'<span style="flex:1"></span>'+(wm?'<button class="btn ghost sm v113-rm-id" onclick="v117RemoveClientId(\''+e(p.id)+'\')">'+fl('Remove','إزالة')+'</button> ':'')+'<a class="chiplink" href="'+e(link)+'" target="_blank" rel="noopener">'+fl('Open in Direct Payments ↗','افتح في دايركت للمدفوعات ↗')+'</a></div>'; }).join('')
       :'<div class="muted v113-empty">'+fl('No client ID yet.','لا يوجد معرّف عميل بعد.')+'</div>';
-    if(w) h+=open.length>=3?'<div class="muted" style="font-size:12px;margin-top:4px">'+fl('3 open client IDs — the most a company holds. Close one in Direct Payments to add another.','3 معرّفات مفتوحة — الحد الأقصى للشركة. أغلق واحدًا في دايركت للمدفوعات لإضافة غيره.')+'</div>'
-               :'<button class="btn ghost sm v113-add-id" onclick="v34AddProfile(\''+e(id)+'\')">'+fl('+ Add client ID','+ إضافة معرّف عميل')+'</button>';
+    if(wm) h+='<button class="btn ghost sm v113-add-id" onclick="v117AddClientId(\''+e(biz)+'\')">'+fl('+ Add client ID','+ إضافة معرّف عميل')+'</button>';
     h+='</div>';
     /* 2 · discount codes */
     var byId={}; (CODES||[]).forEach(function(p){ byId[p.id]=p; });
     var linked=st.links.map(function(l){ return {l:l,p:byId[l.promo_code_id]}; }).filter(function(x){return x.p;});
-    var imported=(CODES||[]).filter(function(p){ return p.partner_business_id===biz && !linked.some(function(x){return x.p.id===p.id;}); });
-    h+='<div class="v113-sec" data-sec="codes"><div class="v113-h">'+fl('Discount codes','رموز الخصم')+' <span class="muted">· '+fl('B2C website codes — not part of this company\'s B2B finance','رموز الموقع للأفراد — ليست من مالية الشركة (B2B)')+'</span></div>';
+    var imported=[];   // E: only typed codes merge — Direct Payments' own partner field no longer counts
+    h+='<div class="v113-sec" data-sec="codes"><div class="v113-h">'+fl('Discount codes','رموز الخصم')+' <span class="muted">· '+fl('sales with these codes count under this company in Finance; codes nobody typed stay under "Unassigned codes"','المبيعات بهذه الرموز تُحتسب لهذه الشركة في المالية؛ والرموز غير المكتوبة تبقى في «رموز غير مخصّصة»')+'</span></div>';
     h+=(linked.length||imported.length)?linked.map(function(x){ return '<div class="v113-row">'+fmtCode(x.p)+(x.l.note?' <span class="muted">— '+e(x.l.note)+'</span>':'')+'<span style="flex:1"></span>'+
-          (w?'<button class="btn ghost sm v113-unlink" onclick="v113Unlink(\''+e(x.l.id)+'\',\''+e(biz)+'\')">'+fl('Remove','إزالة')+'</button>':'')+'</div>'; }).join('')+
+          (wm?'<button class="btn ghost sm v113-unlink" onclick="v113Unlink(\''+e(x.l.id)+'\',\''+e(biz)+'\')">'+fl('Remove','إزالة')+'</button>':'')+'</div>'; }).join('')+
         imported.map(function(p){ return '<div class="v113-row">'+fmtCode(p)+' <span class="muted">— '+fl('linked in Direct Payments','مرتبط في دايركت للمدفوعات')+'</span></div>'; }).join('')
       :'<div class="muted v113-empty">'+fl('No discount code — optional.','لا يوجد رمز خصم — اختياري.')+'</div>';
-    if(w) h+='<button class="btn ghost sm v113-link" onclick="v113LinkCode(\''+e(biz)+'\')">'+fl('+ Link a code','+ ربط رمز')+'</button>';
+    if(wm) h+='<button class="btn ghost sm v113-link" onclick="v117AddCode(\''+e(biz)+'\')">'+fl('+ Link a code','+ ربط رمز')+'</button>';
     h+='</div>';
     /* 3 · files */
     var pres=st.presence||{};
@@ -143,7 +153,7 @@
 
   /* ---------- the changes (each asks the database; the database decides) ---------- */
   window.v113LinkCode=function(biz){try{
-    if(!canWrite()) return;
+    if(!canMerge()) return;
     var taken={}; Object.keys(S).forEach(function(k){ ((S[k]||{}).links||[]).forEach(function(l){ taken[l.promo_code_id]=1; }); });
     var opts=(CODES||[]).filter(function(p){ return !taken[p.id] && !p.partner_business_id; }).map(function(p){
       var v=p.kind==='fixed'?(p.value_pct+' SAR'):(p.value_pct+'%'); return '<option value="'+e(p.id)+'">'+e(p.code)+' · '+e(v)+(p.valid_to?' · '+e(p.valid_to):'')+'</option>'; }).join('');
@@ -162,7 +172,7 @@
   }catch(err){ if(window.console)console.warn('[v113] link',err); }};
 
   window.v113Unlink=function(linkId,biz){try{
-    if(!canWrite()) return;
+    if(!canMerge()) return;
     var go=function(){ client().from('company_discount_codes').update({removed_at:new Date().toISOString()}).eq('id',linkId).select('id').then(function(r){
       if(r.error||!r.data||!r.data.length){ alert(said(r.error||'refused')); return; } reload(biz); }); };
     if(typeof askInPage==='function') askInPage(fl('Remove this code from the company? The code itself stays as it is in Direct Payments.','إزالة هذا الرمز من الشركة؟ يبقى الرمز كما هو في دايركت للمدفوعات.'),go); else if(confirm('Remove?')) go();
