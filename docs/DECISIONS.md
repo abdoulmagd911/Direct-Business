@@ -3146,7 +3146,10 @@ Commercial row; a person's HOME team is `team_members.department_id`; the teams 
   security_invoker, the view had shown non-admins only THEMSELVES in every people list. It is now a security_invoker view
   over the definer function `team_roster` (SQL), which answers only an active signed-in person and cannot be written through.
 - The People & teams page (js/114) is a ROLE page (admins and managers), not a grid page: `mayOpenPage` in js/52 is the
-  one answer, and js/49 and js/64 now ask it rather than reading the grid list (both had bounced a manager off the page).
+  one answer for it: js/52 publishes its role pages (`__rolePages`) and js/64 answers a role page by `mayOpenPage`, every
+  grid page by the grid list as before (js/64 had bounced a manager off People & teams). js/49 guards grid pages only and
+  is unchanged — a first version routed it through `mayOpenPage` too, which bypassed the grid list the Finance probes set,
+  and six of them went red on the full run; reverted the same day.
 *Date: 2026-09-27. Status: ACTIVE (built on the owner's order; merges on the oversight's review, P6).*
 
 **D12 — A task becomes its achievement the way the day goes (the owner's order of 26 Sep, part 3; 2026-09-27).**

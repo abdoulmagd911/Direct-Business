@@ -103,6 +103,7 @@
   /* pages that belong to a ROLE, not to the per-page grid (2026-09-27): People & teams is for admins and managers —
      js/114, and the database's own rules (person_save, team_retire, the row rules) say the same */
   var ROLE_PAGES={ people:['admin','manager'] };
+  try{ window.__rolePages=ROLE_PAGES; }catch(_){}
   function mayOpen(view){
     if(ROLE_PAGES[view]) return known() && ROLE_PAGES[view].indexOf(role())>=0;
     var a=allowedPages(); if(!a) return true;

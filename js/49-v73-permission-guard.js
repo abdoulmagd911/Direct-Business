@@ -132,7 +132,6 @@
     try{
       var pg=PAGE_OF[what]; if(!pg) return true;
       if(typeof window.__accessKnown!=='function'||!window.__accessKnown()) return true;
-      if(typeof window.mayOpenPage==='function') return window.mayOpenPage(pg)!==false;   /* js/52's one answer (2026-09-27) */
       if(typeof window.myAllowedPages!=='function') return true;
       var allowed=window.myAllowedPages();
       if(!allowed) return true;                    // null = unrestricted (admins)
