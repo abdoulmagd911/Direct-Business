@@ -204,7 +204,10 @@ This repo is now the consolidated home: `index.html` (the app), `js/` (its layer
 retired in commit 47b6c01 — Events are now the in-app tab only.) The `index.html` here was verified
 byte-for-byte identical (SHA-256) to what directksab2b.com was serving on 2026-08-08.
 
-**Deploys are automatic as of 2026-08-08.** The Vercel project `direct-business` (team
+**Deploys are automatic as of 2026-08-08 — and since 2026-09-27 they BUILD (DECISIONS D14):** Vercel runs
+`node scripts/build/build-site.mjs`, which writes every `/js/` file into the page as its own inline script (one request
+instead of 108) and publishes `dist/` (the page, `js/`, `css/`, `brand/`). The repository and every test still use one
+`<script src>` line per file — keep adding files that way. The Vercel project `direct-business` (team
 `abdoulmagd911s-projects`, domains `directksab2b.com` + `direct-business.vercel.app`) is now
 connected to this repo. Push → Vercel builds → live in ~30s. Verified working: commit
 `39dafaa` deployed itself and `directksab2b.com` was confirmed byte-identical to `index.html`.
