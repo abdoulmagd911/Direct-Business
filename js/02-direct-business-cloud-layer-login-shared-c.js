@@ -763,6 +763,10 @@
     var old=document.getElementById('teamModal'); if(old)old.remove();
     var ov=el('div','position:fixed;inset:0;z-index:2147481500;background:rgba(20,22,35,.55);display:flex;align-items:flex-start;justify-content:center;padding:36px 20px;overflow:auto');
     ov.id='teamModal';
+    /* 2026-09-27: Escape closes this window like every other box in the app (the sign-in overlay itself stays put — there
+       is nothing behind it for someone who is not signed in) */
+    var escT=function(e){ if(e.key==='Escape'){ var m=document.getElementById('teamModal'); if(m) m.remove(); document.removeEventListener('keydown',escT); } };
+    document.addEventListener('keydown',escT);
     var box=el('div','background:#fff;border-radius:16px;max-width:760px;width:100%;padding:24px 26px;font-family:inherit');
     box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
       '<div style="font-size:18px;font-weight:800">Team access</div>'+
