@@ -5,8 +5,8 @@
 --     client ID); a VAT or CR number (catches the same legal entity under any ID or name); a discount code; one
 --     transaction number.
 --   COMPANY MERGES — a company holds a typed list of client IDs (client_profiles: prepaid / postpaid / tender, any number of
---     tenders) and a typed list of discount codes (company_discount_codes). Nothing is ever merged by name, and nothing
---     automatically. A client ID or a code belongs to one company only (the unique keys already say so).
+--     tenders), a typed list of discount codes (company_discount_codes) and a typed list of customer names for rows with no
+--     client ID (company_name_aliases). Nothing merges automatically. A client ID, a code or a name belongs to one company.
 --   Exclusion beats merge. Rules are live and retroactive: money_rows is computed at read time, so adding, removing or
 --   switching off a rule changes every total at once, with no re-import.
 -- Nothing here creates a business record (the owner's standing rule of 27 Sep): the rules table starts EMPTY, and the old
