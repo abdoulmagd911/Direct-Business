@@ -63,8 +63,11 @@ await page.locator('button[type="submit"], button:has-text("Sign in")').first().
 await page.waitForTimeout(9000);
 /* 2026-09-27: after the owner-ordered data reset (D9) the live database holds no companies and no invoices; a check that
    needs them is NOT RUN and says why — an empty database is not a broken app, and it is not a pass either */
-const EMPTY = await page.evaluate(() => typeof DB !== 'undefined' && (DB.businesses || []).length === 0).catch(() => false);
-const DSTEP = (n, ok, d = '') => EMPTY ? LOG.push(`NOT RUN · ${n} — the live database holds no companies or invoices yet (data reset 2026-09-27, D9)`) : STEP(n, ok, d);
+/* 2026-09-28: a person has since entered a company by hand, but there are still no invoices — "empty" means either, since
+   every check below that reads money needs invoices on file */
+const EMPTY = await page.evaluate(async () => { if (typeof DB === 'undefined') return false; if ((DB.businesses || []).length === 0) return true;
+  try { const r = await fc().from('finance_invoices').select('id', { count: 'exact', head: true }); return (r && r.count === 0); } catch (_) { return false; } }).catch(() => false);
+const DSTEP = (n, ok, d = '') => EMPTY ? LOG.push(`NOT RUN · ${n} — the live database holds no invoices yet (data reset 2026-09-27, D9; companies are being entered by hand)`) : STEP(n, ok, d);
 STEP('REAL sign-in works', await page.evaluate((empty) => !document.querySelector('#view input[type=email]') && typeof DB !== 'undefined' && (empty || DB.businesses.length >= 20), EMPTY).catch(() => false), await page.evaluate(() => (typeof DB !== 'undefined' ? DB.businesses.length : 'no DB') + ' businesses').catch(() => '?'));
 
 await page.evaluate(() => { current = 'finance'; render(); });
@@ -179,7 +182,7 @@ const agingExp = await page.evaluate(() => { const L = FIN.rows.filter(r => !r.d
    chart that reads like a rendering failure. */
 /* The card is titled "Collections & ageing" — the original check looked for "AR aging", a name
    it has never had on this screen, so it could only ever fail. Matched on what it says. */
-STEP('REAL AR aging: the Collections card is present', /Collections & ageing|التحصيل والتقادم/.test(agingTxt), 'outstanding now = ' + agingExp.toLocaleString('en-US'));
+DSTEP('REAL AR aging: the Collections card is present', /Collections & ageing|التحصيل والتقادم/.test(agingTxt), 'outstanding now = ' + agingExp.toLocaleString('en-US'));
 if (agingExp > 0) STEP('REAL AR aging: with money outstanding, the card breaks it into buckets', /0–30 days|0-30 days|٠?٣٠/.test(agingTxt), 'AR=' + agingExp.toLocaleString('en-US'));
 else STEP('REAL AR aging: nothing is outstanding, and the card says so rather than showing empty buckets', /nothing outstanding|all collected|no outstanding|لا يوجد متأخر|لا مستحقات/i.test(agingTxt) || !/0–30 days|0-30 days/.test(agingTxt), 'AR=0');
 STEP('REAL clients: every invoice group is linked — no "not linked" warning, no manual link button', !/could not be matched|not linked to a client/.test(agingTxt) && await page.evaluate(() => { const b = document.getElementById('v53btn'); return !b || b.style.display === 'none'; }));

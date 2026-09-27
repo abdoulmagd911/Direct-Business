@@ -375,7 +375,7 @@ sibling spelling is a linked Tender client. Fixed: when the name index misses, t
 links to the same business with `confirmed_by='auto-match-alias'` (visible provenance, never
 silent). Guarded by `scripts/qa/probe-alias-autolink.mjs`, sabotage-verified (fallback removed
 → the spelling stays unlinked and no link write goes out), restored byte-identical.
-*Date: 2026-08-25, linking-path addendum 2026-08-29. Status: ACTIVE.*
+*Date: 2026-08-25, linking-path addendum 2026-08-29. Status: SUPERSEDED-BY: D16 (27 Sep) — names now collapse only when a person types them onto a company on Finance → Rules (`company_name_aliases`, read by the `money_rows` view); the settings alias map and the automatic alias linker are retired, and the text above is kept as history.*
 
 **M15 — page-lifetime memory was the right instinct for the cost join, but not enough: the raw
 captured facts must survive a reload and a new session, so a single updated file resolves
