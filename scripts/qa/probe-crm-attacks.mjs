@@ -21,8 +21,9 @@ const UID = '11111111-1111-1111-1111-111111111111';
 const ME = 'QA Test Account';           // full_name of the signed-in mock user
 const ME_NICK = 'QA Nick';
 
-/* dates in UTC — the app compares toISOString().slice(0,10) strings */
-const dayISO = (off) => new Date(Date.now() + off * 864e5).toISOString().slice(0, 10);
+/* dates on Riyadh's calendar (UTC+3, no daylight saving) — the app's "today" is Riyadh's today (DECISIONS D20, 28 Sep);
+   before that it was the browser's own calendar, and before that UTC */
+const dayISO = (off) => new Date(Date.now() + 3 * 3600000 + off * 864e5).toISOString().slice(0, 10);
 const TODAY = dayISO(0), YEST = dayISO(-1), P3 = dayISO(3), P7 = dayISO(7), P8 = dayISO(8);
 const msAgo = (days) => Date.now() - days * 864e5;
 

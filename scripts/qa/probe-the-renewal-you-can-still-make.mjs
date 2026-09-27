@@ -88,7 +88,7 @@ await p.waitForTimeout(3500);
 const setRegistry = async (offsets) => {
   await p.evaluate((offs) => {
     try {
-      const iso = (d) => { const t = new Date(); t.setHours(0, 0, 0, 0); t.setDate(t.getDate() + d); return t.toISOString().slice(0, 10); };
+      /* days from the APP's today — Riyadh's calendar (D20, 28 Sep), not this machine's clock */ const iso = (d) => { const t = new Date(window.todayISO() + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + d); return t.toISOString().slice(0, 10); };
       const rows = offs.map((d, i) => ({ key: 'qa' + i, label_en: 'QA Paper ' + i, label_ar: 'ورقة ' + i, expires_on: iso(d), category: 'licence' }));
       window.dgCredentialFacts = function () { return { loaded: true, rows: rows }; };
       window.__qaOffsets = offs.slice();

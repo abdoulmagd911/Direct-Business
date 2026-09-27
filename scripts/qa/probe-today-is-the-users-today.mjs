@@ -1,6 +1,9 @@
 /* probe-today-is-the-users-today.mjs — guards the 2026-09-18 (fire #95) fix in core-01 and the 70
    call sites that now go through it, plus check-structure's new rule.
 
+   2026-09-28 (owner, DECISIONS D20): the app's today is now RIYADH's calendar in every timezone, not the browser's — the
+   checks below say so, and the Your-day card and the date box are read in a zone whose own date differs from Riyadh's.
+
    The app decided what "today" was in UTC, on a team that works in Riyadh. Every "due today /
    overdue" comparison, every date box that opens pre-filled and every "recorded on" stamp went
    through `new Date().toISOString().slice(0,10)` — the date in UTC. Riyadh is UTC+3, so from
@@ -72,10 +75,11 @@ async function run(tz) {
     const d = new Date(); const p2 = (n) => String(n).padStart(2, '0');
     const localDate = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
     const utcDate = d.toISOString().slice(0, 10);
+    const riyadhDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
     let appToday = null; try { appToday = window.todayISO ? window.todayISO() : '(no helper)'; } catch (e) { appToday = 'ERR ' + e.message; }
     /* the header a person reads at the top of Today, which always printed the LOCAL date */
     const hero = ((document.querySelector('.hero') || {}).innerText || '').replace(/\s+/g, ' ');
-    return { localDate, utcDate, appToday, offsetHours: -d.getTimezoneOffset() / 60, hero: hero.slice(0, 160) };
+    return { localDate, utcDate, riyadhDate, appToday, offsetHours: -d.getTimezoneOffset() / 60, hero: hero.slice(0, 160) };
   });
 
   /* A lead whose next action falls on the person's OWN today. With today taken from UTC this date
@@ -103,7 +107,7 @@ async function run(tz) {
       res({ seeded: true, hasCard: !!card, listed: /QA timezone check/.test(txt),
         overdue: /QA timezone check[\s\S]{0,80}Overdue/.test(txt.replace(/\n/g, ' ')) });
     }, 2500));
-  }, out.localDate);
+  }, out.riyadhDate);
 
   /* a real pre-filled date box, on the page a person actually types into */
   await p.evaluate(() => { try { current = 'finance'; FIN.tab = 'expenses'; render(); } catch (_) { } });
@@ -119,20 +123,26 @@ await b.close(); srv.close?.();
 
 const rows = ZONES.map((z) => seen[z]);
 /* the zone where the two calendars actually disagree right now — the one that proves anything */
-const gapZone = ZONES.find((z) => seen[z].localDate !== seen[z].utcDate);
+/* a zone whose own calendar differs from Riyadh's right now — where "Riyadh everywhere" (D20) is actually tested. UTC+14 and
+   UTC-11 are 25 hours apart, so at any instant one of them is on a different date from Riyadh. The behaviour checks below
+   (the Your-day card, the pre-filled date box) run in that zone, so a PC clock can never pass for Riyadh's. */
+const awayZone = ZONES.find((z) => seen[z].localDate !== seen[z].riyadhDate) || null;
+const gapZone = awayZone;
 const gap = gapZone ? seen[gapZone] : null;
 const structureSrc = fs.readFileSync(REPO + '/scripts/qa/check-structure.mjs', 'utf8');
 const checks = [
   /* without this, a run at an hour when every zone agreed with UTC would pass while proving nothing */
-  ['at least one timezone really is on a different date from UTC right now, so there is something to catch', !!gapZone],
-  ['in that timezone the app says today is the date on the person\'s own calendar', !!gap && gap.appToday === gap.localDate],
-  ['and NOT the UTC date — which is the whole defect', !!gap && gap.appToday !== gap.utcDate],
+  /* 2026-09-28 (owner, D20): "dates must display in Riyadh time (UTC+3) everywhere". Until then this probe held the app's
+     today to the BROWSER's calendar (fire #95, 18 Sep) — right for a team in Riyadh, wrong on a PC set to another zone.
+     Now: Riyadh's calendar in every zone; in Riyadh itself that is still the person's own calendar. */
+  ['at least one timezone is on a different date from Riyadh right now, so "Riyadh everywhere" is really tested', !!awayZone],
+  ['in that timezone the app still says today is Riyadh\'s date, not the PC\'s', !!awayZone && seen[awayZone].appToday === seen[awayZone].riyadhDate],
   ['the Your-day card was really built, so what follows is read off a card that exists', !!gap && gap.yourDay && gap.yourDay.seeded === true && gap.yourDay.hasCard === true],
-  ['a follow-up dated the person\'s own today is listed as due — with today taken from UTC it is still tomorrow and never appears', !!gap && gap.yourDay && gap.yourDay.listed === true],
+  ['a follow-up dated Riyadh\'s today is listed as due', !!gap && gap.yourDay && gap.yourDay.listed === true],
   ['and it is not called overdue', !!gap && gap.yourDay && gap.yourDay.overdue === false],
   ['the pre-filled date box on a real form exists and carries that same date, so nothing is saved a day out',
-    !!gap && typeof gap.dateBox === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(gap.dateBox) && gap.dateBox === gap.localDate],
-  ['every timezone tried agrees: the app\'s today is the browser\'s today', rows.every((r) => r.appToday === r.localDate)],
+    !!gap && typeof gap.dateBox === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(gap.dateBox) && gap.dateBox === gap.riyadhDate],
+  ['every timezone tried agrees: the app\'s today is Riyadh\'s today', rows.every((r) => r.appToday === r.riyadhDate)],
   ['including Riyadh, where the team actually is', seen['Asia/Riyadh'].appToday === seen['Asia/Riyadh'].localDate],
   ['check-structure still fails a layer that takes today from UTC', structureSrc.includes('todayISO') && structureSrc.includes('toISOString') && structureSrc.includes('today-from-UTC check could not run')],
   ['reading and rendering wrote nothing', wrote.filter((w) => !/finance_client_links/.test(w)).length === 0],

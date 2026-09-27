@@ -240,7 +240,7 @@ console.info('%c[v40 lead lifecycle] loaded','color:#FF6B00;font-weight:700');
     var cold=mineLeads.filter(function(b){ if(closedLead(b)||dueIds[b.id])return false; var lt=lastTouch(b); var days=lt?Math.floor((nowMs-lt)/864e5):999; return days>=14; })
       .sort(function(a,b){return lastTouch(a)-lastTouch(b);});
     // 3) Proposals expiring within 7 days (and not long-expired), not closed
-    var exp=mineOffers.filter(function(o){ if(!o.validUntil)return false; if(/Accepted|Won|Lost|Rejected/i.test(o.status||''))return false; var d=Math.ceil((new Date(o.validUntil).getTime()-nowMs)/864e5); return d<=7 && d>=-14; })
+    var exp=mineOffers.filter(function(o){ if(!o.validUntil)return false; if(/Accepted|Won|Lost|Rejected/i.test(o.status||''))return false; var d=Math.round((Date.parse(String(o.validUntil).slice(0,10)+'T00:00:00Z')-Date.parse(todayISO()+'T00:00:00Z'))/864e5); if(isNaN(d))return false; return d<=7 && d>=-14; })   /* whole calendar days from Riyadh's today (D20) — the hour no longer decides it */
       .sort(function(a,b){return new Date(a.validUntil)-new Date(b.validUntil);});
     // 4) Client reviews due
     var rev=mineClients.filter(function(b){return b.nextReview && String(b.nextReview).slice(0,10)<=td;})
