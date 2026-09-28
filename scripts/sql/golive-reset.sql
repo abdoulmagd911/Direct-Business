@@ -11,7 +11,8 @@
 --
 -- WIPED (business records and logs): companies, contacts, activities, client IDs, discount-code links, company
 --   files (rows), website-form review rows, requests, offers, bookings/invoices/offers/projects/requests mirrors,
---   merges, external refs, the finance mirror (invoices, transactions, client links, expenses, capture tables,
+--   merges, external refs, the finance mirror (invoices and their item lines, transactions, client links, expenses,
+--   the Payments cost lines and per-invoice facts of the cost import (D24), capture tables,
 --   receipts, proof documents), generated documents, share links, tasks and everything under them, projects,
 --   work-finance links, achievements/report lines, reports, proofs (rows), event sign-ups, and the logs:
 --   record_history, ksa_events_audit, app_state_history, and app_state's own `audit` and `recents` lists.
@@ -33,7 +34,8 @@ declare
   wipe text[] := array['activities','app_bookings','app_invoices','app_offers','app_projects','app_requests',
     'business_merges','businesses','client_profiles','client_service_fees','company_discount_codes','company_documents',
     'contact_submissions_review','contacts','evidence_files','external_refs','finance_client_links','finance_cogs_expenses',
-    'finance_expense_gate_capture','finance_expense_lines_capture','finance_expenses','finance_invoices',
+    'finance_expense_gate_capture','finance_expense_lines','finance_expense_lines_capture','finance_expenses',
+    'finance_invoice_lines','finance_invoices','finance_payments_facts',
     'finance_transactions','generated_documents','ksa_event_signups','offers','payment_receipts','projects',
     'proof_documents','record_history','ksa_events_audit','app_state_history','report_entries','reports','requests',
     'share_links','task_checklist','task_comments','task_dependencies','task_files','task_people','task_status_log',
