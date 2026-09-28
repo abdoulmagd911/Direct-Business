@@ -1433,6 +1433,11 @@ function rOverview(){
   if(FIN.p.part!=='all'){ frac=(/^Q/.test(FIN.p.part))?0.25:(/^H/.test(FIN.p.part))?0.5:(FIN.p.part.indexOf('M:')===0?1/12:1); fLbl=isArF()?' · تقديري نسبةً للفترة':' · pro-rated for the period'; }
   if(tgt||canFinEdit()){
     var _exp=tgt?Math.round((+tgt.expected_sar||0)*frac):0, _conf=tgt?Math.round((+tgt.confirmed_sar||0)*frac):0;
+    /* Punch list B8 (28 Sep): Actual is measured over the SAME period as the plan — the plan's year (and part). With "All
+       years" picked, Actual used to be every year's revenue against one year's plan. */
+    var _revPlan=rev;
+    if(FIN.p.year==='all'){ _revPlan=0; verified().forEach(function(r){ if(String(finYearOf(r))===String(_ty)&&finPeriodMatch(r,{year:String(_ty),part:FIN.p.part||'all'})) _revPlan+=+r.revenue_sar||0; }); }
+    var rev0=rev; rev=_revPlan;
     var _attT=_exp>0?Math.round(rev/_exp*100):0,_att=Math.min(100,_attT);
     h+='<div class="card" style="padding:16px;margin-bottom:14px"><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap"><h3 class="finh" style="margin:0">'+(isArF()?'الخطة مقابل الفعلي':'Plan vs actual')+'<i>'+_ty+fLbl+'</i></h3>'+(canFinEdit()?('<button class="btn sm" onclick="finSetTargets('+_ty+')">'+(isArF()?'تعديل الأرقام':'Set targets')+'</button>'):'')+'</div>';
     if(tgt){
@@ -1451,7 +1456,13 @@ function rOverview(){
     } else {
       h+='<div class="ch-sub" style="margin-top:8px">'+(isArF()?'لا توجد أرقام خطة لهذه السنة بعد — اضغط «تعديل الأرقام».':'No plan numbers for this year yet — click Set targets.')+'</div>';
     }
+    /* B8: where the plan comes from — typed on this page with "Set targets", by whom and when; Actual is this period's revenue */
+    if(tgt){ var _by=tgt.updated_by||'', _at=tgt.updated_at?(typeof dayRiyadh==='function'?dayRiyadh(tgt.updated_at):String(tgt.updated_at).slice(0,10)):'';
+      h+='<div class="ch-sub" data-fin-plan-source="1" style="margin-top:8px;font-size:11.5px">'+(isArF()
+        ?('الخطة: أرقام تُكتب هنا بزر «تعديل الأرقام»'+(_by?' — آخر من عدّلها '+esc(_by):'')+(_at?' في '+_at:'')+'. الفعلي: إيراد '+_ty+(FIN.p.part!=='all'?' لنفس الفترة':'')+' من الفواتير المدفوعة.')
+        :('Plan: numbers typed here with "Set targets"'+(_by?' — last set by '+esc(_by):'')+(_at?' on '+_at:'')+'. Actual: '+_ty+(FIN.p.part!=='all'?' revenue for the same period':' revenue')+' from paid invoices.'))+'</div>'; }
     h+='</div>';
+    rev=rev0;
   }
 
   var MO=['January','February','March','April','May','June','July','August','September','October','November','December'];
