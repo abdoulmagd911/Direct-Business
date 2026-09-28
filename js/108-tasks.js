@@ -243,7 +243,10 @@
   }
   function optionList(rows,sel){ return rows.map(function(r){ return '<option value="'+esc8(r.code)+'"'+(r.code===sel?' selected':'')+'>'+esc8(nm(r))+'</option>'; }).join(''); }
   function memberOptions(sel){
-    return S.members.filter(function(m){ return m.active; }).map(function(m){ return '<option value="'+esc8(m.id)+'"'+(m.id===sel?' selected':'')+'>'+esc8(memberName(m.id))+'</option>'; }).join('');
+    /* H5 (28 Sep): alphabetical by the name shown */
+    return S.members.filter(function(m){ return m.active; }).map(function(m){ return {m:m,n:memberName(m.id)}; })
+      .sort(function(a,b){ return a.n.localeCompare(b.n,isAr()?'ar':'en',{sensitivity:'base'}); })
+      .map(function(x){ var m=x.m; return '<option value="'+esc8(m.id)+'"'+(m.id===sel?' selected':'')+'>'+esc8(x.n)+'</option>'; }).join('');
   }
   function projectOptions(sel){
     return '<option value="">'+fl('— no project —','— بدون مشروع —')+'</option>'+S.projects.filter(function(p){ return p.status!=='done'&&p.status!=='cancelled'; }).map(function(p){ return '<option value="'+esc8(p.id)+'"'+(p.id===sel?' selected':'')+'>'+esc8(p.code+' · '+p.name)+'</option>'; }).join('');
@@ -390,9 +393,21 @@
     var text=val('v108_newcheck'); if(!text||!S.open) return; var c=client(); if(!c) return;
     c.from('task_checklist').insert({ task_id:S.open, text:text, sort:((S.detail&&S.detail.checklist.length)||0)+1 }).select('id').then(function(r){
       if(r.error||!r.data||!r.data.length){ note(refusal(r.error||{code:'42501'}),true); return; }
-      v108Open(S.open);
+      /* H8 (28 Sep): adding a step redraws the dialog; what the person had changed but not saved yet (the "Monthly report"
+         tick, the kind of achievement, a new title or date …) is carried across the redraw instead of silently reset */
+      var snap=keepForm(); v108Open(S.open); restoreForm(snap);
     });
   };
+  function keepForm(){ var out={}; try{ var m=document.getElementById('modal'); if(!m) return out;
+    m.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(el){ if(el.id==='v108_newcheck'||el.id==='v108_newcomment') return;
+      out[el.id]=(el.type==='checkbox'||el.type==='radio')?{c:el.checked}:{v:el.value}; }); }catch(_){} return out; }
+  function restoreForm(snap,n){ try{ var ids=Object.keys(snap||{}); if(!ids.length) return;
+    var m=document.getElementById('modal'), ready=m&&ids.some(function(id){ return document.getElementById(id); })&&!m.querySelector('#v108_newcheck[value]')&&(document.getElementById('v108_newcheck')||{}).value==='';
+    if(!ready){ if((n||0)<40) setTimeout(function(){ restoreForm(snap,(n||0)+1); },75); return; }
+    ids.forEach(function(id){ var el=document.getElementById(id); if(!el) return; var x=snap[id];
+      if('c' in x){ if(el.checked!==x.c){ el.checked=x.c; try{ el.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){} } }
+      else if(el.value!==x.v){ el.value=x.v; try{ el.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){} } });
+  }catch(_){} }
   window.v108AddComment=function(){
     var text=val('v108_newcomment'); var me=myMember(); if(!text||!S.open||!me) return; var c=client(); if(!c) return;
     c.from('task_comments').insert({ task_id:S.open, author_id:me.id, body:text }).select('id').then(function(r){

@@ -149,7 +149,9 @@
     if(id&&!a) return;
     var me=findMe();
     var r=a?a._row:{ entry_date:todayISO(), member_id:me?me.id:null, title:'', text_en:'', text_ar:'', category_id:'', objective_id:'', kpi_id:'', value:'', business_id:null };
-    var memberOpts=S.members.filter(function(m){ return m.active||m.id===r.member_id; }).map(function(m){ return '<option value="'+esc(m.id)+'"'+(m.id===r.member_id?' selected':'')+'>'+esc(memberName(m.id))+'</option>'; }).join('')+
+    var memberOpts=S.members.filter(function(m){ return m.active||m.id===r.member_id; }).map(function(m){ return {m:m,n:memberName(m.id)}; })
+      .sort(function(a,b){ return String(a.n).localeCompare(String(b.n),undefined,{sensitivity:'base'}); })   /* H5: alphabetical */
+      .map(function(x){ var m=x.m; return '<option value="'+esc(m.id)+'"'+(m.id===r.member_id?' selected':'')+'>'+esc(x.n)+'</option>'; }).join('')+
       '<option value=""'+(r.member_id?'':' selected')+'>'+fl('Nobody in particular (the department)','لا أحد بعينه (القسم)')+'</option>';
     var catOpts='<option value="">'+fl('— choose —','— اختر —')+'</option>'+S.cats.filter(function(c){ return c.active||c.id===r.category_id; }).map(function(c){ return '<option value="'+esc(c.id)+'"'+(c.id===r.category_id?' selected':'')+'>'+esc(isAr()?c.name_ar:c.name_en)+'</option>'; }).join('');
     var objOpts='<option value="">'+fl('— none —','— لا شيء —')+'</option>'+(L().objectives||[]).map(function(o){ return '<option value="'+o.n+'"'+(S.objs[r.objective_id]===o.n?' selected':'')+'>#'+o.n+' — '+esc((L().objTitle?L().objTitle(o):'').slice(0,46))+'</option>'; }).join('');
