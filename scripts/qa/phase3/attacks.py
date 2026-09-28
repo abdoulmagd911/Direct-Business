@@ -1706,9 +1706,9 @@ def _(cur):
     return (got == 'true|true' and others == ['false'] * 4, f"audit-required → {got} · pending/void/cancelled/draft → {others}")
 
 
-# ================= cost import (D24, second builder, 28 Sep 2026): the raw Payments cost exports =================
+# ================= cost import (D25, second builder, 28 Sep 2026): the raw Payments cost exports =================
 def cl(ref, n, typ, status, amount, created, **kw):
-    """one Transaction Expense Export line, as js/120 sends it (line_key = ref|type|created)"""
+    """one Transaction Expense Export line, as js/121 sends it (line_key = ref|type|created)"""
     d = {'ref': ref, 'line_key': ref + '|' + typ.lower() + '|' + created, 'expense_type': typ, 'status': status,
          'status_raw': status, 'amount_sar': amount, 'created_on': created}
     d.update(kw); return d

@@ -1,7 +1,7 @@
--- Cost import — the raw Direct Payments cost exports (second builder, 28 Sep 2026; DECISIONS D24). Rollback:
+-- Cost import — the raw Direct Payments cost exports (second builder, 28 Sep 2026; DECISIONS D25). Rollback:
 -- cost-import.rollback.sql. No existing data changes: two new tables, one import function, one insert trigger.
 --
--- The files (Drive 04 §4–5), read by js/120-cost-import.js in the browser and sent here in chunks:
+-- The files (Drive 04 §4–5), read by js/121-cost-import.js in the browser and sent here in chunks:
 --   · Transaction Expense Export — one row per expense line: Invoice# (the Payments reference = the money row's
 --     invoice_no), Amount (SAR) (blank while Pending), Expense Type, Status, Created At, Submission Date,
 --     Approval/Rejection Date, Merchant, ID Reference, Submitter, Approver/Rejector. The customer and card columns are
@@ -100,7 +100,7 @@ $$;
 -- 5. the import — lines, facts, then the cost of every reference it touched
 -- =====================================================================
 create or replace function public.fn_cost_import(
-  p_lines jsonb default '[]'::jsonb,       -- Transaction Expense Export lines (already read and named by js/120)
+  p_lines jsonb default '[]'::jsonb,       -- Transaction Expense Export lines (already read and named by js/121)
   p_facts jsonb default '[]'::jsonb,       -- Expense Invoice Export / Revenue Report rows, one per reference
   p_seen_at timestamptz default null,      -- the file's Payments export time (newer file wins)
   p_window_from timestamptz default null,  -- the file's first and last Created At (lines are replaced inside it)

@@ -12,7 +12,7 @@
 -- WIPED (business records and logs): companies, contacts, activities, client IDs, discount-code links, company
 --   files (rows), website-form review rows, requests, offers, bookings/invoices/offers/projects/requests mirrors,
 --   merges, external refs, the finance mirror (invoices and their item lines, transactions, client links, expenses,
---   the Payments cost lines and per-invoice facts of the cost import (D24), capture tables,
+--   the Payments cost lines and per-invoice facts of the cost import (D25), capture tables,
 --   receipts, proof documents), generated documents, share links, tasks and everything under them, projects,
 --   work-finance links, achievements/report lines, reports, proofs (rows), event sign-ups, and the logs:
 --   record_history, ksa_events_audit, app_state_history, and app_state's own `audit` and `recents` lists.

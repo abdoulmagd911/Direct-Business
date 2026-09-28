@@ -1,4 +1,4 @@
--- Cost fallback from the Revenue Report (second builder, 28 Sep 2026; DECISIONS D24). Rollback: cost-fallback.rollback.sql.
+-- Cost fallback from the Revenue Report (second builder, 28 Sep 2026; DECISIONS D25). Rollback: cost-fallback.rollback.sql.
 -- Needs d23-estimated-cost.sql AND cost-import.sql applied first (it builds on both); refuses otherwise.
 --
 -- The order a money row's cost is read in (the oversight's ruling of 28 Sep, Drive 04 §5 "Wins"):
