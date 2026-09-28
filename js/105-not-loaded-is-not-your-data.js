@@ -115,12 +115,19 @@
     if(current==='today'){
       try{
         var calm=/Today is calm|all clear|اليوم هادئ|على ما يرام/i;
+        var busy=/\d+\s+items?\s+needs?\s+your attention|يحتاج(ان)? إلى انتباهك|تحتاج إلى انتباهك/i;
         var said=fl('Today cannot be judged — your records have not loaded.',
                     'لا يمكن الحكم على اليوم — لم تُحمَّل سجلاتك.');
         [].slice.call(view.querySelectorAll('p,div,span,h2,h3')).forEach(function(n){
           try{ if(n.children.length) return; var t=(n.textContent||'').trim();
-            if(t.length<100&&calm.test(t)&&n.getAttribute('data-v105')!=='1'){
+            if(t.length<100&&(calm.test(t)||busy.test(t))&&n.getAttribute('data-v105')!=='1'){
               n.setAttribute('data-v105','1'); n.textContent=said; } }catch(_){}
+        });
+        /* QA 28 Sep (live): the banner said "nothing on this page is worked out from your data" while "4 items need your
+           attention" and "1 Overdue invoices" stood under it. Every count on Today is a dash until the records load. */
+        [].slice.call(view.querySelectorAll('.chip .v, [data-count], .kpi .v, .stat .v')).forEach(function(n){
+          try{ if(n.getAttribute('data-v105-dash')==='1') return; if(!/\d/.test(n.textContent||'')) return;
+            n.setAttribute('data-v105-dash','1'); n.textContent='—'; }catch(_){}
         });
       }catch(_){}
     }
@@ -141,6 +148,15 @@
     d.style.cssText='background:#FDECEB;border:1px solid #F0453A55;border-radius:10px;padding:10px 13px;'+
       'margin:0 0 12px;font-size:12.5px;color:#a4221c;line-height:1.65;text-align:'+(ar()?'right':'left');
     var onToday=(current==='today');
+    /* QA 28 Sep (live): on the first load Today said "not loaded" — the server logs show every request of that minute
+       answered in under half a second: nothing failed, the workspace was still arriving. With no error from the app, the
+       banner now says it is still loading (amber, not red); the counts are dashes until the records are in. */
+    if(onToday&&!why){
+      d.style.background='#FEF6E7'; d.style.borderColor='#F7900955'; d.style.color='#93370D'; d.setAttribute('data-v105-loading','1');
+      d.innerHTML='<b>'+fl('Your records are still loading — the counts show a dash until they arrive',
+                            'سجلاتك قيد التحميل — تظهر الأعداد شرطةً إلى أن تصل')+'</b>';
+      view.insertBefore(d, view.firstChild); return;
+    }
     d.innerHTML='<b>'+(onToday
         ? fl('Your records are not loaded — nothing on this page is worked out from your data',
              'لم تُحمَّل سجلاتك — لا شيء في هذه الصفحة محسوب من بياناتك')
