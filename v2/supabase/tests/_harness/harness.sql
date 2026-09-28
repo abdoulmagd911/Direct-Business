@@ -251,14 +251,20 @@ begin
 end
 $$;
 
--- A session started by the sign-in flow for that auth user (the 'ok' row api.me() looks for); returns its id.
-create function test.start_session(p_uid uuid, p_at timestamptz default now(), p_keep boolean default true) returns uuid
+-- A device signed in through the flow for that auth user, as api.sign_in_complete() registers it (and the Supabase
+-- session behind it); returns the session id its JWT will carry.
+create function test.start_session(p_uid uuid, p_signed_in timestamptz default now(), p_last_seen timestamptz default null)
+  returns uuid
 language plpgsql security definer as $$
 declare
   sid uuid := gen_random_uuid();
 begin
-  insert into core.sign_in_log (at, person_id, auth_user_id, session_id, email, provider, result, keep_signed_in)
-  select p_at, a.person_id, a.auth_user_id, sid, a.email, 'email', 'ok', p_keep
+  insert into auth.sessions (id, user_id) values (sid, p_uid);
+  insert into core.device_session (person_id, auth_user_id, auth_session_id, device_label, signed_in_at, last_seen_at)
+  select a.person_id, a.auth_user_id, sid, 'Test browser', p_signed_in, coalesce(p_last_seen, p_signed_in)
+  from core.person_auth a where a.auth_user_id = p_uid;
+  insert into core.sign_in_log (at, person_id, auth_user_id, auth_session_id, email, provider, result)
+  select p_signed_in, a.person_id, a.auth_user_id, sid, a.email, 'email', 'ok'
   from core.person_auth a where a.auth_user_id = p_uid;
   return sid;
 end

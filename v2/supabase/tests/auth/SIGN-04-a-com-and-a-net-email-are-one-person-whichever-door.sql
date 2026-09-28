@@ -12,13 +12,13 @@ insert into core.person_auth (auth_user_id, person_id, email) values
   ('00000000-0000-4000-8000-0000000000c0', current_setting('t.am1')::uuid, 'test.am1@example.com'),
   ('00000000-0000-4000-8000-0000000000e0', current_setting('t.am1')::uuid, 'test.am1@example.net');
 select test.as_auth('00000000-0000-4000-8000-0000000000c0', '00000000-0000-4000-8000-00000000c001');
-select test.eq(api.sign_in_complete(true, 'google'), 'ok', 'the .com e-mail through Google');
+select test.eq(api.sign_in_complete('google'), 'ok', 'the .com e-mail through Google');
 select set_config('t.via_com', api.me() -> 'person' ->> 'id', true);
 select test.as_auth('00000000-0000-4000-8000-0000000000e0', '00000000-0000-4000-8000-00000000e001');
-select test.eq(api.sign_in_complete(true, 'zoom'), 'ok', 'the .net e-mail through Zoom');
+select test.eq(api.sign_in_complete('zoom'), 'ok', 'the .net e-mail through Zoom');
 select set_config('t.via_net', api.me() -> 'person' ->> 'id', true);
 select test.as_auth('00000000-0000-4000-8000-0000000000e0', '00000000-0000-4000-8000-00000000e002');
-select test.eq(api.sign_in_complete(false, 'email'), 'ok', 'the .net e-mail through a code');
+select test.eq(api.sign_in_complete('email'), 'ok', 'the .net e-mail through a code');
 select test.as_owner();
 select test.eq(current_setting('t.via_com'), current_setting('t.am1'), 'Google lands on the person');
 select test.eq(current_setting('t.via_net'), current_setting('t.am1'), 'Zoom lands on the same person');

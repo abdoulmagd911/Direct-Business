@@ -10,7 +10,5 @@ as $$
   join core.person p on p.id = a.person_id
   where a.auth_user_id = auth.uid()
     and p.kind = 'staff' and p.active and p.can_sign_in and p.deleted_at is null
-    and exists (select 1 from core.sign_in_log l
-                where l.session_id = core.jwt_session_id() and l.auth_user_id = auth.uid() and l.result = 'ok'
-                  and l.at > core.clock() - pg_catalog.make_interval(days => core.sign_in_days()))
+    and (core.live_device()).id is not null
 $$;

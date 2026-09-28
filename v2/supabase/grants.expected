@@ -4,14 +4,20 @@
 # it. A change here is deliberate and its PR says why.
 default types everywhere usage public
 function api.auth_user_of(p_email text) execute service_role
+function api.device_sign_out(p_device uuid) execute authenticated
+function api.device_sign_out_others() execute authenticated
+function api.device_touch() execute authenticated
 function api.me() execute authenticated
+function api.my_devices() execute authenticated
 function api.person_auth_link(p_email text, p_auth_user_id uuid) execute authenticated
 function api.person_auth_state(p_person uuid) execute service_role
+function api.person_devices(p_person uuid) execute authenticated
 function api.person_email_add(p_person uuid, p_email text, p_primary boolean, p_reason text) execute authenticated
 function api.person_email_remove(p_id uuid, p_reason text) execute authenticated
+function api.person_sign_out(p_person uuid, p_device uuid) execute authenticated
 function api.sign_in_check(p_email text, p_user_agent text) execute service_role
-function api.sign_in_complete(p_keep boolean, p_provider text, p_user_agent text) execute authenticated
-function api.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_auth_user_id uuid, p_session_id uuid, p_provider text) execute service_role
+function api.sign_in_complete(p_provider text, p_device_label text, p_user_agent text) execute authenticated
+function api.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
 function authz.is_admin() execute authenticated
 function authz.me() execute authenticated
 function core.clock() execute authenticated
