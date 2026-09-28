@@ -546,6 +546,45 @@ from unnest(array['core.department', 'core.team', 'core.role', 'core.person', 'c
   'core.person_page_level', 'core.person_capability', 'core.person_auth', 'core.person_profile', 'core.setting_def',
   'core.setting', 'core.wording']) t;
 
+-- ================================================================ foreign keys are indexed
+-- Postgres does not index the referencing side of a foreign key (Supabase's advisor: unindexed_foreign_keys). Every
+-- foreign key gets an index whose leading columns are its own — except updated_by and deleted_by: never looked up,
+-- and a person is never hard-deleted, so their foreign-key checks never scan (V111). FK-01 checks it; later steps
+-- call this for their own schemas.
+create function core.index_foreign_keys(p_schema text) returns void
+language plpgsql set search_path = ''
+as $$
+declare
+  r record;
+begin
+  for r in
+    select c.conrelid::regclass as tbl, cl.relname,
+           pg_catalog.array_agg(a.attname order by k.ord) as cols
+    from pg_catalog.pg_constraint c
+    join pg_catalog.pg_class cl on cl.oid = c.conrelid
+    join pg_catalog.pg_namespace n on n.oid = cl.relnamespace
+    cross join lateral pg_catalog.unnest(c.conkey) with ordinality k(attnum, ord)
+    join pg_catalog.pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum
+    where c.contype = 'f' and n.nspname = p_schema
+      and not exists (
+        select 1 from pg_catalog.pg_index i
+        where i.indrelid = c.conrelid and i.indpred is null
+          and (i.indkey::text || ' ') like (pg_catalog.array_to_string(c.conkey, ' ') || ' %'))
+    group by c.oid, c.conrelid, cl.relname
+  loop
+    if r.cols in (array['updated_by']::name[], array['deleted_by']::name[]) then
+      continue;
+    end if;
+    execute pg_catalog.format('create index %I on %s (%s)',
+      pg_catalog.left(r.relname || '_' || pg_catalog.array_to_string(r.cols, '_') || '_fk', 63), r.tbl,
+      (select pg_catalog.string_agg(pg_catalog.quote_ident(x), ', ') from pg_catalog.unnest(r.cols) x));
+  end loop;
+end
+$$;
+
+select core.index_foreign_keys('audit');
+select core.index_foreign_keys('core');
+
 -- ================================================================ row guards
 -- A manager chain never loops; a person's team is in their department.
 create function core.person_guard() returns trigger
