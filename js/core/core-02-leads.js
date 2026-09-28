@@ -326,8 +326,8 @@ function renderClients(v){
      map has never heard of sorts after everything rather than nowhere.
 
      NAME — the rows show the Arabic name when there is one (js/54's nmMain), but the sort key was
-     always b.name, the stored English one. In Arabic the list therefore read Abdel Hadi… /
-     Al Sharq… / مؤسسة العرض… / نادي الجندل… / alnahla… — Arabic names sitting in the middle of a
+     always b.name, the stored English one. In Arabic the list therefore read Amber Holding… /
+     Al Waha… / مؤسسة الواحة… / نادي النخبة… / albustan… — Arabic names sitting in the middle of a
      Latin run, ordered by something the reader cannot see. It now sorts by the name actually on the
      row, with localeCompare in the language being read, so Arabic collates as Arabic. */
   const HEALTH_RANK={"At risk":0,Watch:1,New:2,Good:3,Lost:4};

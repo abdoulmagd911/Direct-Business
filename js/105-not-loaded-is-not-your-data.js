@@ -9,7 +9,7 @@
 
    Sixty-five companies, a full pipeline, stage chips with counts, rows you can open — and **not one
    of them is real**. They are the demo records this app ships with, hardcoded in core-01:
-   "Falcon Conferences Group", "Crestline Minerals", ids `b_mdd`, `b_maaden`. The real database
+   "Falcon Conferences Group", "Crestline Minerals", ids `b_demo01`, `b_demo02`. The real database
    holds 108 companies and none of them is on the screen.
 
    The app is not silent about the failure: a red line reads "Could not load leads: server error".

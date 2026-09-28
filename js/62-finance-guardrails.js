@@ -416,8 +416,8 @@
   };
 
   /* ---------- Part 3: duplicate companies — detect, merge (reversibly), undo (M18, 2026-08-29)
-     The MDD split was TWO business records for one company (the corporate-clients import
-     created "MDD" beside the older "MDD — Smart Madad IT"), so the alias map merged the
+     The Client M split was TWO business records for one company (the corporate-clients import
+     created "Client M" beside the older "Client M — (its full IT-company name)"), so the alias map merged the
      display while contacts, profiles, links and transactions stayed split. Owner: "find the
      fix for the future and go ahead." Detection runs live from data the app already holds;
      the merge is ONE audited RPC (fn_merge_businesses, migration business_merges_reversible)

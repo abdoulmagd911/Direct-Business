@@ -9,14 +9,14 @@
 
 **TRANSACTION → INVOICE → SERVICE LINES (fee pairs) → PAYMENT RECEIPTS**
 
-Proof pair from the real system: transaction `1163601785` ("Direct Flights, Direct Hotels,
-Direct Packages", 507,800.00 SAR, status *Issued → 1163605527*) became invoice reference
-`1163605527` / **DPIN-284070**, whose six lines sum to exactly 507,800.00 SAR.
+Proof pair from the real system: transaction `1160000107` ("Direct Flights, Direct Hotels,
+Direct Packages", 507,800.00 SAR, status *Issued → 1160000109*) became invoice reference
+`1160000109` / **DPIN-900001**, whose six lines sum to exactly 507,800.00 SAR.
 
 ### 1 · Transaction (per corporate client)
 | Field seen | Notes |
 |---|---|
-| Receipt ref | e.g. `1163735256` — its own number series |
+| Receipt ref | e.g. `1160000119` — its own number series |
 | Product(s) | one or SEVERAL: "Direct Hotels, Direct Packages, Direct Support" |
 | Amount (SAR) | transaction total |
 | Invoice issuing | `Need to issue` → `Issued` + the invoice reference it became |
@@ -25,7 +25,7 @@ Direct Packages", 507,800.00 SAR, status *Issued → 1163605527*) became invoice
 An invoice can bundle several transactions; a transaction can span several services.
 
 ### 2 · Invoice
-Header: Reference Number (`1163605527`) · tax number **DPIN-xxxxx** or **TTIN-xxxxx**
+Header: Reference Number (`1160000109`) · tax number **DPIN-xxxxx** or **TTIN-xxxxx**
 (Fatoora/ZATCA badge) · Receipt date in Gregorian AND Hijri · Salesman · Branch
 (e.g. Buraidah Branch) · Seller (شركة المسافر المباشر للسفر و السياحة) · Buyer block
 (company, email, phone, address, VAT number e.g. 310404215200003) · status badges
@@ -43,7 +43,7 @@ Discount · Total after discount · Tax amount · Total after VAT.
 Totals: Before VAT · Total VAT · After VAT · **Remaining Amount** (0.00 when settled).
 
 ### 4 · Payment receipts
-`PR-427355` · Payment method (e.g. "MDD Company" wallet) · Amount · Remaining after ·
+`PR-900001` · Payment method (e.g. "<client> Company" wallet) · Amount · Remaining after ·
 Status `Fully Applied` · Payment by (person) · created timestamp.
 
 ## URL patterns (real)
@@ -112,7 +112,7 @@ the model. **Corrections to the section above:**
    `is_taxable false/true`, `tax_rate 15`, `taxable_amount`, `tax_amount`, bilingual
    service names (`name_en`/`name_ar`), product keys (`direct_flights`, `direct_hotels`,
    `direct_visa`, `direct_support`, `direct_course`, `direct_packages`, `direct_wallet`).
-   VAT sits on the Service-Fee line only — invoice 1163735256: total 127,911.98 but
+   VAT sits on the Service-Fee line only — invoice 1160000119: total 127,911.98 but
    VAT just 105.39.
 4. **Discounts/promos live at LINE-ITEM level** (`is_discountable`, `discount_type`
    ("fixed"), `discount_value`, `discount_value_incl_vat`) — not on the header, and
@@ -198,7 +198,7 @@ Still valid, unaffected by the correction:
    list to the riyal, with all 61 parent invoice ids resolving cleanly. This is the same
    transaction→invoice relationship our `transaction_ref` column already models (Round 2/3) —
    now confirmed correct against real, large-scale data, not just the one proof pair.
-2. **`zatca_invoice_number` is the field behind the DPIN** (e.g. `DPIN-315074`) — confirmed as
+2. **`zatca_invoice_number` is the field behind the DPIN** (e.g. `DPIN-900002`) — confirmed as
    the exact same DPIN shown to users in the Corporate B2B Admin Panel. One field, consistent
    across both systems; nothing separate to reconcile.
 3. **Payment receipts attach at the INVOICE level, never per-service.** `payment_receipts`

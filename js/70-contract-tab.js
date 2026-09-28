@@ -325,9 +325,9 @@
   /* A2, 2026-08-25 (owner-approved audit fix) — the client record's CR was never read. crVat and
      legalName appear nowhere in this tab, so party2.cr started empty and was typed by hand for
      EVERY contract, including the 20 client records that already hold a CR. Owner's scenario found
-     it: picking MDD produced a contract with blank legal identity.
+     it: picking Client M produced a contract with blank legal identity.
      Fills only what is still empty — anything already typed is never overwritten.
-     Duplicate records: MDD exists twice (dp record has the CR, CRM record has none). Rather than
+     Duplicate records: Client M exists twice (dp record has the CR, CRM record has none). Rather than
      merge live client data from here, fall back to an exact normalised-name twin that carries a CR
      and SAY SO in the form, so a borrowed value is visible rather than silent. */
   function ctNorm(n){ return String(n||'').split('—')[0].replace(/[^a-zA-Z0-9\u0600-\u06FF]/g,'').toLowerCase(); }

@@ -1292,7 +1292,7 @@ function v21XSSAudit(){const issues=[];['businesses','bookings','invoices','offe
 window.v21XSSAudit=v21XSSAudit;
 // Inject hash-chain banner on every render (above view content) if mismatches found
 const _v21OrigRender3=render;render=function(){_v21OrigRender3();setTimeout(()=>{const view=document.getElementById('view');if(!view||view.querySelector('.v21HashBanner'))return;const b=v21HashChainBanner();if(b){b.classList.add('v21HashBanner');view.insertBefore(b,view.firstChild);}},40);};
-/* ===== STEP A+B — reconcile with Ahmed's master sheets (airlines + B2B clients + MDD) ===== */
+/* ===== STEP A+B — reconcile with Ahmed's master sheets (airlines + B2B clients + one client's projects) ===== */
 // 26 missing airlines from Ahmed's master (Q:\Downloads\Airlines Database.xlsx, 2026-05-30)
 const AIR_ADD_V21=[{name:'Beond',code:'B4',stock:'971',icao:'***',country:''},{name:'AnadoluJet - AJet',code:'VF',stock:'204',icao:'TKJ',country:'Turkey'},{name:'Air Peace Limited',code:'P4',stock:'710',icao:'APK',country:'Nigeria'},{name:'ASKY Airlines',code:'KP',stock:'032',icao:'SKK',country:'Togo'},{name:'Alexanderia Airlines',code:'DQ',stock:'293',icao:'KHH',country:''},{name:'AlMasria Universal Airlines',code:'UJ',stock:'110',icao:'LMU',country:'Egypt'},{name:'APG Airlines',code:'GP',stock:'275',icao:'RIV',country:'France'},{name:'FlexFlight',code:'W2',stock:'365',icao:'FXT',country:''},{name:'Fly Arik Air',code:'W3',stock:'725',icao:'ARA',country:'Nigeria'},{name:'Euro Airlines',code:'Q4',stock:'291',icao:'ELE',country:''},{name:'Himalaya Airlines',code:'H9',stock:'769',icao:'HIM',country:''},{name:'MyWay Airlines',code:'MJ',stock:'669',icao:'MYW',country:''},{name:'Nepal Airlines',code:'RA',stock:'285',icao:'RNA',country:''},{name:'Nesma Airlines',code:'NE',stock:'477',icao:'NMA',country:'Egypt'},{name:'Nile Air',code:'NP',stock:'325',icao:'NIA',country:'Egypt'},{name:'Safe Air SAC',code:'K3',stock:'645',icao:'SAQ',country:''},{name:'Scat Air',code:'DV',stock:'655',icao:'VSV',country:''},{name:'SereneAir',code:'ER',stock:'092',icao:'SEP',country:''},{name:'Indonesia AirAsia',code:'QZ',stock:'975',icao:'AWQ',country:'Indonesia'},{name:'Super Air Jet',code:'IU',stock:'920',icao:'SJV',country:'Indonesia'},{name:'Air India Express',code:'IX',stock:'236',icao:'AXB',country:'India'},{name:'US-Bangla Airlines',code:'BS',stock:'779',icao:'***',country:''},{name:'Turkmenistan Airlines',code:'T5',stock:'542',icao:'TUA',country:'Turkmenistan'},{name:'Air Cairo',code:'SM',stock:'381',icao:'MSC',country:'Egypt'},{name:'Nouvel Air',code:'BJ',stock:'796',icao:'LBT',country:'Tunisia'},{name:'Jordan Aviation',code:'R5',stock:'151',icao:'JAV',country:'Jordan'}];
 // 5 additional providers from Ahmed's master (PKFare, Dnata, Sabre, Travelport, RateHawk)
@@ -1301,19 +1301,19 @@ const PROV_ADD_V21=[{name:'PKFare',type:'NDC aggregator',source:'B2B fare aggreg
    old Q:\Downloads\B2B.xlsx import and re-inject them into d.businesses on EVERY load (step 3
    below). They were never real rows in the businesses table — the app was showing 118/81
    records against a database of 110/80, and 7 of the 8 duplicated a client that already
-   existed in the database under its real name (the team saw Directorate of Public Security
-   twice and Riyadh Chamber three times: b_rcc_vip and b_rcc_team both duplicated the one
-   real "Riyadh Chamber" row). The database is the single source of truth for clients —
+   existed in the database under its real name (the team saw Client PS
+   twice and Client RC three times: two seeded ids both duplicated the one
+   real "Client RC" row). The database is the single source of truth for clients —
    nothing gets re-seeded from a spreadsheet snapshot on every page load, ever again.
    The one entry that had NO database counterpart, preserved here in case it still needs to
    be entered for real, through the UI, by a person who confirms it first:
-     Riyadh Economic Forum / منتدى الرياض الإقتصادي — segment "Forum/event", entity type
+     a forum organiser (its name taken out of this public file on 2026-09-28) — segment "Forum/event", entity type
      "Government entity", payment configuration "Tender", customerType "Tender",
      note "Per WhatsApp findings" (unverified against Direct Payments at the time it was
      hardcoded). Full detail also lives in docs/BACKLOG.md. */
 const B2B_CLIENTS_V21=[];
-// MDD project tags (existing lead b_mdd from v17 stays; we add project history)
-const MDD_PROJECTS_V21=['Osaka October','Lisbon October','DC October','London March','USA January','Morocco January'];
+// Project tags for the first demo client (b_demo01 from v17 stays; we add project history)
+const DEMO_PROJECTS_V21=['Osaka October','Lisbon October','DC October','London March','USA January','Morocco January'];
 function migrateV21(d){
   // 1. Add missing airlines (additive, by IATA code uniqueness)
   d.airlines=d.airlines||[];
@@ -1333,8 +1333,8 @@ function migrateV21(d){
   d.businesses=d.businesses.filter(function(b){return !(b&&b._v21added&&/^b_/.test(String(b.id||'')));});
   const haveBiz=new Set(d.businesses.map(b=>b.id));
   B2B_CLIENTS_V21.forEach(c=>{if(haveBiz.has(c.id)){const existing=d.businesses.find(b=>b.id===c.id);if(existing){['paymentConfiguration','customerType','creditLimit','creditCycle','vatNumber','tenderAmount','expectedCOGS','expectedGP'].forEach(k=>{if(c[k]!==undefined&&existing[k]===undefined)existing[k]=c[k];});existing._v21upgraded=true;}return;}d.businesses.push(Object.assign({status:c.isClient?'Won':'In progress',owner:'Abdelrahman',activities:[],_v21added:true},c));haveBiz.add(c.id);});
-  // 4. Tag MDD lead with project history
-  const mdd=d.businesses.find(b=>b.id==='b_mdd');if(mdd){mdd.recentProjects=Array.from(new Set([...(mdd.recentProjects||[]),...MDD_PROJECTS_V21]));}
+  // 4. Tag the first demo client with project history
+  const demo=d.businesses.find(b=>b.id==='b_demo01');if(demo){demo.recentProjects=Array.from(new Set([...(demo.recentProjects||[]),...DEMO_PROJECTS_V21]));}
   // 5. Mark migration tag
   d._v21reconciled=true;
 }
