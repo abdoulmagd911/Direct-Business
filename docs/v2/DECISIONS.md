@@ -6,14 +6,15 @@ words in double quotes; the long story in the commit. Whoever learns a rule writ
 change that taught it.
 
 **ID ranges** (so two builders never collide — spec A18): V1–V99 architect and oversight · V100–V199 builder A ·
-V200–V299 builder B. A ruled open question keeps its number inside its ID: question Qn became **V(20+n)** (Q7 → V27),
-so an old "Q7" still finds its answer here.
+V200–V299 builder B. A ruled open question of the first round keeps its number inside its ID: question Qn (Q1–Q31) became
+**V(20+n)** (Q7 → V27), so an old "Q7" still finds its answer here. Later questions (Q32 on) take the next free V
+number when ruled, and the decision names its question.
 
 ## Owner decisions, 28 Sep 2026 (relayed by the oversight)
 
 **V1 — The transaction is the unit of revenue** ACTIVE · 2026-09-28. Billing invoices (`is_consolidated`) re-bill transactions and never count as revenue; collections are settled on them. Cost = approved expenses on the transaction; line names are only a flagged estimate. The DPIN (child of the billing or standalone invoice) = total − approved expenses and is the check: cost Provisional while an expense is pending or none is registered (commission-only excepted), Final once the DPIN exists; "expenses missing" when the DPIN is 100 % of a non-commission total; a billing total must equal its transactions. Refines D26: the transaction is counted, the billing invoice is the zero-revenue link. Spec §3.6.
 
-**V2 — Sign-in: Google for .com, Zoom for .net, an emailed code as fallback** ACTIVE · 2026-09-28. No passwords. A person holds one or more allowed emails; the provider-verified email must match an allowed email of an active person, else access is denied; identities link to that person and never create people; every sign-in is logged. Spec §4.
+**V2 — Sign-in: one person, several allowed emails, no passwords** ACTIVE · 2026-09-28, amended by V59 the same day (the emailed code is now the door; Google for .com and Zoom for .net become later shortcuts). No passwords. A person holds one or more allowed emails; the provider-verified email must match an allowed email of an active person, else access is denied; identities link to that person and never create people; every sign-in is logged. Spec §4.
 
 **V3 — The online appraisal tool wins over the Excel form** ACTIVE · 2026-09-28. Templates are seeded from the tool (weights 70/25/5, its grade scale, points tables and items), gaps filled from the form; everything stays a setting. The tool's data comes only as an export the owner hands over, kept out of the repository (rules 7 and 8), loaded by a person through the importer. Spec §3.10.
 
@@ -23,21 +24,21 @@ so an old "Q7" still finds its answer here.
 
 **V6 — Environments: free tier preferred, any cost flagged** ACTIVE · 2026-09-28. The owner approves creating the new Supabase and Vercel projects. Spec §10.
 
-**V7 — A fourth theme, "Direct"** ACTIVE · 2026-09-28. Orange and charcoal, beside the unchanged Light, Dark and Colorful. The accent is a fill only — never text; a label on it is charcoal, never white; orange text uses the link colour. Values: BUILD-PLAN "Design tokens" (source: the design system page).
+**V7 — A fourth theme, "Direct"** REPLACED by V60 · 2026-09-28. Orange and charcoal beside Light, Dark and Colorful; its first values were replaced the same day by the official palette (V60).
 
 **V8 — Comfortable density by default** ACTIVE · 2026-09-28. 14 px body, 40 px controls, 44–52 px table rows, 24–32 px between sections; Compact (32 px rows) is a per-person choice. "Nothing cramped, especially My day." Replaces v0.7's "dense tables (32px rows)" as the default.
 
-**V9 — "My profile" for every person** ACTIVE · 2026-09-28. First in Settings; each person edits their own: photo or initials with a colour, full name, display name / nickname, badge (none / icon / zodiac sign), theme, density, language, start page, drawer, notification choices. Shown in the top bar, the drawer foot and owner/helper chips. Company logos upload on the company record. Spec §3.1, §3.4.
+**V9 — "My profile" for every person** ACTIVE · 2026-09-28. First in Settings; each person edits their own: photo or initials with a colour, full name, display name / nickname, badge (none / icon / zodiac sign), theme, density, language, start page, drawer, notification choices. Shown in the top bar, the drawer foot and owner/helper chips. Partner logos upload on the partner record (V53). Spec §3.1, §3.4.
 
 **V10 — Reports: one tab row, Monthly · Quarterly** ACTIVE · 2026-09-28. The quarterly report's sections and actions: spec §3.9 and the canvas's QuarterlyReport.
 
-**V11 — Screens carry data and controls only; every entity is a link** ACTIVE · 2026-09-28. No hint text, explanatory notes, banners, callouts or demo annotations inside screens ("the old app's biggest complaint"). Every company, invoice, task, achievement, KPI, report line and person is a link. Spec §2.5, rule A19.
+**V11 — Screens carry data and controls only; every entity is a link** ACTIVE · 2026-09-28. No hint text, explanatory notes, banners, callouts or demo annotations inside screens ("the old app's biggest complaint"). Every partner, invoice, task, achievement, KPI, report line and person is a link. Spec §2.5, rule A19.
 
 **V13 — The same domain, moved at go-live** ACTIVE · 2026-09-28. v2 uses `directksab2b.com`. Staging runs on the new Vercel project's `vercel.app` address; at go-live the domain moves from the old Vercel project to the new one, and the Supabase Auth site URL and redirect URLs (and any OAuth origins) list it. Spec §10, plan P6-8.
 
 **V21 — Free plan: the old app's database is paused on 1 Oct** ACTIVE · 2026-09-28. The owner chose the free way, pausing `direct-business` (the old app), not the appraisal tool: the oversight pauses it on 1 Oct after the Q3 close of 30 Sep; from then the old app is unavailable (data kept, restorable). `directksa-performance` stays live. The oversight then creates `direct-commercial` on the free plan. (Was Q1.)
 
-**V23 — Google and Zoom keys: later** DEFERRED · 2026-09-28. P3-2 proceeds with the emailed code on the CI stack; the cloud sign-in doors wait for the keys. (Was Q3.)
+**V23 — Google and Zoom keys: later** DEFERRED · 2026-09-28. P3-2 proceeds with the emailed code; since V59 Google and Zoom are optional shortcuts, built when their keys arrive. (Was Q3.)
 
 ## Oversight rulings, 28 Sep 2026 (delegated by the owner)
 
@@ -45,25 +46,25 @@ so an old "Q7" still finds its answer here.
 
 **V22 — Backups: the paid plan at go-live, not before** ACTIVE · 2026-09-28. Until then only trial values are in the database. (Was Q2.)
 
-**V24 — Emailed codes via Resend's free tier** ACTIVE · 2026-09-28. Sending from a sub-domain such as `auth.directksa.com` with its DNS records; until it exists, Google and Zoom are the only doors. (Was Q4.)
+**V24 — Emailed codes via Resend's free tier** ACTIVE · 2026-09-28. Sending from a sub-domain such as `auth.directksa.com` with its DNS records; needed before any real user signs in (V59) — until then staging uses Supabase's built-in sender, which reaches only the owner. (Was Q4.)
 
-**V25 — Words: "Sales (GMV)" and "Margin"** ACTIVE · 2026-09-28. Screens say Sales (GMV) for the invoice total less top-ups (D21's figure) and Margin for it minus approved cost; no money rule changes. (Was Q5.)
+**V25 — Words: "Sales (GMV)" and "Margin"** REPLACED by V73 · 2026-09-28. Screens were to say Sales (GMV) for the invoice total less top-ups (D21's figure) and Margin for it minus approved cost; the owner's words won (V73); no money rule changed. (Was Q5.)
 
-**V26 — Everyone edits company details; money-moving changes are held back** ACTIVE · 2026-09-28. Details, contacts, notes and files: everyone (D7). Identifiers: managers, the head, admins. Merging and changing the account manager: the head and admins. (Was Q6.)
+**V26 — Everyone edits partner details; money-moving changes are held back** ACTIVE · 2026-09-28. Details, roles, contracts, contacts, notes and files: everyone (D7). Identifiers: managers, the head, admins. Merging and changing the account manager: the head and admins. (Was Q6.)
 
 **V27 — Credit follows the account manager on the invoice's paid date** ACTIVE · 2026-09-28. Invoices paid before the effective date stay with the old manager; a manager may split or reassign one invoice with a note. (Was Q7.)
 
 **V28 — A discount code matches on the invoice's creation (booking) date** ACTIVE · 2026-09-28. (Was Q8; the old app used the paid date.)
 
-**V29 — A pin is the last resort for a conflict** ACTIVE · 2026-09-28. First move the wrong clue or merge; else "these rows belong to company A" with a reason, logged, undoable, pin-marked. (Was Q9.)
+**V29 — A pin is the last resort for a conflict** ACTIVE · 2026-09-28. First move the wrong clue or merge; else "these rows belong to partner A" with a reason, logged, undoable, pin-marked. (Was Q9.)
 
-**V30 — Individuals count, credited to nobody, listed apart** ACTIVE · 2026-09-28. (Was Q10; D25.)
+**V30 — Individuals count, credited to nobody, listed apart** ACTIVE · 2026-09-28. Campaign codes are treated the same way (V65). (Was Q10; D25.)
 
-**V31 — Last year's figures are typed once until imports bring history** ACTIVE · 2026-09-28. Per-KPI readings for last year's months; a company can be marked "client before 2026"; Payments history from 1 January 2025 replaces both in the import phase. (Was Q11.)
+**V31 — Last year's figures are typed once until imports bring history** ACTIVE · 2026-09-28. Per-KPI readings for last year's months; a partner can be marked "client before 2026"; Payments history from 1 January 2025 replaces both in the import phase. (Was Q11.)
 
 **V32 — Values that never become identifiers** ACTIVE · 2026-09-28. Every address at directksa.com and directksa.net (and sub-domains), the Payments test VAT, and any customer name the owner lists as a test; the list is a setting. (Was Q12.)
 
-**V33 — Achievements without a proof file count, flagged "no evidence yet"** ACTIVE · 2026-09-28. On the KPI page and in the KPI sheet. (Was Q13.)
+**V33 — Achievements without a proof file count, flagged "no evidence yet"** ACTIVE · 2026-09-28. On the KPI page and in the KPI sheet — not in appraisals, where V68 is stricter. (Was Q13.)
 
 **V34 — Report layout source: the issued PDFs and the artboards** ACTIVE · 2026-09-28. No PowerPoint templates are known. The layout comes from the department's issued monthly report PDFs in Drive (folder `1A5ua72_qosteLvSn22XdWgUFD9vZEqhl`, 2025; January 2026 in `12F8bnr6WqxQdJvu2PB9s6TKRG8vFi0rj`) and the canvas's MonthlyReport and QuarterlyReport artboards; the PPTX is generated to that layout until the owner supplies a template. The PDFs hold real figures — they are read, never copied into the repository. (Was Q14.)
 
@@ -79,9 +80,9 @@ so an old "Q7" still finds its answer here.
 
 **V40 — Gregorian dates and Latin digits in both languages** ACTIVE · 2026-09-28. (Was Q20.)
 
-**V41 — Company categories and tiers are typed by the owner in Settings** ACTIVE · 2026-09-28. Not blocking. (Was Q21.)
+**V41 — Partner categories and tiers are typed by the owner in Settings** ACTIVE · 2026-09-28. Not blocking. (Was Q21.)
 
-**V42 — Appraisal details, where the tool does not say** ACTIVE · 2026-09-28. The tool overrides each of these where it speaks: the manager's evaluation counts (self beside it); cap 120 %; escalations: more is better; "on-time reports" = achievements and updates logged before the report's cut-off day; "weekly updates" = weeks (Sunday–Thursday) with an update on each task in progress; visible to the person, the evaluator, the reporting line and admins; personal targets entered by the manager at cycle start; MF5 exclusions apply to appraisal figures too. (Was Q22.)
+**V42 — Appraisal details, where the tool does not say** ACTIVE · 2026-09-28. The tool overrides each of these where it speaks: the manager's evaluation counts (self beside it); cap 120 %; escalations: more is better; "on-time reports" = achievements and updates logged before the report's cut-off day; "weekly updates" = weeks (Sunday–Thursday) with an update on each task in progress (the item "weekly pipeline / task updates" also counts logged calls — V63); visible to the person, the evaluator, the reporting line and admins; personal targets entered by the manager at cycle start; MF5 exclusions apply to appraisal figures too. (Was Q22.)
 
 **V43 — Past appraisals from the tool's export; ClickUp once** ACTIVE · 2026-09-28. The owner's export seeds the templates and brings the last two cycles as read-only "legacy"; ClickUp's KPI records imported once, then ClickUp stops for them; nothing from the old app's tasks is moved (D9). (Was Q23.)
 
@@ -95,11 +96,64 @@ so an old "Q7" still finds its answer here.
 
 **V48 — No main-builder handover note exists** CLOSED · 2026-09-28. It was never written (the owner denied its last approval); the production branch's code is the source for that builder's work. (Was Q28.)
 
-**V49 — Everyone types invoices; a typist may pin a company** ACTIVE · 2026-09-28. Everyone in Commercial types invoices and edits their own; managers correct anyone's; a customer with no company may be pinned by the typist, and its details go to a manager as a suggested identifier. (Was Q29.)
+**V49 — Everyone types invoices; a typist may pin a partner** ACTIVE · 2026-09-28. Everyone in Commercial types invoices and edits their own; managers correct anyone's; a customer with no partner may be pinned by the typist, and its details go to a manager as a suggested identifier. (Was Q29.)
 
 **V50 — A person may adopt a typed invoice so imports keep it current** ACTIVE · 2026-09-28. (Was Q30.)
 
 **V51 — VAT inside the margin: decided at go-live** DEFERRED · 2026-09-28. Until then the margin is kept as recorded (D21); decided with the revenue definition (V4). (Was Q31.)
+
+## Owner changes, round 3, 28 Sep 2026 (relayed by the oversight)
+
+**V52 — Companies become Partners, with roles; the schema is renamed too** ACTIVE · 2026-09-28. One record per organisation, holding one or more roles — Client, Supplier, Strategic partner (sub-kinds sales channel, integration, payment solution) — each role with its stage. The partner card has one tab row, Overview · Finance · Contracts & files · Work · Achievements, a tab shown only when it applies, and each role adds its section to Overview (the role's setting). The owner left "schema or screens only" to the architect: **the schema is renamed as well** (`partner.*`, routes `/partners`), because nothing is built yet and one word in code and screens avoids a translation layer forever. The partner ID is `DK-P-0000` (a setting). Panel and full page carry the same header and actions (New task, Log achievement, New project) and tab counts. Spec §3.4.
+
+**V53 — Logos and avatars everywhere** ACTIVE · 2026-09-28. A partner's logo (SVG or PNG, at least 256 px; else its monogram, or a blank tile by setting) and a person's avatar, nickname and badge show in rows, chips, headers and hover cards. Spec §3.4, §2.5.
+
+**V54 — The partner card's period view, deep links and saved views** ACTIVE · 2026-09-28. A switch MTD · QTD · YTD · Custom; tiles against the same period last year and a Q1–Q4 strip this year against last; **Open in Finance** carries the partner, period and kind in the URL, so Finance shows the same figures; every Finance filter lives in the URL; saved views (personal or shared) on every list. The tiles say Revenue · Cost · Profit (V73). Spec §3.4, §6.
+
+**V55 — Files are named automatically, live** ACTIVE · 2026-09-28. Each file kind has a name pattern (a setting, with a live preview: invoice, contract, agreement, rate sheet, certificate, meeting note …); the name is computed when shown, from the records the file is linked to, so a renamed partner renames its files; downloads save under it (Content-Disposition); the original name is kept on record. Spec §3.4.
+
+**V56 — Contracts with dates, computed status and renewal reminders** ACTIVE · 2026-09-28. Start and end dates; status Active / Expires in N days (from 30 days) / Expired / Not started, never stored; reminders 60 · 30 · 7 days before the end (a setting; per contract on/off or its own days) to the account manager, followers and, by setting, the commercial manager; the first reminder makes the renewal task. Terms before → after sit on the contract, each linked to its achievement. Spec §3.4.
+
+**V57 — The reports archive, legacy PDFs and compare** ACTIVE · 2026-09-28. The Reports landing lists every monthly and quarterly report by year, with status Draft / Issued / Legacy PDF; the department's issued PDFs of 2024–2026 are loaded once (kind, period, headline figures typed, section pages) and stay in Storage, never in the repository; any two reports compare side by side. Spec §3.9.
+
+**V58 — Names are live everywhere, even in issued reports** ACTIVE · 2026-09-28. An issued report freezes figures and wording, but people and partners in it are entity tokens rendered with the current name; the hash covers the tokens, so a rename changes no figure and no hash. FLOW-10 tests it. Spec §3.3, §3.9.
+
+**V59 — Sign-in: the emailed code is the door** ACTIVE · 2026-09-28. Email, then a 6-digit code, and "keep me signed in" for 30 days (enforced by the app). The page shows only the official logo, "Commercial Workspace" / "مساحة العمل التجارية", EN | ع and © Direct. The department is "Commercial" / "الإدارة التجارية". Never in the app's wording: "Direct KSA", "DirectKSA", "Direct Corporate", "B2B", "MICE" (a check enforces it). A real sender (V24) is needed before real users; staging may use Supabase's built-in sender for the owner. Amends V2. Spec §4.
+
+**V60 — The Direct theme uses the official palette; every theme has a primary** ACTIVE · 2026-09-28. Replaces V7's values: slate `#323E48` navigation, orange `#F06820` accent (a fill or mark only, never text, never under a label), primary `#C94C14` for filled buttons with white labels (4.64:1), link `#B5490E`. `--primary`, `--primary-hover` and `--on-primary` exist in all four themes. The official logo is never recoloured: slate wordmark on light, white on dark or slate. Values: BUILD-PLAN "Design tokens".
+
+**V61 — Shared patterns** ACTIVE · 2026-09-28. A notification centre (All · Mentions · Assigned to me, by day, mark all read, snooze); alerts arrive as notifications (contract expiring, invoice unpaid past 45 days, KPI behind pace) from one daily job; hover cards for people and partners; Follow on any record, notifying followers; an activity timeline with Undo on every record; saved views; bulk actions as one request and one Undo; "Since your last visit" on My day. Spec §3.3, §6.
+
+## Oversight rulings, round 4, 28 Sep 2026 (from the manager's recorded calls)
+
+The calls are an internal file with real names: nothing from them enters this repository except the rules below; every
+example uses made-up names.
+
+**V62 — Partner roles are multi-select; partner status has a history** ACTIVE · 2026-09-28. Roles sit in a link table and each role may carry its own fields (a setting). Status Prospect / Active / At risk / Lost, each change with an effective date and, for at risk and lost, a reason from a settings list; the last feedback date beside it; an "At risk" chip; a report section "Partners at risk / lost — top reasons" in the monthly and quarterly reports. Refines V52 (the role "stage" becomes a role field). Spec §3.4, §3.9.
+
+**V63 — Light prospecting in v1, no Leads module** ACTIVE · 2026-09-28. A prospect is a partner with status Prospect. A manager bulk-assigns a list of partners (owner and priority) in one action and one Undo; a manager may assign to partners with no revenue, while changing the account manager where revenue exists stays with the head and admins (V26, V27). "Log call" is one click with an outcome from a settings list, needs no open task, and lands on the partner's timeline. Calls and task updates per person per week feed the appraisal item "weekly pipeline / task updates". Spec §3.4, §3.8.
+
+**V64 — Segment** ACTIVE · 2026-09-28. A settings list (e.g. Government (B2G) · Corporate · Agencies · Individuals); the default is on the partner, overridable on a project and on an invoice (invoice → project → partner); revenue and KPIs can split by segment. Spec §3.4, §3.6.
+
+**V65 — Discount codes carry terms; campaign codes** ACTIVE · 2026-09-28. Terms: percent of the service fee, scope (services, countries), volume tiers, review date, approved by — with history. One live code per partner by default (a second needs a manager and a reason). A campaign code, for short trials, is credited to no partner and listed apart, like individuals (V30). Finance shows sales by code by month. Spec §3.4, §3.5.
+
+**V66 — Achievement categories with typed amounts; MoU; Awards** ACTIVE · 2026-09-28. Problem solving and Cost savings: exposure, actual loss, avoided (= exposure − actual), counter-party, a one-line story — typed amounts, never Finance money, never feeding a money KPI (the check stays). MoU / strategic signing: counter-party, their signatory and title, our signatory, event, signing date, announced, government or private — never a new client; after signing the partner becomes Prospect (unless Active). Awards: an optional entry cost. Spec §3.8.
+
+**V67 — Reports: Cases, non-money lines, search** ACTIVE · 2026-09-28. The quarterly section "Cases" shows the achievements flagged "use as example" (one per quarter by default) with exposure, actual, avoided and the story. A line may show a non-money amount from its cited achievements, labelled "not revenue", drilling to their fields and evidence. Full-text search across issued reports and their lines. Spec §3.9.
+
+**V68 — Appraisal: self-registration before the manager's review** ACTIVE · 2026-09-28. Each person sees "my achievements in this cycle" and completes them; missing date or evidence is flagged, and such items never count in the appraisal. Default cycle label "2026-27". ClickUp items without date or evidence import as legacy only. Spec §3.10.
+
+**V69 — Challenges record escalation** ACTIVE · 2026-09-28. A critical challenge keeps who it was escalated to and when; it feeds the appraisal item "documenting and escalating critical client feedback". Spec §3.8.
+
+**V70 — Partner finance: credit limit, wallet balance, sent to legal** ACTIVE · 2026-09-28. The credit limit Payments already enforces is mirrored with its history and approver, and outstanding is shown against it; the prepaid (wallet) balance = top-ups − consumption; a receivable can be flagged "sent to legal" with a note. Out of v1, recorded: guarantees (promissory notes), supplier payables and statements, referral terms. Spec §3.4, §3.6, §11.
+
+**V71 — Go-live is a staged pilot** ACTIVE · 2026-09-28. A small group first (including Finance colleagues with read access to Finance), then everyone, on the owner's word. Spec §11, plan P6-8.
+
+**V72 — A recurring "Partner feedback" task per key partner** ACTIVE · 2026-09-28. Using the recurring templates; owned by the account manager; its feedback note sets the last feedback date. Spec §3.7.
+
+## Oversight answers, 28 Sep 2026 (after round 4)
+
+**V73 — Screens use the owner's money words: Revenue · Cost · Profit** ACTIVE · 2026-09-28. The owner uses these words, so every screen, report and export says Revenue (the invoice total less top-ups, D21's figure), Cost (approved expenses) and Profit (revenue − cost, Final cost only). The labels are wording settings (`core.wording`), changeable without code; code keeps `revenue` and `margin`; the KPI mapping and the KPI sheet may call revenue GMV where the strategy team's sheet does. Replaces V25's words; no money rule changes. (Was Q33.)
 
 ## Builder A (V100–V199)
 
