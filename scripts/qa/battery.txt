@@ -376,3 +376,4 @@ probe-sign-in-says-what-happened
 probe-rules-round2
 probe-d1-invoice-import
 probe-d19-delete-asks
+probe-cost-import

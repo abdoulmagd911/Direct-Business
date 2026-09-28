@@ -601,8 +601,10 @@ function mockMoneyRows(){
       cost_missing:(i.cost_sar==null&&i.revenue_way!=='commission'),loss:(i.cost_sar!=null&&Number(i.cost_sar)>Number(i.revenue_sar)),
       pass_through_sar:lt(i.invoice_no).pass_through_sar,fee_sar:lt(i.invoice_no).fee_sar,unclassed_sar:lt(i.invoice_no).unclassed_sar,
       /* D23: the pass-through stands in as a flagged estimate only while no cost has arrived (never for a commission) */
-      est_cost_sar:(i.cost_sar==null&&i.revenue_way!=='commission'&&Number(lt(i.invoice_no).pass_through_sar||0)>0)?lt(i.invoice_no).pass_through_sar:null,
-      cost_estimated:(i.cost_sar==null&&i.revenue_way!=='commission'&&Number(lt(i.invoice_no).pass_through_sar||0)>0)};
+      /* D24 (cost-fallback.sql): the Revenue Report's submitted expenses come first, then D23's pass-through lines */
+      ...(()=>{ const open=i.cost_sar==null&&i.revenue_way!=='commission'; const rr=Number(((TABLES.finance_payments_facts||[]).find(p=>p.ref===i.invoice_no)||{}).rr_total_expense_sar||0);
+        const pt=Number(lt(i.invoice_no).pass_through_sar||0); const src=!open?null:(rr>0?'submitted_expenses':(pt>0?'pass_through':null));
+        return { est_cost_sar:src==='submitted_expenses'?rr:(src==='pass_through'?lt(i.invoice_no).pass_through_sar:null), cost_estimated:!!src, est_cost_source:src }; })()};
   });
 }
 /* D1: money_line_totals — each invoice's lines by the item-name list (the last part of the name, folded) */

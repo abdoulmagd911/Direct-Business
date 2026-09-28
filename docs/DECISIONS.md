@@ -53,7 +53,7 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **D14 — Speed: shared reads, one paint per redraw, inlined scripts** ACTIVE · 2026-09-27. js/01 shares identical reads for 0.8 s (not failures, sign-in or 'who am I'); a write clears them; js/116 paints once. `scripts/build/build-site.mjs` inlines js at deploy; index.html keeps one line per file. Guard `probe-the-built-site-runs-the-same`.
 
-**D15 — Sign-in says what happened; the reset screen stays in the link's tab; 10 characters everywhere** ACTIVE · 2026-09-27. C-lite, approved by the owner (finding C). The reset screen opens only in the tab the link opened; admin-users refuses passwords under 10 characters and invents 10+; every sign-in failure is red, the email limit is named, "Forgot password?" never claims a link was sent; new-password screens count as you type. Per-person reset/invite and branded emails wait on an email sender (branch login-c). Function deployed at merge. Tested: probe-sign-in-says-what-happened.
+**D15 — Sign-in says what happened; reset only in the link's tab; 10 characters everywhere** ACTIVE · 2026-09-27. C-lite, owner-approved. admin-users refuses passwords under 10 characters; every sign-in failure is red; "Forgot password?" never claims a link was sent; reset/invite buttons wait on an email sender. Guard `probe-sign-in-says-what-happened`.
 
 **D16 — Exclusions and merges are typed by a person, applied by one view** ACTIVE · 2026-09-27. On Finance → Rules. An exclusion drops ONLY what is typed, with a reason; merges use only typed client IDs, codes and customer names; exclusion wins. `money_rows` feeds Finance, reports and KPIs; unreadable means no money shown. Outstanding is never revenue. Guard `probe-money-rules`.
 
@@ -66,6 +66,8 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 **D21 — The money model and the invoice import** ACTIVE · 2026-09-28. Revenue = the invoice total as Payments records it, less only a wallet TOP-UP part; a top-up-only invoice never counts. Cost = approved expenses only; a missing cost is EMPTY, never 0, and the row stays out of cost and profit, said on screen. Fully Paid counts (Audit Required too, flagged); Pending, Void, Cancelled, Draft never; an unnamed status is held for a person. The paid date sets the month. Imports fill, never wipe; a hand-entered row is never touched; no VAT figure is worked out or stored. Guard `probe-d1-invoice-import`.
 
 **D23 — With no approved expense, the pass-through lines are a flagged cost estimate** ACTIVE · 2026-09-28. Owner ruling. `money_rows.est_cost_sar`, shown apart from the approved cost; an approved expense replaces it. Names on Finance → Rules. Guard `probe-d1-invoice-import`.
+
+**D24 — Cost comes from the raw Payments cost exports** ACTIVE · 2026-09-28. js/120 reads them; `fn_cost_import` sets cost = approved lines only; no money row = held, never stored; a newer export wins, a blank never wipes; Revenue Report expenses are an estimate before D23's. Guard `probe-cost-import`.
 
 ## Money & finance display
 

@@ -14,16 +14,17 @@
      5. an OLDER file after it changes nothing (it can only fill blanks);
      6. the Expense Invoice Export (an EXCEL file, read in the background worker) stores the Overdue flag and the expense
         status for references in Finance, holds the rest;
-     7. the Revenue Report keeps only the submitted expenses (Total Expense Amount, "1,500.00 SAR"), never revenue or VAT;
+     7. the Revenue Report keeps only the submitted expenses (Total Expense Amount, "1,500.00 SAR"), never revenue or VAT; with no
+        approved line, they are the flagged estimate beside the cost (before D23's pass-through), never the cost itself;
      8. a full-size file (258,000 rows, ~23 MB) is read in chunks: the tab never freezes (the longest gap between two 50 ms
         heartbeats stays under 1.5 s) and only the ~650 lines of references in Finance are kept;
      9. the block reads Arabic; a View-only person has no Import card, and the database refuses the write;
     10. no JS error, no native dialog.
-   Sabotage (run with SABOTAGE=…, each must turn checks red — run 28 Sep, see the PR):
-     A  js/120 reads "Under Review" as approved           → 2 red (the cost includes a line that is not approved)
-     B  js/120 ignores the export time in the file name   → 5 red (an older file rolls a cost back)
-     C  js/65 without the hand-off to js/120              → 1 red (the file is "not recognized")
-     D  js/120 reads a CSV in one piece, not in slices    → 8 red (the tab freezes)
+   Sabotage (SABOTAGE=A|B|C|D swaps in a broken layer; each run 28 Sep, each caught):
+     A  js/120 reads "Under Review" as approved           → 2b red (530.26, not 500.26), and 4, 5 with it
+     B  js/120 ignores the export time in the file name   → 5 red (the older file rolls the cancellation back)
+     C  js/65 without the hand-off to js/120              → 1, 2a red (the file is "not recognized" again)
+     D  js/120 reads a CSV in one piece, not in slices    → 8 red (the tab froze 2.7 s)
    PORTS 9861 … 9864. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
@@ -38,13 +39,13 @@ let failures = 0, seq = 0;
 const check = (c, m, d) => { if (c) console.log('  ✓ ' + m); else { failures++; console.log('  ✗ ' + m + (d ? ' — ' + d : '')); } };
 
 /* ---------- the made-up world ---------- */
-const R = { A: '9900000101', B: '9900000102', HAND: '9900000103', COM: '9900000104', TWO: '9900000105', OTHER: '9900000106' };
+const R = { A: '9900000101', B: '9900000102', HAND: '9900000103', COM: '9900000104', TWO: '9900000105', OTHER: '9900000106', EST: '9900000107' };
 const money = (no, o) => Object.assign({ id: 'qa-ci-' + no + '-' + (o && o.line_no || 1), invoice_no: no, line_no: 1, client_group: 'QA Cost Co', invoice_date: '2026-07-10',
   total_incl_vat_sar: 1000, revenue_sar: 1000, cost_sar: null, profit_sar: null, integrity_status: 'verified_paid', row_kind: 'sale', revenue_way: 'invoice',
   source: 'import', payments_status: 'Fully Paid', deleted_at: null }, o || {});
 const BIG = [...Array(200)].map((_, i) => String(9900001000 + i));
 const SEED = [money(R.A), money(R.B, { total_incl_vat_sar: 3000, revenue_sar: 3000 }), money(R.HAND, { source: 'manual' }), money(R.COM, { revenue_way: 'commission' }),
-  money(R.TWO), money(R.TWO, { line_no: 2 }), money(R.OTHER, { cost_sar: 640, profit_sar: 360 })].concat(BIG.map((r) => money(r)));
+  money(R.TWO), money(R.TWO, { line_no: 2 }), money(R.OTHER, { cost_sar: 640, profit_sar: 360 }), money(R.EST)].concat(BIG.map((r) => money(r)));
 
 const TXH = ['Invoice#', 'Customer Name', 'Customer Email', 'Customer Phone', 'ID Reference', 'Amount (SAR)', 'Expense Type', 'Status', 'Created At', 'Submission Date',
   'Approval/Rejection Date', 'Merchant', 'Card Details', 'Submitter', 'Approver/Rejector'];
@@ -74,6 +75,7 @@ const FILE_EI = { name: '2026-09-27_10-05-00-expense-invoice-QA.xlsx', mimeType:
 const RRH = ['Invoice # / Ref #', 'Invoice Product', 'Invoice Amount', 'Invoice Expenses', 'Total Expense Amount', 'Total Revenue', 'VAT', 'Revenue', '% of Revenue out of GMV'];
 const FILE_RR = { name: '2026-09-27_10-10-00-revenue-report-QA.csv', mimeType: 'text/csv', buffer: Buffer.from(csv(RRH, [
   [R.B, 'Direct Flights', '3,000.00 SAR', '1,234.50 SAR,265.50 SAR', '1,500.00 SAR', '1,500.00 SAR', '34.50 SAR', '1,465.50 SAR', '48.9%'],
+  [R.EST, 'Direct Hotels', '1,000.00 SAR', '750.00 SAR', '750.00 SAR', '1,000.00 SAR', '37.50 SAR', '962.50 SAR', '96.3%'],
   ['9912345002', 'Direct Flights', '681.97 SAR', '0.00 SAR', '0.00 SAR', '681.97 SAR', '0.00 SAR', '681.97 SAR', '100%']])) };
 const INVH = ['Type', 'Invoice Reference #', 'Invoice Number', 'Customer Name', 'Customer Email', 'Invoice Create Date', 'Invoice Generate Date', 'Last Payment Date', 'Invoice Status',
   'Last Status At', 'Invoice Total', 'Product', 'Name', 'Item Is Taxable', 'Item Discount', 'Item Total', 'Sale Branch', 'Salesman'];
@@ -176,6 +178,11 @@ const importNow = async (s) => { await s.p.click('#v120Out [data-v120-go]'); ret
   const r4 = await rows(s);
   check(+fB.rr_total_expense_sar === 1500 && !/revenue_sar|vat/i.test(cols.replace('rr_total_expense_sar', '')) && !f2.some((x) => x.ref === '9912345002') && costOf(r4, R.B) === '1300',
     '7. the Revenue Report keeps only the submitted expenses ("1,500.00 SAR" → 1500) — never its revenue or VAT — and the approved cost stays the approved lines\'', JSON.stringify({ rr: fB.rr_total_expense_sar, B: costOf(r4, R.B), cols }));
+  await s.p.evaluate(() => { FIN.rows = null; finLoad(); }); await s.p.waitForFunction(() => FIN.rows && FIN.m && !FIN.loading, null, { timeout: 30000 }).catch(() => { });
+  const est = await s.p.evaluate((no) => { const r = FIN.rows.find((x) => x.invoice_no === no); const m = (r && FIN.m[r.id]) || {}; const cell = document.createElement('div'); cell.innerHTML = r ? finCostCell(r) : '';
+    return { est: m.est_cost_sar, flag: m.cost_estimated, cost: r && r.cost_sar, cell: cell.innerText }; }, R.EST);
+  check(+est.est === 750 && est.flag === true && est.cost == null && /est\./.test(est.cell),
+    '7b. with no approved line, the Revenue Report\'s submitted expenses (750) are the flagged estimate beside the cost — never the cost itself', JSON.stringify(est));
   check(s.errors.length === 0 && s.natives.length === 0, '10a. no JS error, no native dialog (admin)', JSON.stringify({ e: s.errors.slice(0, 3), n: s.natives }));
   await done(s);
 }
