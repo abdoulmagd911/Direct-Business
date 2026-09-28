@@ -407,7 +407,7 @@
     };
     var q=fl('Reset "'+(c.title_en||key)+'" to the shared template?\n\nThe wording written for this contract is discarded and cannot be brought back.',
              'إعادة «'+(c.title_ar||c.title_en||key)+'» إلى القالب المشترك؟\n\nتُحذف الصياغة المكتوبة لهذا العقد ولا يمكن استرجاعها.');
-    if(typeof askInPage==='function')askInPage(q,go); else go();
+    if(typeof askInPage==='function')askInPage(q,go,{danger:true});   // 2026-09-28 (D19): no box, no action
   };
   /* the ONLY path that writes the shared template (explicit, admin/manager) */
   window.ctClauseSaveTemplate=function(key){
@@ -426,7 +426,7 @@
         toast(fl('Saved to the shared template — future contracts start from this text','حُفظ في القالب المشترك — العقود المستقبلية تبدأ من هذا النص'));
       });
     };
-    if(typeof askInPage==='function')askInPage(q,go); else go();
+    if(typeof askInPage==='function')askInPage(q,go,{danger:true});   // 2026-09-28 (D19): no box, no action
   };
 
   /* ---------- fee annex (same data shape as js/68) ---------- */

@@ -290,6 +290,18 @@
     });});
     if(bad!=null){ toast(fl('Not saved — a row has no valid fee: ','لم يُحفظ — سطر بلا رسوم صالحة: ')+bad); return; }
     if(!out.length){ toast(fl('Nothing to save — the fee tables are empty','لا شيء للحفظ — جداول الرسوم فارغة')); return; }
+    /* 2026-09-28 (D19): this save replaces the client's saved rates, so a saved rate that is no longer in the tables is
+       REMOVED by it — ask first, naming what goes. Nothing dropped, no question. No box, no save. */
+    var keep={}; out.forEach(function(o){ keep[(o.service_en||'')+'|'+(o.service_ar||'')]=1; });
+    var gone=((S.cfBiz===bid&&Array.isArray(S.cfRows))?S.cfRows:[]).filter(function(x){ return !keep[(x.service_en||'')+'|'+(x.service_ar||'')]; })
+      .map(function(x){ return String(isAr()?(x.service_ar||x.service_en||''):(x.service_en||x.service_ar||'')).slice(0,60); });
+    if(gone.length){
+      var list='"'+gone.slice(0,5).join('", "')+'"'+(gone.length>5?' …':'');
+      if(typeof window.pfConfirm==='function') window.pfConfirm(fl('Remove '+gone.length+' saved rate(s) from this client: '+list+'? Saving the tables as they are now takes them off.','إزالة '+gone.length+' من الأسعار المحفوظة لهذا العميل: '+list.replace(/"/g,'«').replace(/«(, |$| …)/g,'»$1')+'؟ حفظ الجداول كما هي الآن يزيلها.'),go,{danger:true});
+      return;
+    }
+    go();
+    function go(){
     S.cfSaving=true; repaint();
     c.from('client_service_fees').delete().eq('business_id',bid).select('id').then(function(del){
       /* B2: an RLS-refused delete "succeeds" with zero rows — if we KNOW this
@@ -312,6 +324,7 @@
         loadClientFees(); repaint();
       });
     });
+    }
   };
 
   /* ---------- persistence (B2: every write .select()-checked) ---------- */

@@ -551,7 +551,8 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));window.__quotaW
 /* 2026-09-09 (live test D1 family): the one way to ask "are you sure" — js/57's in-page box,
    never window.confirm (which freezes the tab and every automated driver of it). The answer
    arrives later, so callers pass what to do on yes. */
-function askInPage(msg,yes){if(typeof window.pfConfirm==='function')window.pfConfirm(msg,yes);else if(confirm(msg))yes();}
+/* 2026-09-28 (D19): opts pass through (a red Delete/Remove); no box means no action — never a native confirm(). */
+function askInPage(msg,yes,opts){if(typeof window.pfConfirm==='function')window.pfConfirm(msg,yes,opts);}
 /* 2026-09-10: these two legacy tools have no button (console only). Leads and clients live in their
    own table since v32 — a whole-DB replace followed by save() would archive every company not in
    the replacement. Both now ask in the page and keep the live company list. */

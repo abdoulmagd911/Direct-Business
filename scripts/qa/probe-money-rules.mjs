@@ -90,7 +90,8 @@ for (const [lang, PORT] of [['en', 9701], ['ar', 9702]]) {
   check(/QA: test client/.test(ex1), `${L} 3: the Excluded list names the rule that caught each row`, ex1.slice(0, 200));
   /* 4 — off, back on, removed */
   const rid = await p.evaluate(() => (MR.rules.find((r) => r.value === '12') || {}).id);
-  await p.click(`[data-v117-switch="${rid}"]`); await p.waitForFunction(() => FIN.rows && FIN.m && !FIN.loading && MR.rules && MR.rules.some((r) => r.value === '12' && !r.active), null, { timeout: 30000 }).catch(() => { }); await p.waitForTimeout(800);
+  await p.click(`[data-v117-switch="${rid}"]`); await p.click('#pfConfirmYes', { timeout: 8000 });   // D19 (28 Sep): switching a rule off asks first
+  await p.waitForFunction(() => FIN.rows && FIN.m && !FIN.loading && MR.rules && MR.rules.some((r) => r.value === '12' && !r.active), null, { timeout: 30000 }).catch(() => { }); await p.waitForTimeout(800);
   const t2 = await three(p);
   check(same(t2) && Math.abs(t2.tile - t0.tile) < 0.01, `${L} 4: switched off, every figure is back — ${t2.tile} / ${t2.rb} / ${t2.kpi}`, JSON.stringify(t2));
   /* 5 — a client ID nobody typed */

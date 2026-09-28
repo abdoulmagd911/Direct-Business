@@ -1906,9 +1906,9 @@ window.finRow=function(id){
 /* In-page confirm, not window.confirm() \u2014 a native dialog blocks the whole tab on its own
    modal loop, which froze the owner's own hands-on QA of this exact button (same failure the
    Payment proofs chapter had before js/57 introduced pfConfirm; this reuses that same box). */
-function finConfirm(msg,onYes){
-  try{ if(window.pfConfirm) return pfConfirm(msg,onYes); }catch(_){}
-  if(confirm(msg))onYes(); // last-resort fallback if js/57 hasn't loaded for some reason
+function finConfirm(msg,onYes,opts){
+  try{ if(window.pfConfirm) return pfConfirm(msg,onYes,opts); }catch(_){}
+  /* 2026-09-28 (D19): no box, no action — the native confirm() fallback is gone. */
 }
 /* Bulletproof-round finding (2026-08-22): none of these four called .select() after
    .update(...) \u2014 Supabase/PostgREST returns no error when an RLS policy silently matches
@@ -2021,7 +2021,8 @@ window.finCloseModal=function(){
 window.finDel=function(id){
   if(finRefuseWrite())return;   // 2026-09-03: was canFinEdit(), the wrapper cycle 12 showed can say yes in a share view
   var ar=isArF();
-  finConfirm(ar?'\u062d\u0630\u0641 \u0647\u0630\u0647 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0643\u0644 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639 \u0645\u0646 \u00ab\u0627\u0644\u0645\u062d\u0630\u0648\u0641\u0629 \u0645\u0624\u062e\u0631\u0627\u064b\u00bb.':'Soft-delete this invoice? It disappears from all totals but stays recoverable under "Recently deleted".', function(){
+  var _n=''; try{ var _r=(FIN.rows||[]).filter(function(x){return String(x.id)===String(id);})[0]; _n=String((_r&&(_r.invoice_no||_r.client_group))||'').slice(0,60); }catch(_){}   // 2026-09-28 (D19): the question names the invoice
+  finConfirm(ar?'\u062d\u0630\u0641 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 \u00ab'+_n+'\u00bb\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0643\u0644 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639 \u0645\u0646 \u00ab\u0627\u0644\u0645\u062d\u0630\u0648\u0641\u0629 \u0645\u0624\u062e\u0631\u0627\u064b\u00bb.':'Soft-delete the invoice "'+_n+'"? It disappears from all totals but stays recoverable under "Recently deleted".', function(){
     fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('id',id).select().then(function(r){
       if(r.error){alert('Could not delete: '+r.error.message);return;}
       if(!r.data||!r.data.length){ finZeroRowMsg('id',id,true,function(m,raced){ alert(m); if(raced){ finCloseModal(); FIN.rows=null; finLoad(); } }); return; }
