@@ -258,7 +258,7 @@
 
     var h='<div class="card" style="padding:16px;margin-bottom:14px">'+
       '<h3 class="finh" style="margin:0 0 3px">'+fl('Expenses','المصروفات')+'</h3>'+
-      '<div class="ch-sub" style="margin-bottom:12px">'+fl(
+      '<div class="fin-note" style="margin-bottom:12px">'+fl(
         'What we actually paid out for the services we resell — the hotel, the activity, the visa. This is a record only: it never changes an invoice’s cost or profit.',
         'ما دفعناه فعليًا مقابل الخدمات التي نبيعها — الفندق، النشاط، التأشيرة. هذا سجل فقط ولا يغيّر تكلفة أو ربح أي فاتورة.')+'</div>'+
       '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px">'+
@@ -270,7 +270,7 @@
           noSvc?fl(noSvc+' not yet filed under a service',noSvc+' بلا خدمة محددة'):'' ].filter(Boolean).join(' · ')+
         '</div>'):'')+
       '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">'+
-        '<select class="inp sm" style="max-width:160px" onchange="expMonth(this.value)"><option value="all">'+fl('All months','كل الشهور')+'</option>'+months.map(function(mn){return '<option value="'+mn+'" '+(EXP.month===mn?'selected':'')+'>'+mn+'</option>';}).join('')+'</select>'+
+        '<select class="inp sm" style="min-width:150px;max-width:220px;padding-inline-end:26px" onchange="expMonth(this.value)"><option value="all">'+fl('All months','كل الشهور')+'</option>'+months.map(function(mn){return '<option value="'+mn+'" '+(EXP.month===mn?'selected':'')+'>'+mn+'</option>';}).join('')+'</select>'+
         '<button class="btn sm ghost" onclick="expCSV()">⬇ '+fl('Export list (CSV)','تصدير القائمة (CSV)')+'</button>'+
         '<button class="btn sm ghost" onclick="expDownloadAll()">⬇ '+fl('Download the documents','تنزيل المستندات')+'</button>'+
       '</div></div>';

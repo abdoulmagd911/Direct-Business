@@ -91,7 +91,7 @@
   function say(m){ try{ (window.v63Notice||window.alert)(m); }catch(_){} }
   window.v119AddItem=function(){
     if(!canEdit()) return;
-    var html='<div class="ch-sub" style="margin-bottom:10px">'+fl('The last part of an invoice line\'s name, as Payments writes it (e.g. "3rd Party Fee", "Service Fee", "رسوم الخدمة"). Pass-through lines are shown beside the cost as "pass-through on the invoice"; they never become cost or profit.',
+    var html='<div class="fin-note" style="margin-bottom:10px">'+fl('The last part of an invoice line\'s name, as Payments writes it (e.g. "3rd Party Fee", "Service Fee", "رسوم الخدمة"). Pass-through lines are shown beside the cost as "pass-through on the invoice"; they never become cost or profit.',
         'الجزء الأخير من اسم سطر الفاتورة كما يكتبه نظام المدفوعات (مثل «3rd Party Fee» أو «Service Fee» أو «رسوم الخدمة»). تظهر البنود المارّة بجانب التكلفة باسم «المبالغ المارّة على الفاتورة»، ولا تصبح تكلفة ولا ربحًا أبدًا.')+'</div>'+
       '<div class="field"><label>'+fl('Item name','اسم البند')+'</label><input id="v119_name" maxlength="120"></div>'+
       '<div class="field"><label>'+fl('It is','هو')+'</label><select id="v119_class"><option value="pass_through">'+fl('Pass-through (a supplier\'s price passed on)','مبلغ مارّ (سعر مورد يُمرَّر)')+'</option><option value="fee">'+fl('Direct\'s fee','رسوم دايركت')+'</option></select></div>'+
@@ -121,7 +121,7 @@
     var h='<div class="card v119-items" style="padding:18px;margin-bottom:16px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0;flex:1">'+fl('Invoice item names','أسماء بنود الفواتير')+'</h3>'+
       (w?'<button class="btn sm pri" onclick="v119AddItem()">+ '+fl('Add an item name','إضافة اسم بند')+'</button>':'')+
       ((role()==='admin'||role()==='manager')?' <button class="btn sm ghost" onclick="v119ItemLog()">'+fl('Change log','سجل التغييرات')+'</button>':'')+'</div>'+
-      '<div class="ch-sub" style="margin:4px 0 10px">'+fl('Which invoice lines are a supplier\'s price passed on, and which are Direct\'s fee. Used only for "pass-through on the invoice", shown beside the cost — cost itself is approved expenses only.',
+      '<div class="fin-note" style="margin:4px 0 10px">'+fl('Which invoice lines are a supplier\'s price passed on, and which are Direct\'s fee. Used only for "pass-through on the invoice", shown beside the cost — cost itself is approved expenses only.',
         'أي أسطر الفاتورة سعر مورد مُمرَّر، وأيها رسوم دايركت. تُستخدم فقط في «المبالغ المارّة على الفاتورة» بجانب التكلفة — أما التكلفة نفسها فهي المصروفات المعتمدة فقط.')+'</div>';
     if(IC.err) return h+'<div style="color:#B42318;font-size:12.5px">'+fl('The list could not be read: ','تعذّرت قراءة القائمة: ')+e(IC.err)+' <button class="btn sm ghost" onclick="v119Retry()">'+fl('Try again','حاول مجددًا')+'</button></div></div>';
     if(!IC.rows.length) return h+'<div class="empty" style="padding:8px 0">'+fl('No item names yet — every invoice line shows as "not classed".','لا أسماء بنود بعد — كل أسطر الفواتير تظهر «غير مصنّفة».')+'</div></div>';
