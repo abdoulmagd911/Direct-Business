@@ -159,7 +159,7 @@ try {
     }
   }
   if (!checked) problems.push('scripts/qa/mock-supabase.mjs: could not find any finance_invoices fixture rows to check — the money-doctrine guard has stopped matching and is no longer protecting anything.');
-  if (!/const _wal=0;const _rev=_tot-_wal;const _prof=_rev-_cost;/.test(mockSrc)) problems.push('scripts/qa/mock-supabase.mjs: the generated finance_invoices rows no longer derive revenue = total − wallet and profit = revenue − cost the way the live trigger does.');
+  if (!/const _wal=0;const _rev=_tot-_wal;const _prof=\(_cost==null\)\?null:_rev-_cost;/.test(mockSrc))   /* D21: no cost recorded → no profit (as the trigger) */ problems.push('scripts/qa/mock-supabase.mjs: the generated finance_invoices rows no longer derive revenue = total − wallet and profit = revenue − cost the way the live trigger does.');
 } catch (e) {
   problems.push('money-doctrine check could not run: ' + e.message);
 }

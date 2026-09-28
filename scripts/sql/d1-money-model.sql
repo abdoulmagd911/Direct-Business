@@ -255,6 +255,9 @@ begin
   if p_update is not null and jsonb_typeof(p_update) = 'array' and jsonb_array_length(p_update) > 0 then
     -- fill, never wipe: a field the new file does not carry (null) keeps what is there; money and status move only when
     -- the file carries them; a MANUAL row is never touched by an import (the preview asks a person to choose — D3)
+    -- an OLDER file (its Payments status time before the stored one) only fills fields that are still empty — it cannot put a
+    -- paid invoice's amounts or its paid date (the month) back to the unpaid copy's; cost is the expense join's, not the status's.
+    -- A billing link a person ticked stays a link.
     update public.finance_invoices f set
       zatca_dpin = case when (x.payments_status_at < f.payments_status_at) then coalesce(f.zatca_dpin, x.zatca_dpin) else coalesce(x.zatca_dpin, f.zatca_dpin) end,
       client_group = case when (x.payments_status_at < f.payments_status_at) then coalesce(f.client_group, x.client_group) else coalesce(x.client_group, f.client_group) end,

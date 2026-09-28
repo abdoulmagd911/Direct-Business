@@ -54,7 +54,7 @@
     if(!bigLong.length&&!(prev.maxGap>=5000)&&!stopped) return;
     var lines=[];
     if(stopped) lines.push(fl('A Direct Business tab went silent at ','توقفت نافذة لـ Direct Business عن العمل الساعة ')+hm(prev.at)+fl(' (Riyadh) on ',' (بتوقيت الرياض) في ')+(prev.page||'?')+fl(' — it froze, or the computer went to sleep.',' — إما أنها تجمّدت أو أن الجهاز دخل في وضع السكون.'));
-    if(prev.maxGap>=5000) lines.push(fl('Longest pause: ','أطول توقف: ')+Math.round(prev.maxGap/1000)+fl(' s, ending ',' ث، انتهى الساعة ')+hm(prev.gapAt||prev.at)+fl(' on ',' في ')+(prev.gapPage||prev.page||'?')+'.');
+    if(prev.maxGap>=5000) lines.push(fl('Longest pause: ','أطول توقف: ')+Math.round(prev.maxGap/1000)+fl(' s, ending ',' ث، انتهى الساعة ')+hm(prev.gapAt||prev.at)+fl(' on ',' في ')+(prev.gapPage||prev.page||'?')+fl(' (a page frozen, or the computer asleep with it open).',' (إما أن الصفحة تجمّدت أو أن الجهاز كان في وضع السكون وهي مفتوحة).'));
     bigLong.forEach(function(x){ lines.push(fl('A script ran for ','استمر تشغيل برنامج ')+Math.round(x.ms/1000)+fl(' s at ',' ث عند ')+hm(x.at)+fl(' on ',' في ')+x.page+'.'); });
     lines.push(fl('Before it: ','قبلها: ')+prev.renders+fl(' repaints, ',' إعادة رسم، ')+prev.saves+fl(' saves, ',' حفظ، ')+prev.calls+fl(' calls since it opened at ',' طلب منذ فتحها الساعة ')+hm(prev.since)+'.');
     var d=document.createElement('div'); d.id='v118Note'; d.setAttribute('role','status');

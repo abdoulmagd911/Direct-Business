@@ -258,10 +258,14 @@ function finLoad(cb){
     FIN.loading=false;
     try{
       c.auth.getSession().then(function(s){
-        if(s&&s.data&&s.data.session){ window.__finSessionOk=true; finLoad(cb); return; }
+        if(s&&s.data&&s.data.session){ if(FIN._waitSignIn){ clearInterval(FIN._waitSignIn); FIN._waitSignIn=null; } window.__finSessionOk=true; finLoad(cb); return; }
         FIN.rows=null;
         if(!FIN._waitSignIn){ FIN._waitSignIn=setInterval(function(){
           try{ c.auth.getSession().then(function(s2){
+            /* 2026-09-28 (D1 sweep, probe-import-preview-tab-switch): another path may have loaded the ledger since this wait
+               began — then this timer only stops. It used to reload and repaint anyway, a second later, wiping an import
+               preview that was being built on the Import tab. */
+            if(s2&&s2.data&&s2.data.session&&window.__finSessionOk){ clearInterval(FIN._waitSignIn); FIN._waitSignIn=null; return; }
             if(s2&&s2.data&&s2.data.session){ clearInterval(FIN._waitSignIn); FIN._waitSignIn=null; window.__finSessionOk=true; FIN.rows=null; finLoad(cb);
               try{ if(typeof current!=='undefined'&&current==='finance'&&typeof render==='function')render(); }catch(_){} }
           }).catch(function(){}); }catch(_){}
@@ -1123,7 +1127,7 @@ function rFinClients(){
      groups and 131,871 SAR presented as 100% margin. Same rule as everywhere else (M8): a cost
      nobody has recorded is not zero, and a profit derived from it is not a profit.
      nz counts the invoices in each group with no cost recorded. */
-  var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,nz:0,nzp:0,_i:{},key:cc.key,directId:cc.directId};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;if(finCostMissing(r)){byC[k].nz++;byC[k].nzp+=(+r.profit_sar||0);/* fire #195: carry the AMOUNT, not only the count */}byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
+  var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,nz:0,nzp:0,_i:{},key:cc.key,directId:cc.directId};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;if(finCostMissing(r)){byC[k].nz++;byC[k].nzp+=(+r.revenue_sar||0);/* fire #195: carry the AMOUNT, not only the count */}byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
   function _cCell(x){ // cost cell: a group with NO cost on any invoice shows the words, not a 0
     if(x.nz>=x.n) return '<span style="color:#B54708" title="'+(isArF()?'لم تُسجَّل تكلفة لأي فاتورة لهذا العميل':'No cost recorded on any of this client\'s invoices')+'">'+(isArF()?'غير مسجّلة':'not recorded')+'</span>';
     return money0(x.c)+(x.nz?('<span style="color:#B54708;font-size:10.5px" title="'+(isArF()?'بعض الفواتير بلا تكلفة مسجّلة':'some invoices carry no recorded cost')+'"> ⚠</span>'):'');
@@ -1139,10 +1143,12 @@ function rFinClients(){
      now says so rather than leaving the reader to infer it from the rows above. */
   /* fire #195: how far above the real figure that upper bound might sit is the whole question, and
      the count of clients does not answer it. The riyals resting on unrecorded cost are named. */
-  var _tcSh=(_tc.p>0&&_tc.gapP>0)?Math.round(100*_tc.gapP/_tc.p):null;
-  var _tcNote=_tc.gaps?('<div style="font-size:11px;color:#B54708;font-weight:600;margin-top:8px" data-cl-gap-clients="'+_tc.gaps+'" data-cl-gap-profit="'+Math.round(_tc.gapP)+'">⚠ '+(isArF()
-    ?(_tc.gaps+' من العملاء لديهم فواتير بلا تكلفة مسجّلة، وتُحتسب '+money0(_tc.gapP)+' ريال منها ربحًا كاملًا'+(_tcSh!==null?('، أي '+_tcSh+'% من إجمالي الربح أعلاه'):'')+' — فهو حدّ أقصى وليس رقمًا نهائيًا.')
-    :(_tc.gaps+' of these clients have invoices with no recorded cost, and '+money0(_tc.gapP)+' SAR of them counts as pure profit'+(_tcSh!==null?(' — '+_tcSh+'% of the profit total above'):'')+', so that total is an upper bound, not a final figure.'))+'</div>'):'';
+  /* D21 (28 Sep sweep): an invoice waiting for its cost carries no profit at all now (cost and profit are empty), so there is
+     no "profit resting on unrecorded cost" to name: what the note names is the REVENUE those invoices carry, and that they are
+     left out of Cost and Profit. (nzp/gapP now hold that revenue.) */
+  var _tcNote=_tc.gaps?('<div style="font-size:11px;color:#B54708;font-weight:600;margin-top:8px" data-cl-gap-clients="'+_tc.gaps+'" data-cl-gap-rev="'+Math.round(_tc.gapP)+'">⚠ '+(isArF()
+    ?(_tc.gaps+' من العملاء لديهم فواتير بانتظار تكلفتها ('+money0(_tc.gapP)+' ريال من الإيراد). لا تدخل تلك الفواتير في التكلفة ولا الربح حتى تصل مصروفاتها المعتمدة.')
+    :(_tc.gaps+' of these clients have invoices waiting for their cost ('+money0(_tc.gapP)+' SAR of revenue). Those invoices are left out of Cost and Profit until their approved expenses arrive.'))+'</div>'):'';
   /* 2026-09-08 (watch cycle 63): fifth surface in the class cycles 59-62 opened. Every cell in
      this table is money0() — each row rounded to the whole riyal separately from the Total under
      it — so five clients billing 1,000.40 print five rows of 1,000 above a Total of 5,002. This is
@@ -2255,12 +2261,10 @@ function rReports(){
     var _rbNoRows=base.filter(finCostMissing);
     var _rbNo=_rbNoRows.length;
     if(_rbNo>0){
-      var _rbP=_rbNoRows.reduce(function(s,r){return s+(+r.profit_sar||0);},0);
-      var _rbAll=base.reduce(function(s,r){return s+(+r.profit_sar||0);},0);
-      var _rbSh=(_rbAll>0&&_rbP>0)?Math.round(100*_rbP/_rbAll):null;
-      h2+='<div style="font-size:11.5px;color:#B54708;font-weight:600;padding:8px 10px" data-rb-nocost="'+_rbNo+'" data-rb-nocost-profit="'+Math.round(_rbP)+'">⚠ '+(isArF()
-        ?(_rbNo+' من '+base.length+' بند في هذا التقرير بلا تكلفة مسجّلة، وتُحتسب '+money0(_rbP)+' ريال منها ربحًا كاملًا'+(_rbSh!==null?('، أي '+_rbSh+'% من الربح المعروض'):'')+' — أرقام الربح هنا حدّ أقصى وليست نهائية.')
-        :(_rbNo+' of '+base.length+' rows in this report carry no recorded cost, and '+money0(_rbP)+' SAR of them counts as pure profit'+(_rbSh!==null?(' — '+_rbSh+'% of the profit shown'):'')+', so the profit figures here are an upper bound, not final.'))+'</div>';
+      var _rbR=_rbNoRows.reduce(function(s,r){return s+(+r.revenue_sar||0);},0);   // D21: the revenue waiting for its cost (no profit rests on it)
+      h2+='<div style="font-size:11.5px;color:#B54708;font-weight:600;padding:8px 10px" data-rb-nocost="'+_rbNo+'" data-rb-nocost-rev="'+Math.round(_rbR)+'">⚠ '+(isArF()
+        ?(_rbNo+' من '+base.length+' بند في هذا التقرير بانتظار تكلفته ('+money0(_rbR)+' ريال من الإيراد). لا تدخل في التكلفة ولا الربح حتى تصل مصروفاتها المعتمدة — الربح المعروض للبنود المعروفة التكلفة فقط.')
+        :(_rbNo+' of '+base.length+' rows in this report are waiting for their cost ('+money0(_rbR)+' SAR of revenue). They are left out of cost and profit until their approved expenses arrive — the profit shown is for rows whose cost is known.'))+'</div>';
     }
   }
   return h+h2;
@@ -2300,9 +2304,13 @@ window.finCSV=function(){
      probe is out of this session's lane. So the file is one step behind the screen here, on
      purpose and on record (docs/BACKLOG.md, 2026-09-09): the honest export leaves those two cells
      empty, and that is the change for whoever owns that probe. */
+  /* 2026-09-28 (D21 sweep): that step is taken. A cost nobody recorded is EMPTY in the database now, so the file leaves Cost
+     and Profit empty on a row whose invoices ALL wait for their cost — exactly where the screen prints "not recorded" /
+     "unknown" — instead of a 0 that reads as a real figure. Every other cell, and the TOTAL, is unchanged. */
+  var csvUnrec=function(o,m){return (m==='cost_sar'||m==='profit_sar')&&o&&o.__n>0&&(o.__nz||0)>=o.__n;};
   R.keys.forEach(function(k){
-    out.push([k].concat(R.mets.map(function(m){return csvNum(m,R.g[k].__tot[m]);})));
-    if(R.g2)Object.keys(R.g[k].__sub).forEach(function(s){out.push(['  '+k+' \u203a '+s].concat(R.mets.map(function(m){return csvNum(m,R.g[k].__sub[s][m]);})));});
+    out.push([k].concat(R.mets.map(function(m){return csvUnrec(R.g[k],m)?'':csvNum(m,R.g[k].__tot[m]);})));
+    if(R.g2)Object.keys(R.g[k].__sub).forEach(function(s){out.push(['  '+k+' \u203a '+s].concat(R.mets.map(function(m){return csvUnrec(R.g[k].__sub[s],m)?'':csvNum(m,R.g[k].__sub[s][m]);})));});
   });
   out.push([isArF()?'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a':'TOTAL'].concat(R.mets.map(function(m){return csvNum(m,R.grand[m]);})));
   var csv='\ufeff'+out.map(function(r){return r.map(function(c){c=csvGuard(c);return (c.indexOf(',')>=0||c.indexOf('"')>=0||c.charCodeAt(0)===39)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',');}).join('\r\n');

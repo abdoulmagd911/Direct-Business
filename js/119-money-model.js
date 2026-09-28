@@ -58,7 +58,7 @@
       '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="flex:1">'+fl('Needs attention','يحتاج انتباهًا')+'</b>'+sw+'</div>';
     if(!any) h+='<div style="font-size:12.5px;color:var(--muted);margin-top:6px">'+fl('Nothing in this period is waiting, flagged or held apart.','لا شيء في هذه الفترة ينتظر أو مُعلَّم أو محجوز.')+'</div>';
     else h+='<div style="margin-top:6px">'+L.filter(function(x){ return g[x[0]]; }).map(function(x){ var v=g[x[0]];
-      return '<div data-v119-k="'+x[0]+'" data-n="'+v.n+'" style="font-size:12.5px;line-height:1.8;color:'+x[2]+'"><b>'+v.n+'</b> · '+n0(v.sar)+' SAR — '+e(x[1])+
+      return '<div data-v119-k="'+x[0]+'" data-n="'+v.n+'" style="font-size:12.5px;line-height:1.8;color:'+x[2]+'"><b>'+v.n+'</b> · '+n0(v.sar)+' '+fl('SAR','ريال')+' — '+e(x[1])+
         ' <span style="color:var(--muted);font-size:11.5px">('+e(v.refs.join(', '))+(v.n>v.refs.length?' …':'')+')</span></div>'; }).join('')+'</div>';
     return h+'</div>';
   }

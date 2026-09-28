@@ -182,6 +182,9 @@ async function main() {
          card, and the Share button opens js/77's panel — all three are removed to close. */
       try { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); } catch (_) { }
       try { ['pfConfirmBox', 'v63Notice', 'shareBox'].forEach((id) => { const x = document.getElementById(id); if (x) x.remove(); }); } catch (_) { }
+      /* 2026-09-28: js/115's change-log window is its own overlay (it sits above the modal on purpose) and is closed the way
+         its Escape key closes it — a "Change log" button reachable in this walk left it open over every later dialog. */
+      try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); const v = document.getElementById('v115-ov'); if (v) { v.style.display = 'none'; v.innerHTML = ''; } } catch (_) { }
     });
     await p.waitForTimeout(200);
   };
