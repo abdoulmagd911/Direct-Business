@@ -52,7 +52,7 @@ PLAN.forEach(([client, rows], ci) => rows.forEach((r, ri) => {
     invoice_date: '2026-08-1' + ri, month: 'August', quarter: 'Q3', year: 2026,
     products: 'Flights', service_type: 'Flights', record_type: 'b2b',
     total_incl_vat_sar: rev, wallet_portion_sar: 0, revenue_sar: rev,
-    cost_sar: cost, profit_sar: rev - cost,
+    cost_sar: cost || null, profit_sar: cost ? rev - cost : null,   // D21: a cost nobody recorded is empty (the seed's 0 = not recorded)
     amount_received_sar: rev, amount_remaining_sar: 0, collection_due_date: '2026-09-15',
     integrity_status: 'verified_paid', exclusion_reason: null, notes: null, source_batch: 'seed',
     created_at: '2026-08-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z', deleted_at: null,
