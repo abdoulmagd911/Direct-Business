@@ -312,7 +312,7 @@
     ((window.FIN&&FIN.rows)||[]).forEach(function(r){ if(r.invoice_no&&!r.deleted_at) existingByNo[r.invoice_no]=r; });
     ((window.FIN&&FIN.rows)||[]).forEach(function(r){ if(r.invoice_no&&r.deleted_at&&!existingByNo[r.invoice_no]) deletedByNo[r.invoice_no]=r; });
     return {
-      existingByNo:existingByNo, deletedByNo:deletedByNo,
+      existingByNo:existingByNo, deletedByNo:deletedByNo, newByKey:{},
       linkByGroup:(window.FIN&&FIN.linkByGroup)||{},
       isNew:[], updated:[], unchangedCount:0,
       excludedByRule:0, excludedDetail:{wallet:0,verif:0,clientExcluded:0,clientExcludedDetail:[],costCaptureDetail:[]},
@@ -363,6 +363,9 @@
   function rowDiffers(oldR,newR){
     return CMP_FIELDS.some(function(f){
       var a=oldR[f], b=newR[f];
+      /* D1 sweep: a field the file leaves blank is never sent (an update fills, never wipes — pickWritable), so it is not a
+         change either; counting it made every re-drop of an unchanged file read "N updated" */
+      if(b===null||b===undefined||b==='') return false;
       if(typeof a==='number'||typeof b==='number') return Math.abs((Number(a)||0)-(Number(b)||0))>0.01;
       return String(a==null?'':a)!==String(b==null?'':b);
     });
@@ -383,6 +386,27 @@
     return fl('deleted in this app — restore it first, then re-import; nothing was written',
               'محذوفة في هذا التطبيق — استرجعها أولًا ثم أعد الاستيراد؛ لم يُكتب شيء');
   }
+  function newKey(r){ return String(r.invoice_no)+'|'+String(r.line_no==null?'':r.line_no); }
+  /* two copies of one new invoice → one: the copy with the newer Payments status is the base, and a field it leaves blank is
+     filled from the other (the same fill-never-wipe rule the database applies to updates) */
+  function mergeNew(a,b){
+    var ta=String(a.payments_status_at||''), tb=String(b.payments_status_at||'');
+    var base=(tb>=ta)?b:a, other=(base===b)?a:b, out=Object.assign({},base);
+    Object.keys(other).forEach(function(f){ if(out[f]===null||out[f]===undefined||out[f]==='') out[f]=other[f]; });
+    return out;
+  }
+  function dedupeNew(list){
+    var at={}, out=[];
+    list.forEach(function(r){ var k=newKey(r); if(at[k]==null){ at[k]=out.length; out.push(r); } else out[at[k]]=mergeNew(out[at[k]],r); });
+    return out;
+  }
+  /* item lines: one set per invoice — the last copy read replaces an earlier one (they are the same invoice's lines) */
+  function dedupeLines(list){
+    var byInv={}, order=[];
+    list.forEach(function(l){ var k=String(l.invoice_no); if(!byInv[k]){ byInv[k]={}; order.push(k); } byInv[k][String(l.line_no)]=l; });
+    var out=[]; order.forEach(function(k){ Object.keys(byInv[k]).forEach(function(n){ out.push(byInv[k][n]); }); });
+    return out;
+  }
   function mergeRowsIntoState(rows,state){
     rows.forEach(function(r){
       if(r.invoice_date==null||r.invoice_date===''){
@@ -402,7 +426,11 @@
       if(r.audit_required) state.d1.audit++;
       if(r.integrity_status!=='verified_paid'&&r.row_kind!=='wallet_topup'){ var ps=r.payments_status||'—'; state.d1.unpaid[ps]=(state.d1.unpaid[ps]||0)+1; }
       if(r._lines&&r._lines.length) state.itemLines=state.itemLines.concat(r._lines);
-      if(!ex){ var nr=pickWritable(r); state.isNew.push(nr); if(!isLinked(nr,state.linkByGroup))state.needsLinking++; }
+      /* 2026-09-28 (D1 sweep): the same invoice twice in one file (two export runs pasted together) was two inserts of one
+         (invoice_no, line_no) — the database refuses the pair, and with it the whole import. One row per invoice: the newer
+         Payments status wins, blanks are filled from the other copy (v65MergeNew). */
+      if(!ex&&state.newByKey&&state.newByKey[newKey(r)]){ var i0=state.newByKey[newKey(r)]; state.isNew[i0]=mergeNew(state.isNew[i0],pickWritable(r)); state.dupInFile=(state.dupInFile||0)+1; return; }
+      if(!ex){ var nr=pickWritable(r); if(state.newByKey) state.newByKey[newKey(r)]=state.isNew.length; state.isNew.push(nr); if(!isLinked(nr,state.linkByGroup))state.needsLinking++; }
       else if(rowDiffers(ex,r)){ var u=Object.assign({},pickWritable(r,true),{id:ex.id,invoice_no:r.invoice_no}); state.updated.push(u); if(!isLinked(u,state.linkByGroup))state.needsLinking++; }
       else { state.unchangedCount++; }
     });
@@ -1527,6 +1555,10 @@
       var k=u&&u.invoice_no; if(k==null){ out.push(u); return; }
       if(!byInv[k]){ byInv[k]=Object.assign({},u); out.push(byInv[k]); return; }
       var m=byInv[k], b=base[k];
+      /* D1 sweep: a copy carrying an OLDER Payments status than the one already merged only fills blanks — otherwise the
+         later of two copies (Paid, then an earlier Pending run) rolled the status back before the database could judge it */
+      if(m.payments_status_at&&u.payments_status_at&&String(u.payments_status_at)<String(m.payments_status_at)){
+        Object.keys(u).forEach(function(f){ if(m[f]===null||m[f]===undefined||m[f]==='') m[f]=u[f]; }); return; }
       Object.keys(u).forEach(function(f){ if(!b||u[f]!==b[f]) m[f]=u[f]; });
     });
     return out;
@@ -1545,6 +1577,8 @@
     var toInsert=[],toUpdate=[];
     var itemLines=[];
     FILES_STATE.forEach(function(r){ if(!r.recognized)return; toInsert=toInsert.concat(r.pendingInsert||[]); toUpdate=toUpdate.concat(r.pendingUpdate||[]); itemLines=itemLines.concat(r.itemLines||[]); });
+    /* D1 sweep: two overlapping files dropped together both call the same invoice "new" — one insert, not two (see mergeNew) */
+    toInsert=dedupeNew(toInsert); itemLines=dedupeLines(itemLines);
     var linked=applyBillingLinks(toInsert,toUpdate);   // D1: only what a person ticked
     /* 2026-09-07 (watch cycle 42): RE-CHECK THE EXCLUSION LIST HERE, AGAINST THE SERVER.
        Cycle 41 put a gate at the top of this function asking whether the list was loaded NOW.

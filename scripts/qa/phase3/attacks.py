@@ -1634,6 +1634,20 @@ def _(cur):
     return (n == 6 and before == '∅|507800' and after == '439243|68557|∅|∅|∅',
             f"lines after importing the same file twice={n} · before the list (pass-through|unclassed)={before} · after (pass-through|fee|unclassed|cost|profit)={after}")
 
+@test("D1-07 The same invoice (and the same item line) sent twice in one import lands ONCE, with the newer Payments status — never a refused import")
+def _(cur):
+    as_user(cur, 'u4')
+    base = {'client_group': 'Twice Co', 'invoice_date': '2026-04-02', 'total_incl_vat_sar': 700}
+    ins = [dict(base, invoice_no='D1-TWICE', integrity_status='verified_paid', payments_status='Fully Paid', payments_status_at='2026-04-05T09:00:00Z'),
+           dict(base, invoice_no='D1-TWICE', integrity_status='pending', payments_status='Pending Payment', payments_status_at='2026-04-02T09:00:00Z')]
+    ln = [{'invoice_no': 'D1-TWICE', 'line_no': 1, 'kind': 'item', 'name': 'Flight Booking - Flight Booking', 'item_total_sar': 600},
+          {'invoice_no': 'D1-TWICE', 'line_no': 1, 'kind': 'item', 'name': 'Flight Booking - Flight Booking', 'item_total_sar': 600}]
+    r = one(cur, "select fn_commit_finance_import(p_insert := %s::jsonb, p_item_lines := %s::jsonb)", (json.dumps(ins), json.dumps(ln)))
+    n = one(cur, "select count(*)||'|'||max(payments_status) from finance_invoices where invoice_no='D1-TWICE'")
+    nl = one(cur, "select count(*) from finance_invoice_lines where invoice_no='D1-TWICE'")
+    q(cur, "reset role")
+    return (n == '1|Fully Paid' and nl == 1, f"rows|status={n} · lines={nl} · result={r}")
+
 @test("D1-05 The item-name list: only an admin or a manager adds to it; one entry per name however spelled; a name never changes; a removed entry stays removed; nothing is deleted; everyone with Finance reads it")
 def _(cur):
     as_user(cur, 'u1'); t, _ = expect_fail(cur, "insert into money_item_classes(name,class) values ('3rd Party Fee','pass_through')", None, "row-level security"); q(cur, "reset role")

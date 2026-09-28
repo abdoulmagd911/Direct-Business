@@ -92,7 +92,7 @@ async function main() {
         id, invoice_no: id, client_group: group, customer_raw_name: group, invoice_date: date,
         year: date ? +date.slice(0, 4) : null, month: date ? M[mo - 1] : null, quarter: date ? 'Q' + (Math.floor((mo - 1) / 3) + 1) : null,
         service_type: 'Flights', products: 'Flights', record_type: 'b2b',
-        total_incl_vat_sar: total, wallet_portion_sar: 0, revenue_sar: total, cost_sar: cost, profit_sar: total - cost,
+        total_incl_vat_sar: total, wallet_portion_sar: 0, revenue_sar: total, cost_sar: cost, profit_sar: cost == null ? null : total - cost,
         amount_received_sar: total, amount_remaining_sar: 0, integrity_status: 'verified_paid', deleted_at: null, vat_sar: 0
       }, extra || {});
     };
@@ -109,7 +109,7 @@ async function main() {
       row('C-Q1-26-T', '2026-03-11', 600, 200, 'Tender Co'),    // current Q1 2026, tenders
       row('P-Q4-25', '2025-12-10', 500, 100, 'B2B Co'),         // previous period for Q1 2026
       row('P-Q4-25-T', '2025-12-11', 300, 300, 'Tender Co'),    // previous, tenders, cost complete
-      row('Y-Q1-25', '2025-03-10', 800, 0, 'B2B Co'),           // same quarter last year, NO cost
+      row('Y-Q1-25', '2025-03-10', 800, null, 'B2B Co'),        // same quarter last year, NO cost (D21: null, not 0)
       row('Z-Q2-26', '2026-05-10', 0, 0, 'B2B Co'),             // zero-revenue period (Q2 2026)
       row('N-Q3-26', '2026-08-10', -200, 0, 'B2B Co'),          // negative base (Q3 2026)
       row('J-JAN-26', '2026-01-15', 200, 50, 'B2B Co'),         // January 2026, for the month wrap
@@ -143,7 +143,7 @@ async function main() {
       if (String(year) !== 'all' && String(r.year) !== String(year)) return;
       if (!inPart(r)) return;
       if (sector && sector !== 'all' && secOf(r) !== sector) return;
-      n++; rev += +r.revenue_sar || 0; cost += +r.cost_sar || 0; prof += +r.profit_sar || 0; if ((+r.cost_sar || 0) === 0) noCost++;
+      n++; rev += +r.revenue_sar || 0; cost += +r.cost_sar || 0; prof += +r.profit_sar || 0; if (r.cost_sar == null && r.revenue_way !== 'commission') noCost++;
     });
     return { n, rev, cost, prof, noCost, margin: rev > 0 ? prof / rev * 100 : 0 };
   }, { year, part, sector });

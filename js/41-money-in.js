@@ -141,19 +141,23 @@
         iName=ix('Name'),iTax=ix('Item Is Taxable'),iDisc=ix('Item Discount'),iItemTot=ix('Item Total'),
         iQty=ix(['Qty','Quantity','Item Quantity']),iUnit=ix(['Unit Price','Item Unit Price','Item Price']),
         iTot=ix('Invoice Total'),iBranch=ix('Sale Branch'),iSales=ix('Salesman');
-    var invs={},order=[];
+    var invs={},order=[],cur=null;
     for(var r=1;r<rows.length;r++){
       var row=rows[r]; if(!row||!row.length)continue;
       var t=cell(row,iType), ref=cell(row,iRef);
       if(!ref)continue;
       if(t==='invoice'||t==='credit_note'){
         if(!invs[ref]){order.push(ref);}
-        invs[ref]={ref:ref,num:cell(row,iNum)||null,created:isoDate(row[iCreate]),generated:isoDate(row[iGen]),paid:isoDate(row[iPaid]),
+        /* 2026-09-28 (D1 sweep): an invoice repeated in one file (two runs pasted together) — the copy with the NEWER status is
+           kept, whichever comes last; an older copy and its item lines are read and dropped (they used to overwrite it) */
+        var sAt=stamp64(row[iStatusAt]);
+        if(invs[ref]&&invs[ref].statusAt&&sAt&&String(sAt)<String(invs[ref].statusAt)){ cur={ref:ref,items:[],_dropped:true}; continue; }
+        cur=invs[ref]={ref:ref,num:cell(row,iNum)||null,created:isoDate(row[iCreate]),generated:isoDate(row[iGen]),paid:isoDate(row[iPaid]),
           status:cell(row,iStatus),statusAt:stamp64(row[iStatusAt]),cust:cell(row,iCust),email:(cell(row,iEmail)||'').toLowerCase()||null,
           credit:(t==='credit_note'),total:money64(row[iTot]),
           branch:cell(row,iBranch)||null,salesman:cell(row,iSales)||null,items:[]};
       } else if(t==='item'&&invs[ref]){
-        invs[ref].items.push({name:cell(row,iName),taxable:cell(row,iTax)==='Yes',
+        (cur&&cur.ref===ref?cur:invs[ref]).items.push({name:cell(row,iName),taxable:cell(row,iTax)==='Yes',
           discount:money64(row[iDisc]),total:money64(row[iItemTot]),product:cell(row,iProd),
           qty:iQty>=0?money64(row[iQty]):null,unit:iUnit>=0?money64(row[iUnit]):null});
       }

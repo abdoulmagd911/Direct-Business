@@ -224,7 +224,8 @@ begin
       project_tag, discount_sar, origin, proposal_ref, items, transaction_ref, direct_uuid,
       revenue_way, payments_client_id, customer_tax_no, discount_code,
       row_kind, payments_status, payments_status_at, paid_at, tax_invoice_date, invoice_created_on, audit_required, customer_email, billed_by_ref, source)
-    select
+    -- one row per (invoice, line) even if a stale tab sends a copy twice: the newer Payments status wins (the app dedupes first)
+    select distinct on (invoice_no, coalesce(line_no, 1))
       invoice_no, zatca_dpin, client_group, customer_raw_name, invoice_date, month, quarter,
       products, service_type, coalesce(record_type, 'b2b'), coalesce(total_incl_vat_sar, 0),
       coalesce(wallet_portion_sar, 0), coalesce(revenue_sar, 0), cost_sar, profit_sar,
@@ -246,7 +247,8 @@ begin
       items jsonb, transaction_ref text, direct_uuid text, revenue_way text,
       payments_client_id text, customer_tax_no text, discount_code text,
       row_kind text, payments_status text, payments_status_at timestamptz, paid_at date, tax_invoice_date date,
-      invoice_created_on date, audit_required boolean, customer_email text, billed_by_ref text, source text);
+      invoice_created_on date, audit_required boolean, customer_email text, billed_by_ref text, source text)
+    order by invoice_no, coalesce(line_no, 1), payments_status_at desc nulls last;
     get diagnostics v_inserted = row_count;
   end if;
 
@@ -302,9 +304,11 @@ begin
     select array_agg(distinct invoice_no) into v_touched_refs from jsonb_to_recordset(p_item_lines) as x(invoice_no text);
     delete from public.finance_invoice_lines where invoice_no = any(v_touched_refs);
     insert into public.finance_invoice_lines (invoice_no, line_no, kind, product, name, qty, unit_price, discount_sar, taxable, item_total_sar, source_batch)
-    select invoice_no, line_no, kind, product, name, qty, unit_price, discount_sar, taxable, item_total_sar, source_batch
-    from jsonb_to_recordset(p_item_lines) as x(invoice_no text, line_no int, kind text, product text, name text, qty numeric,
-      unit_price numeric, discount_sar numeric, taxable boolean, item_total_sar numeric, source_batch text);
+    select distinct on (invoice_no, line_no) invoice_no, line_no, kind, product, name, qty, unit_price, discount_sar, taxable, item_total_sar, source_batch
+    from rows from (jsonb_to_recordset(p_item_lines) as (invoice_no text, line_no int, kind text, product text, name text, qty numeric,
+      unit_price numeric, discount_sar numeric, taxable boolean, item_total_sar numeric, source_batch text))
+      with ordinality as x(invoice_no, line_no, kind, product, name, qty, unit_price, discount_sar, taxable, item_total_sar, source_batch, ord)
+    order by invoice_no, line_no, ord desc;   -- a line sent twice: the last copy wins, never a refused import
     get diagnostics v_item_lines = row_count;
   end if;
 

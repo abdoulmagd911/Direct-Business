@@ -161,9 +161,10 @@ const shape = (list) => list.map((r) => [r.invoice_no, r.row_kind, r.integrity_s
   /* 9. Performance */
   await s.p.evaluate(() => { current = 'finance'; FIN.p = { year: 'all', part: 'all', sector: 'all' }; finGo('overview'); }); await s.p.waitForTimeout(900);
   const perf = await s.p.evaluate(() => { const c = document.querySelector('.v119-attention'); const w = document.querySelector('[data-fin-nocost]');
-    return { card: c ? c.innerText : '', keys: c ? [...c.querySelectorAll('[data-v119-k]')].map((x) => x.getAttribute('data-v119-k')) : [], basis: !!document.querySelector('[data-v119-basis]'), warn: w ? w.innerText : '' }; });
+    return { card: c ? c.innerText : '', keys: c ? [...c.querySelectorAll('[data-v119-k]')].map((x) => x.getAttribute('data-v119-k')) : [], basis: !!document.querySelector('[data-v119-basis]'), warn: w ? w.innerText : '', mismatch: (document.getElementById('ov-mismatch') || {}).innerText || '' }; });
   check(['nocost', 'audit', 'topup', 'billing', 'unpaid'].every((k) => perf.keys.includes(k)), '9. "Needs attention" names waiting-for-cost, audit, top-ups, billing links and unpaid', JSON.stringify(perf.keys));
   check(perf.basis, '9. the Month-by switch is on Performance');
+  check(!perf.mismatch, '2. an invoice waiting for its cost is not called "stored figures that disagree" (Profit = Revenue − Cost over the invoices whose cost is known)', perf.mismatch);
   check(/waiting for their cost/.test(perf.warn) && /left out of cost and profit/.test(perf.warn) && !/pure profit/.test(perf.warn), '2. Performance says the cost is awaited and leaves it out — never "pure profit"', perf.warn);
 
   /* 8. a hand-entered row is left alone */
@@ -182,6 +183,19 @@ const shape = (list) => list.map((r) => [r.invoice_no, r.row_kind, r.integrity_s
   check(/تعبئة المحفظة/.test(pvA.d1) && /غير مدفوعة بعد/.test(pvA.d1) && /محجوزة/.test(pvA.d1), '3. the same lines in Arabic', pvA.d1.replace(/\n/g, ' | '));
   check(!s.errors.length && !s.natives.length, '10. no JS error, no native dialog (AR)', s.errors.concat(s.natives).slice(0, 3).join(' | '));
   await done(s);
+  /* 11. two export runs pasted into ONE file (the overlap repeats invoices, one with a newer status) — imports once each */
+  console.log('\nTwo runs in one file (overlap)');
+  s = await session(9724, 'en');
+  const both = FILE_2.replace(/\s+$/, '') + '\n' + FILE_1.split(/\r?\n/).slice(1).join('\n');   // the NEWER run first: the older copy that follows must not win
+  const pvO = await ingest(s, 'qa-d1-overlap.csv', both, false);
+  const RO = await rows(s); const cnt = {}; RO.forEach((r) => { cnt[r.invoice_no] = (cnt[r.invoice_no] || 0) + 1; });
+  const linesO = await fetch(s.BASE + '/rest/v1/finance_invoice_lines?select=*').then((r) => r.json()); const lc = {}; linesO.forEach((l) => { const k = l.invoice_no + '#' + l.line_no; lc[k] = (lc[k] || 0) + 1; });
+  const e = RO.find((r) => r.invoice_no === 'QA-D1-E') || {};
+  check(pvO.committed && /Done\./.test(pvO.done) && !/FAILED/.test(pvO.done) && Object.values(cnt).every((n) => n === 1) && Object.values(lc).every((n) => n === 1) && e.integrity_status === 'verified_paid',
+    '7. an invoice repeated inside one file lands once (and each of its lines once), with the newer status — the import is not refused',
+    JSON.stringify({ done: pvO.done.slice(0, 160), dupRows: Object.keys(cnt).filter((k) => cnt[k] > 1), dupLines: Object.keys(lc).filter((k) => lc[k] > 1), e: e.payments_status }));
+  await done(s);
+
   console.log(failures ? `\nFAILED — ${failures} check(s)` : '\nPASS — D1: the invoice export imports as Payments records it, fills and never wipes');
   process.exit(failures ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -500,8 +500,8 @@ function finCompLabel(p){
 function finPeriodTotals(p){
   var sec=(p&&p.sector)||'all';
   var rows=verified().filter(function(r){return finPeriodMatch(r,p)&&(sec==='all'||finSectorOf(r)===sec);});
-  var t={rev:0,cost:0,prof:0,n:rows.length,noCost:0};
-  rows.forEach(function(r){t.rev+=+r.revenue_sar||0;t.cost+=+r.cost_sar||0;t.prof+=+r.profit_sar||0;if(finCostMissing(r))t.noCost++;});
+  var t={rev:0,revK:0,cost:0,prof:0,n:rows.length,noCost:0};
+  rows.forEach(function(r){t.rev+=+r.revenue_sar||0;t.cost+=+r.cost_sar||0;t.prof+=+r.profit_sar||0;if(finCostMissing(r))t.noCost++;else t.revK+=+r.revenue_sar||0;});
   return t;
 }
 window.finCmp=function(v){FIN.p.cmp=v;render();};
@@ -1178,8 +1178,11 @@ function rFinClients(){
 function rOverview(){
   clearFinCanon();
   var V=verified().filter(finInPeriod);
-  var rev=0,cost=0,prof=0,rec=0,rem=0,wal=0;
-  V.forEach(function(r){rev+=+r.revenue_sar;cost+=+r.cost_sar;prof+=+r.profit_sar;rec+=+r.amount_received_sar;rem+=+r.amount_remaining_sar;wal+=+r.wallet_portion_sar;});
+  var rev=0,cost=0,prof=0,rec=0,rem=0,wal=0,revK=0;
+  /* 2026-09-28 (D21 sweep): an invoice still waiting for its cost has cost AND profit null — it counts in Revenue but not in
+     Cost or Profit. revK is the revenue of the invoices whose cost IS known: the base for margin and for the
+     Profit = Revenue − Cost check below, which otherwise called every waiting invoice "stored figures that disagree". */
+  V.forEach(function(r){rev+=+r.revenue_sar||0;cost+=+r.cost_sar||0;prof+=+r.profit_sar||0;rec+=+r.amount_received_sar||0;rem+=+r.amount_remaining_sar||0;wal+=+r.wallet_portion_sar||0;if(!finCostMissing(r))revK+=+r.revenue_sar||0;});
   /* Outstanding cannot be read off the verified-paid invoices: an invoice is only verified-paid
      once nothing is left to pay, so summing what remains across them is always zero — which is
      exactly what this tile showed while Clients & collections reported 216.1K of real unpaid
@@ -1226,12 +1229,12 @@ function rOverview(){
      with the count of rows it comes from. (The database trigger keeps every live row honest today,
      and all 46 were re-checked; this is the page refusing to mislabel the day that changes.) */
   (function(){
-    var _pr=finPrintedValue(rev), _pc=finPrintedValue(cost), _pp=finPrintedValue(prof);
+    var _pr=finPrintedValue(revK), _pc=finPrintedValue(cost), _pp=finPrintedValue(prof);
     if(_pr-_pc===_pp)return;
-    var _exactGap=(Number(rev)||0)-(Number(cost)||0)-(Number(prof)||0);
+    var _exactGap=(Number(revK)||0)-(Number(cost)||0)-(Number(prof)||0);
     if(Math.abs(_exactGap)>=1){
       var _off=0;
-      try{ _off=live().filter(finInPeriod).filter(function(r){
+      try{ _off=live().filter(finInPeriod).filter(function(r){ if(finCostMissing(r)) return false;
         var rr=Number(r.revenue_sar)||0, cc=Number(r.cost_sar)||0, pp=Number(r.profit_sar)||0;
         return Math.abs(rr-cc-pp)>=0.005; }).length; }catch(_){ _off=0; }
       h+='<div id="ov-mismatch" style="font-size:12px;color:#B54708;font-weight:600;margin:-6px 0 14px">⚠ '+(isArF()
@@ -1243,8 +1246,8 @@ function rOverview(){
       return;
     }
     h+='<div id="ov-rounding" style="font-size:12px;color:#444;margin:-6px 0 14px">'+(isArF()
-      ?('\u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0623\u0639\u0644\u0627\u0647 \u0645\u064f\u0642\u0631\u064e\u0651\u0628 \u0643\u0644 \u0645\u0646\u0647\u0627 \u0639\u0644\u0649 \u062d\u062f\u0629\u060c \u0644\u0630\u0627 \u0641\u0625\u0646 '+money0(_pr)+' \u0646\u0627\u0642\u0635 '+money0(_pc)+' \u062a\u0639\u0637\u064a '+money0(_pr-_pc)+' \u0628\u064a\u0646\u0645\u0627 \u064a\u0638\u0647\u0631 \u0627\u0644\u0631\u0628\u062d '+money0(_pp)+'. \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0627\u0644\u062f\u0642\u064a\u0642\u0629: \u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a '+(Number(rev)||0).toFixed(2)+' \u0631\u064a\u0627\u0644\u060c \u0627\u0644\u062a\u0643\u0644\u0641\u0629 '+(Number(cost)||0).toFixed(2)+' \u0631\u064a\u0627\u0644\u060c \u0627\u0644\u0631\u0628\u062d '+(Number(prof)||0).toFixed(2)+' \u0631\u064a\u0627\u0644.')
-      :('Each figure above is rounded on its own, so '+money0(_pr)+' minus '+money0(_pc)+' reads as '+money0(_pr-_pc)+' where Profit reads '+money0(_pp)+'. Exactly: revenue '+(Number(rev)||0).toFixed(2)+' SAR, cost '+(Number(cost)||0).toFixed(2)+' SAR, profit '+(Number(prof)||0).toFixed(2)+' SAR.'))+'</div>';
+      ?('\u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0623\u0639\u0644\u0627\u0647 \u0645\u064f\u0642\u0631\u064e\u0651\u0628 \u0643\u0644 \u0645\u0646\u0647\u0627 \u0639\u0644\u0649 \u062d\u062f\u0629\u060c \u0644\u0630\u0627 \u0641\u0625\u0646 '+money0(_pr)+' \u0646\u0627\u0642\u0635 '+money0(_pc)+' \u062a\u0639\u0637\u064a '+money0(_pr-_pc)+' \u0628\u064a\u0646\u0645\u0627 \u064a\u0638\u0647\u0631 \u0627\u0644\u0631\u0628\u062d '+money0(_pp)+'. \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0627\u0644\u062f\u0642\u064a\u0642\u0629: \u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a '+(Number(revK)||0).toFixed(2)+' \u0631\u064a\u0627\u0644\u060c \u0627\u0644\u062a\u0643\u0644\u0641\u0629 '+(Number(cost)||0).toFixed(2)+' \u0631\u064a\u0627\u0644\u060c \u0627\u0644\u0631\u0628\u062d '+(Number(prof)||0).toFixed(2)+' \u0631\u064a\u0627\u0644.')
+      :('Each figure above is rounded on its own, so '+money0(_pr)+' minus '+money0(_pc)+' reads as '+money0(_pr-_pc)+' where Profit reads '+money0(_pp)+'. Exactly: revenue '+(Number(revK)||0).toFixed(2)+' SAR, cost '+(Number(cost)||0).toFixed(2)+' SAR, profit '+(Number(prof)||0).toFixed(2)+' SAR.'))+'</div>';
   })();
   var _badMoney=live().filter(finInPeriod).filter(function(r){return r._badMoney;}).length;
   if(_badMoney>0){
@@ -1322,7 +1325,7 @@ function rOverview(){
       return out;
     }
     var rows=[[ar?'الإيرادات':'Revenue',rev,ct.rev],[ar?'التكلفة':'Cost',cost,ct.cost],[ar?'الربح':'Profit',prof,ct.prof],
-      [ar?'الهامش':'Margin',rev>0?(prof/rev*100):0,ct.rev>0?(ct.prof/ct.rev*100):0]];
+      [ar?'الهامش':'Margin',revK>0?(prof/revK*100):0,ct.revK>0?(ct.prof/ct.revK*100):0]];
     out+='<div style="overflow-x:auto;margin-top:10px"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:420px"><thead><tr style="text-align:'+(ar?'right':'left')+';color:var(--muted)"><th style="padding:6px 8px"></th><th style="padding:6px 8px;text-align:right">'+finPeriodLabel()+'</th><th style="padding:6px 8px;text-align:right">'+finCompLabel(cp)+'</th><th style="padding:6px 8px;text-align:right">'+(ar?'الفرق':'Δ')+'</th></tr></thead><tbody>'+rows.map(function(r){
       var isMargin=r[0]===(ar?'الهامش':'Margin');
       var d=r[1]-r[2], pct=r[2]!==0?(d/Math.abs(r[2])*100):(r[1]!==0?null:0);

@@ -166,8 +166,8 @@ async function main() {
   if (!/Expense Report — transaction status \(join\)/i.test(preview2)) fail(`drop 2: gate file was not recognized as expense_gate_capture: ${preview2.slice(0, 300)}`);
   else ok('drop 2: expense-gate.csv recognized as "Expense Report — transaction status (join)"');
   const joinPart = preview2.split(/Cost — joined and resolved/)[1] || '';
-  if (!/Updated 2\b/.test(joinPart)) fail(`drop 2: expected exactly 2 updated rows (116361000, and the rule-caught 9999999999 kept current) once both files are present: ${preview2.slice(0, 600)}`);
-  else ok('drop 2: join resolved to exactly 2 updated rows (116361000, and the rule-caught 9999999999 kept current) — proves EXPENSE_JOIN carried drop 1\'s data forward into this separate drop');
+  if (!/Updated 3\b/.test(joinPart)) fail(`drop 2: expected exactly 3 updated rows (116361000, the loss-making 116361002 applied and flagged — D21 — and the rule-caught 9999999999 kept current) once both files are present: ${preview2.slice(0, 600)}`);
+  else ok('drop 2: join resolved to exactly 3 updated rows (116361000, the loss-making 116361002, and the rule-caught 9999999999 kept current) — proves EXPENSE_JOIN carried drop 1\'s data forward into this separate drop');
   if (/Left out by a rule \(imported, not counted\)\s+1\s+—\s+Tawthiq Test Services/.test(joinPart)) ok('drop 2: the excluded client\'s invoice is named on its own "Left out by a rule (imported, not counted)" segment');
   else fail('drop 2: the join preview does not name the rule-caught Tawthiq invoice as left out by its rule: ' + JSON.stringify(joinPart.slice(0, 500)));
   if (!/1 transaction\(s\) are not yet issued into any tax invoice/i.test(preview2)) fail('drop 2: "not yet issued" (T3, "Need to issue") count missing or wrong');
@@ -177,8 +177,8 @@ async function main() {
   if (!/1 transaction\(s\) have expense lines but no transaction-status row yet/i.test(preview2)) fail('drop 2: T12 (lines, no gate row) should still be waiting — the gate file never mentions it');
   else ok('drop 2: T12 (never appears in the gate file) still correctly reported as waiting');
   // Every held-back invoice must be named individually, with the specific transaction and reason.
-  if (!/116361002/.test(preview2) || !/exceeds/i.test(preview2)) fail('drop 2: 116361002 (exceeds-total) not itemized in the preview');
-  else ok('drop 2: 116361002 itemized — exceeds-total guard reported loudly');
+  if (!/116361002/.test(preview2) || !/Cost above revenue/i.test(preview2)) fail('drop 2: 116361002 (cost above its total) not named in the preview');
+  else ok('drop 2: 116361002 named — cost above revenue, applied and flagged "Loss" for a person to check (D21)');
   if (!/116361003/.test(preview2) || !/T6/.test(preview2) || !/disagrees with itself/i.test(preview2)) fail('drop 2: 116361003 (T6 gate self-conflict) not itemized in the preview');
   else ok('drop 2: 116361003 itemized — T6\'s self-conflicting gate row reported loudly');
   if (!/116361004/.test(preview2) || !/T7/.test(preview2) || !/malformed/i.test(preview2)) fail('drop 2: 116361004 (T7 malformed amount) not itemized in the preview');
@@ -233,8 +233,8 @@ async function main() {
 
   // ---- Invoice 116361002: one transaction, approved sum exceeds the invoice's own total ----
   if (!rows.exceedsTotal) fail('116361002: row went missing entirely');
-  else if (rows.exceedsTotal.cost === 999999) fail('116361002: the impossible 999999 cost was applied — this is exactly the stale-iframe/join-error class of bug the cost<=total guard exists to catch');
-  else ok(`116361002: cost_sar left untouched at ${rows.exceedsTotal.cost} — the exceeds-total guard correctly rejected 999999`);
+  else if (rows.exceedsTotal.cost !== 999999) fail(`116361002: cost ${rows.exceedsTotal.cost} — D21 applies a cost above revenue and flags it "Loss" (named in the preview), it does not hide it`);
+  else ok('116361002: the cost above revenue was applied (D21: a loss is shown and flagged, never held back) — and the preview named it for a person to check');
 
   // ---- Invoice 116361003: T6's own gate row disagrees with itself — never guessed at ----
   if (!rows.gateConflict) fail('116361003: row went missing entirely');
