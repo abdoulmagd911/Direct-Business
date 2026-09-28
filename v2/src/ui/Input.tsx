@@ -17,15 +17,9 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
   },
 );
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  function Textarea({ className, rows = 3, ...rest }, ref) {
-    return (
-      <textarea
-        ref={ref}
-        rows={rows}
-        className={cn(inputClass, 'py-2 leading-normal', className)}
-        {...rest}
-      />
-    );
-  },
-);
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea(
+  { className, rows = 3, ...rest },
+  ref,
+) {
+  return <textarea ref={ref} rows={rows} className={cn(inputClass, 'py-2 leading-normal', className)} {...rest} />;
+});

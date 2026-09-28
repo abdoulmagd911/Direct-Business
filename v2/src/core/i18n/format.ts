@@ -34,10 +34,6 @@ export function formatMoney(amount: number, locale: 'en' | 'ar' = 'en', fraction
   }).format(amount);
 }
 
-export function formatNumber(
-  n: number,
-  locale: 'en' | 'ar' = 'en',
-  opts: Intl.NumberFormatOptions = {},
-): string {
+export function formatNumber(n: number, locale: 'en' | 'ar' = 'en', opts: Intl.NumberFormatOptions = {}): string {
   return new Intl.NumberFormat(intlLocale(locale), { numberingSystem: 'latn', ...opts }).format(n);
 }

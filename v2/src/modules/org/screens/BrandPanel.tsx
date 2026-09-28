@@ -27,9 +27,7 @@ export function BrandPanel() {
           dir={locale === 'ar' ? 'ltr' : 'rtl'}
           className="max-w-[32ch] text-end text-base text-nav-muted md:text-lg"
         >
-          {locale === 'ar'
-            ? 'The commercial arm of the all-in-one travel app'
-            : 'الذراع التجاري لتطبيق السفر الشامل'}
+          {locale === 'ar' ? 'The commercial arm of the all-in-one travel app' : 'الذراع التجاري لتطبيق السفر الشامل'}
         </p>
       </div>
       <p className="relative hidden text-sm text-nav-muted md:block">{t('footer')}</p>

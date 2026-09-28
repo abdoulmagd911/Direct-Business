@@ -1,14 +1,11 @@
 /**
- * The shell: drawer 232/56 with the pin remembered, Ctrl K, the Create menu, the off-canvas sheet
- * under 1,024 px, no page title in the top bar, every nav entry a link.
+ * The shell: drawer 232/56 with the pin remembered, Ctrl K, the Create menu, the bottom bar under
+ * 1,024 px, no page title in the top bar, every nav entry a link.
  */
 import { expect, test } from '@playwright/test';
 import { THEMES, fitToPage, open, setPrefs } from './helpers';
 
-test('the drawer is 232 px pinned, 56 px collapsed, and the choice survives a reload', async ({
-  page,
-  context,
-}) => {
+test('the drawer is 232 px pinned, 56 px collapsed, and the choice survives a reload', async ({ page, context }) => {
   await setPrefs(context, { theme: 'direct' });
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/my-day');
@@ -40,10 +37,7 @@ test('Ctrl K opens the palette and goes to a page', async ({ page, context }) =>
   await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveText('Tasks');
 });
 
-test('the Create menu lists the create actions and the top bar carries no page title', async ({
-  page,
-  context,
-}) => {
+test('the Create menu lists the create actions and the top bar carries no page title', async ({ page, context }) => {
   await setPrefs(context, { theme: 'colorful' });
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/partners');
@@ -55,15 +49,25 @@ test('the Create menu lists the create actions and the top bar carries no page t
   await expect(page.locator('h1')).toHaveText('Partners');
 });
 
-test('under 1,024 px the drawer is an off-canvas sheet that Escape closes', async ({ page, context }) => {
+test('under 1,024 px the bottom bar carries My day · Tasks · Partners · KPIs · More, and More opens the rest', async ({
+  page,
+  context,
+}) => {
   await setPrefs(context, { theme: 'direct' });
   await page.setViewportSize({ width: 400, height: 800 });
   await open(page, '/my-day');
-  await expect(page.locator('[data-drawer]:visible')).toHaveCount(0);
-  await page.locator('[data-open-menu]').click();
-  await expect(page.locator('[data-drawer]:visible')).toHaveCount(1);
+  await expect(page.locator('[data-drawer]')).toBeHidden();
+  const bar = page.locator('[data-bottom-bar]');
+  await expect(bar).toBeVisible();
+  await expect(bar.locator('a, button')).toHaveText(['My day', 'Tasks', 'Partners', 'KPIs', 'More']);
+  await expect(bar.locator('a[aria-current="page"]')).toHaveText('My day');
+  await page.locator('[data-bottom-more]').click();
+  const sheet = page.locator('[data-more-sheet]');
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole('link', { name: 'Pipeline' })).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(page.locator('[data-drawer]:visible')).toHaveCount(0);
+  await expect(sheet).toBeHidden();
+  await expect(page.locator('[data-bottom-more]')).toBeFocused();
 });
 
 test('every drawer entry is a link and the active one is marked', async ({ page, context }) => {
@@ -71,7 +75,7 @@ test('every drawer entry is a link and the active one is marked', async ({ page,
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/kpis');
   const links = page.locator('[data-drawer] a[href]');
-  await expect(links).toHaveCount(11); // logo, 8 pages, Settings, the profile
+  await expect(links).toHaveCount(13); // logo, 10 pages, Settings, the profile
   await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveAttribute('href', '/kpis');
 });
 

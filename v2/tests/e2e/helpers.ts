@@ -2,7 +2,7 @@ import { expect, type BrowserContext, type Page } from '@playwright/test';
 
 export const THEMES = ['light', 'dark', 'colorful', 'direct'] as const;
 export type Theme = (typeof THEMES)[number];
-export const BASE = 'http://127.0.0.1:9400';
+export const BASE = 'http://127.0.0.1:9300';
 
 export async function setPrefs(
   ctx: BrowserContext,
@@ -15,10 +15,7 @@ export async function setPrefs(
 export async function fitToPage(page: Page, width: number) {
   const h = await page.evaluate(() => {
     const el = document.querySelector('[data-page]') ?? document.body;
-    return Math.max(
-      document.documentElement.scrollHeight,
-      el.scrollHeight + (el.getBoundingClientRect().top || 0),
-    );
+    return Math.max(document.documentElement.scrollHeight, el.scrollHeight + (el.getBoundingClientRect().top || 0));
   });
   await page.setViewportSize({ width, height: Math.min(Math.max(h + 24, 700), 6000) });
 }

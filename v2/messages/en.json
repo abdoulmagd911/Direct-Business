@@ -1,12 +1,15 @@
 {
   "app": {
+    "name": "Commercial Workspace",
     "department": "Commercial",
     "workspace": "Commercial Workspace",
     "brand": "Direct"
   },
   "nav": {
     "my-day": "My day",
+    "overview": "Overview",
     "partners": "Partners",
+    "pipeline": "Pipeline",
     "projects": "Projects",
     "tasks": "Tasks",
     "finance": "Finance",
@@ -20,7 +23,8 @@
     "collapse": "Collapse drawer",
     "expand": "Expand drawer",
     "open": "Open menu",
-    "close": "Close menu"
+    "close": "Close menu",
+    "more": "More"
   },
   "top": {
     "search": "Search partners, tasks, INV-, DRS-",
@@ -105,7 +109,6 @@
     "codeSent": "Sent to {email}",
     "change": "Change",
     "digit": "Digit {n}",
-    "keepSignedIn": "Keep me signed in on this device",
     "verify": "Verify",
     "resend": "Resend code",
     "resendIn": "Resend in {seconds}",

@@ -68,9 +68,7 @@ export function DataTable<T>({
     header: ({ table }) => (
       <Checkbox
         label={labels.selectAll}
-        checked={
-          table.getIsAllRowsSelected() ? true : table.getIsSomeRowsSelected() ? 'indeterminate' : false
-        }
+        checked={table.getIsAllRowsSelected() ? true : table.getIsSomeRowsSelected() ? 'indeterminate' : false}
         onCheckedChange={(v) => table.toggleAllRowsSelected(v)}
       />
     ),
@@ -156,9 +154,7 @@ export function DataTable<T>({
                     <th
                       key={h.id}
                       style={{ width: h.getSize() !== 150 ? h.getSize() : undefined }}
-                      aria-sort={
-                        sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined
-                      }
+                      aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
                       className={cn(
                         'h-[var(--row-h-head)] whitespace-nowrap border-b border-border px-3 text-start text-[12.5px] font-semibold text-muted',
                         numeric && 'text-end',
@@ -210,8 +206,7 @@ export function DataTable<T>({
                   )}
                 >
                   {row.getVisibleCells().map((cell) => {
-                    const numeric = (cell.column.columnDef.meta as { numeric?: boolean } | undefined)
-                      ?.numeric;
+                    const numeric = (cell.column.columnDef.meta as { numeric?: boolean } | undefined)?.numeric;
                     return (
                       <td
                         key={cell.id}

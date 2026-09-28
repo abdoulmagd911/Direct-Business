@@ -10,19 +10,11 @@ const tones: Record<Tone, string> = {
   warning: 'bg-warning-soft text-warning',
   danger: 'bg-danger-soft text-danger',
   info: 'bg-info-soft text-info',
-  neutral: 'bg-[color-mix(in_srgb,var(--muted)_14%,transparent)] text-muted',
+  neutral: 'bg-[color-mix(in_srgb,var(--muted)_12%,transparent)] text-text before:!bg-muted',
 };
 
 /** Dot + word on a soft tint. The word always shows — colour never carries the meaning alone. */
-export function StatusChip({
-  tone,
-  children,
-  className,
-}: {
-  tone: Tone;
-  children: ReactNode;
-  className?: string;
-}) {
+export function StatusChip({ tone, children, className }: { tone: Tone; children: ReactNode; className?: string }) {
   return (
     <span
       className={cn(
@@ -68,11 +60,7 @@ export function FilterChip({
         type="button"
         onClick={onClick}
         aria-label={addLabel}
-        className={cn(
-          base,
-          'border-dashed border-border-strong bg-transparent text-muted hover:bg-surface',
-          className,
-        )}
+        className={cn(base, 'border-dashed border-border-strong bg-transparent text-muted hover:bg-surface', className)}
       >
         <span aria-hidden="true">+</span> {field}
       </button>

@@ -1,0 +1,12 @@
+Sabotage: plant-foreign-port
+Breaks: check:v2-ids
+Expect: port 3000
+
+Plants a test that serves on port 3000, outside the builders' blocks (A18).
+
+diff --git a/v2/tests/e2e/demo-port.spec.ts b/v2/tests/e2e/demo-port.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/v2/tests/e2e/demo-port.spec.ts
+@@ -0,0 +1,1 @@
++export const url = 'http://localhost:3000/';

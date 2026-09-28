@@ -15,8 +15,7 @@ export const buttonVariants = cva(
       variant: {
         primary: 'border-transparent bg-primary text-on-primary hover:bg-primary-hover',
         secondary: 'border-border-strong bg-raised text-text hover:bg-surface',
-        ghost:
-          'border-transparent bg-transparent text-text hover:bg-[color-mix(in_srgb,var(--text)_8%,transparent)]',
+        ghost: 'border-transparent bg-transparent text-text hover:bg-[color-mix(in_srgb,var(--text)_8%,transparent)]',
         danger:
           'border-[color-mix(in_srgb,var(--danger)_45%,transparent)] bg-transparent text-danger hover:bg-danger-soft',
         link: 'h-auto border-transparent bg-transparent p-0 text-link underline-offset-2 hover:underline',

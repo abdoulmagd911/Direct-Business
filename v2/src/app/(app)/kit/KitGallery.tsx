@@ -65,10 +65,7 @@ type Row = {
   amount: number;
   owner: AvatarPerson;
 };
-const STATUS: Record<
-  Row['status'],
-  { tone: 'success' | 'info' | 'warning' | 'danger' | 'neutral'; label: string }
-> = {
+const STATUS: Record<Row['status'], { tone: 'success' | 'info' | 'warning' | 'danger' | 'neutral'; label: string }> = {
   done: { tone: 'success', label: 'Done' },
   inProgress: { tone: 'info', label: 'In progress' },
   waiting: { tone: 'warning', label: 'Waiting on client' },
@@ -151,7 +148,7 @@ export function KitGallery() {
       },
       {
         accessorKey: 'amount',
-        header: 'Sales (GMV)',
+        header: 'Revenue',
         meta: { numeric: true },
         cell: ({ row }) => <Money value={formatMoney(row.original.amount)} />,
       },
@@ -319,7 +316,7 @@ export function KitGallery() {
               Sample project
             </EntityLink>
             <EntityLink kind="kpi" variant="chip" href="/kpis/2026/K1" id="K1">
-              New B2B clients
+              New clients
             </EntityLink>
             <EntityLink kind="achievement" variant="chip" href="/kpis/achievements/t1" id="ACH-T-01">
               New deal
@@ -345,12 +342,7 @@ export function KitGallery() {
             <PersonChip person={people[0]!} href="/settings/profile" />
             <PersonChip person={people[1]!} href="/settings/profile" size="md" />
             <AvatarStack owner={people[0]!} helpers={people.slice(1)} hrefOf={() => '/settings/profile'} />
-            <AvatarStack
-              owner={people[1]!}
-              helpers={[people[2]!]}
-              hrefOf={() => '/settings/profile'}
-              size="xs"
-            />
+            <AvatarStack owner={people[1]!} helpers={[people[2]!]} hrefOf={() => '/settings/profile'} size="xs" />
           </div>
         </Section>
 
@@ -372,12 +364,7 @@ export function KitGallery() {
               target={80.3}
               footnote="of SAR 6.0M · 34 days left"
             />
-            <KpiTile
-              label="Overdue tasks"
-              value="3"
-              delta={{ text: '2', tone: 'down' }}
-              footnote="since Monday"
-            />
+            <KpiTile label="Overdue tasks" value="3" delta={{ text: '2', tone: 'down' }} footnote="since Monday" />
             <KpiTile label="Cost" value={null} footnote="not measured" />
           </div>
         </Section>
@@ -475,7 +462,7 @@ export function KitGallery() {
             <dd>
               <StatusChip tone={STATUS[selected.status].tone}>{STATUS[selected.status].label}</StatusChip>
             </dd>
-            <dt>Sales (GMV)</dt>
+            <dt>Revenue</dt>
             <dd>
               <Money value={formatMoney(selected.amount)} />
             </dd>
@@ -525,9 +512,7 @@ function HelperForm({ onDone }: { onDone: () => void }) {
       })}
     >
       <Field label="Colleague" error={form.formState.errors.colleague?.message}>
-        {(p) => (
-          <Input {...p} {...form.register('colleague', { required: 'Choose a colleague' })} autoFocus />
-        )}
+        {(p) => <Input {...p} {...form.register('colleague', { required: 'Choose a colleague' })} autoFocus />}
       </Field>
       <Field label="Role on task">{(p) => <Input {...p} {...form.register('role')} />}</Field>
     </form>

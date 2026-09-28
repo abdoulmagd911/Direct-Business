@@ -33,11 +33,7 @@ export function Tabs({
 
   if (tabs.every((t) => t.href)) {
     return (
-      <nav
-        aria-label={label}
-        className={cn('flex gap-6 overflow-x-auto border-b border-border', className)}
-        data-tabs
-      >
+      <nav aria-label={label} className={cn('flex gap-6 overflow-x-auto border-b border-border', className)} data-tabs>
         {tabs.map((t) => (
           <Link
             key={t.value}

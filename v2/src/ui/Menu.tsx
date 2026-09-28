@@ -14,10 +14,7 @@ export function MenuContent({ children, className, align = 'end', ...rest }: RM.
       <RM.Content
         align={align}
         sideOffset={6}
-        className={cn(
-          'z-50 min-w-56 rounded-lg border border-border bg-raised p-1.5 text-text shadow-2',
-          className,
-        )}
+        className={cn('z-50 min-w-56 rounded-lg border border-border bg-raised p-1.5 text-text shadow-2', className)}
         {...rest}
       >
         {children}

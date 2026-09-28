@@ -8,7 +8,11 @@ import type { Level } from '@/core/access/levels';
 export type AvatarColor = 'c1' | 'c2' | 'c3' | 'c4' | 'c5' | 'c6';
 export type BadgeKind = 'none' | 'icon' | 'zodiac';
 
+export type MeStatus = 'ok' | 'not_listed' | 'switched_off';
+
 export type Me = {
+  /** api.me() answers ok, not_listed or switched_off (V109); only ok comes with a person. */
+  status: MeStatus;
   person: {
     id: string;
     fullName: string;
@@ -22,10 +26,15 @@ export type Me = {
   isAdmin: boolean;
   /** Effective level per page key (registry keys). */
   levels: Record<string, Level>;
+  /** Capability keys granted (tasks.assign, finance.credit …). */
+  capabilities: string[];
+  /** Department ids: the person's own plus any granted. */
+  departments: string[];
   unreadNotifications: number;
 };
 
 export const DEV_ME: Me = {
+  status: 'ok',
   person: {
     id: '00000000-0000-4000-8000-000000000001',
     fullName: 'Test Person',
@@ -39,7 +48,9 @@ export const DEV_ME: Me = {
   isAdmin: true,
   levels: {
     'my-day': 'full',
+    overview: 'full',
     partners: 'full',
+    pipeline: 'full',
     projects: 'full',
     tasks: 'full',
     finance: 'full',
@@ -48,6 +59,8 @@ export const DEV_ME: Me = {
     appraisal: 'own',
     settings: 'full',
   },
+  capabilities: ['tasks.assign', 'companies.identify', 'finance.credit'],
+  departments: ['00000000-0000-4000-8000-0000000000d1'],
   unreadNotifications: 0,
 };
 

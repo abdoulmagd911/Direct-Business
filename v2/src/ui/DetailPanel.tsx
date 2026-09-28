@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { cn } from './cn';
 import { IconButton } from './IconButton';
+import { useMediaQuery } from './useMediaQuery';
 
 /**
  * The detail panel: 480 px on the end side beside the list (which stays interactive); a full page
@@ -30,6 +31,8 @@ export function DetailPanel({
 }) {
   const opener = useRef<Element | null>(null);
   const panel = useRef<HTMLElement>(null);
+  // Under 900 px the panel is a full page (a dialog); the choice is made here, not by CSS, because a portal escapes a hidden wrapper.
+  const narrow = useMediaQuery('(max-width: 899px)');
 
   useEffect(() => {
     if (open) {
@@ -63,36 +66,31 @@ export function DetailPanel({
     </>
   );
 
+  if (narrow) {
+    return (
+      <RD.Root open onOpenChange={(o) => !o && onClose()}>
+        <RD.Portal>
+          <RD.Content
+            aria-describedby={undefined}
+            className="fixed inset-0 z-40 flex flex-col bg-raised text-text focus:outline-none"
+            data-detail-panel
+          >
+            <RD.Title className="sr-only">{title}</RD.Title>
+            {body}
+          </RD.Content>
+        </RD.Portal>
+      </RD.Root>
+    );
+  }
   return (
-    <>
-      {/* wide: inline aside */}
-      <aside
-        ref={panel}
-        aria-label={typeof title === 'string' ? title : undefined}
-        tabIndex={-1}
-        data-detail-panel
-        className={cn(
-          'hidden w-[var(--panel-w)] shrink-0 flex-col border-s border-border bg-raised md:flex',
-          className,
-        )}
-      >
-        {body}
-      </aside>
-      {/* narrow: full page */}
-      <div className="md:hidden">
-        <RD.Root open onOpenChange={(o) => !o && onClose()}>
-          <RD.Portal>
-            <RD.Content
-              aria-describedby={undefined}
-              className="fixed inset-0 z-40 flex flex-col bg-raised text-text focus:outline-none"
-              data-detail-panel
-            >
-              <RD.Title className="sr-only">{title}</RD.Title>
-              {body}
-            </RD.Content>
-          </RD.Portal>
-        </RD.Root>
-      </div>
-    </>
+    <aside
+      ref={panel}
+      aria-label={typeof title === 'string' ? title : undefined}
+      tabIndex={-1}
+      data-detail-panel
+      className={cn('hidden w-[var(--panel-w)] shrink-0 flex-col border-s border-border bg-raised md:flex', className)}
+    >
+      {body}
+    </aside>
   );
 }

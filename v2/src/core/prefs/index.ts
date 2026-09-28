@@ -77,8 +77,7 @@ export function readPrefs(): Prefs {
 
 export function setPref<K extends keyof Prefs>(key: K, value: Prefs[K]): void {
   const def = PREF_DEFS[key];
-  if (!(def.values as readonly string[]).includes(value))
-    throw new Error(`prefs: ${key} cannot be ${String(value)}`);
+  if (!(def.values as readonly string[]).includes(value)) throw new Error(`prefs: ${key} cannot be ${String(value)}`);
   if (typeof document === 'undefined') return;
   document.cookie = `${def.cookie}=${encodeURIComponent(value)}; path=/; max-age=${ONE_YEAR}; samesite=lax`;
   applyPrefsToDocument(readPrefs());

@@ -3,16 +3,7 @@ import type { ReactNode } from 'react';
 import { cn } from './cn';
 
 export type EntityKind =
-  | 'partner'
-  | 'invoice'
-  | 'task'
-  | 'achievement'
-  | 'kpi'
-  | 'reportLine'
-  | 'person'
-  | 'project'
-  | 'report'
-  | 'file';
+  'partner' | 'invoice' | 'task' | 'achievement' | 'kpi' | 'reportLine' | 'person' | 'project' | 'report' | 'file';
 
 const dot: Record<EntityKind, string> = {
   partner: 'bg-c1',

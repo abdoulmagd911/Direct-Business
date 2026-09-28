@@ -22,11 +22,15 @@ test('email step → code step → signed in on the deep link', async ({ page, c
   await page.locator('[data-door="code"]').click();
   await expect(page.locator('p[role="alert"]')).toHaveText('This email is not on the list — ask an admin');
 
-  await page.getByLabel('Work email').fill('a@directksa.com');
+  await page.getByLabel('Work email').fill('test.person@directksa.com');
   await page.locator('[data-door="code"]').click();
   await expect(page.locator('[data-step="code"]')).toBeVisible();
   await expect(page.locator('[data-step="email"]')).toHaveCount(0);
   await expect(page.getByLabel('Digit 1')).toBeFocused();
+  await expect(
+    page.getByLabel('Keep me signed in on this device'),
+    'devices stay signed in (V74) — no tick',
+  ).toHaveCount(0);
 
   await page.getByLabel('Digit 1').fill('1');
   await page.getByLabel('Digit 2').fill('1');
@@ -44,9 +48,9 @@ test('axe · sign-in', async ({ page, context }) => {
   await setPrefs(context, { theme: 'direct' });
   await open(page, '/sign-in');
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
-  expect(
-    results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => v.id),
-  ).toEqual([]);
+  expect(results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => v.id)).toEqual(
+    [],
+  );
 });
 
 for (const theme of THEMES) {

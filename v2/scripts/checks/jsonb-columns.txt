@@ -1,0 +1,10 @@
+# json/jsonb columns allowed in v2 migrations (A1), one per line: schema.table.column — why the spec needs it.
+# Business facts are typed columns; JSON only where TECH-SPEC §3 names it. Filled in as the steps add their tables.
+audit.request.label_args — the arguments of a request's label key ('task.closed' {number}) — §3.3
+audit.change.before — only the changed fields, before the change; their set differs per table — §3.3, A16
+audit.change.after — only the changed fields, after the change; their set differs per table — §3.3, A16
+core.setting_def.schema — a setting's value schema, from the registry's zod schema — §3.2
+core.setting_def.default_value — a setting's default value, of any shape its schema allows — §3.2
+core.setting.value — a setting's value, of any shape its schema allows — §3.2
+core.person_profile.notify — per notification kind, in-app and e-mail switches; kinds grow with the modules — §3.1
+core.person_profile.seen — what the person has seen per page ("Since your last visit") — §3.1

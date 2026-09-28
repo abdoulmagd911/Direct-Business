@@ -50,10 +50,7 @@ export const SHADOWS: Record<string, [string, string]> = {
     '0 1px 2px rgba(26,31,28,.06), 0 0 0 1px rgba(26,31,28,.04)',
     '0 8px 24px -8px rgba(26,31,28,.18), 0 0 0 1px rgba(26,31,28,.05)',
   ],
-  dark: [
-    '0 0 0 1px rgba(255,255,255,.04)',
-    '0 12px 28px -10px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06)',
-  ],
+  dark: ['0 0 0 1px rgba(255,255,255,.04)', '0 12px 28px -10px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06)'],
   colorful: [
     '0 1px 2px rgba(15,42,51,.07), 0 0 0 1px rgba(15,42,51,.04)',
     '0 10px 26px -10px rgba(15,76,92,.30), 0 0 0 1px rgba(15,42,51,.05)',

@@ -47,9 +47,7 @@ export function KpiTile({
       </div>
       <div className="font-display text-2xl font-semibold leading-[1.1] tracking-[-.01em] tabular">
         {value === null ? <span className="text-muted">—</span> : value}
-        {unit && value !== null ? (
-          <small className="ms-1 text-xs font-medium text-muted">{unit}</small>
-        ) : null}
+        {unit && value !== null ? <small className="ms-1 text-xs font-medium text-muted">{unit}</small> : null}
       </div>
       {sparkline ??
         (target !== undefined ? (

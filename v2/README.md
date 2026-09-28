@@ -1,39 +1,76 @@
-# Commercial v2 — screens
+# v2 — the Commercial app
 
-The rebuild of the Commercial app (`docs/v2/`). This folder is the whole v2 application; the old app at the
-repository root is frozen and nothing here imports from it.
+The rebuild of Direct's Commercial app (spec: `docs/v2/`). Nothing here imports anything from the old app at the
+repository root. Integration branch `v2/main`; one branch and one draft PR per step (`docs/v2/BUILD-PLAN.md`).
 
 ## Run it
 
-```
+```sh
 pnpm install
-pnpm dev            # http://127.0.0.1:9400 — a made-up development person is signed in (V2_DEV_ME)
-pnpm build && pnpm start
+pnpm dev            # http://127.0.0.1:9300 (builder A's ports are 9300–9399, builder B's 9400–9499)
+pnpm checks         # the architecture checks (TECH-SPEC §9.1)
+pnpm lint && pnpm typecheck && pnpm format:check
+pnpm test           # unit tests (Vitest)
+pnpm build && pnpm test:e2e        # end to end (Playwright); in the builders' containers set
+                                   # PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome
+pnpm sabotage       # every check and test must fail under its sabotage (V100); --kind check|lint|unit|e2e, --only <name>
 ```
 
-Until builder A's sign-in (P3-2) lands, `getMe()` serves the development person whenever no Supabase URL is
-configured; the sign-in screen runs against a stand-in that accepts any address on the two staff domains and
-the code `000000`.
+## The database (`supabase/`)
 
-## Prove it
+Migrations are forward-only (`supabase/migrations/YYYYMMDDHHMMSS_<module>_<what>.sql`, V103). The SQL suite
+(`supabase/tests/<area>/<ID>-<promise>.sql`, V106) runs on a database built from zero:
 
-```
-pnpm check          # no hex outside tokens.css · logical CSS only · no hint/banner · accent is a fill · catalogs in step
-pnpm typecheck && pnpm lint && pnpm format
-pnpm test:unit      # tokens equal the design system table; prefs; formats; every check goes red on a planted violation
-pnpm test:e2e       # builds, starts on 9400, runs Playwright: 4 themes × 2 densities × 400/1,500 px, axe, RTL, dialogs, shell, sign-in
-node scripts/sabotage.mjs            # applies each tests/sabotage/*.mjs, expects its named test to fail, restores
-E2E_DEV=1 pnpm test:e2e              # against a running `pnpm dev` (faster while building)
+```sh
+node scripts/db/test.mjs                    # plain Postgres (PGHOST/PGPORT/PGUSER/PGPASSWORD; default 127.0.0.1:5432)
+node scripts/db/test.mjs --only GRANTS-01   # one test
+node scripts/db/test.mjs --write-grants     # rewrite supabase/grants.expected — on purpose only, and say why
+node scripts/db/test.mjs --target supabase  # after `supabase start` (CI)
+node scripts/sabotage.mjs --kind sql        # every SQL test fails under its sabotage (supabase/tests/sabotage/)
 ```
 
-Screenshots the suite takes land in `tests/e2e/screenshots/` and are committed with the PR for review.
+In the builders' containers: `pg_ctlcluster 16 main start`, and give the `postgres` role the password `postgres` once.
 
-## Where things are
+## The checks (`scripts/checks/`, `node scripts/checks/run.mjs --list`)
 
-- `src/ui/tokens.css` — the only file with colour values; `src/ui/globals.css` maps Tailwind to them.
-- `src/ui/` — the kit (Button, Input, Select, Dialog, Confirm, Toast, Chip, Tabs, DataTable, DetailPanel,
-  DataState, EntityLink, Avatar, PersonChip, AvatarStack, KpiTile, PageHeader, BrandLogo) and `shell/`.
-- `src/core/prefs` — the only browser storage (theme, density, drawer, locale, a development direction override).
-- `messages/en.json`, `messages/ar.json` — every string, same keys in both.
-- `/kit` — the component gallery (development and test builds only).
-- `scripts/check-*.mjs`, `scripts/sabotage.mjs`, `tests/sabotage/` — the checks and what proves they bite.
+| Check                     | Refuses                                                                                                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `rule-7`                  | real-looking data and secrets anywhere under `v2/` — made-up values have fixed shapes (V101)                |
+| `one-client`              | a Supabase client made outside `src/core/db/` (A4)                                                          |
+| `no-table-writes`         | `insert/update/upsert/delete` on a `.from()` table chain in app code (A6)                                   |
+| `no-physical-css`         | left/right utilities, properties and inline styles — logical CSS only (§2.5)                                |
+| `no-hex`                  | a colour outside `src/ui/tokens.css`: hex, `rgb()`/`hsl()`…, named colours, Tailwind palette colours (§2.5) |
+| `one-copy`                | an Arabic/identifier folding table in app code — folding lives in SQL (A10)                                 |
+| `forward-only-migrations` | a misnamed, edited, deleted or out-of-order migration; `pg_get_functiondef` (A9, V103)                      |
+| `no-vat-columns`          | an identifier named for a VAT or tax amount in SQL (M1)                                                     |
+| `no-blob-tables`          | a json/jsonb column not listed with its reason in `scripts/checks/jsonb-columns.txt` (A1)                   |
+| `norm-rebuild-called`     | a change to a `norm.*` function with no `norm.rebuild()` after it (A17)                                     |
+| `v2-ids`                  | a duplicate or out-of-range decision ID; a port outside the builders' blocks (A18)                          |
+
+ESLint adds: browser storage only through `src/core/prefs` (A13); no `setInterval` outside `src/core/` (A2).
+A true exception carries `check-allow: <check> — <reason>` on its line (V100).
+
+## The screens (builder B)
+
+```sh
+pnpm dev                      # the shell with a made-up development person signed in (src/core/auth/me.ts, V2_DEV_ME)
+open http://127.0.0.1:9300/kit  # every kit component, development and test builds only (V202)
+pnpm build && pnpm test:e2e   # 4 themes × 2 densities × 400/1,500 px screenshots into tests/e2e/screenshots/, axe, RTL,
+                              # dialogs, the shell, sign-in; PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome here
+node scripts/dev/shot.mjs direct comfortable 1500 /kit   # one screenshot (theme density width path [dir] [name]) into $OUT
+```
+
+- `src/ui/tokens.css` is the only file with a colour value (V60; `tests/unit/tokens.test.ts` holds the table);
+  `src/ui/globals.css` maps Tailwind v4 to the tokens and removes the stock palette.
+- `src/ui/` is the kit — Button, IconButton, Input, Select, Checkbox, Switch, Field, Dialog (its own form state),
+  Confirm (D19), Toast with Undo, StatusChip and FilterChip, Tabs (one row), EntityLink, Avatar, PersonChip,
+  AvatarStack, Money, KpiTile, PageHeader, DataState (five states), DetailPanel (480 px), DataTable (virtualized,
+  48/32 px rows), BrandLogo — and `src/ui/shell/` (drawer 232/56, the phone's bottom bar, top bar, Ctrl K, Create,
+  profile menu; V207).
+- `src/core/prefs` is the only browser storage: theme, density, drawer, locale and a development direction override,
+  as cookies the server reads before the first paint (V201).
+- `messages/en.json` and `messages/ar.json` carry every string, the same keys in both (`i18n-catalogs`).
+
+The screen checks (in `scripts/checks/`, run with the rest): `ui-no-hints` (V11 — no banner, callout or hint anywhere),
+`accent-fill-only` (V60 — the accent is never text and never under a label), `i18n-catalogs` (catalogs in step, no
+hard-coded sentence in a screen), `no-forbidden-words` (V59). Their sabotages: `tests/sabotage/screens.mjs`.

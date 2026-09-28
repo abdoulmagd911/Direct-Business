@@ -13,13 +13,7 @@ import { CREATE_ACTIONS } from './CreateMenu';
  * Ctrl K: pages and create actions now; records through api.search from P3-9 (search providers come
  * from the registry). Opens from the top-bar search or the shortcut; Escape closes and focus returns.
  */
-export function CommandPalette({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-}) {
+export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const t = useTranslations();
   const me = useMe();
   const router = useRouter();
@@ -67,9 +61,7 @@ export function CommandPalette({
               />
             </div>
             <Command.List className="max-h-[360px] overflow-y-auto p-1.5">
-              <Command.Empty className="px-3 py-6 text-center text-base text-muted">
-                {t('palette.empty')}
-              </Command.Empty>
+              <Command.Empty className="px-3 py-6 text-center text-base text-muted">{t('palette.empty')}</Command.Empty>
               <Command.Group
                 heading={t('palette.pages')}
                 className="[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[.07em] [&_[cmdk-group-heading]]:text-muted"

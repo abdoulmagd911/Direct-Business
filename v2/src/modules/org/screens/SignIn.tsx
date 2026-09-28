@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 import { devSignInApi, type SignInApi, type SignInRefusal } from '@/core/auth/signIn';
 import { setPref } from '@/core/prefs';
 import { Button } from '@/ui/Button';
-import { Checkbox } from '@/ui/Checkbox';
 import { cn } from '@/ui/cn';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
@@ -14,7 +13,7 @@ import { BrandPanel } from './BrandPanel';
 /**
  * Sign-in (canvas artboards 1 and 1b, spec §4, V59, V204): the brand panel at the inline start, the
  * form at the inline end; on a phone the panel is a band on top. The only door is the emailed code:
- * the work email and "Send code", then the 6-digit step with "Keep me signed in", Resend and Change.
+ * the work email and "Send code", then the 6-digit step with Resend and Change email; devices stay signed in until sign-out (V74).
  * One step at a time. Every refusal is a sentence in place of the data.
  */
 export function SignIn({ next, api = devSignInApi }: { next: string; api?: SignInApi }) {
@@ -25,7 +24,6 @@ export function SignIn({ next, api = devSignInApi }: { next: string; api?: SignI
   const [email, setEmail] = useState('');
   const [error, setError] = useState<SignInRefusal | null>(null);
   const [busy, setBusy] = useState(false);
-  const [keep, setKeep] = useState(true);
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''));
   const [resendIn, setResendIn] = useState(0);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
@@ -56,7 +54,7 @@ export function SignIn({ next, api = devSignInApi }: { next: string; api?: SignI
     if (code.length < 6) return;
     setBusy(true);
     setError(null);
-    const r = await api.verifyCode(email.trim(), code, keep);
+    const r = await api.verifyCode(email.trim(), code);
     setBusy(false);
     if (!r.ok) return setError(r.reason);
     router.replace(next.startsWith('/') ? next : '/my-day');
@@ -150,13 +148,7 @@ export function SignIn({ next, api = devSignInApi }: { next: string; api?: SignI
                     />
                   )}
                 </Field>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="h-12 text-[15px]"
-                  loading={busy}
-                  data-door="code"
-                >
+                <Button type="submit" variant="primary" className="h-12 text-[15px]" loading={busy} data-door="code">
                   {t('sendCode')}
                 </Button>
               </form>
@@ -207,10 +199,6 @@ export function SignIn({ next, api = devSignInApi }: { next: string; api?: SignI
                     {errorText}
                   </p>
                 ) : null}
-                <label className="flex items-center gap-2.5 text-base">
-                  <Checkbox checked={keep} onCheckedChange={setKeep} label={t('keepSignedIn')} />
-                  {t('keepSignedIn')}
-                </label>
                 <Button type="submit" variant="primary" className="h-12 text-[15px]" loading={busy}>
                   {t('verify')}
                 </Button>
@@ -224,9 +212,7 @@ export function SignIn({ next, api = devSignInApi }: { next: string; api?: SignI
                     {t('resend')}
                   </button>
                   {resendIn > 0 ? (
-                    <span className="font-data text-sm text-muted">
-                      0:{String(resendIn).padStart(2, '0')}
-                    </span>
+                    <span className="font-data text-sm text-muted">0:{String(resendIn).padStart(2, '0')}</span>
                   ) : null}
                 </div>
               </form>

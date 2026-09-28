@@ -87,10 +87,7 @@ export function DataState({
   }
   if (kind === 'not-measured') {
     return (
-      <span
-        data-state="not-measured"
-        className={cn('inline-flex items-baseline gap-1.5 text-muted', className)}
-      >
+      <span data-state="not-measured" className={cn('inline-flex items-baseline gap-1.5 text-muted', className)}>
         <span className="font-display text-2xl font-semibold">—</span>
         <span className="text-sm">{message}</span>
       </span>

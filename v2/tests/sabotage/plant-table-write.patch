@@ -1,0 +1,16 @@
+Sabotage: plant-table-write
+Breaks: check:no-table-writes
+Expect: src/modules/demo/direct-write.ts
+
+Plants a direct table update in app code (A6: a refused write came back as 200 and 0 rows).
+
+diff --git a/v2/src/modules/demo/direct-write.ts b/v2/src/modules/demo/direct-write.ts
+new file mode 100644
+--- /dev/null
++++ b/v2/src/modules/demo/direct-write.ts
+@@ -0,0 +1,5 @@
++import { db } from '../../core/db/client';
++
++export async function rename(id: string, title: string) {
++  return db.from('task').update({ title }).eq('id', id);
++}

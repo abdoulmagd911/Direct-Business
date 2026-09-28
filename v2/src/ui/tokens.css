@@ -12,8 +12,7 @@
 
 :root {
   /* families (self-hosted, src/ui/fonts.ts sets the --font-* variables from next/font) */
-  --font-ui-stack:
-    var(--font-ui), 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, 'Segoe UI', Tahoma, sans-serif;
+  --font-ui-stack: var(--font-ui), 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, 'Segoe UI', Tahoma, sans-serif;
   --font-display-stack: var(--font-display), 'Readex Pro', 'IBM Plex Sans Arabic', system-ui, sans-serif;
   --font-data-stack: var(--font-data), 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 

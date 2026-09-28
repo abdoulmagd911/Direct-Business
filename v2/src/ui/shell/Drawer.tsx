@@ -15,38 +15,34 @@ import { NAV_PAGES } from './nav';
 
 /**
  * The side drawer (spec §2.5): 232 px pinned, 56 px collapsed icon rail with tooltips; unpinned it
- * opens as an overlay on hover or focus and closes on Escape; below 1,024 px an off-canvas sheet
- * (opened from the top bar). Order: My day … Appraisal; Settings at the foot above the profile.
+ * opens as an overlay on hover or focus and closes on Escape; below 1,024 px the bottom bar replaces it
+ * (oversight, 29 Sep). Order: My day … Appraisal; Settings at the foot above the profile.
  * The active item carries a 3 px mark in --nav-mark. The logo is the white variant on the slate
  * (Direct) and dark drawers, the slate variant on light ones.
  */
-export function Drawer({ mobileOpen, onMobileClose }: { mobileOpen: boolean; onMobileClose: () => void }) {
+export function Drawer() {
   const t = useTranslations('nav');
   const me = useMe();
   const { prefs, set } = usePrefs();
   const pathname = usePathname();
   const pinned = prefs.drawer === 'pinned';
   const [peek, setPeek] = useState(false);
-  const expanded = pinned || peek || mobileOpen;
+  const expanded = pinned || peek;
 
   useEffect(() => {
-    if (!peek && !mobileOpen) return;
+    if (!peek) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setPeek(false);
-        onMobileClose();
-      }
+      if (e.key === 'Escape') setPeek(false);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [peek, mobileOpen, onMobileClose]);
+  }, [peek]);
 
-  // a navigation closes the sheet and the hover overlay
+  // a navigation closes the hover overlay
   const [lastPath, setLastPath] = useState(pathname);
   if (pathname !== lastPath) {
     setLastPath(pathname);
     setPeek(false);
-    onMobileClose();
   }
 
   const visible = (key: string) => (me.levels[key] ?? 'none') !== 'none';
@@ -152,7 +148,7 @@ export function Drawer({ mobileOpen, onMobileClose }: { mobileOpen: boolean; onM
             </span>
           ) : null}
         </Link>
-        <div className={cn('hidden lg:flex', expanded ? 'gap-0.5' : 'flex-col gap-0.5')}>
+        <div className={cn('flex', expanded ? 'gap-0.5' : 'flex-col gap-0.5')}>
           <IconButton
             size="sm"
             label={pinned ? t('unpin') : t('pin')}
@@ -182,22 +178,8 @@ export function Drawer({ mobileOpen, onMobileClose }: { mobileOpen: boolean; onM
           pinned ? 'w-[var(--drawer-w)]' : 'w-[var(--drawer-w-collapsed)]',
         )}
       >
-        <div className={cn('absolute inset-y-0 start-0 z-30 h-full', !pinned && peek && 'shadow-2')}>
-          {content}
-        </div>
+        <div className={cn('absolute inset-y-0 start-0 z-30 h-full', !pinned && peek && 'shadow-2')}>{content}</div>
       </div>
-      {/* < 1024 px: off-canvas sheet */}
-      {mobileOpen ? (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <button
-            type="button"
-            aria-label={t('close')}
-            className="absolute inset-0 bg-scrim"
-            onClick={onMobileClose}
-          />
-          <div className="absolute inset-y-0 start-0 shadow-2">{content}</div>
-        </div>
-      ) : null}
     </>
   );
 }

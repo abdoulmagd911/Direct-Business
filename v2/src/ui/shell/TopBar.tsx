@@ -1,5 +1,5 @@
 'use client';
-import { Bell, Menu as MenuIcon, Search } from 'lucide-react';
+import { Bell, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMe } from '@/core/auth/MeProvider';
 import { cn } from '../cn';
@@ -14,17 +14,14 @@ import { ProfileMenu } from './ProfileMenu';
  */
 export function TopBar({
   onOpenSearch,
-  onOpenMenu,
   onOpenBell,
   bellOpen,
 }: {
   onOpenSearch: () => void;
-  onOpenMenu: () => void;
   onOpenBell?: () => void;
   bellOpen?: boolean;
 }) {
   const t = useTranslations('top');
-  const tn = useTranslations('nav');
   const me = useMe();
   const unread = me.unreadNotifications;
   return (
@@ -32,13 +29,6 @@ export function TopBar({
       className="flex h-[var(--topbar-h)] shrink-0 items-center gap-3 border-b border-top-border bg-top-bg px-4 text-top-text sm:px-6"
       data-topbar
     >
-      <IconButton
-        label={tn('open')}
-        icon={<MenuIcon />}
-        onClick={onOpenMenu}
-        className="lg:hidden"
-        data-open-menu
-      />
       <button
         type="button"
         onClick={onOpenSearch}

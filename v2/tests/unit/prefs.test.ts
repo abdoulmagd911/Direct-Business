@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PREF_DEFS, applyPrefsToDocument, dirOf, prefsFrom, readPrefs, setPref } from '@/core/prefs';
 

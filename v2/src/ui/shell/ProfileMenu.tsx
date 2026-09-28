@@ -22,13 +22,7 @@ import {
  * The profile chip (avatar, nickname, badge) opens: My profile, the theme switch (four), density,
  * language (Arabic shown only once enabled — V2xx), a direction override in development, sign out.
  */
-export function ProfileMenu({
-  arabicEnabled = false,
-  onSignOut,
-}: {
-  arabicEnabled?: boolean;
-  onSignOut?: () => void;
-}) {
+export function ProfileMenu({ arabicEnabled = false, onSignOut }: { arabicEnabled?: boolean; onSignOut?: () => void }) {
   const t = useTranslations();
   const me = useMe();
   const { prefs, set } = usePrefs();
@@ -58,20 +52,14 @@ export function ProfileMenu({
         <MenuRadioGroup value={prefs.theme} onValueChange={(v) => set('theme', v as typeof prefs.theme)}>
           {THEMES.map((th) => (
             <MenuRadioItem key={th} value={th} data-theme-option={th}>
-              <span
-                className={cn('size-3.5 rounded-full border border-border', themeSwatch[th])}
-                aria-hidden="true"
-              />
+              <span className={cn('size-3.5 rounded-full border border-border', themeSwatch[th])} aria-hidden="true" />
               {t(`theme.${th}`)}
             </MenuRadioItem>
           ))}
         </MenuRadioGroup>
         <MenuSeparator />
         <MenuLabel>{t('profileMenu.density')}</MenuLabel>
-        <MenuRadioGroup
-          value={prefs.density}
-          onValueChange={(v) => set('density', v as typeof prefs.density)}
-        >
+        <MenuRadioGroup value={prefs.density} onValueChange={(v) => set('density', v as typeof prefs.density)}>
           {DENSITIES.map((d) => (
             <MenuRadioItem key={d} value={d} data-density-option={d}>
               {t(`density.${d}`)}

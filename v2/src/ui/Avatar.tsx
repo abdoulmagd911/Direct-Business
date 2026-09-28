@@ -18,13 +18,18 @@ const sizes = {
   xl: 'size-14 text-xl',
   '2xl': 'size-24 text-3xl',
 };
-const colorBg: Record<AvatarColor, string> = {
-  c1: 'bg-c1',
-  c2: 'bg-c2',
-  c3: 'bg-c3',
-  c4: 'bg-c4',
-  c5: 'bg-c5',
-  c6: 'bg-c6',
+/**
+ * Initials sit on a tint of the person's colour with an inset ring in that colour, in the text colour: the
+ * identity stays visible and the letters keep AA contrast in every theme (white on the Direct gold or the
+ * Colorful amber would not).
+ */
+const colorTint: Record<AvatarColor, string> = {
+  c1: 'bg-[color-mix(in_srgb,var(--c1)_22%,var(--raised))] shadow-[inset_0_0_0_1.5px_var(--c1)]',
+  c2: 'bg-[color-mix(in_srgb,var(--c2)_22%,var(--raised))] shadow-[inset_0_0_0_1.5px_var(--c2)]',
+  c3: 'bg-[color-mix(in_srgb,var(--c3)_22%,var(--raised))] shadow-[inset_0_0_0_1.5px_var(--c3)]',
+  c4: 'bg-[color-mix(in_srgb,var(--c4)_22%,var(--raised))] shadow-[inset_0_0_0_1.5px_var(--c4)]',
+  c5: 'bg-[color-mix(in_srgb,var(--c5)_22%,var(--raised))] shadow-[inset_0_0_0_1.5px_var(--c5)]',
+  c6: 'bg-[color-mix(in_srgb,var(--c6)_22%,var(--raised))] shadow-[inset_0_0_0_1.5px_var(--c6)]',
 };
 
 export function initialsOf(name: string): string {
@@ -62,18 +67,14 @@ export function Avatar({
   return (
     <span className={cn('relative inline-flex shrink-0', className)} data-avatar>
       {person.avatarUrl ? (
-        <img
-          src={person.avatarUrl}
-          alt={title}
-          className={cn('rounded-full object-cover', sizes[size], rings[ring])}
-        />
+        <img src={person.avatarUrl} alt={title} className={cn('rounded-full object-cover', sizes[size], rings[ring])} />
       ) : (
         <span
           role="img"
           aria-label={title}
           className={cn(
-            'inline-grid place-items-center rounded-full font-semibold leading-none tracking-[.02em] text-raised',
-            colorBg[person.avatarColor],
+            'inline-grid place-items-center rounded-full font-semibold leading-none tracking-[.02em] text-text',
+            colorTint[person.avatarColor],
             sizes[size],
             rings[ring],
           )}

@@ -1,5 +1,11 @@
-node_modules
-.next
+node_modules/
+.next/
 pnpm-lock.yaml
-public
-tests/e2e/__screenshots__
+next-env.d.ts
+coverage/
+test-results/
+playwright-report/
+tests/sabotage/*.patch
+supabase/migrations/
+public/
+tests/e2e/screenshots/

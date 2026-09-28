@@ -4,13 +4,12 @@
  * and their outcomes. Every refusal is a named reason said in words. Google and Zoom may return only
  * when their keys exist and the owner asks.
  */
-export type SignInRefusal =
-  'invalidEmail' | 'notListed' | 'switchedOff' | 'expired' | 'wrongCode' | 'unavailable';
+export type SignInRefusal = 'invalidEmail' | 'notListed' | 'switchedOff' | 'expired' | 'wrongCode' | 'unavailable';
 export type SignInResult = { ok: true } | { ok: false; reason: SignInRefusal };
 
 export type SignInApi = {
   sendCode: (email: string) => Promise<SignInResult>;
-  verifyCode: (email: string, code: string, keepSignedIn: boolean) => Promise<SignInResult>;
+  verifyCode: (email: string, code: string) => Promise<SignInResult>;
 };
 
 /** Development stand-in until P3-2 lands: accepts any address on the two staff domains and the code 000000. */
