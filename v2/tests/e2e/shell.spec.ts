@@ -1,6 +1,6 @@
 /**
  * The shell: drawer 232/56 with the pin remembered, Ctrl K, the Create menu, the bottom bar under
- * 1,024 px, no page title in the top bar, every nav entry a link.
+ * 640 px (V85), no page title in the top bar, every nav entry a link.
  */
 import { expect, test } from '@playwright/test';
 import { THEMES, fitToPage, open, setPrefs, shot } from './helpers';
@@ -49,7 +49,7 @@ test('the Create menu lists the create actions and the top bar carries no page t
   await expect(page.locator('h1')).toHaveText('Partners');
 });
 
-test('under 1,024 px the bottom bar carries My day · Tasks · Partners · KPIs · More, and More opens the rest', async ({
+test('under 640 px the bottom bar carries My day · Tasks · Partners · KPIs · More, and More opens the rest', async ({
   page,
   context,
 }) => {
@@ -68,6 +68,17 @@ test('under 1,024 px the bottom bar carries My day · Tasks · Partners · KPIs 
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
   await expect(page.locator('[data-bottom-more]')).toBeFocused();
+  await expect(page.locator('[data-create-floating]')).toBeVisible();
+  await expect(page.locator('[data-create]')).toBeHidden();
+});
+
+test('a tablet keeps the drawer and has no bottom bar (V85)', async ({ page, context }) => {
+  await setPrefs(context, { theme: 'direct' });
+  await page.setViewportSize({ width: 800, height: 900 });
+  await open(page, '/my-day');
+  await expect(page.locator('[data-drawer]')).toBeVisible();
+  await expect(page.locator('[data-bottom-bar]')).toBeHidden();
+  await expect(page.locator('[data-create-floating]')).toBeHidden();
 });
 
 test('every drawer entry is a link and the active one is marked', async ({ page, context }) => {

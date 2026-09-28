@@ -15,7 +15,7 @@ import { NAV_PAGES } from './nav';
 
 /**
  * The side drawer (spec §2.5): 232 px pinned, 56 px collapsed icon rail with tooltips; unpinned it
- * opens as an overlay on hover or focus and closes on Escape; below 1,024 px the bottom bar replaces it
+ * opens as an overlay on hover or focus and closes on Escape; below 640 px the bottom bar replaces it (V85)
  * (oversight, 29 Sep). Order: My day … Appraisal; Settings at the foot above the profile.
  * The active item carries a 3 px mark in --nav-mark. The logo is the white variant on the slate
  * (Direct) and dark drawers, the slate variant on light ones.
@@ -174,7 +174,7 @@ export function Drawer() {
       {/* ≥ 1024 px: the rail; its width is reserved when pinned, otherwise it overlays on hover */}
       <div
         className={cn(
-          'relative hidden h-full shrink-0 lg:block',
+          'relative hidden h-full shrink-0 sm:block',
           pinned ? 'w-[var(--drawer-w)]' : 'w-[var(--drawer-w-collapsed)]',
         )}
       >

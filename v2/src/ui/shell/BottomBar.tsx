@@ -9,9 +9,10 @@ import { useMe } from '@/core/auth/MeProvider';
 import { Avatar } from '../Avatar';
 import { cn } from '../cn';
 import { IconButton } from '../IconButton';
+import { CreateMenu } from './CreateMenu';
 import { NAV_PAGES } from './nav';
 
-/** The phone's five: My day · Tasks · Partners · KPIs · More (oversight, 29 Sep); More opens a sheet with the rest. */
+/** The phone's five (< 640 px, V85): My day · Tasks · Partners · KPIs · More; More opens a sheet with the rest. */
 const PRIMARY = ['my-day', 'tasks', 'partners', 'kpis'];
 
 export function BottomBar() {
@@ -30,10 +31,11 @@ export function BottomBar() {
 
   return (
     <RD.Root open={more} onOpenChange={setMore}>
+      <CreateMenu floating />
       <nav
         aria-label={t('main')}
         data-bottom-bar
-        className="flex h-[60px] shrink-0 items-stretch border-t border-nav-border bg-nav-bg pb-[env(safe-area-inset-bottom)] text-nav-text lg:hidden"
+        className="flex h-[60px] shrink-0 items-stretch border-t border-nav-border bg-nav-bg pb-[env(safe-area-inset-bottom)] text-nav-text sm:hidden"
       >
         {primary.map((p) => {
           const Icon = p.icon;
@@ -73,11 +75,11 @@ export function BottomBar() {
       </nav>
 
       <RD.Portal>
-        <RD.Overlay className="fixed inset-0 z-40 bg-scrim lg:hidden" />
+        <RD.Overlay className="fixed inset-0 z-40 bg-scrim sm:hidden" />
         <RD.Content
           aria-describedby={undefined}
           data-more-sheet
-          className="fixed inset-x-0 bottom-0 z-50 flex max-h-[80dvh] flex-col rounded-t-lg bg-nav-bg pb-[env(safe-area-inset-bottom)] text-nav-text shadow-2 focus:outline-none lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-50 flex max-h-[80dvh] flex-col rounded-t-lg bg-nav-bg pb-[env(safe-area-inset-bottom)] text-nav-text shadow-2 focus:outline-none sm:hidden"
         >
           <header className="flex items-center gap-3 px-4 pb-1 pt-3">
             <RD.Title className="flex-1 font-display text-lg font-semibold">{t('more')}</RD.Title>
