@@ -1,6 +1,6 @@
 {
   "note": "Written by scripts/docs/archive-docs.mjs; checked by scripts/qa/check-docs-moved.mjs. Each old file, as it stood at `commit`, is the pieces joined in order, byte for byte.",
-  "commit": "b2a6ded8bfba926b112a736c9b793ffb04ab1eda",
+  "commit": "175e4ccb0217fd1a27f4349dfe1d4013b00c1061",
   "files": [
     {
       "old": "docs/BACKLOG.md",
@@ -75,9 +75,9 @@
     {
       "old": "CLAUDE.md",
       "archive": "docs/history/claude-md",
-      "sha256": "a1da2537c9e4e361c6f34efecd5be84357d15dad7b719cb3cb383bb2e6befb02",
-      "chars": 46422,
-      "lines": 622,
+      "sha256": "9be0198704e60d31cf69ef42c3a59bac7f2b7e646f0be7b7e08594176cdfd9d6",
+      "chars": 47140,
+      "lines": 629,
       "pieces": [
         "claude-md-01.md",
         "claude-md-02.md"

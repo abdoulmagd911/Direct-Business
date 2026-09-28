@@ -1,6 +1,6 @@
 # The old BACKLOG.md (work log) — index
 
-`docs/BACKLOG.md` as it stood at commit `b2a6ded8bfba` (1,488,555 characters, 19,885 lines), cut word for word into 42 pieces under 40,000 characters. Joined in order they are the old file byte for byte (SHA-256 `4dcfe6056c5d0c96dc15f6edf244682ce4a1e28c20c9510e0c464f40556ef3a5`); `scripts/qa/check-docs-moved.mjs` proves it on every battery run. Nothing here is edited — this is the archive; the working file is short now.
+`docs/BACKLOG.md` as it stood at commit `175e4ccb0217` (1,488,555 characters, 19,885 lines), cut word for word into 42 pieces under 40,000 characters. Joined in order they are the old file byte for byte (SHA-256 `4dcfe6056c5d0c96dc15f6edf244682ce4a1e28c20c9510e0c464f40556ef3a5`); `scripts/qa/check-docs-moved.mjs` proves it on every battery run. Nothing here is edited — this is the archive; the working file is short now.
 
 Old knowledge-base part names inside are kept as written; the Drive file "09 Sources index" says where each old part now lives (finance: 04; the app: 05; how sessions run: 06).
 

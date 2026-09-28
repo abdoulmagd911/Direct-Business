@@ -9,13 +9,15 @@ They live in one list only — the Drive file *08 Open decisions for the owner* 
 
 ## Now — the release queue (CLAUDE.md §5)
 
-- **D · The rest of the Direct Payments exports** — the invoice export is in (D21, #53, 28 Sep). What is left of D — the transactions and corporate-expenses exports, large Excel files, the Payments invoice id — the main builder to confirm and list here.
+- **D2 · Expense export cost, client list, promo codes** — main builder; the invoice export is in (D21, #53).
+- **D3 · Manual entry, links by hand, the margins pass** — main builder.
+- **Open owner decision (08):** may the pass-through on an invoice's lines stand in for a missing cost? It contradicts the owner's 22 Aug ruling (D21).
 - **D · Which payments-file column is the invoice number** — the importer reads Invoice Reference, not Invoice Number; confirm in the mapping before real data (08).
 - **D · Capture the Payments invoice id and use the client ID** — Open in Direct can only open the whole list; the client-to-Payments jump searches by phone or name; an empty id silently builds a dead link.
 - **D · Large Excel files are read whole into memory** — CSV streams in chunks, XLSX does not; the big Payments exports may fail.
-- **A · The Finance freeze the owner saw** — never reproduced (a 30–45 s CSV export freeze in August too). Since #53 a local freeze recorder (js/118) names the page and the pause when a tab stalls — read it after the next freeze. Lead: the Expenses tab draws Finance twice (~0.8 s).
+- **A · The Finance freeze the owner saw** — never reproduced (a 30–45 s CSV export freeze in August too). Since #53 a local freeze recorder (js/118) names the page and the pause when a tab stalls — read it after the next freeze; a Chrome extension is suspected. Lead: the Expenses tab draws Finance twice (~0.8 s).
 - **C · The sign-in / reset loop** — C-lite (no email sender needed; also brings the admin-users function to 10 characters) is PR #51. The rest — per-person reset/invite buttons, branded emails, a custom mail sender (branch login-c) — waits on the company mail settings (08).
-- **E · The simplify list** — the builders never received it, and PR #50 (money rules) was also labelled E; the oversight to confirm what E means.
+- **E2 · The simplify list** — the builders never received it (E itself became the money rules, #50); the oversight to send it.
 - **Two people saving one company** — the later save still silently replaces the other's note and next action; js/104 only warns afterwards (M77). Preventing it means a merge in the core save path (08).
 - **Final go-live reset** — `golive_reset` (`scripts/sql/golive-reset.sql`) only on the owner's go, on the day (D9); then a full gate sweep, every page in both languages.
 

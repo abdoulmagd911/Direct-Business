@@ -1,6 +1,6 @@
 # Direct Master Brief — Full Reference (v2) — index
 
-`docs/DIRECT_MASTER_BRIEF.md` as it stood at commit `b2a6ded8bfba` (139,373 characters, 877 lines), cut word for word into 4 pieces under 40,000 characters. Joined in order they are the old file byte for byte (SHA-256 `bf1bfe1f95d117acf08629598387289f246bd132da771336111f9e851b5486b8`); `scripts/qa/check-docs-moved.mjs` proves it on every battery run. Nothing here is edited — this is still reference material; open the part you need. It is no longer required reading.
+`docs/DIRECT_MASTER_BRIEF.md` as it stood at commit `175e4ccb0217` (139,373 characters, 877 lines), cut word for word into 4 pieces under 40,000 characters. Joined in order they are the old file byte for byte (SHA-256 `bf1bfe1f95d117acf08629598387289f246bd132da771336111f9e851b5486b8`); `scripts/qa/check-docs-moved.mjs` proves it on every battery run. Nothing here is edited — this is still reference material; open the part you need. It is no longer required reading.
 
 | Piece | Old lines | Headings |
 |---|---|---|

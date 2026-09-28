@@ -1,6 +1,6 @@
 # The old DECISIONS.md (full text of every rule) — index
 
-`docs/DECISIONS.md` as it stood at commit `b2a6ded8bfba` (330,897 characters, 3,866 lines), cut word for word into 10 pieces under 40,000 characters. Joined in order they are the old file byte for byte (SHA-256 `463f1cab7a3af807bdcdad125581439fa39e0f320f4503a67e2758643469f535`); `scripts/qa/check-docs-moved.mjs` proves it on every battery run. Nothing here is edited — this is the archive; the working file is short now.
+`docs/DECISIONS.md` as it stood at commit `175e4ccb0217` (330,897 characters, 3,866 lines), cut word for word into 10 pieces under 40,000 characters. Joined in order they are the old file byte for byte (SHA-256 `463f1cab7a3af807bdcdad125581439fa39e0f320f4503a67e2758643469f535`); `scripts/qa/check-docs-moved.mjs` proves it on every battery run. Nothing here is edited — this is the archive; the working file is short now.
 
 Old knowledge-base part names inside are kept as written; the Drive file "09 Sources index" says where each old part now lives (finance: 04; the app: 05; how sessions run: 06).
 
