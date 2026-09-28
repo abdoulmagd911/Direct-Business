@@ -155,9 +155,9 @@
   window.v117AddRule=function(kindPre,valEnc){ if(!canEdit())return;
     var vPre=valEnc?decodeURIComponent(valEnc):'';
     openModal(fl('Add an exclusion rule','إضافة قاعدة استبعاد'),
-      '<div class="ch-sub">'+fl('Rows that match are left out of every total, KPI, report and export at once — nothing is deleted, and switching the rule off brings them back.','الصفوف المطابقة تُستبعد فورًا من كل إجمالي ومؤشر وتقرير وتصدير — لا يُحذف شيء، وإيقاف القاعدة يعيدها.')+'</div>'+
+      '<div class="ch-sub" style="margin-bottom:12px;line-height:1.5">'+fl('Rows that match are left out of every total, KPI, report and export at once — nothing is deleted, and switching the rule off brings them back.','الصفوف المطابقة تُستبعد فورًا من كل إجمالي ومؤشر وتقرير وتصدير — لا يُحذف شيء، وإيقاف القاعدة يعيدها.')+'</div>'+
       '<div class="field"><label>'+fl('Type','النوع')+'</label><select id="v117_kind">'+KINDS.map(function(k){ return '<option value="'+k[0]+'"'+(k[0]===kindPre?' selected':'')+'>'+e(fl(k[1],k[2]))+'</option>'; }).join('')+'</select></div>'+
-      '<div class="field"><label>'+fl('Value','القيمة')+'</label><input id="v117_value" value="'+e(vPre)+'" placeholder=""'+e(fl('e.g. 7','مثال: 7'))+'"></div>'+
+      '<div class="field"><label>'+fl('Value','القيمة')+'</label><input id="v117_value" value="'+e(vPre)+'" placeholder="'+e(fl('e.g. 7','مثال: 7'))+'"></div>'+
       '<div class="field"><label>'+fl('Reason (required)','السبب (مطلوب)')+'</label><input id="v117_reason" placeholder="'+e(fl('e.g. test account in Payments','مثال: حساب تجريبي في المدفوعات'))+'"></div>',
       function(){ var kind=val('v117_kind'), v=val('v117_value'), why=val('v117_reason');
         if(!normMR(v)){ alert(fl('Type the value.','اكتب القيمة.')); return false; }
@@ -295,7 +295,7 @@
     h+=rules.length?table([fl('Type','النوع'),fl('Value','القيمة'),fl('Reason','السبب'),fl('Catches','تلتقط'),fl('Added','أُضيفت'),fl('On','فعّالة'),''],rules.map(function(r){ var s=st.rule[r.id]||{n:0,sar:0};
         return '<tr data-v117-rule="'+e(r.id)+'"'+(r.active?'':' style="opacity:.6"')+'><td style="'+TD+'">'+e(kindLabel(r.kind))+'</td><td style="'+TD+';font-weight:700">'+e(r.value)+'</td><td style="'+TD+'">'+e(r.reason)+'</td>'+
           '<td style="'+TD+';white-space:nowrap">'+(r.active?(s.n+' '+fl('rows','صف')+' · '+sar(s.sar)):fl('off','متوقفة'))+'</td>'+
-          '<td style="'+TD+';color:var(--muted);font-size:11.5px">'+e(r.created_by_name||'—')+' · '+e(dayRiyadh(r.created_at))+(r.updated_at?'<br>'+fl('changed ','غُيّرت ')+e(r.updated_by_name||'')+' · '+e(dayRiyadh(r.updated_at)):'')+'</td>'+
+          '<td style="'+TD+';color:var(--muted);font-size:11.5px"><span style="white-space:nowrap">'+e(r.created_by_name||'—')+'</span> · <span style="white-space:nowrap">'+e(dayRiyadh(r.created_at))+'</span>'+(r.updated_at?'<br>'+fl('changed ','غُيّرت ')+e(r.updated_by_name||'')+' · '+e(dayRiyadh(r.updated_at)):'')+'</td>'+
           '<td style="'+TD+'"><input type="checkbox" data-v117-switch="'+e(r.id)+'" '+(r.active?'checked':'')+(w?'':' disabled')+' onchange="v117SwitchRule(\''+e(r.id)+'\',this.checked)" aria-label="'+e(fl('Rule on','القاعدة فعّالة'))+'"></td>'+
           '<td style="'+TD+'">'+(w?'<button class="btn ghost sm" onclick="v117RemoveRule(\''+e(r.id)+'\')">'+fl('Remove','إزالة')+'</button>':'')+'</td></tr>'; }))
       :(MR.err?'<div class="empty" data-v117-empty="rules-unread" style="padding:10px 0;color:#B42318">'+fl('The rules could not be read, so this list is not shown. ','تعذّرت قراءة القواعد، فلا تُعرض هذه القائمة. ')+'<button class="btn sm ghost" onclick="MR.err=null;MR.rules=null;moneyRulesLoad()">'+fl('Try again','حاول مجددًا')+'</button></div>'
@@ -354,13 +354,17 @@
   /* ---------- who to chase: outstanding per company and age, postpaid first (never added to revenue) ---------- */
   function chaseHtml(){
     var M=(window.FIN&&FIN.m)||{}, rows=(window.FIN&&FIN.rows)||[], by={}, B=['0-30','31-60','61-90','90+'];
-    rows.forEach(function(r){ if(r.deleted_at)return; var m=M[r.id]; if(!m||m.excluded||m.open_age_days==null)return; var rem=Number(r.amount_remaining_sar)||0; if(rem<=0)return;
-      var d=Number(m.open_age_days)||0, k=d<=30?0:d<=60?1:d<=90?2:3;
+    /* C14 (28 Sep): the same period as the rest of the page, and the same money — billing and plain invoices only
+       (finCollectable, js/16) — aged from the invoice date like the buckets above, so the totals agree with Outstanding */
+    var _now=Date.now();
+    rows.forEach(function(r){ if(r.deleted_at)return; var m=M[r.id]; if(!m||m.excluded)return; var rem=Number(r.amount_remaining_sar)||0; if(rem<=0)return;
+      try{ if(typeof window.finInPeriod==='function'&&!window.finInPeriod(r)) return; if(typeof window.finCollectable==='function'&&!window.finCollectable(r)) return; }catch(_){}
+      var t=r.invoice_date?new Date(String(r.invoice_date).slice(0,10)+'T00:00:00Z').getTime():NaN; var d=isNaN(t)?Number(m.open_age_days)||0:Math.max(0,Math.floor((_now-t)/86400000)), k=d<=30?0:d<=60?1:d<=90?2:3;
       var c=by[m.company_key]=by[m.company_key]||{name:m.company_name,post:m.profile_type==='postpaid',b:[0,0,0,0],t:0}; if(m.profile_type==='postpaid')c.post=true; c.b[k]+=rem; c.t+=rem; });
     var list=Object.keys(by).map(function(k){ return by[k]; }).sort(function(a,b){ return (b.post-a.post)||(b.b[3]-a.b[3])||(b.t-a.t); });
     var tot=[0,0,0,0]; list.forEach(function(c){ c.b.forEach(function(v,i){ tot[i]+=v; }); });
-    return '<div class="card v117-chase" style="padding:16px 18px;margin-top:14px"><h3 style="margin:0 0 4px">'+fl('Who to chase','من نتابع للتحصيل')+'</h3>'+
-      '<div class="ch-sub" style="margin-bottom:10px">'+fl('Outstanding by company and age since the due date (or the invoice date), postpaid clients first. Outstanding is a separate view — never added to revenue.','المستحق حسب الشركة والعمر منذ تاريخ الاستحقاق (أو تاريخ الفاتورة)، والعملاء الآجلون أولًا. المستحق عرض منفصل — لا يُضاف إلى الإيراد أبدًا.')+'</div>'+
+    return '<div class="card v117-chase" style="padding:18px 18px 16px;margin-top:14px;overflow:visible"><h3 style="margin:0 0 4px;line-height:1.4">'+fl('Who to chase','من نتابع للتحصيل')+'</h3>'+
+      '<div class="ch-sub" style="margin-bottom:10px">'+fl('Outstanding by company and age since the invoice date, postpaid clients first — billing and plain invoices in the period, as Outstanding above. Outstanding is a separate view — never added to revenue.','المستحق حسب الشركة والعمر منذ تاريخ الفاتورة، والعملاء الآجلون أولًا — الفواتير التجميعية والعادية في الفترة، كما في «المستحق» أعلاه. المستحق عرض منفصل — لا يُضاف إلى الإيراد أبدًا.')+'</div>'+
       (list.length?table([fl('Company','الشركة'),'0-30','31-60','61-90','90+',fl('Total','الإجمالي')],list.map(function(c){
           return '<tr><td style="'+TD+';font-weight:700">'+e(c.name||'—')+(c.post?' <span class="tag">'+typeLabel('postpaid')+'</span>':'')+'</td>'+c.b.map(function(v,i){ return '<td style="'+TD+(i===3&&v?';color:#B42318;font-weight:700':'')+'">'+(v?sar(v):'—')+'</td>'; }).join('')+'<td style="'+TD+';font-weight:700">'+sar(c.t)+'</td></tr>'; })
           .concat(['<tr style="background:#F6F7F9"><td style="'+TD+';font-weight:700">'+fl('All','الكل')+'</td>'+tot.map(function(v){ return '<td style="'+TD+';font-weight:700">'+sar(v)+'</td>'; }).join('')+'<td style="'+TD+';font-weight:700">'+sar(tot[0]+tot[1]+tot[2]+tot[3])+'</td></tr>']))

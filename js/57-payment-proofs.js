@@ -367,7 +367,7 @@
       (noFile?('<div style="margin:8px 0 2px;font-size:12px;color:#8b5b1f">⚠ '+fl(noFile+' record(s) without a file attached',noFile+' سجل بلا ملف مرفق')+'</div>'):'')+
       '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">'+
         '<select class="inp sm" style="max-width:170px" onchange="proofType(this.value)"><option value="all" '+(PRX.type==='all'?'selected':'')+'>'+fl('All types','كل الأنواع')+'</option>'+TYPES.map(function(t){return '<option value="'+t[0]+'" '+(PRX.type===t[0]?'selected':'')+'>'+fl(t[1],t[2])+'</option>';}).join('')+'</select>'+
-        '<select class="inp sm" style="max-width:160px" onchange="proofMonth(this.value)"><option value="all">'+fl('All months','كل الشهور')+'</option>'+months.map(function(mn){return '<option value="'+mn+'" '+(PRX.month===mn?'selected':'')+'>'+mn+'</option>';}).join('')+'</select>'+
+        '<select class="inp sm" style="min-width:150px;max-width:220px;padding-inline-end:26px" onchange="proofMonth(this.value)"><option value="all">'+fl('All months','كل الشهور')+'</option>'+months.map(function(mn){return '<option value="'+mn+'" '+(PRX.month===mn?'selected':'')+'>'+mn+'</option>';}).join('')+'</select>'+
         '<button class="btn sm ghost" onclick="proofSelectAll()">☑ '+fl('Select all in view','تحديد الكل')+'</button>'+
         '<button class="btn sm ghost" onclick="proofDownloadSelected()" '+(selCount?'':'disabled')+'>⬇ '+fl('Download selected ('+selCount+')','تنزيل المحدد ('+selCount+')')+'</button>'+
         '<button class="btn sm ghost" onclick="proofDownloadAll()">⬇ '+fl('Download all in view','تنزيل الكل')+'</button>'+

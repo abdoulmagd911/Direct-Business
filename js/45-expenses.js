@@ -270,7 +270,7 @@
           noSvc?fl(noSvc+' not yet filed under a service',noSvc+' بلا خدمة محددة'):'' ].filter(Boolean).join(' · ')+
         '</div>'):'')+
       '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">'+
-        '<select class="inp sm" style="max-width:160px" onchange="expMonth(this.value)"><option value="all">'+fl('All months','كل الشهور')+'</option>'+months.map(function(mn){return '<option value="'+mn+'" '+(EXP.month===mn?'selected':'')+'>'+mn+'</option>';}).join('')+'</select>'+
+        '<select class="inp sm" style="min-width:150px;max-width:220px;padding-inline-end:26px" onchange="expMonth(this.value)"><option value="all">'+fl('All months','كل الشهور')+'</option>'+months.map(function(mn){return '<option value="'+mn+'" '+(EXP.month===mn?'selected':'')+'>'+mn+'</option>';}).join('')+'</select>'+
         '<button class="btn sm ghost" onclick="expCSV()">⬇ '+fl('Export list (CSV)','تصدير القائمة (CSV)')+'</button>'+
         '<button class="btn sm ghost" onclick="expDownloadAll()">⬇ '+fl('Download the documents','تنزيل المستندات')+'</button>'+
       '</div></div>';

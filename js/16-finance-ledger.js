@@ -429,6 +429,19 @@ function live(){
 }
 try{ window.finSanitizeMoney=finSanitizeMoney; }catch(_){}
 function verified(){return live().filter(function(r){return r.integrity_status==='verified_paid';});}
+/* Punch list C (28 Sep, the oversight from Payments → Corporate Clients → Settlements): corporate money is settled against
+   the BILLING invoice, not the transactions it re-bills. So what is owed (Received, Outstanding, ageing, Who to chase) is
+   measured on billing invoices and plain invoices — never on a transaction a billing invoice has taken over (billed_by_ref),
+   which would count the same money twice — and never on a Void, Cancelled or Draft invoice, which nobody owes. Revenue stays
+   on the transactions (D21). One test, used by every collections figure. */
+function finCollectable(r){ return !!r&&!r.billed_by_ref&&!/^(void|cancelled|canceled|draft)$/i.test(String(r.payments_status||'').trim()); }
+try{ window.finCollectable=finCollectable; }catch(_){}
+/* C12: when an invoice is due — its recorded due date, else its date plus the credit term (30 days until a client's own
+   term is recorded). Every invoice then has a due date, so "% overdue" measures all the money owed, not a subset. */
+var FIN_CREDIT_DAYS=30;
+function finDueDate(r){ if(r.collection_due_date) return String(r.collection_due_date).slice(0,10); if(!r.invoice_date) return null;
+  var d=new Date(String(r.invoice_date).slice(0,10)+'T00:00:00Z'); if(isNaN(d)) return null; d.setUTCDate(d.getUTCDate()+FIN_CREDIT_DAYS); return d.toISOString().slice(0,10); }
+try{ window.finDueDate=finDueDate; }catch(_){}
 /* the rows the rules leave out, each with the rule that caught it — for the greyed 'Excluded' list (js/117) */
 function finExcludedRows(){ var M=FIN.m||{}; return (FIN.rows||[]).filter(function(r){ var m=M[r.id]; return !r.deleted_at&&m&&m.excluded; }).map(function(r){ finSanitizeMoney(r); return {row:r,m:M[r.id]}; }); }
 try{ window.finExcludedRows=finExcludedRows; }catch(_){}
@@ -1100,18 +1113,19 @@ function rFinClients(){
   var V=verified().filter(finInPeriod);
   var h=finPeriodBar();
   var credit=0;(FIN.links||[]).forEach(function(l){credit+=+l.credit_balance_sar||0;});
-  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px">'
+  /* C11 (28 Sep): the credit card stood alone, full width, reading 0 — it shows only when some client holds credit */
+  if(credit>0) h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px">'
     +'<div class="card" style="padding:14px 16px;border-top:3px solid #10B981"><div style="font-size:11px;color:var(--muted)">'+(isArF()?'رصيد العملاء (لدينا)':'Client credit (held)')+'</div><div style="font-size:19px;font-weight:800;color:#10B981" title="'+money(credit)+' SAR">'+moneyS(credit)+' <span style="font-size:10px;font-weight:400">SAR</span>'+finExactUnder(credit)+'</div></div>'
     +'</div>';
   // ---- Collections & ageing (days to collect · % overdue · ageing buckets) — from all live invoices, no name matching ----
   var _fl=function(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;};
-  var LV=live().filter(finInPeriod);
+  var LV=live().filter(finInPeriod).filter(finCollectable);   // C: owed only on billing invoices and plain invoices
   var arOut=0,arOver=0,arNoDue=0,billed=0,ag={b030:0,b3160:0,b6190:0,b90:0,nodate:0,future:0},_now=Date.now();
   LV.forEach(function(r){
     billed+=+r.total_incl_vat_sar||0;
     var out=+r.amount_remaining_sar||0; if(out<=0)return;
     arOut+=out;
-    var due=r.collection_due_date?new Date(r.collection_due_date).getTime():0; if(due&&due<_now)arOver+=out;
+    var _dd=finDueDate(r), due=_dd?new Date(_dd+'T23:59:59Z').getTime():0; if(due&&due<_now)arOver+=out;   // C12: recorded due date, else date + credit term
     /* 2026-09-06 (watch cycle 28): "% overdue" can only ever see money on an invoice that carries
        a collection due date. 19 of the 46 live invoices carry none, so the figure is a percentage
        of a subset while reading as a percentage of everything — and with no due date anywhere it
@@ -1155,7 +1169,7 @@ function rFinClients(){
      to be able to read it exactly, not to stop being able to read it at a glance. */
   var _exact=function(val){ return finExactUnder(val); };   // one definition of the rule, hoisted in cycle 50
 
-  var _agc=function(lbl,val){return '<div style="flex:1;min-width:90px;background:#F9FAFB;border-radius:8px;padding:8px 10px"><div style="font-size:10.5px;color:var(--muted)">'+lbl+'</div><div style="font-weight:800;font-size:14px">'+moneyS(val)+' <span style="font-size:9px;font-weight:400">SAR</span>'+_exact(val)+'</div></div>';};
+  var _agc=function(lbl,val){return '<div style="flex:1;min-width:90px;background:#F9FAFB;border-radius:8px;padding:8px 10px"><div style="font-size:10.5px;color:var(--muted)">'+lbl+'</div><div style="font-weight:800;font-size:14px">'+money0(val)+' <span style="font-size:9px;font-weight:400">SAR</span>'+_exact(val)+'</div></div>';};
   h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 class="finh" style="margin:0 0 10px">'+_fl('Collections & ageing','التحصيل والتقادم')+'</h3>'+
      (_noUnpaidData
        ? ('<div style="font-size:12.5px;color:var(--muted)">'+_fl('Not tracked yet — only paid invoices are imported, so nothing here can show as unpaid.','لم يُتتبَّع بعد — لا تُستورد إلا الفواتير المدفوعة، لذا لا يظهر أي مبلغ غير محصَّل.')+'</div>')
@@ -1181,10 +1195,9 @@ function rFinClients(){
            'These amounts are shortened to fit, so reading down them comes to '+money0(_ps)+' where Outstanding reads '+money0(_po)+'. Every riyal outstanding is in exactly one of them — the exact total is '+(Number(arOut)||0).toFixed(2)+' SAR.',
            '\u0647\u0630\u0647 \u0627\u0644\u0645\u0628\u0627\u0644\u063a \u0645\u062e\u062a\u0635\u0631\u0629 \u0644\u062a\u0646\u0627\u0633\u0628 \u0627\u0644\u0639\u0631\u0636\u060c \u0644\u0630\u0627 \u064a\u0628\u0644\u063a \u0645\u062c\u0645\u0648\u0639\u0647\u0627 '+money0(_ps)+' \u0628\u064a\u0646\u0645\u0627 \u064a\u0638\u0647\u0631 \u0627\u0644\u0645\u0633\u062a\u062d\u0642 '+money0(_po)+'. \u0643\u0644 \u0631\u064a\u0627\u0644 \u0645\u0633\u062a\u062d\u0642 \u0645\u0648\u062c\u0648\u062f \u0641\u064a \u0648\u0627\u062d\u062f \u0645\u0646\u0647\u0627 \u0641\u0642\u0637 \u2014 \u0648\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u062f\u0642\u064a\u0642 '+(Number(arOut)||0).toFixed(2)+' \u0631\u064a\u0627\u0644.')+'</div>';
        })()+
-       (arNoDue>0?('<div style="font-size:11.5px;color:var(--muted);margin-top:8px">'+_fl(
-         '% overdue is measured on the '+moneyS(arOut-arNoDue)+' SAR that carries a collection due date. The other '+moneyS(arNoDue)+' SAR has none, so it can never count as overdue however old it is.',
-         'تُحتسب نسبة المتأخر على '+moneyS(arOut-arNoDue)+' ريال تحمل تاريخ استحقاق. أما '+moneyS(arNoDue)+' ريال المتبقية فبلا تاريخ استحقاق، فلا يمكن احتسابها متأخرة مهما تقادمت.')+'</div>'):''))
-       :('<div style="font-size:12px;color:#0F6E56">✓ '+_fl('Nothing outstanding','لا توجد مستحقات')+'</div>'))))+
+       ('<div style="font-size:11.5px;color:var(--muted);margin-top:8px" data-fin-overdue-basis="1">'+_fl(
+         'Overdue = past its due date: the date recorded on the invoice, else the invoice date plus '+FIN_CREDIT_DAYS+' days. Owed money is counted on billing invoices and plain invoices — a transaction already billed by a billing invoice is settled there, not counted twice; void, cancelled and draft invoices are owed by nobody.',
+         'المتأخر = ما تجاوز تاريخ استحقاقه: التاريخ المسجّل على الفاتورة، وإلا تاريخ الفاتورة زائد '+FIN_CREDIT_DAYS+' يومًا. المستحق يُحسب على الفواتير التجميعية والفواتير العادية — المعاملة المفوترة ضمن فاتورة تجميعية تُسدَّد هناك ولا تُحتسب مرتين؛ والملغاة والمسودات لا يستحقها أحد.')+'</div>')):('<div style="font-size:12px;color:#0F6E56">✓ '+_fl('Nothing outstanding','لا توجد مستحقات')+'</div>'))))+
      '</div>';
   /* 2026-09-02 (round 35): the overview headline already warns that some invoices in the period
      carry no recorded cost — but THIS table is where a manager decides which client is worth
@@ -1264,7 +1277,7 @@ function rOverview(){
      Labelled "(invoiced)" since 2026-08-29: money on transactions not yet invoiced ("Ready to
      invoice" on the Ledger tab) is a different amount and is never added in here — the two
      stay two lines, never one (DECISIONS: never sum invoices and transactions). */
-  rem=0; live().filter(finInPeriod).forEach(function(r){ rem+=+r.amount_remaining_sar||0; });
+  rem=0; live().filter(finInPeriod).filter(finCollectable).forEach(function(r){ rem+=+r.amount_remaining_sar||0; });   // C: owed on billing and plain invoices only
   var invCount=new Set(V.map(function(r){return r.invoice_no;})).size; // distinct invoices, not service lines
   /* Period bar \u2014 the executive-dashboard structure: year \u00b7 All/Q1\u2013Q4/H1/H2 \u00b7 month */
   /* 2026-09-09 (watch cycle 73): above the cards, not under them — it qualifies every figure on
@@ -1773,7 +1786,12 @@ function rLedger(){
     var _live=txnLive().length, _held=(TXN.rows||[]).length;
     var _f=TXN.f, _filtered=!!(_f.q||_f.profileType!=='all'||_f.business!=='all'||_f.stage!=='all');
     var _msg;
-    if(_held===0) _msg=_lh('No transactions recorded yet — the ledger is empty, not filtered.','لا توجد معاملات مسجّلة بعد — السجل فارغ، وليس مُصفّى.');
+    /* D17 (28 Sep): with invoices imported and this tab empty, the page read as "the money is missing". It says what this
+       tab holds (transactions, from Payments' corporate transactions export — not imported yet) and where the invoices are. */
+    if(_held===0){ var _nInv=0; try{ _nInv=new Set(live().map(function(r){return r.invoice_no;})).size; }catch(_){}
+      _msg=_lh('No transactions recorded yet — the ledger is empty, not filtered.','لا توجد معاملات مسجّلة بعد — السجل فارغ، وليس مُصفّى.')+
+        (_nInv?' '+_lh('This tab holds TRANSACTIONS (Payments’ corporate transactions export, not imported yet). The '+_nInv+' imported invoices are on Performance and Clients & collections.',
+          'هذا التبويب للمعاملات (تصدير المعاملات من «المدفوعات»، لم يُستورد بعد). الفواتير المستوردة ('+_nInv+') في «الأداء» و«العملاء والتحصيل».'):''); }
     else if(_live===0) _msg=_lh('Every transaction on record ('+_held+') belongs to a standing-excluded partner, so none can be shown.','كل المعاملات المسجّلة ('+_held+') تخص شريكًا مستبعدًا بقرار دائم، فلا يمكن عرض أي منها.');
     /* The filtered sentence keeps "No transactions match." as its first words on purpose:
        probe-ledger-attacks (out of this lane) reads that exact string for the stale-company case,
@@ -2195,7 +2213,10 @@ function rReports(){
         'لم تكتمل بعد قراءة قائمة الاستبعاد، لذا لا يمكن بناء هذا التقرير دون المخاطرة بظهور شريك مستبعَد فيه — باسمه عند التجميع حسب العميل، وداخل الإجماليات في غير ذلك. سيظهر تلقائيًا خلال لحظات.');
     }
   }catch(_){}
-  var base=(rb.verifiedOnly?verified():live()).filter(function(r){return rb.quarter==='all'||r.quarter===rb.quarter;});
+  /* E18 (28 Sep, the oversight): the Report Builder follows the period bar (year, part, sector) like every other tab — it
+     used to span all years and sectors and say so, which read as "this report ignores what I picked". Its own quarter
+     selector still narrows further within that. */
+  var base=(rb.verifiedOnly?verified():live()).filter(function(r){return finInPeriod(r)&&(rb.quarter==='all'||r.quarter===rb.quarter);});
   var active=rbActivePreset();
   var h='<div class="card" style="padding:14px 16px;margin-bottom:12px;font-size:13px">';
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><b>'+(isArF()?'\u0639\u0631\u0636 \u062c\u0627\u0647\u0632':'Quick views')+':</b>'+Object.keys(RB_PRESETS).map(function(k){
@@ -2232,8 +2253,8 @@ function rReports(){
     : (isArF()?'\u0643\u0644 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u062d\u064a\u0629 \u2014 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629 \u0648\u063a\u064a\u0631 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0629 \u0645\u0639\u0627\u064b':'all live invoices, paid and unpaid together');
   var _capPeriod=rb.quarter==='all'?(isArF()?'\u0643\u0644 \u0627\u0644\u0641\u062a\u0631\u0627\u062a':'all periods'):rb.quarter;
   var _capTail=isArF()
-    ? '\u0639\u0628\u0631 \u0643\u0644 \u0627\u0644\u0633\u0646\u0648\u0627\u062a \u0648\u0627\u0644\u0642\u0637\u0627\u0639\u0627\u062a \u2014 \u0634\u0631\u064a\u0637 \u0627\u0644\u0641\u062a\u0631\u0629 \u0623\u0639\u0644\u0627\u0647 \u0644\u0627 \u064a\u0646\u0637\u0628\u0642 \u0639\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u062a\u0642\u0631\u064a\u0631. \u0627\u0644\u0645\u0644\u063a\u0627\u0629 \u0648\u0634\u062d\u0646 \u0627\u0644\u0645\u062d\u0641\u0638\u0629 \u0648\u0627\u0644\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u0633\u062a\u0628\u0639\u062f\u0629 \u0644\u0627 \u062a\u064f\u062d\u0633\u0628 \u0623\u0628\u062f\u0627\u064b.'
-    : 'across all years and sectors \u2014 the period bar above does not apply to this report. Void, wallet top-ups and excluded partners are never counted.';
+    ? ('لـ '+(typeof finPeriodLabel==='function'?finPeriodLabel():'الفترة')+' — شريط الفترة أعلاه ينطبق. لا تُحتسب الملغاة وشحن المحفظة والشركاء المستبعدون أبدًا.')
+    : ('for '+(typeof finPeriodLabel==='function'?finPeriodLabel():'the period')+' \u2014 the period bar above applies. Void, wallet top-ups and excluded partners are never counted.');
   h+='<div id="rb-caption" data-scope="'+(rb.verifiedOnly?'verified':'all')+'" data-n="'+_rbN+'" style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#F8F7F4;font-size:12px;color:#444;line-height:1.5">'
     +'<b>'+(isArF()?'\u0645\u0627 \u0627\u0644\u0630\u064a \u064a\u064f\u062d\u0633\u0628 \u0647\u0646\u0627':'What this report counts')+':</b> '+_capScope+' \u00b7 '+_capPeriod+', '+_capTail+' <span style="color:var(--muted)">('+_rbN+' '+(isArF()?'\u0641\u0627\u062a\u0648\u0631\u0629':'invoice'+(_rbN===1?'':'s'))+')</span></div>';
   h+='</div>';
