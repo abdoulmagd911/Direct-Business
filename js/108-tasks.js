@@ -200,10 +200,10 @@
           '<span style="flex:1;color:var(--muted);font-size:12.5px">'+fl('Work projects group tasks for one company or an internal goal. (Travel engagements stay on the Projects page.)','مشاريع العمل تجمع مهام شركة واحدة أو هدف داخلي. (مشاريع الرحلات تبقى في صفحة المشاريع.)')+'</span>'+
           (canWork()&&myMember()?'<button class="btn pri" data-v108-new="project" onclick="v108NewProject()">'+fl('+ New project','+ مشروع جديد')+'</button>':'')+'</div>';
     if(!S.projects.length) return h+'<div class="card v108-empty">'+fl('No work projects yet.','لا توجد مشاريع عمل بعد.')+'</div>';
-    h+='<div class="card" style="padding:0"><div class="tbl-wrap"><table class="v108-projects"><thead><tr><th>'+fl('Project','المشروع')+'</th><th>'+fl('Company','الشركة')+'</th><th>'+fl('Owner','المسؤول')+'</th><th>'+fl('Open tasks','المهام المفتوحة')+'</th><th>'+fl('Status','الحالة')+'</th></tr></thead><tbody>';
+    h+='<div class="card" style="padding:0"><div class="tbl-wrap"><table class="v108-projects"><thead><tr><th>'+fl('Project','المشروع')+'</th><th>'+fl('Company','الشركة')+'</th><th>'+fl('Owner','المسؤول')+'</th><th>'+fl('Open tasks','المهام المفتوحة')+'</th><th>'+fl('Due','الاستحقاق')+'</th><th>'+fl('Status','الحالة')+'</th></tr></thead><tbody>';
     S.projects.forEach(function(p){
       var open=S.tasks.filter(function(t){ var st=statusRow(t.status); return t.project_id===p.id && !(st&&st.is_closed); }).length;
-      h+='<tr data-v108-project="'+esc8(p.id)+'"><td><b>'+esc8(p.name)+'</b><div style="font-size:11.5px;color:var(--muted)">'+esc8(p.code)+'</div></td><td>'+esc8(p.business_id?companyName(p.business_id):fl('Internal','داخلي'))+'</td><td>'+esc8(memberName(p.owner_id))+'</td><td>'+open+'</td><td>'+esc8(p.status)+'</td></tr>';
+      h+='<tr data-v108-project="'+esc8(p.id)+'"><td><b>'+esc8(p.name)+'</b><div style="font-size:11.5px;color:var(--muted)">'+esc8(p.code)+'</div></td><td>'+esc8(p.business_id?companyName(p.business_id):fl('Internal','داخلي'))+'</td><td>'+esc8(memberName(p.owner_id))+'</td><td>'+open+'</td><td data-v108-due="1" style="white-space:nowrap">'+esc8(p.due_date||'—')+'</td><td>'+esc8(p.status)+'</td></tr>';   /* H9: the due date entered is shown */
     });
     return h+'</tbody></table></div></div>';
   }
@@ -211,6 +211,12 @@
   /* ---------- actions (the database decides; these only ask) ---------- */
   window.v108Reload=function(){ S.loaded=false; S.err=null; load(true); draw(); };
   window.v108Tab=function(t){ S.tab=t; draw(); };
+  /* H2 (28 Sep): choosing a project fills in its company (a project belongs to one company); a company already picked by
+     hand is replaced only when it is empty or belongs to the previous project */
+  window.v108ProjCompany=function(pid){ try{
+    var pr=(S.projects||[]).find(function(x){ return x.id===pid; }); var sel=document.getElementById('v108_biz'); if(!pr||!sel||!pr.business_id) return;
+    if(!sel.value||sel.getAttribute('data-from-project')===sel.value){ sel.value=pr.business_id; sel.setAttribute('data-from-project',pr.business_id); }
+  }catch(_){} };
   window.v108Mine=function(b){ S.mine=!!b; draw(); };
   window.v108Status=function(k){ S.status=k; draw(); };
   window.v108Team=function(k){ S.team=String(k||''); draw(); };
@@ -258,7 +264,7 @@
       field(fl('Title','العنوان'),'<input id="v108_title" maxlength="300">')+
       field(fl('Kind of work','نوع العمل'),'<select id="v108_type">'+optionList(S.workTypes,preset.work_type||'sales')+'</select>')+
       field(fl('Company','الشركة'),'<select id="v108_biz">'+companyOptions(preset.business_id||'')+'</select>')+
-      field(fl('Project','المشروع'),'<select id="v108_proj">'+projectOptions(preset.project_id||'')+'</select>')+
+      field(fl('Project','المشروع'),'<select id="v108_proj" onchange="v108ProjCompany(this.value)">'+projectOptions(preset.project_id||'')+'</select>')+
       field(fl('Owner — who does it','المسؤول — من ينفّذها'),'<select id="v108_owner" onchange="v108TeamFor(this.value)">'+memberOptions(me&&me.id)+'</select>')+
       /* people & teams (2026-09-27): the team the work is done for — the owner's home team first, then the teams they
          assist (js/114's picker); the database insists only that it is an active team, and fills the home team if none */
