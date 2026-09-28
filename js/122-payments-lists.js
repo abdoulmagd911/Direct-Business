@@ -1,5 +1,5 @@
 /* js/122-payments-lists.js — the Direct Payments client list and promo codes exports, read in the browser (second
-   builder, 28 Sep 2026; D26).
+   builder, 28 Sep 2026; D28).
 
    Two small Payments exports, read through js/121's reader (one peek per file, Excel in its background worker) and written
    through two database functions (scripts/sql/clients-promo-import.sql), by a person, on Finance → Import:
@@ -22,6 +22,9 @@
   var canWrite=function(){ try{ if(window.__isShareView) return false;
     if(typeof window.mayEditPage==='function') return window.mayEditPage('finance')===true;
     return typeof window.finCanWrite==='function'&&!!window.finCanWrite(); }catch(_){ return false; } };
+
+  /* company identifiers (D29, js/123): an admin or a manager with Finance edit adds what the client list carries */
+  var mayIdent=function(){ return canWrite()&&(window.__userRole==='admin'||window.__userRole==='manager')&&typeof window.identClientPlan==='function'; };
 
   /* ---------------- the two kinds, by their own headers (normalized as js/121 does) ---------------- */
   /* the headers exactly as the 27 Sep exports carry them (the oversight, 28 Sep), in their own order */
@@ -115,7 +118,7 @@
   var STATE=null, GEN=0;
   function start(items){
     var gen=++GEN; STATE={gen:gen, phase:'reading', files:items.map(function(it){ return {name:it.file.name, kind:it.kind, asOf:V.asOf(it.file), header:null, col:null, rows:{},
-      n:0, blank:0, dup:0, nBad:0, bad:[], unknownStatus:{}}; }), msg:null}; paint();
+      n:0, blank:0, dup:0, nBad:0, bad:[], unknownStatus:{}, pick:{}, pickNew:{}}; }), msg:null}; paint();
     var i=0; (function next(){ if(gen!==GEN) return; if(i>=items.length){ preview(gen); return; }
       var S=STATE.files[i], it=items[i]; i++;
       V.readAll(it,function(rows){ if(gen!==GEN) return; take(S,rows); },function(){ next(); },function(e){ S.err=String((e&&e.message)||e); next(); }); })();
@@ -126,15 +129,39 @@
     function done(){ if(--need>0) return; if(gen!==GEN) return;
       if(fail){ S.phase='error'; S.msg=fl('Could not read what Finance holds: ','تعذّرت قراءة ما في المالية: ')+String(fail.message||fail); paint(); return; }
       S.files.forEach(function(F){ if(F.err||!F.header) return; F.sim=F.kind==='pc'?simulatePc(F,D.pc||[]):simulatePr(F,D.pr||[]); });
-      S.phase='preview'; paint(); }
+      S.D=D; replan(); S.phase='preview'; paint(); }
     var kinds={}; S.files.forEach(function(F){ if(!F.err&&F.header) kinds[F.kind]=1; });
     if(kinds.pc){ need++;
-      pageAll(function(){ return c.from('payments_clients').select('client_id,'+PCF.join(',')+',seen_at').order('client_id',{ascending:true}); },function(e,r){ if(e) fail=e; D.pc=r; done(); }); }
+      pageAll(function(){ return c.from('payments_clients').select('client_id,'+PCF.join(',')+',seen_at').order('client_id',{ascending:true}); },function(e,r){ if(e) fail=e; D.pc=r; done(); });
+      /* D29: the identifiers and the exclusion rules, for the plan of what Import adds; unreadable (before that change is live) → no plan */
+      if(typeof window.identClientPlan==='function'){ need+=2;
+        pageAll(function(){ return c.from('company_identifiers').select('id,business_id,kind,value,value_norm,removed_at').is('removed_at',null).order('id',{ascending:true}); },function(e,r){ D.idents=e?null:r; done(); });
+        pageAll(function(){ return c.from('money_exclusion_rules').select('id,kind,value,active,removed_at').is('removed_at',null).order('id',{ascending:true}); },function(e,r){ D.rules=e?null:r; done(); }); } }
     if(kinds.pr){ need++;
       pageAll(function(){ return c.from('promo_codes').select('id,code,kind,value_pct,valid_from,valid_to,total_sales_sar,total_discount_sar,active,expired,payments_promo_type,payments_discount_type,payments_discount,payments_product,payments_status,payments_client_name,payments_created_at,payments_created_by,payments_seen_at').order('code',{ascending:true}); },function(e,r){ if(e) fail=e; D.pr=r; done(); }); }
     if(!need){ S.phase='preview'; paint(); }
   }
-  function nothingNew(F){ var s=F.sim; return !s||!(s.nw||s.ch); }
+  function nothingNew(F){ var s=F.sim; return !s||!(s.nw||s.ch||(F.plan&&mayIdent()&&F.plan.adds.length)); }
+  /* what Import would add, as the database will (js/123 mirrors fn_identifiers_from_payments_clients) */
+  function replan(){ var S=STATE; if(!S||!S.D) return; S.files.forEach(function(F){ F.plan=null;
+    if(F.kind!=='pc'||F.err||!F.header||!S.D.idents||!S.D.rules||typeof window.identClientPlan!=='function') return;
+    F.plan=window.identClientPlan(Object.keys(F.rows).map(function(k){ return F.rows[k]; }),S.D.idents,S.D.rules,F.pick); }); }
+  function pcFile(cid){ return ((STATE&&STATE.files)||[]).filter(function(F){ return F.kind==='pc'&&F.rows[cid]; })[0]||null; }
+  window.v122Pick=function(cid,biz){ var S=STATE, F=pcFile(cid); if(!S||S.phase!=='preview'||!F||!mayIdent()) return;
+    if(biz) F.pick[cid]=biz; else { delete F.pick[cid]; delete F.pickNew[cid]; } replan(); paint(); };
+  /* "New company…": the app's own company form, prefilled with the client's name; once it is saved (and the database has
+     given it its id) the client's details go to it on Import. Nothing is written by this block until Import. */
+  window.v122NewCompany=function(cid){ var S=STATE, F=pcFile(cid); if(!S||S.phase!=='preview'||!F||!mayIdent()) return;
+    if(typeof window.editBusiness!=='function'&&typeof window.editLead!=='function'){ S.msg=fl('The company form is not available here.','نموذج الشركة غير متاح هنا.'); paint(); return; }
+    var x=F.rows[cid], nm=x.legal_name||x.trading_name||x.legal_name_ar||cid, gen=S.gen, before={};
+    ((typeof DB!=='undefined'&&DB.businesses)||[]).forEach(function(b){ before[b.id]=1; });
+    try{ (window.editBusiness||window.editLead)(''); }catch(_){}
+    setTimeout(function(){ var f=document.getElementById('f_name'); if(f&&!f.value){ f.value=nm; try{ f.dispatchEvent(new Event('input',{bubbles:true})); }catch(_){} } },60);
+    var tries=0, iv=setInterval(function(){ tries++; if(gen!==GEN||tries>240){ clearInterval(iv); return; }   // two minutes to save the form
+      var nb=((typeof DB!=='undefined'&&DB.businesses)||[]).filter(function(b){ return !before[b.id]; })[0]; if(!nb) return;
+      var u=window.__bizUuid?window.__bizUuid(nb.id):nb.id;
+      if(!/^[0-9a-f-]{36}$/i.test(String(u||''))&&!(window.__v117AnyId)) return;   // wait until the database has given it its id
+      clearInterval(iv); F.pick[cid]=u; F.pickNew[cid]=1; replan(); wire(); },500); };
 
   window.v122Import=function(){
     var S=STATE; if(!S||S.phase!=='preview') return;
@@ -142,14 +169,22 @@
     var c=client(); if(!c){ S.msg=fl('Not connected — try again.','غير متصل — حاول مجددًا.'); paint(); return; }
     var jobs=[]; S.files.forEach(function(F){ if(F.err||!F.header||nothingNew(F)) return; var rows=Object.keys(F.rows).map(function(k){ return F.rows[k]; });
       for(var i=0;i<rows.length;i+=1000) jobs.push({F:F, rows:rows.slice(i,i+1000)}); });
+    /* then the company identifiers the client list carries (D29), once the register holds the rows */
+    if(mayIdent()) S.files.forEach(function(F){ if(F.kind!=='pc'||!F.plan||!(F.plan.adds.length)) return; var ids=Object.keys(F.rows);
+      for(var i=0;i<ids.length;i+=500) jobs.push({F:F, ident:true, ids:ids.slice(i,i+500)}); });
     if(!jobs.length){ S.msg=fl('Nothing new to write — these files are already in.','لا جديد لكتابته — هذه الملفات مستوردة من قبل.'); paint(); return; }
     S.phase='writing'; S.res={}; paint();
     var gen=S.gen, k=0;
-    (function next(){ if(gen!==GEN) return; if(k>=jobs.length){ S.phase='done'; paint(); try{ if(window.FIN){ FIN.rows=null; if(typeof finLoad==='function') finLoad(); } }catch(_){} return; }
-      var j=jobs[k++], fn=j.F.kind==='pc'?'fn_payments_clients_import':'fn_promo_codes_import';
-      c.rpc(fn,{p_rows:j.rows,p_seen_at:j.F.asOf,p_batch:'payments-'+j.F.kind+'-'+j.F.asOf.slice(0,19)}).then(function(r){ if(gen!==GEN) return;
+    (function next(){ if(gen!==GEN) return; if(k>=jobs.length){ S.phase='done'; paint(); try{ if(window.FIN){ FIN.rows=null; if(typeof finLoad==='function') finLoad(); } }catch(_){}
+        try{ if(S.idres&&typeof window.v117RefreshAll==='function') window.v117RefreshAll(); }catch(_){} return; }
+      var j=jobs[k++], fn=j.ident?'fn_identifiers_from_payments_clients':j.F.kind==='pc'?'fn_payments_clients_import':'fn_promo_codes_import';
+      var args=j.ident?{p_client_ids:j.ids,p_business_for:j.F.pick}:{p_rows:j.rows,p_seen_at:j.F.asOf,p_batch:'payments-'+j.F.kind+'-'+j.F.asOf.slice(0,19)};
+      c.rpc(fn,args).then(function(r){ if(gen!==GEN) return;
         if(r.error){ S.phase='error'; S.msg=fl('Stopped: ','توقف: ')+String(r.error.message||r.error)+' — '+fl('what was written stays; dropping the same files again finishes the rest.','ما كُتب يبقى؛ إفلات الملفات نفسها مرة أخرى يُكمل الباقي.'); paint(); return; }
-        var d=r.data||{}; Object.keys(d).forEach(function(x){ S.res[x]=(S.res[x]||0)+(+d[x]||0); }); next(); }); })();
+        var d=r.data||{};
+        if(j.ident){ var R=S.idres=S.idres||{added:0,biz:{},skipped:0}; R.added+=(+d.added||0); (d.business_ids||[]).forEach(function(b){ R.biz[b]=1; });
+          R.skipped+=((d.taken||[]).length+(d.refused||[]).length); next(); return; }
+        Object.keys(d).forEach(function(x){ S.res[x]=(S.res[x]||0)+(+d[x]||0); }); next(); }); })();
   };
   window.v122Clear=function(){ GEN++; STATE=null; paint(); };
 
@@ -163,7 +198,9 @@
     if(s&&F.kind==='pc'){
       h+='<ul style="margin:6px 0 0;padding-inline-start:18px">';
       h+='<li data-v122-clients="'+[s.nw,s.ch,s.sm].join(',')+'">'+fl('Clients: ','العملاء: ')+'<b>'+I(s.nw)+'</b> '+fl('new','جديد')+', <b>'+I(s.ch)+'</b> '+fl('changed','متغيّر')+', '+I(s.sm)+' '+fl('unchanged','بلا تغيير')+'</li>';
-      h+='<li>'+fl('Kept as Payments\' client register. Nothing is written onto invoices here.','تُحفظ سجلًا لعملاء المدفوعات. لا يُكتب شيء على الفواتير هنا.')+'</li></ul>';
+      h+='<li>'+fl('Kept as Payments\' client register. Nothing is written onto invoices here.','تُحفظ سجلًا لعملاء المدفوعات. لا يُكتب شيء على الفواتير هنا.')+'</li>';
+      if(F.plan) h+=identLines(F,F.plan);
+      h+='</ul>';
     } else if(s){
       h+='<ul style="margin:6px 0 0;padding-inline-start:18px">';
       h+='<li data-v122-codes="'+[s.nw,s.ch,s.sm,s.noType].join(',')+'">'+fl('Codes: ','الأكواد: ')+'<b>'+I(s.nw)+'</b> '+fl('new','جديد')+', <b>'+I(s.ch)+'</b> '+fl('changed','متغيّر')+', '+I(s.sm)+' '+fl('unchanged','بلا تغيير')+
@@ -179,6 +216,31 @@
     if(F.dup) h+='<div style="color:var(--muted);font-size:12px">'+I(F.dup)+' '+fl('repeated rows — the last one is kept','صفًا مكررًا — يُحفظ الأخير')+'</div>';
     return h+'</div>';
   }
+  function clientName(x){ return x.legal_name||x.trading_name||x.legal_name_ar||('#'+x.client_id); }
+  function identLines(F,P){
+    var h='', A=P.adds.length, w=mayIdent(), q=function(v){ return "'"+esc(String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'"))+"'"; };
+    h+='<li data-v122-idents="'+[A,P.nCompanies,P.matched].join(',')+'">'+fl('Company identifiers: ','معرّفات الشركات: ')+'<b>'+I(A)+'</b> '+fl('to add to','تُضاف إلى')+' <b>'+I(P.nCompanies)+'</b> '+
+      fl('companies','شركة')+' ('+I(P.matched)+' '+fl('clients matched','عميلًا مطابقًا')+') — '+fl('client ID, VAT/CR, email, phone and names, so the next invoices match by themselves','معرّف العميل والرقم الضريبي/السجل والبريد والهاتف والأسماء، فتُطابَق الفواتير القادمة وحدها')+'</li>';
+    if(A&&!w) h+='<li style="color:#B54708" data-v122-idents-who="1">'+fl('Only an admin or a manager adds identifiers — the list itself is still imported.','يضيف المعرّفات المسؤول أو المدير فقط — وتُستورد القائمة نفسها.')+'</li>';
+    var sk=P.taken.concat(P.refused);
+    if(sk.length) h+='<li style="color:#B54708" data-v122-skipped="'+sk.length+'">'+I(sk.length)+' '+fl('details not added — another company holds them, or they are never an identifier (a staff email, the test VAT, an excluded value): ','تفصيلًا لا يُضاف — تملكه شركة أخرى، أو لا يكون معرّفًا أبدًا (بريد موظف، الرقم الضريبي التجريبي، قيمة مستبعدة): ')+
+      esc(sk.slice(0,5).map(function(x){ return x.value+(x.held_by?' ('+(window.identBizName?window.identBizName(x.held_by):'')+')':''); }).join(', '))+(sk.length>5?' …':'')+'</li>';
+    if(P.excluded.length) h+='<li data-v122-excluded="'+P.excluded.length+'">'+I(P.excluded.length)+' '+fl('test or left-out clients (exclusion rules on Finance → Rules) — nothing of them is added','عميلًا تجريبيًا أو مستبعدًا (قواعد الاستبعاد في المالية ← القواعد) — لا يُضاف منه شيء')+'</li>';
+    var picked=Object.keys(F.pick).filter(function(k){ return P.per[k]&&P.per[k].state==='picked'; });
+    if(picked.length) h+='<li data-v122-picked="'+picked.length+'">'+fl('Chosen here: ','اختير هنا: ')+picked.map(function(k){ var x=F.rows[k];
+      return '<span data-v122-picked-client="'+esc(k)+'">'+esc(clientName(x))+' → <b>'+esc(window.identBizName?window.identBizName(F.pick[k]):'')+'</b>'+(F.pickNew[k]?' ('+fl('new','جديدة')+')':'')+
+        (w?' <button class="btn ghost sm" style="padding:0 6px" onclick="v122Pick('+q(k)+','+"''"+')" aria-label="'+esc(fl('Undo','تراجع'))+'">×</button>':'')+'</span>'; }).join(' · ')+'</li>';
+    if(P.conflicts.length) h+='<li data-v122-conflicts="'+P.conflicts.length+'">'+I(P.conflicts.length)+' '+fl('clients match two companies — nothing of them is added unless you pick one:','عميلًا يطابق شركتين — لا يُضاف منه شيء ما لم تختر إحداهما:')+
+      P.conflicts.slice(0,10).map(function(c){ var x=c.client;
+        return '<div data-v122-conflict="'+esc(x.client_id)+'">'+esc(clientName(x))+' <span style="color:var(--muted)">#'+esc(x.client_id)+'</span> — '+c.candidates.map(function(b){ return esc(window.identBizName?window.identBizName(b):b); }).join(fl(' or ',' أو '))+
+          (w?' <select data-v122-pick="'+esc(x.client_id)+'" onchange="v122Pick('+q(x.client_id)+',this.value)" aria-label="'+esc(fl('Belongs to','تتبع'))+'"><option value="">'+fl('— leave —','— اتركه —')+'</option>'+
+            c.candidates.map(function(b){ return '<option value="'+esc(b)+'">'+esc(window.identBizName?window.identBizName(b):b)+'</option>'; }).join('')+'</select>':'')+'</div>'; }).join('')+
+      (P.conflicts.length>10?'<div style="color:var(--muted)">… '+I(P.conflicts.length-10)+' '+fl('more','أخرى')+'</div>':'')+'</li>';
+    if(P.unmatched.length) h+='<li data-v122-unmatched="'+P.unmatched.length+'">'+I(P.unmatched.length)+' '+fl('clients match no company yet:','عميلًا لا يطابق أي شركة بعد:')+
+      P.unmatched.slice(0,10).map(function(x){ return '<div data-v122-none="'+esc(x.client_id)+'">'+esc(clientName(x))+' <span style="color:var(--muted)">#'+esc(x.client_id)+'</span>'+
+        (w?' <button class="btn ghost sm" data-v122-new="'+esc(x.client_id)+'" onclick="v122NewCompany('+q(x.client_id)+')">'+fl('New company…','شركة جديدة…')+'</button>':'')+'</div>'; }).join('')+
+      (P.unmatched.length>10?'<div style="color:var(--muted)">… '+I(P.unmatched.length-10)+' '+fl('more — or add one of their details to a company on its card','أخرى — أو أضف أحد تفاصيلها إلى شركة من بطاقتها')+'</div>':'')+'</li>';
+    return h; }
   function html(){
     var S=STATE; if(!S) return '';
     var h='<div class="card" data-v122-phase="'+S.phase+'" style="padding:12px 14px;margin-bottom:12px;border-inline-start:4px solid #175CD3">';
@@ -196,7 +258,9 @@
     if(S.phase==='done'){ var r=S.res||{};
       h+='<div style="font-size:13px;color:#0F6E56;margin-top:6px" data-v122-done="'+[r.clients_new||0,r.clients_changed||0,r.codes_new||0,r.codes_changed||0].join(',')+'"><b>'+fl('Done.','تم.')+'</b> '+
         (('clients_in_file' in r)?I(r.clients_new||0)+' '+fl('new clients','عميل جديد')+', '+I(r.clients_changed||0)+' '+fl('changed','متغيّر')+'. ':'')+
-        (('codes_in_file' in r)?I(r.codes_new||0)+' '+fl('new codes','كود جديد')+', '+I(r.codes_changed||0)+' '+fl('changed','متغيّر')+'. ':'')+fl('Every change is in the change log.','كل تغيير مسجّل في سجل التغييرات.')+'</div>'; }
+        (('codes_in_file' in r)?I(r.codes_new||0)+' '+fl('new codes','كود جديد')+', '+I(r.codes_changed||0)+' '+fl('changed','متغيّر')+'. ':'')+
+        (S.idres?'<span data-v122-idents-done="'+[S.idres.added,Object.keys(S.idres.biz).length].join(',')+'">'+I(S.idres.added)+' '+fl('identifiers added to','معرّفًا أُضيف إلى')+' '+I(Object.keys(S.idres.biz).length)+' '+fl('companies','شركة')+
+          (S.idres.skipped?' ('+I(S.idres.skipped)+' '+fl('details skipped','تفصيلًا تُرك')+')':'')+'. </span>':'')+fl('Every change is in the change log.','كل تغيير مسجّل في سجل التغييرات.')+'</div>'; }
     if(S.phase==='error') h+='<div style="font-size:13px;color:#D92D20;margin-top:6px" data-v122-error="1">'+esc(S.msg||'')+'</div>';
     else if(S.msg) h+='<div style="font-size:13px;margin-top:6px">'+esc(S.msg)+'</div>';
     return h+'</div>';

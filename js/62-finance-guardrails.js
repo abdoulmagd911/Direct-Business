@@ -188,7 +188,7 @@
     if(!canEdit62())return;
     var ar=(typeof LANG!=='undefined'&&LANG==='ar');
     openModal(fl('Add exclusion','إضافة استبعاد'),
-      '<div class="ch-sub">'+fl('The company\'s rows never enter Finance data, at import — not hidden later. Never silent: every excluded row still shows in the import preview with which id matched and why.','لن تدخل بيانات هذه الشركة إلى المالية عند الاستيراد إطلاقًا — وليس إخفاءً لاحقًا. لا شيء يُستبعد بصمت: كل صف مستبعد يظهر في معاينة الاستيراد مع رقم العميل الذي طابقه والسبب.')+'</div>'+
+      '<div class="fin-note">'+fl('The company\'s rows never enter Finance data, at import — not hidden later. Never silent: every excluded row still shows in the import preview with which id matched and why.','لن تدخل بيانات هذه الشركة إلى المالية عند الاستيراد إطلاقًا — وليس إخفاءً لاحقًا. لا شيء يُستبعد بصمت: كل صف مستبعد يظهر في معاينة الاستيراد مع رقم العميل الذي طابقه والسبب.')+'</div>'+
       '<div class="grid2"><div class="field"><label>'+fl('Direct client ID','معرّف العميل في دايركت')+'</label><input id="x_id" placeholder="'+fl('e.g. 7','مثال: 7')+'"></div>'+
       '<div class="field"><label>'+fl('Reason','السبب')+'</label><input id="x_reason" placeholder="'+fl('e.g. Verification services — accounted for elsewhere','مثال: خدمات توثيق — تُحتسب في نظام آخر')+'"></div></div>'+
       '<div class="field"><label>'+fl('Match names (comma-separated — every spelling this client\'s rows use today)','الأسماء المطابِقة (مفصولة بفواصل — كل صيغة يستخدمها هذا العميل حاليًا)')+'</label><input id="x_names" placeholder="'+fl('e.g. Takamol for Business Services, Techtic Support','مثال: تكامل لخدمات الأعمال')+'"></div>',
@@ -337,7 +337,7 @@
       return '<option value="'+esc62(g)+'"'+sel+'>'+esc62(g)+' — '+c.n+' '+fl('inv.','فاتورة')+', '+money62(c.total)+' SAR'+(already[g]?(' ('+fl('already grouped','مُدمَجة بالفعل')+')'):'')+'</option>';
     }).join('');
     openModal(fl('Add client name alias','إضافة أسماء بديلة لعميل'),
-      '<div class="ch-sub">'+fl('Pick two or more values that are the same real company under different spellings or languages — each shows its own live count and total.','اختر قيمتين أو أكثر تخصان نفس الشركة بصيغ أو لغات مختلفة — كل خيار يعرض عدده وإجماليه الحقيقيين.')+'</div>'+
+      '<div class="fin-note">'+fl('Pick two or more values that are the same real company under different spellings or languages — each shows its own live count and total.','اختر قيمتين أو أكثر تخصان نفس الشركة بصيغ أو لغات مختلفة — كل خيار يعرض عدده وإجماليه الحقيقيين.')+'</div>'+
       '<div class="field"><label>'+fl('Values to merge (Ctrl/Cmd-click for several)','القيم المطلوب دمجها (Ctrl/Cmd + نقر لعدة قيم)')+'</label><select id="g2_aliases" multiple size="8" style="width:100%">'+opts+'</select></div>'+
       '<div class="field"><label>'+fl('Canonical display name','الاسم المعتمد للعرض')+'</label><input id="g2_name" value="'+esc62(prefillName||'')+'" placeholder="'+fl('e.g. Madar - Smart Systems','مثال: Madar - Smart Systems')+'"></div>'+
       '<div class="field"><label>'+fl('Note (optional)','ملاحظة (اختياري)')+'</label><input id="g2_note"></div>',
@@ -397,7 +397,7 @@
     var bizOpts=(DB.businesses||[]).filter(function(b){return b.isClient;}).slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');})
       .map(function(b){return '<option value="'+esc62(window.__bizUuid?window.__bizUuid(b.id):b.id)+'">'+esc62(b.name)+'</option>';}).join('');
     openModal(fl('Group client profiles under one company','تجميع ملفات العملاء تحت شركة واحدة'),
-      '<div class="ch-sub">'+fl('This does not merge anything — each profile keeps its own row, its own type badge and its own amount (a Tender\'s amount is fixed once issued; a new tender is always a new profile, never an edit). It only moves the selected profiles under one company, so the Finance page reads them as one company with the rest nested underneath.','هذا لا يدمج أي شيء — يحتفظ كل ملف بصفه الخاص، وشارته الخاصة، ومبلغه الخاص (مبلغ المناقصة ثابت بعد إصدارها؛ أي مناقصة جديدة تعني ملفًا جديدًا دائمًا، لا تعديلًا). هذا يقوم فقط بنقل الملفات المحددة تحت شركة واحدة، بحيث تقرأها صفحة المالية كشركة واحدة والباقي مندرج تحتها.')+'</div>'+
+      '<div class="fin-note">'+fl('This does not merge anything — each profile keeps its own row, its own type badge and its own amount (a Tender\'s amount is fixed once issued; a new tender is always a new profile, never an edit). It only moves the selected profiles under one company, so the Finance page reads them as one company with the rest nested underneath.','هذا لا يدمج أي شيء — يحتفظ كل ملف بصفه الخاص، وشارته الخاصة، ومبلغه الخاص (مبلغ المناقصة ثابت بعد إصدارها؛ أي مناقصة جديدة تعني ملفًا جديدًا دائمًا، لا تعديلًا). هذا يقوم فقط بنقل الملفات المحددة تحت شركة واحدة، بحيث تقرأها صفحة المالية كشركة واحدة والباقي مندرج تحتها.')+'</div>'+
       '<div class="field"><label>'+fl('Select profiles to move (Ctrl/Cmd-click for several)','اختر الملفات المطلوب نقلها (Ctrl/Cmd + نقر لاختيار أكثر من واحد)')+'</label><select id="g_profiles" multiple size="8" style="width:100%">'+opts+'</select></div>'+
       '<div class="field"><label>'+fl('Move them under this company','انقلها تحت هذه الشركة')+'</label><select id="g_target"><option value="">'+fl('— choose —','— اختر —')+'</option>'+bizOpts+'</select></div>',
       function(){
@@ -594,7 +594,7 @@
     var cands=dupCandidates();
     var h='<hr style="margin:18px 0;border:none;border-top:1px solid var(--line,#eee)">'
       +'<h3 style="margin:0 0 4px" class="v62-dup-h">'+fl('Duplicate companies','الشركات المكرّرة')+'</h3>'
-      +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Two records for one company split its contacts, profiles and invoices. Merging moves everything to one record; the other is archived, not deleted — undo below.','سجلّان لشركة واحدة يقسمان جهات اتصالها وملفاتها وفواتيرها. الدمج ينقل كل شيء إلى سجل واحد؛ يُؤرشف الآخر ولا يُحذف — التراجع أدناه.')+'</div>';
+      +'<div class="fin-note" style="margin-bottom:10px">'+fl('Two records for one company split its contacts, profiles and invoices. Merging moves everything to one record; the other is archived, not deleted — undo below.','سجلّان لشركة واحدة يقسمان جهات اتصالها وملفاتها وفواتيرها. الدمج ينقل كل شيء إلى سجل واحد؛ يُؤرشف الآخر ولا يُحذف — التراجع أدناه.')+'</div>';
     if(cands.length){
       h+=cands.map(function(p){
         var keepDefault=(p.a.directClientId||crDigits(p.a.crVat))&&!(p.b.directClientId||crDigits(p.b.crVat))?p.ua:((p.b.directClientId||crDigits(p.b.crVat))&&!(p.a.directClientId||crDigits(p.a.crVat))?p.ub:(p.fa.n>=p.fb.n?p.ua:p.ub));
@@ -682,7 +682,7 @@
       /* E (2026-09-27): the name-based exclusion list, the client-name aliases and the billing-profile grouping are retired.
          Exclusion rules and company merges are typed in Finance → Rules (js/117) and applied by the database view. */
       card.innerHTML='<h3 style="margin:0 0 4px">'+fl('Exclusion rules and company merges','قواعد الاستبعاد ودمج الشركات')+'</h3>'
-        +'<div class="ch-sub" style="margin-bottom:10px">'+fl('Typed in Finance → Rules, and applied to every row at once — including rows imported before the rule. A row a rule catches is still imported, and shown there as excluded.','تُكتب في المالية ← القواعد، وتُطبَّق على كل الصفوف فورًا — بما فيها ما استُورد قبل القاعدة. الصف الذي تلتقطه قاعدة يُستورد ويظهر هناك مستبعدًا.')+'</div>'
+        +'<div class="fin-note" style="margin-bottom:10px">'+fl('Typed in Finance → Rules, and applied to every row at once — including rows imported before the rule. A row a rule catches is still imported, and shown there as excluded.','تُكتب في المالية ← القواعد، وتُطبَّق على كل الصفوف فورًا — بما فيها ما استُورد قبل القاعدة. الصف الذي تلتقطه قاعدة يُستورد ويظهر هناك مستبعدًا.')+'</div>'
         +'<button class="btn sm" onclick="finLinkMap()">'+fl('Open Rules','فتح القواعد')+'</button>'
         +dupSectionHtml(ar);
       view.appendChild(card);

@@ -96,7 +96,7 @@ const TABLES={
       {key:'tender_value',label_en:'Tender value',label_ar:'قيمة المناقصة',type:'number'},
       {key:'research_status',label_en:'Research status',label_ar:'حالة البحث',type:'select:pending,done'},
     ]}],
-  money_item_classes:[], finance_invoice_lines:[], money_services:[], money_product_services:[], money_item_services:[],
+  money_item_classes:[], finance_invoice_lines:[], payment_receipts:[], money_services:[], money_product_services:[], money_item_services:[], money_individuals:[],
   finance_invoices:[...Array(15)].map((_,i)=>{const _svc=['Flights','Hotels','Visa','Support Services','Packages'][i%5];const _mo=['January','February','March','April','May','June'][i%6];const _q='Q'+(Math.floor((i%6)/3)+1);const _tot=5000+i*777;const _cost=_svc==='Support Services'?null:Math.round(_tot*0.88);/* D1: no cost recorded is EMPTY (null), never 0 *//* 2026-09-02 (round 38): this fixture used to store revenue = total − cost and profit = revenue,
        which the live database could never produce. The trigger finance_derive_fields defines
        revenue = total − wallet and profit = revenue − cost, and 12 of these 17 rows broke the
@@ -221,8 +221,8 @@ const TABLES={
   // M15 (2026-08-25) capture-persistence fixture — empty on purpose: probes assert their OWN
   // writes land (delete-then-insert for lines, upsert for gates), not a pre-seeded state.
   finance_expense_lines_capture:[], finance_expense_gate_capture:[],
-  /* D25 (js/121): the raw Payments cost exports */ finance_expense_lines:[], finance_payments_facts:[],
-  /* D26 (js/122): the Payments client register */ payments_clients:[],
+  /* D27 (js/121): the raw Payments cost exports */ finance_expense_lines:[], finance_payments_facts:[],
+  /* D28 (js/122): the Payments client register */ payments_clients:[],
   business_merges:[],
   access_allowlist:[], share_links:[],
   // client↔finance link fixture: maps finance group "Test Company 4" to business b4 (a client),
@@ -360,7 +360,7 @@ function PEOPLE(){
   };
   globalThis.__PEOPLE=P; return P;
 }
-/* D25 helpers: the cost of a reference from its stored approved lines (null = none), and its facts row */
+/* D27 helpers: the cost of a reference from its stored approved lines (null = none), and its facts row */
 function mockCostFromLines(ref){ const a=(TABLES.finance_expense_lines||[]).filter(l=>l.ref===ref&&l.status==='approved');
   return a.length?Math.round(a.reduce((s,l)=>s+(Number(l.amount_sar)||0),0)*100)/100:null; }
 function mockFactsRow(ref){ const P=TABLES.finance_payments_facts=TABLES.finance_payments_facts||[]; let p=P.find(x=>x.ref===ref);
@@ -575,7 +575,7 @@ function mockIdentPhone(t){ let d=mockIdentDigits(t)||''; d=d.replace(/^00/,'').
 const MOCK_FORM_WORDS=new Set(['شركه','موسسه','company','co','corp','corporation','ltd','limited','llc','inc','est']);
 function mockIdentName(t){ let s=String(t==null?'':t); try{ s=s.normalize('NFKC'); }catch(_){}
   s=s.toLowerCase().replace(/[أإآٱ]/g,'ا').replace(/[ىئ]/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/[٠-٩۰-۹]/g,c=>String(AR_DIG.indexOf(c)%10))
-   .replace(/[ً-ٰٟـ]/g,'').replace(/[^0-9a-zء-غف-يٮ-ۓۺ-ۿ]+/g,' ');
+   .replace(/[ً-ٰٟـ.]/g,'').replace(/[^0-9a-zء-غف-يٮ-ۓۺ-ۿ]+/g,' ');
   const w=s.trim().split(/\s+/).filter(x=>x&&!MOCK_FORM_WORDS.has(x)); return w.join('')||null; }
 function mockIdentNorm(kind,v){ if(kind==='name') return mockIdentName(v); if(kind==='email'){ const e=String(v==null?'':v).trim().toLowerCase(); return e||null; }
   if(kind==='phone') return mockIdentPhone(v); if(kind==='vat'||kind==='cr') return mockIdentDigits(v); return mockMoneyNorm(v); }
@@ -636,7 +636,7 @@ function mockMoneyRows(){
       cost_missing:(i.cost_sar==null&&i.revenue_way!=='commission'),loss:(i.cost_sar!=null&&Number(i.cost_sar)>Number(i.revenue_sar)),
       pass_through_sar:lt(i.invoice_no).pass_through_sar,fee_sar:lt(i.invoice_no).fee_sar,unclassed_sar:lt(i.invoice_no).unclassed_sar,
       /* D23: the pass-through stands in as a flagged estimate only while no cost has arrived (never for a commission) */
-      /* D25 (cost-fallback.sql): the Revenue Report's submitted expenses come first, then D23's pass-through lines */
+      /* D27 (cost-fallback.sql): the Revenue Report's submitted expenses come first, then D23's pass-through lines */
       ...(()=>{ const open=i.cost_sar==null&&i.revenue_way!=='commission'; const rr=Number(((TABLES.finance_payments_facts||[]).find(p=>p.ref===i.invoice_no)||{}).rr_total_expense_sar||0);
         const pt=Number(lt(i.invoice_no).pass_through_sar||0); const src=!open?null:(rr>0?'submitted_expenses':(pt>0?'pass_through':null));
         return { est_cost_sar:src==='submitted_expenses'?rr:(src==='pass_through'?lt(i.invoice_no).pass_through_sar:null), cost_estimated:!!src, est_cost_source:src }; })(),
@@ -922,7 +922,7 @@ export function start(port, seedOverrides){
       // any other unlisted key) is silently ignored here too, never fails the call, matching
       // the real function's behavior exactly (stricter/kinder than the old direct-REST path,
       // which rejected the whole batch on a `year` key).
-      /* D25 — mirrors public.fn_cost_import (scripts/sql/cost-import.sql): only references with a money row are stored
+      /* D27 — mirrors public.fn_cost_import (scripts/sql/cost-import.sql): only references with a money row are stored
          (the rest are HELD and counted); a newer file wins per line, an older one only fills blanks; lines inside a newer
          file's dates that it no longer lists are dropped; cost = the approved lines, taken back only when it was this
          import's; a hand-entered row, a commission and a reference with several rows are left alone. */
@@ -970,10 +970,49 @@ export function start(port, seedOverrides){
           else out.waiting++; });
         return send(res,200,JSON.stringify(out));
       }
-      /* D26 — mirrors public.fn_payments_clients_import / fn_promo_codes_import (scripts/sql/clients-promo-import.sql): a newer
+      /* D28 — mirrors public.fn_payments_clients_import / fn_promo_codes_import (scripts/sql/clients-promo-import.sql): a newer
          file wins field by field, an older one only fills blanks, a blank never wipes, the same file twice changes nothing;
          nothing is written onto invoice rows; a new promo code needs a readable type; the Client Name is only kept as a
          suggestion (no company link is made). */
+      /* D29 — mirrors public.fn_identifiers_from_payments_clients (scripts/sql/company-identifiers.sql): each client of the
+         client list, in ID order, is matched (client ID → VAT/CR → email → phone → its names; or the company a person picked)
+         and its ID, VAT, CR, email, phone and three names are added to that company — never a test or left-out client, a
+         client two companies claim, a staff email, the dummy VAT, a value under an exclusion rule or one another company holds */
+      if(fn==='fn_identifiers_from_payments_clients'){
+        const me=(TABLES.app_users||[]).find(x=>x.id===UID&&x.active)||{};
+        if(!me.id||!(me.role==='admin'||me.role==='manager')||mockLevelsOf(me).finance!=='full') return send(res,403,{code:'42501',message:'adding identifiers from the client list: this needs an admin or a manager with Finance edit'});
+        const want=new Set((parsed.p_client_ids||[]).map(String)), pick=parsed.p_business_for||{}, N=mockMoneyNorm, D=mockIdentDigits;
+        const R=(TABLES.money_exclusion_rules||[]).filter(r=>r.active&&!r.removed_at), ruled=(k,v)=>!!N(v)&&R.some(r=>r.kind===k&&N(r.value)===N(v));
+        const guard=(kind,v)=>{ const rk={client_id:'client_id',discount_code:'discount_code',name:'name',vat:'tax_no',cr:'tax_no'}[kind]; return !!rk&&R.some(r=>r.kind===rk&&(N(r.value)===N(v)||(rk==='tax_no'&&D(r.value)&&D(r.value)===D(v)))); };
+        const crsOf=x=>{ const o=new Set(); String(x.registration_numbers==null?'':x.registration_numbers).split(/[,;\/|\n]+/).forEach(t=>{ const d=D(t); if(d&&d.length>=6) o.add(d); });
+          if(/(^|[^a-z])cr([^a-z]|$)|commercial|سجل/i.test(String(x.id_type||''))){ const d=D(x.id_number); if(d&&d.length>=6) o.add(d); } return [...o]; };
+        const out={added:0,companies:0,business_ids:[],taken:[],refused:[],unmatched:[],conflicts:[],excluded:[]}, bizs=new Set(), now=new Date().toISOString();
+        const list=TABLES.company_identifiers=TABLES.company_identifiers||[];
+        (TABLES.payments_clients||[]).filter(x=>want.has(String(x.client_id))).sort((a,b)=>a.client_id<b.client_id?-1:a.client_id>b.client_id?1:0).forEach(x=>{
+          const names=[x.legal_name,x.legal_name_ar,x.trading_name];
+          if(ruled('client_id',x.client_id)||ruled('tax_no',x.vat_number)||names.some(v=>ruled('name',v))){ out.excluded.push(x.client_id); return; }
+          const ids=mockIdentifiers(false), crs=crsOf(x), vat=D(x.vat_number), taxes=(vat?[vat]:[]).concat(crs);
+          let biz=pick[x.client_id]||null;
+          if(!biz){ const lv=[i=>i.kind==='client_id'&&i.value_norm===N(x.client_id), i=>(i.kind==='vat'||i.kind==='cr')&&taxes.includes(i.value_norm),
+              i=>i.kind==='email'&&i.value_norm===mockIdentNorm('email',x.contact_email), i=>i.kind==='phone'&&i.value_norm===mockIdentPhone(x.contact_phone),
+              i=>i.kind==='name'&&names.map(mockIdentName).filter(Boolean).includes(i.value_norm)];
+            let found=null; for(const f of lv){ const bs=[...new Set(ids.filter(i=>i.value_norm&&f(i)).map(i=>i.business_id))].sort(); if(bs.length){ found=bs; break; } }
+            if(!found){ out.unmatched.push(x.client_id); return; } if(found.length>1){ out.conflicts.push({client_id:x.client_id,candidates:found}); return; } biz=found[0]; }
+          let took=false;
+          [['client_id',x.client_id],['vat',x.vat_number],['email',x.contact_email],['phone',x.contact_phone],['name',x.legal_name],['name',x.legal_name_ar],['name',x.trading_name]]
+            .concat(crs.map(c=>['cr',c])).forEach(([kind,value])=>{ const n=mockIdentNorm(kind,value); if(!n) return;
+              if(kind==='email'&&/@([a-z0-9-]+\.)*directksa\./i.test(String(value))){ out.refused.push({client_id:x.client_id,kind,value,why:'staff'}); return; }
+              const h=mockIdentifiers(false).find(i=>i.kind===kind&&i.value_norm===n); if(h&&h.business_id===biz) return;
+              if(h){ out.taken.push({client_id:x.client_id,kind,value,held_by:h.business_id}); return; }
+              if(((kind==='vat'||kind==='cr')&&n==='311111111111113')||(kind==='email'&&!/@/.test(String(value)))||guard(kind,value)){ out.refused.push({client_id:x.client_id,kind,value,why:'check'}); return; }
+              const row={id:'ci-'+Math.random().toString(36).slice(2),business_id:biz,kind,value:String(value).trim(),value_norm:n,valid_from:null,valid_to:null,source:'import',note:null,
+                created_by:UID,created_by_name:me.full_name||me.email||null,created_at:now,removed_by:null,removed_by_name:null,removed_at:null};
+              list.push(row); (TABLES.record_history=TABLES.record_history||[]).push({id:(TABLES.record_history.length+1000),at:now,actor:UID,actor_name:row.created_by_name,table_name:'company_identifiers',record_id:row.id,record_key:row.id,action:'create',before_row:null,after_row:Object.assign({},row)});
+              out.added++; took=true; });
+          if(took) bizs.add(biz); });
+        out.business_ids=[...bizs]; out.companies=bizs.size;
+        return send(res,200,JSON.stringify(out));
+      }
       if(fn==='fn_payments_clients_import'||fn==='fn_promo_codes_import'){
         const isPc=fn==='fn_payments_clients_import', me=(TABLES.app_users||[]).find(x=>x.id===UID&&x.active)||{};
         if(!me.id||mockLevelsOf(me).finance!=='full') return send(res,403,{code:'42501',message:(isPc?'client list import':'promo codes import')+': this needs Full control of Finance'});
@@ -1025,7 +1064,8 @@ export function start(port, seedOverrides){
           'integrity_status','exclusion_reason','notes','source_batch','line_no','branch','salesman','project_tag',
           'discount_sar','origin','proposal_ref','items','transaction_ref','direct_uuid','revenue_way',
           /* D1 */ 'payments_client_id','customer_tax_no','discount_code','row_kind','payments_status','payments_status_at','paid_at',
-          'tax_invoice_date','invoice_created_on','audit_required','customer_email','billed_by_ref','source'];
+          'tax_invoice_date','invoice_created_on','audit_required','customer_email','billed_by_ref','source',
+          /* D26 */ 'transaction_date'];
         const pick=(row,extra)=>{ const out={}; (extra?WRITABLE.concat(extra):WRITABLE).forEach(k=>{ if(Object.prototype.hasOwnProperty.call(row,k)) out[k]=row[k]; }); return out; };
         const pIns=Array.isArray(parsed.p_insert)?parsed.p_insert:[];
         const pUpd=Array.isArray(parsed.p_update)?parsed.p_update:[];
@@ -1046,7 +1086,7 @@ export function start(port, seedOverrides){
         }
         pIns.forEach(row=>{
           const clean=pick(row);
-          /* D25: trg_fin_inv_a_cost_from_lines — a money row arriving after its expense lines takes its cost from them */
+          /* D27: trg_fin_inv_a_cost_from_lines — a money row arriving after its expense lines takes its cost from them */
           if(clean.cost_sar==null&&(clean.source||'import')==='import'&&clean.revenue_way!=='commission'){ const v=mockCostFromLines(clean.invoice_no);
             if(v!=null){ clean.cost_sar=v; mockFactsRow(clean.invoice_no).lines_cost_sar=v; } }
           fiTable.push(deriveFinanceInvoice(Object.assign({id:'mock-fi-'+(++_finIdSeq)}, clean)));
@@ -1065,6 +1105,7 @@ export function start(port, seedOverrides){
             const v=clean[k]; if(v===null||v===undefined) return;
             if(older&&k!=='cost_sar'&&cur[k]!==null&&cur[k]!==undefined&&cur[k]!=='') return;   // an OLDER file only fills what is still empty (as the real function)
             if(k==='row_kind'&&cur.row_kind==='billing_link'&&v==='sale') return;   // a person's billing link survives a re-import (as the real function)
+            if(k==='transaction_date'&&cur[k]) return;   // D26: fill only (as the real function)
             if(k==='payments_status_at'||k==='paid_at'){ if(!cur[k]||String(v)>String(cur[k])) next[k]=v; return; }
             next[k]=v;
           });
@@ -1650,13 +1691,34 @@ export function start(port, seedOverrides){
         return send(res,405,{message:'method'});
       });
     }
+    /* F21 (28 Sep): payment receipts from the invoice export — Full on Finance writes; upsert on receipt_ref (the same file
+       twice changes nothing); nothing is deleted */
+    if(t==='payment_receipts'&&req.method!=='GET'){
+      let body=''; req.on('data',c=>body+=c);
+      return req.on('end',()=>{
+        let pl=[]; try{ pl=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON'}); }
+        if(!Array.isArray(pl)) pl=[pl];
+        if(finLvlMR!=='full') return send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "payment_receipts"'});
+        if(req.method==='DELETE') return send(res,400,{code:'P0001',message:'payment_receipts rows are never deleted here'});
+        const list=TABLES.payment_receipts=TABLES.payment_receipts||[]; const now=new Date().toISOString(); const out=[];
+        let oc=(u.query||{}).on_conflict; if(Array.isArray(oc)) oc=oc[0];
+        for(const r0 of pl){
+          if(!r0.receipt_ref||r0.amount_sar==null) return send(res,400,{code:'23502',message:'null value violates not-null constraint'});
+          const ix=list.findIndex(x=>x.receipt_ref===r0.receipt_ref);
+          if(ix>=0){ if(oc!=='receipt_ref') return send(res,409,{code:'23505',message:'duplicate key value violates unique constraint "payment_receipts_receipt_ref_key"'});
+            list[ix]=Object.assign({},list[ix],r0,{updated_at:now}); out.push(list[ix]); continue; }
+          const row=Object.assign({id:'rcpt-'+Math.random().toString(36).slice(2),allocations:[],source:'import',created_at:now,updated_at:now},r0); list.push(row); out.push(row);
+        }
+        return send(res,201,out);
+      });
+    }
     /* D24 (28 Sep): the three service lists — Full on Finance writes (no role); a name never changes; a removal is final;
        nothing is deleted; every change logged (d24-income-by-service.sql) */
-    if(['money_services','money_product_services','money_item_services'].indexOf(t)>=0&&req.method!=='GET'){
+    if(['money_services','money_product_services','money_item_services','money_individuals'].indexOf(t)>=0&&req.method!=='GET'){
       let body=''; req.on('data',c=>body+=c);
       return req.on('end',()=>{
         let pl={}; try{ pl=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON'}); }
-        const KEY={money_services:'name',money_product_services:'product',money_item_services:'item'}[t], NORM=t==='money_item_services'?mockItemHead:mockMoneyNorm;
+        const KEY={money_services:'name',money_product_services:'product',money_item_services:'item',money_individuals:'name'}[t], NORM=t==='money_item_services'?mockItemHead:mockMoneyNorm;
         const list=TABLES[t]=TABLES[t]||[]; const now=new Date().toISOString(), nm=meMR.full_name||meMR.email||null;
         const P=(c,m)=>send(res,400,{code:c,details:null,hint:null,message:m});
         const mayList=finLvlMR==='full';
@@ -1667,7 +1729,7 @@ export function start(port, seedOverrides){
           for(const r0 of rows0){
             const v=String(r0[KEY]==null?'':r0[KEY]).trim();
             if(!NORM(v)) return P('23514','new row for relation "'+t+'" violates check constraint');
-            if(t!=='money_services'&&!(TABLES.money_services||[]).some(x=>x.id===r0.service_id)) return P('23503','insert or update on table "'+t+'" violates foreign key constraint');
+            if(t!=='money_services'&&t!=='money_individuals'&&!(TABLES.money_services||[]).some(x=>x.id===r0.service_id)) return P('23503','insert or update on table "'+t+'" violates foreign key constraint');
             if(list.some(x=>!x.removed_at&&NORM(x[KEY])===NORM(v))) return P('23505','duplicate key value violates unique constraint "'+t+'_one_live"');
             const row=Object.assign({id:t.slice(6,9)+'-'+Math.random().toString(36).slice(2)},r0,{[KEY]:v,created_by:UID,created_by_name:nm,created_at:now,updated_by:null,updated_by_name:null,updated_at:null,removed_by:null,removed_by_name:null,removed_at:null});
             if(t==='money_services'){ if(row.sort_order==null) row.sort_order=100; if(row.counts_as_income==null) row.counts_as_income=true; }
@@ -1690,7 +1752,7 @@ export function start(port, seedOverrides){
         return send(res,405,{message:'method'});
       });
     }
-    if(['money_services','money_product_services','money_item_services','money_service_rows'].indexOf(t)>=0&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
+    if(['money_services','money_product_services','money_item_services','money_service_rows','money_individuals'].indexOf(t)>=0&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
     if((t==='money_item_classes'||t==='finance_invoice_lines')&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
     /* company_name_aliases (E, 27 Sep): a customer name typed into a company — admins and managers write, one company per
        name however spelled, a name is never re-pointed, a removal is final */

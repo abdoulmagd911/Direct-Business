@@ -378,6 +378,10 @@ probe-d1-invoice-import
 probe-d19-delete-asks
 probe-finance-rules-save-in-place
 probe-d24-income-by-service
+probe-import-receipts-and-reasons
+probe-d25-individuals
+probe-d26-rebill-dates
+probe-finance-one-estimate
 probe-cost-import
 probe-payments-lists
 probe-company-identifiers

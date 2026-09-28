@@ -1,5 +1,6 @@
 -- Company identifiers and automatic matching (second builder, 28 Sep 2026; DECISIONS D27, docs/reference/d27-company-identifiers.md).
--- Rollback: company-identifiers.rollback.sql. Needs e-money-rules.sql, cost-fallback.sql and clients-promo-import.sql first.
+-- Rollback: company-identifiers.rollback.sql. Needs e-money-rules.sql, d26-transaction-date.sql, cost-fallback.sql and
+-- clients-promo-import.sql first.
 --
 -- The owner's rulings of 28 Sep: each company holds typed identifiers — Payments client ID, discount code (optional dates),
 -- names in English or Arabic, contact emails, phones, VAT and CR numbers — each belonging to ONE company only. Every money row
@@ -14,6 +15,8 @@ do $$ begin
   if to_regclass('public.payments_clients') is null then raise exception 'company-identifiers.sql needs clients-promo-import.sql first'; end if;
   if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'money_rows'
                  and column_name = 'est_cost_source') then raise exception 'company-identifiers.sql needs cost-fallback.sql first'; end if;
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'money_rows'
+                 and column_name = 'transaction_date') then raise exception 'company-identifiers.sql needs d26-transaction-date.sql first (money_rows keeps its transaction_date column)'; end if;
 end $$;
 
 -- the phone the invoice export carries (the matcher's fifth level; the invoice import fills it)
@@ -37,7 +40,7 @@ create or replace function public.ident_name(t text) returns text language sql i
     select w from unnest(regexp_split_to_array(btrim(regexp_replace(
       regexp_replace(translate(lower(normalize(coalesce(t, ''), NFKC)),
                                'أإآٱىئةؤ٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', 'ااااييهو01234567890123456789'),
-                     '[ً-ٰٟـ]', '', 'g'),
+                     '[ً-ٰٟـ.]', '', 'g'),
       '[^0-9a-zء-غف-يٮ-ۓۺ-ۿ]+', ' ', 'g')), '\s+')) with ordinality u(w, o)
     where w <> '' and w not in ('شركه', 'موسسه', 'company', 'co', 'corp', 'corporation', 'ltd', 'limited', 'llc', 'inc', 'est')
     order by o), ''), '')
@@ -250,6 +253,7 @@ select i.id, i.invoice_no, i.invoice_date, i.client_group, i.customer_raw_name, 
                           case when coalesce(lt.pass_through_sar, 0) > 0 then lt.pass_through_sar end) end as est_cost_sar,
        (i.cost_sar is null and i.revenue_way is distinct from 'commission'
         and (coalesce(pf.rr_total_expense_sar, 0) > 0 or coalesce(lt.pass_through_sar, 0) > 0)) as cost_estimated,
+       i.transaction_date,                                  -- the main builder's D26 column, kept in its place
        case when i.cost_sar is null and i.revenue_way is distinct from 'commission' then
             case when coalesce(pf.rr_total_expense_sar, 0) > 0 then 'submitted_expenses'
                  when coalesce(lt.pass_through_sar, 0) > 0 then 'pass_through' end end as est_cost_source,
@@ -400,3 +404,100 @@ begin
   end loop;
   raise notice 'company identifiers: % copied from the old stores%', n, case when skipped <> '' then '; left out:' || skipped else '' end;
 end $$;
+
+-- =====================================================================
+-- 7. the corporate clients export (the client register, D28): each Payments client is matched to a company the
+--    same way (client ID → VAT/CR → email → phone → its names), and pressing Import adds what it carries — client ID,
+--    VAT, CR numbers, contact email and phone, Legal Name, Legal Name (Arabic), Trading Name — to the company it matches
+--    (or to the company a person just made for it in the preview). A test or left-out client (its ID, VAT or a name
+--    under an exclusion rule) adds nothing; a value another company holds, a staff email or the dummy VAT is listed, never forced.
+-- =====================================================================
+create or replace function public.payments_client_crs(p_reg text, p_id_type text, p_id_number text) returns text[]
+language sql immutable parallel safe as $$
+  select coalesce(array_agg(distinct t) filter (where length(t) >= 6), '{}')
+  from (select public.ident_digits(x) as t from unnest(regexp_split_to_array(coalesce(p_reg, ''), '[,;/|\n]+')) x
+        union all select public.ident_digits(p_id_number) where coalesce(p_id_type, '') ~* '(^|[^a-z])cr([^a-z]|$)|commercial|سجل') s
+$$;
+create or replace function public.payments_client_match(p_client_id text default null)
+returns table (client_id text, business_id uuid, match_level text, match_state text, candidates uuid[])
+language plpgsql stable security definer set search_path to public as $$
+begin
+  if not public.can_see_page('finance') then return; end if;
+  return query
+  with r as (
+    select p.client_id as rid, public.money_norm(p.client_id) as cid, public.ident_digits(p.vat_number) as vat,
+           public.payments_client_crs(p.registration_numbers, p.id_type, p.id_number) as crs,
+           nullif(lower(btrim(p.contact_email)), '') as email, public.ident_phone(p.contact_phone) as phone,
+           array_remove(array[public.ident_name(p.legal_name), public.ident_name(p.legal_name_ar), public.ident_name(p.trading_name)], null) as names
+    from payments_clients p where p_client_id is null or p.client_id = p_client_id),
+  ci as (select c.business_id, c.kind, c.value_norm from company_identifiers c where c.removed_at is null),
+  cand as (
+    select r.rid, 1 as lvl, ci.business_id as biz from r join ci on ci.kind = 'client_id' and ci.value_norm = r.cid
+    union select r.rid, 2, ci.business_id from r join ci on ci.kind in ('vat', 'cr') and (ci.value_norm = r.vat or ci.value_norm = any(r.crs))
+    union select r.rid, 4, ci.business_id from r join ci on ci.kind = 'email' and ci.value_norm = r.email
+    union select r.rid, 5, ci.business_id from r join ci on ci.kind = 'phone' and ci.value_norm = r.phone
+    union select r.rid, 6, ci.business_id from r join ci on ci.kind = 'name' and ci.value_norm = any(r.names)),
+  win as (
+    select c.rid, c.lvl, array_agg(c.biz order by c.biz) as bs
+    from cand c where c.lvl = (select min(c2.lvl) from cand c2 where c2.rid = c.rid)
+    group by c.rid, c.lvl)
+  select r.rid, case when cardinality(w.bs) = 1 then w.bs[1] end,
+         case w.lvl when 1 then 'client_id' when 2 then 'vat_cr' when 4 then 'email' when 5 then 'phone' when 6 then 'name' end,
+         case when w.rid is null then 'none' when cardinality(w.bs) = 1 then 'matched' else 'conflict' end, w.bs
+  from r left join win w on w.rid = r.rid;
+end $$;
+revoke all on function public.payments_client_match(text) from public, anon;
+grant execute on function public.payments_client_match(text) to authenticated;
+
+create or replace function public.fn_identifiers_from_payments_clients(p_client_ids text[], p_business_for jsonb default '{}'::jsonb)
+returns jsonb language plpgsql set search_path to 'public', 'pg_temp' as $function$
+declare x record; d record; m record; biz uuid; holder uuid;
+        n_added int := 0; bizs uuid[] := '{}'; took boolean;
+        taken jsonb := '[]'; refused jsonb := '[]'; unmatched jsonb := '[]'; conflicts jsonb := '[]'; excluded jsonb := '[]';
+begin
+  if not (public.app_role() in ('admin', 'manager') and public.can_edit_page('finance')) then
+    raise exception 'adding identifiers from the client list: this needs an admin or a manager with Finance edit' using errcode = '42501';
+  end if;
+  for x in select p.* from payments_clients p where p.client_id = any(coalesce(p_client_ids, '{}')) order by p.client_id loop
+    if exists (select 1 from money_exclusion_rules r where r.active and r.removed_at is null
+               and ((r.kind = 'client_id' and r.value_norm = public.money_norm(x.client_id))
+                 or (r.kind = 'tax_no' and r.value_norm = public.money_norm(x.vat_number))
+                 or (r.kind = 'name' and r.value_norm in (public.money_norm(x.legal_name), public.money_norm(x.legal_name_ar), public.money_norm(x.trading_name))))) then
+      excluded := excluded || to_jsonb(x.client_id); continue;     -- a test client: nothing of it becomes an identifier
+    end if;
+    biz := nullif(coalesce(p_business_for, '{}'::jsonb)->>x.client_id, '')::uuid;
+    if biz is null then
+      select * into m from public.payments_client_match(x.client_id) pm;
+      if m.match_state = 'matched' then biz := m.business_id;
+      elsif m.match_state = 'conflict' then conflicts := conflicts || jsonb_build_object('client_id', x.client_id, 'candidates', to_jsonb(m.candidates)); continue;
+      else unmatched := unmatched || to_jsonb(x.client_id); continue; end if;
+    end if;
+    took := false;
+    for d in
+      select v.kind, v.value from (values ('client_id', x.client_id), ('vat', x.vat_number), ('email', x.contact_email), ('phone', x.contact_phone),
+                                          ('name', x.legal_name), ('name', x.legal_name_ar), ('name', x.trading_name)) v(kind, value)
+      union all select 'cr', c from unnest(public.payments_client_crs(x.registration_numbers, x.id_type, x.id_number)) c
+    loop
+      if public.ident_norm(d.kind, d.value) is null then continue; end if;
+      if d.kind = 'email' and d.value ~* '@([a-z0-9-]+\.)*directksa\.' then
+        refused := refused || jsonb_build_object('client_id', x.client_id, 'kind', d.kind, 'value', d.value, 'why', 'staff'); continue; end if;
+      holder := null;
+      select c.business_id into holder from company_identifiers c
+       where c.kind = d.kind and c.value_norm = public.ident_norm(d.kind, d.value) and c.removed_at is null;
+      if holder = biz then continue; end if;
+      if holder is not null then taken := taken || jsonb_build_object('client_id', x.client_id, 'kind', d.kind, 'value', d.value, 'held_by', holder); continue; end if;
+      begin
+        insert into company_identifiers (business_id, kind, value, source) values (biz, d.kind, btrim(d.value), 'import');
+        n_added := n_added + 1; took := true;
+      exception when check_violation then
+        refused := refused || jsonb_build_object('client_id', x.client_id, 'kind', d.kind, 'value', d.value, 'why', sqlerrm);
+      end;
+    end loop;
+    if took and not (biz = any(bizs)) then bizs := bizs || biz; end if;
+  end loop;
+  return jsonb_build_object('added', n_added, 'companies', cardinality(bizs), 'business_ids', to_jsonb(bizs), 'taken', taken, 'refused', refused,
+                            'unmatched', unmatched, 'conflicts', conflicts, 'excluded', excluded);
+end;
+$function$;
+revoke all on function public.fn_identifiers_from_payments_clients(text[], jsonb) from public, anon;
+grant execute on function public.fn_identifiers_from_payments_clients(text[], jsonb) to authenticated;

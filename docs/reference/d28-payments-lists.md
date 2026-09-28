@@ -1,4 +1,4 @@
-# D26 — Payments client list and promo codes
+# D28 — Payments client list and promo codes
 
 ACTIVE · 2026-09-28 · second builder · guard `scripts/qa/probe-payments-lists.mjs`, phase3 CP-01…07.
 

@@ -26,7 +26,7 @@
   var FORM={'شركه':1,'موسسه':1,'company':1,'co':1,'corp':1,'corporation':1,'ltd':1,'limited':1,'llc':1,'inc':1,'est':1};
   function name(t){ var s=String(t==null?'':t); try{ s=s.normalize('NFKC'); }catch(_){}
     s=arDig(s.toLowerCase().replace(/[أإآٱ]/g,'ا').replace(/[ىئ]/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و'))
-      .replace(/[ً-ٰٟـ]/g,'').replace(/[^0-9a-zء-غف-يٮ-ۓۺ-ۿ]+/g,' ');
+      .replace(/[ً-ٰٟـ.]/g,'').replace(/[^0-9a-zء-غف-يٮ-ۓۺ-ۿ]+/g,' ');
     var w=s.trim().split(/\s+/).filter(function(x){ return x&&!FORM[x]; }); return w.join('')||null; }
   function moneyNorm(t){ var s=String(t==null?'':t); try{ s=s.normalize('NFKC'); }catch(_){}
     s=s.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[ً-ٰٟـ]/g,'');
@@ -122,6 +122,45 @@
     return h; };
   window.v123Log=function(biz){ try{ window.openChangeLog(((window.MR&&MR.idents)||[]).filter(function(x){ return x.business_id===biz; }).map(function(x){ return {table:'company_identifiers',key:x.id}; }),fl('Identifiers — change log','المعرّفات — سجل التغييرات')); }catch(_){} };
 
+  /* the client list (D28): each Payments client is matched as public.payments_client_match() does — client ID → VAT/CR →
+     email → phone → its names — and planned as public.fn_identifiers_from_payments_clients() writes: clients in ID order,
+     a test or left-out client (its ID, VAT or a name under an exclusion rule) adds nothing, a client two companies claim adds
+     nothing, a value another company holds or that may never be an identifier is listed. The preview shows this plan; only
+     the database writes it. pick = {client ID: company} a person chose in the preview (a new company). */
+  function clientCrs(reg,idType,idNo){ var o={}; String(reg==null?'':reg).split(/[,;\/|\n]+/).forEach(function(x){ var d=digits(x); if(d&&d.length>=6) o[d]=1; });
+    if(/(^|[^a-z])cr([^a-z]|$)|commercial|سجل/i.test(String(idType||''))){ var d=digits(idNo); if(d&&d.length>=6) o[d]=1; } return Object.keys(o); }
+  window.identClientPlan=function(clients,idents,rules,pick){ pick=pick||{};
+    var held={}; (idents||[]).forEach(function(x){ if(x.removed_at) return; var n=x.value_norm||identNorm(x.kind,x.value); if(n) held[x.kind+'|'+n]=x.business_id; });
+    var R=(rules||[]).filter(function(r){ return r.active!==false&&!r.removed_at; });
+    var ruled=function(kind,v){ var n=moneyNorm(v); return !!n&&R.some(function(r){ return r.kind===kind&&moneyNorm(r.value)===n; }); };
+    var guard=function(kind,v){ var rk={client_id:'client_id',discount_code:'discount_code',name:'name',vat:'tax_no',cr:'tax_no'}[kind]; if(!rk) return false;
+      return R.some(function(r){ return r.kind===rk&&(moneyNorm(r.value)===moneyNorm(v)||(rk==='tax_no'&&digits(r.value)&&digits(r.value)===digits(v))); }); };
+    var P={per:{}, adds:[], taken:[], refused:[], unmatched:[], conflicts:[], excluded:[], matched:0, companies:{}};
+    (clients||[]).slice().sort(function(a,b){ return a.client_id<b.client_id?-1:a.client_id>b.client_id?1:0; }).forEach(function(x){
+      var cid=x.client_id, names=[x.legal_name,x.legal_name_ar,x.trading_name];
+      if(ruled('client_id',cid)||ruled('tax_no',x.vat_number)||names.some(function(v){ return ruled('name',v); })){ P.excluded.push(x); P.per[cid]={state:'excluded'}; return; }
+      var crs=clientCrs(x.registration_numbers,x.id_type,x.id_number), vat=digits(x.vat_number), taxes=(vat?[vat]:[]).concat(crs);
+      var levels=[['client_id',[['client_id',moneyNorm(cid)]]],
+        ['vat_cr',[].concat.apply([],taxes.map(function(t){ return [['vat',t],['cr',t]]; }))],
+        ['email',[['email',identNorm('email',x.contact_email)]]],['phone',[['phone',phone(x.contact_phone)]]],
+        ['name',names.map(function(v){ return ['name',name(v)]; })]];
+      var biz=pick[cid]||null, m={state:biz?'picked':'none', biz:biz};
+      if(!biz) for(var i=0;i<levels.length;i++){ var bs={}; levels[i][1].forEach(function(k){ if(k[1]&&held[k[0]+'|'+k[1]]) bs[held[k[0]+'|'+k[1]]]=1; });
+        var b=Object.keys(bs).sort(); if(!b.length) continue;
+        m=b.length===1?{state:'matched',biz:b[0],level:levels[i][0]}:{state:'conflict',level:levels[i][0],candidates:b}; break; }
+      P.per[cid]=m;
+      if(m.state==='none'){ P.unmatched.push(x); return; } if(m.state==='conflict'){ P.conflicts.push({client:x,candidates:m.candidates}); return; }
+      P.matched++; m.adds=0;
+      var det=[['client_id',cid],['vat',x.vat_number],['email',x.contact_email],['phone',x.contact_phone],['name',x.legal_name],['name',x.legal_name_ar],['name',x.trading_name]]
+        .concat(crs.map(function(c){ return ['cr',c]; }));
+      det.forEach(function(d){ var n=identNorm(d[0],d[1]); if(!n) return;
+        if(d[0]==='email'&&STAFF.test(String(d[1]))){ P.refused.push({client_id:cid,kind:d[0],value:d[1],why:'staff'}); return; }
+        var h=held[d[0]+'|'+n]; if(h===m.biz) return;
+        if(h){ P.taken.push({client_id:cid,kind:d[0],value:d[1],held_by:h}); return; }
+        if(((d[0]==='vat'||d[0]==='cr')&&n==='311111111111113')||(d[0]==='email'&&!/@/.test(String(d[1])))||guard(d[0],d[1])){ P.refused.push({client_id:cid,kind:d[0],value:d[1],why:'never'}); return; }
+        held[d[0]+'|'+n]=m.biz; P.adds.push({client_id:cid,business_id:m.biz,kind:d[0],value:String(d[1]).trim()}); P.companies[m.biz]=1; m.adds++; }); });
+    P.nCompanies=Object.keys(P.companies).length; return P; };
+  window.identBizName=bizName;
   window.v123={ identNorm:identNorm, name:name, phone:phone, digits:digits, kinds:KINDS };
   console.info('%c[v123] company identifiers','color:#175CD3;font-weight:700');
 }catch(err){ if(window.console) console.warn('[v123] init',err); }})();

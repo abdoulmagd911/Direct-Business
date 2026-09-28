@@ -1,4 +1,4 @@
--- Cost import — the raw Direct Payments cost exports (second builder, 28 Sep 2026; DECISIONS D25). Rollback:
+-- Cost import — the raw Direct Payments cost exports (second builder, 28 Sep 2026; DECISIONS D27). Rollback:
 -- cost-import.rollback.sql. No existing data changes: two new tables, one import function, one insert trigger.
 --
 -- The files (Drive 04 §4–5), read by js/121-cost-import.js in the browser and sent here in chunks:

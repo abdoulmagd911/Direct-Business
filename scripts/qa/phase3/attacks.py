@@ -1699,6 +1699,40 @@ def _(cur):
     ok = got == 'D24 Flights=300,D24 Transport=600' and after == 'D24 Flights=900' and rn and dl and vw and seen == 3
     return (ok, f"split={got} · item override removed → {after} · rename refused={rn} · delete refused={dl} · View cannot add={vw} · View reads {seen}")
 
+@test("D25-01 'Individual (not a company)': Full on Finance marks a name (no role); View cannot; one entry per name however spelled; a name never changes; nothing is deleted; the change is logged")
+def _(cur):
+    as_user(cur, 'u1')
+    x = one(cur, "insert into money_individuals(name) values ('D25 Person Name') returning id")
+    dup, _ = expect_fail(cur, "insert into money_individuals(name) values ('d25 person-name')", None, "money_individuals_one_live")
+    rn, _ = expect_fail(cur, "update money_individuals set name='Other' where id=%s", (x,), "never changes")
+    dl = blocked_or_zero(cur, "delete from money_individuals where id=%s", (x,))[0]
+    q(cur, "reset role")
+    logged = one(cur, "select count(*) from record_history where table_name='money_individuals' and record_id=%s", (str(x),))
+    as_user(cur, 'u5')
+    vw, _ = expect_fail(cur, "insert into money_individuals(name) values ('D25 View try')", None, "row-level security")
+    seen = one(cur, "select count(*) from money_individuals where name like 'D25%%'")
+    q(cur, "reset role")
+    ok = dup and rn and dl and vw and seen == 1 and logged >= 1
+    return (ok, f"same name other spelling refused={dup} · rename refused={rn} · delete refused={dl} · View cannot add={vw} · View reads {seen} · logged={logged}")
+
+@test("D26-01 A merged pair keeps the re-billed transaction's own date: the import writes it, a later file only fills it when empty, and the money view shows it beside the invoice's date")
+def _(cur):
+    as_user(cur, 'u4')
+    one(cur, "select fn_commit_finance_import(p_insert := %s::jsonb)", (json.dumps([{'invoice_no': 'D26-PAIR', 'zatca_dpin': 'DPIN-D26', 'client_group': 'D26 Co', 'invoice_date': '2026-09-22',
+        'total_incl_vat_sar': 500, 'amount_received_sar': 500, 'amount_remaining_sar': 0, 'integrity_status': 'verified_paid', 'payments_status': 'Fully Paid',
+        'payments_status_at': '2026-09-22T09:00:00Z', 'paid_at': '2026-09-22', 'transaction_ref': 'TX-D26', 'transaction_date': '2026-04-10'}]),))
+    i = one(cur, "select id from finance_invoices where invoice_no='D26-PAIR'")
+    one(cur, "select fn_commit_finance_import(p_update := %s::jsonb)", (json.dumps([{'id': str(i), 'transaction_date': '2026-05-01', 'payments_status_at': '2026-09-23T09:00:00Z'}]),))
+    kept = one(cur, "select transaction_date::text from finance_invoices where id=%s", (i,))
+    q(cur, "reset role")
+    q(cur, "update finance_invoices set transaction_date=null where id=%s", (i,))
+    as_user(cur, 'u4')
+    one(cur, "select fn_commit_finance_import(p_update := %s::jsonb)", (json.dumps([{'id': str(i), 'transaction_date': '2026-04-10'}]),))
+    filled = one(cur, "select transaction_date::text||'|'||invoice_date::text from money_rows where id=%s", (i,))
+    q(cur, "reset role")
+    ok = kept == '2026-04-10' and filled == '2026-04-10|2026-09-22'
+    return (ok, f"a later file did not overwrite it: {kept} · an empty one is filled, the view shows both: {filled}")
+
 @test("D1-08 An OLDER file arriving after a newer one only fills what is empty: the paid amounts and the paid date (which sets the month) are not put back to the unpaid copy's")
 def _(cur):
     as_user(cur, 'u4')
@@ -1735,7 +1769,7 @@ def _(cur):
     return (got == 'true|true' and others == ['false'] * 4, f"audit-required → {got} · pending/void/cancelled/draft → {others}")
 
 
-# ================= cost import (D25, second builder, 28 Sep 2026): the raw Payments cost exports =================
+# ================= cost import (D27, second builder, 28 Sep 2026): the raw Payments cost exports =================
 def cl(ref, n, typ, status, amount, created, **kw):
     """one Transaction Expense Export line, as js/121 sends it (line_key = ref|type|created)"""
     d = {'ref': ref, 'line_key': ref + '|' + typ.lower() + '|' + created, 'expense_type': typ, 'status': status,
@@ -1880,7 +1914,7 @@ if _has_fallback:   # cost-fallback.sql builds on D23 (#57); until both are appl
         return (ok, f"pass-through only={a} · + revenue report={b} · report says 0={zero} · approved lines arrive={d} · commission={com} · KPI source={kpi}")
 
 
-# ================= client list + promo codes (D26, second builder, 28 Sep 2026): the Payments lists =================
+# ================= client list + promo codes (D28, second builder, 28 Sep 2026): the Payments lists =================
 _cc = conn(); _has_lists = one(_cc.cursor(), "select count(*) from pg_proc where proname='fn_payments_clients_import'"); _cc.close()
 if _has_lists:   # scripts/sql/clients-promo-import.sql
     def pc(cur, rows, seen='2026-09-27T10:00:00+03:00'):
@@ -2123,6 +2157,59 @@ if _has_ident:   # scripts/sql/company-identifiers.sql
         q(cur, "update app_users set page_access = page_access || '{\"finance\":\"none\"}' where id=%s", (F['u6'],))
         as_user(cur, 'u6'); n = one(cur, "select count(*) from money_company_match()"); q(cur, "reset role")
         return (m > 0 and v == m and n == 0, f"manager={m} · View on Finance={v} · no Finance={n}")
+
+    @test("IDN-12 The client list is matched the same way: client ID beats VAT/CR beats email beats phone beats its names; two companies at one level name both; nothing found says none")
+    def _(cur):
+        as_user(cur, 'u4')
+        idn(cur, 'coA', 'client_id', 'PC-100'); idn(cur, 'coA', 'name', 'Reg Alpha'); idn(cur, 'coA', 'cr', '1010999999')
+        idn(cur, 'coB', 'vat', '300000000000111'); idn(cur, 'coB', 'email', 'reg@beta.test'); idn(cur, 'coB', 'phone', '0551230000')
+        pc(cur, [{'client_id': 'PC-100', 'legal_name': 'Somebody Else', 'vat_number': '300000000000111'},            # client ID (A) beats VAT (B)
+                 {'client_id': 'PC-101', 'trading_name': 'REG ALPHA L.L.C.'},                                           # only a name (A)
+                 {'client_id': 'PC-102', 'legal_name': 'Reg Alpha', 'contact_email': ' Reg@Beta.TEST'},                  # email (B) beats name (A)
+                 {'client_id': 'PC-103', 'vat_number': '300000000000111', 'registration_numbers': '1010999999'},          # VAT (B) and CR (A): both
+                 {'client_id': 'PC-104', 'legal_name': 'Nobody Known', 'contact_phone': '+966 55 999 0000'},              # nothing
+                 {'client_id': 'PC-105', 'legal_name': 'x', 'id_type': 'CR', 'id_number': '1010-999-999'},                # CR from ID Number (A)
+                 {'client_id': 'PC-106', 'legal_name': 'Reg Alpha', 'contact_phone': '00966551230000'}])                  # phone (B) beats name (A)
+        got = {r[0]: r[1] for r in q(cur, "select client_id, coalesce(case business_id when %s then 'A' when %s then 'B' end,'∅')||'|'||coalesce(match_level,'∅')||'|'||match_state||'|'||coalesce(cardinality(candidates),0) from payments_client_match() where client_id like 'PC-1%%'", (F['coA'], F['coB']))}
+        q(cur, "reset role")
+        want = {'PC-100': 'A|client_id|matched|1', 'PC-101': 'A|name|matched|1', 'PC-102': 'B|email|matched|1', 'PC-103': '∅|vat_cr|conflict|2',
+                'PC-104': '∅|∅|none|0', 'PC-105': 'A|vat_cr|matched|1', 'PC-106': 'B|phone|matched|1'}
+        return (got == want, f"{got}")
+
+    @test("IDN-13 Import on the client list adds its ID, VAT, CR, phone and three names to the company it matches — skipping what another company holds, a staff email, the dummy VAT and a test client — and the same file twice adds nothing")
+    def _(cur):
+        as_user(cur, 'u4')
+        idn(cur, 'coA', 'email', 'imp@alpha.test')
+        one(cur, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','PC-202','a Payments test client') returning id")
+        rows = [{'client_id': 'PC-200', 'legal_name': 'Import Alpha Trading', 'legal_name_ar': 'شركة ألفا للاستيراد', 'trading_name': 'Alpha Imports',
+                 'vat_number': '300000000000222', 'registration_numbers': '1010222222', 'contact_email': 'imp@alpha.test', 'contact_phone': '0551112222'},
+                {'client_id': 'PC-201', 'legal_name': 'Import Beta Two', 'contact_email': 'ops@directksa.com', 'contact_phone': '+966551112222', 'vat_number': '311111111111113'},
+                {'client_id': 'PC-202', 'legal_name': 'Payments QA', 'contact_email': 'qa@alpha.test'},
+                {'client_id': 'PC-203', 'legal_name': 'Unknown Delta'}]
+        pc(cur, rows)
+        ids = ['PC-200', 'PC-201', 'PC-202', 'PC-203']
+        r1 = one(cur, "select fn_identifiers_from_payments_clients(%s, %s::jsonb)", (ids, json.dumps({'PC-201': str(F['coB'])})))
+        a = [x[0] for x in q(cur, "select kind||':'||value||':'||source from company_identifiers where business_id=%s and removed_at is null and source='import' order by kind, value", (F['coA'],))]
+        b = [x[0] for x in q(cur, "select kind||':'||value from company_identifiers where business_id=%s and removed_at is null and source='import' order by kind, value", (F['coB'],))]
+        n1 = one(cur, "select count(*) from company_identifiers")
+        r2 = one(cur, "select fn_identifiers_from_payments_clients(%s, %s::jsonb)", (ids, json.dumps({'PC-201': str(F['coB'])})))
+        n2 = one(cur, "select count(*) from company_identifiers"); q(cur, "reset role")
+        why = sorted((x['kind'], x.get('why', 'held')[:5]) for x in r1['refused'] + r1['taken'])
+        ok = (a == ['client_id:PC-200:import', 'cr:1010222222:import', 'name:Alpha Imports:import', 'name:Import Alpha Trading:import', 'name:شركة ألفا للاستيراد:import',
+                    'phone:0551112222:import', 'vat:300000000000222:import']
+              and b == ['client_id:PC-201', 'name:Import Beta Two'] and r1['added'] == 9 and r1['companies'] == 2
+              and why == [('email', 'staff'), ('phone', 'held'), ('vat', 'new r')] and r1['excluded'] == ['PC-202'] and r1['unmatched'] == ['PC-203']
+              and r2['added'] == 0 and r2['companies'] == 0 and n1 == n2)
+        return (ok, f"A gets {a} · B (picked in the preview) gets {b} · first={ {k: r1[k] for k in ('added','companies','excluded','unmatched')} } skipped={why} · second run added={r2['added']} ({n1}→{n2})")
+
+    @test("IDN-14 Only an admin or manager with Finance edit adds identifiers from the client list; a View login is refused and nothing is written")
+    def _(cur):
+        as_user(cur, 'u4'); pc(cur, [{'client_id': 'PC-300', 'legal_name': 'View Try'}]); q(cur, "reset role")
+        n0 = one(cur, "select count(*) from company_identifiers")
+        as_user(cur, 'u6')
+        a, m = expect_fail(cur, "select fn_identifiers_from_payments_clients(array['PC-300'], %s::jsonb)", (json.dumps({'PC-300': str(F['coA'])}),), "Finance edit")
+        q(cur, "reset role"); n1 = one(cur, "select count(*) from company_identifiers")
+        return (a and n0 == n1, f"View: {m} · identifiers {n0}→{n1}")
 
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]

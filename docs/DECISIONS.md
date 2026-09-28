@@ -61,17 +61,21 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **D19 — Every delete or remove asks first, in the app's own box, naming the item; Cancel is the default** ACTIVE · 2026-09-28. The owner, as relayed: "every delete/remove of any item shows the app's own confirm dialog (Arabic/English) naming exactly what will be removed, with 'Delete' and 'Cancel', Cancel focused by default, and the action logged and undoable where possible." One shared box, `pfConfirm` (js/57); a box that cannot be drawn counts as No; no native `confirm()`. A row with nothing typed yet goes without a question. Guard `probe-d19-delete-asks`.
 
-**D20 — Dates are Riyadh's calendar, everywhere** ACTIVE · 2026-09-28. A stored time is UTC; show its day with `dayRiyadh(time)` and today with `todayISO()` (js/core/core-01), whatever the PC's clock says; check-structure refuses a new UTC date cut. A plain calendar date is shown as stored.
+**D20 — Dates are Riyadh's calendar, everywhere** ACTIVE · 2026-09-28. A stored time is UTC; show its day with `dayRiyadh(time)` and today with `todayISO()` (js/core/core-01); check-structure refuses a new UTC date cut. A plain calendar date is shown as stored.
 
 **D21 — The money model and the invoice import** ACTIVE · 2026-09-28. Revenue = the invoice total as Payments records it, less only a wallet TOP-UP part; a top-up-only invoice never counts. Cost = approved expenses only; a missing cost is EMPTY, never 0, and the row stays out of cost and profit, said on screen. Fully Paid counts (Audit Required too, flagged); Pending, Void, Cancelled, Draft never; an unnamed status is held for a person. The paid date sets the month. Imports fill, never wipe; a hand-entered row is never touched; no VAT figure is worked out or stored. Guard `probe-d1-invoice-import`.
 
-**D23 — With no approved expense, the pass-through lines are a flagged cost estimate** ACTIVE · 2026-09-28. Owner ruling. `money_rows.est_cost_sar`, shown apart from the approved cost; an approved expense replaces it. Names on Finance → Rules. Guard `probe-d1-invoice-import`.
+**D23 — With no approved expense, the pass-through lines are a flagged cost estimate** ACTIVE · 2026-09-28. Owner ruling. `money_rows.est_cost_sar`, shown apart; an approved expense replaces it. Guard `probe-d1-invoice-import`.
 
 **D24 — Income by service: each invoice line to one service** ACTIVE · 2026-09-28. Lists on Rules. `docs/reference/d24-income-by-service.md`.
 
-**D25 — Cost comes from the raw Payments cost exports** ACTIVE · 2026-09-28. Approved lines only; unknown refs held. `docs/reference/d25-cost-import.md`.
+**D25 — "Individual (not a company)"** ACTIVE · 2026-09-28. `money_individuals`; shown on Individual bookings, still counted.
 
-**D26 — Payments client list and promo codes** ACTIVE · 2026-09-28. `docs/reference/d26-payments-lists.md`.
+**D26 — A merged re-bill shows both dates** ACTIVE · 2026-09-28. `transaction_date`, fill only (`d26-transaction-date.sql`).
+
+**D27 — Cost comes from the raw Payments cost exports** ACTIVE · 2026-09-28. Approved lines only; unknown refs held. `docs/reference/d27-cost-import.md`.
+
+**D28 — Payments client and promo lists** ACTIVE · 2026-09-28. `docs/reference/d28-payments-lists.md`.
 
 ## Money & finance display
 

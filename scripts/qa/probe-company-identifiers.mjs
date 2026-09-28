@@ -17,13 +17,23 @@
      7. (Arabic) the card, the Rules card and the list read Arabic;
    as a TEAM MEMBER with Finance on Full (not a manager):
      8. no add or remove controls, and an identifier sent straight to the database is refused;
-     9. no JS error.
-   Sabotage (SABOTAGE=A|B|C|D swaps in a broken layer; each run 28 Sep, each caught):
+     9. no JS error;
+   the client list (Finance → Import, js/122 with js/123's plan; the stand-in mirrors fn_identifiers_from_payments_clients):
+    10. the preview plans what Import adds — per client matched by client ID → VAT/CR → email → phone → its names — and lists
+        what is skipped (a staff email, the test VAT), the test client (an exclusion rule) and a client two companies claim;
+    11. picking one of the two plans the client for it; the value the other company holds is skipped, never moved;
+    12. "New company…" opens the company form with the client's name; once saved, the client's details are planned for it;
+    13. Import adds exactly the plan (logged as an import); an invoice carrying the client ID then sits under the company;
+    14. the same file twice: "Nothing new";
+    15. no JS error, no native dialog.
+   Sabotage (SABOTAGE=A|B|C|D|E|F swaps in a broken layer; each run 28 Sep, each caught):
      A  js/117 groups a waiting row by its name even when it carries an email   → 1–4 red
      B  js/113 still draws the old client-ID and code sections                  → 3, 4, 7 red
      C  js/117's "Belongs to" always adds a NAME, whatever the row carries       → 2, 4 red
      D  js/117 treats a row two companies claim like any other waiting row      → 5 red
-   PORTS 9881 … 9883. */
+     E  js/122 never sends the identifiers on Import                            → 13, 14 red
+     F  js/123's plan skips the VAT/CR level                                   → 10, 11 red
+   PORTS 9881 … 9884. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
 import path from 'path';
@@ -53,6 +63,8 @@ async function session(role, lang, PORT, finance) {
   if (SAB === 'B') await swap('113-company-card.js', (s) => s.replace("(typeof window.v123CardSection==='function'?window.v123CardSection(biz):", "(false?0:"));
   if (SAB === 'C') await swap('117-money-rules.js', (s) => s.replace("var ik=kind==='vat_cr'?(type==='cr'?'cr':'vat'):kind;", "var ik='name';"));
   if (SAB === 'D') await swap('117-money-rules.js', (s) => s.replace('        if(l.conflict) return conflictRow(l,ix);', ''));
+  if (SAB === 'E') await swap('122-payments-lists.js', (s) => s.replace('if(mayIdent()) S.files.forEach(', 'if(false) S.files.forEach('));
+  if (SAB === 'F') await swap('123-company-identifiers.js', (s) => s.replace("['vat_cr',[].concat.apply([],taxes.map(", "['vat_cr',[].concat.apply([],[].map("));
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 120000 }); await p.waitForSelector('#cl_email', { timeout: 120000 });
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
   await p.waitForFunction(() => typeof window.v117AddRule === 'function' && typeof window.identAdd === 'function' && (DB.businesses || []).length > 1 && window.__roleKnown === true && window.FIN && FIN.rows && FIN.m, null, { timeout: 150000 });
@@ -147,6 +159,77 @@ for (const [lang, PORT] of [['en', 9881], ['ar', 9882]]) {
   const direct = await p.evaluate(async (a) => { const r = await fc().from('company_identifiers').insert({ business_id: a, kind: 'name', value: 'Team Member Name' }).select('id'); return r.error ? String(r.error.message) : 'WROTE'; }, A);
   check(!ctl.add && !ctl.rm && !cardCtl && /row-level security/.test(direct), '8: a team member sees no add or remove control, and a direct write is refused', JSON.stringify({ ctl, cardCtl, direct }));
   check(s.errors.length === 0, '9: no JS error (team member)', JSON.stringify(s.errors.slice(0, 3)));
+  await done(s);
+}
+/* ================= 10–14: the client list adds identifiers (D28 → D29), an admin, English ================= */
+{
+  console.log('— the client list adds identifiers · an admin —');
+  const s = await session('admin', 'en', 9884); const p = s.p;
+  const [A, B, C] = await p.evaluate(() => DB.businesses.filter((b) => !b.archived && !b.archivedAt).slice(0, 3).map((b) => (window.__bizUuid ? window.__bizUuid(b.id) : b.id)));
+  await p.evaluate(({ a, b, c }) => new Promise((ok) => { identAdd(a, 'email', 'cl@alpha-qa.test', {}, () => identAdd(b, 'vat', '300000000000555', {}, () => identAdd(c, 'cr', '1010555555', {}, ok))); }), { a: A, b: B, c: C });
+  await p.evaluate(async () => { await fc().from('money_exclusion_rules').insert({ kind: 'client_id', value: '9905', reason: 'QA test client' }).select('id'); });
+  const PCH = ['ID', 'Legal Name', 'Legal Name (Arabic)', 'Trading Name', 'Customer Type', 'Client Payment Configuration', 'Payment Mode', 'Billing Cycle', 'Tender No.',
+    'Registration Numbers', 'Has VAT Number', 'ID Type', 'ID Number', 'VAT Number', 'Contact Information', 'Contact Full Name', 'Contact Email', 'Contact Phone', 'Credit Limit',
+    'Credit Term Days', 'Block On Overdue', 'Tender Amount', 'Expected COGS', 'Expected GP', 'Pricing Setting', 'Created By', 'Updated By', 'Created At', 'Updated At'];
+  const cl = (o) => PCH.map((h) => (o[h] == null ? '' : o[h]));
+  const q = (v) => { const t = String(v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+  const rows = [cl({ 'ID': '9901', 'Legal Name': 'QA Alpha Reg Co', 'Legal Name (Arabic)': 'شركة ألفا التجريبية', 'Trading Name': 'QA Alpha Trading', 'Client Payment Configuration': 'Postpaid',
+      'Registration Numbers': '1010901901', 'ID Type': 'CR', 'ID Number': '1010901901', 'VAT Number': '300000000000901', 'Contact Email': 'CL@alpha-qa.test', 'Contact Phone': '0550901901' }),
+    cl({ 'ID': '9902', 'Legal Name': 'QA Conflict Co', 'Client Payment Configuration': 'Prepaid', 'Registration Numbers': '1010555555', 'VAT Number': '300000000000555' }),
+    cl({ 'ID': '9903', 'Legal Name': 'QA Brand New Co', 'Client Payment Configuration': 'Prepaid', 'Contact Email': 'new@brand-qa.test' }),
+    cl({ 'ID': '9904', 'Legal Name': 'QA Staff Reg', 'Client Payment Configuration': 'Prepaid', 'Contact Email': 'ops@directksa.com', 'Contact Phone': '+966 55 090 1901', 'VAT Number': '311111111111113' }),
+    cl({ 'ID': '9905', 'Legal Name': 'QA Payments Test', 'Client Payment Configuration': 'Prepaid', 'Contact Email': 'x@test-qa.test' })];
+  const FILE = { name: '2026-09-27_10-00-00-corporate-clients-QA.csv', mimeType: 'text/csv', buffer: Buffer.from([PCH].concat(rows).map((r) => r.map(q).join(',')).join('\n')) };
+  const phase = (want) => p.waitForFunction((w) => { const e = document.querySelector('#v122Out [data-v122-phase]'); return e && w.includes(e.getAttribute('data-v122-phase')); }, want, { timeout: 30000 }).then(() => true).catch(() => false);
+  const at = (sel, a) => p.evaluate(([qq, n]) => { const e = document.querySelector(qq); return e ? e.getAttribute(n) : null; }, [sel, a || sel.match(/\[([a-z0-9-]+)/)[1]]);
+  const dropIt = async () => { await tab(p, 'import'); await p.evaluate(() => { if (window.v122Clear) v122Clear(); if (window.v121Clear) v121Clear(); }); await p.setInputFiles('#finFile', [FILE]); return phase(['preview', 'error']); };
+  /* 10 */
+  const ok10 = await dropIt();
+  const P10 = { idents: await at('#v122Out [data-v122-idents]'), skipped: await at('#v122Out [data-v122-skipped]'), excluded: await at('#v122Out [data-v122-excluded]'),
+    conflicts: await at('#v122Out [data-v122-conflicts]'), unmatched: await at('#v122Out [data-v122-unmatched]'), newBtn: !!(await p.$('#v122Out [data-v122-new="9903"]')),
+    conflictNames: await p.evaluate(() => ((document.querySelector('#v122Out [data-v122-conflict="9902"]') || {}).innerText || '').replace(/\s+/g, ' ')) };
+  const nB = await p.evaluate((u) => identBizName(u), B), nC = await p.evaluate((u) => identBizName(u), C);
+  check(ok10 && P10.idents === '9,1,2' && P10.skipped === '2' && P10.excluded === '1' && P10.conflicts === '1' && P10.unmatched === '1' && P10.newBtn
+      && P10.conflictNames.includes(nB) && P10.conflictNames.includes(nC),
+    '10. the client list preview: 9 identifiers to add to 1 company (2 clients matched, by email and by the phone the first adds); a staff email and the test VAT skipped; the test client adds nothing; the client whose VAT and CR two companies hold names both; the unknown one offers "New company…"', JSON.stringify(P10));
+  /* 11 */
+  await p.selectOption('#v122Out [data-v122-pick="9902"]', B).catch(() => { }); await p.waitForTimeout(400);
+  const P11 = { idents: await at('#v122Out [data-v122-idents]'), skipped: await at('#v122Out [data-v122-skipped]'), picked: await at('#v122Out [data-v122-picked]'), conflicts: await at('#v122Out [data-v122-conflicts]') };
+  check(P11.idents === '11,2,3' && P11.skipped === '3' && P11.picked === '1' && P11.conflicts === null,
+    '11. picking one of the two companies for that client plans its ID and name for it; the CR the other company holds is skipped, never moved', JSON.stringify(P11));
+  /* 12 */
+  await p.evaluate(() => { window.__v117AnyId = true; });   // the stand-in names a new company "mock-biz-…", not a database uuid
+  await p.click('#v122Out [data-v122-new="9903"]', { timeout: 8000 }).catch(() => { }); await p.waitForTimeout(400);
+  const prefilled = await p.evaluate(() => { const f = document.getElementById('f_name'); return f ? f.value : null; });
+  await p.click('#mSave').catch(() => { });
+  await p.waitForFunction(() => { const S = window.v122 && v122.state(); return S && S.files.some((F) => F.pick && F.pick['9903']); }, null, { timeout: 30000 }).catch(() => { });
+  await tab(p, 'import');
+  const P12 = { idents: await at('#v122Out [data-v122-idents]'), picked: await at('#v122Out [data-v122-picked]'), unmatched: await at('#v122Out [data-v122-unmatched]'),
+    line: await p.evaluate(() => ((document.querySelector('#v122Out [data-v122-picked-client="9903"]') || {}).innerText || '')) };
+  const NEW = await p.evaluate(() => { const S = v122.state(); const F = S.files.find((f) => f.pick && f.pick['9903']); return F ? F.pick['9903'] : null; });
+  check(prefilled === 'QA Brand New Co' && NEW && P12.idents === '14,3,4' && P12.picked === '2' && P12.unmatched === null && /QA Brand New Co/.test(P12.line) && /new/.test(P12.line),
+    '12. "New company…" opens the company form with the client\'s name; once saved, the client\'s ID, email and name are planned for the new company', JSON.stringify({ prefilled, P12 }));
+  /* 13 */
+  const nNotes = (await p.evaluate(() => window.__notices || [])).length;
+  await p.click('#v122Out [data-v122-go]', { timeout: 15000 }).catch(() => { }); await phase(['done', 'error']);
+  const doneAt = await at('#v122Out [data-v122-idents-done]');
+  const all = (await idents(p)).filter((x) => !x.removed_at);
+  const of = (u) => all.filter((x) => x.business_id === u && x.source === 'import').map((x) => x.kind + ':' + x.value).sort();
+  const onA = of(A), onB = of(B), onNew = of(NEW);
+  const stray = all.filter((x) => /9905|x@test-qa|directksa|311111111111113|QA Payments Test/.test(x.value)).map((x) => x.value);
+  await p.evaluate(async () => { await fc().from('finance_invoices').insert({ invoice_no: 'QA-CL-1', line_no: 1, invoice_date: '2026-07-10', client_group: 'Someone', customer_raw_name: 'Someone', payments_client_id: '9901',
+    total_incl_vat_sar: 700, revenue_sar: 700, integrity_status: 'verified_paid', revenue_way: 'invoice', source: 'import', row_kind: 'sale', payments_status: 'Fully Paid' }).select('id'); });
+  const r13 = await row(p, 'QA-CL-1');
+  check(doneAt === '14,3' && JSON.stringify(onA) === JSON.stringify(['client_id:9901', 'client_id:9904', 'cr:1010901901', 'name:QA Alpha Reg Co', 'name:QA Alpha Trading', 'name:QA Staff Reg', 'name:شركة ألفا التجريبية', 'phone:0550901901', 'vat:300000000000901'])
+      && JSON.stringify(onB) === JSON.stringify(['client_id:9902', 'name:QA Conflict Co']) && JSON.stringify(onNew) === JSON.stringify(['client_id:9903', 'email:new@brand-qa.test', 'name:QA Brand New Co'])
+      && !stray.length && r13 && r13.business_id === A && r13.match_level === 'client_id',
+    '13. Import adds exactly what the preview planned (14 identifiers to 3 companies, each logged as an import); nothing of the test client, the staff email or the test VAT; an invoice carrying client ID 9901 now sits under its company by itself', JSON.stringify({ doneAt, onA, onB, onNew, stray, r13 }));
+  /* 14 */
+  await dropIt();
+  const again = { nothing: await at('#v122Out [data-v122-nothing]'), go: !!(await p.$('#v122Out [data-v122-go]')), idents: await at('#v122Out [data-v122-idents]') };
+  const n14 = (await idents(p)).filter((x) => !x.removed_at).length;
+  check(again.nothing === '1' && !again.go && again.idents === '0,0,4' && n14 === all.length, '14. the same file twice: "Nothing new" — nothing left to add, no Import button', JSON.stringify({ again, n14, before: all.length }));
+  check(s.errors.length === 0 && s.dialogs.length === 0, '15. no JS error, no native dialog (client list)', JSON.stringify({ e: s.errors.slice(0, 3), d: s.dialogs.slice(0, 3), notices: (await p.evaluate(() => window.__notices || [])).slice(nNotes) }));
   await done(s);
 }
 console.log(failures ? `\nFAILED — ${failures} check(s) did not pass.` + (SAB ? ' (sabotage ' + SAB + ')' : '') : '\ncompany identifiers OK' + (SAB ? ' — but this was sabotage ' + SAB + ', which should have failed' : ''));

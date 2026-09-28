@@ -89,7 +89,8 @@ async function main() {
     if (c.n !== c.tableRowsBehind) fail(label + `: caption says ${c.n} invoices, the rendered table is built from ${c.tableRowsBehind}`); else ok(label + `: caption count = rows behind the rendered table`);
     const want = expectScope === 'verified' ? /fully-paid|المدفوعة بالكامل/ : /paid and unpaid|المدفوعة وغير المدفوعة/;
     if (!want.test(c.text)) fail(label + ': caption text does not state the scope in words: ' + c.text.slice(0, 120)); else ok(label + ': caption states the scope in words');
-    if (!/period bar above does not apply|شريط الفترة/.test(c.text)) fail(label + ': caption does not disclose that the period bar is ignored here'); else ok(label + ': caption discloses the period-bar gap');
+    /* punch list E18 (28 Sep): the report follows the period bar and the caption says so (before: it ignored it and said so) */
+    if (!/period bar above (does not )?appl|شريط الفترة/.test(c.text)) fail(label + ': caption does not say how the period bar applies'); else ok(label + ': caption says how the period bar applies');
   };
   if (SABOTAGE_CAPTION) {
     // Invert the scope attribute after every render — the caption now lies about what's counted.

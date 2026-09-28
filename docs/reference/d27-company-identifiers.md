@@ -19,7 +19,7 @@ A list of identifiers, each typed: **Payments client ID · discount code (option
 
 | Type | Compared as |
 |---|---|
-| Name | lower case, spaces collapsed, Arabic diacritics and tatweel removed, أ إ آ ٱ → ا, ى ئ → ي, ة → ه, ؤ → و, Arabic-Indic digits → 0–9, punctuation dropped, and the words شركة / مؤسسة / company / co / corp / corporation / ltd / limited / llc / inc / est dropped |
+| Name | lower case, spaces collapsed, Arabic diacritics and tatweel removed, أ إ آ ٱ → ا, ى ئ → ي, ة → ه, ؤ → و, Arabic-Indic digits → 0–9, punctuation dropped (dots inside a word joined: L.L.C. = LLC), and the words شركة / مؤسسة / company / co / corp / corporation / ltd / limited / llc / inc / est dropped |
 | Email | lower case, trimmed |
 | Phone | digits only, the Saudi prefixes (00966, +966, 966, a leading 0) folded, so 0501234567 = +966 50 123 4567 |
 | VAT, CR | digits only |

@@ -13,6 +13,9 @@ drop function if exists public.client_profiles_feed_identifiers();
 drop function if exists public.company_identifier_feed(uuid, text, text, text, date, date);
 drop function if exists public.company_identifier_ensure(uuid, text, text, text, date, date);
 drop function if exists public.company_identifier_drop(uuid, text, text);
+drop function if exists public.fn_identifiers_from_payments_clients(text[], jsonb);
+drop function if exists public.payments_client_match(text);
+drop function if exists public.payments_client_crs(text, text, text);
 
 create or replace function public.money_row_rules()
 returns table (id uuid, business_id uuid, company_key text, company_name text, merge_state text, profile_type text,
@@ -84,6 +87,7 @@ select i.id, i.invoice_no, i.invoice_date, i.client_group, i.customer_raw_name, 
                           case when coalesce(lt.pass_through_sar, 0) > 0 then lt.pass_through_sar end) end as est_cost_sar,
        (i.cost_sar is null and i.revenue_way is distinct from 'commission'
         and (coalesce(pf.rr_total_expense_sar, 0) > 0 or coalesce(lt.pass_through_sar, 0) > 0)) as cost_estimated,
+       i.transaction_date,                                  -- the main builder's D26 column, kept in its place
        case when i.cost_sar is null and i.revenue_way is distinct from 'commission' then
             case when coalesce(pf.rr_total_expense_sar, 0) > 0 then 'submitted_expenses'
                  when coalesce(lt.pass_through_sar, 0) > 0 then 'pass_through' end end as est_cost_source,
