@@ -1285,7 +1285,7 @@ function rOverview(){
   (function(){ try{
     var tu=0,bl=0,ntu=0,nbl=0; V.forEach(function(r){ var k=r.row_kind||'sale'; if(k==='wallet_topup'){tu+=+r.amount_received_sar||0;ntu++;} else if(k==='billing_link'){bl+=+r.amount_received_sar||0;nbl++;} });
     if(!ntu&&!nbl) return;
-    h+='<div class="ch-sub" data-fin-received-split="1" style="margin:-6px 0 14px;font-size:12px;color:var(--muted)">'+(isArF()
+    h+='<div data-fin-received-split="1" style="margin:-6px 0 14px;font-size:12px;color:var(--muted)">'+(isArF()
       ?('«المحصّل» يشمل '+money0(tu)+' ريال شحن محفظة ('+ntu+') و'+money0(bl)+' ريال فواتير تجميعية ('+nbl+') تعيد فوترة معاملات محسوبة — وهذه ليست إيرادات.')
       :('Received includes '+money0(tu)+' SAR of wallet top-ups ('+ntu+') and '+money0(bl)+' SAR of billing invoices ('+nbl+') that re-bill transactions already counted — neither is revenue.'))+'</div>';
   }catch(_){} })();
@@ -1458,7 +1458,7 @@ function rOverview(){
     }
     /* B8: where the plan comes from — typed on this page with "Set targets", by whom and when; Actual is this period's revenue */
     if(tgt){ var _by=tgt.updated_by||'', _at=(tgt.updated_at&&typeof dayRiyadh==='function')?dayRiyadh(tgt.updated_at):'';
-      h+='<div class="ch-sub" data-fin-plan-source="1" style="margin-top:8px;font-size:11.5px">'+(isArF()
+      h+='<div data-fin-plan-source="1" style="margin-top:8px;font-size:11.5px;color:var(--muted)">'+(isArF()
         ?('الخطة: أرقام تُكتب هنا بزر «تعديل الأرقام»'+(_by?' — آخر من عدّلها '+esc(_by):'')+(_at?' في '+_at:'')+'. الفعلي: إيراد '+_ty+(FIN.p.part!=='all'?' لنفس الفترة':'')+' من الفواتير المدفوعة.')
         :('Plan: numbers typed here with "Set targets"'+(_by?' — last set by '+esc(_by):'')+(_at?' on '+_at:'')+'. Actual: '+_ty+(FIN.p.part!=='all'?' revenue for the same period':' revenue')+' from paid invoices.'))+'</div>'; }
     h+='</div>';
