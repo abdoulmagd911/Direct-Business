@@ -519,6 +519,10 @@ document.addEventListener('keydown',e=>{const pal=document.getElementById('v19pa
   if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){e.preventDefault();if(palOpen)closePalette();else openPalette();return;}if(palOpen){if(e.key==='Escape'){e.preventDefault();closePalette();}else if(e.key==='ArrowDown'){e.preventDefault();_palSel=Math.min(_palResults.length-1,_palSel+1);renderPalette();}else if(e.key==='ArrowUp'){e.preventDefault();_palSel=Math.max(0,_palSel-1);renderPalette();}else if(e.key==='Enter'){e.preventDefault();runPalette(_palSel);}else{setTimeout(renderPalette,1);}return;}
   // when typing in fields, only handle Esc
   const tag=(e.target&&e.target.tagName||'').toLowerCase();const inField=tag==='input'||tag==='textarea'||tag==='select'||(e.target&&e.target.isContentEditable);if(e.key==='Escape'){if(inOv){closeModal();}else if(helpEl&&helpEl.classList.contains('show')){helpEl.classList.remove('show');}else{closeSide();}return;}if(inField)return;
+  /* H4 (28 Sep, the oversight): a letter typed with the focus outside a field used to open the command palette or a create form
+     ("n" → New invoice / New booking / New lead). Nothing is ever opened by a plain letter now: Ctrl/Cmd+K opens the palette,
+     "/" goes to search and "?" shows the shortcuts. */
+  if(!e.ctrlKey&&!e.metaKey&&!e.altKey&&typeof e.key==='string'&&e.key.length===1&&/\p{L}/u.test(e.key))return;
   if(e.key==='/'){const gs=document.getElementById('gsearch');if(gs){e.preventDefault();gs.focus();}return;}if(e.key==='?'){e.preventDefault();helpEl.classList.add('show');return;}if(e.key==='n'||e.key==='N'){e.preventDefault();if(current==='invoices')ingestModal('invoice','',null);else if(current==='bookings')ingestModal('booking','',null);else if(current==='offers'){
     /* 2026-09-02 (round 30): every other branch of this shortcut opens a form you can cancel —
        nothing is stored until you choose to store it. This one alone called newOffer(), which

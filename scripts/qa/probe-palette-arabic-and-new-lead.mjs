@@ -80,7 +80,7 @@ const checks=[
   ['EN: "New lead" row exists and runs', ranNewLead===true],
   ['EN: "New lead" opens the New business form', m1.open&&/New business|جهة جديدة/.test(m1.head)],
   ['EN: "New lead" raises no "editLead is not defined"', !newLeadErr],
-  ['EN: "N" on Leads opens the form directly (not the palette)', m2.open&&!palAfterN.open],
+  ['EN: a plain "n" on Leads opens nothing — no form, no palette (H4, 28 Sep: never on a letter)', !m2.open&&!palAfterN.open],
   ['AR: search hint is Arabic', AR.test(ar1.placeholder)],
   ['AR: footer (navigate/open/close) is Arabic', AR.test(ar1.foot)],
   ['AR: every action/nav/preset row is Arabic', ar1.n>5&&nonAr.length===0],

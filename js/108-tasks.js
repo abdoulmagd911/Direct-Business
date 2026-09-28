@@ -120,7 +120,11 @@
   }
 
   /* ---------- draw ---------- */
-  function chip(label,on,handler,data){ return '<button class="v26_3-chip'+(on?' active':'')+'" '+(data||'')+' onclick="'+handler+'">'+label+'</button>'; }
+  /* H1 (28 Sep, the oversight on live): the first click on "Projects" was lost and the second one worked — a redraw landing
+     between pressing and releasing the button moves it out from under the pointer, so the browser never fires the click.
+     A chip now acts as soon as it is pressed (the handlers are idempotent, so the click that may follow changes nothing);
+     the keyboard still works through the click. */
+  function chip(label,on,handler,data){ return '<button class="v26_3-chip'+(on?' active':'')+'" '+(data||'')+' onpointerdown="if(event.button===0){'+handler+';}" onclick="'+handler+'">'+label+'</button>'; }
   function visibleTasks(){
     var me=myMember(), q=S.q.trim().toLowerCase();
     return S.tasks.filter(function(t){
