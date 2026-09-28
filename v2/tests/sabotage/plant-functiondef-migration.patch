@@ -1,0 +1,14 @@
+Sabotage: plant-functiondef-migration
+Breaks: check:forward-only-migrations
+Expect: pg_get_functiondef
+
+Plants a migration that patches a function by string replacement (A9: never pg_get_functiondef + replace).
+
+diff --git a/v2/supabase/migrations/20990101000000_demo_patch.sql b/v2/supabase/migrations/20990101000000_demo_patch.sql
+new file mode 100644
+--- /dev/null
++++ b/v2/supabase/migrations/20990101000000_demo_patch.sql
+@@ -0,0 +1,3 @@
++do $$ begin
++  execute replace(pg_get_functiondef('api.me'::regproc), 'a', 'b');
++end $$;

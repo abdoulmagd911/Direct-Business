@@ -1,0 +1,7 @@
+# Rule-7 deny-list: sha256("rule7:" + folded term), one per line, then a comment naming only the KIND of term.
+# A term is a word or two adjacent words, folded (lower case, Arabic letter forms, no harakat). Add one with
+#   node scripts/checks/rule7-hash.mjs "<term>"
+# A hash can be confirmed by guessing, so list only names already public in this repository (its own docs): a real
+# partner's name would be confirmable here. Partner and client names are kept out by review and by never copying data.
+104ef50e932c43e149fdd28d9bcfa110a23c7109848410a936b8a97b8bd609a2  # staff surname (named in the root CLAUDE.md)
+749095f3f3e6e55663a580898ed2dbec33b22c0e9e5e2142ccbc9a8d5c96b1fb  # staff surname (named in docs/v2/BLUEPRINT.md §5)

@@ -1,0 +1,14 @@
+Sabotage: plant-local-storage
+Breaks: lint:src/modules/demo/remember.ts
+Expect: A13: browser storage only through src/core/prefs
+
+Plants localStorage use outside src/core/prefs (A13: business numbers once lived in one browser).
+
+diff --git a/v2/src/modules/demo/remember.ts b/v2/src/modules/demo/remember.ts
+new file mode 100644
+--- /dev/null
++++ b/v2/src/modules/demo/remember.ts
+@@ -0,0 +1,3 @@
++export function remember(total: number) {
++  localStorage.setItem('total', String(total));
++}

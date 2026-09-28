@@ -1,0 +1,14 @@
+Sabotage: plant-hex
+Breaks: check:no-hex
+Expect: src/modules/demo/Badge.tsx
+
+Plants a hex colour and a Tailwind palette colour in a component (§2.5: colours come only from tokens.css).
+
+diff --git a/v2/src/modules/demo/Badge.tsx b/v2/src/modules/demo/Badge.tsx
+new file mode 100644
+--- /dev/null
++++ b/v2/src/modules/demo/Badge.tsx
+@@ -0,0 +1,3 @@
++export function Badge() {
++  return <span className="bg-red-500" style={{ color: '#FF0000' }}>badge</span>;
++}

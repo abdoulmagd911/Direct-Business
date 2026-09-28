@@ -1,0 +1,14 @@
+Sabotage: plant-one-client
+Breaks: check:one-client
+Expect: src/modules/demo/rogue-client.ts
+
+Plants a second Supabase client outside src/core/db/ (A4: five clients once fought over refresh tokens).
+
+diff --git a/v2/src/modules/demo/rogue-client.ts b/v2/src/modules/demo/rogue-client.ts
+new file mode 100644
+--- /dev/null
++++ b/v2/src/modules/demo/rogue-client.ts
+@@ -0,0 +1,3 @@
++import { createClient } from '@supabase/supabase-js';
++
++export const rogue = createClient('http://127.0.0.1:54321', 'not-a-key');

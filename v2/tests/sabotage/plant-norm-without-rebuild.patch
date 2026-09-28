@@ -1,0 +1,13 @@
+Sabotage: plant-norm-without-rebuild
+Breaks: check:norm-rebuild-called
+Expect: never calls norm.rebuild()
+
+Plants a change to a norm.* function with no norm.rebuild() after it (A17: stored keys would go stale).
+
+diff --git a/v2/supabase/migrations/20990101000003_norm_fold.sql b/v2/supabase/migrations/20990101000003_norm_fold.sql
+new file mode 100644
+--- /dev/null
++++ b/v2/supabase/migrations/20990101000003_norm_fold.sql
+@@ -0,0 +1,2 @@
++create or replace function norm.fold(t text) returns text
++language sql immutable as $$ select lower(t) $$;
