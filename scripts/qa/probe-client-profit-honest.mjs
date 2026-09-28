@@ -138,8 +138,8 @@ async function main() {
     const total = t.rows[t.rows.length - 1];
     if (total && /180,?000/.test(total[1])) ok('the Total row still carries the true revenue (180,000), so it reconciles against the ledger');
     else fail('total revenue row: ' + JSON.stringify(total));
-    if (t.note.some((n) => /upper bound/i.test(n))) ok('…and it says the profit total is an upper bound, because part of it rests on costs nobody has recorded');
-    else fail('the Total row does not warn that the profit is an upper bound: ' + JSON.stringify(t.note));
+    if (t.note.some((n) => /waiting for their cost/i.test(n) && /left out of Cost and Profit/i.test(n) && /SAR of revenue/.test(n))) ok('…and it says those invoices wait for their cost, how much revenue they carry, and that the profit leaves them out (D21)');
+    else fail('the Total row does not say which invoices are left out of the profit (D21): ' + JSON.stringify(t.note));
   }
 
   /* The Report Builder sums profit the same way and had no caveat at all. Marking every row
@@ -155,10 +155,10 @@ async function main() {
   await p.waitForTimeout(600);
   if (rb.tab === 'reports') ok('the Report Builder tab is the one being read (FIN.tab === "reports")');
   else fail('the probe is reading tab "' + rb.tab + '", not the Report Builder — the assertions below would be meaningless');
-  if (/of \d+ rows in this report carry no recorded cost/.test(rb.txt)) ok('the Report Builder says how many of its rows have no recorded cost, and that its profit figures are an upper bound');
+  if (/of \d+ rows in this report are waiting for their cost/.test(rb.txt)) ok('the Report Builder says how many of its rows are waiting for their cost, and how much revenue they carry');
   else fail('the Report Builder shows profit with no caveat. TAIL: ' + JSON.stringify(rb.txt.slice(-400)));
-  if (/upper bound/.test(rb.txt)) ok('…in those words, so nobody reads a grouped profit total as final');
-  else fail('the report note does not say "upper bound"');
+  if (/left out of cost and profit/.test(rb.txt)) ok('…and that they are left out of cost and profit, so nobody reads the grouped profit as covering them (D21)');
+  else fail('the report note does not say those rows are left out of cost and profit');
 
   // the caveat must NOT appear when no cost/profit metric is on — it would be noise
   const revOnly = await p.evaluate(async () => {
@@ -177,7 +177,7 @@ async function main() {
   const ar = await clientRows();
   if (ar && JSON.stringify(ar.rows).includes('غير مسجّلة') && JSON.stringify(ar.rows).includes('غير معروف')) ok('in Arabic the same cells read «غير مسجّلة» and «غير معروف»');
   else fail('the Arabic table does not carry the wording: ' + JSON.stringify((ar && ar.rows || []).slice(0, 3)));
-  if (ar && ar.note.some((n) => /حدّ أقصى/.test(n))) ok('…and the Total note is Arabic too');
+  if (ar && ar.note.some((n) => /بانتظار تكلفتها/.test(n))) ok('…and the Total note is Arabic too');
   else fail('the Arabic total note is missing: ' + JSON.stringify(ar && ar.note));
   await p.evaluate(() => { LANG = 'en'; if (typeof applyLang === 'function') applyLang(); });
 
