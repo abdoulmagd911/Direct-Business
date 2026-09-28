@@ -38,6 +38,11 @@
   };
   function kindOf(header){ var h=(header||[]).map(hk);
     for(var k in KINDS){ if(KINDS[k].need.every(function(n){ return h.indexOf(n)>=0; })) return k; } return null; }
+  /* other Payments exports plug in here (js/122: the client list and the promo codes): {match(normalizedHeader), start(items)};
+     each file is still peeked once, and whatever no one claims goes back to js/65 unchanged */
+  var EXT=[]; window.v121Register=function(x){ if(x&&typeof x.match==='function'&&typeof x.start==='function') EXT.push(x); };
+  function sniff(header){ var k=kindOf(header); if(k) return k; var h=(header||[]).map(hk);
+    for(var i=0;i<EXT.length;i++){ try{ if(EXT[i].match(h)) return 'x'+i; }catch(_){} } return null; }
 
   /* ---------------- values, exactly as Payments writes them ---------------- */
   var AD={'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
@@ -125,11 +130,11 @@
 
   /* peek at one file: its kind (tx / ei / rr) or null; ctx carries what the full read needs */
   function peek(f, cb){
-    if(f&&f.__rows2d){ cb(kindOf(f.__rows2d[0]||[]),{rows2d:f.__rows2d}); return; }
-    if(!isXlsx(f)){ firstCsvRow(f,function(h){ cb(kindOf(h),{}); }); return; }
+    if(f&&f.__rows2d){ cb(sniff(f.__rows2d[0]||[]),{rows2d:f.__rows2d},f.__rows2d[0]||[]); return; }
+    if(!isXlsx(f)){ firstCsvRow(f,function(h){ cb(sniff(h),{},h); }); return; }
     var w=xlsxWorker(); if(!w){ cb(null,{}); return; }   // no worker: js/65 reads it as before
-    var done=false, fin=function(k,c){ if(done) return; done=true; cb(k,c); };
-    w.onmessage=function(e){ var d=e.data; if(d.t==='head'){ var k=kindOf(d.row); if(k) fin(k,{worker:w}); else { w.terminate(); fin(null,{}); } }
+    var done=false, fin=function(k,c,h){ if(done) return; done=true; cb(k,c,h); };
+    w.onmessage=function(e){ var d=e.data; if(d.t==='head'){ var k=sniff(d.row); if(k) fin(k,{worker:w},d.row); else { w.terminate(); fin(null,{}); } }
       else if(d.t==='err'){ w.terminate(); fin(null,{}); } };
     w.onerror=function(){ try{ w.terminate(); }catch(_){} fin(null,{}); };
     f.arrayBuffer().then(function(ab){ w.postMessage({cmd:'peek',buf:ab,url:XLSX_URL},[ab]); }).catch(function(){ fin(null,{}); });
@@ -266,9 +271,11 @@
   window.v121Route=function(list, cb){
     list=Array.prototype.slice.call(list||[]); if(!list.length){ cb([]); return; }
     var kinds=new Array(list.length), left=list.length;
-    list.forEach(function(f,i){ peek(f,function(k,ctx){ kinds[i]={k:k,ctx:ctx}; if(--left) return;
-      var mine=[], rest=[]; list.forEach(function(g,j){ if(kinds[j].k) mine.push({file:g,kind:kinds[j].k,ctx:kinds[j].ctx}); else rest.push(g); });
-      cb(rest); if(mine.length) start(mine); }); });
+    list.forEach(function(f,i){ peek(f,function(k,ctx,h){ kinds[i]={k:k,ctx:ctx,h:h||[]}; if(--left) return;
+      var mine=[], rest=[], ext={}; list.forEach(function(g,j){ var k=kinds[j].k, it={file:g,kind:k,ctx:kinds[j].ctx,header:kinds[j].h};
+        if(!k) rest.push(g); else if(k.charAt(0)==='x') (ext[k]=ext[k]||[]).push(it); else mine.push(it); });
+      cb(rest); if(mine.length) start(mine);
+      Object.keys(ext).forEach(function(k){ try{ EXT[+k.slice(1)].start(ext[k]); }catch(e){ if(window.console) console.warn('[v121] plug-in',e); } }); }); });
   };
   function start(items){
     var gen=++GEN; STATE={gen:gen, phase:'loading', files:items.map(newFileState), items:items, msg:null, done:null};
@@ -395,6 +402,6 @@
   if(typeof window.finGo==='function'){ var _g=window.finGo; window.finGo=function(){ var o=_g.apply(this,arguments); wire(); return o; }; }
 
   /* for the probe and the acceptance script (never used by the screen) */
-  window.v121={ kindOf:kindOf, when:when, money:money, ref:ref, status:status, asOf:asOf, csvParser:csvParser, hk:hk, state:function(){ return STATE; } };
+  window.v121={ kindOf:kindOf, when:when, money:money, ref:ref, status:status, asOf:asOf, csvParser:csvParser, hk:hk, txt:txt, readAll:readAll, state:function(){ return STATE; } };
   console.info('%c[v121] cost import — the raw Payments cost exports','color:#0F6E56;font-weight:700');
 }catch(e){ if(window.console) console.warn('[v121] init',e); }})();
