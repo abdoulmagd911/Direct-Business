@@ -12,7 +12,6 @@ They live in one list only — the Drive file *08 Open decisions for the owner* 
 - **D2 · Expense export cost, client list, promo codes** — main builder; the invoice export is in (D21, #53).
 - **D3 · Manual entry, links by hand, the margins pass** — main builder.
 - **Open owner decision (08):** may the pass-through on an invoice's lines stand in for a missing cost? It contradicts the owner's 22 Aug ruling (D21).
-- **D · Which payments-file column is the invoice number** — the importer reads Invoice Reference, not Invoice Number; confirm in the mapping before real data (08).
 - **D · Capture the Payments invoice id and use the client ID** — Open in Direct can only open the whole list; the client-to-Payments jump searches by phone or name; an empty id silently builds a dead link.
 - **D · Large Excel files are read whole into memory** — CSV streams in chunks, XLSX does not; the big Payments exports may fail.
 - **A · The Finance freeze the owner saw** — never reproduced (a 30–45 s CSV export freeze in August too). Since #53 a local freeze recorder (js/118) names the page and the pause when a tab stalls — read it after the next freeze; a Chrome extension is suspected. Lead: the Expenses tab draws Finance twice (~0.8 s).
