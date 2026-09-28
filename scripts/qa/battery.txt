@@ -377,3 +377,4 @@ probe-rules-round2
 probe-d1-invoice-import
 probe-d19-delete-asks
 probe-finance-rules-save-in-place
+probe-d24-income-by-service

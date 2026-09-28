@@ -319,10 +319,15 @@ function finLoad(cb){
    figure it showed before, with no estimate, instead of no money at all */
 var FIN_MR_COLS='id,business_id,company_key,company_name,merge_state,profile_type,rule_id,rule_kind,rule_value,rule_reason,excluded,counts,open_age_days,cost_missing,loss,pass_through_sar,fee_sar,unclassed_sar';
 function finReadMoney(c, cb){
+  /* D24: the per-service split of each invoice's lines (money_service_rows) is read beside the view, and lands with it.
+     Unreadable (the database change not applied yet) → FIN.svcErr, and "Income by service" draws its old table. */
+  var mr=null, sv=null, left=2;
+  var both=function(){ if(--left) return; if(mr) mr._svc=sv; cb(mr); };
   finPageAll(function(){return c.from('money_rows').select(FIN_MR_COLS+',est_cost_sar,cost_estimated').order('id',{ascending:true});}, function(r1){
     if(r1&&r1.error&&/est_cost_sar|cost_estimated/.test(String((r1.error&&r1.error.message)||''))){
-      finPageAll(function(){return c.from('money_rows').select(FIN_MR_COLS).order('id',{ascending:true});}, cb); return; }
-    cb(r1); });
+      finPageAll(function(){return c.from('money_rows').select(FIN_MR_COLS).order('id',{ascending:true});}, function(r2){ mr=r2; both(); }); return; }
+    mr=r1; both(); });
+  finPageAll(function(){return c.from('money_service_rows').select('id,service_id,service_name,sort_order,revenue_sar,pass_through_sar').order('id',{ascending:true}).order('service_id',{ascending:true});}, function(r3){ sv=r3; both(); });
 }
 /* the rules' answer per row (money_rows) → FIN.m, and the company of each invoice group derived from it. The company of an
    invoice group is derived from the rules (not stored, never guessed by name): a group whose rows all resolved to the same
@@ -331,6 +336,10 @@ function finApplyMoney(mr){
   FIN.m={}; FIN.mErr=null;
   if(!mr||mr.error){ FIN.mErr=(mr&&mr.error&&mr.error.message)||'money_rows'; console.warn('money_rows load',FIN.mErr); }
   else (mr.data||[]).forEach(function(x){ FIN.m[x.id]=x; });
+  FIN.svcBy={}; FIN.svcErr=null;
+  var _sv=mr&&mr._svc;
+  if(!_sv||_sv.error){ FIN.svcErr=(_sv&&_sv.error&&_sv.error.message)||'money_service_rows'; FIN.svcBy=null; }
+  else (_sv.data||[]).forEach(function(x){ (FIN.svcBy[x.id]=FIN.svcBy[x.id]||[]).push(x); });
   FIN.links=[]; FIN.linkByGroup={}; FIN.groupsByBiz={};
   var byG={};
   (FIN.rows||[]).forEach(function(row){ if(row.deleted_at)return; var m=FIN.m[row.id]; var g=row.client_group; if(g==null)return;

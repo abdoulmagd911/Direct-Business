@@ -96,7 +96,7 @@ const TABLES={
       {key:'tender_value',label_en:'Tender value',label_ar:'قيمة المناقصة',type:'number'},
       {key:'research_status',label_en:'Research status',label_ar:'حالة البحث',type:'select:pending,done'},
     ]}],
-  money_item_classes:[], finance_invoice_lines:[],
+  money_item_classes:[], finance_invoice_lines:[], money_services:[], money_product_services:[], money_item_services:[],
   finance_invoices:[...Array(15)].map((_,i)=>{const _svc=['Flights','Hotels','Visa','Support Services','Packages'][i%5];const _mo=['January','February','March','April','May','June'][i%6];const _q='Q'+(Math.floor((i%6)/3)+1);const _tot=5000+i*777;const _cost=_svc==='Support Services'?null:Math.round(_tot*0.88);/* D1: no cost recorded is EMPTY (null), never 0 *//* 2026-09-02 (round 38): this fixture used to store revenue = total − cost and profit = revenue,
        which the live database could never produce. The trigger finance_derive_fields defines
        revenue = total − wallet and profit = revenue − cost, and 12 of these 17 rows broke the
@@ -598,6 +598,27 @@ function mockMoneyRows(){
       est_cost_sar:(i.cost_sar==null&&i.revenue_way!=='commission'&&Number(lt(i.invoice_no).pass_through_sar||0)>0)?lt(i.invoice_no).pass_through_sar:null,
       cost_estimated:(i.cost_sar==null&&i.revenue_way!=='commission'&&Number(lt(i.invoice_no).pass_through_sar||0)>0)};
   });
+}
+/* D24: money_service_rows — each invoice's lines by service (the item's own service first, else its product's), lines of a
+   "not income" service left out; modelled on scripts/sql/d24-income-by-service.sql */
+function mockItemHead(n){ return mockMoneyNorm(String(n==null?'':n).replace(/\s[-–—|]\s.*$/,'').trim()); }
+function mockServiceRows(){
+  const live=(t)=>(TABLES[t]||[]).filter(x=>!x.removed_at);
+  const svc=live('money_services'), prod=live('money_product_services'), items=live('money_item_services'), cls=live('money_item_classes');
+  const byId=(id)=>svc.find(x=>x.id===id)||null;
+  const out={};
+  (TABLES.finance_invoice_lines||[]).filter(l=>(l.kind||'item')==='item').forEach(l=>{
+    const inv=(TABLES.finance_invoices||[]).find(i=>i.invoice_no===l.invoice_no&&!i.deleted_at); if(!inv) return;
+    const it=items.find(x=>mockItemHead(x.item)===mockItemHead(l.name)), pr=prod.find(x=>mockMoneyNorm(x.product)===mockMoneyNorm(l.product));
+    const s=(it&&byId(it.service_id))||(pr&&byId(pr.service_id))||null;
+    if(s&&s.counts_as_income===false) return;
+    const c=cls.find(x=>mockMoneyNorm(x.name)===mockItemKey(l.name));
+    const k=inv.id+'|'+(s?s.id:'');
+    const r=out[k]=out[k]||{id:inv.id,service_id:s?s.id:null,service_name:s?s.name:null,sort_order:s?s.sort_order:null,revenue_sar:0,pass_through_sar:null,lines:0};
+    r.revenue_sar=Math.round((r.revenue_sar+Number(l.item_total_sar||0))*100)/100; r.lines++;
+    if(c&&c.class==='pass_through') r.pass_through_sar=Math.round(((r.pass_through_sar||0)+Number(l.item_total_sar||0))*100)/100;
+  });
+  return Object.values(out);
 }
 /* D1: money_line_totals — each invoice's lines by the item-name list (the last part of the name, folded) */
 function mockItemKey(n){ return mockMoneyNorm(String(n==null?'':n).replace(/^.*\s[-–—|]\s/,'').trim()); }
@@ -1485,6 +1506,47 @@ export function start(port, seedOverrides){
         return send(res,405,{message:'method'});
       });
     }
+    /* D24 (28 Sep): the three service lists — Full on Finance writes (no role); a name never changes; a removal is final;
+       nothing is deleted; every change logged (d24-income-by-service.sql) */
+    if(['money_services','money_product_services','money_item_services'].indexOf(t)>=0&&req.method!=='GET'){
+      let body=''; req.on('data',c=>body+=c);
+      return req.on('end',()=>{
+        let pl={}; try{ pl=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON'}); }
+        const KEY={money_services:'name',money_product_services:'product',money_item_services:'item'}[t], NORM=t==='money_item_services'?mockItemHead:mockMoneyNorm;
+        const list=TABLES[t]=TABLES[t]||[]; const now=new Date().toISOString(), nm=meMR.full_name||meMR.email||null;
+        const P=(c,m)=>send(res,400,{code:c,details:null,hint:null,message:m});
+        const mayList=finLvlMR==='full';
+        const log=(r,action,before)=>(TABLES.record_history=TABLES.record_history||[]).push({id:(TABLES.record_history.length+1000),at:now,actor:UID,actor_name:nm,table_name:t,record_id:r.id,record_key:r.id,action,before_row:before||null,after_row:Object.assign({},r)});
+        if(req.method==='POST'){
+          if(!mayList) return send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "'+t+'"'});
+          const rows0=Array.isArray(pl)?pl:[pl], out=[];
+          for(const r0 of rows0){
+            const v=String(r0[KEY]==null?'':r0[KEY]).trim();
+            if(!NORM(v)) return P('23514','new row for relation "'+t+'" violates check constraint');
+            if(t!=='money_services'&&!(TABLES.money_services||[]).some(x=>x.id===r0.service_id)) return P('23503','insert or update on table "'+t+'" violates foreign key constraint');
+            if(list.some(x=>!x.removed_at&&NORM(x[KEY])===NORM(v))) return P('23505','duplicate key value violates unique constraint "'+t+'_one_live"');
+            const row=Object.assign({id:t.slice(6,9)+'-'+Math.random().toString(36).slice(2)},r0,{[KEY]:v,created_by:UID,created_by_name:nm,created_at:now,updated_by:null,updated_by_name:null,updated_at:null,removed_by:null,removed_by_name:null,removed_at:null});
+            if(t==='money_services'){ if(row.sort_order==null) row.sort_order=100; if(row.counts_as_income==null) row.counts_as_income=true; }
+            list.push(row); out.push(row); log(row,'create');
+          }
+          return send(res,201,out);
+        }
+        if(req.method==='PATCH'){
+          if(!mayList) return send(res,200,[]);
+          const id=(String((u.query||{}).id||'').match(/^eq\.(.*)$/)||[])[1]; const r=list.find(x=>x.id===id); if(!r) return send(res,200,[]);
+          if(r.removed_at) return P('P0001','A removed entry stays removed — add it again if it is needed');
+          if(KEY in pl&&String(pl[KEY]).trim()!==r[KEY]) return P('P0001','A name never changes — remove it and add it again');
+          const before=Object.assign({},r);
+          ['service_id','sort_order','counts_as_income','note'].forEach(k=>{ if(k in pl) r[k]=pl[k]; });
+          if(pl.removed_at){ r.removed_at=now; r.removed_by=UID; r.removed_by_name=nm; }
+          r.updated_at=now; r.updated_by=UID; r.updated_by_name=nm; log(r,'edit',before);
+          return send(res,200,[r]);
+        }
+        if(req.method==='DELETE') return P('P0001',t+' rows are never deleted');
+        return send(res,405,{message:'method'});
+      });
+    }
+    if(['money_services','money_product_services','money_item_services','money_service_rows'].indexOf(t)>=0&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
     if((t==='money_item_classes'||t==='finance_invoice_lines')&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
     /* company_name_aliases (E, 27 Sep): a customer name typed into a company — admins and managers write, one company per
        name however spelled, a name is never re-pointed, a removal is final */
@@ -1519,7 +1581,7 @@ export function start(port, seedOverrides){
       TABLES.client_profiles=(TABLES.client_profiles||[]).filter(p=>p.id!==id);
       return send(res,200,hit);
     }
-    let rows=t==='money_rows'?mockMoneyRows():(TABLES[t]||[]);
+    let rows=t==='money_rows'?mockMoneyRows():t==='money_service_rows'?mockServiceRows():(TABLES[t]||[]);
     if(LAPSED&&req.method==='GET') return send(res,200,[]);   // RLS shows an anonymous caller nothing
     /* 2026-09-27 (owner decision 2, scripts/sql/change-log-and-qa-account.sql): the log is read by admins and managers
        only, and record_changes is the log field by field — derived here from record_history the way the live view

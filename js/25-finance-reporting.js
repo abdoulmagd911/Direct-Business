@@ -17,81 +17,102 @@
    the app-wide ARABIC translator — it rewrites headings, buttons, dropdowns and badges on
    every page, not just Finance. It belongs with the other language work, not here.       */
 
-/* ---------- part 1 — income by service line (was js/25-v32) ---------- */
-/* v32 — Finance · income-by-service-line + service-fee model framing.
-   READ-ONLY presentation over existing finance_invoices values — changes NO stored value.
-   Adds an "Income by service line" card to the Finance overview: Gross billed = cost + service fee,
-   where the service fee is Direct's taxable income. Each row drills to the invoices behind it (proof).
-   2026-08-12 owner order: NO sub-groups — every service is its own flat row ("spread them").
-   Grouping may return later with owner-given coordinates. */
+/* ---------- part 1 — Income by service (D24, 28 Sep; was "Income by service line", js/25-v32) ---------- */
+/* D24 (owner, 28 Sep, via the oversight — "a 100% disaster" of the old table): each invoice LINE goes to ONE main service and
+   the lines are added up. The old table grouped whole invoices by the COMBINATION of products on them ("Flights + Hotels +
+   Journey Solutions"), called a row a "commission service", put wallet top-ups in as a service and showed gross billed.
+   Now, from money_service_rows (the database, js/16 loads it into FIN.svc): per service, over the invoices that COUNT in the
+   period —
+     · Revenue: the service's lines (a wallet line and anything under a "not income" service never counts);
+     · Approved cost: the invoice's approved cost, split across its services by each one's share of the invoice's lines;
+     · Est. cost ⚑: the pass-through lines of that service, only on an invoice with no approved cost yet (D23);
+     · Profit and margin: over the revenue whose cost is known or estimated — an invoice with neither is revenue only;
+   the services, the product defaults and the item overrides are lists on Finance → Rules (nothing hard-coded here).
+   An invoice with no item lines, or whose lines do not add up to its revenue, keeps the difference in "Not split by line",
+   so the column always adds up to Revenue on the tiles. Until the database change lands, the old table is drawn as it was. */
 (function(){try{
   if(!window.renderFinance) return;
   var _rf=window.renderFinance;
-  /* 2026-09-06 (round 52): this set FIN.f.service, a key nothing has read since the Phase 2
-     Ledger rebuild — so the tap this table advertises landed on the WHOLE ledger, unfiltered,
-     with nothing saying the service had been dropped. It now names the request so the Ledger can
-     say what it can and cannot do with it (js/16), instead of quietly answering a different
-     question. Clears the client drill at the same time; two stale drill notes at once would be
-     worse than none. */
   window.v32DrillService=function(svc){try{if(window.FIN){FIN.tab='ledger';FIN.f.serviceDrill=svc;FIN.f.clientKey=null;FIN.f.clientName='';if(typeof render==='function')render();}}catch(e){}};
   function fl(en,ar){return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en;}
   function mS(n){n=Number(n)||0;var s=n<0?'-':'';n=Math.abs(n);if(n>=1e6)return s+(n/1e6).toFixed(2)+'M';if(n>=1e3)return s+(n/1e3).toFixed(1)+'K';return s+n.toFixed(0);}
+  var th=function(t,r){return '<th style="padding:6px 8px;text-align:'+(r?'right':'left')+';color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap">'+t+'</th>';};
+  var td=function(v,st){return '<td style="padding:7px 8px;text-align:right;font-variant-numeric:tabular-nums;'+(st||'')+'"><span dir="ltr" style="unicode-bidi:isolate">'+v+'</span></td>';};
+  function place(view,card){
+    var kpi=null; view.querySelectorAll('div').forEach(function(d){var s=d.getAttribute('style')||'';if(!kpi&&s.indexOf('grid-template-columns')>=0&&s.indexOf('minmax(132px')>=0)kpi=d;});
+    if(kpi&&kpi.parentNode){kpi.parentNode.insertBefore(card,kpi.nextSibling);} else if(view.firstChild){view.insertBefore(card,view.firstChild.nextSibling);}
+  }
+  /* the per-service table (D24) */
+  function byService(){
+    var NOT=fl('Not split by line','غير موزّعة على البنود'), NONE=fl('No service yet — set it on Rules','بلا خدمة بعد — حدّدها في القواعد');
+    var by={}, order={};
+    var add=function(k,sort){ if(!by[k]){ by[k]={rev:0,cost:0,est:0,revP:0,_inv:{}}; order[k]=sort; } return by[k]; };
+    var src=(typeof window.finLive==='function')?window.finLive():FIN.rows;
+    var n=0;
+    src.forEach(function(r){
+      if(r.deleted_at) return; var m=(FIN.m&&FIN.m[r.id])||{}; if(!m.counts) return; if(window.finInPeriod&&!finInPeriod(r)) return;
+      n++;
+      var rev=+r.revenue_sar||0, lines=FIN.svcBy[r.id]||[], sum=0; lines.forEach(function(x){ sum+=+x.revenue_sar||0; });
+      var hasCost=(r.cost_sar!=null&&r.cost_sar!==''), cost=+r.cost_sar||0, estOn=!hasCost&&!!m.cost_estimated;
+      var known=hasCost||estOn||r.revenue_way==='commission';
+      lines.forEach(function(x){
+        var k=x.service_name||NONE, b=add(k,x.service_name?(+x.sort_order||100):950), v=+x.revenue_sar||0;
+        b.rev+=v; b._inv[r.id]=1;
+        if(hasCost&&sum>0) b.cost+=cost*v/sum;
+        if(estOn) b.est+=+x.pass_through_sar||0;
+        if(known) b.revP+=v;
+      });
+      var rest=Math.round((rev-sum)*100)/100;
+      if(Math.abs(rest)>=1){ var b=add(NOT,990); b.rev+=rest; b._inv[r.id]=1; if(hasCost&&sum<=0) b.cost+=cost; if(known) b.revP+=rest; }
+    });
+    var keys=Object.keys(by).sort(function(a,b){ return (order[a]-order[b])||(by[b].rev-by[a].rev); });
+    var tot={rev:0,cost:0,est:0,revP:0};
+    var h='<h3 class="finh" style="margin:0 0 3px">'+fl('Income by service','الدخل حسب الخدمة')+(window.finPeriodLabel?'<i>'+finPeriodLabel()+'</i>':'')+'</h3>'+
+      '<div class="ch-sub" style="margin-bottom:10px">'+fl('Each invoice line goes to one service (Finance → Rules decides which), then the lines are added up — paid sales only, never top-ups or billing links. Cost is the approved expense split by each service’s share; ⚑ is the flagged estimate where no approved expense has arrived yet. Profit and margin are measured where the cost is known or estimated.',
+        'كل بند في الفاتورة يذهب إلى خدمة واحدة (تحدّدها المالية ← القواعد)، ثم تُجمع البنود — المبيعات المدفوعة فقط، لا شحن المحفظة ولا الفواتير التجميعية. التكلفة هي المصروف المعتمد موزّعًا بحصة كل خدمة؛ ⚑ هو التقدير حيث لم يصل مصروف معتمد بعد. الربح والهامش يُقاسان حيث التكلفة معروفة أو مقدّرة.')+'</div>'+
+      '<div style="overflow-x:auto"><table data-v24-svc="1" style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:620px"><thead><tr>'+
+      th(fl('Service','الخدمة'))+th(fl('Invoices','الفواتير'),1)+th(fl('Revenue','الإيراد'),1)+th(fl('Approved cost','التكلفة المعتمدة'),1)+th(fl('Est. cost ⚑','تكلفة تقديرية ⚑'),1)+th(fl('Profit','الربح'),1)+th(fl('Margin','الهامش'),1)+'</tr></thead><tbody>';
+    keys.forEach(function(k){
+      var b=by[k], prof=b.revP-b.cost-b.est, mg=b.revP>0?(prof/b.revP*100):null;
+      tot.rev+=b.rev; tot.cost+=b.cost; tot.est+=b.est; tot.revP+=b.revP;
+      h+='<tr style="border-top:1px solid var(--line,#eee)" data-v24-row="'+esc(k)+'" data-rev="'+b.rev.toFixed(2)+'" data-cost="'+b.cost.toFixed(2)+'" data-est="'+b.est.toFixed(2)+'">'+
+        '<td style="padding:7px 8px;font-weight:700">'+esc(k)+'</td>'+
+        '<td style="padding:7px 8px;text-align:right;color:var(--muted)">'+Object.keys(b._inv).length+'</td>'+
+        td(mS(b.rev))+td(mS(b.cost),'color:#B54708')+td(b.est?mS(b.est)+' ⚑':'—','color:#B54708')+
+        td(mS(prof)+(b.est?' ⚑':''),'font-weight:700;color:'+(prof<0?'#B42318':'#0F6E56'))+td(mg==null?'—':mg.toFixed(1)+'%','color:var(--muted)')+'</tr>';
+    });
+    var tp=tot.revP-tot.cost-tot.est;
+    h+='<tr style="border-top:2px solid var(--line,#ddd);font-weight:800" data-v24-total="1" data-rev="'+tot.rev.toFixed(2)+'"><td style="padding:8px">'+fl('All services','كل الخدمات')+'</td>'+
+      '<td style="padding:8px;text-align:right;color:var(--muted)">'+n+'</td>'+td(mS(tot.rev))+td(mS(tot.cost),'color:#B54708')+td(tot.est?mS(tot.est)+' ⚑':'—','color:#B54708')+
+      td(mS(tp)+(tot.est?' ⚑':''),'color:'+(tp<0?'#B42318':'#0F6E56'))+td(tot.revP>0?(tp/tot.revP*100).toFixed(1)+'%':'—','color:var(--muted)')+'</tr></tbody></table></div>';
+    return n?h:'';
+  }
+  /* the old table, drawn only until the database change lands (money_service_rows unreadable) */
+  function byServiceType(){
+    var _src=(typeof window.finLive==='function')?window.finLive():FIN.rows;
+    var rows=_src.filter(function(r){return !r.deleted_at && r.integrity_status==='verified_paid' && (!window.finInPeriod||finInPeriod(r));});
+    if(!rows.length) return '';
+    var by={};
+    rows.forEach(function(r){ var k=r.service_type||fl('(unspecified)','(غير محدد)'); var b=by[k]=by[k]||{rev:0,cost:0,_inv:{}}; b.cost+=+r.cost_sar||0; b.rev+=+r.revenue_sar||0; b._inv[r.invoice_no]=1; });
+    var keys=Object.keys(by).sort(function(a,b){return by[b].rev-by[a].rev;});
+    var h='<h3 class="finh" style="margin:0 0 3px">'+fl('Income by service','الدخل حسب الخدمة')+(window.finPeriodLabel?'<i>'+finPeriodLabel()+'</i>':'')+'</h3>'+
+      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:480px"><thead><tr>'+th(fl('Service','الخدمة'))+th(fl('Invoices','الفواتير'),1)+th(fl('Revenue','الإيراد'),1)+th(fl('Approved cost','التكلفة المعتمدة'),1)+'</tr></thead><tbody>';
+    keys.forEach(function(k){ var b=by[k]; h+='<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:7px 8px;font-weight:700">'+esc(window.svcLabel?window.svcLabel(k):k)+'</td><td style="padding:7px 8px;text-align:right;color:var(--muted)">'+Object.keys(b._inv).length+'</td>'+td(mS(b.rev))+td(mS(b.cost),'color:#B54708')+'</tr>'; });
+    return h+'</tbody></table></div>';
+  }
   window.renderFinance=function(v){
     _rf.apply(this,arguments);
     try{
       if(!window.FIN||FIN.tab!=='overview'||!FIN.rows) return;
       var view=document.getElementById('view'); if(!view||view.querySelector('.v32-svc')) return;
-      /* 2026-09-02 (attack round 11): read through js/16's chokepoint (exclusion + sanitised money),
-         not the raw rows — the raw list still carries an excluded partner's rows. */
-      var _src=(typeof window.finLive==='function')?window.finLive():FIN.rows;
-      var rows=_src.filter(function(r){return !r.deleted_at && r.integrity_status==='verified_paid' && (!window.finInPeriod||finInPeriod(r));});
-      if(!rows.length) return;
-      var by={};
-      rows.forEach(function(r){
-        var k=r.service_type||fl('(unspecified)','(غير محدد)');
-        var b=by[k]=by[k]||{gross:0,cost:0,rev:0,n:0,_inv:{},comm:false};
-        b.gross+=+r.total_incl_vat_sar||0; b.cost+=+r.cost_sar||0; b.rev+=+r.revenue_sar||0; b._inv[r.invoice_no]=1; b.n=Object.keys(b._inv).length;
-        if(r.revenue_way==='commission') b.comm=true;
-      });
-      var keys=Object.keys(by).sort(function(a,b){return (by[b].rev-by[b].cost)-(by[a].rev-by[a].cost);});
-      var tot={gross:0,cost:0,rev:0,n:0}; keys.forEach(function(k){tot.gross+=by[k].gross;tot.cost+=by[k].cost;tot.rev+=by[k].rev;}); tot.n=new Set(rows.map(function(r){return r.invoice_no;})).size;
-      var th=function(t,r){return '<th style="padding:6px 8px;text-align:'+(r?'right':'left')+';color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap">'+t+'</th>';};
-      var h='<h3 class="finh" style="margin:0 0 3px">'+fl('Income by service line','الدخل حسب نوع الخدمة')+(window.finPeriodLabel?'<i>'+finPeriodLabel()+'</i>':'')+'</h3>'+
-        '<div class="ch-sub" style="margin-bottom:10px">'+fl('Every service on its own row. Service fee = Direct’s income. Tap a service to see its invoices.','كل خدمة في صف مستقل. رسوم الخدمة = دخل دايركت. اضغط الخدمة لرؤية فواتيرها.')+'</div>'+
-        '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px"><thead><tr>'+
-        /* Audit, quality and strategy asked for this view in their own words — "Flights:
-           revenue, cost, profit". The figures were already exactly that, checked against
-           all 28 live invoices: gross billed equals revenue on every row, and the service
-           fee equals revenue minus cost, which is profit. Only the column names differed,
-           so the owner's service-fee wording is kept and their words added beside it. */
-        th(fl('Service','الخدمة'))+th(fl('Invoices','الفواتير'),1)+th(fl('Gross billed (revenue)','الإجمالي (الإيراد)'),1)+th(fl('Cost','التكلفة'),1)+th(fl('Service fee (income = profit)','رسوم الخدمة (دخل = ربح)'),1)+'</tr></thead><tbody>';
-      keys.forEach(function(k){
-        var b=by[k], fee=b.rev-b.cost, flag=(b.cost===0&&b.gross>1000&&!b.comm);
-        h+='<tr style="border-top:1px solid var(--line,#eee);cursor:pointer" data-svc="'+esc(k)+'" onclick="v32DrillService(this.getAttribute(\'data-svc\'))" title="'+fl('Open the invoices for this service','افتح فواتير هذه الخدمة')+'">'+
-          '<td style="padding:7px 8px;font-weight:700">'+esc(window.svcLabel?window.svcLabel(k):k)+
-            (b.comm?' <span style="color:#7A5AF8;font-size:10.5px;font-weight:700">'+fl('commission','عمولة')+'</span>':'')+
-            (flag?' <span style="color:#B54708;font-size:11px" title="'+fl('Cost is 0 — invoice(s) still need a cost / service-fee split','التكلفة صفر — تحتاج فصل التكلفة عن الرسوم')+'">⚠</span>':'')+'</td>'+
-          '<td style="padding:7px 8px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums">'+b.n+'</td>'+
-          '<td style="padding:7px 8px;text-align:right;font-variant-numeric:tabular-nums">'+mS(b.gross)+'</td>'+
-          '<td style="padding:7px 8px;text-align:right;color:#B54708;font-variant-numeric:tabular-nums">'+mS(b.cost)+'</td>'+
-          '<td style="padding:7px 8px;text-align:right;font-weight:700;color:'+(fee<0?'#B42318':'#0F6E56')+';font-variant-numeric:tabular-nums"><span dir="ltr" style="unicode-bidi:isolate">'+mS(fee)+'</span></td>'+   /* dir=ltr: in Arabic a negative used to render as "18.0K-" */
-          '</tr>';
-      });
-      h+='<tr style="border-top:2px solid var(--line,#ddd);font-weight:800"><td style="padding:8px">'+fl('All services','كل الخدمات')+'</td>'+
-        '<td style="padding:8px;text-align:right;color:var(--muted)">'+tot.n+'</td>'+
-        '<td style="padding:8px;text-align:right;font-variant-numeric:tabular-nums">'+mS(tot.gross)+'</td>'+
-        '<td style="padding:8px;text-align:right;color:#B54708;font-variant-numeric:tabular-nums">'+mS(tot.cost)+'</td>'+
-        '<td style="padding:8px;text-align:right;color:'+((tot.rev-tot.cost)<0?'#B42318':'#0F6E56')+';font-variant-numeric:tabular-nums"><span dir="ltr" style="unicode-bidi:isolate">'+mS(tot.rev-tot.cost)+'</span></td>'+
-        '</tr>';
-      h+='</tbody></table></div>';
+      var h=(FIN.svcBy&&!FIN.svcErr)?byService():byServiceType();
+      if(!h) return;
       var card=document.createElement('div'); card.className='card v32-svc'; card.style.cssText='padding:16px;margin-bottom:14px'; card.innerHTML=h;
-      var kpi=null; view.querySelectorAll('div').forEach(function(d){var s=d.getAttribute('style')||'';if(!kpi&&s.indexOf('grid-template-columns')>=0&&s.indexOf('minmax(132px')>=0)kpi=d;});
-      if(kpi&&kpi.parentNode){kpi.parentNode.insertBefore(card,kpi.nextSibling);}
-      else if(view.firstChild){view.insertBefore(card,view.firstChild.nextSibling);}
-    }catch(e){if(window.console)console.warn('[v32] by-service',e);}
+      place(view,card);
+    }catch(e){if(window.console)console.warn('[v24] by-service',e);}
   };
-  console.info('%c[v32] Finance income-by-service loaded (flat)','color:#0F6E56;font-weight:700');
-}catch(e){if(window.console)console.warn('[v32] init',e);}})();
+  try{ window.__v24ByService=function(){ return byService(); }; }catch(_){}
+}catch(e){if(window.console)console.warn('[v24] init',e);}})();
 
 /* ---------- part 2 — the revenue ways + promo codes card (was js/39-v63) ---------- */
 /* v63 — The ways revenue arrives (owner-directed 2026-08-12; a fifth added 2026-08-20).
