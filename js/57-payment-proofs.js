@@ -323,7 +323,8 @@
   }catch(e){console.warn('[proof] save',e);}};
 
   window.proofDel=function(id){try{
-    pfConfirm(fl('Remove this document record? It stays in the history and disappears from the list.','حذف هذا المستند؟ يبقى في السجل ويختفي من القائمة.'), function(){
+    var _n=''; try{ var _r=((PRX.rows)||[]).filter(function(x){return String(x.id)===String(id);})[0]; _n=String((_r&&([_r.doc_date,_r.invoice_no||_r.client_group].filter(Boolean).join(' · ')))||''); if(_n.length>60) _n=_n.slice(0,57)+'…'; }catch(_){}   // 2026-09-28 (D19): the question names it
+    pfConfirm(fl('Remove the document record "'+_n+'"? It stays in the history and disappears from the list.','حذف المستند «'+_n+'»؟ يبقى في السجل ويختفي من القائمة.'), function(){
       var c=client(); if(!c)return;
       c.from('proof_documents').update({deleted_at:new Date().toISOString()}).eq('id',id).select().then(function(r){
         if(r.error){alert(r.error.message);return;}

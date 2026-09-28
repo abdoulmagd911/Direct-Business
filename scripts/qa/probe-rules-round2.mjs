@@ -59,7 +59,8 @@ const tab = async (p, t) => { await p.evaluate((x) => { current = 'finance'; fin
   const add = await p.evaluate(async () => { const r = await fc().from('money_exclusion_rules').insert({ kind: 'client_id', value: 'QA-77', reason: 'probe' }).select('id'); await new Promise((z) => { MR.rules = null; moneyRulesLoad(z); setTimeout(z, 4000); }); return r.data && r.data[0] && r.data[0].id; });
   const before = await p.evaluate(() => window.__syncBadgeState().lastOk || 0);
   await p.waitForTimeout(1100);
-  await p.evaluate((id) => v117SwitchRule(id, false), add); await p.waitForTimeout(900);
+  await p.evaluate((id) => v117SwitchRule(id, false), add); await p.waitForTimeout(300);
+  await p.click('#pfConfirmYes'); await p.waitForTimeout(900);   // D19 (28 Sep): switching a rule off asks first
   const after = await p.evaluate(() => window.__syncBadgeState().lastOk || 0);
   check(after > before, '5. F2: the sync badge moves when a rule is saved', before + ' → ' + after);
   await p.evaluate((id) => v117SwitchRule(id, true), add); await p.waitForTimeout(900);

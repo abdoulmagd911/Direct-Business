@@ -3814,8 +3814,14 @@ rule, 28 Sep, via the oversight).** ACTIVE. The owner's words, as relayed: "ever
 own confirm dialog (Arabic/English) naming exactly what will be removed, with 'Delete' and 'Cancel', Cancel focused by
 default, and the action logged and undoable where possible." Built into the one shared box (`pfConfirm`, js/57): Cancel
 takes focus when it opens, a removal's button says "Delete" / "Remove" (red), never an orange "Confirm", and a box that
-cannot be drawn counts as No — it used to run the action unasked. Native `confirm()` / `prompt()` stay only as last-resort
-fallbacks. The audit of every delete/remove button against this rule is its own follow-up PR (named in PR #53).
+cannot be drawn counts as No — it used to run the action unasked. Native `prompt()` stays only as a last-resort fallback for a
+text answer. **The audit (28 Sep, its own PR after #53):** no native `confirm()` is left anywhere; every helper that fronts the
+box (`askInPage`, `finConfirm`, `expConfirm`, the js/21 Arabic wrapper) passes `{danger}` through and does NOTHING when the
+box is missing; every delete/remove question names the record (company, proposal ref, invoice no., file, rule, code, person);
+the removals that asked nothing (proposal lines and free extras, tiers, upsells, SSR chips, onboarding rows, list Archive
+buttons, the test-data wipes, "Make inactive", a rule's switch-off, "Not a duplicate", a rates save that drops saved rates)
+now ask. A row with nothing typed in yet is removed without a question (a draft, not saved data). Guard:
+`scripts/qa/probe-d19-delete-asks.mjs`.
 
 **D20 — Dates are Riyadh's calendar, everywhere (owner, 28 Sep, via the oversight, F1).** ACTIVE. A stored time is UTC;
 showing its first ten characters showed YESTERDAY for anything saved after 9 pm in Riyadh (the Rules "Added" column said

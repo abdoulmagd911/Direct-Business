@@ -354,7 +354,7 @@ async function phaseA() {
      native confirm() — a native dialog here is now itself a failure. */
   const nd2 = dialogs.length;
   const del1 = await p.evaluate(async () => { editBusiness('qa_over'); await new Promise(r => setTimeout(r, 300)); document.getElementById('mDel').click(); await new Promise(r => setTimeout(r, 400)); const box = document.getElementById('pfConfirmBox'); const msg = box ? box.innerText : ''; const no = document.getElementById('pfConfirmNo'); if (no) no.click(); await new Promise(r => setTimeout(r, 300)); return { exists: !!getLead('qa_over'), box: !!box, msg }; });
-  check('4e Delete asks with the in-page box and a "Cancel" answer leaves the company in place', del1.box && /Delete this company/.test(del1.msg) && del1.exists === true && dialogs.length === nd2, { del1, nativeDialogs: dialogs.length - nd2 });
+  check('4e Delete asks with the in-page box and a "Cancel" answer leaves the company in place', del1.box && /Delete the company "[^"]+"\?/.test(del1.msg) /* D19: names it */ && del1.exists === true && dialogs.length === nd2, { del1, nativeDialogs: dialogs.length - nd2 });
   const del2 = await p.evaluate(async () => { editBusiness('qa_over'); await new Promise(r => setTimeout(r, 300)); document.getElementById('mDel').click(); await new Promise(r => setTimeout(r, 400)); const yes = document.getElementById('pfConfirmYes'); if (yes) yes.click(); await new Promise(r => setTimeout(r, 500)); return { exists: !!getLead('qa_over') }; });
   check('4f ...and a "Confirm" answer removes it', del2.exists === false && dialogs.length === nd2, del2);
 

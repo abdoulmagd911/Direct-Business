@@ -158,9 +158,9 @@
      modal loop. Reuses js/57's pfConfirm box when it's loaded (same one Payment proofs,
      Individual bookings and the Ledger's "Delete invoice" already share), with a plain
      confirm() fallback only if it somehow isn't. */
-  function expConfirm(msg,onYes){
-    try{ if(window.pfConfirm) return pfConfirm(msg,onYes); }catch(_){}
-    if(confirm(msg))onYes();
+  function expConfirm(msg,onYes,opts){
+    try{ if(window.pfConfirm) return pfConfirm(msg,onYes,opts); }catch(_){}
+    /* 2026-09-28 (D19): no box, no action — the native confirm() fallback is gone. */
   }
   window.expDownloadAll=function(){try{
     var rows=view_().filter(function(r){return r.proof_path;});
@@ -225,7 +225,8 @@
   }catch(e){console.warn('[exp] save',e);}};
 
   window.expDel=function(id){try{
-    expConfirm(fl('Remove this expense? It stays in the history and disappears from the list.','حذف هذا المصروف؟ يبقى في السجل ويختفي من القائمة.'), function(){
+    var _n=''; try{ var _r=((EXP.rows)||[]).filter(function(x){return String(x.id)===String(id);})[0]; _n=String((_r&&(_r.description||_r.transaction_ref||_r.invoice_no))||''); if(_n.length>60) _n=_n.slice(0,57)+'…'; }catch(_){}   // 2026-09-28 (D19): the question names it
+    expConfirm(fl('Remove the expense "'+_n+'"? It stays in the history and disappears from the list.','حذف المصروف «'+_n+'»؟ يبقى في السجل ويختفي من القائمة.'), function(){
       var c=client(); if(!c)return;
       c.from('finance_expenses').update({deleted_at:new Date().toISOString()}).eq('id',id).select().then(function(r){
         if(r.error){alert(r.error.message);return;}

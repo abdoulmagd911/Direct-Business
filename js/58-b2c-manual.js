@@ -69,7 +69,7 @@
       document.getElementById('pfConfirmNo').onclick=close;
       d.addEventListener('click',function(e){ if(e.target===d)close(); });
       document.getElementById('pfConfirmYes').onclick=function(){ close(); onYes(); };
-    }catch(e){ onYes(); }
+    }catch(e){ /* 2026-09-28 (D19): a box that could not be drawn is a No */ }
   }
 
   function load(cb){
@@ -161,7 +161,8 @@
   }catch(e){console.warn('[b2c] save',e);}};
 
   window.b2cDel=function(id){try{
-    b2cConfirm(fl('Remove this individual booking? It stays in the history and disappears from every Finance total.','حذف هذا الحجز الفردي؟ يبقى في السجل ويختفي من كل إجماليات المالية.'), function(){
+    var _n=''; try{ var _r=((B2C.rows)||[]).filter(function(x){return String(x.id)===String(id);})[0]; _n=String((_r&&([_r.client_group,_r.invoice_no].filter(Boolean).join(' · ')))||''); if(_n.length>60) _n=_n.slice(0,57)+'…'; }catch(_){}   // 2026-09-28 (D19): the question names it
+    b2cConfirm(fl('Remove the individual booking "'+_n+'"? It stays in the history and disappears from every Finance total.','حذف الحجز الفردي «'+_n+'»؟ يبقى في السجل ويختفي من كل إجماليات المالية.'), function(){
       var c=client(); if(!c)return;
       c.from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('id',id).select().then(function(r){
         if(r.error){alert(r.error.message);return;}

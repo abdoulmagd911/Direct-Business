@@ -110,12 +110,14 @@ console.log('  ' + SAMPLES.length + ' questions found in the source; two asked a
   : fail('AR: the achievement delete question reads Arabic in the box', JSON.stringify(ar.del));
 
 const stuck = ar.words.filter(([, w]) => !AR.test(w));
-(SAMPLES.length >= 8 && stuck.length === 0)
+/* 2026-09-28 (D19): the delete/archive questions now name their record and pick their language at the source,
+   so they left this English-literal scan; the floor is 1 (the Settings reset) and every one found must still resolve. */
+(SAMPLES.length >= 1 && stuck.length === 0)
   ? pass('AR: every such question in the source resolves to Arabic', SAMPLES.length + ' texts')
   : fail('AR: every such question in the source resolves to Arabic', JSON.stringify({ found: SAMPLES.length, stuck: stuck.slice(0, 6).map((x) => x[0]) }));
 
 /* release 2 (2026-09-26): achievements live in the database, and the question says what deleting now means (js/111) */
-(en.reset && /^Reset all data to the seeded version\?/.test(en.reset) && en.del === 'Delete this achievement? It is removed for everyone; the change is recorded.')
+(en.reset && /^Reset all data to the seeded version\?/.test(en.reset) && /^Delete the achievement ".*"\? It is removed for everyone; the change is recorded\.$/.test(en.del || ''))   // D19: names the achievement
   ? pass('EN brake: the same two questions read their English exactly')
   : fail('EN brake: the same two questions read their English exactly', JSON.stringify({ reset: en.reset, del: en.del }));
 

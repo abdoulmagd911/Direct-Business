@@ -835,7 +835,7 @@
         b.onclick=function(){
           var email=b.getAttribute('data-email')||'';
           /* 2026-09-09 (live test D1 family): ask in the page, never window.confirm */
-          var _ask=function(m,y){ if(typeof window.askInPage==='function')window.askInPage(m,y); else if(confirm(m))y(); };
+          var _ask=function(m,y){ if(typeof window.askInPage==='function')window.askInPage(m,y); }; /* 2026-09-28 (D19): no native confirm() */
           _ask('Send a password reset link to '+email+'?',function(){
           b.disabled=true;var was=b.textContent;b.textContent='…';
           callAdmin({action:'send_reset_link',id:b.getAttribute('data-rst'),origin:location.origin}).then(function(r2){

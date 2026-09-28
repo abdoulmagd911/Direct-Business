@@ -71,7 +71,11 @@
     }).catch(function(e){ tell(key,said(e&&e.message||e),true); paint(); });
   }
   window.v110SetDept=function(mid,dep){ var c=client(); if(!c) return; write(c.from('team_members').update({department_id:dep}).eq('id',mid),fl('Department changed. Recorded in Activity & Audit.','تم تغيير القسم. سُجّل في السجل.'),mid); };
-  window.v110SetActive=function(mid,on){ var c=client(); if(!c) return; write(c.from('team_members').update({active:!!on}).eq('id',mid),on?fl('Made active. Recorded in Activity & Audit.','أصبح نشطًا. سُجّل في السجل.'):fl('Made inactive — they stay in the history. Recorded in Activity & Audit.','أصبح غير نشط — ويبقى في السجل. سُجّل في السجل.'),mid); };
+  window.v110SetActive=function(mid,on){ var c=client(); if(!c) return;
+    var go=function(){ write(c.from('team_members').update({active:!!on}).eq('id',mid),on?fl('Made active. Recorded in Activity & Audit.','أصبح نشطًا. سُجّل في السجل.'):fl('Made inactive — they stay in the history. Recorded in Activity & Audit.','أصبح غير نشط — ويبقى في السجل. سُجّل في السجل.'),mid); };
+    if(on){ go(); return; }   // 2026-09-28 (D19): making someone inactive asks first, naming them; no box, no change
+    if(typeof window.pfConfirm==='function') window.pfConfirm(fl('Remove "'+memberName(mid)+'" from the active team list? They become inactive and stay in the history.','إزالة «'+memberName(mid)+'» من قائمة الفريق النشطة؟ يصبح غير نشط ويبقى في السجل.'),go,{danger:true});
+  };
   window.v110SetHead=function(did,mid){ var c=client(); if(!c) return; write(c.from('departments').update({head_member_id:mid||null}).eq('id',did),fl('Head set. Recorded in Activity & Audit.','تم تعيين الرئيس. سُجّل في السجل.'),'head:'+did); };
   window.v110Add=function(){
     var c=client(); if(!c) return;

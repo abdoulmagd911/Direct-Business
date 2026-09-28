@@ -182,7 +182,7 @@ async function main() {
   const dis = await p.evaluate(async () => {
     const el = document.querySelector('.v62-dup'); const key = el ? el.getAttribute('data-key') : null;
     const before = (document.querySelector('.v62-guardrails') || {}).innerText || '';
-    if (key) v62DismissDup(key);
+    if (key) { v62DismissDup(key); const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }   // D19: the dismissal asks first
     await new Promise(r => setTimeout(r, 1200));
     const stored = ((DB.settings || {}).bizDupDismissed || []).slice();
     v62UndismissDups(); await new Promise(r => setTimeout(r, 1200));

@@ -205,7 +205,8 @@
   window.v62RemoveExclusion=function(id){
     if(!canEdit62())return;
     var ar=(typeof LANG!=='undefined'&&LANG==='ar');
-    askInPage(fl('Remove this exclusion? Rows matching it will import normally from now on.','إزالة هذا الاستبعاد؟ ستُستورد الصفوف المطابقة له بشكل طبيعي من الآن.'),function(){
+    var _n=''; try{ var _r=((DB.settings&&DB.settings.financeExclusions)||[]).filter(function(x){return String(x.id)===String(id);})[0]; _n=String((_r&&((_r.matchNames&&_r.matchNames[0])||_r.clientId))||''); if(_n.length>60) _n=_n.slice(0,57)+'…'; }catch(_){}   // 2026-09-28 (D19): the question names it
+    askInPage(fl('Remove the exclusion "'+_n+'"? Rows matching it will import normally from now on.','إزالة الاستبعاد «'+_n+'»؟ ستُستورد الصفوف المطابقة له بشكل طبيعي من الآن.'),function(){
     DB.settings.financeExclusions=(DB.settings.financeExclusions||[]).filter(function(e){return e.id!==id;});
     if(typeof save==='function')save(); if(typeof render==='function')render();
     });
@@ -574,9 +575,15 @@
   };
   window.v62DismissDup=function(key){
     if(!canEdit62())return;
+    /* 2026-09-28 (D19): asks first, naming both companies; no box, no change. "Show dismissed" brings it back. */
+    var p=null; try{ p=dupCandidates().filter(function(x){ return x.key===key; })[0]; }catch(_){}
+    var nm=p?(String((p.a&&p.a.name)||'').slice(0,60)+'" / "'+String((p.b&&p.b.name)||'').slice(0,60)):String(key||'');
+    var go=function(){
     DB.settings=DB.settings||{}; DB.settings.bizDupDismissed=DB.settings.bizDupDismissed||[];
     if(DB.settings.bizDupDismissed.indexOf(key)<0)DB.settings.bizDupDismissed.push(key);
     if(typeof save==='function')save(); if(typeof render==='function')render();
+    };
+    if(typeof askInPage==='function') askInPage(fl('Remove "'+nm+'" from the duplicate list? They are marked "not a duplicate" and stay as two companies.','إزالة «'+nm.replace('" / "','» / «')+'» من قائمة المكرّرات؟ تُعلَّمان «ليست مكرّرة» وتبقيان شركتين.'),go,{danger:true});
   };
   window.v62UndismissDups=function(){
     if(!canEdit62())return;

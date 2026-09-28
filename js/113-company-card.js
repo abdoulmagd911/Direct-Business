@@ -178,7 +178,9 @@
     if(!canMerge()) return;
     var go=function(){ client().from('company_discount_codes').update({removed_at:new Date().toISOString()}).eq('id',linkId).select('id').then(function(r){
       if(r.error||!r.data||!r.data.length){ alert(said(r.error||'refused')); return; } reload(biz); }); };
-    if(typeof askInPage==='function') askInPage(fl('Remove this code from the company? The code itself stays as it is in Direct Payments.','إزالة هذا الرمز من الشركة؟ يبقى الرمز كما هو في دايركت للمدفوعات.'),go); else if(confirm('Remove?')) go();
+    /* 2026-09-28 (D19): the question names the code; no box, no removal (the native Remove? box is gone) */
+    var cn=''; try{ var lk=((S[biz]&&S[biz].links)||[]).filter(function(l){return String(l.id)===String(linkId);})[0]; var pc=lk&&(CODES||[]).filter(function(p){return p.id===lk.promo_code_id;})[0]; cn=(pc&&pc.code)||''; }catch(_){}
+    if(typeof askInPage==='function') askInPage(fl('Remove the code "'+cn+'" from this company? The code itself stays as it is in Direct Payments.','إزالة الرمز «'+cn+'» من هذه الشركة؟ يبقى الرمز كما هو في دايركت للمدفوعات.'),go);
   }catch(err){ if(window.console)console.warn('[v113] unlink',err); }};
 
   var MAX=10*1024*1024;
@@ -225,7 +227,9 @@
     if(!canWrite()) return;
     var go=function(){ client().from('company_documents').update({deleted_at:new Date().toISOString()}).eq('id',docId).select('id').then(function(r){
       if(r.error||!r.data||!r.data.length){ alert(said(r.error||'refused')); return; } reload(biz); }); };
-    if(typeof askInPage==='function') askInPage(fl('Remove this file from the company card? A removal is final — it is kept on record, and a new file can be added.','إزالة هذا الملف من بطاقة الشركة؟ الإزالة نهائية — يُحتفظ به في السجل، ويمكن إضافة ملف جديد.'),go); else if(confirm('Remove?')) go();
+    /* 2026-09-28 (D19): the question names the file; no box, no removal (the native Remove? box is gone) */
+    var fn=''; try{ var dx=((S[biz]&&S[biz].docs)||[]).filter(function(x){return String(x.id)===String(docId);})[0]; fn=String((dx&&(dx.title||dx.file_name))||''); if(fn.length>60) fn=fn.slice(0,57)+'…'; }catch(_){}
+    if(typeof askInPage==='function') askInPage(fl('Remove the file "'+fn+'" from the company card? A removal is final — it is kept on record, and a new file can be added.','إزالة الملف «'+fn+'» من بطاقة الشركة؟ الإزالة نهائية — يُحتفظ به في السجل، ويمكن إضافة ملف جديد.'),go);
   }catch(err){ if(window.console)console.warn('[v113] remove',err); }};
 
   window.__v113={state:S, codes:function(){return CODES;}};

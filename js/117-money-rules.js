@@ -149,7 +149,7 @@
     if(/row-level security|42501|permission/i.test(m)) return fl('Only admins and managers change the rules.','المسؤولون والمدراء فقط يغيّرون القواعد.');
     if(typeof window.__v113Said==='function') return window.__v113Said(err);
     return fl('Could not save: ','تعذّر الحفظ: ')+m; }
-  function ask(msg,yes){ if(typeof window.askInPage==='function') window.askInPage(msg,yes); else if(confirm(msg)) yes(); }
+  function ask(msg,yes,opts){ if(typeof window.askInPage==='function') window.askInPage(msg,yes,opts); }   // 2026-09-28 (D19): no box, no action; never a native confirm()
   function val(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; }
 
   window.v117AddRule=function(kindPre,valEnc){ if(!canEdit())return;
@@ -168,7 +168,13 @@
         return false; });
   };
   window.v117SwitchRule=function(id,on){ if(!canEdit())return;
-    client().from('money_exclusion_rules').update({active:!!on}).eq('id',id).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); };
+    var go=function(){ client().from('money_exclusion_rules').update({active:!!on}).eq('id',id).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); };
+    if(on){ go(); return; }
+    /* 2026-09-28 (D19): switching a rule off asks first, naming it. The tick goes back on BEFORE the question, so a Cancel
+       leaves it showing the truth; only a Yes switches it off. No box, no change. */
+    var r0=(MR.rules||[]).filter(function(x){ return String(x.id)===String(id); })[0]||{}; var rv=String(r0.value||'').slice(0,60);
+    try{ var cb=document.querySelector('[data-v117-switch="'+String(id).replace(/"/g,'')+'"]'); if(cb) cb.checked=true; }catch(_){}
+    ask(fl('Switch off the rule "'+rv+'"? Its rows count again at once; switch it back on to leave them out again.','إيقاف القاعدة «'+rv+'»؟ تعود صفوفها للحساب فورًا؛ أعد تشغيلها لاستبعادها مجددًا.'),go,{danger:true,yes:'Switch off',yesAr:'إيقاف'}); };
   window.v117RemoveRule=function(id){ if(!canEdit())return;
     var r0=(MR.rules||[]).find(function(r){return r.id===id;}); if(!r0)return;
     ask(fl('Remove the rule "','إزالة القاعدة «')+r0.value+fl('"? Its rows count again at once. A removal is final — add it again if needed.','»؟ تعود صفوفها للحساب فورًا. الإزالة نهائية — أضفها من جديد عند الحاجة.'),function(){
@@ -261,7 +267,8 @@
         return false; });
   };
   window.v117RemoveCode=function(linkId){ if(!canMergeMR())return;
-    ask(fl('Take this code out of the company? Its sales go back to "Unassigned codes".','إزالة هذا الرمز من الشركة؟ تعود مبيعاته إلى «رموز غير مخصّصة».'),function(){
+    var cn=''; try{ var lk=(MR.links||[]).filter(function(l){return String(l.id)===String(linkId);})[0]; var pc=lk&&(MR.codes||[]).filter(function(p){return p.id===lk.promo_code_id;})[0]; cn=(pc&&pc.code)||''; }catch(_){}   // 2026-09-28 (D19): names the code
+    ask(fl('Take the code "'+cn+'" out of the company? Its sales go back to "Unassigned codes".','إزالة الرمز «'+cn+'» من الشركة؟ تعود مبيعاته إلى «رموز غير مخصّصة».'),function(){
       client().from('company_discount_codes').update({removed_at:new Date().toISOString()}).eq('id',linkId).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); }); };
   window.v117Log=function(){ if(typeof window.openChangeLog!=='function')return;
     /* every rule ever written, removed ones included — a switch-off, switch-on and removal are changes to a rule that may no
