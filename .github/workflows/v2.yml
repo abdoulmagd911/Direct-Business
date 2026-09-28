@@ -4,7 +4,8 @@ name: v2
 
 on:
   pull_request:
-    branches: [v2/main]
+    # v2/main, and a step's branch when the next step is stacked on it before it merges (BUILD-PLAN "Handing over").
+    branches: ['v2/**']
     paths: ['v2/**', 'docs/v2/**', '.github/workflows/v2.yml']
   push:
     branches: [v2/main]
