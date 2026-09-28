@@ -44,7 +44,7 @@
     '<input id="cl_pw" aria-label="'+L('Password','كلمة المرور')+'" type="password" dir="ltr" autocomplete="current-password" style="width:100%;box-sizing:border-box;margin:5px 0 6px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:16px">'+
     '<div style="text-align:'+(AR?'left':'right')+';margin:0 0 12px"><span id="cl_forgot" style="color:#FF6B00;font-size:12px;font-weight:700;cursor:pointer">'+L('Forgot password?','نسيت كلمة المرور؟')+'</span></div>'+
     '<button id="cl_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer;box-shadow:0 10px 22px -7px rgba(255,107,0,.5)">'+L('Sign in','تسجيل الدخول')+'</button>'+
-    '<div style="text-align:center;margin-top:14px;font-size:12px;color:#9AA1B6;line-height:1.6">'+L('Accounts are created by your admin.<br>Need access? Ask Abdulrahman.','الحسابات ينشئها المسؤول.<br>تحتاج صلاحية؟ اطلبها من عبدالرحمن.')+'</div>'+
+    '<div style="text-align:center;margin-top:14px;font-size:12px;color:#9AA1B6;line-height:1.6">'+L('Accounts are created by your admin.<br>Need access? Ask Abdurahman.','الحسابات ينشئها المسؤول.<br>تحتاج صلاحية؟ اطلبها من عبدالرحمن.')+'</div>'+
     '<div id="cl_busy" style="display:none;text-align:center;margin-top:12px;font-size:12px;color:#7C8194">'+L('Working...','جارٍ العمل...')+'</div>';
   // Boot splash: shown while we quietly check for an existing session, so a signed-in
   // person who reloads never sees the login form flash before the app appears.
@@ -60,7 +60,9 @@
   ov.appendChild(card);
   function showOverlay(){ if(!document.body.contains(ov)) document.body.appendChild(ov); }
   function hideOverlay(){ if(document.body.contains(ov)) ov.remove(); }
-  function err(m){var e=document.getElementById('cl_err');if(e){e.style.display='block';e.textContent=m;}}
+  /* 2026-09-27 (oversight's finding C): the message box is shared — "Forgot password?" turns it green for its success line
+     — and this used to change only the TEXT, so the next error (a wrong password) came up in green. An error is red. */
+  function err(m){var e=document.getElementById('cl_err');if(e){e.style.display='block';e.style.background='#F0453A14';e.style.color='#D92D20';e.textContent=m;}}
   function busy(b){var x=document.getElementById('cl_busy');if(x)x.style.display=b?'block':'none';var g=document.getElementById('cl_go');if(g)g.disabled=b;}
   var mode='in', formShown=false;
   // Swap the splash for the real login form — only when we actually need a sign-in.
@@ -351,13 +353,36 @@
     // Safety net: if the session check stalls (bad network), fall back to the login form
     // after a few seconds so nobody is ever stuck staring at the splash.
     setTimeout(function(){ if(!settled && !formShown){ showLoginForm(); } }, 6000);
+    /* 2026-09-27 (oversight's finding C): Supabase tells EVERY open tab of the site about a sign-in event, the recovery
+       one included. The owner keeps three accounts in one browser: a reset link opened in one tab made every other open
+       tab jump to "Set a new password" too — for whichever account that tab was showing. The screen now opens only in
+       the tab the link actually opened (its address carries the link: type=recovery, or a one-time ?code=). */
+    var openedFromLink=/[?&]code=/.test(location.search);
     sb.auth.onAuthStateChange(function(_e,s){
       if(s&&s.user){me=s.user;recoverySession=s;}
-      if(_e==='PASSWORD_RECOVERY'){ showRecovery(); }
+      if(_e==='PASSWORD_RECOVERY'&&openedFromLink){ showRecovery(); }
     });
   }
 
   var recoverySession=null;
+  /* 2026-09-27 (oversight's finding C): the length rule used to be told only AFTER Save was pressed. Now, as the person
+     types: how many of the MIN_PW characters they have, and whether the second box matches; Save looks ready only when
+     both are true (pressed early, it says exactly what is missing, as before). MIN_PW is the one constant (DECISIONS: equal to Supabase's own Auth minimum). */
+  function liveCheck(id1,id2,goId){
+    var a=document.getElementById(id1), b=document.getElementById(id2), go=document.getElementById(goId); if(!a||!b||!go) return;
+    var h1=document.createElement('div'), h2=document.createElement('div');
+    h1.id=id1+'_live'; h2.id=id2+'_live'; h1.style.cssText=h2.style.cssText='font-size:11.5px;font-weight:700;margin:-8px 0 10px';
+    a.parentNode.insertBefore(h1,a.nextSibling); b.parentNode.insertBefore(h2,b.nextSibling);
+    function upd(){
+      var n=a.value.length, ok=n>=MIN_PW, same=b.value.length>0&&a.value===b.value;
+      h1.style.color=ok?'#0B7A43':'#B54708';
+      h1.textContent=ok?L('✓ '+n+' characters — long enough','✓ '+n+' حرفًا — طول كافٍ'):L(n+' of '+MIN_PW+' characters','\u200f'+n+' من '+MIN_PW+' أحرف');
+      h2.style.color=same?'#0B7A43':'#B54708';
+      h2.textContent=!b.value?'':(same?L('✓ the two match','✓ متطابقتان'):L('does not match yet','غير متطابقة بعد'));
+      go.style.opacity=(ok&&same)?'':'.7';   /* Save still answers a press with the same exact message */
+    }
+    a.addEventListener('input',upd); b.addEventListener('input',upd); upd();
+  }
   function showRecovery(){
     showOverlay();
     /* 2026-08-22 — Abdulrahman clicked his own reset link, got a bare two-box dialogue with
@@ -377,6 +402,7 @@
       '<input id="rp_pw2" type="password" dir="ltr" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 16px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
       '<button id="rp_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer">'+L('Save new password','حفظ كلمة المرور الجديدة')+'</button>'+
       '<div style="text-align:center;margin-top:14px"><span id="rp_skip" style="color:#9AA1B6;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline">'+L('Only wanted to sign in — skip this','أردت تسجيل الدخول فقط — تخطَّ هذه الخطوة')+'</span></div>';
+    liveCheck('rp_pw1','rp_pw2','rp_go');
     document.getElementById('rp_go').onclick=function(){
       var p1=document.getElementById('rp_pw1').value,p2=document.getElementById('rp_pw2').value;
       if(!p1||p1.length<MIN_PW){ err(L('Password must be at least '+MIN_PW+' characters.','يجب ألا تقل كلمة المرور عن '+MIN_PW+' أحرف.')); return; }
@@ -399,7 +425,7 @@
   function showPending(){
     showOverlay();
     card.innerHTML='<div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#1C1E2B;margin-bottom:8px">'+L('Access not active yet','الصلاحية غير مفعّلة بعد')+'</div>'+
-      '<div style="font-size:13px;color:#55596A;line-height:1.7;margin-bottom:18px">'+L('This account is switched off.<br>Ask <b>Abdulrahman</b> to switch your access on in <b>Team</b>, then sign in again.','هذا الحساب موقوف.<br>اطلب من <b>عبدالرحمن</b> تفعيل صلاحيتك من <b>الفريق</b>، ثم سجّل الدخول مجددًا.')+'</div>'+
+      '<div style="font-size:13px;color:#55596A;line-height:1.7;margin-bottom:18px">'+L('This account is switched off.<br>Ask <b>Abdurahman</b> to switch your access on in <b>Team</b>, then sign in again.','هذا الحساب موقوف.<br>اطلب من <b>عبدالرحمن</b> تفعيل صلاحيتك من <b>الفريق</b>، ثم سجّل الدخول مجددًا.')+'</div>'+
       '<button id="pd_out" style="width:100%;padding:12px;border:1px solid #E3DCCF;border-radius:12px;background:#fff;color:#1C1E2B;font:inherit;font-size:14px;font-weight:700;cursor:pointer">'+L('Sign out','تسجيل الخروج')+'</button></div>';
     document.getElementById('pd_out').onclick=function(){ sb.auth.signOut().then(function(){ location.reload(); }); };
   }
@@ -414,16 +440,25 @@
       function askAdmin(extra){
         if(!e2)return;
         e2.style.display='block'; e2.style.background='#F7900914'; e2.style.color='#B54708';
-        e2.innerHTML=(extra?extra+'<br>':'')+L('Ask <b>Abdulrahman</b> to reset your password.<br>He opens <b>Team</b> in the app, clicks <b>Reset password</b> next to your name, and sends you a new temporary one.','اطلب من <b>عبدالرحمن</b> إعادة تعيين كلمة المرور.<br>يفتح <b>الفريق</b> في التطبيق، ويضغط <b>إعادة تعيين كلمة المرور</b> بجانب اسمك، ويرسل لك كلمة مؤقتة جديدة.');
+        e2.innerHTML=(extra?extra+'<br>':'')+L('Ask <b>Abdurahman</b> to send you a reset link.<br>He opens <b>Team &amp; Access</b> in the app and clicks <b>Send reset link</b> next to your name.','اطلب من <b>عبدالرحمن</b> أن يرسل لك رابط إعادة التعيين.<br>يفتح <b>الفريق والصلاحيات</b> في التطبيق ويضغط <b>إرسال رابط إعادة التعيين</b> بجانب اسمك.');
       }
-      if(!email){ askAdmin(L('Type your email above first if you want a reset link.','اكتب بريدك الإلكتروني أعلاه أولًا إن أردت رابط إعادة تعيين.')); return; }
+      if(!email){ askAdmin(L('Type your email in the box below first if you want a reset link.','اكتب بريدك الإلكتروني في الخانة أدناه أولًا إن أردت رابط إعادة تعيين.')); return; }
       busy(true);
+      /* 2026-09-27 (oversight's finding C). Supabase answers "done" for ANY address — one with no account included, so
+         nobody can use this box to find out who has an account — which means "a link is on its way" is only true if the
+         address has an account here. The line says exactly that. What Supabase DOES refuse is said as a refusal, in red:
+         its email limit (a few reset emails an hour, per address and overall) and anything else it names. Measured
+         2026-09-27: a request from this box reached business@'s inbox in under a minute and the link worked. */
       sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin}).then(function(r){
         busy(false);
-        if(r.error){ askAdmin(''); return; }
+        if(r.error){
+          var m=String(r.error.message||r.error), limited=(r.error.status===429)||/rate limit|security purposes|too many/i.test(m);
+          if(limited){ err(L('Too many reset emails in a short time — Supabase allows only a few an hour. Wait a few minutes, then try once more.','طلبات كثيرة لإعادة التعيين في وقت قصير — يسمح Supabase بعدد قليل في الساعة. انتظر بضع دقائق ثم حاول مرة واحدة.')); return; }
+          err(L('The reset email could not be sent: ','تعذّر إرسال بريد إعادة التعيين: ')+m); return;
+        }
         if(e2){ e2.style.display='block'; e2.style.background='#16B36414'; e2.style.color='#0B7A43';
-          e2.innerHTML=L('If email is switched on, a reset link is on its way to <b>'+email.replace(/</g,'&lt;')+'</b>.<br>Nothing after a few minutes? Ask Abdulrahman to reset it for you in <b>Team</b>.','إن كان البريد مفعّلًا، فرابط إعادة التعيين في طريقه إلى <b>'+email.replace(/</g,'&lt;')+'</b>.<br>لم يصلك شيء بعد دقائق؟ اطلب من عبدالرحمن إعادة تعيينها لك من <b>الفريق</b>.'); }
-      }).catch(function(){ busy(false); askAdmin(''); });
+          e2.innerHTML=L('If <b>'+email.replace(/</g,'&lt;')+'</b> has an account here, a reset link is on its way — it usually arrives within a minute; check the spam folder too.<br>Nothing after ten minutes? Ask <b>Abdurahman</b> to send one from <b>Team &amp; Access</b>.','إن كان لـ <b>'+email.replace(/</g,'&lt;')+'</b> حساب هنا، فرابط إعادة التعيين في طريقه إليك — يصل عادةً خلال دقيقة؛ تحقّق من مجلد الرسائل غير المرغوب فيها أيضًا.<br>لم يصلك شيء بعد عشر دقائق؟ اطلب من <b>عبدالرحمن</b> إرساله من <b>الفريق والصلاحيات</b>.'); }
+      }).catch(function(e){ busy(false); err(L('The reset email could not be sent — the connection failed. Try again in a moment.','تعذّر إرسال بريد إعادة التعيين — فشل الاتصال. حاول مرة أخرى بعد لحظة.')); });
     };
   }
 
@@ -436,7 +471,7 @@
       busy(false);
       if(r.error){
         if(/invalid login credentials/i.test(r.error.message||'')){
-          err(L('Wrong email or password. If you forgot it, click "Forgot password?" above — your admin can issue a new one.','البريد الإلكتروني أو كلمة المرور غير صحيحة. إن نسيتها، اضغط «نسيت كلمة المرور؟» أعلاه — ويمكن للمسؤول إصدار كلمة جديدة لك.'));
+          err(L('Wrong email or password. If you forgot it, click "Forgot password?" below — a reset link comes to your email.','البريد الإلكتروني أو كلمة المرور غير صحيحة. إن نسيتها، اضغط «نسيت كلمة المرور؟» أدناه — ويصلك رابط إعادة التعيين على بريدك.'));
         } else { err(r.error.message); }
         return;
       }
@@ -556,6 +591,7 @@
       '<label style="font-size:12px;font-weight:700;color:#55596A">'+L('Repeat new password','أعد كتابة كلمة المرور الجديدة')+'</label>'+
       '<input id="fl_pw2" type="password" dir="ltr" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:5px 0 16px;padding:11px 12px;border:1px solid #E3DCCF;border-radius:11px;font:inherit;font-size:14px">'+
       '<button id="fl_go" style="width:100%;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#FF6B00,#FF9A4D);color:#fff;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer">'+L('Save and continue','حفظ ومتابعة')+'</button>';
+    liveCheck('fl_pw1','fl_pw2','fl_go');
     document.getElementById('fl_go').onclick=function(){
       var p1=document.getElementById('fl_pw1').value,p2=document.getElementById('fl_pw2').value;
       if(!p1||p1.length<MIN_PW){ err(L('Use at least '+MIN_PW+' characters.','استخدم '+MIN_PW+' أحرف على الأقل.')); return; }
@@ -727,6 +763,10 @@
     var old=document.getElementById('teamModal'); if(old)old.remove();
     var ov=el('div','position:fixed;inset:0;z-index:2147481500;background:rgba(20,22,35,.55);display:flex;align-items:flex-start;justify-content:center;padding:36px 20px;overflow:auto');
     ov.id='teamModal';
+    /* 2026-09-27: Escape closes this window like every other box in the app (the sign-in overlay itself stays put — there
+       is nothing behind it for someone who is not signed in) */
+    var escT=function(e){ if(e.key==='Escape'){ var m=document.getElementById('teamModal'); if(m) m.remove(); document.removeEventListener('keydown',escT); } };
+    document.addEventListener('keydown',escT);
     var box=el('div','background:#fff;border-radius:16px;max-width:760px;width:100%;padding:24px 26px;font-family:inherit');
     box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
       '<div style="font-size:18px;font-weight:800">Team access</div>'+
