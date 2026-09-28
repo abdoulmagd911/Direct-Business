@@ -1683,6 +1683,151 @@ def _(cur):
     others = [row(cur, x, "counts::text") for x in rest]
     return (got == 'true|true' and others == ['false'] * 4, f"audit-required → {got} · pending/void/cancelled/draft → {others}")
 
+
+# ================= cost import (D24, second builder, 28 Sep 2026): the raw Payments cost exports =================
+def cl(ref, n, typ, status, amount, created, **kw):
+    """one Transaction Expense Export line, as js/120 sends it (line_key = ref|type|created)"""
+    d = {'ref': ref, 'line_key': ref + '|' + typ.lower() + '|' + created, 'expense_type': typ, 'status': status,
+         'status_raw': status, 'amount_sar': amount, 'created_on': created}
+    d.update(kw); return d
+def ci(cur, lines=(), facts=(), seen='2026-09-27T10:00:00+03:00', wfrom=None, wto=None):
+    return json.loads(json.dumps(one(cur, "select fn_cost_import(p_lines := %s::jsonb, p_facts := %s::jsonb, p_seen_at := %s, p_window_from := %s, p_window_to := %s, p_batch := 'qa')",
+        (json.dumps(list(lines)), json.dumps(list(facts)), seen, wfrom, wto))))
+def cost(cur, no):
+    return one(cur, "select coalesce(cost_sar::float::text,'∅')||'|'||coalesce(profit_sar::float::text,'∅') from finance_invoices where invoice_no=%s and deleted_at is null", (no,))
+T1, T2, T3 = '2026-07-01T10:00:00+03:00', '2026-07-01T11:00:00+03:00', '2026-07-02T09:00:00+03:00'
+
+@test("COST-01 Only APPROVED expense lines are cost — Pending (blank amount), Under Review, Cancelled and Rejected never; the profit follows")
+def _(cur):
+    fi(cur, 'CI-1', 1000)
+    as_user(cur, 'u4')
+    r = ci(cur, [cl('CI-1', 1, 'Hotel Cost', 'approved', 400.255, T1), cl('CI-1', 2, 'Airline Fees', 'approved', 100, T2),
+                 cl('CI-1', 3, 'Hotel Cost', 'pending', None, T3), cl('CI-1', 4, 'Visa', 'under_review', 30, T3),
+                 cl('CI-1', 5, 'Insurance', 'cancelled', 20, T3), cl('CI-1', 6, 'Submission', 'rejected', 10, T3)])
+    got = cost(cur, 'CI-1'); q(cur, "reset role")
+    return (got == '500.26|499.74' and r['lines_new'] == 6 and r['cost_set'] == 1, f"cost|profit={got} · result={r}")
+
+@test("COST-02 A reference with no money row is HELD: nothing stored, no invoice row made, and it is counted")
+def _(cur):
+    as_user(cur, 'u4')
+    r = ci(cur, [cl('CI-NONE', 1, 'Hotel Cost', 'approved', 999, T1)])
+    n_inv = one(cur, "select count(*) from finance_invoices where invoice_no='CI-NONE'")
+    n_lines = one(cur, "select count(*) from finance_expense_lines where ref='CI-NONE'"); q(cur, "reset role")
+    return (r['refs_held'] == 1 and n_inv == 0 and n_lines == 0, f"held={r['refs_held']} · invoice rows={n_inv} · lines stored={n_lines}")
+
+@test("COST-03 The same file twice changes nothing — no line, no cost, no change-log entry")
+def _(cur):
+    fi(cur, 'CI-3', 800)
+    L = [cl('CI-3', 1, 'Hotel Cost', 'approved', 300, T1, merchant='rate_hawk'), cl('CI-3', 2, 'Hotel Cost', 'pending', None, T2)]
+    as_user(cur, 'u4'); ci(cur, L)
+    h1 = one(cur, "select count(*) from record_history where table_name in ('finance_expense_lines','finance_invoices','finance_payments_facts')")
+    r = ci(cur, L)
+    h2 = one(cur, "select count(*) from record_history where table_name in ('finance_expense_lines','finance_invoices','finance_payments_facts')")
+    got = cost(cur, 'CI-3'); q(cur, "reset role")
+    return (r['lines_new'] == 0 and r['lines_changed'] == 0 and r['cost_same'] == 1 and h1 == h2 and got == '300|500',
+            f"second run={r} · change-log rows before/after={h1}/{h2} · cost|profit={got}")
+
+@test("COST-04 A NEWER file wins: a line now Cancelled (no decision date) drops out; when every approved line is gone, the cost this import wrote is taken back (empty, not 0)")
+def _(cur):
+    fi(cur, 'CI-4', 1000)
+    as_user(cur, 'u4')
+    ci(cur, [cl('CI-4', 1, 'Hotel Cost', 'approved', 300, T1, decided_on=T3), cl('CI-4', 2, 'Visa', 'approved', 200, T2, decided_on=T3)], seen='2026-08-01T10:00:00+03:00')
+    a = cost(cur, 'CI-4')
+    ci(cur, [cl('CI-4', 1, 'Hotel Cost', 'cancelled', 300, T1), cl('CI-4', 2, 'Visa', 'approved', 200, T2, decided_on=T3)], seen='2026-09-01T10:00:00+03:00')
+    b = cost(cur, 'CI-4')
+    r = ci(cur, [cl('CI-4', 1, 'Hotel Cost', 'cancelled', 300, T1), cl('CI-4', 2, 'Visa', 'cancelled', 200, T2)], seen='2026-09-02T10:00:00+03:00')
+    c = cost(cur, 'CI-4'); miss = one(cur, "select cost_missing from money_rows where invoice_no='CI-4'"); q(cur, "reset role")
+    return (a == '500|500' and b == '200|800' and c == '∅|∅' and miss is True and r['cost_cleared'] == 1, f"{a} → {b} → {c} (cost_missing={miss}) · {r}")
+
+@test("COST-05 An OLDER file arriving after a newer one only fills what is empty: an approved line is not put back to Pending, a blank merchant is filled")
+def _(cur):
+    fi(cur, 'CI-5', 1000)
+    as_user(cur, 'u4')
+    ci(cur, [cl('CI-5', 1, 'Hotel Cost', 'approved', 450, T1, decided_on=T3)], seen='2026-09-20T10:00:00+03:00')
+    r = ci(cur, [cl('CI-5', 1, 'Hotel Cost', 'pending', None, T1, merchant='rate_hawk')], seen='2026-08-20T10:00:00+03:00')
+    st = one(cur, "select status||'|'||amount_sar::float||'|'||coalesce(merchant,'∅') from finance_expense_lines where ref='CI-5'")
+    got = cost(cur, 'CI-5'); q(cur, "reset role")
+    return (st == 'approved|450|rate_hawk' and got == '450|550', f"line={st} · cost|profit={got} · {r}")
+
+@test("COST-06 Lines are replaced per reference only INSIDE the dates a newer file covers: a partial file drops the line it no longer lists inside its dates, and never touches lines outside them")
+def _(cur):
+    fi(cur, 'CI-6', 5000)
+    early, inside, gone = '2026-06-01T10:00:00+03:00', '2026-06-20T10:00:00+03:00', '2026-06-21T10:00:00+03:00'
+    as_user(cur, 'u4')
+    ci(cur, [cl('CI-6', 1, 'Hotel Cost', 'approved', 1000, early), cl('CI-6', 2, 'Visa', 'approved', 300, inside), cl('CI-6', 3, 'Visa', 'approved', 70, gone)],
+       seen='2026-07-01T10:00:00+03:00')
+    r = ci(cur, [cl('CI-6', 2, 'Visa', 'approved', 300, inside)], seen='2026-07-02T10:00:00+03:00',
+           wfrom='2026-06-19T00:00:00+03:00', wto='2026-06-22T23:59:59+03:00')
+    keys = one(cur, "select string_agg(split_part(line_key,'|',2)||'@'||to_char(created_on at time zone 'Asia/Riyadh','MM-DD'),',' order by created_on) from finance_expense_lines where ref='CI-6'")
+    got = cost(cur, 'CI-6'); q(cur, "reset role")
+    return (r['lines_dropped'] == 1 and keys == 'hotel cost@06-01,visa@06-20' and got == '1300|3700', f"lines left={keys} · cost|profit={got} · {r}")
+
+@test("COST-07 Never touched: a hand-entered row (D3), a commission (no cost by nature), a reference with several money rows (left for a person); a cost someone else wrote is not taken back")
+def _(cur):
+    one(cur, "insert into finance_invoices(invoice_no,line_no,client_group,invoice_date,revenue_sar,integrity_status,source) values ('CI-HAND',1,'D1 Test Co','2026-03-11',700,'verified_paid','manual') returning id")
+    fi(cur, 'CI-COM', 900, revenue_way='commission'); fi(cur, 'CI-2R', 500); fi(cur, 'CI-2R', 600, line_no=2)
+    fi(cur, 'CI-OTHER', 900); q(cur, "update finance_invoices set cost_sar=640 where invoice_no='CI-OTHER'")
+    as_user(cur, 'u4')
+    r = ci(cur, [cl(x, 1, 'Hotel Cost', 'approved', 100, T1) for x in ('CI-HAND', 'CI-COM', 'CI-2R')] + [cl('CI-OTHER', 1, 'Hotel Cost', 'cancelled', 100, T1)])
+    got = [cost(cur, x) for x in ('CI-HAND', 'CI-COM', 'CI-OTHER')]
+    two = one(cur, "select string_agg(coalesce(cost_sar::text,'∅'),',' order by line_no) from finance_invoices where invoice_no='CI-2R'"); q(cur, "reset role")
+    return (r['manual'] == 1 and r['commission'] == 1 and r['several_rows'] == 1 and got == ['∅|∅', '∅|900', '640|260'] and two == '∅,∅',
+            f"hand|commission|someone else's={got} · several rows={two} · {r}")
+
+@test("COST-08 Only Full control of Finance imports cost; a View person is refused and cannot write the new tables; anon reads nothing")
+def _(cur):
+    fi(cur, 'CI-8', 1000)
+    as_user(cur, 'u6'); a, am = expect_fail(cur, "select fn_cost_import(p_lines := %s::jsonb)", (json.dumps([cl('CI-8', 1, 'Hotel Cost', 'approved', 1, T1)]),), "Full control of Finance")
+    b, _ = expect_fail(cur, "insert into finance_expense_lines(ref,line_key,status) values ('CI-8','x','approved')", None, "row-level security")
+    seen = one(cur, "select count(*) from finance_expense_lines"); q(cur, "reset role")
+    q(cur, "set local role anon"); c, _ = expect_fail(cur, "select count(*) from finance_payments_facts", None, "permission denied"); q(cur, "reset role")
+    return (a and b and c and seen == 0, f"view person refused={a} ({am[:60]}) · direct insert refused={b} · anon refused={c}")
+
+@test("COST-09 Any order: a money row that arrives after its lines (imported again after it was removed) takes its cost from them at once — and the profit with it")
+def _(cur):
+    i = fi(cur, 'CI-9', 1000)
+    as_user(cur, 'u4'); ci(cur, [cl('CI-9', 1, 'Hotel Cost', 'approved', 350, T1)]); q(cur, "reset role")
+    q(cur, "delete from finance_invoices where id=%s", (i,))   # gone (a soft-deleted row keeps its number, so it is never re-imported)
+    as_user(cur, 'u4')
+    one(cur, "select fn_commit_finance_import(p_insert := %s::jsonb)", (json.dumps([{'invoice_no': 'CI-9', 'client_group': 'D1 Test Co', 'invoice_date': '2026-03-10',
+        'total_incl_vat_sar': 1000, 'integrity_status': 'verified_paid', 'payments_status': 'Fully Paid'}]),))
+    got = cost(cur, 'CI-9'); q(cur, "reset role")
+    return (got == '350|650', f"re-imported row cost|profit={got}")
+
+@test("COST-10 The Expense Invoice Export's Overdue is the newer file's (a blank clears it); the Revenue Report keeps only the submitted expenses; references without a money row are held")
+def _(cur):
+    fi(cur, 'CI-10', 1000)
+    as_user(cur, 'u4')
+    ci(cur, facts=[{'ref': 'CI-10', 'kind': 'ei', 'overdue': '1 Overdue', 'expense_assignments': '1 Pending', 'invoice_status': 'Fully Paid'}], seen='2026-09-01T10:00:00+03:00')
+    a = one(cur, "select coalesce(overdue,'∅')||'|'||expense_assignments from finance_payments_facts where ref='CI-10'")
+    ci(cur, facts=[{'ref': 'CI-10', 'kind': 'ei', 'overdue': None, 'expense_assignments': '1 Approved', 'invoice_status': 'Fully Paid'}], seen='2026-09-02T10:00:00+03:00')
+    b = one(cur, "select coalesce(overdue,'∅')||'|'||expense_assignments from finance_payments_facts where ref='CI-10'")
+    r = ci(cur, facts=[{'ref': 'CI-10', 'kind': 'rr', 'rr_total_expense_sar': 812.5}, {'ref': 'CI-CONSUMER', 'kind': 'rr', 'rr_total_expense_sar': 5}])
+    c = one(cur, "select rr_total_expense_sar::float from finance_payments_facts where ref='CI-10'")
+    stray = one(cur, "select count(*) from finance_payments_facts where ref='CI-CONSUMER'")
+    cst = cost(cur, 'CI-10'); q(cur, "reset role")
+    return (a == '1 Overdue|1 Pending' and b == '∅|1 Approved' and c == 812.5 and stray == 0 and r['refs_held'] == 1 and cst == '∅|∅',
+            f"{a} → {b} · revenue-report expenses={c} · consumer ref stored={stray} · cost stays empty={cst}")
+
+_cc = conn(); _has_fallback = one(_cc.cursor(), "select count(*) from information_schema.columns where table_name='money_rows' and column_name='est_cost_source'"); _cc.close()
+if _has_fallback:   # cost-fallback.sql builds on D23 (#57); until both are applied this test has nothing to test
+    @test("COST-11 The cost fallback, in order: approved lines, then the Revenue Report's submitted expenses, then the D23 pass-through — the last two only as a flagged estimate beside the cost")
+    def _(cur):
+        fi(cur, 'CI-11', 1000); fi(cur, 'CI-11C', 900, revenue_way='commission')
+        one(cur, "insert into finance_invoice_lines(invoice_no,line_no,kind,name,item_total_sar) values ('CI-11',1,'item','Hotel Booking - CI Pass Cost',700) returning id")
+        one(cur, "insert into money_item_classes(name,class) values ('CI Pass Cost','pass_through') returning id")
+        est = lambda: one(cur, "select coalesce(est_cost_sar::float::text,'∅')||'|'||cost_estimated||'|'||coalesce(est_cost_source,'∅')||'|'||coalesce(cost_sar::float::text,'∅') from money_rows where invoice_no='CI-11'")
+        as_user(cur, 'u4')
+        a = est()
+        ci(cur, facts=[{'ref': 'CI-11', 'kind': 'rr', 'rr_total_expense_sar': 820}, {'ref': 'CI-11C', 'kind': 'rr', 'rr_total_expense_sar': 50}]); b = est()
+        ci(cur, facts=[{'ref': 'CI-11', 'kind': 'rr', 'rr_total_expense_sar': 0}], seen='2026-09-28T10:00:00+03:00'); zero = est()
+        ci(cur, [cl('CI-11', 1, 'Hotel Cost', 'approved', 760, T1)], seen='2026-09-28T11:00:00+03:00'); d = est()
+        com = one(cur, "select coalesce(est_cost_sar::text,'∅') from money_rows where invoice_no='CI-11C'")
+        kpi = one(cur, "select coalesce(est_cost_source,'∅')||'|'||cost_sar::float from finance_lines where invoice_no='CI-11'"); q(cur, "reset role")
+        ok = (a == '700|true|pass_through|∅' and b == '820|true|submitted_expenses|∅' and zero == '700|true|pass_through|∅'
+              and d == '∅|false|∅|760' and com == '∅' and kpi == '∅|760')
+        return (ok, f"pass-through only={a} · + revenue report={b} · report says 0={zero} · approved lines arrive={d} · commission={com} · KPI source={kpi}")
+
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]
 print(f"\n{len(results)-len(fails)}/{len(results)} passed"); sys.exit(1 if fails else 0)
