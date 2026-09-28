@@ -219,6 +219,21 @@
         '</tr>';
       }).join(''):'<tr><td colspan="'+cols+'" style="padding:22px;text-align:center;color:var(--muted)">'+fl('No individual bookings recorded yet.','لا حجوزات فردية مسجلة بعد.')+'</td></tr>')+
       '</tbody></table></div></div>';
+    /* F22 (D25, 28 Sep): imported invoices whose customer a person marked "Individual (not a company)" on Finance → Rules →
+       Needs a decision — read-only, as Payments recorded them; they already count in Revenue like any paid sale */
+    try{
+      var ind=(typeof window.finIndividualNames==='function')?window.finIndividualNames():{};
+      var nk=function(t){ var x=String(t==null?'':t); try{ x=x.normalize('NFKC'); }catch(_){} x=x.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[\u064B-\u065F\u0670\u0640]/g,''); return x.replace(/[^\p{L}\p{N}]+/gu,''); };
+      var imp=((window.FIN&&FIN.rows)||[]).filter(function(r){ return !r.deleted_at&&r.revenue_way!=='b2c_manual'&&ind[nk(r.customer_raw_name||r.client_group)]; })
+        .sort(function(a,b){ return String(b.invoice_date||'').localeCompare(String(a.invoice_date||'')); });
+      var names=Object.keys(ind).map(function(k){ return ind[k]; });
+      h+='<div class="card" data-b2c-imported="'+imp.length+'" style="padding:16px;margin-top:14px"><h3 style="margin:0 0 4px;font-size:14px">'+fl('Imported invoices of individuals','فواتير مستوردة لأفراد')+' · '+imp.length+'</h3>'+
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">'+fl('Customers marked “Individual (not a company)” on Finance → Rules → Needs a decision. Read-only, as Payments recorded them; they already count in Revenue.','عملاء عُلِّموا «فرد (ليس شركة)» في المالية ← القواعد ← يحتاج قرارًا. للقراءة فقط كما سجّلها النظام؛ وهي محتسبة في الإيراد.')+'</div>'+
+        (names.length?'<div style="font-size:12px;margin-bottom:8px">'+names.map(function(x){ return '<span class="tag" data-b2c-ind="'+esc(x.name)+'">'+esc(x.name)+(editable?' <a href="javascript:void(0)" onclick="v117Individual.remove(\''+esc(x.id)+'\',\''+esc(x.name).replace(/'/g,'&#39;')+'\')" title="'+esc(fl('Back to Needs a decision','إعادة إلى «يحتاج قرارًا»'))+'">×</a>':'')+'</span>'; }).join(' ')+'</div>':'')+
+        (imp.length?'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:640px"><thead><tr>'+th(fl('Date','التاريخ'))+th(fl('Individual','الفرد'))+th(fl('Service','الخدمة'))+th(fl('Status','الحالة'))+th(fl('Invoice #','رقم الفاتورة'))+th(fl('Amount','المبلغ'),1)+'</tr></thead><tbody>'+
+          imp.map(function(r){ return '<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:7px 9px;white-space:nowrap">'+esc(r.invoice_date)+'</td><td style="padding:7px 9px;font-weight:600">'+esc(r.customer_raw_name||r.client_group)+'</td><td style="padding:7px 9px">'+esc(svcLbl(r.service_type)||'—')+'</td><td style="padding:7px 9px">'+esc(r.payments_status||(r.integrity_status==='verified_paid'?fl('Paid','مدفوع'):fl('Pending','معلّق')))+'</td><td style="padding:7px 9px;color:var(--muted);font-size:11.5px">'+esc(r.invoice_no)+'</td><td style="padding:7px 9px;text-align:right;font-variant-numeric:tabular-nums">'+m0(r.total_incl_vat_sar)+'</td></tr>'; }).join('')+'</tbody></table></div>'
+         :'<div class="empty" style="padding:4px 0;font-size:12.5px">'+fl('None yet — mark a customer name as an individual on Finance → Rules → Needs a decision.','لا شيء بعد — علّم اسم عميل فردًا في المالية ← القواعد ← يحتاج قرارًا.')+'</div>')+'</div>';
+    }catch(_){}
     return h;
   }
 

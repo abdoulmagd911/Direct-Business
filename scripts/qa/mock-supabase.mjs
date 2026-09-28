@@ -96,7 +96,7 @@ const TABLES={
       {key:'tender_value',label_en:'Tender value',label_ar:'قيمة المناقصة',type:'number'},
       {key:'research_status',label_en:'Research status',label_ar:'حالة البحث',type:'select:pending,done'},
     ]}],
-  money_item_classes:[], finance_invoice_lines:[], payment_receipts:[], money_services:[], money_product_services:[], money_item_services:[],
+  money_item_classes:[], finance_invoice_lines:[], payment_receipts:[], money_services:[], money_product_services:[], money_item_services:[], money_individuals:[],
   finance_invoices:[...Array(15)].map((_,i)=>{const _svc=['Flights','Hotels','Visa','Support Services','Packages'][i%5];const _mo=['January','February','March','April','May','June'][i%6];const _q='Q'+(Math.floor((i%6)/3)+1);const _tot=5000+i*777;const _cost=_svc==='Support Services'?null:Math.round(_tot*0.88);/* D1: no cost recorded is EMPTY (null), never 0 *//* 2026-09-02 (round 38): this fixture used to store revenue = total − cost and profit = revenue,
        which the live database could never produce. The trigger finance_derive_fields defines
        revenue = total − wallet and profit = revenue − cost, and 12 of these 17 rows broke the
@@ -1529,11 +1529,11 @@ export function start(port, seedOverrides){
     }
     /* D24 (28 Sep): the three service lists — Full on Finance writes (no role); a name never changes; a removal is final;
        nothing is deleted; every change logged (d24-income-by-service.sql) */
-    if(['money_services','money_product_services','money_item_services'].indexOf(t)>=0&&req.method!=='GET'){
+    if(['money_services','money_product_services','money_item_services','money_individuals'].indexOf(t)>=0&&req.method!=='GET'){
       let body=''; req.on('data',c=>body+=c);
       return req.on('end',()=>{
         let pl={}; try{ pl=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON'}); }
-        const KEY={money_services:'name',money_product_services:'product',money_item_services:'item'}[t], NORM=t==='money_item_services'?mockItemHead:mockMoneyNorm;
+        const KEY={money_services:'name',money_product_services:'product',money_item_services:'item',money_individuals:'name'}[t], NORM=t==='money_item_services'?mockItemHead:mockMoneyNorm;
         const list=TABLES[t]=TABLES[t]||[]; const now=new Date().toISOString(), nm=meMR.full_name||meMR.email||null;
         const P=(c,m)=>send(res,400,{code:c,details:null,hint:null,message:m});
         const mayList=finLvlMR==='full';
@@ -1544,7 +1544,7 @@ export function start(port, seedOverrides){
           for(const r0 of rows0){
             const v=String(r0[KEY]==null?'':r0[KEY]).trim();
             if(!NORM(v)) return P('23514','new row for relation "'+t+'" violates check constraint');
-            if(t!=='money_services'&&!(TABLES.money_services||[]).some(x=>x.id===r0.service_id)) return P('23503','insert or update on table "'+t+'" violates foreign key constraint');
+            if(t!=='money_services'&&t!=='money_individuals'&&!(TABLES.money_services||[]).some(x=>x.id===r0.service_id)) return P('23503','insert or update on table "'+t+'" violates foreign key constraint');
             if(list.some(x=>!x.removed_at&&NORM(x[KEY])===NORM(v))) return P('23505','duplicate key value violates unique constraint "'+t+'_one_live"');
             const row=Object.assign({id:t.slice(6,9)+'-'+Math.random().toString(36).slice(2)},r0,{[KEY]:v,created_by:UID,created_by_name:nm,created_at:now,updated_by:null,updated_by_name:null,updated_at:null,removed_by:null,removed_by_name:null,removed_at:null});
             if(t==='money_services'){ if(row.sort_order==null) row.sort_order=100; if(row.counts_as_income==null) row.counts_as_income=true; }
@@ -1567,7 +1567,7 @@ export function start(port, seedOverrides){
         return send(res,405,{message:'method'});
       });
     }
-    if(['money_services','money_product_services','money_item_services','money_service_rows'].indexOf(t)>=0&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
+    if(['money_services','money_product_services','money_item_services','money_service_rows','money_individuals'].indexOf(t)>=0&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
     if((t==='money_item_classes'||t==='finance_invoice_lines')&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
     /* company_name_aliases (E, 27 Sep): a customer name typed into a company — admins and managers write, one company per
        name however spelled, a name is never re-pointed, a removal is final */

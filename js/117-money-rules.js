@@ -65,11 +65,13 @@
       c.from('money_exclusion_rules').select('*').is('removed_at',null).order('created_at',{ascending:true}),
       c.from('company_discount_codes').select('id,business_id,promo_code_id,note,linked_at').is('removed_at',null),
       c.from('promo_codes').select('id,code,kind,value_pct').order('code',{ascending:true}),
-      c.from('company_name_aliases').select('id,business_id,name,created_by_name,created_at').is('removed_at',null)
+      c.from('company_name_aliases').select('id,business_id,name,created_by_name,created_at').is('removed_at',null),
+      c.from('money_individuals').select('id,name,created_by_name,created_at').is('removed_at',null)   // F22 (D25); unreadable before the change lands → none
     ]).then(function(r){
       MR.loading=false;
       MR.err=(r[0]&&r[0].error)?String(r[0].error.message||r[0].error):null;
       MR.rules=(r[0]&&r[0].data)||[]; MR.links=(r[1]&&r[1].data)||[]; MR.codes=(r[2]&&r[2].data)||[]; MR.aliases=(r[3]&&r[3].data)||[];
+      MR.individuals=(r[4]&&!r[4].error&&r[4].data)||[]; window.finIndividualNames=function(){ var o={}; (MR.individuals||[]).forEach(function(x){ o[normMR(x.name)]=x; }); return o; };
       if(!window.CP||window.CP.rows==null){ if(typeof window.cpLoad==='function') window.cpLoad(function(){ redraw(); }); }
       if(cb)cb(); redraw();
     },function(err){ MR.loading=false; MR.err=String((err&&err.message)||err); MR.rules=[]; redraw(); });
@@ -207,6 +209,18 @@
     } else { var a=aliasOwner(key); if(a){ var ab=bizIndex()[a.business_id]; alert(fl('The name "','الاسم «')+key+fl('" already belongs to ','» مسجّل بالفعل لـ ')+((ab&&ab.name)||fl('another company','شركة أخرى'))+fl('. A name belongs to one company only — remove it there first.','. الاسم لشركة واحدة فقط — أزله من هناك أولًا.')); return; }
       c.from('company_name_aliases').insert({business_id:biz,name:key}).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } if(done)done(); refreshAll(); }); }
   }
+  /* F22 (D25, the oversight 28 Sep): a customer name decided to be a private individual — kept on money_individuals (Full on
+     Finance, logged, never deleted); its invoices still count (a paid sale is a sale) and are listed on Individual bookings */
+  window.v117Individual=function(nameEnc){
+    var nm=decodeURIComponent(nameEnc||''); if(!nm) return;
+    var go=function(){ client().from('money_individuals').insert({name:nm}).select('id').then(function(r){ var m=refused(r); if(m){ alert(/one_live/.test(m)?fl('That name is already marked as an individual.','هذا الاسم معلَّم فردًا من قبل.'):m); return; } refreshAll(); }); };
+    if(typeof window.pfConfirm==='function') window.pfConfirm(fl('Mark "','تعليم «')+nm+fl('" as a private individual, not a company? Its invoices still count and are listed on Individual bookings. It can be undone on the list there.','» فردًا وليس شركة؟ تبقى فواتيره محتسبة وتظهر في «الحجوزات الفردية». ويمكن التراجع من القائمة هناك.'),go,{});
+    else go();
+  };
+  window.v117Individual.remove=function(id,name){
+    var go=function(){ client().from('money_individuals').update({removed_at:new Date().toISOString()}).eq('id',id).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); };
+    if(typeof window.pfConfirm==='function') window.pfConfirm(fl('Take "','إعادة «')+name+fl('" back to Needs a decision? Its invoices stay as they are.','» إلى «يحتاج قرارًا»؟ تبقى فواتيره كما هي.'),go,{danger:true});
+  };
   window.v117Decide=function(ix,kind,keyEnc){ if(!canMergeMR())return;
     var key=decodeURIComponent(keyEnc), biz=val('v117_d'+ix), t=val('v117_t'+ix)||'tender';
     if(!biz){ alert(fl('Choose the company it belongs to — or New company, or Exclude.','اختر الشركة التي يتبعها — أو شركة جديدة، أو استبعاد.')); return; }
@@ -323,7 +337,9 @@
     /* Needs a decision (oversight's design, 27 Sep): every client ID and every customer name that no company holds yet,
        largest first — one control each: belongs to a company (a suggestion is pre-selected, never applied), a new company,
        or exclude (reason required). Every answer is typed, logged, and remembered for later imports. */
-    var loose=Object.keys(st.loose).sort(function(x,y){ return (st.loose[y].sar-st.loose[x].sar)||(st.loose[y].n-st.loose[x].n); });
+    /* F22 (D25): a name marked "Individual" has been decided — it leaves this list (its invoices are on Individual bookings) */
+    var _ind=(typeof window.finIndividualNames==='function')?window.finIndividualNames():{};
+    var loose=Object.keys(st.loose).filter(function(k){ var l=st.loose[k]; return !(l.kind!=='client_id'&&_ind[normMR(l.name)]); }).sort(function(x,y){ return (st.loose[y].sar-st.loose[x].sar)||(st.loose[y].n-st.loose[x].n); });
     h+='<h4 style="margin:16px 0 6px">'+fl('Needs a decision','يحتاج قرارًا')+' <span class="muted" style="font-weight:400">· '+loose.length+' — '+fl('client IDs and customer names no company holds yet, largest first','معرّفات عملاء وأسماء لا تتبع أي شركة بعد، الأكبر أولًا')+'</span></h4>';
     h+=loose.length?table([fl('Client ID or name','المعرّف أو الاسم'),fl('Name in Payments','الاسم في المدفوعات'),fl('Rows · SAR','صفوف · ر.س'),fl('Decision','القرار')],loose.map(function(k,ix){ var l=st.loose[k];
         var sug=suggest(l.name), key=l.kind==='client_id'?l.id:l.name;
@@ -332,7 +348,8 @@
             (l.kind==='client_id'?'<select id="v117_t'+ix+'" aria-label="'+e(fl('Type','النوع'))+'"><option value="prepaid">'+typeLabel('prepaid')+'</option><option value="postpaid">'+typeLabel('postpaid')+'</option><option value="tender">'+typeLabel('tender')+'</option></select>':'')+
             '<button class="btn sm pri" data-v117-decide="belongs" onclick="v117Decide('+ix+',\''+e(l.kind)+'\',\''+encodeURIComponent(key)+'\')">'+fl('Belongs to','تتبع')+'</button>'+
             '<button class="btn sm ghost" data-v117-decide="new" onclick="v117NewCompanyFor('+ix+',\''+e(l.kind)+'\',\''+encodeURIComponent(key)+'\',\''+encodeURIComponent(l.name||'')+'\')">'+fl('New company…','شركة جديدة…')+'</button>'+
-            '<button class="btn sm ghost" data-v117-decide="exclude" onclick="v117AddRule(\''+(l.kind==='client_id'?'client_id':'name')+'\',\''+encodeURIComponent(key)+'\')">'+fl('Exclude…','استبعاد…')+'</button></div>'+
+            '<button class="btn sm ghost" data-v117-decide="exclude" onclick="v117AddRule(\''+(l.kind==='client_id'?'client_id':'name')+'\',\''+encodeURIComponent(key)+'\')">'+fl('Exclude…','استبعاد…')+'</button>'+
+            (l.kind!=='client_id'?'<button class="btn sm ghost" data-v117-decide="individual" onclick="v117Individual(\''+encodeURIComponent(l.name||key)+'\')">'+fl('Individual (not a company)','فرد (ليس شركة)')+'</button>':'')+'</div>'+
             (sug?'<div class="muted" style="font-size:11.5px;margin-top:3px">'+fl('Suggested: ','مقترح: ')+e(sug.name)+' — '+e(sug.why)+' '+fl('(nothing is applied until you press Belongs to)','(لا يُطبَّق شيء حتى تضغط «تتبع»)')+'</div>':'')
            :'<span class="muted">'+fl('an admin or manager decides','يقرر المسؤول أو المدير')+'</span>')+'</td></tr>'; }))
       :'<div class="muted" style="font-size:12.5px" data-v117-empty="decisions">'+fl('Nothing waits for a decision — every client ID and name in Finance belongs to a company or is excluded.','لا شيء ينتظر قرارًا — كل معرّف واسم في المالية تابع لشركة أو مستبعد.')+'</div>';
