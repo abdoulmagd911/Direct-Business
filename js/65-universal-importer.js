@@ -432,7 +432,9 @@
       if(ex&&ex.source==='manual'){ state.manualKept.push(r.invoice_no); return; }
       if(r.row_kind==='wallet_topup') state.d1.topups++;
       if(r.audit_required) state.d1.audit++;
-      if(r.integrity_status!=='verified_paid'&&r.row_kind!=='wallet_topup'){ var ps=r.payments_status||'—'; state.d1.unpaid[ps]=(state.d1.unpaid[ps]||0)+1; }
+      /* defect (a), 28 Sep: a credit note carries Payments' "Fully Paid" and was listed under "Not paid yet" — it has its own line */
+      if(r.row_kind==='credit_note'){ state.d1.credit=(state.d1.credit||0)+1; }
+      else if(r.integrity_status!=='verified_paid'&&r.row_kind!=='wallet_topup'){ var ps=r.payments_status||'—'; state.d1.unpaid[ps]=(state.d1.unpaid[ps]||0)+1; }
       if(r._lines&&r._lines.length) state.itemLines=state.itemLines.concat(r._lines);
       /* 2026-09-28 (D1 sweep): the same invoice twice in one file (two export runs pasted together) was two inserts of one
          (invoice_no, line_no) — the database refuses the pair, and with it the whole import. One row per invoice: the newer
@@ -465,10 +467,15 @@
     // parseDP() resets its wallet/verif/clientExcluded counters at the START of every call
     // (see js/41) — each batch's counts must be ADDED to the running total, never overwrite it.
     var xc=exclusions?exclusions():{wallet:0,verif:0,clientExcluded:0,clientExcludedDetail:[]};
-    state.excludedByRule+=xc.wallet+xc.verif+xc.clientExcluded;
+    /* Defect (b), 28 Sep: "Excluded by rule" counts only rows that are NOT written, each with its reason. A row an exclusion
+       rule flags is still imported (the view leaves it out of the totals) — it is on its own "Left out by a rule" line, and
+       adding it here too made the preview say "Excluded 122" beside a result that said "Left out by a rule: none". */
+    state.excludedByRule+=xc.wallet+xc.verif;
+    (xc.verifRefs||[]).forEach(function(ref){ state.excludedDetail.costCaptureDetail.push({invoice_no:ref,reason:fl('a verification service (Techtic / Takamol support) — accounted for in another system, never imported here','خدمة تحقق (تكتك / دعم تكامل) — تُحتسب في نظام آخر ولا تُستورد هنا')}); });
     state.excludedDetail.wallet+=xc.wallet; state.excludedDetail.verif+=xc.verif; state.excludedDetail.clientExcluded+=xc.clientExcluded;
     state.excludedDetail.clientExcludedDetail=state.excludedDetail.clientExcludedDetail.concat(xc.clientExcludedDetail||[]);
-    if(state.d1&&xc.unknownStatus&&xc.unknownStatus.length){ state.d1.unknown=state.d1.unknown.concat(xc.unknownStatus); state.excludedByRule+=xc.unknownStatus.length; }
+    if(state.d1&&xc.unknownStatus&&xc.unknownStatus.length){ state.d1.unknown=state.d1.unknown.concat(xc.unknownStatus); state.excludedByRule+=xc.unknownStatus.length;
+      xc.unknownStatus.forEach(function(u){ state.excludedDetail.costCaptureDetail.push({invoice_no:u.ref,reason:fl('status "','الحالة «')+u.status+fl('" is not named yet — held for a person','» غير مسمّاة بعد — محجوزة لشخص')}); }); }
     mergeRowsIntoState(toRows(parsed), state);
   }
 
@@ -1292,6 +1299,7 @@
     var d=r.d1, parts=[];
     if(d){
       if(d.topups) parts.push(fl('Wallet top-ups (stored, never revenue): ','تعبئة المحفظة (تُخزَّن ولا تُحتسب إيرادًا): ')+'<b>'+d.topups+'</b>');
+      if(d.credit) parts.push(fl('Credit notes (stored, shown on their own): ','إشعارات دائنة (تُخزَّن وتُعرض وحدها): ')+'<b>'+d.credit+'</b>');
       var up=Object.keys(d.unpaid||{}); if(up.length) parts.push(fl('Not paid yet (stored, not counted): ','غير مدفوعة بعد (تُخزَّن ولا تُحتسب): ')+up.map(function(k){ return esc(k)+' <b>'+d.unpaid[k]+'</b>'; }).join(', '));
       if(d.audit) parts.push(fl('"Fully Paid (Audit Required)" — counted, flagged: ','«مدفوعة بالكامل (تتطلب تدقيقًا)» — تُحتسب وتُعلَّم: ')+'<b>'+d.audit+'</b>');
       if(d.unknown&&d.unknown.length) parts.push('<span style="color:#B42318">'+fl('Held back — a status the app does not know (a person decides): ','محجوزة — حالة لا يعرفها التطبيق (يقرر شخص): ')+

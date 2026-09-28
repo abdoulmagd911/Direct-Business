@@ -116,7 +116,7 @@
        · every Payments status is kept as written, with when it last changed; "Fully Paid (Audit Required)" counts and is
          flagged; Pending Payment, Void, Draft and Cancelled are stored and never count;
        · the date that sets the month is the paid date for a paid invoice, else the date it was created (both kept). */
-  var _walletSkipped=0,_verifSkipped=0,_clientExcluded=0,_clientExcludedDetail=[],_topups=0,_unknownStatus=[];
+  var _walletSkipped=0,_verifSkipped=0,_verifRefs=[],_clientExcluded=0,_clientExcludedDetail=[],_topups=0,_unknownStatus=[];
   var STATUS64=[   // Payments' own words → what the app stores; anything else stops that row for a person (never guessed)
     [/^fully paid\s*\(audit required\)$/i, {st:'paid',audit:true}],
     [/^fully paid$/i, {st:'paid'}], [/^paid$/i, {st:'paid'}],
@@ -131,7 +131,7 @@
   }
   function isWalletLine(it){ return it.product==='Direct Wallet'||/Wallet Balance|رصيد المحفظة/i.test(it.name||''); }
   function parseDP(rows){
-    _walletSkipped=0;_verifSkipped=0;_clientExcluded=0;_clientExcludedDetail=[];_topups=0;_unknownStatus=[];
+    _walletSkipped=0;_verifSkipped=0;_verifRefs=[];_clientExcluded=0;_clientExcludedDetail=[];_topups=0;_unknownStatus=[];
     var hdr=rows[0].map(function(x){return String(x||'').trim();});
     function ix(n){ var list=[].concat(n); for(var k=0;k<list.length;k++){ var at=hdr.indexOf(list[k]); if(at>=0) return at; } return -1; }
     function cell(row,i){ return i>=0?String(row[i]==null?'':row[i]).trim():''; }
@@ -174,7 +174,7 @@
         if(/Commission/i.test(it.name))comm=true;
         if(it.product==='Techtic Support'||/Verification/i.test(it.name)||/Verification/i.test(it.product||''))verif=true;
       });
-      if(verif){_verifSkipped++;return;}   // owner rule 2026-08-13: verification services are accounted for elsewhere — never imported here
+      if(verif){_verifSkipped++;_verifRefs.push(ref);return;}   // owner rule 2026-08-13: verification services are accounted for elsewhere — never imported here
       var topup=!inv.credit&&walletPart>0&&(serviceItems===0||walletPart>=inv.total-0.01);
       if(topup)_topups++;
       var s=inv.credit?{st:'credit'}:status64(inv.status);
@@ -407,7 +407,7 @@
      deleted-number path — the one this round fixed — could not be driven at all. */
   window.__v41_runDP=runDP;
   window.__v65_csvParse=csvParse64; window.__v65_readXlsx=readXlsx;
-  window.__v65_exclusionCounts=function(){ return {wallet:_walletSkipped,verif:_verifSkipped,clientExcluded:_clientExcluded,clientExcludedDetail:_clientExcludedDetail,topups:_topups,unknownStatus:_unknownStatus.slice()}; };
+  window.__v65_exclusionCounts=function(){ return {wallet:_walletSkipped,verif:_verifSkipped,verifRefs:_verifRefs.slice(),clientExcluded:_clientExcluded,clientExcludedDetail:_clientExcludedDetail,topups:_topups,unknownStatus:_unknownStatus.slice()}; };
 
   console.info('%c[v65] Direct Payments importer loaded','color:#B54708;font-weight:700');
 }catch(e){if(window.console)console.warn('[v65] init',e);}})();
