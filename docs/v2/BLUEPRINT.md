@@ -179,6 +179,10 @@ V62–V72 in `DECISIONS.md`:
 43. **Design moves to Figma** through a dedicated design session (V82).
 44. **Exports unchanged** for now (V83).
 
+**Oversight update, 28 Sep** — the owner does not need the old app: its database is paused and `direct-commercial`
+exists in Supabase and Vercel; the domain moves as soon as v2's sign-in page renders; only the owner pastes keys into
+Vercel (V13, V21, V84).
+
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
 are excluded from revenue, and collections are settled on them; cost is the sum of approved expenses on the
