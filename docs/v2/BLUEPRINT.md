@@ -90,6 +90,39 @@ touch a v0.7 line, these win.*
 5. **Environments.** The owner will approve creating the new Supabase and Vercel projects; free tier preferred, any cost
    flagged (`TECH-SPEC.md` §10).
 
+**Design additions (owner, 28 Sep, relayed by the oversight).**
+
+6. **A fourth theme, "Direct"** (the other three unchanged): drawer/top bar #23221F, nav text #ECE8E1, nav muted
+   #A8A298, nav active #F08A45; bg #F6F4F0, surface #FBFAF7, raised #FFFFFF, border #E4DFD6, strong #857E73, text
+   #1F1E1C, muted #5E5A53; accent fill #E4702A (fills only, never text; the label on accent is #1F1E1C, not white),
+   accent hover #F07E36, link/orange text #A64B12, selected-row tint #FBE6D6; success #2E7540, warning #7A5E00,
+   danger #B3203A, info #2D5FA8. All AA-checked. Source of truth: the design system page
+   (https://claude.ai/artifact/LhgpWwKiMxQtQiQmXjco64) and the screens canvas
+   (https://claude.ai/artifact/QRysGjaefjvGbDxNvfYbLW, 12 artboards incl. QuarterlyReport and MyDay in Direct).
+7. **Density:** Comfortable by default (14 px body, 40 px controls, 44–52 px table rows, 24–32 px section gaps);
+   Compact optional per user. Nothing cramped, especially My day. (This replaces v0.7's "dense tables (32px rows)" as
+   the default; 32 px rows remain as Compact.)
+8. **Personalisation — "My profile"**, first in Settings, each user edits their own: photo upload or an initials avatar
+   with a chosen colour, full name and display name/nickname, an optional badge (none / an icon from a set / zodiac
+   sign), preferred theme (of four), density, language (English now, Arabic later), start page, drawer pinned or
+   collapsed, notification choices (in-app, email). Avatar, nickname and badge show in the top bar, the drawer foot and
+   owner/helper chips. Company logo uploaded on the company record.
+9. **Reports** = one tab row, Monthly · Quarterly. The quarterly report: cover; quarter vs the same quarter last year
+   (tiles); achievements by category (lines linking to achievement, company, invoices); KPI results (target, M1, M2, M3,
+   quarter, YTD, status); challenges (open carries over / resolved); next-quarter targets; operational-plan indicators
+   (Done / Carried over); actions Issue (freeze), PDF, PPTX, KPI sheet export.
+10. **UI rule:** no hint text, explanatory notes, banners, callouts or demo annotations inside screens (the old app's
+    biggest complaint). Every entity (company, invoice, task, achievement, KPI, report line, person) is a link.
+
+**Owner answers later on 28 Sep.**
+
+11. **Room for the new database:** the free way — the old app's database (`direct-business`) is paused on 1 Oct, after
+    the Q3 close of 30 Sep; the old app is unavailable from then (data kept, restorable); the appraisal tool stays live;
+    the new project is created on the free plan.
+12. **Domain:** the new app uses the same domain, `directksab2b.com`; staging on the new Vercel project's address; at
+    go-live the domain moves to the new project and the sign-in settings list it.
+13. **Google and Zoom sign-in keys:** later; building proceeds with the emailed code.
+
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
 are excluded from revenue, and collections are settled on them; cost is the sum of approved expenses on the
