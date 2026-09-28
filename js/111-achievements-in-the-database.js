@@ -149,7 +149,9 @@
     if(id&&!a) return;
     var me=findMe();
     var r=a?a._row:{ entry_date:todayISO(), member_id:me?me.id:null, title:'', text_en:'', text_ar:'', category_id:'', objective_id:'', kpi_id:'', value:'', business_id:null };
-    var memberOpts=S.members.filter(function(m){ return m.active||m.id===r.member_id; }).map(function(m){ return '<option value="'+esc(m.id)+'"'+(m.id===r.member_id?' selected':'')+'>'+esc(memberName(m.id))+'</option>'; }).join('')+
+    var memberOpts=S.members.filter(function(m){ return m.active||m.id===r.member_id; }).map(function(m){ return {m:m,n:memberName(m.id)}; })
+      .sort(function(a,b){ return String(a.n).localeCompare(String(b.n),undefined,{sensitivity:'base'}); })   /* H5: alphabetical */
+      .map(function(x){ var m=x.m; return '<option value="'+esc(m.id)+'"'+(m.id===r.member_id?' selected':'')+'>'+esc(x.n)+'</option>'; }).join('')+
       '<option value=""'+(r.member_id?'':' selected')+'>'+fl('Nobody in particular (the department)','لا أحد بعينه (القسم)')+'</option>';
     var catOpts='<option value="">'+fl('— choose —','— اختر —')+'</option>'+S.cats.filter(function(c){ return c.active||c.id===r.category_id; }).map(function(c){ return '<option value="'+esc(c.id)+'"'+(c.id===r.category_id?' selected':'')+'>'+esc(isAr()?c.name_ar:c.name_en)+'</option>'; }).join('');
     var objOpts='<option value="">'+fl('— none —','— لا شيء —')+'</option>'+(L().objectives||[]).map(function(o){ return '<option value="'+o.n+'"'+(S.objs[r.objective_id]===o.n?' selected':'')+'>#'+o.n+' — '+esc((L().objTitle?L().objTitle(o):'').slice(0,46))+'</option>'; }).join('');
@@ -208,11 +210,15 @@
       addProofs(eid,files).then(function(bad){
         try{ closeModal(); }catch(_){}
         say(bad?fl('Saved. '+bad+' proof file(s) could not be attached — the database refused them.','حُفظ. تعذّر إرفاق '+bad+' ملف إثبات — رفضتها قاعدة البيانات.'):fl('Saved to the company database.','حُفظ في قاعدة بيانات الشركة.'), bad?'err':undefined);
-        load();
+        load(); kpiRefresh();
       });
     }).catch(function(e){ tell(said(e&&e.message||e)); });
   }
 
+  /* H7 (QA 28 Sep): an achievement that carries a KPI changes that KPI's actual — Objectives & KPIs (js/112) read "not
+     measured" until a full page reload. After every save or delete here, js/112 reads its figures again (only when it has
+     already loaded once; the first visit loads them anyway). */
+  function kpiRefresh(){ try{ if(window.__v112&&window.__v112.loaded&&typeof window.v112Reload==='function') window.v112Reload(); }catch(_){} }
   /* each file: stored in the private proofs store under the achievement, then registered; returns how many failed */
   function addProofs(eid,files){
     var c=client(); var me=findMe(); if(!c||!files.length) return Promise.resolve(0);
@@ -237,7 +243,7 @@
         if(r.error) say(said(r.error.message),'err');
         else if(!r.data||!r.data.length) say(fl('Not deleted — the database did not accept it.','لم يُحذف — لم تقبله قاعدة البيانات.'),'err');
         else say(fl('Deleted.','حُذف.'));
-        load();
+        load(); kpiRefresh();
       });
     });
   };
@@ -249,7 +255,7 @@
       if(r.error) say(said(r.error.message),'err');
       else if(!r.data||!r.data.length) say(fl('Not finalized — only the owner or whoever manages it can.','لم يُعتمد — لا يعتمده إلا صاحبه أو من يدير المهمة.'),'err');
       else say(fl('Finalized — it now counts in the report.','اعتُمد — يُحتسب الآن في التقرير.'));
-      load();
+      load(); kpiRefresh();
     });
   };
 
@@ -316,7 +322,7 @@
         var msg=fl('Moved into the company database: '+added+' added'+(already?(', '+already+' already there'):'')+(failed.length?(', '+failed.length+' could not be moved ('+failed.slice(0,3).join('; ')+')'):'')+(dropped?('. '+dropped+' value(s) against a KPI calculated from Finance were left out — Finance supplies that number'):'')+'. This browser keeps its own copy.',
                    'نُقل إلى قاعدة بيانات الشركة: '+added+' مضاف'+(already?('، '+already+' موجود مسبقًا'):'')+(failed.length?('، '+failed.length+' تعذّر نقله'):'')+(dropped?('. تُركت '+dropped+' قيمة لمؤشر يُحسب من المالية'):'')+'. يحتفظ هذا المتصفح بنسخته.');
         say(msg, failed.length?'err':undefined);
-        load();
+        load(); kpiRefresh();
       });
     });
   };

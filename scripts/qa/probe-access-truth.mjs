@@ -173,7 +173,8 @@ async function main() {
   if (unknown === 1) ok('…and during the moment before the role is confirmed nobody is blocked by accident (the floor is not an answer)');
   else fail('someone was blocked while their role was still loading: created ' + unknown);
 
-  // ---- 3. the "n" keystroke on Proposals asks before it writes
+  // ---- 3. a plain "n" on Proposals does nothing at all (H4, 28 Sep: no letter opens or creates anything; it used to ask
+  //         "Create a new blank proposal?" — and before that, wrote one)
   await p.evaluate(() => { openLead = null; openOffer = null; current = 'offers'; render(); });
   await p.waitForTimeout(900);
   lastDialog = null;
@@ -181,25 +182,10 @@ async function main() {
   await p.evaluate(() => document.body.focus());
   await p.keyboard.press('n');
   await p.waitForTimeout(600);
-  // 2026-09-09 (D1 family): the question asks in the page (js/57's box), never through a native dialog
-  const nBox = await p.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ') }));
-  await p.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); }); await p.waitForTimeout(300);
+  const nBox = await p.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), pal: !!(document.getElementById('v19palette') || { classList: { contains: () => false } }).classList.contains('show') }));
   const afterKey = await p.evaluate(() => (DB.offers || []).length);
-  if (!lastDialog && nBox.box && /blank proposal|عرض جديد فارغ/i.test(nBox.txt)) ok('pressing "n" on Proposals ASKS first, in the page: "' + nBox.txt.slice(0, 60) + '"');
-  else fail('pressing "n": box=' + JSON.stringify(nBox) + ' native=' + JSON.stringify(lastDialog));
-  if (afterKey === keyed) ok('…and because the question was cancelled, no blank proposal was written — the old code saved one on the keystroke alone');
-  else fail('a proposal was created despite the question being cancelled (' + keyed + ' → ' + afterKey + ')');
-
-  // saying yes still works
-  p.removeAllListeners('dialog');
-  p.on('dialog', (d) => d.accept());
-  await p.evaluate(() => document.body.focus());
-  await p.keyboard.press('n');
-  await p.waitForTimeout(500);
-  await p.evaluate(() => { const y = document.getElementById('pfConfirmYes'); if (y) y.click(); }); await p.waitForTimeout(600);
-  const accepted = await p.evaluate(() => (DB.offers || []).length);
-  if (accepted === keyed + 1) ok('answering yes creates exactly one, so the shortcut still works');
-  else fail('answering yes created ' + (accepted - keyed) + ' (expected 1)');
+  if (!lastDialog && !nBox.box && !nBox.pal && afterKey === keyed) ok('pressing a plain "n" on Proposals opens nothing, asks nothing and writes nothing');
+  else fail('pressing "n": ' + JSON.stringify({ nBox, native: lastDialog, before: keyed, after: afterKey }));
 
   // the BUTTON is unchanged — clicking "+ New proposal" is itself the intent, no question
   await p.evaluate(() => { openOffer = null; current = 'offers'; render(); });

@@ -120,7 +120,11 @@
   }
 
   /* ---------- draw ---------- */
-  function chip(label,on,handler,data){ return '<button class="v26_3-chip'+(on?' active':'')+'" '+(data||'')+' onclick="'+handler+'">'+label+'</button>'; }
+  /* H1 (28 Sep, the oversight on live): the first click on "Projects" was lost and the second one worked — a redraw landing
+     between pressing and releasing the button moves it out from under the pointer, so the browser never fires the click.
+     A chip now acts as soon as it is pressed (the handlers are idempotent, so the click that may follow changes nothing);
+     the keyboard still works through the click. */
+  function chip(label,on,handler,data){ return '<button class="v26_3-chip'+(on?' active':'')+'" '+(data||'')+' onpointerdown="if(event.button===0){'+handler+';}" onclick="'+handler+'">'+label+'</button>'; }
   function visibleTasks(){
     var me=myMember(), q=S.q.trim().toLowerCase();
     return S.tasks.filter(function(t){
@@ -196,10 +200,10 @@
           '<span style="flex:1;color:var(--muted);font-size:12.5px">'+fl('Work projects group tasks for one company or an internal goal. (Travel engagements stay on the Projects page.)','مشاريع العمل تجمع مهام شركة واحدة أو هدف داخلي. (مشاريع الرحلات تبقى في صفحة المشاريع.)')+'</span>'+
           (canWork()&&myMember()?'<button class="btn pri" data-v108-new="project" onclick="v108NewProject()">'+fl('+ New project','+ مشروع جديد')+'</button>':'')+'</div>';
     if(!S.projects.length) return h+'<div class="card v108-empty">'+fl('No work projects yet.','لا توجد مشاريع عمل بعد.')+'</div>';
-    h+='<div class="card" style="padding:0"><div class="tbl-wrap"><table class="v108-projects"><thead><tr><th>'+fl('Project','المشروع')+'</th><th>'+fl('Company','الشركة')+'</th><th>'+fl('Owner','المسؤول')+'</th><th>'+fl('Open tasks','المهام المفتوحة')+'</th><th>'+fl('Status','الحالة')+'</th></tr></thead><tbody>';
+    h+='<div class="card" style="padding:0"><div class="tbl-wrap"><table class="v108-projects"><thead><tr><th>'+fl('Project','المشروع')+'</th><th>'+fl('Company','الشركة')+'</th><th>'+fl('Owner','المسؤول')+'</th><th>'+fl('Open tasks','المهام المفتوحة')+'</th><th>'+fl('Due','الاستحقاق')+'</th><th>'+fl('Status','الحالة')+'</th></tr></thead><tbody>';
     S.projects.forEach(function(p){
       var open=S.tasks.filter(function(t){ var st=statusRow(t.status); return t.project_id===p.id && !(st&&st.is_closed); }).length;
-      h+='<tr data-v108-project="'+esc8(p.id)+'"><td><b>'+esc8(p.name)+'</b><div style="font-size:11.5px;color:var(--muted)">'+esc8(p.code)+'</div></td><td>'+esc8(p.business_id?companyName(p.business_id):fl('Internal','داخلي'))+'</td><td>'+esc8(memberName(p.owner_id))+'</td><td>'+open+'</td><td>'+esc8(p.status)+'</td></tr>';
+      h+='<tr data-v108-project="'+esc8(p.id)+'"><td><b>'+esc8(p.name)+'</b><div style="font-size:11.5px;color:var(--muted)">'+esc8(p.code)+'</div></td><td>'+esc8(p.business_id?companyName(p.business_id):fl('Internal','داخلي'))+'</td><td>'+esc8(memberName(p.owner_id))+'</td><td>'+open+'</td><td data-v108-due="1" style="white-space:nowrap">'+esc8(p.due_date||'—')+'</td><td>'+esc8(p.status)+'</td></tr>';   /* H9: the due date entered is shown */
     });
     return h+'</tbody></table></div></div>';
   }
@@ -207,6 +211,12 @@
   /* ---------- actions (the database decides; these only ask) ---------- */
   window.v108Reload=function(){ S.loaded=false; S.err=null; load(true); draw(); };
   window.v108Tab=function(t){ S.tab=t; draw(); };
+  /* H2 (28 Sep): choosing a project fills in its company (a project belongs to one company); a company already picked by
+     hand is replaced only when it is empty or belongs to the previous project */
+  window.v108ProjCompany=function(pid){ try{
+    var pr=(S.projects||[]).find(function(x){ return x.id===pid; }); var sel=document.getElementById('v108_biz'); if(!pr||!sel||!pr.business_id) return;
+    if(!sel.value||sel.getAttribute('data-from-project')===sel.value){ sel.value=pr.business_id; sel.setAttribute('data-from-project',pr.business_id); }
+  }catch(_){} };
   window.v108Mine=function(b){ S.mine=!!b; draw(); };
   window.v108Status=function(k){ S.status=k; draw(); };
   window.v108Team=function(k){ S.team=String(k||''); draw(); };
@@ -233,7 +243,10 @@
   }
   function optionList(rows,sel){ return rows.map(function(r){ return '<option value="'+esc8(r.code)+'"'+(r.code===sel?' selected':'')+'>'+esc8(nm(r))+'</option>'; }).join(''); }
   function memberOptions(sel){
-    return S.members.filter(function(m){ return m.active; }).map(function(m){ return '<option value="'+esc8(m.id)+'"'+(m.id===sel?' selected':'')+'>'+esc8(memberName(m.id))+'</option>'; }).join('');
+    /* H5 (28 Sep): alphabetical by the name shown */
+    return S.members.filter(function(m){ return m.active; }).map(function(m){ return {m:m,n:memberName(m.id)}; })
+      .sort(function(a,b){ return a.n.localeCompare(b.n,isAr()?'ar':'en',{sensitivity:'base'}); })
+      .map(function(x){ var m=x.m; return '<option value="'+esc8(m.id)+'"'+(m.id===sel?' selected':'')+'>'+esc8(x.n)+'</option>'; }).join('');
   }
   function projectOptions(sel){
     return '<option value="">'+fl('— no project —','— بدون مشروع —')+'</option>'+S.projects.filter(function(p){ return p.status!=='done'&&p.status!=='cancelled'; }).map(function(p){ return '<option value="'+esc8(p.id)+'"'+(p.id===sel?' selected':'')+'>'+esc8(p.code+' · '+p.name)+'</option>'; }).join('');
@@ -254,7 +267,7 @@
       field(fl('Title','العنوان'),'<input id="v108_title" maxlength="300">')+
       field(fl('Kind of work','نوع العمل'),'<select id="v108_type">'+optionList(S.workTypes,preset.work_type||'sales')+'</select>')+
       field(fl('Company','الشركة'),'<select id="v108_biz">'+companyOptions(preset.business_id||'')+'</select>')+
-      field(fl('Project','المشروع'),'<select id="v108_proj">'+projectOptions(preset.project_id||'')+'</select>')+
+      field(fl('Project','المشروع'),'<select id="v108_proj" onchange="v108ProjCompany(this.value)">'+projectOptions(preset.project_id||'')+'</select>')+
       field(fl('Owner — who does it','المسؤول — من ينفّذها'),'<select id="v108_owner" onchange="v108TeamFor(this.value)">'+memberOptions(me&&me.id)+'</select>')+
       /* people & teams (2026-09-27): the team the work is done for — the owner's home team first, then the teams they
          assist (js/114's picker); the database insists only that it is an active team, and fills the home team if none */
@@ -380,9 +393,21 @@
     var text=val('v108_newcheck'); if(!text||!S.open) return; var c=client(); if(!c) return;
     c.from('task_checklist').insert({ task_id:S.open, text:text, sort:((S.detail&&S.detail.checklist.length)||0)+1 }).select('id').then(function(r){
       if(r.error||!r.data||!r.data.length){ note(refusal(r.error||{code:'42501'}),true); return; }
-      v108Open(S.open);
+      /* H8 (28 Sep): adding a step redraws the dialog; what the person had changed but not saved yet (the "Monthly report"
+         tick, the kind of achievement, a new title or date …) is carried across the redraw instead of silently reset */
+      var snap=keepForm(); v108Open(S.open); restoreForm(snap);
     });
   };
+  function keepForm(){ var out={}; try{ var m=document.getElementById('modal'); if(!m) return out;
+    m.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(el){ if(el.id==='v108_newcheck'||el.id==='v108_newcomment') return;
+      out[el.id]=(el.type==='checkbox'||el.type==='radio')?{c:el.checked}:{v:el.value}; }); }catch(_){} return out; }
+  function restoreForm(snap,n){ try{ var ids=Object.keys(snap||{}); if(!ids.length) return;
+    var m=document.getElementById('modal'), ready=m&&ids.some(function(id){ return document.getElementById(id); })&&!m.querySelector('#v108_newcheck[value]')&&(document.getElementById('v108_newcheck')||{}).value==='';
+    if(!ready){ if((n||0)<40) setTimeout(function(){ restoreForm(snap,(n||0)+1); },75); return; }
+    ids.forEach(function(id){ var el=document.getElementById(id); if(!el) return; var x=snap[id];
+      if('c' in x){ if(el.checked!==x.c){ el.checked=x.c; try{ el.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){} } }
+      else if(el.value!==x.v){ el.value=x.v; try{ el.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){} } });
+  }catch(_){} }
   window.v108AddComment=function(){
     var text=val('v108_newcomment'); var me=myMember(); if(!text||!S.open||!me) return; var c=client(); if(!c) return;
     c.from('task_comments').insert({ task_id:S.open, author_id:me.id, body:text }).select('id').then(function(r){

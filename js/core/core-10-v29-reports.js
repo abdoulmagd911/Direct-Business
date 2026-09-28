@@ -405,6 +405,8 @@ function rptTeam(){
     var live=(typeof window.teamList==='function')?(window.teamList()||[]):[];
     if(live.length){ live.forEach(add); } else { RPT_TEAM.forEach(add); }
     try{ (RDB.achievements||[]).forEach(function(a){ if(a&&a.member) add(a.member); }); }catch(_){}
+    /* H5 (28 Sep): people are listed alphabetically (Arabic and English each in their own order), "Other" last */
+    try{ names.sort(function(a,b){ return a.localeCompare(b,(typeof LANG!=='undefined'&&LANG==='ar')?'ar':'en',{sensitivity:'base'}); }); }catch(_){}
     names.push('Other');
     return names;
   }catch(_){ return RPT_TEAM.slice(); }

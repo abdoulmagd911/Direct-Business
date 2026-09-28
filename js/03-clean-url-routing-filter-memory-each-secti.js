@@ -74,7 +74,26 @@
       if(n>240){ clearInterval(iv); if(pendingRec===id)pendingRec=null; } },250);
     return false;
   }
-  function restoreBoot(){if(IS_SHARE){ready=true;return;}var r=parse(boot);if(applyRoute(r)){try{if(typeof render==='function')render();}catch(_){}}ready=true;lastPath=buildPath();try{if(lastPath)history.replaceState({p:lastPath,f:snapFilters()},'',lastPath);}catch(_){}}
+  /* QA 28 Sep (live): typing an address the app does not have (/team, /people) landed on Today without a word. The
+     page is still Today, and a small note in the app's box now says why: "Page not found (/team) — taken to Today". A page
+     address (VALID, an alias, or a page on the access list) and a share link are never "not found". */
+  function notFound(path){
+    try{
+      var raw=String(path||'/'); if(raw==='/'||raw===''||/^\/(index\.html)?$/.test(raw)||/^\/s\//.test(raw)) return;
+      var r=parse(raw), sec=r&&r.sec?(ALIAS[r.sec]||r.sec):null;
+      var pages=[]; try{ pages=(window.PAGES||[]).map(function(x){ return Array.isArray(x)?x[0]:(x&&(x.id||x.key)); }); }catch(_){}
+      if(r&&(r.dk||VALID.indexOf(sec)>=0||pages.indexOf(sec)>=0)) return;
+      var shown=raw.replace(/[?#].*$/,'').slice(0,60);
+      var ar=false; try{ ar=typeof LANG!=='undefined'&&LANG==='ar'; }catch(_){}
+      var msg=ar?('الصفحة غير موجودة ('+shown+') — نُقلت إلى «اليوم».'):('Page not found ('+shown+') — taken to Today.');
+      var tries=0, say=function(){ tries++;
+        if(typeof window.v63Notice==='function'&&document.body&&window.__roleKnown===true){ window.v63Notice(msg); return; }
+        if(tries<240) setTimeout(say,500); };
+      setTimeout(say,800);
+      try{ window.__notFoundPath=shown; }catch(_){}
+    }catch(_){}
+  }
+  function restoreBoot(){if(IS_SHARE){ready=true;return;}var r=parse(boot);notFound(boot);if(applyRoute(r)){try{if(typeof render==='function')render();}catch(_){}}ready=true;lastPath=buildPath();try{if(lastPath)history.replaceState({p:lastPath,f:snapFilters()},'',lastPath);}catch(_){}}
   // wrap render AND the filter re-draws (renderLeads/drawLeads) so a filter change records history too
   function wrapFn(name){try{var f=window[name];if(typeof f==='function'&&!f.__pathWrap){var _f=f;window[name]=function(){var o=_f.apply(this,arguments);writeURL();return o;};window[name].__pathWrap=true;}}catch(_){}}
   function wrap(){wrapFn('render');wrapFn('renderLeads');wrapFn('drawLeads');}

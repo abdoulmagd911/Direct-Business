@@ -114,6 +114,9 @@ async function run(lang, mode, page) {
         e.textContent = 'Nothing urgent. Today is calm.';
         v.appendChild(e);
         /* an innocent neighbour: silencing a verdict must not silence the page around it */
+        /* QA 28 Sep (live): the counts under the banner — the hero's "N items need your attention" and a stat chip */
+        const h = document.createElement('p'); h.textContent = '4 items need your attention.'; v.appendChild(h);
+        const c = document.createElement('div'); c.className = 'chip'; c.setAttribute('data-qa-chip', '1'); c.innerHTML = '<div class="v">1</div><div class="l">Overdue invoices</div>'; v.appendChild(c);
         const k = document.createElement('div'); k.setAttribute('data-qa236-keep', '1');
         k.textContent = 'QA236 an ordinary sentence that must survive';
         v.appendChild(k);
@@ -133,6 +136,8 @@ async function run(lang, mode, page) {
       /* the measurement that decided this was a real defect and not a code reading */
       calm: ((v && v.innerText) || '').match(/[^\n]*(Today is calm|all clear|اليوم هادئ|على ما يرام)[^\n]*/gi) || [],
       judged: /cannot be judged|لا يمكن الحكم/i.test((v && v.innerText) || ''),
+      attention: /\d+\s+items?\s+needs?\s+your attention/i.test((v && v.innerText) || ''),
+      chip: (function () { const c = document.querySelector('[data-qa-chip] .v'); return c ? c.textContent.trim() : null; })(),
       neighbour: (function () { try { const k = document.querySelector('[data-qa236-keep]');
         return k ? (k.textContent || '').trim() : null; } catch (_) { return null; } })(),
       coveredUp: (function () { try { const ov = document.getElementById('ov');
@@ -186,6 +191,13 @@ await b.close(); srv.close?.();
   ? pass('Today stops saying the day is calm when the records did not load')
   : fail('Today stops saying the day is calm when the records did not load', JSON.stringify({ calm: todayFail.seen.calm, judged: todayFail.seen.judged, banner: (todayFail.seen.probe || {}).banner }));
 
+/* QA 28 Sep (live): with the banner up, no count stands under it — every count is a dash */
+(todayFail.seen.attention === false && todayFail.seen.chip === '—')
+  ? pass('Today shows a dash for every count while the records are not loaded — no "4 items need your attention"')
+  : fail('Today shows a dash for every count while the records are not loaded', JSON.stringify({ attention: todayFail.seen.attention, chip: todayFail.seen.chip }));
+(todayOk.seen.attention === true && todayOk.seen.chip === '1')
+  ? pass('brake: on a normal load the counts stay numbers')
+  : fail('brake: on a normal load the counts stay numbers', JSON.stringify({ attention: todayOk.seen.attention, chip: todayOk.seen.chip }));
 (todayOk.seen.probe && todayOk.seen.probe.banner === false && todayOk.seen.calm.length > 0 && !todayOk.seen.judged)
   ? pass('brake: on a normal load Today keeps its own verdict, untouched', JSON.stringify(todayOk.seen.calm[0] || '').slice(0, 60))
   : fail('brake: on a normal load Today keeps its own verdict, untouched', JSON.stringify({ calm: todayOk.seen.calm, banner: (todayOk.seen.probe || {}).banner }));

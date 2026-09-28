@@ -83,7 +83,13 @@ async function main() {
       await p.evaluate(() => rptOpenAch()); await p.waitForTimeout(500);
       await fillForm(p, { title: 'Signed a new corporate account', cat: 'cat-deals' });
       await p.setInputFiles('#v111_files', { name: 'contract.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 qa') });
-      await saveBtn(p); await p.waitForTimeout(1800);
+      /* H7 (QA 28 Sep): Objectives & KPIs read "not measured" after an achievement was saved, until a full reload */
+      await p.evaluate(() => { try { window.v112Reload && window.v112Reload(); } catch (_) { } });
+      await p.waitForFunction(() => window.__v112 && window.__v112.loaded, null, { timeout: 20000 }).catch(() => { });
+      let kpiReads = 0; const onReq = (q) => { if (q.method() === 'GET' && /\/rest\/v1\/kpi_pace/.test(q.url())) kpiReads++; }; p.on('request', onReq);
+      await saveBtn(p); await p.waitForTimeout(1800); p.off('request', onReq);
+      if (kpiReads >= 1) ok('H7. saving an achievement reads the KPI figures again — Objectives & KPIs is current without a reload');
+      else fail('H7. KPI figures not re-read after the save: ' + kpiReads);
       const rows = await db(BASE, 'report_entries'); const files = await db(BASE, 'evidence_files');
       const mine = rows.find((r) => r.title === 'Signed a new corporate account');
       const listed = await p.evaluate(() => (document.getElementById('view') || {}).innerText || '');
