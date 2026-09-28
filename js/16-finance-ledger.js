@@ -1457,7 +1457,7 @@ function rOverview(){
       h+='<div class="ch-sub" style="margin-top:8px">'+(isArF()?'لا توجد أرقام خطة لهذه السنة بعد — اضغط «تعديل الأرقام».':'No plan numbers for this year yet — click Set targets.')+'</div>';
     }
     /* B8: where the plan comes from — typed on this page with "Set targets", by whom and when; Actual is this period's revenue */
-    if(tgt){ var _by=tgt.updated_by||'', _at=tgt.updated_at?(typeof dayRiyadh==='function'?dayRiyadh(tgt.updated_at):String(tgt.updated_at).slice(0,10)):'';
+    if(tgt){ var _by=tgt.updated_by||'', _at=(tgt.updated_at&&typeof dayRiyadh==='function')?dayRiyadh(tgt.updated_at):'';
       h+='<div class="ch-sub" data-fin-plan-source="1" style="margin-top:8px;font-size:11.5px">'+(isArF()
         ?('الخطة: أرقام تُكتب هنا بزر «تعديل الأرقام»'+(_by?' — آخر من عدّلها '+esc(_by):'')+(_at?' في '+_at:'')+'. الفعلي: إيراد '+_ty+(FIN.p.part!=='all'?' لنفس الفترة':'')+' من الفواتير المدفوعة.')
         :('Plan: numbers typed here with "Set targets"'+(_by?' — last set by '+esc(_by):'')+(_at?' on '+_at:'')+'. Actual: '+_ty+(FIN.p.part!=='all'?' revenue for the same period':' revenue')+' from paid invoices.'))+'</div>'; }
