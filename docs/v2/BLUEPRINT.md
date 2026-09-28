@@ -2,7 +2,8 @@
 > 28 Sep 2026, copied word for word as the oversight sent it to the architect. The fuller wording lives in the Drive
 > knowledge base as "11 Blueprint — new Commercial app (v0.7, 28 Sep 2026)"; where the two differ, the Drive file is the
 > owner's and wins. How it will be built: `TECH-SPEC.md`; in what order: `BUILD-PLAN.md`; what is still unclear:
-> `OPEN-QUESTIONS.md`.
+> `OPEN-QUESTIONS.md`. One change to the copy (oversight, 28 Sep): the evaluator's name in §5 is replaced by "the
+> evaluator" — no staff names in this public repository.
 
 ---
 
@@ -55,7 +56,7 @@ My day: my open/overdue tasks and action items (owned, assigned, helping), my co
 Navigation: side drawer (My day, Companies, Projects, Tasks, Finance, KPIs, Reports, Appraisal, Settings), pinnable/collapsible; top bar with search (Ctrl K), Create, notifications. Each area = one page with list + detail panel (full page on phone); every record has its own URL; at most one tab row in a detail; filters as chips.
 Settings = one area, groups gated by access level: Organization & access (departments, teams, people, managers, roles, page access, allowed sign-in emails); Companies (categories, tiers, identifier matching order, credit rules); Plan & performance (yearly plan, KPIs, targets, KPI leads/contributors, achievement categories and fields, appraisal cycles and templates); Finance (services, product->service map, item names cost/fee, exclusions, revenue definition); Work (task statuses, priorities, templates, recurrence, no-update days, reminders); App (themes, language and wording, notifications, import/export).
 
-## 5. Appraisal - configurable engine mirroring the official form ("Annual Appraisal - Commercial (Professional) - Business", Apr 2025-Mar 2026, evaluator Othman Al Sharafi) and the old appraisal tool
+## 5. Appraisal - configurable engine mirroring the official form ("Annual Appraisal - Commercial (Professional) - Business", Apr 2025-Mar 2026, the evaluator) and the old appraisal tool
 Cycle (name, start/end default Apr-Mar, evaluation date, evaluator per person, lock date). Template per role with weighted sections: Corporate objectives, Personal KPIs, Competencies (current rule 70/20/10; signed form 60/35/5; admin sets it). Corporate objectives: target, weight, 80/90/100/110% threshold columns, points table (101-110% = 3.00 ... <75% = 0), actuals entered once. Personal KPIs grouped (Sales & revenue, Client acquisition, Internal coordination, Reporting) with name, definition, formula, unit, target, weight, direction, and source = computed from app (GMV vs plan from credited revenue; revenue from new clients; new B2B clients; upsell/cross-sell achievements; follow-up on time from action items; weekly updates; meeting notes on time; task execution on time; initiatives and escalations; reports on time) or manual (manager assessment 1-5). Competencies with weights and manager score + comment. Self and manager evaluation per line; comments; sign-off. Grade scale and cap are settings. Old tool imported once as legacy.
 
 ## 5a. Yearly plans

@@ -48,7 +48,7 @@ number when ruled, and the decision names its question.
 
 **V24 — Emailed codes via Resend's free tier** ACTIVE · 2026-09-28. Sending from a sub-domain such as `auth.directksa.com` with its DNS records; needed before any real user signs in (V59) — until then staging uses Supabase's built-in sender, which reaches only the owner. (Was Q4.)
 
-**V25 — Words: "Sales (GMV)" and "Margin"** ACTIVE · 2026-09-28. Screens say Sales (GMV) for the invoice total less top-ups (D21's figure) and Margin for it minus approved cost; no money rule changes. (Was Q5.)
+**V25 — Words: "Sales (GMV)" and "Margin"** REPLACED by V73 · 2026-09-28. Screens were to say Sales (GMV) for the invoice total less top-ups (D21's figure) and Margin for it minus approved cost; the owner's words won (V73); no money rule changed. (Was Q5.)
 
 **V26 — Everyone edits partner details; money-moving changes are held back** ACTIVE · 2026-09-28. Details, roles, contracts, contacts, notes and files: everyone (D7). Identifiers: managers, the head, admins. Merging and changing the account manager: the head and admins. (Was Q6.)
 
@@ -108,7 +108,7 @@ number when ruled, and the decision names its question.
 
 **V53 — Logos and avatars everywhere** ACTIVE · 2026-09-28. A partner's logo (SVG or PNG, at least 256 px; else its monogram, or a blank tile by setting) and a person's avatar, nickname and badge show in rows, chips, headers and hover cards. Spec §3.4, §2.5.
 
-**V54 — The partner card's period view, deep links and saved views** ACTIVE · 2026-09-28. A switch MTD · QTD · YTD · Custom; tiles against the same period last year and a Q1–Q4 strip this year against last; **Open in Finance** carries the partner, period and kind in the URL, so Finance shows the same figures; every Finance filter lives in the URL; saved views (personal or shared) on every list. The tiles use V25's words (Sales (GMV), Cost, Margin) where the canvas says Revenue / Profit — see Q33. Spec §3.4, §6.
+**V54 — The partner card's period view, deep links and saved views** ACTIVE · 2026-09-28. A switch MTD · QTD · YTD · Custom; tiles against the same period last year and a Q1–Q4 strip this year against last; **Open in Finance** carries the partner, period and kind in the URL, so Finance shows the same figures; every Finance filter lives in the URL; saved views (personal or shared) on every list. The tiles say Revenue · Cost · Profit (V73). Spec §3.4, §6.
 
 **V55 — Files are named automatically, live** ACTIVE · 2026-09-28. Each file kind has a name pattern (a setting, with a live preview: invoice, contract, agreement, rate sheet, certificate, meeting note …); the name is computed when shown, from the records the file is linked to, so a renamed partner renames its files; downloads save under it (Content-Disposition); the original name is kept on record. Spec §3.4.
 
@@ -150,3 +150,7 @@ example uses made-up names.
 **V71 — Go-live is a staged pilot** ACTIVE · 2026-09-28. A small group first (including Finance colleagues with read access to Finance), then everyone, on the owner's word. Spec §11, plan P6-8.
 
 **V72 — A recurring "Partner feedback" task per key partner** ACTIVE · 2026-09-28. Using the recurring templates; owned by the account manager; its feedback note sets the last feedback date. Spec §3.7.
+
+## Oversight answers, 28 Sep 2026 (after round 4)
+
+**V73 — Screens use the owner's money words: Revenue · Cost · Profit** ACTIVE · 2026-09-28. The owner uses these words, so every screen, report and export says Revenue (the invoice total less top-ups, D21's figure), Cost (approved expenses) and Profit (revenue − cost, Final cost only). The labels are wording settings (`core.wording`), changeable without code; code keeps `revenue` and `margin`; the KPI mapping and the KPI sheet may call revenue GMV where the strategy team's sheet does. Replaces V25's words; no money rule changes. (Was Q33.)

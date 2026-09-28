@@ -554,8 +554,9 @@ core.mention      (note_id, person_id) pk
   referral terms (§11).
 - **Key partners** (V72) get a recurring **Partner feedback** task (the recurring templates of §3.7), owned by the
   account manager; finishing it with a feedback note moves the last feedback date.
-- **Money on the card follows V1/V25**: the tiles are Sales (GMV), Cost (approved expenses only, "Provisional" while
-  any unit is) and Margin (Final cost only), each against the same period last year; a rise in cost reads as bad.
+- **Money on the card follows V1/V73**: the tiles are Revenue, Cost (approved expenses only, "Provisional" while
+  any unit is) and Profit (revenue − cost, Final cost only), each against the same period last year; a rise in cost
+  reads as bad.
 - **Period view on the card** (V54): a switch **MTD · QTD · YTD · Custom**; tiles against the same period last year; a
   Q1–Q4 strip, this year against last; **Open in Finance** deep-links to the Finance list with the partner, period and
   kind in the URL. Finance keeps its full filters and **saved views** (§6).
@@ -768,14 +769,15 @@ finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note
 | `finance.partner_month` | partner × month: revenue, cost, estimate, margin, counted units, outstanding |
 | `finance.partner_credit` | V70: per partner, the credit limit in force (with who approved it) and outstanding against it |
 | `finance.partner_wallet` | V70: per partner, paid wallet top-ups − the wallet part of its counted invoices = the prepaid balance |
-| `finance.sales_by_code` | V65: discount or campaign code × month: counted units, Sales (GMV), margin, the partner or campaign, the terms in force |
+| `finance.sales_by_code` | V65: discount or campaign code × month: counted units, revenue, profit, the partner or campaign, the terms in force |
 | `finance.health` | what is held back or doubtful, by reason, with the riyals at stake (M48, M52): unknown statuses, excluded/hidden rows, units with no partner, cost missing, estimates in use, Provisional units, failed checks |
 
 **"Commercial revenue" is a setting** (`finance.revenue_definition`, effective-dated): basis (revenue as above — the
 default — or margin), which services, which company categories, whether commissions count. The structure is built
 now; **its value is decided at go-live** (owner, 28 Sep — decision 3), and nothing waits for it. The KPI source
 `finance.commercial_revenue` reads it as of each month, so a changed definition recalculates every KPI, report draft
-and appraisal that uses it (§1a example 6). The screen words ("Revenue" vs "Sales (GMV)" and "Margin") are V25.
+and appraisal that uses it (§1a example 6). The screen words are the owner's — **Revenue · Cost · Profit** (V73; a wording setting, `core.wording`); code keeps
+`revenue` and `margin`, and the KPI sheet may call revenue GMV where the strategy sheet does.
 
 **Ported rules that the tests must pin down:** a unit counts only when paid (Audit Required counts, flagged) · credit
 notes never count · wallet top-ups never revenue (MF7) · VOID never counts (MF9) · billing invoices never revenue;
@@ -1031,7 +1033,7 @@ report.render        id; report_id; format ('pdf','pptx'); file_id; snapshot_sha
   **Legacy PDF**). The PDFs hold real figures: they live in Storage, never in the repository (rule 7).
 - **Compare** any two periods side by side (V57): tiles and sections aligned by section key, differences highlighted
   (the delta beside each figure, lines present on one side only marked); a legacy side shows its typed tiles and, per section,
-  "Legacy PDF · page N" opening its PDF there. Tiles: Sales (GMV), Margin (V25), Bookings, Collections; a
+  "Legacy PDF · page N" opening its PDF there. Tiles: Revenue, Profit (V73), Bookings, Collections; a
   **Differences only** switch and **Swap**. The canvas's ReportsArchive artboard is the layout.
 - **New sections** (V62, V67). **Partners at risk / lost — top reasons** (monthly and quarterly): partners whose status
   turned at risk or lost in the period, grouped by reason with counts, each partner a live-name link. **Cases**
