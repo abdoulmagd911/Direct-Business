@@ -89,6 +89,10 @@
         p.setAttribute('title', st.text);
       } catch (_) { }
     }
+    /* any confirmed save, from any path (js/01 calls it for direct table writes) */
+    /* only the age moves: a failing workspace save stays "Not synced" until that save itself succeeds, and db_cloud_ts is
+       left alone (it is the workspace's version stamp, js/02) */
+    window.__syncOk = function () { S.lastOk = Date.now(); paint(); };
     window.__syncBadgeState = function () { var st = state(); return { text: st.text, dot: st.dot, failing: S.failing, lastOk: S.lastOk }; };
 
     /* the badge is re-injected by core-09 on every render, so repaint after render as well as

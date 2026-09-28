@@ -230,8 +230,9 @@
 
   window.rptDelAch=function(id){
     var c=client(); if(!c) return;
-    var ask=typeof window.askInPage==='function'?window.askInPage:function(t,cb){ cb(); };
-    ask(fl('Delete this achievement? It is removed for everyone; the change is recorded.','حذف هذا الإنجاز؟ يُحذف للجميع ويُسجَّل التغيير.'),function(){
+    var ask=typeof window.askInPage==='function'?window.askInPage:function(){};   // 2026-09-28 (D19): no box, no delete
+    var an=''; try{ var a0=((typeof RDB!=='undefined'&&RDB.achievements)||[]).filter(function(x){return String(x.id)===String(id);})[0]; an=String((a0&&a0.title)||''); if(an.length>60) an=an.slice(0,57)+'…'; }catch(_){}   // names it
+    ask(fl('Delete the achievement "'+an+'"? It is removed for everyone; the change is recorded.','حذف الإنجاز «'+an+'»؟ يُحذف للجميع ويُسجَّل التغيير.'),function(){
       c.from('report_entries').delete().eq('id',id).select('id').then(function(r){
         if(r.error) say(said(r.error.message),'err');
         else if(!r.data||!r.data.length) say(fl('Not deleted — the database did not accept it.','لم يُحذف — لم تقبله قاعدة البيانات.'),'err');

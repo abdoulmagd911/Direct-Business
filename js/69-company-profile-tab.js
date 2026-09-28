@@ -632,7 +632,7 @@
       (list.length?fl('— open a saved profile ('+list.length+') —','— افتح ملفاً محفوظاً ('+list.length+') —')
                   :fl('— no saved profiles yet —','— لا توجد ملفات محفوظة بعد —'))+'</option>'+
       list.map(function(o){
-        var label=(o.doc_number||fl('draft','مسودة'))+' · '+(o.title||'')+' · '+String(o.created_at||'').slice(0,10);
+        var label=(o.doc_number||fl('draft','مسودة'))+' · '+(o.title||'')+' · '+dayRiyadh(o.created_at);
         return '<option value="'+esc(o.id)+'" '+(S.rowId===o.id?'selected':'')+'>'+esc(label)+'</option>';
       }).join('');
   }

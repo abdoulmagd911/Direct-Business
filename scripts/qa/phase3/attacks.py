@@ -258,7 +258,7 @@ def _(cur):
     p = new_project(cur); link(cur, 'INV-A26', p)
     live = one(cur, "select revenue_sar from project_money where project_id=%s", (p,))
     r = one(cur, "insert into reports(kind,period_id,status,snapshot,issued_at,issued_by) values ('monthly',%s,'issued',%s,now(),%s) returning id", (F['mar26'], json.dumps({'revenue': float(live)}), F['m4']))
-    q(cur, "update finance_invoices set revenue_sar=90000 where invoice_no='INV-A26' and line_no=1")
+    q(cur, "update finance_invoices set total_incl_vat_sar=90000 where invoice_no='INV-A26' and line_no=1")   # a re-import changes the TOTAL; revenue follows it (trigger, D21)
     live2 = one(cur, "select revenue_sar from project_money where project_id=%s", (p,))
     frozen = one(cur, "select (snapshot->>'revenue')::numeric from reports where id=%s", (r,))
     return (frozen == 10000 and live2 == 94000, f"live {live}→{live2}, issued report stays {frozen}")
@@ -1558,6 +1558,130 @@ def _(cur):
             one(cur, "select business_id=%s from company_name_aliases where name='Old Spelling Co' and removed_at is null", (F['coB'],)))
     fold = one(cur, "select money_norm('شـركةُ الاختبار') = money_norm('شركه الإختبار')")
     return (after == (True, True, 2) and back == (True, True) and fold, f"after merge (code, name on the kept company; 2 recorded)={after} · after undo back on the dropped one={back} · tatweel+harakat+ة/ه+أ/ا fold={fold}")
+
+# ================= D1 — the money model and the invoice import (scripts/sql/d1-money-model.sql; DECISIONS D21) =================
+def fi(cur, no, total, **kw):
+    cols = {'invoice_no': no, 'line_no': 1, 'client_group': 'D1 Test Co', 'invoice_date': '2026-03-10', 'total_incl_vat_sar': total,
+            'integrity_status': 'verified_paid', 'revenue_way': 'invoice'}
+    cols.update(kw)
+    ks = list(cols)
+    return one(cur, "insert into finance_invoices(" + ",".join(ks) + ") values (" + ",".join(["%s"] * len(ks)) + ") returning id", tuple(cols[k] for k in ks))
+def row(cur, i, cols):
+    return one(cur, "select " + cols + " from money_rows where id=%s", (i,))
+
+@test("D1-01 Revenue is the invoice total; only a wallet TOP-UP part comes out; a top-up-only invoice and a billing link are stored with zero revenue and never count; a hand-entered revenue with no total is kept")
+def _(cur):
+    a = fi(cur, 'D1-SALE', 1000)
+    b = fi(cur, 'D1-MIX', 1890, wallet_portion_sar=2)              # a sale with a +2 Wallet Balance line
+    c = fi(cur, 'D1-TOPUP', 50000, row_kind='wallet_topup', wallet_portion_sar=50000)
+    d = fi(cur, 'D1-BILL', 193815, row_kind='billing_link')
+    e = one(cur, "insert into finance_invoices(invoice_no,line_no,client_group,invoice_date,revenue_sar,integrity_status) values ('D1-HAND',1,'D1 Test Co','2026-03-11',700,'verified_paid') returning id")
+    got = [row(cur, x, "revenue_sar::float||'|'||counts::text") for x in (a, b, c, d, e)]
+    want = ['1000|true', '1888|true', '0|false', '0|false', '700|true']
+    return (got == want, f"sale / sale with a top-up line / top-up only / billing link / hand revenue with no total → {got} (want {want})")
+
+@test("D1-02 A missing cost is EMPTY, never 0: profit is empty and the row says cost missing; a commission has no cost by nature (profit = revenue, not missing); a known cost gives profit and a loss is flagged; a zero cost is a real zero")
+def _(cur):
+    a = fi(cur, 'D1-NOCOST', 5000)
+    b = fi(cur, 'D1-COMM', 800, revenue_way='commission')
+    c = fi(cur, 'D1-COST', 5000, cost_sar=4200)
+    d = fi(cur, 'D1-LOSS', 1000, cost_sar=1100)
+    e = fi(cur, 'D1-ZERO', 300, cost_sar=0)
+    got = [row(cur, x, "coalesce(cost_sar::text,'∅')||'|'||coalesce(profit_sar::float::text,'∅')||'|'||cost_missing::text||'|'||loss::text") for x in (a, b, c, d, e)]
+    want = ['∅|∅|true|false', '∅|800|false|false', '4200|800|false|false', '1100|-100|false|true', '0|300|false|false']
+    fl = one(cur, "select cost_missing::text from finance_lines where id=%s", (a,))
+    return (got == want and fl == 'true', f"no cost / commission / cost / loss / zero → {got} · finance_lines says cost missing={fl}")
+
+@test("D1-03 The import commit FILLS and never wipes: a field the new file does not carry keeps its value; the newest Payments status wins and an older file cannot roll it back; a hand-entered row is never touched by an import")
+def _(cur):
+    as_user(cur, 'u4')
+    r = one(cur, """select fn_commit_finance_import(p_insert := %s::jsonb)""", (json.dumps([{'invoice_no': 'D1-F', 'client_group': 'Fill Co', 'invoice_date': '2026-03-12',
+        'total_incl_vat_sar': 2000, 'integrity_status': 'pending', 'payments_status': 'Pending Payment', 'payments_status_at': '2026-03-12T10:00:00Z',
+        'branch': 'Riyadh', 'customer_email': 'ap@fill.example'}]),))
+    i = one(cur, "select id from finance_invoices where invoice_no='D1-F'")
+    # a later file: paid, carries no branch and no email → both kept
+    one(cur, "select fn_commit_finance_import(p_update := %s::jsonb)", (json.dumps([{'id': str(i), 'integrity_status': 'verified_paid', 'payments_status': 'Fully Paid',
+        'payments_status_at': '2026-03-20T10:00:00Z', 'paid_at': '2026-03-20'}]),))
+    after = one(cur, "select integrity_status||'|'||payments_status||'|'||coalesce(branch,'∅')||'|'||coalesce(customer_email,'∅')||'|'||paid_at from finance_invoices where id=%s", (i,))
+    # an OLDER file arrives afterwards, still saying Pending → the newer Paid stays
+    one(cur, "select fn_commit_finance_import(p_update := %s::jsonb)", (json.dumps([{'id': str(i), 'integrity_status': 'pending', 'payments_status': 'Pending Payment',
+        'payments_status_at': '2026-03-12T10:00:00Z'}]),))
+    older = one(cur, "select integrity_status||'|'||payments_status from finance_invoices where id=%s", (i,))
+    q(cur, "reset role")
+    m = fi(cur, 'D1-MANUAL', 900, source='manual')
+    as_user(cur, 'u4')
+    one(cur, "select fn_commit_finance_import(p_update := %s::jsonb)", (json.dumps([{'id': str(m), 'total_incl_vat_sar': 1}]),))
+    q(cur, "reset role")
+    man = one(cur, "select total_incl_vat_sar::float from finance_invoices where id=%s", (m,))
+    return (after == 'verified_paid|Fully Paid|Riyadh|ap@fill.example|2026-03-20' and older == 'verified_paid|Fully Paid' and man == 900,
+            f"after the later file: {after} · after an OLDER file: {older} · a manual row after an import update: total={man}")
+
+@test("D1-04 An invoice's item lines are replaced per invoice on each import (never duplicated), and the pass-through amount on them follows the item-name list a person keeps — live, and never into cost or profit")
+def _(cur):
+    i = fi(cur, 'D1-LINES', 507800)
+    lines = [{'invoice_no': 'D1-LINES', 'line_no': n, 'kind': 'item', 'name': nm, 'item_total_sar': v} for n, (nm, v) in enumerate(
+        [('Flight Booking - Flight Booking', 237542), ('Flight Booking - Service Fees', 29999.99), ('Hotel Booking - 3rd Party Fee', 140895),
+         ('Hotel Booking - Service Fee', 29999.99), ('Activity Booking - Provider Fee', 60806), ('Activity Booking - Service Fee', 8557.02)], 1)]
+    as_user(cur, 'u4')
+    one(cur, "select fn_commit_finance_import(p_item_lines := %s::jsonb)", (json.dumps(lines),))
+    one(cur, "select fn_commit_finance_import(p_item_lines := %s::jsonb)", (json.dumps(lines),))   # the same file again
+    n = one(cur, "select count(*) from finance_invoice_lines where invoice_no='D1-LINES'")
+    before = row(cur, i, "coalesce(pass_through_sar::float::text,'∅')||'|'||coalesce(unclassed_sar::float::text,'∅')")
+    for nm, cl in [('Flight Booking', 'pass_through'), ('3rd Party Fee', 'pass_through'), ('Provider Fee', 'pass_through'), ('Service Fee', 'fee'), ('Service Fees', 'fee')]:
+        q(cur, "insert into money_item_classes(name,class) values (%s,%s)", (nm, cl))
+    after = row(cur, i, "pass_through_sar::float||'|'||fee_sar::float||'|'||coalesce(unclassed_sar::text,'∅')||'|'||coalesce(cost_sar::text,'∅')||'|'||coalesce(profit_sar::text,'∅')")
+    q(cur, "reset role")
+    return (n == 6 and before == '∅|507800' and after == '439243|68557|∅|∅|∅',
+            f"lines after importing the same file twice={n} · before the list (pass-through|unclassed)={before} · after (pass-through|fee|unclassed|cost|profit)={after}")
+
+@test("D1-07 The same invoice (and the same item line) sent twice in one import lands ONCE, with the newer Payments status — never a refused import")
+def _(cur):
+    as_user(cur, 'u4')
+    base = {'client_group': 'Twice Co', 'invoice_date': '2026-04-02', 'total_incl_vat_sar': 700}
+    ins = [dict(base, invoice_no='D1-TWICE', integrity_status='verified_paid', payments_status='Fully Paid', payments_status_at='2026-04-05T09:00:00Z'),
+           dict(base, invoice_no='D1-TWICE', integrity_status='pending', payments_status='Pending Payment', payments_status_at='2026-04-02T09:00:00Z')]
+    ln = [{'invoice_no': 'D1-TWICE', 'line_no': 1, 'kind': 'item', 'name': 'Flight Booking - Flight Booking', 'item_total_sar': 600},
+          {'invoice_no': 'D1-TWICE', 'line_no': 1, 'kind': 'item', 'name': 'Flight Booking - Flight Booking', 'item_total_sar': 600}]
+    r = one(cur, "select fn_commit_finance_import(p_insert := %s::jsonb, p_item_lines := %s::jsonb)", (json.dumps(ins), json.dumps(ln)))
+    n = one(cur, "select count(*)||'|'||max(payments_status) from finance_invoices where invoice_no='D1-TWICE'")
+    nl = one(cur, "select count(*) from finance_invoice_lines where invoice_no='D1-TWICE'")
+    q(cur, "reset role")
+    return (n == '1|Fully Paid' and nl == 1, f"rows|status={n} · lines={nl} · result={r}")
+
+@test("D1-08 An OLDER file arriving after a newer one only fills what is empty: the paid amounts and the paid date (which sets the month) are not put back to the unpaid copy's")
+def _(cur):
+    as_user(cur, 'u4')
+    one(cur, "select fn_commit_finance_import(p_insert := %s::jsonb)", (json.dumps([{'invoice_no': 'D1-OLD', 'client_group': 'Old Co', 'invoice_date': '2026-05-20',
+        'total_incl_vat_sar': 700, 'amount_received_sar': 700, 'amount_remaining_sar': 0, 'integrity_status': 'verified_paid', 'payments_status': 'Fully Paid',
+        'payments_status_at': '2026-05-20T09:00:00Z', 'paid_at': '2026-05-20'}]),))
+    i = one(cur, "select id from finance_invoices where invoice_no='D1-OLD'")
+    one(cur, "select fn_commit_finance_import(p_update := %s::jsonb)", (json.dumps([{'id': str(i), 'invoice_date': '2026-05-14', 'amount_received_sar': 0,
+        'amount_remaining_sar': 700, 'integrity_status': 'pending', 'payments_status': 'Pending Payment', 'payments_status_at': '2026-05-14T09:00:00Z', 'branch': 'Jeddah'}]),))
+    got = one(cur, "select integrity_status||'|'||amount_received_sar::float||'|'||amount_remaining_sar::float||'|'||invoice_date||'|'||month||'|'||coalesce(branch,'∅') from finance_invoices where id=%s", (i,))
+    q(cur, "reset role")
+    return (got == 'verified_paid|700|0|2026-05-20|May|Jeddah', f"after the older file: {got} (branch was empty, so the older file may fill it)")
+
+@test("D1-05 The item-name list: only an admin or a manager adds to it; one entry per name however spelled; a name never changes; a removed entry stays removed; nothing is deleted; everyone with Finance reads it")
+def _(cur):
+    as_user(cur, 'u1'); t, _ = expect_fail(cur, "insert into money_item_classes(name,class) values ('3rd Party Fee','pass_through')", None, "row-level security"); q(cur, "reset role")
+    as_user(cur, 'u4')
+    x = one(cur, "insert into money_item_classes(name,class) values (' 3rd Party Fee ','pass_through') returning id")
+    a, _ = expect_fail(cur, "insert into money_item_classes(name,class) values ('3RD-party fee','fee')", None, "money_item_classes_one_live")
+    b, _ = expect_fail(cur, "update money_item_classes set name='Other' where id=%s", (x,), "never changes")
+    q(cur, "update money_item_classes set removed_at=now() where id=%s", (x,))
+    c, _ = expect_fail(cur, "update money_item_classes set removed_at=null where id=%s", (x,), "stays removed")
+    d = blocked_or_zero(cur, "delete from money_item_classes where id=%s", (x,))[0]
+    q(cur, "reset role")
+    as_user(cur, 'u6'); seen = one(cur, "select count(*) from money_item_classes"); q(cur, "reset role")
+    return (t and a and b and c and d and seen == 1, f"team member refused={t} · same name other spelling refused={a} · rename refused={b} · un-remove refused={c} · delete refused={d} · a View person reads {seen}")
+
+@test("D1-06 'Fully Paid (Audit Required)' counts and is flagged; only a paid SALE counts — pending, void, cancelled and draft never do, whatever their total")
+def _(cur):
+    a = fi(cur, 'D1-AUDIT', 400, audit_required=True, payments_status='Fully Paid (Audit Required)')
+    rest = [fi(cur, 'D1-' + st[:4].upper(), 999, integrity_status='pending', payments_status=st) for st in ('Pending Payment', 'Void', 'Cancelled', 'Draft')]
+    got = row(cur, a, "counts::text||'|'||audit_required::text")
+    others = [row(cur, x, "counts::text") for x in rest]
+    return (got == 'true|true' and others == ['false'] * 4, f"audit-required → {got} · pending/void/cancelled/draft → {others}")
 
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]

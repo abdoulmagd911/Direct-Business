@@ -281,7 +281,11 @@
       return false;
     });
   };
-  window.v114SetOnList=function(mid,on){ var c=client(); if(!c) return; c.from('team_members').update({ active:!!on }).eq('id',mid).select('id').then(after('person:'+((member(mid)||{}).user_id),on?fl('Back on the team list.','عاد إلى قائمة الفريق.')+REC:fl('Made inactive — they stay in the history.','أصبح غير نشط — ويبقى في السجل.')+REC)); };
+  window.v114SetOnList=function(mid,on){ var c=client(); if(!c) return;
+    var go=function(){ c.from('team_members').update({ active:!!on }).eq('id',mid).select('id').then(after('person:'+((member(mid)||{}).user_id),on?fl('Back on the team list.','عاد إلى قائمة الفريق.')+REC:fl('Made inactive — they stay in the history.','أصبح غير نشط — ويبقى في السجل.')+REC)); };
+    if(on){ go(); return; }   // 2026-09-28 (D19): making someone inactive asks first, naming them; no box, no change
+    if(typeof window.pfConfirm==='function') window.pfConfirm(fl('Remove "'+mname(mid)+'" from the active team list? They become inactive and stay in the history.','إزالة «'+mname(mid)+'» من قائمة الفريق النشطة؟ يصبح غير نشط ويبقى في السجل.'),go,{danger:true});
+  };
 
   /* ---------- the page ---------- */
   function html(){

@@ -777,7 +777,7 @@
         '<span class="dg-fam">'+esc(fl(f.en,f.ar))+'</span>'+
         '<span class="no">'+esc(o.doc_number||fl('Draft','مسودة'))+'</span>'+
         '<span class="who">'+esc(who)+'</span>'+
-        '<span class="dt">'+esc(String(o.created_at||'').slice(0,10))+'</span></button>';
+        '<span class="dt">'+esc(dayRiyadh(o.created_at))+'</span></button>';
     }).join('');
     return '<div class="dg-saved"><h3>'+fl('Saved documents','المستندات المحفوظة')+'</h3>'+inner+'</div>';
   }

@@ -57,12 +57,11 @@ const HEADER = ['Type', 'Invoice Reference #', 'Invoice Number', 'Invoice Create
   'Customer Name', 'Product', 'Name', 'Item Is Taxable', 'Item Discount', 'Item Total', 'Invoice Total',
   'Sale Branch', 'Salesman'];
 const ROWS = [HEADER,
-  ['invoice', 'QA-REF-1', 'QA-INV-1', '2026-03-14', 'Paid', 'QA Fixture Company', 'Flights', '', '', '', '', '1850.00', 'QA Branch', 'QA Seller'],
+  ['invoice', 'QA-REF-1', 'QA-INV-1', '2026-03-14', 'Fully Paid', 'QA Fixture Company', 'Flights', '', '', '', '', '1850.00', 'QA Branch', 'QA Seller'],
   ['item', 'QA-REF-1', '', '', '', 'QA Fixture Company', 'Flights', 'Service fee', 'Yes', '0', '1150.00', '1850.00', 'QA Branch', 'QA Seller'],
   ['item', 'QA-REF-1', '', '', '', 'QA Fixture Company', 'Flights', 'Supplier cost', 'No', '0', '700.00', '1850.00', 'QA Branch', 'QA Seller'],
-  /* and a wallet top-up, which the owner's 2026-08-12 rule says is never imported at all — the
-     surrounding exclusions must survive a change to the revenue line right beside them */
-  ['invoice', 'QA-REF-2', 'QA-INV-2', '2026-03-15', 'Paid', 'QA Fixture Company', 'Direct Wallet', '', '', '', '', '500.00', 'QA Branch', 'QA Seller'],
+  /* and a wallet top-up — since D21 (28 Sep) stored as its own kind, never revenue, never counted */
+  ['invoice', 'QA-REF-2', 'QA-INV-2', '2026-03-15', 'Fully Paid', 'QA Fixture Company', 'Direct Wallet', '', '', '', '', '500.00', 'QA Branch', 'QA Seller'],
   ['item', 'QA-REF-2', '', '', '', 'QA Fixture Company', 'Direct Wallet', 'Wallet Balance top-up', 'No', '0', '500.00', '500.00', 'QA Branch', 'QA Seller'],
 ];
 const out = await p.evaluate((rows2d) => {
@@ -73,22 +72,23 @@ const out = await p.evaluate((rows2d) => {
 }, ROWS);
 await b.close(); srv.close?.();
 
-const row = (out.built || [])[0] || null;
+const row = (out.built || []).find((x) => x.row_kind !== 'wallet_topup') || null;
 const parsed = (out.parsed || [])[0] || null;
 const near = (a, b2) => typeof a === 'number' && Math.abs(a - b2) < 0.011;
+const byRef = (r) => (out.built || []).find((x) => x.invoice_no === r || x.transaction_ref === r || x.direct_uuid === r) || null;
+const topup = (out.built || []).find((x) => x.row_kind === 'wallet_topup') || null;
+/* 2026-09-28 (D21, D18): the model this probe was written against is gone — cost is no longer read from the untaxed item
+   lines (approved expenses only), no VAT figure is worked out or stored, the fee-pair ÷1.15 went with it, and a wallet
+   top-up is STORED as its own kind rather than skipped. The M1 guard it exists for stands, and is asserted first. */
 const checks = [
-  ['the real parser read the synthetic export and built exactly one row — the wallet top-up is not one of them', !!parsed && !!row && out.built.length === 1],
-  ['the fixture really does carry VAT, so the two formulas can disagree', !!parsed && near(parsed.vat, 150)],
-  ['revenue is total minus wallet — the doctrine, the trigger and js/65 all agree on this', !!row && near(row.revenue_sar, 1850)],
+  ['the real parser read the synthetic export: the sale, and the top-up stored as its own kind', !!row && (out.built || []).length === 2 && !!topup],
+  ['revenue is total minus wallet, worked out in ONE place — the database trigger: the row sends total and wallet (1850 − 0), no revenue of its own',
+    !!row && row.row_kind === 'sale' && row.revenue_sar == null && near(row.total_incl_vat_sar - row.wallet_portion_sar, 1850)],
   ['revenue is NOT total minus VAT — that is M1\'s exact prohibition', !!row && !near(row.revenue_sar, 1700)],
-  ['the VAT is still recorded in its own column, never lost', !!row && near(row.vat_sar, 150)],
+  ['no VAT figure is written (D18)', !!row && row.vat_sar == null],
   ['the total is sent unchanged', !!row && near(row.total_incl_vat_sar, 1850)],
-  ['the non-taxable supplier line is the cost, untouched by VAT', !!row && near(row.cost_sar, 700)],
-  ['the fee-pair maths still nets VAT OUT of Direct\'s own fee (1150 ÷ 1.15 = 1000)', !!parsed && near(parsed.profit, 1000)],
-  /* this used to read `true === true`, which can never fail — the tautology the integrity gate exists
-     to catch. It now asserts the real thing: the wallet top-up in the fixture was counted as skipped
-     and never became a row. */
-  ['the wallet top-up beside it is still skipped entirely, never imported', !!out.excluded && out.excluded.wallet === 1 && !out.built.some((r) => r.invoice_no === 'QA-REF-2')],
+  ['cost is never read from the invoice lines: empty until approved expenses arrive, and so is profit (D21)', !!row && row.cost_sar == null && row.profit_sar == null],
+  ['the wallet top-up is stored as a top-up with zero revenue — never a sale', !!topup && topup.row_kind === 'wallet_topup' && Number(topup.revenue_sar || 0) === 0],
   ['reading the parser wrote nothing', wrote.filter((w) => !/finance_client_links/.test(w)).length === 0],
   ['no JS errors', errors.length === 0],
 ];

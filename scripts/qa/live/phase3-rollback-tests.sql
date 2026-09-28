@@ -225,12 +225,71 @@ begin
   raise exception 'VERDICT L4 %', array_to_string(out, ' · ');
 end $$;
 
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- L5 — E, the money rules (D16): a team member reads nothing and writes no rule; an admin's rule leaves a row out of
+--      money_rows / finance_lines at once and stamps who; a rule is never deleted, switching it off brings the row back,
+--      a removed rule stays removed; a name rule never catches a row that has a client ID; a typed name merges a row
+--      with no client ID into its company; exclusion beats merge. The test rows are made inside the block (QA-TEST …).
+-- ---------------------------------------------------------------------------------------------------------------
+do $$
+declare T uuid; M uuid := '06bb5086-9c8c-4a1b-9452-eb0b14c24fa9';
+        A uuid := '096eec1a-6d2c-4be4-a5f9-19e920062e7c'; b uuid; i1 uuid; i2 uuid; rid uuid; r text; out text[] := '{}';
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub',A,'role','authenticated')::text, true);
+  select u.id into T from app_users u join team_members m on m.user_id=u.id and m.active where u.role='team_member' and u.active order by u.id limit 1;
+  select id into b from businesses order by created_at limit 1;
+  insert into finance_invoices(invoice_no, client_group, invoice_date, total_incl_vat_sar, revenue_sar, payments_client_id)
+    values ('QA-TEST-E1', 'QA-TEST Company One', current_date, 1000, 1000, 'QA-CID-9999') returning id into i1;
+  insert into finance_invoices(invoice_no, client_group, invoice_date, total_incl_vat_sar, revenue_sar)
+    values ('QA-TEST-E2', 'QA-TEST Company Two', current_date, 500, 500) returning id into i2;
+
+  r := pg_temp.run(A, format($q$select counts::text from money_rows where id=%L$q$, i1));
+  out := out || pg_temp.chk('paid_row_counts', r='ok rows=1 val=true', r);
+  r := pg_temp.run(T, $q$insert into money_exclusion_rules(kind,value,reason) values ('client_id','QA-CID-9999','QA test')$q$);
+  out := out || pg_temp.chk('team_member_cannot_add_rule', r ~ '^ERR', r);
+  r := pg_temp.run(A, $q$insert into money_exclusion_rules(kind,value,reason) values ('client_id','QA-CID-9999','')$q$);
+  out := out || pg_temp.chk('reason_required', r ~ '^ERR', r);
+  r := pg_temp.run(A, $q$insert into money_exclusion_rules(kind,value,reason) values ('client_id',' QA-CID-9999 ','QA test') returning id::text||'|'||coalesce(created_by_name,'')$q$);
+  out := out || pg_temp.chk('admin_adds_rule_who_stamped', r ~ '^ok rows=1 val=[0-9a-f-]+\|.+', r);
+  rid := nullif(split_part(split_part(r,'val=',2),'|',1),'')::uuid;
+  r := pg_temp.run(A, format($q$select (excluded and not counts)::text||'|'||coalesce(rule_kind,'') from money_rows where id=%L$q$, i1));
+  out := out || pg_temp.chk('rule_leaves_row_out_at_once', r='ok rows=1 val=true|client_id', r);
+  r := pg_temp.run(A, format($q$select count(*)::text from finance_lines where id=%L$q$, i1));
+  out := out || pg_temp.chk('kpi_source_drops_it_too', r='ok rows=1 val=0', r);
+  r := pg_temp.run(A, format($q$insert into money_exclusion_rules(kind,value,reason) values ('client_id','qa-cid-9999','dup')$q$));
+  out := out || pg_temp.chk('one_live_rule_per_value', r ~ '^ERR', r);
+  r := pg_temp.run(A, format($q$delete from money_exclusion_rules where id=%L$q$, rid));
+  out := out || pg_temp.chk('rule_never_deleted', (r ~ '^ERR' or r='ok rows=0') and exists(select 1 from money_exclusion_rules where id=rid), r);
+  r := pg_temp.run(A, format($q$update money_exclusion_rules set active=false where id=%L$q$, rid));
+  out := out || pg_temp.chk('switch_off', r='ok rows=1', r);
+  r := pg_temp.run(A, format($q$select counts::text from money_rows where id=%L$q$, i1));
+  out := out || pg_temp.chk('switched_off_row_counts_again', r='ok rows=1 val=true', r);
+  r := pg_temp.run(A, format($q$update money_exclusion_rules set removed_at=now() where id=%L$q$, rid));
+  r := r || ' / ' || pg_temp.run(A, format($q$update money_exclusion_rules set removed_at=null, active=true where id=%L$q$, rid));
+  out := out || pg_temp.chk('removed_stays_removed', r ~ '^ok rows=1 / ERR', r);
+  r := pg_temp.run(A, $q$insert into money_exclusion_rules(kind,value,reason) values ('name','QA-TEST Company One','QA test')$q$);
+  r := r || ' / ' || pg_temp.run(A, format($q$select counts::text from money_rows where id=%L$q$, i1));
+  out := out || pg_temp.chk('name_rule_skips_row_with_client_id', r ~ '^ok rows=1 / ok rows=1 val=true$', r);
+  r := pg_temp.run(A, format($q$insert into company_name_aliases(business_id,name) values (%L,'QA-TEST  company two')$q$, b));
+  r := r || ' / ' || pg_temp.run(A, format($q$select merge_state||'|'||business_id::text from money_rows where id=%L$q$, i2));
+  out := out || pg_temp.chk('typed_name_merges_row', r = format('ok rows=1 / ok rows=1 val=merged|%s', b), r);
+  r := pg_temp.run(T, format($q$insert into company_name_aliases(business_id,name) values (%L,'QA-TEST other')$q$, b));
+  out := out || pg_temp.chk('team_member_cannot_merge', r ~ '^ERR', r);
+  r := pg_temp.run(A, $q$insert into money_exclusion_rules(kind,value,reason) values ('transaction','QA-TEST-E2','QA test')$q$);
+  r := r || ' / ' || pg_temp.run(A, format($q$select (merge_state='merged' and not counts)::text from money_rows where id=%L$q$, i2));
+  out := out || pg_temp.chk('exclusion_beats_merge', r ~ '^ok rows=1 / ok rows=1 val=true$', r);
+  r := pg_temp.run(M, $q$select count(*)::text from money_rows where invoice_no like 'QA-TEST-E%'$q$);
+  out := out || pg_temp.chk('manager_reads_same_rows', r='ok rows=1 val=2', r);
+  raise exception 'VERDICT L5 %', array_to_string(out, ' · ');
+end $$;
+
 -- ---------------------------------------------------------------------------------------------------------------
 -- fingerprint — run before and after; every number must be the same (nothing above may leave a trace)
 -- ---------------------------------------------------------------------------------------------------------------
 select (select count(*) from record_history) hist, (select count(*) from tasks) tasks, (select count(*) from client_profiles) cps,
        (select count(*) from company_documents) docs, (select count(*) from company_discount_codes) cdc,
-       (select count(*) from report_entries) re, (select count(*) from evidence_files) ev, (select count(*) from kpi_targets) kt,
+       (select count(*) from report_entries) re, (select count(*) from evidence_files) ev, (select count(*) from kpi_targets) kt, (select count(*) from finance_invoices) fi, (select count(*) from money_exclusion_rules) mrules, (select count(*) from company_name_aliases) aliases,
        (select count(*) from storage.objects) objs, (select count(*) from periods where locked_at is not null) locked,
        (select coalesce(string_agg(family||year||':'||last_n, ',' order by family),'') from document_counters) counters,
        (select md5(string_agg(id::text||coalesce(page_access::text,''), ',' order by id)) from app_users) access_md5;

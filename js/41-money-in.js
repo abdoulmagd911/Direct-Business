@@ -104,68 +104,93 @@
     return h.indexOf('Type')>=0 && h.indexOf('Invoice Reference #')>=0 && h.indexOf('Customer Name')>=0 && h.indexOf('Item Is Taxable')>=0;
   }
 
-  var _walletSkipped=0,_verifSkipped=0,_clientExcluded=0,_clientExcludedDetail=[];
+  /* D1 (2026-09-28, DECISIONS D21) — the Payments invoice export, read as it is. What changed from the reader before it:
+       · a wallet TOP-UP is stored, never counted (it used to be skipped outright): a top-up-only invoice is its own row
+         kind; a "Wallet Balance" line inside a real sale (change put back into the wallet) is split off as the wallet part,
+         and the sale keeps its service lines. A sale PAID from the wallet is a full sale — the wallet shows only as a
+         payment receipt, never as a line, so nothing is taken off it;
+       · COST IS NOT READ FROM THE ITEM LINES any more (it used to be the sum of the untaxed lines — the "pass-through =
+         cost" the owner ruled out on 22 Aug). Cost is approved expenses only; until they arrive it is empty. The lines
+         themselves are kept (finance_invoice_lines) and the pass-through amount on them is shown beside the cost;
+       · no VAT figure is worked out or stored (D18), and profit is the database's (revenue − cost, empty when cost is);
+       · every Payments status is kept as written, with when it last changed; "Fully Paid (Audit Required)" counts and is
+         flagged; Pending Payment, Void, Draft and Cancelled are stored and never count;
+       · the date that sets the month is the paid date for a paid invoice, else the date it was created (both kept). */
+  var _walletSkipped=0,_verifSkipped=0,_clientExcluded=0,_clientExcludedDetail=[],_topups=0,_unknownStatus=[];
+  var STATUS64=[   // Payments' own words → what the app stores; anything else stops that row for a person (never guessed)
+    [/^fully paid\s*\(audit required\)$/i, {st:'paid',audit:true}],
+    [/^fully paid$/i, {st:'paid'}], [/^paid$/i, {st:'paid'}],
+    [/^pending( payment)?$/i, {st:'pending'}], [/^partially paid$/i, {st:'pending'}],
+    [/^draft$/i, {st:'draft'}], [/^void(ed)?$/i, {st:'void'}], [/^cancel+ed$/i, {st:'cancelled'}]];
+  function status64(raw){ var t=String(raw||'').trim(); for(var k=0;k<STATUS64.length;k++){ if(STATUS64[k][0].test(t)) return STATUS64[k][1]; } return null; }
+  function stamp64(s){ // "18/06/2026 03:35:42 PM" → an ISO time (Riyadh, where Payments writes it); a plain date → noon Riyadh
+    var d=isoDate(s); if(!d) return null;
+    var m=String(s||'').match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AP]M)?/i); var hh=12, mm=0, ss=0;
+    if(m){ hh=+m[1]; mm=+m[2]; ss=+(m[3]||0); if(m[4]){ var pm=/p/i.test(m[4]); if(pm&&hh<12)hh+=12; if(!pm&&hh===12)hh=0; } }
+    return d+'T'+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0')+'+03:00';
+  }
+  function isWalletLine(it){ return it.product==='Direct Wallet'||/Wallet Balance|رصيد المحفظة/i.test(it.name||''); }
   function parseDP(rows){
-    _walletSkipped=0;_verifSkipped=0;_clientExcluded=0;_clientExcludedDetail=[];
+    _walletSkipped=0;_verifSkipped=0;_clientExcluded=0;_clientExcludedDetail=[];_topups=0;_unknownStatus=[];
     var hdr=rows[0].map(function(x){return String(x||'').trim();});
-    function ix(n){return hdr.indexOf(n);}
+    function ix(n){ var list=[].concat(n); for(var k=0;k<list.length;k++){ var at=hdr.indexOf(list[k]); if(at>=0) return at; } return -1; }
+    function cell(row,i){ return i>=0?String(row[i]==null?'':row[i]).trim():''; }
     var iType=ix('Type'),iProd=ix('Product'),iCust=ix('Customer Name'),iRef=ix('Invoice Reference #'),
-        iNum=ix('Invoice Number'),iCreate=ix('Invoice Create Date'),iStatus=ix('Invoice Status'),
+        iNum=ix('Invoice Number'),iCreate=ix('Invoice Create Date'),iGen=ix('Invoice Generate Date'),iPaid=ix('Last Payment Date'),
+        iStatus=ix('Invoice Status'),iStatusAt=ix('Last Status At'),iEmail=ix(['Customer Email','Email']),
         iName=ix('Name'),iTax=ix('Item Is Taxable'),iDisc=ix('Item Discount'),iItemTot=ix('Item Total'),
+        iQty=ix(['Qty','Quantity','Item Quantity']),iUnit=ix(['Unit Price','Item Unit Price','Item Price']),
         iTot=ix('Invoice Total'),iBranch=ix('Sale Branch'),iSales=ix('Salesman');
-    var invs={},order=[];
+    var invs={},order=[],cur=null;
     for(var r=1;r<rows.length;r++){
       var row=rows[r]; if(!row||!row.length)continue;
-      var t=String(row[iType]||'').trim(), ref=String(row[iRef]||'').trim();
+      var t=cell(row,iType), ref=cell(row,iRef);
       if(!ref)continue;
       if(t==='invoice'||t==='credit_note'){
         if(!invs[ref]){order.push(ref);}
-        invs[ref]={ref:ref,num:String(row[iNum]||'').trim()||null,date:isoDate(row[iCreate]),
-          status:String(row[iStatus]||'').trim(),cust:String(row[iCust]||'').trim(),
+        /* 2026-09-28 (D1 sweep): an invoice repeated in one file (two runs pasted together) — the copy with the NEWER status is
+           kept, whichever comes last; an older copy and its item lines are read and dropped (they used to overwrite it) */
+        var sAt=stamp64(row[iStatusAt]);
+        if(invs[ref]&&invs[ref].statusAt&&sAt&&String(sAt)<String(invs[ref].statusAt)){ cur={ref:ref,items:[],_dropped:true}; continue; }
+        cur=invs[ref]={ref:ref,num:cell(row,iNum)||null,created:isoDate(row[iCreate]),generated:isoDate(row[iGen]),paid:isoDate(row[iPaid]),
+          status:cell(row,iStatus),statusAt:stamp64(row[iStatusAt]),cust:cell(row,iCust),email:(cell(row,iEmail)||'').toLowerCase()||null,
           credit:(t==='credit_note'),total:money64(row[iTot]),
-          branch:String(row[iBranch]||'').trim()||null,salesman:String(row[iSales]||'').trim()||null,items:[]};
+          branch:cell(row,iBranch)||null,salesman:cell(row,iSales)||null,items:[]};
       } else if(t==='item'&&invs[ref]){
-        invs[ref].items.push({name:String(row[iName]||'').trim(),taxable:String(row[iTax]||'').trim()==='Yes',
-          discount:money64(row[iDisc]),total:money64(row[iItemTot]),product:String(row[iProd]||'').trim()});
+        (cur&&cur.ref===ref?cur:invs[ref]).items.push({name:cell(row,iName),taxable:cell(row,iTax)==='Yes',
+          discount:money64(row[iDisc]),total:money64(row[iItemTot]),product:cell(row,iProd),
+          qty:iQty>=0?money64(row[iQty]):null,unit:iUnit>=0?money64(row[iUnit]):null});
       }
     }
-    // per-invoice math
     var out=[];
     order.forEach(function(ref){
       var inv=invs[ref];
-      if(/Cancelled/i.test(inv.status))return; // never entered the books
-      var cost=0,taxTot=0,disc=0,svcs={},comm=false,wallet=false,verif=false;
+      var disc=0,svcs={},comm=false,verif=false,walletPart=0,serviceItems=0;
       inv.items.forEach(function(it){
-        if(it.taxable)taxTot+=it.total; else cost+=it.total;
         disc+=it.discount||0;
+        if(isWalletLine(it)){ walletPart+=it.total; return; }
+        serviceItems++;
         if(it.product)svcs[SVC64[it.product]||it.product]=1;
         if(/Commission/i.test(it.name))comm=true;
-        if(/Wallet Balance/i.test(it.name)||it.product==='Direct Wallet')wallet=true;
         if(it.product==='Techtic Support'||/Verification/i.test(it.name)||/Verification/i.test(it.product||''))verif=true;
       });
-      var profit=Math.round(taxTot/1.15*100)/100, vat=Math.round((taxTot-profit)*100)/100;
-      if(wallet){_walletSkipped++;return;} // owner rule 2026-08-12: wallet top-ups are NOT imported at all
       if(verif){_verifSkipped++;return;}   // owner rule 2026-08-13: verification services are accounted for elsewhere — never imported here
-      // Spec 4 item 1 (2026-08-21) — the real bug fix: excluding a CLIENT (Takamol) is a
-      // separate rule from excluding a PRODUCT (Techtic Support/Verification above), and
-      // must never rest on a product regex — a Takamol invoice for any other service used
-      // to sail straight through. Checked by client ID via the exclusion list (js/62); the
-      // list is name-matched today only because Direct Payments hasn't shipped a
-      // transaction-level export carrying a numeric client ID yet — never silent, the match
-      // is recorded so the preview can show exactly which id and why.
+      var topup=!inv.credit&&walletPart>0&&(serviceItems===0||walletPart>=inv.total-0.01);
+      if(topup)_topups++;
+      var s=inv.credit?{st:'credit'}:status64(inv.status);
+      if(!s){ _unknownStatus.push({ref:ref,status:inv.status}); return; }   // a status nobody has named: held back for a person
       var xhit=(typeof window.finExclusionCheck==='function')?window.finExclusionCheck(inv.cust):null;
-      /* E (2026-09-27): a row a rule catches is still imported — the view leaves it out, so switching the rule off brings it
-         back with no re-import. The preview says how many a rule will leave out. */
       if(xhit){ _clientExcluded++; _clientExcludedDetail.push({name:inv.cust,clientId:xhit.clientId,reason:xhit.reason}); }
-      var svc=Object.keys(svcs).sort().join(' + ')||'Other';
-      var st = inv.credit?'credit' : /Fully Paid/i.test(inv.status)?'paid' : /Draft/i.test(inv.status)?'draft' : 'pending';
-      out.push({ref:ref,num:inv.num,date:inv.date,cust:inv.cust,total:inv.total,cost:Math.round(cost*100)/100,
-        profit:profit,vat:vat,disc:Math.round(disc*100)/100,svc:svc,st:st,comm:comm,wallet:wallet,
-        branch:inv.branch,salesman:inv.salesman});
+      var svc=topup?'Wallet top-up':(Object.keys(svcs).sort().join(' + ')||'Other');
+      out.push({ref:ref,num:inv.num,created:inv.created,generated:inv.generated,paid:inv.paid,status:inv.status,statusAt:inv.statusAt,
+        cust:inv.cust,email:inv.email,total:inv.total,walletPart:topup?inv.total:Math.round(walletPart*100)/100,topup:topup,
+        disc:Math.round(disc*100)/100,svc:svc,st:s.st,audit:!!s.audit,comm:comm,
+        branch:inv.branch,salesman:inv.salesman,items:inv.items});
     });
-    // twin pairing: numbered + unnumbered same customer+total → the unnumbered one is the transaction
+    // twin pairing (the OLD system): a numbered + an unnumbered row for the same customer and total → the unnumbered one is
+    // the transaction the numbered invoice was issued for; one money row, the transaction number kept on it
     var byKey={};
-    out.forEach(function(i){var k=i.cust+'|'+i.total.toFixed(2);(byKey[k]=byKey[k]||[]).push(i);});
+    out.forEach(function(i){ if(i.topup) return; var k=i.cust+'|'+i.total.toFixed(2);(byKey[k]=byKey[k]||[]).push(i);});
     var drop={};
     Object.keys(byKey).forEach(function(k){
       var g=byKey[k],nums=g.filter(function(i){return i.num;}),plain=g.filter(function(i){return !i.num;});
@@ -175,46 +200,40 @@
   }
 
   function toRows(parsed){
+    var batch='dp-import-'+todayISO();
     return parsed.map(function(i){
-      var integ = i.wallet?'excluded' : i.st==='paid'?'verified_paid' : i.st==='credit'?'credit_note' : 'pending';
-      /* 2026-09-18 (fire #93): this said `(i.total - i.vat)` — revenue with VAT taken out of it, which
-         is M1's exact prohibition: VAT must never enter or be mixed into revenue, cost or profit. The
-         doctrine, the database trigger `finance_derive_fields` (BEFORE INSERT OR UPDATE) and js/65's
-         own importer all agree that revenue = total − wallet. This was the only place in the app that
-         subtracted VAT instead.
-         It has never produced a wrong stored figure, for two independent reasons: every VAT value in
-         the live ledger is 0.00, so the two formulas returned the same number; and the trigger rewrites
-         revenue whenever it differs from total − wallet by more than a hundredth, so the database was
-         never going to keep this one. But the app was computing it wrongly on the live import path —
-         js/65's real importer calls THIS function through window.__v65_toRowsDP — and a Direct Payments
-         export carrying real VAT would have made the app's own arithmetic disagree with the ledger it
-         was writing to. A doctrine that survives only because a trigger silently corrects it is not
-         being followed. Wallet rows stay 0: their wallet_portion is the whole total. */
-      var rev = i.wallet?0 : Math.round(i.total*100)/100;
-      return {
+      var paid=i.st==='paid';
+      var integ = paid?'verified_paid' : i.st==='credit'?'credit_note' : 'pending';
+      // the date that sets the month: paid date for a paid invoice (else its creation date) — D21
+      var periodDate=(paid&&i.paid)?i.paid:(i.created||i.paid||i.generated);
+      var row={
         invoice_no:i.ref, zatca_dpin:i.num, client_group:i.cust, customer_raw_name:i.cust,
-        invoice_date:i.date,
-        // month NAME + bare quarter — the period filters compare against 'January'…'December' and 'Q1'…'Q4'
-        month:i.date?['January','February','March','April','May','June','July','August','September','October','November','December'][+i.date.slice(5,7)-1]:null,
-        quarter:i.date?('Q'+(Math.floor((+i.date.slice(5,7)-1)/3)+1)):null,
+        invoice_date:periodDate, invoice_created_on:i.created, paid_at:paid?(i.paid||null):null, tax_invoice_date:i.generated,
         products:i.svc, service_type:i.svc, record_type:'b2b',
-        total_incl_vat_sar:i.total, wallet_portion_sar:i.wallet?i.total:0, revenue_sar:rev,
-        cost_sar:i.cost, profit_sar:i.profit, vat_sar:i.vat, discount_sar:i.disc,
-        amount_received_sar:(i.st==='paid'?i.total:0),
-        amount_remaining_sar:(i.st==='paid'||i.st==='credit')?0:i.total,
-        integrity_status:integ,
-        exclusion_reason:i.wallet?'wallet top-up — excluded from revenue by definition':null,
+        row_kind:i.topup?'wallet_topup':i.st==='credit'?'credit_note':'sale',
+        total_incl_vat_sar:i.total, wallet_portion_sar:i.walletPart,
+        cost_sar:null,                                   // approved expenses only (D2) — never the item lines
+        discount_sar:i.disc,
+        amount_received_sar:(paid?i.total:0),
+        amount_remaining_sar:(paid||i.st==='credit')?0:i.total,
+        integrity_status:integ, payments_status:i.status||null, payments_status_at:i.statusAt, audit_required:!!i.audit,
+        customer_email:i.email,
+        exclusion_reason:null,
         notes:i.st==='draft'?'Draft in Direct Payments':null,
-        source_batch:'dp-import-'+todayISO(),
+        source_batch:batch, source:'import',
         line_no:1, branch:i.branch, salesman:i.salesman,
-        revenue_way:(i.comm?'commission':(!i.num&&i.st!=='credit'&&!i.wallet)?'transaction':'invoice'),
+        revenue_way:(i.comm?'commission':(!i.num&&i.st!=='credit'&&!i.topup)?'transaction':'invoice'),
         transaction_ref:i.tx||null
       };
+      // the item lines, replaced per invoice on the commit (import rule 4)
+      row._lines=(i.items||[]).map(function(it,k){ return {invoice_no:i.ref,line_no:k+1,kind:'item',product:it.product||null,name:it.name||null,
+        qty:it.qty,unit_price:it.unit,discount_sar:it.discount||0,taxable:!!it.taxable,item_total_sar:it.total,source_batch:batch}; });
+      return row;
     });
   }
 
   function preview(rows,skipped,supCount,deletedSkipped){
-    var paid=0,pend=0,cred=0,comm=0,tx=0,tot=0,wal=_walletSkipped;
+    var paid=0,pend=0,cred=0,comm=0,tx=0,tot=0,wal=0;   // D1: top-ups are stored now — counted in the summary below, never as revenue
     rows.forEach(function(r){
       if(r.integrity_status==='verified_paid'){paid++;tot+=r.total_incl_vat_sar;}
       else if(r.integrity_status==='credit_note')cred++;
@@ -264,59 +283,23 @@
       var existing={}, deletedOnly={};
       ((window.FIN&&FIN.rows)||[]).forEach(function(r){ if(r.invoice_no&&!r.deleted_at) existing[r.invoice_no]=1; });
       ((window.FIN&&FIN.rows)||[]).forEach(function(r){ if(r.invoice_no&&r.deleted_at&&!existing[r.invoice_no]) deletedOnly[r.invoice_no]=1; });
-      /* Cross-import twin resolution (S4, 2026-08-20). parseDP()'s twin pairing above only
-         matches a numbered invoice to its unnumbered transaction WITHIN one file — but the
-         normal way this app gets used is: import an export today (a transaction still
-         pending, no tax invoice yet), then import a NEWER export weeks later where that
-         same transaction now HAS its tax invoice. At that point the twin is a row ALREADY
-         IN THE DATABASE from the first import, not another row in this file, so the pairing
-         above never sees it — and without this step both rows would sit in the ledger and
-         double-count the same money forever: once as the old pending transaction, once as
-         the new invoice. Matched on the exact same key the intra-file pairing already uses
-         (client + total) — same trust level already approved for that pairing. */
-      var openTx={};
-      ((window.FIN&&FIN.rows)||[]).forEach(function(r){
-        if(r.revenue_way==='transaction'&&!r.deleted_at&&r.integrity_status==='pending'){
-          openTx[r.client_group+'|'+(+r.total_incl_vat_sar).toFixed(2)]=r;
-        }
-      });
-      var supersede=[]; // old pending-transaction row ids to retire once the new rows commit
       var fresh=[],skipped=0,deletedSkipped=0;
       toRows(parsed).forEach(function(r){
         if(existing[r.invoice_no]){skipped++;return;}
         if(deletedOnly[r.invoice_no]){deletedSkipped++;return;}
-        if(r.revenue_way==='invoice'&&!r.transaction_ref){
-          var tw=openTx[r.client_group+'|'+(+r.total_incl_vat_sar).toFixed(2)];
-          if(tw){ r.transaction_ref=tw.invoice_no; supersede.push(tw.id); }
-        }
+        /* D1 (2026-09-28): an invoice no longer retires a pending transaction by itself. The transaction is the money row and
+           stays (its cost is recorded on it); linking an invoice to the transactions it bills is proposed in the import
+           preview (js/65) and a PERSON confirms it — never done here. */
         fresh.push(r);
       });
-      FIN._supersede=supersede.length?supersede:null;
-      preview(fresh,skipped,supersede.length,deletedSkipped);
+      preview(fresh,skipped,0,deletedSkipped);
     }catch(e){
       document.getElementById('finImpOut').innerHTML='<div style="color:#D92D20;font-size:13px">'+fl('Could not read this export: ','تعذر قراءة الملف: ')+esc64(e.message)+'</div>';
     }
   }
 
-  /* finCommit() (js/16) only inserts the new rows — it knows nothing about superseded
-     transactions. Wrap it, same additive pattern this file already uses for finParse and
-     renderFinance: soft-delete the matched old pending-transaction rows once the new ones
-     are in, so the ledger never double-counts a transaction that has since been invoiced. */
-  var _fcm=window.finCommit;
-  window.finCommit=function(){
-    var sup=FIN._supersede; FIN._supersede=null;
-    var out=_fcm.apply(this,arguments);
-    if(sup&&sup.length){
-      fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).in('id',sup).select('id').then(function(r){
-        if(r&&r.error){ console.warn('[v65] could not retire superseded transactions',r.error); return; }
-        // M13: no error is not proof — a silent RLS refusal returns no rows. Say so, never pretend.
-        var got=(r&&r.data)?r.data.length:0;
-        if(got<sup.length){ console.warn('[v65] retired '+got+' of '+sup.length+' superseded transactions'); try{ if(typeof toast==='function')toast((typeof LANG!=='undefined'&&LANG==='ar')?('تم سحب '+got+' من '+sup.length+' معاملة قديمة فقط — تحقّق من الصلاحيات'):('Only '+got+' of '+sup.length+' superseded transactions were retired — check permissions')); }catch(_){} }
-        FIN.rows=null; finLoad();
-      });
-    }
-    return out;
-  };
+  /* D1 (2026-09-28): the wrapper that soft-deleted "superseded" pending transactions after a commit is gone with the step
+     that chose them (above) — the oversight's order: no import retires a transaction by itself. */
 
   function readXlsx(f,cb){
     function go(){ var rd=new FileReader();
@@ -424,7 +407,7 @@
      deleted-number path — the one this round fixed — could not be driven at all. */
   window.__v41_runDP=runDP;
   window.__v65_csvParse=csvParse64; window.__v65_readXlsx=readXlsx;
-  window.__v65_exclusionCounts=function(){ return {wallet:_walletSkipped,verif:_verifSkipped,clientExcluded:_clientExcluded,clientExcludedDetail:_clientExcludedDetail}; };
+  window.__v65_exclusionCounts=function(){ return {wallet:_walletSkipped,verif:_verifSkipped,clientExcluded:_clientExcluded,clientExcludedDetail:_clientExcludedDetail,topups:_topups,unknownStatus:_unknownStatus.slice()}; };
 
   console.info('%c[v65] Direct Payments importer loaded','color:#B54708;font-weight:700');
 }catch(e){if(window.console)console.warn('[v65] init',e);}})();

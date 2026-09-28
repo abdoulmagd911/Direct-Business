@@ -43,11 +43,12 @@ const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/su
 const PORT = 9246; const BASE = 'http://localhost:' + PORT;
 
 /* fixed instants, so the expected text is a constant and not a function of when this runs */
-const MS_TOP = 1758000000000;   /* 2025-09-16 05:20 UTC */
-const MS_ACT = 1757000000000;   /* 2025-09-04 15:33 UTC */
+const MS_TOP = 1758000000000;   /* 2025-09-16 05:20 UTC = 08:20 Riyadh */
+const MS_ACT = 1757000000000;   /* 2025-09-04 15:33 UTC = 18:33 Riyadh */
 const CR_10 = 1010000000;       /* ten digits — a registration number, not a date */
 const N_12 = 123456789012;      /* twelve digits — the boundary the window must not cross */
-const asText = (ms) => { const d = new Date(ms); return d.toISOString().slice(0, 10) + ' ' + d.toISOString().slice(11, 16); };
+/* written in Riyadh's time (UTC+3, no daylight saving) — the owner's rule of 28 Sep (DECISIONS D20) */
+const asText = (ms) => { const d = new Date(ms + 3 * 3600000); return d.toISOString().slice(0, 10) + ' ' + d.toISOString().slice(11, 16); };
 
 const srv = start(PORT, {});
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });

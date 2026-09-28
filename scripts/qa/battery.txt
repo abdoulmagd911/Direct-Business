@@ -372,3 +372,6 @@ probe-one-question-one-paint
 probe-the-built-site-runs-the-same
 probe-money-rules
 probe-sign-in-says-what-happened
+probe-rules-round2
+probe-d1-invoice-import
+probe-d19-delete-asks
