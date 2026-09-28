@@ -1,0 +1,16 @@
+import { chromium } from '@playwright/test';
+const b = await chromium.launch({ args: ['--no-proxy-server'] });
+const ctx = await b.newContext({ viewport: { width: 1500, height: 900 } });
+await ctx.addCookies([{ name: 'v2.theme', value: 'light', url: 'http://127.0.0.1:9400' }]);
+const p = await ctx.newPage();
+p.on('console', (m) => { if (m.type() === 'error') console.log('console.error', m.text().slice(0, 400)); });
+p.on('pageerror', (e) => console.log('pageerror', String(e).slice(0, 400)));
+await p.goto('http://127.0.0.1:9400/my-day', { waitUntil: 'load' });
+console.log('before hydration: chip', await p.locator('[data-profile-chip]').count(), 'create', await p.locator('[data-create]').count());
+await p.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
+console.log('after hydration: chip', await p.locator('[data-profile-chip]').count(), 'create', await p.locator('[data-create]').count(), 'topbar', await p.locator('[data-topbar]').count());
+console.log('topbar html', (await p.locator('[data-topbar]').innerHTML()).replace(/<svg[\s\S]*?<\/svg>/g, '<svg/>').slice(0, 1200));
+await p.locator('[data-create]').click();
+await p.waitForTimeout(500);
+console.log('menuitems after click', await p.locator('[role=menuitem]').count(), 'data-state', await p.locator('[data-create]').getAttribute('data-state'));
+await b.close();

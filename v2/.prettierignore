@@ -1,0 +1,5 @@
+node_modules
+.next
+pnpm-lock.yaml
+public
+tests/e2e/__screenshots__

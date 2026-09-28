@@ -1,0 +1,169 @@
+{
+  "app": {
+    "department": "الإدارة التجارية",
+    "workspace": "مساحة العمل التجارية",
+    "brand": "دايركت"
+  },
+  "nav": {
+    "my-day": "يومي",
+    "partners": "الشركاء",
+    "projects": "المشاريع",
+    "tasks": "المهام",
+    "finance": "المالية",
+    "kpis": "المؤشرات",
+    "reports": "التقارير",
+    "appraisal": "التقييم",
+    "settings": "الإعدادات",
+    "main": "الرئيسية",
+    "pin": "تثبيت القائمة",
+    "unpin": "إلغاء تثبيت القائمة",
+    "collapse": "طي القائمة",
+    "expand": "توسيع القائمة",
+    "open": "فتح القائمة",
+    "close": "إغلاق القائمة"
+  },
+  "top": {
+    "search": "ابحث في الشركاء والمهام والفواتير…",
+    "searchLabel": "بحث",
+    "create": "إنشاء",
+    "notifications": "الإشعارات",
+    "notificationsUnread": "الإشعارات، {count} غير مقروءة",
+    "profile": "ملفي"
+  },
+  "palette": {
+    "placeholder": "انتقل إلى صفحة أو ابحث…",
+    "pages": "الصفحات",
+    "actions": "الإجراءات",
+    "empty": "لا نتائج",
+    "openInSettings": "فتح الإعدادات"
+  },
+  "profileMenu": {
+    "theme": "المظهر",
+    "density": "الكثافة",
+    "language": "اللغة",
+    "direction": "الاتجاه (للتطوير)",
+    "signOut": "تسجيل الخروج",
+    "myProfile": "ملفي"
+  },
+  "theme": {
+    "light": "فاتح",
+    "dark": "داكن",
+    "colorful": "ملوّن",
+    "direct": "دايركت"
+  },
+  "density": {
+    "comfortable": "مريح",
+    "compact": "مضغوط"
+  },
+  "locale": {
+    "en": "English",
+    "ar": "العربية"
+  },
+  "dir": {
+    "auto": "تلقائي",
+    "ltr": "من اليسار إلى اليمين",
+    "rtl": "من اليمين إلى اليسار"
+  },
+  "create": {
+    "task": "مهمة",
+    "partner": "شريك",
+    "invoice": "فاتورة",
+    "achievement": "إنجاز",
+    "project": "مشروع"
+  },
+  "common": {
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "close": "إغلاق",
+    "remove": "إزالة",
+    "undo": "تراجع",
+    "tryAgain": "أعد المحاولة",
+    "export": "تصدير",
+    "clearAll": "مسح الكل",
+    "more": "المزيد",
+    "back": "رجوع",
+    "notMeasured": "غير مقاس",
+    "loading": "جارٍ التحميل",
+    "sar": "ريال"
+  },
+  "state": {
+    "failed": "تعذّر تحميل {what}",
+    "noAccess": "ليس لديك صلاحية الوصول إلى {what}",
+    "empty": "لا شيء هنا بعد",
+    "notMeasured": "غير مقاس"
+  },
+  "confirm": {
+    "title": "إزالة {item}؟",
+    "body": "ستتم إزالة {item}. يمكنك التراجع من التنبيه.",
+    "confirm": "إزالة"
+  },
+  "signIn": {
+    "title": "مساحة العمل التجارية",
+    "email": "البريد الإلكتروني للعمل",
+    "sendCode": "إرسال الرمز",
+    "codeTitle": "أدخل الرمز المكوّن من 6 أرقام",
+    "codeSent": "أُرسل إلى {email}",
+    "change": "تغيير",
+    "digit": "الرقم {n}",
+    "keepSignedIn": "أبقني مسجّل الدخول على هذا الجهاز",
+    "verify": "تحقق",
+    "resend": "إعادة إرسال الرمز",
+    "resendIn": "إعادة الإرسال خلال {seconds}",
+    "language": "اللغة",
+    "footer": "© دايركت",
+    "errors": {
+      "invalidEmail": "أدخل بريد العمل",
+      "notListed": "هذا البريد ليس في القائمة — اطلب من المسؤول",
+      "switchedOff": "حسابك موقوف",
+      "expired": "انتهت صلاحية الرمز — أرسل رمزًا جديدًا",
+      "wrongCode": "الرمز غير صحيح",
+      "unavailable": "تسجيل الدخول غير متاح الآن"
+    },
+    "tagline": "الذراع التجاري لتطبيق السفر الشامل"
+  },
+  "pages": {
+    "myDay": {
+      "greeting": "أهلًا {name}"
+    },
+    "settings": {
+      "myProfile": "ملفي",
+      "find": "ابحث عن إعداد"
+    }
+  },
+  "entity": {
+    "partner": "شريك",
+    "invoice": "فاتورة",
+    "task": "مهمة",
+    "achievement": "إنجاز",
+    "kpi": "مؤشر",
+    "reportLine": "بند تقرير",
+    "person": "شخص",
+    "project": "مشروع",
+    "report": "تقرير",
+    "file": "ملف"
+  },
+  "status": {
+    "done": "منجزة",
+    "inProgress": "قيد التنفيذ",
+    "waiting": "بانتظار العميل",
+    "overdue": "متأخرة",
+    "blocked": "متوقفة",
+    "draft": "مسودة",
+    "todo": "للتنفيذ"
+  },
+  "table": {
+    "selectRow": "تحديد الصف",
+    "selectAll": "تحديد الكل",
+    "selected": "{count} محدد",
+    "clearSelection": "إلغاء التحديد",
+    "sortedAsc": "ترتيب تصاعدي",
+    "sortedDesc": "ترتيب تنازلي"
+  },
+  "panel": {
+    "close": "إغلاق اللوحة"
+  },
+  "chips": {
+    "add": "إضافة تصفية: {field}",
+    "remove": "إزالة التصفية {field}: {value}"
+  }
+}
