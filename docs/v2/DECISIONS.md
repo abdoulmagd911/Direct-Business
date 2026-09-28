@@ -118,7 +118,7 @@ number when ruled, and the decision names its question.
 
 **V58 — Names are live everywhere, even in issued reports** ACTIVE · 2026-09-28. An issued report freezes figures and wording, but people and partners in it are entity tokens rendered with the current name; the hash covers the tokens, so a rename changes no figure and no hash. FLOW-10 tests it. Spec §3.3, §3.9.
 
-**V59 — Sign-in: the emailed code is the door** ACTIVE · 2026-09-28, amended by V74 and V75 on 29 Sep. Email, then a 6-digit code (the 30-day "keep me signed in" tick is replaced by V74's device sessions). The page shows only the official logo, "Commercial Workspace" / "مساحة العمل التجارية", EN | ع and © Direct. The department is "Commercial" / "الإدارة التجارية". Never in the app's wording: "Direct KSA", "DirectKSA", "Direct Corporate", "B2B", "MICE" (a check enforces it). A real sender (V24) is needed before real users; staging may use Supabase's built-in sender for the owner. Amends V2. Spec §4.
+**V59 — Sign-in: the emailed code is the door** ACTIVE · 2026-09-28, amended by V74 and V75 on 29 Sep. Email, then a 6-digit code; how long a device stays signed in is V74's rule. The page shows only the official logo, "Commercial Workspace" / "مساحة العمل التجارية", EN | ع and © Direct. The department is "Commercial" / "الإدارة التجارية". Never in the app's wording: "Direct KSA", "DirectKSA", "Direct Corporate", "B2B", "MICE" (a check enforces it). A real sender (V24) is needed before real users; staging may use Supabase's built-in sender for the owner. Amends V2. Spec §4.
 
 **V60 — The Direct theme uses the official palette; every theme has a primary** ACTIVE · 2026-09-28. Replaces V7's values: slate `#323E48` navigation, orange `#F06820` accent (a fill or mark only, never text, never under a label), primary `#C94C14` for filled buttons with white labels (4.64:1), link `#B5490E`. `--primary`, `--primary-hover` and `--on-primary` exist in all four themes. The official logo is never recoloured: slate wordmark on light, white on dark or slate. Values: BUILD-PLAN "Design tokens".
 
@@ -173,11 +173,33 @@ example uses made-up names.
 
 **V81 — Less crowded detail pages** ACTIVE · 2026-09-29. Two columns (main work, a narrow properties rail); empty fields behind "+ Add"; long histories show the last few with "Show all"; any record opens full page. Nothing is removed, only reorganised. Spec §2.5.
 
-**V82 — The design source moves to Figma** ACTIVE · 2026-09-29. A dedicated design session builds the design system (variables for the four themes) and every screen in Figma; builder B reads screens through the Figma connector. The canvas and the token table stay the reference until the oversight announces the Figma file, which then supersedes them. Spec §2.5, plan "Design tokens and screens".
+**V82 — The design source: the canvas and the design system page, not Figma** ACTIVE · 2026-09-29, amended the same day. First ruled as "the design source moves to Figma"; amended because the available Figma seat is view-only: **Figma is not used**. The design source is the screens canvas and the design system page, both owned by the **Design lead session**, which updates them; builder B reads them before each screen step, and the token table in BUILD-PLAN is the design system page's values as ruled. Spec §2.5.
 
 **V83 — Exports unchanged for now** ACTIVE · 2026-09-29. A data export on every list and the designed monthly and quarterly reports; revisited later.
 
 **V84 — The new environments exist; keys only from the owner** ACTIVE · 2026-09-28. The owner does not need the old app at all. On 28 Sep the oversight paused `direct-business` and created the Supabase project `direct-commercial` (ref `kimadjvaxgiqzjaukuqg`, eu-central-1, free) and the Vercel project `direct-commercial` (root `v2`, Next.js, production branch `v2/main`, fra1, builds skipped when `v2/` is unchanged). Keys are pasted into Vercel by the owner only; builders never handle the service key. The domain moves as soon as v2's sign-in page renders (V13). Spec §10.
+
+## Oversight audit, 29 Sep 2026 — agreed details found missing (relayed by the oversight)
+
+**V85 — Phones use a bottom bar; layout rules; the drawer is 232 px** ACTIVE · 2026-09-29. On phones (< 640 px) a bottom bar — My day · Tasks · Partners · KPIs · More — replaces the drawer; records open full screen; tables show as two-line cards; a floating + opens quick add (task, Log call, achievement). Layout: page margins 16 / 24 / 32 / 40 px at phone / tablet (640–1,023) / desktop (1,024–1,439) / wide (≥ 1,440); lists and tables up to 1,600 px wide, a full-page record's main column up to 960 px beside a 300 px properties rail, forms up to 720 px, the report editor's text up to 880 px. The drawer is **232 px pinned / 56 px collapsed everywhere** (what the owner was told; the artboards' 248 px is not used), and the content reflows into the width a collapsed drawer frees. Spec §2.5, plan P3-3.
+
+**V86 — Arabic rendering and translation are proven early** ACTIVE · 2026-09-29. An Arabic PDF/PPTX rendering spike and a quality check of Chrome's built-in Translator run in P3 (plan P3-10), not P6; the paths and the verdict they record bind P6-1 and P6-2. Refines V76.
+
+**V87 — A payment-type chip on Finance and the Overview** ACTIVE · 2026-09-29. Prepaid · postpaid · code · tender: the subkind of the partner client ID an invoice carries, else "code" when it carries a discount or campaign code. On every Finance list and the Commercial overview. Spec §3.6, §6.
+
+**V88 — Call outcomes "demo set" and "demo held"** ACTIVE · 2026-09-29. Added to the call-outcome list and counted per person per week (`partner.demos`). Refines V63.
+
+**V89 — A "Corporate onboarding" checklist** ACTIVE · 2026-09-29. A one-off task template owned by the account manager: agreement signed and stamped · account set up · travel policy received · Operations briefed · first request. Offered when a partner gains the Client role or its partnership opportunity reaches Signed. Spec §3.7.
+
+**V90 — Supplier cashback is a typed amount** ACTIVE · 2026-09-29. An achievement category (supplier, amount received, date received, reference), dated by receipt; never Finance money and never on a money KPI (V66's check). Spec §3.8.
+
+**V91 — A "team load" view when assigning** ACTIVE · 2026-09-29. Per person: open tasks, overdue, open action items, partners owned and prospects assigned — beside the picker in every assign dialog and as a Team load view on Tasks for managers. Spec §3.7.
+
+**V92 — A refused credit is a limit of 0, "Prepaid only"** ACTIVE · 2026-09-29. Recorded like any credit limit, with its approver and reason (V70). Spec §3.4.
+
+**V93 — KPI leads own their KPI's figures** ACTIVE · 2026-09-29. Readings are written by the KPI's leads (and managers with Full on KPIs). A check-in day setting (default the 15th) alerts each lead of a manual KPI with no reading for the month. Spec §3.8.
+
+**V94 — Every PR names its decisions** ACTIVE · 2026-09-29. Every PR description lists the V-numbers it implements and states "checked against DECISIONS.md at <commit>". Spec §9.4, plan "How the two builders work together".
 
 ## Builder A (V100–V199)
 
