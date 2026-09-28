@@ -55,8 +55,9 @@ A true exception carries `check-allow: <check> — <reason>` on its line (V100).
 ```sh
 pnpm dev                      # the shell with a made-up development person signed in (src/core/auth/me.ts, V2_DEV_ME)
 open http://127.0.0.1:9300/kit  # every kit component, development and test builds only (V202)
-pnpm build && pnpm test:e2e   # 4 themes × 2 densities × 400/1,500 px screenshots into tests/e2e/screenshots/, axe, RTL,
+pnpm build && pnpm test:e2e   # 4 themes × 2 densities × 400/1,500 px screenshots into test-results/screenshots/, axe, RTL,
                               # dialogs, the shell, sign-in; PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome here
+SCREENSHOT_DIR=tests/e2e/screenshots pnpm test:e2e   # refresh the committed screenshots the PR shows
 node scripts/dev/shot.mjs direct comfortable 1500 /kit   # one screenshot (theme density width path [dir] [name]) into $OUT
 ```
 

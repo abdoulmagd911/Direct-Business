@@ -36,3 +36,12 @@ export async function open(page: Page, path: string) {
   await page.waitForLoadState('networkidle');
   await page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
 }
+
+/**
+ * Where a spec saves its screenshot. Runs write into the ignored test-results/ folder (CI uploads it), so a run never
+ * dirties the tree — the sabotage runner checks that. `SCREENSHOT_DIR=tests/e2e/screenshots pnpm test:e2e` refreshes
+ * the committed set that the PR shows.
+ */
+export function shot(name: string): string {
+  return `${process.env.SCREENSHOT_DIR ?? 'test-results/screenshots'}/${name}.png`;
+}

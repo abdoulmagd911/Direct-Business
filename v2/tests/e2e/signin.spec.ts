@@ -5,7 +5,7 @@
  */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { THEMES, fitToPage, open, setPrefs } from './helpers';
+import { THEMES, fitToPage, open, setPrefs, shot } from './helpers';
 
 test('email step → code step → signed in on the deep link', async ({ page, context }) => {
   await setPrefs(context, { theme: 'direct' });
@@ -61,7 +61,7 @@ for (const theme of THEMES) {
       await open(page, '/sign-in');
       await expect(page.getByLabel('Work email')).toBeVisible();
       await fitToPage(page, width);
-      await page.screenshot({ path: `tests/e2e/screenshots/sign-in-${theme}-${width}.png` });
+      await page.screenshot({ path: shot(`sign-in-${theme}-${width}`) });
     });
   }
 }

@@ -3,7 +3,7 @@
  * 1,024 px, no page title in the top bar, every nav entry a link.
  */
 import { expect, test } from '@playwright/test';
-import { THEMES, fitToPage, open, setPrefs } from './helpers';
+import { THEMES, fitToPage, open, setPrefs, shot } from './helpers';
 
 test('the drawer is 232 px pinned, 56 px collapsed, and the choice survives a reload', async ({ page, context }) => {
   await setPrefs(context, { theme: 'direct' });
@@ -87,7 +87,7 @@ for (const theme of THEMES) {
       await open(page, '/my-day');
       await expect(page.locator('h1')).toBeVisible();
       await fitToPage(page, width);
-      await page.screenshot({ path: `tests/e2e/screenshots/my-day-${theme}-${width}.png` });
+      await page.screenshot({ path: shot(`my-day-${theme}-${width}`) });
     });
   }
 }

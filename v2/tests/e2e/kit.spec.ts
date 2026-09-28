@@ -1,13 +1,11 @@
 /**
  * UI-*: every kit component in the four themes, both densities, at 400 and 1,500 px — screenshots
  * for the oversight's review beside the design system page; axe finds no serious issue; in Direct
- * nothing draws text on the accent fill (V7). Screenshots land in tests/e2e/screenshots/.
+ * nothing draws text on the accent fill (V7). Screenshots land in test-results/screenshots/ (SCREENSHOT_DIR=tests/e2e/screenshots refreshes the committed set).
  */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { THEMES, expectNoConsoleErrors, fitToPage, open, setPrefs } from './helpers';
-
-const SHOTS = 'tests/e2e/screenshots';
+import { THEMES, expectNoConsoleErrors, fitToPage, open, setPrefs, shot } from './helpers';
 
 for (const theme of THEMES) {
   for (const width of [1500, 400] as const) {
@@ -20,7 +18,7 @@ for (const theme of THEMES) {
       });
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       await fitToPage(page, width);
-      await page.screenshot({ path: `${SHOTS}/kit-${theme}-comfortable-${width}.png`, fullPage: false });
+      await page.screenshot({ path: shot(`kit-${theme}-comfortable-${width}`), fullPage: false });
     });
   }
   test(`kit · ${theme} · compact · 1500px`, async ({ page, context }) => {
@@ -31,7 +29,7 @@ for (const theme of THEMES) {
     await expect(row).toBeVisible();
     expect((await row.boundingBox())!.height, 'compact rows are 32 px').toBeCloseTo(32, 0);
     await fitToPage(page, 1500);
-    await page.screenshot({ path: `${SHOTS}/kit-${theme}-compact-1500.png` });
+    await page.screenshot({ path: shot(`kit-${theme}-compact-1500`) });
   });
 
   test(`axe · kit · ${theme}`, async ({ page, context }) => {

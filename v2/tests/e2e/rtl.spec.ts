@@ -4,7 +4,7 @@
  * and nothing keeps a physical position — the source-level rule is check-no-physical-css.
  */
 import { expect, test } from '@playwright/test';
-import { open, setPrefs } from './helpers';
+import { open, setPrefs, shot } from './helpers';
 
 test('the shell mirrors under dir=rtl', async ({ page, context }) => {
   await setPrefs(context, { theme: 'direct', dir: 'rtl' });
@@ -29,7 +29,7 @@ test('the shell mirrors under dir=rtl', async ({ page, context }) => {
 
   const numeric = page.locator('[data-kit-section="Table"] td.text-end').first();
   expect(await numeric.evaluate((el) => getComputedStyle(el).textAlign)).toBe('end');
-  await page.screenshot({ path: 'tests/e2e/screenshots/kit-direct-rtl-1500.png' });
+  await page.screenshot({ path: shot('kit-direct-rtl-1500') });
 });
 
 test('sign-in mirrors under dir=rtl', async ({ page, context }) => {
@@ -39,5 +39,5 @@ test('sign-in mirrors under dir=rtl', async ({ page, context }) => {
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   const lang = (await page.getByRole('group', { name: 'Language' }).boundingBox())!;
   expect(lang.x, 'the language switch is at the inline end (left)').toBeLessThan(200);
-  await page.screenshot({ path: 'tests/e2e/screenshots/signin-direct-rtl-1500.png' });
+  await page.screenshot({ path: shot('signin-direct-rtl-1500') });
 });
