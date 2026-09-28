@@ -134,11 +134,17 @@ const shape = (list) => list.map((r) => [r.invoice_no, r.row_kind, r.integrity_s
   await ingest(s, 'qa-d1-part1.csv', FILE_1, true);
   const RB = await rows(s);
   const byB = (n) => RB.find((r) => r.invoice_no === n) || {};
-  check(byB('QA-D1-E').integrity_status === 'verified_paid', '7. an EARLIER file arriving later cannot roll the newer status back', JSON.stringify([byB('QA-D1-E').payments_status, byB('QA-D1-E').payments_status_at]));
+  check(byB('QA-D1-E').integrity_status === 'verified_paid' && +byB('QA-D1-E').amount_received_sar === 700 && +byB('QA-D1-E').amount_remaining_sar === 0 && byB('QA-D1-E').invoice_date === '2026-03-20', '7. an EARLIER file arriving later cannot roll back the newer status — nor the amounts received and outstanding, nor the date that sets the month', JSON.stringify([byB('QA-D1-E').payments_status, byB('QA-D1-E').amount_received_sar, byB('QA-D1-E').amount_remaining_sar, byB('QA-D1-E').invoice_date]));
   check(byB('QA-D1-X').row_kind === 'billing_link' && byB('QA-D1-X').revenue_sar === 0 && byB('QA-D1-T1').billed_by_ref === 'QA-D1-X' && byB('QA-D1-T2').billed_by_ref === 'QA-D1-X',
     '5. ticked: the invoice is a link (zero revenue) and both transactions carry it', JSON.stringify([byB('QA-D1-X').row_kind, byB('QA-D1-X').revenue_sar, byB('QA-D1-T1').billed_by_ref, byB('QA-D1-T2').billed_by_ref]));
   const noLink = (list) => shape(list.map((r) => Object.assign({}, r, { row_kind: r.row_kind === 'billing_link' ? 'sale' : r.row_kind, revenue_sar: r.invoice_no === 'QA-D1-X' ? 1000 : r.revenue_sar, billed_by_ref: '' })));
   check(noLink(RB) === noLink(R), '7. A→B and B→A end identical (apart from the link a person ticked)', noLink(RB) === noLink(R) ? '' : '\n' + noLink(R) + '\n--- vs ---\n' + noLink(RB));
+
+  /* 5b. re-dropping file 2 (which says "sale") keeps the link a person ticked, reports nothing changed, proposes nothing again */
+  const pvRe = await ingest(s, 'qa-d1-part2-again.csv', FILE_2, false);
+  const RB2 = await rows(s); const byB2 = (n) => RB2.find((r) => r.invoice_no === n) || {};
+  check(byB2('QA-D1-X').row_kind === 'billing_link' && byB2('QA-D1-X').revenue_sar === 0 && byB2('QA-D1-T1').billed_by_ref === 'QA-D1-X' && pvRe.proposals === 0 && !/QA-D1-X[^\n]*updated|Updated\s*[1-9]/i.test(pvRe.text.split('Cost —')[0]),
+    '5. re-importing the file keeps a ticked billing link (no undo, no "updated", no second proposal)', JSON.stringify({ kind: byB2('QA-D1-X').row_kind, rev: byB2('QA-D1-X').revenue_sar, t1: byB2('QA-D1-T1').billed_by_ref, proposals: pvRe.proposals, text: pvRe.text.slice(0, 200) }));
 
   /* 6. the item-name list moves pass-through, never cost or profit */
   await s.p.evaluate(async () => { for (const [n, c] of [['Flight Booking', 'pass_through'], ['Service Fees', 'fee']]) await fc().from('money_item_classes').insert({ name: n, class: c }).select('id');
@@ -194,6 +200,18 @@ const shape = (list) => list.map((r) => [r.invoice_no, r.row_kind, r.integrity_s
   check(pvO.committed && /Done\./.test(pvO.done) && !/FAILED/.test(pvO.done) && Object.values(cnt).every((n) => n === 1) && Object.values(lc).every((n) => n === 1) && e.integrity_status === 'verified_paid',
     '7. an invoice repeated inside one file lands once (and each of its lines once), with the newer status — the import is not refused',
     JSON.stringify({ done: pvO.done.slice(0, 160), dupRows: Object.keys(cnt).filter((k) => cnt[k] > 1), dupLines: Object.keys(lc).filter((k) => lc[k] > 1), e: e.payments_status }));
+  /* 12. a heavy customer (300 transactions, 300 invoices no combination can match) — the billing-link search is capped, so the
+     preview still arrives in seconds and says how many invoices were not checked; nothing is proposed by guesswork */
+  const heavy = [];
+  for (let k = 0; k < 300; k++) heavy.push(...inv('QA-D1-HT' + k, { cust: 'QA Heavy Co', created: '01/04/2026 09:00:00 AM', paid: '01/04/2026', status: 'Fully Paid', total: 100 + k, items: [{ name: 'Flight Booking - Flight Booking', total: 100 + k }] }));
+  for (let k = 0; k < 300; k++) heavy.push(...inv('QA-D1-HI' + k, { dpin: 'DPIN-QA-H' + k, cust: 'QA Heavy Co', created: '20/04/2026 09:00:00 AM', paid: '20/04/2026', status: 'Fully Paid', total: 2000 + k + 0.5, items: [{ name: 'Billing - Service Fee', total: 2000 + k + 0.5, tax: true }] }));
+  const t0 = Date.now();
+  await s.p.evaluate((t) => window.v65IngestText('qa-d1-heavy.csv', t), csv(heavy));
+  await s.p.waitForFunction(() => /Confirm import|تأكيد الاستيراد/.test((document.getElementById('finImpOut') || {}).innerText || ''), null, { timeout: 60000 }).catch(() => {});
+  const secs = (Date.now() - t0) / 1000;
+  const hv = await s.p.evaluate(() => { const n = document.querySelector('[data-v65-bl-skipped]'); return { skipped: n ? +n.getAttribute('data-v65-bl-skipped') : 0, proposals: document.querySelectorAll('[data-v65-bl]').length, confirm: /Confirm import/.test((document.getElementById('finImpOut') || {}).innerText || '') }; });
+  check(hv.confirm && secs < 30 && hv.skipped > 0 && hv.proposals === 0, '5. a heavy customer cannot freeze the preview: the billing-link search is capped, the invoices it could not check are counted on screen, none is guessed',
+    JSON.stringify(Object.assign(hv, { secs })));
   await done(s);
 
   console.log(failures ? `\nFAILED — ${failures} check(s)` : '\nPASS — D1: the invoice export imports as Payments records it, fills and never wipes');

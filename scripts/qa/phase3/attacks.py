@@ -1648,6 +1648,19 @@ def _(cur):
     q(cur, "reset role")
     return (n == '1|Fully Paid' and nl == 1, f"rows|status={n} · lines={nl} · result={r}")
 
+@test("D1-08 An OLDER file arriving after a newer one only fills what is empty: the paid amounts and the paid date (which sets the month) are not put back to the unpaid copy's")
+def _(cur):
+    as_user(cur, 'u4')
+    one(cur, "select fn_commit_finance_import(p_insert := %s::jsonb)", (json.dumps([{'invoice_no': 'D1-OLD', 'client_group': 'Old Co', 'invoice_date': '2026-05-20',
+        'total_incl_vat_sar': 700, 'amount_received_sar': 700, 'amount_remaining_sar': 0, 'integrity_status': 'verified_paid', 'payments_status': 'Fully Paid',
+        'payments_status_at': '2026-05-20T09:00:00Z', 'paid_at': '2026-05-20'}]),))
+    i = one(cur, "select id from finance_invoices where invoice_no='D1-OLD'")
+    one(cur, "select fn_commit_finance_import(p_update := %s::jsonb)", (json.dumps([{'id': str(i), 'invoice_date': '2026-05-14', 'amount_received_sar': 0,
+        'amount_remaining_sar': 700, 'integrity_status': 'pending', 'payments_status': 'Pending Payment', 'payments_status_at': '2026-05-14T09:00:00Z', 'branch': 'Jeddah'}]),))
+    got = one(cur, "select integrity_status||'|'||amount_received_sar::float||'|'||amount_remaining_sar::float||'|'||invoice_date||'|'||month||'|'||coalesce(branch,'∅') from finance_invoices where id=%s", (i,))
+    q(cur, "reset role")
+    return (got == 'verified_paid|700|0|2026-05-20|May|Jeddah', f"after the older file: {got} (branch was empty, so the older file may fill it)")
+
 @test("D1-05 The item-name list: only an admin or a manager adds to it; one entry per name however spelled; a name never changes; a removed entry stays removed; nothing is deleted; everyone with Finance reads it")
 def _(cur):
     as_user(cur, 'u1'); t, _ = expect_fail(cur, "insert into money_item_classes(name,class) values ('3rd Party Fee','pass_through')", None, "row-level security"); q(cur, "reset role")

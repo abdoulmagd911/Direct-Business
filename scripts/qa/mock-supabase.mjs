@@ -878,7 +878,8 @@ export function start(port, seedOverrides){
           const older=clean.payments_status_at&&cur.payments_status_at&&String(clean.payments_status_at)<String(cur.payments_status_at);
           Object.keys(clean).forEach(k=>{
             const v=clean[k]; if(v===null||v===undefined) return;
-            if(older&&(k==='integrity_status'||k==='payments_status'||k==='audit_required')) return;
+            if(older&&k!=='cost_sar'&&cur[k]!==null&&cur[k]!==undefined&&cur[k]!=='') return;   // an OLDER file only fills what is still empty (as the real function)
+            if(k==='row_kind'&&cur.row_kind==='billing_link'&&v==='sale') return;   // a person's billing link survives a re-import (as the real function)
             if(k==='payments_status_at'||k==='paid_at'){ if(!cur[k]||String(v)>String(cur[k])) next[k]=v; return; }
             next[k]=v;
           });

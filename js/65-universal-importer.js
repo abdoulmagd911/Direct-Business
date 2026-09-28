@@ -420,6 +420,14 @@
         return;
       }
       var ex=state.existingByNo[r.invoice_no];
+      /* D1 sweep: a billing link is a person's decision; the file always says "sale" — re-importing it must neither undo the link
+         (the database keeps it too) nor report the invoice as changed */
+      if(ex&&ex.row_kind==='billing_link'&&r.row_kind==='sale') r=Object.assign({},r,{row_kind:'billing_link',revenue_sar:ex.revenue_sar});
+      /* an OLDER file (its Payments status time is before the stored one) only fills what is still empty — the database does
+         the same; here it means the preview neither promises nor counts a roll-back */
+      if(ex&&r.payments_status_at&&ex.payments_status_at&&String(r.payments_status_at)<String(ex.payments_status_at)){
+        var fillOnly={}; Object.keys(r).forEach(function(f){ fillOnly[f]=(ex[f]===null||ex[f]===undefined||ex[f]==='')?r[f]:ex[f]; });
+        r=fillOnly; }
       /* D1: a row a person entered by hand is never overwritten by an import — it is named in the preview (D3 lets them choose) */
       if(ex&&ex.source==='manual'){ state.manualKept.push(r.invoice_no); return; }
       if(r.row_kind==='wallet_topup') state.d1.topups++;
@@ -1301,15 +1309,25 @@
      exactly the sum of open transactions of the same customer dated on or before it (one such set, no more), and a PERSON
      ticks it. A ticked link turns the invoice into a link row (zero revenue, never counted) and marks each transaction with
      the invoice that bills it; nothing is linked unticked. */
-  var BL_PROPOSALS=[];
+  var BL_PROPOSALS=[], BL_SKIPPED=0, BL_STEP_CAP=20000, BL_TOTAL_CAP=3000000;
+  window.__v65BlCaps=function(step,total){ if(step)BL_STEP_CAP=step; if(total)BL_TOTAL_CAP=total; };   // for the tests
   function proposeBillingLinks(results){
-    var all={}, add=function(r,from){ if(!r||!r.invoice_no) return; if(!all[r.invoice_no]||from==='file') all[r.invoice_no]=Object.assign({},r,{_from:from}); };
+    /* the file's copy updates the stored one field by field (blanks never wipe), and what a person decided stays: a stored
+       billing link stays a link, a transaction already billed stays billed — so a re-drop never proposes the same link twice */
+    var all={}, add=function(r,from){ if(!r||!r.invoice_no) return;
+      var had=all[r.invoice_no];
+      if(!had){ all[r.invoice_no]=Object.assign({},r,{_from:from}); return; }
+      if(from!=='file') return;
+      var m=Object.assign({},had); Object.keys(r).forEach(function(f){ if(r[f]!==null&&r[f]!==undefined&&r[f]!=='') m[f]=r[f]; });
+      if(had.row_kind==='billing_link') m.row_kind='billing_link';
+      if(had.billed_by_ref) m.billed_by_ref=had.billed_by_ref;
+      m._from='file'; all[r.invoice_no]=m; };
     ((window.FIN&&FIN.rows)||[]).forEach(function(r){ if(!r.deleted_at) add(r,'db'); });
     (results||[]).forEach(function(res){ if(!res.recognized) return; (res.pendingInsert||[]).concat(res.pendingUpdate||[]).forEach(function(r){ add(r,'file'); }); });
     var rows=Object.keys(all).map(function(k){ return all[k]; });
     var byCust={};
     rows.forEach(function(r){ var k=String(r.client_group||r.customer_raw_name||'').trim().toLowerCase(); if(!k) return; (byCust[k]=byCust[k]||[]).push(r); });
-    var out=[];
+    var out=[], budget={left:BL_TOTAL_CAP,skipped:0};
     Object.keys(byCust).forEach(function(k){
       var g=byCust[k];
       var txns=g.filter(function(r){ return r.revenue_way==='transaction'&&!r.billed_by_ref&&(r.row_kind||'sale')==='sale'&&(+r.total_incl_vat_sar||0)>0; });
@@ -1320,20 +1338,31 @@
         var cands=txns.filter(function(t){ return t.invoice_no!==inv.invoice_no&&String(t.invoice_date||'')<=String(inv.invoice_date||'9999'); })
                       .map(function(t){ return {t:t,c:Math.round((+t.total_incl_vat_sar||0)*100)}; }).filter(function(x){ return x.c>0&&x.c<=target; })
                       .sort(function(a,b){ return b.c-a.c; }).slice(0,24);
-        var sols=[], pick=[];
-        (function dfs(i,left){ if(sols.length>1) return; if(left===0){ sols.push(pick.slice()); return; } if(pick.length>=6) return;
-          for(var j=i;j<cands.length;j++){ if(cands[j].c>left) continue; pick.push(cands[j].t); dfs(j+1,left-cands[j].c); pick.pop(); if(sols.length>1) return; } })(0,target);
-        if(sols.length===1) out.push({inv:inv,members:sols[0]});
+        /* a proposal must involve THIS drop — its invoice or at least one of its transactions — files come in any order, but a
+           link between two stored rows is not re-offered on every drop */
+        if(inv._from!=='file'&&!cands.some(function(x){ return x.t._from==='file'; })) return;
+        /* D1 sweep: the search is capped — per invoice and for the whole drop — so a full-size export (a customer with thousands
+           of invoices) cannot hold the page for minutes. An invoice whose search hits the cap is not proposed (never a guess);
+           the card says how many were not checked, and a person can link those by hand (D3). */
+        if(budget.left<=0){ budget.skipped++; return; }
+        var sols=[], pick=[], steps=0, cut=false;
+        (function dfs(i,left){ if(sols.length>1||cut) return; if(left===0){ sols.push(pick.slice()); return; } if(pick.length>=6) return;
+          for(var j=i;j<cands.length;j++){ if(++steps>BL_STEP_CAP){ cut=true; return; } if(cands[j].c>left) continue; pick.push(cands[j].t); dfs(j+1,left-cands[j].c); pick.pop(); if(sols.length>1||cut) return; } })(0,target);
+        budget.left-=steps;
+        if(cut){ budget.skipped++; return; }
+        if(sols.length===1&&(inv._from==='file'||sols[0].some(function(m){ return m._from==='file'; }))) out.push({inv:inv,members:sols[0]});
       });
     });
     // one transaction is billed once: a proposal that shares a transaction with another is dropped (a person links it by hand, D3)
+    BL_SKIPPED=budget.skipped;
     var seen={}, twice={};
     out.forEach(function(p){ p.members.forEach(function(m){ if(seen[m.invoice_no]) twice[m.invoice_no]=1; seen[m.invoice_no]=1; }); });
     return out.filter(function(p){ return !p.members.some(function(m){ return twice[m.invoice_no]; }); });
   }
   window.v65BlTickAll=function(on){ document.querySelectorAll('[data-v65-bl]').forEach(function(x){ x.checked=!!on; }); };
   function billingCard(){
-    if(!BL_PROPOSALS.length) return '';
+    var skippedNote=BL_SKIPPED?('<div data-v65-bl-skipped="'+BL_SKIPPED+'" style="font-size:12px;color:#B54708;margin-top:6px">'+fl('Not checked for billing links (too many possible combinations to check quickly): ','لم تُفحص بحثًا عن روابط فوترة (تركيبات كثيرة يتعذّر فحصها بسرعة): ')+'<b>'+BL_SKIPPED+'</b> '+fl('invoice(s) — they import as sales; link them by hand if they re-bill transactions.','فاتورة — تُستورد كمبيعات؛ اربطها يدويًا إن كانت تعيد فوترة معاملات.')+'</div>'):'';
+    if(!BL_PROPOSALS.length) return skippedNote?('<div class="card" style="margin-top:8px;padding:12px 14px">'+skippedNote+'</div>'):'';
     return '<div class="card" data-v65-billing="'+BL_PROPOSALS.length+'" style="margin-top:8px;padding:12px 14px;border-left:4px solid #F5A623">'+
       '<b>'+fl('Invoices that look like they bill transactions already recorded','فواتير يبدو أنها تفوتر معاملات مسجلة مسبقًا')+' ('+BL_PROPOSALS.length+')</b>'+
       '<div style="font-size:12px;color:#475467;margin:4px 0 8px">'+fl('Each total is exactly the sum of that customer\'s earlier transactions. Tick the ones that are true: the invoice becomes a link (zero revenue) so the money is not counted twice. Unticked ones are imported as sales.',
@@ -1342,7 +1371,7 @@
       BL_PROPOSALS.map(function(p,i){ return '<label style="display:block;font-size:12.5px;margin:3px 0"><input type="checkbox" data-v65-bl="'+i+'"> '+
         esc(p.inv.invoice_no+(p.inv.zatca_dpin?' · '+p.inv.zatca_dpin:'')+' · '+(p.inv.client_group||'')+' · '+m0(p.inv.total_incl_vat_sar))+' = '+
         esc(p.members.map(function(m){ return m.invoice_no+' ('+m0(m.total_incl_vat_sar)+')'; }).join(' + '))+'</label>'; }).join('')+
-    '</div>';
+    skippedNote+'</div>';
   }
   /* the ticked proposals, applied to what is about to be written: the invoice → a link row; each transaction → billed by it */
   function applyBillingLinks(toInsert,toUpdate){
@@ -1431,7 +1460,7 @@
     // them through the same atomic RPC with empty insert/update arrays.
     var capCount=PENDING_CAPTURE.lines.length+PENDING_CAPTURE.gates.length;
     var btnHtml='';
-    BL_PROPOSALS=stillStreaming?[]:proposeBillingLinks(results);
+    BL_SKIPPED=0; BL_PROPOSALS=stillStreaming?[]:proposeBillingLinks(results);
     if(!stillStreaming){
       if(writeCount) btnHtml='<button class="btn pri sm" style="margin-top:10px" onclick="v65Commit()">'+fl('Confirm import — ','تأكيد الاستيراد — ')+totals.isNew+' '+fl('new','جديد')+', '+totals.updated+' '+fl('updated','محدَّث')+'</button>';
       else if(capCount) btnHtml='<button class="btn pri sm" style="margin-top:10px" onclick="v65Commit()">'+fl('Save captured expense facts — ','حفظ وقائع المصروفات الملتقطة — ')+capCount+' '+fl('row(s), no invoice changes yet','صف/صفوف، دون تغييرات على الفواتير بعد')+'</button>'+
