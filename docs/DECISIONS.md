@@ -330,5 +330,3 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 **CP9 — A layer that inserts into `#view` removes it; "no longer re-added" is not "removed"** ACTIVE · 2026-09-09. Insert with an id and remove it by id on every render where it does not belong: in-place redraws keep what an earlier render left.
 
 **CP10 — Test as team_member, not only as the QA admin** ACTIVE · 2026-09-09. The QA account may be switched to team_member in `app_users` for a drive and back.
-
-**CP11 — The archives change only by a listed redaction** ACTIVE · 2026-09-28. Never hand-edit `docs/history/` or `docs/reference/`. A line that must go (rule 7) is listed in `docs/history/redactions.json` with its old hash; `scripts/docs/archive-docs.mjs` applies it, `check-docs-moved` proves nothing else changed.

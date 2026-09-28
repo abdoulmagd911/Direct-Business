@@ -13,6 +13,11 @@ under 40,000 characters). Nothing was deleted: the old text moved here, unchange
 | `redactions.json` | The only lines where an archive differs from its old file: real client names and invoice numbers taken out on 2026-09-28 (rule 7), each with the old line's hash and the reason. |
 
 The two long references moved to `docs/reference/` (Playbook, Master Brief), split the same way.
+
+**Never hand-edit an archive** (here or in `docs/reference/`). A line that must go (CLAUDE.md rule 7: a real client
+name, an invoice number) is listed in `redactions.json` with the old line's hash; the builder applies it and the check
+proves nothing else changed — an unlisted edit fails the battery.
+
 `scripts/docs/archive-docs.mjs <commit>` rebuilds the archives from a commit; `scripts/qa/check-docs-moved.mjs` (in the
 battery) proves the pieces join back to the old files byte for byte, every old line is present, every rule ID and every
 carried-over owner quote survived, the size limits hold, and no old knowledge-base part name is left in a working file.
