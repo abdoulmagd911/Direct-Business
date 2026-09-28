@@ -13,7 +13,7 @@
                   what it says it is now; every other line identical. The check prints every listed change.
      2. LINES     every line of every old file is present in the new set (docs/**.md + CLAUDE.md)
      3. SIZE      every piece and index under 40,000 characters; docs/BACKLOG.md at most 150 lines;
-                  docs/DECISIONS.md under 40,000 characters; CLAUDE.md at most 22,000; every other docs/*.md under 40,000
+                  docs/DECISIONS.md under 45,000 characters (the owner's limit, 28 Sep: raised, not split); CLAUDE.md at most 22,000; every other docs/*.md under 40,000
      4. IDS       every rule ID of the old DECISIONS.md (P…, M…, D…) still opens an entry in the new one, and every
                   entry carries a status (ACTIVE / SUSPENDED / OPEN — CONTESTED / SUPERSEDED-BY …)
      5. QUOTES    every passage in double quotes (15+ characters) in the three short working files that was carried
@@ -36,7 +36,7 @@ import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url)).replace(/\/$/, '');
-const LIMIT_PIECE = 40000, LIMIT_DECISIONS = 40000, LIMIT_CLAUDE = 22000, LIMIT_BACKLOG_LINES = 150;
+const LIMIT_PIECE = 40000, LIMIT_DECISIONS = 45000, LIMIT_CLAUDE = 22000, LIMIT_BACKLOG_LINES = 150;
 const cp = (s) => [...s].length;
 const norm = (s) => s.replace(/\s+/g, ' ').trim();
 const OLD_KB = /\b(?:KB|Drive|[Kk]nowledge[- ][Bb]ase)\s+[Pp]art\s+\d+[a-z]?\b|\bPart 3\d\b/;
@@ -210,7 +210,7 @@ const CASES = [
   ['an owner quote reworded in DECISIONS.md', 'QUOTES', (d) => { const f = path.join(d, 'docs/DECISIONS.md'); const t = fs.readFileSync(f, 'utf8'); const q = quotes(t)[0]; if (!q) throw new Error('no quote to reword'); fs.writeFileSync(f, t.replace('"' + q + '"', '"' + q.replace(/[a-z]/, (c) => (c === 'x' ? 'y' : 'x')) + '"')); }],
   ['a rule dropped from DECISIONS.md', 'IDS', (d) => { const f = path.join(d, 'docs/DECISIONS.md'); fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(/\n\*\*M26 —[^\n]*(\n(?!\n)[^\n]*)*/, '')); }],
   ['a 151-line BACKLOG.md', 'SIZE', (d) => { const f = path.join(d, 'docs/BACKLOG.md'); const n = fs.readFileSync(f, 'utf8').replace(/\n$/, '').split('\n').length; fs.appendFileSync(f, '\n'.repeat(Math.max(1, 152 - n)) + 'one line too many\n'); }],
-  ['DECISIONS.md over 40,000 characters', 'SIZE', (d) => { fs.appendFileSync(path.join(d, 'docs/DECISIONS.md'), '\n' + 'x'.repeat(LIMIT_DECISIONS) + '\n'); }],
+  ['DECISIONS.md over 45,000 characters', 'SIZE', (d) => { fs.appendFileSync(path.join(d, 'docs/DECISIONS.md'), '\n' + 'x'.repeat(LIMIT_DECISIONS) + '\n'); }],
   ['a working doc grown past 40,000 characters', 'SIZE', (d) => { fs.appendFileSync(path.join(d, 'docs/BLUEPRINT.md'), '\n' + 'x'.repeat(LIMIT_PIECE) + '\n'); }],
   ['an old knowledge-base name in CLAUDE.md', 'KB NAMES', (d) => { fs.appendFileSync(path.join(d, 'CLAUDE.md'), '\nSee KB Part 35 for the finance rules.\n'); }],
   ['a piece of the handoff archive deleted', 'JOIN', (d) => { if (!hand) throw new Error('no handoff archive in the manifest'); fs.rmSync(path.join(d, hand.archive, hand.pieces[hand.pieces.length - 1])); }],

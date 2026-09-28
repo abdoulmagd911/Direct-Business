@@ -9,7 +9,7 @@ permissions, data provenance or how sessions work, read the rules for it here, a
   line, so an old reference still lands somewhere). A rule that is unlearned is edited in place, never left standing.
 - **Adding or changing a rule:** whoever learns it writes it here, in the same commit as the change that taught it —
   one short paragraph in the same shape, `**ID — title** STATUS · date. body`, the owner's words in double quotes,
-  exactly as given; the long story goes in the commit, not here. Keep this file under 40,000 characters.
+  exactly as given; the long story goes in the commit, not here. Keep this file under 45,000 characters (raised 28 Sep; not split).
 - **Checked on every battery run:** `check-decisions-wired` (every code citation of an ACTIVE rule exists and is
   called — P5) and `check-docs-moved` (every rule ID survived the 2026-09-27 cut, sizes, quotes word for word).
 
