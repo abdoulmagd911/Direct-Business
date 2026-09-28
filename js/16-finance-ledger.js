@@ -468,7 +468,7 @@ function finCostCell(x){
   var pt=(m.pass_through_sar!=null&&+m.pass_through_sar>0)?'<div style="font-size:10.5px;color:var(--muted);font-weight:400" data-fin-passthrough="'+Math.round(+m.pass_through_sar)+'">'+(ar?'مارّ على الفاتورة: ':'pass-through on the invoice: ')+money0(+m.pass_through_sar)+'</div>':'';
   /* D23 (owner, 28 Sep): with no approved expense yet, the pass-through on the invoice's own lines stands in as a FLAGGED
      ESTIMATE (money_rows.est_cost_sar) — shown as "est.", never as the cost; an approved expense replaces it by arriving */
-  if(finCostMissing(x) && m.cost_estimated && +m.est_cost_sar>0) return '<span style="color:#B54708" data-fin-cost-estimated="'+Math.round(+m.est_cost_sar)+'" title="'+(ar?'تقدير من البنود المارّة على الفاتورة — ليست مصروفات معتمدة':'Estimate from the pass-through lines on the invoice — not an approved expense')+'">'+(ar?'تقدير: ':'est. ')+money(+m.est_cost_sar)+' ⚑</span>';
+  if(finEstOf(x)>0) return '<span style="color:#B54708" data-fin-cost-estimated="'+Math.round(+m.est_cost_sar)+'" title="'+(ar?'تقدير من البنود المارّة على الفاتورة — ليست مصروفات معتمدة':'Estimate from the pass-through lines on the invoice — not an approved expense')+'">'+(ar?'تقدير: ':'est. ')+money(+m.est_cost_sar)+' ⚑</span>';
   if(finCostMissing(x)) return '<span style="color:#B54708" data-fin-cost-awaited="1" title="'+(ar?'بانتظار المصروفات المعتمدة':'Waiting for approved expenses')+'">'+(ar?'بانتظار التكلفة':'awaited')+'</span>'+pt;
   return money(x.cost_sar==null?0:x.cost_sar)+pt;
 }
@@ -477,11 +477,19 @@ try{ window.finCostCell=finCostCell; }catch(_){}
    approved expense, the pass-through on their lines (the item names classed on Finance → Rules) is the flagged estimate.
    The Cost and Profit cards above stay approved expenses only; this band says what they would read with the estimates.
    Empty (nothing drawn) when no invoice in view carries an estimate. */
+/* QA on live, 28 Sep: the band said "estimated cost 4.15M on 217 of 271" while Income by service said 2.87M. The band added
+   every PAID row in the period — billing links (zero revenue, but the same item lines as the transactions they re-bill) and
+   wallet top-ups too — so the same pass-through was counted twice. ONE rule now, used by the band, the tiles, the cost cell
+   and Income by service: a row's estimate is its pass-through only when the row COUNTS (a paid sale, not excluded — the
+   database's money_rows.counts) and has no approved cost yet. */
+function finCounts(r){ var m=r&&FIN.m&&FIN.m[r.id]; return m?!!m.counts:(r&&r.integrity_status==='verified_paid'&&(r.row_kind||'sale')==='sale'); }
+function finEstOf(r){ if(!r||!finCounts(r)||!finCostMissing(r)) return 0; var m=(FIN.m&&FIN.m[r.id])||{}; return (m.cost_estimated&&+m.est_cost_sar>0)?(+m.est_cost_sar):0; }
+try{ window.finCounts=finCounts; window.finEstOf=finEstOf; }catch(_){}
 function finEstimateBand(V,cost,prof){
   try{
     var ar=(typeof LANG!=='undefined'&&LANG==='ar'), est=0, n=0, revE=0, wait=0;
-    (V||[]).forEach(function(r){ if(!finCostMissing(r)) return; wait++; var m=(FIN.m&&FIN.m[r.id])||{};
-      if(m.cost_estimated && +m.est_cost_sar>0){ est+=+m.est_cost_sar; revE+=+r.revenue_sar||0; n++; } });
+    (V||[]).forEach(function(r){ if(!finCounts(r)||!finCostMissing(r)) return; wait++; var e=finEstOf(r);
+      if(e>0){ est+=e; revE+=+r.revenue_sar||0; n++; } });
     if(!n) return '';
     est=Math.round(est*100)/100; revE=Math.round(revE*100)/100;
     var withCost=Math.round(((+cost||0)+est)*100)/100, withProf=Math.round(((+prof||0)+revE-est)*100)/100;
@@ -1300,9 +1308,15 @@ function rOverview(){
 
   /* Punch list B3 (28 Sep): with invoices still waiting for their cost, Profit is measured over the invoices whose cost is
      known only — the tile says so, with the count, instead of a Profit beside a Cost that reads 0 */
-  var _nKnown=0,_nWait=0; V.forEach(function(r){ if(finCostMissing(r))_nWait++; else _nKnown++; });
+  var _nKnown=0,_nWait=0; V.forEach(function(r){ if(!finCounts(r)) return; if(finCostMissing(r))_nWait++; else _nKnown++; });
   var _profNote=_nWait?(isArF()?('على '+_nKnown+' فاتورة تكلفتها معروفة'):('on the '+_nKnown+' invoices with known cost')):'';
-  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3',_profNote],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a (\u0645\u0641\u0648\u062a\u0631)':'Outstanding (invoiced)',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',invCount,'#1C1E2B',(isArF()?'مدفوعة · في هذه الفترة':'paid · in this period')]];
+  /* QA 28 Sep: a Cost of "0" beside a Profit "on 42 invoices" read as a contradiction. The Cost tile stays approved expenses
+     only, and says under it what is still an estimate (finEstOf — the same figure as the band and Income by service); the
+     Profit tile says what it reads with the estimates. */
+  var _estT=0,_estN=0,_revE=0,_revK=0; V.forEach(function(r){ if(!finCounts(r)) return; var e=finEstOf(r); if(e>0){ _estT+=e; _estN++; _revE+=+r.revenue_sar||0; } else if(!finCostMissing(r)) _revK+=+r.revenue_sar||0; });
+  var _costNote=_estT>0?(isArF()?('معتمدة · + تقدير '+money0(_estT)+' ⚑ على '+_estN+' فاتورة'):('approved · + est. '+money0(_estT)+' ⚑ on '+_estN+' invoices')):(_nWait?(isArF()?('معتمدة · '+_nWait+' فاتورة بانتظار التكلفة'):('approved · '+_nWait+' invoices awaiting cost')):'');
+  if(_estT>0){ var _wp=(+prof||0)+_revE-_estT, _wr=_revK+_revE;   /* margin over the revenue whose cost is known or estimated, as Income by service */ _profNote+=(_profNote?' · ':'')+(isArF()?('مع التقديرات: '+money0(_wp)):('with estimates: '+money0(_wp)))+(_wr>0?(' ('+(100*_wp/_wr).toFixed(1)+'%)'):''); }
+  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708',_costNote],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3',_profNote],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a (\u0645\u0641\u0648\u062a\u0631)':'Outstanding (invoiced)',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',invCount,'#1C1E2B',(isArF()?'مدفوعة · في هذه الفترة':'paid · in this period')]];
   h+='<h3 class="finh">'+(isArF()?'\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u0623\u062f\u0627\u0621 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629':'Key indicators')+'<i>'+finPeriodLabel()+' \u00b7 '+(isArF()?'\u0641\u0639\u0644\u064a \u2014 \u0645\u0646 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629':'actual \u2014 from verified invoices')+'</i></h3>';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
     return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+(i===cards.length-1?'':finExactUnder(c[1]))+'</div>'+(c[3]?'<div data-fin-tile-note="1" style="font-size:10.5px;color:var(--muted);margin-top:2px">'+c[3]+'</div>':'')+'</div>';
@@ -1499,7 +1513,12 @@ function rOverview(){
      at the current month. */
   var _cy=String(todayISO()).slice(0,4), _chY=(FIN.p&&FIN.p.year&&FIN.p.year!=='all')?String(FIN.p.year):_cy;
   var _chV=(FIN.p&&FIN.p.year&&FIN.p.year!=='all')?V:verified().filter(function(r){ return String(finYearOf(r))===_chY&&finPeriodMatch(r,{year:_chY,part:(FIN.p&&FIN.p.part)||'all'}); });
-  _chV.forEach(function(r){var k=r.month||'?';if(k==='?')_noMonth++;by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;by[k].p+=+(r.profit_sar||0);});
+  /* QA 28 Sep: the Profit bars were empty — profit_sar is empty until an approved cost arrives, which is most invoices. A
+     month's profit bar is now the known profit plus, for an invoice with only an estimate, its revenue less the estimate
+     (finEstOf, as the tiles and Income by service); the legend says ⚑ when an estimate is in it. */
+  var _chEst=false;
+  _chV.forEach(function(r){var k=r.month||'?';if(k==='?')_noMonth++;by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;
+    var e=finEstOf(r); if(e>0){ by[k].p+=(+r.revenue_sar||0)-e; _chEst=true; } else by[k].p+=+(r.profit_sar||0);});
   /* …up to this month — or to the last month that has invoices, if one is dated later (a future-dated invoice stays visible,
      so the chart always adds up to the Revenue tile) */
   if(_chY===_cy){ var _mNow=+String(todayISO()).slice(5,7), _mLast=0; MO.forEach(function(m,ix){ if(by[m]&&(by[m].r||by[m].p)) _mLast=ix+1; }); MO=MO.slice(0,Math.max(_mNow,_mLast)); }
@@ -1515,7 +1534,7 @@ function rOverview(){
     var hR=Math.round(by[m].r/mx*120),hP=Math.round(by[m].p/mx*120);
     var lbl=isArF()?((typeof MO_AR!=='undefined'&&MO_AR[m])||m):m.slice(0,3);   // 2026-09-02: Arabic month names in Arabic
     return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="display:flex;gap:3px;align-items:flex-end;height:124px"><div title="'+(isArF()?'الإيرادات ':'Revenue ')+money(by[m].r)+'" style="width:22px;height:'+Math.max(hR,2)+'px;background:#FF6B00;border-radius:4px 4px 0 0"></div><div title="'+(isArF()?'الربح ':'Profit ')+money(by[m].p)+'" style="width:22px;height:'+Math.max(hP,2)+'px;background:#303848;border-radius:4px 4px 0 0"></div></div><div style="font-size:10px;color:var(--muted)">'+lbl+'</div><div style="font-size:9.5px;font-weight:700"><span dir="ltr" style="unicode-bidi:isolate">'+moneyS(by[m].r)+'</span></div></div>';
-  }).join('')+'</div></div><div style="font-size:10px;color:var(--muted);margin-top:8px"><span style="color:#FF6B00">\u25a0</span> '+(isArF()?'\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue')+' &nbsp;<span style="color:#303848">\u25a0</span> '+(isArF()?'\u0631\u0628\u062d':'Profit')+'</div></div>';
+  }).join('')+'</div></div><div style="font-size:10px;color:var(--muted);margin-top:8px"><span style="color:#FF6B00">\u25a0</span> '+(isArF()?'\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue')+' &nbsp;<span style="color:#303848">\u25a0</span> '+(isArF()?'\u0631\u0628\u062d':'Profit')+(_chEst?(isArF()?' (يشمل التقديرات ⚑)':' (incl. estimates ⚑)'):'')+'</div></div>';
 
   return h;
 }

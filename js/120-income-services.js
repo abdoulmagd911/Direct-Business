@@ -33,6 +33,14 @@
   var inp='width:100%;padding:8px 10px;border:1px solid var(--line,#e6e8ec);border-radius:8px;font:inherit';
 
   /* ---- adding ---- */
+  /* QA 28 Sep: (5) "Railway ticket" after "Railway Ticket" was dropped with no word — a name already on the list (spelled any
+     way: the database compares lower-case, spaces and dashes folded) is now caught here and named in the app's box; (6) the
+     Add dialog could sit open after Save — Save now goes grey ("Saving…") at once, the dialog closes the moment the save
+     lands, and a refusal gives the button back with the reason. */
+  function norm(x){ return String(x==null?'':x).toLowerCase().replace(/[\s\-–—_|.,'"]+/g,' ').trim(); }
+  function head(x){ return String(x==null?'':x).replace(/\s[-–—|]\s.*$/,'').trim(); }
+  function busy(on){ try{ var b=document.getElementById('mSave'); if(!b) return; if(on){ b.dataset.v120Label=b.textContent; b.disabled=true; b.textContent=fl('Saving…','جارٍ الحفظ…'); } else { b.disabled=false; if(b.dataset.v120Label) b.textContent=b.dataset.v120Label; } }catch(_){} }
+  function saved(){ busy(false); try{ closeModal(); }catch(_){} try{ var ov=document.getElementById('ov'); if(ov) ov.classList.remove('show'); }catch(_){} changed(); }
   window.v120AddService=function(){
     if(!canEdit()) return;
     openModal(fl('Add a main service','إضافة خدمة رئيسية'),
@@ -42,9 +50,12 @@
       function(){
         var nm=String((document.getElementById('v120_name')||{}).value||'').trim(), so=parseInt((document.getElementById('v120_sort')||{}).value,10), nv=!!(document.getElementById('v120_never')||{}).checked;
         if(!nm){ say(fl('Type the service name first.','اكتب اسم الخدمة أولًا.')); return false; }
+        var dup=(SV.svc||[]).find(function(x){ return norm(x.name)===norm(nm); });
+        if(dup){ say(fl('"'+dup.name+'" is already on the list — nothing added.','«'+dup.name+'» موجودة في القائمة — لم يُضف شيء.')); return false; }
+        busy(true);
         client().from('money_services').insert({name:nm,sort_order:isNaN(so)?100:so,counts_as_income:!nv}).select('id').then(function(r){
-          var m=refused(r); if(m){ say(/one_live/.test(m)?fl('That service is already on the list.','هذه الخدمة موجودة في القائمة.'):m); return; }
-          try{ closeModal(); }catch(_){} changed(); });
+          var m=refused(r); if(m){ busy(false); say(/one_live/.test(m)?fl('That service is already on the list — nothing added.','هذه الخدمة موجودة في القائمة — لم يُضف شيء.'):m); return; }
+          saved(); },function(err){ busy(false); say(String((err&&err.message)||err)); });
         return false;
       });
   };
@@ -58,9 +69,13 @@
         var k=String((document.getElementById('v120_key')||{}).value||'').trim(), sid=(document.getElementById('v120_svc')||{}).value;
         if(!k){ say(fl('Type it first.','اكتبه أولًا.')); return false; }
         var row={service_id:sid}; row[key]=k;
+        var list=(key==='item')?SV.item:SV.prod, kn=(key==='item')?norm(head(k)):norm(k);
+        var dup=(list||[]).find(function(x){ return ((key==='item')?norm(head(x.item)):norm(x[key]))===kn; });
+        if(dup){ say(fl('"'+dup[key]+'" is already on the list (going to '+svcName(dup.service_id)+') — nothing added; change its service there.','«'+dup[key]+'» موجود في القائمة (إلى '+svcName(dup.service_id)+') — لم يُضف شيء؛ غيّر خدمته هناك.')); return false; }
+        busy(true);
         client().from(table).insert(row).select('id').then(function(r){
-          var m=refused(r); if(m){ say(/one_live/.test(m)?fl('That one is already on the list — change its service there.','هذا موجود في القائمة — غيّر خدمته هناك.'):m); return; }
-          try{ closeModal(); }catch(_){} changed(); });
+          var m=refused(r); if(m){ busy(false); say(/one_live/.test(m)?fl('That one is already on the list — nothing added; change its service there.','هذا موجود في القائمة — لم يُضف شيء؛ غيّر خدمته هناك.'):m); return; }
+          saved(); },function(err){ busy(false); say(String((err&&err.message)||err)); });
         return false;
       });
   }

@@ -53,17 +53,22 @@
       if(r.deleted_at) return; var m=(FIN.m&&FIN.m[r.id])||{}; if(!m.counts) return; if(window.finInPeriod&&!finInPeriod(r)) return;
       n++;
       var rev=+r.revenue_sar||0, lines=FIN.svcBy[r.id]||[], sum=0; lines.forEach(function(x){ sum+=+x.revenue_sar||0; });
-      var hasCost=(r.cost_sar!=null&&r.cost_sar!==''), cost=+r.cost_sar||0, estOn=!hasCost&&!!m.cost_estimated;
+      /* one rule for the estimate (js/16 finEstOf — the band and the tiles read the same): the invoice's estimate, spread over
+         its services by their pass-through; whatever no service's line carries goes to "Not split by line" */
+      var hasCost=(r.cost_sar!=null&&r.cost_sar!==''), cost=+r.cost_sar||0;
+      var estT=(typeof window.finEstOf==='function')?window.finEstOf(r):((!hasCost&&m.cost_estimated)?(+m.est_cost_sar||0):0), estOn=estT>0;
+      var ptSum=0; lines.forEach(function(x){ ptSum+=+x.pass_through_sar||0; });
       var known=hasCost||estOn||r.revenue_way==='commission';
       lines.forEach(function(x){
         var k=x.service_name||NONE, b=add(k,x.service_name?(+x.sort_order||100):950), v=+x.revenue_sar||0;
         b.rev+=v; b._inv[r.id]=1;
         if(hasCost&&sum>0) b.cost+=cost*v/sum;
-        if(estOn) b.est+=+x.pass_through_sar||0;
+        if(estOn&&ptSum>0) b.est+=estT*(+x.pass_through_sar||0)/ptSum;
         if(known) b.revP+=v;
       });
       var rest=Math.round((rev-sum)*100)/100;
       if(Math.abs(rest)>=1){ var b=add(NOT,990); b.rev+=rest; b._inv[r.id]=1; if(hasCost&&sum<=0) b.cost+=cost; if(known) b.revP+=rest; }
+      if(estOn&&ptSum<=0){ var bn=add(NOT,990); bn.est+=estT; bn._inv[r.id]=1; }
     });
     var keys=Object.keys(by).sort(function(a,b){ return (order[a]-order[b])||(by[b].rev-by[a].rev); });
     var tot={rev:0,cost:0,est:0,revP:0};
@@ -79,7 +84,9 @@
         '<td style="padding:7px 8px;font-weight:700">'+esc(k)+'</td>'+
         '<td style="padding:7px 8px;text-align:right;color:var(--muted)">'+Object.keys(b._inv).length+'</td>'+
         td(mS(b.rev))+td(mS(b.cost),'color:#B54708')+td(b.est?mS(b.est)+' ⚑':'—','color:#B54708')+
-        td(mS(prof)+(b.est?' ⚑':''),'font-weight:700;color:'+(prof<0?'#B42318':'#0F6E56'))+td(mg==null?'—':mg.toFixed(1)+'%','color:var(--muted)')+'</tr>';
+        /* QA 28 Sep: a service none of whose revenue has a cost (approved, estimated, or commission) says so — never a profit of 0 */
+        (b.revP>0?td(mS(prof)+(b.est?' ⚑':''),'font-weight:700;color:'+(prof<0?'#B42318':'#0F6E56')):td(fl('cost missing','التكلفة ناقصة'),'color:#B54708;font-weight:600').replace('<td ','<td data-v24-cost-missing="1" '))+
+        td(mg==null?'—':mg.toFixed(1)+'%'+(b.revP<b.rev-0.5?' <span style="font-size:10.5px">'+fl('of '+mS(b.revP),'من '+mS(b.revP))+'</span>':''),'color:var(--muted)')+'</tr>';
     });
     var tp=tot.revP-tot.cost-tot.est;
     h+='<tr style="border-top:2px solid var(--line,#ddd);font-weight:800" data-v24-total="1" data-rev="'+tot.rev.toFixed(2)+'"><td style="padding:8px">'+fl('All services','كل الخدمات')+'</td>'+
