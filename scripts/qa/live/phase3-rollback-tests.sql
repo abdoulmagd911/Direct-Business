@@ -285,11 +285,70 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------------------------------------------
+-- L6 — D1, the money model and the invoice import (D21), first run at the switch-on of #53 (28 Sep): the commit lands a
+--      duplicate invoice once with the newer status; a missing cost is empty and flagged, never profit; a top-up has zero
+--      revenue and never counts; the KPI source sees the missing cost; an OLDER file only fills empty fields; the
+--      item-name list — an admin adds, a team member cannot, never deleted, one entry per name; pass-through is shown,
+--      never cost. Then the same team member made View-only on Finance INSIDE the block (rolled back): reads, cannot
+--      import, cannot class items; with no Finance, reads nothing. (A team member with FULL Finance access may import —
+--      that is the access setting working, so the refusal is tested at View level.) Test rows are QA-TEST-….
+-- ---------------------------------------------------------------------------------------------------------------
+do $$
+declare T uuid; M uuid := '06bb5086-9c8c-4a1b-9452-eb0b14c24fa9';
+        A uuid := '096eec1a-6d2c-4be4-a5f9-19e920062e7c'; r text; out text[] := '{}'; cid uuid;
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub',A,'role','authenticated')::text, true);
+  select u.id into T from app_users u join team_members m on m.user_id=u.id and m.active where u.role='team_member' and u.active order by u.id limit 1;
+  r := pg_temp.run(A, $q$select fn_commit_finance_import(p_insert := '[
+      {"invoice_no":"QA-TEST-D1","client_group":"QA-TEST D1 Co","invoice_date":"2026-05-20","total_incl_vat_sar":700,"amount_received_sar":700,"amount_remaining_sar":0,"integrity_status":"verified_paid","payments_status":"Fully Paid","payments_status_at":"2026-05-20T09:00:00Z","paid_at":"2026-05-20"},
+      {"invoice_no":"QA-TEST-D1","client_group":"QA-TEST D1 Co","invoice_date":"2026-05-14","total_incl_vat_sar":700,"integrity_status":"pending","payments_status":"Pending Payment","payments_status_at":"2026-05-14T09:00:00Z"},
+      {"invoice_no":"QA-TEST-TOPUP","client_group":"QA-TEST D1 Co","invoice_date":"2026-05-21","total_incl_vat_sar":5000,"wallet_portion_sar":5000,"row_kind":"wallet_topup","integrity_status":"verified_paid","payments_status":"Fully Paid","payments_status_at":"2026-05-21T09:00:00Z"}]'::jsonb,
+      p_item_lines := '[{"invoice_no":"QA-TEST-D1","line_no":1,"kind":"item","name":"Flight Booking - 3rd Party Fee","item_total_sar":600},
+                        {"invoice_no":"QA-TEST-D1","line_no":1,"kind":"item","name":"Flight Booking - 3rd Party Fee","item_total_sar":600},
+                        {"invoice_no":"QA-TEST-D1","line_no":2,"kind":"item","name":"Flight Booking - Service Fees","item_total_sar":100}]'::jsonb)::text$q$);
+  out := out || pg_temp.chk('commit_dedupes_to_one_row_and_lines', r ~ '"inserted": 2' and r ~ '"item_lines": 2', r);
+  r := pg_temp.run(A, $q$select count(*)||'|'||max(payments_status)||'|'||max(invoice_date::text) from finance_invoices where invoice_no='QA-TEST-D1'$q$);
+  out := out || pg_temp.chk('newer_copy_won', r = 'ok rows=1 val=1|Fully Paid|2026-05-20', r);
+  r := pg_temp.run(A, $q$select coalesce(cost_sar::text,'∅')||'|'||coalesce(profit_sar::text,'∅')||'|'||cost_missing||'|'||counts||'|'||revenue_sar from money_rows where invoice_no='QA-TEST-D1'$q$);
+  out := out || pg_temp.chk('no_cost_is_empty_and_flagged_never_profit', r = 'ok rows=1 val=∅|∅|true|true|700.00', r);
+  r := pg_temp.run(A, $q$select revenue_sar||'|'||counts||'|'||row_kind from money_rows where invoice_no='QA-TEST-TOPUP'$q$);
+  out := out || pg_temp.chk('topup_stored_zero_revenue_never_counts', r = 'ok rows=1 val=0.00|false|wallet_topup', r);
+  r := pg_temp.run(A, $q$select count(*)::text from finance_lines where invoice_no in ('QA-TEST-D1','QA-TEST-TOPUP') and cost_missing$q$);
+  out := out || pg_temp.chk('kpi_source_sees_the_missing_cost', r = 'ok rows=1 val=1', r);
+  r := pg_temp.run(A, $q$select fn_commit_finance_import(p_update := (select jsonb_build_array(jsonb_build_object('id',id,'invoice_date','2026-05-14','amount_received_sar',0,'amount_remaining_sar',700,'integrity_status','pending','payments_status','Pending Payment','payments_status_at','2026-05-14T09:00:00Z','branch','QA Branch')) from finance_invoices where invoice_no='QA-TEST-D1'))::text$q$);
+  r := pg_temp.run(A, $q$select integrity_status||'|'||amount_received_sar::float||'|'||amount_remaining_sar::float||'|'||invoice_date||'|'||month||'|'||coalesce(branch,'∅') from finance_invoices where invoice_no='QA-TEST-D1'$q$);
+  out := out || pg_temp.chk('older_file_only_fills_empty', r = 'ok rows=1 val=verified_paid|700|0|2026-05-20|May|QA Branch', r);
+  r := pg_temp.run(T, $q$insert into money_item_classes(name,class) values ('3rd Party Fee','pass_through')$q$);
+  out := out || pg_temp.chk('team_member_cannot_class_items', r ~ '^ERR', r);
+  r := pg_temp.run(A, $q$insert into money_item_classes(name,class) values ('3rd Party Fee','pass_through') returning id::text$q$);
+  out := out || pg_temp.chk('admin_classes_item', r ~ '^ok rows=1', r);
+  cid := nullif(split_part(r,'val=',2),'')::uuid;
+  r := pg_temp.run(A, $q$select pass_through_sar::float||'|'||coalesce(cost_sar::text,'∅')||'|'||coalesce(profit_sar::text,'∅') from money_rows where invoice_no='QA-TEST-D1'$q$);
+  out := out || pg_temp.chk('pass_through_shown_never_cost', r = 'ok rows=1 val=600|∅|∅', r);
+  r := pg_temp.run(A, $q$insert into money_item_classes(name,class) values (' 3RD party  fee','fee')$q$);
+  out := out || pg_temp.chk('one_entry_per_name', r ~ '^ERR', r);
+  r := pg_temp.run(A, format($q$delete from money_item_classes where id=%L$q$, cid));
+  out := out || pg_temp.chk('item_name_never_deleted', (r ~ '^ERR' or r='ok rows=0') and exists(select 1 from money_item_classes where id=cid), r);
+  r := pg_temp.run(M, $q$select count(*)::text from money_item_classes$q$);
+  out := out || pg_temp.chk('manager_reads_list', r = 'ok rows=1 val=1', r);
+  update app_users set page_access = jsonb_set(coalesce(page_access,'{}'::jsonb), '{finance}', '"view"') where id=T;
+  r := pg_temp.run(T, $q$select fn_commit_finance_import(p_insert := '[{"invoice_no":"QA-TEST-TM","client_group":"x","invoice_date":"2026-05-01","total_incl_vat_sar":1}]'::jsonb)::text$q$);
+  out := out || pg_temp.chk('view_only_finance_cannot_import', r ~ '^ERR' and not exists(select 1 from finance_invoices where invoice_no='QA-TEST-TM'), r);
+  r := pg_temp.run(T, $q$select count(*)::text from money_rows$q$);
+  out := out || pg_temp.chk('view_only_can_read', r ~ '^ok rows=1', r);
+  update app_users set page_access = jsonb_set(coalesce(page_access,'{}'::jsonb), '{finance}', '"none"') where id=T;
+  r := pg_temp.run(T, $q$select count(*)::text from money_item_classes$q$);
+  out := out || pg_temp.chk('no_finance_reads_nothing', r = 'ok rows=1 val=0', r);
+  raise exception 'VERDICT L6 %', array_to_string(out, ' · ');
+end $$;
+
+-- ---------------------------------------------------------------------------------------------------------------
 -- fingerprint — run before and after; every number must be the same (nothing above may leave a trace)
 -- ---------------------------------------------------------------------------------------------------------------
 select (select count(*) from record_history) hist, (select count(*) from tasks) tasks, (select count(*) from client_profiles) cps,
        (select count(*) from company_documents) docs, (select count(*) from company_discount_codes) cdc,
        (select count(*) from report_entries) re, (select count(*) from evidence_files) ev, (select count(*) from kpi_targets) kt, (select count(*) from finance_invoices) fi, (select count(*) from money_exclusion_rules) mrules, (select count(*) from company_name_aliases) aliases,
+       (select count(*) from money_item_classes) itemcls, (select count(*) from finance_invoice_lines) invlines,
        (select count(*) from storage.objects) objs, (select count(*) from periods where locked_at is not null) locked,
        (select coalesce(string_agg(family||year||':'||last_n, ',' order by family),'') from document_counters) counters,
        (select md5(string_agg(id::text||coalesce(page_access::text,''), ',' order by id)) from app_users) access_md5;
