@@ -114,7 +114,7 @@
         showResult(msg||fl('No answer from the database.','لا يوجد رد من قاعدة البيانات.'));
       }
     }).catch(function(e){ showResult(String((e&&e.message)||e)); }); };
-    if(typeof window.pfConfirm==='function') window.pfConfirm(fl('Undo this change?','التراجع عن هذا التغيير؟'),go); else go();
+    if(typeof window.pfConfirm==='function') window.pfConfirm(fl('Undo this change?','التراجع عن هذا التغيير؟'),go);   // 2026-09-28 (D19): no box, no action
   };
 
   /* ---------- Activity & Audit — now reading record_history, not DB.audit ---------- */

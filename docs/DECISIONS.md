@@ -193,8 +193,8 @@ prevent, one level down.
 Direct Payments sources, confirmed by checking, not assumed: `admin.stats.expense-report`
 (`INVOICE #` | `AMOUNT (SAR)` | `STATUS` | `APPROVAL DATE` | `MERCHANT`, 219 corporate rows,
 one row per expense line — `INVOICE #` is the transaction's own reference) joins to
-`/en/admin/corporate_clients/transactions` (`RECEIPT REF.` | `PRODUCT` | `AMOUNT (SAR)` |
-`INVOICE ISSUING` | `CREATED AT` | `EXPENSE STATUS`, 153 rows — the expected
+`/en/admin/corporate_clients/transactions` (columns "RECEIPT REF. | PRODUCT | AMOUNT (SAR) |
+INVOICE ISSUING | CREATED AT | EXPENSE STATUS" — Payments' column headers, not code), 153 rows — the expected
 many-lines-to-one-transaction shape against 219 lines, not a mismatch; "zero orphans" per the
 capturer's own exact page-count math). The join key itself (expense-report's transaction
 reference = transactions' `RECEIPT REF.`) is now proven on a real matching pair, not just
@@ -3808,3 +3808,59 @@ invoice, transaction, achievement, company, merge or exclusion is created by cod
 backfill script, no SQL insert of business data, no background pass that writes on its own (which is why the js/41
 name auto-linker is off). Code makes entry easy — screens, the importer a person runs, validation, the change log. The
 test harness and test databases may seed made-up data. An already-approved cleanup or wipe is allowed, backed up first.
+
+**D19 — Every delete or remove asks first, in the app's own box, naming the item; Cancel is the default (owner's standing
+rule, 28 Sep, via the oversight).** ACTIVE. The owner's words, as relayed: "every delete/remove of any item shows the app's
+own confirm dialog (Arabic/English) naming exactly what will be removed, with 'Delete' and 'Cancel', Cancel focused by
+default, and the action logged and undoable where possible." Built into the one shared box (`pfConfirm`, js/57): Cancel
+takes focus when it opens, a removal's button says "Delete" / "Remove" (red), never an orange "Confirm", and a box that
+cannot be drawn counts as No — it used to run the action unasked. Native `prompt()` stays only as a last-resort fallback for a
+text answer. **The audit (28 Sep, its own PR after #53):** no native `confirm()` is left anywhere; every helper that fronts the
+box (`askInPage`, `finConfirm`, `expConfirm`, the js/21 Arabic wrapper) passes `{danger}` through and does NOTHING when the
+box is missing; every delete/remove question names the record (company, proposal ref, invoice no., file, rule, code, person);
+the removals that asked nothing (proposal lines and free extras, tiers, upsells, SSR chips, onboarding rows, list Archive
+buttons, the test-data wipes, "Make inactive", a rule's switch-off, "Not a duplicate", a rates save that drops saved rates)
+now ask. A row with nothing typed in yet is removed without a question (a draft, not saved data). Guard:
+`scripts/qa/probe-d19-delete-asks.mjs`.
+
+**D20 — Dates are Riyadh's calendar, everywhere (owner, 28 Sep, via the oversight, F1).** ACTIVE. A stored time is UTC;
+showing its first ten characters showed YESTERDAY for anything saved after 9 pm in Riyadh (the Rules "Added" column said
+27 Sep while the change log said 28 Sep). `dayRiyadh(time)` and `todayISO()` (js/core/core-01) give Riyadh's date whatever
+the PC's clock says, and `scripts/qa/check-structure.mjs` refuses a new UTC date cut. A plain date (a contract start, a
+due date) is a calendar day already and is shown as stored.
+
+**D21 — The money model and the invoice import (D1, 28 Sep; oversight-reviewed plan, owner rules quoted from KB 04 and the
+Import Map).** ACTIVE. `scripts/sql/d1-money-model.sql`, `js/41`, `js/65`, `js/119`.
+- **Revenue** = the invoice total as Payments records it. The only part taken off is a wallet TOP-UP part (the "Direct Wallet /
+  Wallet Balance" item lines — money put into the wallet). A sale paid FROM the wallet is a full sale: the wallet shows only as
+  a payment receipt, never as a line. A top-up-only invoice is stored as its own row kind and never counts ("Wallet top-ups
+  (product Direct Wallet) are stored, never revenue" — Import Map rule 9).
+- **Cost** = approved expenses only; a missing cost is EMPTY, never 0, so a row waiting for its cost is left out of cost and
+  profit and said so on screen — never shown as 100% profit. A commission has no cost by nature (profit = revenue). The
+  importer no longer reads cost from the invoice's item lines (it did: the untaxed lines — the "pass-through = cost" the owner
+  ruled out on 22 Aug). The lines are kept (`finance_invoice_lines`); the pass-through amount on them follows an item-name list
+  a person keeps on Finance → Rules and is SHOWN beside the cost, never counted. Whether it may stand in for a missing cost is
+  the owner's open decision (the gap check's own test: 9 of 108 invoices with expenses matched their lines exactly).
+- **Statuses**: Fully Paid counts; "Fully Paid (Audit Required)" counts and is flagged; Pending Payment, Void, Cancelled and
+  Draft are stored and never count; a status nobody has named is held back for a person, never guessed (Import Map rule 10).
+- **Which date sets the month**: the paid date for a paid invoice, else the date it was created (`invoice_date` holds it, so
+  totals, reports, KPIs and the year all follow one date); the creation date is kept (`invoice_created_on`) and Performance can
+  regroup by it (oversight, 28 Sep).
+- **Billing invoices** that re-bill transactions already recorded are a link row with zero revenue (KB 04 §2). No export says
+  which transactions an invoice covers, so the preview PROPOSES a link when its total is exactly the sum of that customer's
+  earlier transactions, and a person ticks it. No import retires or deletes a transaction by itself any more (that path in
+  `js/41` is gone).
+- **Fill, never wipe, in any order** (KB 04 §5 rules 1–4): an update writes only what the new file carries; the newest
+  Payments status wins and an older file cannot roll it back; item lines are replaced per invoice; a row entered by hand is
+  never touched by an import (the preview names it). The same file twice changes nothing.
+  Added by the 28 Sep sweep: an OLDER file (its Payments status time before the stored one) only fills fields that are still
+  empty — it cannot put a paid invoice's received/outstanding amounts or its paid date back to the unpaid copy's; a field a file
+  leaves blank is not a change (a re-drop reads "0 updated"); an invoice repeated in one file, or in two files dropped
+  together, lands once with the newer status (a duplicate used to refuse the whole import); a billing link a person ticked
+  survives re-imports (the file always says "sale"), is not re-proposed, and a proposal must involve the dropped file. The
+  billing-link search is capped per invoice and per drop, so a huge customer cannot hold the page; invoices it could not check
+  are counted on screen and never guessed.
+- **No VAT** figure is worked out or stored (D18). A cost above revenue is applied and flagged "Loss", never held back.
+- **On screen**: Profit = Revenue − Cost and the margin are measured over the invoices whose cost is known (an invoice waiting
+  for its cost counts in Revenue only), so a waiting invoice is never reported as "stored figures that disagree".
+Guarded by `scripts/qa/phase3` D1-01…08 and `scripts/qa/probe-d1-invoice-import.mjs` (sabotage-checked).

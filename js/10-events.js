@@ -138,7 +138,7 @@ window.evDelete=function(id){
     DB.ksaEvents=DB.ksaEvents.filter(function(x){return x.id!==id;});render();
   }); };
   var _m='Delete "'+(e.name_en||'this event')+'"?\nThis removes it for the whole team and cannot be undone.';
-  if(typeof window.pfConfirm==='function')window.pfConfirm(_m,_go);else _go();
+  if(typeof window.pfConfirm==='function')window.pfConfirm(_m,_go);   // 2026-09-28 (D19): no box, no delete
 };
 
 window.evOpenModal=function(id){
@@ -722,7 +722,7 @@ window.evDelete=function(id){
     });
   };
   var _msg=L('Delete "'+(e.name_en||'this event')+'"?\nThis removes it for the whole team and cannot be undone.','حذف «'+(e.name_en||'')+'»؟\nسيُحذف للفريق بالكامل ولا يمكن التراجع.');
-  if(typeof window.pfConfirm==='function') window.pfConfirm(_msg,_go); else _go();
+  if(typeof window.pfConfirm==='function') window.pfConfirm(_msg,_go);   // 2026-09-28 (D19): no box, no delete
 };
 
 window.evOpenModal=function(id){

@@ -645,7 +645,7 @@
   }
   window.v27ConfirmWord=function(msg){ try{ if(!(typeof LANG!=='undefined'&&LANG==='ar')) return msg; var w=confirmWord(msg); return w===undefined?msg:w; }catch(_){ return msg; } };
   (function lateConfirmWrap(n){
-    try{ if(typeof window.pfConfirm==='function'&&!window.pfConfirm.__v27){ var _pc=window.pfConfirm; var wc=function(msg,onYes){ return _pc.call(this,window.v27ConfirmWord(msg),onYes); }; wc.__v27=1; window.pfConfirm=wc; return; } }catch(_){}
+    try{ if(typeof window.pfConfirm==='function'&&!window.pfConfirm.__v27){ var _pc=window.pfConfirm; var wc=function(msg,onYes,opts){ return _pc.call(this,window.v27ConfirmWord(msg),onYes,opts); }; /* 2026-09-28 (D19): opts kept (red Delete) */ wc.__v27=1; window.pfConfirm=wc; return; } }catch(_){}
     if((n||0)<80) setTimeout(function(){ lateConfirmWrap((n||0)+1); },300);
   })(0);
   window.v27AttrWord=function(en){ try{ if(!(typeof LANG!=='undefined'&&LANG==='ar')) return en; var k=String(en==null?'':en); var ar=arAttrWord(k); return ar===undefined?k:ar; }catch(_){ return en; } };

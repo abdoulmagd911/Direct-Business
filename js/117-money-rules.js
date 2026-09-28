@@ -52,7 +52,13 @@
 
   var MR={rules:null,err:null,loading:false,codes:null,links:null};
   window.MR=MR;
+  /* 2026-09-28: read the rules only once the database knows who is asking. The first read used to run as the page opened,
+     before sign-in finished; the database refused it (the rules are not public), the refusal was kept, and nothing read them
+     again — so after a fresh sign-in the Rules card said "No exclusion rules" over twenty real ones until a reload. */
+  var waitSignIn=null;
+  function signedIn(){ try{ return window.__roleKnown===true&&!!window.__userRole; }catch(_){ return false; } }
   function load(cb){
+    if(!signedIn()){ if(!waitSignIn){ var n=0; waitSignIn=setInterval(function(){ n++; if(signedIn()||n>240){ clearInterval(waitSignIn); waitSignIn=null; if(signedIn()) load(cb); } },500); } return; }
     if(MR.loading){ return; } MR.loading=true;
     var c=client(); if(!c){ MR.loading=false; return; }
     Promise.all([
@@ -69,6 +75,9 @@
     },function(err){ MR.loading=false; MR.err=String((err&&err.message)||err); MR.rules=[]; redraw(); });
   }
   window.moneyRulesLoad=load;
+  /* a new sign-in (or a person switching accounts in the same tab) reads the rules again */
+  (function hook(n){ var c=client(); if(c&&c.auth&&c.auth.onAuthStateChange){ c.auth.onAuthStateChange(function(ev){ if(ev==='SIGNED_IN'&&(MR.err||MR.rules==null)){ MR.err=null; MR.rules=null; setTimeout(function(){ load(); },300); } }); return; }
+    if((n||0)<120) setTimeout(function(){ hook((n||0)+1); },500); })(0);
   function redraw(){ try{ if(typeof current!=='undefined'&&(current==='finance'||current==='leads'||current==='clients')&&typeof render==='function') render(); }catch(_){} }
   /* after a change: rules, client IDs and Finance all read again, so every figure moves at once */
   function refreshAll(){
@@ -140,7 +149,7 @@
     if(/row-level security|42501|permission/i.test(m)) return fl('Only admins and managers change the rules.','المسؤولون والمدراء فقط يغيّرون القواعد.');
     if(typeof window.__v113Said==='function') return window.__v113Said(err);
     return fl('Could not save: ','تعذّر الحفظ: ')+m; }
-  function ask(msg,yes){ if(typeof window.askInPage==='function') window.askInPage(msg,yes); else if(confirm(msg)) yes(); }
+  function ask(msg,yes,opts){ if(typeof window.askInPage==='function') window.askInPage(msg,yes,opts); }   // 2026-09-28 (D19): no box, no action; never a native confirm()
   function val(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; }
 
   window.v117AddRule=function(kindPre,valEnc){ if(!canEdit())return;
@@ -159,7 +168,13 @@
         return false; });
   };
   window.v117SwitchRule=function(id,on){ if(!canEdit())return;
-    client().from('money_exclusion_rules').update({active:!!on}).eq('id',id).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); };
+    var go=function(){ client().from('money_exclusion_rules').update({active:!!on}).eq('id',id).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); };
+    if(on){ go(); return; }
+    /* 2026-09-28 (D19): switching a rule off asks first, naming it. The tick goes back on BEFORE the question, so a Cancel
+       leaves it showing the truth; only a Yes switches it off. No box, no change. */
+    var r0=(MR.rules||[]).filter(function(x){ return String(x.id)===String(id); })[0]||{}; var rv=String(r0.value||'').slice(0,60);
+    try{ var cb=document.querySelector('[data-v117-switch="'+String(id).replace(/"/g,'')+'"]'); if(cb) cb.checked=true; }catch(_){}
+    ask(fl('Switch off the rule "'+rv+'"? Its rows count again at once; switch it back on to leave them out again.','إيقاف القاعدة «'+rv+'»؟ تعود صفوفها للحساب فورًا؛ أعد تشغيلها لاستبعادها مجددًا.'),go,{danger:true,yes:'Switch off',yesAr:'إيقاف'}); };
   window.v117RemoveRule=function(id){ if(!canEdit())return;
     var r0=(MR.rules||[]).find(function(r){return r.id===id;}); if(!r0)return;
     ask(fl('Remove the rule "','إزالة القاعدة «')+r0.value+fl('"? Its rows count again at once. A removal is final — add it again if needed.','»؟ تعود صفوفها للحساب فورًا. الإزالة نهائية — أضفها من جديد عند الحاجة.'),function(){
@@ -252,12 +267,16 @@
         return false; });
   };
   window.v117RemoveCode=function(linkId){ if(!canMergeMR())return;
-    ask(fl('Take this code out of the company? Its sales go back to "Unassigned codes".','إزالة هذا الرمز من الشركة؟ تعود مبيعاته إلى «رموز غير مخصّصة».'),function(){
+    var cn=''; try{ var lk=(MR.links||[]).filter(function(l){return String(l.id)===String(linkId);})[0]; var pc=lk&&(MR.codes||[]).filter(function(p){return p.id===lk.promo_code_id;})[0]; cn=(pc&&pc.code)||''; }catch(_){}   // 2026-09-28 (D19): names the code
+    ask(fl('Take the code "'+cn+'" out of the company? Its sales go back to "Unassigned codes".','إزالة الرمز «'+cn+'» من الشركة؟ تعود مبيعاته إلى «رموز غير مخصّصة».'),function(){
       client().from('company_discount_codes').update({removed_at:new Date().toISOString()}).eq('id',linkId).select('id').then(function(r){ var m=refused(r); if(m){ alert(m); return; } refreshAll(); }); }); };
   window.v117Log=function(){ if(typeof window.openChangeLog!=='function')return;
-    var t=(MR.rules||[]).map(function(r){ return {table:'money_exclusion_rules',key:r.id}; });
-    if(!t.length){ alert(fl('No rule yet — nothing in the log.','لا توجد قاعدة بعد — لا شيء في السجل.')); return; }
-    window.openChangeLog(t,fl('Exclusion rules','قواعد الاستبعاد')); };
+    /* every rule ever written, removed ones included — a switch-off, switch-on and removal are changes to a rule that may no
+       longer be on screen (F4, 28 Sep) */
+    var open=function(labels){ window.openChangeLog([{table:'money_exclusion_rules',all:true}],fl('Exclusion rules','قواعد الاستبعاد'),labels); };
+    var c=client(); if(!c){ open(null); return; }
+    c.from('money_exclusion_rules').select('id,kind,value,removed_at').then(function(r){ var L={};
+      ((r&&r.data)||[]).forEach(function(x){ L[x.id]=kindLabel(x.kind)+' '+x.value+(x.removed_at?' ('+fl('removed','أُزيلت')+')':''); }); open(L); },function(){ open(null); }); };
 
   /* ---------- the screen ---------- */
   var TH='padding:7px 9px;font-weight:700;font-size:12px', TD='padding:7px 9px;font-size:12.5px;border-top:1px solid var(--line,#EEF0F3);vertical-align:top';
@@ -275,11 +294,12 @@
       '<div class="ch-sub" style="margin:4px 0 10px">'+fl('Only what is typed here is left out; everything else counts. A row caught by an active rule leaves every total, KPI, report and export at once.','لا يُستبعد إلا ما يُكتب هنا؛ وكل ما عداه يُحتسب. الصف الذي تلتقطه قاعدة فعّالة يخرج فورًا من كل إجمالي ومؤشر وتقرير وتصدير.')+'</div>';
     h+=rules.length?table([fl('Type','النوع'),fl('Value','القيمة'),fl('Reason','السبب'),fl('Catches','تلتقط'),fl('Added','أُضيفت'),fl('On','فعّالة'),''],rules.map(function(r){ var s=st.rule[r.id]||{n:0,sar:0};
         return '<tr data-v117-rule="'+e(r.id)+'"'+(r.active?'':' style="opacity:.6"')+'><td style="'+TD+'">'+e(kindLabel(r.kind))+'</td><td style="'+TD+';font-weight:700">'+e(r.value)+'</td><td style="'+TD+'">'+e(r.reason)+'</td>'+
-          '<td style="'+TD+'">'+(r.active?(s.n+' '+fl('rows','صف')+' · '+sar(s.sar)):fl('off','متوقفة'))+'</td>'+
-          '<td style="'+TD+';color:var(--muted);font-size:11.5px">'+e(r.created_by_name||'—')+' · '+e(String(r.created_at||'').slice(0,10))+(r.updated_at?'<br>'+fl('changed ','غُيّرت ')+e(r.updated_by_name||'')+' · '+e(String(r.updated_at).slice(0,10)):'')+'</td>'+
+          '<td style="'+TD+';white-space:nowrap">'+(r.active?(s.n+' '+fl('rows','صف')+' · '+sar(s.sar)):fl('off','متوقفة'))+'</td>'+
+          '<td style="'+TD+';color:var(--muted);font-size:11.5px">'+e(r.created_by_name||'—')+' · '+e(dayRiyadh(r.created_at))+(r.updated_at?'<br>'+fl('changed ','غُيّرت ')+e(r.updated_by_name||'')+' · '+e(dayRiyadh(r.updated_at)):'')+'</td>'+
           '<td style="'+TD+'"><input type="checkbox" data-v117-switch="'+e(r.id)+'" '+(r.active?'checked':'')+(w?'':' disabled')+' onchange="v117SwitchRule(\''+e(r.id)+'\',this.checked)" aria-label="'+e(fl('Rule on','القاعدة فعّالة'))+'"></td>'+
           '<td style="'+TD+'">'+(w?'<button class="btn ghost sm" onclick="v117RemoveRule(\''+e(r.id)+'\')">'+fl('Remove','إزالة')+'</button>':'')+'</td></tr>'; }))
-      :'<div class="empty" data-v117-empty="rules" style="padding:10px 0">'+fl('No exclusion rules — every transaction counts.','لا توجد قواعد استبعاد — كل العمليات تُحتسب.')+'</div>';
+      :(MR.err?'<div class="empty" data-v117-empty="rules-unread" style="padding:10px 0;color:#B42318">'+fl('The rules could not be read, so this list is not shown. ','تعذّرت قراءة القواعد، فلا تُعرض هذه القائمة. ')+'<button class="btn sm ghost" onclick="MR.err=null;MR.rules=null;moneyRulesLoad()">'+fl('Try again','حاول مجددًا')+'</button></div>'
+        :'<div class="empty" data-v117-empty="rules" style="padding:10px 0">'+fl('No exclusion rules — every transaction counts.','لا توجد قواعد استبعاد — كل العمليات تُحتسب.')+'</div>');
     h+='</div>';
     /* card 2 — company merges */
     var bix=bizIndex(), cx=codeById(), byBiz={};
@@ -323,7 +343,7 @@
     /* the greyed 'Excluded' list */
     var ex=(typeof window.finExcludedRows==='function')?window.finExcludedRows():[];
     var exSar=ex.reduce(function(a,x){ return a+(Number(x.row.revenue_sar)||0); },0);
-    h+='<details class="card v117-excluded" style="padding:14px 18px;opacity:.85"'+(ex.length&&ex.length<=30?' open':'')+'><summary style="cursor:pointer;font-weight:700">'+fl('Excluded','المستبعد')+' · '+ex.length+' '+fl('rows','صف')+' · '+sar(exSar)+' <span class="muted" style="font-weight:400">'+fl('— left out of every total, with the rule that caught each','— خارج كل الإجماليات، مع القاعدة التي التقطت كلًّا منها')+'</span></summary>'+
+    h+='<details class="card v117-excluded" style="padding:14px 18px;opacity:.85"'+(ex.length&&ex.length<=30?' open':'')+'><summary style="cursor:pointer;font-weight:700">'+fl('Excluded','المستبعد')+' · '+active().length+' '+fl('active rule(s)','قاعدة فعّالة')+' · '+ex.length+' '+fl('rows','صف')+' · '+sar(exSar)+' <span class="muted" style="font-weight:400">'+fl('— left out of every total, with the rule that caught each','— خارج كل الإجماليات، مع القاعدة التي التقطت كلًّا منها')+'</span></summary>'+
       (ex.length?'<div style="margin-top:8px;color:#6B7480">'+table([fl('Date','التاريخ'),fl('Invoice / transaction','الفاتورة / العملية'),fl('Client','العميل'),fl('Revenue','الإيراد'),fl('Rule','القاعدة')],ex.slice(0,500).map(function(x){ var r=x.row, m=x.m;
           return '<tr><td style="'+TD+'">'+e(r.invoice_date||'')+'</td><td style="'+TD+'">'+e(r.invoice_no||r.transaction_ref||'')+'</td><td style="'+TD+'">'+e(r.client_group||r.customer_raw_name||'')+(r.payments_client_id?' · #'+e(r.payments_client_id):'')+'</td><td style="'+TD+'">'+sar(r.revenue_sar)+'</td>'+
             '<td style="'+TD+'">'+(m.rule_id?e(kindLabel(m.rule_kind))+': <b>'+e(m.rule_value)+'</b> — '+e(m.rule_reason||''):fl('marked excluded on the row itself: ','مستبعد على الصف نفسه: ')+e(r.exclusion_reason||''))+'</td></tr>'; }))+'</div>'
@@ -385,8 +405,8 @@
       var btns=[].slice.call(bar.querySelectorAll('button'));
       if(!btns.length||!/finGo/.test(btns[0].getAttribute('onclick')||''))return;
       var mine=btns.find(function(b){return /finGo\('rules'\)/.test(b.getAttribute('onclick')||'');});
-      if(!mine){ mine=document.createElement('button'); mine.className='btn sm ghost'; mine.setAttribute('onclick',"finGo('rules')"); mine.textContent=fl('Rules','القواعد');
-        var impBtn=btns.find(function(b){return /finGo\('import'\)/.test(b.getAttribute('onclick')||'');}); bar.insertBefore(mine,impBtn||null); }
+      if(!mine){ mine=document.createElement('button'); mine.className='btn sm ghost'; mine.setAttribute('onclick',"finGo('rules')"); mine.textContent=fl('Rules','القواعد'); mine.style.cssText='white-space:nowrap;flex:0 0 auto';
+        var impBtn=btns.find(function(b){return /finGo\('import'\)/.test(b.getAttribute('onclick')||'');}); var box=btns[0].parentNode; box.insertBefore(mine,(impBtn&&impBtn.parentNode===box)?impBtn:null); }
       if(FIN.tab==='rules') btns.concat([mine]).forEach(function(b){ b.className='btn sm '+(/finGo\('rules'\)/.test(b.getAttribute('onclick')||'')?'pri':'ghost'); });
     }catch(_){}
   }

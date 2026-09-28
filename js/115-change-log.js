@@ -79,19 +79,24 @@
         'تكتبه قاعدة البيانات مع كل تغيير: من، ومتى، وأي حقل، وقبل وبعد. يظهر للمسؤولين والمدراء فقط.')+'</div>'+inner+'</div>';
   }
 
-  window.openChangeLog=function(targets,title){
+  var LABELS=null;
+  window.openChangeLog=function(targets,title,labels){
+    LABELS=labels||null;
     var ov=overlay();
     if(ov.style.display==='none'||!ov.style.display){ try{ prevFocus=document.activeElement; }catch(_){ prevFocus=null; } }
     ov.style.display='flex';
     var _ov=ov; ov={ set innerHTML(h){ setInner(_ov,h); } };
     if(!canSee()){ ov.innerHTML=frame(title,'<div class="empty">'+fl('The change log is shown to admins and managers.','سجل التغييرات يظهر للمسؤولين والمدراء فقط.')+'</div>'); return; }
-    targets=(targets||[]).filter(function(t){ return t&&t.table&&t.key!=null&&String(t.key)!==''; });
+    /* {table, all:true} = every record of that table, the removed ones too (F4, 28 Sep: the Rules log asked only for the
+       rules still on screen, so a rule switched off, on and then removed showed its creation and nothing after) */
+    targets=(targets||[]).filter(function(t){ return t&&t.table&&(t.all===true||(t.key!=null&&String(t.key)!=='')); });
     if(!targets.length){ ov.innerHTML=frame(title,'<div class="empty">'+fl('This record has no saved key yet — nothing to show.','لا يوجد مفتاح محفوظ لهذا السجل بعد — لا شيء لعرضه.')+'</div>'); return; }
     ov.innerHTML=frame(title,'<div class="empty">'+fl('Loading…','جارٍ التحميل…')+'</div>');
     var c=client(); if(!c){ ov.innerHTML=frame(title,'<div class="empty">'+fl('Not connected — try again in a moment.','غير متصل — حاول مرة أخرى بعد لحظة.')+'</div>'); return; }
     var qy=c.from('record_changes').select('history_id,at,actor_name,table_name,record_key,action,undone_at,field,before_value,after_value');
-    if(targets.length===1) qy=qy.eq('table_name',targets[0].table).eq('record_key',String(targets[0].key));
-    else qy=qy.or(targets.map(function(t){ return 'and(table_name.eq.'+t.table+',record_key.eq.'+String(t.key)+')'; }).join(','));
+    if(targets.length===1&&targets[0].all===true) qy=qy.eq('table_name',targets[0].table);
+    else if(targets.length===1) qy=qy.eq('table_name',targets[0].table).eq('record_key',String(targets[0].key));
+    else qy=qy.or(targets.map(function(t){ return t.all===true?'table_name.eq.'+t.table:'and(table_name.eq.'+t.table+',record_key.eq.'+String(t.key)+')'; }).join(','));
     qy.order('history_id',{ascending:false}).limit(600).then(function(r){
       if(r.error){ ov.innerHTML=frame(title,'<div class="empty" style="color:#D92D20">'+fl('Could not load the log: ','تعذّر تحميل السجل: ')+esc(r.error.message||r.error)+'</div>'); return; }
       ov.innerHTML=frame(title,draw(Array.isArray(r.data)?r.data:[],targets.length>1));
@@ -102,10 +107,11 @@
   function draw(rows,several){
     if(!rows.length) return '<div class="empty" data-v115-empty="1">'+fl('No logged changes for this record yet.','لا توجد تغييرات مسجَّلة لهذا السجل بعد.')+'</div>';
     var events=[], byId={};
-    rows.forEach(function(x){ var e=byId[x.history_id]; if(!e){ e=byId[x.history_id]={id:x.history_id,at:x.at,who:x.actor_name,action:x.action,table:x.table_name,undone:x.undone_at,fields:[]}; events.push(e); } e.fields.push(x); });
+    rows.forEach(function(x){ var e=byId[x.history_id]; if(!e){ e=byId[x.history_id]={id:x.history_id,at:x.at,who:x.actor_name,action:x.action,table:x.table_name,key:x.record_key,undone:x.undone_at,fields:[]}; events.push(e); } e.fields.push(x); });
     var head='<tr style="text-align:start;color:var(--muted);font-size:11.5px"><th style="text-align:start;padding:4px 8px 4px 0">'+fl('Field','الحقل')+'</th><th style="text-align:start;padding:4px 8px">'+fl('Before','قبل')+'</th><th style="text-align:start;padding:4px 0 4px 8px">'+fl('After','بعد')+'</th></tr>';
     return '<div data-v115-events="'+events.length+'">'+events.map(function(e){
       var tw=several&&TABLE_WORD[e.table]?' · '+(isAr()?TABLE_WORD[e.table][1]:TABLE_WORD[e.table][0]):'';
+      if(LABELS&&LABELS[e.key]) tw+=' · '+LABELS[e.key];   // which record, when one log covers a whole table
       var lines=e.fields.map(function(f){
         return '<tr data-v115-field="'+esc(f.field)+'" style="border-top:1px solid var(--line,#EFE9DF);vertical-align:top">'+
           '<td style="padding:5px 8px 5px 0;font-weight:600;white-space:nowrap" title="'+esc(f.field)+'">'+esc(fieldWord(f.field))+'</td>'+

@@ -571,7 +571,7 @@ window.rptSyncKpiList=function(sel){
  const list=on?RPT_KPIS.filter(k=>k.obj===Number(on)):RPT_KPIS;
  document.getElementById('rf_kpi').innerHTML='<option value="">'+rptAr('— none —','— لا شيء —')+'</option>'+list.map(k=>'<option value="'+k.n+'" '+(String(sel)===String(k.n)?'selected':'')+'>KPI '+k.n+' — '+esc(rptKpiTitle(k).slice(0,46))+' (target '+rfmtTarget(k)+')</option>').join('');
 };
-window.rptDelAch=function(id){askInPage('Delete this achievement?',function(){RDB.achievements=RDB.achievements.filter(x=>x.id!==id);rptSave();render();});};
+window.rptDelAch=function(id){/* 2026-09-28 (D19): names the achievement */const _a=(RDB.achievements||[]).find(x=>x.id===id)||{};const _n=String(_a.title||'').slice(0,60);askInPage(rptAr('Delete the achievement "'+_n+'"?','حذف الإنجاز «'+_n+'»؟'),function(){RDB.achievements=RDB.achievements.filter(x=>x.id!==id);rptSave();render();});};
 window.rptToggleObj=function(n){rptOpenObjs[n]=!rptOpenObjs[n];render();};
 window.rptSetOverride=function(n,val){RDB.overrides[n]=val;rptSave();render();};
 function rptObj(v){

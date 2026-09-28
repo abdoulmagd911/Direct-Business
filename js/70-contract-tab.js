@@ -407,7 +407,7 @@
     };
     var q=fl('Reset "'+(c.title_en||key)+'" to the shared template?\n\nThe wording written for this contract is discarded and cannot be brought back.',
              'إعادة «'+(c.title_ar||c.title_en||key)+'» إلى القالب المشترك؟\n\nتُحذف الصياغة المكتوبة لهذا العقد ولا يمكن استرجاعها.');
-    if(typeof askInPage==='function')askInPage(q,go); else go();
+    if(typeof askInPage==='function')askInPage(q,go,{danger:true});   // 2026-09-28 (D19): no box, no action
   };
   /* the ONLY path that writes the shared template (explicit, admin/manager) */
   window.ctClauseSaveTemplate=function(key){
@@ -426,7 +426,7 @@
         toast(fl('Saved to the shared template — future contracts start from this text','حُفظ في القالب المشترك — العقود المستقبلية تبدأ من هذا النص'));
       });
     };
-    if(typeof askInPage==='function')askInPage(q,go); else go();
+    if(typeof askInPage==='function')askInPage(q,go,{danger:true});   // 2026-09-28 (D19): no box, no action
   };
 
   /* ---------- fee annex (same data shape as js/68) ---------- */
@@ -739,7 +739,7 @@
       (list.length?fl('— open a saved contract ('+list.length+') —','— افتح عقداً محفوظاً ('+list.length+') —')
                   :fl('— no saved contracts yet —','— لا توجد عقود محفوظة بعد —'))+'</option>'+
       list.map(function(o){
-        var label=(o.doc_number||fl('draft','مسودة'))+' · '+(bizName(o.business_id)||o.title||'')+' · '+String(o.created_at||'').slice(0,10);
+        var label=(o.doc_number||fl('draft','مسودة'))+' · '+(bizName(o.business_id)||o.title||'')+' · '+dayRiyadh(o.created_at);
         return '<option value="'+esc(o.id)+'" '+(S.rowId===o.id?'selected':'')+'>'+esc(label)+'</option>';
       }).join('');
   }
@@ -750,7 +750,7 @@
     if(!list.length)return '<option value="">'+fl('— no saved proposals for this client —','— لا توجد عروض محفوظة لهذا العميل —')+'</option>';
     return '<option value="">'+fl('— import fee tables from a proposal —','— استيراد جداول الرسوم من عرض —')+'</option>'+
       list.map(function(o){
-        var label=fl('Import fee tables from proposal ','استيراد جداول الرسوم من العرض ')+(o.doc_number||fl('(draft)','(مسودة)'))+' · '+String(o.created_at||'').slice(0,10);
+        var label=fl('Import fee tables from proposal ','استيراد جداول الرسوم من العرض ')+(o.doc_number||fl('(draft)','(مسودة)'))+' · '+dayRiyadh(o.created_at);
         return '<option value="'+esc(o.id)+'">'+esc(label)+'</option>';
       }).join('');
   }

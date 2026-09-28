@@ -193,8 +193,8 @@
          back BEFORE the question is asked, and only moved again if the answer is Yes. A Cancel, an
          Escape or a click outside then needs no callback at all, and the select never sits showing
          a level nobody chose. */
-      function ask(msg,go){ try{ if(typeof window.pfConfirm==='function'){ window.pfConfirm(msg,go); return; } }catch(_){}
-        if(window.confirm(msg)) go(); }
+      function ask(msg,go,opts){ try{ if(typeof window.pfConfirm==='function'){ window.pfConfirm(msg,go,opts); return; } }catch(_){}
+        /* 2026-09-28 (D19): no box, no action — never a native confirm() */ }
       lb.querySelectorAll('[data-role]').forEach(function(sel){
         sel.setAttribute('data-was',sel.value);
         sel.onchange=function(){
@@ -216,7 +216,7 @@
       lb.querySelectorAll('[data-rst]').forEach(function(b){ b.onclick=function(){
         var email=b.getAttribute('data-email')||'';
         /* 2026-09-09 (live test D1 family): ask in the page, never window.confirm */
-        var _ask=function(m,y){ if(typeof window.askInPage==='function')window.askInPage(m,y); else if(confirm(m))y(); };
+        var _ask=function(m,y){ if(typeof window.askInPage==='function')window.askInPage(m,y); }; /* 2026-09-28 (D19): no native confirm() */
         _ask((A?'إرسال رابط إعادة تعيين كلمة المرور إلى ':'Send a password reset link to ')+email+'?',function(){
         b.disabled=true; var was=b.textContent; b.textContent=A?'…':'Sending…';
         call({action:'send_reset_link',id:b.getAttribute('data-rst'),origin:location.origin}).then(function(r){

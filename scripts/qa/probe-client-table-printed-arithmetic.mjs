@@ -84,7 +84,7 @@ async function main() {
     }));
     if (cfg.extraNoCost) rows.push(Object.assign({}, base, {
       id: 'ct-nc', invoice_no: 'CT-NC', client_group: 'Foxglove Ltd', customer_raw_name: 'Foxglove Ltd',
-      revenue_sar: 900, cost_sar: 0, profit_sar: 900, total_incl_vat_sar: 900,
+      revenue_sar: 900, cost_sar: null, profit_sar: null, total_incl_vat_sar: 900,   // D21: no cost is empty, not 0
     }));
     FIN.rows = rows;
     FIN.p = { year: 'all', part: 'all' };

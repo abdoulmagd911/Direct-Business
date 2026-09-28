@@ -97,31 +97,32 @@ const truth = () => p.evaluate(() => {
   const all = (typeof window.finLive === 'function') ? window.finLive() : ((window.FIN && FIN.rows) || []).filter((r) => !r.deleted_at);
   const ver = all.filter((r) => r.integrity_status === 'verified_paid');
   const R = (typeof window.finInPeriod === 'function') ? ver.filter(window.finInPeriod) : ver;
-  const z = R.filter((r) => Number(r.cost_sar || 0) === 0);
-  const sum = (a) => a.reduce((s, x) => s + Number(x.profit_sar || 0), 0);
-  return { rows: R.length, zero: z.length, zeroProfit: Math.round(sum(z)), allProfit: Math.round(sum(R)) };
+  /* D21: a cost nobody recorded is EMPTY and so is its profit — the gap is the REVENUE those invoices carry */
+  const z = R.filter((r) => r.cost_sar == null && r.revenue_way !== 'commission');
+  const sum = (a, f) => a.reduce((s, x) => s + Number(x[f] || 0), 0);
+  return { rows: R.length, zero: z.length, zeroRev: Math.round(sum(z, 'revenue_sar')), zeroProfit: Math.round(sum(z, 'profit_sar')), allRev: Math.round(sum(R, 'revenue_sar')) };
 });
 
 const t0 = await truth();
-const perf = await read('[data-fin-nocost]', 'data-fin-nocost-profit', 'data-fin-nocost');
+const perf = await read('[data-fin-nocost]', 'data-fin-nocost-rev', 'data-fin-nocost');
 /* the key the app uses for the tab the headline warning lives on — read from the app, not guessed */
 const PERF_TAB = await p.evaluate(() => { try { return (window.FIN && FIN.tab) || 'perf'; } catch (_) { return 'perf'; } });
 await goTab('clients');
-const cl = await read('[data-cl-gap-clients]', 'data-cl-gap-profit', 'data-cl-gap-clients');
+const cl = await read('[data-cl-gap-clients]', 'data-cl-gap-rev', 'data-cl-gap-clients');
 await goTab('reports');
-const rb = await read('[data-rb-nocost]', 'data-rb-nocost-profit', 'data-rb-nocost');
+const rb = await read('[data-rb-nocost]', 'data-rb-nocost-rev', 'data-rb-nocost');
 
 /* Arabic: the same warning, the same amount */
 await p.evaluate(() => { try { LANG = 'ar'; if (typeof applyLang === 'function') applyLang(); } catch (_) {} });
 await p.waitForTimeout(1200);
 await goTab(PERF_TAB);
-let ar = await read('[data-fin-nocost]', 'data-fin-nocost-profit', 'data-fin-nocost');
+let ar = await read('[data-fin-nocost]', 'data-fin-nocost-rev', 'data-fin-nocost');
 
 /* BRAKE: give every no-cost row a cost, and all three warnings must go */
 await p.evaluate(() => {
   try { LANG = 'en'; if (typeof applyLang === 'function') applyLang(); } catch (_) {}
   try {
-    ((window.FIN && FIN.rows) || []).forEach((r) => { if (Number(r.cost_sar || 0) === 0) { r.cost_sar = 1; r.profit_sar = Number(r.revenue_sar || 0) - 1; } });
+    ((window.FIN && FIN.rows) || []).forEach((r) => { if (r.cost_sar == null) { r.cost_sar = 1; r.profit_sar = Number(r.revenue_sar || 0) - 1; } });
     current = 'finance';
   } catch (_) {}
 });
@@ -139,12 +140,11 @@ await b.close(); srv.close?.();
 const near = (a, b2, slack) => a != null && b2 != null && Math.abs(a - b2) <= (slack || 1);
 const fmt = (n) => Number(n).toLocaleString('en-GB');
 const checks = [
-  ['the Performance warning names the profit resting on unrecorded cost',
-    !!perf && near(perf.amount, t0.zeroProfit, 2) && perf.count === t0.zero,
-    perf ? ('page says ' + perf.amount + ' over ' + perf.count + ' rows; the data says ' + t0.zeroProfit + ' over ' + t0.zero) : 'warning not on screen'],
-  ['it names the share, and the share is that amount over the profit shown',
-    !!perf && perf.share !== null && t0.allProfit > 0 && Math.abs(perf.share - Math.round(100 * t0.zeroProfit / t0.allProfit)) <= 1,
-    perf ? ('share ' + perf.share + '%, arithmetic gives ' + Math.round(100 * t0.zeroProfit / t0.allProfit) + '%') : 'n/a'],
+  ['the Performance warning names the revenue waiting for its cost (D21), over exactly those invoices',
+    !!perf && t0.zero > 0 && near(perf.amount, t0.zeroRev, 2) && perf.count === t0.zero,
+    perf ? ('page says ' + perf.amount + ' over ' + perf.count + ' rows; the data says ' + t0.zeroRev + ' over ' + t0.zero) : 'warning not on screen'],
+  ['no profit rests on an unrecorded cost: those invoices carry none (D21), so the Profit shown leaves them out',
+    t0.zero > 0 && t0.zeroProfit === 0, 'profit on the waiting invoices: ' + t0.zeroProfit],
   ['Clients & collections names its amount too',
     !!cl && cl.amount > 0 && cl.count > 0 && /SAR/.test(cl.text),
     cl ? (cl.count + ' clients, ' + cl.amount + ' SAR') : 'note not on screen'],
@@ -152,7 +152,7 @@ const checks = [
     !!rb && rb.amount > 0 && rb.count > 0 && /SAR/.test(rb.text),
     rb ? (rb.count + ' rows, ' + rb.amount + ' SAR') : 'note not on screen'],
   ['Arabic prints the same amount, in Arabic',
-    !!ar && near(ar.amount, t0.zeroProfit, 2) && /[؀-ۿ]/.test(ar.text) && ar.text.indexOf(fmt(perf ? perf.amount : -1)) >= 0,
+    !!ar && near(ar.amount, t0.zeroRev, 2) && /[؀-ۿ]/.test(ar.text) && ar.text.indexOf(fmt(perf ? perf.amount : -1)) >= 0,
     ar ? ('amount ' + ar.amount + ', arabic=' + /[؀-ۿ]/.test(ar.text) + ', prints the figure=' + (ar.text.indexOf(fmt(perf ? perf.amount : -1)) >= 0)) : 'warning not on screen in Arabic'],
   /* M50: assert the precondition, not just the outcome. All three must have been ON SCREEN before
      the rows were given a cost, or "they disappeared" proves nothing — as sabotage A showed, where
@@ -161,9 +161,9 @@ const checks = [
     !!perf && !!cl && !!rb && gonePerf === true && goneCl === true && goneRb === true,
     JSON.stringify({ wereThere: { performance: !!perf, clients: !!cl, reports: !!rb },
       goneAfter: { performance: gonePerf, clients: goneCl, reports: goneRb } })],
-  ['the amount named is the part, not the whole profit total',
-    !!perf && t0.allProfit > 0 && perf.amount < t0.allProfit,
-    perf ? (perf.amount + ' of a ' + t0.allProfit + ' total') : 'n/a'],
+  ['the amount named is the part, not the whole revenue',
+    !!perf && t0.allRev > 0 && perf.amount < t0.allRev,
+    perf ? (perf.amount + ' of a ' + t0.allRev + ' total') : 'n/a'],
   ['no JS errors', errors.length === 0, errors.slice(0, 2).join(' | ')],
 ];
 let bad = 0;
