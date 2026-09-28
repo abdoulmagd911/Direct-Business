@@ -75,6 +75,8 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **D27 — Cost comes from the raw Payments cost exports** ACTIVE · 2026-09-28. Approved lines only; unknown refs held. `docs/reference/d27-cost-import.md`.
 
+**D28 — Payments client and promo lists** ACTIVE · 2026-09-28. `docs/reference/d28-payments-lists.md`.
+
 ## Money & finance display
 
 **M1 — VAT never enters cost, profit or revenue** ACTIVE · 2026-08-08. The owner: "I dont care weither vat shows or not, what i want is a clean cost, profit, and revenue." Shown only where legally expected on a client document, never in an internal figure, export or total; since D21 the import works out and stores no VAT figure. Guard `probe-no-vat-display`.

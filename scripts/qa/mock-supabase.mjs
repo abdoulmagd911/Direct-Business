@@ -222,6 +222,7 @@ const TABLES={
   // writes land (delete-then-insert for lines, upsert for gates), not a pre-seeded state.
   finance_expense_lines_capture:[], finance_expense_gate_capture:[],
   /* D27 (js/121): the raw Payments cost exports */ finance_expense_lines:[], finance_payments_facts:[],
+  /* D28 (js/122): the Payments client register */ payments_clients:[],
   business_merges:[],
   access_allowlist:[], share_links:[],
   // client↔finance link fixture: maps finance group "Test Company 4" to business b4 (a client),
@@ -932,6 +933,54 @@ export function start(port, seedOverrides){
           else if(p.lines_cost_sar!=null&&cur!=null&&Math.abs(cur-Number(p.lines_cost_sar))<0.005){ put(null); p.lines_cost_sar=null; out.cost_cleared++; }
           else out.waiting++; });
         return send(res,200,JSON.stringify(out));
+      }
+      /* D28 — mirrors public.fn_payments_clients_import / fn_promo_codes_import (scripts/sql/clients-promo-import.sql): a newer
+         file wins field by field, an older one only fills blanks, a blank never wipes, the same file twice changes nothing;
+         nothing is written onto invoice rows; a new promo code needs a readable type; the Client Name is only kept as a
+         suggestion (no company link is made). */
+      if(fn==='fn_payments_clients_import'||fn==='fn_promo_codes_import'){
+        const isPc=fn==='fn_payments_clients_import', me=(TABLES.app_users||[]).find(x=>x.id===UID&&x.active)||{};
+        if(!me.id||mockLevelsOf(me).finance!=='full') return send(res,403,{code:'42501',message:(isPc?'client list import':'promo codes import')+': this needs Full control of Finance'});
+        const seen=parsed.p_seen_at||new Date().toISOString(), S=Date.parse(seen), rows=Array.isArray(parsed.p_rows)?parsed.p_rows:[];
+        const pk=(o,n,nw)=>n==null?o:(nw?n:(o==null?n:o)), eq=(a,b)=>(a==null||b==null)?(a==null&&b==null):((typeof a==='number'||typeof b==='number')?Math.abs(Number(a)-Number(b))<1e-9:String(a)===String(b));
+        const tx=v=>{ if(v==null) return null; const t=String(v).trim(); return t===''?null:t; };
+        if(isPc){
+          const F=['legal_name','legal_name_ar','trading_name','customer_type','payment_config','payment_mode','billing_cycle','tender_no','registration_numbers',
+            'has_vat_number','id_type','id_number','vat_number','contact_information','contact_name','contact_email','contact_phone','credit_limit_sar','credit_term_days',
+            'block_on_overdue','tender_amount_sar','expected_cogs_sar','expected_gp_sar','pricing_setting','payments_created_by','payments_updated_by','payments_created_at','payments_updated_at'];
+          const T=TABLES.payments_clients=TABLES.payments_clients||[], inn={}; let nw=0, ch=0;
+          rows.forEach(x=>{ const k=tx(x.client_id); if(!k) return; const c={}; F.forEach(f=>{ const v=x[f]; c[f]=(typeof v==='number'||v==null)?(v==null?null:v):tx(v); });
+            if(c.contact_email) c.contact_email=c.contact_email.toLowerCase(); inn[k]=c; });
+          Object.keys(inn).forEach(k=>{ const x=inn[k], t=T.find(r=>r.client_id===k);
+            if(!t){ T.push(Object.assign({id:'mock-pc-'+(T.length+1),client_id:k,seen_at:seen,source_batch:parsed.p_batch||null},x)); nw++; return; }
+            const newer=!t.seen_at||S>=Date.parse(t.seen_at), m={}; let diff=false;
+            F.forEach(f=>{ m[f]=pk(t[f],x[f],newer); if(!eq(m[f],t[f])) diff=true; });
+            const ns=(t.seen_at&&Date.parse(t.seen_at)>S)?t.seen_at:seen; if(ns!==t.seen_at) diff=true;
+            if(diff){ Object.assign(t,m,{seen_at:ns,source_batch:parsed.p_batch||null}); ch++; } });
+          const n=Object.keys(inn).length;
+          return send(res,200,JSON.stringify({clients_in_file:n,clients_new:nw,clients_changed:ch,clients_same:n-nw-ch}));
+        }
+        const PF={payments_promo_type:'promo_type',payments_discount_type:'discount_type',payments_discount:'discount',payments_product:'product',payments_status:'status',
+          payments_client_name:'client_name',valid_from:'valid_from',valid_to:'valid_to',total_sales_sar:'total_sales_sar',total_discount_sar:'total_discount_sar',
+          kind:'kind',value_pct:'value_pct',active:'active',expired:'expired',payments_created_at:'payments_created_at',payments_created_by:'payments_created_by'};
+        const T=TABLES.promo_codes=TABLES.promo_codes||[], inn={}; let nw=0, ch=0, noType=0;
+        rows.forEach(x=>{ const code=tx(x.code); if(!code) return; const kind=(x.kind==='percent'||x.kind==='fixed')?x.kind:null;
+          inn[code.toLowerCase()]={code, promo_type:tx(x.promo_type), discount_type:tx(x.discount_type), discount:x.discount==null?null:x.discount, product:tx(x.product),
+            status:tx(x.status), client_name:tx(x.client_name), valid_from:x.valid_from||null, valid_to:x.valid_to||null, total_sales_sar:x.total_sales_sar==null?null:x.total_sales_sar,
+            total_discount_sar:x.total_discount_sar==null?null:x.total_discount_sar, kind, value_pct:kind?(x.discount==null?null:x.discount):null,
+            active:x.active==null?null:!!x.active, expired:x.expired==null?null:!!x.expired, payments_created_at:x.payments_created_at||null, payments_created_by:tx(x.payments_created_by)}; });
+        Object.keys(inn).forEach(k=>{ const x=inn[k], ts=T.filter(r=>String(r.code||'').trim().toLowerCase()===k);
+          if(!ts.length){ if(!x.kind){ noType++; return; }
+            T.push({id:'mock-pr-'+(T.length+1),code:x.code,kind:x.kind,value_pct:x.value_pct,valid_from:x.valid_from,valid_to:x.valid_to,total_sales_sar:x.total_sales_sar==null?0:x.total_sales_sar,
+              total_discount_sar:x.total_discount_sar==null?0:x.total_discount_sar,active:x.active==null?true:x.active,expired:x.expired==null?false:x.expired,partner_business_id:null,
+              payments_promo_type:x.promo_type,payments_discount_type:x.discount_type,payments_discount:x.discount,payments_product:x.product,payments_status:x.status,
+              payments_client_name:x.client_name,payments_created_at:x.payments_created_at,payments_created_by:x.payments_created_by,payments_seen_at:seen}); nw++; return; }
+          let any=false; ts.forEach(t=>{ const newer=!t.payments_seen_at||S>=Date.parse(t.payments_seen_at), m={}; let diff=false;
+            Object.keys(PF).forEach(col=>{ m[col]=pk(t[col],x[PF[col]],newer); if(!eq(m[col],t[col])) diff=true; });
+            const ns=(t.payments_seen_at&&Date.parse(t.payments_seen_at)>S)?t.payments_seen_at:seen; if(ns!==t.payments_seen_at) diff=true;
+            if(diff){ Object.assign(t,m,{payments_seen_at:ns}); any=true; } }); if(any) ch++; });
+        const n=Object.keys(inn).length;
+        return send(res,200,JSON.stringify({codes_in_file:n,codes_new:nw,codes_changed:ch,codes_same:n-nw-ch-noType,codes_no_type:noType}));
       }
       if(fn==='fn_commit_finance_import'){
         const WRITABLE=['invoice_no','zatca_dpin','client_group','customer_raw_name','invoice_date',

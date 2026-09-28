@@ -1911,6 +1911,105 @@ if _has_fallback:   # cost-fallback.sql builds on D23 (#57); until both are appl
               and d == '∅|false|∅|760' and com == '∅' and kpi == '∅|760')
         return (ok, f"pass-through only={a} · + revenue report={b} · report says 0={zero} · approved lines arrive={d} · commission={com} · KPI source={kpi}")
 
+
+# ================= client list + promo codes (D28, second builder, 28 Sep 2026): the Payments lists =================
+_cc = conn(); _has_lists = one(_cc.cursor(), "select count(*) from pg_proc where proname='fn_payments_clients_import'"); _cc.close()
+if _has_lists:   # scripts/sql/clients-promo-import.sql
+    def pc(cur, rows, seen='2026-09-27T10:00:00+03:00'):
+        return json.loads(json.dumps(one(cur, "select fn_payments_clients_import(%s::jsonb, %s, 'qa')", (json.dumps(list(rows)), seen))))
+    def pr(cur, rows, seen='2026-09-27T10:00:00+03:00'):
+        return json.loads(json.dumps(one(cur, "select fn_promo_codes_import(%s::jsonb, %s, 'qa')", (json.dumps(list(rows)), seen))))
+    def cid(cur, no):
+        return one(cur, "select coalesce(payments_client_id,'∅') from finance_invoices where invoice_no=%s and deleted_at is null", (no,))
+
+    @test("CP-01 The client list is stored as Payments' register, field by field — and writes NOTHING onto invoice rows (matching is live, never a stamp)")
+    def _(cur):
+        fi(cur, 'CP-1A', 100, customer_email='buyer@client-one.test'); fi(cur, 'CP-1C', 100, customer_email='buyer@client-one.test', payments_client_id='C-OTHER')
+        as_user(cur, 'u4')
+        h1 = one(cur, "select count(*) from record_history where table_name='finance_invoices'")
+        r = pc(cur, [{'client_id': '9101', 'legal_name': 'Client One Co', 'contact_email': 'BUYER@client-one.test', 'credit_term_days': 30, 'payment_mode': 'Postpaid',
+                      'has_vat_number': 'Yes', 'pricing_setting': 'Standard', 'block_on_overdue': 'No', 'payments_updated_at': '2026-09-20T10:00:00+03:00'},
+                     {'client_id': '9102', 'legal_name': 'Staff test', 'contact_email': 'someone@directksa.com'}])
+        got = [cid(cur, n) for n in ('CP-1A', 'CP-1C')]
+        h2 = one(cur, "select count(*) from record_history where table_name='finance_invoices'")
+        st = one(cur, "select legal_name||'|'||contact_email||'|'||credit_term_days||'|'||payment_mode||'|'||has_vat_number||'|'||pricing_setting||'|'||block_on_overdue||'|'||to_char(payments_updated_at at time zone 'Asia/Riyadh','YYYY-MM-DD HH24:MI') from payments_clients where client_id='9101'"); q(cur, "reset role")
+        ok = (got == ['∅', 'C-OTHER'] and h1 == h2 and r['clients_new'] == 2 and set(r) == {'clients_in_file', 'clients_new', 'clients_changed', 'clients_same'}
+              and st == 'Client One Co|buyer@client-one.test|30|Postpaid|Yes|Standard|No|2026-09-20 10:00')
+        return (ok, f"invoice client IDs after the import → {got} · invoice change-log rows {h1}/{h2} · stored={st} · result={r}")
+
+    @test("CP-02 The same client list twice changes nothing — no client row, no change-log entry")
+    def _(cur):
+        rows = [{'client_id': '9201', 'legal_name': 'Two Co', 'contact_email': 'two@client.test', 'credit_limit_sar': 50000}]
+        as_user(cur, 'u4'); pc(cur, rows)
+        h1 = one(cur, "select count(*) from record_history where table_name in ('payments_clients','finance_invoices')")
+        r = pc(cur, rows)
+        h2 = one(cur, "select count(*) from record_history where table_name in ('payments_clients','finance_invoices')"); q(cur, "reset role")
+        return (r['clients_new'] == 0 and r['clients_changed'] == 0 and r['clients_same'] == 1 and h1 == h2,
+                f"second run={r} · change-log rows before/after={h1}/{h2}")
+
+    @test("CP-03 Any order for the client list: a newer file wins, an older one only fills blanks, a blank never wipes")
+    def _(cur):
+        as_user(cur, 'u4')
+        pc(cur, [{'client_id': '9301', 'legal_name': 'Name Aug', 'credit_term_days': 30}], seen='2026-08-01T10:00:00+03:00')
+        pc(cur, [{'client_id': '9301', 'legal_name': 'Name Jul', 'contact_phone': '0500000001', 'credit_term_days': 15}], seen='2026-07-01T10:00:00+03:00')
+        a = one(cur, "select legal_name||'|'||contact_phone||'|'||credit_term_days from payments_clients where client_id='9301'")
+        pc(cur, [{'client_id': '9301', 'legal_name': '', 'credit_term_days': 45}], seen='2026-09-01T10:00:00+03:00')
+        b = one(cur, "select legal_name||'|'||contact_phone||'|'||credit_term_days from payments_clients where client_id='9301'"); q(cur, "reset role")
+        return (a == 'Name Aug|0500000001|30' and b == 'Name Aug|0500000001|45', f"older file after newer → {a} · newer with a blank name → {b}")
+
+    @test("CP-04 An invoice imported AFTER the client list is not stamped either — no trigger writes a client ID onto a money row")
+    def _(cur):
+        as_user(cur, 'u4')
+        pc(cur, [{'client_id': '9401', 'legal_name': 'Test client', 'contact_email': 'test@client-four.test'}])
+        q(cur, "reset role")
+        fi(cur, 'CP-4A', 300, customer_email='test@client-four.test')
+        q(cur, "update finance_invoices set customer_email='test@client-four.test' where invoice_no='CP-4A'")
+        trg = one(cur, "select count(*) from pg_trigger where tgrelid='public.finance_invoices'::regclass and tgname like '%%client%%'")
+        got = cid(cur, 'CP-4A')
+        return (got == '∅' and trg == 0, f"client ID after insert and email change → {got} · client triggers on finance_invoices={trg}")
+
+    @test("CP-05 Only Full control of Finance imports the lists — View is refused by the database, anon cannot even call it")
+    def _(cur):
+        as_user(cur, 'u6')
+        a, m1 = expect_fail(cur, "select fn_payments_clients_import('[{\"client_id\":\"9501\"}]'::jsonb, now(), 'qa')", None, "Full control of Finance")
+        b, m2 = expect_fail(cur, "select fn_promo_codes_import('[{\"code\":\"CP5\",\"kind\":\"percent\"}]'::jsonb, now(), 'qa')", None, "Full control of Finance")
+        q(cur, "reset role"); q(cur, "set local role anon")
+        c, m3 = expect_fail(cur, "select fn_payments_clients_import('[]'::jsonb, now(), 'qa')", None, "permission denied")
+        q(cur, "reset role")
+        n = one(cur, "select count(*) from payments_clients where client_id='9501'") + one(cur, "select count(*) from promo_codes where code='CP5'")
+        return (a and b and c and n == 0, f"view: {m1} · {m2} · anon: {m3} · rows written={n}")
+
+    @test("CP-06 Promo codes: a known code (any case) takes Payments' figures; a new one is created; one whose type cannot be read is left out and counted; the Client Name is only a suggestion; twice = no change")
+    def _(cur):
+        co = one(cur, "insert into businesses(name,is_client) values ('Promo Partner',true) returning id")
+        pid = one(cur, "insert into promo_codes(code,kind,value_pct,total_sales_sar,total_discount_sar,active,partner_business_id,notes) values ('CPSIX','percent',5,0,0,true,%s,'kept note') returning id", (co,))
+        links = one(cur, "select count(*) from company_discount_codes")
+        rows = [{'code': ' cpsix ', 'promo_type': 'Corporate', 'discount_type': 'Percentage', 'discount': 12, 'kind': 'percent', 'status': 'Active', 'active': True,
+                 'client_name': 'Some Client', 'valid_from': '2026-01-01', 'valid_to': '2026-12-31', 'total_sales_sar': 15000.5, 'total_discount_sar': 1800},
+                {'code': 'CPNEW', 'discount_type': 'Fixed', 'discount': 100, 'kind': 'fixed', 'status': 'Expired', 'active': False, 'expired': True, 'total_sales_sar': 900},
+                {'code': 'CPODD', 'discount_type': 'Mystery', 'discount': 3}]
+        as_user(cur, 'u4'); r1 = pr(cur, rows)
+        a = one(cur, "select code||'|'||kind||'|'||value_pct::float||'|'||total_sales_sar::float||'|'||total_discount_sar::float||'|'||valid_to||'|'||payments_client_name||'|'||coalesce(partner_business_id::text,'∅')||'|'||notes from promo_codes where id=%s", (pid,))
+        b = one(cur, "select kind||'|'||value_pct::float||'|'||active||'|'||expired||'|'||total_discount_sar::float from promo_codes where code='CPNEW'")
+        odd = one(cur, "select count(*) from promo_codes where code='CPODD'")
+        h1 = one(cur, "select count(*) from record_history where table_name='promo_codes'")
+        r2 = pr(cur, rows); h2 = one(cur, "select count(*) from record_history where table_name='promo_codes'"); q(cur, "reset role")
+        links2 = one(cur, "select count(*) from company_discount_codes")
+        ok = (a == 'CPSIX|percent|12|15000.5|1800|2026-12-31|Some Client|' + str(co) + '|kept note' and b == 'fixed|100|false|true|0' and odd == 0
+              and r1['codes_new'] == 1 and r1['codes_changed'] == 1 and r1['codes_no_type'] == 1 and r2['codes_changed'] == 0 and r2['codes_new'] == 0
+              and h1 == h2 and links == links2)
+        return (ok, f"known={a} · new={b} · unreadable type stored={odd} · first={r1} · second={r2} · change-log {h1}/{h2} · company links {links}/{links2}")
+
+    @test("CP-07 Promo codes in any order: an older file only fills blanks; a blank total never wipes the stored one")
+    def _(cur):
+        as_user(cur, 'u4')
+        pr(cur, [{'code': 'CPSEVEN', 'kind': 'percent', 'discount': 10, 'total_sales_sar': 5000, 'status': 'Active', 'active': True}], seen='2026-09-01T10:00:00+03:00')
+        pr(cur, [{'code': 'CPSEVEN', 'kind': 'percent', 'discount': 8, 'total_sales_sar': 3000, 'valid_to': '2026-10-31'}], seen='2026-08-01T10:00:00+03:00')
+        a = one(cur, "select value_pct::float||'|'||total_sales_sar::float||'|'||valid_to from promo_codes where code='CPSEVEN'")
+        pr(cur, [{'code': 'CPSEVEN', 'kind': 'percent', 'discount': 10, 'total_sales_sar': None, 'status': 'Active', 'active': True}], seen='2026-09-20T10:00:00+03:00')
+        b = one(cur, "select total_sales_sar::float||'|'||valid_to from promo_codes where code='CPSEVEN'"); q(cur, "reset role")
+        return (a == '10|5000|2026-10-31' and b == '5000|2026-10-31', f"older after newer → {a} · newer with a blank total → {b}")
+
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]
 print(f"\n{len(results)-len(fails)}/{len(results)} passed"); sys.exit(1 if fails else 0)
