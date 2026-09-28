@@ -18,6 +18,7 @@ select i.id, i.invoice_no, i.invoice_date, i.client_group, i.customer_raw_name, 
        case when i.cost_sar is null and i.revenue_way is distinct from 'commission' and coalesce(lt.pass_through_sar, 0) > 0
             then lt.pass_through_sar end as est_cost_sar,
        (i.cost_sar is null and i.revenue_way is distinct from 'commission' and coalesce(lt.pass_through_sar, 0) > 0) as cost_estimated,
+       i.transaction_date,
        case when i.cost_sar is null and i.revenue_way is distinct from 'commission' and coalesce(lt.pass_through_sar, 0) > 0
             then 'pass_through' end as est_cost_source
 from public.finance_invoices i

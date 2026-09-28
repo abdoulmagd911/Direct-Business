@@ -175,7 +175,7 @@ async function main() {
   }));
   if (csvRows === w2.length) ok(`the invoice export carries exactly the ${w2.length} rows the combined filter leaves — the file cannot describe a wider scope than the screen`);
   else fail('the export holds ' + csvRows + ' rows, the filter leaves ' + w2.length);
-  // the Report Builder deliberately spans all years; the SECTOR still applies to it
+  // the Report Builder follows the period bar and the sector chip (E18, 28 Sep)
   const rbTotal = await p.evaluate(() => new Promise(res => {
     finGo('reports');
     setTimeout(() => {
@@ -196,12 +196,15 @@ async function main() {
      the caption the app writes before deciding what the app should do. What is checked now is the
      guarantee the app actually makes — the report spans everything, and says so where a reader
      will see it. */
-  const rbWant = sum(want('all', 'all', 'all'));
+  /* 2026-09-28 (E18, the oversight's punch list): the Report Builder now FOLLOWS the period bar and the sector chip — the
+     owner found "the period bar does not apply to this report" unacceptable. So it must total exactly the scope in force
+     (2026 · March · Tenders), and its caption must say the bar applies. */
+  const rbWant = sum(w2);
   const rbCaption = await p.evaluate(() => { const c = document.getElementById('rb-caption'); return c ? c.innerText : ''; });
-  if (rbTotal != null && Math.abs(rbTotal - rbWant) < 2) ok(`the Report Builder spans every year AND every sector (${rbWant.toLocaleString()}), unaffected by the chips in force elsewhere`);
-  else fail('the Report Builder totals ' + rbTotal + ', all years and all sectors is ' + rbWant);
-  if (/all years and sectors|period bar above does not apply|كل السنوات والقطاعات/i.test(rbCaption)) ok('…and its caption says so on screen, so a reader cannot mistake it for the filtered view they were just looking at');
-  else fail('the Report Builder ignores the filters but its caption does not say so: ' + JSON.stringify(rbCaption.slice(0, 160)));
+  if (rbTotal != null && Math.abs(rbTotal - rbWant) < 2) ok(`the Report Builder totals exactly the scope in force (${rbWant.toLocaleString()} — 2026 · March · Tenders), like every other tab`);
+  else fail('the Report Builder totals ' + rbTotal + ', the scope in force is ' + rbWant);
+  if (/period bar above applies|ينطبق/i.test(rbCaption)) ok('…and its caption says the period bar applies');
+  else fail('the Report Builder caption does not say the period bar applies: ' + JSON.stringify(rbCaption.slice(0, 160)));
 
   /* ---------- 3. clearing one filter leaves the others exactly as they were ----------
      2026-09-06 (watch cycle 29, mutation audit round four): these two checks used to CLEAR the

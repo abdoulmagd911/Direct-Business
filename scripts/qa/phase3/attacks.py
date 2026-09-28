@@ -1697,6 +1697,40 @@ def _(cur):
     ok = got == 'D24 Flights=300,D24 Transport=600' and after == 'D24 Flights=900' and rn and dl and vw and seen == 3
     return (ok, f"split={got} · item override removed → {after} · rename refused={rn} · delete refused={dl} · View cannot add={vw} · View reads {seen}")
 
+@test("D25-01 'Individual (not a company)': Full on Finance marks a name (no role); View cannot; one entry per name however spelled; a name never changes; nothing is deleted; the change is logged")
+def _(cur):
+    as_user(cur, 'u1')
+    x = one(cur, "insert into money_individuals(name) values ('D25 Person Name') returning id")
+    dup, _ = expect_fail(cur, "insert into money_individuals(name) values ('d25 person-name')", None, "money_individuals_one_live")
+    rn, _ = expect_fail(cur, "update money_individuals set name='Other' where id=%s", (x,), "never changes")
+    dl = blocked_or_zero(cur, "delete from money_individuals where id=%s", (x,))[0]
+    q(cur, "reset role")
+    logged = one(cur, "select count(*) from record_history where table_name='money_individuals' and record_id=%s", (str(x),))
+    as_user(cur, 'u5')
+    vw, _ = expect_fail(cur, "insert into money_individuals(name) values ('D25 View try')", None, "row-level security")
+    seen = one(cur, "select count(*) from money_individuals where name like 'D25%%'")
+    q(cur, "reset role")
+    ok = dup and rn and dl and vw and seen == 1 and logged >= 1
+    return (ok, f"same name other spelling refused={dup} · rename refused={rn} · delete refused={dl} · View cannot add={vw} · View reads {seen} · logged={logged}")
+
+@test("D26-01 A merged pair keeps the re-billed transaction's own date: the import writes it, a later file only fills it when empty, and the money view shows it beside the invoice's date")
+def _(cur):
+    as_user(cur, 'u4')
+    one(cur, "select fn_commit_finance_import(p_insert := %s::jsonb)", (json.dumps([{'invoice_no': 'D26-PAIR', 'zatca_dpin': 'DPIN-D26', 'client_group': 'D26 Co', 'invoice_date': '2026-09-22',
+        'total_incl_vat_sar': 500, 'amount_received_sar': 500, 'amount_remaining_sar': 0, 'integrity_status': 'verified_paid', 'payments_status': 'Fully Paid',
+        'payments_status_at': '2026-09-22T09:00:00Z', 'paid_at': '2026-09-22', 'transaction_ref': 'TX-D26', 'transaction_date': '2026-04-10'}]),))
+    i = one(cur, "select id from finance_invoices where invoice_no='D26-PAIR'")
+    one(cur, "select fn_commit_finance_import(p_update := %s::jsonb)", (json.dumps([{'id': str(i), 'transaction_date': '2026-05-01', 'payments_status_at': '2026-09-23T09:00:00Z'}]),))
+    kept = one(cur, "select transaction_date::text from finance_invoices where id=%s", (i,))
+    q(cur, "reset role")
+    q(cur, "update finance_invoices set transaction_date=null where id=%s", (i,))
+    as_user(cur, 'u4')
+    one(cur, "select fn_commit_finance_import(p_update := %s::jsonb)", (json.dumps([{'id': str(i), 'transaction_date': '2026-04-10'}]),))
+    filled = one(cur, "select transaction_date::text||'|'||invoice_date::text from money_rows where id=%s", (i,))
+    q(cur, "reset role")
+    ok = kept == '2026-04-10' and filled == '2026-04-10|2026-09-22'
+    return (ok, f"a later file did not overwrite it: {kept} · an empty one is filled, the view shows both: {filled}")
+
 @test("D1-08 An OLDER file arriving after a newer one only fills what is empty: the paid amounts and the paid date (which sets the month) are not put back to the unpaid copy's")
 def _(cur):
     as_user(cur, 'u4')
@@ -1733,7 +1767,7 @@ def _(cur):
     return (got == 'true|true' and others == ['false'] * 4, f"audit-required → {got} · pending/void/cancelled/draft → {others}")
 
 
-# ================= cost import (D25, second builder, 28 Sep 2026): the raw Payments cost exports =================
+# ================= cost import (D27, second builder, 28 Sep 2026): the raw Payments cost exports =================
 def cl(ref, n, typ, status, amount, created, **kw):
     """one Transaction Expense Export line, as js/121 sends it (line_key = ref|type|created)"""
     d = {'ref': ref, 'line_key': ref + '|' + typ.lower() + '|' + created, 'expense_type': typ, 'status': status,
@@ -1878,7 +1912,7 @@ if _has_fallback:   # cost-fallback.sql builds on D23 (#57); until both are appl
         return (ok, f"pass-through only={a} · + revenue report={b} · report says 0={zero} · approved lines arrive={d} · commission={com} · KPI source={kpi}")
 
 
-# ================= client list + promo codes (D26, second builder, 28 Sep 2026): the Payments lists =================
+# ================= client list + promo codes (D28, second builder, 28 Sep 2026): the Payments lists =================
 _cc = conn(); _has_lists = one(_cc.cursor(), "select count(*) from pg_proc where proname='fn_payments_clients_import'"); _cc.close()
 if _has_lists:   # scripts/sql/clients-promo-import.sql
     def pc(cur, rows, seen='2026-09-27T10:00:00+03:00'):

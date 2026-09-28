@@ -1,4 +1,4 @@
--- Cost fallback from the Revenue Report (second builder, 28 Sep 2026; DECISIONS D25). Rollback: cost-fallback.rollback.sql.
+-- Cost fallback from the Revenue Report (second builder, 28 Sep 2026; DECISIONS D27). Rollback: cost-fallback.rollback.sql.
 -- Needs d23-estimated-cost.sql AND cost-import.sql applied first (it builds on both); refuses otherwise.
 --
 -- The order a money row's cost is read in (the oversight's ruling of 28 Sep, Drive 04 §5 "Wins"):
@@ -16,6 +16,10 @@ do $$ begin
   end if;
   if to_regclass('public.finance_payments_facts') is null then
     raise exception 'cost-fallback.sql needs cost-import.sql applied first';
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'money_rows'
+                 and column_name = 'transaction_date') then
+    raise exception 'cost-fallback.sql needs d26-transaction-date.sql applied first (money_rows keeps its transaction_date column)';
   end if;
 end $$;
 
@@ -39,6 +43,7 @@ select i.id, i.invoice_no, i.invoice_date, i.client_group, i.customer_raw_name, 
                           case when coalesce(lt.pass_through_sar, 0) > 0 then lt.pass_through_sar end) end as est_cost_sar,
        (i.cost_sar is null and i.revenue_way is distinct from 'commission'
         and (coalesce(pf.rr_total_expense_sar, 0) > 0 or coalesce(lt.pass_through_sar, 0) > 0)) as cost_estimated,
+       i.transaction_date,                                  -- the main builder's D26 column, kept in its place
        case when i.cost_sar is null and i.revenue_way is distinct from 'commission' then
             case when coalesce(pf.rr_total_expense_sar, 0) > 0 then 'submitted_expenses'
                  when coalesce(lt.pass_through_sar, 0) > 0 then 'pass_through' end end as est_cost_source

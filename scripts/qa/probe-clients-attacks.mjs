@@ -144,13 +144,15 @@ async function main() {
   if (nullRow && near(rc.by['—'] ? rc.by['—'].rev : -1, 400)) ok('a null client_group resolves to the "—" client with its own money, not merged into another client'); else fail('null client_group handling: ' + JSON.stringify(rc.by['—']));
 
   /* ---------- 3. collections & ageing ---------- */
-  const exp = { out: 1000 + 2000 + 500 + 700, over: 2000, b030: 1000, b3160: 2000, b6190: 0, b90: 500, nodate: 700 };
+  /* punch list C (28 Sep): overdue = past its due date — collection_due_date, or the invoice date + 30 days (FIN_CREDIT_DAYS)
+     when none is set. The 90+-day 500 has no due date, so it is overdue too; the undated 700 is never overdue. */
+  const exp = { out: 1000 + 2000 + 500 + 700, over: 2000 + 500, b030: 1000, b3160: 2000, b6190: 0, b90: 500, nodate: 700 };
   const pct = Math.round(exp.over / exp.out * 100);
   const strip = await p.evaluate(() => { const c = [...document.querySelectorAll('#view .card')].find(e => /Collections & ageing/.test(e.textContent)); return c ? c.innerText : ''; });
   const num = (lbl) => { const m = strip.match(new RegExp(lbl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\n?\\s*([\\d.,]+K?)')); if (!m) return null; const s = m[1]; return /K$/.test(s) ? Math.round(parseFloat(s) * 1000) : +s.replace(/,/g, ''); };
   const outShown = num('Outstanding');
   if (outShown !== null && Math.abs(outShown - exp.out) <= 50) ok(`Outstanding ${outShown} ≈ ${exp.out} = sum of amount_remaining over live rows (recomputed)`); else fail(`Outstanding shown ${outShown}, expected ${exp.out}`);
-  if (new RegExp('% overdue\\s*\\n?\\s*' + pct + '%').test(strip)) ok(`% overdue = ${pct}% — only the row past its collection_due_date counts as overdue`); else fail('% overdue wrong: ' + JSON.stringify(strip.slice(0, 300)));
+  if (new RegExp('% overdue\\s*\\n?\\s*' + pct + '%').test(strip)) ok(`% overdue = ${pct}% — the rows past their due date (collection_due_date, else invoice date + 30 days) count as overdue`); else fail('% overdue wrong: ' + JSON.stringify(strip.slice(0, 300)));
   const bk = { b030: num('0–30 days'), b3160: num('31–60 days'), b6190: num('61–90 days'), b90: num('90+ days') };
   if (bk.b3160 !== null && Math.abs(bk.b3160 - 2000) <= 50 && bk.b6190 === 0 && Math.abs(bk.b90 - 500) <= 50) ok('ageing buckets 31–60 / 61–90 / 90+ recomputed from invoice_date: 2,000 / 0 / 500'); else fail('ageing buckets: ' + JSON.stringify(bk));
   if (bk.b030 !== null && Math.abs(bk.b030 - 1000) <= 50) ok('0–30 days = 1,000 — money with NO invoice date is not aged as "recent"'); else fail(`0–30 days = ${bk.b030}: date-less outstanding money is being aged as 0–30 (invented age)`);

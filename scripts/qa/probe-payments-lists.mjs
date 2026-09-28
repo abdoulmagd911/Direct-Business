@@ -1,4 +1,4 @@
-/* probe-payments-lists.mjs (2026-09-28) — D26, the Direct Payments client list and promo codes exports through js/122 (on
+/* probe-payments-lists.mjs (2026-09-28) — D28, the Direct Payments client list and promo codes exports through js/122 (on
    js/121's reader) into the stand-in, which mirrors fn_payments_clients_import / fn_promo_codes_import
    (scripts/sql/clients-promo-import.sql). Made-up IDs (90…), companies, emails and amounts only (rule 7); the header rows
    are the real 27 Sep ones, as the oversight gave them on 28 Sep.

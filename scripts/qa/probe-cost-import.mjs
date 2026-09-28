@@ -1,4 +1,4 @@
-/* probe-cost-import.mjs (2026-09-28) — D25, the raw Direct Payments cost exports through js/121 into the stand-in, which mirrors
+/* probe-cost-import.mjs (2026-09-28) — D27, the raw Direct Payments cost exports through js/121 into the stand-in, which mirrors
    public.fn_cost_import (scripts/sql/cost-import.sql). Made-up references (99…), companies and amounts only (rule 7); the
    headers are the real 27 Sep ones, and the dates are Payments' own "dd/mm/yyyy hh:mm:ss AM/PM".
 

@@ -1,5 +1,5 @@
 /* js/122-payments-lists.js — the Direct Payments client list and promo codes exports, read in the browser (second
-   builder, 28 Sep 2026; D26).
+   builder, 28 Sep 2026; D28).
 
    Two small Payments exports, read through js/121's reader (one peek per file, Excel in its background worker) and written
    through two database functions (scripts/sql/clients-promo-import.sql), by a person, on Finance → Import:

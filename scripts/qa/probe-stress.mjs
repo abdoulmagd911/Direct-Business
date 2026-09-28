@@ -125,6 +125,8 @@ STEP('S4a the Ledger says it has nothing to list rather than hanging or going bl
   ledgerMs < 12000 && /No transactions (match|recorded yet|to show)|لا توجد معاملات/.test(ledgerTxt),
   `${ledgerMs}ms · "${ledgerTxt.replace(/\s+/g, ' ').slice(0, 90)}"`);
 await SHOT('ledger-loaded');
+/* punch list E18 (28 Sep): the Report Builder follows the period bar — 'all 1,279' means All years */
+await page.evaluate(() => { FIN.p.year = 'all'; FIN.p.part = 'all'; });
 const t1 = Date.now();
 await page.locator('#view button, #view .btn').filter({ hasText: /Report Builder|منشئ التقارير/ }).first().click();
 await page.waitForFunction(() => document.querySelectorAll('#view table tr').length > 10, { timeout: 20000 }).catch(() => {});

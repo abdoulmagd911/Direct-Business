@@ -1,4 +1,4 @@
--- The Payments client list and promo codes exports (second builder, 28 Sep 2026; DECISIONS D26). Rollback:
+-- The Payments client list and promo codes exports (second builder, 28 Sep 2026; DECISIONS D28). Rollback:
 -- clients-promo-import.rollback.sql. Read in the browser by js/121 (through js/120's reader); written ONLY by the two
 -- functions below, called by a person on Finance → Import (D17: a person imports; nothing is created by a background pass).
 --

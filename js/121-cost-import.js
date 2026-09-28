@@ -1,4 +1,4 @@
-/* js/121-cost-import.js — the raw Direct Payments cost exports, read in the browser (second builder, 28 Sep 2026; D25).
+/* js/121-cost-import.js — the raw Direct Payments cost exports, read in the browser (second builder, 28 Sep 2026; D27).
 
    Live Finance could not read the Payments cost files ("not recognized"), so every invoice showed "waiting for cost".
    This layer reads the three raw exports exactly as Payments downloads them (Excel or CSV) and writes cost through ONE
