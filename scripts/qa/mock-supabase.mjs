@@ -593,7 +593,10 @@ function mockMoneyRows(){
       row_kind:i.row_kind||'sale',payments_status:i.payments_status||null,paid_at:i.paid_at||null,tax_invoice_date:i.tax_invoice_date||null,
       invoice_created_on:i.invoice_created_on||null,audit_required:!!i.audit_required,source:i.source||'import',billed_by_ref:i.billed_by_ref||null,
       cost_missing:(i.cost_sar==null&&i.revenue_way!=='commission'),loss:(i.cost_sar!=null&&Number(i.cost_sar)>Number(i.revenue_sar)),
-      pass_through_sar:lt(i.invoice_no).pass_through_sar,fee_sar:lt(i.invoice_no).fee_sar,unclassed_sar:lt(i.invoice_no).unclassed_sar};
+      pass_through_sar:lt(i.invoice_no).pass_through_sar,fee_sar:lt(i.invoice_no).fee_sar,unclassed_sar:lt(i.invoice_no).unclassed_sar,
+      /* D23: the pass-through stands in as a flagged estimate only while no cost has arrived (never for a commission) */
+      est_cost_sar:(i.cost_sar==null&&i.revenue_way!=='commission'&&Number(lt(i.invoice_no).pass_through_sar||0)>0)?lt(i.invoice_no).pass_through_sar:null,
+      cost_estimated:(i.cost_sar==null&&i.revenue_way!=='commission'&&Number(lt(i.invoice_no).pass_through_sar||0)>0)};
   });
 }
 /* D1: money_line_totals — each invoice's lines by the item-name list (the last part of the name, folded) */

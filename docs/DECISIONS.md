@@ -65,6 +65,8 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **D21 — The money model and the invoice import** ACTIVE · 2026-09-28. Revenue = the invoice total as Payments records it, less only a wallet TOP-UP part; a top-up-only invoice never counts. Cost = approved expenses only; a missing cost is EMPTY, never 0, and the row stays out of cost and profit, said on screen. Fully Paid counts (Audit Required too, flagged); Pending, Void, Cancelled, Draft never; an unnamed status is held for a person. The paid date sets the month. Imports fill, never wipe; a hand-entered row is never touched; no VAT figure is worked out or stored. Guard `probe-d1-invoice-import`.
 
+**D23 — With no approved expense, the pass-through lines are a flagged cost estimate** ACTIVE · 2026-09-28. Owner ruling. `money_rows.est_cost_sar`, shown apart from the approved cost; an approved expense replaces it. Names on Finance → Rules. Guard `probe-d1-invoice-import`.
+
 ## Money & finance display
 
 **M1 — VAT never enters cost, profit or revenue** ACTIVE · 2026-08-08. The owner: "I dont care weither vat shows or not, what i want is a clean cost, profit, and revenue." Shown only where legally expected on a client document, never in an internal figure, export or total; since D21 the import works out and stores no VAT figure. Guard `probe-no-vat-display`.
