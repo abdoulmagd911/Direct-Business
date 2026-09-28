@@ -163,6 +163,22 @@ V62–V72 in `DECISIONS.md`:
 33. **Go-live as a staged pilot** (V71).
 34. **Recurring "Partner feedback" task** per key partner (V72).
 
+**Owner decisions, round 5 (29 Sep, relayed by the oversight)** — V74–V83 in `DECISIONS.md`:
+
+35. **Sessions**: a device stays signed in until sign-out; 30 unused days → a new code; admins sign anyone out; My
+    profile lists devices (V74).
+36. **Sign-in page**: split layout with a brand panel and the brand line "The commercial arm of the all-in-one travel
+    app" / «الذراع التجاري لتطبيق السفر الشامل» (V75).
+37. **Arabic reports**: Arabic labels required on every list; Arabic sentence templates per category; an on-device
+    "Translate to Arabic" helper, no paid service (V76).
+38. **Partner names**: official English and Arabic names and a trade name; the trade name shows everywhere (V77).
+39. **Partners page**: saved views across the top; Role · Segment · Owner · Status and a KPI chip; More filters (V78).
+40. **Report lines**: achievement lines (create or cite the achievement) and note lines (never count) (V79).
+41. **Tenders and the Pipeline** in v1, their KPIs, and one Commercial overview with a segment switch (V80).
+42. **Less crowded detail pages**: two columns, empty fields behind "+ Add", Show all (V81).
+43. **Design moves to Figma** through a dedicated design session (V82).
+44. **Exports unchanged** for now (V83).
+
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
 are excluded from revenue, and collections are settled on them; cost is the sum of approved expenses on the

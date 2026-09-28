@@ -63,7 +63,7 @@ The oversight's suggestion is confirmed, with the guardrails that make it safe f
 | How Next.js is used | Server components **only** for the shell and the auth gate. All record data is fetched in the browser through one data layer (TanStack Query + the Supabase client with the person's session). `dynamic = 'force-dynamic'` on app routes; no Next data cache for app data | One data path and one invalidation rule ("after any write, refetch what is on screen") make "a change shows everywhere at once" true by construction. Mixing server-cached and client-cached data is how stale screens happen | Server actions for data: two caches to keep coherent |
 | Database | **Supabase Postgres 17** (same major as today), RLS on every table, versioned migrations with the Supabase CLI | Proven here; RLS keeps the database the judge (A12) | — |
 | API surface | PostgREST exposes **one schema, `api`**: read views (`security_invoker = on`) and write functions. Business tables live in private schemas (`core`, `partner`, `finance`, …) | A6, A8: a single, testable door | Exposing tables directly (the old app's silent-refusal problem) |
-| Auth | Supabase Auth: **the emailed 6-digit code is the door** (keep signed in 30 days); Google (`.com`) and Zoom (`.net`) OAuth as later shortcuts; **no password provider**; sign-ups off; allow-list of emails per person (`core.person_email`) | §0 sign-in decision | Passwords (owner ruled out); email-only (impersonation, §10) |
+| Auth | Supabase Auth: **the emailed 6-digit code is the door** (a device stays signed in until sign-out; 30 idle days → a new code — V74); Google (`.com`) and Zoom (`.net`) OAuth as later shortcuts; **no password provider**; sign-ups off; allow-list of emails per person (`core.person_email`) | §0 sign-in decision | Passwords (owner ruled out); email-only (impersonation, §10) |
 | Files | Supabase Storage, one private bucket `files`, signed URLs of 600 s (M21) | Proven | Public buckets |
 | Jobs | `pg_cron` (in Supabase free) for the two scheduled things: recurring tasks at 00:05 Riyadh, and nightly consistency checks | No extra service, no cost | Vercel cron (Hobby: once a day, no retries) |
 | Styling | **Tailwind CSS v4** driven by CSS variables (design tokens), switched by a `data-theme` attribute on `<html>` (light, dark, colorful or direct) and a `data-density` attribute (comfortable or compact); components from **shadcn/ui** (Radix primitives, copied into the repo) | Tokens → three themes from one set (§0 design); Radix gives focus, Escape and ARIA right (M93) | CSS-in-JS: runtime cost, harder RTL |
@@ -105,7 +105,7 @@ v2/
     app/                                         # Next.js routes (thin: layout + one screen component each)
       (auth)/sign-in/page.tsx  auth/callback/route.ts
       (app)/layout.tsx                           # server gate: session + api.me() before first paint
-      (app)/my-day/  partners/[[...id]]/  finance/[[...tab]]/  projects/[[...id]]/  tasks/[[...id]]/
+      (app)/my-day/  overview/  partners/[[...id]]/  pipeline/[[...id]]/  finance/[[...tab]]/  projects/[[...id]]/  tasks/[[...id]]/
       (app)/kpis/[[...id]]/  reports/[[...id]]/  appraisal/[[...id]]/  settings/[group]/  r/[entity]/[id]/
     core/
       db/        client.ts (singleton) server.ts fetchAll.ts command.ts (calls api.*, maps errors)
@@ -116,8 +116,8 @@ v2/
     ui/          design tokens (tokens.css), shell (drawer, top bar), DataTable, DetailPanel, Chips, Dialog,
                  Confirm (D19), Toast (with Undo), DataState (loading/failed/empty/no access/not measured)
     modules/
-      org/ settings/ partners/ finance/ projects/ tasks/ perf/ (plans, KPIs, achievements, challenges)
-      reports/ appraisal/ my-day/ search/
+      org/ settings/ partners/ pipeline/ (tenders, partnerships) overview/ finance/ projects/ tasks/
+      perf/ (plans, KPIs, achievements, challenges) reports/ appraisal/ my-day/ search/
         module.ts          # the module's registry entry (pages, capabilities, entities, settings, exports, …)
         data.ts            # typed calls to api.* views and functions for this module
         screens/           # the module's screens and components
@@ -193,13 +193,17 @@ What reads the registry:
 
 ### 2.5 The shell, the design tokens, density and the screen rules
 
-**Source of truth for the look:** the owner's design system page ("Commercial Design System",
-https://claude.ai/artifact/LhgpWwKiMxQtQiQmXjco64) and the screens canvas (https://claude.ai/artifact/QRysGjaefjvGbDxNvfYbLW,
-12 artboards). Where this section and those pages differ, the pages win; builder B reads them before P3-3.
+**Source of truth for the look:** until the Figma file exists, the owner's design system page ("Commercial Design
+System", https://claude.ai/artifact/LhgpWwKiMxQtQiQmXjco64) and the screens canvas
+(https://claude.ai/artifact/QRysGjaefjvGbDxNvfYbLW, 18 artboards). **The design source moves to Figma** (owner, 29 Sep —
+V82): a dedicated design session builds the design system (variables for the four themes) and every screen in Figma, and
+builder B reads screens through the Figma connector. When the oversight announces the file, it supersedes the canvas
+and the build plan's token table; until then those stay the reference. Where this section and the design source
+differ, the design source wins on look, this spec on behaviour.
 
 - **Shell.** Side drawer 248 px pinned (as the artboards) / 56 px collapsed (an icon rail with tooltips; unpinned it opens as an overlay
-  on hover or focus and closes on Esc; below 1,024 px an off-canvas sheet). Order: My day, Partners, Projects, Tasks,
-  Finance, KPIs, Reports, Appraisal; Settings at the foot above the person's profile (avatar, nickname, badge). Top bar
+  on hover or focus and closes on Esc; below 1,024 px an off-canvas sheet). Order: My day, Overview, Partners,
+  Pipeline, Projects, Tasks, Finance, KPIs, Reports, Appraisal; Settings at the foot above the person's profile (avatar, nickname, badge). Top bar
   60 px: search (Ctrl K), Create, bell, the profile chip (avatar and nickname) — no page titles in it. Page header:
   breadcrumb, title, one primary button, at most two secondary, the rest in a ⋯ menu. Each area is one page: list on
   the start side, **detail panel 480 px** on the end side (full page under 900 px); every record has its own URL; at
@@ -225,6 +229,11 @@ https://claude.ai/artifact/LhgpWwKiMxQtQiQmXjco64) and the screens canvas (https
   (lint). Rules the lint checks: filled buttons use `--primary` with `--on-primary`; `--accent` never colours text or
   sits under a label (text in that hue uses `--link`); colour never carries meaning alone (a status chip always shows
   its word).
+- **Less crowded detail pages** (owner, 29 Sep — V81; nothing removed, only reorganised): a record's full page has
+  **two columns** — the main work on the start side, a narrow **properties rail** (about 300 px) on the end side; the
+  480 px panel shows the same record in one column with the properties folded into its header; **empty fields are
+  hidden** behind "+ Add"; long histories and lists show the last few with **Show all**; every record can **Open full
+  page**.
 - **Shared patterns** (V61), each one component used everywhere: **hover cards** for people and partners; **Follow**
   on any record; the record's **activity timeline** with Undo; **saved views** per list (personal or shared; the view is
   in the URL); **bulk actions** on multi-select; **"Since your last visit"** marks on My day and lists
@@ -273,7 +282,7 @@ everyone in Commercial, and a second department later is separated without a mig
 ### 3.0 Conventions
 
 - **Schemas.** `core` (organization, people, access, settings, files, notes, numbering), `audit`, `notify`, `partner` (organisations: clients, suppliers, strategic partners),
-  `finance`, `work` (projects, tasks), `perf` (plans, KPIs, achievements, challenges, period targets), `report`,
+  `finance`, `pipeline` (tenders, partnership opportunities — V80), `work` (projects, tasks), `perf` (plans, KPIs, achievements, challenges, period targets), `report`,
   `appraisal`, `io` (imports), `norm` (pure folding functions), `measure` (KPI sources), `authz` (access helpers), and
   **`api`** — the only schema PostgREST exposes. `test` exists only in test databases.
 - **Keys.** `id uuid primary key default gen_random_uuid()`. People-facing numbers are separate columns
@@ -292,13 +301,16 @@ everyone in Commercial, and a second department later is separated without a mig
 - **A foreign key to a table built in a later step** (e.g. `audit.request.batch_id → io.batch`, P7) is added by that
   later step's migration with `alter table … add constraint`, so every migration applies in order on a database built
   from zero.
-- **Setting lists** (`LIST`): `key text unique` (stable code), `name_en text not null`, `name_ar text`, `sort int`,
-  `active bool default true`. A list entry is retired, never deleted, and stays readable where a record holds it (M40).
+- **Setting lists** (`LIST`): `key text unique` (stable code), `name_en text not null`, **`name_ar text not null`**
+  (V76: every list — categories, KPI names, segments, statuses, roles, stages, reasons, outcomes — carries its Arabic
+  label, so reports can be written in Arabic), `sort int`, `active bool default true`. The same holds for every other
+  label a report prints: objective and KPI titles, category and role field labels, select options (`{key, en, ar}`). A list entry is retired, never deleted, and stays readable where a record holds it (M40).
 - **Money** `numeric(14,2)`, SAR. **Counts** `int`. **Ratios** `numeric` as fractions (1.00 = 100 %).
   **Calendar dates** `date`; **instants** `timestamptz` (stored UTC, shown in Riyadh — D20). Riyadh helpers:
   `core.riyadh_today()`, `core.riyadh_day(timestamptz)`, `core.month_of(date)`, `core.quarter_of(date)`; weeks start on
   Sunday (setting). No Hijri anywhere.
-- **Names** of people and companies: `*_en` required, `*_ar` optional; display falls back to the other language (M94).
+- **Names** of people: `*_en` required, `*_ar` optional; display falls back to the other language (M94). Partners
+  carry official and trade names (V77, §3.4).
 - **Never stored:** any sum, count, ratio, pace, score or match result — they are views or functions (§3.12). No column
   named for VAT amounts exists anywhere (M1; `check-no-vat-columns`).
 - **Every table**: RLS enabled (not *forced* — the write functions, owned by the migration role, write past it after
@@ -379,7 +391,7 @@ core.wording      (locale, key) pk; text; set_by; set_at        -- Settings → 
   `finance.revenue_definition` (§3.6) · `finance.collection_due_days` 30 · `finance.unpaid_alert_days` 45 · `partner.contract_reminder_days` 60 · 30 · 7 · `partner.contract_expiring_from_days` 30 · `partner.contract_notify` (account manager ✓, followers ✓, commercial manager ✗) · `partner.contract_renewal_task` ✓ · `partner.id_format` DK-P-0000 · `partner.logo_fallback` monogram · `core.file_keep_original_name` ✓ · `core.file_download_display_name` ✓ · `finance.unbilled_after_days` 30 (a transaction with no billing invoice after
   that is flagged) ·
   `finance.cost_estimate` on (D23) · `perf.pace_thresholds` {on_track 1.00, slightly_behind 0.90, at_risk 0.70} ·
-  `report.due_day` 5 · `app.arabic_enabled` false · `app.default_theme` direct (Q32) · `app.default_density` comfortable · `auth.keep_signed_in_days` 30 ·
+  `report.due_day` 5 · `app.arabic_enabled` false · `app.default_theme` direct (Q32) · `app.default_density` comfortable · `auth.device_idle_days` 30 ·
   `work.reminder_days_before_due` 1 · `notify.kinds_enabled` (every kind on) · `app.export_formats` [csv, xlsx] ·
   `files.max_mb` 20 · `partner.one_code_per_partner` ✓ · `report.cases_per_quarter` 1 · `appraisal.cycle_label` "2026-27"
   (the default from the cycle's years) · `work.pipeline_weekly_target` 1.
@@ -400,8 +412,9 @@ notify.notification  id; person_id; kind ('assigned','helper_added','mentioned',
                index (person_id, read_at nulls first, created_at desc)
 notify.follow  (person_id, entity_table, entity_id) pk      -- Follow / Watch on any record (V61); owners follow their own
 core.person_last_seen  (person_id, page_key) pk; seen_at     -- "Since your last visit" on My day and in lists
-core.saved_view  STD SOFT; page_key; owner_id; name; query jsonb (filters, columns, sort, grouping); shared bool
+core.saved_view  STD SOFT; page_key; owner_id; name; query jsonb (filters, columns, sort, grouping); shared bool; sort
                -- personal, or shared with everyone who can open the page; a shared view opens by its URL
+core.person_default_view  (person_id, page_key) pk; saved_view_id    -- the view a page opens on for that person (V78)
 ```
 
 - **One request per person action.** `audit.begin()` creates the request and sets `app.request_id` for the transaction;
@@ -470,7 +483,9 @@ partner.call_outcome  LIST: no answer · answered · meeting set · not interest
 partner.credit_limit  STD SOFT; partner_id; amount_sar; effective_from date not null; approved_by → core.person; reason
                   -- V70: the limit Payments already enforces, mirrored with its history; current = latest ≤ today
 partner.partner   STD SOFT; number unique (the partner ID, e.g. DK-P-0142: format and next number from
-                  `partner.id_format`); name_en not null; name_ar; legal_name_en; legal_name_ar; trading_name; category_id; tier_id;
+                  `partner.id_format`); trade_name_en not null; trade_name_ar; official_name_en; official_name_ar
+                  (V77: the trade name is the display name everywhere; the official names are used where it is legal —
+                  contracts, tenders, tax matching — and all four are kept as name identifiers); category_id; tier_id;
                   segment_id (V64, the default for its invoices and projects); priority_id → work.priority (V63);
                   key_partner bool (V72: gets the recurring feedback task);
                   website; city; country; address; notes; archived_at; merged_into_id → partner.partner;
@@ -478,7 +493,7 @@ partner.partner   STD SOFT; number unique (the partner ID, e.g. DK-P-0142: forma
                   client_since date   -- typed; until Payments history is imported, marks a client as not new (V31)
                   -- no VAT, CR, client ID, discount code or email columns: those live only in partner.identifier (one home)
 partner.identifier  id; partner_id not null; kind ('payments_client_id','vat','cr','discount_code','email','phone','name');
-                  subkind (client ID: 'prepaid'|'postpaid'|'tender'; name: 'en'|'ar'|'trading'|'alias');
+                  subkind (client ID: 'prepaid'|'postpaid'|'tender'; name: 'official_en'|'official_ar'|'trade_en'|'trade_ar'|'alias');
                   value_raw not null; value_key not null; norm_version int; reason not null (§3 "each with a reason");
                   valid_from date; valid_to date (discount codes only, check to ≥ from); source ('person','decision','import','merge');
                   note; created_at; created_by; removed_at; removed_by; remove_reason
@@ -557,6 +572,19 @@ core.mention      (note_id, person_id) pk
 - **Money on the card follows V1/V73**: the tiles are Revenue, Cost (approved expenses only, "Provisional" while
   any unit is) and Profit (revenue − cost, Final cost only), each against the same period last year; a rise in cost
   reads as bad.
+- **Names** (V77). Every partner has an **official English name**, an **official Arabic name** and a **trade name** in
+  English and Arabic. The **trade name is the display name everywhere** (lists, chips, hover cards, report tokens, file
+  names); the **official names** are used where it is legal — contracts, tenders, tax matching, the `{partner official}`
+  file-name token. All four are kept as `name` identifiers (subkinds `official_en`, `official_ar`, `trade_en`,
+  `trade_ar`): editing a name removes the old identifier and adds the new one in the same request, so matching follows
+  and history keeps both.
+- **The Partners page** (V78): one page, one record per organisation. **Saved views across the top** — All · Clients ·
+  Suppliers · Strategic · Government (shared starting views; Government = segment Government) — each person has a
+  default view (`core.person_default_view`). **Visible filter chips: Role · Segment · Owner · Status**, plus one **KPI**
+  chip opening a picker grouped by objective → KPI with a period (this quarter by default), which keeps the partners
+  that contributed to that KPI through achievements or invoices (`perf.kpi_partner_contribution(kpi, from, to)`, the
+  same rows as the KPI page's drill-down). Every other filter sits in a **More filters** panel. Any combination saves as
+  a view. The KPI page links to the same filtered list ("partners that contributed").
 - **Period view on the card** (V54): a switch **MTD · QTD · YTD · Custom**; tiles against the same period last year; a
   Q1–Q4 strip, this year against last; **Open in Finance** deep-links to the Finance list with the partner, period and
   kind in the URL. Finance keeps its full filters and **saved views** (§6).
@@ -569,7 +597,8 @@ core.mention      (note_id, person_id) pk
   (prefilled, a person presses it). Contracts appear on the partner card and in the evidence picker.
 - **File names are computed, live** (V55). A file keeps its `original_name`; its display and download name comes from
   its kind's pattern and the records it is linked to, at the moment it is shown — e.g. `INV-T-0001 · {partner} ·
-  {amount} SAR · {date}.pdf`, `Contract · {partner} · {title} · {start} to {end}.pdf` — by one SQL function,
+  {amount} SAR · {date}.pdf`, `Contract · {partner official} · {title} · {start} to {end}.pdf` (`{partner}` is the trade
+  name, `{partner official}` the official name — V77) — by one SQL function,
   `core.file_display_name(file_id, locale)`. Renaming a partner renames its files everywhere. Downloads use it: the
   signed URL is created with `download: <display name>`, so the browser saves under that name (Content-Disposition).
   Characters a file system refuses are replaced; the original name stays visible in the file's details.
@@ -840,6 +869,44 @@ work.task_occurrence (template_id, occurs_on, partner_id) pk; task_id    -- make
   and the screen then offers "Log the achievement", prefilled from the task (partner, project, participants = owner and
   helpers, source task). Nothing is created without the person pressing it (§3 "closing a task offers").
 
+### 3.7a Pipeline — tenders and partnership opportunities (V80)
+
+Added to v1 (owner, 29 Sep). One **Pipeline** page with two boards — **Tenders** and **Partnerships** — plus list views.
+
+```
+pipeline.stage        LIST per kind ('tender','partnership'); outcome ('open','won','lost','cancelled'); sort
+                      -- tender: Identified → Preparing → Submitted → Awarded / Lost / Cancelled
+                      -- partnership: Prospect → Meeting → Proposal → Signed (Lost, Cancelled as for tenders)
+pipeline.lost_reason  LIST per kind
+pipeline.tender       STD SOFT DEPT; number unique (TND-2026-014); title; partner_id not null (the government entity —
+                      a Government-segment partner; another segment needs a manager and a reason); etimad_ref; tender_no
+                      (the entity's own number); submission_due_on; submitted_on; value_sar; awarded_value_sar; awarded_on;
+                      stage_id; owner_id; project_id; lost_reason_id; notes     -- files: core.file_link purpose 'tender'
+pipeline.opportunity  STD SOFT DEPT; number unique (OPP-2026-031); title; partner_id not null; role_id and subkind (what the
+                      partnership is: a strategic partner's sales channel, integration, payment solution; a client);
+                      stage_id; owner_id; expected_value_sar; next_step; next_step_on; signed_on; lost_reason_id; notes
+pipeline.stage_change STD; entity_table; entity_id; from_stage_id; to_stage_id; effective_on date not null; note
+                      -- the history the KPIs read; moving past a stage records each stage passed, on the same date
+```
+
+- **Moving a card** (drag on the board, or the stage field) is one request with an effective date (today by default,
+  editable). **Submitted** records `submitted_on`; **Awarded** needs the awarded value and date and offers **Log
+  achievement** (Contract signed, prefilled with the tender) and **New project**; **Lost** and **Cancelled** need a
+  reason. An opportunity reaching **Signed** sets its partner's status to **Active** from that date (V62) in the same
+  request — one Undo reverts both — and offers Log achievement.
+- **Measures** (§3.8): `pipeline.tenders_submitted` — tenders whose history reached Submitted with an effective date in
+  the period (a later Lost still counts); `pipeline.awarded_value` — the sum of awarded values of tenders awarded in the
+  period (by `awarded_on`); `pipeline.tenders_by_stage` and `pipeline.opportunities_by_stage` (the funnels: count and
+  value per stage, as of a date); `pipeline.partnerships_signed`. Government entity contracts is the Contract signed
+  category with a Government-segment partner (§3.8). Every measure takes the `segment` parameter (V64).
+- **The Commercial overview** (`/overview`, executive): Revenue · Cost · Profit, collections, new clients, tenders
+  submitted, awarded value, partnerships signed, government entity contracts — for a period (MTD · QTD · YTD · Custom)
+  against last year — then **both funnels**, and a **segment switch** (All · Government · Corporate · Agencies ·
+  Individuals) that filters every tile and funnel. It replaces the old app's separate Finance, B2B and Tenders
+  overviews; each tile links to the list behind it.
+- A tender or opportunity shows on its partner's card (Work tab) and in Ctrl K; a file kind **Tender document** has the
+  pattern `Tender · {partner official} · {tender no} · {date}`.
+
 ### 3.8 Yearly plans, KPIs, achievements, challenges, period targets
 
 ```
@@ -867,7 +934,8 @@ perf.kpi_status_note STD; kpi_id; quarter_start; status ('on_track','slightly_be
                      note; noted_on                                          -- the status a person declares for the strategy sheet
 perf.measure_def     key pk; unit_kind; params_schema jsonb; scopes text[]; label_key           -- synced from the registry
 perf.achievement_category  STD SOFT; plan_id; parent_id (sub-category); code; name_en; name_ar; is_money_link bool;
-                     line_template_en; line_template_ar; sort; active
+                     line_template_en not null; line_template_ar not null (V76: the Arabic sentence filled from the
+                     category's fields, so a report line drafts itself in Arabic); sort; active
 perf.category_field  STD SOFT; category_id; key; label_en; label_ar; type ('text','number','money','amount','date','select',
                      'person','partner','boolean','computed'); required; options jsonb; formula (computed only: arithmetic over
                      the category's number and amount fields, e.g. exposure − actual_loss); sort
@@ -878,7 +946,8 @@ perf.category_kpi    id; category_id; kpi_id; contribution ('count','field_sum')
                      -- how "a promo-code-only partnership is not a technical-integration KPI" (§3) is kept without code
 perf.achievement     STD SOFT DEPT; plan_id; category_id; partner_id; project_id; source_task_id; service_id → finance.service;
                      title (the person's short words); count int default 1; before_value; after_value; field_values jsonb;
-                     evidence_date date not null; owner_id not null; use_as_example bool (V67: a report "Case"); remove_reason
+                     evidence_date date not null; owner_id not null; use_as_example bool (V67: a report "Case");
+                     origin ('person','task','report','import'); origin_report_id (V79: "added from report"); remove_reason
 perf.achievement_participant (achievement_id, person_id) pk; role
 perf.achievement_invoice     (achievement_id, invoice_id) pk
 perf.achievement_kpi_adjust  id; achievement_id; kpi_id; mode ('include','exclude'); period_month date (for an include:
@@ -939,7 +1008,9 @@ plan of its own year, the KPI matched by code; for appraisal items tied to a dep
 `work.tasks_on_time` · `work.action_items_on_time` · `work.weekly_updates` · `work.meeting_notes_on_time` ·
 `report.on_time` · `work.pipeline_updates` (V63: per person per week, task updates + logged calls; a week counts when it
 reaches the appraisal item's weekly target, default 1) · `partner.calls` (by outcome) · `partner.at_risk` (partners
-turned at risk or lost, by reason) · `perf.escalations` (V69). Every finance measure takes an optional `segment`
+turned at risk or lost, by reason) · `perf.escalations` (V69) · `pipeline.tenders_submitted`, `pipeline.awarded_value`, `pipeline.tenders_by_stage`,
+`pipeline.opportunities_by_stage`, `pipeline.partnerships_signed` (V80, §3.7a). Every finance, pipeline and achievement
+measure takes an optional `segment`
 parameter (V64). Person scope on finance measures uses `finance.credit_row` shares. Measures name achievement
 categories by their **code**, which plan copies keep, so an April–March appraisal cycle counts the same category in
 both calendar years' plans.
@@ -962,6 +1033,9 @@ tests are made up):
   reads Finance only); logging it sets the partner to **Prospect** from the signing date unless it is already Active
   (one request, reason "MoU signed").
 - **Awards**: an optional entry cost (amount).
+- **Contract signed** (V80): counter-party (partner), the contract (link), signing date, value (amount, optional — not
+  revenue), the tender it came from (link, optional). "Government entity contracts" counts these with a
+  Government-segment partner, tender or not (`perf.achievements` with the `segment` parameter).
 
 **Challenges** stay open until resolved; their age is computed; a report lists every challenge open at its period's
 end — so they carry over without retyping (§10). A **critical** challenge records who it was escalated to and when
@@ -978,7 +1052,7 @@ the owner's My work.
 report.section_def   key pk; kind ('cover','kpi_tiles','kpi_month_additions','kpi_results','achievements_by_category','challenges','period_targets',
                      'operational_plan','revenue_by_service','cases','partners_at_risk','free_text'); params_schema; label_key -- synced from code
 report.template      STD SOFT DEPT; kind ('monthly','quarterly','yearly'); sections jsonb [{key, title_en, title_ar, params}];
-                     effective_from                                          -- "sections are a setting"
+                     print_languages text[] default '{ar,en}' (V76); effective_from          -- "sections are a setting"
 report.editor        (department_id, person_id) pk                          -- named report editors
 report.reviewer      (department_id, person_id) pk                          -- optional reviewers (the canvas's "Submit for review")
 report.report        STD SOFT DEPT; kind; period_start; period_end; plan_id; template_id; status ('draft','in_review','issued','superseded','legacy');
@@ -986,7 +1060,9 @@ report.report        STD SOFT DEPT; kind; period_start; period_end; plan_id; tem
                      legacy_tiles jsonb (a legacy report's headline figures, typed when it is loaded, so it can be compared);
                      legacy_pages jsonb (section_key → page of its PDF)
                      unique (department_id, kind, period_start) where status = 'issued'
-report.line          STD SOFT; report_id; section_key; category_id; text not null; sort; show_amount bool;
+report.line          STD SOFT; report_id; section_key; kind ('achievement','note') not null (V79); category_id; text_en;
+                     text_ar (V76; at least one); text_ar_draft bool (the Translate helper's draft, until the editor edits or
+                     confirms it); sort; show_amount bool (note lines: always false, no citations — check);
                      amount_source ('invoices','field'); amount_field_key (V67: a non-money amount summed from a field of
                      the cited achievements, e.g. avoided — shown labelled "not revenue")
 report.search_doc    report_id; section_key; line_id; tsv tsvector   -- V67: issued snapshots and their lines, `simple`
@@ -1009,9 +1085,21 @@ report.render        id; report_id; format ('pdf','pptx'); file_id; snapshot_sha
   (`kpi_results`: target, M1, M2, M3, quarter, year to date, status) · challenges (open and carried over; resolved this
   quarter) · next-quarter targets · operational-plan indicators (Done / Carried over). Both are settings; these are the
   starting templates.
-- **Lines.** An editor writes a line in their own words, citing one or more achievements and/or invoices; its amount is
-  the sum of the **distinct** invoices cited directly or through cited money-link achievements. The achievements
-  themselves never change (§3 Reports).
+- **Two kinds of line** (owner, 29 Sep — V79). **Any claim of work done is an Achievement line.**
+  - **Achievement line**: cites one or more achievements (and invoices), or is **typed in the report and creates its
+    achievement** in the same request (`api.report_add_achievement_line`: category, date, person, the category's
+    fields; evidence optional → "no evidence yet", V33), marked **added from report** (`origin 'report'`). The
+    achievement counts **once** in KPIs and appraisal however many lines cite it (appraisal still needs its date and
+    evidence — V68). Its amount is the sum of the **distinct** invoices cited directly or through cited money-link
+    achievements (or a labelled non-money field, V67). Citing an existing achievement never changes it.
+  - **Note line**: commentary only — never counts, cites nothing, carries no amount or count; a note whose text holds
+    a money figure (a number with SAR / ريال / ر.س) is refused with "use an Achievement line".
+- **Arabic** (V76). Lines draft themselves in both languages from the category's line templates and its Arabic labels.
+  For free text, a **Translate to Arabic** button uses the browser's built-in on-device Translator API (Chrome; free,
+  nothing leaves the device) to put a draft in the Arabic field, marked Draft until the editor corrects or confirms it;
+  the button is hidden where the API is unavailable. No paid translation service is used. Issuing refuses a line with
+  no text in a language the template prints (`report.template.print_languages`, default Arabic and English). Arabic
+  reports do not wait for the Arabic interface (P6-7).
 - **Review (optional, a setting per template).** An editor may submit a draft for review (`status 'in_review'`); a
   reviewer returns it with comments or approves it for issue. With review switched off, editors issue directly.
 - **Issue.** `api.report_issue(id, version)` builds the snapshot (every section's rendered text and figures, the plan
@@ -1200,6 +1288,9 @@ through `csvGuard` (CP5). An E2E test proves the exported row count equals the l
 | Sales by code | `finance.sales_by_code` | Never |
 | An achievement's avoided amount | its computed field (exposure − actual loss) | Never |
 | Calls and pipeline updates per week | `work.pipeline_updates`, `partner.calls` | Never |
+| A partner's display name | its trade name in the reader's language (V77) | Never — the names are typed, the choice is computed |
+| Partners that contributed to a KPI | `perf.kpi_partner_contribution` | Never |
+| Tenders submitted, awarded value, funnels | `pipeline.*` measures over `pipeline.stage_change` | Never |
 | Import counts | `io.batch.counts` | Yes — a record of what an import did, not a business figure |
 
 ### 3.13 Indexes and the performance budget
@@ -1237,24 +1328,42 @@ through `csvGuard` (CP5). An E2E test proves the exported row count equals the l
 
 ---
 
-## 4. Sign-in (§0, §10; V2 as amended by V59)
+## 4. Sign-in (§0, §10; V2 as amended by V59, V74, V75)
 
 **The rule.** No passwords. **The emailed 6-digit code is the door** (owner, 28 Sep — V59): one field for the work
-email, then the code, and a **Keep me signed in on this device** tick (30 days). Google (`@directksa.com`) and Zoom (`@directksa.net`)
+email, then the code. **A device stays signed in until the person signs out; a device unused for 30 days asks for a
+new code** (owner, 29 Sep — V74). Google (`@directksa.com`) and Zoom (`@directksa.net`)
 become optional shortcuts later, when their keys exist (V23). Every sign-in — whatever the door — lands on **one person
 record**; a door never creates a person.
 
-**The page says only this:** Direct's official logo; **Commercial Workspace** / **مساحة العمل التجارية**; an **EN | ع**
-language toggle; **© Direct**; and the form's own words — step 1: "Work email", **Send code**; step 2: "Enter the
-6-digit code", "Sent to o•••••@d•••.com · Change" (the email masked; Change goes back), six digit boxes, "Keep me signed
-in on this device", **Verify**, "Resend code" with its countdown. Nothing else — no tagline, no legal line, no hint text
-(V11, V59). The canvas's Main (email) and SignInCode artboards are the layout. Every refusal is one
-plain line in red: "This email is not on the list — ask an admin", "Your account is switched off", "The code has
+**The page** (owner, 29 Sep — V75) is split: the **form on the right** (left-to-right; mirrored in Arabic) and a
+**brand panel on the left** — Direct slate, a subtle flight-path pattern drawn from the logo's plane, the official logo
+and, under it, the **brand line**: EN "The commercial arm of the all-in-one travel app" / AR «الذراع التجاري لتطبيق
+السفر الشامل». On a phone the panel collapses to a top band. The artwork comes from the design session (Canva, then
+Figma — V82). **The page says only this:** the logo and brand line; **Commercial Workspace** / **مساحة العمل
+التجارية**; an **EN | ع** language toggle; **© Direct**; and the form's own words — step 1: "Work email", **Send code**;
+step 2: "Enter the 6-digit code", "Sent to o•••••@d•••.com · Change" (the email masked; Change goes back), six digit
+boxes, **Verify**, "Resend code" with its countdown. Nothing else — no legal line, no hint text (V11, V59). Every
+refusal is one plain line in red: "This email is not on the list — ask an admin", "Your account is switched off", "The code has
 expired — send a new one".
 
-**Keeping people signed in.** Ticked: the session cookie lives 30 days from sign-in, then the middleware signs the
-person out and asks for a new code. Unticked: the cookie ends with the browser session. (Supabase's refresh tokens do
-not expire on the free plan; the 30-day limit is enforced by the app, from the sign-in time kept in `core.sign_in_log`.)
+**Keeping people signed in** (V74):
+
+```
+core.device_session  id; person_id; auth_session_id uuid unique (the Supabase session — the JWT's session_id claim);
+                     device_label (browser and system, from the user agent); signed_in_at; last_seen_at; signed_out_at;
+                     signed_out_by; sign_out_reason ('person','admin','inactive','switched_off')
+```
+
+- A device stays signed in until sign-out. `authz.me()` answers only when the request's `session_id` maps to a live
+  device session — not signed out and seen within `auth.device_idle_days` (30); the middleware touches `last_seen_at`
+  at most once an hour. A device idle for longer is signed out as "inactive", and its next visit asks for a new code.
+- **My profile → Devices** lists the person's signed-in devices (label, signed in, last seen, "this device"), each with
+  **Sign out**, plus **Sign out everywhere else**.
+- **An admin can sign anyone out** — every device or one (Settings → Organization & access → the person); logged.
+- Signing out marks the row and deletes the Supabase session on the server (service key), so its refresh token dies;
+  `authz.me()` refuses at once, before the short-lived access token expires. (Supabase's refresh tokens do not expire
+  on the free plan; the idle rule is the app's.)
 
 **The mail sender.** Codes need a real sender before real users: Resend's free tier with its DNS records (V24). Until
 then, staging uses Supabase's built-in sender, which reaches only the Supabase account's own team — enough for the owner
@@ -1299,8 +1408,8 @@ email). `authz.me()` = the active person joined through `core.person_auth` on `a
    **before rendering** (A5); one browser client (A4). A signed-out deep link returns to the same address.
 8. **Every sign-in is logged** in `core.sign_in_log` (successes and refusals), readable in Settings → Activity by admins.
    Supabase's own auth audit log is kept as the second record.
-9. **Tested in CI** with the Supabase stack's mail catcher for codes, including the 30-day limit (a test clock) and the
-   unticked browser-session case. When the Google and Zoom keys arrive, each door is checked once on the cloud project
+9. **Tested in CI** with the Supabase stack's mail catcher for codes, including the 30-day idle rule (a test clock), a
+   device signed out from another device, and an admin's sign-out taking effect on the next request. When the Google and Zoom keys arrive, each door is checked once on the cloud project
    by a real `.com` and a real `.net` account, including "the Zoom email arrives verified and links to the existing
    user" — the one behaviour the documentation does not settle.
 
@@ -1379,12 +1488,17 @@ denied`; every table refuses direct writes; `anon` gets nothing; the grants snap
 ## 6. Screens (proposal for blueprint §7)
 
 Common to every area: list + 480 px detail panel, own URL per record, chips with counts, Export on every list, one tab
-row at most inside a detail, `<DataState>` everywhere, Undo on every toast, removal through the D19 box.
+row at most inside a detail, `<DataState>` everywhere, Undo on every toast, removal through the D19 box. Full pages use
+two columns with a properties rail, empty fields behind "+ Add", "Show all" on long histories, and every record opens
+full page (V81). Exports are unchanged for now — a data export on every list, the designed monthly and quarterly
+reports — and revisited later (V83).
 
 | Area (route) | List | Detail (one tab row) | Main actions |
 |---|---|---|---|
 | **My day** `/my-day` | Four blocks: **My work** (overdue, today, this week — tasks and action items I own, am assigned or help on; stale flags) · **Since your last visit** (counters, each a link: mentions, invoices paid, contracts expiring, KPIs behind pace, tasks updated; Mark all seen) · **My partners' activity** (new invoices and bookings, payments, overdue invoices, contracts expiring — since my last visit) · **My KPIs** (lead or contributor: pace light, year to date vs due, this month's addition) · **My appraisal** (private: cycle step, what is due from me) | — | Quick add task; mark action item done |
-| **Partners** `/partners/[id]` | Logo or monogram, name, roles (Client / Supplier / Strategic partner chips), category, tier, account manager, revenue this year, outstanding, contracts expiring, open tasks, last activity, last feedback, match issues. Chips: mine, role, **status** (Prospect · Active · At risk · Lost), **segment**, priority, category, tier, key partner, has outstanding, contract expiring, sent to legal, needs a decision; saved views; bulk actions incl. **Assign owner and priority** (V63) | **One tab row by role** (§3.4): Overview (status with its history and last feedback date, segment, period switch MTD · QTD · YTD · Custom, tiles against the same period last year, Q1–Q4 strip this year vs last, income by service, open tasks, recent achievements, linked records, identifiers with add / remove / history, KPI contributions) · Finance (invoices, months, collections; credit limit and outstanding against it, prepaid (wallet) balance, Sent to legal flags, codes with their terms; **Open in Finance** carries the filters) · Contracts & files (contracts with status and renewal actions; files under their computed names) · Work (projects, tasks) · Achievements — as the canvas's PartnerCard artboards | New partner; **Log call** (outcome, one click — V63); set status (with reason); add identifier; add role; upload logo; add contract; merge; set account manager (Settings rights); Follow |
+| **Overview** `/overview` (V80) | The executive view: Revenue · Cost · Profit, collections, new clients, tenders submitted, awarded value, partnerships signed, government entity contracts — period switch against last year; the tender and partnership funnels; a **segment switch** over everything; each tile links to its list | — | Period; segment; export |
+| **Pipeline** `/pipeline/tenders`, `/pipeline/partnerships` (V80) | Two boards (columns per stage, drag to move) and their list views; chips: stage, owner, partner, segment, due; saved views | Tender: partner (official name), Etimad reference, tender number, dates, value, awarded value, stage history, files, linked project and achievement. Opportunity: partner, kind, stage history, next step, expected value | New tender; new opportunity; move stage (with date; reason for Lost / Cancelled); Log achievement on Awarded / Signed |
+| **Partners** `/partners/[id]` | **Saved views across the top** (All · Clients · Suppliers · Strategic · Government; a default per person); visible chips **Role · Segment · Owner · Status** and one **KPI** chip (objective → KPI, period this quarter by default; partners that contributed); everything else under **More filters**; any combination saves as a view (V78). Columns: logo or monogram, trade name (V77), roles (Client / Supplier / Strategic partner chips), category, tier, account manager, revenue this year, outstanding, contracts expiring, open tasks, last activity, last feedback, match issues. More filters: mine, priority, category, tier, key partner, has outstanding, contract expiring, sent to legal, last feedback, needs a decision; bulk actions incl. **Assign owner and priority** (V63) | **One tab row by role** (§3.4): Overview (status with its history and last feedback date, segment, period switch MTD · QTD · YTD · Custom, tiles against the same period last year, Q1–Q4 strip this year vs last, income by service, open tasks, recent achievements, linked records, identifiers with add / remove / history, KPI contributions) · Finance (invoices, months, collections; credit limit and outstanding against it, prepaid (wallet) balance, Sent to legal flags, codes with their terms; **Open in Finance** carries the filters) · Contracts & files (contracts with status and renewal actions; files under their computed names) · Work (projects, tasks, tenders, partnership opportunities) · Achievements — as the canvas's PartnerCard artboards; official and trade names in the properties rail | New partner; **Log call** (outcome, one click — V63); set status (with reason); add identifier; add role; upload logo; add contract; merge; set account manager (Settings rights); Follow |
 | **Needs a decision** (a view of Partners) | Customer groups with row count and riyals at stake, candidates for conflicts | The rows, their clues | The decisions of §3.5 |
 | **Finance** `/finance/[view]` | Views: Overview (tiles: revenue, cost, estimate apart, margin, counted units; months; income by service; **by segment** (V64); what is held back and what fails a check) · Invoices (every kind and state; chips: Provisional, checks failing, no partner) · Collections (ageing, who to chase — on billing and standalone invoices; Sent to legal chip and note — V70) · **Sales by code** (code × month, partner or campaign, terms — V65; campaign codes listed apart); every filter lives in the URL (partner, period, kind, status, service …) so **Open in Finance** from a partner card lands on the same figures; **saved views** (personal or shared) and bulk actions on every list · **New invoice** (the fast entry screen of §7) · Imports (P7) | Invoice: header, lines, expenses (transactions), transactions and DPIN and receipts (billing), cost status, checks, partner and match level, credit (split), projects/achievements/report lines citing it, history | New invoice (Save and new, Duplicate); link transactions to a billing invoice; split credit |
 | **Projects** `/projects/[id]` | Number, name, company, owner, status, dates, linked revenue/margin | Overview (linked invoices and money) · Tasks · Achievements · Files · Timeline | New project; link invoices |
@@ -1394,8 +1508,9 @@ row at most inside a detail, `<DataState>` everywhere, Undo on every toast, remo
 | **Appraisal** `/appraisal/[id]` | My appraisals; my team's (reporting line); all (admins) | **Self-registration** first (V68): my achievements in this cycle, each completed or flagged "no date" / "no evidence" (those never count). Then the form as the official sheet: sections → groups → items (definition, unit, target, thresholds, actual with a "from the app" badge, self, manager, weight, %), competencies, comments, sign-off, summary with grade | Self-evaluate; evaluate; sign; lock (admin) |
 | **Settings** `/settings/[group]` | **My profile first** (every person, their own: photo or initials with a colour, full name, display name / nickname, badge — none, an icon from a set, or a zodiac sign — theme of four, density, language, start page, drawer pinned or collapsed, notification choices in-app / email), then the six groups of §4, each a page of forms driven by `setting_def` schemas and list-setting tables; Activity (the change log, filter and undo; the sign-in log) | — | Every setting changes with a reason and an effective date where it has one; profile changes save at once with Undo |
 
-**Sign-in** (`/sign-in`): exactly the words of §4 — logo, Commercial Workspace, EN | ع, email, code, keep me signed in
-30 days, © Direct — as the canvas's SignInCode artboard.
+**Sign-in** (`/sign-in`): exactly the words of §4 — the split page of V75 (brand panel with logo and brand line; the
+form with Commercial Workspace, EN | ع, email, code, © Direct). **My profile → Devices** lists signed-in devices with
+per-device sign-out (V74).
 
 Top bar: search and command palette (Ctrl K — pages, records through `api.search`, create actions), Create menu, bell (the notification centre: All · Mentions · Assigned to me, by day, mark all read, snooze — §3.3)
 (notifications; due items counted live), profile chip (avatar, nickname, badge) opening My profile (theme, density, language once Arabic is enabled,
@@ -1445,9 +1560,12 @@ Roles only set starting levels (D2); every cell can be changed per person. "✓"
 | · merge partners (`partners.merge`) | ✓ | ✓ | – | – | – |
 | · set status, bulk-assign owner and priority to partners with no revenue (`partners.assign` — V63) | ✓ | ✓ | ✓ | – | – |
 | · credit limits and Sent to legal (`finance.credit_control` — V70) | ✓ | ✓ | – | – | – |
+| · sign a person out of every device (`org.sign_out` — V74) | ✓ | – | – | – | – |
 | Finance (Own = enter invoices and edit your own entries — owner decision 4) | Full | Full | Full | Own | View |
 | · import files (`finance.import`, from P7) | ✓ | ✓ | – | – | – |
 | · split or reassign credit (`finance.credit`) | ✓ | ✓ | ✓ | – | – |
+| Overview (executive — V80) | Full | Full | View | – | View |
+| Pipeline (tenders, partnerships) | Full | Full | Full | Own | View |
 | Projects | Full | Full | Full | Own | View |
 | Tasks | Full | Full | Full | Own | View |
 | · assign to others (`tasks.assign`) | ✓ | ✓ | ✓ | – | – |
@@ -1482,7 +1600,7 @@ House rules ported from the old suite: one promise per test file, named as a sen
 (the printed figure), never on a word the fix might use; no fixed waits (web-first `expect`); test as a team member,
 not only as admin (CP10); a test that recorded a hole fails once it is fixed (M37).
 
-### 9.2 The propagation flows — the six of §1a, and four more
+### 9.2 The propagation flows — the six of §1a, and five more
 
 Common trial world (made-up): department Commercial; people **Admin**, **Head**, **AM1** and **AM2** (account managers,
 team members), **Editor** (report editor); company **Test Co A** with identifiers email `a@test.example` and name
@@ -1505,7 +1623,11 @@ the flow.
 | FLOW-05 | An achievement dated 3 Sep is logged; Editor issues the September report citing it; a manager then removes the achievement with a reason | K-B2B, partner card, AM1's appraisal and the **Q3 quarterly** draft update · the September report's snapshot hash is unchanged and it shows "1 figure changed since issue" · a correction is issued: new number `-C1`, the old one marked superseded, both readable |
 | FLOW-06 | FLOW-01's invoice is typed; Head changes K-REV's Q3 target 100,000 → 80,000 effective 15 Sep 2026, and switches the revenue definition to "margin" effective 1 Oct | pace and status recompute; the report draft tiles recompute; AM1's "Department revenue vs target" line rises from 11.5 % to 14.4 % of target (11,500 ÷ 80,000) · reading K-REV's target "as of 14 Sep" still returns 100,000 · the change log holds both changes with their effective dates · September still uses revenue, October uses margin |
 
-Plus four flows the blueprint, the finance finding and the owner's rules imply: **FLOW-10 live names** (V58: rename
+Plus five flows the blueprint, the finance finding and the owner's rules imply: **FLOW-11 a tender's life** (V80: a
+made-up Government-segment partner's tender moves Identified → Submitted on 10 Sep → Awarded 500,000 on 20 Sep; Q3
+"tenders submitted" rises by 1 and stays 1 if a second tender is later Lost; "awarded value" shows 500,000; Log
+achievement (Contract signed) raises "government entity contracts" by 1; the Overview with segment Government shows all
+three and the funnel; Undo of the award reverts every figure); **FLOW-10 live names** (V58: rename
 helper AM2's display name and partner Test Co A's name → the task, its helpers, the activity timeline, the
 notifications, the file names, the partner card and an **issued** report's screen and PDF all show the new names, and
 the issued report's hash is unchanged); **FLOW-09 billing and the tax invoice** (two made-up
@@ -1534,7 +1656,14 @@ days when set; the first reminder makes one renewal task; terms before → after
 achievement) · `ALR-*` (each alert fires once per day per person, links to its record,
 respects its setting; snooze hides until the time) · `FILE-*` (the display name follows the pattern and the linked
 records live; a rename renames; the download carries it; unsafe characters replaced) · `VIEW-*` (saved views personal
-and shared, restored from the URL) · `BULK-*` (one request, one Undo) · `PST-*` (V62: status history read as of a date; at risk and lost need a reason; the at-risk chip; the report section's
+and shared, restored from the URL) · `BULK-*` (one request, one Undo) · `DEV-*` (V74: idle 30 days → new code; per-device and admin sign-out refuse the next request) · `NAME-*` (V77: the
+trade name shows everywhere; the official name on a contract file and a tender; editing a name re-points its identifier in
+one request) · `ARB-*` (V76: a list entry without its Arabic label is refused; a category's Arabic template drafts the
+line; the Translate button is absent when the browser has no Translator API) · `RLINE-*` (V79: an achievement typed in a
+report exists once, marked added from report, and counts once; a note line with a money figure is refused and never
+counts) · `PVIEW-*` (V78: the KPI chip keeps exactly the partners in the KPI's drill-down for the period; a saved
+combination reopens from its URL; each person's default view) · `PIPE-*` (V80: stage history, reasons for Lost and
+Cancelled, Signed sets Active with one Undo, the measures by period and segment) · `PST-*` (V62: status history read as of a date; at risk and lost need a reason; the at-risk chip; the report section's
 counts by reason) · `PROS-*` (V63: bulk assign is one request and one Undo; a manager cannot reassign a partner with
 revenue; Log call on a partner with no task lands on its timeline; the week's pipeline count feeds the appraisal item) ·
 `SEG-*` (V64: invoice → project → partner resolution; revenue by segment adds up to the revenue tile) · `CODE-*` (V65:
