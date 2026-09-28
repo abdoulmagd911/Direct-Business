@@ -109,7 +109,7 @@ personal email. Disagreements keep both values and flag. Every merge writes a
      "JOSOOR TRAVELS AGENCY" whose Arabic legal name is a construction contractor, and
      الماهر الماسي transport vs travel (two sister companies, not branches).
   5. **1,292 rows were people, not companies** — records created by grouping personal
-     email addresses (`19meshari@gmail.com`), including 25 grouped under "Gmail",
+     email addresses (a personal Gmail address), including 25 grouped under "Gmail",
      "Yahoo" and "Hotmail" as if those were company names. Moved to their own tab.
   6. **17 rows are not travel businesses at all** — Al Rajhi Bank, stc Bank, hospitals,
      L'Azurde, Johnson Controls. Real companies with a staff travel desk: corporate

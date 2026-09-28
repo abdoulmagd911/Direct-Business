@@ -276,13 +276,13 @@ never heard of now sorts after everything rather than nowhere.
 
 **2. Sorting by Client name ordered by a name the reader cannot see.** The rows show the Arabic name
 when there is one (js/54's `nmMain`), but the sort key was always `b.name`, the stored English one. In
-Arabic the list read *Abdel Hadi… / Al Sharq… / مؤسسة العرض… / نادي الجندل… / alnahla…* — Arabic names
+Arabic the list read *Amber Holding… / Al Waha… / مؤسسة الواحة… / نادي النخبة… / albustan…* — Arabic names
 sitting in the middle of a Latin alphabetical run. Nothing on screen explained the order, because the
 order was of something else entirely.
 
 Fixed: it sorts by the name actually on the row, with `localeCompare` in the language being read.
-Verified live: Arabic now opens الإدارة العامة… / الغرفة التجارية… / الهيئة العامة… / بايزووتر… /
-بنشمارك…, and English is unchanged. Numbers now count as numbers too, so "company 4" precedes
+Verified live: Arabic now opens الإدارة المركزية… / الغرفة الذهبية… / الهيئة الوطنية… / باب الشرق… /
+بوابة النخبة…, and English is unchanged. Numbers now count as numbers too, so "company 4" precedes
 "company 12".
 
 **Probe:** `probe-client-table-sorts-by-what-you-see` (port 9076, 10 checks). The harness seed has no

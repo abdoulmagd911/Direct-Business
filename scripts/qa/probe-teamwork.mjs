@@ -4,7 +4,7 @@
 import { openApp, signIn, ready, go, TEAM } from './emp-rig.mjs';
 
 const LOG = []; const STEP = (n, ok, d = '') => { LOG.push(`${ok ? 'PASS' : 'FAIL'} · ${n}${d ? ' — ' + d : ''}`); console.log(LOG[LOG.length - 1]); };
-const HANDOVER = 'Lammah Tech';          // Raad's lead, handed to Assem and back
+const HANDOVER = 'Nimbus Tech';          // Raad's lead, handed to Assem and back
 
 /* ---------- 1. hand a lead over ---------- */
 const raad = await openApp(9500);
@@ -49,8 +49,8 @@ const arrived = await assem.page.evaluate(n => {
 STEP('it now appears in Assem\'s "Mine" when he signs in', arrived);
 
 /* ---------- 2. two people working at the same time ---------- */
-const A = 'Rimal Najd Contracting';   // Raad's
-const B = 'Itqan Facilities Management'; // Assem's
+const A = 'Dune Contracting';   // Raad's
+const B = 'Precise Facilities Management'; // Assem's
 const stampR = 'Raad note ' + '2026-08-13a';
 const stampA = 'Assem note ' + '2026-08-13a';
 

@@ -2,7 +2,7 @@
 
    Where this came from. The Aug-12 audit purged wallet top-ups from Finance entirely — they
    are not Direct's revenue, so they were deleted from the ledger and the importer now skips
-   them. That stands. What was still missing: the proof itself. When MDD (a prepaid client)
+   them. That stands. What was still missing: the proof itself. When Client M (a prepaid client)
    tops up its wallet, someone at Direct Payments still needs the bank-transfer screenshot on
    file for audit — and today that file, if it exists anywhere, is loose in an inbox. This
    chapter is that file cabinet, and nothing else.

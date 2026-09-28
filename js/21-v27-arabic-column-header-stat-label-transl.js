@@ -749,9 +749,9 @@
     var t=(h.textContent||'').trim(); if(!t)return;
     if(TITLE_WHOLE_AR[t]!==undefined){ setText(h,TITLE_WHOLE_AR[t]); return; }
     /* Match the KNOWN prefixes against the start of the title, rather than splitting on the first
-       separator: "Chain of command - Mawani — Saudi Ports Authority" separates with a hyphen and then
+       separator: "Chain of command - Acme — Head Office" separates with a hyphen and then
        contains an em-dash inside the company's own name, so splitting on the first em-dash produced
-       the prefix "Chain of command - Mawani" and matched nothing. Measured, fixed, re-measured. */
+       the prefix "Chain of command - Acme" and matched nothing. Measured, fixed, re-measured. */
     var keys=Object.keys(TITLE_PREFIX_AR),i;
     for(i=0;i<keys.length;i++){
       var pre=keys[i], seps=[' — ',' - '],s;

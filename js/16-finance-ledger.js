@@ -718,7 +718,7 @@ try{window.finInPeriod=finInPeriod;window.finPeriodLabel=finPeriodLabel;}catch(_
    Payments). `finance_client_links` maps each group to ONE real client (business_id), to
    Individuals, or to nothing yet. finCanon() collapses every group that points at the same
    client into a single canonical row, so the client reports stay correct after two spellings
-   of the same company are linked (e.g. "Ma'aden" + "Maaden Co" become one client). The
+   of the same company are linked (e.g. "Acme" + "Acme Co" become one client). The
    row-level Ledger deliberately stays on the raw group — it is an invoice list, not a rollup.
    Cache is rebuilt each finance render (clearFinCanon) since a mapping edit reloads FIN. */
 var _finCanonCache={};

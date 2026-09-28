@@ -250,7 +250,7 @@ def _(cur):
     r = one(cur, "insert into reports(kind,period_id,status,snapshot,issued_at,issued_by) values ('monthly',%s,'issued','{}',now(),%s) returning id", (F['apr26'], F['m4']))
     ok, m = expect_fail(cur, "insert into reports(kind,period_id,status,snapshot,issued_at,issued_by) values ('monthly',%s,'issued','{}',now(),%s)", (F['apr26'], F['m4']), "reports_one_live")
     ok2, m2 = expect_fail(cur, "insert into reports(kind,period_id,status,snapshot,issued_at,issued_by,supersedes_id) values ('monthly',%s,'issued','{}',now(),%s,%s)", (F['apr26'], F['m4'], r), "correction_needs_note")
-    q(cur, "insert into reports(kind,period_id,status,snapshot,issued_at,issued_by,supersedes_id,correction_note) values ('monthly',%s,'issued','{}',now(),%s,%s,'Fixed MDD figure')", (F['apr26'], F['m4'], r))
+    q(cur, "insert into reports(kind,period_id,status,snapshot,issued_at,issued_by,supersedes_id,correction_note) values ('monthly',%s,'issued','{}',now(),%s,%s,'Fixed Client M figure')", (F['apr26'], F['m4'], r))
     st = one(cur, "select status from reports where id=%s", (r,))
     return (ok and ok2 and st == 'superseded', f"{m} | {m2} | old report now {st}")
 @test("A17 Issued snapshot doesn't move when Finance re-imports a changed invoice")

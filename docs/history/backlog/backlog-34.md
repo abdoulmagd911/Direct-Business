@@ -92,7 +92,7 @@ for approval → deploy → delete the old layers that page no longer needs):
    Lost chip. LIVE TEST DATA now: 11 clients / 7 leads / 15 invoices / 4.59M SAR
    incl. tender-in-proposal (Client RC), supplier-partner (Amadeus), lost
    agency with comeback note (Elite Holidays), partial payment with 40K outstanding
-   (Benchmark) — undo via source_batch='lifecycle rehearsal' + legacy_id lc_*.
+   (Client BM) — undo via source_batch='lifecycle rehearsal' + legacy_id lc_*.
    NOTE: the QA mocks mirror only part of this richer live set — next session may
    re-sync scripts/qa/mock-seed.mjs if screen-accurate counts matter.
    BILLING ACCOUNTS (owner explained, 08-10): one real company can be registered

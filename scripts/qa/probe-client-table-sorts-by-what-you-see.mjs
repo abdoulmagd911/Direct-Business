@@ -12,8 +12,8 @@
    nowhere.
 
    NAME — the rows show the Arabic name when there is one (js/54's nmMain), but the sort key was
-   always b.name, the stored English one. In Arabic the list read Abdel Hadi… / Al Sharq… /
-   مؤسسة العرض… / نادي الجندل… / alnahla… — Arabic names sitting in the middle of a Latin run,
+   always b.name, the stored English one. In Arabic the list read Amber Holding… / Al Waha… /
+   مؤسسة الواحة… / نادي النخبة… / albustan… — Arabic names sitting in the middle of a Latin run,
    ordered by something the reader cannot see. It sorts by the name on the row now, with
    localeCompare in the language being read.
 

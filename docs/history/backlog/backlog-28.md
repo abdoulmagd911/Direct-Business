@@ -125,7 +125,7 @@ done. What held, what didn't, and what changed:
 active — the owner created them himself on 2026-08-26 (Client M, Client Q, Client R); Public
 Security and Client RC are single groups, no action needed, as decided. The M15 capture
 tables are in real use (223 expense lines / 155 gate rows across 75 transactions). The oversight
-session's single-invoice test (1163605511) that was the M16 blocker now carries a real cost,
+session's single-invoice test (1160000108) that was the M16 blocker now carries a real cost,
 written after M16 deployed — the real-data confirmation this project was waiting on has
 actually happened. Live money invariants over all 46 invoices: cost never exceeds total,
 revenue = total − wallet and profit = revenue − cost on every row, zero Takamol rows, zero
@@ -147,10 +147,10 @@ assumption/test data with 4 leads / 6 clients — it holds real data, 80 leads /
 corrected so rule 7 is read against reality.
 
 **For the owner — data, his call, not touched (D1).** The two Client M spellings are linked to TWO
-different company records: "Client M" and "Client M — Smart Madad IT" — a duplicate business, which is
+different company records: "Client M" and "Client M — (its full IT-company name)" — a duplicate business, which is
 why the Arabic spelling auto-matched to the second one. Display merges them (alias map), the
 client card and sector do not. Also, the alias group's canonical name is "Client M", not the
-"Client M - Smart Madad IT" the owner decided on 2026-08-25 — possibly deliberate; one Undo + Add
+"Client M - (its full IT-company name)" the owner decided on 2026-08-25 — possibly deliberate; one Undo + Add
 fixes it if not. Both need a human decision about which record is the real Client M.
 
 **Still open, unchanged.** The repository is still PUBLIC (checked directly), so the real

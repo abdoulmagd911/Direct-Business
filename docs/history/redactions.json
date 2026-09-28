@@ -1,0 +1,313 @@
+{
+ "note": "Lines of the old files that the word-for-word archives carry CHANGED, and only these (CLAUDE.md rule 7: the repository is public; real client names and real invoice numbers were taken out on 2026-09-28). Each entry: the old file, the line number in it, the SHA-256 of the line as it was, the line as it is now, and why. scripts/docs/archive-docs.mjs applies them; scripts/qa/check-docs-moved.mjs proves the archive is the old file with exactly these lines replaced and prints every one.",
+ "lines": [
+  {
+   "file": "docs/BACKLOG.md",
+   "line": 6390,
+   "was": "d4b13f6bd1f0318fa1feabef753faeb4bf4c1407032e2bef5d1bb34f74807629",
+   "now": "Arabic the list read *Amber Holding… / Al Waha… / مؤسسة الواحة… / نادي النخبة… / albustan…* — Arabic names",
+   "why": "client names in an example list"
+  },
+  {
+   "file": "docs/BACKLOG.md",
+   "line": 6395,
+   "was": "eea5a7cd8bafba7c9e7d0c11af14932f48a8b4828cf51f91896e27221d75a0b4",
+   "now": "Verified live: Arabic now opens الإدارة المركزية… / الغرفة الذهبية… / الهيئة الوطنية… / باب الشرق… /",
+   "why": "client names in an example list"
+  },
+  {
+   "file": "docs/BACKLOG.md",
+   "line": 6396,
+   "was": "04bf179893657371401045fd7a2bd76fa1dc51d86dc1c45eed8adb2599fd2476",
+   "now": "بوابة النخبة…, and English is unchanged. Numbers now count as numbers too, so \"company 4\" precedes",
+   "why": "client names in an example list"
+  },
+  {
+   "file": "docs/BACKLOG.md",
+   "line": 7571,
+   "was": "29f56f47570920889092697853f796032017a3e49dcd745b2afd643a5ba4e945",
+   "now": "seed (ids like b_demo01), not real rows — the real 108 arrive only with a session.",
+   "why": "a demo id named after a client"
+  },
+  {
+   "file": "docs/BACKLOG.md",
+   "line": 12579,
+   "was": "457bd800a6b89297503a4a1921954a20cd2d137f0fa6dc539ea91a0e21eebdf3",
+   "now": "session's single-invoice test (1160000108) that was the M16 blocker now carries a real cost,",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/BACKLOG.md",
+   "line": 12601,
+   "was": "c5c860c626108417efb5d402f75d5da794a01def3d7ab5206fcf4ec64d088841",
+   "now": "different company records: \"Client M\" and \"Client M — (its full IT-company name)\" — a duplicate business, which is",
+   "why": "the rest of a client name"
+  },
+  {
+   "file": "docs/BACKLOG.md",
+   "line": 12604,
+   "was": "554c6f7721a63173427afe16d6def9e9e22e83e8c32c801350ceae43e870223b",
+   "now": "\"Client M - (its full IT-company name)\" the owner decided on 2026-08-25 — possibly deliberate; one Undo + Add",
+   "why": "the rest of a client name"
+  },
+  {
+   "file": "docs/BACKLOG.md",
+   "line": 14067,
+   "was": "93073a6833beeefee75fefdca536166da77d29c23bfebe5a4eae30aa4d73fb88",
+   "now": "Client RC three times (two seeded ids both duplicated the one real \"Client RC\" row).",
+   "why": "a client name"
+  },
+  {
+   "file": "docs/BACKLOG.md",
+   "line": 14079,
+   "was": "6ab8f0cc748e88c95ba6612291a2eeeec905f057779e08994bf45aa1eb2e80e3",
+   "now": "needs to be entered for real, through the UI, by a person who confirms it first: **a forum organiser",
+   "why": "a client name"
+  },
+  {
+   "file": "docs/BACKLOG.md",
+   "line": 14080,
+   "was": "d986255a02ffdf6a628d3560af3fbe8ea66e5c07470b35e0d4ae8c3c0652eca2",
+   "now": "(its name taken out of this public file on 2026-09-28)** — segment \"Forum/event\", entity type \"Government",
+   "why": "a client name"
+  },
+  {
+   "file": "docs/BACKLOG.md",
+   "line": 15357,
+   "was": "96ca54bb77d926a31801677eb8dbdc05e14ab7869c26c03a65827bdffe6dc902",
+   "now": "   (Client BM) — undo via source_batch='lifecycle rehearsal' + legacy_id lc_*.",
+   "why": "a client name"
+  },
+  {
+   "file": "docs/BACKLOG.md",
+   "line": 15875,
+   "was": "d85668aff4ca1b974f34f31c05a101df10c1e185a516a14b7c1aee8d1d88e65e",
+   "now": "| `b_client_k`, `b_client_ml`, `b_takamol`, `b_client_u` | |",
+   "why": "an id named after a client"
+  },
+  {
+   "file": "docs/DECISIONS.md",
+   "line": 512,
+   "was": "ac4c1c4c63b0ac440347dd4e09209b01905db39ff60b7fe5f73092d4f0890421",
+   "now": "the IT-services client case: the 2026-08-21 corporate-clients import created \"the IT-services client\" beside the older \"the IT-services client — (its full",
+   "why": "the rest of a client name"
+  },
+  {
+   "file": "docs/DECISIONS.md",
+   "line": 513,
+   "was": "abb000d08114c549d75504018bac8d9b24f32ebbf1141f33f8866e77875362c8",
+   "now": "IT-company name)\". The alias map (M14) merged the DISPLAY, but contacts, activities, billing",
+   "why": "the rest of a client name"
+  },
+  {
+   "file": "docs/DECISIONS.md",
+   "line": 3363,
+   "was": "2a2e92b5333bf28db582a5534ae8d51f867dd356dae7780a2263f963f1732dd8",
+   "now": "are the demo records hardcoded in core-01 (\"Falcon Conferences Group\", ids `b_demo01`, `b_demo02`)",
+   "why": "demo ids named after clients"
+  },
+  {
+   "file": "docs/DIRECT_MASTER_BRIEF.md",
+   "line": 131,
+   "was": "57b78c7c54b879be32028a10806ed1f4c7d603f4cf0f2cbfd41f8532a15cde31",
+   "now": "**Tabs and screens.** Today (the home tab — greeting, four big action cards for +New Lead / +New Offer / Open my queue / Find a client, plus attention strips). Leads (list, board, and detail view with chain-of-command, work log, smart suggestions, and a needs-attention counter). Clients (list plus the KSA onboarding modal covering CR, VAT, IBAN, signatories, documents, whitelist, and pricing scheme, plus chain-of-command). Projects (for multi-trip engagements — seeded with real trips including Osaka, Lisbon, DC, London, USA, Morocco, Amman, Clock Towers Makkah, Iftar Ramadan). Offer Builder (bundle services, add freebies, send-for-review opens email plus WhatsApp). Airlines (all carriers with an NDC matrix per airline — 119 airlines seeded). Providers & GDS (the six modelled providers plus others). Sync & Integrations (health overview, per-source cards, conflict queue, and links to the legacy dashboards on Manus and Lovable). Reports (achievements log plus 14 objectives, 25 KPIs, and 12 initiatives from the Commercial Department 2026 Operational Plan). Bookings / Invoices / Tickets (read-only mirror of Direct Payment with a banner \"Synced from the Direct system — read-only · Open in Direct\"). More (Activity & Audit, Archive, SOPs, SLAs). Settings (daily-use cards on top; advanced controls collapsed).",
+   "why": "a client name"
+  },
+  {
+   "file": "docs/DIRECT_MASTER_BRIEF.md",
+   "line": 257,
+   "was": "f94f71f9d485d8a178cb87b05f28052a167f984380c4c66a1d51bcadff0fd704",
+   "now": "**Service-Fee Proposals** are the single most important client-facing artefact Direct produces. They tell a prospect what Direct charges per service type (flights, hotels, transport, visa, conferences, MICE), with bilingual line items, segmentation by transaction band (fewer than 100 tx/month, 100–500, 500–1,000, over 1,000), and value-add notes. Sales lives or dies on these decks. The library holds 18 PowerPoints in 08_Quotations_Tenders/Proposals/ — five named for prospects, and a General blank master. Every deck follows the same six-slide anatomy: cover with Direct logo, client logo, proposal title, year, contact; About Direct with CR, VAT, IATA Wakeel, IBAN, location, contact block; one slide per service type with the transaction-band-to-fee table; closing SLAs and signoff. Output: PPTX editable plus PDF locked, one click each. Language: AR plus EN paired siblings. Frequency: on-demand, generated when a lead reaches the \"send pricing\" stage, refresh annually per client. Audience: prospect's procurement or decision maker. Missing today: a per-client serviceFeePricing entity with per-service-type bands, AR/EN parallel pricing strings, and a per-client pricing override.",
+   "why": "client and prospect names"
+  },
+  {
+   "file": "docs/DIRECT_MASTER_BRIEF.md",
+   "line": 259,
+   "was": "4da53d5ea3ca53d19e4aff14b03dfcadc97c52f9b1b1bdb1593b5643cfe370b7",
+   "now": "**Client Proposals / Quotes / Tenders** are project-level quotes for a specific trip, event, or tender. Distinct from service-fee decks: those are \"what we charge per booking\"; these are \"for this specific project, here's the all-in price.\" The library holds 126 files across 08_Quotations_Tenders/ plus the per-client folders in B2B & Bidding/ (a sports training camp abroad, one client's multi-city trips, a university, formal Saudi tender responses with SR_ prefix). Anatomy: cover with project name plus dates plus destination plus client logo; project brief; itinerary slides per leg with flights, hotel, ground transfers, day-by-day; hotel options (typically three — Economy / Standard / Premium — with photos and per-room rate); flight options; ancillaries (visa support, insurance, conference room, banquet, transport, gifts); pricing summary per pax times pax count equals grand total, with Arabic-Indic and Western numerals; terms (cancellation, deposit, payment milestones, validity until); signature/approval block. Missing today: a project container that groups multiple bookings and ancillaries into a single quote, per-option side-by-side hotel/flight rendering, a cancellation-terms catalog. Output: PPTX plus PDF plus a one-page WhatsApp share card. Versioning writes new revisions so R1, R2, R3 chain matches the WhatsApp share history.",
+   "why": "client and prospect names"
+  },
+  {
+   "file": "docs/DIRECT_MASTER_BRIEF.md",
+   "line": 263,
+   "was": "1bacda49cd876ad22b4d0018e683bdcf7fa57a85fde0cead8839fa550237e102",
+   "now": "**Sales / Income Reports** are the monthly leadership update — a monthly deck for the CEO/board plus a deeper quarterly retrospective. Ahmed regenerates these by hand every month. Biggest single time sink in the library. 55 files in 06_Sales_Income_Reports/Reports/, split between 2024 and 2025, plus a Reports/Reports/ subfolder for sub-team variants — Business Department January through December, Business Department 4th Quarter, BD Q1, Commercial report 2nd Q 2025, تقرير قسم التطوير العملاء 2024 (per-client Arabic annual), تقرير قطاع تطوير الأعمال Q2 2024, per-client Arabic reports, Dubai ATM trade-show retros, BSolutions RateHawk vendor reports, 2025-H1-Overall EN summary, 2025 achievements deck, 2025 opportunities register XLSX. Typical monthly deck: cover, executive summary (revenue, profit, new clients, top three wins, top three losses), revenue split by service type, revenue split by client tier and top-N clients, pipeline status, AR aging snapshot, BSP/virtual-card spend, new client onboarding, lost/dormant clients, vendor performance (provider mix, NDC penetration), project pipeline, next-month priorities. Have today: every transactional fact needed for all 12 slides. Gaps: no PowerPoint output path — either render via python-pptx (Cowork side-tool) or as a printable HTML \"deck view\" styled for A4/16:9; no month-close snapshot; no per-client report variant; no per-event retro (Dubai ATM, multi-trip project retros); no per-vendor performance report.",
+   "why": "client and prospect names"
+  },
+  {
+   "file": "docs/DIRECT_MASTER_BRIEF.md",
+   "line": 265,
+   "was": "eed89cc5af26b11497f516564ee45582dd3898907342afa5bd8bc06fdfcce5f0",
+   "now": "**Expense Reports / Reconciliation** are the cost side of every booking. Each booking has a cost line that goes through BSP (IATA via Amadeus), virtual card (SiFi/Moola), client wallet, or bank-transferred vendor payment. Library dominated by daily card-statement exports — 38 files in 05_Expense_Reports/. Anatomy of a typical Expense Excel Report: date, card last-4, merchant, MCC, authorisation ID, amount SAR, currency if foreign, FX rate, settlement amount, status Posted or Pending, notes. Have today: v22 expense entity, FOP enum, per-card transaction model implicit. Gaps: no reconciliation report that takes a SiFi or BSP statement (XLSX import) and matches each line to a database expense — this is the headline reconciliation gap Ahmed presumably does in Excel today; no \"expense per project\" roll-up for multi-trip project closeout; no FX handling visible in the current entity.",
+   "why": "client and prospect names"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 120,
+   "was": "30488ceaaaa395555387c3ecbe15065639bee769aecedad9a65c0483238795f5",
+   "now": "references into a tax-invoice total.** Refs `1160000124` (74,820.85) and `1160000116`",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 121,
+   "was": "ae28115ee2f281579696f14f6ab35e896f272613561a2436aa75ee7a51159bb7",
+   "now": "(33,887.99) are **VOID transactions**, not invoices at all; refs `1160000118` (36,067.00) and",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 122,
+   "was": "10fe21211fc88da8312de5ab57015683d40783e816876a7cebcb6bbed8270cca",
+   "now": "`1160000122` (375.00) are live transactions still at \"Published - Pending Payment\" — **none",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 162,
+   "was": "0330a55b0fddc409df2e1c8e75fe6165643c8d939cfe1113f0368f663c6349c9",
+   "now": "real client's own Transactions table:** Client PS had 8 separate",
+   "why": "client names"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 163,
+   "was": "c780e1d145cc2a7f368c90f534f23c494eb5d7789f648bb7839eeb7f1d58c738",
+   "now": "transactions all marked \"Issued 1160000125\": 757.15 + 257.00 + 1,149.00 + 8,800.00 +",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 164,
+   "was": "33eb0aab17deec2bf9df93cd7ac1974e8a297fbae122f9b9c655ddfc2f47e708",
+   "now": "7,324.35 + 18,050.00 + 13,400.00 + 25,840.50 = **75,578.00 SAR — matching invoice 1160000125",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 165,
+   "was": "646127b034b847e9dcf936d2238dc64a0d7799cbfe260ce8da3e02bdd5a80175",
+   "now": "(DPIN-900003) exactly.** Client S: 2,250 + 2,050 = 4,300, matching invoice 1160000115.",
+   "why": "client names + real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 173,
+   "was": "a6d425d941dd82764715d679a58419ff73ee978a0d2d5769fbcefee94ca2d497",
+   "now": "- `1160000120` — charged 120,091.89, its \"3rd Party Fee\" item reads 120,090.74, and the real",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 175,
+   "was": "917740d4cf599cc6e8aeffc7a2357ac1036a65c99e3a6b66848c6010dde63d3d",
+   "now": "- `1160000114` — charged 2,250.00, its \"3rd Party Fee\" item reads only 50.00, but the real",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 197,
+   "was": "73cd04cbcefd7de8b6ee7604edbfa7f3bf6f575141784905231b1c1bc240c2ed",
+   "now": "| 1160000115 | 4,300.00 | 4,108.80 | 191.20 | 4.4% |",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 198,
+   "was": "49e402d8729424cc0613381a92ee7be032b66048fd9675f422aee3c9f3a53f1c",
+   "now": "| 1160000127 | 8,983.00 | 8,379.12 | 603.88 | 6.7% |",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 199,
+   "was": "8d9a1c21289aab925d40c70953ff9ec9e3335346c1f0e16a0c8fbf566ec58b3d",
+   "now": "| 1160000117 | 24,800.00 | 23,686.08 | 1,113.92 | 4.5% |",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 200,
+   "was": "ed5110c90a0e64a8d17d08e765143c21eacb7d08fc29106c0a8a8488ee8e75df",
+   "now": "| 1160000128 | 42,685.00 | 42,354.00 | 331.00 | 0.8% |",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 201,
+   "was": "499a1db39361c3007fafd0f27c4b34334dd1b19d1bf23cf4f0c1c91d6836b678",
+   "now": "| 1160000121 | 423,347.00 | 333,537.53 | 89,809.47 | 21.2% |",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 203,
+   "was": "3ab960e827112db2079cf37b96d013373b1c3042ca7575af7a969bef25decebe",
+   "now": "Inside invoice 1160000127, one of the transactions behind it is actually a **loss**: tx",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 204,
+   "was": "e4e492cfdb313133ee470f6eec936de501863ea7c15ded21987b42c4562ca855",
+   "now": "`1160000126` charged 846.00 but its approved cost was 871.26 — a **−25.26 loss**, invisible",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 211,
+   "was": "52a70287164b54f6594757f0d3ddcfbb526e7699a3b50f3b82ea3bed278eceef",
+   "now": "`1160000132` (Direct Visa, 5,600.00, with a matching 5,600.00 approved expense — margin",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 212,
+   "was": "dcfd885cbd981082f713bbfa8c702f9b9e5316e0ec34a12231b7209338dca7ab",
+   "now": "**zero**) became invoice `1160000133`; `1160000131` (Direct Support, 2,944.00, with its",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 214,
+   "was": "facd67675afb9c30ad61cd772ddddd5fb55d4ca57c3095ba9e86164317ae4003",
+   "now": "`1160000134`. The same pattern repeats at `1160000130`/`1160000129`. **The cost sat on one",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 222,
+   "was": "db1e3172b9377d618df359705ae985cb504afff3f0a23148a3d6f8b9350a02b9",
+   "now": "- **(b)** That same page also only lists **Fully Paid** invoices. Transaction `1160000123`",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 229,
+   "was": "0151c6af47a39a2ba0db317f9733cf543c2827ade38b0e822ead7d3a42144c0c",
+   "now": "  `1160000115` finds nothing; searching the transaction number `1160000114` finds the real",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 239,
+   "was": "8c3446aef0c8056957459062783d172998a5d6021ef31b5759f4fd5e86117d0e",
+   "now": "  value as INVOICE # on the expense-report page — same number space (e.g. 1160000135 vs",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 240,
+   "was": "e3502f08258fdee66f0e0b57b5e7a24f2f52c64733dbc9421b9bea2511a808e1",
+   "now": "  1160000106), not yet proven on a matched pair. Treat any join between the two as a claim to",
+   "why": "real invoice/transaction numbers"
+  },
+  {
+   "file": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
+   "line": 246,
+   "was": "90a43b305d8d02555cb70ec04e27800e396195ae9c46a78eda9db20cdff6f9d5",
+   "now": "  more than one invoice can carry the same one (DPIN-900004 appears on two different",
+   "why": "real invoice/transaction numbers"
+  }
+ ]
+}
