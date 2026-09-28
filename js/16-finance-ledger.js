@@ -1473,7 +1473,9 @@ function rOverview(){
   var _cy=String(todayISO()).slice(0,4), _chY=(FIN.p&&FIN.p.year&&FIN.p.year!=='all')?String(FIN.p.year):_cy;
   var _chV=(FIN.p&&FIN.p.year&&FIN.p.year!=='all')?V:verified().filter(function(r){ return String(finYearOf(r))===_chY&&finPeriodMatch(r,{year:_chY,part:(FIN.p&&FIN.p.part)||'all'}); });
   _chV.forEach(function(r){var k=r.month||'?';if(k==='?')_noMonth++;by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;by[k].p+=+(r.profit_sar||0);});
-  if(_chY===_cy){ var _mNow=+String(todayISO()).slice(5,7); MO=MO.slice(0,_mNow); }
+  /* …up to this month — or to the last month that has invoices, if one is dated later (a future-dated invoice stays visible,
+     so the chart always adds up to the Revenue tile) */
+  if(_chY===_cy){ var _mNow=+String(todayISO()).slice(5,7), _mLast=0; MO.forEach(function(m,ix){ if(by[m]&&(by[m].r||by[m].p)) _mLast=ix+1; }); MO=MO.slice(0,Math.max(_mNow,_mLast)); }
   /* 2026-09-03 (watch cycle 23): draw EVERY month, not only the ones with business in them.
      Filtering to months that have rows put January, February, May and December side by side as
      four adjacent bars — a year with two long silences in it read as four consecutive months, and
