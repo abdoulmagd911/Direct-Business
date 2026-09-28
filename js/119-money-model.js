@@ -88,7 +88,7 @@
       if(!nm){ say(fl('Type the item name first.','اكتب اسم البند أولًا.')); return false; }
       client().from('money_item_classes').insert({name:nm,class:cl,note:no||null}).select('id').then(function(r){
         var m=refused(r); if(m){ say(/one_live/.test(m)?fl('That item name is already on the list.','اسم البند هذا موجود في القائمة.'):m); return; }
-        try{ closeModal(); }catch(_){} IC.rows=null; icLoad(); try{ if(window.FIN&&typeof finLoad==='function'){ FIN.rows=null; finLoad(); } }catch(_){}
+        try{ closeModal(); }catch(_){} IC.rows=null; icLoad(); try{ if(window.FIN&&typeof window.finRefreshMoney==='function') window.finRefreshMoney(); }catch(_){}
       });
       return false;
     });
@@ -97,7 +97,7 @@
     if(!canEdit()) return;
     var it=(IC.rows||[]).find(function(x){ return x.id===id; }); if(!it) return;
     var go=function(){ client().from('money_item_classes').update({removed_at:new Date().toISOString()}).eq('id',id).select('id').then(function(r){
-      var m=refused(r); if(m){ say(m); return; } IC.rows=null; icLoad(); try{ if(window.FIN&&typeof finLoad==='function'){ FIN.rows=null; finLoad(); } }catch(_){} }); };
+      var m=refused(r); if(m){ say(m); return; } IC.rows=null; icLoad(); try{ if(window.FIN&&typeof window.finRefreshMoney==='function') window.finRefreshMoney(); }catch(_){} }); };
     var q=fl('Remove the item name "','إزالة اسم البند «')+it.name+fl('" from the list? Its lines go back to "not classed". It can be added again.','» من القائمة؟ تعود أسطره إلى «غير مصنّفة». ويمكن إضافته مجددًا.');
     if(typeof window.pfConfirm==='function') window.pfConfirm(q,go,{danger:true});   // D19: the app's own box, Cancel first, never a native one
   };
