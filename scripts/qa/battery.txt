@@ -380,3 +380,4 @@ probe-finance-rules-save-in-place
 probe-d24-income-by-service
 probe-cost-import
 probe-payments-lists
+probe-company-identifiers
