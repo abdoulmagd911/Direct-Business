@@ -96,8 +96,11 @@
     rows.forEach(function(r){ var k=r.service_type||fl('(unspecified)','(غير محدد)'); var b=by[k]=by[k]||{rev:0,cost:0,_inv:{}}; b.cost+=+r.cost_sar||0; b.rev+=+r.revenue_sar||0; b._inv[r.invoice_no]=1; });
     var keys=Object.keys(by).sort(function(a,b){return by[b].rev-by[a].rev;});
     var h='<h3 class="finh" style="margin:0 0 3px">'+fl('Income by service','الدخل حسب الخدمة')+(window.finPeriodLabel?'<i>'+finPeriodLabel()+'</i>':'')+'</h3>'+
-      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:480px"><thead><tr>'+th(fl('Service','الخدمة'))+th(fl('Invoices','الفواتير'),1)+th(fl('Revenue','الإيراد'),1)+th(fl('Approved cost','التكلفة المعتمدة'),1)+'</tr></thead><tbody>';
-    keys.forEach(function(k){ var b=by[k]; h+='<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:7px 8px;font-weight:700">'+esc(window.svcLabel?window.svcLabel(k):k)+'</td><td style="padding:7px 8px;text-align:right;color:var(--muted)">'+Object.keys(b._inv).length+'</td>'+td(mS(b.rev))+td(mS(b.cost),'color:#B54708')+'</tr>'; });
+      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px"><thead><tr>'+th(fl('Service','الخدمة'))+th(fl('Invoices','الفواتير'),1)+th(fl('Revenue','الإيراد'),1)+th(fl('Approved cost','التكلفة المعتمدة'),1)+th(fl('Profit','الربح'),1)+'</tr></thead><tbody>';
+    var T={rev:0,cost:0,inv:{}};
+    keys.forEach(function(k){ var b=by[k]; T.rev+=b.rev; T.cost+=b.cost; Object.keys(b._inv).forEach(function(x){ T.inv[x]=1; });
+      h+='<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:7px 8px;font-weight:700">'+esc(window.svcLabel?window.svcLabel(k):k)+'</td><td style="padding:7px 8px;text-align:right;color:var(--muted)">'+Object.keys(b._inv).length+'</td>'+td(mS(b.rev))+td(mS(b.cost),'color:#B54708')+td(mS(b.rev-b.cost),'font-weight:700;color:'+((b.rev-b.cost)<0?'#B42318':'#0F6E56'))+'</tr>'; });
+    h+='<tr style="border-top:2px solid var(--line,#ddd);font-weight:800"><td style="padding:8px">'+fl('All services','كل الخدمات')+'</td><td style="padding:8px;text-align:right;color:var(--muted)">'+Object.keys(T.inv).length+'</td>'+td(mS(T.rev))+td(mS(T.cost),'color:#B54708')+td(mS(T.rev-T.cost),'color:'+((T.rev-T.cost)<0?'#B42318':'#0F6E56'))+'</tr>';
     return h+'</tbody></table></div>';
   }
   window.renderFinance=function(v){
