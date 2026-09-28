@@ -1,0 +1,4 @@
+# Written by the Supabase CLI; never committed.
+.branches
+.temp
+.env*
