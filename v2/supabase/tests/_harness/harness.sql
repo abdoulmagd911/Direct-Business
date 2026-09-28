@@ -189,3 +189,109 @@ language sql stable as $$
 $$;
 
 create table test.grants_expected (line text primary key);
+
+-- ---------------------------------------------------------------- made-up people (P3-1b on)
+-- Fixture makers for tests. Security definer, so a test may call them after switching to a request role. Every value
+-- is made up (rule 7); e-mails are at example.test.
+
+create function test.department(p_code text default 'commercial') returns uuid
+language plpgsql security definer as $$
+declare
+  d uuid;
+begin
+  select id into d from core.department where code = p_code;
+  if d is null then
+    insert into core.department (code, name_en) values (p_code, initcap(replace(p_code, '_', ' '))) returning id into d;
+  end if;
+  return d;
+end
+$$;
+
+create function test.role(p_key text, p_admin boolean default false) returns uuid
+language plpgsql security definer as $$
+declare
+  r uuid;
+begin
+  select id into r from core.role where key = p_key;
+  if r is null then
+    insert into core.role (key, name_en, is_admin) values (p_key, initcap(replace(p_key, '_', ' ')), p_admin)
+    returning id into r;
+  end if;
+  return r;
+end
+$$;
+
+create function test.person(p_name text, p_role text default 'member', p_department text default 'commercial',
+                            p_can_sign_in boolean default true) returns uuid
+language plpgsql security definer as $$
+declare
+  p uuid;
+begin
+  insert into core.person (full_name_en, department_id, role_id, can_sign_in)
+  values (p_name, test.department(p_department), case when p_role is null then null else test.role(p_role, p_role = 'admin') end,
+          p_can_sign_in)
+  returning id into p;
+  return p;
+end
+$$;
+
+-- Links a new auth user to the person (as an admin allowing an e-mail would) and returns its id.
+create function test.sign_in(p_person uuid) returns uuid
+language plpgsql security definer as $$
+declare
+  uid uuid := gen_random_uuid();
+begin
+  insert into auth.users (id, email) values (uid, 'test.' || replace(uid::text, '-', '') || '@example.test');
+  insert into core.person_auth (auth_user_id, person_id, email, providers)
+  values (uid, p_person, 'test.' || replace(uid::text, '-', '') || '@example.test', array['email']);
+  return uid;
+end
+$$;
+
+-- Acts as that person from here on, as PostgREST would for their request.
+create function test.as_person(p_person uuid) returns uuid
+language plpgsql as $$
+declare
+  uid uuid;
+begin
+  perform test.as_owner();
+  select auth_user_id into uid from core.person_auth where person_id = p_person limit 1;
+  if uid is null then
+    uid := test.sign_in(p_person);
+  end if;
+  perform test.as_auth(uid);
+  return uid;
+end
+$$;
+
+-- As inside an api.* function (security definer) called by that person: their JWT claims, the owner's role.
+create function test.claims_of(p_person uuid) returns uuid
+language plpgsql as $$
+declare
+  uid uuid;
+begin
+  perform test.as_owner();
+  select auth_user_id into uid from core.person_auth where person_id = p_person limit 1;
+  if uid is null then
+    uid := test.sign_in(p_person);
+  end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', uid::text, true);
+  return uid;
+end
+$$;
+
+create function test.page(p_key text, p_levels core.level[] default '{none,view,own,full}') returns text
+language plpgsql security definer as $$
+begin
+  insert into core.page (key, module, route, levels_allowed) values (p_key, 'test', '/' || p_key, p_levels)
+  on conflict (key) do nothing;
+  return p_key;
+end
+$$;
+
+-- The last change logged for a row.
+create function test.last_change(p_table text, p_row uuid) returns audit.change
+language sql security definer as $$
+  select * from audit.change where table_name = p_table and row_id = p_row order by id desc limit 1
+$$;
