@@ -1716,6 +1716,10 @@
   function processFileList(files){
     var list=Array.prototype.slice.call(files||[]);
     if(!list.length)return;
+    /* 2026-09-28 (D27): the three raw Payments cost exports — Transaction Expense, Expense Invoice, Revenue Report — are
+       read by js/121-cost-import.js, which peeks at each file's header first and hands every other file straight back
+       here, unchanged. */
+    if(window.v121Route&&!files.__v121){ window.v121Route(list,function(rest){ if(rest.length){ rest.__v121=true; processFileList(rest); } }); return; }
     /* 2026-09-09 (watch cycle 74): same lookup, same omission. For a person this one is reached
        synchronously from a gesture on the Import tab, so the element is there — but
        window.v65IngestText() is a global that calls straight into here, and it is how

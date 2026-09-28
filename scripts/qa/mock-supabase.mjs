@@ -221,6 +221,7 @@ const TABLES={
   // M15 (2026-08-25) capture-persistence fixture — empty on purpose: probes assert their OWN
   // writes land (delete-then-insert for lines, upsert for gates), not a pre-seeded state.
   finance_expense_lines_capture:[], finance_expense_gate_capture:[],
+  /* D27 (js/121): the raw Payments cost exports */ finance_expense_lines:[], finance_payments_facts:[],
   business_merges:[],
   access_allowlist:[], share_links:[],
   // client↔finance link fixture: maps finance group "Test Company 4" to business b4 (a client),
@@ -358,6 +359,11 @@ function PEOPLE(){
   };
   globalThis.__PEOPLE=P; return P;
 }
+/* D27 helpers: the cost of a reference from its stored approved lines (null = none), and its facts row */
+function mockCostFromLines(ref){ const a=(TABLES.finance_expense_lines||[]).filter(l=>l.ref===ref&&l.status==='approved');
+  return a.length?Math.round(a.reduce((s,l)=>s+(Number(l.amount_sar)||0),0)*100)/100:null; }
+function mockFactsRow(ref){ const P=TABLES.finance_payments_facts=TABLES.finance_payments_facts||[]; let p=P.find(x=>x.ref===ref);
+  if(!p){ p={id:'mock-pf-'+(P.length+1),ref}; P.push(p); } return p; }
 function mockLevelsOf(u){
   const out={};
   MOCK_ACCESS_PAGES.forEach(p=>{
@@ -595,8 +601,10 @@ function mockMoneyRows(){
       cost_missing:(i.cost_sar==null&&i.revenue_way!=='commission'),loss:(i.cost_sar!=null&&Number(i.cost_sar)>Number(i.revenue_sar)),
       pass_through_sar:lt(i.invoice_no).pass_through_sar,fee_sar:lt(i.invoice_no).fee_sar,unclassed_sar:lt(i.invoice_no).unclassed_sar,
       /* D23: the pass-through stands in as a flagged estimate only while no cost has arrived (never for a commission) */
-      est_cost_sar:(i.cost_sar==null&&i.revenue_way!=='commission'&&Number(lt(i.invoice_no).pass_through_sar||0)>0)?lt(i.invoice_no).pass_through_sar:null,
-      cost_estimated:(i.cost_sar==null&&i.revenue_way!=='commission'&&Number(lt(i.invoice_no).pass_through_sar||0)>0)};
+      /* D27 (cost-fallback.sql): the Revenue Report's submitted expenses come first, then D23's pass-through lines */
+      ...(()=>{ const open=i.cost_sar==null&&i.revenue_way!=='commission'; const rr=Number(((TABLES.finance_payments_facts||[]).find(p=>p.ref===i.invoice_no)||{}).rr_total_expense_sar||0);
+        const pt=Number(lt(i.invoice_no).pass_through_sar||0); const src=!open?null:(rr>0?'submitted_expenses':(pt>0?'pass_through':null));
+        return { est_cost_sar:src==='submitted_expenses'?rr:(src==='pass_through'?lt(i.invoice_no).pass_through_sar:null), cost_estimated:!!src, est_cost_source:src }; })()};
   });
 }
 /* D24: money_service_rows — each invoice's lines by service (the item's own service first, else its product's), lines of a
@@ -877,6 +885,54 @@ export function start(port, seedOverrides){
       // any other unlisted key) is silently ignored here too, never fails the call, matching
       // the real function's behavior exactly (stricter/kinder than the old direct-REST path,
       // which rejected the whole batch on a `year` key).
+      /* D27 — mirrors public.fn_cost_import (scripts/sql/cost-import.sql): only references with a money row are stored
+         (the rest are HELD and counted); a newer file wins per line, an older one only fills blanks; lines inside a newer
+         file's dates that it no longer lists are dropped; cost = the approved lines, taken back only when it was this
+         import's; a hand-entered row, a commission and a reference with several rows are left alone. */
+      if(fn==='fn_cost_import'){
+        const me=(TABLES.app_users||[]).find(x=>x.id===UID&&x.active)||{};
+        if(!me.id||mockLevelsOf(me).finance!=='full') return send(res,403,{code:'42501',message:'cost import: this needs Full control of Finance'});
+        if(process.env.MOCK_COST_IMPORT_FAIL==='1') return send(res,500,{message:'mock: the cost import failed on purpose'});
+        const seen=parsed.p_seen_at||new Date().toISOString(), T=x=>x==null?null:Date.parse(x), S=T(seen);
+        const live=r=>(TABLES.finance_invoices||[]).filter(i=>i.invoice_no===r&&!i.deleted_at);
+        const L=TABLES.finance_expense_lines, out={lines_new:0,lines_changed:0,lines_dropped:0,refs_held:0,facts_new:0,facts_written:0,cost_set:0,cost_changed:0,cost_cleared:0,cost_same:0,waiting:0,manual:0,commission:0,several_rows:0};
+        const ST=['approved','pending','under_review','cancelled','rejected'];
+        const byKey={}; (Array.isArray(parsed.p_lines)?parsed.p_lines:[]).forEach(x=>{ if(x&&x.ref&&x.line_key&&x.status) byKey[x.line_key]=x; });
+        const lines=Object.values(byKey), held=new Set(); const mine=lines.filter(x=>{ if(live(x.ref).length) return true; held.add(x.ref); return false; });
+        mine.forEach(x=>{ if(!ST.includes(x.status)) x.status='other'; });
+        const F=['amount_sar','id_reference','merchant','submitted_on','decided_on','submitter','approver'];
+        const same=(f,a,b)=>{ if(a==null||b==null) return a==null&&b==null; if(f==='amount_sar') return Number(a)===Number(b); if(f==='submitted_on'||f==='decided_on') return T(a)===T(b); return String(a)===String(b); };
+        mine.forEach(x=>{ const t0=L.find(l=>l.line_key===x.line_key);
+          if(!t0){ L.push(Object.assign({id:'mock-el-'+(L.length+1),seen_at:seen,source_batch:parsed.p_batch||null,imported_at:new Date().toISOString()},x)); out.lines_new++; return; }
+          const nw=t0.seen_at==null||S>=T(t0.seen_at); let ch=false;
+          if(nw&&t0.status!==x.status){ t0.status=x.status; t0.status_raw=x.status_raw; ch=true; }
+          F.forEach(f=>{ const b=x[f]; if(b==null) return; if(nw){ if(!same(f,t0[f],b)){ t0[f]=b; ch=true; } } else if(t0[f]==null){ t0[f]=b; ch=true; } });
+          if(ch){ if(nw){ t0.seen_at=seen; t0.source_batch=parsed.p_batch||t0.source_batch; } out.lines_changed++; } });
+        if(parsed.p_window_from&&parsed.p_window_to){ const a=T(parsed.p_window_from), b=T(parsed.p_window_to), refs=new Set(mine.map(x=>x.ref));
+          for(let i=L.length-1;i>=0;i--){ const l=L[i]; if(refs.has(l.ref)&&T(l.created_on)>=a&&T(l.created_on)<=b&&(l.seen_at==null||T(l.seen_at)<S)&&!byKey[l.line_key]){ L.splice(i,1); out.lines_dropped++; } } }
+        const facts=(Array.isArray(parsed.p_facts)?parsed.p_facts:[]).filter(x=>x&&x.ref&&(x.kind==='ei'||x.kind==='rr'));
+        facts.forEach(x=>{ if(!live(x.ref).length){ held.add(x.ref); return; }
+          const had=(TABLES.finance_payments_facts||[]).some(p=>p.ref===x.ref); const p=mockFactsRow(x.ref); if(!had) out.facts_new++;
+          const before=JSON.stringify(p);
+          if(x.kind==='rr'){ const nw=p.rr_seen_at==null||S>=T(p.rr_seen_at); const v=nw?(x.rr_total_expense_sar!=null?x.rr_total_expense_sar:p.rr_total_expense_sar):(p.rr_total_expense_sar!=null?p.rr_total_expense_sar:x.rr_total_expense_sar);
+            if(!same('amount_sar',p.rr_total_expense_sar,v)){ p.rr_total_expense_sar=v; p.rr_seen_at=nw?seen:p.rr_seen_at; } }
+          else { const nw=p.ei_seen_at==null||S>=T(p.ei_seen_at);
+            ['expense_assignments','invoice_status','request_number','invoice_product','invoice_amount_sar','invoice_type'].forEach(f=>{ const b=x[f]; if(b==null) return; if(nw||p[f]==null) p[f]=b; });
+            if(nw) p.overdue=x.overdue==null?null:x.overdue; else if(p.overdue==null&&x.overdue!=null) p.overdue=x.overdue;
+            ['created_by','created_on'].forEach(f=>{ if(p[f]==null&&x[f]!=null) p[f]=x[f]; });
+            if(JSON.stringify(p)!==before&&nw) p.ei_seen_at=seen; }
+          if(JSON.stringify(p)!==before) out.facts_written++; });
+        out.refs_held=held.size;
+        [...new Set(mine.map(x=>x.ref))].forEach(r=>{ const rows=live(r);
+          if(rows.length>1){ out.several_rows++; return; } const f=rows[0]; if(!f) return;
+          if((f.source||'import')!=='import'){ out.manual++; return; } if(f.revenue_way==='commission'){ out.commission++; return; }
+          const v=mockCostFromLines(r), p=mockFactsRow(r), cur=f.cost_sar==null?null:Number(f.cost_sar);
+          const put=c=>{ const ix=TABLES.finance_invoices.indexOf(f); TABLES.finance_invoices[ix]=deriveFinanceInvoice(Object.assign({},f,{cost_sar:c,updated_at:new Date().toISOString()})); };
+          if(v!=null){ if(cur==null) out.cost_set++; else if(Math.abs(cur-v)>0.004) out.cost_changed++; else out.cost_same++; if(cur==null||Math.abs(cur-v)>0.004) put(v); p.lines_cost_sar=v; }
+          else if(p.lines_cost_sar!=null&&cur!=null&&Math.abs(cur-Number(p.lines_cost_sar))<0.005){ put(null); p.lines_cost_sar=null; out.cost_cleared++; }
+          else out.waiting++; });
+        return send(res,200,JSON.stringify(out));
+      }
       if(fn==='fn_commit_finance_import'){
         const WRITABLE=['invoice_no','zatca_dpin','client_group','customer_raw_name','invoice_date',
           'month','quarter','products','service_type','record_type','total_incl_vat_sar','wallet_portion_sar',
@@ -906,6 +962,9 @@ export function start(port, seedOverrides){
         }
         pIns.forEach(row=>{
           const clean=pick(row);
+          /* D27: trg_fin_inv_a_cost_from_lines — a money row arriving after its expense lines takes its cost from them */
+          if(clean.cost_sar==null&&(clean.source||'import')==='import'&&clean.revenue_way!=='commission'){ const v=mockCostFromLines(clean.invoice_no);
+            if(v!=null){ clean.cost_sar=v; mockFactsRow(clean.invoice_no).lines_cost_sar=v; } }
           fiTable.push(deriveFinanceInvoice(Object.assign({id:'mock-fi-'+(++_finIdSeq)}, clean)));
           inserted++;
         });

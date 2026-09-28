@@ -53,7 +53,7 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **D14 — Speed: shared reads, one paint per redraw, inlined scripts** ACTIVE · 2026-09-27. js/01 shares identical reads for 0.8 s (not failures, sign-in or 'who am I'); a write clears them; js/116 paints once. `scripts/build/build-site.mjs` inlines js at deploy; index.html keeps one line per file. Guard `probe-the-built-site-runs-the-same`.
 
-**D15 — Sign-in says what happened; the reset screen stays in the link's tab; 10 characters everywhere** ACTIVE · 2026-09-27. C-lite, approved by the owner (finding C). The reset screen opens only in the tab the link opened; admin-users refuses passwords under 10 characters and invents 10+; every sign-in failure is red, the email limit is named, "Forgot password?" never claims a link was sent; new-password screens count as you type. Per-person reset/invite and branded emails wait on an email sender (branch login-c). Function deployed at merge. Tested: probe-sign-in-says-what-happened.
+**D15 — Sign-in says what happened; reset only in the link's tab; 10 characters everywhere** ACTIVE · 2026-09-27. C-lite, owner-approved. admin-users refuses passwords under 10 characters; every sign-in failure is red; "Forgot password?" never claims a link was sent; reset/invite buttons wait on an email sender. Guard `probe-sign-in-says-what-happened`.
 
 **D16 — Exclusions and merges are typed by a person, applied by one view** ACTIVE · 2026-09-27. On Finance → Rules. An exclusion drops ONLY what is typed, with a reason; merges use only typed client IDs, codes and customer names; exclusion wins. `money_rows` feeds Finance, reports and KPIs; unreadable means no money shown. Outstanding is never revenue. Guard `probe-money-rules`.
 
@@ -72,6 +72,8 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 **D25 — "Individual (not a company)"** ACTIVE · 2026-09-28. `money_individuals`; shown on Individual bookings, still counted.
 
 **D26 — A merged re-bill shows both dates** ACTIVE · 2026-09-28. `transaction_date`, fill only (`d26-transaction-date.sql`).
+
+**D27 — Cost comes from the raw Payments cost exports** ACTIVE · 2026-09-28. Approved lines only; unknown refs held. `docs/reference/d27-cost-import.md`.
 
 ## Money & finance display
 
