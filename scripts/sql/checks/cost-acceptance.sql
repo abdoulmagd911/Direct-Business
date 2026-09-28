@@ -1,4 +1,4 @@
--- READ-ONLY acceptance check for the cost import (D25): 2026 by the paid date (D21 — invoice_date holds it for a paid
+-- READ-ONLY acceptance check for the cost import (D27): 2026 by the paid date (D21 — invoice_date holds it for a paid
 -- invoice), paid B2B sales only (money_that_counts: no top-ups, no billing links, no excluded companies such as Takamol).
 -- Run after the real Payments exports are imported in the browser. Nothing is written. The oversight's ruling of 28 Sep:
 -- the app's own revenue is the reference (its Q3 is right); the cost is checked against the Revenue Report's expense

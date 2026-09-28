@@ -1,4 +1,4 @@
-# D25 — Cost comes from the raw Payments cost exports
+# D27 — Cost comes from the raw Payments cost exports
 
 ACTIVE · 2026-09-28 · second builder · PR #58 · guard `scripts/qa/probe-cost-import.mjs`, phase3 COST-01…11.
 

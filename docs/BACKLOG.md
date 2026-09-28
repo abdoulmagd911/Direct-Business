@@ -9,11 +9,11 @@ They live in one list only — the Drive file *08 Open decisions for the owner* 
 
 ## Now — the release queue (CLAUDE.md §5)
 
-- **D2 · The client list and promo codes exports** — second builder (6b); the invoice export is in (D21, #53), the raw cost exports are read by js/121 (D25).
+- **D2 · The client list and promo codes exports** — second builder (6b); the invoice export is in (D21, #53), the raw cost exports are read by js/121 (D27).
 - **D3 · Manual entry, links by hand, the margins pass** — main builder.
 - **Open owner decision (08):** may the pass-through on an invoice's lines stand in for a missing cost? It contradicts the owner's 22 Aug ruling (D21).
 - **D · Capture the Payments invoice id and use the client ID** — Open in Direct can only open the whole list; the client-to-Payments jump searches by phone or name; an empty id silently builds a dead link.
-- **D · Large Excel files are read whole into memory by js/65** — the invoice export's path (CSV streams in chunks, XLSX does not); the cost exports are read in a background worker since D25.
+- **D · Large Excel files are read whole into memory by js/65** — the invoice export's path (CSV streams in chunks, XLSX does not); the cost exports are read in a background worker since D27.
 - **A · The Finance freeze the owner saw** — never reproduced (a 30–45 s CSV export freeze in August too). Since #53 a local freeze recorder (js/118) names the page and the pause when a tab stalls — read it after the next freeze; a Chrome extension is suspected. Lead: the Expenses tab draws Finance twice (~0.8 s).
 - **C · The sign-in / reset loop** — C-lite (no email sender needed; also brings the admin-users function to 10 characters) is PR #51. The rest — per-person reset/invite buttons, branded emails, a custom mail sender (branch login-c) — waits on the company mail settings (08).
 - **E2 · The simplify list** — the builders never received it (E itself became the money rules, #50); the oversight to send it.
