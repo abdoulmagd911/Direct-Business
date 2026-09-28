@@ -1,0 +1,12 @@
+Sabotage: plant-misnamed-migration
+Breaks: check:forward-only-migrations
+Expect: 001_init.sql
+
+Plants a migration without the YYYYMMDDHHMMSS_<module>_<what>.sql name (A9).
+
+diff --git a/v2/supabase/migrations/001_init.sql b/v2/supabase/migrations/001_init.sql
+new file mode 100644
+--- /dev/null
++++ b/v2/supabase/migrations/001_init.sql
+@@ -0,0 +1,1 @@
++create schema demo;

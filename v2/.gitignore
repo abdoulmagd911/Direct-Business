@@ -1,0 +1,17 @@
+# The repository root ignores every package.json / lockfile (the old static app must not be npm-installed by its
+# Vercel project). v2 is a real package: take its manifest and lockfile back.
+!package.json
+!pnpm-lock.yaml
+
+node_modules/
+.next/
+out/
+coverage/
+next-env.d.ts
+*.tsbuildinfo
+test-results/
+playwright-report/
+blob-report/
+.env
+.env.*
+!.env.example
