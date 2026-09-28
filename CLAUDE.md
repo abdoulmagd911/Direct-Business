@@ -41,9 +41,16 @@ at merge from the merged commit (checksum-checked), after a rolled-back live che
   `golive-backups`; D9). People & teams (D11) and Tasks → Achievements (D12) (#47) — live.
 - Owner decisions of 27 Sep: the wipe of world30_finance_invoices / _client_links, master_db_companies and
   company_achievements, and Strategy + Integrity retired — done (backup stamp 20260927T113348Z); the change log on
-  every record, managers edit people (logged), business@ as the QA account (D13) (#48) — live. B) speed (D14) — in review.
-- Then, one PR each: A) the Finance freeze (not reproduced yet), B) speed, C) the login/reset loop, D) the Direct
-  Payments Excel files in the existing Finance import (waits for the oversight's column mapping), E) the simplify list.
+  every record, managers edit people (logged), business@ as the QA account (D13) (#48) — live. B) speed (D14) (#49) — live.
+- E) the money rules — typed exclusions and merges, one "what counts" view (D16) (#50) — live.
+- 28 Sep (#53) — live: Finance Rules round 2 (dates in Riyadh time, D20; the freeze recorder js/118); **D1 the money model
+  and the invoice import (D21)** — cost empty until approved expenses, top-ups stored, statuses, fill-never-wipe in any
+  order, billing links proposed; and **D19** — every delete asks in the app's box, naming the item. Backup stamp
+  20260928T050142Z; the live finance table is empty until the oversight imports in the browser (D17).
+- Still to come: A) the Finance freeze (the recorder is live; a Chrome extension is suspected), C) the login/reset loop
+  (second builder), D2) the expense export cost / client list / promo codes, D3) manual entry and links by hand, the
+  margins pass, E2) the simplify list. Open owner decision: may the pass-through on an invoice stand in for a missing
+  cost (it contradicts his 22 Aug ruling).
 - Next: issuing numbered reports, the appraisal cycle — and the **final go-live reset**, run only on the owner's
   explicit go (`golive_reset`, scripts/sql/golive-reset.sql).
 
