@@ -9,7 +9,7 @@
 
    Sixty-five companies, a full pipeline, stage chips with counts, rows that open — and not one of
    them real. They are the demo records hardcoded in core-01: "Falcon Conferences Group",
-   "Crestline Minerals", ids `b_mdd`, `b_maaden`. The database holds 108 companies and none was on
+   "Crestline Minerals", ids `b_demo01`, `b_demo02`. The database holds 108 companies and none was on
    the screen. A red line did say "Could not load leads: server error" — above a page that looked
    entirely normal.
 
@@ -128,7 +128,7 @@ async function run(lang, mode, page) {
     const probe = window.__v105Probe ? window.__v105Probe() : null;
     const t = (v && v.innerText) || '';
     return { probe,
-      demoOnScreen: /Falcon Conferences|Crestline Minerals|b_mdd/.test(t),
+      demoOnScreen: /Falcon Conferences|Crestline Minerals|b_demo01/.test(t),
       rows: v ? v.querySelectorAll('table tbody tr').length : -1,
       /* the measurement that decided this was a real defect and not a code reading */
       calm: ((v && v.innerText) || '').match(/[^\n]*(Today is calm|all clear|اليوم هادئ|على ما يرام)[^\n]*/gi) || [],

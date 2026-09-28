@@ -3,8 +3,8 @@
    single-level two-file join, which was PROVEN WRONG the same day it shipped: it assumed the
    expense report's own INVOICE # was directly finance_invoices.invoice_no. It is not — it is
    the TRANSACTION's own reference. The real chain, verified end to end on a live example:
-   expense line INVOICE # 1163760881 = transaction 1163760881, whose own INVOICE ISSUING column
-   reads "Issued 1163762432" — 1163762432 IS a real finance_invoices row (5,600.00 SAR),
+   expense line INVOICE # 1160000132 = transaction 1160000132, whose own INVOICE ISSUING column
+   reads "Issued 1160000133" — 1160000133 IS a real finance_invoices row (5,600.00 SAR),
    matching the transaction's amount and its single Approved line exactly. So the real model has
    TWO levels: many expense lines → one transaction (Level 1), many transactions → one tax
    invoice (Level 2, confirmed on a real 7-transaction group all issuing into the same invoice).

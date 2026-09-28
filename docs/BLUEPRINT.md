@@ -120,8 +120,8 @@ plan → commercial with the real fee model → gradient closing); editor opens 
 bucket `proposals`), shown with 📎 on the proposal and in the list; and the Won handover
 ("complete the client") now fires on every path to Won. Invoices can arrive from the CSV
 import already marked booking/project with their proposal reference.
-**Still open:** owner's yes/no on the document; optional past-work page (Ma'aden 2M /
-Al-Hilal 1.5M / SFDA 500K / Riyadh Club 1M) as a toggle for tender-type
+**Still open:** owner's yes/no on the document; optional past-work page (four past projects
+with their contract values, from the tender files) as a toggle for tender-type
 proposals only.
 **Done means:** the team sends a client-ready PDF from the app without touching Word.
 

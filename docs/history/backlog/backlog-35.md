@@ -57,7 +57,7 @@ Found 2026-08-08 by a full-database duplicate sweep. **Eleven records carry
 | `b_client_bt` Client BT | `inv_aug06_client_bt` Client BT |
 | `b_client_mn` Client Mn | `inv_aug06_client_mn` Client Mn |
 | `b_client_q` Client Q | `inv_aug06_client_q` + `inv_5504` |
-| `b_client_k`, `b_client_ml`, `b_takamol`, `b_ultimates` | |
+| `b_client_k`, `b_client_ml`, `b_takamol`, `b_client_u` | |
 
 A session on **2026-08-06** loaded invoice leads without checking what was already there, and
 on **2026-08-08** this session did the same again. Client B duplicated the same way and has

@@ -7,6 +7,9 @@
 
      1. JOIN      each archive's pieces, joined in order, are the old file byte for byte (SHA-256 and length);
                   and where this clone has the pinned commit, that the recorded hash IS that commit's file
+                  — except the lines listed in docs/history/redactions.json (rule 7: real client names and invoice
+                  numbers taken out, 2026-09-28). Each listed line must be what the list says it was (its hash) and
+                  what it says it is now; every other line identical. The check prints every listed change.
      2. LINES     every line of every old file is present in the new set (docs/**.md + CLAUDE.md)
      3. SIZE      every piece and index under 40,000 characters; docs/BACKLOG.md at most 150 lines;
                   docs/DECISIONS.md under 40,000 characters; CLAUDE.md at most 22,000
@@ -18,9 +21,10 @@
      6. KB NAMES  no pointer to the old knowledge-base part names ("KB Part 35", "Drive part 08" …) outside the
                   word-for-word archives; the new names are the Drive files 04, 05, 06
 
-   Then it SABOTAGES a scratch copy seven ways (a changed byte in a piece, a deleted line, a reworded quote, a dropped
-   rule, a 151-line backlog, an oversized DECISIONS.md, an old KB name) and demands that each one is caught, on top of
-   an untouched copy that must pass — a check that has never failed is not evidence.
+   Then it SABOTAGES a scratch copy nine ways (a changed byte in a piece, a deleted line, a reworded quote, a dropped
+   rule, a 151-line backlog, an oversized DECISIONS.md, an old KB name, a redaction listed with the wrong original,
+   a redaction whose new text is not the archive's) and demands that each one is caught, on top of an untouched copy
+   that must pass — a check that has never failed is not evidence.
 
    Run: node scripts/qa/check-docs-moved.mjs                                                                          */
 import fs from 'fs';
@@ -61,6 +65,13 @@ function quotes(text) {
 }
 
 const GIT = new Map();
+const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
+/* the same line replacements scripts/docs/archive-docs.mjs applies; null when a listed line is not what the list says */
+function redact(oldName, text, list) {
+  const L = text.split('\n');
+  for (const r of list.filter((x) => x.file === oldName)) { if (sha(L[r.line - 1] ?? '') !== r.was) return null; L[r.line - 1] = r.now; }
+  return L.join('\n');
+}
 function gitShow(commit, file) {
   const k = commit + ':' + file;
   if (!GIT.has(k)) { let t = null; try { t = execFileSync('git', ['show', k], { cwd: REPO, maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8'); } catch (_) { } GIT.set(k, t); }
@@ -76,6 +87,8 @@ function check(root, { quiet = false } = {}) {
   if (!fs.existsSync(mfPath)) { say(false, 'JOIN', 'docs/history/moved.json is missing — no manifest, nothing proven'); return fails; }
   const mf = JSON.parse(fs.readFileSync(mfPath, 'utf8'));
   say(mf.files && mf.files.length >= 5, 'JOIN', `the manifest names ${mf.files ? mf.files.length : 0} moved file(s) (5 expected)`);
+  const rdPath = path.join(root, 'docs/history/redactions.json');
+  const RED = fs.existsSync(rdPath) ? JSON.parse(fs.readFileSync(rdPath, 'utf8')).lines : [];
 
   const old = {};
   for (const f of mf.files) {
@@ -85,18 +98,29 @@ function check(root, { quiet = false } = {}) {
       if (!fs.existsSync(path.join(root, rel))) { missing.push(rel); continue; }
       joined += rd(rel);
     }
-    const sha = crypto.createHash('sha256').update(joined).digest('hex');
-    say(!missing.length && sha === f.sha256 && cp(joined) === f.chars, 'JOIN',
-      `${f.old}: ${f.pieces.length} pieces in ${f.archive}/ join to the old file byte for byte` +
-      (missing.length ? ` — MISSING ${missing.join(', ')}` : sha === f.sha256 ? '' : ` — hash differs (${sha.slice(0, 12)} ≠ ${f.sha256.slice(0, 12)})`));
+    const mine = RED.filter((x) => x.file === f.old);
+    const want = mine.length ? f.sha256Archived : f.sha256;
+    const h = sha(joined);
+    say(!missing.length && h === want && cp(joined) === f.chars && (f.redacted || 0) === mine.length, 'JOIN',
+      `${f.old}: ${f.pieces.length} pieces in ${f.archive}/ join to the old file byte for byte${mine.length ? `, ${mine.length} listed line(s) aside` : ''}` +
+      (missing.length ? ` — MISSING ${missing.join(', ')}` : h !== want ? ` — hash differs (${h.slice(0, 12)} ≠ ${String(want).slice(0, 12)})` :
+        (f.redacted || 0) !== mine.length ? ` — the manifest counts ${f.redacted || 0} redacted line(s), redactions.json lists ${mine.length}` : ''));
     old[f.old] = joined;
     /* the old file from git itself, where this clone has the commit — independent of the copy being checked, so LINES
-       below is measured against the real old file, not against the pieces it is meant to test */
+       below is measured against the real old file (with only the listed lines replaced), not against the pieces it is
+       meant to test */
     const fromGit = gitShow(mf.commit, f.old);
     if (fromGit === null) { if (!quiet) console.log(`  · JOIN · ${f.old}: commit ${mf.commit.slice(0, 12)} is not in this clone — the hash check above stands alone`); }
     else {
-      say(crypto.createHash('sha256').update(fromGit).digest('hex') === f.sha256, 'JOIN', `${f.old}: the recorded hash is that file at commit ${mf.commit.slice(0, 12)}`);
-      old[f.old] = fromGit;
+      say(sha(fromGit) === f.sha256, 'JOIN', `${f.old}: the recorded hash is that file at commit ${mf.commit.slice(0, 12)}`);
+      if (mine.length) {
+        const r = redact(f.old, fromGit, RED);
+        say(r !== null && r === joined, 'JOIN', `${f.old}: the archive is that file with exactly the ${mine.length} listed line(s) replaced` +
+          (r === null ? ' — a listed line is NOT what redactions.json says it was' : r === joined ? '' : ' — the archive differs from the listed replacements'));
+        const L = fromGit.split('\n'); const pieceOf = (n) => { let acc = 0; for (const p of f.pieces) { acc += rd(path.join(f.archive, p)).split('\n').length - 1; if (n <= acc) return p; } return f.pieces[f.pieces.length - 1]; };
+        if (!quiet) for (const x of mine) console.log(`      redacted · ${f.old} line ${x.line} (${pieceOf(x.line)}): ${x.why}${sha(L[x.line - 1] ?? '') === x.was ? '' : ' — ORIGINAL DOES NOT MATCH'}`);
+        old[f.old] = r === null ? fromGit : r;
+      } else old[f.old] = fromGit;
     }
     for (const p of [...f.pieces, 'README.md']) {
       const rel = path.join(f.archive, p);
@@ -161,7 +185,7 @@ console.log('check-docs-moved — the old long docs, moved word for word:');
 const real = check(REPO);
 
 /* ── sabotage: a scratch copy that must pass untouched, and must fail each way it is broken ── */
-console.log('\nsabotage — a scratch copy, broken seven ways; each must be caught:');
+console.log('\nsabotage — a scratch copy, broken nine ways; each must be caught:');
 const mf = JSON.parse(fs.readFileSync(path.join(REPO, 'docs/history/moved.json'), 'utf8'));
 function scratch() {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-moved-'));
@@ -180,6 +204,8 @@ const CASES = [
   ['a 151-line BACKLOG.md', 'SIZE', (d) => { const f = path.join(d, 'docs/BACKLOG.md'); const n = fs.readFileSync(f, 'utf8').replace(/\n$/, '').split('\n').length; fs.appendFileSync(f, '\n'.repeat(Math.max(1, 152 - n)) + 'one line too many\n'); }],
   ['DECISIONS.md over 40,000 characters', 'SIZE', (d) => { fs.appendFileSync(path.join(d, 'docs/DECISIONS.md'), '\n' + 'x'.repeat(LIMIT_DECISIONS) + '\n'); }],
   ['an old knowledge-base name in CLAUDE.md', 'KB NAMES', (d) => { fs.appendFileSync(path.join(d, 'CLAUDE.md'), '\nSee KB Part 35 for the finance rules.\n'); }],
+  ['a redaction listed with the wrong original', 'JOIN', (d) => { const f = path.join(d, 'docs/history/redactions.json'); const j = JSON.parse(fs.readFileSync(f, 'utf8')); if (!j.lines.length) throw new Error('no redaction to break'); j.lines[0].was = sha('not the line that was there'); fs.writeFileSync(f, JSON.stringify(j, null, 2)); }],
+  ['a redaction whose new text is not the archive\'s', 'JOIN', (d) => { const f = path.join(d, 'docs/history/redactions.json'); const j = JSON.parse(fs.readFileSync(f, 'utf8')); if (!j.lines.length) throw new Error('no redaction to break'); j.lines[0].now += ' (edited)'; fs.writeFileSync(f, JSON.stringify(j, null, 2)); }],
 ];
 let sabotageBad = 0;
 for (const [name, tag, mutate] of CASES) {
@@ -198,5 +224,5 @@ if (real.length || sabotageBad) {
   console.log(`\nFAILED — ${real.length} check(s) on the repo, ${sabotageBad} sabotage case(s) not caught.`);
   process.exit(1);
 }
-console.log('\ndocs-moved OK — every old line is in the new set, every size limit holds, every rule and quote survives, and all seven sabotages were caught.');
+console.log('\ndocs-moved OK — every old line is in the new set (the listed redactions aside), every size limit holds, every rule and quote survives, and all nine sabotages were caught.');
 process.exit(0);

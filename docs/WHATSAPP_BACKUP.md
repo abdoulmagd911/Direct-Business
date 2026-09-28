@@ -14,10 +14,10 @@ Everything 5.5 MB or smaller could be read here. Result:
 | WA0088 | **Direct Ahmed Salah** | Jul 2024 → Aug 2026 | 6,760 lines | 33 contact cards |
 | WA0084 | **Direct Mohammed Altwijri** | Apr 2025 → Aug 2026 | 10,559 lines | 34 contact cards |
 | WA0086 | **Direct Kareem Medhat** | Jul 2025 → Aug 2026 | 1,814 lines | 23 contact cards |
-| WA0089 | **دايركت X حجز وتذكرة** (group) | Nov 2025 → Aug 2026 | 4,182 lines | — |
+| WA0089 | **دايركت X [a client]** (group) | Nov 2025 → Aug 2026 | 4,182 lines | — |
 | WA0082 | **Direct Products Saif Amer** | Nov 2025 → Aug 2026 | 941 lines | ~80 images/PDFs |
-| WA0083 | **Direct Abdelrahman Sadek** | May 2026 → Aug 2026 | 357 lines | bank statements, Mola app agreement PDF, tax invoice DPIN-299709, `White list.xlsx` |
-| WA0077 | **Corporate & Products** (group) | Jun 2026 → Aug 2026 | 191 lines | tax invoice DPIN-305582 |
+| WA0083 | **Direct Abdelrahman Sadek** | May 2026 → Aug 2026 | 357 lines | bank statements, Mola app agreement PDF, a tax invoice, `White list.xlsx` |
+| WA0077 | **Corporate & Products** (group) | Jun 2026 → Aug 2026 | 191 lines | a tax invoice |
 | WA0080 | **بديل مدفوعات مولا** | — | small | 1 contact card |
 
 These are **internal / operational chats** — Direct staff and the working groups — not
@@ -36,7 +36,7 @@ airlines (flyadeal ×2, flynas, طيران ناس), bed banks and consolidators 
 RateHawk ×2, Webbeds, TBO), hotels (Pullman ZamZam Madina, Sheraton Jeddah,
 Le Méridien Riyadh, Dar AlEman, Sofotil Shahd Madina, بريرا الرس / حفر الباطن),
 ground transport in KSA, Jordan, Bali, Washington DC, eSIM providers (Simly + نجم الدخيل),
-study-abroad partners (Kaplan ×4, Pathways, LCI), Neom, Riyadh Chamber, and Direct's own
+study-abroad partners (Kaplan ×4, Pathways, LCI), two government clients, and Direct's own
 staff. Four Arabic names arrived garbled from the export and were reconstructed — they are
 marked "(name garbled in export)" in the sheet.
 

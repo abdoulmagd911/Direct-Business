@@ -10,6 +10,7 @@ under 40,000 characters). Nothing was deleted: the old text moved here, unchange
 | `claude-md/` | The old `CLAUDE.md` in 2 pieces. |
 | `backlog-triage/` | How the short backlog was decided: every item found in the old log, open or closed, with the evidence. |
 | `moved.json` | The commit the archives were cut from and each old file's SHA-256. |
+| `redactions.json` | The only lines where an archive differs from its old file: real client names and invoice numbers taken out on 2026-09-28 (rule 7), each with the old line's hash and the reason. |
 
 The two long references moved to `docs/reference/` (Playbook, Master Brief), split the same way.
 `scripts/docs/archive-docs.mjs <commit>` rebuilds the archives from a commit; `scripts/qa/check-docs-moved.mjs` (in the
@@ -34,5 +35,6 @@ Attacked before it was handed over, not only checked:
   base) — it lives in `js/56-access-matrix.js` and in the database's `access_pages()`; the quote check paired quote
   marks wrongly around short quotes and was fixed; the short DECISIONS lost four points of meaning in tightening (D3,
   D11, M102, S5), restored.
-- **Rule 7:** the new files name no client; the word-for-word archive keeps what the old files already held, including
-  part of one client's name in M18's story — flagged to the oversight, not silently edited.
+- **Rule 7:** the new files name no client; the word-for-word archive kept what the old files already held, including
+  part of one client's name in M18's story — flagged to the oversight, not silently edited. On the oversight's order
+  (2026-09-28) those lines were then taken out, each one listed in `redactions.json` and proven by the check.

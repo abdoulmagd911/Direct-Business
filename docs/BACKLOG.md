@@ -37,7 +37,7 @@ They live in one list only — the Drive file *08 Open decisions for the owner* 
 
 ## Safety and hygiene
 
-- **Real client names still in public files (rule 7)** — one client's short name on screen (js/core/core-08-v25.js ~lines 567, 1619) and in comments (js/41, js/57, js/62, js/70, core-06); client names with counts in docs/HANDOFF_2026-08-09.md and docs/DIRECT_PAYMENTS_MODEL.md; the archived old DECISIONS text. Scrub the working files; old history is the owner's call (08).
+- **Real client names in old git history (rule 7)** — the files are clean since 2026-09-28 (archive lines changed are listed in `docs/history/redactions.json`); the old commits still hold them, and the staff passwords removed by #55 — rewriting history is the owner's call (08); changing the passwords makes their part harmless (main builder).
 - **Seven real client names on the About-Direct one-pager** — fine only if they are published references (08).
 - **Delete the test functions `hi` and `gstest`** — gstest holds the master database key and writes a file on every no-sign-in request; may need one dashboard click.
 - **The public-surface check misses every Phase 3 table** — `run-live-checks.sh` tests a fixed list; tasks, KPIs, teams, money rules and the rest are not on it, so a new open table would pass.

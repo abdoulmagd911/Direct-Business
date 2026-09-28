@@ -274,7 +274,7 @@ B2B clients from an old `Q:\Downloads\B2B.xlsx` import (`B2B_CLIENTS_V21`) and r
 them into `d.businesses` on **every page load**, inside `migrateV21` step 3. They were never
 rows in the `businesses` table. 7 of the 8 duplicated a client that already existed in the
 database under its real name — the team was seeing Client PS twice and
-Client RC three times (`b_rcc_vip` and `b_rcc_team` both duplicated the one real "Client RC" row).
+Client RC three times (two seeded ids both duplicated the one real "Client RC" row).
 
 **Code change:** `B2B_CLIENTS_V21` is now `[]`. `migrateV21` step 3 no longer seeds anything,
 and now also strips any phantom row an older build already injected into a session's local
@@ -286,8 +286,8 @@ prefixes and different arrays; the one real pre-v21 lead sharing a `b_` id (`b_c
 tagged `_v21added`.
 
 **The one entry with no database counterpart, dropped but preserved here** in case it still
-needs to be entered for real, through the UI, by a person who confirms it first: **Riyadh
-Economic Forum / منتدى الرياض الإقتصادي** — segment "Forum/event", entity type "Government
+needs to be entered for real, through the UI, by a person who confirms it first: **a forum organiser
+(its name taken out of this public file on 2026-09-28)** — segment "Forum/event", entity type "Government
 entity", payment configuration "Tender", customer type "Tender", note "Per WhatsApp findings"
 (this was never verified against Direct Payments — that's exactly why it shouldn't be
 auto-seeded again without a person confirming it first).

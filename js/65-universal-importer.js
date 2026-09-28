@@ -138,9 +138,9 @@
     // finance_invoices.invoice_no. Proven wrong the same day, on a real record end to end —
     // see below.
     //
-    // THE REAL CHAIN, verified 2026-08-24 on a live example: expense line INVOICE # 1163760881
+    // THE REAL CHAIN, verified 2026-08-24 on a live example: expense line INVOICE # 1160000132
     // is the TRANSACTION's own reference, not a tax invoice number. That transaction's own
-    // INVOICE ISSUING column reads "Issued 1163762432" — 1163762432 IS a real, live
+    // INVOICE ISSUING column reads "Issued 1160000133" — 1160000133 IS a real, live
     // finance_invoices row (5,600.00 SAR), matching the transaction's own amount and its single
     // Approved expense line exactly. So: expense lines join to a TRANSACTION (many lines, one
     // transaction), and a transaction joins to a TAX INVOICE via its own "Issued <no>" text
@@ -153,7 +153,7 @@
     // (?of_corporate_client=true, 219 corporate rows, one row per expense line) — found by
     // reading the app's own Ziggy route registry rather than guessing URLs, cross-verified
     // against the abandoned modal path on one invoice before trusting it (both independently
-    // read 12,247.00 for invoice 1163597647). Its own columns are INVOICE # | AMOUNT (SAR) |
+    // read 12,247.00 for invoice 1160000106). Its own columns are INVOICE # | AMOUNT (SAR) |
     // STATUS | APPROVAL DATE | MERCHANT. Required (this app's normalized contract, not a raw
     // Direct Payments header): transaction_ref (the report's own INVOICE # column — it IS the
     // transaction's reference, confirmed above, so it is named for what it actually is, not
@@ -173,7 +173,7 @@
     // 100+53, both exact). Required: transaction_ref (RECEIPT REF. — the SAME number space as
     // file 1's transaction_ref, now proven on a real matching pair, not just believed),
     // txn_expense_status (EXPENSE STATUS, verbatim), invoice_issuing_raw (INVOICE ISSUING,
-    // verbatim — e.g. "Issued 1163762432" or "Need to issue"; parsed in code below via
+    // verbatim — e.g. "Issued 1160000133" or "Need to issue"; parsed in code below via
     // parseInvoiceIssuing(), never pre-parsed by the capture step, so the parse itself is
     // testable and survives past the session that captured the file — P1).
     //
@@ -782,7 +782,7 @@
       PENDING_CAPTURE.lines.push({transaction_ref:ref, amount_sar:moneyG(row[ixAmt]), expense_status:status, source_batch:batchTag});
     });
   }
-  // "Issued 1163762432" → "1163762432". "Need to issue" (or anything else that doesn't start
+  // "Issued 1160000133" → "1160000133". "Need to issue" (or anything else that doesn't start
   // with "issued") → null, meaning this transaction has no tax invoice yet. Kept as a pure
   // function, deliberately never trusted to a capture script — see the FILE 2 comment above.
   function parseInvoiceIssuing(raw){
