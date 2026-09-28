@@ -1,5 +1,6 @@
 // @ts-check
 // Every v2 check, in the order they run. A new check is added here and gets a planted violation in tests/sabotage/.
+import forbiddenWords from './forbidden-words.mjs';
 import forwardOnlyMigrations from './forward-only-migrations.mjs';
 import noBlobTables from './no-blob-tables.mjs';
 import noHex from './no-hex.mjs';
@@ -25,4 +26,5 @@ export const checks = [
   noBlobTables,
   normRebuildCalled,
   v2Ids,
+  forbiddenWords,
 ];

@@ -2,11 +2,10 @@
 -- logged under an automatic 'system' request by the System person — never by whoever happens to be signed in (V44).
 -- Sabotage: supabase/tests/sabotage/unattended-writes-blame-the-login.sql.
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
-select set_config('t.uid', test.sign_in(current_setting('t.am1')::uuid)::text, true);
 -- the request claims say AM1 is signed in, but nothing opened a request (clear the one the fixtures' own writes
 -- opened, as a new transaction would)
+select test.claims_of(current_setting('t.am1')::uuid);
 select set_config('app.request_id', '', true);
-select set_config('request.jwt.claims', json_build_object('sub', current_setting('t.uid'), 'role', 'authenticated')::text, true);
 insert into core.department (code, name_en) values ('test_unattended', 'Test Unattended');
 do $$
 declare

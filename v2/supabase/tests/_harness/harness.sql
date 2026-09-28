@@ -75,10 +75,11 @@ begin
 end
 $$;
 
-create function test.as_auth(uid uuid) returns void
+create function test.as_auth(uid uuid, sid uuid default null) returns void
 language plpgsql as $$
 begin
-  perform set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', uid, 'role', 'authenticated', 'session_id', sid)::text, true);
   perform set_config('request.jwt.claim.sub', uid::text, true);
   set local role authenticated;
 end
@@ -235,20 +236,41 @@ begin
 end
 $$;
 
--- Links a new auth user to the person (as an admin allowing an e-mail would) and returns its id.
+-- Allows a new made-up e-mail for the person and links a new auth user to it, as an admin allowing an e-mail would;
+-- returns the auth user's id.
 create function test.sign_in(p_person uuid) returns uuid
 language plpgsql security definer as $$
 declare
   uid uuid := gen_random_uuid();
+  mail text := 'test.' || replace(uid::text, '-', '') || '@example.test';
 begin
-  insert into auth.users (id, email) values (uid, 'test.' || replace(uid::text, '-', '') || '@example.test');
-  insert into core.person_auth (auth_user_id, person_id, email, providers)
-  values (uid, p_person, 'test.' || replace(uid::text, '-', '') || '@example.test', array['email']);
+  insert into auth.users (id, email) values (uid, mail);
+  insert into core.person_email (person_id, email) values (p_person, mail);
+  insert into core.person_auth (auth_user_id, person_id, email, providers) values (uid, p_person, mail, array['email']);
   return uid;
 end
 $$;
 
--- Acts as that person from here on, as PostgREST would for their request.
+-- A device signed in through the flow for that auth user, as api.sign_in_complete() registers it (and the Supabase
+-- session behind it); returns the session id its JWT will carry.
+create function test.start_session(p_uid uuid, p_signed_in timestamptz default now(), p_last_seen timestamptz default null)
+  returns uuid
+language plpgsql security definer as $$
+declare
+  sid uuid := gen_random_uuid();
+begin
+  insert into auth.sessions (id, user_id) values (sid, p_uid);
+  insert into core.device_session (person_id, auth_user_id, auth_session_id, device_label, signed_in_at, last_seen_at)
+  select a.person_id, a.auth_user_id, sid, 'Test browser', p_signed_in, coalesce(p_last_seen, p_signed_in)
+  from core.person_auth a where a.auth_user_id = p_uid;
+  insert into core.sign_in_log (at, person_id, auth_user_id, auth_session_id, email, provider, result)
+  select p_signed_in, a.person_id, a.auth_user_id, sid, a.email, 'email', 'ok'
+  from core.person_auth a where a.auth_user_id = p_uid;
+  return sid;
+end
+$$;
+
+-- Acts as that person from here on, in a fresh session, as PostgREST would for their request.
 create function test.as_person(p_person uuid) returns uuid
 language plpgsql as $$
 declare
@@ -259,7 +281,7 @@ begin
   if uid is null then
     uid := test.sign_in(p_person);
   end if;
-  perform test.as_auth(uid);
+  perform test.as_auth(uid, test.start_session(uid));
   return uid;
 end
 $$;
@@ -269,13 +291,16 @@ create function test.claims_of(p_person uuid) returns uuid
 language plpgsql as $$
 declare
   uid uuid;
+  sid uuid;
 begin
   perform test.as_owner();
   select auth_user_id into uid from core.person_auth where person_id = p_person limit 1;
   if uid is null then
     uid := test.sign_in(p_person);
   end if;
-  perform set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated')::text, true);
+  sid := test.start_session(uid);
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', uid, 'role', 'authenticated', 'session_id', sid)::text, true);
   perform set_config('request.jwt.claim.sub', uid::text, true);
   return uid;
 end

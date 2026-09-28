@@ -106,4 +106,16 @@ export const sabotages = [
     expect: '> waives the line it sits on or the next line, needs a reason',
     edits: [{ file: 'scripts/checks/lib.mjs', find: '\\s*(.{10,})/;', replace: '\\s*(.{1,})/;' }],
   },
+  {
+    name: 'blind-forbidden-words',
+    breaks: [unit('the-words-check-refuses-the-names-the-app-never-says')],
+    expect: '> refuses each name, however it is spaced or cased, in a catalog and in page text',
+    edits: [
+      {
+        file: 'scripts/checks/forbidden-words.mjs',
+        find: "[/\\bb[\\s\\-_.]*2[\\s\\-_.]*b\\b/gi, 'B2B'],",
+        replace: "[/\\bb2b\\b/g, 'B2B'],",
+      },
+    ],
+  },
 ];
