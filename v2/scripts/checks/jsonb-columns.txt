@@ -1,0 +1,2 @@
+# json/jsonb columns allowed in v2 migrations (A1), one per line: schema.table.column — why the spec needs it.
+# Business facts are typed columns; JSON only where TECH-SPEC §3 names it. Filled in as the steps add their tables.

@@ -1,0 +1,15 @@
+Sabotage: plant-json-blob
+Breaks: check:no-blob-tables
+Expect: demo.state.data
+
+Plants a JSON blob table (A1: the old app_state row where the last writer won).
+
+diff --git a/v2/supabase/migrations/20990101000002_demo_state.sql b/v2/supabase/migrations/20990101000002_demo_state.sql
+new file mode 100644
+--- /dev/null
++++ b/v2/supabase/migrations/20990101000002_demo_state.sql
+@@ -0,0 +1,4 @@
++create table demo.state (
++  id int primary key,
++  data jsonb not null
++);

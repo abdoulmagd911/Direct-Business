@@ -1,0 +1,4 @@
+# Binary files allowed under v2/ (rule 7), one per line: glob — reason (ten characters at least).
+# Real files (invoices, exports, PDFs, spreadsheets, screenshots of real data) never live here: Drive or local only.
+public/fonts/**/*.{woff2,woff,ttf} — self-hosted OFL fonts (Readex Pro, IBM Plex Sans / Arabic / Mono): no data
+src/app/favicon.ico — the app's tab icon: no data

@@ -1,0 +1,22 @@
+Sabotage: plant-physical-css
+Breaks: check:no-physical-css
+Expect: src/modules/demo/Card.tsx
+
+Plants physical left/right in a component and a stylesheet (§2.5: logical CSS only, so Arabic needs no hunt).
+
+diff --git a/v2/src/modules/demo/Card.tsx b/v2/src/modules/demo/Card.tsx
+new file mode 100644
+--- /dev/null
++++ b/v2/src/modules/demo/Card.tsx
+@@ -0,0 +1,3 @@
++export function Card() {
++  return <div className="ml-2 text-left">card</div>;
++}
+diff --git a/v2/src/modules/demo/card.css b/v2/src/modules/demo/card.css
+new file mode 100644
+--- /dev/null
++++ b/v2/src/modules/demo/card.css
+@@ -0,0 +1,3 @@
++.card {
++  margin-left: 8px;
++}

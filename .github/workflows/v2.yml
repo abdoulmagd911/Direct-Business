@@ -1,0 +1,115 @@
+# v2 — the Commercial app rebuild (docs/v2/). Runs only when v2 changes; the old app at the repository root has no CI
+# and is never touched from here (V12: v2 merges into v2/main, never into the default branch).
+name: v2
+
+on:
+  pull_request:
+    branches: [v2/main]
+    paths: ['v2/**', 'docs/v2/**', '.github/workflows/v2.yml']
+  push:
+    branches: [v2/main]
+    paths: ['v2/**', 'docs/v2/**', '.github/workflows/v2.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: v2-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  # The base the forward-only migrations check compares with (A9).
+  V2_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event_name == 'push' && github.event.before) || 'origin/v2/main' }}
+
+defaults:
+  run:
+    working-directory: v2
+
+jobs:
+  checks:
+    name: checks, lint, types, format
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: v2/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: v2/.nvmrc
+          cache: pnpm
+          cache-dependency-path: v2/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: checks (TECH-SPEC §9.1)
+        run: pnpm checks
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm format:check
+
+  unit:
+    name: unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: v2/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: v2/.nvmrc
+          cache: pnpm
+          cache-dependency-path: v2/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+  sabotage:
+    name: every check and unit test fails under its sabotage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: v2/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: v2/.nvmrc
+          cache: pnpm
+          cache-dependency-path: v2/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/sabotage.mjs --kind check --kind lint --kind unit
+
+  e2e:
+    name: build and end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: v2/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: v2/.nvmrc
+          cache: pnpm
+          cache-dependency-path: v2/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build
+      - run: pnpm test:e2e
+      - name: every end-to-end spec fails under its sabotage
+        run: node scripts/sabotage.mjs --kind e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: v2/playwright-report
+          retention-days: 7

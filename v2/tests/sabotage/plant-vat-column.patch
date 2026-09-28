@@ -1,0 +1,15 @@
+Sabotage: plant-vat-column
+Breaks: check:no-vat-columns
+Expect: vat_amount
+
+Plants a VAT amount column (M1: no VAT figure is ever stored).
+
+diff --git a/v2/supabase/migrations/20990101000001_demo_vat.sql b/v2/supabase/migrations/20990101000001_demo_vat.sql
+new file mode 100644
+--- /dev/null
++++ b/v2/supabase/migrations/20990101000001_demo_vat.sql
+@@ -0,0 +1,4 @@
++create table demo.invoice (
++  id uuid primary key,
++  vat_amount numeric(14,2)
++);
