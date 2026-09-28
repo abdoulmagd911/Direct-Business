@@ -88,6 +88,52 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: node scripts/sabotage.mjs --kind check --kind lint --kind unit
 
+  db-plain:
+    name: database from zero (Postgres 17) and its sabotage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: v2/.nvmrc
+      - name: the SQL suite on a database built from zero
+        run: node scripts/db/test.mjs
+      - name: every SQL test fails under its sabotage
+        run: node scripts/sabotage.mjs --kind sql
+
+  db-supabase:
+    name: database from zero on the Supabase stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: v2/.nvmrc
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0
+      - name: start the stack (a new database; every migration applied)
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime,storage-api,mailpit
+      - name: the SQL suite on the Supabase stack
+        run: node scripts/db/test.mjs --target supabase
+      - if: always()
+        run: supabase stop --no-backup
+
   e2e:
     name: build and end-to-end
     runs-on: ubuntu-latest

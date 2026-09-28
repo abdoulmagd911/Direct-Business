@@ -16,8 +16,10 @@
 //     Expect: <text the red output must contain>
 // A .mjs file exports `sabotages`: [{ name, breaks: [...], expect, edits?: [{ file, find, replace }],
 // writes?: [{ file, content }] }] — paths relative to v2/; `find` must occur exactly once.
+// A .sql file under supabase/tests/sabotage/ has the same header as `-- ` comments and breaks the database: the SQL
+// suite applies it after the migrations (V2_DB_AFTER) of a database built from zero; targets are sql:<test ID>.
 //
-// Usage (from v2/): node scripts/sabotage.mjs [--only <name>]... [--kind check|lint|unit|e2e]... [--list]
+// Usage (from v2/): node scripts/sabotage.mjs [--only <name>]... [--kind check|lint|unit|e2e|sql]... [--list]
 // If it is killed half-way, the tree may still hold a sabotage: `git status` shows it; `git checkout -- <file>` and
 // removing the planted files restores it.
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -27,36 +29,52 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const V2 = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIR = path.join(V2, 'tests', 'sabotage');
+const SQL_DIR = path.join(V2, 'supabase', 'tests', 'sabotage');
 const REPO = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: V2 }).toString().trim();
 
 /**
  * @typedef {{ file: string, find: string, replace: string }} Edit
  * @typedef {{ file: string, content: string }} Write
  * @typedef {{ name: string, breaks: string[], expect: string, source: string, patch?: string,
- *             edits?: Edit[], writes?: Write[] }} Sabotage
+ *             edits?: Edit[], writes?: Write[], sqlAfter?: string }} Sabotage
  */
 
 // ---------------------------------------------------------------- loading
+
+/** A header field of a patch or SQL sabotage. @param {string} head @param {string} k */
+function field(head, k) {
+  return new RegExp(`^(?:-- )?${k}:\\s*(.+)$`, 'm').exec(head)?.[1]?.trim() ?? '';
+}
+
+/** @param {string} head @param {string} f */
+function header(head, f) {
+  const s = {
+    name: field(head, 'Sabotage'),
+    breaks: field(head, 'Breaks')
+      .split(/[\s,]+/)
+      .filter(Boolean),
+    expect: field(head, 'Expect'),
+  };
+  if (!s.name || !s.breaks.length || !s.expect) throw new Error(`${f}: header needs Sabotage, Breaks and Expect`);
+  return s;
+}
 
 /** @returns {Promise<Sabotage[]>} */
 async function load() {
   /** @type {Sabotage[]} */
   const all = [];
+  if (fs.existsSync(SQL_DIR))
+    for (const f of fs.readdirSync(SQL_DIR).sort())
+      if (f.endsWith('.sql')) {
+        const abs = path.join(SQL_DIR, f);
+        all.push({ ...header(fs.readFileSync(abs, 'utf8'), f), source: `supabase/tests/sabotage/${f}`, sqlAfter: abs });
+      }
   for (const f of fs.readdirSync(DIR).sort()) {
     const abs = path.join(DIR, f);
     if (f.endsWith('.patch')) {
       const text = fs.readFileSync(abs, 'utf8');
       const head = text.slice(0, Math.max(0, text.indexOf('diff --git')));
-      const field = (/** @type {string} */ k) => new RegExp(`^${k}:\\s*(.+)$`, 'm').exec(head)?.[1]?.trim() ?? '';
-      const s = {
-        name: field('Sabotage'),
-        breaks: field('Breaks')
-          .split(/[\s,]+/)
-          .filter(Boolean),
-        expect: field('Expect'),
-      };
-      if (!s.name || !s.breaks.length || !s.expect) throw new Error(`${f}: header needs Sabotage, Breaks and Expect`);
-      all.push({ ...s, source: f, patch: abs });
+      all.push({ ...header(head, f), source: f, patch: abs });
     } else if (f.endsWith('.mjs')) {
       const mod = await import(pathToFileURL(abs).href);
       for (const s of mod.sabotages ?? []) all.push({ ...s, source: f });
@@ -87,18 +105,20 @@ function command(target) {
       return ['pnpm', ['exec', 'vitest', 'run', arg]];
     case 'e2e':
       return ['sh', ['-c', `pnpm build >/dev/null && pnpm exec playwright test ${JSON.stringify(arg)}`]];
+    case 'sql':
+      return ['node', ['scripts/db/test.mjs', '--only', arg]];
     default:
       throw new Error(`unknown target kind in "${target}"`);
   }
 }
 
-/** @param {string} target @returns {{ ok: boolean, output: string }} */
-function run(target) {
+/** @param {string} target @param {Record<string, string>} [extraEnv] @returns {{ ok: boolean, output: string }} */
+function run(target, extraEnv = {}) {
   const [cmd, args] = /** @type {[string, string[]]} */ (command(target));
   const r = spawnSync(cmd, args, {
     cwd: V2,
     encoding: 'utf8',
-    env: { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1' },
+    env: { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1', V2_DB_AFTER: '', ...extraEnv },
     maxBuffer: 64 << 20,
   });
   const output = `${r.stdout ?? ''}${r.stderr ?? ''}`.replace(/\u001b\[[0-9;]*m/g, '');
@@ -112,8 +132,17 @@ function git(args) {
   return execFileSync('git', args, { cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'] }).toString();
 }
 
-/** Plants a sabotage; returns the function that takes it out again. @param {Sabotage} s */
+/**
+ * Plants a sabotage; returns the function that takes it out again, and the environment its targets run in.
+ * @param {Sabotage} s @returns {{ takeOut: () => void, env: Record<string, string> }}
+ */
 function plant(s) {
+  if (s.sqlAfter) return { takeOut: () => {}, env: { V2_DB_AFTER: s.sqlAfter } };
+  return { takeOut: plantFiles(s), env: {} };
+}
+
+/** @param {Sabotage} s */
+function plantFiles(s) {
   if (s.patch) {
     try {
       git(['apply', '--check', s.patch]);
@@ -214,8 +243,10 @@ for (const s of chosen) {
   }
   /** @type {() => void} */
   let takeOut = () => {};
+  /** @type {Record<string, string>} */
+  let env = {};
   try {
-    takeOut = plant(s);
+    ({ takeOut, env } = plant(s));
   } catch (e) {
     failures++;
     rows.push([s.name, '(plant)', `FAILED — ${/** @type {Error} */ (e).message}`]);
@@ -228,7 +259,7 @@ for (const s of chosen) {
         rows.push([s.name, t, 'FAILED — the target is red without the sabotage']);
         continue;
       }
-      const r = run(t);
+      const r = run(t, env);
       if (r.ok) {
         failures++;
         rows.push([s.name, t, 'FAILED — stayed green under the sabotage']);

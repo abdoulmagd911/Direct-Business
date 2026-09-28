@@ -18,7 +18,9 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "checks": "node scripts/checks/run.mjs",
-    "sabotage": "node scripts/sabotage.mjs"
+    "sabotage": "node scripts/sabotage.mjs",
+    "db:test": "node scripts/db/test.mjs",
+    "db:grants": "node scripts/db/test.mjs --write-grants"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
