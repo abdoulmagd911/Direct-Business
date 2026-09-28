@@ -884,7 +884,8 @@ export function start(port, seedOverrides){
           'integrity_status','exclusion_reason','notes','source_batch','line_no','branch','salesman','project_tag',
           'discount_sar','origin','proposal_ref','items','transaction_ref','direct_uuid','revenue_way',
           /* D1 */ 'payments_client_id','customer_tax_no','discount_code','row_kind','payments_status','payments_status_at','paid_at',
-          'tax_invoice_date','invoice_created_on','audit_required','customer_email','billed_by_ref','source'];
+          'tax_invoice_date','invoice_created_on','audit_required','customer_email','billed_by_ref','source',
+          /* D26 */ 'transaction_date'];
         const pick=(row,extra)=>{ const out={}; (extra?WRITABLE.concat(extra):WRITABLE).forEach(k=>{ if(Object.prototype.hasOwnProperty.call(row,k)) out[k]=row[k]; }); return out; };
         const pIns=Array.isArray(parsed.p_insert)?parsed.p_insert:[];
         const pUpd=Array.isArray(parsed.p_update)?parsed.p_update:[];
@@ -921,6 +922,7 @@ export function start(port, seedOverrides){
             const v=clean[k]; if(v===null||v===undefined) return;
             if(older&&k!=='cost_sar'&&cur[k]!==null&&cur[k]!==undefined&&cur[k]!=='') return;   // an OLDER file only fills what is still empty (as the real function)
             if(k==='row_kind'&&cur.row_kind==='billing_link'&&v==='sale') return;   // a person's billing link survives a re-import (as the real function)
+            if(k==='transaction_date'&&cur[k]) return;   // D26: fill only (as the real function)
             if(k==='payments_status_at'||k==='paid_at'){ if(!cur[k]||String(v)>String(cur[k])) next[k]=v; return; }
             next[k]=v;
           });

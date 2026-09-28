@@ -93,7 +93,7 @@
     var w=canEdit();
     var h='<div class="card v120-svc" data-v120="1" style="padding:18px;margin-bottom:16px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0;flex:1">'+fl('Income by service — which line goes where','الدخل حسب الخدمة — أين يذهب كل سطر')+'</h3>'+
       '<button class="btn sm ghost" onclick="v120Log()">'+fl('Change log','سجل التغييرات')+'</button></div>'+
-      '<div class="ch-sub" style="margin:4px 0 0">'+fl('Each invoice line goes to one main service: the item\'s own service if it is on the Items list, else its Payments product\'s. Lines of a "not income" service are never counted. Changing these lists never changes an invoice — only how Overview → Income by service adds them up.',
+      '<div class="fin-note" style="margin:4px 0 0">'+fl('Each invoice line goes to one main service: the item\'s own service if it is on the Items list, else its Payments product\'s. Lines of a "not income" service are never counted. Changing these lists never changes an invoice — only how Overview → Income by service adds them up.',
         'كل سطر في الفاتورة يذهب إلى خدمة رئيسية واحدة: خدمة البند إن كان في قائمة البنود، وإلا خدمة منتجه في «المدفوعات». أسطر الخدمة «ليست دخلًا» لا تُحتسب أبدًا. تغيير هذه القوائم لا يغيّر أي فاتورة — فقط طريقة الجمع في «الدخل حسب الخدمة».')+'</div>';
     if(SV.err) return h+'<div style="color:#B42318;font-size:12.5px;margin-top:8px">'+fl('The lists could not be read: ','تعذّرت قراءة القوائم: ')+e(SV.err)+' <button class="btn sm ghost" onclick="v120Retry()">'+fl('Try again','حاول مجددًا')+'</button></div></div>';
     h+=table(fl('Main services','الخدمات الرئيسية'),SV.svc.map(function(x){

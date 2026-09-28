@@ -68,7 +68,7 @@
     var keys=Object.keys(by).sort(function(a,b){ return (order[a]-order[b])||(by[b].rev-by[a].rev); });
     var tot={rev:0,cost:0,est:0,revP:0};
     var h='<h3 class="finh" style="margin:0 0 3px">'+fl('Income by service','الدخل حسب الخدمة')+(window.finPeriodLabel?'<i>'+finPeriodLabel()+'</i>':'')+'</h3>'+
-      '<div class="ch-sub" style="margin-bottom:10px">'+fl('Each invoice line goes to one service (Finance → Rules decides which), then the lines are added up — paid sales only, never top-ups or billing links. Cost is the approved expense split by each service’s share; ⚑ is the flagged estimate where no approved expense has arrived yet. Profit and margin are measured where the cost is known or estimated.',
+      '<div class="fin-note" style="margin-bottom:10px">'+fl('Each invoice line goes to one service (Finance → Rules decides which), then the lines are added up — paid sales only, never top-ups or billing links. Cost is the approved expense split by each service’s share; ⚑ is the flagged estimate where no approved expense has arrived yet. Profit and margin are measured where the cost is known or estimated.',
         'كل بند في الفاتورة يذهب إلى خدمة واحدة (تحدّدها المالية ← القواعد)، ثم تُجمع البنود — المبيعات المدفوعة فقط، لا شحن المحفظة ولا الفواتير التجميعية. التكلفة هي المصروف المعتمد موزّعًا بحصة كل خدمة؛ ⚑ هو التقدير حيث لم يصل مصروف معتمد بعد. الربح والهامش يُقاسان حيث التكلفة معروفة أو مقدّرة.')+'</div>'+
       '<div style="overflow-x:auto"><table data-v24-svc="1" style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:620px"><thead><tr>'+
       th(fl('Service','الخدمة'))+th(fl('Invoices','الفواتير'),1)+th(fl('Revenue','الإيراد'),1)+th(fl('Approved cost','التكلفة المعتمدة'),1)+th(fl('Est. cost ⚑','تكلفة تقديرية ⚑'),1)+th(fl('Profit','الربح'),1)+th(fl('Margin','الهامش'),1)+'</tr></thead><tbody>';
@@ -250,7 +250,7 @@
         var top=used.slice(0,10);
         var th=function(t,r){return '<th style="padding:6px 8px;text-align:'+(r?'right':'left')+';color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap">'+t+'</th>';};
         var h='<h3 class="finh" style="margin:0 0 3px">'+fl('Promo codes (B2B2C)','أكواد الخصم (B2B2C)')+'</h3>'+
-          '<div class="ch-sub" style="margin-bottom:10px">'+fl('Codes given to partner companies — used as B2C but the revenue belongs to the commercial team. Totals for now; per-invoice detail comes with the importer.','أكواد تُمنح للشركات الشريكة — تُستخدم كأفراد لكن إيرادها يخص الفريق التجاري. الإجماليات الآن، وتفاصيل الفواتير مع أداة الاستيراد.')+'</div>'+
+          '<div class="fin-note" style="margin-bottom:10px">'+fl('Codes given to partner companies — used as B2C but the revenue belongs to the commercial team. Totals for now; per-invoice detail comes with the importer.','أكواد تُمنح للشركات الشريكة — تُستخدم كأفراد لكن إيرادها يخص الفريق التجاري. الإجماليات الآن، وتفاصيل الفواتير مع أداة الاستيراد.')+'</div>'+
           '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px">'+
             '<div style="flex:1;min-width:120px"><div style="font-size:11px;color:var(--muted)">'+fl('Codes (used / all)','الأكواد (مستخدمة / الكل)')+'</div><div style="font-size:19px;font-weight:800">'+used.length+' / '+P.length+'</div></div>'+
             '<div style="flex:1;min-width:140px"><div style="font-size:11px;color:var(--muted)">'+fl('Sales through codes','المبيعات عبر الأكواد')+'</div><div style="font-size:19px;font-weight:800;color:#0F6E56">'+m0(sales)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'+
@@ -379,7 +379,7 @@
           src.slice(0,CAP).forEach(function(r){
             var t=document.createElement('tr'); t.className='s1-kid';
             t.style.cssText='border-top:1px solid #f7f5f0;background:#FCFBF8';
-            var lbl='<span style="color:var(--muted)">'+ex(r.invoice_date||'')+'</span> · <b>'+ex(r.invoice_no||'—')+'</b> · '+ex(svc(r));
+            var lbl='<span style="color:var(--muted)">'+ex(r.invoice_date||'')+'</span> · <b>'+ex(r.invoice_no||'—')+'</b> · '+ex(svc(r))+((r.transaction_ref&&typeof window.finRebillNote==='function')?(' <span data-fin-rebill="1" style="color:var(--muted)">· '+ex(window.finRebillNote(r))+'</span>'):'');
             t.innerHTML='<td style="padding:5px 8px 5px 42px;font-size:12px">'+lbl+'</td>'+
               (R.mets||[]).map(function(m){
                 return '<td style="padding:5px 8px;text-align:right;font-size:12px;color:#4a5060;font-variant-numeric:tabular-nums">'+

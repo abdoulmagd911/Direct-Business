@@ -182,7 +182,7 @@
 
     var h='<div class="card" style="padding:16px;margin-bottom:14px">'+
       '<h3 class="finh" style="margin:0 0 3px">'+fl('Individual bookings','الحجوزات الفردية')+'</h3>'+
-      '<div class="ch-sub" style="margin-bottom:12px">'+fl(
+      '<div class="fin-note" style="margin-bottom:12px">'+fl(
         'Bookings made for an individual, not a company — the one revenue pattern with no Direct Payments export to import from, so it’s entered here by hand. Each row is a real Finance record: it counts toward Revenue, Cost, Profit, Received and Outstanding exactly like an imported invoice.',
         'حجوزات لفرد وليس لشركة — نمط الإيراد الوحيد الذي لا يوجد له ملف تصدير من Direct Payments، لذلك يُدخل هنا يدويًا. كل صف هو سجل مالي حقيقي: يُحتسب ضمن الإيراد والتكلفة والربح والمحصّل والمتبقي تمامًا كأي فاتورة مستوردة.')+'</div>'+
       '<div><div style="font-size:11px;color:var(--muted)">'+fl('Total, all individual bookings','الإجمالي — كل الحجوزات الفردية')+'</div><div style="font-size:21px;font-weight:800;color:#175CD3">'+m0(tot)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'+

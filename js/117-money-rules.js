@@ -157,7 +157,7 @@
   window.v117AddRule=function(kindPre,valEnc){ if(!canEdit())return;
     var vPre=valEnc?decodeURIComponent(valEnc):'';
     openModal(fl('Add an exclusion rule','إضافة قاعدة استبعاد'),
-      '<div class="ch-sub" style="margin-bottom:12px;line-height:1.5">'+fl('Rows that match are left out of every total, KPI, report and export at once — nothing is deleted, and switching the rule off brings them back.','الصفوف المطابقة تُستبعد فورًا من كل إجمالي ومؤشر وتقرير وتصدير — لا يُحذف شيء، وإيقاف القاعدة يعيدها.')+'</div>'+
+      '<div class="fin-note" style="margin-bottom:12px;line-height:1.5">'+fl('Rows that match are left out of every total, KPI, report and export at once — nothing is deleted, and switching the rule off brings them back.','الصفوف المطابقة تُستبعد فورًا من كل إجمالي ومؤشر وتقرير وتصدير — لا يُحذف شيء، وإيقاف القاعدة يعيدها.')+'</div>'+
       '<div class="field"><label>'+fl('Type','النوع')+'</label><select id="v117_kind">'+KINDS.map(function(k){ return '<option value="'+k[0]+'"'+(k[0]===kindPre?' selected':'')+'>'+e(fl(k[1],k[2]))+'</option>'; }).join('')+'</select></div>'+
       '<div class="field"><label>'+fl('Value','القيمة')+'</label><input id="v117_value" value="'+e(vPre)+'" placeholder="'+e(fl('e.g. 7','مثال: 7'))+'"></div>'+
       '<div class="field"><label>'+fl('Reason (required)','السبب (مطلوب)')+'</label><input id="v117_reason" placeholder="'+e(fl('e.g. test account in Payments','مثال: حساب تجريبي في المدفوعات'))+'"></div>',
@@ -250,7 +250,7 @@
   window.v117AddClientId=function(bizUuid,prefill){ if(!canMergeMR())return;
     if(!noCompanies())return;
     openModal(fl('Add a client ID to a company','إضافة معرّف عميل إلى شركة'),
-      '<div class="ch-sub">'+fl('Only what is typed here is merged: every transaction carrying this Direct Payments client ID counts under the company. One ID belongs to one company.','لا يُدمج إلا ما يُكتب هنا: كل عملية تحمل معرّف العميل هذا تُحتسب لهذه الشركة. المعرّف الواحد لشركة واحدة.')+'</div>'+
+      '<div class="fin-note">'+fl('Only what is typed here is merged: every transaction carrying this Direct Payments client ID counts under the company. One ID belongs to one company.','لا يُدمج إلا ما يُكتب هنا: كل عملية تحمل معرّف العميل هذا تُحتسب لهذه الشركة. المعرّف الواحد لشركة واحدة.')+'</div>'+
       '<div class="field"><label>'+fl('Company','الشركة')+'</label><select id="v117_biz">'+companyOptions(bizUuid)+'</select></div>'+
       '<div class="grid2"><div class="field"><label>'+fl('Direct Payments client ID','معرّف العميل في المدفوعات')+'</label><input id="v117_cid" value="'+e(prefill||'')+'" placeholder="'+e(fl('e.g. 20','مثال: 20'))+'"></div>'+
       '<div class="field"><label>'+fl('Type','النوع')+'</label><select id="v117_type"><option value="prepaid">'+typeLabel('prepaid')+'</option><option value="postpaid">'+typeLabel('postpaid')+'</option><option value="tender">'+typeLabel('tender')+'</option></select></div></div>',
@@ -268,7 +268,7 @@
   window.v117AddCode=function(bizUuid){ if(!canMergeMR())return;
     if(!noCompanies())return;
     openModal(fl('Add a discount code to a company','إضافة رمز خصم إلى شركة'),
-      '<div class="ch-sub">'+fl('Sales that used this code count under the company, and leave "Unassigned codes" — never counted twice. One code belongs to one company.','المبيعات التي استخدمت هذا الرمز تُحتسب للشركة وتخرج من «رموز غير مخصّصة» — لا تُحتسب مرتين. الرمز الواحد لشركة واحدة.')+'</div>'+
+      '<div class="fin-note">'+fl('Sales that used this code count under the company, and leave "Unassigned codes" — never counted twice. One code belongs to one company.','المبيعات التي استخدمت هذا الرمز تُحتسب للشركة وتخرج من «رموز غير مخصّصة» — لا تُحتسب مرتين. الرمز الواحد لشركة واحدة.')+'</div>'+
       '<div class="field"><label>'+fl('Company','الشركة')+'</label><select id="v117_cbiz">'+companyOptions(bizUuid)+'</select></div>'+
       '<div class="field"><label>'+fl('Code','الرمز')+'</label><input id="v117_code" list="v117_codes" placeholder="'+e(fl('type the code','اكتب الرمز'))+'"><datalist id="v117_codes">'+(MR.codes||[]).map(function(p){ return '<option value="'+e(p.code)+'">'; }).join('')+'</datalist></div>',
       function(){ var biz=val('v117_cbiz'), code=val('v117_code');
@@ -305,7 +305,7 @@
     h+='<div class="card v117-rules" style="padding:18px;margin-bottom:16px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0;flex:1">'+fl('Exclusion rules','قواعد الاستبعاد')+'</h3>'+
       (w?'<button class="btn sm pri" data-v117="add-rule" onclick="v117AddRule()">+ '+fl('Add a rule','إضافة قاعدة')+'</button>':'')+
       ((window.__userRole==='admin'||window.__userRole==='manager')?' <button class="btn sm ghost" onclick="v117Log()">'+fl('Change log','سجل التغييرات')+'</button>':'')+'</div>'+
-      '<div class="ch-sub" style="margin:4px 0 10px">'+fl('Only what is typed here is left out; everything else counts. A row caught by an active rule leaves every total, KPI, report and export at once.','لا يُستبعد إلا ما يُكتب هنا؛ وكل ما عداه يُحتسب. الصف الذي تلتقطه قاعدة فعّالة يخرج فورًا من كل إجمالي ومؤشر وتقرير وتصدير.')+'</div>';
+      '<div class="fin-note" style="margin:4px 0 10px">'+fl('Only what is typed here is left out; everything else counts. A row caught by an active rule leaves every total, KPI, report and export at once.','لا يُستبعد إلا ما يُكتب هنا؛ وكل ما عداه يُحتسب. الصف الذي تلتقطه قاعدة فعّالة يخرج فورًا من كل إجمالي ومؤشر وتقرير وتصدير.')+'</div>';
     h+=rules.length?table([fl('Type','النوع'),fl('Value','القيمة'),fl('Reason','السبب'),fl('Catches','تلتقط'),fl('Added','أُضيفت'),fl('On','فعّالة'),''],rules.map(function(r){ var s=st.rule[r.id]||{n:0,sar:0};
         return '<tr data-v117-rule="'+e(r.id)+'"'+(r.active?'':' style="opacity:.6"')+'><td style="'+TD+'">'+e(kindLabel(r.kind))+'</td><td style="'+TD+';font-weight:700">'+e(r.value)+'</td><td style="'+TD+'">'+e(r.reason)+'</td>'+
           '<td style="'+TD+';white-space:nowrap">'+(r.active?(s.n+' '+fl('rows','صف')+' · '+sar(s.sar)):fl('off','متوقفة'))+'</td>'+
@@ -323,7 +323,7 @@
     var comps=Object.keys(byBiz).sort(function(a,b){ return String((bix[a]||{}).name||'').localeCompare(String((bix[b]||{}).name||'')); });
     h+='<div class="card v117-merges" style="padding:18px;margin-bottom:16px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0;flex:1">'+fl('Company merges','دمج الشركات')+'</h3>'+
       (w?'<button class="btn sm pri" data-v117="add-id" onclick="v117AddClientId()">+ '+fl('Client ID','معرّف عميل')+'</button> <button class="btn sm" data-v117="add-code" onclick="v117AddCode()">+ '+fl('Discount code','رمز خصم')+'</button>':'')+'</div>'+
-      '<div class="ch-sub" style="margin:4px 0 10px">'+fl('Only what is typed here is merged; nothing is added automatically. A client ID or a code belongs to one company only. Exclusion beats merge.','لا يُدمج إلا ما يُكتب هنا؛ لا يُضاف شيء تلقائيًا. معرّف العميل أو الرمز لشركة واحدة فقط. الاستبعاد يسبق الدمج.')+'</div>';
+      '<div class="fin-note" style="margin:4px 0 10px">'+fl('Only what is typed here is merged; nothing is added automatically. A client ID or a code belongs to one company only. Exclusion beats merge.','لا يُدمج إلا ما يُكتب هنا؛ لا يُضاف شيء تلقائيًا. معرّف العميل أو الرمز لشركة واحدة فقط. الاستبعاد يسبق الدمج.')+'</div>';
     h+=comps.length?table([fl('Company','الشركة'),fl('Client IDs and names','المعرّفات والأسماء'),fl('Discount codes','رموز الخصم'),fl('Counts','يُحتسب')],comps.map(function(u){ var c=byBiz[u], b=bix[u]||{}, s=st.biz[u]||{n:0,sar:0};
         var ids=c.ids.map(function(p){ var r=window.moneyRuleFor({clientId:p.direct_client_id});
           return '<div data-v117-cid="'+e(p.direct_client_id)+'"><span class="tag">'+e(typeLabel(p.profile_type))+'</span> <b>#'+e(p.direct_client_id)+'</b>'+(p.closed_at?' <span class="muted">'+fl('closed','مغلق')+'</span>':'')+
@@ -381,7 +381,7 @@
     var list=Object.keys(by).map(function(k){ return by[k]; }).sort(function(a,b){ return (b.post-a.post)||(b.b[3]-a.b[3])||(b.t-a.t); });
     var tot=[0,0,0,0]; list.forEach(function(c){ c.b.forEach(function(v,i){ tot[i]+=v; }); });
     return '<div class="card v117-chase" style="padding:18px 18px 16px;margin-top:14px;overflow:visible"><h3 style="margin:0 0 4px;line-height:1.4">'+fl('Who to chase','من نتابع للتحصيل')+'</h3>'+
-      '<div class="ch-sub" style="margin-bottom:10px">'+fl('Outstanding by company and age since the invoice date, postpaid clients first — billing and plain invoices in the period, as Outstanding above. Outstanding is a separate view — never added to revenue.','المستحق حسب الشركة والعمر منذ تاريخ الفاتورة، والعملاء الآجلون أولًا — الفواتير التجميعية والعادية في الفترة، كما في «المستحق» أعلاه. المستحق عرض منفصل — لا يُضاف إلى الإيراد أبدًا.')+'</div>'+
+      '<div class="fin-note" style="margin-bottom:10px">'+fl('Outstanding by company and age since the invoice date, postpaid clients first — billing and plain invoices in the period, as Outstanding above. Outstanding is a separate view — never added to revenue.','المستحق حسب الشركة والعمر منذ تاريخ الفاتورة، والعملاء الآجلون أولًا — الفواتير التجميعية والعادية في الفترة، كما في «المستحق» أعلاه. المستحق عرض منفصل — لا يُضاف إلى الإيراد أبدًا.')+'</div>'+
       (list.length?table([fl('Company','الشركة'),'0-30','31-60','61-90','90+',fl('Total','الإجمالي')],list.map(function(c){
           return '<tr><td style="'+TD+';font-weight:700">'+e(c.name||'—')+(c.post?' <span class="tag">'+typeLabel('postpaid')+'</span>':'')+'</td>'+c.b.map(function(v,i){ return '<td style="'+TD+(i===3&&v?';color:#B42318;font-weight:700':'')+'">'+(v?sar(v):'—')+'</td>'; }).join('')+'<td style="'+TD+';font-weight:700">'+sar(c.t)+'</td></tr>'; })
           .concat(['<tr style="background:#F6F7F9"><td style="'+TD+';font-weight:700">'+fl('All','الكل')+'</td>'+tot.map(function(v){ return '<td style="'+TD+';font-weight:700">'+sar(v)+'</td>'; }).join('')+'<td style="'+TD+';font-weight:700">'+sar(tot[0]+tot[1]+tot[2]+tot[3])+'</td></tr>']))

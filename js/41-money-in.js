@@ -202,7 +202,7 @@
     var drop={};
     Object.keys(byKey).forEach(function(k){
       var g=byKey[k],nums=g.filter(function(i){return i.num;}),plain=g.filter(function(i){return !i.num;});
-      nums.forEach(function(n){ if(plain.length&&!n.tx){var tw=plain.shift();n.tx=tw.ref;drop[tw.ref]=1;} });
+      nums.forEach(function(n){ if(plain.length&&!n.tx){var tw=plain.shift();n.tx=tw.ref;n.txDate=tw.paid||tw.created||tw.generated||null;drop[tw.ref]=1;} });
     });
     return out.filter(function(i){return !drop[i.ref];});
   }
@@ -231,7 +231,8 @@
         source_batch:batch, source:'import',
         line_no:1, branch:i.branch, salesman:i.salesman,
         revenue_way:(i.comm?'commission':(!i.num&&i.st!=='credit'&&!i.topup)?'transaction':'invoice'),
-        transaction_ref:i.tx||null
+        transaction_ref:i.tx||null,
+        transaction_date:i.txDate||null                  // D26: the re-billed transaction's own date, shown beside this row's
       };
       // the item lines, replaced per invoice on the commit (import rule 4)
       row._lines=(i.items||[]).map(function(it,k){ return {invoice_no:i.ref,line_no:k+1,kind:'item',product:it.product||null,name:it.name||null,

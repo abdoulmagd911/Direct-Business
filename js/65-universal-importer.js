@@ -325,7 +325,7 @@
   // whose ONLY real change is a newly-attached tax code (nothing else differing) would report
   // as "unchanged" and silently never get its tax code written at all.
   var CMP_FIELDS=['total_incl_vat_sar','integrity_status','amount_received_sar','amount_remaining_sar','revenue_sar','cost_sar','zatca_dpin','invoice_date',
-    /* D1: a change in any of these is an update too */ 'payments_status','paid_at','row_kind','audit_required','wallet_portion_sar','tax_invoice_date','invoice_created_on','customer_email'];
+    /* D1: a change in any of these is an update too */ 'payments_status','paid_at','row_kind','audit_required','wallet_portion_sar','tax_invoice_date','invoice_created_on','customer_email','transaction_date'];
   // M13, 2026-08-25 — real live bug: `year` on finance_invoices is `GENERATED ALWAYS AS
   // (EXTRACT(year FROM invoice_date))::integer STORED` (verified against the live schema, not
   // guessed) — Postgres refuses ANY statement that assigns it explicitly, even a matching value,
@@ -348,7 +348,9 @@
     /* D1 (2026-09-28): Payments' status and dates, the row kind, the audit flag, the email that links a client. vat_sar is
        gone (D18 — never written), and profit is the database's (revenue − cost), so neither is sent. */
     'row_kind','payments_status','payments_status_at','paid_at','tax_invoice_date','invoice_created_on','audit_required',
-    'customer_email','billed_by_ref','source'];
+    'customer_email','billed_by_ref','source',
+    /* D26: the re-billed transaction's own date on a merged pair (js/41 twin pairing); the database fills it only when empty */
+    'transaction_date'];
   function pickWritable(row,forUpdate){
     var out={};
     WRITABLE_INVOICE_FIELDS.forEach(function(f){
@@ -366,6 +368,8 @@
       /* D1 sweep: a field the file leaves blank is never sent (an update fills, never wipes — pickWritable), so it is not a
          change either; counting it made every re-drop of an unchanged file read "N updated" */
       if(b===null||b===undefined||b==='') return false;
+      /* D26: fill-only, and only once the column exists (a deploy before its migration must not call every pair "updated") */
+      if(f==='transaction_date'&&(!Object.prototype.hasOwnProperty.call(oldR,f)||(a!=null&&a!==''))) return false;
       if(typeof a==='number'||typeof b==='number') return Math.abs((Number(a)||0)-(Number(b)||0))>0.01;
       return String(a==null?'':a)!==String(b==null?'':b);
     });
@@ -976,7 +980,7 @@
         '<select id="v65t_'+f.key+'">'+optsHtml+'</select></div>';
     }).join('');
     openModal(fl('Teach this file’s columns','عيّن أعمدة هذا الملف'),
-      '<div class="ch-sub">'+fl('Match each field to one of this file\u2019s columns, once. Saved and reused automatically for every future file with these exact columns — never asked again for this shape. Fields left "not present" import as pending / not yet reconciled, never a guessed amount.','طابق كل حقل مع أحد أعمدة هذا الملف، مرة واحدة. يُحفظ ويُستخدم تلقائيًا مع كل ملف مستقبلي بنفس هذه الأعمدة — لن يُطلب منك ذلك مجددًا لهذا الشكل. الحقول التي تُترك "غير موجود" تُستورد كمعلّقة/غير مُسواة، وليست مبلغًا مُخمَّنًا.')+'</div>'+
+      '<div class="fin-note">'+fl('Match each field to one of this file\u2019s columns, once. Saved and reused automatically for every future file with these exact columns — never asked again for this shape. Fields left "not present" import as pending / not yet reconciled, never a guessed amount.','طابق كل حقل مع أحد أعمدة هذا الملف، مرة واحدة. يُحفظ ويُستخدم تلقائيًا مع كل ملف مستقبلي بنفس هذه الأعمدة — لن يُطلب منك ذلك مجددًا لهذا الشكل. الحقول التي تُترك "غير موجود" تُستورد كمعلّقة/غير مُسواة، وليست مبلغًا مُخمَّنًا.')+'</div>'+
       '<div class="grid2">'+fieldsHtml+'</div>',
       function(){
         var mapping={}, missing=[];

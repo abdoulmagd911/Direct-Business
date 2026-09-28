@@ -1713,6 +1713,24 @@ def _(cur):
     ok = dup and rn and dl and vw and seen == 1 and logged >= 1
     return (ok, f"same name other spelling refused={dup} · rename refused={rn} · delete refused={dl} · View cannot add={vw} · View reads {seen} · logged={logged}")
 
+@test("D26-01 A merged pair keeps the re-billed transaction's own date: the import writes it, a later file only fills it when empty, and the money view shows it beside the invoice's date")
+def _(cur):
+    as_user(cur, 'u4')
+    one(cur, "select fn_commit_finance_import(p_insert := %s::jsonb)", (json.dumps([{'invoice_no': 'D26-PAIR', 'zatca_dpin': 'DPIN-D26', 'client_group': 'D26 Co', 'invoice_date': '2026-09-22',
+        'total_incl_vat_sar': 500, 'amount_received_sar': 500, 'amount_remaining_sar': 0, 'integrity_status': 'verified_paid', 'payments_status': 'Fully Paid',
+        'payments_status_at': '2026-09-22T09:00:00Z', 'paid_at': '2026-09-22', 'transaction_ref': 'TX-D26', 'transaction_date': '2026-04-10'}]),))
+    i = one(cur, "select id from finance_invoices where invoice_no='D26-PAIR'")
+    one(cur, "select fn_commit_finance_import(p_update := %s::jsonb)", (json.dumps([{'id': str(i), 'transaction_date': '2026-05-01', 'payments_status_at': '2026-09-23T09:00:00Z'}]),))
+    kept = one(cur, "select transaction_date::text from finance_invoices where id=%s", (i,))
+    q(cur, "reset role")
+    q(cur, "update finance_invoices set transaction_date=null where id=%s", (i,))
+    as_user(cur, 'u4')
+    one(cur, "select fn_commit_finance_import(p_update := %s::jsonb)", (json.dumps([{'id': str(i), 'transaction_date': '2026-04-10'}]),))
+    filled = one(cur, "select transaction_date::text||'|'||invoice_date::text from money_rows where id=%s", (i,))
+    q(cur, "reset role")
+    ok = kept == '2026-04-10' and filled == '2026-04-10|2026-09-22'
+    return (ok, f"a later file did not overwrite it: {kept} · an empty one is filled, the view shows both: {filled}")
+
 @test("D1-08 An OLDER file arriving after a newer one only fills what is empty: the paid amounts and the paid date (which sets the month) are not put back to the unpaid copy's")
 def _(cur):
     as_user(cur, 'u4')

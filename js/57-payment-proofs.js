@@ -363,7 +363,7 @@
 
     var h='<div class="card" style="padding:16px;margin-bottom:14px">'+
       '<h3 class="finh" style="margin:0 0 3px">'+fl('Payment proofs','مستندات الدفع')+'</h3>'+
-      '<div class="ch-sub" style="margin-bottom:12px">'+fl(
+      '<div class="fin-note" style="margin-bottom:12px">'+fl(
         'Bank-transfer and wallet top-up proofs, filed for audits. Nothing here counts toward Revenue, Cost or Profit — wallet top-ups especially are never counted as revenue.',
         'إثباتات التحويل البنكي وتعبئة المحفظة، للتدقيق. لا شيء هنا يُحتسب ضمن الإيراد أو التكلفة أو الربح — وتعبئات المحفظة تحديدًا لا تُحتسب إيرادًا أبدًا.')+'</div>'+
       '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px">'+
@@ -385,7 +385,7 @@
       var R=(PRX.receipts||[]).filter(function(x){ var d=(x.created_at_source&&typeof dayRiyadh==='function')?dayRiyadh(x.created_at_source).slice(0,7):''; return PRX.month==='all'||!PRX.month||d===PRX.month; });
       var tot=R.reduce(function(a,x){ return a+(+x.amount_sar||0); },0);
       h+='<div class="card" data-proof-receipts="'+R.length+'" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 3px;font-size:14px">'+fl('Payments recorded in Direct Payments','المدفوعات المسجّلة في «المدفوعات»')+'</h3>'+
-        '<div class="ch-sub" style="margin-bottom:8px">'+fl('From the invoice export’s payment receipts — read-only, as Payments recorded them. Never revenue; a proof file can be filed below.','من إيصالات الدفع في تصدير الفواتير — للقراءة فقط كما سجّلها النظام. ليست إيرادًا؛ ويمكن إرفاق مستند أدناه.')+'</div>'+
+        '<div class="fin-note" style="margin-bottom:8px">'+fl('From the invoice export’s payment receipts — read-only, as Payments recorded them. Never revenue; a proof file can be filed below.','من إيصالات الدفع في تصدير الفواتير — للقراءة فقط كما سجّلها النظام. ليست إيرادًا؛ ويمكن إرفاق مستند أدناه.')+'</div>'+
         (PRX.receiptsErr?'<div style="color:#B42318;font-size:12.5px">'+fl('Could not be read: ','تعذّرت القراءة: ')+esc(PRX.receiptsErr)+'</div>':
          !R.length?'<div class="empty" style="padding:4px 0;font-size:12.5px">'+fl('None in view — they arrive with the next invoice import.','لا شيء معروض — تصل مع استيراد الفواتير القادم.')+'</div>':
          '<div style="overflow-x:auto;max-height:340px"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:720px"><thead><tr>'+

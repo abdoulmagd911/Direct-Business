@@ -14,6 +14,11 @@
    The 713 lines that follow are the same bytes that were serving the live Finance page.
    ===== v42 layer: FINANCE — master invoice ledger + report builder + import ===== */
 (function(){try{
+/* 2026-09-28 (oversight): Finance's helper lines must be SEEN. index.html hides every `.card .ch-sub` on purpose (v47
+   declutter), which silently swallowed every explanation on the Finance cards — the Rules intros, the chase basis, the
+   plan note, the import mapping hint. Finance's layers write class "fin-note" instead, styled like ch-sub and never hidden. */
+try{ if(!document.getElementById('fin-note-css')){ var _fn=document.createElement('style'); _fn.id='fin-note-css';
+  _fn.textContent='.fin-note{color:var(--muted);font-size:12px;margin-bottom:16px;line-height:1.5}'; (document.head||document.documentElement).appendChild(_fn); } }catch(_){}
 var SUPA_URL='https://vkxoeeoauexyfpzqufqd.supabase.co';
 var SUPA_KEY='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
 var sbF=null;
@@ -734,6 +739,15 @@ window.finLedgerCSV=function(){
   var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-finance-'+todayISO()+'.csv';a.click();
 };
 try{window.finInPeriod=finInPeriod;window.finPeriodLabel=finPeriodLabel;}catch(_){}
+/* D26 (oversight, 28 Sep): a merged one-to-one pair — a numbered billing invoice and the transaction it re-bills — counts in
+   the billing invoice's month, so a Q3 row can carry an April sale. Both dates are shown so a reader sees why. */
+function finRebillNote(r){
+  if(!r||!r.transaction_ref) return '';
+  var d=r.transaction_date?String(r.transaction_date).slice(0,10):'';
+  return isArF()?('يعيد فوترة المعاملة '+r.transaction_ref+(d?(' بتاريخ '+d):''))
+                :('re-bills transaction '+r.transaction_ref+(d?(' of '+d):''));
+}
+try{window.finRebillNote=finRebillNote;}catch(_){}
 
 /* --- Canonical client rollup (v54) ---------------------------------------------------
    A finance invoice carries a raw `client_group` name (however it was typed in Direct
@@ -1467,7 +1481,7 @@ function rOverview(){
           : ('<div style="flex:2;min-width:180px"><div style="font-size:11px;color:var(--muted)">'+(isArF()?'نسبة تحقق المتوقع':'Of expected achieved')+' · '+_attT+'%'+(_attT>100?(isArF()?' · فوق الخطة ✓':' · above plan ✓'):'')+'</div><div style="background:#EEF0F5;border-radius:8px;height:14px;margin-top:8px;overflow:hidden"><div style="height:100%;width:'+_att+'%;background:linear-gradient(90deg,#E54525,#F26721)"></div></div></div>'))
         +'</div>';
     } else {
-      h+='<div class="ch-sub" style="margin-top:8px">'+(isArF()?'لا توجد أرقام خطة لهذه السنة بعد — اضغط «تعديل الأرقام».':'No plan numbers for this year yet — click Set targets.')+'</div>';
+      h+='<div class="fin-note" style="margin-top:8px">'+(isArF()?'لا توجد أرقام خطة لهذه السنة بعد — اضغط «تعديل الأرقام».':'No plan numbers for this year yet — click Set targets.')+'</div>';
     }
     /* B8: where the plan comes from — typed on this page with "Set targets", by whom and when; Actual is this period's revenue */
     if(tgt){ var _by=tgt.updated_by||'', _at=(tgt.updated_at&&typeof dayRiyadh==='function')?dayRiyadh(tgt.updated_at):'';
@@ -1746,7 +1760,7 @@ function rLedger(){
     +'<div class="card" style="padding:12px 14px;border-top:3px solid #175CD3"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed profit','الربح المؤكد')+'</div><div style="font-size:18px;font-weight:800;color:#175CD3" title="'+money(cProf)+' SAR">'+moneyS(cProf)+' <span style="font-size:10px;font-weight:400">SAR</span>'+finExactUnder(cProf)+'</div></div>'
     +'<div class="card" style="padding:12px 14px;border-top:3px solid #B54708"><div style="font-size:11px;color:var(--muted)">'+_lh('Pending (est. only)','بانتظار المصاريف (تقديري)')+'</div><div style="font-size:18px;font-weight:800;color:#8b5b1f">'+pendCount+' <span style="font-size:10px;font-weight:400">· '+moneyS(pendEst)+' '+_lh('est.','تقديري')+'</span></div></div>'
     +'<div class="card" style="padding:12px 14px;border-top:3px solid '+(overdueCount?'#D92D20':'#E5E7EB')+'"><div style="font-size:11px;color:var(--muted)">'+_lh('Overdue','متأخر')+'</div><div style="font-size:18px;font-weight:800;color:'+(overdueCount?'#D92D20':'#667085')+'">'+overdueCount+'</div></div>'
-    +'</div><div class="ch-sub" style="margin:-4px 0 10px">'+_lh('Confirmed = it has an invoice number, or its expense is marked Ready. A pending row only shows an early estimate — that number is not included above.','المؤكد = له رقم فاتورة، أو مصروفه بحالة جاهز. الصف المعلّق يعرض تقديرًا مبكرًا فقط — هذا الرقم غير مُدرج أعلاه.')+'</div>';
+    +'</div><div class="fin-note" style="margin:-4px 0 10px">'+_lh('Confirmed = it has an invoice number, or its expense is marked Ready. A pending row only shows an early estimate — that number is not included above.','المؤكد = له رقم فاتورة، أو مصروفه بحالة جاهز. الصف المعلّق يعرض تقديرًا مبكرًا فقط — هذا الرقم غير مُدرج أعلاه.')+'</div>';
   /* 2026-09-03 (watch cycle 19): say it, the way the Overview has said it since watch cycle 2 —
      a row whose amount cannot be read is counted as zero, and the person is told how many. */
   if(_dupRefs.length){
@@ -1979,7 +1993,7 @@ window.finRow=function(id){
   try{ if(typeof finSanitizeMoney==='function') lines.forEach(function(x){ finSanitizeMoney(x); }); }catch(_){}
   var t={tot:0,cost:0,rev:0,prof:0,rec:0,rem:0,wal:0};
   lines.forEach(function(x){t.tot+=+x.total_incl_vat_sar||0;t.cost+=+x.cost_sar||0;t.rev+=+x.revenue_sar||0;t.prof+=+x.profit_sar||0;t.rec+=+x.amount_received_sar||0;t.rem+=+x.amount_remaining_sar||0;t.wal+=+x.wallet_portion_sar||0;});
-  var meta=[[_f('Client','\u0627\u0644\u0639\u0645\u064a\u0644'),r.client_group],[_f('Name on invoice','\u0627\u0644\u0627\u0633\u0645 \u0639\u0644\u0649 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629'),r.customer_raw_name],[_f('ZATCA tax invoice','\u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u064a\u0629 (\u0632\u0627\u062a\u0643\u0627)'),r.zatca_dpin||_f('\u2014 (see notes)','\u2014 (\u0627\u0646\u0638\u0631 \u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a)')],[_f('Date','\u0627\u0644\u062a\u0627\u0631\u064a\u062e'),r.invoice_date+' \u00b7 '+r.month+' \u00b7 '+r.quarter],[_f('Received','\u0627\u0644\u0645\u062d\u0635\u0651\u0644'),money(t.rec)+' SAR'],[_f('Outstanding','\u0627\u0644\u0645\u062a\u0628\u0642\u064a'),money(t.rem)+' SAR'],[_f('Origin','النوع'),(r.origin==='project'?_f('Project — full project with a proposal','مشروع متكامل بعرض'):_f('Booking','حجز عادي'))],[_f('Proposal','العرض'),r.proposal_ref||'—'],[_f('Status','\u0627\u0644\u062d\u0627\u0644\u0629'),(function(st){var M={verified_paid:_f('Paid & verified','مدفوعة ومدققة'),pending:_f('Pending payment','بانتظار السداد'),credit_note:_f('Credit note (refund)','إشعار دائن (استرداد)'),excluded:_f('Excluded','مستبعدة')};return M[st]||st;})(r.integrity_status)],[_f('Notes','\u0645\u0644\u0627\u062d\u0638\u0627\u062a'),r.notes||'\u2014']];
+  var meta=[[_f('Client','\u0627\u0644\u0639\u0645\u064a\u0644'),r.client_group],[_f('Name on invoice','\u0627\u0644\u0627\u0633\u0645 \u0639\u0644\u0649 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629'),r.customer_raw_name],[_f('ZATCA tax invoice','\u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u064a\u0629 (\u0632\u0627\u062a\u0643\u0627)'),r.zatca_dpin||_f('\u2014 (see notes)','\u2014 (\u0627\u0646\u0638\u0631 \u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a)')],[_f('Date','\u0627\u0644\u062a\u0627\u0631\u064a\u062e'),r.invoice_date+' \u00b7 '+r.month+' \u00b7 '+r.quarter+(r.transaction_ref?(' \u00b7 '+finRebillNote(r)):'')],[_f('Received','\u0627\u0644\u0645\u062d\u0635\u0651\u0644'),money(t.rec)+' SAR'],[_f('Outstanding','\u0627\u0644\u0645\u062a\u0628\u0642\u064a'),money(t.rem)+' SAR'],[_f('Origin','النوع'),(r.origin==='project'?_f('Project — full project with a proposal','مشروع متكامل بعرض'):_f('Booking','حجز عادي'))],[_f('Proposal','العرض'),r.proposal_ref||'—'],[_f('Status','\u0627\u0644\u062d\u0627\u0644\u0629'),(function(st){var M={verified_paid:_f('Paid & verified','مدفوعة ومدققة'),pending:_f('Pending payment','بانتظار السداد'),credit_note:_f('Credit note (refund)','إشعار دائن (استرداد)'),excluded:_f('Excluded','مستبعدة')};return M[st]||st;})(r.integrity_status)],[_f('Notes','\u0645\u0644\u0627\u062d\u0638\u0627\u062a'),r.notes||'\u2014']];
   var th=function(x,rt){return '<th style="padding:6px 8px;text-align:'+(rt?'right':(ar?'right':'left'))+';color:var(--muted);font-size:11px;font-weight:600">'+x+'</th>';};
   var lineTbl='<div style="overflow-x:auto;margin:6px 0 12px"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>'+th(_f('Service','\u0627\u0644\u062e\u062f\u0645\u0629'))+th(_f('Description','\u0627\u0644\u0648\u0635\u0641'))+th(_f('Total','\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a'),1)+th(_f('Cost','\u0627\u0644\u062a\u0643\u0644\u0641\u0629'),1)+th(_f('Service fee','\u0631\u0633\u0648\u0645 \u0627\u0644\u062e\u062f\u0645\u0629'),1)+'</tr></thead><tbody>'+
     (function(){
