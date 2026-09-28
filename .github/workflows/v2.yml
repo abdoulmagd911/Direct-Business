@@ -129,6 +129,8 @@ jobs:
           version: 2.118.0
       - name: start the stack (a new database; every migration applied)
         run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime,storage-api,mailpit
+      - name: Supabase's advisors find nothing at warning level (before the test harness is installed)
+        run: supabase db advisors --local --type all --level warn --fail-on warn
       - name: the SQL suite on the Supabase stack
         run: node scripts/db/test.mjs --target supabase
       - if: always()
