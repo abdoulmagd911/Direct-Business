@@ -116,7 +116,7 @@
        · every Payments status is kept as written, with when it last changed; "Fully Paid (Audit Required)" counts and is
          flagged; Pending Payment, Void, Draft and Cancelled are stored and never count;
        · the date that sets the month is the paid date for a paid invoice, else the date it was created (both kept). */
-  var _walletSkipped=0,_verifSkipped=0,_verifRefs=[],_clientExcluded=0,_clientExcludedDetail=[],_topups=0,_unknownStatus=[];
+  var _receipts=[],_walletSkipped=0,_verifSkipped=0,_verifRefs=[],_clientExcluded=0,_clientExcludedDetail=[],_topups=0,_unknownStatus=[];
   var STATUS64=[   // Payments' own words → what the app stores; anything else stops that row for a person (never guessed)
     [/^fully paid\s*\(audit required\)$/i, {st:'paid',audit:true}],
     [/^fully paid$/i, {st:'paid'}], [/^paid$/i, {st:'paid'}],
@@ -131,7 +131,7 @@
   }
   function isWalletLine(it){ return it.product==='Direct Wallet'||/Wallet Balance|رصيد المحفظة/i.test(it.name||''); }
   function parseDP(rows){
-    _walletSkipped=0;_verifSkipped=0;_verifRefs=[];_clientExcluded=0;_clientExcludedDetail=[];_topups=0;_unknownStatus=[];
+    _receipts=[];_walletSkipped=0;_verifSkipped=0;_verifRefs=[];_clientExcluded=0;_clientExcludedDetail=[];_topups=0;_unknownStatus=[];
     var hdr=rows[0].map(function(x){return String(x||'').trim();});
     function ix(n){ var list=[].concat(n); for(var k=0;k<list.length;k++){ var at=hdr.indexOf(list[k]); if(at>=0) return at; } return -1; }
     function cell(row,i){ return i>=0?String(row[i]==null?'':row[i]).trim():''; }
@@ -140,7 +140,10 @@
         iStatus=ix('Invoice Status'),iStatusAt=ix('Last Status At'),iEmail=ix(['Customer Email','Email']),
         iName=ix('Name'),iTax=ix('Item Is Taxable'),iDisc=ix('Item Discount'),iItemTot=ix('Item Total'),
         iQty=ix(['Qty','Quantity','Item Quantity']),iUnit=ix(['Unit Price','Item Unit Price','Item Price']),
-        iTot=ix('Invoice Total'),iBranch=ix('Sale Branch'),iSales=ix('Salesman');
+        iTot=ix('Invoice Total'),iBranch=ix('Sale Branch'),iSales=ix('Salesman'),
+        /* F21 (28 Sep): payment_receipt rows — Payment Method, Allocation, Ref # At Payment Method, Payment By, Notes (Import Map) */
+        iPM=ix('Payment Method'),iAlloc=ix(['Allocation','Allocated Amount','Amount']),iPRef=ix(['Ref # At Payment Method','Ref At Payment Method','Ref # at Payment Method']),
+        iPBy=ix(['Payment By','Paid By']),iNotes=ix('Notes'),iPDate=ix(['Payment Date','Receipt Date','Paid At']);
     var invs={},order=[],cur=null;
     for(var r=1;r<rows.length;r++){
       var row=rows[r]; if(!row||!row.length)continue;
@@ -156,6 +159,11 @@
           status:cell(row,iStatus),statusAt:stamp64(row[iStatusAt]),cust:cell(row,iCust),email:(cell(row,iEmail)||'').toLowerCase()||null,
           credit:(t==='credit_note'),total:money64(row[iTot]),
           branch:cell(row,iBranch)||null,salesman:cell(row,iSales)||null,items:[]};
+      } else if(t==='payment_receipt'){
+        /* F21: a payment Payments recorded against this invoice — kept as it is, shown read-only on Payment proofs */
+        var amt=money64(row[iAlloc]); var pd=isoDate(row[iPDate>=0?iPDate:iStatusAt])||isoDate(row[iCreate]);
+        _receipts.push({invoice_no:ref, method:cell(row,iPM)||null, amount:isNaN(amt)?null:amt, ref_at_method:cell(row,iPRef)||null,
+          paid_by:cell(row,iPBy)||null, notes:cell(row,iNotes)||null, date:pd||null});
       } else if(t==='item'&&invs[ref]){
         (cur&&cur.ref===ref?cur:invs[ref]).items.push({name:cell(row,iName),taxable:cell(row,iTax)==='Yes',
           discount:money64(row[iDisc]),total:money64(row[iItemTot]),product:cell(row,iProd),
@@ -407,7 +415,7 @@
      deleted-number path — the one this round fixed — could not be driven at all. */
   window.__v41_runDP=runDP;
   window.__v65_csvParse=csvParse64; window.__v65_readXlsx=readXlsx;
-  window.__v65_exclusionCounts=function(){ return {wallet:_walletSkipped,verif:_verifSkipped,verifRefs:_verifRefs.slice(),clientExcluded:_clientExcluded,clientExcludedDetail:_clientExcludedDetail,topups:_topups,unknownStatus:_unknownStatus.slice()}; };
+  window.__v65_exclusionCounts=function(){ return {receipts:_receipts.slice(),wallet:_walletSkipped,verif:_verifSkipped,verifRefs:_verifRefs.slice(),clientExcluded:_clientExcluded,clientExcludedDetail:_clientExcludedDetail,topups:_topups,unknownStatus:_unknownStatus.slice()}; };
 
   console.info('%c[v65] Direct Payments importer loaded','color:#B54708;font-weight:700');
 }catch(e){if(window.console)console.warn('[v65] init',e);}})();

@@ -96,7 +96,7 @@ const TABLES={
       {key:'tender_value',label_en:'Tender value',label_ar:'قيمة المناقصة',type:'number'},
       {key:'research_status',label_en:'Research status',label_ar:'حالة البحث',type:'select:pending,done'},
     ]}],
-  money_item_classes:[], finance_invoice_lines:[], money_services:[], money_product_services:[], money_item_services:[],
+  money_item_classes:[], finance_invoice_lines:[], payment_receipts:[], money_services:[], money_product_services:[], money_item_services:[],
   finance_invoices:[...Array(15)].map((_,i)=>{const _svc=['Flights','Hotels','Visa','Support Services','Packages'][i%5];const _mo=['January','February','March','April','May','June'][i%6];const _q='Q'+(Math.floor((i%6)/3)+1);const _tot=5000+i*777;const _cost=_svc==='Support Services'?null:Math.round(_tot*0.88);/* D1: no cost recorded is EMPTY (null), never 0 *//* 2026-09-02 (round 38): this fixture used to store revenue = total − cost and profit = revenue,
        which the live database could never produce. The trigger finance_derive_fields defines
        revenue = total − wallet and profit = revenue − cost, and 12 of these 17 rows broke the
@@ -1504,6 +1504,27 @@ export function start(port, seedOverrides){
         }
         if(req.method==='DELETE') return P('P0001','money_item_classes rows are never deleted');
         return send(res,405,{message:'method'});
+      });
+    }
+    /* F21 (28 Sep): payment receipts from the invoice export — Full on Finance writes; upsert on receipt_ref (the same file
+       twice changes nothing); nothing is deleted */
+    if(t==='payment_receipts'&&req.method!=='GET'){
+      let body=''; req.on('data',c=>body+=c);
+      return req.on('end',()=>{
+        let pl=[]; try{ pl=JSON.parse(body||'[]'); }catch(_){ return send(res,400,{message:'invalid JSON'}); }
+        if(!Array.isArray(pl)) pl=[pl];
+        if(finLvlMR!=='full') return send(res,403,{code:'42501',details:null,hint:null,message:'new row violates row-level security policy for table "payment_receipts"'});
+        if(req.method==='DELETE') return send(res,400,{code:'P0001',message:'payment_receipts rows are never deleted here'});
+        const list=TABLES.payment_receipts=TABLES.payment_receipts||[]; const now=new Date().toISOString(); const out=[];
+        let oc=(u.query||{}).on_conflict; if(Array.isArray(oc)) oc=oc[0];
+        for(const r0 of pl){
+          if(!r0.receipt_ref||r0.amount_sar==null) return send(res,400,{code:'23502',message:'null value violates not-null constraint'});
+          const ix=list.findIndex(x=>x.receipt_ref===r0.receipt_ref);
+          if(ix>=0){ if(oc!=='receipt_ref') return send(res,409,{code:'23505',message:'duplicate key value violates unique constraint "payment_receipts_receipt_ref_key"'});
+            list[ix]=Object.assign({},list[ix],r0,{updated_at:now}); out.push(list[ix]); continue; }
+          const row=Object.assign({id:'rcpt-'+Math.random().toString(36).slice(2),allocations:[],source:'import',created_at:now,updated_at:now},r0); list.push(row); out.push(row);
+        }
+        return send(res,201,out);
       });
     }
     /* D24 (28 Sep): the three service lists — Full on Finance writes (no role); a name never changes; a removal is final;

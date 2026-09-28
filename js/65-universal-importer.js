@@ -453,7 +453,7 @@
       excludedDetail:state.excludedDetail,
       hasClientColumn:hasClientColumn,
       pendingInsert:state.isNew, pendingUpdate:state.updated,
-      itemLines:state.itemLines||[], manualKept:state.manualKept||[], d1:state.d1||null
+      itemLines:state.itemLines||[], manualKept:state.manualKept||[], d1:state.d1||null, receipts:state.receipts||[]
     };
   }
 
@@ -470,6 +470,7 @@
     /* Defect (b), 28 Sep: "Excluded by rule" counts only rows that are NOT written, each with its reason. A row an exclusion
        rule flags is still imported (the view leaves it out of the totals) — it is on its own "Left out by a rule" line, and
        adding it here too made the preview say "Excluded 122" beside a result that said "Left out by a rule: none". */
+    state.receipts=(state.receipts||[]).concat(xc.receipts||[]);   // F21
     state.excludedByRule+=xc.wallet+xc.verif;
     (xc.verifRefs||[]).forEach(function(ref){ state.excludedDetail.costCaptureDetail.push({invoice_no:ref,reason:fl('a verification service (Techtic / Takamol support) — accounted for in another system, never imported here','خدمة تحقق (تكتك / دعم تكامل) — تُحتسب في نظام آخر ولا تُستورد هنا')}); });
     state.excludedDetail.wallet+=xc.wallet; state.excludedDetail.verif+=xc.verif; state.excludedDetail.clientExcluded+=xc.clientExcluded;
@@ -1454,6 +1455,7 @@
         '</div>'+
         (r.joinNote?('<div style="font-size:11.5px;color:#B54708;margin-top:4px">'+esc(r.joinNote)+'</div>'):'')+
         d1Line(r)+
+        ((r.receipts&&r.receipts.length)?('<div data-v65-receipts-preview="'+r.receipts.length+'" style="font-size:12px;color:var(--muted);margin-top:4px">'+fl('Payment receipts in the file: ','إيصالات الدفع في الملف: ')+'<b>'+r.receipts.length+'</b> — '+fl('kept as recorded, shown on Payment proofs; never revenue.','تُحفظ كما سُجّلت وتظهر في إثباتات الدفع؛ ليست إيرادًا أبدًا.')+'</div>'):'')+
       '</div>';
     }).join('');
 
@@ -1600,6 +1602,21 @@
     });
     return out;
   }
+  /* F21 (28 Sep, the oversight): each payment_receipt row of the invoice export is kept in payment_receipts — method,
+     amount allocated, the reference at the payment method, who paid, notes, date — keyed so the same file twice changes
+     nothing (upsert on receipt_ref). Read-only on Payment proofs (js/57); never counted as revenue. */
+  function receiptRef(x){ return ['DP',x.invoice_no,x.ref_at_method||'',x.date||'',x.amount==null?'':Number(x.amount).toFixed(2),x.method||''].join('|'); }
+  function v65SaveReceipts(list,cb){
+    try{
+      var seen={}, rows=[];
+      list.forEach(function(x){ var k=receiptRef(x); if(seen[k]||x.amount==null) return; seen[k]=1;
+        rows.push({receipt_ref:k, payment_method:x.method, amount_sar:x.amount, paid_by:x.paid_by, status:'recorded',
+          created_at_source:x.date?(x.date+'T00:00:00+03:00'):null, allocations:[{invoice_no:x.invoice_no,amount_sar:x.amount,ref_at_method:x.ref_at_method,notes:x.notes}], source:'invoice_export'}); });
+      if(!rows.length){ cb(0); return; }
+      var c=fc(); if(!c){ cb(0,'not connected'); return; }
+      c.from('payment_receipts').upsert(rows,{onConflict:'receipt_ref'}).select('id').then(function(r){ if(r.error) cb(0,String(r.error.message||r.error)); else cb((r.data||[]).length); },function(e){ cb(0,String((e&&e.message)||e)); });
+    }catch(e){ cb(0,String(e&&e.message||e)); }
+  }
   window.v65Commit=function(){
     /* 2026-09-02: the Import tab already refuses to render for a non-editor, but the commit
        itself writes every invoice in the batch — guard the function too, so a stale tab (or a
@@ -1613,7 +1630,8 @@
     if(!FILES_STATE)return;
     var toInsert=[],toUpdate=[];
     var itemLines=[];
-    FILES_STATE.forEach(function(r){ if(!r.recognized)return; toInsert=toInsert.concat(r.pendingInsert||[]); toUpdate=toUpdate.concat(r.pendingUpdate||[]); itemLines=itemLines.concat(r.itemLines||[]); });
+    var receipts=[];
+    FILES_STATE.forEach(function(r){ if(!r.recognized)return; toInsert=toInsert.concat(r.pendingInsert||[]); toUpdate=toUpdate.concat(r.pendingUpdate||[]); itemLines=itemLines.concat(r.itemLines||[]); receipts=receipts.concat(r.receipts||[]); });
     /* D1 sweep: two overlapping files dropped together both call the same invoice "new" — one insert, not two (see mergeNew) */
     toInsert=dedupeNew(toInsert); itemLines=dedupeLines(itemLines);
     var linked=applyBillingLinks(toInsert,toUpdate);   // D1: only what a person ticked
@@ -1669,6 +1687,7 @@
       paintDone(msg);
       /* E (2026-09-27): what the rules made of this import, read back from the one view (js/117) */
       if(!failed&&typeof window.v117ImportSummary==='function'){ try{ window.v117ImportSummary(toInsert.concat(toUpdate).map(function(x){return x&&x.invoice_no;}).filter(Boolean)); }catch(_){} }
+      if(!failed&&receipts.length) v65SaveReceipts(receipts,function(n,err){ try{ var o=document.getElementById('finImpOut'); if(o) o.insertAdjacentHTML('beforeend','<div data-v65-receipts="'+n+'" style="font-size:12.5px;color:'+(err?'#B42318':'#0F6E56')+';margin-top:4px">'+(err?fl('Payment receipts were NOT saved: ','لم تُحفظ إيصالات الدفع: ')+esc(err):(fl('Payment receipts kept: ','إيصالات الدفع المحفوظة: ')+n+' '+fl('(shown on Payment proofs)','(تظهر في إثباتات الدفع)')))+'</div>'); }catch(_){} });
       FIN.rows=null; finLoad();
     });
     };
