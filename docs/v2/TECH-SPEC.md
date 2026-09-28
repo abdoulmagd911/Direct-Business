@@ -2,7 +2,7 @@
 
 Status: **draft for the oversight's review**, 28 Sep 2026. Written by the architect session from the owner-approved
 blueprint (`BLUEPRINT.md`, v0.7), the old app's rules (`docs/DECISIONS.md`, `docs/LANDMINES.md`), the second builder's
-handover (`REBUILD-HANDOVER-2.md` on `claude/clever-franklin-vukl22`) and the code on the production branch. The main
+handover (`docs/REBUILD-HANDOVER-2.md` on `claude/clever-franklin-vukl22`) and the code on the production branch. The main
 builder's handover (`docs/REBUILD-HANDOVER.md`) had not been pushed when this was written; its content was read from
 the production branch's code instead (see `OPEN-QUESTIONS.md` Q28).
 
@@ -62,7 +62,7 @@ The oversight's suggestion is confirmed, with the guardrails that make it safe f
 | How Next.js is used | Server components **only** for the shell and the auth gate. All record data is fetched in the browser through one data layer (TanStack Query + the Supabase client with the person's session). `dynamic = 'force-dynamic'` on app routes; no Next data cache for app data | One data path and one invalidation rule ("after any write, refetch what is on screen") make "a change shows everywhere at once" true by construction. Mixing server-cached and client-cached data is how stale screens happen | Server actions for data: two caches to keep coherent |
 | Database | **Supabase Postgres 17** (same major as today), RLS on every table, versioned migrations with the Supabase CLI | Proven here; RLS keeps the database the judge (A12) | — |
 | API surface | PostgREST exposes **one schema, `api`**: read views (`security_invoker = on`) and write functions. Business tables live in private schemas (`core`, `company`, `finance`, …) | A6, A8: a single, testable door | Exposing tables directly (the old app's silent-refusal problem) |
-| Auth | Supabase Auth: Google (Workspace) OAuth + email one-time code; **no password provider**; sign-ups off; allow-list in `core.person` | §0 sign-in decision | Passwords (owner ruled out); email-only (impersonation, §10) |
+| Auth | Supabase Auth: Google (Workspace, `.com`) and Zoom (`.net`) OAuth + emailed one-time code; **no password provider**; sign-ups off; allow-list of emails per person (`core.person_email`) | §0 sign-in decision | Passwords (owner ruled out); email-only (impersonation, §10) |
 | Files | Supabase Storage, one private bucket `files`, signed URLs of 600 s (M21) | Proven | Public buckets |
 | Jobs | `pg_cron` (in Supabase free) for the two scheduled things: recurring tasks at 00:05 Riyadh, and nightly consistency checks | No extra service, no cost | Vercel cron (Hobby: once a day, no retries) |
 | Styling | **Tailwind CSS v4** driven by CSS variables (design tokens), switched by a `data-theme` attribute on `<html>` (light, dark or colorful); components from **shadcn/ui** (Radix primitives, copied into the repo) | Tokens → three themes from one set (§0 design); Radix gives focus, Escape and ARIA right (M93) | CSS-in-JS: runtime cost, harder RTL |
@@ -72,7 +72,7 @@ The oversight's suggestion is confirmed, with the guardrails that make it safe f
 | i18n | next-intl, message catalogs `messages/en.json` and `messages/ar.json`; `dir="rtl"` from day one; Arabic hidden behind a setting until tested (§0) | Arabic-ready without shipping untested Arabic | Hand-rolled dictionaries (the old js/21) |
 | Dates | date-fns + `@date-fns/tz`, zone `Asia/Riyadh`; `Intl` formats always with `calendar: 'gregory'` and `numberingSystem: 'latn'` | **`ar-SA` defaults to the Islamic calendar** — Gregorian must be forced explicitly (§0 "never Hijri") | Moment |
 | Files in/out | Import: SheetJS CE 0.20.x inside a Web Worker — the official tarball **vendored** under `v2/vendor/` with its published checksum (the npm `xlsx` package is stuck at 0.18.5 without later security fixes, and `cdn.sheetjs.com` is refused by the builders' network policy, measured 28 Sep; a one-off GitHub Actions job fetches it and opens the PR); a streaming CSV reader (ported from js/121). Export: ExcelJS (styled KPI sheet), CSV with BOM | Ported and proven on the 258k-row file | Reading big XLSX on the main thread (old backlog item) |
-| Documents | PDF: `@react-pdf/renderer` from the frozen snapshot; PPTX: pptxgenjs from the same snapshot; fonts embedded (Readex Pro, IBM Plex Sans/Arabic/Mono — all SIL OFL, self-hosted with `next/font`) | Deterministic re-rendering of a frozen report; no font CDN (the old DirectFont trouble) | Server-side headless Chrome (too heavy for Vercel Hobby) |
+| Documents | PDF: `@react-pdf/renderer` from the frozen snapshot for English — its Arabic letter-joining and right-to-left support are weak, so an Arabic PDF spike runs early in P6-2 and falls back to the browser's print-to-PDF of the report page; PPTX: the department's own template (Q14) **filled** by editing its XML (JSZip: placeholders replaced, repeating slides duplicated) — pptxgenjs cannot open an existing file, so it is used only for slides the template lacks; fonts embedded (Readex Pro, IBM Plex Sans/Arabic/Mono — all SIL OFL, self-hosted with `next/font`) | Deterministic re-rendering of a frozen report; no font CDN (the old DirectFont trouble) | Server-side headless Chrome (too heavy for Vercel Hobby) |
 | Tests | Vitest (unit), a SQL test runner (ported from `scripts/qa/phase3`), Playwright (E2E, against the real local Supabase stack) | See §9 | A mock of Supabase (A15) |
 | Hosting | **Vercel** (new project) + **Supabase** (new project), both on free plans for the build (§10) | Owner: nothing that costs money | — |
 | CI | GitHub Actions (free for public repositories) | The repo is public (owner's ruling) | — |
@@ -199,7 +199,8 @@ What reads the registry:
 - **Tokens.** One file `src/ui/tokens.css` declares every semantic token (`--bg`, `--surface`, `--raised`, `--border`,
   `--border-strong`, `--text`, `--muted`, `--accent`, `--accent-hover`, `--focus`, `--success`, `--warning`,
   `--danger`, `--info`, `--drawer`) for `[data-theme="light"]`, `[data-theme="dark"]` and `[data-theme="colorful"]`,
-  with the hexes of §0. Tailwind maps utilities to the tokens; **no hex or Tailwind palette colour appears in
+  with the hexes of §0 (the blueprint gives `--drawer` only for Colorful; Light and Dark use `--surface` for it until
+  the oversight's token table says otherwise). Tailwind maps utilities to the tokens; **no hex or Tailwind palette colour appears in
   components** (lint). The oversight adds the full token table (chart palette, status tints) to `BUILD-PLAN.md` §Design.
 - **Type.** Readex Pro for headings and figures; IBM Plex Sans / IBM Plex Sans Arabic for text; IBM Plex Mono for IDs
   and money (tabular figures). Dense tables: 32 px rows.
@@ -215,11 +216,12 @@ What reads the registry:
 | A team, a person, a role | Settings → Organization (roles set default levels; a person may be overridden page by page) | No |
 | A KPI, objective, achievement category or field, target | Settings → Plan & performance (yearly plan) | No |
 | A status, priority, service, map entry, exclusion, report section order, grade scale | Settings | No |
-| A new kind of **computed** KPI source (a new measure) | One SQL function `measure.<key>` + its registry line + its tests | Yes — a small PR |
+| A new kind of **computed** KPI source (a new measure) | One SQL function `measure.<module>_<name>` (e.g. `measure.finance_revenue` for the key `finance.revenue`) + its registry line + its tests | Yes — a small PR |
 | A module (Leads, Suppliers, Events …) | New `modules/<key>/` with its `module.ts`, migrations and screens; the registry wires nav, access and search | Yes — its own PRs; nothing existing is rewritten |
 
-Every business table carries `department_id` from day one (companies are the exception: one company record serves the
-whole firm). Row-level visibility is "rows of the departments I belong to" — with one department in v1 that is
+Every business table carries `department_id` from day one (a person's own department, plus any extra department an
+admin grants in `core.person_department (person_id, department_id)` for cross-department visibility; companies are the exception: one company record serves the
+whole firm. Row-level visibility is "rows of the departments I belong to" — with one department in v1 that is
 everyone in Commercial, and a second department later is separated without a migration of old rows.
 
 ---
@@ -239,6 +241,15 @@ everyone in Commercial, and a second department later is separated without a mig
   (bumped by trigger on every update — A14). **Soft removal** (`SOFT`): `deleted_at`, `deleted_by`, `delete_reason`;
   every read view filters removed rows; no role has `DELETE` on any table. **Department** (`DEPT`):
   `department_id uuid not null → core.department`.
+- **Link tables** — every table written below as `(a, b) pk` is a link table and **really** has `id`, `created_at`,
+  `created_by`, `deleted_at`, `deleted_by`, `delete_reason`, with the `(a, b)` pair as a partial unique index on live
+  rows. Unlinking (removing a helper, a KPI lead, an invoice from a project or a report line) is a soft removal, so it
+  is logged and undoable like everything else.
+- **"unique … where …"** below always means a partial unique index (not a constraint); where a uniqueness must hold
+  across a status change (issuing a correction), the function changes the old row first, in the same transaction.
+- **A foreign key to a table built in a later step** (e.g. `audit.request.batch_id → io.batch`, P7) is added by that
+  later step's migration with `alter table … add constraint`, so every migration applies in order on a database built
+  from zero.
 - **Setting lists** (`LIST`): `key text unique` (stable code), `name_en text not null`, `name_ar text`, `sort int`,
   `active bool default true`. A list entry is retired, never deleted, and stays readable where a record holds it (M40).
 - **Money** `numeric(14,2)`, SAR. **Counts** `int`. **Ratios** `numeric` as fractions (1.00 = 100 %).
@@ -296,7 +307,8 @@ one person through `core.person_auth`, and every sign-in is logged in `core.sign
 core.setting_def  key text pk; group_page → core.page ('settings.org' … 'settings.app'); schema jsonb; default jsonb;
                   effective_dated bool; label_key                                         -- synced from the registry
 core.setting      id; key → core.setting_def; department_id null (null = whole company); value jsonb;
-                  valid_from date not null; set_by; set_at; reason      unique (key, department_id, valid_from)
+                  valid_from date not null; set_by; set_at; reason
+                  unique nulls not distinct (key, department_id, valid_from)   -- one company-wide row per date
 core.wording      (locale, key) pk; text; set_by; set_at        -- Settings → App → Wording overrides the catalog
 ```
 
@@ -305,7 +317,11 @@ core.wording      (locale, key) pk; text; set_by; set_at        -- Settings → 
   row, so history and "as of" reads come free (§5a "mid-year changes take an effective date").
 - A **list setting** is an ordinary table (statuses, priorities, services, maps, exclusion rules, categories, grade
   scales …), owned by one settings group for write access, change-logged like any record.
-- Starting scalar settings (defaults live in the registry, not in the database — D17): `audit.undo_window_hours` 24
+- **Defaults are written once, as dated rows.** When a key first appears, the registry sync writes its default as a
+  `core.setting` row dated that day (reason "default"); `setting_at` never falls back to code for a key that has a
+  row, so a later release that changes a default in code never rewrites a past month. (Configuration, not a business
+  record — D17 is not engaged.)
+- Starting scalar settings: `audit.undo_window_hours` 24
   (D7) · `work.no_update_days` 7 · `work.week_starts_on` sunday · `work.meeting_note_on_time_days` 1 ·
   `company.match_order` [client_id, vat_cr, discount_code, email, phone, name] · `company.name_stop_words` (the form
   words list of §3.5) · `company.credit_date` revenue_date (which date decides whose credit an invoice is — Q7) ·
@@ -313,6 +329,7 @@ core.wording      (locale, key) pk; text; set_by; set_at        -- Settings → 
   that is flagged) ·
   `finance.cost_estimate` on (D23) · `perf.pace_thresholds` {on_track 1.00, slightly_behind 0.90, at_risk 0.70} ·
   `report.due_day` 5 · `app.arabic_enabled` false · `app.default_theme` light · `auth.email_code_enabled` false ·
+  `work.reminder_days_before_due` 1 · `notify.kinds_enabled` (every kind on) · `app.export_formats` [csv, xlsx] ·
   `files.max_mb` 20.
 
 ### 3.3 Change log, undo and notifications
@@ -330,7 +347,8 @@ notify.notification  id; person_id; kind ('assigned','helper_added','mentioned',
 ```
 
 - **One request per person action.** `audit.begin()` creates the request and sets `app.request_id` for the transaction;
-  the generic trigger `audit.capture()` (after insert/update, every business table) writes one `audit.change` per row
+  the generic trigger `audit.capture()` (after insert, update **and delete**, every business table — deletes cannot
+  happen through the API, but a stray one is still logged) writes one `audit.change` per row
   with **only the changed fields** (before and after), skipping no-op updates. A write that arrives without a request
   (a migration, psql) is logged under an automatic `system` request — never under a real person.
 - **Imports** do not log every inserted fact row (a 258k-row file would bloat the log); the rows carry
@@ -342,7 +360,7 @@ notify.notification  id; person_id; kind ('assigned','helper_added','mentioned',
   - Who: the person who made the change, within `audit.undo_window_hours`; the owner of a changed record within the
     same window (D7); admins and managers with Full on the page, any time.
   - How: in reverse order, per field — an update is reverted only where the field still holds the `after` value; an
-    insert is soft-removed; a removal is restored. **All or nothing**: if any field was changed again later, nothing is
+    insert (including a link) is soft-removed; a removal is restored. **All or nothing**: if any field was changed again later, nothing is
     undone and the answer names the field, who changed it and when (A16). A restore that a uniqueness rule now blocks
     (an identifier another company holds) is refused and names the holder.
   - Undo is itself a request (`kind 'undo'`, `undo_of`); undoing it is redo. The toast's Undo button calls this with
@@ -364,7 +382,7 @@ company.company   STD SOFT; name_en not null; name_ar; legal_name_en; legal_name
                   -- no VAT, CR, client ID, email or code columns: those live only in company.identifier (one home)
 company.identifier  id; company_id not null; kind ('payments_client_id','vat','cr','discount_code','email','phone','name');
                   subkind (client ID: 'prepaid'|'postpaid'|'tender'; name: 'en'|'ar'|'trading'|'alias');
-                  value_raw not null; value_key not null; norm_version int;
+                  value_raw not null; value_key not null; norm_version int; reason not null (§3 "each with a reason");
                   valid_from date; valid_to date (discount codes only, check to ≥ from); source ('person','decision','import','merge');
                   note; created_at; created_by; removed_at; removed_by; remove_reason
                   unique (kind, value_key) where removed_at is null and kind <> 'discount_code'
@@ -375,13 +393,13 @@ company.identifier  id; company_id not null; kind ('payments_client_id','vat','c
 company.identifier_block  STD SOFT; kind; match ('exact','domain'); value; reason
                   -- values that can never be identifiers: staff email domains, the Payments test VAT, test customers
 company.individual_name   STD SOFT; name_raw; name_key unique      -- "Individual (not a company)" (D25)
-company.account_manager   STD; company_id; person_id; effective_from date not null; effective_to date; reason
+company.account_manager   STD SOFT; company_id; person_id; effective_from date not null; effective_to date; reason
                   exclude using gist (company_id with =, daterange(effective_from, effective_to, '[)') with &&)
 company.contact   STD SOFT; company_id; name_en; name_ar; job_title; email; phone; notes; is_primary
 company.merge     STD; kept_id; merged_id; reason not null; request_id; undone_at
 core.file         STD SOFT; bucket; path unique; name; mime; size_bytes; sha256; status ('pending','stored');
                   sensitivity ('normal','restricted')          -- restricted: IBAN letters, agreements (managers/admins — D10)
-core.file_link    STD; file_id; entity_table; entity_id; purpose ('evidence','agreement','attachment','iban_letter','render')
+core.file_link    STD SOFT; file_id; entity_table; entity_id; purpose ('evidence','agreement','attachment','iban_letter','render')
                   unique (file_id, entity_table, entity_id, purpose)
 core.note         STD SOFT; entity_table; entity_id; kind ('comment','update','meeting'); body; occurred_on date; edited_at
 core.mention      (note_id, person_id) pk
@@ -395,8 +413,9 @@ core.mention      (note_id, person_id) pk
   account-manager history is kept on record, and it is archived with `merged_into_id`. One request, so one undo.
 - **Files**: `api.file_begin(entity, purpose, name, size, mime)` registers a pending file and returns a path; the
   browser uploads to the private bucket; `api.file_finish(id, sha256)` marks it stored. Storage policies allow writes
-  only to a path registered as pending by the same person, and reads only through `api.file_url(id)` (600 s signed
-  URL, after checking the person can see the linked record — M21). Size cap and type list are settings.
+  only to a path registered as pending by the same person, and reads only where a `storage.objects` select policy calls `authz.can_see_file(path)` (the person can see a record
+  the file is linked to; restricted files for managers and admins); the browser then asks Storage for a 600 s signed
+  URL (`createSignedUrl` — M21). Size cap and type list are settings.
 - Polymorphic `entity_table`/`entity_id` (files, notes, change log) are checked by a trigger against the registry's
   entity list; every business relation is a typed foreign key.
 
@@ -429,8 +448,14 @@ discount code (with the row's **booking date** — see Q8), email, phone, both c
 
 **The match — `company.match` view** (one row per source row):
 
-1. **Pin** (level 0): `company.match_pin (source_table, source_id, company_id, reason)`, a person's last-resort
-   decision for a true conflict; shown with a pin mark; logged and undoable.
+1. **Pin** (level 0): `company.match_pin (source_table, source_id, company_id, kind, reason)`, shown with a pin mark,
+   logged and undoable, of two kinds:
+   - `entry` — the company a person picked while typing an invoice whose clues matched nothing. Anyone who may type
+     the invoice may set it; the clue itself goes to **Needs a decision** as a *suggested identifier*, because adding an
+     identifier moves money between people and needs `companies.identify`. Once someone accepts it, the invoice
+     matches by itself and the pin is cleared in the same request;
+   - `decision` — a manager's last resort for a true conflict.
+   A pin whose invoice would now match a **different** company without it is listed in `finance.health`.
 2. For each level in `company.match_order` (setting; default client ID → VAT/CR → discount code within its dates →
    email → phone → name), find the companies holding a matching live identifier. Values under
    `company.identifier_block` are ignored.
@@ -465,15 +490,18 @@ invoices, 9 tax invoices — every reconcilable case matched):
 
 - **The unit of revenue is the transaction.** A booking becomes a *transaction invoice*. Transactions are later
   gathered into a **billing invoice** (Payments marks it `is_consolidated`; each transaction then carries its
-  `consolidated_proforma_id` and the status `consolidation_invoiced`) — one transaction or many. A **standalone
-  invoice** (no consolidation link either way) is its own unit.
+  `consolidated_proforma_id`, and its separate *B2B transaction status* reads `consolidation_invoiced`) — one
+  transaction or many. A **standalone invoice** (no consolidation link either way) is its own unit. The B2B
+  transaction status is kept in its own column and never read as the payment status: a transaction's payment status
+  is its own *Invoice Status* (Fully Paid …), and its revenue date is its own paid date — or, when a billed
+  transaction carries none, the paid date of its billing invoice.
 - **Billing invoices are never revenue.** Transactions and billing invoices both show *Fully Paid* with their own
   receipts, so counting both would count the money twice. **Collections are settled on billing invoices** (and on
   standalone invoices).
 - **Cost = the approved expenses on the transaction** (or on the standalone invoice). Expenses always hang on
-  transactions, never on billing invoices. Invoice line names are **not** a reliable cost: flights hide the markup
-  inside "Flight Booking" (the fee line is a few riyals), hotels run 5–20 % above cost, the visa embassy line is off
-  both ways, chauffeur is inverted (the cost sits inside "Service Fee"), commissions have no cost. The line-based
+  transactions, never on billing invoices. Invoice line names are **not** a reliable cost: in the sample, several
+  products carry the markup inside the booking line, some carry the cost inside the fee line, and commissions have no
+  cost at all (the examples stay in the oversight's notes, not in this public repository). The line-based
   figure stays only as a **flagged fallback estimate** (D23).
 - **The tax invoice (DPIN)** is a child of the billing invoice (or of a standalone invoice) and equals its total
   minus the approved expenses — Direct's fee, with VAT on that margin. It is the **check**, never a figure in a total:
@@ -491,7 +519,9 @@ billing invoice's dates are shown beside it (D26's "both dates shown" stays).
 **How money enters v2.** At go-live the 2026 invoices are **typed in the browser** by the team (owner, 28 Sep —
 decision 4), so every person and every flow is tested while the data is added; Payments file imports come in a later
 phase (§3.11, P7). Both ways write the same fact tables; each row says which (`source`). An import later never touches
-a hand-entered row (D21) — it lists the differences for a person.
+a hand-entered row (D21) — it lists the differences for a person, who may **adopt** the row (its `source` becomes
+`import`, one logged and undoable request); from then on imports update it by the merge rules of §3.11, so late
+statuses, paid dates and approved expenses still arrive (Q30).
 
 **Facts** (one home each; no revenue, cost, profit or VAT columns):
 
@@ -500,7 +530,8 @@ finance.invoice        STD SOFT; ref text unique not null (the Payments referenc
                        'credit_note','wallet_topup'); customer_name; customer_name2; customer_email; customer_phone;
                        client_id_raw; tax_no_raw; discount_code_raw;
                        name_key; name2_key; email_key; phone_key; client_id_key; tax_key; code_key; norm_version;   -- match keys (§3.5)
-                       status_raw; status_id → finance.status_map; created_on; paid_on; status_at;
+                       status_raw (Invoice Status); status_id → finance.status_map; consolidation_status_raw (B2B transaction
+                       status, e.g. consolidation_invoiced — never read as payment); created_on; generated_on; paid_on; status_at;
                        total_sar (as Payments records it); product (main product); branch; salesman_raw;
                        source ('manual','import'); src jsonb (per-field export time, imports only); first_batch_id; last_batch_id
 finance.invoice_line   STD SOFT; invoice_id; line_no; product; name; qty; unit_price; discount_sar; taxable; total_sar
@@ -527,7 +558,8 @@ finance.promo_code     code_key pk; the 13 exported columns (client name kept as
 
 ```
 finance.status_map     LIST: status_key; maps_to ('paid','pending','draft','void','cancelled'); audit_required bool
-                       -- ported words: Fully Paid, Paid → paid; Fully Paid (Audit Required) → paid + flag; Pending, Pending Payment,
+                       -- starting words: Fully Paid → paid; Fully Paid (Audit Required) → paid + flag (the old app's bare "Paid" is
+                       -- left out: the blueprint counts only Fully Paid, so a "Paid" is held until a person maps it); Pending, Pending Payment,
                        -- Partially Paid → pending; Draft; Void/Voided; Cancelled/Canceled. An unknown word on import → held (D21)
 finance.product        LIST: the Payments products (Direct Flights, Direct Hotels …), each → a service (D24) and a
                        commission flag; the manual entry form offers this list
@@ -538,7 +570,9 @@ finance.item_service   item_head_key unique → service_id                   -- 
 finance.item_class     item_tail_key unique; class ('pass_through','fee')  -- D23, the LAST part — the fallback estimate only
 finance.exclusion_rule STD SOFT; kind ('client_id','name','tax_no','discount_code','invoice','product','company'); value_raw;
                        value_key; mode ('exclude','hide'); reason not null      unique (kind, value_key) live (D16; 'hide' = MF5)
-finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(5,4); note not null   -- shares of an invoice sum to 1
+finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note not null
+                       -- shares of an invoice sum to 1 within 0.000001; the credited amounts are rounded to the halala and any
+                       -- remainder goes to the first person, so three equal shares add up exactly
 ```
 
 **Views — every money figure in the app comes from these (§1a):**
@@ -547,10 +581,13 @@ finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(5,4); note
 |---|---|
 | `finance.invoice_fact` | per invoice: kind (a top-up detected from wallet lines is confirmed as `wallet_topup`); status via `status_map`; line total; pass-through / fee / unclassed line sums (D23); commission flag (product list or commission word); the billing invoice it belongs to (for a transaction) or its transactions (for a billing invoice); its DPIN; **revenue date** = paid date (else created) |
 | `finance.invoice_cost` | for a transaction or standalone invoice: approved = sum of **approved** expenses, **null when none** (empty, never 0 — D21, MF1); pending count; estimate only when approved is null and not a commission: the Revenue Report expense total once imports exist, else the pass-through lines (D23), always flagged; `cost_basis` ∈ approved · submitted_estimate · line_estimate · commission · none; **cost status** Provisional / Final (rules above) |
-| `finance.money_row` | one row per revenue unit (a transaction or a standalone invoice): company, match state and level (§3.5); month and quarter of the revenue date; **revenue** = total − wallet part (D21) for a paid unit; cost, estimate (apart), margin = revenue − cost where cost is known (a commission's margin is its revenue); counts = paid and not excluded; excluded/hidden with rule and reason; audit-required flag; cost status. **Billing invoices, credit notes and wallet top-ups never appear as revenue units** |
-| `finance.money_service_row` | D24: each counted unit's lines to one service (item map, else the product's service, else "No service yet"); "not income" services left out; the difference to revenue under "Not split by line"; approved cost split by line share, the estimate by pass-through share |
+| `finance.money_row` | one row per revenue unit (a transaction or a standalone invoice): company, match state and level (§3.5); month and quarter of the revenue date; **revenue** = total − wallet part (D21) for a paid unit; cost, estimate (apart), margin = revenue − cost where cost is known, as recorded (Q31) (a commission's margin is its revenue) — **the main
+margin figure counts only units whose cost is Final; Provisional margins are shown apart** (the old M9 "one pending
+transaction holds back the whole invoice", carried as cost status); counts = paid and not excluded; excluded/hidden with rule and reason; audit-required flag; cost status. **Billing invoices, credit notes and wallet top-ups never appear as revenue units** |
+| `finance.money_service_row` | D24: each counted unit's lines to one service (item map, else the product's service, else "No service yet"); lines of "not income" services shown on their own row, never in a service's sums; the rest of the difference to revenue
+under "Not split by line", so services + not income + not split = the revenue tile and nothing hides; approved cost split by line share, the estimate by pass-through share |
 | `finance.credit_row` | counted unit × person × share: a credit split if present, else the company's account manager **on the revenue date** (Q7), else nobody ("uncredited", shown) |
-| `finance.receivable` | collections: billing and standalone invoices not void/cancelled/draft; outstanding = total − receipts; due = created date + `finance.collection_due_days`; ageing 0–30, 31–60, 61–90, 90+, no date, dated in the future |
+| `finance.receivable` | collections: billing and standalone invoices not void/cancelled/draft, **through the same exclusion rules as `money_row`** (a hidden row never appears; an excluded one is listed apart, never in outstanding — D16, MF5); outstanding = total − receipts; due = created date + `finance.collection_due_days`; ageing 0–30, 31–60, 61–90, 90+, no date, dated in the future |
 | `finance.check` | the reconciliation, per billing or standalone invoice: billing total vs sum of its transactions; DPIN total vs (total − approved expenses of its units) within 1 SAR; DPIN = 100 % of total on non-commission → "expenses missing"; expenses entered on a billing invoice (refused at write, listed if imported); transactions with no billing invoice after N days (setting) |
 | `finance.company_month` | company × month: revenue, cost, estimate, margin, counted units, outstanding |
 | `finance.health` | what is held back or doubtful, by reason, with the riyals at stake (M48, M52): unknown statuses, excluded/hidden rows, units with no company, cost missing, estimates in use, Provisional units, failed checks |
@@ -612,7 +649,7 @@ work.task_occurrence (template_id, occurs_on) pk; task_id                -- make
 - **Who does what.** Anyone with Own on Tasks creates their own tasks and adds helpers; assigning to someone else needs
   the capability `tasks.assign` (managers, admins — §3 "managers/admins assign"); helpers add notes and tick their
   own action items.
-- **Recurring tasks.** `pg_cron` at 00:05 Riyadh runs `work.generate_recurring(core.riyadh_today())`; each occurrence
+- **Recurring tasks.** `pg_cron` at 00:05 Riyadh (the schedule is in UTC: `5 21 * * *`) runs `work.generate_recurring(core.riyadh_today())`; each occurrence
   is created once (`task_occurrence`), attributed to the template's creator with a `job` request naming the template —
   a record made on a person's standing instruction (D17's spirit).
 - **Closing a task** (`api.task_close`) asks what to do with open action items (close them too, or keep the task open),
@@ -626,13 +663,14 @@ perf.unit            LIST + kind ('money','count','percent','score','duration','
 perf.plan            STD SOFT DEPT; year int; name; status ('draft','active','closed'); copied_from_plan_id; activated_at; closed_at
                      unique (department_id, year) where deleted_at is null
 perf.objective       STD SOFT; plan_id; code ('O1'); title_en; title_ar; description; perspective; strategic_link; sort
-perf.kpi             STD SOFT; plan_id; objective_id; code ('K07'); title_en; title_ar; description; sort;
+perf.kpi             STD SOFT; plan_id; code ('K07'); sort;                 -- identity only; renumbering is logged
                      copied_from_kpi_id                                    -- continuity across years
-perf.kpi_rev         id; kpi_id; effective_from date not null; type ('number','money','percent','checklist','tracked');
+perf.kpi_rev         id; kpi_id; effective_from date not null; objective_id; title_en; title_ar; description;
+                     type ('number','money','percent_score','checklist','tracked');
                      unit_id; direction ('higher','lower'); source ('computed','achievements','manual');
                      measure_key → perf.measure_def; measure_params jsonb; aggregation ('sum','latest','average');
                      cumulative bool default true; base_year; baseline; achieved_before (achieved up to the previous year);
-                     thresholds jsonb (null = plan default); strategy_ref; support_tickets text[]; reason; set_by; set_at
+                     thresholds jsonb (null = the `perf.pace_thresholds` setting); strategy_ref; support_tickets text[]; reason; set_by; set_at
                      unique (kpi_id, effective_from)                        -- mid-year definition changes (§5a)
 perf.kpi_target      id; kpi_id; period_kind ('month','quarter','year'); period_start date; value numeric;
                      effective_from date not null; reason; set_by; set_at
@@ -656,7 +694,9 @@ perf.achievement     STD SOFT DEPT; plan_id; category_id; company_id; project_id
                      evidence_date date not null; owner_id not null; remove_reason
 perf.achievement_participant (achievement_id, person_id) pk; role
 perf.achievement_invoice     (achievement_id, invoice_id) pk
-perf.achievement_kpi_adjust  id; achievement_id; kpi_id; mode ('include','exclude'); reason not null   -- incl. re-mapping to a new plan
+perf.achievement_kpi_adjust  id; achievement_id; kpi_id; mode ('include','exclude'); period_month date (for an include:
+                     the month it counts in — defaults to the evidence month; set for a re-mapping into a new plan's year);
+                     reason not null
 perf.challenge       STD SOFT DEPT; title; details; company_id; supplier_name; owner_id; opened_on; resolved_on; resolution
 perf.period_target   STD SOFT DEPT; period_kind ('month','quarter'); period_start; text; owner_id; task_id not null;
                      written_in_report_id → report.report
@@ -674,18 +714,22 @@ with a reason — a logged person action.
 
 1. The revision in force for a month is the latest `kpi_rev` with `effective_from ≤` the month's end.
 2. Month value by source:
-   - **computed** — `measure.<key>(params, 'department', plan.department, month start, month end)`;
+   - **computed** — the measure's function (key `finance.revenue` → `measure.finance_revenue`) with
+     `(params, 'department', plan.department, month start, month end)`;
    - **achievements** — the sum of contributions (`count` × achievement count, or the sum of a field) of achievements
      whose evidence date is in the month and whose category maps to the KPI **by a mapping in force on the evidence
-     date**, plus includes, minus excludes, removed ones left out;
+     date**, plus includes whose `period_month` is this month, minus excludes, removed ones left out;
    - **manual** — the readings for that month (or the quarter reading).
-3. Quarter = sum of months (`sum`), latest reading (`latest`) or average. Year to date = cumulative sum of quarters.
+3. Quarter and year to date by aggregation: `sum` — the sum of the months (year to date = the running sum); `latest`
+   (percentage/score KPIs) — the latest reading in the period; `average` — the average of the **measured** months only,
+   saying how many (M39).
 4. Target for a period **as of a date** = the latest `kpi_target` for that period with `effective_from ≤` the date;
    a year target is explicit, else the sum of the quarter targets (`sum` KPIs).
 5. **Pace** (ported from the d27 plan): what is due = the targets of past quarters in full plus the current quarter's
    target pro-rated by Riyadh days passed; ratio = year-to-date ÷ due (inverted for lower-is-better). Status: Exceeded
    (year target reached) · On track (≥ 1.00) · Slightly behind (≥ 0.90) · At risk (≥ 0.70) · Critical · Pending (no
-   target, not started, or not measured). A non-cumulative KPI is judged per quarter. Thresholds are plan settings.
+   target, not started, or not measured). A non-cumulative KPI is judged per quarter; a `latest` KPI compares its latest figure with the current quarter's
+   target (the d27 rule). Thresholds come from the KPI revision, else the `perf.pace_thresholds` setting.
 6. **Not measured ≠ 0.** A manual KPI with no reading, or a ratio with nothing to divide (no action items were due),
    returns `measured = false` and is shown as "—, not measured", never 0. A count of achievements is a real 0 once the
    period has started.
@@ -694,13 +738,16 @@ Views: `perf.kpi_month`, `perf.kpi_quarter`, `perf.kpi_ytd`, `perf.kpi_pace`, `p
 contribution to each KPI by quarter, for the company card); function `perf.kpi_trace(kpi, from, to)` returns the
 achievements or invoices behind a figure with their company and evidence file (the KPI page's drill-down, §1).
 
-**Measures in v1** (each a SQL function `measure.<key>(params, scope_kind, scope_id, from, to)` returning
+**Measures in v1** (each a SQL function `measure.<module>_<name>(params, scope_kind, scope_id, from, to)` — the registry
+maps the dotted key to it — returning
 `(value, measured, n)` plus a `_items` twin for drill-down; scopes are department, team, person, company):
 `finance.revenue` · `finance.commercial_revenue` (the setting) · `finance.margin` (says how much of the revenue had a cost)
 · `finance.new_client_revenue` (companies whose first counted unit falls in the period and whose `client_since`, if
 typed, is not earlier) · `finance.collected` ·
 `company.new_clients` · `perf.achievements` (categories as parameters; person scope = owner, or owner and participants)
-· `perf.kpi_attainment` (a KPI's value ÷ its target, for appraisal items tied to a department KPI) ·
+· `perf.kpi_attainment` (params: a KPI **code**; value = the KPI's figure over the period ÷ its targets over the same
+period as of the evaluation date — quarter targets pro-rated by the months inside the period; each month read from the
+plan of its own year, the KPI matched by code; for appraisal items tied to a department KPI) ·
 `work.tasks_on_time` · `work.action_items_on_time` · `work.weekly_updates` · `work.meeting_notes_on_time` ·
 `report.on_time`. Person scope on finance measures uses `finance.credit_row` shares. Measures name achievement
 categories by their **code**, which plan copies keep, so an April–March appraisal cycle counts the same category in
@@ -724,7 +771,7 @@ the owner's My work.
 ### 3.9 Reports
 
 ```
-report.section_def   key pk; kind ('cover','kpi_tiles','achievements_by_category','challenges','period_targets',
+report.section_def   key pk; kind ('cover','kpi_tiles','kpi_month_additions','achievements_by_category','challenges','period_targets',
                      'operational_plan','revenue_by_service','free_text'); params_schema; label_key      -- synced from code
 report.template      STD SOFT DEPT; kind ('monthly','quarterly','yearly'); sections jsonb [{key, title_en, title_ar, params}];
                      effective_from                                          -- "sections are a setting"
@@ -738,7 +785,8 @@ report.line_invoice  (line_id, invoice_id) pk
 report.render        id; report_id; format ('pdf','pptx'); file_id; snapshot_sha256
 ```
 
-- **A draft is live.** Every section is computed when opened: tiles (the chosen KPIs or measures for the period and
+- **A draft is live.** Every section is computed when opened: **each KPI's addition this month to its quarter**
+  (`kpi_month_additions` — §3 "the monthly report shows each month's addition"), tiles (the chosen KPIs or measures for the period and
   the same period last year — "not measured" when last year has no data), achievements by category, challenges open at
   period end, period targets done/carried, the operational-plan indicators (checklist KPIs: done / carried over),
   revenue by service. `report.draft_suggestions` lists achievements of the period that no line cites yet.
@@ -786,9 +834,11 @@ appraisal.legacy        STD; cycle_label; person_id; source ('old_tool','excel_f
 
 **Where the first templates come from** (owner decision 2, 28 Sep): the **online appraisal tool** is the latest
 source and wins wherever the Excel form differs. Its section weights (**70 / 25 / 5**: personal KPIs / competencies /
-corporate), its grade scale, its points tables and its items seed the templates, through a one-time import of a
-read-only export of the tool's database (P6-3, the same export as the legacy appraisals); only gaps are filled from the
-Excel form. After seeding, every number is an ordinary setting.
+corporate), its grade scale, its points tables and its items seed the templates, through a one-time import of an
+export of the tool's data **handed over by the owner** (CLAUDE.md rule 8: that database is read once, from an export the
+owner gives). The export holds real staff scores, so it stays in Drive or the scratchpad — never in a migration,
+fixture or commit (rule 7) — and a person loads it through the importer (D17, DP3). The same export brings the legacy
+appraisals (P6-3). Only gaps are filled from the Excel form. After seeding, every number is an ordinary setting.
 
 **Scoring** (`appraisal.item_score` view, the same formula for the self and the manager column):
 
@@ -800,7 +850,7 @@ Excel form. After seeding, every number is an ordinary setting.
   target (reversed when lower is better).
 - **Roll-up**: a node's % = Σ(child % × child weight) ÷ Σ child weights, so the form's two ways of writing weights
   (items summing to their group's weight, or to 100 %) both work; the template editor warns when weights do not add up.
-  Final % = the sections weighted (70/20/10 or 60/35/5 — whatever the template holds); grade from the cycle's scale.
+  Final % = the sections weighted (70/25/5 as seeded from the online tool — whatever the template holds); grade from the cycle's scale.
 - **Lock** (admin, at or after `lock_on`): every actual and % is copied into `locked_*`, final and grade stored — the
   appraisal equivalent of an issued report. Reopening is an admin action with a reason.
 - **Visibility** (RLS): the person, their evaluator, anyone above them in the reporting line, and admins. Nobody else,
@@ -839,7 +889,7 @@ io.held_ref (batch_id, ref) pk                                                  
 6. **Merge rule for every fact field** (`io.merge`, one generic function): a blank never wipes; a stored blank is filled
    from any file; a stored value changes only when the file is **newer** than the export time recorded for that field
    (`src` jsonb keeps one time per field). **The same file twice changes nothing** (same SHA-256 → "already imported on
-   <date> by <person>", nothing written; a partial batch resumes).
+   `<date>` by `<person>`", nothing written; a partial batch resumes).
 7. **Held and listed**: unknown statuses, unreadable dates or amounts, and references with no invoice are listed with
    their reason and downloadable as CSV; they never become records. When new invoices arrive whose references were held
    by an earlier cost file, `finance.health` says "drop the cost export again" (the export is cumulative).
@@ -848,10 +898,26 @@ io.held_ref (batch_id, ref) pk                                                  
    capped steps — ported from js/65) and the proposals wait for a person's tick. The old D26 one-to-one "twins" are
    simply billing links with one transaction (§3.6).
 
-**v1 sources:** Payments all-invoices export (first), Transaction Expense Export, Expense Invoice Export, Revenue Report
-(expense total only), Corporate clients (29 columns), Promo codes (13 columns). **Later:** old-app companies (§11),
-legacy appraisals, ClickUp. Column maps are ported exactly from `js/41`, `js/65`, `js/121` and `js/122`
-(listed in `REBUILD-HANDOVER-2.md` §1 and in this spec's §12).
+**P7 sources:** Payments all-invoices export (first), Transaction Expense Export, Expense Invoice Export, Revenue Report
+(expense total only), Corporate clients (29 columns), Promo codes (13 columns). **Later:** legacy appraisals, ClickUp.
+Column maps are ported exactly: the cost, clients and promo maps are listed in `docs/REBUILD-HANDOVER-2.md` §1 (branch
+`claude/clever-franklin-vukl22`); the all-invoices map, from production `js/41` and `js/65`, is:
+
+| All-invoices header | Becomes |
+|---|---|
+| (detection) | the file has all of `Type`, `Invoice Reference #`, `Customer Name`, `Item Is Taxable` |
+| `Type` | row type: `invoice`, `credit_note`, `item` or `payment_receipt` (a blank reference skips the row) |
+| `Invoice Reference #` | `ref` — the key |
+| `Invoice Number` | the DPIN, stored as a `finance.tax_invoice` row under this invoice (blank = an unnumbered transaction) |
+| `Customer Name` · `Customer Email` / `Email` | customer name · customer email (lower-cased) |
+| `Invoice Create Date` · `Invoice Generate Date` · `Last Payment Date` | created on · generated on · paid on |
+| `Invoice Status` · `Last Status At` | status (through `status_map`) · status time (decides which copy is newer) |
+| `Invoice Total` | total, as recorded |
+| `Sale Branch` · `Salesman` | branch · salesman (kept raw) |
+| item rows: `Product`, `Name`, `Qty`/`Quantity`/`Item Quantity`, `Unit Price`/`Item Unit Price`/`Item Price`, `Item Discount`, `Item Total`, `Item Is Taxable` (`Yes` = true) | an invoice line |
+| receipt rows: `Payment Method`, `Allocation`/`Allocated Amount`/`Amount`, `Ref # At Payment Method`, `Payment By`/`Paid By`, `Notes`, `Payment Date`/`Receipt Date`/`Paid At` | a receipt |
+
+A file the old app exported itself (its own revenue/profit columns) is refused.
 
 **Export.** Every list has Export (CSV with BOM, or Excel). It runs the list's own query with the chips applied,
 paging through `fetchAll`, writes numbers as numbers, dates as Riyadh dates, IDs as text, and passes every text cell
@@ -933,7 +999,8 @@ off", "The code has expired — send a new one", "Zoom signed you in as x@…, w
 ```
 core.person_email   STD SOFT; person_id → core.person; email citext unique (live) not null; is_primary bool
                     -- the admin allow-list: a person holds one or more allowed emails (e.g. their .com and their .net)
-core.person_auth    auth_user_id uuid pk → auth.users; person_id → core.person; email citext; provider ('google','zoom','email');
+core.person_auth    auth_user_id uuid pk → auth.users; person_id → core.person; email citext; providers text[] (every door
+                    this auth user has used: google, zoom, email);
                     linked_at                                    -- every Supabase identity resolves to exactly one person
 core.sign_in_log    id; at; person_id (null when refused); email; provider; result ('ok','not_listed','switched_off',
                     'provider_error','code_expired'); detail; user_agent
@@ -1007,6 +1074,7 @@ identifiers, merging, importing, splitting credit) — shown in the matrix under
 | Achievement | its owner or a participant |
 | Challenge, period target | its owner |
 | KPI reading or status note | a lead of that KPI |
+| Invoice (typed) | the person who typed it (`created_by`); managers correct anyone's (owner decision 4, Q29) |
 | Report draft (edit and issue) | a named report editor of its department (Full on Reports may also issue and correct) |
 | Appraisal | the person (self fields), the evaluator (manager fields), admins (corporate actuals, lock) |
 
@@ -1023,6 +1091,10 @@ create policy read on appraisal.appraisal for select to authenticated using (
 
 No insert/update/delete policy exists, and no role holds those grants: writes happen only inside `api.*` functions,
 which check the level, the capability and the row rule explicitly and raise `42501` naming the page and level needed.
+The `authz.*` helpers are `security definer`, `stable`, with `search_path = ''`, so the policies on `core.person`
+and the level tables never recurse into themselves. A **measure** checks access itself: without Finance view, a
+finance measure returns "not measured — no access", never 0 (M53).
+
 The screen asks the same `api.me()` levels to hide what would be refused (M42) and never shows a control that the
 database would refuse without saying why.
 
@@ -1039,12 +1111,12 @@ row at most inside a detail, `<DataState>` everywhere, Undo on every toast, remo
 | Area (route) | List | Detail (one tab row) | Main actions |
 |---|---|---|---|
 | **My day** `/my-day` | Four blocks: **My work** (overdue, today, this week — tasks and action items I own, am assigned or help on; stale flags) · **My companies** (new invoices since my last visit, unpaid balances by age) · **My KPIs** (lead or contributor: pace light, year to date vs due, this month's addition) · **My appraisal** (private: cycle step, what is due from me) | — | Quick add task; mark action item done |
-| **Companies** `/companies/[id]` | Name, category, tier, account manager, revenue this year, outstanding, open tasks, last activity, match issues. Chips: mine, category, tier, has outstanding, needs a decision | Overview (official details, identifiers summary, KPI contributions by quarter, recent activity) · Finance (invoices, gross/cost/margin by month, collections) · Work (projects, tasks) · Achievements · Identifiers (add, remove, history, merge) · Files & contacts | New company; add identifier; merge; set account manager (Settings rights) |
+| **Companies** `/companies/[id]` | Name, category, tier, account manager, revenue this year, outstanding, open tasks, last activity, match issues. Chips: mine, category, tier, has outstanding, needs a decision | Overview (official details, identifiers summary, KPI contributions by quarter, recent activity) · Finance (invoices, revenue/cost/margin by month, collections) · Work (projects, tasks) · Achievements · Identifiers (add, remove, history, merge) · Files & contacts | New company; add identifier; merge; set account manager (Settings rights) |
 | **Needs a decision** (a view of Companies) | Customer groups with row count and riyals at stake, candidates for conflicts | The rows, their clues | The decisions of §3.5 |
 | **Finance** `/finance/[view]` | Views: Overview (tiles: revenue, cost, estimate apart, margin, counted units; months; income by service; what is held back and what fails a check) · Invoices (every kind and state; chips: Provisional, checks failing, no company) · Collections (ageing, who to chase — on billing and standalone invoices) · **New invoice** (the fast entry screen of §7) · Imports (P7) | Invoice: header, lines, expenses (transactions), transactions and DPIN and receipts (billing), cost status, checks, company and match level, credit (split), projects/achievements/report lines citing it, history | New invoice (Save and new, Duplicate); link transactions to a billing invoice; split credit |
 | **Projects** `/projects/[id]` | Number, name, company, owner, status, dates, linked revenue/margin | Overview (linked invoices and money) · Tasks · Achievements · Files · Timeline | New project; link invoices |
 | **Tasks** `/tasks/[number]` | Switch List / Board by status / Calendar by due date. Chips: My work, owned, helping, team, status, due, stale, company, project | Header (title, status, owner, due, priority) · Action items (inline add, owner, due, helper) · Timeline (updates, meeting notes, comments, @mentions) · Links (company, project, contacts, invoices, KPIs, Direct references) · Files | Quick add (title, owner, due — Enter); close (offers "Log the achievement"); log meeting |
-| **KPIs** `/kpis/[code]` | Views: **KPIs** (the year's plan grouped by objective: code, title, leads, YTD, year target, pace light, Q1–Q4, measured) · **Achievements** · **Challenges** (Q17). Year chooser (the plan) | KPI: target and result by month and quarter; drill-down achievements/invoices → company → evidence; readings; status notes; definition and target history. Achievement: its line, fields, evidence, invoices, KPIs, history | Log achievement (category first, then its own fields); add reading; declare status; export the KPI sheet |
+| **KPIs** `/kpis/<year>/<code>`, `/kpis/achievements/<id>`, `/kpis/challenges/<id>` | Views: **KPIs** (the year's plan grouped by objective: code, title, leads, YTD, year target, pace light, Q1–Q4, measured) · **Achievements** · **Challenges** (Q17). Year chooser (the plan) | KPI: target and result by month and quarter; drill-down achievements/invoices → company → evidence; readings; status notes; definition and target history. Achievement: its line, fields, evidence, invoices, KPIs, history | Log achievement (category first, then its own fields); add reading; declare status; export the KPI sheet |
 | **Reports** `/reports/[id]` | Kind, period, status, number, editors | Editor: the template's sections in order, each live, with the lines editor (cite achievements/invoices, combine, reword) and suggestions of what is not cited yet; Preview; Issue. Issued: snapshot, drift since issue, PDF/PPTX, Correct | New monthly/quarterly report; issue; correct |
 | **Appraisal** `/appraisal/[id]` | My appraisals; my team's (reporting line); all (admins) | The form as the official sheet: sections → groups → items (definition, unit, target, thresholds, actual with a "from the app" badge, self, manager, weight, %), competencies, comments, sign-off, summary with grade | Self-evaluate; evaluate; sign; lock (admin) |
 | **Settings** `/settings/[group]` | The six groups of §4, each a page of forms driven by `setting_def` schemas and list-setting tables; Activity (the change log, filter and undo) | — | Every setting changes with a reason and an effective date where it has one |
@@ -1062,8 +1134,9 @@ first-class, fast screen, built for someone copying from a Payments page:
 
 - **Header** in one row: kind (Transaction · Standalone invoice · Billing invoice · Credit note · Wallet top-up),
   Payments reference, status, created and paid dates, total; the **customer as Payments shows it** (client ID, name,
-  email) with the **company match shown live** beside it (§3.5). No match → pick the company, and the typed clue is
-  added to that company's identifiers in the same save, so the next invoice matches by itself.
+  email) with the **company match shown live** beside it (§3.5). No match → the typist **may** pick the company
+  (an entry pin, §3.5) or leave it for **Needs a decision**; either way the clue is suggested as an identifier, and
+  once someone with `companies.identify` accepts it, the next invoice matches by itself.
 - **Lines** grid (product from the product list, item name, quantity, price, total) — keyboard-first, and a block
   pasted from Payments (tab-separated) fills it.
 - **Expenses** grid on transactions and standalone invoices (type, amount, status, merchant, reference, dates).
@@ -1080,7 +1153,7 @@ Expense Invoice, Revenue Report, corporate clients, promo codes) and, where the 
 a reader for the Payments page data (the invoice view's JSON, in `history.state.page`, carries the expenses, the child
 DPIN, `consolidated_proforma_id` and `b2b_transaction_status`; the expense report filters by `invoice_id`) — captured
 in-page by a person, 10–25 rows a page, never the sync export (DP1, DP2). Imports fill blanks and never touch a
-hand-entered row (D21); differences are listed for a person.
+hand-entered row (D21); differences are listed for a person, who may adopt the row so imports keep it current (§3.6, Q30).
 
 ---
 
@@ -1138,7 +1211,9 @@ team members), **Editor** (report editor); company **Test Co A** with identifier
 `finance.commercial_revenue`, Q3 target 100,000) and **K-B2B** (achievements: category "New deals" counts 1, Q3
 target 3); an appraisal cycle Apr 2026–Mar 2027 with AM1's items "Sales vs plan" (`finance.revenue`, plan 400,000),
 "New B2B clients" (`perf.achievements`, category code NEW-DEAL, target 4) and "Department revenue vs target"
-(`perf.kpi_attainment`, K-REV). Each flow is written twice — `FLOW-0n` in SQL and
+(`perf.kpi_attainment`, K-REV). The whole department contributes to K-REV and K-B2B, and AM1 leads K-B2B (so both
+show on AM1's My day). **Every flow starts from this world, reset between flows**; a flow that needs a record another
+flow makes creates its own. Each flow is written twice — `FLOW-0n` in SQL and
 `flow-0n-*.spec.ts` in the browser — and each ends with **Undo**, asserting every figure returns to its value before
 the flow.
 
@@ -1146,10 +1221,10 @@ the flow.
 |---|---|---|
 | FLOW-01 | AM1 types transaction `INV-T-0001` in Finance → New invoice: Fully Paid, total 11,500, paid 14 Aug 2026, customer email `a@test.example`, one approved expense of 9,000 (v1; re-run with a made-up import file in P7) | match: Test Co A at level email · credit: AM1 × 1.0 · company card: revenue Aug 2026 = 11,500, cost 9,000, margin 2,500, cost status Provisional until a billing invoice with its DPIN is entered, then Final · K-REV: August +11,500, Q3 = 11,500, pace recomputed · AM1's My day: new invoice for Test Co A and K-REV's pace · August monthly report draft: revenue tile and revenue by service include 11,500 · AM1's appraisal "Sales vs plan" actual = 11,500 (2.875 % of plan). **Then:** the status edited to Void → every figure above drops back. **In P7:** the same file twice → nothing changes; a newer file wins per field; an older file only fills blanks; the hand-entered row is never touched |
 | FLOW-02 | AM1 closes task "Sign Test Co A" and logs the offered achievement "New deals", company Test Co A, evidence file, evidence date 3 Sep 2026 | company card: achievement listed, K-B2B Q3 contribution 1 · K-B2B: September +1, Q3 = 1, drill-down reaches Test Co A and the evidence file · September report draft: suggestion to cite it; a line citing it · AM1's appraisal "New B2B clients" = 1. **Then:** change the evidence date to 2 Oct 2026 → moves to October and Q4 everywhere |
-| FLOW-03 | Head sets AM2 as Test Co A's account manager from 1 Sep 2026; a second invoice, paid 10 Sep, is imported | the Aug invoice stays AM1's, the Sep one is AM2's: both people's person-scope measures, My day and appraisal lines change accordingly · a manager splits the Sep invoice 50/50 with a note → both see half |
-| FLOW-04 | An invoice arrives with customer name "شركة تيست كو أ" and no known email → **Needs a decision**; a person decides "This is Test Co A" | before: no company, in the queue with its riyals · after: the name is an identifier of Test Co A, the invoice (and any past one with that name) re-links, every total above updates · removing the identifier returns it to the queue · the same name added to a second company is refused (one company only) · a row whose email matches A and whose name matches B at the same level → conflict naming both |
-| FLOW-05 | Editor issues the September report (it cites FLOW-02's achievement); a manager then removes the achievement with a reason | K-B2B, company card, AM1's appraisal and the **October** draft update · the September report's snapshot hash is unchanged and it shows "1 figure changed since issue" · a correction is issued: new number `-C1`, the old one marked superseded, both readable |
-| FLOW-06 | Head changes K-REV's Q3 target 100,000 → 80,000 effective 15 Sep 2026, and switches the revenue definition to "margin" effective 1 Oct | pace and status recompute; the report draft tiles recompute; AM1's "Department revenue vs target" line rises from 11.5 % to 14.4 % of target (11,500 ÷ 80,000) · reading K-REV's target "as of 14 Sep" still returns 100,000 · the change log holds both changes with their effective dates · September still uses gross, October uses margin |
+| FLOW-03 | FLOW-01's invoice is typed; Head sets AM2 as Test Co A's account manager from 1 Sep 2026; a second invoice, paid 10 Sep, is typed | the Aug invoice stays AM1's, the Sep one is AM2's: both people's person-scope measures, My day and appraisal lines change accordingly · a manager splits the Sep invoice 50/50 with a note → both see half |
+| FLOW-04 | AM1 types an invoice for the customer name "شركة تيست كو أ", no email, and picks no company → **Needs a decision**; a manager decides "This is Test Co A" | before: no company, in the queue with its riyals · after: the name is an identifier of Test Co A, the invoice (and any past one with that name) re-links, every total above updates · removing the identifier returns it to the queue · the same name added to a second company is refused (one company only) · a typed invoice whose tax number is Test Co A's VAT **and** another company's CR (the same level) → conflict naming both · a typist who instead picks Test Co A gets an entry pin and a suggested identifier; when a manager accepts it, the pin is cleared and the match holds by itself |
+| FLOW-05 | An achievement dated 3 Sep is logged; Editor issues the September report citing it; a manager then removes the achievement with a reason | K-B2B, company card, AM1's appraisal and the **Q3 quarterly** draft update · the September report's snapshot hash is unchanged and it shows "1 figure changed since issue" · a correction is issued: new number `-C1`, the old one marked superseded, both readable |
+| FLOW-06 | FLOW-01's invoice is typed; Head changes K-REV's Q3 target 100,000 → 80,000 effective 15 Sep 2026, and switches the revenue definition to "margin" effective 1 Oct | pace and status recompute; the report draft tiles recompute; AM1's "Department revenue vs target" line rises from 11.5 % to 14.4 % of target (11,500 ÷ 80,000) · reading K-REV's target "as of 14 Sep" still returns 100,000 · the change log holds both changes with their effective dates · September still uses revenue, October uses margin |
 
 Plus three flows the blueprint and the finance finding imply: **FLOW-09 billing and the tax invoice** (two made-up
 transactions of 6,000 and 4,000 with approved expenses 5,000 and 3,000; a billing invoice of 10,000 re-billing both,
@@ -1191,8 +1266,8 @@ refuses `*.supabase.co`, `vercel.com` and `cdn.sheetjs.com`; the Supabase and Ve
 
 | What | Exactly | Plan and cost | Who |
 |---|---|---|---|
-| **Supabase project** `direct-commercial` | region eu-central-1 (Frankfurt, as today), Postgres 17; Auth: sign-ups off, Google + Zoom providers, email OTP (after SMTP); Storage bucket `files` (private); `pg_cron` on | **Free**, if a free slot is made (Q1): pause `directksa-performance` after exporting it (needed anyway to seed the appraisal template — §3.10). **Otherwise 25 USD a month**: a separate Pro organisation holding only this project (the Pro plan's 10 USD compute credit covers one project). Upgrading the existing organisation instead would cost about 45 USD a month for its three projects | owner approves; builder A creates it with the Supabase connector (or the owner clicks it) |
-| **Vercel project** `direct-commercial` | this repository, root directory `v2`, framework Next.js, production branch `v2/main`, preview deployments on every PR, function region fra1; env vars: Supabase address and publishable key (public by design), service key (server-side only) | **Free** (Hobby) — see Q26 on its non-commercial terms | owner approves; builder A creates it with the Vercel connector |
+| **Supabase project** `direct-commercial` | region eu-central-1 (Frankfurt, as today), Postgres 17; Auth: sign-ups off, Google + Zoom providers, email OTP (after SMTP); Storage bucket `files` (private); `pg_cron` on | **Free**, if a free slot is made (Q1): pause `directksa-performance` after the owner hands over an export of its data (needed anyway to seed the appraisal templates — §3.10, rule 8). **Otherwise 25 USD a month**: a separate Pro organisation holding only this project (the Pro plan's 10 USD compute credit covers one project). Upgrading the existing organisation instead would cost about 45 USD a month for its three projects | owner approves; builder A creates it with the Supabase connector (or the owner clicks it) |
+| **Vercel project** `direct-commercial` | this repository, root directory `v2`, framework Next.js, production branch `v2/main`, preview deployments on every PR, an *ignored build step* so pushes that do not touch `v2/` build nothing, function region fra1; env vars: Supabase address and publishable key (public by design), service key (server-side only) | **Free** (Hobby) — see Q26 on its non-commercial terms | owner approves; builder A creates it with the Vercel connector |
 | **Google OAuth client** | §4, step 1 | free | Direct's Workspace admin |
 | **Zoom OAuth app** | §4, step 2 | free | Direct's Zoom account admin |
 | **Mail sender** (when codes are wanted) | §4, step 3 — Resend recommended; DNS records on `auth.directksa.com` | free tier | owner / whoever manages the DNS |
@@ -1204,6 +1279,9 @@ refuses `*.supabase.co`, `vercel.com` and `cdn.sheetjs.com`; the Supabase and Ve
 daemon runs there and the cloud hosts are refused (measured), so the full Supabase stack and E2E run in CI, the cloud
 projects are reached through the connectors, and screens are looked at on each PR's Vercel preview. If an environment's
 network setting is widened (the owner's click — CLAUDE.md), builders may also run `next dev` against staging.
+
+The old Vercel project also builds a preview of the **old** app for every pushed branch, `v2/*` included (seen on this
+PR). That is harmless, costs nothing, and cannot be switched off without touching the frozen project — so it stays.
 
 **Order of the owner's steps:** (1) answer Q1; (2) approve the two projects; (3) ask IT for the Google client and the
 Zoom app; (4) the mail sender whenever codes are wanted; (5) backups before go-live.
@@ -1228,7 +1306,7 @@ invoices in the browser; imports follow later. All data in the old app is test d
 |---|---|---|
 | People, teams, roles, allowed emails | Typed in Settings | every person signs in through their door |
 | Plan 2026 (objectives, KPIs, targets, categories) | Typed in Settings from the Departmental KPIs sheet | the KPI sheet export matches the strategy team's sheet cell for cell |
-| Appraisal templates, grade scale, points tables | Seeded **from the online appraisal tool** (it wins over the Excel form; gaps filled from the form — owner decision 2) through a one-time import of a read-only export of its database, then edited as settings | every template's weights, bands and items equal the tool's |
+| Appraisal templates, grade scale, points tables | Seeded **from the online appraisal tool** (it wins over the Excel form; gaps filled from the form — owner decision 2) from an export of its data the owner hands over (rule 8), kept out of the repo (rule 7) and loaded by a person through the importer; then edited as settings | every template's weights, bands and items equal the tool's |
 | Past appraisals | the same export, imported as `appraisal.legacy` (read-only, labelled legacy — 08 A14) | row count per person and cycle |
 | Companies and identifiers | Typed or created while entering invoices; later the Payments corporate clients list (P7) | every identifier present once; conflicts listed, not guessed |
 | 2026 invoices, expenses, DPINs, receipts | **Typed by the team** in Finance → New invoice | the owner and the oversight compare monthly revenue with Payments |

@@ -19,8 +19,9 @@ The first four below are needed before building can start on the cloud; the rest
 **Q1 — Room for the new database.** The free Supabase plan allows two active free projects per owner, counted across
 all the owner's organisations; the owner already runs two (the old app and the old performance tool). Paused projects
 do not count. Measured read-only on 28 Sep; nothing was changed. Two ways:
-- **Free:** pause the old performance database (`directksa-performance`) — **after** we take a full read-only copy of
-  it, which is needed anyway to seed the appraisal templates and load past appraisals. Pausing is reversible, but the
+- **Free:** pause the old performance database (`directksa-performance`) — **after** you hand over an export of its
+  data (the standing rule for that database), which is needed anyway to seed the appraisal templates and load past
+  appraisals. Pausing is reversible, but the
   old appraisal tool stops working while paused.
 - **About 25 USD a month:** a separate paid organisation holding only the new project (which also brings daily
   backups — Q2), and nothing else changes.
@@ -52,8 +53,9 @@ for that figure and **Margin** for it minus approved cost. No money rule changes
 
 **Q6 — Who may edit a company.** The owner ruled in D7 "helpers, not locks": everyone keeps full control of companies,
 every change logged, the account manager told and able to undo. *Recommended:* keep that for details, contacts, notes
-and files; but changing a company's **identifiers**, **merging** companies and **changing the account manager** move
-money between people, so they need a manager (or admin). The access grid (spec §8) is drawn that way.
+and files; but changing a company's **identifiers** (managers, the head, admins), **merging** companies and **changing
+the account manager** (the head and admins) move money between people, so they are held back. The access grid
+(spec §8) is drawn that way.
 
 **Q7 — Whose credit when the account manager changes** (08 C3). *Recommended:* credit goes to the company's account
 manager, as designed, and the invoice's paid date decides: invoices paid
@@ -64,8 +66,8 @@ still split or reassign one invoice with a note.
 paid date that can be weeks apart. *Recommended:* the invoice's **creation (booking) date** decides, because the code is
 used when booking. (The old app used the paid date.)
 
-**Q9 — When the rules cannot decide.** If an invoice points at two companies equally (for example its email belongs to
-one and its tax number to another), a person decides by moving the wrong clue to the right company, or by merging the
+**Q9 — When the rules cannot decide.** If an invoice points at two companies equally (for example its tax number is one
+company's VAT number and another company's CR number, or its two customer-name columns name two companies), a person decides by moving the wrong clue to the right company, or by merging the
 two. *Recommended:* also allow, as a last resort, "these rows belong to company A" with a written reason — logged and
 undoable, shown with a pin mark.
 
@@ -84,8 +86,20 @@ customer name the owner lists as a test. The list is a setting the owner can add
 
 **Q29 — Who types the invoices.** From go-live the team types the 2026 invoices (owner, 28 Sep). *Recommended:*
 everyone in Commercial types invoices for any company and edits their own entries; managers correct anyone's (with the
-change log and Undo as always); a person who typed an invoice for a customer with no company picks the company, and
-that clue is kept so the next invoice matches by itself.
+change log and Undo as always). For a customer with no company yet, the typist may pick the company for that invoice;
+the customer's details are then suggested to a manager, who confirms them once, and every later invoice for that
+customer finds its company by itself.
+
+**Q30 — Typed invoices when imports arrive.** Imports never change an invoice a person typed (D21). With all of 2026
+typed by hand, that would stop later imports from bringing late statuses, paid dates and approved expenses.
+*Recommended:* when an import finds a typed invoice, it lists the differences and a person may **adopt** it with one
+click (logged, undoable); from then on imports keep that invoice current.
+
+**Q31 — VAT inside the margin.** Payments' totals include the 15 % VAT on Direct's fee, so "revenue − cost as
+recorded" leaves that VAT inside the margin. Your 8 Aug rule (M1) asks for a clean profit without VAT, while the
+28 Sep rule (D21) says no VAT figure is ever worked out. *Recommended:* keep the margin **as recorded** for now (D21,
+the newer rule, and the same figure Payments shows), and decide at go-live whether the app should show the margin
+without VAT — which would mean working out the VAT on the fee, an exception to D21 only you can make.
 
 ## C. Work, KPIs and reports
 
@@ -133,11 +147,11 @@ not settle — *recommended, one line each, each overridden by the tool where it
   in progress;
 - who sees an appraisal: the person, their evaluator, anyone above them in the reporting line, and admins;
 - each person's own targets (for example their sales plan) are entered by their manager when the cycle opens;
-- Takamol stays out of personal appraisal figures too, because the Finance exclusion applies everywhere (08 C2), until
-  the owner rules otherwise.
+- the verification-services revenue that Finance excludes (MF5) stays out of personal appraisal figures too, because
+  the exclusion applies everywhere (08 C2), until the owner rules otherwise.
 
-**Q23 — Past appraisals and ClickUp.** *Recommended:* take one read-only copy of the online tool's database; it seeds
-the templates (Q22) and brings the last two cycles in as read-only history labelled "legacy" (08 A14). Import ClickUp's
+**Q23 — Past appraisals and ClickUp.** *Recommended:* you hand over one export of the online tool's data (kept in
+Drive, never in the repository); it seeds the templates (Q22) and brings the last two cycles in as read-only history labelled "legacy" (08 A14). Import ClickUp's
 KPI records once and stop using ClickUp for them (08 C5). Nothing from the old app's tasks and achievements is moved —
 it is test data (D9).
 
