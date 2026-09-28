@@ -284,7 +284,15 @@ function finLoad(cb){
        name) and which exclusion rule leaves it out. If the view cannot be read, Finance shows NO money and says why
        (fail closed): a total that silently ignored the rules would be worse than none. */
     var got=r;
-    finPageAll(function(){return c.from('money_rows').select('id,business_id,company_key,company_name,merge_state,profile_type,rule_id,rule_kind,rule_value,rule_reason,excluded,counts,open_age_days,cost_missing,loss,pass_through_sar,fee_sar,unclassed_sar,est_cost_sar,cost_estimated').order('id',{ascending:true});}, function(mr){
+    /* D23: the estimate columns arrive with the database change; until it is applied (the minutes between the site
+       deploying and the change landing), a read that names them fails — so it is asked once more without them, and
+       Finance shows every figure it showed before, with no estimate, instead of no money at all */
+    var MR_COLS='id,business_id,company_key,company_name,merge_state,profile_type,rule_id,rule_kind,rule_value,rule_reason,excluded,counts,open_age_days,cost_missing,loss,pass_through_sar,fee_sar,unclassed_sar';
+    var _mrRead=function(cb){ finPageAll(function(){return c.from('money_rows').select(MR_COLS+',est_cost_sar,cost_estimated').order('id',{ascending:true});}, function(r1){
+      if(r1&&r1.error&&/est_cost_sar|cost_estimated/.test(String((r1.error&&r1.error.message)||''))){
+        finPageAll(function(){return c.from('money_rows').select(MR_COLS).order('id',{ascending:true});}, cb); return; }
+      cb(r1); }); };
+    _mrRead(function(mr){
     if(got.error){console.warn('finance load',got.error);FIN.rows=[];FIN.loadErr=got.error.message;}
     else {FIN.rows=got.data||[];FIN.loadErr=null;}
     FIN.m={}; FIN.mErr=null;
