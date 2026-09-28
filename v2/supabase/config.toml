@@ -197,8 +197,9 @@ password_requirements = ""
 # rp_origins = ["http://127.0.0.1:9300"]
 
 [auth.rate_limit]
-# Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-email_sent = 2
+# Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled. High here, for the E2E run's
+# many codes; the project's own limits are set in its dashboard (TECH-SPEC §10).
+email_sent = 200
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -206,9 +207,9 @@ anonymous_users = 30
 # Number of sessions that can be refreshed in a 5 minute interval per IP address.
 token_refresh = 150
 # Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
-sign_in_sign_ups = 30
+sign_in_sign_ups = 200
 # Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
-token_verifications = 30
+token_verifications = 200
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.
 web3 = 30
 
@@ -219,8 +220,9 @@ web3 = 30
 # secret = ""
 
 [auth.email]
-# Allow/disallow new user signups via email to your project.
-enable_signup = false
+# The email provider itself (the code door, V59) — on. Sign-ups stay off through [auth] enable_signup = false, and the
+# app never lets a code create a user (shouldCreateUser: false); `false` here would switch email sign-in off entirely.
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
@@ -232,8 +234,14 @@ secure_password_change = false
 max_frequency = "1s"
 # Number of characters used in the email OTP.
 otp_length = 6
-# Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# Number of seconds before the email OTP expires (defaults to 1 hour). Ten minutes, as the app says (actions.ts).
+otp_expiry = 600
+
+# The sign-in email carries the 6-digit code only — no link (V59). Supabase sends this template for a code to an
+# existing user; the project gets the same text in its dashboard (Authentication → Emails → Magic link).
+[auth.email.template.magic_link]
+subject = "Your sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]

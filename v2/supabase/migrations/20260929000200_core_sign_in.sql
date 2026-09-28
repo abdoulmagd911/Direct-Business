@@ -48,7 +48,7 @@ create table core.sign_in_log (
   auth_user_id uuid,                                  -- no foreign key: the log outlives the auth user
   auth_session_id uuid,                               -- the Supabase session a sign-in started or a sign-out ended
   email extensions.citext,
-  provider text not null check (provider in ('email', 'google', 'zoom')),
+  provider text not null check (provider = 'email'),  -- the one door (V59); Google and Zoom widen it later (V23)
   result text not null check (result in ('code_sent', 'ok', 'not_listed', 'switched_off', 'code_expired',
                                          'code_invalid', 'provider_error', 'signed_out')),
   detail text,                                        -- for signed_out: person, admin, inactive or switched_off
@@ -214,7 +214,7 @@ begin
   if uid is null or sid is null then
     raise exception using errcode = '42501', message = 'auth.not_signed_in';
   end if;
-  if p_provider not in ('email', 'google', 'zoom') then
+  if p_provider is distinct from 'email' then  -- the emailed code is the only door (V59, V23)
     raise exception using errcode = 'P0001', message = 'sign_in.unknown_provider', detail = p_provider;
   end if;
   select * into a from core.person_auth where auth_user_id = uid;

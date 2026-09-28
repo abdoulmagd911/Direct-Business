@@ -1,7 +1,8 @@
--- Sabotage: doors-are-not-recorded
+-- Sabotage: unbuilt-doors-open
 -- Breaks: sql:SIGN-04
--- Expect: each link records the door it used
--- The doors a sign-in used are no longer recorded on its link.
+-- Expect: a door that is not built is refused
+-- Google and Zoom sign-ins are accepted before their keys exist and before a migration opens them (V59, V23).
+alter table core.sign_in_log drop constraint sign_in_log_provider_check;
 create or replace function api.sign_in_complete(p_provider text default 'email', p_device_label text default null,
                                      p_user_agent text default null) returns text
 language plpgsql volatile security definer set search_path = ''
@@ -15,7 +16,7 @@ begin
   if uid is null or sid is null then
     raise exception using errcode = '42501', message = 'auth.not_signed_in';
   end if;
-  if p_provider is distinct from 'email' then
+  if p_provider not in ('email', 'google', 'zoom') then
     raise exception using errcode = 'P0001', message = 'sign_in.unknown_provider', detail = p_provider;
   end if;
   select * into a from core.person_auth where auth_user_id = uid;
@@ -29,6 +30,9 @@ begin
                                    signed_in_at, last_seen_at)
   values (a.person_id, uid, sid, p_device_label, p_user_agent, core.clock(), core.clock())
   on conflict (auth_session_id) do nothing;
+  if not (p_provider = any (a.providers)) then
+    update core.person_auth set providers = providers || p_provider where id = a.id;
+  end if;
   return 'ok';
 end
 $$;
