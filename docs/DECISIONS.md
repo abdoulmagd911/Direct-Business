@@ -41,7 +41,7 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **D8 — The owner's admin and team-list account is aboelmagd@** ACTIVE · 2026-09-25. The owner: "`aboelmagd@directksa.com` is his admin account". a.hassan@directksa.net is the owner's Team-Member view; ahmed.aboelmagd@directksa.net is another employee; business@ is QA (D13).
 
-**D9 — "Everything in the app today is test data"; reset at go-live** ACTIVE · 2026-09-26. The owner's word; no safety work is skipped because of it. After go-live, data enters only via the importer and the Direct Payments sync. "Reset now (approved)" ran 2026-09-27; the final reset waits for the owner's go.
+**D9 — "Everything in the app today is test data"; reset at go-live** ACTIVE · 2026-09-26. The owner's word; no safety work is skipped because of it. After go-live, data enters only via the importer and the Direct Payments sync. "Reset now (approved)" ran 2026-09-27; the final reset waits for the owner's go. Staff logins are not changed before it — data and logins are all reset then (owner, 28 Sep; #55).
 
 **D10 — The company card: IDs, discount codes, files** ACTIVE · 2026-09-26. Full control of Clients edits it; nothing copies Direct Payments. Client IDs are unique across companies (D16). Links and files are removed, kept on record, never re-pointed. IBAN letters and agreements: managers and admins only (database).
 
@@ -65,6 +65,8 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **D21 — The money model and the invoice import** ACTIVE · 2026-09-28. Revenue = the invoice total as Payments records it, less only a wallet TOP-UP part; a top-up-only invoice never counts. Cost = approved expenses only; a missing cost is EMPTY, never 0, and the row stays out of cost and profit, said on screen. Fully Paid counts (Audit Required too, flagged); Pending, Void, Cancelled, Draft never; an unnamed status is held for a person. The paid date sets the month. Imports fill, never wipe; a hand-entered row is never touched; no VAT figure is worked out or stored. Guard `probe-d1-invoice-import`.
 
+**D23 — With no approved expense, the pass-through lines are a flagged cost estimate** ACTIVE · 2026-09-28. Owner ruling. `money_rows.est_cost_sar`, shown apart from the approved cost; an approved expense replaces it. Names on Finance → Rules. Guard `probe-d1-invoice-import`.
+
 ## Money & finance display
 
 **M1 — VAT never enters cost, profit or revenue** ACTIVE · 2026-08-08. The owner: "I dont care weither vat shows or not, what i want is a clean cost, profit, and revenue." Shown only where legally expected on a client document, never in an internal figure, export or total; since D21 the import works out and stores no VAT figure. Guard `probe-no-vat-display`.
@@ -81,7 +83,7 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **M13 — A write report says only what the database confirmed** ACTIVE · 2026-08-25. Payloads come from `pickWritable()`, never a spread full row; `v65Commit()` counts what came back and on error says FAILED with the confirmed count. Guard `probe-false-success-commit`.
 
-**M14 — Name-collapsing rules consulted live by every reader** SUPERSEDED-BY D16 · 2026-08-25. Names merge only when a person types them on Finance → Rules.
+**M14 — Name-collapsing rules consulted live by every reader** SUPERSEDED-BY D16 · 2026-08-25.
 
 **M15 — Captured cost facts persist; updates resolve against them** ACTIVE · 2026-08-25. The owner: "so I do not have to import all the files, I just need to import the updates and it would spread it automatically." Kept in `finance_expense_lines_capture` / `_gate_capture`, written only on Confirm; a re-export replaces a transaction's lines.
 
@@ -97,11 +99,11 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **MF3 — A probe broken on purpose is fixed, not deleted or left red** ACTIVE · 2026-09-02. Re-point it at the new rule. Probes needing staff logins or the live database are environmental, never counted green.
 
-**MF4 — Service Fee / 3rd Party Fee is a VAT split, not cost** SUPERSEDED-BY MF1 · 2026-08-22. Never resurrect 3rd Party Fee as cost.
+**MF4 — Service Fee / 3rd Party Fee is a VAT split, not cost** SUPERSEDED-BY MF1 · 2026-08-22.
 
 **MF5 — Takamol and Techtic Support never appear anywhere** ACTIVE · 2026-08-23. The owner: "No takamol what so ever." Verification revenue from another system; an import bringing it back is a BUG. Totals read through js/16's `live()`; the exclusion is a typed rule (D16).
 
-**MF6 — Labelling excluded data is not excluding it** SUPERSEDED-BY D16 · 2026-08-23. Caught rows are left out of every total by `money_rows`.
+**MF6 — Labelling excluded data is not excluding it** SUPERSEDED-BY D16 · 2026-08-23.
 
 **MF7 — Wallet top-ups are never revenue** ACTIVE · undated. The importer skips them, as it skips verification services.
 
@@ -303,11 +305,11 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **S2 — Hand local commits to a reachable push-capable session unasked** ACTIVE · 2026-08-27. CLAUDE.md rule 9 and step 1 of rule 10.
 
-**S3 — Pushing via GitHub's website upload as a fallback** SUPERSEDED-BY CLAUDE.md rule 10 · 2026-08-27. Never without being asked.
+**S3 — Pushing via GitHub's website upload as a fallback** SUPERSEDED-BY CLAUDE.md rule 10 · 2026-08-27.
 
 **S4 — Stuck commits: Claude Code, else say so, then ask the owner** ACTIVE · 2026-08-29. CLAUDE.md rule 10. If Claude Code is unreachable, say "saved here, not live yet" and leave them local; never self-serve a push unasked.
 
-**S5 — The owner's "Go live with whats ready" once allowed a browser-upload push** SUPERSEDED-BY CLAUDE.md brief §4 · 2026-09-03. Changes now land by reviewed PR from Claude Code.
+**S5 — The owner's "Go live with whats ready" once allowed a browser-upload push** SUPERSEDED-BY CLAUDE.md brief §4 · 2026-09-03.
 
 **S6 — "don't push" is not "don't talk": hand-offs never wait for the owner** ACTIVE · 2026-08-29. The owner, verbatim: "you have been doing so since the beginning!! what changed!!" Acting ON the repo (push, merge, history) needs push authority; talking TO a session is done at once.
 

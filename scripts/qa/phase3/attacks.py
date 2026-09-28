@@ -1648,6 +1648,28 @@ def _(cur):
     q(cur, "reset role")
     return (n == '1|Fully Paid' and nl == 1, f"rows|status={n} · lines={nl} · result={r}")
 
+@test("D23-01 No approved expense: the pass-through on the invoice's lines is a flagged ESTIMATE beside the cost (never in it); an approved expense replaces it; a commission never gets one; KPIs see both apart")
+def _(cur):
+    as_user(cur, 'u4')
+    one(cur, "select fn_commit_finance_import(p_insert := %s::jsonb, p_item_lines := %s::jsonb)", (json.dumps([
+        {'invoice_no': 'D23-A', 'client_group': 'Est Co', 'invoice_date': '2026-08-02', 'total_incl_vat_sar': 1000, 'integrity_status': 'verified_paid', 'payments_status': 'Fully Paid', 'payments_status_at': '2026-08-02T09:00:00Z'},
+        {'invoice_no': 'D23-C', 'client_group': 'Est Co', 'invoice_date': '2026-08-03', 'total_incl_vat_sar': 500, 'revenue_way': 'commission', 'integrity_status': 'verified_paid', 'payments_status': 'Fully Paid', 'payments_status_at': '2026-08-03T09:00:00Z'}]),
+        json.dumps([{'invoice_no': 'D23-A', 'line_no': 1, 'kind': 'item', 'name': 'Hotel Booking - D23 Hotel Cost', 'item_total_sar': 820},
+                    {'invoice_no': 'D23-A', 'line_no': 2, 'kind': 'item', 'name': 'Hotel Booking - D23 Fee', 'item_total_sar': 180},
+                    {'invoice_no': 'D23-C', 'line_no': 1, 'kind': 'item', 'name': 'Hotel Booking - D23 Hotel Cost', 'item_total_sar': 500}])))
+    before = one(cur, "select coalesce(est_cost_sar::text,'∅')||'|'||cost_estimated from money_rows where invoice_no='D23-A'")
+    one(cur, "insert into money_item_classes(name,class) values ('D23 Hotel Cost','pass_through') returning id")
+    est = one(cur, "select est_cost_sar::float||'|'||cost_estimated||'|'||coalesce(cost_sar::text,'∅')||'|'||coalesce(profit_sar::text,'∅')||'|'||cost_missing from money_rows where invoice_no='D23-A'")
+    com = one(cur, "select coalesce(est_cost_sar::text,'∅')||'|'||cost_estimated from money_rows where invoice_no='D23-C'")
+    kpi = one(cur, "select est_cost_sar::float||'|'||cost_estimated from finance_lines where invoice_no='D23-A'")
+    q(cur, "reset role")
+    q(cur, "update finance_invoices set cost_sar=900 where invoice_no='D23-A'")
+    as_user(cur, 'u4')
+    after = one(cur, "select coalesce(est_cost_sar::text,'∅')||'|'||cost_estimated||'|'||cost_sar::float from money_rows where invoice_no='D23-A'")
+    q(cur, "reset role")
+    ok = before == '∅|false' and est == '820|true|∅|∅|true' and com == '∅|false' and kpi == '820|true' and after == '∅|false|900'
+    return (ok, f"unclassed={before} · classed pass-through={est} · commission={com} · KPI source={kpi} · approved expense arrives={after}")
+
 @test("D1-08 An OLDER file arriving after a newer one only fills what is empty: the paid amounts and the paid date (which sets the month) are not put back to the unpaid copy's")
 def _(cur):
     as_user(cur, 'u4')
