@@ -3864,3 +3864,13 @@ Import Map).** ACTIVE. `scripts/sql/d1-money-model.sql`, `js/41`, `js/65`, `js/1
 - **On screen**: Profit = Revenue − Cost and the margin are measured over the invoices whose cost is known (an invoice waiting
   for its cost counts in Revenue only), so a waiting invoice is never reported as "stored figures that disagree".
 Guarded by `scripts/qa/phase3` D1-01…08 and `scripts/qa/probe-d1-invoice-import.mjs` (sabotage-checked).
+
+**D22 — Access follows the page level, not the role (owner, 28 Sep, via the oversight).** ACTIVE. What a person may see and
+change is decided only by their level on each page in Team & Access (None / View / Own / Full), on screen and in the database
+alike: None hides the page and its tables, View reads, Full changes. Admins are always Full and cannot be limited. Finance
+Rules, item names and company merges need Full on Finance (merges: Full on Leads or Clients), with no role check. The role
+still decides **managing people**: Team & Access itself, reassigning or crediting a colleague's task or achievement, seeing
+everyone's tasks, and setting KPI targets stay with admins and managers (every team member is on Full for Tasks today, so
+without this they could move each other's work). IBAN and agreement files need Full on Finance. Levels are set by hand in the
+browser (D17), never in code. `scripts/sql/d22-access-follows-page-level.sql` (+ rollback); guarded by `scripts/qa/phase3`
+D22-01…06 and `scripts/qa/probe-d22-access-follows-page-level.mjs`.

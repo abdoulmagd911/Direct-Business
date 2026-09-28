@@ -42,7 +42,7 @@ dep = lambda code: one(cur, "select id from departments where code=%s", (code,))
 F['dep_bus'], F['dep_par'], F['dep_qua'] = dep('business'), dep('partnership'), dep('quality')
 F['dep_str'], F['dep_com'] = dep('strategy'), dep('commercial')
 TASKS_PAGE = json.dumps({"tasks": "full", "reports": "own", "finance": "full", "clients": "full", "leads": "full"})   # employee defaults (D7)
-MGR_PAGE = json.dumps({"tasks": "full", "reports": "full", "finance": "full", "clients": "full", "leads": "full"})
+MGR_PAGE = json.dumps({"tasks": "full", "reports": "full", "finance": "full", "clients": "full", "leads": "full", "activity": "full"})   # as the live manager (28 Sep): the change log follows Activity (D22)
 VIEW_PAGE = json.dumps({"tasks": "view", "reports": "view", "finance": "view", "clients": "view"})
 def own_tasks(cur, *users):   # a person on Own for Tasks (a trainee, someone outside the core team)
     for u in users: q(cur, "update app_users set page_access = page_access || '{\"tasks\":\"own\"}' where id=%s", (F[u],))
@@ -1098,9 +1098,9 @@ def store(cur, path):   # a file put in the private store at this path, as whoev
     q(cur, "insert into storage.objects(bucket_id,name) values ('company-docs',%s)", (path,))
 def seen_file(cur, path): return one(cur, "select count(*) from storage.objects where bucket_id='company-docs' and name=%s", (path,))
 
-@test("R4-01 Client IDs (E): any number per company — a 4th and 5th tender are fine; still one OPEN prepaid and one OPEN postpaid; unique across companies, spaces and all; only an admin or a manager adds one")
+@test("R4-01 Client IDs (E): any number per company — a 4th and 5th tender are fine; still one OPEN prepaid and one OPEN postpaid; unique across companies, spaces and all; only Full on Finance or Clients adds one (D22 — was 'an admin or a manager')")
 def _(cur):
-    as_user(cur, 'u1')
+    as_user(cur, 'u5')   # D22: a person on View (the role no longer decides)
     t, m0 = expect_fail(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'C-1009','tender','active')", (F['coA'],), "row-level security")
     q(cur, "reset role"); as_user(cur, 'u4')
     q(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'C-1004','tender','active')", (F['coA'],))
@@ -1112,7 +1112,7 @@ def _(cur):
     d, m4 = expect_fail(cur, "insert into client_profiles(business_id,direct_client_id,profile_type,status) values (%s,'   ','tender','active')", (F['coB'],), "needs the number")
     stored = one(cur, "select direct_client_id from client_profiles where direct_client_id like '%%C-1005%%'")
     q(cur, "reset role")
-    return (t and n == 5 and a and b and c and d and stored == 'C-1005', f"team member refused={t} · manager added a 4th and 5th tender → {n} open · second open prepaid refused={a} · same ID on another company refused={b} · with spaces refused={c} · blank refused={d} · stored as {stored!r}")
+    return (t and n == 5 and a and b and c and d and stored == 'C-1005', f"a person on View refused={t} · manager added a 4th and 5th tender → {n} open · second open prepaid refused={a} · same ID on another company refused={b} · with spaces refused={c} · blank refused={d} · stored as {stored!r}")
 
 @test("R4-02 View on Clients changes nothing on the company card: no client ID, no file row, no stored file, no discount link")
 def _(cur):
@@ -1130,6 +1130,7 @@ def _(cur):
 def _(cur):
     sq, a1, iban_path, iban = doc_sql('coA', 'iban', name='iban.pdf')
     sq2, a2, cr_path, cr = doc_sql('coA', 'cr', name='cr.pdf')
+    q(cur, "update app_users set page_access = page_access || '{\"finance\":\"view\"}' where id=%s", (F['u1'],))   # D22: IBAN follows Full on Finance; the team member is on View (as live, 28 Sep)
     as_user(cur, 'u1'); q(cur, sq, a1); store(cur, iban_path); q(cur, sq2, a2); store(cur, cr_path)
     u1_row, u1_file = one(cur, "select count(*) from company_documents where id=%s", (iban,)), seen_file(cur, iban_path)
     u1_cr = seen_file(cur, cr_path)
@@ -1223,6 +1224,7 @@ def _(cur):
     store(cur, 'assets/logo.png')   # as admin, a Direct asset
     as_user(cur, 'u6'); asset = seen_file(cur, 'assets/logo.png'); q(cur, "reset role")
     sq, a1, path, i = doc_sql('coA', 'iban'); q(cur, sq, a1); store(cur, path)
+    q(cur, "update app_users set page_access = page_access || '{\"finance\":\"view\"}' where id=%s", (F['u3'],))   # D22: IBAN follows Full on Finance
     as_user(cur, 'u3')   # Full on the Generator, only View on Clients
     gen_asset = blocked_or_zero(cur, "insert into storage.objects(bucket_id,name) values ('company-docs','assets/stamp.png')", None)
     a, m = expect_fail(cur, "insert into storage.objects(bucket_id,name) values ('company-docs',%s)", (f"clients/{F['coA']}/{_uuid.uuid4()}/x.pdf",), "row-level security")
@@ -1454,9 +1456,9 @@ def mar26(cur):
 def rule(cur, kind, value, reason='test'):
     return one(cur, "insert into money_exclusion_rules(kind,value,reason) values (%s,%s,%s) returning id", (kind, value, reason))
 
-@test("E-01 Exclusion rules: only an admin or a manager adds or switches one; everyone with Finance reads them; a reason is required; the type and value never change; a removed rule stays removed and is never deleted; every add and change is in the log with who")
+@test("E-01 Exclusion rules: only Full on Finance adds or switches one (D22 — was 'an admin or a manager'); everyone with Finance reads them; a reason is required; the type and value never change; a removed rule stays removed and is never deleted; every add and change is in the log with who")
 def _(cur):
-    as_user(cur, 'u1'); t, m1 = expect_fail(cur, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','C-2001','x')", None, "row-level security")
+    as_user(cur, 'u5'); t, m1 = expect_fail(cur, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','C-2001','x')", None, "row-level security")
     q(cur, "reset role"); as_user(cur, 'u4')
     r = rule(cur, 'client_id', ' C-2001 ', 'test client')
     a, m2 = expect_fail(cur, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','C-3001','  ')", None, "money_rule_reason_given")
@@ -1471,7 +1473,7 @@ def _(cur):
     stored = one(cur, "select value||'|'||(created_by=%s)::text||'|'||(removed_by=%s)::text from money_exclusion_rules where id=%s", (F['u4'], F['u4'], r))
     log = [x[0] for x in q(cur, "select action from record_history where table_name='money_exclusion_rules' and record_id=%s and actor=%s order by id", (r, F['u4']))]
     return (t and a and b and c and d and e and seen == 1 and stored == 'C-2001|true|true' and log[:1] == ['create'] and len(log) == 3,
-            f"team member refused={t} · no reason refused={a} · same rule twice (other spelling) refused={b} · value change refused={c} · un-remove refused={d} · delete refused={e} · a View person reads {seen} · stored {stored} · log {log}")
+            f"a person on View refused={t} · no reason refused={a} · same rule twice (other spelling) refused={b} · value change refused={c} · un-remove refused={d} · delete refused={e} · a View person reads {seen} · stored {stored} · log {log}")
 
 @test("E-02 Every rule kind leaves its rows out of every total at once, and switching it off brings them back — no re-import; the one view, finance_lines and the revenue KPI agree before, during and after")
 def _(cur):
@@ -1528,10 +1530,10 @@ def _(cur):
     as_user(cur, 'u5'); n = one(cur, "select count(*) from money_row_rules()"); q(cur, "reset role")
     return (m == v and len(m) > 0 and n == 0, f"manager and View person see identical rows/companies/rules={m == v} ({len(m)} rows) · no Finance → resolver answers {n} rows")
 
-@test("E-07 A customer name typed into a company is a merge for rows with NO client ID (the old invoices): they join it, a row carrying a client ID does not; one company per name however spelled; only admins and managers type one; totals do not move")
+@test("E-07 A customer name typed into a company is a merge for rows with NO client ID (the old invoices): they join it, a row carrying a client ID does not; one company per name however spelled; only Full on Finance or Clients types one (D22); totals do not move")
 def _(cur):
     base = mar26(cur)
-    as_user(cur, 'u1'); a, m1 = expect_fail(cur, "insert into company_name_aliases(business_id,name) values (%s,'GRP-X')", (F['coB'],), "row-level security")
+    as_user(cur, 'u5'); a, m1 = expect_fail(cur, "insert into company_name_aliases(business_id,name) values (%s,'GRP-X')", (F['coB'],), "row-level security")
     q(cur, "reset role"); as_user(cur, 'u4')
     q(cur, "insert into company_name_aliases(business_id,name) values (%s,' grp x ')", (F['coB'],))
     b, m2 = expect_fail(cur, "insert into company_name_aliases(business_id,name) values (%s,'GRP-X')", (F['coA'],), "company_name_aliases_one_company")
@@ -1540,7 +1542,7 @@ def _(cur):
     x = q(cur, "select business_id=%s, merge_state from money_rows where invoice_no='INV-X26'", (F['coB'],))[0]
     bb = one(cur, "select bool_and(business_id=%s) from money_rows where invoice_no='INV-B26'", (F['coB'],))
     return (a and b and x == (True, 'merged') and bb and mar26(cur) == base,
-            f"team member refused={a} · same name (other spelling) for a second company refused={b} · the no-ID row joins Company B={x} · a row with a client ID stays with its ID's company={bb} · totals unchanged={mar26(cur) == base}")
+            f"a person on View refused={a} · same name (other spelling) for a second company refused={b} · the no-ID row joins Company B={x} · a row with a client ID stays with its ID's company={bb} · totals unchanged={mar26(cur) == base}")
 
 @test("E-08 Merging two duplicate company records carries their typed codes and customer names to the kept one (removed there, added here — never re-pointed), and undoing the merge puts them back; name folding ignores Arabic diacritics and the tatweel")
 def _(cur):
@@ -1661,9 +1663,9 @@ def _(cur):
     q(cur, "reset role")
     return (got == 'verified_paid|700|0|2026-05-20|May|Jeddah', f"after the older file: {got} (branch was empty, so the older file may fill it)")
 
-@test("D1-05 The item-name list: only an admin or a manager adds to it; one entry per name however spelled; a name never changes; a removed entry stays removed; nothing is deleted; everyone with Finance reads it")
+@test("D1-05 The item-name list: only Full on Finance adds to it (D22); one entry per name however spelled; a name never changes; a removed entry stays removed; nothing is deleted; everyone with Finance reads it")
 def _(cur):
-    as_user(cur, 'u1'); t, _ = expect_fail(cur, "insert into money_item_classes(name,class) values ('3rd Party Fee','pass_through')", None, "row-level security"); q(cur, "reset role")
+    as_user(cur, 'u5'); t, _ = expect_fail(cur, "insert into money_item_classes(name,class) values ('3rd Party Fee','pass_through')", None, "row-level security"); q(cur, "reset role")
     as_user(cur, 'u4')
     x = one(cur, "insert into money_item_classes(name,class) values (' 3rd Party Fee ','pass_through') returning id")
     a, _ = expect_fail(cur, "insert into money_item_classes(name,class) values ('3RD-party fee','fee')", None, "money_item_classes_one_live")
@@ -1673,7 +1675,7 @@ def _(cur):
     d = blocked_or_zero(cur, "delete from money_item_classes where id=%s", (x,))[0]
     q(cur, "reset role")
     as_user(cur, 'u6'); seen = one(cur, "select count(*) from money_item_classes"); q(cur, "reset role")
-    return (t and a and b and c and d and seen == 1, f"team member refused={t} · same name other spelling refused={a} · rename refused={b} · un-remove refused={c} · delete refused={d} · a View person reads {seen}")
+    return (t and a and b and c and d and seen == 1, f"a person on View refused={t} · same name other spelling refused={a} · rename refused={b} · un-remove refused={c} · delete refused={d} · a View person reads {seen}")
 
 @test("D1-06 'Fully Paid (Audit Required)' counts and is flagged; only a paid SALE counts — pending, void, cancelled and draft never do, whatever their total")
 def _(cur):
@@ -1682,6 +1684,85 @@ def _(cur):
     got = row(cur, a, "counts::text||'|'||audit_required::text")
     others = [row(cur, x, "counts::text") for x in rest]
     return (got == 'true|true' and others == ['false'] * 4, f"audit-required → {got} · pending/void/cancelled/draft → {others}")
+
+# ---------------- D22 (28 Sep): every rule follows the page level set in Team & Access, never the role ----------------
+def d22_user(cur, role, pages):
+    q(cur, "reset role")
+    return one(cur, "insert into app_users(email,full_name,role,page_access) values (%s,%s,%s,%s) returning id",
+               ('d22-' + role + '-' + os.urandom(4).hex() + '@x.test', 'D22 ' + role, role, json.dumps(pages)))
+def d22_as(cur, uid):
+    q(cur, "set local role authenticated"); q(cur, "select set_config('request.uid', %s, true)", (str(uid),))
+def d22_try(cur, uid, sql, args=None):
+    d22_as(cur, uid); cur.execute("savepoint d"); 
+    try:
+        cur.execute(sql, args or ()); n = cur.rowcount; cur.execute("release savepoint d"); r = 'ok' if n and n > 0 else 'none'
+    except psycopg2.Error as e:
+        cur.execute("rollback to savepoint d"); r = 'ERR'
+    q(cur, "reset role"); return r
+
+@test("D22-01 Finance rules and item names: Full on Finance decides, not the role — a team member on Full adds, a manager on View cannot, an admin always can")
+def _(cur):
+    tm_full = d22_user(cur, 'team_member', {"finance": "full"}); mgr_view = d22_user(cur, 'manager', {"finance": "view"})
+    adm = d22_user(cur, 'admin', {})
+    a = d22_try(cur, tm_full, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','D22-1','t')")
+    b = d22_try(cur, mgr_view, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','D22-2','t')")
+    c = d22_try(cur, tm_full, "insert into money_item_classes(name,class) values ('D22 Fee','fee')")
+    d = d22_try(cur, mgr_view, "insert into money_item_classes(name,class) values ('D22 Other','fee')")
+    e = d22_try(cur, adm, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','D22-3','t')")
+    return ((a, b, c, d, e) == ('ok', 'ERR', 'ok', 'ERR', 'ok'), f"tm Full rule={a} · mgr View rule={b} · tm Full item={c} · mgr View item={d} · admin (no levels)={e}")
+
+@test("D22-02 Proposals, requests, funnels, external links, contact-form review: Full on their page decides, whatever the role (operations and viewer roles included)")
+def _(cur):
+    out = []
+    for tbl, page, cols in [('offers','offers',"(title) values ('D22')"), ('requests','ops',"(title) values ('D22')"),
+                            ('funnels','leads',"(name) values ('D22')"), ('external_refs','sync',"(ref) values ('D22')"),
+                            ('contact_submissions_review','leads',"(note) values ('D22')")]:
+        for role in ('operations', 'viewer', 'team_member'):
+            full = d22_user(cur, role, {page: "full"}); view = d22_user(cur, role, {page: "view"})
+            out.append((tbl, role, d22_try(cur, full, f"insert into {tbl}{cols}"), d22_try(cur, view, f"insert into {tbl}{cols}")))
+    bad = [o for o in out if (o[2], o[3]) != ('ok', 'ERR')]
+    return (not bad, f"{len(out)} role×table pairs; wrong: {bad[:4]}")
+
+@test("D22-03 Reports and Tasks lists and targets: Full on Reports / Tasks decides — a team member on Full changes them, a manager on View does not")
+def _(cur):
+    tm = d22_user(cur, 'team_member', {"reports": "full", "tasks": "full", "settings": "full"})
+    mg = d22_user(cur, 'manager', {"reports": "view", "tasks": "view", "settings": "view"})
+    r = []
+    for sql in ["update report_categories set sort = sort where code='deals'", "update priorities set sort = sort",
+                "update work_settings set value = value", "update periods set locked_at = locked_at"]:
+        r.append((d22_try(cur, tm, sql), d22_try(cur, mg, sql)))
+    seeded = one(cur, "select count(*) from work_settings") > 0 and one(cur, "select count(*) from periods") > 0
+    want = [('ok', 'none')] * 4
+    return (r == want or (not seeded and r[:2] == want[:2]), f"(tm Full, mgr View) per list: {r}")
+
+@test("D22-04 Tasks: managing OTHER people's work stays with managers (the owner's people exception) — a team member on Full for Tasks still cannot manage a colleague's task; a manager can")
+def _(cur):
+    other = new_task(cur, company='coA', owner='m1')
+    tm_full = d22_user(cur, 'team_member', {"tasks": "full"}); mgr = d22_user(cur, 'manager', {"tasks": "full"})
+    d22_as(cur, tm_full); a = one(cur, "select can_manage_task(t) from tasks t where id=%s", (other,)); q(cur, "reset role")
+    d22_as(cur, mgr); b = one(cur, "select can_manage_task(t) from tasks t where id=%s", (other,)); q(cur, "reset role")
+    return (a is False and b is True, f"team member on Full manages a colleague's task={a} · manager={b}")
+
+@test("D22-05 Reads a page owns follow its level: no Finance → no money rows or codes; no Activity → no change history; Settings → backups history")
+def _(cur):
+    q(cur, "insert into finance_transactions(amount_sar) values (1)"); q(cur, "insert into app_state_history(data) values ('{}')")
+    q(cur, "insert into record_history(table_name,record_id,action) values ('x',gen_random_uuid(),'update')")
+    none_ = d22_user(cur, 'manager', {"finance": "none", "clients": "none", "activity": "none", "settings": "none"})
+    see = d22_user(cur, 'team_member', {"finance": "view", "activity": "view", "settings": "view"})
+    res = {}
+    for who, uid in (('none', none_), ('view', see)):
+        d22_as(cur, uid)
+        res[who] = tuple(one(cur, f"select count(*) from {t}") for t in ('finance_transactions', 'promo_codes', 'record_history', 'app_state_history'))
+        q(cur, "reset role")
+    return (res['none'] == (0, 0, 0, 0) and all(x > 0 for x in res['view']), f"manager with none={res['none']} · team member with view={res['view']}")
+
+@test("D22-06 IBAN and agreement files follow Full on Finance (money documents; the role no longer decides): Full on Clients alone is not enough; an admin always reads them")
+def _(cur):
+    fin = d22_user(cur, 'team_member', {"finance": "full", "clients": "view"}); cli = d22_user(cur, 'manager', {"clients": "full", "finance": "view"}); ad = d22_user(cur, 'admin', {})
+    r = []
+    for u in (fin, cli, ad):
+        d22_as(cur, u); r.append(one(cur, "select company_doc_readable('iban')")); q(cur, "reset role")
+    return (r == [True, False, True], f"Finance Full / manager with Clients Full but Finance View / admin: {r}")
 
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]

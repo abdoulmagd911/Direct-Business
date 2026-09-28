@@ -206,3 +206,49 @@ begin
 end $$;
 drop trigger if exists trg_fin_inv_derive on finance_invoices;
 create trigger trg_fin_inv_derive before insert or update on finance_invoices for each row execute function finance_derive_fields();
+-- D22 (28 Sep): stand-ins for the live tables D22 changes that the test copy did not carry, with their live rules as read
+-- from pg_policies on 28 Sep (before D22) — so the harness can prove D22 moves each one to the page level
+create table if not exists finance_cogs_expenses (id uuid primary key default gen_random_uuid(), amount_sar numeric, note text);
+create table if not exists finance_transactions (id uuid primary key default gen_random_uuid(), business_id uuid, amount_sar numeric);
+create table if not exists payment_receipts (id uuid primary key default gen_random_uuid(), amount_sar numeric);
+create table if not exists finance_targets (id uuid primary key default gen_random_uuid(), year int, revenue_sar numeric);
+create table if not exists contact_submissions_review (id uuid primary key default gen_random_uuid(), note text);
+create table if not exists offers (id uuid primary key default gen_random_uuid(), business_id uuid, title text);
+create table if not exists requests (id uuid primary key default gen_random_uuid(), business_id uuid, title text);
+create table if not exists funnels (id uuid primary key default gen_random_uuid(), name text);
+create table if not exists external_refs (id uuid primary key default gen_random_uuid(), business_id uuid, ref text);
+create table if not exists app_state_history (id bigserial primary key, data jsonb, created_at timestamptz default now());
+do $$ declare t text; begin
+  foreach t in array array['finance_cogs_expenses','finance_transactions','payment_receipts','finance_targets','contact_submissions_review',
+                           'offers','requests','funnels','external_refs','app_state_history'] loop
+    execute format('alter table %I enable row level security', t);
+    execute format('grant select, insert, update, delete on %I to authenticated', t);
+  end loop; end $$;
+drop policy if exists finance_cogs_expenses_read on finance_cogs_expenses; create policy finance_cogs_expenses_read on finance_cogs_expenses for select using (app_role() is not null);
+drop policy if exists finance_cogs_expenses_write on finance_cogs_expenses; create policy finance_cogs_expenses_write on finance_cogs_expenses for all
+  using (can_edit_page('finance') and app_role() = any (array['admin','manager','operations']::user_role[])) with check (can_edit_page('finance') and app_role() = any (array['admin','manager','operations']::user_role[]));
+drop policy if exists finance_transactions_read on finance_transactions; create policy finance_transactions_read on finance_transactions for select using (app_role() is not null);
+drop policy if exists finance_transactions_write on finance_transactions; create policy finance_transactions_write on finance_transactions for all
+  using (can_edit_page('finance') and app_role() = any (array['admin','manager','operations']::user_role[])) with check (can_edit_page('finance') and app_role() = any (array['admin','manager','operations']::user_role[]));
+drop policy if exists payment_receipts_read on payment_receipts; create policy payment_receipts_read on payment_receipts for select using (app_role() is not null);
+drop policy if exists payment_receipts_write on payment_receipts; create policy payment_receipts_write on payment_receipts for all
+  using (can_edit_page('finance') and app_role() = any (array['admin','manager','operations']::user_role[])) with check (can_edit_page('finance') and app_role() = any (array['admin','manager','operations']::user_role[]));
+drop policy if exists finance_targets_read on finance_targets; create policy finance_targets_read on finance_targets for select using (app_role() is not null);
+drop policy if exists finance_targets_write on finance_targets; create policy finance_targets_write on finance_targets for all using (can_edit_page('finance')) with check (can_edit_page('finance'));
+drop policy if exists csr_read on contact_submissions_review; create policy csr_read on contact_submissions_review for select using (app_role() is not null);
+drop policy if exists csr_write on contact_submissions_review; create policy csr_write on contact_submissions_review for all
+  using (app_role() = any (array['admin','manager']::user_role[])) with check (app_role() = any (array['admin','manager']::user_role[]));
+drop policy if exists off_read on offers; create policy off_read on offers for select using (app_role() is not null);
+drop policy if exists off_write on offers; create policy off_write on offers for all
+  using (app_role() = any (array['admin','manager','bd','team_member']::user_role[])) with check (app_role() = any (array['admin','manager','bd','team_member']::user_role[]));
+drop policy if exists req_read on requests; create policy req_read on requests for select using (app_role() is not null);
+drop policy if exists req_write on requests; create policy req_write on requests for all
+  using (app_role() = any (array['admin','manager','bd','operations','team_member']::user_role[])) with check (app_role() = any (array['admin','manager','bd','operations','team_member']::user_role[]));
+drop policy if exists funnels_read on funnels; create policy funnels_read on funnels for select to authenticated using (app_role() is not null);
+drop policy if exists funnels_write on funnels; create policy funnels_write on funnels for all to authenticated
+  using (app_role() = any (array['admin','manager','bd']::user_role[])) with check (app_role() = any (array['admin','manager','bd']::user_role[]));
+drop policy if exists ext_read on external_refs; create policy ext_read on external_refs for select using (app_role() is not null);
+drop policy if exists ext_write on external_refs; create policy ext_write on external_refs for all
+  using (app_role() = any (array['admin','manager','bd','team_member']::user_role[])) with check (app_role() = any (array['admin','manager','bd','team_member']::user_role[]));
+drop policy if exists hist_admin_read on app_state_history; create policy hist_admin_read on app_state_history for select using (app_role() = 'admin'::user_role);
+alter table promo_codes enable row level security;   -- as live (every public table has row security on; checked 28 Sep)
