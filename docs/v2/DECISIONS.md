@@ -58,13 +58,13 @@ number when ruled, and the decision names its question.
 
 **V29 — A pin is the last resort for a conflict** ACTIVE · 2026-09-28. First move the wrong clue or merge; else "these rows belong to partner A" with a reason, logged, undoable, pin-marked. (Was Q9.)
 
-**V30 — Individuals count, credited to nobody, listed apart** ACTIVE · 2026-09-28. (Was Q10; D25.)
+**V30 — Individuals count, credited to nobody, listed apart** ACTIVE · 2026-09-28. Campaign codes are treated the same way (V65). (Was Q10; D25.)
 
 **V31 — Last year's figures are typed once until imports bring history** ACTIVE · 2026-09-28. Per-KPI readings for last year's months; a partner can be marked "client before 2026"; Payments history from 1 January 2025 replaces both in the import phase. (Was Q11.)
 
 **V32 — Values that never become identifiers** ACTIVE · 2026-09-28. Every address at directksa.com and directksa.net (and sub-domains), the Payments test VAT, and any customer name the owner lists as a test; the list is a setting. (Was Q12.)
 
-**V33 — Achievements without a proof file count, flagged "no evidence yet"** ACTIVE · 2026-09-28. On the KPI page and in the KPI sheet. (Was Q13.)
+**V33 — Achievements without a proof file count, flagged "no evidence yet"** ACTIVE · 2026-09-28. On the KPI page and in the KPI sheet — not in appraisals, where V68 is stricter. (Was Q13.)
 
 **V34 — Report layout source: the issued PDFs and the artboards** ACTIVE · 2026-09-28. No PowerPoint templates are known. The layout comes from the department's issued monthly report PDFs in Drive (folder `1A5ua72_qosteLvSn22XdWgUFD9vZEqhl`, 2025; January 2026 in `12F8bnr6WqxQdJvu2PB9s6TKRG8vFi0rj`) and the canvas's MonthlyReport and QuarterlyReport artboards; the PPTX is generated to that layout until the owner supplies a template. The PDFs hold real figures — they are read, never copied into the repository. (Was Q14.)
 
@@ -82,7 +82,7 @@ number when ruled, and the decision names its question.
 
 **V41 — Partner categories and tiers are typed by the owner in Settings** ACTIVE · 2026-09-28. Not blocking. (Was Q21.)
 
-**V42 — Appraisal details, where the tool does not say** ACTIVE · 2026-09-28. The tool overrides each of these where it speaks: the manager's evaluation counts (self beside it); cap 120 %; escalations: more is better; "on-time reports" = achievements and updates logged before the report's cut-off day; "weekly updates" = weeks (Sunday–Thursday) with an update on each task in progress; visible to the person, the evaluator, the reporting line and admins; personal targets entered by the manager at cycle start; MF5 exclusions apply to appraisal figures too. (Was Q22.)
+**V42 — Appraisal details, where the tool does not say** ACTIVE · 2026-09-28. The tool overrides each of these where it speaks: the manager's evaluation counts (self beside it); cap 120 %; escalations: more is better; "on-time reports" = achievements and updates logged before the report's cut-off day; "weekly updates" = weeks (Sunday–Thursday) with an update on each task in progress (the item "weekly pipeline / task updates" also counts logged calls — V63); visible to the person, the evaluator, the reporting line and admins; personal targets entered by the manager at cycle start; MF5 exclusions apply to appraisal figures too. (Was Q22.)
 
 **V43 — Past appraisals from the tool's export; ClickUp once** ACTIVE · 2026-09-28. The owner's export seeds the templates and brings the last two cycles as read-only "legacy"; ClickUp's KPI records imported once, then ClickUp stops for them; nothing from the old app's tasks is moved (D9). (Was Q23.)
 
@@ -123,3 +123,30 @@ number when ruled, and the decision names its question.
 **V60 — The Direct theme uses the official palette; every theme has a primary** ACTIVE · 2026-09-28. Replaces V7's values: slate `#323E48` navigation, orange `#F06820` accent (a fill or mark only, never text, never under a label), primary `#C94C14` for filled buttons with white labels (4.64:1), link `#B5490E`. `--primary`, `--primary-hover` and `--on-primary` exist in all four themes. The official logo is never recoloured: slate wordmark on light, white on dark or slate. Values: BUILD-PLAN "Design tokens".
 
 **V61 — Shared patterns** ACTIVE · 2026-09-28. A notification centre (All · Mentions · Assigned to me, by day, mark all read, snooze); alerts arrive as notifications (contract expiring, invoice unpaid past 45 days, KPI behind pace) from one daily job; hover cards for people and partners; Follow on any record, notifying followers; an activity timeline with Undo on every record; saved views; bulk actions as one request and one Undo; "Since your last visit" on My day. Spec §3.3, §6.
+
+## Oversight rulings, round 4, 28 Sep 2026 (from the manager's recorded calls)
+
+The calls are an internal file with real names: nothing from them enters this repository except the rules below; every
+example uses made-up names.
+
+**V62 — Partner roles are multi-select; partner status has a history** ACTIVE · 2026-09-28. Roles sit in a link table and each role may carry its own fields (a setting). Status Prospect / Active / At risk / Lost, each change with an effective date and, for at risk and lost, a reason from a settings list; the last feedback date beside it; an "At risk" chip; a report section "Partners at risk / lost — top reasons" in the monthly and quarterly reports. Refines V52 (the role "stage" becomes a role field). Spec §3.4, §3.9.
+
+**V63 — Light prospecting in v1, no Leads module** ACTIVE · 2026-09-28. A prospect is a partner with status Prospect. A manager bulk-assigns a list of partners (owner and priority) in one action and one Undo; a manager may assign to partners with no revenue, while changing the account manager where revenue exists stays with the head and admins (V26, V27). "Log call" is one click with an outcome from a settings list, needs no open task, and lands on the partner's timeline. Calls and task updates per person per week feed the appraisal item "weekly pipeline / task updates". Spec §3.4, §3.8.
+
+**V64 — Segment** ACTIVE · 2026-09-28. A settings list (e.g. Government (B2G) · Corporate · Agencies · Individuals); the default is on the partner, overridable on a project and on an invoice (invoice → project → partner); revenue and KPIs can split by segment. Spec §3.4, §3.6.
+
+**V65 — Discount codes carry terms; campaign codes** ACTIVE · 2026-09-28. Terms: percent of the service fee, scope (services, countries), volume tiers, review date, approved by — with history. One live code per partner by default (a second needs a manager and a reason). A campaign code, for short trials, is credited to no partner and listed apart, like individuals (V30). Finance shows sales by code by month. Spec §3.4, §3.5.
+
+**V66 — Achievement categories with typed amounts; MoU; Awards** ACTIVE · 2026-09-28. Problem solving and Cost savings: exposure, actual loss, avoided (= exposure − actual), counter-party, a one-line story — typed amounts, never Finance money, never feeding a money KPI (the check stays). MoU / strategic signing: counter-party, their signatory and title, our signatory, event, signing date, announced, government or private — never a new client; after signing the partner becomes Prospect (unless Active). Awards: an optional entry cost. Spec §3.8.
+
+**V67 — Reports: Cases, non-money lines, search** ACTIVE · 2026-09-28. The quarterly section "Cases" shows the achievements flagged "use as example" (one per quarter by default) with exposure, actual, avoided and the story. A line may show a non-money amount from its cited achievements, labelled "not revenue", drilling to their fields and evidence. Full-text search across issued reports and their lines. Spec §3.9.
+
+**V68 — Appraisal: self-registration before the manager's review** ACTIVE · 2026-09-28. Each person sees "my achievements in this cycle" and completes them; missing date or evidence is flagged, and such items never count in the appraisal. Default cycle label "2026-27". ClickUp items without date or evidence import as legacy only. Spec §3.10.
+
+**V69 — Challenges record escalation** ACTIVE · 2026-09-28. A critical challenge keeps who it was escalated to and when; it feeds the appraisal item "documenting and escalating critical client feedback". Spec §3.8.
+
+**V70 — Partner finance: credit limit, wallet balance, sent to legal** ACTIVE · 2026-09-28. The credit limit Payments already enforces is mirrored with its history and approver, and outstanding is shown against it; the prepaid (wallet) balance = top-ups − consumption; a receivable can be flagged "sent to legal" with a note. Out of v1, recorded: guarantees (promissory notes), supplier payables and statements, referral terms. Spec §3.4, §3.6, §11.
+
+**V71 — Go-live is a staged pilot** ACTIVE · 2026-09-28. A small group first (including Finance colleagues with read access to Finance), then everyone, on the owner's word. Spec §11, plan P6-8.
+
+**V72 — A recurring "Partner feedback" task per key partner** ACTIVE · 2026-09-28. Using the recurring templates; owned by the account manager; its feedback note sets the last feedback date. Spec §3.7.

@@ -141,6 +141,27 @@ touch a v0.7 line, these win.*
 23. **Patterns**: notification centre, alerts as notifications, hover cards, follow, activity timeline with Undo, saved
     views, bulk actions, "Since your last visit" (V61).
 
+**Oversight rulings, round 4 (28 Sep, from the manager's recorded calls; no names from them enter this repository)** —
+V62–V72 in `DECISIONS.md`:
+
+24. **Partner roles are multi-select**, each with its own fields; **status** Prospect / Active / At risk / Lost with
+    history, reason and last feedback date; a report section on partners at risk or lost (V62).
+25. **Light prospecting**: bulk assign owner and priority in one action; one-click **Log call** with an outcome; weekly
+    counts feed the appraisal (V63).
+26. **Segment** on the partner, overridable on a project and an invoice; revenue and KPIs split by it (V64).
+27. **Discount codes carry terms**; one code per partner by default; **campaign codes** credited to no partner; sales by
+    code by month (V65).
+28. **Achievement categories**: Problem solving and Cost savings with typed amounts (never Finance money); MoU /
+    strategic signing (not a new client; the partner becomes Prospect); Awards with an entry cost (V66).
+29. **Reports**: a quarterly "Cases" section; non-money amounts labelled "not revenue"; search across issued reports
+    (V67).
+30. **Appraisal self-registration** before the manager's review; undated or evidence-less items never count (V68).
+31. **Challenges** record escalation (V69).
+32. **Partner finance**: credit limit with history, prepaid (wallet) balance, "sent to legal"; guarantees, supplier
+    payables and referral terms later (V70).
+33. **Go-live as a staged pilot** (V71).
+34. **Recurring "Partner feedback" task** per key partner (V72).
+
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
 are excluded from revenue, and collections are settled on them; cost is the sum of approved expenses on the
