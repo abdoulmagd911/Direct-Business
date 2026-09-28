@@ -83,7 +83,7 @@
   function refreshAll(){
     MR.rules=null; load();
     try{ if(window.CP){ window.CP.rows=null; if(typeof window.cpLoad==='function') window.cpLoad(function(){ redraw(); }); } }catch(_){}
-    try{ if(window.FIN&&typeof window.finLoad==='function'){ FIN.rows=null; finLoad(); } }catch(_){}
+    try{ if(window.FIN&&typeof window.finRefreshMoney==='function') window.finRefreshMoney(); }catch(_){}   /* punch list A: the view only, in place — never the whole ledger */
     try{ if(typeof window.__v113Reload==='function'){ var el=document.querySelector('.v113-card'); if(el) window.__v113Reload(el.getAttribute('data-biz')); } }catch(_){}
   }
 

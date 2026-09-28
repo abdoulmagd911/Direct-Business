@@ -47,11 +47,14 @@ at merge from the merged commit (checksum-checked), after a rolled-back live che
   and the invoice import (D21)** — cost empty until approved expenses, top-ups stored, statuses, fill-never-wipe in any
   order, billing links proposed; and **D19** — every delete asks in the app's box, naming the item. Backup stamp
   20260928T050142Z; the live finance table is empty until the oversight imports in the browser (D17).
-- Still to come: A) the Finance freeze (the recorder is live; a Chrome extension is suspected), C) the login/reset loop
+- 28 Sep: D23 the flagged cost estimate (#57) — live (backup 20260928T095944Z). Then the Finance punch list, first PR:
+  A) the freeze's cause — a Rules save reloaded the whole ledger; now the money view refreshes in place; B1–B9 on
+  Performance; **D24 Income by service** (each invoice line to one service, three lists on Rules).
+- Still to come: the Finance punch list second PR (B10, C11–C16 incl. collections on billing invoices, D17, E18–E19,
+  F20–F23, G24–G25), then H1–H13 (Tasks / Reports / Clients), then D22 access. C) the login/reset loop
   (second builder; C-lite, D15, #51 — live 28 Sep, admin-users v6), D2) the expense export cost (the raw Transaction
   Expense / Expense Invoice exports are not recognised yet) / client list / promo codes, D3) manual entry and links by
-  hand, the margins pass, E2) the simplify list. Owner ruling 28 Sep (D23): with no approved expense, the pass-through
-  lines are a flagged cost ESTIMATE, shown apart from the approved cost.
+  hand, the margins pass, E2) the simplify list.
 - Next: issuing numbered reports, the appraisal cycle — and the **final go-live reset**, run only on the owner's
   explicit go (`golive_reset`, scripts/sql/golive-reset.sql).
 
