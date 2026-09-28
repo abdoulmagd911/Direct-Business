@@ -153,6 +153,28 @@ const shape = (list) => list.map((r) => [r.invoice_no, r.row_kind, r.integrity_s
   const m6 = await s.p.evaluate(() => { const r = FIN.rows.find((x) => x.invoice_no === 'QA-D1-A'); const m = FIN.m[r.id] || {}; return { pt: m.pass_through_sar, fee: m.fee_sar, cost: r.cost_sar, profit: r.profit_sar }; });
   check(m6.pt === 900 && m6.fee === 100 && m6.cost == null && m6.profit == null, '6. the item-name list moves "pass-through on the invoice" (900) and never cost or profit', JSON.stringify(m6));
 
+  /* 6c. D23 (owner, 28 Sep): with no approved expense, the pass-through is a FLAGGED ESTIMATE — beside, never inside, the real
+     cost; Overview shows real and estimated apart; an approved expense replaces the estimate by arriving */
+  const e6 = await s.p.evaluate(() => { const r = FIN.rows.find((x) => x.invoice_no === 'QA-D1-A'); const m = FIN.m[r.id] || {};
+    const cell = document.createElement('div'); cell.innerHTML = finCostCell(r);
+    const V = FIN.rows.filter((x) => !x.deleted_at && x.integrity_status === 'verified_paid'); const band = document.createElement('div'); band.innerHTML = finEstimateBand(V, 0, 0);
+    const b = band.querySelector('[data-fin-estimate-band]');
+    let want = 0, wantN = 0, wantRev = 0; V.forEach((x) => { const mm = FIN.m[x.id] || {}; if (finCostMissing(x) && mm.cost_estimated && +mm.est_cost_sar > 0) { want += +mm.est_cost_sar; wantN++; wantRev += +x.revenue_sar || 0; } });
+    return { want: want.toFixed(2), wantN: String(wantN), wantProfit: (wantRev - want).toFixed(2), est: m.est_cost_sar, flag: m.cost_estimated, cost: r.cost_sar, profit: r.profit_sar, cell: cell.innerText, cellAttr: cell.querySelector('[data-fin-cost-estimated]') ? cell.querySelector('[data-fin-cost-estimated]').getAttribute('data-fin-cost-estimated') : null,
+      band: b ? { est: b.getAttribute('data-est'), n: b.getAttribute('data-est-n'), withProfit: b.getAttribute('data-with-profit'), text: b.innerText } : null }; });
+  check(e6.est === 900 && e6.flag === true && e6.cost == null && e6.profit == null && e6.cellAttr === '900' && /est\./.test(e6.cell) && /⚑/.test(e6.cell),
+    'D23. no approved expense → the pass-through (900) is a flagged estimate ("est. … ⚑"); the real cost and profit stay empty', JSON.stringify(e6));
+  check(!!e6.band && e6.band.est === e6.want && e6.band.n === e6.wantN && e6.band.withProfit === e6.wantProfit && +e6.want >= 900 && /Estimated cost \(not approved\)/.test(e6.band.text) && /approved expenses only/.test(e6.band.text),
+    'D23. Overview shows the estimated cost apart from the real cost, and says the cards above are approved expenses only', JSON.stringify(Object.assign({ want: e6.want, wantN: e6.wantN, wantProfit: e6.wantProfit }, e6.band)));
+  await s.p.evaluate(async () => { const r = FIN.rows.find((x) => x.invoice_no === 'QA-D1-A'); await fc().from('finance_invoices').update({ cost_sar: 650 }).eq('id', r.id); FIN.rows = null; finLoad(); });
+  await s.p.waitForFunction(() => FIN.rows && FIN.m && !FIN.loading, null, { timeout: 30000 }); await s.p.waitForTimeout(500);
+  const e6b = await s.p.evaluate(() => { const r = FIN.rows.find((x) => x.invoice_no === 'QA-D1-A'); const m = FIN.m[r.id] || {}; const cell = document.createElement('div'); cell.innerHTML = finCostCell(r);
+    return { est: m.est_cost_sar, flag: m.cost_estimated, cost: r.cost_sar, cell: cell.innerText }; });
+  check(e6b.est == null && e6b.flag === false && +e6b.cost === 650 && !/est\./.test(e6b.cell),
+    'D23. an approved expense replaces the estimate: the real cost (650) shows, the estimate is gone', JSON.stringify(e6b));
+  await s.p.evaluate(async () => { const r = FIN.rows.find((x) => x.invoice_no === 'QA-D1-A'); await fc().from('finance_invoices').update({ cost_sar: null }).eq('id', r.id); FIN.rows = null; finLoad(); });
+  await s.p.waitForFunction(() => FIN.rows && FIN.m && !FIN.loading, null, { timeout: 30000 }); await s.p.waitForTimeout(500);
+
   /* 6b. the list on the Rules tab: shown, and a removal asks in the app's own box, naming the item, Cancel first (D19) */
   await s.p.evaluate(() => { current = 'finance'; finGo('rules'); }); await s.p.waitForTimeout(1500);
   const rt = await s.p.evaluate(() => { const c = document.querySelector('.v119-items'); const n = c ? c.querySelectorAll('[data-v119-item]').length : -1;

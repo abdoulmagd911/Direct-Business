@@ -155,7 +155,7 @@ given over records that did not arrive.** Found
 answering 500 — or 403, which is what a permission refusal looks like — the Leads page came up
 reading **"0 New this month · 57 In pipeline · 12% · Became clients · 8 of 65"**: sixty-five
 companies, a full pipeline, stage chips with counts, rows that open. **Not one of them real.** They
-are the demo records hardcoded in core-01 ("Falcon Conferences Group", ids `b_mdd`, `b_maaden`)
+are the demo records hardcoded in core-01 ("Falcon Conferences Group", ids `b_demo01`, `b_demo02`)
 while the database holds 108 companies, none of them on the screen. The app did print
 "Could not load leads: …" above it, and everything under that line was fiction.
 **That a person can actually see it was measured, not assumed**: on the failing page the sign-in

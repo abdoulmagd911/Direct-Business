@@ -1,12 +1,14 @@
 {
-  "note": "Written by scripts/docs/archive-docs.mjs; checked by scripts/qa/check-docs-moved.mjs. Each old file, as it stood at `commit`, is the pieces joined in order, byte for byte.",
+  "note": "Written by scripts/docs/archive-docs.mjs; checked by scripts/qa/check-docs-moved.mjs. Each old file, as it stood at `commit`, is the pieces joined in order, byte for byte — except the lines listed in docs/history/redactions.json (sha256Archived is the hash of the file with those lines replaced).",
   "commit": "175e4ccb0217fd1a27f4349dfe1d4013b00c1061",
   "files": [
     {
       "old": "docs/BACKLOG.md",
       "archive": "docs/history/backlog",
       "sha256": "4dcfe6056c5d0c96dc15f6edf244682ce4a1e28c20c9510e0c464f40556ef3a5",
-      "chars": 1488555,
+      "sha256Archived": "7e82fbbab2dbdbff82ed063ec48d745a74bb3909b8fcf8d0f054da8f7f6603a4",
+      "redacted": 12,
+      "chars": 1488605,
       "lines": 19885,
       "pieces": [
         "backlog-01.md",
@@ -57,7 +59,9 @@
       "old": "docs/DECISIONS.md",
       "archive": "docs/history/decisions",
       "sha256": "463f1cab7a3af807bdcdad125581439fa39e0f320f4503a67e2758643469f535",
-      "chars": 330897,
+      "sha256Archived": "bf29bf74880296d110f752ab4157db689d27df97d38f2c66ab76cc53fcc2212b",
+      "redacted": 3,
+      "chars": 330912,
       "lines": 3866,
       "pieces": [
         "decisions-01.md",
@@ -87,7 +91,9 @@
       "old": "docs/DIRECT_SYSTEMS_PLAYBOOK.md",
       "archive": "docs/reference/playbook",
       "sha256": "a25e5e1119df3f40a41d9c9808cdf81e3f199524e9ecaa84dd2b1c45b6534e52",
-      "chars": 71294,
+      "sha256Archived": "8bd436f24bd22f41da7aba64fba08337dd6e1e73e6a16d1273265bff7ca8cdc8",
+      "redacted": 24,
+      "chars": 71269,
       "lines": 833,
       "pieces": [
         "playbook-01.md",
@@ -98,7 +104,9 @@
       "old": "docs/DIRECT_MASTER_BRIEF.md",
       "archive": "docs/reference/master-brief",
       "sha256": "bf1bfe1f95d117acf08629598387289f246bd132da771336111f9e851b5486b8",
-      "chars": 139373,
+      "sha256Archived": "73861c9411e3a174263b1189fc045284544c27f9c930fff993a16c7d6d2826fb",
+      "redacted": 5,
+      "chars": 139324,
       "lines": 877,
       "pieces": [
         "master-brief-01.md",

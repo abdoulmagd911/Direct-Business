@@ -118,7 +118,7 @@ what to do; a wrong password says "Wrong email or password…" in plain words (n
 and leaves the button usable; a correct sign-in honours the /leads address; "Sign out" reads «تسجيل
 الخروج» on the Arabic page, returns the form, leaves no workspace on screen and no session behind, and
 signing back in works. The 65 company records in memory before any sign-in are the app's built-in demo
-seed (ids like b_mdd), not real rows — the real 108 arrive only with a session.
+seed (ids like b_demo01), not real rows — the real 108 arrive only with a session.
 THE DEFECT: the person had chosen Arabic (the app keeps that in localStorage 'dbLang' and was still in
 Arabic after the reload), yet the sign-in form was English apart from the two brand lines — labels, hint,
 button, "Forgot password?", "Working…", and every message. js/02 builds the form before any layer runs,

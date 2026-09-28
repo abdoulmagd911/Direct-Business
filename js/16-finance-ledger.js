@@ -284,7 +284,15 @@ function finLoad(cb){
        name) and which exclusion rule leaves it out. If the view cannot be read, Finance shows NO money and says why
        (fail closed): a total that silently ignored the rules would be worse than none. */
     var got=r;
-    finPageAll(function(){return c.from('money_rows').select('id,business_id,company_key,company_name,merge_state,profile_type,rule_id,rule_kind,rule_value,rule_reason,excluded,counts,open_age_days,cost_missing,loss,pass_through_sar,fee_sar,unclassed_sar').order('id',{ascending:true});}, function(mr){
+    /* D23: the estimate columns arrive with the database change; until it is applied (the minutes between the site
+       deploying and the change landing), a read that names them fails — so it is asked once more without them, and
+       Finance shows every figure it showed before, with no estimate, instead of no money at all */
+    var MR_COLS='id,business_id,company_key,company_name,merge_state,profile_type,rule_id,rule_kind,rule_value,rule_reason,excluded,counts,open_age_days,cost_missing,loss,pass_through_sar,fee_sar,unclassed_sar';
+    var _mrRead=function(cb){ finPageAll(function(){return c.from('money_rows').select(MR_COLS+',est_cost_sar,cost_estimated').order('id',{ascending:true});}, function(r1){
+      if(r1&&r1.error&&/est_cost_sar|cost_estimated/.test(String((r1.error&&r1.error.message)||''))){
+        finPageAll(function(){return c.from('money_rows').select(MR_COLS).order('id',{ascending:true});}, cb); return; }
+      cb(r1); }); };
+    _mrRead(function(mr){
     if(got.error){console.warn('finance load',got.error);FIN.rows=[];FIN.loadErr=got.error.message;}
     else {FIN.rows=got.data||[];FIN.loadErr=null;}
     FIN.m={}; FIN.mErr=null;
@@ -405,10 +413,33 @@ FIN.p.cmp=FIN.p.cmp||'none'; // blueprint step 5 (2026-08-27): compare-to mode, 
 function finCostCell(x){
   var ar=(typeof LANG!=='undefined'&&LANG==='ar'), m=(window.FIN&&FIN.m&&x&&FIN.m[x.id])||{};
   var pt=(m.pass_through_sar!=null&&+m.pass_through_sar>0)?'<div style="font-size:10.5px;color:var(--muted);font-weight:400" data-fin-passthrough="'+Math.round(+m.pass_through_sar)+'">'+(ar?'مارّ على الفاتورة: ':'pass-through on the invoice: ')+money0(+m.pass_through_sar)+'</div>':'';
+  /* D23 (owner, 28 Sep): with no approved expense yet, the pass-through on the invoice's own lines stands in as a FLAGGED
+     ESTIMATE (money_rows.est_cost_sar) — shown as "est.", never as the cost; an approved expense replaces it by arriving */
+  if(finCostMissing(x) && m.cost_estimated && +m.est_cost_sar>0) return '<span style="color:#B54708" data-fin-cost-estimated="'+Math.round(+m.est_cost_sar)+'" title="'+(ar?'تقدير من البنود المارّة على الفاتورة — ليست مصروفات معتمدة':'Estimate from the pass-through lines on the invoice — not an approved expense')+'">'+(ar?'تقدير: ':'est. ')+money(+m.est_cost_sar)+' ⚑</span>';
   if(finCostMissing(x)) return '<span style="color:#B54708" data-fin-cost-awaited="1" title="'+(ar?'بانتظار المصروفات المعتمدة':'Waiting for approved expenses')+'">'+(ar?'بانتظار التكلفة':'awaited')+'</span>'+pt;
   return money(x.cost_sar==null?0:x.cost_sar)+pt;
 }
 try{ window.finCostCell=finCostCell; }catch(_){}
+/* D23 (owner, 28 Sep 2026): real cost and ESTIMATED cost are shown apart. Over the invoices in view that still wait for an
+   approved expense, the pass-through on their lines (the item names classed on Finance → Rules) is the flagged estimate.
+   The Cost and Profit cards above stay approved expenses only; this band says what they would read with the estimates.
+   Empty (nothing drawn) when no invoice in view carries an estimate. */
+function finEstimateBand(V,cost,prof){
+  try{
+    var ar=(typeof LANG!=='undefined'&&LANG==='ar'), est=0, n=0, revE=0, wait=0;
+    (V||[]).forEach(function(r){ if(!finCostMissing(r)) return; wait++; var m=(FIN.m&&FIN.m[r.id])||{};
+      if(m.cost_estimated && +m.est_cost_sar>0){ est+=+m.est_cost_sar; revE+=+r.revenue_sar||0; n++; } });
+    if(!n) return '';
+    est=Math.round(est*100)/100; revE=Math.round(revE*100)/100;
+    var withCost=Math.round(((+cost||0)+est)*100)/100, withProf=Math.round(((+prof||0)+revE-est)*100)/100;
+    return '<div class="card" data-fin-estimate-band="1" data-est="'+est.toFixed(2)+'" data-est-n="'+n+'" data-with-cost="'+withCost.toFixed(2)+'" data-with-profit="'+withProf.toFixed(2)+'" style="padding:10px 14px;margin:-4px 0 14px;border-inline-start:4px solid #B54708;background:#FFF8F1;font-size:12.5px;line-height:1.7">'+
+      '<b style="color:#B54708">⚑ '+(ar?'تكلفة تقديرية (غير معتمدة): ':'Estimated cost (not approved): ')+money(est)+(ar?' ريال':' SAR')+'</b> '+
+      (ar?('على '+n+' من '+wait+' فاتورة بانتظار المصروفات المعتمدة — من البنود المارّة على كل فاتورة (تُسمّى في المالية ← القواعد). التكلفة والربح أعلاه من المصروفات المعتمدة فقط. مع التقديرات: التكلفة '+money(withCost)+' ريال، والربح '+money(withProf)+' ريال. أي مصروف معتمد يحلّ محلّ التقدير.')
+          :('on '+n+' of '+wait+' invoices waiting for approved expenses — from the pass-through lines on each invoice (named on Finance → Rules). Cost and Profit above are approved expenses only. With the estimates: cost '+money(withCost)+' SAR, profit '+money(withProf)+' SAR. An approved expense replaces the estimate.'))+
+      '</div>';
+  }catch(_){ return ''; }
+}
+try{ window.finEstimateBand=finEstimateBand; }catch(_){}
 function finCostMissing(r){ return !!r&&(r.cost_sar===null||r.cost_sar===undefined||r.cost_sar==='')&&r.revenue_way!=='commission'; }
 try{ window.finCostMissing=finCostMissing; }catch(_){}
 /* D1: which date sets the month. invoice_date IS the paid date for a paid invoice (else the created date) — so totals, reports
@@ -661,7 +692,7 @@ try{window.finInPeriod=finInPeriod;window.finPeriodLabel=finPeriodLabel;}catch(_
    Payments). `finance_client_links` maps each group to ONE real client (business_id), to
    Individuals, or to nothing yet. finCanon() collapses every group that points at the same
    client into a single canonical row, so the client reports stay correct after two spellings
-   of the same company are linked (e.g. "Ma'aden" + "Maaden Co" become one client). The
+   of the same company are linked (e.g. "Acme" + "Acme Co" become one client). The
    row-level Ledger deliberately stays on the raw group — it is an invoice list, not a rollup.
    Cache is rebuilt each finance render (clearFinCanon) since a mapping edit reloads FIN. */
 var _finCanonCache={};
@@ -1210,6 +1241,7 @@ function rOverview(){
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
     return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+(i===cards.length-1?'':finExactUnder(c[1]))+'</div></div>';
   }).join('')+'</div>';
+  h+=finEstimateBand(V,cost,prof);
   /* A7, 2026-08-26 (landmine sweep) — the newest month always flattered itself: August showed a
      63.5% margin only because most of its cost had not arrived yet, and nothing marked the gap.
      When the filtered period contains verified invoices carrying no cost, say so right under the

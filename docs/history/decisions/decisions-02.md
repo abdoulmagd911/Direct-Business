@@ -49,8 +49,8 @@ byte-identical.
 
 **M18 — one company, one record: duplicates are detected automatically and merged through
 one reversible, audited path — never by hand-editing rows, never by deleting.** Born from the
-the IT-services client case: the 2026-08-21 corporate-clients import created "the IT-services client" beside the older "the IT-services client — Smart
-Madad IT". The alias map (M14) merged the DISPLAY, but contacts, activities, billing
+the IT-services client case: the 2026-08-21 corporate-clients import created "the IT-services client" beside the older "the IT-services client — (its full
+IT-company name)". The alias map (M14) merged the DISPLAY, but contacts, activities, billing
 profiles, invoice links and transactions stayed split across two records, and the automatic
 linker made it worse — it matched the Arabic spelling by NAME to the second record even though
 the owner had already declared, in the alias map, that both spellings are one company. Owner

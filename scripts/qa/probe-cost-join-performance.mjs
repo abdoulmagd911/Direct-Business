@@ -16,7 +16,7 @@
 
    This probe builds a SYNTHETIC fixture at the real cardinality — 154 transactions, 222
    expense lines, one 8-transaction group and one 4-transaction group feeding single invoices
-   (the exact shape reported for real invoices 1163754021 and 1163766126, reproduced here with
+   (the exact shape reported for real invoices 1160000125 and 1160000136, reproduced here with
    fake IDs — real invoice/transaction numbers never get committed to this repo, D4/decisions).
    It drives the real path end to end via window.v65IngestText (no synthetic shortcut into
    resolveExpenseJoin() directly — this has to exercise the exact same code a real drop does,

@@ -8,7 +8,13 @@
            docs/reference/playbook/, docs/reference/master-brief/ (the two long references, split, still current
            reading when needed), each with a README.md index, plus docs/history/moved.json (the manifest the check reads).
    It never touches the new short working files (docs/BACKLOG.md, docs/DECISIONS.md, CLAUDE.md) — those are written by
-   a person. Re-run it after a rebase if the old files changed underneath, with the new commit. */
+   a person. Re-run it after a rebase if the old files changed underneath, with the new commit.
+
+   Redactions (2026-09-28, rule 7): the repository is public, and a few old lines named real clients or carried real
+   invoice numbers. docs/history/redactions.json lists each such line — old file, line number, the SHA-256 of the line as
+   it was, the line as it is now, and why. This script applies exactly those lines before cutting (refusing if a listed
+   line is not what the list says it was), so a re-run can never bring a removed name back; the check proves the
+   pieces are the old file with those lines, and only those, replaced. */
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -30,6 +36,19 @@ const JOBS = [
 ];
 
 const cp = (s) => [...s].length;
+const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
+
+/* the listed line replacements for one old file; refuses when a listed line is not what the list says it was */
+const REDACTIONS_PATH = path.join(ROOT, 'docs/history/redactions.json');
+const REDACTIONS = fs.existsSync(REDACTIONS_PATH) ? JSON.parse(fs.readFileSync(REDACTIONS_PATH, 'utf8')).lines : [];
+function redact(oldName, text, list = REDACTIONS) {
+  const L = text.split('\n');
+  for (const r of list.filter((x) => x.file === oldName)) {
+    if (sha(L[r.line - 1] ?? '') !== r.was) throw new Error(`redactions.json: ${oldName} line ${r.line} is not the line the list names (hash differs)`);
+    L[r.line - 1] = r.now;
+  }
+  return L.join('\n');
+}
 
 /* Cut before line j, strongest first: "# " 4, "## " 3, "### " 2, a bold rule start after a blank line 1.5, any
    paragraph start 1; never inside a ``` fence; never a piece under 40% of the limit unless the file ends. */
@@ -60,10 +79,12 @@ function split(text) {
   return { lines, inFence, cuts };
 }
 
-const manifest = { note: 'Written by scripts/docs/archive-docs.mjs; checked by scripts/qa/check-docs-moved.mjs. Each old file, as it stood at `commit`, is the pieces joined in order, byte for byte.', commit: SHA, files: [] };
+const manifest = { note: 'Written by scripts/docs/archive-docs.mjs; checked by scripts/qa/check-docs-moved.mjs. Each old file, as it stood at `commit`, is the pieces joined in order, byte for byte — except the lines listed in docs/history/redactions.json (sha256Archived is the hash of the file with those lines replaced).', commit: SHA, files: [] };
 
 for (const job of JOBS) {
-  const text = execFileSync('git', ['show', `${SHA}:${job.old}`], { cwd: ROOT, maxBuffer: 64 << 20 }).toString('utf8');
+  const original = execFileSync('git', ['show', `${SHA}:${job.old}`], { cwd: ROOT, maxBuffer: 64 << 20 }).toString('utf8');
+  const text = redact(job.old, original);
+  const nRedacted = REDACTIONS.filter((x) => x.file === job.old).length;
   const { lines, inFence, cuts } = split(text);
   const dir = path.join(ROOT, job.dir);
   fs.rmSync(dir, { recursive: true, force: true });
@@ -82,15 +103,17 @@ for (const job of JOBS) {
   });
   const joined = pieces.map((p) => fs.readFileSync(path.join(dir, p.name), 'utf8')).join('');
   if (joined !== text) { console.error(`JOIN MISMATCH for ${job.old} — nothing written is trustworthy`); process.exit(1); }
-  const sha256 = crypto.createHash('sha256').update(text).digest('hex');
-  manifest.files.push({ old: job.old, archive: job.dir, sha256, chars: cp(text), lines: lines.length, pieces: pieces.map((p) => p.name) });
+  const sha256 = sha(original);
+  manifest.files.push({ old: job.old, archive: job.dir, sha256, ...(nRedacted ? { sha256Archived: sha(text), redacted: nRedacted } : {}),
+    chars: cp(text), lines: lines.length, pieces: pieces.map((p) => p.name) });
 
   /* the index a person reads */
   const esc = (s) => s.replace(/\|/g, '\\|').replace(/^#+\s*/, '').slice(0, 110);
   let md = `# ${job.title} — index\n\n`;
   md += `\`${job.old}\` as it stood at commit \`${SHA.slice(0, 12)}\` (${cp(text).toLocaleString('en')} characters, ${lines.length.toLocaleString('en')} lines), `;
   md += `cut word for word into ${pieces.length} pieces under 40,000 characters. Joined in order they are the old file byte for byte `;
-  md += `(SHA-256 \`${sha256}\`); \`scripts/qa/check-docs-moved.mjs\` proves it on every battery run. Nothing here is edited — `;
+  md += `(SHA-256 \`${sha256}\`)${nRedacted ? `, except ${nRedacted} line${nRedacted > 1 ? 's' : ''} listed in \`docs/history/redactions.json\` (real client names and invoice numbers taken out — the repository is public, CLAUDE.md rule 7)` : ''}; `;
+  md += `\`scripts/qa/check-docs-moved.mjs\` proves it on every battery run. Nothing ${nRedacted ? 'else ' : ''}here is edited — `;
   md += job.dir.startsWith('docs/history') ? 'this is the archive; the working file is short now.\n\n' : 'this is still reference material; open the part you need. It is no longer required reading.\n\n';
   if (job.prefix === 'backlog' || job.prefix === 'claude-md' || job.prefix === 'decisions')
     md += 'Old knowledge-base part names inside are kept as written; the Drive file "09 Sources index" says where each old part now lives (finance: 04; the app: 05; how sessions run: 06).\n\n';

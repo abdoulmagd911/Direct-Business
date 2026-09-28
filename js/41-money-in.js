@@ -495,9 +495,9 @@
       // Found in the 2026-08-29 sweep: display merged the spellings, but the link (which
       // finSectorOf() reads by RAW client_group) did not follow, so a fresh alias spelling
       // could sit unlinked and mis-sectored until a human noticed.
-      // M18 (same day): the declared sibling WINS over a name match. The MDD split happened
+      // M18 (same day): the declared sibling WINS over a name match. The Client M split happened
       // exactly because the Arabic spelling name-matched a second, duplicate company record
-      // while the owner had already declared it the same company as "MDD" — a name index can
+      // while the owner had already declared it the same company as "Client M" — a name index can
       // only say "a record with this name exists", the alias map says "this IS that company".
       try{
         var e=(typeof window.finGroupCheck==='function')?window.finGroupCheck(g):null;

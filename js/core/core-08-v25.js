@@ -564,7 +564,7 @@
       // Add titles
       if(typeof TITLES==='object'&&TITLES){
         if(!TITLES.settings)TITLES.settings=['Settings','Language · backup · go-live · test suites'];
-        if(!TITLES.projects)TITLES.projects=['Projects','MDD-style multi-trip engagements · proposals, closeouts, P&L'];
+        if(!TITLES.projects)TITLES.projects=['Projects','Multi-trip engagements · proposals, closeouts, P&L'];
       }
     }
   }catch(e){console.warn('[v25.2] views extend failed',e);}
@@ -1616,7 +1616,7 @@
       window.CMD_ACTIONS=function(){
         var arr=__v25_origCmd.apply(this,arguments)||[];
         var extras=[
-          {kind:'Nav',ic:'📁',lbl:'Go to Projects',sub:'MDD-style multi-trip engagements',run:function(){current='projects';render();}},
+          {kind:'Nav',ic:'📁',lbl:'Go to Projects',sub:'Multi-trip engagements',run:function(){current='projects';render();}},
           {kind:'Nav',ic:'🔌',lbl:'Go to Sync & Integrations',sub:'Source health · conflicts · legacy dashboards',run:function(){current='sync';render();}},
           {kind:'Nav',ic:'⚙️',lbl:'Go to Settings',sub:'Pool cap · presets · templates · test suites',run:function(){current='settings';render();}},
           {kind:'Action',ic:'💰',lbl:'Edit credit pool cap',sub:'Open pool settings',run:function(){v25OpenPoolSettings();}},
