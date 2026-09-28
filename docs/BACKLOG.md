@@ -9,7 +9,7 @@ They live in one list only — the Drive file *08 Open decisions for the owner* 
 
 ## Now — the release queue (CLAUDE.md §5)
 
-- **D2 · The client list and promo codes exports** — second builder (6b); the invoice export is in (D21, #53), the raw cost exports are read by js/121 (D25).
+- **D2 · The client list and promo codes exports** — read by js/122 (D26, second builder); the invoice export is in (D21, #53), the raw cost exports are read by js/121 (D25). Open: the company card showing Payments' client suggestions (D3).
 - **D3 · Manual entry, links by hand, the margins pass** — main builder.
 - **Open owner decision (08):** may the pass-through on an invoice's lines stand in for a missing cost? It contradicts the owner's 22 Aug ruling (D21).
 - **D · Capture the Payments invoice id and use the client ID** — Open in Direct can only open the whole list; the client-to-Payments jump searches by phone or name; an empty id silently builds a dead link.

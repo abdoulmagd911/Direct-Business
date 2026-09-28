@@ -18,9 +18,9 @@
      7. a View-only person has no Import card, and the database refuses both imports;
      8. no JS error, no native dialog.
    Sabotage (SABOTAGE=A|B|C|D swaps in a broken layer; each run 28 Sep, each caught):
-     A  js/122 treats a Direct staff address as a client's email  → 2 red (4 invoices would be linked, not 3)
+     A  js/122 treats a Direct staff address as a client's email  → 2, 4 red (4 invoices would be linked, not 3)
      B  js/122 sends "now" instead of the file's export time       → 5 red (the older file's name wins)
-     C  js/122 never plugs into js/121                            → 1, 2 red (the files are "not recognized")
+     C  js/122 never plugs into js/121                            → 1–6 red (the files are "not recognized")
      D  js/122 guesses "percent" for a type it cannot read         → 2, 3 red (the unreadable code is created)
    PORTS 9871 … 9873. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
@@ -106,7 +106,7 @@ const done = async (s) => { await s.b.close(); try { s.srv.close(); } catch (_) 
 const drop = async (s, files) => { await s.p.evaluate(() => { if (window.v122Clear) v122Clear(); if (window.v121Clear) v121Clear(); }); await s.p.setInputFiles('#finFile', files); };
 const phase = (s, want, ms) => s.p.waitForFunction((w) => { const e = document.querySelector('#v122Out [data-v122-phase]'); return e && w.includes(e.getAttribute('data-v122-phase')); }, want, { timeout: ms || 30000 }).then(() => true).catch(() => false);
 const attr = (s, sel, a) => s.p.evaluate(([qq, n]) => { const e = document.querySelector(qq); return e ? e.getAttribute(n) : null; }, [sel, a]);
-const importNow = async (s) => { const b = await s.p.$('#v122Out [data-v122-go]'); if (!b) return false; await b.click(); return phase(s, ['done', 'error'], 30000); };
+const importNow = async (s) => { if (!(await s.p.$('#v122Out [data-v122-go]'))) return false; await s.p.click('#v122Out [data-v122-go]', { timeout: 15000 }); return phase(s, ['done', 'error'], 30000); };
 const invIds = (s) => s.p.evaluate(async () => { const r = await fc().from('finance_invoices').select('invoice_no,payments_client_id').is('deleted_at', null); const o = {}; (r.data || []).forEach((x) => { o[x.invoice_no] = x.payments_client_id || '∅'; }); return o; });
 const codes = (s) => s.p.evaluate(async () => { const r = await fc().from('promo_codes').select('*'); return r.data || []; });
 const client = (s, id) => s.p.evaluate(async (k) => { const r = await fc().from('payments_clients').select('*').eq('client_id', k); return (r.data || [])[0] || null; }, id);

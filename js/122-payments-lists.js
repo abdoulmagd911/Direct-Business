@@ -223,7 +223,7 @@
   function paint(){ var out=document.getElementById('finImpOut'); if(!out) return;
     var box=document.getElementById('v122Out');
     if(!box){ box=document.createElement('div'); box.id='v122Out'; out.parentNode.insertBefore(box,out); }
-    box.innerHTML=html(); }
+    var h=html(); if(box.__v122!==h){ box.__v122=h; box.innerHTML=h; } }   // an unchanged block is left alone, so a click on it is never lost to a repaint
   function wire(){ try{ if(typeof current!=='undefined'&&current==='finance'&&window.FIN&&FIN.tab==='import') paint(); }catch(_){} }
   var _r=window.render; window.render=function(){ var o=_r.apply(this,arguments); wire(); return o; };
   if(typeof window.finGo==='function'){ var _g=window.finGo; window.finGo=function(){ var o=_g.apply(this,arguments); wire(); return o; }; }

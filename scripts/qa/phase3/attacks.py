@@ -1851,7 +1851,7 @@ if _has_fallback:   # cost-fallback.sql builds on D23 (#57); until both are appl
         return (ok, f"pass-through only={a} · + revenue report={b} · report says 0={zero} · approved lines arrive={d} · commission={com} · KPI source={kpi}")
 
 
-# ================= client list + promo codes (D25, second builder, 28 Sep 2026): the Payments lists =================
+# ================= client list + promo codes (D26, second builder, 28 Sep 2026): the Payments lists =================
 _cc = conn(); _has_lists = one(_cc.cursor(), "select count(*) from pg_proc where proname='fn_payments_clients_import'"); _cc.close()
 if _has_lists:   # scripts/sql/clients-promo-import.sql
     def pc(cur, rows, seen='2026-09-27T10:00:00+03:00'):
