@@ -4,12 +4,9 @@
 --
 -- What each file gives (Drive 04 §5 column map):
 --   · Corporate clients export — ID (KEY) → public.payments_clients, a mirror of Payments' client register (names,
---     payment mode, VAT and ID numbers, contact, credit terms, tender figures). Its one job in the money: the CONTACT
---     EMAIL links invoice rows to a client ID (the invoice export carries no client ID), which is what the client-ID
---     merges and exclusions on Finance → Rules (D16) match on. An email is used only when exactly one client carries it
---     and it is not a Direct staff address (some old invoices were made under a staff email — Drive 04 §2 — those are
---     linked by a person). Only an EMPTY payments_client_id is filled; a hand-entered row is never touched (D21).
---     Nothing here links a Payments client to a company in the app: that stays a person's act on the company card (D10).
+--     payment mode, VAT and ID numbers, contact, credit terms, tender figures). It writes NOTHING onto invoice rows:
+--     matching a money row to a company is a live view over each company's identifiers, never a stamp (the owner's
+--     ruling of 28 Sep, company identifiers). Nothing here links a Payments client to a company in the app.
 --   · Promo codes export — Code (KEY) → public.promo_codes (the existing registry): dates, totals, type and discount,
 --     status; its Client Name is kept as a SUGGESTION only (payments_client_name) — a person links a code to a company.
 -- The owner's rules (Drive 04 §5): any file, any order, any time; a newer file (its Payments export time) wins, an older
@@ -67,15 +64,6 @@ returns anyelement language sql immutable as $$
   select case when p_new is null then p_old when p_newer then p_new else coalesce(p_old, p_new) end
 $$;
 
--- the one client ID an email stands for: exactly one client carries it, and it is not a Direct staff address
-create or replace function public.payments_client_for_email(p_email text) returns text
-language sql stable set search_path to 'public', 'pg_temp' as $$
-  select min(c.client_id) from public.payments_clients c
-  where nullif(btrim(p_email), '') is not null and btrim(p_email) !~* '@([a-z0-9-]+\.)*directksa\.'
-    and lower(btrim(c.contact_email)) = lower(btrim(p_email))
-  having count(*) = 1
-$$;
-
 -- =====================================================================
 -- 4. the client list import
 -- =====================================================================
@@ -86,7 +74,7 @@ create or replace function public.fn_payments_clients_import(
 returns jsonb language plpgsql set search_path to 'public', 'pg_temp' as $function$
 declare
   v_seen timestamptz := coalesce(p_seen_at, now());
-  n_new int := 0; n_changed int := 0; n_in int := 0; n_linked int := 0; n_shared int := 0; n_staff int := 0;
+  n_new int := 0; n_changed int := 0; n_in int := 0;
 begin
   if not public.can_edit_page('finance') then
     raise exception 'client list import: this needs Full control of Finance' using errcode = '42501';
@@ -199,37 +187,12 @@ begin
   from _pc_in x where not exists (select 1 from public.payments_clients t where t.client_id = x.client_id);
   get diagnostics n_new = row_count;
 
-  -- the invoice rows: an EMPTY client ID is filled from the customer email (every client, not only this file's)
-  update public.finance_invoices i set payments_client_id = public.payments_client_for_email(i.customer_email)
-  where i.payments_client_id is null and i.deleted_at is null and i.source = 'import' and i.customer_email is not null
-    and public.payments_client_for_email(i.customer_email) is not null;
-  get diagnostics n_linked = row_count;
-
-  select count(*) into n_shared from (select 1 from public.payments_clients where contact_email is not null
-    group by lower(btrim(contact_email)) having count(*) > 1) s;
-  select count(*) into n_staff from public.payments_clients
-   where contact_email ~* '@([a-z0-9-]+\.)*directksa\.';
-
   return jsonb_build_object('clients_in_file', n_in, 'clients_new', n_new, 'clients_changed', n_changed,
-    'clients_same', n_in - n_new - n_changed, 'invoices_linked', n_linked, 'emails_shared', n_shared, 'emails_staff', n_staff);
+    'clients_same', n_in - n_new - n_changed);
 end;
 $function$;
 revoke all on function public.fn_payments_clients_import(jsonb, timestamptz, text) from public, anon;
 grant execute on function public.fn_payments_clients_import(jsonb, timestamptz, text) to authenticated;
-
--- any order: an invoice imported AFTER the client list takes its client ID from its email at once
-create or replace function public.finance_client_on_write() returns trigger
-language plpgsql set search_path to 'public', 'pg_temp' as $$
-begin
-  if tg_op = 'UPDATE' and new.customer_email is not distinct from old.customer_email then return new; end if;
-  if new.payments_client_id is null and new.customer_email is not null and coalesce(new.source, 'import') = 'import' then
-    new.payments_client_id := public.payments_client_for_email(new.customer_email);
-  end if;
-  return new;
-end $$;
-drop trigger if exists trg_fin_inv_b_client_from_email on public.finance_invoices;
-create trigger trg_fin_inv_b_client_from_email before insert or update of customer_email on public.finance_invoices
-  for each row execute function public.finance_client_on_write();
 
 -- =====================================================================
 -- 5. the promo codes import

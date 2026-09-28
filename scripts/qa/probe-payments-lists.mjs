@@ -6,20 +6,19 @@
    What it holds:
      1. both lists, with the REAL 27 Sep header rows, are RECOGNISED and every column matched (none reported missing), never js/65's
         "not recognized"; an invoice export dropped with them still goes to js/65;
-     2. the preview: 5 clients new; 3 invoices (SAR 2,500) get their Payments client ID from the customer email — not the
-        hand-entered row, not the one already linked, not a Direct staff address, not an email two clients share; 1 of them
-        (SAR 500) is then left out by a client-ID rule on Finance → Rules; codes: 1 new, 1 changed, 1 new code whose type
-        cannot be read left out; 1 Client Name kept as a suggestion;
-     3. Import: exactly those invoices get exactly those IDs; the ruled-out one leaves the money that counts; the known code
-        (another case) takes Payments' figures while its company link and notes stay; the new fixed-amount, expired code is
-        created; the unreadable one is not;
+     2. the preview: 5 clients new; codes: 1 new, 1 changed, 1 new code whose type cannot be read left out; 1 Client Name
+        kept as a suggestion;
+     3. Import: the client register holds every column; NOT ONE invoice row is written (matching a row to a company is a
+        live view over the company identifiers, never a stamp — the owner, 28 Sep); the known code (another case) takes
+        Payments' figures while its company link and notes stay; the new fixed-amount, expired code is created; the
+        unreadable one is not;
      4. the same files twice: "Nothing new", no Import button;
      5. an OLDER client list only fills blanks (the name stays, the missing phone is filled); a newer one with a blank never wipes;
      6. the block reads Arabic;
      7. a View-only person has no Import card, and the database refuses both imports;
      8. no JS error, no native dialog.
    Sabotage (SABOTAGE=A|B|C|D|E swaps in a broken layer; each run 28 Sep, each caught):
-     A  js/122 treats a Direct staff address as a client's email  → 2, 4 red (4 invoices would be linked, not 3)
+     A  js/122 reads the Legal Name from the Trading Name column   → 3, 5 red (the register holds the wrong name)
      B  js/122 sends "now" instead of the file's export time       → 5 red (the older file's name wins)
      C  js/122 never plugs into js/121                            → 1–6 red (the files are "not recognized")
      D  js/122 guesses "percent" for a type it cannot read         → 2, 3 red (the unreadable code is created)
@@ -99,7 +98,7 @@ async function session(PORT, lang, pageAccess) {
   await ctx.route((u) => u.href.includes('cdn.jsdelivr.net'), (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: /xlsx/.test(r.request().url()) ? XLSXLIB : LIB }));
   await ctx.route((u) => /fonts\.googleapis|fonts\.gstatic|clearbit|assets\.directksa/.test(u.href), (r) => r.abort());
   const swap = (file, fn) => ctx.route((u) => u.pathname === '/js/' + file, (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: fn(fs.readFileSync(path.join(ROOT, 'js', file), 'utf8')) }));
-  if (SAB === 'A') await swap('122-payments-lists.js', (s) => s.replace("function isStaff(e){ return /@([a-z0-9-]+\\.)*directksa\\./i.test(String(e||'')); }", 'function isStaff(e){ return false; }'));
+  if (SAB === 'A') await swap('122-payments-lists.js', (s) => s.replace("legal_name:'Legal Name',", "legal_name:'Trading Name',"));
   if (SAB === 'B') await swap('122-payments-lists.js', (s) => s.replace('p_seen_at:j.F.asOf,', 'p_seen_at:new Date().toISOString(),'));
   if (SAB === 'C') await swap('122-payments-lists.js', (s) => s.replace('window.v121Register({ match:', '({ match:'));
   if (SAB === 'E') await swap('122-payments-lists.js', (s) => s.replace("contact_name:'Contact Full Name'", "contact_name:'Contact Name'"));
@@ -133,25 +132,24 @@ const clientRow = (s, id) => s.p.evaluate(async (k) => { const r = await fc().fr
   check(okP && kinds === 'pc,pr' && !missing && !/not recogni[sz]ed/i.test(js65) && /Invoice Export/.test(js65),
     '1. both lists, with the real 27 Sep header rows, are read by js/122 with every column matched (none reported missing); an invoice export dropped with them still goes to js/65', JSON.stringify({ okP, kinds, missing, js65: js65.slice(0, 140) }));
   const P = { clients: await attr(s, '#v122Out [data-v122-clients]', 'data-v122-clients'), link: await attr(s, '#v122Out [data-v122-link]', 'data-v122-link'),
-    out: await attr(s, '#v122Out [data-v122-out]', 'data-v122-out'), skipped: await attr(s, '#v122Out [data-v122-skipped]', 'data-v122-skipped'),
     codes: await attr(s, '#v122Out [data-v122-codes]', 'data-v122-codes'), suggest: await attr(s, '#v122Out [data-v122-suggest]', 'data-v122-suggest') };
-  check(P.clients === '5,0,0' && P.link === '3,2500' && P.out === '1,500' && P.skipped === '1,1' && P.codes === '1,1,0,1' && P.suggest === '1',
-    '2. the preview: 5 clients new; 3 invoices (SAR 2,500) get a client ID from their email, not the hand-entered, already-linked, staff or shared ones; 1 (SAR 500) then left out by a client-ID rule; codes 1 new, 1 changed, 1 unreadable type left out; 1 suggestion', JSON.stringify(P));
+  check(P.clients === '5,0,0' && P.link === null && P.codes === '1,1,0,1' && P.suggest === '1',
+    '2. the preview: 5 clients new, no invoice-link line; codes 1 new, 1 changed, 1 unreadable type left out; 1 suggestion', JSON.stringify(P));
+  const before = await invIds(s);
   const ok1 = await importNow(s); await s.p.waitForTimeout(600);
   const ids = await invIds(s);
-  const mr = await s.p.evaluate(async (no) => { const r = await fc().from('money_rows').select('invoice_no,excluded,counts'); return (r.data || []).filter((x) => x.invoice_no === no).map((x) => x.excluded + '|' + x.counts).join(','); }, I.RULED);
   const cs = await codes(s), six = cs.find((c) => c.code === 'QASIX') || {}, nw = cs.find((c) => c.code === 'QANEW') || null, odd = cs.find((c) => /qaodd/i.test(c.code));
-  const want = { [I.A]: '9001', [I.B]: '9001', [I.HAND]: '∅', [I.LINKED]: '9999', [I.STAFF]: '∅', [I.SHARED]: '∅', [I.RULED]: '9005' };
-  const idsOk = Object.keys(want).every((k) => ids[k] === want[k]);
+  const untouched = JSON.stringify(ids) === JSON.stringify(before) && Object.keys(ids).length === SEED_INV.length;
   const sixOk = six.kind === 'percent' && +six.value_pct === 12 && +six.total_sales_sar === 15000.5 && +six.total_discount_sar === 1800 && six.valid_to === '2026-12-31'
     && six.payments_client_name === 'QA Partner' && six.partner_business_id === 'qa-partner-biz' && six.notes === 'kept note';
   const newOk = !!nw && nw.kind === 'fixed' && +nw.value_pct === 100 && nw.active === false && nw.expired === true;
   const c1 = await clientRow(s, '9001');
-  const colsOk = !!c1 && c1.has_vat_number === 'Yes' && c1.pricing_setting === 'Standard' && c1.block_on_overdue === 'No' && c1.contact_name === 'QA Contact'
+  const colsOk = !!c1 && c1.legal_name === 'QA One Co' && c1.trading_name === 'QA One Co Trading' && c1.has_vat_number === 'Yes' && c1.pricing_setting === 'Standard'
+    && c1.block_on_overdue === 'No' && c1.contact_name === 'QA Contact' && c1.contact_email === 'buyer@one.test'
     && Date.parse(c1.payments_updated_at) === Date.parse('2026-09-20T10:00:00+03:00') && six.payments_created_by === 'QA Admin';
-  check(ok1 && idsOk && mr === 'true|false' && sixOk && newOk && !odd && colsOk,
-    '3. Import: exactly those invoices get exactly those IDs, and the ruled-out one leaves the money that counts; the known code (another case) takes Payments\' figures and keeps its company link and notes; the new fixed, expired code is made; the unreadable one is not',
-    JSON.stringify({ ok1, colsOk, c1: c1 && [c1.has_vat_number, c1.pricing_setting, c1.block_on_overdue, c1.contact_name, c1.payments_updated_at], ids, mr, six: [six.kind, six.value_pct, six.total_sales_sar, six.valid_to, six.payments_client_name, six.partner_business_id], nw: nw && [nw.kind, nw.value_pct, nw.active, nw.expired], odd: !!odd }));
+  check(ok1 && untouched && sixOk && newOk && !odd && colsOk,
+    '3. Import: the client register holds every column; not one invoice row is written (matching is live, never a stamp); the known code (another case) takes Payments\' figures and keeps its company link and notes; the new fixed, expired code is made; the unreadable one is not',
+    JSON.stringify({ ok1, untouched, colsOk, c1: c1 && [c1.legal_name, c1.trading_name, c1.has_vat_number, c1.pricing_setting, c1.contact_email, c1.payments_updated_at], six: [six.kind, six.value_pct, six.total_sales_sar, six.valid_to, six.payments_client_name, six.partner_business_id], nw: nw && [nw.kind, nw.value_pct, nw.active, nw.expired], odd: !!odd }));
 
   await drop(s, [FILE_PC1, FILE_PR]); await phase(s, ['preview', 'error']);
   const nothing = await attr(s, '#v122Out [data-v122-nothing]', 'data-v122-nothing'), btn = await s.p.$('#v122Out [data-v122-go]');

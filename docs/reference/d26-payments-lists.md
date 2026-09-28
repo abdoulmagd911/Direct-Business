@@ -6,13 +6,9 @@ ACTIVE · 2026-09-28 · second builder · guard `scripts/qa/probe-payments-lists
   js/121's reader: the Corporate clients export and the Promo codes export. Both are written by a person pressing Import
   (D17), through `fn_payments_clients_import` and `fn_promo_codes_import` (`scripts/sql/clients-promo-import.sql`), which need
   Full control of Finance.
-- **The client list** is kept as a mirror of Payments' client register (`payments_clients`, keyed by the Payments client ID).
-  Its one job in the money: the **contact email** gives an imported invoice row its Payments client ID — the invoice export
-  carries none — which is what the client-ID merges and exclusions on Finance → Rules match (D16). An email counts only when
-  exactly one client carries it and it is not a Direct staff address (those invoices are linked by a person). Only an EMPTY
-  client ID is filled; a hand-entered row is never touched (D21). An invoice imported after the list takes its ID at once.
-  The preview says how many invoices get an ID, and how many of those your client-ID rules then leave out.
-- **Nothing links a Payments client to a company in the app** — that stays a person's act on the company card (D10).
+- **The client list** is kept as a mirror of Payments' client register (`payments_clients`, keyed by the Payments client
+  ID). It writes nothing onto invoice rows: matching a money row to a company is a live view over each company's
+  identifiers, never a stamp (the owner's ruling of 28 Sep on company identifiers, built next).
 - **The promo codes** go into the existing registry (`promo_codes`), matched by code in any case: Payments owns each code's
   dates, totals, type, discount and status. A new code whose type is neither percentage nor fixed is left out and listed —
   never guessed. The export's Client Name is kept only as a suggestion (`payments_client_name`); a person links the code to

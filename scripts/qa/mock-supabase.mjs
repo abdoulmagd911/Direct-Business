@@ -365,9 +365,6 @@ function mockCostFromLines(ref){ const a=(TABLES.finance_expense_lines||[]).filt
   return a.length?Math.round(a.reduce((s,l)=>s+(Number(l.amount_sar)||0),0)*100)/100:null; }
 function mockFactsRow(ref){ const P=TABLES.finance_payments_facts=TABLES.finance_payments_facts||[]; let p=P.find(x=>x.ref===ref);
   if(!p){ p={id:'mock-pf-'+(P.length+1),ref}; P.push(p); } return p; }
-/* D26 helper: the one client ID an email stands for — exactly one client carries it, and it is not a Direct staff address */
-function mockClientForEmail(e){ e=String(e||'').trim().toLowerCase(); if(!e||/@([a-z0-9-]+\.)*directksa\./i.test(e)) return null;
-  const l=(TABLES.payments_clients||[]).filter(c=>String(c.contact_email||'').trim().toLowerCase()===e); return l.length===1?l[0].client_id:null; }
 function mockLevelsOf(u){
   const out={};
   MOCK_ACCESS_PAGES.forEach(p=>{
@@ -939,8 +936,8 @@ export function start(port, seedOverrides){
       }
       /* D26 — mirrors public.fn_payments_clients_import / fn_promo_codes_import (scripts/sql/clients-promo-import.sql): a newer
          file wins field by field, an older one only fills blanks, a blank never wipes, the same file twice changes nothing;
-         the client list then fills an EMPTY payments_client_id on imported invoice rows from the customer email; a new
-         promo code needs a readable type; the Client Name is only kept as a suggestion (no company link is made). */
+         nothing is written onto invoice rows; a new promo code needs a readable type; the Client Name is only kept as a
+         suggestion (no company link is made). */
       if(fn==='fn_payments_clients_import'||fn==='fn_promo_codes_import'){
         const isPc=fn==='fn_payments_clients_import', me=(TABLES.app_users||[]).find(x=>x.id===UID&&x.active)||{};
         if(!me.id||mockLevelsOf(me).finance!=='full') return send(res,403,{code:'42501',message:(isPc?'client list import':'promo codes import')+': this needs Full control of Finance'});
@@ -960,12 +957,8 @@ export function start(port, seedOverrides){
             F.forEach(f=>{ m[f]=pk(t[f],x[f],newer); if(!eq(m[f],t[f])) diff=true; });
             const ns=(t.seen_at&&Date.parse(t.seen_at)>S)?t.seen_at:seen; if(ns!==t.seen_at) diff=true;
             if(diff){ Object.assign(t,m,{seen_at:ns,source_batch:parsed.p_batch||null}); ch++; } });
-          let linked=0; (TABLES.finance_invoices||[]).forEach(i=>{ if(i.deleted_at||i.payments_client_id||(i.source||'import')!=='import'||!i.customer_email) return;
-            const c=mockClientForEmail(i.customer_email); if(c){ i.payments_client_id=c; linked++; } });
-          const em={}; T.forEach(c=>{ const e=String(c.contact_email||'').trim().toLowerCase(); if(e) em[e]=(em[e]||0)+1; });
           const n=Object.keys(inn).length;
-          return send(res,200,JSON.stringify({clients_in_file:n,clients_new:nw,clients_changed:ch,clients_same:n-nw-ch,invoices_linked:linked,
-            emails_shared:Object.keys(em).filter(e=>em[e]>1).length,emails_staff:T.filter(c=>/@([a-z0-9-]+\.)*directksa\./i.test(c.contact_email||'')).length}));
+          return send(res,200,JSON.stringify({clients_in_file:n,clients_new:nw,clients_changed:ch,clients_same:n-nw-ch}));
         }
         const PF={payments_promo_type:'promo_type',payments_discount_type:'discount_type',payments_discount:'discount',payments_product:'product',payments_status:'status',
           payments_client_name:'client_name',valid_from:'valid_from',valid_to:'valid_to',total_sales_sar:'total_sales_sar',total_discount_sar:'total_discount_sar',
@@ -1020,8 +1013,6 @@ export function start(port, seedOverrides){
           /* D25: trg_fin_inv_a_cost_from_lines — a money row arriving after its expense lines takes its cost from them */
           if(clean.cost_sar==null&&(clean.source||'import')==='import'&&clean.revenue_way!=='commission'){ const v=mockCostFromLines(clean.invoice_no);
             if(v!=null){ clean.cost_sar=v; mockFactsRow(clean.invoice_no).lines_cost_sar=v; } }
-          /* D26: trg_fin_inv_b_client_from_email — a row arriving after the client list takes its client ID from its email */
-          if(!clean.payments_client_id&&clean.customer_email&&(clean.source||'import')==='import'){ const c=mockClientForEmail(clean.customer_email); if(c) clean.payments_client_id=c; }
           fiTable.push(deriveFinanceInvoice(Object.assign({id:'mock-fi-'+(++_finIdSeq)}, clean)));
           inserted++;
         });

@@ -1888,31 +1888,29 @@ if _has_lists:   # scripts/sql/clients-promo-import.sql
     def cid(cur, no):
         return one(cur, "select coalesce(payments_client_id,'∅') from finance_invoices where invoice_no=%s and deleted_at is null", (no,))
 
-    @test("CP-01 The client list links invoices by contact email — only an EMPTY client ID, only an imported row, never a staff address or an email two clients share")
+    @test("CP-01 The client list is stored as Payments' register, field by field — and writes NOTHING onto invoice rows (matching is live, never a stamp)")
     def _(cur):
-        fi(cur, 'CP-1A', 100, customer_email=' Buyer@Client-One.test '); fi(cur, 'CP-1B', 100, customer_email='buyer@client-one.test', source='manual')
-        fi(cur, 'CP-1C', 100, customer_email='buyer@client-one.test', payments_client_id='C-OTHER')
-        fi(cur, 'CP-1D', 100, customer_email='someone@directksa.com'); fi(cur, 'CP-1E', 100, customer_email='shared@both.test')
+        fi(cur, 'CP-1A', 100, customer_email='buyer@client-one.test'); fi(cur, 'CP-1C', 100, customer_email='buyer@client-one.test', payments_client_id='C-OTHER')
         as_user(cur, 'u4')
+        h1 = one(cur, "select count(*) from record_history where table_name='finance_invoices'")
         r = pc(cur, [{'client_id': '9101', 'legal_name': 'Client One Co', 'contact_email': 'BUYER@client-one.test', 'credit_term_days': 30, 'payment_mode': 'Postpaid',
                       'has_vat_number': 'Yes', 'pricing_setting': 'Standard', 'block_on_overdue': 'No', 'payments_updated_at': '2026-09-20T10:00:00+03:00'},
-                     {'client_id': '9102', 'legal_name': 'Staff test', 'contact_email': 'someone@directksa.com'},
-                     {'client_id': '9103', 'contact_email': 'shared@both.test'}, {'client_id': '9104', 'contact_email': 'Shared@Both.test'}])
-        got = [cid(cur, n) for n in ('CP-1A', 'CP-1B', 'CP-1C', 'CP-1D', 'CP-1E')]
+                     {'client_id': '9102', 'legal_name': 'Staff test', 'contact_email': 'someone@directksa.com'}])
+        got = [cid(cur, n) for n in ('CP-1A', 'CP-1C')]
+        h2 = one(cur, "select count(*) from record_history where table_name='finance_invoices'")
         st = one(cur, "select legal_name||'|'||contact_email||'|'||credit_term_days||'|'||payment_mode||'|'||has_vat_number||'|'||pricing_setting||'|'||block_on_overdue||'|'||to_char(payments_updated_at at time zone 'Asia/Riyadh','YYYY-MM-DD HH24:MI') from payments_clients where client_id='9101'"); q(cur, "reset role")
-        ok = (got == ['9101', '∅', 'C-OTHER', '∅', '∅'] and r['clients_new'] == 4 and r['invoices_linked'] == 1 and r['emails_shared'] == 1
-              and r['emails_staff'] == 1 and st == 'Client One Co|buyer@client-one.test|30|Postpaid|Yes|Standard|No|2026-09-20 10:00')
-        return (ok, f"imported/hand/already-linked/staff/shared → {got} · stored={st} · result={r}")
+        ok = (got == ['∅', 'C-OTHER'] and h1 == h2 and r['clients_new'] == 2 and set(r) == {'clients_in_file', 'clients_new', 'clients_changed', 'clients_same'}
+              and st == 'Client One Co|buyer@client-one.test|30|Postpaid|Yes|Standard|No|2026-09-20 10:00')
+        return (ok, f"invoice client IDs after the import → {got} · invoice change-log rows {h1}/{h2} · stored={st} · result={r}")
 
-    @test("CP-02 The same client list twice changes nothing — no client row, no invoice, no change-log entry")
+    @test("CP-02 The same client list twice changes nothing — no client row, no change-log entry")
     def _(cur):
-        fi(cur, 'CP-2', 100, customer_email='two@client.test')
         rows = [{'client_id': '9201', 'legal_name': 'Two Co', 'contact_email': 'two@client.test', 'credit_limit_sar': 50000}]
         as_user(cur, 'u4'); pc(cur, rows)
         h1 = one(cur, "select count(*) from record_history where table_name in ('payments_clients','finance_invoices')")
         r = pc(cur, rows)
         h2 = one(cur, "select count(*) from record_history where table_name in ('payments_clients','finance_invoices')"); q(cur, "reset role")
-        return (r['clients_new'] == 0 and r['clients_changed'] == 0 and r['clients_same'] == 1 and r['invoices_linked'] == 0 and h1 == h2,
+        return (r['clients_new'] == 0 and r['clients_changed'] == 0 and r['clients_same'] == 1 and h1 == h2,
                 f"second run={r} · change-log rows before/after={h1}/{h2}")
 
     @test("CP-03 Any order for the client list: a newer file wins, an older one only fills blanks, a blank never wipes")
@@ -1925,18 +1923,16 @@ if _has_lists:   # scripts/sql/clients-promo-import.sql
         b = one(cur, "select legal_name||'|'||contact_phone||'|'||credit_term_days from payments_clients where client_id='9301'"); q(cur, "reset role")
         return (a == 'Name Aug|0500000001|30' and b == 'Name Aug|0500000001|45', f"older file after newer → {a} · newer with a blank name → {b}")
 
-    @test("CP-04 Any order: an invoice imported AFTER the client list takes its client ID at once — and a client-ID exclusion on Finance → Rules then leaves it out")
+    @test("CP-04 An invoice imported AFTER the client list is not stamped either — no trigger writes a client ID onto a money row")
     def _(cur):
         as_user(cur, 'u4')
         pc(cur, [{'client_id': '9401', 'legal_name': 'Test client', 'contact_email': 'test@client-four.test'}])
-        one(cur, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','9401','test client') returning id")
         q(cur, "reset role")
-        a = fi(cur, 'CP-4A', 300, customer_email='test@client-four.test'); b = fi(cur, 'CP-4B', 300)
-        q(cur, "update finance_invoices set customer_email='test@client-four.test' where invoice_no='CP-4B'")
-        as_user(cur, 'u4')
-        got = [cid(cur, 'CP-4A'), cid(cur, 'CP-4B')]
-        rule = [row(cur, a, "excluded::text||'|'||counts::text"), row(cur, b, "excluded::text||'|'||counts::text")]; q(cur, "reset role")
-        return (got == ['9401', '9401'] and rule == ['true|false', 'true|false'], f"client ID on insert / on email change → {got} · excluded|counts → {rule}")
+        fi(cur, 'CP-4A', 300, customer_email='test@client-four.test')
+        q(cur, "update finance_invoices set customer_email='test@client-four.test' where invoice_no='CP-4A'")
+        trg = one(cur, "select count(*) from pg_trigger where tgrelid='public.finance_invoices'::regclass and tgname like '%%client%%'")
+        got = cid(cur, 'CP-4A')
+        return (got == '∅' and trg == 0, f"client ID after insert and email change → {got} · client triggers on finance_invoices={trg}")
 
     @test("CP-05 Only Full control of Finance imports the lists — View is refused by the database, anon cannot even call it")
     def _(cur):

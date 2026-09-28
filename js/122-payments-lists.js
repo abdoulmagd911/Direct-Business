@@ -4,11 +4,8 @@
    Two small Payments exports, read through js/121's reader (one peek per file, Excel in its background worker) and written
    through two database functions (scripts/sql/clients-promo-import.sql), by a person, on Finance → Import:
      · Corporate clients export (ID, Legal Name, …, Contact Email, Credit Term Days, …) → public.payments_clients, the
-       mirror of Payments' client register (fn_payments_clients_import). Its job in the money: the CONTACT EMAIL gives an
-       invoice row its Payments client ID (the invoice export has none), which is what the client-ID merges and exclusions
-       on Finance → Rules match (D16). An email counts only when exactly one client carries it and it is not a Direct
-       staff address; only an EMPTY client ID is filled, never a hand-entered row (D21). The preview says how many
-       invoices get a client ID, and how many of those your client-ID rules then leave out.
+       mirror of Payments' client register (fn_payments_clients_import). It writes nothing onto invoice rows: matching a
+       money row to a company is a live view over each company's identifiers, never a stamp (the owner, 28 Sep).
      · Promo codes export (Code, Client Name, Promocode Type, Type, Discount, Product, Status, Valid From/To, Total Sales,
        Total Discount) → public.promo_codes (fn_promo_codes_import). Client Name is kept as a SUGGESTION: a person links a
        code to a company on the company card (D10); nothing here links it.
@@ -54,8 +51,6 @@
   function text(v){ if(v==null) return null; if(typeof v==='number') return isFinite(v)?String(v):null;
     var s=String(v).trim(); return s===''?null:s; }
   function idText(v){ if(typeof v==='number') return isFinite(v)?String(Math.round(v)):null; var s=V.ref(v); return s===''?null:s; }
-  function isStaff(e){ return /@([a-z0-9-]+\.)*directksa\./i.test(String(e||'')); }
-  function norm(s){ return String(s==null?'':s).toLowerCase().replace(/\s+/g,''); }
   function promoKind(type, disc){ var t=String(type||'').toLowerCase();
     if(/percent|%|نسب|مئوي/.test(t)) return 'percent'; if(/fixed|amount|flat|value|مبلغ|ثابت|قيمة/.test(t)) return 'fixed';
     if(!t&&/%\s*$/.test(String(disc||''))) return 'percent'; return null; }
@@ -95,23 +90,14 @@
   function same(a,b,f){ if(a==null||b==null) return a==null&&b==null; if(f&&TIME[f]) return Date.parse(a)===Date.parse(b); if(typeof a==='number'||typeof b==='number') return Math.abs(Number(a)-Number(b))<1e-9; return String(a)===String(b); }
   function pick(o,n,newer){ return n==null?o:(newer?n:(o==null?n:o)); }
 
-  function simulatePc(S, stored, inv, rules){
+  function simulatePc(S, stored){
     var by={}; stored.forEach(function(t){ by[t.client_id]=t; });
-    var s={nw:0, ch:0, sm:0}, after={}; stored.forEach(function(t){ after[t.client_id]=t; });
+    var s={nw:0, ch:0, sm:0};
     Object.keys(S.rows).forEach(function(k){ var x=S.rows[k], t=by[k];
-      if(!t){ s.nw++; after[k]=x; return; }
-      var newer=!t.seen_at||Date.parse(S.asOf)>=Date.parse(t.seen_at), m={client_id:k}, diff=Date.parse(S.asOf)>Date.parse(t.seen_at||0);
-      PCF.forEach(function(f){ m[f]=pick(t[f],x[f],newer); if(!same(m[f],t[f],f)) diff=true; });
-      if(diff) s.ch++; else s.sm++; after[k]=m; });
-    var em={}; Object.keys(after).forEach(function(k){ var e=after[k].contact_email; if(!e) return; e=String(e).trim().toLowerCase(); (em[e]=em[e]||[]).push(k); });
-    s.shared=Object.keys(em).filter(function(e){ return em[e].length>1; }).length;
-    s.staff=Object.keys(after).filter(function(k){ return isStaff(after[k].contact_email); }).length;
-    var ruled={}; (rules||[]).forEach(function(r){ if(r.kind==='client_id'&&r.active&&!r.removed_at) ruled[norm(r.value)]=r; });
-    s.link=0; s.linkSar=0; s.out=0; s.outSar=0; s.byClient={};
-    inv.forEach(function(i){ if(i.payments_client_id||(i.source||'import')!=='import'||!i.customer_email) return;
-      var e=String(i.customer_email).trim().toLowerCase(); if(isStaff(e)) return; var l=em[e]; if(!l||l.length!==1) return;
-      var c=l[0], rev=+i.revenue_sar||0; s.link++; s.linkSar+=rev; var b=s.byClient[c]=s.byClient[c]||{n:0,sar:0,name:after[c].legal_name||after[c].trading_name||'',out:false}; b.n++; b.sar+=rev;
-      if(ruled[norm(c)]){ s.out++; s.outSar+=rev; b.out=true; } });
+      if(!t){ s.nw++; return; }
+      var newer=!t.seen_at||Date.parse(S.asOf)>=Date.parse(t.seen_at), diff=Date.parse(S.asOf)>Date.parse(t.seen_at||0);
+      PCF.forEach(function(f){ if(!same(pick(t[f],x[f],newer),t[f],f)) diff=true; });
+      if(diff) s.ch++; else s.sm++; });
     return s; }
   function simulatePr(S, stored){
     var by={}; stored.forEach(function(t){ var k=String(t.code||'').trim().toLowerCase(); (by[k]=by[k]||[]).push(t); });
@@ -139,18 +125,16 @@
     var need=0, fail=null, D={};
     function done(){ if(--need>0) return; if(gen!==GEN) return;
       if(fail){ S.phase='error'; S.msg=fl('Could not read what Finance holds: ','تعذّرت قراءة ما في المالية: ')+String(fail.message||fail); paint(); return; }
-      S.files.forEach(function(F){ if(F.err||!F.header) return; F.sim=F.kind==='pc'?simulatePc(F,D.pc||[],D.inv||[],D.rules||[]):simulatePr(F,D.pr||[]); });
+      S.files.forEach(function(F){ if(F.err||!F.header) return; F.sim=F.kind==='pc'?simulatePc(F,D.pc||[]):simulatePr(F,D.pr||[]); });
       S.phase='preview'; paint(); }
     var kinds={}; S.files.forEach(function(F){ if(!F.err&&F.header) kinds[F.kind]=1; });
-    if(kinds.pc){ need+=3;
-      pageAll(function(){ return c.from('payments_clients').select('client_id,'+PCF.join(',')+',seen_at').order('client_id',{ascending:true}); },function(e,r){ if(e) fail=e; D.pc=r; done(); });
-      pageAll(function(){ return c.from('finance_invoices').select('id,invoice_no,customer_email,payments_client_id,source,revenue_sar').is('deleted_at',null).order('id',{ascending:true}); },function(e,r){ if(e) fail=e; D.inv=r; done(); });
-      c.from('money_exclusion_rules').select('kind,value,active,removed_at').then(function(r){ D.rules=r.error?[]:(r.data||[]); done(); }); }
+    if(kinds.pc){ need++;
+      pageAll(function(){ return c.from('payments_clients').select('client_id,'+PCF.join(',')+',seen_at').order('client_id',{ascending:true}); },function(e,r){ if(e) fail=e; D.pc=r; done(); }); }
     if(kinds.pr){ need++;
       pageAll(function(){ return c.from('promo_codes').select('id,code,kind,value_pct,valid_from,valid_to,total_sales_sar,total_discount_sar,active,expired,payments_promo_type,payments_discount_type,payments_discount,payments_product,payments_status,payments_client_name,payments_created_at,payments_created_by,payments_seen_at').order('code',{ascending:true}); },function(e,r){ if(e) fail=e; D.pr=r; done(); }); }
     if(!need){ S.phase='preview'; paint(); }
   }
-  function nothingNew(F){ var s=F.sim; return !s||!(s.nw||s.ch||(F.kind==='pc'&&s.link)); }
+  function nothingNew(F){ var s=F.sim; return !s||!(s.nw||s.ch); }
 
   window.v122Import=function(){
     var S=STATE; if(!S||S.phase!=='preview') return;
@@ -179,15 +163,7 @@
     if(s&&F.kind==='pc'){
       h+='<ul style="margin:6px 0 0;padding-inline-start:18px">';
       h+='<li data-v122-clients="'+[s.nw,s.ch,s.sm].join(',')+'">'+fl('Clients: ','العملاء: ')+'<b>'+I(s.nw)+'</b> '+fl('new','جديد')+', <b>'+I(s.ch)+'</b> '+fl('changed','متغيّر')+', '+I(s.sm)+' '+fl('unchanged','بلا تغيير')+'</li>';
-      h+='<li data-v122-link="'+[s.link,Math.round(s.linkSar)].join(',')+'">'+fl('Invoices that get their Payments client ID from the customer email: ','فواتير تأخذ رقم عميلها في المدفوعات من بريد العميل: ')+'<b>'+I(s.link)+'</b> (SAR '+I(Math.round(s.linkSar))+')'+
-        ' — '+fl('only where it is empty; a hand-entered row is never touched.','حيث كان فارغًا فقط؛ الصف المُدخل يدويًا لا يُمس.')+'</li>';
-      h+='<li data-v122-out="'+[s.out,Math.round(s.outSar)].join(',')+'">'+(s.out?'<b style="color:#B54708">'+I(s.out)+' '+fl('of them','منها')+' (SAR '+I(Math.round(s.outSar))+')</b> '+fl('are then left out by your client-ID rules on Finance → Rules (test clients, Takamol …).','ستُستبعد عندها بقواعد رقم العميل في المالية ← القواعد (عملاء تجريبيون، تكامل …).')
-        :fl('None of them falls under a client-ID rule on Finance → Rules.','لا يقع أي منها تحت قاعدة رقم عميل في المالية ← القواعد.'))+'</li>';
-      if(s.shared||s.staff) h+='<li data-v122-skipped="'+[s.shared,s.staff].join(',')+'">'+fl('Never used to link: ','لا يُستعمل للربط: ')+(s.shared?I(s.shared)+' '+fl('email(s) that several clients share','بريد يتشاركه أكثر من عميل')+(s.staff?' · ':''):'')+(s.staff?I(s.staff)+' '+fl('Direct staff address(es)','عنوان موظف في دايركت'):'')+' — '+fl('a person links those invoices.','يربط شخصٌ تلك الفواتير.')+'</li>';
-      h+='<li style="color:var(--muted)">'+fl('Linking a Payments client to a company in the app stays on the company card (a person decides).','ربط عميل المدفوعات بشركة في التطبيق يبقى في بطاقة الشركة (يقرّره شخص).')+'</li></ul>';
-      var cl=Object.keys(s.byClient).sort(function(a,b){ return s.byClient[b].sar-s.byClient[a].sar; }).slice(0,20);
-      if(cl.length) h+='<table class="tbl" style="margin-top:6px;font-size:12px"><thead><tr><th>'+fl('Client ID','رقم العميل')+'</th><th>'+fl('Name in Payments','الاسم في المدفوعات')+'</th><th>'+fl('Invoices','الفواتير')+'</th><th>SAR</th><th></th></tr></thead><tbody>'+
-        cl.map(function(k){ var b=s.byClient[k]; return '<tr data-v122-client="'+esc(k)+'"><td>'+esc(k)+'</td><td>'+esc(b.name)+'</td><td>'+I(b.n)+'</td><td>'+I(Math.round(b.sar))+'</td><td>'+(b.out?'<span style="color:#B54708">'+fl('left out by a rule','مستبعد بقاعدة')+'</span>':'')+'</td></tr>'; }).join('')+'</tbody></table>';
+      h+='<li>'+fl('Kept as Payments\' client register. Nothing is written onto invoices here.','تُحفظ سجلًا لعملاء المدفوعات. لا يُكتب شيء على الفواتير هنا.')+'</li></ul>';
     } else if(s){
       h+='<ul style="margin:6px 0 0;padding-inline-start:18px">';
       h+='<li data-v122-codes="'+[s.nw,s.ch,s.sm,s.noType].join(',')+'">'+fl('Codes: ','الأكواد: ')+'<b>'+I(s.nw)+'</b> '+fl('new','جديد')+', <b>'+I(s.ch)+'</b> '+fl('changed','متغيّر')+', '+I(s.sm)+' '+fl('unchanged','بلا تغيير')+
@@ -218,8 +194,8 @@
     }
     if(S.phase==='writing') h+='<div style="font-size:13px;margin-top:6px">'+fl('Writing…','جارٍ الكتابة…')+'</div>';
     if(S.phase==='done'){ var r=S.res||{};
-      h+='<div style="font-size:13px;color:#0F6E56;margin-top:6px" data-v122-done="'+[r.clients_new||0,r.clients_changed||0,r.invoices_linked||0,r.codes_new||0,r.codes_changed||0].join(',')+'"><b>'+fl('Done.','تم.')+'</b> '+
-        (('clients_in_file' in r)?I(r.clients_new||0)+' '+fl('new clients','عميل جديد')+', '+I(r.clients_changed||0)+' '+fl('changed','متغيّر')+', '+I(r.invoices_linked||0)+' '+fl('invoices got their client ID','فاتورة أخذت رقم عميلها')+'. ':'')+
+      h+='<div style="font-size:13px;color:#0F6E56;margin-top:6px" data-v122-done="'+[r.clients_new||0,r.clients_changed||0,r.codes_new||0,r.codes_changed||0].join(',')+'"><b>'+fl('Done.','تم.')+'</b> '+
+        (('clients_in_file' in r)?I(r.clients_new||0)+' '+fl('new clients','عميل جديد')+', '+I(r.clients_changed||0)+' '+fl('changed','متغيّر')+'. ':'')+
         (('codes_in_file' in r)?I(r.codes_new||0)+' '+fl('new codes','كود جديد')+', '+I(r.codes_changed||0)+' '+fl('changed','متغيّر')+'. ':'')+fl('Every change is in the change log.','كل تغيير مسجّل في سجل التغييرات.')+'</div>'; }
     if(S.phase==='error') h+='<div style="font-size:13px;color:#D92D20;margin-top:6px" data-v122-error="1">'+esc(S.msg||'')+'</div>';
     else if(S.msg) h+='<div style="font-size:13px;margin-top:6px">'+esc(S.msg)+'</div>';
