@@ -123,6 +123,24 @@ touch a v0.7 line, these win.*
     go-live the domain moves to the new project and the sign-in settings list it.
 13. **Google and Zoom sign-in keys:** later; building proceeds with the emailed code.
 
+**Owner changes, round 3 (28 Sep, relayed by the oversight)** — decisions V52–V61 in `DECISIONS.md`:
+
+14. **Companies become Partners**, one record with roles Client / Supplier / Strategic partner, and one tab row by role:
+    Overview · Finance · Contracts & files · Work · Achievements (the code is renamed too — V52).
+15. **Logos and avatars** in rows, chips, headers and hover cards (V53).
+16. **The partner card's period view** MTD · QTD · YTD · Custom, **Open in Finance** with the filters in the address,
+    and saved views (V54).
+17. **Files named automatically** from a pattern per kind, computed when shown and used by the download (V55).
+18. **Contracts** with start and end dates, a computed status and renewal reminders (V56).
+19. **Reports archive**, including the 2024–2026 PDFs, and **compare two periods** (V57).
+20. **Live names everywhere**: an issued report freezes its figures but shows people's and partners' current names (V58).
+21. **Sign-in**: the emailed code is the door; keep signed in 30 days; the page shows only the logo, "Commercial
+    Workspace", EN | ع and © Direct; never "Direct KSA", "DirectKSA", "Direct Corporate", "B2B" or "MICE"; the
+    department is "Commercial"; a real mail sender before real users (V59).
+22. **The Direct theme uses the official palette**; every theme has a primary colour for buttons; logo rules (V60).
+23. **Patterns**: notification centre, alerts as notifications, hover cards, follow, activity timeline with Undo, saved
+    views, bulk actions, "Since your last visit" (V61).
+
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
 are excluded from revenue, and collections are settled on them; cost is the sum of approved expenses on the
