@@ -1,10 +1,11 @@
 /* probe-payments-lists.mjs (2026-09-28) — D26, the Direct Payments client list and promo codes exports through js/122 (on
    js/121's reader) into the stand-in, which mirrors fn_payments_clients_import / fn_promo_codes_import
-   (scripts/sql/clients-promo-import.sql). Made-up IDs (90…), companies, emails and amounts only (rule 7); the headers are
-   the ones Drive 04 §5 lists for the 27 Sep exports.
+   (scripts/sql/clients-promo-import.sql). Made-up IDs (90…), companies, emails and amounts only (rule 7); the header rows
+   are the real 27 Sep ones, as the oversight gave them on 28 Sep.
 
    What it holds:
-     1. both lists are RECOGNISED (never js/65's "not recognized"); an invoice export dropped with them still goes to js/65;
+     1. both lists, with the REAL 27 Sep header rows, are RECOGNISED and every column matched (none reported missing), never js/65's
+        "not recognized"; an invoice export dropped with them still goes to js/65;
      2. the preview: 5 clients new; 3 invoices (SAR 2,500) get their Payments client ID from the customer email — not the
         hand-entered row, not the one already linked, not a Direct staff address, not an email two clients share; 1 of them
         (SAR 500) is then left out by a client-ID rule on Finance → Rules; codes: 1 new, 1 changed, 1 new code whose type
@@ -17,11 +18,12 @@
      6. the block reads Arabic;
      7. a View-only person has no Import card, and the database refuses both imports;
      8. no JS error, no native dialog.
-   Sabotage (SABOTAGE=A|B|C|D swaps in a broken layer; each run 28 Sep, each caught):
+   Sabotage (SABOTAGE=A|B|C|D|E swaps in a broken layer; each run 28 Sep, each caught):
      A  js/122 treats a Direct staff address as a client's email  → 2, 4 red (4 invoices would be linked, not 3)
      B  js/122 sends "now" instead of the file's export time       → 5 red (the older file's name wins)
      C  js/122 never plugs into js/121                            → 1–6 red (the files are "not recognized")
      D  js/122 guesses "percent" for a type it cannot read         → 2, 3 red (the unreadable code is created)
+     E  js/122 names one column differently from the real export  → 1, 3 red (reported missing; the contact name is not stored)
    PORTS 9871 … 9873. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
@@ -48,26 +50,32 @@ const SEED_RULES = [{ id: 'qa-rule-1', kind: 'client_id', value: '9005', value_n
 const SEED_CODES = [{ id: 'qa-code-1', code: 'QASIX', kind: 'percent', value_pct: 5, valid_from: null, valid_to: null, total_sales_sar: 0, total_discount_sar: 0,
   active: true, expired: false, partner_business_id: 'qa-partner-biz', notes: 'kept note', payments_seen_at: null }];
 
-const PCH = ['ID', 'Legal Name', 'Legal Name (Arabic)', 'Trading Name', 'Payment Mode', 'Client Payment Configuration', 'Billing Cycle', 'VAT Number', 'ID Type', 'ID Number',
-  'Registration Numbers', 'Contact Email', 'Contact Name', 'Contact Phone', 'Customer Type', 'Credit Limit', 'Credit Term Days', 'Tender No.', 'Tender Amount', 'Expected COGS', 'Expected GP'];
+/* the header rows exactly as the 27 Sep exports carry them (the oversight, 28 Sep) */
+const PCH = ['ID', 'Legal Name', 'Legal Name (Arabic)', 'Trading Name', 'Customer Type', 'Client Payment Configuration', 'Payment Mode', 'Billing Cycle', 'Tender No.',
+  'Registration Numbers', 'Has VAT Number', 'ID Type', 'ID Number', 'VAT Number', 'Contact Information', 'Contact Full Name', 'Contact Email', 'Contact Phone', 'Credit Limit',
+  'Credit Term Days', 'Block On Overdue', 'Tender Amount', 'Expected COGS', 'Expected GP', 'Pricing Setting', 'Created By', 'Updated By', 'Created At', 'Updated At'];
 const q = (v) => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
 const csv = (h, rows) => [h].concat(rows).map((r) => r.map(q).join(',')).join('\n');
-const pc = (id, name, email, o) => { const r = [id, name, 'شركة تجريبية', name + ' Trading', 'Postpaid', 'Postpaid', 'Monthly', '300000000000003', 'CR', '1010000000', '1010000000',
-  email, 'QA Contact', '', 'Corporate', '50,000.00', 30, '', '', '', '']; Object.assign(r, o || {}); return r; };
+const pc = (id, name, email, o) => { const v = Object.assign({ 'ID': id, 'Legal Name': name, 'Legal Name (Arabic)': 'شركة تجريبية', 'Trading Name': name + ' Trading',
+  'Customer Type': 'Corporate', 'Client Payment Configuration': 'Postpaid', 'Payment Mode': 'Postpaid', 'Billing Cycle': 'Monthly', 'Tender No.': '',
+  'Registration Numbers': '1010000000', 'Has VAT Number': 'Yes', 'ID Type': 'CR', 'ID Number': '1010000000', 'VAT Number': '300000000000003',
+  'Contact Information': '', 'Contact Full Name': 'QA Contact', 'Contact Email': email, 'Contact Phone': '', 'Credit Limit': '50,000.00', 'Credit Term Days': 30,
+  'Block On Overdue': 'No', 'Tender Amount': '', 'Expected COGS': '', 'Expected GP': '', 'Pricing Setting': 'Standard', 'Created By': 'QA Admin', 'Updated By': 'QA Admin',
+  'Created At': '01/01/2026 09:00:00 AM', 'Updated At': '20/09/2026 10:00:00 AM' }, o || {}); return PCH.map((h) => v[h]); };
 const PC1 = [pc('9001', 'QA One Co', 'Buyer@One.test'), pc('9002', 'QA Staff Test', 'person@directksa.com'), pc('9003', 'QA Two A', 'shared@two.test'),
   pc('9004', 'QA Two B', 'SHARED@two.test'), pc('9005', 'QA Test Client', 'test@qa-client.test')];
 const FILE_PC1 = { name: '2026-09-27_10-00-00-corporate-clients-QA.csv', mimeType: 'text/csv', buffer: Buffer.from(csv(PCH, PC1)) };
-const PC0 = [pc('9001', 'QA One Co (old name)', 'buyer@one.test', { 13: '+966500000001' })];
+const PC0 = [pc('9001', 'QA One Co (old name)', 'buyer@one.test', { 'Contact Phone': '+966500000001' })];
 const FILE_PC0 = { name: '2026-09-20_10-00-00-corporate-clients-QA.csv', mimeType: 'text/csv', buffer: Buffer.from(csv(PCH, PC0)) };   // OLDER
-const PC2 = [pc('9001', 'QA One Co', 'buyer@one.test', { 15: '', 16: 45 })];
+const PC2 = [pc('9001', 'QA One Co', 'buyer@one.test', { 'Credit Limit': '', 'Credit Term Days': 45 })];
 const FILE_PC2 = { name: '2026-09-28_10-00-00-corporate-clients-QA.csv', mimeType: 'text/csv', buffer: Buffer.from(csv(PCH, PC2)) };   // NEWER, blank credit limit
 
-const PRH = ['Code', 'Client Name', 'Promocode Type', 'Type', 'Discount', 'Product', 'Status', 'Valid From', 'Valid To', 'Total Sales', 'Total Discount'];
+const PRH = ['Code', 'Promocode Type', 'Client Name', 'Type', 'Discount', 'Product', 'Status', 'Total Sales', 'Total Discount', 'Valid From', 'Valid To', 'Created At', 'Created By'];
 const xlsxBuf = (h, rows) => { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([h].concat(rows)), 'Sheet1'); return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }); };
 const FILE_PR = { name: '2026-09-27_10-05-00-promo-codes-QA.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  buffer: xlsxBuf(PRH, [['qasix', 'QA Partner', 'Corporate', 'Percentage', '12%', 'Direct Flights', 'Active', '01/01/2026', '31/12/2026', '15,000.50 SAR', '1,800.00 SAR'],
-    ['QANEW', '', 'General', 'Fixed', 100, 'Direct Hotels', 'Expired', '01/01/2026', '30/06/2026', 900, 0],
-    ['QAODD', '', 'General', 'Mystery', 3, '', 'Active', '', '', 0, 0]]) };
+  buffer: xlsxBuf(PRH, [['qasix', 'Corporate', 'QA Partner', 'Percentage', '12%', 'Direct Flights', 'Active', '15,000.50 SAR', '1,800.00 SAR', '01/01/2026', '31/12/2026', '01/01/2026 09:00:00 AM', 'QA Admin'],
+    ['QANEW', 'General', '', 'Fixed', 100, 'Direct Hotels', 'Expired', 900, 0, '01/01/2026', '30/06/2026', '01/01/2026 09:00:00 AM', 'QA Admin'],
+    ['QAODD', 'General', '', 'Mystery', 3, '', 'Active', 0, 0, '', '', '', '']]) };
 const INVH = ['Type', 'Invoice Reference #', 'Invoice Number', 'Customer Name', 'Customer Email', 'Invoice Create Date', 'Invoice Generate Date', 'Last Payment Date', 'Invoice Status',
   'Last Status At', 'Invoice Total', 'Product', 'Name', 'Item Is Taxable', 'Item Discount', 'Item Total', 'Sale Branch', 'Salesman'];
 const FILE_INV = { name: 'QA-invoice-export.csv', mimeType: 'text/csv', buffer: Buffer.from(csv(INVH, [['invoice', '9900000900', '', 'QA Paper Co', '', '10/03/2026 09:00:00 AM', '', '12/03/2026', 'Fully Paid', '12/03/2026 10:00:00 AM', 1000, '', '', '', '', '', 'Riyadh', 'QA']])) };
@@ -94,6 +102,7 @@ async function session(PORT, lang, pageAccess) {
   if (SAB === 'A') await swap('122-payments-lists.js', (s) => s.replace("function isStaff(e){ return /@([a-z0-9-]+\\.)*directksa\\./i.test(String(e||'')); }", 'function isStaff(e){ return false; }'));
   if (SAB === 'B') await swap('122-payments-lists.js', (s) => s.replace('p_seen_at:j.F.asOf,', 'p_seen_at:new Date().toISOString(),'));
   if (SAB === 'C') await swap('122-payments-lists.js', (s) => s.replace('window.v121Register({ match:', '({ match:'));
+  if (SAB === 'E') await swap('122-payments-lists.js', (s) => s.replace("contact_name:'Contact Full Name'", "contact_name:'Contact Name'"));
   if (SAB === 'D') await swap('122-payments-lists.js', (s) => s.replace("if(!t&&/%\\s*$/.test(String(disc||''))) return 'percent'; return null; }", "return 'percent'; }"));
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 120000 }); await p.waitForSelector('#cl_email', { timeout: 120000 });
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
@@ -109,7 +118,7 @@ const attr = (s, sel, a) => s.p.evaluate(([qq, n]) => { const e = document.query
 const importNow = async (s) => { if (!(await s.p.$('#v122Out [data-v122-go]'))) return false; await s.p.click('#v122Out [data-v122-go]', { timeout: 15000 }); return phase(s, ['done', 'error'], 30000); };
 const invIds = (s) => s.p.evaluate(async () => { const r = await fc().from('finance_invoices').select('invoice_no,payments_client_id').is('deleted_at', null); const o = {}; (r.data || []).forEach((x) => { o[x.invoice_no] = x.payments_client_id || '∅'; }); return o; });
 const codes = (s) => s.p.evaluate(async () => { const r = await fc().from('promo_codes').select('*'); return r.data || []; });
-const client = (s, id) => s.p.evaluate(async (k) => { const r = await fc().from('payments_clients').select('*').eq('client_id', k); return (r.data || [])[0] || null; }, id);
+const clientRow = (s, id) => s.p.evaluate(async (k) => { const r = await fc().from('payments_clients').select('*').eq('client_id', k); return (r.data || [])[0] || null; }, id);
 
 /* ================= 1–5, 8: one admin session ================= */
 {
@@ -118,9 +127,11 @@ const client = (s, id) => s.p.evaluate(async (k) => { const r = await fc().from(
   await drop(s, [FILE_PC1, FILE_PR, FILE_INV]);
   const okP = await phase(s, ['preview', 'error']);
   const kinds = await s.p.evaluate(() => [...document.querySelectorAll('#v122Out [data-v122-kind]')].map((e) => e.getAttribute('data-v122-kind')).sort().join(','));
+  await s.p.waitForFunction(() => /Invoice Export|not recogni[sz]ed/i.test((document.getElementById('finImpOut') || {}).innerText || ''), null, { timeout: 60000 }).catch(() => {});   // js/65 reads its file at its own pace
   const js65 = await s.p.evaluate(() => (document.getElementById('finImpOut') || {}).innerText || '');
-  check(okP && kinds === 'pc,pr' && !/not recogni[sz]ed/i.test(js65) && /Invoice Export/.test(js65),
-    '1. both lists are read by js/122 (never "not recognized"), and the invoice export dropped with them still goes to js/65', JSON.stringify({ okP, kinds, js65: js65.slice(0, 140) }));
+  const missing = await s.p.evaluate(() => [...document.querySelectorAll('#v122Out [data-v122-missing]')].map((e) => e.innerText).join(' | '));
+  check(okP && kinds === 'pc,pr' && !missing && !/not recogni[sz]ed/i.test(js65) && /Invoice Export/.test(js65),
+    '1. both lists, with the real 27 Sep header rows, are read by js/122 with every column matched (none reported missing); an invoice export dropped with them still goes to js/65', JSON.stringify({ okP, kinds, missing, js65: js65.slice(0, 140) }));
   const P = { clients: await attr(s, '#v122Out [data-v122-clients]', 'data-v122-clients'), link: await attr(s, '#v122Out [data-v122-link]', 'data-v122-link'),
     out: await attr(s, '#v122Out [data-v122-out]', 'data-v122-out'), skipped: await attr(s, '#v122Out [data-v122-skipped]', 'data-v122-skipped'),
     codes: await attr(s, '#v122Out [data-v122-codes]', 'data-v122-codes'), suggest: await attr(s, '#v122Out [data-v122-suggest]', 'data-v122-suggest') };
@@ -135,18 +146,21 @@ const client = (s, id) => s.p.evaluate(async (k) => { const r = await fc().from(
   const sixOk = six.kind === 'percent' && +six.value_pct === 12 && +six.total_sales_sar === 15000.5 && +six.total_discount_sar === 1800 && six.valid_to === '2026-12-31'
     && six.payments_client_name === 'QA Partner' && six.partner_business_id === 'qa-partner-biz' && six.notes === 'kept note';
   const newOk = !!nw && nw.kind === 'fixed' && +nw.value_pct === 100 && nw.active === false && nw.expired === true;
-  check(ok1 && idsOk && mr === 'true|false' && sixOk && newOk && !odd,
+  const c1 = await clientRow(s, '9001');
+  const colsOk = !!c1 && c1.has_vat_number === 'Yes' && c1.pricing_setting === 'Standard' && c1.block_on_overdue === 'No' && c1.contact_name === 'QA Contact'
+    && Date.parse(c1.payments_updated_at) === Date.parse('2026-09-20T10:00:00+03:00') && six.payments_created_by === 'QA Admin';
+  check(ok1 && idsOk && mr === 'true|false' && sixOk && newOk && !odd && colsOk,
     '3. Import: exactly those invoices get exactly those IDs, and the ruled-out one leaves the money that counts; the known code (another case) takes Payments\' figures and keeps its company link and notes; the new fixed, expired code is made; the unreadable one is not',
-    JSON.stringify({ ok1, ids, mr, six: [six.kind, six.value_pct, six.total_sales_sar, six.valid_to, six.payments_client_name, six.partner_business_id], nw: nw && [nw.kind, nw.value_pct, nw.active, nw.expired], odd: !!odd }));
+    JSON.stringify({ ok1, colsOk, c1: c1 && [c1.has_vat_number, c1.pricing_setting, c1.block_on_overdue, c1.contact_name, c1.payments_updated_at], ids, mr, six: [six.kind, six.value_pct, six.total_sales_sar, six.valid_to, six.payments_client_name, six.partner_business_id], nw: nw && [nw.kind, nw.value_pct, nw.active, nw.expired], odd: !!odd }));
 
   await drop(s, [FILE_PC1, FILE_PR]); await phase(s, ['preview', 'error']);
   const nothing = await attr(s, '#v122Out [data-v122-nothing]', 'data-v122-nothing'), btn = await s.p.$('#v122Out [data-v122-go]');
   check(nothing === '1' && !btn, '4. the same files twice: "Nothing new", no Import button', JSON.stringify({ nothing, button: !!btn }));
 
   await drop(s, [FILE_PC0]); await phase(s, ['preview', 'error']); await importNow(s); await s.p.waitForTimeout(400);
-  const c0 = await client(s, '9001');
+  const c0 = await clientRow(s, '9001');
   await drop(s, [FILE_PC2]); await phase(s, ['preview', 'error']); await importNow(s); await s.p.waitForTimeout(400);
-  const c2 = await client(s, '9001');
+  const c2 = await clientRow(s, '9001');
   check(c0 && c0.legal_name === 'QA One Co' && c0.contact_phone === '+966500000001' && +c0.credit_limit_sar === 50000 && c2 && +c2.credit_limit_sar === 50000 && c2.credit_term_days === 45,
     '5. an OLDER client list only fills blanks (the name stays, the missing phone is filled); a newer one wins but its blank credit limit never wipes the stored one',
     JSON.stringify({ older: c0 && [c0.legal_name, c0.contact_phone, c0.credit_limit_sar], newer: c2 && [c2.credit_limit_sar, c2.credit_term_days] }));

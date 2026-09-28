@@ -1867,13 +1867,14 @@ if _has_lists:   # scripts/sql/clients-promo-import.sql
         fi(cur, 'CP-1C', 100, customer_email='buyer@client-one.test', payments_client_id='C-OTHER')
         fi(cur, 'CP-1D', 100, customer_email='someone@directksa.com'); fi(cur, 'CP-1E', 100, customer_email='shared@both.test')
         as_user(cur, 'u4')
-        r = pc(cur, [{'client_id': '9101', 'legal_name': 'Client One Co', 'contact_email': 'BUYER@client-one.test', 'credit_term_days': 30, 'payment_mode': 'Postpaid'},
+        r = pc(cur, [{'client_id': '9101', 'legal_name': 'Client One Co', 'contact_email': 'BUYER@client-one.test', 'credit_term_days': 30, 'payment_mode': 'Postpaid',
+                      'has_vat_number': 'Yes', 'pricing_setting': 'Standard', 'block_on_overdue': 'No', 'payments_updated_at': '2026-09-20T10:00:00+03:00'},
                      {'client_id': '9102', 'legal_name': 'Staff test', 'contact_email': 'someone@directksa.com'},
                      {'client_id': '9103', 'contact_email': 'shared@both.test'}, {'client_id': '9104', 'contact_email': 'Shared@Both.test'}])
         got = [cid(cur, n) for n in ('CP-1A', 'CP-1B', 'CP-1C', 'CP-1D', 'CP-1E')]
-        st = one(cur, "select legal_name||'|'||contact_email||'|'||credit_term_days||'|'||payment_mode from payments_clients where client_id='9101'"); q(cur, "reset role")
+        st = one(cur, "select legal_name||'|'||contact_email||'|'||credit_term_days||'|'||payment_mode||'|'||has_vat_number||'|'||pricing_setting||'|'||block_on_overdue||'|'||to_char(payments_updated_at at time zone 'Asia/Riyadh','YYYY-MM-DD HH24:MI') from payments_clients where client_id='9101'"); q(cur, "reset role")
         ok = (got == ['9101', '∅', 'C-OTHER', '∅', '∅'] and r['clients_new'] == 4 and r['invoices_linked'] == 1 and r['emails_shared'] == 1
-              and r['emails_staff'] == 1 and st == 'Client One Co|buyer@client-one.test|30|Postpaid')
+              and r['emails_staff'] == 1 and st == 'Client One Co|buyer@client-one.test|30|Postpaid|Yes|Standard|No|2026-09-20 10:00')
         return (ok, f"imported/hand/already-linked/staff/shared → {got} · stored={st} · result={r}")
 
     @test("CP-02 The same client list twice changes nothing — no client row, no invoice, no change-log entry")

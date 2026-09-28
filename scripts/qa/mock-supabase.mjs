@@ -927,8 +927,9 @@ export function start(port, seedOverrides){
         const pk=(o,n,nw)=>n==null?o:(nw?n:(o==null?n:o)), eq=(a,b)=>(a==null||b==null)?(a==null&&b==null):((typeof a==='number'||typeof b==='number')?Math.abs(Number(a)-Number(b))<1e-9:String(a)===String(b));
         const tx=v=>{ if(v==null) return null; const t=String(v).trim(); return t===''?null:t; };
         if(isPc){
-          const F=['legal_name','legal_name_ar','trading_name','payment_mode','payment_config','billing_cycle','vat_number','id_type','id_number','registration_numbers',
-            'contact_email','contact_name','contact_phone','customer_type','credit_limit_sar','credit_term_days','tender_no','tender_amount_sar','expected_cogs_sar','expected_gp_sar'];
+          const F=['legal_name','legal_name_ar','trading_name','customer_type','payment_config','payment_mode','billing_cycle','tender_no','registration_numbers',
+            'has_vat_number','id_type','id_number','vat_number','contact_information','contact_name','contact_email','contact_phone','credit_limit_sar','credit_term_days',
+            'block_on_overdue','tender_amount_sar','expected_cogs_sar','expected_gp_sar','pricing_setting','payments_created_by','payments_updated_by','payments_created_at','payments_updated_at'];
           const T=TABLES.payments_clients=TABLES.payments_clients||[], inn={}; let nw=0, ch=0;
           rows.forEach(x=>{ const k=tx(x.client_id); if(!k) return; const c={}; F.forEach(f=>{ const v=x[f]; c[f]=(typeof v==='number'||v==null)?(v==null?null:v):tx(v); });
             if(c.contact_email) c.contact_email=c.contact_email.toLowerCase(); inn[k]=c; });
@@ -947,19 +948,19 @@ export function start(port, seedOverrides){
         }
         const PF={payments_promo_type:'promo_type',payments_discount_type:'discount_type',payments_discount:'discount',payments_product:'product',payments_status:'status',
           payments_client_name:'client_name',valid_from:'valid_from',valid_to:'valid_to',total_sales_sar:'total_sales_sar',total_discount_sar:'total_discount_sar',
-          kind:'kind',value_pct:'value_pct',active:'active',expired:'expired'};
+          kind:'kind',value_pct:'value_pct',active:'active',expired:'expired',payments_created_at:'payments_created_at',payments_created_by:'payments_created_by'};
         const T=TABLES.promo_codes=TABLES.promo_codes||[], inn={}; let nw=0, ch=0, noType=0;
         rows.forEach(x=>{ const code=tx(x.code); if(!code) return; const kind=(x.kind==='percent'||x.kind==='fixed')?x.kind:null;
           inn[code.toLowerCase()]={code, promo_type:tx(x.promo_type), discount_type:tx(x.discount_type), discount:x.discount==null?null:x.discount, product:tx(x.product),
             status:tx(x.status), client_name:tx(x.client_name), valid_from:x.valid_from||null, valid_to:x.valid_to||null, total_sales_sar:x.total_sales_sar==null?null:x.total_sales_sar,
             total_discount_sar:x.total_discount_sar==null?null:x.total_discount_sar, kind, value_pct:kind?(x.discount==null?null:x.discount):null,
-            active:x.active==null?null:!!x.active, expired:x.expired==null?null:!!x.expired}; });
+            active:x.active==null?null:!!x.active, expired:x.expired==null?null:!!x.expired, payments_created_at:x.payments_created_at||null, payments_created_by:tx(x.payments_created_by)}; });
         Object.keys(inn).forEach(k=>{ const x=inn[k], ts=T.filter(r=>String(r.code||'').trim().toLowerCase()===k);
           if(!ts.length){ if(!x.kind){ noType++; return; }
             T.push({id:'mock-pr-'+(T.length+1),code:x.code,kind:x.kind,value_pct:x.value_pct,valid_from:x.valid_from,valid_to:x.valid_to,total_sales_sar:x.total_sales_sar==null?0:x.total_sales_sar,
               total_discount_sar:x.total_discount_sar==null?0:x.total_discount_sar,active:x.active==null?true:x.active,expired:x.expired==null?false:x.expired,partner_business_id:null,
               payments_promo_type:x.promo_type,payments_discount_type:x.discount_type,payments_discount:x.discount,payments_product:x.product,payments_status:x.status,
-              payments_client_name:x.client_name,payments_seen_at:seen}); nw++; return; }
+              payments_client_name:x.client_name,payments_created_at:x.payments_created_at,payments_created_by:x.payments_created_by,payments_seen_at:seen}); nw++; return; }
           let any=false; ts.forEach(t=>{ const newer=!t.payments_seen_at||S>=Date.parse(t.payments_seen_at), m={}; let diff=false;
             Object.keys(PF).forEach(col=>{ m[col]=pk(t[col],x[PF[col]],newer); if(!eq(m[col],t[col])) diff=true; });
             const ns=(t.payments_seen_at&&Date.parse(t.payments_seen_at)>S)?t.payments_seen_at:seen; if(ns!==t.payments_seen_at) diff=true;

@@ -21,12 +21,12 @@
 create table if not exists public.payments_clients (
   id uuid primary key default gen_random_uuid(),
   client_id text not null unique,          -- the export's "ID" = Direct Payments corporate_client.id
-  legal_name text, legal_name_ar text, trading_name text,
-  payment_mode text, payment_config text, billing_cycle text,
-  vat_number text, id_type text, id_number text, registration_numbers text,
-  contact_email text, contact_name text, contact_phone text,
-  customer_type text, credit_limit_sar numeric, credit_term_days int,
-  tender_no text, tender_amount_sar numeric, expected_cogs_sar numeric, expected_gp_sar numeric,
+  legal_name text, legal_name_ar text, trading_name text, customer_type text, payment_config text, payment_mode text,
+  billing_cycle text, tender_no text, registration_numbers text, has_vat_number text, id_type text, id_number text,
+  vat_number text, contact_information text, contact_name text, contact_email text, contact_phone text,
+  credit_limit_sar numeric, credit_term_days int, block_on_overdue text, tender_amount_sar numeric,
+  expected_cogs_sar numeric, expected_gp_sar numeric, pricing_setting text, payments_created_by text,
+  payments_updated_by text, payments_created_at timestamptz, payments_updated_at timestamptz,
   seen_at timestamptz,                     -- the Payments export time of the newest file that wrote this row
   source_batch text,
   imported_at timestamptz not null default now(),
@@ -55,6 +55,8 @@ alter table public.promo_codes
   add column if not exists payments_product text,         -- "Product" as written (services[] is the app's own list)
   add column if not exists payments_status text,          -- "Status" as written
   add column if not exists payments_client_name text,     -- "Client Name": a SUGGESTION — a person links the company
+  add column if not exists payments_created_at timestamptz, -- "Created At" / "Created By" as Payments wrote them
+  add column if not exists payments_created_by text,
   add column if not exists payments_seen_at timestamptz;  -- the export time of the newest file that wrote this code
 
 -- =====================================================================
@@ -94,18 +96,27 @@ begin
   create temp table _pc_in on commit drop as
   select distinct on (btrim(x.client_id)) btrim(x.client_id) as client_id,
     nullif(btrim(x.legal_name), '') legal_name, nullif(btrim(x.legal_name_ar), '') legal_name_ar,
-    nullif(btrim(x.trading_name), '') trading_name, nullif(btrim(x.payment_mode), '') payment_mode,
-    nullif(btrim(x.payment_config), '') payment_config, nullif(btrim(x.billing_cycle), '') billing_cycle,
-    nullif(btrim(x.vat_number), '') vat_number, nullif(btrim(x.id_type), '') id_type, nullif(btrim(x.id_number), '') id_number,
-    nullif(btrim(x.registration_numbers), '') registration_numbers, nullif(lower(btrim(x.contact_email)), '') contact_email,
-    nullif(btrim(x.contact_name), '') contact_name, nullif(btrim(x.contact_phone), '') contact_phone,
-    nullif(btrim(x.customer_type), '') customer_type, x.credit_limit_sar, x.credit_term_days,
-    nullif(btrim(x.tender_no), '') tender_no, x.tender_amount_sar, x.expected_cogs_sar, x.expected_gp_sar
-  from jsonb_to_recordset(coalesce(p_rows, '[]'::jsonb)) as x(client_id text, legal_name text, legal_name_ar text,
-    trading_name text, payment_mode text, payment_config text, billing_cycle text, vat_number text, id_type text,
-    id_number text, registration_numbers text, contact_email text, contact_name text, contact_phone text,
-    customer_type text, credit_limit_sar numeric, credit_term_days int, tender_no text, tender_amount_sar numeric,
-    expected_cogs_sar numeric, expected_gp_sar numeric)
+    nullif(btrim(x.trading_name), '') trading_name, nullif(btrim(x.customer_type), '') customer_type,
+    nullif(btrim(x.payment_config), '') payment_config, nullif(btrim(x.payment_mode), '') payment_mode,
+    nullif(btrim(x.billing_cycle), '') billing_cycle, nullif(btrim(x.tender_no), '') tender_no,
+    nullif(btrim(x.registration_numbers), '') registration_numbers,
+    nullif(btrim(x.has_vat_number), '') has_vat_number, nullif(btrim(x.id_type), '') id_type,
+    nullif(btrim(x.id_number), '') id_number, nullif(btrim(x.vat_number), '') vat_number,
+    nullif(btrim(x.contact_information), '') contact_information, nullif(btrim(x.contact_name), '') contact_name,
+    nullif(lower(btrim(x.contact_email)), '') contact_email, nullif(btrim(x.contact_phone), '') contact_phone,
+    x.credit_limit_sar, x.credit_term_days, nullif(btrim(x.block_on_overdue), '') block_on_overdue,
+    x.tender_amount_sar, x.expected_cogs_sar, x.expected_gp_sar,
+    nullif(btrim(x.pricing_setting), '') pricing_setting,
+    nullif(btrim(x.payments_created_by), '') payments_created_by,
+    nullif(btrim(x.payments_updated_by), '') payments_updated_by, x.payments_created_at, x.payments_updated_at
+  from jsonb_to_recordset(coalesce(p_rows, '[]'::jsonb)) as x(client_id text,
+    legal_name text, legal_name_ar text, trading_name text, customer_type text, payment_config text,
+    payment_mode text, billing_cycle text, tender_no text, registration_numbers text, has_vat_number text,
+    id_type text, id_number text, vat_number text, contact_information text, contact_name text, contact_email text,
+    contact_phone text, credit_limit_sar numeric, credit_term_days int, block_on_overdue text,
+    tender_amount_sar numeric, expected_cogs_sar numeric, expected_gp_sar numeric, pricing_setting text,
+    payments_created_by text, payments_updated_by text, payments_created_at timestamptz,
+    payments_updated_at timestamptz)
   where nullif(btrim(x.client_id), '') is not null
   order by btrim(x.client_id);
   select count(*) into n_in from _pc_in;
@@ -113,46 +124,78 @@ begin
   -- clients already known: field by field, only where something differs (the same file twice writes nothing)
   with m as (
     select t.id,
-      payments_pick(t.legal_name, x.legal_name, n.nw) legal_name, payments_pick(t.legal_name_ar, x.legal_name_ar, n.nw) legal_name_ar,
-      payments_pick(t.trading_name, x.trading_name, n.nw) trading_name, payments_pick(t.payment_mode, x.payment_mode, n.nw) payment_mode,
-      payments_pick(t.payment_config, x.payment_config, n.nw) payment_config, payments_pick(t.billing_cycle, x.billing_cycle, n.nw) billing_cycle,
-      payments_pick(t.vat_number, x.vat_number, n.nw) vat_number, payments_pick(t.id_type, x.id_type, n.nw) id_type,
-      payments_pick(t.id_number, x.id_number, n.nw) id_number, payments_pick(t.registration_numbers, x.registration_numbers, n.nw) registration_numbers,
-      payments_pick(t.contact_email, x.contact_email, n.nw) contact_email, payments_pick(t.contact_name, x.contact_name, n.nw) contact_name,
-      payments_pick(t.contact_phone, x.contact_phone, n.nw) contact_phone, payments_pick(t.customer_type, x.customer_type, n.nw) customer_type,
-      payments_pick(t.credit_limit_sar, x.credit_limit_sar, n.nw) credit_limit_sar, payments_pick(t.credit_term_days, x.credit_term_days, n.nw) credit_term_days,
-      payments_pick(t.tender_no, x.tender_no, n.nw) tender_no, payments_pick(t.tender_amount_sar, x.tender_amount_sar, n.nw) tender_amount_sar,
-      payments_pick(t.expected_cogs_sar, x.expected_cogs_sar, n.nw) expected_cogs_sar, payments_pick(t.expected_gp_sar, x.expected_gp_sar, n.nw) expected_gp_sar,
+      payments_pick(t.legal_name, x.legal_name, n.nw) legal_name,
+      payments_pick(t.legal_name_ar, x.legal_name_ar, n.nw) legal_name_ar,
+      payments_pick(t.trading_name, x.trading_name, n.nw) trading_name,
+      payments_pick(t.customer_type, x.customer_type, n.nw) customer_type,
+      payments_pick(t.payment_config, x.payment_config, n.nw) payment_config,
+      payments_pick(t.payment_mode, x.payment_mode, n.nw) payment_mode,
+      payments_pick(t.billing_cycle, x.billing_cycle, n.nw) billing_cycle,
+      payments_pick(t.tender_no, x.tender_no, n.nw) tender_no,
+      payments_pick(t.registration_numbers, x.registration_numbers, n.nw) registration_numbers,
+      payments_pick(t.has_vat_number, x.has_vat_number, n.nw) has_vat_number,
+      payments_pick(t.id_type, x.id_type, n.nw) id_type, payments_pick(t.id_number, x.id_number, n.nw) id_number,
+      payments_pick(t.vat_number, x.vat_number, n.nw) vat_number,
+      payments_pick(t.contact_information, x.contact_information, n.nw) contact_information,
+      payments_pick(t.contact_name, x.contact_name, n.nw) contact_name,
+      payments_pick(t.contact_email, x.contact_email, n.nw) contact_email,
+      payments_pick(t.contact_phone, x.contact_phone, n.nw) contact_phone,
+      payments_pick(t.credit_limit_sar, x.credit_limit_sar, n.nw) credit_limit_sar,
+      payments_pick(t.credit_term_days, x.credit_term_days, n.nw) credit_term_days,
+      payments_pick(t.block_on_overdue, x.block_on_overdue, n.nw) block_on_overdue,
+      payments_pick(t.tender_amount_sar, x.tender_amount_sar, n.nw) tender_amount_sar,
+      payments_pick(t.expected_cogs_sar, x.expected_cogs_sar, n.nw) expected_cogs_sar,
+      payments_pick(t.expected_gp_sar, x.expected_gp_sar, n.nw) expected_gp_sar,
+      payments_pick(t.pricing_setting, x.pricing_setting, n.nw) pricing_setting,
+      payments_pick(t.payments_created_by, x.payments_created_by, n.nw) payments_created_by,
+      payments_pick(t.payments_updated_by, x.payments_updated_by, n.nw) payments_updated_by,
+      payments_pick(t.payments_created_at, x.payments_created_at, n.nw) payments_created_at,
+      payments_pick(t.payments_updated_at, x.payments_updated_at, n.nw) payments_updated_at,
       greatest(t.seen_at, v_seen) seen_at
     from _pc_in x join public.payments_clients t on t.client_id = x.client_id
     cross join lateral (select (t.seen_at is null or v_seen >= t.seen_at) nw) n)
   update public.payments_clients t set
-    legal_name = m.legal_name, legal_name_ar = m.legal_name_ar, trading_name = m.trading_name, payment_mode = m.payment_mode,
-    payment_config = m.payment_config, billing_cycle = m.billing_cycle, vat_number = m.vat_number, id_type = m.id_type,
-    id_number = m.id_number, registration_numbers = m.registration_numbers, contact_email = m.contact_email,
-    contact_name = m.contact_name, contact_phone = m.contact_phone, customer_type = m.customer_type,
-    credit_limit_sar = m.credit_limit_sar, credit_term_days = m.credit_term_days, tender_no = m.tender_no,
-    tender_amount_sar = m.tender_amount_sar, expected_cogs_sar = m.expected_cogs_sar, expected_gp_sar = m.expected_gp_sar,
+    legal_name = m.legal_name, legal_name_ar = m.legal_name_ar, trading_name = m.trading_name,
+    customer_type = m.customer_type, payment_config = m.payment_config, payment_mode = m.payment_mode,
+    billing_cycle = m.billing_cycle, tender_no = m.tender_no, registration_numbers = m.registration_numbers,
+    has_vat_number = m.has_vat_number, id_type = m.id_type, id_number = m.id_number, vat_number = m.vat_number,
+    contact_information = m.contact_information, contact_name = m.contact_name, contact_email = m.contact_email,
+    contact_phone = m.contact_phone, credit_limit_sar = m.credit_limit_sar, credit_term_days = m.credit_term_days,
+    block_on_overdue = m.block_on_overdue, tender_amount_sar = m.tender_amount_sar,
+    expected_cogs_sar = m.expected_cogs_sar, expected_gp_sar = m.expected_gp_sar,
+    pricing_setting = m.pricing_setting, payments_created_by = m.payments_created_by,
+    payments_updated_by = m.payments_updated_by, payments_created_at = m.payments_created_at,
+    payments_updated_at = m.payments_updated_at,
     seen_at = m.seen_at, source_batch = p_batch, updated_at = now()
   from m
   where t.id = m.id
-    and row(t.legal_name, t.legal_name_ar, t.trading_name, t.payment_mode, t.payment_config, t.billing_cycle, t.vat_number,
-            t.id_type, t.id_number, t.registration_numbers, t.contact_email, t.contact_name, t.contact_phone, t.customer_type,
-            t.credit_limit_sar, t.credit_term_days, t.tender_no, t.tender_amount_sar, t.expected_cogs_sar, t.expected_gp_sar, t.seen_at)
+    and row(t.legal_name, t.legal_name_ar, t.trading_name, t.customer_type, t.payment_config, t.payment_mode,
+            t.billing_cycle, t.tender_no, t.registration_numbers, t.has_vat_number, t.id_type, t.id_number,
+            t.vat_number, t.contact_information, t.contact_name, t.contact_email, t.contact_phone,
+            t.credit_limit_sar, t.credit_term_days, t.block_on_overdue, t.tender_amount_sar, t.expected_cogs_sar,
+            t.expected_gp_sar, t.pricing_setting, t.payments_created_by, t.payments_updated_by,
+            t.payments_created_at, t.payments_updated_at, t.seen_at)
         is distinct from
-        row(m.legal_name, m.legal_name_ar, m.trading_name, m.payment_mode, m.payment_config, m.billing_cycle, m.vat_number,
-            m.id_type, m.id_number, m.registration_numbers, m.contact_email, m.contact_name, m.contact_phone, m.customer_type,
-            m.credit_limit_sar, m.credit_term_days, m.tender_no, m.tender_amount_sar, m.expected_cogs_sar, m.expected_gp_sar, m.seen_at);
+        row(m.legal_name, m.legal_name_ar, m.trading_name, m.customer_type, m.payment_config, m.payment_mode,
+            m.billing_cycle, m.tender_no, m.registration_numbers, m.has_vat_number, m.id_type, m.id_number,
+            m.vat_number, m.contact_information, m.contact_name, m.contact_email, m.contact_phone,
+            m.credit_limit_sar, m.credit_term_days, m.block_on_overdue, m.tender_amount_sar, m.expected_cogs_sar,
+            m.expected_gp_sar, m.pricing_setting, m.payments_created_by, m.payments_updated_by,
+            m.payments_created_at, m.payments_updated_at, m.seen_at);
   get diagnostics n_changed = row_count;
 
-  insert into public.payments_clients (client_id, legal_name, legal_name_ar, trading_name, payment_mode, payment_config,
-    billing_cycle, vat_number, id_type, id_number, registration_numbers, contact_email, contact_name, contact_phone,
-    customer_type, credit_limit_sar, credit_term_days, tender_no, tender_amount_sar, expected_cogs_sar, expected_gp_sar,
-    seen_at, source_batch)
-  select x.client_id, x.legal_name, x.legal_name_ar, x.trading_name, x.payment_mode, x.payment_config, x.billing_cycle,
-    x.vat_number, x.id_type, x.id_number, x.registration_numbers, x.contact_email, x.contact_name, x.contact_phone,
-    x.customer_type, x.credit_limit_sar, x.credit_term_days, x.tender_no, x.tender_amount_sar, x.expected_cogs_sar,
-    x.expected_gp_sar, v_seen, p_batch
+  insert into public.payments_clients (client_id,
+    legal_name, legal_name_ar, trading_name, customer_type, payment_config, payment_mode, billing_cycle, tender_no,
+    registration_numbers, has_vat_number, id_type, id_number, vat_number, contact_information, contact_name,
+    contact_email, contact_phone, credit_limit_sar, credit_term_days, block_on_overdue, tender_amount_sar,
+    expected_cogs_sar, expected_gp_sar, pricing_setting, payments_created_by, payments_updated_by,
+    payments_created_at, payments_updated_at, seen_at, source_batch)
+  select x.client_id,
+    x.legal_name, x.legal_name_ar, x.trading_name, x.customer_type, x.payment_config, x.payment_mode,
+    x.billing_cycle, x.tender_no, x.registration_numbers, x.has_vat_number, x.id_type, x.id_number, x.vat_number,
+    x.contact_information, x.contact_name, x.contact_email, x.contact_phone, x.credit_limit_sar, x.credit_term_days,
+    x.block_on_overdue, x.tender_amount_sar, x.expected_cogs_sar, x.expected_gp_sar, x.pricing_setting,
+    x.payments_created_by, x.payments_updated_by, x.payments_created_at, x.payments_updated_at, v_seen, p_batch
   from _pc_in x where not exists (select 1 from public.payments_clients t where t.client_id = x.client_id);
   get diagnostics n_new = row_count;
 
@@ -212,10 +255,11 @@ begin
     x.valid_from, x.valid_to, x.total_sales_sar, x.total_discount_sar,
     case when x.kind in ('percent', 'fixed') then x.kind end kind,
     case when x.kind in ('percent', 'fixed') then x.discount end value_pct,   -- the app keeps a fixed amount here too (js/113)
-    x.active, x.expired
+    x.active, x.expired, x.payments_created_at, nullif(btrim(x.payments_created_by), '') payments_created_by
   from jsonb_to_recordset(coalesce(p_rows, '[]'::jsonb)) as x(code text, promo_type text, discount_type text, discount numeric,
     product text, status text, client_name text, valid_from date, valid_to date, total_sales_sar numeric,
-    total_discount_sar numeric, kind text, active boolean, expired boolean)
+    total_discount_sar numeric, kind text, active boolean, expired boolean, payments_created_at timestamptz,
+    payments_created_by text)
   where nullif(btrim(x.code), '') is not null
   order by lower(btrim(x.code));
   select count(*) into n_in from _pr_in;
@@ -229,6 +273,7 @@ begin
       payments_pick(t.total_sales_sar, x.total_sales_sar, n.nw) total_sales_sar, payments_pick(t.total_discount_sar, x.total_discount_sar, n.nw) total_discount_sar,
       payments_pick(t.kind, x.kind, n.nw) kind, payments_pick(t.value_pct, x.value_pct, n.nw) value_pct,
       payments_pick(t.active, x.active, n.nw) active, payments_pick(t.expired, x.expired, n.nw) expired,
+      payments_pick(t.payments_created_at, x.payments_created_at, n.nw) created_at, payments_pick(t.payments_created_by, x.payments_created_by, n.nw) created_by,
       greatest(t.payments_seen_at, v_seen) seen_at
     from _pr_in x join public.promo_codes t on lower(btrim(t.code)) = x.code_norm
     cross join lateral (select (t.payments_seen_at is null or v_seen >= t.payments_seen_at) nw) n)
@@ -236,15 +281,16 @@ begin
     payments_promo_type = m.promo_type, payments_discount_type = m.discount_type, payments_discount = m.discount,
     payments_product = m.product, payments_status = m.status, payments_client_name = m.client_name,
     valid_from = m.valid_from, valid_to = m.valid_to, total_sales_sar = m.total_sales_sar, total_discount_sar = m.total_discount_sar,
-    kind = m.kind, value_pct = m.value_pct, active = m.active, expired = m.expired, payments_seen_at = m.seen_at, updated_at = now()
+    kind = m.kind, value_pct = m.value_pct, active = m.active, expired = m.expired, payments_created_at = m.created_at,
+    payments_created_by = m.created_by, payments_seen_at = m.seen_at, updated_at = now()
   from m
   where t.id = m.id
     and row(t.payments_promo_type, t.payments_discount_type, t.payments_discount, t.payments_product, t.payments_status,
             t.payments_client_name, t.valid_from, t.valid_to, t.total_sales_sar, t.total_discount_sar, t.kind, t.value_pct,
-            t.active, t.expired, t.payments_seen_at)
+            t.active, t.expired, t.payments_created_at, t.payments_created_by, t.payments_seen_at)
         is distinct from
         row(m.promo_type, m.discount_type, m.discount, m.product, m.status, m.client_name, m.valid_from, m.valid_to,
-            m.total_sales_sar, m.total_discount_sar, m.kind, m.value_pct, m.active, m.expired, m.seen_at);
+            m.total_sales_sar, m.total_discount_sar, m.kind, m.value_pct, m.active, m.expired, m.created_at, m.created_by, m.seen_at);
   get diagnostics n_changed = row_count;
 
   -- a NEW code needs its type (the registry's kind is required): one whose type cannot be read is left out and counted
@@ -252,10 +298,10 @@ begin
    where x.kind is null and not exists (select 1 from public.promo_codes t where lower(btrim(t.code)) = x.code_norm);
   insert into public.promo_codes (code, kind, value_pct, valid_from, valid_to, total_sales_sar, total_discount_sar, active,
     expired, payments_promo_type, payments_discount_type, payments_discount, payments_product, payments_status,
-    payments_client_name, payments_seen_at)
+    payments_client_name, payments_created_at, payments_created_by, payments_seen_at)
   select x.code, x.kind, x.value_pct, x.valid_from, x.valid_to, coalesce(x.total_sales_sar, 0), coalesce(x.total_discount_sar, 0),
     coalesce(x.active, true), coalesce(x.expired, false),
-    x.promo_type, x.discount_type, x.discount, x.product, x.status, x.client_name, v_seen
+    x.promo_type, x.discount_type, x.discount, x.product, x.status, x.client_name, x.payments_created_at, x.payments_created_by, v_seen
   from _pr_in x where x.kind is not null
     and not exists (select 1 from public.promo_codes t where lower(btrim(t.code)) = x.code_norm);
   get diagnostics n_new = row_count;

@@ -27,24 +27,27 @@
     return typeof window.finCanWrite==='function'&&!!window.finCanWrite(); }catch(_){ return false; } };
 
   /* ---------------- the two kinds, by their own headers (normalized as js/121 does) ---------------- */
-  var PC={ client_id:['id','clientid','corporateclientid'], legal_name:['legalname'], legal_name_ar:['legalnamearabic','legalnamear','arabiclegalname'],
-    trading_name:['tradingname'], payment_mode:['paymentmode'], payment_config:['clientpaymentconfiguration','paymentconfiguration'],
-    billing_cycle:['billingcycle'], vat_number:['vatnumber','vatno'], id_type:['idtype'], id_number:['idnumber'],
-    registration_numbers:['registrationnumbers','registrationnumber'], contact_email:['contactemail'], contact_name:['contactname'],
-    contact_phone:['contactphone'], customer_type:['customertype'], credit_limit_sar:['creditlimit','creditlimitsar'],
-    credit_term_days:['credittermdays','creditterm'], tender_no:['tenderno','tendernumber'], tender_amount_sar:['tenderamount','tenderamountsar'],
-    expected_cogs_sar:['expectedcogs','expectedcogssar'], expected_gp_sar:['expectedgp','expectedgpsar'] };
-  var PR={ code:['code','promocode'], client_name:['clientname'], promo_type:['promocodetype','promotype'], discount_type:['type','discounttype'],
-    discount:['discount','discountvalue'], product:['product','products'], status:['status'], valid_from:['validfrom'], valid_to:['validto'],
-    total_sales_sar:['totalsales','totalsalessar'], total_discount_sar:['totaldiscount','totaldiscountsar'] };
+  /* the headers exactly as the 27 Sep exports carry them (the oversight, 28 Sep), in their own order */
+  var PC={ client_id:'ID', legal_name:'Legal Name', legal_name_ar:'Legal Name (Arabic)', trading_name:'Trading Name', customer_type:'Customer Type',
+    payment_config:'Client Payment Configuration', payment_mode:'Payment Mode', billing_cycle:'Billing Cycle', tender_no:'Tender No.',
+    registration_numbers:'Registration Numbers', has_vat_number:'Has VAT Number', id_type:'ID Type', id_number:'ID Number', vat_number:'VAT Number',
+    contact_information:'Contact Information', contact_name:'Contact Full Name', contact_email:'Contact Email', contact_phone:'Contact Phone',
+    credit_limit_sar:'Credit Limit', credit_term_days:'Credit Term Days', block_on_overdue:'Block On Overdue', tender_amount_sar:'Tender Amount',
+    expected_cogs_sar:'Expected COGS', expected_gp_sar:'Expected GP', pricing_setting:'Pricing Setting', payments_created_by:'Created By',
+    payments_updated_by:'Updated By', payments_created_at:'Created At', payments_updated_at:'Updated At' };
+  var PR={ code:'Code', promo_type:'Promocode Type', client_name:'Client Name', discount_type:'Type', discount:'Discount', product:'Product', status:'Status',
+    total_sales_sar:'Total Sales', total_discount_sar:'Total Discount', valid_from:'Valid From', valid_to:'Valid To', payments_created_at:'Created At',
+    payments_created_by:'Created By' };
   var MONEY={credit_limit_sar:1,tender_amount_sar:1,expected_cogs_sar:1,expected_gp_sar:1,total_sales_sar:1,total_discount_sar:1,discount:1};
+  var TIME={payments_created_at:1,payments_updated_at:1};
   var KINDS={ pc:{ map:PC, key:'client_id', en:'Client list (Corporate Clients export)', ar:'قائمة العملاء (تصدير عملاء الشركات)' },
               pr:{ map:PR, key:'code', en:'Promo codes export', ar:'تصدير أكواد الخصم' } };
-  function colsOf(h, map){ var o={}; for(var f in map){ o[f]=-1; for(var i=0;i<map[f].length;i++){ var j=h.indexOf(map[f][i]); if(j>=0){ o[f]=j; break; } } } return o; }
+  function colsOf(h, map){ var o={}; for(var f in map){ o[f]=h.indexOf(hk(map[f])); } return o; }
+  function missingOf(h, map){ var out=[]; for(var f in map){ if(h.indexOf(hk(map[f]))<0) out.push(map[f]); } return out; }
   function kindOf(h){ var INV=['invoice#','invoice#ref#','invoicereference#','invoiceno'];
     if(INV.some(function(x){ return h.indexOf(x)>=0; })) return null;   // an invoice-level export is never one of these lists
-    var c=colsOf(h,PC); if(c.client_id>=0&&c.legal_name>=0&&c.contact_email>=0) return 'pc';
-    c=colsOf(h,PR); if(c.code>=0&&c.total_sales_sar>=0&&c.total_discount_sar>=0) return 'pr';
+    var c=colsOf(h,PC); if(c.client_id>=0&&c.legal_name>=0&&c.contact_email>=0&&c.payment_config>=0) return 'pc';
+    c=colsOf(h,PR); if(c.code>=0&&c.promo_type>=0&&c.total_sales_sar>=0&&c.total_discount_sar>=0) return 'pr';
     return null; }
 
   /* ---------------- values ---------------- */
@@ -66,6 +69,7 @@
     var o={}, c=S.col, map=KINDS[S.kind].map;
     for(var f in map){ var v=c[f]>=0?r[c[f]]:null;
       if(f==='client_id') o[f]=idText(v);
+      else if(TIME[f]){ var tm=V.when(v); if(tm===undefined){ bad(S,n,KINDS[S.kind].map[f]+' '+fl('unreadable — left blank','غير مقروء — تُرك فارغًا')); o[f]=null; } else o[f]=tm; }
       else if(f==='valid_from'||f==='valid_to'){ var w=V.when(v); if(w===undefined){ bad(S,n,f.replace('_',' ')+' '+fl('unreadable — left blank','غير مقروء — تُرك فارغًا')); o[f]=null; } else o[f]=w?w.slice(0,10):null; }
       else if(MONEY[f]){ var m=V.money(typeof v==='string'?v.replace(/%\s*$/,''):v); if(m!==m){ bad(S,n,f.replace(/_/g,' ')+' "'+String(v).slice(0,20)+'" '+fl('unreadable — left blank','غير مقروء — تُرك فارغًا')); o[f]=null; } else o[f]=m; }
       else if(f==='credit_term_days'){ var d=V.money(v); o[f]=(d==null||d!==d)?null:Math.round(d); }
@@ -77,7 +81,7 @@
     return o; }
   function bad(S, n, why){ S.nBad++; if(S.bad.length<5) S.bad.push(fl('row ','الصف ')+I(n)+': '+why); }
   function take(S, rows){ rows.forEach(function(r){
-    if(!S.header){ S.header=r; S.col=colsOf((r||[]).map(hk),KINDS[S.kind].map); return; }
+    if(!S.header){ S.header=r; var h=(r||[]).map(hk); S.col=colsOf(h,KINDS[S.kind].map); S.missing=missingOf(h,KINDS[S.kind].map); return; }
     S.n++; if(!r||!r.some(function(x){ return x!==''&&x!=null; })) { S.n--; return; }
     var o=rowOf(S,r,S.n+1), k=o[KINDS[S.kind].key]; if(!k){ S.blank++; return; }
     var kk=S.kind==='pr'?k.toLowerCase():k; if(S.rows[kk]) S.dup++; S.rows[kk]=o; }); }
@@ -86,9 +90,9 @@
   function pageAll(q, cb){ var all=[], from=0, P=1000; (function page(){ q().range(from,from+P-1).then(function(r){
     if(r.error){ cb(r.error); return; } all=all.concat(r.data||[]); if((r.data||[]).length===P){ from+=P; page(); } else cb(null,all); }); })(); }
   var PCF=Object.keys(PC).filter(function(f){ return f!=='client_id'; });
-  var PRF=['promo_type','discount_type','discount','product','status','client_name','valid_from','valid_to','total_sales_sar','total_discount_sar','kind','value_pct','active','expired'];
+  var PRF=['promo_type','discount_type','discount','product','status','client_name','valid_from','valid_to','total_sales_sar','total_discount_sar','kind','value_pct','active','expired','payments_created_at','payments_created_by'];
   var PRCOL={promo_type:'payments_promo_type',discount_type:'payments_discount_type',discount:'payments_discount',product:'payments_product',status:'payments_status',client_name:'payments_client_name'};
-  function same(a,b){ if(a==null||b==null) return a==null&&b==null; if(typeof a==='number'||typeof b==='number') return Math.abs(Number(a)-Number(b))<1e-9; return String(a)===String(b); }
+  function same(a,b,f){ if(a==null||b==null) return a==null&&b==null; if(f&&TIME[f]) return Date.parse(a)===Date.parse(b); if(typeof a==='number'||typeof b==='number') return Math.abs(Number(a)-Number(b))<1e-9; return String(a)===String(b); }
   function pick(o,n,newer){ return n==null?o:(newer?n:(o==null?n:o)); }
 
   function simulatePc(S, stored, inv, rules){
@@ -97,7 +101,7 @@
     Object.keys(S.rows).forEach(function(k){ var x=S.rows[k], t=by[k];
       if(!t){ s.nw++; after[k]=x; return; }
       var newer=!t.seen_at||Date.parse(S.asOf)>=Date.parse(t.seen_at), m={client_id:k}, diff=Date.parse(S.asOf)>Date.parse(t.seen_at||0);
-      PCF.forEach(function(f){ m[f]=pick(t[f],x[f],newer); if(!same(m[f],t[f])) diff=true; });
+      PCF.forEach(function(f){ m[f]=pick(t[f],x[f],newer); if(!same(m[f],t[f],f)) diff=true; });
       if(diff) s.ch++; else s.sm++; after[k]=m; });
     var em={}; Object.keys(after).forEach(function(k){ var e=after[k].contact_email; if(!e) return; e=String(e).trim().toLowerCase(); (em[e]=em[e]||[]).push(k); });
     s.shared=Object.keys(em).filter(function(e){ return em[e].length>1; }).length;
@@ -116,7 +120,7 @@
       if(x.client_name) s.suggest++;
       if(!ts){ if(!x.kind){ s.noType++; if(s.noTypeList.length<5) s.noTypeList.push(x.code); } else s.nw++; return; }
       var any=false; ts.forEach(function(t){ var newer=!t.payments_seen_at||Date.parse(S.asOf)>=Date.parse(t.payments_seen_at), diff=Date.parse(S.asOf)>Date.parse(t.payments_seen_at||0);
-        PRF.forEach(function(f){ var col=PRCOL[f]||f, nv=f==='value_pct'?(x.kind?x.discount:null):x[f]; if(!same(pick(t[col],nv,newer),t[col])) diff=true; });
+        PRF.forEach(function(f){ var col=PRCOL[f]||f, nv=f==='value_pct'?(x.kind?x.discount:null):x[f]; if(!same(pick(t[col],nv,newer),t[col],f)) diff=true; });
         if(diff) any=true; });
       if(any) s.ch++; else s.sm++; });
     return s; }
@@ -143,7 +147,7 @@
       pageAll(function(){ return c.from('finance_invoices').select('id,invoice_no,customer_email,payments_client_id,source,revenue_sar').is('deleted_at',null).order('id',{ascending:true}); },function(e,r){ if(e) fail=e; D.inv=r; done(); });
       c.from('money_exclusion_rules').select('kind,value,active,removed_at').then(function(r){ D.rules=r.error?[]:(r.data||[]); done(); }); }
     if(kinds.pr){ need++;
-      pageAll(function(){ return c.from('promo_codes').select('id,code,kind,value_pct,valid_from,valid_to,total_sales_sar,total_discount_sar,active,expired,payments_promo_type,payments_discount_type,payments_discount,payments_product,payments_status,payments_client_name,payments_seen_at').order('code',{ascending:true}); },function(e,r){ if(e) fail=e; D.pr=r; done(); }); }
+      pageAll(function(){ return c.from('promo_codes').select('id,code,kind,value_pct,valid_from,valid_to,total_sales_sar,total_discount_sar,active,expired,payments_promo_type,payments_discount_type,payments_discount,payments_product,payments_status,payments_client_name,payments_created_at,payments_created_by,payments_seen_at').order('code',{ascending:true}); },function(e,r){ if(e) fail=e; D.pr=r; done(); }); }
     if(!need){ S.phase='preview'; paint(); }
   }
   function nothingNew(F){ var s=F.sim; return !s||!(s.nw||s.ch||(F.kind==='pc'&&s.link)); }
@@ -193,6 +197,7 @@
       var us=Object.keys(F.unknownStatus); if(us.length) h+='<li style="color:#B54708">'+fl('Status not recognised (the code keeps its active flag): ','حالة غير معروفة (يبقى الكود على حالته): ')+esc(us.slice(0,5).join(', '))+'</li>';
       h+='</ul>';
     }
+    if(F.missing&&F.missing.length) h+='<div style="color:#B54708;font-size:12px;margin-top:4px" data-v122-missing="'+F.missing.length+'">'+fl('Columns this file does not have (left as they are): ','أعمدة ليست في هذا الملف (تبقى كما هي): ')+esc(F.missing.join(', '))+'</div>';
     if(F.nBad) h+='<div style="color:#B54708;font-size:12px;margin-top:4px" data-v122-bad="'+F.nBad+'">'+I(F.nBad)+' '+fl('cells could not be read and were left blank: ','خانة تعذّرت قراءتها فتُركت فارغة: ')+esc(F.bad.join(' · '))+'</div>';
     if(F.blank) h+='<div style="color:var(--muted);font-size:12px">'+I(F.blank)+' '+fl('rows with no key skipped','صفًا بلا مفتاح تُرك')+'</div>';
     if(F.dup) h+='<div style="color:var(--muted);font-size:12px">'+I(F.dup)+' '+fl('repeated rows — the last one is kept','صفًا مكررًا — يُحفظ الأخير')+'</div>';
