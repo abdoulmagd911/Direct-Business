@@ -1287,18 +1287,18 @@ function rOverview(){
   /* Punch list B3 (28 Sep): with invoices still waiting for their cost, Profit is measured over the invoices whose cost is
      known only — the tile says so, with the count, instead of a Profit beside a Cost that reads 0 */
   var _nKnown=0,_nWait=0; V.forEach(function(r){ if(finCostMissing(r))_nWait++; else _nKnown++; });
-  var _profLbl=_nWait?(isArF()?('الربح — على '+_nKnown+' فاتورة تكلفتها معروفة'):('Profit — on the '+_nKnown+' invoices with known cost')):(isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit');
-  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[_profLbl,prof,'#175CD3'],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a (\u0645\u0641\u0648\u062a\u0631)':'Outstanding (invoiced)',rem,rem>0?'#D92D20':'#667085'],[isArF()?'فواتير مدفوعة (في الفترة)':'Paid invoices (in period)',invCount,'#1C1E2B']];
+  var _profNote=_nWait?(isArF()?('على '+_nKnown+' فاتورة تكلفتها معروفة'):('on the '+_nKnown+' invoices with known cost')):'';
+  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3',_profNote],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a (\u0645\u0641\u0648\u062a\u0631)':'Outstanding (invoiced)',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',invCount,'#1C1E2B',(isArF()?'مدفوعة · في هذه الفترة':'paid · in this period')]];
   h+='<h3 class="finh">'+(isArF()?'\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u0623\u062f\u0627\u0621 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629':'Key indicators')+'<i>'+finPeriodLabel()+' \u00b7 '+(isArF()?'\u0641\u0639\u0644\u064a \u2014 \u0645\u0646 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629':'actual \u2014 from verified invoices')+'</i></h3>';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
-    return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+(i===cards.length-1?'':finExactUnder(c[1]))+'</div></div>';
+    return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+(i===cards.length-1?'':finExactUnder(c[1]))+'</div>'+(c[3]?'<div data-fin-tile-note="1" style="font-size:10.5px;color:var(--muted);margin-top:2px">'+c[3]+'</div>':'')+'</div>';
   }).join('')+'</div>';
   h+=finEstimateBand(V,cost,prof);
   /* Punch list B4 (28 Sep): Received counts every paid invoice's money, Revenue only sales — say what the difference is */
   (function(){ try{
     var tu=0,bl=0,ntu=0,nbl=0; V.forEach(function(r){ var k=r.row_kind||'sale'; if(k==='wallet_topup'){tu+=+r.amount_received_sar||0;ntu++;} else if(k==='billing_link'){bl+=+r.amount_received_sar||0;nbl++;} });
     if(!ntu&&!nbl) return;
-    h+='<div class="ch-sub" data-fin-received-split="1" style="margin:-6px 0 14px;font-size:12px;color:var(--muted)">'+(isArF()
+    h+='<div data-fin-received-split="1" style="margin:-6px 0 14px;font-size:12px;color:var(--muted)">'+(isArF()
       ?('«المحصّل» يشمل '+money0(tu)+' ريال شحن محفظة ('+ntu+') و'+money0(bl)+' ريال فواتير تجميعية ('+nbl+') تعيد فوترة معاملات محسوبة — وهذه ليست إيرادات.')
       :('Received includes '+money0(tu)+' SAR of wallet top-ups ('+ntu+') and '+money0(bl)+' SAR of billing invoices ('+nbl+') that re-bill transactions already counted — neither is revenue.'))+'</div>';
   }catch(_){} })();
@@ -1471,7 +1471,7 @@ function rOverview(){
     }
     /* B8: where the plan comes from — typed on this page with "Set targets", by whom and when; Actual is this period's revenue */
     if(tgt){ var _by=tgt.updated_by||'', _at=(tgt.updated_at&&typeof dayRiyadh==='function')?dayRiyadh(tgt.updated_at):'';
-      h+='<div class="ch-sub" data-fin-plan-source="1" style="margin-top:8px;font-size:11.5px">'+(isArF()
+      h+='<div data-fin-plan-source="1" style="margin-top:8px;font-size:11.5px;color:var(--muted)">'+(isArF()
         ?('الخطة: أرقام تُكتب هنا بزر «تعديل الأرقام»'+(_by?' — آخر من عدّلها '+esc(_by):'')+(_at?' في '+_at:'')+'. الفعلي: إيراد '+_ty+(FIN.p.part!=='all'?' لنفس الفترة':'')+' من الفواتير المدفوعة.')
         :('Plan: numbers typed here with "Set targets"'+(_by?' — last set by '+esc(_by):'')+(_at?' on '+_at:'')+'. Actual: '+_ty+(FIN.p.part!=='all'?' revenue for the same period':' revenue')+' from paid invoices.'))+'</div>'; }
     h+='</div>';
@@ -1486,7 +1486,9 @@ function rOverview(){
   var _cy=String(todayISO()).slice(0,4), _chY=(FIN.p&&FIN.p.year&&FIN.p.year!=='all')?String(FIN.p.year):_cy;
   var _chV=(FIN.p&&FIN.p.year&&FIN.p.year!=='all')?V:verified().filter(function(r){ return String(finYearOf(r))===_chY&&finPeriodMatch(r,{year:_chY,part:(FIN.p&&FIN.p.part)||'all'}); });
   _chV.forEach(function(r){var k=r.month||'?';if(k==='?')_noMonth++;by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;by[k].p+=+(r.profit_sar||0);});
-  if(_chY===_cy){ var _mNow=+String(todayISO()).slice(5,7); MO=MO.slice(0,_mNow); }
+  /* …up to this month — or to the last month that has invoices, if one is dated later (a future-dated invoice stays visible,
+     so the chart always adds up to the Revenue tile) */
+  if(_chY===_cy){ var _mNow=+String(todayISO()).slice(5,7), _mLast=0; MO.forEach(function(m,ix){ if(by[m]&&(by[m].r||by[m].p)) _mLast=ix+1; }); MO=MO.slice(0,Math.max(_mNow,_mLast)); }
   /* 2026-09-03 (watch cycle 23): draw EVERY month, not only the ones with business in them.
      Filtering to months that have rows put January, February, May and December side by side as
      four adjacent bars — a year with two long silences in it read as four consecutive months, and
