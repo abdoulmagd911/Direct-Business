@@ -258,10 +258,14 @@ function finLoad(cb){
     FIN.loading=false;
     try{
       c.auth.getSession().then(function(s){
-        if(s&&s.data&&s.data.session){ window.__finSessionOk=true; finLoad(cb); return; }
+        if(s&&s.data&&s.data.session){ if(FIN._waitSignIn){ clearInterval(FIN._waitSignIn); FIN._waitSignIn=null; } window.__finSessionOk=true; finLoad(cb); return; }
         FIN.rows=null;
         if(!FIN._waitSignIn){ FIN._waitSignIn=setInterval(function(){
           try{ c.auth.getSession().then(function(s2){
+            /* 2026-09-28 (D1 sweep, probe-import-preview-tab-switch): another path may have loaded the ledger since this wait
+               began — then this timer only stops. It used to reload and repaint anyway, a second later, wiping an import
+               preview that was being built on the Import tab. */
+            if(s2&&s2.data&&s2.data.session&&window.__finSessionOk){ clearInterval(FIN._waitSignIn); FIN._waitSignIn=null; return; }
             if(s2&&s2.data&&s2.data.session){ clearInterval(FIN._waitSignIn); FIN._waitSignIn=null; window.__finSessionOk=true; FIN.rows=null; finLoad(cb);
               try{ if(typeof current!=='undefined'&&current==='finance'&&typeof render==='function')render(); }catch(_){} }
           }).catch(function(){}); }catch(_){}
@@ -280,7 +284,7 @@ function finLoad(cb){
        name) and which exclusion rule leaves it out. If the view cannot be read, Finance shows NO money and says why
        (fail closed): a total that silently ignored the rules would be worse than none. */
     var got=r;
-    finPageAll(function(){return c.from('money_rows').select('id,business_id,company_key,company_name,merge_state,profile_type,rule_id,rule_kind,rule_value,rule_reason,excluded,counts,open_age_days').order('id',{ascending:true});}, function(mr){
+    finPageAll(function(){return c.from('money_rows').select('id,business_id,company_key,company_name,merge_state,profile_type,rule_id,rule_kind,rule_value,rule_reason,excluded,counts,open_age_days,cost_missing,loss,pass_through_sar,fee_sar,unclassed_sar').order('id',{ascending:true});}, function(mr){
     if(got.error){console.warn('finance load',got.error);FIN.rows=[];FIN.loadErr=got.error.message;}
     else {FIN.rows=got.data||[];FIN.loadErr=null;}
     FIN.m={}; FIN.mErr=null;
@@ -358,6 +362,10 @@ function finSanitizeMoney(r){
   var bad=null;
   for(var i=0;i<MONEY_FIELDS.length;i++){
     var k=MONEY_FIELDS[i], v=r[k];
+    /* D1 (2026-09-28): cost and profit keep EMPTY as empty — a missing cost is "waiting for its cost", never 0 (which
+       would make profit equal revenue, the 100%-profit trap). Every sum already reads them through +x||0; the tests that
+       need to know use finCostMissing(). The other money fields still read absent as 0. */
+    if((k==='cost_sar'||k==='profit_sar')&&(v==null||v==='')){ r[k]=null; continue; }
     if(v==null||v===''){ r[k]=0; continue; }
     if(typeof v==='number'){ if(!isFinite(v)){ r[k]=0; (bad=bad||[]).push(k); } continue; }
     var n=parseFloat(String(v).replace(/[,\s]/g,''));
@@ -390,7 +398,23 @@ try{ window.finExcludedRows=finExcludedRows; }catch(_){}
    the raw rows (the storage doctrine). part: all | Q1..Q4 | H1 | H2 | M:<MonthName>. */
 FIN.p=FIN.p||{year:'all',part:'all',sector:'all'};
 FIN.p.cmp=FIN.p.cmp||'none'; // blueprint step 5 (2026-08-27): compare-to mode, in-memory only — same storage doctrine as the rest of FIN.p, nothing per-period is ever saved.
-function finYearOf(r){return r.year||(r.invoice_date?+String(r.invoice_date).slice(0,4):null);}
+/* D1 (2026-09-28, DECISIONS D21): a MISSING cost is empty (null), never 0 — so "no cost" means null now, and a real zero
+   cost (a fee-only sale) is a real zero. A commission carries no cost by nature: never "missing". One test, used everywhere. */
+/* the cost cell of one row: the cost, or "awaited" — and, when the invoice's own lines show a pass-through amount, that
+   amount beside it, labelled (it is shown, never counted: the item split is a VAT split, not cost — owner, 22 Aug) */
+function finCostCell(x){
+  var ar=(typeof LANG!=='undefined'&&LANG==='ar'), m=(window.FIN&&FIN.m&&x&&FIN.m[x.id])||{};
+  var pt=(m.pass_through_sar!=null&&+m.pass_through_sar>0)?'<div style="font-size:10.5px;color:var(--muted);font-weight:400" data-fin-passthrough="'+Math.round(+m.pass_through_sar)+'">'+(ar?'مارّ على الفاتورة: ':'pass-through on the invoice: ')+money0(+m.pass_through_sar)+'</div>':'';
+  if(finCostMissing(x)) return '<span style="color:#B54708" data-fin-cost-awaited="1" title="'+(ar?'بانتظار المصروفات المعتمدة':'Waiting for approved expenses')+'">'+(ar?'بانتظار التكلفة':'awaited')+'</span>'+pt;
+  return money(x.cost_sar==null?0:x.cost_sar)+pt;
+}
+try{ window.finCostCell=finCostCell; }catch(_){}
+function finCostMissing(r){ return !!r&&(r.cost_sar===null||r.cost_sar===undefined||r.cost_sar==='')&&r.revenue_way!=='commission'; }
+try{ window.finCostMissing=finCostMissing; }catch(_){}
+/* D1: which date sets the month. invoice_date IS the paid date for a paid invoice (else the created date) — so totals, reports
+   and KPIs all follow one date. Performance can regroup by the date the invoice was created instead (FIN.p.basis='created'). */
+function finBasisDate(r){ return (FIN&&FIN.p&&FIN.p.basis==='created'&&r&&r.invoice_created_on)?r.invoice_created_on:null; }
+function finYearOf(r){var b=finBasisDate(r); if(b)return +String(b).slice(0,4); return r.year||(r.invoice_date?+String(r.invoice_date).slice(0,4):null);}
 /* 2026-09-08 (watch cycle 65): finYearOf has always fallen back to the invoice date when a row
    carries no year, and it has to — js/16's OWN B2B import writes invoice_date, month and quarter
    and never a year, so without the fallback every row it wrote would drop out of every year.
@@ -416,8 +440,8 @@ function finQuarterFromDate(date){
   var mi=+String(date).slice(5,7);
   return (mi>=1&&mi<=12)?('Q'+(Math.floor((mi-1)/3)+1)):null;
 }
-function finMonthOf(r){ return r.month||finMonthFromDate(r.invoice_date); }
-function finQuarterOf(r){ return r.quarter||finQuarterFromDate(r.invoice_date); }
+function finMonthOf(r){ var b=finBasisDate(r); if(b)return finMonthFromDate(b); return r.month||finMonthFromDate(r.invoice_date); }
+function finQuarterOf(r){ var b=finBasisDate(r); if(b)return finQuarterFromDate(b); return r.quarter||finQuarterFromDate(r.invoice_date); }
 /* A row that carries BOTH a date and a stored period which disagree with it. The stored value
    wins everywhere (cycle 65 decided that deliberately: overruling it would move money on the
    say-so of a date that might be the wrong field), so this only ever counts — it never changes
@@ -480,8 +504,8 @@ function finCompLabel(p){
 function finPeriodTotals(p){
   var sec=(p&&p.sector)||'all';
   var rows=verified().filter(function(r){return finPeriodMatch(r,p)&&(sec==='all'||finSectorOf(r)===sec);});
-  var t={rev:0,cost:0,prof:0,n:rows.length,noCost:0};
-  rows.forEach(function(r){t.rev+=+r.revenue_sar||0;t.cost+=+r.cost_sar||0;t.prof+=+r.profit_sar||0;if((+r.cost_sar||0)===0)t.noCost++;});
+  var t={rev:0,revK:0,cost:0,prof:0,n:rows.length,noCost:0};
+  rows.forEach(function(r){t.rev+=+r.revenue_sar||0;t.cost+=+r.cost_sar||0;t.prof+=+r.profit_sar||0;if(finCostMissing(r))t.noCost++;else t.revK+=+r.revenue_sar||0;});
   return t;
 }
 window.finCmp=function(v){FIN.p.cmp=v;render();};
@@ -820,9 +844,11 @@ var SS='padding:7px 9px;border:1px solid var(--line,#e6e8ec);border-radius:8px;f
 function finTabs(){
   var tabs=[['overview',isArF()?'\u0627\u0644\u0623\u062f\u0627\u0621':'Performance'],['clients',isArF()?'\u0627\u0644\u0639\u0645\u0644\u0627\u0621 \u0648\u0627\u0644\u062a\u062d\u0635\u064a\u0644':'Clients & collections'],['ledger',isArF()?'\u0627\u0644\u0633\u062c\u0644':'Ledger'],['reports',isArF()?'\u0645\u0646\u0634\u0626 \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631':'Report Builder']];
   if(finCanWrite())tabs.push(['import',isArF()?'\u0627\u0633\u062a\u064a\u0631\u0627\u062f':'Import']);
-  return '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'+tabs.map(function(t){
-    return '<button class="btn sm '+(FIN.tab===t[0]?'pri':'ghost')+'" onclick="finGo(\''+t[0]+'\')">'+t[1]+'</button>';
-  }).join('')+'<span style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">'+(FIN.rows?(function(){var _ic=new Set(live().map(function(r){return r.invoice_no;})).size;/* 2026-09-24 (fire #238): this took the LAST value after a plain string sort, so one unreadable
+  /* 2026-09-28 (F6): the tabs stay on ONE line (they scroll sideways on a narrow screen); the "data through" note is what
+     moves to the next line when space runs out — it used to push Rules and Import onto a second row */
+  return '<div style="display:flex;gap:6px 12px;margin-bottom:14px;flex-wrap:wrap;align-items:center"><div data-fin-tabs="1" style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;max-width:100%">'+tabs.map(function(t){
+    return '<button class="btn sm '+(FIN.tab===t[0]?'pri':'ghost')+'" style="white-space:nowrap;flex:0 0 auto" onclick="finGo(\''+t[0]+'\')">'+t[1]+'</button>';
+  }).join('')+'</div><span style="margin-left:auto;font-size:11px;color:var(--muted);align-self:center">'+(FIN.rows?(function(){var _ic=new Set(live().map(function(r){return r.invoice_no;})).size;/* 2026-09-24 (fire #238): this took the LAST value after a plain string sort, so one unreadable
      date won — a row carrying "32/13/2026" made the header claim "data through 32/13/2026", a
      cutoff the data never had. Only dates the app can actually read are considered now, and if
      none can be read the header says so rather than quoting a value it cannot parse. */
@@ -1101,7 +1127,7 @@ function rFinClients(){
      groups and 131,871 SAR presented as 100% margin. Same rule as everywhere else (M8): a cost
      nobody has recorded is not zero, and a profit derived from it is not a profit.
      nz counts the invoices in each group with no cost recorded. */
-  var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,nz:0,nzp:0,_i:{},key:cc.key,directId:cc.directId};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;if((+r.cost_sar||0)===0){byC[k].nz++;byC[k].nzp+=(+r.profit_sar||0);/* fire #195: carry the AMOUNT, not only the count */}byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
+  var byC={};V.forEach(function(r){var cc=finCanon(r.client_group);var k=cc.name;byC[k]=byC[k]||{r:0,c:0,p:0,nz:0,nzp:0,_i:{},key:cc.key,directId:cc.directId};byC[k].r+=+r.revenue_sar;byC[k].c+=+r.cost_sar;byC[k].p+=+r.profit_sar;if(finCostMissing(r)){byC[k].nz++;byC[k].nzp+=(+r.revenue_sar||0);/* fire #195: carry the AMOUNT, not only the count */}byC[k]._i[r.invoice_no]=1;});Object.keys(byC).forEach(function(k){byC[k].n=Object.keys(byC[k]._i).length;});
   function _cCell(x){ // cost cell: a group with NO cost on any invoice shows the words, not a 0
     if(x.nz>=x.n) return '<span style="color:#B54708" title="'+(isArF()?'لم تُسجَّل تكلفة لأي فاتورة لهذا العميل':'No cost recorded on any of this client\'s invoices')+'">'+(isArF()?'غير مسجّلة':'not recorded')+'</span>';
     return money0(x.c)+(x.nz?('<span style="color:#B54708;font-size:10.5px" title="'+(isArF()?'بعض الفواتير بلا تكلفة مسجّلة':'some invoices carry no recorded cost')+'"> ⚠</span>'):'');
@@ -1117,10 +1143,12 @@ function rFinClients(){
      now says so rather than leaving the reader to infer it from the rows above. */
   /* fire #195: how far above the real figure that upper bound might sit is the whole question, and
      the count of clients does not answer it. The riyals resting on unrecorded cost are named. */
-  var _tcSh=(_tc.p>0&&_tc.gapP>0)?Math.round(100*_tc.gapP/_tc.p):null;
-  var _tcNote=_tc.gaps?('<div style="font-size:11px;color:#B54708;font-weight:600;margin-top:8px" data-cl-gap-clients="'+_tc.gaps+'" data-cl-gap-profit="'+Math.round(_tc.gapP)+'">⚠ '+(isArF()
-    ?(_tc.gaps+' من العملاء لديهم فواتير بلا تكلفة مسجّلة، وتُحتسب '+money0(_tc.gapP)+' ريال منها ربحًا كاملًا'+(_tcSh!==null?('، أي '+_tcSh+'% من إجمالي الربح أعلاه'):'')+' — فهو حدّ أقصى وليس رقمًا نهائيًا.')
-    :(_tc.gaps+' of these clients have invoices with no recorded cost, and '+money0(_tc.gapP)+' SAR of them counts as pure profit'+(_tcSh!==null?(' — '+_tcSh+'% of the profit total above'):'')+', so that total is an upper bound, not a final figure.'))+'</div>'):'';
+  /* D21 (28 Sep sweep): an invoice waiting for its cost carries no profit at all now (cost and profit are empty), so there is
+     no "profit resting on unrecorded cost" to name: what the note names is the REVENUE those invoices carry, and that they are
+     left out of Cost and Profit. (nzp/gapP now hold that revenue.) */
+  var _tcNote=_tc.gaps?('<div style="font-size:11px;color:#B54708;font-weight:600;margin-top:8px" data-cl-gap-clients="'+_tc.gaps+'" data-cl-gap-rev="'+Math.round(_tc.gapP)+'">⚠ '+(isArF()
+    ?(_tc.gaps+' من العملاء لديهم فواتير بانتظار تكلفتها ('+money0(_tc.gapP)+' ريال من الإيراد). لا تدخل تلك الفواتير في التكلفة ولا الربح حتى تصل مصروفاتها المعتمدة.')
+    :(_tc.gaps+' of these clients have invoices waiting for their cost ('+money0(_tc.gapP)+' SAR of revenue). Those invoices are left out of Cost and Profit until their approved expenses arrive.'))+'</div>'):'';
   /* 2026-09-08 (watch cycle 63): fifth surface in the class cycles 59-62 opened. Every cell in
      this table is money0() — each row rounded to the whole riyal separately from the Total under
      it — so five clients billing 1,000.40 print five rows of 1,000 above a Total of 5,002. This is
@@ -1156,8 +1184,11 @@ function rFinClients(){
 function rOverview(){
   clearFinCanon();
   var V=verified().filter(finInPeriod);
-  var rev=0,cost=0,prof=0,rec=0,rem=0,wal=0;
-  V.forEach(function(r){rev+=+r.revenue_sar;cost+=+r.cost_sar;prof+=+r.profit_sar;rec+=+r.amount_received_sar;rem+=+r.amount_remaining_sar;wal+=+r.wallet_portion_sar;});
+  var rev=0,cost=0,prof=0,rec=0,rem=0,wal=0,revK=0;
+  /* 2026-09-28 (D21 sweep): an invoice still waiting for its cost has cost AND profit null — it counts in Revenue but not in
+     Cost or Profit. revK is the revenue of the invoices whose cost IS known: the base for margin and for the
+     Profit = Revenue − Cost check below, which otherwise called every waiting invoice "stored figures that disagree". */
+  V.forEach(function(r){rev+=+r.revenue_sar||0;cost+=+r.cost_sar||0;prof+=+r.profit_sar||0;rec+=+r.amount_received_sar||0;rem+=+r.amount_remaining_sar||0;wal+=+r.wallet_portion_sar||0;if(!finCostMissing(r))revK+=+r.revenue_sar||0;});
   /* Outstanding cannot be read off the verified-paid invoices: an invoice is only verified-paid
      once nothing is left to pay, so summing what remains across them is always zero — which is
      exactly what this tile showed while Clients & collections reported 216.1K of real unpaid
@@ -1204,12 +1235,12 @@ function rOverview(){
      with the count of rows it comes from. (The database trigger keeps every live row honest today,
      and all 46 were re-checked; this is the page refusing to mislabel the day that changes.) */
   (function(){
-    var _pr=finPrintedValue(rev), _pc=finPrintedValue(cost), _pp=finPrintedValue(prof);
+    var _pr=finPrintedValue(revK), _pc=finPrintedValue(cost), _pp=finPrintedValue(prof);
     if(_pr-_pc===_pp)return;
-    var _exactGap=(Number(rev)||0)-(Number(cost)||0)-(Number(prof)||0);
+    var _exactGap=(Number(revK)||0)-(Number(cost)||0)-(Number(prof)||0);
     if(Math.abs(_exactGap)>=1){
       var _off=0;
-      try{ _off=live().filter(finInPeriod).filter(function(r){
+      try{ _off=live().filter(finInPeriod).filter(function(r){ if(finCostMissing(r)) return false;
         var rr=Number(r.revenue_sar)||0, cc=Number(r.cost_sar)||0, pp=Number(r.profit_sar)||0;
         return Math.abs(rr-cc-pp)>=0.005; }).length; }catch(_){ _off=0; }
       h+='<div id="ov-mismatch" style="font-size:12px;color:#B54708;font-weight:600;margin:-6px 0 14px">⚠ '+(isArF()
@@ -1221,8 +1252,8 @@ function rOverview(){
       return;
     }
     h+='<div id="ov-rounding" style="font-size:12px;color:#444;margin:-6px 0 14px">'+(isArF()
-      ?('\u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0623\u0639\u0644\u0627\u0647 \u0645\u064f\u0642\u0631\u064e\u0651\u0628 \u0643\u0644 \u0645\u0646\u0647\u0627 \u0639\u0644\u0649 \u062d\u062f\u0629\u060c \u0644\u0630\u0627 \u0641\u0625\u0646 '+money0(_pr)+' \u0646\u0627\u0642\u0635 '+money0(_pc)+' \u062a\u0639\u0637\u064a '+money0(_pr-_pc)+' \u0628\u064a\u0646\u0645\u0627 \u064a\u0638\u0647\u0631 \u0627\u0644\u0631\u0628\u062d '+money0(_pp)+'. \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0627\u0644\u062f\u0642\u064a\u0642\u0629: \u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a '+(Number(rev)||0).toFixed(2)+' \u0631\u064a\u0627\u0644\u060c \u0627\u0644\u062a\u0643\u0644\u0641\u0629 '+(Number(cost)||0).toFixed(2)+' \u0631\u064a\u0627\u0644\u060c \u0627\u0644\u0631\u0628\u062d '+(Number(prof)||0).toFixed(2)+' \u0631\u064a\u0627\u0644.')
-      :('Each figure above is rounded on its own, so '+money0(_pr)+' minus '+money0(_pc)+' reads as '+money0(_pr-_pc)+' where Profit reads '+money0(_pp)+'. Exactly: revenue '+(Number(rev)||0).toFixed(2)+' SAR, cost '+(Number(cost)||0).toFixed(2)+' SAR, profit '+(Number(prof)||0).toFixed(2)+' SAR.'))+'</div>';
+      ?('\u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0623\u0639\u0644\u0627\u0647 \u0645\u064f\u0642\u0631\u064e\u0651\u0628 \u0643\u0644 \u0645\u0646\u0647\u0627 \u0639\u0644\u0649 \u062d\u062f\u0629\u060c \u0644\u0630\u0627 \u0641\u0625\u0646 '+money0(_pr)+' \u0646\u0627\u0642\u0635 '+money0(_pc)+' \u062a\u0639\u0637\u064a '+money0(_pr-_pc)+' \u0628\u064a\u0646\u0645\u0627 \u064a\u0638\u0647\u0631 \u0627\u0644\u0631\u0628\u062d '+money0(_pp)+'. \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0627\u0644\u062f\u0642\u064a\u0642\u0629: \u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a '+(Number(revK)||0).toFixed(2)+' \u0631\u064a\u0627\u0644\u060c \u0627\u0644\u062a\u0643\u0644\u0641\u0629 '+(Number(cost)||0).toFixed(2)+' \u0631\u064a\u0627\u0644\u060c \u0627\u0644\u0631\u0628\u062d '+(Number(prof)||0).toFixed(2)+' \u0631\u064a\u0627\u0644.')
+      :('Each figure above is rounded on its own, so '+money0(_pr)+' minus '+money0(_pc)+' reads as '+money0(_pr-_pc)+' where Profit reads '+money0(_pp)+'. Exactly: revenue '+(Number(revK)||0).toFixed(2)+' SAR, cost '+(Number(cost)||0).toFixed(2)+' SAR, profit '+(Number(prof)||0).toFixed(2)+' SAR.'))+'</div>';
   })();
   var _badMoney=live().filter(finInPeriod).filter(function(r){return r._badMoney;}).length;
   if(_badMoney>0){
@@ -1252,7 +1283,7 @@ function rOverview(){
      profit figure was resting on cost nobody has entered yet, and "19 of 46" gave a reader no way
      to know whether that share was 2% or half. The rows are wildly unequal in size; a count cannot
      stand in for an amount. Both numbers now appear, and the share is computed, never assumed. */
-  var _noCostRows=V.filter(function(r){return (+r.cost_sar||0)===0;});
+  var _noCostRows=V.filter(finCostMissing);
   var _noCost=_noCostRows.length;
   if(_noCost>0){
     var _ncProfit=_noCostRows.reduce(function(s,r){return s+(+r.profit_sar||0);},0);
@@ -1260,9 +1291,12 @@ function rOverview(){
     /* the share is only meaningful when the total is a positive number to take a share OF */
     var _ncShare=(_allProfit>0&&_ncProfit>0)?Math.round(100*_ncProfit/_allProfit):null;
     var _ncAmt=money0(_ncProfit);
-    h+='<div style="font-size:12px;color:#B54708;margin:-6px 0 14px" data-fin-nocost="'+_noCost+'" data-fin-nocost-profit="'+Math.round(_ncProfit)+'"'+(_ncShare!==null?(' data-fin-nocost-share="'+_ncShare+'"'):'')+'>⚠ '+(isArF()
-      ?(_noCost+' من '+V.length+' فاتورة في هذه الفترة بلا تكلفة مسجلة. تُحتسب '+_ncAmt+' ريال منها ربحًا كاملًا'+(_ncShare!==null?('، أي '+_ncShare+'% من الربح المعروض أعلاه'):'')+' — قد يظهر الهامش أعلى من الحقيقة حتى تصل مصروفاتها.')
-      :(_noCost+' of '+V.length+' invoices in this period carry no recorded cost. '+_ncAmt+' SAR of them counts as pure profit here'+(_ncShare!==null?(' — '+_ncShare+'% of the profit shown above'):'')+', so margin may read higher than reality until their expenses arrive.'))+'</div>';
+    var _ncRev=_noCostRows.reduce(function(s,r){return s+(+r.revenue_sar||0);},0);
+    /* D1: a missing cost is empty, so these rows are simply LEFT OUT of cost and profit (never counted as 100% profit, which
+       is what this line used to warn about). What a reader needs is how much revenue is still waiting for its cost. */
+    h+='<div style="font-size:12px;color:#B54708;margin:-6px 0 14px" data-fin-nocost="'+_noCost+'" data-fin-nocost-rev="'+Math.round(_ncRev)+'">⚠ '+(isArF()
+      ?(_noCost+' من '+V.length+' فاتورة في هذه الفترة بانتظار تكلفتها ('+money0(_ncRev)+' ريال من الإيراد). لا تدخل في التكلفة ولا الربح حتى تصل مصروفاتها المعتمدة — الربح المعروض هو ربح الفواتير المعروفة التكلفة فقط.')
+      :(_noCost+' of '+V.length+' invoices in this period are waiting for their cost ('+money0(_ncRev)+' SAR of revenue). They are left out of cost and profit until their approved expenses arrive — the profit shown is for invoices whose cost is known.'))+'</div>';
   }
   /* Compare to (blueprint step 5, 2026-08-27): revenue/cost/profit/margin against the previous
      period or the same period last year. Needs one concrete year selected above — spanning
@@ -1297,7 +1331,7 @@ function rOverview(){
       return out;
     }
     var rows=[[ar?'الإيرادات':'Revenue',rev,ct.rev],[ar?'التكلفة':'Cost',cost,ct.cost],[ar?'الربح':'Profit',prof,ct.prof],
-      [ar?'الهامش':'Margin',rev>0?(prof/rev*100):0,ct.rev>0?(ct.prof/ct.rev*100):0]];
+      [ar?'الهامش':'Margin',revK>0?(prof/revK*100):0,ct.revK>0?(ct.prof/ct.revK*100):0]];
     out+='<div style="overflow-x:auto;margin-top:10px"><table style="width:100%;font-size:12.5px;border-collapse:collapse;min-width:420px"><thead><tr style="text-align:'+(ar?'right':'left')+';color:var(--muted)"><th style="padding:6px 8px"></th><th style="padding:6px 8px;text-align:right">'+finPeriodLabel()+'</th><th style="padding:6px 8px;text-align:right">'+finCompLabel(cp)+'</th><th style="padding:6px 8px;text-align:right">'+(ar?'الفرق':'Δ')+'</th></tr></thead><tbody>'+rows.map(function(r){
       var isMargin=r[0]===(ar?'الهامش':'Margin');
       var d=r[1]-r[2], pct=r[2]!==0?(d/Math.abs(r[2])*100):(r[1]!==0?null:0);
@@ -1690,7 +1724,7 @@ function rLedger(){
         var refCell=r.invoice_no
           ?('<a href="'+escF(pdInvoiceLink({invoice_no:r.invoice_no,zatca_dpin:r.zatca_dpin,direct_client_id:p?p.direct_client_id:''}))+'" target="_blank" rel="noopener" style="color:#175CD3;text-decoration:none">'+escF(r.invoice_no)+' ↗</a>')
           :escF(r.transaction_ref);
-        h+='<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:7px 8px;white-space:nowrap">'+escF((r.created_at_source||'').slice(0,10))+'</td>'
+        h+='<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:7px 8px;white-space:nowrap">'+escF(dayRiyadh(r.created_at_source))+'</td>'
           +'<td style="padding:7px 8px">'+badge(_lh(tl[0],tl[1]),'#EEF0F5','#4B5563')+(p&&p.direct_client_id?(' <span style="color:var(--muted);font-size:10.5px">#'+escF(p.direct_client_id)+'</span>'):'')+'</td>'
           +'<td style="padding:7px 8px">'+refCell+_dupMark+'</td>'
           +'<td style="padding:7px 8px">'+escF(svcLabel(r.service_type))+'</td>'
@@ -1844,7 +1878,7 @@ window.finRow=function(id){
           var txLines=lines.filter(function(y){return y.transaction_ref===lastTx;});
           var txTot=txLines.reduce(function(a,y){return a+(+y.total_incl_vat_sar||0);},0);
           out+='<tr><td colspan="5" style="padding:7px 8px;background:#EEF0F5;font-weight:700;font-size:11.5px;color:#3a4f9e">'+_f('Transaction','المعاملة')+' '+escF(lastTx)+' · '+txLines.length+' '+_f('line(s)','بند')+' · '+money0(txTot)+' SAR</td></tr>';}
-        out+='<tr style="border-top:1px solid #f0efe9"><td style="padding:6px 8px;font-weight:600">'+escF(svcLabel(x.service_type))+'</td><td style="padding:6px 8px;color:var(--muted)">'+escF(x.products||'\u2014')+'</td><td style="padding:6px 8px;text-align:right">'+money(x.total_incl_vat_sar)+'</td><td style="padding:6px 8px;text-align:right;color:#B54708">'+money(x.cost_sar)+'</td><td style="padding:6px 8px;text-align:right;font-weight:700;color:#0F6E56">'+money(x.profit_sar)+'</td></tr>'+((x.items&&x.items.length)?('<tr><td colspan="5" style="padding:2px 10px 9px 24px;font-size:11.5px;color:var(--muted);background:#FCFBF9">'+x.items.map(function(it){return '• '+escF(it.d||'')+(it.q?(' × '+it.q):'')+(it.u?(' — '+money(it.u)+' SAR'):'');}).join('<br>')+'</td></tr>'):'');});
+        out+='<tr style="border-top:1px solid #f0efe9"><td style="padding:6px 8px;font-weight:600">'+escF(svcLabel(x.service_type))+'</td><td style="padding:6px 8px;color:var(--muted)">'+escF(x.products||'\u2014')+'</td><td style="padding:6px 8px;text-align:right">'+money(x.total_incl_vat_sar)+'</td><td style="padding:6px 8px;text-align:right;color:#B54708">'+finCostCell(x)+'</td><td style="padding:6px 8px;text-align:right;font-weight:700;color:#0F6E56">'+(x.profit_sar==null?'<span style="color:#B54708;font-weight:400" title="'+_f('Profit is known once the cost is','يُعرف الربح حين تصل التكلفة')+'">\u2014</span>':money(x.profit_sar))+'</td></tr>'+((x.items&&x.items.length)?('<tr><td colspan="5" style="padding:2px 10px 9px 24px;font-size:11.5px;color:var(--muted);background:#FCFBF9">'+x.items.map(function(it){return '• '+escF(it.d||'')+(it.q?(' × '+it.q):'')+(it.u?(' — '+money(it.u)+' SAR'):'');}).join('<br>')+'</td></tr>'):'');});
       return out;})()+
     '<tr style="border-top:2px solid #1C1E2B;background:#F3F1EA;font-weight:800"><td style="padding:7px 8px" colspan="2">'+_f('Invoice total','\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629')+' \u00b7 '+lines.length+' '+_f('service(s)','\u062e\u062f\u0645\u0629')+'</td><td style="padding:7px 8px;text-align:right">'+money(t.tot)+'</td><td style="padding:7px 8px;text-align:right;color:#B54708">'+money(t.cost)+'</td><td style="padding:7px 8px;text-align:right;color:#0F6E56">'+money(t.prof)+'</td></tr>'+/* VAT is stored (vat_sar) but NEVER shown — owner rule 2026-08-12: no VAT in any view or report */''+
     '</tbody></table></div>';
@@ -1878,9 +1912,9 @@ window.finRow=function(id){
 /* In-page confirm, not window.confirm() \u2014 a native dialog blocks the whole tab on its own
    modal loop, which froze the owner's own hands-on QA of this exact button (same failure the
    Payment proofs chapter had before js/57 introduced pfConfirm; this reuses that same box). */
-function finConfirm(msg,onYes){
-  try{ if(window.pfConfirm) return pfConfirm(msg,onYes); }catch(_){}
-  if(confirm(msg))onYes(); // last-resort fallback if js/57 hasn't loaded for some reason
+function finConfirm(msg,onYes,opts){
+  try{ if(window.pfConfirm) return pfConfirm(msg,onYes,opts); }catch(_){}
+  /* 2026-09-28 (D19): no box, no action — the native confirm() fallback is gone. */
 }
 /* Bulletproof-round finding (2026-08-22): none of these four called .select() after
    .update(...) \u2014 Supabase/PostgREST returns no error when an RLS policy silently matches
@@ -1960,7 +1994,7 @@ window.finRestoreInv=function(invNo){
       if(r.error){alert('Could not restore: '+r.error.message);return;}
       if(!r.data||!r.data.length){ finZeroRowMsg('invoice_no',invNo,false,function(m,raced){ alert(m); if(raced){ finCloseModal(); FIN.rows=null; finLoad(); } }); return; }
       if(older.length){
-        var oldest=older.map(function(x){return String(x.deleted_at||'');}).sort()[0].slice(0,10);
+        var oldest=dayRiyadh(older.map(function(x){return String(x.deleted_at||'');}).sort()[0]);
         var lines=older.map(function(x){return x.line_no;}).filter(function(x){return x!=null;}).join(', ');
         alert(ar
           ? ('تم استرجاع '+r.data.length+' بند. وتُرك '+older.length+' بند'+(lines?(' (رقم '+lines+')'):'')+' محذوفًا كما هو — فقد حُذف في وقت سابق ('+oldest+') بقرار منفصل، وهذا الاسترجاع يتراجع عن الحذف الأخير فقط.')
@@ -1993,7 +2027,8 @@ window.finCloseModal=function(){
 window.finDel=function(id){
   if(finRefuseWrite())return;   // 2026-09-03: was canFinEdit(), the wrapper cycle 12 showed can say yes in a share view
   var ar=isArF();
-  finConfirm(ar?'\u062d\u0630\u0641 \u0647\u0630\u0647 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0643\u0644 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639 \u0645\u0646 \u00ab\u0627\u0644\u0645\u062d\u0630\u0648\u0641\u0629 \u0645\u0624\u062e\u0631\u0627\u064b\u00bb.':'Soft-delete this invoice? It disappears from all totals but stays recoverable under "Recently deleted".', function(){
+  var _n=''; try{ var _r=(FIN.rows||[]).filter(function(x){return String(x.id)===String(id);})[0]; _n=String((_r&&(_r.invoice_no||_r.client_group))||'').slice(0,60); }catch(_){}   // 2026-09-28 (D19): the question names the invoice
+  finConfirm(ar?'\u062d\u0630\u0641 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 \u00ab'+_n+'\u00bb\u061f \u062a\u062e\u062a\u0641\u064a \u0645\u0646 \u0643\u0644 \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u0648\u062a\u0628\u0642\u0649 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062a\u0631\u062c\u0627\u0639 \u0645\u0646 \u00ab\u0627\u0644\u0645\u062d\u0630\u0648\u0641\u0629 \u0645\u0624\u062e\u0631\u0627\u064b\u00bb.':'Soft-delete the invoice "'+_n+'"? It disappears from all totals but stays recoverable under "Recently deleted".', function(){
     fc().from('finance_invoices').update({deleted_at:new Date().toISOString()}).eq('id',id).select().then(function(r){
       if(r.error){alert('Could not delete: '+r.error.message);return;}
       if(!r.data||!r.data.length){ finZeroRowMsg('id',id,true,function(m,raced){ alert(m); if(raced){ finCloseModal(); FIN.rows=null; finLoad(); } }); return; }
@@ -2135,7 +2170,7 @@ function rReports(){
     /* 2026-09-09 (live test, F2): count, per row, the invoices that carry no recorded cost.
        __n / __nz on the group and on each sub-group — the same nz>=n test the Clients tab has
        used since round 35 — so a row can say "not recorded" instead of printing a 0. */
-    var _noCost=((+r.cost_sar||0)===0);
+    var _noCost=finCostMissing(r);
     g[k1].__n=(g[k1].__n||0)+1; if(_noCost)g[k1].__nz=(g[k1].__nz||0)+1;
     if(k2){var s=g[k1].__sub[k2]=g[k1].__sub[k2]||{};mets.forEach(function(m){s[m]=(s[m]||0)+(m==='_count'?1:+r[m]);});
       s.__n=(s.__n||0)+1; if(_noCost)s.__nz=(s.__nz||0)+1;
@@ -2223,15 +2258,13 @@ function rReports(){
   if(mets.indexOf('profit_sar')>=0||mets.indexOf('cost_sar')>=0){
     /* fire #195: the count alone cannot tell a reader whether the gap is 2% of the profit or half
        of it — see the note on the ledger's own warning. The amount rides along here too. */
-    var _rbNoRows=base.filter(function(r){return (+r.cost_sar||0)===0;});
+    var _rbNoRows=base.filter(finCostMissing);
     var _rbNo=_rbNoRows.length;
     if(_rbNo>0){
-      var _rbP=_rbNoRows.reduce(function(s,r){return s+(+r.profit_sar||0);},0);
-      var _rbAll=base.reduce(function(s,r){return s+(+r.profit_sar||0);},0);
-      var _rbSh=(_rbAll>0&&_rbP>0)?Math.round(100*_rbP/_rbAll):null;
-      h2+='<div style="font-size:11.5px;color:#B54708;font-weight:600;padding:8px 10px" data-rb-nocost="'+_rbNo+'" data-rb-nocost-profit="'+Math.round(_rbP)+'">⚠ '+(isArF()
-        ?(_rbNo+' من '+base.length+' بند في هذا التقرير بلا تكلفة مسجّلة، وتُحتسب '+money0(_rbP)+' ريال منها ربحًا كاملًا'+(_rbSh!==null?('، أي '+_rbSh+'% من الربح المعروض'):'')+' — أرقام الربح هنا حدّ أقصى وليست نهائية.')
-        :(_rbNo+' of '+base.length+' rows in this report carry no recorded cost, and '+money0(_rbP)+' SAR of them counts as pure profit'+(_rbSh!==null?(' — '+_rbSh+'% of the profit shown'):'')+', so the profit figures here are an upper bound, not final.'))+'</div>';
+      var _rbR=_rbNoRows.reduce(function(s,r){return s+(+r.revenue_sar||0);},0);   // D21: the revenue waiting for its cost (no profit rests on it)
+      h2+='<div style="font-size:11.5px;color:#B54708;font-weight:600;padding:8px 10px" data-rb-nocost="'+_rbNo+'" data-rb-nocost-rev="'+Math.round(_rbR)+'">⚠ '+(isArF()
+        ?(_rbNo+' من '+base.length+' بند في هذا التقرير بانتظار تكلفته ('+money0(_rbR)+' ريال من الإيراد). لا تدخل في التكلفة ولا الربح حتى تصل مصروفاتها المعتمدة — الربح المعروض للبنود المعروفة التكلفة فقط.')
+        :(_rbNo+' of '+base.length+' rows in this report are waiting for their cost ('+money0(_rbR)+' SAR of revenue). They are left out of cost and profit until their approved expenses arrive — the profit shown is for rows whose cost is known.'))+'</div>';
     }
   }
   return h+h2;
@@ -2271,9 +2304,13 @@ window.finCSV=function(){
      probe is out of this session's lane. So the file is one step behind the screen here, on
      purpose and on record (docs/BACKLOG.md, 2026-09-09): the honest export leaves those two cells
      empty, and that is the change for whoever owns that probe. */
+  /* 2026-09-28 (D21 sweep): that step is taken. A cost nobody recorded is EMPTY in the database now, so the file leaves Cost
+     and Profit empty on a row whose invoices ALL wait for their cost — exactly where the screen prints "not recorded" /
+     "unknown" — instead of a 0 that reads as a real figure. Every other cell, and the TOTAL, is unchanged. */
+  var csvUnrec=function(o,m){return (m==='cost_sar'||m==='profit_sar')&&o&&o.__n>0&&(o.__nz||0)>=o.__n;};
   R.keys.forEach(function(k){
-    out.push([k].concat(R.mets.map(function(m){return csvNum(m,R.g[k].__tot[m]);})));
-    if(R.g2)Object.keys(R.g[k].__sub).forEach(function(s){out.push(['  '+k+' \u203a '+s].concat(R.mets.map(function(m){return csvNum(m,R.g[k].__sub[s][m]);})));});
+    out.push([k].concat(R.mets.map(function(m){return csvUnrec(R.g[k],m)?'':csvNum(m,R.g[k].__tot[m]);})));
+    if(R.g2)Object.keys(R.g[k].__sub).forEach(function(s){out.push(['  '+k+' \u203a '+s].concat(R.mets.map(function(m){return csvUnrec(R.g[k].__sub[s],m)?'':csvNum(m,R.g[k].__sub[s][m]);})));});
   });
   out.push([isArF()?'\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a':'TOTAL'].concat(R.mets.map(function(m){return csvNum(m,R.grand[m]);})));
   var csv='\ufeff'+out.map(function(r){return r.map(function(c){c=csvGuard(c);return (c.indexOf(',')>=0||c.indexOf('"')>=0||c.charCodeAt(0)===39)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',');}).join('\r\n');

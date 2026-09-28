@@ -297,7 +297,7 @@
       v=String(v).trim();
       if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!isNaN(new Date(v).getTime()))row[p[1]]=v;
     });
-    if(o.isClient===true&&o.convertedDate){try{row.converted_date=new Date(o.convertedDate).toISOString().slice(0,10);}catch(_){}}
+    if(o.isClient===true&&o.convertedDate){try{row.converted_date=dayRiyadh(o.convertedDate);}catch(_){}}
     if(o.funnelKey&&FBYKEY[o.funnelKey])row.funnel_id=FBYKEY[o.funnelKey].id;
     if(ROWID[o.id])row.id=ROWID[o.id];
     return row;
@@ -835,7 +835,7 @@
         b.onclick=function(){
           var email=b.getAttribute('data-email')||'';
           /* 2026-09-09 (live test D1 family): ask in the page, never window.confirm */
-          var _ask=function(m,y){ if(typeof window.askInPage==='function')window.askInPage(m,y); else if(confirm(m))y(); };
+          var _ask=function(m,y){ if(typeof window.askInPage==='function')window.askInPage(m,y); }; /* 2026-09-28 (D19): no native confirm() */
           _ask('Send a password reset link to '+email+'?',function(){
           b.disabled=true;var was=b.textContent;b.textContent='…';
           callAdmin({action:'send_reset_link',id:b.getAttribute('data-rst'),origin:location.origin}).then(function(r2){

@@ -103,9 +103,10 @@
         load(function(err){ paint(err); });
       });
     };
-    var msg=fl('Switch this link off?\nAnyone who has it will see "invalid link" from now on. This cannot be undone — make a new link if it is needed again.',
-               'إيقاف هذا الرابط؟\nمن يحمله سيرى «رابط غير صالح» من الآن. لا يمكن التراجع — أنشئ رابطًا جديدًا عند الحاجة.');
-    if(typeof window.pfConfirm==='function') window.pfConfirm(msg,go); else go();
+    var tl='…'+String(token||'').slice(-6);   // 2026-09-28 (D19): the link is named as its row shows it; no box, no switch-off
+    var msg=fl('Switch the link "'+tl+'" off?\nAnyone who has it will see "invalid link" from now on. This cannot be undone — make a new link if it is needed again.',
+               'إيقاف الرابط «'+tl+'»؟\nمن يحمله سيرى «رابط غير صالح» من الآن. لا يمكن التراجع — أنشئ رابطًا جديدًا عند الحاجة.');
+    if(typeof window.pfConfirm==='function') window.pfConfirm(msg,go,{danger:true});
   }
   function makeNew(){
     var go=function(){
@@ -115,7 +116,7 @@
     };
     var msg=fl('Create a new view-only link?\nAnyone holding it can read Today, Leads and Clients without signing in, until you switch it off here. The address is copied to your clipboard.',
                'إنشاء رابط عرض جديد؟\nمن يحمله يستطيع قراءة «اليوم» و«العملاء المحتملين» و«العملاء» دون تسجيل دخول حتى توقفه من هنا. سيُنسخ العنوان.');
-    if(typeof window.pfConfirm==='function') window.pfConfirm(msg,go); else go();
+    if(typeof window.pfConfirm==='function') window.pfConfirm(msg,go);   // 2026-09-28 (D19): no box, no new link
   }
   window.shareLinksPanel=open;
 

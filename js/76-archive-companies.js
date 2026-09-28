@@ -101,7 +101,7 @@
         setTimeout(function(){ try{ location.reload(); }catch(_){} },900);
       }).catch(function(e){ try{ toast(fl('Not restored — ','لم تُستعد — ')+String((e&&e.message)||e),'err'); }catch(_){} });
     };
-    if(typeof window.pfConfirm==='function') window.pfConfirm(msg,go); else go();
+    if(typeof window.pfConfirm==='function') window.pfConfirm(msg,go);   // 2026-09-28 (D19): no box, no action
   };
 
   function paint(v,ticket){

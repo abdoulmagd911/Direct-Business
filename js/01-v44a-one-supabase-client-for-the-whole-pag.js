@@ -48,6 +48,13 @@
         var read=rest&&((method==='GET'&&!/\/rest\/v1\/rpc\//.test(url))||readRpc);
         if(!read){
           if(method!=='GET'&&method!=='HEAD'&&method!=='OPTIONS'&&!/\/auth\/v1\//.test(url)) shared={};   // a write: forget every shared answer
+          /* 2026-09-28 (F2): a record saved straight to its table (a rule, a task, a client ID…) is a save too — tell the
+             sync badge (js/75), which otherwise only heard about the old whole-workspace save and kept saying "40 min ago" */
+          if(rest&&!/\/rest\/v1\/rpc\//.test(url)&&/^(POST|PATCH|PUT|DELETE)$/.test(method)){
+            var wp=f(input,init);
+            try{ wp.then(function(r){ try{ if(r&&r.ok&&typeof window.__syncOk==='function') window.__syncOk(); }catch(_){} },function(){}); }catch(_){}
+            return wp;
+          }
           return f(input,init);
         }
         var h=(init&&init.headers)||(input&&input.headers);

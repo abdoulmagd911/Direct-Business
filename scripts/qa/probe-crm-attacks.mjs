@@ -21,8 +21,9 @@ const UID = '11111111-1111-1111-1111-111111111111';
 const ME = 'QA Test Account';           // full_name of the signed-in mock user
 const ME_NICK = 'QA Nick';
 
-/* dates in UTC — the app compares toISOString().slice(0,10) strings */
-const dayISO = (off) => new Date(Date.now() + off * 864e5).toISOString().slice(0, 10);
+/* dates on Riyadh's calendar (UTC+3, no daylight saving) — the app's "today" is Riyadh's today (DECISIONS D20, 28 Sep);
+   before that it was the browser's own calendar, and before that UTC */
+const dayISO = (off) => new Date(Date.now() + 3 * 3600000 + off * 864e5).toISOString().slice(0, 10);
 const TODAY = dayISO(0), YEST = dayISO(-1), P3 = dayISO(3), P7 = dayISO(7), P8 = dayISO(8);
 const msAgo = (days) => Date.now() - days * 864e5;
 
@@ -353,7 +354,7 @@ async function phaseA() {
      native confirm() — a native dialog here is now itself a failure. */
   const nd2 = dialogs.length;
   const del1 = await p.evaluate(async () => { editBusiness('qa_over'); await new Promise(r => setTimeout(r, 300)); document.getElementById('mDel').click(); await new Promise(r => setTimeout(r, 400)); const box = document.getElementById('pfConfirmBox'); const msg = box ? box.innerText : ''; const no = document.getElementById('pfConfirmNo'); if (no) no.click(); await new Promise(r => setTimeout(r, 300)); return { exists: !!getLead('qa_over'), box: !!box, msg }; });
-  check('4e Delete asks with the in-page box and a "Cancel" answer leaves the company in place', del1.box && /Delete this company/.test(del1.msg) && del1.exists === true && dialogs.length === nd2, { del1, nativeDialogs: dialogs.length - nd2 });
+  check('4e Delete asks with the in-page box and a "Cancel" answer leaves the company in place', del1.box && /Delete the company "[^"]+"\?/.test(del1.msg) /* D19: names it */ && del1.exists === true && dialogs.length === nd2, { del1, nativeDialogs: dialogs.length - nd2 });
   const del2 = await p.evaluate(async () => { editBusiness('qa_over'); await new Promise(r => setTimeout(r, 300)); document.getElementById('mDel').click(); await new Promise(r => setTimeout(r, 400)); const yes = document.getElementById('pfConfirmYes'); if (yes) yes.click(); await new Promise(r => setTimeout(r, 500)); return { exists: !!getLead('qa_over') }; });
   check('4f ...and a "Confirm" answer removes it', del2.exists === false && dialogs.length === nd2, del2);
 

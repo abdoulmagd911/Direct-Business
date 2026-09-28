@@ -65,6 +65,11 @@ for (const f of files) {
      the first call on the page, before the login layer creates the real client, it builds a
      client with no project URL and no key and memoises that broken thing for everything after
      it. window.fc() (js/16) is the safe accessor — it never creates a client of its own. */
+  /* 7 — dates are Riyadh's calendar (owner, 28 Sep, F1). Cutting a stored time's first ten characters, or today's UTC ISO
+     string, gives YESTERDAY for anything after 9 pm in Riyadh. Use dayRiyadh(time) / todayISO() (core-01). */
+  { const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+    const m = code.match(/_at(?:_source)?\s*(?:\|\|\s*'')?\)\s*\.slice\(0,\s*10\)|new Date\(\)\)?\.toISOString\(\)\.(?:slice|substring|substr)\(0,\s*10\)/);
+    if (m && !/core-01-foundation\.js$/.test(f)) problems.push(`${f} cuts a UTC time to a date ("${m[0]}") — that is yesterday after 9 pm in Riyadh. Use dayRiyadh(time) or todayISO() (js/core/core-01).`); }
   if (/supabase\s*\.\s*createClient\s*\(\s*\)/.test(src)) problems.push(`${f} calls supabase.createClient() with no arguments — if this ever runs before the login layer, it builds a client with no URL and no key. Use window.fc() instead.`);
 }
 
@@ -154,7 +159,7 @@ try {
     }
   }
   if (!checked) problems.push('scripts/qa/mock-supabase.mjs: could not find any finance_invoices fixture rows to check — the money-doctrine guard has stopped matching and is no longer protecting anything.');
-  if (!/const _wal=0;const _rev=_tot-_wal;const _prof=_rev-_cost;/.test(mockSrc)) problems.push('scripts/qa/mock-supabase.mjs: the generated finance_invoices rows no longer derive revenue = total − wallet and profit = revenue − cost the way the live trigger does.');
+  if (!/const _wal=0;const _rev=_tot-_wal;const _prof=\(_cost==null\)\?null:_rev-_cost;/.test(mockSrc))   /* D21: no cost recorded → no profit (as the trigger) */ problems.push('scripts/qa/mock-supabase.mjs: the generated finance_invoices rows no longer derive revenue = total − wallet and profit = revenue − cost the way the live trigger does.');
 } catch (e) {
   problems.push('money-doctrine check could not run: ' + e.message);
 }

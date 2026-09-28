@@ -231,7 +231,7 @@ async function main() {
   const achCount = async () => (await achRows()).length;
   await p.evaluate((id) => rptDelAch(id), achId); await p.waitForTimeout(400);
   const r11 = await p.evaluate(() => ({ box: !!document.getElementById('pfConfirmBox'), txt: (document.getElementById('pfConfirmBox') || { innerText: '' }).innerText.replace(/\s+/g, ' ').slice(0, 80) }));
-  if (!dialogs.length && r11.box && /Delete this achievement/.test(r11.txt) && (await achCount()) === 1) ok(`delete achievement: in-page box ("${r11.txt.slice(0, 40)}…"), nothing removed yet`); else fail(`delete achievement: ${JSON.stringify(r11)} dialogs=${JSON.stringify(dialogs)}`);
+  if (!dialogs.length && r11.box && /Delete the achievement/.test(r11.txt) /* D19 */ && (await achCount()) === 1) ok(`delete achievement: in-page box ("${r11.txt.slice(0, 40)}…"), nothing removed yet`); else fail(`delete achievement: ${JSON.stringify(r11)} dialogs=${JSON.stringify(dialogs)}`);
   await p.evaluate(() => { const n = document.getElementById('pfConfirmNo'); if (n) n.click(); }); await p.waitForTimeout(300);
   if ((await achCount()) === 1) ok('…Cancel keeps the achievement'); else fail('Cancel removed the achievement');
   await p.evaluate((id) => rptDelAch(id), achId); await p.waitForTimeout(300);

@@ -118,7 +118,7 @@ async function main() {
 
   const r1 = (await inv('IA-1'))[0] || {};
   if (near(r1.total_incl_vat_sar, 1000) && near(r1.revenue_sar, 1000) && near(r1.cost_sar, 100) && near(r1.profit_sar, 900)) ok('IA-1 landed as the database keeps it: total 1000 · revenue 1000 · cost 100 · profit 900 (revenue is never profit)'); else fail(`IA-1 stored total ${r1.total_incl_vat_sar} revenue ${r1.revenue_sar} cost ${r1.cost_sar} profit ${r1.profit_sar}`);
-  if (near(r1.vat_sar, 0) && near(r1.wallet_portion_sar, 0)) ok('IA-1: vat_sar 0 and wallet 0 — the mapped path never guesses a VAT split'); else fail(`IA-1 vat ${r1.vat_sar} wallet ${r1.wallet_portion_sar}`);
+  if (r1.vat_sar == null && near(r1.wallet_portion_sar, 0)) ok('IA-1: no VAT figure written (D21) and wallet 0 — the mapped path never guesses a VAT split'); else fail(`IA-1 vat ${r1.vat_sar} wallet ${r1.wallet_portion_sar}`);
   if (r1.month === 'June' && r1.quarter === 'Q2' && r1.integrity_status === 'pending' && near(r1.amount_remaining_sar, 1000)) ok('IA-1: June / Q2, pending, fully outstanding until reconciled'); else fail(`IA-1 month ${r1.month} q ${r1.quarter} status ${r1.integrity_status} remaining ${r1.amount_remaining_sar}`);
   if ((await inv('IA-6')).length === 0) ok('IA-6 (30 February) reached the table not at all — a date the calendar does not have is not written, and does not cost the file'); else fail('the impossible-date row was written');
   if ((await inv('IA-4')).length === 0) ok('IA-4 (no date) reached the table not at all — held back by name, never sent as a null the database refuses, and never given a guessed date'); else fail('the date-less row was written after all');

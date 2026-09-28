@@ -57,9 +57,15 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **D17 — Only a person creates records in the live database** ACTIVE · 2026-09-27. No business record, merge or exclusion is created live by code (seed, backfill, SQL insert, background pass). Test databases may seed made-up data; approved cleanups and wipes are allowed, backed up first.
 
+**D19 — Every delete or remove asks first, in the app's own box, naming the item; Cancel is the default** ACTIVE · 2026-09-28. The owner, as relayed: "every delete/remove of any item shows the app's own confirm dialog (Arabic/English) naming exactly what will be removed, with 'Delete' and 'Cancel', Cancel focused by default, and the action logged and undoable where possible." One shared box, `pfConfirm` (js/57); a box that cannot be drawn counts as No; no native `confirm()`. A row with nothing typed yet goes without a question. Guard `probe-d19-delete-asks`.
+
+**D20 — Dates are Riyadh's calendar, everywhere** ACTIVE · 2026-09-28. A stored time is UTC; show its day with `dayRiyadh(time)` and today with `todayISO()` (js/core/core-01), whatever the PC's clock says; check-structure refuses a new UTC date cut. A plain calendar date is shown as stored.
+
+**D21 — The money model and the invoice import** ACTIVE · 2026-09-28. Revenue = the invoice total as Payments records it, less only a wallet TOP-UP part; a top-up-only invoice never counts. Cost = approved expenses only; a missing cost is EMPTY, never 0, and the row stays out of cost and profit, said on screen. Fully Paid counts (Audit Required too, flagged); Pending, Void, Cancelled, Draft never; an unnamed status is held for a person. The paid date sets the month. Imports fill, never wipe; a hand-entered row is never touched; no VAT figure is worked out or stored. Guard `probe-d1-invoice-import`.
+
 ## Money & finance display
 
-**M1 — VAT never enters cost, profit or revenue** ACTIVE · 2026-08-08. The owner: "I dont care weither vat shows or not, what i want is a clean cost, profit, and revenue." Stored (`vat_sar`); shown only where legally expected on a client document, never in an internal figure, export or total. Guard `probe-no-vat-display`.
+**M1 — VAT never enters cost, profit or revenue** ACTIVE · 2026-08-08. The owner: "I dont care weither vat shows or not, what i want is a clean cost, profit, and revenue." Shown only where legally expected on a client document, never in an internal figure, export or total; since D21 the import works out and stores no VAT figure. Guard `probe-no-vat-display`.
 
 **MF1 — Cost = approved expenses only, never computed** ACTIVE · 2026-08-16. Per-invoice cost comes only from Direct Payments (M9–M17); `finance_expenses` never changes it or profit. A missing cost is NULL, named on screen; stored zeros are the owner's call.
 

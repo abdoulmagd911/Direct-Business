@@ -9,13 +9,11 @@ They live in one list only — the Drive file *08 Open decisions for the owner* 
 
 ## Now — the release queue (CLAUDE.md §5)
 
-- **D · Direct Payments exports into the existing Finance import** — main builder; waits on the oversight's column mapping. Only the invoice export is understood today; transactions and corporate expenses are not wired, so the Ledger has no rows.
-- **D · Revenue must leave VAT out (M1)** — the importers and the `finance_derive_fields` trigger store total − wallet, which includes VAT; the figures are clean today only because every VAT is 0. Fix before real rows land.
-- **D · A missing cost is stored blank, never 0** — both import paths still write 0 (js/65 ~line 484, js/41 ~lines 137/162), so profit equals the whole sale; the Report Builder CSV also exports 0.00 cost for an unrecorded one.
+- **D · The rest of the Direct Payments exports** — the invoice export is in (D21, #53, 28 Sep). What is left of D — the transactions and corporate-expenses exports, large Excel files, the Payments invoice id — the main builder to confirm and list here.
 - **D · Which payments-file column is the invoice number** — the importer reads Invoice Reference, not Invoice Number; confirm in the mapping before real data (08).
 - **D · Capture the Payments invoice id and use the client ID** — Open in Direct can only open the whole list; the client-to-Payments jump searches by phone or name; an empty id silently builds a dead link.
 - **D · Large Excel files are read whole into memory** — CSV streams in chunks, XLSX does not; the big Payments exports may fail.
-- **A · The Finance freeze the owner saw** — never reproduced (a 30–45 s CSV export freeze in August too). Leads: the Expenses tab draws Finance twice (~0.8 s); Finance rebuilds itself ~1 s after sign-in. Needs the time and tab, or a recording.
+- **A · The Finance freeze the owner saw** — never reproduced (a 30–45 s CSV export freeze in August too). Since #53 a local freeze recorder (js/118) names the page and the pause when a tab stalls — read it after the next freeze. Lead: the Expenses tab draws Finance twice (~0.8 s).
 - **C · The sign-in / reset loop** — C-lite (no email sender needed; also brings the admin-users function to 10 characters) is PR #51. The rest — per-person reset/invite buttons, branded emails, a custom mail sender (branch login-c) — waits on the company mail settings (08).
 - **E · The simplify list** — the builders never received it, and PR #50 (money rules) was also labelled E; the oversight to confirm what E means.
 - **Two people saving one company** — the later save still silently replaces the other's note and next action; js/104 only warns afterwards (M77). Preventing it means a merge in the core save path (08).
@@ -62,7 +60,6 @@ They live in one list only — the Drive file *08 Open decisions for the owner* 
 - The Ledger reads a table with no live rows until D; an invoice's detail box can no longer be opened from any button.
 - Finance refusals speak in two voices (the general permission box vs Finance's own message).
 - The importer blames the file for any error while drawing the preview; the import headline counts only the latest drop though an earlier file still feeds the cost join (08).
-- A stored 0 cost and a missing cost look the same to the money view (a genuinely free service will read as missing).
 - Today's money chips count the empty in-app store, not the ledger; the Credit Pool needs a definition of extended credit (08), and its cap line is hidden by a style rule.
 - Awaiting the owner (08): the Plan-vs-actual and Monthly revenue blocks; a Ready-to-invoice line on Overview; which wins when an invoice's month contradicts its date; where individual booking cost comes from; the corporate-card cost sheet; a filtered COGs report link.
 - Keep the Expenses tab (built, never used) or keep cost only in Direct Payments and remove it (08); the Finance role floors — transactions, receipts and cost lines stay admin/manager/operations, deletes and merges admin/manager — lift or keep (08).
@@ -85,7 +82,7 @@ They live in one list only — the Drive file *08 Open decisions for the owner* 
 - The Refresh proposal templates button only rewrites a few coded colours (08).
 - About 28 always-running timers, six at one second or faster — battery on phones.
 - Small words: the Arabic greeting before 5 am disagrees with the English; client-profile audit rows lack the company name; the import Done line keeps the language it was built in; share-link guests see the sync badge.
-- Owner choices on screens (08): list filters remembered across a reload; business dates pinned to Riyadh; export columns nobody fills; the hidden lead dashboard; the Brand link for the team; a.hassan@ on the team list; the renewals card's order; names auto-split and no home teams.
+- Owner choices on screens (08): list filters remembered across a reload; export columns nobody fills; the hidden lead dashboard; the Brand link for the team; a.hassan@ on the team list; the renewals card's order; names auto-split and no home teams.
 - Owner choices on the pipeline (08): Negotiation as a real stage; one funnel per company vs several sources; splitting Travel Trade and a BNPL/fintech funnel; screen stage words vs database words; the three duplicate suppliers.
 - Never walked: tablet widths (560–900 px); the booking, invoice and payment forms in Arabic (they need records).
 

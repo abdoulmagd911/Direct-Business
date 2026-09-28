@@ -1,6 +1,6 @@
 {
   "note": "Written by scripts/docs/archive-docs.mjs; checked by scripts/qa/check-docs-moved.mjs. Each old file, as it stood at `commit`, is the pieces joined in order, byte for byte.",
-  "commit": "9e638cdf694fea113a6b8d83f16184fada6daf62",
+  "commit": "b2a6ded8bfba926b112a736c9b793ffb04ab1eda",
   "files": [
     {
       "old": "docs/BACKLOG.md",
@@ -56,9 +56,9 @@
     {
       "old": "docs/DECISIONS.md",
       "archive": "docs/history/decisions",
-      "sha256": "a70944c87290fc6e2b5fe52d1179a9fa3dc8b6702b59ea79334254001e6803c6",
-      "chars": 324885,
-      "lines": 3810,
+      "sha256": "463f1cab7a3af807bdcdad125581439fa39e0f320f4503a67e2758643469f535",
+      "chars": 330897,
+      "lines": 3866,
       "pieces": [
         "decisions-01.md",
         "decisions-02.md",

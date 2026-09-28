@@ -174,3 +174,35 @@ drop policy if exists bm_write on business_merges;
 create policy bm_write on business_merges for all using (app_role() in ('admin','manager') and (can_edit_page('leads') or can_edit_page('clients')))
   with check (app_role() in ('admin','manager') and (can_edit_page('leads') or can_edit_page('clients')));
 grant select, insert, update on business_merges to authenticated;
+
+-- ---------- D1 prerequisites (2026-09-28): the rest of finance_invoices, the capture tables and the derive trigger, as live
+-- (information_schema read 2026-09-28; the defaults and NOT NULLs are live's, so D1's "drop not null" is really tested) ----------
+alter table finance_invoices
+  add column if not exists customer_raw_name text, add column if not exists month text, add column if not exists quarter text,
+  add column if not exists year integer, add column if not exists products text, add column if not exists notes text,
+  add column if not exists created_at timestamptz default now(), add column if not exists branch text,
+  add column if not exists discount_sar numeric, add column if not exists origin text, add column if not exists proposal_ref text,
+  add column if not exists items jsonb, add column if not exists direct_uuid text;
+update finance_invoices set cost_sar = coalesce(cost_sar, 0), profit_sar = coalesce(profit_sar, 0);
+alter table finance_invoices alter column cost_sar set default 0, alter column cost_sar set not null,
+                             alter column profit_sar set default 0, alter column profit_sar set not null;
+create table if not exists finance_expense_lines_capture (id bigserial primary key, transaction_ref text, amount_sar numeric,
+  expense_status text, source_batch text);
+create table if not exists finance_expense_gate_capture (transaction_ref text primary key, txn_expense_status text,
+  invoice_issuing_raw text, source_batch text, captured_at timestamptz);
+grant select, insert, update, delete on finance_expense_lines_capture, finance_expense_gate_capture to authenticated;
+alter table finance_expense_lines_capture enable row level security; alter table finance_expense_gate_capture enable row level security;   -- as live
+drop policy if exists felc_all on finance_expense_lines_capture; create policy felc_all on finance_expense_lines_capture for all using (can_edit_page('finance')) with check (can_edit_page('finance'));
+drop policy if exists fegc_all on finance_expense_gate_capture; create policy fegc_all on finance_expense_gate_capture for all using (can_edit_page('finance')) with check (can_edit_page('finance'));
+grant usage, select on all sequences in schema public to authenticated;
+create or replace function public.finance_derive_fields() returns trigger language plpgsql as $$
+begin
+  new.month := to_char(new.invoice_date, 'FMMonth'); new.quarter := 'Q' || to_char(new.invoice_date, 'Q');
+  if abs((new.total_incl_vat_sar - new.wallet_portion_sar) - new.revenue_sar) > 0.01 then
+    new.revenue_sar := round(new.total_incl_vat_sar - new.wallet_portion_sar, 2); end if;
+  if abs((new.revenue_sar - new.cost_sar) - new.profit_sar) > 0.01 then new.profit_sar := round(new.revenue_sar - new.cost_sar, 2); end if;
+  if new.integrity_status in ('excluded','credit_note') then new.amount_remaining_sar := 0; end if;
+  return new;
+end $$;
+drop trigger if exists trg_fin_inv_derive on finance_invoices;
+create trigger trg_fin_inv_derive before insert or update on finance_invoices for each row execute function finance_derive_fields();

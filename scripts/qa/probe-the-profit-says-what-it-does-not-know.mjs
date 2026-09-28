@@ -54,7 +54,7 @@ const INV = PLAN.map(([d, mo, q, rev, cost], i) => ({
   invoice_date: d, month: mo, quarter: q, year: 2026,
   products: 'Flights', service_type: 'Flights', record_type: 'b2b',
   total_incl_vat_sar: rev, wallet_portion_sar: 0, revenue_sar: rev,
-  cost_sar: cost, profit_sar: rev - cost,
+  cost_sar: cost || null, profit_sar: cost ? rev - cost : null,   // D21: 0 in the plan = not recorded = empty
   amount_received_sar: rev, amount_remaining_sar: 0, collection_due_date: '2026-09-15',
   integrity_status: 'verified_paid', exclusion_reason: null, notes: null, source_batch: 'seed',
   created_at: '2026-08-01T00:00:00Z', updated_at: '2026-08-01T00:00:00Z', deleted_at: null,
@@ -96,13 +96,13 @@ async function run(lang) {
   const read = async () => p.evaluate(() => {
     const v = document.getElementById('view'); const t = (v && v.innerText) || '';
     /* the warning is a line of its own; take the whole line so the COUNT in it can be read */
-    const line = (t.split('\n').find((x) => /carry no recorded cost|بلا تكلفة مسجلة/.test(x)) || '').trim();
+    const line = (t.split('\n').find((x) => /carry no recorded cost|waiting for their cost|بلا تكلفة مسجلة|بانتظار تكلفتها/.test(x) && /\d+\s*(?:of|من)\s*\d+/.test(x)) || '').trim();   // the warning, not the Needs-attention card
     const n = line.match(/(\d+)\s*(?:of|من)\s*(\d+)/);
     return { chars: t.length, line, counted: n ? [Number(n[1]), Number(n[2])] : null,
       /* the profit figure has to be on screen at the same time — a caveat on a page with no
          profit on it would satisfy a naive check while telling the reader nothing */
       profitShown: /Profit|الربح/.test(t),
-      englishLeak: /carry no recorded cost/.test(t) };
+      englishLeak: /carry no recorded cost|waiting for their cost/.test(t) };
   });
 
   /* the app's own idea of the period, set through its own control rather than by hand */

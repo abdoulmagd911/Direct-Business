@@ -25,10 +25,11 @@ function optFreebieCost(op){return (op.freebies||[]).reduce((s,f)=>s+onum(f.cost
 function offerFreebieCost(o){return (o.options||[]).reduce((s,op)=>s+optFreebieCost(op),0);}
 function o_addItem(oi){const o=curOffer();if(!o||!o.options[oi])return;o.options[oi].items=o.options[oi].items||[];o.options[oi].items.push({type:'Hotel',detail:'',price:''});save();offerEditor(document.getElementById('view'),o.id);}
 function o_setItem(oi,ii,k,v){const o=curOffer();if(!o)return;o.options[oi].items[ii][k]=v;save();var d=document.getElementById('offerDoc');if(d)d.innerHTML=offerHTML(o);}
-function o_delItem(oi,ii){const o=curOffer();if(!o)return;o.options[oi].items.splice(ii,1);save();offerEditor(document.getElementById('view'),o.id);}
+/* 2026-09-28 (D19): removing a saved line asks first, naming it; a line with nothing typed in goes without a question */
+function o_delItem(oi,ii){const o=curOffer();if(!o)return;const it=(o.options[oi].items||[])[ii]||{};const go=()=>{o.options[oi].items.splice(ii,1);save();offerEditor(document.getElementById('view'),o.id);};const n=String([it.type,it.detail].filter(Boolean).join(' · ')).slice(0,60);if(!it.detail&&!it.price){go();return;}const _ar=(typeof LANG!=='undefined'&&LANG==='ar');askInPage(_ar?('إزالة البند «'+n+'» من العرض؟'):('Remove the line "'+n+'" from the proposal?'),go);}
 function o_addFreebie(oi){const o=curOffer();if(!o)return;o.options[oi].freebies=o.options[oi].freebies||[];o.options[oi].freebies.push({label:'',cost:''});save();offerEditor(document.getElementById('view'),o.id);}
 function o_setFreebie(oi,ii,k,v){const o=curOffer();if(!o)return;o.options[oi].freebies[ii][k]=v;save();var d=document.getElementById('offerDoc');if(d)d.innerHTML=offerHTML(o);}
-function o_delFreebie(oi,ii){const o=curOffer();if(!o)return;o.options[oi].freebies.splice(ii,1);save();offerEditor(document.getElementById('view'),o.id);}
+function o_delFreebie(oi,ii){const o=curOffer();if(!o)return;const fb=(o.options[oi].freebies||[])[ii]||{};const go=()=>{o.options[oi].freebies.splice(ii,1);save();offerEditor(document.getElementById('view'),o.id);};const n=String(fb.label||'').slice(0,60);if(!n&&!fb.cost){go();return;}const _ar=(typeof LANG!=='undefined'&&LANG==='ar');askInPage(_ar?('إزالة الإضافة المجانية «'+n+'» من العرض؟'):('Remove the free extra "'+n+'" from the proposal?'),go);}   // 2026-09-28 (D19)
 function offerPax(o){return Math.max(1,(+o.paxAdt||0)+(+o.paxChd||0)+(+o.paxInf||0));}
 /* 2026-09-02 (round 29) — the proposal margin broke both money rules at once.
    It was `onum(o.total)-onum(o.cost)`, and o_calc builds o.total as
@@ -218,7 +219,7 @@ function o_copyText(){const o=curOffer();if(!o)return;const t=offerText(o);/* 20
 function o_styleBlock(){return (typeof window.dgDocFontsHead==='function'?window.dgDocFontsHead():'')+'<style>:root{--orange:#FF6B00;--orange-2:#FF9D45;--ink:#1C1E2B;--muted:#7C8194;--line:#EEE8DE}body{font-family:'+(window.DG_DOC_FONT||"'DirectFont','Cairo',sans-serif")+';background:#fff;padding:24px;color:#1C1E2B}.odoc-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FF6B00;padding-bottom:12px;margin-bottom:14px}.odoc-row{font-size:13px;margin:7px 0;color:#33384a}.odoc-tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:12.5px}.odoc-tbl th,.odoc-tbl td{border:1px solid #e2ddd2;padding:8px 9px;text-align:left}.odoc-tbl th{background:#faf7f2}.odoc-tbl .k{font-weight:700;background:#faf7f2;width:130px}.odoc-note{background:#FFF1E6;border:1px solid #FBD9B8;color:#9A560F;padding:10px;border-radius:8px;font-size:12px;margin-top:10px}.odoc-foot{margin-top:14px;border-top:1px solid #eee;padding-top:9px;font-size:11px;color:#888}</style>';}
 function o_download(){const o=curOffer();if(!o)return;const html='<!DOCTYPE html><meta charset="utf-8"><title>Offer '+(o.ref||'')+'</title>'+o_styleBlock()+'<body>'+offerHTML(o)+'</body>';const b=new Blob([html],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Offer-'+(o.ref||'direct')+'.html';a.click();}
 function o_print(){const o=curOffer();if(!o)return;const w=window.open('','_blank');if(!w)return;w.document.write('<!DOCTYPE html><meta charset="utf-8"><title>Offer '+(o.ref||'')+'</title>'+o_styleBlock()+'<body>'+offerHTML(o)+'</body>');w.document.close();w.focus();if(typeof window.dgPrintWhenReady==='function')window.dgPrintWhenReady(w);else setTimeout(function(){w.print();},250);}
-function o_del(id){const _ar=(typeof LANG!=='undefined'&&LANG==='ar');askInPage(_ar?'حذف هذا العرض؟':'Delete this proposal?',()=>{DB.offers=(DB.offers||[]).filter(x=>x.id!==id);openOffer=null;save();render();});}
+function o_del(id){const _ar=(typeof LANG!=='undefined'&&LANG==='ar');/* 2026-09-28 (D19): names the proposal */const _o=(DB.offers||[]).find(x=>x.id===id)||{};const _n=String([_o.ref,_o.subject||_o.client].filter(Boolean).join(' · ')).slice(0,60);askInPage(_ar?('حذف العرض «'+_n+'»؟'):('Delete the proposal "'+_n+'"?'),()=>{DB.offers=(DB.offers||[]).filter(x=>x.id!==id);openOffer=null;save();render();});}
 /* Proposal file library — the file itself lives in the app (Supabase storage bucket "proposals"). */
 window.o_uploadFile=function(id){
   var o=(DB.offers||[]).find(function(x){return x.id===id;});if(!o)return;
@@ -246,7 +247,8 @@ window.o_uploadFile=function(id){
 window.o_removeFile=function(id){
   var o=(DB.offers||[]).find(function(x){return x.id===id;});if(!o)return;
   var _ar=(typeof LANG!=='undefined'&&LANG==='ar');
-  askInPage(_ar?'إزالة الملف من هذا العرض؟':'Remove the file from this proposal?',function(){
+  var _fn=String(o.fileName||'').slice(0,60);   // 2026-09-28 (D19): names the file
+  askInPage(_ar?('إزالة الملف «'+_fn+'» من العرض '+(o.ref||'')+'؟'):('Remove the file "'+_fn+'" from proposal '+(o.ref||'')+'?'),function(){
   var p=o.filePath;
   o.fileUrl='';o.fileName='';o.filePath='';save();
   if(p){try{ var c=window.fc?fc():null; if(c) c.storage.from('proposals').remove([p]).then(function(){}); }catch(_e){}}

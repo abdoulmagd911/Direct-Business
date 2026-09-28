@@ -508,7 +508,14 @@ function migrate(d){
    todayISO() reads the browser's own calendar — year, month, day as the person's clock shows them —
    so "today" is the day it is where they are. Anything converting a STORED instant keeps using
    toISOString: that is a real moment in time and must not be shifted. */
-function todayISO(d){const t=d?new Date(d):new Date();const p2=n=>String(n).padStart(2,'0');return t.getFullYear()+'-'+p2(t.getMonth()+1)+'-'+p2(t.getDate());}
+/* 2026-09-28 (owner, via the oversight, F1): every date the app shows or files is Riyadh's calendar, whatever the PC's clock
+   says. A stored time is UTC — cutting its first ten characters gave YESTERDAY for anything saved after 9 pm in Riyadh.
+   dayRiyadh(v): a stored time (ISO text, ms, Date) → its Riyadh date 'YYYY-MM-DD'; a plain 'YYYY-MM-DD' comes back as it is.
+   todayISO(d): today (or d) on Riyadh's calendar. check-structure refuses a new UTC date cut. */
+var __RIYADH_DAY=(function(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'});}catch(_){return null;}})();
+function dayRiyadh(v){if(v==null||v==='')return '';if(typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v))return v;const t=(v instanceof Date)?v:new Date(typeof v==='string'&&/^\d+$/.test(v)?+v:v);if(isNaN(t))return String(v).slice(0,10);if(__RIYADH_DAY)return __RIYADH_DAY.format(t);const r=new Date(t.getTime()+3*3600000);return r.toISOString().slice(0,10);}
+function todayISO(d){return dayRiyadh(d?new Date(d):new Date());}
+try{window.dayRiyadh=dayRiyadh;window.todayISO=todayISO;}catch(_){}
 try{window.todayISO=todayISO;}catch(_){}
 function leadStatus(b){return b.status||(b.isClient||b.isVendor?"Won":"To contact");}
 /* 2026-09-18 (fire #94): this is the app's date printer, and in English it used to pass `undefined`
@@ -523,7 +530,7 @@ function leadStatus(b){return b.status||(b.isClient||b.isVendor?"Won":"To contac
    the way the Arabic branch does, so the two languages finally read in the same order.
    calendar:'gregory' is now stated on BOTH branches and on the fallback, so no browser setting can
    put a Hijri year on a screen again. */
-function fmtDate(ms){if(!ms)return"—";const _ar=(typeof LANG!=='undefined'&&LANG==='ar');try{return new Date(ms).toLocaleDateString(_ar?'ar':'en-GB',{day:"numeric",month:"short",year:"numeric",calendar:"gregory"});}catch(_){return new Date(ms).toLocaleDateString('en-GB',{day:"numeric",month:"short",year:"numeric",calendar:"gregory"});}}
+function fmtDate(ms){if(!ms)return"—";const _ar=(typeof LANG!=='undefined'&&LANG==='ar');try{return new Date(ms).toLocaleDateString(_ar?'ar':'en-GB',{day:"numeric",month:"short",year:"numeric",calendar:"gregory",timeZone:"Asia/Riyadh"});}catch(_){return new Date(ms).toLocaleDateString('en-GB',{day:"numeric",month:"short",year:"numeric",calendar:"gregory"});}}
 /* 2026-09-24 (fire #237): ms was assumed to be a number. A record carrying anything else — an
    import writing "soon", a date string that never parsed — made every branch here fall through to
    Math.round(NaN) and the Leads list read "قبل NaN ي" in Arabic and "NaNd ago" in English. A value
@@ -544,7 +551,8 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));window.__quotaW
 /* 2026-09-09 (live test D1 family): the one way to ask "are you sure" — js/57's in-page box,
    never window.confirm (which freezes the tab and every automated driver of it). The answer
    arrives later, so callers pass what to do on yes. */
-function askInPage(msg,yes){if(typeof window.pfConfirm==='function')window.pfConfirm(msg,yes);else if(confirm(msg))yes();}
+/* 2026-09-28 (D19): opts pass through (a red Delete/Remove); no box means no action — never a native confirm(). */
+function askInPage(msg,yes,opts){if(typeof window.pfConfirm==='function')window.pfConfirm(msg,yes,opts);}
 /* 2026-09-10: these two legacy tools have no button (console only). Leads and clients live in their
    own table since v32 — a whole-DB replace followed by save() would archive every company not in
    the replacement. Both now ask in the page and keep the live company list. */

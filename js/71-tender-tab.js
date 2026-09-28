@@ -745,7 +745,7 @@
       (list.length?fl('— open a saved tender document ('+list.length+') —','— افتح مستند مناقصة محفوظاً ('+list.length+') —')
                   :fl('— no saved tender documents yet —','— لا توجد مستندات مناقصات محفوظة بعد —'))+'</option>'+
       list.map(function(o){
-        var label=(o.family==='TEC'?fl('Technical','فني'):fl('Financial','مالي'))+' · '+(o.doc_number||fl('draft','مسودة'))+' · '+(bizName(o.business_id)||o.title||'')+' · '+String(o.created_at||'').slice(0,10);
+        var label=(o.family==='TEC'?fl('Technical','فني'):fl('Financial','مالي'))+' · '+(o.doc_number||fl('draft','مسودة'))+' · '+(bizName(o.business_id)||o.title||'')+' · '+dayRiyadh(o.created_at);
         return '<option value="'+esc(o.id)+'">'+esc(label)+'</option>';
       }).join('');
   }

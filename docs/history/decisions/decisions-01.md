@@ -193,8 +193,8 @@ prevent, one level down.
 Direct Payments sources, confirmed by checking, not assumed: `admin.stats.expense-report`
 (`INVOICE #` | `AMOUNT (SAR)` | `STATUS` | `APPROVAL DATE` | `MERCHANT`, 219 corporate rows,
 one row per expense line — `INVOICE #` is the transaction's own reference) joins to
-`/en/admin/corporate_clients/transactions` (`RECEIPT REF.` | `PRODUCT` | `AMOUNT (SAR)` |
-`INVOICE ISSUING` | `CREATED AT` | `EXPENSE STATUS`, 153 rows — the expected
+`/en/admin/corporate_clients/transactions` (columns "RECEIPT REF. | PRODUCT | AMOUNT (SAR) |
+INVOICE ISSUING | CREATED AT | EXPENSE STATUS" — Payments' column headers, not code), 153 rows — the expected
 many-lines-to-one-transaction shape against 219 lines, not a mismatch; "zero orphans" per the
 capturer's own exact page-count math). The join key itself (expense-report's transaction
 reference = transactions' `RECEIPT REF.`) is now proven on a real matching pair, not just

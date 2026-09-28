@@ -62,7 +62,7 @@
 
   function fmtCode(p){ var v=p.kind==='fixed'?(p.value_pct+' '+fl('SAR','ر.س')):(p.value_pct+'%'); var st=codeStatus(p);
     return '<b>'+e(p.code)+'</b> · '+e(v)+(p.valid_to?' · '+fl('until ','حتى ')+e(p.valid_to):'')+' <span class="tag" style="font-size:11px;'+(st[1])+'">'+st[0]+'</span>'; }
-  function codeStatus(p){ var t=(new Date()).toISOString().slice(0,10);
+  function codeStatus(p){ var t=todayISO();
     if(p.active===false) return [fl('off','متوقف'),'background:#F2F0EE;color:#827164'];
     if(p.expired||(p.valid_to&&p.valid_to<t)) return [fl('expired','منتهي'),'background:#FDECEC;color:#B42318'];
     if(p.valid_from&&p.valid_from>t) return [fl('upcoming','قادم'),'background:#EEF4FF;color:#2E5AAC'];
@@ -117,7 +117,7 @@
       var mine=st.docs.filter(function(x){return x.doc_type===d[0];}); var n=Number(pres[d[0]]||0);
       if(!mine.length&&!n&&NEEDED.indexOf(d[0])<0) return;
       h+='<div class="v113-row v113-doc" data-type="'+d[0]+'"><span class="v113-dt">'+e(fl(d[1],d[2]))+'</span>';
-      if(mine.length) h+=mine.map(function(x){ var exp=x.valid_to&&x.valid_to<(new Date()).toISOString().slice(0,10);
+      if(mine.length) h+=mine.map(function(x){ var exp=x.valid_to&&x.valid_to<todayISO();
           return '<span class="v113-file"><a href="#" onclick="v113Open(\''+e(x.id)+'\',\''+e(biz)+'\');return false">'+e(x.title||x.file_name)+'</a>'+
             (x.valid_to?' <span class="muted"'+(exp?' style="color:#B42318"':'')+'>'+(exp?fl('expired ','انتهى '):fl('valid to ','ساري حتى '))+e(x.valid_to)+'</span>':'')+
             (w?' <button class="btn ghost sm v113-remove" onclick="v113Remove(\''+e(x.id)+'\',\''+e(biz)+'\')">'+fl('Remove','إزالة')+'</button>':'')+'</span>'; }).join(' ');
@@ -178,7 +178,9 @@
     if(!canMerge()) return;
     var go=function(){ client().from('company_discount_codes').update({removed_at:new Date().toISOString()}).eq('id',linkId).select('id').then(function(r){
       if(r.error||!r.data||!r.data.length){ alert(said(r.error||'refused')); return; } reload(biz); }); };
-    if(typeof askInPage==='function') askInPage(fl('Remove this code from the company? The code itself stays as it is in Direct Payments.','إزالة هذا الرمز من الشركة؟ يبقى الرمز كما هو في دايركت للمدفوعات.'),go); else if(confirm('Remove?')) go();
+    /* 2026-09-28 (D19): the question names the code; no box, no removal (the native Remove? box is gone) */
+    var cn=''; try{ var lk=((S[biz]&&S[biz].links)||[]).filter(function(l){return String(l.id)===String(linkId);})[0]; var pc=lk&&(CODES||[]).filter(function(p){return p.id===lk.promo_code_id;})[0]; cn=(pc&&pc.code)||''; }catch(_){}
+    if(typeof askInPage==='function') askInPage(fl('Remove the code "'+cn+'" from this company? The code itself stays as it is in Direct Payments.','إزالة الرمز «'+cn+'» من هذه الشركة؟ يبقى الرمز كما هو في دايركت للمدفوعات.'),go);
   }catch(err){ if(window.console)console.warn('[v113] unlink',err); }};
 
   var MAX=10*1024*1024;
@@ -225,7 +227,9 @@
     if(!canWrite()) return;
     var go=function(){ client().from('company_documents').update({deleted_at:new Date().toISOString()}).eq('id',docId).select('id').then(function(r){
       if(r.error||!r.data||!r.data.length){ alert(said(r.error||'refused')); return; } reload(biz); }); };
-    if(typeof askInPage==='function') askInPage(fl('Remove this file from the company card? A removal is final — it is kept on record, and a new file can be added.','إزالة هذا الملف من بطاقة الشركة؟ الإزالة نهائية — يُحتفظ به في السجل، ويمكن إضافة ملف جديد.'),go); else if(confirm('Remove?')) go();
+    /* 2026-09-28 (D19): the question names the file; no box, no removal (the native Remove? box is gone) */
+    var fn=''; try{ var dx=((S[biz]&&S[biz].docs)||[]).filter(function(x){return String(x.id)===String(docId);})[0]; fn=String((dx&&(dx.title||dx.file_name))||''); if(fn.length>60) fn=fn.slice(0,57)+'…'; }catch(_){}
+    if(typeof askInPage==='function') askInPage(fl('Remove the file "'+fn+'" from the company card? A removal is final — it is kept on record, and a new file can be added.','إزالة الملف «'+fn+'» من بطاقة الشركة؟ الإزالة نهائية — يُحتفظ به في السجل، ويمكن إضافة ملف جديد.'),go);
   }catch(err){ if(window.console)console.warn('[v113] remove',err); }};
 
   window.__v113={state:S, codes:function(){return CODES;}};

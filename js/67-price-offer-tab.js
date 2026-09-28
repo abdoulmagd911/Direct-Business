@@ -51,7 +51,7 @@
   /* Parse a money/qty field tolerantly: strip thousands separators + spaces so a pasted or
      programmatic "1,250.50" is 1250.5 and not silently NaN→0; a non-number is 0, never NaN. */
   function num(v){ if(typeof v==='number')return isFinite(v)?v:0; var n=Number(String(v==null?'':v).replace(/[,\s]/g,'')); return isFinite(n)?n:0; }
-  function todayISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function todayISO(){ return window.todayISO(); }   /* Riyadh's calendar (core-01, F1 28 Sep) */
   function addDays(iso,days){ var d=new Date(iso+'T00:00:00'); if(isNaN(d))return '';
     d.setDate(d.getDate()+Number(days||0));
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -729,7 +729,7 @@
       (list.length?fl('— open a saved offer ('+list.length+') —','— افتح عرضاً محفوظاً ('+list.length+') —')
                   :fl('— no saved offers yet —','— لا توجد عروض محفوظة بعد —'))+'</option>'+
       list.map(function(o){
-        var label=(o.doc_number||fl('draft','مسودة'))+' · '+(bizName(o.business_id)||o.title||'')+' · '+String(o.created_at||'').slice(0,10);
+        var label=(o.doc_number||fl('draft','مسودة'))+' · '+(bizName(o.business_id)||o.title||'')+' · '+dayRiyadh(o.created_at);
         return '<option value="'+esc(o.id)+'" '+(S.rowId===o.id?'selected':'')+'>'+esc(label)+'</option>';
       }).join('');
   }

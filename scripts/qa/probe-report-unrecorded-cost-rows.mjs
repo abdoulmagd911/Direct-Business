@@ -85,7 +85,7 @@ async function main() {
     ];
     FIN.rows = rows.map((r, i) => Object.assign({}, base, {
       id: 'uc-' + i, invoice_no: 'UC-' + i, client_group: r.g, customer_raw_name: r.g,
-      revenue_sar: r.v, cost_sar: r.c, profit_sar: r.v - r.c, total_incl_vat_sar: r.v,
+      revenue_sar: r.v, cost_sar: r.c || null, profit_sar: r.c ? r.v - r.c : null, total_incl_vat_sar: r.v,   // D21: c 0 = not recorded = empty
       invoice_date: r.d, month: r.m,
     }));
     URL.createObjectURL = function (blob) { blob.text().then((t) => { window.__csv = t; }); return 'blob:stub'; };
@@ -134,17 +134,17 @@ async function main() {
   if (hl && isWords(hl.cost) && isWords(hl.profit) && hl.unrec.includes('cost') && hl.unrec.includes('profit') && num(hl.rev) === 76000)
     ok(`a client with no cost on any invoice prints the words — Cost "${hl.cost}", Profit "${hl.profit}" — beside its revenue ${hl.rev}, not 0 and not the whole sale`);
   else fail(`Harbor Lantern (76,000 revenue, no cost anywhere) printed Cost "${hl && hl.cost}", Profit "${hl && hl.profit}" — the live-site defect: an unrecorded cost shown as 0 and the whole revenue shown as profit`);
-  if (qm && num(qm.cost) === 14000 && num(qm.profit) === 16000 && /⚠/.test(qm.cost) && /⚠/.test(qm.profit) && !isWords(qm.cost))
+  if (qm && num(qm.cost) === 14000 && num(qm.profit) === 6000 && /⚠/.test(qm.cost) && /⚠/.test(qm.profit) && !isWords(qm.cost))
     ok(`a client with a cost on some invoices keeps its figures (cost ${num(qm.cost)}, profit ${num(qm.profit)}) and wears the ⚠ marker on both`);
-  else fail(`Quill Meadow (one of two invoices costed) printed Cost "${qm && qm.cost}", Profit "${qm && qm.profit}" — expected 14,000 / 16,000 each with a ⚠`);
+  else fail(`Quill Meadow (one of two invoices costed) printed Cost "${qm && qm.cost}", Profit "${qm && qm.profit}" — expected 14,000 / 6,000 each with a ⚠ (D21: the uncosted invoice carries no profit)`);
   if (so && num(so.cost) === 6000 && num(so.profit) === 3000 && !/⚠/.test(so.cost) && !/⚠/.test(so.profit) && !isWords(so.cost))
     ok(`a fully costed client prints plain figures with no marker (cost ${num(so.cost)}, profit ${num(so.profit)})`);
   else fail(`Slate Orchard (fully costed) printed Cost "${so && so.cost}", Profit "${so && so.profit}" — expected plain 6,000 / 3,000`);
 
   /* ---- 4: the TOTAL row keeps the real arithmetic ---- */
-  if (t.total && num(t.total.rev) === 115000 && num(t.total.cost) === 20000 && num(t.total.profit) === 95000)
-    ok(`TOTAL row still carries the raw sums — revenue ${num(t.total.rev)}, cost ${num(t.total.cost)}, profit ${num(t.total.profit)} — the fix changed words, not numbers`);
-  else fail(`TOTAL row moved: ${JSON.stringify(t.total)} (expected 115,000 / 20,000 / 95,000)`);
+  if (t.total && num(t.total.rev) === 115000 && num(t.total.cost) === 20000 && num(t.total.profit) === 9000)
+    ok(`TOTAL row still carries the raw sums — revenue ${num(t.total.rev)}, cost ${num(t.total.cost)}, profit ${num(t.total.profit)} — profit over the invoices whose cost is known only (D21)`);
+  else fail(`TOTAL row moved: ${JSON.stringify(t.total)} (expected 115,000 / 20,000 / 9,000)`);
   if (!t.notes.length) ok('no rounding note appeared under a table whose Cost/Profit columns carry words — the words are the explanation, not "rounding"');
   else fail(`a rounding note appeared under a table with word cells, restating an unaddable column as rounding: ${JSON.stringify(t.notes)}`);
 
@@ -154,12 +154,12 @@ async function main() {
   const csv = await p.evaluate(() => (window.__csv || '').replace(/^﻿/, '').split('\r\n').filter(Boolean));
   const csvRow = (name) => (csv.find((l) => l.startsWith(name)) || '').split(',');
   const hlC = csvRow('Harbor Lantern'), qmC = csvRow('Quill Meadow'), totC = csv[csv.length - 1] ? csv[csv.length - 1].split(',') : [];
-  if (hlC.length >= 4 && hlC[1] === '76000.00' && hlC[2] === '0.00' && hlC[3] === '76000.00')
-    ok(`CSV: the all-unrecorded row still exports its raw figures (${JSON.stringify(hlC)}) — the file is pinned by probe-report-builder-attacks; changing it is a recorded decision, not a side effect`);
-  else fail(`CSV: the all-unrecorded row exported ${JSON.stringify(hlC)} — the file changed without the decision recorded in BACKLOG 2026-09-09`);
-  if (qmC[2] === '14000.00' && qmC[3] === '16000.00') ok('CSV: the partially costed row keeps its exact figures (14000.00 / 16000.00)');
+  if (hlC.length >= 4 && hlC[1] === '76000.00' && hlC[2] === '' && hlC[3] === '')
+    ok(`CSV: the all-unrecorded row exports its revenue and leaves Cost and Profit EMPTY (${JSON.stringify(hlC)}) — an unrecorded cost is not a 0 (D21)`);
+  else fail(`CSV: the all-unrecorded row exported ${JSON.stringify(hlC)} — expected revenue with Cost and Profit empty (D21)`);
+  if (qmC[2] === '14000.00' && qmC[3] === '6000.00') ok('CSV: the partially costed row keeps its exact figures (14000.00 / 6000.00)');
   else fail(`CSV: the partially costed row exported ${JSON.stringify(qmC)}`);
-  if (totC[1] === '115000.00' && totC[2] === '20000.00' && totC[3] === '95000.00') ok(`CSV: TOTAL line unchanged to the hallala (${totC.slice(1).join(' / ')})`);
+  if (totC[1] === '115000.00' && totC[2] === '20000.00' && totC[3] === '9000.00') ok(`CSV: TOTAL line unchanged to the hallala (${totC.slice(1).join(' / ')})`);
   else fail(`CSV: TOTAL line moved: ${JSON.stringify(totC)}`);
 
   /* ---- 3: sub-rows under a second grouping ---- */
@@ -187,7 +187,7 @@ async function main() {
 
   await b.close(); srv.close();
   if (failures) { console.log(`\nFAILED — ${failures} check(s) did not pass.`); process.exit(1); }
-  console.log('\nreport-unrecorded-cost-rows OK — a row whose cost nobody recorded says so on screen; the file is unchanged, on record');
+  console.log('\nreport-unrecorded-cost-rows OK — a row whose cost nobody recorded says so on screen, and the file leaves those cells empty (D21)');
   process.exit(0);
 }
 main().catch((e) => { console.error(e); try { srv.close(); } catch (_) { } process.exit(1); });

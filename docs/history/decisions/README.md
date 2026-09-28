@@ -1,6 +1,6 @@
 # The old DECISIONS.md (full text of every rule) — index
 
-`docs/DECISIONS.md` as it stood at commit `9e638cdf694f` (324,885 characters, 3,810 lines), cut word for word into 10 pieces under 40,000 characters. Joined in order they are the old file byte for byte (SHA-256 `a70944c87290fc6e2b5fe52d1179a9fa3dc8b6702b59ea79334254001e6803c6`); `scripts/qa/check-docs-moved.mjs` proves it on every battery run. Nothing here is edited — this is the archive; the working file is short now.
+`docs/DECISIONS.md` as it stood at commit `b2a6ded8bfba` (330,897 characters, 3,866 lines), cut word for word into 10 pieces under 40,000 characters. Joined in order they are the old file byte for byte (SHA-256 `463f1cab7a3af807bdcdad125581439fa39e0f320f4503a67e2758643469f535`); `scripts/qa/check-docs-moved.mjs` proves it on every battery run. Nothing here is edited — this is the archive; the working file is short now.
 
 Old knowledge-base part names inside are kept as written; the Drive file "09 Sources index" says where each old part now lives (finance: 04; the app: 05; how sessions run: 06).
 
@@ -15,4 +15,4 @@ Old knowledge-base part names inside are kept as written; the Drive file "09 Sou
 | [decisions-07.md](decisions-07.md) | 2489–2806 | M101, M100, M99, M98, M97, M96, M95, M94, M93, M92, M91, M90, M89, M88 |
 | [decisions-08.md](decisions-08.md) | 2807–3205 | D1, D2, D7, D3, D4, D5, D6, D10, D11, D12, D13 |
 | [decisions-09.md](decisions-09.md) | 3206–3569 | D14, D8, D9, M84, M83, M82, M81, M80, M79, M78, M77, M76, M75 |
-| [decisions-10.md](decisions-10.md) | 3570–3810 | D16, D17 |
+| [decisions-10.md](decisions-10.md) | 3570–3866 | D16, D17, D19, D20, D21 |

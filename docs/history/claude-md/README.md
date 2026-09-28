@@ -1,6 +1,6 @@
 # The old CLAUDE.md — index
 
-`CLAUDE.md` as it stood at commit `9e638cdf694f` (46,422 characters, 622 lines), cut word for word into 2 pieces under 40,000 characters. Joined in order they are the old file byte for byte (SHA-256 `a1da2537c9e4e361c6f34efecd5be84357d15dad7b719cb3cb383bb2e6befb02`); `scripts/qa/check-docs-moved.mjs` proves it on every battery run. Nothing here is edited — this is the archive; the working file is short now.
+`CLAUDE.md` as it stood at commit `b2a6ded8bfba` (46,422 characters, 622 lines), cut word for word into 2 pieces under 40,000 characters. Joined in order they are the old file byte for byte (SHA-256 `a1da2537c9e4e361c6f34efecd5be84357d15dad7b719cb3cb383bb2e6befb02`); `scripts/qa/check-docs-moved.mjs` proves it on every battery run. Nothing here is edited — this is the archive; the working file is short now.
 
 Old knowledge-base part names inside are kept as written; the Drive file "09 Sources index" says where each old part now lives (finance: 04; the app: 05; how sessions run: 06).
 
