@@ -566,17 +566,51 @@ const PWUPDATELOG=[];  // every updateUser({password}) call the mock's PUT /auth
    company = the company holding the row's typed client ID, else (no client ID) the company holding its typed discount
    code, else the row stands alone; rule = transaction → client ID → VAT/CR → code → name (name only with no client ID). */
 function mockMoneyNorm(t){ let s=String(t==null?'':t); try{ s=s.normalize('NFKC'); }catch(_){} s=s.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[\u064B-\u065F\u0670\u0640]/g,''); s=s.replace(/[^\p{L}\p{N}]+/gu,''); return s||null; }
+/* D27 — company identifiers (scripts/sql/company-identifiers.sql): the same comparison and the same live matcher. The list is
+   what people typed (TABLES.company_identifiers) plus what the old stores feed — billing-profile client IDs, linked discount
+   codes, customer-name aliases — exactly as the database's feeds add them; a fed identifier can be removed like any other. */
+const AR_DIG='٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹';
+function mockIdentDigits(t){ const s=String(t==null?'':t).replace(/[٠-٩۰-۹]/g,c=>String(AR_DIG.indexOf(c)%10)).replace(/[^0-9]/g,''); return s||null; }
+function mockIdentPhone(t){ let d=mockIdentDigits(t)||''; d=d.replace(/^00/,'').replace(/^966/,'').replace(/^0+/,''); return d.length>=7?d:null; }
+const MOCK_FORM_WORDS=new Set(['شركه','موسسه','company','co','corp','corporation','ltd','limited','llc','inc','est']);
+function mockIdentName(t){ let s=String(t==null?'':t); try{ s=s.normalize('NFKC'); }catch(_){}
+  s=s.toLowerCase().replace(/[أإآٱ]/g,'ا').replace(/[ىئ]/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/[٠-٩۰-۹]/g,c=>String(AR_DIG.indexOf(c)%10))
+   .replace(/[ً-ٰٟـ.]/g,'').replace(/[^0-9a-zء-غف-يٮ-ۓۺ-ۿ]+/g,' ');
+  const w=s.trim().split(/\s+/).filter(x=>x&&!MOCK_FORM_WORDS.has(x)); return w.join('')||null; }
+function mockIdentNorm(kind,v){ if(kind==='name') return mockIdentName(v); if(kind==='email'){ const e=String(v==null?'':v).trim().toLowerCase(); return e||null; }
+  if(kind==='phone') return mockIdentPhone(v); if(kind==='vat'||kind==='cr') return mockIdentDigits(v); return mockMoneyNorm(v); }
+const MOCK_IDENT_GONE=new Set();   // fed identifiers a person removed
+function mockIdentifiers(withRemoved){
+  const out=[], seen=new Set(), add=(r)=>{ const k=r.kind+'|'+mockIdentNorm(r.kind,r.value); if(!r.removed_at){ if(seen.has(k)) return; seen.add(k); } out.push(r); };
+  (TABLES.company_identifiers||[]).filter(r=>withRemoved||!r.removed_at).forEach(r=>add(Object.assign({},r,{value_norm:mockIdentNorm(r.kind,r.value)})));
+  const fed=(id,biz,kind,value,source,extra)=>{ if(!biz||!mockIdentNorm(kind,value)) return; const gone=MOCK_IDENT_GONE.has(id); if(gone&&!withRemoved) return;
+    add(Object.assign({id,business_id:biz,kind,value,value_norm:mockIdentNorm(kind,value),source,valid_from:null,valid_to:null,created_at:'2026-09-28T00:00:00Z',removed_at:gone?'2026-09-28T00:00:00Z':null},extra||{})); };
+  (TABLES.client_profiles||[]).forEach(p=>fed('fed-cp-'+p.id,p.business_id,'client_id',p.direct_client_id,'billing_profile'));
+  const codes=CARDMOCK.codes||[]; (CARDMOCK.links||[]).filter(l=>!l.removed_at).forEach(l=>{ const pc=codes.find(c=>c.id===l.promo_code_id); if(pc) fed('fed-cdc-'+l.id,l.business_id,'discount_code',pc.code,'moved',{valid_from:pc.valid_from||null,valid_to:pc.valid_to||null}); });
+  (TABLES.company_name_aliases||[]).filter(a=>!a.removed_at).forEach(a=>fed('fed-al-'+a.id,a.business_id,'name',a.name,'moved'));
+  return out; }
+function mockCompanyMatch(i){
+  const ids=mockIdentifiers(false), N=mockMoneyNorm;
+  const pcl=(TABLES.payments_clients||[]).filter(c=>c.contact_email&&!/@([a-z0-9-]+\.)*directksa\./i.test(c.contact_email));
+  const em=String(i.customer_email||'').trim().toLowerCase(); const pcs=em?pcl.filter(c=>String(c.contact_email).trim().toLowerCase()===em):[];
+  const cidRaw=(String(i.payments_client_id||'').trim())||(pcs.length===1?pcs[0].client_id:null);
+  const r={cid:N(cidRaw),tax:mockIdentDigits(i.customer_tax_no),code:N(i.discount_code),email:em||null,phone:mockIdentPhone(i.customer_phone),n1:mockIdentName(i.client_group),n2:mockIdentName(i.customer_raw_name)};
+  const lv=[['client_id',x=>x.kind==='client_id'&&x.value_norm===r.cid],['vat_cr',x=>(x.kind==='vat'||x.kind==='cr')&&x.value_norm===r.tax],
+    ['discount_code',x=>x.kind==='discount_code'&&x.value_norm===r.code&&(!x.valid_from||String(i.invoice_date)>=x.valid_from)&&(!x.valid_to||String(i.invoice_date)<=x.valid_to)],
+    ['email',x=>x.kind==='email'&&x.value_norm===r.email],['phone',x=>x.kind==='phone'&&x.value_norm===r.phone],['name',x=>x.kind==='name'&&(x.value_norm===r.n1||x.value_norm===r.n2)]];
+  for(const [name,f] of lv){ const bs=[...new Set(ids.filter(x=>x.value_norm&&f(x)).map(x=>x.business_id))].sort();
+    if(bs.length) return {business_id:bs.length===1?bs[0]:null,match_level:name,match_state:bs.length===1?'matched':'conflict',match_candidates:bs,row_client_id:cidRaw}; }
+  return {business_id:null,match_level:null,match_state:'none',match_candidates:null,row_client_id:cidRaw}; }
 function mockMoneyRows(){
   const N=mockMoneyNorm, ORDER=['transaction','client_id','tax_no','discount_code','name'];
   const rules=(TABLES.money_exclusion_rules||[]).filter(r=>r.active&&!r.removed_at).slice().sort((a,b)=>(ORDER.indexOf(a.kind)-ORDER.indexOf(b.kind))||String(a.created_at).localeCompare(String(b.created_at)));
   const prof=TABLES.client_profiles||[], links=(CARDMOCK.links||[]).filter(l=>!l.removed_at), codes=CARDMOCK.codes||[], biz=TABLES.businesses||[];
   const today=new Date(); today.setUTCHours(0,0,0,0);
   return (TABLES.finance_invoices||[]).filter(i=>!i.deleted_at).map(i=>{
-    const cid=N(i.payments_client_id), code=N(i.discount_code), tax=N(i.customer_tax_no);
-    const cp=cid?prof.find(p=>N(p.direct_client_id)===cid):null;
-    let codeBiz=null; if(code){ const pc=codes.find(c=>N(c.code)===code); const l=pc&&links.find(x=>x.promo_code_id===pc.id); codeBiz=l?l.business_id:null; }
-    const al=(!cid&&!codeBiz)?(TABLES.company_name_aliases||[]).find(a=>!a.removed_at&&(N(a.name)===N(i.client_group)||N(a.name)===N(i.customer_raw_name))):null;
-    const bizId=cp?cp.business_id:(!cid?(codeBiz||(al&&al.business_id)||null):null); const b=bizId?biz.find(x=>x.id===bizId):null;
+    const mc=mockCompanyMatch(i);
+    const cid=N(mc.row_client_id), code=N(i.discount_code), tax=N(i.customer_tax_no);
+    const bizId=mc.business_id; const b=bizId?biz.find(x=>x.id===bizId):null;
+    const cp=(bizId&&mc.match_level==='client_id')?prof.filter(p=>p.business_id===bizId&&N(p.direct_client_id)===cid).sort((a,c)=>(a.closed_at?1:0)-(c.closed_at?1:0))[0]:null;
     const bt=N(b&&b.cr_vat)||'';
     const x=rules.find(r=>{ const v=N(r.value); if(!v)return false;
       if(r.kind==='transaction') return v===N(i.transaction_ref)||v===N(i.invoice_no);
@@ -590,7 +624,7 @@ function mockMoneyRows(){
     return {id:i.id,invoice_no:i.invoice_no,invoice_date:i.invoice_date,client_group:i.client_group,customer_raw_name:i.customer_raw_name,payments_client_id:i.payments_client_id||null,
       discount_code:i.discount_code||null,transaction_ref:i.transaction_ref||null,integrity_status:i.integrity_status,revenue_way:i.revenue_way,
       revenue_sar:i.revenue_sar,cost_sar:i.cost_sar,profit_sar:i.profit_sar,amount_received_sar:i.amount_received_sar,amount_remaining_sar:i.amount_remaining_sar,collection_due_date:i.collection_due_date||null,source_batch:i.source_batch,
-      business_id:bizId,company_key:bizId?'biz:'+bizId:cid?'cid:'+cid:code?'codes:unassigned':'name:'+(N(i.client_group||i.customer_raw_name)||'?'),
+      business_id:bizId,company_key:bizId?'biz:'+bizId:mc.match_state==='conflict'?'conflict:'+(cid||N(i.client_group||i.customer_raw_name)||i.id):cid?'cid:'+cid:code?'codes:unassigned':'name:'+(N(i.client_group||i.customer_raw_name)||'?'),
       company_name:bizId?(b&&b.name)||null:cid?(i.customer_raw_name||i.client_group):code?'Unassigned codes':(i.client_group||i.customer_raw_name),
       merge_state:bizId?'merged':cid?'not_merged':code?'unassigned_code':'no_client_id',profile_type:cp?cp.profile_type:null,
       rule_id:x?x.id:null,rule_kind:x?x.kind:null,rule_value:x?x.value:null,rule_reason:x?x.reason:null,
@@ -605,7 +639,9 @@ function mockMoneyRows(){
       /* D27 (cost-fallback.sql): the Revenue Report's submitted expenses come first, then D23's pass-through lines */
       ...(()=>{ const open=i.cost_sar==null&&i.revenue_way!=='commission'; const rr=Number(((TABLES.finance_payments_facts||[]).find(p=>p.ref===i.invoice_no)||{}).rr_total_expense_sar||0);
         const pt=Number(lt(i.invoice_no).pass_through_sar||0); const src=!open?null:(rr>0?'submitted_expenses':(pt>0?'pass_through':null));
-        return { est_cost_sar:src==='submitted_expenses'?rr:(src==='pass_through'?lt(i.invoice_no).pass_through_sar:null), cost_estimated:!!src, est_cost_source:src }; })()};
+        return { est_cost_sar:src==='submitted_expenses'?rr:(src==='pass_through'?lt(i.invoice_no).pass_through_sar:null), cost_estimated:!!src, est_cost_source:src }; })(),
+      /* D27 */ match_level:mc.match_level,match_state:mc.match_state,match_candidates:mc.match_candidates,customer_email:i.customer_email||null,
+      customer_tax_no:i.customer_tax_no||null,customer_phone:i.customer_phone||null,row_client_id:mc.row_client_id||null};
   });
 }
 /* D24: money_service_rows — each invoice's lines by service (the item's own service first, else its product's), lines of a
@@ -938,6 +974,45 @@ export function start(port, seedOverrides){
          file wins field by field, an older one only fills blanks, a blank never wipes, the same file twice changes nothing;
          nothing is written onto invoice rows; a new promo code needs a readable type; the Client Name is only kept as a
          suggestion (no company link is made). */
+      /* D29 — mirrors public.fn_identifiers_from_payments_clients (scripts/sql/company-identifiers.sql): each client of the
+         client list, in ID order, is matched (client ID → VAT/CR → email → phone → its names; or the company a person picked)
+         and its ID, VAT, CR, email, phone and three names are added to that company — never a test or left-out client, a
+         client two companies claim, a staff email, the dummy VAT, a value under an exclusion rule or one another company holds */
+      if(fn==='fn_identifiers_from_payments_clients'){
+        const me=(TABLES.app_users||[]).find(x=>x.id===UID&&x.active)||{};
+        if(!me.id||!(me.role==='admin'||me.role==='manager')||mockLevelsOf(me).finance!=='full') return send(res,403,{code:'42501',message:'adding identifiers from the client list: this needs an admin or a manager with Finance edit'});
+        const want=new Set((parsed.p_client_ids||[]).map(String)), pick=parsed.p_business_for||{}, N=mockMoneyNorm, D=mockIdentDigits;
+        const R=(TABLES.money_exclusion_rules||[]).filter(r=>r.active&&!r.removed_at), ruled=(k,v)=>!!N(v)&&R.some(r=>r.kind===k&&N(r.value)===N(v));
+        const guard=(kind,v)=>{ const rk={client_id:'client_id',discount_code:'discount_code',name:'name',vat:'tax_no',cr:'tax_no'}[kind]; return !!rk&&R.some(r=>r.kind===rk&&(N(r.value)===N(v)||(rk==='tax_no'&&D(r.value)&&D(r.value)===D(v)))); };
+        const crsOf=x=>{ const o=new Set(); String(x.registration_numbers==null?'':x.registration_numbers).split(/[,;\/|\n]+/).forEach(t=>{ const d=D(t); if(d&&d.length>=6) o.add(d); });
+          if(/(^|[^a-z])cr([^a-z]|$)|commercial|سجل/i.test(String(x.id_type||''))){ const d=D(x.id_number); if(d&&d.length>=6) o.add(d); } return [...o]; };
+        const out={added:0,companies:0,business_ids:[],taken:[],refused:[],unmatched:[],conflicts:[],excluded:[]}, bizs=new Set(), now=new Date().toISOString();
+        const list=TABLES.company_identifiers=TABLES.company_identifiers||[];
+        (TABLES.payments_clients||[]).filter(x=>want.has(String(x.client_id))).sort((a,b)=>a.client_id<b.client_id?-1:a.client_id>b.client_id?1:0).forEach(x=>{
+          const names=[x.legal_name,x.legal_name_ar,x.trading_name];
+          if(ruled('client_id',x.client_id)||ruled('tax_no',x.vat_number)||names.some(v=>ruled('name',v))){ out.excluded.push(x.client_id); return; }
+          const ids=mockIdentifiers(false), crs=crsOf(x), vat=D(x.vat_number), taxes=(vat?[vat]:[]).concat(crs);
+          let biz=pick[x.client_id]||null;
+          if(!biz){ const lv=[i=>i.kind==='client_id'&&i.value_norm===N(x.client_id), i=>(i.kind==='vat'||i.kind==='cr')&&taxes.includes(i.value_norm),
+              i=>i.kind==='email'&&i.value_norm===mockIdentNorm('email',x.contact_email), i=>i.kind==='phone'&&i.value_norm===mockIdentPhone(x.contact_phone),
+              i=>i.kind==='name'&&names.map(mockIdentName).filter(Boolean).includes(i.value_norm)];
+            let found=null; for(const f of lv){ const bs=[...new Set(ids.filter(i=>i.value_norm&&f(i)).map(i=>i.business_id))].sort(); if(bs.length){ found=bs; break; } }
+            if(!found){ out.unmatched.push(x.client_id); return; } if(found.length>1){ out.conflicts.push({client_id:x.client_id,candidates:found}); return; } biz=found[0]; }
+          let took=false;
+          [['client_id',x.client_id],['vat',x.vat_number],['email',x.contact_email],['phone',x.contact_phone],['name',x.legal_name],['name',x.legal_name_ar],['name',x.trading_name]]
+            .concat(crs.map(c=>['cr',c])).forEach(([kind,value])=>{ const n=mockIdentNorm(kind,value); if(!n) return;
+              if(kind==='email'&&/@([a-z0-9-]+\.)*directksa\./i.test(String(value))){ out.refused.push({client_id:x.client_id,kind,value,why:'staff'}); return; }
+              const h=mockIdentifiers(false).find(i=>i.kind===kind&&i.value_norm===n); if(h&&h.business_id===biz) return;
+              if(h){ out.taken.push({client_id:x.client_id,kind,value,held_by:h.business_id}); return; }
+              if(((kind==='vat'||kind==='cr')&&n==='311111111111113')||(kind==='email'&&!/@/.test(String(value)))||guard(kind,value)){ out.refused.push({client_id:x.client_id,kind,value,why:'check'}); return; }
+              const row={id:'ci-'+Math.random().toString(36).slice(2),business_id:biz,kind,value:String(value).trim(),value_norm:n,valid_from:null,valid_to:null,source:'import',note:null,
+                created_by:UID,created_by_name:me.full_name||me.email||null,created_at:now,removed_by:null,removed_by_name:null,removed_at:null};
+              list.push(row); (TABLES.record_history=TABLES.record_history||[]).push({id:(TABLES.record_history.length+1000),at:now,actor:UID,actor_name:row.created_by_name,table_name:'company_identifiers',record_id:row.id,record_key:row.id,action:'create',before_row:null,after_row:Object.assign({},row)});
+              out.added++; took=true; });
+          if(took) bizs.add(biz); });
+        out.business_ids=[...bizs]; out.companies=bizs.size;
+        return send(res,200,JSON.stringify(out));
+      }
       if(fn==='fn_payments_clients_import'||fn==='fn_promo_codes_import'){
         const isPc=fn==='fn_payments_clients_import', me=(TABLES.app_users||[]).find(x=>x.id===UID&&x.active)||{};
         if(!me.id||mockLevelsOf(me).finance!=='full') return send(res,403,{code:'42501',message:(isPc?'client list import':'promo codes import')+': this needs Full control of Finance'});
@@ -1681,6 +1756,57 @@ export function start(port, seedOverrides){
     if((t==='money_item_classes'||t==='finance_invoice_lines')&&req.method==='GET'&&(LAPSED||finLvlMR==='none')) return send(res,200,[],{'Content-Range':'*/0'});
     /* company_name_aliases (E, 27 Sep): a customer name typed into a company — admins and managers write, one company per
        name however spelled, a name is never re-pointed, a removal is final */
+    /* D27 — company_identifiers, as scripts/sql/company-identifiers.sql: read by any signed-in person (the live list includes
+       what the old stores feed); written by admins and managers with Finance or Clients edit; one live identifier per type
+       and value; never a staff email, the dummy test VAT or a value under an exclusion rule; never moved or rewritten; a
+       removal is put back only while no other company holds the value; never deleted */
+    if(t==='company_identifiers'){
+      if(req.method==='GET'){ if(!meMR.id) return send(res,200,[]); let rows=mockIdentifiers(true);
+        const bq=String((u.query||{}).business_id||'').match(/^eq\.(.*)$/); if(bq) rows=rows.filter(r=>r.business_id===bq[1]);
+        if(String((u.query||{}).removed_at||'')==='is.null') rows=rows.filter(r=>!r.removed_at);
+        return send(res,200,rows); }
+      let body=''; req.on('data',c=>body+=c);
+      return req.on('end',()=>{
+        let pl={}; try{ pl=JSON.parse(body||'{}'); }catch(_){ return send(res,400,{message:'invalid JSON'}); }
+        const list=TABLES.company_identifiers=TABLES.company_identifiers||[]; const now=new Date().toISOString(), nm=meMR.full_name||meMR.email||null;
+        const P=(code,msg,st)=>send(res,st||400,{code,details:null,hint:null,message:msg});
+        const hist=(row,action,before)=>(TABLES.record_history=TABLES.record_history||[]).push({id:(TABLES.record_history.length+1000),at:now,actor:UID,actor_name:nm,table_name:'company_identifiers',record_id:row.id,record_key:row.id,action,before_row:before||null,after_row:Object.assign({},row)});
+        if(req.method==='POST'){
+          if(!mayMerge) return P('42501','new row violates row-level security policy for table "company_identifiers"',403);
+          const out=[]; for(const r0 of (Array.isArray(pl)?pl:[pl])){ const kind=r0.kind, v=String(r0.value||'').trim(), n=mockIdentNorm(kind,v);
+            if(!['client_id','discount_code','name','email','phone','vat','cr'].includes(kind)) return P('23514','new row for relation "company_identifiers" violates check constraint "company_identifiers_kind_check"');
+            if(!n) return P('23514','new row for relation "company_identifiers" violates check constraint "company_identifier_readable"');
+            if((r0.valid_from||r0.valid_to)&&kind!=='discount_code') return P('23514','new row for relation "company_identifiers" violates check constraint "company_identifier_dates_only_codes"');
+            if(kind==='email'&&!/@/.test(v)) return P('23514','new row for relation "company_identifiers" violates check constraint "company_identifier_email_shape"');
+            if(kind==='email'&&/@([a-z0-9-]+\.)*directksa\./i.test(v)) return P('23514','new row for relation "company_identifiers" violates check constraint "company_identifier_not_staff"');
+            if((kind==='vat'||kind==='cr')&&mockIdentDigits(v)==='311111111111113') return P('23514','new row for relation "company_identifiers" violates check constraint "company_identifier_not_dummy_vat"');
+            const rk={client_id:'client_id',discount_code:'discount_code',name:'name',vat:'tax_no',cr:'tax_no'}[kind];
+            if(rk&&(TABLES.money_exclusion_rules||[]).some(x=>x.active&&!x.removed_at&&x.kind===rk&&(mockMoneyNorm(x.value)===mockMoneyNorm(v)||(rk==='tax_no'&&mockIdentDigits(x.value)===mockIdentDigits(v)))))
+              return P('23514','This '+kind+' is under an exclusion rule on Finance → Rules (a test client or a left-out company) — it is never an identifier');
+            if(mockIdentifiers(false).some(x=>x.kind===kind&&x.value_norm===n)) return P('23505','duplicate key value violates unique constraint "company_identifiers_one_company"',409);
+            const row={id:'ci-'+Math.random().toString(36).slice(2),business_id:r0.business_id,kind,value:v,value_norm:n,valid_from:r0.valid_from||null,valid_to:r0.valid_to||null,
+              source:r0.source||'person',note:r0.note||null,created_by:UID,created_by_name:nm,created_at:now,removed_by:null,removed_by_name:null,removed_at:null};
+            list.push(row); out.push(row); hist(row,'create'); }
+          return send(res,201,out);
+        }
+        if(req.method==='PATCH'){
+          if(!mayMerge) return send(res,200,[]);
+          const id=(String((u.query||{}).id||'').match(/^eq\.(.*)$/)||[])[1];
+          const all=mockIdentifiers(true); const r=list.find(x=>x.id===id)||all.find(x=>x.id===id); if(!r) return send(res,200,[]);
+          const keys=Object.keys(pl).filter(k=>k!=='removed_at'&&k!=='note'&&k!=='valid_from'&&k!=='valid_to');
+          if(keys.some(k=>pl[k]!==r[k])) return P('23514','An identifier is never moved or rewritten — remove it and add it to the right company');
+          const before=Object.assign({},r);
+          if(pl.removed_at&&!r.removed_at){ if(String(id).startsWith('fed-')) MOCK_IDENT_GONE.add(id); else { r.removed_at=now; r.removed_by=UID; r.removed_by_name=nm; } }
+          else if(pl.removed_at===null&&r.removed_at){
+            if(mockIdentifiers(false).some(x=>x.kind===r.kind&&x.value_norm===mockIdentNorm(r.kind,r.value))) return P('23505','duplicate key value violates unique constraint "company_identifiers_one_company"',409);
+            if(String(id).startsWith('fed-')) MOCK_IDENT_GONE.delete(id); else { r.removed_at=null; r.removed_by=null; r.removed_by_name=null; } }
+          const now2=(mockIdentifiers(true).find(x=>x.id===id))||r; hist(now2,'edit',before);
+          return send(res,200,[now2]);
+        }
+        if(req.method==='DELETE') return P('42501','permission denied for table company_identifiers',403);
+        return send(res,200,[]);
+      });
+    }
     if(t==='company_name_aliases'&&req.method!=='GET'){
       let body=''; req.on('data',c=>body+=c);
       return req.on('end',()=>{

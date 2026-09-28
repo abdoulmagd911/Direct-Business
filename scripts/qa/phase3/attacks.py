@@ -1495,7 +1495,7 @@ def _(cur):
     as_user(cur, 'u4'); rule(cur, 'name', 'GRP-B'); v = mar26(cur); q(cur, "reset role")
     return (v == (15900.0, 15900.0, 15900.0), f"name rule on a row that has a client ID → totals {v} (unchanged)")
 
-@test("E-04 Merges are only what is typed: a row joins a company through its client ID or a typed discount code; an untyped client ID stands alone as 'not merged'; an untyped code stays under 'Unassigned codes' and still counts, never twice")
+@test("E-04 Merges are only what is typed: a row joins a company through a typed identifier; an untyped client ID no longer blocks the next level (D27: the first level that finds a company decides) and, alone, stands as 'not merged'; an untyped code stays under 'Unassigned codes' and still counts, never twice")
 def _(cur):
     code = one(cur, "insert into promo_codes(code,kind,value_pct) values ('CORP-5','percent',5) returning id")
     q(cur, "update finance_invoices set discount_code='CORP-5' where invoice_no='INV-X26'")
@@ -1505,11 +1505,13 @@ def _(cur):
     after = q(cur, "select company_key, merge_state from money_rows where invoice_no='INV-X26'")[0]
     total1 = mar26(cur)
     q(cur, "update finance_invoices set payments_client_id='C-7777' where invoice_no='INV-X26'")
+    through = q(cur, "select company_key, merge_state from money_rows where invoice_no='INV-X26'")[0]
+    q(cur, "update finance_invoices set discount_code=null where invoice_no='INV-X26'")
     alone = q(cur, "select company_key, merge_state, company_name from money_rows where invoice_no='INV-X26'")[0]
     a_rows = one(cur, "select count(*) from money_rows where business_id=%s", (F['coA'],))
     return (before[0] == 'codes:unassigned' and before[2] and after == ('biz:' + str(F['coB']), 'merged') and total0 == total1
-            and alone[0] == 'cid:c7777' and alone[1] == 'not_merged' and a_rows == 5,
-            f"untyped code → {before[0]} (counts={before[2]}) · typed into Company B → {after} · total unchanged {total0 == total1} · an untyped client ID → {alone[0]} / {alone[1]} · Company A's rows through its typed IDs = {a_rows}")
+            and through == ('biz:' + str(F['coB']), 'merged') and alone[0] == 'cid:c7777' and alone[1] == 'not_merged' and a_rows == 5,
+            f"untyped code → {before[0]} (counts={before[2]}) · typed into Company B → {after} · total unchanged {total0 == total1} · an untyped client ID beside the typed code → {through} · the untyped client ID alone → {alone[0]} / {alone[1]} · Company A's rows through its typed IDs = {a_rows}")
 
 @test("E-05 Exclusion beats merge: a client ID typed into a company AND caught by a rule is left out, and the view names the rule")
 def _(cur):
@@ -2009,6 +2011,205 @@ if _has_lists:   # scripts/sql/clients-promo-import.sql
         pr(cur, [{'code': 'CPSEVEN', 'kind': 'percent', 'discount': 10, 'total_sales_sar': None, 'status': 'Active', 'active': True}], seen='2026-09-20T10:00:00+03:00')
         b = one(cur, "select total_sales_sar::float||'|'||valid_to from promo_codes where code='CPSEVEN'"); q(cur, "reset role")
         return (a == '10|5000|2026-10-31' and b == '5000|2026-10-31', f"older after newer → {a} · newer with a blank total → {b}")
+
+
+# ================= company identifiers + automatic matching (D27, second builder, 28 Sep 2026) =================
+_cc = conn(); _has_ident = one(_cc.cursor(), "select count(*) from pg_proc where proname='money_company_match'"); _cc.close()
+if _has_ident:   # scripts/sql/company-identifiers.sql
+    def idn(cur, biz, kind, value, **kw):
+        cols = {'business_id': F[biz] if biz in F else biz, 'kind': kind, 'value': value}; cols.update(kw); ks = list(cols)
+        return one(cur, "insert into company_identifiers(" + ",".join(ks) + ") values (" + ",".join(["%s"] * len(ks)) + ") returning id", tuple(cols[k] for k in ks))
+    def mt(cur, no):
+        r = q(cur, "select coalesce(business_id::text,'∅'), coalesce(match_level,'∅'), match_state, coalesce(cardinality(match_candidates),0) from money_rows where invoice_no=%s", (no,))
+        if not r: return None
+        b, lvl, st, n = r[0]
+        who = {str(F['coA']): 'A', str(F['coB']): 'B'}.get(b, b if b == '∅' else 'other')
+        return who + '|' + lvl + '|' + st + ('|' + str(n) if st == 'conflict' else '')
+
+    @test("IDN-01 One identifier, one company — and never a staff email, the dummy test VAT, a value under an exclusion rule, or a View login's write")
+    def _(cur):
+        as_user(cur, 'u4')
+        idn(cur, 'coA', 'email', 'Buyer@Alpha.test')
+        a, m1 = expect_fail(cur, "insert into company_identifiers(business_id,kind,value) values (%s,'email',' buyer@alpha.TEST ')", (F['coB'],), "company_identifiers_one_company")
+        b, m2 = expect_fail(cur, "insert into company_identifiers(business_id,kind,value) values (%s,'email','someone@directksa.com')", (F['coA'],), "company_identifier_not_staff")
+        c, m3 = expect_fail(cur, "insert into company_identifiers(business_id,kind,value) values (%s,'vat','311111111111113')", (F['coA'],), "company_identifier_not_dummy_vat")
+        one(cur, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','TEST-59','a Payments test client') returning id")
+        d, m4 = expect_fail(cur, "insert into company_identifiers(business_id,kind,value) values (%s,'client_id','test 59')", (F['coA'],), "exclusion rule")
+        e, m5 = expect_fail(cur, "insert into company_identifiers(business_id,kind,value,valid_from) values (%s,'email','x@alpha.test','2026-01-01')", (F['coA'],), "company_identifier_dates_only_codes")
+        q(cur, "reset role"); as_user(cur, 'u6')
+        f, m6 = expect_fail(cur, "insert into company_identifiers(business_id,kind,value) values (%s,'name','View Co')", (F['coA'],), "row-level security")
+        q(cur, "reset role")
+        return (a and b and c and d and e and f, f"same email on B: {m1} · staff: {m2} · dummy VAT: {m3} · excluded client ID: {m4} · dates on an email: {m5} · View: {m6}")
+
+    @test("IDN-02 The order: client ID beats VAT/CR beats discount code beats email beats phone beats name — the first level that finds a company decides")
+    def _(cur):
+        as_user(cur, 'u4')
+        idn(cur, 'coA', 'email', 'order@alpha.test'); idn(cur, 'coA', 'name', 'Order Alpha Trading'); idn(cur, 'coA', 'phone', '0550000001')
+        idn(cur, 'coB', 'vat', '300000000000099'); idn(cur, 'coB', 'phone', '+966 55 000 0002'); idn(cur, 'coB', 'discount_code', 'ORDB-10')
+        q(cur, "reset role")
+        fi(cur, 'IDN-2A', 100, client_group='Order Alpha Trading', customer_email='order@alpha.test', payments_client_id='C-2001')     # client ID (B) beats email (A)
+        fi(cur, 'IDN-2B', 100, client_group='x', customer_email='order@alpha.test', customer_tax_no='300000000000099')                 # VAT (B) beats email (A)
+        fi(cur, 'IDN-2C', 100, client_group='x', customer_email='ORDER@alpha.test', discount_code='ordb 10')                          # code (B) beats email (A)
+        fi(cur, 'IDN-2D', 100, client_group='Order Alpha Trading', customer_phone='00966550000002')                                  # phone (B) beats name (A)
+        fi(cur, 'IDN-2E', 100, client_group='Order Alpha Trading Co.', customer_phone='0550000009')                                  # only the name (A)
+        as_user(cur, 'u4')
+        got = [mt(cur, n) for n in ('IDN-2A', 'IDN-2B', 'IDN-2C', 'IDN-2D', 'IDN-2E')]; q(cur, "reset role")
+        want = ['B|client_id|matched', 'B|vat_cr|matched', 'B|discount_code|matched', 'B|phone|matched', 'A|name|matched']
+        return (got == want, f"{got}")
+
+    @test("IDN-03 A discount code counts only inside its dates (by the row's date)")
+    def _(cur):
+        as_user(cur, 'u4'); idn(cur, 'coA', 'discount_code', 'Q1ONLY', valid_from='2026-01-01', valid_to='2026-03-31'); q(cur, "reset role")
+        fi(cur, 'IDN-3A', 100, invoice_date='2026-02-10', discount_code='Q1ONLY'); fi(cur, 'IDN-3B', 100, invoice_date='2026-05-01', discount_code='Q1ONLY')
+        as_user(cur, 'u4'); got = [mt(cur, 'IDN-3A'), mt(cur, 'IDN-3B')]; q(cur, "reset role")
+        return (got == ['A|discount_code|matched', '∅|∅|none'], f"inside / outside the dates → {got}")
+
+    @test("IDN-04 Two companies match → Needs a decision naming both, nothing guessed, no company's totals move")
+    def _(cur):
+        as_user(cur, 'u4'); idn(cur, 'coA', 'name', 'Twin Alpha'); idn(cur, 'coB', 'name', 'Twin Beta')
+        idn(cur, 'coA', 'vat', '1234567890'); idn(cur, 'coB', 'cr', '1234567890'); q(cur, "reset role")
+        fi(cur, 'IDN-4A', 100, client_group='Twin Alpha', customer_raw_name='Twin Beta'); fi(cur, 'IDN-4B', 100, client_group='x', customer_tax_no='1234567890')
+        as_user(cur, 'u4'); got = [mt(cur, 'IDN-4A'), mt(cur, 'IDN-4B')]
+        ms = q(cur, "select merge_state, company_key like 'conflict:%%' from money_rows where invoice_no='IDN-4A'")[0]
+        both = one(cur, "select match_candidates @> array[%s,%s]::uuid[] from money_rows where invoice_no='IDN-4B'", (F['coA'], F['coB'])); q(cur, "reset role")
+        return (got == ['∅|name|conflict|2', '∅|vat_cr|conflict|2'] and ms[0] != 'merged' and ms[1] and both, f"{got} · merge_state={ms} · both named={both}")
+
+    @test("IDN-05 Matching is live, never a stamp: adding an identifier links past rows at once, removing it unlinks them, putting it back links them again — the rows themselves never change")
+    def _(cur):
+        fi(cur, 'IDN-5A', 700, customer_email='live@gamma.test')
+        as_user(cur, 'u4')
+        h0 = one(cur, "select count(*) from record_history where table_name='finance_invoices'")
+        a = mt(cur, 'IDN-5A'); iid = idn(cur, 'coA', 'email', 'live@gamma.test'); b = mt(cur, 'IDN-5A')
+        fl = one(cur, "select coalesce(business_id::text,'∅') from finance_lines where invoice_no='IDN-5A'")
+        q(cur, "update company_identifiers set removed_at=now() where id=%s", (iid,)); c = mt(cur, 'IDN-5A')
+        q(cur, "update company_identifiers set removed_at=null where id=%s", (iid,)); d = mt(cur, 'IDN-5A')
+        h1 = one(cur, "select count(*) from record_history where table_name='finance_invoices'")
+        hi = one(cur, "select count(*) from record_history where table_name='company_identifiers' and record_id=%s", (str(iid),)); q(cur, "reset role")
+        return (a == '∅|∅|none' and b == 'A|email|matched' and fl == str(F['coA']) and c == '∅|∅|none' and d == 'A|email|matched' and h0 == h1 and hi == 3,
+                f"before={a} · added={b} (KPI/finance_lines company={'A' if fl == str(F['coA']) else fl}) · removed={c} · put back={d} · invoice change-log rows {h0}/{h1} · identifier change-log rows={hi}")
+
+    @test("IDN-06 Arabic and English spellings of MDD and Maaden match: شركة/company/co dropped, tatweel, diacritics, ة/ه, أ/ا, brackets and apostrophes")
+    def _(cur):
+        as_user(cur, 'u4'); idn(cur, 'coA', 'name', 'شركة مدد الذكية لتقنية المعلومات'); idn(cur, 'coA', 'name', 'Madad Smart IT (MDD)')
+        idn(cur, 'coB', 'name', 'شركة التعدين العربية السعودية معادن'); idn(cur, 'coB', 'name', "Ma'aden"); q(cur, "reset role")
+        rows = [('IDN-6A', 'مـدد الذكيّة لتقنيه المعلومات'), ('IDN-6B', 'MADAD SMART IT - MDD Co.'), ('IDN-6C', 'التعدين العربيه السعوديه (معادن)'),
+                ('IDN-6D', 'MAADEN Company'), ('IDN-6E', 'مدد')]
+        for no, nm in rows: fi(cur, no, 100, client_group=nm)
+        as_user(cur, 'u4'); got = [mt(cur, no) for no, _ in rows]; q(cur, "reset role")
+        return (got == ['A|name|matched', 'A|name|matched', 'B|name|matched', 'B|name|matched', '∅|∅|none'],
+                f"{got} (a bare 'مدد' is a different spelling until a person adds it)")
+
+    @test("IDN-07 An identifier is never moved or rewritten; a removed one comes back only while no other company holds it")
+    def _(cur):
+        as_user(cur, 'u4'); iid = idn(cur, 'coA', 'phone', '0560000007')
+        a, m1 = expect_fail(cur, "update company_identifiers set business_id=%s where id=%s", (F['coB'], iid), "never moved")
+        b, m2 = expect_fail(cur, "update company_identifiers set value='0560000008' where id=%s", (iid,), "never moved")
+        q(cur, "update company_identifiers set removed_at=now() where id=%s", (iid,)); idn(cur, 'coB', 'phone', '+966560000007')
+        c, m3 = expect_fail(cur, "update company_identifiers set removed_at=null where id=%s", (iid,), "company_identifiers_one_company")
+        d, m4 = expect_fail(cur, "delete from company_identifiers where id=%s", (iid,), "permission denied")
+        q(cur, "reset role"); still = one(cur, "select count(*) from company_identifiers where id=%s", (iid,))
+        return (a and b and c and d and still == 1, f"moved: {m1} · rewritten: {m2} · put back while B holds it: {m3} · deleted: {m4} (still there: {still == 1})")
+
+    @test("IDN-08 One mechanism: a billing profile's client ID, a linked code and a typed customer name become identifiers; removing the link or name removes them")
+    def _(cur):
+        code = one(cur, "insert into promo_codes(code,kind,value_pct,valid_from,valid_to) values ('FEED-7','percent',7,'2026-01-01','2026-12-31') returning id")
+        as_user(cur, 'u4')
+        one(cur, "insert into client_profiles(business_id,direct_client_id,profile_type) values (%s,'C-8801','tender') returning id", (F['coB'],))
+        lk = one(cur, "insert into company_discount_codes(business_id,promo_code_id) values (%s,%s) returning id", (F['coB'], code))
+        al = one(cur, "insert into company_name_aliases(business_id,name) values (%s,'Feed Beta Est.') returning id", (F['coB'],))
+        got = q(cur, "select kind||':'||value||':'||source||coalesce(':'||valid_to,'') from company_identifiers where business_id=%s and removed_at is null and value in ('C-8801','FEED-7','Feed Beta Est.') order by kind", (F['coB'],))
+        q(cur, "update company_discount_codes set removed_at=now() where id=%s", (lk,)); q(cur, "update company_name_aliases set removed_at=now() where id=%s", (al,))
+        left = one(cur, "select count(*) from company_identifiers where business_id=%s and removed_at is null and value in ('FEED-7','Feed Beta Est.')", (F['coB'],)); q(cur, "reset role")
+        got = [g[0] for g in got]
+        return (got == ['client_id:C-8801:billing_profile', 'discount_code:FEED-7:moved:2026-12-31', 'name:Feed Beta Est.:moved'] and left == 0,
+                f"{got} · left after the link and name are removed = {left}")
+
+    @test("IDN-09 A company merge carries the dropped company's identifiers to the kept one; undoing the merge takes them back")
+    def _(cur):
+        co = one(cur, "insert into businesses(name,is_client) values ('Dup Gamma',true) returning id")
+        as_user(cur, 'u4'); idn(cur, co, 'email', 'dup@gamma.test'); idn(cur, co, 'name', 'Dup Gamma Trading'); q(cur, "reset role")
+        fi(cur, 'IDN-9A', 100, customer_email='dup@gamma.test')
+        as_user(cur, 'u4')
+        m = one(cur, "insert into business_merges(kept_id,dropped_id,reason) values (%s,%s,'duplicate') returning id", (F['coA'], co))
+        a = mt(cur, 'IDN-9A')
+        on_a = one(cur, "select count(*) from company_identifiers where business_id=%s and removed_at is null and value in ('dup@gamma.test','Dup Gamma Trading')", (F['coA'],))
+        q(cur, "update business_merges set undone_at=now() where id=%s", (m,))
+        back = one(cur, "select count(*) from company_identifiers where business_id=%s and removed_at is null", (co,))
+        b = one(cur, "select coalesce(business_id::text,'∅') from money_rows where invoice_no='IDN-9A'"); q(cur, "reset role")
+        return (a == 'A|email|matched' and on_a == 2 and back == 2 and b == str(co), f"after the merge → {a} ({on_a} identifiers on the kept company) · after the undo: {back} back on the dropped one, the row follows={b == str(co)}")
+
+    @test("IDN-10 Exclusions still win: a row matched by email is left out when the Payments client its email names is under a client-ID rule")
+    def _(cur):
+        as_user(cur, 'u4')
+        one(cur, "select fn_payments_clients_import(%s::jsonb, now(), 'qa')", (json.dumps([{'client_id': 'PX-59', 'legal_name': 'Payments Test Client', 'contact_email': 'tester@px.test'}]),))
+        idn(cur, 'coA', 'email', 'tester@px.test')
+        one(cur, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','PX-59','a Payments test client') returning id")
+        q(cur, "reset role"); fi(cur, 'IDN-10A', 100, customer_email='tester@px.test')
+        as_user(cur, 'u4')
+        r = q(cur, "select coalesce(business_id::text,'∅'), row_client_id, excluded, counts, rule_kind from money_rows where invoice_no='IDN-10A'")[0]; q(cur, "reset role")
+        return (r[0] == str(F['coA']) and r[1] == 'PX-59' and r[2] is True and r[3] is False and r[4] == 'client_id', f"company A={r[0] == str(F['coA'])} · client ID from the email={r[1]} · excluded={r[2]} · counts={r[3]} · rule={r[4]}")
+
+    @test("IDN-11 The matcher answers nobody without Finance, and a View login on Finance reads the same companies as a manager")
+    def _(cur):
+        as_user(cur, 'u4'); idn(cur, 'coA', 'email', 'view@alpha.test'); q(cur, "reset role"); fi(cur, 'IDN-11A', 100, customer_email='view@alpha.test')
+        as_user(cur, 'u4'); m = one(cur, "select count(*) from money_company_match() where business_id is not null"); q(cur, "reset role")
+        as_user(cur, 'u6'); v = one(cur, "select count(*) from money_company_match() where business_id is not null"); q(cur, "reset role")
+        q(cur, "update app_users set page_access = page_access || '{\"finance\":\"none\"}' where id=%s", (F['u6'],))
+        as_user(cur, 'u6'); n = one(cur, "select count(*) from money_company_match()"); q(cur, "reset role")
+        return (m > 0 and v == m and n == 0, f"manager={m} · View on Finance={v} · no Finance={n}")
+
+    @test("IDN-12 The client list is matched the same way: client ID beats VAT/CR beats email beats phone beats its names; two companies at one level name both; nothing found says none")
+    def _(cur):
+        as_user(cur, 'u4')
+        idn(cur, 'coA', 'client_id', 'PC-100'); idn(cur, 'coA', 'name', 'Reg Alpha'); idn(cur, 'coA', 'cr', '1010999999')
+        idn(cur, 'coB', 'vat', '300000000000111'); idn(cur, 'coB', 'email', 'reg@beta.test'); idn(cur, 'coB', 'phone', '0551230000')
+        pc(cur, [{'client_id': 'PC-100', 'legal_name': 'Somebody Else', 'vat_number': '300000000000111'},            # client ID (A) beats VAT (B)
+                 {'client_id': 'PC-101', 'trading_name': 'REG ALPHA L.L.C.'},                                           # only a name (A)
+                 {'client_id': 'PC-102', 'legal_name': 'Reg Alpha', 'contact_email': ' Reg@Beta.TEST'},                  # email (B) beats name (A)
+                 {'client_id': 'PC-103', 'vat_number': '300000000000111', 'registration_numbers': '1010999999'},          # VAT (B) and CR (A): both
+                 {'client_id': 'PC-104', 'legal_name': 'Nobody Known', 'contact_phone': '+966 55 999 0000'},              # nothing
+                 {'client_id': 'PC-105', 'legal_name': 'x', 'id_type': 'CR', 'id_number': '1010-999-999'},                # CR from ID Number (A)
+                 {'client_id': 'PC-106', 'legal_name': 'Reg Alpha', 'contact_phone': '00966551230000'}])                  # phone (B) beats name (A)
+        got = {r[0]: r[1] for r in q(cur, "select client_id, coalesce(case business_id when %s then 'A' when %s then 'B' end,'∅')||'|'||coalesce(match_level,'∅')||'|'||match_state||'|'||coalesce(cardinality(candidates),0) from payments_client_match() where client_id like 'PC-1%%'", (F['coA'], F['coB']))}
+        q(cur, "reset role")
+        want = {'PC-100': 'A|client_id|matched|1', 'PC-101': 'A|name|matched|1', 'PC-102': 'B|email|matched|1', 'PC-103': '∅|vat_cr|conflict|2',
+                'PC-104': '∅|∅|none|0', 'PC-105': 'A|vat_cr|matched|1', 'PC-106': 'B|phone|matched|1'}
+        return (got == want, f"{got}")
+
+    @test("IDN-13 Import on the client list adds its ID, VAT, CR, phone and three names to the company it matches — skipping what another company holds, a staff email, the dummy VAT and a test client — and the same file twice adds nothing")
+    def _(cur):
+        as_user(cur, 'u4')
+        idn(cur, 'coA', 'email', 'imp@alpha.test')
+        one(cur, "insert into money_exclusion_rules(kind,value,reason) values ('client_id','PC-202','a Payments test client') returning id")
+        rows = [{'client_id': 'PC-200', 'legal_name': 'Import Alpha Trading', 'legal_name_ar': 'شركة ألفا للاستيراد', 'trading_name': 'Alpha Imports',
+                 'vat_number': '300000000000222', 'registration_numbers': '1010222222', 'contact_email': 'imp@alpha.test', 'contact_phone': '0551112222'},
+                {'client_id': 'PC-201', 'legal_name': 'Import Beta Two', 'contact_email': 'ops@directksa.com', 'contact_phone': '+966551112222', 'vat_number': '311111111111113'},
+                {'client_id': 'PC-202', 'legal_name': 'Payments QA', 'contact_email': 'qa@alpha.test'},
+                {'client_id': 'PC-203', 'legal_name': 'Unknown Delta'}]
+        pc(cur, rows)
+        ids = ['PC-200', 'PC-201', 'PC-202', 'PC-203']
+        r1 = one(cur, "select fn_identifiers_from_payments_clients(%s, %s::jsonb)", (ids, json.dumps({'PC-201': str(F['coB'])})))
+        a = [x[0] for x in q(cur, "select kind||':'||value||':'||source from company_identifiers where business_id=%s and removed_at is null and source='import' order by kind, value", (F['coA'],))]
+        b = [x[0] for x in q(cur, "select kind||':'||value from company_identifiers where business_id=%s and removed_at is null and source='import' order by kind, value", (F['coB'],))]
+        n1 = one(cur, "select count(*) from company_identifiers")
+        r2 = one(cur, "select fn_identifiers_from_payments_clients(%s, %s::jsonb)", (ids, json.dumps({'PC-201': str(F['coB'])})))
+        n2 = one(cur, "select count(*) from company_identifiers"); q(cur, "reset role")
+        why = sorted((x['kind'], x.get('why', 'held')[:5]) for x in r1['refused'] + r1['taken'])
+        ok = (a == ['client_id:PC-200:import', 'cr:1010222222:import', 'name:Alpha Imports:import', 'name:Import Alpha Trading:import', 'name:شركة ألفا للاستيراد:import',
+                    'phone:0551112222:import', 'vat:300000000000222:import']
+              and b == ['client_id:PC-201', 'name:Import Beta Two'] and r1['added'] == 9 and r1['companies'] == 2
+              and why == [('email', 'staff'), ('phone', 'held'), ('vat', 'new r')] and r1['excluded'] == ['PC-202'] and r1['unmatched'] == ['PC-203']
+              and r2['added'] == 0 and r2['companies'] == 0 and n1 == n2)
+        return (ok, f"A gets {a} · B (picked in the preview) gets {b} · first={ {k: r1[k] for k in ('added','companies','excluded','unmatched')} } skipped={why} · second run added={r2['added']} ({n1}→{n2})")
+
+    @test("IDN-14 Only an admin or manager with Finance edit adds identifiers from the client list; a View login is refused and nothing is written")
+    def _(cur):
+        as_user(cur, 'u4'); pc(cur, [{'client_id': 'PC-300', 'legal_name': 'View Try'}]); q(cur, "reset role")
+        n0 = one(cur, "select count(*) from company_identifiers")
+        as_user(cur, 'u6')
+        a, m = expect_fail(cur, "select fn_identifiers_from_payments_clients(array['PC-300'], %s::jsonb)", (json.dumps({'PC-300': str(F['coA'])}),), "Finance edit")
+        q(cur, "reset role"); n1 = one(cur, "select count(*) from company_identifiers")
+        return (a and n0 == n1, f"View: {m} · identifiers {n0}→{n1}")
 
 for n, ok, d in results: print(("PASS " if ok else "FAIL ") + n + "\n      " + d)
 fails = [n for n, ok, _ in results if not ok]

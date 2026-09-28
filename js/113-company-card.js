@@ -83,33 +83,11 @@
         fl('Excluded — this company\'s money is left out of every total: ','مستبعدة — أموال هذه الشركة خارج كل الإجماليات: ')+
         hits.map(function(x){ return e(x.what)+' ('+e(x.rule.reason||'')+')'; }).join('، ')+'</div>'; }catch(_){}
     if(st.error) h+='<div style="color:#B42318;font-size:12.5px;margin-bottom:8px">'+fl('Part of the card could not be read — what shows below may be incomplete.','تعذرت قراءة جزء من البطاقة — قد يكون المعروض ناقصًا.')+'</div>';
-    /* 1 · client IDs — js/27 loads them (CP); its loader drops a second caller while it is busy, so this never waits
-       on it: while they are not in yet the section says so, and js/27 redraws the page when they arrive */
+    /* 1 · identifiers (D27, owner 28 Sep): one list — client IDs, VAT and CR numbers, discount codes, emails, phones, names in
+       any spelling — drawn by js/123 in place of the old client-ID and code sections; js/117 loads them with the rules */
     if(!window.CP||window.CP.rows==null){ if(window.CP&&typeof window.cpLoad==='function') window.cpLoad(function(){ var now=document.querySelector('.v113-card[data-biz="'+biz+'"]'); if(now) draw(now); }); }
-    var ids=((window.CP&&window.CP.byBiz&&window.CP.byBiz[biz])||[]).slice().sort(function(a,b){ return (a.closed_at?1:0)-(b.closed_at?1:0); });
-    var open=ids.filter(function(x){return !x.closed_at;});
-    h+='<div class="v113-sec" data-sec="ids"><div class="v113-h">'+fl('Direct Payments client IDs','معرّفات العميل في دايركت للمدفوعات')+' <span class="muted">· '+open.length+' '+fl('open','مفتوحة')+'</span></div>';
-    h+=ids.length?ids.map(function(p){ var tl=TYPES[p.profile_type]||[p.profile_type,p.profile_type];
-      var link=(typeof window.pdClientLink==='function')?window.pdClientLink(p.direct_client_id):'#';
-      return '<div class="v113-row'+(p.closed_at?' closed':'')+'"><span class="tag" style="font-weight:700">'+e(fl(tl[0],tl[1]))+'</span> <b>#'+e(p.direct_client_id)+'</b>'+
-        (p.closed_at?' <span class="muted">'+fl('closed','مغلق')+'</span>':'')+'<span style="flex:1"></span>'+(wm?'<button class="btn ghost sm v113-rm-id" onclick="v117RemoveClientId(\''+e(p.id)+'\')">'+fl('Remove','إزالة')+'</button> ':'')+'<a class="chiplink" href="'+e(link)+'" target="_blank" rel="noopener">'+fl('Open in Direct Payments ↗','افتح في دايركت للمدفوعات ↗')+'</a></div>'; }).join('')
-      :'<div class="muted v113-empty">'+fl('No client ID yet.','لا يوجد معرّف عميل بعد.')+'</div>';
-    /* E: customer names typed into this company (old invoices with no client ID count under it through them) */
-    var al=((window.MR&&window.MR.aliases)||[]).filter(function(x){ return x.business_id===biz; });
-    if(al.length) h+='<div class="v113-names" style="margin-top:6px">'+al.map(function(x){ return '<div class="v113-row"><span class="tag">'+fl('Customer name','اسم العميل')+'</span> '+e(x.name)+'<span style="flex:1"></span>'+(wm?'<button class="btn ghost sm" onclick="v117RemoveAlias(\''+e(x.id)+'\')">'+fl('Remove','إزالة')+'</button>':'')+'</div>'; }).join('')+'</div>';
-    if(wm) h+='<button class="btn ghost sm v113-add-id" onclick="v117AddClientId(\''+e(biz)+'\')">'+fl('+ Add client ID','+ إضافة معرّف عميل')+'</button>';
-    h+='</div>';
-    /* 2 · discount codes */
-    var byId={}; (CODES||[]).forEach(function(p){ byId[p.id]=p; });
-    var linked=st.links.map(function(l){ return {l:l,p:byId[l.promo_code_id]}; }).filter(function(x){return x.p;});
-    var imported=[];   // E: only typed codes merge — Direct Payments' own partner field no longer counts
-    h+='<div class="v113-sec" data-sec="codes"><div class="v113-h">'+fl('Discount codes','رموز الخصم')+' <span class="muted">· '+fl('sales with these codes count under this company in Finance; codes nobody typed stay under "Unassigned codes"','المبيعات بهذه الرموز تُحتسب لهذه الشركة في المالية؛ والرموز غير المكتوبة تبقى في «رموز غير مخصّصة»')+'</span></div>';
-    h+=(linked.length||imported.length)?linked.map(function(x){ return '<div class="v113-row">'+fmtCode(x.p)+(x.l.note?' <span class="muted">— '+e(x.l.note)+'</span>':'')+'<span style="flex:1"></span>'+
-          (wm?'<button class="btn ghost sm v113-unlink" onclick="v113Unlink(\''+e(x.l.id)+'\',\''+e(biz)+'\')">'+fl('Remove','إزالة')+'</button>':'')+'</div>'; }).join('')+
-        imported.map(function(p){ return '<div class="v113-row">'+fmtCode(p)+' <span class="muted">— '+fl('linked in Direct Payments','مرتبط في دايركت للمدفوعات')+'</span></div>'; }).join('')
-      :'<div class="muted v113-empty">'+fl('No discount code — optional.','لا يوجد رمز خصم — اختياري.')+'</div>';
-    if(wm) h+='<button class="btn ghost sm v113-link" onclick="v117AddCode(\''+e(biz)+'\')">'+fl('+ Link a code','+ ربط رمز')+'</button>';
-    h+='</div>';
+    try{ if(window.MR&&window.MR.idents===undefined&&typeof window.moneyRulesLoad==='function') window.moneyRulesLoad(function(){ var now=document.querySelector('.v113-card[data-biz="'+biz+'"]'); if(now) draw(now); }); }catch(_){}
+    h+='<div class="v113-sec" data-sec="identifiers">'+(typeof window.v123CardSection==='function'?window.v123CardSection(biz):'<div class="muted v113-empty">'+fl('Loading…','جارٍ التحميل…')+'</div>')+'</div>';
     /* 3 · files */
     var pres=st.presence||{};
     h+='<div class="v113-sec" data-sec="files"><div class="v113-h">'+fl('Company files','ملفات الشركة')+'</div>';
