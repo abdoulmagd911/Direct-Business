@@ -284,32 +284,10 @@ function finLoad(cb){
        name) and which exclusion rule leaves it out. If the view cannot be read, Finance shows NO money and says why
        (fail closed): a total that silently ignored the rules would be worse than none. */
     var got=r;
-    /* D23: the estimate columns arrive with the database change; until it is applied (the minutes between the site
-       deploying and the change landing), a read that names them fails — so it is asked once more without them, and
-       Finance shows every figure it showed before, with no estimate, instead of no money at all */
-    var MR_COLS='id,business_id,company_key,company_name,merge_state,profile_type,rule_id,rule_kind,rule_value,rule_reason,excluded,counts,open_age_days,cost_missing,loss,pass_through_sar,fee_sar,unclassed_sar';
-    var _mrRead=function(cb){ finPageAll(function(){return c.from('money_rows').select(MR_COLS+',est_cost_sar,cost_estimated').order('id',{ascending:true});}, function(r1){
-      if(r1&&r1.error&&/est_cost_sar|cost_estimated/.test(String((r1.error&&r1.error.message)||''))){
-        finPageAll(function(){return c.from('money_rows').select(MR_COLS).order('id',{ascending:true});}, cb); return; }
-      cb(r1); }); };
-    _mrRead(function(mr){
+    finReadMoney(c, function(mr){
     if(got.error){console.warn('finance load',got.error);FIN.rows=[];FIN.loadErr=got.error.message;}
     else {FIN.rows=got.data||[];FIN.loadErr=null;}
-    FIN.m={}; FIN.mErr=null;
-    if(!mr||mr.error){ FIN.mErr=(mr&&mr.error&&mr.error.message)||'money_rows'; console.warn('money_rows load',FIN.mErr); }
-    else (mr.data||[]).forEach(function(x){ FIN.m[x.id]=x; });
-    // The company of an invoice group, derived from the rules (not stored, never guessed by name): a group whose
-    // rows all resolved to the same company through a typed client ID or code is that company's; any other group
-    // stays under its own name. finance_client_links is no longer read — nothing is linked by name any more.
-    (function(){
-      FIN.links=[]; FIN.linkByGroup={}; FIN.groupsByBiz={};
-      var byG={};
-      (FIN.rows||[]).forEach(function(row){ if(row.deleted_at)return; var m=FIN.m[row.id]; var g=row.client_group; if(g==null)return;
-        var b=m&&m.business_id?m.business_id:''; (byG[g]=byG[g]||{})[b]=1; });
-      Object.keys(byG).forEach(function(g){ var ks=Object.keys(byG[g]);
-        if(ks.length===1&&ks[0]){ var l={client_group:g,business_id:ks[0],is_client:true,confirmed_by:'rules'}; FIN.links.push(l); FIN.linkByGroup[g]=l;
-          (FIN.groupsByBiz[ks[0]]=FIN.groupsByBiz[ks[0]]||[]).push(g); } });
-    })();
+    finApplyMoney(mr);
     (function(){
       FIN.loading=false;
       // the sector key: business_id -> profile_type, so finSectorOf can prefer the explicit field
@@ -336,6 +314,61 @@ function finLoad(cb){
     });
   }
 }
+/* D23: the estimate columns arrive with the database change; until it is applied (the minutes between the site deploying
+   and the change landing), a read that names them fails — so it is asked once more without them, and Finance shows every
+   figure it showed before, with no estimate, instead of no money at all */
+var FIN_MR_COLS='id,business_id,company_key,company_name,merge_state,profile_type,rule_id,rule_kind,rule_value,rule_reason,excluded,counts,open_age_days,cost_missing,loss,pass_through_sar,fee_sar,unclassed_sar';
+function finReadMoney(c, cb){
+  /* D24: the per-service split of each invoice's lines (money_service_rows) is read beside the view, and lands with it.
+     Unreadable (the database change not applied yet) → FIN.svcErr, and "Income by service" draws its old table. */
+  var mr=null, sv=null, left=2;
+  var both=function(){ if(--left) return; if(mr) mr._svc=sv; cb(mr); };
+  finPageAll(function(){return c.from('money_rows').select(FIN_MR_COLS+',est_cost_sar,cost_estimated').order('id',{ascending:true});}, function(r1){
+    if(r1&&r1.error&&/est_cost_sar|cost_estimated/.test(String((r1.error&&r1.error.message)||''))){
+      finPageAll(function(){return c.from('money_rows').select(FIN_MR_COLS).order('id',{ascending:true});}, function(r2){ mr=r2; both(); }); return; }
+    mr=r1; both(); });
+  finPageAll(function(){return c.from('money_service_rows').select('id,service_id,service_name,sort_order,revenue_sar,pass_through_sar').order('id',{ascending:true}).order('service_id',{ascending:true});}, function(r3){ sv=r3; both(); });
+}
+/* the rules' answer per row (money_rows) → FIN.m, and the company of each invoice group derived from it. The company of an
+   invoice group is derived from the rules (not stored, never guessed by name): a group whose rows all resolved to the same
+   company through a typed client ID or code is that company's; any other group stays under its own name. */
+function finApplyMoney(mr){
+  FIN.m={}; FIN.mErr=null;
+  if(!mr||mr.error){ FIN.mErr=(mr&&mr.error&&mr.error.message)||'money_rows'; console.warn('money_rows load',FIN.mErr); }
+  else (mr.data||[]).forEach(function(x){ FIN.m[x.id]=x; });
+  FIN.svcBy={}; FIN.svcErr=null;
+  var _sv=mr&&mr._svc;
+  if(!_sv||_sv.error){ FIN.svcErr=(_sv&&_sv.error&&_sv.error.message)||'money_service_rows'; FIN.svcBy=null; }
+  else (_sv.data||[]).forEach(function(x){ (FIN.svcBy[x.id]=FIN.svcBy[x.id]||[]).push(x); });
+  FIN.links=[]; FIN.linkByGroup={}; FIN.groupsByBiz={};
+  var byG={};
+  (FIN.rows||[]).forEach(function(row){ if(row.deleted_at)return; var m=FIN.m[row.id]; var g=row.client_group; if(g==null)return;
+    var b=m&&m.business_id?m.business_id:''; (byG[g]=byG[g]||{})[b]=1; });
+  Object.keys(byG).forEach(function(g){ var ks=Object.keys(byG[g]);
+    if(ks.length===1&&ks[0]){ var l={client_group:g,business_id:ks[0],is_client:true,confirmed_by:'rules'}; FIN.links.push(l); FIN.linkByGroup[g]=l;
+      (FIN.groupsByBiz[ks[0]]=FIN.groupsByBiz[ks[0]]||[]).push(g); } });
+}
+/* Punch list A (28 Sep, the Finance freeze): a change on Finance → Rules (a rule, a client ID, an item name) changes only
+   what the money view answers — never the invoices. It used to empty the whole ledger and load it again ("Loading the
+   finance ledger…" for ~20 s on the office PC, and saves made in quick succession stacked full reloads until the tab hung).
+   Now only the view is read again and the page redraws in place; saves close together share one read. */
+function finRefreshMoney(cb){
+  try{
+    if(!FIN.rows){ if(typeof finLoad==='function') finLoad(cb); return; }
+    if(FIN._mrBusy){ FIN._mrAgain=true; if(cb)(FIN._mrCbs=FIN._mrCbs||[]).push(cb); return; }
+    var c=fc(); if(!c) return;
+    FIN._mrBusy=true; if(cb)(FIN._mrCbs=FIN._mrCbs||[]).push(cb);
+    finReadMoney(c, function(mr){
+      FIN._mrBusy=false;
+      if(FIN._mrAgain){ FIN._mrAgain=false; finRefreshMoney(); return; }
+      finApplyMoney(mr);
+      try{ if(typeof clearFinCanon==='function')clearFinCanon(); }catch(_){}
+      var cbs=FIN._mrCbs||[]; FIN._mrCbs=[]; cbs.forEach(function(f){ try{ f(); }catch(_){} });
+      try{ if(typeof current!=='undefined'&&current==='finance'&&typeof render==='function')render(); }catch(_){}
+    });
+  }catch(_){ FIN._mrBusy=false; }
+}
+try{ window.finRefreshMoney=finRefreshMoney; }catch(_){}
 try{window.FIN=FIN;window.finLoad=finLoad;}catch(_){}  // expose for the Customer-360 finance snapshot (v29)
 /* 2026-09-02 (attack round 11): live() is THE chokepoint — soft-deleted rows out, the standing
    exclusion applied, money sanitised. Other layers that read FIN.rows directly bypassed all of
@@ -404,7 +437,9 @@ try{ window.finExcludedRows=finExcludedRows; }catch(_){}
    Finance is read monthly / quarterly / half-yearly / annually. ONE period state drives
    every Overview number; nothing is stored per period — all sums stay derived live from
    the raw rows (the storage doctrine). part: all | Q1..Q4 | H1 | H2 | M:<MonthName>. */
-FIN.p=FIN.p||{year:'all',part:'all',sector:'all'};
+/* Punch list B1 (28 Sep, owner): Finance opens on THIS year (Riyadh's calendar), not All years — the headline figures are
+   read as "this year" by everyone who opens the page. All years stays one click away in the period bar. */
+FIN.p=FIN.p||{year:(function(){ try{ return String(todayISO()).slice(0,4); }catch(_){ return 'all'; } })(),part:'all',sector:'all'};
 FIN.p.cmp=FIN.p.cmp||'none'; // blueprint step 5 (2026-08-27): compare-to mode, in-memory only — same storage doctrine as the rest of FIN.p, nothing per-period is ever saved.
 /* D1 (2026-09-28, DECISIONS D21): a MISSING cost is empty (null), never 0 — so "no cost" means null now, and a real zero
    cost (a fee-only sale) is a real zero. A commission carries no cost by nature: never "missing". One test, used everywhere. */
@@ -1236,12 +1271,24 @@ function rOverview(){
      the tab, and a caveat below the number it qualifies is read after the number is believed. */
   var h=finPeriodBar()+finNoRowsNotice()+finUncheckedNotice();
 
-  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3'],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a (\u0645\u0641\u0648\u062a\u0631)':'Outstanding (invoiced)',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',invCount,'#1C1E2B']];
+  /* Punch list B3 (28 Sep): with invoices still waiting for their cost, Profit is measured over the invoices whose cost is
+     known only — the tile says so, with the count, instead of a Profit beside a Cost that reads 0 */
+  var _nKnown=0,_nWait=0; V.forEach(function(r){ if(finCostMissing(r))_nWait++; else _nKnown++; });
+  var _profNote=_nWait?(isArF()?('على '+_nKnown+' فاتورة تكلفتها معروفة'):('on the '+_nKnown+' invoices with known cost')):'';
+  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3',_profNote],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a (\u0645\u0641\u0648\u062a\u0631)':'Outstanding (invoiced)',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',invCount,'#1C1E2B',(isArF()?'مدفوعة · في هذه الفترة':'paid · in this period')]];
   h+='<h3 class="finh">'+(isArF()?'\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u0623\u062f\u0627\u0621 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629':'Key indicators')+'<i>'+finPeriodLabel()+' \u00b7 '+(isArF()?'\u0641\u0639\u0644\u064a \u2014 \u0645\u0646 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629':'actual \u2014 from verified invoices')+'</i></h3>';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
-    return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+(i===cards.length-1?'':finExactUnder(c[1]))+'</div></div>';
+    return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+(i===cards.length-1?'':finExactUnder(c[1]))+'</div>'+(c[3]?'<div data-fin-tile-note="1" style="font-size:10.5px;color:var(--muted);margin-top:2px">'+c[3]+'</div>':'')+'</div>';
   }).join('')+'</div>';
   h+=finEstimateBand(V,cost,prof);
+  /* Punch list B4 (28 Sep): Received counts every paid invoice's money, Revenue only sales — say what the difference is */
+  (function(){ try{
+    var tu=0,bl=0,ntu=0,nbl=0; V.forEach(function(r){ var k=r.row_kind||'sale'; if(k==='wallet_topup'){tu+=+r.amount_received_sar||0;ntu++;} else if(k==='billing_link'){bl+=+r.amount_received_sar||0;nbl++;} });
+    if(!ntu&&!nbl) return;
+    h+='<div data-fin-received-split="1" style="margin:-6px 0 14px;font-size:12px;color:var(--muted)">'+(isArF()
+      ?('«المحصّل» يشمل '+money0(tu)+' ريال شحن محفظة ('+ntu+') و'+money0(bl)+' ريال فواتير تجميعية ('+nbl+') تعيد فوترة معاملات محسوبة — وهذه ليست إيرادات.')
+      :('Received includes '+money0(tu)+' SAR of wallet top-ups ('+ntu+') and '+money0(bl)+' SAR of billing invoices ('+nbl+') that re-bill transactions already counted — neither is revenue.'))+'</div>';
+  }catch(_){} })();
   /* A7, 2026-08-26 (landmine sweep) — the newest month always flattered itself: August showed a
      63.5% margin only because most of its cost had not arrived yet, and nothing marked the gap.
      When the filtered period contains verified invoices carrying no cost, say so right under the
@@ -1386,6 +1433,11 @@ function rOverview(){
   if(FIN.p.part!=='all'){ frac=(/^Q/.test(FIN.p.part))?0.25:(/^H/.test(FIN.p.part))?0.5:(FIN.p.part.indexOf('M:')===0?1/12:1); fLbl=isArF()?' · تقديري نسبةً للفترة':' · pro-rated for the period'; }
   if(tgt||canFinEdit()){
     var _exp=tgt?Math.round((+tgt.expected_sar||0)*frac):0, _conf=tgt?Math.round((+tgt.confirmed_sar||0)*frac):0;
+    /* Punch list B8 (28 Sep): Actual is measured over the SAME period as the plan — the plan's year (and part). With "All
+       years" picked, Actual used to be every year's revenue against one year's plan. */
+    var _revPlan=rev;
+    if(FIN.p.year==='all'){ _revPlan=0; verified().forEach(function(r){ if(String(finYearOf(r))===String(_ty)&&finPeriodMatch(r,{year:String(_ty),part:FIN.p.part||'all'})) _revPlan+=+r.revenue_sar||0; }); }
+    var rev0=rev; rev=_revPlan;
     var _attT=_exp>0?Math.round(rev/_exp*100):0,_att=Math.min(100,_attT);
     h+='<div class="card" style="padding:16px;margin-bottom:14px"><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap"><h3 class="finh" style="margin:0">'+(isArF()?'الخطة مقابل الفعلي':'Plan vs actual')+'<i>'+_ty+fLbl+'</i></h3>'+(canFinEdit()?('<button class="btn sm" onclick="finSetTargets('+_ty+')">'+(isArF()?'تعديل الأرقام':'Set targets')+'</button>'):'')+'</div>';
     if(tgt){
@@ -1404,12 +1456,26 @@ function rOverview(){
     } else {
       h+='<div class="ch-sub" style="margin-top:8px">'+(isArF()?'لا توجد أرقام خطة لهذه السنة بعد — اضغط «تعديل الأرقام».':'No plan numbers for this year yet — click Set targets.')+'</div>';
     }
+    /* B8: where the plan comes from — typed on this page with "Set targets", by whom and when; Actual is this period's revenue */
+    if(tgt){ var _by=tgt.updated_by||'', _at=(tgt.updated_at&&typeof dayRiyadh==='function')?dayRiyadh(tgt.updated_at):'';
+      h+='<div data-fin-plan-source="1" style="margin-top:8px;font-size:11.5px;color:var(--muted)">'+(isArF()
+        ?('الخطة: أرقام تُكتب هنا بزر «تعديل الأرقام»'+(_by?' — آخر من عدّلها '+esc(_by):'')+(_at?' في '+_at:'')+'. الفعلي: إيراد '+_ty+(FIN.p.part!=='all'?' لنفس الفترة':'')+' من الفواتير المدفوعة.')
+        :('Plan: numbers typed here with "Set targets"'+(_by?' — last set by '+esc(_by):'')+(_at?' on '+_at:'')+'. Actual: '+_ty+(FIN.p.part!=='all'?' revenue for the same period':' revenue')+' from paid invoices.'))+'</div>'; }
     h+='</div>';
+    rev=rev0;
   }
 
   var MO=['January','February','March','April','May','June','July','August','September','October','November','December'];
   var by={};var _noMonth=0;
-  V.forEach(function(r){var k=r.month||'?';if(k==='?')_noMonth++;by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;by[k].p+=+r.profit_sar;});
+  /* Punch list B2 (28 Sep): the monthly chart is ONE year — the year picked, or this year when "All years" is picked (it used
+     to add up every year's October–December into bars for months that have not happened yet) — and this year's chart stops
+     at the current month. */
+  var _cy=String(todayISO()).slice(0,4), _chY=(FIN.p&&FIN.p.year&&FIN.p.year!=='all')?String(FIN.p.year):_cy;
+  var _chV=(FIN.p&&FIN.p.year&&FIN.p.year!=='all')?V:verified().filter(function(r){ return String(finYearOf(r))===_chY&&finPeriodMatch(r,{year:_chY,part:(FIN.p&&FIN.p.part)||'all'}); });
+  _chV.forEach(function(r){var k=r.month||'?';if(k==='?')_noMonth++;by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;by[k].p+=+(r.profit_sar||0);});
+  /* …up to this month — or to the last month that has invoices, if one is dated later (a future-dated invoice stays visible,
+     so the chart always adds up to the Revenue tile) */
+  if(_chY===_cy){ var _mNow=+String(todayISO()).slice(5,7), _mLast=0; MO.forEach(function(m,ix){ if(by[m]&&(by[m].r||by[m].p)) _mLast=ix+1; }); MO=MO.slice(0,Math.max(_mNow,_mLast)); }
   /* 2026-09-03 (watch cycle 23): draw EVERY month, not only the ones with business in them.
      Filtering to months that have rows put January, February, May and December side by side as
      four adjacent bars — a year with two long silences in it read as four consecutive months, and
@@ -1418,7 +1484,7 @@ function rOverview(){
      empty month is now an empty slot: it says "nothing was billed here", which is information. */
   MO.forEach(function(m){ by[m]=by[m]||{r:0,p:0}; });
   var mos=MO;var mx=Math.max.apply(null,mos.map(function(m){return by[m].r;}).concat([1]));
-  h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 class="finh" style="margin:0 0 12px">'+(isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a \u0648\u0627\u0644\u0631\u0628\u062d \u0634\u0647\u0631\u064a\u064b\u0627':'Monthly revenue & profit')+(window.finPeriodLabel?'<i>'+finPeriodLabel()+'</i>':'')+'</h3><div style="overflow-x:auto"><div style="display:flex;gap:14px;align-items:flex-end;height:150px;min-width:520px">'+mos.map(function(m){
+  h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 class="finh" style="margin:0 0 12px">'+(isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a \u0648\u0627\u0644\u0631\u0628\u062d \u0634\u0647\u0631\u064a\u064b\u0627':'Monthly revenue & profit')+'<i>'+((FIN.p&&FIN.p.year&&FIN.p.year!=='all'&&window.finPeriodLabel)?finPeriodLabel():_chY)+'</i>'+'</h3><div style="overflow-x:auto"><div style="display:flex;gap:14px;align-items:flex-end;height:150px;min-width:520px">'+mos.map(function(m){
     var hR=Math.round(by[m].r/mx*120),hP=Math.round(by[m].p/mx*120);
     var lbl=isArF()?((typeof MO_AR!=='undefined'&&MO_AR[m])||m):m.slice(0,3);   // 2026-09-02: Arabic month names in Arabic
     return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="display:flex;gap:3px;align-items:flex-end;height:124px"><div title="'+(isArF()?'الإيرادات ':'Revenue ')+money(by[m].r)+'" style="width:22px;height:'+Math.max(hR,2)+'px;background:#FF6B00;border-radius:4px 4px 0 0"></div><div title="'+(isArF()?'الربح ':'Profit ')+money(by[m].p)+'" style="width:22px;height:'+Math.max(hP,2)+'px;background:#303848;border-radius:4px 4px 0 0"></div></div><div style="font-size:10px;color:var(--muted)">'+lbl+'</div><div style="font-size:9.5px;font-weight:700"><span dir="ltr" style="unicode-bidi:isolate">'+moneyS(by[m].r)+'</span></div></div>';
