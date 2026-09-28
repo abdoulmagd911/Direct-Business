@@ -3853,5 +3853,14 @@ Import Map).** ACTIVE. `scripts/sql/d1-money-model.sql`, `js/41`, `js/65`, `js/1
 - **Fill, never wipe, in any order** (KB 04 §5 rules 1–4): an update writes only what the new file carries; the newest
   Payments status wins and an older file cannot roll it back; item lines are replaced per invoice; a row entered by hand is
   never touched by an import (the preview names it). The same file twice changes nothing.
+  Added by the 28 Sep sweep: an OLDER file (its Payments status time before the stored one) only fills fields that are still
+  empty — it cannot put a paid invoice's received/outstanding amounts or its paid date back to the unpaid copy's; a field a file
+  leaves blank is not a change (a re-drop reads "0 updated"); an invoice repeated in one file, or in two files dropped
+  together, lands once with the newer status (a duplicate used to refuse the whole import); a billing link a person ticked
+  survives re-imports (the file always says "sale"), is not re-proposed, and a proposal must involve the dropped file. The
+  billing-link search is capped per invoice and per drop, so a huge customer cannot hold the page; invoices it could not check
+  are counted on screen and never guessed.
 - **No VAT** figure is worked out or stored (D18). A cost above revenue is applied and flagged "Loss", never held back.
-Guarded by `scripts/qa/phase3` D1-01…06 and `scripts/qa/probe-d1-invoice-import.mjs` (sabotage-checked).
+- **On screen**: Profit = Revenue − Cost and the margin are measured over the invoices whose cost is known (an invoice waiting
+  for its cost counts in Revenue only), so a waiting invoice is never reported as "stored figures that disagree".
+Guarded by `scripts/qa/phase3` D1-01…08 and `scripts/qa/probe-d1-invoice-import.mjs` (sabotage-checked).
