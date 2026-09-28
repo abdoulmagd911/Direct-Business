@@ -1,5 +1,5 @@
 -- SCHEMA-01 — every business table of v2 has row-level security on, the stamp and capture triggers (so every change
--- is logged and undoable), an id and a version; only the change log itself and the number counter are exempt (A1,
+-- is logged and undoable), an id and a version; only the change log itself, the sign-in log and the number counter are exempt (A1,
 -- A6, A14, §3.3).
 -- Sabotage: supabase/tests/sabotage/an-unwatched-table.sql.
 do $$
@@ -19,7 +19,7 @@ begin
   into missing
   from pg_class c join pg_namespace n on n.oid = c.relnamespace
   where c.relkind in ('r', 'p') and n.nspname = any (test.v2_schemas())
-    and format('%s.%s', n.nspname, c.relname) not in ('audit.request', 'audit.change', 'core.counter')
+    and format('%s.%s', n.nspname, c.relname) not in ('audit.request', 'audit.change', 'core.counter', 'core.sign_in_log')
     and (not c.relrowsecurity
       or not exists (select 1 from pg_trigger t where t.tgrelid = c.oid and t.tgname = 'stamp' and t.tgfoid = 'audit.stamp'::regproc)
       or not exists (select 1 from pg_trigger t where t.tgrelid = c.oid and t.tgname = 'capture' and t.tgfoid = 'audit.capture'::regproc)
