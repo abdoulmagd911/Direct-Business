@@ -27,7 +27,7 @@
   function attention(){
     if(!window.FIN||!FIN.rows||!FIN.m) return '';
     var m=FIN.m, R=rowsInPeriod(), g={};
-    function add(k,r){ var x=g[k]=g[k]||{n:0,sar:0,refs:[]}; x.n++; x.sar+=(+r.total_incl_vat_sar||0); if(x.refs.length<8) x.refs.push(r.invoice_no); }
+    function add(k,r){ var x=g[k]=g[k]||{n:0,sar:0,refs:[],ids:[]}; x.n++; x.sar+=(+r.total_incl_vat_sar||0); x.ids.push(r.id); if(x.refs.length<8) x.refs.push(r.invoice_no); }
     R.forEach(function(r){
       var v=m[r.id]||{};
       if(r.row_kind==='wallet_topup') { add('topup',r); return; }
@@ -58,10 +58,23 @@
       '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="flex:1">'+fl('Needs attention','يحتاج انتباهًا')+'</b>'+sw+'</div>';
     if(!any) h+='<div style="font-size:12.5px;color:var(--muted);margin-top:6px">'+fl('Nothing in this period is waiting, flagged or held apart.','لا شيء في هذه الفترة ينتظر أو مُعلَّم أو محجوز.')+'</div>';
     else h+='<div style="margin-top:6px">'+L.filter(function(x){ return g[x[0]]; }).map(function(x){ var v=g[x[0]];
-      return '<div data-v119-k="'+x[0]+'" data-n="'+v.n+'" style="font-size:12.5px;line-height:1.8;color:'+x[2]+'"><b>'+v.n+'</b> · '+n0(v.sar)+' '+fl('SAR','ريال')+' — '+e(x[1])+
+      ATT[x[0]]={title:x[1],ids:v.ids};
+      return '<div data-v119-k="'+x[0]+'" data-n="'+v.n+'" style="font-size:12.5px;line-height:1.8;color:'+x[2]+'"><a href="javascript:void(0)" onclick="v119AttList(\''+x[0]+'\')" data-v119-open="'+x[0]+'" style="color:inherit;text-decoration:underline" title="'+e(fl('Open the list','افتح القائمة'))+'"><b>'+v.n+'</b> · '+n0(v.sar)+' '+fl('SAR','ريال')+'</a> — '+e(x[1])+
         ' <span style="color:var(--muted);font-size:11.5px">('+e(v.refs.join(', '))+(v.n>v.refs.length?' …':'')+')</span></div>'; }).join('')+'</div>';
     return h+'</div>';
   }
+  /* Punch list B9 (28 Sep): each count opens the list of its invoices (number, date, customer, total, status) */
+  var ATT={};
+  window.v119AttList=function(k){
+    try{
+      var a=ATT[k]; if(!a) return; var by={}; (FIN.rows||[]).forEach(function(r){ by[r.id]=r; });
+      var rows=a.ids.map(function(id){ return by[id]; }).filter(Boolean).sort(function(x,y){ return String(y.invoice_date||'').localeCompare(String(x.invoice_date||'')); });
+      var h='<div style="font-size:12.5px;color:var(--muted);margin-bottom:8px">'+e(a.title)+' · '+rows.length+'</div><div style="max-height:60vh;overflow:auto"><table data-v119-list="'+e(k)+'" style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="background:#303848;color:#fff">'+
+        ['Invoice','Date','Customer','Total (SAR)','Status'].map(function(t,i){ var ar=['الفاتورة','التاريخ','العميل','الإجمالي (ريال)','الحالة'][i]; return '<th style="padding:6px 8px;text-align:'+(i===3?'end':'start')+'">'+fl(t,ar)+'</th>'; }).join('')+'</tr></thead><tbody>'+
+        rows.map(function(r){ return '<tr style="border-top:1px solid var(--line,#EEF0F3)"><td style="padding:6px 8px;font-weight:700">'+e(r.invoice_no)+'</td><td style="padding:6px 8px;white-space:nowrap">'+e(r.invoice_date||'')+'</td><td style="padding:6px 8px">'+e(r.client_group||r.customer_raw_name||'')+'</td><td style="padding:6px 8px;text-align:end;font-variant-numeric:tabular-nums">'+n0(r.total_incl_vat_sar)+'</td><td style="padding:6px 8px">'+e(r.payments_status||r.integrity_status||'')+'</td></tr>'; }).join('')+'</tbody></table></div>';
+      if(typeof openModal==='function'){ openModal(fl('Needs attention','يحتاج انتباهًا'),h,function(){ return true; }); var sv=document.getElementById('mSave'); if(sv) sv.textContent=fl('Close','إغلاق'); }
+    }catch(err){ if(window.console) console.warn('[119] list',err); }
+  };
   window.v119Basis=function(v){ try{ FIN.p=FIN.p||{}; FIN.p.basis=(v==='created')?'created':'paid'; if(typeof render==='function') render(); }catch(_){} };
 
   /* ---------- 3. the item-name list (Rules tab) ---------- */
@@ -88,7 +101,7 @@
       if(!nm){ say(fl('Type the item name first.','اكتب اسم البند أولًا.')); return false; }
       client().from('money_item_classes').insert({name:nm,class:cl,note:no||null}).select('id').then(function(r){
         var m=refused(r); if(m){ say(/one_live/.test(m)?fl('That item name is already on the list.','اسم البند هذا موجود في القائمة.'):m); return; }
-        try{ closeModal(); }catch(_){} IC.rows=null; icLoad(); try{ if(window.FIN&&typeof finLoad==='function'){ FIN.rows=null; finLoad(); } }catch(_){}
+        try{ closeModal(); }catch(_){} IC.rows=null; icLoad(); try{ if(window.FIN&&typeof window.finRefreshMoney==='function') window.finRefreshMoney(); }catch(_){}
       });
       return false;
     });
@@ -97,7 +110,7 @@
     if(!canEdit()) return;
     var it=(IC.rows||[]).find(function(x){ return x.id===id; }); if(!it) return;
     var go=function(){ client().from('money_item_classes').update({removed_at:new Date().toISOString()}).eq('id',id).select('id').then(function(r){
-      var m=refused(r); if(m){ say(m); return; } IC.rows=null; icLoad(); try{ if(window.FIN&&typeof finLoad==='function'){ FIN.rows=null; finLoad(); } }catch(_){} }); };
+      var m=refused(r); if(m){ say(m); return; } IC.rows=null; icLoad(); try{ if(window.FIN&&typeof window.finRefreshMoney==='function') window.finRefreshMoney(); }catch(_){} }); };
     var q=fl('Remove the item name "','إزالة اسم البند «')+it.name+fl('" from the list? Its lines go back to "not classed". It can be added again.','» من القائمة؟ تعود أسطره إلى «غير مصنّفة». ويمكن إضافته مجددًا.');
     if(typeof window.pfConfirm==='function') window.pfConfirm(q,go,{danger:true});   // D19: the app's own box, Cancel first, never a native one
   };

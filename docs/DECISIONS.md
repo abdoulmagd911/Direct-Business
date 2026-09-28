@@ -67,6 +67,8 @@ permissions, data provenance or how sessions work, read the rules for it here, a
 
 **D23 — With no approved expense, the pass-through lines are a flagged cost estimate** ACTIVE · 2026-09-28. Owner ruling. `money_rows.est_cost_sar`, shown apart from the approved cost; an approved expense replaces it. Names on Finance → Rules. Guard `probe-d1-invoice-import`.
 
+**D24 — Income by service: each invoice line to one service** ACTIVE · 2026-09-28. Lists on Rules. `docs/reference/d24-income-by-service.md`.
+
 **D25 — Cost comes from the raw Payments cost exports** ACTIVE · 2026-09-28. Approved lines only; unknown refs held. `docs/reference/d25-cost-import.md`.
 
 ## Money & finance display
