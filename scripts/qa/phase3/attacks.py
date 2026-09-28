@@ -1697,6 +1697,22 @@ def _(cur):
     ok = got == 'D24 Flights=300,D24 Transport=600' and after == 'D24 Flights=900' and rn and dl and vw and seen == 3
     return (ok, f"split={got} · item override removed → {after} · rename refused={rn} · delete refused={dl} · View cannot add={vw} · View reads {seen}")
 
+@test("D25-01 'Individual (not a company)': Full on Finance marks a name (no role); View cannot; one entry per name however spelled; a name never changes; nothing is deleted; the change is logged")
+def _(cur):
+    as_user(cur, 'u1')
+    x = one(cur, "insert into money_individuals(name) values ('D25 Person Name') returning id")
+    dup, _ = expect_fail(cur, "insert into money_individuals(name) values ('d25 person-name')", None, "money_individuals_one_live")
+    rn, _ = expect_fail(cur, "update money_individuals set name='Other' where id=%s", (x,), "never changes")
+    dl = blocked_or_zero(cur, "delete from money_individuals where id=%s", (x,))[0]
+    q(cur, "reset role")
+    logged = one(cur, "select count(*) from record_history where table_name='money_individuals' and record_id=%s", (str(x),))
+    as_user(cur, 'u5')
+    vw, _ = expect_fail(cur, "insert into money_individuals(name) values ('D25 View try')", None, "row-level security")
+    seen = one(cur, "select count(*) from money_individuals where name like 'D25%%'")
+    q(cur, "reset role")
+    ok = dup and rn and dl and vw and seen == 1 and logged >= 1
+    return (ok, f"same name other spelling refused={dup} · rename refused={rn} · delete refused={dl} · View cannot add={vw} · View reads {seen} · logged={logged}")
+
 @test("D1-08 An OLDER file arriving after a newer one only fills what is empty: the paid amounts and the paid date (which sets the month) are not put back to the unpaid copy's")
 def _(cur):
     as_user(cur, 'u4')
