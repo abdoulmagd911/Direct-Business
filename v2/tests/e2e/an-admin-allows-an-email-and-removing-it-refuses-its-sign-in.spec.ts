@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { logOf, makePerson, sendCode, signIn, sql } from './support/stack';
+import { logOf, mailsTo, makePerson, sendCode, signIn, sql } from './support/stack';
 
 // P3-2 · §4 steps 2 and 5: the admin's allow-list route adds an email (the database row, a confirmed auth user, the
 // link), and that person signs in with a code; removing the email refuses the session at once and bans the auth
@@ -34,9 +34,13 @@ test('an admin allows an email, and removing it refuses its sign-in', async ({ b
   await page.reload();
   await expect(page).toHaveURL(/\/sign-in\?/);
   await expect(page.getByRole('main').getByRole('alert')).toHaveText('This email is not on the list — ask an admin');
+  // The page already says so (the refused session); a new code is asked for and refused too — its log row is the proof.
   await sendCode(page, newcomer.email);
   await expect(page.getByRole('main').getByRole('alert')).toHaveText('This email is not on the list — ask an admin');
-  expect((await logOf(newcomer.email)).slice(-1)).toEqual(['not_listed']);
+  await expect
+    .poll(async () => (await logOf(newcomer.email)).slice(-1), { message: 'the new code is refused' })
+    .toEqual(['not_listed']);
+  expect(await mailsTo(newcomer.email)).toHaveLength(1);
   await adminCtx.close();
   await newcomerCtx.close();
 });
