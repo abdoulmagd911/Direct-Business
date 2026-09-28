@@ -13,7 +13,10 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
 const LIB = fs.readFileSync('/tmp/node_modules/@supabase/supabase-js/dist/umd/supabase.js', 'utf8');
 process.env.MOCK_ROLE = 'operations';
-process.env.MOCK_PAGE_ACCESS = JSON.stringify({ today: 'editor', leads: 'editor', clients: 'editor', ops: 'editor', finance: 'editor', vendors: 'editor', sopsla: 'editor' });
+/* 2026-09-28 (D22): the ROLE no longer decides what the screen offers — the page level does. So this Operations account is
+   given View on Leads and Clients (the grid, as the owner would set it) and Full on Operations; the refusals below follow
+   that level. With Full on Leads the same account would be offered the changes (probe-d22-access-follows-page-level). */
+process.env.MOCK_PAGE_ACCESS = JSON.stringify({ today: 'editor', leads: 'viewer', clients: 'viewer', ops: 'editor', finance: 'editor', vendors: 'editor', sopsla: 'editor' });
 /* the mock applies MOCK_ROLE once, at import time — a hoisted top-level import would run before the lines above */
 const { start } = await import('./mock-supabase.mjs?run=operations');
 const PORT = 9052; const srv = start(PORT); const BASE = 'http://localhost:' + PORT;
@@ -44,7 +47,7 @@ const drive = async () => {
   for (const [name, src] of [['editBusiness', '() => editBusiness()'], ['setLeadStage', '(id) => setLeadStage(id, "Contacted")'], ['logActivity', '(id) => logActivity(id)'], ['convertToClient', '(id) => convertToClient(id)']]) refused[name] = await tryFn(src);
   const request = await tryFn('(id) => newRequestForLead(id)');
   await clear(); await p.waitForTimeout(700);
-  const badge = await p.evaluate(() => ((document.getElementById('v70badge') || {}).textContent || '').trim());
+  const badge = await p.evaluate(() => ((document.querySelector('#view .v107-banner') || {}).textContent || '').trim());
   return { can, refused, request, badge };
 };
 const en = await drive();
@@ -54,12 +57,12 @@ await p.evaluate(() => { if (typeof toggleLang === 'function' && LANG !== 'en') 
 await b.close(); srv.close?.();
 const refusedInWords = (d, ar) => Object.values(d.refused).every((r) => !r.modalOpen && !r.stageChanged && r.box && (ar ? /[؀-ۿ]/.test(r.box) : /can.t change/i.test(r.box)));
 const checks = [
-  ['the screen knows what the database enforces: canDo leads/proposals/activities = false, requests = true, promo = false', en.can.leads === false && en.can.proposals === false && en.can.activities === false && en.can.requests === true && en.can.promo === false],
+  ['the screen follows the page level (D22): canDo leads/proposals/activities = false (View / none), requests = true (Full on Operations), promo = true (Full on Finance)', en.can.leads === false && en.can.proposals === false && en.can.activities === false && en.can.requests === true && en.can.promo === true],
   ['EN: New company, stage change, Log activity and Convert all refuse in words — no editor opens, no stage moves', refusedInWords(en, false)],
   ['AR: the same four refuse in Arabic', refusedInWords(ar, true)],
   ['not a single write to the companies table left the browser', bizWrites === 0],
   ['the request editor still opens for an Operations account (EN and AR)', en.request.modalOpen && !en.request.box && ar.request.modalOpen && !ar.request.box],
-  ['the badge names what the role really covers (requests, suppliers, SOPs) and no longer promises activity logging', /suppliers and SOPs/.test(en.badge) && !/log activity/.test(en.badge) && /المورّدين والإجراءات/.test(ar.badge)],
+  ['the page says it is View only, in the level\'s words, not the role\'s (D22)', /View only/.test(en.badge) && /مشاهدة فقط/.test(ar.badge)],
   ['no JS errors', errors.length === 0],
 ];
 let fail = 0; for (const [n, ok] of checks) { console.log((ok ? 'PASS' : 'FAIL') + ' · ' + n); if (!ok) fail++; }

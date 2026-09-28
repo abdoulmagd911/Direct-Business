@@ -86,7 +86,11 @@
      Read the flags directly rather than through whichever canEdit() won the load order, so this
      holds even if a later layer replaces that function (exactly how a read-only share link came
      to be writable in Finance, fixed the day before this). */
-  function fnMayEdit(){try{ if(window.__isShareView)return false; if(window.__userTier==='viewer')return false; return true; }catch(_){return true;}}
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — Full on the record's page (a client →
+     Clients, else Leads); no answer yet = no */
+  function fnMayEdit(b){try{ if(window.__isShareView)return false; if(typeof window.mayEditPage!=='function')return false;
+    var pg='leads'; if(!b&&typeof openLead!=='undefined'&&openLead&&typeof getLead==='function')b=getLead(openLead); if(b&&b.isClient)pg='clients';
+    return window.mayEditPage(pg)===true; }catch(_){return false;}}
   function overdue(b){return b.nextActionDate&&(new Date(b.nextActionDate+'T23:59:59')<new Date());}
   /* 2026-09-21 (fire #155): "this company has nobody on it" is only true if the people actually
      loaded. When js/72's contacts fetch fails, every company looks contactless and this filter
@@ -389,7 +393,7 @@
     var card=document.createElement('div');card.className='card';card.id='funnelCard';
     card.style.cssText='border:1.5px solid '+(FCOLOR[f.color]||'#5F5E5A')+'55';
     var inner='<h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="color:'+(FCOLOR[f.color]||'#5F5E5A')+'">'+E(fnL(fnTitle(f)+' details',fnTitle(f)+' \u2014 \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644'))+'</span>'+
-      (fnMayEdit()?('<button class="btn ghost sm" onclick="window.__editFunnelDetails(\''+String(b.id).replace(/'/g,"\\'")+'\')">'+fnL('Edit','\u062a\u0639\u062f\u064a\u0644')+'</button>'):'')+'</h3>';
+      (fnMayEdit(b)?('<button class="btn ghost sm" onclick="window.__editFunnelDetails(\''+String(b.id).replace(/'/g,"\\'")+'\')">'+fnL('Edit','\u062a\u0639\u062f\u064a\u0644')+'</button>'):'')+'</h3>';
     (f.field_template||[]).forEach(function(fl){
       var val=det[fl.key];
       if(fnIsMoney(fl)) val=fnMoneyMask(val);

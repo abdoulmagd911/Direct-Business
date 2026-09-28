@@ -24,7 +24,9 @@
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function client(){ try{ if(window.fc){ var c=fc(); if(c) return c; } }catch(_){} return null; }
   function role(){ try{ return window.__userRole||null; }catch(_){ return null; } }
-  var canSee=window.changeLogVisible=function(){ var r=role(); return r==='admin'||r==='manager'; };
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — the log is shown to anyone whose
+     Activity & Audit level is not None (admins are always Full). Not known yet = not shown. */
+  var canSee=window.changeLogVisible=function(){ try{ var lv=(typeof window.pageLevel==='function')?window.pageLevel('activity'):null; return !!lv && lv!=='none'; }catch(_){ return false; } };
 
   var UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   function fieldWord(k){
@@ -86,7 +88,7 @@
     if(ov.style.display==='none'||!ov.style.display){ try{ prevFocus=document.activeElement; }catch(_){ prevFocus=null; } }
     ov.style.display='flex';
     var _ov=ov; ov={ set innerHTML(h){ setInner(_ov,h); } };
-    if(!canSee()){ ov.innerHTML=frame(title,'<div class="empty">'+fl('The change log is shown to admins and managers.','سجل التغييرات يظهر للمسؤولين والمدراء فقط.')+'</div>'); return; }
+    if(!canSee()){ ov.innerHTML=frame(title,'<div class="empty">'+fl('The change log needs View (or more) on Activity & Audit in Team & Access.','سجل التغييرات يحتاج «مشاهدة» (أو أكثر) على «السجل» في «الفريق والصلاحيات».')+'</div>'); return; }
     /* {table, all:true} = every record of that table, the removed ones too (F4, 28 Sep: the Rules log asked only for the
        rules still on screen, so a rule switched off, on and then removed showed its creation and nothing after) */
     targets=(targets||[]).filter(function(t){ return t&&t.table&&(t.all===true||(t.key!=null&&String(t.key)!=='')); });

@@ -925,15 +925,15 @@ function bkFail(msg,err){
 // RLS-silent-write/read shape docs/DECISIONS.md already warns about) — so this is checked
 // directly instead of inferred from an empty result.
 var BK_IS_ADMIN=null;
+/* 2026-09-28 (D22): follows the page level set in Team & Access, not the role. The name is kept; the question is
+   now "may this person SEE Settings' history" — any level but None on Settings (restoring needs Full, js/107).
+   null = the levels are not known yet, and nothing is cached on a null (the next render asks again). */
 function bkCheckAdmin(){
-  var c=bkClient();if(!c)return Promise.resolve(false);
-  return c.auth.getSession().then(function(s){
-    var uid=s&&s.data&&s.data.session&&s.data.session.user&&s.data.session.user.id;
-    if(!uid)return false;
-    return c.from('app_users').select('role').eq('id',uid).maybeSingle().then(function(r){
-      return !!(r&&r.data&&r.data.role==='admin');
-    });
-  }).catch(function(){return false;});
+  try{
+    var lv=(typeof window.pageLevel==='function')?window.pageLevel('settings'):null;
+    if(lv===null||lv===undefined) return Promise.resolve(null);
+    return Promise.resolve(lv!=='none');
+  }catch(_){ return Promise.resolve(null); }
 }
 var BK_CACHE={loaded:false,loading:false,error:null,history:[],tagged:[],historyRestricted:false};
 function bkFetchAll(){
@@ -954,7 +954,7 @@ function bkFetchAll(){
   }).catch(function(e){BK_CACHE.loading=false;BK_CACHE.error=String(e&&e.message||e);bkFail('could not load the backup list',e);return BK_CACHE;});
 }
 function bkFetchAllSigned(c){
-  return (BK_IS_ADMIN===null?bkCheckAdmin().then(function(v){BK_IS_ADMIN=v;return v;}):Promise.resolve(BK_IS_ADMIN)).then(function(isAdmin){
+  return (BK_IS_ADMIN===null?bkCheckAdmin().then(function(v){if(v!==null)BK_IS_ADMIN=v;return !!v;}):Promise.resolve(BK_IS_ADMIN)).then(function(isAdmin){
     var histP=isAdmin
       ? c.from('app_state_history').select('hist_id,saved_at,updated_by').order('hist_id',{ascending:false}).limit(20)
       : Promise.resolve({data:[],error:null});
@@ -1061,7 +1061,7 @@ function v21SettingsCard(){
   if(!BK_CACHE.loaded&&!BK_CACHE.loading&&!BK_CACHE.error)bkFetchAll().then(()=>{if(typeof render==='function')render();});
   const loading=!BK_CACHE.loaded&&!BK_CACHE.error;
   const day=bkDayView();
-  const histLine=BK_CACHE.historyRestricted?'admin-only':(loading?'…':BK_CACHE.history.length+' / 20');
+  const histLine=BK_CACHE.historyRestricted?'needs View on Settings':(loading?'…':BK_CACHE.history.length+' / 20');
   return `<div class="card" id="v21SettingsBackup"><h3>💾 Backup & restore</h3><div class="ch-sub">Stored in Supabase, not this browser — every save auto-snapshots the prior state (kept 20), and tags are unlimited. Visible from any device, any team member.</div>${BK_CACHE.error?`<div class="fact"><span class="k" style="color:#B54708">⚠ ${esc(BK_CACHE.error)}</span></div>`:''}<div class="fact"><span class="k">Incremental snapshots (auto)</span><span class="v">${histLine}</span></div><div class="fact"><span class="k">Daily view</span><span class="v">${loading?'…':day.length+' distinct day(s)'}</span></div><div class="fact"><span class="k">Tagged restore points</span><span class="v">${loading?'…':BK_CACHE.tagged.length}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" onclick="tagCurrentState()">📌 Tag current state</button><button class="btn sm" onclick="exportFullState(false)">⬇ Export JSON</button><label class="btn sm" style="cursor:pointer">⬆ Import JSON<input id="v21impFull" type="file" accept=".json" onchange="if(this.files[0])importFullState(this.files[0],this)" style="display:none"></label><button class="btn sm" onclick="v21OpenRestoreList()">🕓 Browse snapshots</button></div></div>`;
 }
 function v21OpenRestoreList(){
@@ -1070,7 +1070,7 @@ function v21OpenRestoreList(){
     BK_CACHE.tagged.forEach(b=>rows.push(`<div class="fact"><span class="k">📌 ${esc(b.name)}<br><span style="color:var(--muted);font-size:11px">${esc(b.ts)}</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('tag',${JSON.stringify(b.id)});closeModal()">Restore</button> <button class="btn sm danger" onclick="deleteTag(${JSON.stringify(b.id)});v21OpenRestoreList()">✕</button></span></div>`));
     bkDayView().forEach(b=>rows.push(`<div class="fact"><span class="k">📅 ${esc(dayRiyadh(b.saved_at))}<br><span style="color:var(--muted);font-size:11px">${esc(b.updated_by||'')}</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('inc',${JSON.stringify(b.hist_id)});closeModal()">Restore</button></span></div>`));
     BK_CACHE.history.forEach(b=>rows.push(`<div class="fact"><span class="k">⏱ ${esc(fmtRel(new Date(b.saved_at).getTime()))}<br><span style="color:var(--muted);font-size:11px">${esc(b.saved_at)} · ${esc(b.updated_by||'')}</span></span><span class="v"><button class="btn sm" onclick="restoreFromBackup('inc',${JSON.stringify(b.hist_id)});closeModal()">Restore</button></span></div>`));
-    const restrictedNote=BK_CACHE.historyRestricted?'<div class="empty">Incremental snapshots are visible to admins only.</div>':'';
+    const restrictedNote=BK_CACHE.historyRestricted?'<div class="empty">Incremental snapshots need View (or more) on Settings in Team &amp; Access.</div>':'';
     openModal('Browse backup snapshots','<div style="max-height:60vh;overflow-y:auto">'+(rows.join('')||'<div class="empty">No snapshots yet.</div>')+restrictedNote+'</div>',()=>{});
   });
 }

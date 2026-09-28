@@ -42,6 +42,13 @@
   };
 
   function role(){ try{ return window.__userRole || (window.__userTier==='admin'?'admin':window.__userTier==='manager'?'manager':window.__userTier==='viewer'?'viewer':null); }catch(_){ return null; } }
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role. The CAN table above is kept as
+     history only — nothing reads it. Each guarded kind of change belongs to a page, and it is allowed iff the person
+     has Full control on that page (window.mayEditPage, js/52; admins are always Full there). A company's change is
+     allowed here if Leads OR Clients is Full; js/107 then decides by the record itself (a client → Clients). */
+  var PAGES_OF_WHAT={leads:['leads','clients'],activities:['leads','clients'],proposals:['offers'],projects:['projects'],
+    requests:['ops'],finance:['finance'],promo:['finance']};
+  function pageOfWhat(what){ var l=PAGES_OF_WHAT[what]; return l?l[0]:null; }
   function can(what){
     /* A view-only SHARE LINK has no role at all, and "no role yet" used to mean "allow" here
        (the line below, which exists so a real user is never blocked while their role loads).
@@ -52,9 +59,13 @@
        offered the change. A share view is a KNOWN state, not an unknown one, so it is decided
        first and answers no to everything. */
     try{ if(window.__isShareView) return false; }catch(_){}
-    var r=role(); if(!r) return true;              // role not known yet — never block a real user by accident
-    var row=CAN[r]; if(!row) return true;
-    return !!row[what];
+    /* 2026-09-28 (D22): fail CLOSED — an unknown kind of change, or levels not known yet, is a no */
+    var pages=PAGES_OF_WHAT[what]; if(!pages) return false;
+    try{
+      if(typeof window.mayEditPage!=='function') return false;
+      for(var i=0;i<pages.length;i++){ if(window.mayEditPage(pages[i])) return true; }
+    }catch(_){}
+    return false;
   }
   try{ window.canDo=can; }catch(_){}
 
@@ -69,13 +80,15 @@
           fl('Sign in to the workspace if you need to edit.','سجّل الدخول إلى مساحة العمل إذا احتجت التعديل.'));
       return;
     } }catch(_){}
-    var r=role()||'', lbl=fl(ROLE_EN[r]||r,ROLE_AR[r]||r);
-    var whatEn={leads:'companies (leads and clients)',proposals:'proposals',requests:'requests',activities:'activity',finance:'finance',promo:'promo codes'}[what]||what;
-    var whatAr={leads:'الشركات (العملاء المحتملون والعملاء)',proposals:'العروض',requests:'الطلبات',activities:'النشاط',finance:'المالية',promo:'أكواد الخصم'}[what]||what;
-    var extra=INSTEAD[r]?fl(INSTEAD[r][0],INSTEAD[r][1]):'';
+    /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — the sentence names the page and
+       the level ("You have View on Finance."), never the role */
+    var whatEn={leads:'companies (leads and clients)',proposals:'proposals',projects:'projects',requests:'requests',activities:'activity',finance:'finance',promo:'promo codes'}[what]||what;
+    var whatAr={leads:'الشركات (العملاء المحتملون والعملاء)',proposals:'العروض',projects:'المشاريع',requests:'الطلبات',activities:'النشاط',finance:'المالية',promo:'أكواد الخصم'}[what]||what;
+    var pg=pageOfWhat(what), line='';
+    try{ line=(pg && typeof window.pageLevelSentence==='function') ? window.pageLevelSentence(pg) : ''; }catch(_){}
     box(fl('You can’t change '+whatEn,'لا يمكنك تعديل '+whatAr),
-        fl('Your access level is “'+lbl+'”. '+extra,'مستوى صلاحيتك «'+lbl+'». '+extra),
-        fl('Ask an admin if you need this changed.','اطلب من المسؤول تغيير صلاحيتك إذا احتجت ذلك.'));
+        line+' '+fl('Changing it needs Full control on that page.','تعديله يحتاج «تحكم كامل» على تلك الصفحة.'),
+        fl('Ask an admin or your manager to change your level in Team & Access.','اطلب من المسؤول أو مديرك تغيير مستواك في «الفريق والصلاحيات».'));
   }
   try{ window.__v70box=function(a,b,c){ box(a,b,c); }; }catch(_){}
   function box(title,line1,line2,danger){
@@ -127,7 +140,7 @@
      A guarded action whose page the person cannot open is now refused before it writes.
      Checked at CALL time, not wrap time: myAllowedPages lives in js/52, which loads after
      this file, and the role/matrix arrive later still. An unknown answer never blocks. */
-  var PAGE_OF={proposals:'offers',leads:'leads',requests:'ops',finance:'finance'};
+  var PAGE_OF={proposals:'offers',projects:'projects',leads:'leads',requests:'ops',finance:'finance'};
   function mayOpen(what){
     try{
       var pg=PAGE_OF[what]; if(!pg) return true;
@@ -148,10 +161,13 @@
      these two and hands the refusal back here — one box, one wording, whichever layer catches it. */
   try{ window.__v73Can=can; window.__v73Refuse=refuse; }catch(_){}
 
+  var OPENS_RECORD={editRequest:1, editBusiness:1};
   function guardFn(name,what){
     try{
       var orig=window[name]; if(typeof orig!=='function'||orig.__v70)return;
-      var wrapped=function(){ if(!can(what)){ refuse(what); return; } if(!mayOpen(what)){ refusePage(); return; } return orig.apply(this,arguments); };
+      /* 2026-09-28 (D22): opening an EXISTING record (an id given) only shows it — js/107 draws it read-only on View —
+         so it is not refused here; creating (no id) and every change still is */
+      var wrapped=function(){ if(!can(what)){ if(OPENS_RECORD[name] && arguments[0] && !window.__isShareView) return orig.apply(this,arguments); refuse(what); return; } if(!mayOpen(what)){ refusePage(); return; } return orig.apply(this,arguments); };
       wrapped.__v70=1; wrapped.__orig=orig; window[name]=wrapped;
     }catch(_){}
   }
@@ -169,14 +185,14 @@
        could move a request a column along and see it move (the database refused it later, so
        the screen lied until reload). */
     ['advanceReq','newRequestForLead'].forEach(function(f){ guardFn(f,'requests'); });
-    ['v25NewProject','o_promoteProject'].forEach(function(f){ guardFn(f,'proposals'); });
+    ['v25NewProject','o_promoteProject'].forEach(function(f){ guardFn(f,'projects'); });   /* D22: the Projects page's level */
     ['v34AddProfile'].forEach(function(f){ guardFn(f,'leads'); });
     try{
       var od=window.dropOn;
       if(typeof od==='function'&&!od.__v70){
         var wd=function(e,kind,key,el){
           var what=kind==='req'?'requests':kind==='lead'?'leads':null;
-          if(what&&!can(what)){ try{ if(e&&e.preventDefault)e.preventDefault(); }catch(_){} if(el&&el.classList)el.classList.remove('drop'); try{ _drag=null; }catch(_){} refuse(what); return; }
+          if(what&&!can(what)){   /* 2026-09-28 (D22): the page level, through can() */ try{ if(e&&e.preventDefault)e.preventDefault(); }catch(_){} if(el&&el.classList)el.classList.remove('drop'); try{ _drag=null; }catch(_){} refuse(what); return; }
           return od.apply(this,arguments);
         };
         wd.__v70=1; wd.__orig=od; window.dropOn=wd;
@@ -238,30 +254,34 @@
     }catch(_){}
   }
 
-  /* ---- the Settings page is for admins only, however you get there ------------------ */
-  function gateSettings(){
-    try{
-      if(typeof current==='undefined'||current!=='settings')return;
-      var r=role(); if(!r||r==='admin'||r==='manager')return;
-      current='today';
-      try{ if(typeof render==='function') render(); }catch(_){}
-      box(fl('Settings is for admins','الإعدادات للمسؤولين فقط'),
-          fl('That page holds company setup, backups and team tools, so it is kept to admin accounts.','تحتوي تلك الصفحة على إعدادات الشركة والنسخ الاحتياطي وأدوات الفريق، لذلك تقتصر على حسابات المسؤولين.'),
-          fl('Ask an admin if you need something changed there.','اطلب من المسؤول إن احتجت تعديل شيء هناك.'));
-    }catch(_){}
-  }
+  /* ---- the Settings page ------------------------------------------------------------ */
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role. This used to bounce everyone but
+     admins and managers off Settings. The page level decides now: js/52/js/64 move a person with No access off it,
+     View opens it locked (js/107), Full opens it to change. The people-management cards on it keep their own role
+     checks (managing people is the one thing the role still decides). Kept as a no-op so callers stay valid. */
+  function gateSettings(){}
 
   /* ---- a quiet line on screen so a read-only person knows why buttons are gone ------ */
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role. The line used to describe the ROLE
+     ("Read-only account", "Operations account"); it now names the level on the page on screen, and only when that
+     level is less than Full (js/107's own banner covers the pages it locks, so this shows only where that is absent). */
   function badge(){
     try{
-      var r=role(); if(r!=='viewer'&&r!=='operations')return;
-      if(document.getElementById('v70badge'))return;
-      var v=document.getElementById('view'); if(!v)return;
-      var d=document.createElement('div'); d.id='v70badge';
+      var old=document.getElementById('v70badge');
+      var pg=(typeof current!=='undefined')?current:null;
+      var lv=null; try{ lv=(pg&&window.pageLevel)?window.pageLevel(pg):null; }catch(_){}
+      var v=document.getElementById('view');
+      var own=[]; try{ own=(window.__v107Probe&&window.__v107Probe.covered)||[]; }catch(_){}
+      /* pages that already say it in their own words: js/107's banner, the Generator (js/98), Settings' lock, Tasks */
+      var saysItself=own.indexOf(pg)>=0 || ['today','documents','settings','tasks'].indexOf(pg)>=0;
+      var want=!!(v && pg && !saysItself && lv && lv!=='full' && lv!=='none');
+      if(!want){ if(old) old.remove(); return; }
+      if(old && old.parentNode===v && old.getAttribute('data-page')===pg) return;
+      if(old) old.remove();
+      var d=document.createElement('div'); d.id='v70badge'; d.setAttribute('data-page',pg);
       d.style.cssText='background:#EEF2FF;border:1px solid #D6DCFF;color:#3A4A8A;border-radius:10px;padding:8px 12px;font-size:12.5px;margin-bottom:12px';
-      d.textContent=(r==='viewer')
-        ? fl('Read-only account — you can open and read everything, but nothing you do is saved.','حساب للقراءة فقط — يمكنك فتح كل شيء وقراءته، لكن لا يُحفظ أي تعديل.')
-        : fl('Operations account — you work requests, suppliers and SOPs; companies, their activity and proposals are edited by the sales team.','حساب العمليات — تعمل على الطلبات والمورّدين والإجراءات؛ الشركات ونشاطها والعروض يعدّلها فريق المبيعات.');
+      d.textContent=(typeof window.pageLevelSentence==='function'?window.pageLevelSentence(pg):'')+' '+
+        fl('You can look; changes need Full control.','يمكنك المشاهدة؛ التعديل يحتاج «تحكم كامل».');
       v.insertBefore(d, v.firstChild);
     }catch(_){}
   }

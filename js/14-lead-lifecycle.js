@@ -18,13 +18,15 @@
 /* ===== v40 layer: full lead lifecycle — quick touches, comments, on-hold, client handover ===== */
 (function(){try{
 function isAr(){try{return (typeof LANG!=='undefined'&&LANG==='ar')||document.documentElement.getAttribute('data-lang')==='ar';}catch(_){return false;}}
-function canEdit(){return !window.__isShareView && window.__userTier!=='viewer';}
+/* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — Full on the record's page (a client →
+   Clients, else Leads); no answer yet = no */
+function canEdit(b){try{ if(window.__isShareView)return false; if(typeof window.mayEditPage!=='function')return false; var pg='leads'; if(!b&&typeof openLead!=='undefined'&&openLead&&typeof getLead==='function')b=getLead(openLead); if(b&&b.isClient)pg='clients'; return window.mayEditPage(pg)===true; }catch(_){return false;}}
 function esc4(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function meName(){try{return (typeof me==='function'?me():'')||'Team';}catch(_){return 'Team';}}
 
 /* ---------- 1. Quick-touch logging: one tap per channel, with due date ---------- */
 window.v40Touch=function(id,type){
-  var b=getLead(id); if(!b||!canEdit())return;
+  var b=getLead(id); if(!b||!canEdit(b))return;
   var ar=isAr();
   openModal((ar?'تسجيل ':'Log ')+type+' — '+esc4(b.name),
     '<div class="field"><label>'+(ar?'ماذا حدث؟':'What happened?')+'</label><textarea id="t_note" rows="3"></textarea></div>'+
@@ -42,7 +44,7 @@ window.v40Touch=function(id,type){
 
 /* ---------- 2. Comments thread ---------- */
 window.v40AddComment=function(id){
-  var b=getLead(id); if(!b||!canEdit())return;
+  var b=getLead(id); if(!b||!canEdit(b))return;
   var inp=document.getElementById('v40cmt'); if(!inp||!inp.value.trim())return;
   b.comments=b.comments||[];
   b.comments.push({ts:Date.now(),by:meName(),text:inp.value.trim()});
@@ -51,7 +53,7 @@ window.v40AddComment=function(id){
 
 /* ---------- 3. On hold / resume ---------- */
 window.v40Hold=function(id){
-  var b=getLead(id); if(!b||!canEdit())return;
+  var b=getLead(id); if(!b||!canEdit(b))return;
   var ar=isAr();
   if(b.onHold){
     askInPage(ar?'استئناف العمل على هذه الفرصة؟':'Resume working this lead?',function(){

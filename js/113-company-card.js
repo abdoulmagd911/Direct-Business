@@ -5,7 +5,7 @@
      2. its discount codes — optional, B2C website codes linked to the company; the codes themselves are never written
         here and a link never counts in the company's B2B finance;
      3. its files — CR, VAT certificate, agreement, IBAN letter, business cards — in the private store: added, removed,
-        never replaced or moved; IBAN letters and agreements open for managers and admins only (the money rule of
+        never replaced or moved; IBAN letters and agreements open with Full control on Finance (D22, 28 Sep; before: managers and admins — the money rule of
         2026-09-25), which the database enforces — this screen only says so.
    Everyone with Full control of Clients may change it (D7); View only looks. Every change is in record_history.
    Database: scripts/sql/phase3-r4-company-card.sql. Guards: scripts/qa/phase3 R4-01..08 and probe-company-card.       */
@@ -14,7 +14,8 @@
   var fl=function(en,ar){ return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en; };
   var e=function(s){ return (typeof esc==='function')?esc(s):String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
   var client=function(){ try{ return window.fc?fc():null; }catch(_){ return null; } };
-  var canMerge=function(){ try{ return !window.__isShareView&&(window.__userRole==='admin'||window.__userRole==='manager')&&((typeof window.finCanWrite==='function'&&!!window.finCanWrite())||(typeof window.mayEditPage==='function'&&window.mayEditPage('clients')===true)); }catch(_){ return false; } };
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — Full on Finance OR Full on Clients */
+  var canMerge=function(){ try{ return !window.__isShareView&&((typeof window.mayEditPage==='function'&&window.mayEditPage('finance')===true)||(typeof window.mayEditPage==='function'&&window.mayEditPage('clients')===true)); }catch(_){ return false; } };
   var canWrite=function(){ try{ return typeof window.mayEditPage==='function' && window.mayEditPage('clients')===true; }catch(_){ return false; } };
   var TYPES={prepaid:['Prepaid','مسبق الدفع'],postpaid:['Postpaid','آجل الدفع'],tender:['Tender','مناقصة']};
   var DOCS=[['cr','Commercial registration (CR)','السجل التجاري'],['vat','VAT certificate','شهادة ضريبة القيمة المضافة'],
@@ -73,8 +74,8 @@
     if(!st||!st.loaded){ el.querySelector('.v113-body').innerHTML='<div class="muted" style="font-size:12.5px">'+fl('Loading the company card…','جارٍ تحميل بطاقة الشركة…')+'</div>';
       load(biz,function(){ var now=document.querySelector('.v113-card[data-biz="'+biz+'"]'); if(now) draw(now); }); return; }
     var w=canWrite(), h='';
-    /* E (2026-09-27): client IDs and discount codes are the company's MERGES (Finance → Rules shows the same) — only admins
-       and managers change them, and the database enforces it; files keep the Clients-page rule. */
+    /* E (2026-09-27): client IDs and discount codes are the company's MERGES (Finance → Rules shows the same); since D22
+       (28 Sep) anyone with Full on Finance or Full on Clients changes them; files keep the Clients-page rule. */
     var wm=canMerge();
     /* exclusion beats merge — the card says so when a rule catches this company's IDs, codes or VAT/CR number */
     try{ if(window.MR&&window.MR.rules==null&&typeof window.moneyRulesLoad==='function') window.moneyRulesLoad(); }catch(_){}
@@ -121,11 +122,12 @@
           return '<span class="v113-file"><a href="#" onclick="v113Open(\''+e(x.id)+'\',\''+e(biz)+'\');return false">'+e(x.title||x.file_name)+'</a>'+
             (x.valid_to?' <span class="muted"'+(exp?' style="color:#B42318"':'')+'>'+(exp?fl('expired ','انتهى '):fl('valid to ','ساري حتى '))+e(x.valid_to)+'</span>':'')+
             (w?' <button class="btn ghost sm v113-remove" onclick="v113Remove(\''+e(x.id)+'\',\''+e(biz)+'\')">'+fl('Remove','إزالة')+'</button>':'')+'</span>'; }).join(' ');
-      else if(n) h+='<span class="muted v113-locked">🔒 '+fl('On file','محفوظ')+' ('+n+') — '+fl('managers and admins only','للمديرين والمسؤولين فقط')+'</span>';
+      /* 2026-09-28 (D22): the database answers who may open IBAN letters and agreements — Full on Finance, not the role */
+      else if(n) h+='<span class="muted v113-locked">🔒 '+fl('On file','محفوظ')+' ('+n+') — '+fl('needs Full control on Finance','يحتاج «تحكم كامل» على «المالية»')+'</span>';
       else h+='<span class="v113-missing">'+fl('Missing','غير موجود')+'</span>';
       h+='</div>'; });
     if(w) h+='<button class="btn ghost sm v113-upload" onclick="v113Upload(\''+e(biz)+'\')">'+fl('+ Add a file','+ إضافة ملف')+'</button>'+
-             '<div class="muted" style="font-size:11.5px;margin-top:4px">'+fl('Files are added and removed, never replaced. IBAN letters and agreements open for managers and admins only.','الملفات تُضاف وتُزال ولا تُستبدل. خطاب الآيبان والاتفاقية يفتحهما المديرون والمسؤولون فقط.')+'</div>';
+             '<div class="muted" style="font-size:11.5px;margin-top:4px">'+fl('Files are added and removed, never replaced. IBAN letters and agreements open with Full control on Finance.','الملفات تُضاف وتُزال ولا تُستبدل. خطاب الآيبان والاتفاقية يُفتحان لمن لديه «تحكم كامل» على «المالية».')+'</div>';
     h+='</div>';
     el.querySelector('.v113-body').innerHTML=h;
   }
@@ -191,7 +193,7 @@
       '<div class="field"><label>'+fl('File (PDF or image, up to 10 MB)','الملف (PDF أو صورة، حتى 10 ميغابايت)')+'</label><input id="v113_file" type="file" accept=".pdf,image/*"></div>'+
       '<div class="grid2"><div class="field"><label>'+fl('Name on the card (optional)','الاسم في البطاقة (اختياري)')+'</label><input id="v113_title"></div>'+
       '<div class="field"><label>'+fl('Valid until (optional)','ساري حتى (اختياري)')+'</label><input id="v113_valid" type="date"></div></div>'+
-      '<div class="ch-sub">'+fl('🔒 IBAN letters and agreements open for managers and admins only — you can add one, and it will then show as "on file".','🔒 خطاب الآيبان والاتفاقية يفتحهما المديرون والمسؤولون فقط — يمكنك إضافة أحدهما، وسيظهر بعدها "محفوظ".')+'</div>',
+      '<div class="ch-sub">'+fl('🔒 IBAN letters and agreements open with Full control on Finance — you can add one, and it will then show as "on file".','🔒 خطاب الآيبان والاتفاقية يُفتحان لمن لديه «تحكم كامل» على «المالية» — يمكنك إضافة أحدهما، وسيظهر عندها «محفوظ».')+'</div>',
       function(){
         var f=(document.getElementById('v113_file')||{}).files; f=f&&f[0];
         if(!f){ alert(fl('Choose a file.','اختر ملفًا.')); return false; }

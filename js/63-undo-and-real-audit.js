@@ -103,6 +103,9 @@
      computed here — so a stale tab can't offer an undo that the database will refuse anyway
      once clicked, and can't offer one that quietly turns out to have expired mid-click either. */
   window.undoRecordChange=function(historyId,onDone){
+    /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — undo needs Full on Activity & Audit */
+    try{ if(typeof window.mayEditPage==='function'&&!window.mayEditPage('activity')){
+      showResult((typeof window.pageLevelSentence==='function'?window.pageLevelSentence('activity')+' ':'')+fl('Undo needs Full control on Activity & Audit.','التراجع يحتاج «تحكم كامل» على «السجل».')); return; } }catch(_){}
     var c=client(); if(!c||!c.rpc){ showResult(fl('Not connected — try again in a moment.','غير متصل — حاول مرة أخرى بعد لحظة.')); return; }
     var go=function(){ c.rpc('undo_change',{p_id:historyId}).then(function(r){
       if(r&&r.error){ showResult(r.error.message||String(r.error)); return; }
@@ -287,6 +290,9 @@
     var undoable = row.action!=='create' && !row.undone_at && KNOWN_TABLES[row.table_name] && row.before_row;
     var btn;
     if(row.undone_at) btn='<span class="tag" style="background:#EEF0F5;color:#5b6178">'+fl('Undone','تم التراجع')+'</span>';
+    /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — Undo is offered only with Full
+       control on Activity & Audit; on View the line is read, not reversed */
+    else if(undoable&&withinWindow&&!(typeof window.mayEditPage==='function'&&window.mayEditPage('activity'))) btn='';
     else if(undoable&&withinWindow) btn='<button class="btn sm" onclick="undoRecordChange('+row.id+',window.histRefresh)">'+fl('Undo','تراجع')+'</button>';
     else if(undoable) btn='<span data-undo-expired="1" style="font-size:11px;color:var(--muted)" title="'+fl('Undo works for 24 hours after a change; after that an admin restores it in the database.','يعمل التراجع لمدة 24 ساعة بعد التغيير؛ بعدها يستعيده مسؤول من قاعدة البيانات.')+'">'+fl('past the 24-hour undo window','انقضت مهلة التراجع (24 ساعة)')+'</span>';
     else btn='';
@@ -312,10 +318,12 @@
   window.renderActivity=function(v){
     /* 2026-09-27 (owner decision 2): the log is for admins and managers only — the database gives anyone else no rows,
        so say that plainly instead of an empty page that reads "nothing has changed" */
-    try{ var rl=window.__userRole; if(window.__roleKnown===true&&rl&&rl!=='admin'&&rl!=='manager'){
+    /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — the page shows its log to anyone
+       whose Activity & Audit level is not None (js/64 moves a None away before this draws; this is the second wall) */
+    try{ var alv=(typeof window.pageLevel==='function')?window.pageLevel('activity'):null; if(window.__roleKnown===true&&alv==='none'){
       v.innerHTML='<div class="card" data-v63-log-closed="1"><h3>'+fl('Activity & Audit','النشاط والتدقيق')+'</h3><div class="empty">'+
-        fl('The change log is shown to admins and managers. Changes made to your own tasks and companies are shown to you on Today.',
-           'سجل التغييرات يظهر للمسؤولين والمدراء. أما التغييرات على مهامك وشركاتك فتظهر لك في صفحة اليوم.')+'</div></div>';
+        fl('The change log needs View (or more) on Activity & Audit in Team & Access. Changes made to your own tasks and companies are shown to you on Today.',
+           'سجل التغييرات يحتاج «مشاهدة» (أو أكثر) على «السجل» في «الفريق والصلاحيات». أما التغييرات على مهامك وشركاتك فتظهر لك في صفحة اليوم.')+'</div></div>';
       return; } }catch(_){}
     if(HIST.rows==null){ histLoad(function(){ if(typeof render==='function')render(); }); }
     var rows=HIST.rows||[];
@@ -423,8 +431,9 @@
         var view=document.getElementById('view'); if(!view)return;
         var head=view.querySelector('.detail-head'); if(!head)return;
         if(view.querySelector('.v63-record-hist'))return; // already injected this render
-        /* the log is for admins and managers (owner, 27 Sep) — anyone else would get an empty card that reads
-           "No logged changes yet", which is false; so it is not drawn for them */
+        /* the log is for those who may see Activity & Audit — anyone else would get an empty card that reads
+           "No logged changes yet", which is false; so it is not drawn for them.
+           2026-09-28 (D22): follows the page level set in Team & Access, not the role (changeLogVisible, js/115) */
         if(typeof window.changeLogVisible==='function'&&window.__roleKnown===true&&!window.changeLogVisible())return;
         var biz=(typeof getLead==='function')?getLead(openLead):null; if(!biz)return;
         var bizUuid=(window.__bizUuid?window.__bizUuid(biz.id):biz.id);

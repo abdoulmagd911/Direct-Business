@@ -55,7 +55,15 @@
      Removing follows the access model signed off at go-live, where employees edit Finance
      as well as Leads and Clients (js/52-v76). Nothing is destroyed by it: the row is hidden,
      kept in history, and the audit log records who hid it. */
-  function canAdd(){ try{ return !window.__isShareView && !!window.__userTier; }catch(_){ return false; } }
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — adding and attaching need Full on
+     Finance; a person on View sees the list and no Add/attach form */
+  function canAdd(){ try{ return !window.__isShareView && typeof window.mayEditPage==='function' && window.mayEditPage('finance')===true; }catch(_){ return false; } }
+  function refuseAdd(){
+    var m=(typeof window.pageLevelSentence==='function'?window.pageLevelSentence('finance')+' ':'')+
+      fl('Adding or attaching needs Full control on Finance — nothing was saved.','الإضافة أو الإرفاق يحتاج «تحكم كامل» على «المالية» — لم يُحفظ شيء.');
+    try{ if(typeof toast==='function'){ toast(m,'err'); return; } }catch(_){}
+    try{ if(window.__v70box){ window.__v70box(fl('View only','مشاهدة فقط'),m,''); return; } }catch(_){}
+  }
   function canRemove(){ try{return window.canFinEdit?canFinEdit():false;}catch(_){return false;} }
   function client(){ try{return window.fc?fc():null;}catch(_){return null;} }
   function meNow(){ try{ return (window.__userName||(window.meName?meName():'')||''); }catch(_){ return ''; } }
@@ -125,6 +133,7 @@
   }
 
   window.expAttach=function(id){try{
+    if(!canAdd()){ refuseAdd(); return; }   /* D22 */
     var row=(EXP.rows||[]).find(function(x){return x.id===id;}); if(!row)return;
     var inp=document.createElement('input'); inp.type='file';
     inp.accept='.pdf,.png,.jpg,.jpeg,.webp,.docx,.xlsx';
@@ -187,6 +196,7 @@
   }catch(e){console.warn('[exp] csv',e);}};
 
   window.expSave=function(){try{
+    if(!canAdd()){ refuseAdd(); return; }   /* D22 */
     var g=function(id){var e=document.getElementById(id);return e?e.value:'';};
     var row={
       expense_date:g('xp_date'), description:g('xp_desc').trim(),

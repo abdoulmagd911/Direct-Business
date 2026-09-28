@@ -64,7 +64,9 @@ function finExactUnder(val){
   return '<div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:1px">'+full+' SAR</div>';
 }
 function moneyS(n){n=Number(n)||0;if(Math.abs(n)>=1e6)return (n/1e6).toFixed(2)+'M';if(Math.abs(n)>=1e3)return (n/1e3).toFixed(1)+'K';return n.toFixed(0);}
-function canFinEdit(){return !window.__isShareView && (window.__userTier==='admin'||window.__userTier==='manager');}
+/* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — Full on Finance (admins are always Full,
+   through mayEditPage). Not known yet = no (fail closed). js/52 still replaces this at runtime with the same answer. */
+function canFinEdit(){ try{ return !window.__isShareView && typeof window.mayEditPage==='function' && window.mayEditPage('finance')===true; }catch(_){ return false; } }
 /* 2026-09-02 (overnight cycle, scripts/qa/probe-permissions-attacks.mjs) — js/52's access model
    REPLACES window.canFinEdit with a wrapper that returns true outright for an admin, and that
    wrapper dropped the `!window.__isShareView` half of the rule above. A read-only share link
@@ -122,6 +124,8 @@ var FIN_BLOCK_ACCESS='access', FIN_BLOCK_SHARE='share', FIN_BLOCK_TIER='tier', F
    something the person can act on. Letting an unknown tier through would be widening a write guard
    to tidy up a message, which is not a trade this lane makes. */
 function finTierKnown(){
+  /* 2026-09-28 (D22): the page level decides, so "known" means the Finance level has arrived too */
+  try{ if(typeof window.pageLevel==='function' && window.pageLevel('finance')===null) return false; }catch(_){}
   try{ if(window.__userTier) return true; }catch(_){}        /* any tier at all is an answer - the test js/10, js/45 and js/57 already use */
   try{ if(window.__roleKnown===true) return true; }catch(_){} /* settled, per js/02, even if the tier arrived by another route */
   return false;
@@ -155,8 +159,8 @@ function finBlockMsg(why){
   if(why===FIN_BLOCK_ACCESS)
     return ar?'\u0644\u0645 \u062a\u0639\u062f \u0635\u0641\u062d\u0629 \u0627\u0644\u0645\u0627\u0644\u064a\u0629 \u0645\u062a\u0627\u062d\u0629 \u0644\u0647\u0630\u0647 \u0627\u0644\u062c\u0644\u0633\u0629\u060c \u0641\u0644\u0645 \u064a\u064f\u0646\u0641\u0651\u0630 \u0647\u0630\u0627 \u0627\u0644\u062a\u063a\u064a\u064a\u0631 \u0648\u0644\u0645 \u064a\u062a\u063a\u064a\u0651\u0631 \u0634\u064a\u0621 \u0641\u064a \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a. \u0635\u0644\u0627\u062d\u064a\u0627\u062a \u062f\u062e\u0648\u0644\u0643 \u0644\u0645 \u062a\u0639\u062f \u062a\u0634\u0645\u0644 \u0627\u0644\u0645\u0627\u0644\u064a\u0629 - \u0627\u0637\u0644\u0628 \u0625\u0639\u0627\u062f\u062a\u0647\u0627 \u062b\u0645 \u0623\u0639\u062f \u0641\u062a\u062d \u0627\u0644\u0635\u0641\u062d\u0629.'
             :'The Finance page is no longer open to this session, so the change was not made and nothing in the data changed. Your access no longer includes Finance - ask for it back, then reopen the page.';
-  return ar?'\u062a\u0639\u062f\u064a\u0644 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0645\u0627\u0644\u064a\u0629 \u0645\u062a\u0627\u062d \u0644\u0644\u0645\u062f\u0631\u0627\u0621 \u0648\u0627\u0644\u0645\u0633\u0624\u0648\u0644\u064a\u0646 \u0641\u0642\u0637\u060c \u0641\u0644\u0645 \u064a\u064f\u0646\u0641\u0651\u0630 \u0647\u0630\u0627 \u0627\u0644\u062a\u063a\u064a\u064a\u0631 \u0648\u0644\u0645 \u064a\u062a\u063a\u064a\u0651\u0631 \u0634\u064a\u0621 \u0641\u064a \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a.'
-          :'Changing Finance data is limited to admins and managers, so the change was not made and nothing in the data changed.';
+  return ar?'\u062a\u0639\u062f\u064a\u0644 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0645\u0627\u0644\u064a\u0629 \u064a\u062d\u062a\u0627\u062c \u00ab\u062a\u062d\u0643\u0645 \u0643\u0627\u0645\u0644\u00bb \u0639\u0644\u0649 \u0635\u0641\u062d\u0629 \u0627\u0644\u0645\u0627\u0644\u064a\u0629 \u0641\u064a \u00ab\u0627\u0644\u0641\u0631\u064a\u0642 \u0648\u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0627\u062a\u00bb\u060c \u0641\u0644\u0645 \u064a\u064f\u0646\u0641\u0651\u0630 \u0647\u0630\u0627 \u0627\u0644\u062a\u063a\u064a\u064a\u0631 \u0648\u0644\u0645 \u064a\u062a\u063a\u064a\u0651\u0631 \u0634\u064a\u0621 \u0641\u064a \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a.'
+          :'Changing Finance data needs Full control on the Finance page (Team & Access), so the change was not made and nothing in the data changed.' /* 2026-09-28 (D22): the page level, not the role */;
 }
 function finCanWrite(){ return finWriteBlock()===''; }
 /* Ask, and SAY SO when the answer is no. Returns true when the caller must stop, so a caller reads

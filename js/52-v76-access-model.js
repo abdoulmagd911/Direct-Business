@@ -44,7 +44,12 @@
        treated as "no restrictions". On a slow first load, or the moment you switch accounts
        in the same tab, an employee saw Settings and the full sidebar for a second or two.
        Holding to the floor costs an admin a brief flicker; the other way round leaks. */
-    if(!known()) return PAGES_EMPLOYEE;
+    /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role. Until the person's levels are
+       known, only Today opens (fail closed); gate() remembers a page asked for by address and restorePending() puts
+       the person back on it the moment the levels allow it. */
+    /* a view-only share link has no person and no levels; its pages are the share's own question (js/10), unchanged */
+    try{ if(window.__isShareView) return PAGES_EMPLOYEE; }catch(_){}
+    if(!known()) return ['today'];
     var r=role();
     if(r==='admin') return null;           // everything — admins are outside the matrix
     /* Since 2026-08-17 access is set per person, per page, in Team & Access. When that matrix
@@ -69,9 +74,26 @@
         if(pages.length) return pages;
       }
     }catch(_){}
-    if(r==='manager') return PAGES_MANAGER;
-    return PAGES_EMPLOYEE;
+    /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role. There is no role list to fall
+       back on any more: if the levels have not arrived, only Today opens, and after 20 s noAccessNote() says so. */
+    return ['today'];
   }
+  try{ window.__v76RoleFloors={manager:PAGES_MANAGER,employee:PAGES_EMPLOYEE}; }catch(_){}   /* history only — nothing decides by them */
+  /* the page and the level in words — "You have View on Finance." — for every refusal (js/49, js/16, this file) */
+  function pageName(page){
+    try{ var P=window.PAGES||[]; for(var i=0;i<P.length;i++){ if(P[i][0]===page) return fl(P[i][1],P[i][2]); } }catch(_){}
+    return page;
+  }
+  var LEVEL_WORDS={none:['No access','لا وصول'],view:['View','مشاهدة'],own:['Own work','عمله فقط'],full:['Full control','تحكم كامل']};
+  function levelSentence(page){
+    var lv=null; try{ lv=window.pageLevel?window.pageLevel(page):null; }catch(_){}
+    var pn=pageName(page);
+    if(!lv) return fl('Your access to '+pn+' has not been read yet — reload the page.','لم تُقرأ صلاحيتك على «'+pn+'» بعد — أعد تحميل الصفحة.');
+    if(lv==='none') return fl('Your access (Team & Access) does not include '+pn+'.','صلاحيتك في «الفريق والصلاحيات» لا تشمل «'+pn+'».');
+    var w=LEVEL_WORDS[lv]||[lv,lv];
+    return fl('You have '+w[0]+' on '+pn+'.','لديك «'+w[1]+'» على «'+pn+'».');
+  }
+  try{ window.pageLevelSentence=levelSentence; window.pageNameOf=pageName; }catch(_){}
   /* This person's level on a page — 'none' | 'view' | 'own' | 'full' — as the DATABASE answered it
      (page_level(), through my_page_levels(); js/56 loads it). null = not known yet. The screen keeps
      no rule of its own about levels: it asks this (M57). */
@@ -223,11 +245,12 @@
       var now=Date.now();
       if(now-lastTold<4000) return;           // don't stack messages
       lastTold=now;
-      var r=role();
-      var msg=(r==='manager')
-        ? fl('That page is kept to admin accounts.','تلك الصفحة مقتصرة على حسابات المسؤولين.')
-        : fl('Your account covers Leads, Clients and Finance. That page is not part of it.','حسابك يشمل العملاء المحتملين والعملاء والمالية. تلك الصفحة ليست ضمنه.');
-      if(window.__v70box) window.__v70box(fl('Not part of your access','خارج نطاق صلاحيتك'), msg, fl('Ask an admin if you need it.','اطلب من المسؤول إن احتجتها.'));
+      /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — the sentence names the page and
+         the level this person has on it, never their role */
+      var msg=(ROLE_PAGES[was])
+        ? fl('That page is kept to admins and managers — it manages people.','تلك الصفحة للمسؤولين والمدراء — فهي لإدارة الأشخاص.')
+        : levelSentence(was);
+      if(window.__v70box) window.__v70box(fl('Not part of your access','خارج نطاق صلاحيتك'), msg, fl('Ask an admin or your manager to change your level in Team & Access.','اطلب من المسؤول أو مديرك تغيير مستواك في «الفريق والصلاحيات».'));
       else if(typeof toast==='function') toast(msg);
     }catch(_){}
   }
@@ -259,8 +282,9 @@
         if(role()==='admin') return true;
         /* Editing Finance is now a per-person setting, not a fact about your role. The database
            enforces the same thing, so hiding the buttons and refusing the write agree. */
+        /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — no role fallback */
         try{ if(window.mayEditPage) return window.mayEditPage('finance'); }catch(_){}
-        var r=role(); return r==='manager'||r==='team_member';
+        return false;
       };
       w.__v76=1; window.canFinEdit=w;
     }
@@ -350,7 +374,26 @@
     }catch(_){}
   }
 
-  function pass(){ tagNav(); hideNav(); restorePending(); gate(); teamEntry(); trimRolePickers(); watchTeamScreen(); }
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role. When a person's levels never arrive
+     (20 s after sign-in), only Today opens — and the page says so in words instead of guessing from the role. */
+  function noAccessNote(){
+    try{
+      var v=document.getElementById('view'); if(!v) return;
+      var old=document.getElementById('v76noaccess');
+      var missing=known() && role()!=='admin' && !(window.__pageLevels && typeof window.__pageLevels==='object')
+        && !(window.__pageAccess && typeof window.__pageAccess==='object') && roleKnownAt && (Date.now()-roleKnownAt)>20000;
+      if(!missing){ if(old) old.remove(); return; }
+      if(old && old.parentNode===v) return;
+      if(old) old.remove();
+      var d=document.createElement('div'); d.id='v76noaccess'; d.setAttribute('role','status');
+      d.style.cssText='background:#FFF8E8;border:1px solid #FBAE16;color:#6B4E00;border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.6';
+      d.textContent=fl('Your access could not be read, so only Today is open. Reload the page to try again.','تعذّرت قراءة صلاحياتك، لذلك «اليوم» فقط مفتوح. أعد تحميل الصفحة للمحاولة مجددًا.');
+      var b=document.createElement('button'); b.className='btn sm'; b.style.cssText='margin-inline-start:10px';
+      b.textContent=fl('Reload','إعادة التحميل'); b.onclick=function(){ try{ location.reload(); }catch(_){} };
+      d.appendChild(b); v.insertBefore(d, v.firstChild);
+    }catch(_){}
+  }
+  function pass(){ tagNav(); hideNav(); restorePending(); gate(); teamEntry(); trimRolePickers(); watchTeamScreen(); noAccessNote(); }
   try{
     var _r=window.render;
     window.render=function(){ var o=_r.apply(this,arguments); try{ pass(); }catch(_){} setTimeout(function(){ try{ pass(); }catch(_){} },150); return o; };   /* again once js/108 (60 ms) and js/90 (70 ms) have put their buttons back — 2026-09-27 audit */

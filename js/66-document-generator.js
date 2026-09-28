@@ -73,9 +73,11 @@
     /* 2026-09-25 (Phase 1a, owner's ruling): the screen now FAILS CLOSED while the levels load —
        js/52's mayEditPage answers no until the database has said, and yes at once for an admin.
        This line used to answer yes itself while loading; it now simply asks. */
-    return (typeof window.mayEditPage==='function') ? window.mayEditPage('documents')===true : true;
-  }catch(_){ return true; } }
-  function canEdit(){ try{ var r=window.__userRole; return (r==='admin'||r==='manager') && mayEditDocs(); }catch(_){ return false; } }
+    /* 2026-09-28 (D22): fails CLOSED when js/52 is missing too — no answer is no */
+    return (typeof window.mayEditPage==='function') ? window.mayEditPage('documents')===true : false;
+  }catch(_){ return false; } }
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role */ 
+  function canEdit(){ try{ return mayEditDocs(); }catch(_){ return false; } }
   function toast(msg){ try{ if(window.__toast){__toast(msg);return;} }catch(_){}
     var t=document.createElement('div');
     t.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink,#333);color:#fff;padding:10px 16px;border-radius:10px;z-index:9999;font-size:14px';

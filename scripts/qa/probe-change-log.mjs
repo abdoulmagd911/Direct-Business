@@ -123,15 +123,21 @@ const waitLog = (p) => p.waitForFunction(() => { const w = document.querySelecto
   const { p, b, srv } = await session('team_member', 9633, 'en');
   await p.evaluate(() => { current = 'activity'; openLead = null; render(); }); await p.waitForTimeout(800);
   const closed = await p.evaluate(() => { const c = document.querySelector('[data-v63-log-closed]'); return c ? c.innerText.replace(/\s+/g, ' ') : ''; });
-  check(/shown to admins and managers/.test(closed), 'team member: Activity & Audit says the log is for admins and managers (not "No activity")', closed.slice(0, 120));
+  /* 2026-09-28 (D22): the log follows the Activity & Audit page LEVEL, not the role — this team member is on Full there */
+  check(!closed, 'team member on Full for Activity: the page is not closed to them (D22: the page level, not the role)', closed.slice(0, 120));
   await openCompany(p);
   const card = await p.evaluate(() => !!document.querySelector('#view .v63-record-hist'));
-  check(!card, 'team member: the company page draws no "Recent changes" card (it would falsely read "no changes")');
+  check(card, 'team member on Full for Activity: the company page draws the "Recent changes" card (D22)');
   const direct = await p.evaluate(async () => { const r = await fc().from('record_history').select('id'); const r2 = await fc().from('record_changes').select('field'); return [(r.data || []).length, (r2.data || []).length]; });
   check(direct[0] === 0 && direct[1] === 0, 'team member: the log read straight from the database returns nothing (both the log and its field view)', JSON.stringify(direct));
   await p.evaluate(() => openChangeLog([{ table: 'businesses', key: 'aaaaaaaa-0000-4000-8000-000000000040' }], 'x'));
   const w = await logWin(p);
-  check(w && /shown to admins and managers/.test(w.text) && !w.events, 'team member: opening the log by hand says it is for admins and managers, and shows no entries', w && w.text.slice(0, 120));
+  check(w && !/shown to admins and managers|needs View/.test(w.text), 'team member on Full for Activity: opening the log by hand is not refused on the screen (D22) — the rows are the database\'s answer', w && w.text.slice(0, 120));
+  /* and with No access on Activity, the screen closes it again — by the level */
+  await p.evaluate(() => { window.__pageLevels = Object.assign({}, window.__pageLevels, { activity: 'none' }); });
+  await p.evaluate(() => openChangeLog([{ table: 'businesses', key: 'aaaaaaaa-0000-4000-8000-000000000040' }], 'x'));
+  const w2 = await logWin(p);
+  check(w2 && /needs View/.test(w2.text) && !w2.events, 'team member with No access on Activity: opening the log by hand says it needs View on Activity, and shows no entries', w2 && w2.text.slice(0, 120));
   srv.close(); await b.close();
 }
 

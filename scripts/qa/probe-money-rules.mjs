@@ -172,7 +172,9 @@ for (const [lang, PORT] of [['en', 9701], ['ar', 9702]]) {
   const ui = await p.evaluate(() => ({ rules: !!document.querySelector('.v117-rules'), add: !!document.querySelector('[data-v117="add-rule"],[data-v117="add-id"],[data-v117="add-code"]'),
     sw: [...document.querySelectorAll('[data-v117-switch]')].every((x) => x.disabled), seed: /Tawthiq/.test((document.querySelector('.v117-rules') || {}).innerText || '') }));
   const direct = await p.evaluate(async () => { const r = await fc().from('money_exclusion_rules').insert({ kind: 'client_id', value: '99', reason: 'x' }).select('id'); return r.error ? r.error.code || 'err' : 'written'; });
-  check(ui.rules && ui.seed && !ui.add && ui.sw && direct !== 'written', '9: a team member sees the rules, with no add / switch / remove, and a rule sent straight to the database is refused', JSON.stringify(ui) + ' · ' + direct);
+  /* 2026-09-28 (D22): the rules follow the page level, not the role — a team member on Full for Finance is offered Add.
+     Whether the database takes it is the database's half of D22 (its own tests), so it is reported here, not asserted. */
+  check(ui.rules && ui.seed && ui.add, '9: a team member on Full for Finance sees the rules and is offered Add (D22: the page level, not the role)', JSON.stringify(ui) + ' · database: ' + direct);
   check(s.errors.length === 0, '10: no JS errors (team member)', s.errors.slice(0, 3).join(' | '));
   await done(s);
 }

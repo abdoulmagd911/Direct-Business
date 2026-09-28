@@ -438,7 +438,8 @@
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function money(n){ n=Number(n)||0; if(Math.abs(n)>=1e6)return (n/1e6).toFixed(2)+'M'; if(Math.abs(n)>=1e3)return (n/1e3).toFixed(0)+'K'; return n.toFixed(0); }
   function client(){ try{ if(window.fc)return window.fc(); return (typeof fc==='function')?fc():null; }catch(_){ return null; } }
-  function canEdit(){ try{ if(window.canFinEdit)return window.canFinEdit(); return (window.__userTier==='admin'||window.__userTier==='manager'); }catch(_){ return false; } }
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — no role fallback */
+  function canEdit(){ try{ if(window.canFinEdit)return window.canFinEdit(); return false; }catch(_){ return false; } }
 
   window.finLinkMap=function(){
     var A=isAr(); var FIN=window.FIN||{};

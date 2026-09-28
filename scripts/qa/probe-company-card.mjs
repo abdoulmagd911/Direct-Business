@@ -8,7 +8,7 @@
      2. the employee is offered NO way to change the company's merges (no add-ID, link-code or remove-ID button), and
         the database refuses a client ID the employee sends anyway; the files button is still there;
      4. adding a CR file shows it (named, openable through a signed link); removing it puts "Missing" back;
-     5. adding an IBAN letter works, and the card shows it only as "🔒 On file — managers and admins only" with no link;
+     5. adding an IBAN letter works, and the card shows it only as "🔒 On file — needs Full control on Finance" (D22) with no link;
    as a manager —
      2a. a 3rd client ID (a tender) is added and the card reads "3 open" and still offers "+ Add client ID" (no cap);
      2c. a second OPEN prepaid ID on the same company is refused in words, nothing added;
@@ -72,8 +72,10 @@ for (const [lang, base] of [['en', 9501], ['ar', 9504]]) {
   const empIns = await s.p.evaluate(async () => { const r = await fc().from('client_profiles').insert({ business_id: 'b4', direct_client_id: 'QA-EMP', profile_type: 'tender', status: 'active', source: 'manual' }).select('id');
     return { err: r.error ? String(r.error.message || r.error.code) : null, n: (r.data || []).length }; });
   await s.open('b4'); t = await s.card();
-  check(!empBtn.add && !empBtn.link && !empBtn.rm && empBtn.up && empIns.err && empIns.n === 0 && !/QA-EMP/.test(t),
-    `${L} 2: an employee (Full on Clients) gets no merge button, and the database refuses a client ID sent anyway; files still offered`, JSON.stringify(empBtn) + ' | ' + JSON.stringify(empIns));
+  /* 2026-09-28 (D22): merges follow the page level, not the role — Full on Clients (or Finance) gets the merge buttons.
+     Whether the database takes the write is the database's half of D22, checked by its own tests, not here. */
+  check(empBtn.add && empBtn.link && empBtn.up,
+    `${L} 2: an employee on Full for Clients gets the merge buttons (D22: the page level, not the role); files still offered`, JSON.stringify(empBtn) + ' | ' + JSON.stringify(empIns));
   /* a CR file */
   await s.p.click('.v113-card .v113-upload'); await s.p.waitForSelector('#v113_file');
   await s.p.selectOption('#v113_type', 'cr'); await s.p.setInputFiles('#v113_file', { name: 'cr-2026.pdf', mimeType: 'application/pdf', buffer: PDF }); await s.modalSave(); await s.p.waitForTimeout(900);
@@ -93,7 +95,7 @@ for (const [lang, base] of [['en', 9501], ['ar', 9504]]) {
   await s.p.click('.v113-card .v113-upload'); await s.p.waitForSelector('#v113_file');
   await s.p.selectOption('#v113_type', 'iban'); await s.p.setInputFiles('#v113_file', { name: 'iban.pdf', mimeType: 'application/pdf', buffer: PDF }); await s.modalSave(); await s.p.waitForTimeout(900);
   const ibanRow = await s.p.evaluate(() => { const r = document.querySelector('.v113-doc[data-type="iban"]'); return r ? { t: r.innerText.replace(/\s+/g, ' '), links: r.querySelectorAll('a').length } : null; });
-  check(ibanRow && (ar ? /محفوظ \(1\)/ : /On file \(1\)/).test(ibanRow.t) && (ar ? /للمديرين/ : /managers and admins only/).test(ibanRow.t) && ibanRow.links === 0, `${L} 5: an employee adds an IBAN letter; it shows as "🔒 On file — managers and admins only", no link`, JSON.stringify(ibanRow));
+  check(ibanRow && (ar ? /محفوظ \(1\)/ : /On file \(1\)/).test(ibanRow.t) && (ar ? /«المالية»/ : /Full control on Finance/).test(ibanRow.t) && ibanRow.links === 0, `${L} 5: an employee adds an IBAN letter; it shows as "🔒 On file — needs Full control on Finance" (D22), no link`, JSON.stringify(ibanRow));
   const stored = await s.p.evaluate(() => (window.__v113.state['b4'] || {}).presence);
   check(s.errors.length === 0, `${L} 9a: no JS errors (employee)`, s.errors.slice(0, 2).join(' | '));
   await done(s);

@@ -65,7 +65,8 @@ function evDate(e){
   var f=function(d){try{return new Date(d+'T00:00:00').toLocaleDateString(isAr()?'ar':'en-GB',{day:'numeric',month:'short'});}catch(_){return d;}};
   return '<span style="white-space:nowrap;font-weight:600">'+f(s)+(en&&en!==s?' – '+f(en):'')+' '+String(s).slice(0,4)+'</span>';
 }
-function canEditEvents(){ return !window.__isShareView && window.__userTier && window.__userTier!=='viewer'; }
+/* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — Full on Events */
+function canEditEvents(){ try{ return !window.__isShareView && typeof window.mayEditPage==='function' && window.mayEditPage('events')===true; }catch(_){ return false; } }
 
 window.renderEvents=function(v){
   if(!evLoaded){ v.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">Loading events…</div>'; loadEvents(); return; }
@@ -380,7 +381,8 @@ var SIGNUPS={};            /* event_id -> row from ksa_event_signups (team-only 
 var LEADS={};              /* normalised event name -> lead count from businesses */
 var extrasLoaded=false;
 
-function canEdit(){ return !window.__isShareView && window.__userTier && window.__userTier!=='viewer'; }
+/* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — Full on Events */
+function canEdit(){ try{ return !window.__isShareView && typeof window.mayEditPage==='function' && window.mayEditPage('events')===true; }catch(_){ return false; } }
 
 /* On a phone the eight columns pushed the DATE off-screen — on a page whose whole
    job is "when". Below 760px each row becomes a stacked card instead, with the

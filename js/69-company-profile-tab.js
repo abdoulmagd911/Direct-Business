@@ -31,7 +31,8 @@
   function fl(en,ar){ return isAr()?ar:en; }
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function client(){ try{ if(window.fc){ var c=fc(); if(c) return c; } }catch(_){} return null; }
-  function canEditSections(){ try{ return ['admin','manager'].indexOf(window.__userRole)>=0 && mayEditDocs(); }catch(_){ return false; } }
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role */ 
+  function canEditSections(){ try{ return mayEditDocs(); }catch(_){ return false; } }
   /* 2026-09-20 (fire #184): the role alone was not the whole answer. "Generator" is one of the
      fifteen pages in the owner's Team & Access matrix, with a Viewer/Editor setting per person —
      and every editor here ignored it, so somebody set to VIEWER on the Generator was still
@@ -47,9 +48,11 @@
     /* 2026-09-25 (Phase 1a, owner's ruling): the screen now FAILS CLOSED while the levels load —
        js/52's mayEditPage answers no until the database has said, and yes at once for an admin.
        This line used to answer yes itself while loading; it now simply asks. */
-    return (typeof window.mayEditPage==='function') ? window.mayEditPage('documents')===true : true;
-  }catch(_){ return true; } }
-  function canWrite(){ try{ return ['admin','manager','bd','team_member'].indexOf(window.__userRole)>=0 && mayEditDocs(); }catch(_){ return false; } }
+    /* 2026-09-28 (D22): fails CLOSED when js/52 is missing too — no answer is no */
+    return (typeof window.mayEditPage==='function') ? window.mayEditPage('documents')===true : false;
+  }catch(_){ return false; } }
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role */ 
+  function canWrite(){ try{ return mayEditDocs(); }catch(_){ return false; } }
   function toast(msg){ try{ if(window.__toast){__toast(msg);return;} }catch(_){}
     var t=document.createElement('div');
     t.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink,#333);color:#fff;padding:10px 16px;border-radius:10px;z-index:9999;font-size:14px';

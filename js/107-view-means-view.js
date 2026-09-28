@@ -216,16 +216,83 @@
     try{ var m=document.getElementById('modal'); if(m && !roModalPage && !roHere()) m.removeAttribute('data-v107-ro'); }catch(_){}
   }
 
-  css(); wrapAll(); wrapModal();
+  /* ---------- Settings (2026-09-28, D22) ----------
+     2026-09-28 (D22): follows the page level set in Team & Access, not the role. Settings used to be closed to
+     everyone but admins and managers (js/49, js/02); it now opens to anyone whose Settings level is not None, and
+     Settings' OWN changes (the credit-pool cap, backups and restores, the backup destination, the template refresh,
+     the test-data wipes) need Full control on Settings. The people-management cards on the page — Team & Access, who
+     can open what, the team list — are NOT locked here: managing people is the one thing the role still decides,
+     and each of those cards checks the role itself. Settings is not in COVERED on purpose: the people-management
+     editors open from this page, and the page-wide read-only editor must never lock them. */
+  var SET_FN=['v25OpenPoolSettings','v25TemplateLearn','tagCurrentState','restoreFromBackup','deleteTag','importFullState',
+    'v21WipeTestRecords','v22WipeWorkflowTestData','v23WipeScenarioData','v24SetBackupDest','v24BackupNow'];
+  var SET_IDS=['v24bkSel','v24bkCustom','v24bkAuto','v24bkSave','v24bkNow'];
+  function setName(){ return fl('Settings','الإعدادات'); }
+  function refuseSettings(){
+    var m=fl('You can view Settings but not change it. Ask an admin or your manager for Full control.',
+             'يمكنك مشاهدة «الإعدادات» دون تعديلها. اطلب «تحكم كامل» من المدير أو المشرف.');
+    try{ if(typeof window.pageLevelSentence==='function') m=window.pageLevelSentence('settings')+' '+fl('Changing Settings needs Full control.','تعديل «الإعدادات» يحتاج «تحكم كامل».'); }catch(_){}
+    try{ if(typeof window.toast==='function'){ window.toast(m); return; } }catch(_){}
+    try{ if(window.__v70box){ window.__v70box(fl('View only','مشاهدة فقط'), m, ''); return; } }catch(_){}
+  }
+  function wrapSettings(){
+    SET_FN.forEach(function(name){
+      try{
+        var f=window[name];
+        if(typeof f!=='function' || f.__v107set) return;
+        var w=function(){
+          /* a silent tag is the automatic one taken before a restore or import — those are refused themselves */
+          if(name==='tagCurrentState' && arguments[1]===true) return f.apply(this,arguments);
+          if(may('settings')) return f.apply(this,arguments);
+          refuseSettings(); return name==='tagCurrentState'?Promise.resolve():undefined;
+        };
+        w.__v107set=1; w.__v107orig=f; window[name]=w;
+      }catch(_){}
+    });
+  }
+  function settingsCss(){
+    if(document.getElementById('v107set-css')) return;
+    var sel=[];
+    SET_FN.forEach(function(n){
+      sel.push('body[data-v107-set-ro] button[onclick*="'+n+'("]','body[data-v107-set-ro] input[onchange*="'+n+'("]');
+    });
+    SET_IDS.forEach(function(id){ if(/Save|Now/.test(id)) sel.push('body[data-v107-set-ro] #'+id); });
+    var st=document.createElement('style'); st.id='v107set-css';
+    st.textContent=sel.join(',\n')+'{display:none!important}';
+    document.head.appendChild(st);
+  }
+  function markSettings(){
+    try{
+      var onSet=(typeof current!=='undefined' && current==='settings');
+      var ro=!may('settings');
+      if(ro) document.body.setAttribute('data-v107-set-ro','1'); else document.body.removeAttribute('data-v107-set-ro');
+      var view=document.getElementById('view'); if(!view) return;
+      var ob=view.querySelector('.v107-set-banner');
+      /* the fields this lock disabled are given back when the level turns out to be Full (the levels arrive after the
+         first draw, and the lock holds while they are unknown) */
+      if(!ro) SET_IDS.forEach(function(id){ var el=document.getElementById(id); if(el && el.getAttribute('data-v107-set-off')==='1'){ el.disabled=false; el.removeAttribute('data-v107-set-off'); } });
+      if(!onSet || !ro){ if(ob) ob.remove(); return; }
+      SET_IDS.forEach(function(id){ var el=document.getElementById(id); if(el && !el.disabled){ el.disabled=true; el.setAttribute('data-v107-set-off','1'); } });
+      if(!ob){
+        var b=document.createElement('div'); b.className='v107-banner v107-set-banner'; b.setAttribute('dir',isAr()?'rtl':'ltr');
+        b.textContent=fl('View only — you can look through Settings; changing it needs Full control on Settings.',
+                         'مشاهدة فقط — يمكنك تصفّح «الإعدادات»؛ تعديلها يحتاج «تحكم كامل» على «الإعدادات».');
+        view.insertBefore(b, view.firstChild);
+      }
+    }catch(_){}
+  }
+  try{ window.__v107Settings={ fns:SET_FN.slice(), locked:function(){ return !may('settings'); } }; }catch(_){}
+
+  css(); wrapAll(); wrapModal(); settingsCss(); wrapSettings();
   if(typeof render==='function'){
     var _r=render;
     window.render=function(){
       var out=_r.apply(this,arguments);
-      try{ wrapAll(); wrapModal(); modalReset(); mark(); setTimeout(mark,60); setTimeout(mark,400); }catch(_){}
+      try{ wrapAll(); wrapModal(); wrapSettings(); modalReset(); mark(); markSettings(); setTimeout(mark,60); setTimeout(mark,400); setTimeout(markSettings,150); setTimeout(markSettings,500); }catch(_){}
       return out;
     };
   }
   /* layers that define their functions after this one, and the levels arriving after sign-in */
-  var n=0, iv=setInterval(function(){ n++; wrapAll(); wrapModal(); mark(); if(n>40) clearInterval(iv); },1500);
+  var n=0, iv=setInterval(function(){ n++; wrapAll(); wrapModal(); wrapSettings(); mark(); markSettings(); if(n>40) clearInterval(iv); },1500);
   try{ window.__v107Probe={ pageFor:pageFor, roHere:roHere, covered:COVERED.slice(), fns:Object.keys(FN) }; }catch(_){}
 }catch(e){ if(window.console)console.warn('[v107] init',e); }})();

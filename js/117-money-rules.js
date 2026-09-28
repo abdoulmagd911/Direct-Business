@@ -12,7 +12,7 @@
        review"; a code nobody typed stays under "Unassigned codes" and still counts.
    Exclusion beats merge. The database view money_rows applies both on every read, so a change here moves every total at
    once — Finance (js/16 live()), its Report Builder and exports, and the KPIs (finance_lines) — with no re-import.
-   Admins and managers change things (the database refuses anyone else); everyone with Finance sees. Every add, switch and
+   Anyone with Full control on Finance changes things (D22, 28 Sep — the page level, not the role); everyone with Finance sees. Every add, switch and
    removal is in the change log (record_history), shown here through js/115.
    Nothing in this file creates a record on its own — every write is a button a person pressed (the owner's rule of 27 Sep).
 
@@ -28,12 +28,14 @@
   function e(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function client(){ try{ return window.fc?fc():null; }catch(_){ return null; } }
   function sar(n){ n=Number(n)||0; return Math.round(n).toLocaleString('en-US')+' '+fl('SAR','ر.س'); }
-  /* admin or manager AND allowed to change Finance (finCanWrite: the page level, share views refused) — the database says the same */
-  /* merges (client IDs, codes, customer names) may also be changed from the company card: admin or manager AND allowed to
+  /* (before D22: admin or manager AND) allowed to change Finance (finCanWrite: the page level, share views refused) — the database says the same */
+  /* merges (client IDs, codes, customer names) may also be changed from the company card: (before D22: admin or manager AND) allowed to
      change Finance OR Clients — the same rule as the database policies */
-  function canMergeMR(){ try{ if(window.__isShareView)return false; if(!(window.__userRole==='admin'||window.__userRole==='manager'))return false;
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — Full on Finance changes the rules and
+     item names; a merge (client ID, code, name) needs Full on Finance OR Full on Clients. No role check. */
+  function canMergeMR(){ try{ if(window.__isShareView)return false;
     return (typeof window.finCanWrite==='function'&&!!window.finCanWrite())||(typeof window.mayEditPage==='function'&&window.mayEditPage('clients')===true); }catch(_){ return false; } }
-  function canEdit(){ try{ if(window.__isShareView)return false; if(!(window.__userRole==='admin'||window.__userRole==='manager'))return false; return typeof window.finCanWrite==='function'?!!window.finCanWrite():false; }catch(_){ return false; } }
+  function canEdit(){ try{ if(window.__isShareView)return false; return typeof window.finCanWrite==='function'?!!window.finCanWrite():false; }catch(_){ return false; } }
   /* the database's money_norm, mirrored: NFKC, lower case, Arabic alef / yeh / teh-marbuta folded, only letters and digits */
   function normMR(s){ s=String(s==null?'':s); try{ s=s.normalize('NFKC'); }catch(_){}
     s=s.toLowerCase().replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[\u064B-\u065F\u0670\u0640]/g,'');
@@ -140,13 +142,13 @@
   };
 
   /* ---------- the changes (each one a button a person pressed; the database decides) ---------- */
-  function refused(r){ if(r&&r.error) return said(r.error); if(!r||!r.data||!r.data.length) return fl('The database refused this — nothing was saved. Only admins and managers change the rules.','رفضت قاعدة البيانات هذا — لم يُحفظ شيء. المسؤولون والمدراء فقط يغيّرون القواعد.'); return null; }
+  function refused(r){ if(r&&r.error) return said(r.error); if(!r||!r.data||!r.data.length) return fl('The database refused this — nothing was saved. Changing the rules needs Full control on Finance.','رفضت قاعدة البيانات هذا — لم يُحفظ شيء. تغيير القواعد يحتاج «تحكم كامل» على «المالية».'); return null; }
   function said(err){ var m=String((err&&err.message)||err||'');
     if(/money_exclusion_rules_one_live/.test(m)) return fl('That rule already exists (the same type and value, however it is spelled).','هذه القاعدة موجودة بالفعل (النوع والقيمة نفسهما مهما اختلفت الكتابة).');
     if(/money_rule_reason_given/.test(m)) return fl('A reason is required.','السبب مطلوب.');
     if(/money_rule_value_readable/.test(m)) return fl('The value needs at least one letter or digit.','القيمة تحتاج حرفًا أو رقمًا واحدًا على الأقل.');
     if(/one_open_prepaid_postpaid/.test(m)) return fl('This company already has an open prepaid (or postpaid) client ID — a company holds one of each; tenders are unlimited.','لدى هذه الشركة معرّف مسبق الدفع (أو آجل) مفتوح — للشركة واحد من كل منهما؛ والمناقصات بلا حد.');
-    if(/row-level security|42501|permission/i.test(m)) return fl('Only admins and managers change the rules.','المسؤولون والمدراء فقط يغيّرون القواعد.');
+    if(/row-level security|42501|permission/i.test(m)) return fl('Changing the rules needs Full control on Finance.','تغيير القواعد يحتاج «تحكم كامل» على «المالية».');
     if(typeof window.__v113Said==='function') return window.__v113Said(err);
     return fl('Could not save: ','تعذّر الحفظ: ')+m; }
   function ask(msg,yes,opts){ if(typeof window.askInPage==='function') window.askInPage(msg,yes,opts); }   // 2026-09-28 (D19): no box, no action; never a native confirm()
@@ -290,7 +292,7 @@
     var rules=(MR.rules||[]);
     h+='<div class="card v117-rules" style="padding:18px;margin-bottom:16px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0;flex:1">'+fl('Exclusion rules','قواعد الاستبعاد')+'</h3>'+
       (w?'<button class="btn sm pri" data-v117="add-rule" onclick="v117AddRule()">+ '+fl('Add a rule','إضافة قاعدة')+'</button>':'')+
-      ((window.__userRole==='admin'||window.__userRole==='manager')?' <button class="btn sm ghost" onclick="v117Log()">'+fl('Change log','سجل التغييرات')+'</button>':'')+'</div>'+
+      ((typeof window.changeLogVisible==='function'&&window.changeLogVisible())?' <button class="btn sm ghost" onclick="v117Log()">'+fl('Change log','سجل التغييرات')+'</button>':'')+'</div>'+
       '<div class="ch-sub" style="margin:4px 0 10px">'+fl('Only what is typed here is left out; everything else counts. A row caught by an active rule leaves every total, KPI, report and export at once.','لا يُستبعد إلا ما يُكتب هنا؛ وكل ما عداه يُحتسب. الصف الذي تلتقطه قاعدة فعّالة يخرج فورًا من كل إجمالي ومؤشر وتقرير وتصدير.')+'</div>';
     h+=rules.length?table([fl('Type','النوع'),fl('Value','القيمة'),fl('Reason','السبب'),fl('Catches','تلتقط'),fl('Added','أُضيفت'),fl('On','فعّالة'),''],rules.map(function(r){ var s=st.rule[r.id]||{n:0,sar:0};
         return '<tr data-v117-rule="'+e(r.id)+'"'+(r.active?'':' style="opacity:.6"')+'><td style="'+TD+'">'+e(kindLabel(r.kind))+'</td><td style="'+TD+';font-weight:700">'+e(r.value)+'</td><td style="'+TD+'">'+e(r.reason)+'</td>'+
@@ -334,7 +336,7 @@
             '<button class="btn sm ghost" data-v117-decide="new" onclick="v117NewCompanyFor('+ix+',\''+e(l.kind)+'\',\''+encodeURIComponent(key)+'\',\''+encodeURIComponent(l.name||'')+'\')">'+fl('New company…','شركة جديدة…')+'</button>'+
             '<button class="btn sm ghost" data-v117-decide="exclude" onclick="v117AddRule(\''+(l.kind==='client_id'?'client_id':'name')+'\',\''+encodeURIComponent(key)+'\')">'+fl('Exclude…','استبعاد…')+'</button></div>'+
             (sug?'<div class="muted" style="font-size:11.5px;margin-top:3px">'+fl('Suggested: ','مقترح: ')+e(sug.name)+' — '+e(sug.why)+' '+fl('(nothing is applied until you press Belongs to)','(لا يُطبَّق شيء حتى تضغط «تتبع»)')+'</div>':'')
-           :'<span class="muted">'+fl('an admin or manager decides','يقرر المسؤول أو المدير')+'</span>')+'</td></tr>'; }))
+           :'<span class="muted">'+fl('someone with Full control on Finance decides','يقرر من لديه «تحكم كامل» على «المالية»')+'</span>')+'</td></tr>'; }))
       :'<div class="muted" style="font-size:12.5px" data-v117-empty="decisions">'+fl('Nothing waits for a decision — every client ID and name in Finance belongs to a company or is excluded.','لا شيء ينتظر قرارًا — كل معرّف واسم في المالية تابع لشركة أو مستبعد.')+'</div>';
     h+='<div style="margin-top:12px;font-size:12.5px" data-v117="unassigned"><b>'+fl('Unassigned codes','رموز غير مخصّصة')+'</b> · '+st.unassigned.n+' '+fl('rows','صف')+' · '+sar(st.unassigned.sar)+
       (Object.keys(st.unassigned.codes).length?' — '+Object.keys(st.unassigned.codes).map(e).join(', '):'')+' <span class="muted">'+fl('(still counted — just not under a company)','(تُحتسب — لكن دون شركة)')+'</span></div>';

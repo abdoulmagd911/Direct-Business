@@ -499,8 +499,10 @@
   function applyRolePerms(tier){try{
     document.body.setAttribute('data-rtier',tier);
     window.__userTier=tier;
-    if(!document.getElementById('cl_role_css')){var st=document.createElement('style');st.id='cl_role_css';st.textContent='body[data-rtier="viewer"] .btn.pri,body[data-rtier="viewer"] .btn.danger{pointer-events:none!important;opacity:.4!important}';document.head.appendChild(st);}
-    var hideNav=function(){try{document.querySelectorAll('.nav a,.nav button,.side a,.side button').forEach(function(n){var t=(n.textContent||'').trim().toLowerCase();if(t.indexOf('settings')>=0){n.style.display=(tier==='admin'||tier==='manager')?'':'none';}});}catch(_){}};
+    /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role. The blanket rule that greyed out every
+       strong button for a 'viewer' ROLE is gone — js/107 locks each page from its own level (View = look, Full = change) —
+       and the Settings entry shows when the Settings page is allowed (not 'none'), whatever the role. */
+    var hideNav=function(){try{document.querySelectorAll('.nav a,.nav button,.side a,.side button').forEach(function(n){var t=(n.textContent||'').trim().toLowerCase();if(t.indexOf('settings')>=0){var ok=false;try{ok=(typeof window.mayOpenPage==='function')?!!window.mayOpenPage('settings'):(tier==='admin');}catch(_){}n.style.display=ok?'':'none';}});}catch(_){}};
     if(window.render&&!window.render.__roleHide){var _r=window.render;window.render=function(){var o=_r.apply(this,arguments);hideNav();return o;};window.render.__roleHide=true;}
     hideNav();
   }catch(_){}}

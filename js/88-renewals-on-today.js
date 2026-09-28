@@ -32,10 +32,10 @@
   function maySee(){
     try{
       if(window.__isShareView) return false;
-      var r=window.__userRole||'';
-      if(r) return (r==='admin'||r==='manager');
-      var t=window.__userTier||'';
-      return (t==='admin'||t==='manager');
+      /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — these are the Generator's company
+         documents (js/66's registry), so anyone whose Generator level is not None sees their renewals here */
+      var lv=(typeof window.pageLevel==='function')?window.pageLevel('documents'):null;
+      return !!lv && lv!=='none';
     }catch(_){ return false; }
   }
   /* the same facts the documents obey (js/66) — key, label, expiry, and whether it has expired */

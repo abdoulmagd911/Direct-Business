@@ -1,7 +1,9 @@
 /* ===== v41 layer: per-user page access + contact/POC/link amendments + language polish ===== */
 (function(){try{
 function isAr(){try{return (typeof LANG!=='undefined'&&LANG==='ar')||document.documentElement.getAttribute('data-lang')==='ar';}catch(_){return false;}}
-function canEdit(){return !window.__isShareView && window.__userTier!=='viewer';}
+/* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — Full on the record's page (a client →
+   Clients, else Leads); no answer yet = no */
+function canEdit(b){try{ if(window.__isShareView)return false; if(typeof window.mayEditPage!=='function')return false; var pg='leads'; if(!b&&typeof openLead!=='undefined'&&openLead&&typeof getLead==='function')b=getLead(openLead); if(b&&b.isClient)pg='clients'; return window.mayEditPage(pg)===true; }catch(_){return false;}}
 function E(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ---------- 1–2. RETIRED 2026-09-25 (Phase 1a, D2) ----------
@@ -36,7 +38,7 @@ window.v41Access=function(){
 
 /* ---------- 3. amendments: add contact / POC / links on the lead card ---------- */
 window.v41AddContact=function(id){
-  var b=getLead(id); if(!b||!canEdit())return; var ar=isAr();
+  var b=getLead(id); if(!b||!canEdit(b))return; var ar=isAr();
   openModal((ar?'إضافة جهة اتصال — ':'Add contact — ')+E(b.name),
     '<div class="grid2"><div class="field"><label>'+(ar?'الاسم':'Name')+'</label><input id="nc_n"></div>'+
     '<div class="field"><label>'+(ar?'الصفة / الدور':'Role / title')+'</label><input id="nc_r" placeholder="'+(ar?'مثال: مدير المشتريات':'e.g. Procurement manager')+'"></div></div>'+
@@ -52,7 +54,7 @@ window.v41AddContact=function(id){
     });
 };
 window.v41AddLink=function(id){
-  var b=getLead(id); if(!b||!canEdit())return; var ar=isAr();
+  var b=getLead(id); if(!b||!canEdit(b))return; var ar=isAr();
   openModal((ar?'إضافة رابط — ':'Add link — ')+E(b.name),
     '<div class="grid2"><div class="field"><label>'+(ar?'الوصف':'Label')+'</label><input id="nl_l" placeholder="'+(ar?'لينكدإن / السجل التجاري / عرضنا…':'LinkedIn / CR / our proposal…')+'"></div>'+
     '<div class="field"><label>'+(ar?'الرابط':'URL')+'</label><input id="nl_u" placeholder="https://…"></div></div>',
@@ -75,7 +77,7 @@ function injectAmend(){
     if(!target)return;
     var ar=isAr();
     var d=document.createElement('div'); d.id='v41amend'; d.style.cssText='margin-top:10px;display:flex;gap:6px;flex-wrap:wrap';
-    if(canEdit())d.innerHTML='<button class="btn sm" onclick="v41AddContact(\''+b.id+'\')">＋ '+(ar?'جهة اتصال':'Contact / POC')+'</button>'+
+    if(canEdit(b))d.innerHTML='<button class="btn sm" onclick="v41AddContact(\''+b.id+'\')">＋ '+(ar?'جهة اتصال':'Contact / POC')+'</button>'+
       '<button class="btn sm" onclick="v41AddLink(\''+b.id+'\')">🔗 '+(ar?'رابط':'Link')+'</button>';
     var links=(b.links||[]);
     if(links.length){

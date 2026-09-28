@@ -8,7 +8,7 @@
       Reports and KPIs always count by the paid date; the switch only regroups Performance, and says so.
    3. FINANCE → RULES → "Invoice item names": the list a person keeps of which item names are pass-through and which are
       Direct's fee. It only changes the "pass-through on the invoice" figure shown beside the cost — never cost or profit
-      (the item split is a VAT split, not cost: owner, 22 Aug). Admins and managers with Full on Finance add and remove;
+      (the item split is a VAT split, not cost: owner, 22 Aug). Anyone with Full on Finance adds and removes (D22);
       a removal asks first, naming the item (D19), and stays removed; everything is in the change log. */
 (function(){try{
   function fl(en,ar){ try{ return (typeof LANG!=='undefined'&&LANG==='ar')?ar:en; }catch(_){ return en; } }
@@ -16,7 +16,8 @@
   function n0(v){ try{ return (typeof money0==='function')?money0(v):Math.round(+v||0).toLocaleString('en-US'); }catch(_){ return String(Math.round(+v||0)); } }
   function client(){ try{ return window.fc?fc():null; }catch(_){ return null; } }
   function role(){ return window.__userRole||''; }
-  function canEdit(){ try{ if(window.__isShareView) return false; return (role()==='admin'||role()==='manager')&&typeof window.finCanWrite==='function'&&!!window.finCanWrite(); }catch(_){ return false; } }   // as js/117: the database says the same
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — Full on Finance adds and removes item names */
+  function canEdit(){ try{ if(window.__isShareView) return false; return typeof window.finCanWrite==='function'&&!!window.finCanWrite(); }catch(_){ return false; } }   // as js/117: the database says the same
 
   /* ---------- 1. Needs attention ---------- */
   function rowsInPeriod(){
@@ -107,7 +108,7 @@
     var w=canEdit();
     var h='<div class="card v119-items" style="padding:18px;margin-bottom:16px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0;flex:1">'+fl('Invoice item names','أسماء بنود الفواتير')+'</h3>'+
       (w?'<button class="btn sm pri" onclick="v119AddItem()">+ '+fl('Add an item name','إضافة اسم بند')+'</button>':'')+
-      ((role()==='admin'||role()==='manager')?' <button class="btn sm ghost" onclick="v119ItemLog()">'+fl('Change log','سجل التغييرات')+'</button>':'')+'</div>'+
+      ((typeof window.changeLogVisible==='function'&&window.changeLogVisible())?' <button class="btn sm ghost" onclick="v119ItemLog()">'+fl('Change log','سجل التغييرات')+'</button>':'')+'</div>'+
       '<div class="ch-sub" style="margin:4px 0 10px">'+fl('Which invoice lines are a supplier\'s price passed on, and which are Direct\'s fee. Used only for "pass-through on the invoice", shown beside the cost — cost itself is approved expenses only.',
         'أي أسطر الفاتورة سعر مورد مُمرَّر، وأيها رسوم دايركت. تُستخدم فقط في «المبالغ المارّة على الفاتورة» بجانب التكلفة — أما التكلفة نفسها فهي المصروفات المعتمدة فقط.')+'</div>';
     if(IC.err) return h+'<div style="color:#B42318;font-size:12.5px">'+fl('The list could not be read: ','تعذّرت قراءة القائمة: ')+e(IC.err)+' <button class="btn sm ghost" onclick="v119Retry()">'+fl('Try again','حاول مجددًا')+'</button></div></div>';

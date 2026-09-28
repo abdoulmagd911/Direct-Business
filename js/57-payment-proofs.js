@@ -35,7 +35,15 @@
   function typeLbl(k){var t=TYPES.find(function(x){return x[0]===k;});return t?fl(t[1],t[2]):k;}
 
   function canView(){ try{return window.canFinView?canFinView():false;}catch(_){return false;} }
-  function canAdd(){ try{ return !window.__isShareView && !!window.__userTier; }catch(_){ return false; } }
+  /* 2026-09-28 (D22): follows the page level set in Team & Access, not the role — adding and attaching need Full on
+     Finance; a person on View sees the list and no Add/attach form */
+  function canAdd(){ try{ return !window.__isShareView && typeof window.mayEditPage==='function' && window.mayEditPage('finance')===true; }catch(_){ return false; } }
+  function refuseAdd(){
+    var m=(typeof window.pageLevelSentence==='function'?window.pageLevelSentence('finance')+' ':'')+
+      fl('Adding or attaching needs Full control on Finance — nothing was saved.','الإضافة أو الإرفاق يحتاج «تحكم كامل» على «المالية» — لم يُحفظ شيء.');
+    try{ if(typeof toast==='function'){ toast(m,'err'); return; } }catch(_){}
+    try{ if(window.__v70box){ window.__v70box(fl('View only','مشاهدة فقط'),m,''); return; } }catch(_){}
+  }
   function canRemove(){ try{return window.canFinEdit?canFinEdit():false;}catch(_){return false;} }
   function client(){ try{return window.fc?fc():null;}catch(_){return null;} }
   function meNow(){ try{ return (window.__userName||(window.meName?meName():'')||''); }catch(_){ return ''; } }
@@ -209,6 +217,7 @@
   }
 
   window.proofAttach=function(id){try{
+    if(!canAdd()){ refuseAdd(); return; }   /* D22 */
     var row=(PRX.rows||[]).find(function(x){return x.id===id;}); if(!row)return;
     var inp=document.createElement('input'); inp.type='file';
     inp.accept='.pdf,.png,.jpg,.jpeg,.webp,.docx,.xlsx';
@@ -289,6 +298,7 @@
   }catch(e){console.warn('[proof] csv',e);}};
 
   window.proofSave=function(){try{
+    if(!canAdd()){ refuseAdd(); return; }   /* D22 */
     var g=function(id){var e=document.getElementById(id);return e?e.value:'';};
     var row={
       doc_type:g('pf_type')||'payment_proof',
