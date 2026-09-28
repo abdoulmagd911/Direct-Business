@@ -34,9 +34,9 @@ number when ruled, and the decision names its question.
 
 **V11 — Screens carry data and controls only; every entity is a link** ACTIVE · 2026-09-28. No hint text, explanatory notes, banners, callouts or demo annotations inside screens ("the old app's biggest complaint"). Every partner, invoice, task, achievement, KPI, report line and person is a link. Spec §2.5, rule A19.
 
-**V13 — The same domain, moved at go-live** ACTIVE · 2026-09-28. v2 uses `directksab2b.com`. Staging runs on the new Vercel project's `vercel.app` address; at go-live the domain moves from the old Vercel project to the new one, and the Supabase Auth site URL and redirect URLs (and any OAuth origins) list it. Spec §10, plan P6-8.
+**V13 — The same domain, moved as soon as v2's sign-in page renders** ACTIVE · 2026-09-28, amended the same day (V84). v2 uses `directksab2b.com`. The old app no longer runs, so the domain moves from the old Vercel project to `direct-commercial` as soon as the first v2 deployment renders the sign-in page (plan P3-2), not at go-live; the Supabase Auth site URL and redirect URLs (and any OAuth origins) list it. Spec §10.
 
-**V21 — Free plan: the old app's database is paused on 1 Oct** ACTIVE · 2026-09-28. The owner chose the free way, pausing `direct-business` (the old app), not the appraisal tool: the oversight pauses it on 1 Oct after the Q3 close of 30 Sep; from then the old app is unavailable (data kept, restorable). `directksa-performance` stays live. The oversight then creates `direct-commercial` on the free plan. (Was Q1.)
+**V21 — Free plan: the old app's database is paused** DONE · 2026-09-28. The owner chose the free way, pausing `direct-business` (the old app), not the appraisal tool. Planned for 1 Oct, it was done on 28 Sep, since the owner does not need the old app at all (V84): the old app is unavailable (data kept, restorable). `directksa-performance` stays live; `direct-commercial` was created on the free plan. (Was Q1.)
 
 **V23 — Google and Zoom keys: later** DEFERRED · 2026-09-28. P3-2 proceeds with the emailed code; since V59 Google and Zoom are optional shortcuts, built when their keys arrive. (Was Q3.)
 
@@ -176,3 +176,5 @@ example uses made-up names.
 **V82 — The design source moves to Figma** ACTIVE · 2026-09-29. A dedicated design session builds the design system (variables for the four themes) and every screen in Figma; builder B reads screens through the Figma connector. The canvas and the token table stay the reference until the oversight announces the Figma file, which then supersedes them. Spec §2.5, plan "Design tokens and screens".
 
 **V83 — Exports unchanged for now** ACTIVE · 2026-09-29. A data export on every list and the designed monthly and quarterly reports; revisited later.
+
+**V84 — The new environments exist; keys only from the owner** ACTIVE · 2026-09-28. The owner does not need the old app at all. On 28 Sep the oversight paused `direct-business` and created the Supabase project `direct-commercial` (ref `kimadjvaxgiqzjaukuqg`, eu-central-1, free) and the Vercel project `direct-commercial` (root `v2`, Next.js, production branch `v2/main`, fra1, builds skipped when `v2/` is unchanged). Keys are pasted into Vercel by the owner only; builders never handle the service key. The domain moves as soon as v2's sign-in page renders (V13). Spec §10.

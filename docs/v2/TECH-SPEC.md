@@ -1693,17 +1693,18 @@ eu-central-1. Supabase allows **two active free projects per owner, across every
 paused projects do not count. The Vercel team "abdoulmagd911's projects" holds two projects. This environment's network
 refuses `*.supabase.co`, `vercel.com` and `cdn.sheetjs.com`; the Supabase and Vercel connectors work.
 
-**The owner's answer (V21, 28 Sep):** the free way — **the old app's database (`direct-business`) is paused on 1 Oct**,
-after the Q3 close of 30 Sep, by the oversight. From then on **the old app is unavailable** (its data is kept and the
-project can be restored from the Supabase dashboard; Supabase limits how long a paused free project stays restorable,
-so a restore, if ever wanted, is done early). The appraisal tool (`directksa-performance`) stays live. The oversight then
-creates `direct-commercial` on the free plan with the Supabase connector.
+**Done on 28 Sep (V21, V84):** the owner does not need the old app at all. The oversight **paused `direct-business`**
+(the old app's database; its data is kept and restorable from the Supabase dashboard for as long as Supabase allows a
+paused free project) and **created `direct-commercial`** on the free plan — ref `kimadjvaxgiqzjaukuqg`, eu-central-1.
+The appraisal tool (`directksa-performance`) stays live, so the two active free projects are `direct-commercial` and
+`directksa-performance`. The **Vercel project `direct-commercial`** exists too (root `v2`, Next.js, production branch
+`v2/main`, fra1, builds skipped when `v2/` is unchanged). The old app no longer runs.
 
 | What | Exactly | Plan and cost | Who |
 |---|---|---|---|
-| **Supabase project** `direct-commercial` | region eu-central-1 (Frankfurt, as today), Postgres 17; Auth: sign-ups off, email OTP; Google and Zoom providers added when their keys exist (V23, deferred); **site URL and redirect URLs list the Vercel staging address now and `https://www.directksab2b.com` (and the bare domain) from go-live**; Storage buckets `files` and `images` (private); `pg_cron` on | **Free** | the oversight, with the Supabase connector, after the pause on 1 Oct |
-| **Vercel project** `direct-commercial` | this repository, root directory `v2`, framework Next.js, production branch `v2/main`, preview deployments on every PR, an *ignored build step* so pushes that do not touch `v2/` build nothing, function region fra1; env vars: Supabase address and publishable key (public by design), service key (server-side only). **Staging lives on its `vercel.app` address** | **Free** (Hobby — V46) | builder A with the Vercel connector, on the owner's approval (V6) |
-| **The domain** `directksab2b.com` | **the same domain** (owner, 28 Sep — V13). Until go-live it stays on the old Vercel project; at go-live (P6-8) it is removed from the old project and added to the new one (Vercel → Domains), and the Supabase Auth site URL / redirect URLs switch to it. The Google and Zoom OAuth settings need no change for the domain (their redirect is Supabase's own callback address), but Google's authorised JavaScript origins, if set, list both addresses | free | the owner or the oversight, at go-live |
+| **Supabase project** `direct-commercial` | region eu-central-1 (Frankfurt, as today), Postgres 17; Auth: sign-ups off, email OTP; Google and Zoom providers added when their keys exist (V23, deferred); **site URL and redirect URLs list the project's `vercel.app` address and, from the domain move, `https://www.directksab2b.com` (and the bare domain)**; Storage buckets `files` and `images` (private); `pg_cron` on | **Free** | created by the oversight on 28 Sep (ref `kimadjvaxgiqzjaukuqg`); settings by builder A with the Supabase connector |
+| **Vercel project** `direct-commercial` | this repository, root directory `v2`, framework Next.js, production branch `v2/main`, preview deployments on every PR, builds skipped when `v2/` is unchanged, function region fra1; env vars: Supabase address and publishable key (public by design), service key (server-side only) — **pasted into Vercel by the owner only** (V84). Until the domain moves it answers on its `vercel.app` address | **Free** (Hobby — V46) | created by the oversight on 28 Sep; keys by the owner |
+| **The domain** `directksab2b.com` | **the same domain** (owner, 28 Sep — V13). The old app no longer runs, so the domain moves **as soon as the first v2 deployment renders the sign-in page** (plan P3-2), not at go-live: removed from the old Vercel project, added to `direct-commercial` (Vercel → Domains), and the Supabase Auth site URL / redirect URLs list it. Until go-live only allow-listed people get past the sign-in page, and the database holds trial values only. The Google and Zoom OAuth settings need no change for the domain (their redirect is Supabase's own callback address), but Google's authorised JavaScript origins, if set, list both addresses | free | the owner or the oversight, when P3-2's sign-in page renders |
 | **Google OAuth client** · **Zoom OAuth app** | §4, steps 1–2 — **deferred** (V23): until they exist, sign-in on the cloud project is by emailed code only, which itself needs the mail sender | free | Direct's Workspace and Zoom admins, later |
 | **Mail sender** | §4, step 3 — Resend's free tier (V24); DNS records on `auth.directksa.com`. **Needed before real users** (the code is the door — V59); until then staging uses Supabase's built-in sender, which reaches the owner's own account only | free tier | whoever manages the DNS |
 | **CI** | GitHub Actions, `.github/workflows/v2.yml`, runs only when `v2/**` changes; the full test stack, including sign-in by emailed code through the stack's mail catcher | free for public repositories | builder A |
@@ -1714,14 +1715,17 @@ daemon runs there and the cloud hosts are refused (measured), so the full Supaba
 projects are reached through the connectors, and screens are looked at on each PR's Vercel preview. If an environment's
 network setting is widened (the owner's click — CLAUDE.md), builders may also run `next dev` against staging.
 
-The old Vercel project also builds a preview of the **old** app for every pushed branch, `v2/*` included. That is
-harmless, costs nothing, and cannot be switched off without touching the frozen project — so it stays until go-live.
+The old Vercel project still builds a preview of the **old** app for every pushed branch, `v2/*` included. That is
+harmless and costs nothing; disconnecting or removing that project is the owner's call.
 
-**Order of steps:** (1) 30 Sep Q3 close in the old app; (2) 1 Oct the oversight pauses `direct-business` and creates
-`direct-commercial`; (3) builder A creates the Vercel project and applies the first migrations; (4) later: the mail
-sender, then the Google and Zoom keys; (5) at go-live: backups, the domain move, the Auth URLs.
+**Order of steps:** (1) done 28 Sep — `direct-business` paused, `direct-commercial` created in Supabase and Vercel
+(V84); (2) the owner pastes the keys into Vercel; (3) builder A applies the first migrations (P3-1) and ships the sign-in
+page (P3-2) to `v2/main`; (4) **as soon as that deployment renders the sign-in page**: the domain moves to
+`direct-commercial` and the Auth site URL / redirect URLs list it; (5) the mail sender before real users, then (later)
+the Google and Zoom keys; (6) at go-live: backups (V22), the reset, the staged pilot.
 
-Secrets live only in Vercel's server environment and Supabase's settings — never in the repo. No deploy secret is
+Secrets live only in Vercel's server environment and Supabase's settings — never in the repo, and **only the owner
+pastes keys into Vercel** (V84); builders never see the service key. No deploy secret is
 stored in GitHub: builder A applies migrations to the cloud project at merge from the merged commit (checksum-checked),
 after the SQL suite has passed on a database built from zero. The very first admin (the owner's account, D8) is created
 once by builder A with a one-off statement the owner approves, logged under the System person — never in a migration
@@ -1749,13 +1753,15 @@ invoices in the browser; imports follow later. All data in the old app is test d
 | Tasks, achievements, reports of the old app | **Not moved** (test data, D9); ClickUp KPI records imported once if the owner wants (08 C5) | — |
 
 **Cut-over — a staged pilot** (V71): rehearse on the staging project; reset it (a v2 `golive_reset`, backup first, only
-on the owner's word — D9); the domain moves to the new Vercel project (§10); then **a small pilot group** named by the
+on the owner's word — D9) — the domain already serves v2 (§10, V13); then **a small pilot group** named by the
 owner signs in first — including Finance colleagues with View on Finance — and types and checks a first month; when the
 owner says so, **everyone** is switched on (each person's `can_sign_in`; no code change).
 
 **Out of v1** (recorded, not built — V70): guarantees (promissory notes), supplier payables and statements, referral
-terms. The old app has been unavailable since
-its database was paused on 1 Oct (V21); its data stays restorable while Supabase allows.
+terms.
+
+The old app has been unavailable since its database was paused on 28 Sep (V21); its data stays restorable while
+Supabase allows.
 
 ---
 
