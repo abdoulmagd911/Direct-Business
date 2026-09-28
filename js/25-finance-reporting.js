@@ -105,7 +105,11 @@
     try{
       if(!window.FIN||FIN.tab!=='overview'||!FIN.rows) return;
       var view=document.getElementById('view'); if(!view||view.querySelector('.v32-svc')) return;
-      var h=(FIN.svcBy&&!FIN.svcErr)?byService():byServiceType();
+      /* until a main service exists on Rules (every line would read "no service yet"), the old table is drawn with a line
+         saying where the services are set up — the new table takes over as soon as one is */
+      var _svcSet=false; try{ if(FIN.svcBy&&!FIN.svcErr) Object.keys(FIN.svcBy).some(function(k){ return (FIN.svcBy[k]||[]).some(function(x){ return !!x.service_id; })&&(_svcSet=true); }); }catch(_){}
+      var h=_svcSet?byService():byServiceType();
+      if(h&&!_svcSet&&FIN.svcBy&&!FIN.svcErr) h+='<div class="ch-sub" data-v24-setup="1" style="margin-top:8px">'+fl('Set up the main services on Finance → Rules and this table splits every invoice line into one service.','عرّف الخدمات الرئيسية في المالية ← القواعد وسيوزّع هذا الجدول كل بند فاتورة على خدمة واحدة.')+'</div>';
       if(!h) return;
       var card=document.createElement('div'); card.className='card v32-svc'; card.style.cssText='padding:16px;margin-bottom:14px'; card.innerHTML=h;
       place(view,card);
