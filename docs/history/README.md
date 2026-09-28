@@ -8,11 +8,13 @@ under 40,000 characters). Nothing was deleted: the old text moved here, unchange
 | `backlog/` | The old `docs/BACKLOG.md` (1.5 MB, 19,885 lines) in 42 pieces; its README maps dates and fire numbers to pieces. |
 | `decisions/` | The old `docs/DECISIONS.md` — the full text of every rule — in 10 pieces; its README maps rule IDs to pieces. |
 | `claude-md/` | The old `CLAUDE.md` in 2 pieces. |
+| `handoff-2026-08-09/` | The handoff brief of 2026-08-09 (41k) in 2 pieces, split 2026-09-28. |
 | `backlog-triage/` | How the short backlog was decided: every item found in the old log, open or closed, with the evidence. |
 | `moved.json` | The commit the archives were cut from and each old file's SHA-256. |
 | `redactions.json` | The only lines where an archive differs from its old file: real client names and invoice numbers taken out on 2026-09-28 (rule 7), each with the old line's hash and the reason. |
 
-The two long references moved to `docs/reference/` (Playbook, Master Brief), split the same way.
+The long references moved to `docs/reference/` (Playbook, Master Brief; on 2026-09-28 the Direct Payments data model),
+split the same way.
 `scripts/docs/archive-docs.mjs <commit>` rebuilds the archives from a commit; `scripts/qa/check-docs-moved.mjs` (in the
 battery) proves the pieces join back to the old files byte for byte, every old line is present, every rule ID and every
 carried-over owner quote survived, the size limits hold, and no old knowledge-base part name is left in a working file.

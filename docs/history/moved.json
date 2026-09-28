@@ -1,5 +1,5 @@
 {
-  "note": "Written by scripts/docs/archive-docs.mjs; checked by scripts/qa/check-docs-moved.mjs. Each old file, as it stood at `commit`, is the pieces joined in order, byte for byte — except the lines listed in docs/history/redactions.json (sha256Archived is the hash of the file with those lines replaced).",
+  "note": "Written by scripts/docs/archive-docs.mjs; checked by scripts/qa/check-docs-moved.mjs. Each old file, as it stood at `commit` (its own `commit` where it names one), is the pieces joined in order, byte for byte — except the lines listed in docs/history/redactions.json (sha256Archived is the hash of the file with those lines replaced).",
   "commit": "175e4ccb0217fd1a27f4349dfe1d4013b00c1061",
   "files": [
     {
@@ -113,6 +113,30 @@
         "master-brief-02.md",
         "master-brief-03.md",
         "master-brief-04.md"
+      ]
+    },
+    {
+      "old": "docs/HANDOFF_2026-08-09.md",
+      "archive": "docs/history/handoff-2026-08-09",
+      "commit": "6a3f3650c934e1c2646251efee324b51cc8c0cc2",
+      "sha256": "d356b4ee288e7fd7bd3eb3ad72931fbbffda8d8c57b979fb05364ebe9a40edd7",
+      "chars": 40890,
+      "lines": 612,
+      "pieces": [
+        "handoff-01.md",
+        "handoff-02.md"
+      ]
+    },
+    {
+      "old": "docs/DIRECT_PAYMENTS_MODEL.md",
+      "archive": "docs/reference/payments-model",
+      "commit": "6a3f3650c934e1c2646251efee324b51cc8c0cc2",
+      "sha256": "72d39842b5394c1856d7a1360b195939439d347dc0fb4d4fb26c10461225a52e",
+      "chars": 51742,
+      "lines": 719,
+      "pieces": [
+        "payments-model-01.md",
+        "payments-model-02.md"
       ]
     }
   ]

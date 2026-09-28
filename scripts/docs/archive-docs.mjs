@@ -33,6 +33,10 @@ const JOBS = [
   { old: 'CLAUDE.md', dir: 'docs/history/claude-md', prefix: 'claude-md', title: 'The old CLAUDE.md' },
   { old: 'docs/DIRECT_SYSTEMS_PLAYBOOK.md', dir: 'docs/reference/playbook', prefix: 'playbook', title: 'Direct — Systems & Data Playbook' },
   { old: 'docs/DIRECT_MASTER_BRIEF.md', dir: 'docs/reference/master-brief', prefix: 'master-brief', title: 'Direct Master Brief — Full Reference (v2)' },
+  /* 2026-09-28 (the oversight's order 6a): the two other docs over 40,000 characters, cut the same way. Pinned to the
+     commit that took real client names out of them (rule 7), so the archive never carries a name back in. */
+  { old: 'docs/HANDOFF_2026-08-09.md', dir: 'docs/history/handoff-2026-08-09', prefix: 'handoff', title: 'The handoff brief of 2026-08-09', commit: '6a3f365' },
+  { old: 'docs/DIRECT_PAYMENTS_MODEL.md', dir: 'docs/reference/payments-model', prefix: 'payments-model', title: 'Direct Payments — the real data model', commit: '6a3f365' },
 ];
 
 const cp = (s) => [...s].length;
@@ -79,10 +83,11 @@ function split(text) {
   return { lines, inFence, cuts };
 }
 
-const manifest = { note: 'Written by scripts/docs/archive-docs.mjs; checked by scripts/qa/check-docs-moved.mjs. Each old file, as it stood at `commit`, is the pieces joined in order, byte for byte — except the lines listed in docs/history/redactions.json (sha256Archived is the hash of the file with those lines replaced).', commit: SHA, files: [] };
+const manifest = { note: 'Written by scripts/docs/archive-docs.mjs; checked by scripts/qa/check-docs-moved.mjs. Each old file, as it stood at `commit` (its own `commit` where it names one), is the pieces joined in order, byte for byte — except the lines listed in docs/history/redactions.json (sha256Archived is the hash of the file with those lines replaced).', commit: SHA, files: [] };
 
 for (const job of JOBS) {
-  const original = execFileSync('git', ['show', `${SHA}:${job.old}`], { cwd: ROOT, maxBuffer: 64 << 20 }).toString('utf8');
+  const JSHA = job.commit ? execFileSync('git', ['rev-parse', job.commit], { cwd: ROOT }).toString().trim() : SHA;   // a job may pin its own commit
+  const original = execFileSync('git', ['show', `${JSHA}:${job.old}`], { cwd: ROOT, maxBuffer: 64 << 20 }).toString('utf8');
   const text = redact(job.old, original);
   const nRedacted = REDACTIONS.filter((x) => x.file === job.old).length;
   const { lines, inFence, cuts } = split(text);
@@ -104,13 +109,13 @@ for (const job of JOBS) {
   const joined = pieces.map((p) => fs.readFileSync(path.join(dir, p.name), 'utf8')).join('');
   if (joined !== text) { console.error(`JOIN MISMATCH for ${job.old} — nothing written is trustworthy`); process.exit(1); }
   const sha256 = sha(original);
-  manifest.files.push({ old: job.old, archive: job.dir, sha256, ...(nRedacted ? { sha256Archived: sha(text), redacted: nRedacted } : {}),
+  manifest.files.push({ old: job.old, archive: job.dir, ...(JSHA !== SHA ? { commit: JSHA } : {}), sha256, ...(nRedacted ? { sha256Archived: sha(text), redacted: nRedacted } : {}),
     chars: cp(text), lines: lines.length, pieces: pieces.map((p) => p.name) });
 
   /* the index a person reads */
   const esc = (s) => s.replace(/\|/g, '\\|').replace(/^#+\s*/, '').slice(0, 110);
   let md = `# ${job.title} — index\n\n`;
-  md += `\`${job.old}\` as it stood at commit \`${SHA.slice(0, 12)}\` (${cp(text).toLocaleString('en')} characters, ${lines.length.toLocaleString('en')} lines), `;
+  md += `\`${job.old}\` as it stood at commit \`${JSHA.slice(0, 12)}\` (${cp(text).toLocaleString('en')} characters, ${lines.length.toLocaleString('en')} lines), `;
   md += `cut word for word into ${pieces.length} pieces under 40,000 characters. Joined in order they are the old file byte for byte `;
   md += `(SHA-256 \`${sha256}\`)${nRedacted ? `, except ${nRedacted} line${nRedacted > 1 ? 's' : ''} listed in \`docs/history/redactions.json\` (real client names and invoice numbers taken out — the repository is public, CLAUDE.md rule 7)` : ''}; `;
   md += `\`scripts/qa/check-docs-moved.mjs\` proves it on every battery run. Nothing ${nRedacted ? 'else ' : ''}here is edited — `;
