@@ -7,6 +7,7 @@
 #   imported by probes, with no checks of their own — so the runner ran them, they exited 0,
 #   and three of the battery's green rows were modules that cannot fail. Removed.
 check-decisions-wired
+check-docs-moved
 check-structure
 diag-password-recovery
 manual-visual-sweep
