@@ -245,7 +245,8 @@ The full old notes (history, the data world of August, funnels, brand, known iss
 - `docs/LANDMINES.md`, `docs/BLUEPRINT.md`, `scripts/qa/README.md`, `docs/DIRECT_IDENTITY.md` (brand),
   `docs/ROLES_AND_ACCESS.md`, `docs/DIRECT_SYSTEMS_MAP.md`.
 - Reference, not required reading, split into parts under 40,000 characters: the Systems & Data Playbook
-  (`docs/reference/playbook/`) and the Master Brief (`docs/reference/master-brief/`).
+  (`docs/reference/playbook/`), the Master Brief (`docs/reference/master-brief/`) and the Direct Payments data model
+  (`docs/reference/payments-model/`); the old handoff brief of 2026-08-09 is in `docs/history/handoff-2026-08-09/`.
 - The Drive knowledge base (folder `1nfOES1oPdh2y0ShkrPnSN9CnVj1hFtyP`, start at "00 — START HERE"): 04 Finance rules
   and data sources · 05 Direct-Business app · 06 How sessions run · 08 Open decisions for the owner · 09 Sources index
   (where every old knowledge-base part went).
