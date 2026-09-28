@@ -197,7 +197,7 @@ What reads the registry:
 https://claude.ai/artifact/LhgpWwKiMxQtQiQmXjco64) and the screens canvas (https://claude.ai/artifact/QRysGjaefjvGbDxNvfYbLW,
 12 artboards). Where this section and those pages differ, the pages win; builder B reads them before P3-3.
 
-- **Shell.** Side drawer 232 px pinned / 56 px collapsed (an icon rail with tooltips; unpinned it opens as an overlay
+- **Shell.** Side drawer 248 px pinned (as the artboards) / 56 px collapsed (an icon rail with tooltips; unpinned it opens as an overlay
   on hover or focus and closes on Esc; below 1,024 px an off-canvas sheet). Order: My day, Partners, Projects, Tasks,
   Finance, KPIs, Reports, Appraisal; Settings at the foot above the person's profile (avatar, nickname, badge). Top bar
   60 px: search (Ctrl K), Create, bell, the profile chip (avatar and nickname) — no page titles in it. Page header:
