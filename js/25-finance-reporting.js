@@ -53,22 +53,27 @@
       if(r.deleted_at) return; var m=(FIN.m&&FIN.m[r.id])||{}; if(!m.counts) return; if(window.finInPeriod&&!finInPeriod(r)) return;
       n++;
       var rev=+r.revenue_sar||0, lines=FIN.svcBy[r.id]||[], sum=0; lines.forEach(function(x){ sum+=+x.revenue_sar||0; });
-      var hasCost=(r.cost_sar!=null&&r.cost_sar!==''), cost=+r.cost_sar||0, estOn=!hasCost&&!!m.cost_estimated;
+      /* one rule for the estimate (js/16 finEstOf — the band and the tiles read the same): the invoice's estimate, spread over
+         its services by their pass-through; whatever no service's line carries goes to "Not split by line" */
+      var hasCost=(r.cost_sar!=null&&r.cost_sar!==''), cost=+r.cost_sar||0;
+      var estT=(typeof window.finEstOf==='function')?window.finEstOf(r):((!hasCost&&m.cost_estimated)?(+m.est_cost_sar||0):0), estOn=estT>0;
+      var ptSum=0; lines.forEach(function(x){ ptSum+=+x.pass_through_sar||0; });
       var known=hasCost||estOn||r.revenue_way==='commission';
       lines.forEach(function(x){
         var k=x.service_name||NONE, b=add(k,x.service_name?(+x.sort_order||100):950), v=+x.revenue_sar||0;
         b.rev+=v; b._inv[r.id]=1;
         if(hasCost&&sum>0) b.cost+=cost*v/sum;
-        if(estOn) b.est+=+x.pass_through_sar||0;
+        if(estOn&&ptSum>0) b.est+=estT*(+x.pass_through_sar||0)/ptSum;
         if(known) b.revP+=v;
       });
       var rest=Math.round((rev-sum)*100)/100;
       if(Math.abs(rest)>=1){ var b=add(NOT,990); b.rev+=rest; b._inv[r.id]=1; if(hasCost&&sum<=0) b.cost+=cost; if(known) b.revP+=rest; }
+      if(estOn&&ptSum<=0){ var bn=add(NOT,990); bn.est+=estT; bn._inv[r.id]=1; }
     });
     var keys=Object.keys(by).sort(function(a,b){ return (order[a]-order[b])||(by[b].rev-by[a].rev); });
     var tot={rev:0,cost:0,est:0,revP:0};
     var h='<h3 class="finh" style="margin:0 0 3px">'+fl('Income by service','الدخل حسب الخدمة')+(window.finPeriodLabel?'<i>'+finPeriodLabel()+'</i>':'')+'</h3>'+
-      '<div class="ch-sub" style="margin-bottom:10px">'+fl('Each invoice line goes to one service (Finance → Rules decides which), then the lines are added up — paid sales only, never top-ups or billing links. Cost is the approved expense split by each service’s share; ⚑ is the flagged estimate where no approved expense has arrived yet. Profit and margin are measured where the cost is known or estimated.',
+      '<div class="fin-note" style="margin-bottom:10px">'+fl('Each invoice line goes to one service (Finance → Rules decides which), then the lines are added up — paid sales only, never top-ups or billing links. Cost is the approved expense split by each service’s share; ⚑ is the flagged estimate where no approved expense has arrived yet. Profit and margin are measured where the cost is known or estimated.',
         'كل بند في الفاتورة يذهب إلى خدمة واحدة (تحدّدها المالية ← القواعد)، ثم تُجمع البنود — المبيعات المدفوعة فقط، لا شحن المحفظة ولا الفواتير التجميعية. التكلفة هي المصروف المعتمد موزّعًا بحصة كل خدمة؛ ⚑ هو التقدير حيث لم يصل مصروف معتمد بعد. الربح والهامش يُقاسان حيث التكلفة معروفة أو مقدّرة.')+'</div>'+
       '<div style="overflow-x:auto"><table data-v24-svc="1" style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:620px"><thead><tr>'+
       th(fl('Service','الخدمة'))+th(fl('Invoices','الفواتير'),1)+th(fl('Revenue','الإيراد'),1)+th(fl('Approved cost','التكلفة المعتمدة'),1)+th(fl('Est. cost ⚑','تكلفة تقديرية ⚑'),1)+th(fl('Profit','الربح'),1)+th(fl('Margin','الهامش'),1)+'</tr></thead><tbody>';
@@ -79,7 +84,9 @@
         '<td style="padding:7px 8px;font-weight:700">'+esc(k)+'</td>'+
         '<td style="padding:7px 8px;text-align:right;color:var(--muted)">'+Object.keys(b._inv).length+'</td>'+
         td(mS(b.rev))+td(mS(b.cost),'color:#B54708')+td(b.est?mS(b.est)+' ⚑':'—','color:#B54708')+
-        td(mS(prof)+(b.est?' ⚑':''),'font-weight:700;color:'+(prof<0?'#B42318':'#0F6E56'))+td(mg==null?'—':mg.toFixed(1)+'%','color:var(--muted)')+'</tr>';
+        /* QA 28 Sep: a service none of whose revenue has a cost (approved, estimated, or commission) says so — never a profit of 0 */
+        (b.revP>0?td(mS(prof)+(b.est?' ⚑':''),'font-weight:700;color:'+(prof<0?'#B42318':'#0F6E56')):td(fl('cost missing','التكلفة ناقصة'),'color:#B54708;font-weight:600').replace('<td ','<td data-v24-cost-missing="1" '))+
+        td(mg==null?'—':mg.toFixed(1)+'%'+(b.revP<b.rev-0.5?' <span style="font-size:10.5px">'+fl('of '+mS(b.revP),'من '+mS(b.revP))+'</span>':''),'color:var(--muted)')+'</tr>';
     });
     var tp=tot.revP-tot.cost-tot.est;
     h+='<tr style="border-top:2px solid var(--line,#ddd);font-weight:800" data-v24-total="1" data-rev="'+tot.rev.toFixed(2)+'"><td style="padding:8px">'+fl('All services','كل الخدمات')+'</td>'+
@@ -96,8 +103,11 @@
     rows.forEach(function(r){ var k=r.service_type||fl('(unspecified)','(غير محدد)'); var b=by[k]=by[k]||{rev:0,cost:0,_inv:{}}; b.cost+=+r.cost_sar||0; b.rev+=+r.revenue_sar||0; b._inv[r.invoice_no]=1; });
     var keys=Object.keys(by).sort(function(a,b){return by[b].rev-by[a].rev;});
     var h='<h3 class="finh" style="margin:0 0 3px">'+fl('Income by service','الدخل حسب الخدمة')+(window.finPeriodLabel?'<i>'+finPeriodLabel()+'</i>':'')+'</h3>'+
-      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:480px"><thead><tr>'+th(fl('Service','الخدمة'))+th(fl('Invoices','الفواتير'),1)+th(fl('Revenue','الإيراد'),1)+th(fl('Approved cost','التكلفة المعتمدة'),1)+'</tr></thead><tbody>';
-    keys.forEach(function(k){ var b=by[k]; h+='<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:7px 8px;font-weight:700">'+esc(window.svcLabel?window.svcLabel(k):k)+'</td><td style="padding:7px 8px;text-align:right;color:var(--muted)">'+Object.keys(b._inv).length+'</td>'+td(mS(b.rev))+td(mS(b.cost),'color:#B54708')+'</tr>'; });
+      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px"><thead><tr>'+th(fl('Service','الخدمة'))+th(fl('Invoices','الفواتير'),1)+th(fl('Revenue','الإيراد'),1)+th(fl('Approved cost','التكلفة المعتمدة'),1)+th(fl('Profit','الربح'),1)+'</tr></thead><tbody>';
+    var T={rev:0,cost:0,inv:{}};
+    keys.forEach(function(k){ var b=by[k]; T.rev+=b.rev; T.cost+=b.cost; Object.keys(b._inv).forEach(function(x){ T.inv[x]=1; });
+      h+='<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:7px 8px;font-weight:700">'+esc(window.svcLabel?window.svcLabel(k):k)+'</td><td style="padding:7px 8px;text-align:right;color:var(--muted)">'+Object.keys(b._inv).length+'</td>'+td(mS(b.rev))+td(mS(b.cost),'color:#B54708')+td(mS(b.rev-b.cost),'font-weight:700;color:'+((b.rev-b.cost)<0?'#B42318':'#0F6E56'))+'</tr>'; });
+    h+='<tr style="border-top:2px solid var(--line,#ddd);font-weight:800"><td style="padding:8px">'+fl('All services','كل الخدمات')+'</td><td style="padding:8px;text-align:right;color:var(--muted)">'+Object.keys(T.inv).length+'</td>'+td(mS(T.rev))+td(mS(T.cost),'color:#B54708')+td(mS(T.rev-T.cost),'color:'+((T.rev-T.cost)<0?'#B42318':'#0F6E56'))+'</tr>';
     return h+'</tbody></table></div>';
   }
   window.renderFinance=function(v){
@@ -105,7 +115,11 @@
     try{
       if(!window.FIN||FIN.tab!=='overview'||!FIN.rows) return;
       var view=document.getElementById('view'); if(!view||view.querySelector('.v32-svc')) return;
-      var h=(FIN.svcBy&&!FIN.svcErr)?byService():byServiceType();
+      /* until a main service exists on Rules (every line would read "no service yet"), the old table is drawn with a line
+         saying where the services are set up — the new table takes over as soon as one is */
+      var _svcSet=false; try{ if(FIN.svcBy&&!FIN.svcErr) Object.keys(FIN.svcBy).some(function(k){ return (FIN.svcBy[k]||[]).some(function(x){ return !!x.service_id; })&&(_svcSet=true); }); }catch(_){}
+      var h=_svcSet?byService():byServiceType();
+      if(h&&!_svcSet&&FIN.svcBy&&!FIN.svcErr) h+='<div data-v24-setup="1" style="margin-top:8px;font-size:12px;color:var(--muted)">'+fl('Set up the main services on Finance → Rules and this table splits every invoice line into one service.','عرّف الخدمات الرئيسية في المالية ← القواعد وسيوزّع هذا الجدول كل بند فاتورة على خدمة واحدة.')+'</div>';
       if(!h) return;
       var card=document.createElement('div'); card.className='card v32-svc'; card.style.cssText='padding:16px;margin-bottom:14px'; card.innerHTML=h;
       place(view,card);
@@ -243,7 +257,7 @@
         var top=used.slice(0,10);
         var th=function(t,r){return '<th style="padding:6px 8px;text-align:'+(r?'right':'left')+';color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap">'+t+'</th>';};
         var h='<h3 class="finh" style="margin:0 0 3px">'+fl('Promo codes (B2B2C)','أكواد الخصم (B2B2C)')+'</h3>'+
-          '<div class="ch-sub" style="margin-bottom:10px">'+fl('Codes given to partner companies — used as B2C but the revenue belongs to the commercial team. Totals for now; per-invoice detail comes with the importer.','أكواد تُمنح للشركات الشريكة — تُستخدم كأفراد لكن إيرادها يخص الفريق التجاري. الإجماليات الآن، وتفاصيل الفواتير مع أداة الاستيراد.')+'</div>'+
+          '<div class="fin-note" style="margin-bottom:10px">'+fl('Codes given to partner companies — used as B2C but the revenue belongs to the commercial team. Totals for now; per-invoice detail comes with the importer.','أكواد تُمنح للشركات الشريكة — تُستخدم كأفراد لكن إيرادها يخص الفريق التجاري. الإجماليات الآن، وتفاصيل الفواتير مع أداة الاستيراد.')+'</div>'+
           '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px">'+
             '<div style="flex:1;min-width:120px"><div style="font-size:11px;color:var(--muted)">'+fl('Codes (used / all)','الأكواد (مستخدمة / الكل)')+'</div><div style="font-size:19px;font-weight:800">'+used.length+' / '+P.length+'</div></div>'+
             '<div style="flex:1;min-width:140px"><div style="font-size:11px;color:var(--muted)">'+fl('Sales through codes','المبيعات عبر الأكواد')+'</div><div style="font-size:19px;font-weight:800;color:#0F6E56">'+m0(sales)+' <span style="font-size:10px;font-weight:400">SAR</span></div></div>'+
@@ -372,7 +386,7 @@
           src.slice(0,CAP).forEach(function(r){
             var t=document.createElement('tr'); t.className='s1-kid';
             t.style.cssText='border-top:1px solid #f7f5f0;background:#FCFBF8';
-            var lbl='<span style="color:var(--muted)">'+ex(r.invoice_date||'')+'</span> · <b>'+ex(r.invoice_no||'—')+'</b> · '+ex(svc(r));
+            var lbl='<span style="color:var(--muted)">'+ex(r.invoice_date||'')+'</span> · <b>'+ex(r.invoice_no||'—')+'</b> · '+ex(svc(r))+((r.transaction_ref&&typeof window.finRebillNote==='function')?(' <span data-fin-rebill="1" style="color:var(--muted)">· '+ex(window.finRebillNote(r))+'</span>'):'');
             t.innerHTML='<td style="padding:5px 8px 5px 42px;font-size:12px">'+lbl+'</td>'+
               (R.mets||[]).map(function(m){
                 return '<td style="padding:5px 8px;text-align:right;font-size:12px;color:#4a5060;font-variant-numeric:tabular-nums">'+

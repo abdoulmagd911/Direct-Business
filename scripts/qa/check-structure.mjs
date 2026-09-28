@@ -255,6 +255,37 @@ try {
   problems.push('personal-number check could not run: ' + e.message);
 }
 
+/* ---- no working password in any file (added 2026-09-28) ----
+   scripts/qa/verify-literal.mjs held the passwords of eleven real accounts, admins included, retyped
+   from chat, in this PUBLIC repository — while CLAUDE.md said "staff passwords are never in this
+   repo". Staff passwords come from the environment (DB_PW_…, scripts/qa/emp-rig.mjs). This fails on
+   a quoted value that looks like a password (letters, digits and one of # $ ! % ^ & * ?) on a line
+   that names a staff address, and on the old "Direct#<City>-2026$…" pattern anywhere. The one
+   exception is the QA login CLAUDE.md publishes on purpose. */
+try {
+  const QA_LOGIN = 'Dq7nTest-2026-Riyadh';
+  const STAFF = /[A-Za-z0-9._%+-]+@(?:directksa\.(?:com|net)|direct-visa\.net)\b/i;
+  const walkPw = (dir, pre) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) =>
+    ['.git', 'node_modules', 'dist'].includes(d.name) ? [] :
+    d.isDirectory() ? walkPw(path.join(dir, d.name), pre + d.name + '/') :
+    (/\.(m?js|ts|html|md|txt|sql|sh|py|json|csv)$/.test(d.name) ? [pre + d.name] : []));
+  const bad = [];
+  for (const f of walkPw(ROOT, '')) {
+    fs.readFileSync(path.join(ROOT, f), 'utf8').split('\n').forEach((l, i) => {
+      const staffLine = STAFF.test(l);
+      for (const m of l.matchAll(/(['"`])([^'"`\s]{8,64})\1/g)) {
+        const s = m[2];
+        if (s === QA_LOGIN || s.includes('@')) continue;
+        const pwLike = /[A-Za-z]/.test(s) && /\d/.test(s) && /[#$!%^&*?]/.test(s);
+        if ((staffLine && pwLike) || /^Direct#[A-Za-z]+-20\d\d\$/.test(s)) bad.push(f + ':' + (i + 1));
+      }
+    });
+  }
+  if (bad.length) problems.push('a password is written into these files (this repository is public — read it from the environment, DB_PW_…): ' + [...new Set(bad)].join(', '));
+} catch (e) {
+  problems.push('password check could not run: ' + e.message);
+}
+
 /* ---- a money document is never served by a permanent public address (added 2026-09-20, #133) ----
    payment-proofs and expenses — the buckets holding proof of real payments and real receipts —
    were marked public AND had a read policy with no condition, so an unauthenticated caller could

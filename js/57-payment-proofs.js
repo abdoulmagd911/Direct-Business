@@ -144,6 +144,12 @@
   function load(cb){
     if(PRX.loading)return; PRX.loading=true;
     var c=client(); if(!c){PRX.loading=false;return;}
+    /* F21 (28 Sep): the payments Direct Payments recorded (payment_receipt rows of the invoice export, js/65) are read beside
+       the proofs and shown read-only — never revenue, never edited here */
+    c.from('payment_receipts').select('id,receipt_ref,payment_method,amount_sar,paid_by,created_at_source,allocations,source').order('created_at_source',{ascending:false}).limit(2000).then(function(rr){
+      PRX.receipts=(rr&&!rr.error&&rr.data)?rr.data:[]; PRX.receiptsErr=(rr&&rr.error)?String(rr.error.message||rr.error):null;
+      try{ if(!PRX.loading&&current==='finance'&&FIN.tab==='proofs') render(); }catch(_){}
+    });
     c.from('proof_documents').select('*').is('deleted_at',null).order('doc_date',{ascending:false}).then(function(r){
       PRX.loading=false;
       PRX.rows=(r&&!r.error&&r.data)?r.data:[];
@@ -357,7 +363,7 @@
 
     var h='<div class="card" style="padding:16px;margin-bottom:14px">'+
       '<h3 class="finh" style="margin:0 0 3px">'+fl('Payment proofs','مستندات الدفع')+'</h3>'+
-      '<div class="ch-sub" style="margin-bottom:12px">'+fl(
+      '<div class="fin-note" style="margin-bottom:12px">'+fl(
         'Bank-transfer and wallet top-up proofs, filed for audits. Nothing here counts toward Revenue, Cost or Profit — wallet top-ups especially are never counted as revenue.',
         'إثباتات التحويل البنكي وتعبئة المحفظة، للتدقيق. لا شيء هنا يُحتسب ضمن الإيراد أو التكلفة أو الربح — وتعبئات المحفظة تحديدًا لا تُحتسب إيرادًا أبدًا.')+'</div>'+
       '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px">'+
@@ -373,6 +379,20 @@
         '<button class="btn sm ghost" onclick="proofDownloadAll()">⬇ '+fl('Download all in view','تنزيل الكل')+'</button>'+
         '<button class="btn sm ghost" onclick="proofCSV()">⬇ '+fl('Export list (CSV)','تصدير القائمة (CSV)')+'</button>'+
       '</div></div>';
+
+    /* F21: what Direct Payments recorded as paid — read-only, from the invoice import; the month filter applies */
+    (function(){
+      var R=(PRX.receipts||[]).filter(function(x){ var d=(x.created_at_source&&typeof dayRiyadh==='function')?dayRiyadh(x.created_at_source).slice(0,7):''; return PRX.month==='all'||!PRX.month||d===PRX.month; });
+      var tot=R.reduce(function(a,x){ return a+(+x.amount_sar||0); },0);
+      h+='<div class="card" data-proof-receipts="'+R.length+'" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 3px;font-size:14px">'+fl('Payments recorded in Direct Payments','المدفوعات المسجّلة في «المدفوعات»')+'</h3>'+
+        '<div class="fin-note" style="margin-bottom:8px">'+fl('From the invoice export’s payment receipts — read-only, as Payments recorded them. Never revenue; a proof file can be filed below.','من إيصالات الدفع في تصدير الفواتير — للقراءة فقط كما سجّلها النظام. ليست إيرادًا؛ ويمكن إرفاق مستند أدناه.')+'</div>'+
+        (PRX.receiptsErr?'<div style="color:#B42318;font-size:12.5px">'+fl('Could not be read: ','تعذّرت القراءة: ')+esc(PRX.receiptsErr)+'</div>':
+         !R.length?'<div class="empty" style="padding:4px 0;font-size:12.5px">'+fl('None in view — they arrive with the next invoice import.','لا شيء معروض — تصل مع استيراد الفواتير القادم.')+'</div>':
+         '<div style="overflow-x:auto;max-height:340px"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:720px"><thead><tr>'+
+           [fl('Date','التاريخ'),fl('Invoice #','رقم الفاتورة'),fl('Method','طريقة الدفع'),fl('Ref at method','المرجع لدى الطريقة'),fl('Paid by','دفعها'),fl('Amount','المبلغ')].map(function(t,i){ return '<th style="padding:6px 8px;text-align:'+(i===5?'end':'start')+';color:var(--muted);font-size:11px;white-space:nowrap">'+t+'</th>'; }).join('')+'</tr></thead><tbody>'+
+           R.map(function(x){ var a=(x.allocations&&x.allocations[0])||{}; return '<tr style="border-top:1px solid var(--line,#eee)"><td style="padding:6px 8px;white-space:nowrap">'+esc((x.created_at_source&&typeof dayRiyadh==='function')?dayRiyadh(x.created_at_source):'')+'</td><td style="padding:6px 8px">'+esc(a.invoice_no||'')+'</td><td style="padding:6px 8px">'+esc(x.payment_method||'—')+'</td><td style="padding:6px 8px">'+esc(a.ref_at_method||'—')+'</td><td style="padding:6px 8px">'+esc(x.paid_by||'—')+'</td><td style="padding:6px 8px;text-align:end;font-variant-numeric:tabular-nums">'+(typeof money0==='function'?money0(x.amount_sar):x.amount_sar)+'</td></tr>'; }).join('')+
+           '</tbody><tfoot><tr style="font-weight:700;border-top:2px solid var(--line,#ddd)"><td style="padding:6px 8px" colspan="5">'+fl('Total','الإجمالي')+' · '+R.length+'</td><td style="padding:6px 8px;text-align:end">'+(typeof money0==='function'?money0(tot):tot)+'</td></tr></tfoot></table></div>')+'</div>';
+    })();
 
     if(canAdd()){
       h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 10px;font-size:14px">'+fl('Add a payment proof','إضافة مستند دفع')+'</h3>'+

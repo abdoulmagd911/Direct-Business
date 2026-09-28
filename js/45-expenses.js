@@ -258,7 +258,7 @@
 
     var h='<div class="card" style="padding:16px;margin-bottom:14px">'+
       '<h3 class="finh" style="margin:0 0 3px">'+fl('Expenses','المصروفات')+'</h3>'+
-      '<div class="ch-sub" style="margin-bottom:12px">'+fl(
+      '<div class="fin-note" style="margin-bottom:12px">'+fl(
         'What we actually paid out for the services we resell — the hotel, the activity, the visa. This is a record only: it never changes an invoice’s cost or profit.',
         'ما دفعناه فعليًا مقابل الخدمات التي نبيعها — الفندق، النشاط، التأشيرة. هذا سجل فقط ولا يغيّر تكلفة أو ربح أي فاتورة.')+'</div>'+
       '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px">'+

@@ -325,7 +325,7 @@
   // whose ONLY real change is a newly-attached tax code (nothing else differing) would report
   // as "unchanged" and silently never get its tax code written at all.
   var CMP_FIELDS=['total_incl_vat_sar','integrity_status','amount_received_sar','amount_remaining_sar','revenue_sar','cost_sar','zatca_dpin','invoice_date',
-    /* D1: a change in any of these is an update too */ 'payments_status','paid_at','row_kind','audit_required','wallet_portion_sar','tax_invoice_date','invoice_created_on','customer_email'];
+    /* D1: a change in any of these is an update too */ 'payments_status','paid_at','row_kind','audit_required','wallet_portion_sar','tax_invoice_date','invoice_created_on','customer_email','transaction_date'];
   // M13, 2026-08-25 — real live bug: `year` on finance_invoices is `GENERATED ALWAYS AS
   // (EXTRACT(year FROM invoice_date))::integer STORED` (verified against the live schema, not
   // guessed) — Postgres refuses ANY statement that assigns it explicitly, even a matching value,
@@ -348,7 +348,9 @@
     /* D1 (2026-09-28): Payments' status and dates, the row kind, the audit flag, the email that links a client. vat_sar is
        gone (D18 — never written), and profit is the database's (revenue − cost), so neither is sent. */
     'row_kind','payments_status','payments_status_at','paid_at','tax_invoice_date','invoice_created_on','audit_required',
-    'customer_email','billed_by_ref','source'];
+    'customer_email','billed_by_ref','source',
+    /* D26: the re-billed transaction's own date on a merged pair (js/41 twin pairing); the database fills it only when empty */
+    'transaction_date'];
   function pickWritable(row,forUpdate){
     var out={};
     WRITABLE_INVOICE_FIELDS.forEach(function(f){
@@ -366,6 +368,8 @@
       /* D1 sweep: a field the file leaves blank is never sent (an update fills, never wipes — pickWritable), so it is not a
          change either; counting it made every re-drop of an unchanged file read "N updated" */
       if(b===null||b===undefined||b==='') return false;
+      /* D26: fill-only, and only once the column exists (a deploy before its migration must not call every pair "updated") */
+      if(f==='transaction_date'&&(!Object.prototype.hasOwnProperty.call(oldR,f)||(a!=null&&a!==''))) return false;
       if(typeof a==='number'||typeof b==='number') return Math.abs((Number(a)||0)-(Number(b)||0))>0.01;
       return String(a==null?'':a)!==String(b==null?'':b);
     });
@@ -432,7 +436,9 @@
       if(ex&&ex.source==='manual'){ state.manualKept.push(r.invoice_no); return; }
       if(r.row_kind==='wallet_topup') state.d1.topups++;
       if(r.audit_required) state.d1.audit++;
-      if(r.integrity_status!=='verified_paid'&&r.row_kind!=='wallet_topup'){ var ps=r.payments_status||'—'; state.d1.unpaid[ps]=(state.d1.unpaid[ps]||0)+1; }
+      /* defect (a), 28 Sep: a credit note carries Payments' "Fully Paid" and was listed under "Not paid yet" — it has its own line */
+      if(r.row_kind==='credit_note'){ state.d1.credit=(state.d1.credit||0)+1; }
+      else if(r.integrity_status!=='verified_paid'&&r.row_kind!=='wallet_topup'){ var ps=r.payments_status||'—'; state.d1.unpaid[ps]=(state.d1.unpaid[ps]||0)+1; }
       if(r._lines&&r._lines.length) state.itemLines=state.itemLines.concat(r._lines);
       /* 2026-09-28 (D1 sweep): the same invoice twice in one file (two export runs pasted together) was two inserts of one
          (invoice_no, line_no) — the database refuses the pair, and with it the whole import. One row per invoice: the newer
@@ -451,7 +457,7 @@
       excludedDetail:state.excludedDetail,
       hasClientColumn:hasClientColumn,
       pendingInsert:state.isNew, pendingUpdate:state.updated,
-      itemLines:state.itemLines||[], manualKept:state.manualKept||[], d1:state.d1||null
+      itemLines:state.itemLines||[], manualKept:state.manualKept||[], d1:state.d1||null, receipts:state.receipts||[]
     };
   }
 
@@ -465,10 +471,16 @@
     // parseDP() resets its wallet/verif/clientExcluded counters at the START of every call
     // (see js/41) — each batch's counts must be ADDED to the running total, never overwrite it.
     var xc=exclusions?exclusions():{wallet:0,verif:0,clientExcluded:0,clientExcludedDetail:[]};
-    state.excludedByRule+=xc.wallet+xc.verif+xc.clientExcluded;
+    /* Defect (b), 28 Sep: "Excluded by rule" counts only rows that are NOT written, each with its reason. A row an exclusion
+       rule flags is still imported (the view leaves it out of the totals) — it is on its own "Left out by a rule" line, and
+       adding it here too made the preview say "Excluded 122" beside a result that said "Left out by a rule: none". */
+    state.receipts=(state.receipts||[]).concat(xc.receipts||[]);   // F21
+    state.excludedByRule+=xc.wallet+xc.verif;
+    (xc.verifRefs||[]).forEach(function(ref){ state.excludedDetail.costCaptureDetail.push({invoice_no:ref,reason:fl('a verification service (Techtic / Takamol support) — accounted for in another system, never imported here','خدمة تحقق (تكتك / دعم تكامل) — تُحتسب في نظام آخر ولا تُستورد هنا')}); });
     state.excludedDetail.wallet+=xc.wallet; state.excludedDetail.verif+=xc.verif; state.excludedDetail.clientExcluded+=xc.clientExcluded;
     state.excludedDetail.clientExcludedDetail=state.excludedDetail.clientExcludedDetail.concat(xc.clientExcludedDetail||[]);
-    if(state.d1&&xc.unknownStatus&&xc.unknownStatus.length){ state.d1.unknown=state.d1.unknown.concat(xc.unknownStatus); state.excludedByRule+=xc.unknownStatus.length; }
+    if(state.d1&&xc.unknownStatus&&xc.unknownStatus.length){ state.d1.unknown=state.d1.unknown.concat(xc.unknownStatus); state.excludedByRule+=xc.unknownStatus.length;
+      xc.unknownStatus.forEach(function(u){ state.excludedDetail.costCaptureDetail.push({invoice_no:u.ref,reason:fl('status "','الحالة «')+u.status+fl('" is not named yet — held for a person','» غير مسمّاة بعد — محجوزة لشخص')}); }); }
     mergeRowsIntoState(toRows(parsed), state);
   }
 
@@ -968,7 +980,7 @@
         '<select id="v65t_'+f.key+'">'+optsHtml+'</select></div>';
     }).join('');
     openModal(fl('Teach this file’s columns','عيّن أعمدة هذا الملف'),
-      '<div class="ch-sub">'+fl('Match each field to one of this file\u2019s columns, once. Saved and reused automatically for every future file with these exact columns — never asked again for this shape. Fields left "not present" import as pending / not yet reconciled, never a guessed amount.','طابق كل حقل مع أحد أعمدة هذا الملف، مرة واحدة. يُحفظ ويُستخدم تلقائيًا مع كل ملف مستقبلي بنفس هذه الأعمدة — لن يُطلب منك ذلك مجددًا لهذا الشكل. الحقول التي تُترك "غير موجود" تُستورد كمعلّقة/غير مُسواة، وليست مبلغًا مُخمَّنًا.')+'</div>'+
+      '<div class="fin-note">'+fl('Match each field to one of this file\u2019s columns, once. Saved and reused automatically for every future file with these exact columns — never asked again for this shape. Fields left "not present" import as pending / not yet reconciled, never a guessed amount.','طابق كل حقل مع أحد أعمدة هذا الملف، مرة واحدة. يُحفظ ويُستخدم تلقائيًا مع كل ملف مستقبلي بنفس هذه الأعمدة — لن يُطلب منك ذلك مجددًا لهذا الشكل. الحقول التي تُترك "غير موجود" تُستورد كمعلّقة/غير مُسواة، وليست مبلغًا مُخمَّنًا.')+'</div>'+
       '<div class="grid2">'+fieldsHtml+'</div>',
       function(){
         var mapping={}, missing=[];
@@ -1292,6 +1304,7 @@
     var d=r.d1, parts=[];
     if(d){
       if(d.topups) parts.push(fl('Wallet top-ups (stored, never revenue): ','تعبئة المحفظة (تُخزَّن ولا تُحتسب إيرادًا): ')+'<b>'+d.topups+'</b>');
+      if(d.credit) parts.push(fl('Credit notes (stored, shown on their own): ','إشعارات دائنة (تُخزَّن وتُعرض وحدها): ')+'<b>'+d.credit+'</b>');
       var up=Object.keys(d.unpaid||{}); if(up.length) parts.push(fl('Not paid yet (stored, not counted): ','غير مدفوعة بعد (تُخزَّن ولا تُحتسب): ')+up.map(function(k){ return esc(k)+' <b>'+d.unpaid[k]+'</b>'; }).join(', '));
       if(d.audit) parts.push(fl('"Fully Paid (Audit Required)" — counted, flagged: ','«مدفوعة بالكامل (تتطلب تدقيقًا)» — تُحتسب وتُعلَّم: ')+'<b>'+d.audit+'</b>');
       if(d.unknown&&d.unknown.length) parts.push('<span style="color:#B42318">'+fl('Held back — a status the app does not know (a person decides): ','محجوزة — حالة لا يعرفها التطبيق (يقرر شخص): ')+
@@ -1446,6 +1459,7 @@
         '</div>'+
         (r.joinNote?('<div style="font-size:11.5px;color:#B54708;margin-top:4px">'+esc(r.joinNote)+'</div>'):'')+
         d1Line(r)+
+        ((r.receipts&&r.receipts.length)?('<div data-v65-receipts-preview="'+r.receipts.length+'" style="font-size:12px;color:var(--muted);margin-top:4px">'+fl('Payment receipts in the file: ','إيصالات الدفع في الملف: ')+'<b>'+r.receipts.length+'</b> — '+fl('kept as recorded, shown on Payment proofs; never revenue.','تُحفظ كما سُجّلت وتظهر في إثباتات الدفع؛ ليست إيرادًا أبدًا.')+'</div>'):'')+
       '</div>';
     }).join('');
 
@@ -1592,6 +1606,21 @@
     });
     return out;
   }
+  /* F21 (28 Sep, the oversight): each payment_receipt row of the invoice export is kept in payment_receipts — method,
+     amount allocated, the reference at the payment method, who paid, notes, date — keyed so the same file twice changes
+     nothing (upsert on receipt_ref). Read-only on Payment proofs (js/57); never counted as revenue. */
+  function receiptRef(x){ return ['DP',x.invoice_no,x.ref_at_method||'',x.date||'',x.amount==null?'':Number(x.amount).toFixed(2),x.method||''].join('|'); }
+  function v65SaveReceipts(list,cb){
+    try{
+      var seen={}, rows=[];
+      list.forEach(function(x){ var k=receiptRef(x); if(seen[k]||x.amount==null) return; seen[k]=1;
+        rows.push({receipt_ref:k, payment_method:x.method, amount_sar:x.amount, paid_by:x.paid_by, status:'recorded',
+          created_at_source:x.date?(x.date+'T00:00:00+03:00'):null, allocations:[{invoice_no:x.invoice_no,amount_sar:x.amount,ref_at_method:x.ref_at_method,notes:x.notes}], source:'invoice_export'}); });
+      if(!rows.length){ cb(0); return; }
+      var c=fc(); if(!c){ cb(0,'not connected'); return; }
+      c.from('payment_receipts').upsert(rows,{onConflict:'receipt_ref'}).select('id').then(function(r){ if(r.error) cb(0,String(r.error.message||r.error)); else cb((r.data||[]).length); },function(e){ cb(0,String((e&&e.message)||e)); });
+    }catch(e){ cb(0,String(e&&e.message||e)); }
+  }
   window.v65Commit=function(){
     /* 2026-09-02: the Import tab already refuses to render for a non-editor, but the commit
        itself writes every invoice in the batch — guard the function too, so a stale tab (or a
@@ -1605,7 +1634,8 @@
     if(!FILES_STATE)return;
     var toInsert=[],toUpdate=[];
     var itemLines=[];
-    FILES_STATE.forEach(function(r){ if(!r.recognized)return; toInsert=toInsert.concat(r.pendingInsert||[]); toUpdate=toUpdate.concat(r.pendingUpdate||[]); itemLines=itemLines.concat(r.itemLines||[]); });
+    var receipts=[];
+    FILES_STATE.forEach(function(r){ if(!r.recognized)return; toInsert=toInsert.concat(r.pendingInsert||[]); toUpdate=toUpdate.concat(r.pendingUpdate||[]); itemLines=itemLines.concat(r.itemLines||[]); receipts=receipts.concat(r.receipts||[]); });
     /* D1 sweep: two overlapping files dropped together both call the same invoice "new" — one insert, not two (see mergeNew) */
     toInsert=dedupeNew(toInsert); itemLines=dedupeLines(itemLines);
     var linked=applyBillingLinks(toInsert,toUpdate);   // D1: only what a person ticked
@@ -1661,6 +1691,7 @@
       paintDone(msg);
       /* E (2026-09-27): what the rules made of this import, read back from the one view (js/117) */
       if(!failed&&typeof window.v117ImportSummary==='function'){ try{ window.v117ImportSummary(toInsert.concat(toUpdate).map(function(x){return x&&x.invoice_no;}).filter(Boolean)); }catch(_){} }
+      if(!failed&&receipts.length) v65SaveReceipts(receipts,function(n,err){ try{ var o=document.getElementById('finImpOut'); if(o) o.insertAdjacentHTML('beforeend','<div data-v65-receipts="'+n+'" style="font-size:12.5px;color:'+(err?'#B42318':'#0F6E56')+';margin-top:4px">'+(err?fl('Payment receipts were NOT saved: ','لم تُحفظ إيصالات الدفع: ')+esc(err):(fl('Payment receipts kept: ','إيصالات الدفع المحفوظة: ')+n+' '+fl('(shown on Payment proofs)','(تظهر في إثباتات الدفع)')))+'</div>'); }catch(_){} });
       FIN.rows=null; finLoad();
     });
     };

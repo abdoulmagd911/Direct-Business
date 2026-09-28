@@ -69,7 +69,7 @@ async function main() {
   ];
   for (const cfg of configs) {
     const label = `${cfg.g1}${cfg.g2 ? '›' + cfg.g2 : ''} · ${Object.keys(cfg.metrics).join('+')} · ${cfg.verifiedOnly ? 'verified' : 'all'} · ${cfg.quarter}`;
-    await p.evaluate((cfg) => { FIN.rb = { g1: cfg.g1, g2: cfg.g2, quarter: cfg.quarter, verifiedOnly: cfg.verifiedOnly, metrics: Object.assign({}, cfg.metrics) }; if (window.finGo) finGo('reports'); else render(); }, cfg);
+    await p.evaluate((cfg) => { FIN.p = { year: 'all', part: 'all', sector: 'all' }; FIN.rb = { g1: cfg.g1, g2: cfg.g2, quarter: cfg.quarter, verifiedOnly: cfg.verifiedOnly, metrics: Object.assign({}, cfg.metrics) }; if (window.finGo) finGo('reports'); else render(); }, cfg);
     await settle();
     const r = await p.evaluate(() => {
       const R = FIN._lastReport; if (!R) return null;
@@ -134,14 +134,14 @@ async function main() {
   }
 
   // R4: injection rendered as text, no element created, no handler fired
-  await p.evaluate(() => { FIN.rb = { g1: '__client', g2: '', quarter: 'all', verifiedOnly: false, metrics: { revenue_sar: true } }; if (window.finGo) finGo('reports'); else render(); });
+  await p.evaluate(() => { FIN.p = { year: 'all', part: 'all', sector: 'all' }; FIN.rb = { g1: '__client', g2: '', quarter: 'all', verifiedOnly: false, metrics: { revenue_sar: true } }; if (window.finGo) finGo('reports'); else render(); });
   await settle();
   const xss = await p.evaluate(() => ({ pwned: !!window.__pwned, imgs: document.querySelectorAll('#view img[src="x"]').length, textShown: document.querySelector('#view').textContent.includes('<img src=x onerror='), rowAttr: !!document.querySelector('#view tr[data-rbk*="Evil Co"]') }));
   if (!xss.pwned && xss.imgs === 0 && xss.textShown) ok('R4: hostile client_group renders as literal text — no element created, no handler fired'); else fail('R4: injection not neutralised: ' + JSON.stringify(xss));
   // R5: null quarter never becomes a dropdown option; the row still groups under "—"
   const r5 = await p.evaluate(() => { const sel = [...document.querySelectorAll('#view select')].find(s => [...s.options].some(o => o.value === 'all' && /periods|الفترات/i.test(o.textContent))); const opts = sel ? [...sel.options].map(o => o.value) : []; return { opts, bogus: opts.filter(v => /^(null|undefined|)$/.test(v)), dash: !!(FIN._lastReport && (FIN.rb.g1 === '__client')) }; });
   if (!r5.bogus.length && r5.opts.length > 1) ok(`R5: period dropdown has no null/undefined option (${r5.opts.length} options)`); else fail('R5: bogus period option: ' + JSON.stringify(r5));
-  await p.evaluate(() => { FIN.rb = { g1: 'quarter', g2: '', quarter: 'all', verifiedOnly: false, metrics: { revenue_sar: true } }; if (window.finGo) finGo('reports'); else render(); });
+  await p.evaluate(() => { FIN.p = { year: 'all', part: 'all', sector: 'all' }; FIN.rb = { g1: 'quarter', g2: '', quarter: 'all', verifiedOnly: false, metrics: { revenue_sar: true } }; if (window.finGo) finGo('reports'); else render(); });
   await settle();
   const nullGroup = await p.evaluate(() => { const R = FIN._lastReport; const k = R.keys.find(k => k === '—'); return k ? R.g[k].__rows.map(r => r.invoice_no) : null; });
   if (nullGroup && nullGroup.includes('RB-NULLQ-1')) ok('R5: the null-quarter row groups under "—" and stays in the totals'); else fail('R5: null-quarter row lost from the quarter grouping: ' + JSON.stringify(nullGroup));

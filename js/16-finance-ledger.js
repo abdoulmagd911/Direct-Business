@@ -14,6 +14,11 @@
    The 713 lines that follow are the same bytes that were serving the live Finance page.
    ===== v42 layer: FINANCE — master invoice ledger + report builder + import ===== */
 (function(){try{
+/* 2026-09-28 (oversight): Finance's helper lines must be SEEN. index.html hides every `.card .ch-sub` on purpose (v47
+   declutter), which silently swallowed every explanation on the Finance cards — the Rules intros, the chase basis, the
+   plan note, the import mapping hint. Finance's layers write class "fin-note" instead, styled like ch-sub and never hidden. */
+try{ if(!document.getElementById('fin-note-css')){ var _fn=document.createElement('style'); _fn.id='fin-note-css';
+  _fn.textContent='.fin-note{color:var(--muted);font-size:12px;margin-bottom:16px;line-height:1.5}'; (document.head||document.documentElement).appendChild(_fn); } }catch(_){}
 var SUPA_URL='https://vkxoeeoauexyfpzqufqd.supabase.co';
 var SUPA_KEY='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
 var sbF=null;
@@ -463,7 +468,7 @@ function finCostCell(x){
   var pt=(m.pass_through_sar!=null&&+m.pass_through_sar>0)?'<div style="font-size:10.5px;color:var(--muted);font-weight:400" data-fin-passthrough="'+Math.round(+m.pass_through_sar)+'">'+(ar?'مارّ على الفاتورة: ':'pass-through on the invoice: ')+money0(+m.pass_through_sar)+'</div>':'';
   /* D23 (owner, 28 Sep): with no approved expense yet, the pass-through on the invoice's own lines stands in as a FLAGGED
      ESTIMATE (money_rows.est_cost_sar) — shown as "est.", never as the cost; an approved expense replaces it by arriving */
-  if(finCostMissing(x) && m.cost_estimated && +m.est_cost_sar>0) return '<span style="color:#B54708" data-fin-cost-estimated="'+Math.round(+m.est_cost_sar)+'" title="'+(ar?'تقدير من البنود المارّة على الفاتورة — ليست مصروفات معتمدة':'Estimate from the pass-through lines on the invoice — not an approved expense')+'">'+(ar?'تقدير: ':'est. ')+money(+m.est_cost_sar)+' ⚑</span>';
+  if(finEstOf(x)>0) return '<span style="color:#B54708" data-fin-cost-estimated="'+Math.round(+m.est_cost_sar)+'" title="'+(ar?'تقدير من البنود المارّة على الفاتورة — ليست مصروفات معتمدة':'Estimate from the pass-through lines on the invoice — not an approved expense')+'">'+(ar?'تقدير: ':'est. ')+money(+m.est_cost_sar)+' ⚑</span>';
   if(finCostMissing(x)) return '<span style="color:#B54708" data-fin-cost-awaited="1" title="'+(ar?'بانتظار المصروفات المعتمدة':'Waiting for approved expenses')+'">'+(ar?'بانتظار التكلفة':'awaited')+'</span>'+pt;
   return money(x.cost_sar==null?0:x.cost_sar)+pt;
 }
@@ -472,11 +477,19 @@ try{ window.finCostCell=finCostCell; }catch(_){}
    approved expense, the pass-through on their lines (the item names classed on Finance → Rules) is the flagged estimate.
    The Cost and Profit cards above stay approved expenses only; this band says what they would read with the estimates.
    Empty (nothing drawn) when no invoice in view carries an estimate. */
+/* QA on live, 28 Sep: the band said "estimated cost 4.15M on 217 of 271" while Income by service said 2.87M. The band added
+   every PAID row in the period — billing links (zero revenue, but the same item lines as the transactions they re-bill) and
+   wallet top-ups too — so the same pass-through was counted twice. ONE rule now, used by the band, the tiles, the cost cell
+   and Income by service: a row's estimate is its pass-through only when the row COUNTS (a paid sale, not excluded — the
+   database's money_rows.counts) and has no approved cost yet. */
+function finCounts(r){ var m=r&&FIN.m&&FIN.m[r.id]; return m?!!m.counts:(r&&r.integrity_status==='verified_paid'&&(r.row_kind||'sale')==='sale'); }
+function finEstOf(r){ if(!r||!finCounts(r)||!finCostMissing(r)) return 0; var m=(FIN.m&&FIN.m[r.id])||{}; return (m.cost_estimated&&+m.est_cost_sar>0)?(+m.est_cost_sar):0; }
+try{ window.finCounts=finCounts; window.finEstOf=finEstOf; }catch(_){}
 function finEstimateBand(V,cost,prof){
   try{
     var ar=(typeof LANG!=='undefined'&&LANG==='ar'), est=0, n=0, revE=0, wait=0;
-    (V||[]).forEach(function(r){ if(!finCostMissing(r)) return; wait++; var m=(FIN.m&&FIN.m[r.id])||{};
-      if(m.cost_estimated && +m.est_cost_sar>0){ est+=+m.est_cost_sar; revE+=+r.revenue_sar||0; n++; } });
+    (V||[]).forEach(function(r){ if(!finCounts(r)||!finCostMissing(r)) return; wait++; var e=finEstOf(r);
+      if(e>0){ est+=e; revE+=+r.revenue_sar||0; n++; } });
     if(!n) return '';
     est=Math.round(est*100)/100; revE=Math.round(revE*100)/100;
     var withCost=Math.round(((+cost||0)+est)*100)/100, withProf=Math.round(((+prof||0)+revE-est)*100)/100;
@@ -734,6 +747,15 @@ window.finLedgerCSV=function(){
   var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='direct-finance-'+todayISO()+'.csv';a.click();
 };
 try{window.finInPeriod=finInPeriod;window.finPeriodLabel=finPeriodLabel;}catch(_){}
+/* D26 (oversight, 28 Sep): a merged one-to-one pair — a numbered billing invoice and the transaction it re-bills — counts in
+   the billing invoice's month, so a Q3 row can carry an April sale. Both dates are shown so a reader sees why. */
+function finRebillNote(r){
+  if(!r||!r.transaction_ref) return '';
+  var d=r.transaction_date?String(r.transaction_date).slice(0,10):'';
+  return isArF()?('يعيد فوترة المعاملة '+r.transaction_ref+(d?(' بتاريخ '+d):''))
+                :('re-bills transaction '+r.transaction_ref+(d?(' of '+d):''));
+}
+try{window.finRebillNote=finRebillNote;}catch(_){}
 
 /* --- Canonical client rollup (v54) ---------------------------------------------------
    A finance invoice carries a raw `client_group` name (however it was typed in Direct
@@ -1169,7 +1191,7 @@ function rFinClients(){
      to be able to read it exactly, not to stop being able to read it at a glance. */
   var _exact=function(val){ return finExactUnder(val); };   // one definition of the rule, hoisted in cycle 50
 
-  var _agc=function(lbl,val){return '<div style="flex:1;min-width:90px;background:#F9FAFB;border-radius:8px;padding:8px 10px"><div style="font-size:10.5px;color:var(--muted)">'+lbl+'</div><div style="font-weight:800;font-size:14px">'+money0(val)+' <span style="font-size:9px;font-weight:400">SAR</span>'+_exact(val)+'</div></div>';};
+  var _agc=function(lbl,val){return '<div style="flex:1;min-width:90px;background:#F9FAFB;border-radius:8px;padding:8px 10px"><div style="font-size:10.5px;color:var(--muted)">'+lbl+'</div><div style="font-weight:800;font-size:14px">'+moneyS(val)+' <span style="font-size:9px;font-weight:400">SAR</span>'+_exact(val)+'</div></div>';};
   h+='<div class="card" style="padding:16px;margin-bottom:14px"><h3 class="finh" style="margin:0 0 10px">'+_fl('Collections & ageing','التحصيل والتقادم')+'</h3>'+
      (_noUnpaidData
        ? ('<div style="font-size:12.5px;color:var(--muted)">'+_fl('Not tracked yet — only paid invoices are imported, so nothing here can show as unpaid.','لم يُتتبَّع بعد — لا تُستورد إلا الفواتير المدفوعة، لذا لا يظهر أي مبلغ غير محصَّل.')+'</div>')
@@ -1286,19 +1308,25 @@ function rOverview(){
 
   /* Punch list B3 (28 Sep): with invoices still waiting for their cost, Profit is measured over the invoices whose cost is
      known only — the tile says so, with the count, instead of a Profit beside a Cost that reads 0 */
-  var _nKnown=0,_nWait=0; V.forEach(function(r){ if(finCostMissing(r))_nWait++; else _nKnown++; });
-  var _profLbl=_nWait?(isArF()?('الربح — على '+_nKnown+' فاتورة تكلفتها معروفة'):('Profit — on the '+_nKnown+' invoices with known cost')):(isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit');
-  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708'],[_profLbl,prof,'#175CD3'],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a (\u0645\u0641\u0648\u062a\u0631)':'Outstanding (invoiced)',rem,rem>0?'#D92D20':'#667085'],[isArF()?'فواتير مدفوعة (في الفترة)':'Paid invoices (in period)',invCount,'#1C1E2B']];
+  var _nKnown=0,_nWait=0; V.forEach(function(r){ if(!finCounts(r)) return; if(finCostMissing(r))_nWait++; else _nKnown++; });
+  var _profNote=_nWait?(isArF()?('على '+_nKnown+' فاتورة تكلفتها معروفة'):('on the '+_nKnown+' invoices with known cost')):'';
+  /* QA 28 Sep: a Cost of "0" beside a Profit "on 42 invoices" read as a contradiction. The Cost tile stays approved expenses
+     only, and says under it what is still an estimate (finEstOf — the same figure as the band and Income by service); the
+     Profit tile says what it reads with the estimates. */
+  var _estT=0,_estN=0,_revE=0,_revK=0; V.forEach(function(r){ if(!finCounts(r)) return; var e=finEstOf(r); if(e>0){ _estT+=e; _estN++; _revE+=+r.revenue_sar||0; } else if(!finCostMissing(r)) _revK+=+r.revenue_sar||0; });
+  var _costNote=_estT>0?(isArF()?('معتمدة · + تقدير '+money0(_estT)+' ⚑ على '+_estN+' فاتورة'):('approved · + est. '+money0(_estT)+' ⚑ on '+_estN+' invoices')):(_nWait?(isArF()?('معتمدة · '+_nWait+' فاتورة بانتظار التكلفة'):('approved · '+_nWait+' invoices awaiting cost')):'');
+  if(_estT>0){ var _wp=(+prof||0)+_revE-_estT, _wr=_revK+_revE;   /* margin over the revenue whose cost is known or estimated, as Income by service */ _profNote+=(_profNote?' · ':'')+(isArF()?('مع التقديرات: '+money0(_wp)):('with estimates: '+money0(_wp)))+(_wr>0?(' ('+(100*_wp/_wr).toFixed(1)+'%)'):''); }
+  var cards=[[isArF()?'\u0627\u0644\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue',rev,'#0F6E56'],[isArF()?'\u0627\u0644\u062a\u0643\u0644\u0641\u0629':'Cost',cost,'#B54708',_costNote],[isArF()?'\u0627\u0644\u0631\u0628\u062d':'Profit',prof,'#175CD3',_profNote],[isArF()?'\u0627\u0644\u0645\u062d\u0635\u0651\u0644':'Received',rec,'#0F6E56'],[isArF()?'\u0627\u0644\u0645\u062a\u0628\u0642\u064a (\u0645\u0641\u0648\u062a\u0631)':'Outstanding (invoiced)',rem,rem>0?'#D92D20':'#667085'],[isArF()?'\u0639\u062f\u062f \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631':'Invoices',invCount,'#1C1E2B',(isArF()?'مدفوعة · في هذه الفترة':'paid · in this period')]];
   h+='<h3 class="finh">'+(isArF()?'\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u0623\u062f\u0627\u0621 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629':'Key indicators')+'<i>'+finPeriodLabel()+' \u00b7 '+(isArF()?'\u0641\u0639\u0644\u064a \u2014 \u0645\u0646 \u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631 \u0627\u0644\u0645\u062f\u0642\u0642\u0629':'actual \u2014 from verified invoices')+'</i></h3>';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-bottom:14px">'+cards.map(function(c,i){
-    return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+(i===cards.length-1?'':finExactUnder(c[1]))+'</div></div>';
+    return '<div class="card" style="padding:14px 16px;border-top:3px solid '+c[2]+'"><div style="font-size:11px;color:var(--muted)">'+c[0]+'</div><div style="font-size:'+(i===cards.length-1?'22px':'19px')+';font-weight:800;color:'+c[2]+'" title="'+(i===cards.length-1?'':money(c[1])+' SAR')+'">'+(i===cards.length-1?c[1]:moneyS(c[1]))+(i===cards.length-1?'':' <span style="font-size:10px;font-weight:400">SAR</span>')+(i===cards.length-1?'':finExactUnder(c[1]))+'</div>'+(c[3]?'<div data-fin-tile-note="1" style="font-size:10.5px;color:var(--muted);margin-top:2px">'+c[3]+'</div>':'')+'</div>';
   }).join('')+'</div>';
   h+=finEstimateBand(V,cost,prof);
   /* Punch list B4 (28 Sep): Received counts every paid invoice's money, Revenue only sales — say what the difference is */
   (function(){ try{
     var tu=0,bl=0,ntu=0,nbl=0; V.forEach(function(r){ var k=r.row_kind||'sale'; if(k==='wallet_topup'){tu+=+r.amount_received_sar||0;ntu++;} else if(k==='billing_link'){bl+=+r.amount_received_sar||0;nbl++;} });
     if(!ntu&&!nbl) return;
-    h+='<div class="ch-sub" data-fin-received-split="1" style="margin:-6px 0 14px;font-size:12px;color:var(--muted)">'+(isArF()
+    h+='<div data-fin-received-split="1" style="margin:-6px 0 14px;font-size:12px;color:var(--muted)">'+(isArF()
       ?('«المحصّل» يشمل '+money0(tu)+' ريال شحن محفظة ('+ntu+') و'+money0(bl)+' ريال فواتير تجميعية ('+nbl+') تعيد فوترة معاملات محسوبة — وهذه ليست إيرادات.')
       :('Received includes '+money0(tu)+' SAR of wallet top-ups ('+ntu+') and '+money0(bl)+' SAR of billing invoices ('+nbl+') that re-bill transactions already counted — neither is revenue.'))+'</div>';
   }catch(_){} })();
@@ -1467,11 +1495,11 @@ function rOverview(){
           : ('<div style="flex:2;min-width:180px"><div style="font-size:11px;color:var(--muted)">'+(isArF()?'نسبة تحقق المتوقع':'Of expected achieved')+' · '+_attT+'%'+(_attT>100?(isArF()?' · فوق الخطة ✓':' · above plan ✓'):'')+'</div><div style="background:#EEF0F5;border-radius:8px;height:14px;margin-top:8px;overflow:hidden"><div style="height:100%;width:'+_att+'%;background:linear-gradient(90deg,#E54525,#F26721)"></div></div></div>'))
         +'</div>';
     } else {
-      h+='<div class="ch-sub" style="margin-top:8px">'+(isArF()?'لا توجد أرقام خطة لهذه السنة بعد — اضغط «تعديل الأرقام».':'No plan numbers for this year yet — click Set targets.')+'</div>';
+      h+='<div class="fin-note" style="margin-top:8px">'+(isArF()?'لا توجد أرقام خطة لهذه السنة بعد — اضغط «تعديل الأرقام».':'No plan numbers for this year yet — click Set targets.')+'</div>';
     }
     /* B8: where the plan comes from — typed on this page with "Set targets", by whom and when; Actual is this period's revenue */
     if(tgt){ var _by=tgt.updated_by||'', _at=(tgt.updated_at&&typeof dayRiyadh==='function')?dayRiyadh(tgt.updated_at):'';
-      h+='<div class="ch-sub" data-fin-plan-source="1" style="margin-top:8px;font-size:11.5px">'+(isArF()
+      h+='<div data-fin-plan-source="1" style="margin-top:8px;font-size:11.5px;color:var(--muted)">'+(isArF()
         ?('الخطة: أرقام تُكتب هنا بزر «تعديل الأرقام»'+(_by?' — آخر من عدّلها '+esc(_by):'')+(_at?' في '+_at:'')+'. الفعلي: إيراد '+_ty+(FIN.p.part!=='all'?' لنفس الفترة':'')+' من الفواتير المدفوعة.')
         :('Plan: numbers typed here with "Set targets"'+(_by?' — last set by '+esc(_by):'')+(_at?' on '+_at:'')+'. Actual: '+_ty+(FIN.p.part!=='all'?' revenue for the same period':' revenue')+' from paid invoices.'))+'</div>'; }
     h+='</div>';
@@ -1485,8 +1513,15 @@ function rOverview(){
      at the current month. */
   var _cy=String(todayISO()).slice(0,4), _chY=(FIN.p&&FIN.p.year&&FIN.p.year!=='all')?String(FIN.p.year):_cy;
   var _chV=(FIN.p&&FIN.p.year&&FIN.p.year!=='all')?V:verified().filter(function(r){ return String(finYearOf(r))===_chY&&finPeriodMatch(r,{year:_chY,part:(FIN.p&&FIN.p.part)||'all'}); });
-  _chV.forEach(function(r){var k=r.month||'?';if(k==='?')_noMonth++;by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;by[k].p+=+(r.profit_sar||0);});
-  if(_chY===_cy){ var _mNow=+String(todayISO()).slice(5,7); MO=MO.slice(0,_mNow); }
+  /* QA 28 Sep: the Profit bars were empty — profit_sar is empty until an approved cost arrives, which is most invoices. A
+     month's profit bar is now the known profit plus, for an invoice with only an estimate, its revenue less the estimate
+     (finEstOf, as the tiles and Income by service); the legend says ⚑ when an estimate is in it. */
+  var _chEst=false;
+  _chV.forEach(function(r){var k=r.month||'?';if(k==='?')_noMonth++;by[k]=by[k]||{r:0,p:0};by[k].r+=+r.revenue_sar;
+    var e=finEstOf(r); if(e>0){ by[k].p+=(+r.revenue_sar||0)-e; _chEst=true; } else by[k].p+=+(r.profit_sar||0);});
+  /* …up to this month — or to the last month that has invoices, if one is dated later (a future-dated invoice stays visible,
+     so the chart always adds up to the Revenue tile) */
+  if(_chY===_cy){ var _mNow=+String(todayISO()).slice(5,7), _mLast=0; MO.forEach(function(m,ix){ if(by[m]&&(by[m].r||by[m].p)) _mLast=ix+1; }); MO=MO.slice(0,Math.max(_mNow,_mLast)); }
   /* 2026-09-03 (watch cycle 23): draw EVERY month, not only the ones with business in them.
      Filtering to months that have rows put January, February, May and December side by side as
      four adjacent bars — a year with two long silences in it read as four consecutive months, and
@@ -1499,7 +1534,7 @@ function rOverview(){
     var hR=Math.round(by[m].r/mx*120),hP=Math.round(by[m].p/mx*120);
     var lbl=isArF()?((typeof MO_AR!=='undefined'&&MO_AR[m])||m):m.slice(0,3);   // 2026-09-02: Arabic month names in Arabic
     return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="display:flex;gap:3px;align-items:flex-end;height:124px"><div title="'+(isArF()?'الإيرادات ':'Revenue ')+money(by[m].r)+'" style="width:22px;height:'+Math.max(hR,2)+'px;background:#FF6B00;border-radius:4px 4px 0 0"></div><div title="'+(isArF()?'الربح ':'Profit ')+money(by[m].p)+'" style="width:22px;height:'+Math.max(hP,2)+'px;background:#303848;border-radius:4px 4px 0 0"></div></div><div style="font-size:10px;color:var(--muted)">'+lbl+'</div><div style="font-size:9.5px;font-weight:700"><span dir="ltr" style="unicode-bidi:isolate">'+moneyS(by[m].r)+'</span></div></div>';
-  }).join('')+'</div></div><div style="font-size:10px;color:var(--muted);margin-top:8px"><span style="color:#FF6B00">\u25a0</span> '+(isArF()?'\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue')+' &nbsp;<span style="color:#303848">\u25a0</span> '+(isArF()?'\u0631\u0628\u062d':'Profit')+'</div></div>';
+  }).join('')+'</div></div><div style="font-size:10px;color:var(--muted);margin-top:8px"><span style="color:#FF6B00">\u25a0</span> '+(isArF()?'\u0625\u064a\u0631\u0627\u062f\u0627\u062a':'Revenue')+' &nbsp;<span style="color:#303848">\u25a0</span> '+(isArF()?'\u0631\u0628\u062d':'Profit')+(_chEst?(isArF()?' (يشمل التقديرات ⚑)':' (incl. estimates ⚑)'):'')+'</div></div>';
 
   return h;
 }
@@ -1744,7 +1779,7 @@ function rLedger(){
     +'<div class="card" style="padding:12px 14px;border-top:3px solid #175CD3"><div style="font-size:11px;color:var(--muted)">'+_lh('Confirmed profit','الربح المؤكد')+'</div><div style="font-size:18px;font-weight:800;color:#175CD3" title="'+money(cProf)+' SAR">'+moneyS(cProf)+' <span style="font-size:10px;font-weight:400">SAR</span>'+finExactUnder(cProf)+'</div></div>'
     +'<div class="card" style="padding:12px 14px;border-top:3px solid #B54708"><div style="font-size:11px;color:var(--muted)">'+_lh('Pending (est. only)','بانتظار المصاريف (تقديري)')+'</div><div style="font-size:18px;font-weight:800;color:#8b5b1f">'+pendCount+' <span style="font-size:10px;font-weight:400">· '+moneyS(pendEst)+' '+_lh('est.','تقديري')+'</span></div></div>'
     +'<div class="card" style="padding:12px 14px;border-top:3px solid '+(overdueCount?'#D92D20':'#E5E7EB')+'"><div style="font-size:11px;color:var(--muted)">'+_lh('Overdue','متأخر')+'</div><div style="font-size:18px;font-weight:800;color:'+(overdueCount?'#D92D20':'#667085')+'">'+overdueCount+'</div></div>'
-    +'</div><div class="ch-sub" style="margin:-4px 0 10px">'+_lh('Confirmed = it has an invoice number, or its expense is marked Ready. A pending row only shows an early estimate — that number is not included above.','المؤكد = له رقم فاتورة، أو مصروفه بحالة جاهز. الصف المعلّق يعرض تقديرًا مبكرًا فقط — هذا الرقم غير مُدرج أعلاه.')+'</div>';
+    +'</div><div class="fin-note" style="margin:-4px 0 10px">'+_lh('Confirmed = it has an invoice number, or its expense is marked Ready. A pending row only shows an early estimate — that number is not included above.','المؤكد = له رقم فاتورة، أو مصروفه بحالة جاهز. الصف المعلّق يعرض تقديرًا مبكرًا فقط — هذا الرقم غير مُدرج أعلاه.')+'</div>';
   /* 2026-09-03 (watch cycle 19): say it, the way the Overview has said it since watch cycle 2 —
      a row whose amount cannot be read is counted as zero, and the person is told how many. */
   if(_dupRefs.length){
@@ -1977,7 +2012,7 @@ window.finRow=function(id){
   try{ if(typeof finSanitizeMoney==='function') lines.forEach(function(x){ finSanitizeMoney(x); }); }catch(_){}
   var t={tot:0,cost:0,rev:0,prof:0,rec:0,rem:0,wal:0};
   lines.forEach(function(x){t.tot+=+x.total_incl_vat_sar||0;t.cost+=+x.cost_sar||0;t.rev+=+x.revenue_sar||0;t.prof+=+x.profit_sar||0;t.rec+=+x.amount_received_sar||0;t.rem+=+x.amount_remaining_sar||0;t.wal+=+x.wallet_portion_sar||0;});
-  var meta=[[_f('Client','\u0627\u0644\u0639\u0645\u064a\u0644'),r.client_group],[_f('Name on invoice','\u0627\u0644\u0627\u0633\u0645 \u0639\u0644\u0649 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629'),r.customer_raw_name],[_f('ZATCA tax invoice','\u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u064a\u0629 (\u0632\u0627\u062a\u0643\u0627)'),r.zatca_dpin||_f('\u2014 (see notes)','\u2014 (\u0627\u0646\u0638\u0631 \u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a)')],[_f('Date','\u0627\u0644\u062a\u0627\u0631\u064a\u062e'),r.invoice_date+' \u00b7 '+r.month+' \u00b7 '+r.quarter],[_f('Received','\u0627\u0644\u0645\u062d\u0635\u0651\u0644'),money(t.rec)+' SAR'],[_f('Outstanding','\u0627\u0644\u0645\u062a\u0628\u0642\u064a'),money(t.rem)+' SAR'],[_f('Origin','النوع'),(r.origin==='project'?_f('Project — full project with a proposal','مشروع متكامل بعرض'):_f('Booking','حجز عادي'))],[_f('Proposal','العرض'),r.proposal_ref||'—'],[_f('Status','\u0627\u0644\u062d\u0627\u0644\u0629'),(function(st){var M={verified_paid:_f('Paid & verified','مدفوعة ومدققة'),pending:_f('Pending payment','بانتظار السداد'),credit_note:_f('Credit note (refund)','إشعار دائن (استرداد)'),excluded:_f('Excluded','مستبعدة')};return M[st]||st;})(r.integrity_status)],[_f('Notes','\u0645\u0644\u0627\u062d\u0638\u0627\u062a'),r.notes||'\u2014']];
+  var meta=[[_f('Client','\u0627\u0644\u0639\u0645\u064a\u0644'),r.client_group],[_f('Name on invoice','\u0627\u0644\u0627\u0633\u0645 \u0639\u0644\u0649 \u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629'),r.customer_raw_name],[_f('ZATCA tax invoice','\u0627\u0644\u0641\u0627\u062a\u0648\u0631\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u064a\u0629 (\u0632\u0627\u062a\u0643\u0627)'),r.zatca_dpin||_f('\u2014 (see notes)','\u2014 (\u0627\u0646\u0638\u0631 \u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a)')],[_f('Date','\u0627\u0644\u062a\u0627\u0631\u064a\u062e'),r.invoice_date+' \u00b7 '+r.month+' \u00b7 '+r.quarter+(r.transaction_ref?(' \u00b7 '+finRebillNote(r)):'')],[_f('Received','\u0627\u0644\u0645\u062d\u0635\u0651\u0644'),money(t.rec)+' SAR'],[_f('Outstanding','\u0627\u0644\u0645\u062a\u0628\u0642\u064a'),money(t.rem)+' SAR'],[_f('Origin','النوع'),(r.origin==='project'?_f('Project — full project with a proposal','مشروع متكامل بعرض'):_f('Booking','حجز عادي'))],[_f('Proposal','العرض'),r.proposal_ref||'—'],[_f('Status','\u0627\u0644\u062d\u0627\u0644\u0629'),(function(st){var M={verified_paid:_f('Paid & verified','مدفوعة ومدققة'),pending:_f('Pending payment','بانتظار السداد'),credit_note:_f('Credit note (refund)','إشعار دائن (استرداد)'),excluded:_f('Excluded','مستبعدة')};return M[st]||st;})(r.integrity_status)],[_f('Notes','\u0645\u0644\u0627\u062d\u0638\u0627\u062a'),r.notes||'\u2014']];
   var th=function(x,rt){return '<th style="padding:6px 8px;text-align:'+(rt?'right':(ar?'right':'left'))+';color:var(--muted);font-size:11px;font-weight:600">'+x+'</th>';};
   var lineTbl='<div style="overflow-x:auto;margin:6px 0 12px"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>'+th(_f('Service','\u0627\u0644\u062e\u062f\u0645\u0629'))+th(_f('Description','\u0627\u0644\u0648\u0635\u0641'))+th(_f('Total','\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a'),1)+th(_f('Cost','\u0627\u0644\u062a\u0643\u0644\u0641\u0629'),1)+th(_f('Service fee','\u0631\u0633\u0648\u0645 \u0627\u0644\u062e\u062f\u0645\u0629'),1)+'</tr></thead><tbody>'+
     (function(){

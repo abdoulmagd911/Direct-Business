@@ -146,7 +146,10 @@ async function main() {
       if (!res.mismatched.length) ok(`${lbl}: all ${res.opened} opened rows reconcile — what each row expands to sums exactly to the row itself, on every metric`);
       else fail(`${lbl}: ${res.mismatched.length} metric(s) do not reconcile, e.g. ${JSON.stringify(res.mismatched[0])}`);
       if (!res.withheld) ok(`  …and none had to be withheld`); else fail(`  ${lbl}: ${res.withheld} row(s) withheld their detail — the rows and the total disagree`);
-      if (res.captionSaysAllYears) ok(`  …and the report says on screen that it spans all years and sectors, so nobody reads it as the period on the bar`);
+      /* punch list E18 (28 Sep): the Report Builder now follows the period bar — every opened invoice is in the period on
+         screen. The older build spanned all years and had to say so; either is honest, a silent mix is not. */
+      if (res.outOfPeriod === 0) ok(`  …and every opened invoice is inside the period on the bar (the report follows it)`);
+      else if (res.captionSaysAllYears) ok(`  …and the report says on screen that it spans all years and sectors, so nobody reads it as the period on the bar`);
       else fail(`  ${lbl}: the report includes ${res.outOfPeriod} invoice(s) outside the period bar and does not say that it spans all years`);
     } else fail(lbl + ': nothing opened — the check would prove nothing');
   }

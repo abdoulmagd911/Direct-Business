@@ -87,7 +87,9 @@ await browser.close();
 /* ============ 2. the manager hires someone, on screen ============ */
 console.log('\n———————— The manager adds a new person, on screen ————————');
 const NEWMAIL = 'rehearsal.newjoiner@directksa.com';
-const NEWPW = 'Direct#Rehearsal-2026$New9';
+/* 2026-09-28: a fresh password each run. It used to be written here, and this repository is public —
+   the account is switched off at the end of a run, but a written password outlives that. */
+const NEWPW = 'Rh#' + globalThis.crypto.randomUUID().replace(/-/g, '').slice(0, 14) + '9';
 
 /* clear any leftover from a previous run */
 const pre = await callAdmin(mgrTok, { action: 'list' });

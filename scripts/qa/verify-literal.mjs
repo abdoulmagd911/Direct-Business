@@ -1,18 +1,30 @@
-/* The passwords EXACTLY as they were written out in chat, retyped here by hand and tested
-   one by one. If a character was dropped or an escape mangled, this fails. */
-const PRINTED = [
-  ['business@directksa.com',            'Direct#Riyadh-2026$Adm1'],
-  ['aboelmagd@directksa.com',           'Direct#Jeddah-2026$Adm2'],
-  ['a.hassan@directksa.net',            'Direct#Makkah-2026$Adm3'],
-  ['test@directksa.com',                'Dq7nTest-2026-Riyadh'],
-  ['osharafi@direct-visa.net',          'Direct#Madinah-2026$Mgr7'],
-  ['raad.elkhair@directksa.com',        'Direct#Tabuk-2026$Emp11'],
-  ['kareem.medhat@directksa.com',       'Direct#Abha-2026$Emp22'],
-  ['assem.alsweed@directksa.com',       'Direct#Hail-2026$Emp33'],
-  ['mohammed.altuwaijri@directksa.com', 'Direct#Najran-2026$Emp44'],
-  ['ahmed.aboelmagd@directksa.net',     'Direct#Yanbu-2026$Emp55'],
-  ['abdulaziz.alreshody@directksa.com', 'Direct#Khobar-2026$Emp66'],
+/* Checks that each staff password held in the environment signs in to the live system.
+
+   NO PASSWORDS LIVE IN THIS FILE (2026-09-28). This repository is public; until today this file held
+   the working passwords of eleven real accounts, retyped from chat. They are read from the
+   environment now, under the same names as scripts/qa/emp-rig.mjs — DB_PW_BUSINESS, DB_PW_OTHMAN
+   and so on. The owner holds the list. An account whose variable is not set is skipped and named;
+   a run with none set fails, because it tested nothing. */
+const ACCOUNTS = [
+  ['business',  'business@directksa.com'],
+  ['aboelmagd', 'aboelmagd@directksa.com'],
+  ['hassan',    'a.hassan@directksa.net'],
+  ['admin',     'test@directksa.com'],
+  ['othman',    'osharafi@direct-visa.net'],
+  ['raad',      'raad.elkhair@directksa.com'],
+  ['kareem',    'kareem.medhat@directksa.com'],
+  ['assem',     'assem.alsweed@directksa.com'],
+  ['mohammed',  'mohammed.altuwaijri@directksa.com'],
+  ['ahmed',     'ahmed.aboelmagd@directksa.net'],
+  ['abdulaziz', 'abdulaziz.alreshody@directksa.com'],
 ];
+const PRINTED = [];
+for (const [key, email] of ACCOUNTS) {
+  const pw = process.env['DB_PW_' + key.toUpperCase()] || '';
+  if (pw) PRINTED.push([email, pw]);
+  else console.log(`skip ${email.padEnd(36)} (DB_PW_${key.toUpperCase()} not set)`);
+}
+if (!PRINTED.length) { console.log('\nFAILED — no DB_PW_… variable is set, so nothing was tested.'); process.exit(1); }
 const URL='https://vkxoeeoauexyfpzqufqd.supabase.co';
 const ANON='sb_publishable_2UUruIl4fecmPNDpBFOVBw_FLZfNWlr';
 let bad=0;
