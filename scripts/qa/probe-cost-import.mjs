@@ -1,9 +1,9 @@
-/* probe-cost-import.mjs (2026-09-28) — D24, the raw Direct Payments cost exports through js/120 into the stand-in, which mirrors
+/* probe-cost-import.mjs (2026-09-28) — D25, the raw Direct Payments cost exports through js/121 into the stand-in, which mirrors
    public.fn_cost_import (scripts/sql/cost-import.sql). Made-up references (99…), companies and amounts only (rule 7); the
    headers are the real 27 Sep ones, and the dates are Payments' own "dd/mm/yyyy hh:mm:ss AM/PM".
 
    What it holds:
-     1. the raw Transaction Expense Export is RECOGNISED (never js/65's "not recognized"), read by js/120, and every other
+     1. the raw Transaction Expense Export is RECOGNISED (never js/65's "not recognized"), read by js/121, and every other
         file dropped with it still goes to js/65 (a mixed drop reads both);
      2. only APPROVED lines are cost — Pending (blank amount), Under Review, Cancelled and Rejected never; the cost lands on the
         money row, profit follows, and nothing else moves: a hand-entered row, a commission, a reference with two money rows
@@ -21,10 +21,10 @@
      9. the block reads Arabic; a View-only person has no Import card, and the database refuses the write;
     10. no JS error, no native dialog.
    Sabotage (SABOTAGE=A|B|C|D swaps in a broken layer; each run 28 Sep, each caught):
-     A  js/120 reads "Under Review" as approved           → 2b red (530.26, not 500.26), and 4, 5 with it
-     B  js/120 ignores the export time in the file name   → 5 red (the older file rolls the cancellation back)
-     C  js/65 without the hand-off to js/120              → 1, 2a red (the file is "not recognized" again)
-     D  js/120 reads a CSV in one piece, not in slices    → 8 red (the tab froze 2.7 s)
+     A  js/121 reads "Under Review" as approved           → 2b red (530.26, not 500.26), and 4, 5 with it
+     B  js/121 ignores the export time in the file name   → 5 red (the older file rolls the cancellation back)
+     C  js/65 without the hand-off to js/121              → 1, 2a red (the file is "not recognized" again)
+     D  js/121 reads a CSV in one piece, not in slices    → 8 red (the tab froze 2.7 s)
    PORTS 9861 … 9864. */
 import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 import fs from 'fs';
@@ -88,7 +88,7 @@ function bigFile() {   // 258,000 rows: ~650 lines on the 200 references in Fina
     out.push(tx(ref, (100 + (i % 900)) + '.25', ['Hotel Cost', 'Airline Fees', 'Visa'][i % 3], inF ? 'Approved' : ['Approved', 'Pending', 'Cancelled'][i % 3], d + '/06/2026 0' + (i % 9 + 1) + ':' + s + ':' + s + ' PM', d + '/06/2026 11:00:00 PM').map(q).join(','));
   }
   /* handed over from DISK, as a person's file arrives: a 47 MB in-memory buffer is copied into the page by the test tool itself,
-     which blocks the tab before the app has even seen the file (measured: one 11 s long task with js/120 not yet started) */
+     which blocks the tab before the app has even seen the file (measured: one 11 s long task with js/121 not yet started) */
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cost-big-')), f = path.join(dir, '2026-09-27_12-00-00transaction-expense-FULL.csv');
   fs.writeFileSync(f, out.join('\n')); return f;
 }
@@ -110,24 +110,24 @@ async function session(PORT, lang, pageAccess) {
   await ctx.route((u) => /fonts\.googleapis|fonts\.gstatic|clearbit|assets\.directksa/.test(u.href), (r) => r.abort());
   /* sabotage: serve a changed layer instead of the real one */
   const swap = (file, fn) => ctx.route((u) => u.pathname === '/js/' + file, (r) => r.fulfill({ status: 200, contentType: 'application/javascript', body: fn(fs.readFileSync(path.join(ROOT, 'js', file), 'utf8')) }));
-  if (SAB === 'A') await swap('120-cost-import.js', (s) => s.replace("if(s==='under review') return 'under_review';", "if(s==='under review') return 'approved';"));
-  if (SAB === 'B') await swap('120-cost-import.js', (s) => s.replace("var m=String((f&&f.name)||'').match(", "var m=String('').match("));
-  if (SAB === 'C') await swap('65-universal-importer.js', (s) => s.replace("if(window.v120Route&&!files.__v120)", "if(false)"));
-  if (SAB === 'D') await swap('120-cost-import.js', (s) => s.replace('var CH=1<<20, pos=0,', 'var CH=1<<30, pos=0,'));
+  if (SAB === 'A') await swap('121-cost-import.js', (s) => s.replace("if(s==='under review') return 'under_review';", "if(s==='under review') return 'approved';"));
+  if (SAB === 'B') await swap('121-cost-import.js', (s) => s.replace("var m=String((f&&f.name)||'').match(", "var m=String('').match("));
+  if (SAB === 'C') await swap('65-universal-importer.js', (s) => s.replace("if(window.v121Route&&!files.__v121)", "if(false)"));
+  if (SAB === 'D') await swap('121-cost-import.js', (s) => s.replace('var CH=1<<20, pos=0,', 'var CH=1<<30, pos=0,'));
   await p.goto(BASE + '/finance', { waitUntil: 'domcontentloaded', timeout: 120000 }); await p.waitForSelector('#cl_email', { timeout: 120000 });
   await p.fill('#cl_email', 'test@directksa.com'); await p.fill('#cl_pw', 'Dq7nTest-2026-Riyadh'); await p.click('#cl_go');
-  const ready = await p.waitForFunction(() => window.__roleKnown === true && window.FIN && FIN.rows && typeof window.v120Route === 'function', null, { timeout: 150000 }).then(() => true).catch(() => false);
+  const ready = await p.waitForFunction(() => window.__roleKnown === true && window.FIN && FIN.rows && typeof window.v121Route === 'function', null, { timeout: 150000 }).then(() => true).catch(() => false);
   if (!ready) { console.log('NOT READY'); failures++; }
   await p.evaluate(() => { current = 'finance'; finGo('import'); }); await p.waitForTimeout(900);
   return { p, b, srv, errors, natives };
 }
 const done = async (s) => { await s.b.close(); try { s.srv.close(); } catch (_) { } };
-const drop = async (s, files) => { await s.p.evaluate(() => { if (window.v120Clear) v120Clear(); }); await s.p.setInputFiles('#finFile', files); };
-const phase = (s, want, ms) => s.p.waitForFunction((w) => { const e = document.querySelector('#v120Out [data-v120-phase]'); return e && w.includes(e.getAttribute('data-v120-phase')); }, want, { timeout: ms || 60000 }).then(() => true).catch(() => false);
+const drop = async (s, files) => { await s.p.evaluate(() => { if (window.v121Clear) v121Clear(); }); await s.p.setInputFiles('#finFile', files); };
+const phase = (s, want, ms) => s.p.waitForFunction((w) => { const e = document.querySelector('#v121Out [data-v121-phase]'); return e && w.includes(e.getAttribute('data-v121-phase')); }, want, { timeout: ms || 60000 }).then(() => true).catch(() => false);
 const rows = (s) => s.p.evaluate(async () => { const r = await fc().from('finance_invoices').select('invoice_no,line_no,cost_sar,profit_sar,source').is('deleted_at', null); return r.data || []; });
 const costOf = (list, no) => list.filter((x) => x.invoice_no === no).map((x) => x.cost_sar == null ? '∅' : String(Math.round(+x.cost_sar * 100) / 100)).join(',');
 const attr = (s, sel, a) => s.p.evaluate(([q, n]) => { const e = document.querySelector(q); return e ? e.getAttribute(n) : null; }, [sel, a]);
-const importNow = async (s) => { await s.p.click('#v120Out [data-v120-go]'); return phase(s, ['done', 'error'], 60000); };
+const importNow = async (s) => { await s.p.click('#v121Out [data-v121-go]'); return phase(s, ['done', 'error'], 60000); };
 
 /* ================= 1–7, 10: one admin session ================= */
 {
@@ -137,10 +137,10 @@ const importNow = async (s) => { await s.p.click('#v120Out [data-v120-go]'); ret
   await drop(s, [FILE_TX1, FILE_INV]);
   const okP = await phase(s, ['preview', 'error']);
   const js65 = await s.p.evaluate(() => (document.getElementById('finImpOut') || {}).innerText || '');
-  check(okP && await attr(s, '#v120Out [data-v120-kind]', 'data-v120-kind') === 'tx' && !/not recogni[sz]ed/i.test(js65) && /Invoice Export/.test(js65),
-    '1. the raw Transaction Expense Export is read by js/120 (never "not recognized"), and the invoice export dropped with it still goes to js/65', JSON.stringify({ okP, js65: js65.slice(0, 160) }));
-  const cst = await attr(s, '#v120Out [data-v120-cost]', 'data-v120-cost'), held = await attr(s, '#v120Out [data-v120-held]', 'data-v120-held'), badN = await attr(s, '#v120Out [data-v120-bad]', 'data-v120-bad');
-  const txt = await s.p.evaluate(() => document.getElementById('v120Out').innerText);
+  check(okP && await attr(s, '#v121Out [data-v121-kind]', 'data-v121-kind') === 'tx' && !/not recogni[sz]ed/i.test(js65) && /Invoice Export/.test(js65),
+    '1. the raw Transaction Expense Export is read by js/121 (never "not recognized"), and the invoice export dropped with it still goes to js/65', JSON.stringify({ okP, js65: js65.slice(0, 160) }));
+  const cst = await attr(s, '#v121Out [data-v121-cost]', 'data-v121-cost'), held = await attr(s, '#v121Out [data-v121-held]', 'data-v121-held'), badN = await attr(s, '#v121Out [data-v121-bad]', 'data-v121-bad');
+  const txt = await s.p.evaluate(() => document.getElementById('v121Out').innerText);
   check(cst === '2,0,0,0,1' && held === '3' && badN === '1' && /1 hand-entered/.test(txt) && /1 commission/.test(txt) && /1 with several money rows/.test(txt),
     '2a. the preview: 2 invoices get their cost, 1 waits (its only line was cancelled, and its cost is someone else\'s); 3 references held; 1 unreadable row named; hand-entered, commission and two-row references left alone', JSON.stringify({ cst, held, badN }));
   const ok1 = await importNow(s); await s.p.waitForTimeout(800);
@@ -152,20 +152,20 @@ const importNow = async (s) => { await s.p.click('#v120Out [data-v120-go]'); ret
   check(!stored.some((x) => /^99123/.test(x)) && stored.length === 12, '2c. a held reference\'s lines are never stored (12 lines kept, all on references in Finance)', stored.length + ' stored');
 
   await drop(s, [FILE_TX1]); await phase(s, ['preview', 'error']);
-  const nothing = await attr(s, '#v120Out [data-v120-nothing]', 'data-v120-nothing'), btn = await s.p.$('#v120Out [data-v120-go]');
+  const nothing = await attr(s, '#v121Out [data-v121-nothing]', 'data-v121-nothing'), btn = await s.p.$('#v121Out [data-v121-go]');
   check(nothing === '1' && !btn, '3. the same file twice: "Nothing new", no Import button', JSON.stringify({ nothing, button: !!btn }));
 
   await drop(s, [FILE_TX2]); await phase(s, ['preview', 'error']);
-  const cst2 = await attr(s, '#v120Out [data-v120-cost]', 'data-v120-cost');
+  const cst2 = await attr(s, '#v121Out [data-v121-cost]', 'data-v121-cost');
   await importNow(s); await s.p.waitForTimeout(800); const r2 = await rows(s);
   check(cst2 === '0,1,1,0,1' && costOf(r2, R.A) === '100', '4. a NEWER export wins: the 400.255 line now Cancelled drops out (500.26 → 100)', JSON.stringify({ cst2, A: costOf(r2, R.A) }));
 
   await drop(s, [FILE_TX0]); await phase(s, ['preview', 'error']);
-  const old = await attr(s, '#v120Out [data-v120-nothing]', 'data-v120-nothing'); const r3 = await rows(s);
+  const old = await attr(s, '#v121Out [data-v121-nothing]', 'data-v121-nothing'); const r3 = await rows(s);
   check(old === '1' && costOf(r3, R.A) === '100', '5. an OLDER export arriving later changes nothing (it can only fill blanks) — the cancellation stands', JSON.stringify({ nothingNew: old, A: costOf(r3, R.A) }));
 
   await drop(s, [FILE_EI]); const okEI = await phase(s, ['preview', 'error'], 90000);
-  const eiKind = await attr(s, '#v120Out [data-v120-kind]', 'data-v120-kind'), eiHeld = await attr(s, '#v120Out [data-v120-held]', 'data-v120-held');
+  const eiKind = await attr(s, '#v121Out [data-v121-kind]', 'data-v121-kind'), eiHeld = await attr(s, '#v121Out [data-v121-held]', 'data-v121-held');
   await importNow(s);
   const facts = await s.p.evaluate(async () => { const r = await fc().from('finance_payments_facts').select('*'); return r.data || []; });
   const fA = facts.find((x) => x.ref === '9900000101') || {};
@@ -195,7 +195,7 @@ const importNow = async (s) => { await s.p.click('#v120Out [data-v120-go]'); ret
   await s.p.evaluate(() => { window.__hb = { last: performance.now(), max: 0 }; window.__hbT = setInterval(() => { const n = performance.now(); window.__hb.max = Math.max(window.__hb.max, n - window.__hb.last); window.__hb.last = n; }, 50); });
   const t0 = Date.now(); await drop(s, [big]); const ok = await phase(s, ['preview', 'error'], 240000); const secs = Math.round((Date.now() - t0) / 1000);
   const hb = await s.p.evaluate(() => { clearInterval(window.__hbT); return Math.round(window.__hb.max); });
-  const st = await s.p.evaluate(() => { const S = v120.state(); const F = S && S.files[0]; return F ? { rows: F.rows, kept: Object.keys(F.lines).length, held: Object.keys(F.held).length, heldLines: F.heldLines } : null; });
+  const st = await s.p.evaluate(() => { const S = v121.state(); const F = S && S.files[0]; return F ? { rows: F.rows, kept: Object.keys(F.lines).length, held: Object.keys(F.held).length, heldLines: F.heldLines } : null; });
   check(ok && st && st.rows === 258000 && st.kept > 600 && st.kept < 700 && hb < 1500,
     '8. a 258,000-row (' + (fs.statSync(big).size / 1048576).toFixed(1) + ' MB) export is read in slices: every row read, only the lines of references in Finance kept, and the tab never froze (longest pause ' + hb + ' ms, ' + secs + ' s in all)', JSON.stringify({ ok, st, hb, secs }));
   try { fs.rmSync(path.dirname(big), { recursive: true, force: true }); } catch (_) { }
@@ -207,7 +207,7 @@ const importNow = async (s) => { await s.p.click('#v120Out [data-v120-go]'); ret
   console.log('— Arabic —');
   const s = await session(9863, 'ar');
   await drop(s, [FILE_TX1]); await phase(s, ['preview', 'error']);
-  const t = await s.p.evaluate(() => (document.getElementById('v120Out') || {}).innerText || '');
+  const t = await s.p.evaluate(() => (document.getElementById('v121Out') || {}).innerText || '');
   check(/ملفات التكلفة من المدفوعات/.test(t) && /الفواتير في المالية/.test(t) && /محجوزة/.test(t) && !/Invoices in Finance|get their cost|held, nothing written|rows read/.test(t),
     '9a. the block reads Arabic, with no English left in it', t.slice(0, 160));
   check(s.errors.length === 0 && s.natives.length === 0, '10b. no JS error, no native dialog (Arabic)', JSON.stringify({ e: s.errors.slice(0, 3) }));

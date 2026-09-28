@@ -1,4 +1,4 @@
-/* js/120-cost-import.js — the raw Direct Payments cost exports, read in the browser (second builder, 28 Sep 2026; D24).
+/* js/121-cost-import.js — the raw Direct Payments cost exports, read in the browser (second builder, 28 Sep 2026; D25).
 
    Live Finance could not read the Payments cost files ("not recognized"), so every invoice showed "waiting for cost".
    This layer reads the three raw exports exactly as Payments downloads them (Excel or CSV) and writes cost through ONE
@@ -14,9 +14,9 @@
    and listed — never stored, never turned into an invoice row. Big files (the full export is ~258k rows / 23 MB) are
    read in chunks — a CSV in 1 MB slices, an Excel file in a background worker — so the tab never freezes.
 
-   How files reach it: js/65's processFileList hands every dropped file here first (window.v120Route); this layer peeks
+   How files reach it: js/65's processFileList hands every dropped file here first (window.v121Route); this layer peeks
    at each header, keeps the three kinds above and gives every other file straight back to js/65, unchanged. Its own
-   block sits above js/65's preview in the Import card (#v120Out), repainted after every render like js/65's.
+   block sits above js/65's preview in the Import card (#v121Out), repainted after every render like js/65's.
    Customer names, emails, phones and card numbers in these files are never sent or stored. Guards: scripts/qa/
    probe-cost-import.mjs (the browser, with sabotage) and phase3 COST-01…11 (the database). */
 (function(){try{
@@ -263,7 +263,7 @@
 
   /* ---------------- state and the Import-card block ---------------- */
   var STATE=null, GEN=0;
-  window.v120Route=function(list, cb){
+  window.v121Route=function(list, cb){
     list=Array.prototype.slice.call(list||[]); if(!list.length){ cb([]); return; }
     var kinds=new Array(list.length), left=list.length;
     list.forEach(function(f,i){ peek(f,function(k,ctx){ kinds[i]={k:k,ctx:ctx}; if(--left) return;
@@ -301,7 +301,7 @@
   function nothingNew(F){ var s=F.sim; if(!s) return true;
     return F.kind==='tx'?!(s.lNew||s.lChanged||s.lDropped||s.set||s.changed||s.cleared):!(s.fNew||s.fChanged); }
 
-  window.v120Import=function(){
+  window.v121Import=function(){
     var S=STATE; if(!S||S.phase!=='preview') return;
     if(!canWrite()){ S.msg=fl('View only — importing cost needs Full control of Finance.','عرض فقط — استيراد التكلفة يحتاج صلاحية كاملة على المالية.'); paintNow(); return; }
     var c=client(); if(!c){ S.msg=fl('Not connected — try again.','غير متصل — حاول مجددًا.'); paintNow(); return; }
@@ -322,63 +322,63 @@
             fl('what was written stays; dropping the same files again finishes the rest (it changes nothing twice).','ما كُتب يبقى؛ إفلات الملفات نفسها مرة أخرى يُكمل الباقي (لا يغيّر شيئًا مرتين).'); paintNow(); return; }
           var d=r.data||{}; Object.keys(d).forEach(function(x){ S.res[x]=(S.res[x]||0)+(+d[x]||0); }); S.doneJobs=k; paintSoon(); next(); }); })();
   };
-  window.v120Clear=function(){ GEN++; STATE=null; paintNow(); };
-  window.v120Held=function(i){ var F=STATE&&STATE.files[i]; if(!F) return;
+  window.v121Clear=function(){ GEN++; STATE=null; paintNow(); };
+  window.v121Held=function(i){ var F=STATE&&STATE.files[i]; if(!F) return;
     var lines=F.kind==='tx'?['reference,lines,approved lines,approved SAR']:['reference'];
     Object.keys(F.held).sort().forEach(function(r){ var h=F.held[r]; lines.push(F.kind==='tx'?[r,h.n,h.appr,h.sar.toFixed(2)].join(','):r); });
     var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'})); a.download='held-references-'+F.kind+'.csv';
     document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); };
 
   function fileBlock(F,i){
-    var K=KINDS[F.kind], h='<div class="v120-file" data-v120-kind="'+F.kind+'" style="border-top:1px solid var(--line,#E4E7EC);padding:10px 0">';
+    var K=KINDS[F.kind], h='<div class="v121-file" data-v121-kind="'+F.kind+'" style="border-top:1px solid var(--line,#E4E7EC);padding:10px 0">';
     h+='<b>'+esc(F.name)+'</b> — '+fl(K.en,K.ar)+' <span style="color:var(--muted)">('+fl('exported ','صُدّر ')+esc(F.asOf.slice(0,16).replace('T',' '))+')</span><br>';
     if(F.err){ return h+'<span style="color:#D92D20">'+fl('Could not be read: ','تعذّرت القراءة: ')+esc(F.err)+'</span></div>'; }
-    h+='<span data-v120-rows="'+F.rows+'">'+I(F.rows)+' '+fl('rows read','صفًا مقروءًا')+(F.total&&F.read<F.total?' ('+Math.round(100*F.read/F.total)+'%)':'')+'</span>';
+    h+='<span data-v121-rows="'+F.rows+'">'+I(F.rows)+' '+fl('rows read','صفًا مقروءًا')+(F.total&&F.read<F.total?' ('+Math.round(100*F.read/F.total)+'%)':'')+'</span>';
     var s=F.sim, heldN=Object.keys(F.held).length;
     if(s&&F.kind==='tx'){
       h+='<ul style="margin:6px 0 0;padding-inline-start:18px">';
-      h+='<li data-v120-cost="'+[s.set,s.changed,s.same,s.cleared,s.waiting].join(',')+'">'+fl('Invoices in Finance: ','الفواتير في المالية: ')+'<b>'+I(s.set)+'</b> '+fl('get their cost','تأخذ تكلفتها')+', <b>'+I(s.changed)+'</b> '+fl('change','تتغيّر')+', '+I(s.same)+' '+fl('unchanged','بلا تغيير')+
+      h+='<li data-v121-cost="'+[s.set,s.changed,s.same,s.cleared,s.waiting].join(',')+'">'+fl('Invoices in Finance: ','الفواتير في المالية: ')+'<b>'+I(s.set)+'</b> '+fl('get their cost','تأخذ تكلفتها')+', <b>'+I(s.changed)+'</b> '+fl('change','تتغيّر')+', '+I(s.same)+' '+fl('unchanged','بلا تغيير')+
         (s.cleared?', <b>'+I(s.cleared)+'</b> '+fl('lose it (every approved line now cancelled)','تفقدها (كل البنود المعتمدة أُلغيت)'):'')+(s.waiting?', '+I(s.waiting)+' '+fl('still waiting (no approved line yet)','ما زالت بانتظار بند معتمد'):'')+'</li>';
-      h+='<li data-v120-lines="'+[s.lNew,s.lChanged,s.lSame,s.lDropped].join(',')+'">'+fl('Expense lines: ','بنود المصروفات: ')+I(s.lNew)+' '+fl('new','جديد')+', '+I(s.lChanged)+' '+fl('changed','متغيّر')+', '+I(s.lSame)+' '+fl('unchanged','بلا تغيير')+(s.lDropped?', '+I(s.lDropped)+' '+fl('gone from Payments inside this file\'s dates','اختفت من المدفوعات ضمن تواريخ هذا الملف'):'')+
+      h+='<li data-v121-lines="'+[s.lNew,s.lChanged,s.lSame,s.lDropped].join(',')+'">'+fl('Expense lines: ','بنود المصروفات: ')+I(s.lNew)+' '+fl('new','جديد')+', '+I(s.lChanged)+' '+fl('changed','متغيّر')+', '+I(s.lSame)+' '+fl('unchanged','بلا تغيير')+(s.lDropped?', '+I(s.lDropped)+' '+fl('gone from Payments inside this file\'s dates','اختفت من المدفوعات ضمن تواريخ هذا الملف'):'')+
         ' — '+fl('only Approved lines are cost; Pending, Under Review, Cancelled and Rejected never are.','البنود المعتمدة وحدها تكلفة؛ المعلّقة وقيد المراجعة والملغاة والمرفوضة لا تُحتسب.')+'</li>';
       if(s.manual||s.commission||s.several) h+='<li>'+fl('Left alone: ','تُركت كما هي: ')+(s.manual?I(s.manual)+' '+fl('hand-entered','مُدخلة يدويًا')+' ':'')+(s.commission?I(s.commission)+' '+fl('commission (no cost by nature)','عمولة (بلا تكلفة بطبيعتها)')+' ':'')+(s.several?I(s.several)+' '+fl('with several money rows (a person decides)','بأكثر من صف مالي (يقرّر شخص)'):'')+'</li>';
-      h+='<li data-v120-held="'+heldN+'">'+I(F.heldLines)+' '+fl('lines on','بندًا على')+' '+I(heldN)+' '+fl('references not in Finance — held, nothing written (consumer sales, or invoices not imported yet: import the invoice export, then drop this file again)','مرجعًا غير موجود في المالية — محجوزة ولم يُكتب شيء (مبيعات أفراد، أو فواتير لم تُستورد بعد: استورد تصدير الفواتير ثم أفلت هذا الملف مجددًا)')+
-        (heldN?' · <a href="javascript:void 0" onclick="v120Held('+i+')">'+fl('download the list','تنزيل القائمة')+'</a>':'')+'</li>';
+      h+='<li data-v121-held="'+heldN+'">'+I(F.heldLines)+' '+fl('lines on','بندًا على')+' '+I(heldN)+' '+fl('references not in Finance — held, nothing written (consumer sales, or invoices not imported yet: import the invoice export, then drop this file again)','مرجعًا غير موجود في المالية — محجوزة ولم يُكتب شيء (مبيعات أفراد، أو فواتير لم تُستورد بعد: استورد تصدير الفواتير ثم أفلت هذا الملف مجددًا)')+
+        (heldN?' · <a href="javascript:void 0" onclick="v121Held('+i+')">'+fl('download the list','تنزيل القائمة')+'</a>':'')+'</li>';
       h+='</ul>';
       var rows=s.rows.filter(function(x){ return x.what!=='several'; }).slice(0,30);
       if(rows.length) h+='<table class="tbl" style="margin-top:6px;font-size:12px"><thead><tr><th>'+fl('Reference','المرجع')+'</th><th>'+fl('Client','العميل')+'</th><th>'+fl('Cost now','التكلفة الآن')+'</th><th>'+fl('After','بعد')+'</th></tr></thead><tbody>'+
-        rows.map(function(x){ return '<tr data-v120-ref="'+esc(x.ref)+'"><td>'+esc(x.ref)+'</td><td>'+esc((x.m&&x.m.client_group)||'')+'</td><td>'+(x.from==null?fl('waiting','بانتظار'):M(x.from))+'</td><td><b>'+(x.to==null?fl('waiting','بانتظار'):M(x.to))+'</b></td></tr>'; }).join('')+'</tbody></table>'+
+        rows.map(function(x){ return '<tr data-v121-ref="'+esc(x.ref)+'"><td>'+esc(x.ref)+'</td><td>'+esc((x.m&&x.m.client_group)||'')+'</td><td>'+(x.from==null?fl('waiting','بانتظار'):M(x.from))+'</td><td><b>'+(x.to==null?fl('waiting','بانتظار'):M(x.to))+'</b></td></tr>'; }).join('')+'</tbody></table>'+
         (s.rows.length>30?'<div style="font-size:11.5px;color:var(--muted)">'+fl('… and ','… و')+I(s.rows.length-30)+' '+fl('more','أخرى')+'</div>':'');
     } else if(s){
-      h+='<ul style="margin:6px 0 0;padding-inline-start:18px"><li data-v120-facts="'+[s.fNew,s.fChanged,s.fSame].join(',')+'">'+fl('References in Finance: ','المراجع في المالية: ')+I(s.fNew)+' '+fl('new','جديد')+', '+I(s.fChanged)+' '+fl('changed','متغيّر')+', '+I(s.fSame)+' '+fl('unchanged','بلا تغيير')+
+      h+='<ul style="margin:6px 0 0;padding-inline-start:18px"><li data-v121-facts="'+[s.fNew,s.fChanged,s.fSame].join(',')+'">'+fl('References in Finance: ','المراجع في المالية: ')+I(s.fNew)+' '+fl('new','جديد')+', '+I(s.fChanged)+' '+fl('changed','متغيّر')+', '+I(s.fSame)+' '+fl('unchanged','بلا تغيير')+
         (F.kind==='rr'?' — '+fl('only the Total Expense Amount is kept (the submitted expenses — shown as an estimate until approved lines arrive); its revenue and VAT columns are not read.','يُحفظ إجمالي المصروفات فقط (المصروفات المقدَّمة — تظهر تقديرًا حتى تصل البنود المعتمدة)؛ ولا تُقرأ أعمدة الإيراد والضريبة.')
                        :' — '+fl('the expense status and the Overdue flag.','حالة المصروفات وعلامة التأخر.'))+'</li>';
-      h+='<li data-v120-held="'+heldN+'">'+I(heldN)+' '+fl('references not in Finance — held, nothing written','مرجعًا غير موجود في المالية — محجوزة ولم يُكتب شيء')+(heldN?' · <a href="javascript:void 0" onclick="v120Held('+i+')">'+fl('download the list','تنزيل القائمة')+'</a>':'')+'</li></ul>';
+      h+='<li data-v121-held="'+heldN+'">'+I(heldN)+' '+fl('references not in Finance — held, nothing written','مرجعًا غير موجود في المالية — محجوزة ولم يُكتب شيء')+(heldN?' · <a href="javascript:void 0" onclick="v121Held('+i+')">'+fl('download the list','تنزيل القائمة')+'</a>':'')+'</li></ul>';
     }
-    if(F.nBad) h+='<div style="color:#B54708;font-size:12px;margin-top:4px" data-v120-bad="'+F.nBad+'">'+I(F.nBad)+' '+fl('rows could not be read and were skipped: ','صفًا تعذّرت قراءته فتُرك: ')+esc(F.bad.join(' · '))+'</div>';
+    if(F.nBad) h+='<div style="color:#B54708;font-size:12px;margin-top:4px" data-v121-bad="'+F.nBad+'">'+I(F.nBad)+' '+fl('rows could not be read and were skipped: ','صفًا تعذّرت قراءته فتُرك: ')+esc(F.bad.join(' · '))+'</div>';
     if(F.blankRef) h+='<div style="color:var(--muted);font-size:12px">'+I(F.blankRef)+' '+fl('rows with no reference skipped','صفًا بلا مرجع تُرك')+'</div>';
     return h+'</div>';
   }
   function html(){
     var S=STATE; if(!S) return '';
-    var h='<div class="card" data-v120-phase="'+S.phase+'" style="padding:12px 14px;margin-bottom:12px;border-inline-start:4px solid #0F6E56">';
+    var h='<div class="card" data-v121-phase="'+S.phase+'" style="padding:12px 14px;margin-bottom:12px;border-inline-start:4px solid #0F6E56">';
     h+='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>'+fl('Payments cost files','ملفات التكلفة من المدفوعات')+'</b>'+
-       (S.phase==='writing'||S.phase==='reading'||S.phase==='loading'?'':'<button class="btn sm" onclick="v120Clear()">'+fl('Close','إغلاق')+'</button>')+'</div>';
+       (S.phase==='writing'||S.phase==='reading'||S.phase==='loading'?'':'<button class="btn sm" onclick="v121Clear()">'+fl('Close','إغلاق')+'</button>')+'</div>';
     if(S.phase==='loading') h+='<div style="font-size:13px">'+fl('Loading the invoices in Finance…','جارٍ تحميل فواتير المالية…')+'</div>';
     S.files.forEach(function(F,i){ h+=fileBlock(F,i); });
     if(S.phase==='preview'){
       var any=S.files.some(function(F){ return !F.err&&F.header&&!nothingNew(F); }), w=canWrite();
-      if(!any) h+='<div style="font-size:13px;color:#0F6E56;margin-top:6px" data-v120-nothing="1"><b>'+fl('Nothing new','لا جديد')+'</b> — '+fl('these files are already in Finance.','هذه الملفات موجودة في المالية.')+'</div>';
+      if(!any) h+='<div style="font-size:13px;color:#0F6E56;margin-top:6px" data-v121-nothing="1"><b>'+fl('Nothing new','لا جديد')+'</b> — '+fl('these files are already in Finance.','هذه الملفات موجودة في المالية.')+'</div>';
       else if(!w) h+='<div style="font-size:13px;color:#B54708;margin-top:6px">'+fl('View only — importing cost needs Full control of Finance.','عرض فقط — استيراد التكلفة يحتاج صلاحية كاملة على المالية.')+'</div>';
-      else h+='<button class="btn pri sm" style="margin-top:8px" data-v120-go="1" onclick="v120Import()">'+fl('Import the cost into Finance','استيراد التكلفة إلى المالية')+'</button>';
+      else h+='<button class="btn pri sm" style="margin-top:8px" data-v121-go="1" onclick="v121Import()">'+fl('Import the cost into Finance','استيراد التكلفة إلى المالية')+'</button>';
     }
     if(S.phase==='writing') h+='<div style="font-size:13px;margin-top:6px">'+fl('Writing part ','كتابة الجزء ')+I(S.doneJobs+1)+fl(' of ',' من ')+I(S.total)+'…</div>';
     if(S.phase==='done'){ var r=S.res||{};
-      h+='<div style="font-size:13px;color:#0F6E56;margin-top:6px" data-v120-done="'+[r.cost_set||0,r.cost_changed||0,r.cost_cleared||0,r.lines_new||0,r.lines_changed||0,r.facts_written||0].join(',')+'"><b>'+fl('Done.','تم.')+'</b> '+
+      h+='<div style="font-size:13px;color:#0F6E56;margin-top:6px" data-v121-done="'+[r.cost_set||0,r.cost_changed||0,r.cost_cleared||0,r.lines_new||0,r.lines_changed||0,r.facts_written||0].join(',')+'"><b>'+fl('Done.','تم.')+'</b> '+
         I(r.cost_set||0)+' '+fl('invoices got their cost','فاتورة أخذت تكلفتها')+', '+I(r.cost_changed||0)+' '+fl('changed','تغيّرت')+(r.cost_cleared?', '+I(r.cost_cleared)+' '+fl('back to waiting','عادت إلى الانتظار'):'')+
         ' · '+I(r.lines_new||0)+' '+fl('new lines','بند جديد')+', '+I(r.lines_changed||0)+' '+fl('changed','متغيّر')+(r.facts_written?' · '+I(r.facts_written)+' '+fl('references updated from the other reports','مرجعًا حُدّث من التقارير الأخرى'):'')+
         '. '+fl('Every change is in the change log.','كل تغيير مسجّل في سجل التغييرات.')+'</div>'; }
-    if(S.phase==='error') h+='<div style="font-size:13px;color:#D92D20;margin-top:6px" data-v120-error="1">'+esc(S.msg||'')+'</div>';
+    if(S.phase==='error') h+='<div style="font-size:13px;color:#D92D20;margin-top:6px" data-v121-error="1">'+esc(S.msg||'')+'</div>';
     else if(S.msg) h+='<div style="font-size:13px;margin-top:6px">'+esc(S.msg)+'</div>';
     return h+'</div>';
   }
@@ -387,14 +387,14 @@
   var soon=null;
   function paintSoon(){ if(soon) return; soon=setTimeout(function(){ soon=null; paintNow(); },250); }
   function paintNow(){ var out=document.getElementById('finImpOut'); if(!out) return;
-    var box=document.getElementById('v120Out');
-    if(!box){ box=document.createElement('div'); box.id='v120Out'; out.parentNode.insertBefore(box,out); }
+    var box=document.getElementById('v121Out');
+    if(!box){ box=document.createElement('div'); box.id='v121Out'; out.parentNode.insertBefore(box,out); }
     box.innerHTML=html(); }
   function wire(){ try{ if(typeof current!=='undefined'&&current==='finance'&&window.FIN&&FIN.tab==='import') paintNow(); }catch(_){} }
   var _r=window.render; window.render=function(){ var o=_r.apply(this,arguments); wire(); return o; };
   if(typeof window.finGo==='function'){ var _g=window.finGo; window.finGo=function(){ var o=_g.apply(this,arguments); wire(); return o; }; }
 
   /* for the probe and the acceptance script (never used by the screen) */
-  window.v120={ kindOf:kindOf, when:when, money:money, ref:ref, status:status, asOf:asOf, csvParser:csvParser, hk:hk, state:function(){ return STATE; } };
-  console.info('%c[v120] cost import — the raw Payments cost exports','color:#0F6E56;font-weight:700');
-}catch(e){ if(window.console) console.warn('[v120] init',e); }})();
+  window.v121={ kindOf:kindOf, when:when, money:money, ref:ref, status:status, asOf:asOf, csvParser:csvParser, hk:hk, state:function(){ return STATE; } };
+  console.info('%c[v121] cost import — the raw Payments cost exports','color:#0F6E56;font-weight:700');
+}catch(e){ if(window.console) console.warn('[v121] init',e); }})();

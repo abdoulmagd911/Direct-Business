@@ -221,7 +221,7 @@ const TABLES={
   // M15 (2026-08-25) capture-persistence fixture — empty on purpose: probes assert their OWN
   // writes land (delete-then-insert for lines, upsert for gates), not a pre-seeded state.
   finance_expense_lines_capture:[], finance_expense_gate_capture:[],
-  /* D24 (js/120): the raw Payments cost exports */ finance_expense_lines:[], finance_payments_facts:[],
+  /* D25 (js/121): the raw Payments cost exports */ finance_expense_lines:[], finance_payments_facts:[],
   business_merges:[],
   access_allowlist:[], share_links:[],
   // client↔finance link fixture: maps finance group "Test Company 4" to business b4 (a client),
@@ -359,7 +359,7 @@ function PEOPLE(){
   };
   globalThis.__PEOPLE=P; return P;
 }
-/* D24 helpers: the cost of a reference from its stored approved lines (null = none), and its facts row */
+/* D25 helpers: the cost of a reference from its stored approved lines (null = none), and its facts row */
 function mockCostFromLines(ref){ const a=(TABLES.finance_expense_lines||[]).filter(l=>l.ref===ref&&l.status==='approved');
   return a.length?Math.round(a.reduce((s,l)=>s+(Number(l.amount_sar)||0),0)*100)/100:null; }
 function mockFactsRow(ref){ const P=TABLES.finance_payments_facts=TABLES.finance_payments_facts||[]; let p=P.find(x=>x.ref===ref);
@@ -601,7 +601,7 @@ function mockMoneyRows(){
       cost_missing:(i.cost_sar==null&&i.revenue_way!=='commission'),loss:(i.cost_sar!=null&&Number(i.cost_sar)>Number(i.revenue_sar)),
       pass_through_sar:lt(i.invoice_no).pass_through_sar,fee_sar:lt(i.invoice_no).fee_sar,unclassed_sar:lt(i.invoice_no).unclassed_sar,
       /* D23: the pass-through stands in as a flagged estimate only while no cost has arrived (never for a commission) */
-      /* D24 (cost-fallback.sql): the Revenue Report's submitted expenses come first, then D23's pass-through lines */
+      /* D25 (cost-fallback.sql): the Revenue Report's submitted expenses come first, then D23's pass-through lines */
       ...(()=>{ const open=i.cost_sar==null&&i.revenue_way!=='commission'; const rr=Number(((TABLES.finance_payments_facts||[]).find(p=>p.ref===i.invoice_no)||{}).rr_total_expense_sar||0);
         const pt=Number(lt(i.invoice_no).pass_through_sar||0); const src=!open?null:(rr>0?'submitted_expenses':(pt>0?'pass_through':null));
         return { est_cost_sar:src==='submitted_expenses'?rr:(src==='pass_through'?lt(i.invoice_no).pass_through_sar:null), cost_estimated:!!src, est_cost_source:src }; })()};
@@ -864,7 +864,7 @@ export function start(port, seedOverrides){
       // any other unlisted key) is silently ignored here too, never fails the call, matching
       // the real function's behavior exactly (stricter/kinder than the old direct-REST path,
       // which rejected the whole batch on a `year` key).
-      /* D24 — mirrors public.fn_cost_import (scripts/sql/cost-import.sql): only references with a money row are stored
+      /* D25 — mirrors public.fn_cost_import (scripts/sql/cost-import.sql): only references with a money row are stored
          (the rest are HELD and counted); a newer file wins per line, an older one only fills blanks; lines inside a newer
          file's dates that it no longer lists are dropped; cost = the approved lines, taken back only when it was this
          import's; a hand-entered row, a commission and a reference with several rows are left alone. */
@@ -940,7 +940,7 @@ export function start(port, seedOverrides){
         }
         pIns.forEach(row=>{
           const clean=pick(row);
-          /* D24: trg_fin_inv_a_cost_from_lines — a money row arriving after its expense lines takes its cost from them */
+          /* D25: trg_fin_inv_a_cost_from_lines — a money row arriving after its expense lines takes its cost from them */
           if(clean.cost_sar==null&&(clean.source||'import')==='import'&&clean.revenue_way!=='commission'){ const v=mockCostFromLines(clean.invoice_no);
             if(v!=null){ clean.cost_sar=v; mockFactsRow(clean.invoice_no).lines_cost_sar=v; } }
           fiTable.push(deriveFinanceInvoice(Object.assign({id:'mock-fi-'+(++_finIdSeq)}, clean)));
