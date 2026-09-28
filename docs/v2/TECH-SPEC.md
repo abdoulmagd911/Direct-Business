@@ -66,14 +66,14 @@ The oversight's suggestion is confirmed, with the guardrails that make it safe f
 | Auth | Supabase Auth: **the emailed 6-digit code is the door** (a device stays signed in until sign-out; 30 idle days → a new code — V74); Google (`.com`) and Zoom (`.net`) OAuth as later shortcuts; **no password provider**; sign-ups off; allow-list of emails per person (`core.person_email`) | §0 sign-in decision | Passwords (owner ruled out); email-only (impersonation, §10) |
 | Files | Supabase Storage, one private bucket `files`, signed URLs of 600 s (M21) | Proven | Public buckets |
 | Jobs | `pg_cron` (in Supabase free) for the two scheduled things: recurring tasks at 00:05 Riyadh, and nightly consistency checks | No extra service, no cost | Vercel cron (Hobby: once a day, no retries) |
-| Styling | **Tailwind CSS v4** driven by CSS variables (design tokens), switched by a `data-theme` attribute on `<html>` (light, dark, colorful or direct) and a `data-density` attribute (comfortable or compact); components from **shadcn/ui** (Radix primitives, copied into the repo) | Tokens → three themes from one set (§0 design); Radix gives focus, Escape and ARIA right (M93) | CSS-in-JS: runtime cost, harder RTL |
+| Styling | **Tailwind CSS v4** driven by CSS variables (design tokens), switched by a `data-theme` attribute on `<html>` (light, dark, colorful or direct) and a `data-density` attribute (comfortable or compact); components from **shadcn/ui** (Radix primitives, copied into the repo) | Tokens → four themes from one set (§0 design, V60); Radix gives focus, Escape and ARIA right (M93) | CSS-in-JS: runtime cost, harder RTL |
 | Tables | TanStack Table + TanStack Virtual (44–52 px rows comfortable, 32 px compact; sticky header; virtualized) | Dense tables with thousands of rows stay smooth | Heavy data-grid libraries |
 | Forms | react-hook-form + zod; **each dialog creates its own form instance** and drops it on close (§0) | The old app's shared form state leaked between dialogs | Global form stores |
 | Other UI | cmdk (Ctrl K), sonner (toasts with Undo), lucide icons, Recharts (tiles/sparklines only) | Small, maintained | — |
 | i18n | next-intl, message catalogs `messages/en.json` and `messages/ar.json`; `dir="rtl"` from day one; Arabic hidden behind a setting until tested (§0) | Arabic-ready without shipping untested Arabic | Hand-rolled dictionaries (the old js/21) |
 | Dates | date-fns + `@date-fns/tz`, zone `Asia/Riyadh`; `Intl` formats always with `calendar: 'gregory'` and `numberingSystem: 'latn'` | **`ar-SA` defaults to the Islamic calendar** — Gregorian must be forced explicitly (§0 "never Hijri") | Moment |
 | Files in/out | Import: SheetJS CE 0.20.x inside a Web Worker — the official tarball **vendored** under `v2/vendor/` with its published checksum (the npm `xlsx` package is stuck at 0.18.5 without later security fixes, and `cdn.sheetjs.com` is refused by the builders' network policy, measured 28 Sep; a one-off GitHub Actions job fetches it and opens the PR); a streaming CSV reader (ported from js/121). Export: ExcelJS (styled KPI sheet), CSV with BOM | Ported and proven on the 258k-row file | Reading big XLSX on the main thread (old backlog item) |
-| Documents | PDF: `@react-pdf/renderer` from the frozen snapshot for English — its Arabic letter-joining and right-to-left support are weak, so an Arabic PDF spike runs early in P6-2 and falls back to the browser's print-to-PDF of the report page; PPTX: the department's own template (V34) **filled** by editing its XML (JSZip: placeholders replaced, repeating slides duplicated) — pptxgenjs cannot open an existing file, so it is used only for slides the template lacks; fonts embedded (Readex Pro, IBM Plex Sans/Arabic/Mono — all SIL OFL, self-hosted with `next/font`) | Deterministic re-rendering of a frozen report; no font CDN (the old DirectFont trouble) | Server-side headless Chrome (too heavy for Vercel Hobby) |
+| Documents | PDF: `@react-pdf/renderer` from the frozen snapshot for English — its Arabic letter-joining and right-to-left support are weak, so an **Arabic PDF and PPTX spike runs early, in P3** (plan P3-10, V86) and the choice it records stands — the fallback is the browser's print-to-PDF of the report page; PPTX: the department's own template (V34) **filled** by editing its XML (JSZip: placeholders replaced, repeating slides duplicated) — pptxgenjs cannot open an existing file, so it is used only for slides the template lacks; fonts embedded (Readex Pro, IBM Plex Sans/Arabic/Mono — all SIL OFL, self-hosted with `next/font`) | Deterministic re-rendering of a frozen report; no font CDN (the old DirectFont trouble) | Server-side headless Chrome (too heavy for Vercel Hobby) |
 | Tests | Vitest (unit), a SQL test runner (ported from `scripts/qa/phase3`), Playwright (E2E, against the real local Supabase stack) | See §9 | A mock of Supabase (A15) |
 | Hosting | **Vercel** (new project) + **Supabase** (new project), both on free plans for the build (§10) | Owner: nothing that costs money | — |
 | CI | GitHub Actions (free for public repositories) | The repo is public (owner's ruling) | — |
@@ -193,22 +193,34 @@ What reads the registry:
 
 ### 2.5 The shell, the design tokens, density and the screen rules
 
-**Source of truth for the look:** until the Figma file exists, the owner's design system page ("Commercial Design
-System", https://claude.ai/artifact/LhgpWwKiMxQtQiQmXjco64) and the screens canvas
-(https://claude.ai/artifact/QRysGjaefjvGbDxNvfYbLW, 18 artboards). **The design source moves to Figma** (owner, 29 Sep —
-V82): a dedicated design session builds the design system (variables for the four themes) and every screen in Figma, and
-builder B reads screens through the Figma connector. When the oversight announces the file, it supersedes the canvas
-and the build plan's token table; until then those stay the reference. Where this section and the design source
-differ, the design source wins on look, this spec on behaviour.
+**Source of truth for the look** (V82 as amended on 29 Sep): the design system page ("Commercial Design System",
+https://claude.ai/artifact/LhgpWwKiMxQtQiQmXjco64) and the screens canvas
+(https://claude.ai/artifact/QRysGjaefjvGbDxNvfYbLW, 18 artboards), both owned by the **Design lead session**, which
+updates them; builder B reads them before each screen step. The build plan's token table is the design system page's
+values as ruled. Where this section and the design source differ, the design source wins on look, this spec on
+behaviour.
 
-- **Shell.** Side drawer 248 px pinned (as the artboards) / 56 px collapsed (an icon rail with tooltips; unpinned it opens as an overlay
-  on hover or focus and closes on Esc; below 1,024 px an off-canvas sheet). Order: My day, Overview, Partners,
+- **Shell.** Side drawer **232 px pinned / 56 px collapsed** (V85 — what the owner was told; the artboards' 248 px is
+  not used): collapsed, it is an icon rail with tooltips, and the content **reflows into the freed width**; unpinned it
+  opens as an overlay on hover or focus and closes on Esc. Order: My day, Overview, Partners,
   Pipeline, Projects, Tasks, Finance, KPIs, Reports, Appraisal; Settings at the foot above the person's profile (avatar, nickname, badge). Top bar
   60 px: search (Ctrl K), Create, bell, the profile chip (avatar and nickname) — no page titles in it. Page header:
   breadcrumb, title, one primary button, at most two secondary, the rest in a ⋯ menu. Each area is one page: list on
   the start side, **detail panel 480 px** on the end side (full page under 900 px); every record has its own URL; at
   most one tab row, its state in the URL; filters are chips above the list (dashed = available, solid = applied with
   "field: value" and ✕; a chip keeps or drops rows and shows its count — M102/M89).
+- **Layout rules** (V85). Breakpoints and page margins (the gutter on each side of the content): **phone** < 640 px —
+  16 px; **tablet** 640–1,023 px — 24 px; **desktop** 1,024–1,439 px — 32 px; **wide** ≥ 1,440 px — 40 px. Content
+  max-widths: lists, boards and tables use the full width up to **1,600 px**; a full-page record's main column up to
+  **960 px** beside its **300 px** properties rail (V81); forms and settings pages up to **720 px**; the report editor's
+  text column up to **880 px**; wider screens centre the content. The drawer: pinned from 1,024 px, the 56 px rail on
+  tablets (opening as an overlay), replaced on phones by the bottom bar. The detail panel is 480 px from 1,024 px;
+  below 900 px a record opens full page.
+- **Phones** (V85): a **bottom bar** — My day · Tasks · Partners · KPIs · More (More opens every other page as a
+  sheet) — replaces the drawer; the top bar keeps search, the bell and the profile chip; records open **full screen**
+  with a back arrow; tables show as **two-line cards** (line 1: the title and its key figure; line 2: two or three
+  secondary fields and the status chip); a **floating +** above the bottom bar (end side) opens quick add — task, Log
+  call, achievement. The same data and actions as on a desktop; nothing is phone-only.
 - **Four themes** (owner, 28 Sep): **Light**, **Dark**, **Colorful** (the blueprint's values, unchanged) and **Direct**
   — **the official brand palette** (V60, replacing the first Direct values): bg #F6F7F9, surface #FAFBFC, raised
   #FFFFFF, border #E6E8EC, strong #858E99, text #303848, muted #646D79, link #B5490E; **accent #F06820 for marks, tabs
@@ -252,7 +264,7 @@ differ, the design source wins on look, this spec on behaviour.
   sentences are an empty state's one line with its one action, a failed read in the place of the data it spoiled
   (M27), confirm dialogs (D19) and toasts. The UI kit has no banner, callout or hint component, and a check refuses
   one.
-- **Everything links.** Every company, invoice, task, achievement, KPI, report line and person shown anywhere is an
+- **Everything links.** Every partner, invoice, task, achievement, KPI, report line and person shown anywhere is an
   `<EntityLink>` to its own record (names in running text in `--link`, titles in lists in text colour with a light
   underline, IDs in mono inside an entity chip); a UI test walks each page and fails on an entity shown as plain text.
 - **Right-to-left.** Only logical CSS (`ms-/me-/ps-/pe-/start-/end-`, `text-start`); lint refuses physical left/right
@@ -394,7 +406,7 @@ core.wording      (locale, key) pk; text; set_by; set_at        -- Settings → 
   `report.due_day` 5 · `app.arabic_enabled` false · `app.default_theme` direct (Q32) · `app.default_density` comfortable · `auth.device_idle_days` 30 ·
   `work.reminder_days_before_due` 1 · `notify.kinds_enabled` (every kind on) · `app.export_formats` [csv, xlsx] ·
   `files.max_mb` 20 · `partner.one_code_per_partner` ✓ · `report.cases_per_quarter` 1 · `appraisal.cycle_label` "2026-27"
-  (the default from the cycle's years) · `work.pipeline_weekly_target` 1.
+  (the default from the cycle's years) · `work.pipeline_weekly_target` 1 · `perf.kpi_checkin_day` 15 (V93).
 
 ### 3.3 Change log, undo and notifications
 
@@ -407,7 +419,7 @@ audit.change   id bigserial pk; request_id not null; at; table_name; row_id uuid
                index (table_name, row_id, id desc); index (request_id)
 notify.notification  id; person_id; kind ('assigned','helper_added','mentioned','changed_by_other','followed_change',
                'decision_needed','report_issued','report_for_review','appraisal_step','import_done',
-               'alert_contract_expiring','alert_kpi_behind','alert_invoice_unpaid'); entity_table; entity_id; request_id;
+               'alert_contract_expiring','alert_kpi_behind','alert_invoice_unpaid','alert_kpi_checkin'); entity_table; entity_id; request_id;
                actor_id; alert_key (unique per person per day for alerts); created_at; read_at; snoozed_until
                index (person_id, read_at nulls first, created_at desc)
 notify.follow  (person_id, entity_table, entity_id) pk      -- Follow / Watch on any record (V61); owners follow their own
@@ -433,7 +445,7 @@ core.person_default_view  (person_id, page_key) pk; saved_view_id    -- the view
   - How: in reverse order, per field — an update is reverted only where the field still holds the `after` value; an
     insert (including a link) is soft-removed; a removal is restored. **All or nothing**: if any field was changed again later, nothing is
     undone and the answer names the field, who changed it and when (A16). A restore that a uniqueness rule now blocks
-    (an identifier another company holds) is refused and names the holder.
+    (an identifier another partner holds) is refused and names the holder.
   - Undo is itself a request (`kind 'undo'`, `undo_of`); undoing it is redo. The toast's Undo button calls this with
     the request id the command returned.
   - An import is undone as one request: facts it inserted are removed, fields it changed are restored — refused if a
@@ -479,9 +491,12 @@ partner.status_reason  LIST per status (at risk and lost: e.g. price, service is
 partner.status_change  STD; partner_id; status ('prospect','active','at_risk','lost'); effective_on date not null;
                   reason_id → partner.status_reason (required for at_risk and lost); note; set_by    -- V62; history kept,
                   -- never updated: the current status is the latest effective_on ≤ Riyadh today (view partner.partner_status)
-partner.call_outcome  LIST: no answer · answered · meeting set · not interested · call back later · wrong number (V63)
+partner.call_outcome  LIST: no answer · answered · meeting set · demo set · demo held (V88) · not interested · call back
+                  later · wrong number (V63); `counts_as_demo` marks demo set and demo held
 partner.credit_limit  STD SOFT; partner_id; amount_sar; effective_from date not null; approved_by → core.person; reason
                   -- V70: the limit Payments already enforces, mirrored with its history; current = latest ≤ today
+                  -- V92: a refused credit is a row with amount 0 — shown as "Prepaid only" — whose approver and reason
+                  -- are required like any other limit
 partner.partner   STD SOFT; number unique (the partner ID, e.g. DK-P-0142: format and next number from
                   `partner.id_format`); trade_name_en not null; trade_name_ar; official_name_en; official_name_ar
                   (V77: the trade name is the display name everywhere; the official names are used where it is legal —
@@ -510,7 +525,7 @@ partner.campaign_code  STD SOFT; code_raw; code_key; name; valid_from; valid_to;
                   -- live on one partner or one campaign at a time (trigger across both, date ranges included)
 partner.identifier_block  STD SOFT; kind; match ('exact','domain'); value; reason
                   -- values that can never be identifiers: staff email domains, the Payments test VAT, test customers
-partner.individual_name   STD SOFT; name_raw; name_key unique      -- "Individual (not a company)" (D25)
+partner.individual_name   STD SOFT; name_raw; name_key unique      -- "Individual (not an organisation)" (D25)
 partner.account_manager   STD SOFT; partner_id; person_id; effective_from date not null; effective_to date; reason
                   exclude using gist (partner_id with =, daterange(effective_from, effective_to, '[)') with &&)
 partner.contact   STD SOFT; partner_id; name_en; name_ar; job_title; email; phone; notes; is_primary
@@ -627,8 +642,8 @@ core.mention      (note_id, person_id) pk
 
 ### 3.5 The partner-identifier matching engine
 
-**Principle (owner, 28 Sep):** matching is a live view, never a stamp. Nothing writes a company onto an invoice.
-Adding, removing or moving an identifier changes every past row's company at once, and every total with it.
+**Principle (owner, 28 Sep):** matching is a live view, never a stamp. Nothing writes a partner onto an invoice.
+Adding, removing or moving an identifier changes every past row's partner at once, and every total with it.
 
 **Folding (one copy, in SQL, `IMMUTABLE`, versioned).**
 
@@ -647,7 +662,7 @@ Stored keys (`partner.identifier.value_key`, the invoice's match keys) carry `no
 change to `partner.name_stop_words` rebuilds name keys in the same request. `norm.drift()` lists any stored key that no
 longer equals its recomputation; it must be empty (test and nightly job).
 
-**Sources.** Each import source that carries company clues exposes a keys view `(source_table, source_id, kind, key,
+**Sources.** Each import source that carries partner clues exposes a keys view `(source_table, source_id, kind, key,
 match_date)`; in v1 that is `finance.invoice_keys`: client ID (the row's own, else the one Payments client whose contact
 email equals the row's email — ported from the ident branch, live), tax number (compared with both VAT and CR),
 discount code (with the row's **booking date** — see V28), email, phone, both customer-name columns.
@@ -656,37 +671,37 @@ discount code (with the row's **booking date** — see V28), email, phone, both 
 
 1. **Pin** (level 0): `partner.match_pin (source_table, source_id, partner_id, kind, reason)`, shown with a pin mark,
    logged and undoable, of two kinds:
-   - `entry` — the company a person picked while typing an invoice whose clues matched nothing. Anyone who may type
+   - `entry` — the partner a person picked while typing an invoice whose clues matched nothing. Anyone who may type
      the invoice may set it; the clue itself goes to **Needs a decision** as a *suggested identifier*, because adding an
      identifier moves money between people and needs `partners.identify`. Once someone accepts it, the invoice
      matches by itself and the pin is cleared in the same request;
    - `decision` — a manager's last resort for a true conflict.
-   A pin whose invoice would now match a **different** company without it is listed in `finance.health`.
+   A pin whose invoice would now match a **different** partner without it is listed in `finance.health`.
 2. For each level in `partner.match_order` (setting; default client ID → VAT/CR → discount code within its dates →
-   email → phone → name), find the companies holding a matching live identifier. Values under
+   email → phone → name), find the partners holding a matching live identifier. Values under
    `partner.identifier_block` are ignored.
 3. **The first level that finds anything decides.** One partner → `matched`. Two or more → `conflict`, listing every
    candidate; nothing is guessed. At the discount-code level a live **campaign code** (V65) gives `campaign` — credited
    to nobody, listed apart. None at any level → `individual` if a name key is on the individuals list, else `none`.
 
 Output: `(source_table, source_id, state, level, partner_id, campaign_code_id, candidates uuid[])`. Finance exclusions are applied
-separately (§3.6) — an excluded row still shows its company.
+separately (§3.6) — an excluded row still shows its partner.
 
 **Needs a decision — `api.match_queue()`.** Rows in `none` or `conflict` grouped by customer (same keys), each group
 with its row count and **the riyals at stake** (M52). A person decides once per customer:
 
 | Decision | Effect (one request, logged, undoable) |
 |---|---|
-| "This is company X" | adds the chosen clues from the group (default: the strongest — client ID, else VAT/CR, else email, else name) as identifiers of X; every future row with those clues matches by itself |
-| "New company" | creates the company with those identifiers |
-| "Individual (not a company)" | adds the name to `partner.individual_name` (D25) |
+| "This is partner X" | adds the chosen clues from the group (default: the strongest — client ID, else VAT/CR, else email, else name) as identifiers of X; every future row with those clues matches by itself |
+| "New partner" | creates the partner with those identifiers |
+| "Individual (not an organisation)" | adds the name to `partner.individual_name` (D25) |
 | "Exclude" | opens the Finance exclusion rule form (reason required) |
 | Conflict: "move identifier" / "merge A and B" / "pin these rows to A" | remove-and-add the identifier; merge; or pin with a reason (last resort) |
 
 Staff emails and test rows never become identifiers: the block list refuses them at write time, and the queue never
 proposes them. From P7, the Payments **corporate clients** import adds a matched client's IDs, names, VAT/CR, emails and phones
-to its company (source `import`, one request, undoable) and proposes a new company for an unmatched one — it never
-creates companies by itself (D17). The **promo codes** import only suggests a company from its client name; a person
+to its partner (source `import`, one request, undoable) and proposes a new partner for an unmatched one — it never
+creates partners by itself (D17). The **promo codes** import only suggests a partner from its client name; a person
 links the code.
 
 ### 3.6 Finance — the money model
@@ -790,7 +805,7 @@ finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note
 |---|---|
 | `finance.invoice_fact` | per invoice: kind (a top-up detected from wallet lines is confirmed as `wallet_topup`); status via `status_map`; line total; pass-through / fee / unclassed line sums (D23); commission flag (product list or commission word); the billing invoice it belongs to (for a transaction) or its transactions (for a billing invoice); its DPIN; **revenue date** = paid date (else created) |
 | `finance.invoice_cost` | for a transaction or standalone invoice: approved = sum of **approved** expenses, **null when none** (empty, never 0 — D21, MF1); pending count; estimate only when approved is null and not a commission: the Revenue Report expense total once imports exist, else the pass-through lines (D23), always flagged; `cost_basis` ∈ approved · submitted_estimate · line_estimate · commission · none; **cost status** Provisional / Final (rules above) |
-| `finance.money_row` | one row per revenue unit (a transaction or a standalone invoice): partner, match state and level (§3.5); segment (V64); month and quarter of the revenue date; **revenue** = total − wallet part (D21) for a paid unit; cost, estimate (apart), margin = revenue − cost where cost is known, as recorded (V51) (a commission's margin is its revenue) — **the main margin figure counts only units whose cost is Final; Provisional margins are shown apart** (the old M9 "one pending transaction holds back the whole invoice", carried as cost status); counts = paid and not excluded; excluded/hidden with rule and reason; audit-required flag; cost status. **Billing invoices, credit notes and wallet top-ups never appear as revenue units** |
+| `finance.money_row` | one row per revenue unit (a transaction or a standalone invoice): partner, match state and level (§3.5); segment (V64); **payment type** (V87) — the subkind of the partner client ID the invoice carries (prepaid · postpaid · tender), else **code** when it carries a discount or campaign code, else none; month and quarter of the revenue date; **revenue** = total − wallet part (D21) for a paid unit; cost, estimate (apart), margin = revenue − cost where cost is known, as recorded (V51) (a commission's margin is its revenue) — **the main margin figure counts only units whose cost is Final; Provisional margins are shown apart** (the old M9 "one pending transaction holds back the whole invoice", carried as cost status); counts = paid and not excluded; excluded/hidden with rule and reason; audit-required flag; cost status. **Billing invoices, credit notes and wallet top-ups never appear as revenue units** |
 | `finance.money_service_row` | D24: each counted unit's lines to one service (item map, else the product's service, else "No service yet"); lines of "not income" services shown on their own row, never in a service's sums; the rest of the difference to revenue under "Not split by line", so services + not income + not split = the revenue tile and nothing hides; approved cost split by line share, the estimate by pass-through share |
 | `finance.credit_row` | counted unit × person × share: a credit split if present, else the partner's account manager **on the revenue date** (V27), else nobody ("uncredited", shown) |
 | `finance.receivable` | collections: billing and standalone invoices not void/cancelled/draft, **through the same exclusion rules as `money_row`** (a hidden row never appears; an excluded one is listed apart, never in outstanding — D16, MF5); outstanding = total − receipts; due = created date + `finance.collection_due_days`; ageing 0–30, 31–60, 61–90, 90+, no date, dated in the future |
@@ -802,7 +817,7 @@ finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note
 | `finance.health` | what is held back or doubtful, by reason, with the riyals at stake (M48, M52): unknown statuses, excluded/hidden rows, units with no partner, cost missing, estimates in use, Provisional units, failed checks |
 
 **"Commercial revenue" is a setting** (`finance.revenue_definition`, effective-dated): basis (revenue as above — the
-default — or margin), which services, which company categories, whether commissions count. The structure is built
+default — or margin), which services, which partner categories, whether commissions count. The structure is built
 now; **its value is decided at go-live** (owner, 28 Sep — decision 3), and nothing waits for it. The KPI source
 `finance.commercial_revenue` reads it as of each month, so a changed definition recalculates every KPI, report draft
 and appraisal that uses it (§1a example 6). The screen words are the owner's — **Revenue · Cost · Profit** (V73; a wording setting, `core.wording`); code keeps
@@ -864,7 +879,12 @@ work.task_occurrence (template_id, occurs_on, partner_id) pk; task_id    -- make
   is created once (`task_occurrence`), attributed to the template's creator with a `job` request naming the template —
   a record made on a person's standing instruction (D17's spirit). The starting template **Partner feedback** runs
   monthly for each key partner (V72); closing it asks for the feedback note, which sets the partner's last feedback
-  date.
+  date. The starting one-off template **Corporate onboarding** (V89) is a checklist owned by the account manager —
+  agreement signed and stamped · account set up · travel policy received · Operations briefed · first request — offered
+  (a person presses it) when a partner gains the Client role or its partnership opportunity reaches Signed.
+- **Team load** (V91): `work.team_load` — per person: open tasks, overdue, open action items, partners owned (account
+  manager) and prospects assigned. It shows beside the person picker in every assign dialog (a task, an action item,
+  the partners' bulk assign) and as a **Team load** view on Tasks for managers.
 - **Closing a task** (`api.task_close`) asks what to do with open action items (close them too, or keep the task open),
   and the screen then offers "Log the achievement", prefilled from the task (partner, project, participants = owner and
   helpers, source task). Nothing is created without the person pressing it (§3 "closing a task offers").
@@ -928,6 +948,8 @@ perf.kpi_target      id; kpi_id; period_kind ('month','quarter','year'); period_
 perf.kpi_lead        (kpi_id, person_id) pk
 perf.kpi_contributor id; kpi_id; scope ('department','team','person'); scope_id
 perf.kpi_reading     STD SOFT; kpi_id; period_kind; period_start; value numeric; passed bool (checklist); as_of date; note
+                     -- V93: written by the KPI's leads (and managers with Full on KPIs); on `perf.kpi_checkin_day`
+                     -- (default the 15th) each lead of a manual KPI with no reading for the month gets 'alert_kpi_checkin'
                      -- manual and percentage/score KPIs; evidence via core.file_link. Also last year's monthly figures of a
                      -- computed KPI, typed once and used only for months its source has no data for, shown as "typed" (V31)
 perf.kpi_status_note STD; kpi_id; quarter_start; status ('on_track','slightly_behind','at_risk','critical','exceeded','pending');
@@ -991,7 +1013,7 @@ with a reason — a logged person action.
    returns `measured = false` and is shown as "—, not measured", never 0. A count of achievements is a real 0 once the
    period has started.
 
-Views: `perf.kpi_month`, `perf.kpi_quarter`, `perf.kpi_ytd`, `perf.kpi_pace`, `perf.kpi_partner_quarter` (a company's
+Views: `perf.kpi_month`, `perf.kpi_quarter`, `perf.kpi_ytd`, `perf.kpi_pace`, `perf.kpi_partner_quarter` (a partner's
 contribution to each KPI by quarter, for the partner card); function `perf.kpi_trace(kpi, from, to)` returns the
 achievements or invoices behind a figure with their partner and evidence file (the KPI page's drill-down, §1).
 
@@ -999,7 +1021,7 @@ achievements or invoices behind a figure with their partner and evidence file (t
 maps the dotted key to it — returning
 `(value, measured, n)` plus a `_items` twin for drill-down; scopes are department, team, person, partner):
 `finance.revenue` · `finance.commercial_revenue` (the setting) · `finance.margin` (says how much of the revenue had a cost)
-· `finance.new_client_revenue` (companies whose first counted unit falls in the period and whose `client_since`, if
+· `finance.new_client_revenue` (partners whose first counted unit falls in the period and whose `client_since`, if
 typed, is not earlier) · `finance.collected` ·
 `partner.new_clients` · `perf.achievements` (categories as parameters; person scope = owner, or owner and participants)
 · `perf.kpi_attainment` (params: a KPI **code**; value = the KPI's figure over the period ÷ its targets over the same
@@ -1007,7 +1029,8 @@ period as of the evaluation date — quarter targets pro-rated by the months ins
 plan of its own year, the KPI matched by code; for appraisal items tied to a department KPI) ·
 `work.tasks_on_time` · `work.action_items_on_time` · `work.weekly_updates` · `work.meeting_notes_on_time` ·
 `report.on_time` · `work.pipeline_updates` (V63: per person per week, task updates + logged calls; a week counts when it
-reaches the appraisal item's weekly target, default 1) · `partner.calls` (by outcome) · `partner.at_risk` (partners
+reaches the appraisal item's weekly target, default 1) · `partner.calls` (by outcome) · `partner.demos` (V88: calls with outcome demo set or demo held, per person per
+week) · `partner.at_risk` (partners
 turned at risk or lost, by reason) · `perf.escalations` (V69) · `pipeline.tenders_submitted`, `pipeline.awarded_value`, `pipeline.tenders_by_stage`,
 `pipeline.opportunities_by_stage`, `pipeline.partnerships_signed` (V80, §3.7a). Every finance, pipeline and achievement
 measure takes an optional `segment`
@@ -1033,6 +1056,8 @@ tests are made up):
   reads Finance only); logging it sets the partner to **Prospect** from the signing date unless it is already Active
   (one request, reason "MoU signed").
 - **Awards**: an optional entry cost (amount).
+- **Supplier cashback** (V90): the supplier (a partner with the Supplier role), the amount received (amount — never
+  Finance money, never on a money KPI), the date received (the evidence date: dated by receipt), a reference.
 - **Contract signed** (V80): counter-party (partner), the contract (link), signing date, value (amount, optional — not
   revenue), the tender it came from (link, optional). "Government entity contracts" counts these with a
   Government-segment partner, tender or not (`perf.achievements` with the `segment` parameter).
@@ -1081,7 +1106,7 @@ report.render        id; report_id; format ('pdf','pptx'); file_id; snapshot_sha
 - **The two report kinds** (one tab row on the Reports page: Monthly · Quarterly). The **monthly** template's sections:
   cover · each KPI's addition this month · this month vs the same month last year (tiles) · achievements by category ·
   challenges · next-month targets. The **quarterly** template's: cover · quarter vs the same quarter last year (tiles) ·
-  achievements by category (lines linking to their achievements, companies and invoices) · **KPI results**
+  achievements by category (lines linking to their achievements, partners and invoices) · **KPI results**
   (`kpi_results`: target, M1, M2, M3, quarter, year to date, status) · challenges (open and carried over; resolved this
   quarter) · next-quarter targets · operational-plan indicators (Done / Carried over). Both are settings; these are the
   starting templates.
@@ -1099,7 +1124,8 @@ report.render        id; report_id; format ('pdf','pptx'); file_id; snapshot_sha
   nothing leaves the device) to put a draft in the Arabic field, marked Draft until the editor corrects or confirms it;
   the button is hidden where the API is unavailable. No paid translation service is used. Issuing refuses a line with
   no text in a language the template prints (`report.template.print_languages`, default Arabic and English). Arabic
-  reports do not wait for the Arabic interface (P6-7).
+  reports do not wait for the Arabic interface (P6-7), and their PDF and PPTX paths and the translator's quality are
+  proven early by the P3-10 spike (V86); if the translator's drafts are judged unusable there, the button stays hidden.
 - **Review (optional, a setting per template).** An editor may submit a draft for review (`status 'in_review'`); a
   reviewer returns it with comments or approves it for issue. With review switched off, editors issue directly.
 - **Issue.** `api.report_issue(id, version)` builds the snapshot (every section's rendered text and figures, the plan
@@ -1286,6 +1312,8 @@ through `csvGuard` (CP5). An E2E test proves the exported row count equals the l
 | A revenue unit's segment | invoice override → project → partner (`finance.money_row`) | Never |
 | Credit used against the limit; the prepaid (wallet) balance | `finance.partner_credit`, `finance.partner_wallet` | Never |
 | Sales by code | `finance.sales_by_code` | Never |
+| A revenue unit's payment type | client ID subkind, else code (`finance.money_row`, V87) | Never |
+| Team load | `work.team_load` | Never |
 | An achievement's avoided amount | its computed field (exposure − actual loss) | Never |
 | Calls and pipeline updates per week | `work.pipeline_updates`, `partner.calls` | Never |
 | A partner's display name | its trade name in the reader's language (V77) | Never — the names are typed, the choice is computed |
@@ -1303,7 +1331,7 @@ through `csvGuard` (CP5). An E2E test proves the exported row count equals the l
   `(project_id)`; `work.action_item (owner_id) where done_at is null`; `core.note (entity_table, entity_id, created_at)`;
   `audit.change (table_name, row_id, id desc)`; trigram indexes on `norm.fold(name)` for search.
 - RLS helpers are `stable` and called as `(select authz.level('x'))` so they run once per statement.
-- **Budget, measured on the stress fixture** (made-up: 2,000 companies, 10,000 identifiers, 60,000 invoices, 150,000
+- **Budget, measured on the stress fixture** (made-up: 2,000 partners, 10,000 identifiers, 60,000 invoices, 150,000
   invoice lines, 180,000 expense lines, 5,000 tasks, 3,000 achievements): partner card ≤ 300 ms, KPI page ≤ 500 ms,
   My day ≤ 500 ms, decision queue ≤ 1 s, Finance overview ≤ 800 ms (database time, p95).
 - **If the live match view misses its budget**, the only sanctioned fix is a cache table maintained **in the same
@@ -1339,8 +1367,7 @@ record**; a door never creates a person.
 **The page** (owner, 29 Sep — V75) is split: the **form on the right** (left-to-right; mirrored in Arabic) and a
 **brand panel on the left** — Direct slate, a subtle flight-path pattern drawn from the logo's plane, the official logo
 and, under it, the **brand line**: EN "The commercial arm of the all-in-one travel app" / AR «الذراع التجاري لتطبيق
-السفر الشامل». On a phone the panel collapses to a top band. The artwork comes from the design session (Canva, then
-Figma — V82). **The page says only this:** the logo and brand line; **Commercial Workspace** / **مساحة العمل
+السفر الشامل». On a phone the panel collapses to a top band. The artwork comes from the Design lead session (V82). **The page says only this:** the logo and brand line; **Commercial Workspace** / **مساحة العمل
 التجارية**; an **EN | ع** language toggle; **© Direct**; and the form's own words — step 1: "Work email", **Send code**;
 step 2: "Enter the 6-digit code", "Sent to o•••••@d•••.com · Change" (the email masked; Change goes back), six digit
 boxes, **Verify**, "Resend code" with its countdown. Nothing else — no legal line, no hint text (V11, V59). Every
@@ -1496,17 +1523,17 @@ reports — and revisited later (V83).
 | Area (route) | List | Detail (one tab row) | Main actions |
 |---|---|---|---|
 | **My day** `/my-day` | Four blocks: **My work** (overdue, today, this week — tasks and action items I own, am assigned or help on; stale flags) · **Since your last visit** (counters, each a link: mentions, invoices paid, contracts expiring, KPIs behind pace, tasks updated; Mark all seen) · **My partners' activity** (new invoices and bookings, payments, overdue invoices, contracts expiring — since my last visit) · **My KPIs** (lead or contributor: pace light, year to date vs due, this month's addition) · **My appraisal** (private: cycle step, what is due from me) | — | Quick add task; mark action item done |
-| **Overview** `/overview` (V80) | The executive view: Revenue · Cost · Profit, collections, new clients, tenders submitted, awarded value, partnerships signed, government entity contracts — period switch against last year; the tender and partnership funnels; a **segment switch** over everything; each tile links to its list | — | Period; segment; export |
+| **Overview** `/overview` (V80) | The executive view: Revenue · Cost · Profit, collections, new clients, tenders submitted, awarded value, partnerships signed, government entity contracts — period switch against last year; the tender and partnership funnels; a **segment switch** over everything and the **payment-type chip** (V87); each tile links to its list | — | Period; segment; export |
 | **Pipeline** `/pipeline/tenders`, `/pipeline/partnerships` (V80) | Two boards (columns per stage, drag to move) and their list views; chips: stage, owner, partner, segment, due; saved views | Tender: partner (official name), Etimad reference, tender number, dates, value, awarded value, stage history, files, linked project and achievement. Opportunity: partner, kind, stage history, next step, expected value | New tender; new opportunity; move stage (with date; reason for Lost / Cancelled); Log achievement on Awarded / Signed |
 | **Partners** `/partners/[id]` | **Saved views across the top** (All · Clients · Suppliers · Strategic · Government; a default per person); visible chips **Role · Segment · Owner · Status** and one **KPI** chip (objective → KPI, period this quarter by default; partners that contributed); everything else under **More filters**; any combination saves as a view (V78). Columns: logo or monogram, trade name (V77), roles (Client / Supplier / Strategic partner chips), category, tier, account manager, revenue this year, outstanding, contracts expiring, open tasks, last activity, last feedback, match issues. More filters: mine, priority, category, tier, key partner, has outstanding, contract expiring, sent to legal, last feedback, needs a decision; bulk actions incl. **Assign owner and priority** (V63) | **One tab row by role** (§3.4): Overview (status with its history and last feedback date, segment, period switch MTD · QTD · YTD · Custom, tiles against the same period last year, Q1–Q4 strip this year vs last, income by service, open tasks, recent achievements, linked records, identifiers with add / remove / history, KPI contributions) · Finance (invoices, months, collections; credit limit and outstanding against it, prepaid (wallet) balance, Sent to legal flags, codes with their terms; **Open in Finance** carries the filters) · Contracts & files (contracts with status and renewal actions; files under their computed names) · Work (projects, tasks, tenders, partnership opportunities) · Achievements — as the canvas's PartnerCard artboards; official and trade names in the properties rail | New partner; **Log call** (outcome, one click — V63); set status (with reason); add identifier; add role; upload logo; add contract; merge; set account manager (Settings rights); Follow |
 | **Needs a decision** (a view of Partners) | Customer groups with row count and riyals at stake, candidates for conflicts | The rows, their clues | The decisions of §3.5 |
-| **Finance** `/finance/[view]` | Views: Overview (tiles: revenue, cost, estimate apart, margin, counted units; months; income by service; **by segment** (V64); what is held back and what fails a check) · Invoices (every kind and state; chips: Provisional, checks failing, no partner) · Collections (ageing, who to chase — on billing and standalone invoices; Sent to legal chip and note — V70) · **Sales by code** (code × month, partner or campaign, terms — V65; campaign codes listed apart); every filter lives in the URL (partner, period, kind, status, service …) so **Open in Finance** from a partner card lands on the same figures; **saved views** (personal or shared) and bulk actions on every list · **New invoice** (the fast entry screen of §7) · Imports (P7) | Invoice: header, lines, expenses (transactions), transactions and DPIN and receipts (billing), cost status, checks, partner and match level, credit (split), projects/achievements/report lines citing it, history | New invoice (Save and new, Duplicate); link transactions to a billing invoice; split credit |
-| **Projects** `/projects/[id]` | Number, name, company, owner, status, dates, linked revenue/margin | Overview (linked invoices and money) · Tasks · Achievements · Files · Timeline | New project; link invoices |
-| **Tasks** `/tasks/[number]` | Switch List / Board by status / Calendar by due date. Chips: My work, owned, helping, team, status, due, stale, partner, project | Header (title, status, owner, due, priority) · Action items (inline add, owner, due, helper) · Timeline (updates, meeting notes, comments, @mentions) · Links (partner, project, contacts, invoices, KPIs, Direct references) · Files | Quick add (title, owner, due — Enter); close (offers "Log the achievement"); log meeting |
+| **Finance** `/finance/[view]` | Views: Overview (tiles: Revenue, Cost, Profit (the screen words — V73), the estimate apart, counted units; months; income by service; **by segment** (V64); what is held back and what fails a check) · Invoices (every kind and state; chips: **payment type** (prepaid · postpaid · code · tender — V87), Provisional, checks failing, no partner) · Collections (ageing, who to chase — on billing and standalone invoices; the payment-type chip; Sent to legal chip and note — V70) · **Sales by code** (code × month, partner or campaign, terms — V65; campaign codes listed apart); every filter lives in the URL (partner, period, kind, status, service …) so **Open in Finance** from a partner card lands on the same figures; **saved views** (personal or shared) and bulk actions on every list · **New invoice** (the fast entry screen of §7) · Imports (P7) | Invoice: header, lines, expenses (transactions), transactions and DPIN and receipts (billing), cost status, checks, partner and match level, credit (split), projects/achievements/report lines citing it, history | New invoice (Save and new, Duplicate); link transactions to a billing invoice; split credit |
+| **Projects** `/projects/[id]` | Number, name, partner, owner, status, dates, linked revenue and profit | Overview (linked invoices and money) · Tasks · Achievements · Files · Timeline | New project; link invoices |
+| **Tasks** `/tasks/[number]` | Switch List / Board by status / Calendar by due date. Chips: My work, owned, helping, team, status, due, stale, partner, project | Header (title, status, owner, due, priority) · Action items (inline add, owner, due, helper) · Timeline (updates, meeting notes, comments, @mentions) · Links (partner, project, contacts, invoices, KPIs, Direct references) · Files | Quick add (title, owner, due — Enter); **Team load** view for managers (V91); close (offers "Log the achievement"); log meeting |
 | **KPIs** `/kpis/<year>/<code>`, `/kpis/achievements/<id>`, `/kpis/challenges/<id>` | Views: **KPIs** (the year's plan grouped by objective: code, title, leads, YTD, year target, pace light, Q1–Q4, measured) · **Achievements** · **Challenges** (V37). Year chooser (the plan) | KPI: target and result by month and quarter; drill-down achievements/invoices → partner → evidence; readings; status notes; definition and target history. Achievement: its line, fields, evidence, invoices, KPIs, history | Log achievement (category first, then its own fields; mark "use as example"); add reading; declare status; escalate a critical challenge (to whom, when — V69); export the KPI sheet |
 | **Reports** `/reports` (archive), `/reports/monthly/<period>`, `/reports/quarterly/<period>`, `/reports/compare?a=…&b=…` | **The landing is the archive** (V57): every issued monthly and quarterly report and every legacy PDF (2024–2026), newest first; one tab row **Monthly · Quarterly**; filters by year; **Search** across issued reports (V67); **Compare** any two | Editor: the template's sections in order, each live, with the lines editor (cite achievements/invoices, combine, reword — partners and people inserted as live-name tokens), suggestions of what is not cited yet; Preview; Submit for review (when on); Issue. Issued: snapshot, drift since issue (a count chip linking to the changed figures), PDF/PPTX, Correct. Legacy: the PDF, marked Legacy PDF. **Compare**: two periods side by side, tiles and sections aligned, differences highlighted, a legacy side showing its PDF — as the canvas's ReportsArchive. **Quarterly** (the canvas's QuarterlyReport): cover · quarter vs the same quarter last year (tiles) · achievements by category (each line linking to its achievements, partners and invoices) · KPI results (target, M1, M2, M3, quarter, year to date, status) · challenges (open, carried over, and resolved this quarter) · next-quarter targets · operational-plan indicators (Done / Carried over) | New report; Issue (freeze); PDF; PPTX; KPI sheet export; correct; load a legacy PDF; compare |
 | **Appraisal** `/appraisal/[id]` | My appraisals; my team's (reporting line); all (admins) | **Self-registration** first (V68): my achievements in this cycle, each completed or flagged "no date" / "no evidence" (those never count). Then the form as the official sheet: sections → groups → items (definition, unit, target, thresholds, actual with a "from the app" badge, self, manager, weight, %), competencies, comments, sign-off, summary with grade | Self-evaluate; evaluate; sign; lock (admin) |
-| **Settings** `/settings/[group]` | **My profile first** (every person, their own: photo or initials with a colour, full name, display name / nickname, badge — none, an icon from a set, or a zodiac sign — theme of four, density, language, start page, drawer pinned or collapsed, notification choices in-app / email), then the six groups of §4, each a page of forms driven by `setting_def` schemas and list-setting tables; Activity (the change log, filter and undo; the sign-in log) | — | Every setting changes with a reason and an effective date where it has one; profile changes save at once with Undo |
+| **Settings** `/settings/[group]` | **My profile first** (every person, their own: photo or initials with a colour, full name, display name / nickname, badge — none, an icon from a set, or a zodiac sign — theme of four, density, language, start page, drawer pinned or collapsed, notification choices, in-app only in v1 — V45), then the six groups of §4, each a page of forms driven by `setting_def` schemas and list-setting tables; Activity (the change log, filter and undo; the sign-in log) | — | Every setting changes with a reason and an effective date where it has one; profile changes save at once with Undo |
 
 **Sign-in** (`/sign-in`): exactly the words of §4 — the split page of V75 (brand panel with logo and brand line; the
 form with Commercial Workspace, EN | ع, email, code, © Direct). **My profile → Devices** lists signed-in devices with
@@ -1514,7 +1541,8 @@ per-device sign-out (V74).
 
 Top bar: search and command palette (Ctrl K — pages, records through `api.search`, create actions), Create menu, bell (the notification centre: All · Mentions · Assigned to me, by day, mark all read, snooze — §3.3)
 (notifications; due items counted live), profile chip (avatar, nickname, badge) opening My profile (theme, density, language once Arabic is enabled,
-sign out). The drawer: My day, Partners, Projects, Tasks, Finance, KPIs, Reports, Appraisal, Settings (§4).
+sign out). The drawer: My day, Overview, Partners, Pipeline, Projects, Tasks, Finance, KPIs, Reports, Appraisal, Settings
+(§2.5); on phones the bottom bar My day · Tasks · Partners · KPIs · More (V85).
 
 ---
 
@@ -1525,7 +1553,7 @@ first-class, fast screen, built for someone copying from a Payments page:
 
 - **Header** in one row: kind (Transaction · Standalone invoice · Billing invoice · Credit note · Wallet top-up),
   Payments reference, status, created and paid dates, total; the **customer as Payments shows it** (client ID, name,
-  email) with the **company match shown live** beside it (§3.5). No match → the typist **may** pick the company
+  email) with the **partner match shown live** beside it (§3.5). No match → the typist **may** pick the partner
   (an entry pin, §3.5) or leave it for **Needs a decision**; either way the clue is suggested as an identifier, and
   once someone with `partners.identify` accepts it, the next invoice matches by itself.
 - **Lines** grid (product from the product list, item name, quantity, price, total) — keyboard-first, and a block
@@ -1603,7 +1631,7 @@ not only as admin (CP10); a test that recorded a hole fails once it is fixed (M3
 ### 9.2 The propagation flows — the six of §1a, and five more
 
 Common trial world (made-up): department Commercial; people **Admin**, **Head**, **AM1** and **AM2** (account managers,
-team members), **Editor** (report editor); company **Test Co A** with identifiers email `a@test.example` and name
+team members), **Editor** (report editor); partner **Test Co A** with identifiers email `a@test.example` and name
 "Test Co A"; AM1 is its account manager from 1 Jan 2026; plan 2026 with KPIs **K-REV** (computed:
 `finance.commercial_revenue`, Q3 target 100,000) and **K-B2B** (achievements: category "New deals" counts 1, Q3
 target 3); an appraisal cycle Apr 2026–Mar 2027 with AM1's items "Sales vs plan" (`finance.revenue`, plan 400,000),
@@ -1662,7 +1690,11 @@ one request) · `ARB-*` (V76: a list entry without its Arabic label is refused; 
 line; the Translate button is absent when the browser has no Translator API) · `RLINE-*` (V79: an achievement typed in a
 report exists once, marked added from report, and counts once; a note line with a money figure is refused and never
 counts) · `PVIEW-*` (V78: the KPI chip keeps exactly the partners in the KPI's drill-down for the period; a saved
-combination reopens from its URL; each person's default view) · `PIPE-*` (V80: stage history, reasons for Lost and
+combination reopens from its URL; each person's default view) · `PAY-*` (V87: an invoice with a postpaid client ID shows postpaid, one with only a code shows code; the chip's counts add
+up to the list) · `CALL-*` (V88: demo set and demo held counted once per person per week) · `CRL-*` (V92: a limit of 0
+shows Prepaid only and needs its approver) · `LOAD-*` (V91: team load equals the person's open tasks and partners) ·
+`KRD-*` (V93: only a lead or a manager writes a reading; the check-in alert fires once on the day for a lead with no
+reading) · `PIPE-*` (V80: stage history, reasons for Lost and
 Cancelled, Signed sets Active with one Undo, the measures by period and segment) · `PST-*` (V62: status history read as of a date; at risk and lost need a reason; the at-risk chip; the report section's
 counts by reason) · `PROS-*` (V63: bulk assign is one request and one Undo; a manager cannot reassign a partner with
 revenue; Log call on a partner with no task lands on its timeline; the week's pipeline count feeds the appraisal item) ·
@@ -1681,7 +1713,8 @@ maths, weights both ways, cap, lock) · `PERF-*` · `UI-*` (every page in Light/
 
 The PR's own tests pass, each new test was seen to fail under its sabotage (named in the PR), the full SQL and unit
 suites pass on a database built from zero, E2E passes for the areas touched, the checks pass, the grants snapshot is
-updated on purpose if it changed, and nothing real is in the diff (rule 7).
+updated on purpose if it changed, and nothing real is in the diff (rule 7). **The PR description lists the V-numbers
+it implements and states "checked against DECISIONS.md at <commit>"** (V94).
 
 ---
 
@@ -1743,7 +1776,7 @@ invoices in the browser; imports follow later. All data in the old app is test d
 
 | What | How | Proof |
 |---|---|---|
-| People, teams, roles, allowed emails | Typed in Settings | every person signs in through their door |
+| People, teams, roles, allowed emails | Typed in Settings | every person signs in with the emailed code (V59) |
 | Plan 2026 (objectives, KPIs, targets, categories) | Typed in Settings from the Departmental KPIs sheet | the KPI sheet export matches the strategy team's sheet cell for cell |
 | Appraisal templates, grade scale, points tables | Seeded **from the online appraisal tool** (it wins over the Excel form; gaps filled from the form — owner decision 2) from an export of its data the owner hands over (rule 8), kept out of the repo (rule 7) and loaded by a person through the importer; then edited as settings | every template's weights, bands and items equal the tool's |
 | Past appraisals | the same export, imported as `appraisal.legacy` (read-only, labelled legacy — 08 A14) | row count per person and cycle |

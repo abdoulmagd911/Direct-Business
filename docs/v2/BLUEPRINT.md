@@ -2,26 +2,32 @@
 > 28 Sep 2026, copied word for word as the oversight sent it to the architect. The fuller wording lives in the Drive
 > knowledge base as "11 Blueprint — new Commercial app (v0.7, 28 Sep 2026)"; where the two differ, the Drive file is the
 > owner's and wins. How it will be built: `TECH-SPEC.md`; in what order: `BUILD-PLAN.md`; what is still unclear:
+>
 > `OPEN-QUESTIONS.md`. One change to the copy (oversight, 28 Sep): the evaluator's name in §5 is replaced by "the
 > evaluator" — no staff names in this public repository.
+>
+> **Superseded lines are marked, never silently changed** (audit of 29 Sep): the stale words are struck through
+> (~~like this~~) and followed by **[SUPERSEDED — Vnn: what holds now]**, citing `DECISIONS.md`. Read the marks first:
+> a struck line is history, the note is the rule. Where this file and `DECISIONS.md` differ, `DECISIONS.md` wins.
 
 ---
 
 ## 0. Decisions (owner, 28 Sep)
 - Rebuild from scratch. Old app frozen. Port proven parts: Payments file readers and column maps, money rules, test methods.
-- Users v1: Commercial department only; built so other departments can be added later without rebuilding.
+- Users v1: Commercial department only; built so other departments can be added later without rebuilding. **[SUPERSEDED in part — V71: Finance colleagues also get read access to Finance, from the staged pilot on]**
 - One system: everything linked; each thing lives in one place; a change anywhere shows everywhere it is used, at once (1a).
 - Configurable, not hard-coded: anything that may change is a setting an admin changes in the browser, with history, never code. Code holds only structure (records, links, calculations). Above all the department's objectives, KPIs and achievement categories are YEARLY PLANS set in the browser (5a) - new structure/KPIs/vision expected at year end.
-- Sign-in simple but safe: no passwords. Work email + "Continue with Google" (Google Workspace) or a one-time code emailed; stay signed in on device; only admin-allowed emails. Email alone without verification is NOT used.
+- Sign-in simple but safe: no passwords. Work email + ~~"Continue with Google" (Google Workspace) or~~ a one-time code emailed; stay signed in on device; only admin-allowed emails. Email alone without verification is NOT used. **[SUPERSEDED — V59: the emailed code is the only door (Google and Zoom only as later shortcuts, V23); V74: a device stays signed in until sign-out, 30 unused days → a new code; no "keep me signed in" tick]**
 - Built for growth, kept simple: departments, teams, access levels, features added later without rebuild; modules share one data layer; one page list drives navigation, access matrix and database.
-- Ready from day one, built later: Arabic (RTL layout + wording list from start; English only until tested), export (every list to Excel/CSV in v1), import (one framework; Payments all-invoices file first, others later).
-- Design: professional, calm, 3 themes Light / Dark / Colorful from one token set. Fonts: Readex Pro (headings, figures), IBM Plex Sans + IBM Plex Sans Arabic (text), IBM Plex Mono (IDs, money). Tinted greys; colour for status and data. Dense tables (32px rows), side drawer 232px pinned / 56px collapsed, list+detail panel 480px, max one tab row, chips for filters, each dialog owns its own form state, toasts with Undo. Token hexes - Light: bg #F2F3EF surface #F9FAF7 raised #FFFFFF border #DADDD5 strong #858F88 text #1A1F1C muted #566059 accent #0B6B66 hover #08524E focus #2B63D9 success #1D7543 warning #8F5500 danger #B42318 info #1F5FAD. Dark: bg #161B1B surface #1C2322 raised #242C2B border #33403E strong #6B7A76 text #E4EAE7 muted #9AA7A3 accent #3FC1B4 hover #66D3C8 focus #7FA8FF success #4CC38A warning #E6A94B danger #F27A6F info #6FAAF2. Colorful: bg #EDF4F6 surface #F7FBFC raised #FFFFFF border #C9DDE3 strong #718F99 text #0F2A33 muted #46636D accent #C4314A hover #A3243A focus #6A4FD8 success #17794A warning #935200 danger #B3261E info #1D5FB8, drawer #0F4C5C.
-- Scope v1, the closed circuit: Companies, Finance (invoices from Payments), Projects, Tasks, Achievements, KPIs, Reports, Appraisal - linked both ways. Leads, proposals, generators, events, suppliers later.
+- Ready from day one, built later: Arabic (RTL layout + wording list from start; English only until tested), export (every list to Excel/CSV in v1), import (one framework; Payments all-invoices file first, others later). **[SUPERSEDED — V5: at go-live the 2026 invoices are typed in the browser; every import, the all-invoices file included, is the later phase P7]**
+- Design: professional, calm, ~~3 themes Light / Dark / Colorful~~ **[SUPERSEDED — V7, V60: four themes — Light, Dark, Colorful and Direct (the official palette)]** from one token set. Fonts: Readex Pro (headings, figures), IBM Plex Sans + IBM Plex Sans Arabic (text), IBM Plex Mono (IDs, money). Tinted greys; colour for status and data. ~~Dense tables (32px rows)~~ **[SUPERSEDED — V8: Comfortable by default, 44–52 px table rows; 32 px rows only in the per-person Compact density]**, side drawer 232px pinned / 56px collapsed (still in force — V85), list+detail panel 480px, max one tab row, chips for filters, each dialog owns its own form state, toasts with Undo. Token hexes - Light: bg #F2F3EF surface #F9FAF7 raised #FFFFFF border #DADDD5 strong #858F88 text #1A1F1C muted #566059 accent #0B6B66 hover #08524E focus #2B63D9 success #1D7543 warning #8F5500 danger #B42318 info #1F5FAD. Dark: bg #161B1B surface #1C2322 raised #242C2B border #33403E strong #6B7A76 text #E4EAE7 muted #9AA7A3 accent #3FC1B4 hover #66D3C8 focus #7FA8FF success #4CC38A warning #E6A94B danger #F27A6F info #6FAAF2. Colorful: bg #EDF4F6 surface #F7FBFC raised #FFFFFF border #C9DDE3 strong #718F99 text #0F2A33 muted #46636D accent #C4314A hover #A3243A focus #6A4FD8 success #17794A warning #935200 danger #B3261E info #1D5FB8, drawer #0F4C5C.
+- Scope v1, the closed circuit: ~~Companies~~ Partners, Finance (invoices from Payments), Projects, Tasks, Achievements, KPIs, Reports, Appraisal - linked both ways. Leads, proposals, generators, events, ~~suppliers~~ later. **[SUPERSEDED — V52: Companies are Partners, with roles Client / Supplier / Strategic partner, so suppliers are in v1; V80: tenders, the Pipeline and the Commercial overview are in v1; V63: light prospecting without a Leads module]**
 - Dates: Gregorian only, never Hijri; Riyadh time. Monthly figures always kept; quarters/years built from months.
 - No data loss: nothing entered is lost by a release or import; every change logged and undoable.
 - Testing: trial values entered in the browser to prove every figure flows everywhere; real values + reset before go-live.
 
 ## 1. Closed circuit - every link two-way
+**[SUPERSEDED — V52: in §1–§4 below, every "company / companies / Company card" naming the record reads "partner / partners / partner card" (the stop word "company" in name folding stays a word); the rules are unchanged]**
 Task = basic unit (free-text title/notes) linked to company, project, contacts, invoices, KPIs.
 - Company card: official details, identifiers, files, finance (invoices, revenue, cost, profit, collections), projects, tasks, achievements, KPI contributions by quarter.
 - KPI page: target/result by month and quarter -> achievements (and invoices for money KPIs) -> company -> evidence file.
@@ -31,7 +37,7 @@ Task = basic unit (free-text title/notes) linked to company, project, contacts, 
 
 ## 1a. How one change travels (tests must prove)
 Nothing stores a copy of a figure.
-- Invoice imported -> matched to company by any identifier -> credited to account manager -> company card revenue -> money KPI for month/quarter -> pace on My day -> monthly report revenue section -> account manager's appraisal line "sales vs plan".
+- Invoice ~~imported~~ **[SUPERSEDED — V5: typed in v1; imported from P7]** -> matched to company by any identifier -> credited to account manager -> company card revenue -> money KPI for month/quarter -> pace on My day -> monthly report revenue section -> account manager's appraisal line "sales vs plan".
 - Task closed -> achievement "new deal" with company and evidence -> company card -> KPI "B2B contracts" +1 in evidence month -> report line -> owner's appraisal line "new B2B clients".
 - Account manager changes -> credit moves from the admin's effective date -> both people's KPIs, My day, appraisal update.
 - Identifier added/removed -> past invoices re-link -> every total updates.
@@ -39,25 +45,25 @@ Nothing stores a copy of a figure.
 - KPI target/definition changes -> pace, reports, appraisal recalculate; change logged with effective date.
 
 ## 2. Records (draft)
-Company, Company identifier, Contact, File, Invoice (lines, payments), Expense line, Project, Task, Action item, Task update/meeting note, Achievement, Achievement category, Participant, Challenge, Next-month target, Report, Report line, Plan (year), Objective, KPI, KPI target (month/quarter), KPI lead/contributor, Appraisal cycle, Appraisal template, Template section, Template item, Grade scale, Appraisal (per person), Appraisal line score, Department, Person, Team, Role, Access level, Setting, Change log.
+~~Company, Company identifier~~ **[SUPERSEDED — V52: Partner, Partner identifier — plus Partner role, Contract, Tender and Partnership opportunity (V56, V80)]**, Contact, File, Invoice (lines, payments), Expense line, Project, Task, Action item, Task update/meeting note, Achievement, Achievement category, Participant, Challenge, Next-month target, Report, Report line, Plan (year), Objective, KPI, KPI target (month/quarter), KPI lead/contributor, Appraisal cycle, Appraisal template, Template section, Template item, Grade scale, Appraisal (per person), Appraisal line score, Department, Person, Team, Role, Access level, Setting, Change log.
 
 ## 3. Rules
-Companies: one record with all identifiers (Payments client IDs prepaid/postpaid/tender, discount codes with optional dates, EN/AR names, emails, phones, VAT, CR); each identifier belongs to one company only. Import match order: client ID > VAT/CR > discount code within dates > email > phone > normalized name (case, spaces, Arabic diacritics/tatweel, alef/ya/ta-marbuta forms, drop words like sharika/company/co/ltd/llc). None or two matches -> "Needs a decision"; a decision adds the identifier; matching is live (identifier change re-links past rows); staff emails and test rows never become identifiers. No parent/branch tree; sister companies/JVs handled by adding identifiers or merging, each with a reason, logged, undoable. One account manager per company gets paid-revenue credit; a manager can split/reassign one invoice's credit with a note. Sales under a company's commercial discount code are its revenue; a promo-code-only partnership is not a technical-integration KPI.
+~~Companies~~ Partners **[SUPERSEDED — V52]**: one record with all identifiers (Payments client IDs prepaid/postpaid/tender, discount codes with optional dates **[SUPERSEDED — V65: codes also carry terms; one live code per partner by default; campaign codes belong to no partner]**, EN/AR names **[SUPERSEDED — V77: official English and Arabic names plus a trade name in both; the trade name is displayed]**, emails, phones, VAT, CR); each identifier belongs to one company only. Import match order: client ID > VAT/CR > discount code within dates > email > phone > normalized name (case, spaces, Arabic diacritics/tatweel, alef/ya/ta-marbuta forms, drop words like sharika/company/co/ltd/llc). None or two matches -> "Needs a decision"; a decision adds the identifier; matching is live (identifier change re-links past rows); staff emails and test rows never become identifiers. No parent/branch tree; sister companies/JVs handled by adding identifiers or merging, each with a reason, logged, undoable. One account manager per company gets paid-revenue credit; a manager can split/reassign one invoice's credit with a note. Sales under a company's commercial discount code are its revenue; a promo-code-only partnership is not a technical-integration KPI.
 Visibility: tasks, achievements, companies, projects, KPIs, reports open to the whole Commercial team; every change logged, owner notified. Anyone creates own tasks; managers/admins assign; colleagues help. Appraisal private (own; manager and admins see their team). KPI leads (one or more, follow up and keep evidence) and contributors (whole department, teams, or named people); neither makes it a personal target.
 Tasks (daily use by everyone): title, notes, owner, team, priority, due date, status, links, and reference numbers from Direct's own systems (booking, invoice, ticket) so nothing is retyped. Helpers optional on a task or on a single action item. Action items: text, owner, due date, done; grow while task runs; a meeting note on the task adds assigned action items. "My work" = everything I own + action items assigned to me + things I help on. Views: list, board by status, calendar. Quick add. Comments with @mentions; in-app notifications (assignment, mention, due). Timeline of dated updates; in-progress with no update for N days flagged. Recurring templates. Closing a task offers to log its achievement.
 Achievements: order task -> achievement -> live KPIs and monthly report. KPIs measured continuously, read by quarter; no monthly KPI targets, but the monthly report shows each month's addition to each KPI's quarter. Stored as fields (category, company, service, amount from linked invoices, count, before/after, date, participants, evidence) and rendered as one clear line. Categories + sub-categories set in the yearly plan; starting list: new deals/new B2B clients; revenue and bookings (links invoices, amount read from Finance, never typed); commissions and collections; tenders; new supplier/provider contracts; contract improvements (before->after); renewals; technical integrations/activations; product and service additions; airline/IATA/GDS relations; study-abroad partners; meetings, visits, events; awards; problem solving; payments/fintech; cost savings; internal tools and initiatives; quotes and proposals sent. Evidence = source file; evidence date decides month/quarter. No approval step; a manager can correct/move/remove with a logged reason. Challenges are records open until resolved (company/supplier, age) - they carry over automatically. Next-month targets become next month's tasks and show as done or carried over at the next report.
 Reports: compiled by named report editors; a line can combine and reword achievements and sum linked invoices; originals never change. Monthly: cover, this month vs same month last year tiles, achievements by category, challenges, next-month targets. Quarterly: quarter vs same quarter last year, achievements, challenges, next-quarter targets, operational-plan indicators (done/carried). Sections are a setting. PDF + PPTX. Issued month frozen; superseding corrections. Export of the KPI sheet in the strategy team's format.
 Revenue/KPIs: money KPIs read Finance; invoice links never double count. Non-money KPIs count linked achievements or are computed from app data. Cumulative across quarters. Types: number, money, percentage/score (latest), pass/fail checklist, tracked-only. Not measured != 0.
-Finance: only Fully Paid invoices count; wallet top-ups never revenue; billing invoices that re-bill transactions are zero-revenue links; collections sit on billing invoices; cost = approved expenses, else Revenue Report expense amount, else the invoice's pass-through lines as a flagged estimate; VAT never shown; income by main service via editable product->service and item->service maps; exclusions by rule; "Commercial revenue" definition is a setting.
+Finance: only Fully Paid invoices count; wallet top-ups never revenue; billing invoices that re-bill transactions are zero-revenue links; collections sit on billing invoices; cost = approved expenses, ~~else Revenue Report expense amount, else the invoice's pass-through lines as a flagged estimate~~ **[SUPERSEDED — V1, D21, D23: cost is approved expenses only; the Revenue Report amount and the pass-through lines are flagged estimates shown apart, never counted as cost or in profit]**; VAT never shown; income by main service via editable product->service and item->service maps; exclusions by rule; "Commercial revenue" definition is a setting.
 Years: KPIs, months, quarters, reports = calendar year. Appraisal = April-March.
 
 ## 4. Home, navigation, settings
-My day: my open/overdue tasks and action items (owned, assigned, helping), my companies' new invoices and unpaid balances, my KPIs (lead or contributor) and pace, and privately my appraisal progress.
-Navigation: side drawer (My day, Companies, Projects, Tasks, Finance, KPIs, Reports, Appraisal, Settings), pinnable/collapsible; top bar with search (Ctrl K), Create, notifications. Each area = one page with list + detail panel (full page on phone); every record has its own URL; at most one tab row in a detail; filters as chips.
-Settings = one area, groups gated by access level: Organization & access (departments, teams, people, managers, roles, page access, allowed sign-in emails); Companies (categories, tiers, identifier matching order, credit rules); Plan & performance (yearly plan, KPIs, targets, KPI leads/contributors, achievement categories and fields, appraisal cycles and templates); Finance (services, product->service map, item names cost/fee, exclusions, revenue definition); Work (task statuses, priorities, templates, recurrence, no-update days, reminders); App (themes, language and wording, notifications, import/export).
+My day: my open/overdue tasks and action items (owned, assigned, helping), my ~~companies'~~ partners' **[SUPERSEDED — V52]** new invoices and unpaid balances, my KPIs (lead or contributor) and pace, and privately my appraisal progress.
+Navigation: side drawer (~~My day, Companies, Projects, Tasks, Finance, KPIs, Reports, Appraisal, Settings~~ **[SUPERSEDED — V52, V80: My day, Overview, Partners, Pipeline, Projects, Tasks, Finance, KPIs, Reports, Appraisal, Settings]**), pinnable/collapsible; top bar with search (Ctrl K), Create, notifications. Each area = one page with list + detail panel (full page on phone); every record has its own URL; at most one tab row in a detail; filters as chips. **[SUPERSEDED — V85: on phones a bottom bar (My day · Tasks · Partners · KPIs · More) replaces the drawer; details open full screen; tables become two-line cards]**
+Settings = one area, groups gated by access level: Organization & access (departments, teams, people, managers, roles, page access, allowed sign-in emails); ~~Companies~~ Partners **[SUPERSEDED — V52]** (categories, tiers, identifier matching order, credit rules); Plan & performance (yearly plan, KPIs, targets, KPI leads/contributors, achievement categories and fields, appraisal cycles and templates); Finance (services, product->service map, item names cost/fee, exclusions, revenue definition); Work (task statuses, priorities, templates, recurrence, no-update days, reminders); App (themes, language and wording, notifications, import/export).
 
 ## 5. Appraisal - configurable engine mirroring the official form ("Annual Appraisal - Commercial (Professional) - Business", Apr 2025-Mar 2026, the evaluator) and the old appraisal tool
-Cycle (name, start/end default Apr-Mar, evaluation date, evaluator per person, lock date). Template per role with weighted sections: Corporate objectives, Personal KPIs, Competencies (current rule 70/20/10; signed form 60/35/5; admin sets it). Corporate objectives: target, weight, 80/90/100/110% threshold columns, points table (101-110% = 3.00 ... <75% = 0), actuals entered once. Personal KPIs grouped (Sales & revenue, Client acquisition, Internal coordination, Reporting) with name, definition, formula, unit, target, weight, direction, and source = computed from app (GMV vs plan from credited revenue; revenue from new clients; new B2B clients; upsell/cross-sell achievements; follow-up on time from action items; weekly updates; meeting notes on time; task execution on time; initiatives and escalations; reports on time) or manual (manager assessment 1-5). Competencies with weights and manager score + comment. Self and manager evaluation per line; comments; sign-off. Grade scale and cap are settings. Old tool imported once as legacy.
+Cycle (name, start/end default Apr-Mar, evaluation date, evaluator per person, lock date). Template per role with weighted sections: Corporate objectives, Personal KPIs, Competencies (~~current rule 70/20/10; signed form 60/35/5~~ **[SUPERSEDED — V3: 70/25/5 — personal KPIs / competencies / corporate — seeded from the online appraisal tool]**; admin sets it). Corporate objectives: target, weight, 80/90/100/110% threshold columns, points table (101-110% = 3.00 ... <75% = 0), actuals entered once. Personal KPIs grouped (Sales & revenue, Client acquisition, Internal coordination, Reporting) with name, definition, formula, unit, target, weight, direction, and source = computed from app (GMV vs plan from credited revenue; revenue from new clients; new B2B clients; upsell/cross-sell achievements; follow-up on time from action items; weekly updates; meeting notes on time; task execution on time; initiatives and escalations; reports on time) or manual (manager assessment 1-5). Competencies with weights and manager score + comment. Self and manager evaluation per line; comments; sign-off. Grade scale and cap are settings. Old tool imported once as legacy.
 
 ## 5a. Yearly plans
 Objectives, KPIs, targets (month/quarter), KPI leads and contributors, achievement categories (each with its own fields and KPI mappings) live in a Plan per year. Next year: copy and edit or start blank - add/remove/rename/renumber/regroup, change units, types, sources, formulas, targets, thresholds. History keeps its structure (2026 achievements stay on 2026 KPIs; 2026 reports show the 2026 plan). Re-mapping to a new plan's KPIs is a logged person action. Mid-year changes take an effective date.
@@ -65,7 +71,7 @@ Objectives, KPIs, targets (month/quarter), KPI leads and contributors, achieveme
 ## 7-9. Screens, Imports, Access - to be specified (your TECH-SPEC should propose them).
 
 ## 10. Checks
-Email-only sign-in rejected (impersonation); Google or one-time code instead (email sender for codes still to be set up by the company; Google avoids that). Revenue achievements link invoices and never carry typed amounts. No approval but managers can correct with a logged reason. KPI sheet exported in the strategy team's format. Challenges carry over as records.
+Email-only sign-in rejected (impersonation); ~~Google or~~ one-time code instead (email sender for codes still to be set up by the company; ~~Google avoids that~~). **[SUPERSEDED — V59: the emailed code is the only door; V24: the mail sender is needed before real users]** Revenue achievements link invoices and never carry typed amounts. No approval but managers can correct with a logged reason. KPI sheet exported in the strategy team's format. Challenges carry over as records.
 
 ---
 
@@ -75,8 +81,8 @@ Email-only sign-in rejected (impersonation); Google or one-time code instead (em
 touch a v0.7 line, these win.*
 
 1. **Sign-in.** Staff have two email domains: `directksa.com` = Google Workspace, `directksa.net` = Zoom (Zoom Workplace
-   mail). "Continue with Google" for directksa.com, "Continue with Zoom" for directksa.net, plus an emailed one-time code
-   as fallback for anyone (needs a custom SMTP sender). No passwords. Every sign-in identity resolves to ONE person
+   mail). ~~"Continue with Google" for directksa.com, "Continue with Zoom" for directksa.net, plus an emailed one-time code
+   as fallback for anyone~~ **[SUPERSEDED — V59: the emailed one-time code is the only door, for everyone; Google and Zoom only as later optional shortcuts (V23)]** (needs a custom SMTP sender). No passwords. Every sign-in identity resolves to ONE person
    record: a person holds one or more allowed emails (admin allow-list); the provider-verified email must match an
    allowed email of an active person, else access is denied; identities link to that person and never create new
    people. Every sign-in is logged.
@@ -88,40 +94,40 @@ touch a v0.7 line, these win.*
 4. **Go-live = code and structure proven working.** The 2026 invoices are then entered manually in the browser by the
    users (as in the old app), so every user and flow gets tested while adding; import stays a later phase. Manual
    invoice entry (with lines, expenses, DPIN reference, status Provisional/Final) is a first-class, fast screen in v1.
-5. **Environments.** The owner will approve creating the new Supabase and Vercel projects; free tier preferred, any cost
+5. **Environments.** ~~The owner will approve creating the new Supabase and Vercel projects;~~ **[SUPERSEDED — V84: both projects were created by the oversight on 28 Sep]** free tier preferred, any cost
    flagged (`TECH-SPEC.md` §10).
 
 **Design additions (owner, 28 Sep, relayed by the oversight).**
 
-6. **A fourth theme, "Direct"** (the other three unchanged): drawer/top bar #23221F, nav text #ECE8E1, nav muted
+6. **A fourth theme, "Direct"** (the other three unchanged) **[SUPERSEDED — V60: the Direct theme uses the official palette (slate #323E48, orange accent #F06820, primary #C94C14) — the values in BUILD-PLAN "Design tokens"; the charcoal values below are void. V82: the design source is the screens canvas (now 18 artboards) and the design system page, owned by the Design lead session]**: ~~drawer/top bar #23221F, nav text #ECE8E1, nav muted
    #A8A298, nav active #F08A45; bg #F6F4F0, surface #FBFAF7, raised #FFFFFF, border #E4DFD6, strong #857E73, text
    #1F1E1C, muted #5E5A53; accent fill #E4702A (fills only, never text; the label on accent is #1F1E1C, not white),
    accent hover #F07E36, link/orange text #A64B12, selected-row tint #FBE6D6; success #2E7540, warning #7A5E00,
-   danger #B3203A, info #2D5FA8. All AA-checked. Source of truth: the design system page
+   danger #B3203A, info #2D5FA8.~~ All AA-checked. Source of truth: the design system page
    (https://claude.ai/artifact/LhgpWwKiMxQtQiQmXjco64) and the screens canvas
-   (https://claude.ai/artifact/QRysGjaefjvGbDxNvfYbLW, 12 artboards incl. QuarterlyReport and MyDay in Direct).
+   (https://claude.ai/artifact/QRysGjaefjvGbDxNvfYbLW, ~~12 artboards~~ 18 artboards incl. QuarterlyReport and MyDay in Direct).
 7. **Density:** Comfortable by default (14 px body, 40 px controls, 44–52 px table rows, 24–32 px section gaps);
    Compact optional per user. Nothing cramped, especially My day. (This replaces v0.7's "dense tables (32px rows)" as
    the default; 32 px rows remain as Compact.)
 8. **Personalisation — "My profile"**, first in Settings, each user edits their own: photo upload or an initials avatar
    with a chosen colour, full name and display name/nickname, an optional badge (none / an icon from a set / zodiac
    sign), preferred theme (of four), density, language (English now, Arabic later), start page, drawer pinned or
-   collapsed, notification choices (in-app, email). Avatar, nickname and badge show in the top bar, the drawer foot and
-   owner/helper chips. Company logo uploaded on the company record.
+   collapsed, notification choices (in-app, ~~email~~ **[SUPERSEDED — V45: in-app only in v1; email later]**). Avatar, nickname and badge show in the top bar, the drawer foot and
+   owner/helper chips. ~~Company logo uploaded on the company record.~~ **[SUPERSEDED — V53: the partner logo is uploaded on the partner record]**
 9. **Reports** = one tab row, Monthly · Quarterly. The quarterly report: cover; quarter vs the same quarter last year
-   (tiles); achievements by category (lines linking to achievement, company, invoices); KPI results (target, M1, M2, M3,
+   (tiles); achievements by category (lines linking to achievement, ~~company~~ partner **[SUPERSEDED — V52]**, invoices); KPI results (target, M1, M2, M3,
    quarter, YTD, status); challenges (open carries over / resolved); next-quarter targets; operational-plan indicators
    (Done / Carried over); actions Issue (freeze), PDF, PPTX, KPI sheet export.
 10. **UI rule:** no hint text, explanatory notes, banners, callouts or demo annotations inside screens (the old app's
-    biggest complaint). Every entity (company, invoice, task, achievement, KPI, report line, person) is a link.
+    biggest complaint). Every entity (~~company~~ partner **[SUPERSEDED — V52]**, invoice, task, achievement, KPI, report line, person) is a link.
 
 **Owner answers later on 28 Sep.**
 
-11. **Room for the new database:** the free way — the old app's database (`direct-business`) is paused on 1 Oct, after
-    the Q3 close of 30 Sep; the old app is unavailable from then (data kept, restorable); the appraisal tool stays live;
+11. **Room for the new database:** the free way — the old app's database (`direct-business`) is paused ~~on 1 Oct, after
+    the Q3 close of 30 Sep~~ **[SUPERSEDED — V21, V84: it was paused on 28 Sep — the owner does not need the old app; `direct-commercial` was created the same day]**; the old app is unavailable from then (data kept, restorable); the appraisal tool stays live;
     the new project is created on the free plan.
-12. **Domain:** the new app uses the same domain, `directksab2b.com`; staging on the new Vercel project's address; at
-    go-live the domain moves to the new project and the sign-in settings list it.
+12. **Domain:** the new app uses the same domain, `directksab2b.com`; staging on the new Vercel project's address; ~~at
+    go-live~~ **[SUPERSEDED — V13 amended, V84: as soon as the first v2 deployment renders the sign-in page]** the domain moves to the new project and the sign-in settings list it.
 13. **Google and Zoom sign-in keys:** later; building proceeds with the emailed code.
 
 **Owner changes, round 3 (28 Sep, relayed by the oversight)** — decisions V52–V61 in `DECISIONS.md`:
@@ -135,7 +141,7 @@ touch a v0.7 line, these win.*
 18. **Contracts** with start and end dates, a computed status and renewal reminders (V56).
 19. **Reports archive**, including the 2024–2026 PDFs, and **compare two periods** (V57).
 20. **Live names everywhere**: an issued report freezes its figures but shows people's and partners' current names (V58).
-21. **Sign-in**: the emailed code is the door; keep signed in 30 days; the page shows only the logo, "Commercial
+21. **Sign-in**: the emailed code is the door; ~~keep signed in 30 days~~ **[SUPERSEDED — V74: no "keep me signed in" tick — a device stays signed in until sign-out, and 30 unused days ask for a new code]**; the page shows only the logo **[SUPERSEDED — V75: plus the brand panel and brand line]**, "Commercial
     Workspace", EN | ع and © Direct; never "Direct KSA", "DirectKSA", "Direct Corporate", "B2B" or "MICE"; the
     department is "Commercial"; a real mail sender before real users (V59).
 22. **The Direct theme uses the official palette**; every theme has a primary colour for buttons; logo rules (V60).
@@ -176,12 +182,26 @@ V62–V72 in `DECISIONS.md`:
 40. **Report lines**: achievement lines (create or cite the achievement) and note lines (never count) (V79).
 41. **Tenders and the Pipeline** in v1, their KPIs, and one Commercial overview with a segment switch (V80).
 42. **Less crowded detail pages**: two columns, empty fields behind "+ Add", Show all (V81).
-43. **Design moves to Figma** through a dedicated design session (V82).
+43. ~~**Design moves to Figma** through a dedicated design session (V82).~~ **[SUPERSEDED — V82 amended 29 Sep: Figma is not used (a view-only seat); the design source is the screens canvas and the design system page, owned by the Design lead session]**
 44. **Exports unchanged** for now (V83).
 
 **Oversight update, 28 Sep** — the owner does not need the old app: its database is paused and `direct-commercial`
 exists in Supabase and Vercel; the domain moves as soon as v2's sign-in page renders; only the owner pastes keys into
 Vercel (V13, V21, V84).
+
+**Oversight audit, 29 Sep** — agreed details the owner found missing; V82 amended and V85–V94 in `DECISIONS.md`:
+
+45. **Phones**: a bottom bar (My day · Tasks · Partners · KPIs · More), details full screen, tables as two-line cards, a
+    floating + for quick add; layout rules per breakpoint; the drawer is 232 px pinned / 56 px collapsed everywhere (V85).
+46. **Arabic early**: an Arabic PDF/PPTX rendering spike and a check of the browser's built-in translator, in P3/P4 (V86).
+47. **Payment type** chip — prepaid · postpaid · code · tender — on Finance lists and the Commercial overview (V87).
+48. **From the manager's calls**: call outcomes "demo set" and "demo held" (V88); a "Corporate onboarding" checklist
+    (V89); supplier cashback as a typed amount (V90); a "team load" view when assigning (V91); a refused credit is limit
+    0, "prepaid only" (V92); KPI leads update their KPI's figures, check-in on the 15th (V93).
+49. **Every PR description** lists the V-numbers it implements and states "checked against DECISIONS.md at <commit>"
+    (V94).
+50. **Figma is not used** (V82 amended): the screens canvas and the design system page, owned by the Design lead
+    session, are the design source.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
