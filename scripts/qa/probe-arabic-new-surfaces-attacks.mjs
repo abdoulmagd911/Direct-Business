@@ -82,7 +82,9 @@ const BASE = 'http://localhost:' + PORT;
 /* Arabic wording added since cycle 26, with the English it must NOT show instead */
 const NEW_STRINGS = [
   ['بتاريخ مستقبلي', 'Dated in the future', 'the future-dated ageing chip'],
-  ['تُحتسب نسبة المتأخر', '% overdue is measured on', 'the "% overdue cannot see this money" note'],
+  /* punch list C (28 Sep): money with no due date is due 30 days after the invoice date, so it CAN be overdue now — the
+     "cannot see this money" note gave way to the note that says how overdue is measured */
+  ['المتأخر = ما تجاوز تاريخ استحقاقه', 'Overdue = past its due date', 'the "how overdue is measured" note'],
   ['بدون تاريخ فاتورة', 'No invoice date', 'the no-invoice-date ageing chip']
 ];
 
