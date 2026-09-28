@@ -1,0 +1,14 @@
+# Every privilege a request role (public, anon, authenticated, service_role, authenticator) holds on v2's schemas,
+# tables, columns, functions and types, and the migration role's default privileges (A8). Written by
+# `node scripts/db/test.mjs --write-grants` on a database built from zero; GRANTS-01 compares the live catalog with
+# it. A change here is deliberate and its PR says why.
+default types everywhere usage public
+function core.clock() execute authenticated
+function core.format_number(prefix text, year integer, n integer, width integer) execute authenticated
+function core.month_of(d date) execute authenticated
+function core.quarter_of(d date) execute authenticated
+function core.riyadh_day(t timestamp with time zone) execute authenticated
+function core.riyadh_today() execute authenticated
+schema api usage authenticated
+schema core usage authenticated
+type core.level usage public

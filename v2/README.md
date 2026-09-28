@@ -16,6 +16,21 @@ pnpm build && pnpm test:e2e        # end to end (Playwright); in the builders' c
 pnpm sabotage       # every check and test must fail under its sabotage (V100); --kind check|lint|unit|e2e, --only <name>
 ```
 
+## The database (`supabase/`)
+
+Migrations are forward-only (`supabase/migrations/YYYYMMDDHHMMSS_<module>_<what>.sql`, V103). The SQL suite
+(`supabase/tests/<area>/<ID>-<promise>.sql`, V106) runs on a database built from zero:
+
+```sh
+node scripts/db/test.mjs                    # plain Postgres (PGHOST/PGPORT/PGUSER/PGPASSWORD; default 127.0.0.1:5432)
+node scripts/db/test.mjs --only GRANTS-01   # one test
+node scripts/db/test.mjs --write-grants     # rewrite supabase/grants.expected — on purpose only, and say why
+node scripts/db/test.mjs --target supabase  # after `supabase start` (CI)
+node scripts/sabotage.mjs --kind sql        # every SQL test fails under its sabotage (supabase/tests/sabotage/)
+```
+
+In the builders' containers: `pg_ctlcluster 16 main start`, and give the `postgres` role the password `postgres` once.
+
 ## The checks (`scripts/checks/`, `node scripts/checks/run.mjs --list`)
 
 | Check                     | Refuses                                                                                                     |
