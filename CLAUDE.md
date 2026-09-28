@@ -48,10 +48,10 @@ at merge from the merged commit (checksum-checked), after a rolled-back live che
   order, billing links proposed; and **D19** — every delete asks in the app's box, naming the item. Backup stamp
   20260928T050142Z; the live finance table is empty until the oversight imports in the browser (D17).
 - Still to come: A) the Finance freeze (the recorder is live; a Chrome extension is suspected), C) the login/reset loop
-  (second builder; C-lite, the part that needs no email sender, D15, in review as #51 — the admin-users function is
-  deployed at merge by the main builder), D2) the expense export cost / client list / promo codes, D3) manual entry
-  and links by hand, the margins pass, E2) the simplify list. Open owner decision: may the pass-through on an invoice stand in for a missing
-  cost (it contradicts his 22 Aug ruling).
+  (second builder; C-lite, D15, #51 — live 28 Sep, admin-users v6), D2) the expense export cost (the raw Transaction
+  Expense / Expense Invoice exports are not recognised yet) / client list / promo codes, D3) manual entry and links by
+  hand, the margins pass, E2) the simplify list. Owner ruling 28 Sep (D23): with no approved expense, the pass-through
+  lines are a flagged cost ESTIMATE, shown apart from the approved cost.
 - Next: issuing numbered reports, the appraisal cycle — and the **final go-live reset**, run only on the owner's
   explicit go (`golive_reset`, scripts/sql/golive-reset.sql).
 
