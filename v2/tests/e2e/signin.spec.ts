@@ -8,6 +8,10 @@ import { expect, test } from '@playwright/test';
 import { THEMES, fitToPage, open, setPrefs, shot } from './helpers';
 import { codeFor, makePerson, sendCode, unlistedEmail } from './support/stack';
 
+// The emailed-code door stays in the code behind SIGN_IN_METHOD=code (owner, 29 Sep 13:50: the door is email + password);
+// its promises run when that door is on. password.spec.ts holds the same promises for the password door.
+test.skip(process.env.SIGN_IN_METHOD !== 'code', 'the code door is off');
+
 test('email step → code step → signed in on the deep link', async ({ page, context }) => {
   await setPrefs(context, { theme: 'direct' });
   await page.setViewportSize({ width: 1500, height: 900 });

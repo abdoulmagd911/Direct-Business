@@ -245,7 +245,7 @@ Vercel (V13, V21, V84).
     so; a missing cost is empty; printed parts reconcile; every old door closed and one restore drill before go-live;
     a test reads its setup back.
 67. **Sign-in is email + password for now** (V431): admins set and reset passwords in Settings → People, no mail is
-    sent, "Forgot your password? Ask an admin", a first sign-in changes the password, 10 characters at least; the code
+    sent, "Forgot your password? Ask your admin.", a first sign-in changes the password, 10 characters at least; the code
     door stays in the code, switched off.
 68. **The domain moved** on 29 Sep; production builds only from `v2/main`, no PR previews (V432).
 69. **My day: Capture, then Convert** — one Note item (sticky, meeting, checklist), private by default; Turn into a
@@ -262,6 +262,14 @@ Vercel (V13, V21, V84).
     changed at first sign-in (V441).
 75. **View as** — an admin previews the app as any person, read-only, with a banner and Exit, every start and stop
     logged, writes refused server-side; off at go-live (V442, the oversight's proposal; the owner may veto).
+76. **Ten people** (twelve sign-ins), the owner's separate admin account and one test account, neither a team member; the owner types
+    each temporary password once; all changed before go-live (V443–V446).
+77. **Hard testing** on production through the test account and View as, on localhost with fixture users of every
+    role (V447).
+78. **The Supplier & partner types are the owner's seven** (V448); **pace bands 90 / 70** (V449); **Supplier & partner
+    statuses Prospect · Active · On hold · Ended** (V450) — all admin-editable.
+79. **The owner's three accounts came from the Supabase dashboard**; Generate links to an existing sign-in, never
+    duplicates or overwrites it without a confirmed action (V451).
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and

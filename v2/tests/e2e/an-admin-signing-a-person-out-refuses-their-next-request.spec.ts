@@ -26,7 +26,7 @@ test('an admin signing a person out refuses their next request', async ({ browse
   await memberPage.reload();
   await expect(memberPage).toHaveURL(/\/sign-in\?/);
   await expect(memberPage.getByRole('main').getByRole('alert')).toHaveText(
-    'An admin signed this device out — send a new code',
+    'An admin signed this device out — sign in again',
   );
   await adminCtx.close();
   await memberCtx.close();

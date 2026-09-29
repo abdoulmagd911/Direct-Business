@@ -17,9 +17,7 @@ test('signing out a device from another refuses that device on its next request'
 
   await phonePage.reload();
   await expect(phonePage).toHaveURL(/\/sign-in\?/);
-  await expect(phonePage.getByRole('main').getByRole('alert')).toHaveText(
-    'This device was signed out — send a new code',
-  );
+  await expect(phonePage.getByRole('main').getByRole('alert')).toHaveText('This device was signed out — sign in again');
 
   await laptopPage.reload();
   await expect(laptopPage.getByTestId('address')).toHaveText('/my-day');
