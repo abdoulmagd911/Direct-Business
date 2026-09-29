@@ -5,7 +5,12 @@
 -- Sabotages: supabase/tests/sabotage/restore-ignores-the-window.sql,
 --            supabase/tests/sabotage/restore-by-rights-then.sql,
 --            supabase/tests/sabotage/restore-by-owners-and-full-only.sql,
---            supabase/tests/sabotage/access-restored-by-anyone.sql.
+--            supabase/tests/sabotage/access-restored-by-anyone.sql,
+--            supabase/tests/sabotage/restore-by-the-remover-only.sql,
+--            supabase/tests/sabotage/restore-ignores-the-record-types-capability.sql,
+--            supabase/tests/sabotage/recently-deleted-shows-everything.sql.
+-- Its owner restores what someone else removed (QA-60); and bringing a record back asks what adding it asks — an
+-- identifier its side's identify capability, a credit limit finance.credit_control (QA-47).
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.viewer', test.person('Test Viewer', 'viewer')::text, true);
 select test.as_person(current_setting('t.am1')::uuid);
@@ -23,6 +28,14 @@ select test.eq((select x ->> 'label' || ' · ' || (x ->> 'reason') from jsonb_ar
   'a removed record is listed with its name and why, to whoever may see it');
 select test.raises(format('select api.restore(%L, %L)', 'contact', current_setting('t.a')), '42501',
   'a viewer cannot restore it', 'restore.not_allowed');
+select set_config('t.blind', test.person('Test Other Desk', 'member')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.blind')::uuid, 'clients', 'none', 'made up: another desk');
+select test.as_person(current_setting('t.blind')::uuid);
+select test.ok(not exists (select 1 from jsonb_array_elements(api.recently_deleted()) x
+                           where x ->> 'id' = current_setting('t.a')),
+  'nobody who may not see a record finds it in Recently deleted (QA-96)');
 
 select test.as_person(current_setting('t.am1')::uuid);
 select api.contact_save(current_setting('t.pid')::uuid, null, '{"name_en": "Made Up Contact B", "is_primary": true}');
@@ -79,6 +92,45 @@ select test.raises(format('select api.restore(%L, %L)', 'person_level', current_
 select test.as_person(current_setting('t.admin')::uuid);
 select test.runs(format('select api.restore(%L, %L, %L)', 'person_level', current_setting('t.lvl'), 'made up: back'),
   'an admin restores it');
+select test.as_owner();
+
+-- the owner restores what someone else removed; someone with Own who is neither owner nor remover does not (QA-60)
+select test.as_person(current_setting('t.head')::uuid);
+select set_config('t.e', api.contact_save(current_setting('t.pid')::uuid, null, '{"name_en": "Made Up Contact E"}')
+  ->> 'id', true);
+select api.contacts_remove(array[current_setting('t.e')::uuid], 'made up: removed by the head');
+select test.as_person(current_setting('t.am2')::uuid);
+select test.raises(format('select api.restore(%L, %L)', 'contact', current_setting('t.e')), '42501',
+  'with Own, neither its owner nor the one who removed it, nobody restores it', 'restore.not_allowed');
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am1')::uuid, 'clients', 'own', 'made up: own work only');
+select test.as_person(current_setting('t.am1')::uuid);
+select test.runs(format('select api.restore(%L, %L, %L)', 'contact', current_setting('t.e'), 'made up: mine'),
+  'its owner restores what someone else removed');
+
+-- bringing a record back asks what adding it asks (QA-47): its owner, without the capability, restores neither
+select test.as_owner();
+insert into core.person_capability (person_id, capability_key, granted, reason)
+values (current_setting('t.am1')::uuid, 'clients.identify', false, 'made up: no identifiers');
+select test.as_person(current_setting('t.admin')::uuid);
+select set_config('t.vat', api.identifier_add(current_setting('t.pid')::uuid, 'vat', '300000000000013', 'made up')
+  ->> 'id', true);
+select api.identifier_remove(current_setting('t.vat')::uuid, 'made up: typed on the wrong organisation');
+select api.credit_limit_set(current_setting('t.pid')::uuid, 50000, null, current_setting('t.admin')::uuid, 'made up');
+select set_config('t.cl', (api.credit_limit_set(current_setting('t.pid')::uuid, 60000, null,
+  current_setting('t.admin')::uuid, 'made up: raised') ->> 'id'), true);
+select test.as_owner();
+select set_config('t.cl', (select id::text from partner.credit_limit where partner_id = current_setting('t.pid')::uuid
+                           and deleted_at is not null), true);
+select test.as_person(current_setting('t.am1')::uuid);
+select test.raises(format('select api.restore(%L, %L)', 'identifier', current_setting('t.vat')), '42501',
+  'an identifier comes back only with its side''s identify capability', 'access.needs_capability');
+select test.raises(format('select api.restore(%L, %L)', 'credit_limit', current_setting('t.cl')), '42501',
+  'a credit limit only with finance.credit_control', 'access.needs_capability');
+select test.as_person(current_setting('t.admin')::uuid);
+select test.runs(format('select api.restore(%L, %L, %L)', 'identifier', current_setting('t.vat'), 'made up: back'),
+  'which an admin holds');
 select test.as_owner();
 
 -- the window, 31 days on (the test's device stays signed in past its 30 idle days)

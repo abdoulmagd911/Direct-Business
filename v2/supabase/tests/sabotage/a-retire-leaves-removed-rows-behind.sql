@@ -1,8 +1,7 @@
--- Sabotage: retire-rewrites-history
+-- Sabotage: a-retire-leaves-removed-rows-behind
 -- Breaks: sql:SETS-01
--- Expect: partner.status_never_rewritten
--- Retiring a list value tries to rewrite history: a side's status changes would take the replacement (V161). The
--- status table's own lock refuses that, so the retire fails outright instead of keeping the old reason.
+-- Expect: restored, it is on the replacement, never on the archived value
+-- Retiring skips records waiting in Recently deleted: restored, they come back on the archived value.
 create or replace function core.list_retire(p_list text, p_id uuid, p_replacement uuid, p_reason text) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -37,7 +36,7 @@ begin
       where c.contype = 'f' and c.confrelid = pg_catalog.to_regclass(e.table_name) and pg_catalog.cardinality(c.conkey) = 1
       order by 1, 2
     loop
-      if false and exists (select 1 from core.entity x where x.table_name = r.tbl and x.active and x.is_list) then
+      if core.is_history(r.tbl) or exists (select 1 from core.entity x where x.table_name = r.tbl and x.active and x.is_list) then
         execute pg_catalog.format('select pg_catalog.count(*) from %s t where t.%I = $1%s', r.tbl, r.col,
                                   case when r.soft then ' and t.deleted_at is null' else '' end)
           into n using p_id;
@@ -51,7 +50,8 @@ begin
                                   r.tbl, r.col)
           into gone using p_id;
       end if;
-      execute pg_catalog.format('update %s t set %I = $2 where t.%I = $1', r.tbl, r.col, r.col)
+      execute pg_catalog.format('update %s t set %I = $2 where t.%I = $1%s', r.tbl, r.col, r.col,
+                                case when r.soft then ' and t.deleted_at is null' else '' end)
         using p_id, p_replacement;
       get diagnostics n = row_count;
       moved := moved + n - gone;

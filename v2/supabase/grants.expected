@@ -14,7 +14,7 @@ function api.access_set_role_capability(p_role uuid, p_capability text, p_grante
 function api.access_set_role_level(p_role uuid, p_page text, p_level core.level, p_reason text) execute authenticated
 function api.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
 function api.activity_log(p_partner uuid, p_type text, p_outcome text, p_happened_on date, p_body text, p_next_step text, p_next_step_on date, p_mentions uuid[]) execute authenticated
-function api.auth_ticket_issue(p_kind text, p_target text) execute service_role
+function api.auth_ticket_issue(p_kind text, p_target text, p_person uuid) execute service_role
 function api.auth_user_of(p_email text) execute service_role
 function api.campaign_code_add(p_code text, p_name text, p_valid_from date, p_valid_to date, p_owner uuid, p_reason text) execute authenticated
 function api.can_see(p_entity text, p_id uuid) execute authenticated
@@ -94,6 +94,7 @@ function api.record_history(p_entity text, p_id uuid) execute authenticated
 function api.reference_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
 function api.references_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
+function api.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text) execute authenticated
 function api.role_save(p_id uuid, p_key text, p_name_en text, p_name_ar text, p_sort integer, p_version integer, p_reason text) execute authenticated
 function api.search(p_q text, p_limit integer) execute authenticated
 function api.setting_clear(p_key text, p_department uuid, p_reason text) execute authenticated
@@ -113,6 +114,7 @@ function api.sign_in_password_refused(p_email text, p_detail text, p_user_agent 
 function api.team_retire(p_id uuid, p_move_to uuid, p_reason text) execute authenticated
 function api.team_save(p_id uuid, p_department uuid, p_code text, p_name_en text, p_name_ar text, p_lead uuid, p_version integer, p_reason text) execute authenticated
 function api.undo(p_request uuid) execute authenticated
+function api.undo_ticketed(p_request uuid, p_ticket uuid) execute authenticated
 function api.view_default_set(p_page text, p_view uuid) execute authenticated
 function api.view_save(p_id uuid, p_page text, p_name text, p_query jsonb, p_shared boolean, p_sort integer, p_version integer) execute authenticated
 function api.views(p_page text) execute authenticated
@@ -120,6 +122,7 @@ function api.views_remove(p_ids uuid[], p_reason text) execute authenticated
 function audit.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
 function audit.record_history(p_entity text, p_id uuid) execute authenticated
 function audit.undo(p_request uuid) execute authenticated
+function audit.undo_ticketed(p_request uuid, p_ticket uuid) execute authenticated
 function authz.can(p_capability text) execute authenticated
 function authz.can_see(p_entity text, p_id uuid) execute authenticated
 function authz.can_see_file(p_bucket text, p_path text) execute authenticated
@@ -129,7 +132,6 @@ function authz.is_admin() execute authenticated
 function authz.level(p_page text) execute authenticated
 function authz.me() execute authenticated
 function authz.reports_to(p_person uuid) execute authenticated
-function authz.reports_to(p_person uuid, p_manager uuid) execute authenticated
 function core.access_clear_person_capability(p_person uuid, p_capability text, p_reason text) execute authenticated
 function core.access_clear_person_level(p_person uuid, p_page text, p_reason text) execute authenticated
 function core.access_matrix() execute authenticated
@@ -139,7 +141,7 @@ function core.access_set_person_level(p_person uuid, p_page text, p_level core.l
 function core.access_set_person_role(p_person uuid, p_role uuid, p_reason text) execute authenticated
 function core.access_set_role_capability(p_role uuid, p_capability text, p_granted boolean, p_reason text) execute authenticated
 function core.access_set_role_level(p_role uuid, p_page text, p_level core.level, p_reason text) execute authenticated
-function core.auth_ticket_issue(p_kind text, p_target text) execute service_role
+function core.auth_ticket_issue(p_kind text, p_target text, p_person uuid) execute service_role
 function core.auth_user_of(p_email text) execute service_role
 function core.clock() execute authenticated
 function core.department_save(p_id uuid, p_code text, p_name_en text, p_name_ar text, p_head uuid, p_version integer, p_reason text) execute authenticated
@@ -189,6 +191,7 @@ function core.profile_update(p_changes jsonb, p_version integer, p_person_versio
 function core.quarter_of(d date) execute authenticated
 function core.recently_deleted(p_limit integer) execute authenticated
 function core.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
+function core.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text) execute authenticated
 function core.riyadh_day(t timestamp with time zone) execute authenticated
 function core.riyadh_today() execute authenticated
 function core.role_save(p_id uuid, p_key text, p_name_en text, p_name_ar text, p_sort integer, p_version integer, p_reason text) execute authenticated
