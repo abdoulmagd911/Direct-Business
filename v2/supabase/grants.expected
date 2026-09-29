@@ -103,6 +103,7 @@ function api.side_field_save(p_id uuid, p_values jsonb, p_version integer, p_rea
 function api.sign_in_check(p_email text, p_user_agent text) execute service_role
 function api.sign_in_complete(p_provider text, p_device_label text, p_user_agent text) execute authenticated
 function api.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
+function api.sign_in_limited(p_email text) execute service_role
 function api.sign_in_log(p_person uuid, p_before timestamp with time zone, p_limit integer) execute authenticated
 function api.sign_in_methods() execute service_role
 function api.sign_in_password_check(p_email text, p_user_agent text) execute service_role
@@ -196,6 +197,7 @@ function core.settings_log(p_before timestamp with time zone, p_limit integer) e
 function core.sign_in_check(p_email text, p_user_agent text) execute service_role
 function core.sign_in_complete(p_provider text, p_device_label text, p_user_agent text) execute authenticated
 function core.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
+function core.sign_in_limited(p_email text) execute service_role
 function core.sign_in_log(p_person uuid, p_before timestamp with time zone, p_limit integer) execute authenticated
 function core.sign_in_methods() execute service_role
 function core.sign_in_password_check(p_email text, p_user_agent text) execute service_role

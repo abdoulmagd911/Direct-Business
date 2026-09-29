@@ -4,7 +4,10 @@
 -- admin undoes: it would re-grant what the three rules of P3-4 keep a non-admin from granting.
 -- Sabotages: supabase/tests/sabotage/access-undone-by-anyone.sql,
 --            supabase/tests/sabotage/the-undo-window-never-closes.sql,
---            supabase/tests/sabotage/undo-by-rights-then.sql.
+--            supabase/tests/sabotage/undo-by-rights-then.sql,
+--            supabase/tests/sabotage/my-profile-cannot-be-undone.sql.
+-- Your own names and profile, changed on My profile, are yours to undo within the window, whatever your level on the
+-- people pages (V9, V97) — and nothing else of your own person record is.
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
@@ -113,3 +116,41 @@ select test.raises(format('select api.undo(%L)', current_setting('t.r5')), '4250
   'an admin demoted to head cannot undo their own setting change', 'undo.not_allowed');
 select test.raises(format('select api.undo(%L)', current_setting('t.r6')), '42501',
   'nor their change of someone''s manager', 'undo.not_allowed');
+
+-- My profile: your own names and profile are yours to undo, within the window — and only those
+select set_config('t.am4', test.person('Test Fourth Manager', 'member')::text, true);
+select test.as_person(current_setting('t.am4')::uuid);
+select set_config('t.pf', api.profile_update('{"theme":"light"}'::jsonb) ->> 'version', true);
+select set_config('t.r7', api.profile_update('{"theme":"dark"}'::jsonb, current_setting('t.pf')::int) ->> 'request_id', true);
+select test.as_owner();
+select set_config('t.pv', (select version::text from core.person where id = current_setting('t.am4')::uuid), true);
+select set_config('t.pf', (select version::text from core.person_profile where person_id = current_setting('t.am4')::uuid),
+  true);
+select test.as_person(current_setting('t.am4')::uuid);
+select set_config('t.r8', api.profile_update('{"nickname_en":"Made-up Nick"}'::jsonb, current_setting('t.pf')::int,
+  current_setting('t.pv')::int) ->> 'request_id', true);
+select test.runs(format('select api.undo(%L)', current_setting('t.r8')),
+  'a team member undoes the nickname they gave themselves');
+select test.runs(format('select api.undo(%L)', current_setting('t.r7')), 'and the theme they chose');
+select test.as_owner();
+select test.eq((select nickname_en from core.person where id = current_setting('t.am4')::uuid), null::text,
+  'the nickname is gone');
+select test.eq((select theme::text from core.person_profile where person_id = current_setting('t.am4')::uuid), 'light',
+  'the theme is back');
+select set_config('t.r9', test.act(current_setting('t.am4')::uuid)::text, true);
+update core.person set job_title_en = 'Made-up title' where id = current_setting('t.am4')::uuid;
+select test.done();
+select test.as_person(current_setting('t.am4')::uuid);
+select test.raises(format('select api.undo(%L)', current_setting('t.r9')), '42501',
+  'but no other change to their own person record', 'undo.not_allowed');
+select test.as_owner();
+select set_config('t.pf', (select version::text from core.person_profile where person_id = current_setting('t.am4')::uuid),
+  true);
+select test.as_person(current_setting('t.am4')::uuid);
+select set_config('v2.test_now', (now() + interval '25 hours')::text, true);
+select set_config('t.r10', api.profile_update('{"theme":"dark"}'::jsonb, current_setting('t.pf')::int) ->> 'request_id',
+  true);
+select set_config('v2.test_now', (now() + interval '50 hours')::text, true);
+select test.raises(format('select api.undo(%L)', current_setting('t.r10')), '42501',
+  'nor their own profile after the window', 'undo.not_allowed');
+select set_config('v2.test_now', '', true);
