@@ -9,9 +9,13 @@ import { makePerson, signIn, sql } from './support/stack';
 const STARTING = 'Made-up-start-2027';
 
 function publicClient() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '', process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '', {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '',
+    {
+      auth: { persistSession: false, autoRefreshToken: false },
+    },
+  );
 }
 
 test('an admin sets a starting password, which must be changed before anything else', async ({ browser }) => {

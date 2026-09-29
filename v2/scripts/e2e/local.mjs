@@ -3,6 +3,7 @@
 // Runs the E2E specs on this machine against the local Supabase stack, the way CI does: the stack's settings from
 // scripts/e2e/stack-env.mjs, a production build, then Playwright. One command, so no shell variables are needed.
 //   node scripts/e2e/local.mjs [--no-build] [playwright args…]      e.g. node scripts/e2e/local.mjs tests/e2e/signin.spec.ts
+//   node scripts/e2e/local.mjs --sabotage <name>…                  the E2E sabotages, with the same settings
 // Needs the stack running (supabase start) with this branch's migrations (supabase db reset --local).
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
@@ -10,7 +11,8 @@ import { fileURLToPath } from 'node:url';
 
 const V2 = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const args = process.argv.slice(2);
-const build = !args.includes('--no-build');
+const sabotage = args[0] === '--sabotage' ? args.slice(1) : null;
+const build = !args.includes('--no-build') && !sabotage;
 const rest = args.filter((a) => a !== '--no-build');
 
 const envOut = spawnSync('node', ['scripts/e2e/stack-env.mjs'], { cwd: V2, encoding: 'utf8' });
@@ -30,5 +32,8 @@ const run = (/** @type {string} */ cmd, /** @type {string[]} */ a) => {
   if (r.error) console.error(`${cmd} could not start: ${r.error.message}`);
   if (r.status !== 0) process.exit(r.status ?? 1);
 };
-if (build) run('pnpm', ['build']);
-run('pnpm', ['exec', 'playwright', 'test', ...rest]);
+if (sabotage) run('node', ['scripts/sabotage.mjs', '--kind', 'e2e', ...sabotage.flatMap((n) => ['--only', n])]);
+else {
+  if (build) run('pnpm', ['build']);
+  run('pnpm', ['exec', 'playwright', 'test', ...rest]);
+}
